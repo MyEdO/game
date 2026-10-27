@@ -5,11 +5,11 @@
  * Le CATALOGUE (libellé, aide, groupe, forme du contrôle, défaut, bornes, action attachée) vit en
  * DONNÉE : `src/data/reglesOptionnelles.json` (schéma `src/data/schemas/defs/reglesOptionnelles.ts`,
  * éditable au Compendium). Ce module ne garde que les TYPES et la lecture : `rule(id)` = surcharge
- * runtime ⊕ défaut de la donnée. Le panneau in-game (state/houseRules + ui/HouseRulesPanel) écrit la
+ * runtime ⊕ défaut de la donnée. Le panneau in-game (hote/reglesMaison + ui/HouseRulesPanel) écrit la
  * surcharge par `setRule` et la PERSISTE ; il se RÉ-GÉNÈRE depuis le registre (un contrôle par entrée
  * selon `kind`), donc ajouter une règle = ajouter une entrée au JSON, et elle apparaît
  * automatiquement en jeu. Module FEUILLE pur : aucune dépendance store/UI (la persistance vit dans
- * state/, pas ici — le moteur reste pur).
+ * hote/, pas ici — le moteur reste pur).
  *
  * Réf. : la citation de chaque règle est portée par son champ `ref` (livre + chapitre, et la ligne
  * quand le passage en porte une) ; les formes réelles sont mesurées au schéma de la donnée.
@@ -132,7 +132,7 @@ export function ruleOverrides(): Record<string, RuleValue> {
 
 /** `v` est-elle une valeur de la forme `kind` que déclare `regle` : `flag` booléen, `param` nombre dans ses
  *  bornes, `mode` l'une de ses `options` ? */
-export function valeurConforme(regle: Pick<OptionalRule, 'kind' | 'options' | 'min' | 'max'>, v: unknown): v is RuleValue {
+export function valeurConforme(regle: Pick<OptionalRule, 'kind' | 'min' | 'max'> & { options?: readonly string[] }, v: unknown): v is RuleValue {
   switch (regle.kind) {
     case 'flag':
       return typeof v === 'boolean';

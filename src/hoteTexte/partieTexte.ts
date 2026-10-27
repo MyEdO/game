@@ -35,7 +35,7 @@ export function lireLeFichier(texte: string): { entete: Entete; gestes: Geste[] 
   const [tete, ...reste] = json;
   valider(estObjet(tete), 'en-tête : objet JSON attendu');
   const e = tete as Record<string, unknown>;
-  const entete = nouvelEntete(String(e.scenario), { graine: e.graine as number, cadence: e.cadence as string, desFixes: e.desFixes === true, regles: estObjet(e.regles) ? e.regles : {} });
+  const entete = nouvelEntete(String(e.scenario), { graine: e.graine as number, cadence: e.cadence, desFixes: e.desFixes, regles: estObjet(e.regles) ? e.regles : {} });
   return { entete, gestes: reste.map(lireGeste) };
 }
 

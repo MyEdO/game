@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HouseRulesPanel } from './HouseRulesModal';
 import { RetraitsDeChargement } from './RetraitsDeChargement';
-import { loadHouseRules } from '../state/houseRules';
+import { chargerLesReglesMaisonWeb } from '../state/reglesMaison';
 import { useGame } from '../state/store';
 import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 import { OPTIONAL_RULES, rule } from '../engine/policy';
@@ -57,7 +57,7 @@ const drapeau = OPTIONAL_RULES.find((r) => r.kind === 'flag')!;
 describe('règles maison persistées en partie refusées', () => {
   it('le panneau nomme les clés retirées, une fois ; les autres restent appliquées', () => {
     localStorage.setItem('wfrp4.house-rules', JSON.stringify({ [drapeau.id]: !drapeau.default, 'regle-hors-registre': true }));
-    loadHouseRules();
+    chargerLesReglesMaisonWeb();
     monter(<HouseRulesPanel />);
     expect(refusAffiches()).toEqual([t('houseRules.retirees', { liste: t('elagage.regles', { ids: 'regle-hors-registre' }) })]);
     expect(rule(drapeau.id)).toBe(!drapeau.default);
