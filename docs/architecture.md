@@ -396,7 +396,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `cascade.ts`, `rollSeam.ts`, `sieges.ts`, `slotsDeJet.ts`, `stepBrand.ts`,
                             `fixedDieMark.ts`, `recapLine.ts`, `partyWipe.ts`, `voyageCadence.ts`,
                             `battleRng.ts`, `bus.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`,
-                            `reglesMaison.ts` (verrou des règles maison en partie, lu par tout hôte), et les flux
+                            `reglesMaison.ts` (verrou des règles maison en partie, lu par tout hôte, et leur pose : jeu
+                            persisté élagué, surcharge sous le verrou), `preferences.ts` (la table des préférences
+                            de confort : forme, défaut, lecture et écriture de leur valeur du moteur), et les flux
                             de jeu ci-dessous. Outils d'auteur purs, lus par l'éditeur et par les tests du
                             contenu : `validateScene.ts` (un projet avant le runtime ; l'hôte y passe ses
                             pistes de musique), `mapQC.ts` (harnais d'atteignabilité d'une carte),
@@ -543,7 +545,11 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             partie, tirés du catalogue et des lecteurs du noyau), `roster.ts` (la procédure du roster
                             sur le `Stockage` que l'hôte fournit : charger, ajouter, retirer, mettre à jour — le
                             service `persisterLeHeros` d'un hôte qui a un stockage ; le chargement REND ses témoins de
-                            retrait et d'élagage). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte servi ou bâti par
+                            retrait et d'élagage), `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
+                            `Stockage` ; un chargement de règles maison qui élague cumule son témoin sous sa propre
+                            clé, que `prendreLeTemoinDesReglesMaison` consomme au montage du panneau des règles),
+                            `temoin.ts` (le témoin persisté d'un chargement : cumul au témoin déjà posé, prise unique ;
+                            la relecture et l'union des retraits sont à `noyau/persistance/elagage.ts`). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
                             ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
@@ -612,6 +618,9 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               `elagage`) sous sa propre clé du même stockage ; `prendreLesTemoinsDuRoster`
                               le lit puis le supprime, au montage du vivier de `ui/PartyScreen`, qui le
                               nomme. Le roster ne voyage PAS dans la save de partie
+  reglesMaison.ts             Câblage web des règles maison : son stockage (`localStorage`) et l'état du
+                              store, sous la procédure `hote/reglesMaison.ts` ;
+                              seule couture du panneau, du harnais de recette et des tests du store.
   projectLibrary.ts           Bibliothèque des projets de campagne de l'éditeur (`SavedProject`).
                               Base IndexedDB `wfrp4-library` par `accesBase` (magasin `projects`, source de
                               vérité — supporte les grandes campagnes qui dépassent le quota

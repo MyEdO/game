@@ -13,7 +13,7 @@
  *    cette liste que s'appuie l'angle mort annoncé (aucune clé ne déclare le contenu gaté) ;
  *  - le découpage en ONGLETS du panneau : seuil `OWN_TAB_MIN` et libellé du fourre-tout, lus dans
  *    `src/ui/houseRuleTabs.ts` ;
- *  - la clé de persistance `localStorage`, lue dans `src/state/houseRules.ts`.
+ *  - la clé de persistance `localStorage`, lue dans `src/hote/reglesMaison.ts`.
  * La part ÉDITORIALE (comment activer, quoi faire avant de rapporter une absence) vit ICI, en dur.
  *
  * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
@@ -29,7 +29,7 @@ function rendu() {
   const DATA = 'src/data/reglesOptionnelles.json'
   const DEF = 'src/data/schemas/defs/reglesOptionnelles.ts'
   const TABS = 'src/ui/houseRuleTabs.ts'
-  const STORE = 'src/state/houseRules.ts'
+  const STORE = 'src/hote/reglesMaison.ts'
   const PANNEAU = 'src/ui/HouseRulesModal.tsx'
   const POLICY = 'src/engine/policy.ts'
   const RECETTE = 'docs/recette-navigateur.md'
@@ -90,7 +90,7 @@ function rendu() {
   const MISC_LABEL = capture(TABS_SRC, /export const MISC_TAB_LABEL = '([^']+)'/, 'la constante `MISC_TAB_LABEL`', TABS)
   if (!Number.isFinite(OWN_TAB_MIN) || OWN_TAB_MIN < 1) abandon(`\`OWN_TAB_MIN\` illisible dans ${TABS}`)
 
-  const CLE_PERSISTANCE = capture(lire(STORE), /export const HOUSE_RULES_STORAGE_KEY = '([^']+)'/, 'la clé de persistance `HOUSE_RULES_STORAGE_KEY`', STORE)
+  const CLE_PERSISTANCE = capture(lire(STORE), /const CLE_DES_REGLES = '([^']+)'/, 'la clé de persistance `CLE_DES_REGLES`', STORE)
 
   for (const [f, sym] of [[POLICY, 'export function rule('], [POLICY, 'export function ruleDef(']]) {
     if (!lire(f).includes(sym)) abandon(`« ${sym.trim()} » introuvable dans ${f} (renommé ?)`)
@@ -200,7 +200,7 @@ activer la règle, **puis** rejouer le geste avant de conclure.
 
 | Couture | Persistance | Où |
 |---|---|---|
-| Panneau **Options** in-game | **PERSISTÉE** — \`localStorage['${CLE_PERSISTANCE}']\` | \`${PANNEAU}\` (onglets dérivés par \`${TABS}\`), écriture par \`setHouseRule\` (\`${STORE}\`) |
+| Panneau **Options** in-game | **PERSISTÉE** — \`localStorage['${CLE_PERSISTANCE}']\` | \`${PANNEAU}\` (onglets dérivés par \`${TABS}\`), écriture par \`reglerUneRegleMaison\` (\`${STORE}\`) |
 | Console de recette \`__wfrp.rules(id, value)\` | **RUNTIME, NON persistée** (meurt au rechargement) | \`${RECETTE}\`, § « Groupe / campagne / règles » |
 | Console de recette \`__wfrp.rules(id, null)\` | réinitialise **et purge la surcharge persistée** | idem |
 | Lecture par le moteur | — | \`rule(id)\` / \`ruleDef(id)\` (\`${POLICY}\`) |

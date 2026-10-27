@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, scenarioDeTest, tenueDesJetons } from './partie';
 import { OPTIONAL_RULES } from '../engine/policy';
+import { PREFERENCES } from '../noyau/preferences';
 import { t } from '../i18n';
 import { testScenarios } from '../scenes/test-scenarios';
 import type { Combatant, Jeton, ResultatDeLAppel } from '../noyau/index';
@@ -67,6 +68,16 @@ describe('l’en-tête d’une partie', () => {
     expect(e?.message).toContain(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
     expect(erreurDe(() => nouvelEntete(premier.id, { regles: { [r.id]: r.kind === 'flag' ? 'texte' : true } }))?.categorie).toBe('validation');
     expect(nouvelEntete(premier.id, { regles: { [r.id]: r.default } }).regles).toEqual({ [r.id]: r.default });
+  });
+
+  it('cadence et dés fixés : absents, le défaut de leur préférence ; non conformes à sa forme, refusés en `validation` (#3041)', () => {
+    const [premier] = testScenarios;
+    const defaut = (id: string) => PREFERENCES.find((p) => p.id === id)!.default;
+    const e = nouvelEntete(premier.id, {});
+    expect([e.cadence, e.desFixes]).toEqual([defaut('combat-cadence'), defaut('des-fixes')]);
+    expect(erreurDe(() => nouvelEntete(premier.id, { cadence: 'inconnue' }))?.categorie).toBe('validation');
+    expect(erreurDe(() => nouvelEntete(premier.id, { desFixes: 'oui' }))?.categorie).toBe('validation');
+    expect(nouvelEntete(premier.id, { cadence: 'auto', desFixes: true })).toMatchObject({ cadence: 'auto', desFixes: true });
   });
 });
 

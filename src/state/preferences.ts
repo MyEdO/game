@@ -1,114 +1,27 @@
 /**
- * PRÉFÉRENCES de confort — registre + persistance `localStorage` (patron `keybindingsPrefs.ts`).
- *
- * Ce n'est PAS le registre des règles optionnelles (`engine/policy.ts`, dont chaque entrée cite un
- * folio d'un livre autorisé et dont le moteur reconstruit l'état de combat) : ici vivent les
- * réglages de CONFORT (rythme de résolution…), qui ne changent aucun état de jeu déjà construit et
- * restent donc modifiables pendant un combat.
- *
- * Une entrée porte TOUT ce qui la concerne — sa forme de contrôle, sa lecture, son écriture, et
- * l'effet à jouer quand le JOUEUR la change (`onChange`). L'écran n'a donc jamais à connaître une
- * préférence par son id : il itère le registre. Ajouter un réglage = ajouter une entrée ICI, zéro
- * ligne d'UI (doctrine utilisateur 2026-07-26 : « "if (id=" n'est jamais une solution »).
+ * Les PRÉFÉRENCES du web (#3041) : la couture d'écriture JOUEUR sur la table du noyau (`noyau/preferences.ts`),
+ * persistée par la procédure de l'hôte (`hote/preferences.ts`) dans le `localStorage`, puis l'effet que le web
+ * déclare pour chaque entrée sur son store (`EFFETS`, exhaustif par `IdDePreference`).
  */
-import { CADENCE_DEFAULT, CADENCE_MODES, cadence, setCadence, type Cadence } from '../engine/cadence';
-import { DES_FIXES_DEFAULT, desFixes, setDesFixes } from '../engine/fixedDie';
 import { useGame } from './store';
-import { valeurConforme } from '../engine/policy';
-import { lireDictionnaire } from '../lib/stockage';
+import { reglerUnePreference } from '../hote/preferences';
+import { preferenceDef, type IdDePreference, type PrefValue } from '../noyau/preferences';
 import { stockageWeb } from '../web/stockageWeb';
 
-export type PrefValue = boolean | number | string;
-export type PrefKind = 'flag' | 'mode';
+/** L'effet d'un changement JOUEUR sur le store, par préférence (jamais au chargement). */
+const EFFETS: Record<IdDePreference, () => void> = {
+  // Basculer en Rapide/Auto EN PLEIN COMBAT ne traverse pas la boucle de tours : sans reprise explicite, le tour
+  // courant reste figé.
+  'combat-cadence': () => useGame.getState().resumeCadence(),
+  // La valeur vit hors du store (module feuille) : une modale de jet DÉJÀ ouverte ne se re-rendrait pas. On touche
+  // la tranche `net`, celle à laquelle `RollShell` s'abonne pour son sélecteur de dé.
+  'des-fixes': () => useGame.setState((s) => ({ net: { ...s.net } })),
+};
 
-export interface Preference {
-  /** Identifiant stable (clé de persistance). */
-  id: string;
-  /** Libellé affiché. */
-  label: string;
-  /** Aide courte (infobulle). */
-  hint?: string;
-  /** Forme du contrôle auto-rendu : flag=case à cocher, mode=liste. */
-  kind: PrefKind;
-  /** Valeurs possibles (kind='mode'). */
-  options?: string[];
-  /** Valeur par défaut. */
-  default: PrefValue;
-  /** Lecture de la valeur effective (la valeur vit dans son module métier, jamais en double ici). */
-  get(): PrefValue;
-  /** Écriture de la valeur (pure — appelée aussi au chargement, sans effet de bord). */
-  set(value: PrefValue): void;
-  /** Effet DÉCLARÉ à jouer après un changement JOUEUR (jamais au chargement). */
-  onChange?(): void;
-}
-
-export const PREFERENCES: Preference[] = [
-  {
-    id: 'combat-cadence',
-    label: 'Cadence de combat',
-    kind: 'mode',
-    options: [...CADENCE_MODES],
-    default: CADENCE_DEFAULT,
-    hint: 'manuel = chaque jet d’un héros passe par sa modale (défaut) ; rapide = les jets se lancent et s’appliquent seuls, sans dépenser Chance/Résilience/Sombre Pacte (le Sauvetage par Destin reste une modale) ; auto = l’IA joue aussi les héros (cible, action, surincantation, défense) et dépense le Destin pour éviter la mort.',
-    get: cadence,
-    set: (v) => setCadence(v as Cadence),
-    // Basculer en Rapide/Auto EN PLEIN COMBAT ne traverse pas la boucle de tours : sans reprise
-    // explicite, le tour courant reste figé.
-    onChange: () => useGame.getState().resumeCadence(),
-  },
-  {
-    id: 'des-fixes',
-    label: 'Dés fixés',
-    kind: 'flag',
-    default: DES_FIXES_DEFAULT,
-    hint: 'ajoute, sur les jets que vous contrôlez (vos héros ; les ennemis et le monde seulement si le siège MJ est le vôtre), un champ pour saisir vous-même la valeur du d100 — avant de lancer comme après. Le jet saisi est évalué normalement (réussite, DR, double → Critique/Maladresse), ne coûte aucun point, et porte la mention « dé fixé » dans la rangée et le journal. Le champ n’apparaît que sur les jets dont le moteur sait re-dériver l’issue depuis le dé.',
-    get: desFixes,
-    set: (v) => setDesFixes(v === true),
-    // La valeur vit hors du store (module feuille) : une modale de jet DÉJÀ ouverte ne se re-rendrait
-    // pas. On touche la tranche `net` — celle à laquelle `RollShell` s'abonne pour son sélecteur de dé.
-    onChange: () => useGame.setState((s) => ({ net: { ...s.net } })),
-  },
-];
-
-export const preferenceDef = (id: string): Preference | undefined => PREFERENCES.find((p) => p.id === id);
-
-/** Valeur effective d'une préférence (défaut si l'id est inconnu). */
-export function pref(id: string): PrefValue | undefined {
-  return preferenceDef(id)?.get();
-}
-
-const KEY = 'wfrp4.prefs';
-
-/** Persiste l'état courant du registre. */
-export function savePreferences(): void {
-  try {
-    const o: Record<string, PrefValue> = {};
-    for (const p of PREFERENCES) if (p.get() !== p.default) o[p.id] = p.get();
-    if (Object.keys(o).length) stockageWeb('localStorage')?.setItem(KEY, JSON.stringify(o));
-    else stockageWeb('localStorage')?.removeItem(KEY);
-  } catch {
-    /* stockage indisponible (mode privé, quota…) : le réglage reste effectif pour la session */
-  }
-}
-
-/** Charge les préférences persistées (démarrage de l'app) — sans jouer les `onChange`. Une valeur non
- *  conforme à la forme de son entrée (`valeurConforme`) est ignorée : le défaut s'applique. */
-export function loadPreferences(): void {
-  const o = lireDictionnaire(stockageWeb('localStorage'), KEY);
-  if (!o) return;
-  for (const p of PREFERENCES) {
-    const v = o[p.id];
-    if (valeurConforme(p, v)) p.set(v);
-  }
-}
-
-/** COUTURE UNIQUE d'écriture JOUEUR : écrit, persiste, puis joue l'effet déclaré par l'entrée. */
+/** COUTURE UNIQUE d'écriture JOUEUR : écrit, persiste, puis joue l'effet déclaré pour l'entrée. */
 export function setPreference(id: string, value: PrefValue): void {
-  const def = preferenceDef(id);
-  if (!def) return;
-  def.set(value);
-  savePreferences();
-  def.onChange?.();
+  const def = reglerUnePreference(stockageWeb('localStorage'), id, value);
+  if (def) EFFETS[def.id]();
 }
 
 /** Réinitialise une préférence à son défaut (même couture que `setPreference`). */
