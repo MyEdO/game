@@ -60,7 +60,7 @@ const EXEMPTES = new Map<string, string>([
   ['src/ui/creator/CharacterCreator.tsx|lvl1?.label ?? \'—\'', CHOIX_OUVERT],
   ['src/ui/creator/CharacterCreator.tsx|klass?.label ?? \'—\'', CHOIX_OUVERT],
   ['src/ui/creator/CreatorSummary.tsx|sp?.label ?? \'Race à choisir\'', CHOIX_OUVERT],
-  ['src/ui/creator/draft.ts|hero.label ?? \'\'', CHOIX_OUVERT],
+  ['src/noyau/creation/brouillon.ts|hero.label ?? \'\'', CHOIX_OUVERT],
   ['src/ui/editor/EffectList.tsx|e.ref?.custom?.label ?? \'?\'', AUTHORE],
   ['src/ui/editor/EffectList.tsx|e.label || \'?\'', AUTHORE],
   ['src/ui/editor/EffectList.tsx|e.label ?? \'\'', AUTHORE],

@@ -4,7 +4,7 @@ import { makePregens } from '../../data/pregens';
 import { createHero, competencesDeCarriere, repartitionDeCarriere } from '../../engine/character';
 import { firstLevel } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
-import { newDraft, withSpecies, withCareer, buildHero, careerSkillEntries, careerAdvTotal, evenCareerSkillAdvances, type CreatorDraft } from './draft';
+import { newDraft, withSpecies, withCareer, buildHero, careerSkillEntries, careerAdvTotal, evenCareerSkillAdvances, type CreatorDraft } from './brouillon';
 
 /** Ce que la création produit — la forme des choix (clés, désignations) n'y figure pas : seules leurs
  *  conséquences sur le héros. */

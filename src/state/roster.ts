@@ -1,6 +1,6 @@
 import type { Combatant } from '../engine/types';
 import type { Money } from '../engine/money';
-import type { CreatorDraft } from '../ui/creator/draft';
+import type { CreatorDraft } from '../noyau/creation/brouillon';
 import { t } from '../i18n';
 import { stockageWeb } from '../web/stockageWeb';
 import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';

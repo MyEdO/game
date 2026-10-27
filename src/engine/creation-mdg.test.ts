@@ -2,7 +2,7 @@
  * Tables de tirage MDG (La Mer des Griffes) :
  *  - Classe Côtier (MDG 09 l.9 + l.21-30) : la table Côtiers REMPLACE la portion Riverains — choix du
  *    joueur AVANT le d100, implémenté par filtrage de la liste passée à `rollCareer` (zéro changement
- *    moteur : `careerRollPool`, draft.ts). Bornes vérifiées colonne par colonne contre la table imprimée.
+ *    moteur : `careerRollPool`, brouillon.ts). Bornes vérifiées colonne par colonne contre la table imprimée.
  *  - Carrières norses (MDG 07 l.269-303) : colonne `Norse` de `CareerData.rand`, lue via
  *    `SpeciesData.refCareer = 'Norse'` des 3 origines humaines norses — la table Norse embarque déjà
  *    les variantes côtières (pas de portion Riverains : rien à remplacer, swap indisponible).
@@ -12,7 +12,7 @@
 import { describe, it, expect } from 'vitest';
 import { rollCareer } from './creation';
 import { careers, careersForSpecies, findCareerById, findSpeciesById, levelsForCareer, species } from '../data';
-import { newDraft, withSpecies, withCoastalSwap, careerRollPool, coastalSwapAvailable, type CreatorDraft } from '../ui/creator/draft';
+import { newDraft, withSpecies, withCoastalSwap, careerRollPool, coastalSwapAvailable, type CreatorDraft } from '../noyau/creation/brouillon';
 import { deFixe } from './dice.testkit';
 
 /** RNG figé : le d100 tombe toujours sur `v`. */

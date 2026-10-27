@@ -1,6 +1,6 @@
 /**
  * Sorts de Magie mineure (LDB 10 l.714) : les producteurs de la création (`fillPettySpellsToQuota`,
- * `creatorDefaults.ts`, `PettySpellsSection`) lisent la sous-liste de la feuille
+ * `noyau/creation/defauts.ts`, `PettySpellsSection`) lisent la sous-liste de la feuille
  * `idDe('spell', 'mineure')` (`idsDeLaSousListe`), jamais un filtre `family` recopié (#1988).
  */
 import { describe, it, expect } from 'vitest';

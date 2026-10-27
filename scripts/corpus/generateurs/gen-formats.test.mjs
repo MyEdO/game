@@ -24,7 +24,7 @@ test('stable entre deux processus', () => {
 test('stable entre deux racines de programme qui chargent les fichiers dans des ordres différents', () => {
   const autreOrdre = calculerFormats({
     racines: [...RACINES].reverse(),
-    avant: ['src/state/traceLayer.ts', 'src/ui/creator/draft.ts', 'src/engine/types.ts', 'src/state/store.ts'],
+    avant: ['src/state/traceLayer.ts', 'src/noyau/creation/brouillon.ts', 'src/engine/types.ts', 'src/state/store.ts'],
   })
   assert.deepEqual(parConstante(autreOrdre), BASE)
 })

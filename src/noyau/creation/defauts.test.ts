@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { fillDraftDefaults } from './creatorDefaults';
-import { newDraft, validateStep, stepIds } from './draft';
+import { fillDraftDefaults } from './defauts';
+import { newDraft, validateStep, stepIds } from './brouillon';
 import { setRule, resetRule } from '../../engine/policy';
 
 describe('fillDraftDefaults (#518 — recette DEV)', () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { StepBody } from './CharacterCreator';
-import { newDraft, withSpecies, withCareer, stepIds } from './draft';
+import { newDraft, withSpecies, withCareer, stepIds } from '../../noyau/creation/brouillon';
 import { species as allSpecies, careersForSpecies } from '../../data';
 
 /**

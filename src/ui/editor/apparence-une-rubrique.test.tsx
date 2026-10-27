@@ -12,7 +12,7 @@ import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
 import { ReglagesApparence } from './MonsterPartsFields';
 import { CodexEdit } from './codex/CodexEdit';
 import { DetailsScreen } from '../creator/CharacterCreator';
-import { newDraft, withSpecies, withCareer, type CreatorDraft } from '../creator/draft';
+import { newDraft, withSpecies, withCareer, type CreatorDraft } from '../../noyau/creation/brouillon';
 import { species as allSpecies, careersForSpecies } from '../../data';
 import { datasetArray } from '../../data/overrides';
 import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';

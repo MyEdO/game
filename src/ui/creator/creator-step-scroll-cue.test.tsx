@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CreatorStepFrame } from './CreatorStepFrame';
-import { newDraft, withSpecies, withCareer } from './draft';
+import { newDraft, withSpecies, withCareer } from '../../noyau/creation/brouillon';
 import { species as allSpecies, careersForSpecies } from '../../data';
 
 const SP = allSpecies.find((s) => s.source.book === 'livre-de-base')!;

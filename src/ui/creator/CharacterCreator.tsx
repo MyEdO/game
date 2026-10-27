@@ -10,7 +10,7 @@
  *
  * Seule l'étape Présentation garde un gabarit dédié (user 2026-07-15 : « c'est sensé être le même
  * sauf sur le dernier écran »). La logique (tirages figés, bonus de PX, validation, construction)
- * vit dans ./draft.ts (pur).
+ * vit dans `src/noyau/creation/brouillon.ts`.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useGame } from '../../state/store';
@@ -56,7 +56,7 @@ import {
 } from '../../data';
 import { SIZE_LABEL } from '../../engine/size';
 import { refKey, splitLabel } from '../../engine/careerSlots';
-import { cleDOption, fluxDeCreation, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
+import { CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, cleDOption, fluxDeCreation, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { bandeAuDe } from '../../engine/tables';
 import { brancheChoisie, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
@@ -96,7 +96,7 @@ import { hash32 } from '../../data/hash';
 import { previewHero } from './CreatorSummary';
 import { CreatorStepFrame, StepHeader, Section, XpBadge, type StepZones } from './CreatorStepFrame';
 import { Band } from '../Band';
-import { fillDraftDefaults } from './creatorDefaults';
+import { fillDraftDefaults } from '../../noyau/creation/defauts';
 import { QtyStepper } from '../QtyStepper';
 import { CreatorDice } from './CreatorDice';
 import { useRollFrisson, prefersReducedMotion } from '../useRollFrisson';
@@ -169,14 +169,12 @@ import {
   rerollDraftTalent,
   withRandomTalentSpec,
   withSpeciesTalentChoice,
-  CAREER_SKILL_ADVANCES,
-  MAX_ADV_PER_SKILL,
   CAREER_CHAR_ADVANCES,
   buildHero,
   draftFromHero,
   probeHero,
   xpTotal,
-} from './draft';
+} from '../../noyau/creation/brouillon';
 import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_STAR_ROLLED, parseStatus, speciesAllowed } from '../../engine/creation';
 import { PARTY_MAX } from '../../noyau/monde/combatants';
 import { garanti } from '../../lib/garanti';
@@ -188,7 +186,7 @@ import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
  *  un pas pose ses propres hooks puis compose `CreatorStepFrame` (seule Présentation garde un
  *  gabarit dédié, user 2026-07-15) : le dispatcher `StepBody` n'a donc qu'une branche, sans
  *  assertion. SOURCE UNIQUE du rendu, indexée par `StepId` stable — l'ordre ET la présence des
- *  étapes viennent de `stepIds()` (draft.ts, qui insère « Signe astral » selon la règle optionnelle
+ *  étapes viennent de `stepIds()` (brouillon.ts, qui insère « Signe astral » selon la règle optionnelle
  *  ADE II), jamais d'un index positionnel codé. EXPORTÉE pour la garde structurelle
  *  (`creator-ossature.test.tsx`), qui monte chaque étape via `StepBody` et vérifie les slots du
  *  gabarit. */
@@ -679,7 +677,7 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
 //      « nominatif sans figurine » venait du croquis initial, la planche RATIFIÉE montre bien de
 //      petites figurines) ⇄ détail = la carrière élue (`DetailFrame` — `MetalStatus`+`CareerPath`,
 //      1ers consommateurs réels, #412). Mécanique INCHANGÉE (`withCareer`/`rollDraftCareer`,
-//      draft.ts) — présentation seule se restructure, patron encrier de Race (rangée toolbar,
+//      brouillon.ts) — présentation seule se restructure, patron encrier de Race (rangée toolbar,
 //      résultat vit dans l'encrier plutôt qu'un mur de boutons).
 export function CareerScreen({ d, setD }: StepProps): ReactNode {
   const [search, setSearch] = useState('');
@@ -697,7 +695,7 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
 
   // Rang CONSULTÉ (exploration en LECTURE du détail, #393 P2 correctif utilisateur) : la chaîne
   // `CareerPath` bascule les rubriques Caractéristiques/Compétences/Talents sur le niveau cliqué —
-  // le CHOIX de création reste au niveau 1 (`draft.ts`/`buildHero` ne lisent jamais `exploredLevel`).
+  // le CHOIX de création reste au niveau 1 (`brouillon.ts`/`buildHero` ne lisent jamais `exploredLevel`).
   const [exploredLevel, setExploredLevel] = useState(1);
   useEffect(() => setExploredLevel(1), [d.careerId]);
   const lvlExplored = levels.find((l) => l.level === exploredLevel) ?? lvl1;
@@ -902,7 +900,7 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
 //      Compétences) — plus de rail séparé, TOUT vit dans le panneau central en BANDES (`Band`, étalon
 //      la planche ratifiée du créateur) : La méthode (segmenté) → Le tirage (grille + jauge N/10)
 //      → Augmentations gratuites (0ter, la maquette a PERDU ce bloc — transposé ICI, même bandage que
-//      Destin & Résilience, jamais supprimé) → Destin & Résilience. Mécanique INCHANGÉE (draft.ts).
+//      Destin & Résilience, jamais supprimé) → Destin & Résilience. Mécanique INCHANGÉE (brouillon.ts).
 /** Cadence de la cérémonie séquentielle des dix 2d10 (#393 agentivité) — chaque rangée roule
  *  ~400 ms avant de figer sa paire (clic sur la rangée qui roule = tout révéler, même impatience
  *  que `useRollFrisson.skip`). */
@@ -1437,11 +1435,11 @@ export function StarScreen({ d, setD }: StepProps) {
 //      `finale-mock4/5/6-5{a,b,c}`) : TROIS SOUS-ÉCRANS (`Tabs`, dock d'onglets « a/b/c ») — chacun
 //      GABARIT DEUX ZONES (panneau de travail + fiche vivante `CreatorSummary`, MÊME composition que
 //      Race/Carrière, #393 P2) : plus de rail séparé pour cette étape, l'encrier de sous-tirage/
-//      répartition rejoint l'en-tête du panneau. Mécanique INCHANGÉE (draft.ts) — seule la
+//      répartition rejoint l'en-tête du panneau. Mécanique INCHANGÉE (brouillon.ts) — seule la
 //      présentation se restructure en sous-écrans ; la fiche vivante RÉSOUT ses chips roadmap EN
 //      DIRECT au fil des trois (`speciesSkillsDone`/`careerSkillsDone`/`talentsDone`), au lieu d'un
 //      tout-ou-rien à l'arrivée sur l'étape (#417 suite). Talents d'espèce en TROIS lots dérivés de
-//      la donnée (LDB 05 l.484, `draft.ts`) : ACQUIS D'OFFICE (fixes) / DE RACE — UN AU CHOIX
+//      la donnée (LDB 05 l.484, `brouillon.ts`) : ACQUIS D'OFFICE (fixes) / DE RACE — UN AU CHOIX
 //      (« A ou B ») / TIRÉS AU D100 (figés par le seed dès la race choisie, jamais relancés).
 export function SkillsScreen({ d, setD, skillsSub, setSkillsSub }: StepProps): ReactNode {
   // Contrôlé par `CharacterCreator` (pied de page par sous-onglet) quand fourni ; sinon état
@@ -2008,7 +2006,7 @@ function trappingMeta(id: string): string {
 //      que Caractéristiques/Compétences) — le panneau porte le statut en tête, puis les bandes « De
 //      carrière » / « De classe » (chips d'équipement comptées) / « La bourse » (rappel de la formule +
 //      montant, jet figé sans dés à rejouer) / « La classe » (prose RAW verbatim). Mécanique INCHANGÉE
-//      (draftWealth/trappingChoices, draft.ts) — la fiche vivante RÉSOUT son chip roadmap « dotations » en
+//      (draftWealth/trappingChoices, brouillon.ts) — la fiche vivante RÉSOUT son chip roadmap « dotations » en
 //      arrivant sur cette étape (`CreatorSummary`, `pending.possessions`).
 /** Faces INDIVIDUELLES du jet de bourse — même flux/ordre RNG que `draftWealth`
  *  (`fluxDeCreation(d.seed, 'bourse')`, `rollInitialWealth`) : rejoue le MÊME nombre de `rng.int(1,10)` pour figer
