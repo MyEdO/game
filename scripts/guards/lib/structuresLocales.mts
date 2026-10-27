@@ -23,6 +23,13 @@
  * par son type ; une union imbriquée se replie dans sa mère, sauf sous une option `z.lazy`, nommée
  * `|<lazy>`. Deux nœuds d'un même type à la même clé LÈVENT (injectivité).
  *
+ * POINT CONJOINT (`pointsConjoints`) : les nœuds qui jugent ensemble la MÊME valeur, comme la co-descente les
+ * ferme (`ouverts`) — côtés d'une intersection (`&0`/`&1` ne sont pas des positions de la donnée, `segmentDeCle`),
+ * enveloppes, côtés d'un pipe —, puis, de proche en proche, les enfants de même segment de nœuds conjoints
+ * (intersection implicite). Un point est UN site, de la classe la plus lourde de ses nœuds objets ou non validants
+ * (`D5` > `L` > `G1` > `G`), d'empreinte les champs fusionnés de ses objets. Le reste (`.*`) d'un objet conjoint
+ * n'est pas un site quand son point est déjà `D5` ou qu'un autre objet y ferme le reste (`catchall` `never`).
+ *
  * L'EMPREINTE d'un site (ses clés déclarées et le type zod de chaque enfant) vit dans la mesure, hors du
  * stock : la porte des comptes (`occurrencesStock.mjs`, `renommagesDeStructure`) apparie par elle un site
  * disparu et un site né d'un même document (`nomDuDocument`).
@@ -37,7 +44,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated';
 import { SCHEMA_DEFS_SCENES } from '../../../src/data/schemas/_registry-scenes.generated';
 import type { SchemaDef } from '../../../src/data/schemas/types';
-import { declarationDEnfants, defDe, descendre, enfantsDe, valeursAdmises } from '../../../src/data/schemas/grammaire/descente';
+import { declarationDEnfants, defDe, descendre, enfantsDe, ouverts, valeursAdmises } from '../../../src/data/schemas/grammaire/descente';
 import { CLES_ENVELOPPE } from '../../../src/data/schemas/grammaire/document';
 import { famillesConstruites, OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
 import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits';
@@ -68,6 +75,8 @@ export type SiteDeStructure = Site & ChampsDeStructure;
 
 /** Les types de nœud non validants (D5). */
 const NON_VALIDANTS: ReadonlySet<string> = new Set(['unknown', 'any', 'custom']);
+/** Le POIDS d'une classe dans un point conjoint : la plus lourde fait la classe du site. */
+const POIDS: Readonly<Record<ClasseDeStructure, number>> = { G: 0, G1: 1, L: 2, D5: 3 };
 /** Les classes portées au stock. */
 const AU_STOCK: ReadonlySet<ClasseDeStructure> = new Set(['D5', 'G1', 'L']);
 
@@ -117,6 +126,11 @@ export function nomDeBranche(union: unknown, option: unknown): string {
   return `|<${def?.type ?? '?'}>`;
 }
 
+/** Le segment de CLÉ d'un enfant de `parent` : le nom de branche d'une option d'union (`nomDeBranche`), `''` pour un
+ *  côté d'intersection, nommé au chemin de l'intersection ; le segment de descente sinon. */
+const segmentDeCle = (parent: unknown, e: { readonly noeud: unknown; readonly segment: string }): string =>
+  e.segment.startsWith('|') ? nomDeBranche(parent, e.noeud) : e.segment.startsWith('&') ? '' : e.segment;
+
 type Chemin = { readonly path: string; readonly cout: number };
 const avant = (a: Chemin, b: Chemin): boolean => a.cout < b.cout || (a.cout === b.cout && a.path < b.path);
 
@@ -159,11 +173,55 @@ export function cheminsDeSchema(schema: unknown): Map<object, Chemin> {
     meilleurs.set(p.n, { path: p.path, cout: p.cout });
     for (const e of enfantsDe(p.n)) {
       if (meilleurs.has(e.noeud as object)) continue;
-      const s = e.segment.startsWith('|') ? nomDeBranche(p.n, e.noeud) : e.segment;
+      const s = segmentDeCle(p.n, e);
       pousser({ n: e.noeud, path: p.path + s, cout: p.cout + (s === '' ? 0 : 1) });
     }
   }
   return meilleurs;
+}
+
+/**
+ * Les POINTS CONJOINTS des nœuds de `chemins` : le représentant du point de chaque nœud. Un point part de la
+ * fermeture d'une intersection par la co-descente (`ouverts`), restreinte à son chemin (une branche d'union est
+ * une alternative, à son propre chemin) ; puis les enfants de même segment de nœuds d'un même point y forment un
+ * point, fermé de même. Sans intersection, chaque nœud est seul en son point. PURE.
+ */
+export function pointsConjoints(chemins: ReadonlyMap<object, Chemin>): (n: object) => object {
+  const parent = new Map<object, object>();
+  const rep = (n: object): object => {
+    let r = n;
+    while (parent.has(r)) r = parent.get(r)!;
+    return r;
+  };
+  const unir = (a: object, b: object): boolean => {
+    const [ra, rb] = [rep(a), rep(b)];
+    if (ra !== rb) parent.set(rb, ra);
+    return ra !== rb;
+  };
+  const fermer = (racines: readonly object[], path: string): boolean =>
+    ouverts(racines)
+      .filter((m): m is object => estNoeud(m) && chemins.get(m)?.path === path)
+      .concat(racines.slice(1))
+      .reduce((change, m) => unir(racines[0], m) || change, false);
+  for (const [n, { path }] of chemins) if (defDe(n)!.type === 'intersection') fermer([n], path);
+  for (let change = true; change; ) {
+    change = false;
+    const membres = new Map<object, object[]>();
+    for (const n of chemins.keys()) membres.set(rep(n), [...(membres.get(rep(n)) ?? []), n]);
+    for (const [r, point] of membres) {
+      if (point.length < 2) continue;
+      const path = chemins.get(r)!.path;
+      const parSegment = new Map<string, object[]>();
+      for (const m of point)
+        for (const e of enfantsDe(m)) {
+          const s = segmentDeCle(m, e);
+          if (s === '' || s.startsWith('|') || !estNoeud(e.noeud) || chemins.get(e.noeud)?.path !== path + s) continue;
+          parSegment.set(s, [...(parSegment.get(s) ?? []), e.noeud]);
+        }
+      for (const [s, enfants] of parSegment) if (new Set(enfants.map(rep)).size > 1) change = fermer(enfants, path + s) || change;
+    }
+  }
+  return rep;
 }
 
 /** L'EMPREINTE d'un site : `clé:type` de chaque enfant d'un objet, triés ; le type d'un nœud non validant. */
@@ -171,6 +229,16 @@ export function empreinteDeSite(noeud: unknown): string {
   const def = defDe(noeud);
   if (def?.type !== 'object') return def?.type ?? '';
   return empreinteDeChamps(enfantsDe(noeud).map((e) => [e.segment.slice(1), defDe(e.noeud)?.type ?? '']));
+}
+
+/** L'EMPREINTE d'un point conjoint (`empreinteDeChamps`) : les champs fusionnés de ses objets, une clé portée par
+ *  plusieurs au type `intersection` ; sans objet, celle de son premier nœud (`empreinteDeSite`). */
+function empreinteConjointe(noeuds: readonly object[]): string {
+  const objets = noeuds.filter((n) => defDe(n)?.type === 'object');
+  if (!objets.length) return empreinteDeSite(noeuds[0]);
+  const types = new Map<string, Set<string>>();
+  for (const o of objets) for (const e of enfantsDe(o)) types.set(e.segment.slice(1), (types.get(e.segment.slice(1)) ?? new Set()).add(defDe(e.noeud)?.type ?? ''));
+  return empreinteDeChamps([...types].map(([cle, t]) => [cle, t.size === 1 ? [...t][0] : 'intersection']));
 }
 
 /** Les exports zod de chaque module de `grammaire/` (hors tests). */
@@ -258,17 +326,31 @@ export function noeudsDeStructure(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, 
       : (composeurs.get(n)?.size ?? 0) >= 2 || payloads.has(n);
     return partage ? 'G' : 'G1';
   };
+  const estDeSite = (n: object): boolean => defDe(n)!.type === 'object' || NON_VALIDANTS.has(defDe(n)!.type);
   const out: NoeudDeStructure[] = [];
   for (const { fichier, famille, chemins } of nommes) {
+    const point = pointsConjoints(chemins);
+    const membres = new Map<object, object[]>();
+    const parentDuReste = new Map<object, object>();
+    for (const n of chemins.keys()) {
+      if (estDeSite(n)) membres.set(point(n), [...(membres.get(point(n)) ?? []), n]);
+      for (const e of enfantsDe(n)) if (e.segment === '.*' && estNoeud(e.noeud)) parentDuReste.set(e.noeud, n);
+    }
+    /** Le point est-il D5, ou un de ses objets ferme-t-il le reste (`catchall` `never`) ? */
+    const resteJuge = (p: readonly object[]): boolean =>
+      p.some((m) => NON_VALIDANTS.has(defDe(m)!.type) || defDe(enfantsDe(m).find((e) => e.segment === '.*')?.noeud)?.type === 'never');
     const parCle = new Map<string, object>();
-    for (const [n, { path }] of chemins) {
-      const type = defDe(n)!.type;
-      if (type !== 'object' && !NON_VALIDANTS.has(type)) continue;
+    for (const [r, noeuds] of membres) {
+      const { path } = chemins.get(noeuds[0])!;
       if (horsSite(path, famille)) continue;
+      const porteur = noeuds.map((n) => parentDuReste.get(n)).find((p) => p !== undefined && `${chemins.get(p)?.path}.*` === path);
+      if (porteur !== undefined && resteJuge(membres.get(point(porteur)) ?? [])) continue;
       const deja = parCle.get(path);
-      if (deja !== undefined && deja !== n) throw new Error(`structures locales : deux nœuds à la même clé ${fichier} :: ${path}`);
-      parCle.set(path, n);
-      out.push({ fichier, ref: path, noeud: n, classe: classe(n), empreinte: empreinteDeSite(n) });
+      if (deja !== undefined && deja !== r) throw new Error(`structures locales : deux nœuds à la même clé ${fichier} :: ${path}`);
+      parCle.set(path, r);
+      out.push(noeuds.length === 1
+        ? { fichier, ref: path, noeud: noeuds[0], classe: classe(noeuds[0]), empreinte: empreinteDeSite(noeuds[0]) }
+        : { fichier, ref: path, noeud: noeuds[0], classe: noeuds.map(classe).reduce((a, b) => (POIDS[b] > POIDS[a] ? b : a)), empreinte: empreinteConjointe(noeuds) });
     }
   }
   return out.sort((a, b) => parUnitesDeCode(a.fichier, b.fichier) || parUnitesDeCode(a.ref, b.ref));
@@ -354,8 +436,10 @@ function admisSansMemoire(n: unknown, def: NonNullable<ReturnType<typeof defDe>>
 }
 
 const ETAT_DE: Readonly<Record<Admis, EtatDeChemin>> = { ref: 'idDe', clos: 'ferme', libre: 'libre' };
-/** L'état (`EtatDeChemin`) des nœuds d'un chemin, alternatives les uns des autres. */
-const etatDuChemin = (noeuds: readonly unknown[]): EtatDeChemin => ETAT_DE[auMoins(noeuds.map((n) => admisDe(n)))];
+/** L'état (`EtatDeChemin`) des nœuds d'un chemin, par point conjoint de leur parent : conjoints dans un point
+ *  (`auPlus`), alternatives d'un point à l'autre (`auMoins`). */
+const etatDuChemin = (parPoint: Iterable<readonly unknown[]>): EtatDeChemin =>
+  ETAT_DE[auMoins([...parPoint].map((noeuds) => auPlus(noeuds.map((n) => admisDe(n)))))];
 
 /**
  * Les CHEMINS de schéma de document des `defs` (#3021) : chaque chemin qu'une arête d'un nœud nommé (`cheminsDeSchema`)
@@ -365,14 +449,18 @@ const etatDuChemin = (noeuds: readonly unknown[]): EtatDeChemin => ETAT_DE[auMoi
 export function cheminsDeDocument(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES]): CheminDeDocument[] {
   const out: CheminDeDocument[] = [];
   for (const { fichier, chemins } of schemasNommes(defs)) {
-    const parChemin = new Map<string, unknown[]>();
+    const point = pointsConjoints(chemins);
+    const parChemin = new Map<string, Map<object, unknown[]>>();
     for (const [n, { path }] of chemins)
       for (const e of enfantsDe(n)) {
-        if (e.segment === '') continue;
-        const ref = path + (e.segment.startsWith('|') ? nomDeBranche(n, e.noeud) : e.segment);
-        parChemin.set(ref, [...(parChemin.get(ref) ?? []), e.noeud]);
+        const s = segmentDeCle(n, e);
+        if (s === '') continue;
+        const ref = path + s;
+        const parPoint = parChemin.get(ref) ?? new Map<object, unknown[]>();
+        parPoint.set(point(n), [...(parPoint.get(point(n)) ?? []), e.noeud]);
+        parChemin.set(ref, parPoint);
       }
-    for (const [ref, noeuds] of parChemin) out.push({ file: fichier, ref, etat: etatDuChemin(noeuds) });
+    for (const [ref, parPoint] of parChemin) out.push({ file: fichier, ref, etat: etatDuChemin(parPoint.values()) });
   }
   return out.sort((a, b) => parUnitesDeCode(a.file, b.file) || parUnitesDeCode(a.ref, b.ref));
 }
