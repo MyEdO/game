@@ -60,6 +60,14 @@ export const SITE_STATBLOC: SiteDeSignature = {
  *  `grammaire/valeurs.ts`) : la référence de source plus sa preuve `quote`, dans tout document. */
 export const SITE_EMPLACEMENT_SECONDAIRE: SiteDeSignature = { champs: ['alsoIn'] };
 
+/** Le Trait POSÉ (`traitInstanceSchema`, `src/data/schemas/grammaire/reference.ts`) : les champs du
+ *  bestiaire et du statbloc de scène (`traits`, `optionals`), de l'espèce (`traits`) et de l'invocation
+ *  des sorts (`addTraits`). `vehicles.json › traits` n'en est pas : il désigne des Traits navals (`defs/vehicles.ts`). #1463. */
+export const SITE_TRAIT_POSE: SiteDeSignature = {
+  datasets: ['creatures.json', 'species.json', 'spells.json', ...DATASETS_DES_PROJETS],
+  champs: ['traits', 'optionals', 'addTraits'],
+};
+
 /**
  * Strate de la grammaire (#1463, design 2026-08-23) à laquelle une forme appartient.
  * QUATRE strates : la strate `Instance` du design v2 (SkillInstance, ItemInstance, snapshot de
@@ -353,6 +361,8 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'id,value', statut: 'cible', site: SITE_STATBLOC, note: 'réf de Compétence de STATBLOC + son nombre imprimé (`refOuSpec(\'skill\', {value})`)' },
       { sig: 'id,spec,value', statut: 'cible', site: SITE_STATBLOC, note: 'idem, spécialisation DÉSIGNÉE' },
       { sig: 'choix,id,value', statut: 'cible', site: SITE_STATBLOC, note: 'idem, spécialisation À CHOISIR (libre ou bornée) — désignée au spawn' },
+      { sig: 'id,parLocalisation', statut: 'cible', site: SITE_TRAIT_POSE, note: 'Trait posé à un Indice par Localisation' },
+      { sig: 'id,plage', statut: 'cible', site: SITE_TRAIT_POSE, note: 'Trait posé à fourchette d’Indice, tirée pour son porteur' },
       { sig: 'id,value', statut: 'historique', note: 'charge utile `value` à plat sur une référence dont le porteur n’est PAS un statbloc (Indice d’Atout, paramètre d’entité) — #1463 S2' },
       { sig: 'id,spec,value', statut: 'historique', note: '#1463 « Cible précisée » l’énumère parmi les 5 graphies historiques, son 1er paragraphe la dit champ optionnel de la MÊME structure — L0 retient l’énumération hors statbloc (une ligne de stock se retire, elle ne se devine pas)' },
       { sig: 'arg,id', statut: 'historique', note: 'paramètre d’entité non déclaré (#1463 S2 A11)' },
