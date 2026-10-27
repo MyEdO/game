@@ -40,7 +40,7 @@ import { initialNet, type NetState } from '../noyau/etat';
 import { fermerLeSiege } from '../noyau/sieges';
 import { t } from '../i18n';
 import { stockageWeb } from '../web/stockageWeb';
-import { FORMAT_SAVE } from './formats.generated';
+import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 
 /** Le nom d'un siège de coop : celui que le joueur a donné, sinon « Hôte » (siège 0) ou « Joueur n » (#1906) —
  *  SOURCE UNIQUE, jamais « L'hôte » pour un invité. */

@@ -15,7 +15,8 @@ import { CADENCE_DEFAULT, CADENCE_MODES, cadence, setCadence, type Cadence } fro
 import { DES_FIXES_DEFAULT, desFixes, setDesFixes } from '../engine/fixedDie';
 import { useGame } from './store';
 import { valeurConforme } from '../engine/policy';
-import { lireDictionnaire, stockageWeb } from '../web/stockageWeb';
+import { lireDictionnaire } from '../lib/stockage';
+import { stockageWeb } from '../web/stockageWeb';
 
 export type PrefValue = boolean | number | string;
 export type PrefKind = 'flag' | 'mode';
@@ -93,7 +94,7 @@ export function savePreferences(): void {
 /** Charge les préférences persistées (démarrage de l'app) — sans jouer les `onChange`. Une valeur non
  *  conforme à la forme de son entrée (`valeurConforme`) est ignorée : le défaut s'applique. */
 export function loadPreferences(): void {
-  const o = lireDictionnaire('localStorage', KEY);
+  const o = lireDictionnaire(stockageWeb('localStorage'), KEY);
   if (!o) return;
   for (const p of PREFERENCES) {
     const v = o[p.id];

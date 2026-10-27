@@ -11,7 +11,7 @@ import { resetSceneRegistry } from '../noyau/monde/registreDesScenes';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { lancerCampagne } from '../scenes/campaign';
 import { readSlot, deleteSlot, exportSave, importSave, listSaves, saveToSlot, parseSave, snapshotSave, takeObsoleteNotice, elaguerSave, type SaveGame } from './saves';
-import { FORMAT_SAVE } from './formats.generated';
+import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 import { rule, setRule, loadRuleOverrides, OPTIONAL_RULES } from '../engine/policy';
 import { talents, careerLevels, specResolves, combatStakeRef, conditionIds } from '../data/index';
 import { applierDe } from '../noyau/cascade';

@@ -3,7 +3,7 @@ import { applyNetSnapshot, buildDeLaCoop, netHostStart, netJoin, netLeave } from
 import { initialNet } from '../noyau/etat';
 import { useGame } from './store';
 import type { SocketLike } from '../net/relay';
-import { FORMAT_SAVE } from './formats.generated';
+import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 import { setDataset } from '../data/overrides';
 import { etats } from '../data';
 import { OPTIONAL_RULES } from '../engine/policy';

@@ -5,7 +5,7 @@ import type { NetState } from '../noyau/etat';
 import { ownsLocalNet } from './ownership';
 import { makePregensWithWealth } from '../data/pregens';
 import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport, takeRosterNotice, takeRosterElagage } from '../state/roster';
-import { nommerLesRetraits } from '../state/elagage';
+import { nommerLesRetraits } from '../noyau/persistance/elagage';
 import { PARTY_MAX } from '../noyau/monde/combatants';
 import { downloadText, fileSlug } from '../web/fileIo';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';

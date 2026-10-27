@@ -1,6 +1,6 @@
 import type { TraceTransform } from '../ui/editor/traceCalibration';
 import { accesBase } from '../web/indexedDb';
-import { FORMAT_CALQUE } from './formats.generated';
+import { FORMAT_CALQUE } from '../noyau/persistance/formats.generated';
 
 /**
  * Persistance du CALQUE DE RÉFÉRENCE de l'éditeur (planche de livre décalquée, #830) — jamais de la

@@ -3,7 +3,7 @@ import { rule, type OptionalRule, type RuleValue } from '../engine/policy';
 import { setHouseRule, resetHouseRule, houseRulesMutability, takeHouseRulesNotice } from '../state/houseRules';
 import { t } from '../i18n';
 import { ChipDeRefus } from './ChipDeRefus';
-import { nommerLesRetraits, type RetraitsDElagage } from '../state/elagage';
+import { nommerLesRetraits, type RetraitsDElagage } from '../noyau/persistance/elagage';
 import { useGame } from '../state/store';
 import { Icon } from './Icon';
 import { NumberField } from './NumberField';

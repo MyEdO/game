@@ -11,10 +11,11 @@
  * partie ; tout chemin joueur (panneau du menu principal, onglet Options en jeu) passe ici.
  */
 import { ruleOverrides, loadRuleOverrides, setRule, resetRule, type RuleValue } from '../engine/policy';
-import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
+import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from '../noyau/persistance/elagage';
 import { useGame } from './store';
 import { reglesMaisonMutables } from '../noyau/reglesMaison';
-import { lireDictionnaire, stockageWeb } from '../web/stockageWeb';
+import { lireDictionnaire } from '../lib/stockage';
+import { stockageWeb } from '../web/stockageWeb';
 
 /** Clé du magasin des règles maison dans le `localStorage`. */
 export const HOUSE_RULES_STORAGE_KEY = 'wfrp4.house-rules';
@@ -34,7 +35,7 @@ export function takeHouseRulesNotice(): RetraitsDElagage | null {
  *  le registre courant refuse sont retirées (`elaguerLePersiste`) ; les autres restent appliquées, le stockage est
  *  réécrit élagué, témoin posé (#1463 LD.1). */
 export function loadHouseRules(): void {
-  const o = lireDictionnaire('localStorage', HOUSE_RULES_STORAGE_KEY);
+  const o = lireDictionnaire(stockageWeb('localStorage'), HOUSE_RULES_STORAGE_KEY);
   if (!o) return;
   const { regles, retraits } = elaguerLePersiste({ regles: o });
   loadRuleOverrides(regles);

@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { setNorthDeg } from '../noyau/sceneEdit';
 import { exportSave, importSave, snapshotSave } from './saves';
-import { FORMAT_SAVE } from './formats.generated';
+import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 
 describe('setNorthDeg — un cap, pas un compteur', () => {
   const base = () => emptyScene('scene-test', 6, 6);
