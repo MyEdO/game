@@ -67,8 +67,12 @@ export function listerImage(depot: Depot, arbre: string, ...dossiers: string[]):
 
 /** Le texte de chaque chemin de `rels` dans l'image `arbre` (une ref ou `INDEX`), `null` s'il y est absent. */
 export function lireEnLot(depot: Depot, arbre: string, rels: readonly string[]): Map<string, string | null>;
-/** La base commune de `a` et `b` (`merge-base`), `null` sans elle. */
-export function baseCommune(depot: Depot, a: string, b: string): string | null;
+/** La base commune de `a` et `b` (`merge-base`), `null` sans elle ; avec plusieurs `b`, celle de `a` et de leur fusion. */
+export function baseCommune(depot: Depot, a: string, ...b: string[]): string | null;
+/** Les meilleurs ancêtres communs de tous les `commits` (`merge-base --all --octopus`), aucun sans eux. */
+export function basesCommunes(depot: Depot, commits: readonly string[]): string[];
+/** Les commits que la fusion en cours fusionne dans HEAD (`MERGE_HEAD`), vide hors fusion. */
+export function fusionnesEnCours(depot: Depot): string[];
 /** Le sha du commit `ref`, `null` s'il est absent. */
 export function shaDe(depot: Depot, ref: string, opts?: { court?: boolean }): string | null;
 /** Les commits d'une plage, du plus ancien au plus récent. */

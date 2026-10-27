@@ -13,7 +13,7 @@ import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
   BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
-  appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, dossierGitCommun, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre,
+  appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, dossierGitCommun, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, rangDuTronc,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, histoireDeHead, initialiserDepot, journalDe, lireEnLot, listerImage, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
   fusionner, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, refsDistantes, objetsNommes, refusDeGit, shaDe, shaPrecedentDeHead, shasDe, shasDistants, supprimerBranche, tenter, tetesDistantes, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
@@ -643,6 +643,32 @@ test('status 0 rend un FAIT porteur de la sortie', () => {
   const { racine, second } = depot()
   try {
     assert.equal(shaDe(forge(racine), 'HEAD'), second)
+  } finally { jeter(racine) }
+})
+
+test('#1463 rangDuTronc : le SEUL parent qui est la mesure ou l’un de ses ancêtres et contient le tronc que l’autre contient ; sinon `null`', () => {
+  const { racine, premier, second, g } = depot()
+  try {
+    const commettre = (branche, depuis, fichier) => {
+      g('checkout', '-q', '-b', branche, depuis)
+      writeFileSync(join(racine, fichier), `${branche}\n`)
+      g('add', '-A'); g('commit', '-q', '-m', branche)
+      return g('rev-parse', 'HEAD').trim()
+    }
+    const cote = commettre('cote', premier, 'cote.txt')
+    const perimee = commettre('perimee', premier, 'perimee.txt')
+    const solde = commettre('solde', second, 'solde.txt')
+    g('merge', '-q', '--no-ff', '-m', 'le tronc fusionne la branche périmée', 'perimee')
+    const mesure = g('rev-parse', 'HEAD').trim()
+    const chantier = commettre('chantier', solde, 'chantier.txt')
+    const d = forge(racine)
+    assert.equal(rangDuTronc(d, [cote, second], second), 1, 'la mesure elle-même')
+    assert.equal(rangDuTronc(d, [cote, premier], second), 1, 'un ancêtre strict')
+    assert.equal(rangDuTronc(d, [premier, second], second), 1, 'deux ancêtres : celui qui contient l’autre')
+    assert.equal(rangDuTronc(d, [chantier, perimee], mesure), null, 'un ancêtre PÉRIMÉ, qui ne contient pas le tronc que l’autre contient')
+    assert.equal(rangDuTronc(d, [chantier, mesure], mesure), 1, 'le tronc à jour contient celui du chantier')
+    assert.equal(rangDuTronc(d, [cote, second], premier), null, 'aucun parent ancêtre')
+    assert.equal(rangDuTronc(d, [cote, second], 'origin/main'), null, 'mesure absente du dépôt')
   } finally { jeter(racine) }
 })
 

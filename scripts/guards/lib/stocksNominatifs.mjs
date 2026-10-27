@@ -597,30 +597,31 @@ function ecartDEntrees(pre, post) {
 }
 
 /**
- * Ce qu'une FUSION fait naître et mourir, en ENTRÉES, contre la fusion automatique de ses deux
- * parents (#2223), PUR. Une entrée de la `base` commune que l'un des côtés a retirée est retirée de la
- * fusion automatique : la fusion qui la garde la fait NAÎTRE (résurrection, retrait contre retouche
- * compris), celle qui retire une entrée gardée des deux côtés la fait MOURIR. Les entrées nées d'un
- * côté ou de l'autre (le même texte des deux côtés compte une fois) sont celles de la fusion
- * automatique : la fusion ne fait naître que ce qu'elle ajoute à leur multiensemble (`ecartDEntrees`).
- * Ce multiensemble est l'UNION des deux côtés : une copie née de `^1` en consomme une née de `^2` de
- * même clé et même texte, une pour une, comme dans `apparier`.
+ * Ce qu'une FUSION fait naître ou mourir, en ENTRÉES comptées par CLÉ, PUR (#2223) : contre sa fusion AUTOMATIQUE,
+ * rejouée sur les entrées de ses parents réels et de leur `base` commune, et contre son parent TRONC (#1463, #3023).
+ * La fusion automatique garde une entrée de `base` que les deux côtés gardent, dans la version du côté qui la réécrit
+ * (`apparier`), et perd celle qu'un côté retire ; elle porte les entrées nées d'un côté ou de l'autre, en MULTIENSEMBLE
+ * (le même texte des deux côtés compte une fois, une copie née de `^1` en consomme une née de `^2`).
+ * Une clé NAÎT de ce dont la fusion la porte de plus que l'automatique ET que le tronc (`tronc` = le rang du parent
+ * tronc, `rangDuTronc`, gitPorte.mjs ; sans tronc, l'automatique seule) : aucune clé ne paie une autre. Le fichier naît
+ * de même sur ses totaux, ce qui attrape une clé renommée gardée sous ses deux noms ; la croissance retenue est la plus
+ * haute des deux. Sans croissance, une clé MEURT symétriquement. Les entrées rendues sont celles des clés qui croissent
+ * (ou meurent), d'abord celles dont le texte n'est ni dans l'automatique ni dans le tronc. `renommages` (chemin de la base
+ * commune ↦ chemin d'un parent) compte une clé sous le nom que son fichier prend, comme `bilanDuPorteur` d'un commit.
  * CONTRAT : les entrées de `base` sont des objets DISTINCTS — l'appariement les reconnaît par
  * identité d'objet, et deux entrées partageant un objet n'en feraient qu'une.
- * @param {{ base: { cle: string, texte: string }[], parents: [{ cle: string, texte: string }[], { cle: string, texte: string }[]], fusion: { cle: string, texte: string }[] }} p
+ * @param {{ base: { cle: string, texte: string }[], parents: [{ cle: string, texte: string }[], { cle: string, texte: string }[]], fusion: { cle: string, texte: string }[], tronc?: 0 | 1 | null, renommages?: Map<string, string> }} p
  * @returns {{ nees: { cle: string, texte: string }[], mortes: { cle: string, texte: string }[] }}
  */
-export function apportDeFusion({ base, parents: [p1, p2], fusion }) {
-  const [c1, c2, cm] = [p1, p2, fusion].map((cote) => apparier(base, cote))
-  const gardees = (c) => new Map(c.paires)
-  const [g1, g2, gm] = [c1, c2, cm].map(gardees)
-  const nees = []
-  const mortes = []
-  for (const e of base) {
-    const automatique = g1.has(e) && g2.has(e)
-    if (gm.has(e) && !automatique) nees.push(gm.get(e))
-    if (!gm.has(e) && automatique) mortes.push(e)
-  }
+export function apportDeFusion({ base, parents, fusion, tronc = null, renommages = new Map() }) {
+  const [c1, c2] = parents.map((cote) => apparier(base, cote))
+  const [g1, g2] = [c1, c2].map((c) => new Map(c.paires))
+  const gardees = base.flatMap((e) => {
+    if (!g1.has(e) || !g2.has(e)) return []
+    const versions = [g1.get(e), g2.get(e)]
+    const reecrites = versions.filter((v) => v.texte !== e.texte)
+    return [reecrites.length === 2 && tronc !== null ? versions[tronc] : (reecrites[0] ?? e)]
+  })
   const deUn = [...c1.nees]
   const nesDesCotes = [...c1.nees, ...c2.nees.filter((e) => {
     const i = deUn.findIndex((d) => d.cle === e.cle && d.texte === e.texte)
@@ -628,25 +629,58 @@ export function apportDeFusion({ base, parents: [p1, p2], fusion }) {
     deUn.splice(i, 1)
     return false
   })]
-  const propres = ecartDEntrees(nesDesCotes, cm.nees)
-  return { nees: [...nees.map(vueDEntree), ...propres.nees], mortes: [...mortes.map(vueDEntree), ...propres.mortes] }
+  const automatique = [...gardees, ...nesDesCotes]
+  const references = [automatique, ...(tronc === null ? [] : [parents[tronc]])]
+  const suivies = new Map([...renommages].map(([avant, apres]) => [cheminNormalise(avant), cheminNormalise(apres)]))
+  const cleSuivie = (e) => suivies.get(e.cle) ?? e.cle
+  const decompte = (entrees, cle = cleSuivie) => entrees.reduce((n, e) => n.set(cle(e), (n.get(cle(e)) ?? 0) + 1), new Map())
+  const [parCleDeLaFusion, ...parCleDesReferences] = [fusion, ...references].map((entrees) => decompte(entrees))
+  /** Le plus petit `ecart(reference)` sur les décomptes des références, borné à 0. */
+  const plancher = (ecart) => Math.max(0, Math.min(...parCleDesReferences.map(ecart)))
+  const nait = (k) => plancher((r) => (parCleDeLaFusion.get(k) ?? 0) - (r.get(k) ?? 0))
+  const meurt = (k) => plancher((r) => (r.get(k) ?? 0) - (parCleDeLaFusion.get(k) ?? 0))
+  const total = (n) => [...n.values()].reduce((s, v) => s + v, 0)
+  const cles = [...new Set([fusion, ...references].flat().map(cleSuivie))]
+  const parCles = cles.reduce((s, k) => s + nait(k), 0)
+  const croissance = Math.max(parCles, plancher((r) => total(parCleDeLaFusion) - total(r)))
+  /** `entrees`, celles dont le texte manque au plus grand nombre des images `contre` d'abord. */
+  const inedites = (entrees, contre) => {
+    const textes = contre.map((entreesContre) => decompte(entreesContre, identite))
+    const vues = (e) => textes.filter((t) => t.has(identite(e))).length
+    return [...entrees].sort((a, b) => vues(a) - vues(b))
+  }
+  const prises = (entrees, contre, quota) => cles.flatMap((k) => inedites(entrees.filter((e) => cleSuivie(e) === k), contre).slice(0, quota(k)))
+  if (croissance > 0) {
+    const parCle = prises(fusion, references, nait)
+    const enPlus = inedites(fusion.filter((e) => !parCle.includes(e)), references).slice(0, croissance - parCle.length)
+    return { nees: [...parCle, ...enPlus].map(vueDEntree), mortes: [] }
+  }
+  return { nees: [], mortes: prises(tronc === null ? automatique : parents[tronc], [fusion], meurt).map(vueDEntree) }
 }
+
+/** L'identité TEXTUELLE d'une entrée : sa clé et son texte. */
+const identite = (e) => `${e.cle}\n${e.texte}`
 
 /**
  * Bilan d'une FUSION, porteur par porteur, PUR (#2223) : `apportDeFusion` sur les images de chacun
  * des `fichiers` — la fusion, ses deux parents, leur base commune —, rendu comme `bilanDesStocks`.
  * Une image absente (`null`) n'a aucune entrée ; une image hors `DIALECTE` non plus (les familles de
- * `PORTEURS` sont toutes dans un dialecte).
- * @param {{ fichiers: string[], lire: { fusion: (c: string) => string | null, parents: [(c: string) => string | null, (c: string) => string | null], commune: (c: string) => string | null } }} p
+ * `PORTEURS` sont toutes dans un dialecte). `tronc` = le rang du parent tronc, `renommages()` = les fichiers que ses
+ * parents renomment depuis la base commune, lus à la demande (`apportDeFusion`).
+ * @param {{ fichiers: string[], lire: { fusion: (c: string) => string | null, parents: [(c: string) => string | null, (c: string) => string | null], commune: (c: string) => string | null }, tronc?: 0 | 1 | null, renommages?: () => Map<string, string> }} p
  * @returns {ReturnType<typeof bilanDesStocks>}
  */
-export function bilanDeFusion({ fichiers, lire }) {
-  return fichiers.filter(estPorteurDeStock).sort(parUnitesDeCode).map((fichier) => {
+export function bilanDeFusion({ fichiers, lire, tronc = null, renommages = () => new Map() }) {
+  const porteurs = fichiers.filter(estPorteurDeStock).sort(parUnitesDeCode)
+  const suivis = porteurs.length ? renommages() : new Map()
+  return porteurs.map((fichier) => {
     const entrees = (l) => entreesDeLImage(l, fichier) ?? []
     const { nees, mortes } = apportDeFusion({
       base: entrees(lire.commune),
       parents: [entrees(lire.parents[0]), entrees(lire.parents[1])],
       fusion: entrees(lire.fusion),
+      tronc,
+      renommages: suivis,
     })
     return bilanDuPorteur(fichier, nees, mortes, new Map())
   })
