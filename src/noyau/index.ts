@@ -50,3 +50,5 @@ export {
   snapshotSave, parseSave, metaDeSave, lireSave, exporterLaSauvegarde, importerLaSauvegarde, chargerLaSave, refusDeSauvegarde,
   type SaveGame, type SaveMeta, type ObsoleteCause,
 } from './persistance/save';
+export { aEcrire, campagneDUneEntree, entreesRelues, idDesignable, projetDUneEntree, type CampagneLancee, type EntreeListee, type SavedProject } from './persistance/bibliotheque';
+export { ProjetRefuse, type ProjectDoc } from './worldMap';
