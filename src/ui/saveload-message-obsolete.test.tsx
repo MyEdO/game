@@ -4,20 +4,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SaveLoadModal } from './SaveLoadModal';
 import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
 
 const ls = () => (globalThis as { localStorage: Storage }).localStorage;
 const save = (version: string | number) => JSON.stringify({ version, savedAt: '2026-08-17', sceneLabel: 'Ancienne', gameTime: 3, data: {} });
@@ -35,7 +24,7 @@ function monter(): string {
 }
 
 beforeEach(() => {
-  vi.stubGlobal('localStorage', fakeStorage());
+  poserLeLocalStorage();
 });
 
 afterEach(() => {

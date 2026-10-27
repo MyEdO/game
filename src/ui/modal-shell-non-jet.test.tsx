@@ -9,6 +9,7 @@ import { ManannPriestModal } from './ManannPriestModal';
 import { ShoreLeaveModal } from './ShoreLeaveModal';
 import { RenounceModal } from './RenounceModal';
 import type { Combatant } from '../engine/types';
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 /**
  * Deux états DISTINCTS du voile (`modal.css`) : `data-champ` (champ lisible : voile allégé, ancrage
@@ -24,18 +25,6 @@ import type { Combatant } from '../engine/types';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
-
 const HERO = {
   id: 'H', name: 'H', label: 'Héros', kind: 'hero',
   characteristics: { endurance: 40 }, wounds: { current: 8, max: 12 }, advantage: 0,
@@ -48,7 +37,7 @@ let host: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
-  vi.stubGlobal('localStorage', fakeStorage());
+  poserLeLocalStorage();
   useGame.setState({
     party: [HERO],
     battle: null,

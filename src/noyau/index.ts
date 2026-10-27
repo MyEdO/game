@@ -46,4 +46,7 @@ export { lireLeRoster, ecrireLeRoster, rosterAvecLeHeros, type RosterEntry } fro
 export { lireLesRetraits, cumulerLesRetraits, type RetraitsDElagage } from './persistance/elagage';
 export { poserLesReglesMaisonPersistees, surchargerUneRegleMaison, retablirUneRegleMaison } from './reglesMaison';
 export { preferenceDef, preferencesAPersister, poserLesPreferencesPersistees, valeurDEntree, type IdDePreference, type Preference, type PrefValue } from './preferences';
-export { snapshotSave, parseSave, chargerLaSave, refusDeSauvegarde, type SaveGame, type SaveMeta } from './persistance/save';
+export {
+  snapshotSave, parseSave, metaDeSave, lireSave, exporterLaSauvegarde, importerLaSauvegarde, chargerLaSave, refusDeSauvegarde,
+  type SaveGame, type SaveMeta, type ObsoleteCause,
+} from './persistance/save';

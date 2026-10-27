@@ -19,28 +19,10 @@ import { Scene, emptyScene } from '../noyau/monde/scene';
 import { ProjetRefuse, playerEntryError } from '../noyau/worldMap';
 import { allAxes } from '../data';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 const KEY = 'wfrp4.editor-projects';
 const TOMBSTONE_KEY = 'wfrp4.editor-projects.tombstones';
-
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). `failSetItem` :
- *  clés dont `setItem` doit rejeter (simulation de quota dépassé/accès refusé CIBLÉE sur une clé). */
-function fakeStorage(opts: { failSetItem?: Set<string> } = {}): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => {
-      if (opts.failSetItem?.has(k)) throw new Error(`setItem refusé (${k})`);
-      m.set(k, String(v));
-    },
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() {
-      return m.size;
-    },
-  } as Storage;
-}
 
 const NOM = 'wfrp4-library';
 
@@ -82,7 +64,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     expect(mesure.fautes).toEqual([]);
   });
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
   });
   afterEach(() => {
     delete (globalThis as { localStorage?: Storage }).localStorage;
@@ -335,7 +317,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
       // qui saute la reprise)
       failPut.delete('p2');
       await __resetLibraryForTest();
-      (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+      poserLeLocalStorage();
       localStorage.setItem(
         KEY,
         JSON.stringify([proj('p1', 'Un'), proj('p2', 'Deux')]),
@@ -422,7 +404,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
       idb.store.set('p1', proj('p1', 'Un'));
       localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Un')]));
       await initLibrary();
-      (globalThis as { localStorage?: Storage }).localStorage = fakeStorage({ failSetItem: new Set([TOMBSTONE_KEY]) });
+      poserLeLocalStorage({ refuserEcriture: (cle) => cle === TOMBSTONE_KEY });
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
       await projectRemove('p1');
       expect(spy).toHaveBeenCalled();
@@ -439,9 +421,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
 
       // la couche localStorage entière tombe en panne au moment de retirer : ni le miroir ni la
       // tombe ne peuvent être persistés.
-      (globalThis as { localStorage?: Storage }).localStorage = fakeStorage({
-        failSetItem: new Set([KEY, TOMBSTONE_KEY]),
-      });
+      poserLeLocalStorage({ refuserEcriture: (cle) => cle === KEY || cle === TOMBSTONE_KEY });
       const res = await projectRemove('p1');
       expect(res.ok).toBe(false); // la suppression risque de ne pas survivre à un vrai reload
       expect(projectsLoad()).toEqual([]); // mais reste retirée du cache pour cette session
@@ -589,7 +569,7 @@ describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la p
 
 describe('`wfrp4-library` — déclarée, recréée si elle s’en écarte (#2404)', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
   });
   afterEach(() => {
     delete (globalThis as { localStorage?: Storage }).localStorage;

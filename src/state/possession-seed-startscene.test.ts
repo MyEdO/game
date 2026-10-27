@@ -7,11 +7,11 @@ import { useGame } from './store';
 import { seedStartingPossessions } from '../noyau/possessionsFlow';
 import { createHero } from '../engine/character';
 import { emptyScene } from '../noyau/monde/scene';
-import { deleteSlot } from './saves';
 import type { Possession } from '../engine/possession';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import type { Get, Set } from '../noyau/flowTypes';
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 /** Harnais MINIMAL (get/set) — même patron que `possessionsFlow.test.ts`. */
 function makeHarness(party: Combatant[], possessions: Possession[] = []): { get: Get; set: Set } {
@@ -21,27 +21,12 @@ function makeHarness(party: Combatant[], possessions: Possession[] = []): { get:
   return { get, set };
 }
 
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage), même patron que
- *  `saves-flow.test.ts`. */
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
-
 describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
     vi.useFakeTimers();
-    deleteSlot(1);
   });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); deleteSlot(1); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('dotation {vehicleId} (contrebandier niv.2 → barque-fluviale, careerLevels.json) → possession vehicule avec-le-groupe, owner = héros', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });

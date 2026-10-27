@@ -1,6 +1,6 @@
 // GATE `comptes:plage` (#2705, #3021) : aucun changement de la plage `merge-base(origin/main, HEAD)..HEAD` ne fait
 // monter le compte d'un site sous la porte, n'y fait naître un site, ni ne fait céder un plancher (`jugerLesComptes`,
-// scripts/guards/lib/corpusDesComptes.mts). `--base <ref>` remplace `origin/main`. Rend 1 au refus.
+// scripts/guards/lib/corpusDesComptes.mts). `--base <ref>` remplace `origin/main` ; `--base` sans ref lève. Rend 1 au refus.
 // Hors `--index` (la porte du commit, `porte-du-commit.mjs`), imprime ensuite l'INVENTAIRE de la dette que la donnée de
 // l'arbre révèle (`inventaireDeDette.mts`) et l'ajoute au résumé du job (`GITHUB_STEP_SUMMARY`) quand il est posé. Son
 // CONTENU ne change pas le code de sortie ; une mesure de l'inventaire qui lève fait échouer le job.
@@ -11,7 +11,9 @@ import { inventaireDeLaRacine, rendreInventaire } from './lib/inventaireDeDette.
 
 if (import.meta.main) {
   const rang = process.argv.indexOf('--base');
-  const base = rang === -1 ? TRONC.suivi : process.argv[rang + 1];
+  const valeur = process.argv[rang + 1];
+  if (rang !== -1 && (!valeur || valeur.startsWith('--'))) throw new Error(`comptes:plage : \`--base\` attend une ref, reçu ${valeur ? `\`${valeur}\`` : 'rien'}`);
+  const base = rang === -1 ? TRONC.suivi : valeur;
   const debut = Date.now();
   const index = process.argv.includes('--index');
   const { ok, texte } = jugerLesComptes({ depot: depotDe(process.cwd()), base,

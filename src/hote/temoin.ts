@@ -5,7 +5,7 @@
  * (`noyau/persistance/elagage.ts`). Un stockage absent (`null`) ou qui lève : aucun témoin, le chargement ne casse pas.
  */
 import { cumulerLesRetraits, lireLesRetraits, type RetraitsDElagage } from '../noyau/index';
-import type { Stockage } from '../lib/stockage';
+import { lireLeTexte, retirerLaCle, type Stockage } from '../lib/stockage';
 
 /** La forme d'un témoin : sa relecture d'une valeur JSON (`null` si illisible), et son cumul à un témoin déjà posé. */
 export interface FormeDeTemoin<T> {
@@ -33,17 +33,13 @@ export function temoigner<T>(stockage: Stockage | null, cle: string, forme: Form
 export function prendreLeTemoin<T>(stockage: Stockage | null, cle: string, forme: FormeDeTemoin<T>): T | null {
   const temoin = lire(stockage, cle, forme);
   if (temoin === null) return null;
-  try {
-    stockage?.removeItem(cle);
-  } catch {
-    // stockage indisponible : rien à supprimer
-  }
+  retirerLaCle(stockage, cle);
   return temoin;
 }
 
 function lire<T>(stockage: Stockage | null, cle: string, forme: FormeDeTemoin<T>): T | null {
+  const brut = lireLeTexte(stockage, cle);
   try {
-    const brut = stockage?.getItem(cle);
     return brut ? forme.lire(JSON.parse(brut)) : null;
   } catch {
     return null;

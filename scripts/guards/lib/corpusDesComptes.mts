@@ -37,7 +37,7 @@ import { CONTENU_A_SOURCER } from '../../../src/data/schemas/grammaire/sans-livr
 import { enfantsDe, ouverts } from '../../../src/data/schemas/grammaire/descente';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { ENV_EPOQUE, ENV_TENU, gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
-import { GitIndisponible, INDEX, TRONC, baseCommune, journalDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
+import { GitIndisponible, INDEX, TRONC, baseCommune, fusionnesEnCours, journalDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
 import {
   COLLECTIONS_A_COMPTE, DETTE_ENVELOPPE, DETTE_OPS, FEUILLES_D_ID, MOTIF_NON_TYPEE, SOUS_LA_PORTE, STRUCTURES_LOCALES, motifAPlat,
   type CorpusDesComptes, type EntreeDeCompte, type SiteDeDetteDOp,
@@ -337,9 +337,11 @@ export function verdictDesDetecteurs(plage: string, mesures: readonly MesureDUnD
 
 /**
  * Le verdict de la plage `merge-base(base, tete)..tete` du `depot` (`depotDe`, gitPorte.mjs), dont chaque lecture git
- * passe par lui, jugée par le détecteur de la tête et par celui de la base (`verdictDesDetecteurs`). Chaque borne est
- * posée sous `os.tmpdir()` et mesurée dans son image (`comptesDuCommit`) ; un détecteur de base sans point d'entrée
- * (`POINT_D_ENTREE`) est sauté sans poser d'image.
+ * passe par lui, jugée par le détecteur de la tête et par celui de la base (`verdictDesDetecteurs`). Sous `INDEX`, la base
+ * est un arbre réel lu tel quel, et les déclarations sont le journal `^<base>` des parents du commit à venir, HEAD et
+ * `fusionnesEnCours`, puis son message : ce que la CI lira de `<base>..<tete>` une fois le commit fait (#1463). Chaque
+ * borne est posée sous `os.tmpdir()` et mesurée dans son image (`comptesDuCommit`) ; un détecteur de base sans point
+ * d'entrée (`POINT_D_ENTREE`) est sauté sans poser d'image.
  */
 export function jugerLesComptes({ depot, base = TRONC.suivi, tete = 'HEAD', message }: { depot: Depot; base?: string; tete?: string; message?: string }): { ok: boolean; texte: string } {
   const index = tete === INDEX;
@@ -356,7 +358,9 @@ export function jugerLesComptes({ depot, base = TRONC.suivi, tete = 'HEAD', mess
     }
     const deLaBase = detecteurDuCommit(depot, shaBase);
     const deLaTete = { ...detecteurDuCommit(depot, shaTete), nom: 'détecteur de la tête' };
-    const journal = message === undefined && !index ? journalDe(depot, [`${shaBase}..${shaTete}`]) : [];
+    const head = index ? shaDe(depot, 'HEAD') : null;
+    const journal = !index ? (message === undefined ? journalDe(depot, [`${shaBase}..${shaTete}`]) : [])
+      : head ? journalDe(depot, [`^${shaBase}`, head, ...fusionnesEnCours(depot)]) : [];
     if (journal === null) throw new GitIndisponible('messages de la plage illisibles');
     if (index && message === undefined) return { ok: false, texte: `⛔ ${plage} : message du commit absent pour l’index.` };
     return verdictDesDetecteurs(plage, [
@@ -364,7 +368,7 @@ export function jugerLesComptes({ depot, base = TRONC.suivi, tete = 'HEAD', mess
       listerImage(depot, shaBase, POINT_D_ENTREE).length
         ? mesurerLaPaire(depot, shaBase, shaTete, deLaBase)
         : { detecteur: deLaBase.nom, sautee: `\`${POINT_D_ENTREE}\` absent de la base` },
-    ], message ?? journal.map((c) => c.message).join('\n'));
+    ], [...journal.map((c) => c.message), ...(message === undefined ? [] : [message])].join('\n'));
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e;
     return { ok: false, texte: `⛔ lecture git indisponible : ${refusDeGit(e)} — la porte ne juge pas ce que git n’a pas lu.` };

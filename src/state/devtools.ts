@@ -150,6 +150,7 @@ import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene
 import { scheduleFlowTimer } from '../web/minuteries';
 import { editeur, type CommandesEditeur } from './editeurBridge';
 import { stockageWeb } from '../web/stockageWeb';
+import { lireLeTexte } from '../lib/stockage';
 import { browserFreezeTimeout, browserUnfreezeTimeout } from './devtoolsTimers';
 import { modaleDuDessus, type LayerPlan } from './dismissStack';
 import { getStagePan } from './stagePan';
@@ -561,12 +562,7 @@ function rememberScenario(entry: LastScenario): void {
 }
 
 function recallScenario(): LastScenario | null {
-  let raw: string | null;
-  try {
-    raw = stockageWeb('sessionStorage')?.getItem(LAST_SCENARIO_KEY) ?? null;
-  } catch {
-    return null;
-  }
+  const raw = lireLeTexte(stockageWeb('sessionStorage'), LAST_SCENARIO_KEY);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as LastScenario;
