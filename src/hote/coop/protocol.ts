@@ -22,7 +22,6 @@ export type NetMessage =
   | { kind: 'intent'; action: string; args: unknown[]; seat: number }
   | { kind: 'snapshot'; data: Record<string, unknown> }
   | { kind: 'paquetDeCampagne'; label: string; scenes: unknown[]; startSceneId: string; worldMap: unknown }
-  | { kind: 'assign'; heroId: string; seat: number }
   | { kind: 'error'; reason: 'protocol-mismatch'; expected: number; got: number }
   | { kind: 'error'; reason: 'format-mismatch'; expected: string; got: string }
   | { kind: 'bye' };
@@ -56,10 +55,6 @@ export function parseMessage(raw: string): NetMessage | null {
     case 'paquetDeCampagne':
       return typeof m.label === 'string' && Array.isArray(m.scenes) && typeof m.startSceneId === 'string'
         ? { kind: 'paquetDeCampagne', label: m.label, scenes: m.scenes, startSceneId: m.startSceneId, worldMap: m.worldMap ?? null }
-        : null;
-    case 'assign':
-      return typeof m.heroId === 'string' && typeof m.seat === 'number'
-        ? { kind: 'assign', heroId: m.heroId, seat: m.seat }
         : null;
     case 'error':
       if (m.reason === 'protocol-mismatch' && typeof m.expected === 'number' && typeof m.got === 'number')

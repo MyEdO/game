@@ -19,22 +19,19 @@
  */
 import type { GameState, RemplacerLEtat } from './store';
 import { remettreLAdaptateur, useGame } from './store';
-import { registerScene } from '../noyau/monde/registreDesScenes';
 import { buildDeLaCoop, instantaneDeLaCoop, appliquerLInstantane } from '../noyau/coop';
 import { HostSession, GuestSession } from '../hote/coop/session';
 import { sanitizeIntentArgs } from './intents';
 import { GUEST_INTENTS, appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
 import { argsAvecVerdictLocal } from '../noyau/localIntent';
 import { RoomGuest, RoomHost, relayHttpUrl } from '../net/relay';
-import type { NetMessage } from '../hote/coop/protocol';
-import type { Scene } from '../noyau/monde/scene';
 import { intentEluLocalement } from '../noyau/targetingModes';
 import { bus, EVT } from '../noyau/bus';
 import { scheduleFlowTimer, clearTrackedTimer } from '../web/minuteries';
 
 import type { Get, Set } from '../noyau/flowTypes';
 import { initialNet, type NetState } from '../noyau/etat';
-import { fermerLeSiege } from '../noyau/sieges';
+import { attribuerLEmplacement, attribuerLeHeros, fermerLeSiege, poserLeSiegeMJ } from '../noyau/sieges';
 import { t } from '../i18n';
 import { stockageWeb } from '../web/stockageWeb';
 
@@ -53,7 +50,6 @@ let unsubscribe: (() => void) | null = null;
 let originals: Record<string, (...args: unknown[]) => unknown> | null = null;
 let broadcastTimer: ReturnType<typeof setTimeout> | null = null;
 const graceTimers = new Map<number, ReturnType<typeof setTimeout>>();
-let lastCampaign: unknown = null;
 
 /** Siège réservé pendant la reconnexion d'un invité (spec v2 §6). */
 export const GRACE_MS = 120_000;
@@ -61,16 +57,6 @@ export const GRACE_MS = 120_000;
 const BUFFER_MAX = 256 * 1024;
 /** Token de reprise persisté par room — un reload de l'onglet reprend le même siège. */
 const tokenKey = (code: string) => `wfrp4.coop.token.${code}`;
-
-function campaignMessage(pc: NonNullable<GameState['pendingCampaign']>): NetMessage {
-  return { kind: 'paquetDeCampagne', label: pc.label, scenes: pc.scenes, startSceneId: pc.startSceneId, worldMap: pc.worldMap ?? null };
-}
-
-function campaignMessages(get: Get): NetMessage[] {
-  const pc = get().pendingCampaign;
-  if (pc) lastCampaign = pc;
-  return pc ? [campaignMessage(pc)] : [];
-}
 
 /** Diffusion throttlée (trailing ~120 ms) : une rafale de mutations (tour d'IA) = un snapshot.
  *  Upload saturé (bufferedAmount) → on retente, seul le DERNIER état partira (coalescing). */
@@ -83,12 +69,7 @@ function scheduleBroadcast(get: Get): void {
       scheduleBroadcast(get);
       return;
     }
-    const pc = get().pendingCampaign;
-    if (pc && pc !== lastCampaign) {
-      lastCampaign = pc;
-      host.broadcast(campaignMessage(pc)); // campagne chargée APRÈS le join → rattrapage
-    }
-    host.broadcastSnapshot(instantaneDeLaCoop(get()));
+    host.broadcastSnapshot();
   }, 120);
 }
 
@@ -176,7 +157,7 @@ export async function netHostStart(get: Get, set: Set, name: string): Promise<bo
     build: buildDeLaCoop(),
     applyIntent: (action, args, seat) => appliquerLIntentionDUnSiege(get, seat, action, args),
     getSnapshot: () => instantaneDeLaCoop(get()),
-    extraJoinMessages: () => campaignMessages(get),
+    campagne: () => get().pendingCampaign,
     onSeatClosed: (seat) => netSeatClosed(get, set, seat),
   });
   rh.onFatal = () => {
@@ -251,9 +232,6 @@ export function netJoin(get: Get, set: Set, appliquerSnapshot: (data: Record<str
         build: buildDeLaCoop(),
         label: name,
         applySnapshot: appliquerSnapshot,
-        onPaquetDeCampagne: (m) => {
-          for (const s of m.scenes) registerScene(s as Scene);
-        },
         // Motif typé de l'hôte (mismatch de protocole) : canal réutilisé du journal réseau
         // (déjà utilisé pour « Un joueur a quitté »/« Connexion perdue ») — distinct du
         // onClose générique qui suit juste après (silencieux, cf. session.ts).
@@ -276,27 +254,24 @@ export function netSeatClosed(get: Get, set: Set, seat: number): void {
   get().log(t('coop.seatClosed'));
 }
 
-/** HÔTE : attribue un héros à un siège (lobby — « un certain nombre de personnages chacun »). */
+/** Pose `net` s'il diffère du réseau courant : un réducteur qui refuse rend `net` inchangé. */
+function poserLeReseau(get: Get, set: Set, net: NetState): void {
+  if (net !== get().net) set({ net });
+}
+
+/** `attribuerLeHeros` (`noyau/sieges.ts`). */
 export function netAssign(get: Get, set: Set, heroId: string, seat: number): void {
-  if (get().net.mode !== 'host') return;
-  set({ net: { ...get().net, ownership: { ...get().net.ownership, [heroId]: seat } } });
+  poserLeReseau(get, set, attribuerLeHeros(get().net, heroId, seat));
 }
 
-/** Pose/retire le RÔLE MJ (bac-à-sable) : `seat` conduit le camp ennemi + les jets du monde ; `null` = IA.
- *  UNIQUE (désigner un MJ retire le rôle à tout autre). Hôte-autoritaire en coop (comme `netAssign`) ;
- *  disponible en solo (mode local) pour le siège unique. `gmSeat` sérialisable → voyage dans les snapshots. */
+/** `poserLeSiegeMJ` (`noyau/sieges.ts`). */
 export function setGmSeat(get: Get, set: Set, seat: number | null): void {
-  if (get().net.mode === 'guest') return; // hôte-autoritaire (le rôle est décidé côté hôte / en solo)
-  set({ net: { ...get().net, gmSeat: seat ?? undefined } });
+  poserLeReseau(get, set, poserLeSiegeMJ(get().net, seat));
 }
 
-/** HÔTE : attribue un EMPLACEMENT de l'écran d'équipe à un siège — le joueur le remplira
- *  lui-même (créer / charger un perso de son roster / pré-tiré). */
+/** `attribuerLEmplacement` (`noyau/sieges.ts`). */
 export function netAssignSlot(get: Get, set: Set, slot: number, seat: number): void {
-  if (get().net.mode !== 'host' || slot < 0 || slot > 3) return;
-  const slots = [...get().net.slots];
-  slots[slot] = seat;
-  set({ net: { ...get().net, slots } });
+  poserLeReseau(get, set, attribuerLEmplacement(get().net, slot, seat));
 }
 
 /** Quitte la session (les deux rôles) — retour au mode local, actions restaurées. */
@@ -309,7 +284,6 @@ export function netLeave(_get: Get, set: Set): void {
   }
   for (const t of graceTimers.values()) clearTrackedTimer(t);
   graceTimers.clear();
-  lastCampaign = null;
   host?.close();
   host = null;
   guest?.close();

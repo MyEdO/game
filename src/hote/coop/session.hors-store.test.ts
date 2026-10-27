@@ -3,10 +3,31 @@
  * transports du relay) : handshake hello (version), intents d'invité remis à l'hôte avec le siège
  * du transport (le filtre est `noyau/intentionsDeSiege.appliquerLIntentionDUnSiege`), snapshots diffusés à tous les sièges, déconnexions, reprise.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { FakeTransport } from './transport';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { FakeTransport } from './transport.testkit';
 import { HostSession, GuestSession } from './session';
-import { PROTOCOL_VERSION, serializeMessage } from './protocol';
+import { PROTOCOL_VERSION, parseMessage, serializeMessage } from './protocol';
+import type { EtatDeJeu } from '../../noyau/etat';
+import type { Scene } from '../../noyau/monde/scene';
+import { resetSceneRegistry, sceneDuRegistre } from '../../noyau/monde/registreDesScenes';
+
+/** Le paquet d'une campagne à une scène, `campagne-de-test-depart`. */
+const paquetDUneScene = (): NonNullable<EtatDeJeu['pendingCampaign']> => ({
+  id: 'campagne-de-test', label: 'Campagne de test', scenes: [{ id: 'campagne-de-test-depart' } as Scene],
+  startSceneId: 'campagne-de-test-depart', worldMap: null, projet: { id: 'campagne-de-test' },
+});
+
+/** Un invité brut sur le fil : les `kind` reçus de l'hôte, dans l'ordre. */
+const inviteBrut = (host: HostSession, seat = 1) => {
+  const [a, b] = FakeTransport.pair();
+  const recus: string[] = [];
+  b.onMessage((raw) => recus.push(parseMessage(raw)?.kind ?? 'illisible'));
+  host.addGuest(a, seat);
+  b.send(serializeMessage({ kind: 'hello', protocol: PROTOCOL_VERSION, build: 'test', label: 'Brut' }));
+  return recus;
+};
+
+afterEach(() => resetSceneRegistry());
 
 const wire = (host: HostSession, name = 'Invité', seat = 1) => {
   const [a, b] = FakeTransport.pair();
@@ -50,7 +71,8 @@ describe('session coop (hote/coop/session)', () => {
   });
 
   it('broadcastSnapshot atteint TOUS les invités', () => {
-    const { host } = mkHost();
+    let gameTime = 7;
+    const host = new HostSession({ build: 'test', applyIntent: vi.fn(), getSnapshot: () => ({ gameTime }) });
     const s1 = vi.fn();
     const s2 = vi.fn();
     const [a1, b1] = FakeTransport.pair();
@@ -59,7 +81,8 @@ describe('session coop (hote/coop/session)', () => {
     host.addGuest(a2, 2);
     new GuestSession({ build: 'test', label: 'A', applySnapshot: s1 }).connect(b1);
     new GuestSession({ build: 'test', label: 'B', applySnapshot: s2 }).connect(b2);
-    host.broadcastSnapshot({ gameTime: 99 });
+    gameTime = 99;
+    host.broadcastSnapshot();
     expect(s1).toHaveBeenLastCalledWith({ gameTime: 99 });
     expect(s2).toHaveBeenLastCalledWith({ gameTime: 99 });
   });
@@ -132,24 +155,25 @@ describe('session coop (hote/coop/session)', () => {
     expect(host.seats[seat]).toBeUndefined();
   });
 
-  it('extraJoinMessages : envoyés entre hello et snapshot (campagne avant le 1er état)', () => {
-    const order: string[] = [];
-    const host = new HostSession({
-      build: 'test',
-      applyIntent: vi.fn(),
-      getSnapshot: () => ({ gameTime: 1 }),
-      extraJoinMessages: () => [{ kind: 'paquetDeCampagne', label: 'P', scenes: [], startSceneId: 's', worldMap: null }],
-    });
+  it('paquet de campagne : envoyé entre hello et snapshot, ses scènes enregistrées chez l’invité avant le 1er état', () => {
+    const host = new HostSession({ build: 'test', applyIntent: vi.fn(), getSnapshot: () => ({ gameTime: 1 }), campagne: paquetDUneScene });
+    expect(inviteBrut(host, 2)).toEqual(['hello', 'paquetDeCampagne', 'snapshot']);
+    const sceneAuPremierEtat: (Scene | undefined)[] = [];
     const [a, b] = FakeTransport.pair();
     host.addGuest(a, 1);
-    const guest = new GuestSession({
-      build: 'test',
-      label: 'A',
-      applySnapshot: () => order.push('snapshot'),
-      onPaquetDeCampagne: () => order.push('paquetDeCampagne'),
-    });
-    guest.connect(b);
-    expect(order).toEqual(['paquetDeCampagne', 'snapshot']);
+    new GuestSession({ build: 'test', label: 'A', applySnapshot: () => sceneAuPremierEtat.push(sceneDuRegistre('campagne-de-test-depart')) }).connect(b);
+    expect(sceneAuPremierEtat).toEqual([{ id: 'campagne-de-test-depart' }]);
+  });
+
+  it('paquet de campagne chargé APRÈS le join : rattrapé une fois, à la diffusion suivante', () => {
+    let campagne: EtatDeJeu['pendingCampaign'] = null;
+    const host = new HostSession({ build: 'test', applyIntent: vi.fn(), getSnapshot: () => ({ gameTime: 1 }), campagne: () => campagne });
+    const recus = inviteBrut(host);
+    expect(recus).toEqual(['hello', 'snapshot']);
+    campagne = paquetDUneScene();
+    host.broadcastSnapshot();
+    host.broadcastSnapshot();
+    expect(recus).toEqual(['hello', 'snapshot', 'paquetDeCampagne', 'snapshot', 'snapshot']);
   });
 
   it('rejoin : re-handshake après reconnexion → l’hôte renvoie un snapshot complet', () => {

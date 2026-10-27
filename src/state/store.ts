@@ -12,7 +12,7 @@ import { resetStageGestes } from './stageGestes';
 import * as netFlow from './netFlow';
 import { stockageDesSauvegardes } from './saves';
 import { ecrireLaSauvegarde, lireLaSauvegarde, AUTO_SLOT, type SaveSlot, type AnySlot } from '../hote/sauvegardes';
-import { chargerLaSave, importerLaSauvegarde, refusDeSauvegarde, snapshotSave, type ObsoleteCause, type RefusDeSauvegarde, type SaveGame } from '../noyau/persistance/save';
+import { chargerLaSave, lireSave, refusDeSauvegarde, snapshotSave, type ObsoleteCause, type RefusDeSauvegarde, type SaveGame } from '../noyau/persistance/save';
 import type { RetraitsDElagage } from '../noyau/persistance/elagage';
 import { loadKeyOverrides, saveKeyOverrides } from './keybindingsPrefs';
 import { transitionDuJeu } from '../noyau/transitionDuJeu';
@@ -327,7 +327,7 @@ export const useGame = create<GameState>((set, get) => ({
     return true;
   },
   importGame: (json) => {
-    const save = importerLaSauvegarde(json);
+    const save = lireSave(json);
     if (typeof save === 'string') return save;
     applyLoadedSave(set, save);
     return null;

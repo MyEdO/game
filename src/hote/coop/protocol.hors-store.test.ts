@@ -1,7 +1,7 @@
 /**
  * Protocole coop : messages typés du transport — hello (version), intent (action d'invité
  * rejouée par l'hôte), snapshot (état autoritaire), paquetDeCampagne (projet custom transféré au join),
- * assign (propriété d'un héros), bye. `parseMessage` valide la FORME : tout message
+ * error, bye. `parseMessage` valide la FORME : tout message
  * inconnu/malformé → null (jamais d'exception — le réseau est une entrée non fiable).
  */
 import { describe, it, expect } from 'vitest';
@@ -14,7 +14,6 @@ describe('protocole coop (hote/coop/protocol)', () => {
       { kind: 'intent', action: 'battleEndTurn', args: [], seat: 2 },
       { kind: 'intent', action: 'battleClickEntity', args: ['enemy-1', { confirm: true }], seat: 1 },
       { kind: 'snapshot', data: { gameTime: 42, party: [] } },
-      { kind: 'assign', heroId: 'pregen-101', seat: 2 },
       { kind: 'error', reason: 'protocol-mismatch', expected: 1, got: 2 },
       { kind: 'error', reason: 'format-mismatch', expected: 'a1', got: 'b2' },
       { kind: 'bye' },
