@@ -4,8 +4,8 @@
  *
  * GESTES :
  *  1. `traits.json` : l'entrée `armure` DÉCLARE la capacité `parLocalisation` (le seul Trait qui lit un Indice
- *     par Localisation) et reçoit la raison `maison` de la lecture de sa parenthèse (cérémonie #1463), à la
- *     place de celle de la PR-3a qu'elle remplace. La suite lit la CAPACITÉ, jamais cet id.
+ *     par Localisation) et perd la raison `maison` des PR-3a et 3b : la lecture de sa parenthèse est celle du
+ *     livre (#1463, arbitrage du 2026-10-27). La suite lit la CAPACITÉ, jamais cet id.
  *  2. CLASSEMENT, sur toute liste de Traits posés (`traits`, `optionals`, `addTraits`) des racines de
  *     `RACINES`, par la table PARTAGÉE avec la saisie (`src/engine/classementDeTrait.ts`, `classerParenthese`),
  *     pour un Trait dont la def déclare un Indice, posé avec une parenthèse et sans fourchette :
@@ -20,9 +20,9 @@
  *
  * ENTRÉES : écrites — les fichiers de `RACINES` et `src/data/traits.json` ; lue — `src/data/trappings.json`.
  * FAIL-FAST — avant toute écriture, sortie 1 : un hôte ou une liste introuvable ; une liste qui ne porte ni
- * l'instance d'origine ni l'instance migrée ; une entrée `armure` qui porte une raison `maison` inconnue ; un
+ * l'instance d'origine ni l'instance migrée ; une entrée `armure` qui porte une autre raison `maison` ; un
  * fichier hors de son formatage ; ARBITRAGE REQUIS — une parenthèse d'un Trait à Indice par Localisation que
- * ni la table ni `IMPRIMEES` ne classent, hors des Aspects des types 4, 6 et 8 de `RAISON_ARMURE`
+ * ni la table ni `IMPRIMEES` ne classent, hors des Aspects valant à toutes les Localisations
  * (`aspectAToutesLocalisations`).
  * IDEMPOTENT : rejouée sur l'état final, aucun geste n'est à faire et rien ne s'écrit. Les instances se
  * reconnaissent à leurs valeurs, jamais à l'ordre de leurs clés.
@@ -57,10 +57,11 @@ const LISTES = new Set(['traits', 'optionals', 'addTraits']);
 /** LDB 85 l.37-39 */
 const ARMURE = 'armure';
 
-// LDB 85 l.37-39 ; LDB 63 l.13, l.97-103 ; AA 09 l.94 ; ACE 05 l.2043 ; MSR 09 l.1504 ; MCLB 02 l.698
-const RAISON_ARMURE = 'La parenthèse de l’Armure se lit selon son type. Indice seul (type 1), catégorie des règles rapides, Légère ou Moyenne (type 4, LDB 63 l.101-103 « Tous »), nature du corps, peau, écailles, fourrure ou chitine (type 6), ensemble ou matière hors de la table, Cuir, Demi-plate, Plate complète, Divers (type 8) : l’Indice vaut à toutes les Localisations (LDB 85 l.39). Localisations nommées sous un seul Indice, « Poitrine » pour le Corps (type 2), un Indice par zone, les pattes du quadrupède comprises (type 3, AA 09 l.94), un Indice par pièce (type 5), pièces de la table, « Casque » pour la Tête (type 7, LDB 63 l.13) : l’Indice vaut aux seules Localisations désignées, union des Emplacements des pièces, et aucun PA ailleurs. Proposition en cérémonie (#1463).';
-/** Raison de la PR-3a, que `RAISON_ARMURE` remplace. */
-const RAISON_ARMURE_3A = 'Un Aspect qui nomme des pièces d’armure (« Plastron et heaume », « Veste de cuir », « Chemise de mailles ») ne restreint pas l’Indice : il vaut à toutes les Localisations (LDB 85 l.39), et non aux seuls Emplacements des pièces nommées (LDB 63 l.13). Lecture proposée en cérémonie (#1463).';
+/** Raisons `maison` des PR-3a et 3b, retirées. */
+const RAISONS_RETIREES = new Set([
+  'La parenthèse de l’Armure se lit selon son type. Indice seul (type 1), catégorie des règles rapides, Légère ou Moyenne (type 4, LDB 63 l.101-103 « Tous »), nature du corps, peau, écailles, fourrure ou chitine (type 6), ensemble ou matière hors de la table, Cuir, Demi-plate, Plate complète, Divers (type 8) : l’Indice vaut à toutes les Localisations (LDB 85 l.39). Localisations nommées sous un seul Indice, « Poitrine » pour le Corps (type 2), un Indice par zone, les pattes du quadrupède comprises (type 3, AA 09 l.94), un Indice par pièce (type 5), pièces de la table, « Casque » pour la Tête (type 7, LDB 63 l.13) : l’Indice vaut aux seules Localisations désignées, union des Emplacements des pièces, et aucun PA ailleurs. Proposition en cérémonie (#1463).',
+  'Un Aspect qui nomme des pièces d’armure (« Plastron et heaume », « Veste de cuir », « Chemise de mailles ») ne restreint pas l’Indice : il vaut à toutes les Localisations (LDB 85 l.39), et non aux seuls Emplacements des pièces nommées (LDB 63 l.13). Lecture proposée en cérémonie (#1463).',
+]);
 
 /** Instance `avant` de `hote.liste` (`creatures.json`) → instance `apres` (clés de valeur remplacées, le reste gardé). */
 const IMPRIMEES = [
@@ -112,10 +113,10 @@ else {
     armure.parLocalisation = true;
     gestes++;
   }
-  if (armure.maison === undefined || armure.maison === RAISON_ARMURE_3A) {
-    armure.maison = RAISON_ARMURE;
+  if (RAISONS_RETIREES.has(armure.maison)) {
+    delete armure.maison;
     gestes++;
-  } else if (armure.maison !== RAISON_ARMURE) fautes.push(`${TRAITS} : ${ARMURE} porte une autre raison maison`);
+  } else if (armure.maison !== undefined) fautes.push(`${TRAITS} : ${ARMURE} porte une autre raison maison`);
 }
 const aIndice = new Set(defs.filter((t) => t.indice).map((t) => t.id));
 const parLocalisation = new Set(defs.filter((t) => t.parLocalisation).map((t) => t.id));
@@ -171,7 +172,7 @@ for (const rel of Object.keys(RACINES)) {
     }
   }
 }
-if (arbitrages.length) fautes.push(`ARBITRAGE REQUIS — ${arbitrages.length} parenthèse(s) d'un Trait à Indice par Localisation, ni classée(s) ni d'un type 4, 6 ou 8 :`, ...arbitrages);
+if (arbitrages.length) fautes.push(`ARBITRAGE REQUIS — ${arbitrages.length} parenthèse(s) d'un Trait à Indice par Localisation, ni classée(s) ni d'un Aspect à toutes les Localisations :`, ...arbitrages);
 
 if (fautes.length) {
   console.error(`ARRÊT — rien n'est écrit :\n${fautes.join('\n')}`);

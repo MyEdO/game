@@ -158,7 +158,6 @@
       "page": 338
     },
     "standard": true,
-    "maison": "La parenthèse de l’Armure se lit selon son type. Indice seul (type 1), catégorie des règles rapides, Légère ou Moyenne (type 4, LDB 63 l.101-103 « Tous »), nature du corps, peau, écailles, fourrure ou chitine (type 6), ensemble ou matière hors de la table, Cuir, Demi-plate, Plate complète, Divers (type 8) : l’Indice vaut à toutes les Localisations (LDB 85 l.39). Localisations nommées sous un seul Indice, « Poitrine » pour le Corps (type 2), un Indice par zone, les pattes du quadrupède comprises (type 3, AA 09 l.94), un Indice par pièce (type 5), pièces de la table, « Casque » pour la Tête (type 7, LDB 63 l.13) : l’Indice vaut aux seules Localisations désignées, union des Emplacements des pièces, et aucun PA ailleurs. Proposition en cérémonie (#1463).",
     "parLocalisation": true
   },
   {

@@ -87,10 +87,7 @@ const COEXISTENCE: Record<string, number> = {
   // (LDB 119) ET dit en clair qu'il n'en chiffre ni ne répartit aucun.
   'tables.json': 1,
   'talents.json': 9,
-  // 2 → 3 (#1463, 2026-10-26) : le Trait `armure` cite son folio (LDB 85) ET porte en clair la lecture
-  // de son Aspect — un Aspect qui nomme des pièces d'armure ne restreint pas l'Indice (LDB 85 l.39
-  // contre LDB 63 l.13), lecture portée en cérémonie d'arbitrage au ticket.
-  'traits.json': 3,
+  'traits.json': 2,
   'trappings.json': 2,
   'traumas.json': 2,
 };

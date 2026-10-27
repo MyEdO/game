@@ -59,11 +59,11 @@ const singulier = (mot: string): string => mot.replace(/s$/, '');
  *  cuir », EDOC 11 l.169). */
 const nomDePiece = (nom: string): string => norm(nom).split(/\s+/).map((m) => (m === 'en' ? 'de' : singulier(m))).join(' ');
 
-/** Noms des Aspects des types 4, 6 et 8 de la raison `maison` de l'Armure (`traits.json`), au singulier.
- *  LDB 63 l.97-103 ; LDB 85 l.39. */
+/** Noms des Aspects d'Armure à toutes les Localisations, au singulier. LDB 63 l.97-103 ; LDB 85 l.39 ;
+ *  docs/raw/4e/combat.md « Parenthèse de l'Armure dans les profils » ; #1463. */
 const ASPECTS_A_TOUTES_LOCALISATIONS = new Set(['legere', 'moyenne', 'peau', 'ecaille', 'fourrure', 'chitine', 'cuir', 'plate', 'divers'].map(singulier));
 
-/** L'Aspect d'une Armure, sans Indice, est-il d'un des types 4, 6 ou 8 de sa raison `maison` : chacun de ses
+/** L'Aspect d'une Armure, sans Indice, vaut-il à toutes les Localisations : chacun de ses
  *  groupes (séparés par « , » ou « et ») a, avant son premier complément (« de », « d'un »), traits d'union
  *  compris, un de leurs noms (« Fourrures », « Peau de chitine », « Demi- plate », « Fausse Plate », « Cuirs
  *  et Plates »), sans nommer de zone ni de lieu (« sur ») ? */

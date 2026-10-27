@@ -125,10 +125,8 @@ export interface TraitInstance extends SansFourchette {
 }
 
 /**
- * Valeur d'une fourchette pour son porteur — arbitrage `maison` : faute d'une valeur fixée par l'auteur de
- * la version (LDB 76 l.45), elle se tire à l'apparition, uniformément entre ses bornes incluses, sur une
- * graine stable (le porteur, l'id du Trait, son rang parmi ses homonymes), comme les Caractéristiques
- * aléatoires (LDB 77 l.108). Proposition en cérémonie (#1463). ZI 13 l.31 ; ZI 04 l.228.
+ * Valeur d'une fourchette pour son porteur, tirée entre ses bornes incluses sur une graine stable (le porteur,
+ * l'id du Trait, son rang parmi ses homonymes). LDB 76 l.45 ; LDB 77 l.108 ; ZI 13 l.31 ; ZI 04 l.228 ; #1463.
  */
 function tirerLaFourchette(plage: Plage, graine: string): number {
   return makeRNG(hashSeed(`fourchette:${graine}`)).int(plage.min, plage.max);
