@@ -38,6 +38,10 @@ export const STRUCTURES_CIBLES = [
   { concept: "reference", signature: "id,spec,value", date: "2026-08-31" },
   // Le régime `choix` du MÊME nœud (53 emplacements libres + 6 bornés, migrés au commit 4bis).
   { concept: "reference", signature: "choix,id,value", date: "2026-08-31" },
+  // #1463 Trait PR-3b (2026-10-26) — deux formes du Trait POSÉ naissent CIBLES au seul site du Trait posé
+  // (`SITE_TRAIT_POSE` du lexique) : PR-3b les ouvre dans `traitInstanceSchema` et les peuple par sa migration.
+  { concept: "reference", signature: "id,parLocalisation", date: "2026-10-26" },
+  { concept: "reference", signature: "id,plage", date: "2026-10-26" },
   // DESIGN v2 S2 (#1463, commentaire du 2026-08-23) : « `refs(type)` = liste d'ids nus brandée
   // (75 champs `string[]`) ». La liste d'ids nus EST la forme visée — ce qui reste à faire est le
   // TYPAGE du champ, pas une réécriture de la donnée : elle sort du dénominateur des formes.
