@@ -37,9 +37,9 @@
 //   - HORS LIGNE, l'ancre est vérifiée dans sa FORME seule. EN LIGNE (étape plans-dates de
 //     `.github/workflows/canari.yml`), dans sa VÉRITÉ : au moins une issue ancrée est OUVERTE et cite le
 //     chemin du plan dans son corps ou un commentaire — lien dans les deux sens, une ancre sur un ticket
-//     qui ne revendique pas le plan n'en est pas une (#3028 ;
-//     .claude/soldes/revue-palier-2026-09-18-9d66de88f-993107240.md:174). La revendication est mesurée
-//     par SIMPLE PRÉSENCE du chemin dans le texte du ticket.
+//     qui ne revendique pas le plan n'en est pas une (#3028 ; grief 1 de la revue de palier
+//     `.claude/soldes/revue-palier-2026-09-18-9d66de88f-993107240.md`). La revendication est mesurée par
+//     SIMPLE PRÉSENCE du chemin dans le texte du ticket.
 //   - Le back-lien d'un `Instrument:` est mesuré par SIMPLE PRÉSENCE du chemin du plan dans le
 //     fichier instrument ; il ne juge pas que l'outil le LIT vraiment.
 //   - Les fichiers binaires et les extensions hors liste (`.txt`, `.svg`, `.sh`…) ne sont pas scannés.
