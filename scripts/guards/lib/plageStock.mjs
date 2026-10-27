@@ -30,16 +30,18 @@
 //
 // Le filtre CUMULÉ est un bilan d'ÉTATS, clé par clé (`bilanDesStocks`, renommages de chaque paire de
 // bouts, #1806 D5″) : `debut..fin`, moins ce que le tronc a changé entre l'état qu'en connaît `debut`
-// et celui qu'en connaît `fin` (`merge-base` de chacun avec le tronc). #2472
+// et celui qu'en connaît `fin` (l'état du tronc de chacun : sa base commune avec le tronc qui contient toutes les autres,
+// `rangDuTronc`). Sans état unique de `fin` ou de `debut` (fusion croisée), le cumul part de l'arbre vide et ne filtre
+// rien ; sans ancêtre commun, il ne retranche rien du tronc. #2472
 // Les migrations de sites de tests prouvées par `bilanDesStocks` (#1735)
 // ont déjà quitté les deux côtés de ce bilan ; le cumul conserve la mesure par clé.
 //
 // Chaque commit de la plage se lit par CE QU'IL FAIT, en ENTRÉES (#2223) : un commit ordinaire contre
 // sa base (`ceQueFaitLeCommit`) ; une FUSION contre la fusion automatique de ses parents, rejouée
 // entrée par entrée sur les images de `^1`, `^2` et de leur base commune (`lecturesDuCommit`,
-// `bilanDeFusion`), jamais contre un TEXTE fusionné, qui porte les marqueurs d'un conflit. Une fusion
-// n'y porte que son apport propre : ce qu'elle ajoute en résolvant s'y voit, une entrée qu'un côté a
-// soldée et qu'elle ressuscite aussi.
+// `bilanDeFusion`), jamais contre un TEXTE fusionné, qui porte les marqueurs d'un conflit. Son parent TRONC
+// (`rangDuTronc` contre `troncDesEres` : le parent du tronc qui contient tout le tronc que l'autre contient) borne ce
+// que la fusion fait naître (`apportDeFusion`, #3023).
 //
 // `RECLASSEMENT: <module> +N — <motif>` (`reclassementCss.mjs`) se juge PAR COMMIT seulement (#1806 D3″) :
 // la ligne vit dans UN message et nomme le franchissement de CE commit. Une fusion se lit à TROIS
@@ -49,7 +51,7 @@
 // La lib CALCULE ; le VERDICT appartient à l'appelant (le pre-push refuse, la mesure a posteriori
 // échoue). Elle reste PURE dans son cœur (`refusDeLaPlage`, `reclassementsDeLaPlage`) : les lectures
 // git passent par les questions du dépôt de `cwd` (`depotDe`, `gitPorte.mjs`).
-import { GitIndisponible, TRONC, arbreVide, baseCommune, ceQueFaitLeCommit, ceQuiChange, depotDe, grapheDe, journalDe, lireEnLot, refusDeGit } from './gitPorte.mjs'
+import { GitIndisponible, TRONC, arbreVide, baseCommune, basesCommunes, ceQueFaitLeCommit, communeDesParents, ceQuiChange, depotDe, grapheDe, journalDe, lireEnLot, rangDuTronc, refusDeGit } from './gitPorte.mjs'
 import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFautifs, nonCouvertesDuBilan, refusSousLaPorte } from './stocksNominatifs.mjs'
 import { deplaceLaFrontiere, ecartsDeReclassement, franchisDuCommit, lignesDeReclassement } from './reclassementCss.mjs'
 import { coteCss, sourceGit } from './cssImages.mjs'
@@ -192,48 +194,55 @@ const restreinte = (fait, chemins) => {
  * que la fusion touche ELLE-MÊME — ceux où elle s'écarte de la fusion automatique
  * (`ceQueFaitLeCommit(…).chemins()`, des NOMS : aucun texte à marqueurs n'est lu). `fusion.juges` y
  * ajoute les chemins qu'un parent supprime et que la fusion garde : l'arbre automatique d'un conflit
- * modify/delete garde le côté modifié, et la résolution qui le reprend ne s'en écarte pas.
- * @param {import('./gitPorte.mjs').Depot} depot @param {string} sha
- * @returns {{ fait: ReturnType<typeof ceQuiChange>, fusion: { parents: string[], commune: string, juges: string[] } | null }}
+ * modify/delete garde le côté modifié, et la résolution qui le reprend ne s'en écarte pas. `fusion.tronc` = le rang
+ * du parent qui est `mesure` ou l'un de ses ancêtres (`rangDuTronc`) ; `fusion.renommages()` = les fichiers que ses parents
+ * renomment depuis la base commune.
+ * @param {import('./gitPorte.mjs').Depot} depot @param {import('./gitPorte.mjs').CommitDuGraphe} commit @param {string} mesure
+ * @returns {{ fait: ReturnType<typeof ceQuiChange>, fusion: { parents: string[], commune: string, juges: string[], tronc: number | null, renommages: () => Map<string, string> } | null }}
  * @throws {GitIndisponible} propagée de `ceQueFaitLeCommit` (fusion à plus de deux parents, git
  *   sans `merge-tree --write-tree --stdin`).
  */
-function lecturesDuCommit(depot, commit) {
+function lecturesDuCommit(depot, commit, mesure) {
   const fait = ceQueFaitLeCommit(depot, commit)
   const { sha, parents } = commit
-  return parents.length < 2 ? { fait, fusion: null } : lecturesDeFusion(depot, { apres: sha, parents, fait })
+  return parents.length < 2 ? { fait, fusion: null } : lecturesDeFusion(depot, { apres: sha, parents, fait, mesure })
 }
 
 /**
  * Les lectures d'une FUSION de `parents` dont l'image est `apres` — un commit (`lecturesDuCommit`), ou
  * l'INDEX / l'arbre SUIVI de la fusion EN COURS que le hook de commit juge (`ceQueFaitLaFusionEnCours`) :
  * `fait` = ce qu'elle fait contre leur base commune, restreint aux chemins où `apres` s'écarte de la
- * fusion automatique (`fait` reçu) ; `fusion` = `{ parents, commune, juges }` (`lecturesDuCommit`).
+ * fusion automatique (`fait` reçu) ; `fusion` = `{ parents, commune, juges, tronc }` (`lecturesDuCommit`), `tronc` lu
+ * contre `mesure`.
  * @param {import('./gitPorte.mjs').Depot} depot
- * @param {{ apres: string, parents: string[], fait: ReturnType<typeof ceQuiChange>, lireDepuis?: (depuis: string) => ReturnType<typeof ceQuiChange> }} p
+ * @param {{ apres: string, parents: string[], fait: ReturnType<typeof ceQuiChange>, mesure: string, lireDepuis?: (depuis: string) => ReturnType<typeof ceQuiChange> }} p
  */
-export function lecturesDeFusion(depot, { apres, parents, fait, lireDepuis = (depuis) => ceQuiChange(depot, depuis, apres) }) {
-  const commune = baseCommune(depot, parents[0], parents[1]) ?? arbreVide(depot)
+export function lecturesDeFusion(depot, { apres, parents, fait, mesure, lireDepuis = (depuis) => ceQuiChange(depot, depuis, apres) }) {
+  const commune = communeDesParents(depot, parents)
   const changement = lireDepuis(commune)
   const supprimesDeLaFusion = new Set(changement.chemins('D'))
-  const gardes = parents.flatMap((p) => ceQuiChange(depot, commune, p).chemins('D')).filter((c) => !supprimesDeLaFusion.has(c))
+  const desParents = parents.map((p) => ceQuiChange(depot, commune, p))
+  const gardes = desParents.flatMap((c) => c.chemins('D')).filter((c) => !supprimesDeLaFusion.has(c))
   return {
     fait: restreinte(changement, fait.chemins()),
-    fusion: { parents, commune, juges: [...new Set([...fait.chemins(), ...gardes])] },
+    fusion: {
+      parents, commune, juges: [...new Set([...fait.chemins(), ...gardes])], tronc: rangDuTronc(depot, parents, mesure),
+      renommages: () => new Map(desParents.flatMap((c) => [...c.renommages()])),
+    },
   }
 }
 
 /**
  * L'entrée de `bilanDeFusion` d'une fusion lue (`lecturesDeFusion`) : ses porteurs jugés, les textes
- * de ses parents et de leur base commune (`lireEnLot`), celui de la fusion par `lireLaFusion`.
+ * de ses parents et de leur base commune (`lireEnLot`), celui de la fusion par `lireLaFusion`, et son `tronc`.
  * @param {import('./gitPorte.mjs').Depot} depot
- * @param {{ parents: string[], commune: string, juges: string[] }} fusion
+ * @param {{ parents: string[], commune: string, juges: string[], tronc: number | null, renommages: () => Map<string, string> }} fusion
  * @param {(chemin: string) => string | null} lireLaFusion
  * @returns {Parameters<typeof bilanDeFusion>[0]}
  */
-export function entreeDeFusion(depot, { parents, commune, juges }, lireLaFusion) {
+export function entreeDeFusion(depot, { parents, commune, juges, tronc, renommages }, lireLaFusion) {
   const texteA = (arbre) => (f) => lireEnLot(depot, arbre, [f]).get(f) ?? null
-  return { fichiers: juges, lire: { fusion: lireLaFusion, parents: parents.map(texteA), commune: texteA(commune) } }
+  return { fichiers: juges, lire: { fusion: lireLaFusion, parents: parents.map(texteA), commune: texteA(commune) }, tronc, renommages }
 }
 
 /**
@@ -246,7 +255,8 @@ export function entreeDeFusion(depot, { parents, commune, juges }, lireLaFusion)
  * git est rendue à part (`indisponible`), et l'appelant la NOMME : une plage illisible ne se juge
  * pas, elle se dit.
  * @param {{ cwd?: string, debut: string, fin: string, vers?: string | null, origineConfirmee?: string[], dossierDesMemos?: string }} p
- * `commits` nul : la plage ne se lit pas. `pannes` reçoit les indisponibilités de git, lecture comprise.
+ * `commits` nul : la plage ne se lit pas ; vide, elle n'a aucun commit à filtrer et son `cumul` est vide. `pannes` reçoit les
+ * indisponibilités de git, lecture comprise.
  * `troncDesEres` = le tronc que la plage exclut, contre lequel se mesure l'ère de ses commits : `debut` d'un
  * push vers le tronc, `TRONC.suivi` sinon (#2503). `sauverLesMemos` écrit les mémos d'analyse (`memosDAnalyse`), une fois les `cotes()` jugées.
  * @returns {{ depot: import('./gitPorte.mjs').Depot, commits: object[] | null, cumul: { fichier: string, parCle: Map<string, number> }[], notes: string[], plage: string, pannes: string[], troncDesEres?: string, sauverLesMemos?: () => void }}
@@ -279,7 +289,7 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null,
   try {
     commits = graphe.map((lu) => {
       const { sha } = lu
-      const { fait, fusion } = lecturesDuCommit(depot, lu)
+      const { fait, fusion } = lecturesDuCommit(depot, lu, troncDesEres)
       const source = (arbre) => sourceGit({ cwd, arbre, depot })
       const base = source(fait.base)
       const commit = source(sha)
@@ -300,15 +310,44 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null,
     notes.push(`plage \`${plage}\` illisible : rien n'est jugé`)
     return { depot, commits: null, cumul: [], notes, plage, pannes: [refusDeGit(e)] }
   }
+  if (!commits.length) return { depot, commits, cumul: [], notes, plage, pannes, troncDesEres, sauverLesMemos }
   const bilanEntre = (a, b) => {
     const change = ceQuiChange(depot, a, b)
     return bilanDesStocks(change.diff(), { lirePostImage: texteA(b), lirePreImage: change.lirePreImage, renommages: change.renommages() })
   }
-  const troncDeFin = tronc && avecLeTronc(fin)
-  const bout = debut ?? troncDeFin ?? arbreVide(depot)
-  const troncDuBout = tronc && avecLeTronc(bout)
-  if (tronc && !troncDuBout) notes.push(`\`${bout.slice(0, 9)}\` sans ancêtre commun avec \`${tronc}\` : le cumul ne retranche rien du tronc`)
-  const cumul = bilanSoustrait(bilanEntre(bout, fin), troncDuBout ? bilanEntre(troncDuBout, troncDeFin) : [])
+  /** L'état du tronc que `sha` connaît (`rangDuTronc`) : `{ etat }`, `etat` nul sans état unique (fusion croisée), `sansBase`
+   *  sans ancêtre commun, `panne` quand git ne répond pas. */
+  const etatDuTronc = (sha) => {
+    try {
+      const etats = basesCommunes(depot, [sha, tronc])
+      const rang = etats.length ? rangDuTronc(depot, etats, tronc) : null
+      return { etat: rang === null ? null : etats[rang], sansBase: !etats.length }
+    } catch (e) {
+      if (!(e instanceof GitIndisponible)) throw e
+      pannes.push(refusDeGit(e))
+      return { etat: null, panne: true }
+    }
+  }
+  /** `debut..fin` moins ce que le tronc a changé entre l'état qu'en connaît chaque bout. */
+  const cumulDeLaPlage = () => {
+    if (!tronc) return bilanEntre(debut ?? arbreVide(depot), fin)
+    const bouts = [[fin, etatDuTronc(fin)]]
+    if (debut && bouts[0][1].etat) bouts.push([debut, etatDuTronc(debut)])
+    if (bouts.some(([, e]) => e.panne)) return bilanEntre(arbreVide(depot), fin)
+    const sansBase = bouts.find(([, e]) => e.sansBase)
+    if (sansBase) {
+      notes.push(`\`${sansBase[0].slice(0, 9)}\` sans ancêtre commun avec \`${tronc}\` : le cumul ne retranche rien du tronc`)
+      return bilanEntre(debut ?? arbreVide(depot), fin)
+    }
+    const croisee = bouts.find(([, e]) => !e.etat)
+    if (croisee) {
+      notes.push(`\`${croisee[0].slice(0, 9)}\` sans état unique de \`${tronc}\` (fusion croisée) : le cumul part de l'arbre vide, il ne filtre aucun refus`)
+      return bilanEntre(arbreVide(depot), fin)
+    }
+    const [[, { etat: troncDeFin }], [, { etat: troncDuBout }] = bouts[0]] = bouts
+    return bilanSoustrait(bilanEntre(debut ?? troncDeFin, fin), bilanEntre(troncDuBout, troncDeFin))
+  }
+  const cumul = cumulDeLaPlage()
   return { depot, commits, cumul, notes, plage, pannes, troncDesEres, sauverLesMemos }
 }
 
