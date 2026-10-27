@@ -5,7 +5,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import { opValue, oppositionDiscount, hitProbability, type OpEvalCtx } from '../noyau/monde/aiSpellValue';
-import type { SpellData } from '../data';
+import { findConditionById, type SpellData } from '../data';
+import { etatIdsConnus } from '../engine/conditions';
+import { t } from '../i18n';
 import type { Combatant, Weapon } from '../engine/types';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
@@ -64,8 +66,10 @@ describe('opValue — CONTRÔLE (condition) = aiThreat de etats.json', () => {
   it('Sonné (op:condition) → aiThreat lu en donnée sur etats.json (6)', () => {
     expect(opValue(op({ op: 'condition', id: 'sonne' }), combatant(), combatant({ id: 'h' }), ctxOf())).toBe(6);
   });
-  it('État inconnu → 1 (contrôle mineur, jamais 0)', () => {
-    expect(opValue(op({ op: 'condition', id: 'inexistant' }), combatant(), combatant({ id: 'h' }), ctxOf())).toBe(1);
+  it('État CONNU sans aiThreat → 1 (contrôle mineur, jamais 0) ; id hors du registre → lève (#1463 LD.1)', () => {
+    const sansMenace = etatIdsConnus().find((id) => findConditionById(id)?.aiThreat === undefined)!;
+    expect(opValue(op({ op: 'condition', id: sansMenace }), combatant(), combatant({ id: 'h' }), ctxOf())).toBe(1);
+    expect(() => opValue(op({ op: 'condition', id: 'id-hors-registre' }), combatant(), combatant({ id: 'h' }), ctxOf())).toThrow(t('etats.inconnu', { id: 'id-hors-registre' }));
   });
 });
 

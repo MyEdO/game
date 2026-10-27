@@ -9,6 +9,7 @@ import { ARG_TEMPLATE, INDICE_TEMPLATE } from '../../../engine/flowCore';
 import { champsDOpASlot } from '../../../../scripts/docs/lib/slots-registre.mjs';
 import type { Combatant } from '../../../engine/types';
 import { desDuTest } from '../../../engine/dice.testkit';
+import { conditionIds } from '../../index';
 
 describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', () => {
   it('chaque famille garde les slots directs et confie les opérations imbriquées à leur propre entrée', () => {
@@ -59,6 +60,24 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
       [{ op: 'condition', id: 'inconscient', perRound: true, durationHours: 1 }],
       { rng: desDuTest },
     ), 'le PARSE et l’APPLICATION disent le même refus').toThrow(messageRecurrenceHorloge('inconscient'));
+  });
+
+  it('une op `condition`/`removeCondition` qui nomme un État hors du registre est refusée AU CHAMP (#1463 LD.1)', () => {
+    const connu = conditionIds()[0];
+    expect(gameOpSchema.safeParse({ op: 'condition', id: connu, onlyIfCondition: connu, unlessCondition: connu }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'removeCondition', id: connu }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'condition', id: 'petrifie' }).success, 'un marqueur narratif est un État connu').toBe(true);
+    for (const op of [
+      { op: 'condition', id: 'etat-hors-registre' },
+      { op: 'condition', id: connu, onlyIfCondition: 'etat-hors-registre' },
+      { op: 'condition', id: connu, unlessCondition: 'etat-hors-registre' },
+      { op: 'removeCondition', id: 'etat-hors-registre' },
+    ]) {
+      const res = gameOpSchema.safeParse(op);
+      expect(res.success, JSON.stringify(op)).toBe(false);
+      const champ = Object.keys(op).find((k) => (op as Record<string, unknown>)[k] === 'etat-hors-registre')!;
+      expect(res.error!.issues.map((i) => i.path.join('.'))).toContain(champ);
+    }
   });
 
   it('une op inconnue des DEUX registres est NOMMÉE en erreur', () => {

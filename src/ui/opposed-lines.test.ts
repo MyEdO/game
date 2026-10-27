@@ -3,6 +3,7 @@ import { opposedLines } from './breakdown';
 import { baseTestModLines, baseTestMods, type ModLine } from '../engine/combat';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
 import type { Combatant } from '../engine/types';
+import { conditionIds } from '../data';
 
 /**
  * FABRIQUE de PAIRE OPPOSÉE (`opposedLines`, #1112 G1) — LDB 12 l.166 : « Si aucune Difficulté n'est
@@ -68,7 +69,9 @@ describe('lignes opposées de combat — l’écart à la base est TOUJOURS couv
   } as unknown as Combatant);
 
   it('`baseTestModLines` NOMME exactement ce que `baseTestMods` ajoute au jet (aucune part muette)', () => {
-    for (const c of [hero(), hero({ advantage: 3 }), hero({ advantage: 1, conditions: [{ id: 'etourdi', value: 2 }] as Combatant['conditions'] })]) {
+    const penalisant = conditionIds().find((id) => baseTestMods(hero({ conditions: [{ id, value: 1 }] as Combatant['conditions'] }), 'capacite-de-combat') !== 0);
+    expect(penalisant, 'le registre porte un État qui pénalise la CC').toBeDefined();
+    for (const c of [hero(), hero({ advantage: 3 }), hero({ advantage: 1, conditions: [{ id: penalisant!, value: 2 }] as Combatant['conditions'] })]) {
       const lines = baseTestModLines(c, 'capacite-de-combat');
       expect(lines.reduce((s, l) => s + l.value, 0)).toBe(baseTestMods(c, 'capacite-de-combat'));
       for (const l of lines) expect(l.label.length).toBeGreaterThan(0); // aucune chip sans nom

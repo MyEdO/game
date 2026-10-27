@@ -576,7 +576,10 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               JSON). `version` vaut `FORMAT_SAVE` (FORMATS PERSISTÉS, plus bas) ;
                               une save d'un autre format ou illisible est REJETÉE et RETIRÉE du
                               stockage par `readSlot`, et le témoin `takeObsoleteNotice` fait afficher
-                              le message au joueur par `ui/SaveLoadModal`.
+                              le message au joueur par `ui/SaveLoadModal`. Une save au format courant
+                              qui nomme une règle optionnelle ou un État hors du registre courant SE
+                              CHARGE, élaguée de ces seuls ids par `elaguerSave` (`state/elagage.ts`,
+                              #1463 LD.1), nommés au joueur par `ui/RetraitsDeChargement`.
                               Save AUTO-SUFFISANTE (#766) : le slot `campaignDoc`
                               (`noyau/etat.ts`, snapshotté via `stateFields`) embarque le DOCUMENT SOURCE du
                               paquet chargé (scènes + carte + narratif + scène d'entrée). Au chargement,
@@ -589,7 +592,10 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               export/import d'un héros en fichier : enveloppes `RosterStocke` et
                               `ExportDeHeros`, sous `FORMAT_ROSTER` et `FORMAT_EXPORT_HEROS`. Un
                               roster d'un autre format est retiré (témoin `takeRosterNotice`, rendu
-                              par `ui/PartyScreen`) ; un export d'un autre format est refusé. Le
+                              par `ui/PartyScreen`) ; un export d'un autre format est refusé. Un héros
+                              qui porte un État hors du registre courant est GARDÉ sans cet État
+                              (`state/elagage.ts`, #1463 LD.1) — roster réécrit, témoin
+                              `takeRosterElagage` ; import, retrait rendu — nommé par `ui/PartyScreen`. Le
                               roster ne voyage PAS dans la save de partie
   projectLibrary.ts           Bibliothèque des projets de campagne de l'éditeur (`SavedProject`).
                               Base IndexedDB `wfrp4-library` par `accesBase` (magasin `projects`, source de

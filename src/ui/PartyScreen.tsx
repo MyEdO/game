@@ -4,7 +4,8 @@ import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../noyau/etat';
 import { ownsLocalNet } from './ownership';
 import { makePregensWithWealth } from '../data/pregens';
-import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport, takeRosterNotice } from '../state/roster';
+import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport, takeRosterNotice, takeRosterElagage } from '../state/roster';
+import { nommerLesRetraits } from '../state/elagage';
 import { PARTY_MAX } from '../noyau/monde/combatants';
 import { downloadText, fileSlug } from '../web/fileIo';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
@@ -688,6 +689,8 @@ export function CandidatePool({
   // dans un EFFET, jamais à l'initialisation du rendu (double passe de `<React.StrictMode>`).
   useEffect(() => {
     if (takeRosterNotice()) setImportErr(t('picker.roster.retire'));
+    const elague = takeRosterElagage();
+    if (elague) setImportErr(t('picker.roster.elague', { liste: nommerLesRetraits(elague) }));
   }, []);
   // Candidat ÉLU (déplié dans l'ACTE DE PRÉSENTATION, `DetailFrame`) — plus de modale (#417,
   // planche ratifiée d'équipe §B « la présentation intégrée au sélecteur »).
@@ -724,7 +727,7 @@ export function CandidatePool({
     }
     rosterAdd(result.entry);
     setRoster(rosterLoad());
-    setImportErr(null);
+    setImportErr(result.retraits ? t('picker.import.elague', { liste: nommerLesRetraits(result.retraits) }) : null);
     setTab('roster');
   };
 

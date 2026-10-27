@@ -10,10 +10,10 @@ import { useGame } from './store';
 import { resetSceneRegistry } from '../noyau/monde/registreDesScenes';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { lancerCampagne } from '../scenes/campaign';
-import { readSlot, deleteSlot, exportSave, importSave, listSaves, saveToSlot, parseSave, snapshotSave, takeObsoleteNotice, type SaveGame } from './saves';
+import { readSlot, deleteSlot, exportSave, importSave, listSaves, saveToSlot, parseSave, snapshotSave, takeObsoleteNotice, elaguerSave, type SaveGame } from './saves';
 import { FORMAT_SAVE } from './formats.generated';
-import { rule, setRule, loadRuleOverrides } from '../engine/policy';
-import { talents, careerLevels, specResolves, combatStakeRef } from '../data/index';
+import { rule, setRule, loadRuleOverrides, OPTIONAL_RULES } from '../engine/policy';
+import { talents, careerLevels, specResolves, combatStakeRef, conditionIds } from '../data/index';
 import { applierDe } from '../noyau/cascade';
 import { talentSlots, slotCovers } from '../engine/careerSlots';
 import { createHero } from '../engine/character';
@@ -130,7 +130,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     const data = snapshotSave(useGame.getState() as unknown as Record<string, unknown>, initial, 'maintenant').data;
     const absents = champsDeDonnees.filter((k) => !(k in data));
     expect(absents.sort(), 'un champ de données hors save sans exclusion nommée')
-      .toEqual(['campaignNarratif', 'debugLabels', 'debugRoofCut', 'reveler']);
+      .toEqual(['campaignNarratif', 'debugLabels', 'debugRoofCut', 'retraitsDeChargement', 'reveler']);
   });
 
   it('`reveler` (Alt maintenu) n’entre dans AUCUNE save : c’est un état de TOUCHE', () => {
@@ -375,6 +375,32 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
     expect(useGame.getState().flags['drapeau-x']).toBeUndefined();
     expect(listSaves()[0]).toBeNull();
     expect(takeObsoleteNotice()).toEqual([{ slot: 1, cause: 'autreFormat' }]);
+  });
+
+  it('save au format courant qui nomme une règle ou un État hors du registre : CHARGÉE élaguée de ces seuls ids, nommés ; l’emplacement reste (#1463 LD.1)', () => {
+    const r = OPTIONAL_RULES.find((x) => x.kind === 'flag')!;
+    const autre = OPTIONAL_RULES.find((x) => x.kind === 'flag' && x.id !== r.id)!;
+    const connu = conditionIds()[0];
+    const lue = {
+      ...save(FORMAT_SAVE),
+      rules: { [r.id]: !r.default, 'regle-hors-registre': true, [autre.id]: 'texte' },
+      data: { party: [{ id: 'h', label: 'H', kind: 'hero', conditions: [{ id: connu, value: 1 }, { id: 'etat-hors-registre', value: 1 }] }] },
+    };
+    ls().setItem(stableKey(1), JSON.stringify(lue));
+    expect(readSlot(1), 'la dérive du registre ne jette pas la save').not.toBeNull();
+    expect(takeObsoleteNotice()).toEqual([]);
+    expect(useGame.getState().loadGame(1)).toBe(true);
+    expect(rule(r.id), 'la surcharge connue s’applique').toBe(!r.default);
+    expect(rule(autre.id), 'la valeur non conforme est retirée').toBe(autre.default);
+    expect(useGame.getState().party[0].conditions.map((c) => c.id), 'le héros reste, sans l’État inconnu').toEqual([connu]);
+    expect(useGame.getState().retraitsDeChargement).toEqual({ regles: ['regle-hors-registre', autre.id], etats: ['etat-hors-registre'] });
+    expect(ls().getItem(stableKey(1)), 'l’emplacement n’est pas vidé').not.toBeNull();
+  });
+
+  it('elaguerSave : une save que le registre reconnaît entière ne perd rien, et ne dit rien', () => {
+    const r = OPTIONAL_RULES[0];
+    const entiere = { ...save(FORMAT_SAVE), rules: { [r.id]: r.default }, data: { party: [{ id: 'h', conditions: [{ id: conditionIds()[0], value: 1 }] }] } } as unknown as SaveGame;
+    expect(elaguerSave(entiere)).toEqual({ save: entiere, retraits: { regles: [], etats: [] } });
   });
 
   it('contenu illisible : jeté, témoin « illisible » — jamais un crash', () => {

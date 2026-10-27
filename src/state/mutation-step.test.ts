@@ -233,7 +233,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
   });
 
   it('POSER les dés, ligne à SOUS-TABLE : une TROISIÈME étape est insérée et pilotée', () => {
-    setRule('corruption-tables-edoc', 'edoc');
+    setRule('corruption-tables-edoc', 'khorne');
     const hero = heroSolo();
     setDesFixes(true);
     applyMutation(useGame.getState, useGame.setState, hero, undefined, 'khorne');

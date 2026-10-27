@@ -4,6 +4,7 @@ import type { CreatorDraft } from '../ui/creator/draft';
 import { t } from '../i18n';
 import { stockageWeb } from '../web/stockageWeb';
 import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
+import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 
 /** Roster persistant (localStorage) des personnages créés via le créateur.
  *  Snapshot À LA CRÉATION : le héros tel que sorti de `buildHero`, plus sa
@@ -37,7 +38,20 @@ export function takeRosterNotice(): boolean {
   return r;
 }
 
-/** Le roster stocké, ou `[]`. Un contenu d'un autre format, ou illisible, est RETIRÉ, témoin posé. */
+/** Témoin « des États inconnus du registre courant ont été retirés des héros du roster » — posé par `rosterLoad`
+ *  qui réécrit le roster élagué, consommé par l'écran de sélection des personnages (#1463 LD.1). */
+let rosterElague: RetraitsDElagage | null = null;
+
+/** Consomme le témoin d'élagage du roster (et le remet à zéro). */
+export function takeRosterElagage(): RetraitsDElagage | null {
+  const r = rosterElague;
+  rosterElague = null;
+  return r;
+}
+
+/** Le roster stocké, ou `[]`. Un contenu d'un autre format, ou illisible, est RETIRÉ, témoin posé. Un héros qui
+ *  porte un État hors du registre courant est GARDÉ, cet État retiré (`elaguerLePersiste`), le roster réécrit
+ *  élagué, témoin d'élagage posé (#1463 LD.1). */
 export function rosterLoad(): RosterEntry[] {
   const s = stockageWeb('localStorage');
   if (!s) return [];
@@ -55,7 +69,7 @@ export function rosterLoad(): RosterEntry[] {
     parsed = null;
   }
   const doc = parsed as Partial<RosterStocke> | null;
-  if (doc?.version === FORMAT_ROSTER && Array.isArray(doc.heros)) return doc.heros;
+  if (doc?.version === FORMAT_ROSTER && Array.isArray(doc.heros)) return elaguerLeRoster(doc.heros);
   rosterRetire = true;
   try {
     s.removeItem(KEY);
@@ -63,6 +77,16 @@ export function rosterLoad(): RosterEntry[] {
     // stockage indisponible : rien à supprimer
   }
   return [];
+}
+
+/** Le roster lu, élagué de ses États inconnus ; réécrit et témoin posé quand l'élagage retire quelque chose. */
+function elaguerLeRoster(heros: RosterEntry[]): RosterEntry[] {
+  const { porteurs, retraits } = elaguerLePersiste({ porteurs: heros.map((e) => e.hero) });
+  if (rienDElague(retraits)) return heros;
+  const elague = heros.map((e, i) => ({ ...e, hero: porteurs[i] }));
+  rosterElague = retraits;
+  save(elague);
+  return elague;
 }
 
 export function rosterAdd(entry: RosterEntry): void {
@@ -105,12 +129,13 @@ export function rosterExport(entry: RosterEntry): string {
   return JSON.stringify(doc, null, 2);
 }
 
-/** Résultat de `rosterImport` : soit l'entrée reconstruite, soit un message d'erreur EXPLICITE
- *  (jamais un `null` muet) — l'appelant UI l'affiche tel quel. */
-export type RosterImportResult = { entry: RosterEntry; error?: undefined } | { entry?: undefined; error: string };
+/** Résultat de `rosterImport` : soit l'entrée reconstruite (et ce que l'élagage lui a retiré, à nommer au
+ *  joueur), soit un message d'erreur EXPLICITE (jamais un `null` muet) — l'appelant UI l'affiche tel quel. */
+export type RosterImportResult = { entry: RosterEntry; retraits?: RetraitsDElagage; error?: undefined } | { entry?: undefined; retraits?: undefined; error: string };
 
 /** Lit une chaîne `rosterExport` → `RosterEntry`, ou une erreur EXPLICITE : un fichier illisible ou
- *  d'un autre `kind` est invalide, un export d'un autre format est d'un autre format. */
+ *  d'un autre `kind` est invalide, un export d'un autre format est d'un autre format. Le héros qui porte un
+ *  État hors du registre courant est importé sans cet État, retrait rendu (#1463 LD.1). */
 export function rosterImport(str: string): RosterImportResult {
   let parsed: unknown;
   try {
@@ -122,7 +147,8 @@ export function rosterImport(str: string): RosterImportResult {
   if (!doc || typeof doc !== 'object' || doc.kind !== EXPORT_KIND) return { error: t('picker.import.error') };
   if (doc.version !== FORMAT_EXPORT_HEROS) return { error: t('picker.import.error.autreFormat') };
   if (!doc.hero || typeof doc.hero.id !== 'string' || !doc.wealth) return { error: t('picker.import.error') };
-  return { entry: { hero: doc.hero, wealth: doc.wealth } };
+  const { porteurs: [hero], retraits } = elaguerLePersiste({ porteurs: [doc.hero] });
+  return { entry: { hero, wealth: doc.wealth }, ...(rienDElague(retraits) ? {} : { retraits }) };
 }
 
 function save(list: RosterEntry[]): void {

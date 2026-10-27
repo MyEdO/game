@@ -23,6 +23,7 @@ import type { SizeCategory } from '../../engine/size';
 import { groupMatch } from '../../engine/groups';
 import { spellOps } from '../../engine/flowCore';
 import { type SpellData, findConditionById } from '../../data';
+import { etatExige } from '../../engine/conditions';
 import { RefIrresoluble, spawnEnemy } from './spawn';
 
 /** DR moyen prudent injecté dans l'espérance d'une touche (l'espérance d'un DR ≥ 0 sur une réussite). */
@@ -71,7 +72,7 @@ export function safeWounds(weapon: Weapon, target: Combatant, totalDamage: numbe
 }
 
 // Dangerosité d'un ÉTAT infligé (« Blessures espérées ») : lue en DONNÉE sur `etats.json` (`aiThreat`,
-// clé = l'`id` de l'op:'condition'). États inconnus / sans aiThreat → 1 (contrôle mineur).
+// clé = l'`id` de l'op:'condition'). État connu sans aiThreat → 1 (contrôle mineur) ; id hors registre : `etatExige` lève.
 
 /**
  * Une cible est NEUTRALISÉE (au sol/inconsciente/0 PB encore là) : aucun intérêt tactique à s'acharner
@@ -269,6 +270,7 @@ export function opValue(op: GameOp, caster: Combatant, subject: Combatant, ctx: 
       return marginalBuff(caster, subject, op, ctx);
     // CONTRÔLE hostile.
     case 'condition':
+      etatExige(op.id);
       return findConditionById(op.id)?.aiThreat ?? 1;
     case 'testMod':
       return op.amount < 0 ? Math.abs(op.amount) / 10 : 0;
