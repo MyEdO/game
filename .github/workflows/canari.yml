@@ -37,7 +37,8 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
+          node-version-file: package.json
+          check-latest: true
           cache: npm
       - id: install
         run: npm ci
