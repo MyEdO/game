@@ -5,12 +5,12 @@ import { hasActiveFlag, consumeActiveFlag } from './activeFlags';
 import { applyOps } from './ops';
 import { addCondition, hasCondition, combatTestPenalty, testStatePenalty, endOfRound } from './conditions';
 import { resolveCritique } from './critical';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { spellOps } from './flowCore';
 import { desDuTest, desEnSuite } from './dice.testkit';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */
-const opsOf = (label: string) => spellOps(findSpell(label)?.effects, 'target');
+const opsOf = (id: string) => spellOps(findSpellById(id)?.effects, 'target');
 
 /** RNG scripté : renvoie les valeurs dans l'ordre (padding 5). */
 function seq(values: number[]): RNG {
@@ -79,7 +79,7 @@ describe("Endurance de l'anachorète — « ne subit aucune pénalité causée p
     expect(lines.join(' ')).toMatch(/pénalité d'État|pénalités d'État/i);
   });
   it('effets curés : Endurance de l’anachorète porte l’op (plus de narrative seul)', () => {
-    expect(opsOf("Endurance de l'anachorète").some((o) => o.op === 'ignoreStatePenalties')).toBe(true);
+    expect(opsOf('endurance-de-l-anachorete').some((o) => o.op === 'ignoreStatePenalties')).toBe(true);
   });
 });
 
@@ -124,10 +124,10 @@ describe('Bénédiction de Sauvagerie — « deux lancers, choisissez le meilleu
     expect(r.roll).toBe(85);
   });
   it('effets curés : Bénédiction de Sauvagerie porte l’op critTwice', () => {
-    expect(opsOf('Bénédiction de Sauvagerie').some((o) => o.op === 'critTwice')).toBe(true);
+    expect(opsOf('benediction-de-sauvagerie').some((o) => o.op === 'critTwice')).toBe(true);
   });
   it('effets curés : Bénédiction de Chance porte l’op freeReroll', () => {
-    expect(opsOf('Bénédiction de Chance').some((o) => o.op === 'freeReroll')).toBe(true);
+    expect(opsOf('benediction-de-chance').some((o) => o.op === 'freeReroll')).toBe(true);
   });
 });
 
@@ -160,7 +160,7 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
     expect(lines.join(' ')).toMatch(/aucun Trait/i);
   });
   it('effets curés : Baume porte l’op suppressPsych', () => {
-    expect(opsOf('Baume pour un esprit blessé').some((o) => o.op === 'suppressPsych')).toBe(true);
+    expect(opsOf('baume-pour-un-esprit-blesse').some((o) => o.op === 'suppressPsych')).toBe(true);
   });
 });
 

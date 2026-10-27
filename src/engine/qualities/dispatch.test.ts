@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { Weapon } from '../types';
 import { hasQuality, qualitySum, qualityCritTriggered, parryDRAdjust, isUnbreakable, attackDRAdjust, dangerousNine, reloadDRTarget, magazineSize, resolveQualities, qualityArmourBypasses } from './dispatch';
 import { craftEncDelta } from './craftEconomy';
-import { findQualityById, qualityIdByLabel, findTrappingById, qualityRefLabel, trappings } from '../../data';
+import { findQualityById, findTrappingById, qualityRefLabel, trappings } from '../../data';
 import { itemFromTrappingById } from '../items';
 import { parseQualityInstance } from './normalize';
 import { readFileSync } from 'node:fs';
@@ -173,11 +173,11 @@ describe('Poudre imprégnée d’Aqshy (AA 08 l.544) — seuil de Maladresse él
 
 describe('catalogue — entrées attendues', () => {
   it('contient les qualités d’arme implémentées', () => {
-    for (const k of ['Précise', 'Perforante', 'Pointue', 'Empaleuse', 'Défensive', 'À Enroulement', 'Pistolet', 'Incassable', 'Inoffensive', 'Dévastatrice', 'Percutante',
-      'Léger', 'Pratique', 'Raffiné', 'Solide', 'Bâclé', 'Laid', 'Peu Fiable', 'Volumineux',
-      'Taillade', 'Déséquilibrée', 'Déstabilisante', // Aux Armes p.89 — câblées (effets onCrit/onHit data-driven / defenderParryDR)
-      "Arme d'équipe", 'Salve', 'Tir de zone']) { // Aux Armes p.124/126/89 — artillerie câblée (sous-effectif / chargeur / zone)
-      expect(qualityIdByLabel(k), k).toBeTruthy();
+    for (const id of ['precise', 'perforante', 'pointue', 'empaleuse', 'defensive', 'a-enroulement', 'pistolet', 'incassable', 'inoffensive', 'devastatrice', 'percutante',
+      'leger', 'pratique', 'raffine', 'solide', 'bacle', 'laid', 'peu-fiable', 'volumineux',
+      'taillade', 'desequilibree', 'destabilisante', // Aux Armes p.89 — câblées (effets onCrit/onHit data-driven / defenderParryDR)
+      'arme-d-equipe', 'salve', 'tir-de-zone']) { // Aux Armes p.124/126/89 — artillerie câblée (sous-effectif / chargeur / zone)
+      expect(findQualityById(id), id).toBeTruthy();
     }
   });
 });
@@ -193,7 +193,7 @@ describe('couture label→id — toute qualité d’arme/armure des données se 
     return all.filter((q) => (q.subType ?? '').toLowerCase().startsWith(prefixe));
   };
   const masquees = (entrees: { id: string; label: string }[]) =>
-    entrees.filter((q) => findQualityById(qualityIdByLabel(q.label) ?? '')?.label.toLowerCase() !== q.label.toLowerCase()).map((q) => q.label);
+    entrees.filter((q) => findQualityById(parseQualityInstance(q.label)?.id ?? '')?.label.toLowerCase() !== q.label.toLowerCase()).map((q) => q.label);
 
   it('chaque Atout/Défaut d’ARME se résout sur une entrée du MÊME libellé', () => {
     const armes = parSousType('arme');

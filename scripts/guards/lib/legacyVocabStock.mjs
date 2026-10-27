@@ -686,13 +686,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/noyau/monde/advancement.test.ts",
-    motif: "désormais",
-    ancre: "// `option.label` est désormais une clé de câblage OPAQUE (refKey) ; `display` porte le texte.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/state/broken-recovery.test.ts",
     motif: "désormais",
     ancre: "Récupération du Brisé (LDB 16 l.54-58) — désormais 100 % DATA-DRIVEN (etats.json `brise.effects`,",

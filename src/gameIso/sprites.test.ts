@@ -20,8 +20,8 @@ describe('entitySprite — backend sprite = décor uniquement', () => {
 describe('creatureSpeciesOptions — source du picker éditeur (defs rig : id + libellé)', () => {
   it('contient des créatures canon variées et > 10 entrées', () => {
     const opts = creatureSpeciesOptions();
-    expect(opts.some((o) => o.id === 'skaven' && o.label === 'Skaven')).toBe(true);
-    expect(opts.some((o) => o.id === 'loup' && o.label === 'Loup')).toBe(true);
+    expect(opts.find((o) => o.id === 'skaven')?.label).toBeTruthy();
+    expect(opts.find((o) => o.id === 'loup')?.label).toBeTruthy();
     expect(opts.length).toBeGreaterThan(10);
   });
 });

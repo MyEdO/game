@@ -50,10 +50,10 @@ describe('disponibilite — Disponibilité RAW (LDB 59 l.13-34, p.290-291)', () 
     const a = rollStock(cat, 'ville', makeRNG(7));
     const b = rollStock(cat, 'ville', makeRNG(7));
     expect(a).toEqual(b); // déterministe
-    expect(a.find((l) => l.label === 'Épée')!.qty).toBeGreaterThan(0); // Commune toujours
-    expect(a.find((l) => l.label === 'Clavecin')).toBeUndefined(); // Exotique exclu
+    expect(a.find((l) => l.id === 'epee')!.qty).toBeGreaterThan(0); // Commune toujours
+    expect(a.find((l) => l.id === 'clavecin')).toBeUndefined(); // Exotique exclu
     const withCurated = rollStock(cat, 'ville', makeRNG(7), ['clavecin']); // curated = ids stables
-    expect(withCurated.find((l) => l.label === 'Clavecin')!.qty).toBeGreaterThan(0); // curaté forcé
+    expect(withCurated.find((l) => l.id === 'clavecin')!.qty).toBeGreaterThan(0); // curaté forcé
   });
   it('fullStock (système simplifié, LDB 59 l.15) : tout sauf Exotique/null en stock sans Test', () => {
     const cat: CatalogItem[] = [
@@ -63,11 +63,11 @@ describe('disponibilite — Disponibilité RAW (LDB 59 l.13-34, p.290-291)', () 
       { id: 'nd', label: 'Inconnu', availability: null },
     ];
     const s = fullStock(cat, 'ville', makeRNG(7));
-    expect(s.find((l) => l.label === 'Épée')!.qty).toBeGreaterThan(0);
-    expect(s.find((l) => l.label === 'Arquebuse')!.qty).toBeGreaterThan(0); // Rare présente SANS Test de Disponibilité
+    expect(s.find((l) => l.id === 'epee')!.qty).toBeGreaterThan(0);
+    expect(s.find((l) => l.id === 'arquebuse')!.qty).toBeGreaterThan(0); // Rare présente SANS Test de Disponibilité
     expect(s.every((l) => l.test === undefined)).toBe(true); // aucun Test de Disponibilité
-    expect(s.find((l) => l.label === 'Clavecin')).toBeUndefined(); // Exotique exclu
-    expect(s.find((l) => l.label === 'Inconnu')).toBeUndefined(); // availability nulle exclue
+    expect(s.find((l) => l.id === 'clavecin')).toBeUndefined(); // Exotique exclu
+    expect(s.find((l) => l.id === 'nd')).toBeUndefined(); // availability nulle exclue
   });
 });
 

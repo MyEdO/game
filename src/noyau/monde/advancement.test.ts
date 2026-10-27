@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { Combatant } from '../../engine/types';
 import { findTalentById, specPoolOf } from '../../data';
 import { buildAdvancementView } from './advancement';
+import { refKey, parseRefKey } from '../../engine/careerSlots';
+
+const specialiseDe = (key: string, id: string): boolean => {
+  const k = parseRefKey(key);
+  return k.id === id && k.spec !== undefined;
+};
 
 /** Héros minimal de carrière « Agitateur » (careerLevels.json : Niveau 1 = « Pamphlétaire »,
  *  Caractéristiques de carrière = CT/Int/Soc ; Compétences incluent Charme, Ragot ;
@@ -53,8 +59,8 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
 
   it('Compétences connues : Charme in-carrière (10), Esquive hors-carrière (×2 = 20)', () => {
     const v = buildAdvancementView(hero());
-    const charme = v.skills.find((s) => s.label === 'Charme')!;
-    const esquive = v.skills.find((s) => s.label === 'Esquive')!;
+    const charme = v.skills.find((s) => s.skillId === 'charme')!;
+    const esquive = v.skills.find((s) => s.skillId === 'esquive')!;
     expect(charme.known).toBe(true);
     expect(charme.inCareer).toBe(true);
     expect(charme.nextCost).toBe(10);
@@ -64,7 +70,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
 
   it('Compétences in-carrière non connues : acquérables à advances 0 (coût 10)', () => {
     const v = buildAdvancementView(hero());
-    const ragot = v.skills.find((s) => s.label === 'Ragot')!;
+    const ragot = v.skills.find((s) => s.skillId === 'ragot')!;
     expect(ragot).toBeTruthy();
     expect(ragot.known).toBe(false);
     expect(ragot.inCareer).toBe(true);
@@ -74,7 +80,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
 
   it('Talents in-carrière non possédés : un rang par EMPLACEMENT, acquérables (coût 100)', () => {
     const v = buildAdvancementView(hero());
-    const sociable = v.talents.find((t) => t.label === 'Sociable')!;
+    const sociable = v.talents.find((t) => t.talentId === 'sociable')!;
     expect(sociable).toBeTruthy();
     expect(sociable.times).toBe(0);
     expect(sociable.nextCost).toBe(100);
@@ -85,8 +91,8 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
   it('emplacement « Béni (Au choix) » non désigné : options = pool de spécialisations du talent, par id (LDB 10 l.17)', () => {
     const v = buildAdvancementView(hero({ career: 'pretre' }));
     const row = v.talents.find((r) => r.entry === 'Béni (Au choix)')!;
-    expect(row.options?.map((o) => o.refKey)).toContain('beni|sigmar');
-    expect(row.options?.some((o) => o.refKey === 'beni')).toBe(false);
+    expect(row.options?.map((o) => o.refKey)).toContain(refKey('beni', 'sigmar'));
+    expect(row.options?.some((o) => o.refKey === refKey('beni'))).toBe(false);
   });
   it('complétion : héros frais NON complété → coût de changement 200', () => {
     const v = buildAdvancementView(hero());
@@ -106,9 +112,9 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
   it('niveau 2 : Compétences cumulatives (l.78), Talents du niveau courant seul (l.100)', () => {
     const v = buildAdvancementView(hero({ careerLevel: 2 }));
     // « Charme » (Niveau 1) reste in-carrière au Niveau 2.
-    expect(v.skills.find((s) => s.label === 'Charme')!.inCareer).toBe(true);
+    expect(v.skills.find((s) => s.skillId === 'charme')!.inCareer).toBe(true);
     // « Sociable » (talent du Niveau 1) n'est PLUS proposé au Niveau 2.
-    expect(v.talents.some((t) => t.label === 'Sociable')).toBe(false);
+    expect(v.talents.some((t) => t.talentId === 'sociable')).toBe(false);
     expect(v.talents.length).toBeGreaterThan(0);
   });
 
@@ -134,7 +140,7 @@ describe('buildAdvancementView — Maxi et coût d\'un emplacement « (Au choix)
   // Patrouilleur routier Niveau 3 : « Haine (Au choix) » ; FM 30 → Maxi 3.
   const haineAuChoix = (times: number) =>
     buildAdvancementView(hero({ career: 'patrouilleur-routier', careerLevel: 3, talents: [{ talentId: 'haine', spec: 'peaux-vertes', times }] }))
-      .talents.find((r) => r.options?.some((o) => o.refKey.startsWith('haine|')))!;
+      .talents.find((r) => r.options?.some((o) => specialiseDe(o.refKey, 'haine')))!;
   it('Peaux-vertes au Maxi : la ligne et chaque groupe neuf sont au Maxi', () => {
     const row = haineAuChoix(3);
     expect(row.maxReached).toBe(true);
@@ -143,7 +149,7 @@ describe('buildAdvancementView — Maxi et coût d\'un emplacement « (Au choix)
   it('sous le Maxi : les groupes neufs sont achetables, au coût de la 3e acquisition', () => {
     const row = haineAuChoix(2);
     expect(row.maxReached).toBe(false);
-    const neuf = row.options!.find((o) => o.refKey === 'haine|morts-vivants')!;
+    const neuf = row.options!.find((o) => o.refKey === refKey('haine', 'morts-vivants'))!;
     expect(neuf.maxReached).toBe(false);
     expect(neuf.nextCost).toBe(300);
   });
@@ -152,18 +158,17 @@ describe('buildAdvancementView — Maxi et coût d\'un emplacement « (Au choix)
 describe('buildAdvancementView — match d\'entité possédée par id+spec (Issue #10)', () => {
   it('Talent EXPLICITE possédé : times lu par id (Artisan N3 → Bricoleur)', () => {
     const v = buildAdvancementView(hero({ career: 'artisan', careerLevel: 3, talents: [{ talentId: 'bricoleur', times: 1 }] }));
-    const bricoleur = v.talents.find((t) => t.label === 'Bricoleur');
+    const bricoleur = v.talents.find((t) => t.talentId === 'bricoleur');
     expect(bricoleur).toBeTruthy();
     expect(bricoleur!.times).toBe(1);
   });
 
   it('Talent à spec wildcard possédé : owned lu par id+spec (Sens aiguisé (Goût) ≠ (Toucher))', () => {
     const v = buildAdvancementView(hero({ career: 'artisan', careerLevel: 3, talents: [{ talentId: 'sens-aiguise', spec: 'gout', times: 1 }] }));
-    // `option.label` est désormais une clé de câblage OPAQUE (refKey) ; `display` porte le texte.
-    const slot = v.talents.find((t) => t.options?.some((o) => o.display.startsWith('Sens aiguisé')));
+    const slot = v.talents.find((t) => t.options?.some((o) => specialiseDe(o.refKey, 'sens-aiguise')));
     expect(slot).toBeTruthy();
-    const gout = slot!.options!.find((o) => o.display === 'Sens aiguisé (Goût)')!;
-    const toucher = slot!.options!.find((o) => o.display === 'Sens aiguisé (Toucher)')!;
+    const gout = slot!.options!.find((o) => o.refKey === refKey('sens-aiguise', 'gout'))!;
+    const toucher = slot!.options!.find((o) => o.refKey === refKey('sens-aiguise', 'toucher'))!;
     expect(gout.owned).toBe(true); // possédé avec la bonne spec
     expect(toucher.owned).toBe(false); // même talent, autre spec → non possédé
   });

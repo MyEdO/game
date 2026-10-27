@@ -10,7 +10,7 @@ const levelRows = (item: CodexItem, levelPrefix: string): CodexRow[] => {
 
 describe('Codex registry — Possessions de Niveau de Carrière : réf STRUCTURÉE, jamais un libellé re-résolu (#904)', () => {
   it('Umbramancien N3 (Gardien Gris) : {creatureId} lie le bestiaire, {id} lie les Possessions, {text} reste une pastille NUE, jamais une réf', () => {
-    const item = categoryByKey('careers')!.items.find((i) => i.label === 'Umbramancien')!;
+    const item = categoryByKey('careers')!.items.find((i) => i.id === 'umbramancien')!;
     const rows = levelRows(item, 'Niveau 3');
     expect(rows.length).toBeGreaterThan(0);
 
@@ -30,7 +30,7 @@ describe('Codex registry — Possessions de Niveau de Carrière : réf STRUCTUR�
   });
 
   it('Bourgeois N3 (Conseiller municipal) : {vehicleId} lie les Véhicules', () => {
-    const item = categoryByKey('careers')!.items.find((i) => i.label === 'Bourgeois')!;
+    const item = categoryByKey('careers')!.items.find((i) => i.id === 'bourgeois')!;
     const rows = levelRows(item, 'Niveau 3');
     const vehicleRow = rows.find((r) => r.t === 'ref' && r.category === 'vehicles');
     expect(vehicleRow).toMatchObject({ t: 'ref', category: 'vehicles', id: 'diligence' });

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyCast } from '../noyau/combatFlow';
 import { pregen, pregenParty, PREGEN } from '../data/pregens';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { applyOps } from '../engine/ops';
 import type { CastResult, MissileResult } from '../engine/magic';
 import type { Combatant } from '../engine/types';
@@ -28,7 +28,7 @@ describe('Vol de vie — lifeSteal + casterOps', () => {
     useGame.setState({ party: [w, cible] as Combatant[] });
     const res: CastResult & Partial<MissileResult> = { ...ok(2), hit: true, location: 'corps', damage: 7, woundsLost: 5, defenderDefeated: false };
     const before = w.wounds.current;
-    applyCast(useGame.getState, useGame.setState, w, cible, findSpell('Vol de vie')!, res, true, false);
+    applyCast(useGame.getState, useGame.setState, w, cible, findSpellById('vol-de-vie')!, res, true, false);
     const wAfter = useGame.getState().party.find((h) => h.id === w.id)!;
     expect(wAfter.wounds.current).toBe(before + Math.ceil(5 / 2)); // vol de vie : +3
     expect(wAfter.conditions.find((c) => c.id === 'extenue')).toBeUndefined(); // casterOps a purgé l'Exténué du lanceur
@@ -42,7 +42,7 @@ describe('Caresse de Laniph — lifeSteal ⌊dégâts/2⌋', () => {
     useGame.setState({ party: [w, cible] as Combatant[] });
     const res: CastResult & Partial<MissileResult> = { ...ok(1), hit: true, location: 'corps', damage: 6, woundsLost: 5, defenderDefeated: false };
     const before = w.wounds.current;
-    applyCast(useGame.getState, useGame.setState, w, cible, findSpell('Caresse de Laniph')!, res, true, false);
+    applyCast(useGame.getState, useGame.setState, w, cible, findSpellById('caresse-de-laniph')!, res, true, false);
     expect(useGame.getState().party.find((h) => h.id === w.id)!.wounds.current).toBe(before + Math.floor(5 / 2)); // +2
   });
 });

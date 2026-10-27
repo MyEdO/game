@@ -10,7 +10,7 @@ import { draineEtLit, avanceEtapeCascade } from './cascade.testkit';
 import { applyCast, checkFocusInterruption, openCastCascade } from '../noyau/combatFlow';
 import { pregen, PREGEN } from '../data/pregens';
 import { createHero } from '../engine/character';
-import { findSpell, findEffectTableById, refLabel } from '../data';
+import { findEffectTableById, refLabel, findSpellById } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { setRule, resetRule } from '../engine/policy';
 import { seedBattleRng } from '../noyau/battleRng';
@@ -38,8 +38,8 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
   it('double réussi sur un SORT → Imparfaite Mineure automatique (le prix de la puissance)', () => {
     const w = wiz();
     useGame.setState({ party: [w] as Combatant[] });
-    const spell = findSpell('Choc')!; // sort non-missile ? Choc est ZdE missile — prendre un sort de soutien
-    const armure = findSpell('Armure Aethyrique')!;
+    const spell = findSpellById('choc')!; // sort non-missile ? Choc est ZdE missile — prendre un sort de soutien
+    const armure = findSpellById('armure-aethyrique')!;
     applyCast(useGame.getState, useGame.setState, w, w, armure, critRes(true, 4), false, false);
     // Le contrecoup est une ÉTAPE : il se dit quand elle se joue, sur elle autant qu'au journal.
     expect(draineEtLit(useGame.getState).join('\n')).toMatch(/Incantation Imparfaite/);
@@ -50,7 +50,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
     const w = wiz();
     w.talents.push({ talentId: 'diction-instinctive', times: 1 });
     useGame.setState({ party: [w] as Combatant[] });
-    const armure = findSpell('Armure Aethyrique')!;
+    const armure = findSpellById('armure-aethyrique')!;
     applyCast(useGame.getState, useGame.setState, w, w, armure, critRes(true, 4), false, false);
     const j = draineEtLit(useGame.getState).join('\n');
     expect(j).toMatch(/Diction instinctive/);
@@ -60,7 +60,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
   it('« Puissance totale » repêche un Critique dont le DR < NI (sort lancé quand même)', () => {
     const w = wiz();
     useGame.setState({ party: [w] as Combatant[] });
-    const armure = findSpell('Armure Aethyrique')!; // NI 2 — DR 0 insuffisant
+    const armure = findSpellById('armure-aethyrique')!; // NI 2 — DR 0 insuffisant
     applyCast(useGame.getState, useGame.setState, w, w, armure, critRes(false, 0), false, false, 'puissance');
     expect(useGame.getState().journal.join('\n')).toMatch(/Puissance totale/);
   });
@@ -68,7 +68,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
   it('une PRIÈRE critique ne déclenche pas la mécanique (règle du ch.46, Tests de Langue)', () => {
     const priest = pregen(PREGEN.pretre);
     useGame.setState({ party: [priest] as Combatant[] });
-    const ben = findSpell('Bénédiction de Guérison')!;
+    const ben = findSpellById('benediction-de-guerison')!;
     applyCast(useGame.getState, useGame.setState, priest, priest, ben, critRes(true, 2), false, false);
     expect(draineEtLit(useGame.getState).join('\n')).not.toMatch(/Incantation Imparfaite/);
   });
@@ -129,7 +129,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     useGame.getState().focusConfirm();
     const rendu = draineEtLit(useGame.getState).join('\n');
     const after = useGame.getState().party.find((h) => h.id === w.id)!;
-    expect(after.focus?.dr).toBeGreaterThanOrEqual(findSpell('Armure Aethyrique')!.cn ?? 0);
+    expect(after.focus?.dr).toBeGreaterThanOrEqual(findSpellById('armure-aethyrique')!.cn ?? 0);
     expect(rendu).toMatch(/Focalisation CRITIQUE/);
     expect(rendu).toMatch(/Incantation Imparfaite/);
   });
@@ -147,7 +147,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     useGame.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
     useGame.getState().focusConfirm();
     const after = useGame.getState().party.find((h) => h.id === w.id)!;
-    const ni = findSpell('Manifestation de Démon mineur')!.cn ?? 0;
+    const ni = findSpellById('manifestation-de-demon-mineur')!.cn ?? 0;
     expect(after.focus?.dr).toBe(1 + 3); // 1 (DR déjà accumulé) + 3 (BFM), loin sous le NI 8
     expect(after.focus!.dr).toBeLessThan(ni);
     resetRule('magic-vdm-incantation');

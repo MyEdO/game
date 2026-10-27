@@ -12,7 +12,7 @@ import { battleRng } from '../noyau/battleRng';
 import { applyCast, applyAttackResult, attackWardGate, doAttack } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { type RNG } from '../engine/dice';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
@@ -161,7 +161,7 @@ describe('L13 — gates & redirections', () => {
       cast: true, roll: 30, target: 70, sl: 2, isCritical: false, isFumble: false, log: 'lance Attaques en chaîne',
       hit: true, woundsLost: 5, damage: 10, location: 'corps', defenderDefeated: false,
     };
-    applyCast(useGame.getState, useGame.setState, hero, E1, findSpell('Attaques en chaîne')!, res, true, false);
+    applyCast(useGame.getState, useGame.setState, hero, E1, findSpellById('attaques-en-chaine')!, res, true, false);
     const log = useGame.getState().battle!.log.map((e) => e.text).join('\n');
     expect(E1.wounds.current).toBe(0);
     expect(log).toMatch(/rebondit sur/);

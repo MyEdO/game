@@ -82,17 +82,17 @@ describe('castPenalty — pénalités/blocages temporisés', () => {
 // d'échec, palier `onFailHard` via Condition `slThreshold ≤ −4`) ; la RÉSOLUTION cadence-aware (étape
 // influençable, onCorruption, Inconscient à −4 DR) est testée au niveau store (`state/miscast-test.test`).
 describe('Tests imbriqués des tables → nœud Flow `test`', () => {
-  /** Premier `rollMiscast(sev, ...)` dont le nom commence par `prefix` (échantillonne les graines). */
-  function rowNamed(sev: Parameters<typeof rollMiscast>[0], prefix: string, sin = 0) {
+  /** Premier `rollMiscast(sev, ...)` qui tire la rangée `rowId` (échantillonne les graines). */
+  function rowParId(sev: Parameters<typeof rollMiscast>[0], rowId: string, sin = 0) {
     for (let seed = 0; seed < 600; seed++) {
       const r = rollMiscast(sev, makeRNG(seed), sin);
-      if (r.label.startsWith(prefix)) return r;
+      if (r.rowId === rowId) return r;
     }
-    throw new Error(`entrée « ${prefix} » introuvable`);
+    throw new Error(`rangée « ${rowId} » introuvable`);
   }
 
   it('« Murmures mortels » : testFlow = Test de FM Accessible → +1 Corruption sur échec', () => {
-    const r = rowNamed('mineure', 'Murmures mortels');
+    const r = rowParId('mineure', 'mineure-murmures-mortels');
     expect(r.testFlow).toBeTruthy();
     const node = r.testFlow!;
     expect(node.kind).toBe('test');
@@ -107,7 +107,7 @@ describe('Tests imbriqués des tables → nœud Flow `test`', () => {
   });
 
   it('« Choc aethyrique » : 1d10 Blessures IMMÉDIATES (ops) + testFlow Résistance → Sonné', () => {
-    const r = rowNamed('majeure', 'Choc aethyrique');
+    const r = rowParId('majeure', 'majeure-choc-aethyrique');
     expect(r.ops.some((o) => o.op === 'wounds')).toBe(true); // Dégâts AVANT le Test (ops immédiats)
     const node = r.testFlow!;
     expect(node.kind).toBe('test');
@@ -117,7 +117,7 @@ describe('Tests imbriqués des tables → nœud Flow `test`', () => {
   });
 
   it('« Purifier la chair » : testFlow Résistance Difficile, palier −4 DR → Inconscient (slThreshold)', () => {
-    const r = rowNamed('colere', 'Purifier la chair');
+    const r = rowParId('colere', 'colere-purifier-la-chair');
     expect(r.ops.some((o) => o.op === 'wounds')).toBe(true); // 2d10 Blessures immédiates
     const node = r.testFlow!;
     expect(node.kind).toBe('test');
@@ -159,7 +159,7 @@ describe('tables migrées — sweep d\'application', () => {
     let found = false;
     for (let seed = 0; seed < 400 && !found; seed++) {
       const r = rollMiscast('mineure', makeRNG(seed), 0);
-      if (r.label !== 'Tenue indisciplinée') continue;
+      if (r.rowId !== 'mineure-tenue-indisciplinee') continue;
       found = true;
       const op = r.ops.find((o) => o.op === 'condition' && o.id === 'empetre')!;
       expect(op).toBeTruthy();
@@ -179,7 +179,7 @@ describe('tables migrées — sweep d\'application', () => {
     let found = false;
     for (let seed = 0; seed < 400 && !found; seed++) {
       const r = rollMiscast('colere', makeRNG(seed), 0);
-      if (!r.label.startsWith('Tenez compte')) continue;
+      if (r.rowId !== 'colere-tenez-compte-de-mes-enseignements') continue;
       found = true;
       const c = hero();
       applyOps(c, r.ops, { rng: makeRNG(1), label: r.label });
@@ -244,42 +244,42 @@ describe('tables migrées — sweep d\'application', () => {
 // (`miscast.ts`) la recopie sur le `GameOp` `wounds`, `applyOps` la déduit (`ops.ts`). Trois entrées
 // aux trois régimes du RAW — le câblage saute si l'un des trois étages perd les champs.
 describe('mitigation déclarée des Blessures — donnée → expandOp → applyOps', () => {
-  function woundsOf(sev: Parameters<typeof rollMiscast>[0], prefix: string) {
+  function woundsOf(sev: Parameters<typeof rollMiscast>[0], rowId: string) {
     for (let seed = 0; seed < 600; seed++) {
       const r = rollMiscast(sev, makeRNG(seed), 3);
-      if (!r.label.startsWith(prefix)) continue;
+      if (r.rowId !== rowId) continue;
       const w = r.ops.find((o) => o.op === 'wounds');
-      if (!w) throw new Error(`« ${prefix} » n'émet pas de \`wounds\``);
+      if (!w) throw new Error(`« ${rowId} » n'émet pas de \`wounds\``);
       return w as Extract<typeof w, { op: 'wounds' }>;
     }
-    throw new Error(`entrée « ${prefix} » introuvable`);
+    throw new Error(`rangée « ${rowId} » introuvable`);
   }
 
   it('« Choc aethyrique » (LDB 46 l.63) : « qui ignorent le Bonus d\'Endurance et les PA »', () => {
-    const w = woundsOf('majeure', 'Choc aethyrique');
+    const w = woundsOf('majeure', 'majeure-choc-aethyrique');
     expect(w.ignoreTB).toBe(true);
     expect(w.ignoreAP).toBe(true);
   });
 
   it('« Poupée de chiffon » (LDB 46 l.69) : « qui ignorent les PA » — le Bonus d\'Endurance, lui, s\'applique', () => {
-    const w = woundsOf('majeure', 'Poupée de chiffon');
+    const w = woundsOf('majeure', 'majeure-poupee-de-chiffon');
     expect(w.ignoreTB).toBe(false);
     expect(w.ignoreAP).toBe(true);
   });
 
   it('« Ressentez ma colère » (LDB 40 l.68) : « vous subissez 1d10 + (Points de Péché) Blessures. » — aucune exception énoncée', () => {
-    const w = woundsOf('colere', 'Ressentez ma colère');
+    const w = woundsOf('colere', 'colere-ressentez-ma-colere');
     expect(w.ignoreTB).toBe(false);
     expect(w.ignoreAP).toBe(false);
   });
 
   it('applyOps DÉDUIT la mitigation déclarée : BE 4 + PA 3 absorbent « Ressentez ma colère », pas « Choc aethyrique »', () => {
     const mitige = hero({ armour: { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 } });
-    applyOps(mitige, [{ ...woundsOf('colere', 'Ressentez ma colère'), amount: 6 }], { rng: makeRNG(1) });
+    applyOps(mitige, [{ ...woundsOf('colere', 'colere-ressentez-ma-colere'), amount: 6 }], { rng: makeRNG(1) });
     expect(mitige.wounds.current).toBe(10); // 6 − 4 (BE) − 3 (PA) ≤ 0
 
     const nu = hero({ armour: { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 } });
-    applyOps(nu, [{ ...woundsOf('majeure', 'Choc aethyrique'), amount: 6 }], { rng: makeRNG(1) });
+    applyOps(nu, [{ ...woundsOf('majeure', 'majeure-choc-aethyrique'), amount: 6 }], { rng: makeRNG(1) });
     expect(nu.wounds.current).toBe(4); // 6 pleines
   });
 });
@@ -289,7 +289,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
   function opsDuPalier(): ReturnType<typeof rollMiscast>['ops'] {
     for (let seed = 0; seed < 600; seed++) {
       const r = rollMiscast('colere', makeRNG(seed), 0);
-      if (!r.label.startsWith('Purifier la chair')) continue;
+      if (r.rowId !== 'colere-purifier-la-chair') continue;
       const node: Flow = r.testFlow!;
       if (node.kind !== 'test' || node.fail.kind !== 'seq') throw new Error('structure de la rangée inattendue');
       const hard = node.fail.steps[1];
@@ -394,7 +394,7 @@ describe('castPenalty.days — durée en jours FORMULAIRE (`GameOp[\'castPenalty
     let ops: ReturnType<typeof rollMiscast>['ops'] | null = null;
     for (let seed = 0; seed < 600 && !ops; seed++) {
       const r = rollMiscast('colere', makeRNG(seed), 0);
-      if (r.label.startsWith('Pensez à vos actes')) ops = r.ops;
+      if (r.rowId === 'colere-pensez-a-vos-actes') ops = r.ops;
     }
     expect(ops, 'rangée « Pensez à vos actes » introuvable').toBeTruthy();
     const c = hero();
