@@ -1523,7 +1523,7 @@ export interface Combatant {
   briseFromTerreur?: number;
   /** Traits de créature (STRUCTURÉS — `TraitInstance` : id/value/arg/count/range) → attaques
    *  naturelles gratuites & règles dérivées (Morsure, Attaque caudale, Souffle… cf.
-   *  engine/creatureAttacks). Lus sans aucun parsing (`resolveTraits`/`hasTraitKey`). Conservés au spawn. */
+   *  engine/creatureAttacks). Lus sans aucun parsing (`hasTraitKey`). Conservés au spawn. */
   traits?: import('./statEntry').TraitList;
   /** Traits dont les modificateurs de PROFIL (charMods/Mouvement, LDB 85 : Élite/Coriace/Brutal/Rapide…)
    *  s'appliquent en DIRECT par le collecteur passif (kind `intrinseque`) plutôt que d'être cuits dans

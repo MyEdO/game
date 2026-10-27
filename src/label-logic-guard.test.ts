@@ -525,7 +525,7 @@ describe('garde-fou « logique par LIBELLÉ hors du champ label » (#142 LOT 7)'
 
   it('ANTI-VACANCE : échoue sur la faute de RÉCOLTE reconstituée (regex de libellé sur une valeur dérivée d’un champ)', () => {
     // Le motif EXACT qui vivait en `engine/harvest.ts` avant migration (#1318 V6) : le TraitInstance
-    // formaté en prose FR, puis re-parsé à la regex — la voie par id (`findResolvedTrait`) existait.
+    // formaté en prose FR, puis re-parsé à la regex.
     const viaCallback = 'function h(c: Creature) {\n'
       + "  return (c.traits ?? []).map(traitText).find((s) => /^Taille/.test(s)) ?? '';\n"
       + '}';

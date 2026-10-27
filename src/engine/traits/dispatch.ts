@@ -5,7 +5,7 @@
  * `engine/qualities/dispatch.ts`.
  */
 import type { CharKey, Combatant } from '../types';
-import { TRAITS, TraitDef } from './registry';
+import { TRAITS } from './registry';
 import { isOptionalNote, type TraitList, type TraitsDesignes, type OptionalEntry } from '../statEntry';
 import { ARG_JOKER, type TraitPose } from '../../data/schemas/grammaire/reference';
 import { formaterParLocalisation } from '../classementDeTrait';
@@ -101,33 +101,9 @@ export function traitArgSkeleton(def: Pick<TraitData, 'indice' | 'specsSource' |
   return parts.length ? parts.join(' ') : undefined;
 }
 
-export interface ResolvedTrait {
-  /** `id` STABLE du trait (slug, identique à `TraitInstance.id`). */
-  id: string;
-  def: TraitDef;
-  indice?: number;
-  arg?: string;
-}
-
-/** Traits du registre présents sur la créature (`TraitInstance` structurés, zéro parsing). Traits hors
- *  registre (attaques naturelles, marqueurs) ignorés ici — ils ont leurs propres consommateurs. */
-export function resolveTraits(traits: TraitList | undefined): ResolvedTrait[] {
-  const out: ResolvedTrait[] = [];
-  for (const t of traits ?? []) {
-    const def = TRAITS()[t.id];
-    if (def) out.push({ id: t.id, def, indice: t.value, arg: t.arg });
-  }
-  return out;
-}
-
 /** La créature possède-t-elle le trait d'`id` donné ? (registre `defs/` UNIQUEMENT). */
 export function hasTrait(traits: TraitList | undefined, id: string): boolean {
   return (traits ?? []).some((t) => t.id === id && !!TRAITS()[id]);
-}
-
-/** Résout UN trait du registre par son `id` STABLE — source unique des lookups par-id (armure, taille…). */
-export function findResolvedTrait(traits: TraitList | undefined, id: string): ResolvedTrait | undefined {
-  return resolveTraits(traits).find((x) => x.id === id);
 }
 
 /** La créature porte-t-elle un trait/attaque d'`id` donné (registre OU hors registre : Venin, Lanceur
