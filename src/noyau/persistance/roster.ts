@@ -31,7 +31,7 @@ interface RosterLu {
   retraits: RetraitsDElagage | null;
 }
 
-/** Le roster stocké `brut`, élagué de ses États inconnus (#1463 LD.1) ; `null` s'il est d'un autre format ou
+/** Le roster stocké `brut`, élagué de ses États et Traits psychologiques à Cible inconnus (#1463 LD.1) ; `null` s'il est d'un autre format ou
  *  illisible. */
 export function lireLeRoster(brut: string): RosterLu | null {
   let doc: Partial<RosterStocke> | null;
@@ -42,8 +42,7 @@ export function lireLeRoster(brut: string): RosterLu | null {
   }
   if (doc?.version !== FORMAT_ROSTER || !Array.isArray(doc.heros)) return null;
   const { porteurs, retraits } = elaguerLePersiste({ porteurs: doc.heros.map((e) => e.hero) });
-  if (rienDElague(retraits)) return { heros: doc.heros, retraits: null };
-  return { heros: doc.heros.map((e, i) => ({ ...e, hero: porteurs[i] })), retraits };
+  return { heros: doc.heros.map((e, i) => ({ ...e, hero: porteurs[i] })), retraits: rienDElague(retraits) ? null : retraits };
 }
 
 /** Le texte stocké du roster `heros`, sous `FORMAT_ROSTER`. */
@@ -86,7 +85,7 @@ export type RosterImportResult = { entry: RosterEntry; retraits?: RetraitsDElaga
 
 /** Lit une chaîne `rosterExport` → `RosterEntry`, ou une erreur EXPLICITE : un fichier illisible ou
  *  d'un autre `kind` est invalide, un export d'un autre format est d'un autre format. Le héros qui porte un
- *  État hors du registre courant est importé sans cet État, retrait rendu (#1463 LD.1). */
+ *  État, ou un Trait psychologique à Cible hors de `groups.json`, est importé sans eux, retrait rendu (#1463 LD.1). */
 export function rosterImport(str: string): RosterImportResult {
   let parsed: unknown;
   try {

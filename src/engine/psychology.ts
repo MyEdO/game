@@ -12,7 +12,7 @@ import { rollTest, evaluateTest, extendedTestStep, jetPose, type JetPose } from 
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
 import { testValue } from './skills';
-import { findPsychologyById, psychologies, psychologyLabel } from '../data';
+import { findGroupById, findPsychologyById, psychologies, psychologyLabel } from '../data';
 import { indexParId } from '../data/versionDataset';
 import { SizeCategory, sizeGap } from './size';
 import { isOutOfAction } from './conditions';
@@ -588,47 +588,79 @@ export function psychBranchFlow(stake: PsychStake, success: boolean): Flow {
 }
 
 // ---------------------------------------------------------------------------
-// Acquisition de Traits psychologiques — RÈGLES FACULTATIVES (ADE II, Annexe I « Troubles
-// psychologiques »). Gatées par la règle optionnelle `psych-acquisition-optional` (par défaut OFF) :
-// fonctions PURES qui DÉCIDENT du Trait à poser ; l'APPLICATION (push dans `psychTraits`, remplacement
-// d'Animosité par Haine) et le DÉCLENCHEMENT (dépense de Destin, résolution de Terreur, Ambition rendue
-// impossible) vivent dans la couche state/combat — voir le rapport pour les points d'intégration différés.
+// Acquisition de Traits psychologiques (ADE II 09), règle optionnelle `psych-acquisition-optional` :
+// fonctions PURES qui DÉCIDENT du Trait à poser ; sa pose et son déclenchement vivent dans `noyau/`.
 // ---------------------------------------------------------------------------
 
-/** Phobie du noir (ADE II Annexe I) : « Lorsque le total d'États Brisé d'un Personnage [subis à cause de
- *  la Terreur] est supérieur ou égal à son Bonus de Force Mentale actuelle, il reçoit une Phobie » liée à
- *  la cause de la Terreur la plus récente/fréquente ; le compteur est ensuite remis à zéro. PUR : renvoie
- *  la Phobie à POSER (+ `resetCounter`), ou null si le seuil n'est pas atteint / la règle est éteinte.
- *  Le compteur cumulé (`cumulativeBriseFromTerreur`) et l'ajout sont gérés par l'appelant (couche state). */
+/** Phobie du noir (ADE II 09 l.9, LDB 21 l.85-87) : la Phobie à POSER (+ `resetCounter`), `null` sous le seuil, règle
+ *  éteinte ou `cause` absente. `cause` : id de Groupe de la source de la Terreur. PUR ; compteur et
+ *  pose à l'appelant. */
 export function gainPhobieIfThreshold(
   c: Combatant,
   cumulativeBriseFromTerreur: number,
-  cause: string,
+  cause: string | undefined,
 ): { phobie: PsychTrait; resetCounter: true } | null {
-  if (!rule('psych-acquisition-optional')) return null;
+  if (!cause || !rule('psych-acquisition-optional')) return null;
   if (cumulativeBriseFromTerreur < bonus(effectiveChar(c, 'force-mentale'))) return null;
-  // Phobie = Peur 1 sur la source (même convention que parsePsychTraits, LDB 21 l.85-87).
   return { phobie: { type: 'phobie', cible: cause, indice: 1 }, resetCounter: true };
 }
 
-/** Animosité & Haine (ADE II Annexe I) : « Lorsqu'un Personnage dépense un point de Destin pour rester en
- *  vie […] il doit effectuer un Test de Calme Intermédiaire (+0). En cas d'échec, il obtient le Trait
- *  Psychologique Animosité, en prenant pour cible l'individu ou l'élément qui l'a presque tué. […] Si un
- *  Personnage obtient une Animosité qu'il possède déjà, celle-ci devient de la Haine. » PUR / seedé : lance
- *  le Test de Calme et renvoie sa résolution + le Trait à poser (`animosite`, ou `haine` qui REMPLACE
- *  l'Animosité existante via `replacesAnimosite`). Réussite (ou règle éteinte) → aucun Trait. */
+/** Animosité & Haine (ADE II 09 l.15 ; Cible : ADE II (VO) 09 l.14) : Test de Calme Intermédiaire (+0) seedé, et le Trait à poser sur un
+ *  échec (`haine` REMPLACE l'Animosité de même Cible, `replacesAnimosite`). `cible` : id de Groupe
+ *  de l'adversaire ; `null` si la règle est éteinte ou `cible` absente. PUR. */
 export function animositeOrHaine(
   c: Combatant,
-  cible: string,
+  cible: string | undefined,
   rng: RNG,
 ): { test: { success: boolean; roll: number; sl: number; target: number }; trait?: PsychTrait; replacesAnimosite?: boolean } | null {
-  if (!rule('psych-acquisition-optional')) return null;
+  if (!cible || !rule('psych-acquisition-optional')) return null;
   const test = resolveCalmeSimple(calmeValue(c), rng); // Calme Intermédiaire (+0)
   if (test.success) return { test };
   const hasAnimosite = (c.psychTraits ?? []).some((p) => p.type === 'animosite' && p.cible === cible);
   return hasAnimosite
     ? { test, trait: { type: 'haine', cible }, replacesAnimosite: true }
     : { test, trait: { type: 'animosite', cible }, replacesAnimosite: false };
+}
+
+/** Un porteur PERSISTÉ, tel qu'il arrive du stockage : ses Traits psy, ceux que suspendent ses effets, ses
+ *  afflictions. */
+type PorteurDeCiblesPsy = {
+  psychTraits?: readonly { cible?: unknown }[];
+  psychState?: readonly { cible?: unknown }[];
+  activeEffects?: readonly { suppressedPsych?: readonly { cible?: unknown }[] }[];
+};
+
+/** La Cible de `p` est une chaîne hors de `groups.json` (la chaîne vide comprise) ; une Cible absente n'est pas jugée. */
+const cibleInconnue = (p: { cible?: unknown } | null | undefined): boolean => typeof p?.cible === 'string' && !findGroupById(p.cible);
+
+/** `v` s'il est une liste, `[]` sinon : un champ persisté se lit sans être présumé. */
+const liste = <T,>(v: readonly T[] | undefined): readonly T[] => (Array.isArray(v) ? v : []);
+
+/** Les Traits psy que porte `c` (Traits, Traits suspendus d'un effet, afflictions), entrées `null` comprises. */
+const traitsPsyPortes = (c: PorteurDeCiblesPsy | null | undefined) =>
+  [...liste(c?.psychTraits), ...liste(c?.psychState), ...liste(c?.activeEffects).flatMap((e) => liste(e?.suppressedPsych))];
+
+/** Les Cibles hors `groups.json` que nomment les Traits psy de combattants PERSISTÉS (sauvegarde, roster, export
+ *  de héros), lus tels qu'ils arrivent du stockage : `[]` = rien à nommer (#1463 LD.1, LDB 21 l.17-21). Une Cible
+ *  vide se retire sans se nommer. */
+export function ciblesPsyInconnues(porteurs: unknown): string[] {
+  if (!Array.isArray(porteurs)) return [];
+  return porteurs.flatMap((c: PorteurDeCiblesPsy | null) => traitsPsyPortes(c).filter(cibleInconnue).map((p) => p!.cible as string).filter((id) => id !== ''));
+}
+
+/** `p` sans ses Traits psy (Traits, Traits suspendus d'un effet, afflictions) à Cible hors `groups.json`, retirés
+ *  ENTIERS (LDB 21 l.17-21), lu tel qu'il arrive du stockage ; `p` lui-même s'il n'en porte aucun. */
+export function sansCiblesPsyInconnues<P extends PorteurDeCiblesPsy>(p: P): P {
+  if (!traitsPsyPortes(p).some(cibleInconnue)) return p;
+  const garder = <T extends { cible?: unknown }>(v: readonly T[]) => v.filter((x) => !cibleInconnue(x));
+  return {
+    ...p,
+    ...(Array.isArray(p.psychTraits) ? { psychTraits: garder(p.psychTraits) } : {}),
+    ...(Array.isArray(p.psychState) ? { psychState: garder(p.psychState) } : {}),
+    ...(Array.isArray(p.activeEffects)
+      ? { activeEffects: p.activeEffects.map((e) => (Array.isArray(e?.suppressedPsych) ? { ...e, suppressedPsych: garder(e.suppressedPsych) } : e)) }
+      : {}),
+  };
 }
 
 /** Trauma (ADE II Annexe I) : « Si un Personnage est témoin d'un événement qui rend l'une de ses Ambitions

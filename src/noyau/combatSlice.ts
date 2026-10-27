@@ -88,7 +88,7 @@ import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbu
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
-import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
+import { findSeaShantyById, conditionLabel, libelleOuAbsence, groupLabel } from '../data';
 import { findCrewTestTypeById, findCrewRoleById, findStructureById, combatStakeRef } from '../data';
 import { structureCombatant } from '../engine/structures';
 import { targetArc, headingToBear } from './monde/fireArc';
@@ -140,20 +140,14 @@ import { testDuCavalier } from '../engine/movement';
 const combatBusy = (s: Pick<Jeu, 'pendingCleave' | 'pendingDualStrike' | 'pendingCast'>): boolean =>
   !!(pickActiveModalKey(s as never) || s.pendingCleave || s.pendingDualStrike || s.pendingCast);
 
-/** Animosité & Haine (ADE II Annexe I « Troubles psychologiques », règle facultative `psych-acquisition-optional`) :
- *  un héros qui DÉPENSE le Destin « pour rester en vie » effectue un Test de Calme Intermédiaire (+0) ; échec →
- *  Animosité envers « l'individu ou l'élément qui l'a presque tué » (Cible = son Groupe/nom), ou HAINE si une
- *  Animosité de même Cible existe déjà. Mute `hero.psychTraits` (l'APPLICATION que le noyau pur `animositeOrHaine`
- *  laisse à la couche state) et renvoie la ligne de journal (null : règle éteinte / Cible inconnue / Calme réussi). */
+/** Animosité & Haine sur Destin dépensé (ADE II 09 l.15 ; Cible : ADE II (VO) 09 l.14) : pose le Trait que décide `animositeOrHaine` sur la Cible
+ *  `foeCible` (id de Groupe de l'adversaire) et rend la ligne de journal ; `null` sans Trait. */
 function acquireAnimositeOnFate(hero: Combatant, foeCible: string | undefined): string | null {
-  if (!foeCible) return null;
   const res = animositeOrHaine(hero, foeCible, battleRng());
   if (!res?.trait) return null;
   if (res.replacesAnimosite) hero.psychTraits = (hero.psychTraits ?? []).filter((p) => !(p.type === 'animosite' && p.cible === foeCible));
   hero.psychTraits = [...(hero.psychTraits ?? []), res.trait];
-  return res.trait.type === 'haine'
-    ? `${hero.label} voue désormais une Haine à ${foeCible} (frôler la mort a durci son cœur).`
-    : `${hero.label} développe une Animosité envers ${foeCible} (frôler la mort a laissé une marque).`;
+  return t(res.trait.type === 'haine' ? 'cs.haineGain' : 'cs.animositeGain', { name: hero.label, cible: groupLabel(foeCible) });
 }
 
 /** OUVERTURE partagée d'un Test d'équipage MULTI (MDG 14) : contributeurs par rôle (`crewTestContributors` —

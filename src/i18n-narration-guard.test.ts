@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { cleDeSite, ecartsDeStock, type EntreeDeSite } from '../scripts/guards/lib/stock.mjs';
 
 /**
  * Garde-fou i18n — narration moteur (Phase C, plan évacué → #320).
@@ -22,6 +23,9 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  *   - `return `…``                      (issue renvoyée par un describer pur, ex. flowOutcomes)
  *   - `t('cle', { x: '…' })`            (PARAMÈTRE d'un appel de catalogue — interpolé, donc AFFICHÉ :
  *                                        un `t()` autour ne met pas la prose au catalogue, 8ᵉ forme V8c₅)
+ *   - `return c ? `…` : `…``            (retour d'expression, 9ᵉ forme #3041) et `x = `…é…`` (gabarit
+ *                                        accentué affecté, 10ᵉ forme #3041) : sites gelés en stock nominatif
+ *                                        DÉCROISSANT (`STOCK_FORMES_TARDIVES`), le zéro des huit autres reste absolu
  *
  * NON couvert volontairement : les tableaux `outcome: […]` / `options: […]` / `label:`/`prompt:`
  * d'étape de MODALE (surface UI distincte, Phase D) — leurs chaînes ne sont PAS du journal.
@@ -257,6 +261,80 @@ function tParamLiterals(body: string): string[] {
   return out;
 }
 
+/**
+ * Littéraux de PROFONDEUR 0 de l'expression qui commence à `from`, jusqu'à sa fin : `;`, `,` ou fermante à
+ * profondeur 0. Lecture partagée des 9ᵉ et 10ᵉ formes, même règle que les 6ᵉ/7ᵉ : un littéral sous appel
+ * imbriqué n'est pas lu ici (la 8ᵉ forme compte les paramètres de `t()`).
+ */
+function expressionDepth0Literals(body: string, from: number): string[] {
+  const out: string[] = [];
+  let prof = 0;
+  for (let i = from; i < body.length;) {
+    const c = body[i];
+    if (c === '(' || c === '[' || c === '{') { prof++; i++; continue; }
+    if (c === ')' || c === ']' || c === '}') { if (prof === 0) break; prof--; i++; continue; }
+    if (prof === 0 && (c === ';' || c === ',')) break;
+    if (c === '"' || c === "'" || c === '`') {
+      const lit = readString(body, i, c);
+      if (!lit) break;
+      if (prof === 0) out.push(lit);
+      i += lit.length;
+      continue;
+    }
+    i++;
+  }
+  return out;
+}
+
+/** Positions, HORS littéraux, des `return` et des `=` d'affectation (ni `==`, `!=`, `<=`, `>=`, `=>`, ni opérateur
+ *  composé) du corps : un `=` ou un `return` écrit dans une chaîne n'ouvre aucune expression. */
+function sitesHorsChaines(body: string): { returns: number[]; affectations: number[] } {
+  const returns: number[] = [];
+  const affectations: number[] = [];
+  for (let i = 0; i < body.length;) {
+    const c = body[i];
+    if (c === '"' || c === "'" || c === '`') {
+      const lit = readString(body, i, c);
+      if (!lit) break;
+      i += lit.length;
+      continue;
+    }
+    if (c === 'r' && body.startsWith('return', i) && !/[\w$]/.test(body[i - 1] ?? ' ') && !/[\w$]/.test(body[i + 6] ?? ' ')) {
+      returns.push(i + 6);
+      i += 6;
+      continue;
+    }
+    if (c === '=' && !/[=!<>+\-*/%&|^?]/.test(body[i - 1] ?? ' ') && !/[=>]/.test(body[i + 1] ?? ' ')) affectations.push(i + 1);
+    i++;
+  }
+  return { returns, affectations };
+}
+
+/**
+ * 9ᵉ FORME (#3041) : `return <expression>` dont le littéral n'est pas COLLÉ au mot-clé — le cas réel est le
+ * TERNAIRE de gabarits, `return cond ? `…` : `…``, qui cachait les deux phrases d'Animosité/Haine de
+ * `noyau/combatSlice.ts` : la 5ᵉ forme exige le délimiteur juste après `return`, la 7ᵉ un tableau. Les retours
+ * qui leur appartiennent leur sont laissés (aucun double compte).
+ */
+function returnExpressionLiterals(body: string): string[] {
+  return sitesHorsChaines(body).returns.flatMap((fin) => {
+    let i = fin;
+    while (i < body.length && /\s/.test(body[i])) i++;
+    return body[i] === '"' || body[i] === "'" || body[i] === '`' || body[i] === '[' ? [] : expressionDepth0Literals(body, i);
+  });
+}
+
+/**
+ * 10ᵉ FORME (#3041) : un GABARIT accentué AFFECTÉ, `x = `…é…``, ternaire compris — le cas réel est
+ * `phobieLine = `… développe une Phobie durable : …`` (`noyau/combatFlow.ts`), une ligne de journal posée
+ * dans une variable avant d'être rendue : aucune forme d'émission ne la voyait. Seul le gabarit (`` ` ``)
+ * porteur d'un ACCENT compte : une affectation de chaîne simple est le plus souvent un id ou une clé.
+ */
+function affectationTemplateLiterals(body: string): string[] {
+  return sitesHorsChaines(body).affectations.flatMap((debut) =>
+    expressionDepth0Literals(body, debut).filter((lit) => lit.startsWith('`') && ACCENT.test(lit)));
+}
+
 /** Compte les littéraux FR de narration d'un fichier (hors catalogue). */
 export function narrationCount(raw: string): number {
   const body = stripComments(raw);
@@ -294,6 +372,65 @@ export function narrationCount(raw: string): number {
   return n;
 }
 
+/**
+ * STOCK NOMINATIF DÉCROISSANT des 9ᵉ et 10ᵉ formes (#3041), mesuré le 2026-10-27 à leur naissance : les sites
+ * que le dépôt portait déjà quand ces formes ont appris à les voir. Il ne croît jamais ; une entrée se solde en
+ * passant SON littéral au catalogue (`t`/`tr`), et sa ligne part dans le même geste — la garde rougit sur une
+ * ligne que plus rien ne porte.
+ */
+const STOCK_FORMES_TARDIVES: EntreeDeSite[] = [
+  { fichier: 'src/engine/character.ts', ref: 'affectation:`Talent de carrière « ${refKey(talentId, spec)} »`', occurrence: 1 },
+  { fichier: 'src/engine/magic.ts', ref: 'affectation:`${caster.label} échoue à incanter ${spell.label}.`', occurrence: 1 },
+  { fichier: 'src/engine/magic.ts', ref: 'affectation:`${caster.label} échoue à focaliser ${spell.label}.`', occurrence: 1 },
+  { fichier: 'src/engine/miscast.ts', ref: 'return:\'Colère des dieux\'', occurrence: 1 },
+  { fichier: 'src/engine/miscast.ts', ref: 'affectation:` [appliqué]`', occurrence: 1 },
+  { fichier: 'src/engine/tables.ts', ref: 'return:`${borne(bas)} à ${borne(haut)}`', occurrence: 1 },
+  { fichier: 'src/noyau/cascade.ts', ref: 'affectation:`[cascade] bande « ${st.id} » (${st.kind}) : ${porteurs} porteur(s) et AUCUNE possession déclarée `', occurrence: 1 },
+  { fichier: 'src/noyau/cascade.ts', ref: 'affectation:`[cascade] étape « ${step.id} » (${step.kind}) : « dejaDites » sans conclusion à désigner — `', occurrence: 1 },
+  { fichier: 'src/noyau/cascade.ts', ref: 'affectation:`[cascade] étape « ${st.id} » (${st.kind}) : une étape de CE même id est déjà dans la `', occurrence: 1 },
+  { fichier: 'src/noyau/cascade.ts', ref: 'affectation:`[cascade] hôte orphelin « ${st.id} » (jet:\'${st.jet}\') : sa donnée manque `', occurrence: 1 },
+  { fichier: 'src/noyau/cascade.ts', ref: 'affectation:`(slot \\`${String(PENDING_BY_JET[st.jet!])}\\`, acteurs, donnée d\'étape) — la fenêtre n\'aurait aucun ', occurrence: 1 },
+  { fichier: 'src/noyau/cascade.ts', ref: 'affectation:`[cascade] pilote immédiat allé au bout avec des bornes collectées (${perdues.join(\', \')}) — `', occurrence: 1 },
+  { fichier: 'src/noyau/combatFlow.ts', ref: 'affectation:`[combat] défense déjà ouverte : ${attacker.label} déclare une frappe sur ${target.label} `', occurrence: 1 },
+  { fichier: 'src/noyau/jetsEnVue.ts', ref: 'return:\'Prière\'', occurrence: 1 },
+  { fichier: 'src/noyau/landMarketFlow.ts', ref: 'affectation:`${best.actor.label} — Marchandage (${opp.attacker.roll} vs ${opp.defender.roll}) : ${pct === 0 ? \'p', occurrence: 1 },
+  { fichier: 'src/noyau/mapSpec.ts', ref: 'affectation:`arête (${seg.x},${seg.y},${seg.side}) z${seg.z ?? 0}`', occurrence: 1 },
+  { fichier: 'src/noyau/monde/seating.ts', ref: 'affectation:`Héros ${rang}`', occurrence: 1 },
+  { fichier: 'src/noyau/rollSeam.ts', ref: 'affectation:`[seam] rollLine : la combinaison plafonnée (${combine}) n\'est pas séparable — circonstances ${circC', occurrence: 1 },
+  { fichier: 'src/noyau/rollSeam.ts', ref: 'affectation:`+ hors table ${horsTable} ≠ ${combine} (arbitrage de familles #1218). La Difficulté composée serait', occurrence: 1 },
+  { fichier: 'src/noyau/rollSeam.ts', ref: 'affectation:` : \'sans acteur\'}) + ses composantes + ${fusedSum} déclaré(s) `', occurrence: 1 },
+  { fichier: 'src/noyau/rollSeam.ts', ref: 'affectation:`[seam] jet silencieux d\'un acteur piloté (« ${actor.label} ») — router par openRoll/flow.`', occurrence: 1 },
+  { fichier: 'src/noyau/validateScene.ts', ref: 'affectation:`Dialogue « ${dialogueId} » : aucune entité ni aucun effet de la scène ne l\'ouvre — il est injouable', occurrence: 1 },
+  { fichier: 'src/noyau/validateScene.ts', ref: 'affectation:`Dialogue « ${dialogueId} » : le libellé « ${label} » recopie ce que la fenêtre annonce déjà (« ${te', occurrence: 1 },
+  { fichier: 'src/noyau/validateScene.ts', ref: 'affectation:`Architecture « ${refId} » → zone intérieure « ${id} » à l’étage ${zoneZ}, au-dessus de la section (', occurrence: 1 },
+  { fichier: 'src/noyau/validateScene.ts', ref: 'affectation:`Architecture « ${refId} » → zone intérieure « ${id} » inexistante à l’étage ${z}`', occurrence: 1 },
+];
+
+/** Les littéraux FR des 9ᵉ et 10ᵉ formes d'un fichier, en `ref` de site (`<forme>:<littéral>`, coupé à 100 caractères). */
+export function refsFormesTardives(raw: string): string[] {
+  const body = stripComments(raw);
+  const coupe = (lit: string) => lit.slice(0, 100);
+  return [
+    ...returnExpressionLiterals(body).filter(isFrench).map((lit) => `return:${coupe(lit)}`),
+    ...affectationTemplateLiterals(body).map((lit) => `affectation:${coupe(lit)}`),
+  ];
+}
+
+/** Les sites des 9ᵉ et 10ᵉ formes de `SCAN_DIRS`, en entrées de site (`occurrence` = ordinal parmi les homonymes). */
+function sitesFormesTardives(): EntreeDeSite[] {
+  const out: EntreeDeSite[] = [];
+  for (const { rel, text } of readCorpus(SCAN_DIRS)) {
+    if (DEV_ONLY.has(rel)) continue;
+    const vus = new Map<string, number>();
+    for (const ref of refsFormesTardives(text)) {
+      const occurrence = (vus.get(ref) ?? 0) + 1;
+      vus.set(ref, occurrence);
+      out.push({ fichier: rel, ref, occurrence });
+    }
+  }
+  return out;
+}
+
 function countsByFile(): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const { rel, text } of readCorpus(SCAN_DIRS)) {
@@ -311,6 +448,12 @@ describe('garde-fou i18n — narration moteur (Phase C, #410 inversé)', () => {
       over,
       `Nouveau(x) littéral(aux) FR de narration hors catalogue — passer par t(...)/tr(...) :\n${over.join('\n')}`,
     ).toEqual([]);
+  });
+
+  it('9ᵉ et 10ᵉ FORMES : aucun site hors du stock, aucune ligne de stock sans son site (stock décroissant)', () => {
+    const ecarts = ecartsDeStock({ observe: sitesFormesTardives(), stock: STOCK_FORMES_TARDIVES, cle: cleDeSite });
+    expect(ecarts.neuves, 'littéral FR neuf — passer par t(...)/tr(...)').toEqual([]);
+    expect(ecarts.perimees, 'site soldé — retirer sa ligne de STOCK_FORMES_TARDIVES').toEqual([]);
   });
 
   it('le lecteur de littéraux honore l’ÉCHAPPEMENT : une phrase à apostrophe échappée est COMPTÉE', () => {
@@ -351,6 +494,28 @@ describe('garde-fou i18n — narration moteur (Phase C, #410 inversé)', () => {
     expect(narrationCount("return [t('dz.develop', { name: c.label, disease: 'la peste noire' })];")).toBe(1);
     // …et un retour de tableau TECHNIQUE (ids) ne déclenche rien.
     expect(narrationCount("return ['infection-du-sang', 'blessure-purulente'];")).toBe(0);
+  });
+
+  it('9ᵉ FORME : un `return` TERNAIRE compte ses branches (le littéral n’est pas collé au mot-clé)', () => {
+    // Le site réel (`noyau/combatSlice.ts`, Animosité/Haine sur Destin dépensé, #3041).
+    const ternaire = 'return haine\n    ? `${n} voue désormais une Haine à ${c}.`\n    : `${n} développe une Animosité envers ${c}.`;';
+    expect(refsFormesTardives(ternaire)).toHaveLength(2);
+    // Les retours des 5ᵉ et 7ᵉ formes leur restent : aucun double compte.
+    expect(refsFormesTardives("return 'La bataille s\\'achève sans vainqueur clair.';")).toEqual([]);
+    expect(refsFormesTardives('return [`Le groupe arrive à ${to}.`];')).toEqual([]);
+    // Un littéral sous appel imbriqué est du catalogue, et un ternaire d'ids n'est pas du texte.
+    expect(refsFormesTardives("return t(haine ? 'cs.haineGain' : 'cs.animositeGain', { name });")).toEqual([]);
+    expect(refsFormesTardives("return haine ? 'haine' : 'animosite';")).toEqual([]);
+  });
+
+  it('10ᵉ FORME : un gabarit accentué AFFECTÉ compte, ternaire compris', () => {
+    // Le site réel (`noyau/combatFlow.ts`, Phobie du noir, #3041).
+    expect(refsFormesTardives('phobieLine = `${h} développe une Phobie durable : ${c}.`;')).toHaveLength(1);
+    expect(refsFormesTardives('line = ok ? `${h} garde son sang-froid, éveillé.` : `${h} est terrifié.`;')).toHaveLength(2);
+    // Ni comparaison, ni flèche, ni `=` écrit dans une chaîne, ni gabarit sans accent (un id, une clé).
+    expect(refsFormesTardives('if (a === `é`) f((x) => `é`);')).toEqual([]);
+    expect(refsFormesTardives("const s = 'a = `é`';")).toEqual([]);
+    expect(refsFormesTardives('const k = `cs.${id}`;')).toEqual([]);
   });
 
   it('8ᵉ FORME : un littéral FR en PARAMÈTRE de `t()` compte (le catalogue l’interpole et l’AFFICHE)', () => {

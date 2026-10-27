@@ -123,25 +123,31 @@ describe('Acquisition de Traits psychologiques (ADE II Annexe I, règle FACULTAT
 
   it('toutes les fonctions sont INERTES (null) tant que la règle est éteinte (défaut)', () => {
     const c = mk();
-    expect(gainPhobieIfThreshold(c, 99, 'Vampires')).toBeNull();
-    expect(animositeOrHaine(c, 'Skavens', fixed(100))).toBeNull();
+    expect(gainPhobieIfThreshold(c, 99, 'mort-vivant')).toBeNull();
+    expect(animositeOrHaine(c, 'skaven', fixed(100))).toBeNull();
     expect(traumaOnImpossibleAmbition(c, fixed(100))).toBeNull();
   });
 
   it('Phobie du noir : Brisé(Terreur) cumulés ≥ BFM → Phobie liée à la cause (+ reset)', () => {
     setRule('psych-acquisition-optional', true);
     const c = mk(); // FM 35 → BFM 3
-    expect(gainPhobieIfThreshold(c, 2, 'Vampires')).toBeNull(); // sous le seuil
-    expect(gainPhobieIfThreshold(c, 3, 'Vampires')).toEqual({ phobie: { type: 'phobie', cible: 'Vampires', indice: 1 }, resetCounter: true });
+    expect(gainPhobieIfThreshold(c, 2, 'mort-vivant')).toBeNull(); // sous le seuil
+    expect(gainPhobieIfThreshold(c, 3, 'mort-vivant')).toEqual({ phobie: { type: 'phobie', cible: 'mort-vivant', indice: 1 }, resetCounter: true });
+  });
+
+  it('Phobie du noir : une source sans Groupe → aucune Phobie, seuil atteint ou non', () => {
+    setRule('psych-acquisition-optional', true);
+    expect(gainPhobieIfThreshold(mk(), 3, undefined)).toBeNull();
   });
 
   it('Animosité & Haine : Calme raté → Animosité ; doublon → Haine ; réussite → rien', () => {
     setRule('psych-acquisition-optional', true);
     const fresh = mk();
-    expect(animositeOrHaine(fresh, 'Reiklanders', fixed(100))).toMatchObject({ trait: { type: 'animosite', cible: 'Reiklanders' }, replacesAnimosite: false });
-    const dup = mk({ psychTraits: [{ type: 'animosite', cible: 'Reiklanders' }] });
-    expect(animositeOrHaine(dup, 'Reiklanders', fixed(100))).toMatchObject({ trait: { type: 'haine', cible: 'Reiklanders' }, replacesAnimosite: true });
-    const ok = animositeOrHaine(mk(), 'Reiklanders', fixed(1)); // Calme réussi
+    expect(animositeOrHaine(fresh, 'soldat', fixed(100))).toMatchObject({ trait: { type: 'animosite', cible: 'soldat' }, replacesAnimosite: false });
+    const dup = mk({ psychTraits: [{ type: 'animosite', cible: 'soldat' }] });
+    expect(animositeOrHaine(dup, 'soldat', fixed(100))).toMatchObject({ trait: { type: 'haine', cible: 'soldat' }, replacesAnimosite: true });
+    expect(animositeOrHaine(fresh, undefined, fixed(100))).toBeNull(); // aucune Cible dérivée → aucun Trait
+    const ok = animositeOrHaine(mk(), 'soldat', fixed(1)); // Calme réussi
     expect(ok!.test.success).toBe(true);
     expect(ok!.trait).toBeUndefined();
   });

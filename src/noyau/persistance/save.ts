@@ -8,8 +8,8 @@
  *
  * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`, #3041) : `version` vaut
  * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). Toute autre forme est refusée
- * (`parseSave`), sans migration. Une save au format courant qui nomme une règle ou un État hors du registre courant
- * se CHARGE, élaguée de ces seuls ids (`elaguerSave`, #1463 LD.1).
+ * (`parseSave`), sans migration. Une save au format courant qui nomme une règle, un État ou la Cible d'un Trait
+ * psychologique hors du registre courant se CHARGE, élaguée de ces seuls ids (`elaguerSave`, #1463 LD.1).
  */
 import type { RuleValue } from '../../engine/policy';
 import { etatInitialDuJeu, initialNet, type EtatDeJeu } from '../etat';
@@ -139,7 +139,7 @@ export function importerLaSauvegarde(json: string): SaveGame | ObsoleteCause {
   return lireSave(json);
 }
 
-/** La save prête à charger : ses surcharges de règles et les États portés par son groupe, élagués de ce que le
+/** La save prête à charger : ses surcharges de règles, les États et Traits psychologiques portés par son groupe, élagués de ce que le
  *  registre courant ne connaît plus (`elaguerLePersiste`), et les ids retirés, à nommer au joueur. */
 export function elaguerSave(save: SaveGame): { save: SaveGame; retraits: RetraitsDElagage } {
   const party = Array.isArray(save.data.party) ? save.data.party : undefined;

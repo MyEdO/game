@@ -366,14 +366,14 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
     expect(rule(r.id), 'la surcharge connue s’applique').toBe(!r.default);
     expect(rule(autre.id), 'la valeur non conforme est retirée').toBe(autre.default);
     expect(useGame.getState().party[0].conditions.map((c) => c.id), 'le héros reste, sans l’État inconnu').toEqual([connu]);
-    expect(useGame.getState().retraitsDeChargement).toEqual({ regles: ['regle-hors-registre', autre.id], etats: ['etat-hors-registre'] });
+    expect(useGame.getState().retraitsDeChargement).toEqual({ regles: ['regle-hors-registre', autre.id], etats: ['etat-hors-registre'], groupes: [] });
     expect(ls().getItem(stableKey(1)), 'l’emplacement n’est pas vidé').not.toBeNull();
   });
 
   it('elaguerSave : une save que le registre reconnaît entière ne perd rien, et ne dit rien', () => {
     const r = OPTIONAL_RULES[0];
     const entiere = { ...save(FORMAT_SAVE), rules: { [r.id]: r.default }, data: { party: [{ id: 'h', conditions: [{ id: conditionIds()[0], value: 1 }] }] } } as unknown as SaveGame;
-    expect(elaguerSave(entiere)).toEqual({ save: entiere, retraits: { regles: [], etats: [] } });
+    expect(elaguerSave(entiere)).toEqual({ save: entiere, retraits: { regles: [], etats: [], groupes: [] } });
   });
 
   it('contenu illisible : jeté, témoin « illisible » — jamais un crash', () => {

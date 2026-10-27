@@ -152,7 +152,6 @@
     "src/ui/editor/OptionalTraitsPicker.tsx",
     "src/ui/editor/Palette.tsx",
     "src/ui/editor/ProjectModals.tsx",
-    "src/ui/editor/PsychTraitsField.tsx",
     "src/ui/editor/ScheduleSpecFields.tsx",
     "src/ui/editor/StatblockEditor.tsx",
     "src/ui/editor/StatusBar.tsx",
