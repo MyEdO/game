@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import fs, { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
@@ -256,6 +256,30 @@ test('rendu sous win32 : le `cwd` d’un glob et le chemin d’`openAsBlob` en `
     ].join('\n'),
   )
   assert.deepEqual(vu, [['entree.mjs'], ['entree.mjs'], ['entree.mjs'], true])
+})
+
+const AVEC_UTF8STREAM = typeof fs.Utf8Stream === 'function'
+
+test(`rendu sous win32 : ${AVEC_UTF8STREAM ? 'un `Utf8Stream` construit par `new`, `dest` en `C:\\` sous un dossier à créer (`mkdir`), écrit au disque' : 'node sans `fs.Utf8Stream` : la simulation n’en pose aucun'}`, (t) => {
+  const { vu } = vuDuDepot(t,
+    [
+      "import fs from 'node:fs'",
+      "import path from 'node:path'",
+      "if (typeof fs.Utf8Stream !== 'function') console.log(JSON.stringify(typeof fs.Utf8Stream))",
+      'else {',
+      "  const dest = path.join(process.cwd(), 'sous', 'sortie.txt')",
+      '  const flux = new fs.Utf8Stream({ dest, mkdir: true, sync: true })',
+      "  flux.write('écrit')",
+      "  const rouvert = path.join(process.cwd(), 'autre', 'rouvert.txt')",
+      '  flux.reopen(rouvert)',
+      "  flux.write('rouvert')",
+      '  flux.end()',
+      "  console.log(JSON.stringify([flux instanceof fs.Utf8Stream, fs.readdirSync(path.join(process.cwd(), 'sous')), fs.readFileSync(dest, 'utf8'), fs.readFileSync(rouvert, 'utf8')]))",
+      '}',
+      '',
+    ].join('\n'),
+  )
+  assert.deepEqual(vu, AVEC_UTF8STREAM ? [true, ['sortie.txt'], 'écrit', 'rouvert'] : 'undefined')
 })
 
 test('rendu sous win32 : le PATH transmis à un enfant est ramené à la graphie de l’hôte, clé en toute casse, argv absent compris', (t) => {

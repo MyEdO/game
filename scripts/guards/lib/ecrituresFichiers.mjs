@@ -162,6 +162,19 @@ export function ciblesDEcritureJS(scripts, { env = {}, platform = process.platfo
       return null
     }
     const parcours = (n, fn) => { fn(n); n.forEachChild((c) => parcours(c, fn)) }
+    /** Le nœud qui nomme la cible `position` (`OPERATIONS_FS`) parmi `args` : `null` quand le texte ne la dit pas,
+     *  `undefined` quand l'option qui la porterait est absente. */
+    const cibleDe = (args, position) => {
+      if (typeof position === 'number') return args[position] ?? null
+      const [indice, cle] = position
+      const options = args[indice]
+      if (options === undefined) return undefined
+      if (!ts.isObjectLiteralExpression(options)) return null
+      if (options.properties.some((p) => ts.isSpreadAssignment(p) || (p.name && ts.isComputedPropertyName(p.name)))) return null
+      const propriete = options.properties.find((p) => p.name?.text === cle)
+      if (propriete === undefined) return undefined
+      return ts.isPropertyAssignment(propriete) ? propriete.initializer : null
+    }
     /** Les éléments de la liste d'arguments `n` d'un lancement : un tableau littéral, ou l'identifiant d'un `const`
      *  tableau littéral que le texte ne fait que passer en argument d'appel ; `[]` sans liste, `null` sinon. */
     const elementsDe = (n) => {
@@ -178,15 +191,15 @@ export function ciblesDEcritureJS(scripts, { env = {}, platform = process.platfo
       return passe ? declaration.initializer.elements : null
     }
     parcours(sourceFile, (n) => {
-      if (!ts.isCallExpression(n)) return
-      if (n.expression.kind === ts.SyntaxKind.ImportKeyword) {
+      if (!ts.isCallExpression(n) && !ts.isNewExpression(n)) return
+      if (ts.isCallExpression(n) && n.expression.kind === ts.SyntaxKind.ImportKeyword) {
         const module = plier(n.arguments[0])
         let haut = n.parent
         while (ts.isParenthesizedExpression(haut)) haut = haut.parent
         if (module === null || (MODULES_QUI_ECRIVENT.test(module) && !ts.isAwaitExpression(haut))) sorties.push({ chemin: null, inconnue: true, operation: 'import-dynamique' })
         return
       }
-      const lanceur = exportAppele(n)
+      const lanceur = ts.isCallExpression(n) ? exportAppele(n) : null
       if (lanceur !== null && Object.hasOwn(LANCEURS, lanceur)) {
         const forme = LANCEURS[lanceur], operation = lanceur.slice(lanceur.indexOf('#') + 1)
         const [, second, troisieme] = n.arguments
@@ -202,13 +215,16 @@ export function ciblesDEcritureJS(scripts, { env = {}, platform = process.platfo
       }
       const operation = provenance(n.expression)?.operation
       const definition = OPERATIONS_FS[operation]
+      const args = n.arguments ?? []
       if (definition?.drapeaux !== undefined) {
-        const argument = n.arguments[definition.drapeaux]
+        const argument = args[definition.drapeaux]
         const drapeaux = argument && ts.isNumericLiteral(argument) ? Number(argument.text) : plier(argument)
         if ((!argument || drapeaux !== null) && !ouvreEnEcriture(drapeaux ?? undefined)) return
       }
-      for (const indice of Object.hasOwn(OPERATIONS_FS, operation) ? OPERATIONS_FS[operation].chemins : []) {
-        const chemin = plier(n.arguments[indice])
+      for (const position of Object.hasOwn(OPERATIONS_FS, operation) ? OPERATIONS_FS[operation].chemins : []) {
+        const cible = cibleDe(args, position)
+        if (cible === undefined) continue
+        const chemin = cible === null ? null : plier(cible)
         sorties.push({ chemin, inconnue: chemin === null, operation })
       }
     })

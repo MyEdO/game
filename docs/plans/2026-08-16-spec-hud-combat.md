@@ -1,6 +1,6 @@
 # Spec HUD de combat — zones et adresses (sur Invariant V2) — RÉVISION 2 post-juge
 
-Ticket: #1348
+Ticket: #2998
 
 > Plan daté, à supprimer une fois exécuté. BASE : `docs/plans/2026-08-16-hud-combat.md`
 > (Invariant V2). Toute contradiction avec les arbitrages §1 se résout POUR le §1.

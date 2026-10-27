@@ -14,8 +14,8 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
-import { stepsCi } from './gatesDeCi.mjs'
-import { DOSSIER, ETATS, PORTE, SIGNALEUR, WORKFLOWS, branchesDePush, corpsRun, declencheursDe, lireWorkflows, mesurerEtat, verdict } from './workflowsDuDepot.mjs'
+import { blocsDeJobs, stepsCi } from './gatesDeCi.mjs'
+import { DOSSIER, DOSSIER_ACTIONS, ETATS, PORTE, SIGNALEUR, WORKFLOWS, branchesDePush, corpsRun, declencheursDe, lireActions, lireWorkflows, mesurerEtat, portePipe, shellAPipefail, shellParDefaut, stepsDu, verdict } from './workflowsDuDepot.mjs'
 
 /** Un workflow d'une seule ligne de `run`, sous la condition `si`. PUR — aucun disque. */
 const workflowAvec = (si, ligneRun) =>
@@ -226,4 +226,106 @@ test('la PORTE est celle que `coursesCi` consulte — mesuré sur les args réel
   assert.ok(vus.includes('--workflow'), `coursesCi ne filtre aucun workflow : ${vus.join(' ')}`)
   assert.equal(consulte, PORTE, 'la porte au push consulte un autre workflow que PORTE')
   assert.equal(WORKFLOWS[consulte]?.etat, 'porte', `${consulte} n’est pas déclaré « porte » au registre`)
+})
+
+// PIPEFAIL (#3028) : un step sans `shell` tourne sous `bash -e {0}`, SANS pipefail (fixture de log :
+// scripts/guards/lib/coursesCi.test.mjs, « shell: /usr/bin/bash -e {0} ») : `mesure | tee` y prend le
+// code du `tee`, et l'étape `audit-stock` du canari est restée verte sur 31 écarts. Sous `shell: bash`
+// explicite, GitHub lance `bash --noprofile --norc -eo pipefail {0}`.
+
+/**
+ * Steps PIPÉS d'un texte qui ne tournent pas sous pipefail, nommés avec leur remède. Le shell effectif
+ * est celui du step, sinon `defaults.run.shell` du job, sinon celui du workflow ; une action composite
+ * n'a pas de `defaults` : son step porte son `shell`. PUR.
+ * @param {string} chemin nommé dans le constat @param {string} texte @param {{ composite?: boolean }} [p]
+ */
+function pipesSansPipefail(chemin, texte, { composite = false } = {}) {
+  const fautes = []
+  const juger = (steps, defaut, remede) => {
+    for (const s of steps) {
+      if (!s.run || !portePipe(corpsRun(s.bloc))) continue
+      const shell = s.shell ?? defaut
+      if (shellAPipefail(shell)) continue
+      fautes.push(
+        `${chemin} : step « ${s.nom ?? s.id ?? corpsRun(s.bloc)[0]} » pipe sans pipefail ` +
+          `(shell effectif : ${shell ?? (composite ? 'aucun' : 'bash -e {0} par défaut')}) — ${remede}`,
+      )
+    }
+  }
+  if (composite) juger(stepsDu(texte, { indent: 4 }), null, 'pose `shell: bash` sur le step')
+  else {
+    const duWorkflow = shellParDefaut(texte)
+    for (const job of blocsDeJobs({ texte }))
+      juger(
+        stepsDu(job.texte),
+        shellParDefaut(job.texte, 4) ?? duWorkflow,
+        'pose `shell: bash` sur le step, ou `defaults.run.shell: bash` au workflow ou au job',
+      )
+  }
+  return fautes
+}
+
+/** Toutes les fautes de pipefail d'un dépôt (workflows et actions composites). */
+const pipesDuDepot = (cwd) => [
+  ...lireWorkflows({ cwd }).flatMap(({ fichier, texte }) => pipesSansPipefail(`${DOSSIER}/${fichier}`, texte)),
+  ...lireActions({ cwd }).flatMap(({ fichier, texte }) =>
+    pipesSansPipefail(`${DOSSIER_ACTIONS}/${fichier}`, texte, { composite: true }),
+  ),
+]
+
+/** Un workflow d'un job à un step `run`, sous `defaults` de workflow et `shell` de step optionnels. PUR. */
+const workflowPipe = (ligneRun, { defaults = '', shell = '' } = {}) =>
+  `name: Banc\non:\n  workflow_dispatch:\n${defaults}jobs:\n  banc:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Mesurer\n${shell}        run: |\n          ${ligneRun}\n`
+const DEFAUTS_BASH = 'defaults:\n  run:\n    shell: bash\n'
+
+test('PIPEFAIL — sur l’arbre RÉEL, aucun step pipé (workflow ou action composite) ne tourne sans pipefail', () => {
+  assert.ok(lireWorkflows({ cwd: RACINE }).length > 0 && lireActions({ cwd: RACINE }).length > 0, 'le dépôt a des workflows et des actions')
+  assert.deepEqual(pipesDuDepot(RACINE), [])
+})
+
+test('PIPEFAIL — un step pipé SANS shell rougit en nommant son remède ; `defaults.run.shell: bash` ou `shell: bash` le verdit', () => {
+  const nu = pipesSansPipefail('banc.yml', workflowPipe('node mesure.mjs | tee rapport.txt'))
+  assert.equal(nu.length, 1, nu.join('\n'))
+  assert.match(nu[0], /^banc\.yml : step « Mesurer » pipe sans pipefail \(shell effectif : bash -e \{0\} par défaut\)/)
+  assert.match(nu[0], /`shell: bash` sur le step, ou `defaults\.run\.shell: bash` au workflow ou au job/)
+  assert.deepEqual(pipesSansPipefail('banc.yml', workflowPipe('node mesure.mjs | tee rapport.txt', { defaults: DEFAUTS_BASH })), [])
+  assert.deepEqual(pipesSansPipefail('banc.yml', workflowPipe('node mesure.mjs | tee r', { shell: '        shell: bash\n' })), [])
+  const job = workflowPipe('node mesure.mjs | tee r').replace('    runs-on:', '    defaults:\n      run:\n        shell: bash\n    runs-on:')
+  assert.deepEqual(pipesSansPipefail('banc.yml', job), [], 'defaults.run.shell au JOB')
+})
+
+test('PIPEFAIL — `shell: sh` sur le step l’emporte sur `defaults.run.shell: bash` et rougit', () => {
+  const fautes = pipesSansPipefail('banc.yml', workflowPipe('a | b', { defaults: DEFAUTS_BASH, shell: '        shell: sh\n' }))
+  assert.equal(fautes.length, 1, fautes.join('\n'))
+  assert.match(fautes[0], /shell effectif : sh\)/)
+})
+
+test('PIPEFAIL — `||`, un `|` entre apostrophes, en commentaire ou dans `${{ }}` n’est pas un pipe ; `$( a | b )` en est un', () => {
+  for (const ligne of ['test -z "$x" || exit 1', "gh api --jq '.[] | {number}' x", 'echo ok # a | b', 'echo ${{ a || b }}'])
+    assert.deepEqual(pipesSansPipefail('banc.yml', workflowPipe(ligne)), [], ligne)
+  for (const ligne of ['X="$(git log | head -1)"', 'a |& b'])
+    assert.equal(pipesSansPipefail('banc.yml', workflowPipe(ligne)).length, 1, ligne)
+})
+
+test('PIPEFAIL — action composite : un step pipé sans `shell: bash` rougit (pas de `defaults` en composite)', () => {
+  const action = (shell) => `name: A\nruns:\n  using: composite\n  steps:\n    - id: m\n${shell}      run: a | tee r\n`
+  const fautes = pipesSansPipefail('a/action.yml', action('      shell: sh\n'), { composite: true })
+  assert.equal(fautes.length, 1, fautes.join('\n'))
+  assert.match(fautes[0], /^a\/action\.yml : step « m » pipe sans pipefail \(shell effectif : sh\) — pose `shell: bash` sur le step$/)
+  assert.deepEqual(pipesSansPipefail('a/action.yml', action('      shell: bash\n'), { composite: true }), [])
+})
+
+test('MORSURE PIPEFAIL — `defaults:` retiré de canari.yml : la garde rougit en nommant canari.yml', () => {
+  const racine = depotJetable()
+  try {
+    const avant = lire(racine, 'canari.yml')
+    const sans = avant.replace(DEFAUTS_BASH, '')
+    assert.notEqual(sans, avant, 'canari.yml porte `defaults.run.shell: bash`')
+    ecrire(racine, 'canari.yml', sans)
+    const fautes = pipesDuDepot(racine)
+    assert.ok(fautes.length > 0 && fautes.every((f) => f.startsWith(`${DOSSIER}/canari.yml : `)), fautes.join('\n'))
+    assert.ok(fautes.some((f) => f.includes("« Stock d'audit (racine + server) »")), fautes.join('\n'))
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
 })

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// LA CONSTRUCTION DE L'HÔTE GODOT (#2928, plan `docs/plans/2026-10-21-vague6-hote-godot.md` B5, B-c, M-f) : trois modes.
+// LA CONSTRUCTION DE L'HÔTE GODOT (#2928) : trois modes.
 // `--pont-seul` bâtit le bundle du pont par `vite build` en bibliothèque, format iife, depuis l'entrée d'hôte unique
 // (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis `hotes/godot/pont/entree.ts`, avec le greffon
 // `proseSource()`) ; le bundle tient seul dans une page et expose `globalThis.wfrpPont` (`hotes/godot/pont/CONTRAT.md`).
