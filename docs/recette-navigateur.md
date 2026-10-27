@@ -84,7 +84,7 @@ natifs Node ≥ 22), le choix le plus robuste des scripts moissonnés au regard 
 
 **Quel Chrome** (`resoudreChrome`, `lib.mjs`, testée à fixtures) : `CHROME_PATH` d'abord, puis les
 chemins Windows de Chrome (sur `win32` seulement), puis le Chromium Playwright de plus haute version sous
-`PLAYWRIGHT_BROWSERS_PATH` (défaut `/opt/pw-browsers`, `chromium-<N>/chrome-linux/chrome`) ; en root,
+`PLAYWRIGHT_BROWSERS_PATH` (défaut `/opt/pw-browsers`, `chromium-<N>/chrome-linux/chrome` ou `chromium-<N>/chrome-linux64/chrome`) ; en root,
 `--no-sandbox` est ajouté. Aucun candidat : refus nommant les chemins essayés.
 
 Le kit ne DÉMARRE **jamais** le serveur de dev — il l'**attend** puis s'y **attache** : `attendreServeur`
