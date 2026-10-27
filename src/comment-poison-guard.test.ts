@@ -86,7 +86,6 @@ const GARDE = {
     raison:
       'Le stock est le dénominateur des COMMENTAIRES de #1486 (credo règle 1) : chaque ligne se solde par la mort du site ' +
       'dans le commit de son lot. Il ne couvre PAS les sites de #1486 portés par du CODE — identifiants et chaînes : ' +
-      '`LEGACY_KEY` (`saves.ts`), ' +
       '`scripts/agents/compat-core.mjs` — invisibles à `extractComments` par construction : ceux-là meurent avec leurs lots, ' +
       'listés au ticket, jamais par cette garde. Une ligne neuve est une dérive, jamais une exception à inscrire — seul le ' +
       'tag `[entériné AAAA-MM-JJ]` de l’utilisateur soustrait un commentaire à la famille.',

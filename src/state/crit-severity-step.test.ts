@@ -13,7 +13,7 @@ import { findTableEntry } from '../engine/tables';
 import { createHero } from '../engine/character';
 import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { testScene } from '../scenes/test-fixture';
-import { snapshotSave } from './saves';
+import { snapshotSave } from '../noyau/persistance/save';
 import { netSnapshot } from './netFlow';
 import { hasCondition } from '../engine/conditions';
 import type { Weapon, Combatant, HitLocation, ArmourPoints } from '../engine/types';
@@ -336,11 +336,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
       .toEqual(expect.arrayContaining(['76', '20']));
 
     const brut = (o: unknown) => JSON.stringify(o);
-    const save = snapshotSave(
-      useGame.getState() as unknown as Record<string, unknown>,
-      useGame.getInitialState() as unknown as Record<string, unknown>,
-      'test',
-    );
+    const save = snapshotSave(useGame.getState(), 'test');
     expect(brut(save.data), 'le secret de pose part dans la SAUVEGARDE').not.toMatch(/foldMemo/);
     expect(brut(netSnapshot(useGame.getState)), 'le secret de pose part dans le SNAPSHOT diffusé').not.toMatch(/foldMemo/);
     // …et l'état lui-même s'en défait au COMMIT (le mémo ne sert que tant que l'étape est courante).

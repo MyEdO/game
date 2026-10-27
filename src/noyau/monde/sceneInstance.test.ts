@@ -3,7 +3,8 @@ import { captureMutation, applyMutation, type SceneMutation } from './sceneInsta
 import { emptyScene, doorIsOpen, setDoorOpen, type Scene, type WallSeg } from './scene';
 import { useGame } from '../../state/store';
 import { removeEntity } from '../combatPlacement';
-import { readSlot, saveToSlot, deleteSlot, type SaveGame } from '../../state/saves';
+import { readSlot, saveToSlot, deleteSlot } from '../../state/saves';
+import { type SaveGame } from '../persistance/save';
 
 /** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
 function fakeStorage(): Storage {

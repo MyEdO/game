@@ -1,16 +1,19 @@
 /**
- * Jalon 5 — Sauvegarde/chargement de partie : snapshot zéro-maintenance (clés de données de
- * getInitialState), localStorage 3 slots, export/import JSON, refus en combat.
+ * Jalon 5 — Sauvegarde/chargement de partie par le store : snapshot de l'état du JEU (`EtatDeJeu`, jamais l'état
+ * d'interface), localStorage 3 slots, export/import JSON, refus en combat et chez l'invité (`refusDeSauvegarde`).
  *
  * Plus le FORMAT (#2404) : une save dont la version diffère de `FORMAT_SAVE` est REJETÉE et RETIRÉE
  * du stockage, avec un témoin de message pour le joueur.
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { useGame } from './store';
+import { useGame, etatInitialDeLAdaptateur } from './store';
+import { etatInitialDuJeu, initialNet } from '../noyau/etat';
+import { t } from '../i18n';
 import { resetSceneRegistry } from '../noyau/monde/registreDesScenes';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { lancerCampagne } from '../scenes/campaign';
-import { readSlot, deleteSlot, exportSave, importSave, listSaves, saveToSlot, parseSave, snapshotSave, takeObsoleteNotice, elaguerSave, type SaveGame } from './saves';
+import { readSlot, deleteSlot, exportSave, importSave, listSaves, saveToSlot, takeObsoleteNotice } from './saves';
+import { parseSave, snapshotSave, elaguerSave, type SaveGame } from '../noyau/persistance/save';
 import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 import { rule, setRule, loadRuleOverrides, OPTIONAL_RULES } from '../engine/policy';
 import { talents, careerLevels, specResolves, combatStakeRef, conditionIds } from '../data/index';
@@ -66,7 +69,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     vi.clearAllTimers();
     deleteSlot(1); deleteSlot(2); deleteSlot(3);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sauvé', seed: 4 });
-    useGame.setState({ party: [hero], battle: null });
+    useGame.setState({ party: [hero], battle: null, net: initialNet() });
     useGame.getState().startScene(testScene());
     vi.clearAllTimers();
   });
@@ -118,33 +121,37 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
   });
 
   /**
-   * SNAPSHOT ZÉRO-MAINTENANCE : le contrat POSITIF de `snapshotSave` — tout champ de DONNÉES de l'état
-   * initial entre dans la save, sans qu'aucune liste ne le déclare ; ce qui n'y entre pas est une
-   * exclusion NOMMÉE dans le module, et elles se comptent ici. Un champ neuf oublié (une préférence
-   * qui ne se rechargerait pas) rougit sans qu'on ait rien à inscrire.
+   * SNAPSHOT ZÉRO-MAINTENANCE : tout champ de l'état initial du JEU entre dans la save, hors l'exclusion NOMMÉE du
+   * noyau (`HORS_SAVE`) ; aucune clé de l'interface du web n'y entre (#3041).
    */
-  it('tout champ de données de l’état initial entre au snapshot ; les exclusions sont NOMMÉES', () => {
-    const initial = useGame.getInitialState() as unknown as Record<string, unknown>;
-    const champsDeDonnees = Object.keys(initial).filter((k) => typeof initial[k] !== 'function');
-    expect(champsDeDonnees.length, 'témoin : l’état initial porte bien des données').toBeGreaterThan(20);
-    const data = snapshotSave(useGame.getState() as unknown as Record<string, unknown>, initial, 'maintenant').data;
-    const absents = champsDeDonnees.filter((k) => !(k in data));
-    expect(absents.sort(), 'un champ de données hors save sans exclusion nommée')
-      .toEqual(['campaignNarratif', 'debugLabels', 'debugRoofCut', 'retraitsDeChargement', 'reveler']);
+  it('la save porte l’état du JEU, hors `HORS_SAVE`, et aucune clé de l’interface', () => {
+    const jeu = Object.keys(etatInitialDuJeu());
+    expect(jeu.length, 'témoin : l’état initial du jeu porte bien des données').toBeGreaterThan(20);
+    useGame.setState({ reveler: true, debugLabels: true, debugRoofCut: false, camRot: 2, zoom: 1.8, sheetId: 'h' });
+    expect(useGame.getState().saveGame(1), 'témoin : la save est bien écrite').toBe(true);
+    const cles = Object.keys(readSlot(1)!.data);
+    expect(jeu.filter((k) => !cles.includes(k)), 'un champ de jeu hors save sans exclusion nommée').toEqual(['campaignNarratif']);
+    expect(cles.filter((k) => !jeu.includes(k)), 'une clé de la save hors `EtatDeJeu`').toEqual([]);
+    const interface_ = [...Object.keys(etatInitialDeLAdaptateur()), 'keyOverrides'];
+    expect(interface_.filter((k) => cles.includes(k)), 'une clé d’interface dans la save').toEqual([]);
   });
 
-  it('`reveler` (Alt maintenu) n’entre dans AUCUNE save : c’est un état de TOUCHE', () => {
-    useGame.setState({ reveler: true } as never);
-    expect(useGame.getState().saveGame(1), 'témoin : la save est bien écrite').toBe(true);
-    expect('reveler' in readSlot(1)!.data, 'une partie rechargée aurait ses utilisables révélés, touche relâchée').toBe(false);
+  it('le chargement garde les préférences de vue et de touches, et remet le reste de l’interface', () => {
+    expect(useGame.getState().saveGame(1)).toBe(true);
+    useGame.setState({ camRot: 3, zoom: 2, keyOverrides: { 'toggle-menu': 'KeyP' }, sheetId: 'h', gameMenuOpen: true });
+    expect(useGame.getState().loadGame(1)).toBe(true);
+    const s = useGame.getState();
+    expect([s.camRot, s.zoom, s.keyOverrides]).toEqual([3, 2, { 'toggle-menu': 'KeyP' }]);
+    expect([s.sheetId, s.gameMenuOpen]).toEqual([null, false]);
   });
 
-  it('les drapeaux de RECETTE (#1478) n’entrent dans AUCUNE save : ni l’overlay, ni le lève-toit', () => {
-    useGame.setState({ debugLabels: true, debugRoofCut: false });
-    expect(useGame.getState().saveGame(1), 'témoin : la save est bien écrite').toBe(true);
-    const data = readSlot(1)!.data;
-    expect('debugLabels' in data, 'une partie rechargée aurait la carte annotée de debug').toBe(false);
-    expect('debugRoofCut' in data, 'une partie rechargée aurait le lève-toit débrayé — et l’invité coop avec').toBe(false);
+  it('chez l’invité : sauvegarde refusée, message au journal, aucun emplacement écrit', () => {
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'guest', mySeat: 2 } });
+    expect(useGame.getState().saveGame(1)).toBe(false);
+    expect(useGame.getState().autoSave()).toBe(false);
+    expect(useGame.getState().journal.slice(-1)[0]).toBe(t('store.saveInvite'));
+    expect(readSlot(1)).toBeNull();
+    expect(readSlot('auto')).toBeNull();
   });
 
   it('en combat : sauvegarde refusée, le slot reste vide', () => {
@@ -170,16 +177,6 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
   });
 });
 
-describe('parseSave — la version DOIT être le format courant', () => {
-  const cur = { version: FORMAT_SAVE, savedAt: '2026', sceneLabel: 's', gameTime: 0, data: {} };
-  it('save à le format courant : acceptée telle quelle', () => {
-    expect(parseSave(cur)).toEqual(cur);
-  });
-  it('autre format, numéro de version compris → null : la save se jette', () => {
-    expect(parseSave({ ...cur, version: 'autre-format' })).toBeNull();
-  });
-});
-
 /** Comportements VIVANTS de la forme persistée : chacun verrouille ce que lit le chargement d'une save. */
 describe('forme persistée — ce que le chargement lit', () => {
   it('une `SkillInstance` s’apparie par `id` (#1548) : la graphie `skillId` perd ses Augmentations', () => {
@@ -192,13 +189,11 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(testValue(avecGraphieCourante, 'resistance')).toBe(testValue(nu, 'resistance') + 20);
   });
   it('le CADRE DE CAMPAGNE entre au snapshot (#717)', () => {
-    const initial = useGame.getInitialState() as unknown as Record<string, unknown>;
-    const data = snapshotSave(initial, initial, '2026-08-31T00:00:00.000Z').data;
+    const data = snapshotSave(etatInitialDuJeu(), '2026-08-31T00:00:00.000Z').data;
     expect(Object.keys(data)).toEqual(expect.arrayContaining(['chapitreDepuis', 'objectifsSoldes', 'pendingOuverture', 'pendingChapterRecap']));
   });
   it('la SCÈNE persistée s’annonce (#1552)', () => {
-    const initial = useGame.getInitialState() as unknown as Record<string, unknown>;
-    const data = snapshotSave({ ...initial, scene: testScene() }, initial, '2026-08-31T00:00:00.000Z').data;
+    const data = snapshotSave({ ...etatInitialDuJeu(), scene: testScene() }, '2026-08-31T00:00:00.000Z').data;
     expect(testScene().type, 'une scène du dépôt s’annonce').toBe('scene');
     expect((data.scene as { type?: string }).type, 'la scène persistée doit porter son `type`').toBe('scene');
   });
@@ -225,8 +220,7 @@ describe('forme persistée — ce que le chargement lit', () => {
   });
   it('une save neuve d’Arène, rechargée, résout ses zones (#1692)', () => {
     expect(lancerCampagne(useGame.getState, null)).toBeNull();
-    const initial = useGame.getInitialState() as unknown as Record<string, unknown>;
-    const json = exportSave(snapshotSave(useGame.getState() as unknown as Record<string, unknown>, initial, '2026-09-27T00:00:00.000Z'));
+    const json = exportSave(snapshotSave(useGame.getState(), '2026-09-27T00:00:00.000Z'));
     resetSceneRegistry();
     useGame.setState(useGame.getInitialState());
     expect(useGame.getState().importGame(json)).toBeNull();
@@ -290,16 +284,14 @@ describe('forme persistée — ce que le chargement lit', () => {
   });
 
   it('les jets en attente sauvés portent le nom figé (#1882, #1906)', () => {
-    const init = useGame.getInitialState();
     const approche = { combatantId: 'H', sourceId: 'E', sourceName: 'Ogre', intent: { kind: 'entity' as const, id: 'E' }, result: null };
-    const s = snapshotSave({ ...init, pendingApproach: approche } as unknown as Record<string, unknown>, init as unknown as Record<string, unknown>, 'x');
+    const s = snapshotSave({ ...etatInitialDuJeu(), pendingApproach: approche as never }, 'x');
     expect((s.data as { pendingApproach?: unknown }).pendingApproach, 'la forme neuve est PERSISTÉE').toEqual(approche);
   });
 
   it('le cap d’exploration est une entrée de GROUPE (#1362)', () => {
     useGame.setState({ facing: poserCapDuGroupe({}, 'E') });
-    const etat = useGame.getState() as unknown as Record<string, unknown>;
-    const data = snapshotSave(etat, etat, 'maintenant').data as { facing: Record<string, Dir8> };
+    const data = snapshotSave(useGame.getState(), 'maintenant').data as { facing: Record<string, Dir8> };
     expect(capDuGroupe({ facing: data.facing })).toBe('E');
   });
 
@@ -313,20 +305,12 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(slotCovers(slot, 'savoir-vivre', 'erudits')).toBe(true);
   });
 
-  /**
-   * TÉMOIN d'une couture que le TYPECHECK NE VOIT PAS : `snapshotSave` reçoit un `Record` opaque, donc
-   * l'accès au libellé de scène passe par un cast — un champ renommé y dégraderait la vignette vers
-   * l'id EN SILENCE, sans une seule erreur de compilation. Ce test mesure le RÉSULTAT (un libellé, pas
-   * l'id) : il rougit dès que la couture se débranche.
-   */
   it('la vignette porte le LIBELLÉ de la scène (jamais son id), et la scène voyage ENTIÈRE dans `data`', () => {
-    const initial = useGame.getState() as unknown as Record<string, unknown>;
-    const scene = { id: 'scene-id-a-ne-pas-afficher', label: 'La Salle du Trône', dimensions: { w: 2, h: 2 } };
-    const save = snapshotSave({ ...initial, scene }, initial, '2026-08-29T00:00:00.000Z');
+    const scene = { ...emptyScene('scene-id-a-ne-pas-afficher', 2, 2), label: 'La Salle du Trône' };
+    const save = snapshotSave({ ...etatInitialDuJeu(), scene }, '2026-08-29T00:00:00.000Z');
     expect(save.sceneLabel).toBe('La Salle du Trône');
-    expect((save.data.scene as { label?: string })?.label).toBe('La Salle du Trône');
-    // Sans scène, la vignette le DIT — elle ne rend pas une chaîne vide.
-    expect(snapshotSave({ ...initial, scene: null }, initial, '2026').sceneLabel).toBe('Sans scène');
+    expect(save.data.scene?.label).toBe('La Salle du Trône');
+    expect(snapshotSave({ ...etatInitialDuJeu(), scene: null }, '2026').sceneLabel).toBe('Sans scène');
   });
   it('objet malformé / version absente → null', () => {
     expect(parseSave(null)).toBeNull();
@@ -351,6 +335,7 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
     expect(ls().getItem(stableKey(1))).toBeNull(); // la donnée est SUPPRIMÉE, pas laissée à pourrir
     expect(takeObsoleteNotice()).toEqual([{ slot: 1, cause: 'autreFormat' }]);
     expect(takeObsoleteNotice()).toEqual([]); // témoin à usage unique
+    expect(t('saveload.error.autreFormat', { emplacement: 'Emplacement 1' })).toBe('Emplacement 1 : sauvegarde d’un autre format, retirée.');
   });
 
   it('save à numéro de version : même sort', () => {
