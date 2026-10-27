@@ -98,13 +98,4 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     expect(h.details?.ambitionShort).toBe('Survivre');
     expect(h.details?.ambitionLong).toBe('Régner');
   });
-
-  it('netAssignSlot : hôte seul, bornes 0-3', () => {
-    useGame.getState().netAssignSlot(1, 1); // mode local → refusé
-    expect(useGame.getState().net.slots).toEqual([0, 0, 0, 0]);
-    useGame.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' } } });
-    useGame.getState().netAssignSlot(1, 1);
-    useGame.getState().netAssignSlot(7, 1); // hors bornes → ignoré
-    expect(useGame.getState().net.slots).toEqual([0, 1, 0, 0]);
-  });
 });

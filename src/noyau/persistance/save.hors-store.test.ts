@@ -4,7 +4,7 @@
  * refus d'écrire se décide ici.
  */
 import { describe, it, expect } from 'vitest';
-import { chargerLaSave, creerPartie, etatInitialDuJeu, exporterLaSauvegarde, importerLaSauvegarde, metaDeSave, parseSave, refusDeSauvegarde, snapshotSave, type EtatDeJeu, type SaveGame } from '../index';
+import { chargerLaSave, creerPartie, etatInitialDuJeu, exporterLaSauvegarde, lireSave, metaDeSave, refusDeSauvegarde, snapshotSave, type EtatDeJeu, type SaveGame } from '../index';
 import { initialNet, type BattleState } from '../etat';
 import { emptyScene } from '../monde/scene';
 import { OPTIONAL_RULES, rule, loadRuleOverrides } from '../../engine/policy';
@@ -36,18 +36,18 @@ describe('snapshotSave — l’état du JEU, jamais l’interface d’un hôte',
   });
 });
 
-describe('parseSave — le format courant seul', () => {
+describe('lireSave — le format courant seul', () => {
   it('une save écrite par `snapshotSave` se relit telle quelle ; d’un autre format, refusée', () => {
     const save = JSON.parse(JSON.stringify(snapshotSave(etatInitialDuJeu(), 'x'))) as SaveGame;
-    expect(parseSave(save)).toEqual(save);
-    expect(parseSave({ ...save, version: 'autre-format' })).toBeNull();
+    expect(lireSave(JSON.stringify(save))).toEqual(save);
+    expect(lireSave(JSON.stringify({ ...save, version: 'autre-format' }))).toBe('autreFormat');
   });
 
-  it('l’import rend la save exportée, ou la cause du refus', () => {
+  it('la lecture rend la save exportée, ou la cause du refus', () => {
     const save = snapshotSave(etatInitialDuJeu(), '2026-10-27T00:00:00.000Z');
-    expect(importerLaSauvegarde(exporterLaSauvegarde(save))).toEqual(save);
-    expect(importerLaSauvegarde('{pas du json')).toBe('illisible');
-    expect(importerLaSauvegarde(JSON.stringify({ ...save, version: 'autre-format' }))).toBe('autreFormat');
+    expect(lireSave(exporterLaSauvegarde(save))).toEqual(save);
+    expect(lireSave('{pas du json')).toBe('illisible');
+    expect(lireSave(JSON.stringify({ ...save, version: 'autre-format' }))).toBe('autreFormat');
   });
 });
 

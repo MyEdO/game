@@ -14,7 +14,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { setNorthDeg } from '../noyau/sceneEdit';
-import { exporterLaSauvegarde, importerLaSauvegarde, snapshotSave } from '../noyau/persistance/save';
+import { exporterLaSauvegarde, lireSave, snapshotSave } from '../noyau/persistance/save';
 import { etatInitialDuJeu } from '../noyau/etat';
 import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 
@@ -49,7 +49,7 @@ describe('Sauvegarde — le nord authoré voyage, son absence ne casse rien', ()
   it('round-trip export → import : `northDeg` survit à l’octet près', () => {
     const scene = setNorthDeg(emptyScene('scene-test', 5, 5), 90);
     const save = snapshotSave(etat(scene), '2512-01-01T00:00:00Z');
-    const relu = importerLaSauvegarde(exporterLaSauvegarde(save));
+    const relu = lireSave(exporterLaSauvegarde(save));
     if (typeof relu === 'string') throw new Error(`save refusée : ${relu}`);
     expect(relu.version).toBe(FORMAT_SAVE);
     expect(relu.data.scene).toMatchObject({ northDeg: 90 });
@@ -58,7 +58,7 @@ describe('Sauvegarde — le nord authoré voyage, son absence ne casse rien', ()
   it('une scène SANS le champ se sauve et se relit, nord implicite', () => {
     const scene = emptyScene('scene-test', 5, 5);
     const save = snapshotSave(etat(scene), '2512-01-01T00:00:00Z');
-    const relu = importerLaSauvegarde(exporterLaSauvegarde(save));
+    const relu = lireSave(exporterLaSauvegarde(save));
     if (typeof relu === 'string') throw new Error(`save refusée : ${relu}`);
     expect((relu.data.scene as Scene).northDeg).toBeUndefined();
   });

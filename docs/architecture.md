@@ -539,9 +539,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `savedProjectSchema` : relecture prouvée, refusée ou indésignable, ce qu'une écriture en
                             garde, nom d'affichage, campagne lancée d'une entrée), `save.ts` (la sauvegarde : `SaveGame`, dont le `data` est
                             `EtatDeJeu` moins `HORS_SAVE`, jamais l'état d'affichage d'un hôte ; `snapshotSave`,
-                            `parseSave`, `metaDeSave`, la forme texte `lireSave` (la save ou la cause de son refus,
-                            `ObsoleteCause`) avec `exporterLaSauvegarde` et `importerLaSauvegarde`, `elaguerSave`,
-                            `chargerLaSave` qui rend l'état de jeu à ouvrir, ses règles
+                            `metaDeSave`, la forme texte `lireSave` (la save ou la cause de son refus,
+                            `ObsoleteCause`, lecture d'un emplacement comme import) avec `exporterLaSauvegarde`,
+                            `chargerLaSave` qui rend l'état de jeu à ouvrir élagué, ses règles
                             maison et ses retraits, `refusDeSauvegarde` ; règles maison du snapshot coop) et
                             `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré)
   coop.ts                   LA COOP sans hôte (#3041) : `buildDeLaCoop` (le `build` comparé au `hello`),
@@ -575,8 +575,9 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             par entrée, causes d'un stockage indisponible) ; la poignée porte le cache, les tombes en
                             attente et les refus au geste), `coop/` (la coop sur le `Transport` que l'hôte fournit :
                             `protocol.ts`, les messages et leur validation, `session.ts`, `HostSession`/`GuestSession`
-                            hôte-autoritaires, `transport.ts`, le port `Transport` et sa paire en mémoire
-                            `FakeTransport`). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
+                            hôte-autoritaires, dont le paquet de campagne : envoyé au join, rattrapé à la diffusion
+                            qui suit son chargement, ses scènes enregistrées chez l'invité ; `transport.ts`, le port
+                            `Transport`, et sa paire en mémoire de test `transport.testkit.ts`). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
                             servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
