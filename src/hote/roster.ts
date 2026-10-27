@@ -6,7 +6,7 @@
  * lève : le roster est vide, l'écriture ne se fait pas.
  */
 import { cumulerLesRetraits, ecrireLeRoster, lireLesRetraits, lireLeRoster, rosterAvecLeHeros, type Combatant, type RetraitsDElagage, type RosterEntry } from '../noyau/index';
-import type { Stockage } from '../lib/stockage';
+import { lireLeTexte, retirerLaCle, type Stockage } from '../lib/stockage';
 import { prendreLeTemoin, temoigner, type FormeDeTemoin } from './temoin';
 
 const CLE = 'wfrp4.roster';
@@ -33,15 +33,11 @@ const TEMOINS_DU_ROSTER: FormeDeTemoin<TemoinsDuRoster> = {
 
 /** Le roster de `stockage` ; ce que son chargement retire ou élague est témoigné (`TemoinsDuRoster`). */
 export function chargerLeRoster(stockage: Stockage | null): RosterEntry[] {
-  const brut = lire(stockage, CLE);
+  const brut = lireLeTexte(stockage, CLE);
   if (!brut) return [];
   const lu = lireLeRoster(brut);
   if (!lu) {
-    try {
-      stockage?.removeItem(CLE);
-    } catch {
-      // stockage indisponible : rien à supprimer
-    }
+    retirerLaCle(stockage, CLE);
     temoigner(stockage, CLE_TEMOINS, TEMOINS_DU_ROSTER, { retire: true, elagage: null });
     return [];
   }
@@ -72,14 +68,6 @@ export function retirerDuRoster(stockage: Stockage | null, heroId: string): void
 export function mettreAJourLeRoster(stockage: Stockage | null, hero: Combatant): void {
   const heros = rosterAvecLeHeros(chargerLeRoster(stockage), hero);
   if (heros) ecrire(stockage, heros);
-}
-
-function lire(stockage: Stockage | null, cle: string): string | null {
-  try {
-    return stockage?.getItem(cle) ?? null;
-  } catch {
-    return null;
-  }
 }
 
 function ecrire(stockage: Stockage | null, heros: RosterEntry[]): void {

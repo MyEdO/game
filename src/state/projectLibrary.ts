@@ -4,6 +4,7 @@ import { validateDocument, rapportDeFautes } from '../data/schemas/validate';
 import type { GameState } from './store';
 import { accesBase, idbDisponible } from '../web/indexedDb';
 import { stockageWeb } from '../web/stockageWeb';
+import { retirerLaCle } from '../lib/stockage';
 import { nommerChamps } from '../data/schemas/grammaire/meta';
 
 /** Ce qu'un écran LIT d'un projet de la bibliothèque SANS l'ouvrir (liste, détail, dédup d'import).
@@ -251,13 +252,7 @@ function writeLocalMirror(list: EntreeListee[]): { skipped: Set<string>; storage
       return { skipped, storageUnavailable: false };
     } catch {
       if (fits.length === 0) {
-        if (indesignables.length === 0) {
-          try {
-            s.removeItem(KEY);
-          } catch {
-            // accès refusé : rien de plus à faire, aucune version périmée n'est laissée volontairement.
-          }
-        }
+        if (indesignables.length === 0) retirerLaCle(s, KEY);
         return { skipped: new Set(list.map((e) => e.id)), storageUnavailable: true };
       }
       fits = [...fits].sort((a, b) => b.json.length - a.json.length);
@@ -468,12 +463,8 @@ export async function __resetLibraryForTest(): Promise<void> {
   cache = null;
   pendingTombstones = new Set();
   refuseesAuGeste = new Set();
-  try {
-    const s = stockageWeb('localStorage');
-    s?.removeItem(KEY);
-    s?.removeItem(TOMBSTONE_KEY);
-  } catch {
-    // accès refusé : rien à nettoyer côté localStorage.
-  }
+  const s = stockageWeb('localStorage');
+  retirerLaCle(s, KEY);
+  retirerLaCle(s, TOMBSTONE_KEY);
   await bibliotheque.vider();
 }

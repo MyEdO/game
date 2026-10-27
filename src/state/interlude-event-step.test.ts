@@ -24,6 +24,7 @@ import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { canFixDie } from '../noyau/netOwnership';
 import { draineCascade } from './cascade.testkit';
 import type { Combatant } from '../engine/types';
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 /** Dés d'événements CHOISIS dans la donnée (fourchettes de `interludeEvents.json`). */
 const PREVOT = 22; // « Le Prévôt arrive » — moneyPct −30
@@ -42,19 +43,6 @@ function groupe(): Combatant[] {
   creditBourse(useGame.getState, useGame.setState, a.id, fromBrass(2000));
   creditBourse(useGame.getState, useGame.setState, b.id, fromBrass(2000));
   return useGame.getState().party;
-}
-
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage), patron `clues.test.ts`. */
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
 }
 
 const perHeroOf = (id: string) => useGame.getState().interlude!.perHero[id];
@@ -265,7 +253,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
   });
 
   it('SAUVEGARDE en plein tirage : la séquence est restaurée à SON étape, et la reprise dénoue', () => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage(); // env `node` : pas de localStorage
+    poserLeLocalStorage(); // env `node` : pas de localStorage
     const party = groupe();
     const avant = toBrass(partyMoneyTotal(useGame.getState));
     setDesFixes(true);

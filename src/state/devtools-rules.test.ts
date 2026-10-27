@@ -3,19 +3,7 @@ import { rule, resetRule, OPTIONAL_RULES } from '../engine/policy';
 import { reglerUneRegleMaisonWeb as auPanneau } from './reglesMaison';
 import { useGame } from './store';
 import { buildApi } from './devtools';
-
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 const KEY = 'wfrp4.house-rules';
 
@@ -30,7 +18,7 @@ const KEY = 'wfrp4.house-rules';
  */
 describe('__wfrp.rules(id, null) — la remise à zéro purge le PERSISTÉ, pas seulement la mémoire', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
     useGame.setState({ battle: null });
     for (const r of OPTIONAL_RULES) resetRule(r.id);
   });

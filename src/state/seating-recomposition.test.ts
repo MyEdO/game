@@ -18,8 +18,10 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame } from './store';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { assignSeat, seatPoseOf } from '../noyau/monde/seating';
-import { readSlot } from './saves';
+import { stockageDesSauvegardes } from './saves';
+import { lireLaSauvegarde } from '../hote/sauvegardes';
 import type { Combatant } from '../engine/types';
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
@@ -47,22 +49,9 @@ function attable(rangs: number[], party: Combatant[]): void {
   useGame.getState().startScene(sc);
 }
 
-/** Stockage de save en mémoire — le chemin de save/chargement est le RÉEL, sur un support jetable. */
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
-
 describe('recomposition du groupe — l’emplacement dont le corps change se lève', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
     useGame.setState({ battle: null, dialogue: null });
   });
 
@@ -148,7 +137,7 @@ describe('recomposition du groupe — l’emplacement dont le corps change se l�
     // et rien à corriger à la main : le rang est élagué (`pruneSeatAssignments`).
     attable([2], [hero('h1'), hero('h2')]);
     expect(useGame.getState().saveGame(1)).toBe(true);
-    const save = readSlot(1)!;
+    const save = lireLaSauvegarde(stockageDesSauvegardes(), 1)!;
     const data = save.data as { party: Combatant[] };
     data.party = data.party.slice(0, 1);
 

@@ -1,7 +1,7 @@
 /**
  * LA SAUVEGARDE, sa forme et ses décisions (#3041, Jalon 5) : l'instantané de l'état du JEU (`EtatDeJeu`, jamais
- * l'état d'affichage d'un hôte), sa validation au format courant, son élagage, son chargement en état de jeu et le
- * refus de l'écrire. La procédure sur les emplacements d'un stockage : `state/saves.ts`.
+ * l'état d'affichage d'un hôte), sa validation au format courant, sa forme texte (lecture, export, import), son
+ * élagage, son chargement en état de jeu et le refus de l'écrire. La procédure sur les emplacements d'un stockage : `hote/sauvegardes.ts`.
  *
  * Snapshot ZÉRO-MAINTENANCE : toute clé de `etatInitialDuJeu()` entre dans la save, hors `HORS_SAVE` ; aucune liste
  * de champs tenue à la main. Les règles maison (`engine/policy`, hors état) voyagent à part dans `rules`.
@@ -106,6 +106,37 @@ function isValidSave(s: unknown): s is SaveGame {
 /** Lit un document de save parsé : la version DOIT être `FORMAT_SAVE`. Toute autre forme rend `null`. */
 export function parseSave(parsed: unknown): SaveGame | null {
   return isValidSave(parsed) ? parsed : null;
+}
+
+/** Les métadonnées d'affichage de `save`. */
+export function metaDeSave(save: SaveGame): SaveMeta {
+  return { version: save.version, savedAt: save.savedAt, sceneLabel: save.sceneLabel, gameTime: save.gameTime };
+}
+
+/** CAUSE du rejet d'une sauvegarde — l'écran de chargement en fait un message DISTINCT : une save d'un
+ *  autre format et un contenu illisible ne se disent pas d'un même mot. */
+export type ObsoleteCause = 'autreFormat' | 'illisible';
+
+/** Un texte de save : la save au `FORMAT_SAVE`, ou la CAUSE de son refus. Source unique de la lecture d'un
+ *  emplacement et de l'import. */
+export function lireSave(brut: string): SaveGame | ObsoleteCause {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(brut);
+  } catch {
+    return 'illisible';
+  }
+  return parseSave(parsed) ?? 'autreFormat';
+}
+
+/** L'export d'une save : JSON lisible (téléchargement, presse-papier). */
+export function exporterLaSauvegarde(save: SaveGame): string {
+  return JSON.stringify(save, null, 2);
+}
+
+/** L'import d'un texte : la save au `FORMAT_SAVE`, ou la cause de son refus. */
+export function importerLaSauvegarde(json: string): SaveGame | ObsoleteCause {
+  return lireSave(json);
 }
 
 /** La save prête à charger : ses surcharges de règles et les États portés par son groupe, élagués de ce que le

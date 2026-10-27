@@ -7,10 +7,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { applyCriticalToTarget } from '../noyau/combatFlow';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
-import { readSlot, deleteSlot } from './saves';
+import { stockageDesSauvegardes } from './saves';
+import { lireLaSauvegarde } from '../hote/sauvegardes';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -39,36 +41,22 @@ describe('#194 — applyCriticalToTarget appende l\'entrée subie à critEntries
   });
 });
 
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
-
 describe('#194 — persistance save/load de l\'historique de critiques', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
     vi.useFakeTimers();
-    deleteSlot(1);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sourd', seed: 4 });
     useGame.setState({ party: [hero], battle: null });
     useGame.getState().startScene(testScene());
     vi.clearAllTimers();
   });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); deleteSlot(1); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('critEntriesSuffered survit au round-trip sauver → réinitialiser → charger', () => {
     useGame.getState().party[0].critEntriesSuffered = ['blessure-majeure-a-l-oreille'];
     expect(useGame.getState().saveGame(1)).toBe(true);
     // La save porte bien le champ (snapshot JSON).
-    const persisted = (readSlot(1)!.data.party as Combatant[])[0];
+    const persisted = (lireLaSauvegarde(stockageDesSauvegardes(), 1)!.data.party as Combatant[])[0];
     expect(persisted.critEntriesSuffered).toEqual(['blessure-majeure-a-l-oreille']);
     // « Nouvelle partie » puis chargement.
     useGame.setState({ party: [], scene: null, screen: 'menu' });

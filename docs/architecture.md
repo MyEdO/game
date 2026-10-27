@@ -286,8 +286,10 @@ src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de to
                             son chemin relatif, extension comprise.
                             `garanti.ts` : une valeur que son producteur garantit, absente, lève un
                             défaut interne qui nomme ce qu'on cherchait et sous quel id (`garanti`, #1906).
-                            `stockage.ts` : le port `Stockage` (sous-ensemble synchrone de `Storage`) et
-                            `lireDictionnaire`, la lecture d'un dictionnaire JSON qui lui est appliquée (#2404).
+                            `stockage.ts` : le port `Stockage` (sous-ensemble synchrone de `Storage`), ses accès
+                            protégés `lireLeTexte` et `retirerLaCle`, et `lireDictionnaire`, la lecture d'un
+                            dictionnaire JSON qui lui est appliquée (#2404) ; `stockage.testkit.ts`, ses stockages
+                            de test (en mémoire, qui lève, posé en `localStorage`).
 src/web/                     Services d'exécution du NAVIGATEUR (`window`, `document`, `localStorage`,
                             `indexedDB`, `setTimeout`, `navigator`), feuille de `COUCHES` : `state`,
                             `audio` et la présentation l'importent, ni `noyau` ni `data`.
@@ -532,7 +534,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `ExportDeHeros` : lecture contrôlée et élaguée, écriture, mise à jour d'une entrée,
                             export/import d'un héros), `save.ts` (la sauvegarde : `SaveGame`, dont le `data` est
                             `EtatDeJeu` moins `HORS_SAVE`, jamais l'état d'affichage d'un hôte ; `snapshotSave`,
-                            `parseSave`, `elaguerSave`, `chargerLaSave` qui rend l'état de jeu à ouvrir, ses règles
+                            `parseSave`, `metaDeSave`, la forme texte `lireSave` (la save ou la cause de son refus,
+                            `ObsoleteCause`) avec `exporterLaSauvegarde` et `importerLaSauvegarde`, `elaguerSave`,
+                            `chargerLaSave` qui rend l'état de jeu à ouvrir, ses règles
                             maison et ses retraits, `refusDeSauvegarde` ; règles maison du snapshot coop) et
                             `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré)
 src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte fait d'une partie, sans écran ni
@@ -552,7 +556,10 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             retrait et d'élagage), `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
                             `Stockage` ; un chargement de règles maison qui élague cumule son témoin sous sa propre
                             clé, que `prendreLeTemoinDesReglesMaison` consomme au montage du panneau des règles),
-                            `temoin.ts` (le témoin persisté d'un chargement : cumul au témoin déjà posé, prise unique ;
+                            `sauvegardes.ts` (les emplacements de sauvegarde sur le même `Stockage` : écrire, lire, retirer,
+                            lister ; une save d'un autre format ou illisible est REJETÉE et RETIRÉE à la lecture,
+                            son retrait cumulé dans le témoin, que `prendreLesRetraitsDeSauvegardes` consomme pour
+                            le message au joueur de `ui/SaveLoadModal`), `temoin.ts` (le témoin persisté d'un chargement : cumul au témoin déjà posé, prise unique ;
                             la relecture et l'union des retraits sont à `noyau/persistance/elagage.ts`). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
@@ -594,11 +601,10 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               (`gameIso/stage/MondeDeCampagne`)
   stageYaw.ts                 LACET CONTINU de la caméra du stage (#1176) : cible + courant qui y
                               court, `viewYawDeg` (projection) et `viewRot` (cran EFFECTIF du dégagement)
-  saves.ts                    Emplacements de sauvegarde du web (localStorage 3 slots + AUTO,
-                              export/import JSON) ; la forme et les décisions : `noyau/persistance/save.ts`.
-                              Une save d'un autre format (`parseSave`) ou illisible est REJETÉE et RETIRÉE
-                              du stockage par `readSlot`, et le témoin `takeObsoleteNotice` fait afficher
-                              le message au joueur par `ui/SaveLoadModal`. Le store LIT le noyau :
+  saves.ts                    Câblage web des emplacements de sauvegarde : leur stockage
+                              (`stockageDesSauvegardes`, `localStorage`). Procédure : `hote/sauvegardes.ts`
+                              (3 slots + AUTO) ; la forme et les décisions : `noyau/persistance/save.ts`. Le
+                              store LIT le noyau :
                               `applyLoadedSave` pose ce que rend `chargerLaSave` (élagage #1463 LD.1, nommé
                               par `ui/RetraitsDeChargement`) sous la session coop courante et remet son
                               interface comme pour une partie neuve ; `saveGame`/`autoSave` suivent

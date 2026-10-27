@@ -4,7 +4,7 @@
  * refus d'écrire se décide ici.
  */
 import { describe, it, expect } from 'vitest';
-import { chargerLaSave, creerPartie, etatInitialDuJeu, parseSave, refusDeSauvegarde, snapshotSave, type EtatDeJeu, type SaveGame, type SaveMeta } from '../index';
+import { chargerLaSave, creerPartie, etatInitialDuJeu, exporterLaSauvegarde, importerLaSauvegarde, metaDeSave, parseSave, refusDeSauvegarde, snapshotSave, type EtatDeJeu, type SaveGame } from '../index';
 import { initialNet, type BattleState } from '../etat';
 import { emptyScene } from '../monde/scene';
 import { OPTIONAL_RULES, rule, loadRuleOverrides } from '../../engine/policy';
@@ -26,8 +26,7 @@ describe('snapshotSave — l’état du JEU, jamais l’interface d’un hôte',
     const cles = Object.keys(save.data);
     expect(cles.filter((k) => !jeu.includes(k)), 'une clé de la save hors `EtatDeJeu`').toEqual([]);
     expect(jeu.filter((k) => !cles.includes(k))).toEqual(['campaignNarratif']);
-    const meta: SaveMeta = { version: save.version, savedAt: save.savedAt, sceneLabel: save.sceneLabel, gameTime: save.gameTime };
-    expect(meta).toEqual({ version: FORMAT_SAVE, savedAt: '2026-10-27T00:00:00.000Z', sceneLabel: 'Sans scène', gameTime: etatInitialDuJeu().gameTime });
+    expect(metaDeSave(save)).toEqual({ version: FORMAT_SAVE, savedAt: '2026-10-27T00:00:00.000Z', sceneLabel: 'Sans scène', gameTime: etatInitialDuJeu().gameTime });
     expect(save.rules).toEqual({ 'regle-x': true });
   });
 
@@ -42,6 +41,13 @@ describe('parseSave — le format courant seul', () => {
     const save = JSON.parse(JSON.stringify(snapshotSave(etatInitialDuJeu(), 'x'))) as SaveGame;
     expect(parseSave(save)).toEqual(save);
     expect(parseSave({ ...save, version: 'autre-format' })).toBeNull();
+  });
+
+  it('l’import rend la save exportée, ou la cause du refus', () => {
+    const save = snapshotSave(etatInitialDuJeu(), '2026-10-27T00:00:00.000Z');
+    expect(importerLaSauvegarde(exporterLaSauvegarde(save))).toEqual(save);
+    expect(importerLaSauvegarde('{pas du json')).toBe('illisible');
+    expect(importerLaSauvegarde(JSON.stringify({ ...save, version: 'autre-format' }))).toBe('autreFormat');
   });
 });
 
