@@ -129,7 +129,7 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
     const wiz = pregen(PREGEN.sorcier);
     useGame.setState({ party: [wiz, priest, ally] as Combatant[] });
     // Armure Aethyrique : NI 2 ; DR 6 → surplus 4 → budget 2 allocations.
-    useGame.setState({ pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, focused: false, result: okRes(6) } });
+    useGame.setState({ pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, focused: false, result: { ...okRes(6), niRequired: 2 } } }); // NI figé au jet (`evaluateCasting`)
     useGame.getState().castAllocOvercast('duration', 1);
     useGame.getState().castAllocOvercast('duration', 1);
     useGame.getState().castAllocOvercast('duration', 1); // refusé : budget épuisé
