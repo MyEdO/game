@@ -867,7 +867,7 @@ export interface ClassData {
   id: string;
   type: 'classes';
   label: string;
-  /** Ids de `groups.json` accordés à tout titulaire d'une carrière de cette Classe (`groupsFor`) —
+  /** Ids de `groups.json` accordés à tout titulaire d'une carrière de cette Classe (`groupesDe`) —
    *  ex. la classe des Roublards ouvre le Groupe « Criminel ». Absent = aucun Groupe. */
   grantGroups?: string[];
   /** Possessions de départ (`TrappingRef` : id du catalogue + quantité, ou `{text}` flavor hors catalogue). */
@@ -885,7 +885,7 @@ export interface CareerData {
   labelF?: string;
   /** `id` de la Classe (`ClassData.id`) — réf d'entité, ≠ libellé. */
   class: string;
-  /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupsFor`), en plus de ceux de
+  /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupesDe`), en plus de ceux de
    *  sa Classe. Absent = la carrière n'ouvre aucun Groupe d'appartenance. */
   grantGroups?: string[];
   /** id d'une tenue spécifique (`TENUE_BY_ID`) réutilisée par cette carrière quand son rendu
@@ -1081,7 +1081,7 @@ export interface TalentData {
    *  `seaShanties` (Chanson de marin). Quand présent, `specs[]` est ABSENT (le pool dérive). */
   specsSource?: SpecsSource;
   /** Le `spec` de ce Talent nomme un CULTE (`GodData.id`) dont les `grantGroups` sont accordés au
-   *  porteur (`groupsFor`) — Béni (Sigmar) fait un « sigmarite ». Absent = aucun Groupe. */
+   *  porteur (`groupesDe`) — Béni (Sigmar) fait un « sigmarite ». Absent = aucun Groupe. */
   grantSpecGroups?: true;
   /** Le `spec` de ce Talent nomme un Domaine arcanique (`DomainData.id`) que le porteur PRATIQUE — il
    *  compte donc dans les Domaines TENUS et sous le plafond d'apprentissage (`LDB 46 l.177`, repris
@@ -1433,6 +1433,9 @@ export interface CreatureData {
   /** Ids de `groups.json` de cette créature (Traits psy ciblés, LDB 21 — `groupsFor`) : sa CATÉGORIE
    *  (« demon », « bete »…) et, le cas échéant, le Groupe du dieu du Chaos qu'elle sert. Absent = aucun. */
   grantGroups?: string[];
+  /** Entrée du bestiaire dont cette créature est une espèce ou une variante : `groupsFor` lui en ajoute
+   *  les Groupes déclarés, de genre en genre. Absent = la créature est son propre genre. */
+  genre?: { id: string };
   /** Cette entrée du bestiaire suit-elle les règles de PERSONNAGE (#143/#152 — Corruption LDB 19,
    *  composant d'incantation LDB 46, Tests de fin de combat Maladie/Corruption LDB 18/20) ? Rétro-flag
    *  du bestiaire HUMAIN (Cultiste, Brigand, Voleur… — ce sont des Personnages, pas des créatures
@@ -1784,7 +1787,7 @@ export interface TraitCapabilities {
    *  habituelle (folder/espèce/carrière…) — patron `psychCible` : la Cible d'une Animosité RÉCIPROQUE
    *  ailleurs sur le bestiaire (« les suivants de Slaanesh éprouvent Animosité envers la créature »,
    *  Marque de Khorne, MDG 07 l.250) a besoin d'un Groupe à VISER ; sans ce Trait, aucun `groupMatch`
-   *  ne peut cibler le porteur. Lu par `groupsFor` (SOURCE UNIQUE des groupes d'un combattant). */
+   *  ne peut cibler le porteur. Lu par `groupesDe` (SOURCE UNIQUE des Groupes effectifs d'un combattant). */
   grantGroups?: string[];
   /** Peut entrer en Frénésie (LDB 21 l.31 / LDB 85 l.150 Trait « Frénésie » / LDB 10 l.506 Talent
    *  « Frénésie »), lu par `isFrenzyCapable` (une des 3 sources : Trait, Talent, Trait psy octroyé). */
@@ -2951,7 +2954,7 @@ export interface GodData {
   type: 'gods';
   label: string;
   /** Ids de `groups.json` accordés au fidèle de ce culte — poussés par un Talent qui porte
-   *  `grantSpecGroups` et dont le `spec` nomme ce dieu (`groupsFor`). Absent = aucun Groupe. */
+   *  `grantSpecGroups` et dont le `spec` nomme ce dieu (`groupesDe`). Absent = aucun Groupe. */
   grantGroups?: string[];
   title?: string;
   blessings: string[];

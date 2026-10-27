@@ -50,7 +50,7 @@ import { effectiveMovement } from '../../engine/encumbrance';
 import { isEngaged, meleeReachTiles } from '../../engine/engagement';
 import { isFlankOrRear } from './combatGeometry';
 import { facingToward, type Dir8 } from '../../geometry/dir8';
-import { groupMatch } from '../../engine/groups';
+import { groupMatch, groupesDe } from '../../engine/groups';
 import { isBestial, isTerritorial, isMindless, isStupid } from '../../engine/traits/dispatch';
 import { creatureAttacks } from '../../engine/creatureAttacks';
 import { isFrenzied } from '../../engine/psychology';
@@ -334,13 +334,13 @@ export function pickDoctrine(enemy: Combatant, _squad: Combatant[] = [], heroes:
   // `groupMatch` (appartenance STRICTE par id). Un combattant martial appartient à un groupe militaire ;
   // un humanoïde « racaille » à un groupe racial/criminel. ABSENCE de groupe ⇒ pas de signal (fixtures
   // génériques → standard).
-  const groups = enemy.groups ?? [];
+  const groups = groupesDe(enemy);
   const inGroup = (cats: string[]) => cats.some((cat) => groupMatch(cat, groups));
   // Signaux MILITAIRE et RACAILLE — UNIQUEMENT des ids qui matchent VRAIMENT un Groupe émis par
-  // `groupsFor` (`engine/groups.ts`), pour une classification HONNÊTE (relecture L6). Deux familles de
+  // `groupesDe` (`engine/groups.ts`), pour une classification HONNÊTE (relecture L6). Deux familles de
   // signaux réels :
   //  • Catégories de Groupe DÉCLARÉES par l'entrée du bestiaire (`CreatureData.grantGroups`) : `cultiste`, `peau-verte`, `skaven`.
-  //  • Carrières PRÉCISES poussées par `groupsFor` (CAREER_RULES) : `soldat`, `garde`, `chevalier` sont de
+  //  • Carrières PRÉCISES poussées par `groupesDe` (CAREER_RULES) : `soldat`, `garde`, `chevalier` sont de
   //    vraies carrières (`careers.json`) — PAS la classe `guerriers` entière (trop large : Cavalier,
   //    Gladiateur, Archer, Tueur… n'en font pas partie). `criminel` est auto-dérivé de la CLASSE
   //    `roublards` (Hors-la-loi, Voleur, Receleur, Pilleur de tombes…) → couvre toute la racaille criminelle.
@@ -724,7 +724,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     .filter((p) => (p.type === 'animosite' || p.type === 'haine') && p.active && p.cible)
     .map((p) => p.cible!);
   const hatedOf = (pool: Combatant[]) =>
-    hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => groupMatch(cb, h.groups ?? []))) : [];
+    hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => groupMatch(cb, groupesDe(h)))) : [];
   /** Restreint un vivier au groupe haï s'il y en a un présent, sinon le vivier brut. */
   const restrict = (pool: Combatant[]): Combatant[] => { const hp = hatedOf(pool); return hp.length ? hp : pool; };
   /** En Frénésie, la cible est IMPÉRATIVEMENT le plus proche en LdV (LDB 21 l.33) — on contraint le vivier

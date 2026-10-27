@@ -4,6 +4,7 @@ import { makePregens } from '../../data/pregens';
 import { createHero, competencesDeCarriere, repartitionDeCarriere } from '../../engine/character';
 import { firstLevel } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
+import { groupesDe } from '../../engine/groups';
 import { newDraft, withSpecies, withCareer, buildHero, careerSkillEntries, careerAdvTotal, evenCareerSkillAdvances, type CreatorDraft } from './brouillon';
 
 /** Ce que la création produit — la forme des choix (clés, désignations) n'y figure pas : seules leurs
@@ -24,7 +25,7 @@ function empreinte(h: Combatant) {
     resilience: h.resilience,
     xp: h.xp,
     size: h.size,
-    groups: h.groups,
+    groups: groupesDe(h),
     designations: Object.fromEntries(Object.entries(h.careerSlotChoices ?? {}).map(([c, m]) => [c, Object.values(m).sort()])),
   };
 }

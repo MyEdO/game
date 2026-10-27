@@ -176,7 +176,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "tentacules"
+        "trait": {
+          "id": "tentacules"
+        }
       }
     ],
     "source": {
@@ -858,8 +860,10 @@
       },
       {
         "op": "grantTrait",
-        "traitId": "peur",
-        "indice": 3
+        "trait": {
+          "id": "peur",
+          "value": 3
+        }
       }
     ],
     "source": {
@@ -887,7 +891,9 @@
       },
       {
         "op": "grantTrait",
-        "traitId": "stupide"
+        "trait": {
+          "id": "stupide"
+        }
       }
     ],
     "source": {
@@ -948,8 +954,10 @@
       },
       {
         "op": "grantTrait",
-        "traitId": "morsure",
-        "indice": 5
+        "trait": {
+          "id": "morsure",
+          "value": 5
+        }
       }
     ],
     "source": {
@@ -1065,7 +1073,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "insensible-a-la-douleur"
+        "trait": {
+          "id": "insensible-a-la-douleur"
+        }
       },
       {
         "op": "charMod",
@@ -1093,8 +1103,10 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "haine",
-        "arg": "religion"
+        "trait": {
+          "id": "haine",
+          "arg": "religion"
+        }
       },
       {
         "op": "charMod",
@@ -1129,8 +1141,15 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "haine",
-        "argFrom": "obsessions"
+        "trait": {
+          "id": "haine"
+        },
+        "cible": {
+          "pick": 1,
+          "table": {
+            "id": "obsessions"
+          }
+        }
       }
     ],
     "effects": [
@@ -1145,12 +1164,21 @@
             "ops": [
               {
                 "op": "removeTrait",
-                "traitId": "haine"
+                "trait": {
+                  "id": "haine"
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "haine",
-                "argFrom": "obsessions"
+                "trait": {
+                  "id": "haine"
+                },
+                "cible": {
+                  "pick": 1,
+                  "table": {
+                    "id": "obsessions"
+                  }
+                }
               }
             ]
           }
@@ -1195,7 +1223,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "belliqueux"
+        "trait": {
+          "id": "belliqueux"
+        }
       }
     ],
     "note": "Gagne le Trait de créature Belliqueux : impossibilité de Fuir volontairement (voir page 165 du Livre de Règles)",
@@ -1249,7 +1279,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "nerveux"
+        "trait": {
+          "id": "nerveux"
+        }
       },
       {
         "op": "charMod",
@@ -1296,7 +1328,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "affame"
+        "trait": {
+          "id": "affame"
+        }
       }
     ],
     "note": "Gagne le Trait de créature Affamé",
@@ -1326,8 +1360,15 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "effraye",
-        "argFrom": "obsessions"
+        "trait": {
+          "id": "effraye"
+        },
+        "cible": {
+          "pick": 1,
+          "table": {
+            "id": "obsessions"
+          }
+        }
       }
     ],
     "note": "Gagne le Trait de créature Effrayé (Cible), déterminer la Cible avec un jet sur le Tableau des Obsessions",
@@ -1345,7 +1386,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "sang-corrosif"
+        "trait": {
+          "id": "sang-corrosif"
+        }
       }
     ],
     "nonVisual": true,
@@ -1363,8 +1406,10 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "morsure",
-        "indice": 3
+        "trait": {
+          "id": "morsure",
+          "value": 3
+        }
       }
     ],
     "note": "Note 3 : cette mutation ne peut pas être dissimulée.",
@@ -1448,7 +1493,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "arboricole"
+        "trait": {
+          "id": "arboricole"
+        }
       }
     ],
     "note": "Note 3 : ne peut pas être dissimulée.",
@@ -1471,8 +1518,10 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "peur",
-        "indice": 2
+        "trait": {
+          "id": "peur",
+          "value": 2
+        }
       }
     ],
     "note": "Note 1 : peut être dissimulée seulement par des vêtements.",
@@ -1495,9 +1544,11 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "souffle",
-        "indice": 5,
-        "arg": "feu"
+        "trait": {
+          "id": "souffle",
+          "arg": "feu",
+          "value": 5
+        }
       }
     ],
     "nonVisual": true,
@@ -1600,7 +1651,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "perturbant"
+        "trait": {
+          "id": "perturbant"
+        }
       }
     ],
     "note": "Note 3 : ne peut pas être dissimulée.",
@@ -1650,7 +1703,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "perturbant"
+        "trait": {
+          "id": "perturbant"
+        }
       }
     ],
     "nonVisual": true,
@@ -1719,7 +1774,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "perturbant"
+        "trait": {
+          "id": "perturbant"
+        }
       }
     ],
     "nonVisual": true,
@@ -1771,8 +1828,10 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "peur",
-        "indice": 2
+        "trait": {
+          "id": "peur",
+          "value": 2
+        }
       }
     ],
     "note": "Les coups portés à la tête sont considérés comme ratés.",
@@ -1799,7 +1858,9 @@
       },
       {
         "op": "grantTrait",
-        "traitId": "bond"
+        "trait": {
+          "id": "bond"
+        }
       }
     ],
     "note": "Le Mouvement ne peut être augmenté.",
@@ -1940,8 +2001,10 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "peur",
-        "indice": 1
+        "trait": {
+          "id": "peur",
+          "value": 1
+        }
       }
     ],
     "note": "Les Personnages, qui tentent de déterminer si vous mentez, subissent une pénalité de -20 à leur Intuition.",
@@ -1964,7 +2027,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "perturbant"
+        "trait": {
+          "id": "perturbant"
+        }
       }
     ],
     "appearance": {
@@ -1986,8 +2051,10 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "peur",
-        "indice": 2
+        "trait": {
+          "id": "peur",
+          "value": 2
+        }
       }
     ],
     "appearance": {
@@ -2032,7 +2099,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "grimpant"
+        "trait": {
+          "id": "grimpant"
+        }
       }
     ],
     "appearance": {
@@ -2054,8 +2123,10 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "attaque-caudale",
-        "indice": 3
+        "trait": {
+          "id": "attaque-caudale",
+          "value": 3
+        }
       }
     ],
     "appearance": {
@@ -2077,8 +2148,10 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "peur",
-        "indice": 2
+        "trait": {
+          "id": "peur",
+          "value": 2
+        }
       }
     ],
     "appearance": {
@@ -2141,7 +2214,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "frenesie"
+        "trait": {
+          "id": "frenesie"
+        }
       }
     ],
     "note": "Quand vous êtes en Frénésie, gagnez temporairement une autre mutation aléatoire — dette #459 (déclencheur d'entrée en Frénésie + mutation TEMPORISÉE).",
@@ -2160,7 +2235,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "amphibie"
+        "trait": {
+          "id": "amphibie"
+        }
       }
     ],
     "appearance": {
@@ -2182,8 +2259,10 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "vol",
-        "indice": 60
+        "trait": {
+          "id": "vol",
+          "value": 60
+        }
       }
     ],
     "appearance": {
@@ -2210,8 +2289,10 @@
       },
       {
         "op": "grantTrait",
-        "traitId": "morsure",
-        "indice": 9
+        "trait": {
+          "id": "morsure",
+          "value": 9
+        }
       }
     ],
     "appearance": {
@@ -2238,8 +2319,10 @@
       },
       {
         "op": "grantTrait",
-        "traitId": "cornes",
-        "arg": "Défenses"
+        "trait": {
+          "id": "cornes",
+          "arg": "Défenses"
+        }
       }
     ],
     "appearance": {
@@ -2266,7 +2349,9 @@
       },
       {
         "op": "grantTrait",
-        "traitId": "cornes"
+        "trait": {
+          "id": "cornes"
+        }
       }
     ],
     "appearance": {
@@ -2288,8 +2373,10 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "morsure",
-        "indice": 4
+        "trait": {
+          "id": "morsure",
+          "value": 4
+        }
       }
     ],
     "appearance": {
@@ -2311,12 +2398,16 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "morsure",
-        "indice": 3
+        "trait": {
+          "id": "morsure",
+          "value": 3
+        }
       },
       {
         "op": "grantTrait",
-        "traitId": "infecte"
+        "trait": {
+          "id": "infecte"
+        }
       }
     ],
     "appearance": {
@@ -2338,13 +2429,17 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "morsure",
-        "indice": 3
+        "trait": {
+          "id": "morsure",
+          "value": 3
+        }
       },
       {
         "op": "grantTrait",
-        "traitId": "venin",
-        "arg": "intermediaire"
+        "trait": {
+          "id": "venin",
+          "arg": "intermediaire"
+        }
       }
     ],
     "appearance": {
@@ -2366,7 +2461,9 @@
     "passive": [
       {
         "op": "grantTrait",
-        "traitId": "cornes"
+        "trait": {
+          "id": "cornes"
+        }
       }
     ],
     "appearance": {
@@ -2393,8 +2490,10 @@
       },
       {
         "op": "grantTrait",
-        "traitId": "morsure",
-        "indice": 6
+        "trait": {
+          "id": "morsure",
+          "value": 6
+        }
       },
       {
         "op": "grantTalent",
@@ -2428,13 +2527,17 @@
       },
       {
         "op": "grantTrait",
-        "traitId": "morsure",
-        "indice": 3
+        "trait": {
+          "id": "morsure",
+          "value": 3
+        }
       },
       {
         "op": "grantTrait",
-        "traitId": "venin",
-        "arg": "accessible"
+        "trait": {
+          "id": "venin",
+          "arg": "accessible"
+        }
       }
     ],
     "appearance": {

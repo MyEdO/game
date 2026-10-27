@@ -16,7 +16,7 @@ import { findPsychologyById, psychologies, psychologyLabel } from '../data';
 import { indexParId } from '../data/versionDataset';
 import { SizeCategory, sizeGap } from './size';
 import { isOutOfAction } from './conditions';
-import { groupMatch, hiddenGroupsOf } from './groups';
+import { groupMatch, groupesDe, groupesExposes, type PorteurDeGroupes } from './groups';
 import { campOf, relationBetween } from './relations';
 import { bellicosePsychImmune, traitCapability } from './traits/dispatch';
 import { fearImmuneVs } from './combatFeatures/dispatch';
@@ -160,12 +160,12 @@ export function isAfflictionActive(p: PsychAffliction): boolean {
  *  requis ICI — les 3 résolutions d'attaque (`combineOpposed`/`resolveMeleePassive`/`resolveRanged`)
  *  n'en ont aucun en portée et lisent pourtant le MÊME verdict que `fearSourceFor`/`encounterPsych`.
  *  Data-driven : aucune entité nommée, aucun canal codé. */
-export function psychImmuneToFrom(self: Combatant, foe: Pick<Combatant, 'groups'>, channel: string): boolean {
+export function psychImmuneToFrom(self: Combatant, foe: PorteurDeGroupes, channel: string): boolean {
   for (const p of self.psychState ?? []) {
     if (p.active !== true) continue;
     const d = findPsychologyById(p.type);
     if (d?.immuneWhileActive?.includes(channel)) return true;
-    if (d?.immuneToFromTarget?.includes(channel) && p.cible && groupMatch(p.cible, foe.groups ?? [])) return true;
+    if (d?.immuneToFromTarget?.includes(channel) && p.cible && groupMatch(p.cible, groupesDe(foe))) return true;
   }
   return false;
 }
@@ -182,7 +182,7 @@ export function refreshDefendedPsych(c: Combatant, present: Combatant[]): boolea
   let changed = false;
   for (const p of c.psychState ?? []) {
     if (p.active !== true || !p.cible || !findPsychologyById(p.type)?.immuneWhileActive) continue;
-    const defendable = present.some((v) => v.id !== c.id && !v.dead && !isOutOfAction(v) && groupMatch(p.cible!, v.groups ?? []));
+    const defendable = present.some((v) => v.id !== c.id && !v.dead && !isOutOfAction(v) && groupMatch(p.cible!, groupesDe(v)));
     if (!defendable) { p.active = false; changed = true; }
   }
   return changed;
@@ -229,9 +229,9 @@ function targetCausesEntries(self: Combatant): { cible: string; kind: 'peur' | '
 
 /** Les sources de Peur/Terreur que `foe` représente pour `self` du seul fait de ses Traits `targetCauses`
  *  (LDB 21 l.87). Consommé par `fearSourceFor` (combat). Data-driven, pur. */
-export function targetCausedSourcesFor(self: Combatant, foe: Pick<Combatant, 'groups'>): { kind: 'peur' | 'terreur'; indice: number }[] {
+export function targetCausedSourcesFor(self: Combatant, foe: PorteurDeGroupes): { kind: 'peur' | 'terreur'; indice: number }[] {
   return targetCausesEntries(self)
-    .filter((e) => groupMatch(e.cible, foe.groups ?? []))
+    .filter((e) => groupMatch(e.cible, groupesDe(foe)))
     .map((e) => ({ kind: e.kind, indice: e.indice }));
 }
 
@@ -248,7 +248,7 @@ export function targetCausedTrigger(self: Combatant, visible: Combatant[]): { ki
         !(self.psychState ?? []).some((p) => p.type === e.kind && p.sourceId === v.id) &&
         (e.kind !== 'peur' || !psychImmuneToFrom(self, v, 'peur')) &&
 
-        groupMatch(e.cible, (v.groups ?? []).filter((g) => !hiddenGroupsOf(v).includes(g))),
+        groupMatch(e.cible, groupesExposes(v)),
     );
     if (m) return { kind: e.kind, indice: e.indice, sourceId: m.id, cible: e.cible };
   }
@@ -279,7 +279,7 @@ export function supersededLines(c: Combatant, name: string): string[] {
 /** `self` possède-t-il « Sans Peur (Ennemi) » (LDB 10 l.1051) contre `foe` ? Le porteur n'est PAS
  *  immunisé d'office : il teste la Peur/Terreur de cet ennemi par UN seul Test de Calme Accessible
  *  (+20). Nom sémantique pour la couche state (le prédicat sous-jacent vit dans combatFeatures). */
-export function sansPeurVs(self: Combatant, foe: Pick<Combatant, 'groups'>): boolean {
+export function sansPeurVs(self: Combatant, foe: PorteurDeGroupes): boolean {
   return fearImmuneVs(self, foe);
 }
 
@@ -474,7 +474,7 @@ export function targetedTrigger(self: Combatant, visible: Combatant[]): { type: 
     const m = visible.find(
       (v) =>
         v.id !== self.id &&
-        groupMatch(tr.cible!, (v.groups ?? []).filter((g) => !hiddenGroupsOf(v).includes(g))) &&
+        groupMatch(tr.cible!, groupesExposes(v)) &&
         (!needsThreat || visible.some((a) => a.id !== self.id && agressifEnvers(a, v))),
     );
     if (m) return { type: tr.type, cible: tr.cible, sourceId: m.id, indice: tr.indice };

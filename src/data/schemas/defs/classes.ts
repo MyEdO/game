@@ -15,7 +15,7 @@ const doc = document(
   'classes',
   famille,
   {
-    /** Ids de `groups.json` accordés à tout titulaire d'une carrière de cette Classe (`groupsFor`).
+    /** Ids de `groups.json` accordés à tout titulaire d'une carrière de cette Classe (`groupesDe`).
      *  Absent = la Classe n'ouvre aucun Groupe d'appartenance. */
     grantGroups: z.array(z.string()).optional(),
     /** Possessions de départ. */

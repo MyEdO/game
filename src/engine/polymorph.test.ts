@@ -51,7 +51,7 @@ describe('polymorphOps — Portée des Traits transférés (LDB 85 l.209)', () =
     expect(avecPortee).not.toHaveLength(0);
     const c = dummy({});
     const perdues = avecPortee.filter(({ creature, trait, range }) =>
-      !polymorphOps(c, creature).some((o) => o.op === 'grantTrait' && o.traitId === trait && o.range === range),
+      !polymorphOps(c, creature).some((o) => o.op === 'grantTrait' && o.trait.id === trait && o.trait.range === range),
     );
     expect(perdues).toEqual([]);
   });

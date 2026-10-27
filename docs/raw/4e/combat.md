@@ -3509,7 +3509,7 @@ La créature est **porteuse de la maladie _Type_**. **Les autres doivent faire u
 - `LDB 85 l.249` — Nerveux : effrayé par magie / bruits forts → +3 États Brisé.
 - `LDB 85 l.87` — Corruption (Degré) : Degré entre parenthèses (renvoi p.182).
 - `LDB 85 l.92` — Corruption Mentale : lancer sur le Tableau de la Corruption Mentale (p.185).
-- `LDB 85 l.185` — Maladie (Type) : porteuse ; les autres font un Test pour éviter la Contraction (p.186).
+- `LDB 85 l.223-225` — Maladie (Type) : porteuse ; les autres font un Test pour éviter la Contraction (p.186).
 - `LDB 85 l.264` — Peur (Indice) : Peur surnaturelle de niveau Indice (renvoi p.190).
 - `LDB 85 l.411` — Terreur (Indice) : Terreur surnaturelle de niveau Indice (renvoi p.191).
 - `LDB 85 l.166` — Haine (Cible) : haine profonde de la Cible (renvoi p.190).

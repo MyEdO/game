@@ -17,7 +17,7 @@ import type { FlowTest } from '../../engine/flowCore';
 import { isDescriptiveZone, type ZoneArea, type SceneEffectZone } from './scene';
 import { isOutOfAction } from '../../engine/conditions';
 import { isProfane } from '../../engine/corruption';
-import { groupMatch } from '../../engine/groups';
+import { groupMatch, groupesDe } from '../../engine/groups';
 
 export interface BattleZone {
   /** id STABLE de la zone authoree (`SceneEffectZone.id`), propage par `sceneZonesToBattle` — identite
@@ -138,15 +138,15 @@ export function sceneZonesToBattle(zones: SceneEffectZone[] | undefined, dims?: 
 
 /** Cases d'un combattant `mover` BLOQUÉES par les barrières actives (`battle.zones[].barrier`) :
  *  une barrière sans `blockGroups` bloque tout le monde ; sinon seulement les Groupes correspondants
- *  (groupMatch). `moverGroups` = Groupes du mover (vide si inconnu → on bloque par prudence quand un
- *  filtre existe). Injecté dans `occupied()` → respecté par TOUT déplacement. */
+ *  (groupMatch), lus en direct par `groupesDe` ; un mover inconnu est bloqué par prudence quand un
+ *  filtre existe. Injecté dans `occupied()` → respecté par TOUT déplacement. */
 export function barrierTilesFor(zones: BattleZone[] | undefined, mover: Combatant | undefined): Pt[] {
   const out: Pt[] = [];
   for (const z of zones ?? []) {
     if (!z.barrier) continue;
     if (z.gate && (!mover || !zoneTargets(z, mover))) continue; // barrière sacrée : ne bloque que les profanes
     const filter = z.barrier.blockGroups;
-    const blocks = !filter?.length || (mover?.groups ? filter.some((g) => groupMatch(g, mover.groups!)) : true);
+    const blocks = !filter?.length || !mover || filter.some((g) => groupMatch(g, groupesDe(mover)));
     if (blocks) out.push(...z.tiles);
   }
   return out;

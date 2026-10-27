@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
 import { makeRNG, type RNG } from './dice';
 import { resolveFormula, applyOps, applyActiveEffect, isValidFormula, formulaExpectation, type Formula } from './ops';
+import { groupMatch, groupesDe } from './groups';
 import { hasTraitKey } from './traits/dispatch';
 import { woundsFromHit } from './combat';
 import type { Weapon } from './types';
@@ -226,13 +227,22 @@ describe('applyOps — opérations unitaires', () => {
   });
 
   it('grantTrait onlyGroups (Bannissement) : Instable n’atteint que Mort-vivant/Démon', () => {
-    const undead = hero({ groups: ['Mort-vivant'] });
-    const human = hero({ groups: ['Humain'] });
-    const op = { op: 'grantTrait' as const, traitId: 'instable', onlyGroups: ['Mort-vivant', 'Démon'] };
+    const undead = hero({ groups: ['mort-vivant'] });
+    const human = hero({ groups: ['humain'] });
+    const op = { op: 'grantTrait' as const, trait: { id: 'instable' }, onlyGroups: ['mort-vivant', 'demon'] };
     applyOps(undead, [op], { rng: desDuTest });
     applyOps(human, [op], { rng: desDuTest });
     expect(hasTraitKey(undead.traits, 'instable')).toBe(true);
     expect(hasTraitKey(human.traits, 'instable')).toBe(false); // gate de Groupe : non affecté
+  });
+
+  it('grantTrait Démoniaque : le porteur est un Démon tant qu’il porte le Trait (LDB 85 l.94)', () => {
+    const c = hero({ groups: ['humain'] });
+    const ctx = { rng: desDuTest, source: { kind: 'spell' as const, id: 'sort-fixture' } };
+    applyOps(c, [{ op: 'grantTrait', trait: { id: 'demoniaque' } }], ctx);
+    expect(groupMatch('demon', groupesDe(c))).toBe(true);
+    applyOps(c, [{ op: 'removeTrait', trait: { id: 'demoniaque' } }], ctx);
+    expect(groupMatch('demon', groupesDe(c))).toBe(false);
   });
 
   it('condition : ajout avec valeur en formule (Bonus de FM du référent caster)', () => {
@@ -664,7 +674,7 @@ describe("op:'rollTable' — tirage sur table par fourchette (findTableEntry, so
     rows: [
       { min: 1, max: 2, ops: [{ op: 'charDamage' as const, char: 'initiative' as const, amount: { dice: { n: 1, sides: 10 } } }] },
       { min: 3, max: 8, ops: [{ op: 'condition' as const, id: 'sonne' }] },
-      { min: 9, max: 9, ops: [{ op: 'grantTrait' as const, traitId: 'nerveux' }] },
+      { min: 9, max: 9, ops: [{ op: 'grantTrait' as const, trait: { id: 'nerveux' } }] },
       { min: 10, max: 99, ops: [{ op: 'kill' as const }] },
     ],
     ...extra,

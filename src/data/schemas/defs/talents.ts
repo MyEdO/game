@@ -71,7 +71,7 @@ const doc = document(
     size: sizeCategorySchema.optional(),
     specsSource: specsSourceSchema.optional(),
     /** Le `spec` de ce Talent nomme un CULTE (`gods.json`) : ses `grantGroups` sont accordés au
-     *  porteur (`groupsFor`). Absent = le `spec` n'ouvre aucun Groupe d'appartenance. */
+     *  porteur (`groupesDe`). Absent = le `spec` n'ouvre aucun Groupe d'appartenance. */
     grantSpecGroups: z.literal(true).optional(),
     /** LDB 46 l.177 ; VDM 02 l.190-192 */
     grantsArcaneDomain: z.literal(true).optional(),

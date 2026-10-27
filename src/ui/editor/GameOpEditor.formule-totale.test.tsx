@@ -116,7 +116,7 @@ describe('FormulaField — totalité sur la grammaire (#2099)', () => {
 /** Monte le champ, élit la forme `s` au sélecteur racine, rend la valeur émise. */
 function emise(dialecte: DialecteDeFormule, depart: JsonFormula, s: string): unknown {
   let dernier: unknown = depart;
-  mount(<FormulaField label="Durée" dialecte={dialecte} value={depart} onChange={(f) => { dernier = f; }} />);
+  mount(<FormulaField label="Durée" dialecte={dialecte} value={depart} onChange={(f: JsonFormula) => { dernier = f; }} />);
   const [racine] = selecteurs();
   act(() => {
     racine.value = s;

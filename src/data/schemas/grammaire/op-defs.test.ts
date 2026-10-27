@@ -16,7 +16,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     for (const famille of [mecaniqueDe({}), mecaniqueDe({ 'grantTalent.talent': 'specOuChoixFacultatifs' })]) {
       const champs = champsDOpASlot(famille.opDefs);
       expect(champs.has('rollTable.tableId')).toBe(true);
-      expect(champs.has('removeTrait.traitId')).toBe(true);
+      expect(champs.has('removeTrait.trait')).toBe(true);
       expect(champs.has('rollTable.rows')).toBe(false);
       expect(champs.has('transform.ops')).toBe(false);
     }
@@ -168,7 +168,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     const champs = champsDOpASlot();
     // `summon.count` : une `Formula` porte le terme `{rule}`, feuille `idDe('regleOptionnelle')` ; `summon.addTraits`
     // des `traitInstanceSchema`, dont l'`id` est la feuille `idDe('trait')`.
-    for (const k of ['removeTrait.traitId', 'diseaseTestMod.diseases', 'testMod.exceptSkills', 'rollTable.tableId', 'transform.morphRef', 'summon.count', 'summon.addTraits', 'grantWeapon.form']) {
+    for (const k of ['grantTrait.trait', 'removeTrait.trait', 'diseaseTestMod.diseases', 'testMod.exceptSkills', 'rollTable.tableId', 'transform.morphRef', 'summon.count', 'summon.addTraits', 'grantWeapon.form']) {
       expect(champs.has(k), k).toBe(true);
     }
     // `rows`/`ops`/`thresholds`/`onCross`/`perRound`/`passive` portent des ops IMBRIQUÉES (`z.lazy`) : aucun n'est un champ à slot.

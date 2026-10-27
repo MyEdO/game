@@ -3,7 +3,7 @@ import { isFrenzyCapable, targetedTrigger } from '../psychology';
 import { parsePsychTraits } from '../psych/registry';
 import { castBlockedBy, hasTalent } from '../magic';
 import { careerTalentAdditions, traitGrantedTalents, effectiveTalents } from '../talentEffects';
-import { groupsFor, hiddenGroupsOf } from '../groups';
+import { groupesDe, hiddenGroupsOf } from '../groups';
 import type { Combatant } from '../types';
 
 /** Câblage du Trait « Marque de Khorne » (MDG 07 l.250-252, #516) — chaque canal RAW prouvé isolément.
@@ -61,7 +61,7 @@ describe('Marque de Khorne — câblage (#516)', () => {
   // consultent jamais `castBlockedBy` (magic.ts l.100-102) ; rien à poser en donnée, rien à tester ici.
 
   it('Groupe « khorne » : `capabilities.grantGroups` expose le porteur au ciblage (#516, réfutation 2a)', () => {
-    expect(groupsFor({ traits: [{ id: 'marque-de-khorne' }] })).toContain('khorne');
+    expect(groupesDe({ traits: [{ id: 'marque-de-khorne' }] })).toContain('khorne');
   });
 
   it('Réciproque (MDG 07 l.250) : un suivant de Slaanesh éprouve Animosité envers le porteur VISIBLE (#516, réfutation 2b/2c)', () => {
@@ -70,7 +70,7 @@ describe('Marque de Khorne — câblage (#516)', () => {
       id: 'slaanesh-1', name: 'Démonette', kind: 'enemy', groups: [],
       psychTraits: [{ type: 'animosite' as const, cible: 'khorne' }],
     } as unknown as Combatant;
-    const marked = { id: 'khorne-1', name: 'Porteur', kind: 'hero', groups: groupsFor({ traits: [{ id: 'marque-de-khorne' }] }), traits: [{ id: 'marque-de-khorne' }] } as unknown as Combatant;
+    const marked = { id: 'khorne-1', name: 'Porteur', kind: 'hero', groups: [], traits: [{ id: 'marque-de-khorne' }] } as unknown as Combatant;
     const trig = targetedTrigger(slaaneshFollower, [marked]);
     expect(trig).toEqual({ type: 'animosite', cible: 'khorne', sourceId: 'khorne-1', indice: undefined });
   });
@@ -81,7 +81,7 @@ describe('Marque de Khorne — câblage (#516)', () => {
       psychTraits: [{ type: 'animosite' as const, cible: 'khorne' }],
     } as unknown as Combatant;
     const hiddenTraits = [{ id: 'marque-de-khorne', hidden: true }];
-    const marked = { id: 'khorne-1', name: 'Porteur', kind: 'hero', groups: groupsFor({ traits: hiddenTraits }), traits: hiddenTraits } as unknown as Combatant;
+    const marked = { id: 'khorne-1', name: 'Porteur', kind: 'hero', groups: [], traits: hiddenTraits } as unknown as Combatant;
     expect(hiddenGroupsOf(marked)).toEqual(['khorne']);
     expect(targetedTrigger(slaaneshFollower, [marked])).toBeNull();
   });

@@ -22,9 +22,9 @@ const HYBRIDE_ULRIC: GameOp[] = [
   { op: 'charMod', char: 'agilite', mod: 10 }, { op: 'charMod', char: 'dexterite', mod: -10 },
   { op: 'charMod', char: 'intelligence', mod: -10 }, { op: 'charMod', char: 'sociabilite', mod: -20 },
   { op: 'moveMod', mod: 1 },
-  { op: 'grantTrait', traitId: 'morsure', indice: 3 }, { op: 'grantTrait', traitId: 'armure', indice: 2 },
-  { op: 'grantTrait', traitId: 'peur', indice: 2 }, { op: 'grantTrait', traitId: 'pisteur' },
-  { op: 'grantTrait', traitId: 'vision-nocturne' },
+  { op: 'grantTrait', trait: { id: 'morsure', value: 3 } }, { op: 'grantTrait', trait: { id: 'armure', value: 2 } },
+  { op: 'grantTrait', trait: { id: 'peur', value: 2 } }, { op: 'grantTrait', trait: { id: 'pisteur' } },
+  { op: 'grantTrait', trait: { id: 'vision-nocturne' } },
 ];
 
 const human = (): Combatant => ({
