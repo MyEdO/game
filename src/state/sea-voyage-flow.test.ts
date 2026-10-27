@@ -33,7 +33,7 @@ import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { applierDe, runCascadeImmediate } from '../noyau/cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
-import { findCrewRoleById, resolveStake, testSkillLabel } from '../data';
+import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel } from '../data';
 import { resultLine, buildBand, rollLine } from '../noyau/rollSeam';
 import { t } from '../i18n';
 import { voyageTiles, vesselHullGauge } from '../ui/VoyageScreen';
@@ -438,10 +438,11 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
 
   it('3d10 : un total NON multiple de 3 (ex. 4/7/11) est ATTEIGNABLE — 1d10×3 en interdirait 20/28', () => {
     const vessel0 = get().vessel!;
+    const contenance = findVehicleById(vessel0.vehicleId)!.ship!.capacity; // MDG 12 l.70-75
     const seen = new Set<number>();
     for (let seed = 1; seed <= 60; seed++) {
       freshState();
-      set({ vessel: { ...vessel0, cargo: [{ cargoId: 'bois', enc: 999, basePriceGold: 1 }] } });
+      set({ vessel: { ...vessel0, cargo: [{ cargoId: 'bois', enc: contenance, basePriceGold: 1 }] } });
       const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: '3d10' } } } });
       const before = get().vessel!.cargo!.reduce((n, l) => n + l.enc, 0);

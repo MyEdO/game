@@ -84,9 +84,9 @@ import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, de
 import {
   evenementsDeBord, DE_DES_EVENEMENTS_DE_BORD, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
   removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, resolveFastVoyage, FAST_VOYAGE_PALIERS,
-  type SeaEventDef, type ManannMood, type PortProfile,
+  type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
-import { navalMoveMod, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
+import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
 import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
@@ -100,7 +100,7 @@ import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog } from './combatEffects';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { contractDisease, applyContraction, contractionDue, diseaseDefs } from '../engine/disease';
-import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
+import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef } from '../engine/types';
 import type { PendingSteamSave, CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { CampaignVessel } from './etat';
@@ -448,9 +448,50 @@ function seaRig(hull: Combatant, mode?: PropulsionKind): PropulsionDuNavire {
   return garanti(propulsionDuNavire(hull.creatureId, hull.upgrades, 'maritime', mode), hull.creatureId, 'propulsion du navire');
 }
 
-/** M de VOYAGE du jour (ch.13/15) : M du gréement + Lissage (`navalMoveMod`) + Salissures + événement,
- *  puis EFFET DU VENT (%, Clinfoc — ch.13 l.274/ch.12 l.254). `null` = les voiles n'avancent pas
- *  (Encalminé / Affaler) — Propulsion à vapeur : M 4 constant, insensible au vent (ch.12 l.311). */
+/** Un navire de mer par son type et ses Améliorations : coque de trajet (`creatureId`) comme navire de
+ *  campagne (`vehicleId`). */
+interface NavireDeMer { vehicleId: string | undefined; upgrades?: NavalTraitRef[] }
+
+function navireDeLaCoque(hull: Combatant): NavireDeMer {
+  return { vehicleId: hull.creatureId, upgrades: hull.upgrades };
+}
+
+/** M de CROISIÈRE du navire : M du gréement + `navalMoveMod` de ses Traits et Améliorations ; à la
+ *  vapeur, M du moteur. Socle du M du jour (`effectiveSeaM`), de la traversée rapide, des jours restants
+ *  et de l'estimation de la carte du monde (#3059). MDG 12 l.293 ; MDG 12 l.311. PUR. */
+export function mDeCroisiere(navire: NavireDeMer): number {
+  const rig = garanti(propulsionDuNavire(navire.vehicleId, navire.upgrades, 'maritime'), navire.vehicleId, 'propulsion du navire');
+  return rig.mode === 'vapeur' ? rig.m : rig.m + navalMoveMod(navalTraitsDe(navire.vehicleId, navire.upgrades));
+}
+
+/** Pourquoi un navire ne peut pas prendre la mer : aucun Mouvement de croisière (MDG 15 l.57-70) ou
+ *  cale chargée au-delà du plafond dur (MDG 12 l.70-75). */
+export type RefusDAppareiller = { motif: 'immobile' } | { motif: 'cale'; ratioPct: number };
+
+/** Refus d'appareiller du navire (`null` : en état). Source unique du départ en mer (`buildSeaPlan`)
+ *  et de l'écran de la carte du monde (#3059). PUR. */
+export function refusDAppareiller(navire: NavireDeMer & { cargo?: CargoLot[] }): RefusDAppareiller | null {
+  if (mDeCroisiere(navire) <= 0) return { motif: 'immobile' };
+  const contenance = garanti(findVehicleById(navire.vehicleId ?? '')?.ship, navire.vehicleId, 'profil naval').capacity;
+  const cale = cargoOverload(cargoTotalEnc(navire.cargo ?? []), contenance);
+  return cale.canSail ? null : { motif: 'cale', ratioPct: cale.ratioPct };
+}
+
+/** Libellé d'un refus d'appareiller. */
+export function raisonDuRefusDAppareiller(refus: RefusDAppareiller): string {
+  return refus.motif === 'cale' ? t('sv.refusCale', { pct: refus.ratioPct }) : t('sv.refusImmobile');
+}
+
+/** Ligne de journal d'un départ en mer refusé par `buildSeaPlan`. */
+export function raisonDuNonDepartEnMer(get: Get): string {
+  const ship = voyageShip(get);
+  const refus = ship ? refusDAppareiller(ship.vessel) : null;
+  return refus ? raisonDuRefusDAppareiller(refus) : t('tf.noVessel');
+}
+
+/** M de VOYAGE du jour (ch.13/15) : M de croisière (`mDeCroisiere`) + Salissures + événement, puis
+ *  EFFET DU VENT (%, Clinfoc — ch.13 l.274/ch.12 l.254). `null` = les voiles n'avancent pas
+ *  (Encalminé / Affaler) — Propulsion à vapeur : insensible au vent (ch.12 l.311). */
 function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: PropulsionKind | null; affaler: boolean } {
   const plan = get().travelPlan!;
   const sea = plan.sea!;
@@ -459,7 +500,8 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const traits = hullNavalTraits(hull);
   const vessel = get().vessel;
   const propulsion = seaRig(hull);
-  if (propulsion.mode === 'vapeur') return { m: propulsion.m, sail: false, mode: null, affaler: false };
+  const croisiere = mDeCroisiere(navireDeLaCoque(hull));
+  if (propulsion.mode === 'vapeur') return { m: croisiere, sail: false, mode: null, affaler: false };
   const sail = propulsion.mode === 'voile';
   const fouling = foulingEffects(vessel?.fouling?.level ?? 0);
   // Forcer le rythme (MDG 13 l.95-107) : le bonus de M du jour n'est acquis que si le Test de
@@ -469,7 +511,7 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const overloadM = cargoOverload(cargoTotalEnc(vessel?.cargo ?? []), vd?.capacity ?? 0).mMod;
   // Empêtré dans des Débris marins (MDG 13 l.487-489, #444) : pénalité de M tant que non dégagé.
   const entangleM = sea.entangled?.mMod ?? 0;
-  const baseM = propulsion.m + navalMoveMod(traits) + fouling.mMod + (sea.eventMMod ?? 0) + (vessel?.crabs ? -1 : 0) + pace + overloadM + entangleM;
+  const baseM = croisiere + fouling.mMod + (sea.eventMMod ?? 0) + (vessel?.crabs ? -1 : 0) + pace + overloadM + entangleM;
   const aspect = windAspect(sea.heading, sea.windFrom);
   // Gréement de course (MSRC 12 l.137) « inclut un clinfoc … les avantages des deux ne sont pas cumulables »
   // → il PRIME sur le Clinfoc quand les deux sont présents.
@@ -866,21 +908,20 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
     const st = buildVoyageCrewStep(get, 'affaler', 'affaler');
     pousseSi(steps, st);
   }
-  // 3. Progression du jour (MDG 14 l.61-65 ; ±10 %/DR ch.15 l.78) — Encalminé (l.296) ou voiles
-  // affalées (l.294) : AUCUN Test de Progression (rien à naviguer), ancre si le navire en a une,
-  // sinon dérive à 25 % — le reste de la journée continue quand même (crise/embuscade/…).
+  // 3. Progression du jour : MDG 14 l.61-65 ; MDG 15 l.78. Encalminé : MDG 13 l.296-298. Voiles
+  // affalées : MDG 13 l.294.
   const plan = get().travelPlan!;
   const sea = plan.sea!;
   const effAfterAffaler = effectiveSeaM(get);
   if (sea.sailsDown || effAfterAffaler.m === null) {
     const anchored = shipHasNavalTrait(hullNavalTraits(plan.vehicle!), 'ancre');
     if (!sea.sailsDown) {
-      const drift = anchored ? 0 : Math.round(seaMilesPerDay(4, true) * (AFFALER_RULES.driftPctOfSpeed / 100));
+      const drift = anchored ? 0 : Math.round(seaMilesPerDay(M_DU_COURANT, true));
       tell(get, set, [t('sv.becalmedLine', { suite: anchored ? t('sv.fragAnchorDown') : t('sv.fragDrift', { drift }) })]);
       patchSea(get, set, { milesToday: 0 });
     } else {
       // MDG 13 l.294 ; l.262-270.
-      const windDrift = anchored ? 0 : Math.round(seaMilesPerDay(cruiseM(plan.vehicle!), true) * (AFFALER_RULES.driftPctOfSpeed / 100));
+      const windDrift = anchored ? 0 : Math.round(seaMilesPerDay(mDeCroisiere(navireDeLaCoque(plan.vehicle!)), true) * (AFFALER_RULES.driftPctOfSpeed / 100));
       const sens = DRIFT_ALONG_ROUTE[windAspect(sea.heading, sea.windFrom)];
       const credited = Math.max(-plan.kmDone, sens * windDrift);
       tell(get, set, [t('sv.sailsDownLine', { suite: anchored ? t('sv.fragAnchorWait') : t('sv.fragWindPush', { drift: windDrift, effet: t(DRIFT_EFFECT_KEY[sens], { miles: Math.abs(credited) }) }) })]);
@@ -906,6 +947,8 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   return { steps, log: [] };
 }
 
+/** M du courant qui tire un navire encalminé. MDG 13 l.298. */
+const M_DU_COURANT = 1;
 /** Sens de la dérive sous le vent le long du trajet, par vent relatif (MDG 13 l.262-270, l.294). */
 const DRIFT_ALONG_ROUTE: Record<WindAspect, -1 | 0 | 1> = { arriere: 1, lateral: 0, face: -1 };
 const DRIFT_EFFECT_KEY = { 1: 'sv.driftAhead', 0: 'sv.driftAbeam', [-1]: 'sv.driftBack' } as const;
@@ -969,7 +1012,7 @@ export function buildSeaPlan(
   opts: { pace?: number; cadence?: VoyageCadence } = {},
 ): TravelPlan | null {
   const ship = voyageShip(get);
-  if (!ship) return null;
+  if (!ship || refusDAppareiller(ship.vessel)) return null;
   const heading = route.seaHeading;
   if (!heading) throw new Error(`buildSeaPlan: route mer sans seaHeading — cap requis, jamais de défaut silencieux (#416, pit #408)`);
   const rng = battleRng();
@@ -994,10 +1037,26 @@ export function buildSeaPlan(
 
 // ── LONGS VOYAGES TRÈS RAPIDES (MDG 15 l.21-37) ──────────────────────────────────────────────────
 
-/** M de CROISIÈRE (hors vent/événement) pour estimer la durée du voyage rapide (l.25) — mêmes milles
- *  que le détaillé (18 × M) : voiles/avirons du gréement, ou M 4 constant à la vapeur (ch.12 l.311). */
-function cruiseM(hull: Combatant): number {
-  return Math.max(1, seaRig(hull).m);
+/** Voguer de nuit, porté par la règle maison `sea-night-sailing` faute d'équipage de campagne
+ *  modélisé (#340). MDG 15 l.76 ; MDG 14 l.39. */
+function voguerDeNuit(): boolean {
+  return rule('sea-night-sailing') === true;
+}
+
+/** Milles d'un jour de CROISIÈRE au M `m` (hors vent, événement et Test de Progression). MDG 15
+ *  l.57-70, l.76. Source unique de la carte du monde et du noyau (#3059). */
+export function millesDeCroisiere(m: number): number {
+  return seaMilesPerDay(m, voguerDeNuit());
+}
+
+/** Jours de mer pour couvrir `milles` au M de croisière `m`. MDG 15 l.25. */
+export function joursDeMer(milles: number, m: number): number {
+  return Math.ceil(Math.max(0, milles) / millesDeCroisiere(m));
+}
+
+/** Durée d'une traversée de `km` milles au M de croisière `m` : un jour au moins. MDG 15 l.25. */
+export function dureeDeTraversee(km: number, m: number): number {
+  return Math.max(1, joursDeMer(km, m));
 }
 
 /** Appareille en TRAVERSÉE RAPIDE (l.21-37) : construit un plan `sea.fast` (jamais la boucle jour par
@@ -1010,7 +1069,7 @@ export function startFastVoyage(
 ): boolean {
   const plan = buildSeaPlan(get, routeId, fromPlaceId, toPlaceId, route, opts);
   if (!plan) return false;
-  const days = Math.max(1, Math.ceil(plan.km / seaMilesPerDay(cruiseM(plan.vehicle!), true)));
+  const days = dureeDeTraversee(plan.km, mDeCroisiere(navireDeLaCoque(plan.vehicle!)));
   const weeks = Math.floor(days / SEA_WEEK_DAYS); // « par semaine passée en mer » (l.28)
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null });
   const to = get().worldMap ? placeById(get().worldMap!, toPlaceId) : undefined;
@@ -1259,11 +1318,7 @@ function applySeaProgress(get: Get, set: Set, progressionDR: number): string[] {
   const plan = get().travelPlan!;
   const eff = effectiveSeaM(get);
   if (eff.m == null || plan.sea!.sailsDown) { patchSea(get, set, { milesToday: 0 }); return []; }
-  // Voguer de nuit exige équipage + installations, sinon ÷2 (MDG 15 l.76) — l'équipage du navire de
-  // campagne étant abstrait (MDG 14 l.39), la capacité nocturne est portée par la règle maison éditable
-  // `sea-night-sailing` (défaut ON = navire équipé, distance pleine ; OFF = ÷2). #340.
-  const nightSailing = rule('sea-night-sailing') === true;
-  const miles = Math.round(seaMilesPerDay(eff.m, nightSailing, progressionDR));
+  const miles = Math.round(seaMilesPerDay(eff.m, voguerDeNuit(), progressionDR));
   // `eventMMod` consommé (« Vents favorables » : +1 M sur UNE journée de route) — `effMToday` PERSISTE le
   // M effectif qui a servi à CETTE Progression, pour que le Test de survitesse (#443) le lise sans le
   // recalculer après coup (un recalcul manquerait le bonus déjà consommé de la journée).
@@ -1587,7 +1642,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
     morale: shipMoraleScore(get, hull), manann: vesselManann(get().vessel).score,
     waterLitres: get().vessel?.waterLitres,
     milesLeft: Math.max(0, Math.round(plan.km - kmDone)),
-    daysLeft: Math.max(0, Math.ceil(Math.max(0, plan.km - kmDone) / seaMilesPerDay(cruiseM(hull), true))),
+    daysLeft: joursDeMer(plan.km - kmDone, mDeCroisiere(navireDeLaCoque(hull))),
   };
   // Météo du LENDEMAIN (ch.13 l.164), direction du vent (l.250), force du vent (l.272).
   const season = seasonOfMonth(toDate(get().gameTime).month);
