@@ -20,6 +20,7 @@ import { testValue } from '../engine/skills';
 import type { Possession } from '../engine/possession';
 import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
+import { RULE_REF } from '../engine/ruleRefs';
 
 /**
  * DÉPARTAGE d'un Marchandage OPPOSÉ soutenu (LDB 12) — le Soutien est un MODIFICATEUR du Test
@@ -112,7 +113,7 @@ describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l
     const step = get().pendingCascade!.participants[0] as CascadeStep;
     expect(step.kind).toBe('port-buy-bargain');
     expect(step.base).toBe(45); // Niveau de Compétence NU (LDB 09 l.17) — la grandeur du départage (l.160)
-    expect(step.mods?.[0]).toMatchObject({ label: 'Soutien', value: 10 }); // 1 soutien éligible (l.189-190)
+    expect(step.mods?.[0]).toMatchObject({ ref: RULE_REF.soutien, value: 10 }); // 1 soutien éligible (l.189-190)
     expect(step.target).toBe(55); // …compris dans la CIBLE, là où le RAW le met
   });
 

@@ -12,6 +12,7 @@ import { creditBourse } from '../noyau/bourseFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { RULE_REF } from '../engine/ruleRefs';
+import { lignesDe } from '../engine/modLine.testkit';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { skillBaseValue, testValue, partyAssisted } from '../engine/skills';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
@@ -615,8 +616,8 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     const round1 = out0?.insert?.find((s) => s.kind === 'riverRighting');
     expect(round1, 'le Round 2 s’insère tant qu’il reste des Rounds (BE)').toBeTruthy();
     // MSRC 7 l.40
-    expect((round1!.mods ?? []).filter((m) => m.ref?.id === RULE_REF['navigation-chavirage'].id))
-      .toEqual([{ label: '−5 cumulatif (Round 2)', value: -5, famille: 'circonstance', ref: RULE_REF['navigation-chavirage'] }]);
+    expect(lignesDe(round1!.mods, RULE_REF['navigation-chavirage']))
+      .toEqual([{ label: t('rv.rightingCumul', { n: 2 }), value: -5, famille: 'circonstance', ref: RULE_REF['navigation-chavirage'] }]);
     const pilote2 = partyAssisted(get().party, 'voile', undefined, undefined, 'chaland')!;
     expect(round1!.target).toBe(pilote2.value + DIFFICULTY_MODIFIERS.accessible - 5);
     expect(inexplique(round1!)).toBe(0);
@@ -671,7 +672,7 @@ describe('Navigation du jour — Difficulté déclarée, malus NOMMÉS (#1112)',
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
     const nav = built.steps.find((s) => s.kind === 'riverNav')!;
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est PAS une Difficulté
-    expect(malus(nav)).toEqual([{ label: 'Hors de contrôle', value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    expect(malus(nav)).toEqual([{ label: t('rv.modOutOfControl'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     // Le malus est compris dans la cible, et la ligne explique TOUT l'écart (cliquet).
     expect(inexplique(nav)).toBe(0);
   });
@@ -693,7 +694,7 @@ describe('péril fluvial — l’évitement porte les malus de dérive/hors-cont
     seedBattleRng(2);
     const out = applierDe('riverPerilCheck')!(get, set, check, undefined, { steps: [check], index: 0 });
     const nav = (out?.insert ?? []).find((s) => s.kind === 'riverPerilNav')!;
-    expect(malus(nav)).toEqual([{ label: 'Hors de contrôle', value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    expect(malus(nav)).toEqual([{ label: t('rv.modOutOfControl'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est pas une Difficulté
     expect(inexplique(nav), 'le malus est compris dans la cible, et TOUT l’écart est nommé').toBe(0);
     // Le Test de Navigation du JOUR et l'évitement voient le MÊME modificateur (une seule règle).

@@ -744,11 +744,11 @@ export function attackEnv(
     // des deux (`DeckCoverClass ⊂ CoverClass`). `crewPosteOf` couvre tout l'équipage (chef ET support).
     const posteCover = crewPosteOf(target.id, battle.combatants)?.poste.cover;
     const cover = posteCover ? couvertLePlusProtecteur(los.cover, posteCover) : los.cover;
-    if (cover !== 'none') env.push({ label: tr('cf.coverLabel', { cover }), value: coverModifier(cover), famille: 'circonstance' });
+    if (cover !== 'none') env.push({ label: tr('cf.coverLabel', { cover }), value: coverModifier(cover), famille: 'circonstance', ref: RULE_REF['cible-sous-couverture'] });
     // Vision nocturne / Infravision (LDB 85) ou Talent Vision nocturne : annule la pénalité d'obscurité.
     // Cible dissimulée (LDB 14 l.75) et météo (l.76, l.82) : sommées sous le plafond de `combineMods` (LDB 14 l.95).
     if (sc.concealed && !seesInDark(attacker)) env.push({ label: sc.concealedLabel, value: -20, famille: 'circonstance', ref: RULE_REF['cible-dissimulee'] });
-    if (sc.attackMod) env.push({ label: sc.label, value: sc.attackMod, famille: 'circonstance' });
+    if (sc.attaque) env.push(sc.attaque);
     // Tir en bougeant (LDB 14 l.70) : si l'on bouge ET tire au même Round. Le Mouvement étant
     // DÉCOMPOSABLE (on peut bouger APRÈS le tir), un HÉROS qui garde sa mobilité encaisse la pénalité par défaut ;
     // il ne l'évite qu'en décidant de tirer IMMOBILE (heldGround → consomme son Mouvement, cf. attackConfirm)
@@ -774,7 +774,7 @@ export function attackEnv(
     return { env, blocked: false, inMelee, crowd, cm, sc };
   }
   // Mêlée : la météo (tempête/neige) pénalise l'attaque ; la neige pénalise aussi l'esquive (dodgeMods).
-  if (sc.attackMod) env.push({ label: sc.label, value: sc.attackMod, famille: 'circonstance' });
+  if (sc.attaque) env.push(sc.attaque);
   // La pénalité météo « Tests physiques » (EDOC 8 l.82) n'est PLUS ajoutée ici : le CANAL UNIQUE
   // `weatherTestMods` (attackModifiers, lu depuis `attacker.envWeather`) la porte pour l'attaque ET la défense
   // ET les activités — jamais recâblée par surface (#341). Seuls les mods météo WEAPON-contextuels restent (tir).
@@ -1013,7 +1013,7 @@ export function difficultyOf(p: AttackPreview): DifficultyShown | undefined {
  *  calcul pour tous les lecteurs — sinon la rangée adverse annonce une Difficulté que le jet contredit (#1153 L4). */
 export function defenseDodgeMods(s: Pick<Jeu, 'scene' | 'gameTime'>, defender: Combatant): ModLine[] {
   const sc = s.scene ? sceneCombatModifiers(s.scene, s.gameTime) : null;
-  const weather: ModLine[] = sc?.dodgeMod ? [{ label: sc.label, value: sc.dodgeMod, famille: 'circonstance' }] : [];
+  const weather: ModLine[] = sc?.esquive ? [sc.esquive] : [];
   return [...weather, ...mountedDodgeMods(defender)];
 }
 /** Ligne ADVERSE du panneau de jet pré-rempli (modale d'attaque) : ce que le joueur est en droit

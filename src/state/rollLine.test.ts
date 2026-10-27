@@ -42,20 +42,22 @@ describe('rollLine — base NUE et cible dérivée de la valeur FONDUE (sonde 1 
 
   it('B. modificateur DE CIBLE (`surLaCible`) : chip nommée ET comprise dans la cible, base intacte', () => {
     const c = hero();
-    const p = rollLine({ actor: c, test: { skill: 'ramer' }, difficulty: 'intermediaire', surLaCible: [{ label: 'Dérive', value: -10, famille: 'jet' }] });
+    const derive = { label: 'Dérive', value: -10, famille: 'jet' as const };
+    const p = rollLine({ actor: c, test: { skill: 'ramer' }, difficulty: 'intermediaire', surLaCible: [derive] });
     expect(p.base).toBe(skillBaseValue(c, 'ramer'));
-    expect(p.mods.map((m) => m.label)).toEqual(['Dérive']);
+    expect(p.mods).toEqual([derive]);
     expect(p.target).toBe(testValue(c, 'ramer') - 10 + DIFFICULTY_MODIFIERS.intermediaire);
   });
 
   it('E. modificateur DÉJÀ FONDU (`dansLaValeur`) : il SORT de la base et devient chip — base nue', () => {
     const c = hero();
+    const charpentier = { label: 'Charpentier', value: -10, famille: 'jet' as const };
     const p = rollLine({
       actor: c, test: { skill: 'ramer' }, difficulty: 'intermediaire',
-      valeur: testValue(c, 'ramer') - 10, dansLaValeur: [{ label: 'Charpentier', value: -10, famille: 'jet' }],
+      valeur: testValue(c, 'ramer') - 10, dansLaValeur: [charpentier],
     });
     expect(p.base).toBe(skillBaseValue(c, 'ramer'));
-    expect(p.mods.map((m) => m.label)).toEqual(['Charpentier']);
+    expect(p.mods).toEqual([charpentier]);
     expect(p.target).toBe(testValue(c, 'ramer') - 10 + DIFFICULTY_MODIFIERS.intermediaire);
   });
 

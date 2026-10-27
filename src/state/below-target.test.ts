@@ -4,7 +4,8 @@ import type { ModLine } from '../engine/combat';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Get } from '../noyau/flowTypes';
 import type { Combatant, Weapon } from '../engine/types';
-import { ligneDeRegle } from '../engine/reglesChiffrees';
+import { ligneDeRegle, refDeRegle } from '../engine/reglesChiffrees';
+import { ligneDe } from '../engine/modLine.testkit';
 
 /**
  * MALUS « EN CONTREBAS DE LA CIBLE » (Difficultés de Combat) — en MÊLÉE, l'attaquant dont la surface
@@ -32,7 +33,7 @@ function envFor(attackerH: number, targetH: number) {
   return attackEnv(get, attacker, target, melee).env;
 }
 
-const below = (env: ModLine[]) => env.find((e) => e.label === 'En contrebas de la cible');
+const below = (env: ModLine[]) => ligneDe(env, refDeRegle('cible-en-contrebas'));
 
 describe('attackEnv (mêlée) — −10 « En contrebas de la cible »', () => {
   it('attaquant SOUS la cible de > STEP_MAX (0 m vs 4 m) → −10', () => {

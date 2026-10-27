@@ -11,6 +11,8 @@ import { resolveMelee } from '../engine/combat';
 import { makeRNG } from '../engine/dice';
 import { emptyScene } from '../noyau/monde/scene';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
+import { ligneDe } from '../engine/modLine.testkit';
+import { refDeRegle } from '../engine/reglesChiffrees';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
@@ -168,7 +170,7 @@ describe('combat-ranged-melee-penalty — −20 + tir égaré (LDB 14 l.112-116)
     const { shooter, targetEnemy } = meleeShotSetup();
     const e = attackEnv(useGame.getState, shooter, targetEnemy, bow);
     expect(e.inMelee).toBe(true);
-    expect(e.env.some((m) => m.value === -20 && /mêlée/i.test(m.label))).toBe(true);
+    expect(ligneDe(e.env, refDeRegle('tir-dans-un-combat-au-corps-a-corps'))?.value).toBe(-20);
   });
 
   it('désactivée : pas de −20 NI artefact d’aperçu (inMelee reste false)', () => {
@@ -176,7 +178,7 @@ describe('combat-ranged-melee-penalty — −20 + tir égaré (LDB 14 l.112-116)
     const { shooter, targetEnemy } = meleeShotSetup();
     const e = attackEnv(useGame.getState, shooter, targetEnemy, bow);
     expect(e.inMelee).toBe(false); // pas d'artefact d'affichage
-    expect(e.env.some((m) => /Tir dans la mêlée/i.test(m.label))).toBe(false); // pas de malus
+    expect(ligneDe(e.env, refDeRegle('tir-dans-un-combat-au-corps-a-corps'))).toBeUndefined(); // pas de malus
   });
 });
 

@@ -13,7 +13,8 @@
  * qu'`applyVehicleProblem` rend en plus des `lines`. Ces `lines` sont le rendu d'`applyOps` : une
  * couture d'AFFICHAGE qui traverse le moteur, jamais un second canal de résolution.
  */
-import { Combatant, VehicleData, type Difficulty } from './types';
+import { Combatant, VehicleData, type Difficulty, type ModLine } from './types';
+import { ligneDeRegle } from './reglesChiffrees';
 import { RNG, parseDice, d10 } from './dice';
 import { applyOps } from './ops';
 import { inanimateCombatant } from './inanimate';
@@ -101,10 +102,6 @@ export function repairVehicleAttempt(p: VehicleRepairParams): VehicleRepairResul
 
 // ── COURSE FORCÉE D'UN ATTELAGE (EDOC 07 l.229, l.253) ────────────────────────────────
 
-/** Pénalité cumulative au Test de Conduite d'attelage, par kilomètre déjà parcouru au pas de course
- *  (EDOC 07 l.229). */
-export const FORCED_PACE_PENALTY_PER_KM = -10;
-
 export interface ForcedPaceAnimal {
   /** Valeur TESTÉE de Résistance de la bête. */
   valeurResistance: number;
@@ -122,8 +119,8 @@ export interface ForcedPaceAnimalOutcome {
 
 export interface ForcedPaceResult {
   conduite: TestResult;
-  /** Modificateur appliqué au Test de Conduite d'attelage (cumul des kilomètres déjà courus). */
-  modificateur: number;
+  /** Ligne NOMMÉE du modificateur appliqué au Test de Conduite d'attelage ; `null` au premier kilomètre. */
+  ligne: ModLine | null;
   /** Échec du conducteur : les bêtes repassent au pas (EDOC 07 l.229). */
   retourAuPas: boolean;
   /** Vide tant que le conducteur réussit — les bêtes ne sont éprouvées qu'à son échec. */
@@ -131,12 +128,12 @@ export interface ForcedPaceResult {
 }
 
 /**
- * Modificateur du Test de Conduite d'attelage au kilomètre courant — EDOC 07 l.229 : « une pénalité de
- * -10 par kilomètre déjà parcouru au pas de course ». SOURCE UNIQUE : toute surface qui annonce ou qui
- * roule ce Test passe par ici (sans la branche à zéro, le premier kilomètre rendrait `-0`).
+ * Ligne NOMMÉE du modificateur du Test de Conduite d'attelage au kilomètre courant, liée à sa fiche ;
+ * `null` au premier kilomètre — EDOC 07 l.229. SOURCE UNIQUE : toute surface qui annonce ou qui roule ce
+ * Test passe par ici.
  */
-export function forcedPaceModifier(kmDejaCourus = 0): number {
-  return kmDejaCourus === 0 ? 0 : kmDejaCourus * FORCED_PACE_PENALTY_PER_KM;
+export function ligneAllureForcee(kmDejaCourus = 0): ModLine | null {
+  return kmDejaCourus === 0 ? null : ligneDeRegle('allure-forcee-attelage', 'par-km', { ajuste: (parKm) => parKm * kmDejaCourus });
 }
 
 /**
@@ -176,8 +173,8 @@ export function forcedPaceCheck(p: {
   rng: RNG;
 }): ForcedPaceResult {
   const rng = p.rng;
-  const modificateur = forcedPaceModifier(p.kmDejaCourus);
-  const conduite = rollTest(p.valeurConduite, 'intermediaire', rng, modificateur);
-  if (conduite.success) return { conduite, modificateur, retourAuPas: false, animaux: [] };
-  return { conduite, modificateur, retourAuPas: true, animaux: p.animaux.map((a) => forcedPaceBeastCheck(a, rng)) };
+  const ligne = ligneAllureForcee(p.kmDejaCourus);
+  const conduite = rollTest(p.valeurConduite, 'intermediaire', rng, ligne?.value ?? 0);
+  if (conduite.success) return { conduite, ligne, retourAuPas: false, animaux: [] };
+  return { conduite, ligne, retourAuPas: true, animaux: p.animaux.map((a) => forcedPaceBeastCheck(a, rng)) };
 }

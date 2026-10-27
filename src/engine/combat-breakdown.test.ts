@@ -5,7 +5,10 @@ import { evaluateTest, hydrateTR, bumpSL } from './tests';
 import { makeRNG } from './dice';
 import { Combatant, Weapon, DIFFICULTY_MODIFIERS } from './types';
 import { attaqueNaturelle } from './creatureAttacks';
-import { ligneDeRegle } from './reglesChiffrees';
+import { ligneDeRegle, refDeRegle } from './reglesChiffrees';
+import { ligneDe } from './modLine.testkit';
+import { RULE_REF } from './ruleRefs';
+import { refLabel } from '../data';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -43,15 +46,15 @@ describe('attackModifiers : pénalité de main secondaire (LDB 14 l.181)', () =>
   const main: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], hand: 'main', hands: 1 };
   it('arme de main secondaire → -20', () => {
     const mods = attackModifiers(mk(), mk(), off, { kind: 'melee' });
-    expect(mods.find((m) => m.label === 'Main secondaire')?.value).toBe(-20);
+    expect(ligneDe(mods, refDeRegle('main-secondaire'))?.value).toBe(-20);
   });
   it('Ambidextre 1× → -10', () => {
     const mods = attackModifiers(mk({ talents: [{ talentId: 'ambidextre', times: 1 }] }), mk(), off, { kind: 'melee' });
-    expect(mods.find((m) => m.label === 'Main secondaire')?.value).toBe(-10);
+    expect(ligneDe(mods, refDeRegle('main-secondaire'))?.value).toBe(-10);
   });
   it('arme de main principale → aucune pénalité', () => {
     const mods = attackModifiers(mk(), mk(), main, { kind: 'melee' });
-    expect(mods.some((m) => m.label === 'Main secondaire')).toBe(false);
+    expect(ligneDe(mods, refDeRegle('main-secondaire'))).toBeUndefined();
   });
 });
 
@@ -60,15 +63,15 @@ describe('parade : pénalité de main secondaire + exception Parade/Défensive (
   const offShield: Weapon = { label: 'Bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'defensive' }], hand: 'off', hands: 1 };
   it('parade main secondaire : bouclier Défensive + spé Parade → AUCUNE pénalité', () => {
     const mods = defenseModifiers(mk({ skills: [parrySpec] }), 'parade', [], offShield);
-    expect(mods.some((m) => m.label === 'Main secondaire')).toBe(false);
+    expect(ligneDe(mods, refDeRegle('main-secondaire'))).toBeUndefined();
   });
   it('parade main secondaire SANS spé Parade → -20', () => {
     const mods = defenseModifiers(mk({ skills: [] }), 'parade', [], offShield);
-    expect(mods.find((m) => m.label === 'Main secondaire')?.value).toBe(-20);
+    expect(ligneDe(mods, refDeRegle('main-secondaire'))?.value).toBe(-20);
   });
   it('parade main principale → aucune pénalité', () => {
     const mods = defenseModifiers(mk(), 'parade', [], { ...offShield, hand: 'main' });
-    expect(mods.some((m) => m.label === 'Main secondaire')).toBe(false);
+    expect(ligneDe(mods, refDeRegle('main-secondaire'))).toBeUndefined();
   });
 });
 
@@ -76,30 +79,33 @@ describe('Taille en combat (T1) + env injecté — attackModifiers (LDB 14 l.118
   // bow portée 60, distanceTiles 28 → 56 m ≤ 60 = Moyenne (+0, pas de ligne de portée) : isole la Taille.
   it('tir : mod de Taille de la cible (Grande → +20)', () => {
     const mods = attackModifiers(mk(), mk({ size: 'grande' }), bow, { kind: 'ranged', distanceTiles: 28, env: [] });
-    expect(mods.find((m) => m.label.startsWith('Taille (cible)'))?.value).toBe(20);
+    expect(ligneDe(mods, RULE_REF['taille-cible-au-tir'])?.value).toBe(20);
   });
   it('tir : env injecté (Couvert -20) figure dans les mods', () => {
-    const mods = attackModifiers(mk(), mk(), bow, { kind: 'ranged', distanceTiles: 28, env: [{ label: 'Couvert (moyenne)', value: -20, famille: 'circonstance' }] });
-    expect(mods.find((m) => m.label.startsWith('Couvert'))?.value).toBe(-20);
+    const mods = attackModifiers(mk(), mk(), bow, { kind: 'ranged', distanceTiles: 28, env: [{ label: 'Couvert (moyenne)', value: -20, famille: 'circonstance', ref: RULE_REF['cible-sous-couverture'] }] });
+    expect(ligneDe(mods, RULE_REF['cible-sous-couverture'])?.value).toBe(-20);
   });
   it('+10 au plus petit en mêlée (attaquant Petite vs cible Moyenne, LDB 85 l.366)', () => {
     const mods = attackModifiers(mk({ size: 'petite' }), mk({ size: 'moyenne' }), sword, { kind: 'melee', env: [] });
-    expect(mods.find((m) => m.label.startsWith('Taille (plus petit)'))?.value).toBe(10);
+    expect(ligneDe(mods, refDeRegle('taille-modificateurs-en-combat'))?.value).toBe(10);
   });
   it('tir : +10 plus petit ET mod de cible se cumulent (halfling Petite tire un ogre Grande)', () => {
     const mods = attackModifiers(mk({ size: 'petite' }), mk({ size: 'grande' }), bow, { kind: 'ranged', distanceTiles: 28, env: [] });
-    expect(mods.find((m) => m.label.startsWith('Taille (cible)'))?.value).toBe(20);
-    expect(mods.find((m) => m.label.startsWith('Taille (plus petit)'))?.value).toBe(10);
+    expect(ligneDe(mods, RULE_REF['taille-cible-au-tir'])?.value).toBe(20);
+    expect(ligneDe(mods, refDeRegle('taille-modificateurs-en-combat'))?.value).toBe(10);
   });
   it('Moyenne par défaut (size absent des deux côtés) : aucun mod de Taille', () => {
     const mods = attackModifiers(mk(), mk(), bow, { kind: 'ranged', distanceTiles: 28, env: [] });
-    expect(mods.find((m) => m.label.startsWith('Taille'))).toBeUndefined();
+    expect(ligneDe(mods, RULE_REF['taille-cible-au-tir'])).toBeUndefined();
+    expect(ligneDe(mods, refDeRegle('taille-modificateurs-en-combat'))).toBeUndefined();
   });
   it('Peur : −1 DR au jet (PAS un −10 sur la cible) quand l’attaquant vise sa source (LDB 21 l.27)', () => {
     const a = mk({ psychState: [{ type: 'peur', sourceId: 'B', calmeDR: 0 }] });
     // Le modificateur n'est PLUS une ligne de mods sur la cible : c'est un ajustement de DR (psychDRAdjust).
     const mods = attackModifiers(a, mk({ id: 'B' }), sword, { kind: 'melee', env: [] });
-    expect(mods.find((m) => m.label === 'Peur')).toBeUndefined();
+    expect(ligneDe(mods, { category: 'psychologies', id: 'peur' })).toBeUndefined();
+    // …ni une ligne SANS renvoi : les lignes et leurs valeurs sont celles d'un attaquant sans Peur.
+    expect(mods).toEqual(attackModifiers(mk(), mk({ id: 'B' }), sword, { kind: 'melee', env: [] }));
     expect(psychDRAdjust(a, mk({ id: 'B' }))).toBe(-1);
   });
   it('Peur : aucun ajustement de DR si la cible n’est PAS la source de Peur', () => {
@@ -366,14 +372,14 @@ describe('attackModifiers — modificateurs étiquetés (source unique)', () => 
   it('mêlée vs cible À Terre → la ligne NOMME l’État qui expose la cible (+20 À Terre, lié au Codex)', () => {
     const downed = mk({ label: 'B', conditions: [{ id: 'a-terre', value: 1 }] });
     const mods = attackModifiers(mk({ label: 'A' }), downed, sword, { kind: 'melee' });
-    expect(mods).toContainEqual({ label: 'À Terre', value: 20, famille: 'circonstance', ref: { category: 'etats', id: 'a-terre' } });
+    expect(mods).toContainEqual({ label: refLabel('etats', { id: 'a-terre' }), value: 20, famille: 'circonstance', ref: { category: 'etats', id: 'a-terre' } });
   });
 
   it('bonus de flanc/dos ADDITIF : DEUX lignes nommées (À Terre +20, Assourdi +10), jamais fondues', () => {
     const target = mk({ label: 'B', conditions: [{ id: 'a-terre', value: 1 }, { id: 'assourdi', value: 1 }] });
     const mods = attackModifiers(mk({ label: 'A' }), target, sword, { kind: 'melee', flankRear: true });
-    expect(mods).toContainEqual({ label: 'À Terre', value: 20, famille: 'circonstance', ref: { category: 'etats', id: 'a-terre' } });
-    expect(mods).toContainEqual({ label: 'Assourdi', value: 10, famille: 'circonstance', ref: { category: 'etats', id: 'assourdi' } });
+    expect(mods).toContainEqual({ label: refLabel('etats', { id: 'a-terre' }), value: 20, famille: 'circonstance', ref: { category: 'etats', id: 'a-terre' } });
+    expect(mods).toContainEqual({ label: refLabel('etats', { id: 'assourdi' }), value: 10, famille: 'circonstance', ref: { category: 'etats', id: 'assourdi' } });
   });
 });
 
@@ -423,7 +429,7 @@ const inexplique = (d: RollBreakdown): number =>
 const dit = (d: RollBreakdown) => ({
   difficulty: d.difficulty,
   combined: d.difficultyCombined,
-  parts: (d.difficultyParts ?? []).map((m: ModLine) => `${m.label}:${m.value}`),
+  parts: (d.difficultyParts ?? []).map((m: ModLine) => [m.ref, m.value]),
 });
 
 describe('TIR + Chance : la re-dérivation dit la MÊME Difficulté que la résolution (#1153 L4)', () => {
@@ -474,9 +480,9 @@ describe('COUP DANS LE DOS : le +20 est NOMMÉ à sa cause (#1153 L4, #1218)', (
     it(`${nom} : la Difficulté porte le dos tourné, et la ligne s'explique`, () => {
       const d = resolveBackstabAttack(mk({ id: 'f', weapons: [sword] }), cible, makeRNG(3)).attackerDetail!;
       expect(inexplique(d)).toBe(0);
-      expect((d.difficultyParts ?? []).map((m) => `${m.label}:${m.value}`)).toContain('Dos tourné (adversaire en fuite):20');
+      expect(ligneDe(d.difficultyParts, refDeRegle('fuite'))?.value).toBe(20);
       expect(d.difficulty, 'le +20 composé tombe sur Accessible').toBe('accessible');
-      expect((d.mods ?? []).map((m) => m.label), 'plus aucune chip hors table ne porte ce +20').not.toContain('Dos tourné (adversaire en fuite)');
+      expect(ligneDe(d.mods, refDeRegle('fuite')), 'plus aucune chip hors table ne porte ce +20').toBeUndefined();
     });
   }
 });
@@ -493,7 +499,7 @@ describe('PIÉTINEMENT et TIR DÉVIÉ : la ligne s’explique aussi (#1153 L4)',
     // Le tir dévie vers l'allié intercalé : cible SANS le −20 du tir dans la mêlée (LDB 14 l.116).
     const d = resolveStrayRangedHit(a, mk({ id: 'x2' }), bow, origine.roll, origine.target + 20, { rng: makeRNG(1595) }, origine).attackerDetail!;
     expect(d.difficulty, 'même jet, même Difficulté').toBe(origine.difficulty);
-    expect((d.mods ?? []).map((m) => `${m.label}:${m.value}`)).toContain('Tir dévié:20');
+    expect(ligneDe(d.mods, refDeRegle('tir-dans-un-combat-au-corps-a-corps'))?.value).toBe(20);
     expect(inexplique(d)).toBe(0);
   });
 });

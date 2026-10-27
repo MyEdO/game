@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { effectiveChar, volatileCharLines } from './characteristics';
 import { testValue } from './skills';
 import { passiveCharSum, traumaById, dechirureFractureFicheId } from './trauma';
+import { RULE_REF } from './ruleRefs';
 import type { Combatant, CharKey, EffectSource } from './types';
 
 /** Combatant minimal : seuls `characteristics` et `activeEffects` importent ici (pool non-cumul). */
@@ -54,8 +55,8 @@ describe('volatileCharLines — décomposition étiquetée des contributions ret
   });
 
   it('un seul buff +10 CC → une ligne étiquetée, `famille: jet` (hors table des Difficultés)', () => {
-    const c = mk([{ char: 'capacite-de-combat', bonus: 10, label: 'Bénédiction de Bataille' }]);
-    expect(volatileCharLines(c, 'capacite-de-combat')).toEqual([{ label: 'Bénédiction de Bataille', value: 10, famille: 'jet' }]);
+    const buff = { char: 'capacite-de-combat' as const, bonus: 10, label: 'Bénédiction de Bataille' };
+    expect(volatileCharLines(mk([buff]), 'capacite-de-combat')).toEqual([{ label: buff.label, value: 10, famille: 'jet' }]);
   });
 
   it('Sorts +20/+10/−10 même carac → seules les lignes gagnantes (+20 et −10), le +10 dominé absent', () => {
@@ -65,7 +66,7 @@ describe('volatileCharLines — décomposition étiquetée des contributions ret
       { char: 'capacite-de-combat', bonus: -10, label: 'Sort C', source: SORT('c') },
     ]);
     const lines = volatileCharLines(c, 'capacite-de-combat');
-    expect(lines.map((l) => [l.label, l.value])).toEqual([['Sort A', 20], ['Sort C', -10]]);
+    expect(lines.map((l) => [l.ref, l.value])).toEqual([[{ category: 'spells', id: 'a' }, 20], [{ category: 'spells', id: 'c' }, -10]]);
     expect(lines.reduce((s, l) => s + l.value, 0)).toBe(10);
   });
 
@@ -80,7 +81,6 @@ describe('volatileCharLines — décomposition étiquetée des contributions ret
     const c = mk([], 40, { traumas: [trauma] });
     const lines = volatileCharLines(c, 'force');
     expect(lines).toEqual([{ label: trauma.label, value: -30, famille: 'jet', ref: undefined }]);
-    expect(lines[0].label).not.toBe('Séquelle'); // le nom de la FAMILLE n'est pas un nom d'octroyeur
     expect(effectiveChar(c, 'force')).toBe(40 - 30);
     const maudit = mk([{ char: 'force', bonus: -10, label: 'Sort', source: SORT('a') }], 40, { traumas: [trauma] });
     expect(effectiveChar(maudit, 'force')).toBe(40 - 30 - 10);
@@ -97,7 +97,7 @@ describe('Fièvre : pénalité aux TESTS, jamais une baisse de Caractéristique 
   });
   it('faim + fièvre : la Force effective porte la Faim seule, le Test de Force la Faim et la Fièvre (LDB 18 l.342, LDB 20 l.170)', () => {
     const affame = mk([], 40, { hunger: { days: 4, tests: 1, failures: 1 }, diseases: [{ phase: 'active', symptoms: [{ symptomId: 'fievre' }] }] as never });
-    expect(volatileCharLines(affame, 'force').map((l) => [l.label, l.value])).toEqual([['Faim/Soif', -10]]);
+    expect(volatileCharLines(affame, 'force').map((l) => [l.ref, l.value])).toEqual([[RULE_REF['faim-et-soif'], -10]]);
     expect(effectiveChar(affame, 'force')).toBe(30);
     expect(testValue(affame, undefined, 'force')).toBe(20);
   });

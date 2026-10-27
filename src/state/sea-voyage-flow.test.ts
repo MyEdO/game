@@ -56,6 +56,8 @@ import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import type { GenreDeCascade } from '../noyau/tablesPosees';
 import { desEnSuite } from '../engine/dice.testkit';
+import { ligneDe } from '../engine/modLine.testkit';
+import { RULE_REF } from '../engine/ruleRefs';
 
 /**
  * VOYAGE MARITIME (7b) — la traversée jour par jour sur le navire de campagne (MDG 13/15), pilotée
@@ -1970,7 +1972,7 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
     runSeaDay(get, set);
     const st = get().pendingCascade?.participants.find((x) => x.kind === 'sea-degagement');
     expect(st?.difficulty).toBe('intermediaire');
-    expect(st?.mods).toContainEqual(expect.objectContaining({ label: 'Encombrement du navire et de sa cargaison', value: -18, famille: 'circonstance' }));
+    expect(ligneDe(st?.mods, RULE_REF['echouer-en-mer'])).toMatchObject({ value: -18, famille: 'circonstance' });
   });
 });
 
@@ -2583,11 +2585,12 @@ describe('Test d’équipage — la chanson de marin est NOMMÉE sur la rangée 
 
   it('un équipage qui chante : base nue, chip de la chanson, cible fondue — aucun résidu', () => {
     // Chanson ACTIVE sur tout l'équipage (op `crewTestMod`, +10 aux Tests individuels).
+    const chanson = { label: 'Naviguons tous ensemble', crewTestMod: 10, duration: { scale: 'permanent' as const } };
     set({
       party: get().party.map((h) => ({
         ...h,
         skills: [...h.skills.filter((sk) => !['voile', 'ramer'].includes(sk.id)), { id: 'voile', spec: 'cogue', advances: 12 }, { id: 'ramer', advances: 12 }],
-        activeEffects: [...(h.activeEffects ?? []), { label: 'Naviguons tous ensemble', crewTestMod: 10, duration: { scale: 'permanent' as const } }],
+        activeEffects: [...(h.activeEffects ?? []), chanson],
       })),
     } as never);
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { pace: 1, cadence: 'jour-par-jour' })!;
@@ -2607,8 +2610,7 @@ describe('Test d’équipage — la chanson de marin est NOMMÉE sur la rangée 
     expect(batch, 'la journée pose bien un Test d’équipage').toBeTruthy();
     for (const part of batch!.participants!) {
       const crew = get().party.find((h) => h.id === part.id)!;
-      expect(part.mods?.some((m) => m.label === 'Naviguons tous ensemble' && m.value === 10),
-        'la chanson se NOMME sur la rangée du marin').toBe(true);
+      expect(part.mods, 'la chanson se NOMME sur la rangée du marin').toContainEqual({ label: chanson.label, value: chanson.crewTestMod, famille: 'jet' });
       expect(part.base, 'base NUE : la chanson n’y est plus fondue')
         .toBe(skillBaseValue(crew, part.skillId, part.spec));
       const st = { base: part.base, target: part.target, mods: part.mods, difficulty: part.difficulty, clamped: part.clamped } as never;

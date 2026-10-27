@@ -1,6 +1,9 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { attackModifiers, combineMods, defenseModifiers, rangeBandModifier, rangeBandName, weaponReachPenalty } from './combat';
 import { setRule, resetRule } from './policy';
+import { ligneDeRegle, refDeRegle } from './reglesChiffrees';
+import { ligneDe } from './modLine.testkit';
+import { RULE_REF } from './ruleRefs';
 import type { Combatant, ModLine, Weapon } from './types';
 
 describe('combineMods — Combiner les Difficultés (LDB 14 l.91-96)', () => {
@@ -184,7 +187,7 @@ describe('defenseModifiers — Avantage hors plafond, circonstances plafonnées 
   it('l’Avantage de la DÉFENSE est `famille: \'jet\'` → +80 NON plafonné à +60', () => {
     const d = { advantage: 8, conditions: [], weapons: [], defensiveStance: false } as unknown as Combatant;
     const mods = defenseModifiers(d, 'esquive');
-    expect(mods.find((m) => m.label === 'Avantage')).toMatchObject({ value: 80, famille: 'jet' });
+    expect(ligneDe(mods, refDeRegle('avantage'))).toMatchObject({ value: 80, famille: 'jet' });
     expect(combineMods(mods)).toBe(80);
   });
 
@@ -193,9 +196,10 @@ describe('defenseModifiers — Avantage hors plafond, circonstances plafonnées 
     // deux armes (−10, Talent → jet) + Avantage +30 (jet). La combinaison ne borne QUE la neige :
     // −30 (circonstances) + (30 − 20 − 10) = −30.
     const d = { advantage: 3, conditions: [{ id: 'aveugle', value: 2 }], weapons: [], defensiveStance: false, dualStrikeDefensePenalty: -10 } as unknown as Combatant;
-    const mods = defenseModifiers(d, 'esquive', [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }]);
-    expect(mods.filter((m) => m.value < 0).map((m) => `${m.label} ${m.value} ${m.famille}`))
-      .toEqual(['Aveuglé -20 jet', 'Neige épaisse -30 circonstance', 'Maniement deux armes -10 jet']);
+    const neige = ligneDeRegle('neige-eau-terrain-difficile', 'neige-eau-terrain-difficile');
+    const mods = defenseModifiers(d, 'esquive', [neige]);
+    expect(mods.filter((m) => m.value < 0).map((m) => [m.ref, m.value, m.famille]))
+      .toEqual([[{ category: 'etats', id: 'aveugle' }, -20, 'jet'], [neige.ref, -30, 'circonstance'], [RULE_REF['combat-deux-armes'], -10, 'jet']]);
     expect(combineMods(mods)).toBe(-30);
   });
 });
@@ -226,11 +230,11 @@ describe('attackModifiers — Parasité et Allonge pèsent sur la CIBLE (#1218)'
     const attaquant = fighter({ id: 'a', weapons: [arme] });
     const cible = fighter({ id: 't', traits: [{ id: 'parasite' }], weapons: [melee('Longue')] });
     // Neige épaisse −30 (`LDB 14 l.82`) : les circonstances sont DÉJÀ au plafond avant les deux −10.
-    const env: ModLine[] = [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }];
+    const env: ModLine[] = [ligneDeRegle('neige-eau-terrain-difficile', 'neige-eau-terrain-difficile')];
     const mods = attackModifiers(attaquant, cible, arme, { kind: 'melee', env });
 
-    expect(mods.filter((m) => m.value < 0).map((m) => `${m.label} ${m.value} ${m.famille}`))
-      .toEqual(['Parasité -10 circonstance', "Allonge de l'adversaire -10 circonstance", 'Neige épaisse -30 circonstance']);
+    expect(mods.filter((m) => m.value < 0).map((m) => [m.ref, m.value, m.famille]))
+      .toEqual([[{ category: 'traits', id: 'parasite' }, -10, 'circonstance'], [refDeRegle('allonge-longueur-d-arme'), -10, 'circonstance'], [env[0].ref, -30, 'circonstance']]);
     expect(mods.reduce((s, m) => s + m.value, 0), 'somme BRUTE inchangée').toBe(-50);
     expect(combineMods(mods), 'le plafond de combinaison les absorbe').toBe(-30);
   });

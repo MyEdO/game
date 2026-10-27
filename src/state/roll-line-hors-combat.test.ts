@@ -12,6 +12,8 @@ import { applierDe } from '../noyau/cascade';
 import { clampTarget } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
 import { rule } from '../engine/policy';
+import { lignesDe, renvoieA } from '../engine/modLine.testkit';
+import { RULE_REF } from '../engine/ruleRefs';
 
 /**
  * MONTEUR CANONIQUE — les flux HORS COMBAT (#1153 L3). Chaque site migré est jugé sur DEUX grandeurs
@@ -136,9 +138,9 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
     expect(faim!.base, 'Niveau de Compétence NU (LDB 09 l.17), plus la valeur fondue').toBe(nue);
 
     const mods = faim!.mods ?? [];
-    const cumul = mods.filter((m) => m.label === 'Tests déjà subis').reduce((s, m) => s + m.value, 0);
+    const cumul = lignesDe(mods, RULE_REF['faim-et-soif']).reduce((s, m) => s + m.value, 0);
     expect(cumul, 'la pénalité cumulative (LDB 18 l.338) reste une ligne NOMMÉE').toBe(-20);
-    const etat = mods.filter((m) => m.label !== 'Tests déjà subis').reduce((s, m) => s + m.value, 0);
+    const etat = mods.filter((m) => !renvoieA(RULE_REF['faim-et-soif'])(m)).reduce((s, m) => s + m.value, 0);
     expect(etat, 'l’État Empoisonné a désormais SA chip, il n’est plus fondu dans la base').toBe(jetee - nue);
     expect(etat).toBeLessThan(0);
 

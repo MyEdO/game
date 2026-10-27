@@ -14,6 +14,8 @@ import { RollShell } from '../RollShell';
 import { ANONYMES } from '../RollLine';
 import { useAttackJetProps } from './useAttackJetProps';
 import { resetRule, setRule } from '../../engine/policy';
+import { ligneDe } from '../../engine/modLine.testkit';
+import { refDeRegle } from '../../engine/reglesChiffrees';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -185,7 +187,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
     expect(dialog.querySelector('.rm-subtitle')?.textContent).toBe('Elsa — Piétinement (Corps à corps (Bagarre))');
     const avant = rendues!.rows[0].row.pending!;
     expect(avant.base, 'Bagarre, sans avance : la CC nue, pas la Spé de l’arme tenue').toBe(45);
-    expect(avant.mods?.map((m) => m.label)).not.toContain('Possession pas à sa taille');
+    expect(ligneDe(avant.mods, refDeRegle('possession-pas-a-sa-taille'))).toBeUndefined();
     act(() => useGame.getState().attackRoll());
     const jet = rendues!.rows[0].row.d!;
     expect([jet.base, jet.target], 'aperçu et jet : même valeur cible').toEqual([avant.base, avant.target]);

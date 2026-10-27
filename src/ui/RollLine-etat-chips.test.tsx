@@ -147,7 +147,7 @@ describe('Chips de pénalité — texte EXACT et infobulle, du Combatant à l’
     const victim = mk(); victim.id = 'V'; victim.pos = { x: 11, y: 10 };
     const state = { battle: { combatants: [priest, victim] } } as unknown as GameState;
     const line = castWardLine(state, victim, { label: 'Flèchette' } as never)!;
-    expect(line).toEqual({ label: 'N’écoutez point la Sorcière', value: -20, famille: 'jet', ref: { category: 'spells', id: 'n-ecoutez-point-la-sorciere' }, by: [{ id: 'P' }] });
+    expect(line).toEqual({ label: priest.activeEffects[0].label, value: -20, famille: 'jet', ref: { category: 'spells', id: 'n-ecoutez-point-la-sorciere' }, by: [{ id: 'P' }] });
     expect(codexLookupById(line.ref!.category, line.ref!.id)).toBeTruthy();
     useGame.setState({ party: [priest], battle: null });
     ({ container, root } = mount(shell([line])));

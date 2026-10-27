@@ -16,6 +16,8 @@ import { Scene } from '../noyau/monde/scene';
 import { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import { initialNet } from '../noyau/etat';
+import { ligneDe } from '../engine/modLine.testkit';
+import { refDeRegle } from '../engine/reglesChiffrees';
 
 /** Ce que l'affichage dira de cette Difficulté (`noyau/difficultyText`, celle de la modale). */
 const dit = (p: Parameters<typeof difficultyOf>[0]): string | null => difficultyShownText(difficultyOf(p));
@@ -77,7 +79,7 @@ describe('G1 — la Difficulté aperçue d’un geste COMBINÉ compte l’attaqu
   it('le Surnombre est NOMMÉ dans la composition de l’aperçu', () => {
     const { a, allie, cible } = setup();
     const apercu = previewAttack(mkGet([a, allie, cible]), { ...a, pos: dest }, cible);
-    expect((apercu.difficultyParts ?? []).some((m) => m.label.startsWith('Surnombre'))).toBe(true);
+    expect(ligneDe(apercu.difficultyParts, refDeRegle('superiorite-numerique'))).toBeDefined();
   });
 
   it('`withAttackerAt` rend le MÊME combat quand l’attaquant est déjà l’objet du combat', () => {

@@ -11,6 +11,7 @@ import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneE
 import { type CustomStatblock } from '../engine/statblock';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { presetPnjById } from './campaignData';
+import { ligneDe } from '../engine/modLine.testkit';
 
 /**
  * Flux de Psychologie À LA RENCONTRE, hors combat (couture C). Depuis 2026-06-10 : la Peur/Terreur de
@@ -272,7 +273,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     useGame.getState().startScene(scene([ent({ id: 'arai', statblock: { type: 'statblock', label: 'Araignée géante', char: { B: 10 }, groups: ['araignees'] } })]));
     const rangee = () => useGame.getState().pendingCascade!.participants[0].participants![0];
     expect(rangee().base, 'base nue : Calme 60').toBe(60);
-    expect(rangee().mods?.map((m) => [m.label, m.value]), 'l’État est nommé sur la rangée').toContainEqual(['Exténué', -30]);
+    expect(ligneDe(rangee().mods, { category: 'etats', id: 'extenue' })?.value, 'l’État est nommé sur la rangée').toBe(-30);
     expect(rangee().target, 'Calme 60 −30 Exténué, Intermédiaire').toBe(30);
     useGame.getState().cascadeBatchRoll(h.id);
     expect((rangee().result as { target?: number }).target, 'le jet affronte la cible annoncée').toBe(30);

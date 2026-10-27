@@ -576,14 +576,14 @@ export function combatTestPenaltyParts(c: Combatant, ctx: EtatTestCtx = {}): Mod
     for (const m of etatTestMods(c)) {
       if (m.op.movementOnly && !impliqueDeplacement(ctx)) continue; // LDB 16 l.35, l.64
       if (!etatScopeApplies(m.op, ctx)) continue;
-      cand.push({ amount: m.op.amount, nature: 'État', src: m.src }); // magnitude/portée en données (etats.json) ; déjà ×pions (Exténué)
+      cand.push({ amount: m.op.amount, nature: t('cond.natureEtat'), src: m.src }); // magnitude/portée en données (etats.json) ; déjà ×pions (Exténué)
     }
     cand = dropWorst(cand, ignoredStatesCount(c)); // « peut ignorer un État » (MDG 09 l.244)
   }
   // Auras de combat (`auraMods`, hook `recompute-auras`) : un TRAIT, pas un État — hors du gate
   // `ignoreStatePenalties` (LDB 42) et dans leur PROPRE pool (LDB 85 l.262).
   const auras: PoolCandidate[] = [];
-  for (const m of c.auraMods ?? []) if (m.op.op === 'testMod' && m.op.char == null) auras.push({ amount: m.op.amount, nature: 'Aura', src: m.src });
+  for (const m of c.auraMods ?? []) if (m.op.op === 'testMod' && m.op.char == null) auras.push({ amount: m.op.amount, nature: t('cond.natureAura'), src: m.src });
   const out: ModLine[] = [];
   for (const best of [poolWinner(cand), poolWinner(auras)]) {
     if (best?.amount) out.push({ label: srcLabel(best.src, best.nature), value: best.amount, famille: 'jet', ref: best.src });
@@ -670,7 +670,7 @@ export function testStatePenaltyParts(c: Combatant, skill?: string, ctx: Omit<Et
       if (m.op.movementOnly && !impliqueDeplacement({ ...ctx, skill })) continue; // LDB 16 l.35, l.64
       if (!etatScopeApplies(m.op, { ...ctx, skill })) continue;
       if (m.op.exceptSkills?.some((r) => r.id === skill)) continue; // LDB 16 l.52
-      cand.push({ amount: m.op.amount, nature: 'État', src: m.src });
+      cand.push({ amount: m.op.amount, nature: t('cond.natureEtat'), src: m.src });
     }
     cand = dropWorst(cand, ignoredStatesCount(c)); // « peut ignorer un État » (MDG 09 l.244)
   }
@@ -709,7 +709,7 @@ export function meleeAttackerBonusLines(target: Combatant, opts?: { flankRear?: 
   for (const m of passiveMods(target)) {
     if (m.kind !== 'etat' || m.op.op !== 'incomingAttackMod') continue;
     if (m.op.mode !== 'melee' && m.op.mode !== 'all') continue;
-    const cand: PoolCandidate = { amount: m.op.amount, nature: 'État', src: m.src };
+    const cand: PoolCandidate = { amount: m.op.amount, nature: t('cond.natureEtat'), src: m.src };
     if (m.op.flankRear) { if (opts?.flankRear && cand.amount > (flank?.amount ?? 0)) flank = cand; }
     else if (cand.amount > (best?.amount ?? 0)) best = cand;
   }

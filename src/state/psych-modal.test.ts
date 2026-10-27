@@ -9,6 +9,7 @@ import type { Combatant } from '../engine/types';
 import type { BatchParticipant, CascadeStep } from '../noyau/pendings';
 import { addCondition, COND } from '../engine/conditions';
 import { modalOwnerOf } from '../noyau/modalArbiter';
+import { ligneDe } from '../engine/modLine.testkit';
 
 /**
  * Psychologie de COMBAT — régime CASCADE de Round (LDB 21). Les Traits ciblés et les NOUVELLES
@@ -470,7 +471,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     // …et elle est NOMMÉE (chip), jamais fondue dans la base : base + Σ mods + Difficulté === cible.
     const somme = ra.base + (ra.mods ?? []).reduce((s, m) => s + m.value, 0);
     expect(somme).toBe(ra.target);
-    expect((ra.mods ?? []).some((m) => m.value === -20 && m.label.length > 0)).toBe(true);
+    expect(ligneDe(ra.mods, { category: 'etats', id: 'brise' })?.value).toBe(-20);
     expect(rb.mods ?? []).toEqual([]); // B n'a aucun État : aucune chip inventée
   });
 });

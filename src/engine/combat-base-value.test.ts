@@ -3,6 +3,7 @@ import { combatBaseValue, combatValueMods, combatValue, defenseBaseValue, defens
 import { traumaById, dechirureFractureFicheId } from './trauma';
 import { skillBaseValue } from './skills';
 import { COND } from './conditions';
+import { RULE_REF } from './ruleRefs';
 import type { Characteristics, Combatant, ItemInstance, Weapon } from './types';
 
 // F=30,E=30 → BF+BE = 6 → capacité d'Encombrement 6 (LDB 61 l.5) : `enc:14` = palier 2 (−20 Ag).
@@ -115,7 +116,9 @@ describe('defenseBaseValue / defenseValueMods — Esquive, Parade, substitution 
   it('Esquive : Encombrement + Déchirure musculaire majeure de jambe = deux lignes nommées, sommées (LDB 14 l.95, #1827)', () => {
     const jambe = traumaById(dechirureFractureFicheId('dechirure', 'majeur', 'jambeD'), undefined, 'jambeD');
     const c = hero({ enc: 14, traumas: [jambe] });
-    expect(defenseValueModParts(c, 'esquive').map((l) => [l.label, l.value])).toEqual([['Encombrement', -20], [jambe.label, -20]]);
+    const parts = defenseValueModParts(c, 'esquive');
+    expect(parts.map((l) => [l.ref, l.value])).toEqual([[RULE_REF.encombrement, -20], [undefined, -20]]);
+    expect(parts[1].label).toBe(jambe.label);
     expect(defenseValue(c, 'esquive')).toBe(defenseBaseValue(c, 'esquive') - 40);
   });
 
