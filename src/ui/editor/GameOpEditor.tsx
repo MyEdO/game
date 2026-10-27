@@ -751,8 +751,8 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <>
             <RefField cfg={{ ds: 'psychologies', single: true }} fieldKey="État psychologique"
               value={o.type ?? ''} onChange={(v) => upd({ type: (v as string) ?? '' })} />
-            <input placeholder="Cible (Groupe — Animosité, Phobie…)" value={o.cible ?? ''}
-              onChange={(e) => upd({ cible: e.target.value || undefined })} />
+            <RefField cfg={{ ds: 'groups', single: true }} fieldKey="Cible" nullable
+              value={o.cible ?? ''} onChange={(v) => upd({ cible: typeof v === 'string' && v ? v : undefined })} />
             <label className="dr"><input type="checkbox" checked={o.indice != null} onChange={(e) => upd({ indice: e.target.checked ? 1 : undefined })} /> Indice</label>
             {o.indice != null && <FormulaField label="Valeur" champ="indice" value={o.indice} min={0} onChange={(indice) => upd({ indice })} />}
           </>

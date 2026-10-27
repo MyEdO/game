@@ -31,7 +31,7 @@ import {
   fearSourceFor, sansPeurVs, resolvePeurTest, resolveTerreurTest, calmeValue, isFrenzyCapable, isFrenzied, isPsychImmune,
   resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, suppressSupersededPsych, estCibleType, psychResolution,
 } from '../../engine/psychology';
-import { psychologyLabel, combatStakeRef } from '../../data';
+import { psychologyLabel, combatStakeRef, groupLabel } from '../../data';
 import { isColdBlooded, hasRage } from '../../engine/traits/dispatch';
 import { fireTriggers, hasFoeInLoS } from '../triggeredEffects';
 import { aiDriven } from '../netOwnership';
@@ -202,13 +202,13 @@ export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
     if (!p.active || !estCibleType(p.type) || !p.cible || p.lastTestRound === battle.round) continue;
     if (!visible.some((v) => groupMatch(p.cible!, groupesDe(v)))) continue;
     p.lastTestRound = battle.round;
-    if (resolveCalmeSimple(calmeValue(enemy), battleRng()).success) { p.active = false; log.push(t('turn.recompose', { name: enemy.label, type: p.type })); }
+    if (resolveCalmeSimple(calmeValue(enemy), battleRng()).success) { p.active = false; log.push(t('turn.recompose', { name: enemy.label, type: psychologyLabel(p.type) })); }
   }
   const tt = targetedTrigger(enemy, visible); // nouveau Trait ciblé déclenché par un membre du groupe visible
   if (tt) {
     const r = resolveCalmeSimple(calmeValue(enemy), battleRng());
     enemy.psychState.push({ type: tt.type, cible: tt.cible, sourceId: tt.sourceId, active: !r.success, lastTestRound: battle.round });
-    if (!r.success) log.push(t('turn.afflictionGrip', { name: enemy.label, type: tt.type, cible: tt.cible }));
+    if (!r.success) log.push(t('turn.afflictionGrip', { name: enemy.label, type: psychologyLabel(tt.type).toLowerCase(), cible: groupLabel(tt.cible) }));
   }
   // Immunités croisées (LDB 21) : Animosité/Préjugé cèdent dès qu'on tombe sous un effet psy dominant (Peur/…).
   for (const tp of suppressSupersededPsych(enemy)) log.push(t('turn.psychSuperseded', { name: enemy.label, psych: psychologyLabel(tp) }));
@@ -300,7 +300,7 @@ export const TABLES = {
         for (const cible of cibles) {
           const src = uncovered.find((f) => groupesDe(f)[0] === cible)!;
           enemy.psychState.push({ type: 'haine', cible, sourceId: src.id, active: true, lastTestRound: battle.round });
-          battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, cible }), enemy.id));
+          battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, cible: groupLabel(cible) }), enemy.id));
         }
         set({ battle: { ...battle } });
       },

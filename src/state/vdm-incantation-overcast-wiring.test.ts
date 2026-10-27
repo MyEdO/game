@@ -13,9 +13,9 @@ import type { CastResult } from '../engine/magic';
 
 const RULE = 'magic-vdm-incantation';
 
-/** Incantation CRITIQUE (double 44 réussi) à DR 8 = exactement le NI d'Allure démoniaque :
- *  budget LDB = floor((8 − 8) / 2) = 0 pas. Sous VDM, le DR devient 8 + 4 (dizaines de 44) = 12. */
-const critRes: CastResult = { cast: true, roll: 44, target: 90, sl: 8, isCritical: true, isFumble: false, log: 'critique' };
+/** Incantation CRITIQUE (double 44 réussi) à DR 8 = le NI d'Allure démoniaque, figé au jet (`niRequired`).
+ *  `LDB 47 l.17` ; `VDM 02 l.55`, `l.196`. */
+const critRes: CastResult = { cast: true, roll: 44, target: 90, sl: 8, isCritical: true, isFumble: false, niRequired: 8, log: 'critique' };
 
 function openCast() {
   const W = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
@@ -53,7 +53,7 @@ describe('Câblage — « Puissance totale » VDM : +dizaines au DR, donc des pa
     expect(useGame.getState().pendingCast!.overcast).toEqual({ range: 0, zone: 0, duration: 4, targets: 0, damage: 0 });
   });
 
-  it('option ON, effet Critique AUTRE que « Puissance totale » : le DR ne bouge pas', () => {
+  it('option ON, effet Critique AUTRE que « Puissance totale » : DR 8 = NI 8, aucun pas', () => {
     setRule(RULE, true);
     openCast();
     useGame.getState().castSetCritChoice('ineluctable');

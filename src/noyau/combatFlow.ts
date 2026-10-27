@@ -100,6 +100,7 @@ import {
   spellDRModFor, spellSLFor, spellLandsOn, talentSpellDRMod, zoneTalentSpellDRMod,
   applyFullPower,
   defaultCritChoice,
+  castAfterCrit,
   spellRangeTiles, effectiveSpellRangeTiles,
   durationClockMinutes,
   castInfo,
@@ -124,12 +125,13 @@ import {
   malepierreItemOf,
   consumeMalepierre,
   sorceryMandatoryMiscast,
+  castOvercastBudget,
   type CastResult,
   type MissileResult,
   type CounterspellOutcome,
   type SpellLike,
 } from '../engine/magic';
-import { type OvercastSource, overcastSourceOf, overcastDurationParts, overcastBudget, overcastAxes, extraTargetCapacity, zoneDiameterMultiplier } from '../engine/overcast';
+import { type OvercastAxis, type OvercastSource, type OvercastSpell, overcastSourceOf, overcastDurationParts, overcastAxesFor, extraTargetCapacity, zoneDiameterMultiplier } from '../engine/overcast';
 import type { SpellRange } from '../engine/spellRange';
 import { evalCondition, spellFlowFor, spellOps, flowHasFreeAttack, flattenFlow, EMPTY_FLOW, type FlowTest, type EffectTrigger } from '../engine/flowCore';
 import { combatConditionCtx } from './combat/flowEval';
@@ -151,7 +153,7 @@ import {
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR, cibleMesuree } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
-import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
+import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES, groupLabel } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
@@ -219,7 +221,7 @@ import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
 import { fearSourceFor, refreshAllDefendedPsych, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType, psychTest } from '../engine/psychology';
-import { groupMatch, groupesDe } from '../engine/groups';
+import { groupMatch, groupesDe, type PorteurDeGroupes } from '../engine/groups';
 import { sceneCombatModifiers } from './monde/sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
@@ -1659,13 +1661,13 @@ export function attackPlan(get: Get, active: Combatant, target: Combatant, opts?
 
 /** Mort d'un combattant : pour un héros à Destin, suspend (pendingFateSave) au lieu de mourir
  *  (LDB 17 l.29) ; sinon finalise la mort. `restoreWounds` = PB d'avant le coup létal.
- *  `foe` = « l'individu ou l'élément qui l'a presque tué » (coup direct) → Cible d'une éventuelle
- *  Animosité si le Destin est dépensé (ADE II Annexe I, règle facultative) ; absent pour la mort lente. */
-export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source: FateSaveSource, restoreWounds?: number, foe?: Pick<Combatant, 'label' | 'groups'>): void {
+ *  `foe` : l'auteur du coup direct, d'où se dérive la Cible d'une Animosité si le Destin est dépensé
+ *  (son 1er Groupe, `groupesDe`, ADE II (VO) 09 l.14) ; absent pour la mort lente. */
+export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source: FateSaveSource, restoreWounds?: number, foe?: PorteurDeGroupes): void {
   // Le vrai gate est la RESSOURCE (`fate > 0`, présente sur tout kind), pas le `kind` : un combattant à
   // Destin (héros, ou ennemi conduit doté de Destin) est sauvé ; sinon la mort est finalisée.
   if ((hero.fate ?? 0) > 0) {
-    const foeCible = foe ? (groupesDe(foe)[0] ?? foe.label) : undefined;
+    const foeCible = foe ? groupesDe(foe)[0] : undefined;
     set({ pendingFateSave: { heroId: hero.id, source, restoreWounds, ...(foeCible ? { foeCible } : {}) } });
   } else {
     hero.dead = true;
@@ -5299,10 +5301,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const spell = effectiveSpellOf(pc);
   if (!caster?.pos || !spell) return;
   const res = pc.result;
-  // « Puissance totale » (LDB 46 l.31) repêche un DR insuffisant — la pose reste permise (le
-  // repêchage est appliqué par applyCast) ; tout autre échec ne se pose pas.
-  const castable = res.cast || (!!res.isCritical && (pc.critChoice ?? 'puissance') === 'puissance');
-  if (!castable) return;
+  if (!castAfterCrit(res, pc.critChoice, !!pc.missile)) return;
   const range = spellRangeTiles(spell.range, caster);
   if (range != null && chebyshev(caster.pos, pt) > range) {
     get().log(tr('cf.zoneOutOfRange', { spell: spell.label, range }));
@@ -5473,31 +5472,43 @@ export function aiWouldPrepareSpell(enemy: Combatant, get: Get): boolean {
   return a.kind === 'cast' || a.kind === 'castArea' || a.kind === 'focus';
 }
 
-/** Surincantation AUTOMATIQUE d'un lanceur ENNEMI (LDB 47 l.28-31 : « Pour chaque +2 DR […]
- *  vous pouvez ajouter une valeur de […] Cible égale à la valeur initiale ») : le surplus
- *  (DR − NI) est alloué à l'axe CIBLE d'un Projectile — adversaires actifs les plus proches,
- *  à PORTÉE du Sort, hors cible principale. Sous VDM (#885), le reliquat non consommé par l'axe
- *  Cible (aucune cible neuve à couvrir de plus) rejoint l'axe Dégâts — MÊME fonction `overcastAxes`
- *  que le joueur (`castAllocOvercast`), jamais une 2e liste d'axes. Retourne le patch de
- *  pendingCast ({} si rien). */
+/** Axes de Surincantation OUVERTS au lancement `pc` : ceux de CE sort (`overcastAxesFor`), tant que
+ *  le gabarit de zone n'est pas posé (`LDB 47 l.15`, `l.28`). Lu par la modale et `castAllocOvercast`. */
+export function castOvercastAxes(pc: Pick<PendingCast, 'zone' | 'missile'>, spell: OvercastSpell): OvercastAxis[] {
+  return pc.zone?.center ? [] : overcastAxesFor(spell, !!pc.missile);
+}
+
+/** Un geste a changé le budget de Surincantation après une allocation (effet d'Incantation Critique,
+ *  jet relancé ou choisi, Contre-sort) : l'allocation retombe à zéro, avec ce qui en dérive (cibles
+ *  supplémentaires, jets au Tableau, rayon du gabarit). Décision #3059. */
+export function overcastReset(pc: Pick<PendingCast, 'zone'>, mpt: number): Partial<PendingCast> {
+  return {
+    overcast: undefined, extraTargetIds: undefined, chosenTableRolls: undefined,
+    ...(pc.zone ? { zone: { ...pc.zone, radius: zoneRadiusTilesAt(pc.zone.r0m ?? 0, 0, mpt) } } : {}),
+  };
+}
+
+/** Surincantation AUTOMATIQUE d'un lanceur ENNEMI (LDB 47 l.28-31) : le surplus est alloué à l'axe
+ *  CIBLE d'un Projectile — adversaires actifs les plus proches, à PORTÉE du Sort, hors cible
+ *  principale. Sous VDM (#885), le reliquat non consommé par l'axe Cible rejoint l'axe Dégâts. Axes
+ *  et budget : les MÊMES lectures que le joueur (`overcastAxesFor`, `castOvercastBudget`). Retourne
+ *  le patch de pendingCast ({} si rien). */
 export function aiOvercastPlan(
   caster: Combatant,
   targetId: string,
-  spell: { cn: number | null; range: SpellRange | null; family?: string },
-  res: { cast: boolean; sl: number },
+  spell: OvercastSpell & { range: SpellRange | null },
+  res: CastResult,
   combatants: Combatant[],
-  focusedNI0 = false,
   sight?: SpellSight,
   missile = false,
 ): { overcast?: { range: number; zone: number; duration: number; targets: number; damage: number }; extraTargetIds?: string[] } {
-  if (!res.cast || !caster.pos) return {};
-  const ni = focusedNI0 ? 0 : spell.cn ?? 0;
+  if (!caster.pos) return {};
   const source = overcastSourceOf(spell);
-  const budget = overcastBudget(source, res.sl, ni);
+  const budget = castOvercastBudget(spell, res, undefined, missile);
   if (budget <= 0) return {};
-  const axes = overcastAxes(source, missile);
+  const axes = overcastAxesFor(spell, missile);
   const range = spellRangeTiles(spell.range, caster) ?? Infinity;
-  const extras = combatants
+  const extras = !axes.includes('targets') ? [] : combatants
     .filter((t) => t.kind !== caster.kind && t.id !== targetId && !isOutOfAction(t) && t.pos && combatDistance(caster, t) <= range && !spellSightBlocked(sight, caster, t))
     .sort((a, b) => combatDistance(caster, a) - combatDistance(caster, b))
     .slice(0, extraTargetCapacity(source, budget, 1))
@@ -5620,9 +5631,9 @@ export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatan
   }
   // Surincantation : le surplus a changé — re-plan IA (lanceur ennemi), remise à zéro sinon.
   const oc = aiDriven(get(), caster) && pc.missile && !pc.zone
-    ? aiOvercastPlan(caster, pc.targetId, spell, next, get().battle?.combatants ?? [], pc.focused, spellSightOf(get), !!pc.missile)
+    ? aiOvercastPlan(caster, pc.targetId, spell, next, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile)
     : {};
-  set({ pendingCast: { ...pc, result: next, overcast: undefined, extraTargetIds: undefined, ...oc } });
+  set({ pendingCast: { ...pc, result: next, ...overcastReset(pc, sceneMetresPerTile(get().scene)), ...oc } });
   const b = get().battle;
   if (b) set({ battle: { ...b, log: [...b.log, ev('info', out.log, counter.id, caster.id)] } });
   return true;
@@ -7792,17 +7803,15 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
     // l'état `becomes` (LDB 21 l.56, INCONDITIONNEL, à PLEIN Indice — #1190). Conséquences en DONNÉES.
     const brise = r.success ? 0 : failConditionAmount(res.failAmount, cp.indice, r.sl);
     line = r.success ? tr('out.terreurHold', { name: hero.label }) : tr('cf.terreurThenFear', { name: hero.label, foe: cp.sourceName, brise, indice: cp.indice });
-    // Phobie du noir (ADE II Annexe I, règle facultative `psych-acquisition-optional`) : cumuler les États
-    // Brisé subis À CAUSE de la Terreur ; à ≥ Bonus de FM → Phobie liée à la source (son Groupe si connu,
-    // sinon son nom), puis remise à zéro du compteur. `gainPhobieIfThreshold` porte la garde de la règle.
+    // Phobie du noir (ADE II 09 l.9, LDB 21 l.87) : Cible = Groupe de la source de la Terreur.
     if (brise > 0 && res.failCondition === COND.brise) {
       hero.briseFromTerreur = (hero.briseFromTerreur ?? 0) + brise;
       const foe = inBattleId(battle, cp.sourceId);
-      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, (foe ? groupesDe(foe)[0] : undefined) ?? cp.sourceName ?? '');
+      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, foe ? groupesDe(foe)[0] : undefined);
       if (gained) {
         hero.psychTraits = [...(hero.psychTraits ?? []), gained.phobie];
         hero.briseFromTerreur = 0;
-        phobieLine = `${hero.label} développe une Phobie durable : ${gained.phobie.cible}.`;
+        phobieLine = tr('cf.phobieGain', { name: hero.label, cible: groupLabel(gained.phobie.cible) });
       }
     }
   } else if (cible) {
@@ -7810,9 +7819,11 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
     const cl = cibleLabel(cp.kind);
     line = r.success ? tr('out.cibleMaster', { name: hero.label, kind: cl?.label.toLowerCase() ?? cp.kind }) : tr('out.cibleGrip', { name: hero.label, kind: cl?.label.toLowerCase() ?? cp.kind });
   } else {
-    line = (calmeDR ?? 0) >= cp.indice
-      ? `${hero.label} ${rm.sansPeur ? 'ignore la Peur' : 'surmonte sa peur'}${cp.sourceName ? ` de ${cp.sourceName}` : ''}${rm.sansPeur ? ' (Sans Peur)' : ''}.`
-      : `${hero.label} reste sous l'emprise de la Peur (${calmeDR ?? 0}/${cp.indice} DR).`;
+    const name = hero.label;
+    const foe = cp.sourceName;
+    line = (calmeDR ?? 0) < cp.indice ? tr('cf.fearHeld', { name, dr: calmeDR ?? 0, indice: cp.indice })
+      : rm.sansPeur ? (foe ? tr('turn.fearVanquished', { name, foe }) : tr('cf.fearIgnored', { name }))
+      : foe ? tr('out.fearOvercome', { name, foe }) : tr('turn.fearOvercome', { name });
   }
   // Immunités croisées (LDB 21) : Animosité/Préjugé cèdent dès qu'on tombe sous un effet psy dominant.
   return freeCons([line, ...(phobieLine ? [phobieLine] : []), ...supersededLines(hero, hero.label)]);

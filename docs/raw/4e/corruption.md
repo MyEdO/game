@@ -569,7 +569,7 @@ Quand la menace choisie est **Mutation** : réussir automatiquement le premier T
 | « Je te renie ! : vous pouvez choisir de ne pas développer la mutation obtenue » (LDB 17 l.67) — 1 Résilience, pas de mutation | `resolveRenounce` + `pendingRenounce` | **OK** |
 | Mods passifs via collecteur unifié passiveMods | `passive: GameOp[]` sur `Mutation` (mutations.json) | **OK** |
 | Traits de créature via mutation (Tentacule, Stupide…) | `attachMutation` → copie `m.traits` sur `c.traits` | **OK** |
-| Traits psychologiques via mutation (Frénésie) | `attachMutation` → copie `m.psychTraits` | **OK** |
+| Traits psychologiques via mutation (Frénésie) | `attachMutation` → `grantPsychTrait` de `m.passive` | **OK** |
 | Sombres Murmures (LDB 19 l.95-105 — choix OPTIONNEL, refuser garde le PC) | `DialogueChoice.flow` porte `{ op: 'corruption', amount: -1 }` (`src/engine/ops.ts`) ; le choix EST le dialogue d'auteur (accepter/refuser), rien de plus au moteur | **OK** |
 | Absolution (LDB 19 l.167-178 ; l.171 : « Les limites précises de ce qui peut être nécessaire pour perdre de la Corruption sont laissées à l'appréciation du MJ ») | quantité AUTHORABLE : `{ op: 'corruption', amount: -n }` (`applyOps`, `src/engine/ops.ts`) décrémente `corruption`, plancher 0, sans passer par `ctx.onCorruption` (pas de seuil/mutation sur un retrait) ; éditable au GameOpEditor (`src/ui/editor/GameOpEditor.tsx`) | **OK** |
 

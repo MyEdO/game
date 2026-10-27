@@ -1,19 +1,14 @@
 /**
- * Surincantation — math PURE source-aware. SOURCE UNIQUE du « que fait un pas de surplus » selon le
- * type de magie, dérivée de la donnée (`spell.family`) — aucun champ manuel ajouté sur les sorts.
+ * Surincantation — SOURCE UNIQUE du « que fait un pas de surplus » selon le type de magie, dérivé de
+ * la donnée (`spell.family`). Arcane : `LDB 47 l.13-17` ; Miracle : `LDB 42 l.7-13` ; Bénédiction :
+ * `LDB 41 l.21-27` ; `magic-vdm-incantation` : `VDM 02 l.194-215`.
  *
- * RAW :
- *  - Arcane (LDB 47 l.13-17) : pour chaque +2 DR au-dessus du NI, +VALEUR INITIALE sur Portée / Zone
- *    d'Effet / Durée / Cible (×initial). Même axe répétable. « Vous »/« Contact »/« Spécial » non extensibles.
- *  - Miracle (LDB 42 l.7-13) : pour chaque +2 DR (Test de Prière, sans NI), +initial Portée / Durée /
- *    Cible (×initial, comme l'arcane). PAS de Zone d'Effet. « Vous » non augmentable.
- *  - Bénédiction (LDB 41 l.21-27) : pour chaque +2 DR, +6 m Portée / +1 Cible / +6 Rounds Durée (FIXE,
- *    PAS ×initial). PAS de Zone d'Effet. « Instantané » → pas de Durée à prolonger.
- *
- * Pur ; ne dépend de rien (consommé par castAllocOvercast/castConfirm/overcastTargetCandidates + CastModal).
+ * Pur (consommé par castAllocOvercast/castConfirm/overcastTargetCandidates + CastModal).
  */
 
 import type { GameOp } from './ops';
+import type { SpellRange, SpellTarget } from './spellRange';
+import type { SpellDuration } from './spellDuration';
 import { rule } from './policy';
 import surincantationJson from '../data/surincantation.json';
 import type { SurincantationData } from '../data/schemas/defs/surincantation';
@@ -32,16 +27,40 @@ export function overcastSourceOf(spell: { family?: string }): OvercastSource {
   return 'arcane';
 }
 
-/** Axes surincantables d'une source (RAW) : la Zone d'Effet est RÉSERVÉE à l'arcane — ni les
- *  Bénédictions ni les Miracles n'augmentent de ZdE. L'axe Dégâts est RÉSERVÉ au Projectile
- *  magique (`missile`) sous le Tableau de Surincantation VDM (`VDM 02 l.198`) — le Livre de
- *  base n'a pas de colonne Dégât (le DR s'ajoute directement, `LDB 46 l.101`). L'ordre est celui
- *  d'affichage de la modale. */
-export function overcastAxes(source: OvercastSource, missile = false): OvercastAxis[] {
+/** Axes surincantables d'une source : la Zone d'Effet est réservée à l'arcane (`LDB 41 l.21-27`,
+ *  `LDB 42 l.9-11`) ; l'axe Dégâts au Projectile magique sous `VDM 02 l.198` (`LDB 46 l.101`). L'ordre
+ *  est celui d'affichage de la modale. */
+function overcastAxes(source: OvercastSource, missile: boolean): OvercastAxis[] {
   const base: OvercastAxis[] = source === 'arcane'
     ? ['range', 'zone', 'duration', 'targets']
     : ['range', 'duration', 'targets'];
   return missile && overcastModel(source) === 'vdm' ? [...base, 'damage'] : base;
+}
+
+/** Ce que le prédicat des axes lit d'un sort. */
+export interface OvercastSpell {
+  family?: string;
+  range?: SpellRange | null;
+  target?: SpellTarget | null;
+  duration?: SpellDuration | null;
+}
+
+/**
+ * Axes de Surincantation PERMIS pour CE sort — prédicat UNIQUE, lu par la modale, par
+ * `castAllocOvercast` et par le plan de l'IA. `LDB 47 l.15`, `l.27`, `l.28` ; `LDB 42 l.9-11` ;
+ * `LDB 41 l.21-27` ; `VDM 02 l.198-199` ; `CRB 070 l.77-79`.
+ */
+export function overcastAxesFor(spell: OvercastSpell, missile: boolean): OvercastAxis[] {
+  const source = overcastSourceOf(spell);
+  const vous = spell.range?.kind === 'self' || spell.target?.kind === 'self';
+  const permis: Record<OvercastAxis, boolean> = {
+    range: spell.range?.kind === 'distance' || (spell.range?.kind === 'touch' && source === 'blessing'),
+    zone: spell.target?.kind === 'area',
+    duration: spell.duration?.kind === 'rounds' || spell.duration?.kind === 'clock',
+    targets: !vous && spell.target?.kind === 'count',
+    damage: true,
+  };
+  return overcastAxes(source, missile).filter((a) => permis[a]);
 }
 
 /**
@@ -72,7 +91,8 @@ function vdmRow(dr: number): OvercastRow | null {
 }
 
 /**
- * BUDGET de Surincantation d'un lancement — SOURCE UNIQUE (modale, allocation de store, plan IA).
+ * Surplus de Surincantation pour un DR et un NI donnés — l'arithmétique de `castOvercastBudget`
+ * (`magic.ts`), seul site qui lit le NI effectif du jet.
  * LDB 47 l.13-17 / 41 / 42 : un pas coûte +2 DR au-dessus du NI. `VDM 02 l.196` : « le lanceur de
  * sorts peut dépenser les DR restants » — le surplus se dépense DR par DR, sans division.
  *

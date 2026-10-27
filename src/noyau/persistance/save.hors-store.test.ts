@@ -77,7 +77,22 @@ describe('chargerLaSave — l’état de jeu à ouvrir, ses règles, ses retrait
     const { etat, regles, retraits } = chargerLaSave(save);
     expect(regles).toEqual({});
     expect(etat.party[0].conditions.map((c) => c.id)).toEqual([connu]);
-    expect(retraits).toEqual({ regles: ['regle-hors-registre'], etats: ['etat-hors-registre'] });
+    expect(retraits).toEqual({ regles: ['regle-hors-registre'], etats: ['etat-hors-registre'], groupes: [] });
+  });
+
+  it('retire ENTIER le Trait psychologique dont la Cible est hors de `groups.json`, la nomme, garde le reste (LDB 21 l.17-21)', () => {
+    const connu = conditionIds()[0];
+    const animosite = { type: 'animosite', cible: 'skaven' };
+    const save = snapshotSave(etatInitialDuJeu(), 'x');
+    const h = { ...heros('h', connu), psychTraits: [{ type: 'haine', cible: 'groupe-hors-registre' }, animosite, { type: 'trauma' }] };
+    save.data = { ...save.data, party: [h] as unknown as SaveGame['data']['party'] };
+    const { etat, retraits } = chargerLaSave(save);
+    expect(etat.party[0].psychTraits).toEqual([animosite, { type: 'trauma' }]);
+    expect(etat.party[0].conditions.map((c) => c.id)).toEqual([connu]);
+    expect(retraits).toEqual({ regles: [], etats: [], groupes: ['groupe-hors-registre'] });
+    const intacte = snapshotSave(etatInitialDuJeu(), 'x');
+    intacte.data = { ...intacte.data, party: [{ ...heros('h', connu), psychTraits: [animosite] }] as unknown as SaveGame['data']['party'] };
+    expect(chargerLaSave(intacte).retraits, 'une Cible connue ne retire rien').toBeNull();
   });
 
   it('une assise d’un héros absent du groupe est élaguée ; une scène sans assise n’en gagne pas le champ', () => {

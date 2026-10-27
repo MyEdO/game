@@ -532,7 +532,8 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
   creation/                 BROUILLON DE CRÉATION de personnage (LDB 04/05), sans écran : `brouillon.ts` (état pur :
                             tirages figés, bonus PX, validation, `buildHero`), `defauts.ts` (`fillDraftDefaults`)
   persistance/              documents PERSISTÉS, sans stockage : `elagage.ts` (`elaguerLePersiste`, seul élagage
-                            des ids hors registre, #1463 LD.1), `roster.ts` (le roster `RosterStocke` et l'export
+                            des ids hors registre — règles, États, Cible d'un Trait psychologique hors
+                            `groups.json`, Trait retiré entier —, #1463 LD.1), `roster.ts` (le roster `RosterStocke` et l'export
                             `ExportDeHeros` : lecture contrôlée et élaguée, écriture, mise à jour d'une entrée,
                             export/import d'un héros), `bibliotheque.ts` (l'entrée de la bibliothèque de campagnes
                             `savedProjectSchema` : relecture prouvée, refusée ou indésignable, ce qu'une écriture en
@@ -634,8 +635,9 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               et export/import : `noyau/persistance/roster.ts` (enveloppes `RosterStocke` et
                               `ExportDeHeros`, sous `FORMAT_ROSTER` et `FORMAT_EXPORT_HEROS`) ; procédure :
                               `hote/roster.ts`. Un roster d'un autre format est retiré, un export d'un autre
-                              format est refusé. Un héros qui porte un État hors du registre courant est GARDÉ
-                              sans cet État (`noyau/persistance/elagage.ts`, #1463 LD.1) — roster réécrit ;
+                              format est refusé. Un héros qui porte un État, ou un Trait psychologique à Cible,
+                              hors du registre courant est GARDÉ sans eux (`noyau/persistance/elagage.ts`,
+                              #1463 LD.1) — roster réécrit ;
                               import, retrait rendu. Tout chargement qui retire ou élague (quel que soit le
                               geste : vivier, créateur, édition en jeu) cumule son témoin (`retire`,
                               `elagage`) sous sa propre clé du même stockage ; `prendreLesTemoinsDuRoster`

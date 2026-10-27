@@ -80,7 +80,7 @@ describe('la procédure du roster sur un stockage', () => {
     const heros = chargerLeRoster(s);
     expect(heros[1].hero.conditions).toEqual([{ id: ETAT_CONNU, value: 1 }]);
     expect(s.contenu.get(CLE)).toBe(ecrireLeRoster(heros));
-    expect(prendreLesTemoinsDuRoster(s)).toEqual({ retire: false, elagage: { regles: [], etats: [ETAT_INCONNU] } });
+    expect(prendreLesTemoinsDuRoster(s)).toEqual({ retire: false, elagage: { regles: [], etats: [ETAT_INCONNU], groupes: [] } });
     chargerLeRoster(s);
     expect(prendreLesTemoinsDuRoster(s), 'le roster réécrit ne se ré-élague pas').toBeNull();
   });
