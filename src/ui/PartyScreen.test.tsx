@@ -13,7 +13,8 @@ import { allAxes } from '../data';
 import { useGame } from '../state/store';
 import { heroSubtitle } from './CharCard';
 import { makePregens } from '../data/pregens';
-import { rosterAdd } from '../state/roster';
+import { stockageDuRoster } from '../state/roster';
+import { ajouterAuRoster } from '../hote/roster';
 import { initialNet, type NetState } from '../noyau/etat';
 import { Combatant } from '../engine/types';
 import { t } from '../i18n';
@@ -63,7 +64,7 @@ describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement
   });
 
   it('roster non vide : MÊME carte-portrait (nom complet + recruter + outils export/suppr)', () => {
-    rosterAdd({ hero: savedHero(), wealth: { gold: 1, silver: 0, brass: 0 } });
+    ajouterAuRoster(stockageDuRoster(), { hero: savedHero(), wealth: { gold: 1, silver: 0, brass: 0 } });
     const html = renderToStaticMarkup(<HeroSelector party={[]} mode="recruit" onPick={noop} onClose={noop} />);
     expect(html).toContain('Aventurière Sauvegardée'); // nom COMPLET
     expect(html).toContain('candidate-name');
@@ -73,7 +74,7 @@ describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement
 
   it('remplacement : cartes compactes, membre du groupe grisé « Déjà choisi »', () => {
     const h = savedHero();
-    rosterAdd({ hero: h, wealth: { gold: 0, silver: 5, brass: 0 } });
+    ajouterAuRoster(stockageDuRoster(), { hero: h, wealth: { gold: 0, silver: 5, brass: 0 } });
     const html = renderToStaticMarkup(<HeroSelector party={[h]} mode="replace" replaceName={h.label} onPick={noop} onClose={noop} />);
     expect(html).toContain('Remplacer Aventurière Sauvegardée'); // titre du mode remplacement
     expect(html).toContain('candidate-remplacement');

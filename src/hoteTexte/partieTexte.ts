@@ -94,13 +94,17 @@ export function jouerUnGeste(r: PartieRejouee, geste: Geste): LigneNumerotee[] {
   return r.journal.slice(debut);
 }
 
+/** Le service `persisterLeHeros` de l'hôte texte : il ne persiste aucun héros, une partie se rejoue de son fichier
+ *  (en-tête et gestes), sans roster. */
+const ignorerLeHeros = (): void => {};
+
 /** Rejoue un fichier : la partie ouverte sur l'en-tête, le scénario lancé, chaque geste rejoué. Une ligne qui ne se
  *  rejoue plus ferme la partie et lève, avec son rang (1 : l'en-tête, le lancement). */
 export function rejouer(entete: Entete, gestes: readonly Geste[]): PartieRejouee {
   let r: PartieRejouee | null = null;
   let ligne = 1;
   try {
-    const { partie, jetons, lancement } = ouvrirLaPartie(entete);
+    const { partie, jetons, lancement } = ouvrirLaPartie(entete, ignorerLeHeros);
     r = { partie, jetons, entete, gestes: [], journal: [], reprises: [] };
     absorber(r, lancement, 0);
     for (const geste of gestes) {

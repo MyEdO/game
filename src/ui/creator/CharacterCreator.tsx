@@ -16,7 +16,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useGame } from '../../state/store';
 import { Listbox, RadioGroup } from '../composites/GroupesDeChoix';
 import { NumberField } from '../NumberField';
-import { rosterAdd, rosterLoad } from '../../state/roster';
+import { stockageDuRoster } from '../../state/roster';
+import { ajouterAuRoster, chargerLeRoster } from '../../hote/roster';
 import {
   species as allSpecies,
   careersForSpecies,
@@ -251,7 +252,7 @@ export function CharacterCreator() {
     if (!editingHeroId) return null;
     const hero = party.find((h) => h.id === editingHeroId);
     if (!hero) return null;
-    const saved = rosterLoad().find((e) => e.hero.id === editingHeroId);
+    const saved = chargerLeRoster(stockageDuRoster()).find((e) => e.hero.id === editingHeroId);
     const draft = saved?.draft ?? draftFromHero(hero, graineDEntropie());
     return { heroId: hero.id, draft, lossless: !!saved?.draft };
   }, [editingHeroId, party]);
@@ -307,7 +308,7 @@ export function CharacterCreator() {
   const create = () => {
     const hero = buildHero(d, editing?.heroId); // édition : on conserve l'id du héros
     const wealth = draftWealth(d);
-    rosterAdd({ hero, wealth, draft: d }); // roster persistant + brouillon EXACT (round-trip futur)
+    ajouterAuRoster(stockageDuRoster(), { hero, wealth, draft: d }); // roster persistant + brouillon EXACT (round-trip futur)
     if (editing) {
       // Remplacement EN PLACE (primitive atomique) : préserve l'index/ordre et transfère la
       // possession au même siège — pas de re-crédit de la Richesse (déjà comptée à la création).

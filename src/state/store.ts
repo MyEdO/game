@@ -19,7 +19,7 @@ import type { CodexFocus } from './codexFocus';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
 import { poserLaPlateforme, type Plateforme, type PlateformeDe } from '../noyau/plateforme';
 import { scheduleCombatTimer, timerEnVol } from '../web/minuteries';
-import { rosterUpdate } from './roster';
+import { persisterLeHerosWeb } from './roster';
 import { planifierLeTickAuto } from '../noyau/combatAuto';
 import type { Scene } from '../noyau/monde/scene';
 import { pasAligneDuGroupe } from '../noyau/marcheDuGroupe';
@@ -373,7 +373,7 @@ seedBattleRng(graineDEntropie());
 const plateformeWeb: PlateformeDe<ReturnType<typeof scheduleCombatTimer>> = {
   programmer: scheduleCombatTimer,
   enAttente: timerEnVol,
-  persisterLeHeros: rosterUpdate,
+  persisterLeHeros: persisterLeHerosWeb,
 };
 poserLaPlateforme(plateformeWeb as unknown as Plateforme);
 

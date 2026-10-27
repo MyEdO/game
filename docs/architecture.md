@@ -101,15 +101,16 @@ qui le rend inutile.
 | `hoteTexte`, `hotes` (`hotes/`) | hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` | oui |
 | `web` | services d'exécution du navigateur : minuteries, IndexedDB, stockage local, fichiers | feuilles | non |
 | `net`, `audio` | services de l'hôte web | feuilles (`audio` : et `web`) | non |
-| `state` | adaptateur du store web : pose le résultat du noyau, sélectionne pour l'affichage, persiste | tout ce qui précède ; `ui` en type seul | non |
-| `ui`, `gameIso` | présentation de l'hôte web, deux zones qui s'importent l'une l'autre | tout ce qui précède | non |
+| `state` | adaptateur du store web : pose le résultat du noyau, sélectionne pour l'affichage, persiste | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` compris) ; `ui` en type seul | non |
+| `ui`, `gameIso` | présentation de l'hôte web, deux zones qui s'importent l'une l'autre | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` : `ui` seule) | non |
 | racine de `src/` | entrée de l'hôte web (`main.tsx`) et tests transverses | tout | non |
 
 - **`src/state` ne décide d'aucun effet de jeu** (#2942) : chaque décision a une seule implémentation, au
   noyau, lue par le web, la recette et tout hôte. Un module pur qui n'est pas un adaptateur va dans la zone
   qui le lit : au noyau s'il sert le contenu ou un hôte, dans la présentation s'il ne sert que l'atelier.
 - **Le noyau ne lit de l'hôte que ce que l'hôte lui fournit** (mur `murs/sans-hote`) : la graine du RNG de
-  bataille, la cadence, les règles maison, l'appel différé (`programmer`, `src/noyau/plateforme.ts`), et,
+  bataille, la cadence, les règles maison, l'appel différé (`programmer`, `src/noyau/plateforme.ts`), le héros
+  persisté (`persisterLeHeros`, le roster de l'hôte qui a un stockage : `src/hote/roster.ts`), et,
   pour `validateScene`, les pistes de musique que l'hôte sait jouer.
 - **Registres fermés** : au noyau, un registre d'effets ou de crochets est une table statique typée par une
   union fermée (une entrée manquante ne compile pas), jamais une fonction d'inscription appelée à l'import.
@@ -525,7 +526,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
   creation/                 BROUILLON DE CRÉATION de personnage (LDB 04/05), sans écran : `brouillon.ts` (état pur :
                             tirages figés, bonus PX, validation, `buildHero`), `defauts.ts` (`fillDraftDefaults`)
   persistance/              documents PERSISTÉS, sans stockage : `elagage.ts` (`elaguerLePersiste`, seul élagage
-                            des ids hors registre, #1463 LD.1) et `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré)
+                            des ids hors registre, #1463 LD.1), `roster.ts` (le roster `RosterStocke` et l'export
+                            `ExportDeHeros` : lecture contrôlée et élaguée, écriture, mise à jour d'une entrée,
+                            export/import d'un héros) et `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré)
 src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte fait d'une partie, sans écran ni
                             horloge. `partie.ts` (l'erreur structurée d'un geste et sa catégorie, l'en-tête d'une
                             partie, son ouverture : la partie du noyau, le scénario de test lancé, la tenue des jetons
@@ -537,7 +540,10 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             paramètres des verbes, `scripts/gen-verbes.mjs`), `gestes.ts` (`fenetreADessiner` : la
                             fenêtre qui tient la main, chacun de ses verbes en geste prêt à saisir et à rendre),
                             `ecran.ts` (`panneauDuCombat`, `corpsDeLaFenetre` : les textes d'un hôte qui dessine la
-                            partie, tirés du catalogue et des lecteurs du noyau). Entrée d'un hôte servi ou bâti par
+                            partie, tirés du catalogue et des lecteurs du noyau), `roster.ts` (la procédure du roster
+                            sur le `Stockage` que l'hôte fournit : charger, ajouter, retirer, mettre à jour — le
+                            service `persisterLeHeros` d'un hôte qui a un stockage ; le chargement REND ses témoins de
+                            retrait et d'élagage). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
                             ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
@@ -594,15 +600,18 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               module ne connaîtrait que l'Arène + la scène courante et les transitions
                               vers les AUTRES scènes du paquet échoueraient en silence. `campaignNarratif`
                               reste NON persisté (re-dérivé de `campaignDoc`).
-  roster.ts                   Roster persistant (localStorage) des personnages créés au créateur, et
-                              export/import d'un héros en fichier : enveloppes `RosterStocke` et
-                              `ExportDeHeros`, sous `FORMAT_ROSTER` et `FORMAT_EXPORT_HEROS`. Un
-                              roster d'un autre format est retiré (témoin `takeRosterNotice`, rendu
-                              par `ui/PartyScreen`) ; un export d'un autre format est refusé. Un héros
-                              qui porte un État hors du registre courant est GARDÉ sans cet État
-                              (`noyau/persistance/elagage.ts`, #1463 LD.1) — roster réécrit, témoin
-                              `takeRosterElagage` ; import, retrait rendu — nommé par `ui/PartyScreen`. Le
-                              roster ne voyage PAS dans la save de partie
+  roster.ts                   Câblage web du roster des personnages créés au créateur : son stockage
+                              (`stockageDuRoster`, `localStorage`) et le service `persisterLeHerosWeb`. Forme
+                              et export/import : `noyau/persistance/roster.ts` (enveloppes `RosterStocke` et
+                              `ExportDeHeros`, sous `FORMAT_ROSTER` et `FORMAT_EXPORT_HEROS`) ; procédure :
+                              `hote/roster.ts`. Un roster d'un autre format est retiré, un export d'un autre
+                              format est refusé. Un héros qui porte un État hors du registre courant est GARDÉ
+                              sans cet État (`noyau/persistance/elagage.ts`, #1463 LD.1) — roster réécrit ;
+                              import, retrait rendu. Tout chargement qui retire ou élague (quel que soit le
+                              geste : vivier, créateur, édition en jeu) cumule son témoin (`retire`,
+                              `elagage`) sous sa propre clé du même stockage ; `prendreLesTemoinsDuRoster`
+                              le lit puis le supprime, au montage du vivier de `ui/PartyScreen`, qui le
+                              nomme. Le roster ne voyage PAS dans la save de partie
   projectLibrary.ts           Bibliothèque des projets de campagne de l'éditeur (`SavedProject`).
                               Base IndexedDB `wfrp4-library` par `accesBase` (magasin `projects`, source de
                               vérité — supporte les grandes campagnes qui dépassent le quota

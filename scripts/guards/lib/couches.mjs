@@ -58,8 +58,8 @@ export const COUCHES = Object.freeze({
   net: { importe: [...FEUILLES] },
   web: { importe: [...FEUILLES] },
   audio: { importe: ['web', ...FEUILLES] },
-  state: { importe: ['noyau', 'web', 'engine', 'data', 'scenes', 'net', 'audio', ...FEUILLES], types: ['ui'] },
-  ui: { importe: ['gameIso', ...AMONT_DE_LA_PRESENTATION] },
+  state: { importe: ['noyau', 'hote', 'web', 'engine', 'data', 'scenes', 'net', 'audio', ...FEUILLES], types: ['ui'] },
+  ui: { importe: ['gameIso', 'hote', ...AMONT_DE_LA_PRESENTATION] },
   gameIso: { importe: ['ui', ...AMONT_DE_LA_PRESENTATION] },
   racine: { dossier: 'src', importe: '*' },
 });
