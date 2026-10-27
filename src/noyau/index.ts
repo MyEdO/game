@@ -44,3 +44,4 @@ export { texteDuMod } from './difficultyText';
 export { avecSigne } from '../engine/types';
 export { lireLeRoster, ecrireLeRoster, rosterAvecLeHeros, type RosterEntry } from './persistance/roster';
 export type { RetraitsDElagage } from './persistance/elagage';
+export { snapshotSave, parseSave, chargerLaSave, refusDeSauvegarde, type SaveGame, type SaveMeta } from './persistance/save';

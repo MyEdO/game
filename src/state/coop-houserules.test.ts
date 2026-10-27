@@ -5,7 +5,7 @@
  * surcharges localStorage et divergerait de l'hôte.
  */
 import { describe, it, expect } from 'vitest';
-import { packHouseRules, unpackHouseRules, HOUSE_RULES_KEY } from './saves';
+import { packHouseRules, unpackHouseRules, HOUSE_RULES_KEY } from '../noyau/persistance/save';
 
 describe('coop — règles maison dans le snapshot (pack/unpack purs)', () => {
   it('pack joint les règles sous la clé réservée, sans toucher au reste', () => {

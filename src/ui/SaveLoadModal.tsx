@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../state/store';
-import { listSaves, readSlot, deleteSlot, exportSave, takeObsoleteNotice, SAVE_SLOTS, AUTO_SLOT, type SaveSlot, type AnySlot, type SaveMeta, type ObsoleteCause, type RetraitDeSave } from '../state/saves';
+import { listSaves, readSlot, deleteSlot, exportSave, takeObsoleteNotice, SAVE_SLOTS, AUTO_SLOT, type SaveSlot, type AnySlot, type ObsoleteCause, type RetraitDeSave } from '../state/saves';
+import { type SaveMeta } from '../noyau/persistance/save';
 import { downloadText } from '../web/fileIo';
 import { GameDate } from './GameDate';
 import { Modal } from './Modal';

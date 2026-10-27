@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import { addPossession, stablePossession } from '../noyau/possessionsFlow';
-import { snapshotSave, parseSave } from './saves';
+import { snapshotSave, parseSave } from '../noyau/persistance/save';
 import { possessionTotalEnc } from '../engine/possession';
 import type { Possession } from '../engine/possession';
 
@@ -39,7 +39,7 @@ describe('scénario-étalon possessions — charrette + mule chargée (terrestre
     expect(encCharretteBefore).toBe(25); // 10 (own, catalogue) + 15 (cargo) + 0 (items)
     expect(encMuleBefore).toBe(10); // 6 (own, Taille Moyenne, MDG 12 l.25-33) + 4 (cargo) + 0 (items)
 
-    const save = snapshotSave(get() as unknown as Record<string, unknown>, useGame.getInitialState() as unknown as Record<string, unknown>, '2512-01-01');
+    const save = snapshotSave(get(), '2512-01-01');
     const migrated = parseSave(JSON.parse(JSON.stringify(save)))!;
     const after = migrated.data.possessions as Possession[];
     const charretteAfter = after.find((p) => p.uid === charretteUid)!;

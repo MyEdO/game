@@ -7,7 +7,8 @@ import { applyEffects } from '../combatEffects';
 import { emptyScene } from './scene';
 import type { Combatant } from '../../engine/types';
 import type { Scene } from './scene';
-import { readSlot, saveToSlot, deleteSlot, type SaveGame } from '../../state/saves';
+import { readSlot, saveToSlot, deleteSlot } from '../../state/saves';
+import { type SaveGame } from '../persistance/save';
 import { withActingSeat } from '../netOwnership';
 import { emettreIntentInvite, interceptGuestActions, restoreGuestActions } from '../../state/netFlow';
 

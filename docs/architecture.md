@@ -528,7 +528,11 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
   persistance/              documents PERSISTÉS, sans stockage : `elagage.ts` (`elaguerLePersiste`, seul élagage
                             des ids hors registre, #1463 LD.1), `roster.ts` (le roster `RosterStocke` et l'export
                             `ExportDeHeros` : lecture contrôlée et élaguée, écriture, mise à jour d'une entrée,
-                            export/import d'un héros) et `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré)
+                            export/import d'un héros), `save.ts` (la sauvegarde : `SaveGame`, dont le `data` est
+                            `EtatDeJeu` moins `HORS_SAVE`, jamais l'état d'affichage d'un hôte ; `snapshotSave`,
+                            `parseSave`, `elaguerSave`, `chargerLaSave` qui rend l'état de jeu à ouvrir, ses règles
+                            maison et ses retraits, `refusDeSauvegarde` ; règles maison du snapshot coop) et
+                            `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré)
 src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte fait d'une partie, sans écran ni
                             horloge. `partie.ts` (l'erreur structurée d'un geste et sa catégorie, l'en-tête d'une
                             partie, son ouverture : la partie du noyau, le scénario de test lancé, la tenue des jetons
@@ -584,22 +588,18 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               (`gameIso/stage/MondeDeCampagne`)
   stageYaw.ts                 LACET CONTINU de la caméra du stage (#1176) : cible + courant qui y
                               court, `viewYawDeg` (projection) et `viewRot` (cran EFFECTIF du dégagement)
-  saves.ts                    Sauvegarde/chargement de partie (localStorage 3 slots + export/import
-                              JSON). `version` vaut `FORMAT_SAVE` (FORMATS PERSISTÉS, plus bas) ;
-                              une save d'un autre format ou illisible est REJETÉE et RETIRÉE du
-                              stockage par `readSlot`, et le témoin `takeObsoleteNotice` fait afficher
-                              le message au joueur par `ui/SaveLoadModal`. Une save au format courant
-                              qui nomme une règle optionnelle ou un État hors du registre courant SE
-                              CHARGE, élaguée de ces seuls ids par `elaguerSave` (`noyau/persistance/elagage.ts`,
-                              #1463 LD.1), nommés au joueur par `ui/RetraitsDeChargement`.
-                              Save AUTO-SUFFISANTE (#766) : le slot `campaignDoc`
-                              (`noyau/etat.ts`, snapshotté via `stateFields`) embarque le DOCUMENT SOURCE du
-                              paquet chargé (scènes + carte + narratif + scène d'entrée). Au chargement,
-                              `applyLoadedSave` RÉ-ENREGISTRE toutes ses scènes (`registerScene`) et
-                              RE-DÉRIVE `campaignNarratif` — sans lui, le `sceneRegistry` en mémoire
-                              module ne connaîtrait que l'Arène + la scène courante et les transitions
-                              vers les AUTRES scènes du paquet échoueraient en silence. `campaignNarratif`
-                              reste NON persisté (re-dérivé de `campaignDoc`).
+  saves.ts                    Emplacements de sauvegarde du web (localStorage 3 slots + AUTO,
+                              export/import JSON) ; la forme et les décisions : `noyau/persistance/save.ts`.
+                              Une save d'un autre format (`parseSave`) ou illisible est REJETÉE et RETIRÉE
+                              du stockage par `readSlot`, et le témoin `takeObsoleteNotice` fait afficher
+                              le message au joueur par `ui/SaveLoadModal`. Le store LIT le noyau :
+                              `applyLoadedSave` pose ce que rend `chargerLaSave` (élagage #1463 LD.1, nommé
+                              par `ui/RetraitsDeChargement`) sous la session coop courante et remet son
+                              interface comme pour une partie neuve ; `saveGame`/`autoSave` suivent
+                              `refusDeSauvegarde`. Save AUTO-SUFFISANTE (#766) : le slot `campaignDoc`
+                              (`noyau/etat.ts`) embarque le DOCUMENT SOURCE du paquet chargé ; au
+                              chargement, `chargerLaSave` RÉ-ENREGISTRE ses scènes et RE-DÉRIVE
+                              `campaignNarratif`, NON persisté.
   roster.ts                   Câblage web du roster des personnages créés au créateur : son stockage
                               (`stockageDuRoster`, `localStorage`) et le service `persisterLeHerosWeb`. Forme
                               et export/import : `noyau/persistance/roster.ts` (enveloppes `RosterStocke` et

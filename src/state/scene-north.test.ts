@@ -14,7 +14,9 @@
 import { describe, expect, it } from 'vitest';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { setNorthDeg } from '../noyau/sceneEdit';
-import { exportSave, importSave, snapshotSave } from './saves';
+import { exportSave, importSave } from './saves';
+import { snapshotSave } from '../noyau/persistance/save';
+import { etatInitialDuJeu } from '../noyau/etat';
 import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 
 describe('setNorthDeg — un cap, pas un compteur', () => {
@@ -42,12 +44,12 @@ describe('setNorthDeg — un cap, pas un compteur', () => {
 });
 
 describe('Sauvegarde — le nord authoré voyage, son absence ne casse rien', () => {
-  /** État minimal ne portant que la scène (le snapshot copie les clés de l'état INITIAL fourni). */
-  const etat = (scene: Scene) => ({ scene, gameTime: 9 * 60 });
+  /** L'état initial du jeu, porteur de la scène. */
+  const etat = (scene: Scene) => ({ ...etatInitialDuJeu(), scene, gameTime: 9 * 60 });
 
   it('round-trip export → import : `northDeg` survit à l’octet près', () => {
     const scene = setNorthDeg(emptyScene('scene-test', 5, 5), 90);
-    const save = snapshotSave(etat(scene), etat(scene), '2512-01-01T00:00:00Z');
+    const save = snapshotSave(etat(scene), '2512-01-01T00:00:00Z');
     const relu = importSave(exportSave(save));
     if (typeof relu === 'string') throw new Error(`save refusée : ${relu}`);
     expect(relu.version).toBe(FORMAT_SAVE);
@@ -56,7 +58,7 @@ describe('Sauvegarde — le nord authoré voyage, son absence ne casse rien', ()
 
   it('une scène SANS le champ se sauve et se relit, nord implicite', () => {
     const scene = emptyScene('scene-test', 5, 5);
-    const save = snapshotSave(etat(scene), etat(scene), '2512-01-01T00:00:00Z');
+    const save = snapshotSave(etat(scene), '2512-01-01T00:00:00Z');
     const relu = importSave(exportSave(save));
     if (typeof relu === 'string') throw new Error(`save refusée : ${relu}`);
     expect((relu.data.scene as Scene).northDeg).toBeUndefined();

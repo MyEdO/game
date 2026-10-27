@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { readFileSync } from 'node:fs';
 import { GameMenu } from './GameMenu';
 import { campaignStart } from '../engine/clock';
+import { t } from '../i18n';
 import { useGame } from '../state/store';
 import { KEYBINDINGS } from '../state/clavier/keybindings';
 import type { GameState } from '../state/store';
@@ -53,12 +54,20 @@ describe('GameMenu — menu système plein écran (pause)', () => {
 
   it('Sauvegarder/Fin de séance désactivés quand le contexte les refuse (combat/invité)', () => {
     const html = renderToStaticMarkup(
-      <GameMenu sceneName="La taverne" time={campaignStart()} onQuit={() => {}} initialOpen />,
+      <GameMenu
+        sceneName="La taverne" time={campaignStart()} onQuit={() => {}} initialOpen
+        onSaveLoad={() => {}} refusDeSauvegarde="invite"
+        onEndSession={() => {}} refusDeFinDeSeance={t('gameMenu.endSession.invite')}
+      />,
     );
-    // Les six entrées restent affichées (menu STABLE) mais les deux indisponibles sont disabled.
-    expect(html).toContain('Sauvegarder / Charger');
-    expect(html).toContain('Fin de séance');
-    expect(html).toMatch(/disabled/);
+    // Les six entrées restent affichées (menu STABLE) ; chaque entrée refusée est désactivée et dit SA raison.
+    const boutons = [...html.matchAll(/<button[^>]*>(?:(?!<\/button>).)*<\/button>/gs)].map((m) => m[0]);
+    const entree = (libelle: string) => boutons.find((b) => b.includes(libelle))!;
+    expect(entree('Sauvegarder / Charger')).toMatch(/disabled/);
+    expect(html).toContain(t('store.saveInvite'));
+    expect(entree('Fin de séance')).toMatch(/disabled/);
+    expect(html).toContain(t('gameMenu.endSession.invite'));
+    expect(entree('Options')).not.toMatch(/disabled/);
   });
 
   it('sous-écran Options : onglets Clavier / Audio / Règles maison (même coquille)', () => {
