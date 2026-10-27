@@ -102,7 +102,7 @@ export class GuestSession {
       label: string;
       applySnapshot: (data: Record<string, unknown>) => void;
       /** Projet de campagne custom reçu au join (enregistré localement pour le rendu). */
-      onCampaign?: (m: Extract<NetMessage, { kind: 'campaign' }>) => void;
+      onPaquetDeCampagne?: (m: Extract<NetMessage, { kind: 'paquetDeCampagne' }>) => void;
       onAssign?: (heroId: string, seat: number) => void;
       /** Fermeture VOLONTAIRE de l'hôte pour incompatibilité de protocole (message `error` reçu
        *  AVANT le `onClose` du transport) — distinct d'une coupure réseau banale. */
@@ -126,8 +126,8 @@ export class GuestSession {
         this.opts.applySnapshot(m.data);
         return;
       }
-      if (m.kind === 'campaign') {
-        this.opts.onCampaign?.(m);
+      if (m.kind === 'paquetDeCampagne') {
+        this.opts.onPaquetDeCampagne?.(m);
         return;
       }
       if (m.kind === 'assign') this.opts.onAssign?.(m.heroId, m.seat);

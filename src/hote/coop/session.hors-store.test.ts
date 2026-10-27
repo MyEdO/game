@@ -28,7 +28,7 @@ const mkHost = () => {
   return { host, applyIntent, onSeatClosed };
 };
 
-describe('session coop (net/session)', () => {
+describe('session coop (hote/coop/session)', () => {
   it('handshake : l’invité reçoit hello + snapshot initial, l’hôte connaît le siège', () => {
     const { host } = mkHost();
     const applySnapshot = vi.fn();
@@ -138,7 +138,7 @@ describe('session coop (net/session)', () => {
       build: 'test',
       applyIntent: vi.fn(),
       getSnapshot: () => ({ gameTime: 1 }),
-      extraJoinMessages: () => [{ kind: 'campaign', label: 'P', scenes: [], startSceneId: 's', worldMap: null }],
+      extraJoinMessages: () => [{ kind: 'paquetDeCampagne', label: 'P', scenes: [], startSceneId: 's', worldMap: null }],
     });
     const [a, b] = FakeTransport.pair();
     host.addGuest(a, 1);
@@ -146,10 +146,10 @@ describe('session coop (net/session)', () => {
       build: 'test',
       label: 'A',
       applySnapshot: () => order.push('snapshot'),
-      onCampaign: () => order.push('campaign'),
+      onPaquetDeCampagne: () => order.push('paquetDeCampagne'),
     });
     guest.connect(b);
-    expect(order).toEqual(['campaign', 'snapshot']);
+    expect(order).toEqual(['paquetDeCampagne', 'snapshot']);
   });
 
   it('rejoin : re-handshake après reconnexion → l’hôte renvoie un snapshot complet', () => {

@@ -100,7 +100,7 @@ qui le rend inutile.
 | `hote` | module commun aux hôtes du noyau | la porte du noyau, `scenes`, feuilles | oui |
 | `hoteTexte`, `hotes` (`hotes/`) | hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` | oui |
 | `web` | services d'exécution du navigateur : minuteries, IndexedDB, stockage local, fichiers | feuilles | non |
-| `net`, `audio` | services de l'hôte web | feuilles (`audio` : et `web`) | non |
+| `net`, `audio` | services de l'hôte web | feuilles (`net` : et `hote` en type ; `audio` : et `web`) | non |
 | `state` | adaptateur du store web : pose le résultat du noyau, sélectionne pour l'affichage, persiste | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` compris) ; `ui` en type seul | non |
 | `ui`, `gameIso` | présentation de l'hôte web, deux zones qui s'importent l'une l'autre | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` : `ui` seule) | non |
 | racine de `src/` | entrée de l'hôte web (`main.tsx`) et tests transverses | tout | non |
@@ -533,6 +533,10 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `parseSave`, `elaguerSave`, `chargerLaSave` qui rend l'état de jeu à ouvrir, ses règles
                             maison et ses retraits, `refusDeSauvegarde` ; règles maison du snapshot coop) et
                             `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré)
+  coop.ts                   LA COOP sans hôte (#3041) : `buildDeLaCoop` (le `build` comparé au `hello`),
+                            `instantaneDeLaCoop` (l'instantané de l'état de jeu que l'hôte diffuse : clés de la
+                            sauvegarde, paquet de campagne en stub, hors `LOCALES_AU_CLIENT`, règles maison jointes),
+                            `appliquerLInstantane` (son application à l'état de l'invité, qui garde son identité réseau)
 src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte fait d'une partie, sans écran ni
                             horloge. `partie.ts` (l'erreur structurée d'un geste et sa catégorie, l'en-tête d'une
                             partie, son ouverture : la partie du noyau, le scénario de test lancé, la tenue des jetons
@@ -547,7 +551,10 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             partie, tirés du catalogue et des lecteurs du noyau), `roster.ts` (la procédure du roster
                             sur le `Stockage` que l'hôte fournit : charger, ajouter, retirer, mettre à jour — le
                             service `persisterLeHeros` d'un hôte qui a un stockage ; le chargement REND ses témoins de
-                            retrait et d'élagage). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte servi ou bâti par
+                            retrait et d'élagage), `coop/` (la coop sur le `Transport` que l'hôte fournit : `protocol.ts`, les messages
+                            et leur validation, `session.ts`, `HostSession`/`GuestSession` hôte-autoritaires,
+                            `transport.ts`, le port `Transport` et sa paire en mémoire `FakeTransport`).
+                            `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
                             ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
@@ -752,9 +759,9 @@ src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios 
                             largeurs inégales / char inconnu → throw. Entités/props/départ : poser des
                             MARQUEURS custom dans l'ASCII (ex. `@BFLr`), nettoyer avant le parse (`replace`)
                             puis scanner leurs positions.
-src/net/                    Coop en ligne (relay WebSocket) : relay.ts (RelayClient heartbeat/backoff,
-                            RoomHost = un Transport virtuel par siège, RoomGuest), session.ts (hôte-
-                            autoritaire : intents remis avec le siège du transport + snapshots), protocol.ts, compress.ts
+src/net/                    Coop en ligne de l'hôte web (relay WebSocket) : relay.ts (RelayClient heartbeat/backoff,
+                            RoomHost = un Transport virtuel par siège, RoomGuest), compress.ts ; la session et le
+                            protocole : `src/hote/coop/`
                             — codes de room 6 chars, reconnexion auto par token (grace 2 min)
                             Reprise du lien invité ou retour de l'hôte (host-up) : GuestSession.rejoin
                             relance le handshake, puis reçoit campagne et snapshot autoritaire frais.

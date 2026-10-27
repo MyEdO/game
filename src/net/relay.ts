@@ -5,11 +5,11 @@
  *
  * - `RelayClient`  : une connexion WS robuste (ping/pong, retry, fermetures 4xxx fatales).
  * - `RoomHost`     : démultiplexe l'unique WS hôte en un Transport VIRTUEL par siège —
- *                    `session.ts::addGuest` les consomme sans rien savoir du relay.
+ *                    `hote/coop/session.ts::addGuest` les consomme sans rien savoir du relay.
  * - `RoomGuest`    : EST un Transport (côté invité).
  * L'ordre des messages est préservé malgré la compression async : chaînes send/recv.
  */
-import type { Transport } from './transport';
+import type { Transport } from '../hote/coop/transport';
 import { deflateB64, inflateB64 } from './compress';
 
 export const RELAY_URL_PROD = 'https://w4-coop-relay.gauche-c.workers.dev';

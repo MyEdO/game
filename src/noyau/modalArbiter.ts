@@ -343,7 +343,7 @@ export function horsModalByPending(): Record<string, HorsModalDef> {
  *  inspection) n'y entre JAMAIS : elle vit dans la pile des couches de SON client (`dismissStack`), et
  *  l'écran de l'hôte ne doit pas refuser le geste d'un invité. L'ÉCRAN plein (`screen`, dont l'écran
  *  `compendium`) est, lui, PARTAGÉ : le snapshot de l'hôte écrase `screen` chez chaque invité
- *  (`netFlow.applyNetSnapshot`). */
+ *  (`coop.appliquerLInstantane`). */
 export interface SurfaceHorsPendingDef {
   key: string;
   tientLaMain: (s: ArbiterState) => boolean;

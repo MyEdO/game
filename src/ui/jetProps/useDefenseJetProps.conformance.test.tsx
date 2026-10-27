@@ -135,7 +135,7 @@ describe('Défense — Z1 « Acteur — Action (Compétence) »', () => {
 
 /**
  * CE QUE LA FENÊTRE ANNONCE vient de la frappe qui l'a OUVERTE (#1858) — et le siège INVITÉ, qui ne
- * reçoit le pending que par le snapshot coop (JSON pur, `netSnapshot`), rend la MÊME fenêtre.
+ * reçoit le pending que par le snapshot coop (JSON pur, `instantaneDeLaCoop`), rend la MÊME fenêtre.
  */
 describe('Défense — l’attaque annoncée, et son voyage jusqu’à l’invité', () => {
   it('Morsure gratuite : la rangée témoin annonce la MORSURE, pas une attaque générique', () => {

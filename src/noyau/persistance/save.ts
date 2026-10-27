@@ -36,7 +36,7 @@ export interface SaveGame extends SaveMeta {
 
 /**
  * Les clés de `EtatDeJeu` qui ne partent PAS en save, une raison par clé. Le contrat du snapshot est POSITIF : une
- * exclusion qui n'est pas ici n'existe pas. La même couture sert le snapshot coop (`state/netFlow.ts`).
+ * exclusion qui n'est pas ici n'existe pas. La même couture sert l'instantané coop (`noyau/coop.ts`).
  */
 const HORS_SAVE = {
   // #767 · #766
