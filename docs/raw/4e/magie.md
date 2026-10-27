@@ -210,9 +210,16 @@ Un **double raté** au Test d'incantation entraîne une **Incantation Imparfaite
 **Sources RAW :** `LDB 47 l.13-17` (Sorts) · `LDB 41 l.21-27` (Bénédictions) · `LDB 42 l.7-13` (Miracles)
 
 Dépenser le surplus de Degrés de Réussite pour amplifier un sort réussi. Budget = **un pas par +2 DR de
-surplus** — surplus = `DR − NI` pour un Sort (DR entier si Focalisé, NI déjà payé) ; **DR entier** pour une
-Prière (Bénédiction/Miracle : pas de NI). Le surplus se répartit librement entre les axes (même axe
-répétable). L'EFFET d'un pas **dépend de la source** :
+surplus** — surplus = `DR − NI effectif` pour un Sort : le NI que le jet devait atteindre, doublé à la
+lecture au grimoire (`LDB 47 l.21`), réduit par un Rituel (`VDM 02 l.398`) ; **DR entier** si le Sort est
+Focalisé au LDB (NI considéré comme nul, `LDB 46 l.132`) et pour une Prière (Bénédiction/Miracle : pas de
+NI). Les modificateurs de NI d'un lieu ou d'un objet ne sont branchés à aucun jet de combat. *Puissance
+totale* (`LDB 46 l.31`) ne retire pas le NI : un Sort que le jet a lancé garde son surplus au-delà du NI
+(augmenté des dizaines du lancer sous `VDM 02 l.55`) ; un Sort qu'elle seule lance n'a aucun pas. Un Sort
+dissipé (`LDB 46 l.156`) n'a aucun pas. La Focalisation sous `magic-vdm-incantation`
+(`VDM 02 l.133`, `l.137` : NI réduit de la réserve) n'est pas encore ce calcul : écart suivi depuis #3059.
+Le surplus se répartit librement entre les axes (même axe répétable). L'EFFET d'un pas **dépend de la
+source** :
 
 | Source (`spell.family`) | Axes | Effet d'UN pas |
 | --- | --- | --- |
@@ -220,10 +227,14 @@ répétable). L'EFFET d'un pas **dépend de la source** :
 | **Miracle** (`invocation`) | Portée · Durée · Cible (**pas de ZdE**) | **+valeur initiale** (×initial) |
 | **Bénédiction** (`beni`) | Portée · Durée · Cible (**pas de ZdE**) | **+6 m** Portée / **+1** Cible / **+6 Rounds** Durée (FIXE) |
 
-Restrictions (RAW) : Portée/Cible « **Vous** » → seul le lanceur, non augmentables ; Portée « **Contact** »
-non extensible **pour un Sort/Miracle** (une **Bénédiction** étend même le Contact : `LDB 41 l.27`, Guérison
-touchée → 6 m / 12 m) ; sans Durée (Instantané) → pas de prolongation ; Cible « **Spécial** » → pas de
-cibles supplémentaires (`LDB 47 l.28`).
+Restrictions (RAW) : Portée « **Vous** » → seul le lanceur, ni Portée ni Cibles augmentables ; Cible
+« **Vous** » → Cibles non augmentables, une Portée chiffrée reste extensible (`LDB 47 l.15`, `VDM 02 l.199` ;
+un Miracle « Vous » porte les deux, `LDB 42 l.11`) ; la ZdE centrée sur le lanceur reste agrandissable ; Portée « **Contact** » non extensible **pour un Sort/Miracle**
+(une **Bénédiction** étend même le Contact : `LDB 41 l.27`, Guérison touchée → 6 m / 12 m), ses Cibles
+restent extensibles ; toute Durée chiffrée (Rounds, minutes, heures) se prolonge, pas une Durée
+Instantané, absente ou « Spécial » ; pas de ZdE sur un sort sans ZdE ; Cible « **Spécial** » → pas de
+cibles supplémentaires (`LDB 47 l.28`). Prédicat unique `overcastAxesFor` (`src/engine/overcast.ts`),
+budget unique `castOvercastBudget` (`src/engine/magic.ts`) : la modale et le noyau les lisent.
 
 > **Verbatim Sort** (`LDB 47 l.15`) : « Pour chaque +2 DR que vous obtenez à un Test d'Incantation, vous
 > pouvez ajouter une valeur de Portée, de Zone d'Effet, de Durée ou de Cible égale à la valeur initiale
@@ -1030,7 +1041,7 @@ Nouveauté VDM. Un lanceur **elfe** peut apprendre un nombre de **Domaines magiq
 
 **Sources RAW :** `VDM 02 l.196`, `l.201`, `l.205` (titre), `l.207`, `l.215` (table)
 
-**Système de Surincantation révisé par VDM** (à distinguer de la [Surincantation LDB](#surincantation)). Les DR générés au-delà du NI peuvent être dépensés pour améliorer un sort réussi, sous restrictions : la Surincantation augmente **Portée, Zone d'Effet, Durée ou nombre de Cibles** (et **Dégâts** pour un *Projectile magique*) ; les Portées « Vous »/« Contact » et les Durées « Instantané » ne s'augmentent pas ; les sorts sans ZdE ne s'agrandissent pas ; Cible « Spécial » interdit les cibles supplémentaires. **VDM introduit un tableau à seuils de DR** (au lieu du « ×valeur initiale par pas » du LDB) : les effets se choisissent **dans plusieurs colonnes, mais chaque colonne une seule fois par incantation** ; tout DR restant est perdu.
+**Système de Surincantation révisé par VDM** (à distinguer de la [Surincantation LDB](#surincantation)). Les DR générés au-delà du NI effectif (même calcul de budget que le LDB, Focalisation VDM mise à part : voir [Surincantation](#surincantation)) peuvent être dépensés pour améliorer un sort réussi, sous restrictions : la Surincantation augmente **Portée, Zone d'Effet, Durée ou nombre de Cibles** (et **Dégâts** pour un *Projectile magique*) ; les Portées « Vous »/« Contact » et les Durées « Instantané » ne s'augmentent pas ; les sorts sans ZdE ne s'agrandissent pas ; Cible « Spécial » interdit les cibles supplémentaires. **VDM introduit un tableau à seuils de DR** (au lieu du « ×valeur initiale par pas » du LDB) : les effets se choisissent **dans plusieurs colonnes, mais chaque colonne une seule fois par incantation** ; tout DR restant est perdu.
 
 > **Verbatim** (l.196) : « Si un lancer d'Incantation génère des DR au-delà de ceux requis pour lancer un Sort, le lanceur de sorts peut dépenser les DR restants en Surincantation. »
 > **Verbatim** (l.201) : « Les effets peuvent être choisis dans plusieurs colonnes, mais chacune ne peut être choisie qu'une seule fois par incantation. Tout DR restant est perdu. »

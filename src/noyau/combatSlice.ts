@@ -18,7 +18,7 @@ import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { toRecapLines } from './recapLine';
 import { creatureAttacks, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, castOvercastAxes, overcastReset, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
@@ -52,9 +52,9 @@ import { campGain, campSpend, startAdvantagePools } from './combat/advantagePool
 import { combatSubstitute, skillAdvantageCap } from '../engine/skillCombatApps';
 import { byId } from '../data/index';
 import { rule } from '../engine/policy';
-import { resolveMagicMissile, resolveCasting, isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, overcastSL, castAfterCrit, defaultCritChoice, castInfo, castInfoIsPrayer, focusCriticalDR, dispelOwnSpellDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
+import { resolveMagicMissile, resolveCasting, isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, castOvercastBudget, castAfterCrit, defaultCritChoice, castInfoIsPrayer, focusCriticalDR, dispelOwnSpellDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
 import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
-import { type OvercastAxis, overcastSourceOf, overcastAxes, extraTargetCapacity, overcastDurationParts, overcastBudget } from '../engine/overcast';
+import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurationParts } from '../engine/overcast';
 import { resolveOpposed, extendedTestStep, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
@@ -3053,7 +3053,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Lanceur ENNEMI : Surincantation automatique (LDB 47 l.28-31) — le surplus de DR alloué à
       // l'axe Cible d'un Projectile (l'IA n'a pas de modale de choix ; ZdE déjà toutes-cibles).
       const auto = aiDriven(get(), caster) && pc.missile && !pc.zone
-        ? aiOvercastPlan(caster, pc.targetId, spell, res, get().battle?.combatants ?? [], pc.focused, spellSightOf(get), !!pc.missile)
+        ? aiOvercastPlan(caster, pc.targetId, spell, res, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile)
         : {};
       // Lanceur CONDUIT PAR LE MOTEUR (IA, cadence auto) : il n'a pas de modale pour trancher son
       // Incantation Critique — sa politique (`defaultCritChoice`) est son CHOIX, et elle s'ÉCRIT ici
@@ -3159,11 +3159,13 @@ export function createCombatSlice(get: Get, set: Set) {
       // ouverte) — elle reprendra elle-même (cascadeNext → resumeSuspendedAI à la clôture).
       if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
     },
-    /** Incantation CRITIQUE (LDB 46 l.26-32) : le lanceur choisit l'effet bonus dans la modale. */
+    /** Incantation CRITIQUE (LDB 46 l.26-32) : le lanceur choisit l'effet bonus dans la modale. Le
+     *  budget de Surincantation en dépend (`castOvercastBudget`) : l'allocation retombe (`overcastReset`). */
     castSetCritChoice: (choice: 'critique' | 'puissance' | 'ineluctable') => {
       const pc = get().pendingCast;
       if (!pc || !pc.result?.isCritical) return;
-      set({ pendingCast: { ...pc, critChoice: choice } });
+      const inchange = (pc.critChoice ?? defaultCritChoice(pc.result, !!pc.missile)) === choice;
+      set({ pendingCast: { ...pc, critChoice: choice, ...(inchange ? {} : overcastReset(pc, sceneMetresPerTile(get().scene))) } });
     },
     /** Arme invoquée à forme libre (Arme aethyrique) : le lanceur choisit la forme/Spé de Corps à corps. */
     castSetConjureForm: (form: ConjureForm) => {
@@ -3178,20 +3180,17 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!pc || pc.result) return; // avant le jet seulement
       set({ pendingCast: { ...pc, discreet } });
     },
-    /** Surincantation : un pas (`delta` +1/−1, stepper avec reset) coûte +2 DR du surplus — Sorts : DR − NI
-     *  (LDB 47) ; Bénédictions/Miracles : DR entier (pas de NI). L'EFFET d'un pas est SOURCE-AWARE
-     *  (`engine/overcast.ts`) ; l'axe doit être autorisé par la source (la ZdE n'existe qu'en arcane). */
+    /** Surincantation : un pas (`delta` +1/−1, stepper avec reset) sur un axe que `castOvercastAxes`
+     *  ouvre, borné au budget `castOvercastBudget` — les MÊMES lectures que la modale. L'EFFET d'un pas
+     *  est SOURCE-AWARE (`engine/overcast.ts`). */
     castAllocOvercast: (axis: OvercastAxis, delta: number) => {
       const pc = get().pendingCast;
       const spell = pc && findSpellById(pc.spellId);
-      if (!pc || !pc.result?.cast || !spell) return;
+      if (!pc?.result || !spell) return;
+      if (!castOvercastAxes(pc, spell).includes(axis)) return;
       const source = overcastSourceOf(spell);
-      if (!overcastAxes(source, !!pc.missile).includes(axis)) return; // axe interdit par la source (ex. ZdE divine)
       const oc = pc.overcast ?? { range: 0, zone: 0, duration: 0, targets: 0, damage: 0 };
-      // Le NI n'entre au budget que si la branche de résolution l'oppose (`castInfo.requireNI`) —
-      // `cn == null` n'est PAS un proxy de Prière (`LDB 40 l.13`).
-      const ni = !castInfo(spell).requireNI || pc.focused ? 0 : spell.cn ?? 0;
-      const budget = overcastBudget(source, overcastSL(pc.result, pc.critChoice, !!pc.missile), ni);
+      const budget = castOvercastBudget(spell, pc.result, pc.critChoice, !!pc.missile);
       const spent = oc.range + oc.zone + oc.duration + oc.targets + oc.damage;
       const v = oc[axis] + delta;
       if (delta > 0 && spent >= budget) return; // surplus épuisé (incrément)

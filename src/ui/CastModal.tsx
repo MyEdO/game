@@ -2,15 +2,15 @@ import type { ReactNode } from 'react';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { influencesLocally } from '../noyau/netOwnership';
-import { overcastTargetCandidates, previewCast, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSupportFor, withPreRollFixedDie } from '../noyau/combatFlow';
+import { overcastTargetCandidates, castOvercastAxes, effectiveSpellOf, previewCast, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSupportFor, withPreRollFixedDie } from '../noyau/combatFlow';
 import type { CounterDeclaration } from '../noyau/pendings';
 import { findSpellById } from '../data/index';
 import { spellEffectOps } from '../engine/flowCore';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { testValue } from '../engine/skills';
 import { clampTarget } from '../engine/tests';
-import { castingValue, spellTargetCount, overcastSL, castAfterCrit, castInfoIsPrayer } from '../engine/magic';
-import { type OvercastAxis, overcastSourceOf, overcastAxes, extraTargetCapacity, missileOvercastDamageBonus, spellHasOvercastTableRoll, overcastBudget, overcastStepCost } from '../engine/overcast';
+import { castingValue, castingNumberOf, spellTargetCount, castOvercastBudget, castAfterCrit, castInfoIsPrayer } from '../engine/magic';
+import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, missileOvercastDamageBonus, spellHasOvercastTableRoll, overcastStepCost } from '../engine/overcast';
 import { availableResistance, resistanceImproves } from '../engine/menace';
 import { rule } from '../engine/policy';
 import { CharFrame } from './CharFrame';
@@ -94,7 +94,8 @@ export function CastModal() {
   if (!caster || !target || !spell) return null;
   const res = pc.result;
   const isPrayer = castInfoIsPrayer(spell); // la branche de résolution, pas un proxy sur `cn`
-  const ni = spell.cn ?? 0;
+  // NI effectif : figé au jet (`niRequired`), sinon celui que le jet opposera (`castingNumberOf`).
+  const ni = res?.niRequired ?? castingNumberOf(effectiveSpellOf(pc) ?? spell, pc.focused, {}, [], caster);
   const selfTarget = caster.id === target.id;
   // Arme invoquée à forme libre (Arme aethyrique, op grantWeapon + chooseForm) : le lanceur choisit
   // la Compétence de Corps à corps / le profil d'arme avant d'appliquer (RAW LDB 47). Sinon : [].
@@ -104,7 +105,7 @@ export function CastModal() {
   // ZONE non posée (flux « jet puis pose », LDB 47 l.15/28) : pas de cible — le gabarit se dépose
   // APRÈS le jet et la Surincantation. « Puissance totale » (crit) repêche un DR insuffisant.
   const zoneUnplaced = !!pc.zone && !pc.zone.center;
-  const placeable = zoneUnplaced && !!res && !res.dispelled && castAfterCrit(res, pc.critChoice, !!pc.missile);
+  const placeable = zoneUnplaced && !!res && castAfterCrit(res, pc.critChoice, !!pc.missile);
   // #990 — CALENDRIER de découverte de l'incantation FIGÉE (arbitrage user 2026-07-30) : tant que le
   // répondant de CE siège (opposition de cible OU Contre-sort) n'a pas lancé, la rangée du lanceur ET
   // le verdict qui la trahit (« Sort lancé ! », « DR n < NI n ») restent masqués. Formule UNIQUE.
@@ -300,29 +301,18 @@ export function CastModal() {
       }
       postRollExtra={res && (
         <>
-          {/* Surincantation : un STEPPER +/− par axe (Portée/ZdE/Durée/Cible), borné au budget (coût
-              par pas = overcastStepCost, source-aware ; DR − NI pour un Sort, DR entier pour Prière).
-              L'effet d'un pas est SOURCE-AWARE (engine/overcast) : ×initial (Sort/Miracle) vs +6 m/+1/+6 R
-              FIXE (Bénédiction), ZdE réservée à l'arcane. La désignation des cibles supplémentaires est
+          {/* Surincantation : un STEPPER +/− par axe que le noyau ouvre (`castOvercastAxes`), borné au
+              budget unique (`castOvercastBudget`). La désignation des cibles supplémentaires est
               SÉPARÉE de l'allocation (en combat : sur la carte). */}
           {(() => {
-            if (!castAfterCrit(res, pc.critChoice, !!pc.missile) || caster.kind !== 'hero' || (pc.zone && !zoneUnplaced)) return null;
+            if (caster.kind !== 'hero') return null;
             const source = overcastSourceOf(spell);
             const stepCost = overcastStepCost(source);
-            const budget = overcastBudget(source, overcastSL(res, pc.critChoice, !!pc.missile), isPrayer || pc.focused ? 0 : ni);
+            const budget = castOvercastBudget(spell, res, pc.critChoice, !!pc.missile);
             if (budget <= 0) return null;
             const oc = pc.overcast ?? { range: 0, zone: 0, duration: 0, targets: 0, damage: 0 };
             const left = budget - oc.range - oc.zone - oc.duration - oc.targets - oc.damage;
-            // Axes = ceux de la SOURCE (ZdE arcane seulement) ∩ ceux que CE sort porte (RAW : « Vous »/
-            // « Contact »/« Spécial »/Instantané non extensibles ; une Bénédiction étend même le Contact).
-            const can: Record<OvercastAxis, boolean> = {
-              range: spell.range?.kind === 'distance' || (spell.range?.kind === 'touch' && source === 'blessing'),
-              zone: zoneUnplaced,
-              duration: spell.duration?.kind === 'rounds',
-              targets: !pc.zone && spell.target?.kind === 'count' && spell.range?.kind !== 'self',
-              damage: !!pc.missile,
-            };
-            const rows = overcastAxes(source, !!pc.missile).filter((a) => can[a]);
+            const rows = castOvercastAxes(pc, spell);
             if (!rows.length) return null;
             const META: Record<OvercastAxis, [ReactNode, string]> = {
               range: [<Icon id="magic/range" size="sm" />, 'Portée'], zone: [<Icon id="magic/area" size="sm" />, 'Zone'], duration: [<Icon id="ui/wait" size="sm" />, 'Durée'], targets: [<Icon id="action/aim" size="sm" />, 'Cibles'], damage: [<Icon id="journal/damage" size="sm" />, 'Dégâts'],
@@ -359,7 +349,7 @@ export function CastModal() {
                   ))}
                 </Stack>
                 {/* Désignation des cibles supplémentaires — SÉPARÉE de l'allocation (sans bouton carte redondant). */}
-                {can.targets && cap > 0 && (battle ? (
+                {rows.includes('targets') && cap > 0 && (battle ? (
                   // La rangée ceint le bouton à son contenu : dans la pile des réglages, un bouton seul
                   // s'étirerait sur toute la largeur.
                   <Row>
