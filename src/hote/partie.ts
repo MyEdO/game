@@ -7,7 +7,7 @@
  */
 import {
   creerPartie, etatInitialDuJeu, CADENCE_MODES, refusDesSurcharges,
-  type Cadence, type Jeton, type Partie, type ResultatDeLAppel,
+  type Cadence, type EntreesDeLaPartie, type Jeton, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
 import { lancementDuScenario, type TestScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
@@ -119,17 +119,17 @@ export interface PartieOuverte {
   lancement: ResultatDeLAppel;
 }
 
-/** Ouvre la partie de l'en-tête : la partie du noyau sur l'état initial (`creerPartie`, aucun héros persisté : l'hôte
- *  n'a pas de sauvegarde), puis son scénario lancé par le constructeur unique du lancement (`lancementDuScenario`). Un
- *  lancement qui lève ferme la partie. */
-export function ouvrirLaPartie(entete: Entete): PartieOuverte {
+/** Ouvre la partie de l'en-tête : la partie du noyau sur l'état initial (`creerPartie`), le héros persisté par le
+ *  service `persisterLeHeros` de l'hôte (`EntreesDeLaPartie`), puis son scénario lancé par le constructeur unique du
+ *  lancement (`lancementDuScenario`). Un lancement qui lève ferme la partie. */
+export function ouvrirLaPartie(entete: Entete, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros']): PartieOuverte {
   const scenario = scenarioDeTest(entete.scenario);
   const partie = creerPartie(etatInitialDuJeu(), {
     graine: entete.graine,
     reglesMaison: entete.regles,
     cadence: entete.cadence,
     desFixes: entete.desFixes,
-    persisterLeHeros: () => {},
+    persisterLeHeros,
   });
   try {
     return { partie, jetons: tenueDesJetons(partie), lancement: partie.lancer(lancementDuScenario(scenario)) };

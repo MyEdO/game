@@ -4,7 +4,9 @@ import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../noyau/etat';
 import { ownsLocalNet } from './ownership';
 import { makePregensWithWealth } from '../data/pregens';
-import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport, takeRosterNotice, takeRosterElagage } from '../state/roster';
+import { stockageDuRoster } from '../state/roster';
+import { ajouterAuRoster, chargerLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
+import { rosterExport, rosterImport } from '../noyau/persistance/roster';
 import { nommerLesRetraits } from '../noyau/persistance/elagage';
 import { PARTY_MAX } from '../noyau/monde/combatants';
 import { downloadText, fileSlug } from '../web/fileIo';
@@ -675,15 +677,15 @@ export function CandidatePool({
   onCreate?: () => void;
 }) {
   const allPregens = useState(() => makePregensWithWealth())[0];
-  const [roster, setRoster] = useState(() => rosterLoad());
+  const [roster, setRoster] = useState(() => chargerLeRoster(stockageDuRoster()));
   const [tab, setTab] = useState<'roster' | 'pregens'>(roster.length ? 'roster' : 'pregens');
   const [importErr, setImportErr] = useState<string | null>(null);
-  // Le témoin de `rosterLoad` (roster d'un autre format retiré) devient le message au joueur ; consommé
-  // dans un EFFET, jamais à l'initialisation du rendu (double passe de `<React.StrictMode>`).
+  // `prendreLesTemoinsDuRoster` (`hote/roster.ts`) consomme : la prise vit dans un EFFET de montage, jamais dans un
+  // initialiseur de rendu que `<React.StrictMode>` jouerait deux fois.
   useEffect(() => {
-    if (takeRosterNotice()) setImportErr(t('picker.roster.retire'));
-    const elague = takeRosterElagage();
-    if (elague) setImportErr(t('picker.roster.elague', { liste: nommerLesRetraits(elague) }));
+    const temoins = prendreLesTemoinsDuRoster(stockageDuRoster());
+    if (temoins?.retire) setImportErr(t('picker.roster.retire'));
+    if (temoins?.elagage) setImportErr(t('picker.roster.elague', { liste: nommerLesRetraits(temoins.elagage) }));
   }, []);
   // Candidat ÉLU (déplié dans l'ACTE DE PRÉSENTATION, `DetailFrame`) — plus de modale (#417,
   // planche ratifiée d'équipe §B « la présentation intégrée au sélecteur »).
@@ -701,8 +703,8 @@ export function CandidatePool({
   const selected = shownList.find((e) => e.hero.id === selectedId) ?? shownList[0] ?? null;
 
   const removeSaved = (id: string) => {
-    rosterRemove(id);
-    setRoster(rosterLoad());
+    retirerDuRoster(stockageDuRoster(), id);
+    setRoster(chargerLeRoster(stockageDuRoster()));
   };
   const exportHero = (entry: { hero: Combatant; wealth: Money }) =>
     downloadText(`wfrp4-perso-${fileSlug(entry.hero.label)}.json`, rosterExport(entry));
@@ -718,8 +720,8 @@ export function CandidatePool({
       setImportErr(result.error);
       return;
     }
-    rosterAdd(result.entry);
-    setRoster(rosterLoad());
+    ajouterAuRoster(stockageDuRoster(), result.entry);
+    setRoster(chargerLeRoster(stockageDuRoster()));
     setImportErr(result.retraits ? t('picker.import.elague', { liste: nommerLesRetraits(result.retraits) }) : null);
     setTab('roster');
   };

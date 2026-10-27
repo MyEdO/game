@@ -3,11 +3,11 @@
  * se numérote dans l'ordre d'arrivée et se reprend une fois par son numéro ; un scénario se nomme par son id du catalogue.
  */
 import { describe, it, expect } from 'vitest';
-import { ErreurDeGeste, nouvelEntete, scenarioDeTest, tenueDesJetons } from './partie';
+import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, scenarioDeTest, tenueDesJetons } from './partie';
 import { OPTIONAL_RULES } from '../engine/policy';
 import { t } from '../i18n';
 import { testScenarios } from '../scenes/test-scenarios';
-import type { Jeton, ResultatDeLAppel } from '../noyau/index';
+import type { Combatant, Jeton, ResultatDeLAppel } from '../noyau/index';
 
 /** Un résultat d'appel qui programme `jetons`, chacun à son délai, entre deux événements émis. */
 const programme = (...jetons: [Jeton, number][]): ResultatDeLAppel => ({
@@ -67,5 +67,19 @@ describe('l’en-tête d’une partie', () => {
     expect(e?.message).toContain(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
     expect(erreurDe(() => nouvelEntete(premier.id, { regles: { [r.id]: r.kind === 'flag' ? 'texte' : true } }))?.categorie).toBe('validation');
     expect(nouvelEntete(premier.id, { regles: { [r.id]: r.default } }).regles).toEqual({ [r.id]: r.default });
+  });
+});
+
+describe('l’ouverture d’une partie', () => {
+  it('le héros que le noyau persiste passe par le service `persisterLeHeros` que l’hôte fournit (#3041)', () => {
+    const persistes: Combatant[] = [];
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), (heros) => void persistes.push(heros));
+    try {
+      const id = partie.etat().party[0].id;
+      partie.envoyer({ type: 'setHeroBackground', args: [id, { motivation: 'Foi' }] });
+      expect(persistes.map((h) => [h.id, h.motivation])).toEqual([[id, 'Foi']]);
+    } finally {
+      partie.fermer();
+    }
   });
 });

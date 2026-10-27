@@ -42,3 +42,5 @@ export { libelleDuVerbe, libelleDuParametre, libelleDuLitteral, libelleDeLaFenet
 export { reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, type Reglage, type ValeurDuReglage } from './reglages';
 export { texteDuMod } from './difficultyText';
 export { avecSigne } from '../engine/types';
+export { lireLeRoster, ecrireLeRoster, rosterAvecLeHeros, type RosterEntry } from './persistance/roster';
+export type { RetraitsDElagage } from './persistance/elagage';

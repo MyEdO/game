@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { useGame, initCombatAuto } from './store';
-import { rosterUpdate } from './roster';
+import { persisterLeHerosWeb } from './roster';
 import { scheduleCombatTimer, clearTrackedTimers, timerEnVol } from '../web/minuteries';
 import { poserLaPlateforme, retirerLaPlateforme, programmer } from '../noyau/plateforme';
 import { setCadence, resetCadence } from '../engine/cadence';
@@ -14,7 +14,7 @@ describe('plateforme web du noyau', () => {
     const web = retirerLaPlateforme();
     poserLaPlateforme(web);
     expect(web.programmer).toBe(scheduleCombatTimer);
-    expect(web.persisterLeHeros).toBe(rosterUpdate);
+    expect(web.persisterLeHeros).toBe(persisterLeHerosWeb);
     expect(web.enAttente).toBe(timerEnVol);
   });
 

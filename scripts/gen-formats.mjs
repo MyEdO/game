@@ -32,8 +32,8 @@ export { SORTIE_FORMATS as SORTIE } from './docs/lib/cibles-registres.mjs'
  *  et le type exporté qui en porte la forme sérialisée. */
 export const RACINES = [
   { constante: 'FORMAT_SAVE', module: 'src/state/saves.ts', type: 'SaveGame' },
-  { constante: 'FORMAT_ROSTER', module: 'src/state/roster.ts', type: 'RosterStocke' },
-  { constante: 'FORMAT_EXPORT_HEROS', module: 'src/state/roster.ts', type: 'ExportDeHeros' },
+  { constante: 'FORMAT_ROSTER', module: 'src/noyau/persistance/roster.ts', type: 'RosterStocke' },
+  { constante: 'FORMAT_EXPORT_HEROS', module: 'src/noyau/persistance/roster.ts', type: 'ExportDeHeros' },
   { constante: 'FORMAT_CALQUE', module: 'src/state/traceLayer.ts', type: 'CalqueStocke' },
 ]
 

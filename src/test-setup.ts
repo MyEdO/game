@@ -41,10 +41,9 @@
  *    - les STOCKAGES WEB (`web/stockageWeb`) et la BIBLIOTHÈQUE DE PROJETS (`state/projectLibrary`,
  *      `__resetLibraryForTest`) : jsdom garde `localStorage`/`sessionStorage` d'un fichier à l'autre du
  *      worker, et la bibliothèque tient un cache de module. Un fichier qui laisse un projet, un roster ou
- *      un miroir de bibliothèque le lègue à `initLibrary`/`rosterLoad` du fichier suivant : un banc
+ *      un miroir de bibliothèque le lègue à `initLibrary`/`chargerLeRoster` du fichier suivant : un banc
  *      qui ne remet à zéro qu'en `afterEach` rougit selon l'ordre des fichiers (#2404). Vidés
- *      AVANT chaque test, avec les témoins de retrait et d'élagage du roster (`takeRosterNotice`,
- *      `takeRosterElagage`), des saves
+ *      AVANT chaque test, avec les témoins de retrait des saves
  *      (`takeObsoleteNotice`), des règles maison (`takeHouseRulesNotice`) et des calques
  *      (`__resetTraceLayerForTest`).
  *    - les REGISTRES D'ART du rig (cf. `rigArtRegistrySignatures` plus bas) : objets de module, donc
@@ -104,7 +103,6 @@ import { stockageWeb } from './web/stockageWeb';
 import { __resetLibraryForTest } from './state/projectLibrary';
 import { takeObsoleteNotice } from './state/saves';
 import { __resetTraceLayerForTest } from './state/traceLayer';
-import { takeRosterNotice, takeRosterElagage } from './state/roster';
 import { takeHouseRulesNotice } from './state/houseRules';
 
 // État initial figé UNE fois (le `stringify` est la moitié coûteuse, et le geler à l'init le rend
@@ -416,8 +414,6 @@ beforeEach(async () => {
 beforeEach(async () => {
   stockageWeb('localStorage')?.clear();
   stockageWeb('sessionStorage')?.clear();
-  takeRosterNotice();
-  takeRosterElagage();
   takeObsoleteNotice();
   takeHouseRulesNotice();
   await __resetLibraryForTest();
