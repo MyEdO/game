@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { enfantsDe } from './schemas/grammaire/descente';
 import { nommerNoeud } from './schemas/grammaire/meta';
-import { ref } from './schemas/grammaire/ref';
+import { idDe, ref } from './schemas/grammaire/ref';
 import { formulaSinSchema } from './schemas/grammaire/valeurs';
 import type { SchemaDef } from './schemas/types';
 import { STRUCTURES_LOCALES } from '../../scripts/guards/lib/horsStrateStock.mjs';
@@ -15,7 +15,7 @@ import { STRUCTURES_LOCALES as VOLET } from '../../scripts/guards/lib/occurrence
 import { PORTEURS } from '../../scripts/guards/lib/porteursDesComptes.mjs';
 import { ecartDuVolet, remedeDeNaissance } from '../../scripts/guards/lib/stock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
-import { nomDeBranche, noeudsDeStructure, regenerations, sitesDeStructure } from '../../scripts/guards/lib/structuresLocales.mts';
+import { cheminsDeDocument, nomDeBranche, noeudsDeStructure, regenerations, sitesDeStructure } from '../../scripts/guards/lib/structuresLocales.mts';
 
 /** Les options d'une union, dans leur ordre (`enfantsDe`). */
 const options = (union: unknown) => enfantsDe(union).filter((e) => e.segment.startsWith('|')).map((e) => e.noeud);
@@ -121,5 +121,46 @@ describe('clé d’un site', () => {
   it('deux nœuds d’un même type à la même clé LÈVENT (injectivité)', () => {
     const double = z.strictObject({ type: z.literal('x'), v: z.union([z.strictObject({ a: z.string() }), z.strictObject({ a: z.number() })]) });
     expect(() => noeudsDeStructure([{ file: 'x.json', root: 'src/data', famille: 'config', schema: double }])).toThrow(/deux nœuds à la même clé src\/data#x :: \.v\|\{a\}/);
+  });
+
+  describe('point conjoint : une intersection et les enfants de même clé de ses côtés sont UN site', () => {
+    /** Les sites d'un champ `v` de document, `‹classe› ‹clé›`. */
+    const sitesDe = (champ: z.ZodType) =>
+      noeudsDeStructure([{ file: 'x.json', root: 'src/data', famille: 'config', schema: z.strictObject({ type: z.literal('x'), v: champ }) }])
+        .map((n) => `${n.classe} ${n.ref}`);
+    const apparence = () => z.looseObject({ forme: z.strictObject({ n: z.number() }).optional() });
+
+    it('un côté non validant fait le point D5 et y juge le reste d’un objet conjoint', () => {
+      expect(sitesDe(z.custom<object>().and(apparence()))).toEqual(['D5 .v', 'L .v.forme']);
+      expect(sitesDe(z.custom<object>().and(apparence()).optional()), 'enveloppe autour de l’intersection').toEqual(['D5 .v', 'L .v.forme']);
+      expect(sitesDe(z.custom<object>().and(apparence().optional())), 'enveloppe autour d’un côté').toEqual(['D5 .v', 'L .v.forme']);
+      expect(sitesDe(z.strictObject({ a: z.number() }).and(z.strictObject({ b: z.number() })).and(z.unknown())), 'intersection imbriquée').toEqual(['D5 .v']);
+      expect(sitesDe(z.custom<object>().and(z.strictObject({ a: z.number() }).transform((x) => x))), 'côté pipe').toEqual(['D5 .v']);
+    });
+
+    it('le reste d’un objet conjoint reste un site D5 tant qu’aucun objet ne le ferme', () => {
+      expect(sitesDe(z.looseObject({ a: z.number() }))).toEqual(['L .v', 'D5 .v.*']);
+      expect(sitesDe(z.looseObject({ a: z.number() }).and(z.object({}))), 'objet `strip`').toEqual(['L .v', 'D5 .v.*']);
+      expect(sitesDe(z.looseObject({ a: z.number() }).and(z.looseObject({}))), 'deux restes libres').toEqual(['L .v', 'D5 .v.*']);
+      expect(sitesDe(z.looseObject({ a: z.number() }).and(apparence())), 'cas satisfiable de deux objets').toEqual(['L .v', 'D5 .v.*', 'L .v.forme']);
+      expect(sitesDe(z.looseObject({ a: z.number() }).and(z.preprocess((x) => x, z.strictObject({ a: z.number(), b: z.number() })))), 'fermé par un objet strict sous pipe').toEqual(['L .v']);
+      expect(sitesDe(z.strictObject({ a: z.number() }).and(z.record(z.string(), z.unknown()))), 'record conjoint').toEqual(['L .v', 'D5 .v{}']);
+    });
+
+    it('les enfants de même clé de côtés conjoints sont une intersection implicite : un site, jamais deux nœuds à la même clé', () => {
+      expect(sitesDe(z.strictObject({ f: z.strictObject({ a: z.number() }) }).and(z.strictObject({ f: z.strictObject({ a: z.number() }) })))).toEqual(['L .v', 'L .v.f']);
+      expect(sitesDe(z.looseObject({ f: z.looseObject({ a: z.number() }) }).and(z.looseObject({ f: z.looseObject({ b: z.number() }) })))).toEqual([
+        'L .v', 'D5 .v.*', 'L .v.f', 'D5 .v.f.*',
+      ]);
+      expect(sitesDe(z.strictObject({ a: z.number(), forme: z.strictObject({ n: z.number() }).optional() }).and(apparence()))).toEqual(['L .v', 'L .v.forme']);
+      expect(sitesDe(z.string().and(z.string().min(1))), 'aucun objet ni nœud non validant : pas de site').toEqual([]);
+    });
+
+    it('l’empreinte d’un point est celle de ses champs fusionnés (`empreinteDeChamps`) ; ses chemins conjoints se jugent ensemble', () => {
+      const schema = z.strictObject({ type: z.literal('x'), v: z.strictObject({ id: idDe('skill') }).and(z.looseObject({ id: z.string(), b: z.number() })) });
+      const defs: SchemaDef[] = [{ file: 'x.json', root: 'src/data', famille: 'config', schema }];
+      expect(noeudsDeStructure(defs).map((n) => `${n.ref} ${n.empreinte}`)).toEqual(['.v *:intersection,b:number,id:intersection']);
+      expect(cheminsDeDocument(defs).find((c) => c.ref === '.v.id')?.etat, 'une référence conjointe à une chaîne reste une référence').toBe('idDe');
+    });
   });
 });
