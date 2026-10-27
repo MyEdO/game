@@ -22,6 +22,7 @@ import {
   type DivergenceEnveloppe,
   type Redeclaration,
 } from '../../scripts/docs/lib/structures-scan.mjs';
+import { champsSansSlot, slotsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
 import { COLLECTIONS_A_COMPTE_PAR_NOM, ecartsDeCollection, occurrencesDe } from '../../scripts/guards/lib/occurrencesStock.mjs';
 import { CLES_POSEES_INCONDITIONNELLEMENT, clesDeclareesJamaisPortees, INVENTAIRE as COLLECTIONS_D_INVENTAIRE, inventaireDe, SANS_LOT } from '../../scripts/guards/lib/inventaireDeDette.mts';
 import {
@@ -277,6 +278,51 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       INVENTAIRE.filter((l) => l.collection === 'STRUCTURES_ENVELOPPE').length,
       'l’inventaire de la racine compte chaque divergence mesurée hors `source` absente.',
     ).toBe(scan.enveloppe.filter((e) => !(e.role === 'source' && e.motif === 'clé absente')).length);
+  });
+
+  it('`CASES_DE_REFERENCE` : une case de référence est UNE ligne, l’union exacte de ses formes à migrer et de sa couverture sans slot (#3021 P2)', () => {
+    const cle = (c: { dataset: string; champ: string }) => `${c.dataset} | ${c.champ}`;
+    const cases = INVENTAIRE.filter((l) => l.collection === 'CASES_DE_REFERENCE').map((l) => l.site);
+    expect(cases.length, 'une case rapportée sur deux lignes.').toBe(new Set(cases).size);
+    const aMigrer = scan.formes.filter((f) => f.strate === 'Référence' && (f.statut === 'historique' || f.statut === 'divergente')).map(cle);
+    const sansSlot = champsSansSlot(scan, slotsDuParse(scan, DEFS));
+    expect(lignes(cases), 'les cases de l’inventaire sont celles d’une forme de référence à migrer ou d’un couple sans slot.').toEqual(
+      lignes([...new Set([...aMigrer, ...sansSlot.map(cle)])]),
+    );
+    const lignesDeCase = new Map(INVENTAIRE.filter((l) => l.collection === 'CASES_DE_REFERENCE').map((l) => [l.site, l.cible]));
+    expect(
+      sansSlot.filter((c) => !lignesDeCase.get(cle(c))!.includes(`(${c.atteintes}/${c.occurrences} atteintes)`)).map(cle),
+      'la facette « déclaration » d’une case diverge de la couverture du registre des slots.',
+    ).toEqual([]);
+    const strateReference = CONCEPTS.filter((c) => c.strate === 'Référence').map((c) => `${c.id} | `);
+    expect(
+      INVENTAIRE.filter((l) => l.collection === 'STRUCTURES_FORMES' && strateReference.some((p) => l.site.startsWith(p))).map((l) => l.site),
+      'une forme de la strate `Référence` est rapportée hors de sa case.',
+    ).toEqual([]);
+
+    const dossier = mkdtempSync(join(tmpdir(), 'cases-de-reference-'));
+    try {
+      mkdirSync(join(dossier, 'src/data'), { recursive: true });
+      mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
+      cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+      writeFileSync(join(dossier, 'src/data/skills.json'), JSON.stringify([{ id: 'alpha', label: 'Alpha' }, { id: 'beta', label: 'Beta' }]));
+      writeFileSync(join(dossier, 'src/data/marins.json'), JSON.stringify([
+        { id: 'm1', skills: [{ skillId: 'alpha' }, { skillId: 'beta' }] },
+        { id: 'm2', competences: ['alpha', 'beta'] },
+      ]));
+      const fixture = scannerDonnees(dossier, []);
+      const mesure = COLLECTIONS_D_INVENTAIRE.find((c) => c.nom === 'CASES_DE_REFERENCE')!.mesure({ scan: fixture, defs: [], declares: [] });
+      const parSite = new Map(mesure.map((l) => [l.site, l]));
+      expect([...parSite.keys()].sort()).toEqual(['marins.json | competences', 'marins.json | skills']);
+      const skills = parSite.get('marins.json | skills')!;
+      expect(skills.cible, 'la forme à migrer et la déclaration manquante d’un même champ sont deux remèdes d’UNE ligne.').toMatch(/`skillId`.*Adopter la fabrique.*\(0\/2 atteintes\)/s);
+      expect(skills.occurrences, 'une occurrence que les deux facettes comptent ne compte qu’une fois.').toBe(2);
+      const competences = parSite.get('marins.json | competences')!;
+      expect(competences.cible, 'une liste d’ids nus est une forme cible : seule sa déclaration manque.').toMatch(/^Adopter la fabrique/);
+      expect(competences.occurrences, 'une liste d’ids nus est UNE occurrence, à une case par rang.').toBe(1);
+    } finally {
+      rmSync(dossier, { recursive: true, force: true });
+    }
   });
 
   it('`cible-declaree` ne se STOCKE nulle part : c’est une ÉMISSION du doc, pas un dénominateur', () => {
@@ -955,7 +1001,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       const site = (f: { dataset: string; champ: string; signature: string }) =>
         f.dataset === 'diligence-projet.json' && f.champ === 'scene' && f.signature === 'id-nu';
       expect(apres.formes.find(site)!.occurrences).toBe(scan.formes.find(site)!.occurrences + 1);
-      const ligne = (inv: typeof INVENTAIRE) => inv.find((l) => l.collection === 'STRUCTURES_FORMES' && l.site === 'reference | diligence-projet.json | scene | id-nu')!;
+      const ligne = (inv: typeof INVENTAIRE) => inv.find((l) => l.collection === 'CASES_DE_REFERENCE' && l.site === 'diligence-projet.json | scene')!;
       const avant = ligne(INVENTAIRE);
       const hausse = ligne(inventaireDe({ scan: apres, defs: DEFS, declares: DECLARES }));
       expect(hausse.occurrences, 'la hausse d’un site connu se lit à l’inventaire, sur la même ligne.').toBe(avant.occurrences! + 1);

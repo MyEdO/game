@@ -224,10 +224,13 @@ export function registreDesSlots(scan: ScanDesReferences, slots: readonly Slot[]
 export type CoupleDeReference = { dataset: string; champ: string; occurrences: number; atteintes: number };
 
 /**
- * Tous les couples observés, avec le compte de leurs occurrences à CASE (une occurrence sans case n'a rien qu'un slot
- * puisse valider) et la part ATTEINTE : une occurrence l'est quand chacune de ses cases est un slot.
+ * Les occurrences de référence à CASE (une occurrence sans case n'a rien qu'un slot puisse valider) et, parmi elles,
+ * celles qui ne sont pas ATTEINTES : une de leurs cases n'est pas un slot.
  */
-export function couplesDeReference(scan: ScanDesReferences, slots: readonly Slot[]): CoupleDeReference[] {
+export function occurrencesNonAtteintes(
+  scan: ScanDesReferences,
+  slots: readonly Slot[],
+): { avecCase: Set<OccurrenceDeReference>; manquees: Set<OccurrenceDeReference> } {
   const touchees = casesTouchees(scan, slots);
   const avecCase = new Set<OccurrenceDeReference>();
   const manquees = new Set<OccurrenceDeReference>();
@@ -236,6 +239,15 @@ export function couplesDeReference(scan: ScanDesReferences, slots: readonly Slot
       avecCase.add(o);
       if (!touchees.get(porteur)?.has(k)) manquees.add(o);
     }
+  return { avecCase, manquees };
+}
+
+/**
+ * Tous les couples observés, avec le compte de leurs occurrences à CASE et la part ATTEINTE : une occurrence l'est
+ * quand chacune de ses cases est un slot (`occurrencesNonAtteintes`).
+ */
+export function couplesDeReference(scan: ScanDesReferences, slots: readonly Slot[]): CoupleDeReference[] {
+  const { avecCase, manquees } = occurrencesNonAtteintes(scan, slots);
   const couples = new Map<string, CoupleDeReference>();
   for (const o of scan.occurrencesDeReference) {
     if (!avecCase.has(o)) continue;
@@ -251,9 +263,9 @@ export function couplesDeReference(scan: ScanDesReferences, slots: readonly Slot
 /**
  * COUVERTURE : les couples porteurs de références OBSERVÉES (strate `Référence` du scan) dont une
  * occurrence au moins n'est pas ATTEINTE (une de ses cases n'est pas un slot). C'est la dette d'ADOPTION du registre — elle se
- * solde concept par concept en L2/L3 (#1473), jamais en retirant une ligne seule. Collection d'inventaire
- * `SLOTS_SANS_DECLARATION` (`scripts/guards/lib/inventaireDeDette.mts`) ; ce que la mesure ne voit pas est dit
- * à `ANGLES_MORTS_SLOTS`.
+ * solde concept par concept en L2/L3 (#1473), jamais en retirant une ligne seule. La collection d'inventaire
+ * `CASES_DE_REFERENCE` (`scripts/guards/lib/inventaireDeDette.mts`) en lit la facette « déclaration » sur la même
+ * mesure (`occurrencesNonAtteintes`) ; ce que la mesure ne voit pas est dit à `ANGLES_MORTS_SLOTS`.
  */
 export function champsSansSlot(scan: ScanDesReferences, slots: readonly Slot[]): CoupleDeReference[] {
   return couplesDeReference(scan, slots).filter((c) => c.atteintes < c.occurrences);

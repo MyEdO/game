@@ -624,8 +624,9 @@ function rendu() {
 
     out += '### 6.2 Couverture — réfs observées qu’AUCUN slot ne déclare\n\n';
     out += 'La dette d’ADOPTION du registre : un `(dataset, champ)` porteur de références mesurées (strate\n';
-    out += '`Référence`) dont une occurrence au moins n’est pas ATTEINTE — une de ses cases n’est pas un slot. Inventaire\n';
-    out += '`SLOTS_SANS_DECLARATION` (§7) — il se solde concept par concept en L2/L3 (#1473).\n\n';
+    out += '`Référence`) dont une occurrence au moins n’est pas ATTEINTE — une de ses cases n’est pas un slot. Facette\n';
+    out += '« déclaration » de l’inventaire `CASES_DE_REFERENCE` (§7), une ligne par case avec sa forme — elle se solde\n';
+    out += 'concept par concept en L2/L3 (#1473).\n\n';
     const sansSlot = champsSansSlot(scan, slots);
     out += `**${sansSlot.length}** couples (dataset, champ) sans slot déclaré.\n\n`;
     out += tableau(
