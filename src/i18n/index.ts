@@ -89,6 +89,11 @@ export function elision(particule: 'de' | 'le', nom: string): string {
   return /^[aeiouyàâäéèêëîïôöùûü]/i.test(nom) ? `${particule[0]}’` : `${particule} `;
 }
 
+/** Énumération « a, b et c » : virgules, dernier élément lié par la clé `liste.et`. */
+export function listeEt(items: readonly string[]): string {
+  return items.length > 1 ? t('liste.et', { debut: items.slice(0, -1).join(', '), fin: items[items.length - 1] }) : (items[0] ?? '');
+}
+
 /** Marque du pluriel d'un compte affiché (« 1 point », « 2 points », « -2 points ») : `s` au-delà de 1 en
  *  valeur absolue, rien sinon. */
 export function pluriel(n: number): string {

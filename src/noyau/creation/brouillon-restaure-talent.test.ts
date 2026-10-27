@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { fillDraftDefaults } from './creatorDefaults';
-import { newDraft, validateStep, stepIds, talentsDone, skillsSubMessage, buildHero, type CreatorDraft } from './draft';
+import { fillDraftDefaults } from './defauts';
+import { newDraft, validateStep, stepIds, talentsDone, skillsSubMessage, buildHero, type CreatorDraft } from './brouillon';
 
 /** Brouillon complet d'un Prêtre (Niveau 1 : « Béni (Au choix) »), valide à toutes les étapes. */
 function pretreComplet(): CreatorDraft {

@@ -520,6 +520,8 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `monde/spawn.ts` reste sans
                             import de cette couche) et au portrait de dialogue (`gameIso/tokenBodyKind.tsx`).
   monde/spawn.ts            apparition des entités de scène et de rencontre (`spawnEnemy`)
+  creation/                 BROUILLON DE CRÉATION de personnage (LDB 04/05), sans écran : `brouillon.ts` (état pur :
+                            tirages figés, bonus PX, validation, `buildHero`), `defauts.ts` (`fillDraftDefaults`)
 src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte fait d'une partie, sans écran ni
                             horloge. `partie.ts` (l'erreur structurée d'un geste et sa catégorie, l'en-tête d'une
                             partie, son ouverture : la partie du noyau, le scénario de test lancé, la tenue des jetons
@@ -690,7 +692,7 @@ src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE thr
                             zones) + FxLayer (rendu) + useWalkAnim (marche animée)
 src/ui/                     React : menus, CampaignView (HUD), CharacterSheet, modales
   creator/                    assistant de création multi-étapes (LDB 04/05) : CharacterCreator.tsx
-                              (rendu) + draft.ts (état pur : tirages figés, bonus PX, validation)
+                              (rendu) ; son état pur vit dans `src/noyau/creation/`
   gallery/DesignGallery.tsx   galerie design system IN-APP (#412, DEV uniquement) : MasterDetail
                               liste de primitives → spécimen vivant (données réelles) — référence de
                               goût pérenne du canon UI, voir docs/charte-ui.md § « Galerie design

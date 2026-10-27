@@ -38,11 +38,12 @@ import {
   rerollDraftTalent,
   withRandomTalentSpec,
   withSpeciesTalentChoice,
-} from './draft';
+} from './brouillon';
 import { CHAR_KEYS } from '../../engine/types';
 import { rigSpeciesId, trappingRefLabel } from '../../data';
-import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './draft';
-import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
+import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './brouillon';
+import { SEXE_DE_COIFFURE } from '../../data/schemas/_art.generated';
+import { garanti } from '../../lib/garanti';
 import { speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { emplacementsDeDotation } from '../../engine/trappingChoices';
@@ -413,7 +414,7 @@ describe('validation des étapes', () => {
 
 describe('buildHero — bout en bout', () => {
   it('l’apparence du brouillon passe au héros d’un seul tenant, et (c) draftFromHero la restitue, coiffure comprise', () => {
-    const coiffureF = hairstylesForSex('F')[0].id;
+    const coiffureF = garanti(Object.keys(SEXE_DE_COIFFURE).find((id) => SEXE_DE_COIFFURE[id] === 'F'), 'F', 'coiffure du sexe');
     const d = readyDraft();
     const apparence = { sex: 'F' as const, build: 0.3, seed: 42, hairstyle: coiffureF, colors: { cheveux: '#aa3300' } };
     const hero = buildHero({ ...d, apparence }, 'h-apparence');

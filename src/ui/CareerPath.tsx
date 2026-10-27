@@ -11,7 +11,7 @@ import { RadioGroup } from './composites/GroupesDeChoix';
  *
  * `onSelect` (optionnel) rend la chaîne EXPLORABLE (correctif utilisateur 2026-07-14, créateur
  * Carrière) : chaque médaillon devient un bouton `role="radio"` d'un `RadioGroup` qui bascule le rang
- * consulté (`selected`, anneau doré) — le CHOIX de création reste au niveau 1 (`draft.ts` ne lit
+ * consulté (`selected`, anneau doré) — le CHOIX de création reste au niveau 1 (`brouillon.ts` ne lit
  * jamais ce rang consulté, c'est une pure exploration en LECTURE du détail). Sans `onSelect`, la
  * chaîne reste un simple repère non cliquable (`role="list"`, ex. galerie design system).
  */

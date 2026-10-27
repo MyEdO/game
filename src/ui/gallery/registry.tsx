@@ -104,7 +104,7 @@ import { Grid, Row, Split, Stack, pushEnd, spanFull } from '../Layout';
 import { Fleuron, OrnateFrame, RuleDivider } from '../Ornaments';
 import { NotchGauge } from '../NotchGauge';
 import { WindRose } from '../WindRose';
-import { CAREER_CHAR_ADVANCES } from '../creator/draft';
+import { CAREER_CHAR_ADVANCES } from '../../noyau/creation/brouillon';
 import { ItemIcon } from '../ItemIcon';
 import { Icon } from '../Icon';
 import { RollLine, PendingRollLine, TableRollLine } from '../RollLine';

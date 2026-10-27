@@ -40,7 +40,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * Les entrées neuves portent leur motif NOMINATIF ci-dessous : stock avoué, à faire DÉCROÎTRE.
  * Descente mesurée depuis : 60 → 58 (`bc54767e`), puis 58 → 54 (2026-08-17)
  * — `creation.ts` et `CharacterCreator.tsx` (gate d'espèce passé au champ
- * `SpeciesData.gatedByRule`), `combat.ts` et `draft.ts` (tables `Record<union fermée, …>`), puis
+ * `SpeciesData.gatedByRule`), `combat.ts` et `brouillon.ts` (tables `Record<union fermée, …>`), puis
  * 54 → 50 (2026-08-17) — `groups.ts` sort de la liste : l'appartenance à un
  * Groupe est DÉCLARÉE en donnée (`grantGroups` d'espèce/carrière/classe/culte/créature,
  * `matchesAll`/`exceptGroups` du Groupe joker), puis 50 → 46 (2026-08-17) —

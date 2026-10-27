@@ -30,7 +30,7 @@ import { Icon } from './Icon';
 import { Tabs } from './composites/Tabs';
 import { coreAxisIds } from '../data';
 import { resolveActiveAxes } from '../noyau/worldMap';
-import { t } from '../i18n';
+import { listeEt, t } from '../i18n';
 import { Row, Stack } from './Layout';
 import { ChipDeRefus } from './ChipDeRefus';
 
@@ -249,13 +249,6 @@ const ACT_ROMAN = ['I', 'II', 'III', 'IV'];
  *  scellés » — jamais un chiffre nu dans ce libellé cérémoniel). */
 const NUM_WORDS_FR = ['zéro', 'un', 'deux', 'trois', 'quatre'];
 
-/** Énumération « à la française » (Oxford comma absent, dernier élément lié par « et »). Pur. */
-function joinFr(items: string[]): string {
-  if (items.length === 0) return '';
-  if (items.length === 1) return items[0];
-  return `${items.slice(0, -1).join(', ')} et ${items[items.length - 1]}`;
-}
-
 /** Phrase de synthèse du pied d'écran — composée depuis `partyCoverageWithHero` (axes ACTIFS à
  *  pourvoir), textes du patron de la planche ratifiée d'équipe (#417 correction de cap
  *  2026-07-14). */
@@ -273,7 +266,7 @@ function partySummaryText(party: Combatant[], axisIds: string[]): string {
     ? t('party.acts.summary.vierge.zero')
     : missingAxes.length === 0
       ? t(vierges === 1 ? 'party.acts.summary.vierge.one.plain' : 'party.acts.summary.vierge.many.plain', { n: vierges })
-      : t(vierges === 1 ? 'party.acts.summary.vierge.one' : 'party.acts.summary.vierge.many', { n: vierges, axes: joinFr(missingAxes) });
+      : t(vierges === 1 ? 'party.acts.summary.vierge.one' : 'party.acts.summary.vierge.many', { n: vierges, axes: listeEt(missingAxes) });
   return `${engaged} — ${ready} ; ${viergePart}.`;
 }
 

@@ -1,6 +1,6 @@
 /**
  * Défauts de recette du créateur (DEV, #518) — PUR : applique étape par étape des choix VALIDES
- * jusqu'à `upto` incluse, en réutilisant les gestes/dérivations de `draft.ts` (jamais un chemin
+ * jusqu'à `upto` incluse, en réutilisant les gestes/dérivations de `brouillon.ts` (jamais un chemin
  * parallèle). Consommé par `__wfrp.fillCreatorDefaults` (`src/state/devtools.ts`) via la couture
  * `CharacterCreator.tsx` — jamais appelé au flux joueur réel.
  */
@@ -33,15 +33,14 @@ import {
   attendSaSpec,
   probeHero,
   CAREER_CHAR_ADVANCES,
-  CAREER_SKILL_ADVANCES,
   SPECIES_SKILLS_PLUS5,
   SPECIES_SKILLS_PLUS3,
-} from './draft';
+} from './brouillon';
 import { species, careersForSpecies, levelsForCareer } from '../../data';
 import { idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
 import type { CharKey } from '../../engine/types';
 import { talentMaxReached } from '../../engine/careerSlots';
-import { designer, libreDEspece, speciesSkillDefaults } from '../../engine/character';
+import { CAREER_SKILL_ADVANCES, designer, libreDEspece, speciesSkillDefaults } from '../../engine/character';
 
 function fillSpecies(d: CreatorDraft): CreatorDraft {
   if (draftSpecies(d)) return d;
@@ -151,7 +150,7 @@ const STEP_FILLERS: Record<StepId, (d: CreatorDraft) => CreatorDraft> = {
 };
 
 /** Applique les défauts de recette étape par étape jusqu'à `upto` INCLUSE — PUR, réutilise
- *  `draft.ts` (jamais un chemin parallèle). INVARIANT : `validateStep(fillDraftDefaults(d, s), s')`
+ *  `brouillon.ts` (jamais un chemin parallèle). INVARIANT : `validateStep(fillDraftDefaults(d, s), s')`
  *  est `null` pour chaque étape `s' <= s` de `stepIds()`. */
 export function fillDraftDefaults(d: CreatorDraft, upto: StepId): CreatorDraft {
   const order = stepIds();
