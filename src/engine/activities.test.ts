@@ -119,8 +119,7 @@ describe('craftCatalog / orderCatalog', () => {
       expect(o.priceBrass).toBeGreaterThan(0);
       expect(o.dr).toBeGreaterThanOrEqual(1);
     }
-    // « Épée » n’existe pas : le sélecteur évite le piège du libellé deviné (audit B1).
-    expect(cat.some((o) => o.label === 'Épée bâtarde')).toBe(true);
+    expect(cat.some((o) => o.id === 'epee-batarde')).toBe(true);
   });
   it('Passer commande : marchandise chiffrée que les boutiques ne tiennent pas (ch.23 l.180)', () => {
     const cat = orderCatalog();

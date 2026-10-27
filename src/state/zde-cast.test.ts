@@ -8,7 +8,7 @@ import { useGame } from './store';
 import { pregen, PREGEN } from '../data/pregens';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { zdeDiameterMeters, zdeRadiusTiles, spellRangeTiles } from '../engine/magic';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { currentTargetingMode } from '../noyau/targetingModes';
 import type { Combatant } from '../engine/types';
 
@@ -109,7 +109,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
 
   it('Surincantation « +Zone » (LDB 47 l.15) : le gabarit s’agrandit du Ø initial et la pose ramasse plus loin', () => {
     const { w } = setupBattle();
-    const ni = findSpell('Explosion')!.cn ?? 0;
+    const ni = findSpellById('explosion')!.cn ?? 0;
     useGame.getState().battleClickTile({ x: 9, y: 9 });
     let pc = useGame.getState().pendingCast!;
     useGame.setState({ pendingCast: { ...pc, result: okCast(ni + 2) as never } }); // surplus 2 → 1 allocation

@@ -15,7 +15,7 @@ import { createHero } from '../engine/character';
 import { setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { evaluateMissile, type CastResult } from '../engine/magic';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 
 const RULE = 'magic-vdm-incantation';
 
@@ -42,7 +42,7 @@ function setup() {
   // Jet FIGÉ (DR 10 pour NI 4 → surplus 6, budget VDM = 6 pas) — exactement ce que produit
   // `resolveMagicMissile` au ROLL, AVANT que l'allocation de Surincantation n'existe (0 pas).
   const frozen: CastResult = { cast: true, roll: 20, target: 90, sl: 10, isCritical: false, isFumble: false, log: 'jet' };
-  const res = evaluateMissile(heroC, enemy, findSpell('Carreau')!, frozen);
+  const res = evaluateMissile(heroC, enemy, findSpellById('carreau')!, frozen);
   useGame.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: res } }));
   return { heroC, enemy };
 }

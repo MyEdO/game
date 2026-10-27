@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { hoverTargeting } from './targeting';
 import { spellAffinity } from './targetingModes';
-import { findSpell, findSpellById } from '../data';
+import { findSpellById } from '../data';
 import { missileDamage } from '../engine/magic';
 import { bonus } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';
@@ -114,7 +114,7 @@ describe('hoverTargeting — mode incantation', () => {
     const a = combatant({ id: 'A' });
     const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 2, y: 0 } });
     const ht = hoverTargeting(mkGet([a, b], castBattle('carreau')), a, b);
-    const dmg = missileDamage(findSpell('Carreau')!)!.damage + bonus(40); // FM 40
+    const dmg = missileDamage(findSpellById('carreau')!)!.damage + bonus(40); // FM 40
     expect(ht).toMatchObject({ kind: 'ok', line: 'dashed', title: 'Carreau', skill: 'Langue (Magick)', dmg });
   });
 
@@ -149,5 +149,5 @@ describe('spellAffinity — côté visé DÉRIVÉ des effets modélisés (parit�
   it('Enchevêtrement (État Empêtré) → enemy', () => expect(spellAffinity(findSpellById('enchevetrement')!)).toBe('enemy'));
   it('Armure aethyrique (apAll +1 sur la cible) → ally', () => expect(spellAffinity(findSpellById('armure-aethyrique')!)).toBe('ally'));
   it('Lumière (effet narratif seul) → any', () => expect(spellAffinity(findSpellById('lumiere')!)).toBe('any'));
-  it('Poussée (op push on:caster, offensif positionnel) → enemy', () => expect(spellAffinity(findSpell('Poussée')!)).toBe('enemy'));
+  it('Poussée (op push on:caster, offensif positionnel) → enemy', () => expect(spellAffinity(findSpellById('poussee')!)).toBe('enemy'));
 });

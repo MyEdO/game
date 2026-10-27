@@ -12,7 +12,6 @@
 //   · une panne (oxlint absent de l'arbre, config ou index illisible, rapport illisible) est un défaut
 //     d'outillage NOMMÉ ; le pre-commit l'AVERTIT comme tout défaut de lint (#2327 A8), la gate `lint` rejuge.
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, unlinkSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -98,19 +97,20 @@ export const CONFIG_LINT = 'oxlint.config.mjs'
 
 /**
  * La FERMETURE de `oxlint.config.mjs` sous `racine`, en chemins POSIX relatifs : la config, ses
- * `jsPlugins` locaux lus sur l'objet CHARGÉ, et leurs imports relatifs transitifs (`clotureDImports`).
+ * `jsPlugins` locaux lus sur l'objet CHARGÉ, leurs imports relatifs transitifs (`clotureDImports`), et les
+ * fichiers que la config lit au chargement (`LECTURES_DE_CONFIG`).
  * Config absente du disque : elle seule.
- * @param {string} racine @returns {string[]}
+ * @param {string} racine @returns {Promise<string[]>}
  */
-export function fermetureDeConfig(racine) {
+export async function fermetureDeConfig(racine) {
   const abs = join(racine, CONFIG_LINT)
   if (texteDuDisque(abs) === null) return [CONFIG_LINT]
-  const { default: config } = createRequire(abs)(abs)
+  const { default: config, LECTURES_DE_CONFIG = [] } = await import(pathToFileURL(abs).href)
   const plugins = (config.jsPlugins ?? [])
     .map((p) => (typeof p === 'string' ? p : p.specifier))
     .filter((spec) => spec.startsWith('.') || isAbsolute(spec))
     .map((spec) => resolve(racine, spec))
-  return [...new Set([CONFIG_LINT, ...clotureDImports([CONFIG_LINT, ...plugins], { racine })])]
+  return [...new Set([CONFIG_LINT, ...clotureDImports([CONFIG_LINT, ...plugins], { racine }), ...LECTURES_DE_CONFIG])]
 }
 
 /**
@@ -118,14 +118,14 @@ export function fermetureDeConfig(racine) {
  * `saut` NOMME pourquoi rien n'a été jugé (un fichier de `fermetureDeConfig` dont l'index diffère du disque), sinon
  * `null`. Une panne est un défaut d'outillage NOMMÉ.
  * @param {string} racine @param {import('./gitPorte.mjs').Depot} depot @param {readonly string[]} chemins
- * @returns {{ defauts: ReturnType<typeof defautsDeRapport>, saut: string | null }}
+ * @returns {Promise<{ defauts: ReturnType<typeof defautsDeRapport>, saut: string | null }>}
  */
-export function lintDeLIndex(racine, depot, chemins) {
+export async function lintDeLIndex(racine, depot, chemins) {
   const aJuger = chemins.map((c) => String(c).replace(/\\/g, '/')).filter((rel) => EXTENSIONS_DE_SCRIPT.some((e) => rel.endsWith(e)))
   if (!aJuger.length) return { defauts: [], saut: null }
   let fermeture
   try {
-    fermeture = fermetureDeConfig(racine)
+    fermeture = await fermetureDeConfig(racine)
   } catch (e) {
     return { defauts: [defautOutillage(`config illisible — ${String(e?.message ?? e).trim().split('\n')[0]}`)], saut: null }
   }

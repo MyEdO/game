@@ -96,7 +96,7 @@ describe('relations — graphe inverse id-based', () => {
     // Une compétence dont le libellé est auto-liable (≥4, non ambigu) doit être tokenisée en lien.
     const s = skills.find((x) => x.label.length >= 4 && labelIndex().get(replier(x.label))?.category === 'skills')!;
     const toks = tokenizeLinks(`Effectuez un Test de ${s.label} pour réussir.`);
-    const link = toks.find((t) => typeof t === 'object' && t.label === s.label);
+    const link = toks.find((t) => typeof t === 'object' && t.id === s.id);
     expect(link).toBeTruthy();
     expect((link as { category: string }).category).toBe('skills');
     // Lien vers SOI écarté → tout reste en texte (aucun token objet).
@@ -118,20 +118,20 @@ describe('relations — graphe inverse id-based', () => {
   it('tokenizeLinks est SENSIBLE À LA CASSE : la casse discrimine le terme de règle du mot commun', () => {
     // « Charme » (compétence, libellé UNIQUE dans le catalogue) : capitalisé = terme de règle → lié ;
     // en minuscule dans un mot commun ("le charme discret") → pas lié.
-    const charme = skills.find((x) => x.label === 'Charme');
+    const charme = skills.find((x) => x.id === 'charme')!;
     expect(charme, 'compétence Charme présente').toBeTruthy();
-    const linkedUpper = tokenizeLinks('Effectuez un Test de Charme pour convaincre.');
-    expect(linkedUpper.some((t) => typeof t === 'object' && t.label === 'Charme' && t.category === 'skills')).toBe(true);
-    const notLinkedLower = tokenizeLinks('Il dégage un charme discret et naturel.');
+    const linkedUpper = tokenizeLinks(`Effectuez un Test de ${charme.label} pour convaincre.`);
+    expect(linkedUpper.some((t) => typeof t === 'object' && t.id === charme.id && t.category === 'skills')).toBe(true);
+    const notLinkedLower = tokenizeLinks(`Il dégage un ${charme.label.toLowerCase()} discret et naturel.`);
     expect(notLinkedLower.every((t) => typeof t === 'string')).toBe(true);
 
     // « En flammes » (état, multi-mots) : capitalisé en toutes lettres, tel qu'écrit dans la source
     // (« l'État En flammes ») → lié ; en minuscule dans un usage courant → pas lié.
-    const enFlammes = etats.find((x) => x.label === 'En flammes');
+    const enFlammes = etats.find((x) => x.id === 'en-flammes')!;
     expect(enFlammes, 'état En flammes présent').toBeTruthy();
-    const flammesLinked = tokenizeLinks("La cible subit l'État En flammes.");
-    expect(flammesLinked.some((t) => typeof t === 'object' && t.label === 'En flammes' && t.category === 'etats')).toBe(true);
-    const flammesNotLinked = tokenizeLinks('Le brasero est en flammes dans la cheminée.');
+    const flammesLinked = tokenizeLinks(`La cible subit l'État ${enFlammes.label}.`);
+    expect(flammesLinked.some((t) => typeof t === 'object' && t.id === enFlammes.id && t.category === 'etats')).toBe(true);
+    const flammesNotLinked = tokenizeLinks(`Le brasero est ${enFlammes.label.toLowerCase()} dans la cheminée.`);
     expect(flammesNotLinked.every((t) => typeof t === 'string')).toBe(true);
 
     // « une œuvre d'art » (mot commun) ne doit jamais lier un terme de règle (casse en minuscule).
@@ -139,16 +139,16 @@ describe('relations — graphe inverse id-based', () => {
     expect(artLower.every((t) => typeof t === 'string')).toBe(true);
 
     // Accent conservé : « Charme » avec sa capitale ordinaire fonctionne aussi en tout DÉBUT de phrase.
-    const startOfSentence = tokenizeLinks('Charme est une compétence sociale.', 'Charme');
+    const startOfSentence = tokenizeLinks(`${charme.label} est une compétence sociale.`, charme.label);
     // Auto-référence (selfLabel) → écarté malgré le lien potentiel.
     expect(startOfSentence.every((t) => typeof t === 'string')).toBe(true);
   });
 
   it('tokenizeLinks garde un libellé MULTI-MOTS tel qu’écrit (casse figée, pas de variante)', () => {
-    const magie = talents.find((x) => x.label === 'Magie des Arcanes');
+    const magie = talents.find((x) => x.id === 'magie-des-arcanes')!;
     expect(magie, 'talent Magie des Arcanes présent').toBeTruthy();
-    const linked = tokenizeLinks('Le sort relève de la Magie des Arcanes.');
-    expect(linked.some((t) => typeof t === 'object' && t.label === 'Magie des Arcanes' && t.category === 'talents')).toBe(true);
+    const linked = tokenizeLinks(`Le sort relève de la ${magie.label}.`);
+    expect(linked.some((t) => typeof t === 'object' && t.id === magie.id && t.category === 'talents')).toBe(true);
     // Variante de casse partielle (« magie des Arcanes ») ≠ libellé exact → pas de lien.
     const notLinked = tokenizeLinks('Cette étrange magie des Arcanes intrigue les érudits.');
     expect(notLinked.every((t) => typeof t === 'string')).toBe(true);
@@ -157,22 +157,22 @@ describe('relations — graphe inverse id-based', () => {
   it('tokenizeLinks : pluriel FR simple (chaque mot du libellé accepte un « s » optionnel)', () => {
     // « Attaque caudale » (trait ET manœuvre — homonyme RÉEL, cf. `PRIORITY_CAT_ORDER`) : le pluriel
     // « Attaques caudales » (accord régulier des deux mots) doit lier le libellé SINGULIER d'origine.
-    const traitHit = traits.find((x) => x.label === 'Attaque caudale');
+    const traitHit = traits.find((x) => x.id === 'attaque-caudale');
     expect(traitHit, 'trait Attaque caudale présent').toBeTruthy();
     const toks = tokenizeLinks('Les Attaques caudales sont redoutables.');
-    const link = toks.find((t) => typeof t === 'object' && t.label === 'Attaque caudale');
+    const link = toks.find((t) => typeof t === 'object' && t.id === 'attaque-caudale');
     expect(link, 'lien vers le libellé singulier malgré le pluriel dans le texte').toBeTruthy();
     expect((link as { text: string }).text).toBe('Attaques caudales'); // texte affiché = VERBATIM de la source
     // Simple compétence au pluriel : « Charmes » → « Charme ».
-    expect(skills.find((x) => x.label === 'Charme'), 'compétence Charme présente').toBeTruthy();
+    expect(skills.find((x) => x.id === 'charme'), 'compétence Charme présente').toBeTruthy();
     const charmeToks = tokenizeLinks('Vous déployez tous vos Charmes.');
-    expect(charmeToks.some((t) => typeof t === 'object' && t.label === 'Charme' && t.category === 'skills')).toBe(true);
+    expect(charmeToks.some((t) => typeof t === 'object' && t.id === 'charme' && t.category === 'skills')).toBe(true);
   });
 
   it('tokenizeLinks : absorbe la parenthèse de spécialisation ADJACENTE en une seule mention', () => {
-    expect(skills.find((x) => x.label === 'Savoir'), 'compétence Savoir présente').toBeTruthy();
+    expect(skills.find((x) => x.id === 'savoir'), 'compétence Savoir présente').toBeTruthy();
     const toks = tokenizeLinks('Vous maîtrisez Savoir (Histoire) parfaitement.');
-    const link = toks.find((t) => typeof t === 'object' && t.label === 'Savoir') as
+    const link = toks.find((t) => typeof t === 'object' && t.id === 'savoir') as
       { category: string; label: string; spec?: string; text: string } | undefined;
     expect(link, 'une SEULE mention, pas coupée au milieu de la parenthèse').toBeTruthy();
     expect(link!.category).toBe('skills');
@@ -188,9 +188,10 @@ describe('relations — graphe inverse id-based', () => {
   it('tokenizeLinks : homonymes RÉSOLUS (pas jetés) — priorité GLOBALE puis `selfCategory`', () => {
     // « Haine » existe en TALENT et en TRAIT (collision réelle du catalogue) — labelIndex() général
     // écarterait ce libellé ; le matcher LINKABLE le résout au lieu de le jeter.
-    const talentHaine = talents.find((x) => x.label === 'Haine');
-    const traitHaine = traits.find((x) => x.label === 'Haine');
+    const talentHaine = talents.find((x) => x.id === 'haine');
+    const traitHaine = traits.find((x) => x.id === 'haine');
     expect(talentHaine && traitHaine, 'homonyme réel Haine (talent + trait)').toBeTruthy();
+    expect(traitHaine!.label, 'homonyme réel Haine (talent + trait)').toBe(talentHaine!.label);
     // Sans contexte → priorité GLOBALE (talents avant traits, cf. PRIORITY_CAT_ORDER documentée).
     const noCtx = tokenizeLinks('Il agit par pure Haine.').find((t) => typeof t === 'object') as
       { category: string } | undefined;
@@ -204,9 +205,10 @@ describe('relations — graphe inverse id-based', () => {
 
   it('tokenizeLinks : forme PRÉFIXÉE par catégorie (« Compétence X »/« Talent X ») toujours non ambiguë', () => {
     // Dérivées de `GENERIC_PLURAL`, pas une table en dur nouvelle : « Compétences » → « Compétence ».
-    const resSkill = skills.find((x) => x.label === 'Résistance');
-    const resTalent = talents.find((x) => x.label === 'Résistance');
+    const resSkill = skills.find((x) => x.id === 'resistance');
+    const resTalent = talents.find((x) => x.id === 'resistance');
     expect(resSkill && resTalent, 'homonyme réel Résistance (compétence + talent)').toBeTruthy();
+    expect(resTalent!.label, 'homonyme réel Résistance (compétence + talent)').toBe(resSkill!.label);
     const skillForm = tokenizeLinks('On y joue sa Compétence Résistance.').find((t) => typeof t === 'object') as
       { category: string; label: string } | undefined;
     expect(skillForm).toEqual({ category: 'skills', id: resSkill!.id, label: 'Résistance', spec: undefined, text: 'Compétence Résistance' });
@@ -231,7 +233,7 @@ describe('relations — graphe inverse id-based', () => {
   });
 
   it('B3 : forme de JAUGE « Points de X » cible la caractéristique sans ambiguïté', () => {
-    const corr = characteristics.find((x) => x.label === 'Corruption')!;
+    const corr = characteristics.find((x) => x.id === 'corruption')!;
     expect(corr, 'caractéristique Corruption présente').toBeTruthy();
     const link = tokenizeLinks('Vous gagnez des Points de Corruption.').find((t) => typeof t === 'object') as
       { category: string; id: string; text: string } | undefined;
@@ -241,13 +243,16 @@ describe('relations — graphe inverse id-based', () => {
   it('B3 : « Corruption » NU (homonyme jauge⇄trait, concepts DISTINCTS) → aucun lien sans contexte (sûr)', () => {
     // Nature B (cf. HOMONYM_DECISION) : la jauge d'âme et le trait de créature ne sont pas le même
     // concept → un match nu n'est jamais tranchable → on ne lie pas.
-    expect(characteristics.find((x) => x.label === 'Corruption') && traits.find((x) => x.label === 'Corruption'), 'homonyme réel Corruption').toBeTruthy();
+    const jauge = characteristics.find((x) => x.id === 'corruption');
+    const trait = traits.find((x) => x.id === 'corruption');
+    expect(jauge && trait, 'homonyme réel Corruption').toBeTruthy();
+    expect(trait!.label, 'homonyme réel Corruption').toBe(jauge!.label);
     const toks = tokenizeLinks('Le sanctuaire répand la Corruption alentour.');
     expect(toks.every((t) => typeof t === 'string')).toBe(true);
   });
 
   it('B3 : contexte de fiche — « Corruption » NU dans une fiche de TRAIT résout au TRAIT (selfCategory prime)', () => {
-    const traitCorr = traits.find((x) => x.label === 'Corruption')!;
+    const traitCorr = traits.find((x) => x.id === 'corruption')!;
     const link = tokenizeLinks('Cette créature répand la Corruption.', undefined, 'traits').find((t) => typeof t === 'object') as
       { category: string; id: string } | undefined;
     expect(link, 'le contexte de fiche tranche l’homonyme').toBeTruthy();

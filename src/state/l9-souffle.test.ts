@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyCast, castSpell } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import type { CastResult } from '../engine/magic';
 
@@ -45,7 +45,7 @@ describe('Souffle — délégation à l’attaque de zone du Trait (LDB 47 l.509
 
   it('lancé avec succès : attaque de zone Souffle (Feu) centrée sur la cible du sort', () => {
     const { caster, T } = setup();
-    const souffle = findSpell('Souffle')!;
+    const souffle = findSpellById('souffle')!;
     applyCast(useGame.getState, useGame.setState, caster, T, souffle, okRes(6), false, false);
     const log = useGame.getState().battle!.log.map((e) => e.text).join('\n');
     expect(log).toMatch(/déclenche Souffle \(Feu\)/);

@@ -25,7 +25,7 @@ import { deFixe } from '../engine/dice.testkit';
 function opsDuPalier(): GameOp[] {
   for (let seed = 0; seed < 600; seed++) {
     const r = rollMiscast('colere', makeRNG(seed), 0);
-    if (!r.label.startsWith('Purifier la chair')) continue;
+    if (r.rowId !== 'colere-purifier-la-chair') continue;
     const node: Flow = r.testFlow!;
     if (node.kind !== 'test' || node.fail.kind !== 'seq') throw new Error('structure de la rangée inattendue');
     const hard = node.fail.steps[1];

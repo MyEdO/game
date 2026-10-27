@@ -1,8 +1,7 @@
 /**
  * engine/spellspec + SpellData — métadonnées de résolution curées.
  * Les specs curées vivent dans SpellData (spells.json). Ces tests vérifient que la résolution
- * applique bien les effets curés et que la désambiguïsation par école fonctionne directement sur les
- * données JSON.
+ * applique bien les effets curés directement sur les données JSON.
  */
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
@@ -56,16 +55,9 @@ describe('specs curées — résolution', () => {
   });
 });
 
-describe('registre — couverture & désambiguïsation', () => {
+describe('registre — couverture', () => {
   it('les 19 Bénédictions sont au registre', () => {
     expect(spells.filter((s) => s.ecole === 'Béni')).toHaveLength(19);
-  });
-
-  it('labels en double : « Enchevêtrement » résolu par type (Arcane vs miracle de Taal)', () => {
-    const arcane = spells.find((s) => s.label === 'Enchevêtrement' && s.ecole === 'Magie des Arcanes');
-    const taal = spells.find((s) => s.label === 'Enchevêtrement' && s.ecole === 'Invocation');
-    expect(arcane?.ecole).toBe('Magie des Arcanes');
-    expect(taal?.ecole).toBe('Invocation');
   });
 });
 

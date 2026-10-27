@@ -65,7 +65,7 @@ describe('Codex registry', () => {
       expect(codexLookup('etats', renamed)).toBeUndefined(); // construit l'index de la catégorie
       setDataset('etats', etats.map((e, i) => (i === 0 ? { ...e, label: renamed } : e)));
       // Re-projection : la catégorie reflète le nouveau libellé, le lookup le résout.
-      expect(cat.items.some((i) => i.label === renamed)).toBe(true);
+      expect(cat.items.find((i) => i.id === original.id)?.label).toBe(renamed);
       expect(codexLookup('etats', renamed)?.label).toBe(renamed);
       expect(codexLookup('etats', original.label)).toBeUndefined(); // l'ancien libellé a disparu
     } finally {
@@ -145,7 +145,7 @@ describe('Codex registry — dégâts CONDITIONNELS d’une arme à capacité de
     // le Codex ne doit plus l'occulter.
     const siegeTrapping = trappings.find((t) => t.qualities.some((q) => q.id === 'siege'))!;
     expect(siegeTrapping, 'aucune pièce à Atout Siège dans le catalogue').toBeTruthy();
-    const item = categoryByKey('trappings')!.items.find((i) => i.label === siegeTrapping.label)!;
+    const item = categoryByKey('trappings')!.items.find((i) => i.id === siegeTrapping.id)!;
     const damageFact = item.meta?.find((f) => f.label === 'Dégâts');
     expect(damageFact, `${siegeTrapping.label} : fait Dégâts`).toBeTruthy();
     expect(damageFact!.value).toContain('×2 contre une structure');
@@ -153,7 +153,7 @@ describe('Codex registry — dégâts CONDITIONNELS d’une arme à capacité de
 
   it('une arme normale (sans ram/siège) garde son fait « Dégâts » INCHANGÉ — juste le total imprimé', () => {
     const sword = trappings.find((t) => t.id === 'arme-simple')!;
-    const item = categoryByKey('trappings')!.items.find((i) => i.label === sword.label)!;
+    const item = categoryByKey('trappings')!.items.find((i) => i.id === sword.id)!;
     const damageFact = item.meta?.find((f) => f.label === 'Dégâts');
     expect(damageFact!.value).toBe('+BF+4');
     expect(damageFact!.value).not.toMatch(/structure|porte|Effets/);
@@ -201,22 +201,20 @@ describe('Codex registry — Bataille de masse (ADE II 8, #148)', () => {
 
   it('les machines de guerre (dont le Bélier, déjà présent en donnée — pas dupliqué) apparaissent au catalogue', () => {
     const items = categoryByKey('massBattleWarMachines')!.items;
-    expect(items.map((i) => i.label)).toContain('Bélier');
-    const belier = items.find((i) => i.label === 'Bélier')!;
+    expect(items.map((i) => i.id)).toContain('belier');
+    const belier = items.find((i) => i.id === 'belier')!;
     expect(belier.meta?.find((f) => f.label === 'Équipe')?.value).toBe('6');
     expect(belier.meta?.find((f) => f.label === 'Atouts')?.value).toBe('Siège');
-    // Une seule occurrence (pas de doublon introduit ailleurs, ex. trappings.json — cf. incident #148).
-    expect(items.filter((i) => i.label === 'Bélier')).toHaveLength(1);
   });
 
   it('les structures (cibles de siège) et les aléas de bataille sont peuplés avec leurs faits', () => {
     const structures = categoryByKey('massBattleStructures')!.items;
-    const porte = structures.find((i) => i.label === 'Porte de ville')!;
+    const porte = structures.find((i) => i.id === 'porte-de-ville')!;
     expect(porte.meta?.find((f) => f.label === 'BE')?.value).toBe('10');
     expect(porte.meta?.find((f) => f.label === 'Blessures')?.value).toBe('30');
     const hazards = categoryByKey('massBattleHazards')!.items;
-    expect(hazards.map((i) => i.label)).toContain('Tempête');
-    expect(hazards.find((i) => i.label === 'Tempête')!.desc).toMatch(/tempête se lève/);
+    expect(hazards.map((i) => i.id)).toContain('tempete');
+    expect(hazards.find((i) => i.id === 'tempete')!.desc).toMatch(/tempête se lève/);
   });
 });
 
@@ -290,16 +288,16 @@ describe('Codex registry — #157 (suite) : 5 derniers catalogues de CONTENU (Cr
 
   it('un Critique de navire (Coque) porte son effet immédiat (ops) ET son Test d’équipage (échec) en sections', () => {
     const items = categoryByKey('shipCriticalsCoque')!.items;
-    const barreAbimee = items.find((i) => i.label === 'Barre abîmée');
+    const barreAbimee = items.find((i) => i.id === 'barre-abimee');
     expect(barreAbimee, 'Barre abîmée (coque, MDG 13)').toBeTruthy();
     expect(barreAbimee!.sub).toBe('1d10 2');
-    const coqueDegradee = items.find((i) => i.label === 'Coque dégradée')!;
+    const coqueDegradee = items.find((i) => i.id === 'coque-degradee')!;
     expect(coqueDegradee.meta?.find((f) => f.label === 'Éclats (Indice)')?.value).toBe('4');
   });
 
   it('un Critique fluvial (Gréement) porte son effet immédiat + son coup à l’équipage, jet NOMMÉ jusqu’à la Caractéristique (MSRC 07 l.78)', () => {
     const items = categoryByKey('riverCriticalsGreement')!.items;
-    const g = items.find((i) => i.label === 'Gréement')!;
+    const g = items.find((i) => i.id === 'greement-fluvial')!;
     expect(g, 'Gréement (fluvial, MSRC 07)').toBeTruthy();
     expect(g.sections?.some((s) => s.title === 'Effet immédiat')).toBe(true);
     const coupSec = g.sections?.find((s) => s.title === 'Coup à l’équipage');
@@ -315,7 +313,7 @@ describe('Codex registry — #157 (suite) : 5 derniers catalogues de CONTENU (Cr
 
   it('un coup à l’équipage SANS jet (Rames fluviales, MSRC 07 l.82) s’annonce automatique et porte une conséquence CERTAINE', () => {
     const items = categoryByKey('riverCriticalsAvirons')!.items;
-    const rames = items.find((i) => i.label === 'Rames')!;
+    const rames = items.find((i) => i.id === 'rames-fluvial')!;
     const coupSec = rames.sections?.find((s) => s.title === 'Coup à l’équipage');
     expect(coupSec, 'section Coup à l’équipage').toBeTruthy();
     expect(coupSec!.rows.some((r) => r.t === 'kv' && r.k === 'Jet' && r.v === 'Automatique (aucun Test)')).toBe(true);
@@ -325,7 +323,7 @@ describe('Codex registry — #157 (suite) : 5 derniers catalogues de CONTENU (Cr
 
   it('un Critique SANS coup à l’équipage (Coque fluviale) omet la section', () => {
     const items = categoryByKey('riverCriticalsCoque')!.items;
-    const coque = items.find((i) => i.label === 'Coque')!;
+    const coque = items.find((i) => i.id === 'coque-fluvial')!;
     expect(coque.sections?.some((s) => s.title === 'Coup à l’équipage')).toBe(false);
     expect(coque.sections?.some((s) => s.title === 'Effet immédiat')).toBe(true);
   });
@@ -338,14 +336,14 @@ describe('Codex registry — #157 (suite) : 5 derniers catalogues de CONTENU (Cr
 
   it('un Facteur d’Humeur de Manann (MDG 15) affiche son effet signé (Nd10 + constante)', () => {
     const items = categoryByKey('seaManannFactors')!.items;
-    const f = items.find((i) => i.label === 'Vaincre ou contrer des suivants de Stromfels')!;
+    const f = items.find((i) => i.id === 'vaincre-stromfels')!;
     expect(f, 'facteur Stromfels').toBeTruthy();
     expect(f.meta?.find((x) => x.label === 'Effet sur l’Humeur de Manann')?.value).toBe('+3d10');
   });
 
   it('un Événement de bord (MDG 15) porte sa plage de jet + son texte verbatim', () => {
     const items = categoryByKey('seaBoardEvents')!.items;
-    const triton = items.find((i) => i.label === 'Triton !')!;
+    const triton = items.find((i) => i.id === 'triton')!;
     expect(triton, 'événement Triton').toBeTruthy();
     expect(triton.sub).toBe('≤−65');
     expect(triton.desc).toMatch(/Manann ne supporte plus/);
@@ -391,7 +389,7 @@ describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Na
 
   it('un Port (Index de la Mer des Griffes, MDG 15) porte ses faits + sa Production en cross-réf vers la Cargaison maritime', () => {
     const items = categoryByKey('navalPorts')!.items;
-    const marienburg = items.find((i) => i.label === 'Marienburg')!;
+    const marienburg = items.find((i) => i.id === 'marienburg')!;
     expect(marienburg, 'Marienburg').toBeTruthy();
     expect(marienburg.meta?.find((f) => f.label === 'Richesse')?.value).toBe('5');
     expect(marienburg.group).toBe('Wasteland');
@@ -408,7 +406,7 @@ describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Na
 
   it('les gabarits de coque (Construction navale, MDG 12) portent Coût/Équipage/Longueur', () => {
     const items = categoryByKey('shipHullSizes')!.items;
-    const moyenne = items.find((i) => i.label === 'Moyenne')!;
+    const moyenne = items.find((i) => i.id === 'moyenne')!;
     expect(moyenne, 'Moyenne').toBeTruthy();
     expect(moyenne.meta?.find((f) => f.label === 'Équipage')?.value).toBe('20');
     expect(moyenne.meta?.find((f) => f.label === 'Longueur')?.value).toBe('21–35 m');
@@ -465,7 +463,7 @@ describe('Codex registry — LOT 1 #422 (famille RÈGLES LDB : Coût des Augment
   it('le Coût des Augmentations (LDB 07) porte 15 bandes avec leur coût Caractéristique/Compétence', () => {
     const items = categoryByKey('advancementCosts')!.items;
     expect(items).toHaveLength(15);
-    const first = items.find((i) => i.label === '0–5')!;
+    const first = items.find((i) => i.id === 'adv-0-5')!;
     expect(first.meta?.find((f) => f.label === 'Coût — Caractéristique')?.value).toBe('25');
     expect(first.meta?.find((f) => f.label === 'Coût — Compétence')?.value).toBe('10');
   });
@@ -485,7 +483,7 @@ describe('Codex registry — LOT 1 #422 (famille RÈGLES LDB : Coût des Augment
   it('les Accidents de Conduite d’attelage (LDB 09) portent leurs 4 issues avec leur fourchette 1d10', () => {
     const items = categoryByKey('drivingMishap')!.items;
     expect(items).toHaveLength(4);
-    const crash = items.find((i) => i.label === 'Essieu cassé')!;
+    const crash = items.find((i) => i.id === 'essieu-casse')!;
     expect(crash.sub).toBe('1d10 9–10');
     expect(crash.meta?.find((f) => f.label === 'Type')?.value).toBe('Essieu cassé (Accidenté)');
   });
@@ -500,9 +498,9 @@ describe('Codex registry — LOT 1 #422 (famille RÈGLES LDB : Coût des Augment
   it('les Paliers d’Encombrement (LDB 61) portent 4 paliers, du sans-pénalité à l’immobilisé', () => {
     const items = categoryByKey('encumbranceTiers')!.items;
     expect(items).toHaveLength(4);
-    const tier0 = items.find((i) => i.label === 'Palier 0')!;
+    const tier0 = items.find((i) => i.id === 'tier-0')!;
     expect(tier0.meta?.find((f) => f.label === 'Pénalité de Mouvement')?.value).toBe('Aucune');
-    const tier3 = items.find((i) => i.label === 'Palier 3')!;
+    const tier3 = items.find((i) => i.id === 'tier-3')!;
     expect(tier3.meta?.find((f) => f.label === 'Pénalité de Mouvement')?.value).toBe('Immobilisé');
   });
 });
@@ -581,7 +579,7 @@ describe('Codex registry — sous-groupes repliables (clusters, #378 volet B)', 
 
 describe('Codex registry — fiche de Carrière étoffée (#378 volet C)', () => {
   it('porte des faits-clés (Classe + Statut), un onglet Progression et sa desc verbatim', () => {
-    const agitateur = categoryByKey('careers')!.items.find((i) => i.label === 'Agitateur')!;
+    const agitateur = categoryByKey('careers')!.items.find((i) => i.id === 'agitateur')!;
     expect(agitateur, 'Agitateur').toBeTruthy();
     expect(agitateur.meta?.find((f) => f.label === 'Classe')?.value).toBeTruthy();
     expect(agitateur.meta?.find((f) => f.label === 'Statut')?.value).toContain('→');

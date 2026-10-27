@@ -601,13 +601,13 @@ describe('permanentAmputations — séquelles permanentes par id de fiche (LDB 1
   });
   it('tête : « Coup défigurant » cumule œil (−5 Soc) + nez (−20 Soc)', () => {
     const s = permanentAmputations(['nez-ampute', 'oeil-perdu'], 'tete');
-    expect(s.map((x) => x.label).sort()).toEqual(['Nez amputé', 'Œil perdu']);
-    expect(s.find((x) => x.label === 'Nez amputé')!.ops).toContainEqual({ op: 'charMod', char: 'sociabilite', mod: -20 });
+    expect(s.map((x) => x.traumaId).sort()).toEqual(['nez-ampute', 'oeil-perdu']);
+    expect(s.find((x) => x.traumaId === 'nez-ampute')!.ops).toContainEqual({ op: 'charMod', char: 'sociabilite', mod: -20 });
   });
   it('tête : « Mâchoire mutilée » — la LIGNE fait perdre 1d10 dents (`unites`), la langue n’est pas comptée', () => {
     const s = permanentAmputations(['langue-amputee', 'dents-perdues'], 'tete', 4);
-    expect(s.find((x) => x.label === 'Langue amputée')!.ops).toContainEqual({ op: 'skillMod', skill: { id: 'langue' }, mod: -100 });
-    expect(s.find((x) => x.label === 'Langue amputée')!.count).toBeUndefined(); // séquelle non cumulative
+    expect(s.find((x) => x.traumaId === 'langue-amputee')!.ops).toContainEqual({ op: 'skillMod', skill: { id: 'langue' }, mod: -100 });
+    expect(s.find((x) => x.traumaId === 'langue-amputee')!.count).toBeUndefined(); // séquelle non cumulative
     const dents = s.find((x) => x.traumaId === 'dents-perdues')!;
     expect(dents.count).toBe(4);
     expect(dents.ops).toContainEqual({ op: 'charMod', char: 'sociabilite', mod: -2 }); // 4 dents = 2 paires

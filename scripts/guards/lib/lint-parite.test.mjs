@@ -507,6 +507,32 @@ test('murs/echap-import : `CODE_ECHAP` ne s’importe que sous src/state/clavier
   }
 })
 
+test('murs/resolveur-par-libelle : un test ou un script ne nomme aucun résolveur par LIBELLÉ de src/data/index.ts', () => {
+  const REGLE='murs/resolveur-par-libelle'
+  const cas = [
+    ['src/state/parite-resolveur.test.ts',"import { findSpell } from '../data';\nexport const s=findSpell('x');",1],
+    ['src/state/parite-resolveur-index.test.ts',"import { findTalent } from '../data/index';\nexport const s=findTalent('x');",1],
+    ['src/state/parite-resolveur-alias.test.ts',"import { findSkill } from '@/data';\nexport const s=findSkill('x');",1],
+    ['src/state/parite-resolveur-renomme.test.ts',"import { traitIdByLabel as t } from '../data';\nexport const s=t('x');",1],
+    ['src/state/parite-resolveur-espace.test.ts',"import * as data from '../data'; export const s=data.findSpell('x');",1],
+    ['src/state/parite-resolveur-relai.testkit.ts',"export { qualityIdByLabel } from '../data';",1],
+    ['src/data/parite-resolveur.test.ts',"import { specIdByLabel } from './index';\nexport const s=specIdByLabel('x', 'y');",1],
+    ['scripts/parite-resolveur.mjs',"import { findSpell } from '../src/data/index.ts';\nexport const s=findSpell('x');",1],
+    ['src/state/parite-resolveur-destructure.test.ts',"const { findSkill } = await import('../data');\nexport const s=findSkill('x');",1],
+    ['src/state/parite-resolveur-indexe.test.ts',"import * as data from '../data'; export const s=data['findTalent']('x');",1],
+    ['src/state/parite-resolveur-par-id.test.ts',"import { findSpellById, findTalentById } from '../data';\nexport const s=[findSpellById('x'),findTalentById('y')];",0],
+    ['src/state/parite-resolveur-enumere.test.ts',"import * as data from '../data';\nexport const s=Object.values(data);",0],
+    ['src/state/parite-resolveur-local.test.ts',"function findSkill(id) { return id; }\nexport const s=findSkill('x');",0],
+    ['src/state/parite-resolveur-prod.ts',"import { findSpell } from '../data';\nexport const s=findSpell('x');",0],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===REGLE)
+    assert.equal(vus.length,cas[i][2],`${cas[i][0]}: ${JSON.stringify(resultats[i].messages)}`)
+    for(const m of vus) {assert.equal(m.severity,2);assert.equal(m.line,1)}
+  }
+})
+
 test('murs/datalist : `<datalist>` et `<input list>` sous src sont refusés hors du dossier de RefField et des instruments Vitest', () => {
   const REGLE='murs/datalist'
   const cas = [

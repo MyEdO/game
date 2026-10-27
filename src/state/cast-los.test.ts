@@ -11,7 +11,7 @@ import { useGame } from './store';
 import { castSpell, overcastTargetCandidates, castOutOfSightTargetIds } from '../noyau/combatFlow';
 import { pregen, PREGEN, makePregens } from '../data/pregens';
 import { spawnEnemy } from '../noyau/monde/spawn';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
 
 function wiz() {
@@ -120,7 +120,7 @@ describe('Surincantation « +Cible » — candidats filtrés par LdV (sight four
   it('candidat derrière un mur exclu AVEC sight, inclus SANS (compat hors combat)', () => {
     const { w, seen, hidden } = setup();
     const pool: Combatant[] = [w, seen, hidden];
-    const spell = findSpell('Carreau')!;
+    const spell = findSpellById('carreau')!;
     const sansSight = overcastTargetCandidates(pool, w, 'e-vu', spell, true, 'arcane', 0).map((c) => c.id);
     expect(sansSight).toContain('e-cache');
     const avecSight = overcastTargetCandidates(pool, w, 'e-vu', spell, true, 'arcane', 0, { scene: useGame.getState().scene! as never, smoke: [] }).map((c) => c.id);
