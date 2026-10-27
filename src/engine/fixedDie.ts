@@ -3,8 +3,8 @@
  * pas une règle de WFRP : elle ne vit PAS au registre des règles optionnelles
  * (`src/data/reglesOptionnelles.json`, lu par `policy.ts` — chaque entrée y porte sa réf chapitre +
  * ligne) mais ici, en valeur pure. MÊME partage que `cadence.ts` : ce module
- * FEUILLE porte la valeur (moteur pur, zéro dépendance), `state/preferences.ts` porte le registre joueur
- * et la persistance, `noyau/netOwnership.canFixDie` porte le prédicat de CONTRÔLE (qui peut fixer quoi).
+ * FEUILLE porte la valeur (moteur pur, zéro dépendance), `noyau/preferences.ts` porte la table,
+ * `hote/preferences.ts` la persistance, `noyau/netOwnership.canFixDie` porte le prédicat de CONTRÔLE (qui peut fixer quoi).
  *
  * SEULE source de vérité de l'activation : le reste du moteur/store lit `desFixes()`.
  */
@@ -15,7 +15,7 @@ let current: boolean = DES_FIXES_DEFAULT;
 /** L'option est-elle active ? (défaut `false`). */
 export const desFixes = (): boolean => current;
 
-/** Écrit l'option — couture d'écriture unique du joueur : `state/preferences.ts`. */
+/** Écrit l'option — table des préférences : `noyau/preferences.ts`. */
 export function setDesFixes(on: boolean): void {
   current = on;
 }

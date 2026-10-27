@@ -37,6 +37,22 @@ export function elaguerLePersiste<P extends Porteur>(entree: { regles?: Readonly
   return { regles, porteurs, retraits: { regles: reglesRefusees, etats } };
 }
 
+/** Les retraits relus de `v`, un témoin venu d'un stockage : chaque liste réduite à ses chaînes ; `null` si `v` n'est
+ *  pas un objet. */
+export function lireLesRetraits(v: unknown): RetraitsDElagage | null {
+  if (v === null || typeof v !== 'object') return null;
+  const r = v as Partial<Record<keyof RetraitsDElagage, unknown>>;
+  const ids = (l: unknown): string[] => (Array.isArray(l) ? l.filter((x): x is string => typeof x === 'string') : []);
+  return { regles: ids(r.regles), etats: ids(r.etats) };
+}
+
+/** L'union de `a` et `b`, sans doublon ; `null` si les deux le sont. */
+export function cumulerLesRetraits(a: RetraitsDElagage | null, b: RetraitsDElagage | null): RetraitsDElagage | null {
+  if (!a || !b) return a ?? b;
+  const union = (x: string[], y: string[]) => [...new Set([...x, ...y])];
+  return { regles: union(a.regles, b.regles), etats: union(a.etats, b.etats) };
+}
+
 /** Rien n'a été retiré. */
 export const rienDElague = (r: RetraitsDElagage): boolean => r.regles.length === 0 && r.etats.length === 0;
 
