@@ -1,6 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { rule, type OptionalRule, type RuleValue } from '../engine/policy';
-import { setHouseRule, resetHouseRule, houseRulesMutability } from '../state/houseRules';
+import { setHouseRule, resetHouseRule, houseRulesMutability, takeHouseRulesNotice } from '../state/houseRules';
+import { t } from '../i18n';
+import { ChipDeRefus } from './ChipDeRefus';
+import { nommerLesRetraits, type RetraitsDElagage } from '../state/elagage';
 import { useGame } from '../state/store';
 import { Icon } from './Icon';
 import { NumberField } from './NumberField';
@@ -37,6 +40,12 @@ export function HouseRulesPanel() {
   const [tabKey, setTabKey] = useState(tabs[0]?.key ?? '');
   const active = tabs.find((t) => t.key === tabKey) ?? tabs[0];
   const { mutable, reason: lockReason } = useMemo(() => houseRulesMutability(), [inBattle]);
+  // Témoin consommé dans un EFFET, jamais à l'initialisation du rendu (double passe de `<React.StrictMode>`).
+  const [retirees, setRetirees] = useState<RetraitsDElagage | null>(null);
+  useEffect(() => {
+    const r = takeHouseRulesNotice();
+    if (r) setRetirees(r);
+  }, []);
 
   const change = (id: string, v: RuleValue) => { setHouseRule(id, v); rerender(); };
   const reset = (id: string) => { resetHouseRule(id); rerender(); };
@@ -49,6 +58,7 @@ export function HouseRulesPanel() {
         onChange={setTabKey}
         tabs={tabs.map((t) => ({ key: t.key, label: t.label, count: t.rules.length }))}
       />
+      {retirees && <ChipDeRefus refus={{ message: t('houseRules.retirees', { liste: nommerLesRetraits(retirees) }) }} />}
       {lockReason && <p className="hint" id={LOCK_NOTE_ID}>{lockReason}</p>}
       <div className="hr-body">
         {active?.groups.map((g) => (

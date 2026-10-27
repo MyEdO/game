@@ -6,7 +6,7 @@
  * minuteurs (Godot) rend lui-même chaque jeton ; le geste joué sur la partie vit dans `geste.ts`.
  */
 import {
-  creerPartie, etatInitialDuJeu, CADENCE_MODES,
+  creerPartie, etatInitialDuJeu, CADENCE_MODES, refusDesSurcharges,
   type Cadence, type Jeton, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
 import { lancementDuScenario, type TestScenario } from '../scenes/test-scenarios/_shared';
@@ -50,7 +50,10 @@ export function nouvelEntete(scenario: string, options: { graine?: number; caden
   valider(Number.isInteger(graine), `graine non entière : ${graine}`);
   const cadence = options.cadence ?? 'manuel';
   valider((CADENCE_MODES as readonly string[]).includes(cadence), `cadence inconnue : ${cadence} (${CADENCE_MODES.join(', ')})`);
-  return { scenario, graine, regles: options.regles ?? {}, cadence: cadence as Cadence, desFixes: options.desFixes ?? false };
+  const regles = options.regles ?? {};
+  const refus = refusDesSurcharges(regles);
+  valider(refus.length === 0, `règles refusées : ${refus.map((r) => r.raison).join(' ; ')}`);
+  return { scenario, graine, regles, cadence: cadence as Cadence, desFixes: options.desFixes ?? false };
 }
 
 /** Un jeton programmé, numéroté : un jeton du noyau est une identité d'objet (`partie.ts`), qui ne traverse pas JSON. */

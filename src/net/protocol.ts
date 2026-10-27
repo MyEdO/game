@@ -5,8 +5,8 @@
  * (`campaign`). `parseMessage` valide la FORME de chaque message : le réseau est une entrée
  * non fiable → null, jamais d'exception.
  *
- * `hello.build` : le format de l'état (`FORMAT_SAVE`, `state/netFlow.ts`), comparée par
- * l'hôte au hello.
+ * `hello.build` : le format de l'état et l'empreinte des registres que nomme un snapshot
+ * (`buildDeLaCoop`, `state/netFlow.ts`), comparée par l'hôte au hello.
  *
  * `error` : envoyé par l'hôte AVANT de fermer le transport (mismatch de protocole ou de format au hello)
  * pour distinguer une fermeture VOLONTAIRE d'une coupure réseau banale côté invité. N'entraîne

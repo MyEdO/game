@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { OPTIONAL_RULES, resetRule, rule, setRule } from './policy';
 import { abonnerAuxDatasets, versionDesDatasets } from '../data/versionDataset';
 
-const regle = OPTIONAL_RULES[0];
+const regle = OPTIONAL_RULES.find((r) => r.kind === 'flag')!;
 afterEach(() => resetRule(regle.id));
 
 describe('règles optionnelles : le témoin des données éditables', () => {

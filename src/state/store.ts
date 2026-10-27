@@ -10,7 +10,8 @@ import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
 import * as netFlow from './netFlow';
-import { snapshotSave, saveToSlot, readSlot, importSave, AUTO_SLOT, type SaveSlot, type AnySlot, type SaveGame } from './saves';
+import { snapshotSave, saveToSlot, readSlot, importSave, elaguerSave, AUTO_SLOT, type SaveSlot, type AnySlot, type SaveGame } from './saves';
+import { rienDElague, type RetraitsDElagage } from './elagage';
 import { loadKeyOverrides, saveKeyOverrides } from './keybindingsPrefs';
 import { pruneSeatAssignments } from '../noyau/monde/seating';
 import { transitionDuJeu } from '../noyau/transitionDuJeu';
@@ -38,7 +39,9 @@ export type SheetTab = 'etat' | 'possessions' | 'competences' | 'magie' | 'avanc
 /** Charge une save (Jalon 5) : reset zéro-maintenance (état de création sans les actions — le
  *  JSON round-trip écarte les fonctions) + données de la save par-dessus, écran campagne.
  *  Le merge partiel de zustand préserve les actions du store. */
-function applyLoadedSave(set: RemplacerLEtat, save: SaveGame): void {
+function applyLoadedSave(set: RemplacerLEtat, lue: SaveGame): void {
+  // Ce que le registre courant ne connaît plus (règle, État porté) est retiré et NOMMÉ, la save se charge (#1463 LD.1).
+  const { save, retraits } = elaguerSave(lue);
   const base = JSON.parse(JSON.stringify(useGame.getInitialState())) as Partial<GameState>;
   const data = { ...(save.data as Partial<GameState>) };
   // La save chargée est TOUJOURS à `FORMAT_SAVE` (toute autre forme est jetée, `saves.ts`) :
@@ -60,6 +63,7 @@ function applyLoadedSave(set: RemplacerLEtat, save: SaveGame): void {
   set(reposerPaquetDeCampagne(data.campaignDoc as CampaignDoc | null | undefined));
   // Règles maison de la save : on les applique au registre (parité avec la partie sauvegardée).
   loadRuleOverrides(save.rules);
+  set({ retraitsDeChargement: rienDElague(retraits) ? null : retraits });
   bus.emit(EVT.SCENE_DIRTY);
 }
 
@@ -131,6 +135,9 @@ export interface EtatDeLAdaptateur {
   editingHeroId: string | null;
   /** Menu système plein écran (pause) ouvert — commuté par Échap (binding `toggle-menu`) et le bouton ☰. */
   gameMenuOpen: boolean;
+  /** Ids qu'une sauvegarde CHARGÉE a perdus à l'élagage (`saves.elaguerSave`, #1463 LD.1), nommés au joueur par
+   *  `ui/RetraitsDeChargement` ; null = rien à dire. */
+  retraitsDeChargement: RetraitsDElagage | null;
 }
 
 export interface ActionsDeLAdaptateur {
@@ -191,6 +198,8 @@ export interface ActionsDeLAdaptateur {
    *  l'écran, le pas est celui du noyau (`pasAligneDuGroupe`). */
   stepPartyDir: (dir: ScreenDir) => void;
   setGameMenu: (open: boolean) => void;
+  /** Le joueur a lu les retraits d'élagage de la sauvegarde chargée. */
+  fermerRetraitsDeChargement: () => void;
 }
 
 export type GameState = Jeu & EtatDeLAdaptateur & ActionsDeLAdaptateur;
@@ -226,6 +235,7 @@ export function etatInitialDeLAdaptateur(): Omit<EtatDeLAdaptateur, 'keyOverride
     compendiumReturn: 'menu',
     possessionsScreen: null,
     combatCursor: null,
+    retraitsDeChargement: null,
   };
 }
 
@@ -347,6 +357,7 @@ export const useGame = create<GameState>((set, get) => ({
     pasAligneDuGroupe(get, (voisin) => screenStepDot(scene, partyPos, voisin, dir, dims));
   },
   setGameMenu: (open) => set({ gameMenuOpen: open }),
+  fermerRetraitsDeChargement: () => set({ retraitsDeChargement: null }),
 }));
 
 // Le jeu branché sur son propriétaire, le store (#2889, D7).

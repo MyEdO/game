@@ -17,9 +17,12 @@
  * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`) : `version` vaut
  * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). Une save d'un autre
  * format, ou illisible, est REJETÉE et RETIRÉE du stockage à la lecture (`readSlot`), avec un message
- * au joueur (témoin `takeObsoleteNotice`, rendu par `ui/SaveLoadModal`). Aucune migration.
+ * au joueur (témoin `takeObsoleteNotice`, rendu par `ui/SaveLoadModal`). Aucune migration. Une save au
+ * format courant qui nomme une règle ou un État hors du registre courant se CHARGE, élaguée de ces seuls ids
+ * (`elaguerSave`), nommés au joueur (#1463 LD.1).
  */
 import type { RuleValue } from '../engine/policy';
+import { elaguerLePersiste, type RetraitsDElagage } from './elagage';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
 import { stockageWeb } from '../web/stockageWeb';
@@ -68,6 +71,8 @@ const HORS_SAVE = {
   // l'invité coop en hériterait par `netSnapshot`.
   debugLabels: 'drapeau de recette (overlay de debug)',
   debugRoofCut: 'drapeau de recette (lève-toit débrayé)',
+  // #1463 LD.1 — le message d'élagage d'une save CHARGÉE, lu une fois par le joueur : jamais un état de partie.
+  retraitsDeChargement: 'témoin d’élagage du chargement, lu une fois',
 } as const satisfies Partial<Record<keyof GameState, string>>;
 
 /** Les clés de DONNÉES de `GameState` (ni action, ni `HORS_SAVE`) : la forme du `data` d'une save. */
@@ -145,6 +150,14 @@ export function isValidSave(s: unknown): s is SaveGame {
     && (s as SaveGame).version === FORMAT_SAVE
     && typeof (s as SaveGame).savedAt === 'string'
     && !!(s as SaveGame).data && typeof (s as SaveGame).data === 'object';
+}
+
+/** La save prête à charger : ses surcharges de règles et les États portés par son groupe, élagués de ce que le
+ *  registre courant ne connaît plus (`elaguerLePersiste`), et les ids retirés, à nommer au joueur. */
+export function elaguerSave(save: SaveGame): { save: SaveGame; retraits: RetraitsDElagage } {
+  const party = Array.isArray(save.data.party) ? save.data.party : undefined;
+  const { regles, porteurs, retraits } = elaguerLePersiste({ regles: save.rules ?? {}, porteurs: party ?? [] });
+  return { save: { ...save, rules: regles, data: party ? { ...save.data, party: porteurs } : save.data }, retraits };
 }
 
 /** Lit un document de save parsé : la version DOIT être `FORMAT_SAVE`. Toute autre forme rend `null`. */

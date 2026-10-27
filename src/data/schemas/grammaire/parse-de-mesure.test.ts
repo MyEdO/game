@@ -16,6 +16,7 @@ import { famillesConstruites, gameOpSchema } from './mecanique';
 import { descendre } from './descente';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { DEFS_DE_DOCUMENT } from '../validate';
+import { conditionIds } from '../../index';
 import { scanDuCorpus } from '../../../../scripts/docs/lib/structures-scan.mjs';
 
 const COMPETENCE = IDS_PAR_ESPACE['skills.json'][0];
@@ -282,7 +283,7 @@ describe('GARDE DU MASQUAGE — aucun nœud ne perd au parse de mesure une réf�
 
   it('G — union dont une branche postérieure OPAQUE avale un nœud d’op atteint', () => {
     const s = z.union([z.array(gameOpSchema), z.array(z.unknown())]);
-    expect(masquagesDuTemoin(s, [{ op: 'condition', id: 'a' }])).toEqual(['témoin AVALEMENT : témoin']);
+    expect(masquagesDuTemoin(s, [{ op: 'condition', id: conditionIds()[0] }])).toEqual(['témoin AVALEMENT : témoin']);
   });
 
   it('les documents des DEUX racines n’en portent aucun (payloads de CHAQUE famille mécanique compris, re-parsés par son `gameOp`)', () => {
