@@ -701,10 +701,23 @@ export function shasDe(depot, revisions) {
 
 /**
  * La BASE COMMUNE de `a` et `b` (`git merge-base`, le meilleur ancêtre commun), `null` s'il n'y en a
- * pas ou si git ne la rend pas.
- * @param {Depot} depot @param {string} a @param {string} b @returns {string | null}
+ * pas ou si git ne la rend pas. Avec plusieurs `b`, celle de `a` et de leur fusion (celle d'un commit à venir de
+ * parents `b…`, `git help merge-base`).
+ * @param {Depot} depot @param {string} a @param {...string} b @returns {string | null}
  */
-export const baseCommune = (depot, a, b) => lire(depot, ['merge-base', ...revisionsDe([a, b])])?.trim() || absentSaufCorrompu(depot, [a, b])
+export const baseCommune = (depot, a, ...b) => lire(depot, ['merge-base', ...revisionsDe([a, ...b])])?.trim() || absentSaufCorrompu(depot, [a, ...b])
+
+/**
+ * Les MEILLEURS ancêtres communs de tous les `commits` (`git merge-base --all --octopus`) : un seul hors fusion croisée,
+ * aucun sans ancêtre commun ou si git ne les rend pas.
+ * @param {Depot} depot @param {readonly string[]} commits @returns {string[]}
+ */
+export const basesCommunes = (depot, commits) =>
+  lire(depot, ['merge-base', '--all', '--octopus', ...revisionsDe(commits)])?.split('\n').map((l) => l.trim()).filter(Boolean)
+  ?? absentSaufCorrompu(depot, commits) ?? []
+
+/** La base commune des deux `parents` d'une fusion (`baseCommune`), l'arbre vide sans ancêtre commun. */
+export const communeDesParents = (depot, [premier, second]) => baseCommune(depot, premier, second) ?? arbreVide(depot)
 
 /**
  * Les PARENTS de `revision` (`git help revisions`, `<rev>^@`), dans leur ordre ; `null` quand git ne
@@ -1435,6 +1448,27 @@ export function estAncetre(depot, ancetre, descendant) {
     }
   }
   return fait(vu.valeur.status === 0)
+}
+
+/**
+ * Le rang du TRONC parmi `candidats` (les parents d'une fusion, ou les états du tronc qu'un commit connaît) : le SEUL qui est
+ * `mesure` ou l'un de ses ancêtres (`estAncetre`) ET qui contient tout le tronc que chacun des autres contient (chaque
+ * `basesCommunes` de l'autre et de `mesure` est son ancêtre). `null` quand aucun ne l'est, ou que `mesure` n'est pas dans
+ * le dépôt (#1463, #3023).
+ * @param {Depot} depot @param {readonly string[]} candidats @param {string} mesure
+ * @returns {number | null}
+ * @throws {GitIndisponible} quand git ne répond pas.
+ */
+export function rangDuTronc(depot, candidats, mesure) {
+  const ancetre = (a, d) => {
+    const vu = estAncetre(depot, a, d)
+    if (!vu.disponible) throw new GitIndisponible(vu)
+    return 'valeur' in vu && vu.valeur
+  }
+  const rangs = candidats.flatMap((candidat, rang) => ancetre(candidat, mesure)
+    && candidats.every((autre, r) => r === rang || basesCommunes(depot, [autre, mesure]).every((b) => ancetre(b, candidat)))
+    ? [rang] : [])
+  return rangs.length === 1 ? rangs[0] : null
 }
 
 /** Dossier administratif commun validé du dépôt. */

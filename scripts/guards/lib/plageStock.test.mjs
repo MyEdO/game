@@ -14,7 +14,7 @@ import { bilanDesStocks } from './stocksNominatifs.mjs'
 import { texteDeStock } from './stockDeSites.mjs'
 import { instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { fermetureSurDisque, jugeDeLEre } from './porteDEre.mjs'
-import { gitDe, lancerGit, lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
+import { gitDe, lancerGit, lancesDeGit, resultatDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
 
 const PORTEUR = 'scripts/x.test.mjs'
 
@@ -1321,13 +1321,156 @@ test('#2223 FUSION : un porteur SUPPRIMÉ par le tronc, enrichi par le chantier,
     const supprime = d.poser({ [PORTEUR]: null }, 'le tronc supprime le porteur')
     d.git('update-ref', 'refs/remotes/origin/main', supprime)
     d.git('checkout', '-q', 'chantier')
+    const chantier = d.git('rev-parse', 'HEAD').trim()
     assert.throws(() => d.git('merge', '-q', '--no-ff', '--no-verify', 'tronc'), 'témoin : modify/delete EN CONFLIT')
     d.git('add', PORTEUR)
     d.git('commit', '-q', '--no-verify', '-m', 'fusion qui garde le porteur')
     const fin = d.git('rev-parse', 'HEAD').trim()
     assert.deepEqual(refusDe(await d.plage(fin)), [[fin, PORTEUR, 3]])
+    d.git('checkout', '-q', '-b', 'refaite', chantier)
+    assert.throws(() => d.git('merge', '-q', '--no-ff', '--no-verify', 'tronc'), 'témoin : modify/delete EN CONFLIT')
+    d.git('rm', '-q', PORTEUR)
+    d.git('commit', '-q', '--no-verify', '-m', 'fusion qui supprime le porteur comme le tronc')
+    assert.deepEqual(refusDe(await d.plage(d.git('rev-parse', 'HEAD').trim())), [], 'témoin : la résolution identique au tronc n’apporte rien')
   } finally {
     rmSync(d.repo, { recursive: true, force: true })
+  }
+})
+
+test('#3023 FUSION du tronc : la résurrection d’une entrée que le TRONC a soldée naît, même identique au chantier ; le solde du tronc ne paie pas une entrée NEUVE ; identique au tronc, rien', async () => {
+  const { racine: repo, sha: socle } = depotForge({ fichiers: { [PORTEUR]: sourceStock([A, B]), 'src/b.ts': 'export const b = FAUTE\n' }, message: 'socle' })
+  const git = gitDe(repo)
+  try {
+    git('checkout', '-q', '-b', 'tronc')
+    writeFileSync(join(repo, PORTEUR), sourceStock([A]), 'utf8')
+    writeFileSync(join(repo, 'src/b.ts'), 'export const b = CORRIGE\n', 'utf8')
+    git('commit', '-q', '--no-verify', '-am', 'le tronc solde b')
+    const tronc = git('rev-parse', 'HEAD').trim()
+    git('update-ref', 'refs/remotes/origin/main', tronc)
+    git('checkout', '-q', '-b', 'chantier', socle)
+    writeFileSync(join(repo, 'src/b.ts'), 'export const b = FAUTE // chantier\n', 'utf8')
+    git('commit', '-q', '--no-verify', '-am', 'le chantier retouche b')
+    const chantier = git('rev-parse', 'HEAD').trim()
+    const resoudre = async (branche, entrees) => {
+      git('checkout', '-q', '-b', branche, chantier)
+      assert.throws(() => git('merge', '-q', '--no-ff', '--no-verify', 'tronc'), 'témoin : conflit sur src/b.ts')
+      writeFileSync(join(repo, PORTEUR), sourceStock(entrees), 'utf8')
+      writeFileSync(join(repo, 'src/b.ts'), 'export const b = FAUTE // chantier\n', 'utf8')
+      git('add', PORTEUR, 'src/b.ts')
+      git('commit', '-q', '--no-verify', '-m', `fusion du tronc (${branche})`)
+      const fin = git('rev-parse', 'HEAD').trim()
+      return [fin, refusDe(await croissancesDeLaPlage({ cwd: repo, debut: tronc, fin, vers: CHANTIER }))]
+    }
+    const [ressuscitee, refusDeLaResurrection] = await resoudre('comme-le-chantier', [A, B])
+    assert.deepEqual(refusDeLaResurrection, [[ressuscitee, PORTEUR, 1]])
+    const [neuve, refusDeLaNeuve] = await resoudre('neuve', [A, "  'src/neuve.ts',"])
+    assert.deepEqual(refusDeLaNeuve, [[neuve, PORTEUR, 1]])
+    assert.deepEqual((await resoudre('comme-le-tronc', [A]))[1], [])
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+test('#1463 #3023 FUSION d’une branche PÉRIMÉE que le tronc a déjà fusionnée : elle n’est pas le tronc, la résurrection d’un solde du tronc naît au commit comme au cumul', async () => {
+  const { racine: repo, sha: socle } = depotForge({ fichiers: { [PORTEUR]: sourceStock([A, B, "  'src/x.ts',"]), 'autre.txt': 'o\n', 'p.txt': 'p\n' }, message: 'socle' })
+  const git = gitDe(repo)
+  try {
+    git('checkout', '-q', '-b', 'perimee', socle)
+    writeFileSync(join(repo, 'p.txt'), 'p2\n', 'utf8')
+    git('commit', '-q', '--no-verify', '-am', 'la branche travaille')
+    git('checkout', '-q', '-b', 'tronc', socle)
+    writeFileSync(join(repo, PORTEUR), sourceStock([A, B]), 'utf8')
+    git('commit', '-q', '--no-verify', '-am', 'le tronc solde x')
+    const solde = git('rev-parse', 'HEAD').trim()
+    git('merge', '-q', '--no-ff', '--no-verify', '-m', 'le tronc fusionne la branche', 'perimee')
+    const tronc = git('rev-parse', 'HEAD').trim()
+    git('update-ref', 'refs/remotes/origin/main', tronc)
+    git('checkout', '-q', '-b', 'chantier', solde)
+    writeFileSync(join(repo, 'autre.txt'), 'o\nq\n', 'utf8')
+    git('commit', '-q', '--no-verify', '-am', 'le chantier travaille')
+    git('merge', '-q', '--no-ff', '--no-commit', '--no-verify', 'perimee')
+    writeFileSync(join(repo, PORTEUR), sourceStock([A, B, "  'src/x.ts',"]), 'utf8')
+    git('add', PORTEUR)
+    git('commit', '-q', '--no-verify', '-m', 'fusion de la branche, x ressuscité')
+    const fin = git('rev-parse', 'HEAD').trim()
+    assert.deepEqual(refusDe(await croissancesDeLaPlage({ cwd: repo, debut: tronc, fin, vers: CHANTIER })), [[fin, PORTEUR, 1]], 'pre-push')
+    assert.deepEqual(refusDe(await croissancesDeLaPlage({ cwd: repo, fin })), [[fin, PORTEUR, 1]], 'fenêtre de la CI')
+    const lue = lectureDeLaPlage({ cwd: repo, debut: tronc, fin, vers: CHANTIER })
+    assert.ok([...lue.cumul.find((b) => b.fichier === PORTEUR).parCle.values()].every((n) => n > 0), 'le cumul part de l’arbre vide')
+    assert.match(lue.notes.join('\n'), /sans état unique .*fusion croisée.*ne filtre aucun refus/)
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+test('#1463 FUSION CROISÉE au pre-push : sans état unique du tronc, le cumul ne filtre rien, et l’entrée ajoutée sans CLIQUET reste refusée', async () => {
+  const { racine: repo, sha: socle } = depotForge({ fichiers: { [PORTEUR]: sourceStock([A, B, "  'src/c.ts',"]), 't.txt': 't\n', 'c.txt': 'c\n' }, message: 'socle' })
+  const git = gitDe(repo)
+  const tete = () => git('rev-parse', 'HEAD').trim()
+  try {
+    git('checkout', '-q', '-b', 'tronc', socle)
+    writeFileSync(join(repo, 't.txt'), 't1\n', 'utf8'); git('commit', '-q', '--no-verify', '-am', 'T1')
+    const t1 = tete()
+    git('checkout', '-q', '-b', 'chantier', socle)
+    writeFileSync(join(repo, 'c.txt'), 'c1\n', 'utf8'); git('commit', '-q', '--no-verify', '-am', 'C1')
+    const c1 = tete()
+    git('merge', '-q', '--no-ff', '--no-verify', '-m', 'le chantier fusionne T1', t1)
+    const pousse = tete()
+    git('checkout', '-q', 'tronc'); git('merge', '-q', '--no-ff', '--no-verify', '-m', 'le tronc fusionne C1', c1)
+    writeFileSync(join(repo, PORTEUR), sourceStock([A, "  'src/c.ts',"]), 'utf8'); git('commit', '-q', '--no-verify', '-am', 'le tronc solde b')
+    const solde = tete()
+    git('merge', '-q', '--no-ff', '--no-verify', '-m', 'le tronc fusionne le bout poussé', pousse)
+    git('update-ref', 'refs/remotes/origin/main', tete())
+    git('checkout', '-q', 'chantier'); git('merge', '-q', '--no-ff', '--no-verify', '-m', 'le chantier fusionne le solde', solde)
+    writeFileSync(join(repo, PORTEUR), sourceStock([A, "  'src/c.ts',", "  'src/n.ts',"]), 'utf8'); git('commit', '-q', '--no-verify', '-am', 'n sans cliquet')
+    const fin = tete()
+    const vu = await croissancesDeLaPlage({ cwd: repo, debut: pousse, fin, vers: CHANTIER })
+    assert.deepEqual(refusDe(vu), [[fin, PORTEUR, 1]])
+    assert.match(vu.notes.join('\n'), /sans état unique .*fusion croisée.*ne filtre aucun refus/)
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+test('#1463 FUSION CROISÉE au BOUT du pre-push : un `debut` sans état unique du tronc fait partir le cumul de l’arbre vide, et l’entrée ajoutée sans CLIQUET reste refusée', async () => {
+  const [C, N] = ["  'src/c.ts',", "  'src/n.ts',"]
+  const { racine: repo, sha: socle } = depotForge({ fichiers: { [PORTEUR]: sourceStock([A, B, C]), 't.txt': 't\n', 'c.txt': 'c\n' }, message: 'socle' })
+  const git = gitDe(repo)
+  const tete = () => git('rev-parse', 'HEAD').trim()
+  try {
+    git('checkout', '-q', '-b', 'tronc', socle)
+    writeFileSync(join(repo, 't.txt'), 't1\n', 'utf8'); git('commit', '-q', '--no-verify', '-am', 'T1')
+    const t1 = tete()
+    git('checkout', '-q', '-b', 'chantier', socle)
+    writeFileSync(join(repo, 'c.txt'), 'c1\n', 'utf8'); git('commit', '-q', '--no-verify', '-am', 'C1')
+    const c1 = tete()
+    git('merge', '-q', '--no-ff', '--no-verify', '-m', 'le chantier fusionne T1', t1)
+    const croise = tete()
+    git('checkout', '-q', 'tronc'); git('merge', '-q', '--no-ff', '--no-verify', '-m', 'le tronc fusionne C1', c1)
+    writeFileSync(join(repo, PORTEUR), sourceStock([A, C]), 'utf8'); git('commit', '-q', '--no-verify', '-am', 'le tronc solde b')
+    const soldeB = tete()
+    git('merge', '-q', '--no-ff', '--no-verify', '-m', 'le tronc fusionne le chantier croisé', croise)
+    git('checkout', '-q', 'chantier'); git('merge', '-q', '--no-ff', '--no-verify', '-m', 'le chantier fusionne le solde de b', soldeB)
+    const debut = tete()
+    git('checkout', '-q', 'tronc')
+    writeFileSync(join(repo, PORTEUR), sourceStock([A]), 'utf8'); git('commit', '-q', '--no-verify', '-am', 'le tronc solde c')
+    const soldeC = tete()
+    git('update-ref', 'refs/remotes/origin/main', soldeC)
+    git('checkout', '-q', 'chantier')
+    writeFileSync(join(repo, PORTEUR), sourceStock([A, C, N]), 'utf8'); git('commit', '-q', '--no-verify', '-am', 'n sans cliquet')
+    const ajout = tete()
+    resultatDeGit(['merge', '--no-ff', '--no-commit', '--no-verify', soldeC], { cwd: repo })
+    writeFileSync(join(repo, PORTEUR), sourceStock([A, N]), 'utf8'); git('add', PORTEUR)
+    git('commit', '-q', '--no-verify', '-m', 'le chantier fusionne le solde de c')
+    const fin = tete()
+    assert.equal(git('merge-base', '--all', debut, soldeC).trim().split('\n').length, 2, 'témoin : le bout poussé a deux bases avec le tronc')
+    assert.equal(git('merge-base', '--all', fin, soldeC).trim(), soldeC, 'témoin : la fin en connaît un état unique')
+    const vu = await croissancesDeLaPlage({ cwd: repo, debut, fin, vers: CHANTIER })
+    assert.deepEqual(refusDe(vu), [[ajout, PORTEUR, 1]])
+    assert.deepEqual(vu.notes, [`\`${debut.slice(0, 9)}\` sans état unique de \`origin/main\` (fusion croisée) : le cumul part de l'arbre vide, il ne filtre aucun refus`])
+    assert.deepEqual(refusDe(await croissancesDeLaPlage({ cwd: repo, fin })), [[ajout, PORTEUR, 1]], 'fenêtre de la CI')
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
   }
 })
 
