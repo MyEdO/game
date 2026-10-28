@@ -12,6 +12,7 @@ import { echantillonner, PAS_PAR_DEFAUT, poseDeRepos } from './echantillonnage.t
 import { appliquerGabarit, FACTEURS_NEUTRES, poserSilhouettes, type Facteurs } from './gabarit.ts';
 import { validerManifesteDeBase, type ManifesteDeBase } from './manifesteDeBase.ts';
 import { gardeBudget, PLAFOND_ASSEMBLE, trianglesDe } from './gardes/budget.ts';
+import { mesurerAppuis, poserPieds, surfacesDesPieds, type AppuisDuClip, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
 import { aretesDe, gardeEtirement, mesurerEtirement, piresAretes, type MesureDEtirement, type RapportDArete } from './gardes/etirement.ts';
@@ -41,6 +42,7 @@ export interface MesuresDuClip {
   readonly duree: number;
   readonly echantillons: number;
   readonly plusBas: { readonly min: number; readonly max: number };
+  readonly appuis?: AppuisDuClip;
 }
 
 export interface FicheDeMesures {
@@ -127,10 +129,15 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const aretes = new Map(meshes.map((m) => [m.name, aretesDe(m)]));
   const niveaux: NiveauDuCorps[] = [];
   const etirements: MesureDEtirement[] = [];
+  const surfaces = manifeste ? surfacesDesPieds(base.skinnes.filter((m) => nomsDuCorps.includes(m.name)), manifeste.appuis.pieds) : [];
+  const posesDesPieds: PoseDuPied[] = [];
   for (const e of echantillonner(base.scene, meshes, clips, pas)) {
     niveaux.push({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, nomsDuCorps) });
     etirements.push(mesurerEtirement(aretes, repos, e));
+    if (manifeste && Object.prototype.hasOwnProperty.call(manifeste.appuis.vitessesAuSol, e.clip)) posesDesPieds.push(...poserPieds(e, surfaces, manifeste.gabarit.racine));
   }
+  const appuis = mesurerAppuis(posesDesPieds, manifeste?.appuis.vitessesAuSol ?? {});
+  ecarts.push(...appuis.ecarts);
   ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements));
 
   const parMesh = Object.fromEntries(meshes.map((m) => [m.name, trianglesDe(m)]));
@@ -144,7 +151,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
       corps: nomsDuCorps,
       clips: clips.map((c) => {
         const h = niveaux.filter((n) => n.clip === c.name).map((n) => n.plusBas);
-        return { nom: c.name, duree: c.duration, echantillons: h.length, plusBas: { min: Math.min(...h), max: Math.max(...h) } };
+        const mesure = appuis.mesures.find((a) => a.clip === c.name);
+        return { nom: c.name, duree: c.duration, echantillons: h.length, plusBas: { min: Math.min(...h), max: Math.max(...h) }, ...(mesure ? { appuis: mesure } : {}) };
       }),
       etirement: piresAretes(etirements),
     },

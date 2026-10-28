@@ -6,15 +6,9 @@
  */
 import { estObjet } from '../../../src/hote/formes';
 import { SLOTS } from '../../../src/noyau/index.ts';
+import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 
 export const VERSION_DU_SCHEMA_D_ELEMENT = 3;
-
-/** Un point d'attache sur un os : position et rotation (radians, XYZ) dans le repère de l'os. */
-export interface Attache {
-  readonly os: string;
-  readonly position: readonly [number, number, number];
-  readonly rotation: readonly [number, number, number];
-}
 
 /** Les couches, de la plus intérieure à la plus extérieure. */
 export const COUCHES = ['peau', 'dessous', 'tenue', 'armure', 'manteau'] as const;
@@ -121,8 +115,6 @@ export interface EcartDElement {
 export type VerdictDElement = { readonly ok: true; readonly manifeste: ManifesteDElement } | { readonly ok: false; readonly ecarts: readonly EcartDElement[] };
 
 const CHAMPS_COMMUNS = ['schema', 'base', 'categorie', 'cle', 'liaison', 'surfaces', 'glb'] as const;
-const estListeDeChaines = (v: unknown): v is string[] => Array.isArray(v) && v.every((e) => typeof e === 'string');
-const estTriplet = (v: unknown): v is [number, number, number] => Array.isArray(v) && v.length === 3 && v.every((e) => typeof e === 'number' && Number.isFinite(e));
 const estCategorie = (v: unknown): v is CategorieDElement => typeof v === 'string' && Object.prototype.hasOwnProperty.call(REGLES_DES_CATEGORIES, v);
 const estSlot = (v: unknown): v is Slot => (SLOTS as readonly unknown[]).includes(v);
 const liste = (l: readonly string[]) => l.map((e) => `\`${e}\``).join(', ');

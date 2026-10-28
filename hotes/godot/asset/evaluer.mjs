@@ -56,7 +56,13 @@ const fiche = await evaluer({
 
 const { triangles, sommets, os, images, corps, clips } = fiche.mesures
 console.log(`${triangles.total} triangles (${Object.entries(triangles.parMesh).map(([m, t]) => `${m} ${t}`).join(', ')}), ${sommets} sommets, ${os} os, ${images} image(s) ; corps : ${corps.join(', ') || 'aucun'}`)
-for (const c of clips) console.log(`clip ${c.nom} : ${c.duree.toFixed(3)} s, ${c.echantillons} échantillon(s), sommet le plus bas ${c.plusBas.min.toFixed(4)} à ${c.plusBas.max.toFixed(4)} m`)
+for (const c of clips) {
+  console.log(`clip ${c.nom} : ${c.duree.toFixed(3)} s, ${c.echantillons} échantillon(s), sommet le plus bas ${c.plusBas.min.toFixed(4)} à ${c.plusBas.max.toFixed(4)} m`)
+  if (c.appuis) {
+    console.log(`  vitesse au sol : ${c.appuis.vitesseAuSol ?? 'indétectable'} m/s ; déclarée ${c.appuis.vitesseDeclaree} m/s ; direction XZ ${c.appuis.direction.join(', ')}`)
+    for (const p of c.appuis.pieds) console.log(`  ${p.pied} : ${p.vitesseAuSol ?? 'indétectable'} m/s ; appui ${p.duree} s (${p.intervalles} intervalles) ; contact max ${p.contactMax ?? '—'} m ; glissement max ${p.glissementMax ?? '—'} m`)
+  }
+}
 for (const e of fiche.ecarts) console.log(ligneDEcart(e))
 const parGarde = fiche.ecarts.reduce((n, e) => ({ ...n, [e.garde]: (n[e.garde] ?? 0) + 1 }), {})
 console.log(`${fiche.ecarts.length} écart(s)${fiche.ecarts.length ? ` : ${Object.entries(parGarde).map(([g, n]) => `${g} ${n}`).join(', ')}` : ''}`)

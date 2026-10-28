@@ -6,15 +6,9 @@
  */
 import { sha256 } from '../empreinte.ts';
 import { lireGlb } from '../glb.ts';
+import { estListeDeChaines, estTriplet, type Attache } from '../attache.ts';
 
 export const VERSION_DU_SCHEMA_DE_BASE = 3;
-
-/** Un point d'attache sur un os : position et rotation (radians, XYZ) dans le repère de l'os. */
-export interface Attache {
-  readonly os: string;
-  readonly position: readonly [number, number, number];
-  readonly rotation: readonly [number, number, number];
-}
 
 export interface TableDeGabarit {
   readonly legs: readonly string[];
@@ -33,11 +27,10 @@ export interface PorteurDeReference {
   readonly echelleDArt: number;
 }
 
-/** Les os des pieds, sur lesquels l'évaluateur mesure les appuis, et la vitesse au sol du clip `walk` en m/s, à la
- *  taille de construction. */
+/** Les os des pieds et les clips de marche, chacun avec sa vitesse au sol en m/s à la taille de construction. */
 export interface Appuis {
   readonly pieds: readonly string[];
-  readonly vitesseAuSol: number;
+  readonly vitessesAuSol: Readonly<Record<string, number>>;
 }
 
 export interface ManifesteDeBase {
@@ -66,6 +59,7 @@ export type CodeDEcartDeBase =
   | 'emplacement-sur-os-absent'
   | 'prise-absente'
   | 'silhouette-absente'
+  | 'clip-absent'
   | 'glb-different';
 
 export interface EcartDeBase {
@@ -78,8 +72,6 @@ export type VerdictDeBase = { readonly ok: true; readonly manifeste: ManifesteDe
 
 type Brut = Record<string, unknown>;
 const estObjet = (v: unknown): v is Brut => !!v && typeof v === 'object' && !Array.isArray(v);
-const estListeDeChaines = (v: unknown): v is string[] => Array.isArray(v) && v.every((e) => typeof e === 'string');
-const estTriplet = (v: unknown): v is [number, number, number] => Array.isArray(v) && v.length === 3 && v.every((e) => typeof e === 'number' && Number.isFinite(e));
 
 /** La réduction de `brut` au schéma 3, ou ses écarts de forme. */
 function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeBase[] } {
@@ -142,7 +134,13 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   const p = objet(brut.porteur, 'porteur');
   const porteur: PorteurDeReference = { race: id(p.race, 'porteur.race'), gabarit: id(p.gabarit, 'porteur.gabarit'), taille: id(p.taille, 'porteur.taille'), echelleDArt: positif(p.echelleDArt, 'porteur.echelleDArt') };
   const a = objet(brut.appuis, 'appuis');
-  const appuis: Appuis = { pieds: liste(a.pieds, 'appuis.pieds'), vitesseAuSol: positif(a.vitesseAuSol, 'appuis.vitesseAuSol') };
+  const vitesses = objet(a.vitessesAuSol, 'appuis.vitessesAuSol');
+  if (!Object.keys(vitesses).length) forme('appuis.vitessesAuSol', 'au moins un clip attendu');
+  for (const cle of Object.keys(a)) if (!['pieds', 'vitessesAuSol'].includes(cle)) forme(`appuis.${cle}`, 'champ inconnu');
+  const appuis: Appuis = {
+    pieds: liste(a.pieds, 'appuis.pieds'),
+    vitessesAuSol: Object.fromEntries(Object.entries(vitesses).map(([clip, vitesse]) => [clip, positif(vitesse, `appuis.vitessesAuSol.${clip}`)])),
+  };
   if (estObjet(brut.appuis) && estListeDeChaines(a.pieds) && !appuis.pieds.length) forme('appuis.pieds', 'au moins un pied attendu');
   const osAPositionAnimee = liste(brut.osAPositionAnimee, 'osAPositionAnimee');
   const glb = objet(brut.glb, 'glb');
@@ -158,6 +156,7 @@ export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): Verdi
   const contenu = lireGlb(octets);
   const refus = (code: CodeDEcartDeBase, ou: string, detail: string) => ecarts.push({ code, ou, detail });
   const declares = new Set(m.os);
+  for (const clip of Object.keys(m.appuis.vitessesAuSol)) if (!contenu.animations.has(clip)) refus('clip-absent', `appuis.vitessesAuSol.${clip}`, `${clip} n’est pas un clip du GLB`);
   m.os.forEach((o, i) => { if (!contenu.os.has(o)) refus('os-inconnu', `os.${i}`, `${o} n’est pas un os du GLB`); });
   const osNommes: [string, string][] = [
     ['gabarit.racine', m.gabarit.racine],

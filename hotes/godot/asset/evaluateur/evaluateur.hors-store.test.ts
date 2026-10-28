@@ -4,6 +4,7 @@ import {
   AnimationClip, Bone, BufferAttribute, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
   Uint16BufferAttribute, VectorKeyframeTrack,
 } from 'three';
+import { tableTotale } from '../../../../src/lib/tableTotale';
 import { sha256 } from '../empreinte.ts';
 import { ecrireGlb, lireGlb } from '../glb.ts';
 import { chargerScene } from './chargement.ts';
@@ -218,8 +219,10 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 /** Un GLB fabriqué (chunks JSON et BIN) : un triangle `Corps` (zone `torse`, shape key `feminin`) skinné sur l'os `racine`,
  *  avec au choix une texture d'image, un jeu d'influence `JOINTS_1`, un os `pelvis` enfant de `racine`, et des clips de
- *  translation de `racine`, ou de `pelvis` s'il est là. */
-function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]> } = {}): Uint8Array {
+ *  translation de `racine`, ou de `pelvis` s'il est là ; en marche, deux triangles de pied et leur cycle appui/vol. */
+interface MarcheFabriquee { racine?: number; decolle?: number; lateral?: number; bloque?: boolean; vitesseDroite?: number; nom?: string; sens?: number; vitesse?: number }
+
+function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[] } = {}): Uint8Array {
   const morceaux: Uint8Array[] = [];
   const vues: object[] = [];
   const accesseurs: object[] = [];
@@ -242,14 +245,31 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: b
     WEIGHTS_0: accesseur(Float32Array.from([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]), 'VEC4'),
     ...(options.jeuEtendu ? { JOINTS_1: accesseur(new Uint16Array(12), 'VEC4'), WEIGHTS_1: accesseur(new Float32Array(12), 'VEC4') } : {}),
   };
+  if (options.marche) {
+    attributes.POSITION = accesseur(Float32Array.from([-0.3, 0, 0, -0.1, 0, 0, -0.2, 0, 0.2, 0.1, 0, 0, 0.3, 0, 0, 0.2, 0, 0.2]), 'VEC3', { min: [-0.3, 0, 0], max: [0.3, 0, 0.2] });
+    attributes.NORMAL = accesseur(Float32Array.from(Array.from({ length: 6 }, () => [0, 1, 0]).flat()), 'VEC3');
+    attributes.JOINTS_0 = accesseur(Uint16Array.from([1, 1, 1, 2, 2, 2].flatMap((i) => [i, 0, 0, 0])), 'VEC4');
+    attributes.WEIGHTS_0 = accesseur(Float32Array.from(Array.from({ length: 6 }, () => [1, 0, 0, 0]).flat()), 'VEC4');
+  }
   const identite = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-  const joints = options.pelvis ? [1, 2] : [1];
+  const joints = options.marche ? [1, 2, 3] : options.pelvis ? [1, 2] : [1];
   const inverseBindMatrices = accesseur(Float32Array.from(joints.flatMap(() => identite)), 'MAT4');
   const animations = Object.entries(options.clips ?? {}).map(([name, [de, a]]) => ({
     name,
     channels: [{ sampler: 0, target: { node: joints[joints.length - 1], path: 'translation' } }],
     samplers: [{ input: accesseur(Float32Array.from([0, 1]), 'SCALAR', { min: [0], max: [1] }), output: accesseur(Float32Array.from([0, de, 0, 0, a, 0]), 'VEC3'), interpolation: 'LINEAR' }],
   }));
+  for (const m of options.marche ? [options.marche, ...(options.autresMarches ?? [])] : []) {
+    const temps = [0, 0.25, 0.5, 0.75, 1];
+    const poses = [1, 2, 3].map((node) => temps.flatMap((t) => {
+      if (node === 1) return [0, 0, (m.racine ?? 0) * t * (m.sens ?? 1)];
+      const phase = node === 2 ? t : (t + 0.5) % 1;
+      const z = m.bloque ? 0 : (phase <= 0.5 ? 0.5 - 2 * phase : -0.5 + 2 * (phase - 0.5));
+      const vol = phase <= 0.5 ? 0 : 0.2 * (1 - Math.abs(phase - 0.75) * 4);
+      return [node === 2 ? (m.lateral ?? 0) * t : 0, vol + (node === 2 ? (m.decolle ?? 0) : 0), z * (node === 3 ? (m.vitesseDroite ?? 1) : 1) * (m.sens ?? 1) * (m.vitesse ?? 1)];
+    }));
+    animations.push({ name: m.nom ?? 'Walk_Loop', channels: [1, 2, 3].map((node, sampler) => ({ sampler, target: { node, path: 'translation' } })), samplers: poses.map((p) => ({ input: accesseur(Float32Array.from(temps), 'SCALAR', { min: [0], max: [1] }), output: accesseur(Float32Array.from(p), 'VEC3'), interpolation: 'LINEAR' })) });
+  }
   const image = options.image ? { images: [{ bufferView: vue(PNG), mimeType: 'image/png' }], textures: [{ source: 0, sampler: 0 }], samplers: [{}] } : {};
   const bin = new Uint8Array(decalage);
   morceaux.reduce((n, m) => (bin.set(m, n), n + m.byteLength), 0);
@@ -257,7 +277,7 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: b
     asset: { version: '2.0' },
     scene: 0,
     scenes: [{ nodes: [0, 1] }],
-    nodes: [{ name: 'Corps', mesh: 0, skin: 0, extras: { zone: 'torse' } }, { name: 'racine', ...(options.pelvis ? { children: [2] } : {}) }, ...(options.pelvis ? [{ name: 'pelvis' }] : [])],
+    nodes: [{ name: 'Corps', mesh: 0, skin: 0, extras: { zone: 'torse' } }, { name: 'racine', ...(options.marche ? { children: [2, 3] } : options.pelvis ? { children: [2] } : {}) }, ...(options.marche ? [{ name: 'piedG' }, { name: 'piedD' }] : options.pelvis ? [{ name: 'pelvis' }] : [])],
     meshes: [{ primitives: [{ attributes, material: 0 }], extras: { targetNames: ['feminin'] } }],
     materials: [{ name: 'peau', pbrMetallicRoughness: options.image ? { baseColorTexture: { index: 0 } } : {} }],
     skins: [{ joints, inverseBindMatrices }],
@@ -276,7 +296,7 @@ const manifesteDe = (octets: Uint8Array, os = ['racine']) => ({
   schema: 3, base: 'fabrique', os, chaines: { jambe: ['racine'] }, zones: ['torse'], emplacements: { dos: { ...ATTACHE } },
   prises: { main: { ...ATTACHE }, off: { ...ATTACHE } }, silhouettes: ['feminin'], gabarit: { ...TABLE, legs: [] },
   porteur: { race: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
-  appuis: { pieds: ['racine'], vitesseAuSol: 1.4 },
+  appuis: { pieds: ['racine'], vitessesAuSol: tableTotale([...lireGlb(octets).animations], () => 1.4) },
   osAPositionAnimee: os.filter((o) => o !== 'racine'),
   glb: { sha256: sha256(octets), octets: octets.byteLength },
 });
@@ -302,7 +322,7 @@ describe('chargerScene et lireGlb', () => {
 });
 
 describe('validerManifesteDeBase', () => {
-  const octets = glbFabrique();
+  const octets = glbFabrique({ clips: { Repos: [0, 0] } });
   const attache = ATTACHE;
   const valide = () => manifesteDe(octets);
   const codes = (brut: unknown): CodeDEcartDeBase[] => {
@@ -338,12 +358,24 @@ describe('validerManifesteDeBase', () => {
     ['appuis absents', 'forme', ({ appuis: _, ...m }) => m],
     ['aucun pied', 'forme', (m) => ({ ...m, appuis: { ...m.appuis, pieds: [] } })],
     ['pied hors des os', 'os-inconnu', (m) => ({ ...m, appuis: { ...m.appuis, pieds: ['fantome'] } })],
-    ['vitesse au sol négative', 'forme', (m) => ({ ...m, appuis: { ...m.appuis, vitesseAuSol: -1.4 } })],
-    ['vitesse au sol absente', 'forme', (m) => ({ ...m, appuis: { pieds: m.appuis.pieds } })],
+    ['vitesse au sol négative', 'forme', (m) => ({ ...m, appuis: { ...m.appuis, vitessesAuSol: { Repos: -1.4 } } })],
+    ['vitesse au sol nulle', 'forme', (m) => ({ ...m, appuis: { ...m.appuis, vitessesAuSol: { Repos: 0 } } })],
+    ['vitesse au sol infinie', 'forme', (m) => ({ ...m, appuis: { ...m.appuis, vitessesAuSol: { Repos: Infinity } } })],
+    ['vitesse au sol non numérique', 'forme', (m) => ({ ...m, appuis: { ...m.appuis, vitessesAuSol: { Repos: '1.4' } } })],
+    ['vitesses au sol absentes', 'forme', (m) => ({ ...m, appuis: { pieds: m.appuis.pieds } })],
+    ['aucun clip déclaré', 'forme', (m) => ({ ...m, appuis: { ...m.appuis, vitessesAuSol: {} } })],
+    ['table de vitesses non objet', 'forme', (m) => ({ ...m, appuis: { ...m.appuis, vitessesAuSol: 1.4 } })],
     ['os à position animée absents', 'forme', ({ osAPositionAnimee: _, ...m }) => m],
     ['os à position animée hors des os', 'os-inconnu', (m) => ({ ...m, osAPositionAnimee: ['fantome'] })],
   ])('refuse %s par le code %s', (_cas, code, alterer) => {
     expect(new Set(codes(alterer(valide())))).toEqual(new Set([code]));
+  });
+
+  it('nomme le clip déclaré absent du GLB', () => {
+    const m = valide();
+    expect(validerManifesteDeBase({ ...m, appuis: { ...m.appuis, vitessesAuSol: { Inconnu: 1 } } }, octets)).toEqual({
+      ok: false, ecarts: [{ code: 'clip-absent', ou: 'appuis.vitessesAuSol.Inconnu', detail: 'Inconnu n’est pas un clip du GLB' }],
+    });
   });
 });
 
@@ -372,5 +404,71 @@ describe('evaluer', () => {
   it('refuse des facteurs de gabarit sans manifeste valide, et un clip absent', async () => {
     await expect(evaluer({ base: glbFabrique(), facteurs: { legs: 1.1 } })).rejects.toThrow(/sans manifeste/);
     await expect(evaluer({ base: glbFabrique(), clips: ['Absent'] })).rejects.toThrow(/Absent/);
+  });
+});
+
+describe('appuis des clips walk', () => {
+  const mesurer = async (marche: NonNullable<Parameters<typeof glbFabrique>[0]>['marche'] = {}, vitesseAuSol = 2, pas = 0.125) => {
+    const base = glbFabrique({ marche });
+    const manifeste = { ...manifesteDe(base, ['racine', 'piedG', 'piedD']), appuis: { pieds: ['piedG', 'piedD'], vitessesAuSol: { [marche?.nom ?? 'Walk_Loop']: vitesseAuSol } } };
+    return evaluer({ base, manifeste, pas });
+  };
+  const ecarts = (f: Awaited<ReturnType<typeof evaluer>>) => f.ecarts.filter((e) => e.garde === 'appuis');
+
+  it.each([0, 2])('mesure 2 m/s par pied et clip avec une translation de racine de %s m/s, sans la doubler', async (racine) => {
+    const f = await mesurer({ racine });
+    expect(ecarts(f)).toEqual([]);
+    expect(f.mesures.clips[0].appuis?.vitesseAuSol).toBeCloseTo(2, 6);
+    expect(f.mesures.clips[0].appuis?.pieds).toHaveLength(2);
+    for (const p of f.mesures.clips[0].appuis?.pieds ?? []) {
+      expect(p.vitesseAuSol).toBeCloseTo(2, 6);
+      expect(p.contactMax).toBe(0);
+      expect(p.glissementMax).toBeLessThan(1e-6);
+      expect(p.intervalles).toBeGreaterThan(0);
+    }
+  });
+
+  it('refuse une vitesse déclarée fausse et mesure le glissement dans le monde', async () => {
+    const f = await mesurer({}, 1);
+    expect(ecarts(f).map((e) => e.code)).toEqual(['vitesse-declaree', 'glissement', 'vitesse-declaree', 'glissement']);
+    expect(f.mesures.clips[0].appuis?.pieds[0].glissementMax).toBeCloseTo(0.5, 6);
+  });
+
+  it('oriente la marche sur place et conserve la phase de vol hors de l’appui', async () => {
+    const f = await mesurer({ sens: -1 });
+    expect(ecarts(f)).toEqual([]);
+    expect(f.mesures.clips[0].appuis?.direction[1]).toBeCloseTo(-1, 6);
+    expect(f.mesures.clips[0].appuis?.vitesseAuSol).toBeCloseTo(2, 6);
+  });
+
+  it('mesure le contact par pied même si l’autre pied garde le corps au sol', async () => {
+    const f = await mesurer({ decolle: 0.03 });
+    expect(ecarts(f).map((e) => [e.code, e.detail.split(' : ')[0]])).toEqual([['contact', 'piedG']]);
+    expect(f.mesures.clips[0].appuis?.pieds[0].contactMax).toBeCloseTo(0.03, 6);
+  });
+
+  it('ne laisse pas deux vitesses de pied se compenser dans la moyenne du clip', async () => {
+    const f = await mesurer({ vitesseDroite: 0.5 });
+    expect(ecarts(f).map((e) => e.code)).toContain('vitesse-declaree');
+    expect(f.mesures.clips[0].appuis?.pieds[1].vitesseAuSol).toBeCloseTo(1, 6);
+  });
+
+  it('refuse un appui indétectable plutôt que de déclarer une mesure verte', async () => {
+    expect(ecarts(await mesurer({ bloque: true })).map((e) => e.code)).toEqual(['appui-indetectable', 'appui-indetectable']);
+  });
+
+  it('cumule une dérive latérale inférieure à 5 mm par intervalle', async () => {
+    const f = await mesurer({ lateral: 0.04 }, 2, 0.05);
+    expect(ecarts(f).map((e) => e.code)).toContain('glissement');
+  });
+
+  it('mesure les clips déclarés à leur vitesse propre, indépendamment de leur nom', async () => {
+    const base = glbFabrique({ marche: { nom: 'Allure_lente' }, autresMarches: [{ nom: 'Allure_rapide', vitesse: 2 }, { nom: 'Walk_Loop' }] });
+    const manifeste = { ...manifesteDe(base, ['racine', 'piedG', 'piedD']), appuis: { pieds: ['piedG', 'piedD'], vitessesAuSol: { Allure_lente: 2, Allure_rapide: 4 } } };
+    const f = await evaluer({ base, manifeste, pas: 0.125 });
+    expect(ecarts(f)).toEqual([]);
+    expect(f.mesures.clips.map((c) => [c.nom, c.appuis?.vitesseDeclaree, c.appuis?.vitesseAuSol])).toEqual([
+      ['Allure_lente', 2, expect.closeTo(2, 6)], ['Allure_rapide', 4, expect.closeTo(4, 6)], ['Walk_Loop', undefined, undefined],
+    ]);
   });
 });
