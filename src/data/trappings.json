@@ -6163,7 +6163,15 @@
           "id": "resistance"
         },
         "difficulty": "complexe",
-        "unlessImmune": "poison",
+        "gate": {
+          "kind": "not",
+          "of": {
+            "kind": "has",
+            "who": "target",
+            "what": "immunity",
+            "value": "poison"
+          }
+        },
         "menace": "poison",
         "label": "Brise-cœur"
       },
@@ -6446,7 +6454,15 @@
                         "id": "resistance"
                       },
                       "difficulty": "complexe",
-                      "unlessImmune": "poison",
+                      "gate": {
+                        "kind": "not",
+                        "of": {
+                          "kind": "has",
+                          "who": "target",
+                          "what": "immunity",
+                          "value": "poison"
+                        }
+                      },
                       "menace": "poison"
                     },
                     "success": {
@@ -7148,7 +7164,15 @@
                       "onlyGroups": [
                         "mort-vivant"
                       ],
-                      "unlessImmune": "poison",
+                      "gate": {
+                        "kind": "not",
+                        "of": {
+                          "kind": "has",
+                          "who": "target",
+                          "what": "immunity",
+                          "value": "poison"
+                        }
+                      },
                       "menace": "poison"
                     },
                     "success": {

@@ -18,7 +18,8 @@
       "book": "livre-de-base",
       "page": 341
     },
-    "etat": "sonne"
+    "etat": "sonne",
+    "trancheDeBlessures": 5
   },
   {
     "id": "corrosif",

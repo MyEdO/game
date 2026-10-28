@@ -74,6 +74,9 @@ export interface Mutation {
    *  (arme de créature, lue par recomputeLoadout) ; `grantTrait` / `grantPsychTrait` (traits de créature
    *  et psychologiques conférés, posés par attachMutation). Plus aucun champ ad hoc. */
   passive?: GameOp[];
+  /** PA de mutation perdus par Localisation (Dégâts subis), compteur d'état à part du `passive` authoré, comme
+   *  `damageTaken` d'une pièce d'armure. Lu par `mutationArmourBonus`. LDB 63 l.19 */
+  usure?: Partial<Record<HitLocation, number>>;
   /** Effets DÉCLENCHÉS de la mutation — MÊME vocabulaire que `TraitData.effects`/`SymptomData.effects`,
    *  dispatchés par l'unique `fireTriggers` (aucun chemin par KIND). Sert les mutations à cadence :
    *  Haine sporadique re-tire sa Cible à chaque `onDayStart` (EDOC 12 l.217). */
@@ -279,27 +282,41 @@ export function dropExpiredGrantedMutations(c: Combatant, expired: { grantedMuta
 // charMods/Mouvement des mutations : lus DIRECT par le collecteur passif unifié (engine/trauma `passiveMods`
 // → passiveCharSum/passiveMoveMod), sans helper `mutationCharDelta`/`mutationMovementDelta` dédié.
 
-/** PA naturels de mutation à `loc` (Peau d'acier, Écailles épineuses, Cornes…) — op `ap` du `passive`
- *  (loc absent = toutes les Localisations) ; additifs. */
-export function mutationArmourBonus(c: Combatant, loc: HitLocation): number {
-  let d = 0;
-  for (const m of c.mutations ?? []) for (const op of m.passive ?? []) {
-    if (op.op === 'ap' && (op.loc == null || op.loc === loc)) d += typeof op.amount === 'number' ? op.amount : 0;
+/** PA de la mutation `m` à `loc` : somme de ses ops `ap` chiffrées (loc absent = toutes les Localisations),
+ *  celles marquées `noDeviation` (EDO App.2 l.196) à part, moins son `usure` à `loc`, prise sur les PA
+ *  déviables d'abord, bornée à 0. */
+function paDeLaMutation(m: Mutation, loc: HitLocation): { deviables: number; horsDeviation: number } {
+  const pa = { deviables: 0, horsDeviation: 0 };
+  for (const op of m.passive ?? []) {
+    if (op.op !== 'ap' || (op.loc != null && op.loc !== loc) || typeof op.amount !== 'number') continue;
+    pa[op.noDeviation === true ? 'horsDeviation' : 'deviables'] += op.amount;
   }
-  return d;
+  const usure = m.usure?.[loc] ?? 0;
+  const surDeviables = Math.min(usure, Math.max(0, pa.deviables));
+  return { deviables: Math.max(0, pa.deviables - surDeviables), horsDeviation: Math.max(0, pa.horsDeviation - (usure - surDeviables)) };
 }
 
-/** PA de mutation à `loc` marqués HORS Déviation Critique (op `ap` avec `noDeviation` — Écailles épineuses,
- *  EDO App.2 l.196). Calque `mutationArmourBonus` mais ne somme QUE ces PA — à soustraire pour le PA sacrifiable
- *  (`deviatableArmourAt`). Le Trait créature Armure (LDB 85) n'est PAS marqué → reste déviatable. */
+/** PA naturels de mutation à `loc` (Peau d'acier, Écailles épineuses, Cornes…), additifs. LDB 19 */
+export function mutationArmourBonus(c: Combatant, loc: HitLocation): number {
+  return (c.mutations ?? []).reduce((n, m) => { const pa = paDeLaMutation(m, loc); return n + pa.deviables + pa.horsDeviation; }, 0);
+}
+
+/** PA de mutation à `loc` marqués hors Déviation Critique, à soustraire du PA sacrifiable
+ *  (`deviatableArmourAt`) ; le Trait Armure n'en porte aucun. EDO App.2 l.196 */
 export function nonDeviatableMutationAP(c: Combatant, loc: HitLocation): number {
-  let d = 0;
-  for (const m of c.mutations ?? []) for (const op of m.passive ?? []) {
-    if (op.op === 'ap' && op.noDeviation === true && (op.loc == null || op.loc === loc)) {
-      d += typeof op.amount === 'number' ? op.amount : 0;
-    }
-  }
-  return d;
+  return (c.mutations ?? []).reduce((n, m) => n + paDeLaMutation(m, loc).horsDeviation, 0);
+}
+
+/** 1 PA de mutation de moins à `loc` : l'`usure` à `loc` de la mutation qui porte encore un PA y croît de 1, une
+ *  mutation à PA déviable d'abord. Rend false si aucune mutation n'a de PA à `loc`. L'appelant re-dérive l'armure.
+ *  LDB 63 l.19 ; EDO App.2 l.196 */
+export function userLePADeMutation(c: Combatant, loc: HitLocation): boolean {
+  const mutations = c.mutations ?? [];
+  const source = mutations.find((m) => paDeLaMutation(m, loc).deviables > 0)
+    ?? mutations.find((m) => paDeLaMutation(m, loc).horsDeviation > 0);
+  if (!source) return false;
+  source.usure = { ...source.usure, [loc]: (source.usure?.[loc] ?? 0) + 1 };
+  return true;
 }
 
 // Les mods de TEST des mutations (compétence nommée Groin poilu, ou char-qualifiés Visage inversé −20 Soc)

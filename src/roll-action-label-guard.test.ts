@@ -106,7 +106,7 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
  * VOLET 2 (#1109) — le LIBELLÉ DE LIGNE d'un pas qui lance (`CascadeStep.rollLabel`) nomme la
  * COMPÉTENCE lancée, jamais la SITUATION : zone Z5 du contrat (`docs/charte-ui.md`). « Mal de mer »,
  * « Scorbut », « Tonneau contaminé » sont des situations — la ligne du jet, elle, dit « Résistance »
- * (précédents mesurés : `state/approach-fear.test.ts`, `state/combat/venin-test.test.ts`).
+ * (précédent mesuré : `state/approach-fear.test.ts`).
  *
  * MESURE : un `rollLabel` littéral de `src/state` ou de `src/noyau` (les `rollLabel` de `src/ui` sont le libellé du
  * BOUTON « Lancer », `RollRowProps` — autre champ, hors périmètre) doit être un libellé du CATALOGUE

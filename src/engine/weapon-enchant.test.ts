@@ -121,7 +121,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
     // Le Test « à la touche » de l'Épée de justice est un nœud de STRUCTURE Flow `{kind:'test'}`, gaté
     // par `onlyGroups:['criminel']` sur le FlowTest. L'enchant
     // doit PORTER ce nœud sur l'arme active. La RÉSOLUTION cadence-aware du gate `onlyGroups` (no-op si la
-    // victime n'est pas du Groupe) est couverte par `venin-test.test.ts` (même `resolveFlowTest`).
+    // victime n'est pas du Groupe) est couverte par `noyau/combat/flowEval.test.ts` (`flowTestGated`).
     const justiceTest: Flow = {
       kind: 'test',
       test: { skill: { id: 'resistance' }, difficulty: 'accessible', onlyGroups: ['criminel'] },

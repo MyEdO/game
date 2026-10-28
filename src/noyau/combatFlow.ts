@@ -169,7 +169,7 @@ import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
-import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, rederiverLArmeTenue } from '../engine/items';
+import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, rederiverLArmeTenue, endommagerLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND, isActionLocked } from '../engine/conditions';
@@ -195,7 +195,7 @@ import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE, D10_SALVE_MISFIRE } from '../engine/artilleryMisfire';
 import { ARTILLERY_MISFIRE } from '../data/artilleryMisfire';
 import { traumaById, dechirureFractureFicheId, consolidateAmputations, maxFingersLostForWeapon, reinjuryBleed } from '../engine/trauma';
-import { effectiveWeaponDamage, effectiveWeaponRange, isThrownWeapon, damageWeapon, isImprovised, solideSaveThreshold, sauvegardeImperdable, effectiveWeapon, type WeaponContext } from '../engine/weaponDamage';
+import { effectiveWeaponDamage, effectiveWeaponRange, isThrownWeapon, solideSaveThreshold, sauvegardeImperdable, effectiveWeapon, type WeaponContext } from '../engine/weaponDamage';
 import { scatter } from '../engine/scatter';
 import { TIME_COST } from '../engine/timeCost';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -3181,42 +3181,29 @@ function ditLUsure(weapon: Weapon, issue: IssueDUsure): string[] {
  *  jette plus rien, elle DÉCIDE avec le dé reçu (LDB 60 l.30-32). Une arme Solide dont la destruction
  *  est demandée SANS dé est une grappe mal servie : le refus est nommé, jamais une casse en silence. */
 function wearActiveWeapon(c: Combatant, weapon: Weapon, destroy: boolean, deSolide?: number): IssueDUsure {
+  if (!destroy) return endommagerLArmeTenue(c, weapon);
   const it = objetSourceDeLArme(c, weapon);
   if (isUnbreakable(it ?? weapon)) return 'intacte'; // Incassable : ni dégât ni destruction (LDB 62 l.262)
+  // DÉJÀ brisée : la cassure a eu lieu, il n'y a plus de « cassure instantanée » contre quoi sauver
+  // (LDB 60 l.30) — c'est pourquoi la grappe n'a pas demandé de dé (`engine/oups.desDOups`).
+  if (it?.destroyed) return 'brisee';
   // Sauvegarde Solide(N) contre une cassure instantanée : 1d10 ≥ seuil → l'arme résiste (LDB 60 l.30-32).
-  if (destroy) {
-    // DÉJÀ brisée : la cassure a eu lieu, il n'y a plus de « cassure instantanée » contre quoi sauver
-    // (LDB 60 l.30) — c'est pourquoi la grappe n'a pas demandé de dé (`engine/oups.desDOups`).
-    if (it?.destroyed) return 'brisee';
-    const thr = solideSaveThreshold(weapon);
-    if (thr != null) {
-      // Seuil imperdable : la porte n'a ouvert aucun dé (`engine/oups.desDOups`) parce qu'aucun n'aurait
-      // décidé — l'arme est sauvée sans dé (LDB 60 l.30).
-      if (sauvegardeImperdable(thr)) return 'imperdable';
-      if (deSolide == null) {
-        throw new Error(`#1508 — « ${weapon.label} » est Solide (${thr}+) et sa destruction est demandée sans le dé de Sauvegarde `
-          + '(engine/oups.desDOups) : la sauvegarde se joue à la porte, elle ne se saute pas.');
-      }
-      if (deSolide >= thr) return 'sauvee';
+  const thr = solideSaveThreshold(weapon);
+  if (thr != null) {
+    // Seuil imperdable : la porte n'a ouvert aucun dé (`engine/oups.desDOups`) parce qu'aucun n'aurait
+    // décidé — l'arme est sauvée sans dé (LDB 60 l.30).
+    if (sauvegardeImperdable(thr)) return 'imperdable';
+    if (deSolide == null) {
+      throw new Error(`#1508 — « ${weapon.label} » est Solide (${thr}+) et sa destruction est demandée sans le dé de Sauvegarde `
+        + '(engine/oups.desDOups) : la sauvegarde se joue à la porte, elle ne se saute pas.');
     }
+    if (deSolide >= thr) return 'sauvee';
   }
   if (it) {
-    if (destroy) {
-      it.destroyed = true;
-    } else {
-      // Une Arme improvisée déjà à +0 qui prend un Dégât de plus devient inutilisable (LDB 62 l.135).
-      if (isImprovised({ ...weapon, damageTaken: it.damageTaken ?? 0 })) it.destroyed = true;
-      it.damageTaken = (it.damageTaken ?? 0) + 1;
-    }
+    it.destroyed = true;
     rederiverLArmeTenue(c, weapon);
-    return it.destroyed ? 'brisee' : 'usee';
-  }
-  if (destroy) {
-    lacherLArme(c, weapon);
-    return 'brisee';
-  }
-  damageWeapon(weapon);
-  return 'usee';
+  } else lacherLArme(c, weapon);
+  return 'brisee';
 }
 
 /**

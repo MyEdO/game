@@ -891,7 +891,7 @@ const refRegleOptionnelle = idDe('regleOptionnelle');
 export const TERMES_DE_JET = ['dice', 'rolled', 'sl'] as const;
 
 /** Premier terme de jet rencontré dans une formule (imbrications `sum[]`, `times.of`, `times.factor`,
- *  `minimum.of`), ou `null`. PURE. */
+ *  `minimum.of`, `parTranche.of`), ou `null`. PURE. */
 const termeDeJet = (f: unknown): string | null => {
   if (f == null || typeof f !== 'object') return null;
   const o = f as Record<string, unknown>;
@@ -900,7 +900,7 @@ const termeDeJet = (f: unknown): string | null => {
   if (Array.isArray(o.sum)) for (const terme of o.sum) { const trouve = termeDeJet(terme); if (trouve) return trouve; }
   const times = o.times as { of?: unknown; factor?: unknown } | undefined;
   if (times && typeof times === 'object') return termeDeJet(times.of) ?? termeDeJet(times.factor);
-  return 'minimum' in o ? termeDeJet(o.of) : null;
+  return 'minimum' in o || 'parTranche' in o ? termeDeJet(o.of) : null;
 };
 
 /** Le refus d'une quantité lue avant tout jet qui porte un terme de jet, ou `undefined` si `f` n'en
@@ -936,10 +936,12 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
   marquerProduit(nommerChamps(z.strictObject({ times: marquerProduit(nommerChamps(z.strictObject({ of: soi, factor: soi }), { of: { label: "contenu" }, factor: { label: "facteur" } }), 'optionsDeFormule', 'times.of') }), { times: { label: "multiplicateur" } }), 'optionsDeFormule', 'times'),
   // AA 07 l.113 ; LDB 18 l.88.
   marquerProduit(nommerChamps(z.strictObject({ minimum: z.number().int().nonnegative(), of: soi }), { minimum: { label: "minimum" }, of: { label: "contenu" } }), 'optionsDeFormule', 'minimum'),
+  // LDB 85 l.324.
+  marquerProduit(nommerChamps(z.strictObject({ parTranche: z.number().int().positive(), of: soi }), { parTranche: { label: "tranche" }, of: { label: "contenu" } }), 'optionsDeFormule', 'parTranche'),
 ];
 
 /** `Formula` (`src/engine/ops.ts`) — quantité résolue à l'application (littéral/dés/bonus/Indice/
- *  jet-associé/pions/écart d'Avantage/Blessures/somme/facteur/borne basse). Resserré ici sur `CharKey`
+ *  jet-associé/pions/écart d'Avantage/Blessures/somme/facteur/borne basse/tranches). Resserré ici sur `CharKey`
  *  (fidèle à `src/engine/ops.ts`), sans risque pour les datasets (vérifié au parse). */
 export const formulaSchema: z.ZodType<unknown> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<unknown>, ...z.ZodType<unknown>[]]));
 

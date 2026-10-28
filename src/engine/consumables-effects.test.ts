@@ -61,7 +61,7 @@ function view(c: Combatant) {
 
 /** Branche `then` du Flow onHit (patron Venin) d'un poison-enduit : `if[…] → test → fail`. */
 type VeninThen = {
-  test: { skill?: string; difficulty?: string; unlessImmune?: string; onlyGroups?: string[] };
+  test: { skill?: string; difficulty?: string; gate?: unknown; onlyGroups?: string[] };
   fail: { effect: { ops: { op: string; id?: string; value?: number }[] } };
 };
 const onHitVeninThen = (id: string): VeninThen => {
@@ -91,7 +91,7 @@ describe('lotus-noir (LDB 71 l.31) — enduit arme, pas ingéré', () => {
     const then = onHitVeninThen('lotus-noir');
     expect(then.test.skill).toEqual({ id: 'resistance' });
     expect(then.test.difficulty).toBe('complexe');
-    expect(then.test.unlessImmune).toBe('poison');
+    expect(then.test.gate).toEqual({ kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', value: 'poison' } }); // LDB 85 l.174
   });
   it("échec du Test → 2 états Empoisonné : « subissent immédiatement 2 États Empoisonnés »", () => {
     const then = onHitVeninThen('lotus-noir');

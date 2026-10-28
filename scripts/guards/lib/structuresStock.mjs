@@ -113,6 +113,7 @@ export const STRUCTURES_CIBLES = [
   { concept: "formule", signature: "sum", date: "2026-09-01" },
   { concept: "formule", signature: "sinPoints", date: "2026-09-01" },
   { concept: "formule", signature: "minimum,of", date: "2026-09-18" },
+  { concept: "formule", signature: "of,parTranche", date: "2026-10-28" },
   { concept: "source", signature: "book,page", date: "2026-08-23" },
   { concept: "source", signature: "book,note,page", date: "2026-08-23" },
   // #1897 : l'emplacement SECONDAIRE (`alsoIn`) est la référence de source plus sa preuve `quote`

@@ -10,8 +10,7 @@ import { SANS_LIVRE_DEFINITIF } from './schemas/grammaire/sans-livre';
  * de `sourceRefSchema` ; ce garde mesure la COUVERTURE réelle par entrée (comptage entrée-aware,
  * `citationCoverage.mjs` — jamais les ids imbriqués) et l'empêche de RÉGRESSER.
  *
- * ABSOLUE : aucun dataset non exempté ne porte d'entrée SANS citation (tolérance zéro depuis la
- * phase 3, #309, 2026-07-11, qui a curé les 16 derniers manques).
+ * ABSOLUE : aucun dataset non exempté ne porte d'entrée SANS citation (tolérance zéro, #309).
  *
  * `exemptionDeDataset` lit SANS_LIVRE_DEFINITIF puis les exemptions résiduelles EXEMPT_DATASETS.
  * L’auto-purge porte sur ces exemptions résiduelles : une couverture intégrale les rend périmées.
@@ -21,8 +20,7 @@ const DATA_DIR = __dirname;
 /** Les datasets `.json` de `src/data`, en ordre total — UN listage pour les deux sites qui le lisent. */
 const DATASETS = listerDossier(DATA_DIR).filter((f) => f.endsWith('.json'));
 
-/** `reglesOptionnelles.json` (E8 du programme #1318) : chaque entrée sourcée porte sa `source: {book,page}`,
- *  folio IMPRIMÉ relevé au marqueur `data-folio` gouvernant la ligne de sa `ref` ; les autres portent `maison`. */
+/** Le nombre d'entrées sans citation (`auditDataset`) de chaque dataset non exempté qui en a. */
 function missingByFile(): Record<string, number> {
   const missing: Record<string, number> = {};
   for (const f of DATASETS) {
@@ -108,9 +106,9 @@ describe('garde-fou « citation par entrée » — couverture source:{book,page}
   });
 
   it('FORME `array-of-documents` : les RANGÉES d’un dataset-liste de documents porteurs sont comptées, et un manquant est NOMMÉ `<doc>.<rangée>`', () => {
-    // `miscast.json` (famille `entite`, charge `options.rangee`) : 5 documents + 111 rangées = 116.
-    // Sans le bras `array-of-documents` d'`auditDataset`, le scan s'arrêtait au premier niveau (5/5)
-    // et les 111 rangées — qui portent CHACUNE leur `source` — sortaient de la garde en silence.
+    // `miscast.json` (famille `entite`, charge `options.rangee`) : documents ET rangées sont comptés.
+    // Sans le bras `array-of-documents` d'`auditDataset`, le scan s'arrêtait au premier niveau et les
+    // rangées — qui portent CHACUNE leur `source` — sortaient de la garde en silence.
     const reel = JSON.parse(readFileSync(join(DATA_DIR, 'miscast.json'), 'utf8')) as {
       id: string;
       entries: { id: string; source?: unknown }[];

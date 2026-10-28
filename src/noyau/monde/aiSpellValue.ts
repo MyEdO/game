@@ -235,7 +235,7 @@ function opIsHostileControl(op: GameOp): boolean {
     case 'condition': return true;
     case 'corruption': return op.amount > 0;
     case 'suffocate': case 'exposeDisease': case 'contractDisease': case 'castPenalty':
-    case 'damageArmour':
+    case 'damageArmour': case 'damageWornGear':
       return true;
     case 'charMod': return op.mod < 0;
     case 'skillMod': return op.mod < 0;
@@ -275,7 +275,7 @@ export function opValue(op: GameOp, caster: Combatant, subject: Combatant, ctx: 
       return findConditionById(op.id)?.aiThreat ?? 1;
     case 'testMod':
       return op.amount < 0 ? Math.abs(op.amount) / 10 : 0;
-    case 'castPenalty': case 'suffocate': case 'damageArmour':
+    case 'castPenalty': case 'suffocate': case 'damageArmour': case 'damageWornGear':
       return 2.5;
     case 'corruption':
       return op.amount > 0 ? 2.5 : 0;

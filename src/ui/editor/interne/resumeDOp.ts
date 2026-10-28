@@ -38,6 +38,7 @@ export function formulaSummary(f: JsonFormula | undefined): string {
   if ('sinPoints' in f) return 'Points de Péché';
   if ('rule' in f) return ruleDef(f.rule)?.label ?? f.rule;
   if ('minimum' in f) return `${formulaSummary(f.of)} (min ${f.minimum})`;
+  if ('parTranche' in f) return `${formulaSummary(f.of)} ÷ ${f.parTranche}`;
   if ('sum' in f) return f.sum.map(formulaSummary).join(' + ');
   if ('times' in f) return `${formulaSummary(f.times.of)} × ${formulaSummary(f.times.factor)}`;
   if ('dice' in f) return `${f.dice.n}d${f.dice.sides}${f.dice.plus ? `+${f.dice.plus}` : ''}`;
@@ -128,6 +129,7 @@ export function opSummary(o: GameOp): string {
     case 'noHunger': return 'plus besoin de manger';
     case 'weatherWard': return 'immunité aux intempéries';
     case 'damageArmour': return 'cuir −1 PA';
+    case 'damageWornGear': return 'Armures et Armes −1';
     case 'reduceToZero': return 'Blessures à 0';
     case 'banish': return 'retirée du jeu';
     case 'martyr': return 'reçoit les Dégâts';

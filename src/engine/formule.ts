@@ -28,6 +28,7 @@ export function evaluer<J>(f: FormuleDe<J>, carac: LectureDeCarac, jet: (t: J) =
   if ('woundsDealt' in f) return woundsDealt ?? 0;
   if ('rule' in f) { const v = rule(f.rule); return typeof v === 'number' && Number.isFinite(v) ? v : 0; }
   if ('minimum' in f) return Math.max(f.minimum, sous(f.of));
+  if ('parTranche' in f) return Math.floor(sous(f.of) / f.parTranche);
   if ('sum' in f) return f.sum.reduce<number>((acc, term) => acc + sous(term), 0);
   if ('times' in f) return sous(f.times.of) * sous(f.times.factor);
   return jet(f as J);

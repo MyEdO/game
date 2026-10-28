@@ -80,6 +80,28 @@ describe('`{minimum, of}` — la borne basse est un terme de la formule (AA 07 l
   });
 });
 
+/** LDB 85 l.324 */
+describe('`{parTranche, of}` — le nombre de tranches entières d’une valeur', () => {
+  it('compte les tranches entières, borné par `{minimum}` quand la règle le dit', () => {
+    const c = hero();
+    expect(resolveFormula({ parTranche: 5, of: 15 }, c, desDuTest)).toBe(3);
+    expect(resolveFormula({ parTranche: 5, of: 14 }, c, desDuTest)).toBe(2);
+    expect(resolveFormula({ minimum: 1, of: { parTranche: 5, of: 4 } }, c, desDuTest)).toBe(1);
+    expect(formulaExpectation({ parTranche: 5, of: 12 }, c)).toBe(2);
+  });
+  it('lit les Blessures infligées du contexte', () => {
+    const c = hero();
+    expect(resolveFormula({ parTranche: 5, of: { woundsDealt: true } }, c, desDuTest, undefined, undefined, undefined, undefined, 11)).toBe(2);
+  });
+  it('`isValidFormula` refuse une tranche nulle, négative ou non entière', () => {
+    expect(isValidFormula({ parTranche: 5, of: 3 })).toBe(true);
+    expect(isValidFormula({ parTranche: 0, of: 3 })).toBe(false);
+    expect(isValidFormula({ parTranche: -5, of: 3 })).toBe(false);
+    expect(isValidFormula({ parTranche: 2.5, of: 3 })).toBe(false);
+    expect(isValidFormula({ parTranche: 5 })).toBe(false);
+  });
+});
+
 describe('AUCUN plancher de durée au moteur — toute échelle rend ce que la formule dit', () => {
   it('horloge d’une op (`durationMinutes`/`durationHours`) : l’échéance est `now`, pas `now + 1`', () => {
     const c = hero();
@@ -366,7 +388,7 @@ describe('applyOps — opérations unitaires', () => {
 
   // (Un Test imbriqué est un nœud Flow `{kind:'test'}` résolu cadence-aware (héros manuel = jet
   //  influençable, ennemi = inline). Sa résolution + branches + gates sont couvertes par
-  //  `state/combat/run-combat-flow.test.ts` et `state/combat/venin-test.test.ts`.)
+  //  `state/combat/run-combat-flow.test.ts` et `noyau/combat/flowEval.test.ts`.)
 
   // #153 — Aux Armes « −10 Agilité pendant 1d10 jours » (corps « Bleus aux côtes ») : durée d'HORLOGE
   // intrinsèque au charMod (même patron que `condition.durationHours`), résolue depuis `ctx.now`.

@@ -63,7 +63,7 @@ describe('feuilles `idDe(\'groupe\')` — un id de Groupe résout au parse', () 
 });
 
 describe('Condition `has` — `value` résout dans le registre de son `what`', () => {
-  const REGISTRE: Record<string, TypeEntite> = { group: 'groupe', talent: 'talent', trait: 'trait', psych: 'psychology' };
+  const REGISTRE: Record<string, TypeEntite> = { group: 'groupe', talent: 'talent', trait: 'trait', psych: 'psychology', immunity: 'damageType' };
   const WHATS = Object.keys(valeursDe(hasWhatSchema) ?? {});
   const branche = (what: string) => pasDeDonnee(ouverts([hasConditionSchema], { what }), 'value').map(declarationDeFeuilleDId).find((d) => d !== undefined);
 

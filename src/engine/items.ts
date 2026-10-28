@@ -7,11 +7,11 @@
 import { Combatant, ItemInstance, ItemKind, HitLocation, ArmourPoints, Weapon, WeaponLoadout, WeaponDamageSpec, QualityInstance, type EffectSource, type ReachValue, type ShipPoste, type AuthoredShipPoste, type WeaponRangeSpec, type RangeBandId, type FireArc, type CharKey } from './types';
 import { bonus, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
-import { applyEnchants } from './weaponDamage';
+import { applyEnchants, damageWeapon, isImprovised } from './weaponDamage';
 import { armourMaterialOf } from './armourBypass';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
-import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
+import { mutationArmourBonus, nonDeviatableMutationAP, userLePADeMutation } from './corruption';
 import { findApparenceById, findCareerById, findCreatureById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
 import { t } from '../i18n';
 import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet, referenceDApparenceDObjet } from '../data/apparencesObjets';
@@ -24,10 +24,11 @@ import type { TrappingResolver } from '../data/apparencesObjets';
 import type { EntityAppearance } from './authoringAppearance';
 import { slugId } from '../data/slug';
 import { localisationsDeZone } from './classementDeTrait';
+import { LOCALISATIONS_DE_COUP } from './localisations';
 import { dansLaSousListe } from '../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
 import { craftEncDelta } from './qualities/craftEconomy';
-import { hasQuality, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
+import { hasQuality, isUnbreakable, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
 import { itemCapability } from './capabilities';
 import { loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
 import { nextEntityId } from '../lib/entityId';
@@ -1081,10 +1082,9 @@ export function deviatableArmourAt(c: Combatant, loc: HitLocation): boolean {
   return piecesPorteesA(c, loc).length > 0 || (c.armour?.[loc] ?? 0) - nonDeviatableMutationAP(c, loc) > 0;
 }
 
-/** Endommage de 1 PA l'armure de `c` à la localisation `loc` (LDB 63 l.19-21). Héros : endommage la
- *  pièce la plus solide (damageTaken+1) puis re-dérive ; ennemi/figurant (armure plate du statblock,
- *  sans items) : décrément direct. RETOURNE true si une PA a été retirée, ou si une pièce à 0 PA
- *  devient inutilisable. */
+/** Endommage de 1 PA l'armure de `c` à `loc` : la pièce portée la plus solide (damageTaken+1) puis
+ *  re-dérivation, sinon `userLArmureSansPiece`. Rend true si un PA tombe, ou si une pièce à 0 PA devient
+ *  inutilisable. LDB 63 l.19-21 */
 export function damageArmour(c: Combatant, loc: HitLocation): boolean {
   const pieces = piecesPorteesA(c, loc);
   if (pieces.length) {
@@ -1093,11 +1093,63 @@ export function damageArmour(c: Combatant, loc: HitLocation): boolean {
     recomputeLoadout(c);
     return true;
   }
-  if ((c.armour?.[loc] ?? 0) > 0) {
-    c.armour[loc] = c.armour[loc] - 1; // armure plate (ennemi/figurant) : décrément direct
+  return userLArmureSansPiece(c, loc);
+}
+
+/** `c.armour` est-elle re-dérivée par `recomputeLoadout` (pièces portées + PA de mutation) ? Vrai dès que `c` a
+ *  un set d'armes : `recomputeLoadout` en pose toujours un (`ensureDefaultLoadout`). */
+export function armureDerivee(c: Combatant): boolean {
+  return !!c.loadouts?.length;
+}
+
+/** 1 PA de moins à `loc`, sans pièce portée : une armure dérivée (`armureDerivee`) s'use sur la mutation qui
+ *  porte ce PA (`userLePADeMutation`), puis se re-dérive ; sinon `c.armour` (statbloc, Trait Armure) est sa
+ *  propre source et perd 1 PA. Rend false si aucun PA n'est à user. LDB 63 l.19 ; LDB 85 l.39 */
+function userLArmureSansPiece(c: Combatant, loc: HitLocation): boolean {
+  if (armureDerivee(c)) {
+    if (!userLePADeMutation(c, loc)) return false;
+    recomputeLoadout(c);
     return true;
   }
-  return false;
+  if ((c.armour?.[loc] ?? 0) <= 0) return false;
+  c.armour[loc] -= 1;
+  return true;
+}
+
+/** 1 Dégât à chaque pièce portée (`piecesPorteesA`) et, à chaque Localisation sans pièce, `userLArmureSansPiece` ;
+ *  1 Dégât à chaque objet d'arme hors contenant, équipé ou d'un set, et à chaque vraie arme de statbloc. Rend le
+ *  nombre de Localisations dont l'armure a perdu un PA et le nombre d'armes usées. LDB 85 l.325, l.447 */
+export function endommagerLEquipementPorte(c: Combatant): { localisations: number; armes: number } {
+  const locs = LOCALISATIONS_DE_COUP;
+  const sansPiece = locs.filter((loc) => !piecesPorteesA(c, loc).length);
+  const pieces = new Set(locs.flatMap((loc) => piecesPorteesA(c, loc)));
+  for (const piece of pieces) piece.damageTaken = (piece.damageTaken ?? 0) + 1;
+  const enSet = new Set((c.loadouts ?? []).flatMap((lo) => [lo.main, lo.off]));
+  const objets = (c.items ?? []).filter((i) => (i.kind === 'melee' || i.kind === 'ranged') && !i.inside && !i.destroyed && (i.equipped || enSet.has(i.uid)));
+  let armes = objets.filter((it) => endommagerLObjetArme(it) !== 'intacte').length;
+  armes += c.weapons.filter((x) => estUneVraieArme(x) && !objetSourceDeLArme(c, x)).filter(damageWeapon).length;
+  if (pieces.size || objets.length) recomputeLoadout(c);
+  const usees = sansPiece.filter((loc) => userLArmureSansPiece(c, loc)).length;
+  return { localisations: locs.length - sansPiece.length + usees, armes };
+}
+
+/** 1 Dégât à l'objet d'arme `it` (LDB 62 l.135) : Incassable n'en subit aucun (LDB 62 l.262), une Arme
+ *  improvisée déjà à +0 devient inutilisable. L'appelant re-dérive les armes tenues. */
+function endommagerLObjetArme(it: ItemInstance): 'intacte' | 'usee' | 'brisee' {
+  if (isUnbreakable(it)) return 'intacte';
+  if (isImprovised({ ...weaponFromItem(it), damageTaken: it.damageTaken ?? 0 })) it.destroyed = true;
+  it.damageTaken = (it.damageTaken ?? 0) + 1;
+  return it.destroyed ? 'brisee' : 'usee';
+}
+
+/** 1 Dégât à l'arme TENUE `weapon` : sur son objet source (`endommagerLObjetArme`), puis l'arme tenue est
+ *  re-dérivée ; sans objet, l'arme elle-même. LDB 62 l.135, l.262 */
+export function endommagerLArmeTenue(c: Combatant, weapon: Weapon): 'intacte' | 'usee' | 'brisee' {
+  const it = objetSourceDeLArme(c, weapon);
+  if (!it) return damageWeapon(weapon) ? 'usee' : 'intacte';
+  const issue = endommagerLObjetArme(it);
+  if (issue !== 'intacte') rederiverLArmeTenue(c, weapon);
+  return issue;
 }
 
 /** Putréfaction (LDB 47) : « le cuir se racornit (perdant 1 PA à 1 Localisation) » — endommage de

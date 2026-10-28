@@ -10,7 +10,6 @@
  */
 import { type Combatant } from '../../engine/types';
 import { buildActorView } from '../../engine/actorView';
-import { immunityTypes } from '../../engine/traits/dispatch';
 import { groupMatch, groupesDe } from '../../engine/groups';
 import { applyOps, type GameOp, type OpsCtx } from '../../engine/ops';
 import { certainFlowOps, evalCondition, flowHasOpADe, leafOpsCtx, type Condition, type ConditionCtx, type FlowTest, flowTestGateOpen, flowHasTest } from '../../engine/flowCore';
@@ -170,12 +169,11 @@ export function branchBlockingEntity(
 }
 
 /** Le Test est-il SAUTÉ (no-op : ni étape ni branche) pour `c` ? Réunit les gates op-level historiques
- *  (`unlessImmune`/`onlyGroups`/`exceptGroups`) et la GATE générique de Condition (`gate`, Brisé : « pas
+ *  (`onlyGroups`/`exceptGroups`) et la GATE générique de Condition (`gate`, Brisé : « pas
  *  Engagé OU Cœur vaillant, ET pions restants »). SOURCE UNIQUE — voie cascade (resolveFlowTest) et voie
  *  inline (resolveInlineFlowTest) la partagent → décision de gate identique. */
 export function flowTestGated(ft: FlowTest, c: Combatant, cc: ConditionCtx): boolean {
-  return (ft.unlessImmune != null && immunityTypes(c.traits ?? []).some((ty) => ty.includes(ft.unlessImmune!.toLowerCase())))
-    || (ft.onlyGroups != null && !ft.onlyGroups.some((g) => groupMatch(g, groupesDe(c))))
+  return (ft.onlyGroups != null && !ft.onlyGroups.some((g) => groupMatch(g, groupesDe(c))))
     || (ft.exceptGroups != null && ft.exceptGroups.some((g) => groupMatch(g, groupesDe(c))))
     || !flowTestGateOpen(ft, cc);
 }

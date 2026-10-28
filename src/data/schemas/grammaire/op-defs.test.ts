@@ -140,6 +140,22 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     expect(imbriquee.error!.issues.map((i) => i.path.join('.'))).toEqual(['rows.0.ops.0.disease']);
   });
 
+  /** `withArg` (`noyau/triggeredEffects`) écarte l'op dont l'instance n'a pas le paramètre : seul un champ
+   *  REQUIS peut porter un gabarit, faute de quoi l'op entière tomberait pour un champ facultatif (#3060). */
+  it('un champ d’op qui admet un gabarit d’instance (`$arg`, `$indice`) est requis', () => {
+    const porteurs: string[] = [];
+    for (const [op, def] of Object.entries(OP_DEFS)) {
+      const shape = (def as { shape?: Record<string, { safeParse: (v: unknown) => { success: boolean } }> }).shape ?? {};
+      for (const [champ, schema] of Object.entries(shape)) {
+        const reserve = [ARG_TEMPLATE, INDICE_TEMPLATE].some((g) => schema.safeParse(g).success) && !schema.safeParse('$non-reserve').success;
+        if (!reserve) continue;
+        porteurs.push(`${op}.${champ}`);
+        expect(schema.safeParse(undefined).success, `${op}.${champ}`).toBe(false);
+      }
+    }
+    expect(porteurs).toEqual(expect.arrayContaining(['exposeDisease.disease', 'topUpAdvantage.amount']));
+  });
+
   it('valeur RÉSERVÉE au même nœud que la feuille : acceptée sur SON champ seul, et le refus garde le message nommé d’`idDe`', () => {
     expect(gameOpSchema.safeParse({ op: 'exposeDisease', disease: ARG_TEMPLATE }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'scheduleRespawn', ref: SELF_REF, delayDays: 1 }).success).toBe(true);

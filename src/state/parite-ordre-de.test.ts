@@ -22,7 +22,9 @@ import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { resetDesFixes } from '../engine/fixedDie';
-import type { Weapon, Combatant, ArmourPoints } from '../engine/types';
+import { recomputeLoadout } from '../engine/items';
+import type { Mutation } from '../engine/corruption';
+import type { Weapon, Combatant, ArmourPoints, HitLocation } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
 
@@ -35,6 +37,11 @@ const PA_TOTAL = 18;
 
 /** Dernière Blessure critique SUBIE (id d'entrée) — l'historique d'occurrence (LDB 18 l.71). */
 const lastCrit = (c: Combatant): string | undefined => (c.critEntriesSuffered ?? [])[(c.critEntriesSuffered ?? []).length - 1];
+/** PA d'armure naturelle d'une mutation (`ap` par Localisation) : la source d'où se dérive le PA d'un héros. LDB 19 */
+const mutationDePA = (pa: ArmourPoints): Mutation => ({
+  id: 'peau-de-test', label: 'Peau de test', desc: '', kind: 'physique', roll: 0,
+  passive: (Object.entries(pa) as [HitLocation, number][]).filter(([, n]) => n > 0).map(([loc, amount]) => ({ op: 'ap', loc, amount })),
+});
 const paTotalDe = (c: Combatant): number => Object.values(c.armour).reduce((s, v) => s + v, 0);
 const relire = (id: string): Combatant => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
 
@@ -58,9 +65,10 @@ function startFight(seed: number, opts: { pa?: ArmourPoints; gmSeat?: number } =
   const E = b.combatants.find((c) => c.kind === 'enemy')!;
   E.important = true; // LDB 18 l.44 : hors Mort subite
   const pa = opts.pa ?? SANS_PA;
-  H.armour = { ...pa };
+  H.items = []; // aucune pièce portée à départager : le PA du héros se dérive de sa mutation, celui de l'ennemi est son profil
+  H.mutations = [mutationDePA(pa)];
+  recomputeLoadout(H);
   E.armour = { ...pa };
-  H.items = []; // PA de PROFIL des deux côtés : la Déviation mord sur `armour`, aucune pièce portée à départager
   return { H, E };
 }
 

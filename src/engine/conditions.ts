@@ -3,7 +3,7 @@
  * Gestion minimale pour le combat tactique : ajout, empilement, retrait.
  */
 import { Combatant, ActiveEffect, ConditionInstance, effectRef, type ModLine, type ConditionEmit, type ConditionLocks, type Difficulty } from './types';
-import { evalCondition } from './flowCore';
+import { evalCondition, walkFlow } from './flowCore';
 import { conditionLockCtx } from './actorView';
 import { tickRound, type Duration } from './duration';
 import { conditionIds, conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel, skills } from '../data';
@@ -151,10 +151,24 @@ export function appliquerMortSubite(target: Combatant, log: string[]): void {
   log.push(t('cf.collapse', { name: target.label }));
 }
 
-/** LDB 16 l.70 */
+/** La Difficulté du Test qui retire l'État `id` quand sa pose n'en dicte aucune : le défaut de son Test
+ *  `argDifficulty` (`etats.json`). LDB 16 l.70 ; LDB 85 l.425 */
+function difficulteParDefaut(id: string): Difficulty | undefined {
+  let defaut: Difficulty | undefined;
+  for (const e of findConditionById(id)?.effects ?? []) {
+    walkFlow(e.flow, (n) => { if (!defaut && n.kind === 'test' && n.test.argDifficulty) defaut = n.test.difficulty; });
+  }
+  return defaut;
+}
+
+/** Des poisons de Difficultés différentes : l'État garde la plus dure, une pose sans Difficulté valant le
+ *  défaut de son Test (`difficulteParDefaut`). LDB 16 l.70 ; #3060 */
 function durcirDifficulte(existing: ConditionInstance, difficulte: Difficulty | undefined): void {
-  if (!difficulte) return;
-  if (!existing.difficulte || DIFFICULTY_LADDER.indexOf(difficulte) > DIFFICULTY_LADDER.indexOf(existing.difficulte)) existing.difficulte = difficulte;
+  const defaut = difficulteParDefaut(existing.id);
+  const rang = (d: Difficulty | undefined) => { const eff = d ?? defaut; return eff ? DIFFICULTY_LADDER.indexOf(eff) : -1; };
+  if (rang(difficulte) <= rang(existing.difficulte)) return;
+  if (difficulte) existing.difficulte = difficulte;
+  else delete existing.difficulte;
 }
 
 export function addCondition(c: Combatant, name: string, value = 1, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, locks?: ConditionLocks, difficulte?: Difficulty): void {

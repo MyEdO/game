@@ -89,6 +89,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   ignoreAnimosity: 'Ignore Préjugés/Animosités',
   weatherWard: 'Immunité aux intempéries',
   damageArmour: 'Pourrir le cuir (−1 PA)',
+  damageWornGear: 'Endommager Armures et Armes portées (1 Dégât)',
   reduceToZero: 'Réduire les Blessures à 0',
   banish: 'Bannir (retirer du jeu)',
   martyr: 'Martyr (recevoir les Dégâts)',
