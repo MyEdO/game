@@ -425,7 +425,7 @@ describe('#990 site 4 — Empoignade / Au Contact / Distraire / Désengagement',
 
   it('Désengagement : AUCUNE rangée de jet avant la réponse (phase de menu), les deux jets ensuite', () => {
     duo();
-    useGame.setState({ pendingDisengage: { moverId: 'h', foeId: 'e', canSacrifice: false, canEsquive: true, phase: 'choice', atk: FOE_TR, def: null, result: null } as never });
+    useGame.setState({ pendingDisengage: { moverId: 'h', foeId: 'e', canSacrifice: false, phase: 'choice', atk: FOE_TR, def: null, result: null } as never });
     act(() => { root.render(<DisengageModal />); });
     expect(dice(), 'le jet figé du foe n’est pas à l’écran tant que le mover n’a pas choisi/répondu').toEqual([]);
 

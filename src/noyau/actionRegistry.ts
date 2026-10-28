@@ -17,8 +17,9 @@ import type { BattleState, Jeu } from './etat';
 import { entityPickables } from './combatEffects';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { currentTargetingMode } from './targetingModes';
-import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat, refusVerrouDAction } from '../engine/conditions';
+import { isOutOfAction, raisonRefusDetermination, raisonVerrouEtat, refusVerrouDAction } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
+import { desengagementSansAction, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
 import { isVehicle, estNavire } from '../engine/coque';
 import { compatibleAmmo, activeLoadout, isUnarmed } from '../engine/items';
@@ -29,7 +30,6 @@ import { actorHasSkill, possesses } from '../engine/skills';
 import { isConsumable } from '../engine/consumables';
 import { hasFreeWeaponAttack, battementFoes, distraireFoes, availableAttacks, type AttackOption } from './combatManeuvers';
 import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
-import { inBattleId } from './monde/combatants';
 import { wastesAction, endTurnArmed } from './endTurnGuard';
 import { HEAL_SKILL, healableTargets } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
@@ -39,7 +39,8 @@ import { surfaceTientLaMain } from './modalArbiter';
 import { dispellableSpellsOn } from '../engine/dispel';
 import { combatAdvantageSkills } from '../engine/skillCombatApps';
 import { activeCombatant, placingZoneOf, STANCE_BLOCK } from './combatFlow';
-import { canMove, mountablesNear, mountMovement } from './mount';
+import { canMove, mountablesNear } from './mount';
+import { refusActionDepensee, refusCoque, refusDeCharge, refusDeCourse, refusHorsDEtatDAgir, refusMouvementEntame, refusSansMouvement } from './refusDuTour';
 import { servablePostes, crewPosteOf, shipOfCrew, posteARecharger } from './monde/shipPostes';
 import { chanteurDuNavire, quartChante } from './shipCrew';
 import { type ShipPoste } from '../engine/types';
@@ -81,6 +82,8 @@ export const GATE_ETAT_PORTE = 'etat-porte';
 
 const ok: ActionGate = { ok: true };
 const no = (reason: string): ActionGate => ({ ok: false, reason });
+/** Un refus élémentaire (`refusDuTour.ts`) en verdict de gate. */
+const verdict = (refus: string | null): ActionGate => (refus ? no(refus) : ok);
 
 /** L'ÉTAT qu'une entrée de remède déclare (`rule`, de type `etat`). FAIL-FAST : une entrée
  *  portée au gate `etat-porte` sans État déclaré est un bug de donnée, que la garde de registre
@@ -99,40 +102,26 @@ const instanceDeLEtat = ({ active, def }: ActionCtx) =>
  *  `refusVerrouDAction`) ? `LDB 16 l.52`. Ce qui sert la fuite ne le compose pas (course,
  *  mouvement, désengagement, se relever) ; tout ce qui coûte l'Action le compose par `action-libre`. */
 function horsVerrouDEtat({ active }: ActionCtx): ActionGate {
-  const refus = refusVerrouDAction(active);
-  return refus ? no(refus) : ok;
+  return verdict(refusVerrouDAction(active));
 }
 
 /** Le porteur PEUT-il effectuer une Action (`canTakeAction`, `LDB 16 l.125`) ? Composé par `actionLibre`,
  *  et seul par l'entrée qui n'engage pas l'Action du Tour elle-même (`select-attack`). */
 function peutAgir({ active }: ActionCtx): ActionGate {
-  return canTakeAction(active) ? ok : no(t('agate.unableToAct'));
+  return verdict(refusHorsDEtatDAgir(active));
 }
 
 /** L'Action du Tour est-elle encore disponible ET utilisable ? Dépensée, impossible (`peutAgir`), ou
  *  verrouillée par un État (`horsVerrouDEtat`). La Frénésie est un gate à part (`action-libre-hors-frenesie`). */
 function actionLibre(ctx: ActionCtx): ActionGate {
-  if (ctx.battle.acted) return no(t('agate.actionSpent'));
-  const capable = peutAgir(ctx);
-  return capable.ok ? horsVerrouDEtat(ctx) : capable;
+  return verdict(refusActionDepensee(ctx.battle) ?? refusHorsDEtatDAgir(ctx.active) ?? refusVerrouDAction(ctx.active));
 }
 
-/** Désengagement (LDB 15 l.45-49) : l'entrée porte les deux options. Celle d'Esquive exige l'Action (non
- *  dépensée, `peutAgir`) ; celle d'Avantage non (`freeDisengage`). Sa pertinence (être Engagé) est le gate `engage`. */
+/** Désengagement (LDB 15 l.43-49) : ouvert si l'UNE de ses options l'est (`noyau/combat/desengagement.ts`) —
+ *  l'Esquive, l'Avantage ou le départ libre. Sa pertinence (être Engagé) est le gate `engage`. */
 function desengagementGate(ctx: ActionCtx): ActionGate {
-  const esquive = ctx.battle.acted ? no(t('agate.actionSpentNoFreeDisengage')) : peutAgir(ctx);
-  if (esquive.ok) return ok;
-  return freeDisengage(ctx) ? ok : esquive;
-}
-
-/** Le désengagement est-il GRATUIT ? Avantage strictement supérieur à TOUS les foes Engagés encore
- *  en jeu (LDB 15 l.45-49, « Utiliser l'Avantage »). Prédicat PARTAGÉ (barre + économie du tour). */
-export function freeDisengage({ active, battle }: ActionCtx): boolean {
-  if (!isEngaged(active)) return false;
-  const foes = (active.engagedWith ?? [])
-    .map((id) => inBattleId(battle, id))
-    .filter((c): c is Combatant => !!c && !isOutOfAction(c));
-  return foes.length > 0 && active.advantage > Math.max(0, ...foes.map((f) => f.advantage));
+  const refus = refusDEsquiveDeDesengagement(ctx);
+  return !refus || desengagementSansAction(ctx) ? ok : no(refus);
 }
 
 /** Le Mouvement du Tour est-il ENCORE INTACT ? Prédicat PARTAGÉ (gestes qui exigent l'élan complet). */
@@ -140,8 +129,7 @@ function mouvementIntact({ active, battle }: ActionCtx): ActionGate {
   // Un porteur qu'un État CLOUE (`gating.movement: 'none'` — Inconscient, Surpris ; LDB 16 l.113/l.132)
   // n'a aucun Mouvement à dépenser : le geste qui en coûte se REFUSE en le disant, au lieu de laisser
   // le dispatcher rendre en silence. Le budget est celui de la monture s'il en a une (`mountMovement`).
-  if (mountMovement(battle, active) <= 0) return no(t('agate.cannotMove'));
-  return battle.movementUsed > 0 ? no(t('agate.movementStarted')) : ok;
+  return verdict(refusSansMouvement(battle, active) ?? refusMouvementEntame(battle));
 }
 
 /** L'acteur a-t-il un CORPS de fantassin ? Une coque n'en a pas (`engine/vehicle.ts` : « ni arme
@@ -149,7 +137,7 @@ function mouvementIntact({ active, battle }: ActionCtx): ActionGate {
  *  la défensive — ne lui sont pas offerts, et le refus le DIT au lieu de dépenser son Action. Un
  *  navire agit par ses Tests d'équipage et sa barre. */
 function fantassin({ active }: ActionCtx): ActionGate {
-  return isVehicle(active) ? no(t('agate.hullHasNoBody')) : ok;
+  return verdict(refusCoque(active));
 }
 
 /** ET séquentiel de gates : le PREMIER refus l'emporte, avec SA raison (aucune raison fabriquée). */
@@ -181,12 +169,14 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
    *  et aux contextes de surface : `live` pour la console, `cur` pour la touche). */
   'deplacement-annulable': ({ battle }) => {
     if (!battle.moveSnapshot || (battle.movementUsed ?? 0) === 0) return no(t('agate.noMoveToUndo'));
-    return battle.acted ? no(t('agate.actionSpent')) : ok;
+    return verdict(refusActionDepensee(battle));
   },
   /** Charge — fiche `regles/charger` (`LDB 15 l.35-37`), foyer du verbatim au Codex. */
-  'charge-possible': (ctx) => (isEngaged(ctx.active) ? no(t('agate.alreadyEngaged')) : mouvementIntact(ctx)),
+  'charge-possible': ({ active, battle }) => verdict(refusDeCharge(battle, active)),
   'mouvement-restant': ({ active, battle }) => (canMove(battle, active) ? ok : no(t('agate.noMovementLeft'))),
   desengagement: desengagementGate,
+  /** Course — verdict `refusDeCourse` (`refusDuTour.ts`, LDB 15 l.41), que lisent aussi `battleRun` et `computeRunReach`. */
+  'course-possible': ({ active, battle }) => verdict(refusDeCourse(battle, active)),
   // Deux refus, un seul gate : plus de point en réserve, OU un État que rien ne lève (le fait porteur
   // le déclare — LDB 20 l.188 ; source unique `raisonRefusDetermination`). `conditionId` absent (dépenses
   // Psychologie/Critique de LDB 17 l.59-60) : seule la réserve compte.

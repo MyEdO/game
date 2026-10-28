@@ -1278,10 +1278,11 @@ export interface PendingDefense {
 export interface PendingDisengage {
   moverId: string; // héros qui se désengage (actif)
   foeId: string; // adversaire de référence (meilleure CC) pour l'Esquive et la Fuite
-  canSacrifice: boolean; // Avantage > tous les foes Engagés → option « Sacrifier l'Avantage » dispo
-  /** Esquive/Fuite disponibles ? Faux si l'Action est déjà dépensée (elles la coûtent) → seule
-   *  l'option A « Sacrifier l'Avantage » reste, ce qui évite la boucle infinie d'Esquive. */
-  canEsquive?: boolean;
+  canSacrifice: boolean; // option « Utiliser l'Avantage » ouverte (`peutSacrifierLAvantage`)
+  /** Raison qui ferme l'Esquive (`refusDEsquiveDeDesengagement`, `noyau/combat/desengagement.ts`). Absente = ouverte. */
+  refusEsquive?: string;
+  /** Fuite ouverte (`peutFuir`, LDB 15 l.61). Absente = ouverte. */
+  canFuir?: boolean;
   phase: 'choice' | 'esquive' | 'fuir'; // 'choice' = menu ; 'esquive' = Test d'Esquive ; 'fuir' = coup dans le dos SUBI + Test `fuite` influençable
   atk: TestResult | null; // Esquive : jet de Corps à corps du foe, figé (jamais relancé)
   def: TestResult | null; // Esquive : jet d'Esquive du mover

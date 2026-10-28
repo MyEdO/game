@@ -61,7 +61,8 @@ const contexte = (partie: Partie): ActionCtx => {
 
 /** L'attendu par entrée : `true` = un gate de l'entrée se FERME sous l'État, avec la raison de l'État ; `false` = aucun
  *  gate de l'entrée ne bouge. Brisé : LDB 16 l.52. Sonné : LDB 16 l.125 ; Distraire coûte le Mouvement, LDB 10 l.364 ;
- *  Course coûte l'Action, LDB 15 l.41 ; Désengagement par l'Esquive coûte l'Action, LDB 15 l.49 (porteur sans Avantage). */
+ *  Course coûte l'Action, LDB 15 l.41, et Brisé court pour fuir, LDB 16 l.52 ; Désengagement : l'Esquive coûte l'Action,
+ *  LDB 15 l.49, Brisé s'éloigne, LDB 16 l.52 (porteur sans Avantage ni départ libre, LDB 15 l.47, LDB 85 l.253, l.373-374). */
 const MATRICE: Record<string, { brise: boolean; sonne: boolean }> = {
   reload: { brise: true, sonne: true },
   aim: { brise: true, sonne: true },

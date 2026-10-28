@@ -29,11 +29,10 @@ import { bestDefenseMode, rollManeuverAttacker, maneuverAttackerDifficulty, dist
 import { bus, EVT } from './bus';
 import { campRestitue, campSpend } from './combat/advantagePool';
 import { attaqueDeCle } from '../engine/creatureAttacks';
-import { mountMovement, chargeDmgProxy } from './mount';
+import { mouvementDeCourse, chargeDmgProxy } from './mount';
 import { sceneMetresPerTile } from './monde/scene';
 import { metresRetenus, phaseDeChute, refusDesRangeesDues, tombantsNommes } from './fallMove';
 import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
-import { runMovementBonus } from '../engine/combatFeatures/dispatch';
 import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, cibleBrute, cibleDuTest, cibleMesuree, jetPose, type JetPose, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
 import type { Difficulty } from '../engine/types';
 import { d100 } from '../engine/dice';
@@ -1008,7 +1007,7 @@ export const FLOWS = {
    */
   cascade: makeRollFlow<PendingCascade, CascadeStep>({
     key: 'pendingCascade',
-    multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDEtape },
+    multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: (s, id) => refusDuJetDEtape(s, id) }, // lu au jet, pas au chargement : `cascade` ↔ `rollFlowSpecs` sont en cycle d'import
     rolled: (st) => !!st.result,
     actor: (s, st) => (st.actorId ? actorIn(s, st.actorId) : undefined),
     // ACCESSEUR DE DÉ de l'étape (une étape sans jet — `target` nul — n'en a pas). En Test OPPOSÉ,
@@ -1372,7 +1371,7 @@ export const FLOWS = {
     // ACCESSEUR DE DÉ : le d100 du Test `course` ; la distance se REPROJETTE par `runFromTest` (engine).
     die: {
       read: (p) => pick4(p.result),
-      write: (s, _p, actor, _g, tr) => (s.battle && actor ? { result: runFromTest(tr, mountMovement(s.battle, actor) + runMovementBonus(actor)) } : null),
+      write: (s, _p, actor, _g, tr) => (s.battle && actor ? { result: runFromTest(tr, mouvementDeCourse(s.battle, actor)) } : null),
     },
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.combatantId),
@@ -1385,10 +1384,10 @@ export const FLOWS = {
         // RAW LDB 17 l.68 : avant le jet (result==null → on choisit 01) OU après un échec ; avant le jet,
         // la cible est celle que le dé aurait affrontée (`cibleDuTest`, la même que `rollTest`).
         const tr = forcedTR(base?.roll ?? 1, base ? cibleBrute(base) : cibleDuTest(valeurDuTest(actor, p.test), p.test.difficulty), Math.max(0, base?.dr ?? 0));
-        return { result: runFromTest(tr, mountMovement(s.battle, actor) + runMovementBonus(actor)) };
+        return { result: runFromTest(tr, mouvementDeCourse(s.battle, actor)) };
       }
-      // Sprinter (LDB 10) : « Votre Attribut de Mouvement compte comme plus élevé de 1 lorsque vous Courez. »
-      return { result: resolveRun(valeurDuTest(actor, p.test), p.test.difficulty, mountMovement(s.battle, actor) + runMovementBonus(actor), battleRng()) };
+      // Sprinter : LDB 11 l.41-47 (`mouvementDeCourse`).
+      return { result: resolveRun(valeurDuTest(actor, p.test), p.test.difficulty, mouvementDeCourse(s.battle, actor), battleRng()) };
     },
     outcome: (p) => sealOutcome(!!p.result?.success, p.result?.dr ?? 0, p.result?.roll ?? 0, p.result?.target ?? 0),
     // Chance « +1 DR » (LDB 17 l.24) s'applique à TOUT Test : sur une Course, +1 DR ALLONGE la distance.

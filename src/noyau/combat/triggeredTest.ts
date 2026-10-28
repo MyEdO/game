@@ -608,7 +608,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
  *  L'Avantage disponible est lu par `spendableAdvantage` — source unique des gardes d'abordabilité, qui
  *  rend la réserve du CAMP en mode Avantage de groupe (`AA 11 l.30`) et l'Avantage individuel en LDB. */
 function choiceAffordable(get: Get, decider: Combatant | undefined, advantageCost?: number): boolean {
-  return advantageCost == null || (decider ? spendableAdvantage(get, decider) : 0) >= advantageCost;
+  return advantageCost == null || (decider ? spendableAdvantage(get().battle, decider) : 0) >= advantageCost;
 }
 
 /**
@@ -647,7 +647,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
     pushChoice(ctx.set, {
       id: `triggeredChoice-${decider.id}-${node.prompt}`,
       kind: 'triggeredChoice', actorId: decider.id, icon: node.icon ?? 'ui/think', label: dataLabel(node.prompt),
-      options: [{ key: 'yes', label: dataLabel(yesLabel), ...(abordable ? {} : { refus: t('opt.avantageInsuffisant', { n: node.advantageCost ?? 0, dispo: spendableAdvantage(ctx.get, decider) }) }) }, { key: 'no', label: t('opt.renoncer') }],
+      options: [{ key: 'yes', label: dataLabel(yesLabel), ...(abordable ? {} : { refus: t('opt.avantageInsuffisant', { n: node.advantageCost ?? 0, dispo: spendableAdvantage(ctx.get().battle, decider) }) }) }, { key: 'no', label: t('opt.renoncer') }],
       defaultChoice: 'no',
       meta: {
         choiceYes: node.yes, choiceNo: node.no ?? EMPTY_FLOW, after,

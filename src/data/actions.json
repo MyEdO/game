@@ -49,10 +49,7 @@
     "label": "Course",
     "icon": "travel/foot",
     "surface": "grille",
-    "gate": [
-      "mouvement-restant-fantassin",
-      "peut-agir"
-    ],
+    "gate": "course-possible",
     "intent": "portee-course",
     "coutAction": "action",
     "rule": {
