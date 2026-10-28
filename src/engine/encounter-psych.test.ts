@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { encounterPsych } from './encounterPsych';
 import type { Combatant } from './types';
+import { ciblePsy } from './psych/ciblage';
 
 const hero = (opts: Partial<Combatant>): Combatant =>
   ({ id: 'h', name: 'H', kind: 'hero', size: 'moyenne', psychState: [], psychTraits: [], groups: [], ...opts } as unknown as Combatant);
@@ -17,8 +18,8 @@ describe('encounterPsych — Psychologie à la rencontre, HORS COMBAT (Peur/Terr
   });
 
   it('héros avec Animosité (elfe) face à un Elfe présent → trait ciblé SOCIAL (taverne, l.16)', () => {
-    const t = encounterPsych(hero({ psychTraits: [{ type: 'animosite', cible: 'elfe' }] }), [npc('elfe', { groups: ['elfe'] })]);
-    expect(t).toEqual({ kind: 'animosite', sourceId: 'elfe', indice: 0, cible: 'elfe' });
+    const t = encounterPsych(hero({ psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }] }), [npc('elfe', { groups: ['elfe'] })]);
+    expect(t).toEqual({ kind: 'animosite', sourceId: 'elfe', indice: 0, cible: ciblePsy.groupe('elfe') });
   });
 
   it('PNJ de même Taille, aucun trait → aucun Test', () => {
@@ -26,9 +27,9 @@ describe('encounterPsych — Psychologie à la rencontre, HORS COMBAT (Peur/Terr
   });
 
   it('Immunité (Psychologie) bloque même un Trait social ; Frénésie aussi', () => {
-    const immune = hero({ psychImmune: true, psychTraits: [{ type: 'animosite', cible: 'elfe' }] });
+    const immune = hero({ psychImmune: true, psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }] });
     expect(encounterPsych(immune, [npc('elfe', { groups: ['elfe'] })])).toBeNull();
-    const frenzied = hero({ psychState: [{ type: 'frenesie' }], psychTraits: [{ type: 'animosite', cible: 'elfe' }] });
+    const frenzied = hero({ psychState: [{ type: 'frenesie' }], psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }] });
     expect(encounterPsych(frenzied, [npc('elfe', { groups: ['elfe'] })])).toBeNull();
   });
 });

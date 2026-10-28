@@ -3,8 +3,9 @@
  * (#1463, #3045). Entrées de donnée choisies par leur forme, jamais par leur nom.
  */
 import { describe, it, expect } from 'vitest';
-import { ciblePsy, cibleDuPorteur, ciblePsyLue, estCibleType, identiteDeCiblage, libelleDeCible, refDeCible, selonCible } from './ciblage';
+import { ciblePsy, cibleDArgument, cibleDuPorteur, ciblePsyLue, estCibleType, identiteDeCiblage, libelleDeCible, refDeCible, selonCible, type CiblePsy } from './ciblage';
 import { groupLabel, groups, psychologies } from '../../data';
+import { t } from '../../i18n';
 
 const groupe = groups[0];
 
@@ -29,6 +30,15 @@ describe('cibleDuPorteur — la Cible que désigne un porteur', () => {
   it('son 1er Groupe, fabriqué ; aucun Groupe, aucune Cible', () => {
     expect(cibleDuPorteur({ groups: [groupe.id] })).toBe(ciblePsy.groupe(groupe.id));
     expect(cibleDuPorteur({})).toBeUndefined();
+  });
+});
+
+describe('cibleDArgument — la Cible que nomme un argument', () => {
+  it('un id de Groupe connu donne sa Cible ; un libellé, un id hors registre ou un `@id` n’en donnent aucune', () => {
+    expect(cibleDArgument(groupe.id)).toBe(ciblePsy.groupe(groupe.id));
+    expect(cibleDArgument(groupe.label)).toBeUndefined();
+    expect(cibleDArgument('groupe-hors-registre')).toBeUndefined();
+    expect(cibleDArgument(`@${groupe.id}`)).toBeUndefined();
   });
 });
 
@@ -83,5 +93,27 @@ describe('estCibleType — dérivé de `psychology.json`', () => {
 
   it('faux pour un type hors du registre', () => {
     expect(estCibleType('hors-registre')).toBe(false);
+  });
+});
+
+describe('CiblePsy — marque purement typologique (#3045)', () => {
+  it('la copie JSON rend la chaîne de l’id, égale par `===` à la Cible fabriquée', () => {
+    const cible = ciblePsy.groupe(groupe.id);
+    const copie: { cible: CiblePsy } = JSON.parse(JSON.stringify({ cible }));
+    expect(copie.cible === cible).toBe(true);
+    expect(JSON.stringify(cible)).toBe(JSON.stringify(groupe.id));
+  });
+
+  it('ni une chaîne nue, ni un `as` vers le texte joueur, ni un paramètre de `t()` n’acceptent une Cible', () => {
+    const cible = ciblePsy.groupe(groupe.id);
+    const texte = libelleDeCible(cible);
+    // @ts-expect-error #3045
+    const nue: CiblePsy = groupe.id;
+    // @ts-expect-error #3045
+    const forge = cible as typeof texte;
+    // @ts-expect-error #3045
+    const ligne = t('turn.psychSuperseded', { name: cible, psych: texte });
+    expect([nue, forge]).toEqual([groupe.id, groupe.id]);
+    expect(ligne).toContain(groupe.id);
   });
 });

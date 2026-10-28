@@ -12,6 +12,7 @@ import { parsePsychTraits } from '../engine/psych/registry';
 import { mutationById } from './mutations';
 import { findGroupById } from './index';
 import type { Combatant } from '../engine/types';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -58,7 +59,7 @@ describe('Cible d’une mutation tirée sur les Obsessions', () => {
     attachMutation(c, mutationById('haine-sporadique')!, makeRNG(7));
     const haine = (c.traits ?? []).find((t) => t.id === 'haine');
     expect(OBSESSIONS.some((e) => e.id === haine?.arg)).toBe(true);
-    expect(parsePsychTraits(c.traits ?? []).psychTraits).toContainEqual({ type: 'haine', cible: haine!.arg });
+    expect(parsePsychTraits(c.traits ?? []).psychTraits).toContainEqual({ type: 'haine', cible: ciblePsy.groupe(haine!.arg!) });
   });
 
   it('« Terribles phobies » → Effrayé (Cible) dont la Cible tirée est un Groupe effectif (EDOC 12 l.241)', () => {
@@ -66,7 +67,7 @@ describe('Cible d’une mutation tirée sur les Obsessions', () => {
     attachMutation(c, mutationById('terribles-phobies')!, makeRNG(3));
     const effraye = (c.traits ?? []).find((t) => t.id === 'effraye');
     expect(OBSESSIONS.some((e) => e.id === effraye?.arg)).toBe(true);
-    expect(parsePsychTraits(c.traits ?? []).psychTraits).toContainEqual({ type: 'phobie', cible: effraye!.arg, indice: 0 });
+    expect(parsePsychTraits(c.traits ?? []).psychTraits).toContainEqual({ type: 'phobie', cible: ciblePsy.groupe(effraye!.arg!), indice: 0 });
   });
 });
 

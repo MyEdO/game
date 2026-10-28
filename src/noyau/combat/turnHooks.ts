@@ -294,7 +294,7 @@ export const TABLES = {
         const foes = (enemy.engagedWith ?? [])
           .map((id) => inBattleId(battle, id))
           .filter((f): f is Combatant => !!f && f.kind !== enemy.kind && !isOutOfAction(f));
-        const hated = (enemy.psychState ?? []).filter((p) => p.type === 'haine' && p.active === true && p.cible);
+        const hated = (enemy.psychState ?? []).filter((p) => p.type === 'haine' && p.active === true && p.cible !== undefined);
         const uncovered = foes.filter((f) => !hated.some((p) => vise(p.cible!, { genre: 'combattant', c: f }, 'appartenance'))); // LDB 21 l.41
         // Cibles de Haine : 1ᵉʳ Groupe de chaque adversaire non couvert (dédupliqué) — un foe sans Groupe
         // n'est pas modélisable en Trait ciblé (groupMatch), on ne dépense pas pour lui.

@@ -6,6 +6,7 @@ import { creatures, findCreatureById, findGodById, findGroupById, findSpeciesByI
 import { resetData, setDataset } from '../data/overrides';
 import { schema as groupsSchema } from '../data/schemas/defs/groups';
 import groupsJson from '../data/groups.json';
+import { ciblePsy } from './psych/ciblage';
 
 describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3)', () => {
   it('la CATÉGORIE de la créature est DÉCLARÉE sur son entrée (`grantGroups`) — plus aucune dérivation par folder', () => {
@@ -40,7 +41,7 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
     // Haine (mort-vivant) portée par un Répurgateur face à un porteur du Trait Mort-vivant caché.
     const chasseur = {
       id: 'repurgateur', name: 'Répurgateur', kind: 'hero', groups: [],
-      psychTraits: [{ type: 'haine' as const, cible: 'mort-vivant' }],
+      psychTraits: [{ type: 'haine' as const, cible: ciblePsy.groupe('mort-vivant') }],
     } as unknown as Combatant;
     const cache = [{ id: 'mort-vivant', hidden: true }];
     const dissimule = { id: 'v-1', name: 'Vampire', kind: 'enemy', groups: [], traits: cache } as unknown as Combatant;
@@ -52,7 +53,7 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
     const vu = [{ id: 'mort-vivant' }];
     const revele = { ...dissimule, traits: vu } as unknown as Combatant;
     expect(hiddenGroupsOf(revele)).toEqual([]);
-    expect(targetedTrigger(chasseur, [revele])).toEqual({ type: 'haine', cible: 'mort-vivant', sourceId: 'v-1', indice: undefined });
+    expect(targetedTrigger(chasseur, [revele])).toEqual({ type: 'haine', cible: ciblePsy.groupe('mort-vivant'), sourceId: 'v-1', indice: undefined });
   });
 
   it('classe « Roublards » → Groupe « criminel » auto-dérivé (Épée de justice / Traits psy ciblés)', () => {

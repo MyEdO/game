@@ -8,6 +8,7 @@ import { psychDRAdjust } from '../../engine/combat';
 import { groupesDe } from '../../engine/groups';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
+import { ciblePsy } from '../../engine/psych/ciblage';
 
 /**
  * Trait Rage — LDB 85 l.281-283 : « Elle peut dépenser tous ses Avantages (minimum 1) pour que celui
@@ -60,7 +61,7 @@ describe('Rage → Haine (LDB 85 l.281-283, branche « minimum 1 »)', () => {
     const haine = (E.psychState ?? []).find((p) => p.type === 'haine');
     expect(haine).toBeTruthy();
     expect(haine!.active).toBe(true);
-    expect(haine!.cible).toBe(groupesDe(H)[0]); // « envers ses adversaires en combat rapproché »
+    expect(haine!.cible).toBe(ciblePsy.groupe(groupesDe(H)[0])); // « envers ses adversaires en combat rapproché »
     // La Haine FAIT quelque chose : +1 DR aux Tests de Combat contre le groupe haï (LDB 21, psychDRAdjust).
     expect(psychDRAdjust(E, H)).toBe(1);
     expect(useGame.getState().battle!.log.some((l) => l.text.includes('Haine'))).toBe(true);

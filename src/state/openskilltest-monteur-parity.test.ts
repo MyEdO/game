@@ -14,6 +14,7 @@ import { ligneDe, lignesDe } from '../engine/modLine.testkit';
 import { psychologies } from '../data';
 import { codexLookupById } from '../ui/compendium/registry';
 import type { TravelPlan } from '../noyau/travelFlow';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 /**
  * PARITÉ de la cible d'un Test de scène : le calcul HISTORIQUE d'`openSkillTest`
@@ -85,7 +86,7 @@ describe('openSkillTest × monteur canonique — la cible est BIT-IDENTIQUE (#11
       characteristics: { ...CHARS, sociabilite: 60 },
       skills: [{ id: 'charme', characteristic: 'sociabilite', advances: 10 }],
       conditions: [{ id: 'extenue', value: 2 }],
-      psychTraits: [{ type: 'animosite', cible: 'elfe' }],
+      psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }],
     } as unknown as Partial<Combatant>);
     const h2 = hero('h2', {
       characteristics: { ...CHARS, sociabilite: 20 },
@@ -119,7 +120,7 @@ describe('openSkillTest × monteur canonique — la cible est BIT-IDENTIQUE (#11
         { id: 'marchandage', characteristic: 'sociabilite', advances: 8 },
         { id: 'commerage', characteristic: 'sociabilite', advances: 2 },
       ],
-      psychTraits: [{ type: 'prejuge', cible: 'nain' }],
+      psychTraits: [{ type: 'prejuge', cible: ciblePsy.groupe('nain') }],
     } as unknown as Partial<Combatant>);
     useGame.setState({ party: [h1] });
     runFlow(useGame.getState, useGame.setState, testFlow(

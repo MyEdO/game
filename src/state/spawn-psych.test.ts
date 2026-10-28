@@ -3,6 +3,7 @@ import { creatureToCombatant, statblockToCombatant } from '../noyau/monde/spawn'
 import { createHero } from '../engine/character';
 import { findCreatureById } from '../data';
 import { groupesDe } from '../engine/groups';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 // Dérivation des propriétés psychologiques au spawn (parse des traits, LDB 21+85).
 describe('spawn — propriétés psychologiques', () => {
@@ -36,7 +37,7 @@ describe('spawn — Groupes & traits psy ciblés (P3)', () => {
   });
   it('statblockToCombatant : trait « Animosité (elfe) » → psychTraits (Cible = id de Groupe)', () => {
     const c = statblockToCombatant({ type: 'statblock', label: 'Nain', char: { B: 10 }, traits: [{ id: 'animosite', arg: 'elfe' }] }, 'e3', { x: 0, y: 0 });
-    expect(c.psychTraits).toEqual([{ type: 'animosite', cible: 'elfe' }]);
+    expect(c.psychTraits).toEqual([{ type: 'animosite', cible: ciblePsy.groupe('elfe') }]);
   });
   it('createHero : Groupes effectifs = racial(espèce) + carrière (ids)', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
@@ -54,43 +55,43 @@ describe('DONNÉE creatures.json — cibles psy recalées vers un id de Groupe M
   it('Bella la Noire (LDB 77 l.95) : une instance par Cible — Animosité noble + homme-bete ; Préjugé bailli + juriste', () => {
     const c = creatureToCombatant(findCreatureById('bella-la-noire')!, 'p1', { x: 0, y: 0 });
     expect(c.psychTraits).toEqual(expect.arrayContaining([
-      { type: 'animosite', cible: 'noble' },
-      { type: 'animosite', cible: 'homme-bete' },
-      { type: 'prejuge', cible: 'bailli' },
-      { type: 'prejuge', cible: 'juriste' },
+      { type: 'animosite', cible: ciblePsy.groupe('noble') },
+      { type: 'animosite', cible: ciblePsy.groupe('homme-bete') },
+      { type: 'prejuge', cible: ciblePsy.groupe('bailli') },
+      { type: 'prejuge', cible: ciblePsy.groupe('juriste') },
     ]));
   });
   it('Eusapia Balacañon : Animosité « Tiléens » → tileen', () => {
     const c = creatureToCombatant(findCreatureById('eusapia-balacanon')!, 'p2', { x: 0, y: 0 });
-    expect(c.psychTraits).toEqual(expect.arrayContaining([{ type: 'animosite', cible: 'tileen' }]));
+    expect(c.psychTraits).toEqual(expect.arrayContaining([{ type: 'animosite', cible: ciblePsy.groupe('tileen') }]));
   });
   it('Hyppogriffe / Brochet du Stir : Animosité « Tout » → tout (LDB 79 l.113, MSRC 15 l.101)', () => {
     expect(creatureToCombatant(findCreatureById('hyppogriffe')!, 'p3', { x: 0, y: 0 }).psychTraits)
-      .toEqual(expect.arrayContaining([{ type: 'animosite', cible: 'tout' }]));
+      .toEqual(expect.arrayContaining([{ type: 'animosite', cible: ciblePsy.groupe('tout') }]));
     // Label « Brochet du Stir » ambigu (2 créatures homonymes, Zoo Impérial vs Bestiaire fluvial) → id STABLE.
     expect(creatureToCombatant(findCreatureById('brochet-du-stir-fluvial')!, 'p5', { x: 0, y: 0 }).psychTraits)
-      .toEqual(expect.arrayContaining([{ type: 'animosite', cible: 'tout' }]));
+      .toEqual(expect.arrayContaining([{ type: 'animosite', cible: ciblePsy.groupe('tout') }]));
   });
   it('Chauve-souris vampire (Varghulf) : Haine « Vivant » → vivant', () => {
     expect(creatureToCombatant(findCreatureById('chauve-souris-vampire-varghulf')!, 'p6', { x: 0, y: 0 }).psychTraits)
-      .toEqual(expect.arrayContaining([{ type: 'haine', cible: 'vivant' }]));
+      .toEqual(expect.arrayContaining([{ type: 'haine', cible: ciblePsy.groupe('vivant') }]));
   });
   it('Babrakkos : Haine « Teutogens » → teutogen', () => {
     const c = creatureToCombatant(findCreatureById('babrakkos')!, 'p8', { x: 0, y: 0 });
-    expect(c.psychTraits).toEqual(expect.arrayContaining([{ type: 'haine', cible: 'teutogen' }]));
+    expect(c.psychTraits).toEqual(expect.arrayContaining([{ type: 'haine', cible: ciblePsy.groupe('teutogen') }]));
   });
   it('Grain d’achillée le lutin : Préjugé « Créatures mortelles » → vivant', () => {
     const c = creatureToCombatant(findCreatureById('grain-d-achillee')!, 'p9', { x: 0, y: 0 });
-    expect(c.psychTraits).toEqual(expect.arrayContaining([{ type: 'prejuge', cible: 'vivant' }]));
+    expect(c.psychTraits).toEqual(expect.arrayContaining([{ type: 'prejuge', cible: ciblePsy.groupe('vivant') }]));
   });
   it('Triton : Animosité « Elfes noirs » → elfe-noir', () => {
     const c = creatureToCombatant(findCreatureById('triton')!, 'p10', { x: 0, y: 0 });
-    expect(c.psychTraits).toEqual(expect.arrayContaining([{ type: 'animosite', cible: 'elfe-noir' }]));
+    expect(c.psychTraits).toEqual(expect.arrayContaining([{ type: 'animosite', cible: ciblePsy.groupe('elfe-noir') }]));
   });
   it('Brigitte Schleigel : Préjugé « aristocrates, réactionnaires, miliciens, nantis, utilisateurs de mystracine » → noble + 1 reste inerte (aucun Groupe)', () => {
     const c = creatureToCombatant(findCreatureById('brigitte-schleigel')!, 'p11', { x: 0, y: 0 });
     const prejuges = (c.psychTraits ?? []).filter((p) => p.type === 'prejuge');
-    expect(prejuges).toEqual(expect.arrayContaining([{ type: 'prejuge', cible: 'noble' }]));
+    expect(prejuges).toEqual(expect.arrayContaining([{ type: 'prejuge', cible: ciblePsy.groupe('noble') }]));
     expect(prejuges.some((p) => p.cible === undefined)).toBe(true); // réactionnaires/miliciens/mystracine : aucun Groupe
   });
   it('Ogre (Maigrichons) / Jetsam (Feu) / Volée de Noctecorbes (Lumière) / Sangsues (Sel) / créanciers / Étrangers / subjectifs : RESTENT inertes (aucun référent combattant)', () => {

@@ -14,6 +14,7 @@ import type { Combatant } from '../engine/types';
 import type { PendingTest } from '../noyau/pendings';
 import { isPsychImmune } from '../engine/psychology';
 import { socialPsychMod, socialPsychLabel } from '../engine/skills';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 const mk = (id: string, resolve: number): Combatant =>
   ({
@@ -36,7 +37,7 @@ const pending = (): PendingTest =>
 /** Le même héros, porteur d'une Animosité CIBLÉE (LDB 21) — c'est ce trait qui produit le −20 des
  *  Tests sociaux envers ce groupe, calculé par `socialPsychMod` (siège unique). */
 const avecAnimosite = (resolve: number): Combatant =>
-  ({ ...mk('h1', resolve), psychTraits: [{ type: 'animosite', cible: 'Elfe' }] } as unknown as Combatant);
+  ({ ...mk('h1', resolve), psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }] } as unknown as Combatant);
 
 describe('Test de scène — Détermination contre un malus psy social (LDB 17 l.59)', () => {
   beforeEach(() => { useGame.setState({ battle: null, pendingTest: null }); });
@@ -73,11 +74,11 @@ describe('Test de scène — Détermination contre un malus psy social (LDB 17 l
    */
   it('le Test social SUIVANT de la fenêtre n’a plus le malus — sans nouvelle dépense', () => {
     useGame.setState({ party: [avecAnimosite(2)], pendingTest: pending() });
-    expect(socialPsychMod(useGame.getState().party[0], ['Elfe']), 'précondition : Animosité −20 envers Elfe').toBe(-20);
+    expect(socialPsychMod(useGame.getState().party[0], ['elfe']), 'précondition : Animosité −20 envers Elfe').toBe(-20);
     useGame.getState().testDetermine();
     const hero = useGame.getState().party[0];
-    expect(socialPsychMod(hero, ['Elfe']), 'Test SUIVANT ouvert dans la fenêtre : plus de malus').toBe(0);
-    expect(socialPsychLabel(hero, ['Elfe']), 'et plus d’étiquette de malus à afficher').toBeUndefined();
+    expect(socialPsychMod(hero, ['elfe']), 'Test SUIVANT ouvert dans la fenêtre : plus de malus').toBe(0);
+    expect(socialPsychLabel(hero, ['elfe']), 'et plus d’étiquette de malus à afficher').toBeUndefined();
     expect(hero.resolve, 'un seul point dépensé pour toute la fenêtre').toBe(1);
   });
 

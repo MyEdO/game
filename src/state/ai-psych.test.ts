@@ -4,6 +4,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 import type { PsychType } from '../engine/psychology';
 import { psychologies, traits } from '../data';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
@@ -22,7 +23,7 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
 
 describe('Frénésie/Haine IA — contrainte de cible (LDB 21, P3)', () => {
   it('Haine active : vise un membre du groupe haï (pas le plus faible hors groupe)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: 'haine', cible: 'elfe', active: true }] });
+    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: 'haine', cible: ciblePsy.groupe('elfe'), active: true }] });
     const hated = mk('hated', 'hero', { x: 5, y: 6 }, { wounds: { current: 10, max: 10 }, groups: ['elfe'] }); // costaud mais haï
     const weak = mk('weak', 'hero', { x: 5, y: 4 }, { wounds: { current: 1, max: 10 }, groups: ['humain'] }); // faible mais non haï
     const action = chooseEnemyAction(input(e, [hated, weak]));
@@ -31,7 +32,7 @@ describe('Frénésie/Haine IA — contrainte de cible (LDB 21, P3)', () => {
   });
 
   it('Animosité active mais aucun membre du groupe visible → ciblage normal (le plus faible)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: 'animosite', cible: 'elfe', active: true }] });
+    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: 'animosite', cible: ciblePsy.groupe('elfe'), active: true }] });
     const weak = mk('weak', 'hero', { x: 5, y: 6 }, { wounds: { current: 1, max: 10 }, groups: ['humain'] });
     const tough = mk('tough', 'hero', { x: 5, y: 4 }, { wounds: { current: 10, max: 10 }, groups: ['humain'] });
     const action = chooseEnemyAction(input(e, [weak, tough]));
@@ -49,7 +50,7 @@ describe('Frénésie/Haine IA — contrainte de cible (LDB 21, P3)', () => {
     expect(traitAGroupe).toBeDefined();
     const pulsion = psychologies.find((p) => p.attackDR?.vs === 'group');
     expect(pulsion).toBeDefined();
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: pulsion!.id as PsychType, cible: groupe, active: true }] });
+    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.groupe(groupe), active: true }] });
     const membre = mk('membre', 'hero', { x: 5, y: 6 }, { traits: [{ id: traitAGroupe!.id, hidden: true }] });
     const faible = mk('faible', 'hero', { x: 5, y: 4 }, { wounds: { current: 1, max: 10 } });
     expect(cible(chooseEnemyAction(input(e, [membre, faible])))).toBe('membre');
@@ -58,7 +59,7 @@ describe('Frénésie/Haine IA — contrainte de cible (LDB 21, P3)', () => {
   it('le vivier ne se restreint que pour une affliction dont la donnée vise le groupe (`attackDR.vs`)', () => {
     const autre = psychologies.find((p) => p.targeted && p.attackDR?.vs !== 'group');
     expect(autre).toBeDefined();
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: autre!.id as PsychType, cible: groupe, active: true }] });
+    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: autre!.id as PsychType, cible: ciblePsy.groupe(groupe), active: true }] });
     const membre = mk('membre', 'hero', { x: 5, y: 6 }, { traits: [{ id: traitAGroupe!.id }] });
     const faible = mk('faible', 'hero', { x: 5, y: 4 }, { wounds: { current: 1, max: 10 } });
     expect(cible(chooseEnemyAction(input(e, [membre, faible])))).toBe('faible');

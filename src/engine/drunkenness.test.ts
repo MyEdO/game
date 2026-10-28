@@ -6,6 +6,7 @@ import { effectiveChar } from './characteristics';
 import { hasCondition, addClockCondition } from './conditions';
 import { applyOps } from './ops';
 import { deFixe, desDuTest } from './dice.testkit';
+import { ciblePsy } from './psych/ciblage';
 
 /** Joue la MÉCANIQUE d'un résultat d'Ivresse (`drunkOps`) — reproduit `case 'intoxicate'` d'`applyOps`
  *  (`effectId:'ivresse'` marque les ActiveEffect posés, retirés en bloc par `soberUp`). */
@@ -86,7 +87,7 @@ describe('Ivresse — Résistance à l’alcool (LDB 09 l.471-487)', () => {
     const r = applyAlcoholTest(c, false, 2, d10fixed(7));
     applyDrunkOps(c, r.drunkOps);
     // Cible = id de Groupe `tout` (wildcard « n'importe qui », groupMatch engine/groups.ts:155).
-    expect(c.psychTraits?.some((p) => p.type === 'animosite' && p.cible === 'tout')).toBe(true);
+    expect(c.psychTraits?.some((p) => p.type === 'animosite' && p.cible === ciblePsy.groupe('tout'))).toBe(true);
   });
 
   it('soberUp : lève l’ivresse, retire les ActiveEffect d’ivresse (par `effectId`), renvoie la gueule de bois (Exténué horloge)', () => {

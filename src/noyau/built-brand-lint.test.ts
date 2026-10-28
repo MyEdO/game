@@ -197,6 +197,34 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
   });
 });
 
+/** LA MARQUE DE CIBLE (`CiblePsy`, #3045) — une marque de plus sous le même verrou : sa seule fabrique est
+ *  `ciblePsy` (`engine/psych/ciblage.ts`), dont l'unique cast porte son exemption AU SITE. */
+const ENTETE_CIBLE = "import type { CiblePsy } from '../engine/psych/ciblage';\ndeclare const o: string;\n";
+
+describe('#3045 — le lint mure les ROUTES DE FORGE de la Cible d’un Trait psy', () => {
+  it.each([
+    ['`x as CiblePsy`', 'export const a = o as CiblePsy;'],
+    ['`<CiblePsy>x`', 'export const a = <CiblePsy>o;'],
+    ['`as unknown as readonly CiblePsy[]`', 'export const a = [o] as unknown as readonly CiblePsy[];'],
+    ['`type A = CiblePsy`', 'type AliasCible = CiblePsy;\nexport const a: AliasCible | undefined = undefined;'],
+  ])('%s est refusé', async (_forme, code) => {
+    expect(await messagesDeVerrou(`${ENTETE_CIBLE}${code}\n`)).toHaveLength(1);
+  });
+
+  it('employer la marque n’est pas la forger : un paramètre typé `CiblePsy` passe', async () => {
+    expect(await messagesDeVerrou(`${ENTETE_CIBLE}export const lire = (c: CiblePsy): boolean => c === o;\n`)).toHaveLength(0);
+  });
+
+  it('la fabrique `ciblage.ts` lint propre, et un SECOND cast y est refusé : l’exemption est au site', async () => {
+    const [res] = await eslint.lintFiles(['src/engine/psych/ciblage.ts']);
+    expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
+    expect(res.errorCount).toBe(0);
+    const reel = readFileSync('src/engine/psych/ciblage.ts', 'utf8');
+    const [cast] = await eslint.lintText(`${reel}\nexport const forge = (s: string) => s as CiblePsy;\n`, { filePath: 'src/engine/psych/ciblage.ts' });
+    expect(selectionnerMessages(cast, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un SECOND cast dans la fabrique doit rougir').toHaveLength(1);
+  });
+});
+
 /**
  * LES `@ts-expect-error` DU MURAGE SONT-ILS TUEURS ? (#1262 B4) — `roll-seam-mints.test.ts` atteste
  * que `pushCombatStep` refuse un littéral, par des directives `@ts-expect-error`. Une directive ne

@@ -15,6 +15,7 @@ import {
 } from './disease';
 import { effectivePsychTraits, isFrenzyCapable } from './psychology';
 import type { GameOp } from './ops';
+import { ciblePsy } from './psych/ciblage';
 
 /** RNG scripté : renvoie les valeurs dans l'ordre (déjà dans les bornes attendues). */
 function seq(values: number[]): RNG {
@@ -177,11 +178,11 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     // `vivant` (Middenheim 131 « toutes les choses vivantes » ; groupMatch, engine/groups.ts:156) + Frénésie.
     // (diseasePsychTraits = le collecteur ; effectivePsychTraits = stockés ∪ dérivés.)
     expect(diseasePsychTraits(c)).toEqual([
-      { type: 'haine', cible: 'vivant' },
+      { type: 'haine', cible: ciblePsy.groupe('vivant') },
       { type: 'frenesie' },
     ]);
     const active = effectivePsychTraits(c);
-    expect(active).toContainEqual({ type: 'haine', cible: 'vivant' });
+    expect(active).toContainEqual({ type: 'haine', cible: ciblePsy.groupe('vivant') });
     expect(active).toContainEqual({ type: 'frenesie' });
     // EFFET RÉEL (pas juste l'appartenance à la liste) : la Frénésie octroyée par la maladie rend
     // le combattant frénésie-CAPABLE — sinon le grant resterait inerte au combat.

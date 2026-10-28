@@ -721,7 +721,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Animosité/Haine ACTIVE (LDB 21 l.21/41) : filtre de VIVIER appliqué AVANT le choix de cible — on
   // s'en prend en priorité au groupe haï présent dans le vivier considéré (sinon vivier brut).
   const hatedCibles = (enemy.psychState ?? [])
-    .filter((p) => findPsychologyById(p.type)?.attackDR?.vs === 'group' && p.active && p.cible)
+    .filter((p) => findPsychologyById(p.type)?.attackDR?.vs === 'group' && p.active && p.cible !== undefined)
     .map((p) => p.cible!);
   const hatedOf = (pool: Combatant[]) =>
     hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => vise(cb, { genre: 'combattant', c: h }, 'appartenance'))) : []; // #3045

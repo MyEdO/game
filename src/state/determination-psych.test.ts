@@ -4,6 +4,7 @@ import { isPsychImmune, clearPsychOf } from '../engine/psychology';
 import { psychDRAdjust } from '../engine/combat';
 import { traumaCharPenalties, traumaMovementHalved, traumaDodgePenalty, passiveTestMod } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 const C = (o: Partial<Combatant>): Combatant => o as unknown as Combatant;
 
@@ -24,7 +25,7 @@ describe('isPsychImmune — prédicat central (trait / Frénésie / Déterminati
 describe('clearPsychOf — les effets psy d\'une créature finissent à sa mort', () => {
   it('retire de TOUS les combattants les afflictions sourcées par la créature morte', () => {
     const h1 = C({ psychState: [{ type: 'peur', sourceId: 'mort', indice: 2, calmeDR: 0 } as never, { type: 'peur', sourceId: 'vivant', indice: 1, calmeDR: 0 } as never] });
-    const h2 = C({ psychState: [{ type: 'animosite', sourceId: 'mort', cible: 'X', active: true } as never] });
+    const h2 = C({ psychState: [{ type: 'animosite', sourceId: 'mort', cible: ciblePsy.groupe('elfe'), active: true }] });
     clearPsychOf([h1, h2], 'mort');
     expect(h1.psychState!.map((p) => p.sourceId)).toEqual(['vivant']); // l'autre source reste
     expect(h2.psychState).toEqual([]);

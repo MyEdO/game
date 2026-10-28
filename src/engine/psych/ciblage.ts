@@ -4,12 +4,18 @@
  * PERSISTÉ avant toute lecture et élague toute chaîne hors `groups.json`, donc aussi toute Cible d'individu
  * (`@id`) de β1. #1463 #3045
  */
-import { findPsychologyById, groupLabel } from '../../data';
-import type { PlayerText } from '../../i18n/playerText';
+import { findGroupById, findPsychologyById, groupLabel } from '../../data';
+import type { NonAffichable, PlayerText } from '../../i18n/playerText';
 import { groupesDe, type PorteurDeGroupes } from '../groups';
 
-/** La Cible d'un Trait psy : un Groupe de `groups.json`, par son id. */
-export type CiblePsy = string;
+declare const CIBLE_PSY: unique symbol;
+
+/** La Cible d'un Trait psy : un Groupe de `groups.json`, par son id, sortie de `ciblePsy`. */
+export type CiblePsy = string & NonAffichable & { readonly [CIBLE_PSY]: true };
+
+const marquer = (id: string): CiblePsy =>
+  // eslint-disable-next-line murs/marques -- #3045 : l'unique cast de ce module — forger la marque EST le corps de métier de la fabrique `ciblePsy`.
+  id as CiblePsy;
 
 /** Motif d'un id de Groupe, imposé au schéma de `groups.json` (`defs/groups.ts`). */
 export const MOTIF_D_ID_DE_GROUPE = /^[a-z0-9-]+$/;
@@ -20,7 +26,7 @@ export const ciblePsy = {
     if (!MOTIF_D_ID_DE_GROUPE.test(id)) {
       throw new Error(`ciblePsy.groupe : « ${id} » n'est pas un id de Groupe (motif ${MOTIF_D_ID_DE_GROUPE.source}).`);
     }
-    return id;
+    return marquer(id);
   },
 };
 
@@ -33,6 +39,12 @@ export function selonCible<R>(cible: CiblePsy, lecteurs: { groupe: (id: string) 
 export function cibleDuPorteur(p: PorteurDeGroupes): CiblePsy | undefined {
   const [groupe] = groupesDe(p);
   return groupe === undefined ? undefined : ciblePsy.groupe(groupe);
+}
+
+/** La Cible que nomme un argument (`arg` d'un Trait, spécialisation d'un Talent) : un Groupe connu de
+ *  `groups.json`, sinon aucune. */
+export function cibleDArgument(arg: string): CiblePsy | undefined {
+  return findGroupById(arg) ? ciblePsy.groupe(arg) : undefined;
 }
 
 /** Référence de DONNÉE d'une Cible : le `{ id }` d'un Groupe (`ref('groupe')` des ops psy, #1468). */

@@ -2236,11 +2236,11 @@
   {
     "id": "ciblePsy",
     "type": "primitives.manifest",
-    "label": "CiblePsy/ciblePsy/selonCible/cibleDuPorteur/MOTIF_D_ID_DE_GROUPE/identiteDeCiblage/libelleDeCible/estCibleType/RefDeCible/ciblePsyLue/refDeCible",
+    "label": "CiblePsy/ciblePsy/selonCible/cibleDuPorteur/cibleDArgument/MOTIF_D_ID_DE_GROUPE/identiteDeCiblage/libelleDeCible/estCibleType/RefDeCible/ciblePsyLue/refDeCible",
     "fichier": "src/engine/psych/ciblage.ts",
-    "concept": "Cible d’un Trait psy (#1463, #3045) : un Groupe par son id, frappé par la seule fabrique `ciblePsy` (motif des ids de Groupe `MOTIF_D_ID_DE_GROUPE`, partagé avec le schéma des Groupes), lu par le seul `selonCible`, tiré d’un porteur par `cibleDuPorteur`, comparé par `identiteDeCiblage` (type et Cible), affiché par `libelleDeCible` ; `estCibleType` dit si un type de psychologie porte une Cible ; `ciblePsyLue` est la seule couture de la référence de donnée `{ id }` (`RefDeCible`) vers la Cible, `refDeCible` sa réciproque",
+    "concept": "Cible d’un Trait psy (#1463, #3045) : un Groupe par son id, chaîne marquée (`string & NonAffichable`) frappée par la seule fabrique `ciblePsy` (motif des ids de Groupe `MOTIF_D_ID_DE_GROUPE`, partagé avec le schéma des Groupes), lu par le seul `selonCible`, tiré d’un porteur par `cibleDuPorteur`, nommé par un argument (`arg` de Trait, spécialisation de Talent) par `cibleDArgument`, comparé par `identiteDeCiblage` (type et Cible), affiché par `libelleDeCible` ; `estCibleType` dit si un type de psychologie porte une Cible ; `ciblePsyLue` est la seule couture de la référence de donnée `{ id }` (`RefDeCible`) vers la Cible, `refDeCible` sa réciproque",
     "perimetre": "psychologie (état, ops, bandes, IA, affichage), Cible des ops psy, éditeurs des ops psy",
-    "verrou": "src/engine/psych/ciblage.test.ts"
+    "verrou": "src/engine/psych/ciblage.test.ts ; murs/marques (src/noyau/built-brand-lint.test.ts)"
   },
   {
     "id": "opPsy",

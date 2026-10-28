@@ -8,6 +8,7 @@ import { resolveCritique } from './critical';
 import { findSpellById } from '../data';
 import { spellOps } from './flowCore';
 import { desDuTest, desEnSuite } from './dice.testkit';
+import { ciblePsy } from './psych/ciblage';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */
 const opsOf = (id: string) => spellOps(findSpellById(id)?.effects, 'target');
@@ -134,8 +135,8 @@ describe('Bénédiction de Sauvagerie — « deux lancers, choisissez le meilleu
 describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques sont retirés pour la durée » (LDB 42)', () => {
   it('op suppressPsych : déplace psychTraits dans l’effet porteur et purge psychState', () => {
     const c = mk({
-      psychTraits: [{ type: 'animosite', cible: 'Elfes' }, { type: 'phobie', cible: 'Serpents', indice: 1 }],
-      psychState: [{ type: 'animosite', cible: 'Elfes', active: true }],
+      psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }, { type: 'phobie', cible: ciblePsy.groupe('serpent'), indice: 1 }],
+      psychState: [{ type: 'animosite', cible: ciblePsy.groupe('elfe'), active: true }],
     });
     const lines = applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume pour un esprit blessé', defaultDurationRounds: 9999, defaultUntilTime: 120 });
     expect(c.psychTraits).toEqual([]);
@@ -146,11 +147,11 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
     expect(lines.join(' ')).toMatch(/Traits? psychologiques?/i);
   });
   it('expiration en fin de Round : les Traits psy suspendus sont restitués', () => {
-    const c = mk({ psychTraits: [{ type: 'haine', cible: 'Skavens' }] });
+    const c = mk({ psychTraits: [{ type: 'haine', cible: ciblePsy.groupe('skaven') }] });
     applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume', defaultDurationRounds: 1 });
     expect(c.psychTraits).toEqual([]);
     endOfRound(c, desDuTest); // l'effet expire (1 round) → restitution
-    expect(c.psychTraits).toEqual([{ type: 'haine', cible: 'Skavens' }]);
+    expect(c.psychTraits).toEqual([{ type: 'haine', cible: ciblePsy.groupe('skaven') }]);
     expect(c.activeEffects?.some((e) => e.suppressedPsych)).toBe(false);
   });
   it('cible sans Trait psy : journal honnête, pas d’effet porteur', () => {

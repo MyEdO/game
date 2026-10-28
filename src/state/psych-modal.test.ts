@@ -12,6 +12,7 @@ import { modalOwnerOf } from '../noyau/modalArbiter';
 import { ligneDe } from '../engine/modLine.testkit';
 import { t } from '../i18n';
 import { sansPeurLabel } from '../engine/psychology';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 /**
  * Psychologie de COMBAT — régime CASCADE de Round (LDB 21). Les Traits ciblés et les NOUVELLES
@@ -220,7 +221,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     useGame.getState().seedRng(2);
     const { H, E } = setup('moyenne');
     E.groups = ['ogre'];
-    H.psychTraits = [{ type: 'phobie', cible: 'ogre', indice: 0 }];
+    H.psychTraits = [{ type: 'phobie', cible: ciblePsy.groupe('ogre'), indice: 0 }];
     H.talents = [...(H.talents ?? []), { talentId: 'sans-peur', spec: 'ogre', times: 1 }];
     openRoundEndCascade(useGame.getState, useGame.setState);
     expect(band().combatPsych).toMatchObject({ kind: 'peur', indice: 0 });
@@ -300,7 +301,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     const { A, B, E1 } = duo();
     E1.groups = ['mort-vivant'];
     for (const h of [A, B]) {
-      h.psychTraits = [{ type: 'animosite', cible: 'mort-vivant' }];
+      h.psychTraits = [{ type: 'animosite', cible: ciblePsy.groupe('mort-vivant') }];
       h.characteristics['force-mentale'] = 1; // Test de Calme raté quasi sûr
     }
     openRoundStartPsych(useGame.getState, useGame.setState);
@@ -328,7 +329,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     useGame.getState().seedRng(7);
     const { A, B, E1 } = duo();
     E1.groups = ['mort-vivant'];
-    for (const h of [A, B]) h.psychTraits = [{ type: 'animosite', cible: 'mort-vivant' }];
+    for (const h of [A, B]) h.psychTraits = [{ type: 'animosite', cible: ciblePsy.groupe('mort-vivant') }];
     openRoundStartPsych(useGame.getState, useGame.setState);
     const deux = useGame.getState().pendingCascade!.participants[0];
     expect(deux.groupOwner).toBe(true);

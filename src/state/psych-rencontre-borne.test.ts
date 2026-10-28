@@ -31,14 +31,14 @@ function scene(id: string, entities: SceneEntity[]): Scene {
     layers: [{ z: 0, tiles: Array(16).fill('herbe') }], entities, dialogues: [], triggers: [], encounters: [], flags: {},
   } as unknown as Scene;
 }
-const ARAI = (id: string) => ent({ id, statblock: { label: 'Araignée', char: { B: 10 }, groups: ['araignees'] } as never });
+const ARAI = (id: string) => ent({ id, statblock: { label: 'Araignée', char: { B: 10 }, groups: ['bete'] } as never });
 
 /** Héros au Calme plancher (FM 1, aucune avance) : son Test de rencontre échoue de façon déterministe. */
 function phobique(label = 'H') {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 1 });
   h.characteristics['force-mentale'] = 1;
   h.skills = [];
-  h.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];
+  h.psychTraits = [{ type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }];
   return h;
 }
 
@@ -74,7 +74,7 @@ describe('#1224 — BORNE DE RENCONTRE des afflictions psy (LDB 21 l.9)', () => 
     useGame.getState().startScene(scene('s1', [ARAI('arai')]));
     useGame.getState().cascadeBatchRoll(id);
     useGame.getState().cascadeNext();
-    const arai = C({ id: 'arai', kind: 'enemy', groups: ['araignees'] });
+    const arai = C({ id: 'arai', kind: 'enemy', groups: ['bete'] });
     expect(psychDRAdjust(useGame.getState().party[0], arai), 'précondition : la Peur mord dans SA rencontre').toBe(-1);
 
     useGame.getState().startScene(scene('s5', [ent({ id: 'paysan', statblock: { label: 'Paysan', char: { B: 10 } } as never })]));
@@ -99,13 +99,13 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
   const ogre = () => C({ id: 'o', kind: 'enemy', groups: ['ogres'], causesPeur: 2 });
   const aimant = () => C({
     id: 'h',
-    psychState: [{ type: 'amour', cible: 'famille', active: true }, { type: 'peur', sourceId: 'o', indice: 2, calmeDR: 0 }],
+    psychState: [{ type: 'amour', cible: ciblePsy.groupe('humain'), active: true }, { type: 'peur', sourceId: 'o', indice: 2, calmeDR: 0 }],
   });
 
   it('l’immunité est ATTEIGNABLE sur le chemin réel : `psychDRAdjust` la lit SANS roster', () => {
     const h = aimant();
     // Le verdict de présence est posé par le détenteur du roster, une fois — puis lu partout.
-    refreshDefendedPsych(h, [h, C({ id: 'fam', groups: ['famille'] }), ogre()]);
+    refreshDefendedPsych(h, [h, C({ id: 'fam', groups: ['humain'] }), ogre()]);
     expect(psychDRAdjust(h, ogre()), 'Peur annulée + 1 DR de défense').toBe(1);
   });
 
@@ -113,11 +113,11 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
    *  `active:false` sur la MÊME entrée (upsert type+cible) ; un rallumage par présence ressusciterait un
    *  Test gagné (+1 DR non dû à chaque attaque, immunité non due, bande re-proposée chaque Round). */
   it('Test d’Amour RÉUSSI + aimé présent : `active` RESTE false, aucun DR', () => {
-    const h = C({ id: 'h', psychTraits: [{ type: 'amour', cible: 'famille' }] });
-    applyOps(h, psychBranchOps({ kind: 'amour', cible: 'famille', sourceId: 'fam', indice: 0 }, { success: true }), { rng: desDuTest });
-    expect(h.psychState).toEqual([expect.objectContaining({ type: 'amour', cible: 'famille', active: false })]);
+    const h = C({ id: 'h', psychTraits: [{ type: 'amour', cible: ciblePsy.groupe('humain') }] });
+    applyOps(h, psychBranchOps({ kind: 'amour', cible: ciblePsy.groupe('humain'), sourceId: 'fam', indice: 0 }, { success: true }), { rng: desDuTest });
+    expect(h.psychState).toEqual([expect.objectContaining({ type: 'amour', cible: ciblePsy.groupe('humain'), active: false })]);
 
-    const aime = C({ id: 'fam', groups: ['famille'] });
+    const aime = C({ id: 'fam', groups: ['humain'] });
     expect(refreshAllDefendedPsych([h, aime]), 'rien à éteindre : rien ne change').toBe(false);
     expect(h.psychState!.find((p) => p.type === 'amour')!.active, 'un Test gagné ne se ressuscite pas').toBe(false);
     expect(psychDRAdjust(h, C({ id: 'o', kind: 'enemy', groups: ['ogres'] })), 'aucun +1 DR non dû').toBe(0);
@@ -129,9 +129,9 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
    *  GameOpEditor) est ce qui lui donne un objet — mesuré ici de bout en bout. */
   it('VIGILANCE — une pose AUTHORÉE d’Amour survit à la borne, et le refresh l’éteint hors combat', () => {
     const h = phobique();
-    h.psychTraits = [{ type: 'amour', cible: 'famille' }];
-    applyOps(h as unknown as Combatant, [opPsy.pose('amour', { cible: ciblePsy.groupe('famille'), active: true })], { rng: desDuTest });
-    expect(h.psychState, 'pose authorée : aucun `fromTest`').toEqual([{ type: 'amour', cible: 'famille', active: true }]);
+    h.psychTraits = [{ type: 'amour', cible: ciblePsy.groupe('humain') }];
+    applyOps(h as unknown as Combatant, [opPsy.pose('amour', { cible: ciblePsy.groupe('humain'), active: true })], { rng: desDuTest });
+    expect(h.psychState, 'pose authorée : aucun `fromTest`').toEqual([{ type: 'amour', cible: ciblePsy.groupe('humain'), active: true }]);
 
     useGame.setState({ party: [h] });
     // Scène SANS aimé : la borne ne balaie QUE les afflictions nées d'un Test (`fromTest`) — la pose
@@ -150,13 +150,13 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
   });
 
   it('un aimé MORT ou HORS DE COMBAT ne se défend pas — l’immunité tombe', () => {
-    const mort = C({ id: 'fam', groups: ['famille'], dead: true });
+    const mort = C({ id: 'fam', groups: ['humain'], dead: true });
     const h1 = aimant();
     refreshDefendedPsych(h1, [h1, mort, ogre()]);
     expect(h1.psychState!.find((p) => p.type === 'amour')!.active, 'un cadavre n’immunise plus').toBe(false);
     expect(psychDRAdjust(h1, ogre())).toBe(-1);
 
-    const ko = C({ id: 'fam', groups: ['famille'], conditions: [{ id: 'inconscient', value: 1 }] });
+    const ko = C({ id: 'fam', groups: ['humain'], conditions: [{ id: 'inconscient', value: 1 }] });
     const h2 = aimant();
     refreshDefendedPsych(h2, [h2, ko, ogre()]);
     expect(h2.psychState!.find((p) => p.type === 'amour')!.active, 'un Inconscient non plus').toBe(false);
@@ -165,16 +165,16 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
   /** 2(c) — la porte hors combat et `fearSourceFor` doivent rendre UN SEUL verdict sur la même
    *  situation : l'immunité de Haine (l.41, sans roster) est le témoin le plus net. */
   it('la porte HORS COMBAT rend le MÊME verdict que `fearSourceFor` sur la MÊME situation', () => {
-    const arai = C({ id: 'arai', kind: 'enemy', groups: ['araignees'] });
+    const arai = C({ id: 'arai', kind: 'enemy', groups: ['bete'] });
     const immunise = C({
       id: 'h',
-      psychTraits: [{ type: 'phobie', cible: 'araignees', indice: 1 }],
-      psychState: [{ type: 'haine', cible: 'araignees', active: true }],
+      psychTraits: [{ type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }],
+      psychState: [{ type: 'haine', cible: ciblePsy.groupe('bete'), active: true }],
     });
     expect(fearSourceFor(immunise, arai), 'Haine : la Peur de la Phobie est ignorée').toBeNull();
     expect(targetCausedTrigger(immunise, [arai]), 'la porte hors combat dit la MÊME chose').toBeNull();
 
-    const nu = C({ id: 'h', psychTraits: [{ type: 'phobie', cible: 'araignees', indice: 1 }] });
+    const nu = C({ id: 'h', psychTraits: [{ type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }] });
     expect(fearSourceFor(nu, arai)).toEqual({ kind: 'peur', indice: 1 });
     expect(targetCausedTrigger(nu, [arai])).toMatchObject({ kind: 'peur', indice: 1, sourceId: 'arai' });
   });

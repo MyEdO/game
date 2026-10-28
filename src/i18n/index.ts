@@ -5,7 +5,7 @@
  * une ERREUR DE COMPILATION. La 2ᵉ langue = un catalogue frère ajouté à `CATALOGS`.
  */
 import { fr } from './messages/fr';
-import type { PlayerText } from './playerText';
+import type { NonAffichable, PlayerText } from './playerText';
 
 export type MsgKey = keyof typeof fr;
 /** Paramètres qui NOMMENT une entrée de donnée : leur valeur est le libellé minté (`psychologyLabel`,
@@ -16,7 +16,7 @@ interface ParamsDeLibelle {
   readonly groupes?: PlayerText;
   readonly talent?: PlayerText;
 }
-type Params = Record<string, string | number> & ParamsDeLibelle;
+type Params = Record<string, (string & { readonly [K in keyof NonAffichable]?: never }) | number> & ParamsDeLibelle;
 
 /** Sous-ensemble `out.*` du catalogue — clés de CONSÉQUENCE (`resultLine`, `rollSeam.ts`, #295 Lot 0).
  *  `OutVars` reste un `Record` non typé PAR clé (comme `Params` ci-dessus, `t()` n'a pas de typage

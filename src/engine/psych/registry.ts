@@ -9,9 +9,9 @@
 import type { PsychParse } from './types';
 import type { PsychTrait, PsychType } from '../psychology';
 import type { TraitList } from '../statEntry';
-import { findTraitById, findGroupById } from '../../data';
+import { findTraitById } from '../../data';
 import { ARG_JOKER } from '../../data/schemas/grammaire/reference';
-import { ciblePsy, estCibleType, type CiblePsy } from './ciblage';
+import { cibleDArgument, estCibleType, type CiblePsy } from './ciblage';
 
 export type { PsychParse } from './types';
 
@@ -24,7 +24,7 @@ function ciblesDeLInstance(arg: string | undefined): (CiblePsy | undefined)[] {
   if (!arg) return [undefined];
   const id = arg.trim();
   if (ARG_JOKER.test(id)) return /^deux /i.test(id) ? [undefined, undefined] : [undefined];
-  return [findGroupById(id) ? ciblePsy.groupe(id) : undefined];
+  return [cibleDArgument(id)];
 }
 
 /** Propriétés psy d'un combattant, dérivées de ses `TraitInstance` via les capacités de la donnée. */

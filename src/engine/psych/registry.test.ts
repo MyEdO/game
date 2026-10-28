@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parsePsychTraits } from './registry';
 import { creatures } from '../../data';
+import { ciblePsy } from './ciblage';
 
 describe('Psychologie data-driven (capabilities de traits.json) — LDB 21/85', () => {
   it('parse Peur/Terreur/Immunité + ciblés (Animosité/Phobie indice 1/Effrayé indice 0), Cible = id de Groupe', () => {
@@ -8,7 +9,7 @@ describe('Psychologie data-driven (capabilities de traits.json) — LDB 21/85', 
     expect(p.causesPeur).toBe(2);
     expect(p.psychImmune).toBe(true);
     expect(p.psychTraits).toEqual(expect.arrayContaining([
-      { type: 'animosite', cible: 'elfe' },
+      { type: 'animosite', cible: ciblePsy.groupe('elfe') },
       // « Serpents »/« Feu » ne sont PAS des ids de Groupe (`groups.json`) → Cible INERTE (pas de chaîne FR résiduelle).
       { type: 'phobie', cible: undefined, indice: 1 },
       { type: 'phobie', cible: undefined, indice: 0 },
@@ -26,7 +27,10 @@ describe('Psychologie data-driven (capabilities de traits.json) — LDB 21/85', 
 
   it('deux instances → deux Cibles, une par instance (Haine, Effrayé, Animosité, Préjugé)', () => {
     for (const [id, type, indice] of [['haine', 'haine', undefined], ['effraye', 'phobie', 0], ['animosite', 'animosite', undefined], ['prejuge', 'prejuge', undefined]] as const) {
-      const attendu = (cible: string) => (indice == null ? { type, cible } : { type, cible, indice });
+      const attendu = (groupe: string) => {
+        const cible = ciblePsy.groupe(groupe);
+        return indice == null ? { type, cible } : { type, cible, indice };
+      };
       expect(parsePsychTraits([{ id, arg: 'noble' }, { id, arg: 'homme-bete' }]).psychTraits, id).toEqual([attendu('noble'), attendu('homme-bete')]);
     }
   });

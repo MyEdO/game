@@ -14,7 +14,7 @@ import { bonus, effectiveChar } from './characteristics';
 import { testValue } from './skills';
 import { findGroupById, findPsychologyById, psychologyLabel, refLabel, talents } from '../data';
 import type { PlayerText } from '../i18n/playerText';
-import { estCibleType, identiteDeCiblage, selonCible, type CiblePsy } from './psych/ciblage';
+import { cibleDArgument, estCibleType, identiteDeCiblage, selonCible, type CiblePsy } from './psych/ciblage';
 import { opPsy } from './psych/opsPsy';
 import { SizeCategory, sizeGap } from './size';
 import { isOutOfAction } from './conditions';
@@ -312,9 +312,12 @@ export function supersededLines(c: Combatant, name: string): string[] {
 /** `self` porte-t-il « Sans Peur » (possédé, ou accordé sans spécialisation) contre l'ennemi `foe` qu'il
  *  RENCONTRE ? Éligibilité au Test allégé, jamais une immunité. LDB 10 l.1051 ; #3045 */
 export function sansPeurVs(self: Combatant, foe: PorteurDeGroupes): boolean {
-  return featuresOf(self).some(
-    ({ def, ctx }) => def.fearImmune && (ctx.spec == null || vise(ctx.spec, { genre: 'combattant', c: foe }, 'percu')),
-  );
+  return featuresOf(self).some(({ def, ctx }) => {
+    if (!def.fearImmune) return false;
+    if (ctx.spec == null) return true;
+    const cible = cibleDArgument(ctx.spec);
+    return cible !== undefined && vise(cible, { genre: 'combattant', c: foe }, 'percu');
+  });
 }
 
 /** `sansPeurVs` face à une source NOUVELLE de Peur/Terreur (`kind` non ciblé, aucune Peur déjà posée par
