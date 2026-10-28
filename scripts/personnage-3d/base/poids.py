@@ -4,23 +4,22 @@ longueur de l'arête qui les relie, jusqu'à ce qu'aucune arête n'en sorte. L'�
 poids de ses sommets rapporté à sa longueur : la pondération reporte le saut de poids des micro-arêtes sur les arêtes
 longues, où il étire peu.
 
-L'étirement d'une arête est le rapport de sa longueur déformée à sa longueur de repos, aux instants de chaque clip (`instants`),
+L'étirement d'une arête est le rapport de sa longueur déformée à sa longueur de repos, aux clés de chaque clip (`instants`),
 en skinning linéaire sur `INFLUENCES_MAX` os normalisés : le modèle de l'export glTF et de la garde
 `hotes/godot/asset/evaluateur/gardes/etirement.ts`. Les arêtes sont celles des triangles, diagonales comprises. Les
-jumeaux (sommets confondus au repos, plus proches que `DEPLACEMENT_MIN_M`) se lissent comme un seul sommet.
+jumeaux (sommets confondus au repos, plus proches que `TOLERANCE_JUMEAUX_POSITION_M`) se lissent comme un seul sommet.
 """
-import math
-
 import bpy
 import numpy
 from mathutils.kdtree import KDTree
 
 from animation import assign_action
-from mesure import INFLUENCES_MAX
-from verifier_export import DEPLACEMENT_MIN_M
+from pistes import aller_a, sacs
+from seuils import INFLUENCES_MAX, TOLERANCE_JUMEAUX_POSITION_M
 
 ETIREMENT_VISE = (0.014, 3.51)
-"""Rapports extrêmes visés, déformé / repos : ceux de la référence `UAL1_Standard.glb` (etirement.ts:5)."""
+"""Rapports extrêmes visés, déformé / repos : le pire mesuré sur la référence `UAL1_Standard.glb`, 43 clips au pas de
+1/12 s, 2026-10-24, aux plis des phalanges."""
 STAGNATION = 1e-3
 """Variation de poids d'une passe sous laquelle le lissage tient son point fixe : la région lissée gagne alors un anneau
 de voisins autour des arêtes hors de `ETIREMENT_VISE`."""
@@ -28,30 +27,26 @@ PASSES_MAX = 200
 """Passes de lissage au-delà desquelles la construction s'arrête."""
 LOT = 64
 """Échantillons déformés ensemble."""
+CLES_CONFONDUES = 1e-4
+"""Deux clés plus proches que cet écart, en images, sont un seul instant."""
 
 
 def instants(action):
-    """Les instants de `action`, en images : chaque image entière de sa plage, au pas `IMAGES_PAR_SECONDE` de
-    l'évaluateur, puis sa fin si elle tombe entre deux images."""
-    debut, fin = action.frame_range
-    images = list(range(math.ceil(debut), math.floor(fin) + 1))
-    return images + ([fin] if fin != images[-1] else [])
+    """Les instants de `action`, en images : l'union des clés de toutes ses courbes, triée. Entre deux instants
+    consécutifs, aucune courbe n'a de clé."""
+    cles = sorted({float(k.co[0]) for sac in sacs(action) for c in sac.fcurves for k in c.keyframe_points})
+    return [t for i, t in enumerate(cles) if i == 0 or t - cles[i - 1] > CLES_CONFONDUES]
 
 
-def aller_a(instant):
-    """Pose la scène à l'instant `instant`, en images, sous-image comprise."""
-    bpy.context.scene.frame_set(math.floor(instant), subframe=instant - math.floor(instant))
-
-
-def poses(rig, action):
-    """Par instant de `action` joué sur `rig`, la matrice monde de chaque os, dans l'ordre de `rig.data.bones` :
-    (instants, os, 4, 4)."""
+def poses(rig, action, temps=None):
+    """Par instant de `temps` (défaut : `instants(action)`), en images, de `action` joué sur `rig`, la matrice monde de
+    chaque os, dans l'ordre de `rig.data.bones` : (instants, os, 4, 4)."""
     scene = bpy.context.scene
     image = scene.frame_current
     assign_action(rig, action)
     echantillons = []
-    for instant in instants(action):
-        aller_a(instant)
+    for instant in instants(action) if temps is None else temps:
+        aller_a(scene, instant)
         echantillons.append([rig.matrix_world @ rig.pose.bones[b.name].matrix for b in rig.data.bones])
     scene.frame_set(image)
     return numpy.array(echantillons)
@@ -87,16 +82,20 @@ def peau_lineaire(peau, noms):
     return x, limiter(w)
 
 
-def deformer(w, x, matrices):
-    """Les positions monde des sommets (`w`, `x`) sous chaque échantillon de `matrices` de peau : (échantillons,
-    sommets, 3), par lots de `LOT` échantillons."""
-    lots = []
+def deformer_par_lots(w, x, matrices):
+    """Par lot de `LOT` échantillons de `matrices` de peau, les positions monde des sommets (`w`, `x`) : (lot,
+    sommets, 3)."""
     for k in range(0, len(matrices), LOT):
         lot = matrices[k:k + LOT]
         n = len(lot)
         melange = (w @ lot.transpose(1, 0, 2, 3).reshape(lot.shape[1], n * 16)).reshape(len(x), n, 4, 4)
-        lots.append(numpy.einsum('snij,sj->nsi', melange[:, :, :3, :], x))
-    return numpy.concatenate(lots)
+        yield numpy.einsum('snij,sj->nsi', melange[:, :, :3, :], x)
+
+
+def deformer(w, x, matrices):
+    """Les positions monde des sommets (`w`, `x`) sous chaque échantillon de `matrices` de peau : (échantillons,
+    sommets, 3)."""
+    return numpy.concatenate(list(deformer_par_lots(w, x, matrices)))
 
 
 def limiter(w):
@@ -114,8 +113,7 @@ def extremes(w, x, aretes, longueurs, matrices):
     ws, xs = w[sommets], x[sommets]
     bas = numpy.full(len(aretes), numpy.inf, dtype=numpy.float32)
     haut = numpy.zeros(len(aretes), dtype=numpy.float32)
-    for k in range(0, len(matrices), LOT):
-        p = deformer(ws, xs, matrices[k:k + LOT])
+    for p in deformer_par_lots(ws, xs, matrices):
         rapport = numpy.linalg.norm(p[:, locales[:, 0]] - p[:, locales[:, 1]], axis=2) / longueurs
         bas = numpy.minimum(bas, rapport.min(axis=0))
         haut = numpy.maximum(haut, rapport.max(axis=0))
@@ -128,7 +126,7 @@ def jumeaux(x):
     for i, p in enumerate(x):
         arbre.insert(p[:3], i)
     arbre.balance()
-    return numpy.array([min(i for _, i, _ in arbre.find_range(p[:3], DEPLACEMENT_MIN_M)) for p in x])
+    return numpy.array([min(i for _, i, _ in arbre.find_range(p[:3], TOLERANCE_JUMEAUX_POSITION_M)) for p in x])
 
 
 def lisser(peau, noms, matrices):

@@ -29,8 +29,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from anatomie import PIEDS, gabarit, poser  # noqa: E402
 from animation import assign_action, clear_animation, meshes_for  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
+from seuils import IMAGES_PAR_SECONDE  # noqa: E402
+from pistes import sacs  # noqa: E402
 from poids import lisser_les_poids  # noqa: E402
-from sol import bas_des_sources, poser_les_clips_au_sol, retirer_sans_sol, sacs  # noqa: E402
+from sol import bas_des_sources, poser_les_clips_au_sol, retirer_sans_sol  # noqa: E402
 
 PELVIS = 'pelvis'
 OS_A_POSITION = ('root', PELVIS)
@@ -163,6 +165,7 @@ def completer(sortie, construit):
 def construire(args):
     import bpy
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.context.scene.render.fps = IMAGES_PAR_SECONDE
     rig1, figurants1, clips = importer(bpy, args.ual1)
     rig2, figurants2, clips2 = importer(bpy, args.ual2)
     squelette, objets, _ = importer(bpy, args.corps)

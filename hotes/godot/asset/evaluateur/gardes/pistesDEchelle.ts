@@ -1,12 +1,15 @@
 /**
  * GARDE DES PISTES QUI DÉFONT LE GABARIT (#2972, G13) : une piste `.scale` dont une valeur s'écarte de 1 de plus de
  * `TOLERANCE_ECHELLE`, et toute piste `.position` sur un os autre que la racine et les os à position animée du manifeste
- * de base (`ManifesteDeBase.osAPositionAnimee`).
+ * de base (`ManifesteDeBase.osAPositionAnimee`). Seuil partagé avec la construction (`scripts/personnage-3d/seuils.py`) :
+ * `seuils.json`.
  */
 import { PropertyBinding, type AnimationClip } from 'three';
 import type { Ecart } from '../ecart.ts';
+import seuils from './seuils.json';
 
-export const TOLERANCE_ECHELLE = 1e-4;
+/** Écart à 1 au-delà duquel une clé d'échelle est une échelle animée : en deçà, l'os est rigide. */
+export const TOLERANCE_ECHELLE: number = seuils.TOLERANCE_ECHELLE;
 
 const GARDE = 'pistesDEchelle';
 

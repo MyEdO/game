@@ -2,8 +2,8 @@
  * GARDE DE L'ÉTIREMENT DES ARÊTES (#2972) : à chaque (clip, t), le rapport de la longueur déformée d'une arête à sa
  * longueur de repos (gabarit et silhouettes posés) reste dans [`ETIREMENT_MIN` ; `ETIREMENT_MAX`] ; les cinq pires arêtes
  * de chaque clip se rendent en mesure. Les bornes sont une évaluation d'ingénierie, posées au-delà du pire mesuré sur
- * la référence `UAL1_Standard.glb` (43 clips au pas de 1/12 s, 2026-10-24 : 3,51 et 0,014, plis des phalanges) : hors
- * d'elles, une arête suit un os qui n'est pas le sien.
+ * la référence `UAL1_Standard.glb` (`ETIREMENT_VISE`, `scripts/personnage-3d/base/poids.py`) : hors d'elles, une arête
+ * suit un os qui n'est pas le sien.
  */
 import type { Mesh } from 'three';
 import type { Ecart } from '../ecart.ts';

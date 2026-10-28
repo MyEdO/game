@@ -5,6 +5,8 @@ import json
 
 import bpy
 
+from pistes import sacs
+
 
 def digest(value):
     return hashlib.sha256(json.dumps(value,sort_keys=True,ensure_ascii=False,
@@ -33,16 +35,10 @@ def mesh_signature(obj):
 
 
 def action_signature(action):
-    bags=[]
-    for layer in action.layers:
-        for strip in layer.strips:
-            for slot in action.slots:
-                bag=strip.channelbag(slot)
-                if bag:
-                    bags.extend([[curve.data_path,curve.array_index,
-                                  [[list(k.co),list(k.handle_left),list(k.handle_right),
-                                    k.interpolation] for k in curve.keyframe_points]]
-                                 for curve in bag.fcurves])
+    bags=[[curve.data_path,curve.array_index,
+           [[list(k.co),list(k.handle_left),list(k.handle_right),k.interpolation]
+            for k in curve.keyframe_points]]
+          for bag in sacs(action) for curve in bag.fcurves]
     return digest({"name":action.name,"frames":list(action.frame_range),"curves":bags})
 
 

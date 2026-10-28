@@ -4,9 +4,13 @@
  * `AnimationMixer` ; et la même mesure sur la pose de repos, gabarit et silhouettes appliqués.
  */
 import { AnimationMixer, LoopOnce, Vector3, type AnimationClip, type Bone, type Matrix4, type Mesh, type Object3D } from 'three';
+import seuils from './gardes/seuils.json';
 
-/** Le pas d'échantillonnage par défaut, en secondes. */
-export const PAS_PAR_DEFAUT = 1 / 24;
+/** Cadence des clips que la chaîne produit et échantillonne. Partagée avec la construction
+ *  (`scripts/personnage-3d/seuils.py`) : `gardes/seuils.json`. */
+export const IMAGES_PAR_SECONDE: number = seuils.IMAGES_PAR_SECONDE;
+/** Le pas d'échantillonnage par défaut, en secondes : une image de `IMAGES_PAR_SECONDE`. */
+export const PAS_PAR_DEFAUT = 1 / IMAGES_PAR_SECONDE;
 
 export interface Pose {
   /** Par nom de mesh, les positions monde de ses sommets, à plat (x, y, z). */
