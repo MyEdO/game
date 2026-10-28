@@ -3,7 +3,7 @@ import { testScenarios } from '../scenes/test-scenarios';
 import { allBuiltinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import { ficheDEntite, sceneNpc } from '../noyau/monde/sceneNpc';
 import { memoByRef } from '../noyau/monde/sceneMemo';
-import { atteignables, objetsDuCatalogue } from './partage.testkit';
+import { atteignables, objetsDuCatalogue } from '../scenes/partage.testkit';
 import { useGame } from './store';
 import type { Scene } from '../noyau/monde/scene';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';

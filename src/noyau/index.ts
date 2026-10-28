@@ -8,6 +8,7 @@
 export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type LigneDuJournal } from './partie';
 export { etatInitialDuJeu, type EtatDeJeu, type Jeu } from './etat';
 export type { Jeton } from './plateforme';
+export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecVerdictLocal, porteesDuTour } from './localIntent';
 export { previewAttack, activeCombatant } from './combatFlow';
 export { LOCALISATIONS_DE_COUP } from '../engine/types';
