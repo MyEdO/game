@@ -7,6 +7,7 @@
 import { estObjet } from '../../../src/hote/formes';
 import { SLOTS } from '../../../src/noyau/index.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
+import { sha256 } from './empreinte.ts';
 
 export const VERSION_DU_SCHEMA_D_ELEMENT = 3;
 
@@ -104,7 +105,8 @@ export type CodeDEcartDElement =
   | 'emplacement-sur-os-absent'
   | 'silhouette-absente'
   | 'surface-hors-categorie'
-  | 'palette-inconnue';
+  | 'palette-inconnue'
+  | 'glb-different';
 
 export interface EcartDElement {
   readonly code: CodeDEcartDElement;
@@ -120,7 +122,7 @@ const estSlot = (v: unknown): v is Slot => (SLOTS as readonly unknown[]).include
 const liste = (l: readonly string[]) => l.map((e) => `\`${e}\``).join(', ');
 
 /** Le manifeste `brut` réduit au schéma 3 et validé contre la base qu'il nomme. */
-export function validerElement(brut: unknown, base: BaseDUnElement): VerdictDElement {
+export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint8Array): VerdictDElement {
   const ecarts: EcartDElement[] = [];
   const refus = (code: CodeDEcartDElement, ou: string, detail: string) => ecarts.push({ code, ou, detail });
   if (!estObjet(brut)) return { ok: false, ecarts: [{ code: 'forme', ou: '', detail: 'le manifeste n’est pas un objet' }] };
@@ -200,6 +202,9 @@ export function validerElement(brut: unknown, base: BaseDUnElement): VerdictDEle
     const g = brut.glb;
     if (!(estObjet(g) && typeof g.sha256 === 'string' && /^[0-9a-f]{64}$/.test(g.sha256) && Number.isInteger(g.octets) && (g.octets as number) > 0 && Object.keys(g).length === 2)) {
       refus('forme', 'glb', '`sha256` hexadécimal de 64 caractères et `octets` entier positif attendus');
+    } else {
+      const somme = sha256(octets);
+      if (g.sha256 !== somme || g.octets !== octets.byteLength) refus('glb-different', 'glb', `GLB de ${octets.byteLength} octets, SHA-256 ${somme} ; déclaré ${g.octets} octets, ${g.sha256}`);
     }
   }
 

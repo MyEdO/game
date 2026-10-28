@@ -1,6 +1,7 @@
 // Le manifeste d'un élément, schéma 3 (#2972) : un manifeste valide par catégorie, un refus nommé par code.
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES_D_ELEMENT, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
+import { sha256 } from './empreinte.ts';
 
 const BASE: BaseDUnElement = {
   base: 'humanoide',
@@ -10,7 +11,8 @@ const BASE: BaseDUnElement = {
   silhouettes: ['feminin', 'corpulence', 'carrure_moins', 'carrure_plus'],
 };
 
-const GLB = { sha256: 'a'.repeat(64), octets: 1024 };
+const OCTETS = new Uint8Array([0x67, 0x6c, 0x54, 0x46]);
+const GLB = { sha256: sha256(OCTETS), octets: OCTETS.byteLength };
 const PALETTE = [{ nom: 'tissu', palette: 'vet1' }];
 const TEINTE = [{ nom: 'plaque', teinte: true }];
 
@@ -34,14 +36,14 @@ const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
 
 const manifeste = (categorie: CategorieDElement, surcharge: Record<string, unknown> = {}) => ({ schema: 3, base: 'humanoide', ...VALIDES[categorie], glb: GLB, ...surcharge });
 const codes = (brut: unknown) => {
-  const v = validerElement(brut, BASE);
+  const v = validerElement(brut, BASE, OCTETS);
   return v.ok ? [] : v.ecarts.map((e) => e.code);
 };
 
 describe('validerElement : un manifeste valide par catégorie', () => {
   it('la table couvre toutes les catégories', () => expect(Object.keys(VALIDES).sort()).toEqual([...CATEGORIES_D_ELEMENT].sort()));
   it.each(CATEGORIES_D_ELEMENT)('%s', (categorie) => {
-    expect(validerElement(manifeste(categorie), BASE)).toEqual({ ok: true, manifeste: manifeste(categorie) });
+    expect(validerElement(manifeste(categorie), BASE, OCTETS)).toEqual({ ok: true, manifeste: manifeste(categorie) });
   });
 });
 
@@ -53,6 +55,8 @@ const REFUS: [CodeDEcartDElement, string, unknown][] = [
   ['forme', 'emplacement sans triplet', manifeste('vetement', { emplacements: { dos: { os: 'spine_01', position: [0, 0], rotation: [0, 0, 0] } } })],
   ['forme', 'surface nommée deux fois', manifeste('rigide', { surfaces: [...TEINTE, ...TEINTE] })],
   ['forme', 'empreinte du GLB mal formée', manifeste('rigide', { glb: { sha256: 'xyz', octets: 1 } })],
+  ['glb-different', 'empreinte différente des octets livrés', manifeste('rigide', { glb: { ...GLB, sha256: 'a'.repeat(64) } })],
+  ['glb-different', 'taille différente des octets livrés', manifeste('rigide', { glb: { ...GLB, octets: GLB.octets + 1 } })],
   ['version-inconnue', 'schéma 2', manifeste('rigide', { schema: 2 })],
   ['categorie-inconnue', 'catégorie `arme`', manifeste('rigide', { categorie: 'arme' })],
   ['champ-hors-categorie', 'un id choisi', manifeste('rigide', { id: 'epee-01' })],
@@ -81,7 +85,7 @@ describe('validerElement : chaque refus nommé', () => {
     const attendus: Record<CodeDEcartDElement, true> = {
       forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'base-differente': true,
       'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true,
-      'silhouette-absente': true, 'surface-hors-categorie': true, 'palette-inconnue': true,
+      'silhouette-absente': true, 'surface-hors-categorie': true, 'palette-inconnue': true, 'glb-different': true,
     };
     expect(new Set(REFUS.map(([code]) => code))).toEqual(new Set(Object.keys(attendus)));
   });

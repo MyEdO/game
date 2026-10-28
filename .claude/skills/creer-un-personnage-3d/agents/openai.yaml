@@ -1,0 +1,7 @@
+interface:
+  display_name: "Élément 3D modulaire"
+  short_description: "Illustration vers GLB et manifeste schéma 3"
+  default_prompt: "Utilise $creer-un-personnage-3d pour produire depuis cette illustration un élément 3D compatible avec la base du dépôt, son GLB, son manifeste schéma 3 et ses preuves de validation."
+
+policy:
+  allow_implicit_invocation: true
