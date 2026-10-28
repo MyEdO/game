@@ -30,7 +30,7 @@ import { resolveFormula, skillDRBonus, offTerrainTestDR } from './ops';
 import { valeurSansTirage } from './formule';
 import type { SpellRange, SpellTarget } from './spellRange';
 import type { SpellDuration } from './spellDuration';
-import { type OvercastSource, effectiveRangeMetres, missileOvercastDamageBonus, overcastSourceOf } from './overcast';
+import { type OvercastSource, effectiveRangeMetres, missileOvercastDamageBonus, overcastSourceOf, overcastBudget } from './overcast';
 import { arcaneDomainIdOf, castingKindOf, featuresOf, chaosDomainOf } from './combatFeatures/dispatch';
 import { isPrayerFamily } from './combatFeatures/types';
 import { domainMissileMods, domainSeaFocalisationDR, domainSeaFocalisationDoubled, domainSeaIncantationDR, domainSeaWidensCritFumble, domainWindDR } from './domainAttributes';
@@ -995,19 +995,32 @@ export function defaultCritChoice(res: Pick<CastResult, 'cast'>, missile: boolea
   return !res.cast ? 'puissance' : missile ? 'critique' : 'ineluctable';
 }
 
+/** « Puissance totale » est-elle l'effet d'Incantation Critique retenu (`LDB 46 l.31`, `VDM 02 l.55`) ? */
+function fullPowerChosen(res: CastResult, critChoice: CritChoice | undefined, missile: boolean): boolean {
+  return res.isCritical && (critChoice ?? defaultCritChoice(res, missile)) === 'puissance';
+}
+
 /** DR disponible pour la Surincantation : le DR du Test, augmenté par « Puissance totale » quand
- *  cet effet d'Incantation Critique est retenu (`applyFullPower`). Lu AVANT l'allocation des pas —
- *  la modale, l'allocation du store et `applyCast` voient le même DR. */
+ *  cet effet d'Incantation Critique est retenu (`applyFullPower`). */
 export function overcastSL(res: CastResult, critChoice: CritChoice | undefined, missile: boolean): number {
-  if (!res.isCritical) return res.sl;
-  return (critChoice ?? defaultCritChoice(res, missile)) === 'puissance' ? applyFullPower(res).sl : res.sl;
+  return fullPowerChosen(res, critChoice, missile) ? applyFullPower(res).sl : res.sl;
+}
+
+/** BUDGET de Surincantation d'un lancement résolu — SITE UNIQUE (modale, `castAllocOvercast`, plan de
+ *  l'IA) : le DR au-delà du NI effectif figé au jet (`niRequired`), DR augmenté par « Puissance
+ *  totale » (`overcastSL`). 0 si le jet n'a pas lancé le Sort ou s'il est dissipé.
+ *  `LDB 47 l.17`, `l.21` ; `LDB 46 l.132`, `l.156` ; `LDB 41 l.21` ; `VDM 02 l.55`, `l.196`. */
+export function castOvercastBudget(spell: { family?: string }, res: CastResult, critChoice: CritChoice | undefined, missile: boolean): number {
+  if (!res.cast || !castAfterCrit(res, critChoice, missile)) return 0;
+  return overcastBudget(overcastSourceOf(spell), overcastSL(res, critChoice, missile), res.niRequired ?? 0);
 }
 
 /** Le Sort est-il lancé une fois l'effet d'Incantation Critique retenu appliqué ? « Puissance
- *  totale » repêche un DR insuffisant (LDB 46 l.31, `VDM 02 l.55`) — prédicat UNIQUE partagé par
- *  la pose du gabarit de zone, la Surincantation et la confirmation du lancement. */
+ *  totale » repêche un DR insuffisant (LDB 46 l.31, `VDM 02 l.55`) ; un Sort dissipé ne l'est pas
+ *  (`LDB 46 l.156`) — prédicat UNIQUE partagé par la pose du gabarit de zone, la Surincantation et
+ *  la confirmation du lancement. */
 export function castAfterCrit(res: CastResult, critChoice: CritChoice | undefined, missile: boolean): boolean {
-  return res.cast || (res.isCritical && (critChoice ?? defaultCritChoice(res, missile)) === 'puissance');
+  return !res.dispelled && (res.cast || fullPowerChosen(res, critChoice, missile));
 }
 /** Re-dérive les Dégâts d'un Projectile magique depuis un résultat d'incantation déjà obtenu. */
 export function evaluateMissile(

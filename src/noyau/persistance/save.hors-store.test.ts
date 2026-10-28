@@ -4,7 +4,7 @@
  * refus d'écrire se décide ici.
  */
 import { describe, it, expect } from 'vitest';
-import { chargerLaSave, creerPartie, etatInitialDuJeu, parseSave, refusDeSauvegarde, snapshotSave, type EtatDeJeu, type SaveGame, type SaveMeta } from '../index';
+import { chargerLaSave, creerPartie, etatInitialDuJeu, exporterLaSauvegarde, lireSave, metaDeSave, refusDeSauvegarde, snapshotSave, type EtatDeJeu, type SaveGame } from '../index';
 import { initialNet, type BattleState } from '../etat';
 import { emptyScene } from '../monde/scene';
 import { OPTIONAL_RULES, rule, loadRuleOverrides } from '../../engine/policy';
@@ -26,8 +26,7 @@ describe('snapshotSave — l’état du JEU, jamais l’interface d’un hôte',
     const cles = Object.keys(save.data);
     expect(cles.filter((k) => !jeu.includes(k)), 'une clé de la save hors `EtatDeJeu`').toEqual([]);
     expect(jeu.filter((k) => !cles.includes(k))).toEqual(['campaignNarratif']);
-    const meta: SaveMeta = { version: save.version, savedAt: save.savedAt, sceneLabel: save.sceneLabel, gameTime: save.gameTime };
-    expect(meta).toEqual({ version: FORMAT_SAVE, savedAt: '2026-10-27T00:00:00.000Z', sceneLabel: 'Sans scène', gameTime: etatInitialDuJeu().gameTime });
+    expect(metaDeSave(save)).toEqual({ version: FORMAT_SAVE, savedAt: '2026-10-27T00:00:00.000Z', sceneLabel: 'Sans scène', gameTime: etatInitialDuJeu().gameTime });
     expect(save.rules).toEqual({ 'regle-x': true });
   });
 
@@ -37,11 +36,18 @@ describe('snapshotSave — l’état du JEU, jamais l’interface d’un hôte',
   });
 });
 
-describe('parseSave — le format courant seul', () => {
+describe('lireSave — le format courant seul', () => {
   it('une save écrite par `snapshotSave` se relit telle quelle ; d’un autre format, refusée', () => {
     const save = JSON.parse(JSON.stringify(snapshotSave(etatInitialDuJeu(), 'x'))) as SaveGame;
-    expect(parseSave(save)).toEqual(save);
-    expect(parseSave({ ...save, version: 'autre-format' })).toBeNull();
+    expect(lireSave(JSON.stringify(save))).toEqual(save);
+    expect(lireSave(JSON.stringify({ ...save, version: 'autre-format' }))).toBe('autreFormat');
+  });
+
+  it('la lecture rend la save exportée, ou la cause du refus', () => {
+    const save = snapshotSave(etatInitialDuJeu(), '2026-10-27T00:00:00.000Z');
+    expect(lireSave(exporterLaSauvegarde(save))).toEqual(save);
+    expect(lireSave('{pas du json')).toBe('illisible');
+    expect(lireSave(JSON.stringify({ ...save, version: 'autre-format' }))).toBe('autreFormat');
   });
 });
 
@@ -71,7 +77,22 @@ describe('chargerLaSave — l’état de jeu à ouvrir, ses règles, ses retrait
     const { etat, regles, retraits } = chargerLaSave(save);
     expect(regles).toEqual({});
     expect(etat.party[0].conditions.map((c) => c.id)).toEqual([connu]);
-    expect(retraits).toEqual({ regles: ['regle-hors-registre'], etats: ['etat-hors-registre'] });
+    expect(retraits).toEqual({ regles: ['regle-hors-registre'], etats: ['etat-hors-registre'], groupes: [] });
+  });
+
+  it('retire ENTIER le Trait psychologique dont la Cible est hors de `groups.json`, la nomme, garde le reste (LDB 21 l.17-21)', () => {
+    const connu = conditionIds()[0];
+    const animosite = { type: 'animosite', cible: 'skaven' };
+    const save = snapshotSave(etatInitialDuJeu(), 'x');
+    const h = { ...heros('h', connu), psychTraits: [{ type: 'haine', cible: 'groupe-hors-registre' }, animosite, { type: 'trauma' }] };
+    save.data = { ...save.data, party: [h] as unknown as SaveGame['data']['party'] };
+    const { etat, retraits } = chargerLaSave(save);
+    expect(etat.party[0].psychTraits).toEqual([animosite, { type: 'trauma' }]);
+    expect(etat.party[0].conditions.map((c) => c.id)).toEqual([connu]);
+    expect(retraits).toEqual({ regles: [], etats: [], groupes: ['groupe-hors-registre'] });
+    const intacte = snapshotSave(etatInitialDuJeu(), 'x');
+    intacte.data = { ...intacte.data, party: [{ ...heros('h', connu), psychTraits: [animosite] }] as unknown as SaveGame['data']['party'] };
+    expect(chargerLaSave(intacte).retraits, 'une Cible connue ne retire rien').toBeNull();
   });
 
   it('une assise d’un héros absent du groupe est élaguée ; une scène sans assise n’en gagne pas le champ', () => {

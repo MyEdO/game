@@ -54,8 +54,6 @@ export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {
     'vocabulaire de catégorisation (id+label : Arme/Armure/Objet) — même famille que `qualityTypes`, mêmes trois paires de folios ; aucune valeur mécanique propre à sourcer (3/3 entrées sans provenance, mesuré)',
   'damage-types':
     'vocabulaire de catégorisation (id+label) — aucune valeur mécanique propre : le type est un PARAMÈTRE d’un Trait sourcé (traits.json), et l’énumération n’est imprimée nulle part en liste (4/4 sans provenance)',
-  'breath-types':
-    'vocabulaire de catégorisation (id+label) — même régime que `damage-types` : paramètre d’un Trait sourcé, jamais une liste imprimée (6/6 sans provenance)',
   localisation:
     'table de dé INVERSÉ (résultat de dé → zone de touche) — vocabulaire structurel du moteur ; les zones sont LDB et déjà tenues par `hitLocationSchema`, l’inversion ne l’est nulle part',
 

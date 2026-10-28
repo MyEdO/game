@@ -9,6 +9,7 @@ import { resolveRoundBoundary } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 /**
  * VERROU des règles optionnelles pendant un combat (#564, #1049) — garde d'INGÉNIERIE : elle ne dit
@@ -20,19 +21,6 @@ import { testScene } from '../scenes/test-fixture';
  * l'Avantage individuel de TOUS les combattants. La porte vit au point d'ÉCRITURE joueur
  * (`noyau/reglesMaison`, lu par `hote/reglesMaison`), pas dans l'UI, et vaut pour la CLASSE entière (aucun id nommé).
  */
-
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
 
 const verrou = () => reglesMaisonMutables(useGame.getState());
 
@@ -49,7 +37,7 @@ describe('Règles optionnelles — verrouillées tant qu’un combat est en cour
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
     useGame.setState({ battle: null, pendingCascade: null, pendingRoundStart: null });
     for (const r of OPTIONAL_RULES) resetRule(r.id);
   });

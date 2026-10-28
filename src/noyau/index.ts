@@ -34,7 +34,8 @@ export { gestesDExploration, type GesteDExploration } from './gestesDExploration
 export { CLICS_DU_CHAMP } from './actionsDuNoyau';
 export { capDuGroupe, porteurParId } from './monde/combatants';
 export { tileFromKey, type Pt } from './monde/path';
-export { plateauDeLaScene } from './monde/scene';
+export { plateauDeLaScene, type Scene } from './monde/scene';
+export { registerScene } from './monde/registreDesScenes';
 export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
 export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
 export { fenetreDeDefense, type FenetreDeDefense } from './fenetreDeDefense';
@@ -51,4 +52,9 @@ export { lireLeRoster, ecrireLeRoster, rosterAvecLeHeros, type RosterEntry } fro
 export { lireLesRetraits, cumulerLesRetraits, type RetraitsDElagage } from './persistance/elagage';
 export { poserLesReglesMaisonPersistees, surchargerUneRegleMaison, retablirUneRegleMaison } from './reglesMaison';
 export { preferenceDef, preferencesAPersister, poserLesPreferencesPersistees, valeurDEntree, type IdDePreference, type Preference, type PrefValue } from './preferences';
-export { snapshotSave, parseSave, chargerLaSave, refusDeSauvegarde, type SaveGame, type SaveMeta } from './persistance/save';
+export {
+  snapshotSave, metaDeSave, lireSave, exporterLaSauvegarde, chargerLaSave, refusDeSauvegarde,
+  type SaveGame, type SaveMeta, type ObsoleteCause,
+} from './persistance/save';
+export { aEcrire, campagneDUneEntree, entreesRelues, idDesignable, projetDUneEntree, type CampagneLancee, type EntreeListee, type SavedProject } from './persistance/bibliotheque';
+export { ProjetRefuse, type ProjectDoc } from './worldMap';

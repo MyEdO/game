@@ -44,7 +44,7 @@ import { spellEffectOps } from '../../engine/flowCore';
 /** Aversion au TIR AMI d'une ZdE : blesser/incapaciter un allié pèse FOIS-CECI un gain ennemi équivalent
  *  (>1 → l'IA ne nuke jamais son camp pour un gain marginal). Ressenti, latitude IA. */
 const FRIENDLY_FIRE_AVERSION = 2;
-import type { SpellData } from '../../data';
+import { findPsychologyById, type SpellData } from '../../data';
 import { hasCondition, canTakeAction, isActionLocked, restrictingConditions, COND } from '../../engine/conditions';
 import { effectiveMovement } from '../../engine/encumbrance';
 import { isEngaged, meleeReachTiles } from '../../engine/engagement';
@@ -53,7 +53,7 @@ import { facingToward, type Dir8 } from '../../geometry/dir8';
 import { groupMatch, groupesDe } from '../../engine/groups';
 import { isBestial, isTerritorial, isMindless, isStupid } from '../../engine/traits/dispatch';
 import { creatureAttacks } from '../../engine/creatureAttacks';
-import { isFrenzied } from '../../engine/psychology';
+import { isFrenzied, vise } from '../../engine/psychology';
 
 // === TRACE DE DÉCISION IA (DEV uniquement, GATÉE) ============================================
 // Diagnostic dev : capture le CLASSEMENT des candidats (l'« intention ») du DERNIER appel à
@@ -721,10 +721,10 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Animosité/Haine ACTIVE (LDB 21 l.21/41) : filtre de VIVIER appliqué AVANT le choix de cible — on
   // s'en prend en priorité au groupe haï présent dans le vivier considéré (sinon vivier brut).
   const hatedCibles = (enemy.psychState ?? [])
-    .filter((p) => (p.type === 'animosite' || p.type === 'haine') && p.active && p.cible)
+    .filter((p) => findPsychologyById(p.type)?.attackDR?.vs === 'group' && p.active && p.cible)
     .map((p) => p.cible!);
   const hatedOf = (pool: Combatant[]) =>
-    hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => groupMatch(cb, groupesDe(h)))) : [];
+    hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => vise({ groupe: cb }, { genre: 'combattant', c: h }, 'appartenance'))) : []; // #3045
   /** Restreint un vivier au groupe haï s'il y en a un présent, sinon le vivier brut. */
   const restrict = (pool: Combatant[]): Combatant[] => { const hp = hatedOf(pool); return hp.length ? hp : pool; };
   /** En Frénésie, la cible est IMPÉRATIVEMENT le plus proche en LdV (LDB 21 l.33) — on contraint le vivier

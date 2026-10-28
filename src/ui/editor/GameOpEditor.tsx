@@ -35,7 +35,7 @@ import { ObjetDonneField } from './ObjetDonneField';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTraits } from './refFormatLivre';
-import type { TraitOctroye, TraitPose } from '../../data/schemas/grammaire/reference';
+import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { JsonField } from './JsonField';
@@ -648,20 +648,20 @@ const relireTraitsAjoutes = (texte: string, avant: TraitPose[] | undefined): Tra
 /** Le Trait octroyé d'un `grantTrait` en chaîne de livre (« Haine (Humains) »), relu par `relireTraits`
  *  contre la pose courante ; un Indice formulé (non numérique) se saisit à part (`FormulaField`) et
  *  survit à la relecture d'une chaîne qui n'en porte pas. */
-const traitOctroyeEnChaine = (t: TraitOctroye | undefined): string =>
+const traitOctroyeEnChaine = (t: TraitPose | undefined): string =>
   t?.id ? formatTrait({ ...t, value: typeof t.value === 'number' ? t.value : undefined }) : '';
-const relireTraitOctroye = (texte: string, avant: TraitOctroye | undefined): TraitOctroye => {
+const relireTraitOctroye = (texte: string, avant: TraitPose | undefined): TraitPose => {
   const { value, ...pose } = avant ?? { id: '' };
   const indice = typeof value === 'number' ? { value } : {};
   const [relu] = relireTraits(texte.trim() ? [texte.trim()] : [], pose.id ? [{ ...pose, ...indice }] : []);
-  if (!relu) return { id: '' } as TraitOctroye;
+  if (!relu) return { id: '' } as TraitPose;
   return sansClesVides({ ...relu, value: relu.value ?? (typeof value === 'number' ? undefined : value) });
 };
 
 /** Le Trait octroyé d'une op (`grantTrait`, `domeWard`) : sa saisie de livre et son Indice formulé, au
  *  dialecte du nœud `trait.value` (`formuleSansTirageSchema`). `indiceRequis` : l'Indice ne se décoche pas. */
-function TraitOctroyeFields({ trait, indiceRequis, indiceMin, onChange }: { trait: TraitOctroye; indiceRequis: boolean; indiceMin: number; onChange: (t: TraitOctroye) => void }) {
-  const majIndice = (value: TraitOctroye['value']) => onChange(sansClesVides({ ...trait, value }));
+function TraitOctroyeFields({ trait, indiceRequis, indiceMin, onChange }: { trait: TraitPose; indiceRequis: boolean; indiceMin: number; onChange: (t: TraitPose) => void }) {
+  const majIndice = (value: TraitPose['value']) => onChange(sansClesVides({ ...trait, value }));
   return (
     <>
       <SaisieEnBrouillon
@@ -777,8 +777,8 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <>
             <RefField cfg={{ ds: 'psychologies', single: true }} fieldKey="État psychologique"
               value={o.type ?? ''} onChange={(v) => upd({ type: (v as string) ?? '' })} />
-            <input placeholder="Cible (Groupe — Animosité, Phobie…)" value={o.cible ?? ''}
-              onChange={(e) => upd({ cible: e.target.value || undefined })} />
+            <RefField cfg={{ ds: 'groups', single: true }} fieldKey="Cible" nullable
+              value={o.cible ?? ''} onChange={(v) => upd({ cible: typeof v === 'string' && v ? v : undefined })} />
             <label className="dr"><input type="checkbox" checked={o.indice != null} onChange={(e) => upd({ indice: e.target.checked ? 1 : undefined })} /> Indice</label>
             {o.indice != null && <FormulaField label="Valeur" champ="indice" value={o.indice} min={0} onChange={(indice) => upd({ indice })} />}
           </>

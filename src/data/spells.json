@@ -11359,11 +11359,7 @@
     "subType": "Myrmidia",
     "cn": null,
     "range": {
-      "kind": "distance",
-      "value": {
-        "charOf": "sociabilite"
-      },
-      "unit": "m"
+      "kind": "self"
     },
     "target": {
       "kind": "self"

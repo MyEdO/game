@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { giveTrappingSchema } from '../defs-scenes/effets';
 import { gameOpSchema } from './mecanique';
-import { apparencesAdmissibles } from '../../../engine/items';
+import { apparencesAdmissiblesDObjet } from '../../apparencesObjets';
 import { entityAppearanceSchema } from './valeurs';
 import { sceneSchema } from '../defs-scenes/scene';
 import { emptyScene } from '../../../noyau/monde/scene';
@@ -49,7 +49,7 @@ describe('apparences d’objets d’auteur : références validées au parse de 
   });
 
   it('les trois portes acceptent exactement la liste canonique pour un objet', () => {
-    for (const apparence of apparencesAdmissibles({ trappingId: 'arme-simple' })) {
+    for (const apparence of apparencesAdmissiblesDObjet({ trappingId: 'arme-simple' })) {
       expect(giveTrappingSchema.safeParse({ type: 'giveTrapping', trappingId: 'arme-simple', apparence: { id: apparence.id } }).success).toBe(true);
       expect(gameOpSchema.safeParse({ op: 'giveTrapping', trappingId: 'arme-simple', apparence: { id: apparence.id } }).success).toBe(true);
       expect(entityAppearanceSchema.safeParse({ apparencesObjets: { 'arme-simple': { id: apparence.id } } }).success).toBe(true);

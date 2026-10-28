@@ -2,7 +2,7 @@
  * z-blindness des manœuvres de ZONE (Souffle/Vomi/Hurlement, #798) — `combatantsWithinRadius` (défaut
  * z-aware, cf. `combatGeometry.ts`) protège déjà `resolveManeuver` (targeting `zone`/`allFoes`, sites
  * combatManeuvers.ts:410/418/432) puisque `attacker.pos`/`center.pos` PORTENT leur `z`. Le SEUL trou
- * restant : la zone de Fumée (`souffle-fumee`) posait ses cases via `smokeZone` SANS propager le `z` du
+ * restant : la zone de Fumée (Souffle (Fumée)) posait ses cases via `smokeZone` SANS propager le `z` du
  * centre — une case de même (x,y) à un autre étage se retrouvait donc « couverte » (`zoneCovers` compare
  * `t.z ?? 0` à `p.z ?? 0`). Ce test verrouille la propagation.
  */
@@ -12,6 +12,7 @@ import { zoneCovers } from '../noyau/monde/zones';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { findManeuverById } from '../data';
+import { souffleDuType } from '../engine/creatureAttacks';
 import type { Combatant } from '../engine/types';
 import type { Pt } from '../noyau/monde/path';
 
@@ -44,7 +45,7 @@ describe('resolveManeuver — zone (Souffle Fumée, z-blindness #798)', () => {
     const attacker = mk('atk', 'hero', 3, 5, 1);
     const target = mk('tgt', 'enemy', 5, 5, 1); // centre = chosenTarget, étage 1
     const { get, set } = mountBattle([attacker, target]);
-    resolveManeuver(get, set, attacker, findManeuverById('souffle-fumee')!, 0, null, 0, target);
+    resolveManeuver(get, set, attacker, souffleDuType(findManeuverById('souffle')!, 'fumee'), 0, null, 0, target);
     const zones = get().battle!.zones!;
     const zone = zones[zones.length - 1];
     expect(zone.tiles.length).toBeGreaterThan(0);
@@ -56,7 +57,7 @@ describe('resolveManeuver — zone (Souffle Fumée, z-blindness #798)', () => {
     const attacker = { ...mk('atk', 'hero', 3, 5, 0), characteristics: { ...mk('x', 'hero', 0, 0, 0).characteristics, endurance: 9 } } as Combatant;
     const target = mk('tgt', 'enemy', 5, 5, 0);
     const { get, set } = mountBattle([attacker, target]);
-    resolveManeuver(get, set, attacker, findManeuverById('souffle-fumee')!, 0, null, 0, target);
+    resolveManeuver(get, set, attacker, souffleDuType(findManeuverById('souffle')!, 'fumee'), 0, null, 0, target);
     expect(get().battle!.zones).toEqual([]);
   });
 });

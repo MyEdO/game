@@ -70,7 +70,7 @@ import { t } from '../i18n';
 import type { CascadeStep, PendingCascade } from './pendings';
 import type { RecapLine } from './recapLine';
 import { toRecapLines, phaseOfKind } from './recapLine';
-import { buildSeaPlan, runSeaDay, startFastVoyage, syncHullWoundsFromVessel, coqueDuNavireDeCampagne } from './seaVoyageFlow';
+import { buildSeaPlan, raisonDuNonDepartEnMer, runSeaDay, startFastVoyage, syncHullWoundsFromVessel, coqueDuNavireDeCampagne } from './seaVoyageFlow';
 import { buildRiverPlan, descenteJouee, runRiverDays } from './riverVoyageFlow';
 import type { BuiltCascadeStep } from './stepBrand';
 import type { Combatant } from '../engine/types';
@@ -379,7 +379,7 @@ export function startTravel(
     // Traversée RAPIDE (MDG 15 l.21-37) : un seul Test de Rude épreuve résout tout le trajet.
     const seaPlan = opts.fast ? null : buildSeaPlan(get, routeId, from.id, to.id, route, seaOpts);
     if (opts.fast ? !startFastVoyage(get, set, routeId, from.id, to.id, route, seaOpts) : !seaPlan) {
-      log(get, set, [t('tf.noVessel')]);
+      log(get, set, [raisonDuNonDepartEnMer(get)]);
       return;
     }
     set({ ...(seaPlan ? { travelPlan: seaPlan, worldMapOpen: false, travelRecap: null } : {}), billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode) });

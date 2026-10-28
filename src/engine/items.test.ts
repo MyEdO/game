@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { apparencesCandidates, apparencesAdmissibles, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme } from './items';
+import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme } from './items';
+import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
 import { rangeBandName } from './combat';
@@ -407,7 +408,7 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   it('la cape du catalogue publie sa racine sans recopier le défaut sur l’instance', () => {
     const cape = itemFromTrappingById('cape')!;
     expect(apparencesCandidates(cape)).toEqual(['cape']);
-    expect(apparencesAdmissibles(cape).map((a) => a.id)).toContain('cape');
+    expect(apparencesAdmissiblesDObjet(cape).map((a) => a.id)).toContain('cape');
     expect(Object.prototype.hasOwnProperty.call(cape, 'apparence')).toBe(false);
   });
 

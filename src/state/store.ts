@@ -10,8 +10,9 @@ import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
 import * as netFlow from './netFlow';
-import { saveToSlot, readSlot, importSave, AUTO_SLOT, type SaveSlot, type AnySlot } from './saves';
-import { chargerLaSave, refusDeSauvegarde, snapshotSave, type RefusDeSauvegarde, type SaveGame } from '../noyau/persistance/save';
+import { stockageDesSauvegardes } from './saves';
+import { ecrireLaSauvegarde, lireLaSauvegarde, AUTO_SLOT, type SaveSlot, type AnySlot } from '../hote/sauvegardes';
+import { chargerLaSave, lireSave, refusDeSauvegarde, snapshotSave, type ObsoleteCause, type RefusDeSauvegarde, type SaveGame } from '../noyau/persistance/save';
 import type { RetraitsDElagage } from '../noyau/persistance/elagage';
 import { loadKeyOverrides, saveKeyOverrides } from './keybindingsPrefs';
 import { transitionDuJeu } from '../noyau/transitionDuJeu';
@@ -173,7 +174,7 @@ export interface ActionsDeLAdaptateur {
   /** Charge un slot (manuel OU auto) : reset zéro-maintenance + données de la save (écran campagne). */
   loadGame: (slot: AnySlot) => boolean;
   /** Importe une save : `null` quand elle est appliquée, sinon la cause de son refus. */
-  importGame: (json: string) => import('./saves').ObsoleteCause | null;
+  importGame: (json: string) => ObsoleteCause | null;
   /** Pas clavier d'exploration dans la direction ÉCRAN poussée (flèches) : le store fournit l'alignement à
    *  l'écran, le pas est celui du noyau (`pasAligneDuGroupe`). */
   stepPartyDir: (dir: ScreenDir) => void;
@@ -309,7 +310,7 @@ export const useGame = create<GameState>((set, get) => ({
       return false;
     }
     const save = snapshotSave(s, new Date().toISOString(), ruleOverrides());
-    const ok = saveToSlot(slot, save);
+    const ok = ecrireLaSauvegarde(stockageDesSauvegardes(), slot, save);
     get().log(ok ? t('store.saveOk', { slot }) : t('store.saveKo'));
     return ok;
   },
@@ -317,16 +318,16 @@ export const useGame = create<GameState>((set, get) => ({
     const s = get();
     if (refusDeSauvegarde(s, s.net.mySeat)) return false;
     const save = snapshotSave(s, new Date().toISOString(), ruleOverrides());
-    return saveToSlot(AUTO_SLOT, save);
+    return ecrireLaSauvegarde(stockageDesSauvegardes(), AUTO_SLOT, save);
   },
   loadGame: (slot) => {
-    const save = readSlot(slot);
+    const save = lireLaSauvegarde(stockageDesSauvegardes(), slot);
     if (!save) return false;
     applyLoadedSave(set, save);
     return true;
   },
   importGame: (json) => {
-    const save = importSave(json);
+    const save = lireSave(json);
     if (typeof save === 'string') return save;
     applyLoadedSave(set, save);
     return null;

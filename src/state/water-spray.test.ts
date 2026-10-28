@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import type { Combatant } from '../engine/types';
-import { objetDeTest } from '../objetsDeTest.testkit';
+import { objetDeTest } from '../engine/objetsDeTest.testkit';
 import { suffocationTick } from '../engine/suffocation';
 
 function hero(p: Partial<Combatant>): Combatant {

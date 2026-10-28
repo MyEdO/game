@@ -135,7 +135,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   it('Souffle (Feu) : zone, Test opposé CT/Esquive → dégâts ignorant les PA + En flammes', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();
-    E.traits = [{ id: 'souffle', value: 14, arg: 'Feu' }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 85;
+    E.traits = [{ id: 'souffle', value: 14, arg: 'feu' }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 85;
     H.characteristics.agilite = 1; H.skills = H.skills.filter((s) => s.id !== 'esquive');
     H.armour = { tete: 5, brasG: 5, brasD: 5, corps: 5, jambeG: 5, jambeD: 5 }; // PA ignorés par le Feu
     const before = H.wounds.current;
@@ -166,7 +166,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   it('Souffle (Fumée) : la zone s’enfume — Lignes de vue bloquées pendant BE Rounds (RAW)', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();
-    E.traits = [{ id: 'souffle', value: 0, arg: 'Fumée' }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 85; E.characteristics.endurance = 40; // BE 4
+    E.traits = [{ id: 'souffle', value: 0, arg: 'fumee' }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 85; E.characteristics.endurance = 40; // BE 4
     aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
     const smoke = (useGame.getState().battle!.zones ?? []).find((z) => z.blocksLoS)!;
     expect(smoke).toBeTruthy();

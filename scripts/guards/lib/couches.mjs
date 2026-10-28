@@ -62,7 +62,7 @@ export const COUCHES = Object.freeze({
     survit: true,
     outillage: { 'src/scenes/projetsLivres.testkit.ts': ['scripts/guards/lib/projetsLivres.mjs'] },
   },
-  net: { importe: [...FEUILLES] },
+  net: { importe: [...FEUILLES], types: ['hote'] },
   web: { importe: [...FEUILLES] },
   audio: { importe: ['web', ...FEUILLES] },
   state: { importe: ['noyau', 'hote', 'web', 'engine', 'data', 'scenes', 'net', 'audio', ...FEUILLES], types: ['ui'] },

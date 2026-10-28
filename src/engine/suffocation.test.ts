@@ -1,7 +1,7 @@
 /** LDB 18 l.346 ; LDB 41 */
 import { describe, expect, it } from 'vitest';
 import type { Combatant } from './types';
-import { objetDeTest } from '../objetsDeTest.testkit';
+import { objetDeTest } from './objetsDeTest.testkit';
 import { suffocationTick, prepareBreathHold, breathHoldSeconds, hasWaterContainer, isWaterSprayTarget, waterSprayCandidates } from './suffocation';
 import { inDeathCondition, hasCondition } from './conditions';
 import { applyOps } from './ops';

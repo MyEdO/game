@@ -59,7 +59,7 @@ const panneaux = base.magasin<{ sceneId: string; expanded: boolean }, string>(PA
 
 /** Témoin « un calque d'un autre format a été retiré », par (scène, couche) — posé par
  *  `traceLayerLoad`, consommé par l'éditeur (`takeCalqueEcarte`). Même geste que la save
- *  (`takeObsoleteNotice`, `saves.ts`). */
+ *  (`prendreLesRetraitsDeSauvegardes`, `hote/sauvegardes.ts`). */
 const calquesEcartes = new Set<string>();
 const cleDeCalque = (sceneId: string, z: number): string => JSON.stringify([sceneId, z]);
 

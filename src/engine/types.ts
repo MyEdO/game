@@ -468,6 +468,10 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  Canon à flammes nain « 2 + DR En flammes à chaque cible affectée », ADE II 8 l.243) → lus par
    *  `effectsOf` (noyau/triggeredEffects), dispatchés à la touche (primaire ET zone d'Explosion). */
   onHitEffects?: import('./flowCore').TriggeredEffect[];
+  /** Traits CONFÉRÉS aux touches de l'attaque par le Trait d'attaque dont l'arme naît (`TraitInstance.confere`,
+   *  `weaponFromTrait`, `freeAttackWeapon`) → leurs effets ne tirent qu'à ses touches (`effectSourcesOf`).
+   *  ZI 03 l.75, l.77 ; ZI 06 l.32 */
+  traitsConferes?: import('./statEntry').TraitInstance[];
   /** PORTÉE MINIMALE : bande de portée la plus BASSE à laquelle l'arme peut tirer (ADE II 8 l.251/253).
    *  Une cible plus proche que cette bande REFUSE le tir (`firedAttackBlock`, `belowMinRangeBand`), ce n'est
    *  PAS un malus. Machines de siège à distance = `'courte'` (pas de Bout Portant, l.253) ; trébuchet/mortier
@@ -584,6 +588,9 @@ export interface ConditionInstance {
    *  le moteur ne fixe AUCUNE valeur — c'est un champ de DONNÉE éditable (qualité `filet-barbele`,
    *  `qualities.json`), à régler par qui autorise le contenu, jamais codé en dur ici. */
   struggleDamage?: number;
+  /** Difficulté FIGÉE des Tests qui éliminent l'État, dictée par sa source (LDB 16 l.70 ; MDG 16 l.226) :
+   *  posée par l'op `condition.difficulte`, substituée au Test `argDifficulty` de l'État. */
+  difficulte?: Difficulty;
   /** Durée en Rounds d'un État posé par un SORT (« 1 État Sonné qui dure 1d10 Rounds ») —
    *  décrémenté en fin de Round, l'État se dissipe à 0. Un ajout NON temporisé du même État
    *  efface la durée (l'État redevient régi par ses règles normales — on n'écourte jamais). */

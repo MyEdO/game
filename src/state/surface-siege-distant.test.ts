@@ -60,7 +60,7 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
     expect(pilotedByHuman(g(), H[0]), 'chez l’hôte, il n’a pas la main sur le héros de l’invité…').toBe(false);
     expect(defenseSurfaced(g(), H[0]), '…mais un siège humain le tient').toBe(true);
 
-    E[0].traits = [{ id: 'souffle', value: 14, arg: 'Feu' }];
+    E[0].traits = [{ id: 'souffle', value: 14, arg: 'feu' }];
     E[0].advantage = 2;
     E[0].characteristics['capacite-de-tir'] = 85;
     E[0].characteristics.endurance = 40;

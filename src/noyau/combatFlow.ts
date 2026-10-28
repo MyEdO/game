@@ -100,6 +100,7 @@ import {
   spellDRModFor, spellSLFor, spellLandsOn, talentSpellDRMod, zoneTalentSpellDRMod,
   applyFullPower,
   defaultCritChoice,
+  castAfterCrit,
   spellRangeTiles, effectiveSpellRangeTiles,
   durationClockMinutes,
   castInfo,
@@ -124,12 +125,13 @@ import {
   malepierreItemOf,
   consumeMalepierre,
   sorceryMandatoryMiscast,
+  castOvercastBudget,
   type CastResult,
   type MissileResult,
   type CounterspellOutcome,
   type SpellLike,
 } from '../engine/magic';
-import { type OvercastSource, overcastSourceOf, overcastDurationParts, overcastBudget, overcastAxes, extraTargetCapacity, zoneDiameterMultiplier } from '../engine/overcast';
+import { type OvercastAxis, type OvercastSource, type OvercastSpell, overcastSourceOf, overcastDurationParts, overcastAxesFor, extraTargetCapacity, zoneDiameterMultiplier } from '../engine/overcast';
 import type { SpellRange } from '../engine/spellRange';
 import { evalCondition, spellFlowFor, spellOps, flowHasFreeAttack, flattenFlow, EMPTY_FLOW, type FlowTest, type EffectTrigger } from '../engine/flowCore';
 import { combatConditionCtx } from './combat/flowEval';
@@ -148,10 +150,10 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR, cibleMesuree } from '../engine/tests';
+import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
-import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
+import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES, groupLabel } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
@@ -164,13 +166,12 @@ import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
-import { norm } from '../lib/normalize';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
 import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
-import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
+import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, souffleDuType, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
 /** Deux lancers de Blessure Critique, dont le porteur CHOISIT le résultat gardé (LDB 41 l.170) :
@@ -218,8 +219,8 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, refreshAllDefendedPsych, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType, psychTest } from '../engine/psychology';
-import { groupMatch, groupesDe } from '../engine/groups';
+import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import { groupesDe, type PorteurDeGroupes } from '../engine/groups';
 import { sceneCombatModifiers } from './monde/sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
@@ -282,12 +283,12 @@ import { refuserGeste } from './refusVisible';
 import {
   freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, monoStep, pousseSi,
   hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory,
-  stepDetail, stepPrecision, stepPsych,
+  stepDetail, stepPrecision, stepPsych, stepSansPeur,
   type ChoiceSpec, type Consequence, type TableSpec,
 } from './rollSeam';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
-import { dataLabel } from '../data';
+import { dataLabel, psychologyLabel } from '../data';
 import { zoneEnPose, type ZoneEnPose } from './targetingHolder';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
@@ -1559,12 +1560,11 @@ export function frenzyTarget(get: Get, c: Combatant): Combatant | null {
 }
 
 /** Source de PEUR active dont `dest` RAPPROCHE l'acteur (LDB 21 l.27) — null si aucune, ou si
- *  immunisé à la Psychologie. « Sous l'emprise » ⟺ Test étendu de Calme pas encore au niveau
- *  de l'Indice (calmeDR < indice). Pure. */
+ *  immunisé à la Psychologie. « Sous l'emprise » : `sousPeur`. Pure. */
 export function fearedSourceTowards(battle: BattleState, active: Combatant, dest: Pt): Combatant | null {
   if (!active.pos || isPsychImmune(active)) return null;
   for (const p of active.psychState ?? []) {
-    if (p.type !== 'peur' || (p.calmeDR ?? 0) >= (p.indice ?? 1)) continue;
+    if (!sousPeur(p)) continue;
     const src = inBattleId(battle, p.sourceId);
     if (src?.pos && !isOutOfAction(src) && chebyshev(dest, src.pos) < chebyshev(active.pos, src.pos)) return src;
   }
@@ -1659,13 +1659,13 @@ export function attackPlan(get: Get, active: Combatant, target: Combatant, opts?
 
 /** Mort d'un combattant : pour un héros à Destin, suspend (pendingFateSave) au lieu de mourir
  *  (LDB 17 l.29) ; sinon finalise la mort. `restoreWounds` = PB d'avant le coup létal.
- *  `foe` = « l'individu ou l'élément qui l'a presque tué » (coup direct) → Cible d'une éventuelle
- *  Animosité si le Destin est dépensé (ADE II Annexe I, règle facultative) ; absent pour la mort lente. */
-export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source: FateSaveSource, restoreWounds?: number, foe?: Pick<Combatant, 'label' | 'groups'>): void {
+ *  `foe` : l'auteur du coup direct, d'où se dérive la Cible d'une Animosité si le Destin est dépensé
+ *  (son 1er Groupe, `groupesDe`, ADE II (VO) 09 l.14) ; absent pour la mort lente. */
+export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source: FateSaveSource, restoreWounds?: number, foe?: PorteurDeGroupes): void {
   // Le vrai gate est la RESSOURCE (`fate > 0`, présente sur tout kind), pas le `kind` : un combattant à
   // Destin (héros, ou ennemi conduit doté de Destin) est sauvé ; sinon la mort est finalisée.
   if ((hero.fate ?? 0) > 0) {
-    const foeCible = foe ? (groupesDe(foe)[0] ?? foe.label) : undefined;
+    const foeCible = foe ? groupesDe(foe)[0] : undefined;
     set({ pendingFateSave: { heroId: hero.id, source, restoreWounds, ...(foeCible ? { foeCible } : {}) } });
   } else {
     hero.dead = true;
@@ -5299,10 +5299,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const spell = effectiveSpellOf(pc);
   if (!caster?.pos || !spell) return;
   const res = pc.result;
-  // « Puissance totale » (LDB 46 l.31) repêche un DR insuffisant — la pose reste permise (le
-  // repêchage est appliqué par applyCast) ; tout autre échec ne se pose pas.
-  const castable = res.cast || (!!res.isCritical && (pc.critChoice ?? 'puissance') === 'puissance');
-  if (!castable) return;
+  if (!castAfterCrit(res, pc.critChoice, !!pc.missile)) return;
   const range = spellRangeTiles(spell.range, caster);
   if (range != null && chebyshev(caster.pos, pt) > range) {
     get().log(tr('cf.zoneOutOfRange', { spell: spell.label, range }));
@@ -5473,31 +5470,43 @@ export function aiWouldPrepareSpell(enemy: Combatant, get: Get): boolean {
   return a.kind === 'cast' || a.kind === 'castArea' || a.kind === 'focus';
 }
 
-/** Surincantation AUTOMATIQUE d'un lanceur ENNEMI (LDB 47 l.28-31 : « Pour chaque +2 DR […]
- *  vous pouvez ajouter une valeur de […] Cible égale à la valeur initiale ») : le surplus
- *  (DR − NI) est alloué à l'axe CIBLE d'un Projectile — adversaires actifs les plus proches,
- *  à PORTÉE du Sort, hors cible principale. Sous VDM (#885), le reliquat non consommé par l'axe
- *  Cible (aucune cible neuve à couvrir de plus) rejoint l'axe Dégâts — MÊME fonction `overcastAxes`
- *  que le joueur (`castAllocOvercast`), jamais une 2e liste d'axes. Retourne le patch de
- *  pendingCast ({} si rien). */
+/** Axes de Surincantation OUVERTS au lancement `pc` : ceux de CE sort (`overcastAxesFor`), tant que
+ *  le gabarit de zone n'est pas posé (`LDB 47 l.15`, `l.28`). Lu par la modale et `castAllocOvercast`. */
+export function castOvercastAxes(pc: Pick<PendingCast, 'zone' | 'missile'>, spell: OvercastSpell): OvercastAxis[] {
+  return pc.zone?.center ? [] : overcastAxesFor(spell, !!pc.missile);
+}
+
+/** Un geste a changé le budget de Surincantation après une allocation (effet d'Incantation Critique,
+ *  jet relancé ou choisi, Contre-sort) : l'allocation retombe à zéro, avec ce qui en dérive (cibles
+ *  supplémentaires, jets au Tableau, rayon du gabarit). Décision #3059. */
+export function overcastReset(pc: Pick<PendingCast, 'zone'>, mpt: number): Partial<PendingCast> {
+  return {
+    overcast: undefined, extraTargetIds: undefined, chosenTableRolls: undefined,
+    ...(pc.zone ? { zone: { ...pc.zone, radius: zoneRadiusTilesAt(pc.zone.r0m ?? 0, 0, mpt) } } : {}),
+  };
+}
+
+/** Surincantation AUTOMATIQUE d'un lanceur ENNEMI (LDB 47 l.28-31) : le surplus est alloué à l'axe
+ *  CIBLE d'un Projectile — adversaires actifs les plus proches, à PORTÉE du Sort, hors cible
+ *  principale. Sous VDM (#885), le reliquat non consommé par l'axe Cible rejoint l'axe Dégâts. Axes
+ *  et budget : les MÊMES lectures que le joueur (`overcastAxesFor`, `castOvercastBudget`). Retourne
+ *  le patch de pendingCast ({} si rien). */
 export function aiOvercastPlan(
   caster: Combatant,
   targetId: string,
-  spell: { cn: number | null; range: SpellRange | null; family?: string },
-  res: { cast: boolean; sl: number },
+  spell: OvercastSpell & { range: SpellRange | null },
+  res: CastResult,
   combatants: Combatant[],
-  focusedNI0 = false,
   sight?: SpellSight,
   missile = false,
 ): { overcast?: { range: number; zone: number; duration: number; targets: number; damage: number }; extraTargetIds?: string[] } {
-  if (!res.cast || !caster.pos) return {};
-  const ni = focusedNI0 ? 0 : spell.cn ?? 0;
+  if (!caster.pos) return {};
   const source = overcastSourceOf(spell);
-  const budget = overcastBudget(source, res.sl, ni);
+  const budget = castOvercastBudget(spell, res, undefined, missile);
   if (budget <= 0) return {};
-  const axes = overcastAxes(source, missile);
+  const axes = overcastAxesFor(spell, missile);
   const range = spellRangeTiles(spell.range, caster) ?? Infinity;
-  const extras = combatants
+  const extras = !axes.includes('targets') ? [] : combatants
     .filter((t) => t.kind !== caster.kind && t.id !== targetId && !isOutOfAction(t) && t.pos && combatDistance(caster, t) <= range && !spellSightBlocked(sight, caster, t))
     .sort((a, b) => combatDistance(caster, a) - combatDistance(caster, b))
     .slice(0, extraTargetCapacity(source, budget, 1))
@@ -5620,9 +5629,9 @@ export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatan
   }
   // Surincantation : le surplus a changé — re-plan IA (lanceur ennemi), remise à zéro sinon.
   const oc = aiDriven(get(), caster) && pc.missile && !pc.zone
-    ? aiOvercastPlan(caster, pc.targetId, spell, next, get().battle?.combatants ?? [], pc.focused, spellSightOf(get), !!pc.missile)
+    ? aiOvercastPlan(caster, pc.targetId, spell, next, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile)
     : {};
-  set({ pendingCast: { ...pc, result: next, overcast: undefined, extraTargetIds: undefined, ...oc } });
+  set({ pendingCast: { ...pc, result: next, ...overcastReset(pc, sceneMetresPerTile(get().scene)), ...oc } });
   const b = get().battle;
   if (b) set({ battle: { ...b, log: [...b.log, ev('info', out.log, counter.id, caster.id)] } });
   return true;
@@ -6184,13 +6193,12 @@ export function applyCast(
       if (spec.breathAttack) {
         if (battle && caster.pos) {
           const type = domainBreathType(caster);
-          // Manœuvre Souffle de 1ʳᵉ classe (données) choisie par le Type du Domaine ; défaut `souffle-feu`.
           // Indice = Bonus d'Endurance du lanceur (RAW : « Dégâts = Bonus d'Endurance »). Coût d'Avantage 0
           // (le sort EST l'activation).
-          const sDef = (type && findManeuverById(`souffle-${norm(type)}`)) || findManeuverById('souffle-feu')!;
+          const sDef = souffleDuType(findManeuverById('souffle')!, type);
           const indice = bonus(effectiveChar(caster, 'endurance'));
           applyAreaAttack(get, set, caster, {
-            kind: 'souffle', label: sDef.label, bonus: indice, indice, def: sDef,
+            cle: sDef.id, kind: 'souffle', label: sDef.label, bonus: indice, indice, def: sDef,
             trigger: 'free', avantage: 0, aoe: true, magic: true, ...(type ? { type } : {}),
           }, target);
           if (!type) logLines.push(tr('cf.breathNoType'));
@@ -6404,12 +6412,9 @@ function scheduleRespawnFromOp(
   return [tr('cf.sourceRebuilds', { name: actor.label, days, s: days > 1 ? 's' : '' })];
 }
 
-/** Type de Souffle « correspondant le mieux » au Domaine du lanceur (sort Souffle, LDB 47 l.509 :
- *  « Le MJ détermine quel type d'attaque de Souffle correspond le mieux à votre Talent Magie des
- *  Arcanes ») — jeu sans MJ : seuls les Domaines au Type canonique évident sont mappés
- *  (Feu→Feu, Cieux→Électricité, Métal→Corrosif, Ombres→Fumée) ; les autres soufflent des Dégâts purs. */
+/** Type de Souffle du Domaine des Arcanes du lanceur (`DomainData.arcane`). LDB 47 l.509 */
 function domainBreathType(caster: Combatant): string | undefined {
-  return findDomainById(arcaneDomainIdOf(caster))?.breathType;
+  return findDomainById(arcaneDomainIdOf(caster))?.arcane;
 }
 
 /** Bonus d'incantation CONDITIONNEL du Domaine (Aqshy l.157 : +`bonus` par État `perCondition` situé à
@@ -7434,10 +7439,10 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   const dues: { c: Combatant; indice: number }[] = [];
   for (const c of battle.combatants) {
     if (c.id === mover.id || isOutOfAction(c) || !c.pos) continue; // la Peur portée nomme sa source, quel que soit son camp
-    const peur = (c.psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === mover.id && (p.calmeDR ?? 0) < (p.indice ?? 0));
+    const peur = (c.psychState ?? []).find((p) => p.sourceId === mover.id && sousPeur(p));
     if (!peur) continue;
     if (chebyshev(arrivee, c.pos) >= chebyshev(fromPos, c.pos)) continue; // n'a pas fini plus près
-    dues.push({ c, indice: peur.indice ?? 0 });
+    dues.push({ c, indice: indiceDePeur(peur) });
   }
   if (!dues.length) return;
   // Le foyer est l'ENTRÉE de psychologie affrontée (`peur`), qui porte déjà son enjeu et sa fiche — pas
@@ -7541,7 +7546,7 @@ export function collectHeroRoundStartPsych(get: Get, c: Combatant): HeroPsychDue
   // Traits psy CIBLÉS (Animosité/Haine/… — LDB 21) : re-test des actifs, puis nouveaux déclenchements.
   const visible = visibleFoesAndAllies(battle, scene, c);
   for (const p of state) {
-    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => groupMatch(p.cible!, groupesDe(v))))
+    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise({ groupe: p.cible! }, { genre: 'combattant', c: v }, 'percu')))
       return { kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible: p.cible }; // affliction active à re-tester
   }
   const tt = targetedTrigger(c, visible);
@@ -7565,11 +7570,11 @@ export function collectHeroRoundEndPsych(get: Get, c: Combatant): HeroPsychDue |
     if (!src || src.kind !== 'peur' || state.some((p) => p.sourceId === foe.id)) continue;
     return { kind: 'peur', sourceId: foe.id, sourceName: foe.label, indice: src.indice, prevDR: 0 };
   }
-  // Peur ACTIVE (DR cumulé < Indice) non encore testée ce Round → Test étendu (cumul vers l'Indice).
+  // `sousPeur`, une fois par Round. LDB 21 l.25
   for (const p of state) {
-    if (p.type === 'peur' && (p.calmeDR ?? 0) < (p.indice ?? 0) && p.lastTestRound !== battle.round) {
+    if (sousPeur(p) && p.lastTestRound !== battle.round) {
       const src = inBattleId(battle, p.sourceId);
-      return { kind: 'peur', sourceId: p.sourceId!, sourceName: libelleOuAbsence(src, 'combattant', p.sourceId!), indice: p.indice ?? 1, prevDR: p.calmeDR ?? 0 };
+      return { kind: 'peur', sourceId: p.sourceId!, sourceName: libelleOuAbsence(src, 'combattant', p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0 };
     }
   }
   return null;
@@ -7599,16 +7604,8 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
   if (!t) return null;
   const isCible = estCibleType(t.kind);
   const cl = isCible ? cibleLabel(t.kind) : null;
-  const td = psychTest(t.kind);
-  const skill = td.skill;
-  // Sans Peur (Ennemi) (LDB 10 l.1051) : face à une NOUVELLE Peur/Terreur de l'ennemi spécifié, « un
-  // seul Test de Calme Accessible (+20) » pour l'ignorer. Pas sur les re-tests d'une Peur déjà subie
-  // (entrée psychState existante → Test étendu normal +0) ni sur les Traits ciblés.
-  const sourceFoe = !isCible ? inBattleId(get().battle, t.sourceId) : undefined;
-  const isNewSource = !(c.psychState ?? []).some((p) => p.type === 'peur' && p.sourceId === t.sourceId);
-  const sansPeur = !!sourceFoe && isNewSource && sansPeurVs(c, sourceFoe);
-  // Sans Peur force Accessible (+20) ; sinon la difficulté déclarée (défaut Intermédiaire +0).
-  const difficulty: Difficulty = sansPeur ? 'accessible' : td.difficulty;
+  const sansPeur = sansPeurFace(c, t.kind, inBattleId(get().battle, t.sourceId)); // LDB 10 l.1051
+  const { skill, difficulty } = psychTest(t.kind, sansPeur);
   const skillLabel = refLabel('skills', skill);
   // Peur de combat = Test ÉTENDU (LDB 21 l.25) : le cumul `prevDR`→`indice` voyage SUR LA RANGÉE
   // (`extendedDrTarget`/`extendedDrDone` de `BatchParticipant`) — SOURCE UNIQUE de la présentation
@@ -7621,7 +7618,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
       id: c.id, interactive: true, result: null,
       // Le Test allégé se lit SUR LA RANGÉE qui en profite (sa Difficulté, son libellé de ligne) : deux
       // héros face à la MÊME source ne partagent pas forcément le Talent.
-      label: sansPeur ? `${skillLabel} · Sans Peur` : skillLabel,
+      label: sansPeur ? stepSansPeur(skillLabel) : skillLabel,
       skillId: skill.id, difficulty,
       // Ligne montée par le monteur CANONIQUE (#1153), canal `combat` NON-attaque : base NUE, pénalité
       // d'États NOMMÉE (LDB 16 : « -10 à tous vos Tests » par palier) et comptée UNE fois dans la cible.
@@ -7631,7 +7628,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
       meta: { prevDR: t.prevDR, ...(sansPeur ? { sansPeur: true } : {}) },
     },
     icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
-    label: cl ? (t.cible ? stepPrecision(dataLabel(cl.label), dataLabel(t.cible)) : dataLabel(cl.label)) : stepPsych(t.kind, t.indice),
+    label: cl ? (t.cible ? stepPrecision(dataLabel(cl.label), groupLabel(t.cible)) : dataLabel(cl.label)) : stepPsych(t.kind, t.indice),
   };
 }
 
@@ -7773,46 +7770,41 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
   let phobieLine: string | null = null;
   const res = psychResolution(cp.kind);
   const cible = estCibleType(cp.kind);
-  // Peur = Test ÉTENDU de Calme (LDB 21 l.25) : cumuler le DR vers l'Indice (calque resolvePeurTest).
-  // Sans Peur (LDB 10 l.1051) : « un seul Test (+20) » → une réussite IGNORE la Peur d'emblée
-  // (DR porté à l'Indice) ; un échec laisse le porteur sujet (re-tests suivants = Peur normale +0).
-  // Sinon Test étendu LDB 12 MUTUALISÉ (`extendedTestStep`) — un Round raté RETIRE les DR négatifs
-  // (planché à 0), au lieu de l'ancien cumul add-only (bug : la Peur ne pouvait jamais régresser).
-  // C'est le SEUL terme que la donnée ne porte pas : il voyage dans l'op de pose de la branche.
-  const calmeDR = res.mode === 'terreur' || cible ? undefined
-    : rm.sansPeur && r.success
-      ? Math.max(rm.prevDR, cp.indice)
-      : extendedTestStep(rm.prevDR, r, cp.indice, !!rule('test-extended-min-sl')).total;
+  // Peur = Test ÉTENDU de Calme (LDB 21 l.25) : le pas `pasDePeur`, partagé avec l'IA, porte le cumul et
+  // Sans Peur (LDB 10 l.1051). C'est le SEUL terme que la donnée ne porte pas : il voyage dans l'op de
+  // pose de la branche.
+  const pas = res.mode === 'terreur' || cible ? undefined : pasDePeur(rm.prevDR, r, cp.indice, rm.sansPeur);
   // CONSÉQUENCES de la branche réalisée, en ops dérivées de `psychology.json` — les MÊMES que la
   // surface annonce (`meta.onSuccess`/`onFail`). Le DR du jet est versé au contexte : la quantité
   // d'État de l'échec (`valuePerSL{onFailure}`) s'y résout, même arithmétique que `failConditionAmount`.
-  applyOps(hero, psychBranchOps(cp, { success: r.success, calmeDR, round: battle?.round }), { rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: cp.kind } });
+  applyOps(hero, psychBranchOps(cp, { success: r.success, calmeDR: pas?.calmeDR, surmontee: pas?.surmontee, sansPeur: rm.sansPeur, round: battle?.round }), { rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: cp.kind } });
   if (res.mode === 'terreur') {
     // 1ʳᵉ rencontre (LDB 21 l.54-56) : échec → État `failCondition` = Indice + |DR négatifs| ; devient
     // l'état `becomes` (LDB 21 l.56, INCONDITIONNEL, à PLEIN Indice — #1190). Conséquences en DONNÉES.
     const brise = r.success ? 0 : failConditionAmount(res.failAmount, cp.indice, r.sl);
     line = r.success ? tr('out.terreurHold', { name: hero.label }) : tr('cf.terreurThenFear', { name: hero.label, foe: cp.sourceName, brise, indice: cp.indice });
-    // Phobie du noir (ADE II Annexe I, règle facultative `psych-acquisition-optional`) : cumuler les États
-    // Brisé subis À CAUSE de la Terreur ; à ≥ Bonus de FM → Phobie liée à la source (son Groupe si connu,
-    // sinon son nom), puis remise à zéro du compteur. `gainPhobieIfThreshold` porte la garde de la règle.
+    // Phobie du noir (ADE II 09 l.9, LDB 21 l.87) : Cible = Groupe de la source de la Terreur.
     if (brise > 0 && res.failCondition === COND.brise) {
       hero.briseFromTerreur = (hero.briseFromTerreur ?? 0) + brise;
       const foe = inBattleId(battle, cp.sourceId);
-      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, (foe ? groupesDe(foe)[0] : undefined) ?? cp.sourceName ?? '');
+      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, foe ? groupesDe(foe)[0] : undefined);
       if (gained) {
         hero.psychTraits = [...(hero.psychTraits ?? []), gained.phobie];
         hero.briseFromTerreur = 0;
-        phobieLine = `${hero.label} développe une Phobie durable : ${gained.phobie.cible}.`;
+        phobieLine = tr('cf.phobieGain', { name: hero.label, groupe: groupLabel(gained.phobie.cible) });
       }
     }
   } else if (cible) {
     // Trait ciblé : échec → affliction active ; succès → marqueur inerte (pas de re-déclenchement).
-    const cl = cibleLabel(cp.kind);
-    line = r.success ? tr('out.cibleMaster', { name: hero.label, kind: cl?.label.toLowerCase() ?? cp.kind }) : tr('out.cibleGrip', { name: hero.label, kind: cl?.label.toLowerCase() ?? cp.kind });
+    const psych = psychologyLabel(cp.kind);
+    line = r.success ? tr('out.cibleMaster', { name: hero.label, psych }) : tr('out.cibleGrip', { name: hero.label, psych });
   } else {
-    line = (calmeDR ?? 0) >= cp.indice
-      ? `${hero.label} ${rm.sansPeur ? 'ignore la Peur' : 'surmonte sa peur'}${cp.sourceName ? ` de ${cp.sourceName}` : ''}${rm.sansPeur ? ' (Sans Peur)' : ''}.`
-      : `${hero.label} reste sous l'emprise de la Peur (${calmeDR ?? 0}/${cp.indice} DR).`;
+    const issue = issueDePeur({ success: r.success, surmontee: !!pas?.surmontee }, rm.sansPeur);
+    if (issue === 'tient') line = tr('cf.fearHeld', { name: hero.label, dr: pas?.calmeDR ?? 0, indice: cp.indice });
+    else if (issue === 'ignoree') {
+      const talent = sansPeurLabel();
+      line = cp.sourceName ? tr('turn.fearVanquished', { name: hero.label, foe: cp.sourceName, talent }) : tr('cf.fearIgnored', { name: hero.label, talent });
+    } else line = cp.sourceName ? tr('out.fearOvercome', { name: hero.label, foe: cp.sourceName }) : tr('turn.fearOvercome', { name: hero.label });
   }
   // Immunités croisées (LDB 21) : Animosité/Préjugé cèdent dès qu'on tombe sous un effet psy dominant.
   return freeCons([line, ...(phobieLine ? [phobieLine] : []), ...supersededLines(hero, hero.label)]);

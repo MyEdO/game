@@ -17,7 +17,7 @@ import { EffectFields } from './EffectList';
 import { GameOpEditor } from './GameOpEditor';
 import type { Effect } from '../../data/schemas/defs-scenes/effets';
 import type { GameOp } from '../../engine/ops';
-import { apparencesAdmissibles } from '../../engine/items';
+import { apparencesAdmissiblesDObjet } from '../../data/apparencesObjets';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { weaponFromId } from '../../engine/creatureEquip';
@@ -70,7 +70,7 @@ describe('apparence donnée — effets et ops', () => {
       : <GameOpEditor ops={[valeur as GameOp]} onChange={(ops) => changer(ops[0])} />);
     act(render);
     const options = () => [...root.container.querySelectorAll('[title="Apparence de l’objet donné"] + [role="listbox"] .ms-label')].map((e) => e.textContent);
-    expect(options()).toEqual(apparencesAdmissibles({ trappingId: 'arme-simple' }).map((a) => a.label));
+    expect(options()).toEqual(apparencesAdmissiblesDObjet({ trappingId: 'arme-simple' }).map((a) => a.label));
     choisirMediaSelect(root.container, 'Apparence de l’objet donné', 'Hache naine');
     expect(valeur).toMatchObject({ apparence: { id: 'hache_naine' } });
     choisirMediaSelect(root.container, 'Apparence de l’objet donné', 'Épée');
@@ -83,7 +83,7 @@ describe('apparence donnée — effets et ops', () => {
     });
     expect(valeur).toMatchObject({ trappingId: 'bouclier' });
     expect(valeur).not.toHaveProperty('apparence');
-    expect(options()).toEqual(apparencesAdmissibles({ trappingId: 'bouclier' }).map((a) => a.label));
+    expect(options()).toEqual(apparencesAdmissiblesDObjet({ trappingId: 'bouclier' }).map((a) => a.label));
     if (surface === 'op') expect(valeur).toMatchObject({ count: 2, perSL: { every: 1, amount: 1 } });
   });
 });

@@ -13,7 +13,8 @@ import { presetPnjById } from '../state/campaignData';
 import { mergeCreatureProfile } from '../noyau/monde/resolveursDuNarratif';
 import { sceneNpc } from '../noyau/monde/sceneNpc';
 import { spawnEnemy } from '../noyau/monde/spawn';
-import { netSnapshot, applyNetSnapshot } from '../state/netFlow';
+import { applyNetSnapshot } from '../state/netFlow';
+import { instantaneDeLaCoop } from '../noyau/coop';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { createHero } from '../engine/character';
 import { findCreatureById } from '../data';
@@ -441,7 +442,7 @@ describe('Aller-retour de l’état : `presetId` survit, `presetPnjById` répond
 
   it('snapshot coop (couture de `snapshotSave`) : Knud garde son preset et sa Description, portée par le projet', () => {
     const knud = combatKnud(true);
-    const data = JSON.parse(JSON.stringify(netSnapshot(useGame.getState))) as Record<string, unknown>;
+    const data = JSON.parse(JSON.stringify(instantaneDeLaCoop(useGame.getState()))) as Record<string, unknown>;
     useGame.setState({ battle: null, campaignNarratif: null, campaignDoc: null });
     expect(presetPnjById('edo-knud-cratinx')).toBeUndefined();
     applyNetSnapshot(useGame.setState, data);

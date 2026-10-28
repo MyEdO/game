@@ -79,7 +79,7 @@ import { possessionLabel, type Possession, type LivingRef, type PossessionInput 
 import { ev } from './combatLog';
 import { t } from '../i18n';
 import { stepPrecision, stepDetail } from './rollSeam';
-import { dataLabel, type WaterExposureMode } from '../data';
+import { dataLabel, groupesLabel, type WaterExposureMode } from '../data';
 import { actionsAuthorees, type Drapeaux } from './monde/usable';
 import type { SceneEntity } from './monde/scene';
 import { campAdvantageHooks } from './combat/advantagePool';
@@ -822,7 +822,7 @@ export function openSkillTest(
   const socialDetail = (c: Combatant): string | undefined => {
     const parts: string[] = [];
     const pl = psychMod ? socialPsychLabel(c, spec.vsGroups!) : undefined;
-    if (pl) parts.push(`${pl} envers ${spec.vsGroups!.join('/')}`);
+    if (pl) parts.push(t('eff.socialPsychEnvers', { mods: pl, groupes: groupesLabel(spec.vsGroups!) }));
     const sl = tgtStatus ? statusCharmLabel(actorStatus(c), tgtStatus, { begging: spec.begging }) : undefined;
     if (sl) parts.push(sl);
     return parts.length ? parts.join(' · ') : undefined;

@@ -22,7 +22,8 @@ const HYBRIDE_ULRIC: GameOp[] = [
   { op: 'charMod', char: 'agilite', mod: 10 }, { op: 'charMod', char: 'dexterite', mod: -10 },
   { op: 'charMod', char: 'intelligence', mod: -10 }, { op: 'charMod', char: 'sociabilite', mod: -20 },
   { op: 'moveMod', mod: 1 },
-  { op: 'grantTrait', trait: { id: 'morsure', value: 3 } }, { op: 'grantTrait', trait: { id: 'armure', value: 2 } },
+  { op: 'grantTrait', trait: { id: 'arme', value: { sum: [{ bonusOf: 'force' }, 4] } } },
+  { op: 'grantTrait', trait: { id: 'morsure', value: { sum: [{ bonusOf: 'force' }, 3] } } }, { op: 'grantTrait', trait: { id: 'armure', value: 2 } },
   { op: 'grantTrait', trait: { id: 'peur', value: 2 } }, { op: 'grantTrait', trait: { id: 'pisteur' } },
   { op: 'grantTrait', trait: { id: 'vision-nocturne' } },
 ];
@@ -52,6 +53,21 @@ describe('transform / endTransform — Métamorphose Enfant d’Ulric (delta RAW
     expect(hasTraitKey(c.traits, 'morsure')).toBe(true);
     expect(c.causesPeur).toBe(2); // scalaire psy re-dérivé (Peur 2 accordée — l'Indice, pas un booléen)
     expect(liveMorphRef(c)).toBe('enfant-d-ulric'); // apparence hybride (couche rig)
+  });
+
+  it('Arme et Morsure prennent l’Indice formulé sur la Force de la forme hybride (Middenheim 04 l.29)', () => {
+    const c = human();
+    applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, morphRef: 'enfant-d-ulric' }], { rng: desDuTest });
+    expect(c.traits?.find((t) => t.id === 'arme')?.value).toBe(8); // BF 4 (F 30 + 10) + 4
+    expect(c.traits?.find((t) => t.id === 'morsure')?.value).toBe(7); // BF 4 + 3
+  });
+
+  it('la manœuvre « forme-hybride-ulric » de la donnée octroie Arme (BF +4) et Morsure (BF +3) (Middenheim 04 l.29)', () => {
+    const transform = findManeuverById('forme-hybride-ulric')!.effects!.flatMap((e) => (e.flow.kind === 'do' && e.flow.effect.type === 'ops' ? e.flow.effect.ops : []))
+      .find((o): o is Extract<GameOp, { op: 'transform' }> => o.op === 'transform')!;
+    const octroi = (id: string) => transform.ops.find((o): o is Extract<GameOp, { op: 'grantTrait' }> => o.op === 'grantTrait' && o.trait.id === id)?.trait.value;
+    expect(octroi('arme')).toEqual({ sum: [{ bonusOf: 'force' }, 4] });
+    expect(octroi('morsure')).toEqual({ sum: [{ bonusOf: 'force' }, 3] });
   });
 
   it('PERSISTE : la forme ne se dissipe pas seule en fin de Round (durée permanente)', () => {

@@ -4,6 +4,7 @@ import { layerTiles } from '../../noyau/monde/scene';
 import { findTrappingById } from '../../data/index';
 import { weaponFromTrait } from '../../engine/creatureEquip';
 import { traitsDuPorteur } from '../../engine/statEntry';
+import { porteurDuProfil } from '../../noyau/monde/spawn';
 const scenarioConstruit = scenario.construire();
 
 /**
@@ -147,7 +148,7 @@ describe('embuscade — Scene produite par buildScene', () => {
         expect(trapping?.categorie).toBe(t.id === 'a-distance' ? 'ranged' : 'melee');
       }
       const melee = traits.find((t) => t.id === 'arme');
-      expect(weaponFromTrait(traitsDuPorteur([melee!], m.entityId)[0])?.label).toBe(attendus[m.entityId]);
+      expect(weaponFromTrait(traitsDuPorteur([melee!], porteurDuProfil(m.entityId, e?.statblock?.char ?? {}))[0])?.label).toBe(attendus[m.entityId]);
     }
   });
 });

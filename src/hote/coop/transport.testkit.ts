@@ -1,14 +1,5 @@
-/**
- * Transport coop — interface minuscule consommée par `session.ts`, implémentations :
- * - `RoomHost`/`RoomGuest` (`relay.ts`) : WebSocket via le Worker relay (`server/`), prod.
- * - `FakeTransport.pair()` : paire en mémoire pour les tests (session/intents sans réseau).
- */
-export interface Transport {
-  send(data: string): void;
-  onMessage(cb: (data: string) => void): void;
-  onClose(cb: () => void): void;
-  close(): void;
-}
+/** Le transport de test (#3041) : une paire en mémoire, sans réseau. */
+import type { Transport } from './transport';
 
 /** Paire de transports en mémoire (tests) : ce que A envoie, B le reçoit, et inversement. */
 export class FakeTransport implements Transport {

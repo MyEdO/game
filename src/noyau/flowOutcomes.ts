@@ -30,7 +30,8 @@ import { battementRemoval } from './combatManeuvers';
 import { fleeBackstab, fleeTouche } from './pendings';
 import type { PendingEncounterPsych } from './encounterPsychFlow';
 import type { PendingActivity } from './interludeFlow';
-import { estCibleType, cibleLabel } from '../engine/psychology';
+import { estCibleType } from '../engine/psychology';
+import { psychologyLabel } from '../data';
 import { activityById, matchOutcomes } from '../engine/activities';
 import { isFumble } from '../engine/oups';
 import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingFailure, SL_ASTOUNDING } from '../engine/tests';
@@ -68,9 +69,8 @@ export function describeEncounterPsych(pe: PendingEncounterPsych, name: string):
   const r = pe.result;
   if (!r) return '';
   if (estCibleType(pe.kind)) {
-    const cl = cibleLabel(pe.kind);
-    const kind = cl?.label.toLowerCase() ?? pe.kind;
-    return r.success ? t('out.cibleMaster', { name, kind }) : t('out.cibleGrip', { name, kind });
+    const psych = psychologyLabel(pe.kind);
+    return r.success ? t('out.cibleMaster', { name, psych }) : t('out.cibleGrip', { name, psych });
   }
   if (pe.kind === 'terreur') {
     return r.success ? t('out.terreurHold', { name }) : t('out.terreurTerrified', { name, foe: pe.sourceName, brise: String(r.brise) });

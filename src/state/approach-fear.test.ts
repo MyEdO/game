@@ -134,9 +134,9 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     expect(useGame.getState().pendingCascade).toBeNull();
   });
 
-  it('Peur déjà vaincue (calmeDR ≥ indice) → aucun Test', () => {
+  it('Peur déjà surmontée → aucun Test', () => {
     seedBattleRng(1);
-    const h = hero({ psychState: [{ type: 'peur', sourceId: 'e', indice: 2, calmeDR: 2 } as never] });
+    const h = hero({ psychState: [{ type: 'peur', sourceId: 'e', indice: 2, calmeDR: 2, surmontee: true } as never] });
     run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
     expect(useGame.getState().pendingCascade).toBeNull();
   });

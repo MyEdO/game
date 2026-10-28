@@ -1,6 +1,6 @@
 /** LDB 46 l.16-20 ; LDB 47 l.21,33-34 ; LDB 10 */
 import { describe, it, expect } from 'vitest';
-import { objetDeTest } from '../objetsDeTest.testkit';
+import { objetDeTest } from './objetsDeTest.testkit';
 import type { Combatant } from './types';
 import {
   casterTalents, spellCost, learnableSpells, canCastFromGrimoire, knownCount,

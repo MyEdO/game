@@ -121,6 +121,28 @@ describe('format livre — Trait', () => {
     expect(traitInstanceSchema.safeParse({ id: 'armure', arg: 'Peau', parLocalisation: { tete: 1, brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 } }).success).toBe(false);
   });
 
+  it('Indice relatif, Difficulté et Traits conférés se lisent à la saisie et reviennent à l’identique', () => {
+    const lus: [string, TraitPose][] = [
+      ['Arme (BF +4)', { id: 'arme', value: { sum: [{ bonusOf: 'force' }, 4] } }], // Middenheim 04 l.29
+      ['Morsure (BF)', { id: 'morsure', value: { bonusOf: 'force' } }],
+      ['Attaque caudale +12 (Venin)', { id: 'attaque-caudale', value: 12, confere: [{ id: 'venin' }] }], // ZI 03 l.77
+      ['Arme (Crocs) +10 (Infecté)', { id: 'arme', value: 10, arg: 'Crocs', confere: [{ id: 'infecte' }] }], // ZI 03 l.75
+      ['Morsure +11 (Venin (Complexe))', { id: 'morsure', value: 11, confere: [{ id: 'venin', arg: 'complexe' }] }], // ZI 13 l.61
+      ['Souffle +10 (Poison, Difficulté Difficile (–20))', { id: 'souffle', value: 10, arg: 'poison', difficulte: 'difficile' }], // MDG 16 l.226
+    ];
+    for (const [texte, pose] of lus) {
+      expect(parseTraitInstance(texte), texte).toEqual(pose);
+      expect(parseTraitInstance(formatTrait(pose)), JSON.stringify(pose)).toEqual(pose);
+      expect(traitInstanceSchema.safeParse(pose).success, JSON.stringify(pose)).toBe(true);
+    }
+  });
+
+  it('seul un Trait d’attaque confère, seul le Souffle porte une Difficulté, un Indice posé ne tire aucun dé', () => {
+    expect(traitInstanceSchema.safeParse({ id: 'vol', value: 60, confere: [{ id: 'venin' }] }).success).toBe(false);
+    expect(traitInstanceSchema.safeParse({ id: 'morsure', value: 6, difficulte: 'difficile' }).success).toBe(false);
+    expect(traitInstanceSchema.safeParse({ id: 'arme', value: { dice: { n: 1, sides: 10 } } }).success).toBe(false);
+  });
+
   it('une saisie qui joint plusieurs specs n’est pas découpée : une instance, refusée au parse sur un registre fermé', () => {
     const saisie = parseTraitInstance('Haine (Noble, Homme-bête)');
     expect(saisie).toEqual({ id: 'haine', arg: 'Noble, Homme-bête' });

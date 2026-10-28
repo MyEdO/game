@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { RefField } from '../compendium/refField/RefField';
 import { giveTrappingSchema } from '../../data/schemas/defs-scenes/effets';
 import { trappingDesObjetsPuisDuCatalogue, type TrappingData } from '../../data';
-import { apparencesAdmissibles } from '../../engine/items';
+import { apparencesAdmissiblesDObjet, candidatsDApparenceDObjet, referenceDApparenceDObjet } from '../../data/apparencesObjets';
 import { MediaSelect } from '../MediaSelect';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 
@@ -21,7 +21,7 @@ export function ObjetDonneField<T extends ObjetDonne>({ objets = [], value, onCh
   useVersionDesDatasets();
   const parId = useMemo(() => new Map(objets.map((o) => [o.id, o])), [objets]);
   const resolveTrapping = (id: string) => trappingDesObjetsPuisDuCatalogue(parId, id);
-  const choices = apparencesAdmissibles(value, resolveTrapping);
+  const choices = apparencesAdmissiblesDObjet(value, resolveTrapping);
   const poser = (patch: ObjetDonne) => {
     const next = { ...value, ...patch };
     for (const cle of ['trappingId', 'custom', 'apparence'] as const) if (next[cle] === undefined) delete next[cle];
@@ -33,16 +33,14 @@ export function ObjetDonneField<T extends ObjetDonne>({ objets = [], value, onCh
       onChange={(v) => {
         const id = typeof v === 'string' ? v : undefined;
         const trappingId = id && trappingDesObjetsPuisDuCatalogue(parId, id) ? id : undefined;
-        const apparence = value.apparence && apparencesAdmissibles({ trappingId }, resolveTrapping).some((a) => a.id === value.apparence?.id)
-          && value.apparence.id !== (trappingId ? resolveTrapping(trappingId)?.shape?.id : undefined) ? value.apparence : undefined;
-        poser({ trappingId, custom: trappingId ? undefined : id, apparence });
+        poser({ trappingId, custom: trappingId ? undefined : id, apparence: referenceDApparenceDObjet(trappingId, value.apparence?.id, resolveTrapping) });
       }} />
     {choices.length > 0 && <div className="ed-field">
       <span>Apparence</span>
       <MediaSelect title="Apparence de l’objet donné" triggerClassName="btn"
-        value={value.apparence?.id ?? (value.trappingId ? resolveTrapping(value.trappingId)?.shape?.id : undefined)}
+        value={candidatsDApparenceDObjet(value.trappingId, value.apparence?.id, resolveTrapping)[0]}
         options={choices.map((a) => ({ key: a.id, label: a.label }))}
-        onSelect={(id) => poser({ apparence: id === (value.trappingId ? resolveTrapping(value.trappingId)?.shape?.id : undefined) ? undefined : { id } })} />
+        onSelect={(id) => poser({ apparence: referenceDApparenceDObjet(value.trappingId, id, resolveTrapping) })} />
     </div>}
   </>;
 }

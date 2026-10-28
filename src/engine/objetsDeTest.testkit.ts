@@ -1,5 +1,5 @@
-import { itemFromTrappingById, weaponFromItem } from './engine/items';
-import type { ItemInstance, Weapon } from './engine/types';
+import { itemFromTrappingById, weaponFromItem } from './items';
+import type { ItemInstance, Weapon } from './types';
 
 type EtatDObjetDeTest = Partial<Pick<ItemInstance, 'uid' | 'equipped'>>;
 type EtatDArmeDeTest = EtatDObjetDeTest & Pick<Partial<Weapon>, 'hand'>;

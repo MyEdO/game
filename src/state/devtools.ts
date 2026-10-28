@@ -116,7 +116,8 @@ import { parseQualityInstance } from '../engine/qualities/normalize';
 import { formatImperial } from '../engine/clock';
 import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
 import { builtinCampaigns, allBuiltinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
-import { projectsLoad, projectSave, type EntreeEcrite, type SavedProject } from './projectLibrary';
+import { projectsLoad, projectSave } from './projectLibrary';
+import { type EntreeEcrite, type SavedProject } from '../noyau/persistance/bibliotheque';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { makeShowcaseParty } from '../data/pregens';
 import { hoverTargeting } from '../noyau/targeting';
@@ -150,6 +151,7 @@ import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene
 import { scheduleFlowTimer } from '../web/minuteries';
 import { editeur, type CommandesEditeur } from './editeurBridge';
 import { stockageWeb } from '../web/stockageWeb';
+import { lireLeTexte } from '../lib/stockage';
 import { browserFreezeTimeout, browserUnfreezeTimeout } from './devtoolsTimers';
 import { modaleDuDessus, type LayerPlan } from './dismissStack';
 import { getStagePan } from './stagePan';
@@ -277,7 +279,8 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.aim('id')      → vérité state du ciblage (ok/invalid + raison, compétence, dégâts)
  *   __wfrp.pad('A'|'B'|…) → simule un BOUTON de manette (Playwright n'a pas l'API Gamepad) — MÊME chemin
  *                           que le pad réel ; __wfrp.padDir('up'|'down'|'left'|'right') → croix/stick
- *   __wfrp.battle()       → #2967
+ *   __wfrp.battle()       → snapshot combat (round, actif, modales, combattants en une ligne chacun, armes
+ *                           tenues par `trappingId`/`apparence`/`formeResolue`)
  *   __wfrp.lastRoll()     → DERNIER Test résolu {actorId,success,sl,roll,target} (observation pure,
  *                           lecture seule, `null` si aucun depuis le chargement) — jamais une regex sur `innerText`
  *   __wfrp.log(n)         → queue lisible des journaux (exploration + feed de combat)
@@ -560,12 +563,7 @@ function rememberScenario(entry: LastScenario): void {
 }
 
 function recallScenario(): LastScenario | null {
-  let raw: string | null;
-  try {
-    raw = stockageWeb('sessionStorage')?.getItem(LAST_SCENARIO_KEY) ?? null;
-  } catch {
-    return null;
-  }
+  const raw = lireLeTexte(stockageWeb('sessionStorage'), LAST_SCENARIO_KEY);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as LastScenario;
@@ -1325,7 +1323,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ interlude ouvert (${weeks} sem., ${after.party.length} héros, ${budget} Activité(s) max/héros) — catalogue réel, écran 'interlude' (à conduire à la main)`;
     },
 
-    /** #2967 */
+    /** Snapshot COMBAT compact : round, actif, modales ouvertes, et chaque combattant en une ligne
+     *  (armes tenues comprises : `trappingId`, `apparence`, `formeResolue`). */
     battle: () => {
       const s = g();
       const b = s.battle;

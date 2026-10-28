@@ -65,7 +65,7 @@ const battleAnchorTargets = (): { id: string; label: string }[] =>
   activitiesFor('bataille-round').map((def) => ({ id: def.id, label: def.label }));
 import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { isSwarm } from '../../engine/traits/dispatch';
-import { armesDEntite } from '../../noyau/equipementDessine';
+import { armesDEntite, equipementDAuteurDe } from '../../noyau/equipementDessine';
 import { effectCtxOf } from './EffectList';
 import { RefNarrativeField } from '../compendium/refField/RefField';
 import { GameOpEditor } from './GameOpEditor';
@@ -1519,7 +1519,7 @@ function EntityPanel({
               apresArme={<ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)}
                 appearance={ent.appearance ?? {}}
                 onChange={(appearance) => updateSel({ appearance })}
-                weapons={armesDEntite(objetDuNarratif(narratif), ent.ref, { weapon: ent.weapon, traits: ent.statblock?.traits, enrolled: enrolledEntityIds(scene).has(ent.id), porteur: ent.id })}
+                weapons={armesDEntite(objetDuNarratif(narratif), ent.ref, equipementDAuteurDe(ent, enrolledEntityIds(scene).has(ent.id)))}
               />}
               weapon={ent.weapon}
               onWeapon={(w) => updateSel({ weapon: w })}

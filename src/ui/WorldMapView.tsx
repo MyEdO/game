@@ -7,7 +7,7 @@ import { placeOfScene, placeById, routesCliquables, routesEtat, visiblePlaces, o
 import { baseHoursPerDay, maxHoursPerDay, passagePayant, hoursTravelledToday, travelDayBudget, routeDuJourFaite, MOUNT_MAX_HOURS } from '../noyau/travelFlow';
 import { clockLabel } from '../engine/duration';
 import { descenteJouee } from '../noyau/riverVoyageFlow';
-import { forcePaceRefus } from '../noyau/seaVoyageFlow';
+import { forcePaceRefus, millesDeCroisiere, dureeDeTraversee, mDeCroisiere, refusDAppareiller, raisonDuRefusDAppareiller } from '../noyau/seaVoyageFlow';
 import {
   TravelMode, travelModeLabels, travelModeIcon, travelSpeed, travelPlanCalc, transportCost,
   routeDistanceLabel, vehicleTravel, classeRetenue, prixParPassager, placesPayees,
@@ -228,7 +228,10 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
     ? (vessel ? vesselNavalTraits(vessel) : null)
     : (fluvialJoue ? navalTraitsDe(mode, undefined) : null);
   const seaPropulsion = vessel ? garanti(propulsionDuNavire(vessel.vehicleId, vessel.upgrades, 'maritime'), vessel.vehicleId, 'propulsion du navire') : null;
-  const seaM = seaPropulsion ? seaPropulsion.m : 0; // MDG 13 l.656, l.674
+  const seaM = vessel ? mDeCroisiere(vessel) : 0;
+  const refusMer = vessel ? refusDAppareiller(vessel) : null;
+  const appareillable = !!vessel && !refusMer;
+  const raisonDeNePasAppareiller = refusMer ? raisonDuRefusDAppareiller(refusMer) : t('wm.aucunNavire');
   // Forcer le rythme : MDG 13 l.95-107, MDG 12 l.311.
   const seaRig = seaPropulsion && seaPropulsion.mode !== 'vapeur' ? { mode: seaPropulsion.mode, competence: seaPropulsion.competence } : null;
   /** Traversée RAPIDE TRANSMISE au départ (MDG 15 l.21-37) : source unique de l'`aria-pressed` du
@@ -236,7 +239,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const fastJoue = mode === 'mer' && seaFast;
   const seaPaceChoices = seaRig ? [0, 1, 2].filter((b) => b === 0 || forcePaceDifficulty(b, seaRig.mode) != null) : [0];
   const seaPaceRefus = seaRig ? forcePaceRefus(party, seaRig.competence) : null;
-  // Surcharge de la cale (MDG 12 l.70-75) : >150 % = « Impossible de prendre la mer » → appareillage bloqué.
+  // Surcharge de la cale : MDG 12 l.70-75.
   const seaOverload = vessel && vesselData?.ship ? cargoOverload(cargoTotalEnc(vessel.cargo ?? []), vesselData.ship.capacity) : null;
   // Population embarquée pour le manifeste d'avitaillement (#245) : héros + effectif PNJ nominal présent.
   const seaCrewCount = vessel ? Math.max(0, (vesselData?.ship?.crew ?? 0) - (vessel.crewLost ?? 0)) : 0;
@@ -266,7 +269,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const rationsNeeded = plan ? Math.max(0, (plan.days - 1) * passengers) : 0; // les nuits en route mangent
 
   // Avitaillement au départ EN MER (#241) : le groupe qui appareille sans vivres/eau le SAIT.
-  const seaDaysEstimated = mode === 'mer' && selRoute && seaM > 0 ? Math.max(1, Math.ceil(selRoute.km / (18 * seaM))) : 0;
+  const seaDaysEstimated = mode === 'mer' && selRoute && appareillable ? dureeDeTraversee(selRoute.km, seaM) : 0;
   const provisions = mode === 'mer' && seaDaysEstimated > 0 ? provisioningManifest(party, vessel?.waterLitres, seaDaysEstimated, { count: seaCrewCount, provisions: vessel?.provisions }) : null;
 
   const libelleDepart = t(mode === 'mer' && provisions && !provisions.suffisant ? 'wm.appareillerQuandMeme' : achat ? 'wm.payerEtPartir' : 'wm.partir');
@@ -577,7 +580,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               )}
             </>
           )}
-          {((mode === 'mer' && vessel && seaM > 0) || fluvialJoue) && (
+          {((mode === 'mer' && appareillable) || fluvialJoue) && (
             <div className="wm-modes">
               <button
                 type="button"
@@ -610,7 +613,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               )}
             </div>
           )}
-          {mode === 'mer' && vessel && seaRig && seaM > 0 && !fastJoue && seaPaceChoices.length > 1 && (
+          {mode === 'mer' && appareillable && seaRig && !fastJoue && seaPaceChoices.length > 1 && (
             <div className="wm-modes">
               {seaPaceChoices.map((b) => {
                 const diff = b ? forcePaceDifficulty(b, seaRig.mode) : null;
@@ -642,12 +645,11 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
           )}
           <p className="wm-est">
             {mode === 'mer' ? (
-              vessel && seaM > 0 ? (
-                // 18 milles/jour par point de M (MDG 15 l.57-70) — le vent et les Tests d'équipage
-                // de Progression (±10 %/DR) modulent chaque journée.
-                <><Icon id="scenario/port" size="sm" /> {t('wm.estimationMer', { navire: vesselLabel, milles: 18 * seaM, m: seaM, tenu: seaPace ? t('wm.siRythmeTenu', { milles: 18 * (seaM + seaPace) }) : '', jours: Math.max(1, Math.ceil(selRoute.km / (18 * seaM))) })}</>
+              seaDaysEstimated > 0 ? (
+                // MDG 15 l.57-78.
+                <><Icon id="scenario/port" size="sm" /> {t('wm.estimationMer', { navire: vesselLabel, milles: millesDeCroisiere(seaM), m: seaM, tenu: seaPace ? t('wm.siRythmeTenu', { milles: millesDeCroisiere(seaM + seaPace) }) : '', jours: seaDaysEstimated })}</>
               ) : (
-                <>{t('wm.aucunNavire')}</>
+                <>{raisonDeNePasAppareiller}</>
               )
             ) : kmh > 0 ? (
               <>
@@ -671,7 +673,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
                 {t('wm.eau', { dispo: provisions.eauDispoLitres != null ? t('wm.litres', { litres: provisions.eauDispoLitres }) : '—', requis: provisions.eauRequiseLitres })}
               </span>
               {!provisions.suffisant && <span className="wm-provision-item short">{t('wm.avitaillementInsuffisant', { jours: provisions.joursEstimes, ames: provisions.souls })}</span>}
-              {seaOverload?.palierId && <span className="wm-provision-item short">{t('wm.caleSurchargee', { pct: seaOverload.ratioPct, palier: seaOverload.label, suite: seaOverload.canSail ? t('wm.caleEffets', { m: seaOverload.mMod, dr: seaOverload.manoeuvreDR }) : t('wm.caleImpossible') })}</span>}
+              {seaOverload?.palierId && <span className="wm-provision-item short">{t('wm.caleSurchargee', { pct: seaOverload.ratioPct, palier: seaOverload.label, suite: t('wm.caleEffets', { m: seaOverload.mMod, dr: seaOverload.manoeuvreDR }) })}</span>}
             </div>
           )}
           {mode === 'mer' && vessel ? <ShipRolesPanel /> : rule('travel-etapes') && <TravelRolesPanel />}
@@ -691,11 +693,10 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               label={<><Icon id="scenario/travel" size="sm" /> {aLAube ? t('wm.attendreAube') : libelleDepart}</>}
               ariaLabel={aLAube ? t('wm.attendreAube') : libelleDepart}
               enabled={!isGuest && (mode === 'mer'
-                ? !!vessel && seaM > 0 && !(seaOverload != null && !seaOverload.canSail)
+                ? appareillable
                 : kmh > 0 && affordable)}
               reason={isGuest ? t('wm.hoteDecide')
-                : mode === 'mer' && (!vessel || seaM <= 0) ? t('wm.aucunNavire')
-                : mode === 'mer' ? t('wm.refusCale', { pct: seaOverload?.ratioPct ?? 0 })
+                : mode === 'mer' ? raisonDeNePasAppareiller
                 : kmh <= 0 ? t('wm.refusSurcharge')
                 : t('wm.refusBourse', { prix: cost ? formatMoney(cost) : '' })}
               onClick={() => {

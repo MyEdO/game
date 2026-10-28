@@ -12,8 +12,9 @@ import { t } from '../i18n';
 import { resetSceneRegistry } from '../noyau/monde/registreDesScenes';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { lancerCampagne } from '../scenes/campaign';
-import { readSlot, deleteSlot, exportSave, importSave, listSaves, saveToSlot, takeObsoleteNotice } from './saves';
-import { parseSave, snapshotSave, elaguerSave, type SaveGame } from '../noyau/persistance/save';
+import { stockageDesSauvegardes } from './saves';
+import { lireLaSauvegarde, retirerLaSauvegarde, listerLesSauvegardes, ecrireLaSauvegarde, prendreLesRetraitsDeSauvegardes } from '../hote/sauvegardes';
+import { chargerLaSave, lireSave, snapshotSave, exporterLaSauvegarde, type SaveGame } from '../noyau/persistance/save';
 import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 import { rule, setRule, loadRuleOverrides, OPTIONAL_RULES } from '../engine/policy';
 import { talents, careerLevels, specResolves, combatStakeRef, conditionIds } from '../data/index';
@@ -38,6 +39,7 @@ import { findPropById, findSpellById } from '../data/index';
 import { spellEffectOps } from '../engine/flowCore';
 import { applyOps } from '../engine/ops';
 import { desDuTest } from '../engine/dice.testkit';
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 /** Porteur minimal : `stampCriticalEscalation` ne lit que ses séquelles. */
 const hero38 = (): Combatant => ({ id: 'h', label: 'H', kind: 'hero', conditions: [], skills: [], traumas: [] } as unknown as Combatant);
@@ -49,41 +51,27 @@ const heroCritique = (): Combatant => ({
   wounds: { current: 6, max: 12 }, bodyShape: 'humanoide', critEntriesSuffered: [],
 } as unknown as Combatant);
 
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
-
 describe('Sauvegarde / chargement (Jalon 5)', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
     vi.useFakeTimers();
     vi.clearAllTimers();
-    deleteSlot(1); deleteSlot(2); deleteSlot(3);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sauvé', seed: 4 });
     useGame.setState({ party: [hero], battle: null, net: initialNet() });
     useGame.getState().startScene(testScene());
     vi.clearAllTimers();
   });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); deleteSlot(1); deleteSlot(2); deleteSlot(3); loadRuleOverrides({}); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); loadRuleOverrides({}); });
 
-  it('saveGame → slot rempli avec métadonnées (scène, horloge) ; listSaves le voit', () => {
+  it('saveGame → slot rempli avec métadonnées (scène, horloge) ; listerLesSauvegardes le voit', () => {
     useGame.setState({ flags: { ...useGame.getState().flags, 'drapeau-test': true } });
     expect(useGame.getState().saveGame(1)).toBe(true);
-    const s = readSlot(1)!;
+    const s = lireLaSauvegarde(stockageDesSauvegardes(), 1)!;
     expect(s.version).toBe(FORMAT_SAVE);
     expect(s.sceneLabel).toBe(testScene().label); // le NOM de la scène, pas son id
     expect(s.sceneLabel.length).toBeGreaterThan(0);
     expect((s.data.flags as Record<string, unknown>)['drapeau-test']).toBe(true);
-    const metas = listSaves();
+    const metas = listerLesSauvegardes(stockageDesSauvegardes());
     expect(metas[0]?.slot).toBe(1);
     expect(metas[1]).toBeNull();
   });
@@ -113,7 +101,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     const def = rule(id) as boolean; // défaut RAW du registre
     setRule(id, !def); // l'utilisateur active la règle maison
     expect(useGame.getState().saveGame(1)).toBe(true);
-    expect(readSlot(1)!.rules?.[id]).toBe(!def); // la surcharge voyage DANS la save
+    expect(lireLaSauvegarde(stockageDesSauvegardes(), 1)!.rules?.[id]).toBe(!def); // la surcharge voyage DANS la save
     loadRuleOverrides({}); // « autre machine » : aucune règle maison locale → défaut
     expect(rule(id)).toBe(def);
     expect(useGame.getState().loadGame(1)).toBe(true);
@@ -129,7 +117,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     expect(jeu.length, 'témoin : l’état initial du jeu porte bien des données').toBeGreaterThan(20);
     useGame.setState({ reveler: true, debugLabels: true, debugRoofCut: false, camRot: 2, zoom: 1.8, sheetId: 'h' });
     expect(useGame.getState().saveGame(1), 'témoin : la save est bien écrite').toBe(true);
-    const cles = Object.keys(readSlot(1)!.data);
+    const cles = Object.keys(lireLaSauvegarde(stockageDesSauvegardes(), 1)!.data);
     expect(jeu.filter((k) => !cles.includes(k)), 'un champ de jeu hors save sans exclusion nommée').toEqual(['campaignNarratif']);
     expect(cles.filter((k) => !jeu.includes(k)), 'une clé de la save hors `EtatDeJeu`').toEqual([]);
     const interface_ = [...Object.keys(etatInitialDeLAdaptateur()), 'keyOverrides'];
@@ -150,8 +138,8 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     expect(useGame.getState().saveGame(1)).toBe(false);
     expect(useGame.getState().autoSave()).toBe(false);
     expect(useGame.getState().journal.slice(-1)[0]).toBe(t('store.saveInvite'));
-    expect(readSlot(1)).toBeNull();
-    expect(readSlot('auto')).toBeNull();
+    expect(lireLaSauvegarde(stockageDesSauvegardes(), 1)).toBeNull();
+    expect(lireLaSauvegarde(stockageDesSauvegardes(), 'auto')).toBeNull();
   });
 
   it('en combat : sauvegarde refusée, le slot reste vide', () => {
@@ -159,17 +147,17 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
     expect(useGame.getState().saveGame(1)).toBe(false);
-    expect(readSlot(1)).toBeNull();
+    expect(lireLaSauvegarde(stockageDesSauvegardes(), 1)).toBeNull();
   });
 
   it('export / import : round-trip JSON validé ; autre format rejeté', () => {
     expect(useGame.getState().saveGame(3)).toBe(true);
-    const json = exportSave(readSlot(3)!);
-    const re = importSave(json);
-    expect(typeof re === 'object' && re.sceneLabel).toBe(readSlot(3)!.sceneLabel);
-    expect(importSave('{pas du json')).toBe('illisible');
-    expect(importSave(JSON.stringify({ ...JSON.parse(json), version: 'autre-format' }))).toBe('autreFormat');
-    expect(importSave(JSON.stringify({ ...JSON.parse(json), version: 66 }))).toBe('autreFormat');
+    const json = exporterLaSauvegarde(lireLaSauvegarde(stockageDesSauvegardes(), 3)!);
+    const re = lireSave(json);
+    expect(typeof re === 'object' && re.sceneLabel).toBe(lireLaSauvegarde(stockageDesSauvegardes(), 3)!.sceneLabel);
+    expect(lireSave('{pas du json')).toBe('illisible');
+    expect(lireSave(JSON.stringify({ ...JSON.parse(json), version: 'autre-format' }))).toBe('autreFormat');
+    expect(lireSave(JSON.stringify({ ...JSON.parse(json), version: 66 }))).toBe('autreFormat');
     // importGame applique la save importée à l'état.
     useGame.setState({ flags: {}, scene: null, screen: 'menu' });
     expect(useGame.getState().importGame(json)).toBeNull();
@@ -220,7 +208,7 @@ describe('forme persistée — ce que le chargement lit', () => {
   });
   it('une save neuve d’Arène, rechargée, résout ses zones (#1692)', () => {
     expect(lancerCampagne(useGame.getState, null)).toBeNull();
-    const json = exportSave(snapshotSave(useGame.getState(), '2026-09-27T00:00:00.000Z'));
+    const json = exporterLaSauvegarde(snapshotSave(useGame.getState(), '2026-09-27T00:00:00.000Z'));
     resetSceneRegistry();
     useGame.setState(useGame.getInitialState());
     expect(useGame.getState().importGame(json)).toBeNull();
@@ -312,10 +300,10 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(save.data.scene?.label).toBe('La Salle du Trône');
     expect(snapshotSave({ ...etatInitialDuJeu(), scene: null }, '2026').sceneLabel).toBe('Sans scène');
   });
-  it('objet malformé / version absente → null', () => {
-    expect(parseSave(null)).toBeNull();
-    expect(parseSave('pas un objet')).toBeNull();
-    expect(parseSave({ savedAt: 'x', data: {} })).toBeNull(); // version absente
+  it('objet malformé / version absente → autre format', () => {
+    expect(lireSave('null')).toBe('autreFormat');
+    expect(lireSave('"pas un objet"')).toBe('autreFormat');
+    expect(lireSave(JSON.stringify({ savedAt: 'x', data: {} }))).toBe('autreFormat'); // version absente
   });
 });
 
@@ -326,30 +314,30 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
   const ls = () => (globalThis as { localStorage: Storage }).localStorage;
 
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
   });
 
   it('save d’un autre format : REJETÉE, RETIRÉE du stockage, témoin « autreFormat » posé', () => {
     ls().setItem(stableKey(1), JSON.stringify(save('autre-format')));
-    expect(readSlot(1)).toBeNull();
+    expect(lireLaSauvegarde(stockageDesSauvegardes(), 1)).toBeNull();
     expect(ls().getItem(stableKey(1))).toBeNull(); // la donnée est SUPPRIMÉE, pas laissée à pourrir
-    expect(takeObsoleteNotice()).toEqual([{ slot: 1, cause: 'autreFormat' }]);
-    expect(takeObsoleteNotice()).toEqual([]); // témoin à usage unique
+    expect(prendreLesRetraitsDeSauvegardes(stockageDesSauvegardes())).toEqual([{ slot: 1, cause: 'autreFormat' }]);
+    expect(prendreLesRetraitsDeSauvegardes(stockageDesSauvegardes())).toEqual([]); // témoin à usage unique
     expect(t('saveload.error.autreFormat', { emplacement: 'Emplacement 1' })).toBe('Emplacement 1 : sauvegarde d’un autre format, retirée.');
   });
 
   it('save à numéro de version : même sort', () => {
     ls().setItem(stableKey(2), JSON.stringify(save(66)));
-    expect(readSlot(2)).toBeNull();
+    expect(lireLaSauvegarde(stockageDesSauvegardes(), 2)).toBeNull();
     expect(ls().getItem(stableKey(2))).toBeNull();
-    expect(takeObsoleteNotice()).toEqual([{ slot: 2, cause: 'autreFormat' }]);
+    expect(prendreLesRetraitsDeSauvegardes(stockageDesSauvegardes())).toEqual([{ slot: 2, cause: 'autreFormat' }]);
   });
 
   it('save à le format courant : chargée normalement, rien de jeté, aucun message', () => {
     ls().setItem(stableKey(2), JSON.stringify(save(FORMAT_SAVE, 'Courante')));
-    expect(readSlot(2)?.sceneLabel).toBe('Courante');
+    expect(lireLaSauvegarde(stockageDesSauvegardes(), 2)?.sceneLabel).toBe('Courante');
     expect(ls().getItem(stableKey(2))).not.toBeNull();
-    expect(takeObsoleteNotice()).toEqual([]);
+    expect(prendreLesRetraitsDeSauvegardes(stockageDesSauvegardes())).toEqual([]);
   });
 
   it('loadGame sur une save d’un autre format : refusé, l’état courant INTACT, l’emplacement vidé', () => {
@@ -358,8 +346,8 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
     expect(useGame.getState().loadGame(1)).toBe(false);
     expect(useGame.getState().flags['drapeau-vivant']).toBe(true);
     expect(useGame.getState().flags['drapeau-x']).toBeUndefined();
-    expect(listSaves()[0]).toBeNull();
-    expect(takeObsoleteNotice()).toEqual([{ slot: 1, cause: 'autreFormat' }]);
+    expect(listerLesSauvegardes(stockageDesSauvegardes())[0]).toBeNull();
+    expect(prendreLesRetraitsDeSauvegardes(stockageDesSauvegardes())).toEqual([{ slot: 1, cause: 'autreFormat' }]);
   });
 
   it('save au format courant qui nomme une règle ou un État hors du registre : CHARGÉE élaguée de ces seuls ids, nommés ; l’emplacement reste (#1463 LD.1)', () => {
@@ -372,45 +360,48 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
       data: { party: [{ id: 'h', label: 'H', kind: 'hero', conditions: [{ id: connu, value: 1 }, { id: 'etat-hors-registre', value: 1 }] }] },
     };
     ls().setItem(stableKey(1), JSON.stringify(lue));
-    expect(readSlot(1), 'la dérive du registre ne jette pas la save').not.toBeNull();
-    expect(takeObsoleteNotice()).toEqual([]);
+    expect(lireLaSauvegarde(stockageDesSauvegardes(), 1), 'la dérive du registre ne jette pas la save').not.toBeNull();
+    expect(prendreLesRetraitsDeSauvegardes(stockageDesSauvegardes())).toEqual([]);
     expect(useGame.getState().loadGame(1)).toBe(true);
     expect(rule(r.id), 'la surcharge connue s’applique').toBe(!r.default);
     expect(rule(autre.id), 'la valeur non conforme est retirée').toBe(autre.default);
     expect(useGame.getState().party[0].conditions.map((c) => c.id), 'le héros reste, sans l’État inconnu').toEqual([connu]);
-    expect(useGame.getState().retraitsDeChargement).toEqual({ regles: ['regle-hors-registre', autre.id], etats: ['etat-hors-registre'] });
+    expect(useGame.getState().retraitsDeChargement).toEqual({ regles: ['regle-hors-registre', autre.id], etats: ['etat-hors-registre'], groupes: [] });
     expect(ls().getItem(stableKey(1)), 'l’emplacement n’est pas vidé').not.toBeNull();
   });
 
-  it('elaguerSave : une save que le registre reconnaît entière ne perd rien, et ne dit rien', () => {
+  it('chargerLaSave : une save que le registre reconnaît entière ne perd rien, et ne dit rien', () => {
     const r = OPTIONAL_RULES[0];
     const entiere = { ...save(FORMAT_SAVE), rules: { [r.id]: r.default }, data: { party: [{ id: 'h', conditions: [{ id: conditionIds()[0], value: 1 }] }] } } as unknown as SaveGame;
-    expect(elaguerSave(entiere)).toEqual({ save: entiere, retraits: { regles: [], etats: [] } });
+    const chargee = chargerLaSave(entiere);
+    expect(chargee.retraits).toBeNull();
+    expect(chargee.regles).toEqual(entiere.rules);
+    expect(chargee.etat.party).toEqual(entiere.data.party);
   });
 
   it('contenu illisible : jeté, témoin « illisible » — jamais un crash', () => {
     ls().setItem(stableKey(1), 'pas du json');
-    expect(readSlot(1)).toBeNull();
+    expect(lireLaSauvegarde(stockageDesSauvegardes(), 1)).toBeNull();
     expect(ls().getItem(stableKey(1))).toBeNull();
-    expect(takeObsoleteNotice()).toEqual([{ slot: 1, cause: 'illisible' }]);
+    expect(prendreLesRetraitsDeSauvegardes(stockageDesSauvegardes())).toEqual([{ slot: 1, cause: 'illisible' }]);
   });
 
   it('emplacement VIDE : ni message ni bruit', () => {
-    expect(readSlot(1)).toBeNull();
-    expect(listSaves()).toEqual([null, null, null]);
-    expect(takeObsoleteNotice()).toEqual([]);
+    expect(lireLaSauvegarde(stockageDesSauvegardes(), 1)).toBeNull();
+    expect(listerLesSauvegardes(stockageDesSauvegardes())).toEqual([null, null, null]);
+    expect(prendreLesRetraitsDeSauvegardes(stockageDesSauvegardes())).toEqual([]);
   });
 
-  it('saveToSlot écrase une save d’un autre format', () => {
+  it('ecrireLaSauvegarde écrase une save d’un autre format', () => {
     ls().setItem(stableKey(1), JSON.stringify(save('autre-format', 'Autre')));
     const neuve = { version: FORMAT_SAVE, savedAt: '2026-08-17', sceneLabel: 'Nouveau', gameTime: 0, data: {}, rules: {} } as unknown as SaveGame;
-    expect(saveToSlot(1, neuve)).toBe(true);
-    expect(readSlot(1)?.sceneLabel).toBe('Nouveau');
+    expect(ecrireLaSauvegarde(stockageDesSauvegardes(), 1, neuve)).toBe(true);
+    expect(lireLaSauvegarde(stockageDesSauvegardes(), 1)?.sceneLabel).toBe('Nouveau');
   });
 
-  it('deleteSlot vide l’emplacement', () => {
+  it('retirerLaSauvegarde vide l’emplacement', () => {
     ls().setItem(stableKey(1), JSON.stringify(save(FORMAT_SAVE)));
-    deleteSlot(1);
+    retirerLaSauvegarde(stockageDesSauvegardes(), 1);
     expect(ls().getItem(stableKey(1))).toBeNull();
   });
 });

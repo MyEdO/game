@@ -6,7 +6,7 @@
 import type { RNG } from './dice';
 import type { Combatant, EffectSource } from './types';
 import type { GameOp } from './ops';
-import { slBonus, valeurSansTirage } from './formule';
+import { indiceSurLeProfil, slBonus } from './formule';
 import { traitsDuPorteur, type TraitInstance } from './statEntry';
 import { TIRAGE_DE_CIBLE } from '../data/obsessions';
 
@@ -21,10 +21,11 @@ export function traitsOctroyes(
   { lanceur, porteur, rng, sl, src }: { lanceur: Combatant; porteur: Combatant; rng: RNG; sl?: number; src?: EffectSource },
 ): TraitInstance[] {
   const { value, ...pose } = o.trait;
-  const indice = value === undefined ? {} : { value: valeurSansTirage(value, lanceur) + slBonus(sl, o.indicePerSL) };
+  const parDR = slBonus(sl, o.indicePerSL);
+  const indice = value === undefined ? {} : { value: parDR ? { sum: [value, parDR] } : value };
   const cible = o.cible;
   const poses = cible
     ? Array.from({ length: cible.pick }, () => ({ ...pose, ...indice, arg: TIRAGE_DE_CIBLE[cible.table.id](rng) }))
     : [{ ...pose, ...indice }];
-  return traitsDuPorteur(poses, porteur.id, porteur.traits, { src });
+  return traitsDuPorteur(poses, { id: porteur.id, indice: indiceSurLeProfil(lanceur) }, porteur.traits, { src });
 }

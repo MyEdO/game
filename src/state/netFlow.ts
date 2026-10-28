@@ -12,35 +12,28 @@
  * Reconnexion (spec v2 §6) : coupure d'un invité → son siège est réservé GRACE_MS (présence
  * « away » côté hôte), il reprend par token (y compris après un F5 : token en sessionStorage) ;
  * passé la grace, ses héros reviennent à l'hôte. La campagne custom voyage UNE fois au join
- * (message `campaign`), jamais dans les snapshots.
+ * (message `paquetDeCampagne`), jamais dans les snapshots.
  *
  * Les objets réseau vivants (sessions, sockets) restent des SINGLETONS de module — jamais dans
  * le store (non sérialisables, jamais dans les snapshots).
  */
 import type { GameState, RemplacerLEtat } from './store';
 import { remettreLAdaptateur, useGame } from './store';
-import { registerScene, reposerPaquetDeCampagne } from '../noyau/monde/registreDesScenes';
-import { snapshotSave, packHouseRules, unpackHouseRules } from '../noyau/persistance/save';
-import { ruleOverrides, loadRuleOverrides, OPTIONAL_RULES } from '../engine/policy';
-import { etatIdsConnus } from '../engine/conditions';
-import { hash32 } from '../data/hash';
-import { HostSession, GuestSession } from '../net/session';
+import { buildDeLaCoop, instantaneDeLaCoop, appliquerLInstantane } from '../noyau/coop';
+import { HostSession, GuestSession } from '../hote/coop/session';
 import { sanitizeIntentArgs } from './intents';
 import { GUEST_INTENTS, appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
 import { argsAvecVerdictLocal } from '../noyau/localIntent';
 import { RoomGuest, RoomHost, relayHttpUrl } from '../net/relay';
-import type { NetMessage } from '../net/protocol';
-import type { Scene } from '../noyau/monde/scene';
 import { intentEluLocalement } from '../noyau/targetingModes';
 import { bus, EVT } from '../noyau/bus';
 import { scheduleFlowTimer, clearTrackedTimer } from '../web/minuteries';
 
 import type { Get, Set } from '../noyau/flowTypes';
-import { etatInitialDuJeu, initialNet, type NetState } from '../noyau/etat';
-import { fermerLeSiege } from '../noyau/sieges';
+import { initialNet, type NetState } from '../noyau/etat';
+import { attribuerLEmplacement, attribuerLeHeros, fermerLeSiege, poserLeSiegeMJ } from '../noyau/sieges';
 import { t } from '../i18n';
 import { stockageWeb } from '../web/stockageWeb';
-import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 
 /** Le nom d'un siège de coop : celui que le joueur a donné, sinon « Hôte » (siège 0) ou « Joueur n » (#1906) —
  *  SOURCE UNIQUE, jamais « L'hôte » pour un invité. */
@@ -57,7 +50,6 @@ let unsubscribe: (() => void) | null = null;
 let originals: Record<string, (...args: unknown[]) => unknown> | null = null;
 let broadcastTimer: ReturnType<typeof setTimeout> | null = null;
 const graceTimers = new Map<number, ReturnType<typeof setTimeout>>();
-let lastCampaign: unknown = null;
 
 /** Siège réservé pendant la reconnexion d'un invité (spec v2 §6). */
 export const GRACE_MS = 120_000;
@@ -65,55 +57,6 @@ export const GRACE_MS = 120_000;
 const BUFFER_MAX = 256 * 1024;
 /** Token de reprise persisté par room — un reload de l'onglet reprend le même siège. */
 const tokenKey = (code: string) => `wfrp4.coop.token.${code}`;
-
-/** Le `build` comparé au `hello` (#1463 LD.1) : le FORMAT de l'état (`FORMAT_SAVE`) et l'empreinte des registres
- *  dont un snapshot nomme les ids (règles optionnelles et leur forme, États connus). Deux clients qui divergent
- *  sur l'un ou l'autre sont refusés par le seul `format-mismatch` du handshake (`net/session.ts`). Lu à
- *  l'ouverture de la session. */
-export function buildDeLaCoop(): string {
-  const regles = OPTIONAL_RULES.flatMap((r) => [r.id, r.kind, (r.options ?? []).join('|'), r.min ?? '', r.max ?? '']);
-  return `${FORMAT_SAVE}.${hash32(...regles, '§', ...etatIdsConnus()).toString(36)}`;
-}
-
-/** Snapshot d'état pour le réseau — mêmes clés que la sauvegarde, SANS les scènes du projet de
- *  campagne (313 Ko pour l'Arène : elles voyagent UNE fois au join via le message `campaign`,
- *  spec v2 §5). Un stub nom-seul reste : les invités affichent la campagne choisie (cartouche
- *  de l'écran d'équipe) sans jamais la charger eux-mêmes (« Commencer » est hôte-seul).
- *  La FORME de ce `data` est celle de la sauvegarde : `PROTOCOL_VERSION` (`net/protocol.ts`) versionne
- *  les messages, pas leur charge — c'est `FORMAT_SAVE` qui date cette forme, et le `hello` refuse
- *  deux clients de formats ou de registres différents (`buildDeLaCoop`). */
-export function netSnapshot(get: Get): Record<string, unknown> {
-  const { data } = snapshotSave(get(), 'net');
-  const pc = (data as { pendingCampaign?: GameState['pendingCampaign'] }).pendingCampaign;
-  const stub: GameState['pendingCampaign'] = pc
-    ? { id: pc.id, label: pc.label, scenes: [], startSceneId: pc.startSceneId, worldMap: null, projet: pc.projet }
-    : null;
-  (data as Record<string, unknown>).pendingCampaign = stub;
-  // L'INTENTION armée est un mode d'ÉCRAN, LOCAL au client (spec HUD zone 4) : elle ne voyage pas —
-  // la case armée de l'hôte n'a rien à allumer chez ses invités.
-  delete (data as Record<string, unknown>).localIntent;
-  // MÊME raison pour le PORTEUR élu du mode Dissiper : le clic-token qui l'élit n'engage rien, il
-  // ouvre le choix du paramètre CHEZ CE JOUEUR (spec HUD §1d). L'élection se joue donc chez
-  // l'ÉMETTEUR (`emettreIntentInvite`), jamais par un intent — sinon elle atterrirait ici, à l'hôte.
-  delete (data as Record<string, unknown>).dispelCarrierId;
-  // MÊME raison pour le REFUS de geste (`refusVisible.ts`) : c'est la réponse faite à CE joueur sur SON
-  // clic. L'hôte qui refuse son propre geste n'a rien à dire aux autres tables ; et quand il exécute
-  // l'intent d'un invité, le refus éventuel appartient à l'invité, pas au sien.
-  delete (data as Record<string, unknown>).refus;
-  // Les règles maison de l'HÔTE voyagent avec l'état → parité hôte/invité (sinon l'invité calcule
-  // sur SES propres surcharges localStorage et diverge).
-  return packHouseRules(data, ruleOverrides());
-}
-
-function campaignMessage(pc: NonNullable<GameState['pendingCampaign']>): NetMessage {
-  return { kind: 'campaign', label: pc.label, scenes: pc.scenes, startSceneId: pc.startSceneId, worldMap: pc.worldMap ?? null };
-}
-
-function campaignMessages(get: Get): NetMessage[] {
-  const pc = get().pendingCampaign;
-  if (pc) lastCampaign = pc;
-  return pc ? [campaignMessage(pc)] : [];
-}
 
 /** Diffusion throttlée (trailing ~120 ms) : une rafale de mutations (tour d'IA) = un snapshot.
  *  Upload saturé (bufferedAmount) → on retente, seul le DERNIER état partira (coalescing). */
@@ -126,50 +69,17 @@ function scheduleBroadcast(get: Get): void {
       scheduleBroadcast(get);
       return;
     }
-    const pc = get().pendingCampaign;
-    if (pc && pc !== lastCampaign) {
-      lastCampaign = pc;
-      host.broadcast(campaignMessage(pc)); // campagne chargée APRÈS le join → rattrapage
-    }
-    host.broadcastSnapshot(netSnapshot(get));
+    host.broadcastSnapshot();
   }, 120);
 }
 
-/** L'invité applique un snapshot : état de JEU de l'hôte (`snapshotSave`) posé sur l'état initial du jeu, SON
- *  interface intacte (hors snapshot), SON identité réseau préservée. Elle se remet comme chez l'hôte
- *  (`remettreLAdaptateur`) quand la scène change, ou quand la partie change : le snapshot ne porte aucune
- *  marque de partie, `gameTime` (qu'une partie n'avance que vers l'avant, `horloge.ts`) qui recule en tient lieu.
- *  Pendant la composition d'équipe, son écran « créateur » LOCAL est aussi préservé (sinon
- *  chaque broadcast de l'hôte l'éjecterait en pleine création et perdrait son brouillon).
- *  L'INTENTION armée (`localIntent`, spec HUD zone 4) l'est au même titre : c'est un mode d'ÉCRAN du
- *  client — un snapshot de l'hôte (arrivant toutes les ~120 ms) désarmerait la case sous le doigt. */
+/** L'invité applique un snapshot (`appliquerLInstantane`). Son interface se remet comme chez l'hôte
+ *  (`remettreLAdaptateur`) quand la scène ou la partie change. */
 export function applyNetSnapshot(set: RemplacerLEtat, data: Record<string, unknown>): void {
-  const base = etatInitialDuJeu();
   const mine = useGame.getState();
-  const { game, rules } = unpackHouseRules(data);
-  if (rules) loadRuleOverrides(rules); // l'invité adopte les règles maison de l'hôte (parité)
-  const incoming = (game as { net?: NetState }).net;
-  const entrant = game as Partial<GameState>;
-  const keepCreator = mine.screen === 'creator' && entrant.screen === 'party';
-  const neuve = (entrant.gameTime ?? mine.gameTime) < mine.gameTime;
-  if (neuve || (entrant.scene?.id ?? null) !== (mine.scene?.id ?? null)) remettreLAdaptateur(neuve);
-  set({
-    ...base,
-    ...entrant,
-    ...reposerPaquetDeCampagne(entrant.campaignDoc),
-    ...(keepCreator ? { screen: 'creator' as const } : null),
-    localIntent: mine.localIntent,
-    dispelCarrierId: mine.dispelCarrierId, // le porteur élu est le choix EN COURS de ce client
-    refus: mine.refus, // le refus du CLIENT survit au snapshot : c'est SON retour de geste
-
-    net: {
-      ...(incoming ?? mine.net),
-      mode: 'guest',
-      mySeat: mine.net.mySeat,
-      connection: mine.net.connection,
-      hostAway: mine.net.hostAway,
-    },
-  });
+  const { etat, neuve, autreScene } = appliquerLInstantane(data, mine);
+  if (neuve || autreScene) remettreLAdaptateur(neuve);
+  set(etat);
   bus.emit(EVT.SCENE_DIRTY);
 }
 
@@ -246,8 +156,8 @@ export async function netHostStart(get: Get, set: Set, name: string): Promise<bo
   host = new HostSession({
     build: buildDeLaCoop(),
     applyIntent: (action, args, seat) => appliquerLIntentionDUnSiege(get, seat, action, args),
-    getSnapshot: () => netSnapshot(get),
-    extraJoinMessages: () => campaignMessages(get),
+    getSnapshot: () => instantaneDeLaCoop(get()),
+    campagne: () => get().pendingCampaign,
     onSeatClosed: (seat) => netSeatClosed(get, set, seat),
   });
   rh.onFatal = () => {
@@ -322,9 +232,6 @@ export function netJoin(get: Get, set: Set, appliquerSnapshot: (data: Record<str
         build: buildDeLaCoop(),
         label: name,
         applySnapshot: appliquerSnapshot,
-        onCampaign: (m) => {
-          for (const s of m.scenes) registerScene(s as Scene);
-        },
         // Motif typé de l'hôte (mismatch de protocole) : canal réutilisé du journal réseau
         // (déjà utilisé pour « Un joueur a quitté »/« Connexion perdue ») — distinct du
         // onClose générique qui suit juste après (silencieux, cf. session.ts).
@@ -347,27 +254,24 @@ export function netSeatClosed(get: Get, set: Set, seat: number): void {
   get().log(t('coop.seatClosed'));
 }
 
-/** HÔTE : attribue un héros à un siège (lobby — « un certain nombre de personnages chacun »). */
+/** Pose `net` s'il diffère du réseau courant : un réducteur qui refuse rend `net` inchangé. */
+function poserLeReseau(get: Get, set: Set, net: NetState): void {
+  if (net !== get().net) set({ net });
+}
+
+/** `attribuerLeHeros` (`noyau/sieges.ts`). */
 export function netAssign(get: Get, set: Set, heroId: string, seat: number): void {
-  if (get().net.mode !== 'host') return;
-  set({ net: { ...get().net, ownership: { ...get().net.ownership, [heroId]: seat } } });
+  poserLeReseau(get, set, attribuerLeHeros(get().net, heroId, seat));
 }
 
-/** Pose/retire le RÔLE MJ (bac-à-sable) : `seat` conduit le camp ennemi + les jets du monde ; `null` = IA.
- *  UNIQUE (désigner un MJ retire le rôle à tout autre). Hôte-autoritaire en coop (comme `netAssign`) ;
- *  disponible en solo (mode local) pour le siège unique. `gmSeat` sérialisable → voyage dans les snapshots. */
+/** `poserLeSiegeMJ` (`noyau/sieges.ts`). */
 export function setGmSeat(get: Get, set: Set, seat: number | null): void {
-  if (get().net.mode === 'guest') return; // hôte-autoritaire (le rôle est décidé côté hôte / en solo)
-  set({ net: { ...get().net, gmSeat: seat ?? undefined } });
+  poserLeReseau(get, set, poserLeSiegeMJ(get().net, seat));
 }
 
-/** HÔTE : attribue un EMPLACEMENT de l'écran d'équipe à un siège — le joueur le remplira
- *  lui-même (créer / charger un perso de son roster / pré-tiré). */
+/** `attribuerLEmplacement` (`noyau/sieges.ts`). */
 export function netAssignSlot(get: Get, set: Set, slot: number, seat: number): void {
-  if (get().net.mode !== 'host' || slot < 0 || slot > 3) return;
-  const slots = [...get().net.slots];
-  slots[slot] = seat;
-  set({ net: { ...get().net, slots } });
+  poserLeReseau(get, set, attribuerLEmplacement(get().net, slot, seat));
 }
 
 /** Quitte la session (les deux rôles) — retour au mode local, actions restaurées. */
@@ -380,7 +284,6 @@ export function netLeave(_get: Get, set: Set): void {
   }
   for (const t of graceTimers.values()) clearTrackedTimer(t);
   graceTimers.clear();
-  lastCampaign = null;
   host?.close();
   host = null;
   guest?.close();

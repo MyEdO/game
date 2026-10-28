@@ -43,6 +43,7 @@ import { appliquerAcquisitions, heroMaxWounds, fortuneMax, resolveMax, careerSki
 import { applyStarOps, pettySpellQuotaFor } from './creation';
 import { sizeFromTalents } from './size';
 import { traitsDuPorteur } from './statEntry';
+import { indiceSurLeProfil } from './formule';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { sequence } from './sequences';
 
@@ -410,7 +411,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   // que le spawn de créature bestiaire, #513).
   const numero = prochainHeros.suivant();
   const id = opts.id ?? `hero-${numero}`;
-  const speciesTraits = traitsDuPorteur(sp.traits ?? [], id);
+  const speciesTraits = traitsDuPorteur(sp.traits ?? [], { id, indice: indiceSurLeProfil((k) => chars[k]) });
 
   // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (#572) : `sizeFromTalents` sur les talents
   // résolus (espèce + carrière + signe astral) ci-dessus, sinon Moyenne.

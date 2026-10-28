@@ -64,11 +64,10 @@ describe('manœuvre → Trait projetant : une entité, une prose (#1226)', () =>
     expect(derives, `Folio divergent du trait projetant :\n${derives.join('\n')}`).toEqual([]);
   });
 
-  it('le Souffle projette SES SIX Types depuis un trait UNIQUE, dont le verbatim couvre les six', () => {
+  it('le Souffle projette UNE manœuvre, que la règle de chaque Type du verbatim compose (LDB 85 l.322-329)', () => {
     const souffle = traits.find((t) => t.id === 'souffle')!;
-    const types = maneuvers.filter((m) => m.kind === 'souffle').map((m) => m.id);
-    expect(types).toHaveLength(6);
-    for (const id of types) expect(traitProjectingManeuver(id)?.id, id).toBe('souffle');
+    const projetees = maneuvers.filter((m) => traitProjectingManeuver(m.id)?.id === 'souffle').map((m) => m.id);
+    expect(projetees).toEqual(['souffle']);
     for (const mot of ['Froid', 'Corrosif', 'Feu', 'Électricité', 'Poison', 'Fumée']) {
       expect(souffle.desc, `le verbatim du trait Souffle couvre le Type ${mot}`).toContain(mot);
     }
@@ -77,8 +76,8 @@ describe('manœuvre → Trait projetant : une entité, une prose (#1226)', () =>
 
 /** Chemin RÉEL d'affichage : la fiche Codex d'une manœuvre (`codexLookupById`, le registre vivant). */
 describe('Codex — la fiche d’une manœuvre affiche le VERBATIM de son trait (#1226)', () => {
-  it('« Souffle (Feu) » rend le verbatim du trait Souffle, jamais un résumé', () => {
-    const item = codexLookupById('maneuvers', 'souffle-feu');
+  it('« Souffle » rend le verbatim du trait Souffle, jamais un résumé', () => {
+    const item = codexLookupById('maneuvers', 'souffle');
     expect(item).toBeDefined();
     expect(item!.desc).toBe(traits.find((t) => t.id === 'souffle')!.desc);
     expect(item!.desc).toContain('Le souffle de la créature est une arme puissante.');

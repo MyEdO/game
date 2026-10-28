@@ -609,7 +609,7 @@
     "type": "primitives.manifest",
     "label": "traitsDuPorteur/resoudreTrait",
     "fichier": "src/engine/statEntry.ts",
-    "concept": "la SEULE entrée d'un Trait posé (`TraitPose`, forme authorée inférée de `traitInstanceSchema`) vers l'instance de jeu (`TraitInstance`) : `traitsDuPorteur` tire chaque fourchette (`plage`) pour son porteur, puis résout ; un Trait octroyé (`TraitOctroye`, inféré de `traitOctroyeSchema`) y entre par `traitsOctroyes` (`engine/traitOctroye.ts`), qui lit l'Indice formulé sur le lanceur et tire la Cible ; `resoudreTrait` ne prend qu'une pose tirée (`PoseTiree`, au type) ; la provenance de livre (`source`, `alsoIn`, `maison`) reste à la donnée, `src` dit qui a accordé l'instance",
+    "concept": "la SEULE entrée d'un Trait posé (`TraitPose`, forme authorée inférée de `traitInstanceSchema`) vers l'instance de jeu (`TraitInstance`) : `traitsDuPorteur` tire chaque fourchette (`plage`) pour son porteur, puis résout ; son Indice formulé se lit sur le référent du porteur (`PorteurDeTraits` : le profil au statbloc, le lanceur à l'octroi par `traitsOctroyes`, `engine/traitOctroye.ts`, qui tire aussi la Cible), et les Traits qu'il confère (`confere`) se résolvent avec lui ; `resoudreTrait` ne prend qu'une pose tirée (`PoseTiree`, au type) ; la provenance de livre (`source`, `alsoIn`, `maison`) reste à la donnée, `src` dit qui a accordé l'instance",
     "perimetre": "`traitsDuPorteur` : spawn d'une créature ou d'un statbloc (Traits, optionnels), invocation (`summon.addTraits`), rendu d'exploration d'une entité, Trait racial à la création de héros, Structure, et par `traitsOctroyes` les ops `grantTrait` (dont la Forme bestiale, `polymorph.ts`) et `domeWard`, et le passif `grantTrait` d'une mutation ; `resoudreTrait`, sur une pose littérale : Traits appris d'un statbloc, outil de développement",
     "verrou": "src/engine/statEntry.test.ts"
   },
@@ -2040,9 +2040,9 @@
     "type": "primitives.manifest",
     "label": "stockageWeb",
     "fichier": "src/web/stockageWeb.ts",
-    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireDictionnaire` (`src/lib/stockage.ts`) relit, dans un port `Stockage` (sous-ensemble de `Storage` que `stockageWeb` satisfait), une valeur JSON qui doit être un dictionnaire, ses valeurs validées par l’appelant contre son registre (#2404)",
+    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireLeTexte` et `retirerLaCle` (`src/lib/stockage.ts`) en sont les accès protégés sur un port `Stockage`, `lireDictionnaire` et `lireTableau` relisent, dans un port `Stockage` (sous-ensemble de `Storage` que `stockageWeb` satisfait), une valeur JSON qui doit être un dictionnaire ou un tableau, son contenu validé par l’appelant contre son registre, et `lesChaines` en garde les éléments chaînes (#2404)",
     "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
-    "verrou": "src/web/stockageWeb.test.ts ; src/lib/stockage.test.ts ; murs/stockage-web et murs/stockage-web-global d'oxlint.config.mjs (aucun localStorage/sessionStorage nommé hors src/web/stockageWeb.ts, banc scripts/guards/lib/lint-parite.test.mjs) ; src/cles-de-stockage-guard.test.ts (une clé de stockage écrite une fois)"
+    "verrou": "src/web/stockageWeb.test.ts ; src/lib/stockage.test.ts ; src/lib/stockage.testkit.ts (stockages de test) ; murs/stockage-web et murs/stockage-web-global d'oxlint.config.mjs (aucun localStorage/sessionStorage nommé hors src/web/stockageWeb.ts, banc scripts/guards/lib/lint-parite.test.mjs) ; src/cles-de-stockage-guard.test.ts (une clé de stockage écrite une fois)"
   },
   {
     "id": "playerText",
@@ -2074,19 +2074,19 @@
   {
     "id": "formeResolue",
     "type": "primitives.manifest",
-    "label": "apparencesCandidates/apparencesAdmissibles/choisirApparenceDObjet/deciderApparencesDesArmes/racineDesCandidats/formeResolue/SourceDeForme",
+    "label": "apparencesCandidates/choisirApparenceDObjet/deciderApparencesDesArmes/racineDesCandidats/formeResolue/SourceDeForme",
     "fichier": "src/engine/items.ts",
     "concept": "forme racine mécanique `shape` copiée à la naissance ; `choisirApparenceDObjet` admet une décision explicite par `shape` et `formChoices` de la fiche résolue, puis écrit la même racine et l’apparence sur l’instance ; les CANDIDATS de l’objet porté lisent cette racine et la variante compatible, sans relire la fiche ; une arme naturelle ne publie aucun candidat ; `racineDesCandidats` lit la dernière entrée, que `formeResolue` rend (#2967)",
-    "perimetre": "tout lecteur d’une apparence ou de sa racine : rig (`armeDeDessin`, `bouclierDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `apparencesAdmissibles`, outillage de recette (`__wfrp.battle`)",
+    "perimetre": "tout lecteur d’une apparence ou de sa racine : rig (`armeDeDessin`, `bouclierDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `choisirApparenceDObjet`, outillage de recette (`__wfrp.battle`)",
     "verrou": "src/engine/apparences-candidates.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
   },
   {
     "id": "admissionApparenceDObjet",
     "type": "primitives.manifest",
-    "label": "candidatsDApparenceDObjet/apparencesAdmissiblesDObjet/messageDApparenceDObjet",
+    "label": "candidatsDApparenceDObjet/apparencesAdmissiblesDObjet/referenceDApparenceDObjet/messageDApparenceDObjet",
     "fichier": "src/data/apparencesObjets.ts",
-    "concept": "résolution canonique des candidats d’un trapping par résolveur injecté (catalogue par défaut) : shape et formChoices admettent la racine de l’apparence ; lecteurs versionnés partagés avec la façade data/index ; refus commun aux références d’auteur",
-    "perimetre": "décision de naissance et choix explicite par choisirApparenceDObjet, apparencesAdmissibles du moteur, parse de giveTrapping effet et op, EntityAppearance.apparencesObjets, contrôles d’auteur d’objets non nés",
+    "concept": "résolution canonique des candidats d’un trapping par résolveur injecté (catalogue par défaut) : shape et formChoices admettent la racine de l’apparence ; lecteurs versionnés partagés avec la façade data/index ; référence d’auteur absente pour la forme par défaut ou une apparence non admise ; refus commun aux références d’auteur",
+    "perimetre": "décision de naissance et choix explicite par choisirApparenceDObjet, sélecteurs d’apparence de la fiche et des éditeurs, parse de giveTrapping effet et op, EntityAppearance.apparencesObjets, contrôles d’auteur d’objets non nés",
     "verrou": "src/data/schemas/grammaire/apparences-objets.test.ts, src/engine/apparences-candidates.test.ts"
   },
   {
@@ -2205,5 +2205,23 @@
     "concept": "apparence décidée une seule fois à la naissance : contexte explicite du destinataire, qualités finales de l’objet, référence d’auteur prioritaire ; sans contexte ni décision d’auteur, aucune clé apparence",
     "perimetre": "créateur, boutique, octrois, fabrication et effets ; aucune re-décision au transfert",
     "verrou": "src/engine/apparenceNaissance.test.ts, src/state/apparence-naissance.test.ts"
+  },
+  {
+    "id": "vise",
+    "type": "primitives.manifest",
+    "label": "vise/SourcePsy",
+    "fichier": "src/engine/psychology.ts",
+    "concept": "seul prédicat de ciblage par Groupe d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch`",
+    "perimetre": "+DR contre le groupe, immunités causées par le groupe, êtres aimés à défendre, vivier de l’IA, déclencheurs de Traits ciblés et de Phobie, présence au re-test, malus social, Sans Peur (Ennemi)",
+    "verrou": "src/engine/psych-vise.test.ts"
+  },
+  {
+    "id": "sousPeur",
+    "type": "primitives.manifest",
+    "label": "sousPeur/indiceDePeur/pasDePeur/sansPeurFace",
+    "fichier": "src/engine/psychology.ts",
+    "concept": "état de Peur (LDB 21 l.25 ; LDB 10 l.1051) : `sousPeur` seul lecteur du drapeau `surmontee`, `indiceDePeur` seul lecteur de l’Indice, `pasDePeur` seule arithmétique du Test étendu et de Sans Peur, `sansPeurFace` seule décision de la rangée allégée",
+    "perimetre": "lecteurs de la Peur (DR, approche, icône, vue d’acteur, re-test, IA), Test étendu des héros et de l’IA, portes de Psychologie en combat et à la rencontre",
+    "verrou": "src/engine/psych-vise.test.ts, src/engine/sans-peur.test.ts, src/engine/psych-branch-ops.test.ts"
   }
 ]

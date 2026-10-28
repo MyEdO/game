@@ -27,6 +27,13 @@ export function apparencesAdmissiblesDObjet({ trappingId }: { trappingId?: strin
   return apparences.filter((a) => candidatsDApparenceDObjet(trappingId, a.id, resolveTrapping)[0] === a.id);
 }
 
+/** Référence d’auteur d’une apparence choisie pour un objet : absente pour la forme par défaut de
+ *  l’objet (`shape`) comme pour une apparence qu’il n’admet pas. */
+export function referenceDApparenceDObjet(trappingId: string | undefined, id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): { id: string } | undefined {
+  if (id === undefined || id === (trappingId ? resolveTrapping(trappingId)?.shape?.id : undefined)) return undefined;
+  return apparencesAdmissiblesDObjet({ trappingId }, resolveTrapping).some((a) => a.id === id) ? { id } : undefined;
+}
+
 /** Refus commun aux références d’auteur, avec les deux identités. */
 export function messageDApparenceDObjet(trappingId: TrappingData['id'] | undefined, id: ApparenceData['id'], resolveTrapping: TrappingResolver = findTrappingById): string | undefined {
   if (apparencesAdmissiblesDObjet({ trappingId }, resolveTrapping).some((a) => a.id === id)) return;

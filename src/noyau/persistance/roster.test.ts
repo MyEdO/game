@@ -6,11 +6,16 @@
 import { describe, it, expect } from 'vitest';
 import { ecrireLeRoster, lireLeRoster, rosterAvecLeHeros, rosterExport, rosterImport, type RosterEntry } from './roster';
 import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
+import { nommerLesRetraits } from './elagage';
 import type { Combatant } from '../../engine/types';
+import { t } from '../../i18n';
 
 /** Un État du registre courant, et un id qu'aucun registre ne porte. */
 const ETAT_CONNU = 'a-terre';
 const ETAT_INCONNU = 'etat-hors-registre';
+/** Un Groupe de `groups.json`, et un id qu'il ne porte pas. */
+const GROUPE_CONNU = 'skaven';
+const GROUPE_INCONNU = 'groupe-hors-registre';
 
 const hero = (id: string, label = 'Héros'): Combatant => ({ id, label, kind: 'hero' }) as unknown as Combatant;
 const entry = (id: string): RosterEntry => ({ hero: hero(id), wealth: { gold: 1, silver: 2, brass: 3 } });
@@ -35,7 +40,62 @@ describe('roster — lecture et écriture sous `FORMAT_ROSTER`', () => {
     const lu = lireLeRoster(ecrireLeRoster([entry('h1'), porteur('h2', ETAT_CONNU, ETAT_INCONNU)]));
     expect(lu?.heros.map((e) => e.hero.id), 'aucun héros perdu').toEqual(['h1', 'h2']);
     expect(lu?.heros[1].hero.conditions).toEqual([{ id: ETAT_CONNU, value: 1 }]);
-    expect(lu?.retraits).toEqual({ regles: [], etats: [ETAT_INCONNU] });
+    expect(lu?.retraits).toEqual({ regles: [], etats: [ETAT_INCONNU], groupes: [] });
+  });
+});
+
+describe('roster — Trait psychologique à Cible hors de `groups.json` (#1463 LD.1, LDB 21 l.17-21)', () => {
+  const connu = { type: 'animosite', cible: GROUPE_CONNU };
+  const inconnu = { type: 'haine', cible: GROUPE_INCONNU };
+  const peur = { type: 'peur', sourceId: 'goule-1', indice: 1 };
+  const avecPsy = (traits: object[]): RosterEntry => ({
+    ...entry('h1'),
+    hero: {
+      ...hero('h1'), conditions: [{ id: ETAT_CONNU, value: 1 }], psychTraits: [...traits, { type: 'trauma' }],
+      psychState: [...traits.map((x) => ({ ...x, active: true })), peur], activeEffects: [{ id: 'baume', suppressedPsych: traits }],
+    } as unknown as Combatant,
+  });
+
+  it('roster lu ET export importé : le Trait est retiré ENTIER (Traits, afflictions, Traits suspendus), Cible nommée, le reste intact', () => {
+    const attendu = { ...avecPsy([connu]).hero };
+    const lu = lireLeRoster(ecrireLeRoster([entry('h0'), avecPsy([inconnu, connu])]));
+    expect(lu?.heros.map((e) => e.hero.id), 'aucun héros perdu').toEqual(['h0', 'h1']);
+    expect(lu?.heros[1].hero).toEqual(attendu);
+    expect(lu?.retraits).toEqual({ regles: [], etats: [], groupes: [GROUPE_INCONNU] });
+    expect(nommerLesRetraits(lu!.retraits!)).toBe(t('elagage.groupes', { ids: GROUPE_INCONNU }));
+    const importe = rosterImport(rosterExport(avecPsy([inconnu, connu])));
+    expect(importe.entry?.hero).toEqual(attendu);
+    expect(importe.retraits).toEqual({ regles: [], etats: [], groupes: [GROUPE_INCONNU] });
+  });
+
+  it('Cibles connues : rien retiré', () => {
+    expect(lireLeRoster(ecrireLeRoster([avecPsy([connu])]))?.retraits).toBeNull();
+    expect(rosterImport(rosterExport(avecPsy([connu]))).retraits).toBeUndefined();
+  });
+
+  it('porteur mal formé (listes non-listes, entrées `null`) : relu sans lever, le Trait à Cible inconnue retiré et nommé', () => {
+    const malForme = (champs: object): RosterEntry => ({ ...entry('h1'), hero: { ...hero('h1'), ...champs } as unknown as Combatant });
+    const cas: [object, object][] = [
+      [{ psychTraits: [inconnu], psychState: 'x' }, { psychTraits: [], psychState: 'x' }],
+      [{ psychTraits: [inconnu], activeEffects: [null] }, { psychTraits: [], activeEffects: [null] }],
+      [{ psychTraits: [inconnu], activeEffects: [{ suppressedPsych: 'x' }] }, { psychTraits: [], activeEffects: [{ suppressedPsych: 'x' }] }],
+      [{ psychTraits: [null, inconnu], psychState: {} }, { psychTraits: [null], psychState: {} }],
+    ];
+    for (const [champs, attendu] of cas) {
+      const lu = lireLeRoster(ecrireLeRoster([malForme(champs)]));
+      expect(lu?.heros[0].hero).toEqual({ ...hero('h1'), ...attendu });
+      expect(lu?.retraits).toEqual({ regles: [], etats: [], groupes: [GROUPE_INCONNU] });
+    }
+  });
+
+  it('Cible vide : le Trait est retiré sans nommer de Cible', () => {
+    const vide = { type: 'haine', cible: '' };
+    const lu = lireLeRoster(ecrireLeRoster([avecPsy([vide, connu, inconnu])]));
+    expect(lu?.heros[0].hero).toEqual(avecPsy([connu]).hero);
+    expect(lu?.retraits).toEqual({ regles: [], etats: [], groupes: [GROUPE_INCONNU] });
+    const seule = lireLeRoster(ecrireLeRoster([avecPsy([vide])]));
+    expect(seule?.heros[0].hero).toEqual(avecPsy([]).hero);
+    expect(seule?.retraits).toBeNull();
   });
 });
 
@@ -79,7 +139,7 @@ describe('roster — export / import (portabilité, sous `FORMAT_EXPORT_HEROS`)'
     const res = rosterImport(rosterExport(porteur('h1', ETAT_CONNU, ETAT_INCONNU)));
     expect(res.error).toBeUndefined();
     expect(res.entry?.hero.conditions).toEqual([{ id: ETAT_CONNU, value: 1 }]);
-    expect(res.retraits).toEqual({ regles: [], etats: [ETAT_INCONNU] });
+    expect(res.retraits).toEqual({ regles: [], etats: [ETAT_INCONNU], groupes: [] });
     expect(rosterImport(rosterExport(porteur('h1', ETAT_CONNU))).retraits, 'un héros connu entier ne rend aucun retrait').toBeUndefined();
   });
 

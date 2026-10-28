@@ -11,8 +11,9 @@ import { spawnEnemy } from './monde/spawn';
 import { creatures, findCreatureById } from '../data';
 import { setDataset } from '../data/overrides';
 import weaponGroups from '../data/weaponGroups.json';
-import type { Combatant, ItemInstance } from '../engine/types';
+import type { Combatant, HitLocation, ItemInstance } from '../engine/types';
 import type { TraitList } from '../engine/statEntry';
+import type { TraitPose } from '../data/schemas/grammaire/reference';
 import { renderWeaponsFromTraits } from '../engine/creatureEquip';
 import { equipDe } from './equipementDessine';
 import { findTrappingById } from '../data';
@@ -120,6 +121,18 @@ describe('apparences d’objets des porteurs sans instance (#2948)', () => {
   });
 });
 
+describe('armesDEntite — Indice formulé lu sur le profil du statbloc (Middenheim 04 l.29)', () => {
+  const traits: TraitPose[] = [{ id: 'arme', value: { sum: [{ bonusOf: 'force' }, 4] }, arg: 'Épée' }];
+
+  it('le statbloc d’éditeur porte la Force qui résout « BF +4 »', () => {
+    expect(armesDEntite(findTrappingById, undefined, { traits, char: { force: 40 } })[0].damage).toEqual({ plusBF: false, flat: 8 });
+  });
+
+  it('sans profil, le statbloc d’éditeur lit une Force nulle', () => {
+    expect(armesDEntite(findTrappingById, undefined, { traits })[0].damage).toEqual({ plusBF: false, flat: 4 });
+  });
+});
+
 describe('equipementDessine — candidats publiés (#2948)', () => {
   it('publie la main explicite et la prise graphique des armes sans loadout', () => {
     expect(armeDeDessin(weaponFromItem(porte('arme-simple'), 'off')).hand).toBe('off');
@@ -215,11 +228,12 @@ describe('equipementDessine — matière par id (#2948)', () => {
     ]);
   });
 
-  it('orc de bestiaire (record `armurePortee`, PA 3 partout) : ses 4 pièces, sans paramètre', () => {
+  it('créature de bestiaire au record `armurePortee` : chaque Localisation à PA se dessine, sans paramètre', () => {
     const orc = spawnEnemy({ presetCreature: findCreatureById('orc')!, presetId: 'orc' }, 'orc-1', { x: 0, y: 0 });
-    expect(equipementDessine(orc).armour.map((p) => [p.locs, p.matiere])).toEqual([
-      [['corps'], 'mailles'], [['tete'], 'mailles'], [['brasG', 'brasD'], 'mailles'], [['jambeG', 'jambeD'], 'mailles'],
-    ]);
+    expect(findCreatureById('orc')!.appearance?.armurePortee).toBe(true);
+    const aPA = (Object.keys(orc.armour) as HitLocation[]).filter((l) => orc.armour[l] > 0);
+    expect(aPA.length).toBeGreaterThan(0);
+    expect(equipementDessine(orc).armour.flatMap((p) => p.locs ?? [])).toEqual(expect.arrayContaining(aPA));
   });
 
   it('l’apparence d’auteur prime sur le record : orc déclaré sans armure portée', () => {
@@ -228,7 +242,8 @@ describe('equipementDessine — matière par id (#2948)', () => {
   });
 
   it('entité de scène : même résolution, record ou apparence d’auteur', () => {
-    expect(equipementDEntite(findTrappingById, 'orc').armour).toHaveLength(4);
+    const orc = spawnEnemy({ presetCreature: findCreatureById('orc')!, presetId: 'orc' }, 'orc-3', { x: 0, y: 0 });
+    expect(equipementDEntite(findTrappingById, 'orc').armour).toEqual(equipementDessine(orc).armour);
     expect(equipementDEntite(findTrappingById, 'orc', { armurePortee: false }).armour).toEqual([]);
     expect(equipementDEntite(findTrappingById, undefined, { armour: 2 }).armour).toEqual([]);
     expect(equipementDEntite(findTrappingById, undefined, { armour: 2, armurePortee: true }).armour.map((p) => p.matiere)).toEqual(['mailles', 'mailles', 'mailles', 'mailles']);

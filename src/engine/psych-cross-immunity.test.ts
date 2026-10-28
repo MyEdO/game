@@ -48,11 +48,19 @@ describe('Immunités psychologiques croisées (LDB 21) — data-driven', () => {
     expect(suppressSupersededPsych(c)).toEqual([]);
   });
 
-  it('une Peur déjà SURMONTÉE (DR ≥ Indice) n’annule pas l’Animosité', () => {
+  it('une Peur SURMONTÉE n’annule pas l’Animosité, quel que soit son cumul (LDB 21 l.25)', () => {
     const c = C({ psychState: [
       { type: 'animosite', cible: 'Nains', active: true } as never,
-      { type: 'peur', sourceId: 'x', indice: 2, calmeDR: 2 } as never, // surmontée → inerte
+      { type: 'peur', sourceId: 'x', indice: 2, calmeDR: 0, surmontee: true } as never,
     ] });
     expect(suppressSupersededPsych(c)).toEqual([]);
+  });
+
+  it('une Peur 0 non encore testée est un effet dominant : on y est sujet jusqu’au Test (LDB 21 l.25)', () => {
+    const c = C({ psychState: [
+      { type: 'animosite', cible: 'Nains', active: true } as never,
+      { type: 'peur', sourceId: 'x', indice: 0, calmeDR: 0 } as never,
+    ] });
+    expect(suppressSupersededPsych(c)).toEqual(['animosite']);
   });
 });

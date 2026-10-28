@@ -1,15 +1,15 @@
 /**
  * LA SAUVEGARDE, sa forme et ses décisions (#3041, Jalon 5) : l'instantané de l'état du JEU (`EtatDeJeu`, jamais
- * l'état d'affichage d'un hôte), sa validation au format courant, son élagage, son chargement en état de jeu et le
- * refus de l'écrire. La procédure sur les emplacements d'un stockage : `state/saves.ts`.
+ * l'état d'affichage d'un hôte), sa validation au format courant, sa forme texte (lecture, export, import), son
+ * élagage, son chargement en état de jeu et le refus de l'écrire. La procédure sur les emplacements d'un stockage : `hote/sauvegardes.ts`.
  *
  * Snapshot ZÉRO-MAINTENANCE : toute clé de `etatInitialDuJeu()` entre dans la save, hors `HORS_SAVE` ; aucune liste
  * de champs tenue à la main. Les règles maison (`engine/policy`, hors état) voyagent à part dans `rules`.
  *
  * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`, #3041) : `version` vaut
  * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). Toute autre forme est refusée
- * (`parseSave`), sans migration. Une save au format courant qui nomme une règle ou un État hors du registre courant
- * se CHARGE, élaguée de ces seuls ids (`elaguerSave`, #1463 LD.1).
+ * (`lireSave`), sans migration. Une save au format courant qui nomme une règle, un État ou la Cible d'un Trait
+ * psychologique hors du registre courant se CHARGE, élaguée de ces seuls ids (`elaguerSave`, #1463 LD.1).
  */
 import type { RuleValue } from '../../engine/policy';
 import { etatInitialDuJeu, initialNet, type EtatDeJeu } from '../etat';
@@ -36,7 +36,7 @@ export interface SaveGame extends SaveMeta {
 
 /**
  * Les clés de `EtatDeJeu` qui ne partent PAS en save, une raison par clé. Le contrat du snapshot est POSITIF : une
- * exclusion qui n'est pas ici n'existe pas. La même couture sert le snapshot coop (`state/netFlow.ts`).
+ * exclusion qui n'est pas ici n'existe pas. La même couture sert l'instantané coop (`noyau/coop.ts`).
  */
 const HORS_SAVE = {
   // #767 · #766
@@ -82,7 +82,7 @@ function purgeFoldMemo(v: unknown): void {
 }
 
 /** Clé réservée du snapshot COOP qui transporte les règles maison (hors état). */
-export const HOUSE_RULES_KEY = '__houseRules';
+const HOUSE_RULES_KEY = '__houseRules';
 
 /** Joint les règles maison au snapshot coop (sous la clé réservée). */
 export function packHouseRules(data: Record<string, unknown>, rules: Record<string, RuleValue>): Record<string, unknown> {
@@ -103,14 +103,35 @@ function isValidSave(s: unknown): s is SaveGame {
     && !!(s as SaveGame).data && typeof (s as SaveGame).data === 'object';
 }
 
-/** Lit un document de save parsé : la version DOIT être `FORMAT_SAVE`. Toute autre forme rend `null`. */
-export function parseSave(parsed: unknown): SaveGame | null {
-  return isValidSave(parsed) ? parsed : null;
+/** Les métadonnées d'affichage de `save`. */
+export function metaDeSave(save: SaveGame): SaveMeta {
+  return { version: save.version, savedAt: save.savedAt, sceneLabel: save.sceneLabel, gameTime: save.gameTime };
 }
 
-/** La save prête à charger : ses surcharges de règles et les États portés par son groupe, élagués de ce que le
+/** CAUSE du rejet d'une sauvegarde — l'écran de chargement en fait un message DISTINCT : une save d'un
+ *  autre format et un contenu illisible ne se disent pas d'un même mot. */
+export type ObsoleteCause = 'autreFormat' | 'illisible';
+
+/** Un texte de save : la save au `FORMAT_SAVE`, ou la CAUSE de son refus. Source unique de la lecture d'un
+ *  emplacement et de l'import. */
+export function lireSave(brut: string): SaveGame | ObsoleteCause {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(brut);
+  } catch {
+    return 'illisible';
+  }
+  return isValidSave(parsed) ? parsed : 'autreFormat';
+}
+
+/** L'export d'une save : JSON lisible (téléchargement, presse-papier). */
+export function exporterLaSauvegarde(save: SaveGame): string {
+  return JSON.stringify(save, null, 2);
+}
+
+/** La save prête à charger : ses surcharges de règles, les États et Traits psychologiques portés par son groupe, élagués de ce que le
  *  registre courant ne connaît plus (`elaguerLePersiste`), et les ids retirés, à nommer au joueur. */
-export function elaguerSave(save: SaveGame): { save: SaveGame; retraits: RetraitsDElagage } {
+function elaguerSave(save: SaveGame): { save: SaveGame; retraits: RetraitsDElagage } {
   const party = Array.isArray(save.data.party) ? save.data.party : undefined;
   const { regles, porteurs, retraits } = elaguerLePersiste({ regles: save.rules ?? {}, porteurs: party ?? [] });
   return { save: { ...save, rules: regles, data: party ? { ...save.data, party: porteurs } : save.data }, retraits };
@@ -125,7 +146,7 @@ export interface SaveChargee {
 }
 
 /**
- * Charge `lue` (au `FORMAT_SAVE`, `parseSave`) : élaguée (#1463 LD.1), posée sur l'état initial du jeu, écran
+ * Charge `lue` (au `FORMAT_SAVE`, `lireSave`) : élaguée (#1463 LD.1), posée sur l'état initial du jeu, écran
  * campagne. La session réseau est celle de l'hôte qui charge, jamais celle figée dans la save : `initialNet()`.
  * L'assise de la scène est élaguée de ce que CE groupe ne porte plus (`pruneSeatAssignments`) ; une scène sans assise
  * n'en gagne pas le champ. Le paquet de campagne ré-enregistre ses scènes et re-dérive `HORS_SAVE`

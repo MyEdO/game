@@ -26,7 +26,8 @@ import { combatHighlightsView } from '../gameIso/stage/highlightLayer';
 import type { HighlightsView } from '../gameIso/builders/highlights';
 import { runAction } from '../noyau/actionRegistry';
 import { runBindingById } from './clavier/keybindings';
-import { applyNetSnapshot, netSnapshot } from './netFlow';
+import { applyNetSnapshot } from './netFlow';
+import { instantaneDeLaCoop } from '../noyau/coop';
 import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 import { chargeReach } from '../engine/movement';
 import { createHero } from '../engine/character';
@@ -230,7 +231,7 @@ describe('(d) COOP : l’intention est LOCALE au client', () => {
   it('un snapshot de l’hôte NE TUE PAS l’intention armée', () => {
     setup();
     runAction('charge', get);
-    const snap = JSON.parse(JSON.stringify({ ...netSnapshot(get) })) as Record<string, unknown>;
+    const snap = JSON.parse(JSON.stringify({ ...instantaneDeLaCoop(get()) })) as Record<string, unknown>;
     applyNetSnapshot(useGame.setState, snap);
     expect(get().localIntent, 'le snapshot a désarmé la case du client').toEqual({ actionId: 'charge' });
   });
@@ -238,7 +239,7 @@ describe('(d) COOP : l’intention est LOCALE au client', () => {
   it('l’intention ne VOYAGE pas dans le snapshot (la case armée de l’hôte n’allume rien chez l’invité)', () => {
     setup();
     runAction('charge', get);
-    expect('localIntent' in netSnapshot(get)).toBe(false);
+    expect('localIntent' in instantaneDeLaCoop(get())).toBe(false);
   });
 
   it('l’ARMEMENT n’est pas un intent réseau (seul le COMMIT du geste en est un)', () => {

@@ -20,7 +20,7 @@ import * as THREE from 'three';
 import { emptyScene, sceneMetresPerTile, heightAt, type Scene } from '../../noyau/monde/scene';
 import { mapLights, type LightSource } from '../../noyau/monde/vision';
 import { combatantLights } from '../../noyau/monde/vision';
-import { objetDeTest } from '../../objetsDeTest.testkit';
+import { objetDeTest } from '../../engine/objetsDeTest.testkit';
 import { lightTones, props as propsData, trappings, type LightToneDef } from '../../data';
 import { setDataset } from '../../data/overrides';
 import { schema as lightTonesSchema } from '../../data/schemas/defs/lightTones';

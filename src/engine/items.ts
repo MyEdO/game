@@ -12,9 +12,9 @@ import { armourMaterialOf } from './armourBypass';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
-import { apparences, findApparenceById, findCareerById, findCreatureById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
+import { findApparenceById, findCareerById, findCreatureById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
 import { t } from '../i18n';
-import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet } from '../data/apparencesObjets';
+import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet, referenceDApparenceDObjet } from '../data/apparencesObjets';
 
 /** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
  *  d'objet (défaut = règle GLOBALE) pour que le state route la couche de campagne (`objetDuNarratif`,
@@ -287,8 +287,9 @@ export function choisirApparenceDObjet<T extends Pick<ItemInstance, 'trappingId'
   const racine = racineDesCandidats(candidats);
   if (!racine) return false;
   objet.shape = { id: racine };
-  if (apparence === (objet.trappingId ? resolveTrapping(objet.trappingId)?.shape?.id : undefined)) delete objet.apparence;
-  else objet.apparence = apparence;
+  const reference = referenceDApparenceDObjet(objet.trappingId, apparence, resolveTrapping);
+  if (reference) objet.apparence = reference.id;
+  else delete objet.apparence;
   return true;
 }
 
@@ -302,11 +303,6 @@ export function deciderApparencesDesArmes(resolveTrapping: TrappingResolver, wea
     const apparence = (auteur?.[w.trappingId] ?? record?.[w.trappingId])?.id;
     if (apparence !== undefined) choisirApparenceDObjet(w, apparence, resolveTrapping);
   }
-}
-
-/** Apparences du catalogue admises pour un objet, selon l’unique résolution des candidats (#2948). */
-export function apparencesAdmissibles(x: Pick<SourceDeForme, 'trappingId'>, resolveTrapping: TrappingResolver = findTrappingById): typeof apparences {
-  return apparencesAdmissiblesDObjet(x, resolveTrapping);
 }
 
 /** Racine de la forme dessinée : dernière entrée des candidats. */

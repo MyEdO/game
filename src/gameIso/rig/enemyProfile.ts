@@ -6,7 +6,7 @@
  * Décisions : voir docs/superpowers/specs/2026-06-05-F1-ennemis-rig-design.md
  */
 import type { Combatant } from '../../engine/types';
-import { equipementDessine, equipementDEntite, type EquipCtx, type EquipementDAuteur } from '../../noyau/equipementDessine';
+import { equipementDAuteurDe, equipementDessine, equipementDEntite, type EquipCtx, type EquipementDAuteur } from '../../noyau/equipementDessine';
 import type { RigOverlay } from './bones';
 import { defaultAppearance } from './appearance';
 import { combatantAppearance, combatantOverlays } from './parts/combatantVisuals';
@@ -262,7 +262,5 @@ export function entityRigProfileFor(resolveTrapping: TrappingResolver, ent: Scen
       const nom = nomDEntite(ent, presetPnjById);
       console.error(`[rig] entité « ${ent.id} »${nom ? ` (${nom})` : ''} : ni réf de créature ni Espèce — donnée de scène à corriger.`);
     });
-  return entityRigProfile(resolveTrapping, refName, hashSeed(ent.id), {
-    ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, armour: ent.statblock?.armour, enrolled, porteur: ent.id,
-  });
+  return entityRigProfile(resolveTrapping, refName, hashSeed(ent.id), equipementDAuteurDe(ent, enrolled));
 }

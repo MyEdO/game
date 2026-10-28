@@ -4,7 +4,7 @@ import { fr } from './messages/fr';
 import { CHAR_LABELS, DIFFICULTY_LABELS, DIFFICULTY_NAMES, HIT_LOCATION_LABELS, BODY_SHAPE_LOC_LABELS } from '../engine/types';
 import { DEFENSE_LABEL } from '../engine/combat';
 import { cibleLabel } from '../engine/psychology';
-import { psychologyLabel } from '../data';
+import { groupLabel, groupesLabel, groups, psychologies, psychologyLabel } from '../data';
 
 describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
   it('résout une clé en texte FR', () => {
@@ -61,5 +61,21 @@ describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
     expect(rendus.filter(([, v]) => /\d[ \t]m\b/.test(v)).map(([k]) => k), 'unité orpheline possible : espace ordinaire avant « m »').toEqual([]);
     const colles = rendus.filter(([, v]) => /\d\u00a0m\b/.test(v)).map(([k]) => k);
     expect(colles).toEqual(expect.arrayContaining(['fall.option.sauter', 'fall.option.suspendreSauter', 'fall.option.suspendreTenter', 'fall.modale.denivele', 'eff.fallOuverte']));
+  });
+
+  it('un paramètre qui nomme une entrée de donnée n’accepte que son libellé minté, jamais l’id (#3045)', () => {
+    const psy: string = psychologies[0].id;
+    const groupe: string = groups[0].id;
+    // @ts-expect-error — un id de psychologie n'est pas un libellé
+    void t('turn.recompose', { name: 'n', psych: psy });
+    // @ts-expect-error — un id de Groupe n'est pas un libellé
+    void t('turn.rageHate', { name: 'n', groupe });
+    // @ts-expect-error — des ids de Groupe ne sont pas un libellé
+    void t('eff.socialPsychEnvers', { mods: 'm', groupes: groupe });
+    // @ts-expect-error — un nom de Talent écrit en dur n'est pas un libellé
+    void t('cf.fearIgnored', { name: 'n', talent: 'Sans Peur' });
+    expect(t('turn.recompose', { name: 'n', psych: psychologyLabel(psy) })).toContain(psychologyLabel(psy));
+    expect(t('turn.rageHate', { name: 'n', groupe: groupLabel(groupe) })).toContain(groupLabel(groupe));
+    expect(t('eff.socialPsychEnvers', { mods: 'm', groupes: groupesLabel([groupe]) })).toContain(groupLabel(groupe));
   });
 });

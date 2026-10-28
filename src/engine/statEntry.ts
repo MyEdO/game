@@ -7,11 +7,12 @@
  * cible (« (Cheval) », « (Feu) », « (Tiléens) ») ou de portée (« (50) »). Cette fonction les
  * démêle UNE fois pour TOUT le code (combat ET Codex) — fini les regex recopiées par consommateur.
  */
-import type { CharKey, EffectSource } from './types';
+import type { CharKey, Difficulty, EffectSource } from './types';
 import type { SizeCategory } from './size';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
 import { hashSeed, makeRNG } from './dice';
 import { lirePlage, type ParLocalisation, type Plage } from './classementDeTrait';
+import type { FormuleSansTirage } from './ops';
 
 export interface StatEntry {
   /** Nom canonique (base), sans compte/bonus/indice/parenthèse : « Tentacules », « Arme »,
@@ -19,6 +20,8 @@ export interface StatEntry {
   name: string;
   /** Parenthèse NON numérique : spécialisation (« Cheval »), type (« Feu »), cible (« Tiléens »). */
   arg?: string;
+  /** Parenthèses NON numériques suivantes, dans l'ordre : « Arme (Crocs) +10 (Infecté) » → `['Infecté']`. */
+  suites?: string[];
   /** Compte en tête : « 8 Tentacules +9 » → 8 (nombre d'attaques). */
   count?: number;
   /** Bonus SIGNÉ : « Arme +7 » → 7, « Vomissement -2 » → -2 (Dégâts d'une attaque). */
@@ -45,16 +48,18 @@ export function parseStatEntry(raw: string): StatEntry {
     s = cm[2];
   }
 
-  // 2) Parenthèses : purement numérique → portée, sinon spec/type/cible. Les deux PEUVENT coexister
+  // 2) Parenthèses de premier niveau (une parenthèse peut en contenir : « Venin (Complexe) ») : purement
+  //    numérique → portée, sinon spec/type/cible, puis les suivantes. Elles PEUVENT coexister
   //    (« À distance (Arbalète) +9 (60) ») ; la 1re de chaque sorte l'emporte.
-  for (const pm of s.matchAll(/\(([^)]*)\)/g)) {
-    const inside = pm[1].trim();
+  const { groupes, reste } = parenthesesDePremierNiveau(s);
+  for (const inside of groupes) {
     const plage = lirePlage(inside);
     if (/^\d+$/.test(inside)) { if (out.range == null) out.range = parseInt(inside, 10); }
     else if (plage) { if (out.plage == null) out.plage = plage; }
     else if (inside && out.arg == null) out.arg = inside;
+    else if (inside) out.suites = [...(out.suites ?? []), inside];
   }
-  s = s.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  s = reste;
 
   // 2b) Fourchette de fin (« Armure 1-3 ») — avant le bonus signé, qui y lirait « -3 ».
   const pf = s.match(/\s(\d+\s*-\s*\d+)\s*$/);
@@ -82,14 +87,36 @@ export function parseStatEntry(raw: string): StatEntry {
   return out;
 }
 
+/** Les parenthèses de PREMIER niveau d'un texte, rognées, et le texte sans elles. */
+function parenthesesDePremierNiveau(texte: string): { groupes: string[]; reste: string } {
+  const groupes: string[] = [];
+  let reste = '';
+  let profondeur = 0;
+  let debut = 0;
+  for (let i = 0; i < texte.length; i++) {
+    const c = texte[i];
+    if (c === '(') {
+      if (profondeur === 0) debut = i + 1;
+      profondeur++;
+    } else if (c === ')' && profondeur > 0) {
+      profondeur--;
+      if (profondeur === 0) {
+        groupes.push(texte.slice(debut, i).trim());
+        reste += ' ';
+      }
+    } else if (profondeur === 0) reste += c;
+  }
+  return { groupes, reste: reste.replace(/\s+/g, ' ').trim() };
+}
+
 /** Ce qui n'a plus de fourchette : la pose tirée (`PoseTiree`) et l'instance résolue (`TraitInstance`). */
 interface SansFourchette {
   plage?: never;
 }
 
-/** Trait posé dont la fourchette est tirée : ce que `resoudreTrait` résout. Une `TraitPose` n'y passe que
- *  par `traitsDuPorteur`, ou quand sa forme littérale n'en porte aucune. */
-export type PoseTiree = Omit<TraitPose, 'plage'> & SansFourchette;
+/** Trait posé dont la fourchette est tirée et l'Indice évalué : ce que `resoudreTrait` résout. Une `TraitPose`
+ *  n'y passe que par `traitsDuPorteur`, ou quand sa forme littérale n'a ni fourchette ni formule. */
+export type PoseTiree = Omit<TraitPose, 'plage' | 'value' | 'confere'> & SansFourchette & { value?: number; confere?: readonly PoseTiree[] };
 
 /**
  * Trait RÉSOLU, l'instance que le jeu lit (`Combatant.traits`) : rendu d'un Trait posé (`TraitPose`,
@@ -122,6 +149,10 @@ export interface TraitInstance extends SansFourchette {
   src?: EffectSource;
   /** Indice par Localisation (AA 09 l.184), lu par `armourFromTraits`. */
   parLocalisation?: ParLocalisation;
+  /** Difficulté des Tests qui éliminent l'État que le Trait inflige. MDG 16 l.226 ; LDB 16 l.70 */
+  difficulte?: Difficulty;
+  /** Traits conférés aux touches de ce Trait d'attaque, lus par l'arme qui en naît. ZI 03 l.75, l.77 */
+  confere?: TraitInstance[];
 }
 
 /**
@@ -132,29 +163,52 @@ function tirerLaFourchette(plage: Plage, graine: string): number {
   return makeRNG(hashSeed(`fourchette:${graine}`)).int(plage.min, plage.max);
 }
 
-/**
- * La SEULE entrée d'un Trait posé (`TraitPose`) vers l'instance de jeu : chaque fourchette est tirée pour
- * le porteur `porteur`, puis la pose est résolue. `dejaPortes` = les Traits que le porteur a déjà : le rang
- * d'un homonyme part d'eux, et un Trait accordé ne retire pas la fourchette de celui qu'il a déjà. `src` =
- * la provenance d'un Trait ACCORDÉ (`resoudreTrait`).
- */
-export function traitsDuPorteur(poses: readonly TraitPose[], porteur: string, dejaPortes: TraitsDesignes = [], { src }: { src?: EffectSource } = {}): TraitInstance[] {
+/** Le porteur des Traits que `traitsDuPorteur` résout : son id (graine des fourchettes) et la lecture de
+ *  ses Indices formulés sur leur référent (`indiceSurLeProfil`, `engine/formule.ts`). */
+export interface PorteurDeTraits {
+  id: string;
+  indice: (f: FormuleSansTirage) => number;
+}
+
+/** Les poses tirées pour `porteur` : fourchette tirée sur la graine `graine:id#rang`, Indice formulé évalué,
+ *  Traits conférés tirés à leur tour sous la graine de l'attaque qui les confère. */
+function poserPour(poses: readonly TraitPose[], porteur: PorteurDeTraits, graine: string, dejaPortes: TraitsDesignes): PoseTiree[] {
   const rangs = new Map<string, number>();
   for (const t of dejaPortes) rangs.set(t.id, (rangs.get(t.id) ?? 0) + 1);
-  return poses.map(({ plage, ...pose }) => {
+  return poses.map(({ plage, value, confere, ...pose }) => {
     const rang = rangs.get(pose.id) ?? 0;
     rangs.set(pose.id, rang + 1);
-    return resoudreTrait(plage ? { ...pose, value: tirerLaFourchette(plage, `${porteur}:${pose.id}#${rang}`) } : pose, { src });
+    const ici = `${graine}:${pose.id}#${rang}`;
+    const indice = plage ? tirerLaFourchette(plage, ici) : value === undefined ? undefined : porteur.indice(value);
+    return {
+      ...pose,
+      ...(indice === undefined ? {} : { value: indice }),
+      ...(confere ? { confere: poserPour(confere, porteur, ici, []) } : {}),
+    };
   });
 }
 
 /**
+ * La SEULE entrée d'un Trait posé (`TraitPose`) vers l'instance de jeu : chaque fourchette est tirée pour
+ * le porteur, chaque Indice formulé lu sur son référent, puis la pose est résolue. `dejaPortes` = les Traits
+ * que le porteur a déjà : le rang d'un homonyme part d'eux, et un Trait accordé ne retire pas la fourchette
+ * de celui qu'il a déjà. `src` = la provenance d'un Trait ACCORDÉ (`resoudreTrait`).
+ */
+export function traitsDuPorteur(poses: readonly TraitPose[], porteur: PorteurDeTraits, dejaPortes: TraitsDesignes = [], { src }: { src?: EffectSource } = {}): TraitInstance[] {
+  return poserPour(poses, porteur, porteur.id, dejaPortes).map((pose) => resoudreTrait(pose, { src }));
+}
+
+/**
  * Résolution d'une pose tirée en instance de jeu : la provenance de livre (`source`, `alsoIn`, `maison`)
- * reste à la donnée ; `src` est la provenance d'un Trait ACCORDÉ. PURE.
+ * reste à la donnée, aux Traits conférés comme au Trait ; `src` est la provenance d'un Trait ACCORDÉ. PURE.
  */
 export function resoudreTrait(pose: PoseTiree, { src }: { src?: EffectSource } = {}): TraitInstance {
-  const { source: _source, alsoIn: _alsoIn, maison: _maison, ...jeu } = pose;
-  return src ? { ...jeu, src } : jeu;
+  const { source: _source, alsoIn: _alsoIn, maison: _maison, confere, ...jeu } = pose;
+  return {
+    ...jeu,
+    ...(confere ? { confere: confere.map((c) => resoudreTrait(c)) } : {}),
+    ...(src ? { src } : {}),
+  };
 }
 
 /**
