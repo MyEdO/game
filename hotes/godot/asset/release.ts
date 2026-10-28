@@ -12,8 +12,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { sha256 } from './empreinte.ts';
-import { lireGlb } from './glb.ts';
-import { estObjet, ligneDErreur, validerManifeste } from './manifeste.ts';
+import { estObjet } from './manifeste.ts';
+import { estBase, estSchema3, indexerModeles, validerModele, type BaseLivree, type EntreeDeModele } from './modeles.ts';
 
 /** Le dépôt dont la Release porte les modèles. */
 export const DEPOT = 'MyEdO/game';
@@ -107,6 +107,19 @@ export interface ModeleEpingle {
   readonly empreinte: string;
 }
 
+export function manifestesDesModeles(dossier: string): { entrees: EntreeDeModele[]; erreurs: string[] } {
+  const entrees: EntreeDeModele[] = [];
+  const erreurs: string[] = [];
+  if (!existsSync(dossier)) return { entrees, erreurs };
+  for (const id of idsPar(readdirSync(dossier).sort(), 'manifeste')) {
+    const nom = fichiersDuModele(id).manifeste;
+    const lu = lireJsonNomme(join(dossier, nom), nom);
+    if ('erreur' in lu) erreurs.push(lu.erreur);
+    else entrees.push({ id, brut: lu.valeur });
+  }
+  return { entrees, erreurs };
+}
+
 /** Les modèles du dossier `dossier`, épinglés par leur provenance, ou les écarts : un manifeste sans provenance, une
  *  provenance sans manifeste, une provenance illisible, un `model` autre que `<id>.glb`, une empreinte qui n'est pas
  *  un SHA-256. */
@@ -119,6 +132,8 @@ export function modelesEpingles(dossier: string): { readonly modeles: readonly M
     ...[...provenances].filter((id) => !manifestes.has(id)).map((id) => `${fichiersDuModele(id).provenance} : manifeste ${fichiersDuModele(id).manifeste} absent`),
   ];
   const modeles: ModeleEpingle[] = [];
+  const lus = manifestesDesModeles(dossier);
+  erreurs.push(...lus.erreurs, ...indexerModeles(lus.entrees).refus);
   for (const id of provenances) {
     const f = fichiersDuModele(id);
     const lu = lireJsonNomme(join(dossier, f.provenance), f.provenance);
@@ -184,17 +199,21 @@ export async function recupererModeles({ dossier, cache = CACHE_DES_MODELES, tel
 }): Promise<readonly ModeleEpingle[]> {
   const { modeles, erreurs } = modelesEpingles(dossier);
   if (erreurs.length) throw new Error(`modèles mal épinglés :\n  ${erreurs.join('\n  ')}`);
+  const { entrees } = manifestesDesModeles(dossier);
+  const octetsParId = new Map<string, Uint8Array>();
   for (const modele of modeles) {
     const enCache = join(cache, nomDAsset(modele.empreinte, 'glb'));
     const dansLeProjet = join(dossier, modele.model);
     const duProjet = sommeDuFichier(dansLeProjet) === modele.empreinte;
     await enCacheOuTire(enCache, modele.empreinte, modele.model, async () => (duProjet ? readFileSync(dansLeProjet) : tirerDeLaRelease(modele, telecharger, journal)));
     if (!duProjet) ecrireTexteAtomique(dansLeProjet, readFileSync(enCache));
-    const manifeste = fichiersDuModele(modele.id).manifeste;
-    const lu = lireJsonNomme(join(dossier, manifeste), manifeste);
-    if ('erreur' in lu) throw new Error(lu.erreur);
-    const verdict = validerManifeste(lu.valeur, lireGlb(readFileSync(dansLeProjet)));
-    if (!verdict.ok) throw new Error(`${manifeste} refusé contre ${modele.model} :\n  ${verdict.erreurs.map(ligneDErreur).join('\n  ')}`);
+    octetsParId.set(modele.id, readFileSync(dansLeProjet));
+  }
+  const bases = new Map<string, BaseLivree>();
+  for (const { id, brut } of entrees) if (estSchema3(brut) && estBase(brut)) bases.set(String(brut.base), { brut, octets: octetsParId.get(id)! });
+  for (const { id, brut } of [...entrees].sort((a, b) => Number(estBase(b.brut)) - Number(estBase(a.brut)))) {
+    const verdict = validerModele(brut, octetsParId.get(id)!, bases);
+    if (!verdict.ok) throw new Error(`${fichiersDuModele(id).manifeste} refusé contre ${fichiersDuModele(id).glb} :\n  ${verdict.refus.join('\n  ')}`);
   }
   journal(`[modèles] ${modeles.map((m) => m.model).join(', ')} : vérifiés (SHA-256), manifestes validés, cache ${cache}`);
   return modeles;

@@ -11,11 +11,11 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { sha256 } from './empreinte.ts';
-import { lireGlb, GlbIllisible, type ContenuGlb } from './glb.ts';
-import type { ManifesteMontable } from './montage';
-import { cheminsAbsolus, estObjet, ligneDErreur, validerManifeste, type Brut } from './manifeste.ts';
+import { lireGlb, GlbIllisible } from './glb.ts';
+import { cheminsAbsolus, estObjet, ligneDErreur, type Brut } from './manifeste.ts';
+import { estBase, estSchema3, indexerModeles, validerModele, type BaseLivree, type ManifesteDeModele } from './modeles.ts';
 import {
-  DOSSIER_DES_MODELES, fichiersDuModele, nomDAsset,
+  DOSSIER_DES_MODELES, fichiersDuModele, nomDAsset, manifestesDesModeles, modelesEpingles,
   type AssetAPublier, type LicenceDeComposant, type LicenceDePack, type Provenance,
 } from './release.ts';
 
@@ -52,7 +52,7 @@ export function chargerLicences(chemin: string = TABLE_DES_LICENCES): ReadonlyMa
 const IDENTIFIANT_SPDX = chargerLicences();
 
 export type ResultatDImport =
-  | { readonly ok: true; readonly ecrits: readonly string[]; readonly publies: readonly string[]; readonly manifeste: ManifesteMontable; readonly provenance: Provenance }
+  | { readonly ok: true; readonly ecrits: readonly string[]; readonly publies: readonly string[]; readonly manifeste: ManifesteDeModele; readonly provenance: Provenance }
   | { readonly ok: false; readonly refus: readonly string[] };
 
 const chaines = (v: unknown): string[] => (Array.isArray(v) ? v.filter((e): e is string => typeof e === 'string') : []);
@@ -134,9 +134,8 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   const empreinte = sha256(octets);
   if (declaree !== empreinte) return { ok: false, refus: [`empreinte SHA-256 du GLB ${empreinte}, ${MANIFESTE_DE_PRODUCTION} déclare ${String(declaree)}`] };
 
-  let glb: ContenuGlb;
   try {
-    glb = lireGlb(octets);
+    lireGlb(octets);
   } catch (e) {
     if (e instanceof GlbIllisible) return { ok: false, refus: [e.message] };
     throw e;
@@ -158,8 +157,28 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   }
 
   const fichiers = fichiersDuModele(id);
-  const verdict = validerManifeste({ ...brut, model: fichiers.glb }, glb);
-  if (!verdict.ok) return { ok: false, refus: verdict.erreurs.map(ligneDErreur) };
+  const candidat = Object.prototype.hasOwnProperty.call(brut, 'manifeste') ? brut.manifeste : { ...brut, model: fichiers.glb };
+  const bases = new Map<string, BaseLivree>();
+  if (estSchema3(candidat)) {
+    const lus = manifestesDesModeles(destination);
+    const index = indexerModeles([...lus.entrees, { id, brut: candidat }]);
+    const refus = [...lus.erreurs, ...index.refus];
+    if (existsSync(join(destination, fichiers.manifeste))) refus.push(`[id-deja-present] ${id}`);
+    const epingles = existsSync(destination) ? modelesEpingles(destination) : { modeles: [], erreurs: [] };
+    refus.push(...epingles.erreurs);
+    if (refus.length) return { ok: false, refus };
+    for (const [base, entree] of index.bases) {
+      if (estBase(candidat) || base !== candidat.base) continue;
+      const chemin = join(destination, fichiersDuModele(entree.id).glb);
+      if (!existsSync(chemin)) return { ok: false, refus: [`[glb-de-base-absent] ${base} : ${chemin}`] };
+      const octetsDeBase = readFileSync(chemin);
+      const epingle = epingles.modeles.find(m => m.id === entree.id);
+      if (!epingle || sha256(octetsDeBase) !== epingle.empreinte) return { ok: false, refus: [`[provenance-de-base-differente] ${base} : ${entree.id}`] };
+      bases.set(base, { brut: entree.brut, octets: octetsDeBase });
+    }
+  }
+  const verdict = validerModele(candidat, octets, bases);
+  if (!verdict.ok) return verdict;
 
   const provenance: Provenance = {
     model: fichiers.glb,
@@ -180,9 +199,14 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     ...(sources[0] && provenance.source_sha256 ? [{ chemin: join(dossier, sources[0]), nom: nomDAsset(provenance.source_sha256, 'blend') }] : []),
   ];
   const publies = publier ? publier(assets) : [];
+  const glbEcrits: string[] = [];
+  if (estSchema3(candidat)) {
+    ecrireTexteAtomique(join(destination, fichiers.glb), octets);
+    glbEcrits.push(join(destination, fichiers.glb));
+  }
   ecrireTexteAtomique(join(destination, fichiers.manifeste), enJson(verdict.manifeste));
   ecrireTexteAtomique(join(destination, fichiers.provenance), enJson(provenance));
   for (const { fichier, octets } of licences) ecrireTexteAtomique(join(destination, fichier), octets);
-  const ecrits = [fichiers.manifeste, fichiers.provenance, ...licences.map((l) => l.fichier)].map((f) => join(destination, f));
+  const ecrits = [...glbEcrits, ...[fichiers.manifeste, fichiers.provenance, ...licences.map((l) => l.fichier)].map((f) => join(destination, f))];
   return { ok: true, ecrits, publies, manifeste: verdict.manifeste, provenance };
 }

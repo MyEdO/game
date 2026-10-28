@@ -8,7 +8,7 @@ import { chargerAssets } from './asset/charger.mjs'
 const { importerPersonnage, DOSSIER_DES_MODELES, publierAssets, TAG } = await chargerAssets()
 
 const USAGE = `Usage : node hotes/godot/importer.mjs <dossier de production> <id de modèle> [--destination <dossier>] [--sans-publier]
-  <dossier de production>  manifest.json et le GLB qu'il nomme (model) ; au plus un *.blend ; des LICENSE*.txt
+  <dossier de production>  manifest.json : model, model_sha256, manifeste (base ou élément schéma 3) ; au plus un *.blend ; des LICENSE*.txt
   <id de modèle>           le nom des fichiers déposés : <id>.manifeste.json, <id>.provenance.json (et <id>.glb tiré de la Release)
   --destination <dossier>  où les déposer (défaut : ${DOSSIER_DES_MODELES})
   --sans-publier           ne verse rien dans la Release ${TAG} (tests et sondes)`
@@ -33,7 +33,13 @@ if (args.erreur) {
   console.error(`${args.erreur}\n${USAGE}`)
   process.exit(2)
 }
-const resultat = importerPersonnage({ ...args, date: new Date().toISOString().slice(0, 10) })
+let resultat
+try {
+  resultat = importerPersonnage({ ...args, date: new Date().toISOString().slice(0, 10) })
+} catch (erreur) {
+  console.error(`[lecture-ou-import] ${erreur instanceof Error ? erreur.message : String(erreur)}`)
+  process.exit(1)
+}
 if (resultat.ok) {
   console.log(`Publié dans la Release ${TAG} : ${resultat.publies.join(', ') || (args.publier ? 'rien, tout y était' : 'rien (--sans-publier)')}`)
   console.log(`Importé : ${resultat.ecrits.join(', ')}`)

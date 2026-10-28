@@ -2,7 +2,7 @@
 
 Procédure du skill `creer-un-personnage-3d`. Contrat d'élément :
 `hotes/godot/asset/element.ts` ; contrat de base :
-`hotes/godot/asset/evaluateur/manifesteDeBase.ts` ; mesures :
+`hotes/godot/asset/manifesteDeBase.ts` ; mesures :
 `hotes/godot/asset/evaluateur/evaluer.ts`. Design : #2972 « Base 3D commune et éléments indépendants », commentaires
 [v4, catégories et couches](https://github.com/MyEdO/game/issues/2972#issuecomment-6389032417),
 [chaîne et L5](https://github.com/MyEdO/game/issues/2972#issuecomment-6389032799),
@@ -334,6 +334,48 @@ Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur liv
 | import contrôlé schéma 3, unicité, rapport de couverture | importeur d'assets et ses tests | L3 |
 | montage par ids, couches et emplacements, contrôles de retrait | pont et hôte Godot | L4 |
 
-L'importeur de personnage historique n'est pas un import contrôlé d'élément schéma 3. Tant que L3
-et L4 ne sont pas livrés et prouvés, livrer les fichiers locaux et les preuves disponibles,
-avec import et montage NON VÉRIFIÉS ; ne pas inventer de commande d'import.
+## Importer une base et ses éléments
+
+Chaque dossier de production contient `manifest.json`, le GLB qu'il nomme, au plus un `.blend`
+et ses `LICENSE*.txt` (ligne `License:` obligatoire). Pour une base ou un élément au schéma 3,
+`manifest.json` est une enveloppe de production séparée du manifeste fermé :
+
+```json
+{
+  "model": "element.glb",
+  "model_sha256": "REMPLACER_PAR_LE_SHA256_DU_GLB",
+  "manifeste": { "schema": 3, "base": "humanoide" }
+}
+```
+
+Remplacer `manifeste` par le manifeste COMPLET de base ou d'élément. Les métadonnées de licences
+des composants restent dans `components.<id>.asset` de l'enveloppe (`license_basis`,
+`explicit_header`, `packs[].announced_license`), les sources d'animation dans `animation_sources`.
+Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé.
+
+Importer la base avant ses éléments, dans la même destination :
+
+```sh
+node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier
+node hotes/godot/importer.mjs /atelier/epee humanoide--epee --destination /atelier/modeles --sans-publier
+npm run godot:valider -- /atelier/epee/element.json /atelier/modeles/humanoide.manifeste.json /atelier/epee/element.glb
+```
+
+La validation cherche le GLB voisin du manifeste de base (`humanoide.manifeste.json` →
+`humanoide.glb` ; `base.json` → `base.glb`). Pour un autre nom, ajouter
+`--glb-base /atelier/base/corps.glb`. La base et son GLB sont validés avant l'élément.
+
+L'import retrouve la base par son champ `base` dans les `*.manifeste.json` de la destination,
+indépendamment du nom de fichier. Il exige son GLB local et sa provenance épinglée :
+`base-absente`, `glb-de-base-absent` ou `provenance-de-base-differente` nomment un manque ou un
+écart. Deux bases de même identité reçoivent `base-en-doublon` ; deux éléments de même
+`(base, cle)` reçoivent `cle-en-doublon`, même avec un autre nom de fichier ou une autre catégorie.
+
+Tous les refus précèdent publication et écriture ; la CLI sort en 1 (usage incorrect : 2).
+Un succès sort en 0, dépose `<id>.manifeste.json`, `<id>.provenance.json`, les licences et, au
+schéma 3, `<id>.glb` local. `--sans-publier` conserve ces dépôts locaux sans appeler la Release.
+Sans ce drapeau, le GLB et l'éventuel `.blend` sont versés sous leur empreinte dans la Release
+`modeles-3d` avant les écritures locales. La destination par défaut est `hotes/godot/projet/modeles`.
+
+Ce contrôle d'import ne prouve pas le montage L4 ni les mesures géométriques de l'évaluateur.
+La validation des clés par le noyau et le rapport de couverture appartiennent à L3b, après T3.

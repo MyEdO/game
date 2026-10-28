@@ -9,7 +9,7 @@ description: Produire depuis une illustration un élément 3D du jeu (GLB et man
 Lire et suivre **`docs/creer-un-personnage-3d.md`** : prérequis mesurés, choix catégorie/clé,
 fichier de données, construction, export, validation du manifeste, évaluateur et revue.
 Les contrats exécutables sont `hotes/godot/asset/element.ts` et
-`hotes/godot/asset/evaluateur/manifesteDeBase.ts`.
+`hotes/godot/asset/manifesteDeBase.ts`.
 
 Valider le manifeste et son GLB par **`npm run godot:valider -- <element.json> <base.json> <element.glb>`**.
 Mesurer l'élément monté par **`npm run godot:evaluer -- <element.glb> --base <base.glb> --manifeste <base.json>`** ;

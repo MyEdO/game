@@ -1,6 +1,6 @@
 /**
  * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine pour une base, et sa validation
- * contre le manifeste de cette base (`evaluateur/manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme de
+ * contre le manifeste de cette base (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme de
  * `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements` et `silhouettes`, et le choix
  * palette ou teinte des surfaces (`REGLES_DES_CATEGORIES`).
  */
@@ -8,6 +8,7 @@ import { estObjet } from '../../../src/hote/formes';
 import { SLOTS } from '../../../src/noyau/index.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 import { sha256 } from './empreinte.ts';
+import type { ManifesteDeBase } from './manifesteDeBase.ts';
 
 export const VERSION_DU_SCHEMA_D_ELEMENT = 3;
 
@@ -81,15 +82,8 @@ export type ManifesteDElement = {
   } & ChampsDe<C>;
 }[CategorieDElement];
 
-/** Ce que l'élément lit du manifeste de sa base (`evaluateur/manifesteDeBase.ts`, lu par forme : l'outillage de
- *  l'évaluateur est fermé au reste de la zone, `scripts/guards/lib/couches.mjs`). */
-export interface BaseDUnElement {
-  readonly base: string;
-  readonly os: readonly string[];
-  readonly chaines: Readonly<Record<string, readonly string[]>>;
-  readonly zones: readonly string[];
-  readonly silhouettes: readonly string[];
-}
+/** La surface de base lue par la validation d'un élément. */
+export type BaseDUnElement = Pick<ManifesteDeBase, 'base' | 'os' | 'chaines' | 'zones' | 'silhouettes'>;
 
 export type CodeDEcartDElement =
   | 'forme'

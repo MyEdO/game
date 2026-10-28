@@ -1,12 +1,11 @@
 /**
  * LE MANIFESTE D'UNE BASE HUMANOÏDE (#2972, schéma 3) : son squelette, ses chaînes d'appendice, ses zones, ses
  * emplacements, ses prises, ses shape keys, la table du gabarit, son porteur de référence, ses appuis et ses os à
- * position animée, validés contre le GLB livré (`lireGlb`, `glb.ts`). Les ids de `porteur` ne se lisent pas ici :
- * l'évaluateur est hors du graphe de l'hôte (`charger.mjs`, `chargerEvaluateur`).
+ * position animée, validés contre le GLB livré (`lireGlb`, `glb.ts`).
  */
-import { sha256 } from '../empreinte.ts';
-import { lireGlb } from '../glb.ts';
-import { estListeDeChaines, estTriplet, type Attache } from '../attache.ts';
+import { sha256 } from './empreinte.ts';
+import { lireGlb } from './glb.ts';
+import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 
 export const VERSION_DU_SCHEMA_DE_BASE = 3;
 

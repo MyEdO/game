@@ -4,7 +4,7 @@
  * silhouette. L'axe d'un os est son +Y local, convention des os glTF exportés de Blender.
  */
 import type { Bone, Mesh, Object3D } from 'three';
-import type { TableDeGabarit } from './manifesteDeBase.ts';
+import type { TableDeGabarit } from '../manifesteDeBase.ts';
 
 export interface Facteurs {
   readonly sl: number;

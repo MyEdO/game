@@ -9,6 +9,8 @@ import { chargerLicences, importerPersonnage, MANIFESTE_DE_PRODUCTION, TableDesL
 import { cheminsAbsolus, validerManifeste, type CodeDErreur } from './manifeste.ts';
 import { ATTACHES } from './montage';
 import { tableTotale } from '../../../src/lib/tableTotale';
+import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
+import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, productionSchema3, deposerSchema3 } from './schema3.testkit.ts';
 import {
   DOSSIER_DES_MODELES, fichiersDuModele, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   TAG, urlDAsset, type AssetAPublier, type Gh,
@@ -260,6 +262,82 @@ const temporaire = () => {
 afterEach(() => dossiers.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })));
 
 const EMPREINTE = sha256(GLB);
+
+describe('import et chargement au schéma 3', () => {
+  const importer = (destination: string, manifeste: unknown, octets = GLB_D_ELEMENT, id = 'element', publier: ((assets: readonly AssetAPublier[]) => readonly string[]) | null = null) =>
+    importerPersonnage({ dossier: productionSchema3(temporaire(), manifeste, octets), id, destination, date: '2026-10-28', publier });
+  const avecBase = () => {
+    const dossier = temporaire();
+    deposerSchema3(dossier, 'corps-reference', baseSchema3(), GLB_DE_BASE);
+    return dossier;
+  };
+  it('importe la base puis son élément, sans ajouter les métadonnées de production au manifeste', () => {
+    const destination = temporaire();
+    expect(importer(destination, baseSchema3(), GLB_DE_BASE, 'corps-reference').ok).toBe(true);
+    const verses: string[] = [];
+    const r = importer(destination, elementSchema3(), GLB_D_ELEMENT, 'epee', assets => { verses.push(...assets.map(a => a.nom)); return verses; });
+    expect(r.ok).toBe(true);
+    expect(verses).toEqual([nomDAsset(sha256(GLB_D_ELEMENT), 'glb')]);
+    expect(JSON.parse(readFileSync(join(destination, 'epee.manifeste.json'), 'utf8'))).toEqual(elementSchema3());
+  });
+  it.each([
+    ['base-absente', () => temporaire(), () => elementSchema3()],
+    ['forme', avecBase, () => ({ ...elementSchema3(), surfaces: undefined })],
+    ['glb-different', avecBase, () => ({ ...elementSchema3(), glb: { sha256: 'a'.repeat(64), octets: GLB_D_ELEMENT.byteLength } })],
+    ['cle-en-doublon', () => { const d = avecBase(); deposerSchema3(d, 'autre', elementSchema3(), GLB_D_ELEMENT); return d; }, () => elementSchema3()],
+    ['base-en-doublon', avecBase, () => baseSchema3()],
+    ['os-inconnu', () => { const d = avecBase(); writeFileSync(join(d, 'corps-reference.manifeste.json'), JSON.stringify({ ...baseSchema3(), os: ['absent'] })); return d; }, () => elementSchema3()],
+    ['glb-de-base-absent', () => { const d = avecBase(); rmSync(join(d, 'corps-reference.glb')); return d; }, () => elementSchema3()],
+    ['provenance-de-base-differente', () => { const d = avecBase(); writeFileSync(join(d, 'corps-reference.provenance.json'), JSON.stringify({ model: 'corps-reference.glb', model_sha256: 'a'.repeat(64) })); return d; }, () => elementSchema3()],
+  ] as const)('refuse %s avant publication et sans écriture', (code, destinationDe, manifesteDe) => {
+    const destination = destinationDe();
+    const avant = listerDossier(destination).map(f => [f, readFileSync(join(destination, f)).toString('base64')]);
+    const verses: AssetAPublier[] = [];
+    const m = manifesteDe();
+    const r = importer(destination, m, 'categorie' in m ? GLB_D_ELEMENT : GLB_DE_BASE, 'nouveau', assets => { verses.push(...assets); return []; });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.refus.join('\n')).toContain(`[${code}]`);
+    expect(verses).toEqual([]);
+    expect(listerDossier(destination).map(f => [f, readFileSync(join(destination, f)).toString('base64')])).toEqual(avant);
+  });
+  it('refuse un second import du même couple même sous le même id', () => {
+    const d = avecBase();
+    expect(importer(d, elementSchema3()).ok).toBe(true);
+    const r = importer(d, elementSchema3());
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.refus.join('\n')).toContain('[cle-en-doublon]');
+  });
+  it('la catégorie ne distingue pas deux éléments de même clé de pièce', () => {
+    const d = avecBase();
+    const piece = { ...elementSchema3(), categorie: 'accessoire', cle: { piece: 'plaque' }, couche: 'tenue' };
+    expect(importer(d, piece).ok).toBe(true);
+    const r = importer(d, { ...piece, categorie: 'armure', liaison: { mode: 'squelette' }, couche: 'armure', couvre: [] }, GLB_D_ELEMENT, 'armure');
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.refus.join('\n')).toContain('[cle-en-doublon]');
+  });
+  it('une base au repos dans le même dossier ne rend pas son GLB requis pour un élément d’une autre base', () => {
+    const d = avecBase();
+    deposerSchema3(d, 'autre-base', baseSchema3('autre'), GLB_DE_BASE);
+    rmSync(join(d, 'autre-base.glb'));
+    expect(importer(d, elementSchema3()).ok).toBe(true);
+  });
+  it('charge ensemble schémas 2 et 3, même quand la base suit l’élément dans le dossier', async () => {
+    const d = dossierDeModeles();
+    writeFileSync(join(d, 'Essai.glb'), GLB);
+    deposerSchema3(d, 'z-base', baseSchema3(), GLB_DE_BASE);
+    deposerSchema3(d, 'a-element', elementSchema3(), GLB_D_ELEMENT);
+    const r = await recupererModeles({ dossier: d, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet });
+    expect(r.map(m => m.id).sort()).toEqual(['Essai', 'a-element', 'z-base']);
+  });
+  it.each(['cle-en-doublon', 'base-en-doublon', 'base-absente', 'forme', 'os-inconnu'] as const)('refuse %s au chargement', async code => {
+    const d = temporaire();
+    if (code !== 'base-absente') deposerSchema3(d, 'base', code === 'os-inconnu' ? { ...baseSchema3(), os: ['absent'] } : baseSchema3(), GLB_DE_BASE);
+    deposerSchema3(d, 'a', code === 'forme' ? { ...elementSchema3(), surfaces: undefined } : elementSchema3(), GLB_D_ELEMENT);
+    if (code === 'cle-en-doublon') deposerSchema3(d, 'b', elementSchema3(), GLB_D_ELEMENT);
+    if (code === 'base-en-doublon') deposerSchema3(d, 'b', baseSchema3(), GLB_DE_BASE);
+    await expect(recupererModeles({ dossier: d, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(`[${code}]`);
+  });
+});
 
 describe('importerPersonnage', () => {
   /** Une publication qui consigne ce qu'on lui verse. */

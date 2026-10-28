@@ -11,7 +11,7 @@ import { chargerScene } from './chargement.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer } from './evaluer.ts';
 import { appliquerGabarit, CARRURE_MOINS, CARRURE_PLUS, FACTEURS_NEUTRES, poidsDeCarrure, poserSilhouettes } from './gabarit.ts';
-import { validerManifesteDeBase, type CodeDEcartDeBase } from './manifesteDeBase.ts';
+import { validerManifesteDeBase, type CodeDEcartDeBase } from '../manifesteDeBase.ts';
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';

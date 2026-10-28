@@ -1,5 +1,10 @@
 // Le manifeste d'un élément, schéma 3 (#2972) : un manifeste valide par catégorie, un refus nommé par code.
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT } from './schema3.testkit.ts';
 import { CATEGORIES_D_ELEMENT, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
 import { sha256 } from './empreinte.ts';
 
@@ -90,4 +95,25 @@ describe('validerElement : chaque refus nommé', () => {
     expect(new Set(REFUS.map(([code]) => code))).toEqual(new Set(Object.keys(attendus)));
   });
   it.each(REFUS)('%s : %s', (code, _cas, brut) => expect(codes(brut)).toEqual([code]));
+});
+
+describe('CLI godot:valider : base validée avant l’élément', () => {
+  const dossiers: string[] = [];
+  afterEach(() => dossiers.splice(0).forEach(d => rmSync(d, { recursive: true, force: true })));
+  it.each(['valide', 'os-inconnu', 'glb-different', 'base-absente', 'forme'] as const)('%s', cas => {
+    const d = mkdtempSync(join(tmpdir(), 'element-cli-'));
+    dossiers.push(d);
+    const base = baseSchema3();
+    if (cas === 'os-inconnu') base.os = ['absent'];
+    if (cas === 'glb-different') base.glb.sha256 = 'a'.repeat(64);
+    writeFileSync(join(d, 'base.manifeste.json'), JSON.stringify(base));
+    if (cas !== 'base-absente') writeFileSync(join(d, 'base.glb'), GLB_DE_BASE);
+    const element = cas === 'forme' ? { ...elementSchema3(), surfaces: undefined } : elementSchema3();
+    writeFileSync(join(d, 'element.json'), JSON.stringify(element));
+    writeFileSync(join(d, 'element.glb'), GLB_D_ELEMENT);
+    const r = spawnSync(process.execPath, ['hotes/godot/asset/valider.mjs', join(d, 'element.json'), join(d, 'base.manifeste.json'), join(d, 'element.glb')], { encoding: 'utf8', timeout: 60000 });
+    expect(r.error).toBeUndefined();
+    expect(r.status, r.stderr + r.stdout).toBe(cas === 'valide' ? 0 : 1);
+    if (cas !== 'valide') expect(r.stdout + r.stderr).toContain(cas === 'base-absente' ? 'glb-de-base-absent' : cas);
+  }, 65000);
 });

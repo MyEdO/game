@@ -10,7 +10,7 @@ import { chargerScene, type SceneChargee } from './chargement.ts';
 import type { Ecart } from './ecart.ts';
 import { echantillonner, PAS_PAR_DEFAUT, poseDeRepos } from './echantillonnage.ts';
 import { appliquerGabarit, FACTEURS_NEUTRES, poserSilhouettes, type Facteurs } from './gabarit.ts';
-import { validerManifesteDeBase, type ManifesteDeBase } from './manifesteDeBase.ts';
+import { validerManifesteDeBase, type ManifesteDeBase } from '../manifesteDeBase.ts';
 import { gardeBudget, PLAFOND_ASSEMBLE, trianglesDe } from './gardes/budget.ts';
 import { mesurerAppuis, poserPieds, surfacesDesPieds, type AppuisDuClip, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
