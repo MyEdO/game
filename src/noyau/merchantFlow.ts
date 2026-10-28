@@ -8,7 +8,7 @@ import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type CharKey } from '../engine/types';
 import { recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
-import { bargainBuyFactor, bargainSellFactor, type BargainOutcome } from '../engine/bargain';
+import { bargainBuyFactor, bargainSellFactor, bargainPct, type BargainOutcome } from '../engine/bargain';
 import { SL_ASTOUNDING, estJete } from '../engine/tests';
 import { craftPriceFactor, shiftAvailability } from '../engine/qualities/craftEconomy';
 import { rule, type RuleValue } from '../engine/policy';
@@ -22,7 +22,7 @@ import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilit
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type StatusTier, type Money } from '../engine/money';
-import { payWithAllocation, payFromGroup, soloPayer, creditBourse } from './bourseFlow';
+import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeGesteSurLeGroupe, refuseLeGesteDeGroupe } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -40,6 +40,7 @@ import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { cleDeBillet } from './worldMap';
 import { addPossession } from './possessionsFlow';
 import { traceLineOf } from '../engine/traceLine';
+import { refuserGeste } from './refusVisible';
 
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
@@ -96,7 +97,7 @@ function listedBrassOf(t: { price: Partial<Money> | 'ND' | null; qualities?: unk
 /** Ligne de catalogue GÉNÉRALISÉE (#619 Lot A) — trapping OU UNITÉ vendue par archétype (`unitKinds`,
  *  véhicule `vehicles.json` / créature-monture `creatures.json`, facette `purchase`).
  *  SOURCE UNIQUE du triplet label/prix/Disponibilité, réutilisée par le STOCK (`computeFreshStockLines`)
- *  ET le PAIEMENT (`buyItem`/`payCart`) — jamais un lookup de prix dupliqué par site. `unit` absent =
+ *  ET le PAIEMENT (`payCart`) — jamais un lookup de prix dupliqué par site. `unit` absent =
  *  trapping ordinaire (achat → objet de sac) ; présent = achat → POSSESSION (`kind`/id du catalogue).
  *  EXPORTÉE : `MerchantPanel` (UI) résout AUSSI label/prix/Dispo/famille d'une ligne de stock par cette
  *  SOURCE UNIQUE — jamais un `findTrappingById` nu qui présumerait une ligne trapping. */
@@ -166,13 +167,81 @@ function comptesFree(ent: SceneEntity | undefined, party: Combatant[], listedBra
   return !!marketRule(ent, 'tenirComptes') && listedBrass > 0 && listedBrass <= partyStatusBudgetBrass(party);
 }
 
-/** Bonus de recherche de Disponibilité du groupe (LDB 59 l.50) : +10 si un héros a une Carrière
- *  cohérente (« Marchand ou Receleur », l.50) ; +10 de plus si le groupe a passé une journée entière à
- *  chercher activement (Test de Ragot réussi, `gossipDay`). Le RAW plafonne à +20 %
- *  (`availabilitySearchBonus`). Renvoie le % à ajouter aux Tests de Disponibilité du stock. */
+/** Entité de scène du marchand ouvert (porteuse de ses surcharges de Marché, #93). */
+function entiteDuMarchand(s: Jeu, m: MerchantState): SceneEntity | undefined {
+  return s.scene?.entities.find((e) => e.id === m.entityId);
+}
+
+/** Ce que juge un verdict d'achat : l'entité du marchand, le groupe, sa bourse et le refus de dépense du
+ *  siège (`refusDeGesteSurLeGroupe`). Le geste le dresse sur l'état (`contexteDAchat`), l'écran sur ses props. */
+export interface ContexteDAchat { ent: SceneEntity | undefined; party: Combatant[]; bourse: Money; refusHote: string | null }
+
+function contexteDAchat(s: Jeu, m: MerchantState): ContexteDAchat {
+  return { ent: entiteDuMarchand(s, m), party: s.party, bourse: totalDesBourses(s.party), refusHote: refusDeGesteSurLeGroupe(s) };
+}
+
+/** Remise MAXIMALE qu'un Marchandage d'achat peut obtenir au meilleur négociateur du groupe, en % :
+ *  Succès Stupéfiant et Négociateur compris (LDB 59 l.43 ; LDB 10 l.818 ; `bargainPct`). 0 sans
+ *  négociateur. Plancher des devis de cargaison avant le jet (MSRC 13 l.127 ; MDG 15 l.335). */
+export function remiseMaximaleDeMarchandage(party: Combatant[]): number {
+  const best = partyAssisted(party, 'marchandage');
+  return best ? bargainPct(true, SL_ASTOUNDING, hasBargainBonus(best.actor)) : 0;
+}
+
+/** Remise d'achat obtenue au Marchandage de la visite, en % (LDB 59 l.43) : 0 sans Marchandage. */
+export function remiseDAchatPct(m: MerchantState): number {
+  return m.bargainBuy ? bargainPct(m.bargainBuy.won, m.bargainBuy.drNet, m.bargainBuy.negotiator) : 0;
+}
+
+/** Prix d'achat UNITAIRE d'une ligne de stock (LDB 59 l.9-11 ; LDB 59 l.43). SOURCE UNIQUE lue par
+ *  `payCart`, `refusDAjout` et l'écran du marchand. `null` : ligne hors catalogue ou prix « ND »
+ *  (LDB 62 l.28). */
+export function prixDeLigne(m: MerchantState, id: string, ent: SceneEntity | undefined, party: Combatant[]): Money | null {
+  const entry = catalogEntryOf(id);
+  if (!entry?.price) return null;
+  if (comptesFree(ent, party, listedBrassOf(entry))) return fromBrass(0);
+  const haggle = m.bargainBuy ? bargainBuyFactor(m.bargainBuy.won, m.bargainBuy.drNet, m.bargainBuy.negotiator) : 1;
+  const brass = toBrass(priceToMoney(entry.price)) * craftPriceFactor({ qualities: entry.qualities as never }) * (m.buyMarkup ?? 1) * haggle;
+  return Number.isFinite(brass) ? fromBrass(Math.round(brass)) : null;
+}
+
+/** Une ligne du panier d'achat chiffrée par `prixDeLigne`. */
+export interface LigneDuPanier { id: string; qty: number; unitaire: Money | null; sousTotal: Money | null }
+/** `refus` : la raison affichée, ou `null`. */
+export interface DevisDuPanier { lignes: LigneDuPanier[]; total: Money; refus: string | null }
+
+/** Devis du panier d'achat contre la bourse `bourse` du groupe — SOURCE UNIQUE du total payé par
+ *  `payCart` et affiché par l'écran. */
+export function devisDuPanier(m: MerchantState, { ent, party, bourse, refusHote }: ContexteDAchat): DevisDuPanier {
+  const lignes = (m.cart ?? []).map((c): LigneDuPanier => {
+    const unitaire = prixDeLigne(m, c.id, ent, party);
+    return { id: c.id, qty: c.qty, unitaire, sousTotal: unitaire ? fromBrass(toBrass(unitaire) * c.qty) : null };
+  });
+  const total = fromBrass(lignes.reduce((s, l) => s + (l.sousTotal ? toBrass(l.sousTotal) : 0), 0));
+  return { lignes, total, refus: refusHote ?? (!lignes.length ? t('mf.panierVide') : !canAfford(bourse, total) ? t('mf.cartPurseKo') : null) };
+}
+
+/** Refus d'ajout d'une unité de la ligne `id` au panier, contre la bourse `bourse` du groupe que le panier
+ *  déjà composé entame : la raison affichée, ou `null`. Tombe dans `addToCart`, lu par l'écran. */
+export function refusDAjout(m: MerchantState, id: string, contexte: ContexteDAchat): string | null {
+  const { ent, party, bourse } = contexte;
+  const stockQty = m.stock.find((l) => l.id === id)?.qty ?? 0;
+  const enPanier = (m.cart ?? []).find((c) => c.id === id)?.qty ?? 0;
+  const unitaire = prixDeLigne(m, id, ent, party);
+  const label = catalogEntryOf(id)?.label ?? id;
+  return m.bargainBuy != null ? t('mf.panierFige')
+    : enPanier >= stockQty ? t('mf.stockEpuise', { label })
+    : !unitaire ? t('mf.sansPrix', { label })
+    : !canAfford(bourse, moneyAdd(devisDuPanier(m, contexte).total, unitaire)) ? t('mf.purseKo', { label })
+    : null;
+}
+
 /** Carrières « cohérentes » pour la recherche de Disponibilité (LDB 59 l.50) — ids STABLES, pas des
  *  libellés (`Combatant.career` porte l'id de la Carrière). */
 const COHERENT_AVAILABILITY_CAREERS = new Set(['marchand', 'receleur']);
+/** Bonus de recherche de Disponibilité du groupe (LDB 59 l.50) : Carrière cohérente et journée de recherche
+ *  active (`gossipDay`), plafonné par `availabilitySearchBonus`. Renvoie le % à ajouter aux Tests de
+ *  Disponibilité du stock. */
 function partyAvailabilityBonus(party: Combatant[], gossipDay = false): number {
   const coherent = party.some((h) => COHERENT_AVAILABILITY_CAREERS.has(h.career ?? ''));
   return availabilitySearchBonus({ coherentCareer: coherent, gossipDay });
@@ -386,55 +455,20 @@ export function closeMerchant(get: Get, set: Set): void {
   set({ merchant: null });
 }
 
-/** La Possession d'une UNITÉ achetée (#619, #760), au propriétaire `ownerId`, avec le groupe : écriture
- *  partagée par `buyItem` et `confirmDistribution`. */
+/** La Possession d'une UNITÉ achetée (#619, #760), au propriétaire `ownerId`, avec le groupe. */
 function possessionDUnite(unit: UniteVendue, ownerId: string): Parameters<typeof addPossession>[2] {
   return unit.kind === 'bete'
     ? { nature: 'bete', ref: { creatureId: unit.id }, ownerId, location: { kind: 'avec-le-groupe' }, items: [] }
     : { nature: 'vehicule', vehicleId: unit.id, ownerId, location: { kind: 'avec-le-groupe' }, items: [] };
 }
 
-export function buyItem(get: Get, set: Set, id: string, heroId?: string): void {
-  const m = get().merchant; if (!m) return;
-  const line = m.stock.find((l) => l.id === id); if (!line || line.qty <= 0) return;
-  const entry = catalogEntryOf(id); if (!entry) return;
-  const factor = m.bargainBuy ? bargainBuyFactor(m.bargainBuy.won, m.bargainBuy.drNet, m.bargainBuy.negotiator) : 1;
-  // « Tenir les comptes » (LDB 59 l.9-11) : objet ≤ Statut du groupe → acquis sans compter les pièces.
-  const ent = get().scene?.entities.find((e) => e.id === m.entityId);
-  const free = comptesFree(ent, get().party, listedBrassOf(entry));
-  const cost = free ? fromBrass(0) : fromBrass(Math.round(toBrass(priceToMoney(entry.price)) * craftPriceFactor({ qualities: entry.qualities as never }) * (m.buyMarkup ?? 1) * factor));
-  const dest = heroId ?? get().party[0]?.id;
-  const destHero = dest ? actorIn(get(), dest) : undefined;
-  if (!free && (!destHero || !canAfford(bourseOf(destHero), cost))) { get().log(t('mf.purseKo', { label: entry.label })); return; }
-  const objet = entry.unit ? null : itemFromTrappingById(id, undefined, destHero ? contexteDeNaissanceDObjet(destHero) : undefined);
-  if (!entry.unit && !objet) return; // objet de sac introuvable → abandon (parité comportement)
-  if (!free) payWithAllocation(get, set, { debits: soloPayer(dest!, cost), recipient: dest, purpose: 'achat' });
-  const decr = (st: { id: string; qty: number }[]) => st.map((l) => (l.id === id ? { ...l, qty: l.qty - 1 } : l));
-  if (entry.unit && dest) {
-    // Achat d'une UNITÉ (#619) : possession, pas un objet de sac. Propriétaire = l'acheteur (`heroId`).
-    addPossession(get, set, possessionDUnite(entry.unit, dest));
-  }
+export function addToCart(get: Get, set: Set, id: string): void {
+  const m0 = get().merchant; if (!m0) return;
+  const refus = refusDAjout(m0, id, contexteDAchat(get(), m0));
+  if (refus) { refuserGeste(get, set, refus); return; }
   set((s) => {
-    const newStock = decr(s.merchant!.stock);
-    const eid = s.merchant!.entityId;
-    const persisted = s.merchantStocks[eid];
-    return {
-      ...(!objet || !dest ? {} : ecrireActeur(s, dest, (h) => avecObjet(h, objet))), // flux objet→héros mutualisé
-      merchant: { ...s.merchant!, stock: newStock },
-      // Déplétion PERSISTANTE (#T3) : la quantité reste réduite entre visites (rolledAt inchangé).
-      merchantStocks: { ...s.merchantStocks, [eid]: { stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
-    };
-  });
-  get().log(t(free ? 'mf.buyFree' : 'mf.buy', { label: entry.label }));
-}
-
-export function addToCart(_get: Get, set: Set, id: string): void {
-  set((s) => {
-    const m = s.merchant; if (!m || m.bargainBuy != null) return {}; // marché conclu → panier scellé
-    const stockQty = m.stock.find((l) => l.id === id)?.qty ?? 0;
+    const m = s.merchant; if (!m) return {};
     const cart = m.cart ?? [];
-    const cur = cart.find((c) => c.id === id)?.qty ?? 0;
-    if (cur >= stockQty) return {}; // jamais plus que le stock disponible
     const next = cart.some((c) => c.id === id)
       ? cart.map((c) => (c.id === id ? { ...c, qty: c.qty + 1 } : c))
       : [...cart, { id, qty: 1 }];
@@ -472,20 +506,10 @@ export function refuseBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
 
 export function payCart(get: Get, set: Set): void {
   const m = get().merchant; if (!m) return;
-  const cart = m.cart ?? []; if (!cart.length) return;
-  const factor = m.bargainBuy ? bargainBuyFactor(m.bargainBuy.won, m.bargainBuy.drNet, m.bargainBuy.negotiator) : 1;
-  const party = get().party;
-  const ent = get().scene?.entities.find((e) => e.id === m.entityId);
-  // « Tenir les comptes » (LDB 59 l.9-11) : une ligne ≤ Statut du groupe n'est pas comptée (0 sc).
-  const unitBrass = (id: string) => {
-    const entry = catalogEntryOf(id); if (!entry) return 0;
-    if (comptesFree(ent, party, listedBrassOf(entry))) return 0;
-    return Math.round(toBrass(priceToMoney(entry.price)) * craftPriceFactor({ qualities: entry.qualities as never }) * (m.buyMarkup ?? 1) * factor);
-  };
-  let totalBrass = 0;
-  for (const c of cart) totalBrass += unitBrass(c.id) * c.qty;
-  const total = fromBrass(totalBrass);
-  if (!payFromGroup(get, set, total, { purpose: 'panier marchand' })) { get().log(t('mf.cartPurseKo')); return; }
+  const cart = m.cart ?? [];
+  const devis = devisDuPanier(m, contexteDAchat(get(), m));
+  const total = devis.total;
+  if (devis.refus || !payFromGroup(get, set, total, { purpose: 'panier marchand' })) { refuserGeste(get, set, devis.refus ?? t('mf.cartPurseKo')); return; }
   // Crée les objets achetés (par UNITÉ) en attente de répartition + déplète le stock. Une ligne
   // UNITÉ (véhicule/créature-monture, #760) rejoint elle aussi `pendingDistribution` — le joueur
   // choisit le héros PROPRIÉTAIRE via le même écran de répartition que les objets de sac ;
@@ -624,25 +648,62 @@ export function barterQuote(giveId: string, getId: string, getCount = 1): Barter
   return { ratio, giveAv, getAv, giveCount: Math.max(1, Math.ceil(giveValue / givePrice)) };
 }
 
-/** Exécute un Troc (LDB 59 l.64) : le héros `giveHeroId` cède `giveCount` exemplaires du trapping
- *  `giveTrappingId` (SANS argent) contre `getCount` exemplaires du stock `getStockId`. Refuse si le
- *  héros n'a pas les exemplaires ou si le stock est insuffisant. Réutilise les flux objet existants. */
-export function barterExchange(get: Get, set: Set, opts: { giveHeroId: string; giveTrappingId: string; getStockId: string; getCount?: number }): void {
-  const m = get().merchant; if (!m) return;
+/** Exemplaires CÉDABLES au Troc d'un trapping chez un héros : instances NON équipées. */
+function exemplairesCedables(hero: Combatant, trappingId: string): ItemInstance[] {
+  return (hero.items ?? []).filter((i) => i.trappingId === trappingId && !i.equipped);
+}
+
+/** Un bien cédable au Troc : un trapping à prix listé chiffré, chez un héros, avec ses exemplaires. */
+export interface OptionDeTroc { heroId: string; trappingId: string; count: number }
+
+/** Biens cédables au Troc (LDB 59 l.64-76) par (héros, trapping) — SOURCE UNIQUE de l'écran de Troc. */
+export function optionsDeTroc(party: Combatant[]): OptionDeTroc[] {
+  const out: OptionDeTroc[] = [];
+  for (const h of party) {
+    const ids = new Set((h.items ?? []).flatMap((it) => (it.trappingId && !it.equipped ? [it.trappingId] : [])));
+    for (const trappingId of ids) {
+      const trapping = findTrappingById(trappingId);
+      if (trapping && listedBrassOf(trapping) > 0) out.push({ heroId: h.id, trappingId, count: exemplairesCedables(h, trappingId).length });
+    }
+  }
+  return out;
+}
+
+export type DemandeDeTroc = { giveHeroId: string; giveTrappingId: string; getStockId: string; getCount?: number };
+/** Devis d'un Troc : `refus` = la raison affichée, `null` quand le devis existe et que le Troc passe. */
+export type DevisDeTroc = ({ refus: null; quote: BarterQuote } | { refus: string; quote: BarterQuote | null }) & { getCount: number; max: number };
+
+/** Devis d'un Troc (LDB 59 l.64-76) — son refus tombe dans `barterExchange`, lu par l'écran. */
+export function devisDeTroc(m: MerchantState, party: Combatant[], opts: DemandeDeTroc): DevisDeTroc {
   const getCount = Math.max(1, Math.floor(opts.getCount ?? 1));
   const refused = barterRefusal(opts.giveTrappingId) ?? barterRefusal(opts.getStockId);
-  if (refused) { get().log(t('trade.barterRefused', { reason: refused })); return; }
-  const quote = barterQuote(opts.giveTrappingId, opts.getStockId, getCount);
-  if (!quote) { get().log(t('mf.barterNoPrice')); return; }
+  const quote = refused ? null : barterQuote(opts.giveTrappingId, opts.getStockId, getCount);
+  const hero = party.find((h) => h.id === opts.giveHeroId);
+  const stockQty = m.stock.find((l) => l.id === opts.getStockId)?.qty ?? 0;
+  const dispo = hero ? exemplairesCedables(hero, opts.giveTrappingId).length : 0;
+  const label = findTrappingById(opts.giveTrappingId)?.label ?? opts.giveTrappingId;
+  const refus = refused ? t('trade.barterRefused', { reason: refused })
+    : !quote ? t('mf.barterNoPrice')
+    : dispo < quote.giveCount ? t('mf.barterNeed', { n: quote.giveCount, label, dispo })
+    : stockQty < getCount ? t('mf.barterNoStock')
+    : null;
+  const max = Math.max(1, stockQty); // borne de la quantité acquise : le stock du marchand, plancher 1
+  return refus == null && quote ? { refus: null, quote, getCount, max } : { refus: refus ?? t('mf.barterNoPrice'), quote, getCount, max };
+}
+
+/** Exécute un Troc (LDB 59 l.64) : le héros `giveHeroId` cède les exemplaires du devis (`devisDeTroc`) du
+ *  trapping `giveTrappingId` (SANS argent) contre `getCount` exemplaires du stock `getStockId`. Les refus
+ *  (`refusDeGesteSurLeGroupe`, puis celui du devis) tombent avant toute écriture. */
+export function barterExchange(get: Get, set: Set, opts: DemandeDeTroc): void {
+  if (refuseLeGesteDeGroupe(get, set)) return;
+  const m = get().merchant; if (!m) return;
+  const v = devisDeTroc(m, get().party, opts);
+  if (v.refus !== null) { refuserGeste(get, set, v.refus); return; }
+  const { quote, getCount } = v;
   const donne = garanti(findTrappingById(opts.giveTrappingId), opts.giveTrappingId, 'troc — objet cédé').label;
   const recu = garanti(findTrappingById(opts.getStockId), opts.getStockId, 'troc — objet reçu').label;
-  const hero = get().party.find((h) => h.id === opts.giveHeroId);
-  const stockLine = m.stock.find((l) => l.id === opts.getStockId);
-  if (!hero || !stockLine) return;
-  // Exemplaires cédés : instances NON équipées du même trapping chez ce héros.
-  const givable = (hero.items ?? []).filter((i) => i.trappingId === opts.giveTrappingId && !i.equipped);
-  if (givable.length < quote.giveCount) { get().log(t('mf.barterNeed', { n: quote.giveCount, label: donne, dispo: givable.length })); return; }
-  if (stockLine.qty < getCount) { get().log(t('mf.barterNoStock')); return; }
+  const hero = garanti(get().party.find((h) => h.id === opts.giveHeroId), opts.giveHeroId, 'troc — héros cédant');
+  const givable = exemplairesCedables(hero, opts.giveTrappingId);
   const soldUids = givable.slice(0, quote.giveCount).map((i) => i.uid);
   const acquis = Array.from({ length: getCount }, () => itemFromTrappingById(opts.getStockId, undefined, contexteDeNaissanceDObjet(hero))).filter((i) => i !== null);
   const newStock = m.stock.map((l) => (l.id === opts.getStockId ? { ...l, qty: l.qty - getCount } : l));
@@ -699,27 +760,38 @@ export function clearSellCart(_get: Get, set: Set): void {
   set((s) => (s.merchant ? { merchant: { ...s.merchant, sellCart: [] } } : {}));
 }
 
-/** Conclut la vente du panier (parité achat/`payCart`) : crédite la somme des `sellGain`, retire les
- *  objets de leurs porteurs, honore la négociation de vente. Réutilise `sellGain`/`removeSold`. */
+/** Une instance du panier de vente chez son porteur, avec son gain (`sellGain`) et son refus (`sellRefusal`). */
+export interface LigneDeVente { hero: Combatant; it: ItemInstance; gain: Money; refus: string | null }
+
+/** Devis du panier de VENTE — SOURCE UNIQUE du total crédité par `confirmSell` et affiché par l'écran ;
+ *  `total` ne compte que les lignes sans refus, `refus` dit qu'aucune ne se vend. */
+export function devisDeVente(m: MerchantState, party: Combatant[]): { lignes: LigneDeVente[]; total: Money; refus: string | null } {
+  const lignes = (m.sellCart ?? []).flatMap((c): LigneDeVente[] => {
+    const hero = party.find((h) => h.id === c.heroId);
+    const it = hero?.items?.find((i) => i.uid === c.uid);
+    return hero && it ? [{ hero, it, gain: sellGain(it, m), refus: sellRefusal(it) }] : [];
+  });
+  return {
+    lignes,
+    total: lignes.reduce((acc, l) => (l.refus ? acc : moneyAdd(acc, l.gain)), fromBrass(0)),
+    refus: lignes.some((l) => !l.refus) ? null : t('mf.rienAVendre'),
+  };
+}
+
+/** Conclut la vente du panier (parité achat/`payCart`) : crédite le devis `devisDeVente`, retire les
+ *  objets de leurs porteurs, honore la négociation de vente. */
 export function confirmSell(get: Get, set: Set): void {
+  if (refuseLeGesteDeGroupe(get, set)) return;
   const m = get().merchant; if (!m) return;
-  const cart = m.sellCart ?? []; if (!cart.length) return;
+  const devis = devisDeVente(m, get().party);
+  for (const l of devis.lignes) if (l.refus) get().log(t('trade.sellRefused', { reason: l.refus }));
+  if (devis.refus) { refuserGeste(get, set, devis.refus); return; }
+  const vendues = devis.lignes.filter((l) => !l.refus);
   const gainByHero: Record<string, Money> = {}; // crédit PERSONNEL : chaque gain revient au PORTEUR de l'objet vendu (#531 §8)
-  let total = fromBrass(0);
-  const names: string[] = [];
-  const sold: { uid: string; heroId: string }[] = [];
-  for (const c of cart) {
-    const item = get().party.find((h) => h.id === c.heroId)?.items?.find((i) => i.uid === c.uid);
-    if (!item) continue;
-    const refused = sellRefusal(item); // dernier verrou : le panier peut précéder un changement de donnée
-    if (refused) { get().log(t('trade.sellRefused', { reason: refused })); continue; }
-    const g = sellGain(item, m);
-    gainByHero[c.heroId] = moneyAdd(gainByHero[c.heroId] ?? fromBrass(0), g);
-    total = moneyAdd(total, g);
-    names.push(item.label);
-    sold.push(c);
-  }
-  if (!names.length) return;
+  for (const l of vendues) gainByHero[l.hero.id] = moneyAdd(gainByHero[l.hero.id] ?? fromBrass(0), l.gain);
+  const total = devis.total;
+  const names = vendues.map((l) => l.it.label);
+  const sold = vendues.map((l) => ({ uid: l.it.uid, heroId: l.hero.id }));
   set((s) => ({
     merchant: s.merchant ? { ...s.merchant, sellCart: [], bargainSellUsed: true } : s.merchant,
     ...removeSold(s, sold),
@@ -728,17 +800,30 @@ export function confirmSell(get: Get, set: Set): void {
   get().log(`Vente : ${names.join(', ')} (+${formatMoney(total)}).`);
 }
 
-/** Réparation d'un objet chez un artisan — armure (LDB 63 l.64) OU arme (LDB 62 l.135), coût unifié
- *  par `itemRepairCostBrass`. Une arme réduite à l'état improvisé est irréparable (isRepairable). */
+/** Coût de réparation d'un objet endommagé (LDB 63 l.64 ; LDB 62 l.135) — SOURCE UNIQUE lue par
+ *  `repairItem` et l'écran du marchand. */
+export function coutDeReparation(item: ItemInstance): Money {
+  const trapping = item.trappingId ? findTrappingById(item.trappingId) : undefined;
+  return fromBrass(itemRepairCostBrass(item, trapping ? toBrass(priceToMoney(trapping.price)) : 0));
+}
+
+/** Refus de réparer `item` aux frais de son porteur `hero` : la raison affichée, ou `null`. Tombe dans
+ *  `repairItem`, lu par l'écran. */
+export function refusDeReparation(hero: Combatant, item: ItemInstance, refusHote: string | null): string | null {
+  return refusHote ?? (canAfford(bourseOf(hero), coutDeReparation(item)) ? null : msg('mf.repairPurseKo', { label: item.label }));
+}
+
+/** Réparation d'un objet chez un artisan — armure (LDB 63 l.64) OU arme (LDB 62 l.135), au coût
+ *  `coutDeReparation`. Une arme réduite à l'état improvisé est irréparable (isRepairable). Le refus de
+ *  `refusDeReparation` tombe avant tout débit. */
 export function repairItem(get: Get, set: Set, uid: string, heroId: string): void {
   const m = get().merchant; if (!m) return;
   const hero = get().party.find((h) => h.id === heroId);
   const item = hero?.items?.find((i) => i.uid === uid);
-  if (!item || !isRepairable(item)) return;
-  const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
-  const base = t ? toBrass(priceToMoney(t.price)) : 0;
-  const cost = fromBrass(itemRepairCostBrass(item, base));
-  if (!hero || !canAfford(bourseOf(hero), cost)) { get().log(msg('mf.repairPurseKo', { label: item.label })); return; }
+  if (!hero || !item || !isRepairable(item)) return;
+  const refus = refusDeReparation(hero, item, refusDeGesteSurLeGroupe(get()));
+  if (refus) { refuserGeste(get, set, refus); return; }
+  const cost = coutDeReparation(item);
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'réparation' });
   set((s) => ecrireActeur(s, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -969,7 +1054,6 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
     openPlaceMerchant: (entityId, archetype, backdrop) => openPlaceMerchant(get, set, entityId, archetype, backdrop),
     closeMerchant: () => closeMerchant(get, set),
     searchAvailability: () => searchAvailability(get, set),
-    buyItem: (label, heroId) => buyItem(get, set, label, heroId),
     addToCart: (label) => addToCart(get, set, label),
     decFromCart: (label) => decFromCart(get, set, label),
     removeFromCart: (label) => removeFromCart(get, set, label),

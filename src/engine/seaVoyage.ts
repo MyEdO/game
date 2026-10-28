@@ -161,6 +161,11 @@ export function overloadMaxEnc(capacity: number): number {
   return Math.floor(capacity * OVERLOAD_HARD_CAP_PCT / 100);
 }
 
+/** Seuils de palier de surcharge en Enc pour une Contenance `capacity` (MDG 12 l.70-75). PUR. */
+export function overloadMarks(capacity: number): number[] {
+  return CARGO.overload.paliers.map((p) => Math.round(capacity * p.fromPct / 100));
+}
+
 // ── Humeur de Manann (l.83-125) ──────────────────────────────────────────────────────────────────
 
 /** Humeur de Manann PERSISTANTE d'un navire (l.85 : « Ce nombre s'applique au navire lui-même »). */

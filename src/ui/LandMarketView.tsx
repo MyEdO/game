@@ -4,8 +4,9 @@ import { findLandCargoById } from '../engine/landCargo';
 import { bulkCarriers, bulkCargoRefs, primaryCargoCarrier, type CarrierStateSlice } from '../noyau/carriers';
 import { carrierFreeEnc } from '../engine/cargo';
 import { placeById } from '../noyau/worldMap';
-import { canAfford, toMoney } from '../engine/money';
-import { partyMoneyTotal } from '../noyau/bourseFlow';
+import { toMoney } from '../engine/money';
+import { devisDAchatDeCargaison, raisonDuRefusDAchatDeCargaison, refusDeBradageALaHalle } from '../noyau/landMarketFlow';
+import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { ScreenShell } from './ScreenShell';
@@ -15,9 +16,6 @@ import { TradeTable, type TradeGroup } from './TradeTable';
 import { GatedAction, raisonSi } from './GatedAction';
 import { appraiseRefus } from '../noyau/merchantFlow';
 import { Grid, Row, spanFull } from './Layout';
-
-/** Raison UNIQUE du refus des gestes de marché à un invité : l'hôte seul engage la bourse du groupe. */
-const REFUS_INVITE = 'L’hôte seul engage les dépenses du groupe.';
 
 /**
  * ÉCRAN MARCHÉ TERRESTRE (Mort sur le Reik Compagnon ch.11 « Règles du commerce ») — commerce de cargaison à
@@ -46,7 +44,8 @@ export function LandMarketView() {
   const move = useGame((s) => s.moveCargo);
   const evalWine = useGame((s) => s.landEvalWine);
   const refusEval = appraiseRefus(party);
-  const isGuest = useGame((s) => s.net.mode) === 'guest';
+  const net = useGame((s) => s.net);
+  const refusHote = refusDeGesteSurLeGroupe({ net });
   const [buyEnc, setBuyEnc] = useState<Record<string, number>>({});
   // Bourse de groupe = somme des bourses personnelles (T-bourse #531) ; recalculée quand le groupe change.
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
@@ -57,6 +56,7 @@ export function LandMarketView() {
   const target = useMemo(() => primaryCargoCarrier(slice), [slice]);
 
   if (!market) return null;
+  const devisDe = (cargoId: string) => devisDAchatDeCargaison({ ...slice, landMarket: market, net }, cargoId, buyEnc[cargoId]);
   const cargoLabel = (id: string) => findLandCargoById(id)?.label ?? id;
 
   const offerGroups: TradeGroup<Offer>[] = [{ key: 'offers', rows: market.offers }];
@@ -108,7 +108,7 @@ export function LandMarketView() {
                       ? <span className="port-hint"> — {o.wineTier}{o.wineEvalOk ? '' : ' (?)'}</span>
                       : <> <GatedAction
                           id={`market-eval-${o.cargoId}`} label="Évaluer" ariaLabel={`Évaluer ${o.label}`}
-                          enabled={!isGuest && !refusEval} {...raisonSi(isGuest ? REFUS_INVITE : refusEval)}
+                          enabled={!refusHote && !refusEval} {...raisonSi(refusHote ?? refusEval)}
                           descOfferte="Test d’Évaluation pour révéler la qualité secrète du vin"
                           onClick={() => evalWine(o.cargoId)} primary={false} btnClassName="small ghost"
                         /></>)}
@@ -119,35 +119,27 @@ export function LandMarketView() {
                 priceLabel="Prix/Enc"
                 price={(o) => toMoney({ gold: o.basePrice })}
                 disabled={(o) => {
-                  const free = target ? carrierFreeEnc(target) : 0;
-                  const want = buyEnc[o.cargoId] ?? Math.min(o.enc, free || o.enc);
-                  const estCost = toMoney({ gold: Math.round(want * o.basePrice) });
-                  if (!target) return { reason: 'Aucun porteur' };
-                  if (want > free) return { reason: `Contenance dépassée (libre ${free} Enc)` };
-                  if (!canAfford(money, estCost)) return { reason: 'Bourse insuffisante' };
-                  return false;
+                  const refus = devisDe(o.cargoId).refus;
+                  return refus ? { reason: raisonDuRefusDAchatDeCargaison(refus) } : false;
                 }}
                 action={(o) => {
-                  const free = target ? carrierFreeEnc(target) : 0;
-                  const want = buyEnc[o.cargoId] ?? Math.min(o.enc, free || o.enc);
-                  const estCost = toMoney({ gold: Math.round(want * o.basePrice) });
-                  const affordable = canAfford(money, estCost);
-                  const fits = want <= free;
+                  const devis = devisDe(o.cargoId);
+                  const refus = devis.refus ? raisonDuRefusDAchatDeCargaison(devis.refus) : null;
                   return (
-                    <div className={`market-offer-buy ${affordable ? '' : 'unaffordable'}`}>
+                    <div className={`market-offer-buy ${devis.refus ? 'unaffordable' : ''}`}>
                       <NumberField
                         variant="nu" label={`Enc à acheter — ${o.label}`}
-                        min={1} max={o.enc} value={want}
+                        min={1} max={o.enc} value={devis.enc}
                         onChange={(n) => setBuyEnc((s) => ({ ...s, [o.cargoId]: n }))}
                       />
-                      <span className="market-offer-total">≈ <Coins money={estCost} /></span>
+                      <span className="market-offer-total">≈ <Coins money={toMoney({ gold: devis.estimationGold })} /></span>
                       <GatedAction
                         id={`market-buy-${o.cargoId}`}
                         label="Acheter"
-                        enabled={!isGuest && affordable && !!target && fits}
-                        reason={isGuest ? REFUS_INVITE : !target ? 'Aucun porteur pour recevoir ce lot.' : !fits ? `Contenance dépassée (libre ${free} Enc).` : 'Bourse insuffisante.'}
-                        descOfferte="Estimation avant Marchandage (+10 % si lot partiel)"
-                        onClick={() => buy(o.cargoId, want)}
+                        enabled={refus == null}
+                        {...raisonSi(refus)}
+                        descOfferte="Estimation avant Marchandage"
+                        onClick={() => buy(o.cargoId, devis.enc)}
                         primary={false}
                         btnClassName="small"
                       />
@@ -171,12 +163,12 @@ export function LandMarketView() {
                 action={(r) => (
                   <div className="port-sell-actions">
                     <GatedAction
-                      id={`market-sell-${r.carrierId}-${r.index}`} label="Vendre" enabled={!isGuest} reason={REFUS_INVITE}
+                      id={`market-sell-${r.carrierId}-${r.index}`} label="Vendre" enabled={!refusHote} {...raisonSi(refusHote)}
                       descOfferte="Trouver un acheteur puis marchander"
                       onClick={() => sell(r.carrierId, r.index)} primary={false} btnClassName="small"
                     />
                     <GatedAction
-                      id={`market-dump-${r.carrierId}-${r.index}`} label="Brader" enabled={!isGuest} reason={REFUS_INVITE}
+                      id={`market-dump-${r.carrierId}-${r.index}`} label="Brader" enabled={refusDeBradageALaHalle({ net, landMarket: market }, r.lot.cargoId) == null} {...raisonSi(refusDeBradageALaHalle({ net, landMarket: market }, r.lot.cargoId))}
                       descOfferte="Brader à la moitié du prix de base"
                       onClick={() => dump(r.carrierId, r.index)} primary={false} btnClassName="small ghost"
                     />
@@ -185,7 +177,7 @@ export function LandMarketView() {
               />
             )}
           </section>
-          <CargoTransferPanel {...spanFull} carriers={carriers} onMove={move} labelOf={cargoLabel} disabled={isGuest} />
+          <CargoTransferPanel {...spanFull} carriers={carriers} onMove={move} labelOf={cargoLabel} />
         </Grid>
     </ScreenShell>
   );

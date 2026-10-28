@@ -13,9 +13,9 @@ const porteur = (id: string, espece = 'nains', carriere = 'soldat') => {
   h.items = [];
   return withBourseMoney(h, { gold: 100, silver: 0, brass: 0 });
 };
-const marchand = (panier = false): MerchantState => ({
+const marchand = (): MerchantState => ({
   entityId: 'vendeur', archetype: 'armurier', settlement: 'ville', stock: [{ id: 'arme-simple', qty: 3 }],
-  buyMarkup: 1, resaleRate: 0.5, cart: panier ? [{ id: 'arme-simple', qty: 1 }] : [],
+  buyMarkup: 1, resaleRate: 0.5, cart: [{ id: 'arme-simple', qty: 1 }],
   pendingDistribution: null, bargainBuy: null, bargainSell: null, bargainLocked: false,
 });
 const donner = (heroId: string, apparence?: { id: string }) =>
@@ -54,14 +54,8 @@ describe('la naissance est câblée aux flux réels', () => {
     expect(useGame.getState().party[1].items?.find((i) => i.uid === objet.uid)?.apparence).toBe('naissance-naine');
   });
 
-  it('l’achat direct reçoit le contexte de l’acheteur', () => {
-    useGame.setState({ party: [porteur('humain', 'humains-reiklander'), porteur('nain')], merchant: marchand() });
-    useGame.getState().buyItem('arme-simple', 'nain');
-    expect(useGame.getState().party[1].items?.find((i) => i.trappingId === 'arme-simple')?.apparence).toBe('naissance-naine');
-  });
-
   it('le panier fait naître sans propriétaire : aucune apparence, et la répartition n’en décide aucune', () => {
-    useGame.setState({ party: [porteur('nain'), porteur('humain', 'humains-reiklander')], merchant: marchand(true) });
+    useGame.setState({ party: [porteur('nain'), porteur('humain', 'humains-reiklander')], merchant: marchand() });
     useGame.getState().payCart();
     const attribution = useGame.getState().merchant!.pendingDistribution?.[0];
     const objet = attribution && 'item' in attribution ? attribution.item : undefined;

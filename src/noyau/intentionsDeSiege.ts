@@ -291,7 +291,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   aiWouldCast: 'interne', restoreFortuneNow: 'interne', siegeAimCommit: 'interne', siegeAimCancel: 'interne',
   startExtendedTest: 'interne', startForceDoor: 'interne', startInterlude: 'interne', startMassBattle: 'interne',
   massBattleBegin: 'interne', openSessionEnd: 'interne', grantXp: 'interne', favorGrant: 'interne',
-  openMerchant: 'interne', buyItem: 'interne', addPossession: 'interne', transferPossession: 'interne',
+  openMerchant: 'interne', addPossession: 'interne', transferPossession: 'interne',
   learnPossessionTrait: 'interne', shipAdvance: 'interne', shipTurn: 'interne', shipAutoBattery: 'interne',
   resolveCargoRaid: 'interne',
 } as const satisfies TableDesClasses<Jeu>;

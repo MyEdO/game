@@ -17,8 +17,9 @@ import { maxEncumbrance, totalEncumbrance } from '../engine/items';
 import { mountProfileForCreature } from '../engine/mountTravel';
 import { findVehicleById, libelleOuAbsence, dataLabel } from '../data';
 import type { PlayerText } from '../i18n/playerText';
-import { type CargoCarrier, type CargoLot, cargoTotalEnc, carrierFreeEnc, spoilCargoByPct, cargoRaidLossPct, type CargoRaidOutcome } from '../engine/cargo';
+import { type CargoCarrier, type CargoLot, cargoTotalEnc, carrierFreeEnc, carriersColocated, spoilCargoByPct, cargoRaidLossPct, type CargoRaidOutcome } from '../engine/cargo';
 import { rule } from '../engine/policy';
+import { t } from '../i18n';
 import type { Jeu } from './etat';
 import type { PatchDeFlux } from './flowTypes';
 
@@ -148,6 +149,41 @@ export function partyItemsCargoEnc(party: Combatant[], possessions: Possession[]
 export function partyLandCapacity(party: Combatant[], possessions: Possession[]): number {
   return landPossessions(party, possessions)
     .reduce((s, p) => s + (possessionCarrierCapacity(p) ?? 0), 0);
+}
+
+/** Choix d'un transfert de vrac : ids absents = premier choix offert ; `enc` absent = tout ce qui passe. */
+export interface ChoixDeTransfert { fromId?: string; toId?: string; cargoId?: string; enc?: number | null }
+
+/** Plan d'un transfert de vrac entre porteurs CO-LOCALISÉS (#327, décisions 5 et 8) : choix offerts,
+ *  choix retenus, plafond (lot ∩ place libre de la cible) et refus (`null` : le transfert passe).
+ *  SOURCE UNIQUE de `moveCargo` et de la surface de transfert. PUR. */
+export type PlanDeTransfert = { sources: CargoCarrier[]; dests: CargoCarrier[]; maxEnc: number; enc: number } & (
+  | { refus: null; from: CargoCarrier; to: CargoCarrier; lot: CargoLot }
+  | { refus: string; from?: CargoCarrier; to?: CargoCarrier; lot?: CargoLot }
+);
+
+export function planDeTransfert(carriers: CargoCarrier[], choix: ChoixDeTransfert): PlanDeTransfert {
+  const sources = carriers.filter((c) => c.cargo.length > 0);
+  const from = sources.find((c) => c.id === choix.fromId) ?? sources[0];
+  const dests = from ? carriers.filter((c) => c.id !== from.id && carriersColocated(from, c)) : [];
+  const to = dests.find((c) => c.id === choix.toId) ?? dests[0];
+  const lot = from?.cargo.find((l) => l.cargoId === choix.cargoId) ?? from?.cargo[0];
+  const maxEnc = lot && to ? Math.min(lot.enc, carrierFreeEnc(to)) : 0;
+  const enc = choix.enc == null ? maxEnc : Math.max(0, Math.min(Math.floor(choix.enc), maxEnc));
+  const commun = { sources, dests, maxEnc, enc };
+  if (!from || !lot) return { ...commun, from, to, lot, refus: t('cg.rienATransferer') };
+  if (!to) return { ...commun, from, lot, refus: t('cg.aucunPorteurColocalise') };
+  if (maxEnc <= 0) return { ...commun, from, to, lot, refus: t('cg.ciblePleine', { porteur: to.label }) };
+  if (enc <= 0) return { ...commun, from, to, lot, refus: t('cg.quantiteNulle') };
+  return { ...commun, from, to, lot, refus: null };
+}
+
+/** Plan du transfert DEMANDÉ (ids explicites) : son refus porte aussi un choix que le plan n'a pas retenu
+ *  (porteur absent ou éloigné, lot absent). */
+export function planDuTransfertDemande(carriers: CargoCarrier[], fromId: string, toId: string, cargoId: string, enc: number): PlanDeTransfert {
+  const plan = planDeTransfert(carriers, { fromId, toId, cargoId, enc });
+  const retenu = plan.from?.id === fromId && plan.to?.id === toId && plan.lot?.cargoId === cargoId;
+  return retenu ? plan : { ...plan, refus: t('cg.transfertNonRetenu') };
 }
 
 /** Retrouve un porteur du groupe par son id STABLE. */

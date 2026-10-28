@@ -17,6 +17,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { GatedAction } from './GatedAction';
 import { OptionChooser, ChoiceButtons } from './OptionChooser';
 import { EscaleTab } from './PortView';
+import { t } from '../i18n';
+import { refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import { ActivityPane, idBlocage } from './ActivityPane';
 import { MedicModal } from './MedicModal';
 import { MerchantPanelView } from './MerchantPanel';
@@ -157,24 +159,25 @@ describe('#1689 T2 — écrans migrés', () => {
   it('PORT (escale) : l’invité voit POURQUOI « Embaucher » lui est fermé', () => {
     const html = renderToStaticMarkup(
       <EscaleTab
-        vessel={vessel} isGuest
+        vessel={vessel} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })}
         pendingShoreLeave={null} pendingManannPriest={null}
         onHire={() => {}} onDismiss={() => {}}
       />,
     );
-    attendRefusAtteignable(html, 'Embaucher', 'L’hôte seul engage les dépenses du groupe.');
+    attendRefusAtteignable(html, 'Embaucher', 'L’hôte seul engage la bourse et la cale du groupe.');
   });
 
-  it('MARCHAND : « + Ajouter » refusé dit « Bourse insuffisante », sans texte inline sous le libellé', () => {
+  it('MARCHAND : « + Ajouter » refusé dit « Bourse insuffisante pour Hallebarde. », sans texte inline sous le libellé', () => {
     const stubHero = {
       id: 'h', label: 'H', kind: 'hero', wounds: { current: 10, max: 12 }, conditions: [], advantage: 0,
       weapons: [], skills: [], items: [] as ItemInstance[], movement: 4,
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     } as unknown as Combatant;
+    const merchant = { entityId: 'p', archetype: 'armurier', settlement: 'ville' as const, resaleRate: 0.5, stock: [{ id: 'hallebarde', qty: 3 }], cart: [], bargainLocked: false };
     const html = renderToStaticMarkup(
       <MerchantPanelView
-        merchant={{ entityId: 'p', archetype: 'armurier', settlement: 'ville', resaleRate: 0.5, stock: [{ id: 'epee', qty: 3 }], cart: [], bargainLocked: false }}
+        merchant={merchant}
         party={[stubHero]}
         money={{ gold: 0, silver: 0, brass: 0 }}
         onAddToCart={() => {}} onDecCart={() => {}} onRemoveCart={() => {}} onClearCart={() => {}}
@@ -183,7 +186,7 @@ describe('#1689 T2 — écrans migrés', () => {
         onAddToSellCart={() => {}} onRemoveSellCart={() => {}} onClearSellCart={() => {}} onConfirmSell={() => {}}
       />,
     );
-    attendRefusAtteignable(html, '+ Ajouter', 'Bourse insuffisante.');
+    attendRefusAtteignable(html, '+ Ajouter', t('mf.purseKo', { label: 'Hallebarde' }));
     expect(html).not.toContain('gated-action-reason'); // jamais la variante INLINE hors opt-in
   });
 

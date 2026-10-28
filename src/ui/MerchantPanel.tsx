@@ -1,11 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useGame } from '../state/store';
 import { findTrappingById, findVehicleById, weaponGroupLabel, merchantFamilies, findMerchantArchetypeById, type QualityRef } from '../data/index';
-import { priceToMoney, fromBrass, toBrass, canAfford, add as moneyAdd, type Money } from '../engine/money';
-import { craftPriceFactor } from '../engine/qualities/craftEconomy';
-import { isRepairable, itemRepairCostBrass } from '../engine/repair';
+import type { Money } from '../engine/money';
+import { isRepairable } from '../engine/repair';
 import { Row } from './Layout';
-import { bargainBuyFactor, bargainPct } from '../engine/bargain';
 import { verdictDeVente } from '../noyau/flowOutcomes';
 import { compareEquip } from '../engine/equipCompare';
 import { itemFromTrappingById, isWeaponActive, damageString, isShieldTrapping } from '../engine/items';
@@ -14,9 +12,9 @@ import { rangeSpecLabel, ammoRangeModLabel } from './weaponStats';
 import type { WeaponDamageSpec, WeaponRangeSpec, AmmoRangeMod } from '../engine/types';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
-import { sellGain, barterQuote, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus } from '../noyau/merchantFlow';
+import { sellGain, devisDeVente, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus, prixDeLigne, remiseDAchatPct, devisDuPanier, refusDAjout, coutDeReparation, refusDeReparation, optionsDeTroc, devisDeTroc, type DemandeDeTroc, type ContexteDAchat } from '../noyau/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
-import { partyMoneyTotal } from '../noyau/bourseFlow';
+import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { SceneEntity } from '../noyau/monde/scene';
@@ -101,28 +99,11 @@ function familyOf(id: string): string {
   return FAMILY_BY_TRAPPING_CATEGORIE.get(t.categorie) ?? FALLBACK_FAMILY;
 }
 
-/** Coût d'achat unitaire (catalogue × qualité d'artisanat × Marchandage). null si prix non chiffré (« ND »).
- *  `catalogEntryOf` (SOURCE UNIQUE) — trapping OU unité, jamais un lookup présumant l'un ou l'autre. */
-function lineCost(id: string, factor: number): Money | null {
-  const entry = catalogEntryOf(id);
-  if (!entry) return null;
-  const brass = toBrass(priceToMoney(entry.price)) * craftPriceFactor({ qualities: entry.qualities as never }) * factor;
-  if (!Number.isFinite(brass)) return null;
-  return fromBrass(Math.round(brass));
-}
-
-/** Coût de réparation d'un objet endommagé — armure (LDB 63 l.64) ou arme (LDB 62 l.135). */
-function repairCost(item: ItemInstance): Money {
-  const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
-  const base = t ? toBrass(priceToMoney(t.price)) : 0;
-  return fromBrass(itemRepairCostBrass(item, base));
-}
-
 const TREND_CLASS: Record<string, string> = { up: 'cmp-up', down: 'cmp-down', same: '' };
 const TREND_SYM: Record<string, string> = { up: '▲', down: '▼', same: '' };
 
 /** Présentationnel (props) — testable hors store. `initialTab`/`initialDetails`/`initialBuyView` = état de départ (SSR/test). */
-export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerName, boniment, onAddToCart, onDecCart, onRemoveCart, onClearCart, onRefuse, onPay, onAssignDist, onConfirmDist, onAddToSellCart, onRemoveSellCart, onClearSellCart, onConfirmSell, onRepair, onBargain, onAppraise, onClose, onSellHalving, onBarter, onSearchAvailability, initialTab, initialDetails, initialBuyView, initialSellView }: {
+export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerName, boniment, onAddToCart, onDecCart, onRemoveCart, onClearCart, onRefuse, onPay, onAssignDist, onConfirmDist, onAddToSellCart, onRemoveSellCart, onClearSellCart, onConfirmSell, onRepair, onBargain, onAppraise, onClose, onSellHalving, onBarter, onSearchAvailability, refusHote = null, initialTab, initialDetails, initialBuyView, initialSellView }: {
   merchant: MerchantState;
   party: Combatant[];
   money: Money;
@@ -151,13 +132,15 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   /** « Baisse des prix » à la vente (LDB 59 l.60) — optionnel (rendu sans si absent). */
   onSellHalving?: (uid: string, delta: number) => void;
   /** Troc (LDB 59 l.64-76) — optionnel : l'onglet Troc n'apparaît que s'il est fourni. */
-  onBarter?: (opts: { giveHeroId: string; giveTrappingId: string; getStockId: string; getCount?: number }) => void;
+  onBarter?: (opts: DemandeDeTroc) => void;
   /** Recherche active de Disponibilité (LDB 59 l.50) — optionnel : le bouton n'apparaît que s'il est fourni. */
   onSearchAvailability?: () => void;
   initialTab?: 'buy' | 'sell' | 'repair' | 'barter';
   initialDetails?: string;
   initialBuyView?: 'browse' | 'cart';
   initialSellView?: 'browse' | 'cart';
+  /** Refus de dépense du groupe du siège (`refusDeGesteSurLeGroupe`) — absent hors store : aucun. */
+  refusHote?: string | null;
 }) {
   const [tab, setTab] = useState<'buy' | 'sell' | 'repair' | 'barter'>(initialTab ?? 'buy');
   const [buyCat, setBuyCat] = useState<string | null>(null);
@@ -173,18 +156,18 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   const damaged = party.flatMap((h) => (h.items ?? []).filter((it) => isRepairable(it)).map((it) => ({ h, it })));
   const sellable = party.flatMap((h) => (h.items ?? []).map((it) => ({ h, it })));
 
-  // Marchandage (LDB 59 l.43) : achat (panier) et vente = négociations distinctes.
-  const buyHaggle = merchant.bargainBuy ? bargainBuyFactor(merchant.bargainBuy.won, merchant.bargainBuy.drNet, merchant.bargainBuy.negotiator) : 1;
-  const buyFactor = (merchant.buyMarkup ?? 1) * buyHaggle;
-  const buyDiscount = merchant.bargainBuy ? bargainPct(merchant.bargainBuy.won, merchant.bargainBuy.drNet, merchant.bargainBuy.negotiator) : 0;
+  // Prix, total et verdicts d'achat : rendus par le noyau (`prixDeLigne`, `devisDuPanier`, `refusDAjout`).
+  const prix = (id: string) => prixDeLigne(merchant, id, speakerEnt, party);
+  const achat: ContexteDAchat = { ent: speakerEnt, party, bourse: money, refusHote };
+  const refusAjout = (id: string) => refusDAjout(merchant, id, achat);
+  const buyDiscount = remiseDAchatPct(merchant);
   const sellPriceMoney = (it: ItemInstance): Money => sellGain(it, merchant); // prix de vente = source unique (engine)
   // Panier de VENTE (#22b) : instances résolues chez leur porteur + total (mêmes briques que l'achat).
   const sellCart = merchant.sellCart ?? [];
   const sellInCart = (uid: string) => sellCart.some((c) => c.uid === uid);
-  const sellCartItems = sellCart
-    .map((c) => ({ hero: party.find((h) => h.id === c.heroId), it: party.find((h) => h.id === c.heroId)?.items?.find((i) => i.uid === c.uid) }))
-    .filter((x): x is { hero: Combatant; it: ItemInstance } => !!x.it && !!x.hero);
-  const sellCartTotal = sellCartItems.reduce((acc, x) => moneyAdd(acc, sellPriceMoney(x.it)), fromBrass(0));
+  const devisVente = devisDeVente(merchant, party);
+  const sellCartItems = devisVente.lignes;
+  const sellCartTotal = devisVente.total;
 
   // Stock groupé par famille puis trié (Disponibilité → nom). Lignes keyées par `trappingId` OU par
   // id d'unité (`catalogEntryOf`, #619 Lot A).
@@ -196,9 +179,8 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
 
   const cart = merchant.cart ?? [];
   const cartCount = cart.reduce((s, c) => s + c.qty, 0);
-  const cartTotalBrass = cart.reduce((s, c) => { const u = lineCost(c.id, buyFactor); return s + (u ? toBrass(u) * c.qty : 0); }, 0);
-  const cartTotal = fromBrass(cartTotalBrass);
-  const affordCart = toBrass(money) >= cartTotalBrass;
+  const devis = devisDuPanier(merchant, achat);
+  const cartTotal = devis.total;
   const sealed = merchant.bargainBuy != null; // a négocié : prix figé, on peut RETIRER mais pas ajouter ni renégocier
   const cartQtyOf = (id: string) => cart.find((c) => c.id === id)?.qty ?? 0;
   const dist = merchant.pendingDistribution ?? null;
@@ -328,10 +310,10 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
         <>
           <table className="cart-table">
             <tbody>
-              {cart.map((c) => {
-                const u = lineCost(c.id, buyFactor);
-                const sub = u ? fromBrass(toBrass(u) * c.qty) : null;
-                const stockQty = merchant.stock.find((l) => l.id === c.id)?.qty ?? 0;
+              {devis.lignes.map((c) => {
+                const u = c.unitaire;
+                const sub = c.sousTotal;
+                const refusPlus = refusAjout(c.id);
                 return (
                   <tr key={c.id}>
                     <td className="cart-name">{labelOf(c.id)}</td>
@@ -340,8 +322,8 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                         center={c.qty}
                         onDec={() => onDecCart(c.id)}
                         onInc={() => onAddToCart(c.id)}
-                        incDisabled={c.qty >= stockQty}
-                        refus={{ id: `panier-${c.id}`, inc: sealed ? 'Marché négocié — vous ne pouvez plus ajouter' : undefined }}
+                        incDisabled={refusPlus != null}
+                        refus={{ id: `panier-${c.id}`, inc: refusPlus ?? undefined }}
                         decLabel="Un de moins"
                         incLabel="Un de plus"
                       />
@@ -367,12 +349,12 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
               id="merch-cart-pay"
               label={<>Payer <Coins money={cartTotal} /></>}
               ariaLabel="Payer le panier"
-              enabled={affordCart}
-              reason="Bourse insuffisante."
+              enabled={!devis.refus}
+              {...raisonSi(devis.refus)}
               onClick={onPay}
             />
           </div>
-          {!affordCart && <p className="cart-warn">Bourse insuffisante (<Coins money={money} />).</p>}
+          {devis.refus && <p className="cart-warn">{devis.refus} (<Coins money={money} />)</p>}
         </>
       )}
     </div>
@@ -454,20 +436,19 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                     )
                   )}
                   enc={isUnitCat ? undefined : (l) => findTrappingById(l.id)?.enc ?? 0}
-                  price={(l) => lineCost(l.id, buyFactor)}
-                  disabled={(l) => { const unit = lineCost(l.id, buyFactor); return unit ? !canAfford(money, unit) : true; }}
+                  price={(l) => prix(l.id)}
+                  disabled={(l) => refusAjout(l.id) != null}
                   open={(l) => details === l.id}
                   detail={(l) => (previews[l.id] ? renderDetailCard(previews[l.id]) : null)}
                   action={(l) => {
-                    const unit = lineCost(l.id, buyFactor);
-                    const canAffordOne = unit ? canAfford(money, unit) : false;
+                    const refusPlus = refusAjout(l.id);
                     const inCart = cartQtyOf(l.id);
                     return inCart > 0 ? (
                       <QtyStepper
                         center={inCart}
                         onDec={() => onDecCart(l.id)}
                         onInc={() => onAddToCart(l.id)}
-                        incDisabled={sealed || inCart >= l.qty || !canAffordOne}
+                        incDisabled={refusPlus != null}
                         decLabel="Un de moins"
                         incLabel="Un de plus"
                       />
@@ -476,8 +457,8 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                         id={`merch-add-${l.id}`}
                         label="+ Ajouter"
                         ariaLabel={`Ajouter ${labelOf(l.id)} au panier`}
-                        enabled={!sealed && canAffordOne}
-                        reason={sealed ? 'Marché conclu — panier figé.' : 'Bourse insuffisante.'}
+                        enabled={refusPlus == null}
+                        {...raisonSi(refusPlus)}
                         onClick={() => onAddToCart(l.id)}
                         primary={false}
                         btnClassName="small"
@@ -588,10 +569,10 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
         <>
           <table className="cart-table">
             <tbody>
-              {sellCartItems.map(({ hero, it }) => (
+              {sellCartItems.map(({ hero, it, gain, refus }) => (
                 <tr key={it.uid}>
                   <td className="cart-name">{it.label}<span className="cart-owner" title={hero.label}><TeamPortrait combatant={hero} size={18} /></span></td>
-                  <td className="cart-sub"><Coins money={sellPriceMoney(it)} /></td>
+                  <td className="cart-sub">{refus ? <span className="cart-warn">{refus}</span> : <Coins money={gain} />}</td>
                   <td className="cart-rm"><button className="btn-step" onClick={() => onRemoveSellCart(it.uid)} aria-label="Retirer">✕</button></td>
                 </tr>
               ))}
@@ -600,7 +581,11 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
           <div className="cart-total">Total : <strong>+<Coins money={sellCartTotal} /></strong></div>
           <div className="cart-actions">
             <button className="btn small" onClick={onClearSellCart}>Vider</button>
-            <button className="btn btn-primary" onClick={() => { onConfirmSell(); setSellView('browse'); }}>Vendre <Coins money={sellCartTotal} /></button>
+            <GatedAction
+              id="merch-sell-confirm" label={<>Vendre <Coins money={sellCartTotal} /></>} ariaLabel="Vendre le panier"
+              enabled={refusHote == null && devisVente.refus == null} {...raisonSi(refusHote ?? devisVente.refus)}
+              onClick={() => { onConfirmSell(); setSellView('browse'); }}
+            />
           </div>
         </>
       )}
@@ -610,23 +595,17 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   // --- Troc (LDB 59 l.64-76) : céder N exemplaires d'un bien contre M du stock, sans argent ---
   const renderBarter = () => {
     if (!onBarter) return null;
-    // Biens cédables : par (héros, trapping) non équipé et à prix chiffré, avec le nombre en stock.
-    const giveOpts: { key: string; heroId: string; trappingId: string; label: string; count: number }[] = [];
-    for (const h of party) {
-      const byTrap = new Map<string, number>();
-      for (const it of h.items ?? []) if (it.trappingId && !it.equipped) byTrap.set(it.trappingId, (byTrap.get(it.trappingId) ?? 0) + 1);
-      for (const [tid, count] of byTrap) {
-        const t = findTrappingById(tid);
-        if (t && toBrass(priceToMoney(t.price)) > 0) giveOpts.push({ key: `${h.id}|${tid}`, heroId: h.id, trappingId: tid, label: `${t.label} ×${count} (${h.label})`, count });
-      }
-    }
+    const giveOpts = optionsDeTroc(party).map((o) => ({
+      ...o, key: `${o.heroId}|${o.trappingId}`,
+      label: `${findTrappingById(o.trappingId)?.label ?? o.trappingId} ×${o.count} (${party.find((h) => h.id === o.heroId)?.label ?? o.heroId})`,
+    }));
     const getOpts = inStock.map((l) => ({ id: l.id, label: `${labelOf(l.id)} ×${l.qty}` }));
     const give = giveOpts.find((o) => o.key === barterGive) ?? giveOpts[0];
     const getId = getOpts.find((o) => o.id === barterGetId)?.id ?? getOpts[0]?.id ?? '';
     const count = Math.max(1, barterCount);
-    const quote = give && getId ? barterQuote(give.trappingId, getId, count) : null;
-    const getStockQty = inStock.find((l) => l.id === getId)?.qty ?? 0;
-    const ok = !!quote && !!give && give.count >= quote.giveCount && getStockQty >= count;
+    const demande = give && getId ? { giveHeroId: give.heroId, giveTrappingId: give.trappingId, getStockId: getId, getCount: count } : null;
+    const troc = demande ? devisDeTroc(merchant, party, demande) : null;
+    const quote = troc?.quote ?? null;
     return (
       <div className="merch-tab tavern-block">
         <p className="tavern-detail">Échange sans argent : la Disponibilité des deux biens fixe le ratio.</p>
@@ -643,17 +622,20 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
               </select>
             </label>
             <label className="tavern-amount">Quantité acquise
-              <NumberField variant="nu" label="Quantité acquise" min={1} max={getStockQty || 1} value={count} onChange={setBarterCount} />
+              <NumberField variant="nu" label="Quantité acquise" min={1} max={troc?.max ?? 1} value={count} onChange={setBarterCount} />
             </label>
             {quote && give && (
               <p className="tavern-detail">
                 Ratio {quote.giveAv} <b>{quote.ratio.give}:{quote.ratio.get}</b> {quote.getAv} → céder <b>{quote.giveCount}</b> × {findTrappingById(give.trappingId)?.label} contre <b>{count}</b> × {labelOf(getId)}.
-                {give.count < quote.giveCount && <span className="cart-warn"> Exemplaires insuffisants ({give.count}/{quote.giveCount}).</span>}
-                {getStockQty < count && <span className="cart-warn"> Stock insuffisant.</span>}
+                {troc?.refus && <span className="cart-warn"> {troc.refus}</span>}
               </p>
             )}
             <Row justify="end">
-              <button className="btn btn-primary" disabled={!ok} onClick={() => give && onBarter({ giveHeroId: give.heroId, giveTrappingId: give.trappingId, getStockId: getId, getCount: count })}>Échanger</button>
+              <GatedAction
+                id="merch-barter" label="Échanger" ariaLabel="Échanger"
+                enabled={refusHote == null && troc?.refus === null} {...raisonSi(refusHote ?? troc?.refus)}
+                onClick={() => demande && onBarter(demande)}
+              />
             </Row>
           </>
         )}
@@ -712,8 +694,12 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
               {damaged.map(({ h, it }) => (
                 <div className="merch-row repair" key={it.uid}>
                   <span className="merch-name" title={h.label}><TeamPortrait combatant={h} size={20} /> {it.label}</span>
-                  <span className="merch-price"><Coins money={repairCost(it)} /></span>
-                  <button className="btn small" onClick={() => onRepair(it.uid, h.id)}>Réparer</button>
+                  <span className="merch-price"><Coins money={coutDeReparation(it)} /></span>
+                  <GatedAction
+                    id={`merch-repair-${it.uid}`} label="Réparer" ariaLabel={`Réparer ${it.label}`}
+                    enabled={refusDeReparation(h, it, refusHote) == null} {...raisonSi(refusDeReparation(h, it, refusHote))}
+                    onClick={() => onRepair(it.uid, h.id)} primary={false} btnClassName="small"
+                  />
                 </div>
               ))}
               {!damaged.length && <p className="empty">— aucun objet à réparer —</p>}
@@ -732,6 +718,7 @@ export function MerchantPanel() {
   const party = useGame((s) => s.party);
   const money = partyMoneyTotal(useGame.getState); // affichage : somme des bourses (réactif via l'abonnement à `party`)
   const scene = useGame((s) => s.scene);
+  const refusHote = useGame(refusDeGesteSurLeGroupe);
   const addToCart = useGame((s) => s.addToCart);
   const decFromCart = useGame((s) => s.decFromCart);
   const removeFromCart = useGame((s) => s.removeFromCart);
@@ -757,7 +744,7 @@ export function MerchantPanel() {
   const speakerName = (speakerEnt && nomDEntite(speakerEnt, presetPnjById)) ?? arch?.label;
   return (
     <MerchantPanelView
-      merchant={merchant} party={party} money={money} speakerEnt={speakerEnt} speakerName={speakerName} boniment={arch?.boniment}
+      merchant={merchant} party={party} money={money} refusHote={refusHote} speakerEnt={speakerEnt} speakerName={speakerName} boniment={arch?.boniment}
       onAddToCart={addToCart} onDecCart={decFromCart} onRemoveCart={removeFromCart} onClearCart={clearCart} onRefuse={refuseBargain} onPay={payCart}
       onAssignDist={assignDistribution} onConfirmDist={confirmDistribution}
       onAddToSellCart={addToSellCart} onRemoveSellCart={removeFromSellCart} onClearSellCart={clearSellCart} onConfirmSell={confirmSell}

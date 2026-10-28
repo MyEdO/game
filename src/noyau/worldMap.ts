@@ -16,10 +16,12 @@ import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { z } from 'zod';
 import type { refusRouteSchema } from '../data/schemas/defs-scenes/worldmap';
 import { garanti } from '../lib/garanti';
+import { t } from '../i18n';
 import { normalizeScene } from './monde/scene';
 import type { TravelMode, PalierDeBillet } from '../engine/travel';
-import type { PortProfile } from '../engine/seaVoyage';
-import type { LandMarketProfile } from '../engine/landCargo';
+import { findCargoEntryById, isEchangeable, type PortProfile } from '../engine/seaVoyage';
+import { findLandCargoEntryById, type LandMarketProfile } from '../engine/landCargo';
+import { isTradeHubEntry } from '../engine/cargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
 import { findNavalPortById, findLieuServiceById, coreAxisIds } from '../data';
@@ -391,7 +393,7 @@ export const SERVICE_CITE = { port: 'port', marche: 'marche', auberge: 'auberge'
  * il n'en est jamais recopié une seconde source. Consommée par le hub de lieu et l'auberge (phase 2) ;
  * les consommateurs actuels (PortView/LandMarketView/restPlacesHere) restent inchangés en phase 1.
  */
-export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceService[] {
+export function placeServices(place: MapPlace, scene?: Scene, reposIci?: RestPlaces | null): ResolvedPlaceService[] {
   const out: ResolvedPlaceService[] = [];
   if (place.port) {
     const def = garanti(findLieuServiceById(SERVICE_CITE.port), SERVICE_CITE.port, 'service de lieu');
@@ -429,7 +431,25 @@ export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceServ
       out.push({ id: 'auberge', category: 'auberge', label: def.label, icon: def.icon, desc: def.desc, rest, hostLine: def.hostLine, backdrop: def.backdrop });
     }
   }
+  // Couchage À LA POSITION du groupe (`reposIci`, camp/maison) sans auberge : service « Repos » de repli.
+  if (reposIci && !out.some((sv) => sv.category === 'auberge')) out.push({ id: 'repos', category: 'auberge', label: t('lieu.repos'), icon: 'nav/rest', rest: reposIci });
   return out;
+}
+
+/** Le lieu a-t-il un plan à montrer : au moins un POI (#345 phase 5). PUR. */
+export function lieuAUnPlan(place: MapPlace): boolean {
+  return (place.poi ?? []).length > 0;
+}
+
+/** Colonne Produits/Production d'un profil commercial, TERRESTRE ou MARITIME (MSRC 13 ; MDG 15 l.321) :
+ *  la plaque tournante (entrée marqueur `tradeHub`) et les seules MARCHANDISES, en libellés. PUR. */
+export function produitsDuProfil(production: readonly string[] | undefined): { plaque: string | null; marchandises: string[] } {
+  const entree = (id: string) => findLandCargoEntryById(id) ?? findCargoEntryById(id);
+  const ids = production ?? [];
+  return {
+    plaque: ids.map(entree).find(isTradeHubEntry)?.label ?? null,
+    marchandises: ids.filter((id) => { const e = entree(id); return !e || isEchangeable(e); }).map((id) => entree(id)?.label ?? id),
+  };
 }
 
 /** Routes EMPRUNTABLES depuis un lieu : reliées à `placeId`, — si à sens unique (`from`) — initiables

@@ -49,7 +49,7 @@ import type { AuthoredEnemy } from './monde/encounterAuthoring';
 import { registerScene } from './monde/registreDesScenes';
 import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
-import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
+import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, NAVAL_TRAITS, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
 import { profilNavalDe } from '../engine/coque';
 import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
@@ -83,18 +83,19 @@ import { effectiveChar } from '../engine/characteristics';
 import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
   evenementsDeBord, DE_DES_EVENEMENTS_DE_BORD, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
-  removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, resolveFastVoyage, FAST_VOYAGE_PALIERS,
-  type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
+  removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
+  type CargoOverload, type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
 import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
 import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
-import { crewRoleValue, crewTestModParts, moraleBand, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
+import { crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import type { NightEntry } from './restFlow';
+import { provisioningManifest } from '../engine/provisions';
 import { toMoney, canAfford, type Money } from '../engine/money';
-import { partyMoneyTotal, payFromGroup } from './bourseFlow';
+import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, refuseLeGesteDeGroupe, totalDesBourses } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog } from './combatEffects';
@@ -103,7 +104,8 @@ import { contractDisease, applyContraction, contractionDue, diseaseDefs } from '
 import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef } from '../engine/types';
 import type { PendingSteamSave, CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
-import type { CampaignVessel } from './etat';
+import type { CampaignVessel, Jeu } from './etat';
+import { refuserGeste } from './refusVisible';
 import { openPartyTest, openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startCascade, runCascadeImmediate, pushStep, type TableStepDef } from './cascade';
@@ -324,7 +326,7 @@ const FOOD_SHORTAGE_FACTOR = 'nourriture-insuffisante';
 function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
   const vessel = get().vessel;
   if (!vessel) return [];
-  const crew = shipboardSouls(get).crew;
+  const crew = shipboardSouls(get()).crew;
   const need = crew * Math.max(0, days);
   if (vessel.provisions == null || need <= 0) return []; // ravitaillement réputé assuré / pas d'équipage PNJ
   const left = Math.max(0, vessel.provisions - need);
@@ -480,6 +482,46 @@ export function refusDAppareiller(navire: NavireDeMer & { cargo?: CargoLot[] }):
 /** Libellé d'un refus d'appareiller. */
 export function raisonDuRefusDAppareiller(refus: RefusDAppareiller): string {
   return refus.motif === 'cale' ? t('sv.refusCale', { pct: refus.ratioPct }) : t('sv.refusImmobile');
+}
+
+/** Blessures de coque d'un navire de campagne : maximum, courantes, à restaurer. SOURCE UNIQUE du
+ *  dossier du navire et du devis de chantier. PUR. */
+export function blessuresDeCoqueARestaurer(vessel: CampaignVessel): { max: number; current: number; missing: number } {
+  const max = vessel.wounds?.max ?? findVehicleById(vessel.vehicleId)?.hull?.char.B ?? 0;
+  const current = vessel.wounds?.current ?? max;
+  return { max, current, missing: max - current };
+}
+
+/** Dossier d'un navire de campagne : coque, cale (MDG 12 l.70-75), refus d'appareiller, population
+ *  embarquée (`shipboardSouls`, MDG 14 l.238), autonomies et soldes. Vue PURE lue par l'écran du dossier. */
+export interface DossierDuNavire {
+  woundsMax: number; woundsCur: number; missing: number;
+  capacity: number; cargoEnc: number; overload: CargoOverload; cargoMax: number; cargoMarks: number[];
+  refusDAppareiller: string | null;
+  heroes: number; crewCount: number; autonomyDays: number | null; provisionDays: number | null; weeklyWageBrass: number;
+  soldesParRole: { roleId: string; count: number; weeklyBrass: number }[];
+}
+
+/** `null` : le type du navire n'a pas de profil naval. */
+export function dossierDuNavire(vessel: CampaignVessel, party: Combatant[]): DossierDuNavire | null {
+  const vd = findVehicleById(vessel.vehicleId);
+  if (!vd?.ship) return null;
+  const { max: woundsMax, current: woundsCur, missing } = blessuresDeCoqueARestaurer(vessel);
+  const capacity = vd.ship.capacity;
+  const cargoEnc = cargoTotalEnc(vessel.cargo ?? []);
+  const refus = refusDAppareiller(vessel);
+  const { heroes, crew: crewCount } = shipboardSouls({ party, vessel });
+  const dailyWater = provisioningManifest(party, vessel.waterLitres, 1, { count: crewCount, provisions: vessel.provisions }).eauRequiseLitres;
+  return {
+    woundsMax, woundsCur, missing,
+    capacity, cargoEnc, overload: cargoOverload(cargoEnc, capacity), cargoMax: overloadMaxEnc(capacity), cargoMarks: overloadMarks(capacity),
+    refusDAppareiller: refus ? raisonDuRefusDAppareiller(refus) : null,
+    heroes, crewCount,
+    autonomyDays: vessel.waterLitres != null && dailyWater > 0 ? Math.floor(vessel.waterLitres / dailyWater) : null,
+    provisionDays: vessel.provisions != null && crewCount > 0 ? Math.floor(vessel.provisions / crewCount) : null,
+    weeklyWageBrass: weeklyCrewWageBrass(vessel.crew),
+    soldesParRole: (vessel.crew ?? []).map((h) => ({ roleId: h.roleId, count: h.count, weeklyBrass: weeklyCrewWageBrass([h]) })),
+  };
 }
 
 /** Ligne de journal d'un départ en mer refusé par `buildSeaPlan`. */
@@ -1104,8 +1146,7 @@ function applyFastPalier(get: Get, set: Set, palierId?: string): void {
   const rng = battleRng();
   const vessel0 = get().vessel;
   if (palier.crewLostPct > 0 && vessel0) {
-    const nominal = findVehicleById(vessel0.vehicleId)?.ship?.crew ?? 0;
-    const present = Math.max(0, nominal - (vessel0.crewLost ?? 0));
+    const present = shipboardSouls(get()).crew;
     const lost = Math.round(present * palier.crewLostPct / 100);
     if (lost > 0) for (const l of applyVesselCrewLoss(get, set, lost)) tell(get, set, [l]);
   }
@@ -1170,7 +1211,7 @@ function finalizeFastVoyage(get: Get, set: Set): void {
   const vessel = get().vessel;
   const patch: Partial<CampaignVessel> = { lastVoyageMilles: plan.km };
   if (vessel?.waterLitres != null) {
-    const souls = shipboardSouls(get).total;
+    const souls = shipboardSouls(get()).total;
     patch.waterLitres = Math.max(0, vessel.waterLitres - souls * dailyWaterLitres('mediane') * fast.days);
   }
   if (vessel) set({ vessel: { ...vessel, ...patch } });
@@ -1471,7 +1512,7 @@ export function continueSeaDayAfterCascade(get: Get, set: Set, auPv: CascadeStep
   // périmètre de `provisions.ts` (volet Soif non simulé) : à sec, on AVERTIT.
   const vessel0 = get().vessel;
   if (vessel0?.waterLitres != null) {
-    const souls = shipboardSouls(get).total;
+    const souls = shipboardSouls(get()).total;
     const need = souls * dailyWaterLitres(sea.weather.temperature);
     const left = Math.max(0, vessel0.waterLitres - need);
     set({ vessel: { ...vessel0, waterLitres: left } });
@@ -2301,6 +2342,33 @@ function tellManann(get: Get, set: Set, deltaD10: number): void {
 // posséder le navire construit = créer son entrée `vehicles.json` au Codex (donnée app-owned) puis
 // pointer `vessel.vehicleId` dessus.
 
+/** Devis du CHANTIER naval d'un navire contre la bourse `bourse` du groupe : réparation (ch.13 l.643 ;
+ *  ch.12 l.295) et carénage (ch.13 l.150-159), avec le refus de chaque geste (`null` : le geste passe).
+ *  SOURCE UNIQUE de `portRepairVessel`, `portCareenVessel` et de l'écran du port. PUR. */
+export interface DevisDeChantier {
+  max: number; current: number; missing: number; lissage: boolean; reparationGold: number; refusReparation: string | null;
+  foulLevel: number; carenagePct: number; carenageGold: number; refusCarenage: string | null;
+}
+
+export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusHote: string | null): DevisDeChantier {
+  const v = findVehicleById(vessel.vehicleId);
+  const { max, current, missing } = blessuresDeCoqueARestaurer(vessel);
+  const lissage = shipHasNavalTrait(vesselNavalTraits(vessel), 'lissage');
+  const reparationGold = Math.ceil(missing * (lissage ? 1.5 : 1));
+  const foulLevel = vessel.fouling?.level ?? 0;
+  const carenagePct = foulingEffects(foulLevel).repairPctOfBase;
+  const carenageGold = Math.ceil((v?.purchase?.price?.gold ?? 0) * (carenagePct / 100));
+  return {
+    max, current, missing, lissage, reparationGold, foulLevel, carenagePct, carenageGold,
+    refusReparation: refusHote ?? (missing <= 0 && !vessel.criticals?.length ? t('sv.hullIntact')
+      : !canAfford(bourse, toMoney({ gold: reparationGold })) ? t('sv.yardTooExpensive', { cost: reparationGold })
+      : null),
+    refusCarenage: refusHote ?? (foulLevel <= 0 && !vessel.crabs ? t('sv.hullClean')
+      : carenageGold > 0 && !canAfford(bourse, toMoney({ gold: carenageGold })) ? t('sv.careenTooExpensive', { cost: carenageGold, pct: carenagePct })
+      : null),
+  };
+}
+
 /** RÉPARATION au port (ch.13 l.643) : le constructeur naval local restaure TOUT pour « 1 CO par
  *  Blessure restaurée » (+50 % si la coque est Lissée, ch.12 l.295) ; « Chaque Test réussi prend 1d10
  *  heures … et restaure 1d10 Blessures » → le temps passe d'autant. Purge aussi les Critiques notés
@@ -2308,14 +2376,11 @@ function tellManann(get: Get, set: Set, deltaD10: number): void {
 export function portRepairVessel(get: Get, set: Set): string[] {
   const vessel = get().vessel;
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
-  if (!vessel || !v?.hull) return [t('sv.noVesselToRepair')];
-  const max = vessel.wounds?.max ?? v.hull.char.B;
-  const missing = max - (vessel.wounds?.current ?? max);
-  if (missing <= 0 && !(vessel.criticals?.length)) return [t('sv.hullIntact')];
-  const lissage = shipHasNavalTrait(vesselNavalTraits(vessel), 'lissage');
-  const cost = Math.ceil(missing * (lissage ? 1.5 : 1));
+  if (!vessel || !v?.hull) { refuserGeste(get, set, t('sv.noVesselToRepair')); return []; }
+  const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()));
+  if (devis.refusReparation) { refuserGeste(get, set, devis.refusReparation); return []; }
+  const { max, missing, lissage, reparationGold: cost } = devis;
   const costMoney = toMoney({ gold: cost });
-  if (!canAfford(partyMoneyTotal(get), costMoney)) return [t('sv.yardTooExpensive', { cost })];
   const rng = battleRng();
   let hours = 0;
   for (let healed = 0; healed < missing; healed += rollDice(1, 10, rng)) hours += rollDice(1, 10, rng); // 1d10 h / 1d10 B (l.643)
@@ -2332,36 +2397,56 @@ export function portRepairVessel(get: Get, set: Set): string[] {
 export function portCareenVessel(get: Get, set: Set): string[] {
   const vessel = get().vessel;
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
-  if (!vessel || !v) return [t('sv.noVesselToCareen')];
-  const level = vessel.fouling?.level ?? 0;
-  if (level <= 0 && !vessel.crabs) return [t('sv.hullClean')];
-  const baseGold = v.purchase?.price?.gold ?? 0;
-  const pct = foulingEffects(level).repairPctOfBase;
-  const cost = Math.ceil(baseGold * (pct / 100));
+  if (!vessel || !v) { refuserGeste(get, set, t('sv.noVesselToCareen')); return []; }
+  const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()));
+  if (devis.refusCarenage) { refuserGeste(get, set, devis.refusCarenage); return []; }
+  const { carenageGold: cost, carenagePct: pct } = devis;
   const costMoney = toMoney({ gold: cost });
-  if (cost > 0 && !canAfford(partyMoneyTotal(get), costMoney)) return [t('sv.careenTooExpensive', { cost, pct })];
   if (cost > 0) payFromGroup(get, set, costMoney, { purpose: 'carénage navire' });
   set({ vessel: { ...vessel, fouling: { level: 0, lastWeek: vessel.fouling?.lastWeek ?? 0 }, crabs: undefined } });
   return [t('sv.careened', { cost: cost ? t('sv.fragCareenCost', { cost, pct }) : '' })];
 }
 
-/** POSE d'une Amélioration navale (MDG 12 l.195-364) : coût par bande de Taille (`installCost` —
- *  `per '5m'`/`unite` inclus), payé au chantier ; la réf rejoint `vessel.upgrades` (recopiée sur la
- *  coque à chaque départ). `units` = cabines multiples, etc. */
-export function portInstallUpgrade(get: Get, set: Set, traitId: string, units = 1): string[] {
-  const vessel = get().vessel;
+/** Devis de POSE d'une Amélioration navale (MDG 12 l.195-364) : coût et poids par bande de Taille
+ *  (`installCost`), et refus (`null` : la pose passe) contre la bourse `bourse` du groupe. SOURCE UNIQUE de
+ *  `portInstallUpgrade` et de l'écran du port. PUR. */
+export type DevisDAmelioration = { traitId: string; label: string; enc: number | null } & ({ refus: null; gold: number } | { refus: string; gold: number | null });
+
+export function devisDAmelioration(vessel: CampaignVessel | null, traitId: string, units: number, bourse: Money, refusHote: string | null): DevisDAmelioration {
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   const entry = findNavalTrait(traitId);
-  if (!vessel || !v?.ship || !entry) return [t('sv.upgradeNotFound')];
-  if (entry.kind !== 'amelioration') return [t('sv.upgradeIsTrait', { label: entry.label })];
-  if (!entry.install) return [t('sv.upgradeNoPrice', { label: entry.label })];
+  const label = entry?.label ?? traitId;
+  if (!vessel || !v?.ship || !entry) return { traitId, label, gold: null, enc: null, refus: t('sv.upgradeNotFound') };
+  if (entry.kind !== 'amelioration') return { traitId, label, gold: null, enc: null, refus: t('sv.upgradeIsTrait', { label }) };
+  if (!entry.install) return { traitId, label, gold: null, enc: null, refus: t('sv.upgradeNoPrice', { label }) };
   const { gold, enc } = installCost(entry.install, v.ship.lengthM, units);
-  if (gold == null) return [t('sv.upgradeEmbedded', { label: entry.label })];
-  const costMoney = toMoney({ gold });
-  if (!canAfford(partyMoneyTotal(get), costMoney)) return [t('sv.upgradeTooExpensive', { label: entry.label, gold })];
-  payFromGroup(get, set, costMoney, { purpose: 'amélioration navire' });
-  set({ vessel: { ...vessel, upgrades: [...(vessel.upgrades ?? []), { id: traitId, ...(units > 1 ? { value: units } : {}) }] } });
-  return [t('sv.upgradeInstalled', { label: entry.label, gold, enc: enc ? t('sv.fragUpgradeEnc', { enc }) : '' })];
+  if (gold == null) return { traitId, label, gold, enc, refus: t('sv.upgradeEmbedded', { label }) };
+  if (refusHote) return { traitId, label, gold, enc, refus: refusHote };
+  if (!canAfford(bourse, toMoney({ gold }))) return { traitId, label, gold, enc, refus: t('sv.upgradeTooExpensive', { label, gold }) };
+  return { traitId, label, gold, enc, refus: null };
+}
+
+/** Améliorations proposées au chantier : celles à pose chiffrée que le navire ne porte pas encore, chacune
+ *  avec son devis (une unité). */
+export function ameliorationsAuChantier(vessel: CampaignVessel, bourse: Money, refusHote: string | null): DevisDAmelioration[] {
+  const owned = new Set((vessel.upgrades ?? []).map((u) => u.id));
+  return NAVAL_TRAITS
+    .filter((tr) => tr.kind === 'amelioration' && tr.install && !owned.has(tr.id))
+    .map((tr) => devisDAmelioration(vessel, tr.id, 1, bourse, refusHote))
+    .filter((d) => d.gold != null);
+}
+
+/** POSE d'une Amélioration navale : le refus de `devisDAmelioration` tombe avant tout débit ; la réf rejoint
+ *  `vessel.upgrades` (recopiée sur la coque à chaque départ). `units` = cabines multiples, etc. */
+export function portInstallUpgrade(get: Get, set: Set, traitId: string, units = 1): string[] {
+  const vessel = get().vessel;
+  const devis = devisDAmelioration(vessel, traitId, units, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()));
+  if (devis.refus !== null) { refuserGeste(get, set, devis.refus); return []; }
+  const navire = garanti(vessel, 'vessel', 'navire du devis d’Amélioration');
+  const { gold, enc, label } = devis;
+  payFromGroup(get, set, toMoney({ gold }), { purpose: 'amélioration navire' });
+  set({ vessel: { ...navire, upgrades: [...(navire.upgrades ?? []), { id: traitId, ...(units > 1 ? { value: units } : {}) }] } });
+  return [t('sv.upgradeInstalled', { label, gold, enc: enc ? t('sv.fragUpgradeEnc', { enc }) : '' })];
 }
 
 // ── Événements de PORT (ch.15 l.127-129 + l.239-263) ─────────────────────────────────────────────
@@ -2464,14 +2549,24 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
   void port;
 }
 
+/** Refus de payer la bénédiction du Prêtre de Manann (MDG 15 l.246) : `refusDeGesteSurLeGroupe`, ou la bourse ne
+ *  couvre pas son prix ; `null` sinon. Tombe dans `resolveManannPriest`, lu par l'écran. */
+export function refusDePayerManann(s: Pick<Jeu, 'net' | 'party' | 'pendingManannPriest'>): string | null {
+  const p = s.pendingManannPriest;
+  return refusDeGesteSurLeGroupe(s) ?? (p && !canAfford(totalDesBourses(s.party), p.cost) ? t('sv.benedictionHorsBourse') : null);
+}
+
 /** Résout le choix « Prêtre de Manann » (MDG 15 l.246) : `pay` payé → débite le coût déjà tiré ;
  *  refusé → réduit l'Humeur de Manann de 4d10 (`tellManann`, réutilise le facteur libre existant). */
 export function resolveManannPriest(get: Get, set: Set, pay: boolean): void {
   const p = get().pendingManannPriest;
   if (!p) return;
+  if (refuseLeGesteDeGroupe(get, set)) return;
+  const refus = pay ? refusDePayerManann(get()) : null;
+  if (refus) { refuserGeste(get, set, refus); return; }
   set({ pendingManannPriest: null });
   if (pay) {
-    if (!payFromGroup(get, set, p.cost, { purpose: 'bénédiction Manann' })) return; // garde défensive — l'UI désactive « Payer » si la bourse ne suit pas
+    payFromGroup(get, set, p.cost, { purpose: 'bénédiction Manann' });
     log(get, set, [t('sv.purificationPaid', { gold: p.cost.gold, silver: p.cost.silver })]);
     return;
   }

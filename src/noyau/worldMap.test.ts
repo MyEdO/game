@@ -5,7 +5,8 @@
  * silence ni migré (#2404).
  */
 import { describe, it, expect } from 'vitest';
-import { parseProject, parseSceneDeProjet, declutterPositions, resolvePortRef, portVersDepot, placeServices, type RenderPoint, type MapPlace } from './worldMap';
+import { parseProject, parseSceneDeProjet, declutterPositions, resolvePortRef, portVersDepot, placeServices, produitsDuProfil, type RenderPoint, type MapPlace } from './worldMap';
+import { findCargoEntryById } from '../engine/seaVoyage';
 import { lieuxServices, navalPorts } from '../data';
 import { validateScene } from './validateScene';
 import { emptyScene, type Scene } from './monde/scene';
@@ -267,6 +268,18 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
     expect(placeServices(place({}))).toEqual([]);
   });
 
+  it('couchage À LA POSITION du groupe sans auberge (camp) → service « Repos » de repli, qui porte cette offre', () => {
+    const reposIci = { camp: true };
+    const svc = placeServices(place({}), undefined, reposIci);
+    expect(svc.map((s) => [s.id, s.category])).toEqual([['repos', 'auberge']]);
+    expect(svc[0].rest).toBe(reposIci);
+  });
+
+  it('auberge déclarée : aucun « Repos » de repli en sus', () => {
+    const svc = placeServices(place({ services: [{ kind: 'auberge', rest: { auberge: true } }] }), undefined, { camp: true });
+    expect(svc.map((s) => s.id)).toEqual(['auberge']);
+  });
+
   it('auberge DÉRIVÉE de l\'offre de repos de la scène si non déclarée en service propre', () => {
     const scene = { id: 's1', rest: { auberge: true, camp: true } } as Scene;
     const svc = placeServices(place({}), scene);
@@ -306,5 +319,13 @@ describe('parseProject — porte de schéma', () => {
     const avecNull = { ...scene('s1'), triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow }] };
     expect(() => parseProject(projet([avecNull]))).toThrow(/déclencheur « t1 » › étape 2: .*null reçu/);
     expect(() => parseSceneDeProjet(avecNull)).toThrow(/déclencheur « t1 » › étape 2: .*null reçu/);
+  });
+});
+
+describe('produitsDuProfil — colonne Produits d’un profil commercial (MDG 15 l.321)', () => {
+  it('le marqueur « commerce » nomme la plaque tournante ; seules les marchandises se listent', () => {
+    const { plaque, marchandises } = produitsDuProfil(['commerce', 'poisson-sale']);
+    expect(plaque).toBeTruthy();
+    expect(marchandises).toEqual([findCargoEntryById('poisson-sale')!.label]);
   });
 });

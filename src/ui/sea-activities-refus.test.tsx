@@ -14,6 +14,7 @@ import type { Combatant } from '../engine/types';
 import { SeaActivitiesModal } from './SeaActivitiesModal';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { resetDismissLayers } from './useDismissLayer';
+import { t } from '../i18n';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -77,5 +78,25 @@ describe('Activités en mer — une Activité non tentable est FERMÉE par candi
   it('cliquer l’Activité fermée ne la retient pas', () => {
     act(() => { option('Hilda', 'Cartographie').click(); });
     expect(option('Hilda', 'Cartographie').getAttribute('aria-pressed')).not.toBe('true');
+  });
+});
+
+describe('#3059 — siège invité : « Valider la semaine » lit le refus de groupe du noyau, le choix reste ouvert', () => {
+  beforeEach(() => {
+    useGame.setState({
+      party: [HILDA, KARL],
+      vessel: null,
+      net: { ...useGame.getState().net, mode: 'guest' },
+      pendingSeaActivities: { day: { events: [] } } as unknown as PendingSeaActivities,
+    });
+    act(() => root.render(<SeaActivitiesModal />));
+  });
+
+  it('bouton fermé avec la raison « hôte seul » ; Cartographie de Karl choisie', () => {
+    const valider = [...host.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Valider la semaine')!;
+    expect(valider.getAttribute('aria-disabled')).toBe('true');
+    expect(document.getElementById(valider.getAttribute('aria-describedby')!)?.textContent).toContain(t('groupe.hoteSeul'));
+    act(() => { option('Karl', 'Cartographie').click(); });
+    expect(option('Karl', 'Cartographie').getAttribute('aria-pressed')).toBe('true');
   });
 });

@@ -39,15 +39,17 @@ import { peutTenter, refusNePeutTenter } from '../engine/skills';
 import type { PlayerText } from '../i18n/playerText';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, payWithAllocation, soloPayer, distributeCredit } from './bourseFlow';
+import { payFromGroup, payWithAllocation, soloPayer, distributeCredit, totalDesBourses, refuseLeGesteDeGroupe } from './bourseFlow';
+import { encLibreNominale } from './portFlow';
 import { bourseOf } from '../engine/bourse';
-import { cargoTotalEnc, OPPORTUNITE, opportunityTradePct } from '../engine/seaVoyage';
-import { findVehicleById, activityStakeRef, refLabel, dataLabel } from '../data';
+import { OPPORTUNITE, opportunityTradePct } from '../engine/seaVoyage';
+import { activityStakeRef, refLabel, dataLabel } from '../data';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { TravelRecapDay } from './travelFlow';
 import { toRecapLines } from './recapLine';
 import type { Get, Set } from './flowTypes';
+import type { Jeu } from './etat';
 import type { BuiltCascadeStep } from './stepBrand';
 import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, freeCons, resultLines, type RollRequest } from './rollSeam';
 import { noteSeaLine, patchSea, openSeaHalt } from './seaVoyageFlow';
@@ -75,14 +77,16 @@ export interface PendingSeaActivities {
   opportunityQueue?: string[];
 }
 
-/** Enc LIBRE du navire de campagne (Contenance − cargaison) — plafond du Commerce d'opportunité
- *  (l.276 : « jusqu'à l'équivalent de la valeur totale d'Encombrement disponible et non surchargé
- *  de votre bateau en couronnes d'or »). */
-export function vesselFreeEnc(get: Get): number {
-  const vessel = get().vessel;
-  if (!vessel) return 0;
-  const capacity = findVehicleById(vessel.vehicleId)?.ship?.capacity ?? 0;
-  return Math.max(0, capacity - cargoTotalEnc(vessel.cargo ?? []));
+/** Plafond de mise du Commerce d'opportunité, en CO (MDG 15 l.276) : l'Enc libre non surchargé du navire
+ *  (`encLibreNominale`), borné par la bourse du groupe. Lu par le geste et par l'écran des Activités. PUR. */
+export function plafondDeMiseDOpportunite(s: Pick<Jeu, 'vessel' | 'party'>): number {
+  return Math.min(encLibreNominale(s.vessel), Math.floor(toBrass(totalDesBourses(s.party)) / PA_PER_CO));
+}
+
+/** Plafond de la planque de Cartographie d'un héros, en CO (MDG 15 l.292) : sa bourse. Lu par le geste et
+ *  par l'écran des Activités. PUR. */
+export function plafondDePlanque(hero: Combatant): number {
+  return Math.floor(toBrass(bourseOf(hero)) / PA_PER_CO);
 }
 
 /** Raison de BLOCAGE d'une Activité en mer pour un héros (affordance expliquée, jamais muette). */
@@ -90,7 +94,7 @@ export function seaActivityBlocked(get: Get, def: ActivityDef): string | null {
   if (def.resolver === 'crewTraining') {
     return t('sact.crewIsPlayers');
   }
-  if (def.resolver === 'opportunityTrade' && vesselFreeEnc(get) <= 0) {
+  if (def.resolver === 'opportunityTrade' && encLibreNominale(get().vessel) <= 0) {
     return t('sact.noFreeEnc');
   }
   return null;
@@ -192,6 +196,7 @@ function buildSeaActivitiesCascade(get: Get, set: Set, picks: Record<string, Sea
 export function seaActivitiesConfirm(get: Get, set: Set, picks: Record<string, SeaActivityPick | null>): void {
   const pending = get().pendingSeaActivities;
   if (!pending) return;
+  if (refuseLeGesteDeGroupe(get, set)) return;
   const { steps, oppHeroIds } = buildSeaActivitiesCascade(get, set, picks);
   set({ pendingSeaActivities: { ...pending, picks, opportunityQueue: oppHeroIds } });
   if (!steps.length) { continueSeaActivitiesAfterCascade(get, set); return; }
@@ -223,7 +228,7 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
     continueSeaActivitiesAfterCascade(get, set);
     return;
   }
-  const capGold = Math.min(vesselFreeEnc(get), Math.floor(toBrass(partyMoneyTotal(get)) / PA_PER_CO));
+  const capGold = plafondDeMiseDOpportunite(get());
   const invest = Math.max(0, Math.min(Math.floor(pick.investGold ?? 0), capGold));
   if (invest <= 0) {
     noteSeaLine(get, set, [t('sact.tradeNoStake', { name: hero.label })]);
@@ -293,7 +298,7 @@ export const TABLES = {
           recomputeLoadout(hero);
         }
         j.push(t('sact.chartOk', { name: hero.label, gold: Math.max(0, step.result.sl) }));
-        const stashCO = Math.max(0, Math.min(stashGold, Math.floor(toBrass(bourseOf(hero)) / PA_PER_CO)));
+        const stashCO = Math.max(0, Math.min(stashGold, plafondDePlanque(hero)));
         if (stashCO > 0) {
           const stashBrass = stashCO * PA_PER_CO;
           payWithAllocation(get, set, { debits: soloPayer(hero.id, fromBrass(stashBrass)), recipient: hero.id, purpose: 'planque cartographie' });

@@ -206,7 +206,7 @@ describe('Ragot non tentable : la journée de recherche est perdue (LDB 59 l.50)
     const PORT = { taille: 4, richesse: 4, production: [] } as unknown as PortProfile;
     useGame.setState({
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ cargoId: 'bois', enc: 40, basePriceGold: 10 }], lastVoyageMilles: 0 },
-      port: { placeId: 'P', label: 'Port', port: PORT, freeEnc: 300, maxLoadEnc: 450, offers: [] },
+      port: { placeId: 'P', label: 'Port', port: PORT, offers: [] },
     } as never);
     const hero = useGame.getState().party[0];
     const out = appliquer(ragotSansJet('port-sell-gossip', hero, t('port.buyerSearch'), { cargoIndex: 0 }), hero);

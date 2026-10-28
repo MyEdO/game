@@ -7,6 +7,7 @@ import { ensureBourse, bourseInstanceOf } from '../engine/bourse';
 import type { Combatant } from '../engine/types';
 import type { CampaignVessel } from '../noyau/etat';
 import type { Get, Set } from '../noyau/flowTypes';
+import { initialNet } from '../noyau/etat';
 
 /**
  * RECRUTEMENT à quai (#228, escale-hub) — embauche/débarquement salariés (MDG 14 l.293-302).
@@ -16,7 +17,7 @@ import type { Get, Set } from '../noyau/flowTypes';
 function mkStore(vessel: CampaignVessel | null) {
   const hero = ensureBourse({ id: 'h1', label: 'h1', items: [] } as unknown as Combatant);
   bourseInstanceOf(hero)!.money = fromBrass(100000);
-  let state = { vessel, party: [hero], journal: [] as string[] };
+  let state = { vessel, party: [hero], journal: [] as string[], net: initialNet() };
   const log = (msg: string | string[]) => {
     state = { ...state, journal: [...state.journal.slice(-40), ...(Array.isArray(msg) ? msg : [msg])] };
   };

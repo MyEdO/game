@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { cityHubServices, cityHubHasPlan, cityHubCanEnterPort } from './CityHubScreen';
 import { restServicePrice } from '../noyau/restFlow';
-import { atLocationPlace, poiIcon, type MapPlace, type WorldMap } from '../noyau/worldMap';
+import { atLocationPlace, poiIcon, placeServices, lieuAUnPlan, type MapPlace, type WorldMap } from '../noyau/worldMap';
+import { refusDEntrerAuPort } from '../noyau/portFlow';
+import { t } from '../i18n';
 import { findTrappingById } from '../data';
 import { toBrass, priceToMoney } from '../engine/money';
 import type { LandMarketProfile } from '../engine/landCargo';
@@ -26,9 +27,9 @@ const townPlace = (): MapPlace => place({
 
 const worldMap = (places: MapPlace[]): WorldMap => ({ id: 'w', label: 'Reikland', places, routes: [] });
 
-describe('cityHubServices — composition des services d’un lieu (#343)', () => {
+describe('placeServices — composition des services d’un lieu au hub (#343)', () => {
   it('liste port, marché puis auberge, chacun porteur de sa donnée référencée', () => {
-    const list = cityHubServices(townPlace());
+    const list = placeServices(townPlace());
     expect(list.map((s) => s.id)).toEqual(['port', 'marche', 'auberge']);
     expect(list.find((s) => s.id === 'port')!.category).toBe('port');
     expect(list.find((s) => s.id === 'marche')!.market).toBe(market);
@@ -38,26 +39,25 @@ describe('cityHubServices — composition des services d’un lieu (#343)', () =
   });
 
   it('lieu sans service ni offre : liste vide (le hub n’a alors rien à ouvrir)', () => {
-    expect(cityHubServices(place())).toEqual([]);
+    expect(placeServices(place())).toEqual([]);
   });
 });
 
-describe('cityHubHasPlan — porte de l’onglet Plan (#345 phase 5)', () => {
+describe('lieuAUnPlan — porte de l’onglet Plan (#345 phase 5)', () => {
   it('lieu sans POI : pas d’onglet Plan', () => {
-    expect(cityHubHasPlan(place())).toBe(false);
+    expect(lieuAUnPlan(place())).toBe(false);
   });
   it('lieu avec au moins un POI : onglet Plan', () => {
-    expect(cityHubHasPlan(place({ poi: [{ id: 'poi-1', label: 'Auberge', pos: { x: 10, y: 10 }, serviceKind: 'auberge' }] }))).toBe(true);
+    expect(lieuAUnPlan(place({ poi: [{ id: 'poi-1', label: 'Auberge', pos: { x: 10, y: 10 }, serviceKind: 'auberge' }] }))).toBe(true);
   });
 });
 
-describe('cityHubCanEnterPort — porte du bouton « Entrer au port » (affordance vs no-op silencieux de openPort)', () => {
-  it('sans navire de campagne : porte fermée (openPort serait un no-op muet)', () => {
-    expect(cityHubCanEnterPort(null)).toBe(false);
-    expect(cityHubCanEnterPort(undefined)).toBe(false);
+describe('refusDEntrerAuPort — porte du bouton « Entrer au port », appliquée par openPort', () => {
+  it('sans navire de campagne : refus nommé', () => {
+    expect(refusDEntrerAuPort({ vessel: null })).toBe(t('port.sansNavire'));
   });
-  it('avec un navire de campagne : porte ouverte', () => {
-    expect(cityHubCanEnterPort({ vehicleId: 'barge' })).toBe(true);
+  it('avec un navire de campagne : aucun refus', () => {
+    expect(refusDEntrerAuPort({ vessel: { vehicleId: 'barge' } as never })).toBeNull();
   });
 });
 
@@ -80,7 +80,7 @@ describe('atLocationPlace — porte du hub de ville (#343)', () => {
 describe('poiIcon — résolution GÉNÉRALE de l’icône d’un marqueur de plan (#371, aucun backfill de donnée)', () => {
   // Un lieu de type ville : le service `temple` (catalogue) porte l'icône `faith/church`, le port
   // `travel/anchor` — la résolution les DÉRIVE de la cible sans que le POI ne redéclare son icône.
-  const services = cityHubServices(place({
+  const services = placeServices(place({
     port: { taille: 4, richesse: 3, production: ['commerce'] } as MapPlace['port'],
     services: [{ kind: 'temple' }],
   }));

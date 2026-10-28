@@ -4,7 +4,7 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from '../noyau/battleRng';
 import { buildSeaPlan } from '../noyau/seaVoyageFlow';
-import { vesselFreeEnc, vesselMaxLoadEnc } from '../noyau/portFlow';
+import { encLibreNominale, vesselMaxLoadEnc } from '../noyau/portFlow';
 import { seaActivityBlocked } from '../noyau/seaActivities';
 import { activityById } from '../engine/activities';
 import { toBrass, PA_PER_CO } from '../engine/money';
@@ -300,10 +300,10 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
 
   it('#243 — headroom nominal vs plafond dur de surcharge (Cogue : Contenance 300, dur 450)', () => {
     set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois', enc: 290, basePriceGold: 1 }] } });
-    expect(vesselFreeEnc(get)).toBe(10); // 300 − 290 (nominal)
+    expect(encLibreNominale(get().vessel)).toBe(10); // 300 − 290 (nominal)
     expect(vesselMaxLoadEnc(get)).toBe(160); // 450 − 290 (surcharge possible)
     set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois', enc: 440, basePriceGold: 1 }] } });
-    expect(vesselFreeEnc(get)).toBe(0); // au-delà de la Contenance : plus de headroom nominal
+    expect(encLibreNominale(get().vessel)).toBe(0); // au-delà de la Contenance : plus de headroom nominal
     expect(vesselMaxLoadEnc(get)).toBe(10); // 450 − 440
   });
 

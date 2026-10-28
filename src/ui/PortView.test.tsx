@@ -11,6 +11,7 @@ import type { PortProfile } from '../engine/seaVoyage';
 import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import { PortHeader, EscaleTab } from './PortView';
+import { refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 
 // `ShoreLeaveBody`/`ManannBody` (composés par `EscaleTab`) lisent l'événement en attente directement au
 // store (SEULE source, cf. VoyageScreen embedded), jamais via une prop `pendingXxx` ad hoc sur ces deux
@@ -35,7 +36,7 @@ const vessel = (crew?: CampaignVessel['crew']): CampaignVessel => ({
 });
 const noop = () => {};
 const escaleProps = {
-  vessel: vessel(), isGuest: false,
+  vessel: vessel(), refusHote: null,
   pendingShoreLeave: null, pendingManannPriest: null,
   onHire: noop, onDismiss: noop,
 };
@@ -97,7 +98,7 @@ describe('EscaleTab — actions d’escale (#228)', () => {
   });
 
   it('invité (guest) : embauche désactivée', () => {
-    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} isGuest />);
+    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })} />);
     expect(html).toMatch(/Embaucher<\/button>/); // le bouton existe
     expect(html).toContain('disabled'); // et il est désactivé
   });
@@ -105,7 +106,7 @@ describe('EscaleTab — actions d’escale (#228)', () => {
   it('invité (guest) : RELÂCHE À TERRE non résolvable localement (régression #343)', () => {
     const pendingShoreLeave = { to: { id: 'x', label: 'X', pos: { x: 0, y: 0 }, scene: 's' } };
     seedInitial({ pendingShoreLeave, net: { ...initialNetMode, mode: 'guest' } });
-    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} isGuest pendingShoreLeave={pendingShoreLeave} />);
+    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })} pendingShoreLeave={pendingShoreLeave} />);
     expect(html).toContain('Accorder la relâche');
     expect(html).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Accorder la relâche/);
     expect(html).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Refuser la relâche/);
@@ -114,7 +115,7 @@ describe('EscaleTab — actions d’escale (#228)', () => {
   it('invité (guest) : PRÊTRE DE MANANN non résolvable localement (régression #343)', () => {
     const pendingManannPriest = { cost: toMoney({ gold: 5, silver: 3 }) };
     seedInitial({ pendingManannPriest, net: { ...initialNetMode, mode: 'guest' } });
-    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} isGuest pendingManannPriest={pendingManannPriest} />);
+    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })} pendingManannPriest={pendingManannPriest} />);
     expect(html).toContain('Payer');
     expect(html).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Payer/);
     expect(html).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Refuser/);
