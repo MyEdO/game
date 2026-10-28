@@ -1,0 +1,5 @@
+{
+  "base": "humanoide",
+  "porteur": { "race": "humain", "gabarit": "moyen", "taille": "moyenne", "echelleDArt": 1 },
+  "clipsDeMarche": ["Walk_Loop"]
+}

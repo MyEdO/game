@@ -68,6 +68,12 @@ POING = {'main': ('r', 'Sword_Idle', 8), 'off': ('l', 'Idle_Shield_Loop', 44)}
 """Par prise : le côté de la main, le clip et l'image où le poing fermé tient sa poignée."""
 DOIGTS_DU_POING = ('index', 'middle', 'ring', 'pinky')
 
+SEGMENTS_DU_GABARIT = {'legs': ('thigh', 'calf'), 'arms': ('upperarm', 'lowerarm'), 'head': ()}
+"""Par facteur de gabarit, les préfixes des os UAL, latéralisés `_l` puis `_r`, dont le facteur allonge le segment en
+déplaçant l'os enfant (`hotes/godot/asset/evaluateur/gabarit.ts`) ; `Head` n'a aucun os enfant."""
+PIEDS = ('foot_l', 'foot_r')
+"""Les os des pieds, dont l'évaluateur mesure les appuis."""
+
 AXES_DU_PERSONNAGE = Matrix(((1, 0, 0), (0, 0, -1), (0, 1, 0)))
 """Les axes glTF du personnage (+X, +Y, +Z en colonnes) dans le repère Blender."""
 
@@ -216,9 +222,21 @@ def poser_prises(rig):
     return prises
 
 
+def gabarit(rig):
+    """La table du gabarit, sans les bornes de `st` : la racine, seul os sans parent, et les os de `SEGMENTS_DU_GABARIT`."""
+    racines = [b.name for b in rig.data.bones if b.parent is None]
+    if len(racines) != 1:
+        raise RuntimeError(f'racines {racines} : une seule attendue')
+    table = {cle: [f'{p}_{c}' for c in 'lr' for p in prefixes] for cle, prefixes in SEGMENTS_DU_GABARIT.items()}
+    absents = [o for os in [*table.values(), PIEDS] for o in os if o not in rig.data.bones]
+    if absents:
+        raise RuntimeError(f'os de gabarit ou de pied absents : {", ".join(absents)}')
+    return {**table, 'racine': racines[0]}
+
+
 def poser(rig, peaux):
     """Pose emplacements, prises et zones de la base sur les peaux `peaux` du rig, clips déjà préparés ; rend leur part
-    du manifeste de base."""
+    du manifeste de base, table du gabarit et pieds compris."""
     objets = {o.name: o for o in peaux}
     for o in peaux:
         if o.matrix_world != Matrix.Identity(4):
@@ -228,4 +246,5 @@ def poser(rig, peaux):
     emplacements = poser_emplacements(rig, corps, centre)
     prises = poser_prises(rig)
     poser_zones(rig, objets, corps, centre)
-    return {'zones': list(ZONES), 'emplacements': emplacements, 'prises': prises}
+    return {'zones': list(ZONES), 'emplacements': emplacements, 'prises': prises, 'gabarit': gabarit(rig),
+            'appuis': {'pieds': list(PIEDS)}}

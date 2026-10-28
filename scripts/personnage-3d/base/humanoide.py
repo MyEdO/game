@@ -5,17 +5,24 @@ Le corps UBC porte les 65 os d'UAL1, mêmes noms et même hiérarchie, sur son p
 clip s'y joue relatif au repos (les clés Blender de l'import glTF). Pistes de position retirées hors `root` et `pelvis`,
 interpolation LINEAR. Au repos, le sommet le plus bas des peaux est posé au sol de la racine (`poser_au_sol`), et les
 poids sont lissés là où un clip étire la peau (`poids.py`). La part du manifeste de base que pose la construction
-(zones, emplacements, prises) s'écrit à côté du GLB, dans `<sortie>.manifeste.json`.
+(os, chaînes, zones, emplacements, prises, silhouettes, table du gabarit, pieds, os à position animée) passe, après
+l'export, à `manifeste.mjs`, qui écrit le manifeste complet à côté du GLB, dans `<sortie>.manifeste.json`, avec la
+déclaration du corps `humanoide.json`.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py \\
         --ual1 <UAL1_Standard.glb> --ual2 <UAL2_Standard.glb> --corps <Superhero_Male_FullBody.gltf> --sortie <humanoide.glb>
 """
 import argparse
 import json
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
 sys.dont_write_bytecode = True
+ICI = Path(__file__).resolve().parent
+DECLARATION = ICI / 'humanoide.json'
+"""La déclaration du corps : `base`, porteur de référence et clips de marche."""
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from anatomie import poser  # noqa: E402
@@ -129,6 +136,33 @@ def preparer(action):
     action.use_fake_user = True
 
 
+def os_a_position_animee(rig, clips, racine):
+    """Les os de `rig`, hors `racine`, dont un clip garde une piste de position, dans l'ordre du squelette."""
+    animes = {c.data_path.split('"')[1] for action in clips for sac in sacs(action) for c in sac.fcurves
+              if c.data_path.startswith('pose.bones["') and c.data_path.endswith('.location')}
+    return [b.name for b in rig.data.bones if b.name in animes and b.name != racine]
+
+
+def silhouettes(peaux):
+    """Les shape keys des peaux, hors leur clé de référence, dans l'ordre de première rencontre."""
+    noms = []
+    for peau in peaux:
+        cles_de_forme = peau.data.shape_keys
+        for cle in cles_de_forme.key_blocks if cles_de_forme else ():
+            if cle != cles_de_forme.reference_key and cle.name not in noms:
+                noms.append(cle.name)
+    return noms
+
+
+def completer(sortie, construit):
+    """Écrit le manifeste complet de `sortie` par `manifeste.mjs`, à qui passe la part `construit`."""
+    node = shutil.which('node')
+    if not node:
+        raise RuntimeError('node introuvable : le manifeste de base se complète par manifeste.mjs')
+    subprocess.run([node, str(ICI / 'manifeste.mjs'), str(DECLARATION), str(sortie)],
+                   input=json.dumps(construit, ensure_ascii=False), text=True, encoding='utf-8', check=True)
+
+
 def construire(args):
     import bpy
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -152,7 +186,10 @@ def construire(args):
         preparer(action)
     poser_au_sol(bpy, squelette, peaux)
     lisser_les_poids(squelette, peaux, clips)
+    formes = silhouettes(peaux)
     manifeste = poser(squelette, peaux)
+    manifeste = {'os': [b.name for b in squelette.data.bones], 'chaines': {}, **manifeste, 'silhouettes': formes,
+                 'osAPositionAnimee': os_a_position_animee(squelette, clips, manifeste['gabarit']['racine'])}
     for image in bpy.data.images:
         if image.has_data:
             image.pack()
@@ -161,10 +198,10 @@ def construire(args):
     bpy.ops.export_scene.gltf(filepath=str(args.sortie), export_format='GLB', export_animations=True,
                               export_animation_mode='ACTIONS', export_force_sampling=False,
                               export_optimize_animation_size=False, export_extras=True)
-    chemin = args.sortie.with_suffix('.manifeste.json')
-    chemin.write_text(json.dumps(manifeste, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
-    print('CLIPS', len(clips), 'OS', len(squelette.data.bones), 'ZONES', len(manifeste['zones']),
-          'EMPLACEMENTS', len(manifeste['emplacements']), 'MANIFESTE', chemin, flush=True)
+    print('CLIPS', len(clips), 'OS', len(manifeste['os']), 'ZONES', len(manifeste['zones']),
+          'EMPLACEMENTS', len(manifeste['emplacements']), 'SILHOUETTES', len(formes),
+          'POSITION', manifeste['osAPositionAnimee'], flush=True)
+    completer(args.sortie, manifeste)
     print('HUMANOIDE_OK', args.sortie, flush=True)
 
 
