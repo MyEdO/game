@@ -15,7 +15,8 @@
  * RECONSTRUIT par projection INVERSE du `src/data/materials.json` VIVANT : partition par `domain`
  * dans l'ordre prop/roof/relief, chaque entrée rendue `{ id, type: <ancien type>, label, ...reste }`
  * sans `domain`, sérialisée sous la forme canonique. La porte (a) est donc un ALLER-RETOUR : la
- * migration rejouée sur ces sources doit reproduire à l'octet le dataset de l'arbre.
+ * migration reproduit à l'octet la projection des domaines SOURCES. Le rejeu (b) conserve le dataset
+ * entier, y compris les domaines qui ne proviennent pas de ces trois sources.
  * Aucun cardinal n'est récité ici : les comptes attendus se lisent sur le dataset.
  *
  * Ce banc vit sous `lib/` : `replay.mjs` scanne le dossier des migrations à PLAT et n'y admet que
@@ -39,6 +40,8 @@ const CIBLE = 'src/data/materials.json';
 
 const TEXTE_CIBLE = lireArbre(CIBLE);
 const CIBLE_DOC = JSON.parse(TEXTE_CIBLE);
+const CIBLE_FUSION = SOURCES.flatMap(({ domain }) => CIBLE_DOC.filter((e) => e.domain === domain));
+const TEXTE_FUSION = serialise(CIBLE_FUSION, FORME_DATA);
 
 /**
  * PROJECTION INVERSE : le document source d'un domaine, tel que la migration l'exige en entrée —
@@ -66,19 +69,19 @@ function sourcesMutees(mute) {
   return Object.fromEntries(Object.entries(docs).map(([rel, doc]) => [rel, serialise(doc, FORME_DATA)]));
 }
 
-test('(a) ALLER-RETOUR : les 3 sources projetées → `materials.json` BYTE-IDENTIQUE à celui de l’arbre', (t) => {
+test('(a) ALLER-RETOUR : les 3 sources projetées → leurs domaines BYTE-IDENTIQUES dans `materials.json`', (t) => {
   const { racine } = depot({ ...TEXTE_SOURCE });
   t.after(() => efface(racine));
 
   const { code, sortie } = joue(racine, MIGRATION);
   assert.equal(code, 0, `sortie ${code} — la fusion doit passer : ${sortie.slice(0, 800)}`);
   assert.ok(
-    sortie.includes(`migré — ${CIBLE_DOC.length} matière(s)`),
+    sortie.includes(`migré — ${CIBLE_FUSION.length} matière(s)`),
     `la fusion ne DIT pas son compte : ${sortie.slice(0, 800)}`,
   );
 
   const produit = lireDans(racine, CIBLE);
-  assert.equal(produit, TEXTE_CIBLE, 'le `materials.json` produit diffère à l’octet de celui de l’arbre');
+  assert.equal(produit, TEXTE_FUSION, 'le produit diffère à l’octet de la projection des domaines sources');
   for (const s of SOURCES) assert.equal(fs.existsSync(path.join(racine, s.rel)), false, `${s.rel} survit à la fusion`);
 });
 
@@ -144,7 +147,7 @@ test('(d-bis) CARDINAL DÉPLACÉ (une matière retirée d’une source) : la fus
   const { code, sortie } = joue(racine, MIGRATION);
   assert.equal(code, 0, `sortie ${code} — un cardinal déplacé n'est PAS une anomalie : ${sortie.slice(0, 800)}`);
   const produit = JSON.parse(lireDans(racine, CIBLE));
-  assert.equal(produit.length, CIBLE_DOC.length - 1, 'la fusion n’a pas porté le périmètre mesuré');
+  assert.equal(produit.length, CIBLE_FUSION.length - 1, 'la fusion n’a pas porté le périmètre mesuré');
   assert.equal(produit.some((e) => e.id === retiree.id), false, `${retiree.id} survit à son retrait`);
   assert.equal(
     produit.filter((e) => e.domain === 'prop').length,

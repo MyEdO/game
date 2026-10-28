@@ -7,8 +7,8 @@ Tout le bestiaire passe désormais par le **rig** (`src/gameIso/rig/`) : plus au
 monolithique. Une créature bipède = **Plan × Gabarit (carrure) × Race (peau/tête/traits/posture)
 × Perso** ; une créature NON bipède = le **def** de son plan (`src/gameIso/rig/creatures/defs/<Nom>.ts`,
 bloc d'espèce du plan : `quad`…). On améliore un bipède en éditant **sa Race** (ou son Gabarit), un
-non-bipède en éditant **son def**, jamais une table centrale : la carrure vit au registre
-`src/gameIso/rig/gabarits/defs/`, l'apparence d'espèce dans la donnée `src/data/raceAppearance.json`
+non-bipède en éditant **son def**, jamais une table centrale : la carrure vit dans la donnée
+`src/data/gabarits.json`, l'apparence d'espèce dans la donnée `src/data/raceAppearance.json`
 (résolue par `src/gameIso/rig/races/index.ts`).
 
 Méthode **headless** (pas besoin de naviguer le jeu) : on rend chaque créature en PNG via le rig
@@ -73,7 +73,7 @@ elfe, orc, gobelin, ogre, troll, skaven, mort-vivant, homme-bête, guerrier du C
 
 ### 3. Corriger — éditer la RACE ou le GABARIT (bipède), le DEF (non bipède), pas le code central
 Bipède — l'entrée de sa race dans `src/data/raceAppearance.json`, ou son gabarit :
-- **Carrure fausse** (trop trapu/élancé) → `src/gameIso/rig/gabarits/defs/<id>.ts` (sl/st/legs/arms/
+- **Carrure fausse** (trop trapu/élancé) → son entrée de `src/data/gabarits.json` (sl/st/legs/arms/
   head) ou un `gabaritOverride` fin dans la Race.
 - **Peau / cheveux** → `palette` de la Race (+ `paletteF` pour la variante féminine).
 - **Posture de repos** → `pose` (deltas d'angle, appliqués front+profil).

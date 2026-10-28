@@ -13,6 +13,7 @@ import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-vo
 import { HALO_SLOTS } from '../backends/webgl/interactHaloMeshes';
 import { haloRadiusK, HALO_RX_PX, type InteractHalo } from '../builders/interactHalos';
 import { PING_S } from './interactHaloPose';
+import { findTrappingById } from '../../data';
 
 /**
  * HALOS D'INTERACTION (#1176, P3-0g). Deux faits distincts s'y mesurent :
@@ -237,7 +238,7 @@ describe('Halos d’interaction — la pulsation se prend à la FRAME (#1176 P3-
     document.body.appendChild(conteneur);
     root = createRoot(conteneur);
     act(() => root!.render(
-      <GameStage3D lecture="jeu"
+      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
         scene={SCENE_NUE}
         mpt={sceneMetresPerTile(SCENE_NUE)}
         frame={{ mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 }}
@@ -300,7 +301,7 @@ describe('Halos d’interaction — la pulsation se prend à la FRAME (#1176 P3-
     document.body.appendChild(conteneur);
     root = createRoot(conteneur);
     const écran = (halos: readonly InteractHalo[] | undefined) => (
-      <GameStage3D lecture="jeu"
+      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
         scene={SCENE_NUE}
         mpt={sceneMetresPerTile(SCENE_NUE)}
         frame={{ mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 }}

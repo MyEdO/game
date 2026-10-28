@@ -18,6 +18,8 @@ import { TraitListField } from './codex/StructFields';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { parseSkillRef, parseTalentRef } from './refFormatLivre';
+import { ListeDIds } from '../compendium/refField/RefField';
+import { customStatblockSchema } from '../../data/schemas/defs-scenes/communs';
 
 const EXTRA: { key: 'M'; label: string; def: number }[] = [{ key: 'M', label: 'Mouvement', def: 4 }];
 
@@ -122,18 +124,13 @@ export function StatblockEditor({ chemin, stat, onChange }: { chemin: string; st
         value={stat.traits}
         onChange={(traits) => onChange({ ...stat, traits })}
       />
-      <label className="ed-field">
-        Groupes (séparés par des virgules — ex. « Sigmarite, Cultiste ») : appartenances supplémentaires pour les Traits psy
-        ciblés (Animosité/Haine/…). La catégorie du bestiaire (folder) est ajoutée automatiquement au spawn.
-        <input
-          value={(stat.groups ?? []).join(', ')}
-          placeholder="auto (catégorie du bestiaire) + extras manuels"
-          onChange={(e) => {
-            const groups = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
-            onChange({ ...stat, groups: groups.length ? groups : undefined });
-          }}
-        />
-      </label>
+      <ListeDIds
+        noeud={customStatblockSchema.shape.groups}
+        label="Groupes"
+        title="Appartenances ajoutées à celles de la fiche, pour les Traits psy ciblés"
+        value={stat.groups}
+        onChange={(groups) => onChange({ ...stat, groups })}
+      />
       <label className="ed-field">
         Compétences (une par ligne, format livre « Compétence (Spéc) Valeur » — la valeur est le Test FINAL :
         « Langue (Magick) 63 », « Corps à corps (Base) 52 », « Esquive 48 » ; les avances sont dérivées au spawn)

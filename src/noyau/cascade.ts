@@ -757,7 +757,9 @@ function etapeServie(get: Get, set: Set, stepId: string, sert: InteractionDEtape
 }
 
 /** Le refus du jet de l'étape `stepId` (`refusDEtape`), `null` s'il se joue maintenant. Garde des verbes du flux `cascade`. */
-export const refusDuJetDEtape = (s: Pick<Jeu, 'pendingCascade'>, stepId: string): string | null => refusDEtape(s.pendingCascade, stepId, 'jet');
+export function refusDuJetDEtape(s: Pick<Jeu, 'pendingCascade'>, stepId: string): string | null {
+  return refusDEtape(s.pendingCascade, stepId, 'jet');
+}
 
 /** Remplace l'étape COURANTE de la séquence. */
 function poserLaCourante(get: Get, set: Set, etape: CascadeStep): void {

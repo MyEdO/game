@@ -51,8 +51,12 @@
       "ops": [
         {
           "op": "grantPsychTrait",
-          "psychType": "animosite",
-          "cible": "tout"
+          "psychType": {
+            "id": "animosite"
+          },
+          "cible": {
+            "id": "tout"
+          }
         }
       ]
     },

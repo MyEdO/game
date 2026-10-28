@@ -296,10 +296,10 @@ export const REGLES = Object.freeze([
     preuve: 'src/gameIso/rig/creatures/defs/Cheval.ts:7-10',
   },
   {
-    motif: new RegExp(String.raw`^src/gameIso/rig/(races|plans)/|^src/gameIso/rig/gabarits/`),
+    motif: new RegExp(String.raw`^src/gameIso/rig/(races|plans)/`),
     categorie: 'douteux',
     famille: 'contenu-art',
-    raison: 'Registres de races/gabarits/plans (donnees WFRP de morphologie) : ni fourni par un moteur ni UI.',
+    raison: 'Registres de races/plans (donnees WFRP de morphologie) : ni fourni par un moteur ni UI.',
     preuve: 'src/gameIso/rig/races/index.ts:3 ; src/gameIso/rig/bodyPlan.ts:1-8',
   },
   {

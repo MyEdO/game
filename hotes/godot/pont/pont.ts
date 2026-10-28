@@ -4,11 +4,12 @@
  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
  * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend.
  */
-import { CLICS_DU_CHAMP, fenetreDAttaque, fenetreDeDefense, plateauDeLaScene, type FenetreDAttaque, type FenetreDeDefense, type LigneDuJournal, type ResultatDeLAppel } from '../../../src/noyau/index';
-import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte, type Programme } from '../../../src/hote/partie';
+import { CLICS_DU_CHAMP, fenetreDAttaque, fenetreDeDefense, plateauDeLaScene, type FenetreDAttaque, type FenetreDeDefense, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/hote/formes';
+import { modelesDesCombattants, type CouvertureDesModeles } from './equipement';
 import { fenetreADessiner, type FenetreADessiner } from '../../../src/hote/gestes';
 import { panneauDuCombat, type PanneauDuCombat } from '../../../src/hote/ecran';
 
@@ -33,7 +34,7 @@ interface ErreurGlobale {
  *  fiche de l'actif, l'aperçu, le libellé de chaque offre), les cases atteignables au tour de l'actif
  *  (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), et les clics du champ par ce qu'ils désignent
  *  (`CLICS_DU_CHAMP`). */
-export interface VueDuPont {
+export interface VueDuPont extends CouvertureDesModeles {
   projection: Projection;
   fenetre: FenetreADessiner | null;
   attaque: FenetreDAttaque | null;
@@ -90,6 +91,7 @@ export function creerPont() {
     const projection = projeter(etat, o.pas, o.lignes, SANS_BORNE);
     return {
       projection,
+      ...modelesDesCombattants(projection.combat?.voisins.liste ?? []),
       fenetre: fenetreADessiner(etat),
       attaque: fenetreDAttaque(etat),
       defense: fenetreDeDefense(etat),

@@ -1,22 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { handlingClass } from './handling';
+import { maniementDe } from '../../../noyau/animation';
 import { weaponAttackClip, weaponParryClip, weaponRest } from './weaponClips';
 import { findTrappingById } from '../../../data';
-import { armeDeDessin, type ArmeDeDessin } from '../parts/equipment';
+import { buildWeapon, itemFromTrappingById, weaponFromItem } from '../../../engine/items';
+import { armeDeDessin, type ArmeDeDessin } from '../../../noyau/equipementDessine';
 import type { Weapon } from '../../../engine/types';
 
-// Arme portant son id de Possession et son Groupe (`subType`), projetée (forme RÉSOLUE) ; les attaques
-// naturelles portent leur kind STABLE (`attackKind`) — c'est lui qui route le maniement, jamais le libellé.
-const w = (id: string, extra: Partial<Weapon> = {}): ArmeDeDessin =>
-  armeDeDessin({ label: findTrappingById(id)?.label ?? id, type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], trappingId: id, subType: findTrappingById(id)?.subType ?? undefined, ...extra });
+/** #2967 */
+const w = (id: string, extra: Partial<Weapon> = {}): ArmeDeDessin => {
+  const objet = itemFromTrappingById(id, findTrappingById);
+  const arme = objet ? weaponFromItem(objet) : buildWeapon({ label: id, damage: { plusBF: true, flat: 0, bare: true } });
+  return armeDeDessin({ ...arme, ...extra });
+};
 const tentacule = w('tentacule', { attackKind: 'tentacules', natural: true });
 const cornes = w('cornes', { attackKind: 'cornes', natural: true });
 
 describe('maniement des armes naturelles (mutations/traits)', () => {
   it('Tentacule → classe fouet (entraves) ; Cornes → coup de tête (cornes)', () => {
-    expect(handlingClass(tentacule)).toBe('entraves');
-    expect(handlingClass(cornes)).toBe('cornes');
-    expect(handlingClass(w('fouet'))).toBe('entraves'); // l'arme Fouet inchangée
+    expect(maniementDe(tentacule)).toBe('entraves');
+    expect(maniementDe(cornes)).toBe('cornes');
+    expect(maniementDe(w('fouet'))).toBe('entraves'); // l'arme Fouet inchangée
   });
 
   it('le geste se joue sur LE BRAS QUI TIENT L’ARME : tentacule et main gauche → miroité', () => {

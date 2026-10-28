@@ -9,17 +9,13 @@
 import type { Condition, ActorRef, ActorField, CompareOp, PartySelector, TemporalCondition } from '../../engine/flowCore';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { HIT_LOCATION_LABELS, type HitLocation } from '../../engine/types';
-import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
+import { libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { etatsAdmettant, valeursDeclarees } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
 import type { Camp, Relation } from '../../engine/relations';
-import { RefField } from '../compendium/refField/RefField';
+import { ChoixDeSpec, RefField, reposerLId } from '../compendium/refField/RefField';
 import { NumberField } from '../NumberField';
-import { ATTACK_KIND_LABELS } from './interne/resumeDeCondition';
-
-/** Options `[valeur, libellé]` d'un nœud ÉNUMÉRÉ de la grammaire (`enumNomme`, #1694) — l'éditeur ne
- *  tient AUCUNE table de libellés : options ET noms viennent de la déclaration du nœud. */
-const optionsDuNoeud = (noeud: unknown): [string, string][] => Object.entries(valeursDe(noeud) ?? {});
+import { ATTACK_KIND_LABELS, valeurDeHas } from './interne/resumeDeCondition';
 
 const ALWAYS: Condition = { kind: 'always' };
 
@@ -95,6 +91,16 @@ const KIND_OPTIONS: [Condition['kind'], string][] = [
   ['any', 'AU MOINS UN (OU)'],
   ['not', 'NON'],
 ];
+
+/** La Condition `has`, dont la branche se lit à son `what`. */
+type ConditionHas = Extract<Condition, { kind: 'has' }>;
+
+/** La `value` de la Condition `has` : sélecteur du registre que la branche `what` du schéma désigne
+ *  (`valeurDeHas`). */
+function ValeurDeHas({ cond, onChange }: { cond: ConditionHas; onChange: (value: string) => void }) {
+  const { noeud, cfg } = valeurDeHas(cond);
+  return <RefField cfg={cfg} noeud={noeud} ariaLabel={libelleDeValeur(hasWhatSchema, cond.what)} value={cond.value} onChange={(v) => onChange(typeof v === 'string' ? v : '')} />;
+}
 
 /** Préserve le travail en CHANGEANT de type : composer (ET/OU/NON) ENVELOPPE la condition courante. */
 export function recast(cond: Condition, kind: Condition['kind']): Condition {
@@ -335,12 +341,12 @@ export function ConditionEditor({ cond, onChange, kinds, narratif }: {
             {optionsDuNoeud(actorRefSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
           a
-          <select className="cond-kind" value={cond.what} onChange={(e) => onChange({ ...cond, what: e.target.value as 'group' | 'talent' | 'trait' | 'psych' })}>
+          <select className="cond-kind" value={cond.what} onChange={(e) => onChange({ kind: 'has', who: cond.who, what: e.target.value as ConditionHas['what'], value: '' })}>
             {optionsDuNoeud(hasWhatSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
-          <input className="cond-flag" value={cond.value} placeholder={cond.what === 'group' ? 'Groupe (ex. Morts-vivants)' : cond.what === 'talent' ? 'id Talent (ex. magie-des-arcanes)' : cond.what === 'psych' ? 'type psy (ex. frenesie)' : 'id Trait (ex. mort-vivant)'} onChange={(e) => onChange({ ...cond, value: e.target.value })} />
+          <ValeurDeHas cond={cond} onChange={(value) => onChange(cond.what === 'talent' ? { kind: 'has', who: cond.who, what: 'talent', value } : { ...cond, value })} />
           {cond.what === 'talent' && (
-            <input style={{ width: '6em' }} value={cond.spec ?? ''} placeholder="spéc. (Feu…)" onChange={(e) => onChange({ ...cond, spec: e.target.value || undefined })} />
+            <ChoixDeSpec type="talent" id={cond.value} value={cond.spec} ariaLabel="Spécialisation du Talent" onChange={(spec) => onChange({ ...cond, spec })} />
           )}
         </span>
       )}
@@ -355,9 +361,9 @@ export function ConditionEditor({ cond, onChange, kinds, narratif }: {
           <RefField
             cfg={{ ds: 'skills', single: true }}
             value={cond.id}
-            onChange={(v) => onChange({ ...cond, id: (v as string) ?? '' })}
+            onChange={(v) => onChange(reposerLId(cond, (v as string) ?? ''))}
           />
-          <input style={{ width: '6em' }} value={cond.spec ?? ''} placeholder="spéc. (Serrures…)" onChange={(e) => onChange({ ...cond, spec: e.target.value || undefined })} />
+          <ChoixDeSpec type="skill" id={cond.id} value={cond.spec} ariaLabel="Spécialisation de la Compétence" onChange={(spec) => onChange({ ...cond, spec })} />
           <label className="dr">≥ avances<NumberField variant="nu" label="Avances minimales" min={0} vide value={cond.advances} onChange={(n) => onChange({ ...cond, advances: n ?? undefined })} /></label>
           <SelecteurDeHeros narratif={narratif} who={cond.who ?? 'any'} onChange={(who) => onChange({ ...cond, who })} />
         </span>

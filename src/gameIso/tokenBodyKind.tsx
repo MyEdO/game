@@ -6,7 +6,7 @@ import type { SceneEntity } from '../noyau/monde/scene';
 import { isOutOfAction } from '../engine/conditions';
 import { RigToken } from './RigToken';
 import { AnimatedPlanToken } from './AnimatedPlanToken';
-import { enemyRigProfile, entityRigProfileFor, rendersFromOwnInventory, refOf } from './rig/enemyProfile';
+import { entityRigProfileFor, refOf, rigDuCombattant } from './rig/enemyProfile';
 import { planById } from './rig/bodyPlan';
 import { diagOnce, withDiagSubject } from './rig/devDiag';
 import { structureAppearance } from './catalog/structures';
@@ -16,12 +16,11 @@ import { combatantRender, entityRender, sceneEntityForRender } from './sizeScale
 import { useGame } from '../state/store';
 import { entitySprite } from './sprites';
 import { poseRig, RigSprite, useCompositionRig } from './rig/composeRig';
-import { defaultAppearance } from './rig/appearance';
 import type { Appearance } from '../engine/authoringAppearance';
-import { equipPorte, type EquipCtx } from './rig/parts/equipment';
-import { combatantAppearance, combatantOverlays } from './rig/parts/combatantVisuals';
+import type { EquipCtx } from '../noyau/equipementDessine';
 import { groundStateOf } from './groundPose';
 import type { RigOverlay } from './rig/bones';
+import type { TrappingResolver } from '../engine/items';
 
 /**
  * Sujet à rendre comme token. Discriminé : combattant (combat), entité de scène
@@ -112,7 +111,7 @@ function faceFrame(appearance: Appearance, equip: EquipCtx, tenue: string | unde
  * appelant (surcouche de jetons, planches QC). Les deux moteurs d'animation (rig à clips vs plan rAF)
  * restent DEUX backends distincts (asymétrie essentielle : parade/sort/clips d'arme côté rig).
  */
-export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): TokenBody {
+export function tokenBodyKind(resolveTrapping: TrappingResolver, subject: TokenSubject, view: ViewMode = 'iso'): TokenBody {
   const top = view === 'top';
 
   if (subject.kind === 'combatant') {
@@ -130,11 +129,8 @@ export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): To
     // Un combattant de RIG n'existe ici qu'en DISQUE-PORTRAIT, quelle que soit la vue demandée : en iso,
     // le monde volumique le dessine (`sceneMeshes.actorBillboards`).
     if (r.kind === 'rig') {
-      const prof = rendersFromOwnInventory(c) ? null : enemyRigProfile(c);
-      const appearance = combatantAppearance(prof?.appearance ?? c.appearance ?? defaultAppearance(c), c);
-      const equip = prof?.equip ?? equipPorte(c);
-      const tenue = prof?.tenue ?? c.career; // garde-robe = tenue du profil, sinon id de carrière (Combatant.career)
-      const f = faceFrame(appearance, equip, tenue, combatantOverlays(c));
+      const { appearance, equip, tenue, overlays } = rigDuCombattant(c);
+      const f = faceFrame(appearance, equip, tenue, overlays);
       return { bodyKind: 'rig', speciesScale: r.scale, portraitBox: f.box, flat: true, body: f.body };
     }
     return { bodyKind: 'plan', speciesScale: r.scale, portraitBox: planPortraitBox(r.plan), flat: top, body: <AnimatedPlanToken id={c.id} planId={r.plan} species={r.species} recordId={c.creatureId} override={c.appearanceOverride} dead={groundStateOf(c) === 'corpse' || isOutOfAction(c)} prone={groundStateOf(c) === 'prone'} pos={c.pos} /> };
@@ -146,8 +142,8 @@ export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): To
   // vue du dessus. Le corps porte le visage du MENEUR ; son cap, lui, ne passe jamais par ici — il se
   // lit à la clé publiée par `partyTokenOf` (`PartyToken.capKey`).
   if (subject.kind === 'partyLeader') {
-    const leader = subject.leader;
-    const f = faceFrame(combatantAppearance(leader.appearance ?? defaultAppearance(leader), leader), equipPorte(leader), leader.career, combatantOverlays(leader));
+    const { appearance, equip, tenue, overlays } = rigDuCombattant(subject.leader);
+    const f = faceFrame(appearance, equip, tenue, overlays);
     return { bodyKind: 'rig', speciesScale: 1, portraitBox: f.box, flat: true, body: f.body };
   }
 
@@ -175,7 +171,7 @@ export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): To
   // même ref (`resolveRender`, branche véhicule ci-dessus l.117) → pas non plus un défaut perdu (#224).
   if (import.meta.env.DEV && ent.kind === 'personnage' && ent.ref && !ent.appearance?.species && !findCreatureById(ent.ref) && !findTrappingById(ent.ref)?.siegeRig && !findVehicleById(ent.ref)?.hull)
     diagOnce(`tokenBodyKind:ref:${sujet}`, () => console.warn(`[tokenBodyKind] entité « ${ent.id} » : ref « ${ent.ref} » non résolue (pas un id de créature) et sans Espèce → bipède Humain par défaut. Choisis une Espèce ou une réf de créature valide.`));
-  const prof = ent.kind === 'personnage' ? withDiagSubject(sujet, () => entityRigProfileFor(ent, subject.enrolled)) : null;
+  const prof = ent.kind === 'personnage' ? withDiagSubject(sujet, () => entityRigProfileFor(resolveTrapping, ent, subject.enrolled)) : null;
   if (prof) {
     if (top) {
       const f = faceFrame(prof.appearance, prof.equip, prof.tenue, []);

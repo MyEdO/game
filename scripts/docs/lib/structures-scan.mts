@@ -797,10 +797,10 @@ export function scannerDonnees(
 
   const resoutSite = (p: Prepare, o: Obj, champ: string, k: string, v: unknown): boolean => {
     if (!resoutIndex(p.nom, o, k, v)) return false;
+    if (k === 'text') return datasetsDuTexte(p, o, champ, v as string).length > 0;
     if (espaceNomme(o, k, v as string)) return true;
     const datasets = index.get(v as string);
-    // `{text}` résolu vers un LIBELLÉ : la résolution est scopée aux cibles majoritaires du site.
-    if (!datasets) return k === 'text' && datasetsDuTexte(p, o, champ, v as string).length > 0;
+    if (!datasets) return false;
     const champSite = champDeSite(p, o, champ);
     const maj = ciblesMajoritaires(sitesDeCle.get(`${p.nom}|${champSite}|${k}`));
     if (maj.length && !maj.some((d) => datasets.has(d))) {
@@ -999,8 +999,7 @@ export function scannerDonnees(
         if (k === identite || !resoutSite(p, o, champ, k, v)) continue;
         resolvantes.add(k);
         if (typeof v !== 'string') continue;
-        for (const d of ciblesDe(o, k, v) ?? []) cibles.add(d);
-        if (k === 'text') for (const d of datasetsDuTexte(p, o, champ, v)) cibles.add(d);
+        for (const d of k === 'text' ? datasetsDuTexte(p, o, champ, v) : ciblesDe(o, k, v) ?? []) cibles.add(d);
       }
 
       // ---- `{text}` : mesuré même quand il ne résout pas (T6)
@@ -1385,7 +1384,7 @@ function kindsDeCondition(root: string): Set<string> {
 /**
  * Schémas COMMUNS candidats, par signature de clés (lus dans la grammaire par AST). Le schéma dont la
  * signature est celle de son littéral RACINE l'emporte sur celui qui ne la porte qu'en sous-objet
- * (`refSchema` plutôt que le `hasSkill` niché de `flowTestSchema`) — sinon le gagnant dépendrait de
+ * (un schéma écrit en racine plutôt que le même littéral niché dans un autre) — sinon le gagnant dépendrait de
  * l'ordre de lecture des fichiers de la grammaire.
  * Les littéraux s'apparient par leur FORME (`formeDuLitteral`), pas par leur seule signature.
  */

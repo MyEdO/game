@@ -1,7 +1,7 @@
 /**
- * LA PARTIE (#2817 D9) — le propriétaire de l'état d'un hôte qui n'est pas le web, au même titre que le
- * store (`src/state/store.ts`) : l'état et les actions du noyau (`creerActionsDuNoyau`), le branchement
- * (`brancherLeJeu`), une plateforme dont l'appel différé rend un jeton que l'hôte rejoue par `reprendre`,
+ * LA PARTIE (#2817 D9) — l'état d'un hôte qui n'est pas le web, au même titre que le store
+ * (`src/state/store.ts`), tenu par le propriétaire du jeu (`proprietaireDuJeu.ts`) : l'état et les actions du
+ * noyau, le branchement, une plateforme dont l'appel différé rend un jeton que l'hôte rejoue par `reprendre`,
  * et les entrées de D8. Chaque appel rend son issue, les événements du bus émis pendant lui, les appels
  * différés qu'il a programmés, et les lignes de journal qu'il a écrites. Un seul propriétaire par contexte JS (`branchement.ts`) : une partie ne cohabite ni
  * avec le store ni avec une autre partie ouverte.
@@ -9,22 +9,14 @@
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Combatant } from '../engine/types';
 import type { CombatEvent } from './combatLog';
-import type { EtatDeJeu, Jeu } from './etat';
-import type { Get, SetDesClesReservees } from './flowTypes';
-import { creerActionsDuNoyau } from './fabriquesDuNoyau';
-import { brancherLeJeu, debrancherLeJeu } from './branchement';
-import { tablesDuJeu } from './tablesDuJeu';
-import { poserLaPlateforme, retirerLaPlateforme, type Jeton } from './plateforme';
-import { transitionDuJeu } from './transitionDuJeu';
-import { planifierLeTickAuto } from './combatAuto';
+import type { EtatDeJeu } from './etat';
+import type { Get } from './flowTypes';
+import type { Jeton } from './plateforme';
+import { ouvrirLeProprietaire } from './proprietaireDuJeu';
 import { appliquerLIntentionDUnSiege, type IssueDIntention } from './intentionsDeSiege';
 import { lancerLeScenario, type LancementDeScenario } from './lancementDeScenario';
 import { bus, EVT } from './bus';
-import { seedBattleRng } from './battleRng';
-import { loadRuleOverrides } from '../engine/policy';
-import { setCadence, type Cadence } from '../engine/cadence';
-import { setDesFixes } from '../engine/fixedDie';
-import { remettreLesSequencesAZero } from '../engine/sequences';
+import type { Cadence } from '../engine/cadence';
 
 /** Une intention : l'appel d'une action du noyau, au nom du siège `siege` s'il est posé. */
 export type Intention = {
@@ -89,54 +81,25 @@ function ajoutees<T>(vu: readonly T[], courant: readonly T[]): T[] {
   return [...courant];
 }
 
-/** Ouvre une partie sur `etatInitial` (`etatInitialDuJeu()`, ou l'état qu'un hôte a gardé). */
+/** Ouvre une partie sur `etatInitial` (`etatInitialDuJeu()`, ou l'état qu'un hôte a gardé), par son propriétaire
+ *  (`ouvrirLeProprietaire`). */
 export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie): Partie {
   const tampon: Evenement[] = [];
   const lignes: LigneDuJournal[] = [];
-  const enVol = new Map<Jeton, () => void>();
   let ouverte = true;
 
-  const get: Get = () => etat;
+  const proprietaire = ouvrirLeProprietaire(etatInitial, entrees, (jeton, delai) => tampon.push({ type: 'programme', jeton, delai }));
+  const { get, set } = proprietaire;
   // Le journal de la partie se capte à ses écrivains (`EVT.LIGNE_AU_JOURNAL`) ; celui du combat, dont chaque
-  // entrée est un objet neuf et qui se pousse aussi en place (`battle.log.push`), par comparaison à une copie.
+  // entrée est un objet neuf et qui se pousse aussi en place (`battle.log.push`), par comparaison à une copie,
+  // après chaque écriture et chaque appel.
   let vuAuCombat = [...(etatInitial.battle?.log ?? [])];
   const capter = (): void => {
-    const combat = etat.battle?.log ?? [];
+    const combat = get().battle?.log ?? [];
     for (const evenement of ajoutees(vuAuCombat, combat)) lignes.push({ de: 'combat', evenement });
     vuAuCombat = [...combat];
   };
-  // Le `set` de zustand (objet ou fonction, fusion de premier niveau), puis ce que le propriétaire déclenche
-  // après chaque écriture (D7).
-  const ecrire = (partiel: Partial<Jeu> | ((s: Jeu) => Partial<Jeu>)): void => {
-    const prev = etat;
-    const patch = typeof partiel === 'function' ? partiel(prev) : partiel;
-    if (Object.is(patch, prev)) return;
-    etat = { ...prev, ...patch };
-    capter();
-    const transition = transitionDuJeu(prev, etat);
-    if (transition) ecrire(transition);
-    planifierLeTickAuto(get, set);
-  };
-  // Le `set` brut du propriétaire : il écrit aussi les clés réservées, pour leurs seuls écrivains.
-  const set = ecrire as SetDesClesReservees;
-  let etat: Jeu = { ...etatInitial, ...creerActionsDuNoyau(get, set) };
-
-  brancherLeJeu(get, set, tablesDuJeu());
-  remettreLesSequencesAZero();
-  seedBattleRng(entrees.graine);
-  loadRuleOverrides(entrees.reglesMaison);
-  setCadence(entrees.cadence);
-  setDesFixes(entrees.desFixes);
-  poserLaPlateforme({
-    programmer: (suite, delai) => {
-      const jeton = Object.freeze({}) as Jeton;
-      enVol.set(jeton, suite);
-      tampon.push({ type: 'programme', jeton, delai });
-      return jeton;
-    },
-    enAttente: (jeton) => enVol.has(jeton),
-    persisterLeHeros: entrees.persisterLeHeros,
-  });
+  proprietaire.abonner(capter);
   const desabonnements = [
     bus.on(EVT.LIGNE_AU_JOURNAL, ({ texte }: { texte: string }) => lignes.push({ de: 'journal', texte })),
     ...Object.values(EVT).flatMap((evt) => (evt === EVT.LIGNE_AU_JOURNAL ? [] : [bus.on(evt, (payload: unknown) => tampon.push({ type: 'emis', evt, payload }))])),
@@ -164,27 +127,19 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
     etat: get,
     envoyer: (intention) => appeler('envoyer', () => {
       if (intention.siege !== undefined) return appliquerLIntentionDUnSiege(get, intention.siege, intention.type, intention.args);
-      (etat[intention.type] as (...args: readonly unknown[]) => unknown)(...intention.args);
+      (proprietaire.actions[intention.type] as (...args: readonly unknown[]) => unknown)(...intention.args);
       return 'appliquee';
     }),
     lancer: (lancement) => appeler('lancer', () => {
       lancerLeScenario(get, set, lancement);
       return 'appliquee';
     }),
-    reprendre: (jeton) => appeler('reprendre', () => {
-      const suite = enVol.get(jeton);
-      if (!suite) return 'jeton-inconnu';
-      enVol.delete(jeton);
-      suite();
-      return 'appliquee';
-    }),
+    reprendre: (jeton) => appeler('reprendre', () => (proprietaire.reprendre(jeton) ? 'appliquee' : 'jeton-inconnu')),
     fermer: () => {
       ouvertePour('fermer');
       ouverte = false;
       for (const desabonner of desabonnements) desabonner();
-      retirerLaPlateforme();
-      debrancherLeJeu();
-      enVol.clear();
+      proprietaire.fermer();
       tampon.length = 0;
       lignes.length = 0;
     },

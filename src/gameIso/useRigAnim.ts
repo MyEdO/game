@@ -4,12 +4,13 @@ import { useGame } from '../state/store';
 import { useRigClip } from './rig/anim/useRigClip';
 import { weaponRest, hasShieldEquipped } from './rig/anim/weaponClips';
 import { rigAttackDef, rigDefenseDef, rigHitDef, rigWalkDef, type RigSelectCtx } from './rig/anim/actorAnimSelect';
-import { armePrincipale, type EquipCtx } from './rig/parts/equipment';
+import { armePrincipale, type EquipCtx } from '../noyau/equipementDessine';
 import { project, type View } from './rig/facing';
 import type { Dir8 } from '../geometry/dir8';
 import type { Clip } from './rig/anim/clips';
 import type { Pose } from './rig/poses';
 import { walkMs } from '../geometry/walk';
+
 
 /**
  * Pilote l'ANIMATION d'un rig bipède (clips de repos/marche/attaque/parade/esquive/touché via
@@ -54,8 +55,7 @@ export function useRigAnim({ id, equip, restClip, facing, pos, seated }: {
         // ce hook joue seulement le geste. Contrat d'émission unique, garde `animTracks.test.ts`.
         // Geste de l'arme EMPLOYÉE (portée par l'événement) — pas de l'arme principale :
         // la 2e frappe de dague gauche et le tentacule jouent LEUR clip (miroité à gauche).
-        const def = rigAttackDef(
-          {
+        const def = rigAttackDef({
             kind: d.kind,
             weapon: d.weapon,
             casterKind: cs?.find((c) => c.id === d.from)?.kind,
@@ -69,8 +69,7 @@ export function useRigAnim({ id, equip, restClip, facing, pos, seated }: {
         // Réaction défensive : parade de l'arme QUI A PARÉ (repli sur l'arme principale quand
         // l'événement ne la porte pas), sinon dérobade — et RIEN face à un soin/une bénédiction.
         const cs = d.kind === 'spell' ? combatants() : undefined;
-        const def = rigDefenseDef(
-          {
+        const def = rigDefenseDef({
             kind: d.kind,
             defense: d.defense,
             parryWeapon: d.parryWeapon,

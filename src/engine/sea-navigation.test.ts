@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { itemFromTrappingById } from './items';
 import {
   forcePaceDifficulty, exhaustionDifficulty, overspeedRow, foulingEffects,
   weeklyFoulingLevel, orientationOutcome, rollCourseChange, lighthouseSpotDifficulty,
@@ -107,7 +108,7 @@ describe('Boussole — +1 DR aux Tests d’Orientation (MDG 14 l.275, passif d�
     const { skillDRBonus } = await import('./ops');
     const c = {
       ...hull(30), id: 'nav2',
-      items: [{ uid: 'u1', name: 'Boussole', trappingId: 'boussole' }],
+      items: [{ ...itemFromTrappingById('boussole')!, uid: 'u1' }],
     } as unknown as Combatant;
     expect(skillDRBonus(c, 'orientation')).toBe(1);
     expect(skillDRBonus(c, 'perception')).toBe(0);

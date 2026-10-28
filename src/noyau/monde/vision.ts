@@ -20,7 +20,7 @@ import { sceneIsDark } from './sceneRules';
 import { propFootTiles, decorAncre } from './footprint';
 import { Pt } from './path';
 import { chebyshev } from '../../engine/grid';
-import { findLightLevelById, findTraitById, findPropById, findTrappingById } from '../../data';
+import { findLightLevelById, findTraitById, findPropById } from '../../data';
 import { empreinteDuProp, rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../../data/props.types';
 import type { Dir8 } from '../../geometry/dir8';
 import { memoByRef } from './sceneMemo';
@@ -242,7 +242,7 @@ function foyerDe(prop: PropData | undefined, pos: Pt, facing: Dir8 | undefined, 
 export function combatantLights(c: {
   id?: string;
   pos?: Pt;
-  items?: { uid?: string; trappingId?: string; equipped?: boolean }[];
+  items?: { uid?: string; trappingId?: string; equipped?: boolean; passive?: import('../../engine/ops').GameOp[] }[];
   weapons?: { uid?: string }[];
   activeEffects?: { light?: { radiusM: number; tone?: string } }[];
 }, mpt: number): LightSource[] {
@@ -253,8 +253,8 @@ export function combatantLights(c: {
   let tone: string | undefined;
   for (const it of c.items ?? []) {
     const held = !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
-    if (!held || !it.trappingId) continue;
-    for (const op of findTrappingById(it.trappingId)?.passive ?? []) {
+    if (!held) continue;
+    for (const op of it.passive ?? []) {
       if (op.op === 'light' && op.radiusM > rM) { rM = op.radiusM; tone = op.tone; }
     }
   }

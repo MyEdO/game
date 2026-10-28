@@ -20,7 +20,8 @@ import type { CascadeStep, BatchParticipant } from './pendings';
 import { ficheDEntite } from './monde/sceneNpc';
 import { presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
 import { encounterPsych } from '../engine/encounterPsych';
-import { estCibleType, cibleLabel, PsychType, psychTest, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych, sansPeurFace } from '../engine/psychology';
+import { estCibleType, identiteDeCiblage, libelleDeCible, type CiblePsy } from '../engine/psych/ciblage';
+import { cibleLabel, PsychType, psychTest, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych, sansPeurFace } from '../engine/psychology';
 import { refLabel, combatStakeRef } from '../data';
 import { applyOps } from '../engine/ops';
 import { t } from '../i18n';
@@ -29,7 +30,7 @@ import { describeEncounterPsych } from './flowOutcomes';
 import { freeCons, resultLines, makeBandFactory, rollStep, type Consequence } from './rollSeam';
 import { actorIn } from './monde/combatants';
 import { touchActors } from './combatOrParty';
-import { dataLabel, groupLabel } from '../data';
+import { dataLabel } from '../data';
 import { stepDetail, stepPrecision, stepPsych, stepSansPeur } from './rollSeam';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { battleRng } from './battleRng';
@@ -42,7 +43,7 @@ export interface PendingEncounterPsych {
   sourceId: string;
   sourceName: string;
   indice: number;
-  cible?: string;
+  cible?: CiblePsy;
   result: { success: boolean; brise?: number; sl?: number } | null;
   rerolled?: boolean;
 }
@@ -88,7 +89,7 @@ function psychRow(hero: Combatant, kind: PsychType, sansPeur: boolean): BatchPar
  * rangée où se joue SON Test de Calme (classe #1268).
  */
 const psychBands = makeBandFactory<PsychDue>({
-  cle: ({ decl: d }) => `${d.kind}|${d.sourceId}|${d.cible ?? ''}|${d.indice}`,
+  cle: ({ decl: d }) => `${d.sourceId}|${identiteDeCiblage(d.kind, d.cible)}|${d.indice}`,
   rangee: (due) => psychRow(due.hero, due.decl.kind, !!due.sansPeur),
   situation: ({ decl: d, icon, label }, { index }) => ({
     id: `psych-${d.kind}-${index}`, kind: 'encounterPsych', icon, label,
@@ -134,7 +135,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
       decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: src.label, indice: trig.indice, cible: trig.cible },
       icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
       label: cl
-        ? (trig.cible ? stepPrecision(dataLabel(cl.label), groupLabel(trig.cible)) : dataLabel(cl.label))
+        ? (trig.cible ? stepPrecision(dataLabel(cl.label), libelleDeCible(trig.cible)) : dataLabel(cl.label))
         : stepDetail(stepPsych(trig.kind, trig.indice), dataLabel(src?.label, '?')),
     });
   }

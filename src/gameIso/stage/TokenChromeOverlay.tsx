@@ -45,6 +45,7 @@ import { VH, VW } from './useStageCamera';
 import type { GesteMark, TokenChromeMark } from '../builders/tokenChrome';
 import { PastilleEntite } from './PastilleEntite';
 import type { WalkPos } from '../fx/walkPose';
+import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 
 /** Lift d'étage d'une case (mêmes unités que le `z` de `tileCenter`). */
 export type LiftAt = (x: number, y: number, z?: number) => number;
@@ -113,8 +114,9 @@ const DISQUE_STROKE_PX = 2.5;
  */
 function TokenDisc({ m, dims }: { m: TokenChromeMark; dims: Dims }): JSX.Element | null {
   const facing: Dir8 = useGame((s) => s.facing?.[m.capKey]) ?? 'S';
+  const resolveTrapping = useGame((s) => objetDuNarratif(s.campaignNarratif));
   useVersionDesDatasets();
-  const corps = tokenBodyKind(m.subject, 'top');
+  const corps = tokenBodyKind(resolveTrapping, m.subject, 'top');
   if (!corps.flat) return null;
   const R = discR(m.n);
   const clipId = `pion-${m.id}`;

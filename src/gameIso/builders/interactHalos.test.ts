@@ -5,6 +5,7 @@ import { HALO_RX_PX, haloRadiusK, interactionHalos, NO_INTERACTION_HALOS, type H
 import { cleActionJouee } from '../../noyau/monde/usable';
 import type { BillboardPropEl, TokenEl } from './types';
 
+
 /**
  * DÉRIVATION des halos d'interaction (#1176, P3-0g ; régime de révélation #1687) : c'est ELLE qui
  * décide QUI est un utilisable et CE QU'ON EN MONTRE. Le rendu la consomme sans rien re-décider ; ce
@@ -195,8 +196,7 @@ describe('Halos d’interaction — les DEUX corps d’un utilisable (#1687)', (
 
 describe('Halos d’interaction — la GÉOMÉTRIE du halo (#1176 P3-0g)', () => {
   it('le halo est aux PIEDS du décor : le centre de l’empreinte, et son étage', () => {
-    const [h] = interactionHalos(
-      [],
+    const [h] = interactionHalos([],
       [décor('epave', 4, 6, { cell: { x: 4, y: 6, z: 2 }, span: { w: 2, h: 2 }, foot: { offX: 0.5, offY: 0.5, scale: 2 } })],
       scèneAvec(fouillable('epave')),
       {},

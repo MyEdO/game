@@ -199,8 +199,11 @@ function ruleTextOf(node: unknown): string {
     if (Array.isArray(n)) { n.forEach(walk); return; }
     if (!n || typeof n !== 'object') return;
     const rec = n as Record<string, unknown>;
-    if (rec.kind === 'has' && rec.what === 'trait' && typeof rec.value === 'string')
-      out += ` ${TRAIT_LABEL.get(rec.value) ?? rec.value}`;
+    if (rec.kind === 'has' && rec.what === 'trait' && typeof rec.value === 'string') {
+      const label = TRAIT_LABEL.get(rec.value);
+      expect(label, `has → Trait « ${rec.value} »`).toBeDefined();
+      out += ` ${label}`;
+    }
     if (rec.kind === 'compare' && (rec.subject as { field?: string } | undefined)?.field === 'size')
       out += ' Taille';
     for (const v of Object.values(rec)) {
@@ -213,7 +216,7 @@ function ruleTextOf(node: unknown): string {
 }
 
 /**
- * Les 4 entrées où l'op de BASE affirmait une valeur que la desc republiée par VDM dit autrement.
+ * Les entrées où l'op de BASE affirmait une valeur que la desc republiée par VDM dit autrement.
  * `vdm` = la règle du folio des Vents (doit être dans la desc EFFECTIVE **et** dans l'op EFFECTIVE) ;
  * `ldb` = la formulation du Livre de base que la variante remplace (doit avoir disparu des deux).
  */

@@ -7,6 +7,8 @@
 import { describe, it, expect } from 'vitest';
 import { narratifSchema } from './narratif';
 import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
+import { idsDeLaSousListe, mesureDuParse } from '../grammaire/ref';
+import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
 const vide = emptyNarratif();
 const ouverture = { titre: 'L’Ennemi Intérieur', pitch: 'Nos héros forment un groupe hétéroclite.' };
@@ -119,5 +121,23 @@ describe('narratifSchema — `couvre` et `ecartes` (#2290)', () => {
       .toEqual(['ecartes.1 :: « EDO-01#b7 » dupliqué : « entree » identifie l’élément dans sa liste, il y est unique.']);
     expect(issues(narratifSchema.safeParse({ ...vide, ecartes: [{ entree: 'EDO-01#b7', motif: '' }] }))).toEqual(['ecartes.0.motif :: motif vide.']);
     expect(issues(narratifSchema.safeParse({ ...vide, ecartes: [{ entree: 'EDO-01#b7', motif: '   ' }] }))).toEqual(['ecartes.0.motif :: motif vide.']);
+  });
+});
+
+describe('narratifSchema — apparence d’un objet embarqué (#2972)', () => {
+  const [forme, autre] = idsDeLaSousListe('apparence', RACINE_D_APPARENCE);
+  const objet = { id: 'objet-de-sonde', label: 'Objet de sonde', type: 'divers', shape: { id: forme }, formChoices: [forme, autre] };
+
+  it('le parse de mesure d’un objet à forme ne lève pas et rend ses références `apparence`, au chemin de la donnée', () => {
+    const { reperes } = mesureDuParse(narratifSchema, { ...vide, objets: [objet] });
+    expect(reperes.filter((r) => r.type === 'apparence').map((r) => r.path.join('.')).sort()).toEqual(
+      ['objets.0.formChoices.0', 'objets.0.formChoices.1', 'objets.0.shape.id'],
+    );
+  });
+
+  it('une forme hors du catalogue des apparences est refusée au chemin de son id', () => {
+    const r = narratifSchema.safeParse({ ...vide, objets: [{ ...objet, shape: { id: 'forme-inconnue-de-sonde' } }] });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues.map((i) => i.path.join('.'))).toContain('objets.0.shape.id');
   });
 });

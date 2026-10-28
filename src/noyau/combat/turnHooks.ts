@@ -26,13 +26,13 @@ import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './
 import { mountMovement, riderFearSize } from '../mount';
 import { losClear } from '../monde/lineOfSight';
 import { smokeOf } from '../monde/combatGeometry';
-import { groupesDe } from '../../engine/groups';
 import {
   fearSourceFor, sansPeurVs, issueDePeur, sansPeurLabel, resolvePeurTest, resolveTerreurTest, calmeValue, isFrenzyCapable, isFrenzied, isPsychImmune,
-  resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, suppressSupersededPsych, estCibleType, psychResolution,
+  resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, suppressSupersededPsych, psychResolution,
   sousPeur, indiceDePeur, vise,
 } from '../../engine/psychology';
-import { psychologyLabel, combatStakeRef, groupLabel } from '../../data';
+import { cibleDuPorteur, estCibleType, libelleDeCible, type CiblePsy } from '../../engine/psych/ciblage';
+import { psychologyLabel, combatStakeRef } from '../../data';
 import { isColdBlooded, hasRage } from '../../engine/traits/dispatch';
 import { fireTriggers, hasFoeInLoS } from '../triggeredEffects';
 import { aiDriven } from '../netOwnership';
@@ -205,7 +205,7 @@ export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
   for (const p of enemy.psychState) {
     // Re-test (fin de Round) des afflictions ciblées actives, tant qu'un membre du groupe est visible.
     if (!p.active || !estCibleType(p.type) || !p.cible || p.lastTestRound === battle.round) continue;
-    if (!visible.some((v) => vise({ groupe: p.cible! }, { genre: 'combattant', c: v }, 'percu'))) continue;
+    if (!visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu'))) continue;
     p.lastTestRound = battle.round;
     if (resolveCalmeSimple(calmeValue(enemy), battleRng()).success) { p.active = false; log.push(t('turn.recompose', { name: enemy.label, psych: psychologyLabel(p.type) })); }
   }
@@ -213,7 +213,7 @@ export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
   if (tt) {
     const r = resolveCalmeSimple(calmeValue(enemy), battleRng());
     enemy.psychState.push({ type: tt.type, cible: tt.cible, sourceId: tt.sourceId, active: !r.success, lastTestRound: battle.round });
-    if (!r.success) log.push(t('turn.afflictionGrip', { name: enemy.label, psych: psychologyLabel(tt.type), groupe: groupLabel(tt.cible) }));
+    if (!r.success) log.push(t('turn.afflictionGrip', { name: enemy.label, psych: psychologyLabel(tt.type), groupe: libelleDeCible(tt.cible) }));
   }
   // Immunités croisées (LDB 21) : Animosité/Préjugé cèdent dès qu'on tombe sous un effet psy dominant (Peur/…).
   for (const tp of suppressSupersededPsych(enemy)) log.push(t('turn.psychSuperseded', { name: enemy.label, psych: psychologyLabel(tp) }));
@@ -295,17 +295,20 @@ export const TABLES = {
           .map((id) => inBattleId(battle, id))
           .filter((f): f is Combatant => !!f && f.kind !== enemy.kind && !isOutOfAction(f));
         const hated = (enemy.psychState ?? []).filter((p) => p.type === 'haine' && p.active === true && p.cible);
-        const uncovered = foes.filter((f) => !hated.some((p) => vise({ groupe: p.cible! }, { genre: 'combattant', c: f }, 'appartenance'))); // LDB 21 l.41
+        const uncovered = foes.filter((f) => !hated.some((p) => vise(p.cible!, { genre: 'combattant', c: f }, 'appartenance'))); // LDB 21 l.41
         // Cibles de Haine : 1ᵉʳ Groupe de chaque adversaire non couvert (dédupliqué) — un foe sans Groupe
         // n'est pas modélisable en Trait ciblé (groupMatch), on ne dépense pas pour lui.
-        const cibles = [...new Set(uncovered.map((f) => groupesDe(f)[0]).filter((g): g is string => !!g))];
-        if (!cibles.length) return;
+        const parCible = new Map<CiblePsy, Combatant>();
+        for (const f of uncovered) {
+          const cible = cibleDuPorteur(f);
+          if (cible !== undefined && !parCible.has(cible)) parCible.set(cible, f);
+        }
+        if (!parCible.size) return;
         campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
         enemy.psychState ??= [];
-        for (const cible of cibles) {
-          const src = uncovered.find((f) => groupesDe(f)[0] === cible)!;
+        for (const [cible, src] of parCible) {
           enemy.psychState.push({ type: 'haine', cible, sourceId: src.id, active: true, lastTestRound: battle.round });
-          battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, groupe: groupLabel(cible) }), enemy.id));
+          battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, groupe: libelleDeCible(cible) }), enemy.id));
         }
         set({ battle: { ...battle } });
       },

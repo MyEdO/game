@@ -9,12 +9,14 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
-import { armeDeDessin, bouclierDeDessin, equipDe, weaponFamily } from '../src/gameIso/rig/parts/equipment';
+import { weaponFamily } from '../src/gameIso/rig/parts/equipment';
+import { armeDeDessin, bouclierDeDessin, equipDe } from '../src/noyau/equipementDessine';
 import { itemFromTrappingById, weaponFromItem } from '../src/engine/items';
 import { trappingsInstanciables, weaponGroups } from '../src/data';
 import { assertWardrobeId } from './_lib-wardrobe';
 import type { Weapon } from '../src/engine/types';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
+
 
 // Groupes de COMBAT du registre canonique (`weaponGroups.json` — `combat` renseigné) : le
 // générateur lit les IDS, `label` ne sert qu'au titre de rubrique ; une arme porte l'id de son Groupe

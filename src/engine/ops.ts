@@ -16,7 +16,7 @@
 import { RNG, roll, type DiceSpec, rollDice } from './dice';
 import { bonus, effectiveChar, refreshWounds } from './characteristics';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions } from './conditions';
-import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, refLabel, findTrappingById } from '../data';
+import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch, groupesDe } from './groups';
 import { facesDuDe, findTableEntry } from './tables';
@@ -42,15 +42,16 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme } from './items';
+import { contexteDeNaissanceDObjet, damageLeatherArmour, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
-import { weaponMatchesFamily } from './weaponDamage';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
 import { suppressPsychTraits, type PsychType } from './psychology';
+import { ciblePsyLue, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
+import { traitOctroye } from './psych/opsPsy';
 import { norm } from '../lib/normalize';
-import { ConjureForm, conjureFormOptions, equipConjuredWeapon } from './conjuredWeapons';
+import { ConjureForm, conjureFormOptions, equipConjuredWeapon, specDArmeInvoquee } from './conjuredWeapons';
 import { polymorphOps } from './polymorph';
 import type { SizeCategory } from './size';
 import type { Duration } from './duration';
@@ -277,8 +278,7 @@ export function skillDRBonus(c: Combatant, skillId: string, spec?: string): numb
   // (l'outil se sort pour servir) ; les passifs de VALEUR d'objet (skillMod des Bésicles) restent, eux,
   // gatés porté/tenu via `passiveMods`.
   for (const it of c.items ?? []) {
-    if (!it.trappingId) continue;
-    for (const op of findTrappingById(it.trappingId)?.passive ?? []) if (op.op === 'skillDRBonus' && matches(op.skill)) n += valeurSansTirage(op.bonus, c);
+    for (const op of it.passive ?? []) if (op.op === 'skillDRBonus' && matches(op.skill)) n += valeurSansTirage(op.bonus, c);
   }
   return n;
 }
@@ -501,16 +501,18 @@ export type GameOp =
   /** Retire un état PSYCHOLOGIQUE porté (`PsychAffliction.type` — collection `psychState`, DISTINCTE de
    *  `conditions` : pas de perte d'Avantage à la pose, LDB 21 ≠ LDB 16). GÉNÉRIQUE (paramétré par `type`) :
    *  sortie de Frénésie (`effects: onTurnStart` → fin + Exténué, LDB 21 l.35). Journalisé via `t()`. */
-  | { op: 'endPsych'; type: string }
+  | { op: 'endPsych'; type: { id: string } }
   /** POSE (ou met à jour) un état PSYCHOLOGIQUE porté — JUMELLE d'`endPsych`, même collection
    *  `psychState` (DISTINCTE de `conditions` : pas de perte d'Avantage à la pose, LDB 21 ≠ LDB 16).
-   *  UPSERT : l'entrée visée est celle de même `type` ET même `cible` (Traits CIBLÉS), ou — sans
-   *  `cible` — de même `sourceId` (Peur/Terreur : une entrée par créature source) ; absente, créée.
-   *  Charge utile lue par le moteur de Psychologie : `indice` (Indice à surmonter), `calmeDR` (DR
-   *  cumulé du Test étendu), `surmontee` (Peur surmontée), `active` (Trait ciblé subi / résisté),
-   *  `lastTestRound` (n° de Round du dernier Test). Champ absent = INCHANGÉ sur une entrée existante.
+   *  UPSERT : l'entrée visée est celle de même identité (`identiteDeCiblage`) pour un Trait CIBLÉ
+   *  (`cible`), ou — sans `cible` — de même `type` et `sourceId` (Peur/Terreur : une entrée par créature
+   *  source) ; absente, créée. Charge utile lue par le moteur de Psychologie : `indice` (Indice à
+   *  surmonter), `active` (Trait ciblé subi / résisté), `lastTestRound` (n° de Round du dernier Test) :
+   *  absents, INCHANGÉS sur une entrée existante, sauf `active` d'un Trait ciblé, qui vaut subi. `calmeDR`
+   *  (DR cumulé du Test étendu), `surmontee` (Peur surmontée) et `fromTest` (née d'un Test) disent CETTE
+   *  pose : absents, ils retombent. LDB 21 l.9, l.25, l.56
    *  Journalisé via `t()` ; une entrée `active:false` est un marqueur inerte (aucune ligne). */
-  | { op: 'beginPsych'; type: string; cible?: string; sourceId?: string; indice?: Formula; calmeDR?: Formula; surmontee?: boolean; active?: boolean; lastTestRound?: number; fromTest?: boolean }
+  | { op: 'beginPsych'; type: { id: string }; cible?: RefDeCible; sourceId?: string; indice?: Formula; calmeDR?: Formula; surmontee?: boolean; active?: boolean; lastTestRound?: number; fromTest?: boolean }
   /** Modificateur de caractéristique temporisé (ActiveEffect, pool `poolDeNonCumul`).
    *  `durationRounds` absent = durée du
    *  contexte (sort : Rounds, horloge, ou permanent — cf. `durationFromCtx`).
@@ -608,12 +610,12 @@ export type GameOp =
    *  instance, pas une par jour). */
   | { op: 'removeTrait'; trait: { id: string } }
   /** Trait PSYCHOLOGIQUE conféré (Colère impie → Frénésie). PASSIF (mutation/trait) : posé dans
-   *  `c.psychTraits` à l'attache. `psychType` = `PsychType` (frenesie, peur…). */
-  | { op: 'grantPsychTrait'; psychType: string; cible?: string }
+   *  `c.psychTraits` à l'attache. `psychType.id` = `PsychType` (frenesie, peur…). */
+  | { op: 'grantPsychTrait'; psychType: { id: string }; cible?: RefDeCible }
   /** Retire UN Trait psychologique porté (`c.psychTraits` — la DONNÉE persistée, ≠ `endPsych` qui
    *  retire une affliction de combat `psychState`). `psychType` absent = un Trait AU CHOIX (le 1ᵉʳ
    *  porté). Convalescence « Les choses s'arrangent » (ADE II Annexe I) : éliminer un Trait psy indésirable. */
-  | { op: 'removePsychTrait'; psychType?: string }
+  | { op: 'removePsychTrait'; psychType?: { id: string } }
   /** Talent OCTROYÉ, TEMPORAIRE porté par l'`ActiveEffect` (`grantedTalent`) ou STRUCTUREL dans
    *  `c.talents` quand l'octroi n'a pas d'échéance (Marques Arcaniques, VDM 02 l.238). La DURÉE vient du
    *  contexte, ce n'est pas une propriété de l'op : `durationFromCtx` retombe sur `{ scale: 'permanent' }`
@@ -646,7 +648,7 @@ export type GameOp =
    *  avec elle », enchantements de l'arme neutralisés). Porté par le PORTEUR
    *  (ActiveEffect.enchantRef) + l'objet (`ItemInstance.enchants`), replié dans l'arme à la résolution
    *  (`applyEnchants`). `damageBonus` résolu contre le LANCEUR (BSoc du prêtre). */
-  | { op: 'augmentWeapon'; /** ids STABLES de qualité (`QualityRef.id`) — relus par `parseQuality` ; jamais un libellé. */ addQualities?: string[]; damageBonus?: Formula; bypass?: ArmourBypass; requiresWeapon?: string;
+  | { op: 'augmentWeapon'; /** ids STABLES de qualité (`QualityRef.id`) — relus par `parseQuality` ; jamais un libellé. */ addQualities?: string[]; damageBonus?: Formula; bypass?: ArmourBypass; requiresWeapon?: string[];
       /** Qualités RETIRÉES par id STABLE (VDM 05 — Arme enchantée : « retirer 1 Défaut de l'arme »).
        *  Retire aussi les qualités de FAMILLE du Groupe d'arme, qui sont sur le même plan RAW. */
       removeQualities?: string[];
@@ -785,7 +787,7 @@ export type GameOp =
    *  nom inconnu → objet CUSTOM (misc). Même vocabulaire que l'Effet de scène `giveTrapping`.
    *  Alimente tout sort qui DONNE du matériel : Rations (Générosité de Manann, Récolte de Rhya →
    *  système de provisions/Faim), etc. `count`/`perSL` : « +1 par +2 DR ». */
-  | { op: 'giveTrapping'; trappingId?: string; custom?: string; count?: number; perSL?: PerSL }
+  | { op: 'giveTrapping'; trappingId?: string; custom?: string; count?: number; perSL?: PerSL; apparence?: { id: string } }
   /** Crédite (positif) ou débite (négatif) la bourse PERSONNELLE de la cible, en SOUS DE CUIVRE
    *  (`brass` — unité de compte unique, `engine/money.ts`). La Bourse est un trapping (doctrine
    *  utilisateur 2026-07-16 : « Pour la bourse, c'est personnel et par défaut ça doit être dans… la
@@ -803,15 +805,14 @@ export type GameOp =
    *  l'expiration. `onHitEffects` : effets DÉCLENCHÉS à la touche (Épée ardente → En flammes) — même
    *  forme `TriggeredEffect` unifiée que `augmentWeapon`/les Atouts d'arme. */
   | { op: 'grantWeapon'; label: string; damage: Formula; damagePlus?: number; plusBF?: boolean;
-      qualities?: string[]; subType?: string /* `id` de Groupe d'arme (WeaponGroupData.id) */; reach?: ReachValue; hands?: 1 | 2;
+      qualities?: string[]; subType?: { id: string }; reach?: ReachValue; hands?: 1 | 2;
       onHitEffects?: TriggeredEffect[];
-      /** SKIN cosmétique magique (clé→hex, ex. lame aethyrique bleutée / améthyste / ardente) —
-       *  propagé à `Weapon.skin` par recomputeLoadout, l'arme se rend recolorée (système d'objet unique). */
-      skin?: Record<string, string>;
+      /** Id de matière du domaine objet. */
+      teinte?: { id: string };
       /** Silhouette de RENDU : `id` de Possession (`TrappingData.id`) pour les conjures à forme FIXE
        *  (Faux → `serpe-de-guerre`, Épée ardente → `arme-simple`) — résolu par id (`findTrappingById`,
        *  `gameIso/rig/parts/equipment.ts`). `chooseForm` la prend du choix du lanceur. */
-      form?: string;
+      form?: { id: string };
       /** Forme LIBRE (Arme aethyrique) : le lanceur choisit l'arme → `ctx.conjureForm` clone le profil
        *  (Groupe/allonge/mains) d'une arme RÉELLE de la base ; sinon stats fixes du Sort. */
       chooseForm?: boolean }
@@ -1899,48 +1900,56 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'endPsych': {
         // Retrait d'un état psychologique porté (collection `psychState`, ≠ `conditions`). GÉNÉRIQUE.
-        if (target.psychState?.some((p) => p.type === o.type)) {
-          target.psychState = target.psychState.filter((p) => p.type !== o.type);
-          lines.push(t('op.endPsych', { name: target.label, psych: psychologyLabel(o.type) }));
+        const type = o.type.id;
+        if (target.psychState?.some((p) => p.type === type)) {
+          target.psychState = target.psychState.filter((p) => p.type !== type);
+          lines.push(t('op.endPsych', { name: target.label, psych: psychologyLabel(type) }));
         }
         break;
       }
       case 'beginPsych': {
         // Pose/mise à jour d'un état psychologique porté (collection `psychState`, ≠ `conditions`).
-        // UPSERT par (`type` + `cible`) pour un Trait CIBLÉ, par (`type` + `sourceId`) sinon : un
-        // re-Test contre la MÊME source met à jour SON entrée au lieu d'en empiler une seconde.
+        // UPSERT par identité pour un Trait CIBLÉ, par (`type` + `sourceId`) sinon : un re-Test contre la
+        // MÊME source met à jour SON entrée au lieu d'en empiler une seconde.
         const list = [...(target.psychState ?? [])];
-        const at = list.findIndex((p) => p.type === o.type && (o.cible != null ? p.cible === o.cible : p.sourceId === o.sourceId));
+        const type = o.type.id as PsychType;
+        const cible = o.cible === undefined ? undefined : ciblePsyLue(o.cible);
+        const identite = identiteDeCiblage(type, cible);
+        const at = list.findIndex((p) => (cible !== undefined ? identiteDeCiblage(p.type, p.cible) === identite : p.type === type && p.sourceId === o.sourceId));
+        const precedente: Partial<(typeof list)[number]> = at >= 0 ? list[at] : {};
+        const { calmeDR: _calmeDR, surmontee: _surmontee, fromTest: _fromTest, ...gardee } = precedente;
+        const active = o.active ?? (estCibleType(type) ? true : undefined);
         const next = {
-          ...(at >= 0 ? list[at] : {}),
-          type: o.type as PsychType,
-          ...(o.cible != null ? { cible: o.cible } : {}),
+          ...gardee,
+          type,
+          ...(cible !== undefined ? { cible } : {}),
           ...(o.sourceId != null ? { sourceId: o.sourceId } : {}),
           ...(o.indice != null ? { indice: Math.max(0, resolveFormula(o.indice, ref, rng, ctx.rolled, ctx.indice, ctx.stacks)) } : {}),
           ...(o.calmeDR != null ? { calmeDR: Math.max(0, resolveFormula(o.calmeDR, ref, rng)) } : {}),
           ...(o.surmontee != null ? { surmontee: o.surmontee } : {}),
-          ...(o.active != null ? { active: o.active } : {}),
+          ...(active != null ? { active } : {}),
           ...(o.lastTestRound != null ? { lastTestRound: o.lastTestRound } : {}),
           ...(o.fromTest != null ? { fromTest: o.fromTest } : {}),
         };
         if (at >= 0) list[at] = next; else list.push(next);
         target.psychState = list;
         // `active:false` = marqueur d'affliction RÉSISTÉE (empêche le re-déclenchement) : rien n'est subi.
-        if (o.active !== false) lines.push(t('op.beginPsych', { name: target.label, psych: psychologyLabel(o.type) }));
+        if (o.active !== false) lines.push(t('op.beginPsych', { name: target.label, psych: psychologyLabel(type) }));
         break;
       }
       case 'grantPsychTrait': {
         // Trait PSYCHOLOGIQUE conféré (≠ état de combat) : posé dans `c.psychTraits` (la DONNÉE persistée),
         // noyau PARTAGÉ `grantPsychTrait` (`grantedTraits.ts`) — même chemin qu'`attachMutation` (permanent).
-        grantPsychTrait(target, o.psychType as PsychType, o.cible, source);
-        lines.push(t('op.grantPsychTrait', { name: target.label, psych: psychologyLabel(o.psychType), src: nomDeSource(ctx) }));
+        const { type, cible } = traitOctroye(o);
+        grantPsychTrait(target, type, cible, source);
+        lines.push(t('op.grantPsychTrait', { name: target.label, psych: psychologyLabel(type), src: nomDeSource(ctx) }));
         break;
       }
       case 'removePsychTrait': {
         // Convalescence « Les choses s'arrangent » (ADE II Annexe I) : retire UN Trait psy de `c.psychTraits`
         // (≠ `endPsych`, qui apaise une affliction de combat `psychState`). Sans `psychType` = le 1ᵉʳ porté.
         const traits = [...(target.psychTraits ?? [])];
-        const idx = o.psychType ? traits.findIndex((p) => p.type === o.psychType) : (traits.length ? 0 : -1);
+        const idx = o.psychType ? traits.findIndex((p) => p.type === o.psychType!.id) : (traits.length ? 0 : -1);
         if (idx >= 0) {
           const [removed] = traits.splice(idx, 1);
           target.psychTraits = traits;
@@ -2129,13 +2138,12 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'augmentWeapon': {
         const dmg = o.damageBonus != null ? Math.max(0, resolveFormula(o.damageBonus, ref, rng)) : undefined;
-        // L'altération se pose SUR L'ARME TENUE (set actif : main puis 2nde) qui matche la famille requise
-        // (Épée de justice → une épée ; ungated → la main). Aucune arme valable tenue → fizzle journalisé.
+        // LDB 42 l.145 ; LDB 43 l.252,281
         const lo = activeLoadout(target);
         const held = [lo?.main, lo?.off]
-          .map((u) => (target.items ?? []).find((i) => i.uid === u))
-          .filter((i): i is ItemInstance => !!i && (i.kind === 'melee' || i.kind === 'ranged'));
-        const item = held.find((i) => weaponMatchesFamily(i, o.requiresWeapon));
+          .map((u) => objetDeSlot(target, u))
+          .filter((i): i is ItemInstance => !!i && isWeaponActive(target, i.uid));
+        const item = held.find((i) => !o.requiresWeapon || o.requiresWeapon.includes(i.shape?.id ?? ''));
         if (!item) {
           lines.push(t('op.noWeaponToEnchant', { name: target.label, src: nomDeSource(ctx) }));
           break;
@@ -2475,7 +2483,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const n = Math.max(1, (o.count ?? 1) + slBonus(ctx.sl, o.perSL));
         target.items = target.items ?? [];
         for (let i = 0; i < n; i++) {
-          const it = itemFromGive(o, source);
+          const it = itemFromGive(o, source, undefined, contexteDeNaissanceDObjet(target));
           target.items.push(it);
           autoStowNewItem(target, it); // #204 : rangement par défaut
         }
@@ -2575,27 +2583,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantWeapon': {
         const flat = Math.max(0, resolveFormula(o.damage, ref, rng) + (o.damagePlus ?? 0));
-        // Forme LIBRE (Arme aethyrique) : on CLONE le profil (Groupe/allonge/mains) d'une arme RÉELLE
-        // choisie par le lanceur (ctx.conjureForm, défaut = sa meilleure Spé de CC) ; sinon stats du
-        // Sort. Seuls les Dégâts (= BFM…) et les Atouts du Sort surchargent le profil → un OBJET ordinaire.
+        // #2967
         const form = o.chooseForm ? (ctx.conjureForm ?? conjureFormOptions(ref)[0]) : null;
-        const tpl = form ? itemFromTrappingById(form.weapon) : null;
-        // L'objet vit dans un SET dédié (equipConjuredWeapon), hors Set I/II auto → `weaponItem` (conjured).
-        // Silhouette de rendu : forme choisie (chooseForm) ou silhouette fixe du Sort → le rig dessine
-        // l'arme réelle bien que nommée « Arme aethyrique » / « Faux de Shyish ».
-        const item = weaponItem({
-          label: form ? `${o.label} (${tpl?.label ?? form.weapon})` : o.label,
-          damage: { plusBF: !!o.plusBF, flat },
-          subType: form ? tpl?.subType : o.subType,
-          reach: form ? tpl?.reach : (o.reach ?? null),
-          hands: form ? (tpl?.hands ?? 1) : (o.hands ?? 1),
-          qualities: (o.qualities ?? []).map((id) => ({ id })), // Atouts du Sort (ids) — PAS ceux du gabarit ; copiés par buildWeapon
-          conjured: true,
-          uid: { prefix: 'conjure' },
-          ...(o.skin ? { skin: o.skin } : {}), // teinte magique unique (aethyrique/améthyste/ardente)
-          ...(form ? { form: form.weapon } : o.form ? { form: o.form } : {}),
-          source,
-        });
+        const item = weaponItem(specDArmeInvoquee(findTrappingById, o, flat, source, form));
         // SET d'armes DÉDIÉ rendu actif (réutilise les loadouts) — le joueur peut rebasculer sur ses
         // armes ; à l'expiration, le set d'origine est restauré (engine/conjuredWeapons).
         // Effets « à la touche » (Épée ardente → En flammes) PORTÉS PAR L'OBJET invoqué (enchant) ;

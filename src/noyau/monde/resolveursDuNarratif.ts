@@ -4,12 +4,12 @@
 // lu ICI par id STABLE, jamais copié dans `src/data` global. Les résolveurs d'indice/preset/document
 // n'existent QUE dans la couche ; seul `objetDuNarratif` chaîne campagne-d'abord puis règle globale
 // (`trappingDesObjetsPuisDuCatalogue`). Aucune lecture du store : l'appelant passe son narratif.
-import { findCreatureById, trappingDesObjetsPuisDuCatalogue, type CreatureData } from '../../data';
 import { memoByRef } from './sceneMemo';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { TrappingResolver } from '../../engine/items';
 import type { DocumentNarratif, Indice, NarratifBlock, PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif } from '../../data/schemas/defs-scenes/registres-narratifs';
+import { findCreatureById, findTrappingById, trappingDesObjetsPuisDuCatalogue, type CreatureData } from '../../data';
 
 /** Le narratif résolu : celui de la partie (`campaignNarratif`, `null` hors campagne) ou celui du projet édité. */
 type Narratif = NarratifBlock | null | undefined;
@@ -43,7 +43,8 @@ export const documentDuNarratif = (n: Narratif) => (id: string): DocumentNarrati
 /** Le résolveur de Possession d'un narratif donné, campagne-D'ABORD (`narratif.objets`) puis règle globale
  *  (`trappingDesObjetsPuisDuCatalogue`). Les ids narratifs ne collisionnent jamais avec le global (garde
  *  `narratifSchema`, #765) → chaîne déterministe. */
-export const objetDuNarratif = (n: Narratif): TrappingResolver => (id) => trappingDesObjetsPuisDuCatalogue(tablesDuNarratif(n).objets, id);
+const objetsDuNarratifConnu = memoByRef<NarratifBlock, TrappingResolver>((n) => (id) => trappingDesObjetsPuisDuCatalogue(tablesDuNarratif(n).objets, id));
+export const objetDuNarratif = (n: Narratif): TrappingResolver => n ? objetsDuNarratifConnu(n) : findTrappingById;
 
 /** Le NOM d'un preset : celui de son profil, sinon celui de sa créature de base, comme `mergeCreatureProfile`
  *  le pose ; `undefined` sans l'un ni l'autre. */

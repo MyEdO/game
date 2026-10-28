@@ -28,6 +28,7 @@ import type { CascadeApplier } from './cascade';
 import { actorIn } from './monde/combatants';
 import { resultLines, bandStep, bandRowOfStep, bandCommonMeta, makeBandFactory, refusePorte, type Consequence, type BandSpec } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
+import { EXPOSURE_BAND_KINDS } from './bandesDExposition';
 import { sealskinDR, type ExposureKind } from '../engine/exposure';
 
 /** Discriminant d'ENTRÉE DE RÈGLE d'une étape de nuit, lu dans son `meta` : la maladie et son symptôme
@@ -190,11 +191,6 @@ export function nightRowId(band: CascadeStep, row: BatchParticipant): string {
   return `${band.id}:${row.id}`;
 }
 
-/** Les `kind` de BANDE d'EXPOSITION (LDB 18 l.326-334) — MÊME règle, MÊME applier, DEUX routes qui la
- *  posent : la nuit de camp / l'effet de scène (`exposure`) et l'entretien de MER (`sea-exposition`,
- *  seul couvert par les ORDRES d'une traversée, cf. `voyageCadence.KINDS_SOUS_ORDRES`). L'escalade
- *  cumulative les compte ENSEMBLE : un héros ne recommence pas à zéro en changeant de route. */
-export const EXPOSURE_BAND_KINDS = ['exposure', 'sea-exposition'] as const;
 
 /** Échec GENUINE d'Exposition : la peau de phoque (MDG 14 l.277) retient AU FROID un échec de justesse
  *  (+1 DR) — il ne compte alors ni comme conséquence ni dans l'escalade. */

@@ -220,7 +220,7 @@ export interface ChargeDiscriminee {
  *  `undefined` sans eux. */
 function partitionDeCharge(def: SchemaDef | undefined): { champ: string; table: Readonly<Record<string, readonly string[]>> } | undefined {
   const espace = def && collectionDe(def.schema)?.espace;
-  return espace?.discriminant && espace.chargeParDiscriminant ? { champ: espace.discriminant, table: espace.chargeParDiscriminant } : undefined;
+  return typeof espace?.discriminant === 'string' && espace.chargeParDiscriminant ? { champ: espace.discriminant, table: espace.chargeParDiscriminant } : undefined;
 }
 
 /**

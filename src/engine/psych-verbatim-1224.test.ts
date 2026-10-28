@@ -19,6 +19,8 @@ import { fearSourceFor, psychImmuneToFrom, refreshDefendedPsych, targetedTrigger
 import { socialPsychMod, socialPsychLabel } from './skills';
 import { findPsychologyById } from '../data';
 import type { Combatant } from './types';
+import { opPsy } from './psych/opsPsy';
+import { ciblePsy } from './psych/ciblage';
 
 const C = (o: Partial<Combatant>): Combatant => o as unknown as Combatant;
 
@@ -119,7 +121,7 @@ describe('#1224 écart 4 — la pénalité SUR SUCCÈS vit en DONNÉE (LDB 21 l.
   it('la branche de RÉUSSITE pose le marqueur, et ce marqueur PORTE la pénalité de Sociabilité', () => {
     const stake = { kind: 'animosite' as const, cible: 'hommes-betes', sourceId: 'f', indice: 0 };
     expect(psychBranchOps(stake, { success: true })).toEqual([
-      { op: 'beginPsych', type: 'animosite', active: false, fromTest: true, cible: 'hommes-betes', sourceId: 'f' },
+      opPsy.pose('animosite', { active: false, fromTest: true, cible: ciblePsy.groupe('hommes-betes'), sourceId: 'f' }),
     ]);
     // L'état RÉELLEMENT posé par cette branche (possédé + résisté) est celui que lit le Test social.
     const contenu = obs({

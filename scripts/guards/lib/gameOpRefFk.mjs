@@ -23,13 +23,14 @@ import { TypeFlags } from 'typescript/unstable/sync';
 // Cette table garde le RESTE, et chaque reste a son lot de mort :
 //   - les champs des ops de `OPS_NON_TYPEES` (`src/data/schemas/grammaire/mecanique.ts`) meurent au
 //     typage de leur op dans `OP_DEFS`, lot L1c #1468 ;
-//   - les champs dont le type n'a pas d'entrée à `TYPES` (`src/data/schemas/grammaire/ref.ts` :
-//     Qualité, Groupe d'arme, Groupe, Psychologie, Séquelle, type de Test d'équipage, table de
+//   - les champs d'une op typée dont le type a son entrée à `TYPES` (`src/data/schemas/grammaire/ref.ts` :
+//     Qualité, Groupe d'arme) meurent au typage de leur champ par une feuille `idDe` ;
+//   - les champs dont le type n'a pas d'entrée à `TYPES` (Séquelle, type de Test d'équipage, table de
 //     Mutation, ton de lumière) meurent à l'entrée de leur type, lot R2 de #1473 ;
 //   - les `nonRef` ne visent aucun registre : ils restent, justifiés.
 //
 // POURQUOI PARTIR DU CHAMP, PAS DU LITTÉRAL. `scripts/guards/lib/registryIdBranch.mjs` a mesuré
-// et écarté le critère « ce littéral est-il un id réel d'un `src/data/*.json` ? » : 648 sites, quasi
+// et écarté le critère « ce littéral est-il un id réel d'un `src/data/*.json` ? » : ses sites sont quasi
 // tous des `.kind`/`.type` légitimes, le vocabulaire des ids recouvrant celui des discriminants
 // d'union. C'est le CHAMP qui dit quel registre il vise.
 //
@@ -38,9 +39,11 @@ import { TypeFlags } from 'typescript/unstable/sync';
 //     `addTraits`, `activeIf`…) : seules les feuilles `string`/`string[]` DIRECTES d'un membre de
 //     l'union sont énumérées. Les `GameOp[]` imbriqués (`perRound.ops`, `delayed.ops`, `zone.onCross`)
 //     sont en revanche bien visités par le SCAN, qui descend dans tout le document ;
-//   - les refs portées par le vocabulaire VOISIN (`Condition` de `flowCore`, `TriggeredEffect.trigger`,
-//     `FlowTest.skill`) : elles ne sont pas des `GameOp` — `src/data/refs-migrated.test.ts` les garde
-//     par ailleurs ;
+//   - les refs portées par le vocabulaire VOISIN, qui ne sont pas des `GameOp` : `FlowTest.skill` est gardé
+//     par `src/data/refs-migrated.test.ts` ; la `value` de la Condition `has` est typée au parse (feuille
+//     `idDe`), la Condition `skill` aussi (`refOuSpec`) ; `TriggeredEffect.trigger` est une énumération
+//     fermée du schéma ; l'`id` des Conditions `career`, `species` et `capability` n'est résolu par aucune
+//     garde de donnée (#3067) ;
 //   - les ops construites au RUNTIME (`engine/miscast.ts::expandOp`, `polymorphOps`) : le scan ne lit
 //     que des fichiers `.json` commités ;
 //   - les valeurs non-`string` (une ref posée en nombre ou en objet ne serait pas comparée).
@@ -73,16 +76,7 @@ export const GAMEOP_FIELD_TARGETS = {
   // ── Groupes (groups.json) — `groupMatch` (src/engine/groups.ts) compare par id ──
   'wounds.onlyGroups': { registry: 'groups' },
   'condition.onlyGroups': { registry: 'groups' },
-  'banish.onlyGroups': { registry: 'groups' },
   // ── Psychologie (psychology.json) ──
-  'endPsych.type': { registry: 'psychology' },
-  'beginPsych.type': { registry: 'psychology' },
-  'grantPsychTrait.psychType': { registry: 'psychology' },
-  'removePsychTrait.psychType': { registry: 'psychology' },
-  // La Cible d'un Trait psy est un id de Groupe (`groupMatch`, src/engine/groups.ts, où
-  // `tout`/`vivant` sont des entrées de `groups.json`).
-  'grantPsychTrait.cible': { registry: 'groups' },
-  'beginPsych.cible': { registry: 'groups' },
   'beginPsych.sourceId': { nonRef: 'id de combattant RUNTIME — la créature SOURCE d\'une Peur/Terreur (`targetedTrigger` le pose, src/engine/psychology.ts ; purgé à la mort par `clearPsychOf`), jamais authoré en donnée' },
   // ── Traits / Talents / Compétences ──
   'skillDRBonus.testType': { registry: 'crewTestTypes' },
@@ -94,7 +88,6 @@ export const GAMEOP_FIELD_TARGETS = {
   'augmentWeapon.removeQualities': { registry: 'qualities' },
   'grantWeapon.qualities': { registry: 'qualities' },
   'grantNaturalWeapon.qualities': { registry: 'qualities' },
-  'grantWeapon.subType': { registry: 'weaponGroups' },
   'grantNaturalWeapon.subType': { registry: 'weaponGroups' },
   // ── Tables ──
   'rollMutation.table': { registry: 'mutationTables' },
@@ -108,12 +101,11 @@ export const GAMEOP_FIELD_TARGETS = {
   'grantFreeAttack.label': { nonRef: 'libellé de l\'option d\'attaque surfacée au Tour' },
   'giveTrapping.custom': { nonRef: 'objet CUSTOM (misc), défini par ce nom faute d\'entrée de catalogue (src/engine/items.ts › itemFromGive)' },
   'grantNaturalWeapon.uid': { nonRef: 'identité d\'INSTANCE de l\'arme injectée dans `c.weapons` (déduplication)' },
-  'grantNaturalWeapon.attackKind': { nonRef: 'kind d\'attaque naturelle, lu par le rig (src/gameIso/rig/anim/handling.ts) — espace de noms du geste, pas un registre de données' },
+  'grantNaturalWeapon.attackKind': { nonRef: 'kind d\'attaque naturelle, lu par le maniement (src/noyau/animation.ts) — espace de noms du geste, pas un registre de données' },
   'transform.tag': { nonRef: 'étiquette de GROUPEMENT des effets posés, relue par `endTransform` (retrait atomique)' },
   'endTransform.tag': { nonRef: 'étiquette de groupement posée par `transform`' },
   'scheduleRespawn.cancelFlag': { nonRef: 'nom de drapeau de SCÈNE posé par un Effet, espace de noms de l\'auteur de scène' },
   'teamCommander.commanderId': { nonRef: 'id de combattant RUNTIME (posé par le flux de combat), jamais authoré en donnée' },
-  'augmentWeapon.requiresWeapon': { nonRef: 'mot-clé de FAMILLE d\'arme, matché par normalisation de `label`+`subType` (src/engine/weaponDamage.ts › weaponMatchesFamily)' },
 };
 
 const norm = (p) => p.replace(/\\/g, '/');

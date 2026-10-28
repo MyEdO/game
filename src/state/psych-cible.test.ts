@@ -47,8 +47,8 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
   it('Animosité (Mort-vivant) : la cascade s’ouvre face à un ennemi du groupe ; échec → affliction active', () => {
     useGame.getState().seedRng(7);
     const { H, E } = setup();
-    H.psychTraits = [{ type: 'animosite', cible: 'Mort-vivant' }];
-    E.groups = ['Mort-vivant'];
+    H.psychTraits = [{ type: 'animosite', cible: 'mort-vivant' }];
+    E.groups = ['mort-vivant'];
     H.characteristics['force-mentale'] = 1; // Test de Calme raté quasi sûr
     openRoundStartPsych(useGame.getState, useGame.setState);
     const c = useGame.getState().pendingCascade;
@@ -66,8 +66,8 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
   it('succès (Résilience) → marqueur inerte, plus de re-déclenchement ce Round', () => {
     useGame.getState().seedRng(7);
     const { H, E } = setup();
-    H.psychTraits = [{ type: 'animosite', cible: 'Mort-vivant' }];
-    E.groups = ['Mort-vivant'];
+    H.psychTraits = [{ type: 'animosite', cible: 'mort-vivant' }];
+    E.groups = ['mort-vivant'];
     H.resilience = 1;
     openRoundStartPsych(useGame.getState, useGame.setState);
     useGame.getState().cascadeBatchForceSuccess(H.id); // garantit le succès (par rangée)

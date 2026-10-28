@@ -82,7 +82,7 @@ describe('Effet `giveTrapping` — sélecteur d’objet', () => {
   });
 
   it.each([['id', OBJET_DU_PROJET.id], ['libellé', OBJET_DU_PROJET.label]])('un objet du PROJET saisi par %s se résout en `trappingId`', (_par, texte) => {
-    expect(saisir(texte, [OBJET_DU_PROJET]).emis.slice(-1)[0]).toMatchObject({ trappingId: OBJET_DU_PROJET.id, custom: undefined });
+    expect(saisir(texte, [OBJET_DU_PROJET]).emis.slice(-1)[0]).toStrictEqual({ type: 'giveTrapping', trappingId: OBJET_DU_PROJET.id });
   });
 
   it.each([['id', OBJET_DU_PROJET.id], ['libellé', OBJET_DU_PROJET.label]])('un objet du projet marqué `service`, saisi par %s, est refusé comme un tarif du catalogue', (_par, texte) => {
@@ -92,7 +92,7 @@ describe('Effet `giveTrapping` — sélecteur d’objet', () => {
   });
 
   it.each([['id', OBJET_DU_PROJET.id], ['libellé', OBJET_DU_PROJET.label]])('sans objet du projet, la saisie par %s devient un objet `custom`', (_par, texte) => {
-    expect(saisir(texte).emis.slice(-1)[0]).toMatchObject({ custom: texte, trappingId: undefined });
+    expect(saisir(texte).emis.slice(-1)[0]).toStrictEqual({ type: 'giveTrapping', custom: texte });
   });
 
   it('un `trappingId` stocké s’affiche par son libellé — objet du projet comme du catalogue', () => {

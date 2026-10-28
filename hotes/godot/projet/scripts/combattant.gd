@@ -12,8 +12,8 @@ const ANIMATION_ATTAQUE := &"1H_Melee_Attack_Chop"
 const ANIMATION_COUP := &"Hit_A"
 const ANIMATION_MORT := &"Death_A"
 
-@export var modele_heros: PackedScene
-@export var modele_adversaires: PackedScene
+@export_file("*.manifeste.json") var manifeste_heros: String
+@export_file("*.manifeste.json") var manifeste_adversaires: String
 
 @onready var _modele: Node3D = $Modele
 @onready var _selection: MeshInstance3D = $Selection
@@ -22,20 +22,26 @@ const ANIMATION_MORT := &"Death_A"
 var _animations: AnimationPlayer
 var _hors_combat := false
 var _deplacement: Tween
+var _personnage: Node3D
+var _manifeste: Dictionary
+var _equipement := MontageDEquipement.new()
 
 
 ## `c` : un combattant projeté (`voisins`) ; `lieu` : le centre de sa case.
 func configurer(c: Dictionary, lieu: Vector3) -> void:
 	position = lieu
-	var modele: Node3D = (modele_heros if c.camp == "hero" else modele_adversaires).instantiate()
-	_modele.add_child(modele)
-	_animations = modele.get_node("AnimationPlayer")
+	_manifeste = MontageDEquipement.manifeste(manifeste_heros if c.camp == "hero" else manifeste_adversaires)
+	_personnage = MontageDEquipement.scene(_manifeste.model).instantiate()
+	_modele.add_child(_personnage)
+	_equipement.masquer_armes(_personnage, _manifeste)
+	_animations = _personnage.get_node("AnimationPlayer")
 	for animation in [ANIMATION_REPOS, ANIMATION_MARCHE]:
 		_animations.get_animation(animation).loop_mode = Animation.LOOP_LINEAR
 	_animations.play(ANIMATION_REPOS)
 
 
-func montrer(c: Dictionary, lieu: Vector3, actif: bool) -> void:
+func montrer(c: Dictionary, lieu: Vector3, actif: bool, equipement: Dictionary) -> void:
+	_equipement.montrer(_personnage, _manifeste, equipement)
 	_etiquette.text = "%s\n%d / %d" % [c.nom, int(c.pb[0]), int(c.pb[1])]
 	_selection.visible = actif and not c.horsCombat
 	if c.horsCombat and not _hors_combat:

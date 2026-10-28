@@ -497,12 +497,18 @@
     "passive": [
       {
         "op": "grantPsychTrait",
-        "psychType": "haine",
-        "cible": "vivant"
+        "psychType": {
+          "id": "haine"
+        },
+        "cible": {
+          "id": "vivant"
+        }
       },
       {
         "op": "grantPsychTrait",
-        "psychType": "frenesie"
+        "psychType": {
+          "id": "frenesie"
+        }
       }
     ],
     "source": {

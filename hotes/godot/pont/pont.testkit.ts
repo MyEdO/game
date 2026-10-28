@@ -1,14 +1,13 @@
 /**
  * LA TABLE DE TEST DU PONT (#2928, `CONTRAT.md`) : le pont appelé comme Godot l'appelle (le nom d'une méthode et une
  * chaîne JSON, une chaîne JSON en retour), les jetons programmés rejoués sur l'horloge virtuelle du module commun
- * (`horlogeVirtuelle`, `src/hote/partie.ts`), là où Godot arme ses minuteurs, et ce qu'il manque à une vue pour que
+ * (`horlogeVirtuelle`, `src/noyau/horlogeVirtuelle.ts`), là où Godot arme ses minuteurs, et ce qu'il manque à une vue pour que
  * Godot dessine chaque verbe de sa fenêtre (`fautesDeLaFenetre`).
  */
 import { expect } from 'vitest';
 import { creerPont, type Pont, type Suite, type VueDuPont } from './pont';
 import type { CategorieDuPont } from './pont';
-import type { LigneDuJournal } from '../../../src/noyau/index';
-import { horlogeVirtuelle } from '../../../src/hote/partie';
+import { horlogeVirtuelle, type LigneDuJournal } from '../../../src/noyau/index';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 import { VERBES } from '../../../src/hote/verbes.generated';
 
@@ -38,17 +37,17 @@ export function erreurDe(r: Reponse): { categorie: CategorieDuPont; message: str
   return r.erreur;
 }
 
-/** Rejoue tous les jetons d'une suite et de leurs reprises sur l'horloge virtuelle du module commun
+/** Rejoue tous les jetons d'une suite et de leurs reprises sur l'horloge virtuelle du noyau
  *  (`horlogeVirtuelle`), là où Godot arme ses minuteurs : la dernière suite, et toutes les lignes de journal, celles de
  *  `r` comprises. */
 export function drainer(appel: ReturnType<typeof table>['appel'], r: Reponse): { suite: Suite; journal: LigneDuJournal[] } {
   let suite = suiteDe(r);
   const journal = [...suite.journal];
-  horlogeVirtuelle(suite.programmes, (jeton) => {
+  horlogeVirtuelle((jeton) => {
     suite = suiteDe(appel('reprendre', { jeton }));
     journal.push(...suite.journal);
     return suite.programmes;
-  });
+  }, suite.programmes).vider();
   return { suite, journal };
 }
 

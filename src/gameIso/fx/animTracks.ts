@@ -17,8 +17,7 @@ import { bus, EVT } from '../../noyau/bus';
 import { useGame } from '../../state/store';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { combatantRender } from '../sizeScale';
-import { enemyRigProfile, rendersFromOwnInventory } from '../rig/enemyProfile';
-import { armePrincipale, equipPorte, type EquipCtx } from '../rig/parts/equipment';
+import { armePrincipale, equipementDessine, type EquipCtx } from '../../noyau/equipementDessine';
 import { hasShieldEquipped } from '../rig/anim/weaponClips';
 import {
   clipTotalMs,
@@ -31,6 +30,7 @@ import {
   type RigSelectCtx,
 } from '../rig/anim/actorAnimSelect';
 import type { Weapon } from '../../engine/types';
+
 
 /**
  * Horloge du registre — SOURCE UNIQUE de temps pour `AnimTrack.start` et pour l'échantillonnage au
@@ -109,14 +109,13 @@ let timerIsRaf = false;
 
 /**
  * Contexte d'un acteur lu dans le store — MÊME résolution que le stage affine (`tokenBodyKind` :
- * classification par la donnée, profil d'ennemi sauf inventaire propre). Défaut du registre.
+ * classification par la donnée, équipement dessiné `equipementDessine`). Défaut du registre.
  */
 export function combatantAnimCtx(id: string): AnimActorCtx | undefined {
   const c = inBattleId(useGame.getState().battle, id);
   if (!c) return undefined;
   if (combatantRender(c).kind !== 'rig') return { voie: 'plan', kind: c.kind };
-  const equip = (rendersFromOwnInventory(c) ? null : enemyRigProfile(c))?.equip ?? equipPorte(c);
-  return { voie: 'rig', kind: c.kind, rig: contexteDeGeste(equip) };
+  return { voie: 'rig', kind: c.kind, rig: contexteDeGeste(equipementDessine(c)) };
 }
 
 /** Contexte de GESTE d'un bipède, lu de son équipement dessiné : l'arme que l'os `arme` porte, et la
@@ -148,8 +147,7 @@ function onAttack(d: AttackEvent): void {
   const atk: ClipDef =
     from.voie === 'plan'
       ? planAttackDef(d.creatureAttack)
-      : rigAttackDef(
-          { kind: d.kind, weapon: d.weapon, casterKind: from.kind, targetKind: to?.kind, isSelf: d.from === d.to },
+      : rigAttackDef({ kind: d.kind, weapon: d.weapon, casterKind: from.kind, targetKind: to?.kind, isSelf: d.from === d.to },
           from.rig ?? {},
         );
   // CIBLE de l'échange : `to === from` n'en est PAS une (le souffle d'une créature,
@@ -164,8 +162,7 @@ function onAttack(d: AttackEvent): void {
   const def: ClipDef | null =
     (to ?? FALLBACK_CTX).voie === 'plan'
       ? planFlinchDef()
-      : rigDefenseDef(
-          {
+      : rigDefenseDef({
             kind: d.kind,
             defense: d.defense,
             parryWeapon: d.parryWeapon,

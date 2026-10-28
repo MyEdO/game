@@ -1,0 +1,13 @@
+{
+  "model": "Knight.glb",
+  "model_sha256": "90bed0b902ebc6f0a2ecd45024e9343a69b74cd9fae1e5188b6908689142ab8e",
+  "importe_le": "2026-10-23",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-ae322141814056dd.txt",
+      "licence": "(Creative Commons Zero, CC0)"
+    }
+  ],
+  "animation_sources": []
+}

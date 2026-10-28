@@ -3,6 +3,7 @@
  * est la liste des réglages rendus, en donnée (patron des `slots` de `ColorPalettePickers`) ; toute
  * écriture passe par `apparenceSuivante`. Styles : `styles/reglages-apparence.css`.
  */
+import type { ReactNode } from 'react';
 import { MONSTER_HEAD_OPTIONS, MONSTER_ARM_OPTIONS, MONSTER_LEG_OPTIONS } from '../../gameIso/rig/parts/monstrous';
 import { EYE_OPTIONS } from '../../gameIso/rig/parts/eyes';
 import { ColorPalettePickers, MONSTER_COLOR_SLOTS } from '../ColorPalettePickers';
@@ -14,12 +15,49 @@ import { elementsOf } from '../../gameIso/rig/parts/elements';
 import { defById } from '../../gameIso/rig/creatures';
 import { libelleDeFormeDeNuee } from '../../gameIso/rig/swarm/forms';
 import { raceById } from '../../gameIso/rig/races';
-import { armesChoisissables, findSpeciesById, speciesSingular, DEFAULT_RACE_ID } from '../../data';
+import { armesChoisissables, findTrappingById, findSpeciesById, speciesSingular, DEFAULT_RACE_ID } from '../../data';
 import { domaineDEspeces } from '../../data/schemas/grammaire/art';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { Icon } from '../Icon';
+import type { Weapon } from '../../engine/types';
+import type { TrappingResolver } from '../../engine/items';
+import { apparencesAdmissiblesDObjet, candidatsDApparenceDObjet, referenceDApparenceDObjet } from '../../data/apparencesObjets';
+import { MediaSelect } from '../MediaSelect';
+import { useVersionDesDatasets } from '../useVersionDesDatasets';
+
+/** #2948 */
+export function ApparencesObjetsField({ appearance, onChange, weapons, resolveTrapping = findTrappingById }: {
+  appearance: EntityAppearance;
+  onChange: (next: EntityAppearance) => void;
+  weapons: readonly Pick<Weapon, 'trappingId'>[];
+  resolveTrapping?: TrappingResolver;
+}) {
+  useVersionDesDatasets();
+  const ids = [...new Set(weapons.flatMap((w) => w.trappingId ? [w.trappingId] : []))];
+  const objets = ids.map((id) => ({ id, choices: apparencesAdmissiblesDObjet({ trappingId: id }, resolveTrapping) })).filter((o) => o.choices.length > 1);
+  if (!objets.length) return null;
+  return <div className="ed-field">
+    <span>Apparences d’objets</span>
+    {objets.map(({ id, choices }) => <div className="reglage-apparence" key={id}>
+      <span>{resolveTrapping(id)?.label ?? id}</span>
+      <MediaSelect
+        title={`Apparence — ${resolveTrapping(id)?.label ?? id}`}
+        triggerClassName="btn"
+        value={candidatsDApparenceDObjet(id, appearance.apparencesObjets?.[id]?.id, resolveTrapping)[0]}
+        options={choices.map((a) => ({ key: a.id, label: a.label }))}
+        onSelect={(choix) => {
+          const record = { ...appearance.apparencesObjets };
+          const reference = referenceDApparenceDObjet(id, choix, resolveTrapping);
+          if (reference) record[id] = reference;
+          else delete record[id];
+          onChange(apparenceSuivante(appearance, { apparencesObjets: Object.keys(record).length ? record : undefined }));
+        }}
+      />
+    </div>)}
+  </div>;
+}
 
 /** Réglages de `ReglagesApparence` ; `variante` = « un autre visage » (graine + 1, reproductible). */
 export type ReglageApparence = 'species' | 'sex' | 'build' | 'hairstyle' | 'variante';
@@ -127,12 +165,14 @@ export function MonsterPartsFields({
   reglages,
   weapon,
   onWeapon,
+  apresArme,
 }: {
   appearance: EntityAppearance;
   onChange: (next: EntityAppearance) => void;
   reglages: readonly ReglagePart[];
   weapon?: string;
   onWeapon?: (w: string | undefined) => void;
+  apresArme?: ReactNode;
 }) {
   const poser = (patch: Partial<EntityAppearance>) => onChange(apparenceSuivante(appearance, patch));
   const { monster, eyes, features, tenue, harnais, colors } = appearance;
@@ -186,6 +226,7 @@ export function MonsterPartsFields({
           </select>
         </label>
       )}
+      {apresArme}
       {reglages.includes('features') && (
         <div className="ed-field">
           <span>Traits &amp; difformités (apparence pure — sans trait/talent)</span>

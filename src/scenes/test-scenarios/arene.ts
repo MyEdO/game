@@ -1,5 +1,5 @@
 import { makeShowcaseParty } from '../../data/pregens';
-import { itemFromTrappingById } from '../../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
 import { areneCampaign, paquetDuJeu } from '../campaign';
 import type { TestScenario } from './_shared';
 
@@ -13,7 +13,7 @@ function groupe() {
   const party = makeShowcaseParty();
   // De quoi tester voyage (rations) et marchands sans grinder la zone 1.
   for (const h of party) {
-    const ration = itemFromTrappingById('ration');
+    const ration = itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(h));
     if (ration) h.items = [...(h.items ?? []), ration];
   }
   return party;

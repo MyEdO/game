@@ -1,8 +1,9 @@
 import type { JSX } from 'react';
 /**
  * Picker DEV de RÉFÉRENCE unifié au Codex — UN composant, 4 modes, configuré par (catégorie, champ) :
- *  - `liste`    : `Ref[]` = {id, value?} (sorts d'une créature, Bénédictions/Miracles d'un dieu, Qualités
- *                 d'une possession) — choix dans le dataset cible, LIBELLÉ affiché mais `id` STABLE stocké ;
+ *  - `liste`    : `Ref[]` = {id, value?} (sorts d'une créature, Qualités d'une possession), ou ids NUS quand
+ *                 l'élément du nœud est une feuille `idDe` (`refs` : Bénédictions/Miracles d'un dieu, Groupes) —
+ *                 choix dans le dataset cible, LIBELLÉ affiché mais `id` STABLE stocké ;
  *  - `single`   : UN `<select>` (sous-type d'arme, classe d'une carrière, espèce/carrière d'un pré-tiré…),
  *                 sur un dataset OU sur des entrées fournies (`entrees` : registre du narratif d'un
  *                 projet, `RefNarrativeField`) ;
@@ -20,7 +21,8 @@ import type { JSX } from 'react';
 import { useId, useMemo, useState } from 'react';
 import { datasetArray, type DatasetKey } from '../../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
-import { espaceDe, estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, declarationDeRefTypee, type FeuilleDId, type TypeEntite } from '../../../data/schemas/grammaire/ref';
+import { TYPES, catalogueSpecs, entreeOuverte, espaceDe, estFeuilleDId, estSpecialisable, refusDeLEntree, declarationDeFeuilleDId, declarationDeRefASpecialisation, declarationDeRefTypee, type FeuilleDId, type TypeEntite } from '../../../data/schemas/grammaire/ref';
+import { specLabel } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../../data/schemas/defs-scenes/registres-narratifs';
 import { entreesNarratives, type CleDeReferenceNarrative } from '../libellesNarratifs';
@@ -34,9 +36,11 @@ import { videDuNoeud } from '../editFields';
 /** `filter` : un prédicat MOTEUR sur l'entrée (`Inspector.tsx`, portes/murs), jamais une sous-liste du
  *  schéma — celle-ci se lit sur le NŒUD du champ (`noeud`, `refusDuNoeud`). */
 type RefDatasetCfg = { ds: DatasetKey; filter?: (entry: Record<string, unknown>) => boolean };
-/** Mode `liste` : une rangée par réf, aucun contrôle unique. */
-type ListeRefCfg = RefDatasetCfg & { value?: boolean; single?: false; freeText?: false };
-/** Mode `single` avec `spec` : le `<select>` ET l'`<input>` de spécialisation, aucun contrôle unique. */
+/** Mode `liste` : une rangée par réf, aucun contrôle unique ; `value` = un indice par rangée, `spec` = la
+ *  spécialisation de chaque rangée (`ChoixDeSpec`). */
+type ListeRefCfg = RefDatasetCfg & { value?: boolean; spec?: boolean; single?: false; freeText?: false };
+/** Mode `single` avec `spec` : le `<select>` ET le contrôle de spécialisation (`ChoixDeSpec`), aucun contrôle unique ;
+ *  `sujet` complète leurs deux noms. */
 type SpecRefCfg = RefDatasetCfg & { single: true; freeText?: false; spec: true };
 /** Entrées FOURNIES par l'appelant (mode `single`) quand leur source n'est pas un dataset du catalogue :
  *  un registre du narratif d'un projet, les stades d'un indice. `nom` = la source, affichée en indice ;
@@ -58,15 +62,11 @@ export type RefFieldCfg = ListeRefCfg | SpecRefCfg | PolymorpheCfg | RefFieldCfg
  * REF_FIELD — clés par `'<catégorie>.<champ>'` (priorité) ou par `'<champ>'` (repli global).
  *  Trois formes, lues sur l'entrée elle-même : une LISTE d'ids d'un dataset (`ds`), un id SEUL
  *  (`single`), ou un vocabulaire tiré d'un champ (`vocabFrom`). `spec` et `freeText` sont posés par
- *  les appelants directs du composant, jamais ici. Un champ dont la feuille est un `idDe` FERMÉ n'y
- *  entre pas : `Field` (`CodexEdit.tsx`) le route par `cfgDeLaFeuille`.
+ *  les appelants directs du composant, jamais ici. Un champ dont la feuille, ou l'élément de liste, est un
+ *  `idDe` FERMÉ n'y entre pas : `Field` (`CodexEdit.tsx`) le route par `cfgDeLaFeuille` ou `cfgDeLaListe`.
  */
 export const REF_FIELD: Record<string, RefFieldCfg> = {
   // ── listes (Ref[]) — existant ───────────────────────────────────────────────
-  spells: { ds: 'spells' },
-  blessings: { ds: 'spells' },
-  miracles: { ds: 'spells' },
-  chaosSpells: { ds: 'spells' },
   qualities: { ds: 'qualities', value: true },
   grantsManeuvers: { ds: 'maneuvers' },
   // Atouts d'une Structure de siège : réfs NUES de Trait (`ref('trait')`, ADE II 8), sans Indice ni pose.
@@ -109,6 +109,115 @@ export function cfgDeLaFeuille(noeud: unknown): (RefDatasetCfg & { single: true 
   return !feuille || feuille.ouverte ? undefined : cfgDuType(feuille.type);
 }
 
+/** Config `single` à `spec` d'un champ dont le NŒUD est une référence à spécialisation (`refOuSpec`,
+ *  `specRef`) sur un catalogue éditable, `undefined` sinon. */
+export function cfgDuNoeudASpec(noeud: unknown): SpecRefCfg | undefined {
+  const decl = noeud === undefined ? undefined : ouverts([noeud]).map(declarationDeRefASpecialisation).find((d) => d !== undefined);
+  const cfg = decl && cfgDuType(decl.type);
+  return cfg && { ds: cfg.ds, single: true, spec: true };
+}
+
+/** Config `liste` d'un champ dont l'ÉLÉMENT est une feuille `idDe` FERMÉE (`refs`), `undefined` sinon. */
+export function cfgDeLaListe(noeud: unknown): { ds: DatasetKey } | undefined {
+  const cfg = elementDeListe(noeud).map(cfgDeLaFeuille).find((c) => c !== undefined);
+  return cfg && { ds: cfg.ds };
+}
+
+/** Les nœuds ouverts de l'ÉLÉMENT d'un champ liste ; aucun pour un champ absent. */
+function elementDeListe(noeud: unknown): unknown[] {
+  return noeud === undefined ? [] : ouverts(pasDeDonnee(ouverts([noeud]), 0));
+}
+
+/** La référence `ref` reposée sur l'entrée `id` : sa spécialisation, propre à l'entrée quittée, tombe. */
+export function reposerLId<T extends { id: string; spec?: string }>(ref: T, id: string): Omit<T, 'spec'> & { id: string } {
+  const { spec: _quittee, ...reste } = ref;
+  return { ...reste, id };
+}
+
+/** Spécialisations RESTREINTES d'un emplacement `choix` de l'entrée `id` de `type`, cochées dans son
+ *  catalogue, plus celles de `value` hors catalogue ; une entrée OUVERTE (`entreeOuverte`) en admet une
+ *  saisie. Cocher ajoute à la fin, décocher retire : l'ordre de `value` est gardé. Aucune = `undefined`. */
+export function ChoixDeSpecs({ type, id, value, onChange, label }: {
+  type: TypeEntite; id: string; value: readonly string[] | undefined; onChange: (specs: string[] | undefined) => void; label: string;
+}) {
+  const [saisie, setSaisie] = useState('');
+  const courantes = value ?? [];
+  const catalogue = id === '' ? [] : catalogueSpecs(type, id);
+  const ouverte = id !== '' && entreeOuverte(type, id);
+  const offertes = [...catalogue, ...courantes.filter((s) => !catalogue.includes(s))];
+  if (!offertes.length && !ouverte) return null;
+  const cfg = cfgDuType(type);
+  if (!cfg) throw new Error(`ChoixDeSpecs : le type « ${type} » n'a aucun dataset de racine.`);
+  const poser = (next: string[]) => onChange(next.length ? next : undefined);
+  const ajouter = () => {
+    const s = saisie.trim();
+    if (s && !courantes.includes(s)) poser([...courantes, s]);
+    setSaisie('');
+  };
+  return (
+    <fieldset className="ed-field">
+      <legend>{label}</legend>
+      {offertes.map((s) => (
+        <label key={s} className="dr">
+          <input type="checkbox" checked={courantes.includes(s)}
+            onChange={(e) => poser(e.target.checked ? [...courantes, s] : courantes.filter((x) => x !== s))} /> {specLabel(cfg.ds, id, s)}
+        </label>
+      ))}
+      {ouverte && (
+        <span className="fieldrow">
+          <input aria-label={`${label} — autre spécialisation`} placeholder="autre spécialisation" value={saisie}
+            onChange={(e) => setSaisie(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') ajouter(); }} />
+          <button className="btn small" aria-label={`Ajouter à ${label}`} disabled={!saisie.trim()} onClick={ajouter}>+</button>
+        </span>
+      )}
+    </fieldset>
+  );
+}
+
+/** Le type dont `ds` est le dataset de racine (`cfgDuType`) ; LÈVE si aucun. */
+export function typeDuDataset(ds: DatasetKey): TypeEntite {
+  const type = (Object.keys(TYPES) as TypeEntite[]).find((t) => cfgDuType(t)?.ds === ds);
+  if (!type) throw new Error(`RefField : le dataset « ${ds} » n'est le dataset de racine d'aucun type.`);
+  return type;
+}
+
+/** Spécialisation de l'entrée `id` de `type` : choisie dans son catalogue quand l'entrée est FERMÉE,
+ *  saisie quand elle est OUVERTE (`entreeOuverte`), absente quand elle n'est pas spécialisable. */
+export function ChoixDeSpec({ type, id, value, onChange, ariaLabel }: {
+  type: TypeEntite; id: string; value: string | undefined; onChange: (spec: string | undefined) => void; ariaLabel: string;
+}) {
+  if (id === '' || !estSpecialisable(type, id)) return null;
+  if (entreeOuverte(type, id)) {
+    return <input aria-label={ariaLabel} placeholder="spécialisation" style={{ width: 120 }} value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)} />;
+  }
+  const cfg = cfgDuType(type);
+  if (!cfg) throw new Error(`ChoixDeSpec : le type « ${type} » n'a aucun dataset de racine.`);
+  return <SpecSelect category={cfg.ds} id={id} options={[...catalogueSpecs(type, id)]} value={value ?? ''} vide="— (sans spécialisation) —" label={ariaLabel} onChange={(spec) => onChange(spec || undefined)} />;
+}
+
+/** Sélecteur de spécialisation parmi `options` : valeurs = ids de spec, libellés par `specLabel`. */
+export function SpecSelect({ category, id, options, value, onChange, vide = '— spécialisation —', label }: {
+  category: DatasetKey;
+  id: string;
+  options: string[];
+  value: string;
+  onChange: (spec: string) => void;
+  vide?: string;
+  label?: string;
+}) {
+  return (
+    <select value={value} aria-label={label} onChange={(e) => onChange(e.target.value)}>
+      <option value="">{vide}</option>
+      {options.map((s) => (
+        <option key={s} value={s}>
+          {specLabel(category, id, s)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+
 /** Config `polymorphe` d'un champ dont le NŒUD est une référence typée (`refTypee`) : chaque type admis
  *  avec la config `single` de son espace, `undefined` sinon. Un type sans dataset éditable LÈVE : le
  *  sélecteur ne saurait pas l'offrir. */
@@ -132,7 +241,7 @@ const fournies = (cfg: RefFieldCfg): cfg is EntreesCfg => 'entrees' in cfg;
 const entryLabel = (e: Record<string, unknown>): string =>
   String(e.label ?? e.id ?? '');
 
-interface RefEntry { id: string; value?: number }
+interface RefEntry { id: string; spec?: string; value?: number }
 interface SpecRef { id: string; spec?: string }
 
 /** Nom d'AUTEUR d'un dataset : le libellé de sa catégorie au Codex (`CATEGORY_DATASET_DERIVE`, puis
@@ -162,6 +271,10 @@ type RefFieldCommun = {
   aucunIneligible?: boolean;
   /** L'explication optionnelle du champ (`docs/charte-ui.md`, « Zéro texte tutoriel ») : `title` de son enveloppe. */
   title?: string;
+  /** Modes `liste` et `single` à `spec` : la POSITION du champ dans son conteneur (« de la rangée 2 de … »),
+   *  qui complète les noms accessibles de ses contrôles — deux champs de même libellé, dans deux rangées,
+   *  ne se confondent pas. */
+  sujet?: string;
 };
 /** Nom accessible, invalidité et description du contrôle rendu. */
 type Accessibilite = { ariaLabel?: string; invalide?: boolean; describedBy?: string };
@@ -173,7 +286,7 @@ export function RefField(props: RefFieldCommun & Accessibilite & { cfg: RefField
 export function RefField(props: RefFieldCommun & Accessibilite & { cfg: PolymorpheCfg }): JSX.Element;
 export function RefField(props: RefFieldCommun & { cfg: RefFieldCfg; ariaLabel?: never; invalide?: never; describedBy?: never }): JSX.Element;
 export function RefField(
-  { cfg, fieldKey, label, title, ariaLabel, value, onChange, nullable, aucunIneligible, invalide, describedBy, noeud, entreesEnTete = SANS_ENTREE }:
+  { cfg, fieldKey, label, title, sujet, ariaLabel, value, onChange, nullable, aucunIneligible, invalide, describedBy, noeud, entreesEnTete = SANS_ENTREE }:
   RefFieldCommun & Accessibilite & { cfg: RefFieldCfg },
 ) {
   // `label` = AFFICHAGE (libellé FR du champ, #1466) ; `fieldKey`/`cfg` restent l'IDENTITé. Un appelant
@@ -183,11 +296,11 @@ export function RefField(
   const a11y = { ariaLabel, invalide, describedBy };
   if (isVocab(cfg)) return <VocabField label={affiche} title={title} vocabFrom={cfg.vocabFrom} value={value} onChange={onChange} nullable={nullable} noeud={noeud} {...a11y} />;
   if (estPolymorphe(cfg)) return <PolymorpheRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} nullable={nullable} {...a11y} />;
-  const single = (c: SingleCfg) => <SingleRefField label={affiche} cfg={c} champ={champ} value={value} onChange={onChange} nullable={nullable} aucunIneligible={aucunIneligible} {...a11y} />;
+  const single = (c: SingleCfg) => <SingleRefField label={affiche} sujet={sujet} cfg={c} champ={champ} value={value} onChange={onChange} nullable={nullable} aucunIneligible={aucunIneligible} {...a11y} />;
   if (fournies(cfg)) return single(cfg);
   if (cfg.freeText) return <FreeRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} {...a11y} />;
   if (cfg.single) return single(cfg);
-  return <ListRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} />;
+  return <ListRefField label={affiche} sujet={sujet} cfg={cfg} champ={champ} value={value} onChange={onChange} />;
 }
 
 /** Le nœud de schéma d'un champ-réf, ses entrées hors dataset et son explication (`RefFieldCommun`). */
@@ -200,7 +313,7 @@ function feuillesDuNoeud(noeud: unknown): FeuilleDId[] {
   if (noeud === undefined) return [];
   const champ = ouverts([noeud]);
   const direct = champ.filter(estFeuilleDId);
-  return (direct.length ? direct : ouverts(pasDeDonnee(champ, 0)).filter(estFeuilleDId)).flatMap((n) => declarationDeFeuilleDId(n) ?? []);
+  return (direct.length ? direct : elementDeListe(noeud).filter(estFeuilleDId)).flatMap((n) => declarationDeFeuilleDId(n) ?? []);
 }
 
 /**
@@ -251,10 +364,11 @@ type SingleCfg = { ds: DatasetKey; spec?: boolean; filter?: (entry: Record<strin
 const SANS_FILTRE: { filter?: undefined } = {};
 
 /** Mode `single` : UN `<select>` (+ option « — (aucun) — » si nullable, option « (inconnu) » si hors liste).
- *  `spec` → un `<input>` texte à côté, on stocke `{ id, spec? }` (spec omis si vide) ; sinon la chaîne brute. */
+ *  `spec` → `ChoixDeSpec` à côté, on stocke la référence `{ id, spec?, …autres clés gardées }` ; sinon la
+ *  chaîne brute. */
 function SingleRefField(
-  { label, ariaLabel, cfg, champ, value, onChange, nullable, aucunIneligible, invalide, describedBy, nu }:
-  Accessibilite & { label?: string; cfg: SingleCfg; champ: Champ; value: unknown; onChange: (v: unknown) => void; nullable?: boolean; aucunIneligible?: boolean;
+  { label, sujet, ariaLabel, cfg, champ, value, onChange, nullable, aucunIneligible, invalide, describedBy, nu }:
+  Accessibilite & { label?: string; sujet?: string; cfg: SingleCfg; champ: Champ; value: unknown; onChange: (v: unknown) => void; nullable?: boolean; aucunIneligible?: boolean;
     /** Contrôle NU : le seul `<select>` (et sa spécialisation), sans enveloppe ni étiquette — posé dans
      *  la rangée d'un champ qui le nomme déjà (mode `polymorphe`). */
     nu?: boolean },
@@ -269,22 +383,23 @@ function SingleRefField(
     : { id: typeof value === 'string' ? value : '' };
   const id = cur.id ?? '';
   const known = id === '' || options.some((o) => o.v === id);
-  const emit = (nextId: string, nextSpec?: string) => {
-    if (nextId === '') { onChange(nullable ? videDuNoeud(champ.noeud) : ''); return; }
-    if (avecSpec) { const v: SpecRef = { id: nextId }; if (nextSpec) v.spec = nextSpec; onChange(v); }
-    else onChange(nextId);
+  // Mode `spec` : deux contrôles, nommés par le champ et sa position (`sujet`).
+  const nomDesControles = [label ?? nom ?? deDataset?.ds, sujet].filter(Boolean).join(' ');
+  const emit = (next: SpecRef) => {
+    if (next.id === '') { onChange(nullable ? videDuNoeud(champ.noeud) : ''); return; }
+    onChange(avecSpec ? next : next.id);
   };
   const controles = (
     <>
-      <select aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy} value={id} onChange={(e) => emit(e.target.value, cur.spec)}>
+      <select aria-label={ariaLabel ?? (avecSpec ? nomDesControles : undefined)} aria-invalid={invalide || undefined} aria-describedby={describedBy} value={id} onChange={(e) => emit(reposerLId(cur, e.target.value))}>
         {nullable && <option value="" disabled={aucunIneligible}>— (aucun) —</option>}
         {!nullable && id === '' && <option value="">{nom ? `— (choisir dans ${nom}) —` : '— (choisir) —'}</option>}
         {id !== '' && !known && <option value={id}>{id} (inconnu)</option>}
         {options.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
       </select>
-      {avecSpec && (
-        <input placeholder="spec" style={{ width: 120 }} value={cur.spec ?? ''}
-          onChange={(e) => emit(id, e.target.value || undefined)} />
+      {deDataset?.spec && (
+        <ChoixDeSpec type={typeDuDataset(deDataset.ds)} id={id} value={cur.spec} ariaLabel={`Spécialisation — ${nomDesControles}`}
+          onChange={(spec) => emit({ ...reposerLId(cur, id), ...(spec ? { spec } : {}) })} />
       )}
     </>
   );
@@ -454,36 +569,57 @@ export function SaisieSuggeree(
   );
 }
 
-/** Mode `liste` (défaut) : `Ref[]` = {id, value?} — choix dans le dataset, +Ajouter / ✕, `value` (Indice) si `cfg.value`. */
+/** L'élément d'un champ liste est-il une feuille `idDe` (`refs`) ? Ses rangées sont alors des ids NUS. */
+const elementEstUnId = (noeud: unknown): boolean => elementDeListe(noeud).some(estFeuilleDId);
+
+/** Mode `liste` (défaut) : `Ref[]` = {id, value?}, ou ids nus (`elementEstUnId`) — choix dans le dataset,
+ *  +Ajouter / ✕, `value` (Indice) si `cfg.value`. */
 function ListRefField(
-  { label, cfg, champ, value, onChange }:
-  { label?: string; cfg: { ds: DatasetKey; value?: boolean }; champ: Champ; value: unknown; onChange: (v: unknown) => void },
+  { label, sujet, cfg, champ, value, onChange }:
+  { label?: string; sujet?: string; cfg: { ds: DatasetKey; value?: boolean; spec?: boolean }; champ: Champ; value: unknown; onChange: (v: unknown) => void },
 ) {
   const options = useOptions(cfg, champ.noeud, useUnivers(cfg.ds, champ.entreesEnTete));
-  const list = (value as RefEntry[]) ?? [];
-  const set = (next: RefEntry[]) => onChange(next);
+  const nus = elementEstUnId(champ.noeud);
+  const list: RefEntry[] = nus ? ((value as string[] | undefined) ?? []).map((id) => ({ id })) : (value as RefEntry[]) ?? [];
+  const set = (next: RefEntry[]) => onChange(nus ? next.map((r) => r.id) : next);
+  const nom = [label ?? libelleDeDataset(cfg.ds) ?? cfg.ds, sujet].filter(Boolean).join(' ');
+  const rangee = (i: number) => `${nom} — valeur ${i + 1}`;
   return (
     <div className="ed-field" title={champ.title}>
       <span>{label}{indiceDe(nomDistinct(label, libelleDeDataset(cfg.ds)))}</span>
       {list.map((ref, i) => (
         <div key={i} className="fieldrow">
-          <select value={ref.id} onChange={(e) => set(list.map((r, j) => (j === i ? { ...r, id: e.target.value } : r)))}>
+          <select aria-label={rangee(i)} value={ref.id} onChange={(e) => set(list.map((r, j) => (j === i ? reposerLId(r, e.target.value) : r)))}>
             {ref.id === '' && <option value="">— (choisir) —</option>}
             {ref.id !== '' && !options.some((o) => o.v === ref.id) && <option value={ref.id}>{ref.id} (inconnu)</option>}
             {options.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
           </select>
+          {cfg.spec && (
+            <ChoixDeSpec type={typeDuDataset(cfg.ds)} id={ref.id} value={ref.spec} ariaLabel={`Spécialisation — ${rangee(i)}`}
+              onChange={(spec) => set(list.map((r, j) => (j === i ? { ...reposerLId(r, r.id), ...(spec ? { spec } : {}) } : r)))} />
+          )}
           {cfg.value && (
             <NumberField
               variant="nu" label={`Indice — ${label}`} placeholder="Indice" width={64}
               vide value={ref.value} onChange={(n) => set(list.map((r, j) => (j === i ? { ...r, value: n ?? undefined } : r)))}
             />
           )}
-          <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
+          <button className="btn small danger" title="Retirer" aria-label={`Retirer ${rangee(i)}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Ajouter</button>
+      <button className="btn small" aria-label={`Ajouter à ${nom}`} onClick={() => set([...list, { id: '' }])}>+ Ajouter</button>
     </div>
   );
+}
+
+/** Liste d'ids NUS d'un champ `refs` : le catalogue est celui que désigne l'élément de son nœud
+ *  (`cfgDeLaListe`) ; une liste vidée rend `undefined` (clé ôtée). */
+export function ListeDIds({ noeud, label, title, value, onChange }: {
+  noeud: unknown; label: string; title?: string; value: readonly string[] | undefined; onChange: (ids: string[] | undefined) => void;
+}) {
+  const cfg = cfgDeLaListe(noeud);
+  if (!cfg) throw new Error(`ListeDIds « ${label} » : l'élément du nœud n'est pas une feuille \`idDe\` fermée.`);
+  return <RefField cfg={cfg} noeud={noeud} label={label} title={title} value={value ?? []} onChange={(v) => { const ids = v as string[]; onChange(ids.length ? ids : undefined); }} />;
 }
 
 /** Nom d'AUTEUR de la source de chaque registre désigné, affiché au sélecteur. */

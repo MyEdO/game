@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
+import { choisirMediaSelect } from '../MediaSelect.testkit';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { Inspector } from './Inspector';
 import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { lightTones } from '../../data';
-import { valeursDe } from '../../data/schemas/grammaire/meta';
+import { catalogueSpecs, entreeOuverte, idsDe } from '../../data/schemas/grammaire/ref';
+import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema } from '../../data/schemas/defs-scenes/scene';
 import type { Sel } from './editorState';
 import { validateScene } from '../../noyau/validateScene';
@@ -66,6 +68,24 @@ function mount(entity?: SceneEntity) {
 function roundTrip(scene: Scene): Scene {
   return JSON.parse(JSON.stringify(scene)) as Scene;
 }
+
+describe('Inspector — apparences d’objets', () => {
+  it('choisit une variante sur l’entité, conserve les autres réglages et retire le défaut', async () => {
+    const h = mount({ id: 'garde', kind: 'personnage', pos: { x: 1, y: 1 }, ref: 'humain', weapon: 'arme-simple', appearance: { species: 'humains-reiklander' } });
+    await h.mount();
+    const arme = [...h.container.querySelectorAll('label')].find((l) => l.textContent?.trim().startsWith('Arme équipée'))!;
+    expect(arme.nextElementSibling?.textContent).toContain('Apparences d’objets');
+    const choisir = (label: string) => choisirMediaSelect(h.container, 'Apparence — Arme simple', label);
+    choisir('Hache naine');
+    expect(h.entOf().appearance?.apparencesObjets).toEqual({ 'arme-simple': { id: 'hache_naine' } });
+    expect(h.entOf().appearance?.species).toBe('humains-reiklander');
+    expect(roundTrip(h.sceneOf()).entities[0].appearance?.apparencesObjets).toEqual({ 'arme-simple': { id: 'hache_naine' } });
+    choisir('Épée sertie');
+    expect(h.entOf().appearance?.apparencesObjets?.['arme-simple']).toEqual({ id: 'epee_sertie' });
+    choisir('Épée');
+    expect(h.entOf().appearance).toEqual({ species: 'humains-reiklander' });
+  });
+});
 
 describe('Inspector — introduction locale', () => {
   it('le texte et son folio adapté restent dans leur objet après aller-retour', async () => {
@@ -448,6 +468,30 @@ describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
     expect(roundTrip(h.sceneOf()).entities[0].combat?.skills).toEqual(h.entOf().combat!.skills);
   });
 
+  it('combat.skills[] : la spécialisation de chaque rangée se garde, se choisit au catalogue, et tombe au changement de Compétence', async () => {
+    const competences = [...idsDe('skill')];
+    const x = competences.find((id) => !entreeOuverte('skill', id) && catalogueSpecs('skill', id).length >= 2)!;
+    const [a, b] = catalogueSpecs('skill', x);
+    const [y, z, w] = competences.filter((id) => id !== x);
+    const h = mount({ id: 'brigand', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', combat: { skills: [{ id: x, spec: a, value: 40 }, { id: y, value: 30 }] } });
+    await h.mount();
+    const nom = 'Compétences ajoutées (fusionnées à celles du bestiaire au spawn)';
+    const select = (n: string) => h.container.querySelector<HTMLSelectElement>(`select[aria-label="${n}"]`)!;
+    const poser = async (s: HTMLSelectElement, v: string) => act(async () => {
+      s.value = v;
+      s.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    expect(select(`Spécialisation — ${nom} — valeur 1`).value).toBe(a);
+
+    await poser(select(`${nom} — valeur 2`), z);
+    expect(h.entOf().combat!.skills).toEqual([{ id: x, spec: a, value: 40 }, { id: z, value: 30 }]);
+    await poser(select(`Spécialisation — ${nom} — valeur 1`), b);
+    expect(h.entOf().combat!.skills![0]).toEqual({ id: x, spec: b, value: 40 });
+    await poser(select(`${nom} — valeur 1`), w);
+    expect(h.entOf().combat!.skills![0]).toEqual({ id: w, value: 40 });
+    expect(sceneSchema.safeParse(roundTrip(h.sceneOf())).error).toBeUndefined();
+  });
+
   it('presetId : le choix atterrit dans la Scène et survit au round-trip (picker BORNÉ, jamais un texte libre — #834 audit-2 défaut 7)', async () => {
     const h = mount({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } });
     await h.mount();
@@ -794,7 +838,7 @@ describe('Inspector — le profil de toiture est nommé par le NŒUD, une seule 
   }
 
   it('les DEUX selects de profil (défauts du corps, masse posée) rendent les libellés du nœud', async () => {
-    const attendu = Object.entries(valeursDe(roofProfileSchema)!);
+    const attendu = optionsDuNoeud(roofProfileSchema);
     expect(attendu.length).toBeGreaterThan(1);
 
     const lu: [string, string][][] = [];
@@ -838,7 +882,7 @@ describe('Inspector — le profil de toiture est nommé par le NŒUD, une seule 
 
 describe("Inspector — le type d'un ornement de façade est nommé par le NŒUD (#1694)", () => {
   it('le select « Type » rend les options du nœud, `belfry` compris', async () => {
-    const attendu = Object.entries(valeursDe(facadeFeatureKindSchema)!);
+    const attendu = optionsDuNoeud(facadeFeatureKindSchema);
     expect(attendu.map(([id]) => id)).toContain('belfry');
 
     const scene: Scene = {
