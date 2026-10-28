@@ -28,6 +28,7 @@ import { hasActiveFlag } from './activeFlags';
 import { wornSocialMods, qualityWearMods } from './wearPenalty';
 import type { GameOp, PairedSense, PassiveKind, PassiveMod } from './ops';
 import { resolveFormula } from './ops';
+import { valeurSansTirage, type LectureDeCarac } from './formule';
 import traumasJson from '../data/traumas.json';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
@@ -972,7 +973,8 @@ export function aPassifVisible(c: Combatant): boolean {
   return passiveMods(c).some((m) => m.visible === true);
 }
 
-export function passiveMods(c: Combatant): PassiveMod[] {
+/** `talents: false` : le collecteur sans sa branche de talents, ce que `wounds.base` ne contient pas (#3060). */
+export function passiveMods(c: Combatant, talents = true): PassiveMod[] {
   const out: PassiveMod[] = [];
   out.push(...traumaPassiveMods(c));
   // Maladies (kind `maladie`, annulée par Détermination ; passifs des symptômes via `diseasePassiveOps`) +
@@ -1035,7 +1037,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   if (c.liveTraits?.length) out.push(...traitPassiveMods(c.liveTraits));
   // Talents POSSÉDÉS (LDB 10) : leur `passive: GameOp[]` (Coup puissant, Dur à cuire… ou Frénésie →
   // grantFreeAttack) émis kind `intrinseque`, par niveau — comme les traits. Disjoint → zéro double-compte.
-  out.push(...talentPassiveMods(c));
+  if (talents) out.push(...talentPassiveMods(c));
   for (const e of c.activeEffects ?? []) {
     // `src`/`label` = L'EFFET émetteur : un `skillMod` de SORT doit s'annoncer au nom de son sort, pas
     // au repli de famille de son seau (`kind:'magique'` tombe côté volatil, donc « Séquelle » —
@@ -1075,6 +1077,11 @@ export function traumaMovementHalved(c: Combatant): boolean {
  *  `frenzied ? 1 : 0` codé en dur — la donnée vient de `psychology.json` via `passiveMods`. */
 export function damageSBBonus(c: Combatant): number {
   return pmods(c, 'sbBonus').reduce((n, o) => n + o.amount, 0);
+}
+
+/** Σ des `attrMod` de l'attribut `attr` parmi `mods`, évalués sur `ref` avant tout jet (#3060). */
+export function sommeAttrMods(mods: readonly PassiveMod[], attr: 'wounds' | 'fortune' | 'resolve', ref: Combatant | LectureDeCarac): number {
+  return mods.reduce((s, m) => s + (m.op.op === 'attrMod' && m.op.attr === attr ? valeurSansTirage(m.op.mod, ref) : 0), 0);
 }
 
 /** Σ des `charMod` ADDITIFS (mutation/qualité, kind `intrinseque`) pour la Caractéristique `key` — sommés

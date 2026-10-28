@@ -741,6 +741,12 @@
                     "mod": 1
                   },
                   {
+                    "op": "attrMod",
+                    "attr": "wounds",
+                    "mod": 4,
+                    "auTotal": true
+                  },
+                  {
                     "op": "grantTrait",
                     "trait": {
                       "id": "arme",
@@ -809,7 +815,7 @@
       "book": "middenheim",
       "page": 116
     },
-    "stake": "Sur soi : la forme hybride prend — Capacité de Combat, Force, Endurance, Initiative et Agilité +10, Dextérité et Intelligence −10, Sociabilité −20, Mouvement +1, et les Traits Arme (BF +4), Armure 2, Morsure (BF +3), Peur 2, Pisteur, Vision nocturne — au prix de l’Action du tour.",
+    "stake": "Sur soi : la forme hybride prend — Capacité de Combat, Force, Endurance, Initiative et Agilité +10, Dextérité et Intelligence −10, Sociabilité −20, Mouvement +1, Blessures +4 au total, et les Traits Arme (BF +4), Armure 2, Morsure (BF +3), Peur 2, Pisteur, Vision nocturne — au prix de l’Action du tour.",
     "stakeForm": "descripteur"
   },
   {

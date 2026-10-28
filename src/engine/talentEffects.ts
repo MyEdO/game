@@ -27,11 +27,12 @@
  * par l'espèce. Les autres talents (combat, social…) sont hors périmètre.
  */
 import { Combatant, CHAR_KEYS, CharKey, TalentInstance } from './types';
-import { bonus, maxWounds } from './characteristics';
+import { maxWounds } from './characteristics';
 import { findTalentById, findTraitById, blessingsOf } from '../data';
 import { wildcardSpecs, inCareerStatus, type CareerSlot, type InCareerStatus } from './careerSlots';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
 import type { PassiveMod } from './ops';
+import { passiveMods, sommeAttrMods } from './trauma';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 
 /**
@@ -49,19 +50,6 @@ export function baseWithTalents(c: Combatant, key: CharKey): number {
     }
   }
   return val;
-}
-
-/** Σ des `attrMod{attr}` (mod NUMÉRIQUE) portés par les talents du héros, × `times` — Chance (Chanceux),
- *  Détermination (Obstiné). DATA-DRIVEN : lit `TalentData.passive`, jamais un libellé. (Les mod-FORMULE,
- *  ex. Dur à cuire +BE, sont résolus par leur lecteur dédié — pas ici.) */
-function talentAttrSum(hero: Combatant, attr: 'fortune' | 'resolve'): number {
-  let n = 0;
-  for (const t of hero.talents ?? []) {
-    for (const op of findTalentById(t.talentId)?.passive ?? []) {
-      if (op.op === 'attrMod' && op.attr === attr && typeof op.mod === 'number') n += op.mod * (t.times ?? 1);
-    }
-  }
-  return n;
 }
 
 /**
@@ -100,21 +88,10 @@ export function appliquerAcquisitions(porteur: Combatant): void {
   for (const t of porteur.talents ?? []) for (let i = 0; i < (t.times ?? 1); i++) applyTalentAcquisition(porteur, t.talentId, t.spec);
 }
 
-/** Points de Blessure supplémentaires : BE par acquisition d'un talent « Blessure » (Dur à cuire).
- *  Le BE utilisé est `baseWithTalents(hero,'endurance')` pour inclure un éventuel +5 E de « Très résistant ». */
+/** Points de Blessure des `attrMod{wounds}` des talents (Dur à cuire, LDB 10), évalués sur `baseWithTalents`
+ *  (le +5 E de Très résistant compris) : la part talents de `wounds.base` (#3060). */
 export function extraWounds(hero: Combatant): number {
-  let n = 0;
-  for (const t of hero.talents ?? []) {
-    for (const op of findTalentById(t.talentId)?.passive ?? []) {
-      if (op.op === 'attrMod' && op.attr === 'wounds') {
-        // Dur à cuire = +Bonus d'Endurance par acquisition : mod-formule `{bonusOf:'endurance'}` résolu sur
-        // baseWithTalents (inclut le +5 E de Très résistant si possédé), pas sur la valeur brute.
-        const per = typeof op.mod === 'number' ? op.mod : 'bonusOf' in op.mod ? bonus(baseWithTalents(hero, op.mod.bonusOf)) : 0;
-        n += per * (t.times ?? 1);
-      }
-    }
-  }
-  return n;
+  return sommeAttrMods(talentPassiveMods(hero), 'wounds', (k) => baseWithTalents(hero, k));
 }
 
 /** Blessures max d'un héros = formule des Attributs (BF+2×BE+BFM × Taille) + talents « Blessure ».
@@ -131,19 +108,19 @@ export function heroMaxWounds(hero: Combatant): number {
 }
 
 /** Σ des `attrMods{attr}` d'effets ACTIFS (op `attrMod` exécutée — buff temporaire, ext. consommables) —
- *  s'ajoute aux passifs de talent dans les maxima dérivés, expire avec l'effet porteur. */
+ *  s'ajoute aux `attrMod` passifs dans les maxima dérivés, expire avec l'effet porteur. */
 function activeAttrSum(hero: Combatant, attr: 'fortune' | 'resolve'): number {
   return (hero.activeEffects ?? []).reduce((s, e) => s + (e.attrMods?.[attr] ?? 0), 0);
 }
 
-/** Maximum de Points de Chance : Destin + niveaux des talents « Chance » (Chanceux, LDB 10) + effets actifs. */
+/** Maximum de Points de Chance : Destin + `attrMod{fortune}` passifs de tout porteur (Chanceux, LDB 10) + effets actifs. */
 export function fortuneMax(hero: Combatant): number {
-  return (hero.fate ?? 0) + talentAttrSum(hero, 'fortune') + activeAttrSum(hero, 'fortune');
+  return (hero.fate ?? 0) + sommeAttrMods(passiveMods(hero), 'fortune', hero) + activeAttrSum(hero, 'fortune');
 }
 
-/** Maximum de Détermination : Résilience + niveaux des talents « Détermination » (Obstiné) + effets actifs. */
+/** Maximum de Détermination : Résilience + `attrMod{resolve}` passifs de tout porteur (Obstiné) + effets actifs. */
 export function resolveMax(hero: Combatant): number {
-  return (hero.resilience ?? 0) + talentAttrSum(hero, 'resolve') + activeAttrSum(hero, 'resolve');
+  return (hero.resilience ?? 0) + sommeAttrMods(passiveMods(hero), 'resolve', hero) + activeAttrSum(hero, 'resolve');
 }
 
 
