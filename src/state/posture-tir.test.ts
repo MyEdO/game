@@ -67,7 +67,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
 
   it('le gate PORTE SA RAISON : sans arme à distance, et une fois le Mouvement entamé', () => {
     const { H } = setup();
-    const ctx = () => ({ active: useGame.getState().battle!.combatants.find((c) => c.id === H.id)!, battle: useGame.getState().battle! });
+    const ctx = () => ({ active: useGame.getState().battle!.combatants.find((c) => c.id === H.id)!, battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime });
     expect(actionGate('posture-tir', ctx()).ok, 'arc en main, Mouvement intact → offerte').toBe(true);
 
     useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: 1 } });
@@ -238,7 +238,7 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
 
   it('gate : offerte face à un GROUPE serré, refusée (avec sa raison) sans groupe', () => {
     const nu = setup(false);
-    const ctx = (id: string) => ({ active: useGame.getState().battle!.combatants.find((c) => c.id === id)!, battle: useGame.getState().battle! });
+    const ctx = (id: string) => ({ active: useGame.getState().battle!.combatants.find((c) => c.id === id)!, battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime });
     const refus = actionGate('posture-tas', ctx(nu.H.id));
     expect(refus.ok).toBe(false);
     expect(refus.reason).toBe('aucun groupe serré en vue');

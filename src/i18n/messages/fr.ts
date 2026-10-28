@@ -1153,7 +1153,7 @@ export const fr = {
   'cs.freeAttack': "{name} : attaque d'arme libre (Action préservée).",
   'cs.combatStart': 'Le combat commence ! (Round 1)',
   'cs.surprised': '{name} est Surpris : ni Mouvement ni Action ce tour (Détermination possible).',
-  'cs.brokenFlee': '{name} est Brisé : il ne peut que fuir ou puiser dans sa Détermination.',
+  'cs.stateLockFlee': '{name} est {etat} : il ne peut que fuir ou puiser dans sa Détermination.',
   'cs.useConsumable': '{name} utilise : {item}.',
   'cs.sigmarWard': "{name} : −20 en Langue (Magick) — la cible est sous la protection de Sigmar (N'écoutez point la Sorcière).",
   'cs.aqshyBonus': '{name} : +{n} en Langue (Magick) — Aqshy se nourrit des flammes proches.',
@@ -3137,6 +3137,12 @@ export const fr = {
   'agate.noFocusSkillWind': '{name} ne maîtrise pas Focalisation ({wind})',
   // ADE II 8 l.233 (seuil de la moitié de l'Équipe requise, `noyau/siegePush.pushCrewOk`).
   'agate.pushUndercrew': 'équipe trop réduite pour pousser l’engin',
+  'agate.nothingToReload': 'aucune arme à recharger',
+  'agate.alreadyAiming': 'déjà en joue',
+  'agate.shantyQuartSung': 'ce quart a déjà eu sa chanson',
+  'agate.noShantySinger': 'aucun chanteur libre à bord',
+  'agate.noPosteToReload': 'aucune pièce déchargée dont le chef soit libre',
+  'agate.noLoadedPostes': 'aucune pièce chargée à bord',
   // PERTINENCE d'une entrée (`GATES_DE_PERTINENCE`, #2911) : ce que le porteur n'a pas pour que l'offre ait lieu d'être.
   'agate.noMeleeSet': 'le set au poing n’ouvre aucun corps à corps',
   'agate.noRangedWeapon': 'aucune arme à distance',
