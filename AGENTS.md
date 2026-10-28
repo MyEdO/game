@@ -37,7 +37,7 @@ script au nom différent du doc est entre parenthèses.
 | Passif, corruption | `docs/systeme-passifs.md` (`docs:passifs`) |
 | Triggers / événements de combat | `docs/combat-events-coherence.md` |
 | Ajouter une créature (rig) | `docs/creer-une-creature.md` |
-| Élément 3D depuis une illustration | skill `creer-un-personnage-3d` |
+| Élément 3D depuis une illustration | `docs/creer-un-personnage-3d.md` |
 | Ajouter/curer une donnée | `docs/donnees.md`, `docs/ajouter-une-donnee.md` (`docs:ajouter-donnee`) |
 | Authoring de map | `docs/map-authoring.md` |
 | Créer/modifier une campagne | `docs/campagne-authoring.md`, skill `creer-une-campagne` |
