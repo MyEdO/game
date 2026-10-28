@@ -20,12 +20,12 @@ import { bonus, effectiveChar } from './characteristics';
 import { talentCorruptionThreshold } from './combatFeatures/dispatch';
 import { findTableEntry } from './tables';
 import { mutationBodyMaxForSpecies } from '../data';
-import { rollObsession } from '../data/obsessions';
 import { acquerirTalent, retirerTalent } from './careerSlots';
 import { passiveCharSum } from './trauma';
 import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';
 import type { PsychType } from './psychology';
 import type { GameOp } from './ops';
+import { traitsOctroyes } from './traitOctroye';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { TriggeredEffect } from './flowCore';
 
@@ -198,12 +198,12 @@ function resoudrePlancher(c: Combatant, op: GameOp): GameOp {
 }
 
 /** Attache une mutation au personnage : donnée + traits dérivés (créature/psychologie). RNG seedable
- *  pour les Cibles TIRÉES (`argFrom:'obsessions'` — Haine sporadique / Terribles phobies, EDOC 12).
+ *  pour les Cibles TIRÉES (`grantTrait.cible` — Haine sporadique / Terribles phobies, EDOC 12 l.217, l.241).
  *  Un `charMod` à plancher (`min`) est FIGÉ sur l'instance en son delta (`resoudrePlancher`).
- *  `grantTrait`/`grantPsychTrait` (noyau PARTAGÉ `grantedTraits.ts`, ci-dessus importé) : MÊME chemin
- *  que l'op homonyme de `applyOps`, permanent (aucun `ActiveEffect` porteur — une mutation n'expire
- *  jamais). `grantTalent` : `acquerirTalent` (engine/careerSlots.ts), les passifs d'une mutation ne passant
- *  pas par `applyOps`. Rend l'instance attachée. */
+ *  `grantTrait` (résolution PARTAGÉE `traitsOctroyes`, le mutant pour lanceur) et `grantPsychTrait` (noyau
+ *  PARTAGÉ `grantedTraits.ts`) : MÊME chemin que l'op homonyme de `applyOps`, permanent (aucun `ActiveEffect`
+ *  porteur — une mutation n'expire jamais). `grantTalent` : `acquerirTalent` (engine/careerSlots.ts), les
+ *  passifs d'une mutation ne passant pas par `applyOps`. Rend l'instance attachée. */
 export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG): Mutation {
   const m = structuredClone(tiree); // #2097
   if (m.passive) m.passive = m.passive.map((op) => resoudrePlancher(c, op));
@@ -211,17 +211,11 @@ export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG): Mutatio
   const src: EffectSource = { kind: 'mutation', id: m.id };
   for (const op of m.passive ?? []) {
     if (op.op === 'grantTrait') {
-      // Valeur LITTÉRALE (les mutations RAW ont des indices fixes : Peur 3, Morsure +5).
-      const value = typeof op.indice === 'number' ? op.indice : undefined;
-      // Cible : littérale (`arg`), ou TIRÉE sur le Tableau des Obsessions (`argFrom:'obsessions'`,
-      // « Haine sporadique » → Haine (Cible) déterminée par les Obsessions, EDOC 12).
-      const arg = op.arg ?? (op.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
       // PROVENANCE de l'instance : la mutation elle-même (registre `TraitInstance.src`), interrogée par
       // son `removeTrait` de re-ciblage et par `detachMutation`.
-      grantTrait(c, { id: op.traitId, ...(arg ? { arg } : {}), ...(value != null ? { value } : {}), ...(op.range != null ? { range: op.range } : {}), src });
+      for (const t of traitsOctroyes(op, { lanceur: c, porteur: c, rng, src })) grantTrait(c, t);
     } else if (op.op === 'grantPsychTrait') {
-      const cible = op.cible ?? (op.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
-      grantPsychTrait(c, op.psychType as PsychType, cible, src);
+      grantPsychTrait(c, op.psychType as PsychType, op.cible, src);
     } else if (op.op === 'grantTalent') {
       if (acquerirTalent(c, op.talent)) talentsAcquis.push(op.talent);
     }
@@ -247,13 +241,16 @@ export function detachMutation(c: Combatant, m: Mutation): void {
   const attachee = list[i];
   c.mutations = [...list.slice(0, i), ...list.slice(i + 1)];
   for (const talent of attachee.talentsAcquis ?? []) retirerTalent(c, talent);
-  // Retrait PAR PROVENANCE (`src` posé par `attachMutation`) : la Cible tirée d'un `argFrom` n'est pas dans
-  // l'op, et un Trait natif identique n'est pas celui de la mutation. Une instance retirée par op.
+  // Retrait PAR PROVENANCE (`src` posé par `attachMutation`) : la Cible tirée (`cible`) n'est pas dans
+  // l'op, et un Trait natif identique n'est pas celui de la mutation. Autant d'instances retirées par op
+  // qu'elle en a accordé (une par tirage).
   const deLaMutation = (src: EffectSource | undefined): boolean => src?.kind === 'mutation' && src.id === attachee.id;
   for (const op of attachee.passive ?? []) {
     if (op.op === 'grantTrait') {
-      const i = dernierIndex(c.traits ?? [], (t) => t.id === op.traitId && deLaMutation(t.src));
-      if (i >= 0) removeGrantedTrait(c, c.traits![i]);
+      for (let n = op.cible?.pick ?? 1; n > 0; n--) {
+        const k = dernierIndex(c.traits ?? [], (t) => t.id === op.trait.id && deLaMutation(t.src));
+        if (k >= 0) removeGrantedTrait(c, c.traits![k]);
+      }
     } else if (op.op === 'grantPsychTrait') {
       const j = dernierIndex(c.psychTraits ?? [], (x) => x.type === op.psychType && deLaMutation(x.src));
       if (j >= 0) c.psychTraits = [...c.psychTraits!.slice(0, j), ...c.psychTraits!.slice(j + 1)];

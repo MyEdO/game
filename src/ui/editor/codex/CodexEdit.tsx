@@ -25,6 +25,7 @@ import { weatherIdSchema } from '../../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema, battleSideSchema } from '../../../data/schemas/defs/activities';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
 import { RefField, SaisieSuggeree, cfgDeLaFeuille, cfgDuNoeudType, refFieldCfg, libelleDeDataset, useSuggestionsPartagees, useValeursDistinctes } from '../../compendium/refField/RefField';
+import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { DescRefField } from '../../compendium/DescRefField';
 import type { DescRef } from '../../../data/source/decoupe';
 import { Icon } from '../../Icon';
@@ -56,12 +57,12 @@ import type { ManeuverDef, ManeuverMeasure } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
 import type { AttackKind } from '../../../engine/creatureAttacks';
 import { WeaponField } from '../WeaponField';
-import { PsychTraitsField } from '../PsychTraitsField';
 import type { Weapon } from '../../../engine/types';
-import type { PsychTrait } from '../../../engine/psychology';
 import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DispoSaisonniereField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
+import { AlsoInField } from '../../AlsoInField';
 import type { OptionalRule } from '../../../engine/policy';
-import type { TraitInstance, OptionalEntry, TraitList } from '../../../engine/statEntry';
+import type { OptionalEntry } from '../../../engine/statEntry';
+import type { TraitPose } from '../../../data/schemas/grammaire/reference';
 import { isSwarm } from '../../../engine/traits/dispatch';
 import type { DomainData } from '../../../data';
 import type { CharKey, Difficulty } from '../../../engine/types';
@@ -279,23 +280,20 @@ export function lignesEnRefs<T>(texte: string, parse: (ligne: string) => T): T[]
   return texte.split('\n').map((s) => s.trim()).filter(Boolean).map(parse);
 }
 
-/** Champ MULTILIGNE de refs au format livre (une par ligne). La saisie vit en BROUILLON local et se
- *  POSE au blur : la normalisation par la porte ne réécrit jamais la ligne sous les doigts de
- *  l'auteur. Le blur ne REFUSE rien : toute ligne est coercée en ref par le parse (un nom inconnu
- *  devient son slug). Le refus est NOMINATIF au Save — `validateEntry` rend « skills : réf « X »
- *  introuvable (skills) » et l'enregistrement reste bloqué tant qu'une erreur subsiste. */
-function LignesFormatLivreField({ label, hint, value, onCommit }: { label: string; hint: string; value: string; onCommit: (texte: string) => void }) {
-  const [brouillon, setBrouillon] = useState<string | null>(null);
+/** Champ MULTILIGNE de refs au format livre (une par ligne), en BROUILLON (`SaisieEnBrouillon`) posé au
+ *  blur. Le blur ne REFUSE rien : toute ligne est coercée en ref par le parse (un nom inconnu devient son
+ *  slug). Le refus est NOMINATIF au Save — `validateEntry` rend « skills : réf « X » introuvable
+ *  (skills) » et l'enregistrement reste bloqué tant qu'une erreur subsiste. */
+function LignesFormatLivreField<T>(
+  { label, hint, value, libelle, parse, onChange }:
+  { label: string; hint: string; value: T[] | undefined; libelle: (r: T) => string; parse: (ligne: string) => T; onChange: (refs: T[]) => void },
+) {
   return (
     <label className="ed-field">
       <span>{label}</span>
       <span className="ed-hint">{hint}</span>
-      <textarea
-        rows={6}
-        value={brouillon ?? value}
-        onChange={(e) => setBrouillon(e.target.value)}
-        onBlur={() => { if (brouillon != null) { onCommit(brouillon); setBrouillon(null); } }}
-      />
+      <SaisieEnBrouillon
+        lignes={6} value={value ?? []} afficher={(v) => refsEnLignes(v, libelle)} relire={(t) => lignesEnRefs(t, parse)} onChange={onChange} />
     </label>
   );
 }
@@ -321,7 +319,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (['spells', 'traits', 'qualities', 'domains', 'talents', 'maneuvers', 'etats', 'psychologies', 'symptoms', 'mutations'].includes(categoryKey)) add('effects');
   if (categoryKey === 'maneuvers') add(...MANEUVER_PROFILE_KEYS);
   if (['traits', 'qualities', 'mutations', 'talents', 'etats', 'trappings', 'psychologies', 'navalTraits'].includes(categoryKey)) add('passive');
-  if (categoryKey === 'structures' || categoryKey === 'races') add('traits'); // {id,value?}[] → réutilise TraitListField (comme creatures) — Trait racial d'espèce (encombrance/consommation), #572
+  if (categoryKey === 'races') add('traits'); // Traits posés → réutilise TraitListField (comme creatures) — Trait racial d'espèce (encombrance/consommation), #572
   if (categoryKey === 'crewRoles') add('skills'); // {id,spec?}[] → éditeur dédié (SkillSpecListField)
   if (categoryKey === 'axes') add('skills', 'talents'); // #409 : {id,spec?}[] → SkillSpecListField/TalentSpecListField
   if (categoryKey === 'traumas') add('prosthesis'); // {trappingId,cancels}[] → éditeur dédié (ProsthesisField)
@@ -331,7 +329,6 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'symptoms') add('passive', 'passiveBySeverity', 'onTick', 'visiblePassive', 'visibleLocations'); // GameOp[] + test de cycle + gate visibilité → éditeurs dédiés (capabilities = sous-form générique)
   if (categoryKey === 'stars') add('sub');
   if (categoryKey === 'mutationTables' || categoryKey === 'weather') add('ranges');
-  if (categoryKey === 'mutations') add('psychTraits');
   if (['mutations', 'trappings'].includes(categoryKey)) add('derivedWeapon');
   if (categoryKey === 'trappings') add('consumable', 'consumableDuration', 'onHitEffects'); // onHitEffects → TriggeredEffectsField (#175)
   // #1318 : paliers d'entraînement d'une PROTHÈSE (LDB 73) — `{cost,label,reduces?,grants?}[]`,
@@ -342,7 +339,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (VARIANT_FIELDS_BY_CATEGORY[categoryKey]) add('variants'); // variants → VariantsField (#563)
   if (porteAlsoIn(categoryKey)) add('alsoIn'); // alsoIn → AlsoInField (#563)
   if (categoryKey === 'skills' || categoryKey === 'talents') add('specs');
-  if (categoryKey === 'traits') add('specsSource', 'indice', 'range', 'specsOpen', 'specsMulti'); // schéma d'argument → éditeur dédié
+  if (categoryKey === 'traits') add('specsSource', 'indice', 'range', 'specsOpen'); // schéma d'argument → éditeur dédié
   // V9 #1318 : la VALEUR d'une règle optionnelle est typée par son `kind` (`RuleValueField`/
   // `RuleActionField`) — le champ inféré serait un TEXTE pour les 81 règles (échantillon `mode`),
   // et `"false"` y éteindrait une règle sans un mot. `validateEntry` refuse en plus au save.
@@ -500,9 +497,6 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // Talents inclus (Coup puissant, Dur à cuire… ou Frénésie → grantFreeAttack, tous en `passive`).
   // `psychologies` (États psy) et `navalTraits` (Trait/Amélioration de navire, #157) rejoignent le lot.
   const isPassive = categoryKey === 'traits' || categoryKey === 'qualities' || categoryKey === 'mutations' || categoryKey === 'talents' || categoryKey === 'etats' || categoryKey === 'symptoms' || categoryKey === 'trappings' || categoryKey === 'psychologies' || categoryKey === 'navalTraits';
-  // Structure de siège (`structures`, #157) : `traits` = {id,value?}[] → réutilise TraitListField (comme
-  // les Traits/Traits optionnels d'une créature).
-  const isStructure = categoryKey === 'structures';
   // Rôle d'équipage (`crewRoles`, #157) : `skills` = {id,spec?}[] → éditeur dédié.
   const hasCrewSkills = categoryKey === 'crewRoles';
   // Axe de forces (`axes`, #409) : `skills`/`talents` = {id,spec?}[] → éditeurs dédiés
@@ -526,8 +520,6 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const isMutationTable = categoryKey === 'mutationTables';
   // Météo : ses `ranges` (plages d100 → type de météo) ont leur éditeur dédié.
   const isWeather = categoryKey === 'weather';
-  // Mutation : traits psy conférés (PsychTraitsField) — sorti du repli JSON.
-  const isMutation = categoryKey === 'mutations';
   // Arme DÉRIVÉE (WeaponField) : portée par une Mutation (Tentacule…) OU une Possession (prothèse-arme).
   const hasDerivedWeapon = categoryKey === 'mutations' || categoryKey === 'trappings';
   const hasConsumable = categoryKey === 'trappings';
@@ -554,13 +546,13 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const hasDispoSaisonniere = categoryKey === 'seaCargo' || categoryKey === 'landCargo';
   // Domaine de magie : `castBonus`/`missile`/`casterOps` = attributs de domaine (éditeur dédié).
   const hasDomainEffects = categoryKey === 'domains';
-  // Créature : `traits`/`optionals` = TraitInstance[] (réutilise `TraitListField` du StatblockEditor),
+  // Créature : `traits`/`optionals` = TraitPose[] (réutilise `TraitListField` du StatblockEditor),
   // `harvest` = objet { rareté, dangerosité, usages } (HarvestField) → sortis du repli JSON.
   const isCreature = categoryKey === 'creatures';
   // Détails de création (objet unique `details.json`) : `texts` (5 entrées { all, bySpecies }) a son
   // éditeur dédié ; les 4 records Âge/Taille restent au formulaire générique (`recordNumber`).
   const isDetails = categoryKey === 'details';
-  // Trait : SCHÉMA de son argument (indice/range/specsSource/specsOpen/specsMulti) → éditeur dédié
+  // Trait : SCHÉMA de son argument (indice/range/specsSource/specsOpen) → éditeur dédié
   // (select des sources DÉRIVÉ de SPEC_SOURCES + booléens + libellé d'indice), sorti du repli générique.
   const isTrait = categoryKey === 'traits';
   // Espèce : Trait racial (`traits`, #572) → réutilise TraitListField (comme creatures/structures) —
@@ -703,7 +695,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
       )}
       <SuiviDesSaisies signaler={saisies.signaler}>
       <div className="codex-edit-form">
-        {hasAppearance && <AppearanceField traits={categoryKey === 'creatures' ? entry.traits as TraitList : undefined} label={libelle} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitInstance[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
+        {hasAppearance && <AppearanceField traits={categoryKey === 'creatures' ? entry.traits as TraitPose[] : undefined} label={libelle} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitPose[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
@@ -775,7 +767,6 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
           </div>
         )}
         {hasConsumable && <ConsumableDurationField value={entry.consumableDuration as ConsumableDuration | undefined} onChange={(v) => edit('consumableDuration', v)} />}
-        {isMutation && <PsychTraitsField value={entry.psychTraits as PsychTrait[] | undefined} onChange={(v) => edit('psychTraits', v)} />}
         {isDisease && <SymptomsField value={entry.symptoms as DiseaseSymptom[] | undefined} onChange={(v) => edit('symptoms', v)} />}
         {isDisease && <DiseaseDailyTestField value={entry.dailyTest as DiseaseDailyTest | undefined} onChange={(v) => edit('dailyTest', v)} />}
         {hasCombat && <TalentTestField value={entry.test as TalentTest | undefined} onChange={(v) => edit('test', v)} />}
@@ -828,27 +819,26 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {categoryKey === 'buildings' && <GenericArrayField chemin={chemin('features')} noeud={noeudDe('features')} label="ornements d’identité (décor posé et son ancrage)" value={entry.features as Record<string, unknown>[] | undefined} onChange={(v) => edit('features', v.length ? v : undefined)} />}
         {isCreature && (
           <>
-            <TraitListField label="Traits" hint="(LDB 85 — armement « Arme (Épée) +7 », Psychologie « Peur 3 »…)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />
-            <OptionalsListField label="Traits optionnels" hint="(LDB 76 — proposés au spawn ; notes composées « swap »/« tous les traits » en lecture seule)" value={entry.optionals as OptionalEntry[] | undefined} onChange={(v) => edit('optionals', v)} />
+            <TraitListField chemin={chemin('traits')} label="Traits" hint="(LDB 85 — armement « Arme (Épée) +7 », Psychologie « Peur 3 »…)" value={entry.traits as TraitPose[] | undefined} onChange={(v) => edit('traits', v)} />
+            <OptionalsListField chemin={chemin('optionals')} label="Traits optionnels" hint="(LDB 76 — proposés au spawn ; notes composées « swap »/« tous les traits » en lecture seule)" value={entry.optionals as OptionalEntry[] | undefined} onChange={(v) => edit('optionals', v)} />
             <HarvestField value={entry.harvest as { rarity: import('../../../data').HarvestRarity; danger: import('../../../data').HarvestDanger; uses: string } | undefined} onChange={(v) => edit('harvest', v)} />
             <LignesFormatLivreField
               label="Compétences"
               hint="(une par ligne, format livre « Compétence (Spéc) Valeur » : « Langue (Magick) 63 », « Savoir (Au choix) 65 », « Métier (Armurier ou Forgeron) 50 », « Esquive 48 » — la valeur est le Test FINAL)"
-              value={refsEnLignes(entry.skills as SkillRef[] | undefined, skillRefLabel)}
-              onCommit={(t) => edit('skills', lignesEnRefs(t, parseSkillRef))}
+              value={entry.skills as SkillRef[] | undefined} libelle={skillRefLabel} parse={parseSkillRef}
+              onChange={(v) => edit('skills', v)}
             />
             <LignesFormatLivreField
               label="Talents"
               hint="(un par ligne, format livre « Talent (Spéc) Niveau » : « Magie des Arcanes (Bête) », « Maîtrise du combat 3 », « Lire/Écrire »)"
-              value={refsEnLignes(entry.talents as TalentRef[] | undefined, talentRefLabel)}
-              onCommit={(t) => edit('talents', lignesEnRefs(t, parseTalentRef))}
+              value={entry.talents as TalentRef[] | undefined} libelle={talentRefLabel} parse={parseTalentRef}
+              onChange={(v) => edit('talents', v)}
             />
           </>
         )}
         {isDetails && <DetailsTextsField value={entry.texts as DetailsTexts | undefined} onChange={(v) => edit('texts', v)} />}
         {isTrait && <TraitSchemaField entry={entry} edit={edit} />}
-        {isStructure && <TraitListField label="Atouts" hint="(Résistant/Impénétrable — ADE II 8)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />}
-        {isRace && <TraitListField label="Trait racial" hint="(Ogre : encombrance/consommation ×2 ; Taille = talent Massif/Petit)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />}
+        {isRace && <TraitListField chemin={chemin('traits')} label="Trait racial" hint="(Ogre : encombrance/consommation ×2 ; Taille = talent Massif/Petit)" value={entry.traits as TraitPose[] | undefined} onChange={(v) => edit('traits', v)} />}
         {hasCrewSkills && <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
         {hasAxes && <SkillSpecListField hint="compétences contribuant à l'axe (facultatif)" value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
         {hasAxes && <TalentSpecListField value={entry.talents as RefDesignee[] | undefined} onChange={(v) => edit('talents', v)} />}
@@ -914,7 +904,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
 }
 
 /** Apparence par défaut d'une créature (bloc `appearance`, #1897). */
-function AppearanceField({ label, porteur, nuee, value, onChange, traits }: { traits?: TraitList; label: string; porteur?: string; nuee: boolean; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
+function AppearanceField({ label, porteur, nuee, value, onChange, traits }: { traits?: readonly TraitPose[]; label: string; porteur?: string; nuee: boolean; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
   const a = value ?? {};
   // Le harnachement est un canal du pipeline QUADRUPÈDE (quad ∪ ailé) : hors de ces gabarits, la
   // clé serait de la donnée absurde, ignorée au rendu — le sélecteur n'est donc pas offert.
@@ -1127,8 +1117,8 @@ function ManeuverDefField({ entry, edit }: { entry: Entry; edit: (key: string, v
 /** Éditeur du SCHÉMA d'ARGUMENT d'un Trait (`traits.json`) : décrit comment son INSTANCE porte sa
  *  valeur/argument — `indice` (sens de la valeur numérique : Indice/Difficulté/Degré…), `range` (portée
  *  en m), `specsSource` (registre d'où l'`arg` tire ses ids — catalogue `SPEC_SOURCES`), `specsOpen`
- *  (arg = texte libre), `specsMulti` (arg = liste d'ids séparés par virgules). Réutilise les motifs
- *  existants (select comme `ManeuverDefField`, checkbox `.dr`, input `.dr`). Gate `traits` uniquement. */
+ *  (arg = texte libre). Réutilise les motifs existants (select comme `ManeuverDefField`, checkbox
+ *  `.dr`, input `.dr`). Gate `traits` uniquement. */
 function TraitSchemaField({ entry, edit }: { entry: Entry; edit: (key: string, v: unknown) => void }) {
   const indice = entry.indice as { label: string } | undefined;
   return (
@@ -1149,7 +1139,6 @@ function TraitSchemaField({ entry, edit }: { entry: Entry; edit: (key: string, v
           </select>
         </label>
         <label className="dr"><input type="checkbox" checked={!!entry.specsOpen} onChange={(e) => edit('specsOpen', e.target.checked || undefined)} /> argument en texte libre (ouvert)</label>
-        <label className="dr"><input type="checkbox" checked={!!entry.specsMulti} onChange={(e) => edit('specsMulti', e.target.checked || undefined)} /> liste d’ids (séparés par virgules)</label>
       </div>
     </div>
   );
@@ -1254,62 +1243,6 @@ function TraumaListField({ value, onChange }: { value: string[] | undefined; onC
         </div>
       ))}
       <button className="btn small" onClick={() => set([...list, ''])}>+ Traumatisme</button>
-    </div>
-  );
-}
-
-/** Une rangée de `AlsoInField` : `valeur` = réf COMPLÈTE émise ; absente, la rangée est un BROUILLON
- *  local, dont la citation déjà saisie attend dans `quote`. `cle` = identité stable de la rangée. */
-type RangeeAlsoIn = { cle: number; valeur?: SecondaryRef; quote?: string };
-
-/** Emplacements SECONDAIRES d'une entrée réimprimée ailleurs (`alsoIn: SecondaryRef[]`, #563, doctrine
- *  user 2026-07-17 — « jamais 2 talents différents »). L'ANCRE (`source`) reste seule à porter la
- *  `desc` (règle stricte 5) ; chaque rangée secondaire = `{book,page,note?}` + `quote` (preuve
- *  verbatim, obligatoire si le label n'est pas imprimé tel quel dans ce span). La liste n'ÉMET que ses
- *  rangées complètes, contrat de `SourceRefField` (#1993). */
-function AlsoInField({ chemin, value, onChange }: { chemin: string; value: SecondaryRef[] | undefined; onChange: (v: SecondaryRef[]) => void }) {
-  const [rangees, setRangees] = useState<RangeeAlsoIn[]>(() => (value ?? []).map((valeur, cle) => ({ cle, valeur })));
-  const [prochaine, setProchaine] = useState(() => value?.length ?? 0);
-  // Resynchronisation sur une valeur EXTERNE nouvelle ; la liste que le champ vient d'émettre (vide,
-  // le porteur la pose `undefined`) ne l'écrase pas, et ses brouillons survivent.
-  const [precedente, setPrecedente] = useState(value);
-  const [emise, setEmise] = useState<SecondaryRef[] | undefined>(value);
-  if (precedente !== value) {
-    setPrecedente(value);
-    if (value !== emise && !(value === undefined && emise?.length === 0)) {
-      setRangees((value ?? []).map((valeur, i) => ({ cle: prochaine + i, valeur })));
-      setProchaine(prochaine + (value?.length ?? 0));
-    }
-  }
-  const poser = (suivantes: RangeeAlsoIn[], emettre: boolean) => {
-    setRangees(suivantes);
-    if (!emettre) return;
-    const liste = suivantes.flatMap((r) => (r.valeur ? [r.valeur] : []));
-    setEmise(liste);
-    onChange(liste);
-  };
-  const remplacer = (cle: number, r: RangeeAlsoIn) => rangees.map((x) => (x.cle === cle ? r : x));
-  useSaisieEnCours(rangees.some((r) => !r.valeur && r.quote !== undefined));
-  const ajouter = () => {
-    poser([...rangees, { cle: prochaine }], false);
-    setProchaine(prochaine + 1);
-  };
-  return (
-    <div className="ed-field">
-      <span>Autres emplacements dans les livres — la description se lit à la source principale ci-dessus</span>
-      {rangees.map((r, i) => (
-        <div className="ed-field" key={r.cle}>
-          <SourceRefField identite={`${chemin}/${r.cle}`} label={`Emplacement ${i + 1}`} sujet={`de l'emplacement ${i + 1}`} value={r.valeur} onChange={(v) => poser(remplacer(r.cle, { cle: r.cle, valeur: r.valeur || !r.quote ? v : { ...v, quote: r.quote } }), true)} />
-          <div className="fieldrow">
-            <input aria-label={`Citation de l'emplacement ${i + 1}`} placeholder="citation verbatim — preuve du span (obligatoire si le label n'y est pas imprimé)" value={(r.valeur ? r.valeur.quote : r.quote) ?? ''} onChange={(e) => {
-              const quote = e.target.value || undefined;
-              poser(remplacer(r.cle, r.valeur ? { cle: r.cle, valeur: { ...r.valeur, quote } } : { cle: r.cle, quote }), r.valeur !== undefined);
-            }} />
-            <button className="btn small danger" aria-label={`Retirer l'emplacement ${i + 1}`} title="Retirer" onClick={() => poser(rangees.filter((x) => x.cle !== r.cle), r.valeur !== undefined)}>✕</button>
-          </div>
-        </div>
-      ))}
-      <button className="btn small" onClick={ajouter}>+ Emplacement secondaire</button>
     </div>
   );
 }

@@ -1,6 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { rule, type OptionalRule, type RuleValue } from '../engine/policy';
-import { setHouseRule, resetHouseRule, houseRulesMutability } from '../state/houseRules';
+import { prendreLeTemoinDesReglesMaisonWeb, reglerUneRegleMaisonWeb, remettreUneRegleMaisonWeb } from '../state/reglesMaison';
+import { reglesMaisonMutables } from '../noyau/reglesMaison';
+import { t } from '../i18n';
+import { ChipDeRefus } from './ChipDeRefus';
+import { nommerLesRetraits, type RetraitsDElagage } from '../noyau/persistance/elagage';
 import { useGame } from '../state/store';
 import { Icon } from './Icon';
 import { NumberField } from './NumberField';
@@ -21,7 +25,7 @@ const LOCK_NOTE_ID = 'hr-lock-note';
  * Coquille BORNÉE : la barre d'onglets tient en tête et seul `.hr-body` défile, quelle que soit la
  * longueur du registre (77 règles, 15 sections).
  *
- * Verrou de combat : la mutabilité vient de `houseRulesMutability` (contrat unique, `state/houseRules`).
+ * Verrou de combat : la mutabilité vient de `reglesMaisonMutables` (contrat unique, `noyau/reglesMaison`).
  * Le verrou étant de CLASSE, sa raison est écrite UNE fois en tête du panneau (`LOCK_NOTE_ID`) : les
  * contrôles et les boutons de remise au défaut s'y LIENT par `aria-describedby` (`GatedAction
  * reasonId=…`), aucune rangée ne la répète.
@@ -36,10 +40,16 @@ export function HouseRulesPanel() {
   const tabs = useMemo(() => houseRuleTabs(), []);
   const [tabKey, setTabKey] = useState(tabs[0]?.key ?? '');
   const active = tabs.find((t) => t.key === tabKey) ?? tabs[0];
-  const { mutable, reason: lockReason } = useMemo(() => houseRulesMutability(), [inBattle]);
+  const { mutable, reason: lockReason } = useMemo(() => reglesMaisonMutables(useGame.getState()), [inBattle]);
+  // Témoin consommé dans un EFFET, jamais à l'initialisation du rendu (double passe de `<React.StrictMode>`).
+  const [retirees, setRetirees] = useState<RetraitsDElagage | null>(null);
+  useEffect(() => {
+    const r = prendreLeTemoinDesReglesMaisonWeb();
+    if (r) setRetirees(r);
+  }, []);
 
-  const change = (id: string, v: RuleValue) => { setHouseRule(id, v); rerender(); };
-  const reset = (id: string) => { resetHouseRule(id); rerender(); };
+  const change = (id: string, v: RuleValue) => { reglerUneRegleMaisonWeb(id, v); rerender(); };
+  const reset = (id: string) => { remettreUneRegleMaisonWeb(id); rerender(); };
 
   return (
     <div className="house-rules">
@@ -49,6 +59,7 @@ export function HouseRulesPanel() {
         onChange={setTabKey}
         tabs={tabs.map((t) => ({ key: t.key, label: t.label, count: t.rules.length }))}
       />
+      {retirees && <ChipDeRefus refus={{ message: t('houseRules.retirees', { liste: nommerLesRetraits(retirees) }) }} />}
       {lockReason && <p className="hint" id={LOCK_NOTE_ID}>{lockReason}</p>}
       <div className="hr-body">
         {active?.groups.map((g) => (

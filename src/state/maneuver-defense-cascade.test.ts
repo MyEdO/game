@@ -16,6 +16,7 @@ import { aiCreatureFreeAttacks, applyAreaAttack } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { creatureAttacks } from '../engine/creatureAttacks';
+import { findConditionById, resolveStake } from '../data';
 
 import type { Combatant } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
@@ -42,7 +43,7 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
     const h1 = b.combatants.find((c) => c.label === 'H1')!;
     const h2 = b.combatants.find((c) => c.label === 'H2')!;
     // Ennemi à Souffle (Feu) : range = BE+20 m (large), blast = BF (de la cible-centre).
-    E.traits = [{ id: 'souffle', value: 14, arg: 'Feu' }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 85; E.characteristics.endurance = 40;
+    E.traits = [{ id: 'souffle', value: 14, arg: 'feu' }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 85; E.characteristics.endurance = 40;
     E.pos = { x: 5, y: 5 };
     // Deux héros à portée, adjacents entre eux (dans le blast), NON adjacents à l'ennemi (pas de Piétinement).
     for (const h of [h1, h2]) {
@@ -79,7 +80,9 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
       expect(step.jet).toBeUndefined();
       expect(step.target).toBeGreaterThan(0); // valeur de réaction (Esquive) → jet opposé au jet d'attaquant figé
       expect(step.meta?.opposed?.aT).toBeTruthy(); // jet d'attaquant CT FIGÉ (opposition RAW)
-      expect(step.meta?.maneuverDefense?.maneuverId).toBe('souffle-feu');
+      expect(step.meta?.maneuverDefense?.def.label).toBe('Souffle (Feu)');
+      // LDB 85 l.324 : le défenseur lit la règle du Type dans l'enjeu.
+      expect(resolveStake(step.stake!).text).toContain(`PA ignorées, puis État ${findConditionById('en-flammes')!.label}`);
       expect(['hero']).toContain(useGame.getState().battle!.combatants.find((c) => c.id === step.actorId)!.kind);
     }
     // Les effets restent différés à la validation de chaque étape (non appliqués à ce stade).
@@ -117,7 +120,7 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
   it('défenseur IA (un HÉROS active la zone sur des ENNEMIS) : reste SILENCIEUX (aucune cascade)', () => {
     const { h1 } = setup();
     // Donne le Souffle au HÉROS et fais-le souffler : ses cibles sont des ENNEMIS → pas d'influence, silence.
-    h1.traits = [{ id: 'souffle', value: 14, arg: 'Feu' }]; h1.advantage = 2; h1.characteristics['capacite-de-tir'] = 85;
+    h1.traits = [{ id: 'souffle', value: 14, arg: 'feu' }]; h1.advantage = 2; h1.characteristics['capacite-de-tir'] = 85;
     const enemy = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy' && !c.dead)!;
     enemy.pos = { x: 5, y: 10 }; enemy.characteristics.agilite = 1; // dans le blast du héros, esquive faible
     const a = creatureAttacks(h1.traits).find((x) => x.kind === 'souffle')!;

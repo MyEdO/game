@@ -4,7 +4,10 @@ import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../noyau/etat';
 import { ownsLocalNet } from './ownership';
 import { makePregensWithWealth } from '../data/pregens';
-import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport, takeRosterNotice } from '../state/roster';
+import { stockageDuRoster } from '../state/roster';
+import { ajouterAuRoster, chargerLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
+import { rosterExport, rosterImport } from '../noyau/persistance/roster';
+import { nommerLesRetraits } from '../noyau/persistance/elagage';
 import { PARTY_MAX } from '../noyau/monde/combatants';
 import { downloadText, fileSlug } from '../web/fileIo';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
@@ -29,7 +32,7 @@ import { Icon } from './Icon';
 import { Tabs } from './composites/Tabs';
 import { coreAxisIds } from '../data';
 import { resolveActiveAxes } from '../noyau/worldMap';
-import { t } from '../i18n';
+import { listeEt, t } from '../i18n';
 import { Row, Stack } from './Layout';
 import { ChipDeRefus } from './ChipDeRefus';
 
@@ -248,13 +251,6 @@ const ACT_ROMAN = ['I', 'II', 'III', 'IV'];
  *  scellés » — jamais un chiffre nu dans ce libellé cérémoniel). */
 const NUM_WORDS_FR = ['zéro', 'un', 'deux', 'trois', 'quatre'];
 
-/** Énumération « à la française » (Oxford comma absent, dernier élément lié par « et »). Pur. */
-function joinFr(items: string[]): string {
-  if (items.length === 0) return '';
-  if (items.length === 1) return items[0];
-  return `${items.slice(0, -1).join(', ')} et ${items[items.length - 1]}`;
-}
-
 /** Phrase de synthèse du pied d'écran — composée depuis `partyCoverageWithHero` (axes ACTIFS à
  *  pourvoir), textes du patron de la planche ratifiée d'équipe (#417 correction de cap
  *  2026-07-14). */
@@ -272,7 +268,7 @@ function partySummaryText(party: Combatant[], axisIds: string[]): string {
     ? t('party.acts.summary.vierge.zero')
     : missingAxes.length === 0
       ? t(vierges === 1 ? 'party.acts.summary.vierge.one.plain' : 'party.acts.summary.vierge.many.plain', { n: vierges })
-      : t(vierges === 1 ? 'party.acts.summary.vierge.one' : 'party.acts.summary.vierge.many', { n: vierges, axes: joinFr(missingAxes) });
+      : t(vierges === 1 ? 'party.acts.summary.vierge.one' : 'party.acts.summary.vierge.many', { n: vierges, axes: listeEt(missingAxes) });
   return `${engaged} — ${ready} ; ${viergePart}.`;
 }
 
@@ -681,13 +677,15 @@ export function CandidatePool({
   onCreate?: () => void;
 }) {
   const allPregens = useState(() => makePregensWithWealth())[0];
-  const [roster, setRoster] = useState(() => rosterLoad());
+  const [roster, setRoster] = useState(() => chargerLeRoster(stockageDuRoster()));
   const [tab, setTab] = useState<'roster' | 'pregens'>(roster.length ? 'roster' : 'pregens');
   const [importErr, setImportErr] = useState<string | null>(null);
-  // Le témoin de `rosterLoad` (roster d'un autre format retiré) devient le message au joueur ; consommé
-  // dans un EFFET, jamais à l'initialisation du rendu (double passe de `<React.StrictMode>`).
+  // `prendreLesTemoinsDuRoster` (`hote/roster.ts`) consomme : la prise vit dans un EFFET de montage, jamais dans un
+  // initialiseur de rendu que `<React.StrictMode>` jouerait deux fois.
   useEffect(() => {
-    if (takeRosterNotice()) setImportErr(t('picker.roster.retire'));
+    const temoins = prendreLesTemoinsDuRoster(stockageDuRoster());
+    if (temoins?.retire) setImportErr(t('picker.roster.retire'));
+    if (temoins?.elagage) setImportErr(t('picker.roster.elague', { liste: nommerLesRetraits(temoins.elagage) }));
   }, []);
   // Candidat ÉLU (déplié dans l'ACTE DE PRÉSENTATION, `DetailFrame`) — plus de modale (#417,
   // planche ratifiée d'équipe §B « la présentation intégrée au sélecteur »).
@@ -705,8 +703,8 @@ export function CandidatePool({
   const selected = shownList.find((e) => e.hero.id === selectedId) ?? shownList[0] ?? null;
 
   const removeSaved = (id: string) => {
-    rosterRemove(id);
-    setRoster(rosterLoad());
+    retirerDuRoster(stockageDuRoster(), id);
+    setRoster(chargerLeRoster(stockageDuRoster()));
   };
   const exportHero = (entry: { hero: Combatant; wealth: Money }) =>
     downloadText(`wfrp4-perso-${fileSlug(entry.hero.label)}.json`, rosterExport(entry));
@@ -722,9 +720,9 @@ export function CandidatePool({
       setImportErr(result.error);
       return;
     }
-    rosterAdd(result.entry);
-    setRoster(rosterLoad());
-    setImportErr(null);
+    ajouterAuRoster(stockageDuRoster(), result.entry);
+    setRoster(chargerLeRoster(stockageDuRoster()));
+    setImportErr(result.retraits ? t('picker.import.elague', { liste: nommerLesRetraits(result.retraits) }) : null);
     setTab('roster');
   };
 

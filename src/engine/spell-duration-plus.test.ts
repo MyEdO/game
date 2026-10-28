@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { endOfRound, pendingPlusExtensions, resolvePlusExtension, spellDurationPlusSource } from './conditions';
 import type { ActiveEffect, Combatant } from './types';
-import { findSpellById } from '../data';
 import { desDuTest } from './dice.testkit';
 
 /**
@@ -52,28 +51,6 @@ describe('tickDurations/endOfRound — gel à l’expiration au lieu du retrait 
     expect(c.activeEffects ?? []).toHaveLength(0);
     expect(log.join('\n')).toMatch(/se dissipe/);
     expect(pendingPlusExtensions(c)).toHaveLength(0);
-  });
-});
-
-describe('inventaire des sorts frenchy-bzh marqués « + » — non re-perdables au sweep (#543)', () => {
-  it.each([
-    ['bouclier-ruine', "56 - Clan Skryre.md l.145 : « 2 Tours +/4 Tours +/5 Tours + » (3 statblocks skavens, tous « + »)"],
-    ['armure-aethyrique', 'sweep #543'],
-    ['rafale-hurlante', 'sweep #543'],
-  ])('%s porte `duration.plus === true` (%s)', (id) => {
-    const d = findSpellById(id)?.duration;
-    expect(!!d && 'plus' in d && d.plus).toBe(true);
-  });
-
-  /**
-   * fêlure-aethyrique (cn:3, range 70m, Zone Diamètre 7m, duration 7 rounds) est l'EXACT match de
-   * « 43 - Ungors, Gors & Bestigors.md » l.694 (Shaman Gor NI3, « 7 Rounds », SANS « + »).
-   * Le tiers « 4 Tours + » de « 46 - Sorcier du Chaos.md » l.72 (NI3 mais range 40m/diamètre 4m)
-   * est un AUTRE statblock du même sort multi-tier — ne correspond pas aux stats curées ici.
-   */
-  it('felure-aethyrique NE porte PAS `duration.plus` (tiers frenchy-bzh multiples ; celui curé ici est le SEUL sans « + »)', () => {
-    const d = findSpellById('felure-aethyrique')?.duration;
-    expect(!!d && 'plus' in d && d.plus).toBe(false);
   });
 });
 

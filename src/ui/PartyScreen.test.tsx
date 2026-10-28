@@ -4,7 +4,8 @@ import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HeroSelector, PartyScreen, PartyScreenView, slotKeyNav } from './PartyScreen';
-import { projectSave, type SavedProject } from '../state/projectLibrary';
+import { projectSave } from '../state/projectLibrary';
+import { type SavedProject } from '../noyau/persistance/bibliotheque';
 import { areneCampaign, builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import { datasetArray, setDataset } from '../data/overrides';
 import { resolveActiveAxes } from '../noyau/worldMap';
@@ -13,27 +14,14 @@ import { allAxes } from '../data';
 import { useGame } from '../state/store';
 import { heroSubtitle } from './CharCard';
 import { makePregens } from '../data/pregens';
-import { rosterAdd } from '../state/roster';
+import { stockageDuRoster } from '../state/roster';
+import { ajouterAuRoster } from '../hote/roster';
 import { initialNet, type NetState } from '../noyau/etat';
 import { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
-
-/** Storage isolé pour chaque fixture. */
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() {
-      return m.size;
-    },
-  } as Storage;
-}
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 function savedHero(): Combatant {
   const h: Combatant = JSON.parse(JSON.stringify(makePregens()[0]));
@@ -46,7 +34,7 @@ const noop = () => {};
 
 describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement & remplacement', () => {
   beforeEach(() => {
-    vi.stubGlobal('localStorage', fakeStorage());
+    poserLeLocalStorage();
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -63,7 +51,7 @@ describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement
   });
 
   it('roster non vide : MÊME carte-portrait (nom complet + recruter + outils export/suppr)', () => {
-    rosterAdd({ hero: savedHero(), wealth: { gold: 1, silver: 0, brass: 0 } });
+    ajouterAuRoster(stockageDuRoster(), { hero: savedHero(), wealth: { gold: 1, silver: 0, brass: 0 } });
     const html = renderToStaticMarkup(<HeroSelector party={[]} mode="recruit" onPick={noop} onClose={noop} />);
     expect(html).toContain('Aventurière Sauvegardée'); // nom COMPLET
     expect(html).toContain('candidate-name');
@@ -73,7 +61,7 @@ describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement
 
   it('remplacement : cartes compactes, membre du groupe grisé « Déjà choisi »', () => {
     const h = savedHero();
-    rosterAdd({ hero: h, wealth: { gold: 0, silver: 5, brass: 0 } });
+    ajouterAuRoster(stockageDuRoster(), { hero: h, wealth: { gold: 0, silver: 5, brass: 0 } });
     const html = renderToStaticMarkup(<HeroSelector party={[h]} mode="replace" replaceName={h.label} onPick={noop} onClose={noop} />);
     expect(html).toContain('Remplacer Aventurière Sauvegardée'); // titre du mode remplacement
     expect(html).toContain('candidate-remplacement');
@@ -86,7 +74,7 @@ describe('HeroSelector — le témoin d’un roster d’un autre format (#2404)'
   let root: Root;
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    vi.stubGlobal('localStorage', fakeStorage());
+    poserLeLocalStorage();
     host = document.createElement('div');
     document.body.appendChild(host);
     root = createRoot(host);
@@ -122,7 +110,7 @@ describe('HeroSelector — le témoin d’un roster d’un autre format (#2404)'
 
 describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hôte attribue', () => {
   beforeEach(() => {
-    vi.stubGlobal('localStorage', fakeStorage());
+    poserLeLocalStorage();
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -239,7 +227,7 @@ describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hô
 });
 
 describe('PartyScreen en combat : la composition du groupe est fermée, avec sa raison', () => {
-  beforeEach(() => { vi.stubGlobal('localStorage', fakeStorage()); });
+  beforeEach(() => { poserLeLocalStorage(); });
   afterEach(() => { demonterRacines(); vi.unstubAllGlobals(); });
 
   const RAISON = t('pf.partyInCombat');
@@ -277,7 +265,7 @@ describe('PartyScreen en combat : la composition du groupe est fermée, avec sa 
 
 describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui est-ce ? »)', () => {
   beforeEach(() => {
-    vi.stubGlobal('localStorage', fakeStorage());
+    poserLeLocalStorage();
   });
   afterEach(() => {
     vi.unstubAllGlobals();

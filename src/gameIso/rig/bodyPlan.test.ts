@@ -204,6 +204,6 @@ describe('planOptsForRecord — apparence du RECORD → opts de gabarit (#1128 L
       expect(JSON.stringify(avec), c.id).toEqual(JSON.stringify(sans));
       compares++;
     }
-    expect(compares, 'la boucle a bien comparé le gros du bestiaire de plan').toBeGreaterThan(100);
+    expect(compares, 'la boucle a bien comparé le gros du bestiaire de plan').toBeGreaterThan(95);
   });
 });

@@ -4,6 +4,9 @@ import type { Get } from '../noyau/flowTypes';
 import { attackModifiers, combineMods } from '../engine/combat';
 import type { Combatant, Weapon } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
+import { ligneDe } from '../engine/modLine.testkit';
+import { refDeRegle } from '../engine/reglesChiffrees';
+import { RULE_REF } from '../engine/ruleRefs';
 
 /**
  * Cible dissimulée par le brouillard / la brume / l'obscurité : la rangée vit dans le bloc −20 de la
@@ -26,7 +29,7 @@ describe('attackEnv (tir) — cible dissimulée par le brouillard = −20 (Diffi
     const target = mk('tgt', 'enemy', 8);
     const get = (() => ({ scene: fogScene(), battle: { combatants: [attacker, target], movementUsed: 0 }, facing: {}, gameTime: 12 * 60 })) as unknown as Get;
     const env = attackEnv(get, attacker, target, bow).env;
-    const conceal = env.find((m) => m.value < 0); // seul malus de ce setup minimal = la dissimulation
+    const conceal = ligneDe(env, RULE_REF['cible-dissimulee']);
     expect(conceal).toBeTruthy();
     expect(conceal!.value).toBe(-20);
   });
@@ -41,8 +44,8 @@ describe('Exemple RAW LDB 14 l.95 — « le Test devient simplement Très Diffic
     // (sans quoi la production ajoute aussi « Tir en bougeant » −10, LDB 14 l.70).
     const env = attackEnv(get, attacker, target, bow, { heldGround: true }).env; // production RÉELLE, aucune valeur en dur
     const mods = attackModifiers(attacker, target, bow, { kind: 'ranged', location: 'tete', env });
-    expect(env.find((m) => m.ref?.id === 'cible-dissimulee')?.value).toBe(-20);
-    expect(mods.find((m) => m.label === 'Localisation visée')?.value).toBe(-20);
+    expect(ligneDe(env, RULE_REF['cible-dissimulee'])?.value).toBe(-20);
+    expect(ligneDe(mods, refDeRegle('viser-une-localisation'))?.value).toBe(-20);
     expect(mods.filter((m) => m.value < 0).reduce((s, m) => s + m.value, 0)).toBe(-40); // somme BRUTE
     expect(combineMods(mods)).toBe(-30); // le plafond mord réellement
   });
@@ -59,12 +62,12 @@ describe('Obscurité (LDB 14 l.75) et météo (l.76, l.82) : sommées sous le pl
   };
   it('nuit + tempête : deux lignes (−20, −20), plafonnées à −30', () => {
     const { env, total } = lignes('tempete');
-    expect(env.filter((m) => m.value < 0).map((m) => [m.label, m.value])).toEqual([['Obscurité', -20], ['Tempête', -20]]);
+    expect(env.filter((m) => m.value < 0).map((m) => [m.ref, m.value])).toEqual([[RULE_REF['cible-dissimulee'], -20], [refDeRegle('climat-extreme'), -20]]);
     expect(total).toBe(-30);
   });
   it('nuit + neige : deux lignes (−20, −30), plafonnées à −30', () => {
     const { env, total } = lignes('neige');
-    expect(env.filter((m) => m.value < 0).map((m) => [m.label, m.value])).toEqual([['Obscurité', -20], ['Neige épaisse', -30]]);
+    expect(env.filter((m) => m.value < 0).map((m) => [m.ref, m.value])).toEqual([[RULE_REF['cible-dissimulee'], -20], [refDeRegle('neige-eau-terrain-difficile'), -30]]);
     expect(total).toBe(-30);
   });
 });

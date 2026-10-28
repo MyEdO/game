@@ -10,78 +10,10 @@
     "ne portent aucun chemin de fichier du dépôt, et cette porte ne compte que des croissances de stock",
     "en portée de module d'un fichier source. Le cliquet de ce stock-ci vit dans `audit-stock.test.mjs`.",
     "VOIE DE SORTIE quand un correctif transitif est ÉPINGLÉ À L'EXACT par l'amont : un `overrides` dans le",
-    "`package.json` de la cible le surclasse sans toucher l'amont — mesuré le 2026-09-12, `server/package.json`",
-    "`overrides: { sharp: 0.35.4 }` résout sharp 0.35.4 sous miniflare 4.x, qui l'épinglait à 0.34.5, et fait",
-    "sortir sharp ET wrangler des >= high sans la montée majeure @cloudflare/workers-types 4 -> 5 (#1726).",
+    "`package.json` de la cible le surclasse sans toucher l'amont.",
     "`via` = les advisories GHSA rattachées DIRECTEMENT au paquet par `npm audit --json` ; `viaPaquets`",
     "= les paquets par lesquels la vulnérabilité lui arrive (un paquet purement transitif a `via` vide",
     "et c'est sa seule signature : `miniflare` et `wrangler` n'ont aucune advisory propre)."
   ],
-  "entrees": [
-    {
-      "paquet": "vite",
-      "cible": "racine",
-      "severite": "high",
-      "via": ["GHSA-4w7w-66w2-5vf9", "GHSA-fx2h-pf6j-xcff", "GHSA-v6wh-96g9-6wx3"],
-      "viaPaquets": ["esbuild"],
-      "plage": "<=6.4.2",
-      "fix": "vite 8.2.2 — montée MAJEURE (npm audit : isSemVerMajor true)",
-      "date": "2026-09-04",
-      "motif": "serveur de DÉVELOPPEMENT seul (server.fs.deny, .map de deps optimisées) — jamais exposé en production : le build de prod est statique (GitHub Pages)",
-      "echeance": "L3/L4 par #1726 (montée majeure de la chaîne d'outillage), à la clôture de #1679"
-    },
-    {
-      "paquet": "vitest",
-      "cible": "racine",
-      "severite": "critical",
-      "via": ["GHSA-5xrq-8626-4rwp", "GHSA-82fw-gwwq-j7x9"],
-      "viaPaquets": ["@vitest/mocker", "vite", "vite-node"],
-      "plage": "<=4.1.10",
-      "fix": "vitest 5.0.0 — montée MAJEURE (npm audit : isSemVerMajor true ; le premier correctif de GHSA-82fw-gwwq-j7x9 est 4.1.11, hors de la ligne 2.x du lock)",
-      "date": "2026-09-04",
-      "motif": "les deux advisories passent par le serveur de vitest À L'ÉCOUTE — GHSA-5xrq-8626-4rwp par son UI (`--ui`), GHSA-82fw-gwwq-j7x9 (moderate, redirection de mock de @vitest/mocker ; advisory publiée le 2026-09-08, entrée au stock le 2026-09-12) par le serveur qui sert le mocker ; le dépôt lance vitest en mode run, sans `--ui` ni mode navigateur (`scripts/test/run.mjs`)",
-      "echeance": "L3/L4 par #1726 (montée majeure de la chaîne d'outillage), à la clôture de #1679"
-    },
-    {
-      "paquet": "miniflare",
-      "cible": "server",
-      "severite": "high",
-      "via": [],
-      "viaPaquets": ["undici", "ws"],
-      "plage": "<=0.0.0-fff677e35 || 3.20250204.0 - 5.20260801.0-alpha",
-      "fix": "@cloudflare/workers-types 4 -> 5 — montée MAJEURE, ERESOLVE mesuré le 2026-09-04 (`npm --prefix server audit fix --dry-run` : wrangler 4.129.0 exige peerOptional @cloudflare/workers-types ^5.20260903.1, la racine server déclare ^4.20260601.0)",
-      "date": "2026-09-04",
-      "motif": "outil de DÉVELOPPEMENT du Worker relay (wrangler dev) — jamais déployé",
-      "echeance": "L3/L4 par #1726 (montée majeure de la chaîne d'outillage), à la clôture de #1679"
-    },
-    {
-      "paquet": "undici",
-      "cible": "server",
-      "severite": "high",
-      "via": [
-        "GHSA-4cwx-7wf7-3272", "GHSA-35p6-xmwp-9g52", "GHSA-8xcm-r25x-g524",
-        "GHSA-g8m3-5g58-fq7m", "GHSA-hm92-r4w5-c3mj", "GHSA-jr45-8vmc-qm54",
-        "GHSA-m8rv-5g2x-5cg5", "GHSA-p88m-4jfj-68fv", "GHSA-pr7r-676h-xcf6",
-        "GHSA-v3r7-h72x-cjcm", "GHSA-vmh5-mc38-953g", "GHSA-vxpw-j846-p89q"
-      ],
-      "viaPaquets": [],
-      "plage": "7.0.0 - 7.28.0",
-      "fix": "@cloudflare/workers-types 4 -> 5 — montée MAJEURE, ERESOLVE mesuré le 2026-09-04",
-      "date": "2026-09-04",
-      "motif": "dépendance transitive de miniflare (émulateur local) — hors chemin du Worker déployé",
-      "echeance": "L3/L4 par #1726 (montée majeure de la chaîne d'outillage), à la clôture de #1679"
-    },
-    {
-      "paquet": "ws",
-      "cible": "server",
-      "severite": "high",
-      "via": ["GHSA-96hv-2xvq-fx4p"],
-      "viaPaquets": [],
-      "plage": "8.0.0 - 8.20.1",
-      "fix": "@cloudflare/workers-types 4 -> 5 — montée MAJEURE, ERESOLVE mesuré le 2026-09-04",
-      "date": "2026-09-04",
-      "motif": "dépendance transitive de miniflare (WebSocket de l'émulateur local) — le relay déployé utilise le WebSocket natif du runtime Cloudflare",
-      "echeance": "L3/L4 par #1726 (montée majeure de la chaîne d'outillage), à la clôture de #1679"
-    }
-  ]
+  "entrees": []
 }

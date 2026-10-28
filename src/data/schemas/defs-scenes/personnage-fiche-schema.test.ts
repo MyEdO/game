@@ -9,7 +9,7 @@ const FICHE = { type: 'statblock', label: 'Ennemi', char: { B: 10 } };
 describe('sceneEntitySchema — un personnage NOMME sa fiche (#1882)', () => {
   it('au SCHÉMA : chaque porteur SEUL suffit, l’absence de tous est l’issue nommée au chemin `ref`', () => {
     const base = { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } };
-    for (const porteur of [{ ref: 'capitaine-du-guet' }, { statblock: FICHE }, { presetId: 'baron' }])
+    for (const porteur of [{ ref: 'moritz-valgeir' }, { statblock: FICHE }, { presetId: 'baron' }])
       expect(sceneEntitySchema.safeParse({ ...base, ...porteur }).success, Object.keys(porteur)[0]).toBe(true);
     const r = sceneEntitySchema.safeParse(base);
     expect(r.success).toBe(false);

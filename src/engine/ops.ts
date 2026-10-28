@@ -18,7 +18,7 @@ import { bonus, effectiveChar, refreshWounds } from './characteristics';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions } from './conditions';
 import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
-import { groupMatch } from './groups';
+import { groupMatch, groupesDe } from './groups';
 import { facesDuDe, findTableEntry } from './tables';
 import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
@@ -26,10 +26,11 @@ import { findFallTable } from '../data/shipCriticals';
 import { ALL_MAGIC } from './types';
 import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { NatureDInfluence, SourceRef } from '../data/schemas/grammaire/valeurs';
-import type { PorteeDAssaut } from '../data/schemas/grammaire/mecanique';
+import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
 import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, dropExpiredGrantedTraits, sameInstance } from './grantedTraits';
-import { rollObsession } from '../data/obsessions';
+import { caracDuCombattant, evaluer, slBonus, valeurSansTirage } from './formule';
+import { traitsOctroyes } from './traitOctroye';
 import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
 import { findEffectTableById } from '../data/effectTables';
@@ -77,7 +78,7 @@ import {
 } from './types';
 import { formatTrait, formatWardSave } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
-import type { TraitInstance } from './statEntry';
+import type { TraitPose } from '../data/schemas/grammaire/reference';
 import type { ChaosAlign, ExposureLevel } from './corruption';
 import { t, pluriel, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
@@ -99,7 +100,7 @@ export type TermeDeJet =
   | { sl: true };
 
 /** La grammaire d'une quantité, paramétrée par les termes de jet qu'elle admet (`J`). */
-type FormuleDe<J> =
+export type FormuleDe<J> =
   | number
   | { bonusOf: CharKey }
   | { charOf: CharKey }
@@ -145,34 +146,11 @@ export type Formula = FormuleDe<TermeDeJet>;
  *  affiché : aucun terme de jet n'y entre (#2817), son évaluation (`valeurSansTirage`) ne tire rien. */
 export type FormuleSansTirage = FormuleDe<never>;
 
-/** Évaluation commune des deux grammaires : `jet` résout le terme de jet que `J` admet. */
-function evaluer<J>(f: FormuleDe<J>, ref: Combatant, jet: (t: J) => number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number): number {
-  if (typeof f === 'number') return f;
-  if (typeof f !== 'object' || f === null) return 0; // formule malformée (donnée invalide) → 0, jamais un crash en plein combat
-  const sous = (g: FormuleDe<J>): number => evaluer(g, ref, jet, indice, stacks, gap, woundsDealt);
-  if ('bonusOf' in f) return bonus(effectiveChar(ref, f.bonusOf));
-  if ('charOf' in f) return effectiveChar(ref, f.charOf);
-  if ('indiceOf' in f) return indice ?? 0;
-  if ('stacks' in f) return stacks ?? 0;
-  if ('engagedAdvantageGap' in f) return gap ?? 0;
-  if ('woundsDealt' in f) return woundsDealt ?? 0;
-  if ('rule' in f) { const v = rule(f.rule); return typeof v === 'number' && Number.isFinite(v) ? v : 0; }
-  if ('minimum' in f) return Math.max(f.minimum, sous(f.of));
-  if ('sum' in f) return f.sum.reduce<number>((acc, term) => acc + sous(term), 0);
-  if ('times' in f) return sous(f.times.of) * sous(f.times.factor);
-  return jet(f as J);
-}
-
 /** Résout une formule contre son référent (`ref`) — RNG seedable pour les dés. `rolled` = valeur du
  *  jet courant d'un `rollThreshold` (injectée par l'op ; 0 hors de ce contexte) ; `indice` = Indice
  *  de l'attaque naturelle d'une manœuvre (`{indiceOf}`, 0 hors contexte). */
 export function resolveFormula(f: Formula, ref: Combatant, rng: RNG, rolled?: number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number, sl?: number): number {
-  return evaluer<TermeDeJet>(f, ref, (t) => ('rolled' in t ? rolled ?? 0 : 'sl' in t ? sl ?? 0 : rollDice(t.dice, rng)), indice, stacks, gap, woundsDealt);
-}
-
-/** Valeur d'une quantité lue avant tout jet, contre son référent : aucun RNG, aucun terme de jet. */
-export function valeurSansTirage(f: FormuleSansTirage, ref: Combatant): number {
-  return evaluer<never>(f, ref, (t) => t);
+  return evaluer<TermeDeJet>(f, caracDuCombattant(ref), (t) => ('rolled' in t ? rolled ?? 0 : 'sl' in t ? sl ?? 0 : rollDice(t.dice, rng)), indice, stacks, gap, woundsDealt);
 }
 
 /** L'Avantage d'un CAMP SANS FICHE (habitué, figurants) après des ops DÉCLARÉES : seul le vocabulaire
@@ -246,12 +224,6 @@ export interface PerSL {
    *  `|sl|` quand `sl < 0`, 0 sinon (symétrique du défaut qui ignore tout `sl` négatif). */
   onFailure?: boolean;
 }
-export function slBonus(sl: number | undefined, p?: PerSL): number {
-  if (!p || sl == null || !Number.isFinite(sl)) return 0; // DR absent OU non fini → 0 (jamais de NaN propagé)
-  const magnitude = p.onFailure ? Math.max(0, -sl) : Math.max(0, sl);
-  return Math.floor(magnitude / Math.max(1, p.every)) * p.amount;
-}
-
 /** Estimation DÉTERMINISTE d'une `Formula` pour le SCORING (jamais de tirage — le planning ne doit PAS
  *  consommer le RNG seedable, sous peine de désync du flux déterministe / coop / tests reproductibles, et
  *  d'une magnitude aléatoire). Calque la convention statique de `missileDamage` (valeur écrite). Les dés
@@ -294,9 +266,8 @@ export function skillDRBonus(c: Combatant, skillId: string, spec?: string): numb
   // portent `passiveKind: "intrinseque"` : liste d'annulateurs VIDE, leur DR survit à la Détermination.
   // Une séquelle à `skillDRBonus` SANS `passiveKind` tomberait, elle, en `douleur` (annulée par Insensible).
   for (const m of traumaPassiveMods(c)) if (m.op.op === 'skillDRBonus' && matches(m.op.skill)) n += valeurSansTirage(m.op.bonus, c);
-  // Auras (Aura de Dhar : +1 DR Focalisation/Langue (Magick) aux sorciers et démons du dieu à portée,
-  // camp indifférent) — `aura.passive` projeté dans `auraMods` par le hook `recompute-auras`. Sommé
-  // (le DR cumule), comme les passifs de trait.
+  // Auras — `aura.passive` projeté dans `auraMods` par le hook `recompute-auras`. Sommé (le DR cumule),
+  // comme les passifs de trait.
   for (const m of c.auraMods ?? []) if (m.op.op === 'skillDRBonus' && matches(m.op.skill)) n += valeurSansTirage(m.op.bonus, c);
   // Effets ACTIFS temporisés (op `skillDRBonus` exécutée — chanson de marin « Jacques Bret », MDG 09 l.228).
   for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if (b.skill != null && matches({ id: b.skill, spec: b.spec })) n += b.bonus;
@@ -483,6 +454,9 @@ export type GameOp =
        *  cible qui se débat »). Résolue contre le RÉFÉRENT et FIGÉE sur l'entrée de condition ; ZI 2 l.178 ne
        *  chiffre pas ce montant — champ de DONNÉE éditable (qualité `filet-barbele`), rien en dur ici. */
       struggleDamage?: Formula;
+      /** Difficulté des Tests qui éliminent l'État, dictée par sa source (LDB 16 l.70 ; MDG 16 l.226) —
+       *  FIGÉE sur l'entrée d'État, lue par le Test `argDifficulty` de l'État. */
+      difficulte?: import('./types').Difficulty;
       /** VERROU de Critique (LDB 18) : l'État posé ne pourra être RETIRÉ que lorsque cette Condition
        *  (algèbre flowCore) sera vraie. Ex. Aveuglé « tant que tous les Hémorragique n'ont pas été
        *  éliminés » (Tête 46-50) ⇒ `{ kind:'compare', subject:{who:'target',condition:'hemorragique'},
@@ -531,10 +505,10 @@ export type GameOp =
    *  UPSERT : l'entrée visée est celle de même `type` ET même `cible` (Traits CIBLÉS), ou — sans
    *  `cible` — de même `sourceId` (Peur/Terreur : une entrée par créature source) ; absente, créée.
    *  Charge utile lue par le moteur de Psychologie : `indice` (Indice à surmonter), `calmeDR` (DR
-   *  cumulé du Test étendu), `active` (Trait ciblé subi / résisté), `lastTestRound` (n° de Round du
-   *  dernier Test). Champ absent = INCHANGÉ sur une entrée existante. Journalisé via `t()` ; une
-   *  entrée `active:false` est un marqueur inerte (aucune ligne). */
-  | { op: 'beginPsych'; type: string; cible?: string; sourceId?: string; indice?: Formula; calmeDR?: Formula; active?: boolean; lastTestRound?: number; fromTest?: boolean }
+   *  cumulé du Test étendu), `surmontee` (Peur surmontée), `active` (Trait ciblé subi / résisté),
+   *  `lastTestRound` (n° de Round du dernier Test). Champ absent = INCHANGÉ sur une entrée existante.
+   *  Journalisé via `t()` ; une entrée `active:false` est un marqueur inerte (aucune ligne). */
+  | { op: 'beginPsych'; type: string; cible?: string; sourceId?: string; indice?: Formula; calmeDR?: Formula; surmontee?: boolean; active?: boolean; lastTestRound?: number; fromTest?: boolean }
   /** Modificateur de caractéristique temporisé (ActiveEffect, pool `poolDeNonCumul`).
    *  `durationRounds` absent = durée du
    *  contexte (sort : Rounds, horloge, ou permanent — cf. `durationFromCtx`).
@@ -615,17 +589,14 @@ export type GameOp =
   | { op: 'grantReverseToken'; skill?: RefDesignee }
   /** Trait de créature TEMPORISÉ (Jalon 2.6 — « vous gagnez le Trait X tant que le Sort est
    *  actif ») : posé dans `c.traits` (vu par TOUS les consommateurs — dispatch, psy, IA,
-   *  déplacement), retiré à l'expiration de l'ActiveEffect porteur. `indice` : Indice du trait
-   *  (« Peur 1 », « Vol (Agilité) » → valeur du lanceur), `indicePerSL` : « +1 par +3 DR », `range` : la
-   *  Portée du Trait (`LDB 85` l.209).
-   *  `argFrom` : la Cible (`arg`) est TIRÉE à l'attache plutôt que littérale — `'obsessions'` =
-   *  Tableau des Obsessions (EDOC 12 : mutation « Haine sporadique » → Haine (Cible déterminée
-   *  par les Obsessions)). Résolu par `applyOps` ET `attachMutation` (même tirage, `rollObsession`).
+   *  déplacement), retiré à l'expiration de l'ActiveEffect porteur. `trait` : le Trait OCTROYÉ, résolu
+   *  par `traitsOctroyes` (Indice formulé lu sur le lanceur, LDB 47 l.441 ; `indicePerSL` : LDB 47 l.420).
+   *  `cible` : la Cible est TIRÉE sur une table de Cibles, une instance par tirage — EDOC 12 l.217, l.241.
    *  `durationHours`/`durationMinutes` : durée d'HORLOGE intrinsèque — MÊME patron que `charMod`/
    *  `condition` (résolue MAINTENANT depuis `ctx.now`, purgée par `purgeClockEffects` qui retire le
    *  trait accordé via `dropExpiredGrantedTraits`) : un Trait borné en JOURS le dit ici (Désespoir,
    *  VDM 09 l.280). Exclusif de `durationRounds` ; absent = durée du contexte (`durationFromCtx`). */
-  | { op: 'grantTrait'; traitId: string; arg?: string; argFrom?: 'obsessions'; indice?: Formula; indicePerSL?: PerSL; range?: number; onlyGroups?: string[]; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
+  | { op: 'grantTrait'; trait: TraitPose; cible?: TirageDeCible; indicePerSL?: PerSL; onlyGroups?: string[]; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
   /** RETRAIT d'un Trait de créature porté (`c.traits`) — l'INVERSE de `grantTrait`, même vocabulaire :
    *  retire ce que LA SOURCE COURANTE (`ctx.source`) a accordé, instances retrouvées par le registre
    *  `TraitInstance.src`. Une instance NATIVE, ou accordée par un TIERS (Haine d'une prière, LDB 226),
@@ -633,11 +604,10 @@ export type GameOp =
    *  elles (sinon leur expiration retirerait une instance re-accordée depuis). Consommateur authored :
    *  le RE-CIBLAGE quotidien de Haine sporadique (`[removeTrait, grantTrait]`, EDOC 12 l.217 — une seule
    *  instance, pas une par jour). */
-  | { op: 'removeTrait'; traitId: string }
+  | { op: 'removeTrait'; trait: { id: string } }
   /** Trait PSYCHOLOGIQUE conféré (Colère impie → Frénésie). PASSIF (mutation/trait) : posé dans
-   *  `c.psychTraits` à l'attache. `psychType` = `PsychType` (frenesie, peur…). `argFrom` : la Cible
-   *  (`cible`) est TIRÉE à l'attache (Tableau des Obsessions, EDOC 12) plutôt que littérale. */
-  | { op: 'grantPsychTrait'; psychType: string; cible?: string; argFrom?: 'obsessions' }
+   *  `c.psychTraits` à l'attache. `psychType` = `PsychType` (frenesie, peur…). */
+  | { op: 'grantPsychTrait'; psychType: string; cible?: string }
   /** Retire UN Trait psychologique porté (`c.psychTraits` — la DONNÉE persistée, ≠ `endPsych` qui
    *  retire une affliction de combat `psychState`). `psychType` absent = un Trait AU CHOIX (le 1ᵉʳ
    *  porté). Convalescence « Les choses s'arrangent » (ADE II Annexe I) : éliminer un Trait psy indésirable. */
@@ -775,11 +745,10 @@ export type GameOp =
   /** Bouclier anti-flèches (LDB 47 — L11) : « les projectiles constitués de matière organique
    *  sont automatiquement détruits s'ils entrent dans la Zone d'Effet ». Aura sur la cible. */
   | { op: 'arrowWard' }
-  /** Dôme (LDB 47 l.410) — aura sur la cible, qui OCTROIE `traitId` (Indice) à ceux qu'elle couvre :
-   *  MÊME graphie d'octroi que `grantTrait`, et REQUISE ici (un dôme sans Indice serait une protection
-   *  qui ne sauve de rien). AUCUNE zone ne s'authore ici : elle est DÉJÀ déclarée par la ligne « Cible »
+  /** Dôme (LDB 47 l.410) — aura sur la cible, qui OCTROIE `trait` à ceux qu'elle couvre : le Trait octroyé de
+   *  `grantTrait`, Indice requis. AUCUNE zone ne s'authore ici : elle est DÉJÀ déclarée par la ligne « Cible »
    *  du sort (`SpellTarget`, ZdE en DIAMÈTRE — LDB 47 l.28), lue par `zdeDiameterMeters`. */
-  | { op: 'domeWard'; traitId: string; indice: Formula }
+  | { op: 'domeWard'; trait: TraitPose }
   /** Bénédiction de Protection (LDB 41 — L13) : « Les ennemis doivent effectuer un Test de FM
    *  Accessible (+20) pour attaquer votre cible ». Drapeau lu à la déclaration d'attaque. */
   | { op: 'attackWardFM' }
@@ -939,7 +908,7 @@ export type GameOp =
    *  `addTraits`/`size` surchargent le statbloc (loup blanc = Loup + Frénésie + Grand) ; `allyOfCaster`
    *  = camp du lanceur (défaut) sinon hostile (démons « hors de votre contrôle ») ; `despawnIfCasterDown`
    *  = s'effondre si le lanceur tombe (minions liés au sorcier). */
-  | { op: 'summon'; ref: string; count: Formula; countPerSL?: PerSL; addTraits?: TraitInstance[];
+  | { op: 'summon'; ref: string; count: Formula; countPerSL?: PerSL; addTraits?: TraitPose[];
       size?: SizeCategory; allyOfCaster?: boolean; despawnIfCasterDown?: boolean }
   /** RECONSTITUTION DIFFÉRÉE (Gardien éternel, Middenheim — « se reconstitue au bout de d10 jours »).
    *  À la MORT du porteur, programme la ré-invocation de la créature `ref` (`SELF_REF` = la défunte, par son
@@ -1000,7 +969,7 @@ export type GameOp =
    *  Lu par `skillDRBonus` — PASSIF depuis les `TraitData.passive` du porteur (par id), ET, quand
    *  l'op est EXÉCUTÉE par un sort/une chanson (`applyOps`), depuis un `ActiveEffect.drBonus` temporisé.
    *  DISTINCT de `skillMod` (qui modifie la VALEUR du Test, pas le DR obtenu). La `spec` de la référence
-   *  restreint à une spécialisation (Aura de Dhar → Langue (Magick) seulement) ; absente = toute spéc.
+   *  restreint à une spécialisation ; absente = toute spéc.
    *  CIBLE EXCLUSIVE : SOIT `skill`, SOIT `testType` (#221, traits navals `naval-traits.json` uniquement),
    *  un TYPE de Test d'équipage (`crew-test-types.json`) agnostique de la compétence (une Poursuite se
    *  court à la Voile OU aux avirons) ; `testType` est lu par `navalTestTypeDR`, JAMAIS par `skillDRBonus`
@@ -1728,8 +1697,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
   // Morts-vivants gagnent aussi… ») ; `except` = exclu si appartient à l'un (Morsure de l'hiver :
   // hors Mort-vivant/Démon).
   const groupGate = (only?: string[], except?: string[]): boolean =>
-    (!only || only.some((g) => groupMatch(g, target.groups ?? [])))
-    && (!except || !except.some((g) => groupMatch(g, target.groups ?? [])));
+    (!only || only.some((g) => groupMatch(g, groupesDe(target))))
+    && (!except || !except.some((g) => groupMatch(g, groupesDe(target))));
   // CONTEXTE des ops IMBRIQUÉES (rangée de table, seuil franchi, forme, échelon d'aggravation) —
   // DÉRIVATION UNIQUE, appelée à chaque descente : le drapeau de REJEU n'y descend pas. Il ne vaut que
   // pour les ops LITTÉRALES re-jouées par `endOfRound` (`LDB 16 l.117`) ; ce qu'un dé atteint sous elles
@@ -1871,7 +1840,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           // valeur est figée maintenant, l'op `condition` littérale est re-jouée chaque fin de Round,
           // gates compris. L'effet porteur dure ce que l'op déclare, sinon ce que le contexte déclare.
           const duree: Duration | undefined = rounds != null ? { scale: 'rounds', left: rounds } : undefined;
-          pushPerRound(target, [{ op: 'condition', id: o.id, value: v, ...(o.onlyIfCondition ? { onlyIfCondition: o.onlyIfCondition } : {}), ...(o.unlessCondition ? { unlessCondition: o.unlessCondition } : {}), ...(escape != null ? { escapeStrength: escape } : {}), ...(threshold != null ? { escapeThreshold: threshold } : {}), ...(o.entangleOnFail ? { entangleOnFail: true } : {}), ...(struggleDamage != null ? { struggleDamage } : {}) }], ctx, duree);
+          pushPerRound(target, [{ op: 'condition', id: o.id, value: v, ...(o.onlyIfCondition ? { onlyIfCondition: o.onlyIfCondition } : {}), ...(o.unlessCondition ? { unlessCondition: o.unlessCondition } : {}), ...(escape != null ? { escapeStrength: escape } : {}), ...(threshold != null ? { escapeThreshold: threshold } : {}), ...(o.entangleOnFail ? { entangleOnFail: true } : {}), ...(struggleDamage != null ? { struggleDamage } : {}), ...(o.difficulte ? { difficulte: o.difficulte } : {}) }], ctx, duree);
           // CAUSE PERSISTANTE (`LDB 16 l.117`) : l'op se gate sur l'État qu'elle pose — le porteur ne
           // subit pas un État de plus par Round, il le REGAGNE s'il s'en débarrasse. Journal dédié.
           lines.push(estCausePersistante(o) && rounds != null
@@ -1881,13 +1850,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           // État à durée d'HORLOGE (Belladone/Fleur de lune : sommeil « 1d10+4/5 heures ») — échéance
           // résolue MAINTENANT depuis ctx.now, purgée par purgeClockEffects (patron castPenalty.minutes).
           const min = clockMin;
-          addClockCondition(target, o.id, v, (ctx.now ?? 0) + min, escape, threshold, o.entangleOnFail, struggleDamage);
+          addClockCondition(target, o.id, v, (ctx.now ?? 0) + min, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
           lines.push(t('op.condTimed', { name: target.label, v, cond: conditionLabel(o.id), roundsTxt: min >= 60 ? t('op.frag.hours', { n: Math.round(min / 60), s: min >= 120 ? 's' : '' }) : t('op.frag.min', { n: min }) }));
         } else if (rounds != null) {
-          addTimedCondition(target, o.id, v, rounds, escape, threshold, o.entangleOnFail, struggleDamage);
+          addTimedCondition(target, o.id, v, rounds, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
           lines.push(t('op.condTimed', { name: target.label, v, cond: conditionLabel(o.id), roundsTxt: t('op.frag.roundsCap', { n: rounds, s: rounds > 1 ? 's' : '' }) }));
         } else {
-          addCondition(target, o.id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }); // verrous : prédicat d'état / acte de soin (LDB 18)
+          addCondition(target, o.id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }, o.difficulte); // verrous : prédicat d'état / acte de soin (LDB 18)
           // REJEU d'une cause persistante (`LDB 16 l.117`) : c'est le DRAPEAU de rejeu qui le dit
           // (`ctx.rejeuRecurrent`, posé par `endOfRound` seul), jamais la forme de l'op — une première
           // pose gatée reste une pose. La ligne NOMME la cause, portée par le `ctx.label` relayé.
@@ -1946,6 +1915,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           ...(o.sourceId != null ? { sourceId: o.sourceId } : {}),
           ...(o.indice != null ? { indice: Math.max(0, resolveFormula(o.indice, ref, rng, ctx.rolled, ctx.indice, ctx.stacks)) } : {}),
           ...(o.calmeDR != null ? { calmeDR: Math.max(0, resolveFormula(o.calmeDR, ref, rng)) } : {}),
+          ...(o.surmontee != null ? { surmontee: o.surmontee } : {}),
           ...(o.active != null ? { active: o.active } : {}),
           ...(o.lastTestRound != null ? { lastTestRound: o.lastTestRound } : {}),
           ...(o.fromTest != null ? { fromTest: o.fromTest } : {}),
@@ -1959,8 +1929,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'grantPsychTrait': {
         // Trait PSYCHOLOGIQUE conféré (≠ état de combat) : posé dans `c.psychTraits` (la DONNÉE persistée),
         // noyau PARTAGÉ `grantPsychTrait` (`grantedTraits.ts`) — même chemin qu'`attachMutation` (permanent).
-        const cible = o.cible ?? (o.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
-        grantPsychTrait(target, o.psychType as PsychType, cible, source);
+        grantPsychTrait(target, o.psychType as PsychType, o.cible, source);
         lines.push(t('op.grantPsychTrait', { name: target.label, psych: psychologyLabel(o.psychType), src: nomDeSource(ctx) }));
         break;
       }
@@ -2135,21 +2104,21 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantTrait': {
         if (!groupGate(o.onlyGroups)) break; // « les Mort-vivant/Démoniaque gagnent Instable » (Bannissement)
-        const ind = o.indice != null ? resolveFormula(o.indice, ref, rng) + slBonus(ctx.sl, o.indicePerSL) : null;
-        const arg = o.arg ?? (o.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
-        const inst: TraitInstance = { id: o.traitId, ...(arg ? { arg } : {}), ...(ind != null ? { value: ind } : {}), ...(o.range != null ? { range: o.range } : {}), ...(source ? { src: source } : {}) };
-        grantTrait(target, inst);
-        target.activeEffects = target.activeEffects ?? [];
-        target.activeEffects.push({
-          label: nomDeSource(ctx), bonus: 0,
-          duration: durationFromOp(o, ctx, ref, rng),
-          grantedTrait: inst,
-        });
-        lines.push(t('op.grantTrait', { name: target.label, trait: formatTrait(inst), src: nomDeSource(ctx) }));
+        const duree = durationFromOp(o, ctx, ref, rng);
+        for (const inst of traitsOctroyes(o, { lanceur: ref, porteur: target, rng, sl: ctx.sl, src: source })) {
+          grantTrait(target, inst);
+          target.activeEffects = target.activeEffects ?? [];
+          target.activeEffects.push({
+            label: nomDeSource(ctx), bonus: 0,
+            duration: { ...duree },
+            grantedTrait: inst,
+          });
+          lines.push(t('op.grantTrait', { name: target.label, trait: formatTrait(inst), src: nomDeSource(ctx) }));
+        }
         break;
       }
       case 'removeTrait': {
-        const gone = removeGrantedTraitsFrom(target, o.traitId, source);
+        const gone = removeGrantedTraitsFrom(target, o.trait.id, source);
         if (!gone.length) break; // rien d'accordé par cette source — rien à dire
         if (target.activeEffects?.length) target.activeEffects = target.activeEffects.filter((e) => !gone.some((g) => e.grantedTrait && sameInstance(e.grantedTrait, g)));
         lines.push(t('op.removeTrait', { name: target.label, trait: formatTrait(gone[0]) }));
@@ -2650,7 +2619,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'domeWard': {
         const zone = zoneDeGarde(ctx, target, 'domeWard');
-        const ward = { id: o.traitId, value: resolveFormula(o.indice, ref, rng) };
+        const [ward] = traitsOctroyes(o, { lanceur: ref, porteur: target, rng });
+        if (ward.value === undefined) throw new Error(`[domeWard] Trait « ${ward.id} » octroyé sans Indice (LDB 47 l.410)`);
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0,

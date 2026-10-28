@@ -26,7 +26,7 @@ export const ENTRIES: CaseAveugle[] = [
   { id: 'gor', arme: 'grande-hache' },
   { id: 'troll' },
   { id: 'chien' },
-  { id: 'skaven', arme: 'dague' },
+  { id: 'guerrier-des-clans', arme: 'dague' },
 ];
 export const GRILLE: GrillePlanche = {
   titre: 'Identifie chaque creature (profil gauche + face droite par case)',

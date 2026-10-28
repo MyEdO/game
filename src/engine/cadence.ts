@@ -2,9 +2,9 @@
  * « Cadence de combat » — PRÉFÉRENCE de confort (rythme de résolution des jets), pas une règle de
  * WFRP : elle ne vit PAS au registre des règles optionnelles (`src/data/reglesOptionnelles.json`, lu
  * par `policy.ts` — chaque entrée y porte sa réf chapitre + ligne) mais ici, en valeur pure. Le
- * partage est le MÊME que `policy` ⇄ `houseRules` :
- * ce module FEUILLE porte la valeur (moteur pur, zéro dépendance), `state/preferences.ts` porte le
- * registre joueur, la persistance et l'effet déclaré à l'application.
+ * partage est le MÊME que `policy` ⇄ `noyau/reglesMaison` :
+ * ce module FEUILLE porte la valeur (moteur pur, zéro dépendance), `noyau/preferences.ts` porte la
+ * table, `hote/preferences.ts` la persistance, `state/preferences.ts` l'effet déclaré par le web.
  *
  * SEULE source de vérité pour le mode d'automatisation : le reste du moteur/store lit `cadence()`,
  * `cadenceAuto()` ou `cadenceAutoCombat()`.
@@ -18,7 +18,7 @@ let current: Cadence = CADENCE_DEFAULT;
 /** Mode courant (défaut `'manuel'`). */
 export const cadence = (): Cadence => current;
 
-/** Écrit le mode — couture d'écriture unique du joueur : `state/preferences.ts`. */
+/** Écrit le mode — table des préférences : `noyau/preferences.ts`. */
 export function setCadence(mode: Cadence): void {
   current = mode;
 }

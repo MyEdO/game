@@ -44,9 +44,11 @@ export function terrainEntree(id: string): TerrainDef | undefined {
   return indexDesTerrains()[id];
 }
 
-/** Nom d'auteur du terrain, ou `undefined` — l'appelant AFFICHE l'id brut à défaut. */
-export function terrainLabel(id: string): string | undefined {
-  return indexDesTerrains()[id]?.label;
+/** Nom d'auteur d'un terrain, id garanti au parse (`idDe('terrain')`) : un id inconnu LÈVE (#3031). */
+export function terrainLabel(id: string): string {
+  const entree = indexDesTerrains()[id];
+  if (!entree) throw new Error(`terrainLabel : terrain inconnu « ${id} »`);
+  return entree.label;
 }
 
 export function terrainWalkable(id: string): boolean {

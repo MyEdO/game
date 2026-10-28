@@ -17,7 +17,7 @@ import { EffectFields } from './EffectList';
 import { GameOpEditor } from './GameOpEditor';
 import type { Effect } from '../../data/schemas/defs-scenes/effets';
 import type { GameOp } from '../../engine/ops';
-import { apparencesAdmissibles } from '../../engine/items';
+import { apparencesAdmissiblesDObjet } from '../../data/apparencesObjets';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { weaponFromId } from '../../engine/creatureEquip';
@@ -55,7 +55,7 @@ describe('apparence donnée — effets et ops', () => {
       onChange={(next) => { appearance = next; renderEntity(); }} />);
     act(renderEntity);
     choisirMediaSelect(root.container, 'Apparence — Hache du projet', 'Hache naine');
-    expect(appearance.apparencesObjets).toEqual({ [objet.id]: 'hache_naine' });
+    expect(appearance.apparencesObjets).toEqual({ [objet.id]: { id: 'hache_naine' } });
     choisirMediaSelect(root.container, 'Apparence — Hache du projet', 'Hache');
     expect(appearance).not.toHaveProperty('apparencesObjets');
   });
@@ -70,7 +70,7 @@ describe('apparence donnée — effets et ops', () => {
       : <GameOpEditor ops={[valeur as GameOp]} onChange={(ops) => changer(ops[0])} />);
     act(render);
     const options = () => [...root.container.querySelectorAll('[title="Apparence de l’objet donné"] + [role="listbox"] .ms-label')].map((e) => e.textContent);
-    expect(options()).toEqual(apparencesAdmissibles({ trappingId: 'arme-simple' }).map((a) => a.label));
+    expect(options()).toEqual(apparencesAdmissiblesDObjet({ trappingId: 'arme-simple' }).map((a) => a.label));
     choisirMediaSelect(root.container, 'Apparence de l’objet donné', 'Hache naine');
     expect(valeur).toMatchObject({ apparence: { id: 'hache_naine' } });
     choisirMediaSelect(root.container, 'Apparence de l’objet donné', 'Épée');
@@ -83,14 +83,14 @@ describe('apparence donnée — effets et ops', () => {
     });
     expect(valeur).toMatchObject({ trappingId: 'bouclier' });
     expect(valeur).not.toHaveProperty('apparence');
-    expect(options()).toEqual(apparencesAdmissibles({ trappingId: 'bouclier' }).map((a) => a.label));
+    expect(options()).toEqual(apparencesAdmissiblesDObjet({ trappingId: 'bouclier' }).map((a) => a.label));
     if (surface === 'op') expect(valeur).toMatchObject({ count: 2, perSL: { every: 1, amount: 1 } });
   });
 });
 
 describe('ApparencesObjetsField — contrat partagé', () => {
   it('déduplique les armes, propose les variantes admises et retire seulement la clé revenue au défaut', () => {
-    let next: EntityAppearance = { sex: 'M', apparencesObjets: { bouclier: 'bouclier_rectangle' } };
+    let next: EntityAppearance = { sex: 'M', apparencesObjets: { bouclier: { id: 'bouclier_rectangle' } } };
     const root = monterRacine(null);
     const render = () => root.rendre(<ApparencesObjetsField appearance={next} onChange={(a) => { next = a; render(); }}
       weapons={[{ trappingId: 'arme-simple' }, { trappingId: 'arme-simple' }, { trappingId: 'bouclier' }, {}]} />);
@@ -101,9 +101,9 @@ describe('ApparencesObjetsField — contrat partagé', () => {
     expect(labels).not.toContain('Bouclier rectangulaire');
     const choisir = (arme: string, label: string) => choisirMediaSelect(root.container, `Apparence — ${arme}`, label);
     choisir('Arme simple', 'Hache naine');
-    expect(next.apparencesObjets).toEqual({ bouclier: 'bouclier_rectangle', 'arme-simple': 'hache_naine' });
+    expect(next.apparencesObjets).toEqual({ bouclier: { id: 'bouclier_rectangle' }, 'arme-simple': { id: 'hache_naine' } });
     choisir('Arme simple', 'Épée');
-    expect(next.apparencesObjets).toEqual({ bouclier: 'bouclier_rectangle' });
+    expect(next.apparencesObjets).toEqual({ bouclier: { id: 'bouclier_rectangle' } });
     choisir('Bouclier', 'Bouclier');
     expect(next).toEqual({ sex: 'M' });
   });

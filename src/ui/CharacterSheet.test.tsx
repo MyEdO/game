@@ -9,7 +9,8 @@ import { BackgroundPanel } from './BackgroundPanel';
 import { casterTalents } from '../engine/grimoire';
 import { apparences, findTrappingById } from '../data';
 import { setDataset } from '../data/overrides';
-import { apparencesAdmissibles, apparencesCandidates, itemFromTrappingById } from '../engine/items';
+import { apparencesCandidates, itemFromTrappingById } from '../engine/items';
+import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 
@@ -82,7 +83,7 @@ describe('CharacterSheet — Apparence sur l’objet', () => {
     expect(opts).toContain('Hache ouvragée');
     expect(opts).not.toContain('Cape ouvragée');
     expect(opts).toHaveLength(new Set([...racines, findTrappingById('arme-simple')!.shape?.id]).size + 2);
-    for (const a of apparencesAdmissibles(h.items![0])) {
+    for (const a of apparencesAdmissiblesDObjet(h.items![0])) {
       act(() => useGame.getState().choisirApparence(h.id, h.items![0].uid, a.id));
       expect(apparencesCandidates(useGame.getState().party[0].items![0])[0]).toBe(a.id);
     }
@@ -365,7 +366,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     const h = {
       ...hero(),
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 },
-      items: [{ uid: 'a1', label: 'Cotte de mailles', kind: 'armor', subType: 'mailles', qualities: [], enc: 2, equipped: true, pa: 2, locs: ['corps'], damageTaken: 1 } as never],
+      items: [{ ...itemFromTrappingById('chemise-de-mailles')!, uid: 'a1', equipped: true, damageTaken: 1 }],
     } as unknown as Combatant;
     useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
     mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);

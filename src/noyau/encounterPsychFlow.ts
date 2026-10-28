@@ -20,7 +20,7 @@ import type { CascadeStep, BatchParticipant } from './pendings';
 import { ficheDEntite } from './monde/sceneNpc';
 import { presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
 import { encounterPsych } from '../engine/encounterPsych';
-import { estCibleType, cibleLabel, PsychType, psychTest, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych } from '../engine/psychology';
+import { estCibleType, cibleLabel, PsychType, psychTest, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych, sansPeurFace } from '../engine/psychology';
 import { refLabel, combatStakeRef } from '../data';
 import { applyOps } from '../engine/ops';
 import { t } from '../i18n';
@@ -29,8 +29,8 @@ import { describeEncounterPsych } from './flowOutcomes';
 import { freeCons, resultLines, makeBandFactory, rollStep, type Consequence } from './rollSeam';
 import { actorIn } from './monde/combatants';
 import { touchActors } from './combatOrParty';
-import { dataLabel } from '../data';
-import { stepDetail, stepPrecision, stepPsych } from './rollSeam';
+import { dataLabel, groupLabel } from '../data';
+import { stepDetail, stepPrecision, stepPsych, stepSansPeur } from './rollSeam';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { battleRng } from './battleRng';
 
@@ -58,18 +58,21 @@ export function sceneFearSources(scene: Scene, presetDe: ResolveurDePreset): Com
 /** DÉCLARATION COMMUNE d'une bande — telle qu'elle vit sur l'ÉTAPE (`CascadeStep.encounterPsych`). */
 type PsychBandDecl = NonNullable<CascadeStep['encounterPsych']>;
 
-/** Un Test DÛ par un héros, avant regroupement : le héros, la déclaration de règle qui l'appelle, et
- *  la présentation qui en découle (icône/libellé — communes à toute la bande). */
-interface PsychDue { hero: Combatant; decl: PsychBandDecl; icon: string; label: PlayerText }
+/** Un Test DÛ par un héros, avant regroupement : le héros, la déclaration de règle qui l'appelle, la
+ *  présentation qui en découle (icône/libellé — communes à toute la bande), et Sans Peur (Ennemi), qui
+ *  diverge par héros (`sansPeurFace`). */
+interface PsychDue { hero: Combatant; decl: PsychBandDecl; icon: string; label: PlayerText; sansPeur?: boolean }
 
 /** RANGÉE d'une bande : le Test de CE héros, `psychTest` (mêmes données que le combat), monté par le
  *  monteur canonique (`rollStep`) : base nue, pénalité d'États nommée (LDB 16 l.90, l.125), cible bornée. */
-function psychRow(hero: Combatant, kind: PsychType): BatchParticipant {
-  const { skill, difficulty } = psychTest(kind);
+function psychRow(hero: Combatant, kind: PsychType, sansPeur: boolean): BatchParticipant {
+  const { skill, difficulty } = psychTest(kind, sansPeur);
+  const label = refLabel('skills', skill);
   return {
     id: hero.id, interactive: true, result: null,
-    label: refLabel('skills', skill), skillId: skill.id, difficulty,
+    label: sansPeur ? stepSansPeur(label) : label, skillId: skill.id, difficulty,
     ...rollStep({ actor: hero, test: { skill: skill.id, spec: skill.spec }, difficulty }),
+    ...(sansPeur ? { meta: { sansPeur: true } } : {}),
   };
 }
 
@@ -86,7 +89,7 @@ function psychRow(hero: Combatant, kind: PsychType): BatchParticipant {
  */
 const psychBands = makeBandFactory<PsychDue>({
   cle: ({ decl: d }) => `${d.kind}|${d.sourceId}|${d.cible ?? ''}|${d.indice}`,
-  rangee: (due) => psychRow(due.hero, due.decl.kind),
+  rangee: (due) => psychRow(due.hero, due.decl.kind, !!due.sansPeur),
   situation: ({ decl: d, icon, label }, { index }) => ({
     id: `psych-${d.kind}-${index}`, kind: 'encounterPsych', icon, label,
     encounterPsych: d,
@@ -127,11 +130,11 @@ export function openEncounterPsych(get: Get, set: Set): void {
     if (!src) throw new Error(`[psychologie] la source « ${trig.sourceId} » du Test de ${hero.label} n'est pas un PNJ présent`);
     const cl = estCibleType(trig.kind) ? cibleLabel(trig.kind) : null;
     dues.push({
-      hero,
+      hero, sansPeur: sansPeurFace(hero, trig.kind, src),
       decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: src.label, indice: trig.indice, cible: trig.cible },
       icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
       label: cl
-        ? (trig.cible ? stepPrecision(dataLabel(cl.label), dataLabel(trig.cible)) : dataLabel(cl.label))
+        ? (trig.cible ? stepPrecision(dataLabel(cl.label), groupLabel(trig.cible)) : dataLabel(cl.label))
         : stepDetail(stepPsych(trig.kind, trig.indice), dataLabel(src?.label, '?')),
     });
   }
@@ -174,22 +177,22 @@ export function openScriptedPsych(get: Get, set: Set, kind: 'peur' | 'terreur', 
  * génériques d'`applyOps` sont couvertes par ce verdict rédigé). PUR vis-à-vis du store (mute le
  * héros, ne lit rien d'autre) : la rangée porte tout son contexte.
  */
-function resolvePsychRow(hero: Combatant, ep: PsychBandDecl, r: { success: boolean; sl: number }, immune: boolean): Consequence[] {
+function resolvePsychRow(hero: Combatant, ep: PsychBandDecl, r: { success: boolean; sl: number }, immune: boolean, sansPeur: boolean): Consequence[] {
   // DÉTERMINATION (LDB 17 l.59) : immunité TEMPORAIRE (« Demeurer immunisé à Psychologie jusqu'à la fin
   // du prochain Round »). Pour un Test de rencontre ONE-SHOT (pas de Test étendu), « immune » ≈ « inerte »
   // = même état final qu'un succès (la source ne se re-déclenche pas) : on applique les ops de la branche
   // de RÉUSSITE — avec une issue distincte au journal. Ce qui protège le porteur pendant la durée est le
-  // marqueur d'immunité lui-même, jamais un Indice à 0 : la Peur héritée d'une Terreur se pose à PLEIN
-  // Indice ici aussi (LDB 21 l.56), sans quoi l'immunité du Round vaudrait une Peur vaincue à jamais.
+  // marqueur d'immunité lui-même : la Peur héritée d'une Terreur se pose à PLEIN Indice, NON surmontée
+  // (LDB 21 l.56), sans quoi l'immunité du Round vaudrait une Peur vaincue à jamais.
   if (immune) {
-    applyOps(hero, psychBranchOps(ep, { success: true, calmeDR: ep.indice }), { rng: battleRng(), source: { kind: 'psychology', id: ep.kind } });
+    applyOps(hero, psychBranchOps(ep, { success: true, calmeDR: ep.indice, surmontee: true }), { rng: battleRng(), source: { kind: 'psychology', id: ep.kind } });
     return freeCons([t('cf.psychImmune', { name: hero.label })]);
   }
   const res = psychResolution(ep.kind); // mode + conséquences en DONNÉES (psychology.json)
   const brise = r.success ? 0 : failConditionAmount(res.failAmount, ep.indice, r.sl);
   // Le DR du jet est versé au contexte : la quantité d'État de l'échec (`valuePerSL{onFailure}` de la
   // branche) s'y résout — même arithmétique que `failConditionAmount`, une seule fois.
-  applyOps(hero, psychBranchOps(ep, { success: r.success, calmeDR: r.success ? ep.indice : 0 }), { rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: ep.kind } });
+  applyOps(hero, psychBranchOps(ep, { success: r.success, calmeDR: r.success ? ep.indice : 0, surmontee: r.success, sansPeur }), { rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: ep.kind } });
   const pe: PendingEncounterPsych = {
     heroId: hero.id, kind: ep.kind, sourceId: ep.sourceId, sourceName: ep.sourceName, indice: ep.indice, cible: ep.cible,
     result: { success: r.success, brise, sl: r.sl },
@@ -213,7 +216,7 @@ export const TABLES = {
       for (const part of step.participants) {
         const hero = actorIn(get(), part.id);
         if (!hero || !part.result) { part.outcome = []; continue; }
-        const lines = resultLines(resolvePsychRow(hero, ep, part.result, !!part.immune));
+        const lines = resultLines(resolvePsychRow(hero, ep, part.result, !!part.immune, !!part.meta?.sansPeur));
         part.outcome = lines;
         for (const l of lines) get().log(l.text);
       }

@@ -5,6 +5,8 @@ import { addCondition, COND, passivePartLine } from './conditions';
 import { talentPassiveMods } from './talentEffects';
 import { etats, findMutationById, qualities, refLabel, skills, spells, talents, trappings, traits } from '../data';
 import type { Combatant, CharKey, SkillInstance } from './types';
+import { RULE_REF } from './ruleRefs';
+import { t } from '../i18n';
 
 /**
  * GARDE DE CLÔTURE du décomposeur de `testValue` (#1153). L'écran n'a le droit d'annoncer une base NUE
@@ -58,13 +60,15 @@ function withMutation(): Combatant {
 
 /** Effet actif char-qualifié (Mystracine « −10 Ag/I/Int », LDB 71 l.33) DÉCLARANT sa source : c'est elle
  *  qui donne à la chip son renvoi Codex (`effectRef` → `CATEGORY_BY_SOURCE_KIND`). */
+const MYSTRACINE = 'Mystracine';
 function withEffetCharQualifie(): Combatant {
-  return hero({ activeEffects: [{ label: 'Mystracine', testMod: -10, testModChar: CK, source: { kind: 'trapping', id: 'mystracine' } }] as unknown as Combatant['activeEffects'] });
+  return hero({ activeEffects: [{ label: MYSTRACINE, testMod: -10, testModChar: CK, source: { kind: 'trapping', id: 'mystracine' } }] as unknown as Combatant['activeEffects'] });
 }
 
 /** Le MÊME effet SANS source déclarée — seul cas structurellement non liable au Codex (cf. test dédié). */
+const MALEDICTION = 'Malédiction de malchance';
 function withEffetSansSource(): Combatant {
-  return hero({ activeEffects: [{ label: 'Malédiction de malchance', testMod: -10, testModChar: CK }] as unknown as Combatant['activeEffects'] });
+  return hero({ activeEffects: [{ label: MALEDICTION, testMod: -10, testModChar: CK }] as unknown as Combatant['activeEffects'] });
 }
 
 function withLaid(): Combatant {
@@ -107,8 +111,9 @@ function withTalentPerime(): Combatant {
 
 /** SÉQUELLE de traumatisme à `skillMod` (LDB 18) : le Combattant porte l'objet `Trauma`, donc son
  *  `label` — les séquelles ne sont pas une catégorie du Codex, d'où l'absence de lien. */
+const SEQUELLE = 'Fracture à la mâchoire';
 function withSequelle(): Combatant {
-  return hero({ traumas: [{ label: 'Fracture à la mâchoire', ops: [{ op: 'skillMod', skill: { id: 'marchandage' }, mod: -10 }] }] as unknown as Combatant['traumas'] });
+  return hero({ traumas: [{ label: SEQUELLE, ops: [{ op: 'skillMod', skill: { id: 'marchandage' }, mod: -10 }] }] as unknown as Combatant['traumas'] });
 }
 
 /** Premier TALENT du catalogue portant un passif — pris à la donnée, jamais forgé. AUCUN talent ne porte
@@ -129,17 +134,19 @@ function withSortSkillMod(): Combatant {
 }
 
 /** Pièce d'armure CUSTOM (forgée à la main, SANS `trappingId`) : hors catalogue, donc sans fiche. */
+const HARNOIS = 'Harnois du forgeron';
 function withArmureCustom(): Combatant {
   return hero({
     skills: [{ id: 'discretion', advances: 15 }] as SkillInstance[],
-    items: [{ uid: 'i3', label: 'Harnois du forgeron', kind: 'armor', equipped: true, qualities: [{ id: 'en-discretion', value: -10 }] }] as unknown as Combatant['items'],
+    items: [{ uid: 'i3', label: HARNOIS, kind: 'armor', equipped: true, qualities: [{ id: 'en-discretion', value: -10 }] }] as unknown as Combatant['items'],
   });
 }
 
 /** Mutation d'une SAUVEGARDE PÉRIMÉE (l'entrée a disparu du catalogue depuis) : le Combattant en porte
  *  l'objet COMPLET, donc son nom tient ; seul le lien Codex manque. */
+const MUTATION_PERIMEE = { id: 'trogne-de-goret', label: 'Trogne de goret' };
 function withMutationPerimee(): Combatant {
-  return hero({ mutations: [{ id: 'trogne-de-goret', label: 'Trogne de goret', desc: '', kind: 'physique', roll: 1, passive: [{ op: 'testMod', amount: -15, char: CK }] }] as unknown as Combatant['mutations'] });
+  return hero({ mutations: [{ ...MUTATION_PERIMEE, desc: '', kind: 'physique', roll: 1, passive: [{ op: 'testMod', amount: -15, char: CK }] }] as unknown as Combatant['mutations'] });
 }
 
 /**
@@ -156,7 +163,7 @@ const SANS_REF_DECLARE = new Set<CasId>(['armure-custom', 'mutation-perimee', 's
 
 /** Replis de FAMILLE : jamais un nom d'octroyeur (`passivePartLine` n'en produit aucun ; cette liste
  *  interdit qu'on en réintroduise un). */
-const FAMILLES = ['Passif', 'Séquelle', 'État', 'Symptôme', 'Aura', 'Maladie', 'Faim/Soif', 'Ivresse', 'intrinseque', 'magique'];
+const FAMILLES = ['Passif', 'Séquelle', t('cond.natureEtat'), 'Symptôme', t('cond.natureAura'), 'Maladie', 'intrinseque', 'magique'];
 
 /** Ids RÉELS d'une catégorie du Codex — contrat POSITIF : un libellé qui est l'un de ces ids est un id
  *  BRUT échappé du résolveur. Remplace l'heuristique de forme (« contient un tiret »), aveugle sur les
@@ -223,12 +230,14 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
   it('les composantes portent le NOM de leur émetteur, pas celui de leur famille', () => {
     const mutLabel = findMutationById('visage-inverse')!.label;
     expect(testValueParts(withMutation(), 'marchandage').map((p) => p.label)).toEqual([mutLabel]);
-    expect(testValueParts(withEtat(), 'marchandage').map((p) => p.label)).toEqual(['Empoisonné']);
-    expect(testValueParts(withEffetCharQualifie(), 'marchandage').map((p) => p.label)).toEqual(['Mystracine']);
-    expect(testValueParts(withLaid(), 'marchandage').map((p) => p.label)).toEqual(['Laid']);
+    const empoisonne = refLabel('etats', { id: 'empoisonne' });
+    expect(testValueParts(withEtat(), 'marchandage').map((p) => p.label)).toEqual([empoisonne]);
+    expect(testValueParts(withEffetCharQualifie(), 'marchandage').map((p) => p.label)).toEqual([MYSTRACINE]);
+    expect(testValueParts(withLaid(), 'marchandage').map((p) => p.label)).toEqual([refLabel('qualities', { id: 'laid' })]);
     // Cumul : les deux composantes coexistent, chacune à son nom (aucune fusion anonyme).
     const cumul = (() => { const c = withMutation(); addCondition(c, COND.empoisonne); return c; })();
-    expect(testValueParts(cumul, 'marchandage').map((p) => p.label).sort()).toEqual(['Empoisonné', mutLabel].sort());
+    expect(testValueParts(cumul, 'marchandage').map((p) => p.label)).toEqual(expect.arrayContaining([empoisonne, mutLabel]));
+    expect(testValueParts(cumul, 'marchandage')).toHaveLength(2);
   });
 
   /** SONDES DU JUGE (passe 3) promues en tests : les 3 canaux qui rendaient une chip anonyme/fausse. */
@@ -259,22 +268,21 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
   it('(C) armure CUSTOM : NOMMÉE par le label que l’objet PORTE, lien absent (exception déclarée)', () => {
     const [part, ...reste] = testValueParts(withArmureCustom(), 'discretion');
     expect(reste).toEqual([]);
-    expect(part.label).toBe('Harnois du forgeron'); // ni « Passif », ni un id brut
+    expect(part.label).toBe(HARNOIS); // ni « Passif », ni un id brut
     expect(part.ref).toBeUndefined(); // aucune fiche à ouvrir : la pièce n'est pas au catalogue
   });
 
   it('(C bis) mutation d’une sauvegarde périmée : le NOM tient (objet complet), seul le LIEN manque', () => {
     const [part, ...reste] = testValueParts(withMutationPerimee(), 'marchandage');
     expect(reste).toEqual([]);
-    expect(part.label).toBe('Trogne de goret'); // le Combattant porte l'objet COMPLET, pas une référence
-    expect(part.label).not.toBe('trogne-de-goret'); // l'id brut est INTERDIT (cf. garde d'appartenance)
+    expect(part.label).toBe(MUTATION_PERIMEE.label); // le Combattant porte l'objet COMPLET, pas une référence
     expect(part.ref).toBeUndefined(); // l'entrée a disparu du catalogue : pas de chip morte
   });
 
   it('(C ter) SÉQUELLE : NOMMÉE par le traumatisme porté (hors catégorie Codex, donc sans lien)', () => {
     const [part, ...reste] = testValueParts(withSequelle(), 'marchandage');
     expect(reste).toEqual([]);
-    expect(part.label).toBe('Fracture à la mâchoire'); // jamais « Séquelle », le nom de sa famille
+    expect(part.label).toBe(SEQUELLE);
     expect(part.ref).toBeUndefined();
   });
 
@@ -284,20 +292,18 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
    * et par `skillMod` (→ `testValueParts`). Les deux doivent dire « Fracture », pas « Séquelle ».
    */
   it('D1 — un même octroyeur porte le MÊME nom sur les canaux charMod ET skillMod', () => {
-    const c = hero({
-      traumas: [{ label: 'Fracture', ops: [{ op: 'charMod', char: 'capacite-de-combat', mod: -30 }, { op: 'skillMod', skill: { id: 'marchandage' }, mod: -30 }] }] as unknown as Combatant['traumas'],
-    });
+    const fracture = { label: 'Fracture', ops: [{ op: 'charMod', char: 'capacite-de-combat', mod: -30 }, { op: 'skillMod', skill: { id: 'marchandage' }, mod: -30 }] };
+    const c = hero({ traumas: [fracture] as unknown as Combatant['traumas'] });
     const canalCharMod = volatileCharLines(c, 'capacite-de-combat').map((l) => l.label);
     const canalSkillMod = testValueParts(c, 'marchandage').map((p) => p.label);
-    expect(canalCharMod).toEqual(['Fracture']); // modale d'ATTAQUE — disait « Séquelle »
-    expect(canalSkillMod).toEqual(['Fracture']);
+    expect(canalCharMod).toEqual([fracture.label]);
+    expect(canalSkillMod).toEqual([fracture.label]);
     expect(canalCharMod).toEqual(canalSkillMod); // MÊME octroyeur ⇒ MÊME nom, quel que soit le canal
   });
 
-  it('D1 bis — Faim/Soif et Ivresse gardent leur famille : aucune entité ne les octroie', () => {
-    const affame = hero({ hunger: { days: 3, tests: 0, failures: 2 } } as Partial<Combatant>);
-    const lignes = volatileCharLines(affame, 'force').map((l) => l.label);
-    if (lignes.length) expect(lignes).toEqual(['Faim/Soif']); // repli de famille ASSUMÉ, et le seul
+  it('D1 bis — la Faim renvoie à sa règle (LDB 18 l.342)', () => {
+    const affame = hero({ characteristics: { force: 40 } as Combatant['characteristics'], hunger: { days: 3, tests: 0, failures: 2 } } as Partial<Combatant>);
+    expect(volatileCharLines(affame, 'force').map((l) => [l.label, l.ref])).toEqual([[refLabel('regles', RULE_REF['faim-et-soif']), RULE_REF['faim-et-soif']]]);
   });
 
   /** Le NOM n'a AUCUNE exception : c'est l'entité attachée qui le porte, elle l'a toujours. */
@@ -328,7 +334,7 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
   it('exception DÉCLARÉE : un effet actif sans source reste NOMMÉ, mais sans renvoi Codex', () => {
     const [part, ...reste] = testValueParts(withEffetSansSource(), 'marchandage');
     expect(reste).toEqual([]);
-    expect(part.label).toBe('Malédiction de malchance'); // nommé par l'effet lui-même
+    expect(part.label).toBe(MALEDICTION); // nommé par l'effet lui-même
     expect(part.ref).toBeUndefined(); // …mais aucune entité à ouvrir : la source n'a pas été propagée
     expect(part.value).toBe(-10);
   });

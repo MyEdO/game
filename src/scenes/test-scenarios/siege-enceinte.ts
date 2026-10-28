@@ -44,8 +44,8 @@ const projForPiece = (trappingId: string): SkillRef[] => {
 // Servant de pièce (entité à id FIXE, référencé par le `crew` de l'emplacement) : une VRAIE créature du
 // bestiaire (a une CT pour viser), SANS arme propre → sa seule arme à distance est la PIÈCE servie (l'IA tire
 // donc la baliste/le canon, pas un arc). Posté à CÔTÉ de l'affût (x-1). On lui DONNE la Projectiles du Groupe de
-// SA pièce → il compte comme membre d'équipe qualifié (sinon effectif 0). `ref` garde-du-village (défenseur) /
-// brigand (assaillant).
+// SA pièce → il compte comme membre d'équipe qualifié (sinon effectif 0). `ref` brute (défenseur) /
+// wolfgard-hohmann (assaillant).
 const gunner = (
   id: string,
   pos: { x: number; y: number },
@@ -57,7 +57,7 @@ const gunner = (
   kind: 'personnage',
   pos,
   label,
-  ref: opts.ref ?? 'garde-du-village',
+  ref: opts.ref ?? 'brute',
   ...(opts.z ? { z: opts.z } : {}),
   ...(opts.facing ? { facing: opts.facing } : {}),
   combat: { skills: projForPiece(trappingId) },
@@ -217,8 +217,8 @@ export function spec(): MapSpec {
       gunner('crew-baliste', { x: 7, y: 38 }, 'baliste', 'Servant de baliste', { z: 1 }),
       gunner('crew-canon', { x: 20, y: 38 }, 'canon-petit', 'Servant de canon', { z: 1 }),
       // Servants de la BATTERIE assaillante (z0, côté assaut, facing S) — à x-1 de leur affût (k(21,15)→(20,15), p(8,2)→(7,2)).
-      gunner('brg-canon', { x: 20, y: 15 }, 'canon-petit', 'Canonnier de siège', { facing: 'S', ref: 'brigand' }),
-      gunner('brg-cata', { x: 7, y: 2 }, 'catapulte-petite', 'Servant de catapulte', { facing: 'S', ref: 'brigand' }),
+      gunner('brg-canon', { x: 20, y: 15 }, 'canon-petit', 'Canonnier de siège', { facing: 'S', ref: 'wolfgard-hohmann' }),
+      gunner('brg-cata', { x: 7, y: 2 }, 'catapulte-petite', 'Servant de catapulte', { facing: 'S', ref: 'wolfgard-hohmann' }),
     ],
 
     // ── BINDS des marqueurs → poses. Archers/guetteur = PNJ alliés-IA (arcs). Emplacements = affûts INERTES servis
@@ -227,18 +227,18 @@ export function spec(): MapSpec {
       '@': 'heroStart',
       // Archers défenseurs (z1, arcs) : PNJ alliés-IA (agissent seuls).
       A: {
-        entity: { kind: 'personnage', ref: 'garde-du-village', weapon: 'arc', facing: 'N', z: 1, label: 'Archer du guet' },
+        entity: { kind: 'personnage', ref: 'brute', weapon: 'arc', facing: 'N', z: 1, label: 'Archer du guet' },
         member: { enc: 'assaut', side: 'ally', ai: true },
       },
       // Guetteur au-dessus du tunnel de la porte (chemin de ronde continu au-dessus de la brèche).
       G: {
-        entity: { kind: 'personnage', ref: 'garde-du-village', weapon: 'arc', facing: 'N', z: 1 },
+        entity: { kind: 'personnage', ref: 'brute', weapon: 'arc', facing: 'N', z: 1 },
         member: { enc: 'assaut', side: 'ally', ai: true },
       },
       // Pièces de REMPART : affûts INERTES (pas d'`ai`), servis par leur équipage QUALIFIÉ (crew), sur le chemin de ronde (z1).
       B: { emplacement: 'baliste', crew: 'crew-baliste', facing: 'N', member: { enc: 'assaut', side: 'ally' } },
       K: { emplacement: 'canon-petit', crew: 'crew-canon', facing: 'N', member: { enc: 'assaut', side: 'ally' } },
-      // BATTERIE assaillante (z0) : affûts INERTES servis par les brigands-équipage, camp ennemi.
+      // BATTERIE assaillante (z0) : affûts INERTES servis par les mercenaires-équipage, camp ennemi.
       k: { emplacement: 'canon-petit', crew: 'brg-canon', facing: 'S', member: { enc: 'assaut', side: 'enemy' } },
       p: { emplacement: 'catapulte-petite', crew: 'brg-cata', facing: 'S', member: { enc: 'assaut', side: 'enemy' } },
       // Fantassins gobelins (z0) : assaut ennemi qui traverse le pont et s'amasse à la porte.
@@ -249,7 +249,7 @@ export function spec(): MapSpec {
       E: { kind: 'prop', ref: 'etendard' },
     },
 
-    // ── RENCONTRE : le roster des servants (alliés-IA au rempart ; brigands ennemis à la batterie) — le RESTE
+    // ── RENCONTRE : le roster des servants (alliés-IA au rempart ; mercenaires ennemis à la batterie) — le RESTE
     //    (emplacements inertes, archers, guetteur, gobelins) arrive par bind→member ci-dessus. ────────────────────
     encounters: [
       {

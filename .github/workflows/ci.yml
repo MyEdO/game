@@ -161,9 +161,10 @@ jobs:
   # `livraison:plage` (#2328, scripts/guards/livraison-plage.mjs) : la porte de PUBLICATION des
   # résolutions de fusion de `merge-base origin/main..HEAD` ; elle lit les soldes de `.claude/` dans
   # l'histoire, elle n'est jamais sautée.
-  # `comptes:plage` (#2705, scripts/guards/comptes-plage.mts) : la porte des COLLECTIONS À COMPTE sur la
-  # même plage — aucun compte ne monte, aucun site n'y naît, à détecteur constant ; sautée sur un push
-  # documentaire, qui ne touche aucune donnée.
+  # `comptes:plage` (#2705, scripts/guards/comptes-plage.mts) : la porte des volets SOUS LA PORTE sur la
+  # même plage — aucun compte ne monte, aucun site n'y naît, aucun plancher ne cède, à détecteur constant ;
+  # puis l'inventaire de la dette que la donnée révèle (#3021), hors de la porte, au résumé du job ;
+  # sautée sur un push documentaire, qui ne touche aucune donnée.
   types-hooks:
     runs-on: ubuntu-latest
     timeout-minutes: 30

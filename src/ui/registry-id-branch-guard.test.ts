@@ -40,7 +40,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * Les entrées neuves portent leur motif NOMINATIF ci-dessous : stock avoué, à faire DÉCROÎTRE.
  * Descente mesurée depuis : 60 → 58 (`bc54767e`), puis 58 → 54 (2026-08-17)
  * — `creation.ts` et `CharacterCreator.tsx` (gate d'espèce passé au champ
- * `SpeciesData.gatedByRule`), `combat.ts` et `draft.ts` (tables `Record<union fermée, …>`), puis
+ * `SpeciesData.gatedByRule`), `combat.ts` et `brouillon.ts` (tables `Record<union fermée, …>`), puis
  * 54 → 50 (2026-08-17) — `groups.ts` sort de la liste : l'appartenance à un
  * Groupe est DÉCLARÉE en donnée (`grantGroups` d'espèce/carrière/classe/culte/créature,
  * `matchesAll`/`exceptGroups` du Groupe joker), puis 50 → 46 (2026-08-17) —
@@ -84,25 +84,17 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  *
  * RE-MESURE 2026-10-13 (#1765) : 6 → 7. Correction du DÉTECTEUR : la table littérale écrite en `Map`
  * (`new Map([[…]])`, `new Map(Object.entries(TABLE))`, `isLiteralMap`) indexée par `.get(<identité>)`
- * est la forme `id-record` — elle échappait au scan. `sortsFusionnes.ts` en sort démasqué ; `etatConnu`
- * (`engine/conditions.ts`) quitte la sienne pour l'index par id (`indexParId`) de ses entrées.
+ * est la forme `id-record` — elle échappait au scan. `etatConnu` (`engine/conditions.ts`) quitte la
+ * sienne pour l'index par id (`indexParId`) de ses entrées.
  */
 const KNOWN: Record<string, number> = {
   // GEL NOMINATIF — chaque entrée porte sa CONDITION DE SORTIE ; aucune n'est une exception permanente.
   // Sortie : les deux propriétés du prop (SUSPENDU au-dessus du vide, ADMIS sur les cellules de siège)
   // déclarées sur la def de décor `src/gameIso/catalog/decor/` — périmètre gameIso, hors de ce lot.
   'scripts/qc/opera-furniture-check.mts': 2, // `FLOATING.has(e.ref)` (lustre SUSPENDU) + `e.ref !== 'siege'`
-  // Sortie : la zone rémanente déclarée sur la manœuvre (`{ blocksLoS, rounds: ManeuverMeasure }` —
-  // la géométrie `smokeZone` est déjà celle, générique, d'un souffle). Le champ seul ne suffit pas :
-  // les DEUX textes `manv.smoke`/`manv.smokeZone` (`src/i18n/messages/fr.ts:426-427`) nomment la fumée,
-  // et une branche générique les servirait à toute autre manœuvre — leur généralisation change le
-  // libellé de zone et la ligne de journal à l'écran (recette navigateur + arbitrage de goût).
-  'src/noyau/combatManeuvers.ts': 1, // `def.id === 'souffle-fumee'` (zone `blocksLoS`, LDB 85 l.329)
   // Sortie : l'Arène intégrée devient une ENTRÉE de `builtinCampaigns` (une seule boucle de rangées,
   // plus de rangée en dur) — refonte d'ÉCRAN, donc recette navigateur exigée au commit.
   'src/ui/PartyScreen.tsx': 2, // `currentId === 'arene'` ×2 (rangée de la campagne intégrée)
-  // Sortie : table de MIGRATION gelée (#1897) — hors de `isRegistryIdBranchExcluded` par son seul chemin.
-  'src/data/sortsFusionnes.ts': 1, // `CORRESPONDANCE.get(id)` (`new Map(Object.entries(SORTS_FUSIONNES_1897))`)
 };
 
 /** Plafond GLOBAL du jour (= somme de `KNOWN`), destiné à tomber à 0. */
@@ -203,7 +195,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/noyau/combatEffects.ts': 3,
   'src/noyau/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
   'src/noyau/monde/combatGeometry.ts': 1,
-  'src/noyau/combatManeuvers.ts': 4,
+  'src/noyau/combatManeuvers.ts': 3,
   'src/noyau/combatSlice.ts': 1,
   'src/noyau/gesteDArete.ts': 1, // `talentId === 'grimpeur'` (LDB 15 l.57)
   // RÉVÉLÉ (jamais neuf) par la résolution des constantes de module, L2 #1548 : `q.id === ARME_D_EQUIPE`

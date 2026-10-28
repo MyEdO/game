@@ -39,7 +39,7 @@ export function traitOverlaysFor(c: Combatant): RigOverlay[] {
   if (!traits.length) return [];
   const d = c.species ? bipedDef(c.species) : undefined;
   const race = raceById(d?.race ?? (c.species ? baseSpeciesOf(c.species) : undefined));
-  // La race OU le def créature (perso.features additifs : cornes du Gor/Prophète gris…)
+  // La race OU le def créature (perso.features additifs : cornes du Gor/des Jumeaux…)
   // peuvent déjà fournir l'appendice — dans les deux cas le trait ne double pas.
   const behindFeats = [...(race.features ?? []), ...(d?.perso?.features ?? [])];
   const hasBehind = (bone: BoneId) => behindFeats.some((f) => f.bone === bone && (f.layer ?? 50) < 0);

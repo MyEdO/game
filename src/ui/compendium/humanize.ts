@@ -16,9 +16,9 @@
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Condition, EffectOp, PartySelector } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
-import { armourBypassCategorieSchema, loseTurnWhatSchema, senseSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
+import { armourBypassCategorieSchema, loseTurnWhatSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
 import { INDICE_TEMPLATE, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
-import { estCausePersistante, type GameOp, type Formula, type ResolveWindow } from '../../engine/ops';
+import { estCausePersistante, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
 import { CHAR_LABELS, HIT_LOCATION_LABELS, type CharKey, type ArmourBypass } from '../../engine/types';
 import { formatTrait, formatWardSave, traitLabelById } from '../../engine/traits/dispatch';
@@ -59,6 +59,17 @@ const REL_PLAYER: Record<Relation | Camp, string> = {
  *  le joueur lit une quantité, pas une indirection. */
 export function humanizeFormula(f: Formula): string {
   return formuleEnMots(f, null);
+}
+
+/** Le Trait OCTROYÉ (`grantTrait`) lisible : `formatTrait` de sa pose, un Indice formulé rendu par `formule`
+ *  (omis sans elle), une Cible tirée par la table qui la tire. SEUL rendu d'un octroi : Codex, résumé
+ *  d'éditeur, puces. */
+export function traitOctroyeLisible(o: Extract<GameOp, { op: 'grantTrait' }>, formule?: (f: FormuleSansTirage) => string): string {
+  const { value, ...pose } = o.trait;
+  const nombre = typeof value === 'number';
+  const indice = value === undefined || nombre || !formule ? '' : ` ${formule(value)}`;
+  const cible = o.cible ? ` (Cible tirée sur ${libelleDeValeur(tablesDeCiblesSchema, o.cible.table.id)}${o.cible.pick > 1 ? `, ${o.cible.pick} fois` : ''})` : '';
+  return `${formatTrait(nombre ? { ...pose, value } : pose)}${indice}${cible}`;
 }
 
 /** « de » + une formule humanisée, AVEC la contraction française : `de le` → `du`, `de les` → `des`
@@ -123,11 +134,12 @@ function formuleEnMots(f: Formula, regles: string[] | null): string {
   if ('engagedAdvantageGap' in f) return "l'écart d'Avantage avec les ennemis engagés";
   if ('woundsDealt' in f) return 'les Blessures infligées';
   if ('sl' in f) return 'les DR du Test';
-  // Les formes NON numériques (`flag`/`mode`, ou une règle inconnue) n'ont pas de nombre à montrer :
-  // elles se nomment, quel que soit le rendu demandé.
+  // Les formes NON numériques (`flag`/`mode`) n'ont pas de nombre à montrer : elles se nomment, quel que
+  // soit le rendu demandé. Un id hors du registre (brouillon d'éditeur) se nomme par son id : `ruleDef` le
+  // lit avant `rule()`, qui lève (#1463 LD.1).
   if ('rule' in f) {
     const def = ruleDef(f.rule);
-    const valeur = rule(f.rule);
+    const valeur = def?.kind === 'param' ? rule(f.rule) : undefined;
     if (def?.kind !== 'param' || typeof valeur !== 'number') return `la règle « ${def?.label ?? f.rule} »`;
     if (regles) {
       if (!regles.includes(def.label)) regles.push(def.label);
@@ -399,7 +411,7 @@ export function humanizeOp(o: GameOp): string {
     }
     case 'removeCondition': return `perd ${o.id ? `l'État ${stateItal(o.id)}` : 'un État au choix'}${o.valuePerSL ? ` (${humanizePerSL(o.valuePerSL)})` : ''}`;
     case 'endPsych': return `n'est plus sous l'effet de ${psychologyLabel(o.type)}`;
-    case 'beginPsych': return `tombe sous ${psychologyLabel(o.type)}${o.cible ? ` (${o.cible})` : ''}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}`;
+    case 'beginPsych': return `tombe sous ${psychologyLabel(o.type)}${o.cible ? ` (${groupLabel(o.cible)})` : ''}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}`;
     case 'charMod': return `${[`${o.mod >= 0 ? 'gagne' : 'subit'} ${o.mod >= 0 ? '+' : ''}${o.mod} en ${CHAR_LABELS[o.char]}`, plancher(o)].filter(Boolean).join(', ')}${pendant(o)}`;
     case 'ap': return `gagne +${humanizeFormula(o.amount)} PA${o.loc ? ` (${HIT_LOCATION_LABELS[o.loc]})` : ' à toutes les Localisations'}`;
     case 'corruption': return `gagne ${o.amount >= 0 ? '+' : ''}${o.amount} point(s) de Corruption`;
@@ -418,9 +430,9 @@ export function humanizeOp(o: GameOp): string {
     }
     case 'statusMod': return `${typeof o.amount === 'number' && o.amount < 0 ? 'perd' : 'gagne'} ${humanizeFormula(o.amount)} Standing pour la prochaine aventure`;
     case 'grantReverseToken': return `peut inverser ${o.skill ? refLabel('skills', o.skill) : 'un Test concernant sa cible'} une fois pendant sa prochaine aventure`;
-    case 'grantTrait': return `gagne le Trait ${formatTrait({ id: o.traitId, arg: o.arg, ...(typeof o.indice === 'number' ? { value: o.indice } : {}), range: o.range })}${o.indice != null && typeof o.indice !== 'number' ? ` ${humanizeFormula(o.indice)}` : ''}${pendant(o)}`;
-    case 'removeTrait': return `perd le Trait ${formatTrait({ id: o.traitId })}`;
-    case 'grantPsychTrait': return `gagne l'état psychologique ${psychologyLabel(o.psychType)}${o.cible ? ` (${o.cible})` : ''}`;
+    case 'grantTrait': return `gagne le Trait ${traitOctroyeLisible(o, humanizeFormula)}${pendant(o)}`;
+    case 'removeTrait': return `perd le Trait ${formatTrait(o.trait)}`;
+    case 'grantPsychTrait': return `gagne l'état psychologique ${psychologyLabel(o.psychType)}${o.cible ? ` (${groupLabel(o.cible)})` : ''}`;
     case 'removePsychTrait': return `perd ${o.psychType ? `l'état psychologique ${psychologyLabel(o.psychType)}` : 'un état psychologique au choix'}`;
     case 'grantTalent': return `gagne le Talent ${refLabel('talents', o.talent)}`;
     case 'grantCareerSkill': return `ajoute ${refLabel('skills', o.skill)} à ses carrières`;
@@ -450,7 +462,7 @@ export function humanizeOp(o: GameOp): string {
     case 'castWard': return `impose ${o.mod >= 0 ? '+' : '−'}${Math.abs(o.mod)} aux Tests de magie dans un rayon ${deFormule(o.radius)} m`;
     case 'suffocate': return `est soumis aux règles de la Suffocation`;
     case 'arrowWard': return "détruit les projectiles organiques qui entrent dans la Zone d'Effet";
-    case 'domeWard': return `érige un dôme sur la Zone d'Effet : elle octroie le Trait ${formatWardSave({ kind: 'trait', id: o.traitId }, humanizeFormula(o.indice))} contre les attaques magiques ou à distance venant de l'extérieur`;
+    case 'domeWard': return `érige un dôme sur la Zone d'Effet : elle octroie le Trait ${formatWardSave({ kind: 'trait', id: o.trait.id }, o.trait.value === undefined ? '?' : humanizeFormula(o.trait.value))} contre les attaques magiques ou à distance venant de l'extérieur`;
     case 'attackWardFM': return `ne peut être attaqué qu'après un Test de Force Mentale réussi`;
     case 'martyr': return `reçoit à leur place les Dégâts subis par ses protégés`;
     case 'noBreath': return `n'a plus besoin de respirer`;

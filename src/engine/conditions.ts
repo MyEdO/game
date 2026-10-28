@@ -2,13 +2,12 @@
  * États (conditions) — Livre de base, chapitre « États ».
  * Gestion minimale pour le combat tactique : ajout, empilement, retrait.
  */
-import { Combatant, ActiveEffect, ConditionInstance, effectRef, type ModLine, type ConditionEmit, type ConditionLocks } from './types';
+import { Combatant, ActiveEffect, ConditionInstance, effectRef, type ModLine, type ConditionEmit, type ConditionLocks, type Difficulty } from './types';
 import { evalCondition } from './flowCore';
 import { conditionLockCtx } from './actorView';
 import { tickRound, type Duration } from './duration';
 import { conditionIds, conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel, skills } from '../data';
 import { indexParId } from '../data/versionDataset';
-import { slugId } from '../data/slug';
 import { t } from '../i18n';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
@@ -18,7 +17,7 @@ import { passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './tr
 import { memeSource } from './suspension';
 import type { GameOp, PairedSense } from './ops';
 import type { CodexTarget } from './ruleRefs';
-import { rollTest, isDoubleRoll, type TestResult } from './tests';
+import { rollTest, isDoubleRoll, DIFFICULTY_LADDER, type TestResult } from './tests';
 import { dropExpiredGrantedTraits } from './grantedTraits';
 import { dropExpiredGrantedResources } from './grantedResources';
 import { dropExpiredGrantedWeapons } from './conjuredWeapons';
@@ -45,7 +44,7 @@ export const COND = {
 } as const;
 
 /** Nombre de pions (cumul) d'un État donné. */
-export const stacks = (c: Combatant, name: string) => c.conditions.find((x) => x.id === name)?.value ?? 0;
+export const stacks = (c: Combatant, name: string) => { etatExige(name); return c.conditions.find((x) => x.id === name)?.value ?? 0; };
 
 /** Cet État ne porte-t-il JAMAIS plus d'un pion ? Drapeau de DONNÉE (`etats.json`, `nonCumulable`),
  *  porté par les trois États que le RAW dit non cumulables — LDB 16 l.115 (Inconscient : « L'État
@@ -53,6 +52,7 @@ export const stacks = (c: Combatant, name: string) => c.conditions.find((x) => x
  *  (À Terre), l.137 (Surpris). SOURCE UNIQUE du plafond, lue par la pose NATIVE (`addCondition`) comme
  *  par la réconciliation des États DÉRIVÉS : deux causes, un seul pion. */
 export function etatNonCumulable(id: string): boolean {
+  etatExige(id);
   return findConditionById(id)?.nonCumulable === true;
 }
 
@@ -75,6 +75,20 @@ export function etatConnu(id: string): { label: string; severity?: number; icon?
   return findConditionById(id) ?? marqueurParId(id);
 }
 
+/** L'État `id` que `etatConnu` résout ; un id hors des deux LÈVE (#1463 LD.1, #2995). */
+export function etatExige(id: string): { label: string; severity?: number; icon?: string } {
+  const etat = etatConnu(id);
+  if (!etat) throw new Error(t('etats.inconnu', { id }));
+  return etat;
+}
+
+/** Les ids d'État hors de `etatConnu` que portent des combattants PERSISTÉS (sauvegarde, roster, export de
+ *  héros), lus tels qu'ils arrivent du stockage : `[]` = le document se charge (#1463 LD.1). */
+export function etatsPortesInconnus(porteurs: unknown): string[] {
+  if (!Array.isArray(porteurs)) return [];
+  return porteurs.flatMap((c: Partial<Pick<Combatant, 'conditions'>> | null) => (Array.isArray(c?.conditions) ? c.conditions : []).map((x) => x.id).filter((id) => !etatConnu(id)));
+}
+
 /** Ids que `etatConnu` résout, catalogue vivant puis marqueurs — la liste rendue par un refus. */
 export const etatIdsConnus = (): string[] => [...conditionIds(), ...NARRATIVE_MARKERS.map((m) => m.id)];
 
@@ -88,12 +102,12 @@ export function conditionIdInText(text: string): string | undefined {
   return undefined;
 }
 
-/** Sévérité d'un État (`etats.json` : `severity`, sinon marqueur narratif, sinon défaut 10) — PUR, clé
- *  slugifiée (tolère un libellé : 'Pétrifié' → 'petrifie'). SOURCE UNIQUE partagée par l'icône
+/** Sévérité d'un État par son id (`etats.json` : `severity`, sinon marqueur narratif) ; défaut 10 pour un État
+ *  CONNU qui n'en déclare pas, un id hors registre LÈVE (`etatExige`). SOURCE UNIQUE partagée par l'icône
  *  (`gameIso/effectIcons.conditionMeta`, `important` = sévérité ≥ 50) ET l'importance d'un évènement de
  *  combat pour le bandeau/la cadence (`noyau/combatLog.isImportantEvent`). */
-export function conditionSeverity(name: string): number {
-  return etatConnu(slugId(name))?.severity ?? 10;
+export function conditionSeverity(id: string): number {
+  return etatExige(id).severity ?? 10;
 }
 
 /**
@@ -137,7 +151,14 @@ export function appliquerMortSubite(target: Combatant, log: string[]): void {
   log.push(t('cf.collapse', { name: target.label }));
 }
 
-export function addCondition(c: Combatant, name: string, value = 1, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, locks?: ConditionLocks): void {
+/** LDB 16 l.70 */
+function durcirDifficulte(existing: ConditionInstance, difficulte: Difficulty | undefined): void {
+  if (!difficulte) return;
+  if (!existing.difficulte || DIFFICULTY_LADDER.indexOf(difficulte) > DIFFICULTY_LADDER.indexOf(existing.difficulte)) existing.difficulte = difficulte;
+}
+
+export function addCondition(c: Combatant, name: string, value = 1, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, locks?: ConditionLocks, difficulte?: Difficulty): void {
+  etatExige(name);
   const { lockedUntil, unlockBy } = locks ?? {};
   if (!groupAdvantage()) c.advantage = 0; // « Si vous subissez un État quel qu'il soit, vous perdez immédiatement tout Avantage » (LDB 16 l.7) — pas de perte per-combattant en mode « Avantage de groupe » (la réserve du camp ne change pas)
   const existing = c.conditions.find((x) => x.id === name);
@@ -150,13 +171,14 @@ export function addCondition(c: Combatant, name: string, value = 1, escapeStreng
     if (escapeThreshold != null) existing.escapeThreshold = Math.max(existing.escapeThreshold ?? 0, escapeThreshold);
     if (entangleOnFail) existing.entangleOnFail = true;
     if (struggleDamage != null) existing.struggleDamage = Math.max(existing.struggleDamage ?? 0, struggleDamage);
+    durcirDifficulte(existing, difficulte);
     if (lockedUntil != null) existing.lockedUntil = lockedUntil; // un Critique re-verrouille l'État déjà porté
     if (unlockBy != null) existing.unlockBy = unlockBy; // un Critique re-verrouille l'État déjà porté (acte de soin, LDB 18)
     // Un ajout NON temporisé sur un État à durée : la durée saute (l'État redevient régi
     // par ses règles normales — on n'écourte jamais un État au prétexte qu'un sort expirait).
     delete existing.roundsLeft;
   } else {
-    c.conditions.push({ id: name, value, ...(escapeStrength != null ? { escapeStrength } : {}), ...(escapeThreshold != null ? { escapeThreshold } : {}), ...(entangleOnFail ? { entangleOnFail } : {}), ...(struggleDamage != null ? { struggleDamage } : {}), ...(lockedUntil != null ? { lockedUntil } : {}), ...(unlockBy != null ? { unlockBy } : {}) });
+    c.conditions.push({ id: name, value, ...(escapeStrength != null ? { escapeStrength } : {}), ...(escapeThreshold != null ? { escapeThreshold } : {}), ...(entangleOnFail ? { entangleOnFail } : {}), ...(struggleDamage != null ? { struggleDamage } : {}), ...(difficulte ? { difficulte } : {}), ...(lockedUntil != null ? { lockedUntil } : {}), ...(unlockBy != null ? { unlockBy } : {}) });
   }
   // L'État vient d'être GAGNÉ (nouveau ou empilé) → déclenche `onGainCondition` (Mâchoires d'acier).
   onConditionGained?.(c, name);
@@ -165,7 +187,8 @@ export function addCondition(c: Combatant, name: string, value = 1, escapeStreng
 /** Ajout d'un État À DURÉE (posé par un sort : « 1 État Sonné qui dure N Rounds », LDB).
  *  Sur un État déjà porté : temporisé → durée max conservée ; NON temporisé → inchangé
  *  (la durée du sort ne raccourcit pas un État permanent). */
-export function addTimedCondition(c: Combatant, name: string, value: number, rounds: number, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number): void {
+export function addTimedCondition(c: Combatant, name: string, value: number, rounds: number, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, difficulte?: Difficulty): void {
+  etatExige(name);
   const existing = c.conditions.find((x) => x.id === name);
   if (existing) {
     if (!groupAdvantage()) c.advantage = 0;
@@ -174,11 +197,12 @@ export function addTimedCondition(c: Combatant, name: string, value: number, rou
     if (escapeThreshold != null) existing.escapeThreshold = Math.max(existing.escapeThreshold ?? 0, escapeThreshold);
     if (entangleOnFail) existing.entangleOnFail = true;
     if (struggleDamage != null) existing.struggleDamage = Math.max(existing.struggleDamage ?? 0, struggleDamage);
+    durcirDifficulte(existing, difficulte);
     if (existing.roundsLeft != null) existing.roundsLeft = Math.max(existing.roundsLeft, rounds);
     // sinon : instance non temporisée — elle le reste.
     onConditionGained?.(c, name); // État empilé (gagné) → déclenche `onGainCondition`
   } else {
-    addCondition(c, name, value, escapeStrength, escapeThreshold, entangleOnFail, struggleDamage); // (déclenche déjà `onGainCondition`)
+    addCondition(c, name, value, escapeStrength, escapeThreshold, entangleOnFail, struggleDamage, undefined, difficulte); // (déclenche déjà `onGainCondition`)
     c.conditions.find((x) => x.id === name)!.roundsLeft = rounds;
   }
 }
@@ -188,7 +212,8 @@ export function addTimedCondition(c: Combatant, name: string, value: number, rou
  *  `purgeClockEffects` (upkeep), même patron que `castPenalties.untilTime`. Sur un État déjà porté :
  *  temporisé-horloge → échéance MAX conservée ; NON temporisé → inchangé (on n'écourte jamais un État
  *  permanent au prétexte qu'une drogue expirait). */
-export function addClockCondition(c: Combatant, name: string, value: number, until: number, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number): void {
+export function addClockCondition(c: Combatant, name: string, value: number, until: number, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, difficulte?: Difficulty): void {
+  etatExige(name);
   const existing = c.conditions.find((x) => x.id === name);
   if (existing) {
     if (!groupAdvantage()) c.advantage = 0; // Perte d'Avantage sur État (LDB 16 l.7) — inerte en mode « Avantage de groupe »
@@ -197,11 +222,12 @@ export function addClockCondition(c: Combatant, name: string, value: number, unt
     if (escapeThreshold != null) existing.escapeThreshold = Math.max(existing.escapeThreshold ?? 0, escapeThreshold);
     if (entangleOnFail) existing.entangleOnFail = true;
     if (struggleDamage != null) existing.struggleDamage = Math.max(existing.struggleDamage ?? 0, struggleDamage);
+    durcirDifficulte(existing, difficulte);
     if (existing.untilTime != null) existing.untilTime = Math.max(existing.untilTime, until);
     // sinon : instance non temporisée — elle le reste.
     onConditionGained?.(c, name); // État empilé (gagné) → déclenche `onGainCondition`
   } else {
-    addCondition(c, name, value, escapeStrength, escapeThreshold, entangleOnFail, struggleDamage); // (déclenche déjà `onGainCondition`)
+    addCondition(c, name, value, escapeStrength, escapeThreshold, entangleOnFail, struggleDamage, undefined, difficulte); // (déclenche déjà `onGainCondition`)
     c.conditions.find((x) => x.id === name)!.untilTime = until;
   }
 }
@@ -243,6 +269,7 @@ export function raisonVerrouEtat(inst: ConditionInstance, c: Combatant): string 
 /** Blessures que la dépense d'un point de Détermination REND en retirant cet État (`EtatData.resolveHeals`,
  *  LDB 17 l.61) — EFFECTIVES : même plafond que le soin lui-même (`cappedHealAmount`, LDB 62 l.250). */
 export function soinDeDetermination(c: Combatant, conditionId: string): number {
+  etatExige(conditionId);
   return cappedHealAmount(c, findConditionById(conditionId)?.resolveHeals ?? 0);
 }
 
@@ -283,6 +310,7 @@ export function hasSurgeryLockedCondition(c: Combatant): boolean {
  * non (#1695) — sinon il survivrait au fait qui le porte.
  */
 function retireEtat(c: Combatant, name: string, value: number, parSaSource: boolean): void {
+  etatExige(name);
   const existing = c.conditions.find((x) => x.id === name);
   if (!existing) return;
   if (!parSaSource && isConditionLocked(existing, c)) return; // verrou de Critique (LDB 18) : ne part pas tant que sa Condition n'est pas remplie
@@ -305,6 +333,7 @@ export function removeCondition(c: Combatant, name: string, value = 1): void {
 }
 
 export function hasCondition(c: Combatant, name: string): boolean {
+  etatExige(name);
   return c.conditions.some((x) => x.id === name);
 }
 
@@ -312,6 +341,7 @@ export function hasCondition(c: Combatant, name: string): boolean {
  *  Lu par les sites qui doivent laisser ces pions-là en place (le sommeil ne dissipe pas un Exténué que
  *  le Malaise porte, LDB 20 l.188 : « dont vous ne pourrez vous défaire qu'une fois votre maladie guérie »). */
 export function derivedStacks(c: Combatant, name: string): number {
+  etatExige(name);
   return c.conditions.find((x) => x.id === name)?.derivedFrom?.stacks ?? 0;
 }
 
@@ -555,14 +585,14 @@ export function combatTestPenaltyParts(c: Combatant, ctx: EtatTestCtx = {}): Mod
     for (const m of etatTestMods(c)) {
       if (m.op.movementOnly && !impliqueDeplacement(ctx)) continue; // LDB 16 l.35, l.64
       if (!etatScopeApplies(m.op, ctx)) continue;
-      cand.push({ amount: m.op.amount, nature: 'État', src: m.src }); // magnitude/portée en données (etats.json) ; déjà ×pions (Exténué)
+      cand.push({ amount: m.op.amount, nature: t('cond.natureEtat'), src: m.src }); // magnitude/portée en données (etats.json) ; déjà ×pions (Exténué)
     }
     cand = dropWorst(cand, ignoredStatesCount(c)); // « peut ignorer un État » (MDG 09 l.244)
   }
   // Auras de combat (`auraMods`, hook `recompute-auras`) : un TRAIT, pas un État — hors du gate
   // `ignoreStatePenalties` (LDB 42) et dans leur PROPRE pool (LDB 85 l.262).
   const auras: PoolCandidate[] = [];
-  for (const m of c.auraMods ?? []) if (m.op.op === 'testMod' && m.op.char == null) auras.push({ amount: m.op.amount, nature: 'Aura', src: m.src });
+  for (const m of c.auraMods ?? []) if (m.op.op === 'testMod' && m.op.char == null) auras.push({ amount: m.op.amount, nature: t('cond.natureAura'), src: m.src });
   const out: ModLine[] = [];
   for (const best of [poolWinner(cand), poolWinner(auras)]) {
     if (best?.amount) out.push({ label: srcLabel(best.src, best.nature), value: best.amount, famille: 'jet', ref: best.src });
@@ -649,7 +679,7 @@ export function testStatePenaltyParts(c: Combatant, skill?: string, ctx: Omit<Et
       if (m.op.movementOnly && !impliqueDeplacement({ ...ctx, skill })) continue; // LDB 16 l.35, l.64
       if (!etatScopeApplies(m.op, { ...ctx, skill })) continue;
       if (m.op.exceptSkills?.some((r) => r.id === skill)) continue; // LDB 16 l.52
-      cand.push({ amount: m.op.amount, nature: 'État', src: m.src });
+      cand.push({ amount: m.op.amount, nature: t('cond.natureEtat'), src: m.src });
     }
     cand = dropWorst(cand, ignoredStatesCount(c)); // « peut ignorer un État » (MDG 09 l.244)
   }
@@ -688,7 +718,7 @@ export function meleeAttackerBonusLines(target: Combatant, opts?: { flankRear?: 
   for (const m of passiveMods(target)) {
     if (m.kind !== 'etat' || m.op.op !== 'incomingAttackMod') continue;
     if (m.op.mode !== 'melee' && m.op.mode !== 'all') continue;
-    const cand: PoolCandidate = { amount: m.op.amount, nature: 'État', src: m.src };
+    const cand: PoolCandidate = { amount: m.op.amount, nature: t('cond.natureEtat'), src: m.src };
     if (m.op.flankRear) { if (opts?.flankRear && cand.amount > (flank?.amount ?? 0)) flank = cand; }
     else if (cand.amount > (best?.amount ?? 0)) best = cand;
   }
@@ -757,6 +787,14 @@ export function restrictingConditions(c: Combatant): { id: string; stacks: numbe
     if (findConditionById(cond.id)?.restrictsAction) out.push({ id: cond.id, stacks: cond.value });
   }
   return out;
+}
+
+/** Refus de l'État qui verrouille l'Action et le Mouvement du porteur (`restrictsAction`), nommé depuis la
+ *  donnée ; `null` s'il est libre. Lu par le gate `hors-verrou-d-etat` et par le clic d'attaque. `LDB 16 l.52`. */
+export function refusVerrouDAction(c: Combatant): string | null {
+  const verrou = restrictingConditions(c)[0];
+  if (!verrou) return null;
+  return t('cs.stateLockFlee', { name: c.label, etat: findConditionById(verrou.id)?.label ?? verrou.id });
 }
 
 /** Le combattant porte-t-il un État qui VERROUILLE son Action (`restrictsAction`) ? Une seule vérité de
@@ -850,7 +888,7 @@ export function spellDurationPlusSource(e: ActiveEffect): boolean {
   const spellId = e.spell?.spellId ?? e.sourceSpellId;
   if (!spellId) return false;
   const d = findSpellById(spellId)?.duration;
-  return !!d && (d.kind === 'rounds' || d.kind === 'special') && d.plus === true;
+  return d?.kind === 'rounds' && d.plus === true;
 }
 
 /** Effets d'un combattant en attente d'une offre de prolongation (`awaitingExtension`, LDB 47 l.311) —

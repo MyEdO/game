@@ -19,7 +19,7 @@ import { evaluateMissile, type CastResult } from '../../engine/magic';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { draineCascade } from '../cascade.testkit';
 import { emptyScene } from '../../noyau/monde/scene';
-import { findSpell } from '../../data';
+import { findSpellById } from '../../data';
 import type { Combatant } from '../../engine/types';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };
@@ -48,7 +48,7 @@ const cr = (sl: number): CastResult =>
 
 /** Le Sort du catalogue (op `chain` authorée) lancé par le VRAI chemin, sur `cible`. */
 function lancerLaChaine(caster: Combatant, cible: Combatant, sl = 4): void {
-  const spell = findSpell('Attaques en chaîne')!;
+  const spell = findSpellById('attaques-en-chaine')!;
   const res = evaluateMissile(caster, cible, spell, cr(sl));
   applyCast(useGame.getState, useGame.setState, caster, cible, spell, res, true, false);
 }

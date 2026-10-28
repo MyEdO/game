@@ -1,96 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import reglesOptionnelles from './reglesOptionnelles.json';
-
-const DATA_DIR = __dirname;
 
 /**
  * Garde-fou « une règle optionnelle est SOURCÉE ou MAISON, jamais les deux, jamais aucune »
  * (#1467 L1b V-Src).
  *
- * L'invariant existait en PROSE — `citation-coverage-guard.test.ts:36-39` le raconte (« les 54
- * entrées restantes portent leur `source: {book,page}` … les 27 autres portent `maison` ») — mais
- * aucun test ne l'écrivait : la garde de couverture accepte `source` OU `maison` indifféremment
- * (`isCitedItem`, `citationCoverage.mjs:25-27`), donc une entrée portant les DEUX y passerait pour
- * citée. Or les deux champs se contredisent : `source` ancre la valeur à un folio imprimé, `maison`
- * la déclare arbitrée hors canon. Une entrée qui porte les deux ne dit plus d'où sa valeur vient.
+ * La garde de couverture accepte `source` OU `maison` indifféremment (`isCitedItem`,
+ * `citationCoverage.mjs:25-27`), donc une entrée portant les DEUX y passerait pour citée. Or les deux
+ * champs se contredisent ici : `source` ancre la valeur à un folio imprimé, `maison` la déclare
+ * arbitrée hors canon. Une entrée qui porte les deux ne dit plus d'où sa valeur vient.
  *
- * Le test est écrit GÉNÉRIQUEMENT (partition XOR par entrée) ; les comptes sont stockés en second
- * volet, pour que le déplacement d'une entrée d'une classe à l'autre soit vu.
+ * Le test pose des INVARIANTS, jamais des comptes (#2995) : ajouter, retirer ou reclasser une donnée
+ * ne le rougit que si elle viole l'un d'eux.
  *
  * PORTÉE — À LIRE AVANT DE GÉNÉRALISER : « jamais les deux » est un invariant LOCAL de CE dataset,
  * pas une règle de fabrique. `document()` pose `source` ∨ `maison` (au moins l'un des deux) ; la
- * COEXISTENCE des deux est légitime ailleurs et MESURÉE (`maison` CHAÎNE non vide) sur des entrées de
- * premier niveau : une entrée y cite son folio ET dit ce que le canon n'a pas tranché. Étendre ce XOR
- * à la fabrique les casserait. Ce relevé ne vit plus en prose : il est GELÉ dans `COEXISTENCE`
- * ci-dessous et asserté — la prose dérivait à chaque lot qui déplaçait une entrée.
+ * COEXISTENCE des deux est légitime ailleurs, sur des entrées de premier niveau (`maison` CHAÎNE non
+ * vide) : une entrée y cite son folio ET dit ce que le canon n'a pas tranché. Étendre ce XOR à la
+ * fabrique les casserait ; la fabrique est tenue par `grammaire/grammaire.test.ts` (« exige une PROVENANCE »).
  */
 
 type Regle = { id: string; ref?: string; source?: { book: string; page: number }; maison?: string };
 
 const REGLES = reglesOptionnelles as Regle[];
-
-/** Partition mesurée au 2026-08-27 : 81 = 54 sourcées + 27 maison, 0 des deux, 0 d'aucune.
- *  Puis 82 = 54 + 28 (#1599, 2026-09-05) : `maladie-conscience-determination-minutes` — LDB 20 l.170
- *  ne chiffre pas « quelques minutes », la durée est donc MAISON, jamais sourcée. */
-/** Puis 87 = 54 + 33 (#1612, 2026-09-06) : les CINQ réglages de l'Activité Mendier tombent du côté
- *  MAISON — `LDB 09 l.97/l.99` décrit la mendicité mais ne chiffre ni la durée du créneau, ni le
- *  discours, ni l'apparence, ni la chance d'être surpris, ni la sanction des gardes. Le folio se lit
- *  dans leur `ref` : il localise le passage arbitré, il n'ancre aucune de ces valeurs. */
-/** Puis 88 = 54 + 34 (#700, 2026-09-29) : `fenetre-hauteur-allege` — LDB 15 l.55 ne chiffre ni la
- *  hauteur d'une allège ni le franchissement d'une croisée : MAISON. */
-/** Puis 89 = 54 + 35 (#700, 2026-09-30) : `porte-secrete-rayon-m` — LDB 09 l.399 ne chiffre pas la
- *  distance à laquelle une porte secrète se remarque : MAISON. */
-/** Puis 90 = 54 + 36 (#700, 2026-09-30) : `chute-tombant-non-debout` — EDO 01 l.231 et LDB 15 l.82 ne
- *  disent rien d'un compagnon qui n'est pas debout quand le groupe saute : MAISON. */
-/** Puis 91 = 54 + 37 (#700, 2026-09-30) : `fenetre-suspension` — EDO 01 l.231 ne nomme que l'avance
- *  du fuyard, aucun coût tactique de la suspension : MAISON. */
-/** Puis 90 = 54 + 36 (#700, 2026-10-05) : `fenetre-hauteur-allege` SUPPRIMÉE — l'allège est une donnée
- *  de la croisée (#700 issuecomment-5984719806). */
-/** Puis 91 = 54 + 37 (#700, 2026-10-05) : `fouille-piece-minutes` — LDB 12 l.200 ne chiffre pas la durée
- *  de la fouille d'une pièce : MAISON. */
-/** Puis 92 = 54 + 38 (#1595, 2026-10-12) : `sea-salissures-difficulty` — MDG 13 l.148 ne chiffre pas la
- *  Difficulté du Test de Résistance du navire : MAISON. */
-/** Puis 93 = 54 + 39 (#1595, 2026-10-16) : `structure-soin-magique` — AA 10 l.134 laisse au MJ l'effet des
- *  Sorts et Miracles sur une Structure : MAISON. */
-const PARTITION = { total: 93, source: 54, maison: 39 };
-
-/**
- * COEXISTENCE `source` + `maison` (chaîne non vide) sur les entrées de PREMIER niveau de `src/data`,
- * gelée au 2026-08-27 — la POPULATION que le XOR ci-dessus ne décrit PAS, et qu'une généralisation à
- * la fabrique casserait. `actions.json` y est entré avec le lot V-P3 (#1467 L1b) : `switch-loadout`
- * cite son folio pour la gratuité ET porte en clair l'arbitrage du plafond.
- */
-const COEXISTENCE: Record<string, number> = {
-  'actions.json': 1,
-  // 8 → 9 (#1612) : l'Activité `mendier` cite son folio (LDB 119) ET porte en clair les cinq points
-  // que le livre laisse ouverts (durée, discours, apparence, ennuis, gate de lieu).
-  // 9 → 10 (#1595 S8) : `pratiquer-competence` cite son folio (EDOC 35) ET porte en clair la liste
-  // `freeSkill` par défaut, que le livre laisse ouverte (« etc. », EDOC 8 l.172).
-  'activities.json': 10,
-  'creatures.json': 1,
-  'etats.json': 1,
-  // 0 → 2 (#680, 2026-09-29) : les 2 Groupes d'EDO 02 cités à leur folio ET portant la raison de leur appartenance hors canon
-  'groups.json': 2,
-  // 1 → 2 (#1657 B3-2b-a) : le Trait `cale` porte MSRC 10 l.90 (le livre DIT la cale du navire
-  // marchand) ET son `maison` (MSRC 07 l.94 gate le Critique dessus sans imprimer de Trait naval).
-  'naval-traits.json': 2,
-  // 2 → 24 (#1688) : les 24 Structures citent leur folio (ADE II 89, AA 119-120) ET portent désormais
-  // chacune la raison de sa `taille`, valeur qu'aucune table n'imprime (AA 10 l.98).
-  'structures.json': 24,
-  // +1 (#1599) : le symptôme `convulsions` cite son folio (LDB 188) ET porte en clair l'arbitrage de
-  // son palier Grave — LDB 20 l.157 chiffre −10 (base) et −20 (Modéré) sans jamais rechiffrer Grave.
-  'symptoms.json': 1,
-  // +1 (#1612) : la table MAISON `mendier-ennuis` cite le folio où le livre NOMME les trois ennuis
-  // (LDB 119) ET dit en clair qu'il n'en chiffre ni ne répartit aucun.
-  'tables.json': 1,
-  'talents.json': 9,
-  'traits.json': 3,
-  'trappings.json': 2,
-  'traumas.json': 2,
-};
 
 describe('reglesOptionnelles.json — partition source ⊕ maison (#1467 L1b)', () => {
   it('chaque entrée porte `source` XOR `maison` — jamais les deux, jamais aucune', () => {
@@ -104,33 +36,6 @@ describe('reglesOptionnelles.json — partition source ⊕ maison (#1467 L1b)', 
     }
     expect(deuxFois, `entrée(s) à la fois SOURCÉE et MAISON : ${deuxFois.join(', ')}`).toEqual([]);
     expect(aucune, `entrée(s) SANS provenance : ${aucune.join(', ')}`).toEqual([]);
-  });
-
-  it('les comptes de la partition sont ceux stockés (un glissement de classe se voit)', () => {
-    const source = REGLES.filter((r) => r.source).length;
-    const maison = REGLES.filter((r) => r.maison).length;
-    expect({ total: REGLES.length, source, maison }).toEqual(PARTITION);
-  });
-
-  it('la COEXISTENCE `source` + `maison` du reste de `src/data` est celle gelée (le XOR reste LOCAL)', () => {
-    const mesure: Record<string, number> = {};
-    for (const f of listerDossier(DATA_DIR)) {
-      if (!f.endsWith('.json')) continue;
-      let data: unknown;
-      try {
-        data = JSON.parse(readFileSync(join(DATA_DIR, f), 'utf8'));
-      } catch {
-        continue;
-      }
-      const items = Array.isArray(data) ? data : [data];
-      const n = items.filter((e) => {
-        if (!e || typeof e !== 'object') return false;
-        const r = e as Record<string, unknown>;
-        return typeof r.maison === 'string' && r.maison.length > 0 && r.source !== undefined;
-      }).length;
-      if (n > 0) mesure[f] = n;
-    }
-    expect(mesure, `coexistences source+maison — attendu ${JSON.stringify(COEXISTENCE)}, mesuré ${JSON.stringify(mesure)}`).toEqual(COEXISTENCE);
   });
 
   it('une entrée SOURCÉE porte un folio numérique et un livre non vide', () => {

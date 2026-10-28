@@ -15,6 +15,7 @@ import { effectiveChar } from './characteristics';
 import { testValue } from './skills';
 import { effectiveMovement } from './encumbrance';
 import { desDuTest } from './dice.testkit';
+import { groupesDe } from './groups';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -120,7 +121,7 @@ describe('effets de mutation lus à la volée', () => {
   });
   it('attachMutation pousse les Traits dérivés (créature + psychologie)', () => {
     const c = hero();
-    attachMutation(c, { id: 'tentacule-epais', label: 'Tentacule épais', desc: '', kind: 'physique', roll: 38, passive: [{ op: 'grantTrait', traitId: 'tentacules' }] }, desDuTest);
+    attachMutation(c, { id: 'tentacule-epais', label: 'Tentacule épais', desc: '', kind: 'physique', roll: 38, passive: [{ op: 'grantTrait', trait: { id: 'tentacules' } }] }, desDuTest);
     attachMutation(c, { id: 'colere-impie', label: 'Colère impie', desc: '', kind: 'mentale', roll: 93, passive: [{ op: 'grantPsychTrait', psychType: 'frenesie' }] }, desDuTest);
     // L'instance accordée porte SA provenance (`TraitInstance.src`) : c'est ce registre que le
     // `removeTrait` d'une mutation interroge pour ne retirer que le sien.
@@ -169,6 +170,17 @@ describe('Talent octroyé par une mutation — acquisition bornée par le Maxi (
     expect(c.talents).toEqual([{ talentId: 'ambidextre', times: 2 }]);
     detachMutation(c, bicephale);
     expect(c.talents).toEqual([{ talentId: 'ambidextre', times: 2 }]);
+  });
+});
+
+describe('Groupe des Mutants lu en direct sur les mutations portées (EDOC 12 l.42)', () => {
+  it('l’attache fait un Mutant, le détachement le défait', () => {
+    const crete = mutationById('crete-sur-la-tete')!;
+    const c = hero({ groups: ['humain'] });
+    attachMutation(c, crete, desDuTest);
+    expect(groupesDe(c)).toContain('mutants');
+    detachMutation(c, crete);
+    expect(groupesDe(c)).not.toContain('mutants');
   });
 });
 

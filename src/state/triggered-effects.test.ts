@@ -5,6 +5,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fireTriggers, applyTriggeredEffects } from '../noyau/triggeredEffects';
+import { findConditionById } from '../data';
 import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
@@ -519,5 +520,30 @@ describe('Test déclenché INLINE : la pénalité d’État lit la Compétence t
   it('Athlétisme (déplacement) À Terre : 20 contre 30 réussit debout, rate à −20', () => {
     expect(issue(false)).toEqual(['sonne']);
     expect(issue(true)).toEqual(['aveugle']);
+  });
+});
+
+/** ZI 03 l.75, l.77 ; LDB 16 l.70 ; MDG 16 l.226 */
+describe('Traits conférés par une attaque, Difficulté portée par l’État', () => {
+  const cles = (c: Combatant, w?: Weapon) => effectSourcesOf(c, w).map((s) => s.key);
+  it('un Trait conféré est une source de la touche de l’attaque qui le confère, et d’elle seule', () => {
+    const porteur = mk({ id: 'po' });
+    const arme = { label: 'Arme', type: 'melee', damage: { plusBF: true, flat: 0 }, traitsConferes: [{ id: 'venin' }] } as Weapon;
+    expect(cles(porteur, arme)).toContain('trait:venin');
+    expect(cles(porteur, { ...arme, traitsConferes: undefined })).not.toContain('trait:venin');
+    expect(cles(porteur)).not.toContain('trait:venin');
+  });
+  it('l’op `condition` fige sa Difficulté sur l’État posé', () => {
+    const cible = mk({ id: 'ci' });
+    applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte: 'difficile' }], { rng: makeRNG(1) });
+    expect(cible.conditions.find((x) => x.id === 'empoisonne')?.difficulte).toBe('difficile');
+  });
+  it('le Test qui élimine Empoisonné prend la Difficulté que l’État porte', () => {
+    const difficulteDuTest = (c: Combatant) => effectSourcesOf(c).find((s) => s.key === 'cond:empoisonne')!.effects
+      .map((e) => e.flow).find((f): f is Extract<Flow, { kind: 'test' }> => f.kind === 'test')!.test.difficulty;
+    expect(difficulteDuTest(mk({ conditions: [{ id: 'empoisonne', value: 1, difficulte: 'tresDifficile' }] }))).toBe('tresDifficile');
+    const sansDifficulte = mk({ conditions: [{ id: 'empoisonne', value: 1 }] });
+    const auteur = findConditionById('empoisonne')!.effects!.map((e) => e.flow).find((f): f is Extract<Flow, { kind: 'test' }> => f.kind === 'test')!.test.difficulty;
+    expect(difficulteDuTest(sansDifficulte)).toBe(auteur);
   });
 });

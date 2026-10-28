@@ -1,37 +1,16 @@
-import type { EcartsDeStock } from './stock.mjs';
-import type { DivergenceEnveloppe, FormeObservee, OpObservee, Redeclaration, SignatureOrpheline, scannerDonnees } from '../../docs/lib/structures-scan.mjs';
-import type { CoupleDeReference, CoupleInatteignable } from '../../docs/lib/slots-registre.mjs';
+import type { EcartsDeStock, EntreeDeSite } from './stock.mjs';
+import type { ChampsDeStructure } from './structuresLocales.mts';
+import type { Redeclaration } from '../../docs/lib/structures-scan.mjs';
 
-export type SiteForme = { concept: string; dataset: string; champ: string; signature: string };
-export type SiteSlot = { dataset: string; champ: string };
-export function siteDeForme(f: SiteForme): string;
-export function siteDeSlot(s: SiteSlot): string;
-export function siteDEnveloppe(e: { role: string; cle: string; motif: string; detail: string; document: string; chemin: string }): string;
 export function occurrencesDe(e: { occurrences: number }): number;
 export const COMMANDE_D_ECRITURE: string;
 
 /** Le corpus que mesure une collection à compte (`corpusDesComptes`). */
-export type CorpusDesComptes = {
-  scan: ReturnType<typeof scannerDonnees>;
-  sansSlot: readonly CoupleDeReference[];
-  inatteignables: readonly CoupleInatteignable[];
-  redeclarations: readonly Redeclaration[];
-  /** Les ops de `OP_DEFS` (`types`), de `OPS_NON_TYPEES` et les références à plat de chaque payload (`aPlat`) du schéma mesuré. */
-  typage: TypageDesOps;
-};
-export type TypageDesOps = { types: readonly string[]; nonTypees: readonly string[]; aPlat: Readonly<Record<string, readonly string[]>> };
-export function estDetteDOp(o: { op: string; signature: string }, typage: TypageDesOps): boolean;
+export type CorpusDesComptes = { redeclarations: readonly Redeclaration[] };
 
 /** Ce que mesure chaque collection à compte dans son corpus. */
 export type MesureDe = {
-  STRUCTURES_FORMES: FormeObservee;
-  STRUCTURES_OPS: OpObservee;
-  STRUCTURES_HOMONYMES: { cle: string; classes: readonly string[]; occurrences: number };
-  STRUCTURES_ENVELOPPE: DivergenceEnveloppe & { occurrences: number };
   STRUCTURES_REDECLARATIONS: { def: string; champ: string; concept: string; signature: string; statut: string; commun: string; occurrences: number };
-  STRUCTURES_ORPHELINES: SignatureOrpheline;
-  SLOTS_SANS_DECLARATION: CoupleDeReference;
-  SLOTS_INATTEIGNABLES: CoupleInatteignable;
 };
 export type NomDeCollectionACompte = keyof MesureDe;
 
@@ -46,13 +25,36 @@ export type CollectionACompte<N extends NomDeCollectionACompte = NomDeCollection
   readonly mesure: (corpus: CorpusDesComptes) => readonly (MesureDe[N] & EntreeDeCompte)[];
 };
 export const COLLECTIONS_A_COMPTE: readonly CollectionACompte[];
-/** Un volet SOUS LA PORTE des comptes : son porteur, son nom, l'identité d'un site, la cible qui solde sa hausse, son compte. */
+/** Un volet SOUS LA PORTE des comptes : son porteur quand un stock le porte, son nom, l'identité d'un site, la cible qui
+ *  solde sa naissance ou sa hausse, son compte, les sites nés qu'il apparie à un disparu (`renommages`, rendus par leur
+ *  `site`), et, pour un PLANCHER, ce qu'il tient (`tient`) et son juge (`cede`), qui remplace la règle de naissance et
+ *  de hausse. */
 export type VoletSousLaPorte = {
-  readonly porteur: string;
+  readonly porteur?: string;
   readonly nom: string;
   readonly site: (e: EntreeDeCompte) => string;
   readonly cible: (cle: string, e: EntreeDeCompte) => string;
   readonly nombre: (e: EntreeDeCompte) => number;
+  readonly renommages?: (base: readonly EntreeDeCompte[], tete: readonly EntreeDeCompte[]) => ReadonlySet<string>;
+  readonly plancher?: {
+    readonly tient: (e: EntreeDeCompte) => boolean;
+    readonly cede: (base: readonly EntreeDeCompte[], tete: readonly EntreeDeCompte[]) => string[];
+  };
+};
+/** Un site de `DETTE_OPS` : l'op et son motif (`MOTIF_NON_TYPEE`, `motifAPlat`). */
+export type SiteDeDetteDOp = { readonly op: string; readonly motif: string };
+export const MOTIF_NON_TYPEE: string;
+export function motifAPlat(cle: string): string;
+export const DETTE_OPS: VoletSousLaPorte;
+export const DETTE_ENVELOPPE: VoletSousLaPorte;
+export const FEUILLES_D_ID: VoletSousLaPorte & { readonly plancher: NonNullable<VoletSousLaPorte['plancher']> };
+/** Une entrée mesurée du volet `STRUCTURES_LOCALES` : entrée de site, classe et empreinte hors clé. */
+export type EntreeDeStructure = EntreeDeSite & ChampsDeStructure;
+export function empreinteDeChamps(champs: readonly (readonly [string, string])[]): string;
+export function renommagesDeStructure(base: readonly EntreeDeStructure[], tete: readonly EntreeDeStructure[]): Set<string>;
+export const STRUCTURES_LOCALES: Omit<VoletSousLaPorte, 'cible'> & {
+  readonly cible: (cle: string, e: unknown) => string;
+  readonly renommages: NonNullable<VoletSousLaPorte['renommages']>;
 };
 export const SOUS_LA_PORTE: readonly VoletSousLaPorte[];
 export const COLLECTIONS_A_COMPTE_PAR_NOM: { readonly [N in NomDeCollectionACompte]: CollectionACompte<N> };

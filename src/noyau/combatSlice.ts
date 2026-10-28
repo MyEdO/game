@@ -6,19 +6,19 @@
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
-import type { BattleActionMode } from './actionRegistry';
+import { ACTION_GATES, type BattleActionMode } from './actionRegistry';
 import type { CounterParticipant, CounterDeclaration, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
 import * as travelFlow from './travelFlow';
 import { continueRestNights } from './restFlow';
 import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './riverVoyageFlow';
-import { Combatant, HitLocation, CHAR_LABELS, type FireArc, type Weapon } from '../engine/types';
+import { Combatant, HitLocation, CHAR_LABELS, type FireArc } from '../engine/types';
 import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { toRecapLines } from './recapLine';
-import { creatureAttacks, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
+import { creatureAttacks, attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, castOvercastAxes, overcastReset, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
@@ -52,14 +52,14 @@ import { campGain, campSpend, startAdvantagePools } from './combat/advantagePool
 import { combatSubstitute, skillAdvantageCap } from '../engine/skillCombatApps';
 import { byId } from '../data/index';
 import { rule } from '../engine/policy';
-import { resolveMagicMissile, resolveCasting, isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, overcastSL, castAfterCrit, defaultCritChoice, castInfo, castInfoIsPrayer, focusCriticalDR, dispelOwnSpellDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
+import { resolveMagicMissile, resolveCasting, isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, castOvercastBudget, castAfterCrit, defaultCritChoice, castInfoIsPrayer, focusCriticalDR, dispelOwnSpellDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
 import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
-import { type OvercastAxis, overcastSourceOf, overcastAxes, extraTargetCapacity, overcastDurationParts, overcastBudget } from '../engine/overcast';
+import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurationParts } from '../engine/overcast';
 import { resolveOpposed, extendedTestStep, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrHaine } from '../engine/psychology';
-import { weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
+import { weaponLoaded, reloadProgressOf, aRecharger } from '../engine/weaponLoad';
 import { recomputeLoadout, giveTrappingLabel, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { canPushback, reloadDRTarget } from '../engine/qualities/dispatch';
@@ -68,7 +68,7 @@ import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { battleConsumeItem, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, isActionLocked, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
 import { HEAL_SKILL, availableHealModes, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, healDifficulty, applyHealWounds, type HealMode } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
@@ -78,17 +78,17 @@ import { testValue, actorHasSkill, soutienDetail, possesses } from '../engine/sk
 import { rollOups } from '../engine/oups';
 import { spawnEnemy, placeCombatant } from './monde/spawn';
 import { ficheDEntite } from './monde/sceneNpc';
-import { applyShipPostes, autoFormCrews, servingCrewPresent, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned } from './monde/shipPostes';
+import { applyShipPostes, autoFormCrews, servingCrewPresent, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned, posteARecharger } from './monde/shipPostes';
 import { posteHullOf, pushEligible, pushCrewOk, pushReachable } from './siegePush';
 import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
-import { crewTestContributors, navigationDuNavire, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShipMoraleDelta, applyShantyToCrew, quartIndex, withCrewActed, chansonsDuChanteur } from './shipCrew';
+import { crewTestContributors, navigationDuNavire, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShipMoraleDelta, applyShantyToCrew, quartIndex, quartChante, chanteurDuNavire, withCrewActed, chansonsDuChanteur } from './shipCrew';
 import { actFirstIds, freeActFirst } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
 import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbut, continueSeaDayAfterExposure, continueSeaDayAfterExhaustion, runSeaDay, finalizePortArrival } from './seaVoyageFlow';
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
-import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
+import { findSeaShantyById, conditionLabel, libelleOuAbsence, groupLabel } from '../data';
 import { findCrewTestTypeById, findCrewRoleById, findStructureById, combatStakeRef } from '../data';
 import { structureCombatant } from '../engine/structures';
 import { targetArc, headingToBear } from './monde/fireArc';
@@ -140,20 +140,14 @@ import { testDuCavalier } from '../engine/movement';
 const combatBusy = (s: Pick<Jeu, 'pendingCleave' | 'pendingDualStrike' | 'pendingCast'>): boolean =>
   !!(pickActiveModalKey(s as never) || s.pendingCleave || s.pendingDualStrike || s.pendingCast);
 
-/** Animosité & Haine (ADE II Annexe I « Troubles psychologiques », règle facultative `psych-acquisition-optional`) :
- *  un héros qui DÉPENSE le Destin « pour rester en vie » effectue un Test de Calme Intermédiaire (+0) ; échec →
- *  Animosité envers « l'individu ou l'élément qui l'a presque tué » (Cible = son Groupe/nom), ou HAINE si une
- *  Animosité de même Cible existe déjà. Mute `hero.psychTraits` (l'APPLICATION que le noyau pur `animositeOrHaine`
- *  laisse à la couche state) et renvoie la ligne de journal (null : règle éteinte / Cible inconnue / Calme réussi). */
+/** Animosité & Haine sur Destin dépensé (ADE II 09 l.15 ; Cible : ADE II (VO) 09 l.14) : pose le Trait que décide `animositeOrHaine` sur la Cible
+ *  `foeCible` (id de Groupe de l'adversaire) et rend la ligne de journal ; `null` sans Trait. */
 function acquireAnimositeOnFate(hero: Combatant, foeCible: string | undefined): string | null {
-  if (!foeCible) return null;
   const res = animositeOrHaine(hero, foeCible, battleRng());
   if (!res?.trait) return null;
   if (res.replacesAnimosite) hero.psychTraits = (hero.psychTraits ?? []).filter((p) => !(p.type === 'animosite' && p.cible === foeCible));
   hero.psychTraits = [...(hero.psychTraits ?? []), res.trait];
-  return res.trait.type === 'haine'
-    ? `${hero.label} voue désormais une Haine à ${foeCible} (frôler la mort a durci son cœur).`
-    : `${hero.label} développe une Animosité envers ${foeCible} (frôler la mort a laissé une marque).`;
+  return t(res.trait.type === 'haine' ? 'cs.haineGain' : 'cs.animositeGain', { name: hero.label, groupe: groupLabel(foeCible) });
 }
 
 /** OUVERTURE partagée d'un Test d'équipage MULTI (MDG 14) : contributeurs par rôle (`crewTestContributors` —
@@ -1226,7 +1220,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const attacker = inBattleId(battle, pm.attackerId);
       set({ pendingManeuver: null });
       if (!attacker) return;
-      const a = creatureAttacks(attacker.traits ?? []).find((x) => x.def.id === pm.maneuverId);
+      const a = attaqueDeCle(attacker.traits ?? [], pm.attaque);
       if (!a) return;
       const prevActed = battle.acted;
       // RÉSOLVEUR GÉNÉRIQUE unique : dépense `avantageSpent`, choisit la/les cible(s) (clic = `targetId`),
@@ -1480,11 +1474,8 @@ export function createCombatSlice(get: Get, set: Set) {
       const battle = get().battle;
       if (!battle || battle.over) return;
       const ship = inBattleId(battle, shipId);
-      if (!ship || ship.lastShantyQuart === quartIndex(get().gameTime)) return; // « une seule chanson … par quart »
-      const crew = exposedCrew((ship.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c));
-      // Le CHANTEUR : le marin apte au Talent qui connaît le plus de chansons (les specs = chansons apprises, l.36).
-      const singer = crew.filter((c) => knownShanties(c).length > 0 && !c.singingShanty)
-        .sort((a, b) => knownShanties(b).length - knownShanties(a).length)[0];
+      if (!ship || quartChante(ship, get().gameTime)) return;
+      const singer = chanteurDuNavire(ship, battle);
       if (!singer) return;
       const known = knownShanties(singer);
       set({
@@ -1908,9 +1899,8 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active) || !canTakeAction(active)) return;
-      const reloadable = (x: Weapon) => x.type === 'ranged' && (x.reload ?? 0) > 0 && !weaponLoaded(active, x);
-      const w0 = weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : active.weapons.find(reloadable);
-      if (!w0 || !reloadable(w0)) return; // rien à recharger (Arc = pas de défaut, ou déjà chargée)
+      const w0 = weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : active.weapons.find((x) => aRecharger(active, x));
+      if (!w0 || !aRecharger(active, w0)) return;
       // Pièce SERVIE en sous-effectif : recharge ×2 (MDG 12 l.462). Le bake reflète les servants APTES présents
       // (effectif complet → recharge normale) ; pour un chef sans poste → arme inchangée (cas héros qui sert seul).
       const present = servingCrewPresent(active, battle.combatants);
@@ -1942,10 +1932,8 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const ship = inBattleId(battle, shipId);
       const poste = ship?.postes?.find((p) => p.item.uid === posteUid);
-      if (!ship || !poste || poste.loaded !== false) return; // pièce déjà chargée → rien à recharger
-      const chef = poste.crewIds?.[0] ? inBattleId(battle, poste.crewIds![0]) : undefined;
-      if (!chef) return;
-      if ((battle.crewActed?.[ship.id] ?? []).includes(chef.id)) return; // chef déjà engagé ce Round → 1 Test de recharge/pièce/Round
+      if (!ship || !poste || !posteARecharger(ship, poste, battle)) return;
+      const chef = inBattleId(battle, poste.crewIds![0])!;
       const servants = (poste.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c);
       const w0 = mannedPosteWeapon(chef, poste);
       if (!w0) return;
@@ -2863,14 +2851,11 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || !scene) return;
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active)) return;
-      // Brisé (LDB 16 l.52) : Mouvement + Action doivent servir à FUIR / se cacher — aucune action
-      // offensive. Le déplacement (fuite) passe par le clic-sol implicite (filtre dans computeMoveReach) ;
-      // ici seule la fermeture (null) passe. La Détermination n'entre PLUS par cette porte : ses trois
-      // dépenses (LDB 17 l.59-61) sont des dispatchers directs, qui n'arment aucun mode.
-      // (« Se cacher » par Discrétion = pas de système de furtivité en combat ; approximé par « rester
-      // hors de vue » → récupération en fin de Round, cf. brokenRecovery.)
-      if (isActionLocked(active) && a !== null) {
-        get().log(t('cs.brokenFlee', { name: active.label }));
+      // État qui verrouille l'Action (LDB 16 l.52) : le gate du registre `hors-verrou-d-etat`, celui des offres.
+      // Seule la fermeture (null) passe.
+      const verrou = ACTION_GATES['hors-verrou-d-etat']({ active, battle, gameTime: get().gameTime });
+      if (!verrou.ok && a !== null) {
+        get().log(verrou.reason!);
         return;
       }
       // Pas d'Action ce tour (Sonné LDB 16 l.125 / Surpris l.135 — lu en DONNÉES via `canTakeAction`/gating,
@@ -3053,7 +3038,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Lanceur ENNEMI : Surincantation automatique (LDB 47 l.28-31) — le surplus de DR alloué à
       // l'axe Cible d'un Projectile (l'IA n'a pas de modale de choix ; ZdE déjà toutes-cibles).
       const auto = aiDriven(get(), caster) && pc.missile && !pc.zone
-        ? aiOvercastPlan(caster, pc.targetId, spell, res, get().battle?.combatants ?? [], pc.focused, spellSightOf(get), !!pc.missile)
+        ? aiOvercastPlan(caster, pc.targetId, spell, res, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile)
         : {};
       // Lanceur CONDUIT PAR LE MOTEUR (IA, cadence auto) : il n'a pas de modale pour trancher son
       // Incantation Critique — sa politique (`defaultCritChoice`) est son CHOIX, et elle s'ÉCRIT ici
@@ -3159,11 +3144,13 @@ export function createCombatSlice(get: Get, set: Set) {
       // ouverte) — elle reprendra elle-même (cascadeNext → resumeSuspendedAI à la clôture).
       if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
     },
-    /** Incantation CRITIQUE (LDB 46 l.26-32) : le lanceur choisit l'effet bonus dans la modale. */
+    /** Incantation CRITIQUE (LDB 46 l.26-32) : le lanceur choisit l'effet bonus dans la modale. Le
+     *  budget de Surincantation en dépend (`castOvercastBudget`) : l'allocation retombe (`overcastReset`). */
     castSetCritChoice: (choice: 'critique' | 'puissance' | 'ineluctable') => {
       const pc = get().pendingCast;
       if (!pc || !pc.result?.isCritical) return;
-      set({ pendingCast: { ...pc, critChoice: choice } });
+      const inchange = (pc.critChoice ?? defaultCritChoice(pc.result, !!pc.missile)) === choice;
+      set({ pendingCast: { ...pc, critChoice: choice, ...(inchange ? {} : overcastReset(pc, sceneMetresPerTile(get().scene))) } });
     },
     /** Arme invoquée à forme libre (Arme aethyrique) : le lanceur choisit la forme/Spé de Corps à corps. */
     castSetConjureForm: (form: ConjureForm) => {
@@ -3178,20 +3165,17 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!pc || pc.result) return; // avant le jet seulement
       set({ pendingCast: { ...pc, discreet } });
     },
-    /** Surincantation : un pas (`delta` +1/−1, stepper avec reset) coûte +2 DR du surplus — Sorts : DR − NI
-     *  (LDB 47) ; Bénédictions/Miracles : DR entier (pas de NI). L'EFFET d'un pas est SOURCE-AWARE
-     *  (`engine/overcast.ts`) ; l'axe doit être autorisé par la source (la ZdE n'existe qu'en arcane). */
+    /** Surincantation : un pas (`delta` +1/−1, stepper avec reset) sur un axe que `castOvercastAxes`
+     *  ouvre, borné au budget `castOvercastBudget` — les MÊMES lectures que la modale. L'EFFET d'un pas
+     *  est SOURCE-AWARE (`engine/overcast.ts`). */
     castAllocOvercast: (axis: OvercastAxis, delta: number) => {
       const pc = get().pendingCast;
       const spell = pc && findSpellById(pc.spellId);
-      if (!pc || !pc.result?.cast || !spell) return;
+      if (!pc?.result || !spell) return;
+      if (!castOvercastAxes(pc, spell).includes(axis)) return;
       const source = overcastSourceOf(spell);
-      if (!overcastAxes(source, !!pc.missile).includes(axis)) return; // axe interdit par la source (ex. ZdE divine)
       const oc = pc.overcast ?? { range: 0, zone: 0, duration: 0, targets: 0, damage: 0 };
-      // Le NI n'entre au budget que si la branche de résolution l'oppose (`castInfo.requireNI`) —
-      // `cn == null` n'est PAS un proxy de Prière (`LDB 40 l.13`).
-      const ni = !castInfo(spell).requireNI || pc.focused ? 0 : spell.cn ?? 0;
-      const budget = overcastBudget(source, overcastSL(pc.result, pc.critChoice, !!pc.missile), ni);
+      const budget = castOvercastBudget(spell, pc.result, pc.critChoice, !!pc.missile);
       const spent = oc.range + oc.zone + oc.duration + oc.targets + oc.damage;
       const v = oc[axis] + delta;
       if (delta > 0 && spent >= budget) return; // surplus épuisé (incrément)

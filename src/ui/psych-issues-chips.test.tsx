@@ -82,10 +82,10 @@ describe('#1189 — la bande de Psychologie DIT ses issues en chips d’ops', ()
     const step = bande();
     expect(branchCertainOps(step.meta?.onFail, heroNow())).toEqual([
       { op: 'condition', id: 'brise', value: 2, valuePerSL: { every: 1, amount: 1, onFailure: true } },
-      { op: 'beginPsych', type: 'peur', indice: 2, calmeDR: 0, sourceId: 'scripted:Une vision terrifiante' },
+      { op: 'beginPsych', type: 'peur', indice: 2, calmeDR: 0, surmontee: false, sourceId: 'scripted:Une vision terrifiante' },
     ]);
     expect(branchCertainOps(step.meta?.onSuccess, heroNow()), 'la réussite n’exempte que de la Terreur (LDB 21 l.56)').toEqual([
-      { op: 'beginPsych', type: 'peur', indice: 2, calmeDR: 0, sourceId: 'scripted:Une vision terrifiante' },
+      { op: 'beginPsych', type: 'peur', indice: 2, calmeDR: 0, surmontee: false, sourceId: 'scripted:Une vision terrifiante' },
     ]);
   });
 
@@ -126,7 +126,7 @@ describe('#1189 — la bande de Psychologie DIT ses issues en chips d’ops', ()
     expect(h.conditions.find((c) => c.id === 'brise')?.value, 'Brisé = Indice (2) + |DR négatifs| (6)').toBe(8);
     expect(rangee.outcome!.map((l) => l.text).join(' '), 'le verdict rédigé dit le MÊME 8').toContain('8');
     expect(h.psychState).toEqual([
-      { type: 'peur', indice: 2, calmeDR: 0, sourceId: 'scripted:Une vision terrifiante' },
+      { type: 'peur', indice: 2, calmeDR: 0, surmontee: false, sourceId: 'scripted:Une vision terrifiante' },
     ]);
   });
 });

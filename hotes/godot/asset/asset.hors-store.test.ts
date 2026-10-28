@@ -3,30 +3,20 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { GlbIllisible, lireGlb } from './glb.ts';
+import { sha256 } from './empreinte.ts';
+import { ecrireGlb, GlbIllisible, lireGlb } from './glb.ts';
 import { chargerLicences, importerPersonnage, MANIFESTE_DE_PRODUCTION, TableDesLicencesInvalide } from './importer.ts';
 import { cheminsAbsolus, validerManifeste, type CodeDErreur } from './manifeste.ts';
 import { ATTACHES } from './montage';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import {
   DOSSIER_DES_MODELES, fichiersDuModele, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
-  sha256, TAG, urlDAsset, type AssetAPublier, type Gh,
+  TAG, urlDAsset, type AssetAPublier, type Gh,
 } from './release.ts';
 
 /** Un GLB minimal : en-tête glTF 2 et chunk JSON portant `nodes` et `animations`. */
 function glb(noeuds: readonly string[], animations: readonly string[], options: { skinned?: readonly string[]; joints?: readonly string[] } = {}): Uint8Array {
-  const texte = JSON.stringify({ asset: { version: '2.0' }, nodes: noeuds.map((name, mesh) => ({ name, mesh, ...(mesh === 0 ? { children: noeuds.map((_, i) => i).slice(1) } : {}), ...(options.skinned?.includes(name) ? { skin: 0 } : {}) })), meshes: noeuds.map(() => ({ primitives: [{ material: 0 }] })), materials: [{ name: 'texture_de_lame' }], skins: [{ joints: (options.joints ?? noeuds).map(n => noeuds.indexOf(n)) }], animations: animations.map((name) => ({ name })) });
-  const brut = new TextEncoder().encode(texte);
-  const longueur = Math.ceil(brut.byteLength / 4) * 4;
-  const octets = new Uint8Array(20 + longueur).fill(0x20);
-  const vue = new DataView(octets.buffer);
-  vue.setUint32(0, 0x46546c67, true);
-  vue.setUint32(4, 2, true);
-  vue.setUint32(8, octets.byteLength, true);
-  vue.setUint32(12, longueur, true);
-  vue.setUint32(16, 0x4e4f534a, true);
-  octets.set(brut, 20);
-  return octets;
+  return ecrireGlb({ asset: { version: '2.0' }, nodes: noeuds.map((name, mesh) => ({ name, mesh, ...(mesh === 0 ? { children: noeuds.map((_, i) => i).slice(1) } : {}), ...(options.skinned?.includes(name) ? { skin: 0 } : {}) })), meshes: noeuds.map(() => ({ primitives: [{ material: 0 }] })), materials: [{ name: 'texture_de_lame' }], skins: [{ joints: (options.joints ?? noeuds).map(n => noeuds.indexOf(n)) }], animations: animations.map((name) => ({ name })) }, null);
 }
 
 const GLB = glb(['corps', 'tete_a', 'casque', 'bouclier', 'epee'], ['Idle', 'Death_A']);

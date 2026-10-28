@@ -36,7 +36,8 @@ import { SourceBadge } from '../SourceBadge';
 import { ProseField } from '../ProseField';
 import { DescRefField } from '../compendium/DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
-import { adresseUnPassage, type SourceRef } from '../../data/schemas/grammaire/valeurs';
+import { adresseUnPassage, type SecondaryRef, type SourceRef } from '../../data/schemas/grammaire/valeurs';
+import { AlsoInField } from '../AlsoInField';
 import { GatedAction } from '../GatedAction';
 import { ChipDeRefus } from '../ChipDeRefus';
 import { ReadyRow } from '../ReadyRow';
@@ -87,7 +88,12 @@ import { CouvreField } from '../editor/CouvreField';
 import { ENTREES_DE_DOSSIER } from '../../data/dossiers';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { GameOp } from '../../engine/ops';
-import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById, findTrappingById, type TrappingData } from '../../data';
+import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById, findTrappingById, creatures, skillRefLabel, type SkillRef, type TrappingData } from '../../data';
+import type { TraitPose } from '../../data/schemas/grammaire/reference';
+import { formatTrait } from '../../engine/traits/dispatch';
+import { relireTrait, parseSkillRef } from '../editor/refFormatLivre';
+import { refsEnLignes, lignesEnRefs } from '../editor/codex/CodexEdit';
+import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { makePregens } from '../../data/pregens';
 import { toMoney } from '../../engine/money';
 import { RoseAxes } from '../RoseAxes';
@@ -99,7 +105,7 @@ import { Grid, Row, Split, Stack, pushEnd, spanFull } from '../Layout';
 import { Fleuron, OrnateFrame, RuleDivider } from '../Ornaments';
 import { NotchGauge } from '../NotchGauge';
 import { WindRose } from '../WindRose';
-import { CAREER_CHAR_ADVANCES } from '../creator/draft';
+import { CAREER_CHAR_ADVANCES } from '../../noyau/creation/brouillon';
 import { ItemIcon } from '../ItemIcon';
 import { Icon } from '../Icon';
 import { RollLine, PendingRollLine, TableRollLine } from '../RollLine';
@@ -527,6 +533,45 @@ function ProvenanceDeValeurDemo() {
       <Stack gap="sm"><strong>Citée</strong><ProvenanceDeValeur identite="citee" sujet="du dé de péril cité" value={citee} onChange={setCitee} /></Stack>
       <Stack gap="sm"><strong>Maison</strong><ProvenanceDeValeur identite="maison" sujet="de la vitesse" value={maison} onChange={setMaison} /></Stack>
       <Stack gap="sm"><strong>Facultative</strong><ProvenanceDeValeur identite="distance" sujet="de la distance" exigee={false} value={distance} onChange={setDistance} /></Stack>
+    </Grid>
+  );
+}
+
+/** Emplacements secondaires RÉELS d'un sort du registre, montrés par le spécimen d'`AlsoInField`. */
+const secondairesDeSort = memoParVersion('spells', () => spells.find((s) => s.alsoIn?.length)?.alsoIn ?? []);
+
+function AlsoInFieldDemo() {
+  // Une liste vide (« + Emplacement secondaire » ouvre un brouillon), puis une liste RÉELLE avec sa citation.
+  const [vide, setVide] = useState<SecondaryRef[]>([]);
+  const [reels, setReels] = useState<SecondaryRef[]>(() => secondairesDeSort());
+  return (
+    <Grid min="sm" gap="lg">
+      <Stack gap="sm"><strong>Aucun</strong><AlsoInField chemin="galerie/vide" value={vide} onChange={setVide} /></Stack>
+      <Stack gap="sm"><strong>Réimprimé ailleurs</strong><AlsoInField chemin="galerie/reels" value={reels} onChange={setReels} /></Stack>
+    </Grid>
+  );
+}
+
+/** Créature RÉELLE du bestiaire montrée par le spécimen de `SaisieEnBrouillon` : un Trait posé à Indice
+ *  et ses Compétences au format livre. */
+const creatureDeSaisie = memoParVersion('creatures', () => creatures.find((c) => c.skills.length && c.traits.some((t) => t.value !== undefined)));
+
+function SaisieEnBrouillonDemo() {
+  // La frappe reste au brouillon ; le blur (ou Entrée sur une ligne) la relit contre la valeur courante.
+  const [trait, setTrait] = useState<TraitPose | undefined>(() => creatureDeSaisie()?.traits.find((t) => t.value !== undefined));
+  const [competences, setCompetences] = useState<SkillRef[]>(() => creatureDeSaisie()?.skills ?? []);
+  return (
+    <Grid min="sm" gap="lg">
+      {trait && (
+        <Stack gap="sm"><strong>Trait posé</strong>
+          <SaisieEnBrouillon ariaLabel="Trait posé" value={trait} afficher={formatTrait} relire={relireTrait} onChange={setTrait} />
+        </Stack>
+      )}
+      <Stack gap="sm"><strong>Compétences (une par ligne)</strong>
+        <SaisieEnBrouillon
+          lignes={4} ariaLabel="Compétences" value={competences}
+          afficher={(v) => refsEnLignes(v, skillRefLabel)} relire={(t) => lignesEnRefs(t, parseSkillRef)} onChange={setCompetences} />
+      </Stack>
     </Grid>
   );
 }
@@ -1911,6 +1956,8 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'sourcereffield', label: 'SourceRefField', file: 'src/ui/SourceRefField.tsx', category: 'Éditeur', render: SourceRefFieldDemo },
   { id: 'provenancedutexte', label: 'ProvenanceDuTexte', file: 'src/ui/editor/ProvenanceDuTexte.tsx', category: 'Éditeur', render: ProvenanceDuTexteDemo },
   { id: 'provenancedevaleur', label: 'ProvenanceDeValeur', file: 'src/ui/editor/ProvenanceDeValeur.tsx', category: 'Éditeur', render: ProvenanceDeValeurDemo },
+  { id: 'alsoinfield', label: 'AlsoInField', file: 'src/ui/AlsoInField.tsx', category: 'Éditeur', render: AlsoInFieldDemo },
+  { id: 'saisieenbrouillon', label: 'SaisieEnBrouillon', file: 'src/ui/compendium/refField/SaisieEnBrouillon.tsx', category: 'Éditeur', render: SaisieEnBrouillonDemo },
   { id: 'prosefield', label: 'ProseField', file: 'src/ui/ProseField.tsx', category: 'Éditeur', render: ProseFieldDemo },
   { id: 'sourcebadge', label: 'SourceBadge', file: 'src/ui/SourceBadge.tsx', category: 'Texte', render: SourceBadgeDemo },
   { id: 'gameopchips', label: 'GameOpChips', file: 'src/ui/GameOpChips.tsx', category: 'Texte', render: GameOpChipsDemo },

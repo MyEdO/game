@@ -140,7 +140,7 @@ function construireScene(): Scene {
           { type: 'giveTrapping', custom: 'Lettre cachetée' },
           { type: 'journal', desc: 'Au fond du coffre, une lettre cachetée.' },
         ]) }] } },
-      { id: 'homme-de-main', kind: 'personnage', ref: 'brigand', label: 'Homme de main', pos: { x: 6, y: 1 }, z: 1, facing: 'S', dialogueId: 'dlg-homme-de-main' },
+      { id: 'homme-de-main', kind: 'personnage', ref: 'brute', label: 'Homme de main', pos: { x: 6, y: 1 }, z: 1, facing: 'S', dialogueId: 'dlg-homme-de-main' },
       { id: 'stalle-1', kind: 'prop', ref: 'stalle-ecurie', pos: { x: 10, y: 1 } },
       { id: 'stalle-2', kind: 'prop', ref: 'stalle-ecurie', pos: { x: 10, y: 4 } },
       { id: 'abreuvoir', kind: 'prop', ref: 'abreuvoir', pos: { x: 9, y: 6 } },

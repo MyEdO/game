@@ -172,8 +172,7 @@ function rendu() {
   out += `  le libellé. Relation **id-pure** (i18n-safe) : \`books.json\` est la source de vérité, **enforced** par\n`
   out += `  \`src/data/book-source-integrity.test.ts\` (tout \`source.book\` ∈ ids de livres). L'affichage résout\n`
   out += `  id→\`abr\` via \`bookAbr\` (choke-point \`registry.ts\` \`src()\`). Pour un ajout : copier l'\`id\` d'une entrée\n`
-  out += `  voisine du même livre (\`grep '"book"' <fichier>\`), ou le lire dans \`books.json\`. Contenu fan\n`
-  out += `  communautaire = livre \`frenchy-bzh\`.\n`
+  out += `  voisine du même livre (\`grep '"book"' <fichier>\`), ou le lire dans \`books.json\`.\n`
   out += `- **\`source.page\`** = la **page IMPRIMÉE du livre** (le folio), comme la donnée existante (ex. LDB « À\n`
   out += `  Enroulement » = folio 297, AA « Cimeterre » = folio 90 — sa \`desc\`, règle 5 ; la ligne de stats\n`
   out += `  du Cimeterre, folio 91, va en \`alsoIn\`, cf. plus bas). Pour l'obtenir : trouve ton contenu dans le\n`

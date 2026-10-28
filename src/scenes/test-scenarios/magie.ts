@@ -22,12 +22,11 @@ const construireScene = (): Scene => buildScene({
   heroStart: [3, 11],
   startMessage:
     { texte: 'Concile de prêtres (un par dieu à miracles de combat) + Haute Sorcière + flagellant + Tueur, face à une ' +
-    'warband ET un trio de casters ennemis (Eusapia, Envoûteuse, Sorcière). EXPLORATION d’abord : fiche ' +
+    'warband ET un trio de casters ennemis (Eusapia, Kanker Flett, Johen). EXPLORATION d’abord : fiche ' +
     'd’Aelindra → Avancement (mémoriser un sort aux PX) ; traversez la zone de Malepierre (Influence ' +
     'corruptrice → mutation possible, Aelindra est proche du seuil) ; PUIS franchissez la ligne à l’est pour ' +
     'engager. En combat : enchantez/bénissez/invoquez/drainez, Explosion au clic-case (ZdE), surincantez, ' +
-    'Contre-sort & dissipation des deux camps ; le Prêtre a 3 Péchés (Colère possible même sur Prière réussie) ; ' +
-    'l’Envoûteuse cause Peur 2 + Terreur 2 à l’ouverture (Test de Psychologie).' },
+    'Contre-sort & dissipation des deux camps ; le Prêtre a 3 Péchés (Colère possible même sur Prière réussie).' },
   // Influence corruptrice (LDB 19) puis ligne d'engagement : deux bandes verticales que le groupe traverse
   // en avançant vers l'est (réfs ennemies par ID STABLE, `RefIrresoluble` sinon).
   triggers: [
@@ -63,14 +62,14 @@ const construireScene = (): Scene => buildScene({
         { ref: 'orc', pos: { x: 26, y: 12 } },
         { ref: 'gobelin', pos: { x: 24, y: 13 } },
         { ref: 'gobelin', pos: { x: 25, y: 14 } },
-        // Hors-la-loi + bestiaux — flanc bas.
-        { ref: 'seigneur-brigand', pos: { x: 23, y: 16 } },
-        { ref: 'brigand', pos: { x: 24, y: 17 } },
+        // Bella la Noire, un humain + bestiaux — flanc bas.
+        { ref: 'bella-la-noire', pos: { x: 23, y: 16 }, optionals: [{ id: 'meneur' }] }, // facultatif standard Meneur (LDB 76 l.31)
+        { ref: 'humain', pos: { x: 24, y: 17 } },
         { ref: 'ungor', pos: { x: 27, y: 9 } },
         // TRIO de casters ennemis au fond (l'IA adverse joue son arsenal + Contre-sort/dissipation).
         { ref: 'eusapia-balacanon', pos: { x: 28, y: 9 } },
-        { ref: 'envouteuse', pos: { x: 28, y: 11 } },
-        { ref: 'sorciere', pos: { x: 28, y: 13 } },
+        { ref: 'kanker-flett', pos: { x: 28, y: 11 } },
+        { ref: 'johen', pos: { x: 28, y: 13 } },
       ],
     },
   ],
@@ -132,9 +131,9 @@ export const scenario: TestScenario = {
   title: 'Magie en combat',
   tests:
     'Grande bataille magique : toutes les familles curées (invocations, drains, enchantements, zones, soins), ' +
-    'IA caster des DEUX camps + Contre-sort & dissipation (trio ennemi Eusapia/Envoûteuse/Sorcière), ZdE au ' +
+    'IA caster des DEUX camps + Contre-sort & dissipation (trio ennemi Eusapia/Kanker Flett/Johen), ZdE au ' +
     'clic-case + Surincantation, Péché → Colère (Prêtre, 3 Péchés), Corruption (zone de Malepierre → mutation, ' +
-    'Aelindra proche du seuil), mémorisation aux PX, Psychologie (Peur/Terreur de l’Envoûteuse).',
+    'Aelindra proche du seuil), mémorisation aux PX.',
   partyNote: 'Aelindra (Haute Sorcière + Nécromancie) + 10 Prêtres (un par dieu de combat) + flagellant + Tueur',
   construire: () => ({ party: makeMagicParty(), scene: construireScene() }),
   // pas d'autoCombat : exploration (mémorisation, exposition à la Corruption) PUIS combat via le trigger.

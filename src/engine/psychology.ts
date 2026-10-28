@@ -12,14 +12,15 @@ import { rollTest, evaluateTest, extendedTestStep, jetPose, type JetPose } from 
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
 import { testValue } from './skills';
-import { findPsychologyById, psychologies, psychologyLabel } from '../data';
+import { findGroupById, findPsychologyById, psychologies, psychologyLabel, refLabel, talents } from '../data';
+import type { PlayerText } from '../i18n/playerText';
 import { indexParId } from '../data/versionDataset';
 import { SizeCategory, sizeGap } from './size';
 import { isOutOfAction } from './conditions';
-import { groupMatch, hiddenGroupsOf } from './groups';
+import { groupMatch, groupesDe, groupesPercus, type PorteurDeGroupes } from './groups';
 import { campOf, relationBetween } from './relations';
 import { bellicosePsychImmune, traitCapability } from './traits/dispatch';
-import { fearImmuneVs } from './combatFeatures/dispatch';
+import { featuresOf } from './combatFeatures/dispatch';
 import { diseasePsychTraits } from './disease';
 import type { GameOp } from './ops';
 import type { Flow } from './flowCore';
@@ -46,16 +47,19 @@ export interface PsychTrait {
 }
 
 /** Affliction psychologique ACTIVE en combat, posée après un Test de Psychologie raté. Conservée
- *  pour la rencontre (évite le re-déclenchement) ; « sous Peur » ⟺ `calmeDR < indice`. */
+ *  pour la rencontre (évite le re-déclenchement) ; « sous Peur » : `sousPeur`. */
 export interface PsychAffliction {
   type: PsychType;
   /** Créature source (Peur/Terreur) ou groupe ciblé. */
   sourceId?: string;
   cible?: string;
-  /** Indice de Peur à surmonter (Test étendu de Calme). `0` = source déjà surmontée/passée (inerte). */
+  /** Indice de Peur à surmonter (Test étendu de Calme), lu par `indiceDePeur`. */
   indice?: number;
   /** DR cumulé du Test ÉTENDU de Calme (Peur), vers l'Indice. */
   calmeDR?: number;
+  /** Peur SURMONTÉE : le Test étendu a atteint l'Indice, ou Sans Peur (Ennemi) l'a ignorée. LDB 21 l.25 ;
+   *  LDB 10 l.1051. Lu par `sousPeur`. */
+  surmontee?: boolean;
   /** N° de Round du dernier Test de Calme (le Test étendu est UNE fois par Round). */
   lastTestRound?: number;
   /** Trait CIBLÉ (Animosité/Haine/Préjugé/Amour/Camaraderie/Phobie) : `true` = affliction non résistée
@@ -81,6 +85,39 @@ export const cibleLabel = (type: string): { icon: string; label: string } | unde
   const p = psychologieParId(type);
   return p?.targeted ? { icon: p.icon ?? '', label: p.label } : undefined;
 };
+
+/** Ce qui peut déclencher, ou subir, un Trait psy ciblé : un combattant, ou l'interlocuteur d'un Test social
+ *  décrit par ses Groupes (`FlowTest.vsGroups`). */
+export type SourcePsy =
+  | { genre: 'combattant'; c: PorteurDeGroupes }
+  | { genre: 'interlocuteur'; groups: readonly string[] };
+
+/** La Cible d'un Trait psy : un Groupe (`groups.json`), jokers compris. */
+interface CiblePsy { groupe: string }
+
+/** Ce qu'un lecteur regarde de la source : ce qu'elle EST (`groupesDe`), ou ce que l'observateur en
+ *  PERÇOIT (`groupesPercus`). #3045 */
+type Lecture = 'appartenance' | 'percu';
+
+/** La Cible `cible` vise-t-elle la source `s`, selon la `lecture` du lecteur ? Seul prédicat de ciblage
+ *  d'un Trait psy ; les jokers se résolvent par `groupMatch`. Un interlocuteur n'a que les Groupes que
+ *  le Test lui décrit : perçu et appartenance s'y confondent. #3045 */
+export function vise(cible: CiblePsy, s: SourcePsy, lecture: Lecture): boolean {
+  const groupes = s.genre === 'interlocuteur' ? s.groups
+    : lecture === 'appartenance' ? groupesDe(s.c) : groupesPercus(s.c);
+  return groupMatch(cible.groupe, groupes);
+}
+
+/** Sujet à la Peur. LDB 21 l.25 */
+export function sousPeur(p: PsychAffliction): boolean {
+  return p.type === 'peur' && !p.surmontee;
+}
+
+/** L'Indice d'une Peur portée, seul lecteur du champ. Une pose authorée peut l'omettre (`GameOpEditor`,
+ *  op `beginPsych`) : Peur 0, le plancher du Test étendu (`extendedTestStep`). */
+export function indiceDePeur(p: PsychAffliction): number {
+  return p.indice ?? 0;
+}
 
 /** « Si la créature est considérée comme AGRESSIVE » (LDB 85 l.383) : porte de la Peur/Terreur de
  *  TAILLE, lue ENVERS `cible`. Deux ADVERSAIRES DÉCLARÉS (camps opposés dont aucun n'est neutre) le
@@ -138,18 +175,17 @@ export function psychResolution(kind: PsychType): { mode?: 'extended' | 'terreur
 }
 
 /** Le Test de Psychologie d'un état, lu en DONNÉES (`psychology.json` `test`) — SOURCE UNIQUE du Test de
- *  combat, de la bande de rencontre et de la puce d'état ; défauts : en-tête de ce module. */
-export function psychTest(kind: PsychType): { skill: RefDesignee; difficulty: Difficulty } {
+ *  combat, de la bande de rencontre, de l'IA et de la puce d'état ; défauts : en-tête de ce module.
+ *  `sansPeur` : Accessible. LDB 10 l.1051 */
+export function psychTest(kind: PsychType, sansPeur = false): { skill: RefDesignee; difficulty: Difficulty } {
   const td = findPsychologyById(kind)?.test;
-  return { skill: td?.skill ?? { id: 'calme' }, difficulty: td?.difficulty ?? 'intermediaire' };
+  return { skill: td?.skill ?? { id: 'calme' }, difficulty: sansPeur ? 'accessible' : td?.difficulty ?? 'intermediaire' };
 }
 
-/** Une affliction psy est-elle ACTIVE ? Ciblé (Animosité/Haine/…) : drapeau `active` ; Peur/Terreur : DR
- *  cumulé encore sous l'Indice (sujet à la Peur). Frénésie/trauma ne sont pas des afflictions surmontables. */
+/** Une affliction psy est-elle ACTIVE ? Ciblé : drapeau `active` ; sinon `sousPeur`. */
 export function isAfflictionActive(p: PsychAffliction): boolean {
   if (estCibleType(p.type)) return p.active === true;
-  if (p.type === 'peur' || p.type === 'terreur') return (p.indice ?? 0) > 0 && (p.calmeDR ?? 0) < (p.indice ?? 0);
-  return false;
+  return sousPeur(p);
 }
 
 /** SIÈGE UNIQUE des immunités psy portées par une affliction ACTIVE de `self`, pour un CANAL donné —
@@ -160,12 +196,12 @@ export function isAfflictionActive(p: PsychAffliction): boolean {
  *  requis ICI — les 3 résolutions d'attaque (`combineOpposed`/`resolveMeleePassive`/`resolveRanged`)
  *  n'en ont aucun en portée et lisent pourtant le MÊME verdict que `fearSourceFor`/`encounterPsych`.
  *  Data-driven : aucune entité nommée, aucun canal codé. */
-export function psychImmuneToFrom(self: Combatant, foe: Pick<Combatant, 'groups'>, channel: string): boolean {
+export function psychImmuneToFrom(self: Combatant, foe: Combatant, channel: string): boolean {
   for (const p of self.psychState ?? []) {
     if (p.active !== true) continue;
     const d = findPsychologyById(p.type);
     if (d?.immuneWhileActive?.includes(channel)) return true;
-    if (d?.immuneToFromTarget?.includes(channel) && p.cible && groupMatch(p.cible, foe.groups ?? [])) return true;
+    if (d?.immuneToFromTarget?.includes(channel) && p.cible && vise({ groupe: p.cible }, { genre: 'combattant', c: foe }, 'appartenance')) return true;
   }
   return false;
 }
@@ -182,7 +218,7 @@ export function refreshDefendedPsych(c: Combatant, present: Combatant[]): boolea
   let changed = false;
   for (const p of c.psychState ?? []) {
     if (p.active !== true || !p.cible || !findPsychologyById(p.type)?.immuneWhileActive) continue;
-    const defendable = present.some((v) => v.id !== c.id && !v.dead && !isOutOfAction(v) && groupMatch(p.cible!, v.groups ?? []));
+    const defendable = present.some((v) => v.id !== c.id && !v.dead && !isOutOfAction(v) && vise({ groupe: p.cible! }, { genre: 'combattant', c: v }, 'appartenance'));
     if (!defendable) { p.active = false; changed = true; }
   }
   return changed;
@@ -213,25 +249,24 @@ export function endEncounterPsych(c: Combatant): boolean {
   return true;
 }
 
-/** Les Traits psy CIBLÉS de `self` déclarés `targetCauses` (Phobie, LDB 21 l.87 : « Traitez l'objet de la
- *  Phobie comme causant Peur 1 »), résolus en Cible + régime + Indice. L'Indice de l'instance possédée
- *  l'emporte sur le défaut de la donnée ; un Indice nul (Trait « Effrayé », Peur 0) reste inerte. */
+/** Les Traits psy CIBLÉS de `self` déclarés `targetCauses`, résolus en Cible + régime + Indice ; l'Indice
+ *  de l'instance possédée l'emporte sur le défaut de la donnée. LDB 21 l.87 ; LDB 85 l.122 ; #3045 */
 function targetCausesEntries(self: Combatant): { cible: string; kind: 'peur' | 'terreur'; indice: number }[] {
   const out: { cible: string; kind: 'peur' | 'terreur'; indice: number }[] = [];
   for (const tr of effectivePsychTraits(self)) {
     const tc = findPsychologyById(tr.type)?.targetCauses;
     if (!tc || !tr.cible) continue;
     const indice = tr.indice ?? tc.indice;
-    if (indice > 0) out.push({ cible: tr.cible, kind: tc.kind as 'peur' | 'terreur', indice });
+    if (indice >= 0) out.push({ cible: tr.cible, kind: tc.kind as 'peur' | 'terreur', indice });
   }
   return out;
 }
 
 /** Les sources de Peur/Terreur que `foe` représente pour `self` du seul fait de ses Traits `targetCauses`
  *  (LDB 21 l.87). Consommé par `fearSourceFor` (combat). Data-driven, pur. */
-export function targetCausedSourcesFor(self: Combatant, foe: Pick<Combatant, 'groups'>): { kind: 'peur' | 'terreur'; indice: number }[] {
+export function targetCausedSourcesFor(self: Combatant, foe: Combatant): { kind: 'peur' | 'terreur'; indice: number }[] {
   return targetCausesEntries(self)
-    .filter((e) => groupMatch(e.cible, foe.groups ?? []))
+    .filter((e) => vise({ groupe: e.cible }, { genre: 'combattant', c: foe }, 'percu'))
     .map((e) => ({ kind: e.kind, indice: e.indice }));
 }
 
@@ -247,8 +282,7 @@ export function targetCausedTrigger(self: Combatant, visible: Combatant[]): { ki
         v.id !== self.id &&
         !(self.psychState ?? []).some((p) => p.type === e.kind && p.sourceId === v.id) &&
         (e.kind !== 'peur' || !psychImmuneToFrom(self, v, 'peur')) &&
-
-        groupMatch(e.cible, (v.groups ?? []).filter((g) => !hiddenGroupsOf(v).includes(g))),
+        vise({ groupe: e.cible }, { genre: 'combattant', c: v }, 'percu'),
     );
     if (m) return { kind: e.kind, indice: e.indice, sourceId: m.id, cible: e.cible };
   }
@@ -276,11 +310,19 @@ export function supersededLines(c: Combatant, name: string): string[] {
   return suppressSupersededPsych(c).map((tp) => t('turn.psychSuperseded', { name, psych: psychologyLabel(tp) }));
 }
 
-/** `self` possède-t-il « Sans Peur (Ennemi) » (LDB 10 l.1051) contre `foe` ? Le porteur n'est PAS
- *  immunisé d'office : il teste la Peur/Terreur de cet ennemi par UN seul Test de Calme Accessible
- *  (+20). Nom sémantique pour la couche state (le prédicat sous-jacent vit dans combatFeatures). */
-export function sansPeurVs(self: Combatant, foe: Pick<Combatant, 'groups'>): boolean {
-  return fearImmuneVs(self, foe);
+/** `self` porte-t-il « Sans Peur » (possédé, ou accordé sans spécialisation) contre l'ennemi `foe` qu'il
+ *  RENCONTRE ? Éligibilité au Test allégé, jamais une immunité. LDB 10 l.1051 ; #3045 */
+export function sansPeurVs(self: Combatant, foe: PorteurDeGroupes): boolean {
+  return featuresOf(self).some(
+    ({ def, ctx }) => def.fearImmune && (ctx.spec == null || vise({ groupe: ctx.spec }, { genre: 'combattant', c: foe }, 'percu')),
+  );
+}
+
+/** `sansPeurVs` face à une source NOUVELLE de Peur/Terreur (`kind` non ciblé, aucune Peur déjà posée par
+ *  `foe`) : le Test allégé de la rencontre, pour les deux portes héros (combat, rencontre). LDB 10 l.1051 */
+export function sansPeurFace(self: Combatant, kind: PsychType, foe: Combatant | undefined): boolean {
+  if (!foe || estCibleType(kind)) return false;
+  return !(self.psychState ?? []).some((p) => p.type === 'peur' && p.sourceId === foe.id) && sansPeurVs(self, foe);
 }
 
 /** Psychologie DATA-DRIVEN (Peur/Terreur/Immunité + ciblés Animosité/Haine/Préjugé/Amour/Camaraderie/
@@ -405,11 +447,22 @@ export function calmeValue(c: Combatant): number {
   return testValue(c, 'calme');
 }
 
-/** Un Round de Test ÉTENDU de Calme contre la Peur (LDB 21 l.25) : cumule le DR jusqu'à l'Indice.
- *  `prevDR` = DR déjà accumulé. `vaincue` = la Peur est surmontée (DR cumulé ≥ Indice).
- *  `sansPeur` (Sans Peur (Ennemi), LDB 10 l.1051) : « un seul Test de Calme Accessible (+20)… vous
- *  pouvez IGNORER les effets » → Test UNIQUE (binaire) à +20 ; une réussite vainc d'emblée la Peur
- *  (DR porté à l'Indice), un échec laisse le porteur sujet (re-tests ultérieurs = Peur normale +0). */
+/** Un pas du Test ÉTENDU de Calme contre la Peur, depuis le DR cumulé `prevDR`. LDB 21 l.25 ;
+ *  LDB 10 l.1051. Seule arithmétique de la Peur, partagée par l'IA (`resolvePeurTest`) et la bande des
+ *  héros (`resolveCombatPsychRow`). */
+export function pasDePeur(
+  prevDR: number,
+  r: { success: boolean; sl: number },
+  indice: number,
+  sansPeur = false,
+): { calmeDR: number; surmontee: boolean } {
+  if (sansPeur && r.success) return { calmeDR: Math.max(prevDR, indice), surmontee: true };
+  const step = extendedTestStep(prevDR, r, indice, !!rule('test-extended-min-sl'));
+  return { calmeDR: step.total, surmontee: step.done };
+}
+
+/** Un Round de Test ÉTENDU de Calme contre la Peur (LDB 21 l.25) : jette le Test, puis `pasDePeur`.
+ *  `sansPeur` : Test Accessible (+20). LDB 10 l.1051 */
 export function resolvePeurTest(
   calme: number,
   indice: number,
@@ -417,15 +470,30 @@ export function resolvePeurTest(
   rng: RNG,
   coldBlooded = false, // À sang-froid (LDB 85 l.13) : inverse un Test de FM raté
   sansPeur = false,
-): { dr: number; calmeDR: number; vaincue: boolean; roll: number; target: number; sl: number; success: boolean } {
-  const t = coldBloodedAdjust(rollTest(calme, sansPeur ? 'accessible' : 'intermediaire', rng), coldBlooded);
-  // Sans Peur : une réussite IGNORE la Peur (vaincue d'emblée → DR ≥ Indice). Sinon Test étendu LDB 12
-  // MUTUALISÉ (`extendedTestStep`) : un Round raté retire les DR négatifs (planché à 0) — cf. la même
-  // arithmétique que crochetage/Artisanat/chirurgie (fini le cumul add-only divergent).
-  const step = sansPeur && t.success
-    ? { total: Math.max(prevDR, indice), done: true }
-    : extendedTestStep(prevDR, t, indice, !!rule('test-extended-min-sl'));
-  return { dr: step.total - prevDR, calmeDR: step.total, vaincue: step.done, roll: t.roll, target: t.target, sl: t.sl, success: t.success };
+): { dr: number; calmeDR: number; surmontee: boolean; roll: number; target: number; sl: number; success: boolean } {
+  const t = coldBloodedAdjust(rollTest(calme, psychTest('peur', sansPeur).difficulty, rng), coldBlooded);
+  const pas = pasDePeur(prevDR, t, indice, sansPeur);
+  return { dr: pas.calmeDR - prevDR, calmeDR: pas.calmeDR, surmontee: pas.surmontee, roll: t.roll, target: t.target, sl: t.sl, success: t.success };
+}
+
+/** Issue d'un pas de Peur, pour les deux camps : tenue, ignorée par Sans Peur réussi, ou surmontée par le
+ *  Test étendu. LDB 21 l.25 ; LDB 10 l.1051 */
+export function issueDePeur(r: { success: boolean; surmontee: boolean }, sansPeur: boolean): 'tient' | 'ignoree' | 'surmontee' {
+  if (!r.surmontee) return 'tient';
+  return sansPeur && r.success ? 'ignoree' : 'surmontee';
+}
+
+/** Libellé du Talent qui porte `fearImmune` (Sans Peur). LDB 10 l.1051 ; fiche `user-doctrine-ids-stables-labels-affichage` */
+export function sansPeurLabel(): PlayerText {
+  const talent = talents.find((x) => x.combat?.fearImmune);
+  if (!talent) throw new Error('sansPeurLabel : aucun Talent ne porte `combat.fearImmune`');
+  return refLabel('talents', { id: talent.id });
+}
+
+/** La Peur héritée d'une Terreur naît-elle surmontée ? LDB 21 l.56 ; LDB 10 l.1051. Une seule règle
+ *  pour les héros (`psychBranchOps`) et l'IA (`resolveTerreurTest`). */
+function peurHeriteeSurmontee(r: { success: boolean; sansPeur?: boolean }): boolean {
+  return !!r.sansPeur && r.success;
 }
 
 /** Traits psychologiques EFFECTIFS de `c` : ceux STOCKÉS (`c.psychTraits` — natifs, mutations, sorts
@@ -474,7 +542,7 @@ export function targetedTrigger(self: Combatant, visible: Combatant[]): { type: 
     const m = visible.find(
       (v) =>
         v.id !== self.id &&
-        groupMatch(tr.cible!, (v.groups ?? []).filter((g) => !hiddenGroupsOf(v).includes(g))) &&
+        vise({ groupe: tr.cible! }, { genre: 'combattant', c: v }, 'percu') &&
         (!needsThreat || visible.some((a) => a.id !== self.id && agressifEnvers(a, v))),
     );
     if (m) return { type: tr.type, cible: tr.cible, sourceId: m.id, indice: tr.indice };
@@ -535,17 +603,19 @@ export interface PsychStake {
  *
  * · résolution `'terreur'` (LDB 21 l.54-56) — échec : `failCondition` à la quantité déclarée (part
  *   fixe en `value`, part par degré d'échec en `valuePerSL{onFailure}` — résolue par `applyOps` avec
- *   le DR du jet) ; PUIS l'entrée `becomes` posée à PLEIN Indice, quel que soit le résultat (#1190).
+ *   le DR du jet) ; PUIS l'entrée `becomes` posée à PLEIN Indice, quel que soit le résultat (#1190),
+ *   surmontée d'emblée si `sansPeur` a réussi (`peurHeriteeSurmontee`).
  * · Traits CIBLÉS — l'entrée est posée `active` selon l'issue : subie sur un échec, marqueur inerte
  *   (non re-déclenchable) sur une réussite.
- * · Peur (Test ÉTENDU, l.25) — l'entrée porte son Indice ; `calmeDR` n'existe qu'à la RÉSOLUTION
- *   (le site le calcule et le passe ici), et l'op qui l'omet laisse le cumul de l'entrée inchangé.
+ * · Peur (Test ÉTENDU, l.25) — l'entrée porte son Indice ; `calmeDR` et `surmontee` n'existent qu'à la
+ *   RÉSOLUTION (le site les calcule, `pasDePeur` en combat, et les passe ici), et l'op qui les omet laisse
+ *   l'entrée inchangée.
  *
  * `round` : n° de Round du Test (combat), absent hors combat. PURE.
  */
 export function psychBranchOps(
   stake: PsychStake,
-  outcome: { success: boolean; calmeDR?: number; round?: number },
+  outcome: { success: boolean; calmeDR?: number; surmontee?: boolean; sansPeur?: boolean; round?: number },
 ): GameOp[] {
   const res = psychResolution(stake.kind);
   const anchor = {
@@ -563,7 +633,12 @@ export function psychBranchOps(
     }
     // `becomes` SANS `fromTest` : la Peur héritée n'est pas l'affliction du Test, c'est la mémoire
     // « cette créature a déjà inspiré sa Terreur » (l.54) — elle traverse la borne de rencontre.
-    if (res.becomes) ops.push({ op: 'beginPsych', type: res.becomes, indice: stake.indice, calmeDR: 0, ...anchor });
+    if (res.becomes) {
+      ops.push({
+        op: 'beginPsych', type: res.becomes, indice: stake.indice, calmeDR: 0,
+        surmontee: peurHeriteeSurmontee(outcome), ...anchor,
+      });
+    }
     return ops;
   }
   if (estCibleType(stake.kind)) {
@@ -574,7 +649,8 @@ export function psychBranchOps(
   }
   return [{
     op: 'beginPsych', type: stake.kind, indice: stake.indice, fromTest: true,
-    ...(outcome.calmeDR != null ? { calmeDR: outcome.calmeDR } : {}), ...anchor,
+    ...(outcome.calmeDR != null ? { calmeDR: outcome.calmeDR } : {}),
+    ...(outcome.surmontee != null ? { surmontee: outcome.surmontee } : {}), ...anchor,
   }];
 }
 
@@ -588,47 +664,79 @@ export function psychBranchFlow(stake: PsychStake, success: boolean): Flow {
 }
 
 // ---------------------------------------------------------------------------
-// Acquisition de Traits psychologiques — RÈGLES FACULTATIVES (ADE II, Annexe I « Troubles
-// psychologiques »). Gatées par la règle optionnelle `psych-acquisition-optional` (par défaut OFF) :
-// fonctions PURES qui DÉCIDENT du Trait à poser ; l'APPLICATION (push dans `psychTraits`, remplacement
-// d'Animosité par Haine) et le DÉCLENCHEMENT (dépense de Destin, résolution de Terreur, Ambition rendue
-// impossible) vivent dans la couche state/combat — voir le rapport pour les points d'intégration différés.
+// Acquisition de Traits psychologiques (ADE II 09), règle optionnelle `psych-acquisition-optional` :
+// fonctions PURES qui DÉCIDENT du Trait à poser ; sa pose et son déclenchement vivent dans `noyau/`.
 // ---------------------------------------------------------------------------
 
-/** Phobie du noir (ADE II Annexe I) : « Lorsque le total d'États Brisé d'un Personnage [subis à cause de
- *  la Terreur] est supérieur ou égal à son Bonus de Force Mentale actuelle, il reçoit une Phobie » liée à
- *  la cause de la Terreur la plus récente/fréquente ; le compteur est ensuite remis à zéro. PUR : renvoie
- *  la Phobie à POSER (+ `resetCounter`), ou null si le seuil n'est pas atteint / la règle est éteinte.
- *  Le compteur cumulé (`cumulativeBriseFromTerreur`) et l'ajout sont gérés par l'appelant (couche state). */
+/** Phobie du noir (ADE II 09 l.9, LDB 21 l.85-87) : la Phobie à POSER (+ `resetCounter`), `null` sous le seuil, règle
+ *  éteinte ou `cause` absente. `cause` : id de Groupe de la source de la Terreur. PUR ; compteur et
+ *  pose à l'appelant. */
 export function gainPhobieIfThreshold(
   c: Combatant,
   cumulativeBriseFromTerreur: number,
-  cause: string,
+  cause: string | undefined,
 ): { phobie: PsychTrait; resetCounter: true } | null {
-  if (!rule('psych-acquisition-optional')) return null;
+  if (!cause || !rule('psych-acquisition-optional')) return null;
   if (cumulativeBriseFromTerreur < bonus(effectiveChar(c, 'force-mentale'))) return null;
-  // Phobie = Peur 1 sur la source (même convention que parsePsychTraits, LDB 21 l.85-87).
   return { phobie: { type: 'phobie', cible: cause, indice: 1 }, resetCounter: true };
 }
 
-/** Animosité & Haine (ADE II Annexe I) : « Lorsqu'un Personnage dépense un point de Destin pour rester en
- *  vie […] il doit effectuer un Test de Calme Intermédiaire (+0). En cas d'échec, il obtient le Trait
- *  Psychologique Animosité, en prenant pour cible l'individu ou l'élément qui l'a presque tué. […] Si un
- *  Personnage obtient une Animosité qu'il possède déjà, celle-ci devient de la Haine. » PUR / seedé : lance
- *  le Test de Calme et renvoie sa résolution + le Trait à poser (`animosite`, ou `haine` qui REMPLACE
- *  l'Animosité existante via `replacesAnimosite`). Réussite (ou règle éteinte) → aucun Trait. */
+/** Animosité & Haine (ADE II 09 l.15 ; Cible : ADE II (VO) 09 l.14) : Test de Calme Intermédiaire (+0) seedé, et le Trait à poser sur un
+ *  échec (`haine` REMPLACE l'Animosité de même Cible, `replacesAnimosite`). `cible` : id de Groupe
+ *  de l'adversaire ; `null` si la règle est éteinte ou `cible` absente. PUR. */
 export function animositeOrHaine(
   c: Combatant,
-  cible: string,
+  cible: string | undefined,
   rng: RNG,
 ): { test: { success: boolean; roll: number; sl: number; target: number }; trait?: PsychTrait; replacesAnimosite?: boolean } | null {
-  if (!rule('psych-acquisition-optional')) return null;
+  if (!cible || !rule('psych-acquisition-optional')) return null;
   const test = resolveCalmeSimple(calmeValue(c), rng); // Calme Intermédiaire (+0)
   if (test.success) return { test };
   const hasAnimosite = (c.psychTraits ?? []).some((p) => p.type === 'animosite' && p.cible === cible);
   return hasAnimosite
     ? { test, trait: { type: 'haine', cible }, replacesAnimosite: true }
     : { test, trait: { type: 'animosite', cible }, replacesAnimosite: false };
+}
+
+/** Un porteur PERSISTÉ, tel qu'il arrive du stockage : ses Traits psy, ceux que suspendent ses effets, ses
+ *  afflictions. */
+type PorteurDeCiblesPsy = {
+  psychTraits?: readonly { cible?: unknown }[];
+  psychState?: readonly { cible?: unknown }[];
+  activeEffects?: readonly { suppressedPsych?: readonly { cible?: unknown }[] }[];
+};
+
+/** La Cible de `p` est une chaîne hors de `groups.json` (la chaîne vide comprise) ; une Cible absente n'est pas jugée. */
+const cibleInconnue = (p: { cible?: unknown } | null | undefined): boolean => typeof p?.cible === 'string' && !findGroupById(p.cible);
+
+/** `v` s'il est une liste, `[]` sinon : un champ persisté se lit sans être présumé. */
+const liste = <T,>(v: readonly T[] | undefined): readonly T[] => (Array.isArray(v) ? v : []);
+
+/** Les Traits psy que porte `c` (Traits, Traits suspendus d'un effet, afflictions), entrées `null` comprises. */
+const traitsPsyPortes = (c: PorteurDeCiblesPsy | null | undefined) =>
+  [...liste(c?.psychTraits), ...liste(c?.psychState), ...liste(c?.activeEffects).flatMap((e) => liste(e?.suppressedPsych))];
+
+/** Les Cibles hors `groups.json` que nomment les Traits psy de combattants PERSISTÉS (sauvegarde, roster, export
+ *  de héros), lus tels qu'ils arrivent du stockage : `[]` = rien à nommer (#1463 LD.1, LDB 21 l.17-21). Une Cible
+ *  vide se retire sans se nommer. */
+export function ciblesPsyInconnues(porteurs: unknown): string[] {
+  if (!Array.isArray(porteurs)) return [];
+  return porteurs.flatMap((c: PorteurDeCiblesPsy | null) => traitsPsyPortes(c).filter(cibleInconnue).map((p) => p!.cible as string).filter((id) => id !== ''));
+}
+
+/** `p` sans ses Traits psy (Traits, Traits suspendus d'un effet, afflictions) à Cible hors `groups.json`, retirés
+ *  ENTIERS (LDB 21 l.17-21), lu tel qu'il arrive du stockage ; `p` lui-même s'il n'en porte aucun. */
+export function sansCiblesPsyInconnues<P extends PorteurDeCiblesPsy>(p: P): P {
+  if (!traitsPsyPortes(p).some(cibleInconnue)) return p;
+  const garder = <T extends { cible?: unknown }>(v: readonly T[]) => v.filter((x) => !cibleInconnue(x));
+  return {
+    ...p,
+    ...(Array.isArray(p.psychTraits) ? { psychTraits: garder(p.psychTraits) } : {}),
+    ...(Array.isArray(p.psychState) ? { psychState: garder(p.psychState) } : {}),
+    ...(Array.isArray(p.activeEffects)
+      ? { activeEffects: p.activeEffects.map((e) => (Array.isArray(e?.suppressedPsych) ? { ...e, suppressedPsych: garder(e.suppressedPsych) } : e)) }
+      : {}),
+  };
 }
 
 /** Trauma (ADE II Annexe I) : « Si un Personnage est témoin d'un événement qui rend l'une de ses Ambitions
@@ -646,17 +754,16 @@ export function traumaOnImpossibleAmbition(
 }
 
 /** Test de Terreur à la 1ʳᵉ rencontre (LDB 21 l.54-56) : échec → Brisé = Indice + |DR négatifs| ;
- *  ensuite la créature cause une Peur d'Indice équivalent (`devientPeur`).
- *  `sansPeur` (Sans Peur (Ennemi), LDB 10 l.1051) : le Test de Calme est Accessible (+20) — une
- *  réussite ignore la Terreur (et la Peur subséquente, via `devientPeur: 0`). */
+ *  ensuite la créature cause une Peur de même Indice, quel que soit le résultat (`becomes`).
+ *  `sansPeur` : Test Accessible (+20), et `peurSurmontee` (`peurHeriteeSurmontee`). LDB 10 l.1051 */
 export function resolveTerreurTest(
   calme: number,
   indice: number,
   rng: RNG,
   coldBlooded = false, // À sang-froid (LDB 85 l.13) : inverse un Test de FM raté
   sansPeur = false,
-): { success: boolean; brise: number; devientPeur: number; roll: number; target: number; sl: number } {
-  const t = coldBloodedAdjust(rollTest(calme, sansPeur ? 'accessible' : 'intermediaire', rng), coldBlooded);
+): { success: boolean; brise: number; peurSurmontee: boolean; roll: number; target: number; sl: number } {
+  const t = coldBloodedAdjust(rollTest(calme, psychTest('terreur', sansPeur).difficulty, rng), coldBlooded);
   const brise = t.success ? 0 : failConditionAmount(psychResolution('terreur').failAmount, indice, t.sl);
-  return { success: t.success, brise, devientPeur: sansPeur && t.success ? 0 : indice, roll: t.roll, target: t.target, sl: t.sl };
+  return { success: t.success, brise, peurSurmontee: peurHeriteeSurmontee({ success: t.success, sansPeur }), roll: t.roll, target: t.target, sl: t.sl };
 }

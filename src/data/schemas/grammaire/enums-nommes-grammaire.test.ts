@@ -43,6 +43,7 @@ const MIGRES: readonly [string, unknown, Record<string, string>][] = [
     groups: 'Groupes (créatures/factions)', diseases: 'Maladies', sizes: 'Tailles', mutations: 'Mutations',
     breathTypes: 'Types de Souffle', damageTypes: 'Types de Dégâts (immunité)',
     weaponsMelee: 'Armes de mêlée', weaponsRanged: 'Armes à distance',
+    exposureLevels: 'Degrés d’Exposition', difficulties: 'Difficultés',
   }],
   ['maladies.symptoms[].severity + ops aggravateSymptom/grantSymptom', symptomSeveritySchema, {
     moderee: 'Modérée', grave: 'Grave',
@@ -80,7 +81,7 @@ const MIGRES: readonly [string, unknown, Record<string, string>][] = [
     toute: 'Toute Puissance', khorne: 'Khorne', nurgle: 'Nurgle', slaanesh: 'Slaanesh', tzeentch: 'Tzeentch',
   }],
   ['op corruptionExposure.level + effet de scène corruptionExposure.level', exposureLevelSchema, {
-    mineure: 'mineure', moderee: 'modérée', majeure: 'majeure',
+    mineure: 'Mineure', moderee: 'Modérée', majeure: 'Majeure',
   }],
   ['scene.entities[].facing + props.places[].facing (Dir8)', dir8Schema, {
     N: 'Nord', NE: 'Nord-Est', E: 'Est', SE: 'Sud-Est', S: 'Sud', SO: 'Sud-Ouest', O: 'Ouest', NO: 'Nord-Ouest',

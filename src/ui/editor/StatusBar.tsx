@@ -26,7 +26,7 @@ const LAYER_LABEL: Record<keyof Layers, string> = {
 export function toolLabel(tool: Tool): ReactNode {
   switch (tool.mode) {
     case 'select': return '↖ Sélection';
-    case 'tile': return <><Icon id="map-tool/paint" size="sm" /> {terrainLabel(tool.terrain) ?? tool.terrain}</>;
+    case 'tile': return <><Icon id="map-tool/paint" size="sm" /> {terrainLabel(tool.terrain)}</>;
     case 'entity':
       if (tool.kind === 'prop') return <><Icon id="map-tool/prop" size="sm" /> {garanti(PROPS[tool.ref], tool.ref, 'décor de la palette').label}</>;
       if (tool.kind === 'personnage') return <><Icon id="map-tool/npc" size="sm" /> {creatureLabel(tool.ref)}</>;
@@ -66,7 +66,7 @@ export function StatusBar({
     <div className="editor-status">
       <span className="es-cell">
         {hover ? `(${hover.x}, ${hover.y})` : '(—, —)'}
-        {hoverTerrain ? ` · ${terrainLabel(hoverTerrain) ?? hoverTerrain}` : ''}
+        {hoverTerrain ? ` · ${terrainLabel(hoverTerrain)}` : ''}
       </span>
       <span className="es-tool">{toolLabel(tool)}</span>
       <span>{dims.w}×{dims.h}</span>

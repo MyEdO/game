@@ -26,12 +26,13 @@ import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './
 import { mountMovement, riderFearSize } from '../mount';
 import { losClear } from '../monde/lineOfSight';
 import { smokeOf } from '../monde/combatGeometry';
-import { groupMatch } from '../../engine/groups';
+import { groupesDe } from '../../engine/groups';
 import {
-  fearSourceFor, sansPeurVs, resolvePeurTest, resolveTerreurTest, calmeValue, isFrenzyCapable, isFrenzied, isPsychImmune,
+  fearSourceFor, sansPeurVs, issueDePeur, sansPeurLabel, resolvePeurTest, resolveTerreurTest, calmeValue, isFrenzyCapable, isFrenzied, isPsychImmune,
   resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, suppressSupersededPsych, estCibleType, psychResolution,
+  sousPeur, indiceDePeur, vise,
 } from '../../engine/psychology';
-import { psychologyLabel, combatStakeRef } from '../../data';
+import { psychologyLabel, combatStakeRef, groupLabel } from '../../data';
 import { isColdBlooded, hasRage } from '../../engine/traits/dispatch';
 import { fireTriggers, hasFoeInLoS } from '../triggeredEffects';
 import { aiDriven } from '../netOwnership';
@@ -173,42 +174,46 @@ export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
         addCondition(enemy, res.failCondition, r.brise);
         log.push(t('turn.terrified', { name: enemy.label, foe: foe.label, brise: r.brise }));
       }
-      // Terreur → Peur : `devientPeur` porte DÉJÀ la seule exemption ÉCRITE (Sans Peur réussi → 0, le
-      // Talent ignore « Intimidation, Peur ou Terreur » de l'ennemi désigné). Le résultat du Test de
-      // Terreur, lui, ne change RIEN à l'Indice hérité (LDB 21 l.56, inconditionnel — #1190).
-      if (res.becomes) enemy.psychState.push({ type: res.becomes, sourceId: foe.id, indice: r.devientPeur, calmeDR: 0, lastTestRound: battle.round });
+      // Terreur → Peur à PLEIN Indice, quel que soit le résultat (LDB 21 l.56, #1190) ; surmontée
+      // d'emblée si Sans Peur a réussi (`peurSurmontee`, LDB 10 l.1051).
+      if (res.becomes) enemy.psychState.push({ type: res.becomes, sourceId: foe.id, indice: src.indice, calmeDR: 0, ...(r.peurSurmontee ? { surmontee: true } : {}), lastTestRound: battle.round });
     } else if (sansPeur) {
       // Sans Peur : UN seul Test de Calme Accessible (+20) à la rencontre ; réussi → Peur ignorée d'emblée.
       const r = resolvePeurTest(calmeValue(enemy), src.indice, 0, battleRng(), isColdBlooded(enemy.traits), true);
-      enemy.psychState.push({ type: 'peur', sourceId: foe.id, indice: src.indice, calmeDR: r.calmeDR, lastTestRound: battle.round });
-      log.push(r.vaincue ? t('turn.fearVanquished', { name: enemy.label, foe: foe.label }) : t('turn.fear', { name: enemy.label, foe: foe.label }));
+      enemy.psychState.push({ type: 'peur', sourceId: foe.id, indice: src.indice, calmeDR: r.calmeDR, ...(r.surmontee ? { surmontee: true } : {}), lastTestRound: battle.round });
+      const issue = issueDePeur(r, true);
+      log.push(issue === 'ignoree' ? t('turn.fearVanquished', { name: enemy.label, foe: foe.label, talent: sansPeurLabel() })
+        : issue === 'surmontee' ? t('turn.fearOvercome', { name: enemy.label }) : t('turn.fear', { name: enemy.label, foe: foe.label }));
     } else {
       enemy.psychState.push({ type: 'peur', sourceId: foe.id, indice: src.indice, calmeDR: 0, lastTestRound: battle.round });
       log.push(t('turn.fear', { name: enemy.label, foe: foe.label }));
     }
   }
-  // Test ÉTENDU de Calme des Peur actives (calmeDR < indice) — UNE fois par Round.
+  // Test ÉTENDU de Calme des Peurs portées (`sousPeur`) — UNE fois par Round.
   for (const p of enemy.psychState) {
-    if (p.type !== 'peur' || (p.calmeDR ?? 0) >= (p.indice ?? 0) || p.lastTestRound === battle.round) continue;
-    const r = resolvePeurTest(calmeValue(enemy), p.indice ?? 1, p.calmeDR ?? 0, battleRng(), isColdBlooded(enemy.traits)); // À sang-froid (LDB 85)
+    if (!sousPeur(p) || p.lastTestRound === battle.round) continue;
+    const r = resolvePeurTest(calmeValue(enemy), indiceDePeur(p), p.calmeDR ?? 0, battleRng(), isColdBlooded(enemy.traits)); // À sang-froid (LDB 85)
     p.calmeDR = r.calmeDR;
     p.lastTestRound = battle.round;
-    if (r.vaincue) log.push(t('turn.fearOvercome', { name: enemy.label }));
+    if (r.surmontee) {
+      p.surmontee = true;
+      log.push(t('turn.fearOvercome', { name: enemy.label }));
+    }
   }
   // ── Traits psy CIBLÉS (Animosité/Haine/… — LDB 21), instantané pour l'IA ──
   const visible = battle.combatants.filter((v) => v.id !== enemy.id && v.pos && !isOutOfAction(v) && losClear(scene, enemy.pos!, v.pos, smokeOf(battle)));
   for (const p of enemy.psychState) {
     // Re-test (fin de Round) des afflictions ciblées actives, tant qu'un membre du groupe est visible.
     if (!p.active || !estCibleType(p.type) || !p.cible || p.lastTestRound === battle.round) continue;
-    if (!visible.some((v) => groupMatch(p.cible!, v.groups ?? []))) continue;
+    if (!visible.some((v) => vise({ groupe: p.cible! }, { genre: 'combattant', c: v }, 'percu'))) continue;
     p.lastTestRound = battle.round;
-    if (resolveCalmeSimple(calmeValue(enemy), battleRng()).success) { p.active = false; log.push(t('turn.recompose', { name: enemy.label, type: p.type })); }
+    if (resolveCalmeSimple(calmeValue(enemy), battleRng()).success) { p.active = false; log.push(t('turn.recompose', { name: enemy.label, psych: psychologyLabel(p.type) })); }
   }
   const tt = targetedTrigger(enemy, visible); // nouveau Trait ciblé déclenché par un membre du groupe visible
   if (tt) {
     const r = resolveCalmeSimple(calmeValue(enemy), battleRng());
     enemy.psychState.push({ type: tt.type, cible: tt.cible, sourceId: tt.sourceId, active: !r.success, lastTestRound: battle.round });
-    if (!r.success) log.push(t('turn.afflictionGrip', { name: enemy.label, type: tt.type, cible: tt.cible }));
+    if (!r.success) log.push(t('turn.afflictionGrip', { name: enemy.label, psych: psychologyLabel(tt.type), groupe: groupLabel(tt.cible) }));
   }
   // Immunités croisées (LDB 21) : Animosité/Préjugé cèdent dès qu'on tombe sous un effet psy dominant (Peur/…).
   for (const tp of suppressSupersededPsych(enemy)) log.push(t('turn.psychSuperseded', { name: enemy.label, psych: psychologyLabel(tp) }));
@@ -290,17 +295,17 @@ export const TABLES = {
           .map((id) => inBattleId(battle, id))
           .filter((f): f is Combatant => !!f && f.kind !== enemy.kind && !isOutOfAction(f));
         const hated = (enemy.psychState ?? []).filter((p) => p.type === 'haine' && p.active === true && p.cible);
-        const uncovered = foes.filter((f) => !hated.some((p) => groupMatch(p.cible!, f.groups ?? [])));
+        const uncovered = foes.filter((f) => !hated.some((p) => vise({ groupe: p.cible! }, { genre: 'combattant', c: f }, 'appartenance'))); // LDB 21 l.41
         // Cibles de Haine : 1ᵉʳ Groupe de chaque adversaire non couvert (dédupliqué) — un foe sans Groupe
         // n'est pas modélisable en Trait ciblé (groupMatch), on ne dépense pas pour lui.
-        const cibles = [...new Set(uncovered.map((f) => f.groups?.[0]).filter((g): g is string => !!g))];
+        const cibles = [...new Set(uncovered.map((f) => groupesDe(f)[0]).filter((g): g is string => !!g))];
         if (!cibles.length) return;
         campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
         enemy.psychState ??= [];
         for (const cible of cibles) {
-          const src = uncovered.find((f) => f.groups?.[0] === cible)!;
+          const src = uncovered.find((f) => groupesDe(f)[0] === cible)!;
           enemy.psychState.push({ type: 'haine', cible, sourceId: src.id, active: true, lastTestRound: battle.round });
-          battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, cible }), enemy.id));
+          battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, groupe: groupLabel(cible) }), enemy.id));
         }
         set({ battle: { ...battle } });
       },

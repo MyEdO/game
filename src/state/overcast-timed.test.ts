@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyCast, overcastTargetCandidates } from '../noyau/combatFlow';
 import { pregen, pregenParty, PREGEN } from '../data/pregens';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { applyOps } from '../engine/ops';
 import { addTimedCondition, addCondition, endOfRound, hasCondition } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
@@ -102,14 +102,14 @@ describe('overcastTargetCandidates — cibles supplémentaires proposables (moda
     const downed = { ...stub('e3', 'enemy', 3, 0), conditions: [{ id: 'inconscient', value: 1 }] }; // Mort Subite au dépassement : LDB 18 l.46
     const dead = { ...stub('e4', 'enemy', 4), dead: true };
     const pool = [caster, stub('e1', 'enemy', 1), stub('e2', 'enemy', 2), downed, dead];
-    const ids = overcastTargetCandidates(pool, caster, 'e1', findSpell('Carreau')!, true, 'arcane', 0).map((c) => c.id);
+    const ids = overcastTargetCandidates(pool, caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
     expect(ids).toEqual(['e2']);
   });
 
   it('Projectile : les cibles supplémentaires doivent être À PORTÉE du Sort', () => {
     const caster = stub('w', 'hero', 0); // Carreau : Portée FM mètres → FM 30 = 15 cases
     const far = stub('e3', 'enemy', 90);
-    const ids = overcastTargetCandidates([caster, stub('e1', 'enemy', 1), stub('e2', 'enemy', 2), far], caster, 'e1', findSpell('Carreau')!, true, 'arcane', 0).map((c) => c.id);
+    const ids = overcastTargetCandidates([caster, stub('e1', 'enemy', 1), stub('e2', 'enemy', 2), far], caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
     expect(ids).toEqual(['e2']);
   });
 
@@ -129,7 +129,7 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
     const wiz = pregen(PREGEN.sorcier);
     useGame.setState({ party: [wiz, priest, ally] as Combatant[] });
     // Armure Aethyrique : NI 2 ; DR 6 → surplus 4 → budget 2 allocations.
-    useGame.setState({ pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, focused: false, result: okRes(6) } });
+    useGame.setState({ pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, focused: false, result: { ...okRes(6), niRequired: 2 } } }); // NI figé au jet (`evaluateCasting`)
     useGame.getState().castAllocOvercast('duration', 1);
     useGame.getState().castAllocOvercast('duration', 1);
     useGame.getState().castAllocOvercast('duration', 1); // refusé : budget épuisé
@@ -154,7 +154,7 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
     const { priest, ally } = pair();
     const wiz = pregen(PREGEN.sorcier);
     useGame.setState({ party: [wiz, priest, ally] as Combatant[] });
-    const sort = { ...findSpell('Bénédiction de Bataille')!, type: 'Magie des Arcanes', cn: 0 }; // gabarit +10 CC 6 rounds en SORT
+    const sort = { ...findSpellById('benediction-de-bataille')!, type: 'Magie des Arcanes', cn: 0 }; // gabarit +10 CC 6 rounds en SORT
     applyCast(useGame.getState, useGame.setState, wiz, priest, sort, okRes(4), false, false, undefined, {
       durationMult: 2,
       extraTargets: [ally],

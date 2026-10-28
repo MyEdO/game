@@ -9,7 +9,11 @@
 //   - fermeture NEUVE hors baseline, non citée, sans solde suivi -> ROUGE ;
 //   - entrée de baseline qui a depuis un solde suivi ou un commit fermant -> ROUGE « entrée périmée » ;
 //   - ni un `state_reason` ni un label n'exemptent : un doublon, un constat caduc ou une décision se
-//     ferment par la ligne `NATURE:` de leur solde (scripts/guards/lib/nature.mjs), comme le reste.
+//     ferment par la ligne `NATURE:` de leur solde (scripts/guards/lib/nature.mjs), comme le reste ;
+//   - un SOLDE DE LOT suivi (`.claude/soldes/lot-<date>-<objet>.md`, `ticketsDuLot`) couvre les tickets
+//     qu'il nomme : une décision utilisateur datée qui en ferme plusieurs (#2561, Clément 2026-10-25 :
+//     « fermer le plus de ticket possible et remplacer par des tickets par sujet global »). Ses
+//     fermetures tiennent en une ligne de rapport par lot.
 //
 // Usage : `npm run ops:fermetures-non-citees` (fenêtre 7 j) ou
 // `node scripts/ops/fermetures-non-citees.mjs --depuis 2026-08-20`. Le nom dit le RAPPORT : `ops:fermer`
@@ -21,7 +25,9 @@ import { dirname, join } from 'node:path'
 import { ecartsDeStock } from '../guards/lib/stock.mjs'
 import { numerosFermes } from '../guards/lib/fermetures.mjs'
 import { DEPOT, appelGhRunner, cheminTicket, pagesRest } from '../guards/lib/ticketsGh.mjs'
-import { INDEX, depotDe, journalDe, listerImage } from '../guards/lib/gitPorte.mjs'
+import { INDEX, depotDe, journalDe, lireEnLot, listerImage } from '../guards/lib/gitPorte.mjs'
+import { sectionDe } from '../guards/lib/livraison.mjs'
+import { TITRE_DECISION, natureDuSolde, refusDeDecision } from '../guards/lib/nature.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const CHEMIN_BASELINE = join(RACINE, 'scripts', 'ops', 'fermetures-non-citees.json')
@@ -50,11 +56,12 @@ const fermeeParLeCanari = (f) =>
  *   issues fermées dans la fenêtre
  * @param {Set<string>|string[]} cites numéros cités par un commit fermant de la fenêtre
  * @param {Set<string>|string[]} soldes numéros dont `.claude/soldes/<N>.md` est SUIVI par git
+ * @param {Map<string, string>} [lots] numéro -> chemin du solde de lot suivi qui le couvre (`lotsSuivis`)
  * @returns {{ rouges: string[], rapport: string[], nonCitees: object[], taille: number }}
  */
-export function comparerFermetures(baseline, fermees, cites, soldes) {
+export function comparerFermetures(baseline, fermees, cites, soldes, lots = new Map()) {
   const cite = new Set([...cites].map(String))
-  const solde = new Set([...soldes].map(String))
+  const solde = new Set([...[...soldes].map(String), ...lots.keys()])
   const connues = new Set((baseline?.entrees ?? []).map((e) => String(e.numero)))
 
   const nonCitees = fermees.filter((f) => !cite.has(String(f.numero)))
@@ -85,7 +92,12 @@ export function comparerFermetures(baseline, fermees, cites, soldes) {
     return Boolean(n) && (solde.has(n) || cite.has(n))
   })
 
-  const rapport = nonCitees.map((f) => {
+  const parLot = new Map()
+  for (const f of nonCitees) {
+    const chemin = lots.get(String(f.numero))
+    if (chemin) parLot.set(chemin, (parLot.get(chemin) ?? 0) + 1)
+  }
+  const rapport = nonCitees.filter((f) => !lots.has(String(f.numero))).map((f) => {
     const n = String(f.numero)
     const etat = fermeeParLeCanari(f) ? 'canari (exempté)'
       : solde.has(n) ? 'solde suivi'
@@ -94,6 +106,7 @@ export function comparerFermetures(baseline, fermees, cites, soldes) {
     return `#${n} [${etat}] ${f.closedAt} par ${f.closedBy} · ${f.stateReason} · ${labels} · ${f.titre}`
   })
 
+  for (const [chemin, compte] of parLot) rapport.push(`${compte} fermeture(s) [solde de lot] couvertes par ${chemin}`)
   return { rouges: [...ecart.neuves, ...perimees].sort(), rapport, nonCitees, taille: connues.size }
 }
 
@@ -150,14 +163,16 @@ export function fermeesDeLaFenetre(entrees, depuis) {
  * sessions agent (« This GitHub API path is not available in agent sessions », mesuré 2026-09-18) :
  * la liste se lit page par page sur la route des issues du dépôt (`pagesRest`).
  */
-export function fermeesDepuis(depuis, appel = appelGh) {
+export function fermeesDepuis(depuis, appel = appelGh, couverts = new Set()) {
   const vue = pagesRest(cheminFermees(DEPOT, depuis), appel)
   if (!vue.ok) throw new Error(`[fermetures] lecture des issues fermées impossible — ${vue.raison}`)
   // `closed_by` n'est pas rendu par la LISTE : il se lit une issue à la fois — c'est le nom qu'il
-  // faut pour dire QUI a fermé hors commit, et la fenêtre est de l'ordre de la dizaine d'issues.
+  // faut pour dire QUI a fermé hors commit. Une fermeture déjà COUVERTE (citée, soldée, ou dans un
+  // lot) ne le demande pas : un lot de mille fermetures épuiserait le quota du `GITHUB_TOKEN`.
   // Il passe par la MÊME couture que la liste : une lecture qui court-circuiterait `appel` ferait
   // partir sur le réseau un banc qui se croit hermétique, et jetterait là où la liste NOMME.
   return fermeesDeLaFenetre(vue.entrees, depuis).map((f) => {
+    if (couverts.has(String(f.numero))) return { ...f, closedBy: 'non lu (couverte)' }
     const nom = appel(['api', cheminTicket(DEPOT, f.numero), '--jq', '.closed_by.login // "null"'])
     if (!nom.ok) throw new Error(`[fermetures] #${f.numero} : qui l’a fermée est illisible — ${nom.raison}`)
     // `--jq` de `gh` rend une chaîne BRUTE (jamais du JSON entre guillemets) : elle se trime, elle ne se parse pas.
@@ -190,6 +205,38 @@ export function soldesSuivis(cwd = RACINE) {
   )
 }
 
+/** Préfixe du nom d'un SOLDE DE LOT sous `.claude/soldes/`. */
+export const PREFIXE_LOT = 'lot-'
+
+/**
+ * Les tickets que couvre un solde de LOT : une décision utilisateur datée (`NATURE: décidé`, sa preuve
+ * `refusDeDecision`) qui nomme chaque ticket en tête de ligne `- #N` de sa section « ## Tickets ». PUR.
+ * @param {string | null} contenu @returns {{ tickets: number[] } | { erreur: string }}
+ */
+export function ticketsDuLot(contenu) {
+  const lu = natureDuSolde(contenu)
+  if (lu.erreur) return { erreur: lu.erreur }
+  if (lu.nature !== 'décidé') return { erreur: `un solde de lot porte "NATURE: décidé", pas « ${lu.nature} »` }
+  const refus = refusDeDecision(sectionDe(contenu, TITRE_DECISION))
+  if (refus) return { erreur: refus }
+  const tickets = [...(sectionDe(contenu, 'Tickets') ?? '').matchAll(/^- #(\d+)\b/gm)].map((m) => Number(m[1]))
+  return tickets.length ? { tickets } : { erreur: 'section "## Tickets" sans ligne "- #N"' }
+}
+
+/** Numéro -> chemin de chaque ticket couvert par un solde de lot SUIVI par git (`ticketsDuLot`), lu dans
+ *  l'index de `cwd` comme `soldesSuivis`. Un lot illisible JETTE : il ne couvre rien en silence. */
+export function lotsSuivis(cwd = RACINE) {
+  const depot = depotDe(cwd)
+  const chemins = listerImage(depot, INDEX, '.claude/soldes').filter((p) => p.split('/').pop().startsWith(PREFIXE_LOT))
+  const lots = new Map()
+  for (const [chemin, contenu] of lireEnLot(depot, INDEX, chemins)) {
+    const lu = ticketsDuLot(contenu)
+    if (lu.erreur) throw new Error(`[fermetures] solde de lot ${chemin} illisible — ${lu.erreur}`)
+    for (const n of lu.tickets) lots.set(String(n), chemin)
+  }
+  return lots
+}
+
 function main() {
   const args = process.argv.slice(2)
   const iDepuis = args.indexOf('--depuis')
@@ -197,8 +244,11 @@ function main() {
   const depuis = iDepuis !== -1 ? args[iDepuis + 1] : defaut
 
   const baseline = JSON.parse(readFileSync(CHEMIN_BASELINE, 'utf8'))
+  const cites = citesDepuis(depuis)
+  const soldes = soldesSuivis()
+  const lots = lotsSuivis()
   const { rouges, rapport, taille } = comparerFermetures(
-    baseline, fermeesDepuis(depuis), citesDepuis(depuis), soldesSuivis(),
+    baseline, fermeesDepuis(depuis, appelGh, new Set([...cites, ...soldes, ...lots.keys()])), cites, soldes, lots,
   )
   process.stdout.write(`[fermetures] fenêtre depuis ${depuis} · baseline ${taille} entrée(s)\n`)
   process.stdout.write(`${rapportMarkdown({ depuis, rapport, rouges })}\n`)

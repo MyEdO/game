@@ -46,7 +46,7 @@ import {
   speciesTalentChoicesDone,
   speciesTalentRandomCount,
   tiragesSansUtilisation,
-} from './draft';
+} from '../../noyau/creation/brouillon';
 import { Row } from '../Layout';
 
 /** Grisage cérémoniel d'un bloc « non renseigné » (page blanche). */
@@ -129,7 +129,7 @@ export function CreatorSummary({ d, step = 0 }: { d: CreatorDraft; step?: number
             // Résolution EN DIRECT au fil des sous-écrans 5a/5b/5c (#393 P4) : le tout-ou-rien
             // `ahead('skills')` ne joue qu'AVANT d'atteindre l'étape — une fois dessus, chaque
             // rubrique se résout à SA propre complétion (`careerSkillsDone`/`speciesTalentChoicesDone`,
-            // draft.ts) plutôt que d'un bloc à l'arrivée sur l'étape.
+            // brouillon.ts) plutôt que d'un bloc à l'arrivée sur l'étape.
             skills: ahead('skills')
               ? <RoadmapChip>à répartir — étape {stepNo('skills')}</RoadmapChip>
               : !careerSkillsDone(d) ? <RoadmapChip>carrière — 5b</RoadmapChip> : undefined,

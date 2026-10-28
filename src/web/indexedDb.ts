@@ -13,6 +13,7 @@
  * refermée aussitôt. Aucune connexion ne survit à son opération, donc aucune ne bloque la suppression
  * de la base par un autre onglet.
  */
+import type { Base } from '../lib/stockage';
 import { clearTrackedTimer, scheduleFlowTimer } from './minuteries';
 
 /** Un magasin déclaré : sa `keyPath`, absente pour un magasin à clés externes. */
@@ -164,27 +165,18 @@ async function ecrireDansBase(base: BaseIdb, nomMagasin: string, geste: (m: IDBO
   await avecConnexion(base, (db) => transactionEcriture(db, [nomMagasin], (tx) => geste(tx.objectStore(nomMagasin))));
 }
 
-/** Un magasin d'une base : valeurs `V`, clés `K` (une clé composée est un tableau). */
-export interface MagasinIdb<V, K extends IDBValidKey> {
-  /** La valeur de `cle` ; `null` si absente ou sans IndexedDB. */
-  lire(cle: K): Promise<V | null>;
-  /** Toutes les valeurs ; `[]` sans IndexedDB. */
-  lireTout(): Promise<V[]>;
-  /** Pose `valeur`, sous `cle` pour un magasin à clés externes (`IDBObjectStore.put`). */
-  ecrire(valeur: V, cle?: K): Promise<void>;
-  supprimer(cle: K): Promise<void>;
-}
-
 /** La poignée d'une base : ses magasins, et son vidage. */
 export interface AccesBase {
-  magasin<V, K extends IDBValidKey>(nomMagasin: string): MagasinIdb<V, K>;
+  /** Le magasin `nomMagasin` (une clé composée est un tableau) : sans IndexedDB, `lire` rend `null`,
+   *  `lireTout` rend `[]`, et `ecrire` et `supprimer` ne font rien. */
+  magasin<V, K extends IDBValidKey>(nomMagasin: string): Base<V, K>;
   /** Vide tous les magasins de la base, dans UNE transaction ; sans IndexedDB, rien. */
   vider(): Promise<void>;
 }
 
 export function accesBase(base: BaseIdb): AccesBase {
   return {
-    magasin: <V, K extends IDBValidKey>(nomMagasin: string): MagasinIdb<V, K> => ({
+    magasin: <V, K extends IDBValidKey>(nomMagasin: string): Base<V, K> => ({
       lire: async (cle) => ((await lireDansBase(base, nomMagasin, (m) => m.get(cle))) as V | undefined) ?? null,
       lireTout: async () => ((await lireDansBase(base, nomMagasin, (m) => m.getAll())) as V[] | undefined) ?? [],
       ecrire: (valeur, cle) => ecrireDansBase(base, nomMagasin, (m) => { if (cle === undefined) m.put(valeur); else m.put(valeur, cle); }),

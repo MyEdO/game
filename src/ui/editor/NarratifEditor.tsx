@@ -1040,6 +1040,7 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
   const profil = preset.profil ?? {};
   const appearance: EntityAppearance = preset.apparence ?? {};
   const base = preset.base ? findCreatureById(preset.base) : undefined;
+  const fusion = base ? mergeCreatureProfile(base, profil) : profil;
   const descAdressee = estDerive({ ...profil }, 'desc');
   const { descRef } = profil as { descRef?: DescRef };
 
@@ -1114,10 +1115,10 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
             <div className="ed-field">
               <span>Apparence</span>
               <ReglagesApparence appearance={appearance} onChange={poserApparence} reglages={['species', 'sex', 'build', 'hairstyle']}
-                nuee={isSwarm(base ? mergeCreatureProfile(base, profil).traits : profil.traits)} />
+                nuee={isSwarm(fusion.traits)} />
             </div>
             <ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)} appearance={appearance} onChange={poserApparence}
-              weapons={armesDEntite(objetDuNarratif(narratif), undefined, { traits: base ? mergeCreatureProfile(base, profil).traits : profil.traits })} />
+              weapons={armesDEntite(objetDuNarratif(narratif), undefined, { traits: fusion.traits, char: fusion.char })} />
             <MonsterPartsFields appearance={appearance} onChange={poserApparence} reglages={['monster', 'eyes', 'features', 'tenue', 'colors']} />
             <label className="ed-field">
               Portrait (id d'illustration)

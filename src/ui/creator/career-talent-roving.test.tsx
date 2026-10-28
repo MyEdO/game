@@ -17,7 +17,7 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { SkillsScreen } from './CharacterCreator';
-import { newDraft, withSpecies, withCareer, rollDraftTalents, type CreatorDraft } from './draft';
+import { newDraft, withSpecies, withCareer, rollDraftTalents, type CreatorDraft } from '../../noyau/creation/brouillon';
 import { species as allSpecies, careersForSpecies } from '../../data';
 
 beforeAll(() => {

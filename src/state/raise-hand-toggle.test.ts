@@ -15,7 +15,7 @@ import type { BattleState } from '../noyau/etat';
 import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 import { findActionById } from '../data/index';
-import { serializeMessage, parseMessage } from '../net/protocol';
+import { serializeMessage, parseMessage } from '../hote/coop/protocol';
 import type { Combatant } from '../engine/types';
 
 function combat(mode: 'local' | 'host' | 'guest' = 'host') {
@@ -36,7 +36,7 @@ function combat(mode: 'local' | 'host' | 'guest' = 'host') {
 
 const battle = () => useGame.getState().battle!;
 const mains = () => battle().handRaisedBy ?? [];
-const ctx = (): Parameters<typeof actionGate>[1] => ({ active: battle().combatants[0] as Combatant, battle: battle(), netMode: useGame.getState().net.mode });
+const ctx = (): Parameters<typeof actionGate>[1] => ({ active: battle().combatants[0] as Combatant, battle: battle(), netMode: useGame.getState().net.mode, gameTime: useGame.getState().gameTime });
 
 beforeEach(() => {
   useGame.setState({ battle: null, net: { ...useGame.getState().net, mode: 'local', mySeat: 0, ownership: {}, seatNames: {} } });

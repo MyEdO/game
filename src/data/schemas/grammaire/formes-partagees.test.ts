@@ -100,7 +100,7 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
  * `plageSchema` (`grammaire/valeurs.ts`, vague `plage` #1463 P1) — les deux bornes d'une rangée de
  * table de tirage se déclarent UNE fois et se composent par la SHAPE. Le spread est un ANGLE MORT du
  * scanner de redéclarations (`scripts/docs/lib/structures-scan.mts` lit les littéraux par AST et ne
- * résout pas un spread, cf. `grammaire/reference.ts:37-38`) : l'extinction d'une ligne de stock ne
+ * résout pas un spread, cf. `grammaire/reference.ts:145-146`) : l'extinction d'une ligne de stock ne
  * prouve donc RIEN sur le parse. Ce gate est POSITIF — il mesure que la garde des bornes tient
  * encore, au schéma partagé ET à chaque site adoptant, par la porte de validation réelle
  * (`validateDataset`).

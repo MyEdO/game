@@ -54,9 +54,9 @@ def material_signature(mat):
                        else i.default_value] for i in n.inputs if hasattr(i,"default_value")
                       and isinstance(i.default_value,(int,float,bool,str,tuple,list))
                       or hasattr(i,"default_value") and hasattr(i.default_value,"__len__")]]
-                     for n in mat.node_tree.nodes] if mat.use_nodes else [],
+                     for n in mat.node_tree.nodes],
                    "links":[[l.from_node.name,l.from_socket.name,l.to_node.name,l.to_socket.name]
-                            for l in mat.node_tree.links] if mat.use_nodes else []})
+                            for l in mat.node_tree.links]})
 
 
 def invariant(manifest, rig, touched):

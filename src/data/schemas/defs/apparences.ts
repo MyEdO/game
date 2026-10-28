@@ -12,9 +12,8 @@
  * sont l'espace privé de ce marqueur, `RACINE_D_APPARENCE` (`grammaire/sousListes.ts`), que visent
  * `forme` ici et `shape`/`formChoices` de `trappings.json`.
  */
-import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { idDe, ref } from '../grammaire/ref';
+import { ref, refs } from '../grammaire/ref';
 import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
 export const file = 'apparences.json';
@@ -31,9 +30,9 @@ const doc = document(
   famille,
   {
     forme: ref('apparence', undefined, RACINE_D_APPARENCE).optional(),
-    especes: z.array(idDe('species')).optional(),
-    classes: z.array(idDe('classe')).optional(),
-    qualites: z.array(idDe('quality')).optional(),
+    especes: refs('species').optional(),
+    classes: refs('classe').optional(),
+    qualites: refs('quality').optional(),
   },
   {
     forme: { label: 'Forme', hint: 'Racine dont cette entrée est une variante — absente, l’entrée EST une forme et son apparence par défaut' },

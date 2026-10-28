@@ -6,7 +6,8 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { Planche } from './Planche';
 import { ramenerEnVue } from './useRamenerEnVue';
 import { Tabs } from './composites/Tabs';
-import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance, apparencesAdmissibles, apparencesCandidates, choisirApparenceDObjet } from '../engine/items';
+import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance, apparencesCandidates, choisirApparenceDObjet } from '../engine/items';
+import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { OptionChooser } from './OptionChooser';
 import { ItemInstance, Combatant, CharKey, CHAR_KEYS, LOCALISATIONS_DE_COUP } from '../engine/types';
 import { effectiveChar, bonus } from '../engine/characteristics';
@@ -539,7 +540,7 @@ function ApparencePicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
   const narratif = useGame((s) => s.campaignNarratif);
   const resolveTrapping = objetDuNarratif(narratif);
   const choisirApparence = useGame((s) => s.choisirApparence);
-  const choices = apparencesAdmissibles(it, resolveTrapping);
+  const choices = apparencesAdmissiblesDObjet(it, resolveTrapping);
   if (choices.length < 2) return null;
   return (
     <div className="ir-form" title="Apparence">

@@ -34,6 +34,7 @@
   - [Table Physique étendue (d100, Khorne/Nurgle/Slaanesh/Tzeentch/Toute Puissance)](#table-physique-étendue-d100)
   - [Tableau Tête Bestiale (d100, sous-table)](#tableau-tête-bestiale-d100-sous-table)
   - [Table Mentale étendue (d100, par dieu)](#table-mentale-étendue-d100-par-dieu)
+  - [Tableau des Obsessions](#tableau-des-obsessions)
 - [Magie du Chaos — gain de Corruption à l'apprentissage (LDB Talents)](#magie-du-chaos--gain-de-corruption-à-lapprentissage-ldb-talents)
 - [Talent Résistance (Mutation) — LDB 10](#talent-résistance-mutation--ldb-10)
 - [Voir aussi](#voir-aussi)
@@ -493,7 +494,9 @@ Utilisée quand la table physique étendue indique « Tête bestiale ». Lance s
 | 94–97 | 95–97 | 93–97 | — | 95–98 | Infinie malveillance | -10 aux Tests ne blessant personne ; +10 sur les Tests visant à blesser |
 | 98–00 | 98–00 | 98–00 | 98–00 | 99–00 | Affreusement nerveux | +5 Agilité, -5 Sociabilité |
 
-**Tableau des Obsessions** (pour Haine sporadique et Terribles phobies — jet 2d10) :
+### Tableau des Obsessions
+
+Jet 2d10, pour Haine sporadique (`EDOC 12 l.217`) et Terribles phobies (`EDOC 12 l.241`) :
 
 | 2d10 | Obsession | 2d10 | Obsession |
 |---|---|---|---|
@@ -509,6 +512,8 @@ Utilisée quand la table physique étendue indique « Tête bestiale ». Lance s
 | 11 | Humains | | |
 
 **Sources RAW** : `EDOC 12 l.170-246`
+
+**Implémente :** [État calculé](../implemente.generated.md#4ecorruptiontableau-des-obsessions)
 
 ---
 
@@ -564,7 +569,7 @@ Quand la menace choisie est **Mutation** : réussir automatiquement le premier T
 | « Je te renie ! : vous pouvez choisir de ne pas développer la mutation obtenue » (LDB 17 l.67) — 1 Résilience, pas de mutation | `resolveRenounce` + `pendingRenounce` | **OK** |
 | Mods passifs via collecteur unifié passiveMods | `passive: GameOp[]` sur `Mutation` (mutations.json) | **OK** |
 | Traits de créature via mutation (Tentacule, Stupide…) | `attachMutation` → copie `m.traits` sur `c.traits` | **OK** |
-| Traits psychologiques via mutation (Frénésie) | `attachMutation` → copie `m.psychTraits` | **OK** |
+| Traits psychologiques via mutation (Frénésie) | `attachMutation` → `grantPsychTrait` de `m.passive` | **OK** |
 | Sombres Murmures (LDB 19 l.95-105 — choix OPTIONNEL, refuser garde le PC) | `DialogueChoice.flow` porte `{ op: 'corruption', amount: -1 }` (`src/engine/ops.ts`) ; le choix EST le dialogue d'auteur (accepter/refuser), rien de plus au moteur | **OK** |
 | Absolution (LDB 19 l.167-178 ; l.171 : « Les limites précises de ce qui peut être nécessaire pour perdre de la Corruption sont laissées à l'appréciation du MJ ») | quantité AUTHORABLE : `{ op: 'corruption', amount: -n }` (`applyOps`, `src/engine/ops.ts`) décrémente `corruption`, plancher 0, sans passer par `ctx.onCorruption` (pas de seuil/mutation sur un retrait) ; éditable au GameOpEditor (`src/ui/editor/GameOpEditor.tsx`) | **OK** |
 

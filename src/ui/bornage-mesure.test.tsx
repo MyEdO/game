@@ -157,7 +157,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
 describe('rangée de bande à cible au-delà du plafond : l’écrêtage mesuré se nomme sans autre poste', () => {
   it('Exposition à la Corruption de fin de combat, Résistance 100 : « −1 plafond 99 » avant, après le jet et au bilan', () => {
     const H = { ...combattantDeModale('H'), characteristics: { ...combattantDeModale('H').characteristics, endurance: 95 }, skills: [{ id: 'resistance', advances: 5, characteristic: 'endurance' }] } as Combatant;
-    const bete = { ...combattantDeModale('Bete', 'enemy'), dead: true, traits: [{ id: 'corruption', arg: 'Mineure' }] } as Combatant;
+    const bete = { ...combattantDeModale('Bete', 'enemy'), dead: true, traits: [{ id: 'corruption', arg: 'mineure' }] } as Combatant;
     useGame.setState({
       mode: 'battle', party: [H], pendingCascade: null, suspendedCascades: [],
       net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,

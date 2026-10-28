@@ -75,7 +75,7 @@ describe('Allure démoniaque — Flow end-to-end (RNG figé)', () => {
     const eff = (c.activeEffects ?? []).filter((e) => e.grantedTrait);
     expect(eff[0].grantedTrait!.id).toBe('souffle');
     expect(eff[0].grantedTrait!.value).toBe(9);
-    expect(eff[0].grantedTrait!.arg).toBe('Feu');
+    expect(eff[0].grantedTrait!.arg).toBe('feu'); // EDOC 13 l.236 : le Type `feu` du registre du Souffle
   });
 
   it('cast MINIMAL (0 pas alloué à la Durée) → 1 seul jet sur le Tableau, MÊME à SL positif (EDOC 13 l.270-276)', () => {

@@ -23,7 +23,6 @@ def bake_surface(bpy, target, donors, output, identity, resolution=2048, cage_ex
     scene.render.bake.max_ray_distance = ray_distance
     scene.render.bake.margin = 12
     material = bpy.data.materials.new(identity + '_material')
-    material.use_nodes = True
     material.use_backface_culling = True
     target.data.materials.clear()
     target.data.materials.append(material)
@@ -78,8 +77,8 @@ def bake_surface(bpy, target, donors, output, identity, resolution=2048, cage_ex
                 for donor in donors:
                     for slot in donor.material_slots:
                         original = slot.material
-                        if not original or not original.use_nodes:
-                            raise ValueError('Base Color bake requires source node materials')
+                        if not original:
+                            raise ValueError('Base Color bake requires a source material')
                         copy = original.copy()
                         copies.append(copy)
                         backups.append((slot, original))

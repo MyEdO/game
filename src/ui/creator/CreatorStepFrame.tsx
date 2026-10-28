@@ -18,7 +18,7 @@
  * dernier écran »).
  */
 import type { ReactNode } from 'react';
-import { CreatorDraft } from './draft';
+import { CreatorDraft } from '../../noyau/creation/brouillon';
 import { CreatorSummary } from './CreatorSummary';
 import { MasterDetail } from '../MasterDetail';
 

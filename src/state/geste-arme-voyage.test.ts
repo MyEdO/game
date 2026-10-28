@@ -21,8 +21,9 @@ import { useGame } from './store';
 import { argsAvecVerdictLocal } from '../noyau/localIntent';
 import { withActingSeat } from '../noyau/netOwnership';
 import { refuserGeste, eteindreRefus } from '../noyau/refusVisible';
-import { netSnapshot, applyNetSnapshot } from './netFlow';
-import { snapshotSave } from './saves';
+import { applyNetSnapshot } from './netFlow';
+import { instantaneDeLaCoop } from '../noyau/coop';
+import { snapshotSave } from '../noyau/persistance/save';
 import { runAction } from '../noyau/actionRegistry';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -247,8 +248,8 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
   it('il NE VOYAGE PAS : absent du snapshot de l’hôte, préservé chez le client qui le reçoit', () => {
     setup();
     refuserGeste(get, useGame.setState, 'Trop loin.');
-    expect('refus' in netSnapshot(get), 'le refus de l’hôte part chez ses invités').toBe(false);
-    const snap = JSON.parse(JSON.stringify({ ...netSnapshot(get) })) as Record<string, unknown>;
+    expect('refus' in instantaneDeLaCoop(get()), 'le refus de l’hôte part chez ses invités').toBe(false);
+    const snap = JSON.parse(JSON.stringify({ ...instantaneDeLaCoop(get()) })) as Record<string, unknown>;
     applyNetSnapshot(useGame.setState, snap);
     expect(get().refus?.texte, 'un snapshot de l’hôte a effacé le refus du client').toBe('Trop loin.');
   });
@@ -279,11 +280,7 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
     useGame.setState({ battle: null, mode: 'exploration' });
     get().transitionTo(testScene().id); // seam RÉEL du checkpoint : l'entrée en scène fait sauvegarder l'hôte
     expect(get().refus, 'le refus a traversé le changement de scène').toBeNull();
-    const snap = snapshotSave(
-      get() as unknown as Record<string, unknown>,
-      useGame.getInitialState() as unknown as Record<string, unknown>,
-      '2026-08-20T00:00:00.000Z',
-    );
+    const snap = snapshotSave(get(), '2026-08-20T00:00:00.000Z');
     expect(snap.data.refus, 'un refus périmé part dans la sauvegarde').toBeNull();
   });
 });

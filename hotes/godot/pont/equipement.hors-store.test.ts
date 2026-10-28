@@ -35,7 +35,7 @@ const manifesteDeLame: ManifesteMontable = {
 const indexDeLame = indexDesApparences([manifesteDeLame]);
 
 function heros(apparence: string, main: 'main' | 'off' = 'main') {
-  const ouverte = ouvrirLaPartie(nouvelEntete('dome', { graine: 1 }));
+  const ouverte = ouvrirLaPartie(nouvelEntete('dome', { graine: 1 }), () => {});
   const origine = ouverte.partie.etat();
   const etat = { ...origine, battle: structuredClone(origine.battle) };
   ouverte.partie.fermer();

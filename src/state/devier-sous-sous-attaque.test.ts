@@ -12,7 +12,7 @@ import { addCondition, hasCondition, COND } from '../engine/conditions';
 import type { Combatant, Weapon, ItemInstance, HitLocation } from '../engine/types';
 import type { CoupDeTouche } from '../noyau/pendings';
 import { evaluateMissile } from '../engine/magic';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { makeRNG } from '../engine/dice';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
 
@@ -227,7 +227,7 @@ function critiqueDEquipageAuProjectile(marin: Combatant): { lieuDeTouche: HitLoc
   const nav = spawnEnemy({ ref: 'cogue' }, 'nav', { x: 9, y: 5 });
   nav.crewIds = [marin.id];
   poser([mage, nav, marin]);
-  const sort = findSpell('Carreau')!;
+  const sort = findSpellById('carreau')!;
   const mres = evaluateMissile(mage, nav, sort, { cast: true, roll: 21, target: 90, sl: 4, isCritical: true, isFumble: false, log: 'jet' });
   seedBattleRng(SEED_JAMBE_DROITE);
   const coup: CoupDeTouche = { mode: 'projectile', touche: { casterId: mage.id, de: mage.id, targetId: nav.id, spell: sort, mres, zoneTalentMod: 0, critWound: true, overcastDamageSteps: 0, overcastDurationSteps: 0 } };

@@ -87,7 +87,6 @@ def main():
     scene.render.film_transparent = False
     scene.view_settings.view_transform = 'AgX'
     world = bpy.data.worlds.new('Studio')
-    world.use_nodes = True
     background = next(node for node in world.node_tree.nodes if node.type == 'BACKGROUND')
     background.inputs['Color'].default_value = (0.32, 0.35, 0.40, 1)
     background.inputs['Strength'].default_value = 0.45

@@ -116,13 +116,15 @@ const CHROME_WINDOWS = [
 ];
 /** Racine des navigateurs Playwright quand `PLAYWRIGHT_BROWSERS_PATH` n'est pas posée. */
 const RACINE_PLAYWRIGHT = '/opt/pw-browsers';
+/** Exécutable sous `chromium-<N>/`, par disposition de Playwright (`chrome-linux64` dans les versions récentes). */
+const EXECUTABLES_PLAYWRIGHT = ['chrome-linux/chrome', 'chrome-linux64/chrome'];
 
 /**
  * Exécutable Chrome et arguments de lancement propres à la machine. Ordre : chemin `explicite` de
  * l'appelant, `CHROME_PATH`, chemins Windows présents (sur `win32` seulement : ailleurs ils se
  * résoudraient contre le dossier courant), puis le Chromium Playwright de plus haute
  * version sous `PLAYWRIGHT_BROWSERS_PATH` (défaut `/opt/pw-browsers`), trouvé par lecture du dossier
- * (`chromium-<N>/chrome-linux/chrome`). `--no-sandbox` en root seulement : Chromium refuse d'y
+ * (`chromium-<N>/` suivi d'un sous-chemin de `EXECUTABLES_PLAYWRIGHT`). `--no-sandbox` en root seulement : Chromium refuse d'y
  * démarrer avec son bac à sable. PURE : `fs`, `uid` et `plateforme` injectés.
  * @param {{ explicite?: string, env: Record<string, string | undefined>, fs: { existe: (p: string) => boolean, lister: (d: string) => string[] }, uid?: number, plateforme: string }} o
  * @returns {{ chemin: string, args: string[] }}
@@ -138,12 +140,12 @@ export function resoudreChrome({ explicite, env, fs, uid, plateforme }) {
     .map((d) => /^chromium-(\d+)$/.exec(d))
     .filter(Boolean)
     .sort((a, b) => Number(b[1]) - Number(a[1]))
-    .map((m) => `${racine}/${m[0]}/chrome-linux/chrome`)
+    .flatMap((m) => EXECUTABLES_PLAYWRIGHT.map((e) => `${racine}/${m[0]}/${e}`))
     .find((p) => fs.existe(p));
   if (playwright) return { chemin: playwright, args };
   throw new Error(
     `aucun Chrome trouvé — pose CHROME_PATH, ou installe Chrome (${CHROME_WINDOWS.join(', ')}) ` +
-      `ou un Chromium Playwright (${racine}/chromium-*/chrome-linux/chrome)`,
+      `ou un Chromium Playwright (${EXECUTABLES_PLAYWRIGHT.map((e) => `${racine}/chromium-*/${e}`).join(', ')})`,
   );
 }
 

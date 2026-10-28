@@ -6,7 +6,7 @@ import { makeRNG } from '../engine/dice';
 import { useGame } from './store';
 import { applyCast } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import type { CastResult } from '../engine/magic';
 import type { Combatant } from '../engine/types';
@@ -94,7 +94,7 @@ describe('Protection de Phâ — incantation pose la Zone (intégration applyCas
     caster.characteristics['force-mentale'] = 40; // BFM 4
     caster.pos = { x: 7, y: 7 };
     const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok' };
-    applyCast(useGame.getState, useGame.setState, caster, caster, findSpell('Protection de Phâ')!, ok, false, false);
+    applyCast(useGame.getState, useGame.setState, caster, caster, findSpellById('protection-de-pha')!, ok, false, false);
 
     const z = (useGame.getState().battle!.zones ?? []).find((x) => x.label === 'Protection de Phâ')!;
     expect(z).toBeTruthy();

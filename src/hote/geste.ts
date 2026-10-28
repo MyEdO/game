@@ -1,5 +1,5 @@
 /**
- * LE GESTE D'UN HÔTE DU NOYAU (#2928, plan `docs/plans/2026-10-21-vague6-hote-godot.md` B1), commun à l'hôte texte
+ * LE GESTE D'UN HÔTE DU NOYAU (#2928), commun à l'hôte texte
  * (`src/hoteTexte/`) et aux hôtes externes (`hotes/`) : un geste écrit en JSON (une offre du registre, ou un verbe de la
  * partie), sa lecture, le contrôle de son verbe et de ses arguments contre ses paramètres (`formes.ts`,
  * `verbes.generated.ts`), son intention contrôlée, et l'issue de son envoi traduite en catégorie d'erreur. Chaque
@@ -150,7 +150,7 @@ export function intentionDuGeste(etat: Jeu, geste: Geste, pistes: PistesDeLectur
     const offres = offresDeLaBarre(etat, pistes);
     controlerLeContexte(geste.offre, geste.ctx, offres, pistes);
     const barre = etatDeLaBarre(etat);
-    const ctx = barre.forme === 'ouverte' ? { active: barre.active, battle: barre.battle, netMode: etat.net.mode, args: geste.ctx } : undefined;
+    const ctx = barre.forme === 'ouverte' ? { active: barre.active, battle: barre.battle, netMode: etat.net.mode, gameTime: etat.gameTime, args: geste.ctx } : undefined;
     if (!offreDesignee(offres, geste.offre, geste.ctx)) {
       const pertinence = ctx ? actionGate(geste.offre, ctx) : undefined;
       const raison = pertinence && !pertinence.ok ? pertinence.reason : offres.some((o) => o.actionId === geste.offre) ? 'aucun candidat ne correspond au contexte' : 'aucun candidat';

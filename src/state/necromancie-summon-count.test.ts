@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { castCommitZone } from '../noyau/combatFlow';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { evaluateCasting } from '../engine/magic';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';
@@ -20,12 +20,12 @@ import type { TestResult } from '../engine/tests';
 /** Jet d'Incantation FIGÉ (aucun dé) : seul le DR pilote le compte. */
 const frozen = (sl: number): TestResult => ({ roll: 11, target: 60, success: true, sl, isDouble: false });
 
-/** Nécromancien du bestiaire (BFM 4) + N adversaires DANS la zone posée. */
+/** Babrakkos, lanceur de Nécromancie du bestiaire (BFM 6, Middenheim 10 l.87) + N adversaires DANS la zone posée. */
 function setup(foes: number): Combatant {
-  const necro = spawnEnemy({ ref: 'necromancien' }, 'necro', { x: 5, y: 5 });
+  const necro = spawnEnemy({ ref: 'babrakkos' }, 'necro', { x: 5, y: 5 });
   necro.kind = 'enemy';
   const others = Array.from({ length: foes }, (_, i) =>
-    Object.assign(spawnEnemy({ ref: 'brigand' }, `foe${i}`, { x: 8 + i, y: 5 }), { kind: 'hero' as const }),
+    Object.assign(spawnEnemy({ ref: 'humain' }, `foe${i}`, { x: 8 + i, y: 5 }), { kind: 'hero' as const }),
   );
   const combatants = [necro, ...others];
   const ids = combatants.map((c) => c.id);
@@ -43,8 +43,8 @@ function setup(foes: number): Combatant {
 }
 
 /** Pose la zone du sort au DR donné et rend le nombre de créatures invoquées. */
-function castAndCount(spellRef: string, sl: number, opts: { foes?: number; focused?: boolean } = {}): number {
-  const spell = findSpell(spellRef)!;
+function castAndCount(spellId: string, sl: number, opts: { foes?: number; focused?: boolean } = {}): number {
+  const spell = findSpellById(spellId)!;
   const caster = setup(opts.foes ?? 1);
   const res = evaluateCasting(caster, spell, frozen(sl), opts.focused ?? true);
   if (!res.cast) return -1; // incantation non aboutie (DR < NI)
@@ -63,24 +63,24 @@ describe('Nécromancie — compte d’invocations au lancement', () => {
 
   it('Réanimation : exactement Bonus de Force Mentale + DR zombies (LDB 50 l.94)', () => {
     const bfm = bonus(effectiveChar(setup(1), 'force-mentale'));
-    expect(bfm).toBe(4);
-    expect(castAndCount('Réanimation', 0)).toBe(bfm);
-    expect(castAndCount('Réanimation', 3)).toBe(bfm + 3);
+    expect(bfm).toBe(6);
+    expect(castAndCount('reanimation', 0)).toBe(bfm);
+    expect(castAndCount('reanimation', 3)).toBe(bfm + 3);
   });
 
   it('Relever les morts : exactement DR + 1 squelettes (LDB 50 l.106)', () => {
-    expect(castAndCount('Relever les morts', 0)).toBe(1);
-    expect(castAndCount('Relever les morts', 4)).toBe(5);
+    expect(castAndCount('relever-les-morts', 0)).toBe(1);
+    expect(castAndCount('relever-les-morts', 4)).toBe(5);
   });
 
   it('ZdE : le compte est celui du LANCEMENT, jamais multiplié par le nombre de cibles dans la zone', () => {
-    const solo = castAndCount('Réanimation', 2, { foes: 1 });
-    expect(castAndCount('Réanimation', 2, { foes: 4 })).toBe(solo);
+    const solo = castAndCount('reanimation', 2, { foes: 1 });
+    expect(castAndCount('reanimation', 2, { foes: 4 })).toBe(solo);
   });
 
   it('NI 8 sans Focalisation : le Sort n’aboutit qu’à partir de DR 8 (LDB 46 l.24)', () => {
-    expect(castAndCount('Réanimation', 7, { focused: false })).toBe(-1);
+    expect(castAndCount('reanimation', 7, { focused: false })).toBe(-1);
     const bfm = bonus(effectiveChar(setup(1), 'force-mentale'));
-    expect(castAndCount('Réanimation', 8, { focused: false })).toBe(bfm + 8);
+    expect(castAndCount('reanimation', 8, { focused: false })).toBe(bfm + 8);
   });
 });

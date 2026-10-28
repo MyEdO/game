@@ -15,11 +15,8 @@ import { desDuTest } from '../engine/dice.testkit';
  * ne « rentrait » pas, c'est le système (Flow/EffectOp) qu'on généraliserait — ce gate l'attraperait.
  */
 describe('Complétude : tout sort porte ses effets dans un Flow exécutable (SpellData.effects)', () => {
-  // Sorts OFFICIELS (les homebrew frenchy.bzh n'ont pas de spec curée → effets vides assumés).
-  const curated = spells.filter((s) => s.curated);
-
-  it('la base est bien fournie (≥ 220 sorts curés)', () => {
-    expect(curated.length).toBeGreaterThanOrEqual(220);
+  it('la base est bien fournie (≥ 220 sorts)', () => {
+    expect(spells.length).toBeGreaterThanOrEqual(220);
   });
 
   it('chaque sort a un `effects` Flow valide, feuilles EffectOp uniquement (target/caster)', () => {

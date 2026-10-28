@@ -40,12 +40,12 @@ const rmTalent = (times: number) => [{ talentId: 'resistance-a-la-magie', times 
 const missileSpell = (): never =>
   ({ id: 'dard-test', label: 'Dard', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: 1, duration: null, desc: '', source: { book: 'LDB', page: 0 }, missile: true, damage: 8 }) as never;
 
-/** Sort de SOUTIEN curé : État Aveugle dont la magnitude s'échelonne sur le DR (1 pion / 2 DR). */
+/** Sort de SOUTIEN : État Aveugle dont la magnitude s'échelonne sur le DR (1 pion / 2 DR). */
 const stateSpell = (): never =>
   ({
     id: 'ombre-test', label: 'Ombre', type: 'Magie des Arcanes', subType: null, domainId: null, family: 'arcane',
     cn: 0, range: { kind: 'distance', value: 20, unit: 'm' }, target: { kind: 'count', n: 1 },
-    duration: { kind: 'rounds', value: 3 }, desc: '', curated: true,
+    duration: { kind: 'rounds', value: 3 }, desc: '',
     effects: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'aveugle', value: 1, valuePerSL: { every: 2, amount: 1 } }] } }] },
   }) as never;
 

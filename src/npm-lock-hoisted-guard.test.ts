@@ -6,8 +6,9 @@ import { scanNpmLockHoisted } from '../scripts/guards/lib/npmLockHoisted.mjs';
 /**
  * Garde-fou « lock npm amputé » (#528) : une régénération de `package-lock.json` avec npm 11 ne
  * matérialise pas les entrées hoistées `node_modules/@emnapi/core`/`node_modules/@emnapi/runtime`
- * (peerDependencies de `@napi-rs/wasm-runtime`) que npm 10 (CI, node 22) exige — le lock passe en
- * local et casse `npm ci` en CI. MÉCANIQUE pure dans `scripts/guards/lib/npmLockHoisted.mjs`,
+ * (peerDependencies de `@napi-rs/wasm-runtime`) que npm 10 (Node 22, admis par `engines`) exige —
+ * le lock passe sous npm 11 et casse `npm ci` sous npm 10. MÉCANIQUE pure dans
+ * `scripts/guards/lib/npmLockHoisted.mjs`,
  * consommée aussi par `scripts/git-hooks/pre-commit.mjs` (bloquant au commit).
  */
 

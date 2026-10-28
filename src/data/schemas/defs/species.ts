@@ -4,7 +4,7 @@ import { nommerChamps } from '../grammaire/meta';
  * `SpeciesData` (`src/data/index.ts`). `skills`/`talents` = emplacements d'avancement
  * (`grammaire/avancement.ts`), `baseChar` = `Partial<Record<CharKey, number>>`. Mêmes petites formes
  * partagées que `careerLevels.ts`, PROMUES dans `grammaire/avancement.ts`, `grammaire/reference.ts`
- * (Ref/TraitInstance) et `grammaire/valeurs.ts` (CharKey). `mutationBodyMax` est ABSENT sur une partie des
+ * (Ref/TraitPose) et `grammaire/valeurs.ts` (CharKey). `mutationBodyMax` est ABSENT sur une partie des
  * entrées (18/27) : optionnel, conforme à l'interface ; `grantGroups` est porté par les 27.
  */
 import { z } from 'zod';
@@ -51,7 +51,7 @@ const doc = document(
      *  l'espèce (jamais un choix de RÈGLE, pur flavor de vitrine) : la tuile de famille montre un
      *  personnage vêtu plutôt qu'une tunique nue. Absent = pas de tenue (repli existant). */
     previewCareer: ref('career').optional(),
-    /** Trait RACIAL de l'espèce (#572) — MÊME `TraitInstance` que le bestiaire (Ogre `{id:'ogre'}`,
+    /** Trait RACIAL de l'espèce (#572) — MÊME `TraitPose` que le bestiaire (Ogre `{id:'ogre'}`,
      *  encombrance/consommation ×2 ; la Taille est portée par le TALENT Massif/Petit, pas ici).
      *  Absent (26/27 observées) = aucun trait racial mécanique. */
     traits: z.array(traitInstanceSchema).optional(),

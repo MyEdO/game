@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { creatureAttacks } from './creatureAttacks';
-import { difficultyFromLabel } from './tests';
+import { creatureAttacks, souffleDuType } from './creatureAttacks';
+import { findManeuverById } from '../data';
+import { difficulteDeLArg } from './tests';
 import type { TraitInstance } from './statEntry';
 
-const DRAGON: TraitInstance[] = [{ id: 'arme', value: 10 }, { id: 'armure', value: 5 }, { id: 'attaque-caudale', value: 9 }, { id: 'morsure', value: 10 }, { id: 'souffle', value: 15, arg: 'Feu' }, { id: 'taille', arg: 'Énorme' }, { id: 'vol', value: 80 }];
+const DRAGON: TraitInstance[] = [{ id: 'arme', value: 10 }, { id: 'armure', value: 5 }, { id: 'attaque-caudale', value: 9 }, { id: 'morsure', value: 10 }, { id: 'souffle', value: 15, arg: 'feu' }, { id: 'taille', arg: 'Énorme' }, { id: 'vol', value: 80 }];
 const by = (ts: TraitInstance[], k: string) => creatureAttacks(ts).find((a) => a.kind === k)!;
 
 describe('creatureAttacks — attaques + RÈGLES dérivées des traits (RAW)', () => {
@@ -36,18 +37,21 @@ describe('creatureAttacks — attaques + RÈGLES dérivées des traits (RAW)', (
   });
   it('Souffle = gratuite 2 Avantages, zone, magique, Type lu', () => {
     const a = by(DRAGON, 'souffle');
-    expect([a.trigger, a.avantage, a.aoe, a.magic, a.type]).toEqual(['free', 2, true, true, 'Feu']);
+    expect([a.trigger, a.avantage, a.aoe, a.magic, a.type]).toEqual(['free', 2, true, true, 'feu']);
   });
   it('Souffle « (divers) » → Type non spécifié', () => {
     expect(by([{ id: 'souffle', value: 12, arg: 'divers' }], 'souffle').type).toBeUndefined();
   });
-  it('le trait octroie la manœuvre PAR ID (grantsManeuvers → findManeuverById) ; l’arg choisit la variante', () => {
-    // Souffle : 6 variantes de Type octroyées, désambiguïsées GÉNÉRIQUEMENT par l'argument d'instance.
-    expect(by(DRAGON, 'souffle').def.id).toBe('souffle-feu');
-    expect(by([{ id: 'souffle', value: 12, arg: 'Froid' }], 'souffle').def.id).toBe('souffle-froid');
-    // Octroi unique → résolution directe ; l'Indice de l'instance est porté (injecté en {indiceOf}).
+  it('le trait octroie la manœuvre PAR ID (grantsManeuvers → findManeuverById) ; le Type de Souffle la compose', () => {
+    expect(by(DRAGON, 'souffle').def).toEqual(souffleDuType(findManeuverById('souffle')!, 'feu'));
+    expect(by([{ id: 'souffle', value: 10, arg: 'poison', difficulte: 'difficile' }], 'souffle').def).toEqual(souffleDuType(findManeuverById('souffle')!, 'poison', 'difficile'));
+    // L'Indice de l'instance est porté (injecté en {indiceOf}).
     const m = by([{ id: 'morsure', value: 10 }], 'morsure');
     expect([m.def.id, m.indice]).toEqual(['morsure', 10]);
+  });
+  it('l’attaque porte les Traits que son Trait confère (ZI 03 l.77)', () => {
+    expect(by([{ id: 'attaque-caudale', value: 12, confere: [{ id: 'venin' }] }], 'caudale').confere).toEqual([{ id: 'venin' }]);
+    expect(by([{ id: 'attaque-caudale', value: 12 }], 'caudale').confere).toBeUndefined();
   });
   it('Tentacules = une Attaque gratuite PAR tentacule, sans coût d’Avantage (Empêtré = effet onHit migré)', () => {
     const a = by([{ id: 'tentacules', value: 6 }], 'tentacules');
@@ -63,14 +67,14 @@ describe('creatureAttacks — attaques + RÈGLES dérivées des traits (RAW)', (
   });
 
   it('le Venin n’est PAS une attaque (Atout de la Morsure)', () => {
-    expect(creatureAttacks([{ id: 'venin', arg: 'Difficile' }, { id: 'morsure', value: 8 }]).map((a) => a.kind)).toEqual(['morsure']);
+    expect(creatureAttacks([{ id: 'venin', arg: 'difficile' }, { id: 'morsure', value: 8 }]).map((a) => a.kind)).toEqual(['morsure']);
   });
-  it('difficultyFromLabel : Difficulté de résistance depuis l’arg du Venin (défaut Intermédiaire)', () => {
-    // Le Venin est un `effects` du trait, paramétré par l’arg d’instance (« Venin (Difficile) »).
-    expect(difficultyFromLabel('Difficile')).toBe('difficile');
-    expect(difficultyFromLabel('Très difficile')).toBe('tresDifficile');
-    expect(difficultyFromLabel('Facile')).toBe('facile');
-    expect(difficultyFromLabel(undefined)).toBe('intermediaire');
+  it('difficulteDeLArg : la Difficulté du Venin se lit à l’id de son arg (LDB 85 l.423) ; un arg qui n’en désigne aucune vaut `DIFFICULTE_PAR_DEFAUT`', () => {
+    expect(difficulteDeLArg('difficile')).toBe('difficile');
+    expect(difficulteDeLArg('tresDifficile')).toBe('tresDifficile');
+    expect(difficulteDeLArg('facile')).toBe('facile');
+    expect(difficulteDeLArg('Difficile')).toBe('intermediaire');
+    expect(difficulteDeLArg('de Très Facile à Très Difficile')).toBe('intermediaire');
   });
   it('ignore les traits non-attaque (Armure, Taille, Vol…)', () => {
     expect(creatureAttacks([{ id: 'armure', value: 3 }, { id: 'taille', arg: 'Grande' }, { id: 'vision-nocturne' }])).toEqual([]);

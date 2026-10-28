@@ -414,6 +414,15 @@
     "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx, tavern-specials-editeur.test.tsx, saisie-suggeree.test.tsx"
   },
   {
+    "id": "saisieEnBrouillon",
+    "type": "primitives.manifest",
+    "label": "SaisieEnBrouillon",
+    "fichier": "src/ui/compendium/refField/SaisieEnBrouillon.tsx",
+    "concept": "saisie EN CHAÎNE d'une valeur structurée tenue en brouillon local : `afficher` rend la valeur en texte, `relire` relit le brouillon UNE fois à la fin de la saisie (blur, Entrée hors `lignes`) contre la valeur courante ; la frappe n'est jamais réécrite ni émise ; le brouillon ne déclare PAS de saisie en cours au porteur du geste d'enregistrement (il se pose toujours, au blur que ce geste provoque) ; une valeur affichée qui change sous le brouillon le fait tomber ; `SaisieSuggeree` sur une ligne, `<textarea>` à `lignes`",
+    "perimetre": "chaîne d'un Trait posé (rangée de TraitListField/OptionalsListField, OptionalTraitsPicker), Traits ajoutés d'une invocation (GameOpEditor `summon.addTraits`), refs au format livre une par ligne du Codex (Compétences, Talents d'une créature), renommage d'un id stable de l'inspecteur (`EntryRename`)",
+    "verrou": "saisie-suggeree.test.tsx, codex-edit-competences-au-clic.test.tsx, renommage-garde-la-saisie.test.tsx"
+  },
+  {
     "id": "sourceBadge",
     "type": "primitives.manifest",
     "label": "SourceBadge",
@@ -526,7 +535,7 @@
   {
     "id": "descendre",
     "type": "primitives.manifest",
-    "label": "descendre/enfantsDe/declarerEnfants/declarationDEnfants",
+    "label": "descendre/enfantsDe/declarerEnfants/declarationDEnfants/valeursAdmises",
     "fichier": "src/data/schemas/grammaire/descente.ts",
     "concept": "descente d'un arbre de schémas zod : enfants natifs et déclarés d'un nœud avec leur segment de path, parcours en largeur, identité par appel, élagage ou arrêt par le visiteur",
     "perimetre": "toute lecture qui marche un schéma zod : validation, introspection des docs générés, gardes de grammaire, Codex",
@@ -596,6 +605,24 @@
     "verrou": "src/data/schemas/grammaire/ref-couvre.test.ts"
   },
   {
+    "id": "resoudreTrait",
+    "type": "primitives.manifest",
+    "label": "traitsDuPorteur/resoudreTrait",
+    "fichier": "src/engine/statEntry.ts",
+    "concept": "la SEULE entrée d'un Trait posé (`TraitPose`, forme authorée inférée de `traitInstanceSchema`) vers l'instance de jeu (`TraitInstance`) : `traitsDuPorteur` tire chaque fourchette (`plage`) pour son porteur, puis résout ; son Indice formulé se lit sur le référent du porteur (`PorteurDeTraits` : le profil au statbloc, le lanceur à l'octroi par `traitsOctroyes`, `engine/traitOctroye.ts`, qui tire aussi la Cible), et les Traits qu'il confère (`confere`) se résolvent avec lui ; `resoudreTrait` ne prend qu'une pose tirée (`PoseTiree`, au type) ; la provenance de livre (`source`, `alsoIn`, `maison`) reste à la donnée, `src` dit qui a accordé l'instance",
+    "perimetre": "`traitsDuPorteur` : spawn d'une créature ou d'un statbloc (Traits, optionnels), invocation (`summon.addTraits`), rendu d'exploration d'une entité, Trait racial à la création de héros, Structure, et par `traitsOctroyes` les ops `grantTrait` (dont la Forme bestiale, `polymorph.ts`) et `domeWard`, et le passif `grantTrait` d'une mutation ; `resoudreTrait`, sur une pose littérale : Traits appris d'un statbloc, outil de développement",
+    "verrou": "src/engine/statEntry.test.ts"
+  },
+  {
+    "id": "classerParenthese",
+    "type": "primitives.manifest",
+    "label": "classerParenthese",
+    "fichier": "src/engine/classementDeTrait.ts",
+    "concept": "la table de classement d'un Trait imprimé : la parenthèse d'un Trait à Indice se lit fourchette (`plage`), Indice par Localisation (`parLocalisation` : zones, Localisations, pièces du catalogue des armures) ou Aspect et Indice, une seule lecture pour la saisie et pour la donnée",
+    "perimetre": "saisie d'un Trait à l'éditeur (`parseTraitInstance`, `parseStatEntry`), migrations de la donnée (`scripts/migrations/`)",
+    "verrou": "src/engine/classementDeTrait.test.ts"
+  },
+  {
     "id": "memeSpecialisation",
     "type": "primitives.manifest",
     "label": "memeSpecialisation",
@@ -603,6 +630,15 @@
     "concept": "deux Spécialisations désignent la même instance d'une Compétence ou d'un Talent, absente et vide confondues — l'identité d'instance, la construction `IDENTITE_D_INSTANCE` en garde la recopie",
     "perimetre": "recherche d'une instance possédée sur la fiche (Compétences, Talents), dédoublonnage des options d'avancement, d'entraînement et de Carrière",
     "verrou": "src/data/schemas/grammaire/ref-couvre.test.ts"
+  },
+  {
+    "id": "vocabulairesDuMoteur",
+    "type": "primitives.manifest",
+    "label": "VOCABULAIRES/lectureDuVocabulaire",
+    "fichier": "src/data/schemas/grammaire/vocabulaires.ts",
+    "concept": "une table FERMÉE `id → libellé` que le moteur déclare et qu'aucun document ne porte (Difficultés, Degrés d'Exposition, Tailles), exposée comme ESPACE `vocabulaire:<nom>` : ses ids et ses libellés se lisent par la même clé d'espace qu'une collection de document",
+    "perimetre": "univers et libellés des sources de spécialisations (`SOURCES_DE_SPECS`) que nul document ne porte, index des ids (`npm run gen`) et régime vivant (`src/data/overrides.ts`)",
+    "verrou": "src/data/schemas/espaces-contrat.test.ts"
   },
   {
     "id": "trappingsInstanciables",
@@ -798,6 +834,15 @@
     "verrou": "src/ui/SourceRefField.test.tsx"
   },
   {
+    "id": "alsoInField",
+    "type": "primitives.manifest",
+    "label": "AlsoInField",
+    "fichier": "src/ui/AlsoInField.tsx",
+    "concept": "liste des emplacements SECONDAIRES d'une valeur réimprimée ailleurs (alsoIn: SecondaryRef[]) : une rangée = SourceRefField + sa citation verbatim (quote, preuve du span quand le libellé n'y est pas imprimé) ; la liste n'émet que ses rangées COMPLÈTES, les brouillons restant à l'écran remontent au porteur du geste d'enregistrement",
+    "perimetre": "enveloppe d'une entrée du Codex (alsoIn de document()), rangée de Trait posé (TraitListField/OptionalsListField)",
+    "verrou": "src/ui/SourceRefField.test.tsx, src/ui/compendium/refField/saisie-suggeree.test.tsx"
+  },
+  {
     "id": "provenanceDuTexte",
     "type": "primitives.manifest",
     "label": "ProvenanceDuTexte",
@@ -812,7 +857,7 @@
     "label": "ProvenanceDeValeur",
     "fichier": "src/ui/editor/ProvenanceDeValeur.tsx",
     "concept": "provenance d'une VALEUR d'auteur : sa source (SourceRefField facultative) ou sa raison maison (ProseField courte), dans un panneau creux posé à côté de la valeur ; une valeur exigée sans l'une ni l'autre porte son refus (ChipDeRefus), miroir de refuserSansProvenance au chargement",
-    "perimetre": "billet d'auteur, dé de péril, vitesse et distance d'une route (WorldMapRoutePanel)",
+    "perimetre": "billet d'auteur, dé de péril, vitesse et distance d'une route (WorldMapRoutePanel), rangée de Trait posé (TraitListField/OptionalsListField : la valeur que l'entrée porteuse ne fonde pas)",
     "verrou": "src/ui/editor/worldmap-gating-editable.test.tsx, src/ui/editor/WorldMapEditor.test.tsx"
   },
   {
@@ -902,7 +947,7 @@
     "label": "ChipDeRefus",
     "fichier": "src/ui/ChipDeRefus.tsx",
     "concept": "message d'un REFUS ou d'un état perdu (donnée d'un autre format retirée, geste refusé) en `role=\"alert\"`, en `role=\"status\"` pour l'état permanent d'un champ (`fixe`) : la phrase en `.chip.tone-danger.chip-phrase`, pastille ajustée à son texte, le rapport technique replié en `.fold` ; `id` nomme le message que désigne l'`aria-describedby` d'un champ ; ramenée EN VUE par la primitive (`useRamenerEnVue`) au montage et à chaque changement de `message` / `detail`, jamais à un simple rendu de l'hôte ; `cle` remplace ce déclencheur (refus neuf au texte identique, modales Ouvrir / Enregistrer le projet) ; `fixe` le coupe et pose `role=\"status\"` pour l'état permanent d'un champ en saisie (inspecteur : porte secrète, allège, décor ; narratif : motif d'écart ; carte du monde : raison du refus ; spécimens de galerie)",
-    "perimetre": "témoins de format (save, roster, import de héros, calque, bibliothèque de campagnes, « Ouvrir » de l'éditeur), refus des gestes de projet, refus de saisie de l'éditeur (inspecteur, narratif, carte du monde, places assises), erreur de connexion du lobby coop",
+    "perimetre": "témoins de format (save, roster, import de héros, calque, bibliothèque de campagnes, « Ouvrir » de l'éditeur), retraits d'élagage (save chargée, roster, import de héros, règles maison), refus des gestes de projet, refus de saisie de l'éditeur (inspecteur, narratif, carte du monde, places assises), erreur de connexion du lobby coop",
     "verrou": "src/ui/ChipDeRefus.test.tsx, src/ui/editor/ProjectModals.test.tsx, src/ui/saveload-message-obsolete.test.tsx ; src/ui/ui-ratchets.test.ts (xxiv) — aucun `chip` + `tone-danger` hors de la primitive, exclusions au site"
   },
   {
@@ -1696,11 +1741,29 @@
   {
     "id": "porteDesComptes",
     "type": "primitives.manifest",
-    "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/COLLECTIONS_A_COMPTE/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
+    "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/baissesDuDetecteur/refusDesFauxPositifs/sitesDeDetteDOps/sitesDEnveloppeASourcer/COLLECTIONS_A_COMPTE/DETTE_OPS/DETTE_ENVELOPPE/FEUILLES_D_ID/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
     "fichier": "scripts/guards/lib/corpusDesComptes.mts",
-    "concept": "porte des comptes : les collections à compte et le volet SOURCE_FORMAT qu'elle juge, leurs fichiers porteurs, et le verdict d'une plage dont chaque borne est mesurée dans son image par deux détecteurs constants — aucun compte ne monte, aucun site ne naît, aucun `CLIQUET:` ne l'admet",
+    "concept": "porte des comptes : collection à compte STRUCTURES_REDECLARATIONS, volets de un par site mesurés au schéma seul (DETTE_OPS : `OPS_NON_TYPEES` et refs à plat de `OP_DEFS` ; DETTE_ENVELOPPE : types de `CONTENU_A_SOURCER`), volet STRUCTURES_LOCALES, volet SOURCE_FORMAT et plancher FEUILLES_D_ID (un chemin de schéma de document `idDe` à la base qui ne l’est plus à la tête, valeurs closes comprises, ou dont une alternative admet une valeur libre, refusé sans ligne de message qui l’admette), images de commits ou de l’index mesurées sous les détecteurs des deux bornes ; hausse et naissance refusées, un site né apparié à un disparu par le volet (`renommages`) n’est pas une naissance ; baisses dues au détecteur couvertes exactement par des trailers FAUX-POSITIF nommant collection, site canonique, ordinal et preuve",
     "perimetre": "tout stock dont chaque entrée porte un compte d'occurrences, et toute porte qui juge un compte entre deux commits",
     "verrou": "scripts/guards/comptes-plage.test.mjs, src/comptes-plage.test.ts, scripts/hooks/stocks-nominatifs.test.mjs"
+  },
+  {
+    "id": "inventaireDeDette",
+    "type": "primitives.manifest",
+    "label": "INVENTAIRE/inventaireDe/inventaireDeLaRacine/totauxDeLInventaire/rendreInventaire/clesDeclareesJamaisPortees/CLES_POSEES_INCONDITIONNELLEMENT/ANGLES_MORTS_DE_L_INVENTAIRE/SANS_LOT",
+    "fichier": "scripts/guards/lib/inventaireDeDette.mts",
+    "concept": "inventaire de la dette que la donnée révèle, HORS de la porte (ni stock, ni règle de plage, ni refus) : cases de référence en forme non cible ou sans slot (CASES_DE_REFERENCE, une ligne par case), formes de valeur historiques ou divergentes, orphelines, homonymes, divergences d’enveloppe hors `source` absente (STRUCTURES_ENVELOPPE) et clés déclarées jamais portées, une ligne par site avec sa cible, son lot déduit et ses occurrences indicatives ; totaux par collection et rendu Markdown avec ses angles morts déclarés",
+    "perimetre": "toute mesure de dette dont la donnée fait varier le compte : le résumé du job `comptes:plage`, `docs/structures-donnees.md` §7 et le rapport daté d’un audit de dette",
+    "verrou": "src/data/structures-contrat.test.ts"
+  },
+  {
+    "id": "structuresLocales",
+    "type": "primitives.manifest",
+    "label": "noeudsDeStructure/sitesDeStructure/cheminsDeDocument/cheminsDeSchema/pointsConjoints/nomDeBranche/empreinteDeSite/regenerations/MOTIF_STRUCTURES_LOCALES",
+    "fichier": "scripts/guards/lib/structuresLocales.mts",
+    "concept": "dette de STRUCTURE mesurée sur le schéma : un site par nœud objet ou non validant d’un document authoré, au nom de son schéma de document (`nomDuDocument`, `‹racine›#‹type›`, indépendant du nombre de ses documents) et à son plus court chemin de schéma (branches nommées, `|<lazy>`, injectivité ; un point conjoint — intersection, et enfants de même clé de ses côtés — est un site, de la classe la plus lourde de ses nœuds, `pointsConjoints`), classé D5, G, G1 ou L (grammaire atteinte par identité ou produit de fabrique, partage par défs, déclaration d’op ou classe de produit) ; régénération du stock `STRUCTURES_LOCALES`, dont la porte apparie les renommages par empreinte (`renommagesDeStructure` ; format unique écrit et relu par `empreinteDeChamps`, occurrencesStock.mjs)",
+    "perimetre": "toute mesure de dette qui doit rester stable à l’ajout d’une donnée conforme (#2995) : elle ne lit que les defs",
+    "verrou": "src/data/structures-locales.test.ts, src/comptes-plage.test.ts"
   },
   {
     "id": "stockDeSites",
@@ -1977,9 +2040,9 @@
     "type": "primitives.manifest",
     "label": "stockageWeb",
     "fichier": "src/web/stockageWeb.ts",
-    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireDictionnaire` relit une valeur JSON qui doit être un dictionnaire, ses valeurs validées par l’appelant contre son registre (#2404)",
+    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireLeTexte` et `retirerLaCle` (`src/lib/stockage.ts`) en sont les accès protégés sur un port `Stockage`, `lireDictionnaire` et `lireTableau` relisent, dans un port `Stockage` (sous-ensemble de `Storage` que `stockageWeb` satisfait), une valeur JSON qui doit être un dictionnaire ou un tableau, son contenu validé par l’appelant contre son registre, et `lesChaines` en garde les éléments chaînes (#2404)",
     "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
-    "verrou": "src/web/stockageWeb.test.ts ; murs/stockage-web et murs/stockage-web-global d'oxlint.config.mjs (aucun localStorage/sessionStorage nommé hors src/web/stockageWeb.ts, banc scripts/guards/lib/lint-parite.test.mjs) ; src/cles-de-stockage-guard.test.ts (une clé de stockage écrite une fois)"
+    "verrou": "src/web/stockageWeb.test.ts ; src/lib/stockage.test.ts ; src/lib/stockage.testkit.ts (stockages de test) ; murs/stockage-web et murs/stockage-web-global d'oxlint.config.mjs (aucun localStorage/sessionStorage nommé hors src/web/stockageWeb.ts, banc scripts/guards/lib/lint-parite.test.mjs) ; src/cles-de-stockage-guard.test.ts (une clé de stockage écrite une fois)"
   },
   {
     "id": "playerText",
@@ -2002,7 +2065,7 @@
   {
     "id": "equipementDeDessin",
     "type": "primitives.manifest",
-    "label": "equipementDessine/equipementDEntite/armesDEntite/deciderApparencesDesArmes/EquipCtx/equipDe/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
+    "label": "equipementDessine/equipementDEntite/armesDEntite/EquipCtx/equipDe/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
     "fichier": "src/noyau/equipementDessine.ts",
     "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent à la naissance par `deciderApparencesDesArmes` puis `choisirApparenceDObjet` sur les armes réelles sans instance ; le dessin lit leur forme et leur apparence déjà décidées ; les constructions d’entité et décisions d’auteur reçoivent un TrappingResolver obligatoire, injecté par l’hôte ; le dessin d’un porteur déjà né consomme ses propriétés copiées sans résolveur ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule ; l'art d'une matière se résout côté rig (`ART_DE_MATIERE`, `src/gameIso/rig/parts/equipment.ts`)",
     "perimetre": "tout producteur d'équipement dessiné (`equipementDessine`, `equipementDEntite`, `enemyRigProfile`, `entityRigProfile`, `rigDuCombattant`, galeries), tout lecteur du rig ou d'un hôte 3D (forme, maniement, clips, pièces)",
@@ -2011,19 +2074,19 @@
   {
     "id": "formeResolue",
     "type": "primitives.manifest",
-    "label": "apparencesCandidates/apparencesAdmissibles/choisirApparenceDObjet/racineDesCandidats/formeResolue/SourceDeForme",
+    "label": "apparencesCandidates/choisirApparenceDObjet/deciderApparencesDesArmes/racineDesCandidats/formeResolue/SourceDeForme",
     "fichier": "src/engine/items.ts",
     "concept": "forme racine mécanique `shape` copiée à la naissance ; `choisirApparenceDObjet` admet une décision explicite par `shape` et `formChoices` de la fiche résolue, puis écrit la même racine et l’apparence sur l’instance ; les CANDIDATS de l’objet porté lisent cette racine et la variante compatible, sans relire la fiche ; une arme naturelle ne publie aucun candidat ; `racineDesCandidats` lit la dernière entrée, que `formeResolue` rend (#2967)",
-    "perimetre": "tout lecteur d’une apparence ou de sa racine : rig (`armeDeDessin`, `bouclierDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `apparencesAdmissibles`, outillage de recette (`__wfrp.battle`)",
+    "perimetre": "tout lecteur d’une apparence ou de sa racine : rig (`armeDeDessin`, `bouclierDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `choisirApparenceDObjet`, outillage de recette (`__wfrp.battle`)",
     "verrou": "src/engine/apparences-candidates.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
   },
   {
     "id": "admissionApparenceDObjet",
     "type": "primitives.manifest",
-    "label": "candidatsDApparenceDObjet/apparencesAdmissiblesDObjet/messageDApparenceDObjet",
+    "label": "candidatsDApparenceDObjet/apparencesAdmissiblesDObjet/referenceDApparenceDObjet/messageDApparenceDObjet",
     "fichier": "src/data/apparencesObjets.ts",
-    "concept": "résolution canonique des candidats d’un trapping par résolveur injecté (catalogue par défaut) : shape et formChoices admettent la racine de l’apparence ; lecteurs versionnés partagés avec la façade data/index ; refus commun aux références d’auteur",
-    "perimetre": "décision de naissance et choix explicite par choisirApparenceDObjet, apparencesAdmissibles du moteur, parse de giveTrapping effet et op, EntityAppearance.apparencesObjets, contrôles d’auteur d’objets non nés",
+    "concept": "résolution canonique des candidats d’un trapping par résolveur injecté (catalogue par défaut) : shape et formChoices admettent la racine de l’apparence ; lecteurs versionnés partagés avec la façade data/index ; référence d’auteur absente pour la forme par défaut ou une apparence non admise ; refus commun aux références d’auteur",
+    "perimetre": "décision de naissance et choix explicite par choisirApparenceDObjet, sélecteurs d’apparence de la fiche et des éditeurs, parse de giveTrapping effet et op, EntityAppearance.apparencesObjets, contrôles d’auteur d’objets non nés",
     "verrou": "src/data/schemas/grammaire/apparences-objets.test.ts, src/engine/apparences-candidates.test.ts"
   },
   {
@@ -2142,5 +2205,23 @@
     "concept": "apparence décidée une seule fois à la naissance : contexte explicite du destinataire, qualités finales de l’objet, référence d’auteur prioritaire ; sans contexte ni décision d’auteur, aucune clé apparence",
     "perimetre": "créateur, boutique, octrois, fabrication et effets ; aucune re-décision au transfert",
     "verrou": "src/engine/apparenceNaissance.test.ts, src/state/apparence-naissance.test.ts"
+  },
+  {
+    "id": "vise",
+    "type": "primitives.manifest",
+    "label": "vise/SourcePsy",
+    "fichier": "src/engine/psychology.ts",
+    "concept": "seul prédicat de ciblage par Groupe d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch`",
+    "perimetre": "+DR contre le groupe, immunités causées par le groupe, êtres aimés à défendre, vivier de l’IA, déclencheurs de Traits ciblés et de Phobie, présence au re-test, malus social, Sans Peur (Ennemi)",
+    "verrou": "src/engine/psych-vise.test.ts"
+  },
+  {
+    "id": "sousPeur",
+    "type": "primitives.manifest",
+    "label": "sousPeur/indiceDePeur/pasDePeur/sansPeurFace",
+    "fichier": "src/engine/psychology.ts",
+    "concept": "état de Peur (LDB 21 l.25 ; LDB 10 l.1051) : `sousPeur` seul lecteur du drapeau `surmontee`, `indiceDePeur` seul lecteur de l’Indice, `pasDePeur` seule arithmétique du Test étendu et de Sans Peur, `sansPeurFace` seule décision de la rangée allégée",
+    "perimetre": "lecteurs de la Peur (DR, approche, icône, vue d’acteur, re-test, IA), Test étendu des héros et de l’IA, portes de Psychologie en combat et à la rencontre",
+    "verrou": "src/engine/psych-vise.test.ts, src/engine/sans-peur.test.ts, src/engine/psych-branch-ops.test.ts"
   }
 ]

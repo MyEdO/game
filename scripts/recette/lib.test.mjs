@@ -843,6 +843,14 @@ test('Chrome : sans PLAYWRIGHT_BROWSERS_PATH, la racine est /opt/pw-browsers', (
   assert.equal(resoudreChrome({ env: {}, fs, uid: 1000 }).chemin, PW('/opt/pw-browsers', 1194))
 })
 
+test('Chrome : les deux dispositions de Playwright sont trouvées — chrome-linux64 (récente) comme chrome-linux', () => {
+  const recent = `/pw/chromium-1243/chrome-linux64/chrome`
+  const fsRecent = disque([recent], { '/pw': ['chromium-1243', 'chromium_headless_shell-1243'] })
+  assert.equal(resoudreChrome({ env: { PLAYWRIGHT_BROWSERS_PATH: '/pw' }, fs: fsRecent, uid: 1000 }).chemin, recent)
+  const fsAncien = disque([PW('/pw', 1194)], { '/pw': ['chromium-1194'] })
+  assert.equal(resoudreChrome({ env: { PLAYWRIGHT_BROWSERS_PATH: '/pw' }, fs: fsAncien, uid: 1000 }).chemin, PW('/pw', 1194))
+})
+
 test('Chrome : un dossier chromium-N sans exécutable est ignoré', () => {
   const fs = disque([PW('/pw', 1194)], { '/pw': ['chromium-1194', 'chromium-1300'] })
   assert.equal(resoudreChrome({ env: { PLAYWRIGHT_BROWSERS_PATH: '/pw' }, fs, uid: 1000 }).chemin, PW('/pw', 1194))
@@ -860,6 +868,7 @@ test('Chrome : aucun candidat — refus NOMMANT les chemins essayés', () => {
     assert.match(e.message, /aucun Chrome trouvé/)
     assert.match(e.message, /CHROME_PATH/)
     assert.match(e.message, /\/opt\/pw-browsers\/chromium-\*\/chrome-linux\/chrome/)
+    assert.match(e.message, /\/opt\/pw-browsers\/chromium-\*\/chrome-linux64\/chrome/)
     return true
   })
 })

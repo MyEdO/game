@@ -13,6 +13,9 @@ import { modelesDesCombattants, type CouvertureDesModeles } from './equipement';
 import { fenetreADessiner, type FenetreADessiner } from '../../../src/hote/gestes';
 import { panneauDuCombat, type PanneauDuCombat } from '../../../src/hote/ecran';
 
+/** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
+const sansRoster = (): void => {};
+
 /** La catégorie d'une erreur du pont : celle d'un geste, ou `interne` pour une levée qu'aucun contrôle n'attendait. */
 export type CategorieDuPont = CategorieDErreur | 'interne';
 
@@ -110,7 +113,7 @@ export function creerPont() {
       const e = entreeDe('demarrer', json, ['scenario', 'graine']);
       valider(!ouverte, 'demarrer : une partie par page, déjà démarrée ; recharger la page pour en commencer une autre');
       valider(typeof e.scenario === 'string', 'demarrer : scenario, l’id d’un scénario de test');
-      const o = ouvrirLaPartie(nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined }));
+      const o = ouvrirLaPartie(nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined }), sansRoster);
       ouverte = { ...o, pas: 0, lignes: 0 };
       return suite(ouverte, o.lancement);
     },

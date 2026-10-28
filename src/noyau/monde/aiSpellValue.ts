@@ -17,12 +17,14 @@ import { bonus, effectiveChar } from '../../engine/characteristics';
 import { combatValue, attackModifiers, combineMods, woundsFromHit, type ModLine } from '../../engine/combat';
 import { effectiveWeaponDamage } from '../../engine/weaponDamage';
 import { missileDamage } from '../../engine/magic';
-import { formulaExpectation, slBonus, applyOps, type GameOp } from '../../engine/ops';
+import { formulaExpectation, applyOps, type GameOp } from '../../engine/ops';
+import { slBonus } from '../../engine/formule';
 import { makeRNG } from '../../engine/dice';
 import type { SizeCategory } from '../../engine/size';
-import { groupMatch } from '../../engine/groups';
+import { groupMatch, groupesDe } from '../../engine/groups';
 import { spellOps } from '../../engine/flowCore';
 import { type SpellData, findConditionById } from '../../data';
+import { etatExige } from '../../engine/conditions';
 import { RefIrresoluble, spawnEnemy } from './spawn';
 
 /** DR moyen prudent injecté dans l'espérance d'une touche (l'espérance d'un DR ≥ 0 sur une réussite). */
@@ -71,7 +73,7 @@ export function safeWounds(weapon: Weapon, target: Combatant, totalDamage: numbe
 }
 
 // Dangerosité d'un ÉTAT infligé (« Blessures espérées ») : lue en DONNÉE sur `etats.json` (`aiThreat`,
-// clé = l'`id` de l'op:'condition'). États inconnus / sans aiThreat → 1 (contrôle mineur).
+// clé = l'`id` de l'op:'condition'). État connu sans aiThreat → 1 (contrôle mineur) ; id hors registre : `etatExige` lève.
 
 /**
  * Une cible est NEUTRALISÉE (au sol/inconsciente/0 PB encore là) : aucun intérêt tactique à s'acharner
@@ -125,7 +127,7 @@ function missileComponent(caster: Combatant, target: Combatant | null, spell: Sp
  *  `banish`) sur `target` ; 0 pour toute autre op. Gates de Groupe (`onlyGroups`) honorés. */
 function damageOpOutput(op: GameOp, caster: Combatant, target: Combatant | null): number {
   if (op.op === 'wounds') {
-    if (target && op.onlyGroups && !op.onlyGroups.some((g) => groupMatch(g, target.groups ?? []))) return 0;
+    if (target && op.onlyGroups && !op.onlyGroups.some((g) => groupMatch(g, groupesDe(target)))) return 0;
     let dmg = finite(formulaExpectation(op.amount, caster), 0) + slBonus(MED_DR, op.perSL);
     // RAW (ops.ts:170-174) : `wounds` IGNORE BE+PA par DÉFAUT — on ne déduit que si explicitement `false`.
     if (target) dmg -= (op.ignoreTB === false ? finite(bonus(effectiveChar(target, 'endurance')), 0) : 0) + (op.ignoreAP === false ? bodyPA(target) : 0);
@@ -134,7 +136,7 @@ function damageOpOutput(op: GameOp, caster: Combatant, target: Combatant | null)
   if (op.op === 'reduceToZero') return target ? Math.max(0, target.wounds.current) : 0;
   if (op.op === 'banish') {
     if (!target) return 0;
-    if (op.onlyGroups && !op.onlyGroups.some((g) => groupMatch(g, target.groups ?? []))) return 0;
+    if (op.onlyGroups && !op.onlyGroups.some((g) => groupMatch(g, groupesDe(target)))) return 0;
     return Math.max(0, target.wounds.current);
   }
   return 0;
@@ -269,6 +271,7 @@ export function opValue(op: GameOp, caster: Combatant, subject: Combatant, ctx: 
       return marginalBuff(caster, subject, op, ctx);
     // CONTRÔLE hostile.
     case 'condition':
+      etatExige(op.id);
       return findConditionById(op.id)?.aiThreat ?? 1;
     case 'testMod':
       return op.amount < 0 ? Math.abs(op.amount) / 10 : 0;

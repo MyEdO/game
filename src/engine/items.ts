@@ -12,16 +12,18 @@ import { armourMaterialOf } from './armourBypass';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
-import { apparences, findApparenceById, findCareerById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
+import { findApparenceById, findCareerById, findCreatureById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
 import { t } from '../i18n';
-import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet } from '../data/apparencesObjets';
+import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet, referenceDApparenceDObjet } from '../data/apparencesObjets';
 
 /** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
  *  d'objet (défaut = règle GLOBALE) pour que le state route la couche de campagne (`objetDuNarratif`,
  *  #767) SANS que le moteur importe le store : il reçoit la fonction, reste PUR (règle stricte 3). */
 export type { TrappingResolver } from '../data/apparencesObjets';
 import type { TrappingResolver } from '../data/apparencesObjets';
+import type { EntityAppearance } from './authoringAppearance';
 import { slugId } from '../data/slug';
+import { localisationsDeZone } from './classementDeTrait';
 import { dansLaSousListe } from '../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
 import { craftEncDelta } from './qualities/craftEconomy';
@@ -285,14 +287,22 @@ export function choisirApparenceDObjet<T extends Pick<ItemInstance, 'trappingId'
   const racine = racineDesCandidats(candidats);
   if (!racine) return false;
   objet.shape = { id: racine };
-  if (apparence === (objet.trappingId ? resolveTrapping(objet.trappingId)?.shape?.id : undefined)) delete objet.apparence;
-  else objet.apparence = apparence;
+  const reference = referenceDApparenceDObjet(objet.trappingId, apparence, resolveTrapping);
+  if (reference) objet.apparence = reference.id;
+  else delete objet.apparence;
   return true;
 }
 
-/** Apparences du catalogue admises pour un objet, selon l’unique résolution des candidats (#2948). */
-export function apparencesAdmissibles(x: Pick<SourceDeForme, 'trappingId'>, resolveTrapping: TrappingResolver = findTrappingById): typeof apparences {
-  return apparencesAdmissiblesDObjet(x, resolveTrapping);
+/** #2967 */
+export function deciderApparencesDesArmes(resolveTrapping: TrappingResolver, weapons: Weapon[], override: Pick<EntityAppearance, 'apparencesObjets'> | undefined, creatureId: string | undefined, instances: readonly ItemInstance[] = []): void {
+  const auteur = override?.apparencesObjets;
+  const record = findCreatureById(creatureId)?.appearance?.apparencesObjets;
+  const uids = new Set(instances.map((i) => i.uid));
+  for (const w of weapons) {
+    if (!w.trappingId || (w.uid !== undefined && uids.has(w.uid))) continue;
+    const apparence = (auteur?.[w.trappingId] ?? record?.[w.trappingId])?.id;
+    if (apparence !== undefined) choisirApparenceDObjet(w, apparence, resolveTrapping);
+  }
 }
 
 /** Racine de la forme dessinée : dernière entrée des candidats. */
@@ -330,17 +340,6 @@ export function weaponItem(spec: WeaponSpec & { conjured?: boolean }): ItemInsta
   };
 }
 
-/** Zones d'armure d'une Possession → localisations d'impact, keyées par ID de zone (slug) : le champ
- *  d'authoring `TrappingData.loc` porte du TEXTE (« Tête, Bras »), converti en id par `slugId` à la
- *  lecture — même couture texte→id que `reachIdOf`, aucune clé de table en libellé. */
-const ARMOUR_LOC_BY_ID: Record<string, HitLocation[]> = {
-  tete: ['tete'],
-  bras: ['brasG', 'brasD'],
-  mains: ['brasG', 'brasD'],
-  corps: ['corps'],
-  jambes: ['jambeG', 'jambeD'],
-};
-
 /** PONT catalogue → runtime : la CATÉGORIE de catalogue (`TrappingData.categorie`) se TRADUIT en
  *  `ItemKind` (`ItemInstance.kind`). Deux vocabulaires distincts, jamais une recopie. */
 function kindOf(categorie: string): ItemKind {
@@ -365,7 +364,7 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
     t.loc != null
       ? t.loc
           .split(',')
-          .flatMap((p) => ARMOUR_LOC_BY_ID[slugId(p)] ?? [])
+          .flatMap((p) => localisationsDeZone(p) ?? [])
       : undefined;
   const objet: ItemInstance = {
     ...copierIntrinseques({ ...t, range: t.range ?? null }),

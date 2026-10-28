@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyCast, castSpell } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import type { CastResult } from '../engine/magic';
 
@@ -30,7 +30,7 @@ describe('Souffle — délégation à l’attaque de zone du Trait (LDB 47 l.509
     const b = useGame.getState().battle!;
     const caster = b.combatants.find((c) => c.label === 'W')!;
     caster.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 10 });
-    caster.talents.push({ talentId: 'magie-des-arcanes', spec: 'Feu', times: 1 });
+    caster.talents.push({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 });
     caster.characteristics.endurance = 60; // BE 6 → Dégâts du Souffle
     caster.characteristics['capacite-de-tir'] = 100;
     caster.pos = { x: 10, y: 10 };
@@ -45,7 +45,7 @@ describe('Souffle — délégation à l’attaque de zone du Trait (LDB 47 l.509
 
   it('lancé avec succès : attaque de zone Souffle (Feu) centrée sur la cible du sort', () => {
     const { caster, T } = setup();
-    const souffle = findSpell('Souffle')!;
+    const souffle = findSpellById('souffle')!;
     applyCast(useGame.getState, useGame.setState, caster, T, souffle, okRes(6), false, false);
     const log = useGame.getState().battle!.log.map((e) => e.text).join('\n');
     expect(log).toMatch(/déclenche Souffle \(Feu\)/);

@@ -31,8 +31,8 @@ function makeScene(): Scene {
         ref: 'belier-ade2', pos: HULL_POS, facing: HEADING, side: 'ally',
         postes: [{ trappingId: 'belier-ade2', crewIds: [IDS[1], IDS[2]] }],
       },
-      { ref: 'garde-du-village', pos: HULL_POS, side: 'ally', ai: true }, // SANS position propre (== coque)
-      { ref: 'garde-du-village', pos: AUTHORED_POS, side: 'ally', ai: true }, // position AUTHORÉE distincte
+      { ref: 'brute', pos: HULL_POS, side: 'ally', ai: true }, // SANS position propre (== coque)
+      { ref: 'brute', pos: AUTHORED_POS, side: 'ally', ai: true }, // position AUTHORÉE distincte
     ],
   }]);
   scene.entities.push(...entities);

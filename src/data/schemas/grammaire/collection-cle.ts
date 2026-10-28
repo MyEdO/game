@@ -24,9 +24,9 @@
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { coDescendre, defDe, descendre, enfantsDe, ouverts, pasDeDonnee, type DecisionDeVisite, type PointDeDonnee } from './descente';
-import { baseDe, champsDiscriminants, cleDesSpecs, cleNichee, estPrefixeDeSuite, idsDeCollection, lireCleDEspace, pasDeLaSuite, suiteAvecPas, type FiltreDEspace } from './cle-d-espace';
+import { baseDe, champsDiscriminants, cleDesLibelles, cleDesSpecs, cleDuVocabulaire, cleNichee, estPrefixeDeSuite, idsDeCollection, libellesDeCollection, lireCleDEspace, pasDeLaSuite, suiteAvecPas, type CleLue, type FiltreDEspace } from './cle-d-espace';
 import { estFeuilleDId } from './ref';
-import { SOURCES_DE_SPECS, type SourceDeSpecs } from './sourcesDeSpecs';
+import { LIBELLE_AU_LABEL, SOURCES_DE_SPECS, type SourceDeSpecs } from './sourcesDeSpecs';
 
 /** Clé d'un élément : un CHAMP de l'élément, une clé COMPOSÉE nommée (`walls` : `x,y,side,z`), ou
  *  l'élément SCALAIRE lui-même (`scalaire` : `couvre`, liste de chaînes). */
@@ -373,36 +373,53 @@ export type LectureDEspace = { readonly ids: readonly string[] } | { readonly un
 const filtreDeclare = (espace: EspaceDeNoms, filtre: FiltreDEspace): boolean =>
   filtre.vaut === undefined ? (espace.marqueurs ?? []).includes(filtre.champ) : champsDiscriminants(espace).includes(filtre.champ);
 
+/** La SOURCE de spécialisations (`grammaire/sourcesDeSpecs.ts`) dont l'espace lu `lue` est l'espace des
+ *  `specs` d'une entrée, `undefined` s'il ne l'est pas. */
+function sourceDesSpecs(lue: CleLue, doc: { readonly schema: unknown; readonly racine: unknown }, cle: string): SourceDeSpecs | undefined {
+  const pas = pasDeLaSuite(lue.niche ?? '');
+  const [element] = pas.slice(-2);
+  const prefixe = pas.slice(0, -2).reduce(suiteAvecPas, '');
+  if (pas.length < 2 || !('cle' in element) || baseDe(lue) !== cleDesSpecs(cleNichee(lue.fichier, prefixe), element.cle)) return undefined;
+  const liste = atteindre(doc.schema, doc.racine, prefixe);
+  const marque = liste?.marque;
+  const el = marque?.forme === 'liste' && Array.isArray(liste?.valeur) ? liste.valeur.find((e) => marque.de(e) === element.cle) : undefined;
+  const source = estObjet(el) ? el.specsSource : undefined;
+  if (typeof source !== 'string') return undefined;
+  const declaration: SourceDeSpecs | undefined = (SOURCES_DE_SPECS as Record<string, SourceDeSpecs>)[source];
+  if (!declaration) throw new Error(`${cle} : specsSource « ${source} » inconnue de SOURCES_DE_SPECS.`);
+  if (estObjet(el) && el.specs !== undefined) throw new Error(`${cle} : \`specs\` ET \`specsSource\` — l'espace de ses spécialisations serait double.`);
+  if (lue.filtre) throw new Error(`${cle} : un filtre ne se pose pas sur l'univers d'une specsSource.`);
+  return declaration;
+}
+
+/** L'espace des LIBELLÉS (`cleDesLibelles`) de l'univers d'une source, tels que la source les déclare. */
+export const cleDesLibellesDeLaSource = (source: SourceDeSpecs): string =>
+  'vocabulaire' in source.libelle ? cleDesLibelles(cleDuVocabulaire(source.libelle.vocabulaire)) : cleDesLibelles(source.univers, source.libelle.champs);
+
+
 /**
  * Lecture de l'espace `cle` (`grammaire/cle-d-espace.ts`) sur les documents d'`acces` : la collection
  * atteinte par sa suite nichée, qui doit être marquée `espace`, son filtre, qui doit être un paramètre
  * de la marque ; l'espace des `specs` d'une entrée à `specsSource` est l'UNIVERS de sa source
- * (`grammaire/sourcesDeSpecs.ts`). `undefined` : l'espace n'existe pas.
+ * (`grammaire/sourcesDeSpecs.ts`). Une clé de LIBELLÉS lit les libellés de ces éléments : pour les `specs`
+ * d'une entrée à `specsSource`, ceux que sa source déclare ; ailleurs, ceux des champs de la clé, ou du
+ * `label`. `undefined` : l'espace n'existe pas.
  */
 export function lectureDeLEspace(cle: string, acces: AccesAuxDocuments): LectureDEspace | undefined {
   const lue = lireCleDEspace(cle);
   const doc = acces(lue.fichier);
   if (!doc) return undefined;
-  const pas = pasDeLaSuite(lue.niche ?? '');
-  const [element] = pas.slice(-2);
-  const prefixe = pas.slice(0, -2).reduce(suiteAvecPas, '');
-  if (pas.length >= 2 && 'cle' in element && baseDe(lue) === cleDesSpecs(cleNichee(lue.fichier, prefixe), element.cle)) {
-    const liste = atteindre(doc.schema, doc.racine, prefixe);
-    const marque = liste?.marque;
-    const el = marque?.forme === 'liste' && Array.isArray(liste?.valeur) ? liste.valeur.find((e) => marque.de(e) === element.cle) : undefined;
-    const source = estObjet(el) ? el.specsSource : undefined;
-    if (typeof source === 'string') {
-      const declaration: SourceDeSpecs | undefined = (SOURCES_DE_SPECS as Record<string, SourceDeSpecs>)[source];
-      if (!declaration) throw new Error(`${cle} : specsSource « ${source} » inconnue de SOURCES_DE_SPECS.`);
-      if (estObjet(el) && el.specs !== undefined) throw new Error(`${cle} : \`specs\` ET \`specsSource\` — l'espace de ses spécialisations serait double.`);
-      if (lue.filtre) throw new Error(`${cle} : un filtre ne se pose pas sur l'univers d'une specsSource.`);
-      return { univers: declaration.univers };
-    }
+  const source = sourceDesSpecs(lue, doc, cle);
+  if (source) {
+    if (lue.libelles?.length) throw new Error(`${cle} : les libellés des \`specs\` d'une entrée à specsSource sont ceux que sa source déclare.`);
+    return { univers: lue.libelles ? cleDesLibellesDeLaSource(source) : source.univers };
   }
   const collection = atteindre(doc.schema, doc.racine, lue.niche ?? '');
   const espace = collection?.marque.espace;
   if (!collection || !espace || (lue.filtre && !filtreDeclare(espace, lue.filtre))) return undefined;
-  return { ids: idsDeCollection(collection.marque, collection.valeur, lue.filtre) };
+  if (!lue.libelles) return { ids: idsDeCollection(collection.marque, collection.valeur, lue.filtre) };
+  const libelles = libellesDeCollection(collection.marque, collection.valeur, lue.libelles.length ? lue.libelles : LIBELLE_AU_LABEL.champs, lue.filtre);
+  return libelles && { ids: libelles };
 }
 
 /** Les ids de l'espace `cle` par `lire` (`lectureDeLEspace`, ou sa lecture mémorisée), l'univers d'une

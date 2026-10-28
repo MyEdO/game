@@ -9,13 +9,13 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { availabilitySchema, charKeySchema, harvestRaritySchema, entityAppearanceSchema, moneySchema, profilChiffreSchema } from '../grammaire/valeurs';
 import { talentRefSchema, trappingRefSchema, traitInstanceSchema } from '../grammaire/reference';
-import { refOuSpec, refs } from '../grammaire/ref';
+import { ref, refOuSpec, refs } from '../grammaire/ref';
 
 export const file = 'creatures.json';
 export const famille = 'entite';
 
 /** `OptionalEntry` (`src/engine/statEntry.ts`) — un élément d'`optionals` (LDB 76) : soit un
- *  `TraitInstance` ordinaire, soit une NOTE composée irréductible à un trait (discriminée par `note`) :
+ *  `TraitPose` ordinaire, soit une NOTE composée irréductible à un trait (discriminée par `note`) :
  *  joker « tous les traits » (Mutant, LDB 83 l.91) ou variante « remplacer des Traits par un bonus »
  *  (Grand Loup ZI 1 l.229, Griffon ZI). La note porte son `label` source VERBATIM + les champs d'application. */
 const optionalWildcardSchema = nommerChamps(z.strictObject({
@@ -35,7 +35,9 @@ const optionalSwapSchema = nommerChamps(z.strictObject({
   size: z.string().optional(),
   wounds: z.number().optional(),
 }), { note: { label: "note" }, label: { label: "libellé" }, remove: { label: "retirer" }, grant: { label: "ajouts" }, size: { label: "Taille" }, wounds: { label: "Blessures" } });
-const optionalEntrySchema = z.union([traitInstanceSchema, optionalWildcardSchema, optionalSwapSchema]);
+/** `OptionalEntry` (`engine/statEntry.ts`) — un Trait OPTIONNEL du statbloc (`LDB 76 l.45`) ou une note composée.
+ *  Composé aussi par les entités de scène (`defs-scenes/scene.ts`, `combat.optionals`). */
+export const optionalEntrySchema = z.union([traitInstanceSchema, optionalWildcardSchema, optionalSwapSchema]);
 
 /** `SkillRef` (`src/data/index.ts`) — la réf de Compétence de la GRAMMAIRE (`refOuSpec`, régime
  *  `specOuChoixFacultatifs` : un statbloc porte des EMPLACEMENTS, désignés au spawn) composée avec la
@@ -64,6 +66,8 @@ const champs = {
     /** Ids de `groups.json` de cette créature (`groupsFor`) : sa CATÉGORIE (« demon », « bete »…) et,
      *  le cas échéant, le Groupe du dieu du Chaos qu'elle sert. Absent = aucun Groupe. */
     grantGroups: z.array(z.string()).optional(),
+    /** Entrée du bestiaire dont cette créature est une espèce ou une variante (`groupsFor`). */
+    genre: ref('creature').optional(),
     /** src/data/index.ts */
     char: profilChiffreSchema(z.number().nullable()),
     traits: z.array(traitInstanceSchema),
@@ -102,6 +106,7 @@ const doc = document(
       hint: 'Catégorie de classement de la créature dans l’arborescence du Codex, distincte de Groupes accordés',
     },
     grantGroups: { label: 'Groupes accordés', hint: 'Catégorie de la créature et Groupe du dieu du Chaos servi' },
+    genre: { label: 'Genre', hint: 'Créature dont celle-ci est une espèce ou une variante : elle en reçoit les Groupes accordés' },
     char: {
       label: 'Caractéristiques',
       hint: 'Table des 10 caractéristiques (CC/CT/F/E/I/Ag/Dex/Int/FM/Soc) — valeur ou vide si non imprimée',

@@ -612,7 +612,9 @@
                     "ops": [
                       {
                         "op": "grantTrait",
-                        "traitId": "nerveux"
+                        "trait": {
+                          "id": "nerveux"
+                        }
                       }
                     ]
                   },
@@ -622,7 +624,9 @@
                     "ops": [
                       {
                         "op": "grantTrait",
-                        "traitId": "stupide"
+                        "trait": {
+                          "id": "stupide"
+                        }
                       }
                     ]
                   },
@@ -632,7 +636,9 @@
                     "ops": [
                       {
                         "op": "grantTrait",
-                        "traitId": "bestial"
+                        "trait": {
+                          "id": "bestial"
+                        }
                       }
                     ]
                   },

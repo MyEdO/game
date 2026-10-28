@@ -21,6 +21,7 @@ import type { CrabProps } from '../crustace/composeCrab';
 import type { FishProps } from '../fish/composeFish';
 import type { TheropodProps } from '../theropode/composeTheropod';
 import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
+import type { GabaritId } from '../../../data/schemas/defs/gabarits';
 
 export type CreatureBodyPlan =
   | 'biped' | 'quadruped' | 'winged'
@@ -37,8 +38,8 @@ export interface CreaturePerso {
   parts?: { cheveux?: number; visage?: number };
   colors?: Palette;
   scale?: number;
-  gabarit?: string;
-  /** Traits cosmétiques ADDITIFS par-dessus la race (cornes du Prophète gris…) — contrairement
+  gabarit?: GabaritId;
+  /** Traits cosmétiques ADDITIFS par-dessus la race (cornes vestigiales des Jumeaux…) — contrairement
    *  à `monster` qui REMPLACE toute la structure de race (tête/membres/features). */
   features?: RaceFeature[];
   /** Tête monstrueuse (clé HEADS) remplaçant CELLE DE LA RACE seulement — queue/fourrure/
@@ -68,7 +69,7 @@ export interface CreatureDef {
    *  À ne préciser que pour forcer une race autre que celle dérivée de l'id. */
   race?: string;
   /** Gabarit (carrure) explicite, rare — sinon hérité de la race (ou du perso). */
-  gabarit?: string;
+  gabarit?: GabaritId;
   /** Surcharges d'apparence propres à cette créature (espèces NON-canoniques repliées sur une race
    *  partagée : Fimir/Géant/Liche/Démonette). Par-dessus les défauts de la race. */
   perso?: CreaturePerso;

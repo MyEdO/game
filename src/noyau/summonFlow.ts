@@ -19,9 +19,10 @@ import { pointDeCase, type Pt, tileKey } from './monde/path';
 import { Scene, isWalkable } from './monde/scene';
 import { occupied } from './monde/combatGeometry';
 import { inBattleId } from './monde/combatants';
-import { spawnEnemy } from './monde/spawn';
+import { spawnEnemy, traitsDeLIndividu } from './monde/spawn';
 import { grantTrait } from '../engine/grantedTraits';
-import { resolveFormula, slBonus, nomDeSource, type GameOp } from '../engine/ops';
+import { resolveFormula, nomDeSource, type GameOp } from '../engine/ops';
+import { indiceSurLeProfil, slBonus } from '../engine/formule';
 import { isOutOfAction } from '../engine/conditions';
 import { RNG } from '../engine/dice';
 import { t } from '../i18n';
@@ -109,7 +110,7 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
     const c = spawnEnemy(porteur, id, pos);
     c.kind = kind;
     if (summon.size) c.size = summon.size;
-    for (const t of summon.addTraits ?? []) grantTrait(c, t); // traits surchargés (Frénésie, Magique…) — déjà structurés
+    for (const t of traitsDeLIndividu(summon.addTraits ?? [], { id, indice: indiceSurLeProfil(c) }, { dejaPortes: c.traits })) grantTrait(c, t); // traits surchargés (Frénésie, Magique…)
     c.summon = {
       byId: caster.id,
       ...(opts.label ? { label: opts.label } : {}),

@@ -312,14 +312,13 @@ test('DISQUE : le BALAYAGE voit les 16 livres à `dir` ET les dossiers FR hors r
   for (const [abbr, dir] of BOOKS) {
     assert.ok(dossiers.includes(dir.split('\\').join('/')), `livre ${abbr} absent du balayage`)
   }
-  // Les quatre dossiers PRÉ-PIPELINE ne sont dans aucun `dir` de `books.json` : sans le balayage
+  // Les trois dossiers PRÉ-PIPELINE ne sont dans aucun `dir` de `books.json` : sans le balayage
   // par préfixe, ils échapperaient à toute garde (c'est le trou que cette garde ferme).
   const horsRegistre = dossiers.filter((d) => !BOOKS.some(([, dir]) => dir.split('\\').join('/') === d))
   assert.deepEqual(horsRegistre, [
     "Source/Boite d'Initiation WFRP 4e Edition VF",
     'Source/WH4_FR_BI_Livre_Aventure',
     'Source/WH4_FR_BI_Livre_Ubersreik',
-    'Source/Warhammer - Habitants & Creatures  du Vieux-Monde (Discord) PDF',
   ])
   for (const p of PREFIXES_FR) assert.ok(dossiers.some((d) => d.startsWith(`Source/${p}`)), `préfixe muet : ${p}`)
 })

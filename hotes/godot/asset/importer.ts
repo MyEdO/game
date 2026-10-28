@@ -10,11 +10,12 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
+import { sha256 } from './empreinte.ts';
 import { lireGlb, GlbIllisible, type ContenuGlb } from './glb.ts';
 import type { ManifesteMontable } from './montage';
 import { cheminsAbsolus, estObjet, ligneDErreur, validerManifeste, type Brut } from './manifeste.ts';
 import {
-  DOSSIER_DES_MODELES, fichiersDuModele, nomDAsset, sha256,
+  DOSSIER_DES_MODELES, fichiersDuModele, nomDAsset,
   type AssetAPublier, type LicenceDeComposant, type LicenceDePack, type Provenance,
 } from './release.ts';
 

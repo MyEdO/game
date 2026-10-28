@@ -122,7 +122,7 @@ def verify(path, kind, bones=None, required_bones=(), clips=(), collections=()):
     image_nodes = set()
     for obj in meshes:
         for material in obj.data.materials:
-            if material and material.use_nodes:
+            if material:
                 image_nodes.update(node.image for node in material.node_tree.nodes
                                    if node.type == 'TEX_IMAGE' and node.image)
     report['textures'] = [{'name': image.name, 'dimensions': list(image.size),

@@ -80,7 +80,7 @@ describe('NarratifEditor — onglet PNJ éditable (#671 lot B)', () => {
     click(onglet);
     const choisir = (label: string) => choisirMediaSelect(container, 'Apparence — Arme simple', label);
     choisir('Hache naine');
-    expect(last.presetsPnj[0].apparence?.apparencesObjets).toEqual({ 'arme-simple': 'hache_naine' });
+    expect(last.presetsPnj[0].apparence?.apparencesObjets).toEqual({ 'arme-simple': { id: 'hache_naine' } });
     expect(narratifSchema.safeParse(last).success).toBe(true);
     choisir('Épée');
     expect(last.presetsPnj[0].apparence?.apparencesObjets).toBeUndefined();

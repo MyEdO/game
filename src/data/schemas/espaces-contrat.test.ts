@@ -22,14 +22,15 @@ import './_registry-scenes.generated';
 import '../index';
 import { espacesDesignes, idDe, mesureDuParse, refOuSpec } from './grammaire/ref';
 import { collectionsDuDocument, listeCle } from './grammaire/collection-cle';
-import { HORS_DE_LA_GRAPHIE, baseDe, cleDesSpecs, cleFiltree, estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, porteLeChampMarqueur, suiteAvecPas, type PasDeSuite } from './grammaire/cle-d-espace';
+import { HORS_DE_LA_GRAPHIE, cleDeLaLecture, cleDesLibelles, cleDesSpecs, estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, porteLeChampMarqueur, suiteAvecPas, vocabulaireDuFichier, type PasDeSuite } from './grammaire/cle-d-espace';
+import { VOCABULAIRES } from './grammaire/vocabulaires';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from './grammaire/sourcesDeSpecs';
 
 const CLES = Object.keys(IDS_PAR_ESPACE);
 
 describe('INDEX DES IDS — chaque cible a son espace', () => {
   it('chaque document `entite`/`record` de `src/data` a son espace de racine, NON VIDE ; aucun document `config` n’en a', () => {
-    const racines = new Set(CLES.filter((c) => !/[#?]/.test(c)));
+    const racines = new Set(CLES.filter((c) => !/[#?]/.test(c) && vocabulaireDuFichier(c) === undefined));
     const attendues = SCHEMA_DEFS.filter((d) => d.famille !== 'config').map((d) => d.file);
     expect([...racines].sort()).toEqual([...attendues].sort());
     expect(attendues.filter((f) => !IDS_PAR_ESPACE[f]?.length), 'document `entite`/`record` à 0 id').toEqual([]);
@@ -82,10 +83,42 @@ describe('INDEX DES IDS — chaque cible a son espace', () => {
     const fautes = CLES.flatMap((cle) => {
       const lue = lireCleDEspace(cle);
       const pas = pasDeLaSuite(lue.niche ?? '').flatMap((p) => ('cle' in p ? [p.cle] : []));
-      const relue = lue.filtre ? cleFiltree(baseDe(lue), lue.filtre) : baseDe(lue);
-      const ennemis = [...pas, ...(lue.filtre ? [lue.filtre.champ, lue.filtre.vaut ?? ''] : [])].filter((p) => HORS_DE_LA_GRAPHIE.test(p) || /[[\]]/.test(p));
-      return relue !== cle || ennemis.length ? [cle] : [];
+      const ennemis = [...pas, ...(lue.filtre ? [lue.filtre.champ, lue.filtre.vaut ?? ''] : []), ...(lue.libelles ?? [])].filter((p) => HORS_DE_LA_GRAPHIE.test(p) || /[[\],]/.test(p));
+      return cleDeLaLecture(lue) !== cle || ennemis.length ? [cle] : [];
     });
+    expect(fautes).toEqual([]);
+  });
+
+  it('un vocabulaire du moteur (`VOCABULAIRES`) est un espace indexé ssi une source le prend pour univers ou pool, ses ids dans l’ordre de sa table', () => {
+    const sources = Object.values(SOURCES_DE_SPECS as Record<string, SourceDeSpecs>);
+    const designes = new Set(sources.flatMap((s) => [s.univers, s.pool ?? s.univers]).filter((c) => vocabulaireDuFichier(c) !== undefined));
+    expect(CLES.filter((c) => vocabulaireDuFichier(c) !== undefined).sort()).toEqual([...designes].sort());
+    for (const cle of designes) expect(IDS_PAR_ESPACE[cle], cle).toEqual(Object.keys(VOCABULAIRES[vocabulaireDuFichier(cle) as keyof typeof VOCABULAIRES]));
+  });
+
+  it('un vocabulaire qui donne ses LIBELLÉS à une source porte exactement les ids de son univers', () => {
+    const fautes = Object.entries(SOURCES_DE_SPECS as Record<string, SourceDeSpecs>).flatMap(([nom, s]) => {
+      if (!('vocabulaire' in s.libelle)) return [];
+      const univers = [...IDS_PAR_ESPACE[s.univers]].sort();
+      const libelles = Object.keys(VOCABULAIRES[s.libelle.vocabulaire]).sort();
+      return JSON.stringify(univers) === JSON.stringify(libelles) ? [] : [`${nom} : ${s.univers} ≠ vocabulaire:${s.libelle.vocabulaire}`];
+    });
+    expect(fautes).toEqual([]);
+  });
+
+  it('chaque entrée OUVERTE (`?specsOpen`) dont les `specs` sont un espace a l’espace de leurs libellés, NON VIDE', () => {
+    const fautes: string[] = [];
+    let mesurees = 0;
+    for (const cle of CLES.filter((c) => c.endsWith('?specsOpen'))) {
+      const { fichier } = lireCleDEspace(cle);
+      for (const id of IDS_PAR_ESPACE[cle]) {
+        const specs = cleDesSpecs(fichier, id);
+        if (!(specs in IDS_PAR_ESPACE)) continue;
+        mesurees++;
+        if (!IDS_PAR_ESPACE[cleDesLibelles(specs)]?.length) fautes.push(cleDesLibelles(specs));
+      }
+    }
+    expect(mesurees, 'aucune entrée ouverte à catalogue : la preuve serait vacante').toBeGreaterThan(10);
     expect(fautes).toEqual([]);
   });
 

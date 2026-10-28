@@ -12,7 +12,7 @@ import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { useGame } from './store';
 import { resolvePresetCreature } from '../noyau/monde/resolveursDuNarratif';
 import { presetPnjById } from './campaignData';
-import { creatureToCombatant, statblockToCombatant } from '../noyau/monde/spawn';
+import { creatureToCombatant, porteurDuProfil, statblockToCombatant } from '../noyau/monde/spawn';
 import { parseProject } from '../noyau/worldMap';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { Scene } from '../noyau/monde/scene';
@@ -26,7 +26,7 @@ import { attachMutation } from '../engine/corruption';
 import { effectiveChar, effectiveMaxWounds } from '../engine/characteristics';
 import { weaponFromTrait } from '../engine/creatureEquip';
 import { makeRNG } from '../engine/dice';
-import type { TraitList } from '../engine/statEntry';
+import { traitsDuPorteur, type TraitList, type TraitsDesignes } from '../engine/statEntry';
 import { customStatblockSchema } from '../data/schemas/defs-scenes/communs';
 import type { Combatant } from '../engine/types';
 
@@ -50,7 +50,7 @@ function opsDe(node: unknown): string[] {
 type Porteur = { ou: string; traits: TraitList; nativeTalents: { talentId: string; times: number }[]; spawn: () => Combatant };
 
 const SPAWN_TRAITS = new Set(['mutation', 'corruption-mentale', 'marque-de-tzeentch']);
-const porteMutation = (traits: TraitList | undefined): boolean => (traits ?? []).some((t) => SPAWN_TRAITS.has(t.id));
+const porteMutation = (traits: TraitsDesignes | undefined): boolean => (traits ?? []).some((t) => SPAWN_TRAITS.has(t.id));
 const ORIGINE = { x: 0, y: 0 };
 
 function talentsNatifs(refs: { id: string; times?: number }[] | undefined): { talentId: string; times: number }[] {
@@ -63,7 +63,7 @@ function porteursDuNarratif(ou: string, narratif: NarratifBlock): Porteur[] {
     const r = resolvePresetCreature(preset.id, presetPnjById);
     if (!r || !porteMutation(r.creature.traits)) return [];
     const creature = r.creature;
-    return [{ ou: `${ou} › preset ${preset.id}`, traits: creature.traits, nativeTalents: talentsNatifs(creature.talents), spawn: () => creatureToCombatant(creature, preset.id, ORIGINE) }];
+    return [{ ou: `${ou} › preset ${preset.id}`, traits: traitsDuPorteur(creature.traits, porteurDuProfil(preset.id, creature.char)), nativeTalents: talentsNatifs(creature.talents), spawn: () => creatureToCombatant(creature, preset.id, ORIGINE) }];
   });
 }
 
@@ -71,13 +71,13 @@ function porteursDeScene(ou: string, scene: Scene): Porteur[] {
   return scene.entities.flatMap((ent) => {
     const sb = (ent as { statblock?: CustomStatblock }).statblock;
     if (!sb || !porteMutation(sb.traits)) return [];
-    return [{ ou: `${ou} › ${scene.id} › ${ent.id}`, traits: sb.traits ?? [], nativeTalents: talentsNatifs(sb.talents), spawn: () => statblockToCombatant(sb, ent.id, ORIGINE, (ent as { appearance?: never }).appearance) }];
+    return [{ ou: `${ou} › ${scene.id} › ${ent.id}`, traits: traitsDuPorteur(sb.traits ?? [], porteurDuProfil(ent.id, sb.char)), nativeTalents: talentsNatifs(sb.talents), spawn: () => statblockToCombatant(sb, ent.id, ORIGINE, (ent as { appearance?: never }).appearance) }];
   });
 }
 
 function tousLesPorteurs(): Porteur[] {
   const out: Porteur[] = [];
-  for (const c of creatures) if (porteMutation(c.traits)) out.push({ ou: `creatures.json › ${c.id}`, traits: c.traits, nativeTalents: talentsNatifs(c.talents), spawn: () => creatureToCombatant(c, `garde-${c.id}`, ORIGINE) });
+  for (const c of creatures) if (porteMutation(c.traits)) out.push({ ou: `creatures.json › ${c.id}`, traits: traitsDuPorteur(c.traits, porteurDuProfil(`garde-${c.id}`, c.char)), nativeTalents: talentsNatifs(c.talents), spawn: () => creatureToCombatant(c, `garde-${c.id}`, ORIGINE) });
   for (const rel of listerProjetsLivres()) {
     const projet = parseProject(lireProjetLivre(rel));
     out.push(...porteursDuNarratif(rel, projet.narratif));
@@ -124,8 +124,9 @@ function fautesDuPorteur(p: Porteur): string[] {
     const estDeM = deLaMutation(id);
     for (const op of m.passive ?? []) {
       if (op.op === 'grantTrait') {
-        const n = (c.traits ?? []).filter((t) => t.id === op.traitId && estDeM(t.src)).length;
-        if (n !== k) fautes.push(`${p.ou} : (c) trait « ${op.traitId} » de « ${id} » posé ${n} fois, attendu ${k}`);
+        const attendu = k * (op.cible?.pick ?? 1);
+        const n = (c.traits ?? []).filter((t) => t.id === op.trait.id && estDeM(t.src)).length;
+        if (n !== attendu) fautes.push(`${p.ou} : (c) trait « ${op.trait.id} » de « ${id} » posé ${n} fois, attendu ${attendu}`);
       } else if (op.op === 'grantPsychTrait') {
         const n = (c.psychTraits ?? []).filter((t) => t.type === op.psychType && estDeM(t.src)).length;
         if (n !== k) fautes.push(`${p.ou} : (c) trait psy « ${op.psychType} » de « ${id} » posé ${n} fois, attendu ${k}`);

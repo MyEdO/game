@@ -8,7 +8,7 @@
  *  (c) NON-RÉGRESSION : dans le MÊME état, les rangées MULTI de la fenêtre (opposition de cible,
  *      Contre-sort) gardent leur possession PAR PARTICIPANT — le gate du lanceur ne les ferme pas ;
  *  (e) SURFACE RÉSEAU : le sous-ensemble de verbes réellement atteignable par un invité
- *      (`GUEST_INTENTS`, consulté AVANT `intentAllowedFor` par `net/session.ts`) est asserté par flux.
+ *      (`GUEST_INTENTS`, consulté AVANT `intentAllowedFor` par `hote/coop/session.ts`) est asserté par flux.
  *
  * La chaîne réparée : un Sort ennemi ouvre son étape en `groupOwner` (`combatFlow.openCastCascade`) →
  * `modalArbiter` rend l'owner `'*'` (pour que cible et contre-lanceurs voient la fenêtre) → sans route
@@ -170,7 +170,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
   });
 
   it('(e) SURFACE RÉSEAU : chaque verbe d’un flux mono est atteignable par un INVITÉ (#1017)', () => {
-    // `net/session.ts` consulte `GUEST_INTENTS` AVANT `intentAllowedFor` : un verbe hors allowlist est
+    // `hote/coop/session.ts` consulte `GUEST_INTENTS` AVANT `intentAllowedFor` : un verbe hors allowlist est
     // INATTEIGNABLE par le fil, quel que soit le prédicat de possession — il s'exécuterait EN LOCAL chez
     // l'invité puis serait écrasé au snapshot. La règle générale de possession exige donc la surface
     // PLEINE : le sous-ensemble mesuré est confronté à l'inventaire littéral, flux par flux.

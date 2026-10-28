@@ -9,7 +9,10 @@
  */
 import { CreatureData, charAbr, memoParVersion, traits } from '../../data';
 import { CHAR_KEYS, type CharKey } from '../../engine/types';
-import { traitLabels, parseTraitInstance, formatTrait, optionalLabel } from '../../engine/traits/dispatch';
+import { traitLabels, formatTrait, optionalLabel } from '../../engine/traits/dispatch';
+import { parseTraitInstance, relireTrait } from './refFormatLivre';
+import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
+import { useClesDeRangees } from '../useClesDeRangees';
 import { isOptionalNote, type OptionalEntry } from '../../engine/statEntry';
 import { RefField } from '../compendium/refField/RefField';
 
@@ -53,6 +56,7 @@ export function OptionalTraitsPicker({
   onChange: (v: OptionalEntry[] | undefined) => void;
 }) {
   const chosen = value ?? [];
+  const cles = useClesDeRangees(value);
   const set = (next: OptionalEntry[]) => onChange(next.length ? next : undefined);
   // OFFRABLES du bestiaire : les optionnels de la créature SAUF le joker « tous les traits » (une note
   // qui n'est PAS posable — juste une indication). Les Traits ORDINAIRES restent éditables en chaîne
@@ -65,12 +69,12 @@ export function OptionalTraitsPicker({
     <div className="ed-field">
       Traits facultatifs (LDB 76) — éditez la chaîne pour compléter l'Indice/la Cible
       {chosen.map((t, i) => (
-        <div key={i} className="trait-row">
+        <div key={cles[i]} className="trait-row">
           {isOptionalNote(t) ? (
             // Note composée (variante « swap » / joker) : texte source VERBATIM, non éditable en chaîne.
             <span className="chip">{optionalLabel(t)}</span>
           ) : (
-            <input value={formatTrait(t)} onChange={(e) => set(chosen.map((x, j) => (j === i ? parseTraitInstance(e.target.value) : x)))} />
+            <SaisieEnBrouillon value={t} afficher={formatTrait} relire={relireTrait} onChange={(v) => set(chosen.map((x, j) => (j === i ? v : x)))} />
           )}
           <button className="btn small danger" title="Retirer ce trait facultatif" onClick={() => set(chosen.filter((_, j) => j !== i))}>
             ✕

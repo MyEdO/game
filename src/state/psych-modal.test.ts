@@ -9,6 +9,9 @@ import type { Combatant } from '../engine/types';
 import type { BatchParticipant, CascadeStep } from '../noyau/pendings';
 import { addCondition, COND } from '../engine/conditions';
 import { modalOwnerOf } from '../noyau/modalArbiter';
+import { ligneDe } from '../engine/modLine.testkit';
+import { t } from '../i18n';
+import { sansPeurLabel } from '../engine/psychology';
 
 /**
  * Psychologie de COMBAT — régime CASCADE de Round (LDB 21). Les Traits ciblés et les NOUVELLES
@@ -114,7 +117,8 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     useGame.getState().cascadeNext();
     const peur = (heroOf(H.id).psychState ?? []).find((p) => p.type === 'peur');
     expect(peur).toBeTruthy();
-    expect(peur!.calmeDR! >= 1).toBe(true); // DR maximal du dé 01 ≥ Indice 1 → Peur surmontée
+    expect(peur!.calmeDR! >= 1).toBe(true); // DR maximal du dé 01 ≥ Indice 1…
+    expect(peur!.surmontee).toBe(true); // …→ Peur surmontée
   });
 
   it('Détermination sur une Peur de combat = immunité TEMPORAIRE (LDB 17 l.59), jouée PAR RANGÉE : calmeDR INCHANGÉ, Peur NON surmontée', () => {
@@ -142,7 +146,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     const peur = (heroOf(H.id).psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === E.id)!;
     expect(peur).toBeTruthy();
     expect(peur.calmeDR).toBe(1); // DR INCHANGÉ : la Peur n'a PAS été cumulée…
-    expect(peur.calmeDR! >= peur.indice!).toBe(false); // …ni surmontée (toujours sous l'emprise)
+    expect(peur.surmontee).toBeUndefined(); // …ni surmontée (toujours sous l'emprise)
     expect(useGame.getState().pendingCascade).toBeNull();
   });
 
@@ -209,7 +213,27 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     useGame.getState().cascadeNext();
     const peur = (heroOf(H.id).psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === E.id)!;
     expect(peur).toBeTruthy();
-    expect(peur.calmeDR! >= peur.indice!).toBe(true); // ignorée (vaincue) en un seul Test
+    expect(peur.surmontee).toBe(true); // ignorée en un seul Test
+  });
+
+  it('Sans Peur RATÉ face à une Peur 0 : surmontée par le Test étendu, jamais « ignorée » (LDB 10 l.1051 ; LDB 85 l.122)', () => {
+    useGame.getState().seedRng(2);
+    const { H, E } = setup('moyenne');
+    E.groups = ['Ogre'];
+    H.psychTraits = [{ type: 'phobie', cible: 'Ogre', indice: 0 }];
+    H.talents = [...(H.talents ?? []), { talentId: 'sans-peur', spec: 'Ogre', times: 1 }];
+    openRoundEndCascade(useGame.getState, useGame.setState);
+    expect(band().combatPsych).toMatchObject({ kind: 'peur', indice: 0 });
+    expect(row(H.id).meta?.sansPeur).toBe(true);
+    const pc = useGame.getState().pendingCascade!;
+    const participants = band().participants!.map((p) => ({ ...p, result: { roll: 99, target: p.target, sl: -2, success: false } }));
+    useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band(), participants }, ...pc.participants.slice(1)] } });
+    const rangee = row(H.id); // l'applier écrit SON verdict sur cette rangée (la cascade se ferme après)
+    useGame.getState().cascadeNext();
+    expect((heroOf(H.id).psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === E.id)?.surmontee).toBe(true);
+    const journal = rangee.outcome!.map((l) => l.text);
+    expect(journal).toContain(t('out.fearOvercome', { name: H.label, foe: E.label }));
+    expect(journal).not.toContain(t('turn.fearVanquished', { name: H.label, foe: E.label, talent: sansPeurLabel() }));
   });
 
   it('pas de source de peur (ennemi de même Taille) → aucune cascade (ni début ni fin de Round)', () => {
@@ -335,7 +359,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     E1.causesPeur = 2;
     E2!.causesPeur = 3;
     const b = useGame.getState().battle!;
-    A.psychState = [{ type: 'peur', sourceId: E1.id, indice: 2, calmeDR: 2 }];
+    A.psychState = [{ type: 'peur', sourceId: E1.id, indice: 2, calmeDR: 2, surmontee: true }];
     B.psychState = [];
     useGame.setState({ battle: { ...b, round: b.round + 1 } });
     openRoundEndCascade(useGame.getState, useGame.setState);
@@ -470,7 +494,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     // …et elle est NOMMÉE (chip), jamais fondue dans la base : base + Σ mods + Difficulté === cible.
     const somme = ra.base + (ra.mods ?? []).reduce((s, m) => s + m.value, 0);
     expect(somme).toBe(ra.target);
-    expect((ra.mods ?? []).some((m) => m.value === -20 && m.label.length > 0)).toBe(true);
+    expect(ligneDe(ra.mods, { category: 'etats', id: 'brise' })?.value).toBe(-20);
     expect(rb.mods ?? []).toEqual([]); // B n'a aucun État : aucune chip inventée
   });
 });

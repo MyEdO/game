@@ -237,7 +237,7 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     state: { pendingDistraire: { moverId: 'H', targetId: 'E', atk: rateTR, defRoll: { roll: 20, target: 50, success: true, sl: 3, isDouble: false }, result: 'fail' } },
     read: () => ({ roll: P<{ atk: { roll: number } }>('pendingDistraire').atk.roll, success: P<{ result: string }>('pendingDistraire').result === 'success' }),
   },
-  maneuver: { state: { pendingManeuver: { attackerId: 'H', targetId: 'E', maneuverId: 'm', kind: 'souffle', result: rateTR } }, read: resultRead('pendingManeuver') },
+  maneuver: { state: { pendingManeuver: { attackerId: 'H', targetId: 'E', attaque: 'm', kind: 'souffle', result: rateTR } }, read: resultRead('pendingManeuver') },
 };
 
 const FLUX = (Object.keys(FLOW_VERBS) as FlowKey[]).filter(

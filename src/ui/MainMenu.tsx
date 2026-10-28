@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGame } from '../state/store';
-import { listSaves } from '../state/saves';
+import { stockageDesSauvegardes } from '../state/saves';
+import { listerLesSauvegardes } from '../hote/sauvegardes';
 import { SaveLoadModal } from './SaveLoadModal';
 import { OptionsScreen } from './OptionsScreen';
 import { CampaignLibraryScreen } from './CampaignLibraryScreen';
@@ -14,7 +15,7 @@ export function MainMenu() {
   const [loadOpen, setLoadOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
-  const hasSaves = listSaves().some((m) => m != null);
+  const hasSaves = listerLesSauvegardes(stockageDesSauvegardes()).some((m) => m != null);
 
   return (
     <div className="menu tx-ink">

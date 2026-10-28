@@ -8,7 +8,6 @@ import { byId, psychologies, refLabel } from '../data';
 import { t, deElide } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { itemCapability } from './capabilities';
-import { groupMatch } from './groups';
 import { effectiveChar, bonus } from './characteristics';
 import { assistBonus } from './tests';
 import { testStatePenalty, testStatePenaltyParts, activeCharTestMod, activeCharTestModParts, passivePartLine, isMovementSkill, isOutOfAction } from './conditions';
@@ -18,7 +17,7 @@ import type { GameOp, PairedSense } from './ops';
 import type { ModLine } from './combat';
 import { RULE_REF } from './ruleRefs';
 import { rule } from './policy';
-import { effectivePsychTraits, isPsychImmune } from './psychology';
+import { effectivePsychTraits, isPsychImmune, vise, type SourcePsy } from './psychology';
 import { maxBy } from './pick';
 
 /** Règles optionnelles « caractéristique alternative » (POINT UNIQUE de la famille) : la liaison
@@ -243,9 +242,10 @@ function hasSkillAdvance(c: Combatant, skillId: string, spec?: string): boolean 
  *  qu'elle dure, aucun de ces malus ne se manifeste, et l'étiquette disparaît avec lui. */
 function containedSocialPenalty(tester: Combatant, type: string, targetGroups: string[]): boolean {
   if (isPsychImmune(tester)) return false;
-  const possede = effectivePsychTraits(tester).some((t) => t.type === type && t.cible && groupMatch(t.cible, targetGroups));
+  const interlocuteur: SourcePsy = { genre: 'interlocuteur', groups: targetGroups };
+  const possede = effectivePsychTraits(tester).some((t) => t.type === type && t.cible && vise({ groupe: t.cible }, interlocuteur, 'percu'));
   if (!possede) return false;
-  const actif = (tester.psychState ?? []).some((p) => p.type === type && p.active && p.cible && groupMatch(p.cible, targetGroups));
+  const actif = (tester.psychState ?? []).some((p) => p.type === type && p.active && p.cible && vise({ groupe: p.cible }, interlocuteur, 'percu'));
   return !actif;
 }
 
@@ -377,7 +377,7 @@ export interface SupportDetail {
 export function soutienMod(support?: SupportDetail): ModLine | undefined {
   if (!support || support.count <= 0) return undefined;
   return {
-    label: 'Soutien',
+    label: refLabel('regles', RULE_REF.soutien),
     value: support.bonus,
     famille: 'jet',
     ref: RULE_REF.soutien,

@@ -22,8 +22,8 @@ import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { Icon } from '../Icon';
 import type { Weapon } from '../../engine/types';
-import { apparencesAdmissibles, type TrappingResolver } from '../../engine/items';
-import { candidatsDApparenceDObjet } from '../../data/apparencesObjets';
+import type { TrappingResolver } from '../../engine/items';
+import { apparencesAdmissiblesDObjet, candidatsDApparenceDObjet, referenceDApparenceDObjet } from '../../data/apparencesObjets';
 import { MediaSelect } from '../MediaSelect';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 
@@ -36,7 +36,7 @@ export function ApparencesObjetsField({ appearance, onChange, weapons, resolveTr
 }) {
   useVersionDesDatasets();
   const ids = [...new Set(weapons.flatMap((w) => w.trappingId ? [w.trappingId] : []))];
-  const objets = ids.map((id) => ({ id, choices: apparencesAdmissibles({ trappingId: id }, resolveTrapping) })).filter((o) => o.choices.length > 1);
+  const objets = ids.map((id) => ({ id, choices: apparencesAdmissiblesDObjet({ trappingId: id }, resolveTrapping) })).filter((o) => o.choices.length > 1);
   if (!objets.length) return null;
   return <div className="ed-field">
     <span>Apparences d’objets</span>
@@ -45,12 +45,13 @@ export function ApparencesObjetsField({ appearance, onChange, weapons, resolveTr
       <MediaSelect
         title={`Apparence — ${resolveTrapping(id)?.label ?? id}`}
         triggerClassName="btn"
-        value={candidatsDApparenceDObjet(id, appearance.apparencesObjets?.[id], resolveTrapping)[0]}
+        value={candidatsDApparenceDObjet(id, appearance.apparencesObjets?.[id]?.id, resolveTrapping)[0]}
         options={choices.map((a) => ({ key: a.id, label: a.label }))}
         onSelect={(choix) => {
           const record = { ...appearance.apparencesObjets };
-          if (choix === resolveTrapping(id)?.shape?.id) delete record[id];
-          else record[id] = choix;
+          const reference = referenceDApparenceDObjet(id, choix, resolveTrapping);
+          if (reference) record[id] = reference;
+          else delete record[id];
           onChange(apparenceSuivante(appearance, { apparencesObjets: Object.keys(record).length ? record : undefined }));
         }}
       />

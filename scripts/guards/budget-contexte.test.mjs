@@ -4,13 +4,13 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   CARACTERES_PAR_TOKEN, PORTEUR_DU_PLAFOND, PORTE_DE_BUDGET, REGLE_PERMANENTE, controlerBudgetDeLaPlage,
-  estCheminDuBudget, estRegleSansPaths, importsDe, ligneDeDescription, mesurerBudget, postesQuiGrossissent, refusDeBudget,
+  estCheminDuBudget, estRegleSansPaths, importsDe, ligneDeDescription, mesurerBudget, postesQuiGrossissent, referenceDeFusion, refusDeBudget,
   reglesPermanentesHorsContrat,
 } from './budget-contexte.mjs'
 import { Buffer } from 'node:buffer'
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { instanceDeDepot, sousGitFeint } from './lib/depotGabarit.mjs'
-import { gitDe } from '../test/gitDeBanc.mjs'
+import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
 import { spawnSync } from 'node:child_process'
 import { fermetureSurDisque } from './lib/porteDEre.mjs'
 
@@ -66,7 +66,7 @@ describe('budget-contexte', () => {
       lister: (dossier) => (dossier === '.claude/rules' ? regles : io.lister(dossier)),
     })
     const deRegles = postes.filter((p) => p.nom.startsWith('.claude/rules/'))
-    assert.deepEqual(deRegles, [
+    assert.deepEqual(deRegles.map(({ nom, octets }) => ({ nom, octets })), [
       { nom: '.claude/rules/docs.md', octets: Buffer.byteLength(avecFm) },
       { nom: '.claude/rules/outils.md', octets: Buffer.byteLength(sans) },
     ])
@@ -313,7 +313,57 @@ describe('budget de plage', () => {
     })
   })
 
-  test('fusion propre : le contexte des parents ne se paie pas une seconde fois ; résolution : référence automatique', async () => {
+  test('#1463 référence d’une fusion : sa fusion à trois voies poste par poste, par CONTENU, jamais le plus haut de ses parents', () => {
+    const image = (claude, contenu, memoire = 1000) => ({
+      postes: [{ nom: 'CLAUDE.md', octets: claude, empreinte: contenu }, { nom: '.claude/memory/MEMORY.md', octets: memoire, empreinte: `memoire ${memoire}` }],
+      total: claude + memoire,
+    })
+    const reference = (p1, p2, commune = image(3000, 'commune')) => referenceDeFusion((arbre) => ({ p1, p2, commune })[arbre], { parents: ['p1', 'p2'], commune: 'commune' })
+    const refus = (ref, mesure) => refusDeBudget({ mesure, reference: ref, message: 'merge' })?.reason ?? null
+    assert.equal(reference(image(4000, 'chantier'), image(4500, 'tronc')).total, 6500, 'deux changements distincts s’ajoutent')
+    assert.equal(reference(image(2000, 'même retrait'), image(2000, 'même retrait')).total, 3000, 'le même contenu des deux côtés compte une fois')
+    assert.equal(reference(image(3000, 'commune'), image(2000, 'tronc')).total, 3000, 'un seul côté change : son changement l’emporte')
+    const solde = reference(image(3000, 'commune'), image(2000, 'tronc'))
+    assert.match(refus(solde, image(2000, 'tronc', 2000)) ?? '', /soit \+1000/, 'B3 : le retrait d’un côté ne paie pas une croissance d’un autre poste')
+    const baisse = reference(image(2000, 'chantier retire'), image(2000, 'tronc retire'))
+    assert.equal(baisse.total, 2000)
+    assert.match(refus(baisse, image(2000, 'chantier retire')) ?? '', /soit \+1000/,
+      'MEME-TAILLE-BAISSE : deux retraits distincts de même taille, la résolution ressuscite ce que l’un a retiré')
+    assert.equal(refus(reference(image(4000, 'chantier ajoute'), image(4000, 'tronc ajoute')), image(5000, 'les deux ajouts')), null,
+      'MEME-TAILLE-HAUSSE : deux ajouts distincts de même taille, gardés tous deux')
+    const supprime = { postes: [{ nom: '.claude/memory/MEMORY.md', octets: 1000, empreinte: 'memoire 1000' }], total: 1000 }
+    assert.deepEqual(reference(supprime, image(1000, 'tronc réduit')).postes.find((p) => p.nom === 'CLAUDE.md'), { nom: 'CLAUDE.md', octets: 0 },
+      'un côté supprime le poste que l’autre réduit : la référence ne descend pas sous zéro')
+    const sansEmpreinte = ({ postes, total }) => ({ postes: postes.map(({ nom, octets }) => ({ nom, octets })), total })
+    assert.throws(() => reference(sansEmpreinte(image(3000, 'commune')), image(2000, 'tronc')), /poste CLAUDE\.md de p1 n'a pas d'empreinte/,
+      'le mesureur d’une ère sans empreinte ne prend jamais un parent pour l’autre')
+  })
+
+  test('#1463 résolution d’un conflit du contexte : la référence est ses deux parents réunis, jamais la fusion automatique à marqueurs', async () => {
+    await fixture({ 'CLAUDE.md': 'titre\n' }, async ({ racine, sha, git, ecrire, commit, controle }) => {
+      const fusionner = () => resultatDeGit(['merge', '--no-commit', '--no-ff', 'amont'], { cwd: racine }).status
+      git('checkout', '-b', 'amont', sha)
+      commit('CLAUDE.md', 'titre\namont ajoute\n', declare(13))
+      git('checkout', '-b', 'chantier', sha)
+      const chantier = commit('CLAUDE.md', 'titre\nchantier ajoute\n', declare(16))
+      assert.notEqual(fusionner(), 0, 'témoin : conflit')
+      const reunis = 'titre\nchantier ajoute\namont ajoute\n'
+      ecrire('CLAUDE.md', reunis)
+      git('add', '--', 'CLAUDE.md')
+      git('commit', '-m', 'fusion : les deux côtés gardés')
+      assert.equal((await controle()).refus.length, 0, 'garder les deux côtés n’apporte rien')
+      const fusion = git('rev-parse', 'HEAD')
+      git('checkout', '-b', 'refaite', chantier)
+      assert.notEqual(fusionner(), 0, 'témoin : conflit')
+      commit('CLAUDE.md', `${reunis}la resolution ajout\n`, 'fusion : la résolution ajoute')
+      const resultat = await controle()
+      assert.equal(resultat.refus.length, 1, JSON.stringify(resultat))
+      assert.match(resultat.refus[0].reason, /soit \+20/)
+      assert.notEqual(resultat.refus[0].sha, fusion)
+    })
+  })
+
+  test('fusion propre : le contexte des parents ne se paie pas une seconde fois ; résolution : référence de ses parents', async () => {
     await fixture({ 'CLAUDE.md': 'titre\n' }, async ({ sha, git, commit, controle }) => {
       git('checkout', '-b', 'autre', sha)
       commit('CLAUDE.md', 'titre agrandi\n', declare(8))
@@ -450,6 +500,22 @@ describe('budget de plage — ÈRE (#2503)', () => {
       const c2 = poser({ 'CLAUDE.md': 'a\nb\n' }, 'c2 : CLAUDE.md grandit, muet')
       const c3 = poser({ [MODULE]: EN_LIGNES }, 'c3 : la porte restaurée')
       assert.deepEqual(verdict(await controle(socle, c3)), [[c2, socle]])
+    })
+  })
+
+  test('#1463 une FUSION sous une ère dont le mesureur ne pose pas d’empreinte : mesurée par cet arbre, jugée par son ère', async () => {
+    await depotDEres({ [MODULE]: EN_OCTETS, 'CLAUDE.md': 'titre\nconsigne que le tronc retire\n' }, async ({ socle, git, poser, controle, verdict }) => {
+      git('checkout', '-q', '-b', 'chantier')
+      poser({ 'notes.md': 'note\n' }, 'le chantier travaille')
+      git('checkout', '-q', 'main')
+      const tronc = poser({ 'CLAUDE.md': 'titre\n' }, 'le tronc retire une consigne')
+      git('checkout', '-q', 'chantier')
+      git('merge', '-q', '--no-ff', '--no-commit', 'main')
+      const fusion = poser({ 'CLAUDE.md': 'titre\nconsigne que le tronc retire\n' }, 'fusion du tronc : la consigne ressuscitée')
+      const vu = await controle(tronc, fusion)
+      assert.deepEqual(verdict(vu), [[fusion, tronc]])
+      assert.match(vu.refus[0].reason, /^\+\d+$/)
+      assert.deepEqual(verdict(await controle(socle, tronc)), [])
     })
   })
 

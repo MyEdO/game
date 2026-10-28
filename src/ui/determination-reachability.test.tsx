@@ -99,7 +99,7 @@ describe('Détermination — les trois usages sont ATTEIGNABLES depuis la consol
   it('réserve VIDE — les deux alvéoles restent DESSINÉES et portent leur raison, au SURVOL', () => {
     const h = heros({ resolve: 0, conditions: [] });
     monter(h);
-    const attendue = actionGate('resolve-psych-immune', { active: h, battle: useGame.getState().battle! }).reason;
+    const attendue = actionGate('resolve-psych-immune', { active: h, battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
     for (const id of ['resolve-psych-immune', 'resolve-ignore-crit']) {
       const c = alveole(id)!;
       expect(c, `l’alvéole ${id} a disparu — la géométrie ne bouge jamais`).toBeTruthy();

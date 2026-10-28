@@ -10,58 +10,43 @@ import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
 import * as netFlow from './netFlow';
-import { snapshotSave, saveToSlot, readSlot, importSave, AUTO_SLOT, type SaveSlot, type AnySlot, type SaveGame } from './saves';
+import { stockageDesSauvegardes } from './saves';
+import { ecrireLaSauvegarde, lireLaSauvegarde, AUTO_SLOT, type SaveSlot, type AnySlot } from '../hote/sauvegardes';
+import { chargerLaSave, lireSave, refusDeSauvegarde, snapshotSave, type ObsoleteCause, type RefusDeSauvegarde, type SaveGame } from '../noyau/persistance/save';
+import type { RetraitsDElagage } from '../noyau/persistance/elagage';
 import { loadKeyOverrides, saveKeyOverrides } from './keybindingsPrefs';
-import { pruneSeatAssignments } from '../noyau/monde/seating';
 import { transitionDuJeu } from '../noyau/transitionDuJeu';
 import type { CodexFocus } from './codexFocus';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
 import { poserLaPlateforme, type Plateforme, type PlateformeDe } from '../noyau/plateforme';
 import { scheduleCombatTimer, timerEnVol } from '../web/minuteries';
-import { rosterUpdate } from './roster';
+import { persisterLeHerosWeb } from './roster';
 import { planifierLeTickAuto } from '../noyau/combatAuto';
-import type { Scene } from '../noyau/monde/scene';
 import { pasAligneDuGroupe } from '../noyau/marcheDuGroupe';
 import { bus, EVT } from '../noyau/bus';
 import { brancherLeJeu } from '../noyau/branchement';
 import { creerActionsDuNoyau } from '../noyau/fabriquesDuNoyau';
 import { graineDEntropie } from '../web/entropie';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
-import { reposerPaquetDeCampagne } from '../noyau/monde/registreDesScenes';
-import { etatInitialDuJeu, type CampaignDoc, type Ecran, type Jeu } from '../noyau/etat';
+import { etatInitialDuJeu, type Ecran, type Jeu } from '../noyau/etat';
 import { seedBattleRng } from '../noyau/battleRng';
 import { tableTotale } from '../lib/tableTotale';
 
 /** Onglets de la fiche de personnage (`CharacterSheet.tsx`) — id STABLE, jamais un libellé. */
 export type SheetTab = 'etat' | 'possessions' | 'competences' | 'magie' | 'avancement' | 'histoire';
 
-/** Charge une save (Jalon 5) : reset zéro-maintenance (état de création sans les actions — le
- *  JSON round-trip écarte les fonctions) + données de la save par-dessus, écran campagne.
- *  Le merge partiel de zustand préserve les actions du store. */
-function applyLoadedSave(set: RemplacerLEtat, save: SaveGame): void {
-  const base = JSON.parse(JSON.stringify(useGame.getInitialState())) as Partial<GameState>;
-  const data = { ...(save.data as Partial<GameState>) };
-  // La save chargée est TOUJOURS à `FORMAT_SAVE` (toute autre forme est jetée, `saves.ts`) :
-  // `save.data` a donc la forme courante, sans remise à niveau à faire ici.
-  // `net` : la SESSION coop courante prime sur celle figée dans la save (ne pas ressusciter un
-  // salon mort, ne pas dissoudre un salon vivant — l'hôte peut charger une save en ligne).
-  // `keyOverrides` : la préférence de touches du joueur prime sur celle figée dans la save (#2817 D5).
-  // ASSISE : la scène persistée peut porter des places dont le meuble, le slot ou le héros n'existent
-  // plus dans CE snapshot (paquet de campagne édité, groupe recomposé) — élaguée AVANT d'entrer en
-  // état, par la même source unique que la superposition de mutation.
-  // Une scène qui n'a jamais porté d'assise n'en gagne pas le champ (même invariant que le seam
-  // d'authoring `normaliseAssises`) : rien à élaguer, rien à écrire.
-  const chargee = data.scene as Scene | null | undefined;
-  const scene = chargee?.seatAssignments
-    ? { ...chargee, seatAssignments: pruneSeatAssignments(chargee, (data.party ?? []).length) }
-    : chargee;
-  const { net, keyOverrides } = useGame.getState();
-  set({ ...base, ...data, ...(chargee ? { scene } : {}), screen: 'campaign', net, keyOverrides });
-  set(reposerPaquetDeCampagne(data.campaignDoc as CampaignDoc | null | undefined));
-  // Règles maison de la save : on les applique au registre (parité avec la partie sauvegardée).
-  loadRuleOverrides(save.rules);
+/** Charge une save : l'état de jeu que rend `chargerLaSave`, la session réseau COURANTE (l'hôte peut charger en
+ *  ligne), l'interface remise comme pour une partie neuve (`remettreLAdaptateur`), les règles maison de la save. */
+function applyLoadedSave(set: RemplacerLEtat, lue: SaveGame): void {
+  const { etat, regles, retraits } = chargerLaSave(lue);
+  remettreLAdaptateur(true);
+  set({ ...etat, net: useGame.getState().net, retraitsDeChargement: retraits });
+  loadRuleOverrides(regles);
   bus.emit(EVT.SCENE_DIRTY);
 }
+
+/** Le message au journal d'une sauvegarde refusée, par raison. */
+export const MESSAGE_DU_REFUS = { combat: 'store.saveInBattle', invite: 'store.saveInvite' } as const satisfies Record<RefusDeSauvegarde, string>;
 
 export interface EtatDeLAdaptateur {
   /** Codex : entrée ciblée à l'ouverture (depuis un `CodexRef`, keyée par `id`), null = page d'accueil. */
@@ -77,7 +62,7 @@ export interface EtatDeLAdaptateur {
   possessionsScreen: { uid: string | null } | null;
   camRot: 0 | 1 | 2 | 3; // orientation caméra (cran de 90° horaire) — état de vue, non sérialisé
   camEdge: boolean; // cran impair : vue « de face » (edge-on, grille axis-alignée 3D) ; alterne avec le coin (losange) par ¼ de tour
-  zoom: number; // zoom caméra du JEU (échelle), borné [1, 2.6] — état de vue, non sérialisé
+  zoom: number; // zoom caméra du JEU (échelle), borné [0.4, 2.6] — état de vue, non sérialisé
   /** Projection de la carte (bascule) : 'iso' losange ou 'top' grille carrée — préférence de vue. */
   viewMode: 'iso' | 'top';
   /** Vue SUBJECTIVE (POV) active : l'exploration passe en cap-relatif (ZQSD = avance/recul/pas latéral,
@@ -131,6 +116,9 @@ export interface EtatDeLAdaptateur {
   editingHeroId: string | null;
   /** Menu système plein écran (pause) ouvert — commuté par Échap (binding `toggle-menu`) et le bouton ☰. */
   gameMenuOpen: boolean;
+  /** Ids qu'une sauvegarde CHARGÉE a perdus à l'élagage (`chargerLaSave`, #1463 LD.1), nommés au joueur par
+   *  `ui/RetraitsDeChargement` ; null = rien à dire. */
+  retraitsDeChargement: RetraitsDElagage | null;
 }
 
 export interface ActionsDeLAdaptateur {
@@ -178,19 +166,21 @@ export interface ActionsDeLAdaptateur {
   /** Attribue un EMPLACEMENT (0-3) de l'écran d'équipe à un siège (hôte). */
   netAssignSlot: (slot: number, seat: number) => void;
   netLeave: () => void;
-  /** Sauvegarde la partie dans un slot localStorage (Jalon 5). Refusée en combat. */
+  /** Sauvegarde la partie dans un slot localStorage (Jalon 5), sauf `refusDeSauvegarde`. */
   saveGame: (slot: SaveSlot) => boolean;
-  /** Auto-save silencieuse vers l'emplacement AUTO (checkpoint d'entrée de scène). Hors combat,
-   *  jamais l'invité coop. Réutilise le même snapshot que `saveGame`. */
+  /** Auto-save silencieuse vers l'emplacement AUTO (checkpoint d'entrée de scène), sauf `refusDeSauvegarde`.
+   *  Réutilise le même snapshot que `saveGame`. */
   autoSave: () => boolean;
   /** Charge un slot (manuel OU auto) : reset zéro-maintenance + données de la save (écran campagne). */
   loadGame: (slot: AnySlot) => boolean;
   /** Importe une save : `null` quand elle est appliquée, sinon la cause de son refus. */
-  importGame: (json: string) => import('./saves').ObsoleteCause | null;
+  importGame: (json: string) => ObsoleteCause | null;
   /** Pas clavier d'exploration dans la direction ÉCRAN poussée (flèches) : le store fournit l'alignement à
    *  l'écran, le pas est celui du noyau (`pasAligneDuGroupe`). */
   stepPartyDir: (dir: ScreenDir) => void;
   setGameMenu: (open: boolean) => void;
+  /** Le joueur a lu les retraits d'élagage de la sauvegarde chargée. */
+  fermerRetraitsDeChargement: () => void;
 }
 
 export type GameState = Jeu & EtatDeLAdaptateur & ActionsDeLAdaptateur;
@@ -226,6 +216,7 @@ export function etatInitialDeLAdaptateur(): Omit<EtatDeLAdaptateur, 'keyOverride
     compendiumReturn: 'menu',
     possessionsScreen: null,
     combatCursor: null,
+    retraitsDeChargement: null,
   };
 }
 
@@ -235,9 +226,10 @@ const REMIS_A_CHAQUE_ENTREE = ['camEdge', 'camPan'] as const;
  *  TOUT le reste de l'état d'interface, dérivé de `etatInitialDeLAdaptateur`. */
 export const GARDES_D_UNE_PARTIE_A_L_AUTRE: readonly (keyof EtatDeLAdaptateur)[] = ['camRot', 'zoom', 'viewMode', 'povActive', 'keyOverrides'];
 
-/** Remise de l'interface à l'entrée en scène (`EVT.ARRIVEE_EN_SCENE`, #2817 D5) ; les gestes VIVANTS
- *  (`stageGestes`) aussi : aucune marche tenue de l'écran précédent n'y commet de pas. */
-function remettreLAdaptateur(neuve: boolean): void {
+/** Remise de l'interface à l'entrée en scène (`EVT.ARRIVEE_EN_SCENE` chez l'hôte, `netFlow.applyNetSnapshot`
+ *  chez l'invité, #2817 D5) ; les gestes VIVANTS (`stageGestes`) aussi : aucune marche tenue de l'écran
+ *  précédent n'y commet de pas. */
+export function remettreLAdaptateur(neuve: boolean): void {
   const init = etatInitialDeLAdaptateur();
   const cles = neuve
     ? (Object.keys(init) as (keyof typeof init)[]).filter((k) => !GARDES_D_UNE_PARTIE_A_L_AUTRE.includes(k))
@@ -309,32 +301,33 @@ export const useGame = create<GameState>((set, get) => ({
   netAssignSlot: (slot, seat) => netFlow.netAssignSlot(get, set, slot, seat),
   netLeave: () => netFlow.netLeave(get, set),
 
-  // ── Sauvegarde / chargement (Jalon 5) — snapshot zéro-maintenance, hors combat ──
+  // ── Sauvegarde / chargement (Jalon 5) — `noyau/persistance/save.ts` ──
   saveGame: (slot) => {
     const s = get();
-    if (s.battle) {
-      get().log(t('store.saveInBattle'));
+    const refus = refusDeSauvegarde(s, s.net.mySeat);
+    if (refus) {
+      get().log(t(MESSAGE_DU_REFUS[refus]));
       return false;
     }
-    const save = snapshotSave(s as unknown as Record<string, unknown>, useGame.getInitialState() as unknown as Record<string, unknown>, new Date().toISOString(), ruleOverrides());
-    const ok = saveToSlot(slot, save);
+    const save = snapshotSave(s, new Date().toISOString(), ruleOverrides());
+    const ok = ecrireLaSauvegarde(stockageDesSauvegardes(), slot, save);
     get().log(ok ? t('store.saveOk', { slot }) : t('store.saveKo'));
     return ok;
   },
   autoSave: () => {
     const s = get();
-    if (s.battle || s.net.mode === 'guest') return false; // hors combat ; jamais l'invité (la save vit chez l'hôte)
-    const save = snapshotSave(s as unknown as Record<string, unknown>, useGame.getInitialState() as unknown as Record<string, unknown>, new Date().toISOString(), ruleOverrides());
-    return saveToSlot(AUTO_SLOT, save);
+    if (refusDeSauvegarde(s, s.net.mySeat)) return false;
+    const save = snapshotSave(s, new Date().toISOString(), ruleOverrides());
+    return ecrireLaSauvegarde(stockageDesSauvegardes(), AUTO_SLOT, save);
   },
   loadGame: (slot) => {
-    const save = readSlot(slot);
+    const save = lireLaSauvegarde(stockageDesSauvegardes(), slot);
     if (!save) return false;
     applyLoadedSave(set, save);
     return true;
   },
   importGame: (json) => {
-    const save = importSave(json);
+    const save = lireSave(json);
     if (typeof save === 'string') return save;
     applyLoadedSave(set, save);
     return null;
@@ -347,6 +340,7 @@ export const useGame = create<GameState>((set, get) => ({
     pasAligneDuGroupe(get, (voisin) => screenStepDot(scene, partyPos, voisin, dir, dims));
   },
   setGameMenu: (open) => set({ gameMenuOpen: open }),
+  fermerRetraitsDeChargement: () => set({ retraitsDeChargement: null }),
 }));
 
 // Le jeu branché sur son propriétaire, le store (#2889, D7).
@@ -362,7 +356,7 @@ seedBattleRng(graineDEntropie());
 const plateformeWeb: PlateformeDe<ReturnType<typeof scheduleCombatTimer>> = {
   programmer: scheduleCombatTimer,
   enAttente: timerEnVol,
-  persisterLeHeros: rosterUpdate,
+  persisterLeHeros: persisterLeHerosWeb,
 };
 poserLaPlateforme(plateformeWeb as unknown as Plateforme);
 
@@ -373,7 +367,7 @@ export function initCombatAuto(): () => void {
 }
 
 // Entrée en scène (#2817 D5) : l'interface se remet, puis le changement de scène pose le point de reprise
-// (`autoSave`, hors combat et jamais chez l'invité).
+// (`autoSave`, sauf `refusDeSauvegarde`).
 bus.on(EVT.ARRIVEE_EN_SCENE, ({ neuve }: { sceneId: string; neuve: boolean }) => {
   remettreLAdaptateur(neuve);
   if (!neuve) useGame.getState().autoSave();

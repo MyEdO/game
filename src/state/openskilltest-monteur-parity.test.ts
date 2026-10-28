@@ -10,6 +10,7 @@ import { testStatePenalty } from '../engine/conditions';
 import { setRule, resetRule } from '../engine/policy';
 import { seedBattleRng } from '../noyau/battleRng';
 import { RULE_REF } from '../engine/ruleRefs';
+import { ligneDe, lignesDe } from '../engine/modLine.testkit';
 import { psychologies } from '../data';
 import { codexLookupById } from '../ui/compendium/registry';
 import type { TravelPlan } from '../noyau/travelFlow';
@@ -147,7 +148,7 @@ describe('openSkillTest × monteur canonique — la cible est BIT-IDENTIQUE (#11
     useGame.setState({ party: [h], travelPlan: seaPlan('abondantes') });
     runFlow(useGame.getState, useGame.setState, testFlow({ skill: { id: 'athletisme' }, difficulty: 'intermediaire', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     const pt = useGame.getState().pendingTest!;
-    const meteo = (pt.mods ?? []).filter((m) => m.ref === RULE_REF['meteo-maritime']);
+    const meteo = lignesDe(pt.mods, RULE_REF['meteo-maritime']);
     expect(meteo.map((m) => m.value)).toEqual([-20]);
     expect(pt.skillValue).toBe(40); // la météo n'entre PAS dans la valeur
     const vieux = cibleHistorique(pt.skillValue, 'intermediaire', -20);
@@ -210,9 +211,8 @@ describe('la LIGNE MONTÉE voyage jusqu’au pending (#1153 L2’ R4)', () => {
       { skill: { id: 'charme' }, difficulty: 'intermediaire', vsStatus: 'Bronze 1', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW,
     ));
     const pt = useGame.getState().pendingTest!;
-    const statut = pt.mods!.find((m) => m.label.startsWith('Statut'))!;
+    const statut = ligneDe(pt.mods, RULE_REF.statut)!;
     expect(statut.value).toBe(pt.psychMod); // la ligne EST le mod fondu, pas un doublon d'affichage
-    expect(statut.ref).toEqual({ category: 'regles', id: 'statut' });
     expect(pt.base! + pt.mods!.reduce((s, m) => s + m.value, 0) + DIFFICULTY_MODIFIERS[pt.difficulty]).toBe(pt.target);
   });
 
@@ -234,7 +234,7 @@ describe('la LIGNE MONTÉE voyage jusqu’au pending (#1153 L2’ R4)', () => {
         if ((cur.psychMod ?? 0) < 0) pt = cur; // inversion tirée (le mod d'un Or vers un Bronze est +10)
       }
       expect(pt, 'aucun seed n’a tiré 9-10 en 40 essais').toBeTruthy();
-      const statut = pt!.mods!.find((m) => m.label.startsWith('Statut'))!;
+      const statut = ligneDe(pt!.mods, RULE_REF.statut)!;
       expect(statut.value).toBe(pt!.psychMod);
       expect(statut.value).toBeLessThan(0);
       expect(pt!.base! + pt!.mods!.reduce((s, m) => s + m.value, 0) + DIFFICULTY_MODIFIERS[pt!.difficulty]).toBe(pt!.target);
@@ -260,8 +260,8 @@ describe('la LIGNE MONTÉE voyage jusqu’au pending (#1153 L2’ R4)', () => {
     const c1 = pt.candidates!.find((c) => c.id === 'h1')!;
     const c2 = pt.candidates!.find((c) => c.id === 'h2')!;
     expect(c1.base).toBe(60); // Ag 55 + 5 avances, NU (l'État est une ligne)
-    expect(c1.mods!.map((m) => [m.label, m.value])).toEqual([['Soutien', 10], ['Exténué', -10]]);
-    expect(c2.mods!.map((m) => m.label)).toEqual(['Soutien']);
+    expect(c1.mods!.map((m) => [m.ref, m.value])).toEqual([[RULE_REF.soutien, 10], [{ category: 'etats', id: 'extenue' }, -10]]);
+    expect(c2.mods!.map((m) => m.ref)).toEqual([RULE_REF.soutien]);
     expect(pt.actorId).toBe('h1');
     expect(pt.mods).toEqual(c1.mods);
     useGame.getState().testSetActor('h2');

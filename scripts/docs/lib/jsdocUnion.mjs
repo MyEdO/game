@@ -183,13 +183,18 @@ export function renderFields(fieldGroups) {
 // l'union), mais la source est un `z.discriminatedUnion('type', [ …identifiants… ])` dont chaque
 // membre est un `export const xSchema = z.strictObject({ … })` porteur de son JSDoc.
 
+/** Les appels qui rendent leur premier argument, métadonnée posée : la forme zod est celle de cet argument. */
+const DECORATEURS_ZOD = {
+  'src/data/schemas/grammaire/meta.ts': ['nommerChamps', 'nommerNoeud'],
+  'src/data/schemas/grammaire/interne/produits.ts': ['marquerProduit'],
+}
+
 /** Déballe `z.lazy(() => X)`, `X.superRefine(…)`, `X.optional()`… jusqu'à l'appel `z.strictObject`. */
 function decorateursZod(sf, checker, chemin) {
   const contexte = contexteImports(sf, checker)
   const appels = new Set()
-  const fonctions = { 'src/data/schemas/grammaire/meta.ts': ['nommerChamps', 'nommerNoeud'] }
   const visiter = (node) => {
-    if (ts.isCallExpression(node) && estAppelDeclare(node, sf, fonctions, contexte)) appels.add(`${node.pos}:${node.end}`)
+    if (ts.isCallExpression(node) && estAppelDeclare(node, sf, DECORATEURS_ZOD, contexte)) appels.add(`${node.pos}:${node.end}`)
     node.forEachChild(visiter)
   }
   visiter(sf)
@@ -254,13 +259,13 @@ export function indexerConstantes(fichiers) {
       if (!ts.isImportDeclaration(node) || !node.importClause || node.importClause.isTypeOnly || !ts.isStringLiteral(node.moduleSpecifier) || node.moduleSpecifier.text === 'zod') return
       const spec = node.moduleSpecifier.text
       const cible = path.resolve(path.dirname(path.resolve(entree.chemin)), spec).replace(/\.(?:m?js|m?ts)$/, '').toLowerCase()
-      const meta = spec.startsWith('.') && cible === path.join(root, 'src/data/schemas/grammaire/meta').toLowerCase()
+      const decorateurs = spec.startsWith('.') ? Object.entries(DECORATEURS_ZOD).find(([rel]) => cible === path.join(root, rel.replace(/\.ts$/, '')).toLowerCase())?.[1] : undefined
       const bindings = node.importClause.namedBindings
       if (bindings && ts.isNamedImports(bindings)) for (const e of bindings.elements) {
-        if (!e.isTypeOnly && !(meta && ['nommerChamps', 'nommerNoeud'].includes(e.propertyName?.text ?? e.name.text))) liaisons.set(e.name.text, false)
+        if (!e.isTypeOnly && !decorateurs?.includes(e.propertyName?.text ?? e.name.text)) liaisons.set(e.name.text, [])
       }
-      else if (bindings && ts.isNamespaceImport(bindings)) liaisons.set(bindings.name.text, meta)
-      if (node.importClause.name) liaisons.set(node.importClause.name.text, false)
+      else if (bindings && ts.isNamespaceImport(bindings)) liaisons.set(bindings.name.text, decorateurs ?? [])
+      if (node.importClause.name) liaisons.set(node.importClause.name.text, [])
     })
     let trouve = false
     const visiter = node => {
@@ -268,7 +273,7 @@ export function indexerConstantes(fichiers) {
         let cible = node.expression
         const membre = ts.isPropertyAccessExpression(cible) ? cible.name.text : undefined
         while (ts.isPropertyAccessExpression(cible)) cible = cible.expression
-        if (ts.isIdentifier(cible) && liaisons.has(cible.text) && !(liaisons.get(cible.text) && ['nommerChamps', 'nommerNoeud'].includes(membre))) trouve = true
+        if (ts.isIdentifier(cible) && liaisons.has(cible.text) && !liaisons.get(cible.text).includes(membre)) trouve = true
       }
       if (!trouve) node.forEachChild(visiter)
     }
@@ -296,7 +301,7 @@ export function indexerConstantes(fichiers) {
           const declaration = symbole?.valueDeclaration?.resolve()
           if (declaration && ts.isFunctionDeclaration(declaration) && declaration.name?.text === 'proseNommee' && path.relative(root, declaration.getSourceFile().fileName).replaceAll('\\', '/') === 'src/data/schemas/grammaire/prose.ts') return node
           if (ts.isPropertyAccessExpression(node.expression)) return composition(node.expression.expression)
-          if (estAppelDeclare(node, source, { 'src/data/schemas/grammaire/meta.ts': ['nommerChamps', 'nommerNoeud'] }, contexte)) return composition(node.arguments[0])
+          if (estAppelDeclare(node, source, DECORATEURS_ZOD, contexte)) return composition(node.arguments[0])
           return null
         }
         const visiter = node => {

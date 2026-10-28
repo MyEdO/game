@@ -3220,6 +3220,18 @@ Ces Traits de créature (LDB chap. 85, *Traits de créature*) régissent **comme
 
 **Armure (Indice).** « La créature est protégée par une armure ou une peau épaisse. Elle a *Indice* **PA** à toutes ses Localisations. » L'Indice est un nombre de **Points d'Armure appliqué à TOUTES les localisations** (Tête, Bras, Corps, Jambes), contrairement à une armure portée qui ne couvre que certaines parties. Il se cumule avec une armure éventuellement portée par la créature. — `LDB 85 l.38-39`
 
+**Parenthèse de l'Armure dans les profils.** Les profils imprimés précisent souvent l'Armure entre parenthèses, et la parenthèse y désigne des Localisations, des pièces d'armure ou une matière :
+- des Localisations sous un seul Indice : « Arme (Épée +7, Lance +7), Armure (Poitrine) 3 » — `ACE 05 l.2043` ; « Armure (Corps, Bras, Tête) 2 » — `PDT 09 l.536` ;
+- un Indice par zone : « Armure (Corps 2, Bras 4, Tête 2) » — `PDT 09 l.52` ; « Armure (Pattes arrières 1, Tête, Corps et Pattes avant 3) » — `AA 09 l.184` ;
+- un Indice par pièce : « Armure (Heaume) 2, (Plates) 3 » — `MCLB 02 l.698` ;
+- des pièces de la table des armures : « Armure (Plastron et Heaume) 2 » — `MCLB 02 l.101` ; « Armure (Calotte et veste de cuir) 1 » — `EDO 03 l.303` ; « Armure (veste en cuir) 1 » — `EDOC 11 l.169` ; « Armure (Veste et jambières de cuir) 1 » — `ADE II 06 l.108` ; « Armure (Casque, Chemise de mailles, Chausses de mailles) 2 » — `MSR 09 l.1504` ;
+- une nature du corps ou une matière : « Arme +8, Armure (Peau 1), Bestial, Foulée » — `LDB 78 l.58` ; « Arme +8, Armure (Légère 2), Brutal, Endurant » — `LDB 77 l.95`.
+
+Lecture du livre (arbitrage du 2026-10-27, #1463) : la parenthèse restreint l'Armure aux Localisations qu'elle désigne, sinon l'Indice vaut à toutes ses Localisations (`LDB 85 l.39`).
+- Localisations nommées ou Indice par zone : tels qu'imprimés ; « Poitrine » est le Corps ; les pattes sont les Localisations du quadrupède (`AA 09 l.94-104`).
+- Pièces de la table, une ou plusieurs : l'union de leurs Emplacements, « la Localisation que l'Armure protège » (`LDB 63 l.13`), lus à la table (`LDB 63 l.39-58`) ; « Casque » est un Heaume.
+- Aspect à toutes les Localisations : une catégorie des règles rapides, Légère ou Moyenne, dont les Emplacements sont Tous (`LDB 63 l.97-103`) ; une nature du corps (peau, écailles, fourrure, chitine) ; un ensemble ou une matière hors table (Cuir, Demi-plate, Plate complète, Divers) (`LDB 85 l.39`).
+
 **Protection (Indice).** « Parce qu'elles sont magiques, bénéficient d'un talisman particulier ou sont simplement chanceuses, certaines créatures semblent éviter les coups. Lancer **1d10 après chaque coup reçu**. En cas de résultat **supérieur ou égal à *Indice***, le coup est ignoré **même s'il s'agit d'un Critique**. » C'est une **sauvegarde** (ward save) post-touche : un seul jet par coup ; sur réussite, l'intégralité du coup (Dégâts ET Critique) est annulée. Le seuil s'écrit « N+ » (ex. *Protection 7+* = réussit sur 7, 8, 9, 10). — `LDB 85 l.277-278`
 
 **Démoniaque (Indice).** « L'essence de la créature est constituée de magie brute […]. Ces créatures n'ont besoin ni d'eau, ni de nourriture, ni d'air. Toutes ses attaques sont Magiques. Lancez **1d10 après chaque coup reçu**, si la créature obtient le nombre de l'*Indice* **ou plus**, le coup est ignoré, **même s'il s'agit d'un critique**. Si la créature **tombe à 0 Point de Blessure**, son âme **retourne immédiatement dans les Royaumes du Chaos**, ce qui la retire du jeu. » Démoniaque combine donc trois effets : (1) ses attaques sont des Attaques magiques ; (2) une **sauvegarde identique à Protection** (1d10 ≥ Indice ignore le coup, Critique inclus) ; (3) à 0 PB, la créature est **bannie** (retirée du jeu, pas de cadavre). — `LDB 85 l.95-98`
@@ -3497,7 +3509,7 @@ La créature est **porteuse de la maladie _Type_**. **Les autres doivent faire u
 - `LDB 85 l.249` — Nerveux : effrayé par magie / bruits forts → +3 États Brisé.
 - `LDB 85 l.87` — Corruption (Degré) : Degré entre parenthèses (renvoi p.182).
 - `LDB 85 l.92` — Corruption Mentale : lancer sur le Tableau de la Corruption Mentale (p.185).
-- `LDB 85 l.185` — Maladie (Type) : porteuse ; les autres font un Test pour éviter la Contraction (p.186).
+- `LDB 85 l.223-225` — Maladie (Type) : porteuse ; les autres font un Test pour éviter la Contraction (p.186).
 - `LDB 85 l.264` — Peur (Indice) : Peur surnaturelle de niveau Indice (renvoi p.190).
 - `LDB 85 l.411` — Terreur (Indice) : Terreur surnaturelle de niveau Indice (renvoi p.191).
 - `LDB 85 l.166` — Haine (Cible) : haine profonde de la Cible (renvoi p.190).

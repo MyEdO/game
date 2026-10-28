@@ -68,7 +68,7 @@ describe('surface React montée : la forme d’un objet reste celle de sa naissa
 
 describe('aperçu de créature monté : l’édition du record de bestiaire le redessine (C6)', () => {
   it('`armurePortee` retirée au record : l’armure d’art quitte l’aperçu', () => {
-    const id = 'capitaine-du-guet';
+    const id = 'moritz-valgeir';
     expect(creatures.find((c) => c.id === id)?.appearance?.armurePortee, 'PRÉMISSE : le record porte son armure').toBe(true);
     hôte = document.createElement('div');
     document.body.appendChild(hôte);

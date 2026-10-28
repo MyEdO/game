@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { availableAttacks } from '../noyau/combatManeuvers';
+import { attaqueDeCle } from '../engine/creatureAttacks';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { findManeuverById } from '../data';
@@ -42,14 +43,14 @@ describe('availableAttacks — énumération (pur)', () => {
 
   it('Souffle +15 (Feu) : attaque de ZONE présente avec Avantage ≥ 2', () => {
     const enemy = at('enemy', 'E', 5, 6);
-    const hero = at('hero', 'H', 5, 5, { traits: [{ id: 'souffle', value: 15, arg: 'Feu' }], advantage: 2 });
-    const souffle = availableAttacks(hero, mkBattle([hero, enemy])).find((x) => x.id === 'souffle-feu');
+    const hero = at('hero', 'H', 5, 5, { traits: [{ id: 'souffle', value: 15, arg: 'feu' }], advantage: 2 });
+    const souffle = availableAttacks(hero, mkBattle([hero, enemy])).find((x) => x.id === 'souffle');
     expect(souffle).toBeTruthy();
     expect(souffle!.targeting).toBe('zone'); // pendingManeuver (clic = point d’impact, LDB 85 « cible visible »)
     expect(souffle!.cost.advantage).toBe(2);
 
-    const heroLow = at('hero', 'H', 5, 5, { traits: [{ id: 'souffle', value: 15, arg: 'Feu' }], advantage: 1 });
-    expect(availableAttacks(heroLow, mkBattle([heroLow, enemy])).some((x) => x.id === 'souffle-feu')).toBe(false);
+    const heroLow = at('hero', 'H', 5, 5, { traits: [{ id: 'souffle', value: 15, arg: 'feu' }], advantage: 1 });
+    expect(availableAttacks(heroLow, mkBattle([heroLow, enemy])).some((x) => x.id === 'souffle')).toBe(false);
   });
 
   it('Piétinement : présent si un adversaire adjacent PLUS PETIT existe et Avantage ≥ 1', () => {
@@ -132,21 +133,35 @@ describe('manœuvres en combat (store)', () => {
   it('Souffle CIBLÉ : battle.action=maneuver + clic = point d’impact → pendingManeuver{targetId} (jet différé)', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();
-    H.traits = [{ id: 'souffle', value: 15, arg: 'Feu' }];
+    H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90; // Test opposé CT/Esquive → touche déterministe
     H.advantage = 3;
     // La hotbar arme l'attaque (`battleSelectAttack`) ; le clic-entité désigne le point d’impact (zone : 1er clic).
-    useGame.getState().battleSelectAttack('souffle-feu');
+    useGame.getState().battleSelectAttack('souffle');
     useGame.getState().battleClickEntity(E.id);
     const pm = useGame.getState().pendingManeuver;
     expect(pm).toBeTruthy(); // le Souffle ouvre la modale de jet d’attaquant
     expect(pm!.kind).toBe('souffle');
-    expect(pm!.maneuverId).toBe('souffle-feu');
+    expect(pm!.attaque).toBe('souffle');
     expect(pm!.targetId).toBe(E.id); // point d’impact = entité cliquée
     expect(pm!.result).toBeNull(); // rien n’est tiré avant Lancer
     expect(pm!.avantageSpent).toBe(2); // coût RAW affiché (dépensé à l’application)
     expect(useGame.getState().battle!.acted).toBe(false); // gratuite : l’Action reste
     // (résolution complète Lancer→Appliquer couverte par maneuver-flow.test.ts)
+  });
+
+  it('deux Souffles de Types différents : chacun a sa clé, et l’attaque en attente résout le Souffle choisi (LDB 85 l.322)', () => {
+    const { H, E } = setup();
+    H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }, { id: 'souffle', value: 12, arg: 'froid' }];
+    H.advantage = 3;
+    const options = availableAttacks(H, useGame.getState().battle!).filter((o) => o.kind === 'souffle');
+    expect(options.map((o) => [o.id, o.label])).toEqual([['souffle', 'Souffle (Feu)'], ['souffle~2', 'Souffle (Froid)']]);
+    useGame.getState().battleSelectAttack('souffle~2');
+    useGame.getState().battleClickEntity(E.id);
+    const pm = useGame.getState().pendingManeuver!;
+    expect(pm.attaque).toBe('souffle~2');
+    const a = attaqueDeCle(H.traits, pm.attaque)!;
+    expect([a.def.label, a.indice]).toEqual(['Souffle (Froid)', 12]);
   });
 
   it('manœuvre de mêlée ciblée : battle.action=maneuver + clic-cible → pendingAttack freeKind=morsure', () => {

@@ -7,19 +7,20 @@ import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
+import type { FormuleSansTirage } from '../../../engine/ops';
 import { z } from 'zod';
-import { messageDApparenceDObjet, findTrappingById, type TrappingResolver } from '../../apparencesObjets';
-import { trappingDesObjetsPuisDuCatalogue, type TrappingData } from '../../index';
+import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
-import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
-import { refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
+import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
 import { estEspeceDessinee, messageDEspeceInconnue, sexeDeCoiffure } from './art';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
+import { marquerProduit } from './interne/produits';
 import { MAX_FRAGMENTS, estGraphieDeChapitre } from '../../source/decoupe';
 
 export const blocageDeLivraison = nommerChamps(z.strictObject({ ticket: z.string(), raison: z.string() }), {
@@ -105,6 +106,8 @@ export const specsSourceSchema = enumNomme({
   damageTypes: 'Types de Dégâts (immunité)',
   weaponsMelee: 'Armes de mêlée',
   weaponsRanged: 'Armes à distance',
+  exposureLevels: 'Degrés d’Exposition',
+  difficulties: 'Difficultés',
 });
 
 /**
@@ -129,10 +132,11 @@ export const chaosAlignSchema = enumNomme({
 
 /**
  * Palier d'une Influence corruptrice (`ExposureLevel`, `src/engine/corruption.ts` ; LDB 19 l.23-75) —
- * UNE déclaration pour la charge de l'op `corruptionExposure` (`grammaire/mecanique.ts`) et l'effet de
- * scène `corruptionExposure.level` (`defs-scenes/effets.ts`).
+ * UNE déclaration pour la charge de l'op `corruptionExposure` (`grammaire/mecanique.ts`), l'effet de
+ * scène `corruptionExposure.level` (`defs-scenes/effets.ts`) et le Degré du Trait Corruption
+ * (`grammaire/vocabulaires.ts`). Libellés : `LDB 19 l.33`, `l.43`, `l.56`.
  */
-export const exposureLevelSchema = enumNomme({ mineure: 'mineure', moderee: 'modérée', majeure: 'majeure' });
+export const exposureLevelSchema = enumNomme({ mineure: 'Mineure', moderee: 'Modérée', majeure: 'Majeure' });
 
 /**
  * `Dir8` (`src/geometry/dir8.ts`) — orientation MONDE à huit aires, UNE déclaration pour les deux nœuds
@@ -220,6 +224,14 @@ export const sourceRefSchema = nommerChamps(z.strictObject({
  *  `land-cargo`/`sea-cargo`/`river-navigation`/`river-perils`), à la racine quand le dataset est un
  *  objet de config unique plutôt qu'une liste. */
 export type SourceRef = z.infer<typeof sourceRefSchema>;
+
+/**
+ * RAISON d'une valeur MAISON : ce que le canon ne tranche pas, dit en clair (AGENTS.md règle 7). Nœud UNIQUE
+ * de la provenance maison : l'enveloppe de `document()` (`grammaire/document.ts`) et toute sous-entrée qui
+ * porte sa propre raison le COMPOSENT, jamais ne le retapent. `.min(1)` est STRUCTUREL : une chaîne vide ne
+ * dit aucune raison, et `refuserSansProvenance` ne saurait la distinguer d'une raison réelle.
+ */
+export const maisonSchema = z.string().min(1);
 
 /**
  * Emplacement SECONDAIRE d'une entrée définie à plusieurs endroits (#563 — doctrine user 2026-07-17 :
@@ -310,7 +322,7 @@ export type GenreDeFragment = (typeof GENRES_DE_FRAGMENT)[number];
  * tous, `GENRES_DE_FRAGMENT`). Un document le déclare par `options.fragmentsAdmis` (`document.ts`).
  */
 export function descRefSchemaDe(fragmentsAdmis: readonly GenreDeFragment[] = GENRES_DE_FRAGMENT) {
-  return nommerChamps(z
+  return marquerProduit(nommerChamps(z
     .strictObject({
       book: z.string().min(1),
       /** Numéro de chapitre dans la GRAPHIE de son fichier d'extraction (`07`, `21`, `105`), jugée par
@@ -353,7 +365,7 @@ export function descRefSchemaDe(fragmentsAdmis: readonly GenreDeFragment[] = GEN
           });
         }
       });
-    }), { book: { label: "livre", texte: { regime: 'technique', usage: 'id du livre de l’adresse de prose' } }, ch: { label: "chapitre", texte: { regime: 'technique', usage: 'adresse du chapitre extrait' } }, parts: { label: "parties" } });
+    }), { book: { label: "livre", texte: { regime: 'technique', usage: 'id du livre de l’adresse de prose' } }, ch: { label: "chapitre", texte: { regime: 'technique', usage: 'adresse du chapitre extrait' } }, parts: { label: "parties" } }), 'descRefSchemaDe', 'descRef');
 }
 
 /** L'adresse de prose qui admet tous les genres de fragment (`descRefSchemaDe`). */
@@ -486,9 +498,13 @@ export function variantOf<T extends z.ZodRawShape, K extends Extract<keyof T, st
   resolved: readonly K[],
 ) {
   const mask = tableTotale(resolved, () => true);
-  const picked = entrySchema.pick(mask as Parameters<typeof entrySchema.pick>[0]) as unknown as z.ZodObject<Pick<T, K>>;
   const noms = metaDesChamps(entrySchema, { exigees: true });
-  const final = picked.partial().extend({ when: variantWhenSchema });
+  const final = marquerProduit(
+    (entrySchema.pick(mask as Parameters<typeof entrySchema.pick>[0]) as unknown as z.ZodObject<Pick<T, K>>).partial().extend({ when: variantWhenSchema }),
+    'variantOf',
+    'variante',
+    tableTotale(resolved, (cle) => entrySchema.shape[cle]),
+  );
   return nommerChamps(final, {
     ...tableTotale(resolved, cle => noms[cle]),
     when: { label: 'condition' },
@@ -594,9 +610,9 @@ export const charStatKeySchema = enumNomme({ ...CHAR_LABELS, M: 'Mouvement', B: 
  * est EXHAUSTIF en zod 4 (il exigerait les 12 clés), et `z.record(z.string(), …)` accepterait toute clé.
  */
 export function profilChiffreSchema<V extends z.ZodType>(valeur: V) {
-  return nommerChamps(z.strictObject(
+  return marquerProduit(nommerChamps(z.strictObject(
     tableTotale(charStatKeySchema.options, () => valeur.optional()),
-  ), tableTotale(charStatKeySchema.options, cle => ({ label: libelleDeValeur(charStatKeySchema, cle) })));
+  ), tableTotale(charStatKeySchema.options, cle => ({ label: libelleDeValeur(charStatKeySchema, cle) }))), 'profilChiffreSchema', 'profil');
 }
 
 /** `SizeCategory` (`src/engine/size.ts:14`) — CANON de la Taille (LDB 85), porte UNIQUE des defs qui
@@ -685,7 +701,7 @@ export const shipLocationSchema = z.enum(['cargaison', 'greement', 'coque', 'avi
  *  `ship-criticals` et `river-criticals` la LISENT, aucun ne la réécrit. */
 export const replisSansExposeSchema = nommerChamps(z.strictObject({
   cible: shipLocationSchema,
-  maison: z.string().optional(),
+  maison: maisonSchema.optional(),
 }), { cible: { label: "cible" }, maison: { label: "arbitrage maison" } });
 
 /**
@@ -695,7 +711,7 @@ export const replisSansExposeSchema = nommerChamps(z.strictObject({
  * une seule fois pour le dépôt ; ce que la colonne CONTIENT reste au porteur.
  */
 export const parSaison = <T extends z.ZodType>(valeur: T) =>
-  nommerChamps(z.strictObject({ printemps: valeur, ete: valeur, automne: valeur, hiver: valeur }), { printemps: { label: "printemps" }, ete: { label: "été" }, automne: { label: "automne" }, hiver: { label: "hiver" } });
+  marquerProduit(nommerChamps(z.strictObject({ printemps: valeur, ete: valeur, automne: valeur, hiver: valeur }), { printemps: { label: "printemps" }, ete: { label: "été" }, automne: { label: "automne" }, hiver: { label: "hiver" } }), 'parSaison', 'saisons');
 
 /**
  * PRIX DE BASE d'une cargaison par SAISON (MDG 15 l.422-434, MSRC 13 l.80-90) : le résolveur y lit la
@@ -762,7 +778,7 @@ export const castingNumberModSchema = nommerChamps(z
       .optional(),
     /** Valeur maison ÉDITABLE portant sa justification, quand le RAW laisse un point ouvert
      *  (sens d'arrondi non imprimé…) — AGENTS.md règle 7. */
-    maison: z.string().optional(),
+    maison: maisonSchema.optional(),
     source: sourceRefSchema,
     /** Passage RAW VERBATIM qui porte le modificateur (règle stricte 5). */
     desc: z.string(),
@@ -809,25 +825,8 @@ export function validerApparenceDonnee(v: { op?: string; trappingId?: string; ap
   if (v.apparence) validerApparenceDObjet(v.trappingId, v.apparence.id, ctx, ['apparence', 'id']);
 }
 
-/** #2948 */
-export function validerReferencesDObjetsDansCampagne(objets: readonly TrappingData[], ctx: z.RefinementCtx): void {
-  const parId = new Map(objets.map((objet) => [objet.id, objet]));
-  const resolve: TrappingResolver = (id) => trappingDesObjetsPuisDuCatalogue(parId, id);
-  for (let i = ctx.issues.length - 1; i >= 0; i--) {
-    const issue = ctx.issues[i];
-    if (issue.code !== 'custom') continue;
-    const reference = issue.params?.referenceDObjet as { trappingId?: string; apparence?: string } | undefined;
-    if (!reference) continue;
-    const message = reference.apparence
-      ? messageDApparenceDObjet(reference.trappingId, reference.apparence, resolve)
-      : reference.trappingId && resolve(reference.trappingId) ? undefined : issue.message;
-    if (message) ctx.issues[i] = { ...issue, message };
-    else ctx.issues.splice(i, 1);
-  }
-}
-
-const apparencesDObjetsSchema: z.ZodType<Record<string, string>> = z.record(idDe('trapping', undefined, { ouverte: true }), idDe('apparence')).superRefine((v, ctx) => {
-  for (const [trappingId, apparence] of Object.entries(v)) validerApparenceDObjet(trappingId, apparence, ctx, [trappingId]);
+const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>> = z.record(idDe('trapping', undefined, { ouverte: true }), ref('apparence')).superRefine((v, ctx) => {
+  for (const [trappingId, apparence] of Object.entries(v)) validerApparenceDObjet(trappingId, apparence.id, ctx, [trappingId, 'id']);
 });
 
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
@@ -877,13 +876,19 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
  *  ne porte de valeur hors de ces 6 (vérifié au parse). */
 export const hitLocationSchema = z.enum(LOCALISATIONS_DE_COUP);
 
+/** Indice par Localisation : les six Localisations, chacune son Indice. AA 09 l.184 ; MCLB 02 l.101. */
+export const parLocalisationSchema = nommerChamps(
+  z.strictObject(tableTotale(LOCALISATIONS_DE_COUP, () => z.number().int().nonnegative())),
+  tableTotale(LOCALISATIONS_DE_COUP, (loc) => ({ label: HIT_LOCATION_LABELS[loc] })),
+);
+
 /** Feuille de référence du terme `{rule}`, instanciée UNE fois : `formulaSchema` est un `z.lazy` que
  *  chaque composition ré-évalue — une fabrique appelée DANS le `lazy` poserait une marque par instance
  *  (58 mesurées), là où le site de référence est UN. */
 const refRegleOptionnelle = idDe('regleOptionnelle');
 
 /** Termes de jet de la grammaire (`TermeDeJet`, `src/engine/ops.ts`) : leur valeur ne se connaît qu'AU jet. */
-const TERMES_DE_JET = ['dice', 'rolled', 'sl'] as const;
+export const TERMES_DE_JET = ['dice', 'rolled', 'sl'] as const;
 
 /** Premier terme de jet rencontré dans une formule (imbrications `sum[]`, `times.of`, `times.factor`,
  *  `minimum.of`), ou `null`. PURE. */
@@ -914,23 +919,23 @@ export const termeBonusDe = nommerChamps(z.strictObject({ bonusOf: charKeySchema
 const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<unknown>[] => [
   z.number(),
   termeBonusDe,
-  nommerChamps(z.strictObject({ charOf: charKeySchema }), { charOf: { label: "valeur de caractéristique" } }),
+  marquerProduit(nommerChamps(z.strictObject({ charOf: charKeySchema }), { charOf: { label: "valeur de caractéristique" } }), 'optionsDeFormule', 'charOf'),
   ...(avecJet ? [
-    nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } }),
-    nommerChamps(z.strictObject({ rolled: z.literal(true) }), { rolled: { label: "résultat du jet" } }),
+    marquerProduit(nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } }), 'optionsDeFormule', 'dice'),
+    marquerProduit(nommerChamps(z.strictObject({ rolled: z.literal(true) }), { rolled: { label: "résultat du jet" } }), 'optionsDeFormule', 'rolled'),
   ] : []),
-  nommerChamps(z.strictObject({ indiceOf: z.literal(true) }), { indiceOf: { label: "valeur de l’indice" } }),
-  nommerChamps(z.strictObject({ stacks: z.literal('self') }), { stacks: { label: "cumuls" } }),
-  nommerChamps(z.strictObject({ engagedAdvantageGap: z.literal(true) }), { engagedAdvantageGap: { label: "écart d’Avantage au contact" } }),
-  nommerChamps(z.strictObject({ woundsDealt: z.literal(true) }), { woundsDealt: { label: "Blessures infligées" } }),
+  marquerProduit(nommerChamps(z.strictObject({ indiceOf: z.literal(true) }), { indiceOf: { label: "valeur de l’indice" } }), 'optionsDeFormule', 'indiceOf'),
+  marquerProduit(nommerChamps(z.strictObject({ stacks: z.literal('self') }), { stacks: { label: "cumuls" } }), 'optionsDeFormule', 'stacks'),
+  marquerProduit(nommerChamps(z.strictObject({ engagedAdvantageGap: z.literal(true) }), { engagedAdvantageGap: { label: "écart d’Avantage au contact" } }), 'optionsDeFormule', 'engagedAdvantageGap'),
+  marquerProduit(nommerChamps(z.strictObject({ woundsDealt: z.literal(true) }), { woundsDealt: { label: "Blessures infligées" } }), 'optionsDeFormule', 'woundsDealt'),
   // LDB 09 l.97.
-  ...(avecJet ? [nommerChamps(z.strictObject({ sl: z.literal(true) }), { sl: { label: "DR" } })] : []),
-  nommerChamps(z.strictObject({ rule: refRegleOptionnelle }), { rule: { label: "règle" } }),
-  nommerChamps(z.strictObject({ sum: z.array(soi) }), { sum: { label: "somme" } }),
+  ...(avecJet ? [marquerProduit(nommerChamps(z.strictObject({ sl: z.literal(true) }), { sl: { label: "DR" } }), 'optionsDeFormule', 'sl')] : []),
+  marquerProduit(nommerChamps(z.strictObject({ rule: refRegleOptionnelle }), { rule: { label: "règle" } }), 'optionsDeFormule', 'rule'),
+  marquerProduit(nommerChamps(z.strictObject({ sum: z.array(soi) }), { sum: { label: "somme" } }), 'optionsDeFormule', 'sum'),
   // VDM 05.
-  nommerChamps(z.strictObject({ times: nommerChamps(z.strictObject({ of: soi, factor: soi }), { of: { label: "contenu" }, factor: { label: "facteur" } }) }), { times: { label: "multiplicateur" } }),
+  marquerProduit(nommerChamps(z.strictObject({ times: marquerProduit(nommerChamps(z.strictObject({ of: soi, factor: soi }), { of: { label: "contenu" }, factor: { label: "facteur" } }), 'optionsDeFormule', 'times.of') }), { times: { label: "multiplicateur" } }), 'optionsDeFormule', 'times'),
   // AA 07 l.113 ; LDB 18 l.88.
-  nommerChamps(z.strictObject({ minimum: z.number().int().nonnegative(), of: soi }), { minimum: { label: "minimum" }, of: { label: "contenu" } }),
+  marquerProduit(nommerChamps(z.strictObject({ minimum: z.number().int().nonnegative(), of: soi }), { minimum: { label: "minimum" }, of: { label: "contenu" } }), 'optionsDeFormule', 'minimum'),
 ];
 
 /** `Formula` (`src/engine/ops.ts`) — quantité résolue à l'application (littéral/dés/bonus/Indice/
@@ -941,10 +946,10 @@ export const formulaSchema: z.ZodType<unknown> = z.lazy(() => z.union(optionsDeF
 /** `FormuleSansTirage` (`src/engine/ops.ts`, #2817) — quantité LUE AVANT tout jet (portée, cibles, zone
  *  d'un Sort, bonus de DR, modificateur de Test affiché) : la grammaire de `formulaSchema` sans ses
  *  termes de jet, refusés nominativement. */
-export const formuleSansTirageSchema: z.ZodType<unknown> = z.lazy(() => z.union(
+export const formuleSansTirageSchema: z.ZodType<FormuleSansTirage> = z.lazy(() => z.union(
   optionsDeFormule(formuleSansTirageSchema, false) as [z.ZodType<unknown>, ...z.ZodType<unknown>[]],
   { error: (iss) => messageDeTermeDeJet(iss.input) },
-));
+)) as z.ZodType<FormuleSansTirage>;
 
 /** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Substitué à
  *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::resolveJsonFormula`), jamais à
@@ -958,6 +963,21 @@ export const formulaSinSchema: z.ZodType<unknown> = z.union([
   sinPointsSchema,
   nommerChamps(z.strictObject({ sum: z.array(z.union([formulaSchema, sinPointsSchema])) }), { sum: { label: "somme" } }),
 ]);
+
+/** Le nœud est-il, sous ses seules enveloppes (`optional`, `lazy`…), la grammaire SANS TIRAGE
+ *  (`formuleSansTirageSchema`) ? C'est le DIALECTE d'un champ de `Formula` lu sur son schéma, comme
+ *  `admetLePeche`. Descente unique `descendre` (`grammaire/descente.ts`). */
+export function estSansTirage(noeud: unknown): boolean {
+  if (!noeud || typeof noeud !== 'object') return false;
+  let sansTirage = false;
+  descendre([noeud], ({ noeud: n, path }) => {
+    if (path !== '') return 'elaguer';
+    if (n !== formuleSansTirageSchema) return;
+    sansTirage = true;
+    return 'arreter';
+  });
+  return sansTirage;
+}
 
 const PORTE_LE_PECHE = new WeakMap<object, boolean>();
 

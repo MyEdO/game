@@ -348,9 +348,9 @@
     "stakeForm": "descripteur"
   },
   {
-    "id": "souffle-feu",
+    "id": "souffle",
     "type": "maneuvers",
-    "label": "Souffle (Feu)",
+    "label": "Souffle",
     "kind": "souffle",
     "activation": "free",
     "advantageCost": 2,
@@ -374,346 +374,25 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
-            {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "wounds",
-                    "amount": {
-                      "indiceOf": true
-                    },
-                    "ignoreTB": false,
-                    "ignoreAP": true
-                  }
-                ]
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "wounds",
+                "amount": {
+                  "indiceOf": true
+                },
+                "ignoreTB": false,
+                "ignoreAP": false
               }
-            },
-            {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": "en-flammes"
-                  }
-                ]
-              }
-            }
-          ]
+            ]
+          }
         }
       }
     ],
-    "stake": "Esquive — réussie : le souffle est évité. Ratée : Dégâts égaux à l’Indice, PA ignorées (Bonus d’Endurance déduit), puis État En flammes.",
-    "stakeForm": "descripteur"
-  },
-  {
-    "id": "souffle-froid",
-    "type": "maneuvers",
-    "label": "Souffle (Froid)",
-    "kind": "souffle",
-    "activation": "free",
-    "advantageCost": 2,
-    "stat": "capacite-de-tir",
-    "defense": "esquive",
-    "targeting": "zone",
-    "range": {
-      "bonusOf": "endurance",
-      "plus": 20
-    },
-    "blast": {
-      "bonusOf": "force"
-    },
-    "magic": true,
-    "source": {
-      "book": "livre-de-base",
-      "page": 341
-    },
-    "effects": [
-      {
-        "trigger": "onHit",
-        "on": "victim",
-        "flow": {
-          "kind": "seq",
-          "steps": [
-            {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "wounds",
-                    "amount": {
-                      "indiceOf": true
-                    },
-                    "ignoreTB": false,
-                    "ignoreAP": false
-                  }
-                ]
-              }
-            },
-            {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": "sonne"
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      }
-    ],
-    "stake": "Esquive — réussie : le souffle est évité. Ratée : Dégâts égaux à l’Indice (Bonus d’Endurance et PA déduits), puis État Sonné.",
-    "stakeForm": "descripteur"
-  },
-  {
-    "id": "souffle-corrosif",
-    "type": "maneuvers",
-    "label": "Souffle (Corrosif)",
-    "kind": "souffle",
-    "activation": "free",
-    "advantageCost": 2,
-    "stat": "capacite-de-tir",
-    "defense": "esquive",
-    "targeting": "zone",
-    "range": {
-      "bonusOf": "endurance",
-      "plus": 20
-    },
-    "blast": {
-      "bonusOf": "force"
-    },
-    "magic": true,
-    "source": {
-      "book": "livre-de-base",
-      "page": 341
-    },
-    "effects": [
-      {
-        "trigger": "onHit",
-        "on": "victim",
-        "flow": {
-          "kind": "seq",
-          "steps": [
-            {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "wounds",
-                    "amount": {
-                      "indiceOf": true
-                    },
-                    "ignoreTB": false,
-                    "ignoreAP": false
-                  }
-                ]
-              }
-            },
-            {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": "sonne"
-                  }
-                ]
-              }
-            },
-            {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "damageArmour",
-                    "material": "cuir"
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      }
-    ],
-    "stake": "Esquive — réussie : le souffle est évité. Ratée : Dégâts égaux à l’Indice (Bonus d’Endurance et PA déduits), État Sonné, et l’armure de cuir touchée est rongée.",
-    "stakeForm": "descripteur"
-  },
-  {
-    "id": "souffle-electrique",
-    "type": "maneuvers",
-    "label": "Souffle (Électrique)",
-    "kind": "souffle",
-    "activation": "free",
-    "advantageCost": 2,
-    "stat": "capacite-de-tir",
-    "defense": "esquive",
-    "targeting": "zone",
-    "range": {
-      "bonusOf": "endurance",
-      "plus": 20
-    },
-    "blast": {
-      "bonusOf": "force"
-    },
-    "magic": true,
-    "source": {
-      "book": "livre-de-base",
-      "page": 341
-    },
-    "effects": [
-      {
-        "trigger": "onHit",
-        "on": "victim",
-        "flow": {
-          "kind": "seq",
-          "steps": [
-            {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "wounds",
-                    "amount": {
-                      "indiceOf": true
-                    },
-                    "ignoreTB": false,
-                    "ignoreAP": true
-                  }
-                ]
-              }
-            },
-            {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": "sonne"
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      }
-    ],
-    "stake": "Esquive — réussie : le souffle est évité. Ratée : Dégâts égaux à l’Indice, PA ignorées (Bonus d’Endurance déduit), puis État Sonné.",
-    "stakeForm": "descripteur"
-  },
-  {
-    "id": "souffle-poison",
-    "type": "maneuvers",
-    "label": "Souffle (Poison)",
-    "kind": "souffle",
-    "activation": "free",
-    "advantageCost": 2,
-    "stat": "capacite-de-tir",
-    "defense": "esquive",
-    "targeting": "zone",
-    "range": {
-      "bonusOf": "endurance",
-      "plus": 20
-    },
-    "blast": {
-      "bonusOf": "force"
-    },
-    "magic": true,
-    "source": {
-      "book": "livre-de-base",
-      "page": 341
-    },
-    "effects": [
-      {
-        "trigger": "onHit",
-        "on": "victim",
-        "flow": {
-          "kind": "seq",
-          "steps": [
-            {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "wounds",
-                    "amount": {
-                      "indiceOf": true
-                    },
-                    "ignoreTB": false,
-                    "ignoreAP": true
-                  }
-                ]
-              }
-            },
-            {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": "empoisonne"
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      }
-    ],
-    "stake": "Esquive — réussie : le souffle est évité. Ratée : Dégâts égaux à l’Indice, PA ignorées (Bonus d’Endurance déduit), puis État Empoisonné.",
-    "stakeForm": "descripteur"
-  },
-  {
-    "id": "souffle-fumee",
-    "type": "maneuvers",
-    "label": "Souffle (Fumée)",
-    "kind": "souffle",
-    "activation": "free",
-    "advantageCost": 2,
-    "stat": "capacite-de-tir",
-    "defense": "esquive",
-    "targeting": "zone",
-    "range": {
-      "bonusOf": "endurance",
-      "plus": 20
-    },
-    "blast": {
-      "bonusOf": "force"
-    },
-    "magic": true,
-    "source": {
-      "book": "livre-de-base",
-      "page": 341
-    },
-    "effects": [],
-    "stake": "Le nuage coupe les Lignes de vue pendant un nombre de Rounds égal au Bonus d’Endurance de la créature.",
+    "stake": "Esquive — réussie : le souffle est évité. Ratée : Dégâts d’Arme égaux à l’Indice{regleDuType}.",
     "stakeForm": "descripteur"
   },
   {
@@ -1074,31 +753,57 @@
                   },
                   {
                     "op": "grantTrait",
-                    "traitId": "arme",
-                    "indice": 4
+                    "trait": {
+                      "id": "arme",
+                      "value": {
+                        "sum": [
+                          {
+                            "bonusOf": "force"
+                          },
+                          4
+                        ]
+                      }
+                    }
                   },
                   {
                     "op": "grantTrait",
-                    "traitId": "armure",
-                    "indice": 2
+                    "trait": {
+                      "id": "armure",
+                      "value": 2
+                    }
                   },
                   {
                     "op": "grantTrait",
-                    "traitId": "morsure",
-                    "indice": 3
+                    "trait": {
+                      "id": "morsure",
+                      "value": {
+                        "sum": [
+                          {
+                            "bonusOf": "force"
+                          },
+                          3
+                        ]
+                      }
+                    }
                   },
                   {
                     "op": "grantTrait",
-                    "traitId": "peur",
-                    "indice": 2
+                    "trait": {
+                      "id": "peur",
+                      "value": 2
+                    }
                   },
                   {
                     "op": "grantTrait",
-                    "traitId": "pisteur"
+                    "trait": {
+                      "id": "pisteur"
+                    }
                   },
                   {
                     "op": "grantTrait",
-                    "traitId": "vision-nocturne"
+                    "trait": {
+                      "id": "vision-nocturne"
+                    }
                   }
                 ]
               },
@@ -1115,7 +820,7 @@
       "book": "middenheim",
       "page": 116
     },
-    "stake": "Sur soi : la forme hybride prend — Capacité de Combat, Force, Endurance, Initiative et Agilité +10, Dextérité et Intelligence −10, Sociabilité −20, Mouvement +1, et les Traits Arme 4, Armure 2, Morsure 3, Peur 2, Pisteur, Vision nocturne — au prix de l’Action du tour.",
+    "stake": "Sur soi : la forme hybride prend — Capacité de Combat, Force, Endurance, Initiative et Agilité +10, Dextérité et Intelligence −10, Sociabilité −20, Mouvement +1, et les Traits Arme (BF +4), Armure 2, Morsure (BF +3), Peur 2, Pisteur, Vision nocturne — au prix de l’Action du tour.",
     "stakeForm": "descripteur"
   },
   {

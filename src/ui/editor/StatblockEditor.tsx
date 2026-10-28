@@ -34,7 +34,7 @@ function cloneFromCreature(creatureId: string): CustomStatblock | null {
   return { type: 'statblock',
     label: c.label,
     char,
-    traits: c.traits, // statbloc éditeur = TraitInstance[] structurés (affichés/édités via formatTrait/parseTraitInstance)
+    traits: c.traits, // statbloc éditeur = Traits posés (affichés/édités via formatTrait/parseTraitInstance)
     // PNJ nommés (Eusapia…) : compétences/talents/sorts de la donnée embarqués dans le clone.
     // CustomStatblock stocke des REFS structurées (comme le bestiaire) — ids, pas libellés (multilangue).
     ...(c.skills.length ? { skills: c.skills } : {}), // déjà SkillRef[]
@@ -43,7 +43,7 @@ function cloneFromCreature(creatureId: string): CustomStatblock | null {
   };
 }
 
-export function StatblockEditor({ stat, onChange }: { stat: CustomStatblock; onChange: (s: CustomStatblock) => void }) {
+export function StatblockEditor({ chemin, stat, onChange }: { chemin: string; stat: CustomStatblock; onChange: (s: CustomStatblock) => void }) {
   const setChar = (k: string, v: number) => onChange({ ...stat, char: { ...stat.char, [k]: v } });
   // Blessures de la formule (LDB 85), recalculées en live depuis F/E/FM + la Taille du profil
   // (`tailleDuProfil`, `size` explicite compris) — sert de placeholder au champ « B » laissé vide.
@@ -116,6 +116,7 @@ export function StatblockEditor({ stat, onChange }: { stat: CustomStatblock; onC
         <span className="statblock-note">« Utiliser les Tailles » (LDB 85) : ±10 F/E, ∓5 Ag par catégorie</span>
       </div>
       <TraitListField
+        chemin={`${chemin}/traits`}
         label="Traits"
         hint="(armement : « Arme (Épée) +7 », « À distance (Arbalète) +9 (60) » ; Taille : « Taille (Énorme) » ; Psychologie LDB 21 : « Peur 3 », « Animosité (Elfes) », « Frénésie » — précisez la Cible « (un au choix) »)"
         value={stat.traits}

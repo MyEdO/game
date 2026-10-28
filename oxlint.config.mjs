@@ -1,6 +1,9 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { collectLabelEntityResolvers } from './scripts/guards/lib/labelLogic.mjs';
 import { RACINES_DES_ZONES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe } from './scripts/guards/lib/couches.mjs';
 
 const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation)$/';
@@ -83,7 +86,7 @@ const VERROU_LISTAGE = [
 ].map((selector) => ({ selector, message: MSG_ORDRE_TOTAL }));
 
 const STOCKAGES_WEB = ['localStorage', 'sessionStorage'];
-const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` ou `lireDictionnaire` (`src/web/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
+const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` (`src/web/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
 
 const REMEDE_CONSOLE = 'rendre l’information VISIBLE, la nommer en `aria-label`/`aria-describedby`, ou la confier au popover `CodexRef` (verbatim de la donnée)';
 const VERROU_CONSOLE = [{
@@ -207,6 +210,17 @@ const ECHAP_ALIAS = [
 ].map((selector) => ({ selector, message: MSG_ECHAP_ALIAS }));
 const DEFINITION_ECHAP = 'Program > ExportNamedDeclaration > VariableDeclaration[kind="const"] > VariableDeclarator[id.name="CODE_ECHAP"]';
 const ECHAP_GABARIT = { selector: 'TemplateElement[value.cooked="Escape"]', message: MSG_ECHAP };
+/** Les fichiers que cette config LIT au chargement, hors imports : ils entrent dans sa fermeture (`fermetureDeConfig`). */
+export const LECTURES_DE_CONFIG = Object.freeze(['src/data/index.ts']);
+const RESOLVEURS_PAR_LIBELLE = [...collectLabelEntityResolvers(readFileSync(join(fileURLToPath(new URL('.', import.meta.url)), LECTURES_DE_CONFIG[0]), 'utf8'))];
+const MSG_RESOLVEUR_PAR_LIBELLE = `Libellé en logique (#1463, #2995) : ${RESOLVEURS_PAR_LIBELLE.map((n) => `\`${n}\``).join(', ')} résolvent une entrée par son LIBELLÉ, couture de SAISIE de \`src/data/index.ts\`. Un test ou un script nomme l’entrée par son id (\`findSpellById\`, \`findTalentById\`, \`find((x) => x.id === …)\`) ; une saisie « format livre » s’éprouve par son parseur (\`refFormatLivre\`, \`parseQualityInstance\`).`;
+const NOMS_RESOLVEURS_PAR_LIBELLE = `/^(${RESOLVEURS_PAR_LIBELLE.join('|')})$/`;
+const VERROU_RESOLVEUR_PAR_LIBELLE = [
+  `ImportSpecifier[imported.name=${NOMS_RESOLVEURS_PAR_LIBELLE}]`,
+  `ExportSpecifier[local.name=${NOMS_RESOLVEURS_PAR_LIBELLE}]`,
+  ...cles('property', NOMS_RESOLVEURS_PAR_LIBELLE).map((c) => `MemberExpression${c}`),
+  ...cles('key', NOMS_RESOLVEURS_PAR_LIBELLE).map((c) => `ObjectPattern > Property${c}`),
+].map((selector) => ({ selector, message: MSG_RESOLVEUR_PAR_LIBELLE }));
 const MSG_ECHAP_IMPORT = 'Échap (#1476, #2724) : `CODE_ECHAP` ne s’importe que sous `src/state/clavier` et `src/ui/clavier` — une surface qui se ferme à Échap s’empile (`useDismissLayer`/`useModalA11y`) et la porte de la pile la congédie ; le remap d’un raccourci passe par `useRemapDeTouche`.';
 const MSG_POSITIONS = 'Positions de touche (#1687, #2724) : le registre clavier, son lecteur et son remap lisent `e.code` (la POSITION physique), jamais `e.key` (le caractère, qui ment sur un clavier AZERTY). Les touches NOMMÉES des couches (`src/ui/clavier/couches/`) se lisent par `e.key`.';
 const VERROU_POSITIONS = [
@@ -685,6 +699,13 @@ export const BLOCS_LINT = [
     rules: {
       'murs/stockage-web': ['error', ...STOCKAGES_WEB.map((property) => ({ property, message: MSG_STOCKAGE_WEB }))],
       'murs/stockage-web-global': ['error', ...STOCKAGES_WEB.map((name) => ({ name, message: MSG_STOCKAGE_WEB }))],
+    },
+  },
+  {
+    // #1463, #2995
+    files: [...[...RACINES_DES_ZONES, 'server'].flatMap((r) => ['test', 'bench', 'testkit'].map((genre) => `${r}/**/*.${genre}.*`)), 'scripts/**'],
+    rules: {
+      'murs/resolveur-par-libelle': ['error', ...VERROU_RESOLVEUR_PAR_LIBELLE],
     },
   },
   {

@@ -147,7 +147,7 @@ export interface SceneEntity {
    *  enrôlé dans une rencontre (cf. EncounterMember). Porte les choix d'auteur qui DÉCRIVENT la
    *  personne au combat — son profil (ref/statblock) et son apparence vivent déjà sur l'entité. */
   combat?: {
-    /** OPTIONNELS choisis (LDB 76 l.45) : `TraitInstance` fusionnés au spawn OU notes composées
+    /** OPTIONNELS choisis (LDB 76 l.45) : Traits posés résolus au spawn OU notes composées
      *  (joker « tous les traits », variante « swap » retirant des Traits + octroyant un bonus, ZI). */
     optionals?: import('../../engine/statEntry').OptionalEntry[];
     /** Sorts connus (ids de spells.json) — choix d'auteur, remplace ceux de la créature `ref` (`src/noyau/monde/spawn.ts` › `spells`). */

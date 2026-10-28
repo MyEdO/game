@@ -45,7 +45,7 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/state/(documentDeProjet|parseProject-porte)\.test\.`),
     categorie: 'outillage',
     raison: 'Tests de la porte de projet de l\'éditeur.',
-    preuve: 'noms ; src/state/projectLibrary.ts (parseProject)',
+    preuve: 'noms ; src/noyau/persistance/bibliotheque.ts (parseProject)',
   },
   {
     motif: new RegExp(String.raw`^src/gameIso/rig/qc-contrat(\.test)?\.ts$`),
@@ -198,8 +198,8 @@ export const REGLES = Object.freeze([
   {
     motif: new RegExp(String.raw`^src/ui/creator/`),
     categorie: 'interface-wfrp',
-    raison: 'Assistant de création de personnage WFRP (draft, étapes, roue céleste).',
-    preuve: 'src/ui/creator/draft.ts imports engine/adresseDeCreation, careerSlots',
+    raison: 'Assistant de création de personnage WFRP (étapes, roue céleste).',
+    preuve: 'src/ui/creator/CharacterCreator.tsx imports ../../noyau/creation/brouillon, ../../engine/creation',
   },
   {
     motif: new RegExp(String.raw`^src/ui/jetProps/`),
@@ -296,10 +296,10 @@ export const REGLES = Object.freeze([
     preuve: 'src/gameIso/rig/creatures/defs/Cheval.ts:7-10',
   },
   {
-    motif: new RegExp(String.raw`^src/gameIso/rig/(races|plans)/|^src/gameIso/rig/gabarits/`),
+    motif: new RegExp(String.raw`^src/gameIso/rig/(races|plans)/`),
     categorie: 'douteux',
     famille: 'contenu-art',
-    raison: 'Registres de races/gabarits/plans (donnees WFRP de morphologie) : ni fourni par un moteur ni UI.',
+    raison: 'Registres de races/plans (donnees WFRP de morphologie) : ni fourni par un moteur ni UI.',
     preuve: 'src/gameIso/rig/races/index.ts:3 ; src/gameIso/rig/bodyPlan.ts:1-8',
   },
   {

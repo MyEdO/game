@@ -292,7 +292,7 @@ Trois options, dans l'ordre :
 
 `LDB 05 l.534-553`
 
-**Règle Magie mineure à la création :** si le Personnage possède le Talent Magie mineure (Sorcier N1, etc.), il mémorise un nombre de sorts égal à son BFM au départ. `LDB 10 l.714` (voir aussi `src/ui/creator/draft.ts l.88`)
+**Règle Magie mineure à la création :** si le Personnage possède le Talent Magie mineure (Sorcier N1, etc.), il mémorise un nombre de sorts égal à son BFM au départ. `LDB 10 l.714` (voir aussi `src/noyau/creation/brouillon.ts`, `pettySpellQuota`)
 
 ---
 
@@ -661,6 +661,6 @@ Ces Carrières peuvent aussi être choisies librement à la création. `ADE I AN
 | Couleur des yeux (2d10, table par espèce) | `src/engine/creation.ts l.142` — `LDB 05 l.742-754` |
 | Couleur des cheveux (2d10, table par espèce) | `src/engine/creation.ts l.147` — `LDB 05 l.756-768` |
 | 5 Augmentations gratuites sur 3 Caractéristiques de carrière | `src/engine/character.ts l.256, 263` — `LDB 05 l.459, 463` |
-| 40 Augmentations de Compétences de carrière (max 10 / Comp.) | `src/ui/creator/draft.ts` |
-| Magie mineure : BFM sorts mémorisés à la création | `src/ui/creator/draft.ts l.88, 505` — `LDB 10 l.714` |
+| 40 Augmentations de Compétences de carrière (max 10 / Comp.) | `src/engine/character.ts` (`CAREER_SKILL_ADVANCES`) · `src/noyau/creation/brouillon.ts` |
+| Magie mineure : BFM sorts mémorisés à la création | `src/noyau/creation/brouillon.ts` (`pettySpellQuota`) — `LDB 10 l.714` |
 | Compétences/Talents des Races LDB | `src/data/species.json` |

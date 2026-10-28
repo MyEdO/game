@@ -3,6 +3,10 @@ import { opposedLines } from './breakdown';
 import { baseTestModLines, baseTestMods, type ModLine } from '../engine/combat';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
 import type { Combatant } from '../engine/types';
+import { conditionIds } from '../data';
+import { ligneDe } from '../engine/modLine.testkit';
+import { refDeRegle } from '../engine/reglesChiffrees';
+import { RULE_REF } from '../engine/ruleRefs';
 
 /**
  * FABRIQUE de PAIRE OPPOSÉE (`opposedLines`, #1112 G1) — LDB 12 l.166 : « Si aucune Difficulté n'est
@@ -42,8 +46,9 @@ describe('opposedLines — la Difficulté est déclarée UNE fois pour l’oppos
   });
 
   it('les modificateurs circonstanciels restent des chips NOMMÉES, distinctes de la Difficulté', () => {
-    const [a] = opposedLines([{ label: 'Navigation', base: 45, mods: [{ label: 'Hors de contrôle', value: -20, famille: 'jet' }] }]);
-    expect(a.pending!.mods).toEqual([{ label: 'Hors de contrôle', value: -20, famille: 'jet' }]);
+    const horsDeControle: ModLine = { label: 'Hors de contrôle', value: -20, famille: 'jet' };
+    const [a] = opposedLines([{ label: 'Navigation', base: 45, mods: [horsDeControle] }]);
+    expect(a.pending!.mods).toEqual([horsDeControle]);
     expect(a.pending!.difficulty).toBe('intermediaire');
     expect(a.pending!.target).toBe(25); // 45 + 0 (Difficulté) − 20 (chip nommée)
   });
@@ -68,7 +73,9 @@ describe('lignes opposées de combat — l’écart à la base est TOUJOURS couv
   } as unknown as Combatant);
 
   it('`baseTestModLines` NOMME exactement ce que `baseTestMods` ajoute au jet (aucune part muette)', () => {
-    for (const c of [hero(), hero({ advantage: 3 }), hero({ advantage: 1, conditions: [{ id: 'etourdi', value: 2 }] as Combatant['conditions'] })]) {
+    const penalisant = conditionIds().find((id) => baseTestMods(hero({ conditions: [{ id, value: 1 }] as Combatant['conditions'] }), 'capacite-de-combat') !== 0);
+    expect(penalisant, 'le registre porte un État qui pénalise la CC').toBeDefined();
+    for (const c of [hero(), hero({ advantage: 3 }), hero({ advantage: 1, conditions: [{ id: penalisant!, value: 2 }] as Combatant['conditions'] })]) {
       const lines = baseTestModLines(c, 'capacite-de-combat');
       expect(lines.reduce((s, l) => s + l.value, 0)).toBe(baseTestMods(c, 'capacite-de-combat'));
       for (const l of lines) expect(l.label.length).toBeGreaterThan(0); // aucune chip sans nom
@@ -83,7 +90,7 @@ describe('lignes opposées de combat — l’écart à la base est TOUJOURS couv
     const [line] = opposedLines([{ label: 'Force', base, r: { roll: 30, target, sl: 2, success: true }, mods }]);
     expect(line.d!.target - line.d!.base).toBe(20); // Avantage ×10 = +20
     expect(line.d!.mods!.reduce((s, l) => s + l.value, 0)).toBe(line.d!.modifier); // rien d'anonyme
-    expect(line.d!.mods!.map((m) => m.label)).toContain('Avantage');
+    expect(ligneDe(line.d!.mods, refDeRegle('avantage'))).toBeDefined();
   });
 });
 
@@ -106,9 +113,10 @@ describe('contrat arithmétique d’une ligne de cascade (#1117 G2)', () => {
 
   it('Soutien + Difficulté : tout l’écart est expliqué, résidu ZÉRO', () => {
     // Cas de la sonde : porteur NU 69, Soutien +20 en ligne de mod, Très difficile (−30) → cible 59.
-    const e = emission({ base: 69, target: 59, mods: [{ label: 'Soutien', value: 20, famille: 'jet' as const }], difficulty: 'tresDifficile' });
+    const soutien: ModLine = { label: 'Soutien', value: 20, famille: 'jet', ref: RULE_REF.soutien };
+    const e = emission({ base: 69, target: 59, mods: [soutien], difficulty: 'tresDifficile' });
     expect(e.base, 'la base affichée est la valeur NUE du porteur').toBe(69);
-    expect(e.mods.map((m) => m.label)).toEqual(['Soutien']);
+    expect(e.mods).toEqual([soutien]);
     expect(e.residual, 'aucun résidu : Σchips + Difficulté == modifier').toBe(0);
   });
 

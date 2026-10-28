@@ -1013,7 +1013,7 @@
     {
      "id": "pirate-1",
      "kind": "personnage",
-     "ref": "pirate-fluvial",
+     "ref": "humain",
      "pos": {
       "x": 18,
       "y": 6
@@ -1023,7 +1023,7 @@
     {
      "id": "pirate-2",
      "kind": "personnage",
-     "ref": "pirate-fluvial",
+     "ref": "humain",
      "pos": {
       "x": 18,
       "y": 8
@@ -1033,7 +1033,7 @@
     {
      "id": "chef-pirate-1",
      "kind": "personnage",
-     "ref": "chef-pirate",
+     "ref": "jaego-roth",
      "pos": {
       "x": 19,
       "y": 7

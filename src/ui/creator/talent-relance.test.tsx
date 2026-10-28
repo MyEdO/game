@@ -7,7 +7,7 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { SkillsScreen } from './CharacterCreator';
-import { newDraft, withSpecies, withCareer, rollDraftTalents, speciesTalentRandomDrawn, type CreatorDraft } from './draft';
+import { newDraft, withSpecies, withCareer, rollDraftTalents, speciesTalentRandomDrawn, type CreatorDraft } from '../../noyau/creation/brouillon';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

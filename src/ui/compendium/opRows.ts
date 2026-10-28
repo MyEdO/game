@@ -7,18 +7,19 @@
  * kind SANS id stable (invocation d'arme nommée, marqueur d'atelier…) ou pointant une catégorie hors
  * Codex tombe en `{t:'text'}`. JAMAIS `opSummary` (résumeur d'ATELIER, `editor/interne/resumeDOp.ts`).
  */
-import { slBonus, estCausePersistante, type GameOp, type Formula, type PerSL } from '../../engine/ops';
+import { estCausePersistante, type GameOp, type Formula, type PerSL } from '../../engine/ops';
+import { slBonus } from '../../engine/formule';
 import type { CodexRow } from './registry';
-import { humanizeOp, humanizeFormula, humanizePerSL, CAUSE_PERSISTANTE, replieCausesPersistantes, plural, dureePropre, plancher } from './humanize';
+import { humanizeOp, humanizeFormula, humanizePerSL, CAUSE_PERSISTANTE, replieCausesPersistantes, plural, dureePropre, plancher, traitOctroyeLisible } from './humanize';
 import { CHAR_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
-import { formatTrait, traitLabelById } from '../../engine/traits/dispatch';
+import { traitLabelById } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
 import { facesDuDe, fourchette } from '../../engine/tables';
 import type { DeDeTable } from '../../data/schemas/grammaire/valeurs';
 import { statName } from '../../engine/statEntry';
 import {
   conditionLabel, psychologyLabel, diseaseLabel, symptomLabel, creatureLabel,
-  refLabel, findTrappingById, findEffectTableById, mutationTables, findPsychologyById,
+  refLabel, findTrappingById, findEffectTableById, mutationTables, findPsychologyById, groupLabel,
 } from '../../data';
 
 const textRow = (o: GameOp): CodexRow => ({ t: 'text', text: humanizeOp(o) });
@@ -85,12 +86,13 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'skills', id: o.skill.id, label: statName(l), show: l, badge: `+${humanizeFormula(o.bonus)} DR` };
     }
     case 'grantTrait': {
-      const label = traitLabelById(o.traitId);
-      return { t: 'ref', category: 'traits', id: o.traitId, label, show: formatTrait({ id: o.traitId, arg: o.arg, ...(typeof o.indice === 'number' ? { value: o.indice } : {}), range: o.range }), badge: o.indice != null && typeof o.indice !== 'number' ? humanizeFormula(o.indice) : undefined };
+      const label = traitLabelById(o.trait.id);
+      const indice = o.trait.value;
+      return { t: 'ref', category: 'traits', id: o.trait.id, label, show: traitOctroyeLisible(o), badge: indice != null && typeof indice !== 'number' ? humanizeFormula(indice) : undefined };
     }
     case 'grantPsychTrait': {
       const label = psychologyLabel(o.psychType);
-      return { t: 'ref', category: 'psychologies', id: o.psychType, label, show: label, badge: o.cible };
+      return { t: 'ref', category: 'psychologies', id: o.psychType, label, show: label, badge: o.cible ? groupLabel(o.cible) : undefined };
     }
     case 'removePsychTrait': {
       if (!o.psychType) return textRow(o); // « au choix » : pas d'ancre
@@ -108,7 +110,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       // modificateur social « contenu » déclaré par l'entrée (`containedSocialMod`).
       const mod = o.active === false ? findPsychologyById(o.type)?.containedSocialMod : undefined;
       const badge = [
-        o.cible ?? (o.indice != null ? humanizeFormula(o.indice) : undefined),
+        (o.cible ? groupLabel(o.cible) : undefined) ?? (o.indice != null ? humanizeFormula(o.indice) : undefined),
         mod != null ? `${mod < 0 ? '−' : '+'}${Math.abs(mod)} Sociabilité` : undefined,
       ].filter((s): s is string => !!s).join(' · ') || undefined;
       return { t: 'ref', category: 'psychologies', id: o.type, label, show: label, badge };

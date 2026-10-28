@@ -22,7 +22,7 @@ import { attackTestLabel, isHelplessTarget, rangeBandModifier } from '../engine/
 import { castInfo, isMagicMissile, missileDamage } from '../engine/magic';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { effectiveRange } from '../engine/weaponDamage';
-import { isOutOfAction, canTakeAction, hasCondition, COND } from '../engine/conditions';
+import { isOutOfAction, canTakeAction, refusVerrouDAction } from '../engine/conditions';
 import { isEngaged, reachTiles } from '../engine/engagement';
 import { avantageApresDepense, campGain, campSpend } from './combat/advantagePool';
 import { hasActiveFlag } from '../engine/activeFlags';
@@ -500,7 +500,9 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   const option = selectedAttackOption(active, battle);
   if (!option || !scene) return;
   if (target.kind === active.kind) return; // camp RELATIF : on ne frappe que le camp ADVERSE (soin/sort via leurs modes)
-  if (!canTakeAction(active) || hasCondition(active, COND.brise)) { refuserGeste(get, set, t('agate.unableToAct')); return; } // Sonné/Brisé : pas d'attaque (parité boutons)
+  if (!canTakeAction(active)) { refuserGeste(get, set, t('agate.unableToAct')); return; }
+  const verrou = refusVerrouDAction(active);
+  if (verrou) { refuserGeste(get, set, verrou); return; }
   // Frénésie (LDB 21 l.33) : la cible est IMPOSÉE — l'ennemi le plus proche en Ligne de Vue.
   if (isFrenzied(active)) {
     const ft = frenzyTarget(get, active);
@@ -522,7 +524,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Empoignade (LDB 14 l.161) : action de Test opposé de Force entre deux Empoignés → flux dédié.
   if (option.targeting === 'grapple') return get().battleGrapple(target.id);
   if (option.targeting === 'zone') {
-    set({ pendingManeuver: { attackerId: active.id, kind: option.kind!, maneuverId: option.def!.id, targetId: target.id, avantageSpent: option.advantageMode === 'variable' ? 1 : option.cost.advantage, result: null }, battle: { ...battle, action: null, selectedAttack: undefined } });
+    set({ pendingManeuver: { attackerId: active.id, kind: option.kind!, attaque: option.id, targetId: target.id, avantageSpent: option.advantageMode === 'variable' ? 1 : option.cost.advantage, result: null }, battle: { ...battle, action: null, selectedAttack: undefined } });
     return;
   }
   // === MÊLÉE : approche-puis-frappe (le SEUL exécuteur charge/moveAttack du jeu) ===
@@ -830,7 +832,7 @@ const dispelParametreADemander = (get: Get, id: string): boolean => dispellableO
  * de la console naît de l'alvéole, sur `dispelCarrierId`.
  *
  * COOP : cette élection est un choix d'ÉCRAN, elle se joue chez l'ÉMETTEUR (`electionLocale`) — le
- * porteur élu vit hors snapshot (`netFlow.netSnapshot`), et seul le COMMIT `battleDispelSpell`
+ * porteur élu vit hors instantané (`coop.instantaneDeLaCoop`), et seul le COMMIT `battleDispelSpell`
  * voyage. Sans cette déclaration, l'intent d'un invité faisait naître le panneau chez L'HÔTE.
  */
 const DISPEL_MODE: TargetingMode = {

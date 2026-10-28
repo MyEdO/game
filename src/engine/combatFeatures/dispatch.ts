@@ -4,7 +4,6 @@
  * rollFlows / store. Aucune mutation. Même patron que `engine/qualities/dispatch.ts`.
  */
 import type { Combatant, RangeBandId, Weapon } from '../types';
-import { groupMatch } from '../groups';
 import { isShieldItem } from '../items';
 import { findTalentById, findTraitById } from '../../data';
 import { canStrikeFirst } from '../qualities/dispatch';
@@ -62,16 +61,6 @@ export function featuresOf(c: Combatant): { def: CombatFeature; ctx: CombatFeatu
     if (def) out.push({ def, ctx: { combatant: c, level: 1, spec: e.grantedTalent.spec } });
   }
   return out;
-}
-
-/** Sans peur (LDB 10 l.1051) : `c` porte-t-il le Talent contre `foe` ? PAS une immunité —
- *  détection d'éligibilité (talent possédé vs l'Ennemi spécifié, par Groupes, ou ACCORDÉ par un
- *  sort sans spec, toutes sources). L'appelant (`sansPeurVs`) en déduit un seul Test de Calme
- *  Accessible (+20) à la rencontre — qui PEUT échouer, cf. `resolvePeurTest`/`resolveTerreurTest`. */
-export function fearImmuneVs(c: Combatant, foe: Pick<Combatant, 'groups'>): boolean {
-  return featuresOf(c).some(
-    ({ def, ctx }) => def.fearImmune && (ctx.spec == null || groupMatch(ctx.spec, foe.groups ?? [])),
-  );
 }
 
 /** Somme des niveaux des capacités vérifiant `pred` (0 si aucune). */

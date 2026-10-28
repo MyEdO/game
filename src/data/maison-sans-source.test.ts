@@ -69,8 +69,8 @@ describe('maison sans source — collections nominatives', () => {
       'sea-navigation', 'sea-perils', 'sea-weather', 'ship-construction', 'weather',
     ]);
     expect(Object.keys(SANS_LIVRE).sort()).toEqual([
-      'actions', 'ambiance', 'apparences', 'books', 'breath-types', 'buildings', 'calendarPhases', 'damage-types',
-      'decorPalette', 'defauts-de-compilation', 'details', 'donnees.manifest', 'groups', 'lieux-services', 'lightLevels',
+      'actions', 'ambiance', 'apparences', 'books', 'buildings', 'calendarPhases', 'damage-types',
+      'decorPalette', 'defauts-de-compilation', 'details', 'donnees.manifest', 'gabarits', 'groups', 'lieux-services', 'lightLevels',
       'lightTones', 'localisation', 'materials', 'merchantFamilies', 'merchants', 'names', 'pregens',
       'primitives.manifest', 'progression-schemas.derived', 'props',
       'qualitySubtypes', 'qualityTypes', 'raceAppearance', 'raw.manifest',

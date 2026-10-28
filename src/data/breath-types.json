@@ -2,31 +2,81 @@
   {
     "id": "feu",
     "type": "breath-types",
-    "label": "Feu"
+    "label": "Feu",
+    "source": {
+      "book": "livre-de-base",
+      "page": 341
+    },
+    "ignoreAP": true,
+    "etat": "en-flammes"
   },
   {
     "id": "froid",
     "type": "breath-types",
-    "label": "Froid"
+    "label": "Froid",
+    "source": {
+      "book": "livre-de-base",
+      "page": 341
+    },
+    "etat": "sonne"
   },
   {
     "id": "corrosif",
     "type": "breath-types",
-    "label": "Corrosif"
+    "label": "Corrosif",
+    "source": {
+      "book": "livre-de-base",
+      "page": 341
+    },
+    "endommageLEquipement": true
   },
   {
     "id": "electrique",
     "type": "breath-types",
-    "label": "Électrique"
+    "label": "Électrique",
+    "source": {
+      "book": "livre-de-base",
+      "page": 341
+    },
+    "ignoreAP": true,
+    "etat": "sonne"
   },
   {
     "id": "poison",
     "type": "breath-types",
-    "label": "Poison"
+    "label": "Poison",
+    "source": {
+      "book": "livre-de-base",
+      "page": 341
+    },
+    "ignoreAP": true,
+    "etat": "empoisonne"
   },
   {
     "id": "fumee",
     "type": "breath-types",
-    "label": "Fumée"
+    "label": "Fumée",
+    "source": {
+      "book": "livre-de-base",
+      "page": 341
+    },
+    "fumee": true
+  },
+  {
+    "id": "corrosion-et-poison",
+    "type": "breath-types",
+    "label": "Corrosion et Poison",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 78
+    },
+    "types": [
+      {
+        "id": "corrosif"
+      },
+      {
+        "id": "poison"
+      }
+    ]
   }
 ]

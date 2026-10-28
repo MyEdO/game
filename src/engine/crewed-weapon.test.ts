@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { crewedPenalty, crewedFireWeapon, crewedReloadStep } from './crewedWeapon';
 import { attackModifiers } from './combat';
+import { ligneDe } from './modLine.testkit';
 import type { Weapon, Combatant } from './types';
 
 /**
@@ -112,15 +113,16 @@ describe('attackModifiers — le −10 du Défaut redoublé apparaît sur le Tes
   const shooter = (): Combatant =>
     ({ id: 's', name: 'S', kind: 'hero', advantage: 0, conditions: [], skills: [], size: 3, weapons: [] }) as unknown as Combatant;
   const mark = (): Combatant => ({ id: 't', name: 'T', kind: 'enemy', advantage: 0, conditions: [], size: 3 }) as unknown as Combatant;
+  const sousEffectif = { category: 'qualities', id: 'arme-d-equipe' };
 
   it('un canon Imprécise manié seul → ligne « Sous-effectif » à −10 dans les modificateurs de touche', () => {
     const w = crewedFireWeapon(cannon({ qualities: [{ id: 'arme-d-equipe', value: 3 }, { id: 'imprecise' }] }), 1);
-    const line = attackModifiers(shooter(), mark(), w, { kind: 'ranged' }).find((m) => m.label.includes('Sous-effectif'));
+    const line = ligneDe(attackModifiers(shooter(), mark(), w, { kind: 'ranged' }), sousEffectif);
     expect(line?.value).toBe(-10);
   });
 
   it('équipage complet → aucune ligne « Sous-effectif »', () => {
     const w = crewedFireWeapon(cannon({ qualities: [{ id: 'arme-d-equipe', value: 3 }, { id: 'imprecise' }] }), 3);
-    expect(attackModifiers(shooter(), mark(), w, { kind: 'ranged' }).some((m) => m.label.includes('Sous-effectif'))).toBe(false);
+    expect(ligneDe(attackModifiers(shooter(), mark(), w, { kind: 'ranged' }), sousEffectif)).toBeUndefined();
   });
 });

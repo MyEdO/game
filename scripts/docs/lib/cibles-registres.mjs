@@ -261,15 +261,6 @@ export const REGISTRIES = [
     typeFrom: './artkit',
   },
   {
-    // Gabarits (carrures réutilisables) : 1 carrure = 1 fichier defs/. Dissout PROPS.
-    dir: 'src/gameIso/rig/gabarits/defs',
-    out: 'src/gameIso/rig/gabarits/_registry.generated.ts',
-    exportName: 'gabarit',
-    arrayName: 'GABARIT_DEFS',
-    type: 'GabaritDef',
-    typeFrom: './types',
-  },
-  {
     // Gabarits corporels AUTO-ENREGISTRÉS : 1 plan = 1 fichier defs/ (ré-exporte son BodyPlan).
     // bodyPlan.ts dérive la table PLANS de cette liste → aucun registre central à éditer.
     dir: 'src/gameIso/rig/plans/defs',
@@ -360,7 +351,7 @@ export const SORTIES_DES_ESPACES = {
 /** Tous les fichiers que ce générateur écrit EN ENTIER, phase 2 comprise — ses cibles dans `GENERATORS` (build-all.mjs). */
 export const SORTIES = [...REGISTRIES.flatMap((r) => [r.out, ...(r.idUnion?.out ? [r.idUnion.out] : [])]), SORTIE_ART, ...Object.values(SORTIES_DES_ESPACES)];
 
-export const SORTIE_FORMATS = 'src/state/formats.generated.ts'
+export const SORTIE_FORMATS = 'src/noyau/persistance/formats.generated.ts'
 
 /** La cible de `scripts/gen-verbes.mjs` : les paramètres des verbes de la partie, que les hôtes du noyau lisent. */
 export const SORTIE_VERBES = 'src/hote/verbes.generated.ts'

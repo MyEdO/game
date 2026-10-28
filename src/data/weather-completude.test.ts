@@ -18,6 +18,7 @@ import { weatherIdSchema } from './schemas/defs/weather';
 import { setDataset } from './overrides';
 import { weatherConditions } from './index';
 import { weatherCondition } from '../engine/travelStages';
+import { t } from '../i18n';
 import { weatherTestMods } from '../engine/weatherTestMod';
 
 const DIR = __dirname;
@@ -90,13 +91,13 @@ describe('weather.json — le LIBELLÉ est la donnée, jusqu’au site affiché'
       // carac physique (`force`) — la ligne porte le libellé de la DONNÉE, pas une carte FR.
       const mods = weatherTestMods('pluie-diluvienne', 'force');
       expect(mods).toHaveLength(1);
-      expect(mods[0].label).toBe('Météo : Déluge de Morrslieb');
+      expect(mods[0].label).toBe(t('tp.modWeather', { weather: 'Déluge de Morrslieb' }));
       expect(mods[0].value).toBe(-10);
     } finally {
       setDataset('weatherConditions', orig);
     }
-    expect(weatherCondition('pluie').label).toBe('Pluie');
-    expect(weatherTestMods('pluie-diluvienne', 'force')[0].label).toBe('Météo : Pluie diluvienne');
+    expect(weatherCondition('pluie').label).toBe(orig.find((c) => c.id === 'pluie')!.label);
+    expect(weatherTestMods('pluie-diluvienne', 'force')[0].label).toBe(t('tp.modWeather', { weather: weatherCondition('pluie-diluvienne').label }));
   });
 
   it('CEINTURE : une condition absente de la donnée fait ÉCHOUER la porte en NOMMANT l’id', () => {

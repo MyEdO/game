@@ -3,6 +3,7 @@ import type { RNG } from './dice';
 import { createHero } from './character';
 import { makeRNG } from './dice';
 import { RULE_REF } from './ruleRefs';
+import { t } from '../i18n';
 import { strandingPenalty } from './seaPerils';
 import {
   rollRiverWind, tickRiverWind, riverWindEffect, savoirVoiesFluvialesBonus,
@@ -75,8 +76,8 @@ describe('Navigation & rame (l.11-17)', () => {
   it('les malus de Navigation sont des MODIFICATEURS NOMMÉS, pas des Difficultés (l.38 dérive −10, l.41 hors de contrôle −20)', () => {
     expect(navPenaltyMods({})).toEqual([]);
     // Chaque malus PORTE sa fiche de règle (#1117 L5b) : la chip s'ouvre sur la note du Tableau des Vents.
-    expect(navPenaltyMods({ drift: true })).toEqual([{ label: 'Dérive', value: -10, famille: 'circonstance', ref: RULE_REF['navigation-derive'] }]);
-    expect(navPenaltyMods({ outOfControl: true })).toEqual([{ label: 'Hors de contrôle', value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    expect(navPenaltyMods({ drift: true })).toEqual([{ label: t('rv.modDrift'), value: -10, famille: 'circonstance', ref: RULE_REF['navigation-derive'] }]);
+    expect(navPenaltyMods({ outOfControl: true })).toEqual([{ label: t('rv.modOutOfControl'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     expect(navPenaltyMods({ drift: true, outOfControl: true }).reduce((s, m) => s + m.value, 0)).toBe(-30);
   });
 

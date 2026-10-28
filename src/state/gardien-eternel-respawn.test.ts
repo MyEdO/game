@@ -13,7 +13,7 @@ import { findCreatureById } from '../data';
  * Trait Gardien éternel (Prédateur sanglant — Bestiaire de Middenheim, #19) : « si l'élémentaire incarné
  * qui garde la Source de Ghur est tué, il se reconstitue au bout de d10 jours, à moins que son pourfendeur
  * ne prenne les précautions appropriées… ». Câblé 100% en DONNÉE via l'op IMPURE `scheduleRespawn` portée
- * par un effet `onSlain` (MIROIR de Charnier/`summon`) : à la mort, `notifySlain` la moissonne
+ * par un effet `onSlain` (MIROIR de `summon`) : à la mort, `notifySlain` la moissonne
  * (`resolveTriggerImpureOps`) et PROGRAMME une entrée dans `scheduledEffects` (file horloge, Lot 0) à
  * `gameTime + d10 jours` ; l'échéance, franchie par `advanceTime`/`fireScheduledEffects`, RÉ-INVOQUE la
  * créature (`applySummon`) près de sa position de mort. Les « précautions » = le `cancelFlag` (un Effet de

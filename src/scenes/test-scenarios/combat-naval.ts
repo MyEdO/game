@@ -65,9 +65,9 @@ const construireScene = (): Scene => buildScene({
         // moins fort, la cogue encaisse plus longtemps (démontre les améliorations qui modifient le navire).
         { ref: 'cogue', pos: { x: 13, y: 6 }, label: 'Cogue pirate', upgrades: [{ id: 'blindage-fer' }],
           crewIds: ['enemy-enc-naval-1', 'enemy-enc-naval-2', 'enemy-enc-naval-3'] },
-        { ref: 'pirate-fluvial', pos: { x: 11, y: 4 } },
-        { ref: 'pirate-fluvial', pos: { x: 11, y: 8 } },
-        { ref: 'chef-pirate', pos: { x: 15, y: 6 } },
+        { ref: 'humain', pos: { x: 11, y: 4 }, label: 'Pirate' },
+        { ref: 'humain', pos: { x: 11, y: 8 }, label: 'Pirate' },
+        { ref: 'jaego-roth', pos: { x: 15, y: 6 } },
         // index 4 = la BARGE AMIE (côté allié) : 2 pierriers SERVIS par les 2 canonniers du groupe. Son
         // équipage exposé (`crewIds`) = ces canonniers ; `applyShipPostes` leur pose le `mannedPoste`. Cap NORD
         // (appliqué par `faceAtCombatStart`) → la cogue, plein EST, tombe pile dans l'arc de la bordée TRIBORD

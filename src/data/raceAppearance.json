@@ -3,7 +3,9 @@
     "id": "demon",
     "type": "raceAppearance",
     "label": "Démon",
-    "gabarit": "elance",
+    "gabarit": {
+      "id": "elance"
+    },
     "gabaritOverride": {
       "sl": 1.06,
       "legs": 1.06
@@ -29,7 +31,9 @@
     "id": "elfe-sylvain",
     "type": "raceAppearance",
     "label": "Elfe sylvain",
-    "gabarit": "elance",
+    "gabarit": {
+      "id": "elance"
+    },
     "tenue": "bourgeois",
     "gabaritOverride": {
       "sl": 1.05,
@@ -58,7 +62,9 @@
     "id": "fimir",
     "type": "raceAppearance",
     "label": "Fimir",
-    "gabarit": "brute",
+    "gabarit": {
+      "id": "brute"
+    },
     "palette": {
       "peau": "#6b7a52",
       "cheveux": "#3a281a",
@@ -76,14 +82,18 @@
     "id": "gnome",
     "type": "raceAppearance",
     "label": "Gnome",
-    "gabarit": "gnome",
+    "gabarit": {
+      "id": "gnome"
+    },
     "tenue": "artisan"
   },
   {
     "id": "gobelin",
     "type": "raceAppearance",
     "label": "Gobelin",
-    "gabarit": "gremlin",
+    "gabarit": {
+      "id": "gremlin"
+    },
     "palette": {
       "peau": "#4f7a33",
       "peauO": "#365524",
@@ -111,7 +121,9 @@
     "id": "goule",
     "type": "raceAppearance",
     "label": "Goule",
-    "gabarit": "trapu-voute",
+    "gabarit": {
+      "id": "trapu-voute"
+    },
     "gabaritOverride": {
       "sl": 0.96,
       "st": 0.92,
@@ -142,7 +154,9 @@
     "id": "guerrier-du-chaos",
     "type": "raceAppearance",
     "label": "Guerrier du Chaos",
-    "gabarit": "trapu-massif",
+    "gabarit": {
+      "id": "trapu-massif"
+    },
     "tenue": "guerrier-du-chaos",
     "palette": {
       "peau": "#b7a596",
@@ -168,7 +182,9 @@
     "id": "halfling",
     "type": "raceAppearance",
     "label": "Halfling",
-    "gabarit": "halfling",
+    "gabarit": {
+      "id": "halfling"
+    },
     "tenue": "bourgeois",
     "palette": {
       "peau": "#e2b48c",
@@ -188,7 +204,9 @@
     "id": "haut-elfe",
     "type": "raceAppearance",
     "label": "Haut-Elfe",
-    "gabarit": "elance",
+    "gabarit": {
+      "id": "elance"
+    },
     "tenue": "bourgeois",
     "palette": {
       "peau": "#c69a72",
@@ -212,7 +230,9 @@
     "id": "homme-bete",
     "type": "raceAppearance",
     "label": "Homme-bête",
-    "gabarit": "trapu-massif",
+    "gabarit": {
+      "id": "trapu-massif"
+    },
     "gabaritOverride": {
       "sl": 1.02,
       "st": 1.35,
@@ -245,7 +265,9 @@
     "id": "humain",
     "type": "raceAppearance",
     "label": "Humain",
-    "gabarit": "moyen",
+    "gabarit": {
+      "id": "moyen"
+    },
     "tenue": "bourgeois",
     "tirageIndividuel": {
       "peau": [
@@ -285,7 +307,9 @@
     "id": "minotaure",
     "type": "raceAppearance",
     "label": "Minotaure",
-    "gabarit": "brute",
+    "gabarit": {
+      "id": "brute"
+    },
     "gabaritOverride": {
       "sl": 1.32,
       "legs": 0.9
@@ -311,7 +335,9 @@
     "id": "nain",
     "type": "raceAppearance",
     "label": "Nain",
-    "gabarit": "courtaud",
+    "gabarit": {
+      "id": "courtaud"
+    },
     "tenue": "artisan",
     "palette": {
       "cheveux": "#5a3a1e",
@@ -335,7 +361,9 @@
     "id": "ogre",
     "type": "raceAppearance",
     "label": "Ogre",
-    "gabarit": "brute",
+    "gabarit": {
+      "id": "brute"
+    },
     "palette": {
       "peau": "#c9966a",
       "peauO": "#9a6c48",
@@ -356,7 +384,9 @@
     "id": "orc",
     "type": "raceAppearance",
     "label": "Orc",
-    "gabarit": "trapu-massif",
+    "gabarit": {
+      "id": "trapu-massif"
+    },
     "palette": {
       "peau": "#4f7a36",
       "peauO": "#365526",
@@ -384,7 +414,9 @@
     "id": "skaven",
     "type": "raceAppearance",
     "label": "Skaven",
-    "gabarit": "elance-voute",
+    "gabarit": {
+      "id": "elance-voute"
+    },
     "palette": {
       "peau": "#6f6354",
       "peauO": "#4c4338",
@@ -411,7 +443,9 @@
     "id": "snotling",
     "type": "raceAppearance",
     "label": "Snotling",
-    "gabarit": "gremlin-mini",
+    "gabarit": {
+      "id": "gremlin-mini"
+    },
     "palette": {
       "peau": "#4a7a3a",
       "peauO": "#326028",
@@ -430,7 +464,9 @@
     "id": "squelette",
     "type": "raceAppearance",
     "label": "Squelette",
-    "gabarit": "decharne",
+    "gabarit": {
+      "id": "decharne"
+    },
     "palette": {
       "peau": "#d8ccab",
       "peauO": "#a89c80",
@@ -447,7 +483,9 @@
     "id": "troll",
     "type": "raceAppearance",
     "label": "Troll",
-    "gabarit": "brute-bras-longs",
+    "gabarit": {
+      "id": "brute-bras-longs"
+    },
     "palette": {
       "peau": "#4a6b34",
       "peauO": "#324a22",
@@ -473,7 +511,9 @@
     "id": "vampire",
     "type": "raceAppearance",
     "label": "Vampire",
-    "gabarit": "elance",
+    "gabarit": {
+      "id": "elance"
+    },
     "gabaritOverride": {
       "sl": 1.04,
       "st": 0.96,
@@ -512,7 +552,9 @@
     "id": "zombie",
     "type": "raceAppearance",
     "label": "Zombie",
-    "gabarit": "trapu-voute",
+    "gabarit": {
+      "id": "trapu-voute"
+    },
     "palette": {
       "peau": "#8e8a7a",
       "peauO": "#605c4d",

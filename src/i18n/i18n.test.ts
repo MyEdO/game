@@ -1,15 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { t, interpolate, getLocale } from './index';
 import { fr } from './messages/fr';
-import { CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, BODY_SHAPE_LOC_LABELS } from '../engine/types';
+import { CHAR_LABELS, DIFFICULTY_LABELS, DIFFICULTY_NAMES, HIT_LOCATION_LABELS, BODY_SHAPE_LOC_LABELS } from '../engine/types';
 import { DEFENSE_LABEL } from '../engine/combat';
 import { cibleLabel } from '../engine/psychology';
-import { psychologyLabel } from '../data';
+import { groupLabel, groupesLabel, groups, psychologies, psychologyLabel } from '../data';
 
 describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
   it('résout une clé en texte FR', () => {
     expect(t('char.capacite-de-combat')).toBe('Capacité de Combat');
-    expect(t('difficulty.difficile')).toBe('Difficile (−20)');
+    expect(t('difficulty.difficile')).toBe('Difficile');
+    expect(t('difficulty.cran', { nom: 'Difficile', mod: '−20' })).toBe('Difficile (−20)');
   });
 
   it('interpolate remplace {param} et laisse {x} intact si absent', () => {
@@ -25,10 +26,13 @@ describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
   it('les maps de labels DÉRIVENT du catalogue (source unique, parité verbatim)', () => {
     expect(CHAR_LABELS['capacite-de-combat']).toBe(t('char.capacite-de-combat'));
     expect(CHAR_LABELS.sociabilite).toBe('Sociabilité');
-    expect(DIFFICULTY_LABELS.tresFacile).toBe(t('difficulty.tresFacile'));
+    expect(DIFFICULTY_NAMES.tresFacile).toBe(t('difficulty.tresFacile'));
+    expect(DIFFICULTY_LABELS.tresFacile).toBe('Très Facile (+60)'); // LDB 12 l.145
+    expect(DIFFICULTY_NAMES.tresDifficile).toBe('Très Difficile'); // LDB 12 l.151
     expect(DIFFICULTY_LABELS.intermediaire).toBe('Intermédiaire (+0)');
-    // Difficultés extrêmes EDO (App.2) : labels dérivés du catalogue comme les autres.
-    expect(DIFFICULTY_LABELS.presqueImpossible).toBe(t('difficulty.presqueImpossible'));
+    // Difficultés extrêmes EDO (App.2) : noms dérivés du catalogue comme les autres, modificateur de la table.
+    expect(DIFFICULTY_NAMES.presqueImpossible).toBe(t('difficulty.presqueImpossible'));
+    expect(DIFFICULTY_LABELS.presqueImpossible).toBe('Presque Impossible (−40)');
     expect(DIFFICULTY_LABELS.impossible).toBe('Impossible (−50)');
     expect(HIT_LOCATION_LABELS.tete).toBe(t('hitloc.tete'));
     expect(HIT_LOCATION_LABELS.jambeD).toBe('Jambe droite');
@@ -57,5 +61,21 @@ describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
     expect(rendus.filter(([, v]) => /\d[ \t]m\b/.test(v)).map(([k]) => k), 'unité orpheline possible : espace ordinaire avant « m »').toEqual([]);
     const colles = rendus.filter(([, v]) => /\d\u00a0m\b/.test(v)).map(([k]) => k);
     expect(colles).toEqual(expect.arrayContaining(['fall.option.sauter', 'fall.option.suspendreSauter', 'fall.option.suspendreTenter', 'fall.modale.denivele', 'eff.fallOuverte']));
+  });
+
+  it('un paramètre qui nomme une entrée de donnée n’accepte que son libellé minté, jamais l’id (#3045)', () => {
+    const psy: string = psychologies[0].id;
+    const groupe: string = groups[0].id;
+    // @ts-expect-error — un id de psychologie n'est pas un libellé
+    void t('turn.recompose', { name: 'n', psych: psy });
+    // @ts-expect-error — un id de Groupe n'est pas un libellé
+    void t('turn.rageHate', { name: 'n', groupe });
+    // @ts-expect-error — des ids de Groupe ne sont pas un libellé
+    void t('eff.socialPsychEnvers', { mods: 'm', groupes: groupe });
+    // @ts-expect-error — un nom de Talent écrit en dur n'est pas un libellé
+    void t('cf.fearIgnored', { name: 'n', talent: 'Sans Peur' });
+    expect(t('turn.recompose', { name: 'n', psych: psychologyLabel(psy) })).toContain(psychologyLabel(psy));
+    expect(t('turn.rageHate', { name: 'n', groupe: groupLabel(groupe) })).toContain(groupLabel(groupe));
+    expect(t('eff.socialPsychEnvers', { mods: 'm', groupes: groupesLabel([groupe]) })).toContain(groupLabel(groupe));
   });
 });

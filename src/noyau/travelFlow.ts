@@ -40,7 +40,7 @@ import {
 } from '../engine/mountTravel';
 import { possessionLabel } from '../engine/possession';
 import {
-  vehicleCombatant, applyVehicleProblem, forcedPaceCheck, forcedPaceBeastCheck, forcedPaceModifier,
+  vehicleCombatant, applyVehicleProblem, forcedPaceCheck, forcedPaceBeastCheck, ligneAllureForcee,
   type ForcedPaceAnimal, type ForcedPaceAnimalOutcome,
 } from '../engine/vehicle';
 import { bonus } from '../engine/characteristics';
@@ -70,7 +70,7 @@ import { t } from '../i18n';
 import type { CascadeStep, PendingCascade } from './pendings';
 import type { RecapLine } from './recapLine';
 import { toRecapLines, phaseOfKind } from './recapLine';
-import { buildSeaPlan, runSeaDay, startFastVoyage, syncHullWoundsFromVessel, coqueDuNavireDeCampagne } from './seaVoyageFlow';
+import { buildSeaPlan, raisonDuNonDepartEnMer, runSeaDay, startFastVoyage, syncHullWoundsFromVessel, coqueDuNavireDeCampagne } from './seaVoyageFlow';
 import { buildRiverPlan, descenteJouee, runRiverDays } from './riverVoyageFlow';
 import type { BuiltCascadeStep } from './stepBrand';
 import type { Combatant } from '../engine/types';
@@ -379,7 +379,7 @@ export function startTravel(
     // Traversée RAPIDE (MDG 15 l.21-37) : un seul Test de Rude épreuve résout tout le trajet.
     const seaPlan = opts.fast ? null : buildSeaPlan(get, routeId, from.id, to.id, route, seaOpts);
     if (opts.fast ? !startFastVoyage(get, set, routeId, from.id, to.id, route, seaOpts) : !seaPlan) {
-      log(get, set, [t('tf.noVessel')]);
+      log(get, set, [raisonDuNonDepartEnMer(get)]);
       return;
     }
     set({ ...(seaPlan ? { travelPlan: seaPlan, worldMapOpen: false, travelRecap: null } : {}), billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode) });
@@ -1032,7 +1032,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<R
       animaux: draftAnimals(veh.draft!.count, draft.e),
       rng: battleRng(),
     });
-    const gallopMod = res.modificateur;
+    const gallopMod = res.ligne;
     const roll = res.conduite;
     if (roll.success) {
       out.km += 1;
@@ -1046,7 +1046,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<R
       // La rangée du récap NOMME ce qui compose la valeur : le Soutien des passagers (LDB 12, fondu
       // dans `driver.value`) et les crans déjà avalés au pas de course.
       d: testDetail('Conduite d’attelage', driverLine.base, roll,
-        [...driverLine.mods, ...(gallopMod ? [{ label: t('tf.modGallop'), value: gallopMod, famille: 'jet' as const }] : [])]),
+        [...driverLine.mods, ...(gallopMod ? [gallopMod] : [])]),
       text: stupefiant ? t('tf.forcedStupefiant') : t('tf.forcedBackToWalk'), tone: 'bad',
     });
     // Le jet est DÉJÀ affiché par la rangée `day.entries` (MultiRollList) du même recap — pas de
@@ -1140,19 +1140,19 @@ function forcedPaceDriver(get: Get) {
 }
 
 /** Construit l'ÉTAPE-JET de Conduite d'attelage au kilomètre COURANT (#270, conducteur JOUEUR) — pénalité
- *  −10/km déjà galopé (`EDOC 07 l.229`), DÉJÀ fondue dans la valeur jetée et déclarée en `dansLaValeur` :
+ *  d'allure forcée (`EDOC 07 l.229`), DÉJÀ fondue dans la valeur jetée et déclarée en `dansLaValeur` :
  *  elle compte UNE fois (chip nommée + cible), jamais deux. `meta` porte l'accumulateur (km/heures déjà
  *  acquis) relu par l'applier pour chaîner le km SUIVANT (`insert`) ou finaliser (`finalizeForcedPace`). */
 function buildForcedPaceStep(driver: { actor: Combatant; value: number; support?: SupportDetail }, kmLeft: number, galloped = 0, km = 0, hours = 0): BuiltCascadeStep | undefined {
-  const penalty = forcedPaceModifier(galloped); // l.229, SOURCE UNIQUE avec le résolveur pur
+  const penalty = ligneAllureForcee(galloped); // l.229, SOURCE UNIQUE avec le résolveur pur
   return monoStep({
     id: `land-forced-${galloped}`, kind: 'landForcedPace', actor: driver.actor, icon: 'travel/cart',
     label: stepDetail(dataLabel(driver.actor.label), t('step.conduiteForcee')), rollLabel: 'Conduite d’attelage',
     difficulty: 'intermediaire',
     stake: voyageStakeRef('landForcedPace'),
     ligne: {
-      test: { skill: 'conduite-d-attelage' }, valeur: driver.value + penalty, soutien: driver.support,
-      ...(penalty ? { dansLaValeur: [{ label: t('tf.modGalloped', { n: galloped }), value: penalty, famille: 'jet' as const }] } : {}),
+      test: { skill: 'conduite-d-attelage' }, valeur: driver.value + (penalty?.value ?? 0), soutien: driver.support,
+      ...(penalty ? { dansLaValeur: [penalty] } : {}),
     },
     meta: { kmLeft, galloped, km, hours },
   });

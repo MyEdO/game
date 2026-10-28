@@ -132,8 +132,8 @@ rend fausse (titre soudé, bandeau lu comme table), jamais un mot. Un prédicat,
 
 **La garde et son stock.** `node scripts/raw/check-source-format.mjs` balaie les **dossiers FR
 suivis** — les livres à `dir` de `src/data/books.json` plus les dossiers antérieurs au pipeline,
-atteints par balayage des préfixes `Warhammer v4 - `, `WH - V4 - `, `WH4_FR_`, `Boite d'Initiation`,
-`Warhammer - Habitants` — et compare ce qu'elle mesure au stock nominatif
+atteints par balayage des préfixes `Warhammer v4 - `, `WH - V4 - `, `WH4_FR_`, `Boite d'Initiation`
+— et compare ce qu'elle mesure au stock nominatif
 `scripts/raw/source-format-stock.json` : une entrée par (famille, dossier, détail). Les deux sens
 sont rouges — un écart hors du stock (rejouer la chaîne sur le livre, ou déclarer l'entrée au
 message par `CLIQUET:`), une entrée sans écart mesuré (la chaîne a été rejouée : l'entrée se

@@ -15,7 +15,7 @@ import type { TriggeredEffect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { OpsCtx, GameOp } from '../engine/ops';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
-import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, spellEffectOps, EMPTY_FLOW, resolveTestDifficulty } from '../engine/flowCore';
+import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, spellEffectOps, EMPTY_FLOW, reecrireFlow, reecrireLesOps, resolveTestDifficulty } from '../engine/flowCore';
 import { weaponIdentity } from '../engine/items';
 import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
 import { featureLevel } from '../engine/combatFeatures/dispatch';
@@ -33,7 +33,7 @@ import { sceneMetresPerTile } from './monde/scene';
 import { findTraitById, findQualityById, findTalentById, findConditionById, findPsychologyById, findSymptomById, findMutationById, testSkillLabel } from '../data';
 import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { activeSymptoms } from '../engine/disease';
-import { difficultyFromLabel, rollTest } from '../engine/tests';
+import { difficulteDeLArg, rollTest } from '../engine/tests';
 import { rawCombatTestBase } from '../engine/skills';
 import { combatConditionCtx, flowTestGated, runPureFlowLines } from './combat/flowEval';
 import { RNG } from '../engine/dice';
@@ -49,10 +49,10 @@ function withSource(effects: TriggeredEffect[], source: EffectSource): Triggered
 }
 
 /** PARAMÈTRE un effet de trait par l'ARGUMENT d'instance du porteur : substitue la difficulté d'un Test
- *  `argDifficulty` par celle dérivée de l'arg (« Venin (Difficile) » → difficile). Rend les effets
+ *  `argDifficulty` par celle que désigne l'arg (`difficulteDeLArg`). Rend les effets
  *  authorés réutilisables et éditables tout en restant tunés par leur instance. Immuable (clone partiel). */
 function withArg(effects: TriggeredEffect[], arg?: string, value?: number): TriggeredEffect[] {
-  const diff = arg ? difficultyFromLabel(arg) : undefined;
+  const diff = arg ? difficulteDeLArg(arg) : undefined;
   // Injection GÉNÉRIQUE de l'instance dans une op : un champ valant `ARG_TEMPLATE` reçoit l'arg (trait Maladie
   // « (peste) » → `exposeDisease{disease:'$arg'}`) ; `INDICE_TEMPLATE` reçoit l'Indice numérique de l'instance
   // (Redoutable `value:2` → `topUpAdvantage{amount:'$indice'}`). Une seule convention, pas de variante.
@@ -69,25 +69,20 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
     return out as unknown as GameOp;
   };
   const visit = (f: Flow): Flow => {
-    if (f.kind === 'seq') return { ...f, steps: f.steps.map(visit) };
-    if (f.kind === 'if') return { ...f, then: visit(f.then), ...(f.else ? { else: visit(f.else) } : {}) };
     if (f.kind === 'test') {
-      // Nœud Flow `test` dont la difficulté vient de l'arg d'instance (« Venin (Difficile) ») : on
+      // Nœud Flow `test` dont la difficulté vient de l'arg d'instance (Venin, `LDB 85 l.423`) : on
       // substitue `test.difficulty` (mêmes sémantique/gate que l'ancienne op `test.argDifficulty`).
-      const test = f.test.argDifficulty && diff ? { ...f.test, difficulty: diff } : f.test;
-      return { ...f, test, success: visit(f.success), fail: visit(f.fail) };
+      return f.test.argDifficulty && diff ? { ...f, test: { ...f.test, difficulty: diff } } : f;
     }
     if (f.kind === 'choice') {
       // Le COÛT d'Avantage d'un `choice` accepte le MÊME template `$indice` que les ops (Taillade : X = son
       // Indice, `AA 08 l.87`). Sans Indice sur l'instance, il reste tel quel : `resolveFlowChoice` n'offre
-      // alors PAS le nœud (jamais un coût 0). Les branches sont visitées comme toute autre.
-      const cout = f.advantageCost === INDICE_TEMPLATE && value !== undefined ? value : f.advantageCost;
-      return { ...f, advantageCost: cout, yes: visit(f.yes), ...(f.no ? { no: visit(f.no) } : {}) };
+      // alors PAS le nœud (jamais un coût 0).
+      return f.advantageCost === INDICE_TEMPLATE && value !== undefined ? { ...f, advantageCost: value } : f;
     }
-    if (f.kind === 'do' && f.effect.type === 'ops') return { ...f, effect: { ...f.effect, ops: f.effect.ops.map(substOp).filter((o): o is GameOp => o != null) } };
     return f;
   };
-  return effects.map((eff) => ({ ...eff, flow: visit(eff.flow) }));
+  return effects.map((eff) => ({ ...eff, flow: reecrireLesOps(reecrireFlow(eff.flow, visit), substOp) }));
 }
 
 /**
@@ -104,7 +99,9 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
 export function effectSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSource[] {
   const out: TriggerSource[] = [];
   if (weapon?.onHitEffects?.length) { const wid = weaponIdentity(weapon); out.push({ effects: withSource(weapon.onHitEffects, { kind: 'trapping', id: wid }), cap: 1, key: `weapon:${wid}`, label: weapon.label }); }
-  for (const tr of actor.traits ?? []) { const d = findTraitById(tr.id); if (d?.effects?.length) out.push({ effects: withSource(withArg(d.effects, tr.arg, tr.value), { kind: 'trait', id: tr.id }), cap: 1, key: `trait:${tr.id}`, label: d.label ?? tr.id }); }
+  // Traits du porteur, puis ceux que confère l'attaque de la touche (`Weapon.traitsConferes`, ZI 03 l.75, l.77) :
+  // un Trait conféré ne tire qu'aux touches de l'attaque qui le confère.
+  for (const tr of [...(actor.traits ?? []), ...(weapon?.traitsConferes ?? [])]) { const d = findTraitById(tr.id); if (d?.effects?.length) out.push({ effects: withSource(withArg(d.effects, tr.arg, tr.value), { kind: 'trait', id: tr.id }), cap: 1, key: `trait:${tr.id}`, label: d.label ?? tr.id }); }
   // L'Indice de l'instance (`Taillade (1A)` → 1) PARAMÈTRE les effets de la qualité comme l'arg/l'Indice
   // d'un Trait paramètre les siens — MÊME `withArg`, même convention `$indice`, aucune voie parallèle.
   if (weapon) for (const { id, indice } of resolveQualities(weapon)) { const d = findQualityById(id); if (d?.effects?.length) out.push({ effects: withSource(withArg(d.effects, undefined, indice), { kind: 'quality', id }), cap: 1, key: `qual:${id}`, label: d.label ?? id }); }
@@ -131,9 +128,9 @@ export function effectSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSourc
     // Un pion NATIF posé par-dessus reste, lui, pleinement joué, sur sa part native seule.
     const derive = cond.derivedFrom?.stacks ?? 0;
     if (derive >= (cond.value ?? 1)) continue;
-    out.push({ effects: withSource(d.effects, { kind: 'condition', id: cond.id }), cap: 1, key: `cond:${cond.id}`, label: d.label ?? cond.id, stacks: Math.max(0, (cond.value ?? 1) - derive - reduce) });
+    out.push({ effects: withSource(withArg(d.effects, cond.difficulte), { kind: 'condition', id: cond.id }), cap: 1, key: `cond:${cond.id}`, label: d.label ?? cond.id, stacks: Math.max(0, (cond.value ?? 1) - derive - reduce) });
   }
-  for (const p of actor.psychState ?? []) { const d = findPsychologyById(p.type); if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'psychology', id: p.type }), cap: 1, key: `psy:${p.type}`, label: d.label ?? p.type, stacks: 1 }); }
+  for (const p of actor.psychState ?? []) { const d = findPsychologyById(p.type); if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'psychology', id: p.type }), cap: 1, key: `psy:${p.type}`, label: d.label, stacks: 1 }); }
   return out;
 }
 

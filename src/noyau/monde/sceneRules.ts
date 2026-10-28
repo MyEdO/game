@@ -6,6 +6,8 @@
 import type { Scene, SceneEntity } from './scene';
 import { isIndoor, sceneMetresPerTile } from './scene';
 import { isNight } from '../../engine/clock';
+import { ligneDeRegle } from '../../engine/reglesChiffrees';
+import type { ModLine } from '../../engine/types';
 import { findPropById } from '../../data';
 import { propDeclaredFoot, propFootTiles } from './footprint';
 import { memoByRefDeps } from './sceneMemo';
@@ -14,12 +16,10 @@ import { actionsAuthorees } from './usable';
 export interface SceneCombatMods {
   /** Cible dissimulée (LDB 14 l.75). */
   concealed: boolean;
-  /** Pénalité météo à l'attaque (LDB 14 l.76, l.82). */
-  attackMod: number;
-  /** Pénalité météo à l'esquive (LDB 14 l.82). */
-  dodgeMod: number;
-  /** Libellé de la ligne météo (`attackMod`/`dodgeMod`). */
-  label: string;
+  /** Ligne météo de l'attaque (LDB 14 l.76, l.82). */
+  attaque: ModLine | null;
+  /** Ligne météo de l'esquive (LDB 14 l.82). */
+  esquive: ModLine | null;
   /** Libellé de la ligne de cible dissimulée (`concealed`). */
   concealedLabel: string;
 }
@@ -37,18 +37,13 @@ export function sceneCombatModifiers(scene: Pick<Scene, 'ambiance' | 'weather'>,
   // clair qui vivait ici, qui n'était donc pas un défaut mais un id récité sans effet (#1789).
   const weather = scene.weather;
   const concealed = night || weather === 'brouillard'; // LDB 14 l.75
-  let attackMod = 0;
-  let dodgeMod = 0;
-  let label = '';
-  if (weather === 'tempete') {
-    attackMod = -20; // LDB 14 l.76
-    label = 'Tempête';
-  } else if (weather === 'neige') {
-    attackMod = -30; // LDB 14 l.82
-    dodgeMod = -30;
-    label = 'Neige épaisse';
-  }
-  return { concealed, attackMod, dodgeMod, label, concealedLabel: weather === 'brouillard' ? 'Brouillard' : 'Obscurité' };
+  const neige = () => ligneDeRegle('neige-eau-terrain-difficile', 'neige-eau-terrain-difficile'); // LDB 14 l.82
+  return {
+    concealed,
+    attaque: weather === 'tempete' ? ligneDeRegle('climat-extreme', 'climat-extreme') : weather === 'neige' ? neige() : null, // LDB 14 l.76
+    esquive: weather === 'neige' ? neige() : null,
+    concealedLabel: weather === 'brouillard' ? 'Brouillard' : 'Obscurité',
+  };
 }
 
 /** Un décor est SOLIDE (objet plein infranchissable : on ne se tient pas DESSUS) si son TYPE le déclare

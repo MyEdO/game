@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { setRule, resetRule } from './policy';
 import { VDM_OVERCAST } from './overcast';
 import {
-  overcastSourceOf, overcastAxes, extraTargetCapacity,
+  overcastSourceOf, overcastAxesFor, extraTargetCapacity,
   effectiveRangeMetres, overcastDurationParts, overcastStepCost,
   zoneDiameterMultiplier, missileOvercastDamageBonus,
 } from './overcast';
@@ -27,20 +27,38 @@ describe('overcastSourceOf — dérivé de la famille du sort (aucun champ ajout
   });
 });
 
-describe('overcastAxes — ZdE réservée à l’arcane (RAW : ni Bénédiction ni Miracle n’ont de ZdE)', () => {
-  it('arcane = 4 axes (Portée/ZdE/Durée/Cible) ; divin = 3 (sans ZdE)', () => {
-    expect(overcastAxes('arcane')).toEqual(['range', 'zone', 'duration', 'targets']);
-    expect(overcastAxes('miracle')).toEqual(['range', 'duration', 'targets']);
-    expect(overcastAxes('blessing')).toEqual(['range', 'duration', 'targets']);
+/** Sort d'épreuve ouvert sur les quatre axes : Portée chiffrée, ZdE, Durée en Rounds. */
+const ouvert = (family: string) => ({
+  family, range: { kind: 'distance', value: 6, unit: 'm' }, target: { kind: 'area', span: 'diameter', meters: 4 },
+  duration: { kind: 'rounds', value: 3 },
+} as const);
+
+describe('overcastAxesFor — ZdE réservée à l’arcane (`LDB 41 l.21-27`, `LDB 42 l.9-11`)', () => {
+  it('arcane = Portée/ZdE/Durée ; divin = Portée/Durée', () => {
+    expect(overcastAxesFor(ouvert('arcane'), false)).toEqual(['range', 'zone', 'duration']);
+    expect(overcastAxesFor(ouvert('invocation'), false)).toEqual(['range', 'duration']);
+    expect(overcastAxesFor(ouvert('beni'), false)).toEqual(['range', 'duration']);
   });
   it('l’axe Dégâts n’existe qu’au Projectile magique, sous VDM (`VDM 02 l.198`)', () => {
-    expect(overcastAxes('arcane', true)).toEqual(['range', 'zone', 'duration', 'targets']); // option OFF : pas d'axe Dégâts
-    expect(overcastAxes('arcane', false)).toEqual(['range', 'zone', 'duration', 'targets']); // non-missile : jamais
+    const projectile = { ...ouvert('arcane'), target: { kind: 'count', n: 1 } } as const;
+    expect(overcastAxesFor(projectile, true)).toEqual(['range', 'duration', 'targets']); // option OFF
     setRule('magic-vdm-incantation', true);
-    expect(overcastAxes('arcane', true)).toEqual(['range', 'zone', 'duration', 'targets', 'damage']);
-    expect(overcastAxes('arcane', false)).toEqual(['range', 'zone', 'duration', 'targets']); // non-missile, même sous VDM
-    expect(overcastAxes('miracle', true)).toEqual(['range', 'duration', 'targets']); // Miracle jamais VDM
+    expect(overcastAxesFor(projectile, true)).toEqual(['range', 'duration', 'targets', 'damage']);
+    expect(overcastAxesFor(projectile, false)).toEqual(['range', 'duration', 'targets']);
+    expect(overcastAxesFor({ ...projectile, family: 'invocation' }, true)).toEqual(['range', 'duration', 'targets']); // Miracle jamais VDM
     resetRule('magic-vdm-incantation');
+  });
+  it('« Vous » ferme Portée et Cibles, pas la ZdE centrée sur le lanceur (`LDB 47 l.15`)', () => {
+    expect(overcastAxesFor({ ...ouvert('arcane'), range: { kind: 'self' } }, false)).toEqual(['zone', 'duration']);
+  });
+  it('Durée chiffrée (Rounds, horloge) seule prolongeable (`LDB 47 l.15`, `CRB 070 l.78`)', () => {
+    const avec = (duration: object) => overcastAxesFor({ ...ouvert('arcane'), duration } as never, false).includes('duration');
+    expect(avec({ kind: 'clock', value: 1, unit: 'hours' })).toBe(true);
+    expect(avec({ kind: 'instant' })).toBe(false);
+    expect(avec({ kind: 'special', text: 'Spécial' })).toBe(false);
+  });
+  it('Cible « Spécial » : aucune Cible ajoutée (`LDB 47 l.28`)', () => {
+    expect(overcastAxesFor({ ...ouvert('arcane'), target: { kind: 'special', text: 'Spécial' } }, false)).toEqual(['range', 'duration']);
   });
 });
 

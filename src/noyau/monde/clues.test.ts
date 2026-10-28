@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { revealClue, discreditClue, togglePin, marquerVus, estNouveauPour, affichageDe, type ClueState, type IndiceAffiché } from './clues';
 import { emptyNarratif } from './campaignNarratif';
 import type { Indice, NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
@@ -7,9 +7,12 @@ import { applyEffects } from '../combatEffects';
 import { emptyScene } from './scene';
 import type { Combatant } from '../../engine/types';
 import type { Scene } from './scene';
-import { readSlot, saveToSlot, deleteSlot, type SaveGame } from '../../state/saves';
+import { stockageDesSauvegardes } from '../../state/saves';
+import { lireLaSauvegarde, ecrireLaSauvegarde } from '../../hote/sauvegardes';
+import { type SaveGame } from '../persistance/save';
 import { withActingSeat } from '../netOwnership';
 import { emettreIntentInvite, interceptGuestActions, restoreGuestActions } from '../../state/netFlow';
+import { poserLeLocalStorage } from '../../lib/stockage.testkit';
 
 const IND: Indice = {
   id: 'ind-lettre',
@@ -29,19 +32,6 @@ const IND_MONO: Indice = {
   titre: 'Le mouchoir brodé',
   stades: [{ id: 'unique', prose: 'Un mouchoir brodé d’un corbeau, oublié sur la scène.' }],
 };
-
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
 
 /** Ce que le Carnet affiche MAINTENANT de ces indices (présents). */
 const affichés = (clues: Record<string, ClueState>, ids: readonly string[]): IndiceAffiché[] =>
@@ -369,10 +359,8 @@ describe('clues — câblage store (#670)', () => {
 
   describe('save/load RÉEL (applyLoadedSave, #670)', () => {
     beforeEach(() => {
-      (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
-      deleteSlot(1);
+      poserLeLocalStorage();
     });
-    afterEach(() => { deleteSlot(1); });
 
     it('un indice révélé+épinglé et un autre réfuté survivent à un vrai saveGame → loadGame', () => {
       useGame.setState({ party: [hero()] });
@@ -395,12 +383,12 @@ describe('clues — câblage store (#670)', () => {
       useGame.getState().loadProject({ scenes: [fixtureScene('scene-g')], entryId: 'scene-g', narratif, projet: null });
       applyEffects(useGame.getState, useGame.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
       expect(useGame.getState().saveGame(1)).toBe(true);
-      const withClues = readSlot(1)!;
+      const withClues = lireLaSauvegarde(stockageDesSauvegardes(), 1)!;
       const dataSansClues = { ...withClues.data } as Record<string, unknown>;
       delete dataSansClues.clues;
       // La save est écrite à la version COURANTE, clé `clues` RETIRÉE : c'est le filet n°1 de la
       // politique de version (champ manquant → `initialFields`), pas une save d'une autre version.
-      saveToSlot(1, { ...withClues, data: dataSansClues } as unknown as SaveGame);
+      ecrireLaSauvegarde(stockageDesSauvegardes(), 1, { ...withClues, data: dataSansClues } as unknown as SaveGame);
       expect(useGame.getState().loadGame(1)).toBe(true);
       expect(useGame.getState().clues).toEqual({});
     });

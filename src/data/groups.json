@@ -204,7 +204,7 @@
       "page": 31,
       "note": "EDO 02 l.301"
     },
-    "maison": "Groupe de comportement : ni l'espèce, ni la carrière, ni un Trait ou Talent ne le confère (`groupsFor`, LDB 21) ; seule une donnée d'auteur y range un combattant — `grantGroups` d'une créature ou d'un profil de preset, `groups` d'un statbloc de scène (`src/noyau/monde/spawn.ts`) — et un Personnage joueur n'y entre jamais."
+    "maison": "Groupe de comportement : ni l'espèce, ni la carrière, ni un Trait ou Talent ne le confère (`groupesDe`, LDB 21) ; seule une donnée d'auteur y range un combattant — `grantGroups` d'une créature ou d'un profil de preset, `groups` d'un statbloc de scène (`src/noyau/monde/spawn.ts`) — et un Personnage joueur n'y entre jamais."
   },
   {
     "id": "rustres-et-idiots",
@@ -215,6 +215,141 @@
       "page": 31,
       "note": "EDO 02 l.327"
     },
-    "maison": "Groupe de comportement : ni l'espèce, ni la carrière, ni un Trait ou Talent ne le confère (`groupsFor`, LDB 21) ; seule une donnée d'auteur y range un combattant — `grantGroups` d'une créature ou d'un profil de preset, `groups` d'un statbloc de scène (`src/noyau/monde/spawn.ts`) — et un Personnage joueur n'y entre jamais."
+    "maison": "Groupe de comportement : ni l'espèce, ni la carrière, ni un Trait ou Talent ne le confère (`groupesDe`, LDB 21) ; seule une donnée d'auteur y range un combattant — `grantGroups` d'une créature ou d'un profil de preset, `groups` d'un statbloc de scène (`src/noyau/monde/spawn.ts`) — et un Personnage joueur n'y entre jamais."
+  },
+  {
+    "id": "objets-inanimes",
+    "type": "groups",
+    "label": "Objets inanimés",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "pauvrete",
+    "type": "groups",
+    "label": "Pauvreté",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "feu",
+    "type": "groups",
+    "label": "Feu",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "figures-symboles-de-guerre",
+    "type": "groups",
+    "label": "Figures/Symboles de guerre",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "figures-symboles-d-autorite",
+    "type": "groups",
+    "label": "Figures/Symboles d'autorité",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "figures-symboles-religieux",
+    "type": "groups",
+    "label": "Figures/Symboles religieux",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "monstres",
+    "type": "groups",
+    "label": "Monstres",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "mutants",
+    "type": "groups",
+    "label": "Mutants",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "animaux-sauvages",
+    "type": "groups",
+    "label": "Animaux sauvages",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "animaux-domestiques",
+    "type": "groups",
+    "label": "Animaux domestiques",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "magie",
+    "type": "groups",
+    "label": "Magie",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "maladie",
+    "type": "groups",
+    "label": "Maladie",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "eau",
+    "type": "groups",
+    "label": "Eau",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "richesse",
+    "type": "groups",
+    "label": "Richesse",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
+  },
+  {
+    "id": "bonheur",
+    "type": "groups",
+    "label": "Bonheur",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 69
+    }
   }
 ]

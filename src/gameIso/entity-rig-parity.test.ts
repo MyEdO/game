@@ -21,14 +21,14 @@ describe('entityRigProfileFor — équipement d’une entité de scène (parité
   });
 
   it('transmet les apparences d’objets de la scène au canal weapon', () => {
-    const prof = entityRigProfileFor(findTrappingById, ent({ weapon: 'arme-simple', appearance: { apparencesObjets: { 'arme-simple': 'hache_naine' } } }), false);
+    const prof = entityRigProfileFor(findTrappingById, ent({ weapon: 'arme-simple', appearance: { apparencesObjets: { 'arme-simple': { id: 'hache_naine' } } } }), false);
     expect(prof?.equip.weapons[0].candidats).toEqual(['hache_naine', 'hache']);
   });
 
   it('conserve les candidats d’un statbloc entre exploration et combat', () => {
     const e = ent({
       ref: undefined,
-      appearance: { species: 'humains-reiklander', apparencesObjets: { 'arme-simple': 'hache_naine' } },
+      appearance: { species: 'humains-reiklander', apparencesObjets: { 'arme-simple': { id: 'hache_naine' } } },
       statblock: { type: 'statblock', label: 'PNJ', char: { B: 10 }, traits: [{ id: 'arme', arg: 'arme-simple', value: 7 }] },
     });
     const prof = entityRigProfileFor(findTrappingById, e, true);

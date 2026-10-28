@@ -31,7 +31,6 @@ def construire(chemin, prop=None, uv=True, blend=False, clip_fixe=False):
     main.head, main.tail, main.parent = (0, 0, 1), (0, 0, 2), root
     bpy.ops.object.mode_set(mode='OBJECT')
     material = bpy.data.materials.new('m')
-    material.use_nodes = True
     texture = material.node_tree.nodes.new('ShaderNodeTexImage')
     texture.image = bpy.data.images.new('tex', 4, 4)
     bsdf = next(node for node in material.node_tree.nodes if node.type == 'BSDF_PRINCIPLED')

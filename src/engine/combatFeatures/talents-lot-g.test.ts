@@ -14,7 +14,9 @@ import { endOfRound } from '../conditions';
 import { makeRNG } from '../dice';
 import { slugId } from '../../data/slug';
 import type { Combatant, Weapon } from '../types';
-import { modDeRegle } from '../reglesChiffrees';
+import { modDeRegle, refDeRegle } from '../reglesChiffrees';
+import { ligneDe } from '../modLine.testkit';
+import { RULE_REF } from '../ruleRefs';
 
 /** Lot G — Talents à effet de jeu (LDB 10) : helpers du registre + câblages moteur purs. */
 const w = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], ...over });
@@ -57,21 +59,21 @@ describe('modificateurs de Test (LDB 10)', () => {
     const c = mk([{ name: 'Frappe assommante', times: 1 }]);
     const tgt = mk([], { id: 't' });
     const mods = attackModifiers(c, tgt, w({ qualities: [{ id: 'assommante' }] }), { kind: 'melee', location: 'tete' });
-    expect(mods.find((m) => m.label === 'Localisation visée')).toBeUndefined();
+    expect(ligneDe(mods, refDeRegle('viser-une-localisation'))).toBeUndefined();
     const sans = attackModifiers(mk([]), tgt, w({ qualities: [{ id: 'assommante' }] }), { kind: 'melee', location: 'tete' });
-    expect(sans.find((m) => m.label === 'Localisation visée')?.value).toBe(-20); // LDB 14 l.73
+    expect(ligneDe(sans, refDeRegle('viser-une-localisation'))?.value).toBe(-20); // LDB 14 l.73
   });
   it('Tir mortel : pas de −20 de Localisation à distance', () => {
     const c = mk([{ name: 'Tir mortel', times: 1 }]);
     const tgt = mk([], { id: 't' });
     const mods = attackModifiers(c, tgt, w({ type: 'ranged', range: 30 }), { kind: 'ranged', location: 'tete', distanceTiles: 5 });
-    expect(mods.find((m) => m.label === 'Localisation visée')).toBeUndefined();
+    expect(ligneDe(mods, refDeRegle('viser-une-localisation'))).toBeUndefined();
   });
   it('Tireur d’élite : ignore la Taille de la cible ; Tireur embusqué : Longue 0 / Extrême ÷2', () => {
     const c = mk([{ name: "Tireur d'élite", times: 1 }]);
     const grand = mk([], { id: 't', size: 'enorme' });
     const mods = attackModifiers(c, grand, w({ type: 'ranged', range: 30 }), { kind: 'ranged', distanceTiles: 5 });
-    expect(mods.find((m) => m.label.startsWith('Taille (cible)'))).toBeUndefined();
+    expect(ligneDe(mods, RULE_REF['taille-cible-au-tir'])).toBeUndefined();
     const sniper = mk([{ name: 'Tireur embusqué', times: 1 }]);
     expect(sniperRangeAdjust(sniper, 'longue', modDeRegle('portee-d-une-arme', 'longue'))).toBe(0);
     expect(sniperRangeAdjust(sniper, 'extreme', modDeRegle('portee-d-une-arme', 'extreme'))).toBe(-15);

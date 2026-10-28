@@ -632,7 +632,7 @@ sans entrée ÉCRIT/LU, ou jouée par deux jobs, fait REFUSER le run, avec son n
 
 **\`package-lock.json\`** : le régénérer TOUJOURS avec ${NPM_LOCK}, recette exacte de
 \`scripts/guards/lib/npmLockHoisted.mjs\` — ${REGEN_RECIPE}. npm 11 ampute les entrées hoistées
-\`@emnapi/*\` que \`npm ci\` exige en CI ; la garde (pre-commit +
+\`@emnapi/*\` que \`npm ci\` exige sous npm 10 (Node 22, admis par \`engines\`) ; la garde (pre-commit +
 \`src/npm-lock-hoisted-guard.test.ts\`) refuse un lock amputé.
 `
   return {

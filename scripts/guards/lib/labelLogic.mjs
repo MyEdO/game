@@ -519,15 +519,10 @@ export const DETTES_DE_LIBELLE = {
   'src/noyau/monde/clues.ts#label-literal': 2,
   'src/noyau/combatEffects.ts#label-literal': 1,
   'src/ui/CarnetScreen.tsx#label-literal': 3,
-  // #1957 — `worstCorruptionExposure` : Degré de Corruption lu au texte authoré de l'argument du trait.
-  'src/noyau/combatFlow.ts#label-call-literal': 1,
-  // #1924 — résolveurs libellé→id (`qualityIdByLabel`, `traitIdByLabel`) appelés depuis le moteur.
+  // #1924 — résolveur libellé→id (`qualityIdByLabel`) appelé depuis le moteur.
   'src/engine/qualities/normalize.ts#label-entity-resolver-call': 1,
-  'src/engine/traits/dispatch.ts#label-entity-resolver-call': 1,
   // #1330 — `conditionIdInText` : le journal FR re-parsé par libellé d'État.
   'src/engine/conditions.ts#face-affichage-identite': 1,
-  // #1816 lot 4 — `rollObsession` : copie runtime de libellé (`cible`/`arg` du moteur).
-  'src/data/obsessions.ts#face-donnee-string': 1,
   // #2070 — scénarios de test résolus par libellé (`findSkill`/`findTalent`).
   'src/scenes/test-scenarios/_casters.ts#label-entity-resolver-call': 2,
   'src/scenes/test-scenarios/magie-hors-combat.ts#label-entity-resolver-call': 1,
@@ -999,6 +994,9 @@ export const RATCHET_EXCEPTIONS = {
   'data/index.ts#qualityIdByLabel#face-donnee-string':
     "(c) `qualityIdByLabel` rend un ID, pas un texte : couture libellé→id d'AUTHORING (invariant 1, « aider " +
     'à la saisie »), déjà recensée comme résolveur par libellé (#909, `collectLabelEntityResolvers`).',
+  'data/index.ts#specIdByLabel#face-donnee-string':
+    "(c) `specIdByLabel` rend un ID, pas un texte : couture libellé→id de SAISIE de l'argument d'un Trait à " +
+    'registre (invariant 1, « aider à la saisie »), recensée comme résolveur par libellé (#909, `collectLabelEntityResolvers`).',
   'ui/editor/refFormatLivre.ts#saisieAuChoix#face-affichage-identite':
     '(b) Parseur de SAISIE « format livre » (invariant 1, « aider à la saisie »), même régime que `specIdOf` : la ' +
     'saisie « (Au choix) » se reconnaît au mot que l’affichage compose (`ref.motAuChoix`) ; elle rend `choix`.',
@@ -1009,6 +1007,10 @@ export const RATCHET_EXCEPTIONS = {
     'Parseur de SAISIE « format livre » : le nom de Compétence saisi retrouve son id (`findSkill`, #909).',
   'ui/editor/refFormatLivre.ts#parseTalentRef#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : le nom de Talent saisi retrouve son id (`findTalent`, #909).',
+  'ui/editor/refFormatLivre.ts#idDeTraitSaisi#label-entity-resolver-call':
+    'Parseur de SAISIE « format livre » : le nom de Trait saisi retrouve son id (`traitIdByLabel`, #909).',
+  'ui/editor/refFormatLivre.ts#argDeTraitSaisi#label-entity-resolver-call':
+    'Parseur de SAISIE « format livre » : l’argument saisi d’un Trait à registre retrouve son id (`specIdByLabel`, #909).',
   // Résolveurs par LIBELLÉ de la couture de chargement/saisie (#909) — chacun est reconnu par
   // `collectLabelEntityResolvers`, donc chacun de ses appels hors couture est une dette au stock.
   'data/index.ts#findSkill#label-logic':

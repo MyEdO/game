@@ -5,7 +5,7 @@ import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne';
 
 describe('projection d’un objet de campagne', () => {
   it('publie les candidats de naissance sur l’actif et dans la liste des combattants', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }));
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
       const base = partie.etat();
       const { hero, narratif, candidats } = porteurDObjetDeCampagne('hache_naine');

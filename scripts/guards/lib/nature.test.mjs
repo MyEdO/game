@@ -1,7 +1,7 @@
 // La NATURE d'une fermeture (`nature.mjs`) : la ligne `NATURE:` du solde, et le `state_reason` qu'elle fait.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { NATURES, natureDuSolde, raisonDeFermeture } from './nature.mjs'
+import { NATURES, natureDuSolde, raisonDeFermeture, refusDeDecision } from './nature.mjs'
 
 const solde = (...lignes) => ['VERIFIE: une vérification', ...lignes, '## Restes', 'RAS'].join('\n')
 
@@ -46,4 +46,10 @@ test('raisonDeFermeture : le `state_reason` de la nature ; une nature hors table
   assert.equal(raisonDeFermeture('caduc'), 'not_planned')
   assert.equal(raisonDeFermeture('décidé'), 'not_planned')
   assert.throws(() => raisonDeFermeture('toString'), /inconnue/)
+})
+
+test('refusDeDecision : une ligne qui cite la décision « … » ET porte sa date, sinon refus', () => {
+  assert.equal(refusDeDecision('Clément, 2026-10-25 : « on ferme »'), null)
+  assert.match(refusDeDecision(null), /sans section "## Décision"/)
+  assert.match(refusDeDecision('Clément : « on ferme »\n2026-10-25'), /sans ligne qui cite la décision/)
 })

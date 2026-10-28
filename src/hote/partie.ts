@@ -1,13 +1,13 @@
 /**
- * CE QU'UN HÔTE DU NOYAU FAIT D'UNE PARTIE (#2928, plan `docs/plans/2026-10-21-vague6-hote-godot.md` B1, B-b), commun à
+ * CE QU'UN HÔTE DU NOYAU FAIT D'UNE PARTIE (#2928), commun à
  * l'hôte texte (`src/hoteTexte/`) et aux hôtes externes (`hotes/`) : l'erreur structurée d'un geste et sa catégorie,
  * l'en-tête d'une partie (son scénario de test et ses entrées), son ouverture (la partie du noyau, le scénario lancé, la
  * tenue des jetons programmés), et l'horloge virtuelle d'un hôte sans minuteur, qui les rejoue. Un hôte qui a ses
  * minuteurs (Godot) rend lui-même chaque jeton ; le geste joué sur la partie vit dans `geste.ts`.
  */
 import {
-  creerPartie, etatInitialDuJeu, CADENCE_MODES,
-  type Cadence, type Jeton, type Partie, type ResultatDeLAppel,
+  creerPartie, etatInitialDuJeu, preferenceDef, refusDesSurcharges, valeurDEntree,
+  type Cadence, type EntreesDeLaPartie, type IdDePreference, type PrefValue, type Jeton, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
 import { lancementDuScenario, type TestScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
@@ -43,14 +43,30 @@ export interface Entete {
   desFixes: boolean;
 }
 
-/** L'en-tête d'une partie neuve, ou l'erreur de validation qui le refuse. */
-export function nouvelEntete(scenario: string, options: { graine?: number; cadence?: string; desFixes?: boolean; regles?: Record<string, unknown> }): Entete {
+/** L'en-tête d'une partie neuve, ou l'erreur de validation qui le refuse ; cadence et dés fixés sont jugés par la table
+ *  des préférences (`valeurDEntree`). */
+export function nouvelEntete(scenario: string, options: { graine?: number; cadence?: unknown; desFixes?: unknown; regles?: Record<string, unknown> }): Entete {
   scenarioDeTest(scenario);
   const graine = options.graine ?? 1;
   valider(Number.isInteger(graine), `graine non entière : ${graine}`);
-  const cadence = options.cadence ?? 'manuel';
-  valider((CADENCE_MODES as readonly string[]).includes(cadence), `cadence inconnue : ${cadence} (${CADENCE_MODES.join(', ')})`);
-  return { scenario, graine, regles: options.regles ?? {}, cadence: cadence as Cadence, desFixes: options.desFixes ?? false };
+  const regles = options.regles ?? {};
+  const refus = refusDesSurcharges(regles);
+  valider(refus.length === 0, `règles refusées : ${refus.map((r) => r.raison).join(' ; ')}`);
+  return {
+    scenario, graine, regles,
+    cadence: preference('combat-cadence', options.cadence) as Cadence,
+    desFixes: preference('des-fixes', options.desFixes) as boolean,
+  };
+}
+
+/** La valeur de la préférence `id` qu'une entrée `v` donne (`valeurDEntree`), ou l'erreur de validation qui la refuse. */
+function preference(id: IdDePreference, v: unknown): PrefValue {
+  const valeur = valeurDEntree(id, v);
+  if (valeur === undefined) {
+    const options = preferenceDef(id)?.options;
+    throw new ErreurDeGeste('validation', `${id} non conforme : ${JSON.stringify(v)}${options ? ` (${options.join(', ')})` : ''}`);
+  }
+  return valeur;
 }
 
 /** Un jeton programmé, numéroté : un jeton du noyau est une identité d'objet (`partie.ts`), qui ne traverse pas JSON. */
@@ -116,17 +132,17 @@ export interface PartieOuverte {
   lancement: ResultatDeLAppel;
 }
 
-/** Ouvre la partie de l'en-tête : la partie du noyau sur l'état initial (`creerPartie`, aucun héros persisté : l'hôte
- *  n'a pas de sauvegarde), puis son scénario lancé par le constructeur unique du lancement (`lancementDuScenario`). Un
- *  lancement qui lève ferme la partie. */
-export function ouvrirLaPartie(entete: Entete): PartieOuverte {
+/** Ouvre la partie de l'en-tête : la partie du noyau sur l'état initial (`creerPartie`), le héros persisté par le
+ *  service `persisterLeHeros` de l'hôte (`EntreesDeLaPartie`), puis son scénario lancé par le constructeur unique du
+ *  lancement (`lancementDuScenario`). Un lancement qui lève ferme la partie. */
+export function ouvrirLaPartie(entete: Entete, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros']): PartieOuverte {
   const scenario = scenarioDeTest(entete.scenario);
   const partie = creerPartie(etatInitialDuJeu(), {
     graine: entete.graine,
     reglesMaison: entete.regles,
     cadence: entete.cadence,
     desFixes: entete.desFixes,
-    persisterLeHeros: () => {},
+    persisterLeHeros,
   });
   try {
     return { partie, jetons: tenueDesJetons(partie), lancement: partie.lancer(lancementDuScenario(scenario)) };

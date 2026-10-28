@@ -6,6 +6,9 @@ import { Scene } from '../noyau/monde/scene';
 import { Combatant } from '../engine/types';
 import type { ModLine, RollBreakdown } from '../engine/combat';
 import type { GameState } from './store';
+import { ligneDe } from '../engine/modLine.testkit';
+import { refDeRegle } from '../engine/reglesChiffrees';
+import { RULE_REF } from '../engine/ruleRefs';
 import { initialNet } from '../noyau/etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
 
 const shooter = (over: Partial<Combatant> = {}): Combatant =>
@@ -42,6 +45,7 @@ const mkGet = (sc: Scene, combatants: Combatant[]): (() => GameState) =>
  *  Difficulté (les circonstances de la table, `LDB 14 l.91-96`, que porte le palier — #1153). Un test
  *  qui ne lirait que `mods` ne verrait pas une circonstance portée par la Difficulté. */
 const nomme = (d: RollBreakdown): ModLine[] => [...(d.mods ?? []), ...(d.difficultyParts ?? [])];
+const TIR_EN_BOUGEANT = refDeRegle('tir-en-mouvement');
 
 describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', () => {
   it('mur intercalé à distance de la cible → pas de Ligne de Vue → null (pas de tir)', () => {
@@ -66,7 +70,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const a = shooter();
     const b = target({ pos: { x: 6, y: 0 } });
     const r = resolveAttack(mkGet(s, [a, b]), a, b);
-    expect(nomme(r!.res.attackerDetail!).some((m) => m.label.startsWith('Couvert'))).toBe(true);
+    expect(ligneDe(nomme(r!.res.attackerDetail!), RULE_REF['cible-sous-couverture'])).toBeDefined();
   });
 
   it('tir en bougeant (Mouvement dépensé ce tour) → -10 (LDB 14 l.70)', () => {
@@ -76,7 +80,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const b = target({ pos: { x: 6, y: 0 } });
     const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 99 }, net: initialNet(), log: () => {} })) as unknown as () => GameState;
     const r = resolveAttack(get, a, b);
-    expect(nomme(r!.res.attackerDetail!).some((m) => m.label === 'Tir en bougeant' && m.value === -10)).toBe(true);
+    expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)?.value).toBe(-10);
   });
 
   it('héros qui garde sa mobilité (n’a pas tiré « immobile ») → -10 même sans avoir encore bougé', () => {
@@ -86,7 +90,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const a = shooter();
     const b = target({ pos: { x: 6, y: 0 } });
     const r = resolveAttack(mkGet(s, [a, b]), a, b); // pas d'immobilisation → tir mobile
-    expect(nomme(r!.res.attackerDetail!).some((m) => m.label === 'Tir en bougeant' && m.value === -10)).toBe(true);
+    expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)?.value).toBe(-10);
   });
 
   it('héros qui tire IMMOBILE (heldGround) → pas de pénalité « Tir en bougeant »', () => {
@@ -95,7 +99,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const a = shooter();
     const b = target({ pos: { x: 6, y: 0 } });
     const r = resolveAttack(mkGet(s, [a, b]), a, b, undefined, undefined, undefined, true); // heldGround = true
-    expect(nomme(r!.res.attackerDetail!).some((m) => m.label === 'Tir en bougeant')).toBe(false);
+    expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)).toBeUndefined();
   });
 
   it('héros qui NE PEUT PAS bouger (Empêtré, Mouvement 0) → pas de -10 même sans s’immobiliser', () => {
@@ -105,7 +109,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const a = shooter({ conditions: [{ id: 'empetre', value: 1 }] });
     const b = target({ pos: { x: 6, y: 0 } });
     const r = resolveAttack(mkGet(s, [a, b]), a, b); // pas de heldGround, mais Mouvement nul
-    expect(nomme(r!.res.attackerDetail!).some((m) => m.label === 'Tir en bougeant')).toBe(false);
+    expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)).toBeUndefined();
   });
 });
 

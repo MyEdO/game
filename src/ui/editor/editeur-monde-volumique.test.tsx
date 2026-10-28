@@ -77,7 +77,7 @@ function sceneAtelier(): Scene {
 function sceneEmbuscade(): Scene {
   const s = emptyScene('scene-test', 8, 8);
   const embusque = {
-    id: 'embusque-1', kind: 'personnage', pos: { x: 3, y: 3 }, ref: 'brigand',
+    id: 'embusque-1', kind: 'personnage', pos: { x: 3, y: 3 }, ref: 'humain',
     combat: { hiddenUntilCombat: true },
   } as unknown as Scene['entities'][number];
   const rencontre = { id: 'guet-apens', members: [{ entityId: 'embusque-1' }] } as unknown as Scene['encounters'][number];

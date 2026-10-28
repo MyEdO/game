@@ -974,6 +974,12 @@ résultats *Excommunication* et *I Cast You Out* de la table des courroux divins
 `CRB 065 l.72`, aire `religion`) — fiches à extraire. Ce que ces emplois établissent ici :
 **Very Hard (–3 SL)** est bien le dernier degré.
 
+**Degré nommé par un Creature Trait.** *Venom (Difficulty)* porte un degré de la table, sans sa valeur :
+« Some poisons are more potent than others, and the listed Difficulty should apply to Tests made to
+recover from the *Poisoned* Condition. » (`CRB 115 l.370`). Les profils le nomment ainsi, p. ex.
+*Venom (Average)* parmi les Optional Traits du Giant Spider (`CRB 105 l.161`) — aire `bestiaire`
+(fiche à extraire).
+
 ### Expression héritée de la 4e
 
 Le CRB est déclaré compatible avec le matériel de la 4e (`CRB 116 l.7`), et l'**Appendix I** donne la
@@ -1008,6 +1014,8 @@ vivent dans les chapitres d'application : aires `intrigue`, `social`, `enquete`,
 - `CRB 024 l.116`, `CRB 024 l.122`, `CRB 024 l.134`, `CRB 024 l.144` — exemples joués qui fixent la notation `<Difficulty> (<mod> SL)` et confirment `Challenging (+0 SL)`.
 - `CRB 021 l.554` — Talent *Scale Sheer Surface* : borne haute utilisée comme plafond imposé (aire `talents`).
 - `CRB 065 l.70`, `CRB 065 l.72` — *Excommunication* et *I Cast You Out* : Difficulty imposée **et verrouillée** (aire `religion`).
+- `CRB 115 l.370` — Creature Trait *Venom (Difficulty)* : le degré nommé s'applique aux Tests qui retirent l'État *Poisoned* (aire `bestiaire`).
+- `CRB 105 l.161` — *Venom (Average)*, Optional Trait du Giant Spider : un degré de la table nommé par un profil (aire `bestiaire`).
 - `CRB 116 l.7` — compatibilité déclarée avec le matériel de la 4e édition.
 - `CRB 116 l.19-32` — Appendix I : règle du « 0 » retiré et **DIFFICULTY TABLE** de conversion (défauts de transcription ci-dessus) — aire `conversion`
 

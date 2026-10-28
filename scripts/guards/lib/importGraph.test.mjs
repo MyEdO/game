@@ -796,6 +796,23 @@ function ensembleEnMemoire(textes) {
   }
 }
 
+test('la fermeture lit les alias dans son image plutôt que sur le disque', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'import-graph-alias-image-'))
+  const abs = (rel) => resolve(racine, rel).split('\\').join('/')
+  const config = (dossier) => JSON.stringify({ compilerOptions: { paths: { '@/*': [dossier + '/*'] } } })
+  try {
+    writeFileSync(join(racine, 'tsconfig.json'), config('disque'))
+    const parAbs = new Map([
+      [abs('tsconfig.json'), config('image')],
+      [abs('a.mjs'), "export { cible } from '@/cible.mjs';"],
+      [abs('image/cible.mjs'), 'export const cible = 1;'],
+      [abs('disque/cible.mjs'), 'export const cible = 2;'],
+    ])
+    const arbre = { existe: (a) => parAbs.has(a), lire: (abss) => new Map(abss.map((a) => [a, parAbs.get(a) ?? null])), fichiers: [...parAbs.keys()] }
+    assert.deepEqual([...clotureDImports([abs('a.mjs')], { racine, arbre })].sort(), ['a.mjs', 'image/cible.mjs'])
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 test('résolution ESM : query et fragment suivent la source physique, alias et replis compris', () => {
   const { abs, arbre } = ensembleEnMemoire({
     'a.mjs': '', 'cible.mjs': '', 'cible#nom.mjs': '', 'cible%nom.mjs': '',

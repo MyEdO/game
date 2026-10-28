@@ -28,10 +28,10 @@ import { effectiveChar, bonus } from '../engine/characteristics';
 import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../engine/conditions';
 import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
 import { isFrenzied } from '../engine/psychology';
-import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
+import { creatureAttacks, attaqueDeCle, attaquesNaturelles, attaqueNaturelle, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../data/schemas/defs/maneuvers';
-import { findTalentById, findPsychologyById, findManeuverById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
+import { findTalentById, findPsychologyById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
 import { startCascade } from './cascade';
 import { freeCons } from './rollSeam';
 import { defenseSurfaced } from './netOwnership';
@@ -251,7 +251,7 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
   //     (ci-dessus) et 'charge' (Cornes, auto) exclues. Mêmes prédicats d'abordabilité (Avantage RAW ou 1 si
   //     variable ; Action si trigger='action') ; une manœuvre d'écart de Taille exige sa cible au contact.
   for (const a of attaquesNaturelles(active.traits ?? [])) {
-    if (a.kind === 'arme' || a.trigger === 'charge' || a.def.targeting === 'self') continue; // self : `selfManeuversOf`/battleSelfManeuver (flux dédié, hors attaque)
+    if (a.kind === 'arme' || a.trigger === 'charge') continue;
     if (a.def.ecartDeTailleMin != null && !cibleDEcartDeTaille(battle, active, a.def.ecartDeTailleMin)) continue; // LDB 85 l.387
     const cout = freeAttackCost(battle, active, a.def); // LDB 85 l.387 ; LDB 85 l.314
     const prix = cout.advantage;
@@ -261,7 +261,7 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
     if (a.trigger === 'free' && gratuitesRestantes(active, a.kind, a) === 0) continue; // LDB 85 l.237 ; LDB 85 l.405
     const melee = MELEE_MANEUVER_KINDS.includes(a.kind);
     out.push({
-      id: a.def.id, kind: a.kind, label: a.def.label, icon: MANEUVER_ICON[a.kind],
+      id: a.cle, kind: a.kind, label: a.def.label, icon: MANEUVER_ICON[a.kind],
       targeting: melee ? 'melee' : 'zone',
       ...(melee ? { reach: 1, forceMelee: true, freeKind: a.kind } : { def: a.def, advantageMode: a.advantageMode }),
       cost: { action: a.trigger === 'action', advantage: prix, ...(cout.movement ? { movement: true } : {}) },
@@ -431,7 +431,7 @@ export function maneuverDefensePending(s: Jeu): boolean {
   if (!pm?.result || !battle) return false;
   const attacker = inBattleId(battle, pm.attackerId);
   if (!attacker?.pos) return false;
-  const def = creatureAttacks(attacker.traits ?? []).find((x) => x.def.id === pm.maneuverId)?.def;
+  const def = attaqueDeCle(attacker.traits ?? [], pm.attaque)?.def;
   if (!def) return false;
   const chosen = pm.targetId ? inBattleId(battle, pm.targetId) : undefined;
   return defenseursSurfacesDeManoeuvre(s, def, pm.result, ciblesDeManoeuvre(battle, attacker, def, chosen).affected).length > 0;
@@ -499,8 +499,8 @@ export function resolveManeuver(
     if (!center) { flushLog(); return false; }
     faceTarget(center); // le centre de la zone = ce que l'attaquant vise (cliqué, ou recentré sur le plus proche)
     emitAoe(get, center.pos!, blast!, def.kind, def.label);
-    // Fumée (souffle-fumee, LDB 85 l.329) : GÉOMÉTRIE moteur (pas un GameOp) ; aucune zone à BE 0.
-    const dur = def.id === 'souffle-fumee' ? bonus(effectiveChar(attacker, 'endurance')) : 0;
+    // Fumée (LDB 85 l.329) : GÉOMÉTRIE moteur (pas un GameOp) ; aucune zone à BE 0.
+    const dur = def.fumee ? bonus(effectiveChar(attacker, 'endurance')) : 0;
     if (dur > 0) {
       const rawTiles = clampZoneTiles(smokeZone(attacker.pos!, center.pos!, blast!), get().scene?.dimensions); // bornée à la carte au site d'écriture
       // z propagé (cf. placeZoneFromOp/combatFlow, zoneAreaTiles §782/#799) : la fumée posée à l'étage du centre
@@ -575,10 +575,10 @@ function openManeuverDefenseCascade(
       base,
       target: base, // Test opposé Intermédiaire (+0) → cible = valeur nue ; l'issue vient de resolveOpposed(aT)
       label: attackerLabel,
-      stake: combatStakeRef('maneuverDefense', { entryId: def.id }),
+      stake: combatStakeRef('maneuverDefense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) }),
       meta: {
         opposed: { aT: atk, attackerId: attacker.id, attackerName: attacker.label, attackerLabel },
-        maneuverDefense: { attackerId: attacker.id, maneuverId: def.id, indice, spent },
+        maneuverDefense: { attackerId: attacker.id, def: structuredClone(def), indice, spent },
       },
     };
   });
@@ -702,8 +702,8 @@ export const TABLES = {
       const opp = step.meta?.opposed;
       if (!md || !opp) return;
       const attacker = inBattleId(get().battle, md.attackerId);
-      const def = findManeuverById(md.maneuverId);
-      if (!attacker || !def) return;
+      const def = md.def;
+      if (!attacker) return;
       const syncManeuver = () => {
         set(touchActors(get()));
         bus.emit(EVT.SCENE_DIRTY);

@@ -353,7 +353,7 @@ describe('un record harnaché rend l\'espèce NUE + la déco du set (#1128)', ()
     expect(attendu).not.toBe(nu); // la sellerie pèse dans le markup : la comparaison n'est pas vide
     for (const id of ['cheval-de-monte', 'cheval-de-guerre-leger', 'destrier-cheval-de-guerre-lourd'])
       expect(svgDuRecord(id), id).toBe(attendu);
-    for (const id of ['cheval', 'poulain', 'mule'])
+    for (const id of ['cheval', 'poney', 'mule'])
       expect(svgDuRecord(id), id).toBe(nu);
   });
 });

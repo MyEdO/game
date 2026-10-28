@@ -27,10 +27,9 @@ import { traumaDodgePenaltyParts, damageSBBonus, amputationCombatPenalty, passiv
 import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
-import { groupMatch } from './groups';
 import { ignoredArmourAP, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
-import { isPsychImmune, psychImmuneToFrom } from './psychology';
+import { isPsychImmune, psychImmuneToFrom, sousPeur, vise } from './psychology';
 import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
 import { RULE_REF, RANGEES_DE_REGLE } from './ruleRefs';
 import { ligneDeRegle, ligneParSeuil, modDeRegle, modDeRangee, rangeesDeRegle, refDeRegle } from './reglesChiffrees';
@@ -754,13 +753,12 @@ export function weaponReachPenalty(attackerWeapon: Weapon, targetMelee: Weapon |
  * jamais en valeur cible : Peur −1 DR (l.29, vs la source, sauf immunité Haine/Amour) ; Haine/Animosité
  * +1 DR contre le groupe haï (l.22/41) ; Amour/Camaraderie +1 DR (défense des aimés/du groupe, l.77/82).
  * Immunité psychologique (trait/Frénésie/Détermination, LDB 17 l.59) → 0. Sans Peur (LDB 10) ne donne pas
- * d'immunité d'office : le malus suit l'ÉTAT réel (une Peur active non vaincue, `calmeDR < indice`).
+ * d'immunité d'office : le malus suit l'ÉTAT réel (`sousPeur`).
  * Appliqué à `atkSL` à chaque résolution d'attaque (cœur opposé + passes non opposées), une seule fois.
  */
 export function psychDRAdjust(attacker: Combatant, target: Combatant | null): number {
   if (!target || isPsychImmune(attacker)) return 0;
   const psy = attacker.psychState ?? [];
-  const groups = target.groups ?? [];
   // Peur ANNULÉE si une affliction active immunise l'attaquant à ce CANAL (Haine vs son groupe l.41,
   // Amour l.75 dont l’`active` porte déjà « tant que vous défendez ») — siège UNIQUE `psychImmuneToFrom`,
   // partagé avec `fearSourceFor` et la porte hors combat : un seul verdict, aucun roster requis ici.
@@ -772,9 +770,9 @@ export function psychDRAdjust(attacker: Combatant, target: Combatant | null): nu
     const adr = findPsychologyById(p.type)?.attackDR;
     if (!adr) continue;
     const applies = adr.vs === 'source'
-      ? p.sourceId === target.id && (p.calmeDR ?? 0) < (p.indice ?? 1) // Peur active non vaincue vs sa source
+      ? p.sourceId === target.id && sousPeur(p)
       : adr.vs === 'group'
-        ? !!p.active && !!p.cible && groupMatch(p.cible, groups) // Haine/Animosité vs le groupe ciblé
+        ? !!p.active && !!p.cible && vise({ groupe: p.cible }, { genre: 'combattant', c: target }, 'appartenance') // LDB 21 l.41 ; #3045
         : !!p.active; // 'any' : Amour/Camaraderie (défense), dès lors qu'actif
     if (!applies || (adr.amount < 0 && fearCancelled)) continue; // malus de Peur effacé par Haine/Amour
     dr += adr.amount;
@@ -1131,10 +1129,11 @@ export function armeDeMainPrincipale(c: Combatant): Weapon {
  *  ADE II 02 l.604-710. LDB 85 l.387 ; LDB 85 l.237 ; LDB 85 l.47 ; LDB 85 l.405 */
 export function freeAttackWeapon(gratuite: CreatureAttack): Weapon {
   const { def } = gratuite;
-  return buildWeapon({
+  const w = buildWeapon({
     label: def.label, attackKind: def.kind, natural: true, ...(def.subType ? { subType: def.subType.id } : {}),
     damage: def.damage ? { ...def.damage } : { plusBF: false, flat: gratuite.bonus },
   });
+  return gratuite.confere?.length ? { ...w, traitsConferes: gratuite.confere } : w; // ZI 03 l.77
 }
 
 /** Attaque gratuite « dans le dos » lors d'une Fuite (LDB 15 l.63,66) : Test de Corps

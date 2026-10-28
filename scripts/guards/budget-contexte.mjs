@@ -10,12 +10,13 @@
 // Le contrat d'entrée de `importsDe(texte)`, `estCheminDuBudget(chemin, imports)`,
 // `mesurerBudget(cwd, { lireTout, lister })` et `refusDeBudget({ reference, mesure, message })` est donc
 // APPEND-ONLY : une ère ancienne le reçoit tel que l'arbre qui juge le lit.
+import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync } from 'node:fs'
 import { Buffer } from 'node:buffer'
 import { resolve } from 'node:path'
 import { cliquetsDuMessage, declarationLue, mesuresNonCouvertes } from './lib/stocksNominatifs.mjs'
 import { cheminDuModule, groupesParEre } from './lib/porteDEre.mjs'
-import { depotDe, grapheDe, journalDe, ceQueFaitLeCommit, lireEnLot, listerImage, enfantsDirects, GitIndisponible } from './lib/gitPorte.mjs'
+import { communeDesParents, depotDe, grapheDe, journalDe, ceQueFaitLeCommit, lireEnLot, listerImage, enfantsDirects, GitIndisponible } from './lib/gitPorte.mjs'
 import { baseDuDiff } from '../gates/classerPush.mjs'
 import { lireRegle } from '../hooks/regles-projection-guard.mjs'
 
@@ -94,7 +95,7 @@ export function mesurerBudget(racine = process.cwd(), io = {}) {
   const postes = []
   const poser = (nom, texte) => {
     if (typeof texte !== 'string') return
-    postes.push({ nom, octets: octetsDe(texte) })
+    postes.push({ nom, octets: octetsDe(texte), empreinte: createHash('sha1').update(texte).digest('hex') })
   }
   const claude = lireTout(['CLAUDE.md']).get('CLAUDE.md') ?? null
   const imports = importsDe(claude)
@@ -136,6 +137,33 @@ export function postesQuiGrossissent(reference, mesure) {
     .map((p) => ({ ...p, delta: p.apres - p.avant }))
     .filter((p) => p.delta > 0)
     .sort((a, b) => b.delta - a.delta)
+}
+
+/**
+ * La RÉFÉRENCE du budget d'une FUSION (#1463), mesurée par `mesurer(arbre)` sur ses arbres RÉELS, jamais sur sa fusion
+ * automatique, dont un conflit garde les marqueurs : sa fusion à trois voies poste par poste, par CONTENU (`empreinte`) —
+ * deux parents identiques comptent une fois, le parent qui garde le poste de la base commune cède à l'autre, deux
+ * changements distincts s'ajoutent (`parent + parent − commune`, jamais sous zéro : un côté qui supprime le poste que l'autre
+ * modifie). Un poste sans `empreinte` (le `mesurerBudget` d'une ère
+ * qui ne la pose pas) lève une erreur nommée. PURE hors `mesurer`.
+ * @param {(arbre: string) => { postes: { nom: string, octets: number, empreinte: string }[], total: number }} mesurer
+ * @param {{ parents: string[], commune: string }} fusion
+ */
+export function referenceDeFusion(mesurer, { parents, commune }) {
+  if (parents.length !== 2) throw new Error(`budget : une fusion à ${parents.length} parents n'a pas de référence à trois voies`)
+  const [p1, p2, pc] = [...parents, commune].map((arbre) => new Map(mesurer(arbre).postes.map((p) => {
+    if (typeof p.empreinte !== 'string') throw new Error(`budget : le poste ${p.nom} de ${arbre} n'a pas d'empreinte — une fusion ne se mesure pas sans le contenu de ses postes`)
+    return [p.nom, p]
+  })))
+  const postes = [...new Set([...p1.keys(), ...p2.keys(), ...pc.keys()])].map((nom) => {
+    const [a, b, c] = [p1, p2, pc].map((p) => p.get(nom) ?? { octets: 0, empreinte: null })
+    const octets = a.empreinte === b.empreinte ? a.octets
+      : a.empreinte === c.empreinte ? b.octets
+        : b.empreinte === c.empreinte ? a.octets
+          : Math.max(0, a.octets + b.octets - c.octets)
+    return { nom, octets }
+  })
+  return { postes, total: postes.reduce((n, p) => n + p.octets, 0) }
 }
 
 export function refusDeBudget({ mesure, reference, message }) {
@@ -186,7 +214,10 @@ function vieDuBudget({ module }) {
 
 /**
  * Les commits de `debut..fin` qui font grossir le budget sans leur ligne `CLIQUET:`, chacun jugé par la porte
- * de son ère : `{ commitsControles, refus: [{ sha, ere, decision, reason }], notes }`.
+ * de son ère : `{ commitsControles, refus: [{ sha, ere, decision, reason }], notes }`. Une FUSION se mesure, référence et
+ * tête, par le `mesurerBudget` de cet arbre, le seul qui pose l'`empreinte` que `referenceDeFusion` exige : l'écart d'une
+ * fusion à sa référence à trois voies ne porte que ce que sa résolution ajoute, et son ère garde le verdict
+ * (`refusDeBudget`). #1463
  */
 export async function controlerBudgetDeLaPlage({ cwd = process.cwd(), debut, fin = 'HEAD' } = {}) {
   if (debut === undefined) {
@@ -232,14 +263,16 @@ export async function controlerBudgetDeLaPlage({ cwd = process.cwd(), debut, fin
       const chemins = apport.chemins()
       exigerLectures()
       if (!chemins.length) continue
-      const imports = [
-        ...juge.importsDe(lireEnLot(depot, apport.base, ['CLAUDE.md']).get('CLAUDE.md')),
-        ...juge.importsDe(lireEnLot(depot, commit.sha, ['CLAUDE.md']).get('CLAUDE.md')),
-      ]
+      const fusion = commit.parents.length === 2
+        ? { parents: commit.parents, commune: communeDesParents(depot, commit.parents) }
+        : null
+      const imports = [...(fusion ? fusion.parents : [apport.base]), commit.sha]
+        .flatMap((arbre) => juge.importsDe(lireEnLot(depot, arbre, ['CLAUDE.md']).get('CLAUDE.md')))
       exigerLectures()
       if (!chemins.some((chemin) => juge.estCheminDuBudget(chemin, imports))) continue
-      const reference = mesurerImage(juge, apport.base)
-      const mesure = mesurerImage(juge, commit.sha)
+      const mesureur = fusion ? actuelle : juge
+      const reference = fusion ? referenceDeFusion((arbre) => mesurerImage(mesureur, arbre), fusion) : mesurerImage(juge, apport.base)
+      const mesure = mesurerImage(mesureur, commit.sha)
       const message = messages.get(commit.sha)
       if (message === undefined) throw new Error(`budget : message absent — ${commit.sha}`)
       const refus = juge.refusDeBudget({ reference, mesure, message })

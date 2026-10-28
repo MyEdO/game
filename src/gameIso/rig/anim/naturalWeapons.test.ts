@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { handlingClass } from './handling';
+import { maniementDe } from '../../../noyau/animation';
 import { weaponAttackClip, weaponParryClip, weaponRest } from './weaponClips';
 import { findTrappingById } from '../../../data';
 import { buildWeapon, itemFromTrappingById, weaponFromItem } from '../../../engine/items';
@@ -17,9 +17,9 @@ const cornes = w('cornes', { attackKind: 'cornes', natural: true });
 
 describe('maniement des armes naturelles (mutations/traits)', () => {
   it('Tentacule → classe fouet (entraves) ; Cornes → coup de tête (cornes)', () => {
-    expect(handlingClass(tentacule)).toBe('entraves');
-    expect(handlingClass(cornes)).toBe('cornes');
-    expect(handlingClass(w('fouet'))).toBe('entraves'); // l'arme Fouet inchangée
+    expect(maniementDe(tentacule)).toBe('entraves');
+    expect(maniementDe(cornes)).toBe('cornes');
+    expect(maniementDe(w('fouet'))).toBe('entraves'); // l'arme Fouet inchangée
   });
 
   it('le geste se joue sur LE BRAS QUI TIENT L’ARME : tentacule et main gauche → miroité', () => {

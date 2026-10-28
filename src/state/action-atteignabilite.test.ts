@@ -220,12 +220,12 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as unknown as Parameters<typeof actionGate>[1]['battle'];
     const muets = ACTIONS.filter((a) => {
-      const v = actionGate(a.id, { active, battle });
+      const v = actionGate(a.id, { active, battle, gameTime: 0 });
       return typeof v.ok !== 'boolean' || (!v.ok && !v.reason);
     }).map((a) => a.id);
     expect(muets, `Action(s) dont le gate ne rend pas un verdict motivé :\n  ${muets.join('\n  ')}`).toEqual([]);
     // Fail-closed : un id inconnu ne « passe » jamais.
-    expect(actionGate('id-inexistant', { active, battle }).ok).toBe(false);
+    expect(actionGate('id-inexistant', { active, battle, gameTime: 0 }).ok).toBe(false);
   });
   it('`BattleState.action` se type DEPUIS le registre : `armed` + MODES_HORS_REGISTRE = BATTLE_ACTION_MODES', () => {
     const derives = new Set([
@@ -317,12 +317,12 @@ describe('(c) disposition data-driven — le validateur d’écriture tient la f
   });
 
   /**
-   * LE CHEMIN RÉEL DE LA SAVE : `saves.ts` sérialise l'état par `JSON.parse(JSON.stringify(data))`, et
+   * LE CHEMIN RÉEL DE LA SAVE : `noyau/persistance/save.ts` sérialise l'état par `JSON.parse(JSON.stringify(data))`, et
    * le snapshot réseau passe par le même goulot. Un tableau à trous en serait ressorti `[null, null, …]`
    * — soit « rangs 0-1 VIDÉS » alors que le joueur n'avait touché QUE le rang 3. La zone est donc un
    * objet creux, et cet aller-retour est la mesure qui le tient.
    */
-  it('ALLER-RETOUR JSON (chemin de `saves.ts`) : poser au rang 3 ne vide pas les rangs 0-2', () => {
+  it('ALLER-RETOUR JSON (chemin de `noyau/persistance/save.ts`) : poser au rang 3 ne vide pas les rangs 0-2', () => {
     const deduite = dispositionDeduite('capacites', [e('course'), e('mouvement'), e('defend')]);
     const pose = poserDansBarre(porteur(), { zone: 'capacites', index: 3 }, e('aim'));
     const avant = resoudreDisposition(pose.barre, 'capacites', deduite);

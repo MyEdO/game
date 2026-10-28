@@ -1,24 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { groupsFor, groupMatch, hiddenGroupsOf } from './groups';
+import { groupesDe, groupsFor, groupMatch, hiddenGroupsOf } from './groups';
 import { targetedTrigger } from './psychology';
 import type { Combatant } from './types';
-import { findCreatureById, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById } from '../data';
+import { creatures, findCreatureById, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById } from '../data';
+import { resetData, setDataset } from '../data/overrides';
 
 describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3)', () => {
   it('la CATÉGORIE de la créature est DÉCLARÉE sur son entrée (`grantGroups`) — plus aucune dérivation par folder', () => {
-    expect(groupsFor({ extras: findCreatureById('gobelin')?.grantGroups })).toContain('peau-verte');
-    expect(groupsFor({ extras: findCreatureById('zombie')?.grantGroups })).toContain('mort-vivant');
-    expect(groupsFor({ extras: findCreatureById('ungor')?.grantGroups })).toContain('homme-bete');
-    expect(groupsFor({ extras: findCreatureById('ungor')?.grantGroups })).not.toContain('bete');
-    expect(groupsFor({ extras: findCreatureById('guerrier-des-clans')?.grantGroups })).toContain('skaven');
-    expect(groupsFor({ extras: findCreatureById('cultiste')?.grantGroups })).toContain('cultiste');
-    expect(groupsFor({ extras: findCreatureById('cheval')?.grantGroups })).toContain('bete');
+    expect(groupsFor({ creature: findCreatureById('gobelin') })).toContain('peau-verte');
+    expect(groupsFor({ creature: findCreatureById('zombie') })).toContain('mort-vivant');
+    expect(groupsFor({ creature: findCreatureById('ungor') })).toContain('homme-bete');
+    expect(groupsFor({ creature: findCreatureById('ungor') })).not.toContain('bete');
+    expect(groupsFor({ creature: findCreatureById('guerrier-des-clans') })).toContain('skaven');
+    expect(groupsFor({ creature: findCreatureById('cultiste') })).toContain('cultiste');
+    expect(groupsFor({ creature: findCreatureById('cheval') })).toContain('bete');
     // Une entrée sans catégorie de monstre ne déclare aucun Groupe (« Les peuples du Reikland »).
     expect(findCreatureById('humain')?.grantGroups).toBeUndefined();
   });
 
-  it('espèce → ids DÉCLARÉS par l’entrée (`grantGroups`) + carrière + extras (dédup, ids)', () => {
-    const g = groupsFor({ speciesId: 'humains-reiklander', careerId: 'soldat', extras: ['sigmarite'] });
+  it('espèce → ids DÉCLARÉS par l’entrée (`grantGroups`) + extras, puis carrière lue en direct (dédup, ids)', () => {
+    const g = groupesDe({ career: 'soldat', groups: groupsFor({ speciesId: 'humains-reiklander', extras: ['sigmarite'] }) });
     expect(g).toEqual(expect.arrayContaining(['humain', 'soldat', 'sigmarite']));
   });
 
@@ -28,9 +29,9 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
   });
 
   it('Trait (mort-vivant/demoniaque) → id de Groupe, même hors bestiaire (unifie avec domainAttributes)', () => {
-    expect(groupsFor({ traits: [{ id: 'mort-vivant' }] })).toEqual(['mort-vivant']);
-    expect(groupsFor({ traits: [{ id: 'demoniaque' }] })).toEqual(['demon']);
-    expect(groupsFor({ traits: [{ id: 'vol' }] })).toEqual([]); // trait sans Groupe déclaré → aucun
+    expect(groupesDe({ traits: [{ id: 'mort-vivant' }] })).toEqual(['mort-vivant']);
+    expect(groupesDe({ traits: [{ id: 'demoniaque' }] })).toEqual(['demon']);
+    expect(groupesDe({ traits: [{ id: 'vol' }] })).toEqual([]); // trait sans Groupe déclaré → aucun
   });
 
   it('Trait DISSIMULÉ : le Groupe qu’il déclare n’est PAS exposé au ciblage psy tant que la dissimulation tient (#1357)', () => {
@@ -40,32 +41,32 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
       psychTraits: [{ type: 'haine' as const, cible: 'mort-vivant' }],
     } as unknown as Combatant;
     const cache = [{ id: 'mort-vivant', hidden: true }];
-    const dissimule = { id: 'v-1', name: 'Vampire', kind: 'enemy', groups: groupsFor({ traits: cache }), traits: cache } as unknown as Combatant;
-    expect(dissimule.groups).toEqual(['mort-vivant']); // le Groupe EXISTE bien sur le porteur
+    const dissimule = { id: 'v-1', name: 'Vampire', kind: 'enemy', groups: [], traits: cache } as unknown as Combatant;
+    expect(groupesDe(dissimule)).toEqual(['mort-vivant']); // le Groupe EXISTE bien sur le porteur
     expect(hiddenGroupsOf(dissimule)).toEqual(['mort-vivant']); // …mais il est masqué
     expect(targetedTrigger(chasseur, [dissimule])).toBeNull();
 
     // Marque levée : le même Groupe redevient visible et la Haine se déclenche.
     const vu = [{ id: 'mort-vivant' }];
-    const revele = { ...dissimule, groups: groupsFor({ traits: vu }), traits: vu } as unknown as Combatant;
+    const revele = { ...dissimule, traits: vu } as unknown as Combatant;
     expect(hiddenGroupsOf(revele)).toEqual([]);
     expect(targetedTrigger(chasseur, [revele])).toEqual({ type: 'haine', cible: 'mort-vivant', sourceId: 'v-1', indice: undefined });
   });
 
   it('classe « Roublards » → Groupe « criminel » auto-dérivé (Épée de justice / Traits psy ciblés)', () => {
     for (const id of ['voleur', 'hors-la-loi', 'charlatan', 'receleur']) {
-      expect(groupsFor({ careerId: id })).toContain('criminel');
+      expect(groupesDe({ career: id })).toContain('criminel');
     }
-    expect(groupsFor({ careerId: 'soldat' })).not.toContain('criminel'); // classe Guerriers
-    expect(groupMatch('criminel', groupsFor({ careerId: 'voleur' }))).toBe(true);
+    expect(groupesDe({ career: 'soldat' })).not.toContain('criminel'); // classe Guerriers
+    expect(groupMatch('criminel', groupesDe({ career: 'voleur' }))).toBe(true);
   });
 
   it('carrières MILITAIRES précises (soldat/garde/chevalier) → leur propre id — pas toute la classe Guerriers', () => {
-    expect(groupsFor({ careerId: 'soldat' })).toContain('soldat');
-    expect(groupsFor({ careerId: 'garde' })).toContain('garde');
-    expect(groupsFor({ careerId: 'chevalier' })).toContain('chevalier');
+    expect(groupesDe({ career: 'soldat' })).toContain('soldat');
+    expect(groupesDe({ career: 'garde' })).toContain('garde');
+    expect(groupesDe({ career: 'chevalier' })).toContain('chevalier');
     // Cavalier est aussi classe Guerriers mais N'EST PAS une des 3 carrières militaires ciblées.
-    expect(groupsFor({ careerId: 'cavalier' })).toEqual([]);
+    expect(groupesDe({ career: 'cavalier' })).toEqual([]);
   });
 
   it('groupMatch : appartenance STRICTE par id (plus de tolérance pluriel/casse/sous-type)', () => {
@@ -84,16 +85,16 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
   });
 
   it('carrières Bailli/Juriste/Noble → leur propre id de Groupe (Traits psy ciblés, LDB 21)', () => {
-    expect(groupsFor({ careerId: 'bailli' })).toContain('bailli');
-    expect(groupsFor({ careerId: 'juriste' })).toContain('juriste');
-    expect(groupsFor({ careerId: 'noble' })).toContain('noble');
+    expect(groupesDe({ career: 'bailli' })).toContain('bailli');
+    expect(groupesDe({ career: 'juriste' })).toContain('juriste');
+    expect(groupesDe({ career: 'noble' })).toContain('noble');
   });
 
   it('Talent Béni(Sigmar/Ulric) → Groupe religieux (comble le trou Phase 2 : sigmarite n’était dérivé de rien)', () => {
-    expect(groupsFor({ talents: [{ talentId: 'beni', spec: 'sigmar' }] })).toContain('sigmarite');
-    expect(groupsFor({ talents: [{ talentId: 'beni', spec: 'ulric' }] })).toContain('ulricain');
-    expect(groupsFor({ talents: [{ talentId: 'beni', spec: 'manann' }] })).toEqual([]); // culte sans Groupe dédié
-    expect(groupsFor({ talents: [{ talentId: 'autre-talent' }] })).toEqual([]); // pas Béni → rien
+    expect(groupesDe({ talents: [{ talentId: 'beni', spec: 'sigmar' }] })).toContain('sigmarite');
+    expect(groupesDe({ talents: [{ talentId: 'beni', spec: 'ulric' }] })).toContain('ulricain');
+    expect(groupesDe({ talents: [{ talentId: 'beni', spec: 'manann' }] })).toEqual([]); // culte sans Groupe dédié
+    expect(groupesDe({ talents: [{ talentId: 'autre-talent' }] })).toEqual([]); // pas Béni → rien
   });
 
   it('le culte n’est lu QUE via un Talent porteur de `grantSpecGroups` (le `spec` seul ne suffit pas)', () => {
@@ -102,7 +103,7 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
     expect(findTalentById('beni')?.grantSpecGroups).toBe(true);
     expect(findTalentById('invocation')?.grantSpecGroups).toBeUndefined();
     expect(findGodById('sigmar')?.grantGroups).toEqual(['sigmarite']);
-    expect(groupsFor({ talents: [{ talentId: 'invocation', spec: 'sigmar' }] })).toEqual([]);
+    expect(groupesDe({ talents: [{ talentId: 'invocation', spec: 'sigmar' }] })).toEqual([]);
   });
 
   it('cibles spéciales : « tout » matche toujours, « vivant » exclut mort-vivant/démon', () => {
@@ -119,21 +120,15 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
   });
 
   it('vérité — Préjugé (noble) cible un combattant de carrière Noble', () => {
-    expect(groupMatch('noble', groupsFor({ careerId: 'noble' }))).toBe(true);
-    expect(groupMatch('noble', groupsFor({ careerId: 'soldat' }))).toBe(false);
+    expect(groupMatch('noble', groupesDe({ career: 'noble' }))).toBe(true);
+    expect(groupMatch('noble', groupesDe({ career: 'soldat' }))).toBe(false);
   });
 
   it('vérité — Haine (vivant) d’un mort-vivant frappe les vivants, pas les morts-vivants', () => {
     const vivant = groupsFor({ speciesId: 'humains-reiklander' });
-    const mortVivant = groupsFor({ traits: [{ id: 'mort-vivant' }] });
+    const mortVivant = groupesDe({ traits: [{ id: 'mort-vivant' }] });
     expect(groupMatch('vivant', vivant)).toBe(true);
     expect(groupMatch('vivant', mortVivant)).toBe(false);
-  });
-
-  it('DÉMON du bestiaire : catégorie ET Groupe de son dieu, tous deux DÉCLARÉS sur l’entrée', () => {
-    const nurgling = findCreatureById('nurglings')!;
-    expect(nurgling.grantGroups).toEqual(['demon', 'nurgle']);
-    expect(groupsFor({ extras: nurgling.grantGroups })).toEqual(['demon', 'nurgle']);
   });
 
   it('Trait porté (Mort-vivant/Démoniaque) → Groupe DÉCLARÉ par `capabilities.grantGroups` (#1357)', () => {
@@ -152,5 +147,24 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
     expect(findGroupById('vivant')?.exceptGroups).toEqual(['mort-vivant', 'demon']);
     expect(findGroupById('humain')?.matchesAll).toBeUndefined(); // un Groupe ordinaire n'est pas joker
     expect(groupMatch('groupe-inexistant', ['humain'])).toBe(false); // id fantôme → aucun joker implicite
+  });
+});
+
+describe('Groupes du Tableau des Obsessions portés par le moteur (EDOC 12 l.180-181)', () => {
+  it('Mutants : le porteur d’au moins une mutation (EDOC 12 l.42), après ses Groupes déclarés', () => {
+    expect(groupesDe({ groups: ['cultiste'], mutations: [{ id: 'mutation-fixture' }] })).toEqual(['cultiste', 'mutants']);
+    expect(groupesDe({ groups: ['cultiste'], mutations: [] })).toEqual(['cultiste']);
+    expect(groupesDe({ groups: ['cultiste'], traits: [{ id: 'corruption-mentale' }] })).not.toContain('mutants');
+  });
+
+  it('genre : une créature reçoit les Groupes déclarés de son genre, de genre en genre (Monstres compris)', () => {
+    const fiche = (id: string, champs: { grantGroups?: string[]; genre?: { id: string } }) => ({ ...creatures[0], id, grantGroups: undefined, genre: undefined, ...champs });
+    try {
+      setDataset('creatures', [...creatures, fiche('genre-fixture', { grantGroups: ['monstres'] }), fiche('espece-fixture', { grantGroups: ['groupe-fixture'], genre: { id: 'genre-fixture' } })]);
+      expect(groupsFor({ creature: { genre: { id: 'espece-fixture' } } })).toEqual(['groupe-fixture', 'monstres']);
+      expect(groupsFor({ creature: { grantGroups: ['groupe-fixture'] } })).toEqual(['groupe-fixture']);
+    } finally {
+      resetData();
+    }
   });
 });

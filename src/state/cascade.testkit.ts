@@ -11,6 +11,7 @@ import type { BatchParticipant, CascadeStep, PendingCascade } from '../noyau/pen
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
+import { lignesDe } from '../engine/modLine.testkit';
 
 /** UNE séquence de test, seule fabrique des fixtures de `PendingCascade` : son compteur d'identité
  *  (`seq`, #1508) vaut le nombre d'étapes poussées, comme pour une séquence ouverte par le code. */
@@ -51,11 +52,9 @@ export function jetDe(st: CascadeStep, heroId?: string): LigneJugeable & { label
 }
 
 /** Le Soutien (LDB 12) porté par une ligne, tel qu'il s'AFFICHE : la ou les lignes de mod identifiées
- *  par leur RÈGLE (`soutienMod` — `ref.id`), jamais par leur libellé. `0` si la ligne n'en porte pas. */
+ *  par leur RÈGLE (`soutienMod` — `ref`), jamais par leur libellé. `0` si la ligne n'en porte pas. */
 export function soutienDe(st: LigneJugeable): number {
-  return (st.mods ?? [])
-    .filter((m) => m.ref?.id === RULE_REF.soutien.id)
-    .reduce((sum, m) => sum + m.value, 0);
+  return lignesDe(st.mods, RULE_REF.soutien).reduce((sum, m) => sum + m.value, 0);
 }
 
 /** Dé NATUREL que le banc POSE sur une rangée de Test (étape mono, ou `rangee` d'une bande), sur la TABLE

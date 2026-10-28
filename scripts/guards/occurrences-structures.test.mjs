@@ -1,6 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { actualiserOccurrences, siteDeForme, siteDeSlot } from './lib/occurrencesStock.mjs'
+import { actualiserOccurrences } from './lib/occurrencesStock.mjs'
+
+const siteDeSlot = (s) => `${s.dataset} | ${s.champ}`
+const siteDeForme = (f) => `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature}`
 
 const a = { dataset: 'fixture.json', champ: 'scene', occurrences: 2 }
 const b = { dataset: 'fixture.json', champ: 'ref', occurrences: 9 }
@@ -18,7 +21,7 @@ test('remplacements AST : seuls les nombres occurrences BAISSENT, plusieurs span
 })
 
 test('#2705 : une HAUSSE refuse TOUT, la baisse du même run comprise, en nommant le site et sa cible', () => {
-  const texteSonde = `export const SLOTS_SANS_DECLARATION = [
+  const texteSonde = `export const SONDE = [
   { dataset: "a.json", champ: "x", occurrences: 3, lot: "L", date: "2026-01-01" },
   { dataset: "b.json", champ: "y", occurrences: 9, lot: "L", date: "2026-01-01" },
 ];\n`
@@ -27,15 +30,15 @@ test('#2705 : une HAUSSE refuse TOUT, la baisse du même run comprise, en nomman
     { dataset: 'b.json', champ: 'y', occurrences: 9, lot: 'L', date: '2026-01-01' },
   ]
   const observe = [{ dataset: 'a.json', champ: 'x', occurrences: 5 }, { dataset: 'b.json', champ: 'y', occurrences: 7 }]
-  const r = actualiserOccurrences([{ texte: texteSonde, rel: 'scratch/slots.mjs', nom: 'SLOTS_SANS_DECLARATION', observe, stock, site: siteDeSlot, cible }])
+  const r = actualiserOccurrences([{ texte: texteSonde, rel: 'scratch/slots.mjs', nom: 'SONDE', observe, stock, site: siteDeSlot, cible }])
   assert.deepEqual(Object.keys(r), ['refus'], 'aucune écriture n’est préparée')
-  assert.match(r.refus, /^REFUS : scratch\/slots\.mjs : SLOTS_SANS_DECLARATION porte 1 entrée/)
+  assert.match(r.refus, /^REFUS : scratch\/slots\.mjs : SONDE porte 1 entrée/)
   assert.match(r.refus, /a\.json \| x — nombre 5 > 3 en stock/)
   assert.match(r.refus, /Cet outil ne peut qu'écrire un stock PLUS PETIT\./)
   assert.match(r.refus, /a\.json \| x — HAUSSE 5 > 3 : la dette GRANDIT\. Migrer a\.json \| x vers sa forme CIBLE\. Aucune écriture ne relève ce nombre\./)
   assert.doesNotMatch(r.refus, /b\.json/, 'la baisse n’est pas un refus')
   assert.match(r.refus, /Rien n’est écrit\.$/)
-  const seule = actualiserOccurrences([{ texte: texteSonde, rel: 'scratch/slots.mjs', nom: 'SLOTS_SANS_DECLARATION', observe: [observe[1], { ...observe[0], occurrences: 3 }], stock, site: siteDeSlot, cible }])
+  const seule = actualiserOccurrences([{ texte: texteSonde, rel: 'scratch/slots.mjs', nom: 'SONDE', observe: [observe[1], { ...observe[0], occurrences: 3 }], stock, site: siteDeSlot, cible }])
   assert.equal(seule.ecritures[0].texte, texteSonde.replace('occurrences: 9', 'occurrences: 7'), 'une baisse seule s’écrit')
 })
 

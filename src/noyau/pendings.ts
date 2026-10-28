@@ -17,7 +17,7 @@ import type { AttackResult, DefenseMode, DifficultyComposition, ModLine, RollBre
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { CriticalResolved, OrigineCritique } from '../engine/critical';
 import type { OupsResolved } from '../engine/oups';
-import type { StakeRef, SpellData } from '../data';
+import type { ManeuverDef, StakeRef, SpellData } from '../data';
 import type { CastResult, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
 import type { HealMode } from '../engine/healing';
 import type { PsychType } from '../engine/psychology';
@@ -555,9 +555,10 @@ export interface PendingDistraire {
 export interface PendingManeuver {
   attackerId: string;
   kind: AttackKind;
-  /** Id STABLE de la `ManeuverDef` résolue (`grantsManeuvers`/`pickGranted`) — DISTINGUE les variantes
-   *  partageant un `kind` (6 souffles, 2 étreintes) ; `kind` reste pour l'icône/le compteur partagé. */
-  maneuverId: string;
+  /** Clé de l'attaque naturelle déclarée (`CreatureAttack.cle`, lue par `attaqueDeCle`) — distingue les
+   *  manœuvres partageant un `kind` et deux octrois d'une même manœuvre ; `kind` reste pour l'icône et le
+   *  compteur partagé. */
+  attaque: string;
   /** Cible DÉSIGNÉE au clic (victime pour Langue/Regard/Étreinte ; point d'impact de la zone pour
    *  Souffle/Vomi — LDB 85 « choisit une cible visible »). Absent côté IA (cible auto la plus proche). */
   targetId?: string;
@@ -1617,14 +1618,14 @@ export type OpposedRowFreeze = Pick<OpposedFreeze, 'aT' | 'bonusSL' | 'defenderM
 /** Contexte SÉRIALISABLE d'une DÉFENSE de manœuvre de ZONE (Souffle/Vomi/Regard/Étreinte/Langue, LDB 85)
  *  porté par une étape de cascade `maneuverDefense` : le héros ciblé JETTE sa réaction (Esquive/Initiative/
  *  Parade) opposée au jet d'attaquant FIGÉ (dans `meta.opposed.aT`), influençable (Chance/Résilience). À la
- *  validation, l'applier RE-oppose et applique les effets de la manœuvre (`findManeuverById(maneuverId).effects`)
+ *  validation, l'applier RE-oppose et applique les effets de la manœuvre figée (`def.effects`)
  *  avec la marge nette + `indice`/`spent` — SOURCE partagée avec le chemin silencieux (`applyManeuverEffects`).
- *  Tout est primitif (ids/nombres) → snapshoté/transmis en coop, jamais de closure. */
+ *  Tout est donnée sérialisable → snapshoté/transmis en coop, jamais de closure. */
 export interface ManeuverDefenseFreeze {
   /** Créature attaquante (référent des effets/formules). */
   attackerId: string;
-  /** Id de la manœuvre (`maneuvers.json`) → `findManeuverById` reconstruit `effects`/`advantageMode`. */
-  maneuverId: string;
+  /** La manœuvre telle que l'attaque la résout (composée avec son Type pour un Souffle, `souffleDuType`). */
+  def: ManeuverDef;
   /** Indice de la manœuvre (Dégâts = 4 + BF pour une arme naturelle, LDB 85). */
   indice: number;
   /** Avantage dépensé (marge des manœuvres à Avantage VARIABLE, ex. Regard +1 DR/Av, LDB 85 l.290). */
@@ -1661,7 +1662,7 @@ export interface BladeTrapFreeze {
  * un dé de chute, elle les tire sur des Blessures qui n'ont pas encaissé.
  *
  * UNION FERMÉE de verbes SÉRIALISABLES, résolus par une TABLE (`clotures`, patron de la table `appliers`) : jamais
- * une fermeture JS. `pendingCascade` est SAUVEGARDÉ (`state/saves.ts`) et voyage sur le réseau — une
+ * une fermeture JS. `pendingCascade` est SAUVEGARDÉ (`persistance/save.ts`) et voyage sur le réseau — une
  * clôture qui serait une fonction ne survivrait ni à l'un ni à l'autre.
  */
 export type Cloture =

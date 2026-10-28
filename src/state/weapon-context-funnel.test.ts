@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { firedWeapon, attackerFumbled, defenderFumbled } from '../noyau/combatFlow';
 import { hasQuality } from '../engine/qualities/dispatch';
 import type { Combatant, Weapon, Trauma } from '../engine/types';
-import { armeDeTest } from '../objetsDeTest.testkit';
+import { armeDeTest } from '../engine/objetsDeTest.testkit';
 import type { AttackResult } from '../engine/combat';
 
 // Funnel UNIQUE des règles d'arme contextuelles (LDB 62) : `firedWeapon` lie attaquant ⊕ arme ⊕ contexte.

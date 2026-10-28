@@ -9,7 +9,7 @@ import { applyHullCriticalToTarget } from '../noyau/combatFlow';
 import type { CoupDeTouche } from '../noyau/pendings';
 import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { hasCondition, COND } from '../engine/conditions';
 import { draineCascade } from './cascade.testkit';
 import { makeRNG } from '../engine/dice';
@@ -109,7 +109,7 @@ describe("Critique de coque à l'Équipage : le marin encaisse le coup, calculé
     const mage = perso('mage');
     const marin = perso('marin', { important: true, wounds: { current: 40, max: 40, base: 40 } as Combatant['wounds'], armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 } });
     const nav = navire(marin);
-    const sort = findSpell('Carreau')!;
+    const sort = findSpellById('carreau')!;
     const incantation: CastResult = { cast: true, roll: 21, target: 90, sl: 4, isCritical: false, isFumble: false, log: 'jet' };
     const mres = evaluateMissile(mage, nav, sort, incantation);
     const attendu = evaluateMissile(mage, structuredClone(marin), sort, mres).woundsLost ?? 0;

@@ -11,6 +11,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { GameOpEditor } from './GameOpEditor';
 import type { GameOp } from '../../engine/ops';
+import { conditionIds } from '../../data';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -39,7 +40,7 @@ const caseACocher = (etiquette: string) =>
 describe('GameOpEditor — une clé vidée s’OMET, jusque dans un SOUS-objet', () => {
   it('décocher « sur l’échec » ôte `onFailure` de `valuePerSL`, sans y laisser une clé à `undefined`', () => {
     const vus: GameOp[][] = [];
-    monter([{ op: 'condition', id: 'etourdi', value: 1, valuePerSL: { every: 1, amount: 1, onFailure: true } } as GameOp], vus);
+    monter([{ op: 'condition', id: conditionIds()[0], value: 1, valuePerSL: { every: 1, amount: 1, onFailure: true } } as GameOp], vus);
     const coche = caseACocher("sur l'échec");
     expect(coche.checked, 'la case ne reflète pas le payload d’entrée').toBe(true);
     act(() => {
@@ -52,10 +53,30 @@ describe('GameOpEditor — une clé vidée s’OMET, jusque dans un SOUS-objet',
 
   it('cocher « sur l’échec » pose la clé à `true`', () => {
     const vus: GameOp[][] = [];
-    monter([{ op: 'condition', id: 'etourdi', value: 1, valuePerSL: { every: 1, amount: 1 } } as GameOp], vus);
+    monter([{ op: 'condition', id: conditionIds()[0], value: 1, valuePerSL: { every: 1, amount: 1 } } as GameOp], vus);
     act(() => {
       caseACocher("sur l'échec").click();
     });
     expect((vus[vus.length - 1][0] as unknown as { valuePerSL: unknown }).valuePerSL).toEqual({ every: 1, amount: 1, onFailure: true });
+  });
+});
+
+describe('GameOpEditor — `giveTrapping.perSL` se saisit par ses champs typés (`perSLSchema`)', () => {
+  it('cocher l’échelle pose `{ every, amount }`, décocher l’ôte, « sur l’échec » s’y pose', () => {
+    const vus: GameOp[][] = [];
+    monter([{ op: 'giveTrapping', trappingId: 'arme-simple', count: 1 }], vus);
+    act(() => {
+      caseACocher('objets en plus par DR').click();
+    });
+    expect(vus[vus.length - 1][0]).toEqual({ op: 'giveTrapping', trappingId: 'arme-simple', count: 1, perSL: { every: 1, amount: 1 } });
+    act(() => { root.render(<GameOpEditor ops={vus[vus.length - 1]} onChange={(next) => vus.push(next)} />); });
+    act(() => {
+      caseACocher("sur l'échec").click();
+    });
+    expect(vus[vus.length - 1][0]).toMatchObject({ perSL: { every: 1, amount: 1, onFailure: true } });
+    act(() => {
+      caseACocher('objets en plus par DR').click();
+    });
+    expect('perSL' in vus[vus.length - 1][0], 'l’échelle décochée reste à `undefined`').toBe(false);
   });
 });

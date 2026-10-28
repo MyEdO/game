@@ -18,7 +18,10 @@ import { listerArbre } from '../scripts/guards/lib/lister.mjs';
 import { couvertureDuBalayage } from '../scripts/guards/lib/stock.mjs';
 import { detenteur } from './detenteur.testkit';
 import { skillRefLabel, talentRefLabel, talents } from './data';
-import { parseSkillRef, parseTalentRef } from './ui/editor/refFormatLivre';
+import { parseSkillRef, parseTalentRef, parseTraitInstance } from './ui/editor/refFormatLivre';
+import { formatTrait } from './engine/traits/dispatch';
+import type { TraitInstance } from './engine/statEntry';
+import type { TraitPose } from './data/schemas/grammaire/reference';
 
 /**
  * Garde-fou « logique par LABEL interdite » (#142, #289, #909, #1988 §7 ; doctrine AGENTS.md bloc
@@ -222,6 +225,22 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
         .map(({ id }) => `${id} → ${JSON.stringify(parseTalentRef(talentRefLabel({ id })))}`);
       expect(talents.length).toBeGreaterThan(0);
       expect(faux, faux.join('\n')).toEqual([]);
+    },
+    parseTraitInstance: () => {
+      for (const trait of [
+        { id: 'corruption', arg: 'moderee' },
+        { id: 'venin', arg: 'tresDifficile' },
+        { id: 'souffle', value: 12, arg: 'feu' },
+        { id: 'haine', arg: 'noble' },
+        { id: 'haine', arg: 'homme-bete' },
+        { id: 'morsure', value: 9 },
+      ] as TraitInstance[]) expect(parseTraitInstance(formatTrait(trait))).toEqual(trait);
+    },
+    nommeUnTrait: () => {
+      for (const trait of [
+        { id: 'attaque-caudale', value: 12, confere: [{ id: 'venin' }] },
+        { id: 'arme', value: 10, arg: 'Crocs', confere: [{ id: 'infecte' }] },
+      ] as TraitPose[]) expect(parseTraitInstance(formatTrait(trait))).toEqual(trait);
     },
   };
 
@@ -513,7 +532,7 @@ describe('garde-fou « logique par LIBELLÉ hors du champ label » (#142 LOT 7)'
 
   it('ANTI-VACANCE : échoue sur la faute de RÉCOLTE reconstituée (regex de libellé sur une valeur dérivée d’un champ)', () => {
     // Le motif EXACT qui vivait en `engine/harvest.ts` avant migration (#1318 V6) : le TraitInstance
-    // formaté en prose FR, puis re-parsé à la regex — la voie par id (`findResolvedTrait`) existait.
+    // formaté en prose FR, puis re-parsé à la regex.
     const viaCallback = 'function h(c: Creature) {\n'
       + "  return (c.traits ?? []).map(traitText).find((s) => /^Taille/.test(s)) ?? '';\n"
       + '}';

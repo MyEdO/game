@@ -16,7 +16,7 @@ import { CascadeBody } from './CascadeModal';
 import { openSkillTest } from '../noyau/combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { sequenceAbandonOf } from '../noyau/sequenceCore';
-import { snapshotSave } from '../state/saves';
+import { snapshotSave } from '../noyau/persistance/save';
 import { creditBourse } from '../noyau/bourseFlow';
 import { avanceEtapeCascade } from '../state/cascade.testkit';
 import type { Combatant } from '../engine/types';
@@ -442,7 +442,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     expect(bouton.getAttribute('aria-disabled'), 'affiché, fermé').toBe('true');
     expect(raisonDe(bouton)).toBe('Abandon demandé : il prend effet à la fin de la manche.');
     // Aller-retour de sauvegarde : la demande est une donnée de partie.
-    const save = snapshotSave(get() as never, useGame.getInitialState() as never, 'test');
+    const save = snapshotSave(get(), 'test');
     act(() => { useGame.setState({ sequence: null, pendingCascade: null } as never); });
     act(() => { useGame.setState({ sequence: save.data.sequence, pendingCascade: save.data.pendingCascade } as never); });
     expect(get().sequence?.abandon, 'rechargée avec sa demande').toBe('abandon');

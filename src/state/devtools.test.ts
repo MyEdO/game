@@ -608,9 +608,10 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     expect(movementRemaining(b, combattant()), 'le Mouvement du Tour, sans le reliquat de Course').toBe(mountMovement(b, combattant()));
   });
 
-  it('combatEnd : un `corruption` qui n’est ni un Degré ni false est refusé, nommé, sans finir le combat', () => {
+  it('combatEnd : un `corruption` qui n’est ni l’id d’un Degré ni false est refusé, nommé, sans finir le combat', () => {
     const api = buildApi();
     expect(api.combatEnd({ corruption: true as never })).toMatch(/^✗ corruption « true »/);
+    expect(api.combatEnd({ corruption: 'Modérée' }), 'le libellé n’est pas l’id').toMatch(/^✗ corruption « Modérée »/);
     expect(useGame.getState().battle!.over).toBeNull();
     expect(useGame.getState().battle!.combatants.filter((c) => c.kind === 'enemy').every((c) => !c.dead)).toBe(true);
   });

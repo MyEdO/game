@@ -4,7 +4,7 @@
  * engine-pur (règle 3). `noyau/monde/scene.ts` le RE-EXPORTE pour ses consommateurs.
  */
 import { CHAR_KEYS, type CharKey, type Characteristics } from './types';
-import type { TraitInstance } from './statEntry';
+import type { TraitPose } from '../data/schemas/grammaire/reference';
 import type { SizeCategory } from './size';
 import { makeRNG, hashSeed } from './dice';
 
@@ -24,8 +24,8 @@ export interface CustomStatblock {
   char: Partial<Record<CharKey | 'M' | 'B', number>>;
   weaponDamage?: string; // ex. "+BF+4"
   armour?: number; // PA uniforme sur toutes localisations
-  /** Traits du profil custom, STRUCTURÉS (`TraitInstance` : id + value/arg) — édités par picker. */
-  traits?: TraitInstance[];
+  /** Traits POSÉS du profil custom (id + value/arg) — édités par picker, résolus au spawn (`traitsDuPorteur`). */
+  traits?: TraitPose[];
   /** Catégorie de Taille (LDB 85) — sinon dérivée du trait « Taille (X) », défaut Moyenne. */
   size?: SizeCategory;
   /** Groupes d'appartenance manuels supplémentaires (Sigmarite, Cultiste…) pour les Traits psy ciblés (LDB 21). */

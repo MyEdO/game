@@ -31,8 +31,8 @@ export function scenesDuRegistre(): Scene[] {
 
 /** Paquet de campagne snapshotté (#766) : RÉ-ENREGISTRE toutes ses scènes (le `sceneRegistry` en mémoire
  *  module ne connaît sinon que la scène courante → transitions/portes vers les AUTRES scènes du
- *  paquet échoueraient en silence) et RE-DÉRIVE la couche narrative runtime (`HORS_SAVE`, `saves.ts`).
- *  Lue par la reprise de save et par le snapshot coop de l'invité (`netFlow.applyNetSnapshot`). */
+ *  paquet échoueraient en silence) et RE-DÉRIVE la couche narrative runtime (`HORS_SAVE`, `persistance/save.ts`).
+ *  Lue par le chargement d'une save (`chargerLaSave`) et par l'instantané coop appliqué chez l'invité (`coop.appliquerLInstantane`). */
 export function reposerPaquetDeCampagne(
   doc: { scenes: readonly Scene[]; narratif: NarratifBlock } | null | undefined,
 ): { campaignNarratif?: NarratifBlock } {

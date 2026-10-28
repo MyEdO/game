@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { conditionMeta, summarizeEffects, topImportantCondition, combatantFlags } from './effectIcons';
 import type { Combatant, ConditionInstance, ActiveEffect, CharKey } from '../engine/types';
-import { psychologies, refLabel } from '../data';
+import { etats, psychologies, refLabel } from '../data';
 import { setDataset } from '../data/overrides';
-import { deElide } from '../i18n';
+import { deElide, t } from '../i18n';
 import { DIFFICULTY_LABELS } from '../engine/types';
 import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../state/ficheDeTest.testkit';
 
@@ -19,22 +19,32 @@ describe('conditionMeta', () => {
   it('marque Exténué comme non-important (état mineur)', () => {
     expect(conditionMeta('extenue').important).toBe(false);
   });
-  it('a un repli pour un état inconnu', () => {
-    expect(conditionMeta('TrucBizarre').icon).toBeTruthy();
-    expect(conditionMeta('TrucBizarre').important).toBe(false);
+  it('un État CONNU sans icône ni sévérité retombe sur le repli (journal/info, sévérité 10)', () => {
+    const livres = structuredClone(etats);
+    const { icon: _icon, severity: _severity, ...nu } = livres[0];
+    setDataset('etats', [...livres, { ...nu, id: 'etat-de-fixture' }]);
+    try {
+      expect(conditionMeta('etat-de-fixture')).toEqual({ icon: 'journal/info', severity: 10, important: false });
+    } finally {
+      setDataset('etats', livres);
+    }
+  });
+  it('un id hors du registre LÈVE, un libellé n’est pas un id (#1463 LD.1)', () => {
+    expect(() => conditionMeta('id-hors-registre')).toThrow(t('etats.inconnu', { id: 'id-hors-registre' }));
+    expect(() => conditionMeta(etats[0].label)).toThrow(t('etats.inconnu', { id: etats[0].label }));
   });
 });
 
 describe('combatantFlags — Peur (LDB 21 l.27)', () => {
   const C = (psychState: unknown) => ({ conditions: [], psychState }) as unknown as Combatant;
-  it('sous l’emprise (calmeDR < Indice) → drapeau fear avec l’Indice max, et chip flag/fear visible', () => {
+  it('sous la Peur (non surmontée) → drapeau fear avec l’Indice max, et chip flag/fear visible', () => {
     const f = combatantFlags(C([{ type: 'peur', sourceId: 'x', indice: 2, calmeDR: 0 }, { type: 'peur', sourceId: 'y', indice: 3, calmeDR: 1 }]));
     expect(f.fear).toBe(3);
     const r = summarizeEffects([], [], 5, f);
     expect(r.visible.some((v) => v.icon === 'flag/fear')).toBe(true);
   });
-  it('Peur vaincue (calmeDR ≥ Indice) ou absente → pas de drapeau', () => {
-    expect(combatantFlags(C([{ type: 'peur', sourceId: 'x', indice: 2, calmeDR: 2 }])).fear).toBeUndefined();
+  it('Peur surmontée ou absente → pas de drapeau', () => {
+    expect(combatantFlags(C([{ type: 'peur', sourceId: 'x', indice: 2, calmeDR: 2, surmontee: true }])).fear).toBeUndefined();
     expect(combatantFlags(C([])).fear).toBeUndefined();
   });
   it('la puce nomme la compétence du Test étendu lue dans `psychology.json`, reposée sur une autre compétence', () => {

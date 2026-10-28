@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../state/store';
-import { listSaves, readSlot, deleteSlot, exportSave, takeObsoleteNotice, SAVE_SLOTS, AUTO_SLOT, type SaveSlot, type AnySlot, type SaveMeta, type ObsoleteCause, type RetraitDeSave } from '../state/saves';
+import { stockageDesSauvegardes } from '../state/saves';
+import {
+  listerLesSauvegardes, lireLaSauvegarde, retirerLaSauvegarde, prendreLesRetraitsDeSauvegardes,
+  SAVE_SLOTS, AUTO_SLOT, type SaveSlot, type AnySlot, type RetraitDeSave,
+} from '../hote/sauvegardes';
+import { exporterLaSauvegarde, metaDeSave, type ObsoleteCause, type SaveMeta } from '../noyau/persistance/save';
 import { downloadText } from '../web/fileIo';
 import { GameDate } from './GameDate';
 import { Modal } from './Modal';
@@ -16,8 +21,8 @@ import { t, type MsgKey } from '../i18n';
  * L'emplacement AUTO est CHARGEABLE mais jamais écrit à la main (pas de bouton Sauvegarder).
  */
 const autoMetaOf = (): SaveMeta | null => {
-  const s = readSlot(AUTO_SLOT);
-  return s ? { version: s.version, savedAt: s.savedAt, sceneLabel: s.sceneLabel, gameTime: s.gameTime } : null;
+  const s = lireLaSauvegarde(stockageDesSauvegardes(), AUTO_SLOT);
+  return s ? metaDeSave(s) : null;
 };
 
 /** Message du joueur par CAUSE de rejet (`ObsoleteCause`) : l'autre format et le contenu illisible ne
@@ -41,33 +46,33 @@ export function SaveLoadModal({ mode, onClose }: { mode: 'save' | 'load'; onClos
   const saveGame = useGame((s) => s.saveGame);
   const loadGame = useGame((s) => s.loadGame);
   const importGame = useGame((s) => s.importGame);
-  const [metas, setMetas] = useState(listSaves());
+  const [metas, setMetas] = useState(() => listerLesSauvegardes(stockageDesSauvegardes()));
   const [autoMeta, setAutoMeta] = useState(autoMetaOf);
   const [error, setError] = useState<string | null>(null);
   const [retraits, setRetraits] = useState<readonly RetraitDeSave[]>([]);
   const noterLesRetraits = () => {
-    const neufs = takeObsoleteNotice();
+    const neufs = prendreLesRetraitsDeSauvegardes(stockageDesSauvegardes());
     if (neufs.length) setRetraits((dits) => [...dits.filter((d) => !neufs.some((n) => n.slot === d.slot)), ...neufs]);
   };
   const fileRef = useRef<HTMLInputElement>(null);
   // Une save dont la version diffère de `FORMAT_SAVE` est retirée du stockage à la lecture
-  // (`readSlot`) : le témoin, posé par la lecture qui l'a jetée (`listSaves` ci-dessus, ou l'écran
-  // d'accueil), devient ICI le message au joueur — sans quoi l'emplacement se viderait en silence.
+  // (`lireLaSauvegarde`) : le témoin, cumulé dans le stockage par la lecture qui l'a jetée (`listerLesSauvegardes`
+  // ci-dessus, ou l'écran d'accueil), devient ICI le message au joueur — sans quoi l'emplacement se viderait en silence.
   // La consommation est un EFFET, jamais un initialiseur de rendu : sous `<React.StrictMode>` (le
   // montage réel, `main.tsx`) le corps est joué DEUX fois, et la 2ᵉ passe — qui trouverait le témoin
   // déjà consommé — retiendrait `null`. L'effet ne fait que POSER un message, jamais l'effacer : son
   // double-appel StrictMode est donc sans effet.
   useEffect(() => { noterLesRetraits(); }, []);
   const refresh = () => {
-    setMetas(listSaves());
+    setMetas(listerLesSauvegardes(stockageDesSauvegardes()));
     setAutoMeta(autoMetaOf());
     noterLesRetraits();
   };
 
   const onSave = (slot: SaveSlot) => { setError(saveGame(slot) ? null : t('saveload.error.save')); refresh(); };
   const onLoad = (slot: AnySlot) => { if (loadGame(slot)) onClose(); else setError(t('saveload.error.load')); };
-  const onExport = (slot: AnySlot) => { const save = readSlot(slot); if (save) downloadText(`wfrp4-sauvegarde-${slot}.json`, exportSave(save)); };
-  const onDelete = (slot: AnySlot) => { deleteSlot(slot); refresh(); };
+  const onExport = (slot: AnySlot) => { const save = lireLaSauvegarde(stockageDesSauvegardes(), slot); if (save) downloadText(`wfrp4-sauvegarde-${slot}.json`, exporterLaSauvegarde(save)); };
+  const onDelete = (slot: AnySlot) => { retirerLaSauvegarde(stockageDesSauvegardes(), slot); refresh(); };
   const onImportFile = async (file: File | undefined) => {
     if (!file) return;
     const json = await file.text();

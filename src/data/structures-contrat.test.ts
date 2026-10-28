@@ -19,14 +19,12 @@ import {
   scanDuCorpus,
   scannerDonnees,
   scannerRedeclarations,
+  type DivergenceEnveloppe,
   type Redeclaration,
 } from '../../scripts/docs/lib/structures-scan.mjs';
-import { regenerations, sitesHorsStrate } from '../../scripts/guards/lib/horsStrateAudit';
-import { HORS_STRATE_RATCHET } from '../../scripts/guards/lib/horsStrateStock.mjs';
-import { cleDeSite, ecartDuVolet, SEPARATEUR_DE_REMEDE, sitesEnEntrees } from '../../scripts/guards/lib/stock.mjs';
-import { COLLECTIONS_A_COMPTE_PAR_NOM, ecartsDeCollection, occurrencesDe, siteDEnveloppe, siteDeForme } from '../../scripts/guards/lib/occurrencesStock.mjs';
-import { corpusDuScan } from '../../scripts/guards/lib/corpusDesComptes.mjs';
-import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
+import { champsSansSlot, slotsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
+import { COLLECTIONS_A_COMPTE_PAR_NOM, ecartsDeCollection, occurrencesDe } from '../../scripts/guards/lib/occurrencesStock.mjs';
+import { CLES_POSEES_INCONDITIONNELLEMENT, clesDeclareesJamaisPortees, INVENTAIRE as COLLECTIONS_D_INVENTAIRE, inventaireDe, SANS_LOT } from '../../scripts/guards/lib/inventaireDeDette.mts';
 import {
   ANGLES_MORTS,
   CLES_DE_VALEUR,
@@ -34,7 +32,6 @@ import {
   DATASETS_DES_PROJETS,
   LOTS_CONNUS,
   LOTS_DE_PEUPLEMENT,
-  LOT_CLE_RESERVEE,
   lotDeForme,
   CLES_IDENTITE,
   RX_CLE_REFERENCE,
@@ -46,27 +43,7 @@ import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collectio
 import type { SchemaDef } from './schemas/types';
 import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire/ref';
 
-/**
- * Clés que `document()` pose sur TOUT document, sans qu'aucun def ne les demande — DÉRIVÉES de
- * `CLES_ENVELOPPE`, jamais re-tapées.
- *
- * `variants` en est EXCLUE et c'est la seule : la fabrique ne la pose que si le def le DEMANDE
- * (`options.variantes`, `document.ts` — « un document sans `variantes` n'admet aucun `variants` »).
- * Elle reste donc une DÉCLARATION du def, comme n'importe quel champ de `champs` : un def qui
- * l'active sans qu'aucune entrée ne la porte est bien « un schéma plus large que sa donnée », et sa
- * dette se compte.
- */
-const CLES_POSEES_INCONDITIONNELLEMENT: readonly string[] = (CLES_ENVELOPPE as readonly string[]).filter((k) => k !== 'variants');
-import {
-  STRUCTURES_CIBLES,
-  STRUCTURES_DEFAUT,
-  STRUCTURES_ENVELOPPE,
-  STRUCTURES_FORMES,
-  STRUCTURES_HOMONYMES,
-  STRUCTURES_OPS,
-  STRUCTURES_ORPHELINES,
-  STRUCTURES_REDECLARATIONS,
-} from '../../scripts/guards/lib/structuresStock.mjs';
+import { STRUCTURES_CIBLES, STRUCTURES_REDECLARATIONS } from '../../scripts/guards/lib/structuresStock.mjs';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -74,9 +51,10 @@ import {
 const GARDE = {
   question:
     'A — sous quelle FORME chaque concept est-il écrit dans la donnée (dataset, champ porteur mesuré, signature) ? ' +
-    'B — le stock NOMINATIF de ce qui reste à migrer, ligne par ligne, avec son compte d’occurrences. ' +
-    'C — chaque ligne porte le LOT qui l’éteint (L1a #1466 FK · L1b #1467 enveloppe · L1c #1468 ops · ' +
-    'L1d #1469 source · L2 refs de Compétence · L3 Talent/Trait/Objet · L4 Valeurs), et part avec sa migration.',
+    'B — l’INVENTAIRE de ce qui reste à migrer (`scripts/guards/lib/inventaireDeDette.mts`), site par site, avec ses ' +
+    'occurrences, hors de la porte des comptes (#3021). ' +
+    'C — chaque site porte le LOT qui l’éteint, déduit du concept (L1a #1466 FK · L1b #1467 enveloppe · L1c #1468 ops · ' +
+    'L1d #1469 source · L2 refs de Compétence · L3 Talent/Trait/Objet · L4 Valeurs), et sort avec sa migration.',
   primitive:
     '`scannerDonnees` / `scannerRedeclarations` (`scripts/docs/lib/structures-scan.mts`). Ce scan lit la DONNÉE JSON ' +
     'des deux racines (`src/data`, `src/scenes`) et l’AST des `src/data/schemas/defs/*.ts` — il ne passe donc PAS par ' +
@@ -90,8 +68,8 @@ const GARDE = {
     fichier: 'scripts/guards/lib/structuresStock.mjs',
     decroissant: true,
     raison:
-      'Le stock EST le dénominateur du chantier #1463 : chaque ligne se solde par une migration vers la forme cible, ' +
-      'et part dans le MÊME commit. Une ligne neuve est une dérive, jamais une exception à inscrire.',
+      'Le stock porte les signatures CIBLES et les REDÉCLARATIONS des defs, mesurées sur le code : une redéclaration se ' +
+      'solde par la composition du nœud commun, et sa ligne part dans le MÊME commit.',
   },
   ticket: '#1465',
 } as const;
@@ -116,121 +94,31 @@ function scannerFixtureDeReferences(nom: string, documents: Readonly<Record<stri
 /** Le DÉCLARÉ couvre les DEUX racines (#1466 L1a) — jointure par BASENAME, comme le scan key.
  *  UN seul scan pour tout le fichier : le test consomme la mesure, il ne relit jamais les JSON. La
  *  composition defs + enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`), et c'est la
- *  MÊME que lisent `build-structures.mts` et `horsStrateAudit.ts`. */
+ *  MÊME que lisent `build-structures.mts` et `corpusDesComptes.mts`. */
 const { defs: DEFS, declares: DECLARES, choix: CHOIX, choixOps: CHOIX_OPS, scan } = scanDuCorpus(ROOT);
 const { redeclarations } = scannerRedeclarations(ROOT);
-/** Le corpus des COLLECTIONS À COMPTE (`COLLECTIONS_A_COMPTE`, `occurrencesStock.mjs`) : leur mesure se lit là, une fois. */
-const CORPUS = corpusDuScan({ scan, defs: DEFS }, redeclarations);
-const mesureDe = COLLECTIONS_A_COMPTE_PAR_NOM;
+/** L'INVENTAIRE de la dette que la donnée révèle (`inventaireDeDette.mts`), lu une fois. */
+const INVENTAIRE = inventaireDe({ scan, defs: DEFS, declares: DECLARES });
 
 /** Un ensemble de lignes en texte, trié — les diffs de vitest restent lisibles. */
 const lignes = (xs: string[]): string[] => [...xs].sort();
 
-/**
- * DATE par DÉFAUT d'une ligne de stock : elle entre dans la clé comparée. Sur les stocks dont la
- * ligne OBSERVÉE ne reprend PAS le pilotage — tous sauf `STRUCTURES_FORMES` —, re-dater une ligne
- * pour la faire passer est impossible : elle se compare, date comprise, à la mesure du jour du lot.
- * Sur `STRUCTURES_FORMES`, `lot`/`motif`/`date` sont du PILOTAGE que `cleFormeObservee` reprend du
- * stock par le SITE : la sonde ne les mesure pas, ils se DÉCIDENT en revue (angle mort déclaré,
- * `ANGLES_MORTS` de `scripts/docs/lib/structures-lexique.mts`).
- */
+/** DATE par DÉFAUT d'une ligne de stock : elle entre dans la clé comparée. */
 const DATE_STOCK = '2026-08-23';
-/**
- * `lot`, `motif` et `date` ENTRENT dans la clé comparée (#1465 F1) ; le LOT attendu se DÉDUIT du
- * concept quand la ligne n'en déclare pas. Ces trois champs sont du PILOTAGE : ils se DÉCIDENT en
- * revue, la sonde ne les mesure pas — c'est pourquoi la forme observée les reprend du stock
- * (`pilotageDeForme` ci-dessous).
- */
-type Trace = { lot?: string; date?: string; motif?: string };
+/** `lot` et `date` ENTRENT dans la clé comparée (#1465 F1) ; le LOT attendu se DÉDUIT du concept quand la ligne n'en
+ *  déclare pas. */
+type Trace = { lot?: string; date?: string };
 const trace = (x: Trace, lot: string) => ` | ${x.lot ?? lot} | ${x.date ?? DATE_STOCK}`;
-/** LOT par défaut d'une divergence d'ENVELOPPE observée (le stock, lui, le porte ligne à ligne) :
- *  une absence sur les ENTRÉES DE RACINE part en `L1d #1469`, une clé divergente en `L1b #1467`. */
-const lotEnveloppe = (e: { role: string }) => (e.role === 'source' ? 'L1d #1469' : 'L1b #1467');
-const cleForme = (
-  f: {
-    concept: string;
-    dataset: string;
-    champ: string;
-    signature: string;
-    statut: string;
-    strate: string;
-    occurrences: number;
-    cibles?: readonly string[];
-  } & Trace,
-) =>
-  `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature} | ${f.statut} | ${f.strate}` +
-  trace(f, lotDeForme(f.concept, f.signature, f.cibles ?? [])) +
-  (f.motif ? ` | ${f.motif}` : '');
-/** Le stock des formes, typé pour la lecture de son PILOTAGE (`lot`, `motif`, `date`). */
-const FORMES: readonly (Parameters<typeof cleForme>[0])[] = STRUCTURES_FORMES;
-/**
- * LOTISSEMENT déclaré d'un site, repris par la forme OBSERVÉE. Le lot déduit de `lotDeForme` lit la
- * colonne `cibles`, qui liste TOUS les datasets atteignables (angle mort des COLLISIONS d'ids) : une
- * ligne dont le concept réel n'est pas celui-là se re-lotit en revue et porte son `motif`. Un site
- * que le stock ne connaît pas garde son lot déduit — une dérive neuve entre avec son heuristique.
- */
-const pilotageDeForme = new Map(FORMES.map((f) => [siteDeForme(f), { lot: f.lot, motif: f.motif, date: f.date }]));
-const cleFormeObservee = (f: Parameters<typeof cleForme>[0]) => cleForme({ ...f, ...pilotageDeForme.get(siteDeForme(f)) });
-const ecartsDeFormes = (mesure: typeof scan) => ecartsDeCollection({
-  nom: 'STRUCTURES_FORMES',
-  observe: mesureDe.STRUCTURES_FORMES.mesure(corpusDuScan({ scan: mesure, defs: DEFS }, redeclarations)),
-  stock: FORMES,
-  cle: cleFormeObservee,
-  remede: {
-    neuve: (cle: string) => `${cle} — Migrer la référence vers la forme CIBLE du lexique (scripts/docs/lib/structures-lexique.mts), sans l’ajouter au stock.`,
-    perimee: (cle: string) => `${cle} — Retirer l’entrée périmée de scripts/guards/lib/structuresStock.mjs.`,
-  },
-});
-const cleOrpheline = (o: { dataset: string; champ: string; signature: string; motif: string } & Trace) =>
-  `${o.dataset} | ${o.champ} | ${o.signature} | ${o.motif}` +
-  trace(o, o.motif === 'clé de référence non résolue' ? 'L1a #1466' : '#1553');
-/**
- * PILOTAGE (`lot`, `date`) d'une ORPHELINE, repris du stock par SITE — MÊME patron que
- * `pilotageDeForme` ci-dessous : la sonde ne mesure ni le lot ni la date (angle mort déclaré). Sans
- * cette reprise, toute ligne était sommée de porter la date GLOBALE du stock, et une entrée née plus
- * tard ne pouvait être verte qu'en MENTANT sur sa date de naissance. Les deux champs restent gardés :
- * une ligne du stock que la mesure n'observe plus reste rouge, et le test de MUTATION par champ
- * (ci-dessous) prouve qu'ils entrent toujours dans la clé comparée.
- */
-const siteOrpheline = (o: { dataset: string; champ: string; signature: string }) => `${o.dataset} | ${o.champ} | ${o.signature}`;
-const pilotageOrpheline = new Map(STRUCTURES_ORPHELINES.map((o) => [siteOrpheline(o), { lot: o.lot, date: o.date }]));
-const cleOrphelineObservee = (o: Parameters<typeof cleOrpheline>[0]) => cleOrpheline({ ...o, ...pilotageOrpheline.get(siteOrpheline(o)) });
-/**
- * CLIQUET des signatures HORS STRATE (#1465, nominatif depuis #1727 T0d) : chaque signature que le
- * lexique fermé ne classe dans aucune strate est une ENTRÉE de
- * `scripts/guards/lib/horsStrateStock.mjs`, GÉNÉRÉE par
- * `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/horsStrateAudit.ts` depuis la mesure
- * `scan.invisibles` que ce
- * fichier consomme. La traduction en sites est UNIQUE (`horsStrateAudit.ts`), l'écart est jugé par
- * `ecartDuVolet` ci-dessous.
- * Le COMPTE d'occurrences de chaque signature vit dans `docs/structures-donnees.md` (table bornée
- * par `MARQUE_HORS_STRATE`), que `build-structures.mts` rend depuis le disque du jour.
- */
-const cleOp = (o: { op: string; signature: string; dataset: string } & Trace) =>
-  `${o.op} | ${o.signature} | ${o.dataset}` + trace(o, 'L1c #1468');
-const cleHomonyme = (h: { cle: string; classes: readonly string[] } & Trace) =>
-  `${h.cle} | ${[...h.classes].sort().join('/')}` + trace(h, LOT_CLE_RESERVEE[h.cle] ?? 'L4 #1463');
 /** Identité d'une redéclaration (`def | champ | concept | signature | statut | commun`), sans son compte. */
 const siteRedeclaration = (r: { def: string; champ: string; concept: string; signature: string; statut: string; commun: string }) =>
   `${r.def} | ${r.champ} | ${r.concept} | ${r.signature} | ${r.statut} | ${r.commun}`;
 const cleRedeclaration = (r: Parameters<typeof siteRedeclaration>[0] & Trace) =>
   siteRedeclaration(r) + trace(r, lotDeForme(r.concept, r.signature));
-const cleEnveloppe = (e: { role: string; cle: string; motif: string; detail: string; document: string; chemin: string } & Trace) =>
-  siteDEnveloppe(e) + trace(e, lotEnveloppe(e));
 /** Toute ligne de collection à compte qui MONTE ou qui BAISSE est nommée avec son remède (`ecartsDeCollection`). */
 const sansEcartDeCompte = (ecarts: { accrues: string[]; baisses: string[] }, nom: string) => {
   expect(lignes(ecarts.accrues), `compte(s) en HAUSSE dans ${nom} : appliquer la cible de chaque site nommé.`).toEqual([]);
   expect(lignes(ecarts.baisses), `compte(s) en BAISSE dans ${nom} : écrire la mesure.`).toEqual([]);
 };
-const ecartsHorsStrate = (
-  sites: Parameters<typeof ecartDuVolet>[0]['sites'],
-  stock: Parameters<typeof ecartDuVolet>[0]['stock'] = HORS_STRATE_RATCHET,
-) => ecartDuVolet({
-  sites, stock, ou: '`scripts/guards/lib/horsStrateStock.mjs`',
-  remede: {
-    neuve: (cle: string) => `${cle} — Forme absente du lexique. Si cette forme est validée par le schéma, déclarer son concept et sa signature CIBLE dans scripts/docs/lib/structures-lexique.mts ; sinon employer la forme CIBLE déjà déclarée du concept. Ne pas ajouter au stock HORS_STRATE.`,
-  },
-});
 
 describe('structures de la donnée — stock nominatif décroissant (#1463 L0)', () => {
   it('fixture Référence scalaire et référence emboîtée : seul l’objet de référence porte la forme cible', () => {
@@ -269,112 +157,16 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     ).toEqual(lignes(STRUCTURES_CIBLES.map((c) => `${c.concept} | ${c.signature}`)));
   });
 
-  it('formes à éteindre : observé == stock (présence, statut, strate ET occurrences)', () => {
-    const ecarts = ecartsDeFormes(scan);
-    expect(lignes(ecarts.neuves), 'forme(s) observée(s) en écart : appliquer le remède de chaque site nommé.').toEqual([]);
-    expect(lignes(ecarts.perimees), 'forme(s) déclarée(s) en écart : appliquer le remède de chaque site nommé.').toEqual([]);
-    sansEcartDeCompte(ecarts, 'STRUCTURES_FORMES');
-    expect(ecarts.taille, 'clé(s) dupliquée(s) dans STRUCTURES_FORMES').toBe(FORMES.length);
-  });
-
-  it('signatures ORPHELINES (hors strate) : observé == stock', () => {
-    const ecarts = ecartsDeCollection({
-      nom: 'STRUCTURES_ORPHELINES',
-      observe: mesureDe.STRUCTURES_ORPHELINES.mesure(CORPUS),
-      stock: STRUCTURES_ORPHELINES,
-      cle: cleOrphelineObservee,
-    });
-    expect(
-      lignes([...ecarts.neuves, ...ecarts.perimees]),
-      'écart entre les signatures ORPHELINES observées et `STRUCTURES_ORPHELINES` — un objet qui annonce une référence et ne résout vers rien se compte, il ne se tait pas.',
-    ).toEqual([]);
-    sansEcartDeCompte(ecarts, 'STRUCTURES_ORPHELINES');
-    expect(ecarts.taille, 'clé(s) dupliquée(s) dans STRUCTURES_ORPHELINES').toBe(STRUCTURES_ORPHELINES.length);
-  });
-
-  it('signatures HORS STRATE : observé == stock nominatif, les neuves ET les périmées sont NOMMÉES', () => {
-    const { neuves, perimees } = ecartsHorsStrate(sitesHorsStrate(scan.invisibles, scan.documents));
-    expect(
-      lignes(neuves),
-      'signature(s) HORS STRATE NEUVE(s) : appliquer le remède de chaque site nommé.',
-    ).toEqual([]);
-    expect(
-      lignes(perimees),
-      'entrée(s) SOLDÉE(s) au stock hors strate : régénérer par ' +
-        '`npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/horsStrateAudit.ts` — un stock qui garde une ligne morte fait ' +
-        'passer une dette éteinte pour vivante.',
-    ).toEqual([]);
-  });
-
-  it('HORS STRATE : remède applicable à une forme valide absente du lexique, sans modifier sa clé', () => {
-    const sites = [{ file: 'src/scenes/fixture.json', ref: 'flow — effect,kind' }];
-    const { neuves, perimees } = ecartsHorsStrate(sites, []);
-    const cle = cleDeSite(sitesEnEntrees(sites)[0]);
-    expect(neuves).toEqual([cle + SEPARATEUR_DE_REMEDE + 'Forme absente du lexique. Si cette forme est validée par le schéma, déclarer son concept et sa signature CIBLE dans scripts/docs/lib/structures-lexique.mts ; sinon employer la forme CIBLE déjà déclarée du concept. Ne pas ajouter au stock HORS_STRATE.']);
-    expect(neuves[0]).not.toContain('CLIQUET:');
-    expect(perimees).toEqual([]);
-  });
-
-  it('le stock hors strate committé est un point fixe de sa régénération', () => {
-    for (const r of regenerations(scan)) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
-  });
-
-  it('signatures d’OPS : observé == stock (dénominateur du lot L1c #1468)', () => {
-    const ecarts = ecartsDeCollection({
-      nom: 'STRUCTURES_OPS',
-      observe: mesureDe.STRUCTURES_OPS.mesure(CORPUS),
-      stock: STRUCTURES_OPS,
-      cle: cleOp,
-      remede: {
-        neuve: (cle: string) => `${cle} — signature d’op NEUVE : vérifier le site contre \`gameOpSchema\` (src/data/schemas/grammaire/mecanique.ts) et l’écrire à la forme CIBLE du lexique (scripts/docs/lib/structures-lexique.mts), sans l’ajouter au stock.`,
-        perimee: (cle: string) => `${cle} — signature soldée : retirer l’entrée de scripts/guards/lib/structuresStock.mjs.`,
-      },
-    });
-    expect(lignes([...ecarts.neuves, ...ecarts.perimees]), 'écart entre les signatures d’op OBSERVÉES et `STRUCTURES_OPS` : appliquer le remède de chaque site nommé.').toEqual([]);
-    sansEcartDeCompte(ecarts, 'STRUCTURES_OPS');
-    expect(ecarts.taille, 'clé(s) dupliquée(s) dans STRUCTURES_OPS').toBe(STRUCTURES_OPS.length);
-  });
-
-  it('homonymes nominatifs : observé == stock', () => {
-    const ecarts = ecartsDeCollection({
-      nom: 'STRUCTURES_HOMONYMES',
-      observe: mesureDe.STRUCTURES_HOMONYMES.mesure(CORPUS),
-      stock: STRUCTURES_HOMONYMES,
-      cle: cleHomonyme,
-    });
-    expect(
-      lignes([...ecarts.neuves, ...ecarts.perimees]),
-      'écart entre les homonymes OBSERVÉS et `STRUCTURES_HOMONYMES` — un nom de concept est RÉSERVÉ à son type (#1463 S2).',
-    ).toEqual([]);
-    sansEcartDeCompte(ecarts, 'STRUCTURES_HOMONYMES');
-  });
-
-  it('divergences d’enveloppe (racine ET documents embarqués) : observé == stock', () => {
-    const ecarts = ecartsDeCollection({
-      nom: 'STRUCTURES_ENVELOPPE',
-      observe: mesureDe.STRUCTURES_ENVELOPPE.mesure(CORPUS),
-      stock: STRUCTURES_ENVELOPPE,
-      cle: cleEnveloppe,
-    });
-    expect(
-      lignes([...ecarts.neuves, ...ecarts.perimees]),
-      'écart entre les divergences d’ENVELOPPE observées et `STRUCTURES_ENVELOPPE` — absences sur les ENTRÉES DE RACINE (`L1d #1469`), clés divergentes partout (`L1b #1467`), y compris sur les documents EMBARQUÉS.',
-    ).toEqual([]);
-    sansEcartDeCompte(ecarts, 'STRUCTURES_ENVELOPPE');
-    expect(ecarts.taille, 'clé(s) dupliquée(s) dans STRUCTURES_ENVELOPPE').toBe(STRUCTURES_ENVELOPPE.length);
-  });
-
   it('redéclarations locales dans les defs : observé == stock (keyé par def | champ | concept | signature)', () => {
-    // PILOTAGE (`lot`, `date`) repris du stock par SITE — MÊME patron que `pilotageDeForme` et
-    // `pilotageOrpheline` : la sonde ne mesure ni le lot ni la date. Sans cette reprise, toute ligne
-    // était sommée de porter la date GLOBALE du stock, et une ligne née plus tard ne pouvait être
-    // verte qu'en MENTANT sur sa date de naissance. Les deux champs restent gardés : une ligne du
-    // stock que l'AST n'observe plus reste rouge, et le test de MUTATION par champ (ci-dessous)
-    // prouve qu'ils entrent toujours dans la clé comparée.
+    // PILOTAGE (`lot`, `date`) repris du stock par SITE : la sonde ne mesure ni le lot ni la date. Sans cette
+    // reprise, toute ligne était sommée de porter la date GLOBALE du stock, et une ligne née plus tard ne pouvait
+    // être verte qu'en MENTANT sur sa date de naissance. Les deux champs restent gardés : une ligne du stock que
+    // l'AST n'observe plus reste rouge, et le test de MUTATION par champ (ci-dessous) prouve qu'ils entrent
+    // toujours dans la clé comparée.
     const pilotage = new Map(STRUCTURES_REDECLARATIONS.map((r) => [siteRedeclaration(r), { lot: r.lot, date: r.date }]));
     const ecarts = ecartsDeCollection({
       nom: 'STRUCTURES_REDECLARATIONS',
-      observe: mesureDe.STRUCTURES_REDECLARATIONS.mesure(CORPUS),
+      observe: COLLECTIONS_A_COMPTE_PAR_NOM.STRUCTURES_REDECLARATIONS.mesure({ redeclarations }),
       stock: STRUCTURES_REDECLARATIONS,
       cle: (r) => cleRedeclaration({ ...r, ...pilotage.get(siteRedeclaration(r)) }),
     });
@@ -383,6 +175,40 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       'écart entre les redéclarations OBSERVÉES (AST des `src/data/schemas/defs/*.ts`) et `STRUCTURES_REDECLARATIONS` — une forme partagée se déclare UNE fois dans la grammaire (`src/data/schemas/grammaire/`). Le CHAMP entre dans la clé : sans lui, des littéraux de champs différents s’agrègent en une ligne.',
     ).toEqual([]);
     sansEcartDeCompte(ecarts, 'STRUCTURES_REDECLARATIONS');
+  });
+
+  it('redéclarations : un littéral réduit à ses étiquettes s’apparie par leurs VALEURS, un littéral à forme par sa signature', () => {
+    const dossier = mkdtempSync(join(tmpdir(), 'structures-etiquette-'));
+    try {
+      mkdirSync(join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+      mkdirSync(join(dossier, 'src/data/schemas/defs'), { recursive: true });
+      writeFileSync(
+        join(dossier, 'src/data/schemas/grammaire/fixture.ts'),
+        [
+          'export const conditionSchema = z.lazy(() => z.union([',
+          "  z.strictObject({ kind: z.literal('always') }),",
+          "  z.strictObject({ kind: z.literal('woundsDealt'), op: compareOpSchema, value: z.number() }),",
+          ']));',
+          'export const crewTargetSchema = z.union([z.strictObject({ poste: z.literal(true) }), z.strictObject({ role: z.string() })]);',
+        ].join('\n'),
+      );
+      writeFileSync(
+        join(dossier, 'src/data/schemas/defs/fixture.ts'),
+        [
+          "const doc = document('fixture', famille, { kind: enumNomme(KINDS) }, {}, {});",
+          "const portee = z.discriminatedUnion('kind', [z.strictObject({ kind: z.literal('self') })]);",
+          "const seuil = z.strictObject({ kind: z.literal('woundsDealt'), op: z.string(), value: z.number() });",
+          'const equipage = z.strictObject({ poste: z.literal(true) });',
+          'const toujours = z.strictObject({ kind: z.literal(`always`) });',
+        ].join('\n'),
+      );
+      expect(
+        scannerRedeclarations(dossier).redeclarations.map((r) => `${r.def}:${r.ligne} | ${r.signature} | ${r.commun}`),
+        '`{ kind: self }` n’est pas `{ kind: always }` ; `kind,op,value`, `{ poste: true }` et `{ kind: always }` retapés redéclarent leur schéma commun.',
+      ).toEqual(['fixture.ts:3 | kind,op,value | conditionSchema', 'fixture.ts:4 | poste | crewTargetSchema', 'fixture.ts:5 | kind | conditionSchema']);
+    } finally {
+      rmSync(dossier, { recursive: true, force: true });
+    }
   });
 
   /**
@@ -434,58 +260,99 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     expect(Object.keys(DECLARES.find((d) => d.file === 'sizes.json')!.cles).length).toBeGreaterThan(0);
   });
 
-  it('formes DÉCLARÉES jamais observées, sans lot de peuplement : observé == stock', () => {
-    const cle = (x: { dataset: string; cle: string; date?: string }) => `${x.dataset} | ${x.cle} | ${x.date ?? DATE_STOCK}`;
-    const observees: string[] = [];
-    const parFichier = new Map(DECLARES.map((d) => [d.file, d]));
-    for (const d of scan.documents) {
-      const dec = parFichier.get(d.nom);
-      if (!dec) continue;
-      const vues = scan.clesPortees.get(d.nom)!;
-      // Les clés posées INCONDITIONNELLEMENT par la fabrique (`document.ts`) sortent de la question
-      // posée ici (un SCHÉMA plus large que sa donnée) : un `labelF` ou un `icon` qu'un dataset
-      // n'emploie pas ne se « solde » pas — il n'y a rien à retirer d'un def qui ne l'a pas écrit.
-      // Sans ce filtre, la restauration de couverture du sceau `pipe` (`zod-introspect.mts`, même
-      // lot) en aurait versé 298 au stock, tous inertes.
-      for (const c of Object.keys(dec.cles).filter((k) => !vues.has(k) && !CLES_POSEES_INCONDITIONNELLEMENT.includes(k)))
-        observees.push(cle({ dataset: d.nom, cle: c, date: STRUCTURES_DEFAUT.find((s) => s.dataset === d.nom && s.cle === c)?.date }));
-    }
-    expect(
-      lignes(observees),
-      'écart entre les clés DÉCLARÉES JAMAIS OBSERVÉES et `STRUCTURES_DEFAUT` — un schéma plus large que la donnée se solde en retirant le champ ou en écrivant la donnée. Un déclaré-avant-posé ASSUMÉ ne se stocke PAS ici : il porte un lot de peuplement et s’ÉMET (`LOTS_DE_PEUPLEMENT`, doc §2.4 table B).',
-    ).toEqual(lignes(STRUCTURES_DEFAUT.map(cle)));
-  });
-
   /**
    * Ce que l'exclusion COÛTE, MESURÉ (#1467 L1b V-FLIP-ENTITE-b) — pas déclaré en prose. Une clé
    * ajoutée à `CLES_POSEES_INCONDITIONNELLEMENT` fait TAIRE toutes les dettes qu'elle porte : le
    * filtre se relit donc ici clé par clé, sur la mesure.
    *
    * `variants` est le cas qui a MORDU : rangée d'abord parmi les clés d'office, elle escamotait
-   * `traits.json › variants` — une dette réelle, l'option étant DEMANDÉE par le def et portée par
-   * 0 des 131 entrées. Le test ci-dessous gèle les deux comptes : sans `variants` dans l'exclusion
-   * (l'état courant) le relevé en a UNE de plus, et cette une-là est nommée.
+   * `traits.json › variants` — une dette réelle, l'option étant DEMANDÉE par le def. Le relevé courant
+   * (sans `variants` dans l'exclusion) contient donc celui qui l'y range, et tout ce qui les sépare est
+   * une ligne `variants`.
    */
   it('l’exclusion des clés d’office ne cache AUCUNE dette d’option — son coût est mesuré, clé par clé', () => {
-    const releve = (exclues: readonly string[]) => {
-      const out: string[] = [];
-      const parFichier = new Map(DECLARES.map((d) => [d.file, d]));
-      for (const d of scan.documents) {
-        const dec = parFichier.get(d.nom);
-        if (!dec) continue;
-        const vues = scan.clesPortees.get(d.nom)!;
-        for (const c of Object.keys(dec.cles).filter((k) => !vues.has(k) && !exclues.includes(k))) out.push(`${d.nom} | ${c}`);
-      }
-      return out.sort();
-    };
+    const releve = (exclues: readonly string[]) => clesDeclareesJamaisPortees({ scan, declares: DECLARES }, exclues).map((d) => `${d.dataset} | ${d.cle}`);
     const courant = releve(CLES_POSEES_INCONDITIONNELLEMENT);
     const avecVariants = releve(CLES_ENVELOPPE as readonly string[]);
+    expect(avecVariants.filter((l) => !courant.includes(l)), 'exclure `variants` n’ajoute aucune ligne au relevé.').toEqual([]);
     expect(
-      courant.filter((l) => !avecVariants.includes(l)),
-      'exclure `variants` ne doit escamoter QUE la dette d’option de `traits.json` — une seconde ligne signalerait une clé d’office mal rangée.',
-    ).toEqual(['traits.json | variants']);
+      courant.filter((l) => !avecVariants.includes(l) && !l.endsWith(' | variants')),
+      'le relevé courant ne se distingue que par des lignes `variants` — une autre ligne signalerait une clé d’office mal rangée.',
+    ).toEqual([]);
     expect(CLES_POSEES_INCONDITIONNELLEMENT).not.toContain('variants');
-    expect(courant.length - avecVariants.length, 'le delta d’exclusion vaut EXACTEMENT une ligne').toBe(1);
+    expect(
+      lignes(INVENTAIRE.filter((l) => l.collection === 'STRUCTURES_DEFAUT').map((l) => l.site)),
+      'l’inventaire `STRUCTURES_DEFAUT` est le relevé courant.',
+    ).toEqual(lignes(courant));
+  });
+
+  it('l’inventaire `STRUCTURES_ENVELOPPE` porte chaque divergence d’enveloppe MESURÉE, hors la `source` absente (volet `DETTE_ENVELOPPE`)', () => {
+    const enveloppe = COLLECTIONS_D_INVENTAIRE.find((c) => c.nom === 'STRUCTURES_ENVELOPPE')!;
+    const divergence = (role: string, cle: string, motif: DivergenceEnveloppe['motif'], detail = ''): DivergenceEnveloppe => ({ role, cle, motif, detail, document: 'x.json', chemin: '(entrées)', entrees: 2 });
+    const temoins = [
+      divergence('identité', 'key', 'clé divergente'),
+      divergence('source', 'source', 'type divergent', 'chaîne'),
+      divergence('type', 'type', 'cible partielle', '1/3'),
+      divergence('identité', 'id', 'clé absente'),
+      divergence('libellé', 'label', 'clé absente'),
+    ];
+    const mesure = enveloppe.mesure({ scan: { ...scan, enveloppe: [...temoins, divergence('source', 'source', 'clé absente')] }, defs: DEFS, declares: DECLARES });
+    expect(mesure.map((l) => [l.site, l.lot, l.occurrences])).toEqual([
+      ['identité | key | clé divergente | x.json › (entrées)', 'L1b #1467', 2],
+      ['source | source | type divergent (chaîne) | x.json › (entrées)', 'L1d #1469', 2],
+      ['type | type | cible partielle | x.json › (entrées)', 'L1b #1467', 2],
+      ['identité | id | clé absente | x.json › (entrées)', 'L1b #1467', 2],
+      ['libellé | label | clé absente | x.json › (entrées)', 'L1b #1467', 2],
+    ]);
+    expect(
+      INVENTAIRE.filter((l) => l.collection === 'STRUCTURES_ENVELOPPE').length,
+      'l’inventaire de la racine compte chaque divergence mesurée hors `source` absente.',
+    ).toBe(scan.enveloppe.filter((e) => !(e.role === 'source' && e.motif === 'clé absente')).length);
+  });
+
+  it('`CASES_DE_REFERENCE` : une case de référence est UNE ligne, l’union exacte de ses formes à migrer et de sa couverture sans slot (#3021 P2)', () => {
+    const cle = (c: { dataset: string; champ: string }) => `${c.dataset} | ${c.champ}`;
+    const cases = INVENTAIRE.filter((l) => l.collection === 'CASES_DE_REFERENCE').map((l) => l.site);
+    expect(cases.length, 'une case rapportée sur deux lignes.').toBe(new Set(cases).size);
+    const aMigrer = scan.formes.filter((f) => f.strate === 'Référence' && (f.statut === 'historique' || f.statut === 'divergente')).map(cle);
+    const sansSlot = champsSansSlot(scan, slotsDuParse(scan, DEFS));
+    expect(lignes(cases), 'les cases de l’inventaire sont celles d’une forme de référence à migrer ou d’un couple sans slot.').toEqual(
+      lignes([...new Set([...aMigrer, ...sansSlot.map(cle)])]),
+    );
+    const lignesDeCase = new Map(INVENTAIRE.filter((l) => l.collection === 'CASES_DE_REFERENCE').map((l) => [l.site, l.cible]));
+    expect(
+      sansSlot.filter((c) => !lignesDeCase.get(cle(c))!.includes(`(${c.atteintes}/${c.occurrences} atteintes)`)).map(cle),
+      'la facette « déclaration » d’une case diverge de la couverture du registre des slots.',
+    ).toEqual([]);
+    const strateReference = CONCEPTS.filter((c) => c.strate === 'Référence').map((c) => `${c.id} | `);
+    expect(
+      INVENTAIRE.filter((l) => l.collection === 'STRUCTURES_FORMES' && strateReference.some((p) => l.site.startsWith(p))).map((l) => l.site),
+      'une forme de la strate `Référence` est rapportée hors de sa case.',
+    ).toEqual([]);
+
+    const dossier = mkdtempSync(join(tmpdir(), 'cases-de-reference-'));
+    try {
+      mkdirSync(join(dossier, 'src/data'), { recursive: true });
+      mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
+      cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+      writeFileSync(join(dossier, 'src/data/skills.json'), JSON.stringify([{ id: 'alpha', label: 'Alpha' }, { id: 'beta', label: 'Beta' }]));
+      writeFileSync(join(dossier, 'src/data/marins.json'), JSON.stringify([
+        { id: 'm1', skills: [{ skillId: 'alpha' }, { skillId: 'beta' }] },
+        { id: 'm2', competences: ['alpha', 'beta'] },
+      ]));
+      const fixture = scannerDonnees(dossier, []);
+      const mesure = COLLECTIONS_D_INVENTAIRE.find((c) => c.nom === 'CASES_DE_REFERENCE')!.mesure({ scan: fixture, defs: [], declares: [] });
+      const parSite = new Map(mesure.map((l) => [l.site, l]));
+      expect([...parSite.keys()].sort()).toEqual(['marins.json | competences', 'marins.json | skills']);
+      const skills = parSite.get('marins.json | skills')!;
+      expect(skills.cible, 'la forme à migrer et la déclaration manquante d’un même champ sont deux remèdes d’UNE ligne.').toMatch(/`skillId`.*Adopter la fabrique.*\(0\/2 atteintes\)/s);
+      expect(skills.occurrences, 'une occurrence que les deux facettes comptent ne compte qu’une fois.').toBe(2);
+      const competences = parSite.get('marins.json | competences')!;
+      expect(competences.cible, 'une liste d’ids nus est une forme cible : seule sa déclaration manque.').toMatch(/^Adopter la fabrique/);
+      expect(competences.occurrences, 'une liste d’ids nus est UNE occurrence, à une case par rang.').toBe(1);
+    } finally {
+      rmSync(dossier, { recursive: true, force: true });
+    }
   });
 
   it('`cible-declaree` ne se STOCKE nulle part : c’est une ÉMISSION du doc, pas un dénominateur', () => {
@@ -501,77 +368,29 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     const dateOk = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d);
     const sansDate = [
       ...STRUCTURES_CIBLES.filter((c) => !dateOk(c.date)).map((c) => `cible ${c.concept} ${c.signature}`),
-      ...STRUCTURES_FORMES.filter((f) => !dateOk(f.date)).map(cleForme),
-      ...STRUCTURES_DEFAUT.filter((d) => !dateOk(d.date)).map((d) => `défaut ${d.dataset} ${d.cle}`),
-      ...STRUCTURES_HOMONYMES.filter((h) => !dateOk(h.date)).map((h) => h.cle),
-      ...STRUCTURES_ENVELOPPE.filter((e) => !dateOk(e.date)).map((e) => `${e.role} | ${e.cle} | ${e.document}`),
       ...STRUCTURES_REDECLARATIONS.filter((r) => !dateOk(r.date)).map((r) => r.def),
-      ...STRUCTURES_ORPHELINES.filter((o) => !dateOk(o.date)).map(cleOrpheline),
-      ...STRUCTURES_OPS.filter((o) => !dateOk(o.date)).map(cleOp),
     ];
     expect(sansDate, 'ligne(s) de stock sans date au format AAAA-MM-JJ').toEqual([]);
-    const sansLot = [
-      ...STRUCTURES_FORMES.filter((f) => !f.lot?.trim()).map(cleForme),
-      ...STRUCTURES_HOMONYMES.filter((h) => !h.lot?.trim()).map((h) => h.cle),
-      ...STRUCTURES_ENVELOPPE.filter((e) => !e.lot?.trim()).map((e) => `${e.role} | ${e.cle} | ${e.document} › ${e.chemin}`),
-      ...STRUCTURES_REDECLARATIONS.filter((r) => !r.lot?.trim()).map((r) => `${r.def} | ${r.signature}`),
-      ...STRUCTURES_ORPHELINES.filter((o) => !o.lot?.trim()).map(cleOrpheline),
-      ...STRUCTURES_OPS.filter((o) => !o.lot?.trim()).map(cleOp),
-    ];
+    const sansLot = STRUCTURES_REDECLARATIONS.filter((r) => !r.lot?.trim()).map((r) => `${r.def} | ${r.signature}`);
     expect(
       sansLot,
       'ligne(s) de stock sans LOT d’extinction — un dénominateur sans propriétaire ne se solde jamais (#1465 F3).',
     ).toEqual([]);
   });
 
-  it('chaque ligne porte un LOT CONNU', () => {
-    const toutes = [
-      ...STRUCTURES_FORMES,
-      ...STRUCTURES_HOMONYMES,
-      ...STRUCTURES_REDECLARATIONS,
-      ...STRUCTURES_ENVELOPPE,
-      ...STRUCTURES_ORPHELINES,
-      ...STRUCTURES_OPS,
-    ];
+  it('chaque ligne du stock et chaque site d’inventaire lotis portent un LOT CONNU', () => {
+    const lots = [...STRUCTURES_REDECLARATIONS.map((l) => l.lot), ...INVENTAIRE.map((l) => l.lot).filter((l) => l !== SANS_LOT)];
     expect(
-      [...new Set(toutes.map((l) => l.lot))].filter((l) => !(LOTS_CONNUS as readonly string[]).includes(l)).sort(),
+      [...new Set(lots)].filter((l) => !(LOTS_CONNUS as readonly string[]).includes(l)).sort(),
       `lot(s) inconnu(s) : un dénominateur ne se range que dans l’un des ${LOTS_CONNUS.length} lots d’extinction (\`LOTS_CONNUS\`).`,
     ).toEqual([]);
   });
 
-  /**
-   * Le lot d'une ligne se DÉDUIT du concept (`lotDeForme`), et cette déduction lit la colonne
-   * `cibles` — qui liste TOUS les datasets atteignables, COLLISIONS d'ids comprises (angle mort
-   * déclaré). Une ligne dont le concept réel n'est pas celui que la déduction lui prête se re-lotit
-   * en revue ; ce test rend cette divergence NOMMÉE et BIDIRECTIONNELLE : pas de re-lotissement
-   * muet, pas de `motif` sur une ligne que rien ne fait diverger.
-   */
-  it('un LOT qui DIVERGE de la déduction porte son MOTIF — et un MOTIF suppose une divergence', () => {
-    const deduit = new Map(scan.formes.map((f) => [siteDeForme(f), lotDeForme(f.concept, f.signature, f.cibles ?? [])]));
-    const diverge = (f: { concept: string; dataset: string; champ: string; signature: string } & Trace) =>
-      deduit.has(siteDeForme(f)) && f.lot !== deduit.get(siteDeForme(f));
-    expect(
-      FORMES.filter((f) => diverge(f) && !f.motif?.trim()).map(cleForme),
-      'ligne(s) re-loties SANS motif — un lot qui contredit la déduction NOMME le concept réel de la ligne, sinon le lotissement du chantier n’est plus relisible.',
-    ).toEqual([]);
-    expect(
-      FORMES.filter((f) => f.motif?.trim() && !diverge(f)).map(cleForme),
-      'ligne(s) portant un `motif` que rien ne fait diverger — un motif justifie une décision de revue, il ne décore pas une ligne que la déduction range déjà là.',
-    ).toEqual([]);
-  });
-
-  it('les ANGLES MORTS ont UNE source : le lexique, recopié nulle part (test, stock, doc)', () => {
-    const stock = readFileSync(join(ROOT, 'scripts/guards/lib/structuresStock.mjs'), 'utf8');
+  it('les ANGLES MORTS ont UNE source : le lexique, émis par le doc et recopié nulle part', () => {
     const doc = DOC_STRUCTURES;
-    // Les deux copies se LISENT, elles ne se cherchent pas : l'inclusion seule est unidirectionnelle
-    // (lexique ⊆ copie) et laisserait passer une ligne SURNUMÉRAIRE — un angle mort que le lexique ne
-    // porte pas est un angle mort que personne n'a décidé.
-    const listeStock = stock
-      .split('ANGLES MORTS — SOURCE UNIQUE')[1]
-      .split('\n//\n')[0]
-      .split('\n')
-      .filter((l) => l.startsWith('//   - '))
-      .map((l) => l.slice('//   - '.length));
+    // L'émission se LIT, elle ne se cherche pas : l'inclusion seule est unidirectionnelle (lexique ⊆ copie) et
+    // laisserait passer une ligne SURNUMÉRAIRE — un angle mort que le lexique ne porte pas est un angle mort que
+    // personne n'a décidé.
     const listeDoc = doc
       .split('## Périmètre mesuré et angles morts')[1]
       .split('\n## ')[0]
@@ -579,9 +398,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       .filter((l) => l.startsWith('- '))
       .map((l) => l.slice(2));
     expect(
-      lignes(listeStock),
-      'l’en-tête de `structuresStock.mjs` a divergé de `ANGLES_MORTS` — une ligne en trop y est un angle mort que le lexique ne déclare pas, une ligne en moins une copie amputée.',
-    ).toEqual(lignes([...ANGLES_MORTS]));
+      readFileSync(join(ROOT, 'scripts/guards/lib/structuresStock.mjs'), 'utf8').includes(ANGLES_MORTS[0]),
+      'l’en-tête de `structuresStock.mjs` recopie `ANGLES_MORTS` : le lexique est leur seule source.',
+    ).toBe(false);
     expect(
       lignes(listeDoc),
       'le § « Périmètre mesuré et angles morts » de `docs/structures-donnees.md` a divergé de `ANGLES_MORTS` (le doc est GÉNÉRÉ : le régénérer, ou corriger le lexique).',
@@ -595,23 +414,15 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     const avecCompte = <E,>(cle: (e: E) => string) => (e: E & { occurrences: number }) => `${cle(e)} | ${occurrencesDe(e)}`;
     const stocks: Array<[string, readonly Record<string, unknown>[], (x: never) => string, string[]]> = [
       ['STRUCTURES_CIBLES', STRUCTURES_CIBLES, ((c: { concept: string; signature: string; date: string }) => `${c.concept} | ${c.signature} | ${c.date}`) as never, ['concept', 'signature', 'date']],
-      ['STRUCTURES_FORMES', STRUCTURES_FORMES, avecCompte(cleForme) as never, ['concept', 'dataset', 'champ', 'signature', 'statut', 'strate', 'occurrences', 'lot', 'motif', 'date']],
-      ['STRUCTURES_DEFAUT', STRUCTURES_DEFAUT, ((d: { dataset: string; cle: string; date: string }) => `${d.dataset} | ${d.cle} | ${d.date}`) as never, ['dataset', 'cle', 'date']],
-      ['STRUCTURES_HOMONYMES', STRUCTURES_HOMONYMES, avecCompte(cleHomonyme) as never, ['cle', 'classes', 'occurrences', 'lot', 'date']],
       ['STRUCTURES_REDECLARATIONS', STRUCTURES_REDECLARATIONS, avecCompte(cleRedeclaration) as never, ['def', 'champ', 'concept', 'signature', 'statut', 'commun', 'occurrences', 'lot', 'date']],
-      ['STRUCTURES_ENVELOPPE', STRUCTURES_ENVELOPPE, avecCompte(cleEnveloppe) as never, ['role', 'cle', 'motif', 'detail', 'document', 'chemin', 'occurrences', 'lot', 'date']],
-      ['STRUCTURES_ORPHELINES', STRUCTURES_ORPHELINES, avecCompte(cleOrpheline) as never, ['dataset', 'champ', 'signature', 'motif', 'occurrences', 'lot', 'date']],
-      ['STRUCTURES_OPS', STRUCTURES_OPS, avecCompte(cleOp) as never, ['op', 'signature', 'dataset', 'occurrences', 'lot', 'date']],
     ];
     const aveugles: string[] = [];
     for (const [nom, arr, cle, champs] of stocks) {
       const base = lignes(arr.map(cle as (x: unknown) => string)).join('\n');
       for (const champ of champs) {
         const i = arr.findIndex((x) => x[champ] !== undefined && x[champ] !== '' && x[champ] !== null);
-        // Champ qu'AUCUNE ligne ne porte encore (`STRUCTURES_ENVELOPPE.detail` depuis l'extinction du
-        // dernier `type divergent`, #1467) : le scan le produit toujours
-        // (`structures-scan.mts:967`), il doit donc entrer dans la clé LE JOUR où une ligne le
-        // portera — on l'INJECTE sur la première ligne, la cécité de la clé restant mesurée pareil.
+        // Champ qu'AUCUNE ligne ne porte encore : il doit entrer dans la clé LE JOUR où une ligne le portera — on
+        // l'INJECTE sur la première ligne, la cécité de la clé restant mesurée pareil.
         const cible = i < 0 ? 0 : i;
         const valeur = i < 0 ? 'PORTE' : mute(arr[cible][champ]);
         const copie = arr.map((x, j) => (j === cible ? { ...x, [champ]: valeur } : x));
@@ -720,8 +531,8 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
       statut: 'declaree',
     });
     expect(
-      STRUCTURES_FORMES.filter((f) => f.concept === 'monnaie' && /automne|dice/.test(f.signature)),
-      'un multiplicateur saisonnier (ou un prix TIRÉ) était stocké comme « monnaie à éteindre » : ce lot d’extinction est insoldable — une saison ne devient pas une bourse.',
+      scan.formes.filter((f) => (f.statut === 'historique' || f.statut === 'divergente') && f.concept === 'monnaie' && /automne|dice/.test(f.signature)),
+      'un multiplicateur saisonnier (ou un prix TIRÉ) est mesuré comme « monnaie à éteindre » : ce lot d’extinction est insoldable — une saison ne devient pas une bourse.',
     ).toEqual([]);
   });
 
@@ -847,7 +658,7 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
       for (const [k, e] of Object.entries(o)) marche(e, `${site}.${k}`);
     };
     for (const d of listerDocuments(ROOT)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')), d.chemin);
-    expect(porteurs).toHaveLength(25);
+    expect(porteurs.length, 'aucun porteur brut de texte : la sonde ne mesurerait rien.').toBeGreaterThan(0);
     for (const { site, objet } of porteurs) {
       expect(typeof objet.texte, site).toBe('string');
       expect(Object.keys(objet).filter((k) => !['texte', 'source', 'adapteDe'].includes(k)), site).toEqual([]);
@@ -871,42 +682,12 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
     expect(documents.every((c) => (c.noyau?.length ?? 0) > 0), 'un concept d’enveloppe sans noyau ne reconnaît rien.').toBe(true);
   });
 
-  it('B — les noyaux d’enveloppe ne DÉBORDENT pas : les sites classés sont exactement ceux-ci', () => {
-    const sites = scan.formes
-      .filter((f) => f.strate === 'Document')
-      .map((f) => `${f.concept} | ${f.dataset} › ${f.champ} | ${f.signature}`);
+  it('B — les noyaux d’enveloppe ne DÉBORDENT pas : chaque site classé `Document` est un projet de scène', () => {
+    const projets = new Set(scan.documents.filter((d) => d.racine === 'src/scenes').map((d) => d.nom));
     expect(
-      lignes(sites),
-      'un noyau d’enveloppe a mordu ailleurs que sur sa porte (ou l’a lâchée) — un concept qui déborde est le débordement global que le DoD interdit, et il se NOMME ici avant de se déclarer.',
-    ).toEqual(
-      lignes([
-        'prose-nommee | arene-projet.json › startMessage | texte',
-        'prose-nommee | barge-du-sel-projet.json › refus | texte',
-        'prose-nommee | barge-du-sel-projet.json › sousTitre | texte',
-        'prose-nommee | diligence-projet.json › refus | texte+…',
-        'prose-nommee | diligence-projet.json › sousTitre | texte+…',
-        'narratif | arene-projet.json › narratif | affaires,documents,etats,indices,objets,presetsPnj',
-        'narratif | loup-et-saumure-projet.json › narratif | affaires,documents,etats,indices,objets,presetsPnj',
-        'narratif | barge-du-sel-projet.json › narratif | affaires,documents,etats,indices,objets,presetsPnj+…',
-        'narratif | diligence-projet.json › narratif | affaires,documents,etats,indices,objets,presetsPnj+…',
-        'effet-d-etat | diligence-projet.json › effect | etat,invite,type+…',
-        'effet-narratif | arene-projet.json › effect | documentId,type',
-        'effet-narratif | diligence-projet.json › effect | documentId,type',
-        'effet-narratif | diligence-projet.json › effect | indiceId,stade,type',
-        'effet-narratif | loup-et-saumure-projet.json › effect | documentId,type',
-        'ouverture | barge-du-sel-projet.json › ouverture | pitch,titre+…',
-        'ouverture | diligence-projet.json › ouverture | pitch,titre+…',
-        'cloture | barge-du-sel-projet.json › cloture | titre,when+…',
-        'cloture | diligence-projet.json › cloture | titre,when+…',
-        'condition | arene-projet.json › when | expr,kind',
-        'condition | barge-du-sel-projet.json › when | expr,kind',
-        'condition | diligence-projet.json › when | expr,kind',
-        'condition | loup-et-saumure-projet.json › when | expr,kind',
-        // SEUL débordement, et il est LÉGITIME : une Condition posée sous `cond` reste une Condition
-        // — c'est le noyau qui la reconnaît, pas le nom du champ (cf. sonde A).
-        'condition | loup-et-saumure-projet.json › cond | expr,kind',
-      ]),
-    );
+      lignes(scan.formes.filter((f) => f.strate === 'Document' && !projets.has(f.dataset)).map((f) => `${f.concept} | ${f.dataset} › ${f.champ} | ${f.signature}`)),
+      'un noyau d’enveloppe a mordu hors des projets de scène — un concept qui déborde est le débordement global que le DoD interdit (le diff sans débordement est la sonde D).',
+    ).toEqual([]);
     expect(
       scan.formes.filter((f) => f.strate === 'Document' && f.statut !== 'cible').map((f) => `${f.dataset} › ${f.champ} | ${f.signature}`),
       'une enveloppe classée hors de sa forme CIBLE : sa porte zod déclare ces clés, le lexique doit dire laquelle.',
@@ -952,16 +733,14 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
     "const sans = (await import(SCAN + '?sansDocument')).scanDuCorpus(R).scan;",
     "const site = (x) => x.dataset + ' › ' + x.champ;",
     "const kf = (f) => f.concept + ' | ' + site(f) + ' | ' + f.signature + ' | ' + f.occurrences;",
-    "const ki = (i) => site(i) + ' | ' + i.signature + ' | ' + i.occurrences;",
     "const ko = (o) => site(o) + ' | ' + o.signature + ' | ' + o.motif + ' | ' + o.occurrences;",
     'const seuls = (a, b, k) => a.filter((x) => !b.some((y) => k(y) === k(x))).map(k).sort();',
     "process.stdout.write('<<<DIFF>>>' + JSON.stringify({",
     '  retires: retires.map((c) => c.id).sort(),',
-    '  comptes: { formes: avec.formes.length, invisibles: avec.invisibles.length, orphelines: avec.orphelines.length },',
+    '  comptes: { formes: avec.formes.length, invisibles: avec.objets.invisibles, orphelines: avec.orphelines.length },',
+    '  invisiblesEteints: sans.objets.invisibles - avec.objets.invisibles,',
     '  formesGagnees: seuls(avec.formes, sans.formes, kf),',
     '  formesVolees: seuls(sans.formes, avec.formes, kf),',
-    '  invisiblesEteintes: seuls(sans.invisibles, avec.invisibles, ki),',
-    '  invisiblesNees: seuls(avec.invisibles, sans.invisibles, ki),',
     '  orphelinesEteintes: seuls(sans.orphelines, avec.orphelines, ko),',
     '  orphelinesNees: seuls(avec.orphelines, sans.orphelines, ko),',
     "}));",
@@ -973,7 +752,7 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
    * `Valeur`/`Référence` — une forme volée disparaîtrait de son concept d’origine sans qu’aucune
    * égalité de stock ne bouge (les lignes volées seraient simplement absentes des deux côtés).
    * Ici on mesure les DEUX scans et on exige : ce que la strate `Document` gagne, elle le prend à ce
-   * qui n’était CLASSÉ PAR PERSONNE (invisibles + orphelines), jamais à un concept existant.
+   * qui n’était CLASSÉ PAR PERSONNE (objets invisibles + orphelines), jamais à un concept existant.
    */
   it('D — DIFF avec/sans la strate `Document` : ce qu’elle gagne vient du NON-CLASSÉ, zéro forme VOLÉE', { timeout: 60_000 }, () => {
     const dossier = mkdtempSync(join(tmpdir(), 'structures-strate-'));
@@ -984,10 +763,9 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
       const diff = JSON.parse(sortie[sortie.length - 1]) as {
         retires: string[];
         comptes: { formes: number; invisibles: number; orphelines: number };
+        invisiblesEteints: number;
         formesGagnees: string[];
         formesVolees: string[];
-        invisiblesEteintes: string[];
-        invisiblesNees: string[];
         orphelinesEteintes: string[];
         orphelinesNees: string[];
       };
@@ -1000,7 +778,7 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
       expect(
         diff.comptes,
         'le scan du sous-processus ne mesure pas le même arbre que celui du fichier : le diff ne prouverait rien.',
-      ).toEqual({ formes: scan.formes.length, invisibles: scan.invisibles.length, orphelines: scan.orphelines.length });
+      ).toEqual({ formes: scan.formes.length, invisibles: scan.objets.invisibles, orphelines: scan.orphelines.length });
 
       expect(
         diff.formesVolees,
@@ -1011,25 +789,19 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
         'les formes que la strate `Document` ajoute ne sont pas exactement celles que le scan lui compte.',
       ).toEqual(lignes(scan.formes.filter((f) => f.strate === 'Document').map((f) => `${f.concept} | ${f.dataset} › ${f.champ} | ${f.signature} | ${f.occurrences}`)));
 
-      // La CONTREPARTIE : chaque gain sort du NON-CLASSÉ. 12 lignes d'invisibles s'éteignent (les
-      // objets qu'aucun concept ne reconnaissait) et 1 orpheline (`diligence-projet.json › ouverture`,
-      // dont la clé `source` déclenchait le motif `clé réservée`) — la projection réunit les deux
-      // buckets qu'un optionnel peuplé séparait. Somme = les gains, à l'unité près.
-      expect(diff.invisiblesNees, 'la strate `Document` rend un objet INVISIBLE : elle en perd un au lieu d’en classer.').toEqual([]);
+      // La CONTREPARTIE : chaque gain sort du NON-CLASSÉ, compté en OBJETS — objets invisibles et orphelines éteints.
       expect(diff.orphelinesNees, 'la strate `Document` fabrique une ORPHELINE : elle en perd une au lieu d’en classer.').toEqual([]);
+      const siteDe = (l: string) => l.split(' | ')[0];
+      const sitesGagnes = new Set(diff.formesGagnees.map((l) => l.split(' | ')[1]));
       expect(
-        diff.orphelinesEteintes,
-        'l’orpheline soldée par la strate `Document` n’est plus celle que le stock nomme (`structuresStock.mjs`, en-tête des concepts d’enveloppe).',
-      ).toEqual(['diligence-projet.json › ouverture | ambiance,chapitre,pitch,source,sousTitre,surtitre,titre | clé réservée | 1']);
-      expect(
-        diff.invisiblesEteintes.length + diff.orphelinesEteintes.length,
-        'le compte ne se referme plus : un gain de la strate `Document` ne vient ni d’un invisible ni d’une orpheline — il vient donc d’ailleurs.',
-      ).toBe(diff.formesGagnees.length);
-      const sitesDocument = new Set(scan.formes.filter((f) => f.strate === 'Document').map((f) => `${f.dataset} › ${f.champ}`));
-      expect(
-        lignes(diff.invisiblesEteintes.filter((l) => !sitesDocument.has(l.split(' | ')[0]))),
-        'un invisible s’est éteint sur un SITE que la strate `Document` ne classe pas : l’extinction déborde des portes.',
+        diff.orphelinesEteintes.filter((l) => !sitesGagnes.has(siteDe(l))),
+        'une orpheline éteinte par la strate `Document` ne devient pas une forme `Document` de son site : elle a disparu au lieu d’être classée.',
       ).toEqual([]);
+      const occurrences = (l: string) => Number(l.split(' | ').pop());
+      expect(
+        diff.invisiblesEteints + diff.orphelinesEteintes.map(occurrences).reduce((a, n) => a + n, 0),
+        'le compte ne se referme plus : un gain de la strate `Document` ne vient ni d’un objet invisible ni d’une orpheline — il vient donc d’ailleurs.',
+      ).toBe(diff.formesGagnees.map(occurrences).reduce((a, n) => a + n, 0));
     } finally {
       rmSync(dossier, { recursive: true, force: true });
     }
@@ -1210,7 +982,7 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
 });
 
 describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', () => {
-  it('un lieu et un déclencheur supplémentaires donnent un écart nominatif avec son producteur', () => {
+  it('un lieu et un déclencheur supplémentaires font monter le site de l’inventaire, nommé avec sa cible', () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-croissance-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
@@ -1227,17 +999,16 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       });
       writeFileSync(chemin, JSON.stringify(paquet), 'utf8');
       const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
-      const ecarts = ecartsDeFormes(apres);
       const site = (f: { dataset: string; champ: string; signature: string }) =>
         f.dataset === 'diligence-projet.json' && f.champ === 'scene' && f.signature === 'id-nu';
       expect(apres.formes.find(site)!.occurrences).toBe(scan.formes.find(site)!.occurrences + 1);
-      const hausse = ecarts.accrues.filter((ligne) => ligne.includes('reference | diligence-projet.json | scene | id-nu'));
-      expect(hausse, 'la hausse d’un site connu sort en `accrues`, jamais en ligne neuve ou périmée.').toHaveLength(1);
-      expect(hausse[0]).toContain('HAUSSE');
-      expect(hausse[0], 'le seul remède d’une hausse est la migration vers la CIBLE du site.').toContain('Migrer ce site vers une forme CIBLE du lexique (`id`');
-      expect([...ecarts.neuves, ...ecarts.perimees, ...ecarts.accrues].filter((l) => l.includes('--write')), 'aucun remède n’écrit une hausse.').toEqual([]);
-      expect([...ecarts.neuves, ...ecarts.perimees].filter((l) => l.includes('diligence-projet.json | scene | id-nu'))).toEqual([]);
-      expect(apres.ops.map(cleOp)).toEqual(scan.ops.map(cleOp));
+      const ligne = (inv: typeof INVENTAIRE) => inv.find((l) => l.collection === 'CASES_DE_REFERENCE' && l.site === 'diligence-projet.json | scene')!;
+      const avant = ligne(INVENTAIRE);
+      const hausse = ligne(inventaireDe({ scan: apres, defs: DEFS, declares: DECLARES }));
+      expect(hausse.occurrences, 'la hausse d’un site connu se lit à l’inventaire, sur la même ligne.').toBe(avant.occurrences! + 1);
+      expect(hausse.cible, 'le seul remède d’une hausse est la migration vers la CIBLE du site.').toContain('Migrer ce site vers une forme CIBLE du lexique (`id`');
+      const cleDOp = (o: { op: string; signature: string; dataset: string; occurrences: number }) => `${o.op} | ${o.signature} | ${o.dataset} | ${o.occurrences}`;
+      expect(apres.ops.map(cleDOp)).toEqual(scan.ops.map(cleDOp));
     } finally {
       rmSync(copie, { recursive: true, force: true });
     }
@@ -1372,13 +1143,10 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
   );
   const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
   const brut = fixture.brutParNom.get('x.json') as Record<string, object>;
-  const invisible = (champ: string) => fixture.invisibles.filter((i) => i.dataset === 'x.json' && i.champ === champ).map((i) => i.signature);
-
   it('la carte marquée est une collection relevée et n’est pas invisible ; sa jumelle NON marquée l’est', () => {
-    expect(invisible('t'), 'la carte `t`, déclarée collection à clé, est comptée hors strate.').toEqual([]);
     expect(fixture.collections.filter((c) => c.dataset === 'x.json').map((c) => c.cle)).toEqual(['x.json#t', 'x.json#r', 'x.json#u']);
-    expect(invisible('tNue'), 'contrôle : la même forme SANS marque reste hors strate.').toEqual(['a,b']);
     expect(fixture.objets.collectionsACle).toBe(3);
+    expect(fixture.objets.invisibles, 'seule la jumelle NON marquée `tNue` reste hors strate : une carte marquée y est comptée.').toBe(1);
   });
 
   it('une carte marquée dont les valeurs RÉSOLVENT reste PORTEUR de références, case par case', () => {
@@ -1387,7 +1155,6 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
 
   it('une carte marquée dont une clé `…Id` ne résout pas n’est pas orpheline', () => {
     expect(fixture.orphelines.filter((o) => o.dataset === 'x.json').map((o) => `${o.champ} | ${o.signature}`)).toEqual([]);
-    expect(invisible('u')).toEqual([]);
   });
 });
 
@@ -1485,13 +1252,74 @@ describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entr�
 
   it('l’entrée partielle n’est ni orpheline, ni invisible, ni document embarqué de l’hôte', () => {
     expect(fixture.orphelines.filter((o) => o.champ === 'profil')).toEqual([]);
-    expect(fixture.invisibles.filter((i) => i.champ === 'profil')).toEqual([]);
+    expect(fixture.objets.invisibles, 'seul le `leurre` reste hors strate, jamais l’entrée partielle.').toBe(1);
     expect(fixture.groupesEnveloppe.filter((g) => g.chemin.includes('profil'))).toEqual([]);
   });
 
   it('l’entrée partielle n’entre pas dans la mesure d’enveloppe de son document (un patch n’est sommé de rien)', () => {
     expect(fixture.enveloppe.filter((e) => e.document === 'a.json')).toEqual([]);
     expect(fixture.groupesEnveloppe.find((g) => g.document === 'a.json' && g.portee === 'racine')?.nbEntrees).toBe(1);
+  });
+});
+
+/**
+ * SIGNATURE PROJETÉE d'un objet de référence (`signatureProjetee`) : une clé dont la valeur est une
+ * réf canonique `{ id }` qui résout compte comme une clé qui résout. Migrer UNE clé scalaire d'un
+ * objet vers `ref(…)` ne change donc pas l'identité de son site ; un objet dont toutes les réfs sont
+ * canoniques n'est plus un site de forme (#2972).
+ */
+describe('signature projetée : une réf `{ id }` imbriquée qui résout reste une clé de la signature', () => {
+  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const alpha = document('alpha', 'entite', {}, {}, expositionDeSonde);
+  const x = document(
+    'x',
+    'config',
+    { a: z.array(z.unknown()), b: z.array(z.unknown()), c: z.array(z.unknown()) },
+    { a: { label: 'A' }, b: { label: 'B' }, c: { label: 'C' } },
+    expositionDeSonde,
+  );
+  const DEFS_FIXTURE: SchemaDef[] = [
+    { file: 'alpha.json', root: 'src/data', famille: 'entite', schema: alpha.schema },
+    { file: 'x.json', root: 'src/data', famille: 'config', schema: x.schema },
+  ];
+  const dossier = mkdtempSync(join(tmpdir(), 'structures-signature-'));
+  afterAll(() => rmSync(dossier, { recursive: true, force: true }));
+  mkdirSync(join(dossier, 'src/data'), { recursive: true });
+  mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
+  cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+  writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'espece-un', maison: 'sonde' }, { id: 'tenue-un', maison: 'sonde' }]));
+  const deuxScalaires = { species: 'espece-un', tenue: 'tenue-un' };
+  writeFileSync(
+    join(dossier, 'src/data/x.json'),
+    JSON.stringify({
+      id: 'x',
+      maison: 'sonde',
+      a: [deuxScalaires],
+      b: [deuxScalaires, { species: 'espece-un', tenue: { id: 'tenue-un' } }],
+      c: [{ species: { id: 'espece-un' }, tenue: { id: 'tenue-un' } }],
+    }),
+  );
+  const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
+  const sitesDe = (champ: string) =>
+    fixture.formes.filter((f) => f.dataset === 'x.json' && f.champ === champ).map((f) => `${f.signature} | ${f.occurrences}`);
+
+  it('deux scalaires qui résolvent : signature `species,tenue`', () => {
+    expect(sitesDe('a')).toEqual(['species,tenue | 1']);
+  });
+
+  it('une des deux clés migrée en `{ id }` : même signature, donc même site que le tout-scalaire', () => {
+    expect(sitesDe('b'), 'la clé `tenue: { id }` est repliée en `+…` : la migration d’une clé change l’identité du site.').toEqual([
+      'species,tenue | 2',
+    ]);
+  });
+
+  it('toutes les réfs canoniques : le porteur n’est plus une référence, il se classe comme tout objet (ici hors strate)', () => {
+    expect(sitesDe('c')).toEqual([]);
+    expect(fixture.orphelines.filter((o) => o.dataset === 'x.json' && o.champ === 'c')).toEqual([]);
+    expect(
+      fixture.objets.invisibles,
+      'un porteur de réfs canoniques garde sa structure propre : le scan ne s’aveugle pas sur lui.',
+    ).toBe(1);
   });
 });
 

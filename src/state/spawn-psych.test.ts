@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { creatureToCombatant, statblockToCombatant } from '../noyau/monde/spawn';
 import { createHero } from '../engine/character';
 import { findCreatureById } from '../data';
+import { groupesDe } from '../engine/groups';
 
 // Dérivation des propriétés psychologiques au spawn (parse des traits, LDB 21+85).
 describe('spawn — propriétés psychologiques', () => {
@@ -37,20 +38,20 @@ describe('spawn — Groupes & traits psy ciblés (P3)', () => {
     const c = statblockToCombatant({ type: 'statblock', label: 'Nain', char: { B: 10 }, traits: [{ id: 'animosite', arg: 'elfe' }] }, 'e3', { x: 0, y: 0 });
     expect(c.psychTraits).toEqual([{ type: 'animosite', cible: 'elfe' }]);
   });
-  it('createHero : groups = racial(espèce) + carrière (ids)', () => {
+  it('createHero : Groupes effectifs = racial(espèce) + carrière (ids)', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    expect(h.groups).toEqual(expect.arrayContaining(['humain', 'soldat']));
+    expect(groupesDe(h)).toEqual(expect.arrayContaining(['humain', 'soldat']));
   });
   it('creatureToCombatant : Talent Béni(Sigmar/Ulric) de la donnée → Groupe religieux (fixe le trou Phase 2)', () => {
-    const pretreSigmar = findCreatureById('pretre-de-sigmar')!;
-    expect(creatureToCombatant(pretreSigmar, 'e4', { x: 0, y: 0 }).groups).toContain('sigmarite');
-    const pretreUlric = findCreatureById('pretre-d-ulric')!;
-    expect(creatureToCombatant(pretreUlric, 'e5', { x: 0, y: 0 }).groups).toContain('ulricain');
+    const pretreUlric = findCreatureById('frere-bengt')!;
+    expect(groupesDe(creatureToCombatant(pretreUlric, 'e5', { x: 0, y: 0 }))).toContain('ulricain');
+    const pretreSigmar = { ...pretreUlric, id: 'pretre-sigmar', talents: pretreUlric.talents.map((t) => (t.id === 'beni' ? { ...t, spec: 'sigmar' } : t)) };
+    expect(groupesDe(creatureToCombatant(pretreSigmar, 'e4', { x: 0, y: 0 }))).toContain('sigmarite');
   });
 });
 
 describe('DONNÉE creatures.json — cibles psy recalées vers un id de Groupe MAX FIDÉLITÉ (re-map Phase 2 → Phase psy)', () => {
-  it('Bella la Noire : Animosité « Les riches, Les hommes-bêtes » → noble + homme-bete ; Préjugé « Baillis, Juristes » → bailli + juriste', () => {
+  it('Bella la Noire (LDB 77 l.95) : une instance par Cible — Animosité noble + homme-bete ; Préjugé bailli + juriste', () => {
     const c = creatureToCombatant(findCreatureById('bella-la-noire')!, 'p1', { x: 0, y: 0 });
     expect(c.psychTraits).toEqual(expect.arrayContaining([
       { type: 'animosite', cible: 'noble' },
@@ -63,19 +64,15 @@ describe('DONNÉE creatures.json — cibles psy recalées vers un id de Groupe M
     const c = creatureToCombatant(findCreatureById('eusapia-balacanon')!, 'p2', { x: 0, y: 0 });
     expect(c.psychTraits).toEqual(expect.arrayContaining([{ type: 'animosite', cible: 'tileen' }]));
   });
-  it('Hyppogriffe / Fanatique Gobelin / Brochet du Stir : Animosité « Tout »/« toutes les créatures !!! » → tout', () => {
+  it('Hyppogriffe / Brochet du Stir : Animosité « Tout » → tout (LDB 79 l.113, MSRC 15 l.101)', () => {
     expect(creatureToCombatant(findCreatureById('hyppogriffe')!, 'p3', { x: 0, y: 0 }).psychTraits)
-      .toEqual(expect.arrayContaining([{ type: 'animosite', cible: 'tout' }]));
-    expect(creatureToCombatant(findCreatureById('fanatique-gobelin')!, 'p4', { x: 0, y: 0 }).psychTraits)
       .toEqual(expect.arrayContaining([{ type: 'animosite', cible: 'tout' }]));
     // Label « Brochet du Stir » ambigu (2 créatures homonymes, Zoo Impérial vs Bestiaire fluvial) → id STABLE.
     expect(creatureToCombatant(findCreatureById('brochet-du-stir-fluvial')!, 'p5', { x: 0, y: 0 }).psychTraits)
       .toEqual(expect.arrayContaining([{ type: 'animosite', cible: 'tout' }]));
   });
-  it('Chauve-souris vampire (Varghulf) / Vhargulf : Haine « Vivant »/« Êtres Vivants » → vivant', () => {
+  it('Chauve-souris vampire (Varghulf) : Haine « Vivant » → vivant', () => {
     expect(creatureToCombatant(findCreatureById('chauve-souris-vampire-varghulf')!, 'p6', { x: 0, y: 0 }).psychTraits)
-      .toEqual(expect.arrayContaining([{ type: 'haine', cible: 'vivant' }]));
-    expect(creatureToCombatant(findCreatureById('vhargulf')!, 'p7', { x: 0, y: 0 }).psychTraits)
       .toEqual(expect.arrayContaining([{ type: 'haine', cible: 'vivant' }]));
   });
   it('Babrakkos : Haine « Teutogens » → teutogen', () => {

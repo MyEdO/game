@@ -1,5 +1,5 @@
 /**
- * Garde de la CLASSE « catalogues à id RÉEL » (#401) : les 11 datasets éditoriaux dont l'identité de
+ * Garde de la CLASSE « catalogues à id RÉEL » (#401) : les datasets éditoriaux dont l'identité de
  * navigation Codex était naguère DÉRIVÉE du libellé au build (`uniqueSlugId`, b9196398) portent
  * un champ `id` STABLE en donnée : chaque entrée a un `id` non vide ; son unicité dans le catalogue est
  * refusée au parse (collection à clé, `schemas/grammaire/collection-cle.ts`). Le libellé s'édite sans
@@ -14,7 +14,6 @@ import {
   eyes, hairs, calendarMonths, calendarIntercalary, calendarWeekdays,
   oups, interludeEvents, peripeties, pregens, massBattleHazards,
 } from './index';
-import { OBSESSIONS } from './obsessions';
 
 /** Chaque catalogue normalisé en `{ id, label }[]`. */
 const CATALOGS: Record<string, { id: string; label: string }[]> = {
@@ -27,7 +26,6 @@ const CATALOGS: Record<string, { id: string; label: string }[]> = {
   interludeEvents: interludeEvents.map((e) => ({ id: e.id, label: e.label })),
   peripeties: peripeties.map((e) => ({ id: e.id, label: e.label })),
   pregens: pregens.map((e) => ({ id: e.id, label: e.label })),
-  obsessions: OBSESSIONS.map((e) => ({ id: e.id, label: e.label })),
   massBattleHazards: massBattleHazards.map((e) => ({ id: e.id, label: e.label })),
 };
 

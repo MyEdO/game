@@ -6,11 +6,7 @@
  */
 import type { ContenuGlb } from './glb.ts';
 import { lireMontage, ecartsDeMontage, type ManifesteMontable } from './montage';
-import { findApparenceById } from '../../../src/noyau/index.ts';
-
-/** Les rôles d'animation : `ClipName` (`src/gameIso/rig/anim/clips.ts:15`), plus `death`. */
-export const ROLES_D_ANIMATION = Object.freeze(['melee', 'ranged', 'cast', 'dodge', 'parry', 'hit', 'walk', 'idle', 'death'] as const);
-export type RoleDAnimation = (typeof ROLES_D_ANIMATION)[number];
+import { findApparenceById, ROLES_D_ANIMATION, type RoleDAnimation } from '../../../src/noyau/index.ts';
 
 export const VERSION_DU_SCHEMA = 2;
 

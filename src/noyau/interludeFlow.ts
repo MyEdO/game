@@ -281,7 +281,7 @@ const eventLabelOf = (st: InterludeHeroState): string =>
  *  `skillBaseValue` calcule, JAMAIS une soustraction faite au site de lecture).
  *  Le TYPE porte le couplage : ces champs ne se posent qu'ENSEMBLE, ou aucun. Les deux nues restent
  *  optionnelles (un pending qui n'en porte pas → repli deux-cibles d'`openValues`).
- *  Forme PLATE parce que ces champs sont SÉRIALISÉS dans le snapshot de partie (`saves.ts`). */
+ *  Forme PLATE parce que ces champs sont SÉRIALISÉS dans le snapshot de partie (`persistance/save.ts`). */
 export type ActivityOppositionOn = { enemyValue: number; enemyRoll: number; enemyBase?: number; skillBase?: number };
 export type ActivityOpposition = ActivityOppositionOn | { enemyValue?: undefined; enemyRoll?: undefined; enemyBase?: undefined; skillBase?: undefined };
 

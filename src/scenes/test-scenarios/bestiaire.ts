@@ -51,7 +51,7 @@ const construireScene = (): Scene => buildScene({
     '(−20 à 4 m) et expose à la Corruption en fin de combat ; le Troll régénère (Stupide) ; l’Araignée emmaillote ' +
     '(Toile→Empêtré, Venin) ; la Cockatrice pétrifie du regard (Redoutable) ; le Griffon est Énorme (Piétinement) ; ' +
     'la Pieuvre frappe de ses 8 tentacules (gratuites, Empêtré) ; le Sorcier mutant lance Fléchette ; le Squelette ' +
-    'est un facultatif « Élite » aux Caractéristiques aléatoires ; l’Envoûteuse débuffe (Peur 2 + Terreur 2).' },
+    'est un facultatif « Élite » aux Caractéristiques aléatoires ; Babrakkos lance ses sorts et cause Terreur 3.' },
   encounters: [
     {
       id: 'enc-bestiaire',
@@ -64,14 +64,14 @@ const construireScene = (): Scene => buildScene({
         { ref: 'araignee-geante', pos: { x: 18, y: 15 } }, // Toile→Empêtré, Bestial, Venin
         { ref: 'cockatrice', pos: { x: 20, y: 5 } }, // regard pétrifiant + Redoutable
         { ref: 'griffon', pos: { x: 22, y: 10 } }, // Énorme → Piétinement (l'arène 26×20 lui laisse la place)
-        { ref: 'envouteuse', pos: { x: 24, y: 12 } }, // 12 sorts → débuffs + Peur/Terreur
+        { ref: 'babrakkos', pos: { x: 24, y: 12 } }, // 6 sorts + Terreur
         // Statblocs d'auteur (LDB 76/78/85).
         { ref: 'pieuvre-des-tourbieres', pos: { x: 18, y: 18 } }, // « 8 Tentacules +9 » gratuites, Empêtré
         {
           statblock: { type: 'statblock',
             label: 'Sorcier mutant',
             char: { M: 4, 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 40, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 45, sociabilite: 30 },
-            traits: [{ id: 'arme', value: 4, arg: 'dague' }, { id: 'lanceur-de-sorts', arg: 'sorcellerie' }, { id: 'corruption', arg: 'Mineure' }],
+            traits: [{ id: 'arme', value: 4, arg: 'dague' }, { id: 'lanceur-de-sorts', arg: 'sorcellerie' }, { id: 'corruption', arg: 'mineure' }],
             spells: ['flechette'], // id de sort (CustomStatblock.spells = string[] d'ids)
           },
           appearance: { species: 'humains-reiklander' },

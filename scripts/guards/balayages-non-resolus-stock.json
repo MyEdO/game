@@ -570,12 +570,6 @@
       "fichier": "src/data/generic-domain-import-guard.test.ts",
       "ref": "scanAllPrimitives : paramètre p",
       "occurrence": 5
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "src/data/plage-bornes-contrat.test.ts",
-      "ref": "listerArbre : paramètre dir",
-      "occurrence": 1
     }
   ]
 }

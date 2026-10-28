@@ -302,14 +302,5 @@
     "abbr": "EER",
     "language": "VO",
     "folder": "Scénario"
-  },
-  {
-    "id": "frenchy-bzh",
-    "type": "books",
-    "label": "frenchy.bzh (contenu fan)",
-    "abbr": "frenchy.bzh",
-    "extractionDir": "Source/Warhammer - Habitants & Creatures  du Vieux-Monde (Discord) PDF",
-    "language": "VF",
-    "folder": "Fan"
   }
 ]

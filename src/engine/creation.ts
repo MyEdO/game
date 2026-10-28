@@ -96,7 +96,7 @@ export const POINT_BUY_TOTAL = 100;
 export const POINT_BUY_MIN = 4;
 export const POINT_BUY_MAX = 18;
 
-export function validatePointBuy(alloc: Record<CharKey, number>): { ok: boolean; reason?: string } {
+export function validatePointBuy(alloc: Record<CharKey, number>): { ok: true } | { ok: false; reason: string } {
   for (const k of CHAR_KEYS) {
     const v = alloc[k];
     if (v == null || !Number.isInteger(v)) return { ok: false, reason: `${k} : valeur manquante` };
@@ -203,7 +203,7 @@ export function applyStarOps(starId: string, chars: Characteristics, addTalent: 
  *  Sorts égal à votre Bonus de Force Mentale ») — 0 sans un Talent de `castingKind:'mineure'`
  *  (Magie mineure/Béni…) parmi ceux du héros. Le BFM passe par `baseWithTalents` (source unique des
  *  +5 de Talent), jamais une relecture manuelle des Caractéristiques brutes. Fonction PURE partagée
- *  par `createHero`-adjacent (`src/data/pregens.ts`) ET le créateur joueur (`src/ui/creator/draft.ts`). */
+ *  par `createHero`-adjacent (`src/data/pregens.ts`) ET le créateur joueur (`src/noyau/creation/brouillon.ts`). */
 export function pettySpellQuotaFor(hero: Combatant): number {
   if (!(hero.talents ?? []).some((t) => castingKindOf(t.talentId) === 'mineure')) return 0;
   return bonus(baseWithTalents(hero, 'force-mentale'));

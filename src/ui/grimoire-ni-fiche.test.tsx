@@ -22,7 +22,7 @@ import { setRule, resetRule } from '../engine/policy';
 import { effectiveSpellOf } from '../noyau/combatFlow';
 import { findSpellById, spells } from '../data';
 import type { Combatant } from '../engine/types';
-import { objetDeTest } from '../objetsDeTest.testkit';
+import { objetDeTest } from '../engine/objetsDeTest.testkit';
 
 const RULE = 'magic-vdm-incantation';
 const SPELL = 'caresse-de-laniph';

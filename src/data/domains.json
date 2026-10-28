@@ -3,7 +3,7 @@
     "id": "feu",
     "type": "domains",
     "label": "Feu",
-    "arcane": true,
+    "arcane": "feu",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-feu"
     },
@@ -93,7 +93,6 @@
         }
       }
     ],
-    "breathType": "Feu",
     "castBonus": {
       "perCondition": "en-flammes",
       "radiusStat": "force-mentale",
@@ -101,13 +100,14 @@
     },
     "seaModifier": {
       "focalisationDR": -1
-    }
+    },
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : le Feu se manifeste par des flammes vives et une chaleur intense (LDB 48 l.203)."
   },
   {
     "id": "lumiere",
     "type": "domains",
     "label": "Lumière",
-    "arcane": true,
+    "arcane": "electrique",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-lumiere"
     },
@@ -283,13 +283,14 @@
         },
         "desc": "Les Tests effectués pour percevoir *Hysh* avec le Talent *Seconde vue*, comme Perception, Intuition et Pistage, subissent un malus de −2 DR."
       }
-    ]
+    ],
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : la Lumière émet des rayons éclatants d’une lumière aveuglante (LDB 48 l.300) ; l’Électrique ignore les PA et Sonne, au plus près de l’Aveuglé du Domaine."
   },
   {
     "id": "mort",
     "type": "domains",
     "label": "Mort",
-    "arcane": true,
+    "arcane": "froid",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-mort"
     },
@@ -412,13 +413,14 @@
         },
         "desc": "Les Tests de Focalisation (*Shyish*) bénéficient de +1 DR aux endroits où de nombreux corps sont enterrés et là où des massacres ont eu lieu. Dans les zones épargnées par la violence et la mort, les Tests de Focalisation (*Shyish*) ont une pénalité de −1 DR."
       }
-    ]
+    ],
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : les cibles de la Mort demeurent affaiblies et léthargiques (LDB 48 l.501) ; le Froid les Sonne."
   },
   {
     "id": "vie",
     "type": "domains",
     "label": "Vie",
-    "arcane": true,
+    "arcane": "poison",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-vie"
     },
@@ -599,13 +601,14 @@
         },
         "desc": "Les Tests de Focalisation (*Ghyran*) bénéficient de +1 DR pendant les mois de Sommerzeit et de Vorgeheim, mais subissent un malus de −1 DR durant ceux de Ulriczeit et Vorhexen."
       }
-    ]
+    ],
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : Ghyran se manifeste par des vignes, des sous-bois et des phénomènes naturels (LDB 48 l.688) ; le Poison est le seul Type végétal."
   },
   {
     "id": "cieux",
     "type": "domains",
     "label": "Cieux",
-    "arcane": true,
+    "arcane": "electrique",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-cieux"
     },
@@ -665,7 +668,6 @@
     "missile": {
       "bypass": "metal"
     },
-    "breathType": "Électrique",
     "seaModifier": {
       "incantationStormDR": 1,
       "incantationCalmDR": -1
@@ -701,13 +703,14 @@
         },
         "desc": "Les lanceurs de sorts qui se servent du Domaine des Cieux obtiennent un bonus de +1 DR aux Tests de Focalisation lorsqu'ils se trouvent dans des tours ou sur des collines élevées. S'ils sont au sommet de hautes montagnes ou à bord d'un appareil en plein vol, ce bonus passe à +2 DR."
       }
-    ]
+    ],
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : les Sorts des Cieux s’accompagnent du craquement de la foudre (LDB 48 l.104)."
   },
   {
     "id": "metal",
     "type": "domains",
     "label": "Métal",
-    "arcane": true,
+    "arcane": "corrosif",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-metal"
     },
@@ -728,7 +731,6 @@
       "bypass": "metal",
       "bonusFromBypass": true
     },
-    "breathType": "Corrosif",
     "windModifiers": [
       {
         "tests": [
@@ -758,13 +760,14 @@
         },
         "desc": "Dans les endroits où l'on trouve des métaux en grande quantité (comme les mines des régions riches en gisements, les salles du trésor, les navires à vapeur des nains…), les Personnages reçoivent un bonus de +1 DR aux Tests de Focalisation (*Chamon*)."
       }
-    ]
+    ],
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : Chamon s’attache aux substances métalliques et frappe ceux qui s’enveloppent de métal (LDB 48 l.397-399) ; le Corrosif endommage l’équipement porté."
   },
   {
     "id": "ombres",
     "type": "domains",
     "label": "Ombres",
-    "arcane": true,
+    "arcane": "fumee",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-ombres"
     },
@@ -777,7 +780,6 @@
     "missile": {
       "bypass": "nonMagic"
     },
-    "breathType": "Fumée",
     "windModifiers": [
       {
         "tests": [
@@ -809,13 +811,14 @@
         },
         "desc": "Les Tests de Focalisation (*Ulgu*) bénéficient de +1 DR lorsque le temps est suffisamment orageux ou brumeux. Ils subissent un malus de −1 DR les jours ensoleillés ou lorsqu'une brise légère balaye les nuages."
       }
-    ]
+    ],
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : les Sorts des Ombres enveloppent le lanceur d’ombres et de volutes de fumée (LDB 48 l.588)."
   },
   {
     "id": "bete",
     "type": "domains",
     "label": "Bête",
-    "arcane": true,
+    "arcane": "froid",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-bete"
     },
@@ -828,8 +831,10 @@
     "casterOps": [
       {
         "op": "grantTrait",
-        "traitId": "peur",
-        "indice": 1,
+        "trait": {
+          "id": "peur",
+          "value": 1
+        },
         "durationRounds": {
           "dice": {
             "n": 1,
@@ -919,31 +924,34 @@
         },
         "desc": "La cité de Middenheim est une exception notable puisqu'une puissante Source de *Ghur* émane des profondeurs du rocher du Fauschlag. Les Tests de Focalisation (*Ghur*) qui y sont effectués ont un bonus de +2 DR."
       }
-    ]
+    ],
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : Ghur reflète une férocité primitive et glaciale (LDB 48 l.9)."
   },
   {
     "id": "gueule",
     "type": "domains",
     "label": "Gueule",
-    "arcane": true,
+    "arcane": "corrosif",
     "desc": "Parfois appelé Gastromancie ou simplement Magie des Entrailles, le Domaine de la Gueule n’est disponible que pour les ogres (voir la Carrière Boucher Ogre). Cette magie met en avant une faim intense, des festins sanglants et une énergie effrénée. Chaque fois qu’un boucher ogre réussit à lancer un sort du Domaine de la Gueule, l’offrande qu’il consomme peut lui permettre de restaurer sa propre santé. Lancez 1d10. Si le résultat est un 10, ou s’il est égal ou supérieur au NI du sort lancé, sans modification de Focalisation et sans utiliser un Grimoire, le Boucher récupère un nombre de Blessures égal au NI non modifié du sort.\n\n**Composants :** les ogres se servent de restes ensanglantés pour alimenter leur magie. Elles sont généralement issues d’animaux et plus elles sont fraîches, mieux la magie opère. Il peut s’agir de morceaux de viande saignants, de bile provenant de l’estomac de créatures étranges, de la moelle de bêtes imposantes ou de la graisse séchée d’animaux domestiques, comme des cochons ou des vaches.",
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 32
     },
-    "castingChar": "endurance"
+    "castingChar": "endurance",
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : la Magie des Entrailles met en avant une faim intense (ADE II 02 l.733) ; le Corrosif est celui des sucs."
   },
   {
     "id": "sorcellerie",
     "type": "domains",
     "label": "Sorcellerie",
-    "arcane": true,
+    "arcane": "poison",
     "desc": "Les Sorts de Sorcellerie se nourrissent de tous les Vents disponibles, sans se soucier des mélanges et d'éventuels résultats catastrophiques. À chaque fois qu'un pratiquant de la Sorcellerie fait un jet sur le Tableau des Incantations Imparfaites, il gagne 1 Point de Corruption. De plus, vous pouvez infliger un État *Hémorragique* à toute cible d'un Sort du Domaine de la Sorcellerie. Enfin, le fait de focaliser ou lancer des Sorts de ce Domaine nécessite systématiquement un lancer sur le Tableau des Incantations Imparfaites Mineures à moins d'être lancé avec un ingrédient, ou bien ce composant ne servira à rien si un jet sur le Tableau des Incantations Imparfaites doit malgré tout être effectué. Par chance, les ingrédients du Domaine de la Sorcellerie sont bon marché et facilement disponibles : la plupart du temps, ce sont des morceaux d'animaux de petite taille. Les composants coûtent le NI du Sort en sous de cuivre, à la place des pistoles d'argent habituelles.",
     "source": {
       "book": "livre-de-base",
       "page": 255
     },
-    "sorcery": true
+    "sorcery": true,
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : la Sorcellerie mêle tous les Vents et d’horribles composants arrachés aux bêtes (LDB 49 l.5-7)."
   },
   {
     "id": "dhar",
@@ -960,76 +968,39 @@
     "id": "necromancie",
     "type": "domains",
     "label": "Nécromancie",
-    "arcane": true,
+    "arcane": "poison",
     "dark": true,
     "desc": "La Nécromancie est un antique art magique qui cherche à maîtriser la mort et à obtenir la vie éternelle, en utilisant le plus souvent des corps en décomposition. Considérée comme la forme la plus infecte de la Magie, une pure hérésie, l'étude de ses secrets n'est jamais prise à la légère, car l'horreur que représentent la mort et les morts-vivants ne doit jamais être sous-estimée.",
     "source": {
       "book": "livre-de-base",
       "page": 256
-    }
+    },
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : la Nécromancie use de corps en décomposition, la plus infecte des Magies (LDB 50 l.61)."
   },
   {
     "id": "demonologie",
     "type": "domains",
     "label": "Démonologie",
-    "arcane": true,
+    "arcane": "froid",
     "dark": true,
     "desc": "Le Domaine de Démonologie, dont l'usage est proscrit, s'intéresse à l'invocation, au lien et au contrôle des démons, et ce dans le but de rendre plus puissant le lanceur du Sort. Son utilisation est extrêmement dangereuse, entraînant le plus souvent la soumission de l'âme du démonologue aux Puissances de la Ruine, donnant ainsi naissance à un nouveau Sorcier du Chaos.",
     "source": {
       "book": "livre-de-base",
       "page": 256
-    }
+    },
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : la description de la Démonologie (LDB 50 l.9) n’appuie aucun Type ; le Froid, premier Type de la liste (LDB 85 l.324)."
   },
   {
     "id": "magie-naturelle",
     "type": "domains",
     "label": "Magie naturelle",
-    "arcane": true,
+    "arcane": "poison",
     "desc": "Les pratiquants de la Magie naturelle mènent généralement des vies discrètes, en marge des plus petites colonies humaines, au service des communautés locales. Tout comme ils vivent entre la civilisation et la nature sauvage, une grande partie de leur Magie concerne l'espace se trouvant entre le monde matériel et le royaume des esprits.",
     "source": {
       "book": "livre-de-base",
       "page": 44
-    }
-  },
-  {
-    "id": "domaine-de-la-ruine",
-    "type": "domains",
-    "label": "Domaine de la Ruine",
-    "arcane": true,
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 359
-    }
-  },
-  {
-    "id": "domaine-des-ombres",
-    "type": "domains",
-    "label": "Domaine des Ombres",
-    "arcane": true,
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 371
-    }
-  },
-  {
-    "id": "domaine-de-la-peste",
-    "type": "domains",
-    "label": "Domaine de la Peste",
-    "arcane": true,
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 384
-    }
-  },
-  {
-    "id": "divinite",
-    "type": "domains",
-    "label": "Divinité",
-    "arcane": true,
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 269
-    }
+    },
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : les Élus tirent leurs composants des herbes et des plantes (LDB 48 l.796)."
   },
   {
     "id": "magie-des-mers-de-triton",
@@ -1048,6 +1019,7 @@
       "book": "vents-de-la-magie",
       "page": 216
     },
-    "arcane": true
+    "arcane": "poison",
+    "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : Mòna erre dans les marais en quête de champignons vénéneux (VDM 15 l.240)."
   }
 ]

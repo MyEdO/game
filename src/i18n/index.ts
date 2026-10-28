@@ -8,7 +8,15 @@ import { fr } from './messages/fr';
 import type { PlayerText } from './playerText';
 
 export type MsgKey = keyof typeof fr;
-type Params = Record<string, string | number>;
+/** Paramètres qui NOMMENT une entrée de donnée : leur valeur est le libellé minté (`psychologyLabel`,
+ *  `groupLabel`, `groupesLabel`, `sansPeurLabel`), jamais l'id, qu'un `string` nu laisserait passer. #3045 */
+interface ParamsDeLibelle {
+  readonly psych?: PlayerText;
+  readonly groupe?: PlayerText;
+  readonly groupes?: PlayerText;
+  readonly talent?: PlayerText;
+}
+type Params = Record<string, string | number> & ParamsDeLibelle;
 
 /** Sous-ensemble `out.*` du catalogue — clés de CONSÉQUENCE (`resultLine`, `rollSeam.ts`, #295 Lot 0).
  *  `OutVars` reste un `Record` non typé PAR clé (comme `Params` ci-dessus, `t()` n'a pas de typage
@@ -28,9 +36,7 @@ export const getLocale = (): Locale => locale;
  *
  * GEL AU CHARGEMENT (dette nommée, #1318 V8a₁) : plusieurs cartes de libellés appellent `t()` à
  * l'ÉVALUATION DU MODULE et gardent la chaîne obtenue — `CHAR_LABELS`/`DIFFICULTY_LABELS`/
- * `HIT_LOCATION_LABELS`/`BODY_SHAPE_LOC_LABELS` (`engine/types.ts`) et
- * `CHAR_PENALTY_KIND_LABEL` (`engine/trauma.ts`, familles Faim/Soif et Ivresse — V8c₃ l'a fait passer
- * de littéraux au catalogue, MÊME motif : la carte est figée à l'évaluation du module).
+ * `HIT_LOCATION_LABELS`/`BODY_SHAPE_LOC_LABELS` (`engine/types.ts`).
  * V8c₄ ajoute UN site à cette liste, et un seul : `label: t('cor.natureTable')` de la famille
  * `tablesDeNature` (`noyau/corruptionFlow.ts`, table « Corps ou esprit ») — le libellé y est résolu à
  * la construction de la famille, puis gardé jusqu'à la prochaine édition de `species`. Les autres
@@ -49,7 +55,7 @@ export const getLocale = (): Locale => locale;
 export const setLocale = (l: Locale): void => { locale = l; };
 
 /** Interpole `{param}` dans un patron ; laisse `{x}` intact si `x` est absent. Pur (testable seul). */
-export function interpolate(pattern: string, params?: Params): string {
+export function interpolate(pattern: string, params?: Record<string, string | number>): string {
   return params ? pattern.replace(/\{(\w+)\}/g, (_, k: string) => (params[k] != null ? String(params[k]) : `{${k}}`)) : pattern;
 }
 
@@ -89,6 +95,11 @@ export function deElide(nom: string): string {
  *  même périmètre que `deElide`, dont elle est la règle : « arrive **l’**Aubentag », « arrive **le** Wellentag ». */
 export function elision(particule: 'de' | 'le', nom: string): string {
   return /^[aeiouyàâäéèêëîïôöùûü]/i.test(nom) ? `${particule[0]}’` : `${particule} `;
+}
+
+/** Énumération « a, b et c » : virgules, dernier élément lié par la clé `liste.et`. */
+export function listeEt(items: readonly string[]): string {
+  return items.length > 1 ? t('liste.et', { debut: items.slice(0, -1).join(', '), fin: items[items.length - 1] }) : (items[0] ?? '');
 }
 
 /** Marque du pluriel d'un compte affiché (« 1 point », « 2 points », « -2 points ») : `s` au-delà de 1 en

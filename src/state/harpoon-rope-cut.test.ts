@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { Combatant } from '../engine/types';
 import { customTrapping } from '../engine/items';
-import { armeDeTest, objetDeTest } from '../objetsDeTest.testkit';
+import { armeDeTest, objetDeTest } from '../engine/objetsDeTest.testkit';
 import type { PendingAttack } from '../noyau/pendings';
 import { firedWeapon, weaponContextOf } from '../noyau/combatFlow';
 import * as capabilities from '../engine/capabilities';

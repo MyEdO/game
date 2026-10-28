@@ -135,7 +135,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   it('Souffle (Feu) : zone, Test opposé CT/Esquive → dégâts ignorant les PA + En flammes', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();
-    E.traits = [{ id: 'souffle', value: 14, arg: 'Feu' }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 85;
+    E.traits = [{ id: 'souffle', value: 14, arg: 'feu' }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 85;
     H.characteristics.agilite = 1; H.skills = H.skills.filter((s) => s.id !== 'esquive');
     H.armour = { tete: 5, brasG: 5, brasD: 5, corps: 5, jambeG: 5, jambeD: 5 }; // PA ignorés par le Feu
     const before = H.wounds.current;
@@ -166,7 +166,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   it('Souffle (Fumée) : la zone s’enfume — Lignes de vue bloquées pendant BE Rounds (RAW)', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();
-    E.traits = [{ id: 'souffle', value: 0, arg: 'Fumée' }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 85; E.characteristics.endurance = 40; // BE 4
+    E.traits = [{ id: 'souffle', value: 0, arg: 'fumee' }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 85; E.characteristics.endurance = 40; // BE 4
     aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
     const smoke = (useGame.getState().battle!.zones ?? []).find((z) => z.blocksLoS)!;
     expect(smoke).toBeTruthy();
@@ -193,7 +193,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     const acted = applyGaze(useGame.getState, useGame.setState, E);
     expect(acted).toBe(true);
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
-    expect(h.conditions.some((c) => c.id === 'Pétrifié') || h.wounds.current === 0).toBe(true);
+    expect(h.conditions.some((c) => c.id === 'petrifie') || h.wounds.current === 0).toBe(true);
     expect(useGame.getState().battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(0); // tout dépensé
   });
 
@@ -257,7 +257,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     setCadence('auto'); // le Test de Résistance enfoui (Lot 4a) du héros passif se résout INLINE comme un monstre (pas de cascade joueur)
     useGame.getState().seedRng(2);
     const { H, E } = setup();
-    E.traits = [{ id: 'morsure', value: 14 }, { id: 'venin', arg: 'Intermédiaire' }]; E.advantage = 1;
+    E.traits = [{ id: 'morsure', value: 14 }, { id: 'venin', arg: 'intermediaire' }]; E.advantage = 1;
     H.characteristics.endurance = 1; // Endurance minime → Résistance ratée quasi à coup sûr
     H.skills = H.skills.filter((s) => s.id !== 'resistance');
     aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);

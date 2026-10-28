@@ -3,6 +3,10 @@ import { attackEnv } from '../noyau/combatFlow';
 import type { Get } from '../noyau/flowTypes';
 import type { Combatant, Weapon, ShipPoste } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
+import type { ModLine } from '../engine/types';
+import { ligneDe } from '../engine/modLine.testkit';
+import { RULE_REF } from '../engine/ruleRefs';
+import { t } from '../i18n';
 
 /**
  * #248 — COUVERT DE PONT au calcul de touche. Un défenseur SERVANT un poste couvert (MSRC f.66 l.111,
@@ -34,7 +38,7 @@ function envFor(weapon: Weapon, hull?: Combatant) {
   const get = (() => ({ scene: clearScene(), battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 12 * 60 })) as unknown as Get;
   return attackEnv(get, attacker, target, weapon).env;
 }
-const cover = (env: { label: string; value: number }[]) => env.find((e) => e.value < 0);
+const cover = (env: ModLine[]) => ligneDe(env, RULE_REF['cible-sous-couverture']);
 
 describe('#248 — couvert de pont raccordé au calcul de touche', () => {
   it('tir contre servant à poste `totale` → −30 (Sabord/Murs blindés)', () => {
@@ -73,7 +77,7 @@ describe('#1680 — le couvert d’une Structure d’arête arrive au calcul de 
   it('mur à ossature en bois (Complexe) → ligne « Couvert (imparfaite) » à −10 au jet', () => {
     const ligne = cover(envAvecArete('mur-a-ossature-en-bois'))!;
     expect(ligne.value).toBe(-10);
-    expect(ligne.label).toBe('Couvert (imparfaite)');
+    expect(ligne.label).toBe(t('cf.coverLabel', { cover: 'imparfaite' }));
   });
 
   it('clôture en clayonnage (Intermédiaire) → AUCUNE ligne : le canon lui donne +0', () => {

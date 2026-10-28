@@ -4,7 +4,7 @@ import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { applyBladeTrap } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
-import { objetDeTest } from '../objetsDeTest.testkit';
+import { objetDeTest } from '../engine/objetsDeTest.testkit';
 import type { BladeTrapFreeze } from '../noyau/pendings';
 
 const chars = { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 40, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };

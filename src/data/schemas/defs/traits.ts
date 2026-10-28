@@ -134,10 +134,15 @@ const doc = document(
   famille,
   {
     indice: nommerChamps(z.strictObject({ label: z.string() }), { label: { label: 'Libellé' } }).optional(),
+    /** LDB 85 l.37-39 */
+    parLocalisation: z.boolean().optional(),
     range: z.boolean().optional(),
+    /** LDB 85 l.31-33 ; ZI 03 l.75, l.77 */
+    attaque: z.boolean().optional(),
+    /** LDB 16 l.70 ; MDG 16 l.226 */
+    difficulte: z.boolean().optional(),
     specsSource: specsSourceSchema.optional(),
     specsOpen: z.boolean().optional(),
-    specsMulti: z.boolean().optional(),
     /** LDB 48 l.23 */
     nonTransferable: z.boolean().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
@@ -149,28 +154,12 @@ const doc = document(
     suppressesCapabilities: z.array(z.string()).optional(),
     aura: nommerChamps(z
       .strictObject({
-        rangeChar: charKeySchema.optional(),
-        rangeMeters: z.number().optional(),
+        rangeChar: charKeySchema,
         affects: z.enum(['enemies', 'allies', 'all']).optional(),
-        /** Ids de `groups.json` : filtre d'APPARTENANCE de la cible, en plus du camp — l'aura ne touche
-         *  qu'un combattant d'AU MOINS un de ces Groupes (union `groupMatch`). Une règle CONJONCTIVE
-         *  (« X qui sont aussi Y ») n'est PAS exprimable ici : elle se scinde en entrées.
-         *  BORNE MESURÉE sur les auras de Dhar, dont le texte vise « les sorciers et démons » d'un dieu et
-         *  que l'union rend par le seul Groupe du dieu. Sur-inclusion : un cultiste slaaneshi qui possède
-         *  la Compétence reçoit le +1 DR à Langue (Magick) sans être ni sorcier ni démon. Sous-inclusion :
-         *  aucun sorcier NON démon ne peut porter le Groupe d'un dieu tant que `marque-de-slaanesh`/
-         *  `marque-de-nurgle` n'existent pas en donnée (seuls le folder du bestiaire et `grantGroups` le
-         *  dérivent). La conjonction se posera quand un statbloc l'exigera. */
-        affectsGroups: z.array(z.string()).optional(),
-        /** frenchy-bzh 295 l.233 ; LDB 85 l.260-262 */
-        includesSelf: z.boolean().optional(),
         passive: z.array(gameOpSchema),
       }), {
       rangeChar: { label: 'Caractéristique de portée' },
-      rangeMeters: { label: 'Portée (m)' },
       affects: { label: 'Cibles affectées' },
-      affectsGroups: { label: 'Groupes affectés' },
-      includesSelf: { label: 'Porteur inclus' },
       passive: { label: 'Passifs' },
     })
       .optional(),
@@ -181,9 +170,21 @@ const doc = document(
       label: 'Trait indicé',
       hint: 'Descripteur : le Trait est noté (valeur sur l’instance), avec le libellé affiché (Indice/Degré…)',
     },
+    parLocalisation: {
+      label: 'Indice par Localisation',
+      hint: 'L’Indice du Trait est un nombre de PA par Localisation : une instance peut le poser Localisation par Localisation (`parLocalisation`)',
+    },
     range: {
       label: 'Porte une portée',
       hint: 'Le Trait prend une portée chiffrée EN PLUS de son argument, affichée « (Portée) » (À distance, Langue préhensile)',
+    },
+    attaque: {
+      label: 'Trait d’attaque',
+      hint: 'L’Indice du Trait est celui des Dégâts d’une attaque, affiché « +N » ; une instance peut conférer des Traits à ses touches (`confere`)',
+    },
+    difficulte: {
+      label: 'Porte une Difficulté',
+      hint: 'Une instance peut fixer la Difficulté des Tests qui éliminent l’État que le Trait inflige (`difficulte`)',
     },
     specsSource: {
       label: 'Registre de spécialisations',
@@ -193,7 +194,6 @@ const doc = document(
       label: 'Spécialisation ouverte',
       hint: 'La liste de spécialisations accepte de nouvelles entrées à l’authoring (fermé sinon)',
     },
-    specsMulti: { label: 'Argument multiple', hint: 'L’argument du Trait peut combiner plusieurs spécialisations' },
     nonTransferable: { label: 'Non transférable', hint: 'Exclu d’un octroi en masse de Traits de créature' },
     effects: { label: 'Effets déclenchés' },
     grantsManeuvers: { label: 'Manœuvres accordées' },
@@ -212,7 +212,7 @@ const doc = document(
     edit: { dataset: 'traits' },
   },
   /** LDB 85 l.94 ; LDB 85 l.209 ; LDB 85 */
-  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'range', 'specsOpen', 'specsMulti'] } },
+  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'parLocalisation', 'range', 'specsOpen', 'attaque', 'difficulte'] } },
 );
 
 export const schema = doc.schema;
