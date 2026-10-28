@@ -3,10 +3,7 @@ import hashlib
 import math
 from pathlib import Path
 
-INFLUENCES_MAX = 4
-"""Influences d'os par sommet d'une peau de jeu : un seul jeu JOINTS_0/WEIGHTS_0 glTF."""
-IMAGES_PAR_SECONDE = 24
-"""Cadence des clips que la chaîne produit et échantillonne."""
+from seuils import INFLUENCES_MAX
 
 
 def world_vertices(bpy, objects):

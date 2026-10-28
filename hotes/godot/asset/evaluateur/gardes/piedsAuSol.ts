@@ -1,11 +1,13 @@
 /**
  * GARDE DES PIEDS AU SOL (#2972) : à chaque (clip, t), le sommet le plus bas du corps n'est pas sous `-SOL_TOLERANCE_M` ;
- * pour un clip déclaré au sol, pas non plus au-dessus de `+SOL_TOLERANCE_M`. Seuil :
- * `scripts/personnage-3d/animation.py:33`.
+ * pour un clip déclaré au sol, pas non plus au-dessus de `+SOL_TOLERANCE_M`. Seuil partagé avec la construction
+ * (`scripts/personnage-3d/seuils.py`) : `seuils.json`.
  */
 import type { Ecart } from '../ecart.ts';
+import seuils from './seuils.json';
 
-export const SOL_TOLERANCE_M = 0.005;
+/** Écart au sol admis du sommet le plus bas, en mètres. */
+export const SOL_TOLERANCE_M: number = seuils.SOL_TOLERANCE_M;
 
 /** La hauteur du sommet le plus bas du corps à un instant d'un clip. */
 export interface NiveauDuCorps {

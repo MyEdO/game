@@ -4,7 +4,8 @@ clips UAL1 + UAL2, les emplacements et les prises (`anatomie.py`).
 Le corps UBC porte les 65 os d'UAL1, mêmes noms et même hiérarchie, sur son propre repos : ce repos est gardé, et chaque
 clip s'y joue relatif au repos (les clés Blender de l'import glTF). Pistes de position retirées hors `root` et `pelvis`,
 interpolation LINEAR. Au repos, le sommet le plus bas des peaux est posé au sol de la racine (`poser_au_sol`), et les
-poids sont lissés là où un clip étire la peau (`poids.py`). La part du manifeste de base que pose la construction
+poids sont lissés là où un clip étire la peau (`poids.py`), puis chaque clip est posé au sol et la marche plantée
+(`sol.py`) ; un clip sans sol (pelvis source sous le sol) se retire. La part du manifeste de base que pose la construction
 (os, chaînes, zones, emplacements, prises, silhouettes, table du gabarit, pieds, os à position animée) passe, après
 l'export, à `manifeste.mjs`, qui écrit le manifeste complet à côté du GLB, dans `<sortie>.manifeste.json`, avec la
 déclaration du corps `humanoide.json`.
@@ -25,12 +26,16 @@ DECLARATION = ICI / 'humanoide.json'
 """La déclaration du corps : `base`, porteur de référence et clips de marche."""
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from anatomie import poser  # noqa: E402
-from animation import assign_action, clear_animation  # noqa: E402
+from anatomie import PIEDS, gabarit, poser  # noqa: E402
+from animation import assign_action, clear_animation, meshes_for  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
+from seuils import IMAGES_PAR_SECONDE  # noqa: E402
+from pistes import sacs  # noqa: E402
 from poids import lisser_les_poids  # noqa: E402
+from sol import bas_des_sources, poser_les_clips_au_sol, retirer_sans_sol  # noqa: E402
 
-OS_A_POSITION = ('root', 'pelvis')
+PELVIS = 'pelvis'
+OS_A_POSITION = ('root', PELVIS)
 """Os dont la piste de position reste : la racine et le pelvis."""
 TOLERANCE_DOUBLON = 1e-5
 """Écart maximal entre les clés de deux clips homonymes pour les tenir pour le même clip."""
@@ -87,12 +92,6 @@ def poser_au_sol(bpy, rig, peaux):
 
 def hierarchie(rig):
     return {b.name: b.parent.name if b.parent else None for b in rig.data.bones}
-
-
-def sacs(action):
-    """Les sacs de F-curves d'une action en couches (Blender 5)."""
-    return [sac for couche in action.layers for bande in couche.strips for slot in action.slots
-            if (sac := bande.channelbag(slot))]
 
 
 def cles(action):
@@ -166,6 +165,7 @@ def completer(sortie, construit):
 def construire(args):
     import bpy
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.context.scene.render.fps = IMAGES_PAR_SECONDE
     rig1, figurants1, clips = importer(bpy, args.ual1)
     rig2, figurants2, clips2 = importer(bpy, args.ual2)
     squelette, objets, _ = importer(bpy, args.corps)
@@ -176,16 +176,20 @@ def construire(args):
     for nom, rig in ((args.ual2.name, rig2), (args.corps.name, squelette)):
         if hierarchie(rig) != reference:
             raise RuntimeError(f'{nom} : noms ou parents d\'os différents de {args.ual1.name}')
-    peaux = [o for o in objets if o.type == 'MESH' and any(m.type == 'ARMATURE' and m.object == squelette for m in o.modifiers)]
+    peaux = meshes_for(bpy, squelette)
+    sources = {**bas_des_sources(rig1, meshes_for(bpy, rig1), clips, PELVIS),
+               **bas_des_sources(rig2, meshes_for(bpy, rig2), clips2, PELVIS)}
     for objet in [rig1, rig2, *figurants1, *figurants2, *[o for o in objets if o not in peaux]]:
         if objet in objets:
             print('RETIRE', objet.name, '(hors peau du corps)', flush=True)
         bpy.data.objects.remove(objet, do_unlink=True)
-    clips = fusionner(bpy, clips, clips2)
+    clips = retirer_sans_sol(fusionner(bpy, clips, clips2), sources, PELVIS)
     for action in clips:
         preparer(action)
     poser_au_sol(bpy, squelette, peaux)
     lisser_les_poids(squelette, peaux, clips)
+    poser_les_clips_au_sol(squelette, peaux, clips, sources, PIEDS, gabarit(squelette)['racine'], PELVIS,
+                           json.loads(DECLARATION.read_text(encoding='utf-8'))['clipsDeMarche'])
     formes = silhouettes(peaux)
     manifeste = poser(squelette, peaux)
     manifeste = {'os': [b.name for b in squelette.data.bones], 'chaines': {}, **manifeste, 'silhouettes': formes,

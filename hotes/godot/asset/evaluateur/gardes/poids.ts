@@ -1,15 +1,21 @@
 /**
  * GARDE DES POIDS DE SKINNING (#2972) : au plus `INFLUENCES_MAX` influences (un jeu `JOINTS_1`/`WEIGHTS_1` est lu par
  * `lireGlb`), somme à 1, aucun sommet sans poids, aucun os pondéré hors de la base, et des JUMEAUX (deux sommets d'un
- * mesh à la même position de repos) aux poids identiques. Seuils : `scripts/personnage-3d/verifier_export.py:22-25`.
+ * mesh à la même position de repos) aux poids identiques. Seuils partagés avec la construction
+ * (`scripts/personnage-3d/seuils.py`) : `seuils.json`.
  */
 import type { SkinnedMesh } from 'three';
 import type { Ecart } from '../ecart.ts';
+import seuils from './seuils.json';
 
-export const INFLUENCES_MAX = 4;
-export const POIDS_NEGLIGEABLE = 1e-7;
-export const TOLERANCE_SOMME_POIDS = 1e-4;
-export const TOLERANCE_JUMEAUX_POSITION_M = 1e-5;
+/** Influences d'os par sommet d'une peau de jeu : un seul jeu `JOINTS_0`/`WEIGHTS_0` glTF. */
+export const INFLUENCES_MAX: number = seuils.INFLUENCES_MAX;
+/** Poids d'os en dessous duquel une influence ne compte pas. */
+export const POIDS_NEGLIGEABLE: number = seuils.POIDS_NEGLIGEABLE;
+/** Écart admis entre la somme des poids d'un sommet et 1. */
+export const TOLERANCE_SOMME_POIDS: number = seuils.TOLERANCE_SOMME_POIDS;
+/** Distance de repos, en mètres, sous laquelle deux sommets d'un mesh sont jumeaux. */
+export const TOLERANCE_JUMEAUX_POSITION_M: number = seuils.TOLERANCE_JUMEAUX_POSITION_M;
 export const TOLERANCE_JUMEAUX_POIDS = 1e-4;
 
 export interface SujetDePoids {

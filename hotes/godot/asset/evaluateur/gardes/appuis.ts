@@ -2,6 +2,10 @@ import { Vector3, type Bone, type SkinnedMesh } from 'three';
 import type { Echantillon } from '../echantillonnage.ts';
 import type { Ecart } from '../ecart.ts';
 import { SOL_TOLERANCE_M } from './piedsAuSol.ts';
+import seuils from './seuils.json';
+
+/** La part du poids d'un sommet, liée au pied ou à ses descendants, qui le range dans la surface du pied. */
+export const MAJORITE_DU_POIDS: number = seuils.MAJORITE_DU_POIDS;
 
 type Point = readonly [number, number, number];
 export interface SurfaceDuPied {
@@ -42,7 +46,7 @@ export function surfacesDesPieds(meshes: readonly SkinnedMesh[], pieds: readonly
     return Array.from({ length: indices.count }, (_, indice) => {
       let somme = 0;
       for (let k = 0; k < indices.itemSize; k++) if (joints.has(indices.getComponent(indice, k))) somme += poids.getComponent(indice, k);
-      return somme >= 0.5 ? [{ mesh: m.name, indice }] : [];
+      return somme >= MAJORITE_DU_POIDS ? [{ mesh: m.name, indice }] : [];
     }).flat();
   }) }));
 }
@@ -97,8 +101,8 @@ function directionDe(listes: readonly (readonly PoseDuPied[])[]): readonly [numb
  * Appui cinématique = recul de l'os relativement à la racine. Pour chaque intervalle, le sommet dont la hauteur
  * maximale aux deux bornes est la plus basse sert de point de contact (talon ou avant-pied). On suit CE sommet aux
  * deux bornes. La translation native de racine est remplacée par direction × vitesse déclarée × t, sans la doubler.
- * Les distances de contact et de glissement reprennent `piedsAuSol.ts:8` ; la tolérance de vitesse autorise une
- * dérive de deux fois cette distance sur la durée d'appui mesurée (erreur aux deux bornes).
+ * Les distances de contact et de glissement reprennent `SOL_TOLERANCE_M` (`piedsAuSol.ts`) ; la tolérance de vitesse
+ * autorise une dérive de deux fois cette distance sur la durée d'appui mesurée (erreur aux deux bornes).
  */
 export function mesurerAppuis(poses: readonly PoseDuPied[], vitessesDeclarees: Readonly<Record<string, number>>): { mesures: AppuisDuClip[]; ecarts: Ecart[] } {
   const mesures: AppuisDuClip[] = [], ecarts: Ecart[] = [];

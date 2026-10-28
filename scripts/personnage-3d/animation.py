@@ -25,13 +25,12 @@ import subprocess
 import sys
 
 from glb import lire_glb
-from mesure import IMAGES_PAR_SECONDE, world_vertices
+from mesure import world_vertices
+from pistes import aller_a, sacs
 from rendu import qa_studio
-from verifier_export import POIDS_NEGLIGEABLE
+from seuils import IMAGES_PAR_SECONDE, POIDS_NEGLIGEABLE, SOL_TOLERANCE_M
 
 sys.dont_write_bytecode = True
-SOL_TOLERANCE_M = .005
-"""Pénétration du sol admise sous les pieds, en mètres."""
 FRACTIONS_QA = (.5, 1.)
 """Instants de chaque clip rendus dans les planches de QA, en fraction de sa durée."""
 DELAI_VERIFICATION_S = 600
@@ -211,7 +210,7 @@ def verify_combinations(bpy, rig, meshes, actions, manifest, pairs):
                 samples = []
                 for fraction in (0., .25, .5, .75, 1.):
                     frame = start + (end - start) * fraction
-                    bpy.context.scene.frame_set(int(frame), subframe=float(frame % 1))
+                    aller_a(bpy.context.scene, frame)
                     points = world_vertices(bpy, meshes)
                     seam_error = max((float(np.linalg.norm(points[body][bi] - points[part][pi]))
                                       for variant, body, bi, part, pi, bn, hn in pairs if variant == head), default=0.)
@@ -358,7 +357,7 @@ def verify(args):
         low = np.inf
         samples = []
         for frame in np.linspace(start, end, 9):
-            bpy.context.scene.frame_set(int(frame), subframe=float(frame % 1))
+            aller_a(bpy.context.scene, frame)
             floor = float(min(points[:, 2].min() for points in world_vertices(bpy, visible).values()))
             low = min(low, floor)
             samples.append({'frame': float(frame), 'min_z': floor})
@@ -385,7 +384,7 @@ def planche_qa(bpy, rig, actions, output, label):
         for name, action in actions.items():
             assign_action(rig, action)
             start, end = action.frame_range
-            scene.frame_set(int(start + (end - start) * fraction))
+            aller_a(scene, start + (end - start) * fraction)
             image_path = output / f'qa-{label}-{name}-{int(fraction * 100)}.png'
             scene.render.filepath = str(image_path)
             bpy.ops.render.render(write_still=True)
@@ -523,19 +522,15 @@ def run(args):
                 bone.keyframe_insert(data_path='location', frame=frame)
                 bone.keyframe_insert(data_path='rotation_quaternion', frame=frame)
                 bone.keyframe_insert(data_path='scale', frame=frame)
-        for layer in result.layers:
-            for strip in layer.strips:
-                for slot in result.slots:
-                    bag = strip.channelbag(slot)
-                    if bag:
-                        for curve in bag.fcurves:
-                            for key in curve.keyframe_points:
-                                key.interpolation = 'LINEAR'
+        for bag in sacs(result):
+            for curve in bag.fcurves:
+                for key in curve.keyframe_points:
+                    key.interpolation = 'LINEAR'
         ground_margins = {frame: 0. for frame in frames}
         for frame in list(frames)[:-1]:
             required = 0.
             for fraction in (.25, .5, .75):
-                scene.frame_set(frame, subframe=fraction)
+                aller_a(scene, frame + fraction)
                 points = world_vertices(bpy, ground_meshes)
                 minimum = min(float(p[:, 2].min()) for p in points.values())
                 required = max(required, -minimum + .0005)

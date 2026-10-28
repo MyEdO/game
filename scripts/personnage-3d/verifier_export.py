@@ -17,12 +17,10 @@ import bpy
 import numpy as np
 
 from glb import lire_accesseur, lire_glb, resume_glb
-from mesure import IMAGES_PAR_SECONDE, INFLUENCES_MAX, world_vertices
+from mesure import world_vertices
+from pistes import aller_a
+from seuils import IMAGES_PAR_SECONDE, INFLUENCES_MAX, POIDS_NEGLIGEABLE, TOLERANCE_SOMME_POIDS
 
-POIDS_NEGLIGEABLE = 1e-7
-"""Poids d'os en dessous duquel une influence ne compte pas."""
-TOLERANCE_SOMME_POIDS = 1e-4
-"""Écart admis entre la somme des poids d'un sommet et 1."""
 DEPLACEMENT_MIN_M = 1e-5
 """Déplacement d'un sommet, en mètres, qui compte comme une déformation réelle."""
 FRACTIONS_ECHANTILLONNEES = (.25, .5, .75, 1.)
@@ -141,11 +139,6 @@ def verify(path, kind, bones=None, required_bones=(), clips=(), collections=()):
     scene = bpy.context.scene
     scene.render.fps = IMAGES_PAR_SECONDE
 
-    def frame_set(frame):
-        integer = int(frame)
-        scene.frame_set(integer, subframe=frame - integer)
-        bpy.context.view_layer.update()
-
     for rig in rigs:
         rig.animation_data_create()
         for action in actions:
@@ -157,12 +150,12 @@ def verify(path, kind, bones=None, required_bones=(), clips=(), collections=()):
             if slots:
                 rig.animation_data.action_slot = slots[0]
             start, end = map(float, action.frame_range)
-            frame_set(start)
+            aller_a(scene, start)
             reference = world_vertices(bpy, deforming_meshes)
             samples = []
             for fraction in FRACTIONS_ECHANTILLONNEES:
                 frame = start + (end - start) * fraction
-                frame_set(frame)
+                aller_a(scene, frame)
                 pose = world_vertices(bpy, deforming_meshes)
                 movement = [np.linalg.norm(pose[name] - base, axis=1) for name, base in reference.items()]
                 samples.append({'fraction': fraction, 'frame': frame,
