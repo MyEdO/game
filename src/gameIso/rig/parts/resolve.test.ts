@@ -1,14 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { resolveParts } from './resolve';
 import { tenueFor } from './career';
-import { armourPart, equipDe, pieceDeDessin } from './equipment';
+import { armourPart } from './equipment';
+import { equipDe, pieceDeDessin, type EquipCtx } from '../../../noyau/equipementDessine';
 import { viewOrFront } from './types';
-import type { EquipCtx } from './equipment';
 import type { ItemInstance, Weapon } from '../../../engine/types';
+import { findTrappingById } from '../../../data';
+import { itemFromTrappingById, weaponFromItem } from '../../../engine/items';
 
 const empty: EquipCtx = equipDe([], []);
 const wep = (name: string, type: 'melee' | 'ranged'): Weapon => ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: [] } as Weapon);
-const plastron: ItemInstance = { uid: '1', label: 'Plastron', kind: 'armor', qualities: [], pa: 4, locs: ['corps'], enc: 1, equipped: true };
+const plastron: ItemInstance = { uid: '1', label: 'Plastron', kind: 'armor', subType: 'plate', qualities: [], pa: 4, locs: ['corps'], enc: 1, equipped: true };
 
 describe('resolveParts — priorité', () => {
   it('sans rien : torse = tenue de la carrière (par-carrière)', () => {
@@ -24,7 +26,7 @@ describe('resolveParts — priorité', () => {
   });
 
   it('arme et bouclier suivent l’équipement', () => {
-    const equip: EquipCtx = equipDe([wep('Hache', 'melee'), { ...wep('Bouclier', 'melee'), trappingId: 'bouclier-targe', qualities: [{ id: 'protectrice', value: 1 }] }], []);
+    const equip: EquipCtx = equipDe([wep('Hache', 'melee'), { ...weaponFromItem(itemFromTrappingById('bouclier-targe', findTrappingById)!), qualities: [{ id: 'protectrice', value: 1 }] }], []);
     const r = resolveParts('Humain', 'M', 'soldat', equip, {}, 1);
     expect(r.arme?.svg).toContain('<');
     expect(r.bouclier?.svg).toContain('<');
@@ -58,7 +60,7 @@ describe('resolveParts — dual-wield (main secondaire dessinée)', () => {
   });
 
   it('épée + bouclier → le bouclier prime sur une arme à la main secondaire', () => {
-    const shield = { ...wh('Bouclier', 'off', [{ id: 'protectrice', value: 1 }]), trappingId: 'bouclier-targe' };
+    const shield: Weapon = { ...weaponFromItem(itemFromTrappingById('bouclier-targe', findTrappingById)!), hand: 'off', qualities: [{ id: 'protectrice', value: 1 }] };
     const r = resolveParts('Humain', 'M', 'soldat', equipDe([wh('Épée', 'main'), shield], []), {}, 1);
     expect(r.bouclier?.svg).toContain('<');
   });

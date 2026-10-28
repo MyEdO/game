@@ -9,6 +9,7 @@ import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDEr
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/hote/formes';
+import { modelesDesCombattants, type CouvertureDesModeles } from './equipement';
 import { fenetreADessiner, type FenetreADessiner } from '../../../src/hote/gestes';
 import { panneauDuCombat, type PanneauDuCombat } from '../../../src/hote/ecran';
 
@@ -33,7 +34,7 @@ interface ErreurGlobale {
  *  fiche de l'actif, l'aperçu, le libellé de chaque offre), les cases atteignables au tour de l'actif
  *  (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), et les clics du champ par ce qu'ils désignent
  *  (`CLICS_DU_CHAMP`). */
-export interface VueDuPont {
+export interface VueDuPont extends CouvertureDesModeles {
   projection: Projection;
   fenetre: FenetreADessiner | null;
   attaque: FenetreDAttaque | null;
@@ -90,6 +91,7 @@ export function creerPont() {
     const projection = projeter(etat, o.pas, o.lignes, SANS_BORNE);
     return {
       projection,
+      ...modelesDesCombattants(projection.combat?.voisins.liste ?? []),
       fenetre: fenetreADessiner(etat),
       attaque: fenetreDAttaque(etat),
       defense: fenetreDeDefense(etat),

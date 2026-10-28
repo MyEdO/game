@@ -248,7 +248,7 @@
   padding-bottom: 5px;
 }
 /* Barre d'actions dépliée EN PLACE sous la rangée élue — les contrôles existants (boutons `.btn`,
-   `MediaSelect`, `HandPicker`/`FormPicker`) s'enroulent comme l'ancienne rangée `.inv-row`. */
+   `MediaSelect`, `HandPicker`/`ApparencePicker`) s'enroulent comme l'ancienne rangée `.inv-row`. */
 .inv-actionbar {
   display: flex;
   align-items: center;
@@ -259,22 +259,6 @@
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 8px;
-}
-/* Panneau de recoloriement (skin légendaire), déplié sous l'actionbar de la rangée élue. */
-.inv-skin {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  margin: 4px 0 2px;
-  padding: 6px 8px;
-  background: rgba(0, 0, 0, 0.18);
-  border-radius: 4px;
-}
-.inv-skin-body {
-  flex: 1;
-}
-.inv-skin-remove {
-  margin-top: 4px;
 }
 /* Contenus d'un contenant (LDB 64) : petite liste indentée sous la rangée du sac. */
 .inv-nested {

@@ -182,6 +182,7 @@ import { garanti } from '../../lib/garanti';
 import { GatedAction } from '../GatedAction';
 import { Grid, Row } from '../Layout';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+import { equipDe } from '../../noyau/equipementDessine';
 
 /** Métadonnées d'étape : libellé FR + ÉCRAN de plein rendu. Les HUIT pas passent par la MÊME porte —
  *  un pas pose ses propres hooks puis compose `CreatorStepFrame` (seule Présentation garde un
@@ -2271,7 +2272,7 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
         <AppearancePanel
           species={rigSpeciesId(d.speciesId)}
           value={d.apparence}
-          equip={{ weapons: [], armour: [] }}
+          equip={equipDe([], [])}
           career={d.careerId}
           onChange={(apparence) => setD({ ...d, apparence })}
         />

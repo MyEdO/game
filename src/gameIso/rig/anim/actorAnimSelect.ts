@@ -14,14 +14,15 @@
 import type { Weapon } from '../../../engine/types';
 import { CLIPS, clipDuration, sampleClip, type Clip } from './clips';
 import { ambientClip } from './ambientClips';
-import { handlingClass } from './handling';
+import { maniementDe } from '../../../noyau/animation';
 import { mountedAttackClip, mountedParryClip, seatedClip, weaponAttackClip, weaponParryClip } from './weaponClips';
 import { isSupportiveCast, spellCastClip, spellCastStyle } from './spellClips';
-import { armeDeDessin, type FormeDArme } from '../parts/equipment';
+import { armeDeDessin, type ArmeDeDessin } from '../../../noyau/equipementDessine';
 import type { BodyPlan, WingState } from '../bodyPlan';
 import { planGroundPose, rigGroundPose, type GroundState, type Pose } from '../../groundPose';
 import { lerpPose, scalePose } from '../poses';
 import { STEP_MS } from '../../../geometry/walk';
+
 
 // ————————————————————————————————————————————————————————————————
 // 1. DURÉES — les nombres jadis en dur dans `usePlanAnim`, nommés ici
@@ -119,7 +120,7 @@ const seat = (seated?: boolean) => (seated ? 'selle' : 'pied');
  * SUR-ensemble volontaire : deux armes de gestes identiques peuvent porter deux clés (une entrée
  * d'atlas de plus), jamais l'inverse (une collision rendrait le mauvais geste).
  */
-const weaponKey = (w?: FormeDArme) => (w ? `${handlingClass(w)}:${w.hand ?? 'main'}:${w.attackKind ?? '-'}` : 'nu');
+const weaponKey = (w?: ArmeDeDessin) => (w ? `${maniementDe(w)}:${w.hand}:${w.attackKind ?? '-'}` : 'nu');
 
 // ————————————————————————————————————————————————————————————————
 // 3. SÉLECTION — voie BIPÈDE
@@ -130,7 +131,7 @@ const weaponKey = (w?: FormeDArme) => (w ? `${handlingClass(w)}:${w.hand ?? 'mai
 export interface RigSelectCtx {
   seated?: boolean;
   /** Arme principale équipée — repli quand l'événement ne porte pas l'arme employée. */
-  mainWeapon?: FormeDArme;
+  mainWeapon?: ArmeDeDessin;
   /** Bouclier présent dans l'équipement (`hasShieldEquipped`). */
   shield?: boolean;
 }

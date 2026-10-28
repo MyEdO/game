@@ -13,14 +13,16 @@ import { codeSeul } from '../scripts/guards/lib/commentPoison.mjs';
  * Vitest. Un `index` de `src/` ou son dossier ne se désigne pas par `new URL` : knip en ferait une entrée (garde
  * `src/index-mesures-par-knip.test.ts`).
  *
- * PÉRIMÈTRE : `src/**` (`.ts`/`.tsx`) ET `scripts/**` (`.mjs`/`.mts`) — l'outillage tourne sur la CI
- * et dans les worktrees d'agents, un chemin de machine y meurt exactement pareil.
+ * PÉRIMÈTRE : `src/**` (`.ts`/`.tsx`) ET `scripts/**` (`.mjs`/`.mts`/`.py`) — l'outillage tourne sur la
+ * CI et dans les worktrees d'agents, un chemin de machine y meurt exactement pareil.
  *
  * CODE SEUL (`codeSeul`, `scripts/guards/lib/commentPoison.mjs`) : la garde juge ce qui S'EXÉCUTE.
  * Une graphie de chemin CITÉE dans une JSDoc documente le comportement de la fonction (deux sites :
  * `scripts/hooks/new-src-file-guard.mjs`, `scripts/guards/lib/contratGarde.mjs`) et ne casse aucune
  * machine ; le même littéral dans une expression, si. Le blanchiment conserve la numérotation des
- * lignes, donc les `fichier:ligne` du rapport valent pour la source d'origine.
+ * lignes, donc les `fichier:ligne` du rapport valent pour la source d'origine. `codeSeul` est un lexeur
+ * JavaScript : un `.py` se lit BRUT (son `#` n'est pas un commentaire JS, son `//` de division entière
+ * en ouvrirait un et masquerait la fin de ligne), commentaires compris.
  *
  * Détection STRUCTURELLE (aucune liste d'exception par fichier) :
  *   - lettre de lecteur Windows suivie d'un séparateur, qui ne termine pas un jeton plus long : ni
@@ -37,7 +39,7 @@ import { codeSeul } from '../scripts/guards/lib/commentPoison.mjs';
 /** Racines scannées : dossier + extensions retenues. */
 const SCAN_ROOTS: { dir: string; exts: string[] }[] = [
   { dir: 'src', exts: ['.ts', '.tsx'] },
-  { dir: 'scripts', exts: ['.mjs', '.mts'] },
+  { dir: 'scripts', exts: ['.mjs', '.mts', '.py'] },
 ];
 
 const WIN_DRIVE = /(?<![A-Za-z0-9_-])(?<!(?<!\\)(?:\\\\)*\\)[A-Za-z]:[\\/]+[A-Za-z0-9._-]/g;
@@ -126,7 +128,7 @@ describe('garde-fou chemins portables — aucun chemin absolu de machine dans le
   it('aucune source du périmètre ne porte de chemin absolu de machine (tolérance ZÉRO)', () => {
     const offenders: string[] = [];
     for (const { rel, text } of scanFiles()) {
-      const lines = (codeSeul(text) as string).split(/\r?\n/);
+      const lines = (rel.endsWith('.py') ? text : (codeSeul(text) as string)).split(/\r?\n/);
       lines.forEach((line, i) => {
         const hit = absoluteMachinePathIn(line);
         if (hit) offenders.push(`${rel}:${i + 1} → ${hit}`);

@@ -9,7 +9,7 @@
  * (régime du store Zustand, qui remplace `party`).
  */
 import type { Combatant, ItemInstance } from './types';
-import { itemFromTrappingById } from './items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById } from './items';
 import { fromBrass, toBrass, type Money } from './money';
 
 /** Id de trapping de la Bourse (`trappings.json`) — la seule graphie de cette référence. */
@@ -32,7 +32,7 @@ export function bourseOf(hero: Combatant): Money {
 export function ensureBourseInstance(hero: Combatant): ItemInstance | undefined {
   const existing = bourseInstanceOf(hero);
   if (existing) return existing;
-  const it = itemFromTrappingById(BOURSE_TRAPPING_ID);
+  const it = itemFromTrappingById(BOURSE_TRAPPING_ID, undefined, contexteDeNaissanceDObjet(hero));
   if (!it) return undefined;
   const inst: ItemInstance = { ...it, money: { ...ZERO_MONEY } };
   hero.items = [...(hero.items ?? []), inst];
@@ -43,7 +43,7 @@ export function ensureBourseInstance(hero: Combatant): ItemInstance | undefined 
  *  no-op (retourne `hero` tel quel) si déjà présente. Money initialisée à 0. */
 export function ensureBourse(hero: Combatant): Combatant {
   if (bourseInstanceOf(hero)) return hero;
-  const it = itemFromTrappingById(BOURSE_TRAPPING_ID);
+  const it = itemFromTrappingById(BOURSE_TRAPPING_ID, undefined, contexteDeNaissanceDObjet(hero));
   if (!it) return hero;
   const clone: Combatant = structuredClone(hero);
   clone.items = [...(clone.items ?? []), { ...it, money: { ...ZERO_MONEY } }];

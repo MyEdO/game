@@ -19,9 +19,10 @@ import { animatedRig, sampleTimes } from './_lib-anim-rig';
 import type { Appearance } from '../src/engine/authoringAppearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
-import { armeDeDessin, equipDe } from '../src/gameIso/rig/parts/equipment';
-import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
+import { armeDeDessin, equipDe, type EquipCtx } from '../src/noyau/equipementDessine';
 import { assertWardrobeId } from './_lib-wardrobe';
+import { findTrappingById } from '../src/data';
+import { itemFromTrappingById, weaponFromItem } from '../src/engine/items';
 
 // Tenues des mannequins : IDS de garde-robe (carrière ∪ classe ∪ tenue), validés fail-fast —
 // un id qui retombe sur « nu » déshabillerait les tuiles en silence (#1338).
@@ -46,9 +47,9 @@ function tile(label: string, clip: Clip, app: Appearance, equip: EquipCtx, caree
 
 const soldat: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 };
 const sorcier: Appearance = { species: asRigSpeciesId('humain'), sex: 'F', build: 0.45, seed: 5 };
-const epee: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: 'arme-simple' };
-const arc: Weapon = { label: 'Arc long', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: 'arc-long' };
-const baton: Weapon = { label: 'Bâton', type: 'melee', damage: { plusBF: false, flat: 2 }, qualities: [], trappingId: 'baton-de-combat' };
+const epee = weaponFromItem(itemFromTrappingById('arme-simple', findTrappingById)!);
+const arc = weaponFromItem(itemFromTrappingById('arc-long', findTrappingById)!);
+const baton = weaponFromItem(itemFromTrappingById('baton-de-combat', findTrappingById)!);
 const eqEpee: EquipCtx = equipDe([epee], []);
 const eqArc: EquipCtx = equipDe([arc], []);
 const eqBaton: EquipCtx = equipDe([baton], []);
@@ -89,14 +90,14 @@ function mountedTile(label: string, weapon: Weapon | undefined, clip: Clip) {
     <svg viewBox="0 0 120 150" width="140" height="175"><defs>${defsGlobaux()}</defs><rect width="120" height="150" fill="#1d2230"/>${svg}</svg>
     <figcaption style="color:#bcd;font:11px sans-serif">${label}</figcaption></figure>`;
 }
-const wm = (trappingId: string, type: 'melee' | 'ranged' = 'melee'): Weapon => ({ label: trappingId, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId });
+const wm = (trappingId: string): Weapon => weaponFromItem(itemFromTrappingById(trappingId, findTrappingById)!);
 const rowMonte = [
   mountedTile('charge (lance couchée)', wm('lance-de-cavalerie'), mountedAttackClip(armeDeDessin(wm('lance-de-cavalerie')))),
   mountedTile('taille (épée)', wm('arme-simple'), mountedAttackClip(armeDeDessin(wm('arme-simple')))),
   mountedTile('estoc (rapière)', wm('rapiere'), mountedAttackClip(armeDeDessin(wm('rapiere')))),
   mountedTile('coup 2 mains (gr. hache)', wm('grande-hache'), mountedAttackClip(armeDeDessin(wm('grande-hache')))),
-  mountedTile('en joue (arbalète)', wm('arbalete', 'ranged'), mountedAttackClip(armeDeDessin(wm('arbalete', 'ranged')))),
-  mountedTile('en joue (pistolet)', wm('pistolet', 'ranged'), mountedAttackClip(armeDeDessin(wm('pistolet', 'ranged')))),
+  mountedTile('en joue (arbalète)', wm('arbalete'), mountedAttackClip(armeDeDessin(wm('arbalete')))),
+  mountedTile('en joue (pistolet)', wm('pistolet'), mountedAttackClip(armeDeDessin(wm('pistolet')))),
   mountedTile('parade (épée)', wm('arme-simple'), mountedParryClip(armeDeDessin(wm('arme-simple')), false)),
   mountedTile('dérobade (assis)', wm('arme-simple'), seatedClip(CLIPS.dodge)),
 ].join('');

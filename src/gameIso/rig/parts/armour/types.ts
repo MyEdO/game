@@ -7,11 +7,10 @@ import type { PaletteDeCouchePortee } from '../../palette';
 export type ArmourSet = Partial<Record<'tete' | 'torse' | 'bras' | 'jambes' | 'pied' | 'main' | 'cou', PartArt>>;
 
 /**
- * Une armure = un fichier `defs/<Nom>.ts`. `id` = la CLÉ de lookup : le MATÉRIAU en minuscules
- * ('rembourre' | 'cuir' | 'maille' | 'plaque') — `armourPart` (equipment.ts) résout le matériau
- * inféré du nom de l'objet vers cet `id`.
+ * Une armure = un fichier `defs/<Nom>.ts`. `id` = la CLÉ de lookup ('cuir' | 'maille' | 'plaque') —
+ * `armourPart` (equipment.ts) y résout la matière de la pièce (`matiere`) par `ART_DE_MATIERE`.
  *
  * `palette` : couleurs par défaut des `@tokens` de l'art (PaletteDeCouchePortee = hex exact) → rendu sans
- * perte + recoloriage cohérent par le skin d'objet, EXACTEMENT comme les tenues.
+ * perte + recoloriage cohérent par la teinte d'objet, EXACTEMENT comme les tenues.
  */
 export interface ArmourDef { id: string; set: ArmourSet; palette?: PaletteDeCouchePortee }

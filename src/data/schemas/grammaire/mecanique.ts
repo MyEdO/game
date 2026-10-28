@@ -6,6 +6,7 @@ import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './
  * op par op ; `OPS_NON_TYPEES` porte celles qui restent à décrire (lot L1c #1468).
  */
 import { z } from 'zod';
+import { validerApparenceDonnee } from './valeurs';
 import { proseNommee } from './prose';
 import { declarerEnfants } from './descente';
 import { marquerProduit } from './interne/produits';
@@ -16,10 +17,10 @@ import { messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine
 import { etatConnu } from '../../../engine/conditions';
 import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
-import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, messageDeTermeDeJet, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, surchargePaletteSchema, symptomSeveritySchema } from './valeurs';
+import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, messageDeTermeDeJet, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { catalogueSpecs, idDe, marquerOpAtteinte, ref, refs, refOuSpec, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
-import { INSTANCIABLE_PAR_ID } from './sousListes';
+import { INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 
 /** Catégorie d'armure ignorée d'un `ArmourBypass` (`engine/armourBypass.bypassedAP`) ; `nonMetal` : LDB 62 l.270. */
@@ -289,11 +290,12 @@ const DECLARATIONS_D_OPS = {
   suppressSymptom: nommerChamps(z.strictObject({ op: z.literal('suppressSymptom'), symptomId: idDe('symptome') }), { op: { label: "opération"  }, symptomId: { label: "symptôme" , texte: { regime: "technique"} } }),
   giveTrapping: nommerChamps(z.strictObject({
     op: z.literal('giveTrapping'),
-    trappingId: idDe('trapping', INSTANCIABLE_PAR_ID).optional(),
+    apparence: ref('apparence').optional(),
+    trappingId: idDe('trapping', INSTANCIABLE_PAR_ID, { ouverte: true }).optional(),
     custom: z.string().optional(),
     count: z.number().optional(),
     perSL: perSLSchema.optional(),
-  }), { op: { label: "opération"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, count: { label: "nombre" }, perSL: { label: "par DR" } }),
+  }).superRefine(validerApparenceDonnee), { op: { label: "opération"  }, apparence: { label: "apparence" }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, count: { label: "nombre" }, perSL: { label: "par DR" } }),
   /** `summon` — la créature invoquée se nomme par un id du bestiaire (`idDe('creature')`) : une op
    *  sans créature est refusée AU PARSE (#1882), jamais spawnée. `addTraits` : instances de Trait
    *  (`grammaire/reference.ts › traitInstanceSchema`), dont l'`id` est une feuille `idDe('trait')`. */
@@ -401,22 +403,21 @@ const DECLARATIONS_D_OPS = {
     gate: z.literal('profane').optional(),
     noCorruption: z.boolean().optional(),
   }), { op: { label: "opération"  }, shape: { label: "forme"  }, radiusMeters: { label: "rayon en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthMeters: { label: "longueur en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthPerSL: { label: "longueur par DR" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, gate: { label: "condition d’accès"  }, noCorruption: { label: "sans Corruption" } }),
-  /** `addQualities`/`removeQualities` : ids de Qualité, et `requiresWeapon`, hors de `TYPES` — gardés
+  /** `addQualities`/`removeQualities` : ids de Qualité, hors de `TYPES` — gardés
    *  par `GAMEOP_FIELD_TARGETS` (`scripts/guards/lib/gameOpRefFk.mjs`). */
   augmentWeapon: nommerChamps(z.strictObject({
     op: z.literal('augmentWeapon'),
     addQualities: z.array(z.string()).optional(),
     damageBonus: formulaSchema.optional(),
     bypass: armourBypassSchema.optional(),
-    requiresWeapon: z.string().optional(),
+    requiresWeapon: refs('apparence', { sousListe: RACINE_D_APPARENCE }).optional(),
     removeQualities: z.array(z.string()).optional(),
     removeType: z.enum(['atout', 'defaut']).optional(),
     suppressEnchants: z.boolean().optional(),
     passive: z.array(z.lazy(() => gameOpSchema)).optional(),
     onHitEffects: z.array(z.lazy(() => triggeredEffectSchema)).optional(),
-  }), { op: { label: "opération"  }, addQualities: { label: "qualités ajoutées" , texte: { regime: "technique"} }, damageBonus: { label: "bonus de dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, bypass: { label: "armure ignorée"  }, requiresWeapon: { label: "arme requise" , texte: { regime: "technique"} }, removeQualities: { label: "qualités retirées" , texte: { regime: "technique"} }, removeType: { label: "type retiré"  }, suppressEnchants: { label: "supprimer les enchantements" }, passive: { label: "passifs" }, onHitEffects: { label: "à la touche" } }),
-  /** `qualities` (ids de Qualité) et `subType` (id de Groupe d'arme), hors de `TYPES` — gardés par
-   *  `GAMEOP_FIELD_TARGETS` (`scripts/guards/lib/gameOpRefFk.mjs`). */
+  }), { op: { label: "opération"  }, addQualities: { label: "qualités ajoutées" , texte: { regime: "technique"} }, damageBonus: { label: "bonus de dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, bypass: { label: "armure ignorée"  }, requiresWeapon: { label: "formes requises", texte: { regime: "technique" } }, removeQualities: { label: "qualités retirées" , texte: { regime: "technique"} }, removeType: { label: "type retiré"  }, suppressEnchants: { label: "supprimer les enchantements" }, passive: { label: "passifs" }, onHitEffects: { label: "à la touche" } }),
+  /** scripts/guards/lib/gameOpRefFk.mjs */
   grantWeapon: nommerChamps(z.strictObject({
     op: z.literal('grantWeapon'),
     label: z.string(),
@@ -424,14 +425,14 @@ const DECLARATIONS_D_OPS = {
     damagePlus: z.number().optional(),
     plusBF: z.boolean().optional(),
     qualities: z.array(z.string()).optional(),
-    subType: z.string().optional(),
+    subType: ref('weaponGroup').optional(),
     reach: reachSchema.optional(),
     hands: z.union([z.literal(1), z.literal(2)]).optional(),
     onHitEffects: z.array(z.lazy(() => triggeredEffectSchema)).optional(),
-    skin: surchargePaletteSchema.optional(),
-    form: idDe('trapping', INSTANCIABLE_PAR_ID).optional(),
+    teinte: ref('material', undefined, 'objet').optional(),
+    form: ref('trapping', undefined, INSTANCIABLE_PAR_ID).optional(),
     chooseForm: z.boolean().optional(),
-  }), { op: { label: "opération"  }, label: { label: "libellé" , texte: { regime: "designation"} }, damage: { label: "dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, damagePlus: { label: "dégâts supplémentaires" }, plusBF: { label: "ajouter le Bonus de Force" }, qualities: { label: "qualités" , texte: { regime: "technique"} }, subType: { label: "sous-type" , texte: { regime: "technique"} }, reach: { label: "allonge"  }, hands: { label: "mains" }, onHitEffects: { label: "à la touche" }, skin: { label: "palette" }, form: { label: "forme" , texte: { regime: "technique"} }, chooseForm: { label: "choisir la forme" } }),
+  }), { op: { label: "opération"  }, label: { label: "libellé" , texte: { regime: "designation"} }, damage: { label: "dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, damagePlus: { label: "dégâts supplémentaires" }, plusBF: { label: "ajouter le Bonus de Force" }, qualities: { label: "qualités" , texte: { regime: "technique"} }, subType: { label: "sous-type" , texte: { regime: "technique"} }, reach: { label: "allonge"  }, hands: { label: "mains" }, onHitEffects: { label: "à la touche" }, teinte: { label: "teinte" }, form: { label: "forme" , texte: { regime: "technique"} }, chooseForm: { label: "choisir la forme" } }),
   rollThreshold: nommerChamps(z.strictObject({
     op: z.literal('rollThreshold'),
     sides: z.number(),

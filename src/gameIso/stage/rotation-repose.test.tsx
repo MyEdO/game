@@ -34,6 +34,7 @@ import { bbCameraDe, povArtRot } from './regard';
 import { poigneesEnAttente } from './texturesStatiques';
 import { atlasPxHeight } from './boardPose';
 import { pxPerM } from '../backends/webgl/worldTris';
+import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -94,7 +95,7 @@ function écran(
   keepEl: KeepEl = KEEP,
 ): JSX.Element {
   return (
-    <GameStage3D lecture="jeu"
+    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={frame}
@@ -969,7 +970,7 @@ describe('Stock borné — ce qui est POSÉ est épinglé', () => {
       // `mpt` minuscule ⇒ pixels par mètre énormes ⇒ palier plafonné (`atlasPxHeight`), cellule > 2048.
       await act(async () => {
         root!.render(
-          <GameStage3D lecture="jeu"
+          <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
             scene={SCENE} mpt={0.05} frame={cadre(0)} tintAt={TINT} keepEl={KEEP}
             els={ELS} actors={ACTEURS} gameTime={720} lightLevel={1} lights={[]} anim={anim}
           />,

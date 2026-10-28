@@ -1,7 +1,7 @@
 /**
  * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie, les types de l'état et de
  * l'intention, et les lecteurs de sa vue (#2898) : le tour, les offres du registre, la fenêtre ouverte, ses jets,
- * la fenêtre d'attaque en données, l'exploration, le plateau de la scène. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
+ * la fenêtre d'attaque en données, l'exploration, le plateau de la scène, l'équipement dessiné d'un porteur, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
  * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare ; c'est le SEUL
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
@@ -16,6 +16,8 @@ export type { Cadence } from '../engine/cadence';
 export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/policy';
 export { actionGate, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
+export { findApparenceById, findTeinteById } from '../data/index';
+export { SLOTS } from '../data/palette.types';
 export { mouvementDuTour } from './mount';
 export { combatDistance } from './monde/footprint';
 export { effectiveArmourAt } from '../engine/characteristics';
@@ -43,6 +45,9 @@ export { libelleDuVerbe, libelleDuParametre, libelleDuLitteral, libelleDeLaFenet
 export { reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, type Reglage, type ValeurDuReglage } from './reglages';
 export { texteDuMod } from './difficultyText';
 export { avecSigne } from '../engine/types';
+export { objetDuNarratif } from './monde/resolveursDuNarratif';
+export { equipementDessine, equipementDEntite } from './equipementDessine';
+export { ROLES_D_ANIMATION, type RoleDAnimation } from './animation';
 export { lireLeRoster, ecrireLeRoster, rosterAvecLeHeros, type RosterEntry } from './persistance/roster';
 export { lireLesRetraits, cumulerLesRetraits, type RetraitsDElagage } from './persistance/elagage';
 export { poserLesReglesMaisonPersistees, surchargerUneRegleMaison, retablirUneRegleMaison } from './reglesMaison';

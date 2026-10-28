@@ -42,6 +42,7 @@ import { GROUND_Y, bodyHeight } from '../rig/composeRig';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { contactShadow } from '../backends/webgl/sceneMeshes';
 import type { BillboardSubject } from '../backends/webgl/sceneMeshes';
+import { findTrappingById } from '../../data';
 
 /**
  * CHROME D'ÉCRAN des jetons de combat (#1176, P3-0f) — barre de PV, icônes d'États (report « +N »),
@@ -620,7 +621,7 @@ describe('Pions en disques — la vue du dessus n’a plus un seul billboard de 
     // disque — c'est la classification du classifieur qui décide, elle n'est pas rejouée ici.
     const portrait = g.querySelector('svg[viewBox]');
     expect(portrait, 'le corps est un portrait cadré').toBeTruthy();
-    expect(portrait!.getAttribute('viewBox')).toBe(tokenBodyKind({ kind: 'combatant', combatant: combatChromé().combatants[0] }, 'top').portraitBox);
+    expect(portrait!.getAttribute('viewBox')).toBe(tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: combatChromé().combatants[0] }, 'top').portraitBox);
     expect(portrait!.closest('g[clip-path]'), 'et il est CLIPPÉ au disque').toBeTruthy();
     // L'ANNEAU d'équipe : la MÊME dérivation que l'anneau au sol du plateau iso, au rayon du disque.
     const anneau = cercles.find((c) => c.getAttribute('fill') === 'none');

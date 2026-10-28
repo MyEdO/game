@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { firedWeapon, attackerFumbled, defenderFumbled } from '../noyau/combatFlow';
 import { hasQuality } from '../engine/qualities/dispatch';
 import type { Combatant, Weapon, Trauma } from '../engine/types';
+import { armeDeTest } from '../engine/objetsDeTest.testkit';
 import type { AttackResult } from '../engine/combat';
 
 // Funnel UNIQUE des règles d'arme contextuelles (LDB 62) : `firedWeapon` lie attaquant ⊕ arme ⊕ contexte.
@@ -10,7 +11,7 @@ import type { AttackResult } from '../engine/combat';
 
 const CHARS = { 'capacite-de-combat': 50, 'capacite-de-tir': 35, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const fleau: Weapon = { label: 'Fléau', type: 'melee', subType: 'fleau', reach: 'Moyenne', uid: 'fl', damage: { plusBF: true, flat: 5 }, qualities: [{ id: 'perturbante' }] };
-const lance: Weapon = { label: 'Lance de cavalerie', type: 'melee', subType: 'cavalerie', reach: 'Très longue', uid: 'la', damage: { plusBF: true, flat: 6 }, qualities: [{ id: 'empaleuse' }, { id: 'percutante' }] };
+const lance = armeDeTest('lance-de-cavalerie', { uid: 'la' });
 
 const mk = (p: Partial<Combatant>): Combatant => ({
   id: 'a', name: 'X', kind: 'hero', characteristics: CHARS,

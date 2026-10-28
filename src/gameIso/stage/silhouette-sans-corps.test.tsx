@@ -11,6 +11,7 @@ import { BancRenderer, brancherArdoise, scènes, simulerRasterisation, type Rast
 import { clearBillboardTextures } from '../backends/webgl/svgTexture';
 import { setBudgetTrancheMs } from '../backends/webgl/atlasBake';
 import type { ActorPose } from '../backends/webgl/sceneMeshes';
+import { findTrappingById } from '../../data';
 
 /**
  * JUMEAU SANS CORPS — la fenêtre de MONTAGE PAR SUJET (#1337).
@@ -105,7 +106,7 @@ async function dérouler(attendus: number, quand: string): Promise<number[]> {
 function rendre(actors: ActorPose[]): Promise<void> {
   return act(async () => {
     root!.render(
-      <GameStage3D lecture="jeu"
+      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
         scene={SCENE}
         mpt={sceneMetresPerTile(SCENE)}
         frame={AFFINE}

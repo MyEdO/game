@@ -5,9 +5,9 @@ import { viewOrFront } from './types';
 import { ARMOUR } from './armour';
 import { CLAWFOOT, PLAINFOOT, HAND, NECK } from './bodies/extremites';
 import { BOTTE_CUIR } from './tenues/botte-gabarit';
-import { equipDe } from './equipment';
-import type { EquipCtx } from './equipment';
+import { equipDe, type EquipCtx } from '../../../noyau/equipementDessine';
 import type { ItemInstance } from '../../../engine/types';
+
 
 const empty: EquipCtx = equipDe([], []);
 
@@ -56,7 +56,7 @@ describe('extrémités — pilotables par une armure (chair ≠ repli)', () => {
     (ARMOUR.plaque as Record<string, unknown>).main = MARK.main;
     (ARMOUR.plaque as Record<string, unknown>).cou = MARK.cou;
     const item: ItemInstance = {
-      uid: 'a', label: 'Harnois de plaque', kind: 'armor', qualities: [], pa: 5,
+      uid: 'a', label: 'Harnois de plaque', kind: 'armor', subType: 'plate', qualities: [], pa: 5,
       locs: ['corps', 'brasG', 'brasD', 'jambeG', 'jambeD'], enc: 3, equipped: true,
     };
     const r = resolveParts('Humain', 'M', 'soldat', equipDe([], [item]), {}, 1);

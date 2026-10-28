@@ -18,7 +18,7 @@ import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { emptyArmour, buildWeapon, hydratePoste, loadWeapon } from '../../engine/items';
+import { emptyArmour, buildWeapon, deciderApparencesDesArmes, hydratePoste, loadWeapon } from '../../engine/items';
 import { maxWounds, bonus, refreshWounds } from '../../engine/characteristics';
 import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
@@ -484,6 +484,7 @@ export function spawnEnemy(
       c.weapons = [idWeapon, ...c.weapons];
     }
   }
+  deciderApparencesDesArmes(findTrappingById, c.weapons, c.appearanceOverride, c.creatureId, c.items);
   // Arme à distance CHARGÉE au spawn (miroir du héros dans startCombat) — LDB 62 l.335 : le `loaded` ne gate
   // que les armes à Recharge, un tireur fraîchement engagé peut donc tirer au 1er Round (pas de recharge à vide).
   // Couture UNIQUE : le coup porte SA munition dès le spawn (aucune capture posée ailleurs).

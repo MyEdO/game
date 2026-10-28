@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { effectiveWeaponDamage } from './weaponDamage';
-import { recomputeLoadout, parseDamage } from './items';
+import { recomputeLoadout, parseDamage, itemFromGive } from './items';
+import { findSpellById } from '../data';
+import { spellOps } from './flowCore';
 import { isMagicWeapon } from './qualities/dispatch';
 import { applyOps } from './ops';
 import { endOfRound } from './conditions';
@@ -44,6 +46,27 @@ const wielder = (item: ItemInstance, p: Partial<Combatant> = {}): Combatant => {
 const heldEnchants = (c: Combatant) => (c.items ?? []).find((i) => i.uid === 'w')?.enchants;
 
 describe('augmentWeapon — enchantement porté par l’arme, replié dans c.weapons', () => {
+  /** LDB 43 l.252,281 */
+  it.each([
+    ['arme-simple', 'hache', 'morsure-de-l-hiver', true],
+    ['brise-epee', undefined, 'epee-de-justice', false],
+    ['rapiere', undefined, 'epee-de-justice', true],
+  ] as const)('forme résolue : %s (%s) sous %s → Magique %s', (trappingId, apparence, spellId, magique) => {
+    const item = itemFromGive({ trappingId, ...(apparence ? { apparence: { id: apparence } } : {}) });
+    const c = wielder(item);
+    const sp = findSpellById(spellId)!;
+    const lignes = applyOps(c, spellOps(sp.effects, 'target'), {
+      rng: desDuTest, caster: c, label: sp.label, sourceSpellId: spellId,
+      source: { kind: 'spell', id: spellId }, defaultDurationRounds: 4,
+    });
+    expect(isMagicWeapon(c.weapons[0])).toBe(magique);
+    if (magique) expect(item.enchants).toHaveLength(1);
+    else {
+      expect(item.enchants).toBeUndefined();
+      expect(lignes).toContain(`X : aucune arme en main à enchanter (${sp.label}).`);
+    }
+  });
+
   it('B. de Droiture : l’arme tenue devient Magique (isMagicWeapon → touche l’Éthéré), objet non muté', () => {
     const c = wielder(weaponItem('w', 'Épée', '+BF+4'));
     applyOps(c, [{ op: 'augmentWeapon', addQualities: ['magique'] }], { rng: desDuTest, label: 'Bénédiction de Droiture', defaultDurationRounds: 6 });
@@ -82,11 +105,11 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
 
   it('Épée de justice : bypass « all » lie l’ÉPÉE tenue (requiresWeapon) ; un marteau tenu → fizzle', async () => {
     const { woundsFromHit } = await import('./combat');
-    const c = wielder(weaponItem('w', 'Épée', '+BF+4'));
-    applyOps(c, [{ op: 'augmentWeapon', requiresWeapon: 'épée', addQualities: ['magique'], bypass: 'all' }], { rng: desDuTest, label: 'Épée de justice', defaultDurationRounds: 4 });
+    const c = wielder({ ...itemFromGive({ trappingId: 'arme-simple' }), uid: 'w' });
+    applyOps(c, [{ op: 'augmentWeapon', requiresWeapon: ['epee'], addQualities: ['magique'], bypass: 'all' }], { rng: desDuTest, label: 'Épée de justice', defaultDurationRounds: 4 });
     expect(c.weapons[0].bypass).toBe('all'); // épée tenue → enchantée
-    const hammerGuy = wielder(weaponItem('w', 'Marteau de guerre', '+BF+5'), { id: 'h' });
-    applyOps(hammerGuy, [{ op: 'augmentWeapon', requiresWeapon: 'épée', addQualities: ['magique'], bypass: 'all' }], { rng: desDuTest, label: 'Épée de justice', defaultDurationRounds: 4 });
+    const hammerGuy = wielder({ ...itemFromGive({ trappingId: 'marteau-de-guerre' }), uid: 'w' }, { id: 'h' });
+    applyOps(hammerGuy, [{ op: 'augmentWeapon', requiresWeapon: ['epee'], addQualities: ['magique'], bypass: 'all' }], { rng: desDuTest, label: 'Épée de justice', defaultDurationRounds: 4 });
     expect(hammerGuy.weapons[0].bypass).toBeUndefined(); // pas d'épée tenue → fizzle
     expect(heldEnchants(hammerGuy)).toBeUndefined();
     const armored = dummy({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 5, jambeG: 0, jambeD: 0 } }); // 5 PA corps, BE 3

@@ -94,7 +94,6 @@ export const GAMEOP_FIELD_TARGETS = {
   'augmentWeapon.removeQualities': { registry: 'qualities' },
   'grantWeapon.qualities': { registry: 'qualities' },
   'grantNaturalWeapon.qualities': { registry: 'qualities' },
-  'grantWeapon.subType': { registry: 'weaponGroups' },
   'grantNaturalWeapon.subType': { registry: 'weaponGroups' },
   // ── Tables ──
   'rollMutation.table': { registry: 'mutationTables' },
@@ -108,12 +107,11 @@ export const GAMEOP_FIELD_TARGETS = {
   'grantFreeAttack.label': { nonRef: 'libellé de l\'option d\'attaque surfacée au Tour' },
   'giveTrapping.custom': { nonRef: 'objet CUSTOM (misc), défini par ce nom faute d\'entrée de catalogue (src/engine/items.ts › itemFromGive)' },
   'grantNaturalWeapon.uid': { nonRef: 'identité d\'INSTANCE de l\'arme injectée dans `c.weapons` (déduplication)' },
-  'grantNaturalWeapon.attackKind': { nonRef: 'kind d\'attaque naturelle, lu par le rig (src/gameIso/rig/anim/handling.ts) — espace de noms du geste, pas un registre de données' },
+  'grantNaturalWeapon.attackKind': { nonRef: 'kind d\'attaque naturelle, lu par le maniement (src/noyau/animation.ts) — espace de noms du geste, pas un registre de données' },
   'transform.tag': { nonRef: 'étiquette de GROUPEMENT des effets posés, relue par `endTransform` (retrait atomique)' },
   'endTransform.tag': { nonRef: 'étiquette de groupement posée par `transform`' },
   'scheduleRespawn.cancelFlag': { nonRef: 'nom de drapeau de SCÈNE posé par un Effet, espace de noms de l\'auteur de scène' },
   'teamCommander.commanderId': { nonRef: 'id de combattant RUNTIME (posé par le flux de combat), jamais authoré en donnée' },
-  'augmentWeapon.requiresWeapon': { nonRef: 'mot-clé de FAMILLE d\'arme, matché par normalisation de `label`+`subType` (src/engine/weaponDamage.ts › weaponMatchesFamily)' },
 };
 
 const norm = (p) => p.replace(/\\/g, '/');

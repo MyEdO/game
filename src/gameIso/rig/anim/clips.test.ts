@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { CLIPS, clipDuration, sampleClip, type ClipName } from './clips';
+import { CLIPS, clipDuration, sampleClip } from './clips';
+import { ROLES_DE_COMBAT } from '../../../noyau/animation';
 
-const NAMES: ClipName[] = ['melee', 'ranged', 'cast', 'dodge', 'parry', 'hit', 'walk', 'idle'];
+const NAMES = ROLES_DE_COMBAT;
 
 describe('CLIPS', () => {
   it('chaque clip existe et a une durée > 0', () => {

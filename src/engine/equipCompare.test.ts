@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { compareEquip } from './equipCompare';
 import type { Combatant, ItemInstance, Weapon } from './types';
 import { REACH_LABELS } from './types';
-import { itemFromTrappingById } from './items';
+import { itemFromTrappingById, weaponFromItem, unarmedWeapon } from './items';
 
 // « Actuellement équipé » = l'arme tenue dans le set actif (Weapon dérivés `c.weapons`) ; l'armure reste pilotée
 // par `items.equipped`. On modélise donc l'équipement courant via `weapons` (armes) et `items` (armure).
@@ -25,7 +25,7 @@ describe('compareEquip (accordéon « équiper » du marchand)', () => {
   });
 
   it('mêlée sans arme tenue : base de comparaison = mains nues +BF+0 (LDB 62 l.28), pas de currentName', () => {
-    const h = hero({ weapons: [{ uid: 'mn', label: 'Mains nues', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [], builtinId: 'mains-nues' }] });
+    const h = hero({ weapons: [{ ...unarmedWeapon(), uid: 'mn' }] });
     const c = compareEquip(it_({ label: 'Dague', damage: { plusBF: true, flat: 0, bare: true }, reach: 'Très courte' }), h);
     expect(c.currentName).toBeNull(); // les Mains nues ne comptent pas comme arme « actuelle »
     const dmg = c.rows.find((r) => r.label === 'Dégâts')!;
@@ -49,7 +49,7 @@ describe('compareEquip (accordéon « équiper » du marchand)', () => {
   });
 
   it('mêlée sans arme tenue : l’Allonge se compare aux mains nues (Personnelle, LDB 62 l.158)', () => {
-    const h = hero({ weapons: [{ uid: 'mn', label: 'Mains nues', type: 'melee', damage: { plusBF: true, flat: 0 }, reach: 'Personnelle', qualities: [], builtinId: 'mains-nues' }] });
+    const h = hero({ weapons: [{ ...unarmedWeapon(), uid: 'mn' }] });
     const c = compareEquip(it_({ label: 'Pique', damage: { plusBF: true, flat: 4 }, reach: 'Considérable' }), h);
     const allonge = c.rows.find((r) => r.label === 'Allonge')!;
     expect(allonge.current).toBe('Personnelle (mains nues)');
@@ -96,8 +96,8 @@ describe('compareEquip (accordéon « équiper » du marchand)', () => {
   });
 
   it('bouclier (LDB 62 l.33-35) : compare la Protection (Protectrice N, LDB 62 l.296), exclut l’objet lui-même', () => {
-    const h = hero({ weapons: [{ uid: 'cur', trappingId: 'bouclier-targe', label: 'Bouclier (Targe)', type: 'melee', qualities: [{ id: 'protectrice', value: 1 }, { id: 'defensive' }] }] });
-    const grand = it_({ uid: 'new', trappingId: 'bouclier-grand', label: 'Bouclier (Grand)', kind: 'melee', qualities: [{ id: 'protectrice', value: 3 }, { id: 'defensive' }] });
+    const h = hero({ weapons: [{ ...weaponFromItem(itemFromTrappingById('bouclier-targe')!), uid: 'cur', label: 'Bouclier (Targe)', qualities: [{ id: 'protectrice', value: 1 }, { id: 'defensive' }] }] });
+    const grand = it_({ ...itemFromTrappingById('bouclier-grand')!, uid: 'new', label: 'Bouclier (Grand)', qualities: [{ id: 'protectrice', value: 3 }, { id: 'defensive' }] });
     const c = compareEquip(grand, h);
     expect(c.slot).toBe('shield');
     expect(c.currentName).toBe('Bouclier (Targe)');

@@ -133,7 +133,10 @@ qu'en type (`import type`), ses portes : pour une zone importée, le seul module
 si elle survit à la bascule vers Godot (`survit`) : une telle zone n'ouvre que des zones qui survivent, ne
 charge aucun paquet de l'hôte web (`PAQUETS_DE_L_HOTE_WEB`), n'écrit aucun JSX et ne lit aucun module de code hors
 des zones, sauf, pour un script d'outillage de la zone (lancé par Node, jamais chargé par l'hôte), les modules que
-sa ligne déclare (`outillage`).
+sa ligne déclare (`outillage`), et, pour un outillage, les paquets de l'hôte web qu'elle lui ouvre
+(`paquetsDOutillage`) : l'évaluateur d'assets (`hotes/godot/asset/evaluateur/`) charge `three` comme outillage de
+construction, sans dépendre de l'hôte web, et aucun module de la zone hors de lui ne l'importe, même pour un type
+(`outillageAtteint`) ; une clé d'outillage finie par `/` vaut un dossier, sinon un fichier (`couvre`).
 Les murs de couche la lisent (`scripts/guards/lib/couchesLint.mjs`), sous chaque racine des zones
 (`RACINES_DES_ZONES`) : `murs/zone` refuse un fichier de `src/` dont le dossier n'est celui d'aucune zone (un
 sous-dossier `hotes` ou `racine` de `src/` compris) ; `murs/purete-imports` refuse, hors tests, un arc d'import
@@ -592,7 +595,10 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro),
                             `pont/entree.ts` (`globalThis.wfrpPont`), contrat `pont/CONTRAT.md` ; `construire.mjs
                             --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
-  projet/                   le projet Godot 4.7 (GDScript, scènes, modèles KayKit et leur licence) : il dessine la
+  asset/                    le contrat d'asset d'un personnage 3D (lecteur GLB, manifeste, import par `importer.mjs`) ;
+                            les GLB vivent dans la Release `modeles-3d`, nommés par leur SHA-256, que la provenance
+                            commitée épingle (`asset/release.ts` : `recupererModeles` avant Godot, `publierAssets` à l'import).
+  projet/                   le projet Godot 4.7 (GDScript, scènes, manifestes et provenances des modèles KayKit, leur licence) : il dessine la
                             vue et rend chaque geste en intention, sans règle, l'arithmétique de la mise en page dans
                             le seul `hotes/godot/projet/scripts/mise_en_page.gd` (gardes `src/hote/derive-du-noyau.hors-store.test.ts`,
                             `scripts/guards/lib/gdscriptSansRegle.mjs`) ;

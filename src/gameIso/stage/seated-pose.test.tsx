@@ -22,6 +22,7 @@ import { buildTokens, partyTokenOf } from '../builders/tokens';
 import { actorBillboards, actorPoseKey, collectBillboards, memesBillboardEls, type ActorPose } from '../backends/webgl/sceneMeshes';
 import type { TokenEl } from '../builders/types';
 import type { Combatant } from '../../engine/types';
+import { findTrappingById } from '../../data';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
@@ -44,7 +45,7 @@ const toutVisible = (s: Scene) => {
   return v;
 };
 const élémentsDe = (s: Scene) => ({ tokens: buildTokens(s, toutVisible(s), null, { activeZ: 0, viewZ: null, top: false }), props: [] as never[] });
-const sujetFigurant = (s: Scene) => collectBillboards(s, mpt, élémentsDe(s)).find((b) => b.identity.startsWith('perso:f1'))!;
+const sujetFigurant = (s: Scene) => collectBillboards(findTrappingById, s, mpt, élémentsDe(s)).find((b) => b.identity.startsWith('perso:f1'))!;
 
 const meneur = (): Combatant =>
   ({
@@ -258,7 +259,7 @@ const ESPÈCES = ['humain', 'nain', 'halfling', 'elfe-sylvain'];
 function repèresDe(species: string, view: View) {
   const ent = scèneAttablée(false, species).entities.find((e) => e.id === 'f1')!;
   const place = seatPoseOf(scèneAttablée(true, species), { kind: 'entity', entityId: 'f1' })!;
-  const prof = entityRigProfileFor(ent, false)!;
+  const prof = entityRigProfileFor(findTrappingById, ent, false)!;
   const comp = rigComposition(prof.appearance, prof.equip, prof.tenue, view);
   const w = worldTransforms(comp.sk, addPose(comp.speciesPose, comp.viewPose));
   const y = (id: BoneId, dy = 0) => apply(w[id], { x: 0, y: dy }).y;

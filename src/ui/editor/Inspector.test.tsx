@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
+import { choisirMediaSelect } from '../MediaSelect.testkit';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { Inspector } from './Inspector';
 import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
@@ -66,6 +67,24 @@ function mount(entity?: SceneEntity) {
 function roundTrip(scene: Scene): Scene {
   return JSON.parse(JSON.stringify(scene)) as Scene;
 }
+
+describe('Inspector — apparences d’objets', () => {
+  it('choisit une variante sur l’entité, conserve les autres réglages et retire le défaut', async () => {
+    const h = mount({ id: 'garde', kind: 'personnage', pos: { x: 1, y: 1 }, ref: 'humain', weapon: 'arme-simple', appearance: { species: 'humains-reiklander' } });
+    await h.mount();
+    const arme = [...h.container.querySelectorAll('label')].find((l) => l.textContent?.trim().startsWith('Arme équipée'))!;
+    expect(arme.nextElementSibling?.textContent).toContain('Apparences d’objets');
+    const choisir = (label: string) => choisirMediaSelect(h.container, 'Apparence — Arme simple', label);
+    choisir('Hache naine');
+    expect(h.entOf().appearance?.apparencesObjets).toEqual({ 'arme-simple': { id: 'hache_naine' } });
+    expect(h.entOf().appearance?.species).toBe('humains-reiklander');
+    expect(roundTrip(h.sceneOf()).entities[0].appearance?.apparencesObjets).toEqual({ 'arme-simple': { id: 'hache_naine' } });
+    choisir('Épée sertie');
+    expect(h.entOf().appearance?.apparencesObjets?.['arme-simple']).toEqual({ id: 'epee_sertie' });
+    choisir('Épée');
+    expect(h.entOf().appearance).toEqual({ species: 'humains-reiklander' });
+  });
+});
 
 describe('Inspector — introduction locale', () => {
   it('le texte et son folio adapté restent dans leur objet après aller-retour', async () => {

@@ -4,6 +4,7 @@ import type { BillboardPropEl } from '../../builders/types';
 import { propSvg } from '../../catalog/decor';
 import { props } from '../../../data';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../noyau/monde/scene';
+import { findTrappingById } from '../../../data';
 
 /**
  * IDENTITÉ DE DESSIN DU DÉCOR (#1176, P3-3). L'identité d'un billboard EST sa clé de cache de texture
@@ -27,7 +28,7 @@ function scèneAvecDecor(ref: string): Scene {
 }
 
 const identités = (scene: Scene) =>
-  collectBillboards(scene, sceneMetresPerTile(scene), wholeSceneBillboardEls(scene))
+  collectBillboards(findTrappingById, scene, sceneMetresPerTile(scene), wholeSceneBillboardEls(scene))
     .filter((b) => b.kind === 'prop')
     .map((b) => b.identity);
 
@@ -85,7 +86,7 @@ describe('Identité d’un prop — l’échelle et le cap en font partie (#1396
   });
   const scene = emptyScene('scene-test', 6, 6);
   const identité = (patch: { facing?: 'S' | 'E'; scale?: number }) =>
-    collectBillboards(scene, sceneMetresPerTile(scene), { tokens: [], props: [propEl(patch)] })[0].identity;
+    collectBillboards(findTrappingById, scene, sceneMetresPerTile(scene), { tokens: [], props: [propEl(patch)] })[0].identity;
 
   it('deux ÉCHELLES d’empreinte donnent deux identités (un quad ne se partage pas)', () => {
     expect(identité({ scale: 1 })).not.toBe(identité({ scale: 2 }));

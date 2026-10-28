@@ -10,9 +10,10 @@ import { baseSpeciesOf } from './skeletons';
 import { resolveParts } from './parts/resolve';
 import { viewOrFront } from './parts/types';
 import { CLAWFOOT, MAIN_GRIFFUE } from './parts/bodies/extremites';
-import { armeDeDessin, armourPart, pieceDeDessin, weaponFamily } from './parts/equipment';
+import { armourPart, weaponFamily } from './parts/equipment';
+import { armeDeDessin, pieceDeDessin } from '../../noyau/equipementDessine';
 import { spawnEnemy } from '../../noyau/monde/spawn';
-import { isShieldTrapping } from '../../engine/items';
+import { isShieldTrapping, itemFromTrappingById } from '../../engine/items';
 import { hairstylesForSex } from './parts/hairstyles';
 import { COIFFURE_HORS_POOL } from './parts/cosmetic';
 import { resetDiagOnce, withDiagSubject } from './devDiag';
@@ -77,7 +78,7 @@ describe('enemyRigProfile', () => {
     const c = mkEnemy('Bandit');
     const p = enemyRigProfile(c)!;
     expect(p).not.toBeNull();
-    expect(p.equip.weapons).toEqual(c.weapons.map(armeDeDessin));
+    expect(p.equip.weapons).toEqual(c.weapons.map((w) => armeDeDessin(w)));
   });
 
   it('déterministe : même id ⇒ même apparence', () => {
@@ -200,7 +201,7 @@ describe('enemyRigProfile', () => {
 
   it('utilise l’inventaire du combattant s’il en a un', () => {
     const item: ItemInstance = {
-      uid: 'a1', label: 'Brigandine', kind: 'armor', qualities: [], pa: 2,
+      uid: 'a1', label: 'Brigandine', kind: 'armor', subType: 'cuir-bouilli', qualities: [], pa: 2,
       locs: ['corps'], enc: 1, equipped: true,
     };
     const c = mkEnemy('Bandit', { items: [item], armour: { ...noArmour, corps: 9 } });
@@ -223,7 +224,7 @@ describe('enemyRigProfile', () => {
 
 describe('entityRigProfile (entité de scène, ambiance hors combat)', () => {
   it('humanoïde → profil sans équipement de combat (et plus d’overlays dérivés du nom)', () => {
-    const p = entityRigProfile('Mutant', 42)!;
+    const p = entityRigProfile(findTrappingById, 'Mutant', 42)!;
     expect(p).not.toBeNull();
     expect(p.equip.weapons).toEqual([]);
     // Le profil ne porte plus de calques dérivés du nom (POC isMutant retiré) : l'ambiance mutée
@@ -231,21 +232,21 @@ describe('entityRigProfile (entité de scène, ambiance hors combat)', () => {
     expect(p).not.toHaveProperty('overlays');
   });
   it('villageois (id de record) → espèce du record ; tenue portée en DONNÉE (plus d’inférence du nom)', () => {
-    const p = entityRigProfile('humain', 1)!;
+    const p = entityRigProfile(findTrappingById, 'humain', 1)!;
     expect(p.appearance.species).toBe('humain');
     expect(p.tenue).toBe('villageois'); // tenue DÉCLARÉE par le record ; elle ne se déduit plus du nom (POC retiré)
     // L'ambiance porte sa tenue via `appearance.tenue` (tokenBodyKind → opts.tenue) — honorée telle quelle (id).
-    expect(entityRigProfile('humain', 1, { tenue: 'mendiant' })!.tenue).toBe('mendiant');
+    expect(entityRigProfile(findTrappingById, 'humain', 1, { tenue: 'mendiant' })!.tenue).toBe('mendiant');
     // Une réf qui n'est PAS un id de record (un LIBELLE) ne résout AUCUNE espèce → défaut déclaré en donnée.
-    const inconnue = entityRigProfile('Villageois', 1)!;
+    const inconnue = entityRigProfile(findTrappingById, 'Villageois', 1)!;
     expect(inconnue.appearance.species).toBe(DEFAULT_RACE_ID);
     expect(inconnue.tenue).toBe('bourgeois'); // sans record : défaut HABILLÉ de la race par défaut
   });
   it('non-humanoïde (id de record) → null (garde le sprite créature)', () => {
-    expect(entityRigProfile('rat-geant', 1)).toBeNull();
+    expect(entityRigProfile(findTrappingById, 'rat-geant', 1)).toBeNull();
   });
   it('déterministe sur le seed', () => {
-    expect(entityRigProfile('Mutant', 7)!.appearance).toEqual(entityRigProfile('Mutant', 7)!.appearance);
+    expect(entityRigProfile(findTrappingById, 'Mutant', 7)!.appearance).toEqual(entityRigProfile(findTrappingById, 'Mutant', 7)!.appearance);
   });
 
   it('équipement de combat AFFICHÉ en explo (parité avec le combat) : armes + armure dérivées du profil (opt-in armurePortee, #774)', () => {
@@ -254,18 +255,18 @@ describe('entityRigProfile (entité de scène, ambiance hors combat)', () => {
     // L'arme du trait par un id de catalogue qui SE RÉSOUT (un libellé ne se résout pas, #1957).
     const armeId = SPEC_SOURCES.weaponsMelee.pool().find((id) => findTrappingById(id)?.shape && !isShieldTrapping(id))!;
     expect(SPEC_SOURCES.weaponsMelee.resolves(armeId)).toBe(true);
-    const p = entityRigProfile('Soldat', 1, { traits: [{ id: 'arme', value: 7, arg: armeId }] as never, armour: 2, armurePortee: true })!;
-    expect(p.equip.weapons.map(weaponFamily)).toContain(findTrappingById(armeId)!.shape); // arme EXPLICITE tenue en main
+    const p = entityRigProfile(findTrappingById, 'Soldat', 1, { traits: [{ id: 'arme', value: 7, arg: armeId }] as never, armour: 2, armurePortee: true })!;
+    expect(p.equip.weapons.map(weaponFamily)).toContain(findTrappingById(armeId)!.shape?.id); // arme EXPLICITE tenue en main
     expect(p.equip.armour.length).toBeGreaterThan(0);                       // armure dessinée (PA → pièces)
   });
 
   it('sans armurePortee (défaut), l’armure de statblock reste mécanique pure côté explo aussi', () => {
-    const p = entityRigProfile('Soldat', 1, { traits: [{ id: 'arme', value: 7, arg: 'Hache' }] as never, armour: 2 })!;
+    const p = entityRigProfile(findTrappingById, 'Soldat', 1, { traits: [{ id: 'arme', value: 7, arg: 'Hache' }] as never, armour: 2 })!;
     expect(p.equip.armour).toEqual([]);
   });
 
   it('entité SANS arme/armure (villageois, ambiance) → mains libres préservées', () => {
-    const p = entityRigProfile('Soldat', 1, { traits: [] as never })!;
+    const p = entityRigProfile(findTrappingById, 'Soldat', 1, { traits: [] as never })!;
     expect(p.equip.weapons).toEqual([]); // pas de repli « Arme » générique (qui serait dessiné en épée)
     expect(p.equip.armour).toEqual([]);
   });
@@ -277,14 +278,14 @@ describe('entityRigProfile (entité de scène, ambiance hors combat)', () => {
     // Cible : un id de créature rig dont le record produit une arme une fois enrôlé (découvert au runtime).
     const target = creatures.find((c) => {
       if (classifyEnemy(c.id) !== 'rig') return false;
-      const enrolled = entityRigProfile(c.id, 1, { enrolled: true });
+      const enrolled = entityRigProfile(findTrappingById, c.id, 1, { enrolled: true });
       return !!enrolled && enrolled.equip.weapons.length > 0;
     });
     expect(target, 'au moins une créature rig armée par son record').toBeTruthy();
     const id = target!.id;
-    expect(entityRigProfile(id, 1, { enrolled: true })!.equip.weapons.length).toBeGreaterThan(0); // enrôlée → kit
-    expect(entityRigProfile(id, 1)!.equip.weapons).toEqual([]); // ambiance (défaut non enrôlée) → mains libres
-    expect(entityRigProfile(id, 1)!.equip.armour).toEqual([]);
+    expect(entityRigProfile(findTrappingById, id, 1, { enrolled: true })!.equip.weapons.length).toBeGreaterThan(0); // enrôlée → kit
+    expect(entityRigProfile(findTrappingById, id, 1)!.equip.weapons).toEqual([]); // ambiance (défaut non enrôlée) → mains libres
+    expect(entityRigProfile(findTrappingById, id, 1)!.equip.armour).toEqual([]);
   });
 });
 
@@ -293,19 +294,19 @@ describe('coiffure du record, sexe de l’entité — la coiffure retombe', () =
   it('coiffure F au record + `sex: M` sur l’entité → coiffure par défaut de l’espèce et du sexe rendus, jamais la chevelure d’erreur', () => {
     const avant = [...creatures];
     const rendu = (p: NonNullable<ReturnType<typeof entityRigProfile>>) => bonesToSvg(resolveRig(p.appearance, p.equip, {}, p.tenue, 'front', []));
-    const attendu = rendu(entityRigProfile('humain', 1, { sex: 'M' })!);
+    const attendu = rendu(entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M' })!);
     setDataset('creatures', creatures.map((c) => (c.id === 'humain'
       ? { ...c, appearance: { ...c.appearance!, sex: 'F' as const, hairstyle: 'queue-de-cheval-haute-f' } }
       : c)));
     try {
-      expect(entityRigProfile('humain', 1)!.appearance).toMatchObject({ sex: 'F', hairstyle: 'queue-de-cheval-haute-f' });
-      const p = entityRigProfile('humain', 1, { sex: 'M' })!;
+      expect(entityRigProfile(findTrappingById, 'humain', 1)!.appearance).toMatchObject({ sex: 'F', hairstyle: 'queue-de-cheval-haute-f' });
+      const p = entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M' })!;
       expect(p.appearance.sex).toBe('M');
       expect(p.appearance.hairstyle).toBeUndefined();
       expect(rendu(p)).not.toContain(COIFFURE_HORS_POOL);
       expect(rendu(p)).toBe(attendu);
       // La contradiction posée par UNE couche reste une faute de donnée VISIBLE (le schéma la nomme).
-      expect(rendu(entityRigProfile('humain', 1, { sex: 'M', hairstyle: 'queue-de-cheval-haute-f' })!)).toContain(COIFFURE_HORS_POOL);
+      expect(rendu(entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M', hairstyle: 'queue-de-cheval-haute-f' })!)).toContain(COIFFURE_HORS_POOL);
     } finally {
       setDataset('creatures', avant);
     }
@@ -318,12 +319,12 @@ describe('coiffure du record, sexe de l’entité — la coiffure retombe', () =
     resetDiagOnce();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
-      withDiagSubject('scene-x/pnj-1', () => entityRigProfile('humain', 1, { sex: 'M' }));
+      withDiagSubject('scene-x/pnj-1', () => entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M' }));
       expect(warn.mock.calls.map((c) => String(c[0]))).toEqual([
         "[rig] « scene-x/pnj-1 » : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) retirée au rendu — une couche d'apparence plus haute pose le sexe Masculin.",
       ]);
       warn.mockClear();
-      withDiagSubject('scene-x/pnj-2', () => entityRigProfile('humain', 1));
+      withDiagSubject('scene-x/pnj-2', () => entityRigProfile(findTrappingById, 'humain', 1));
       expect(warn).not.toHaveBeenCalled();
     } finally {
       warn.mockRestore();
@@ -348,24 +349,22 @@ describe('spawnEnemy — une coiffure seule traverse jusqu’au rendu du combatt
   });
 });
 
-describe('#2097 C4 — équipement PORTÉ : une production (`equipPorte`), parité combat ↔ explo', () => {
+describe('#2097 C4 — équipement PORTÉ : une production (`equipementDessine`), parité combat ↔ explo', () => {
   it('cape d’ennemi portée : dessinée, comme celle d’un héros', () => {
-    const cape = { uid: 'c', label: 'Cape', trappingId: 'cape', kind: 'misc', qualities: [], enc: 0, equipped: true } as ItemInstance;
+    const cape = { ...itemFromTrappingById('cape')!, uid: 'c', equipped: true };
     expect(enemyRigProfile(mkEnemy('Bandit', { items: [cape] }))!.equip.cape).toBe(true);
     expect(enemyRigProfile(mkEnemy('Bandit'))!.equip.cape).toBeUndefined();
   });
 
   it('bouclier d’une entité d’exploration : tenu, donc dessiné à la main secondaire', () => {
-    const p = entityRigProfile('Soldat', 1, { weapon: 'bouclier' })!;
+    const p = entityRigProfile(findTrappingById, 'Soldat', 1, { weapon: 'bouclier' })!;
     expect(p.equip.shield, 'le bouclier de l’entité est tenu').toBeDefined();
     expect(resolveParts('humain', 'M', 'soldat', p.equip, {}, 1).bouclier?.svg).toContain('<');
   });
 
   it('armure synthétisée : pièces triées par matériau, chaque zone couverte par UNE pièce (ordre sans effet de dessin)', () => {
     const p = enemyRigProfile(mkEnemy('Soldat', { armour: { ...noArmour, corps: 1, tete: 5 }, appearanceOverride: { armurePortee: true } as never }))!;
-    const rang = { plaque: 3, maille: 2, cuir: 1, rembourre: 0 } as const;
-    const rangs = p.equip.armour.map((a) => rang[a.materiau]);
-    expect(rangs).toEqual([...rangs].sort((a, b) => b - a));
+    expect(p.equip.armour.map((a) => [a.locs, a.matiere]), 'matière par palier de PA, plate avant cuir (#2948)').toEqual([[['tete'], 'plate'], [['corps'], 'cuir-souple']]);
     const zones = p.equip.armour.flatMap((a) => a.locs ?? []);
     expect(zones.length, 'PRÉMISSE : des pièces sont synthétisées').toBeGreaterThan(0);
     expect(new Set(zones).size).toBe(zones.length);

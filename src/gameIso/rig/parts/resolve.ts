@@ -1,3 +1,4 @@
+import { findTeinteById } from '../../../data';
 import type { Slot } from '../../../engine/authoringAppearance';
 import { viewOrFront, type Part, type PartArt } from './types';
 import type { View } from '../facing';
@@ -6,7 +7,8 @@ import { toViewSet, splitBrasSvg, avantBrasBase, dominantCloth } from './derive'
 import { cosmeticPart } from './cosmetic';
 import { genericPart } from './generic';
 import { tenueFor } from './career';
-import { armePrincipale, armourPart, weaponPart, shieldPart, type EquipCtx } from './equipment';
+import { ART_DE_MATIERE, armourPart, weaponPart, shieldPart } from './equipment';
+import { armePrincipale, type EquipCtx } from '../../../noyau/equipementDessine';
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { CLAWFOOT, PLAINFOOT, HAND, MAIN_GRIFFUE, NECK } from './bodies/extremites';
 import { tableDObjet, applyTokenMap } from '../palette';
@@ -65,9 +67,9 @@ function resolveUpperLimb(
   let matterResolve: ((svg: string) => string) | null = null;   // recoloriage palette de l'armure gagnante
   let brasEstPleineLongueur: boolean;
   if (armItem) {
-    const mat = armItem.materiau;
+    const mat = ART_DE_MATIERE[armItem.matiere];
     matterArt = ARMOUR[mat]?.bras ?? '';                         // jetons @metal/@cuir… intacts
-    const map = tableDObjet([ARMOUR_PALETTES[mat] ?? {}], armItem.skin);
+    const map = tableDObjet([ARMOUR_PALETTES[mat] ?? {}], findTeinteById(armItem.teinte)?.palette);
     matterResolve = (svg) => applyTokenMap(svg, map);
     brasEstPleineLongueur = true;
   } else {

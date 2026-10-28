@@ -10,6 +10,7 @@
   color: var(--muted);
 }
 .reglage-apparence select,
+.reglage-apparence .media-select,
 .reglage-apparence input[type='range'] {
   flex: 1 1 auto;
   min-width: 0;

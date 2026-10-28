@@ -6,11 +6,17 @@ import { effectiveWeaponRange } from './weaponDamage';
 import { rangeBandModifier } from './combat';
 import { traitsDuPorteur, type TraitInstance } from './statEntry';
 import { porteurDuProfil } from '../noyau/monde/spawn';
-import { findCreatureById } from '../data';
+import { findCreatureById, findTrappingById } from '../data';
 
 const t = (o: TraitInstance): TraitInstance => o;
 
 describe('creatureEquip — dérivation traits → armes (source unique de l’armement ennemi/PNJ)', () => {
+  it('admet une arme locale dans l’univers déclaré de son trait, et refuse l’autre univers', () => {
+    const objet = { ...findTrappingById('arc')!, id: 'arc-de-campagne' };
+    const resolveTrapping = (id: string) => id === objet.id ? objet : findTrappingById(id);
+    expect(weaponFromTrait(t({ id: 'a-distance', arg: objet.id, value: 9 }), resolveTrapping)?.trappingId).toBe(objet.id);
+    expect(weaponFromTrait(t({ id: 'arme', arg: objet.id, value: 7 }), resolveTrapping)?.trappingId).toBeUndefined();
+  });
   it('trait « Arme (Épée) +7 » → arme de mêlée nommée', () => {
     const w = weaponFromTrait(t({ id: 'arme', arg: 'Épée', value: 7 }));
     expect(w).not.toBeNull();
@@ -44,7 +50,7 @@ describe('creatureEquip — dérivation traits → armes (source unique de l’a
     expect(w?.label).toBe('Arbalète'); // libellé du catalogue, jamais l'id brut
     expect(w?.type).toBe('ranged');
     expect(w?.trappingId).toBe('arbalete');
-    expect(formeResolue(w!)).toBe('arbalete'); // forme RÉSOLUE au catalogue, jamais recopiée
+    expect(formeResolue(w!)).toBe('arbalete'); // #2967
     expect(w?.reload).toBe(1); // Recharge 1 dérivée de la Qualité du trapping (LDB 62 l.333)
   });
 

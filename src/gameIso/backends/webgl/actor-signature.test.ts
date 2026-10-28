@@ -11,6 +11,8 @@ import { describe, expect, it } from 'vitest';
 import { actorBillboards, actorPoseKey, actorRenderSignature, type ActorPose } from './sceneMeshes';
 import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import type { Combatant, Weapon } from '../../../engine/types';
+import { findTrappingById } from '../../../data';
+import { itemFromTrappingById, weaponFromItem } from '../../../engine/items';
 
 const scene = emptyScene('scene-test', 6, 6);
 const mpt = sceneMetresPerTile(scene);
@@ -30,7 +32,7 @@ const pose = (c: Combatant): ActorPose => ({ c, x: 1, y: 1, z: 0, facing: 'S' })
 const sujet = (c: Combatant) => actorBillboards([pose(c)], scene, mpt)[0];
 const svgDe = (c: Combatant) => sujet(c).svg('front', false, 0);
 
-const ÉPÉE = { label: 'Épée', type: 'melee', group: 'base', damage: 4, trappingId: 'arme-simple' } as unknown as Weapon;
+const ÉPÉE: Weapon = weaponFromItem(itemFromTrappingById('arme-simple', findTrappingById)!);
 
 describe('Signature de dessin d’un acteur — la clé de mémo ET l’identité de texture la portent', () => {
   const base = héros();

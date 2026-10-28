@@ -1,0 +1,272 @@
+{
+  "schema_version": 2,
+  "model": "Knight.glb",
+  "default_head": "tete",
+  "head_options": [
+    {
+      "id": "tete"
+    }
+  ],
+  "pieces": {
+    "Knight_ArmLeft": {
+      "node": "Knight_ArmLeft",
+      "component": "corps",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Knight_ArmRight": {
+      "node": "Knight_ArmRight",
+      "component": "corps",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Knight_Body": {
+      "node": "Knight_Body",
+      "component": "corps",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Knight_LegLeft": {
+      "node": "Knight_LegLeft",
+      "component": "corps",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Knight_LegRight": {
+      "node": "Knight_LegRight",
+      "component": "corps",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Knight_Head": {
+      "node": "Knight_Head",
+      "component": "tete",
+      "headVariant": "tete",
+      "hiddenBy": []
+    },
+    "Badge_Shield": {
+      "node": "Badge_Shield",
+      "component": "bouclier_blason",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Rectangle_Shield": {
+      "node": "Rectangle_Shield",
+      "component": "bouclier_rectangle",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Round_Shield": {
+      "node": "Round_Shield",
+      "component": "bouclier_rond",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Spike_Shield": {
+      "node": "Spike_Shield",
+      "component": "bouclier_pointes",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "1H_Sword_Offhand": {
+      "node": "1H_Sword_Offhand",
+      "component": "epee_main_gauche",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "1H_Sword": {
+      "node": "1H_Sword",
+      "component": "epee",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "2H_Sword": {
+      "node": "2H_Sword",
+      "component": "epee_deux_mains",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Knight_Helmet": {
+      "node": "Knight_Helmet",
+      "component": "casque",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Knight_Cape": {
+      "node": "Knight_Cape",
+      "component": "cape",
+      "headVariant": null,
+      "hiddenBy": []
+    }
+  },
+  "components": {
+    "corps": {
+      "label_fr": "Corps",
+      "apparence": null
+    },
+    "bouclier_blason": {
+      "label_fr": "Bouclier à blason",
+      "apparence": "bouclier_blason"
+    },
+    "bouclier_rectangle": {
+      "label_fr": "Bouclier rectangulaire",
+      "apparence": "bouclier_rectangle"
+    },
+    "bouclier_rond": {
+      "label_fr": "Bouclier rond",
+      "apparence": "rond"
+    },
+    "bouclier_pointes": {
+      "label_fr": "Bouclier à pointes",
+      "apparence": "bouclier_pointes"
+    },
+    "epee_main_gauche": {
+      "label_fr": "Épée en main gauche",
+      "apparence": "epee"
+    },
+    "epee": {
+      "label_fr": "Épée",
+      "apparence": "epee"
+    },
+    "epee_deux_mains": {
+      "label_fr": "Épée à deux mains",
+      "apparence": "zweihander"
+    },
+    "casque": {
+      "label_fr": "Casque",
+      "apparence": "heaume"
+    },
+    "cape": {
+      "label_fr": "Cape",
+      "apparence": "cape"
+    }
+  },
+  "incompatibilities": [
+    [
+      "bouclier_blason",
+      "bouclier_rectangle",
+      "bouclier_rond",
+      "bouclier_pointes",
+      "epee_main_gauche"
+    ],
+    [
+      "epee",
+      "epee_deux_mains"
+    ],
+    [
+      "epee_deux_mains",
+      "bouclier_blason",
+      "bouclier_rectangle",
+      "bouclier_rond",
+      "bouclier_pointes",
+      "epee_main_gauche"
+    ]
+  ],
+  "defaults": [
+    "corps",
+    "epee",
+    "casque",
+    "cape"
+  ],
+  "presets": {},
+  "clips": {
+    "idle": "Idle",
+    "walk": "Walking_A",
+    "melee": "1H_Melee_Attack_Chop",
+    "hit": "Hit_A",
+    "death": "Death_A"
+  },
+  "montage": {
+    "attaches": {
+      "main": {
+        "os": "handslot.r",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      },
+      "off": {
+        "os": "handslot.l",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      },
+      "dos": {
+        "os": "chest",
+        "position": [
+          0,
+          0,
+          -0.15
+        ],
+        "rotation": [
+          0,
+          0,
+          3.141592653589793
+        ]
+      },
+      "ceinture": {
+        "os": "hips",
+        "position": [
+          0.18,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "composants": {
+      "bouclier_blason": {
+        "prise": "off",
+        "rangement": "dos",
+        "matieres": [{ "cle": "metal", "piece": "Badge_Shield", "surface": 0 }]
+      },
+      "bouclier_rectangle": {
+        "prise": "off",
+        "rangement": "dos",
+        "matieres": [{ "cle": "metal", "piece": "Rectangle_Shield", "surface": 0 }]
+      },
+      "bouclier_rond": {
+        "prise": "off",
+        "rangement": "dos",
+        "matieres": [{ "cle": "metal", "piece": "Round_Shield", "surface": 0 }]
+      },
+      "bouclier_pointes": {
+        "prise": "off",
+        "rangement": "dos",
+        "matieres": [{ "cle": "metal", "piece": "Spike_Shield", "surface": 0 }]
+      },
+      "epee_main_gauche": {
+        "prise": "off",
+        "rangement": "ceinture",
+        "matieres": [{ "cle": "metal", "piece": "1H_Sword_Offhand", "surface": 0 }]
+      },
+      "epee": {
+        "prise": "main",
+        "rangement": "ceinture",
+        "matieres": [{ "cle": "metal", "piece": "1H_Sword", "surface": 0 }]
+      },
+      "epee_deux_mains": {
+        "prise": "main",
+        "rangement": "dos",
+        "matieres": [{ "cle": "metal", "piece": "2H_Sword", "surface": 0 }]
+      }
+    }
+  }
+}

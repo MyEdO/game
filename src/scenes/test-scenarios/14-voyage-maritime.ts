@@ -1,5 +1,5 @@
 import { createHero } from '../../engine/character';
-import { itemFromTrappingById } from '../../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
 import type { WorldMap } from '../../noyau/worldMap';
@@ -24,7 +24,7 @@ function crew(): Combatant[] {
   cap.shipRole = 'capitaine';
   renforcerCompetence(cap, 'commandement', 50);
   renforcerCompetence(cap, 'voile', 40, 'cogue');
-  cap.items = [...(cap.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
+  cap.items = [...(cap.items ?? []), itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(cap))!, itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(cap))!];
   cap.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.55 };
 
   const timo = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Timonière Hilda', motivation: 'Test', seed: 4802, id: 'mar-timo' });

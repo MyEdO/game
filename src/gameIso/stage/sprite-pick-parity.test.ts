@@ -13,6 +13,7 @@ import { ndcAt, pickNearestTarget, type PickTarget } from '../backends/webgl/spr
 import { actorCapsuleOf } from './actorCapsule';
 import { stage3dFraming } from './stage3dCamera';
 
+
 /**
  * HIT-TEST DE SPRITE — CE QUE CHAQUE VOIE RÉPOND (#1176 lot P2-3, #1297 lot B).
  *

@@ -29,6 +29,7 @@ import { sourcesDeFrames } from './stageFrames';
 import { resetBakeQueue } from '../backends/webgl/atlasBake';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { useGame } from '../../state/store';
+import { findTrappingById } from '../../data';
 
 /**
  * DÉCOUPE LOCALE PAR OCCLUSION — L'HÔTE (#1176, M3). Le CANAL (`percage-canal.test.ts`) et le VERDICT
@@ -149,7 +150,7 @@ async function rendre(pos: { x: number; y: number }, percage: PercageEntrees | n
   await act(async () => {
     root!.render(
       <Profiler id="stage" onRender={() => { commitsReact += 1; }}>
-      <GameStage3D lecture="jeu"
+      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
         scene={scene}
         mpt={sceneMetresPerTile(scene)}
         frame={cadre}

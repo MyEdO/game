@@ -1075,12 +1075,21 @@
   {
     "id": "reglagesApparence",
     "type": "primitives.manifest",
-    "label": "ReglagesApparence/MonsterPartsFields",
+    "label": "ReglagesApparence/MonsterPartsFields/ApparencesObjetsField",
     "fichier": "src/ui/editor/MonsterPartsFields.tsx",
     "css": "src/ui/styles/reglages-apparence.css",
     "concept": "réglages d’une apparence, liste des réglages rendus en donnée, toute écriture par apparenceSuivante",
     "perimetre": "rubrique Apparence de l’Inspecteur, du Narratif, du Codex et du créateur",
     "verrou": "apparence-une-rubrique.test.tsx"
+  },
+  {
+    "id": "objetDonneField",
+    "type": "primitives.manifest",
+    "label": "ObjetDonneField",
+    "fichier": "src/ui/editor/ObjetDonneField.tsx",
+    "concept": "écrivain partagé de l’objet donné et de son apparence ; résolution campagne puis catalogue, admission canonique, absence du défaut",
+    "perimetre": "effets de scène et ops mécaniques giveTrapping",
+    "verrou": "src/ui/editor/MonsterPartsFields.test.tsx"
   },
   {
     "id": "heroSheet",
@@ -2056,20 +2065,29 @@
   {
     "id": "equipementDeDessin",
     "type": "primitives.manifest",
-    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
-    "fichier": "src/gameIso/rig/parts/equipment.ts",
-    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`forme` par `formeResolue`, `engine/items.ts` ; `bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
-    "perimetre": "tout producteur d'équipement de rig (`equipPorte`, `enemyRigProfile`, `entityRigProfile`, galeries), tout lecteur du rig (forme, maniement, clips, pièces)",
-    "verrou": "src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
+    "label": "equipementDessine/equipementDEntite/armesDEntite/EquipCtx/equipDe/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
+    "fichier": "src/noyau/equipementDessine.ts",
+    "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent à la naissance par `deciderApparencesDesArmes` puis `choisirApparenceDObjet` sur les armes réelles sans instance ; le dessin lit leur forme et leur apparence déjà décidées ; les constructions d’entité et décisions d’auteur reçoivent un TrappingResolver obligatoire, injecté par l’hôte ; le dessin d’un porteur déjà né consomme ses propriétés copiées sans résolveur ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule ; l'art d'une matière se résout côté rig (`ART_DE_MATIERE`, `src/gameIso/rig/parts/equipment.ts`)",
+    "perimetre": "tout producteur d'équipement dessiné (`equipementDessine`, `equipementDEntite`, `enemyRigProfile`, `entityRigProfile`, `rigDuCombattant`, galeries), tout lecteur du rig ou d'un hôte 3D (forme, maniement, clips, pièces)",
+    "verrou": "src/noyau/equipementDessine.test.ts, src/hote/projection.hors-store.test.ts, src/noyau/armure-portee-guard.test.ts, src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
   },
   {
     "id": "formeResolue",
     "type": "primitives.manifest",
-    "label": "formeResolue/SourceDeForme",
+    "label": "apparencesCandidates/choisirApparenceDObjet/deciderApparencesDesArmes/racineDesCandidats/formeResolue/SourceDeForme",
     "fichier": "src/engine/items.ts",
-    "concept": "FORME d'un objet porté résolue au catalogue courant par id stable (arme naturelle, arme invoquée `form`, `formeChoisie` parmi les `formChoices`, `shape` du trapping) — l'UNIQUE résolution de forme, jamais recopiée dans une instance (#2113)",
-    "perimetre": "tout lecteur d'une forme d'arme ou de bouclier : rig (`armeDeDessin`, `bouclierDeDessin`), icône d'inventaire, sélecteur de forme de la fiche, outillage de recette (`__wfrp.battle`)",
-    "verrou": "src/engine/rendu-pur-jamais-recopie.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
+    "concept": "forme racine mécanique `shape` copiée à la naissance ; `choisirApparenceDObjet` admet une décision explicite par `shape` et `formChoices` de la fiche résolue, puis écrit la même racine et l’apparence sur l’instance ; les CANDIDATS de l’objet porté lisent cette racine et la variante compatible, sans relire la fiche ; une arme naturelle ne publie aucun candidat ; `racineDesCandidats` lit la dernière entrée, que `formeResolue` rend (#2967)",
+    "perimetre": "tout lecteur d’une apparence ou de sa racine : rig (`armeDeDessin`, `bouclierDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `choisirApparenceDObjet`, outillage de recette (`__wfrp.battle`)",
+    "verrou": "src/engine/apparences-candidates.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
+  },
+  {
+    "id": "admissionApparenceDObjet",
+    "type": "primitives.manifest",
+    "label": "candidatsDApparenceDObjet/apparencesAdmissiblesDObjet/referenceDApparenceDObjet/messageDApparenceDObjet",
+    "fichier": "src/data/apparencesObjets.ts",
+    "concept": "résolution canonique des candidats d’un trapping par résolveur injecté (catalogue par défaut) : shape et formChoices admettent la racine de l’apparence ; lecteurs versionnés partagés avec la façade data/index ; référence d’auteur absente pour la forme par défaut ou une apparence non admise ; refus commun aux références d’auteur",
+    "perimetre": "décision de naissance et choix explicite par choisirApparenceDObjet, sélecteurs d’apparence de la fiche et des éditeurs, parse de giveTrapping effet et op, EntityAppearance.apparencesObjets, contrôles d’auteur d’objets non nés",
+    "verrou": "src/data/schemas/grammaire/apparences-objets.test.ts, src/engine/apparences-candidates.test.ts"
   },
   {
     "id": "successionDesCorps",
@@ -2178,6 +2196,15 @@
     "concept": "transaction du contrôle des écritures : préparation avant lancement, projection pure sans nonce, reporters temporaires restitués après clôture, veto mémorisé et nettoyage idempotent",
     "perimetre": "fabrique de supervision et intercepteur des lancements Node --test",
     "verrou": "scripts/guards/lib/perimetreSansEcriture.test.mjs"
+  },
+  {
+    "id": "naissanceDObjet",
+    "type": "primitives.manifest",
+    "label": "ContexteDeNaissanceDObjet/contexteDeNaissanceDObjet/itemFromTrappingById/itemFromTrappingRef/itemFromGive",
+    "fichier": "src/engine/items.ts",
+    "concept": "apparence décidée une seule fois à la naissance : contexte explicite du destinataire, qualités finales de l’objet, référence d’auteur prioritaire ; sans contexte ni décision d’auteur, aucune clé apparence",
+    "perimetre": "créateur, boutique, octrois, fabrication et effets ; aucune re-décision au transfert",
+    "verrou": "src/engine/apparenceNaissance.test.ts, src/state/apparence-naissance.test.ts"
   },
   {
     "id": "vise",

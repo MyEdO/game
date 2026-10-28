@@ -36,7 +36,8 @@ import { useClesDeRangees } from '../../useClesDeRangees';
 import { PlageField, type PlageValue } from '../../PlageField';
 import { GatedAction } from '../../GatedAction';
 import { raceKeySchema } from '../../../data/schemas/grammaire/valeurs';
-import { MonsterPartsFields, ReglagesApparence } from '../MonsterPartsFields';
+import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from '../MonsterPartsFields';
+import { armesDEntite } from '../../../noyau/equipementDessine';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../FlowEditor';
 import { ctxDeCatalogue } from '../EffectList';
 import { GameOpEditor, FormulaField } from '../GameOpEditor';
@@ -77,6 +78,7 @@ import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../../engine/p
 import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../../data/schemas/defs/talents';
 import { VARIANT_RESOLVED_FIELDS as SPELL_VARIANT_FIELDS } from '../../../data/schemas/defs/spells';
 import { Grid } from '../../Layout';
+import { findTrappingById } from '../../../data';
 
 /** Catégories à VARIANTES réglées (#563/#564), avec les champs que leur résolution APPLIQUE — valeurs
  *  LUES des defs (`VARIANT_RESOLVED_FIELDS`), jamais recopiées : `VariantsField` en déduit les sous-
@@ -693,7 +695,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
       )}
       <SuiviDesSaisies signaler={saisies.signaler}>
       <div className="codex-edit-form">
-        {hasAppearance && <AppearanceField label={libelle} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitPose[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
+        {hasAppearance && <AppearanceField traits={categoryKey === 'creatures' ? entry.traits as TraitPose[] : undefined} label={libelle} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitPose[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
@@ -902,7 +904,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
 }
 
 /** Apparence par défaut d'une créature (bloc `appearance`, #1897). */
-function AppearanceField({ label, porteur, nuee, value, onChange }: { label: string; porteur?: string; nuee: boolean; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
+function AppearanceField({ label, porteur, nuee, value, onChange, traits }: { traits?: readonly TraitPose[]; label: string; porteur?: string; nuee: boolean; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
   const a = value ?? {};
   // Le harnachement est un canal du pipeline QUADRUPÈDE (quad ∪ ailé) : hors de ces gabarits, la
   // clé serait de la donnée absurde, ignorée au rendu — le sélecteur n'est donc pas offert.
@@ -918,6 +920,7 @@ function AppearanceField({ label, porteur, nuee, value, onChange }: { label: str
           {' '}Armure du profil visible sur la figurine
         </label>
       </div>
+      <ApparencesObjetsField appearance={a} onChange={onChange} weapons={armesDEntite(findTrappingById, undefined, { traits })} />
       <MonsterPartsFields
         appearance={a}
         onChange={onChange}

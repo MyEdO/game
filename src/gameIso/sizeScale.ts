@@ -23,11 +23,10 @@ import { findCreatureById } from '../data';
 import { presetPnjById } from '../state/campaignData';
 import { entitySize } from '../noyau/monde/spawn';
 import { resolveRender, type RenderResolution } from './rig/bodyPlan';
-import { enemyRigProfile, refOf, rendersFromOwnInventory } from './rig/enemyProfile';
+import { refOf, rigDuCombattant } from './rig/enemyProfile';
 import { bodyTopFrac } from './rig/composeRig';
-import { combatantAppearance } from './rig/parts/combatantVisuals';
-import { defaultAppearance } from './rig/appearance';
 import { isStructure } from '../engine/structures';
+
 
 // Ancré sur les PROPORTIONS face à un humain (un cheval Grande ≈ ×1.3-1.5, un Géant Énorme ≈ ×2.4),
 // PAS sur le remplissage de l'empreinte N×N (T6) — l'empreinte reste la vérité d'OCCUPATION,
@@ -101,6 +100,5 @@ export function combatantTokenScale(c: Combatant): number {
  *  toise), et le haut de boîte est l'ancre que les deux voies posaient déjà. */
 export function combatantBodyTopFrac(c: Combatant): number {
   if (isStructure(c) || combatantRender(c).kind !== 'rig') return 1;
-  const prof = rendersFromOwnInventory(c) ? null : enemyRigProfile(c);
-  return bodyTopFrac(combatantAppearance(prof?.appearance ?? c.appearance ?? defaultAppearance(c), c));
+  return bodyTopFrac(rigDuCombattant(c).appearance);
 }

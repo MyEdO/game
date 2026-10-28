@@ -48,6 +48,9 @@ import {
   POINT_LIGHT_BUDGET,
   type PointLightSlots,
 } from './stagePointLights';
+import { findTrappingById } from '../../data';
+import { itemFromTrappingById } from '../../engine/items';
+import type { ItemInstance } from '../../engine/types';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -418,7 +421,7 @@ describe('Le pool MONTÉ — un compte que rien ne fait varier (la clé de cache
     hôte = document.createElement('div');
     document.body.appendChild(hôte);
     root = createRoot(hôte);
-    act(() => root!.render(<GameStage3D lecture="jeu" {...props(scene, gameTime)} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...props(scene, gameTime)} />));
   }
 
   it('même compte de lampes de nuit et à midi, avec ou sans source — et toutes VISIBLES', () => {
@@ -479,24 +482,24 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
     root = createRoot(hôte);
 
     écritures = 0;
-    act(() => root!.render(<GameStage3D lecture="jeu" {...p} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...p} />));
     // 12 constructions de lampe (le pool) + 12 écritures de la première passe.
     expect(écritures).toBe(2 * POINT_LIGHT_BUDGET);
 
     // Rendus de CAMÉRA : ni la translation ni le zoom ne touchent la lumière.
     écritures = 0;
-    act(() => root!.render(<GameStage3D lecture="jeu" {...p} frame={{ ...p.frame, cam: { x: 40, y: 12 }, zoom: 1.5 }} />));
-    act(() => root!.render(<GameStage3D lecture="jeu" {...p} frame={{ ...p.frame, cam: { x: 80, y: 24 }, zoom: 2 }} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...p} frame={{ ...p.frame, cam: { x: 40, y: 12 }, zoom: 1.5 }} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...p} frame={{ ...p.frame, cam: { x: 80, y: 24 }, zoom: 2 }} />));
     expect(écritures).toBe(0);
 
     // Changement d'HEURE : une seule passe sur le pool (12 lampes), jamais un remontage.
     écritures = 0;
-    act(() => root!.render(<GameStage3D lecture="jeu" {...p} gameTime={MIDI} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...p} gameTime={MIDI} />));
     expect(écritures).toBe(POINT_LIGHT_BUDGET);
 
     // La MÊME heure re-rendue : rien à réécrire.
     écritures = 0;
-    act(() => root!.render(<GameStage3D lecture="jeu" {...p} gameTime={MIDI} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...p} gameTime={MIDI} />));
     expect(écritures).toBe(0);
   });
 
@@ -514,19 +517,19 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
     hôte = document.createElement('div');
     document.body.appendChild(hôte);
     root = createRoot(hôte);
-    act(() => root!.render(<GameStage3D lecture="jeu" {...p} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...p} />));
 
     // Deux frames de CAMÉRA : 2 flammes × 2 frames. Le lampadaire n'est pas du lot.
     écritures = 0;
-    act(() => root!.render(<GameStage3D lecture="jeu" {...p} frame={{ ...p.frame, cam: { x: 40, y: 12 }, zoom: 1.5 }} />));
-    act(() => root!.render(<GameStage3D lecture="jeu" {...p} frame={{ ...p.frame, cam: { x: 80, y: 24 }, zoom: 2 }} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...p} frame={{ ...p.frame, cam: { x: 40, y: 12 }, zoom: 1.5 }} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...p} frame={{ ...p.frame, cam: { x: 80, y: 24 }, zoom: 2 }} />));
     expect(écritures).toBe(2 * 2);
 
     // À MIDI les flaques s'éteignent : plus une seule flamme allumée, donc plus une écriture de frame
     // (et la boucle de vacillement, elle non plus, ne bat pas).
-    act(() => root!.render(<GameStage3D lecture="jeu" {...p} gameTime={MIDI} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...p} gameTime={MIDI} />));
     écritures = 0;
-    act(() => root!.render(<GameStage3D lecture="jeu" {...p} gameTime={MIDI} frame={{ ...p.frame, cam: { x: 12, y: 3 } }} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...p} gameTime={MIDI} frame={{ ...p.frame, cam: { x: 12, y: 3 } }} />));
     expect(écritures).toBe(0);
   });
 
@@ -537,7 +540,7 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
     hôte = document.createElement('div');
     document.body.appendChild(hôte);
     root = createRoot(hôte);
-    act(() => root!.render(<GameStage3D lecture="jeu" {...p} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...p} />));
     const posesDeNuit = () => {
       const s = scènes[scènes.length - 1];
       const out: [number, number][] = [];
@@ -545,7 +548,7 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
       return out;
     };
     const avant = posesDeNuit();
-    act(() => root!.render(<GameStage3D lecture="jeu" {...p} gameTime={MIDI} />));
+    act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...p} gameTime={MIDI} />));
     expect(posesDeNuit()).toEqual(avant); // chaque lampe est restée sur SA case, seule l'intensité est tombée
   });
 });
@@ -555,7 +558,7 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
 /** Combattant porteur d'une lanterne, RANGÉE ou en main — le gate de port est celui du champ mécanique. */
 const porteurDeLanterne = (equipped: boolean) => ({
   id: 'h1', kind: 'hero', pos: { x: 4, y: 4 },
-  items: [{ uid: 'i1', trappingId: 'lanterne', equipped }],
+  items: [{ ...itemFromTrappingById('lanterne')!, uid: 'i1', equipped }],
 });
 
 describe('La lampe d’un PORTEUR — celle du champ mécanique, gate de port compris (#1245 L2)', () => {
@@ -653,7 +656,7 @@ function boardDe(cid: string, anchor: THREE.Vector3): Board {
 }
 
 /** Héros de roster : ce que le meneur se choisit dessus (vivant, Blessures) et ce que le gate de port lit. */
-const héros = (id: string, items: { uid: string; trappingId: string; equipped: boolean }[] = []) => ({
+const héros = (id: string, items: ItemInstance[] = []) => ({
   id, kind: 'hero', dead: false, wounds: { current: 3, max: 3 }, conditions: [], traits: [], talents: [], items,
 });
 
@@ -664,7 +667,7 @@ describe('La lampe du GROUPE en exploration — portée par le MENEUR (#1245)', 
   const CASE = { x: 4, y: 4 };
   // La lanterne est au SECOND héros : l'agrégat reste UN (les émetteurs de tous les héros à la case du
   // groupe, jamais additionnés), et c'est le jeton qui MARCHE — le meneur — qui le porte.
-  const party = [héros('h1'), héros('h2', [{ uid: 'i1', trappingId: 'lanterne', equipped: true }])];
+  const party = [héros('h1'), héros('h2', [{ ...itemFromTrappingById('lanterne')!, uid: 'i1', equipped: true }])];
   const sourcesDuGroupe = (): LightSource[] =>
     sceneLightSources({ scene, battle: null, party: party as never, partyPos: CASE });
 

@@ -1,10 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import { effectiveWeaponDamage, effectiveRange, applyAmmoMod, effectiveWeaponRange, isImprovised, damageWeapon, effectiveWeapon, improvisedProfile, solideSaveThreshold } from './weaponDamage';
-import { recomputeLoadout, damageString } from './items';
+import { recomputeLoadout, damageString, itemFromTrappingById, weaponFromItem } from './items';
 import type { Weapon, Combatant } from './types';
 
 const sword = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], ...over });
 const bow = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [], range: 30, ...over });
+
+/** LDB 62 l.58 ; AA 08 l.212 */
+describe('profil hors Charge des armes nées au catalogue', () => {
+  it.each(['lance-de-cavalerie', 'demi-lance-de-cavalerie'])('%s déclare sa capacité et la projette', (id) => {
+    const item = itemFromTrappingById(id)!;
+    const arme = weaponFromItem(item);
+    expect(item.capabilities?.improvisedWithoutCharge).toBe(true);
+    expect(arme.capabilities?.improvisedWithoutCharge).toBe(true);
+    expect(effectiveWeapon(arme, { charged: false }).damage).toEqual({ plusBF: true, flat: 1 });
+    expect(effectiveWeapon(arme, { charged: true })).toBe(arme);
+  });
+});
 
 describe('effectiveWeaponDamage (LDB 62 l.135)', () => {
   it('réduit les Dégâts de damageTaken', () => {
@@ -186,7 +198,7 @@ describe('improvisedProfile — profil LU dans la donnée (`arme-improvisee`)', 
   it('les 4 branches improvisées d’`effectiveWeapon` rendent TOUTES ce même profil de donnée', () => {
     const ref = improvisedProfile(sword());
     const usure = effectiveWeapon(sword({ damageTaken: 9 }));                                   // l.178
-    const lance = effectiveWeapon(sword({ label: 'Lance de cavalerie', subType: 'cavalerie' }), { charged: false }); // l.59
+    const lance = effectiveWeapon(weaponFromItem(itemFromTrappingById('lance-de-cavalerie')!), { charged: false }); // l.59
     const contact = effectiveWeapon(sword({ reach: 'Longue' }), { auContact: true });            // l.176
     const funnel = effectiveWeapon(sword(), { improvised: true });                               // ADE II 8 l.249
     for (const eff of [usure, lance, contact, funnel]) {

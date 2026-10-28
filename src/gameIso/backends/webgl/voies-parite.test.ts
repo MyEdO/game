@@ -11,6 +11,7 @@ import { creatures } from '../../../data';
 import type { BattleState } from '../../../noyau/etat';
 import type { Combatant } from '../../../engine/types';
 import { lireProjetLivre } from '../../../../scripts/source/projetLivre.mjs';
+import { findTrappingById } from '../../../data';
 
 /**
  * PARITÉ DES DEUX VOIES DE RENDU DU MONDE (#1176) : ce que le monde VOLUMIQUE dessine doit être ce que
@@ -82,7 +83,7 @@ describe('POPULATION — le monde volumique dessine les corps du builder, pas la
 
   it('hors combat, AUCUN embusqué n’est billboardé — et les figurants visibles le sont tous', () => {
     const scene = sceneEmbuscade();
-    const rendus = persosBillboardés(collectBillboards(scene, sceneMetresPerTile(scene), elsDuStage(scene, null)));
+    const rendus = persosBillboardés(collectBillboards(findTrappingById, scene, sceneMetresPerTile(scene), elsDuStage(scene, null)));
     const cachés = embusques(scene);
     expect(rendus.filter((rid) => cachés.includes(rid))).toEqual([]);
     // La mesure MORD : la lecture BRUTE de `scene.entities` en montrait exactement les embusqués de plus.
@@ -98,7 +99,7 @@ describe('POPULATION — le monde volumique dessine les corps du builder, pas la
         .filter((t) => t.subject.kind === 'figurant' && t.subject.ent.kind === 'personnage')
         .map((t) => t.id)
         .sort();
-      const volumique = persosBillboardés(collectBillboards(scene, sceneMetresPerTile(scene), els)).sort();
+      const volumique = persosBillboardés(collectBillboards(findTrappingById, scene, sceneMetresPerTile(scene), els)).sort();
       expect([scene.id, volumique]).toEqual([scene.id, affine]);
     }
   });
@@ -109,7 +110,7 @@ describe('POPULATION — le monde volumique dessine les corps du builder, pas la
     const ent = scene.entities.find((e) => e.kind === 'personnage' && !e.combat?.hiddenUntilCombat)!;
     const enrôlé = creatureToCombatant(creatures[0], ent.id, { x: ent.pos.x, y: ent.pos.y, z: ent.z ?? 0 });
     const battle = { combatants: [enrôlé], order: [enrôlé.id], turn: 0 } as unknown as BattleState;
-    const subs = collectBillboards(scene, mpt, elsDuStage(scene, battle));
+    const subs = collectBillboards(findTrappingById, scene, mpt, elsDuStage(scene, battle));
     const pose = { c: enrôlé, x: ent.pos.x, y: ent.pos.y, z: ent.z ?? 0 };
     const acteurs = actorBillboards([pose], scene, mpt);
     expect(persosBillboardés(subs)).not.toContain(ent.id);
@@ -127,7 +128,7 @@ describe('ÉCHELLE — la même pour les deux voies, sur TOUT le bestiaire', () 
   /** Facteur d'échelle du jeton dans le repère SVG de référence : le `speciesScale` du
    *  classifieur de corps × la catégorie de Taille (ou l'empreinte propre). La base 0,62 est du SVG. */
   const echelleAffine = (c: Combatant): number =>
-    tokenBodyKind({ kind: 'combatant', combatant: c }).speciesScale
+    tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: c }).speciesScale
     * (c.footprint ? footprintTokenScale(c.footprint) : sizeTokenScale(c.size));
 
   it('tout le bestiaire rend le MÊME facteur des deux côtés — 0 créature divergente', () => {

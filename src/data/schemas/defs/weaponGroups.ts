@@ -43,8 +43,9 @@ const doc = document(
     codex: { keys: ['weaponGroups'] },
     edit: { dataset: 'weaponGroups' },
   },
-  // `combat` : univers des sources `weaponGroupsMelee`/`weaponGroupsRanged` (`grammaire/sourcesDeSpecs.ts`).
-  { espace: { discriminant: 'combat' } },
+  // `combat` : univers des sources `weaponGroupsMelee`/`weaponGroupsRanged` (`grammaire/sourcesDeSpecs.ts`) ;
+  // `kind` : la sous-liste `armour`, type d'armure d'une pièce (`subType`, `defs/trappings.ts`).
+  { espace: { discriminant: ['combat', 'kind'] } },
 );
 
 export const schema = doc.schema;

@@ -3,6 +3,7 @@
  * d'auteur, interruption/reprise). RAW : section « Voyage » du LDB (`51 - Magie du Chaos.md`).
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { itemFromTrappingById } from '../engine/items';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene, Scene } from '../noyau/monde/scene';
@@ -17,7 +18,7 @@ import type { Combatant, ItemInstance } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import { draineCascade } from './cascade.testkit';
 
-const ration = (uid: string): ItemInstance => ({ uid, label: 'Ration', trappingId: 'ration', kind: 'misc', qualities: [], enc: 0, equipped: false });
+const ration = (uid: string): ItemInstance => ({ ...itemFromTrappingById('ration')!, uid, enc: 0 });
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   ({

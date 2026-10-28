@@ -38,6 +38,7 @@ import { BancRenderer, PLAFOND_ATTENTE_MS, PLAFOND_HORS_ATTEINTE_MS, attendreEnt
 import type { ActorPose, KeepEl, SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
 import type { BillboardPropEl } from '../builders/types';
 import { entreeEnScene } from '../../state/entreeEnScene';
+import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -96,7 +97,7 @@ const plafondNominal = AMBIANCE.entreeEnScene.plafondMs;
 
 function écran(strict: boolean, pos = GROUPE, els: SceneBillboardEls = SANS_BILLBOARD): JSX.Element {
   const stage = (
-    <GameStage3D lecture="jeu"
+    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={cadre(pos)}

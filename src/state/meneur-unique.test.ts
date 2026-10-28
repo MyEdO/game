@@ -20,6 +20,7 @@ import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 
+
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
 /** Table en (5,5) au cap N : abord nord déclaré en (5,4). */

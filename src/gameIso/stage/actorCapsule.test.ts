@@ -4,7 +4,7 @@ import { actorCapsuleOf, ACTOR_CAPSULE_R_M } from './actorCapsule';
 import { ISO_PX_PER_M } from '../iso';
 import { billboardHeightM } from '../backends/webgl/billboardMath';
 import { baseSkeleton, applyBuild, groundSkeleton } from '../rig/skeletons';
-import { gabaritById, type GabaritDef } from '../rig/gabarits';
+import { gabaritResolu, type GabaritResolu } from '../../noyau/apparence/gabarit';
 import { raceById } from '../rig/races';
 import { worldTransforms, apply } from '../rig/kinematics';
 import { BONE_IDS } from '../rig/bones';
@@ -32,7 +32,7 @@ describe('actorCapsuleOf — la boîte du jeton est calée sur le CORPS DESSINÉ
    *  production (`groundedBodySkeleton`, composeRig.tsx) : FK de la pose de repos, extrémités de
    *  chaque os élargies de sa demi-épaisseur, écart maximal à l'axe du bassin — l'axe que le jeton
    *  aligne sur le centre de la tuile. */
-  const drawnHalfWidth = (g: GabaritDef, sex: Sexe, build: number, scale: number) => {
+  const drawnHalfWidth = (g: GabaritResolu, sex: Sexe, build: number, scale: number) => {
     const sk = groundSkeleton(applyBuild(baseSkeleton(g, sex), build));
     const world = worldTransforms(sk, {});
     let half = 0;
@@ -58,11 +58,8 @@ describe('actorCapsuleOf — la boîte du jeton est calée sur le CORPS DESSINÉ
     { race: 'halfling', size: 'petite' },
     { race: 'gnome', size: 'petite' },
   ];
-  /** Gabarit résolu comme en production : celui de la race, surchargé par son `gabaritOverride`. */
-  const gabaritOf = (raceId: string): GabaritDef => {
-    const r = raceById(raceId);
-    return { ...gabaritById(r.gabarit), ...(r.gabaritOverride ?? {}) };
-  };
+  /** Gabarit résolu par la couture de production. */
+  const gabaritOf = (raceId: string): GabaritResolu => gabaritResolu({ race: raceById(raceId), legsMult: 1 });
   const SEXES = sexeSchema.options;
   const BUILDS = [0, 0.5, 1]; // `Appearance.build` est libre sur [0,1] — la carrure MAXIMALE compte
 

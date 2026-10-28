@@ -15,6 +15,8 @@
 import { act } from 'react';
 import { afterEach, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
+import type { Combatant } from '../../engine/types';
+import { armeDeTest } from '../../engine/objetsDeTest.testkit';
 import type { StageRenderer } from './GameStage3D';
 import { corpsDeLActeur, estCorps } from './corpsActeur';
 import { BUDGET_TRANCHE_MS_DEFAUT, clearAtlasCache, resetBakeQueue, setBudgetTrancheMs } from '../backends/webgl/atlasBake';
@@ -23,6 +25,11 @@ import { clearPeriodTextures } from '../backends/webgl/periodTexture';
 import { clearBillboardTextures } from '../backends/webgl/svgTexture';
 import { viderTexturesStatiques } from './texturesStatiques';
 import { resetStageFrames } from './stageFrames';
+
+// #2967
+export function hérosAvecArme(base: Combatant, trappingId: string): Combatant {
+  return { ...base, id: 'h1', weapons: [armeDeTest(trappingId, { uid: 'w1' })] };
+}
 
 /** Les scènes three DESSINÉES, dans l'ordre — accumulateur de MODULE : plusieurs écrans montés à la
  *  fois y versent leurs frames, et un banc peut donc compter les rendus de tout ce qui vit. */

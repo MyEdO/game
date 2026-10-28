@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { itemFromTrappingById } from './items';
 import { Characteristics, Combatant, ItemInstance, type UpkeepDeferTest } from './types';
 import { makeRNG, RNG } from './dice';
 import { dailyFoodUpkeep, applyFaimTest, isStarving, hungerCharPenalties, rationCount, isRation, dailyWaterUpkeep, applySoifTest, isThirsty, isDeprived, thirstCharPenalties, provisioningManifest } from './provisions';
@@ -12,7 +13,7 @@ const chars = (E = 30): Characteristics => ({
   'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: E, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30,
 });
 
-const ration = (uid: string): ItemInstance => ({ uid, label: 'Ration', trappingId: 'ration', kind: 'misc', qualities: [], enc: 0, equipped: false });
+const ration = (uid: string): ItemInstance => ({ ...itemFromTrappingById('ration')!, uid, enc: 0 });
 
 function hero(opts: { endurance?: number; rations?: number; brouet?: boolean; traits?: { id: string }[] } = {}): Combatant {
   return {
@@ -125,10 +126,10 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
     expect(j3.log.join(' ')).toContain('Test de Résistance');
   });
 
-  it('isRation : capacité par-OBJET `isRations` lue au catalogue par trappingId (≠ nom — multilangue-safe)', () => {
+  it('isRation : capacité intrinsèque par-OBJET `isRations`, indépendante du libellé', () => {
     expect(isRation(ration('r'))).toBe(true);
     // Objet non-ration (autre trapping) et objet custom (sans trappingId) → false.
-    expect(isRation({ uid: 'g', label: 'Grimoire', trappingId: 'grimoire', kind: 'misc', qualities: [], enc: 1, equipped: false })).toBe(false);
+    expect(isRation({ ...itemFromTrappingById('grimoire')!, uid: 'g', enc: 1 })).toBe(false);
     expect(isRation({ uid: 'x', label: 'Caillou', kind: 'misc', qualities: [], enc: 0, equipped: false })).toBe(false);
   });
 

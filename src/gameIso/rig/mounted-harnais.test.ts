@@ -13,13 +13,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { harnaisDeMonture, mountedRest, riderBodyPose, seatedBodyPose, seatedRest, type SeatedBody } from './mountedRig';
 import { baseSkeleton, groundSkeleton } from './skeletons';
-import { gabaritById } from './gabarits';
+import { gabaritResolu } from '../../noyau/apparence/gabarit';
 import { xfOf } from './poses';
 import { apply, worldTransforms } from './kinematics';
 import type { BoneId } from './bones';
 import { weaponRest } from './anim/weaponClips';
 import { buildWeapon } from '../../engine/items';
-import { armeDeDessin } from './parts/equipment';
+import { armeDeDessin } from '../../noyau/equipementDessine';
 import { resolveById, planById, planOptsForRecord } from './bodyPlan';
 import { QUAD_HARNAIS, DEFAUT_HARNAIS_MONTE } from './quadruped/harnais';
 import { QUAD_REST } from './quadruped/quadPose';
@@ -27,6 +27,7 @@ import { bonesToSvg } from './renderBones';
 import { MISSING_TONE } from './viewArt';
 import { findCreatureById } from '../../data';
 import { VIEWS, type View } from './facing';
+
 
 /** Rendu d'un record par le chemin de PROD, PORTÉ (couture montée) ou LIBRE (pion de bête). */
 const svg = (id: string, porte: boolean, over?: Parameters<typeof planOptsForRecord>[1], vue: View = 'profile'): string => {
@@ -100,7 +101,7 @@ describe('une monture dont l\'espèce n\'est pas cuite pour le set : ALARME visi
  */
 describe('seatedRest — un attablé n’est pas un cavalier', () => {
   const HAMPE = armeDeDessin(buildWeapon({ label: 'Hallebarde', hands: 2, reach: 'Longue', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empalement' }] }));
-  const SK: SeatedBody = { sk: groundSkeleton(baseSkeleton(gabaritById('humain'), 'M')), speciesPose: {}, viewPose: {}, };
+  const SK: SeatedBody = { sk: groundSkeleton(baseSkeleton(gabaritResolu({ race: { gabarit: { id: 'moyen' } }, legsMult: 1 }), 'M')), speciesPose: {}, viewPose: {}, };
   const ASSISE = 32; // unités de boîte — un tabouret, cf. `boxUnitsPerM`
 
   it('le corps assis vient de la primitive NEUTRE (jambes résolues), pas de la tenue d’arme', () => {

@@ -12,6 +12,8 @@ import { bonesToSvg } from '../renderBones';
 import { VIEWS } from '../facing';
 import type { MonsterParts } from '../../../engine/authoringAppearance';
 import { asRigSpeciesId } from '../appearance';
+import { equipDe } from '../../../noyau/equipementDessine';
+
 
 const SEED = 4;
 const CASES: [string, MonsterParts][] = [
@@ -30,7 +32,7 @@ describe('golden — calques monstrueux cornes/queue orientées (front/back/prof
       it(`${label} / ${view}`, () => {
         const svg = bonesToSvg(resolveRig(
           { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: SEED, monster },
-          { weapons: [], armour: [] }, {}, undefined, view, [],
+          equipDe([], []), {}, undefined, view, [],
         ));
         expect(svg).toMatchSnapshot();
       });

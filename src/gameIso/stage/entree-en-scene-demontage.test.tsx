@@ -39,6 +39,7 @@ import {
   viderCaptures,
   type Rasterisation,
 } from './banc-volumique';
+import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -91,7 +92,7 @@ function monter(états: boolean[]): void {
   root = createRoot(hôte);
   act(() => {
     root!.render(
-      <GameStage3D lecture="jeu"
+      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
         scene={SCENE}
         mpt={MPT}
         frame={cadrePov()}
