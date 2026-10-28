@@ -22,7 +22,8 @@ import { attackTestLabel, isHelplessTarget, rangeBandModifier } from '../engine/
 import { castInfo, isMagicMissile, missileDamage } from '../engine/magic';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { effectiveRange } from '../engine/weaponDamage';
-import { isOutOfAction, canTakeAction, refusVerrouDAction } from '../engine/conditions';
+import { isOutOfAction, refusVerrouDAction } from '../engine/conditions';
+import { refusActionDepensee, refusHorsDEtatDAgir } from './refusDuTour';
 import { isEngaged, reachTiles } from '../engine/engagement';
 import { avantageApresDepense, campGain, campSpend } from './combat/advantagePool';
 import { hasActiveFlag } from '../engine/activeFlags';
@@ -46,7 +47,7 @@ import { inBattleId } from './monde/combatants';
 import { detenteurDuCiblage } from './targetingHolder';
 import { afterApproach } from './combatDirector';
 import { ev } from './combatLog';
-import { refuserGeste } from './refusVisible';
+import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { chargeArmee } from './localIntent';
 import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
@@ -500,9 +501,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   const option = selectedAttackOption(active, battle);
   if (!option || !scene) return;
   if (target.kind === active.kind) return; // camp RELATIF : on ne frappe que le camp ADVERSE (soin/sort via leurs modes)
-  if (!canTakeAction(active)) { refuserGeste(get, set, t('agate.unableToAct')); return; }
-  const verrou = refusVerrouDAction(active);
-  if (verrou) { refuserGeste(get, set, verrou); return; }
+  const horsDAgir = refusHorsDEtatDAgir(active) ?? refusVerrouDAction(active);
+  if (horsDAgir) { refuserGesteDuSiege(get, set, horsDAgir); return; }
   // Frénésie (LDB 21 l.33) : la cible est IMPOSÉE — l'ennemi le plus proche en Ligne de Vue.
   if (isFrenzied(active)) {
     const ft = frenzyTarget(get, active);
@@ -533,7 +533,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Frénésie) → frappe directe seulement. Une attaque GRATUITE (Morsure/Caudale/Tentacule, ou l'Arme en
   // attaque libre de Frénésie → `cost.action===false`) PEUT s'approcher (charge) même l'Action dépensée
   // (LDB 21 l.33).
-  if (battle.acted && option.cost.action && plan.kind !== 'attack') { refuserGeste(get, set, t('agate.actionSpent')); return; }
+  const depensee = option.cost.action && plan.kind !== 'attack' ? refusActionDepensee(battle) : null;
+  if (depensee) { refuserGesteDuSiege(get, set, depensee); return; }
   // CLIC-ENNEMI NU = ATTAQUE À PORTÉE SEULEMENT (spec HUD § ARBITRAGE 2026-08-19) : l'approche
   // automatique vers la cible cliquée (Charge implicite / rejoindre-et-frapper) ne part plus toute
   // seule — elle se DEMANDE, en armant la Charge (`opts.approche`). Sans elle, refus DIT. Ce gate ne

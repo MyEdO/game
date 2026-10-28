@@ -21,7 +21,6 @@ import { battleRng } from './battleRng';
 import { evLines } from './combatLog';
 import type { RNG } from '../engine/dice';
 import { combatValue, combatBaseValue, defenseValue, defenseBaseValue, DEFENSE_LABEL } from '../engine/combat';
-import { isVehicle } from '../engine/coque';
 import { isInanimate } from '../engine/structures';
 import { rollTest, resolveOpposed, hydrateTR, estJete, type TestResult } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
@@ -51,7 +50,7 @@ import { combatantsWithinRadius } from './monde/combatGeometry';
 import { smokeZone } from './monde/lineOfSight';
 import { clampZoneTiles, inMapBounds } from './monde/zones';
 import { applyTriggeredEffects, maneuverEffects } from './triggeredEffects';
-import { canTakeAction } from '../engine/conditions';
+import { refusActionDepensee, refusCoque, refusHorsDEtatDAgir } from './refusDuTour';
 import { isEngagedWith, longerThanShort, markAttacked } from '../engine/engagement';
 import { areGrappling } from '../engine/grapple';
 import { rule } from '../engine/policy';
@@ -239,13 +238,15 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
   // NAVIRE (`kind:'hero'`/`enemy`, MDG 13) est exclu : il n'a PAS d'attaque-arme PERSONNELLE (`active.weapons`
   // vide → l'option 'arme' planterait `attackPlan`) — ses « attaques » sont la Manœuvre + la Bordée via ses postes.
   // (Un combattant sans arme reste armé de ses poings/Bagarre : `attackPlan` gère l'arme vide, cf. player-maneuvers.)
-  if (isVehicle(active)) return [];
+  if (refusCoque(active)) return [];
   const out: AttackOption[] = [];
+  // L'Action du Tour est disponible et utilisable (`refusDuTour.ts`).
+  const actionDispo = !(refusActionDepensee(battle) ?? refusHorsDEtatDAgir(active));
   // (0) ARME du Set actif — attaque-Action de base ET attaque CC GRATUITE de Frénésie (l.34), tant que
   //     l'Action OU la libre de Frénésie est dispo. `reach` absent → attackPlan lit l'arme tenue (Allonge,
   //     branche distance pour une arme à distance).
   const freeWeapon = hasFreeWeaponAttack(active);
-  if ((!battle.acted && canTakeAction(active)) || freeWeapon)
+  if (actionDispo || freeWeapon)
     out.push({ id: 'arme', kind: 'arme', label: libelleDeValeur(attackKindSchema, 'arme'), icon: MANEUVER_ICON.arme, targeting: 'melee', cost: { action: !freeWeapon, advantage: 0 } });
   // (1) Attaques naturelles (`attaquesNaturelles`) : gratuites de MÊLÉE ou SPÉCIALES de zone. 'arme'
   //     (ci-dessus) et 'charge' (Cornes, auto) exclues. Mêmes prédicats d'abordabilité (Avantage RAW ou 1 si
@@ -257,7 +258,7 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
     const prix = cout.advantage;
     const minAdv = a.advantageMode === 'variable' ? 1 : prix;
     if (active.advantage < minAdv) continue;
-    if (a.trigger === 'action' && (battle.acted || !canTakeAction(active))) continue;
+    if (a.trigger === 'action' && !actionDispo) continue;
     if (a.trigger === 'free' && gratuitesRestantes(active, a.kind, a) === 0) continue; // LDB 85 l.237 ; LDB 85 l.405
     const melee = MELEE_MANEUVER_KINDS.includes(a.kind);
     out.push({
@@ -282,7 +283,7 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
   //     l'Action ; `targeting:'melee'` = chemin approche-puis-frappe commun (une arme à distance y tire en
   //     place, comme l'option 'arme'). KIND-AGNOSTIQUE côté donnée (l'IA ennemie a son propre chemin). RÉSERVÉ
   //     au CHEF (`crewIds[0]`) : les membres SUPPORT (Arme d'équipe) occupent la pièce mais ne tirent pas.
-  if (active.mannedPoste && active.mannedPoste.crewIds?.[0] === active.id && !battle.acted && canTakeAction(active)) {
+  if (active.mannedPoste && active.mannedPoste.crewIds?.[0] === active.id && actionDispo) {
     const w = active.weapons.find((x) => x.uid === active.mannedPoste!.item.uid);
     // Pièce INDIRECTE (mortier/catapulte, `w.indirect`) : vise une CASE (placeur de zone), pas un combattant
     // (AA 10 l.169/171). DIRECTE (canon/baliste) : ciblage de combattant classique. Flag DONNÉE, zéro liste en dur.
@@ -292,12 +293,12 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
   //     Test opposé de Corps à corps pour entrer dans la longueur d'arme. Dispo si la règle est ON, l'Action
   //     dispo, et un adversaire Engagé présente une différence d'allonge pertinente. Choix EXPLICITE de
   //     l'« Attaque ▾ », pas une frappe.
-  if (rule('combat-weapon-reach') && !battle.acted && canTakeAction(active) && battle.combatants.some((c) => auContactEligible(active, c)))
+  if (rule('combat-weapon-reach') && actionDispo && battle.combatants.some((c) => auContactEligible(active, c)))
     out.push({ id: 'aucontact', label: 'Au contact', icon: 'action/attack', targeting: 'aucontact', cost: { action: true, advantage: 0 } });
   // (5) Empoignade EN COURS (LDB 14 l.161) : action à son tour entre deux Empoignés — Test opposé de Force
   //     (Dégâts / Empêtré) ou « Briser » (Avantage supérieur). Dispo si l'Action est dispo et un adversaire
   //     est Empoigné. Choix EXPLICITE de l'« Attaque ▾ ».
-  if (!battle.acted && canTakeAction(active) && battle.combatants.some((c) => grappleActionEligible(active, c)))
+  if (actionDispo && battle.combatants.some((c) => grappleActionEligible(active, c)))
     out.push({ id: 'grapple', label: 'Empoignade', icon: 'creature/squeeze', targeting: 'grapple', cost: { action: true, advantage: 0 } });
   return out.filter((m, i) => out.findIndex((n) => n.id === m.id) === i);
 }

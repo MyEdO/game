@@ -102,16 +102,15 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     expect(useGame.getState().battle!.preview).toBeNull();
   });
 
-  it('zone de Course indisponible si Mouvement entamé ou Action prise', () => {
-    const { H } = setup();
-    const p = { ...useGame.getState().battle!.combatants.find((c) => c.id === H.id)!.pos! };
-    const M = effectiveMovement(H);
-    expect(computeRunReach(useGame.getState).size).toBeGreaterThan(0);
+  it('zone de Course : Mouvement entamé, elle reste (LDB 15 l.41, « vient en plus ») ; Action prise, elle tombe', () => {
+    setup();
+    const plusLoin = () => Math.max(...computeRunReach(useGame.getState).values());
+    const intacte = plusLoin();
     useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: 1 } });
-    expect(computeRunReach(useGame.getState).size).toBe(0);
+    expect(computeRunReach(useGame.getState).size).toBeGreaterThan(0);
+    expect(plusLoin(), 'le Mouvement parcouru se retranche de la zone').toBe(intacte - 1);
     useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: 0, acted: true } });
     expect(computeRunReach(useGame.getState).size).toBe(0);
-    void p; void M;
   });
 
   it("zone de Course NOMINALE indisponible sous un mode-CASE (#198, résidus) : `battle.reachable` déjà "

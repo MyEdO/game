@@ -118,13 +118,18 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' }, difficulty: testDeFiche('course', 'courir').difficulty });
   });
 
-  it('Course d’un cavalier qui vient de monter : « Monter » a pris le Mouvement du Tour, la case de Course est refusée et le refus le dit', () => {
+  it('Course d’un cavalier qui vient de monter : « Monter » a pris le Mouvement du Tour, la Course vient en plus (LDB 15 l.41) et s’ouvre sur Chevaucher', () => {
     const { R, monture } = enSelle({ dejaEnSelle: false });
     g().battleMount(monture.id);
     expect(g().battle!.combatants.find((c) => c.id === R.id)!.mountId).toBe(monture.id);
-    g().battleClickTile({ x: R.pos!.x + 9, y: R.pos!.y }, { courseArmee: true });
-    expect(g().pendingRun).toBeNull();
-    expect(g().refus?.texte).toBe(t('cs.refusMouvementEpuise'));
+    expect(displayedReach(g).size, 'témoin : la Marche est épuisée').toBe(0);
+    const [cle] = [...computeRunReach(g)].sort((a, b) => b[1] - a[1])[0];
+    const [x, y] = cle.split(',').map(Number);
+    const cible = { x, y };
+    g().battleClickTile(cible, { courseArmee: true });
+    g().battleClickTile(cible, { courseArmee: true });
+    expect(g().pendingRun, 'la Course s’ouvre').toMatchObject({ combatantId: R.id, dest: cible });
+    expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' } });
   });
 
   it('Chute volontaire : `fallAcross` pose le Test de `chute`, `fallRoll` le jette', () => {

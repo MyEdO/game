@@ -135,6 +135,7 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
     const nue = skillBaseValue(doc, 'guerison');
     expect(v, 'l’État sépare la nue de la valeur jetée').toBeLessThan(nue);
 
+    useGame.setState({ battle: { ...get().battle!, action: 'heal' } }); // le Soin se commet depuis son mode armé (`HEAL_MODE`)
     get().battleHeal('bl', 'wounds');
     const ph = get().pendingHeal!;
     expect(ph.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS[ph.difficulty]).target);

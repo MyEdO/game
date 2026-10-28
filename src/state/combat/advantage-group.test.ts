@@ -104,11 +104,11 @@ describe('campSpend — dépense d’Avantage (symétrique de campGain)', () => 
     const a = mk('h1', 'hero', { advantage: 4 });
     const e = mk('e1', 'enemy');
     const noPools = makeGet([a, e]);
-    expect(spendableAdvantage(noPools.get, a)).toBe(4); // LDB : individuel
+    expect(spendableAdvantage(noPools.battle, a)).toBe(4); // LDB : individuel
     setRule('combat-aa-avantage-groupe', true);
-    const { get } = makeGet([a, e], { allies: 2, foes: 5 });
-    expect(spendableAdvantage(get, a)).toBe(2); // réserve alliés
-    expect(spendableAdvantage(get, e)).toBe(5); // réserve adverses
+    const { battle } = makeGet([a, e], { allies: 2, foes: 5 });
+    expect(spendableAdvantage(battle, a)).toBe(2); // réserve alliés
+    expect(spendableAdvantage(battle, e)).toBe(5); // réserve adverses
   });
 });
 

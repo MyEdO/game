@@ -13,6 +13,7 @@ import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { runFromTest } from '../engine/movement';
 import { refLabel } from '../data';
 import { t } from '../i18n';
+import { addCondition } from '../engine/conditions';
 
 /**
  * Parité héros/IA sur l'approche (LDB 15 l.35-41) : Charge à portée de Course (2M) quand la Marche
@@ -39,6 +40,17 @@ function planFor(heroX: number, over: Partial<Combatant> = {}) {
 }
 
 describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () => {
+  it('À Terre ne fait que ramper (LDB 16 l.35, `gating.movement: crawl`) : ni Charge ni Course, le plan de Marche reste', () => {
+    const enemy = C('enemy', 'e', 2);
+    addCondition(enemy, 'a-terre');
+    const hero = C('hero', 'h', 25);
+    const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), blocked: new Set(['25,10']), movement: 2, spells: [] };
+    const action = chooseEnemyAction(input);
+    const { plan, ran } = aiApproachPlan(input, enemy, action, makeRNG(3));
+    expect(ran).toBeNull();
+    expect(plan).toBe(action);
+  });
+
   it('Marche suffisante (cible à 3) : plan inchangé, pas de Course', () => {
     const { plan, action, ran } = planFor(5);
     expect(plan).toBe(action);

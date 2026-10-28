@@ -2,7 +2,8 @@ import type { Combatant } from '../engine/types';
 import type { BattleState, Jeu } from './etat';
 import { isOutOfAction } from '../engine/conditions';
 import { canStrikeFirst } from '../engine/qualities/dispatch';
-import { ACTION_GATES, freeDisengage, type ActionCtx } from './actionRegistry';
+import { ACTION_GATES, type ActionCtx } from './actionRegistry';
+import { desengagementSansAction } from './combat/desengagement';
 import { controlsCombatant } from './netOwnership';
 import { inBattleId } from './monde/combatants';
 
@@ -17,7 +18,7 @@ import { inBattleId } from './monde/combatants';
  */
 export function hasMeaningfulOption(ctx: ActionCtx): boolean {
   if (ctx.active.kind !== 'hero') return false;
-  // Action disponible · Mouvement restant · désengagement gratuit (LDB 15 l.47) · Piétinement gratuit
+  // Action disponible · Mouvement restant · désengagement sans Action (LDB 15 l.47, LDB 85 l.253, l.373-374) · Piétinement gratuit
   // (LDB 85) · attaque d'Arme gratuite de Frénésie (LDB 21 l.33) · Détermination en réserve (LDB 17 l.59-61).
   const gates = [
     'action-libre',
@@ -26,7 +27,7 @@ export function hasMeaningfulOption(ctx: ActionCtx): boolean {
     'attaque-libre-frenesie',
     'determination-en-reserve',
   ];
-  return gates.some((g) => ACTION_GATES[g](ctx).ok) || freeDisengage(ctx);
+  return gates.some((g) => ACTION_GATES[g](ctx).ok) || desengagementSansAction(ctx);
 }
 
 /**

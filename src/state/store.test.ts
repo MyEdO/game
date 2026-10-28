@@ -1231,7 +1231,9 @@ describe('Boucle de jeu (store)', () => {
     const posBefore = { ...H.pos! };
     useGame.getState().battleClickTile({ x: posBefore.x - 1, y: posBefore.y }, { confirm: true }); // re-clic sol
     st = useGame.getState();
-    expect(st.pendingDisengage).toBeNull(); // pas de NOUVELLE Esquive (l'Action est déjà dépensée)
+    // Pas de NOUVELLE Esquive (l'Action est dépensée, LDB 15 l.49) : seule la Fuite, « coup dans le dos », reste
+    // (LDB 15 l.49, l.61).
+    expect(st.pendingDisengage).toMatchObject({ refusEsquive: t('agate.actionSpent'), canFuir: true, canSacrifice: false });
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(posBefore); // ni déplacement libre
   });
 

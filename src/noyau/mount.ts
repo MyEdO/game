@@ -8,7 +8,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import { isOutOfAction } from '../engine/conditions';
 import { effectiveMovement } from '../engine/encumbrance';
 import { sizeGap, type SizeCategory } from '../engine/size';
-import { fearSizeAsMount } from '../engine/combatFeatures/dispatch';
+import { fearSizeAsMount, runMovementBonus } from '../engine/combatFeatures/dispatch';
 import type { ModLine, AttackOptions } from '../engine/combat';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { assertAttackWeapon } from '../engine/combat';
@@ -270,10 +270,16 @@ export function mountMovement(battle: BattleState, c: Combatant): number {
   return effectiveMovement(mount ?? c);
 }
 
+/** Le Mouvement qui compte pour la Course : celui du Tour (`mountMovement`, LDB 14 l.179) + le Sprinter de celui
+ *  qui agit (LDB 11 l.41-47). SOURCE UNIQUE de l'issue du Test (`rollFlowSpecs`) et de la zone (`computeRunReach`). */
+export function mouvementDeCourse(battle: BattleState, c: Combatant): number {
+  return mountMovement(battle, c) + runMovementBonus(c);
+}
+
 /** Cases de Mouvement encore disponibles ce Tour : budget du Tour moins le Mouvement déjà parcouru
  *  (déplacement DÉCOMPOSABLE — règle maison, cf. `BattleState.movementUsed`). Le budget est la Marche
- *  (de la monture si cavalier), ÉTENDU par une Course réussie (`battle.runBudget` = Marche + Course + DR,
- *  LDB 15 l.41 : la distance de Course « vient en plus » du Mouvement du Round — le reliquat reste dépensable). */
+ *  (de la monture si cavalier), ÉTENDU par la Course (`battle.runBudget` = Marche + Course + DR, LDB 15 l.41). Le
+ *  reliquat ne se dépense que si `canMove` l'admet (aucune Marche avant l'Action). */
 export function movementRemaining(battle: BattleState, c: Combatant): number {
   const budget = Math.max(battle.runBudget ?? 0, mountMovement(battle, c));
   return Math.max(0, budget - (battle.movementUsed ?? 0));

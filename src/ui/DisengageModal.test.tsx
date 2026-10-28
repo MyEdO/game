@@ -45,10 +45,11 @@ afterEach(() => {
 
 const texte = (e: Element) => (e.textContent ?? '').replace(/\s+/g, ' ').trim();
 
-function menu(canSacrifice: boolean, canEsquive: boolean, mountId?: string) {
+/** Le menu tel que `startDisengage` le pose : `refusEsquive` (raison du verdict) et `canFuir` absents = ouverts. */
+function menu(canSacrifice: boolean, options: { refusEsquive?: string; canFuir?: boolean } = {}, mountId?: string) {
   useGame.setState({
     battle: { combatants: [{ ...mk('Héros', 'hero'), ...(mountId ? { mountId } : {}) }, mk('Brute', 'enemy')] } as never,
-    pendingDisengage: { moverId: 'Héros', foeId: 'Brute', canSacrifice, canEsquive, phase: 'choice', atk: null, def: null, result: null },
+    pendingDisengage: { moverId: 'Héros', foeId: 'Brute', canSacrifice, ...options, phase: 'choice', atk: null, def: null, result: null },
   } as never);
   act(() => root.render(<DisengageModal />));
   const corps = host.querySelector('.modal-body')!;
@@ -61,15 +62,21 @@ function menu(canSacrifice: boolean, canEsquive: boolean, mountId?: string) {
 }
 
 describe('Désengagement — chaque option offerte porte sa note', () => {
-  it('Action dépensée : le sacrifice et sa note ; le renoncement a la sienne hors des cases', () => {
-    const { cases, horsCase } = menu(true, false);
+  it('Action dépensée, Mouvement épuisé : le sacrifice et sa note ; le renoncement a la sienne hors des cases', () => {
+    const { cases, horsCase } = menu(true, { refusEsquive: t('agate.actionSpent'), canFuir: false });
     expect(cases.map((c) => c.option)).toEqual(['Sacrifier l\'Avantage']);
     expect(cases[0].note).toMatch(/Avantage ramené à 0/);
     expect(horsCase).toEqual(['Sans désengagement, tu restes Engagé.']);
   });
 
+  it('Sonné : l’Esquive fermée dit la raison du verdict, la Fuite reste offerte (LDB 15 l.61, LDB 16 l.125)', () => {
+    const { cases } = menu(false, { refusEsquive: t('agate.unableToAct') });
+    expect(cases.map((c) => c.option)).toEqual(['Fuir (coup dans le dos)']);
+    expect(texte(host.querySelector('.modal-body .modal-log')!)).toBe(`Esquive fermée : ${t('agate.unableToAct')}.`);
+  });
+
   it('Avantage insuffisant : Esquiver et Fuir, chacun avec sa note, jamais celle du sacrifice', () => {
-    const { cases, horsCase } = menu(false, true);
+    const { cases, horsCase } = menu(false);
     expect(cases.map((c) => c.option.replace(/\s*\(\d+\)$/, ''))).toEqual(['Esquiver', 'Fuir (coup dans le dos)']);
     expect(cases[0].note).toMatch(/Test opposé d’Esquive/);
     expect(cases[1].note).toMatch(/attaque gratuite/);
@@ -81,7 +88,7 @@ describe('Désengagement — focus initial', () => {
   it('aucune option poussée (deux légales, aucune recommandation de règle) : le focus va à la PREMIÈRE option offerte, jamais à la jauge du bandeau', () => {
     const retirer = poserLayoutJsdom();
     try {
-      menu(true, true);
+      menu(true);
       expect(host.querySelectorAll('.rm-loc-grid .btn-primary')).toHaveLength(0);
       expect(texte(document.activeElement!)).toBe('Sacrifier l\'Avantage');
     } finally {
@@ -92,7 +99,7 @@ describe('Désengagement — focus initial', () => {
 
 describe('Désengagement — une RANGÉE par option', () => {
   it('la grille qui porte des notes passe en rangées (verbe | conséquence)', () => {
-    menu(true, true);
+    menu(true);
     expect(host.querySelector('.rm-loc-grid')?.hasAttribute('data-notes')).toBe(true);
     expect([...host.querySelectorAll('.rm-loc-grid > *')].every((c) => c.matches('.rm-option'))).toBe(true);
   });
@@ -101,7 +108,7 @@ describe('Désengagement — une RANGÉE par option', () => {
 // #1097 — LDB 14 l.184 : la valeur du choix « Esquiver » est la cible que lance `disengageRoll`.
 describe('Désengagement — valeur d’Esquive du choix = cible lancée', () => {
   it('cavalier monté : le choix affiche la cible du Test d’Esquive, −20 compris', () => {
-    const { cases } = menu(false, true, 'monture-sonde');
+    const { cases } = menu(false, {}, 'monture-sonde');
     const affichee = Number(/\((\d+)\)$/.exec(cases[0].option)![1]);
     const atk = { roll: 50, target: 45, success: false, sl: -1, isDouble: false, base: 45 };
     useGame.setState({ pendingDisengage: { ...useGame.getState().pendingDisengage!, atk } } as never);
@@ -121,7 +128,7 @@ describe('Désengagement — fuite : la ligne du Test du fuyard avant le jet', (
     useGame.setState({
       battle: { combatants: [mk('Héros', 'hero'), mk('Brute', 'enemy')] } as never,
       pendingDisengage: {
-        moverId: 'Héros', foeId: 'Brute', canSacrifice: false, canEsquive: true, phase: 'fuir', atk: null, def: null, result: null,
+        moverId: 'Héros', foeId: 'Brute', canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
         fuir: { participants: [
           { id: 'Brute', kind: 'backstab', interactive: true, result: { hit: true, woundsLost: 3, attackerDetail: testBreakdown('Corps à corps', 65, { roll: 20, target: 65, sl: 4, success: true }) } },
           { id: 'Héros', kind: 'touche', interactive: true, test, jet: null },
@@ -138,7 +145,7 @@ describe('Désengagement — fuite : la ligne du Test du fuyard avant le jet', (
     useGame.setState({
       battle: { combatants: [mk('Héros', 'hero'), mk('Brute', 'enemy')] } as never,
       pendingDisengage: {
-        moverId: 'Héros', foeId: 'Brute', canSacrifice: false, canEsquive: true, phase: 'fuir', atk: null, def: null, result: null,
+        moverId: 'Héros', foeId: 'Brute', canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
         fuir: { participants: [
           { id: 'Brute', kind: 'backstab', interactive: true, result: { hit: true, woundsLost: 3, attackerDetail: testBreakdown('Corps à corps', 65, { roll: 20, target: 65, sl: 4, success: true }) } },
           { id: 'Héros', kind: 'touche', interactive: true, test, jet: { roll: 10, target: 50, sl: 4, success: true } },
@@ -156,7 +163,7 @@ describe('Désengagement — fuite : la ligne du Test du fuyard avant le jet', (
     useGame.setState({
       battle: { combatants: [fuyard, mk('Brute', 'enemy')] } as never,
       pendingDisengage: {
-        moverId: 'Héros', foeId: 'Brute', canSacrifice: false, canEsquive: true, phase: 'fuir', atk: null, def: null, result: null,
+        moverId: 'Héros', foeId: 'Brute', canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
         fuir: { participants: [
           { id: 'Brute', kind: 'backstab', interactive: true, result: { hit: true, woundsLost: 3, attackerDetail: testBreakdown('Corps à corps', 65, { roll: 20, target: 65, sl: 4, success: true }) } },
           { id: 'Héros', kind: 'touche', interactive: true, test, jet: null },

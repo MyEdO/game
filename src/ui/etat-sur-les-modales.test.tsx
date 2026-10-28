@@ -157,7 +157,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const F = sonne(combattantDeModale('Héros'));
     const att = cible(F, test, test.difficulty);
     useGame.setState({ battle: { combatants: [F, combattantDeModale('Brute', 'enemy')], log: [], order: ['Héros', 'Brute'], turn: 0, round: 1 } as never,
-      pendingDisengage: { moverId: 'Héros', foeId: 'Brute', canSacrifice: false, canEsquive: true, phase: 'fuir', atk: null, def: null, result: null,
+      pendingDisengage: { moverId: 'Héros', foeId: 'Brute', canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
         fuir: { participants: [
           { id: 'Brute', kind: 'backstab', interactive: true, result: { hit: true, woundsLost: 3, attackerDetail: testBreakdown('Corps à corps', 65, { roll: 20, target: 65, sl: 4, success: true }) } },
           { id: 'Héros', kind: 'touche', interactive: true, test, jet: null },

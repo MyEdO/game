@@ -49,8 +49,13 @@ export type IssueDeCourse = { success: boolean; roll: number; dr: number; bonusC
  *  lecture : le socle des jets rejoue cette projection sur un dé SAISI sans relancer, et sans recopier
  *  la formule. */
 export function runFromTest(t: TestResult, movement: number): IssueDeCourse {
-  const bonusCases = Math.max(0, 2 * movement + Math.round(t.sl / 2));
-  return { success: t.success, roll: t.roll, ...cibleMesuree(t), dr: t.sl, bonusCases };
+  return { success: t.success, roll: t.roll, ...cibleMesuree(t), dr: t.sl, bonusCases: distanceDeCourse(movement, t.sl) };
+}
+
+/** Distance de Course en cases, plancher 0 : LDB 15 l.41 ; LDB 15 l.18-31 ; 2 m/case. `dr` absent = distance
+ *  NOMINALE, avant le jet. SOURCE UNIQUE de l'issue du Test et de la zone affichée. */
+export function distanceDeCourse(movement: number, dr = 0): number {
+  return Math.max(0, 2 * movement + Math.round(dr / 2));
 }
 
 /**

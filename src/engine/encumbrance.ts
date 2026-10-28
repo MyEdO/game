@@ -64,7 +64,7 @@ export function encumbrancePenalties(c: Combatant): EncumbrancePenalties {
 export function effectiveMovement(c: Combatant): number {
   const p = encumbrancePenalties(c);
   // Blocage de Mouvement lu en DONNÉES (`gating.movement` des États : Empêtré l.85 / Surpris l.132 « ni
-  // Mouvement ni Action » → `none` ; Sonné l.123 / À Terre l.37 « ramper à ½ Mouvement » → `half`).
+  // Mouvement ni Action » → `none` ; Sonné l.125 → `half` ; À Terre l.35 → `crawl`, la même moitié).
   const gate = conditionGating(c).movement;
   if (p.immobile || gate === 'none') return 0;
   // `moveMod` ADDITIF du collecteur passif unifié : mutation PERMANENTE (Pattes d'animaux +1 / Corpulent /
@@ -74,11 +74,11 @@ export function effectiveMovement(c: Combatant): number {
   const mv = offTerrainMoveCap(c) ?? Math.max(0, c.movement + passiveMoveMod(c));
   // `movePenalty` n'est null que sur le palier immobilisé (déjà court-circuité ci-dessus) → `?? 0` sûr.
   const base = p.tier === 0 ? mv : Math.min(mv, Math.max(mv - (p.movePenalty ?? 0), p.moveFloor));
-  // Demi-Mouvement : `gating.movement:'half'` (Sonné/À Terre) OU traumatisme de jambe/torse (LDB 18 :
+  // Demi-Mouvement : `gating.movement` `half` (Sonné) ou `crawl` (À Terre) OU traumatisme de jambe/torse (LDB 18 :
   // Déchirure/Fracture). Un seul halving (pas de cumul inventé). Fausse jambe PORTÉE mais pas encore
   // entraînée au Mouvement (100 PX, LDB 73 l.23) : +1 PM ignoré POST-halving (`prosthesisMoveRestore`) —
   // 0 hors ce cas précis (pas de trauma de jambe concerné, ou ÷2 déjà levé par l'entraînement).
-  return (gate === 'half' || traumaMovementHalved(c)) ? Math.floor(base / 2) + prosthesisMoveRestore(c) : base;
+  return (gate === 'half' || gate === 'crawl' || traumaMovementHalved(c)) ? Math.floor(base / 2) + prosthesisMoveRestore(c) : base;
 }
 
 /** Modificateur signé aux tests d'Agilité dû à l'Encombrement (0 / −10 / −20). */
