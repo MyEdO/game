@@ -1,19 +1,23 @@
-"""Base humanoïde NUE (#2972, lot B1) : le squelette UAL (65 os), le corps UBC skinné dessus, les clips UAL1 + UAL2.
+"""Base humanoïde (#2972, lots B1 et B2) : le squelette UAL (65 os), le corps UBC skinné dessus et découpé en zones, les
+clips UAL1 + UAL2, les emplacements et les prises (`anatomie.py`).
 
 Le corps UBC porte les 65 os d'UAL1, mêmes noms et même hiérarchie, sur son propre repos : ce repos est gardé, et chaque
 clip s'y joue relatif au repos (les clés Blender de l'import glTF). Pistes de position retirées hors `root` et `pelvis`,
-interpolation LINEAR.
+interpolation LINEAR. La part du manifeste de base que pose la construction (zones, emplacements, prises) s'écrit à
+côté du GLB, dans `<sortie>.manifeste.json`.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py \\
         --ual1 <UAL1_Standard.glb> --ual2 <UAL2_Standard.glb> --corps <Superhero_Male_FullBody.gltf> --sortie <humanoide.glb>
 """
 import argparse
+import json
 import sys
 from pathlib import Path
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from anatomie import poser  # noqa: E402
 from animation import assign_action, clear_animation  # noqa: E402
 
 OS_A_POSITION = ('root', 'pelvis')
@@ -103,6 +107,7 @@ def construire(args):
     clips = fusionner(bpy, clips, clips2)
     for action in clips:
         preparer(action)
+    manifeste = poser(squelette, peaux)
     for image in bpy.data.images:
         if image.has_data:
             image.pack()
@@ -111,7 +116,10 @@ def construire(args):
     bpy.ops.export_scene.gltf(filepath=str(args.sortie), export_format='GLB', export_animations=True,
                               export_animation_mode='ACTIONS', export_force_sampling=False,
                               export_optimize_animation_size=False, export_extras=True)
-    print('CLIPS', len(clips), 'OS', len(squelette.data.bones), 'PEAUX', ','.join(m.name for m in peaux), flush=True)
+    chemin = args.sortie.with_suffix('.manifeste.json')
+    chemin.write_text(json.dumps(manifeste, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
+    print('CLIPS', len(clips), 'OS', len(squelette.data.bones), 'ZONES', len(manifeste['zones']),
+          'EMPLACEMENTS', len(manifeste['emplacements']), 'MANIFESTE', chemin, flush=True)
     print('HUMANOIDE_OK', args.sortie, flush=True)
 
 
