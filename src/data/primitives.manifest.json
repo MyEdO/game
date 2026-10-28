@@ -2178,5 +2178,23 @@
     "concept": "transaction du contrôle des écritures : préparation avant lancement, projection pure sans nonce, reporters temporaires restitués après clôture, veto mémorisé et nettoyage idempotent",
     "perimetre": "fabrique de supervision et intercepteur des lancements Node --test",
     "verrou": "scripts/guards/lib/perimetreSansEcriture.test.mjs"
+  },
+  {
+    "id": "vise",
+    "type": "primitives.manifest",
+    "label": "vise/SourcePsy",
+    "fichier": "src/engine/psychology.ts",
+    "concept": "seul prédicat de ciblage par Groupe d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch`",
+    "perimetre": "+DR contre le groupe, immunités causées par le groupe, êtres aimés à défendre, vivier de l’IA, déclencheurs de Traits ciblés et de Phobie, présence au re-test, malus social, Sans Peur (Ennemi)",
+    "verrou": "src/engine/psych-vise.test.ts"
+  },
+  {
+    "id": "sousPeur",
+    "type": "primitives.manifest",
+    "label": "sousPeur/indiceDePeur/pasDePeur/sansPeurFace",
+    "fichier": "src/engine/psychology.ts",
+    "concept": "état de Peur (LDB 21 l.25 ; LDB 10 l.1051) : `sousPeur` seul lecteur du drapeau `surmontee`, `indiceDePeur` seul lecteur de l’Indice, `pasDePeur` seule arithmétique du Test étendu et de Sans Peur, `sansPeurFace` seule décision de la rangée allégée",
+    "perimetre": "lecteurs de la Peur (DR, approche, icône, vue d’acteur, re-test, IA), Test étendu des héros et de l’IA, portes de Psychologie en combat et à la rencontre",
+    "verrou": "src/engine/psych-vise.test.ts, src/engine/sans-peur.test.ts, src/engine/psych-branch-ops.test.ts"
   }
 ]

@@ -147,7 +147,7 @@ function acquireAnimositeOnFate(hero: Combatant, foeCible: string | undefined): 
   if (!res?.trait) return null;
   if (res.replacesAnimosite) hero.psychTraits = (hero.psychTraits ?? []).filter((p) => !(p.type === 'animosite' && p.cible === foeCible));
   hero.psychTraits = [...(hero.psychTraits ?? []), res.trait];
-  return t(res.trait.type === 'haine' ? 'cs.haineGain' : 'cs.animositeGain', { name: hero.label, cible: groupLabel(foeCible) });
+  return t(res.trait.type === 'haine' ? 'cs.haineGain' : 'cs.animositeGain', { name: hero.label, groupe: groupLabel(foeCible) });
 }
 
 /** OUVERTURE partagée d'un Test d'équipage MULTI (MDG 14) : contributeurs par rôle (`crewTestContributors` —

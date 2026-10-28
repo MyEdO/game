@@ -13,7 +13,7 @@ import { ACTIVITIES } from '../engine/activities';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { deElide } from '../i18n';
 import { MISCAST_TABLES } from '../engine/miscast';
-import { isFrenzied, psychTest } from '../engine/psychology';
+import { indiceDePeur, isFrenzied, psychTest, sousPeur } from '../engine/psychology';
 import { etatExige, conditionSeverity } from '../engine/conditions';
 import { roundsLabel } from '../engine/duration';
 
@@ -266,18 +266,18 @@ export interface EffectFlags {
   focusDr?: number;
   /** Faim (#T2, LDB 18 l.337-343) : jours sans manger + échecs (malus de caracs actifs). */
   hunger?: { days: number; failures: number };
-  /** Sous l'emprise de la PEUR (LDB 21 l.27) : Indice le plus élevé des sources non surmontées
-   *  (calmeDR < Indice). Undefined = aucune Peur active. */
+  /** Sous l'emprise de la PEUR (LDB 21 l.27) : Indice le plus élevé des Peurs portées (`sousPeur`).
+   *  Undefined = aucune Peur active. */
   fear?: number;
 }
 
 /** Extrait les états-drapeaux affichables d'un Combatant (source unique pour tous les affichages). */
 export function combatantFlags(c: Combatant): EffectFlags {
-  const fears = (c.psychState ?? []).filter((p) => p.type === 'peur' && (p.calmeDR ?? 0) < (p.indice ?? 1));
+  const fears = (c.psychState ?? []).filter(sousPeur);
   return {
     frenzied: isFrenzied(c), defensiveStance: c.defensiveStance, aiming: c.aiming, focusDr: c.focus?.dr,
     hunger: (c.hunger?.days ?? 0) >= 1 ? { days: c.hunger!.days, failures: c.hunger!.failures } : undefined,
-    fear: fears.length ? Math.max(...fears.map((p) => p.indice ?? 1)) : undefined,
+    fear: fears.length ? Math.max(...fears.map(indiceDePeur)) : undefined,
   };
 }
 

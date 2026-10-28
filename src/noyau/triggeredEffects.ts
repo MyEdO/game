@@ -133,7 +133,7 @@ export function effectSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSourc
     if (derive >= (cond.value ?? 1)) continue;
     out.push({ effects: withSource(d.effects, { kind: 'condition', id: cond.id }), cap: 1, key: `cond:${cond.id}`, label: d.label ?? cond.id, stacks: Math.max(0, (cond.value ?? 1) - derive - reduce) });
   }
-  for (const p of actor.psychState ?? []) { const d = findPsychologyById(p.type); if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'psychology', id: p.type }), cap: 1, key: `psy:${p.type}`, label: d.label ?? p.type, stacks: 1 }); }
+  for (const p of actor.psychState ?? []) { const d = findPsychologyById(p.type); if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'psychology', id: p.type }), cap: 1, key: `psy:${p.type}`, label: d.label, stacks: 1 }); }
   return out;
 }
 

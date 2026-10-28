@@ -8,7 +8,15 @@ import { fr } from './messages/fr';
 import type { PlayerText } from './playerText';
 
 export type MsgKey = keyof typeof fr;
-type Params = Record<string, string | number>;
+/** Paramètres qui NOMMENT une entrée de donnée : leur valeur est le libellé minté (`psychologyLabel`,
+ *  `groupLabel`, `groupesLabel`, `sansPeurLabel`), jamais l'id, qu'un `string` nu laisserait passer. #3045 */
+interface ParamsDeLibelle {
+  readonly psych?: PlayerText;
+  readonly groupe?: PlayerText;
+  readonly groupes?: PlayerText;
+  readonly talent?: PlayerText;
+}
+type Params = Record<string, string | number> & ParamsDeLibelle;
 
 /** Sous-ensemble `out.*` du catalogue — clés de CONSÉQUENCE (`resultLine`, `rollSeam.ts`, #295 Lot 0).
  *  `OutVars` reste un `Record` non typé PAR clé (comme `Params` ci-dessus, `t()` n'a pas de typage
@@ -47,7 +55,7 @@ export const getLocale = (): Locale => locale;
 export const setLocale = (l: Locale): void => { locale = l; };
 
 /** Interpole `{param}` dans un patron ; laisse `{x}` intact si `x` est absent. Pur (testable seul). */
-export function interpolate(pattern: string, params?: Params): string {
+export function interpolate(pattern: string, params?: Record<string, string | number>): string {
   return params ? pattern.replace(/\{(\w+)\}/g, (_, k: string) => (params[k] != null ? String(params[k]) : `{${k}}`)) : pattern;
 }
 

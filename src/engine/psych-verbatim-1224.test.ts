@@ -48,9 +48,12 @@ describe('#1224 écart 1 — Phobie : l’objet du Trait CAUSE la Peur (LDB 21 l
   it('l’Indice est le CURSEUR laissé à la table (l.87) : celui de l’instance l’emporte sur le défaut', () => {
     const fort = obs({ psychTraits: [{ type: 'phobie', cible: 'hommes-betes', indice: 3 }] });
     expect(fearSourceFor(fort, bete())).toEqual({ kind: 'peur', indice: 3 });
-    // « Effrayé (Cible) » = Peur 0 (LDB 85) : un Indice nul reste inerte, aucune source posée.
+  });
+
+  it('« La créature a Peur 0 de la Cible » (LDB 85 l.122) : un Indice nul est une source de Peur 0, pas une absence', () => {
     const zero = obs({ psychTraits: [{ type: 'phobie', cible: 'hommes-betes', indice: 0 }] });
-    expect(fearSourceFor(zero, bete())).toBeNull();
+    expect(fearSourceFor(zero, bete())).toEqual({ kind: 'peur', indice: 0 });
+    expect(fearSourceFor(zero, bete({ groups: ['elfes'] }))).toBeNull();
   });
 
   it('la Phobie n’ouvre PLUS de bande binaire à elle : `targetedTrigger` la laisse au régime de la Peur', () => {

@@ -12,6 +12,9 @@ import { type CustomStatblock } from '../engine/statblock';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { presetPnjById } from './campaignData';
 import { ligneDe } from '../engine/modLine.testkit';
+import { psychTest, sansPeurLabel } from '../engine/psychology';
+import { refLabel } from '../data';
+import { t } from '../i18n';
 
 /**
  * Flux de Psychologie À LA RENCONTRE, hors combat (couture C). Depuis 2026-06-10 : la Peur/Terreur de
@@ -279,6 +282,23 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect((rangee().result as { target?: number }).target, 'le jet affronte la cible annoncée').toBe(30);
   });
 
+  it('Sans Peur (Ennemi) : la rangée du porteur est Accessible et nommée, celle du voisin reste déclarée (LDB 10 l.1051)', () => {
+    const brave = timoreux('Brave');
+    brave.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];
+    brave.talents = [{ talentId: 'sans-peur', spec: 'araignees', times: 1 }];
+    const autre = timoreux('Autre');
+    autre.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];
+    useGame.setState({ party: [brave, autre] });
+    useGame.getState().startScene(scene([ent({ id: 'arai', statblock: { type: 'statblock', label: 'Araignée géante', char: { B: 10 }, groups: ['araignees'] } })]));
+    const [b, a] = useGame.getState().pendingCascade!.participants[0].participants!;
+    const { skill, difficulty } = psychTest('peur');
+    expect(b.difficulty).toBe('accessible');
+    expect(b.label).toBe(t('step.sansPeur', { skill: refLabel('skills', skill), talent: sansPeurLabel() }));
+    expect(b.meta?.sansPeur).toBe(true);
+    expect(a.difficulty).toBe(difficulty);
+    expect(a.meta?.sansPeur).toBeUndefined();
+  });
+
   it('Phobie hors de sa Cible : aucune bande (la porte reste bornée au Groupe du Trait)', () => {
     const h = timoreux('H');
     h.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];
@@ -305,8 +325,8 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
  *     équivalent à son *Indice* de *Terreur*. »
  * L'exemption du succès est scopée à LA TERREUR ; la seconde phrase est INCONDITIONNELLE. La Peur qui
  * suit se pose donc à PLEIN Indice dans les deux cas — et non « déjà surmontée sur une réussite ».
- * La couture qui mord est le prédicat unique `calmeDR < indice` (`psychDRAdjust`, la même lecture que
- * le Test de Peur de fin de Round et l'approche menaçante) : Indice 0 la rendait INERTE.
+ * La couture qui mord est le prédicat unique `sousPeur` (`psychDRAdjust`, la même lecture que le Test
+ * de Peur de fin de Round et l'approche menaçante).
  */
 describe('Terreur réussie : la Peur qui en découle est due à PLEIN Indice (LDB 21)', () => {
   const SOURCE_ID = 'scripted:Un spectre hurlant';
@@ -333,7 +353,7 @@ describe('Terreur réussie : la Peur qui en découle est due à PLEIN Indice (LD
     expect(stacks(hero, 'brise')).toBe(0); // « aucun effet supplémentaire à cause de la Terreur »
     const peur = peurOf(hero);
     expect(peur?.indice).toBe(3); // plein Indice, jamais 0
-    expect(peur?.calmeDR ?? 0).toBe(0); // jamais testée EN TANT QUE Peur
+    expect(peur?.surmontee, 'jamais testée EN TANT QUE Peur').toBe(false);
     // Elle MORD : Peur active non vaincue vs sa source (LDB 21 l.27) — la couture réelle, pas le champ.
     expect(psychDRAdjust(hero, spectre)).toBe(-1);
   });

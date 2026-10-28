@@ -41,7 +41,12 @@ describe('terrains — la règle lue au dataset', () => {
     expect(terrainSolidHeightM('zzz-inconnu')).toBe(0);
     expect(terrainOverlayProp('zzz-inconnu')).toBeUndefined();
     expect(terrainDetail('zzz-inconnu')).toBeNull();
-    expect(terrainLabel('zzz-inconnu')).toBeUndefined();
+  });
+
+  it('`terrainLabel` (id garanti au parse) : le nom d’auteur, et un id inconnu LÈVE (#3031)', () => {
+    const premier = tousLesTerrains()[0];
+    expect(terrainLabel(premier.id)).toBe(premier.label);
+    expect(() => terrainLabel('zzz-inconnu')).toThrow('zzz-inconnu');
   });
 
   it('précédence : pave déborde sur herbe (priorité plus haute)', () => {

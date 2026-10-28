@@ -64,15 +64,15 @@ export function groupesDe(c: PorteurDeGroupes): string[] {
   return out;
 }
 
-/** Groupes EXPOSÉS d'un porteur : ses Groupes effectifs moins ceux de ses Traits dissimulés
- *  (`hiddenGroupsOf`). */
-export function groupesExposes(c: PorteurDeGroupes): string[] {
+/** Vue PERÇUE des Groupes d'un porteur, celle que lit l'observateur : ses Groupes effectifs moins ceux de ses
+ *  Traits dissimulés (`hiddenGroupsOf`). `groupesPercus ⊆ groupesDe`. */
+export function groupesPercus(c: PorteurDeGroupes): string[] {
   const caches = hiddenGroupsOf(c);
   return groupesDe(c).filter((g) => !caches.includes(g));
 }
 
 /** Ids de Groupe accordés par `capabilities.grantGroups` d'un Trait porté DISSIMULÉ (`TraitInstance.hidden`,
- *  arbitrage `maison` MDG 07 l.250), lus en direct sur `c.traits` : `groupesExposes` les retire des Groupes
+ *  arbitrage `maison` MDG 07 l.250), lus en direct sur `c.traits` : `groupesPercus` les retire des Groupes
  *  effectifs. */
 export function hiddenGroupsOf(c: Pick<PorteurDeGroupes, 'traits'>): string[] {
   const out: string[] = [];
@@ -89,7 +89,7 @@ export function hiddenGroupsOf(c: Pick<PorteurDeGroupes, 'traits'>): string[] {
  *  plutôt que de dériver un sous-groupe inventé (YAGNI). Un Groupe-cible JOKER (`GroupData.matchesAll`,
  *  `groups.json` : `tout` = n'importe qui — Animosité « toutes les créatures !!! » ; `vivant` =
  *  `matchesAll` moins ses `exceptGroups`) est résolu ICI, sur la donnée du Groupe visé. */
-export function groupMatch(cibleId: string, groupIds: string[]): boolean {
+export function groupMatch(cibleId: string, groupIds: readonly string[]): boolean {
   const cible = findGroupById(cibleId);
   if (cible?.matchesAll) return !(cible.exceptGroups ?? []).some((g) => groupIds.includes(g));
   return groupIds.includes(cibleId);
