@@ -28,7 +28,7 @@ Les trois premières catégories sont celles du module commun (`CategorieDErreur
 | `vue` | aucune | `{ vue }` |
 | `jouer` | un geste : `{ offre, ctx? }` (une offre du registre et son contexte) ou `{ type, args?, siege? }` (un verbe de la partie, ses arguments, le siège qui le joue) | une `Suite` |
 | `reprendre` | `{ jeton }` : le numéro d'un jeton programmé | une `Suite` : la reprise du jeton |
-| `modeles` | `{ manifestes }` : un objet id de modèle → manifeste, celui du listage servi (`GET modeles/`, section « Atelier 3D ») | `{ bases, elements, refus }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), sans partie |
+| `modeles` | `{ manifestes }` : un objet id de modèle → manifeste, celui du listage servi (`GET modeles/`, section « Atelier 3D ») | `{ bases, glb, refus }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), sans partie |
 | `erreursGlobales` | aucune | `{ erreurs: { message, source }[] }` : les événements `error` et `unhandledrejection` de la page depuis le dernier relevé, puis vidés ; `source` vaut `fichier:ligne`, `unhandledrejection` ou `null` |
 
 `demarrer` ouvre la partie une seule fois par page : un second appel se refuse, et recommencer, c'est recharger la page. Un `demarrer` refusé n'ouvre rien.
@@ -97,22 +97,23 @@ La recette native `projet/recettes/equipement.gd` reçoit une vue JSON figée pa
 
 L'atelier dessine les bases et leurs éléments d'après la réponse de `modeles`, jamais en relisant les manifestes lui-même. Le pck exporté est figé : l'atelier tire les modèles par HTTP, à côté de `index.html`, et un GLB réexporté se recharge à chaud. Le serveur de l'export (`hotes/godot/servir.mjs`) sert :
 
-- `GET modeles/` : le listage, `{ manifestes: Record<id, manifeste>, erreurs: string[] }` (`manifestesDesModeles`, `asset/release.ts`), relu à chaque appel. Godot passe `manifestes` tel quel à `modeles`.
-- `GET modeles/<fichier>` : chaque fichier du dossier des modèles (manifeste, GLB), servi en `Cache-Control: no-store`.
+- `GET modeles/` : le listage, `{ manifestes: Record<id, manifeste>, erreurs: string[] }`, relu à chaque appel, en `Cache-Control: no-store`. `manifestes` ne porte que les manifestes que `verdictsDesModeles` (`asset/modeles.ts`, la validation de `recupererModeles`) accepte contre leur GLB. `erreurs` porte, une ligne chacun, le manifeste illisible, le GLB illisible, le refus d'un manifeste et le dossier des modèles illisible. Godot passe `manifestes` tel quel à `modeles`, qui ne les revalide pas : la validation lit le GLB, que seul le serveur détient.
+- `GET modeles/<fichier>` : chaque fichier du dossier des modèles (manifeste, GLB), servi en `Cache-Control: no-store`. Un chemin hors du dossier ou qui ne s'ouvre pas en fichier reçoit 404.
+- Une URI malformée reçoit 400. Le serveur continue après toute requête défaillante.
 
 La réponse de `modeles` :
 
 ```ts
 type ModelesDeLAtelier = {
-  bases: { id: string; base: string; empreinte: string; points: PointDAccroche[] }[];
-  elements: { id: string; base: string; categorie: string; empreinte: string }[];
+  bases: { id: string; empreinte: string; points: PointDAccroche[] }[];
+  glb: Record<string, string>;
   refus: string[];
 };
 type PointDAccroche = { id: string; genre: 'emplacement' | 'prise'; attache: { os: string; position: [number, number, number]; rotation: [number, number, number] }; elements: string[] };
 ```
 
-- `bases` : les bases de l'index (base, clé) → élément (`indexerModeles`, `asset/modeles.ts`). Les `points` d'une base listent ses `emplacements`, puis ses `prises` ; à chaque point vont les ids des éléments de cette base liés en `liaison.mode === 'rigide'`.
-- `elements` : les éléments dont la base est présente, rigides ou skinnés. `empreinte` vaut `glb.sha256`, celle d'une base comme celle d'un élément.
+- `bases` : les bases de l'index (base, clé) → élément (`indexerModeles`, `asset/modeles.ts`). Les `points` d'une base listent ses `emplacements`, puis ses `prises`. À chaque point vont les ids des éléments de cette base liés en `liaison.mode === 'rigide'`. Un élément lié au `squelette` ou en `surface` n'a aucun point. `empreinte` vaut `glb.sha256` de la base.
+- `glb` : le fichier, sous `modeles/`, de chaque base et de chaque élément d'un point (`fichiersDuModele(id).glb`).
 - `refus` : ceux de l'index (`[base-absente]`, `[cle-en-doublon]`, `[base-en-doublon]`, `[forme]`). Un manifeste qui n'est pas du schéma 3 est ignoré.
 
 ## Écran publié
@@ -123,6 +124,6 @@ Chaque vue mise en page, Godot pose `globalThis.wfrpEcran`. Chaque publication r
 
 - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
 - Au combat : `{ boutons: { texte, x, y }[], cases: Record<"x,y", [x, y]> }`, plus le point de l'écran de chaque case du plateau.
-- À l'atelier : `{ boutons: { texte, x, y, cle? }[], atelier: { base: string|null, empreinte: string|null, clip: string|null, instant: number, lecture: boolean, vitesse: number, montes: Record<point, element>, aides: { os: boolean, emplacements: boolean, prises: boolean }, erreurs: string[] } }`. `cle` est optionnelle : un bouton d'emplacement la porte, `"<point>/<element>"` ou `"<point>/vide"`, parce que son texte (« vide », un id d'élément) se répète d'une ligne à l'autre.
+- À l'atelier : `{ boutons: { texte, x, y, cle? }[], atelier: { base: string|null, empreinte: string|null, clip: string|null, instant: number|null, lecture: boolean, vitesse: number, montes: Record<point, element>, aides: { os: boolean, emplacements: boolean, prises: boolean }, erreurs: string[] } }`. `cle` est optionnelle : un bouton d'emplacement la porte, `"<point>/<element>"` ou `"<point>/vide"`, parce que son texte (« vide », un id d'élément) se répète d'une ligne à l'autre.
 
 La recette du tour complet (`hotes/godot/recette.mjs`) clique « Combat » au menu, puis y lit où cliquer ; elle observe la partie par `vue` et ne joue aucun geste par le pont.

@@ -1,11 +1,13 @@
 /**
- * LES MODÈLES DE L'ATELIER 3D (#3086, `CONTRAT.md`) : l'index (base, clé) → élément (`indexerModeles`) des manifestes
- * que le dossier servi publie, mis en données que Godot dessine sans les relire : chaque base avec ses points
- * d'accroche (ses emplacements, puis ses prises), et à chaque point les éléments rigides construits pour elle.
+ * LES MODÈLES DE L'ATELIER 3D (#3086, `CONTRAT.md`, section « Atelier 3D ») : l'index (base, clé) → élément
+ * (`indexerModeles`) des manifestes que le listage servi a validés contre leur GLB (`verdictsDesModeles`), mis en données
+ * que Godot dessine sans les relire : chaque base avec ses points d'accroche (ses emplacements, puis ses prises), à chaque
+ * point les éléments rigides construits pour elle, et le fichier GLB de chacun (`fichiersDuModele`).
  */
 import type { Attache } from '../asset/attache';
-import { indexerModeles } from '../asset/modeles';
-import { estObjet } from '../../../src/hote/formes';
+import type { ManifesteDElement } from '../asset/element';
+import type { ManifesteDeBase } from '../asset/manifesteDeBase';
+import { fichiersDuModele, indexerModeles } from '../asset/modeles';
 
 /** Un point d'accroche d'une base : un emplacement ou une prise, son repère, et les ids des éléments qui s'y montent. */
 export interface PointDAccroche {
@@ -17,41 +19,30 @@ export interface PointDAccroche {
 
 export interface BaseDeLAtelier {
   id: string;
-  base: string;
   empreinte: string;
   points: PointDAccroche[];
 }
 
-export interface ElementDeLAtelier {
-  id: string;
-  base: string;
-  categorie: string;
-  empreinte: string;
-}
-
 export interface ModelesDeLAtelier {
   bases: BaseDeLAtelier[];
-  elements: ElementDeLAtelier[];
+  /** Le fichier GLB, sous `modeles/`, de chaque base et de chaque élément montable, par id de modèle. */
+  glb: Record<string, string>;
   refus: string[];
 }
 
-const champ = (brut: unknown, cle: string): Record<string, unknown> => (estObjet(brut) && estObjet(brut[cle]) ? brut[cle] : {});
-
-/** Les modèles de `manifestes` (id de modèle → manifeste, tels qu'importés) : les bases et leurs points d'accroche, les
- *  éléments rattachés à une base présente, et les refus de l'index. Un élément se monte à un point s'il est lié en
- *  `rigide` (`liaison.mode`) ; les éléments skinnés n'ont aucun point. */
+/** Les modèles de `manifestes` (id de modèle → manifeste du listage servi, validé) : les bases et leurs points
+ *  d'accroche, et les refus de l'index. Un élément se monte à chaque point de sa base s'il est lié en `rigide`. */
 export function modelesDeLAtelier(manifestes: Record<string, unknown>): ModelesDeLAtelier {
   const index = indexerModeles(Object.entries(manifestes).map(([id, brut]) => ({ id, brut })));
-  const elements = [...index.elements.values()].flatMap(({ id, brut }) => {
-    const m = brut as Record<string, unknown>;
-    return typeof m.base === 'string' && index.bases.has(m.base) ? [{ id, base: m.base, categorie: String(m.categorie), empreinte: String(champ(m, 'glb').sha256), rigide: champ(m, 'liaison').mode === 'rigide' }] : [];
-  });
+  const rigides = [...index.elements.values()].filter(({ brut }) => (brut as ManifesteDElement).liaison.mode === 'rigide');
+  const glb: Record<string, string> = {};
   const bases = [...index.bases.values()].map(({ id, brut }) => {
-    const m = brut as Record<string, unknown>;
-    const montables = elements.filter((e) => e.rigide && e.base === m.base).map((e) => e.id);
-    const points = (genre: PointDAccroche['genre'], cle: string): PointDAccroche[] =>
-      Object.entries(champ(m, cle)).map(([pointId, attache]) => ({ id: pointId, genre, attache: attache as Attache, elements: montables }));
-    return { id, base: String(m.base), empreinte: String(champ(m, 'glb').sha256), points: [...points('emplacement', 'emplacements'), ...points('prise', 'prises')] };
+    const m = brut as ManifesteDeBase;
+    const montables = rigides.filter((e) => (e.brut as ManifesteDElement).base === m.base).map((e) => e.id);
+    for (const modele of [id, ...montables]) glb[modele] = fichiersDuModele(modele).glb;
+    const points = (genre: PointDAccroche['genre'], attaches: Readonly<Record<string, Attache>>): PointDAccroche[] =>
+      Object.entries(attaches).map(([pointId, attache]) => ({ id: pointId, genre, attache, elements: montables }));
+    return { id, empreinte: m.glb.sha256, points: [...points('emplacement', m.emplacements), ...points('prise', m.prises)] };
   });
-  return { bases, elements: elements.map(({ rigide: _, ...e }) => e), refus: index.refus };
+  return { bases, glb, refus: index.refus };
 }

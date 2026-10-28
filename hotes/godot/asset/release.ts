@@ -12,8 +12,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { sha256 } from './empreinte.ts';
-import { estObjet } from './manifeste.ts';
-import { estBase, estSchema3, indexerModeles, validerModele, type BaseLivree, type EntreeDeModele } from './modeles.ts';
+import { estObjet } from '../../../src/hote/formes';
+import { fichiersDuModele, indexerModeles, verdictsDesModeles, type EntreeDeModele } from './modeles.ts';
 
 /** Le dépôt dont la Release porte les modèles. */
 export const DEPOT = 'MyEdO/game';
@@ -50,9 +50,6 @@ export const urlDAsset = (nom: string): string => `https://github.com/${DEPOT}/r
 
 /** Le dossier des modèles du projet Godot : l'import y dépose, `recupererModeles` y tire les GLB. */
 export const DOSSIER_DES_MODELES = fileURLToPath(new URL('../projet/modeles', import.meta.url));
-
-/** Les fichiers du modèle `id` dans le projet : le GLB (tiré de la Release, ignoré de git), le manifeste et la provenance (commités). */
-export const fichiersDuModele = (id: string) => ({ glb: `${id}.glb`, manifeste: `${id}.manifeste.json`, provenance: `${id}.provenance.json` });
 
 /** La licence d'un composant, telle que la production la déclare dans `components.<id>.asset`. */
 export interface LicenceDeComposant {
@@ -209,10 +206,7 @@ export async function recupererModeles({ dossier, cache = CACHE_DES_MODELES, tel
     if (!duProjet) ecrireTexteAtomique(dansLeProjet, readFileSync(enCache));
     octetsParId.set(modele.id, readFileSync(dansLeProjet));
   }
-  const bases = new Map<string, BaseLivree>();
-  for (const { id, brut } of entrees) if (estSchema3(brut) && estBase(brut)) bases.set(String(brut.base), { brut, octets: octetsParId.get(id)! });
-  for (const { id, brut } of [...entrees].sort((a, b) => Number(estBase(b.brut)) - Number(estBase(a.brut)))) {
-    const verdict = validerModele(brut, octetsParId.get(id)!, bases);
+  for (const { id, verdict } of verdictsDesModeles(entrees, octetsParId)) {
     if (!verdict.ok) throw new Error(`${fichiersDuModele(id).manifeste} refusé contre ${fichiersDuModele(id).glb} :\n  ${verdict.refus.join('\n  ')}`);
   }
   journal(`[modèles] ${modeles.map((m) => m.model).join(', ')} : vérifiés (SHA-256), manifestes validés, cache ${cache}`);

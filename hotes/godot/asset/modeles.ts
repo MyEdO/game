@@ -1,6 +1,7 @@
 import { validerElement, type ManifesteDElement } from './element.ts';
 import { lireGlb } from './glb.ts';
-import { cheminsAbsolus, estObjet, ligneDErreur, validerManifeste } from './manifeste.ts';
+import { estObjet } from '../../../src/hote/formes';
+import { cheminsAbsolus, ligneDErreur, validerManifeste } from './manifeste.ts';
 import { validerManifesteDeBase, type ManifesteDeBase } from './manifesteDeBase.ts';
 import type { ManifesteMontable } from './montage';
 
@@ -8,6 +9,9 @@ export type ManifesteDeModele = ManifesteMontable | ManifesteDeBase | ManifesteD
 export interface EntreeDeModele { readonly id: string; readonly brut: unknown }
 export interface BaseLivree { readonly brut: unknown; readonly octets: Uint8Array }
 export type VerdictDeModele = { readonly ok: true; readonly manifeste: ManifesteDeModele } | { readonly ok: false; readonly refus: readonly string[] };
+
+/** Les fichiers du modèle `id` dans le projet : le GLB (tiré de la Release, ignoré de git), le manifeste et la provenance (commités). */
+export const fichiersDuModele = (id: string) => ({ glb: `${id}.glb`, manifeste: `${id}.manifeste.json`, provenance: `${id}.provenance.json` });
 
 export const estSchema3 = (m: unknown): m is Record<string, unknown> => estObjet(m) && m.schema === 3;
 /** Une base porte son squelette (`ManifesteDeBase.os`), champ qu'aucune catégorie d'élément n'admet (`element.ts`). */
@@ -36,6 +40,15 @@ export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: Rea
   }
   for (const { id, brut: m } of entrees) if (estSchema3(m) && !estBase(m) && typeof m.base === 'string' && !bases.has(m.base)) refus.push(`[base-absente] ${id} : ${m.base}`);
   return { bases, elements: cles, refus };
+}
+
+/** Le verdict (`validerModele`) de chaque entrée dont `octets` porte le GLB, les bases d'abord : un élément se valide
+ *  contre la base de `entrees` qui a ses octets. */
+export function verdictsDesModeles(entrees: readonly EntreeDeModele[], octets: ReadonlyMap<string, Uint8Array>): { readonly id: string; readonly brut: unknown; readonly verdict: VerdictDeModele }[] {
+  const livrees = entrees.flatMap((e) => { const o = octets.get(e.id); return o ? [{ ...e, octets: o }] : []; });
+  const bases = new Map<string, BaseLivree>();
+  for (const { brut, octets: o } of livrees) if (estBase(brut)) bases.set(String((brut as Record<string, unknown>).base), { brut, octets: o });
+  return livrees.sort((a, b) => Number(estBase(b.brut)) - Number(estBase(a.brut))).map(({ id, brut, octets: o }) => ({ id, brut, verdict: validerModele(brut, o, bases) }));
 }
 
 /** Un validateur par contrat : personnage schéma 2, base schéma 3, élément schéma 3 contre sa base validée. */

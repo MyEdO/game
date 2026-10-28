@@ -29,6 +29,13 @@ static func manifeste_du_modele(modele: String) -> Dictionary:
 	return manifeste("res://modeles/%s.manifeste.json" % modele.get_basename())
 
 
+## Le premier `Skeleton3D` sous `modele`, `null` s'il n'en porte aucun.
+static func squelette_de(modele: Node) -> Skeleton3D:
+	for candidat in modele.find_children("*", "Skeleton3D", true, false):
+		return candidat as Skeleton3D
+	return null
+
+
 ## Le `Portage` d'un point d'attache `{os, position, rotation}` (`hotes/godot/asset/attache.ts`), posé sous `squelette`
 ## par le `BoneAttachment3D` nommé `nom` ; `null` si l'os est absent.
 static func attacher(squelette: Skeleton3D, declaration: Dictionary, nom: String) -> Node3D:
@@ -63,10 +70,7 @@ func montrer(modele: Node, porteur: Dictionary, dessin: Dictionary) -> void:
 	for noeud in _montes:
 		noeud.free()
 	_montes.clear()
-	var squelette: Skeleton3D = null
-	for candidat in modele.find_children("*", "Skeleton3D", true, false):
-		squelette = candidat as Skeleton3D
-		break
+	var squelette := squelette_de(modele)
 	if squelette == null:
 		_refuser("squelette-absent")
 		return

@@ -12,9 +12,10 @@ import { tableTotale } from '../../../src/lib/tableTotale';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, LICENCE_DE_PRODUCTION, productionSchema3, deposerSchema3 } from './schema3.testkit.ts';
 import {
-  DOSSIER_DES_MODELES, fichiersDuModele, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
+  DOSSIER_DES_MODELES, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   TAG, urlDAsset, type AssetAPublier, type Gh,
 } from './release.ts';
+import { fichiersDuModele } from './modeles';
 
 /** Un GLB minimal : en-tête glTF 2 et chunk JSON portant `nodes` et `animations`. */
 function glb(noeuds: readonly string[], animations: readonly string[], options: { skinned?: readonly string[]; joints?: readonly string[] } = {}): Uint8Array {
@@ -406,6 +407,7 @@ describe('importerPersonnage', () => {
   it.each([
     ['trousers, boots_viking', 'CC0', 'CC0 (official asset-pack page)'],
     ['boots_leather, helmet_chaos', 'CC-0', 'CC0 (official asset-pack page)'],
+    ['Universal Animation Library', 'CC0', 'CC0 1.0 Universal (CC0 1.0)'],
   ])('accepte la licence de %s : l’en-tête « %s » et le pack « %s » sont CC0-1.0', (_, enTete, annonce) => {
     const dossier = dossierDeProduction((m) => {
       m.components.corps.asset.explicit_header = [`# license ${enTete}`];

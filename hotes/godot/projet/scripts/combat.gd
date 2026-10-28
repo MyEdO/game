@@ -18,13 +18,8 @@ func _ready() -> void:
 	_plateau.case_cliquee.connect(_cliquer)
 	_interface.offre_choisie.connect(func(offre: String) -> void: _jouer({offre = offre}))
 	_fenetre.geste.connect(_jouer)
-	_pont.refus.connect(func(erreur: Dictionary) -> void: _interface.afficher_refus(erreur.message))
-	_pont.panne.connect(_interface.afficher_panne)
-	if not _pont.est_web:
-		_interface.afficher_panne("Cet hôte joue dans une page : son pont est `wfrp-pont.js` (export Web).")
+	if not await _pont.rejoindre(_interface.afficher_refus, _interface.afficher_panne):
 		return
-	if not _pont.est_pret():
-		await _pont.pret
 	var entree := {scenario = _pont.parametre("scenario")}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():

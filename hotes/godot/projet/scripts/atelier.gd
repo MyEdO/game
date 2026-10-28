@@ -8,9 +8,11 @@ extends Node3D
 const VIDE := "vide"
 const AIDE_DU_GENRE := {emplacement = "emplacements", prise = "prises"}
 const COULEUR_DES_AIDES := {os = Color(0.95, 0.85, 0.2), emplacements = Color(0.3, 0.8, 1.0), prises = Color(1.0, 0.4, 0.35)}
+const ORIGINE := [0.0, 0.0, 0.0]
 const TAILLE_DU_REPERE := 0.03
 const TAILLE_DE_L_ETIQUETTE := 0.0015
 const DEBUT_D_EMPREINTE := 12
+const DELAI_DE_REQUETE_S := 10.0
 
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 @onready var _support_du_modele: Node3D = $Modele
@@ -19,20 +21,27 @@ const DEBUT_D_EMPREINTE := 12
 @onready var _corps: HFlowContainer = %Corps
 @onready var _points: VBoxContainer = %Points
 @onready var _clips: VBoxContainer = %ListeDesClips
+@onready var _instant: Label = %Instant
 @onready var _cases_des_aides := {os = %AideOs, emplacements = %AideEmplacements, prises = %AidePrises}
 
 var _modeles: Dictionary = {}
 var _base: Dictionary = {}
+## Le chargement retenu : un chargement qu'un autre remplace jette son résultat.
+var _chargement: RefCounted = null
 var _modele: Node3D = null
 var _squelette: Skeleton3D = null
 var _lecteur: AnimationPlayer = null
-var _clip := ""
 var _pas := 0.0
-var _instant := 0.0
-var _lecture := false
 var _vitesse := 1.0
+## Le clip que « Recharger » rejoue, à son instant, en lecture ou en pause.
+var _reprise: Dictionary = {}
 var _montes: Dictionary = {}
 var _supports: Dictionary = {}
+## Par point, la demande de montage retenue : le montage en vol d'une autre demande est jeté.
+var _demandes: Dictionary = {}
+var _boutons_des_bases: Dictionary = {}
+var _boutons_des_clips: Dictionary = {}
+var _boutons_des_points: Dictionary = {}
 var _aides := {os = false, emplacements = false, prises = false}
 var _reperes := {os = [], emplacements = [], prises = []}
 var _erreurs: Array[String] = []
@@ -50,20 +59,23 @@ func _ready() -> void:
 		_cases_des_aides[aide].toggled.connect(_montrer_l_aide.bind(aide))
 	for defilement in [%Defilement, %Clips]:
 		defilement.get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier())
-	_pont.refus.connect(func(erreur: Dictionary) -> void: _signaler(str(erreur.message)))
-	_pont.panne.connect(_signaler)
-	if not _pont.est_web:
-		_signaler("Cet hôte joue dans une page : son pont est `wfrp-pont.js` (export Web).")
-		return
-	if not _pont.est_pret():
-		await _pont.pret
-	await _charger()
+	if await _pont.rejoindre(_signaler, _signaler):
+		await _charger({})
 
 
-## Le listage du serveur, puis l'index du pont, puis la base retenue (la même si elle reste listée, la première sinon).
-func _charger() -> void:
+func _process(_delta: float) -> void:
+	_instant.text = "%.3f s" % _lecteur.current_animation_position if _a_un_clip() else ""
+
+
+## Le listage du serveur, puis l'index du pont, puis la base retenue (la même si elle reste listée, la première sinon),
+## qui remonte les éléments `montes` que ses points listent encore.
+func _charger(montes: Dictionary) -> void:
+	var chargement := RefCounted.new()
+	_chargement = chargement
 	_erreurs.clear()
 	var listage := await _lire_json("modeles/")
+	if chargement != _chargement:
+		return
 	for erreur in listage.get("erreurs", []):
 		_erreurs.append(str(erreur))
 	var reponse := _pont.appeler("modeles", {manifestes = listage.get("manifestes", {})})
@@ -73,86 +85,93 @@ func _charger() -> void:
 	_modeles = reponse
 	for refus in reponse.refus:
 		_erreurs.append(str(refus))
-	_vider(_corps)
+	Controles.vider(_corps)
+	_boutons_des_bases = {}
+	var groupe := ButtonGroup.new()
 	var retenue: Variant = null
 	for base in reponse.bases:
-		var bouton := Button.new()
-		bouton.text = base.id
-		bouton.pressed.connect(_choisir_la_base.bind(base.id))
-		_corps.add_child(bouton)
+		_boutons_des_bases[base.id] = _bascule(base.id, groupe, _corps, _choisir_la_base.bind(base.id))
 		if retenue == null or base.id == _base.get("id"):
 			retenue = base
-	if retenue == null:
-		_base = {}
-		_poser_le_modele(null)
-		_montrer_l_etat()
-		return
-	await _poser(retenue)
+	await _poser(retenue, montes, chargement)
 
 
 func _choisir_la_base(id: String) -> void:
+	_marquer(_boutons_des_bases, _base.get("id"))
 	if id == _base.get("id"):
+		_publier()
 		return
 	for base in _modeles.bases:
 		if base.id == id:
-			_montes.clear()
-			_clip = ""
-			_instant = 0.0
-			await _poser(base)
+			_reprise = {}
+			var chargement := RefCounted.new()
+			_chargement = chargement
+			await _poser(base, {}, chargement)
 
 
 func _recharger() -> void:
-	if _lecteur != null and _clip != "":
-		_instant = _lecteur.current_animation_position
-		_lecture = _lecteur.is_playing()
-	await _charger()
+	_reprise = {}
+	if _a_un_clip():
+		_reprise = {clip = _lecteur.assigned_animation, instant = _lecteur.current_animation_position, lecture = _lecteur.is_playing()}
+	await _charger(_montes.duplicate())
 
 
-## La base `base` posée dans la scène depuis son GLB : ses points, ses aides, ses clips, et les éléments montés que ses
-## points listent encore.
-func _poser(base: Dictionary) -> void:
-	_base = base
-	var scene := await _scene_du_glb(base.id)
-	_poser_le_modele(scene)
-	_vider(_points)
-	_vider(_clips)
-	_reperes = {os = [], emplacements = [], prises = []}
-	_supports.clear()
-	var montes := _montes.duplicate()
-	_montes.clear()
+## La base `base` (aucune si `null`) posée dans la scène depuis son GLB, si `chargement` reste le chargement retenu : ses
+## points, ses aides, ses clips, et les éléments `montes` que ses points listent encore.
+func _poser(base: Variant, montes: Dictionary, chargement: RefCounted) -> void:
+	var scene: Node3D = null
+	if base != null:
+		scene = await _scene_du_glb(base.id)
+	if chargement != _chargement:
+		if scene != null:
+			scene.free()
+		return
+	_remettre_a_zero()
+	_base = {} if base == null else base
+	_marquer(_boutons_des_bases, _base.get("id"))
+	if scene != null:
+		_poser_le_modele(scene)
 	if _squelette != null:
 		for os in _squelette.get_bone_count():
-			var attache := BoneAttachment3D.new()
-			attache.name = "Os_%d" % os
-			_squelette.add_child(attache)
-			attache.bone_name = _squelette.get_bone_name(os)
-			attache.add_child(_repere(COULEUR_DES_AIDES.os))
-			_reperes.os.append(attache)
-	for point in base.points:
-		_ligne_du_point(point, montes.get(point.id))
+			var declaration := {os = _squelette.get_bone_name(os), position = ORIGINE, rotation = ORIGINE}
+			var support := MontageDEquipement.attacher(_squelette, declaration, "Os_%d" % os)
+			support.add_child(_repere(COULEUR_DES_AIDES.os))
+			_reperes.os.append(support)
+	for point in _base.get("points", []):
+		_ligne_du_point(point)
 		_poser_l_aide_du_point(point)
-	for point in base.points:
 		if montes.get(point.id) in point.elements:
-			await _monter(point, montes[point.id])
+			_choisir(point, montes[point.id])
 	_poser_les_clips()
 	for aide in _aides:
 		_montrer_l_aide(_aides[aide], aide)
 	_montrer_l_etat()
 
 
-func _poser_le_modele(scene: Node3D) -> void:
+## L'écran ramené à aucun modèle : ni squelette ni lecteur, ni ligne de point, ni clip, ni repère, ni élément monté, ni
+## demande de montage en vol.
+func _remettre_a_zero() -> void:
 	if _modele != null:
 		_support_du_modele.remove_child(_modele)
 		_modele.queue_free()
-	_modele = scene
+	_modele = null
 	_squelette = null
 	_lecteur = null
-	if scene == null:
-		return
+	_pas = 0.0
+	Controles.vider(_points)
+	Controles.vider(_clips)
+	_reperes = {os = [], emplacements = [], prises = []}
+	_supports.clear()
+	_montes.clear()
+	_demandes.clear()
+	_boutons_des_points = {}
+	_boutons_des_clips = {}
+
+
+func _poser_le_modele(scene: Node3D) -> void:
+	_modele = scene
 	_support_du_modele.add_child(scene)
-	for candidat in scene.find_children("*", "Skeleton3D", true, false):
-		_squelette = candidat as Skeleton3D
-		break
+	_squelette = MontageDEquipement.squelette_de(scene)
 	for candidat in scene.find_children("*", "AnimationPlayer", true, false):
 		_lecteur = candidat as AnimationPlayer
 		break
@@ -162,7 +181,7 @@ func _poser_le_modele(scene: Node3D) -> void:
 
 ## La ligne d'un point : son id, puis « vide » et un bouton par élément, bascules d'un même groupe ; « aucun élément »
 ## s'il n'en a pas.
-func _ligne_du_point(point: Dictionary, monte: Variant) -> void:
+func _ligne_du_point(point: Dictionary) -> void:
 	var ligne := HFlowContainer.new()
 	var titre := Label.new()
 	titre.text = point.id
@@ -174,37 +193,62 @@ func _ligne_du_point(point: Dictionary, monte: Variant) -> void:
 		ligne.add_child(aucun)
 		return
 	var groupe := ButtonGroup.new()
+	var boutons := {}
 	var choix := [VIDE]
 	choix.append_array(point.elements)
 	for element in choix:
-		var bouton := Button.new()
-		bouton.text = element
-		bouton.toggle_mode = true
-		bouton.button_group = groupe
+		var bouton := _bascule(element, groupe, ligne, _choisir.bind(point, element))
 		bouton.set_meta("cle", "%s/%s" % [point.id, element])
-		bouton.set_pressed_no_signal(element == (VIDE if monte == null or not monte in point.elements else monte))
-		bouton.pressed.connect(_choisir.bind(point, element))
-		ligne.add_child(bouton)
+		boutons[element] = bouton
+	_boutons_des_points[point.id] = boutons
+	_marquer(boutons, VIDE)
 
 
+## Une bascule du groupe `groupe` posée dans `parent`, qui joue `geste`.
+func _bascule(texte: String, groupe: ButtonGroup, parent: Node, geste: Callable) -> Button:
+	var bouton := Button.new()
+	bouton.text = texte
+	bouton.toggle_mode = true
+	bouton.button_group = groupe
+	bouton.pressed.connect(geste)
+	parent.add_child(bouton)
+	return bouton
+
+
+## Chaque bascule de `boutons` pressée si sa clé est `retenu`, relâchée sinon : l'écran presse ce qui est.
+func _marquer(boutons: Dictionary, retenu: Variant) -> void:
+	for cle in boutons:
+		boutons[cle].set_pressed_no_signal(cle == retenu)
+
+
+## La demande du joueur au point `point` : l'élément monté démonté, puis `element` monté s'il n'est pas « vide ».
 func _choisir(point: Dictionary, element: String) -> void:
+	var demande := RefCounted.new()
+	_demandes[point.id] = demande
 	if _supports.has(point.id):
 		_supports[point.id].get_parent().free()
 		_supports.erase(point.id)
 		_montes.erase(point.id)
+	_marquer(_boutons_des_points[point.id], VIDE)
 	if element != VIDE:
-		await _monter(point, element)
+		await _monter(point, element, demande)
 	_publier()
 
 
-func _monter(point: Dictionary, element: String) -> void:
+## `element` monté au point `point` une fois son GLB chargé, si `demande` reste la demande retenue de ce point.
+func _monter(point: Dictionary, element: String, demande: RefCounted) -> void:
+	var squelette := _squelette
+	if squelette == null:
+		return
 	var scene := await _scene_du_glb(element)
+	if demande != _demandes.get(point.id):
+		if scene != null:
+			scene.free()
+		return
 	if scene == null:
+		_montrer_l_etat()
 		return
-	if _squelette == null or not is_instance_valid(_squelette):
-		scene.free()
-		return
-	var support := MontageDEquipement.attacher(_squelette, point.attache, "Monte_%s" % point.id)
+	var support := MontageDEquipement.attacher(squelette, point.attache, "Monte_%s" % point.id)
 	if support == null:
 		scene.free()
 		_erreurs.append("os-absent : %s" % point.attache.os)
@@ -213,6 +257,7 @@ func _monter(point: Dictionary, element: String) -> void:
 	support.add_child(scene)
 	_supports[point.id] = support
 	_montes[point.id] = element
+	_marquer(_boutons_des_points[point.id], element)
 
 
 func _poser_l_aide_du_point(point: Dictionary) -> void:
@@ -255,59 +300,55 @@ func _montrer_l_aide(montre: bool, aide: String) -> void:
 	_publier()
 
 
-## Un bouton par clip de la base, chacun mis en boucle ; le clip retenu rejoué à son instant, à sa vitesse.
+## Un bouton par clip de la base, chacun mis en boucle ; le clip de la reprise rejoué à son instant, en lecture ou en
+## pause.
 func _poser_les_clips() -> void:
 	if _lecteur == null:
-		_clip = ""
 		return
+	var groupe := ButtonGroup.new()
 	for nom in _lecteur.get_animation_list():
 		_lecteur.get_animation(nom).loop_mode = Animation.LOOP_LINEAR
-		var bouton := Button.new()
-		bouton.text = nom
-		bouton.pressed.connect(_jouer_le_clip.bind(nom))
-		_clips.add_child(bouton)
+		_boutons_des_clips[nom] = _bascule(nom, groupe, _clips, _jouer_le_clip.bind(nom))
 	_lecteur.speed_scale = _vitesse
-	if not _lecteur.has_animation(_clip):
-		_clip = ""
+	_marquer(_boutons_des_clips, null)
+	if not _lecteur.has_animation(_reprise.get("clip", "")):
 		return
-	_jouer_le_clip(_clip)
-	_lecteur.seek(_instant, true)
-	if not _lecture:
+	_jouer_le_clip(_reprise.clip)
+	_lecteur.seek(_reprise.instant, true)
+	if not _reprise.lecture:
 		_lecteur.pause()
 
 
 func _jouer_le_clip(nom: String) -> void:
-	_clip = nom
-	_lecture = true
 	_lecteur.play(nom)
-	_pas = 0.0
 	var animation := _lecteur.get_animation(nom)
+	_pas = 0.0
 	for piste in animation.get_track_count():
-		if animation.track_get_key_count(piste) in [0, 1]:
-			continue
-		_pas = MiseEnPage.ecart(animation.track_get_key_time(piste, 0), animation.track_get_key_time(piste, 1))
-		break
+		_pas = MiseEnPage.pas_d_image(_pas, animation.length, animation.track_get_key_count(piste))
+	_marquer(_boutons_des_clips, nom)
 	_publier()
 
 
+## Si un clip est engagé au lecteur, joué ou en pause.
+func _a_un_clip() -> bool:
+	return _lecteur != null and _lecteur.assigned_animation != ""
+
+
 func _lire() -> void:
-	if _lecteur != null and _clip != "":
+	if _a_un_clip():
 		_lecteur.play()
-		_lecture = true
 	_publier()
 
 
 func _mettre_en_pause() -> void:
-	if _lecteur != null and _clip != "":
+	if _a_un_clip():
 		_lecteur.pause()
-		_lecture = false
 	_publier()
 
 
 func _aller_a_l_image(sens: float) -> void:
-	if _lecteur != null and _clip != "":
+	if _a_un_clip():
 		_lecteur.pause()
-		_lecture = false
 		_lecteur.seek(MiseEnPage.image_voisine(_lecteur.current_animation_position, _pas, sens, _lecteur.current_animation_length), true)
 	_publier()
 
@@ -319,9 +360,13 @@ func _regler_la_vitesse(vitesse: float) -> void:
 	_publier()
 
 
-## Le GLB du modèle `id`, chargé à l'exécution en scène ; `null` (et une erreur) s'il ne se lit pas.
+## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, chargé à l'exécution en scène ;
+## `null` (et une erreur) s'il n'y a pas de fichier ou s'il ne se lit pas.
 func _scene_du_glb(id: String) -> Node3D:
-	var octets := await _telecharger("modeles/%s.glb" % id)
+	if not _modeles.glb.has(id):
+		_erreurs.append("glb-absent : %s" % id)
+		return null
+	var octets := await _telecharger("modeles/%s" % _modeles.glb[id])
 	if octets.is_empty():
 		return null
 	var document := GLTFDocument.new()
@@ -343,17 +388,20 @@ func _lire_json(relative: String) -> Dictionary:
 	return valeur
 
 
-## Les octets de `relative`, adresse relative à la page ; vides (et une erreur) si la requête échoue.
+## Les octets de `relative`, adresse relative à la page ; vides (et une erreur) si la requête échoue ou expire.
 func _telecharger(relative: String) -> PackedByteArray:
 	var requete := HTTPRequest.new()
+	requete.timeout = DELAI_DE_REQUETE_S
 	add_child(requete)
 	var code := requete.request(_pont.adresse(relative))
-	var resultat: Array = [code, 0, [], PackedByteArray()]
-	if code == OK:
-		resultat = await requete.request_completed
+	if code != OK:
+		requete.queue_free()
+		_erreurs.append("requete-refusee : %s (%s)" % [relative, error_string(code)])
+		return PackedByteArray()
+	var resultat: Array = await requete.request_completed
 	requete.queue_free()
-	if resultat[0] != OK or resultat[1] != 200:
-		_erreurs.append("requete-echouee : %s (%s, HTTP %s)" % [relative, resultat[0], resultat[1]])
+	if resultat[0] != HTTPRequest.RESULT_SUCCESS or resultat[1] != 200:
+		_erreurs.append("requete-echouee : %s (resultat %s, HTTP %s)" % [relative, resultat[0], resultat[1]])
 		return PackedByteArray()
 	return resultat[3]
 
@@ -372,12 +420,6 @@ func _montrer_l_etat() -> void:
 	_publier()
 
 
-func _vider(conteneur: Node) -> void:
-	for enfant in conteneur.get_children():
-		conteneur.remove_child(enfant)
-		enfant.queue_free()
-
-
 func _publier() -> void:
 	_publier_l_ecran.call_deferred()
 
@@ -385,7 +427,7 @@ func _publier() -> void:
 ## Ce que l'écran porte, une fois mis en page : ses boutons, et l'état de l'atelier.
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
-	var clip: Variant = _clip if _clip != "" else null
+	var clip: Variant = _lecteur.assigned_animation if _a_un_clip() else null
 	_pont.publier_l_ecran({
 		boutons = PontDuNoyau.boutons_a_l_ecran([_interface]),
 		atelier = {
@@ -394,7 +436,7 @@ func _publier_l_ecran() -> void:
 			clip = clip,
 			instant = _lecteur.current_animation_position if clip != null else null,
 			lecture = _lecteur.is_playing() if clip != null else false,
-			vitesse = _lecteur.speed_scale if _lecteur != null else null,
+			vitesse = _vitesse,
 			montes = _montes,
 			aides = _aides,
 			erreurs = _erreurs,

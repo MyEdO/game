@@ -39,6 +39,19 @@ func est_pret() -> bool:
 	return _pont != null
 
 
+## Le pont rejoint par un écran : chaque refus rendu à `au_refus` (son message), chaque panne à `a_la_panne` ; `true` une
+## fois le pont prêt, `false` (la panne signalée) hors d'une page.
+func rejoindre(au_refus: Callable, a_la_panne: Callable) -> bool:
+	refus.connect(func(erreur: Dictionary) -> void: au_refus.call(str(erreur.message)))
+	panne.connect(a_la_panne)
+	if not est_web:
+		_signaler("Cet hôte joue dans une page : son pont est `wfrp-pont.js` (export Web).")
+		return false
+	if not est_pret():
+		await pret
+	return true
+
+
 ## La réponse de `methode` sur `entree` (un objet, ou `null` sans entrée) : décodée, `ok` vrai ou faux ; `{}` en panne.
 func appeler(methode: String, entree: Variant = null) -> Dictionary:
 	var reponse := _decoder(methode, _pont.call("appeler", methode, null if entree == null else JSON.stringify(entree)))

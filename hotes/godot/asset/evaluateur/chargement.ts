@@ -5,6 +5,7 @@
  */
 import type { AnimationClip, Mesh, Object3D, Skeleton, SkinnedMesh } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { estObjet } from '../../../../src/hote/formes';
 import { ecrireGlb, lireConteneur, type DocumentGltf } from '../glb.ts';
 
 export interface SceneChargee {
@@ -21,8 +22,6 @@ export interface SceneChargee {
 
 const LISTES_D_IMAGE = ['images', 'textures', 'samplers'];
 const EXTENSION_DE_TEXTURE = /texture/i;
-
-const estObjet = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /** `valeur` sans référence de texture : toute clé `…Texture` dont la valeur porte un `index`, à toute profondeur. */
 function sansReferenceDeTexture(valeur: unknown): unknown {

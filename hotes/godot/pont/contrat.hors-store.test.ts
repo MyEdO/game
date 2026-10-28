@@ -45,7 +45,7 @@ describe('le pont avant sa partie', () => {
   });
 
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` se refuse', () => {
-    expect(appel('modeles', { manifestes: { humanoide: baseSchema3() } })).toMatchObject({ ok: true, bases: [{ id: 'humanoide', base: 'humanoide' }], elements: [], refus: [] });
+    expect(appel('modeles', { manifestes: { humanoide: baseSchema3() } })).toMatchObject({ ok: true, bases: [{ id: 'humanoide' }], glb: { humanoide: 'humanoide.glb' }, refus: [] });
     expect(erreurDe(appel('modeles', {}))).toEqual({ categorie: 'validation', message: 'modeles : manifestes, un objet id de modèle → manifeste' });
     expect(erreurDe(appel('modeles'))).toEqual({ categorie: 'validation', message: 'modeles : manifestes, un objet id de modèle → manifeste' });
   });

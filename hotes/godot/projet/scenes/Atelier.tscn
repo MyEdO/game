@@ -1,13 +1,8 @@
 [gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/atelier.gd" id="1_atelier"]
-
-[sub_resource type="Environment" id="Environment_atelier"]
-background_mode = 1
-background_color = Color(0.07, 0.06, 0.05, 1)
-ambient_light_source = 2
-ambient_light_color = Color(0.62, 0.58, 0.52, 1)
-ambient_light_energy = 0.55
+[ext_resource type="PackedScene" path="res://scenes/Lumiere.tscn" id="2_lumiere"]
+[ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="3_fond"]
 
 [sub_resource type="StandardMaterial3D" id="Materiau_sol"]
 albedo_color = Color(0.22, 0.2, 0.18, 1)
@@ -16,26 +11,12 @@ albedo_color = Color(0.22, 0.2, 0.18, 1)
 material = SubResource("Materiau_sol")
 size = Vector2(4, 4)
 
-[sub_resource type="StyleBoxFlat" id="Fond_panneau"]
-bg_color = Color(0.11, 0.1, 0.09, 0.92)
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
-
 [sub_resource type="ButtonGroup" id="Groupe_vitesses"]
 
 [node name="Atelier" type="Node3D"]
 script = ExtResource("1_atelier")
 
-[node name="Environnement" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_atelier")
-
-[node name="Soleil" type="DirectionalLight3D" parent="."]
-rotation = Vector3(-0.95, 0.55, 0)
-light_color = Color(1, 0.95, 0.86, 1)
-light_energy = 1.1
-shadow_enabled = true
+[node name="Lumiere" parent="." instance=ExtResource("2_lumiere")]
 
 [node name="Sol" type="MeshInstance3D" parent="."]
 mesh = SubResource("Maillage_sol")
@@ -55,7 +36,7 @@ anchors_preset = 9
 anchor_bottom = 1.0
 offset_right = 440.0
 grow_vertical = 2
-theme_override_styles/panel = SubResource("Fond_panneau")
+theme_override_styles/panel = ExtResource("3_fond")
 
 [node name="Defilement" type="ScrollContainer" parent="Interface/Panneau"]
 unique_name_in_owner = true
@@ -135,6 +116,10 @@ text = "Image précédente"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Image suivante"
+
+[node name="Instant" type="Label" parent="Interface/Panneau/Defilement/Colonne/Lecteur"]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="Vitesses" type="HFlowContainer" parent="Interface/Panneau/Defilement/Colonne"]
 unique_name_in_owner = true
