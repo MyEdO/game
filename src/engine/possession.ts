@@ -196,29 +196,35 @@ const EMBARK_HOST_NATURES: ReadonlySet<Possession['nature']> = new Set(['navire'
 const EMBARK_CHILD_NATURES: ReadonlySet<Possession['nature']> = new Set(['bete', 'serviteur', 'vehicule']);
 
 /** Une possession peut-elle embarquer sur cet hôte ? Borne de chaîne par NATURE (§5) — la capacité
- *  libre se vérifie séparément, à l'appel (`noyau/possessionsFlow.ts` `embark`). PUR. */
+ *  libre s'y ajoute dans `refusDEmbarquer`. PUR. */
 export function canEmbark(child: Possession, host: Possession): boolean {
   if (child.uid === host.uid) return false;
   return EMBARK_HOST_NATURES.has(host.nature) && EMBARK_CHILD_NATURES.has(child.nature);
 }
 
 /** Enc DÉJÀ embarqué sur un hôte (Σ `possessionTotalEnc` des possessions `embarquee` sur lui) —
- *  brique commune de `embark()` (noyau/possessionsFlow.ts) ET de la gate d'écran (PossessionsScreen,
- *  #620 Lot 2) : SOURCE UNIQUE de ce calcul, jamais une 2e sommation parallèle. PUR. */
+ *  brique de `refusDEmbarquer` et de l'affichage de la cale : SOURCE UNIQUE de ce calcul, jamais une
+ *  2e sommation parallèle. PUR. */
 export function embarkedEnc(hostUid: string, all: Possession[]): number {
   return all
     .filter((p) => !p.destroyed && p.location.kind === 'embarquee' && p.location.hostUid === hostUid)
     .reduce((s, p) => s + possessionTotalEnc(p, all), 0);
 }
 
-/** `child` peut-elle embarquer sur `host` MAINTENANT (nature ET capacité libre, §5) ? Anticipe le
- *  refus que `embark()` journalise sinon en no-op silencieux à l'écran — un bouton actif dont le
- *  clic « ne fait rien » de visible est un défaut de gate, pas une garde applicative. PUR. */
-export function canEmbarkNow(child: Possession, host: Possession, all: Possession[]): boolean {
-  if (!canEmbark(child, host)) return false;
+/** Motif TYPÉ d'un embarquement refusé (§5) : nature incompatible (`canEmbark`), ou capacité libre de
+ *  l'hôte dépassée (`used` = Enc embarqué AVEC l'enfant). */
+export type RefusDEmbarquement =
+  | { motif: 'nature' }
+  | { motif: 'capacite'; used: number; capacity: number };
+
+/** `child` peut-elle embarquer sur `host` MAINTENANT (nature ET capacité libre, §5) ? `null` = oui,
+ *  sinon le motif. Verdict UNIQUE du geste (`noyau/possessionsFlow.ts`) et de ses cibles. PUR. */
+export function refusDEmbarquer(child: Possession, host: Possession, all: Possession[]): RefusDEmbarquement | null {
+  if (!canEmbark(child, host)) return { motif: 'nature' };
   const capacity = possessionCapacity(host);
-  if (capacity == null) return true;
-  return embarkedEnc(host.uid, all) + possessionTotalEnc(child, all) <= capacity;
+  if (capacity == null) return null;
+  const used = embarkedEnc(host.uid, all) + possessionTotalEnc(child, all);
+  return used <= capacity ? null : { motif: 'capacite', used, capacity };
 }
 
 /** Charge PORTÉE par une possession — items + cargaison + embarquées (Σ `possessionTotalEnc` pleine

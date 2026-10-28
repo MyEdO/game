@@ -5,7 +5,8 @@ import { findStarById } from '../data';
 import { BackgroundFields } from './BackgroundFields';
 import { Icon } from './Icon';
 import { ChoiceButtons } from './OptionChooser';
-import { GatedAction } from './GatedAction';
+import { GatedAction, raisonSi } from './GatedAction';
+import { refusDuBackground, refusDeRompreUneFaveur } from '../noyau/verrousDeFiche';
 import { Prose } from './Prose';
 import { Row } from './Layout';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
@@ -16,11 +17,14 @@ import { favorLevelSchema } from '../data/schemas/defs-scenes/effets';
  *  étape 6 — cosmétique) et les champs ÉDITABLES hors combat (Motivation + Ambitions court/long,
  *  LDB 05 l.730-736) — rendus par la primitive PARTAGÉE `BackgroundFields` (même markup/hints que le
  *  créateur). L'édition passe par `setHeroBackground` → persistée en save + roster. En combat, c'est
- *  verrouillé (on ne mute que `store.party`, jamais la copie de bataille). Les Faveurs dues (LDB 23
+ *  refusé (`refusDuBackground`) : parité de l'écran d'avant, sans appui au Source. Les Faveurs dues (LDB 23
  *  l.139-153, #509) s'affichent ici — même famille narrative que Motivation/Ambitions. */
 export function BackgroundPanel({ hero }: { hero: Combatant }) {
   const setHeroBackground = useGame((s) => s.setHeroBackground);
-  const inBattle = useGame((s) => !!s.battle);
+  const battle = useGame((s) => s.battle);
+  // Verdicts du noyau, ceux que rendent `setHeroBackground` et `favorBreak`.
+  const refusBackground = refusDuBackground({ battle });
+  const refusFaveur = refusDeRompreUneFaveur({ battle });
   const favors = useGame((s) => s.favors);
   const favorBreak = useGame((s) => s.favorBreak);
   const d = hero.details;
@@ -59,7 +63,7 @@ export function BackgroundPanel({ hero }: { hero: Combatant }) {
           <div className="mini-title">Faveurs dues</div>
           <div className="bg-favors">
             {heroFavors.map((f) => (
-              <FavorRow key={f.id} favor={f} disabled={inBattle} onBreak={() => favorBreak(hero.id, f.id)} />
+              <FavorRow key={f.id} favor={f} refus={refusFaveur} onBreak={() => favorBreak(hero.id, f.id)} />
             ))}
           </div>
         </>
@@ -71,18 +75,16 @@ export function BackgroundPanel({ hero }: { hero: Combatant }) {
       <BackgroundFields
         values={{ motivation: hero.motivation ?? '', ambitionShort: d?.ambitionShort ?? '', ambitionLong: d?.ambitionLong ?? '' }}
         onChange={(patch) => setHeroBackground(hero.id, patch)}
-        disabled={inBattle}
+        disabled={!!refusBackground}
       />
     </div>
   );
 }
 
-const COMBAT_REFUS = 'Impossible de rompre une Faveur en plein combat.';
-
 /** Une Faveur due : Niveau + créancier + progression d'acquittement, et la rupture explicite
  *  (confirmation à deux temps — `ChoiceButtons`, cf. primitives partagées) — « votre Niveau est
  *  toujours réduit de 1 […] si la rumeur de la perfidie se répand » (LDB 23 l.141). */
-function FavorRow({ favor, disabled, onBreak }: { favor: Favor; disabled: boolean; onBreak: () => void }) {
+function FavorRow({ favor, refus, onBreak }: { favor: Favor; refus: string | null; onBreak: () => void }) {
   const [confirming, setConfirming] = useState(false);
   const required = favorRequiredActivities(favor.level);
   return (
@@ -101,7 +103,7 @@ function FavorRow({ favor, disabled, onBreak }: { favor: Favor; disabled: boolea
           <ChoiceButtons idPrefix={`favor-${favor.id}`} options={[
             { key: 'cancel', label: 'Annuler', ghost: true, onSelect: () => setConfirming(false) },
             {
-              key: 'confirm', label: 'Confirmer la rupture', primary: true, refus: disabled ? COMBAT_REFUS : undefined,
+              key: 'confirm', label: 'Confirmer la rupture', primary: true, refus: refus ?? undefined,
               onSelect: () => { onBreak(); setConfirming(false); },
             },
           ]} />
@@ -110,8 +112,8 @@ function FavorRow({ favor, disabled, onBreak }: { favor: Favor; disabled: boolea
         <GatedAction
           id={`favor-break-${favor.id}`}
           label="Rompre la Faveur"
-          enabled={!disabled}
-          reason={COMBAT_REFUS}
+          enabled={!refus}
+          {...raisonSi(refus)}
           descOfferte="Refuser la Faveur : Niveau de Carrière réduit de 1, minimum 0, si la rumeur se répand"
           onClick={() => setConfirming(true)}
           primary={false}

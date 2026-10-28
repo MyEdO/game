@@ -39,7 +39,7 @@ const hero = (over: Partial<Combatant> = {}): Combatant =>
 
 describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.json', () => {
   it('méta : PX, carrière, niveau, libellé du niveau', () => {
-    const v = buildAdvancementView(hero());
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero());
     expect(v.xp).toBe(1000);
     expect(v.career).toBe('agitateur');
     expect(v.careerLevel).toBe(1);
@@ -47,7 +47,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
   });
 
   it('Caractéristiques : CT in-carrière (coût 25), CC hors-carrière (coût ×2 = 50)', () => {
-    const v = buildAdvancementView(hero());
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero());
     const ct = v.chars.find((c) => c.key === 'capacite-de-tir')!;
     const cc = v.chars.find((c) => c.key === 'capacite-de-combat')!;
     expect(ct.inCareer).toBe(true);
@@ -58,7 +58,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
   });
 
   it('Compétences connues : Charme in-carrière (10), Esquive hors-carrière (×2 = 20)', () => {
-    const v = buildAdvancementView(hero());
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero());
     const charme = v.skills.find((s) => s.skillId === 'charme')!;
     const esquive = v.skills.find((s) => s.skillId === 'esquive')!;
     expect(charme.known).toBe(true);
@@ -69,7 +69,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
   });
 
   it('Compétences in-carrière non connues : acquérables à advances 0 (coût 10)', () => {
-    const v = buildAdvancementView(hero());
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero());
     const ragot = v.skills.find((s) => s.skillId === 'ragot')!;
     expect(ragot).toBeTruthy();
     expect(ragot.known).toBe(false);
@@ -79,7 +79,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
   });
 
   it('Talents in-carrière non possédés : un rang par EMPLACEMENT, acquérables (coût 100)', () => {
-    const v = buildAdvancementView(hero());
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero());
     const sociable = v.talents.find((t) => t.talentId === 'sociable')!;
     expect(sociable).toBeTruthy();
     expect(sociable.times).toBe(0);
@@ -89,19 +89,19 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
   });
 
   it('emplacement « Béni (Au choix) » non désigné : options = pool de spécialisations du talent, par id (LDB 10 l.17)', () => {
-    const v = buildAdvancementView(hero({ career: 'pretre' }));
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero({ career: 'pretre' }));
     const row = v.talents.find((r) => r.entry === 'Béni (Au choix)')!;
     expect(row.options?.map((o) => o.refKey)).toContain(refKey('beni', 'sigmar'));
     expect(row.options?.some((o) => o.refKey === refKey('beni'))).toBe(false);
   });
   it('complétion : héros frais NON complété → coût de changement 200', () => {
-    const v = buildAdvancementView(hero());
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero());
     expect(v.completed).toBe(false);
     expect(v.changeCost).toBe(200);
   });
 
   it('cible de progression : le Niveau suivant exige la complétion (LDB 07 l.137)', () => {
-    const v = buildAdvancementView(hero());
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero());
     const next = v.targets.find((t) => t.level === 2);
     expect(next).toBeTruthy();
     expect(next!.career).toBe('agitateur');
@@ -110,7 +110,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
   });
 
   it('niveau 2 : Compétences cumulatives (l.78), Talents du niveau courant seul (l.100)', () => {
-    const v = buildAdvancementView(hero({ careerLevel: 2 }));
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero({ careerLevel: 2 }));
     // « Charme » (Niveau 1) reste in-carrière au Niveau 2.
     expect(v.skills.find((s) => s.skillId === 'charme')!.inCareer).toBe(true);
     // « Sociable » (talent du Niveau 1) n'est PLUS proposé au Niveau 2.
@@ -119,14 +119,14 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
   });
 
   it('changeCostFor : +100 PX vers une carrière d\'une autre Classe (LDB 07 l.144)', () => {
-    const v = buildAdvancementView(hero());
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero());
     // Agitateur = Citadins ; Artisan = Citadins (même Classe) ; Soldat = Guerriers.
     expect(v.changeCostFor('artisan')).toBe(v.changeCost);
     expect(v.changeCostFor('soldat')).toBe(v.changeCost + 100);
   });
 
   it('emplacement « (Au choix) » : Érudit propose un choix de spec de Savoir', () => {
-    const v = buildAdvancementView(hero({ career: 'erudit' }));
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero({ career: 'erudit' }));
     const open = v.skillSlotsOpen.find((s) => s.group === 'Savoir');
     expect(open).toBeTruthy();
     expect(open!.options.length).toBeGreaterThan(0);
@@ -139,7 +139,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
 describe('buildAdvancementView — Maxi et coût d\'un emplacement « (Au choix) » (LDB 10 l.17-18, l.548 ; LDB 07 l.105)', () => {
   // Patrouilleur routier Niveau 3 : « Haine (Au choix) » ; FM 30 → Maxi 3.
   const haineAuChoix = (times: number) =>
-    buildAdvancementView(hero({ career: 'patrouilleur-routier', careerLevel: 3, talents: [{ talentId: 'haine', spec: 'peaux-vertes', times }] }))
+    buildAdvancementView({ battle: null, flags: {} }, hero({ career: 'patrouilleur-routier', careerLevel: 3, talents: [{ talentId: 'haine', spec: 'peaux-vertes', times }] }))
       .talents.find((r) => r.options?.some((o) => specialiseDe(o.refKey, 'haine')))!;
   it('Peaux-vertes au Maxi : la ligne et chaque groupe neuf sont au Maxi', () => {
     const row = haineAuChoix(3);
@@ -157,14 +157,14 @@ describe('buildAdvancementView — Maxi et coût d\'un emplacement « (Au choix)
 
 describe('buildAdvancementView — match d\'entité possédée par id+spec (Issue #10)', () => {
   it('Talent EXPLICITE possédé : times lu par id (Artisan N3 → Bricoleur)', () => {
-    const v = buildAdvancementView(hero({ career: 'artisan', careerLevel: 3, talents: [{ talentId: 'bricoleur', times: 1 }] }));
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero({ career: 'artisan', careerLevel: 3, talents: [{ talentId: 'bricoleur', times: 1 }] }));
     const bricoleur = v.talents.find((t) => t.talentId === 'bricoleur');
     expect(bricoleur).toBeTruthy();
     expect(bricoleur!.times).toBe(1);
   });
 
   it('Talent à spec wildcard possédé : owned lu par id+spec (Sens aiguisé (Goût) ≠ (Toucher))', () => {
-    const v = buildAdvancementView(hero({ career: 'artisan', careerLevel: 3, talents: [{ talentId: 'sens-aiguise', spec: 'gout', times: 1 }] }));
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero({ career: 'artisan', careerLevel: 3, talents: [{ talentId: 'sens-aiguise', spec: 'gout', times: 1 }] }));
     const slot = v.talents.find((t) => t.options?.some((o) => specialiseDe(o.refKey, 'sens-aiguise')));
     expect(slot).toBeTruthy();
     const gout = slot!.options!.find((o) => o.refKey === refKey('sens-aiguise', 'gout'))!;
@@ -174,7 +174,7 @@ describe('buildAdvancementView — match d\'entité possédée par id+spec (Issu
   });
 
   it('Compétence à spec wildcard possédée : ownedAdvances lu par id+spec (Savoir (Empire))', () => {
-    const v = buildAdvancementView(hero({ career: 'erudit', careerLevel: 1, skills: [{ id: 'savoir', spec: 'empire', characteristic: 'intelligence', advances: 3 }] }));
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero({ career: 'erudit', careerLevel: 1, skills: [{ id: 'savoir', spec: 'empire', characteristic: 'intelligence', advances: 3 }] }));
     const open = v.skillSlotsOpen.find((s) => s.group === 'Savoir');
     expect(open).toBeTruthy();
     const empire = open!.options.find((o) => o.spec === 'empire');
@@ -185,7 +185,7 @@ describe('buildAdvancementView — match d\'entité possédée par id+spec (Issu
 
 describe('remise « 5 PX de moins par Augmentation » sur une Compétence ajoutée par un Talent (LDB 10)', () => {
   it('Maître artisan (joker `choix`) : Métier (Imprimerie), de carrière → 10 − 5 = 5 PX', () => {
-    const v = buildAdvancementView(hero({
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero({
       skills: [{ id: 'metier', spec: 'imprimerie', characteristic: 'dexterite', advances: 0 }],
       talents: [{ talentId: 'maitre-artisan', times: 1 }],
     }));
@@ -195,7 +195,7 @@ describe('remise « 5 PX de moins par Augmentation » sur une Compétence ajout�
   });
 
   it('Voyageur aguerri (spec EXACTE `region`) : aucune remise sur Savoir (Politique)', () => {
-    const v = buildAdvancementView(hero({
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero({
       skills: [{ id: 'savoir', spec: 'politique', characteristic: 'intelligence', advances: 0 }],
       talents: [{ talentId: 'voyageur-aguerri', times: 1 }],
     }));
@@ -210,7 +210,7 @@ describe('remise « 5 PX de moins par Augmentation » sur une Compétence ajout�
 // seulement le canal unitaire (cf. `engine/traits/marque-de-khorne.test.ts`).
 describe('buildAdvancementView — Marque de Khorne : 10 Talents achetables hors-carrière (#516)', () => {
   it('les 10 Talents apparaissent dans les options d\'avancement projetées, achetables au tarif normal', () => {
-    const v = buildAdvancementView(hero({ traits: [{ id: 'marque-de-khorne' }] }));
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero({ traits: [{ id: 'marque-de-khorne' }] }));
     const ids = ['assaut-feroce', 'charge-berserk', 'combat-instinctif', 'coup-puissant', 'determine', 'endurci', 'guerrier-ne', 'resistance', 'resistance-a-la-magie', 'vigilance'];
     for (const id of ids) {
       const row = v.talents.find((t) => t.talentId === id);
@@ -225,7 +225,7 @@ describe('buildAdvancementView — Marque de Khorne : 10 Talents achetables hors
 // Tzeentch se déplie à l'avancement sur le pool du Talent, comme le joker d'emplacement de carrière.
 describe('buildAdvancementView — Marque de Tzeentch : Magie des Arcanes au choix du Domaine', () => {
   it('chaque Domaine du pool de Magie des Arcanes est une option projetée, désignée par sa spec', () => {
-    const v = buildAdvancementView(hero({ traits: [{ id: 'marque-de-tzeentch' }] }));
+    const v = buildAdvancementView({ battle: null, flags: {} }, hero({ traits: [{ id: 'marque-de-tzeentch' }] }));
     const specs = v.talents.filter((t) => t.talentId === 'magie-des-arcanes').map((t) => t.spec);
     expect(specs.length).toBeGreaterThan(1);
     expect(specs).toEqual(specPoolOf(findTalentById('magie-des-arcanes')!));

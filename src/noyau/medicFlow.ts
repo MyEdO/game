@@ -26,7 +26,7 @@ import { d10 } from '../engine/dice';
 import { flowStakeRef, type FlowStakeId, type StakeRef, type SkillRef } from '../data';
 import { applyOps } from '../engine/ops';
 import { extendedTestStep, cibleMesuree, type CibleMesuree } from '../engine/tests';
-import { partyAssisted, type SupportDetail } from '../engine/skills';
+import { partyAssisted, peutTenter, type SupportDetail } from '../engine/skills';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { addCondition, loseWounds, releaseConditionLocks } from '../engine/conditions';
 import { hasSurgerySkill, availableHealModes, isHealable, healDifficulty, HEAL_SKILL, type HealMode } from '../engine/healing';
@@ -35,6 +35,8 @@ import { toMoney, canAfford } from '../engine/money';
 import { t } from '../i18n';
 import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
 import { touchActors } from './combatOrParty';
+import { refuserGeste } from './refusVisible';
+import { refusEnCombat } from './verrousDeFiche';
 import { finishPlayerAction, openContractionCascade } from './combatFlow';
 
 export interface MedicCost { gold?: number; silver?: number; brass?: number }
@@ -104,9 +106,23 @@ function healLineTarget(healer: { actor?: Combatant; skill: number; support?: Su
   }));
 }
 
+/** Refus d'ouvrir l'infirmerie : la raison affichée, ou `null`. En combat, les soins passent par la
+ *  console. Sur un patient DEMANDÉ (`heroId`) : il doit avoir de quoi être soigné (`isHealable`) et, sans
+ *  PNJ soigneur (`npc`), un héros du groupe doit pouvoir tenter la Guérison (`peutTenter`). Verdict UNIQUE
+ *  du geste `openMedic` et du bouton Soins de la fiche. */
+export function refusDeSoins(s: Pick<Jeu, 'battle' | 'party'>, heroId?: string, npc?: MedicNpc): string | null {
+  const enCombat = refusEnCombat('medic.inCombat')(s);
+  if (enCombat || heroId == null) return enCombat;
+  const patient = s.party.find((h) => h.id === heroId);
+  if (!patient) return t('medic.patientIntrouvable');
+  if (!isHealable(patient)) return t('medic.rienASoigner', { name: patient.label });
+  return npc || s.party.some((h) => peutTenter(h, HEAL_SKILL)) ? null : t('medic.aucunSoigneur');
+}
+
 /** Ouvre l'infirmerie (hors combat). Patient par défaut : celui demandé, sinon le premier soignable. */
 export function openMedic(get: Get, set: Set, opts?: { patientId?: string; npc?: MedicNpc }): void {
-  if (get().battle) return; // en combat : flux de la console (un acte = une Action)
+  const refus = refusDeSoins(get(), opts?.patientId, opts?.npc);
+  if (refus) return void refuserGeste(get, set, refus);
   const party = get().party;
   const patientId = opts?.patientId ?? party.find((h) => isHealable(h))?.id ?? party[0]?.id ?? null;
   set({ medic: { npc: opts?.npc, patientId } });

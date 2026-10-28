@@ -1463,7 +1463,7 @@ describe('Avancement par PX (store) — câblage moteur', () => {
     // Conseiller (Niveau 1) : « Savoir-vivre (Au choix) ». Le héros possède déjà
     // Savoir-vivre (Criminels) ×1 (espèce) — cas utilisateur « Sens aiguisé (Goût) ».
     set1(mkHero({ xp: 1000, career: 'conseiller', talents: [{ talentId: 'savoir-vivre', spec: 'criminels', times: 1 }] }));
-    const view = buildAdvancementView(h0());
+    const view = buildAdvancementView(useGame.getState(), h0());
     const slot = view.talents.find((t) => t.entry === 'Savoir-vivre (Au choix)')!;
     // `option.label` est la clé de câblage OPAQUE (refKey) ; `display` porte le texte.
     expect(slot.options!.some((o) => o.display === 'Savoir-vivre (Criminels)' && o.owned)).toBe(true);

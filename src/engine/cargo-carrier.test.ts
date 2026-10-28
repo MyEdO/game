@@ -8,7 +8,7 @@ import {
 const lot = (cargoId: string, enc: number, basePriceGold = 1): CargoLot => ({ cargoId, enc, basePriceGold });
 
 const mkCarrier = (over: Partial<CargoCarrier> = {}): CargoCarrier => ({
-  id: 'c1', label: 'Mule', hull: 'jambes', capacity: 14, discreteEnc: 0, cargo: [], placeId: 'grunburg', ...over,
+  id: 'c1', label: 'Mule', hull: 'jambes', capacity: 14, discreteEnc: 0, cargo: [], location: { kind: 'au-lieu', placeId: 'grunburg' }, ...over,
 });
 
 describe('CargoCarrier — arithmétique d’Enc (#327 lot B)', () => {
@@ -56,19 +56,27 @@ describe('CargoCarrier — arithmétique d’Enc (#327 lot B)', () => {
 
 describe('CargoCarrier — co-localisation (décision 5)', () => {
   it('même Lieu → co-localisés ; Lieux différents → non', () => {
-    const a = mkCarrier({ id: 'a', placeId: 'grunburg' });
-    const b = mkCarrier({ id: 'b', placeId: 'grunburg' });
-    const c = mkCarrier({ id: 'c', placeId: 'kemperbad' });
+    const a = mkCarrier({ id: 'a' });
+    const b = mkCarrier({ id: 'b' });
+    const c = mkCarrier({ id: 'c', location: { kind: 'au-lieu', placeId: 'kemperbad' } });
     expect(carriersColocated(a, b)).toBe(true);
     expect(carriersColocated(a, c)).toBe(false);
   });
 
   it('embarqué sur l’hôte, ou sur le même hôte → co-localisés', () => {
-    const barge = mkCarrier({ id: 'barge', hull: 'coque', placeId: 'port' });
-    const mule = mkCarrier({ id: 'mule', aboard: 'barge', placeId: undefined });
-    const cart = mkCarrier({ id: 'cart', aboard: 'barge', placeId: undefined });
+    const barge = mkCarrier({ id: 'barge', hull: 'coque', location: { kind: 'avec-le-groupe' } });
+    const mule = mkCarrier({ id: 'mule', location: { kind: 'embarquee', hostUid: 'barge' } });
+    const cart = mkCarrier({ id: 'cart', location: { kind: 'embarquee', hostUid: 'barge' } });
     expect(carriersColocated(mule, barge)).toBe(true);
     expect(carriersColocated(mule, cart)).toBe(true);
+  });
+
+  it('avec le groupe ensemble → co-localisés ; avec le groupe vs embarqué sur un TIERS → non', () => {
+    const heros = mkCarrier({ id: 'h1', location: { kind: 'avec-le-groupe' } });
+    const charrette = mkCarrier({ id: 'charrette', location: { kind: 'avec-le-groupe' } });
+    const mule = mkCarrier({ id: 'mule', location: { kind: 'embarquee', hostUid: 'pos-navire' } });
+    expect(carriersColocated(heros, charrette)).toBe(true);
+    expect(carriersColocated(heros, mule)).toBe(false);
   });
 
   it('un porteur n’est pas co-localisé avec lui-même', () => {
@@ -90,8 +98,8 @@ describe('CargoCarrier — transfert co-localisé (décision 8)', () => {
   });
 
   it('refuse (moved 0) si les porteurs ne sont pas co-localisés', () => {
-    const from = mkCarrier({ id: 'mule', placeId: 'grunburg', cargo: [lot('vin', 8)] });
-    const to = mkCarrier({ id: 'cart', placeId: 'kemperbad', capacity: 30 });
+    const from = mkCarrier({ id: 'mule', cargo: [lot('vin', 8)] });
+    const to = mkCarrier({ id: 'cart', location: { kind: 'au-lieu', placeId: 'kemperbad' }, capacity: 30 });
     const r = transferCargo(from, to, 'vin', 8);
     expect(r.moved).toBe(0);
     expect(r.from).toBe(from);

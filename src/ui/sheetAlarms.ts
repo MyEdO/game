@@ -1,7 +1,7 @@
 import { Combatant } from '../engine/types';
 import { maxEncumbrance, totalEncumbrance } from '../engine/items';
 import { diseaseLabel, psychologyLabel } from '../data';
-import { isAfflictionActive, PsychAffliction } from '../engine/psychology';
+import { isPsychAfflictionActive } from '../engine/psychology';
 import { identiteDeCiblage } from '../engine/psych/ciblage';
 
 /** ids STABLES des rubriques de l'onglet État — ancres de scroll RENDUES par `EtatPanel.tsx`.
@@ -19,15 +19,6 @@ export const ETAT_ANCHOR_ENCOMBREMENT = 'etat-encombrement';
 export interface SheetAlarm {
   key: string;
   label: string;
-}
-
-/** Une affliction psy (`PsychAffliction`) est-elle ACTIVE ? `isAfflictionActive` (`engine/psychology.ts`)
- *  + Frénésie (présence ⟹ active, comme `isFrenzied`) — la Frénésie n'est pas surmontable par un Test
- *  de Calme (cf. commentaire de la fonction engine), donc hors de son vocabulaire. Exportée : LE MÊME
- *  filtre sert au COMPTAGE (atterrissage) et au RENDU (rubrique Psychologie, `EtatPanel.tsx`). */
-export function isPsychAfflictionActive(p: PsychAffliction): boolean {
-  if (p.type === 'frenesie') return true;
-  return isAfflictionActive(p);
 }
 
 /** Afflictions du héros pour la RÈGLE D'ATTERRISSAGE (§3.2 design v4, #492) : l'apparition d'une
