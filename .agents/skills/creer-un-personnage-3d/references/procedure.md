@@ -1,3 +1,4 @@
+<!-- GENERATED: agents:sync; source=.claude/skills/creer-un-personnage-3d/references/procedure.md -->
 # Produire un élément 3D depuis une illustration
 
 Procédure du skill `creer-un-personnage-3d`. Contrat d'élément :
@@ -41,8 +42,13 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoid
 
 Les chemins `/atelier/…` des exemples désignent les fichiers locaux de production à choisir ;
 ils ne sont pas fournis par le dépôt. Vérifier unités, axes, échelle et pose de liaison de la base,
-sans les modifier dans l'élément. Le constructeur écrit une part de manifeste ; ce fichier ne
-remplace pas le manifeste complet validé de L1.
+sans les modifier dans l'élément. La construction exige `node` dans le `PATH` : après l'export,
+elle passe sa part du manifeste à `scripts/personnage-3d/base/manifeste.mjs`, qui écrit le
+manifeste complet `/atelier/base/humanoide.manifeste.json`. Il y ajoute la déclaration du corps
+(`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence, clips de marche),
+les bornes de `st` tirées de `src/data/gabarits.json` et des surcharges de `raceAppearance.json`,
+la vitesse au sol de chaque clip de marche mesurée par l'évaluateur, et l'empreinte du GLB. Le
+manifeste refusé par `validerManifesteDeBase` fait échouer la construction.
 
 ## 2. Choisir catégorie, clé et contrat artistique
 

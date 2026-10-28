@@ -5,7 +5,7 @@ description: Produire depuis une illustration un élément 3D du jeu (GLB et man
 
 # Produire un élément 3D
 
-Lire et suivre **`docs/creer-un-personnage-3d.md`** : prérequis mesurés, choix catégorie/clé,
+Lire et suivre **`references/procedure.md`** : prérequis mesurés, choix catégorie/clé,
 fichier de données, construction, export, validation du manifeste, évaluateur et revue.
 Les contrats exécutables sont `hotes/godot/asset/element.ts` et
 `hotes/godot/asset/manifesteDeBase.ts`.
