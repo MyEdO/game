@@ -92,12 +92,6 @@ const KNOWN: Record<string, number> = {
   // Sortie : les deux propriétés du prop (SUSPENDU au-dessus du vide, ADMIS sur les cellules de siège)
   // déclarées sur la def de décor `src/gameIso/catalog/decor/` — périmètre gameIso, hors de ce lot.
   'scripts/qc/opera-furniture-check.mts': 2, // `FLOATING.has(e.ref)` (lustre SUSPENDU) + `e.ref !== 'siege'`
-  // Sortie : la zone rémanente déclarée sur la manœuvre (`{ blocksLoS, rounds: ManeuverMeasure }` —
-  // la géométrie `smokeZone` est déjà celle, générique, d'un souffle). Le champ seul ne suffit pas :
-  // les DEUX textes `manv.smoke`/`manv.smokeZone` (`src/i18n/messages/fr.ts:426-427`) nomment la fumée,
-  // et une branche générique les servirait à toute autre manœuvre — leur généralisation change le
-  // libellé de zone et la ligne de journal à l'écran (recette navigateur + arbitrage de goût).
-  'src/noyau/combatManeuvers.ts': 1, // `def.id === 'souffle-fumee'` (zone `blocksLoS`, LDB 85 l.329)
   // Sortie : l'Arène intégrée devient une ENTRÉE de `builtinCampaigns` (une seule boucle de rangées,
   // plus de rangée en dur) — refonte d'ÉCRAN, donc recette navigateur exigée au commit.
   'src/ui/PartyScreen.tsx': 2, // `currentId === 'arene'` ×2 (rangée de la campagne intégrée)
@@ -201,7 +195,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/noyau/combatEffects.ts': 3,
   'src/noyau/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
   'src/noyau/monde/combatGeometry.ts': 1,
-  'src/noyau/combatManeuvers.ts': 4,
+  'src/noyau/combatManeuvers.ts': 3,
   'src/noyau/combatSlice.ts': 1,
   'src/noyau/gesteDArete.ts': 1, // `talentId === 'grimpeur'` (LDB 15 l.57)
   // RÉVÉLÉ (jamais neuf) par la résolution des constantes de module, L2 #1548 : `q.id === ARME_D_EQUIPE`

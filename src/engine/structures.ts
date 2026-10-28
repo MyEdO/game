@@ -18,6 +18,7 @@
  */
 import type { Combatant, Weapon, StructureData } from './types';
 import { traitsDuPorteur } from './statEntry';
+import { indiceSurLeProfil } from './formule';
 import { resolveQualities } from './qualities/dispatch';
 import { hasCapability } from './capabilities';
 import { findStructureById } from '../data';
@@ -158,12 +159,13 @@ export function structureAimCell(from: { x: number; y: number }, target: Pick<Co
  *  `BE`) ; `wounds = Blessures`. Les Atouts Résistant/Impénétrable sont posés en `traits` (lus par
  *  `hasCapability` dans `structureImmune`). */
 export function structureCombatant(struct: StructureData, id = `structure-${struct.id}`): Combatant {
-  return inanimateCombatant({
+  const c = inanimateCombatant({
     id,
     label: struct.label,
     refId: struct.id, // clé du catalogue (porte/mur) — lue par `structureKind`
     bodyShape: 'structure',
     hull: { e: struct.char.BE * 10, woundsB: struct.char.B }, // ADE II donne le Bonus d'Endurance ⇒ E = BE × 10 (verbatim)
-    traits: traitsDuPorteur(struct.traits, id),
   });
+  c.traits = traitsDuPorteur(struct.traits, { id, indice: indiceSurLeProfil(c) });
+  return c;
 }

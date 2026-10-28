@@ -28,7 +28,7 @@ import {
 import { bestDefenseMode, rollManeuverAttacker, maneuverAttackerDifficulty, distraireAttackValue } from './combatManeuvers';
 import { bus, EVT } from './bus';
 import { campRestitue, campSpend } from './combat/advantagePool';
-import { creatureAttacks } from '../engine/creatureAttacks';
+import { attaqueDeCle } from '../engine/creatureAttacks';
 import { mountMovement, chargeDmgProxy } from './mount';
 import { sceneMetresPerTile } from './monde/scene';
 import { metresRetenus, phaseDeChute, refusDesRangeesDues, tombantsNommes } from './fallMove';
@@ -1346,7 +1346,7 @@ export const FLOWS = {
     caps: { forced: true },
     resolve: (_s, p, actor) => {
       if (!actor) return null;
-      const stat = creatureAttacks(actor.traits ?? []).find((a) => a.def.id === p.maneuverId)?.stat ?? 'capacite-de-tir';
+      const stat = attaqueDeCle(actor.traits ?? [], p.attaque)?.stat ?? 'capacite-de-tir';
       return { result: rollManeuverAttacker(actor, stat, battleRng(), maneuverAttackerDifficulty(p.kind)) };
     },
     outcome: (p) => testOutcome(p.result),
@@ -1360,7 +1360,7 @@ export const FLOWS = {
       applyRoll: (_s, _slot, _actor, _get, tr) => ({ result: tr }),
       dieTarget: (p, actor) => {
         if (p.result?.target != null) return cibleBrute(p.result);
-        const stat = creatureAttacks(actor.traits ?? []).find((a) => a.def.id === p.maneuverId)?.stat ?? 'capacite-de-tir';
+        const stat = attaqueDeCle(actor.traits ?? [], p.attaque)?.stat ?? 'capacite-de-tir';
         return cibleDuTest(combatValue(actor, stat === 'capacite-de-combat' ? 'melee' : 'ranged'), maneuverAttackerDifficulty(p.kind));
       },
     },

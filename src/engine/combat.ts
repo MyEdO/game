@@ -1129,10 +1129,11 @@ export function armeDeMainPrincipale(c: Combatant): Weapon {
  *  ADE II 02 l.604-710. LDB 85 l.387 ; LDB 85 l.237 ; LDB 85 l.47 ; LDB 85 l.405 */
 export function freeAttackWeapon(gratuite: CreatureAttack): Weapon {
   const { def } = gratuite;
-  return buildWeapon({
+  const w = buildWeapon({
     label: def.label, attackKind: def.kind, natural: true, ...(def.subType ? { subType: def.subType.id } : {}),
     damage: def.damage ? { ...def.damage } : { plusBF: false, flat: gratuite.bonus },
   });
+  return gratuite.confere?.length ? { ...w, traitsConferes: gratuite.confere } : w; // ZI 03 l.77
 }
 
 /** Attaque gratuite « dans le dos » lors d'une Fuite (LDB 15 l.63,66) : Test de Corps

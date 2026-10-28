@@ -4,12 +4,12 @@
  * son rendu « format livre » (`formatTrait`). Aucune mutation. Même patron que
  * `engine/qualities/dispatch.ts`.
  */
-import type { CharKey, Combatant } from '../types';
+import { DIFFICULTY_LABELS, type CharKey, type Combatant } from '../types';
 import { TRAITS } from './registry';
 import { isOptionalNote, type TraitList, type TraitsDesignes, type OptionalEntry } from '../statEntry';
 import { ARG_JOKER, type TraitPose } from '../../data/schemas/grammaire/reference';
-import { formaterParLocalisation } from '../classementDeTrait';
-import { findTraitById, findQualityById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
+import { formaterIndiceRelatif, formaterParLocalisation } from '../classementDeTrait';
+import { charAbr, findTraitById, findQualityById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
 import type { PassiveMod } from '../ops';
 import { t, type MsgKey } from '../../i18n';
 
@@ -33,20 +33,26 @@ function resolveTraitArg(def: TraitData | undefined, arg: string): string {
  *  Indice gardent « Nom (Spec) N » (« Immunité (Poison) »), les sauvegardes « Nom N+ » (« Démoniaque 8+ »). */
 /** Rendu lisible et FIDÈLE d'un trait structuré (inverse exact de `parseTraitInstance`, `ui/editor/refFormatLivre.ts`)
  *  — inspecteur / Codex / éditeur / libellé d'attaque. Restitue le signe « + » des Dégâts (attaques),
- *  le « + » de seuil des sauvegardes, sinon l'Indice nu. La NATURE est lue en DONNÉE (jamais une liste
- *  en dur) : une attaque = trait qui octroie des Manœuvres (`grantsManeuvers`, mêlée) OU est une arme
- *  naturelle (`capabilities.naturalWeapon`, dont le tir) → sa valeur s'affiche « +Dégâts ». */
+ *  le « + » de seuil des sauvegardes, sinon l'Indice nu ; un Indice relatif entre parenthèses (« Arme (BF
+ *  +4) », Middenheim 04 l.29), une autre formule omise. La NATURE est lue en DONNÉE (jamais une liste en
+ *  dur) : un Trait d'attaque (`attaque`) affiche « +Dégâts », puis chaque Trait qu'il confère entre
+ *  parenthèses (« Attaque caudale +12 (Venin) », ZI 03 l.77). La Difficulté suit l'Aspect (« Souffle +10
+ *  (Poison, Difficulté Difficile (–20)) », MDG 16 l.226). */
 export function formatTrait(t: TraitPose): string {
   const td = findTraitById(t.id);
   const label = traitLabelById(t.id);
   const head = t.count != null ? `${t.count} ${label}` : label;
-  const isAttack = !!td?.grantsManeuvers || !!td?.capabilities?.naturalWeapon;
+  const isAttack = !!td?.attaque;
   const ward = !isAttack && !!td?.capabilities?.wardSave;
-  const val = t.plage ? ` ${t.plage.min}-${t.plage.max}` : t.value == null ? '' : isAttack ? ` +${t.value}` : ward ? ` ${t.value}+` : ` ${t.value}`;
-  const arg = t.parLocalisation ? ` (${formaterParLocalisation(t.parLocalisation)})` : t.arg ? ` (${resolveTraitArg(td, t.arg)})` : '';
+  const val = t.plage ? ` ${t.plage.min}-${t.plage.max}` : typeof t.value !== 'number' ? '' : isAttack ? ` +${t.value}` : ward ? ` ${t.value}+` : ` ${t.value}`;
+  const relatif = t.value === undefined || typeof t.value === 'number' ? undefined : formaterIndiceRelatif(t.value, charAbr);
+  const rel = relatif ? ` (${relatif})` : '';
+  const aspect = [t.arg ? resolveTraitArg(td, t.arg) : '', t.difficulte ? `Difficulté ${DIFFICULTY_LABELS[t.difficulte]}` : ''].filter(Boolean).join(', ');
+  const arg = t.parLocalisation ? ` (${formaterParLocalisation(t.parLocalisation)})` : aspect ? ` (${aspect})` : '';
   const range = t.range != null ? ` (${t.range})` : '';
-  // Attaques : « Nom +Dégâts (Type) [(portée)] » ; autres : « Nom (Spec) Indice ».
-  return isAttack ? `${head}${val}${arg}${range}` : `${head}${arg}${val}${range}`;
+  const conferes = (t.confere ?? []).map((c) => ` (${formatTrait(c)})`).join('');
+  // Attaques : « Nom +Dégâts (Type) [(portée)] (conférés) » ; autres : « Nom (Spec) Indice ».
+  return isAttack ? `${head}${val}${rel}${arg}${range}${conferes}` : `${head}${arg}${rel}${val}${range}`;
 }
 
 /** `TraitList` → libellés affichables (UI/Codex/éditeur) : chaque `TraitInstance` formatée par
@@ -116,7 +122,7 @@ export function hasTraitKey(traits: TraitList | undefined, id: string): boolean 
 /** PassiveMod[] de PROFIL des traits — la DONNÉE éditable `TraitData.passive` (vocab GameOp unifié, éditée
  *  par GameOpEditor comme un sort). SOURCE UNIQUE des modificateurs de profil de trait, lue DIRECT par le
  *  collecteur passif (liveTraits). Éditer/créer un trait à modificateur de profil = de la donnée. */
-export function traitPassiveMods(traits: TraitList | undefined): PassiveMod[] {
+export function traitPassiveMods(traits: TraitsDesignes | undefined): PassiveMod[] {
   const out: PassiveMod[] = [];
   for (const t of traits ?? []) {
     const ops = findTraitById(t.id)?.passive; // lecture PAR ID stable (≠ jointure par libellé)
@@ -129,7 +135,7 @@ export function traitPassiveMods(traits: TraitList | undefined): PassiveMod[] {
 
 /** Somme des `charMod` du passif (Élite/Coriace/Brutal…) — pour la base de `effectiveChar` (`baseWithTraits`)
  *  et les Blessures (`withTraitChars`). Extrait du vocab d'ops unifié. */
-export function traitCharMods(traits: TraitList | undefined): Partial<Record<CharKey, number>> {
+export function traitCharMods(traits: TraitsDesignes | undefined): Partial<Record<CharKey, number>> {
   const out: Partial<Record<CharKey, number>> = {};
   for (const m of traitPassiveMods(traits)) if (m.op.op === 'charMod') out[m.op.char] = (out[m.op.char] ?? 0) + m.op.mod;
   return out;

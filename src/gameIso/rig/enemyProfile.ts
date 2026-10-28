@@ -9,7 +9,7 @@ import type { Combatant, ItemInstance, ArmourPoints, HitLocation } from '../../e
 import { equipDe, equipPorte, type EquipCtx } from './parts/equipment';
 import { emptyArmour } from '../../engine/items';
 import { renderWeaponsFromTraits, armourFromTraits, weaponFromId } from '../../engine/creatureEquip';
-import { traitsDeLIndividu } from '../../noyau/monde/spawn';
+import { porteurDuProfil, traitsDeLIndividu } from '../../noyau/monde/spawn';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { eyesArtFromKeys } from './parts/eyes';
 import { hashSeed } from '../../engine/dice';
@@ -242,6 +242,8 @@ export function entityRigProfile(
     weapon?: string;
     /** Profil de combat de l'entité (statbloc d'éditeur) → équipement affiché en explo, comme au combat. */
     traits?: readonly TraitPose[]; armour?: number;
+    /** Profil du statbloc d'éditeur : référent des Indices formulés de ses `traits`. */
+    char?: Partial<Record<string, number | null>>;
     /** Id du porteur (l'entité de scène) : ses fourchettes de Trait se tirent comme à son spawn. */
     porteur?: string;
     /** L'entité est ENRÔLÉE dans une rencontre (membre d'un `EncounterDef`) : elle porte les ARMES que
@@ -263,7 +265,7 @@ export function entityRigProfile(
   // d'éditeur (`opts.traits`), sinon ceux du record. L'ARMURE fait partie de l'apparence : elle se dérive
   // toujours de ces traits. Les ARMES n'en sortent que pour une entité enrôlée (`enrolled`). Armes
   // EXPLICITES seulement (`renderWeaponsFromTraits`, pas de repli « Arme » générique dessiné en épée).
-  const traits = traitsDeLIndividu(opts?.traits ?? rec?.traits ?? [], opts?.porteur ?? name ?? '');
+  const traits = traitsDeLIndividu(opts?.traits ?? rec?.traits ?? [], porteurDuProfil(opts?.porteur ?? name ?? '', (opts?.traits ? opts.char : rec?.char) ?? {}));
   const traitsArmes = opts?.traits || opts?.enrolled ? traits : [];
   // `opts.weapon` (trappingId d'authoring) ne s'ajoute QUE si les Traits n'ont PAS déjà produit une arme du
   // MÊME type (melee/ranged) — même règle que le spawn de combat (`spawn.ts` spawnEnemy), sinon
@@ -298,6 +300,6 @@ export function entityRigProfileFor(ent: SceneEntity, enrolled?: boolean): Enemy
       console.error(`[rig] entité « ${ent.id} »${nom ? ` (${nom})` : ''} : ni réf de créature ni Espèce — donnée de scène à corriger.`);
     });
   return entityRigProfile(refName, hashSeed(ent.id), {
-    ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, armour: ent.statblock?.armour, enrolled, porteur: ent.id,
+    ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, char: ent.statblock?.char, armour: ent.statblock?.armour, enrolled, porteur: ent.id,
   });
 }

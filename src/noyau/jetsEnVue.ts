@@ -18,7 +18,7 @@ import { CHAR_LABELS } from '../engine/types';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { estJete, evaluateTest, type EchecSansJet } from '../engine/tests';
 import { castInfoIsPrayer } from '../engine/magic';
-import { creatureAttacks } from '../engine/creatureAttacks';
+import { attaqueDeCle } from '../engine/creatureAttacks';
 import { formatDice } from '../engine/dice';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { findCrewRoleById, findSpellById, refLabel } from '../data';
@@ -85,8 +85,8 @@ export function libelleDIncantation(spellId: string): string {
 }
 
 /** Le libellé de ligne du jet d'une manœuvre de créature : la Caractéristique de son attaque. */
-export function libelleDeManoeuvre(attacker: Combatant, maneuverId: string): string {
-  const stat = creatureAttacks(attacker.traits ?? []).find((x) => x.def.id === maneuverId)?.stat ?? 'capacite-de-tir';
+export function libelleDeManoeuvre(attacker: Combatant, attaque: string): string {
+  const stat = attaqueDeCle(attacker.traits ?? [], attaque)?.stat ?? 'capacite-de-tir';
   return CHAR_LABELS[stat === 'capacite-de-combat' ? 'capacite-de-combat' : 'capacite-de-tir'];
 }
 
@@ -271,7 +271,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   maneuver: (s) => {
     const pm = s.pendingManeuver;
     const a = pm && pool(s).find((c) => c.id === pm.attackerId);
-    return pm && a ? vue('maneuver', [ligne(pm.attackerId, libelleDeManoeuvre(a, pm.maneuverId), pm.result)]) : null;
+    return pm && a ? vue('maneuver', [ligne(pm.attackerId, libelleDeManoeuvre(a, pm.attaque), pm.result)]) : null;
   },
   run: (s) => {
     const pr = s.pendingRun;

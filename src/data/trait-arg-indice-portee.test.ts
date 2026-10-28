@@ -1,25 +1,26 @@
 /**
  * #1957 — l'Indice et la Portée d'un Trait (`LDB 85` l.94, l.209) vivent en `value` / `range`, jamais en
  * `arg`, dès que la def du Trait les DÉCLARE (marqueurs `indice` / `range`, `defs/traits.ts`).
- * Garde : `refusDArgDeTrait` (`schemas/grammaire/reference.ts`), portée par `traitInstanceSchema` et
- * `traitOctroyeSchema` (`grantTrait.trait`).
+ * Garde : `refusDArgDeTrait` (`schemas/grammaire/reference.ts`), portée par `traitInstanceSchema` (Trait
+ * posé au statbloc comme `grantTrait.trait`).
  */
 import { describe, it, expect } from 'vitest';
 import { creatures } from './index';
 import { wardSaves } from '../engine/traits/dispatch';
 import { traitsDuPorteur } from '../engine/statEntry';
+import { porteurDuProfil } from '../noyau/monde/spawn';
 import { traitInstanceSchema, refusDArgDeTrait } from './schemas/grammaire/reference';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
 
 describe('Démoniaque (Indice) — la sauvegarde de chaque démon de la donnée', () => {
   it('wardSaves rend l’Indice de chaque démon de creatures.json', () => {
     const demons = creatures.filter((c) => c.traits.some((t) => t.id === 'demoniaque'));
-    const sansSauvegarde = demons.filter((c) => wardSaves(traitsDuPorteur(c.traits, c.id)).length === 0).map((c) => c.id);
+    const sansSauvegarde = demons.filter((c) => wardSaves(traitsDuPorteur(c.traits, porteurDuProfil(c.id, c.char))).length === 0).map((c) => c.id);
     expect(sansSauvegarde).toEqual([]);
     expect(demons).not.toHaveLength(0);
     for (const c of demons) {
       const indice = c.traits.find((t) => t.id === 'demoniaque')!.value;
-      expect(wardSaves(traitsDuPorteur(c.traits, c.id)), c.id).toContain(indice);
+      expect(wardSaves(traitsDuPorteur(c.traits, porteurDuProfil(c.id, c.char))), c.id).toContain(indice);
     }
   });
 });

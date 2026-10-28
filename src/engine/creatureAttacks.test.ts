@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { creatureAttacks } from './creatureAttacks';
+import { creatureAttacks, souffleDuType } from './creatureAttacks';
+import { findManeuverById } from '../data';
 import { difficulteDeLArg } from './tests';
 import type { TraitInstance } from './statEntry';
 
-const DRAGON: TraitInstance[] = [{ id: 'arme', value: 10 }, { id: 'armure', value: 5 }, { id: 'attaque-caudale', value: 9 }, { id: 'morsure', value: 10 }, { id: 'souffle', value: 15, arg: 'Feu' }, { id: 'taille', arg: 'Énorme' }, { id: 'vol', value: 80 }];
+const DRAGON: TraitInstance[] = [{ id: 'arme', value: 10 }, { id: 'armure', value: 5 }, { id: 'attaque-caudale', value: 9 }, { id: 'morsure', value: 10 }, { id: 'souffle', value: 15, arg: 'feu' }, { id: 'taille', arg: 'Énorme' }, { id: 'vol', value: 80 }];
 const by = (ts: TraitInstance[], k: string) => creatureAttacks(ts).find((a) => a.kind === k)!;
 
 describe('creatureAttacks — attaques + RÈGLES dérivées des traits (RAW)', () => {
@@ -36,18 +37,21 @@ describe('creatureAttacks — attaques + RÈGLES dérivées des traits (RAW)', (
   });
   it('Souffle = gratuite 2 Avantages, zone, magique, Type lu', () => {
     const a = by(DRAGON, 'souffle');
-    expect([a.trigger, a.avantage, a.aoe, a.magic, a.type]).toEqual(['free', 2, true, true, 'Feu']);
+    expect([a.trigger, a.avantage, a.aoe, a.magic, a.type]).toEqual(['free', 2, true, true, 'feu']);
   });
   it('Souffle « (divers) » → Type non spécifié', () => {
     expect(by([{ id: 'souffle', value: 12, arg: 'divers' }], 'souffle').type).toBeUndefined();
   });
-  it('le trait octroie la manœuvre PAR ID (grantsManeuvers → findManeuverById) ; l’arg choisit la variante', () => {
-    // Souffle : 6 variantes de Type octroyées, désambiguïsées GÉNÉRIQUEMENT par l'argument d'instance.
-    expect(by(DRAGON, 'souffle').def.id).toBe('souffle-feu');
-    expect(by([{ id: 'souffle', value: 12, arg: 'Froid' }], 'souffle').def.id).toBe('souffle-froid');
-    // Octroi unique → résolution directe ; l'Indice de l'instance est porté (injecté en {indiceOf}).
+  it('le trait octroie la manœuvre PAR ID (grantsManeuvers → findManeuverById) ; le Type de Souffle la compose', () => {
+    expect(by(DRAGON, 'souffle').def).toEqual(souffleDuType(findManeuverById('souffle')!, 'feu'));
+    expect(by([{ id: 'souffle', value: 10, arg: 'poison', difficulte: 'difficile' }], 'souffle').def).toEqual(souffleDuType(findManeuverById('souffle')!, 'poison', 'difficile'));
+    // L'Indice de l'instance est porté (injecté en {indiceOf}).
     const m = by([{ id: 'morsure', value: 10 }], 'morsure');
     expect([m.def.id, m.indice]).toEqual(['morsure', 10]);
+  });
+  it('l’attaque porte les Traits que son Trait confère (ZI 03 l.77)', () => {
+    expect(by([{ id: 'attaque-caudale', value: 12, confere: [{ id: 'venin' }] }], 'caudale').confere).toEqual([{ id: 'venin' }]);
+    expect(by([{ id: 'attaque-caudale', value: 12 }], 'caudale').confere).toBeUndefined();
   });
   it('Tentacules = une Attaque gratuite PAR tentacule, sans coût d’Avantage (Empêtré = effet onHit migré)', () => {
     const a = by([{ id: 'tentacules', value: 6 }], 'tentacules');

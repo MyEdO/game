@@ -227,7 +227,7 @@ function behavioralFloor(): void {
   {
     seedBattleRng(2);
     const { H, E } = freshCombat();
-    E.traits = [{ id: 'souffle', value: 14, arg: 'Feu' }];
+    E.traits = [{ id: 'souffle', value: 14, arg: 'feu' }];
     E.advantage = 2; E.characteristics['capacite-de-tir'] = 85; E.characteristics.endurance = 40; E.pos = { x: 5, y: 5 };
     H.pos = { x: 5, y: 8 };
     H.characteristics.agilite = 1; H.skills = H.skills.filter((s) => s.id !== 'esquive'); H.conditions = [];

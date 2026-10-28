@@ -61,7 +61,7 @@ interface Fixture { patch: Partial<Jeu> | (() => Partial<Jeu>); flux: readonly J
 const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   battement: { patch: { pendingBattement: { attackerId: H.id, foeId: E.id, result: tr(34, 45) } }, flux: ['battement'] },
   distraire: { patch: { pendingDistraire: { moverId: H.id, foeId: E.id, atk: tr(20, 50), defRoll: tr(70, 40), result: 'success' } }, flux: ['distraire'], oppose: true },
-  maneuver: { patch: { pendingManeuver: { attackerId: H.id, kind: 'vomi', maneuverId: 'vomi', avantageSpent: 0, result: tr(30, 40) } }, flux: ['maneuver'] },
+  maneuver: { patch: { pendingManeuver: { attackerId: H.id, kind: 'vomi', attaque: 'vomi', avantageSpent: 0, result: tr(30, 40) } }, flux: ['maneuver'] },
   auContact: { patch: { pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'choice', atk: tr(20, 50), def: tr(70, 40), result: 'failure' } }, flux: ['auContact'], oppose: true },
   grapple: { patch: { pendingGrapple: { actorId: H.id, foeId: E.id, phase: 'options', canBreak: false, atk: tr(25, 40), def: tr(35, 50), result: 'success' } }, flux: ['grapple'], oppose: true },
   frenzy: { patch: { pendingFrenzy: { combatantId: H.id, result: jet(12, 30) } }, flux: ['frenzy'] },

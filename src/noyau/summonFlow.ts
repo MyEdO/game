@@ -22,7 +22,7 @@ import { inBattleId } from './monde/combatants';
 import { spawnEnemy, traitsDeLIndividu } from './monde/spawn';
 import { grantTrait } from '../engine/grantedTraits';
 import { resolveFormula, nomDeSource, type GameOp } from '../engine/ops';
-import { slBonus } from '../engine/formule';
+import { indiceSurLeProfil, slBonus } from '../engine/formule';
 import { isOutOfAction } from '../engine/conditions';
 import { RNG } from '../engine/dice';
 import { t } from '../i18n';
@@ -110,7 +110,7 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
     const c = spawnEnemy(porteur, id, pos);
     c.kind = kind;
     if (summon.size) c.size = summon.size;
-    for (const t of traitsDeLIndividu(summon.addTraits ?? [], id, { dejaPortes: c.traits })) grantTrait(c, t); // traits surchargés (Frénésie, Magique…)
+    for (const t of traitsDeLIndividu(summon.addTraits ?? [], { id, indice: indiceSurLeProfil(c) }, { dejaPortes: c.traits })) grantTrait(c, t); // traits surchargés (Frénésie, Magique…)
     c.summon = {
       byId: caster.id,
       ...(opts.label ? { label: opts.label } : {}),

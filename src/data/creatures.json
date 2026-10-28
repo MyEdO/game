@@ -9237,7 +9237,13 @@
         "id": "arme",
         "value": 7,
         "arg": "Serres",
-        "natural": true
+        "natural": true,
+        "confere": [
+          {
+            "id": "venin",
+            "arg": "difficile"
+          }
+        ]
       },
       {
         "id": "attaque-caudale",
@@ -9263,7 +9269,7 @@
       {
         "id": "souffle",
         "value": 9,
-        "arg": "Corrosion"
+        "arg": "corrosif"
       }
     ],
     "skills": [],
@@ -10781,12 +10787,21 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Crocs"
+        "arg": "Crocs",
+        "confere": [
+          {
+            "id": "infecte"
+          }
+        ]
       },
       {
         "id": "attaque-caudale",
         "value": 12,
-        "arg": "Venin"
+        "confere": [
+          {
+            "id": "venin"
+          }
+        ]
       }
     ],
     "optionals": [
@@ -11162,7 +11177,13 @@
       {
         "id": "arme",
         "value": 11,
-        "arg": "Gueule bardée de crocs"
+        "arg": "Gueule bardée de crocs",
+        "confere": [
+          {
+            "id": "venin",
+            "arg": "complexe"
+          }
+        ]
       },
       {
         "id": "attaque-caudale",
@@ -11171,7 +11192,13 @@
       {
         "id": "morsure",
         "value": 11,
-        "arg": "Gueule bardée de crocs"
+        "arg": "Gueule bardée de crocs",
+        "confere": [
+          {
+            "id": "venin",
+            "arg": "complexe"
+          }
+        ]
       }
     ],
     "optionals": [
@@ -11253,7 +11280,12 @@
       },
       {
         "id": "morsure",
-        "value": 11
+        "value": 11,
+        "confere": [
+          {
+            "id": "venin"
+          }
+        ]
       }
     ],
     "optionals": [
@@ -11349,7 +11381,12 @@
       },
       {
         "id": "morsure",
-        "value": 11
+        "value": 11,
+        "confere": [
+          {
+            "id": "venin"
+          }
+        ]
       },
       {
         "id": "souffle",
@@ -11736,7 +11773,14 @@
     "traits": [
       {
         "id": "arme",
-        "arg": "BF +4"
+        "value": {
+          "sum": [
+            {
+              "bonusOf": "force"
+            },
+            4
+          ]
+        }
       },
       {
         "id": "armure",
@@ -11744,7 +11788,14 @@
       },
       {
         "id": "morsure",
-        "arg": "BF +3"
+        "value": {
+          "sum": [
+            {
+              "bonusOf": "force"
+            },
+            3
+          ]
+        }
       },
       {
         "id": "peur",
@@ -17614,7 +17665,8 @@
       {
         "id": "souffle",
         "value": 10,
-        "arg": "Poison, Difficulté Difficile (–20)"
+        "arg": "poison",
+        "difficulte": "difficile"
       }
     ],
     "optionals": [],
@@ -20932,7 +20984,14 @@
       },
       {
         "id": "cornes",
-        "arg": "BF +3"
+        "value": {
+          "sum": [
+            {
+              "bonusOf": "force"
+            },
+            3
+          ]
+        }
       },
       {
         "id": "endurant"

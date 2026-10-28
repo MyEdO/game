@@ -14,6 +14,7 @@ import { ligneDe } from './modLine.testkit';
 import { refDeRegle } from './reglesChiffrees';
 import type { Combatant, Weapon } from './types';
 import { traitsDuPorteur } from './statEntry';
+import { porteurDuProfil } from '../noyau/monde/spawn';
 
 const PAS_A_SA_TAILLE = refDeRegle('possession-pas-a-sa-taille');
 const attacker = (size?: Combatant['size']): Combatant => ({ advantage: 0, conditions: [], skills: [], size } as unknown as Combatant);
@@ -64,7 +65,7 @@ describe('sizeFor — pénalité de Taille (ADE II 2 l.710)', () => {
 
   it("régression #ogre : la créature `ogre` du REGISTRE (trait « Arme » générique, sans arg catalogue) attaque avec son arme innée SANS malus (repro recette — auparavant « 30 −20 »), tout en gardant sa silhouette d'arme au rendu (`sizeless` ≠ `natural`)", () => {
     const ogre = findCreatureById('ogre')!;
-    const [w] = weaponsFromTraits(traitsDuPorteur(ogre.traits, ogre.id));
+    const [w] = weaponsFromTraits(traitsDuPorteur(ogre.traits, porteurDuProfil(ogre.id, ogre.char)));
     expect(w.sizeless).toBe(true);
     expect(w.natural).toBeUndefined(); // ne vide PAS les mains au rendu (weaponFamily)
     const mods = attackModifiers(attacker('grande'), null, w, { kind: 'melee' });
