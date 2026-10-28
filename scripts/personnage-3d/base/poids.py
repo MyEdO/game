@@ -4,11 +4,13 @@ longueur de l'arête qui les relie, jusqu'à ce qu'aucune arête n'en sorte. L'�
 poids de ses sommets rapporté à sa longueur : la pondération reporte le saut de poids des micro-arêtes sur les arêtes
 longues, où il étire peu.
 
-L'étirement d'une arête est le rapport de sa longueur déformée à sa longueur de repos, aux images clés de chaque clip,
+L'étirement d'une arête est le rapport de sa longueur déformée à sa longueur de repos, aux instants de chaque clip (`instants`),
 en skinning linéaire sur `INFLUENCES_MAX` os normalisés : le modèle de l'export glTF et de la garde
 `hotes/godot/asset/evaluateur/gardes/etirement.ts`. Les arêtes sont celles des triangles, diagonales comprises. Les
 jumeaux (sommets confondus au repos, plus proches que `DEPLACEMENT_MIN_M`) se lissent comme un seul sommet.
 """
+import math
+
 import bpy
 import numpy
 from mathutils.kdtree import KDTree
@@ -28,22 +30,73 @@ LOT = 64
 """Échantillons déformés ensemble."""
 
 
-def matrices_de_peau(rig, clips):
-    """Les noms d'os, et par image clé de chaque clip la matrice de peau de chaque os, repère monde : (N, os, 4, 4)."""
-    noms = [b.name for b in rig.data.bones]
-    monde, inverse = rig.matrix_world, rig.matrix_world.inverted()
-    repos = [b.matrix_local.inverted() @ inverse for b in rig.data.bones]
+def instants(action):
+    """Les instants de `action`, en images : chaque image entière de sa plage, au pas `IMAGES_PAR_SECONDE` de
+    l'évaluateur, puis sa fin si elle tombe entre deux images."""
+    debut, fin = action.frame_range
+    images = list(range(math.ceil(debut), math.floor(fin) + 1))
+    return images + ([fin] if fin != images[-1] else [])
+
+
+def aller_a(instant):
+    """Pose la scène à l'instant `instant`, en images, sous-image comprise."""
+    bpy.context.scene.frame_set(math.floor(instant), subframe=instant - math.floor(instant))
+
+
+def poses(rig, action):
+    """Par instant de `action` joué sur `rig`, la matrice monde de chaque os, dans l'ordre de `rig.data.bones` :
+    (instants, os, 4, 4)."""
     scene = bpy.context.scene
     image = scene.frame_current
+    assign_action(rig, action)
     echantillons = []
-    for action in clips:
-        assign_action(rig, action)
-        debut, fin = (round(f) for f in action.frame_range)
-        for f in range(debut, fin + 1):
-            scene.frame_set(f)
-            echantillons.append([monde @ rig.pose.bones[n].matrix @ r for n, r in zip(noms, repos)])
+    for instant in instants(action):
+        aller_a(instant)
+        echantillons.append([rig.matrix_world @ rig.pose.bones[b.name].matrix for b in rig.data.bones])
     scene.frame_set(image)
-    return noms, numpy.array(echantillons, dtype=numpy.float32)
+    return numpy.array(echantillons)
+
+
+def repos(rig):
+    """Par os de `rig`, l'inverse de sa matrice de repos, repère monde : (os, 4, 4) ; `poses(…) @ repos(rig)` donne les
+    matrices de peau."""
+    return numpy.array([b.matrix_local.inverted() @ rig.matrix_world.inverted() for b in rig.data.bones])
+
+
+def matrices_de_peau(rig, clips):
+    """Les noms d'os, et par instant de chaque clip la matrice de peau de chaque os, repère monde : (N, os, 4, 4)."""
+    inverses = repos(rig)
+    return [b.name for b in rig.data.bones], numpy.concatenate([poses(rig, a) @ inverses for a in clips]).astype(numpy.float32)
+
+
+def peau_lineaire(peau, noms):
+    """Les sommets de `peau` au repos, repère monde et homogènes, et leurs poids sur les os `noms`, réduits à
+    `INFLUENCES_MAX` et normalisés : le skinning de l'export glTF."""
+    index = {n: i for i, n in enumerate(noms)}
+    groupes = {g.index: g.name for g in peau.vertex_groups}
+    if set(groupes.values()) - index.keys():
+        raise RuntimeError(f'{peau.name} : groupes hors du squelette {sorted(set(groupes.values()) - index.keys())}')
+    sommets = peau.data.vertices
+    x = numpy.array([(*(peau.matrix_world @ v.co), 1.0) for v in sommets], dtype=numpy.float32)
+    w = numpy.zeros((len(sommets), len(noms)), dtype=numpy.float32)
+    for v in sommets:
+        for g in v.groups:
+            w[v.index, index[groupes[g.group]]] = g.weight
+    if not w.sum(axis=1).all():
+        raise RuntimeError(f'{peau.name} : sommet sans poids')
+    return x, limiter(w)
+
+
+def deformer(w, x, matrices):
+    """Les positions monde des sommets (`w`, `x`) sous chaque échantillon de `matrices` de peau : (échantillons,
+    sommets, 3), par lots de `LOT` échantillons."""
+    lots = []
+    for k in range(0, len(matrices), LOT):
+        lot = matrices[k:k + LOT]
+        n = len(lot)
+        melange = (w @ lot.transpose(1, 0, 2, 3).reshape(lot.shape[1], n * 16)).reshape(len(x), n, 4, 4)
+        lots.append(numpy.einsum('snij,sj->nsi', melange[:, :, :3, :], x))
+    return numpy.concatenate(lots)
 
 
 def limiter(w):
@@ -62,10 +115,7 @@ def extremes(w, x, aretes, longueurs, matrices):
     bas = numpy.full(len(aretes), numpy.inf, dtype=numpy.float32)
     haut = numpy.zeros(len(aretes), dtype=numpy.float32)
     for k in range(0, len(matrices), LOT):
-        lot = matrices[k:k + LOT]
-        n = len(lot)
-        melange = (ws @ lot.transpose(1, 0, 2, 3).reshape(lot.shape[1], n * 16)).reshape(len(sommets), n, 4, 4)
-        p = numpy.einsum('snij,sj->nsi', melange[:, :, :3, :], xs)
+        p = deformer(ws, xs, matrices[k:k + LOT])
         rapport = numpy.linalg.norm(p[:, locales[:, 0]] - p[:, locales[:, 1]], axis=2) / longueurs
         bas = numpy.minimum(bas, rapport.min(axis=0))
         haut = numpy.maximum(haut, rapport.max(axis=0))
@@ -84,19 +134,8 @@ def jumeaux(x):
 def lisser(peau, noms, matrices):
     """Lisse les poids de `peau` jusqu'à ce que ses arêtes restent dans `ETIREMENT_VISE` ; rend le nombre de sommets
     retouchés."""
-    index = {n: i for i, n in enumerate(noms)}
-    groupes = {g.index: g.name for g in peau.vertex_groups}
-    if set(groupes.values()) - index.keys():
-        raise RuntimeError(f'{peau.name} : groupes hors du squelette {sorted(set(groupes.values()) - index.keys())}')
     sommets = peau.data.vertices
-    x = numpy.array([(*(peau.matrix_world @ v.co), 1.0) for v in sommets], dtype=numpy.float32)
-    w = numpy.zeros((len(sommets), len(noms)), dtype=numpy.float32)
-    for v in sommets:
-        for g in v.groups:
-            w[v.index, index[groupes[g.group]]] = g.weight
-    if not w.sum(axis=1).all():
-        raise RuntimeError(f'{peau.name} : sommet sans poids')
-    w = limiter(w)
+    x, w = peau_lineaire(peau, noms)
     jumeau = jumeaux(x)
     peau.data.calc_loop_triangles()
     triangles = jumeau[numpy.array([t.vertices[:] for t in peau.data.loop_triangles])]
