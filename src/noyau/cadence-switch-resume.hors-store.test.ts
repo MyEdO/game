@@ -5,46 +5,46 @@
  *  2. en AUTO, le joueur n'a AUCUNE affordance sur le héros actif — `controlsActive` est FAUX (la grille de
  *     déplacement, le réticule, la barre d'action et les raccourcis se gatent dessus).
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from './store';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makeShowcaseParty } from '../data/pregens';
 import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
-import { controlsActive } from '../noyau/netOwnership';
+import { controlsActive } from './netOwnership';
 import { setCadence } from '../engine/cadence';
 const embuscadeConstruit = embuscade.construire();
 
 describe('Bascule de Cadence en plein combat', () => {
-  beforeEach(() => { vi.useFakeTimers(); setCadence('manuel'); });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); setCadence('manuel'); });
+  let banc: Banc;
+  beforeEach(() => { banc = ouvrirLeBanc(); });
 
   function startAtHeroTurn() {
-    useGame.setState({ party: makeShowcaseParty() });
-    useGame.getState().startScene(embuscadeConstruit.scene);
-    useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
-    useGame.getState().confirmRoundStart();
-    const b = useGame.getState().battle!;
+    banc.setState({ party: makeShowcaseParty() });
+    banc.getState().startScene(embuscadeConstruit.scene);
+    banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+    banc.getState().confirmRoundStart();
+    const b = banc.getState().battle!;
     const hero = b.combatants.find((c) => c.kind === 'hero')!;
     // place un héros en tête → tour héros, cadence MANUELLE (l'IA n'agit pas, le combat ATTEND le joueur)
-    useGame.setState({ battle: { ...b, order: [hero.id, ...b.order.filter((id) => id !== hero.id)], turn: 0, action: null } });
+    banc.setState({ battle: { ...b, order: [hero.id, ...b.order.filter((id) => id !== hero.id)], turn: 0, action: null } });
     return hero.id;
   }
 
   it('AUTO : controlsActive est FAUX sur le héros actif (pas d’affordance joueur) ; MANUEL : vrai', () => {
     startAtHeroTurn();
     setCadence('manuel');
-    expect(controlsActive(useGame.getState())).toBe(true); // manuel → le joueur pilote
+    expect(controlsActive(banc.getState())).toBe(true); // manuel → le joueur pilote
     setCadence('auto');
-    expect(controlsActive(useGame.getState())).toBe(false); // auto → l'IA pilote, UI inerte
+    expect(controlsActive(banc.getState())).toBe(false); // auto → l'IA pilote, UI inerte
   });
 
   it('passer en AUTO en plein tour héros NE FIGE PAS : resumeCadence relance l’IA (le tour avance)', () => {
     const id = startAtHeroTurn();
-    const logBefore = useGame.getState().battle!.log.length;
+    const logBefore = banc.getState().battle!.log.length;
     // bascule manuel → auto en plein tour héros, comme le panneau Règles maison
     setCadence('auto');
-    useGame.getState().resumeCadence();
-    vi.advanceTimersByTime(4000); // laisse jouer le télégraphe + l'action de l'IA
-    const b = useGame.getState().battle!;
+    banc.getState().resumeCadence();
+    banc.avancer(4000); // laisse jouer le télégraphe + l'action de l'IA
+    const b = banc.getState().battle!;
     const activeNow = b.order[b.turn];
     const acted = activeNow !== id || b.acted || b.combatants.find((c) => c.id === id)!.pos != null && b.log.length > logBefore;
     expect(b.log.length).toBeGreaterThan(logBefore); // l'IA a AGI (journal enrichi) → plus figé

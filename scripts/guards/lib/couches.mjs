@@ -10,7 +10,9 @@
 //  - `survit` : la zone survit à la bascule vers Godot (#2794) — elle ne charge aucun paquet de l'hôte web
 //    (`PAQUETS_DE_L_HOTE_WEB`), même pour un type, n'écrit aucun JSX, et ne lit aucun module hors des zones ;
 //  - `outillage` : pour un script d'outillage de la zone (lancé par Node à la construction, à la recette ou par les
-//    tests, jamais chargé par l'hôte), les seuls modules hors des zones qu'il lit (`horsZoneOuvert`).
+//    tests, jamais chargé par l'hôte), les seuls modules hors des zones qu'il lit (`horsZoneOuvert`) ;
+//  - `tests` (#3058), pour une zone qui survit : `outillage`, les chemins hors des zones (dossier ou module d'outil
+//    Node) dont ses SUITES lisent le code ; une suite d'une zone qui survit lit toute zone qui survit (`fermetureDUnTest`).
 // Toute autre zone lui est fermée, même pour un type.
 import { posix as cheminPosix } from 'node:path';
 
@@ -34,13 +36,19 @@ const DROITS_D_HOTE = Object.freeze({ importe: Object.freeze(['noyau', 'scenes',
 const DROITS_DES_HOTES = Object.freeze({ ...DROITS_D_HOTE, importe: Object.freeze([...DROITS_D_HOTE.importe, 'hote']) });
 
 export const COUCHES = Object.freeze({
-  lib: { importe: [], survit: true },
+  lib: { importe: [], survit: true, tests: { outillage: ['scripts/guards/lib'] } },
   geometry: { importe: [], survit: true },
   i18n: { importe: [], survit: true },
-  engine: { importe: ['data', ...FEUILLES], survit: true },
-  data: { importe: ['engine', ...FEUILLES], survit: true },
-  noyau: { importe: ['engine', 'data', ...FEUILLES], survit: true },
-  hote: DROITS_D_HOTE,
+  engine: { importe: ['data', ...FEUILLES], survit: true, tests: { outillage: ['scripts/guards/lib'] } },
+  data: {
+    importe: ['engine', ...FEUILLES],
+    survit: true,
+    tests: {
+      outillage: ['scripts/guards/lib', 'scripts/docs', 'scripts/source', 'scripts/data/lib', 'scripts/raw', 'scripts/migrations', 'scripts/arene', 'scripts/gen-espaces.mts', 'scripts/gen-registry.mjs'],
+    },
+  },
+  noyau: { importe: ['engine', 'data', ...FEUILLES], survit: true, tests: { outillage: ['scripts/guards/lib', 'scripts/docs'] } },
+  hote: { ...DROITS_D_HOTE, tests: { outillage: ['scripts/guards/lib'] } },
   hoteTexte: DROITS_DES_HOTES,
   hotes: {
     dossier: 'hotes',
@@ -54,6 +62,7 @@ export const COUCHES = Object.freeze({
     importe: ['noyau', 'data', 'engine', ...FEUILLES],
     survit: true,
     outillage: { 'src/scenes/projetsLivres.testkit.ts': ['scripts/guards/lib/projetsLivres.mjs'] },
+    tests: { outillage: ['scripts/guards/lib', 'scripts/campagne', 'scripts/source'] },
   },
   net: { importe: [...FEUILLES], types: ['hote'] },
   web: { importe: [...FEUILLES] },
@@ -116,6 +125,20 @@ export const horsZoneOuvert = (de, importeurRel, cibleRel) => estZone(de) && (CO
 
 /** La zone `de` refuse-t-elle le paquet `paquet` : elle survit à la bascule, et c'est un paquet de l'hôte web ? */
 export const paquetFerme = (de, paquet) => estZone(de) && COUCHES[de].survit === true && PAQUETS_DE_L_HOTE_WEB.includes(paquet);
+
+/** Le verdict d'un arc d'une SUITE de la zone `de` vers `cibleRel` (chemin relatif à la racine) : `null` s'il est
+ *  ouvert, sinon ce qui le ferme — `'zone'`, une zone qui ne survit pas à la bascule ; `'hors-zone'`, un module hors
+ *  des zones, ni sous un dossier de `tests.outillage` ni l'un de ses modules (`moduleDe`, extension de script ignorée)
+ *  (l'appelant écarte une donnée, qui n'importe rien). Le sens des couches entre zones qui survivent est celui des
+ *  murs du code, pas de ce verdict. Une zone qui ne survit pas, et un dossier de `src/` sans ligne (`murs/zone`), ne
+ *  se jugent pas. PURE. */
+export function fermetureDUnTest(de, cibleRel) {
+  if (!estZone(de) || COUCHES[de].survit !== true) return null;
+  const vers = zoneDe(cibleRel);
+  if (estZone(vers)) return COUCHES[vers].survit === true ? null : 'zone';
+  if (vers !== null) return null;
+  return (COUCHES[de].tests?.outillage ?? []).some((d) => moduleDe(cibleRel) === moduleDe(d) || cibleRel.startsWith(`${d}/`)) ? null : 'hors-zone';
+}
 
 /** Le module d'un chemin RELATIF à la racine, sans extension de script ni `index` final : `src/noyau/index.ts`,
  *  `src/noyau/index` et `src/noyau` désignent le même module. PURE. */

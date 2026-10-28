@@ -307,7 +307,7 @@ const OBJECT_SEED = tableTotale(OBJECT_DATASET_KEYS, (k): object => structuredCl
 /** GEL des ENTRÉES d'un dataset-tableau en développement (#2097) : au chargement, et à chaque entrée
  *  neuve (`setDataset`, `resetData`). Le tableau lui-même reste mutable (`splice` du seam). Les
  *  datasets-OBJETS ne se gèlent pas : leur seam les fusionne en place (`setObjectDataset`), et leur
- *  partage est jugé par la garde de partage des tests (`state/partage.testkit.ts`). */
+ *  partage est jugé par la garde de partage des tests (`scenes/partage.testkit.ts`). */
 function gelerLesEntrees(entrees: readonly unknown[]): void {
   if (!GELER_LA_DONNEE) return;
   for (const e of entrees) if (e !== null && typeof e === 'object') gelerProfond(e);

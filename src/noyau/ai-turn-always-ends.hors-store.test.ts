@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from './store';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { scenario } from '../scenes/test-scenarios/42-belier-porte';
-import { runEnemyAI } from '../noyau/combatFlow';
+import { runEnemyAI } from './combatFlow';
 const scenarioConstruit = scenario.construire();
 
 /**
@@ -14,16 +14,16 @@ const scenarioConstruit = scenario.construire();
  * (`ai:true` → `aiControlled`, `combatSlice.ts` bascule son `kind` en 'hero' car `side:'ally'`).
  */
 describe('un tour IA se termine TOUJOURS, même sans adversaire vivant et combat non terminé', () => {
-  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+  let banc: Banc;
+  beforeEach(() => { banc = ouvrirLeBanc(); banc.setState({ battle: null }); });
 
   it('gobelin (dernier ennemi) mort, porte intacte : le tour du servant du bélier se clôt (advanceTurn), le combat continue', () => {
-    useGame.setState({ party: scenario.construire().party });
-    useGame.getState().startScene(scenarioConstruit.scene);
-    useGame.getState().startCombat('siege-belier');
-    useGame.getState().confirmRoundStart();
-    vi.clearAllTimers();
-    const b = useGame.getState().battle!;
+    banc.setState({ party: scenario.construire().party });
+    banc.getState().startScene(scenarioConstruit.scene);
+    banc.getState().startCombat('siege-belier');
+    banc.getState().confirmRoundStart();
+    banc.abandonner();
+    const b = banc.getState().battle!;
     const gobelin = b.combatants.find((c) => c.kind === 'enemy' && !c.inert)!;
     expect(gobelin).toBeTruthy();
     gobelin.dead = true; // dernier ennemi hors de combat — la porte, elle, reste intacte (victoryCondition non remplie)
@@ -31,10 +31,10 @@ describe('un tour IA se termine TOUJOURS, même sans adversaire vivant et combat
     expect(servant).toBeTruthy();
     // Donne le tour au servant.
     const turnIdx = b.order.indexOf(servant.id);
-    useGame.setState({ battle: { ...b, turn: turnIdx, acted: false, action: null } });
-    runEnemyAI(useGame.getState, useGame.setState, servant.id);
-    vi.runOnlyPendingTimers(); // purge tout timer de télégraphe/attaque éventuel
-    const after = useGame.getState().battle!;
+    banc.setState({ battle: { ...b, turn: turnIdx, acted: false, action: null } });
+    runEnemyAI(banc.getState, banc.setState, servant.id);
+    banc.reprendreLesEnAttente(); // purge tout timer de télégraphe/attaque éventuel
+    const after = banc.getState().battle!;
     expect(after.over).toBeFalsy(); // le combat continue (objectif « porte abattue » non rempli)
     expect(after.turn).not.toBe(turnIdx); // le tour a bien avancé — pas de soft-lock
   });

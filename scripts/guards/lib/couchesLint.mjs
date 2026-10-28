@@ -16,7 +16,11 @@
 //  - `murs/quarantaine` : le fichier n'a aucun arc, sous aucune forme et en type compris, ni aucun motif
 //    d'`import.meta.glob`, dont la cible lexicale répond à un glob de `cibles` (`correspondGlob`, options :
 //    `{ cibles, message }`) ;
-//    la config nomme les fichiers en quarantaine.
+//    la config nomme les fichiers en quarantaine ;
+//  - `murs/tests-survivants` (#3058) : une suite (`estSuiteVitest`) d'une zone qui survit (`survit`) n'a aucun arc, sous
+//    aucune forme et en type compris, motifs d'`import.meta.glob` compris, vers une zone qui ne survit pas, ni vers un
+//    module de code hors des zones et des chemins de `tests.outillage` (`fermetureDUnTest`), ni vers un paquet de l'hôte
+//    web (`paquetFerme`) ; la config exempte les fichiers du stock (`testsSurvivantsStock.mjs`).
 // La zone d'une cible se lit sur son chemin NORMALISÉ sans disque (`cibleLexicale`, alias du dépôt et
 // chemin `/…` compris), par `zoneDe` (`couches.mjs`). Un motif `!…` n'est pas jugé. Hors de portée : un
 // réexport EN VALEUR (`export const x = importe`) et un `export default` d'une liaison importée.
@@ -25,7 +29,7 @@ import { extname, relative } from 'node:path';
 import picomatch from 'picomatch';
 import { cibleLexicale, posix } from './interneLint.mjs';
 import { nomDe, visiteurDArcs } from './arcsDImport.mjs';
-import { COUCHES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe, estZone, fermeture, horsZoneOuvert, ouvertes, paquetFerme, porteManquee, zoneDe } from './couches.mjs';
+import { COUCHES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe, estZone, fermeture, fermetureDUnTest, horsZoneOuvert, ouvertes, paquetFerme, porteManquee, zoneDe } from './couches.mjs';
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { estSuiteVitest } from './fichierVitest.mjs';
 import { correspondGlob } from './lister.mjs';
@@ -196,4 +200,38 @@ const quarantaine = {
   },
 };
 
-export default { zone, purete, reexportation, suiteJouee, quarantaine };
+/** Ce qu'un message de `murs/tests-survivants` dit fermé : une zone (son nom), un module hors des zones (son chemin) ou un
+ *  paquet — la `ref` d'une entrée de son stock (`testsSurvivantsStock.mjs`). */
+export const FERME_AU_TEST = /^Test survivant \(#3058\) : [^`]*`([^`]+)`/;
+
+const testsSurvivants = {
+  meta: { type: 'problem' },
+  create(context) {
+    const racine = context.cwd;
+    const importeur = posix(context.filename);
+    const importeurRel = posix(relative(racine, importeur));
+    const de = zoneDe(importeurRel);
+    if (!estZone(de) || COUCHES[de].survit !== true || !estSuiteVitest(importeurRel)) return {};
+    const remede = 'piloter le noyau par son banc (`src/noyau/banc.testkit.ts`)';
+    const juger = (node, spec) => {
+      const cible = cibleLexicale(importeur, spec, racine);
+      if (cible === null) {
+        const paquet = paquetDe(spec);
+        if (paquetFerme(de, paquet)) context.report({ node, message: `Test survivant (#3058) : une suite de ${nommer(de)} ne charge pas \`${paquet}\`, paquet de l’hôte web, ni à l’EXÉCUTION ni pour un TYPE — sa zone survit à la bascule : ${remede}.` });
+        return;
+      }
+      const cibleRel = posix(relative(racine, cible));
+      const verdict = fermetureDUnTest(de, cibleRel);
+      if (verdict === null || (verdict === 'hors-zone' && !estCode(cibleRel))) return;
+      const ferme = verdict === 'zone' ? zoneDe(cibleRel) : cibleRel;
+      const pourquoi = verdict === 'zone' ? 'une zone qui ne survit pas' : `un module hors des zones que ${TABLE} n’ouvre pas à ses tests (\`tests.outillage\`)`;
+      context.report({ node, message: `Test survivant (#3058) : une suite de ${nommer(de)} ne lit pas \`${ferme}\`, ${pourquoi}, ni à l’EXÉCUTION ni pour un TYPE — sa zone survit à la bascule : ${remede}.` });
+    };
+    return visiteurDArcs({
+      surArc: (node, spec) => juger(node, spec.replace(/\?.*$/s, '')),
+      surMotif: (node, motif) => { if (motif !== null && !motif.startsWith('!')) juger(node, motif); },
+    });
+  },
+};
+
+export default { zone, purete, reexportation, suiteJouee, quarantaine, testsSurvivants };

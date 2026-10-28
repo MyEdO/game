@@ -3,11 +3,11 @@
  * écran ni disque. Le fichier (JSONL) est la vérité de la partie : un en-tête (`Entete`), puis une ligne par geste
  * appliqué (`Geste`). Le rejeu ouvre la partie de l'en-tête et lance son scénario (`ouvrirLaPartie`, le module commun
  * des hôtes), puis rejoue chaque ligne ; après chaque appel, l'hôte reprend tous les jetons programmés sur l'horloge
- * virtuelle du module commun (`horlogeVirtuelle`), jusqu'à ce qu'il n'en reste aucun. Un geste en erreur (validation, permission,
+ * virtuelle du noyau (`horlogeVirtuelle`), jusqu'à ce qu'il n'en reste aucun. Un geste en erreur (validation, permission,
  * règle) n'est pas écrit. Une seule partie par contexte JS (`branchement.ts`) : un processus par appel.
  */
-import type { Jeu, LigneDuJournal, Partie, ResultatDeLAppel } from '../noyau/index';
-import { ErreurDeGeste, horlogeVirtuelle, nouvelEntete, ouvrirLaPartie, valider, type Entete, type TenueDesJetons } from '../hote/partie';
+import { horlogeVirtuelle, type Jeu, type LigneDuJournal, type Partie, type ResultatDeLAppel } from '../noyau/index';
+import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type Entete, type TenueDesJetons } from '../hote/partie';
 import { envoyerLIntention, intentionDuGeste, lireGeste, type Geste, type PistesDeLecture } from '../hote/geste';
 import { estObjet } from '../hote/formes';
 import { appelEcrit } from './outils';
@@ -64,14 +64,14 @@ export interface PartieRejouee {
 }
 
 /** Absorbe le résultat d'un appel : ses lignes au journal, puis la reprise de tous ses jetons sur l'horloge virtuelle
- *  du module commun (`horlogeVirtuelle`), le nombre de reprises noté au pas. */
+ *  du noyau (`horlogeVirtuelle`), le nombre de reprises noté au pas. */
 function absorber(r: PartieRejouee, resultat: ResultatDeLAppel, pas: number): void {
   const { jetons } = r;
   const lire = (res: ResultatDeLAppel, differee: boolean) => {
     for (const ligne of res.journal) r.journal.push({ n: r.journal.length, pas, ligne, differee });
     return jetons.programmes(res);
   };
-  r.reprises[pas] = horlogeVirtuelle(lire(resultat, false), (id) => lire(jetons.reprendre(id), true));
+  r.reprises[pas] = horlogeVirtuelle((id) => lire(jetons.reprendre(id), true), lire(resultat, false)).vider();
 }
 
 /** Joue un geste sur la partie rejouée : l'intention contrôlée, envoyée, ses jetons repris. L'issue de la partie fait

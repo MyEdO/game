@@ -15,7 +15,7 @@ import { memoByRef } from '../noyau/monde/sceneMemo';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { scenesDuRegistre } from '../noyau/monde/registreDesScenes';
-import { atteignables, partagesDeLEtat } from './partage.testkit';
+import { atteignables, partagesDeLEtat } from '../scenes/partage.testkit';
 import { gelerProfond } from '../lib/gelerProfond';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { desDuTest, desEnSuite } from '../engine/dice.testkit';

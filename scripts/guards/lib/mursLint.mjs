@@ -23,5 +23,6 @@ export default {
     ['reexportation', couches.reexportation],
     ['suite-jouee', couches.suiteJouee],
     ['quarantaine', couches.quarantaine],
+    ['tests-survivants', couches.testsSurvivants],
   ]),
 }

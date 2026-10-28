@@ -12,6 +12,9 @@ export interface Couche {
   readonly survit?: true;
   /** Pour un script d'outillage de la zone, les seuls modules hors des zones qu'il lit (chemins relatifs à la racine). */
   readonly outillage?: Readonly<Record<string, readonly string[]>>;
+  /** Pour une zone qui survit, les chemins hors des zones (dossier ou module d'outil Node) dont ses suites lisent le
+   *  code (#3058). */
+  readonly tests?: { readonly outillage?: readonly string[] };
 }
 
 /** La surface du noyau : porte de `noyau`, seul module de `src/state/` et `src/noyau/` qui réexporte. */
@@ -48,6 +51,10 @@ export function zoneDe(rel: string): string | null;
 /** Le verdict d'un arc de la zone `de` vers la zone `vers` : `null` s'il est ouvert, sinon ce qui le
  *  ferme — `'execution'` (un type passerait) ou `'type'` (fermé même pour un type). */
 export function fermeture(de: string, vers: string, typeSeul: boolean): null | 'execution' | 'type';
+
+/** Le verdict d'un arc d'une suite de la zone `de` vers `cibleRel` : `null` s'il est ouvert, `'zone'` vers une zone qui
+ *  ne survit pas, `'hors-zone'` vers un module hors des zones et de `tests.outillage`. */
+export function fermetureDUnTest(de: string, cibleRel: string): null | 'zone' | 'hors-zone';
 
 /** `z` est-il une zone de la table ? Clé PROPRE seulement. */
 export function estZone(z: unknown): z is string;

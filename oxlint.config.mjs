@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { collectLabelEntityResolvers } from './scripts/guards/lib/labelLogic.mjs';
 import { RACINES_DES_ZONES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe } from './scripts/guards/lib/couches.mjs';
+import { TESTS_SURVIVANTS_STOCK } from './scripts/guards/lib/testsSurvivantsStock.mjs';
 
 const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation)$/';
 const MSG_FORGE = 'Marque d’origine (#1262/#1318) : forger un `Built*`/`PlayerText`/`AdresseDeCreation` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`), ou par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`).';
@@ -643,6 +644,12 @@ export const BLOCS_LINT = [
     // #2882, #2928
     files: CODE_DES_ZONES,
     rules: { 'murs/zone': 'error', 'murs/suite-jouee': 'error' },
+  },
+  {
+    // #3058
+    files: CODE_DES_ZONES,
+    excludeFiles: [...new Set(TESTS_SURVIVANTS_STOCK.map((e) => e.fichier))],
+    rules: { 'murs/tests-survivants': 'error' },
   },
   {
     // #2817 D2
