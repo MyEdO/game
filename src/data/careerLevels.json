@@ -2517,7 +2517,14 @@
     ],
     "trappings": [
       {
-        "text": "Arme simple ou Rapière"
+        "choice": [
+          {
+            "id": "arme-simple"
+          },
+          {
+            "id": "rapiere"
+          }
+        ]
       },
       {
         "id": "besace"
@@ -2605,10 +2612,10 @@
         "id": "pistolet"
       },
       {
-        "text": "Poudre"
-      },
-      {
-        "text": "Munitions"
+        "id": "balle-et-poudre",
+        "count": {
+          "fixed": 12
+        }
       }
     ],
     "characteristics": [
@@ -2662,7 +2669,8 @@
         "id": "arme-simple"
       },
       {
-        "text": "Fidèle main gauche"
+        "id": "main-gauche",
+        "spec": "Fidèle"
       },
       {
         "text": "Epée d'entrainement en bois",
@@ -3362,10 +3370,7 @@
     ],
     "trappings": [
       {
-        "text": "Arme simple ou Arc avec Flèche",
-        "count": {
-          "fixed": 10
-        }
+        "text": "Arme simple ou arc avec 10 flèches"
       },
       {
         "creatureId": "cheval-de-monte"
@@ -3426,7 +3431,8 @@
         "id": "plastron"
       },
       {
-        "text": "Bâton cérémoniel de fonction"
+        "id": "baton-de-combat",
+        "spec": "cérémoniel de fonction"
       },
       {
         "text": "Equipe d'Intendants et de Gardiens"
@@ -4155,7 +4161,7 @@
         "id": "pistolet"
       },
       {
-        "text": "Munition",
+        "id": "balle-et-poudre",
         "count": {
           "fixed": 10
         }
@@ -4718,7 +4724,14 @@
     ],
     "trappings": [
       {
-        "text": "Arme à deux mains ou hallebarde"
+        "choice": [
+          {
+            "text": "Arme à deux mains"
+          },
+          {
+            "id": "hallebarde"
+          }
+        ]
       },
       {
         "id": "heaume"
@@ -4899,7 +4912,14 @@
     ],
     "trappings": [
       {
-        "text": "Fléau ou Arme à deux mains"
+        "choice": [
+          {
+            "id": "fleau"
+          },
+          {
+            "text": "Arme à deux mains"
+          }
+        ]
       },
       {
         "id": "arme-simple"
@@ -5163,7 +5183,14 @@
         "text": "Vêtements locaux"
       },
       {
-        "text": "Arme à deux mains ou Pistolet ogre"
+        "choice": [
+          {
+            "text": "Arme à deux mains"
+          },
+          {
+            "id": "pistolet-ogre"
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -6208,7 +6235,7 @@
         "id": "cape"
       },
       {
-        "text": "Couteaux de lancer"
+        "id": "couteau-de-lancer"
       },
       {
         "id": "lacet-etrangleur"
@@ -6910,7 +6937,8 @@
         "id": "arc-elfique"
       },
       {
-        "text": "Flèches fabriquées par le Personnage",
+        "id": "fleche",
+        "spec": "fabriquées par le Personnage",
         "count": {
           "fixed": 10
         }
@@ -6967,7 +6995,8 @@
     ],
     "trappings": [
       {
-        "text": "Arc elfique avec au moins 1 Atout"
+        "id": "arc-elfique",
+        "qualityChoice": true
       },
       {
         "text": "Armure de cuir avec au moins 1 Atout"
@@ -7023,7 +7052,8 @@
         "text": "Trophée d'un ennemi légendaire"
       },
       {
-        "text": "Flèche elfique antique (pour proie spéciale)"
+        "id": "fleche-elfique",
+        "spec": "antique (pour proie spéciale)"
       },
       {
         "text": "Réputation effrayante"
@@ -7156,7 +7186,7 @@
         "id": "tromblon"
       },
       {
-        "text": "Munition",
+        "id": "petites-munitions-et-poudre",
         "count": {
           "fixed": 10
         }
@@ -8367,10 +8397,7 @@
         "text": "Arme à poudre noire"
       },
       {
-        "text": "Munitions",
-        "count": {
-          "fixed": 10
-        }
+        "text": "Munitions"
       },
       {
         "id": "grappin"
@@ -8691,7 +8718,7 @@
         "id": "pistolet"
       },
       {
-        "text": "Munition",
+        "id": "balle-et-poudre",
         "count": {
           "fixed": 10
         }
@@ -8750,7 +8777,7 @@
         "id": "pistolet"
       },
       {
-        "text": "Munition",
+        "id": "balle-et-poudre",
         "count": {
           "fixed": 10
         }
@@ -9166,7 +9193,8 @@
         "id": "corde"
       },
       {
-        "text": "Epée plaquée argent"
+        "id": "arme-simple",
+        "spec": "plaquée argent"
       }
     ],
     "characteristics": [
@@ -9836,7 +9864,16 @@
         "text": "Tablier de boucher"
       },
       {
-        "text": "Arme simple (Couperet) ou Arme simple (Maillet)"
+        "choice": [
+          {
+            "id": "arme-simple",
+            "spec": "Couperet"
+          },
+          {
+            "id": "arme-simple",
+            "spec": "Maillet"
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -11819,32 +11856,10 @@
     ],
     "trappings": [
       {
-        "choice": [
-          {
-            "id": "arbalete-de-poing"
-          },
-          {
-            "id": "pistolet"
-          }
-        ]
-      },
-      {
-        "text": "Chapeau en cuir"
-      },
-      {
-        "id": "veste-de-cuir"
-      },
-      {
-        "creatureId": "cheval-de-monte"
-      },
-      {
-        "id": "selle-et-harnais"
-      },
-      {
         "id": "corde"
       },
       {
-        "text": "Epée plaquée argent"
+        "vehicleId": "barque-fluviale"
       }
     ],
     "characteristics": [
@@ -13547,7 +13562,7 @@
         "id": "pistolet"
       },
       {
-        "text": "Munition",
+        "id": "balle-et-poudre",
         "count": {
           "fixed": 10
         }
@@ -18105,7 +18120,8 @@
         "label": "Cheval de guerre"
       },
       {
-        "text": "Flamboyant Clothing"
+        "id": "vetements",
+        "spec": "flamboyants"
       },
       {
         "text": "Paire de pistolets avec Poudre noire et Munitions ou Arc avec Carquois de 10 flèches"
@@ -18268,7 +18284,7 @@
         "id": "heaume"
       },
       {
-        "text": "Personal Heraldry"
+        "text": "Blason personnel"
       },
       {
         "id": "selle-et-harnais"
@@ -18324,7 +18340,7 @@
         "text": "Caparaçon"
       },
       {
-        "text": "Small Retinue of Followers"
+        "text": "Petit contingent de suivants"
       }
     ],
     "characteristics": [
@@ -19065,10 +19081,11 @@
         "creatureId": "destrier-cheval-de-guerre-lourd"
       },
       {
-        "text": "Epée"
+        "id": "arme-simple"
       },
       {
-        "text": "Grand heaume with Bestiol Crest"
+        "id": "heaume",
+        "spec": "avec blason bestial"
       },
       {
         "id": "lance"
@@ -19507,10 +19524,10 @@
         }
       },
       {
-        "text": "Pack"
+        "text": "Paquetage"
       },
       {
-        "text": "Quiver"
+        "text": "Carquois"
       },
       {
         "id": "uniforme"
@@ -19577,10 +19594,10 @@
         "qualityChoice": true
       },
       {
-        "text": "Epée"
+        "id": "arme-simple"
       },
       {
-        "text": "Headgear"
+        "text": "Couvre-chef"
       }
     ],
     "characteristics": [
@@ -19933,7 +19950,8 @@
         "creatureId": "cheval-de-guerre-leger"
       },
       {
-        "text": "Epée de qualité"
+        "id": "arme-simple",
+        "qualityChoice": true
       },
       {
         "text": "Lettre de nomination"
@@ -20079,7 +20097,8 @@
         "qualityChoice": true
       },
       {
-        "text": "Large Feathered Hat"
+        "id": "chapeau",
+        "spec": "grand, à plumes"
       }
     ],
     "characteristics": [
@@ -20328,7 +20347,8 @@
         "text": "Armure de plates"
       },
       {
-        "text": "Large Feathered Hat"
+        "id": "chapeau",
+        "spec": "grand, à plumes"
       }
     ],
     "characteristics": [
@@ -20378,7 +20398,7 @@
     ],
     "trappings": [
       {
-        "text": "Manual on the art of Zweihänder fighting"
+        "text": "Manuel sur l'art de combattre à la zweihänder"
       },
       {
         "text": "Symbole de grade"
@@ -20521,7 +20541,8 @@
         "id": "plastron-de-cuir"
       },
       {
-        "text": "Uniform in Unit Colours"
+        "id": "uniforme",
+        "spec": "aux couleurs de l'unité"
       }
     ],
     "characteristics": [
@@ -20683,7 +20704,7 @@
     ],
     "trappings": [
       {
-        "text": "Banner-Bearer"
+        "text": "Porte-étendard"
       },
       {
         "text": "Brassards d'acier"
@@ -20702,7 +20723,7 @@
         "qualityChoice": true
       },
       {
-        "text": "Unit Banner"
+        "text": "Étendard de l'unité"
       }
     ],
     "characteristics": [
@@ -20782,10 +20803,13 @@
         "text": "Chapeau à plume"
       },
       {
-        "text": "Munitions"
+        "id": "carreau",
+        "count": {
+          "fixed": 12
+        }
       },
       {
-        "text": "Pavise"
+        "id": "pavois"
       },
       {
         "id": "veste-de-cuir"
@@ -20903,10 +20927,13 @@
     ],
     "trappings": [
       {
-        "text": "Books of Ballistics Tables"
+        "text": "Livres de tableaux balistiques"
       },
       {
-        "text": "Munitions"
+        "id": "balle-et-poudre",
+        "count": {
+          "fixed": 12
+        }
       },
       {
         "id": "outils-professionnels-ingenieur"
@@ -20918,7 +20945,7 @@
         "text": "Plastron d'acier"
       },
       {
-        "text": "Set of Six 60-second Fuses"
+        "text": "Lot de six mèches durant 1 minute"
       }
     ],
     "characteristics": [
@@ -20967,7 +20994,11 @@
         "creatureId": "cheval-de-guerre-leger"
       },
       {
-        "text": "Pavilion Tent with Body Servant"
+        "id": "tente",
+        "spec": "pavillon"
+      },
+      {
+        "text": "Page porteur d'armes"
       },
       {
         "id": "vetements",
@@ -21041,10 +21072,10 @@
     ],
     "trappings": [
       {
-        "text": "Bed Roll"
+        "id": "sac-de-couchage"
       },
       {
-        "text": "Pack"
+        "text": "Paquetage"
       }
     ],
     "characteristics": [
@@ -21205,7 +21236,7 @@
         "creatureId": "cheval-de-monte"
       },
       {
-        "text": "Ring of Camp Followers"
+        "text": "Cercle de suiveurs de camp"
       },
       {
         "id": "selle-et-harnais"
@@ -21349,7 +21380,7 @@
         "id": "selle-et-harnais"
       },
       {
-        "text": "Theodolite"
+        "text": "Théodolite"
       }
     ],
     "characteristics": [
@@ -21451,10 +21482,10 @@
     ],
     "trappings": [
       {
-        "text": "Quality Theodolite"
+        "text": "Théodolite"
       },
       {
-        "text": "Study"
+        "text": "Étude"
       }
     ],
     "characteristics": [
@@ -21529,7 +21560,7 @@
     ],
     "trappings": [
       {
-        "text": "Leather Apron"
+        "text": "Tablier de cuir"
       }
     ],
     "characteristics": [
@@ -21705,7 +21736,7 @@
     ],
     "trappings": [
       {
-        "text": "Artillery piece"
+        "text": "Pièce d'artillerie"
       },
       {
         "id": "carte"
@@ -21717,7 +21748,7 @@
         "text": "Lettre de nomination"
       },
       {
-        "text": "Limber"
+        "text": "Affût"
       },
       {
         "id": "selle-et-harnais"
@@ -23234,7 +23265,8 @@
     ],
     "trappings": [
       {
-        "text": "Coutelas"
+        "id": "arme-simple",
+        "spec": "Coutelas"
       },
       {
         "text": "Symbole de Manann"
@@ -23303,7 +23335,8 @@
         "text": "Livre sacré de Manann"
       },
       {
-        "text": "Trident (considéré comme une lance)"
+        "id": "lance",
+        "spec": "Trident"
       }
     ],
     "characteristics": [
@@ -23927,7 +23960,7 @@
         "id": "pistolet"
       },
       {
-        "text": "Munitions",
+        "id": "balle-et-poudre",
         "count": {
           "fixed": 10
         }
@@ -25767,7 +25800,8 @@
         "id": "grimoire"
       },
       {
-        "text": "Bâton de bois pétrifié"
+        "id": "baton-de-combat",
+        "spec": "bois pétrifié"
       }
     ],
     "characteristics": [
@@ -26099,7 +26133,7 @@
         "text": "Deuxième et troisième Clefs des Secrets"
       },
       {
-        "text": "Épée"
+        "id": "arme-simple"
       }
     ],
     "characteristics": [

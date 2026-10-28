@@ -23,6 +23,8 @@
  * « avec / sans jet » RE-MESURÉE plutôt que supposée. Un `onFail` vide, une clé inattendue, un sujet
  * de jet sans `difficulty` (ou l'inverse) : la migration sort 1 sans rien écrire.
  *
+ * FORME D'AVANT SEULE : sans aucun `crewTest` (la forme d'avant), les deux fichiers — migrés, ou
+ * révisés depuis — sont laissés tels quels, sans porte.
  * IDEMPOTENT : rejouée sur l'état final (plus aucun `crewTest`), elle reconnaît « déjà migré »,
  * n'écrit rien et sort 0. FORMATAGE PRÉSERVÉ : chaque fichier lu est EXACTEMENT
  * `JSON.stringify(doc, null, 2)`, vérifié AVANT toute écriture ; la sortie l'est aussi.
@@ -30,6 +32,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FICHIERS = [
@@ -57,7 +60,7 @@ const echecs = [];
 const lire = ({ nom, chemin }) => {
   const brut = fs.readFileSync(chemin, 'utf8');
   const doc = JSON.parse(brut);
-  if (JSON.stringify(doc, null, 2) !== brut) {
+  if (serializeDataset(doc) !== brut) {
     echecs.push(`${nom} : FORME NON CANONIQUE (pas JSON.stringify(doc, null, 2))`);
     return null;
   }
@@ -82,13 +85,7 @@ const rangeesDe = (doc) => Object.values(doc.tables).flat();
 {
   const dejaMigre = docs.every(({ doc }) => rangeesDe(doc).every((e) => e.crewTest === undefined));
   if (dejaMigre) {
-    const coups = docs.reduce((n, { doc }) => n + rangeesDe(doc).filter((e) => e.crewHit).length, 0);
-    const attendus = Object.values(CARDINAUX).reduce((n, c) => n + c.crewTest, 0);
-    if (coups !== attendus) {
-      console.error(`ARBITRAGE REQUIS — état migré inattendu : ${coups} coup(s) à l'équipage au lieu de ${attendus}.`);
-      process.exit(1);
-    }
-    console.log(`river-criticals.json + ship-criticals.json : no-op (déjà migré — ${coups} crewHit)`);
+    console.log('river-criticals.json + ship-criticals.json : no-op (aucun crewTest)');
     process.exit(0);
   }
 }
@@ -169,7 +166,7 @@ for (const { doc } of docs) {
   }
 }
 
-for (const { chemin, doc } of docs) fs.writeFileSync(chemin, JSON.stringify(doc, null, 2), 'utf8');
+for (const { chemin, doc } of docs) fs.writeFileSync(chemin, serializeDataset(doc), 'utf8');
 
 // ---- PREUVE post-écriture, sur le RÉSULTAT relu.
 {

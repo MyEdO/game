@@ -27,17 +27,16 @@
  *  4. `gangrene.desc` est recollée VERBATIM de LDB 20 l.176 : la prose committée avait perdu les quatre
  *     phrases de Localisation et la phrase de rémanence finale (règle 5 — une `desc` est un copié/collé).
  *
- * CARDINAUX ATTENDUS, mesurés sur l'arbre d'avant le train (2026-09-05) : 1 `severePassive`
- * (sur `convulsions`, 6 ops), 6 ops de `convulsions.passive`, 7 ops de `fievre.passive`, 1 capacité
- * `stickyExtenue` (sur `malaise`, seule clé de ses `capabilities`), 1 ancre de Localisation dans
+ * FORME D'AVANT SEULE, geste par geste : `convulsions` porteur de `severePassive` sans
+ * `passiveBySeverity`, `fievre` sans `passiveBySeverity`, `malaise` porteur de la capacité
+ * `stickyExtenue`, `gangrene.desc` finissant sur la prose amputée. Un symptôme absent, migré ou révisé
+ * depuis, est laissé tel quel ; rejouée sur l'arbre migré, la migration n'écrit rien et sort 0.
+ * CARDINAUX ATTENDUS sur les seules entrées à migrer, mesurés sur l'arbre d'avant le train (2026-09-05) :
+ * 6 ops de `convulsions.severePassive` et de `convulsions.passive`, 7 ops de `fievre.passive`,
+ * `stickyExtenue` seule clé des `capabilities` de `malaise`, 1 ancre de Localisation dans
  * `gangrene.desc`. Un écart fait sortir 1 AVANT toute écriture.
- * MARQUEUR D'IDEMPOTENCE : `passiveBySeverity` sur `convulsions` ET `fievre`, le passif *Exténué* de
- * `malaise`, les deux fragments RAW dans `gangrene.desc`, et l'absence de `severePassive`/
- * `stickyExtenue`. Rejouée sur l'arbre migré, la migration n'écrit rien et sort 0.
  * FAIL-FAST : un `severePassive` sur un AUTRE symptôme que `convulsions`, un `stickyExtenue` ailleurs
- * que sur `malaise`, une capacité de `malaise` autre que `stickyExtenue`, une `gangrene.desc` sans son
- * ancre ou à moitié recollée, un état mi-migré, un cardinal inattendu, un formatage non canonique →
- * rien n'est écrit.
+ * que sur `malaise`, un cardinal inattendu, un formatage non canonique → rien n'est écrit.
  * FORMATAGE PRÉSERVÉ : `src/data/symptoms.json` est `JSON.stringify(doc, null, 2)` (sans saut final),
  * vérifié AVANT écriture.
  *
@@ -46,6 +45,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const NOM = '2026-09-05-1599-passifs-par-palier';
@@ -55,7 +55,7 @@ const CHECK = process.argv.includes('--check');
 /** Cardinaux des OPS que ce script POSE, chiffrés par la règle elle-même (`LDB 20 l.157` pour la
  *  pénalité de Convulsions et ses paliers) — ce ne sont pas des populations de donnée qui
  *  grandissent, mais la forme de l'effet que la règle décrit (#1812). */
-const ATTENDU = { severePassive: 1, opsConvulsions: 6, opsConvulsionsBase: 6, opsFievre: 7, stickyExtenue: 1 };
+const ATTENDU = { opsConvulsions: 6, opsConvulsionsBase: 6, opsFievre: 7 };
 
 /** `maison` de `convulsions` après migration — l.157 ne chiffre PAS le palier (Grave). */
 const MAISON_CONVULSIONS =
@@ -97,7 +97,7 @@ const echec = (m) => {
 const cible = path.join(ROOT, REL);
 const brut = fs.readFileSync(cible, 'utf8');
 const doc = JSON.parse(brut);
-if (brut !== `${JSON.stringify(doc, null, 2)}`) echec(`${REL} : formatage non canonique en entrée`);
+if (brut !== serializeDataset(doc)) echec(`${REL} : formatage non canonique en entrée`);
 if (!Array.isArray(doc)) echec(`${REL} : racine non-TABLEAU`);
 
 const parId = new Map(doc.map((e) => [e?.id, e]));
@@ -105,9 +105,6 @@ const convulsions = parId.get('convulsions');
 const fievre = parId.get('fievre');
 const malaise = parId.get('malaise');
 const gangrene = parId.get('gangrene');
-for (const [id, e] of [['convulsions', convulsions], ['fievre', fievre], ['malaise', malaise], ['gangrene', gangrene]]) {
-  if (!e) echec(`symptôme \`${id}\` introuvable dans ${REL}`);
-}
 
 // ── PORTE DE LECTURE — cardinaux et états admis, avant toute écriture ────────────────────────────
 const porteurs = doc.filter((e) => e?.severePassive);
@@ -118,55 +115,39 @@ const horsPerimetre = [
 ];
 if (horsPerimetre.length) echec(`porteur hors périmètre : ${horsPerimetre.join(', ')}`);
 
-const descGangrene = typeof gangrene.desc === 'string' ? gangrene.desc : '';
-const aLocalisations = descGangrene.includes(GANGRENE_LOCALISATIONS);
-const aRemanence = descGangrene.endsWith(GANGRENE_REMANENCE);
-if (aLocalisations !== aRemanence) {
-  echec(
-    `gangrene.desc à MOITIÉ recollée : Localisations ${aLocalisations ? 'présentes' : 'absentes'}, `
-    + `rémanence ${aRemanence ? 'présente' : 'absente'}`,
-  );
-}
-const gangreneEntiere = aLocalisations && aRemanence;
+// Les quatre formes d'avant, une par geste.
+const aConvulsions = Array.isArray(convulsions?.severePassive) && convulsions.passiveBySeverity === undefined;
+const aFievre = !!fievre && fievre.passiveBySeverity === undefined;
+const aMalaise = malaise?.capabilities?.stickyExtenue !== undefined;
+const descGangrene = typeof gangrene?.desc === 'string' ? gangrene.desc : '';
+const aGangrene = descGangrene.endsWith(GANGRENE_QUEUE_AMPUTEE);
 
-const aFaire = porteurs.length + collants.length + (gangreneEntiere ? 0 : 1);
-const dejaFait =
-  (convulsions.passiveBySeverity?.moderee ? 1 : 0)
-  + (fievre.passiveBySeverity?.grave ? 1 : 0)
-  + (malaise.passive?.some((o) => o.op === 'condition' && o.id === 'extenue') ? 1 : 0)
-  + (gangreneEntiere ? 1 : 0);
-
+const aFaire = [aConvulsions, aFievre, aMalaise, aGangrene].filter(Boolean).length;
 if (aFaire === 0) {
-  if (dejaFait !== 4) echec(`déjà migrée en apparence, mais ${dejaFait}/4 gestes posés`);
   console.log(`[${NOM}] déjà migrée — rien à écrire`);
   process.exit(0);
 }
 if (CHECK) {
   echec(
-    `NON migrée : ${porteurs.length} \`severePassive\`, ${collants.length} \`stickyExtenue\` restants, `
-    + `gangrene.desc ${gangreneEntiere ? 'entière' : 'amputée de LDB 20 l.176'}`,
+    `NON migrée : ${aFaire} geste(s) à la forme d'avant (convulsions ${aConvulsions}, fievre ${aFievre}, `
+    + `malaise ${aMalaise}, gangrene.desc amputée de LDB 20 l.176 ${aGangrene})`,
   );
 }
-if (dejaFait !== 0) echec(`état MI-MIGRÉ : ${aFaire} geste(s) à faire ET ${dejaFait}/4 geste(s) déjà posé(s)`);
 
 const mesure = {
-  severePassive: porteurs.length,
-  opsConvulsions: convulsions.severePassive?.length ?? 0,
-  opsConvulsionsBase: convulsions.passive?.length ?? 0,
-  opsFievre: fievre.passive?.length ?? 0,
-  stickyExtenue: collants.length,
+  ...(aConvulsions ? { opsConvulsions: convulsions.severePassive.length, opsConvulsionsBase: convulsions.passive?.length ?? 0 } : {}),
+  ...(aFievre ? { opsFievre: fievre.passive?.length ?? 0 } : {}),
 };
-for (const [k, n] of Object.entries(ATTENDU)) if (mesure[k] !== n) echec(`${k} : ${mesure[k]} ≠ ${n} attendu(s)`);
-const capacitesMalaise = Object.keys(malaise.capabilities ?? {});
-if (capacitesMalaise.join(',') !== 'stickyExtenue') {
+for (const [k, n] of Object.entries(mesure)) if (n !== ATTENDU[k]) echec(`${k} : ${n} ≠ ${ATTENDU[k]} attendu(s)`);
+const capacitesMalaise = Object.keys(malaise?.capabilities ?? {});
+if (aMalaise && capacitesMalaise.join(',') !== 'stickyExtenue') {
   echec(`malaise.capabilities : \`${capacitesMalaise.join('`, `')}\` — \`stickyExtenue\` n'y est pas seule, rien n'est retiré`);
 }
 const ancres = descGangrene.split(GANGRENE_ANCRE).length - 1;
-if (ancres !== 1) echec(`gangrene.desc : ${ancres} occurrence(s) de l'ancre de Localisation (1 attendue)`);
-if (!descGangrene.endsWith(GANGRENE_QUEUE_AMPUTEE)) echec('gangrene.desc : la prose ne finit pas là où LDB 20 l.176 reprend');
+if (aGangrene && ancres !== 1) echec(`gangrene.desc : ${ancres} occurrence(s) de l'ancre de Localisation (1 attendue)`);
 // Le palier Modéré doit couvrir EXACTEMENT les caractéristiques de la base (même ordre, même clé) —
 // sinon le déplacement laisserait une carac à −10 quand l.157 la met à −20.
-for (const [i, op] of convulsions.severePassive.entries()) {
+for (const [i, op] of (aConvulsions ? convulsions.severePassive : []).entries()) {
   const base = convulsions.passive[i];
   if (op.op !== 'charMod' || base?.op !== 'charMod' || op.char !== base.char || op.mod !== -20 || base.mod !== -10) {
     echec(`convulsions : palier Modéré / base non appariés à l'index ${i} (${JSON.stringify(op)} vs ${JSON.stringify(base)})`);
@@ -189,58 +170,65 @@ const remplace = (id, entree) => {
 
 // 1. Convulsions : la liste −20 EST celle du palier Modéré (l.157), magnitude absolue. `maison` prend
 // la place que tiennent les clés d'enveloppe des entrées voisines : juste AVANT `source`.
-const convulsionsPalier = substitue(convulsions, 'severePassive', 'passiveBySeverity', {
-  moderee: convulsions.severePassive.map((o) => ({ ...o })),
-});
-remplace('convulsions', insereApres(convulsionsPalier, 'passiveBySeverity', 'maison', MAISON_CONVULSIONS));
+if (aConvulsions) {
+  const convulsionsPalier = substitue(convulsions, 'severePassive', 'passiveBySeverity', {
+    moderee: convulsions.severePassive.map((o) => ({ ...o })),
+  });
+  remplace('convulsions', insereApres(convulsionsPalier, 'passiveBySeverity', 'maison', MAISON_CONVULSIONS));
+}
 
 // 2. Fièvre (Grave) : le SEUL État Inconscient, sa fenêtre d'horloge comprise — les pénalités de base
 // tiennent (l.170).
-remplace('fievre', insereApres(fievre, 'passive', 'passiveBySeverity', { grave: FIEVRE_GRAVE }));
+if (aFievre) remplace('fievre', insereApres(fievre, 'passive', 'passiveBySeverity', { grave: FIEVRE_GRAVE }));
 
 // 3. Malaise : l'Exténué s'écrit comme un passif, à la place qu'occupait la capacité (l.188).
-remplace('malaise', substitue(malaise, 'capabilities', 'passive', MALAISE_PASSIF));
+if (aMalaise) remplace('malaise', substitue(malaise, 'capabilities', 'passive', MALAISE_PASSIF));
 
 // 4. Gangrène : la prose de LDB 20 l.176 recollée — Localisations à leur place, rémanence en queue.
-remplace(
-  'gangrene',
-  substitue(
-    gangrene,
-    'desc',
-    'desc',
-    `${descGangrene.replace(GANGRENE_ANCRE, `${GANGRENE_ANCRE}${GANGRENE_LOCALISATIONS}`)}${GANGRENE_REMANENCE}`,
-  ),
-);
+if (aGangrene) {
+  remplace(
+    'gangrene',
+    substitue(
+      gangrene,
+      'desc',
+      'desc',
+      `${descGangrene.replace(GANGRENE_ANCRE, `${GANGRENE_ANCRE}${GANGRENE_LOCALISATIONS}`)}${GANGRENE_REMANENCE}`,
+    ),
+  );
+}
 
-fs.writeFileSync(cible, `${JSON.stringify(doc, null, 2)}`, 'utf8');
+fs.writeFileSync(cible, serializeDataset(doc), 'utf8');
 
 // ── PREUVE POST-ÉCRITURE — 0 champ d'origine, 4 gestes posés ────────────────────────────────────
 const relu = JSON.parse(fs.readFileSync(cible, 'utf8'));
 const apres = new Map(relu.map((e) => [e?.id, e]));
 const ecarts = [];
-if (relu.some((e) => e?.severePassive)) ecarts.push('`severePassive` encore présent');
-if (relu.some((e) => e?.capabilities?.stickyExtenue)) ecarts.push('`stickyExtenue` encore présent');
-if (apres.get('convulsions')?.passiveBySeverity?.moderee?.length !== ATTENDU.opsConvulsions) ecarts.push('convulsions.passiveBySeverity.moderee');
-if (apres.get('convulsions')?.passiveBySeverity?.grave) ecarts.push('convulsions : un palier Grave a été écrit (l.157 ne le chiffre pas)');
-if (apres.get('fievre')?.passiveBySeverity?.grave?.length !== 1) ecarts.push('fievre.passiveBySeverity.grave');
-const inconscient = apres.get('fievre')?.passiveBySeverity?.grave?.find((o) => o.op === 'condition' && o.id === 'inconscient');
-if (!inconscient) ecarts.push('fievre : État Inconscient absent');
-else if (inconscient.resolveWindow?.scale !== 'clock' || inconscient.resolveWindow?.minutes?.rule !== 'maladie-conscience-determination-minutes') {
-  ecarts.push("fievre : fenêtre d'horloge de l'Inconscient absente ou hors règle");
+if (aConvulsions) {
+  if (apres.get('convulsions')?.severePassive) ecarts.push('convulsions : `severePassive` encore présent');
+  if (apres.get('convulsions')?.passiveBySeverity?.moderee?.length !== ATTENDU.opsConvulsions) ecarts.push('convulsions.passiveBySeverity.moderee');
+  if (apres.get('convulsions')?.passiveBySeverity?.grave) ecarts.push('convulsions : un palier Grave a été écrit (l.157 ne le chiffre pas)');
 }
-const extenue = apres.get('malaise')?.passive?.find((o) => o.op === 'condition' && o.id === 'extenue');
-if (!extenue) ecarts.push('malaise : État Exténué absent');
-else if (extenue.resolveWindow !== 'none') ecarts.push("malaise : l'Exténué porte une fenêtre de résolution");
-if (apres.get('malaise')?.capabilities) ecarts.push('malaise : `capabilities` subsiste');
-if (!apres.get('gangrene')?.desc?.includes(GANGRENE_LOCALISATIONS)) ecarts.push('gangrene : Localisations de l.176 absentes');
-if (!apres.get('gangrene')?.desc?.endsWith(GANGRENE_REMANENCE)) ecarts.push('gangrene : rémanence de l.176 absente');
+if (aFievre) {
+  if (apres.get('fievre')?.passiveBySeverity?.grave?.length !== 1) ecarts.push('fievre.passiveBySeverity.grave');
+  const inconscient = apres.get('fievre')?.passiveBySeverity?.grave?.find((o) => o.op === 'condition' && o.id === 'inconscient');
+  if (!inconscient) ecarts.push('fievre : État Inconscient absent');
+  else if (inconscient.resolveWindow?.scale !== 'clock' || inconscient.resolveWindow?.minutes?.rule !== 'maladie-conscience-determination-minutes') {
+    ecarts.push("fievre : fenêtre d'horloge de l'Inconscient absente ou hors règle");
+  }
+}
+if (aMalaise) {
+  const extenue = apres.get('malaise')?.passive?.find((o) => o.op === 'condition' && o.id === 'extenue');
+  if (!extenue) ecarts.push('malaise : État Exténué absent');
+  else if (extenue.resolveWindow !== 'none') ecarts.push("malaise : l'Exténué porte une fenêtre de résolution");
+  if (apres.get('malaise')?.capabilities) ecarts.push('malaise : `capabilities` subsiste');
+}
+if (aGangrene) {
+  if (!apres.get('gangrene')?.desc?.includes(GANGRENE_LOCALISATIONS)) ecarts.push('gangrene : Localisations de l.176 absentes');
+  if (!apres.get('gangrene')?.desc?.endsWith(GANGRENE_REMANENCE)) ecarts.push('gangrene : rémanence de l.176 absente');
+}
 if (ecarts.length) {
   console.error(`[${NOM}] ÉCHEC POST-ÉCRITURE : ${ecarts.join(' ; ')}`);
   process.exit(1);
 }
 
-console.log(
-  `[${NOM}] migré — convulsions : ${ATTENDU.opsConvulsions} op(s) → passiveBySeverity.moderee + maison ; `
-  + "fievre : passiveBySeverity.grave (Inconscient, fenêtre d'horloge) ; malaise : Exténué en passif "
-  + 'sans fenêtre (capabilities retirée) ; gangrene : desc recollée de LDB 20 l.176',
-);
+console.log(`[${NOM}] migré — ${aFaire} geste(s) : convulsions ${aConvulsions}, fievre ${aFievre}, malaise ${aMalaise}, gangrene ${aGangrene}`);

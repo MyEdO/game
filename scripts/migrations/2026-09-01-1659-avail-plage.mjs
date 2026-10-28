@@ -25,10 +25,13 @@
  *     | Hiver               | 01–19  | 20–23    | 24–29               | 30–44 | 45–60 | 61–95          | 96–00 | »
  *   Sept cargaisons × 4 saisons = 28 cellules.
  *
- * CARDINAL ASSERTÉ SUR LE RÉSULTAT : 72 fourchettes (44 + 28), AUCUN tuple restant sous `avail`,
- * chaque cellule ÉGALE à ce que le livre imprime (tables `ATTENDU_*` ci-dessous, transcrites des
- * lignes citées), et les 8 colonnes saisonnières couvrant 1–100 d'un seul tenant — 0 trou,
- * 0 chevauchement. Vrai sur un arbre vierge comme au rejeu ; tout écart est un ARRÊT (exit 1).
+ * FORME D'AVANT SEULE : seule une cellule encore TUPLE se convertit ; une cargaison absente, ou déjà en
+ * fourchettes (migrée, ou révisée depuis), est laissée telle quelle.
+ *
+ * CARDINAL ASSERTÉ SUR CE QUI EST CONVERTI : un catalogue dont une cellule se convertit doit sortir
+ * entier en fourchettes (44 maritimes, 28 terrestres), chaque cellule ÉGALE à ce que le livre imprime
+ * (tables `ATTENDU_*` ci-dessous, transcrites des lignes citées), et ses 4 colonnes saisonnières
+ * couvrant 1–100 d'un seul tenant — 0 trou, 0 chevauchement ; tout écart est un ARRÊT (exit 1).
  *
  * ENTRÉES : `src/data/sea-cargo.json`, `src/data/land-cargo.json` (seuls documents lus et écrits).
  * IDEMPOTENT : rejouée, elle ne voit plus aucun tuple et n'écrit rien.
@@ -37,6 +40,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const MER = path.join(ROOT, 'src/data/sea-cargo.json');
@@ -77,7 +81,7 @@ const arrets = [];
 function lire(fichier) {
   const brut = fs.readFileSync(fichier, 'utf8');
   const doc = JSON.parse(brut);
-  if (brut !== JSON.stringify(doc, null, 2)) {
+  if (brut !== serializeDataset(doc)) {
     console.error(`FORME NON CANONIQUE — ${path.relative(ROOT, fichier)} ; AUCUNE écriture.`);
     process.exit(1);
   }
@@ -161,11 +165,8 @@ for (const c of marchandes(mer.doc)) migresMer += enFourchettes(c, `sea-cargo.js
 let migresTerre = 0;
 for (const c of marchandes(terre.doc)) migresTerre += enFourchettes(c, `land-cargo.json › cargoes[${c.id}].avail`);
 
-const cellulesMer = confronter(mer.doc, ATTENDU_MER, 'sea-cargo.json › cargoes[].avail', 44);
-const cellulesTerre = confronter(terre.doc, ATTENDU_TERRE, 'land-cargo.json › cargoes[].avail', 28);
-if (cellulesMer + cellulesTerre !== 72) {
-  arrets.push(`CARDINAL : ${cellulesMer + cellulesTerre} fourchette(s) de disponibilité au résultat, attendu 72 (44 maritimes + 28 terrestres)`);
-}
+const cellulesMer = migresMer ? confronter(mer.doc, ATTENDU_MER, 'sea-cargo.json › cargoes[].avail', 44) : 0;
+const cellulesTerre = migresTerre ? confronter(terre.doc, ATTENDU_TERRE, 'land-cargo.json › cargoes[].avail', 28) : 0;
 
 if (arrets.length) {
   console.error(`ARRÊT — ${arrets.length} anomalie(s), AUCUNE écriture :`);
@@ -176,7 +177,7 @@ if (arrets.length) {
 let ecrits = 0;
 for (const [fichier, etat, migres] of [[MER, mer, migresMer], [TERRE, terre, migresTerre]]) {
   const rel = path.relative(ROOT, fichier).replace(/\\/g, '/');
-  const out = JSON.stringify(etat.doc, null, 2);
+  const out = serializeDataset(etat.doc);
   if (out === etat.brut) { console.log(`${rel} — INCHANGÉ (no-op byte-identique).`); continue; }
   if (out.includes('\r')) {
     console.error(`${fichier} : \\r dans le texte réécrit ; AUCUNE écriture.`);
@@ -186,5 +187,5 @@ for (const [fichier, etat, migres] of [[MER, mer, migresMer], [TERRE, terre, mig
   ecrits++;
   console.log(`${rel} — réécrit (${migres} cellule(s) de disponibilité passée(s) du tuple à la fourchette).`);
 }
-console.log(`Disponibilités saisonnières au RÉSULTAT : ${cellulesMer} maritimes + ${cellulesTerre} terrestres = ${cellulesMer + cellulesTerre} ; 8 colonnes contiguës 1–100.`);
+console.log(`Disponibilités saisonnières converties et vérifiées : ${cellulesMer} maritime(s) + ${cellulesTerre} terrestre(s).`);
 if (!ecrits) process.exit(0);

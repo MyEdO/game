@@ -144,7 +144,10 @@ describe('dotations : ce que le catalogue NOMME est une référence (#1463 L-ref
       munitions.filter(({ ref }) => 'id' in ref && ref.id === 'carreau-de-baliste').map((m) => m.porteur),
       'aucune dotation de carrière ne prend la munition de SIÈGE',
     ).toEqual([]);
-    expect(munitions.length, 'les 6 « Carreaux » migrés + le site historique `patrouilleur-routier-1`').toBe(7);
+    expect(
+      munitions.length,
+      'les 6 « Carreaux » migrés, le site historique `patrouilleur-routier-1` et `specialiste-de-siege-1` (AA 04 l.275)',
+    ).toBe(8);
   });
 
   it('la `spec` d’une dotation s’AFFICHE — sur la donnée réelle, jamais une réf forgée', () => {

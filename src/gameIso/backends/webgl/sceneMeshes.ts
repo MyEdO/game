@@ -18,6 +18,7 @@
  * — mesuré C6, l'import échoue à `Cannot read properties of undefined (reading 'DEV')`.
  */
 import * as THREE from 'three';
+import { jsonCanonique } from '../../../lib/jsonCanonique.mjs';
 import { buildFloors } from '../../builders/floors';
 import { buildWalls } from '../../builders/walls';
 import { buildRoofs, ROOF_SLOPE_M } from '../../builders/roofs';
@@ -1106,19 +1107,9 @@ function actorSnapshot(p: ActorPose): DrawSnapshot {
   return drawSnapshot(actorDrawInputs(p.c), p.rider ? actorDrawInputs(p.rider) : undefined, p.seat);
 }
 
-/** Sérialisation DÉTERMINISTE : clés TRIÉES et champs absents omis — deux résolutions de mêmes entrées
- *  donnent la même chaîne quel que soit l'ordre d'insertion des objets qui les portent. */
-function stableStr(v: unknown): string {
-  if (v === undefined) return 'u';
-  if (v === null || typeof v !== 'object') return JSON.stringify(v)!;
-  if (Array.isArray(v)) return `[${v.map(stableStr).join(',')}]`;
-  const o = v as Record<string, unknown>;
-  return `{${Object.keys(o).sort().filter((k) => o[k] !== undefined).map((k) => `${k}:${stableStr(o[k])}`).join(',')}}`;
-}
-
 /** SIGNATURE d'un instantané de dessin — `hash32` de sa sérialisation entière (#1176, #2113). */
 function signatureDe(s: DrawSnapshot): string {
-  return hash32(stableStr(s)).toString(16);
+  return hash32(jsonCanonique(s)).toString(16);
 }
 
 /** SIGNATURE de dessin d'un acteur : celle de son instantané (`DrawSnapshot`, #2097). Consommée par

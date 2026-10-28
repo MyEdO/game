@@ -28,17 +28,19 @@
  *
  * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : une clé déjà `RaceKey` est reconnue migrée ; rejouée sur
  * l'état final, la migration n'écrit rien et sort 0. DEUX FORMES de `names.json` sont admises :
- * forme LISTE (documents à `id`, #1467 L1b V-FLIP-RECORD) — l'exigence 7⟺7 se vérifie sur les `id`,
- * le fichier n'est pas réécrit ; forme RECORD (clés de racine) — les clés se convertissent.
+ * forme LISTE (documents à `id`, #1467 L1b V-FLIP-RECORD) — la forme d'après, laissée telle quelle ;
+ * forme RECORD (clés de racine, la forme d'avant) — les clés se convertissent. Un texte de `details` sans
+ * `bySpecies` est laissé tel quel.
  * FAIL-FAST : clé inconnue (ni libellé de la table, ni `RaceKey`), collision de clés après
- * conversion, `names.json` dont l'ensemble des clés ne fait pas exactement les 7 `RaceKey`, chemin
- * `texts` absent → rien n'est écrit (pour AUCUN des deux fichiers), sortie 1.
+ * conversion, `names.json` RECORD dont l'ensemble des clés converties ne fait pas exactement les 7
+ * `RaceKey` → rien n'est écrit (pour AUCUN des deux fichiers), sortie 1.
  * FORMATAGE PRÉSERVÉ : chaque fichier est EXACTEMENT `JSON.stringify(doc, null, 2)` (vérifié avant
  * toute écriture — une forme non canonique fait sortir 1 plutôt que reflower le document en silence).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -86,7 +88,7 @@ function lire(fichier) {
   const chemin = path.join(ROOT, fichier);
   const brut = fs.readFileSync(chemin, 'utf8');
   const data = JSON.parse(brut);
-  if (JSON.stringify(data, null, 2) !== brut) {
+  if (serializeDataset(data) !== brut) {
     echecs.push(`${fichier} : FORME NON CANONIQUE (pas \`JSON.stringify(doc, null, 2)\`)`);
     return null;
   }
@@ -97,14 +99,14 @@ function lire(fichier) {
  *  `id` des 7 DOCUMENTS depuis #1467 L1b V-FLIP-RECORD (le fichier est devenu une LISTE). */
 const idsDeNoms = (d) => (Array.isArray(d) ? d.map((e) => e?.id) : Object.keys(d));
 
-// ── names.json : ids de premier niveau, exigés 7⟺7 ────────────────────────────────────────────────────────
+// ── names.json RECORD : clés de racine converties, exigées 7⟺7 ─────────────────────────────────────────
 const noms = lire('src/data/names.json');
-let sortieNoms = null;
-if (noms) {
-  // FORME LISTE (#1467 L1b V-FLIP-RECORD) : l'identité vit dans l'`id` de chaque document, et
-  // l'exigence 7⟺7 se vérifie sur ces ids ; le fichier est rendu tel quel. FORME RECORD : les clés
-  // de racine se convertissent.
-  sortieNoms = Array.isArray(noms.data) ? noms.data : convertir(noms.data, 'names.json');
+let sortieNoms = noms?.data ?? null;
+const nomsRecord = noms !== null && !Array.isArray(noms.data);
+if (nomsRecord) {
+  // FORME LISTE (#1467 L1b V-FLIP-RECORD) : la forme d'après, rendue telle quelle. FORME RECORD : les
+  // clés de racine se convertissent.
+  sortieNoms = convertir(noms.data, 'names.json');
   const cles = new Set(idsDeNoms(sortieNoms));
   const manquantes = [...RACE_KEYS].filter((k) => !cles.has(k));
   const etrangeres = [...cles].filter((k) => !RACE_KEYS.has(k));
@@ -118,13 +120,9 @@ const details = lire('src/data/details.json');
 const avantDetails = details ? JSON.parse(details.brut) : null;
 if (details) {
   const textes = details.data?.texts;
-  if (!textes || typeof textes !== 'object') echecs.push('details.json : chemin `texts` absent');
-  else {
+  if (textes && typeof textes === 'object') {
     for (const [nom, t] of Object.entries(textes)) {
-      if (!t || typeof t !== 'object' || typeof t.bySpecies !== 'object' || t.bySpecies === null) {
-        echecs.push(`details.json : \`texts.${nom}.bySpecies\` absent ou de forme inattendue`);
-        continue;
-      }
+      if (!t || typeof t !== 'object' || typeof t.bySpecies !== 'object' || t.bySpecies === null) continue;
       t.bySpecies = convertir(t.bySpecies, `details.json texts.${nom}.bySpecies`);
     }
   }
@@ -138,8 +136,8 @@ if (echecs.length) {
 }
 
 const plans = [
-  { ...noms, out: JSON.stringify(sortieNoms, null, 2) },
-  { ...details, out: JSON.stringify(details.data, null, 2) },
+  { ...noms, out: serializeDataset(sortieNoms) },
+  { ...details, out: serializeDataset(details.data) },
 ];
 for (const p of plans) if (p.out !== p.brut) fs.writeFileSync(p.chemin, p.out, 'utf8');
 
@@ -147,9 +145,11 @@ for (const p of plans) if (p.out !== p.brut) fs.writeFileSync(p.chemin, p.out, '
 const apresNoms = JSON.parse(plans[0].out);
 const apresDetails = JSON.parse(plans[1].out);
 const rouges = [];
-const horsEspace = idsDeNoms(apresNoms).filter((k) => !RACE_KEYS.has(k));
+const horsEspace = nomsRecord ? idsDeNoms(apresNoms).filter((k) => !RACE_KEYS.has(k)) : [];
 if (horsEspace.length) rouges.push(`names.json : clé(s) hors RaceKey ${horsEspace.join(', ')}`);
-for (const [nom, t] of Object.entries(apresDetails.texts)) {
+/** Les textes de `details` qui portent un `bySpecies` (les seuls que la migration convertit). */
+const textesAEspeces = (d) => Object.entries(d?.texts ?? {}).filter(([, t]) => t && typeof t.bySpecies === 'object' && t.bySpecies !== null);
+for (const [nom, t] of textesAEspeces(apresDetails)) {
   const hors = Object.keys(t.bySpecies).filter((k) => !RACE_KEYS.has(k));
   if (hors.length) rouges.push(`details.json texts.${nom}.bySpecies : clé(s) hors RaceKey ${hors.join(', ')}`);
 }
@@ -159,10 +159,10 @@ if (valeursNoms(noms.data) !== valeursNoms(apresNoms)) rouges.push('names.json :
 // seules les clés changent, jamais un caractère de texte d'aide.
 // Le document ENTIER est comparé, `bySpecies` réduit à ses VALEURS (seules les clés avaient le droit
 // de bouger) : les formules d'Âge/Taille et les `all` sont couverts au même titre que les surcharges.
-const sansCles = (d) => JSON.stringify(d, (k, v) => (k === 'bySpecies' ? Object.values(v) : v));
+const sansCles = (d) => JSON.stringify(d, (k, v) => (k === 'bySpecies' && v && typeof v === 'object' ? Object.values(v) : v));
 const feuilles = (d) => [
-  ...Object.values(d.texts).flatMap((t) => [t.all, ...Object.values(t.bySpecies)]),
-  ...['ageBase', 'ageRoll', 'heightBase', 'heightRoll'].flatMap((c) => Object.values(d[c])),
+  ...textesAEspeces(d).flatMap(([, t]) => [t.all, ...Object.values(t.bySpecies)]),
+  ...['ageBase', 'ageRoll', 'heightBase', 'heightRoll'].flatMap((c) => Object.values(d[c] ?? {})),
 ];
 const avantFeuilles = feuilles(avantDetails);
 const apresFeuilles = feuilles(apresDetails);
@@ -177,6 +177,6 @@ if (rouges.length) {
 
 console.log(`names.json + details.json — libellé → RaceKey : ${migrees} clé(s) ; déjà migrées (no-op) : ${dejaMigrees}`);
 console.log(`names.json : ${idsDeNoms(apresNoms).length} banque(s), ids ${idsDeNoms(apresNoms).join(', ')} ; ${plans[0].out !== plans[0].brut ? 'réécrit' : 'INCHANGÉ'}`);
-for (const [nom, t] of Object.entries(apresDetails.texts))
+for (const [nom, t] of textesAEspeces(apresDetails))
   console.log(`  details.texts.${nom}.bySpecies : ${Object.keys(t.bySpecies).length} clé(s) [${Object.keys(t.bySpecies).join(', ')}]`);
 console.log(`details.json : ${plans[1].out !== plans[1].brut ? 'réécrit' : 'INCHANGÉ'} ; ${apresFeuilles.length} feuille(s) de texte vérifiées identiques (ordre compris).`);

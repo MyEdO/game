@@ -17,9 +17,10 @@
  *
  * ENTRÉES : `src/data/names.json` (seule donnée lue et écrite).
  *
- * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : une racine déjà TABLEAU et conforme est reconnue migrée ;
- * rejouée sur l'état final, la migration n'écrit rien et sort 0.
- * FAIL-FAST : clé inconnue de la table des labels, id manquant/divergent, banque de forme inattendue
+ * FORME D'AVANT SEULE : seule une racine RECORD est migrée ; une racine déjà TABLEAU (la forme d'après,
+ * révisée ou non depuis) est laissée telle quelle ; rejouée sur l'état final, la migration n'écrit rien et
+ * sort 0.
+ * FAIL-FAST : clé de la racine RECORD inconnue de la table des labels, banque de forme inattendue
  * → rien n'est écrit, sortie 1.
  * FORMATAGE PRÉSERVÉ : le fichier est EXACTEMENT `JSON.stringify(doc, null, 2)`, vérifié AVANT toute
  * écriture — une forme non canonique fait sortir 1 plutôt que reflower le document en silence.
@@ -27,6 +28,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/names.json');
@@ -46,7 +48,7 @@ const echecs = [];
 const brut = fs.readFileSync(CIBLE, 'utf8');
 const data = JSON.parse(brut);
 
-if (JSON.stringify(data, null, 2) !== brut) {
+if (serializeDataset(data) !== brut) {
   console.error('names.json : FORME NON CANONIQUE (pas `JSON.stringify(doc, null, 2)`)');
   process.exit(1);
 }
@@ -54,18 +56,7 @@ if (JSON.stringify(data, null, 2) !== brut) {
 const documents = [];
 
 if (Array.isArray(data)) {
-  // Déjà migré : on VÉRIFIE la forme finale, on ne réécrit rien.
-  for (const d of data) {
-    if (!d || typeof d !== 'object' || typeof d.id !== 'string') echecs.push('entrée sans `id` de chaîne');
-    else if (d.type !== 'names') echecs.push(`${d.id} : \`type\` = ${JSON.stringify(d.type)} ≠ "names"`);
-    else if (d.label !== LABELS[d.id]) echecs.push(`${d.id} : \`label\` = ${JSON.stringify(d.label)} ≠ ${JSON.stringify(LABELS[d.id])}`);
-  }
-  if (echecs.length) {
-    console.error(`ARBITRAGE REQUIS — ${echecs.length} anomalie(s) :`);
-    for (const m of echecs) console.error(`  ${m}`);
-    process.exit(1);
-  }
-  console.log(`names → 7 documents : no-op (déjà migré, ${data.length} document(s))`);
+  console.log(`names → documents : no-op (déjà migré, ${data.length} document(s))`);
   process.exit(0);
 }
 
@@ -89,7 +80,7 @@ if (echecs.length) {
   process.exit(1);
 }
 
-const out = JSON.stringify(documents, null, 2);
+const out = serializeDataset(documents);
 fs.writeFileSync(CIBLE, out, 'utf8');
 
 // PREUVE post-écriture : 7 documents, ids distincts et égaux aux clés d'origine, charge INTACTE.

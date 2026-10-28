@@ -89,7 +89,7 @@ export const EXEMPTIONS = [
   { fichier: 'scripts/gates/toutes.mjs', motif: /écartés par extension/, raison: 'prose de la raison de gate : l’extension écartée par la copie du corpus' },
   { fichier: 'scripts/raw/check-folio-continuity.mjs', motif: /git ls-files "\*\./, raison: 'commentaire citant la mesure « aucun PDF suivi »' },
   { fichier: 'scripts/raw/lib/empty-folios-stock.mjs', motif: /git ls-files "\*\./, raison: 'commentaire citant la mesure « aucun PDF suivi »' },
-  { fichier: 'scripts/corpus/migrations/idempotence-ordre-des-cles.test.mjs', motif: /^filter: \(src\) => path\.extname/, raison: 'FILTRE d’extension de la copie du corpus : écarte TOUS les PDF, n’en nomme aucun' },
+  { fichier: 'scripts/migrations/lib/joue.mjs', motif: /^filter: \(src\) => path\.extname/, raison: 'FILTRE d’extension de la copie du corpus : écarte TOUS les PDF, n’en nomme aucun' },
   { fichier: 'scripts/migrations/lib/1699-source-chemins-ascii.test.mjs', motif: /join\(racine, /, raison: 'banc de la migration datée 1699 : PDF FACTICES d’un `Source/` jetable, qu’elle renomme par extension' },
   { fichier: 'scripts/hooks/stocks-nominatifs.test.mjs', motif: /^'Source\/Warhammer v4 - Livre de base version corrigee\/08 - Statut\./, raison: 'fixture : un chemin qui ne nomme AUCUN fichier de stock (ni `.md`), jamais ouvert' },
   { fichier: 'scripts/raw/lib/marker-pages.test.mjs', motif: /'x\./, raison: 'chemin FACTICE passé à un extracteur INJECTÉ (`pagesPerdues`, `verifierExtraction`) — jamais ouvert' },

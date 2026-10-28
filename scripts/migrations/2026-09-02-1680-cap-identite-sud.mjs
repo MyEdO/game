@@ -53,18 +53,22 @@
  *
  * ENTRÉES : `src/data/props.json` (seule donnée lue et écrite).
  *
- * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : une recette qui porte déjà `capIdentite: 'S'` est reconnue
+ * FORME D'AVANT SEULE : seule une recette SANS `capIdentite` tourne, seul un meuble qui porte un id de
+ * place À CÔTÉ est renommé ; une entrée absente, ou déjà migrée (révisée ou non depuis), est laissée
+ * telle quelle, sans porte.
+ * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : une recette qui porte déjà `capIdentite` est reconnue
  * migrée ; rejoué sur l'état final, le script n'écrit rien et sort 0.
- * FAIL-FAST : cardinal de recettes inattendu (porte de lecture SEULE, avant toute écriture), racine
- * non-tableau, `capIdentite` présent mais DIVERGENT, mélange migré/non migré, `seatSlots` sur un
- * décor SANS recette (le repère de la place n'aurait plus de recette pour le porter), pente ou cap
- * inconnus → rien n'est écrit, sortie 1.
+ * FAIL-FAST, sur les seules entrées à migrer : racine non-tableau, mélange de recettes migrées et non
+ * migrées, places à côté sur un décor SANS recette (le repère de la place n'aurait plus de recette
+ * pour le porter), pente ou cap inconnus, id de place hors graphie ou mélange d'ids dans un meuble à
+ * renommer → rien n'est écrit, sortie 1.
  * FORMATAGE PRÉSERVÉ : le fichier est EXACTEMENT `JSON.stringify(doc, null, 2)`, vérifié AVANT toute
  * écriture.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/props.json');
@@ -92,6 +96,10 @@ const PENTE_OPPOSEE = { 'x+': 'x-', 'x-': 'x+', 'y+': 'y-', 'y-': 'y+' };
  *  donc rien à apparier : la position porte le numéro. */
 const ANCIENS_IDS = ['place-nord', 'place-est', 'place-sud', 'place-ouest', 'place-gauche', 'place-droite'];
 
+/** Les deux formes d'avant, une par volet : la recette sans marqueur, le meuble aux ids à côté. */
+const aTournerDe = (e) => !!e?.volume && !('capIdentite' in e.volume);
+const aRenommerDe = (e) => (e?.seatSlots ?? []).some((s) => ANCIENS_IDS.includes(s.id));
+
 /** Opposé d'une coordonnée, sans zéro négatif. */
 const oppose = (n) => (n === 0 ? 0 : -n);
 
@@ -107,7 +115,7 @@ const avant = JSON.parse(brut);
     console.error('src/data/props.json : racine non-TABLEAU — rien n’est écrit');
     process.exit(1);
   }
-  if (JSON.stringify(avant, null, 2) !== brut) {
+  if (serializeDataset(avant) !== brut) {
     console.error('src/data/props.json : FORME NON CANONIQUE (pas `JSON.stringify(doc, null, 2)`) — rien n’est écrit');
     process.exit(1);
   }
@@ -116,30 +124,21 @@ const avant = JSON.parse(brut);
   // FORME, jamais cardinal (#1812) : le catalogue de décor grandit, un décor neuf doit se MIGRER.
   if (!recettes.length) ecarts.push('aucune recette de volume — périmètre déplacé');
   for (const e of avant) {
-    if (e && e.seatSlots && !e.volume) ecarts.push(`${e.id} : \`seatSlots\` sans \`volume\` — repère de place sans recette`);
-    if (!e || !e.volume) continue;
-    if ('capIdentite' in e.volume && e.volume.capIdentite !== CAP_IDENTITE)
-      ecarts.push(`${e.id} : \`capIdentite\` = ${JSON.stringify(e.volume.capIdentite)} ≠ ${JSON.stringify(CAP_IDENTITE)}`);
+    if (aRenommerDe(e) && !e.volume) ecarts.push(`${e.id} : \`seatSlots\` sans \`volume\` — repère de place sans recette`);
+    if (!aTournerDe(e)) continue;
     for (const p of e.volume.primitives ?? [])
       if (p.kind === 'prism' && !(p.slope in PENTE_OPPOSEE)) ecarts.push(`${e.id} : pente inconnue « ${p.slope} »`);
     for (const s of e.seatSlots ?? [])
       if (!DIR8_ORDER.includes(s.facing)) ecarts.push(`${e.id}/${s.id} : cap inconnu « ${s.facing} »`);
   }
-  // Volet RENOMMAGE : chaque id de place est soit ANCIEN (un côté), soit NOUVEAU (`place-<n>`) — jamais
-  // une troisième graphie, et jamais un mélange dans un même meuble.
+  // Volet RENOMMAGE : dans un meuble à renommer, chaque id de place est ANCIEN (un côté) — jamais une
+  // autre graphie, ni un mélange avec des ids neufs.
   for (const e of avant) {
-    const ids = (e?.seatSlots ?? []).map((s) => s.id);
-    if (!ids.length) continue;
+    if (!aRenommerDe(e)) continue;
+    const ids = e.seatSlots.map((s) => s.id);
     const inconnus = ids.filter((id) => !ANCIENS_IDS.includes(id) && !/^place-\d+$/.test(id));
     if (inconnus.length) ecarts.push(`${e.id} : id(s) de place hors graphie connue — ${inconnus.join(', ')}`);
-    const neufs = ids.filter((id) => /^place-\d+$/.test(id)).length;
-    if (neufs !== 0 && neufs !== ids.length) ecarts.push(`${e.id} : MÉLANGE d'ids de place anciens et neufs`);
-    // DÉJÀ renommé : le rang doit Être le BON. Sans ce contrôle, un `place-9` glissé dans un tableau de
-    // quatre passerait le rejeu en no-op — la porte ne verrait qu'une graphie valide.
-    if (neufs === ids.length)
-      ids.forEach((id, i) => {
-        if (id !== `place-${i + 1}`) ecarts.push(`${e.id} : place de rang ${i + 1} nommée « ${id} » — un id de place porte son RANG`);
-      });
+    if (ids.some((id) => /^place-\d+$/.test(id))) ecarts.push(`${e.id} : MÉLANGE d'ids de place anciens et neufs`);
   }
   const marques = recettes.filter((e) => 'capIdentite' in e.volume).length;
   if (marques !== 0 && marques !== recettes.length)
@@ -156,9 +155,9 @@ let renommees = 0;
 const apres = avant.map((e) => {
   if (!e || typeof e !== 'object') return e;
   // VOLET 1 — rotation de la recette, marqueur `capIdentite`.
-  const aTourner = !!e.volume && !('capIdentite' in e.volume);
+  const aTourner = aTournerDe(e);
   // VOLET 2 — ids de place sans côté, marqueur = la graphie `place-<n>`.
-  const aRenommer = (e.seatSlots ?? []).some((s) => ANCIENS_IDS.includes(s.id));
+  const aRenommer = aRenommerDe(e);
   if (!aTourner && !aRenommer) return e;
   if (aTourner) tournees++;
   if (aRenommer) renommees++;
@@ -199,7 +198,7 @@ if (tournees + renommees === 0) {
   process.exit(0);
 }
 
-const sortie = JSON.stringify(apres, null, 2);
+const sortie = serializeDataset(apres);
 
 fs.writeFileSync(CIBLE, sortie, 'utf8');
 
@@ -216,7 +215,8 @@ fs.writeFileSync(CIBLE, sortie, 'utf8');
     if (d.id !== a.id) echecs.push(`POST [${i}] : id ${d.id} ≠ ${a.id}`);
     // L'INVOLUTION ne se vérifie que sur ce que CE passage a tourné : une entrée déjà marquée n'a subi
     // que le renommage, et sa géométrie doit être restée IDENTIQUE.
-    const tourne = !!a.volume && !('capIdentite' in a.volume);
+    const tourne = aTournerDe(a);
+    if (!tourne && !aRenommerDe(a)) continue;
     const revenir = (n) => (tourne ? oppose(n) : n);
     const revenirPente = (p) => (tourne ? PENTE_OPPOSEE[p] : p);
     const revenirCap = (c) => (tourne ? demiTour(c) : c);

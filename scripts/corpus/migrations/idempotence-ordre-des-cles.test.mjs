@@ -14,10 +14,9 @@
  */
 import { strict as assert } from 'node:assert'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
-import { ANTIDATE, efface, joue } from '../../migrations/lib/joue.mjs'
+import { ANTIDATE, copieDuCorpus, efface, joue, pose } from '../../migrations/lib/joue.mjs'
 import { DATEES, RACINE } from '../../test/lib/bancIdempotence.mjs'
 
 const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -54,24 +53,9 @@ const renverse = (doc) => {
 
 // --- 1. NO-OP SUR LE CORPUS ENTIER, CLÉS RENVERSÉES ---------------------------------------------
 
-/**
- * Ce que le dépôt jetable doit porter pour qu'une migration échoue sur son CONTRAT et jamais sur une
- * absence de dépôt : sans `Source/`, des migrations sortent 1 sur une extraction introuvable — une
- * raison de dépôt, pas de contrat. COPIE PURE : aucun lien.
- *
- * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les PDF (lourds,
- * gitignorés) sont écartés de la copie par leur EXTENSION — jamais par le nom de leur dossier.
- */
-const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/gameIso/catalog', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'src/lib/tableTotale.ts', 'docs/raw', 'Source'];
-
 test('les migrations DATÉES sont NO-OP sur `src/data` ENTIER aux clés renversées', (t) => {
-  const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-corpus-'));
+  const racine = copieDuCorpus();
   t.after(() => efface(racine));
-  for (const rel of CORPUS)
-    fs.cpSync(path.join(RACINE, rel), path.join(racine, rel), {
-      recursive: true,
-      filter: (src) => path.extname(src).toLowerCase() !== '.pdf',
-    });
 
   const data = path.join(racine, 'src/data');
   const jsons = fs.readdirSync(data).filter((f) => f.endsWith('.json'));
@@ -81,10 +65,8 @@ test('les migrations DATÉES sont NO-OP sur `src/data` ENTIER aux clés renvers�
   /** Le corpus RENVERSÉ, posé et gardé en référence : toute divergence ultérieure est une écriture. */
   const avant = new Map();
   for (const f of jsons) {
-    const cible = path.join(data, f);
-    const texte = `${JSON.stringify(renverse(JSON.parse(fs.readFileSync(cible, 'utf8'))), null, 2)}`;
-    fs.writeFileSync(cible, texte, 'utf8');
-    fs.utimesSync(cible, ANTIDATE, ANTIDATE);
+    const texte = `${JSON.stringify(renverse(JSON.parse(fs.readFileSync(path.join(data, f), 'utf8'))), null, 2)}`;
+    pose(racine, path.join('src/data', f), texte);
     avant.set(f, texte);
   }
 
@@ -99,8 +81,7 @@ test('les migrations DATÉES sont NO-OP sur `src/data` ENTIER aux clés renvers�
     for (const f of touches) {
       const octets = fs.readFileSync(path.join(data, f), 'utf8') === avant.get(f) ? 'octet IDENTIQUE' : 'octet DIVERGENT';
       fautes.push(`${migration} : ${f} RÉÉCRIT alors que rien n’a changé (${octets})`);
-      fs.writeFileSync(path.join(data, f), avant.get(f), 'utf8');
-      fs.utimesSync(path.join(data, f), ANTIDATE, ANTIDATE);
+      pose(racine, path.join('src/data', f), avant.get(f));
     }
   }
 

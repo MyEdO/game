@@ -17,9 +17,10 @@
  *
  * ENTRÉES : écrites — `src/data/books.json`, `creatures.json`, `spells.json`, `traits.json`,
  * `domains.json`, `skills.json`, `talents.json`, `sea-events.json` ; aucun autre fichier n'est lu.
- * FAIL-FAST — avant toute écriture, sortie 1 : cible de `REMPLACEMENTS` absente de `creatures.json`
- * ou elle-même sourcée au livre ; `crewRef`/`chefRef` vers une créature du livre hors table ; sort
- * restant dont `curated` n'est pas `true` (le retirer changerait son support mécanique).
+ * FAIL-FAST — avant toute écriture, sortie 1 : pour un remplacement à faire, sa cible absente de
+ * `creatures.json` ou elle-même sourcée au livre ; `crewRef`/`chefRef` vers une créature du livre hors
+ * table ; sort restant dont `curated` n'est pas `true` (le retirer changerait son support mécanique).
+ * Une cible absente quand aucun équipage ne désigne plus la créature du livre n'est pas une faute.
  * IDEMPOTENT : rejouée sur l'état final, aucun porteur n'est trouvé et rien ne s'écrit.
  * FORMATAGE PRÉSERVÉ : chaque fichier est EXACTEMENT `JSON.stringify(doc, null, 2)` (sans saut de ligne
  * final), constaté avant l'écriture.
@@ -27,11 +28,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const abs = (rel) => path.join(ROOT, 'src/data', rel);
-/** Reflet de `src/data/serialize.ts#serializeDataset` (pas d'import TS depuis un script .mjs). */
-const serializeDataset = (value) => JSON.stringify(value, null, 2);
 
 const LIVRE = 'frenchy-bzh';
 const RACINES = ['creatures.json', 'spells.json', 'traits.json', 'domains.json'];
@@ -74,10 +74,12 @@ function purgerAlsoIn(noeud) {
 
 const creaturesAvant = lire('creatures.json');
 const idsRetires = new Set(creaturesAvant.filter(duLivre).map((c) => c.id));
+/** Créature du livre → la faute de sa cible, levée seulement si un équipage la désigne encore. */
+const fautesDeCible = new Map();
 for (const [fan, cible] of Object.entries(REMPLACEMENTS)) {
   const c = creaturesAvant.find((x) => x.id === cible);
-  if (!c) fautes.push(`remplacement ${fan} → ${cible} : cible absente de creatures.json`);
-  else if (duLivre(c)) fautes.push(`remplacement ${fan} → ${cible} : la cible est sourcée au livre`);
+  if (!c) fautesDeCible.set(fan, `remplacement ${fan} → ${cible} : cible absente de creatures.json`);
+  else if (duLivre(c)) fautesDeCible.set(fan, `remplacement ${fan} → ${cible} : la cible est sourcée au livre`);
 }
 
 let gestes = 0;
@@ -107,6 +109,7 @@ for (const ev of seaEvents.boardEvents ?? []) {
     const ref = ev.params?.[cle];
     if (typeof ref !== 'string' || !(REMPLACEMENTS[ref] || idsRetires.has(ref))) continue;
     if (!REMPLACEMENTS[ref]) { fautes.push(`sea-events ${ev.id}.params.${cle} = ${ref} : créature du livre hors REMPLACEMENTS`); continue; }
+    if (fautesDeCible.has(ref)) { fautes.push(fautesDeCible.get(ref)); continue; }
     ev.params[cle] = REMPLACEMENTS[ref];
     gestes++;
   }

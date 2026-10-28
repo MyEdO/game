@@ -26,11 +26,14 @@
  *   (règle stricte 1) — il devient `max: null` (`plageOuverteSchema`, la graphie du « et plus » que
  *   JSON n'a pas d'Infinity pour dire).
  *
- * CARDINAL ASSERTÉ SUR LE RÉSULTAT : 11 fourchettes (4 sous-tirages + 7 tailles de coque), AUCUN
- * tuple restant sur ces deux chemins, chaque borne ÉGALE à ce que le livre imprime (tables
- * `ATTENDU_*` ci-dessous, transcrites des lignes citées), le 1d10 couvert de 1 à 10 d'un seul tenant
- * et les longueurs couvertes depuis 1 jusqu'à la bande OUVERTE. Vrai sur un arbre vierge comme au
- * rejeu ; tout écart est un ARRÊT (exit 1).
+ * FORME D'AVANT SEULE : seul un champ encore TUPLE se convertit ; une entrée absente, ou déjà en
+ * fourchette (migrée, ou révisée depuis), est laissée telle quelle.
+ *
+ * CARDINAL ASSERTÉ SUR CE QUI EST CONVERTI : une table dont un tuple se convertit doit sortir
+ * entière en fourchettes (4 sous-tirages, 7 tailles de coque), chaque borne ÉGALE à ce que le livre
+ * imprime (tables `ATTENDU_*` ci-dessous, transcrites des lignes citées), le 1d10 couvert de 1 à 10
+ * d'un seul tenant et les longueurs couvertes depuis 1 jusqu'à la bande OUVERTE ; tout écart est un
+ * ARRÊT (exit 1).
  *
  * ENTRÉES : `src/data/stars.json`, `src/data/ship-construction.json` (seuls documents lus et écrits).
  * IDEMPOTENT : rejouée, elle ne voit plus aucun tuple et n'écrit rien.
@@ -39,6 +42,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const ETOILES = path.join(ROOT, 'src/data/stars.json');
@@ -74,7 +78,7 @@ const arrets = [];
 function lire(fichier) {
   const brut = fs.readFileSync(fichier, 'utf8');
   const doc = JSON.parse(brut);
-  if (brut !== JSON.stringify(doc, null, 2)) {
+  if (brut !== serializeDataset(doc)) {
     console.error(`FORME NON CANONIQUE — ${path.relative(ROOT, fichier)} ; AUCUNE écriture.`);
     process.exit(1);
   }
@@ -104,14 +108,6 @@ function enFourchette(porteur, champ, nom, plafond) {
 
 /** CONSTAT sur le RÉSULTAT : la fourchette lue au document, confrontée à ce que le livre imprime. */
 function confronter(entrees, champ, attendu, nom, ref) {
-  // La table NOMMÉE ne répond que de ce que le livre imprime : une entrée née APRÈS cette vague arrive
-  // à la forme CIBLE et TRAVERSE — exiger l'égalité des deux listes ferait payer un recalage ici à
-  // chaque sous-tirage ajouté (#1812). Ce qui reste exigé : aucune entrée NOMMÉE ne disparaît.
-  const absentes = Object.keys(attendu).filter((id) => !entrees.some((e) => e.id === id));
-  if (absentes.length) {
-    arrets.push(`${nom} : entrée(s) NOMMÉE(S) par le livre absente(s) du document : ${absentes.join(', ')} — ${ref}`);
-    return 0;
-  }
   let conformes = 0;
   for (const e of entrees.filter((x) => attendu[x.id])) {
     const f = e[champ];
@@ -173,16 +169,17 @@ for (const r of coquesStandard) {
   migresLength += enFourchette(r, 'lengthM', `ship-construction.json › standard[${r.id}].lengthM`, plafond);
 }
 
-const conformesSub = confronter(variantes, 'sub', ATTENDU_SUB, 'stars.json › [].sub', REF_SUB);
-const conformesLength = confronter(coquesStandard, 'lengthM', ATTENDU_LENGTH, 'ship-construction.json › standard[].lengthM', REF_LENGTH);
-couverture(variantes.filter((e) => ATTENDU_SUB[e.id]), 'sub', 'stars.json › le 1d10 de l\'Étoile du Sorcier', 1, 10, REF_SUB);
-couverture(coquesStandard.filter((r) => ATTENDU_LENGTH[r.id]), 'lengthM', 'ship-construction.json › la colonne Taille', 1, 'ouverte', REF_LENGTH);
-
-if (conformesSub + conformesLength !== 11) {
-  arrets.push(
-    `CARDINAL : ${conformesSub + conformesLength} fourchette(s) au résultat, attendu 11 ` +
-      `(4 sous-tirages astraux, ${REF_SUB} ; 7 tailles de coque, ${REF_LENGTH})`,
-  );
+const conformesSub = migresSub ? confronter(variantes, 'sub', ATTENDU_SUB, 'stars.json › [].sub', REF_SUB) : 0;
+const conformesLength = migresLength
+  ? confronter(coquesStandard, 'lengthM', ATTENDU_LENGTH, 'ship-construction.json › standard[].lengthM', REF_LENGTH)
+  : 0;
+if (migresSub) {
+  couverture(variantes.filter((e) => ATTENDU_SUB[e.id]), 'sub', 'stars.json › le 1d10 de l\'Étoile du Sorcier', 1, 10, REF_SUB);
+  if (conformesSub !== 4) arrets.push(`CARDINAL : ${conformesSub} sous-tirage(s) astral(aux) au résultat, attendu 4 — ${REF_SUB}`);
+}
+if (migresLength) {
+  couverture(coquesStandard.filter((r) => ATTENDU_LENGTH[r.id]), 'lengthM', 'ship-construction.json › la colonne Taille', 1, 'ouverte', REF_LENGTH);
+  if (conformesLength !== 7) arrets.push(`CARDINAL : ${conformesLength} taille(s) de coque au résultat, attendu 7 — ${REF_LENGTH}`);
 }
 
 if (arrets.length) {
@@ -197,7 +194,7 @@ for (const [fichier, etat, migres, quoi] of [
   [COQUES, coques, migresLength, 'taille(s) de coque'],
 ]) {
   const rel = path.relative(ROOT, fichier).replace(/\\/g, '/');
-  const out = JSON.stringify(etat.doc, null, 2);
+  const out = serializeDataset(etat.doc);
   if (out === etat.brut) { console.log(`${rel} — INCHANGÉ (no-op byte-identique).`); continue; }
   if (out.includes('\r')) {
     console.error(`${fichier} : \\r dans le texte réécrit ; AUCUNE écriture.`);
@@ -207,5 +204,5 @@ for (const [fichier, etat, migres, quoi] of [
   ecrits++;
   console.log(`${rel} — réécrit (${migres} ${quoi} passée(s) du tuple à la fourchette).`);
 }
-console.log(`Fourchettes au RÉSULTAT : ${conformesSub} sous-tirages + ${conformesLength} tailles de coque = ${conformesSub + conformesLength} ; 1d10 contigu 1–10, longueurs contiguës depuis 1 jusqu'à la bande OUVERTE.`);
+console.log(`Fourchettes converties et vérifiées : ${conformesSub} sous-tirage(s) + ${conformesLength} taille(s) de coque.`);
 if (!ecrits) process.exit(0);

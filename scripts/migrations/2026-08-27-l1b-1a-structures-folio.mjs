@@ -21,11 +21,11 @@
  * ENTRÉES : `src/data/structures.json` (la seule donnée lue et écrite) ; `Source/` via
  * `scripts/guards/lib/folioIntegrity.mjs` pour la vérification.
  *
- * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : une entrée déjà en `{book, page}` au folio attendu est
- * reconnue « déjà migrée » et laissée intacte ; rejouée sur l'état final, la migration n'écrit rien
- * et sort 0. FAIL-FAST : id inconnu de la table, id absent du fichier, ancre textuelle introuvable,
- * `page` déjà présente mais DIVERGENTE, ou verdict `auditFolio` autre que `folio-ok` → rien n'est
- * écrit (l'écriture est différée après la vérification), sortie 1.
+ * FORME D'AVANT SEULE : seule une entrée de la table dont la source porte `chapter` et pas `page` est
+ * migrée ; une entrée absente, hors table, déjà au folio ou révisée après la migration est laissée intacte ;
+ * rejouée sur l'état final, la migration n'écrit rien et sort 0. FAIL-FAST : pour une entrée à migrer, ancre
+ * textuelle introuvable, ou verdict `auditFolio` autre que `folio-ok` → rien n'est écrit (l'écriture est
+ * différée après la vérification), sortie 1.
  *
  * FORMATAGE PRÉSERVÉ : réécriture TEXTUELLE ancrée sur le couple `"chapter": <n>` qui suit l'`"id"`
  * de l'entrée — aucun `JSON.stringify` du document.
@@ -76,31 +76,18 @@ const dejaMigres = [];
 const brut = fs.readFileSync(CIBLE, 'utf8');
 const data = JSON.parse(brut);
 
-// ── Confrontation de la TABLE au contenu réel du fichier ─────────────────────────────────────────
-const idsFichier = data.map((e) => e.id);
-for (const id of Object.keys(FOLIOS)) {
-  if (!idsFichier.includes(id)) echecs.push(`${id} : id de la table ABSENT de structures.json`);
-}
-for (const id of idsFichier) {
-  if (!(id in FOLIOS)) echecs.push(`${id} : entrée de structures.json ABSENTE de la table de folios`);
-}
-
 // ── Réécriture textuelle ancrée (différée : rien n'est écrit avant la vérification) ──────────────
 let out = brut;
 for (const entree of data) {
   const { id, source } = entree;
-  const page = FOLIOS[id];
+  const page = Object.hasOwn(FOLIOS, id) ? FOLIOS[id] : undefined;
   if (page === undefined) continue;
 
-  if (typeof source?.page === 'number') {
-    if (source.page !== page) echecs.push(`${id} : page ${source.page} déjà posée, DIVERGENTE de ${page}`);
-    else dejaMigres.push(id);
+  if (source?.page === page) {
+    dejaMigres.push(id);
     continue;
   }
-  if (typeof source?.chapter !== 'number') {
-    echecs.push(`${id} : source sans \`chapter\` NI \`page\` — forme inattendue ${JSON.stringify(source)}`);
-    continue;
-  }
+  if (typeof source?.chapter !== 'number' || source.page !== undefined) continue;
 
   const ancreId = `"id": ${JSON.stringify(id)}`;
   const occurrences = out.split(ancreId).length - 1;
@@ -119,11 +106,11 @@ for (const entree of data) {
   migres.push({ id, chapter: source.chapter, page });
 }
 
-// ── PREUVE : les entrées à `desc` sont confrontées à `auditFolio` sur le texte MIGRÉ ─────────────
+// ── PREUVE : les entrées MIGRÉES à `desc` sont confrontées à `auditFolio` sur le texte MIGRÉ ─────
 const apres = JSON.parse(out);
 const verdicts = [];
 for (const e of apres) {
-  if (typeof e.desc !== 'string' || !e.desc) continue;
+  if (!migres.some((m) => m.id === e.id) || typeof e.desc !== 'string' || !e.desc) continue;
   const r = auditFolio({ book: e.source.book, page: e.source.page, desc: e.desc });
   verdicts.push({ id: e.id, page: e.source.page, verdict: r.verdict });
   if (r.verdict !== 'folio-ok') {
