@@ -19,11 +19,13 @@
  *     chacune citée à sa ligne.
  *
  * ENTRÉES : écrites — les fichiers de `RACINES` et `src/data/traits.json` ; lue — `src/data/trappings.json`.
- * FAIL-FAST — avant toute écriture, sortie 1 : un hôte ou une liste introuvable ; une liste qui ne porte ni
- * l'instance d'origine ni l'instance migrée ; une entrée `armure` qui porte une autre raison `maison` ; un
- * fichier hors de son formatage ; ARBITRAGE REQUIS — une parenthèse d'un Trait à Indice par Localisation que
- * ni la table ni `IMPRIMEES` ne classent, hors des Aspects valant à toutes les Localisations
- * (`aspectAToutesLocalisations`).
+ * FORME D'AVANT SEULE (`lib/formeDAvant.mjs`) : l'entrée `armure` ne reçoit sa capacité que sans
+ * `parLocalisation`, ne perd que les raisons de `RAISONS_RETIREES` ; une instance de `IMPRIMEES` n'est
+ * réécrite qu'EXACTEMENT à sa forme d'avant. Absente, déjà migrée ou révisée après la migration, une entrée
+ * est laissée telle quelle.
+ * FAIL-FAST — avant toute écriture, sortie 1 : un fichier hors de son formatage ; ARBITRAGE REQUIS — une
+ * parenthèse d'un Trait à Indice par Localisation que ni la table ni `IMPRIMEES` ne classent, hors des
+ * Aspects valant à toutes les Localisations (`aspectAToutesLocalisations`).
  * IDEMPOTENT : rejouée sur l'état final, aucun geste n'est à faire et rien ne s'écrit. Les instances se
  * reconnaissent à leurs valeurs, jamais à l'ordre de leurs clés.
  * FORMATAGE PRÉSERVÉ, constaté avant l'écriture : un dataset est EXACTEMENT `JSON.stringify(doc, null, 2)`
@@ -34,6 +36,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { aspectAToutesLocalisations, classerParenthese, emplacementsDesPieces, lirePlage } from '../../src/engine/classementDeTrait.ts';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { porteLaTranche, remplacerLaFormeDAvant } from './lib/formeDAvant.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const serializeProjet = (value) => `${JSON.stringify(value, null, 1)}\n`;
@@ -63,7 +66,7 @@ const RAISONS_RETIREES = new Set([
   'Un Aspect qui nomme des pièces d’armure (« Plastron et heaume », « Veste de cuir », « Chemise de mailles ») ne restreint pas l’Indice : il vaut à toutes les Localisations (LDB 85 l.39), et non aux seuls Emplacements des pièces nommées (LDB 63 l.13). Lecture proposée en cérémonie (#1463).',
 ]);
 
-/** Instance `avant` de `hote.liste` (`creatures.json`) → instance `apres` (clés de valeur remplacées, le reste gardé). */
+/** Instance `avant` de `hote.liste` (`creatures.json`) → instance `apres`. */
 const IMPRIMEES = [
   // ZI 13 l.31
   { hote: 'sirene', liste: 'optionals', avant: { id: 'armure', value: -3 }, apres: { id: 'armure', plage: lirePlage('1-3') } },
@@ -74,26 +77,6 @@ const IMPRIMEES = [
   // MCLB 02 l.698 ; LDB 63 l.53-58
   { hote: 'moritz-valgeir', liste: 'traits', avant: { id: 'armure', value: 3, arg: 'Heaume 2, Plates 3' }, apres: { id: 'armure', parLocalisation: { tete: 2, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 } } },
 ];
-
-/** Clés qui disent la valeur d'une instance : elles seules changent. */
-const CLES_DE_VALEUR = ['value', 'arg', 'range', 'plage', 'parLocalisation'];
-
-/** Égalité de valeur JSON, sans égard à l'ordre des clés. */
-function egal(a, b) {
-  if (a === b) return true;
-  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
-  const ka = Object.keys(a);
-  return ka.length === Object.keys(b).length && ka.every((k) => egal(a[k], b[k]));
-}
-/** L'instance porte exactement les clés de valeur de `forme`. */
-const porte = (x, forme) => x.id === forme.id && CLES_DE_VALEUR.every((k) => egal(x[k], forme[k]));
-
-/** `x` aux clés de valeur de `forme`, ses autres clés gardées. */
-function remplacer(x, forme) {
-  const out = Object.fromEntries(Object.entries(x).filter(([k]) => !CLES_DE_VALEUR.includes(k)));
-  for (const k of CLES_DE_VALEUR) if (forme[k] !== undefined) out[k] = forme[k];
-  return out;
-}
 
 const lire = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const fautes = [];
@@ -107,16 +90,13 @@ for (const [rel, serialiser] of [...Object.entries(RACINES), [TRAITS, serializeD
 let gestes = 0;
 const defs = docs.get(TRAITS).doc;
 const armure = defs.find((t) => t.id === ARMURE);
-if (!armure) fautes.push(`${TRAITS} : ${ARMURE} introuvable`);
-else {
-  if (armure.parLocalisation !== true) {
-    armure.parLocalisation = true;
-    gestes++;
-  }
-  if (RAISONS_RETIREES.has(armure.maison)) {
-    delete armure.maison;
-    gestes++;
-  } else if (armure.maison !== undefined) fautes.push(`${TRAITS} : ${ARMURE} porte une autre raison maison`);
+if (porteLaTranche(armure, { parLocalisation: undefined })) {
+  armure.parLocalisation = true;
+  gestes++;
+}
+if (RAISONS_RETIREES.has(armure?.maison)) {
+  delete armure.maison;
+  gestes++;
 }
 const aIndice = new Set(defs.filter((t) => t.indice).map((t) => t.id));
 const parLocalisation = new Set(defs.filter((t) => t.parLocalisation).map((t) => t.id));
@@ -150,18 +130,7 @@ for (const rel of Object.keys(RACINES)) {
 
 const creatures = docs.get(CREATURES).doc;
 for (const { hote, liste, avant, apres } of IMPRIMEES) {
-  const l = creatures.find((e) => e.id === hote)?.[liste];
-  if (!Array.isArray(l)) {
-    fautes.push(`${CREATURES} : ${hote}.${liste} introuvable`);
-    continue;
-  }
-  const i = l.findIndex((x) => porte(x, avant));
-  if (i >= 0) {
-    l[i] = remplacer(l[i], apres);
-    gestes++;
-  } else if (!l.some((x) => porte(x, apres))) {
-    fautes.push(`${CREATURES} : ${hote}.${liste} ne porte ni ${JSON.stringify(avant)} ni ${JSON.stringify(apres)}`);
-  }
+  gestes += remplacerLaFormeDAvant(creatures.find((e) => e.id === hote)?.[liste], avant, [apres]);
 }
 
 const arbitrages = [];

@@ -11,17 +11,18 @@
  *
  * ENTRÉES : `src/data/props.json` (seule donnée lue et écrite). Une entrée touchée.
  *
- * MARQUEUR D'IDEMPOTENCE : la valeur de `cloture.cover`. `moyenne` = non migrée, `imparfaite` = migrée
- * (et la phrase de provenance est alors déjà la neuve). Rejoué sur l'état final, le script n'écrit rien.
+ * FORME D'AVANT SEULE : `cloture` ne se migre qu'à sa forme d'avant EXACTE (`cover` moyenne ET la
+ * phrase de provenance d'avant) ; une entrée absente, migrée ou révisée depuis est laissée telle
+ * quelle. Rejoué sur l'état final, le script n'écrit rien.
  *
- * FAIL-FAST (porte de lecture, avant toute écriture) : racine non-tableau, entrée `cloture` absente,
- * `cover` à une valeur ni attendue ni finale, `maison` qui n'est pas la phrase attendue en entrée
- * → rien n'est écrit, sortie 1.
+ * FAIL-FAST (porte de lecture, avant toute écriture) : racine non-tableau → rien n'est écrit, sortie 1.
  * FORMATAGE PRÉSERVÉ : le fichier est EXACTEMENT `JSON.stringify(doc, null, 2)`, vérifié AVANT écriture.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { porteLaTranche } from './lib/formeDAvant.mjs';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/props.json');
@@ -42,21 +43,16 @@ const echec = (m) => {
 const brut = fs.readFileSync(CIBLE, 'utf8');
 const doc = JSON.parse(brut);
 if (!Array.isArray(doc)) echec('racine non-tableau');
-if (brut !== JSON.stringify(doc, null, 2)) echec('formatage non canonique en entrée');
+if (brut !== serializeDataset(doc)) echec('formatage non canonique en entrée');
 
 const entree = doc.find((e) => e?.id === ID);
-if (!entree) echec(`entrée \`${ID}\` absente`);
-
-if (entree.cover === COVER_APRES) {
-  if (entree.maison !== MAISON_APRES) echec('déjà migrée mais provenance inattendue');
-  console.log('[2026-09-03-1680-cloture-claire-voie] déjà migrée — rien à écrire');
+if (!porteLaTranche(entree, { cover: COVER_AVANT, maison: MAISON_AVANT })) {
+  console.log(`[2026-09-03-1680-cloture-claire-voie] \`${ID}\` hors forme d'avant — rien à écrire`);
   process.exit(0);
 }
-if (entree.cover !== COVER_AVANT) echec(`\`${ID}.cover\` = ${JSON.stringify(entree.cover)}, attendu ${COVER_AVANT}`);
-if (entree.maison !== MAISON_AVANT) echec(`\`${ID}.maison\` n'est pas la phrase attendue en entrée`);
 
 entree.cover = COVER_APRES;
 entree.maison = MAISON_APRES;
 
-fs.writeFileSync(CIBLE, JSON.stringify(doc, null, 2));
+fs.writeFileSync(CIBLE, serializeDataset(doc));
 console.log(`[2026-09-03-1680-cloture-claire-voie] 1 entrée migrée : ${ID} ${COVER_AVANT} → ${COVER_APRES}`);

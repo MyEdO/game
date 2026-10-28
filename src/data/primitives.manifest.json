@@ -2045,6 +2045,15 @@
     "verrou": "mur de l'ordre total d'oxlint.config.mjs (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs"
   },
   {
+    "id": "jsonCanonique",
+    "type": "primitives.manifest",
+    "label": "jsonCanonique",
+    "fichier": "src/lib/jsonCanonique.mjs",
+    "concept": "JSON d'une valeur aux clés triées à chaque niveau (unités de code), clé de valeur undefined omise et élément undefined de liste rendu null (comme JSON.stringify) : deux valeurs égales en profondeur ont le même texte, quel que soit l'ordre d'insertion de leurs clés",
+    "perimetre": "toute empreinte ou égalité d'une valeur JSON indépendante de l'ordre de ses clés : forme d'avant d'une migration, suivi de vague, égalité tous champs d'une fusion de stocks, signature de dessin d'un acteur, comparaisons de test",
+    "verrou": "src/lib/jsonCanonique.test.ts"
+  },
+  {
     "id": "stockageWeb",
     "type": "primitives.manifest",
     "label": "stockageWeb",

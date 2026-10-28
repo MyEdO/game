@@ -8,6 +8,7 @@
  * sur la donnée RÉELLE ENTIÈRE (`creatures.json`) — pas sur un échantillon choisi.
  */
 import { describe, it, expect } from 'vitest';
+import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { creatures, skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../data';
 import { parseSkillRef, parseTalentRef } from '../editor/refFormatLivre';
 import { refsEnLignes, lignesEnRefs } from '../editor/codex/CodexEdit';
@@ -36,18 +37,13 @@ describe('Atelier du Codex — round-trip des refs d’une créature (#1548)', (
     expect(allerRetourTalents(refs)).toEqual(refs);
   });
 
-  /** Empreinte de CONTENU d'une liste de refs — clés triées : l'ordre des clés d'un objet JSON ne
-   *  porte aucune information (`{id,value,spec}` et `{id,spec,value}` sont la MÊME ref). */
-  const contenu = (refs: readonly object[]) =>
-    JSON.stringify(refs.map((r) => Object.fromEntries(Object.entries(r).sort(([a], [b]) => a.localeCompare(b)))));
-
   it('bestiaire ENTIER : aucune créature ne perd une Compétence ni un Talent', () => {
     const ecarts: string[] = [];
     for (const c of creatures) {
       const skills = allerRetourSkills(c.skills);
-      if (contenu(skills) !== contenu(c.skills)) ecarts.push(`${c.id}.skills : ${contenu(c.skills)} → ${contenu(skills)}`);
+      if (jsonCanonique(skills) !== jsonCanonique(c.skills)) ecarts.push(`${c.id}.skills : ${jsonCanonique(c.skills)} → ${jsonCanonique(skills)}`);
       const talents = allerRetourTalents(c.talents);
-      if (contenu(talents) !== contenu(c.talents)) ecarts.push(`${c.id}.talents : ${contenu(c.talents)} → ${contenu(talents)}`);
+      if (jsonCanonique(talents) !== jsonCanonique(c.talents)) ecarts.push(`${c.id}.talents : ${jsonCanonique(c.talents)} → ${jsonCanonique(talents)}`);
     }
     expect(ecarts, `refs altérées par un aller-retour d'édition : ${ecarts.slice(0, 8).join(' | ')}`).toEqual([]);
   });

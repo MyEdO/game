@@ -30,13 +30,16 @@
  * PORTE DE FIDÉLITÉ (lecture SEULE, avant toute écriture) : cardinaux exigés sur l'état LU, et
  * chaque rangée à migrer RETROUVÉE par son id. Un écart : sortie 1 sans rien écrire.
  *
+ * FORME D'AVANT SEULE, marquée par un `crewTarget` textuel ou un `shrapnelHit` fluvial : sans eux,
+ * les trois documents (migrés, ou révisés depuis) sont laissés tels quels, sans porte.
  * IDEMPOTENT : rejouée sur l'état final (plus aucun `crewTarget` textuel), elle reconnaît « déjà
- * migré », vérifie les cardinaux du RÉSULTAT et sort 0. FORMATAGE PRÉSERVÉ : chaque fichier lu est
+ * migré » et sort 0. FORMATAGE PRÉSERVÉ : chaque fichier lu est
  * EXACTEMENT `JSON.stringify(doc, null, 2)`, vérifié AVANT toute écriture ; la sortie l'est aussi.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CHEMIN = (n) => path.join(ROOT, 'src/data', n);
@@ -50,15 +53,13 @@ const AVANT = {
   [SHIP]: { rangees: 35, crewHit: 1, deck: 0, shrapnel: 17 },
 };
 
-/** CARDINAUX exigés sur le RÉSULTAT (design v2 jugé, colonne « après -a »), RECALÉS le 2026-09-04 sur
- *  la colonne « après -c » : le train B3-2b-c a donné leur coup aux 5 rangées du GRÉEMENT (MDG 13
- *  l.711/l.714/l.715/l.717/l.718). Ces cardinaux se lisent sur l'ARBRE, pas sur l'instant de ce
- *  script : le rejeu les vérifie au présent (`migrations:replay`). */
+/** CARDINAUX exigés sur le RÉSULTAT de CE script (design v2 jugé, colonne « après -a ») : les 5
+ *  rangées du GRÉEMENT ne reçoivent leur coup qu'au train B3-2b-c, qui le suit au rejeu. */
 const APRES = {
   [RIVER]: { rangees: 5, crewHit: 4, shrapnel: 0 },
-  [SHIP]: { rangees: 35, crewHit: 12, shrapnel: 17 },
+  [SHIP]: { rangees: 35, crewHit: 7, shrapnel: 17 },
   total: {
-    crewHit: 16, epreuves: 14, certains: 2, stationsPont: 5, stationsAvirons: 3,
+    crewHit: 11, epreuves: 9, certains: 2, stationsPont: 5, stationsAvirons: 3,
     stationsCale: 1, roleTimonier: 1, poste: 1, deckResiduel: 0,
   },
 };
@@ -106,7 +107,7 @@ const echecs = [];
 const lire = (nom) => {
   const brut = fs.readFileSync(CHEMIN(nom), 'utf8');
   const doc = JSON.parse(brut);
-  if (JSON.stringify(doc, null, 2) !== brut) {
+  if (serializeDataset(doc) !== brut) {
     echecs.push(`${nom} : FORME NON CANONIQUE (pas JSON.stringify(doc, null, 2))`);
     return null;
   }
@@ -127,7 +128,7 @@ if (echecs.length) {
 
 const barge = () => vehicules.find((v) => v.id === 'barge-fluviale');
 
-/** PREUVE sur le RÉSULTAT — jouée aussi bien après écriture qu'au rejeu (l'état final est le même). */
+/** PREUVE sur le RÉSULTAT, jouée après écriture. */
 function verifierResultat() {
   const relu = { [RIVER]: JSON.parse(fs.readFileSync(CHEMIN(RIVER), 'utf8')), [SHIP]: JSON.parse(fs.readFileSync(CHEMIN(SHIP), 'utf8')) };
   const veh = JSON.parse(fs.readFileSync(CHEMIN(VEHICULES), 'utf8'));
@@ -183,8 +184,6 @@ const sortirSurEchecs = () => {
     .flatMap((n) => coupsDe(docs[n]))
     .filter((c) => typeof c.crewTarget !== 'object' || c.crewTarget === null);
   if (!restants.length && docs[RIVER].shrapnelHit === undefined) {
-    verifierResultat();
-    sortirSurEchecs();
     const total = [RIVER, SHIP].reduce((n, f) => n + coupsDe(docs[f]).length, 0);
     console.log(`${RIVER} + ${SHIP} : no-op (deja migre — ${total} crewHit, cible en union)`);
     process.exit(0);
@@ -280,9 +279,9 @@ const enveloppe = (nom) => {
 const sortie = { [RIVER]: enveloppe(RIVER), [SHIP]: enveloppe(SHIP) };
 if (!aLaCale(barge())) barge().ship.traits = [...barge().ship.traits, { id: 'cale' }];
 
-fs.writeFileSync(CHEMIN(RIVER), JSON.stringify(sortie[RIVER], null, 2), 'utf8');
-fs.writeFileSync(CHEMIN(SHIP), JSON.stringify(sortie[SHIP], null, 2), 'utf8');
-fs.writeFileSync(CHEMIN(VEHICULES), JSON.stringify(vehicules, null, 2), 'utf8');
+fs.writeFileSync(CHEMIN(RIVER), serializeDataset(sortie[RIVER]), 'utf8');
+fs.writeFileSync(CHEMIN(SHIP), serializeDataset(sortie[SHIP]), 'utf8');
+fs.writeFileSync(CHEMIN(VEHICULES), serializeDataset(vehicules), 'utf8');
 
 verifierResultat();
 sortirSurEchecs();

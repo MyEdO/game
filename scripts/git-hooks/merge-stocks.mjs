@@ -20,14 +20,10 @@ import { threeWay } from './three-way.mjs'
 // Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
 const { formatDe } = await import('../guards/lib/stockDeSites.mjs')
 const { CHAMPS_DE_CLE, CHAMP_D_OCCURRENCE, groupeDeSite } = await import('../guards/lib/stock.mjs')
-const { tableTotale } = await import('../../src/lib/tableTotale.ts')
+const { jsonCanonique: canonique } = await import('../../src/lib/jsonCanonique.mjs')
 
 /** Repli : la version n'est pas admise par la forme. */
 class NonAdmis extends Error {}
-
-/** Texte canonique d'une valeur, clés d'objet rangées : l'égalité « tous champs » ignore leur ordre. */
-const canonique = (v) => JSON.stringify(v, (_, x) => (x && typeof x === 'object' && !Array.isArray(x)
-  ? tableTotale(Object.keys(x).sort(), (k) => x[k]) : x))
 
 /** Les entrées de `entrees` par groupe de site, chaque groupe en ordre d'occurrence. */
 function parGroupe(entrees) {

@@ -9,8 +9,7 @@
  *
  * TABLE RECALÉE #1686 lot 1, dans le train qui la fait bouger (même doctrine que le cardinal de
  * `…-11a-entite-type.mjs`) : `ardoise` → `toit-ardoise` (id composé de l'homonyme, le libellé ne bouge
- * pas), et les deux reliefs MORTS purgés du dataset quittent la table — un label arbitré sans entrée
- * fait sortir 1.
+ * pas), et les deux reliefs MORTS purgés du dataset quittent la table.
  * TABLE RECALÉE #1686 lot 2 : les deux catalogues sont devenus les domaines `relief` et `roof` d'un
  * SEUL document (`materials.json`). L'arbitrage ne change pas ; son PORTEUR, si. Les entrées des
  * autres domaines ne sont pas de la juridiction de cette vague et traversent intactes.
@@ -20,14 +19,17 @@
  * Entrées : `src/data/materials.json` (lu et écrit).
  *
  * POSITION : `label` s'insère juste après `id`, en 2ᵉ clé.
- * IDEMPOTENT / NO-OP : rejouée, elle repose les mêmes labels, n'écrit rien, sort 0.
- * FAIL-FAST : entrée d'un domaine arbitré SANS `label` et absente de la table (ou table portant un id
- * absent du fichier), entrée sans `id`, `label` déjà posé et DIVERGENT → rien n'est écrit, sortie 1.
+ * FORME D'AVANT SEULE : seule une entrée d'un domaine arbitré SANS `label` reçoit le sien ; une entrée
+ * déjà libellée (révisée ou non depuis), ou absente, est laissée telle quelle.
+ * IDEMPOTENT / NO-OP : rejouée, elle n'écrit rien, sort 0.
+ * FAIL-FAST : entrée d'un domaine arbitré SANS `label` et absente de la table, entrée sans `id` → rien
+ * n'est écrit, sortie 1.
  * FORMATAGE PRÉSERVÉ : le fichier est EXACTEMENT `JSON.stringify(doc, null, 2)`, vérifié AVANT écriture.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FICHIER = 'src/data/materials.json';
@@ -57,16 +59,15 @@ const erreurs = [];
 const cible = path.join(ROOT, FICHIER);
 const brut = fs.readFileSync(cible, 'utf8');
 const data = JSON.parse(brut);
-if (JSON.stringify(data, null, 2) !== brut) erreurs.push(`${FICHIER} : FORME NON CANONIQUE (pas \`JSON.stringify(doc, null, 2)\`)`);
+if (serializeDataset(data) !== brut) erreurs.push(`${FICHIER} : FORME NON CANONIQUE (pas \`JSON.stringify(doc, null, 2)\`)`);
 if (!Array.isArray(data)) erreurs.push(`${FICHIER} : racine de forme inattendue (tableau attendu)`);
 
 /** Le libellé arbitré d'une entrée, ou `undefined` si son domaine n'est pas de cette vague. */
 const arbitrage = (entree) => LOTS.find((l) => l.domaine === entree.domain)?.labels[entree.id];
 const juridiction = (entree) => LOTS.some((l) => l.domaine === entree.domain);
 
-const vus = new Set();
 const sortie = [];
-let poses = 0;
+const posees = new Set();
 if (!erreurs.length) {
   for (const [i, entree] of data.entries()) {
     if (!entree || typeof entree !== 'object' || typeof entree.id !== 'string' || entree.id === '') {
@@ -77,30 +78,22 @@ if (!erreurs.length) {
       sortie.push(entree);
       continue;
     }
+    // PORTE DE FORME (#1812) : la table ne répond que des entrées à la forme SOURCE — sans `label`.
+    if (entree.label !== undefined) {
+      sortie.push(entree);
+      continue;
+    }
     const label = arbitrage(entree);
     if (label === undefined) {
-      // PORTE DE FORME, jamais une table par ENTRÉE (#1812) : une matière née APRÈS cette vague arrive
-      // avec son `label` (forme CIBLE) et n'est pas de la juridiction de cet arbitrage. La table
-      // ci-dessus ne répond que des entrées à la forme SOURCE — celles qui n'ont PAS de `label`.
-      if (typeof entree.label === 'string' && entree.label !== '') {
-        sortie.push(entree);
-        continue;
-      }
       erreurs.push(`${FICHIER} : \`${entree.id}\` (domaine ${entree.domain}) sans \`label\` NI arbitrage — arbitrage requis`);
       continue;
     }
-    if (entree.label !== undefined && entree.label !== label) {
-      erreurs.push(`${FICHIER} : \`${entree.id}\`.label = ${JSON.stringify(entree.label)} ≠ ${JSON.stringify(label)} — arbitrage requis`);
-      continue;
-    }
-    vus.add(entree.id);
-    if (entree.label === undefined) poses++;
-    const { id, label: _mort, ...reste } = entree;
+    posees.add(entree.id);
+    const { id, ...reste } = entree;
     sortie.push({ id, label, ...reste });
   }
-  const orphelins = LOTS.flatMap((l) => Object.keys(l.labels)).filter((id) => !vus.has(id));
-  if (orphelins.length) erreurs.push(`${FICHIER} : label(s) arbitré(s) SANS entrée — ${orphelins.join(', ')}`);
 }
+const poses = posees.size;
 
 if (erreurs.length) {
   console.error(`relief/roof labels : ${erreurs.length} anomalie(s) — RIEN n'est écrit :`);
@@ -112,7 +105,7 @@ if (erreurs.length) {
 // sont vérifiés égaux à l'arbitrage par la porte ci-dessus. Aucun à poser = rien à écrire, quel que
 // soit l'ordre des clés : l'insertion de `label` en 2ᵉ clé est une normalisation d'enveloppe, et une
 // égalité à l'octet en ferait une réécriture à elle seule.
-if (poses > 0) fs.writeFileSync(cible, JSON.stringify(sortie, null, 2), 'utf8');
+if (poses > 0) fs.writeFileSync(cible, serializeDataset(sortie), 'utf8');
 
 // PREUVE post-écriture : cardinal conservé, `id` en tête, `label` non vide égal à l'arbitrage.
 const echecs = [];
@@ -120,12 +113,12 @@ const apres = JSON.parse(fs.readFileSync(cible, 'utf8'));
 if (apres.length !== sortie.length) echecs.push(`POST — ${FICHIER} : ${apres.length} entrée(s) ≠ ${sortie.length}`);
 let arbitres = 0;
 for (const e of apres) {
-  if (!juridiction(e) || arbitrage(e) === undefined) continue;
+  if (!posees.has(e.id)) continue;
   arbitres++;
   if (e.label !== arbitrage(e) || !e.label) echecs.push(`POST — ${FICHIER} : ${e.id} label ${JSON.stringify(e.label)} ≠ arbitrage`);
   if (Object.keys(e)[0] !== 'id') echecs.push(`POST — ${FICHIER} : ${e.id} première clé ${Object.keys(e)[0]} ≠ id`);
 }
-console.log(`${poses === 0 ? 'no-op' : 'migré'} ${path.basename(FICHIER)} — ${poses} label(s) posé(s), ${arbitres} arbitré(s) sur ${apres.length} entrée(s)`);
+console.log(`${poses === 0 ? 'no-op' : 'migré'} ${path.basename(FICHIER)} — ${poses} label(s) posé(s), ${arbitres} vérifié(s) sur ${apres.length} entrée(s)`);
 
 if (echecs.length) {
   console.error(`ÉCHEC POST-ÉCRITURE — ${echecs.length} anomalie(s) :`);

@@ -34,18 +34,17 @@
  * ENTRÉES : `src/scenes/diligence/diligence-projet.json`, scène d'id `la-diligence` (seule donnée lue et
  * écrite). Six arêtes touchées.
  *
- * MARQUEUR D'IDEMPOTENCE : la valeur de `structure` des arêtes portant l'apparence de cloison basse.
- * `mur-a-ossature-en-bois` = non migrée, `cloture-en-clayonnage` = migrée. Rejoué sur l'état final, le
- * script n'écrit rien.
+ * FORME D'AVANT SEULE : seule une des six arêtes nommées, portant l'apparence de cloison basse ET
+ * `structure: mur-a-ossature-en-bois`, est migrée ; une scène ou une arête absente, migrée ou révisée
+ * depuis, est laissée telle quelle. Rejoué sur l'état final, le script n'écrit rien.
  *
- * FAIL-FAST (porte de lecture, avant toute écriture) : racine sans `scenes`, scène `la-diligence` absente
- * ou en double, cardinal d'arêtes porteuses de l'apparence ≠ 6, coordonnées inattendues, `structure` ni
- * initiale ni finale → rien n'est écrit, sortie 1.
+ * FAIL-FAST (porte de lecture, avant toute écriture) : racine sans `scenes` → rien n'est écrit, sortie 1.
  * FORMATAGE PRÉSERVÉ : le fichier est EXACTEMENT `JSON.stringify(doc, null, 1) + '\n'`, vérifié AVANT écriture.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { porteLaTranche } from './lib/formeDAvant.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/scenes/diligence/diligence-projet.json');
@@ -67,25 +66,14 @@ const doc = JSON.parse(brut);
 if (!Array.isArray(doc?.scenes)) echec('racine sans tableau `scenes`');
 if (brut !== `${JSON.stringify(doc, null, 1)}\n`) echec('formatage non canonique en entrée');
 
-const scenes = doc.scenes.filter((s) => s?.id === SCENE);
-if (scenes.length !== 1) echec(`${scenes.length} scène(s) d'id \`${SCENE}\`, attendu 1`);
-const porteuses = (scenes[0].walls ?? []).filter((w) => w?.appearance === APPARENCE);
-if (porteuses.length !== ARETES.length)
-  echec(`${porteuses.length} arête(s) portent l'apparence \`${APPARENCE}\`, attendu ${ARETES.length}`);
-
-const vues = porteuses.map((w) => `${w.x},${w.y},${w.side}`);
-const manquantes = ARETES.filter((a) => !vues.includes(a));
-const surprises = vues.filter((a) => !ARETES.includes(a));
-if (manquantes.length || surprises.length)
-  echec(`coordonnées inattendues — manquantes ${JSON.stringify(manquantes)}, en trop ${JSON.stringify(surprises)}`);
-
-if (porteuses.every((w) => w.structure === STRUCTURE_APRES)) {
-  console.log('[2026-09-04-1680-cloison-basse-en-clayonnage] déjà migrée — rien à écrire');
+const porteuses = doc.scenes
+  .filter((s) => s?.id === SCENE)
+  .flatMap((s) => (Array.isArray(s.walls) ? s.walls : []))
+  .filter((w) => porteLaTranche(w, { appearance: APPARENCE, structure: STRUCTURE_AVANT }) && ARETES.includes(`${w.x},${w.y},${w.side}`));
+if (!porteuses.length) {
+  console.log('[2026-09-04-1680-cloison-basse-en-clayonnage] aucune arête à la forme d\'avant — rien à écrire');
   process.exit(0);
 }
-const horsEtat = porteuses.filter((w) => w.structure !== STRUCTURE_AVANT);
-if (horsEtat.length)
-  echec(`structure inattendue sur ${horsEtat.length} arête(s) : ${JSON.stringify(horsEtat.map((w) => w.structure))}`);
 
 for (const w of porteuses) w.structure = STRUCTURE_APRES;
 

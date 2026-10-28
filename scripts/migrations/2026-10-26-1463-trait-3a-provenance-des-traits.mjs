@@ -7,8 +7,9 @@
  * `user-doctrine-vo-fournit-la-donnee-mecanique-absente-de-la-vf`), aux autres champs recopiés.
  *
  * ENTRÉES : écrite — `src/data/creatures.json` ; aucun autre fichier n'est lu.
- * FAIL-FAST — avant toute écriture, sortie 1 : un hôte ou une liste introuvable ; une liste qui ne porte ni
- * l'instance d'origine ni l'instance migrée ; un fichier hors de son formatage.
+ * FORME D'AVANT SEULE (`lib/formeDAvant.mjs`) : seule l'instance EXACTEMENT `{ id: trait, arg: avant }`
+ * est réécrite ; un hôte absent, une instance déjà migrée ou révisée après la migration, est laissé tel quel.
+ * FAIL-FAST — avant toute écriture, sortie 1 : un fichier hors de son formatage.
  * IDEMPOTENT : rejouée sur l'état final, aucun geste n'est à faire et rien ne s'écrit.
  * FORMATAGE PRÉSERVÉ, constaté avant l'écriture : un dataset est EXACTEMENT `JSON.stringify(doc, null, 2)`
  * (sans saut de ligne final).
@@ -17,12 +18,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { remplacerLaFormeDAvant } from './lib/formeDAvant.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
 const CREATURES = 'src/data/creatures.json';
 
-/** Instance `{ trait, arg: avant }` de `hote.liste` → `{ trait, arg: apres, ...provenance }`. */
+/** Instance `{ id: trait, arg: avant }` de `hote.liste` → `{ id: trait, arg: apres, ...provenance }`. */
 const VALEURS_VO = [
   // LDB 78 l.15 ; LDB 12 l.147
   {
@@ -49,17 +51,7 @@ for (const rel of [CREATURES]) {
 let gestes = 0;
 for (const { hote, liste, trait, avant, apres, provenance } of VALEURS_VO) {
   const l = docs.get(CREATURES).doc.find((e) => e.id === hote)?.[liste];
-  if (!Array.isArray(l)) {
-    fautes.push(`${CREATURES} : ${hote}.${liste} introuvable`);
-    continue;
-  }
-  const i = l.findIndex((x) => x.id === trait && x.arg === avant);
-  if (i >= 0) {
-    l[i] = { ...l[i], arg: apres, ...provenance };
-    gestes++;
-  } else if (!l.some((x) => x.id === trait && x.arg === apres)) {
-    fautes.push(`${CREATURES} : ${hote}.${liste} ne porte ni ${trait} « ${avant} » ni ${trait} « ${apres} »`);
-  }
+  gestes += remplacerLaFormeDAvant(l, { id: trait, arg: avant }, [{ id: trait, arg: apres, ...provenance }]);
 }
 
 if (fautes.length) {

@@ -19,13 +19,15 @@
  * PORTE DE FIDÉLITÉ (lecture SEULE, avant toute écriture) : cardinaux exigés sur l'état LU, et
  * chaque rangée à migrer RETROUVÉE par son id, sans `crewHit`. Un écart : sortie 1 sans rien écrire.
  *
- * IDEMPOTENT : rejouée sur l'état final, elle reconnaît « déjà migré », vérifie les cardinaux du
- * RÉSULTAT et sort 0. FORMATAGE PRÉSERVÉ : le fichier lu est EXACTEMENT `JSON.stringify(doc, null, 2)`,
+ * FORME D'AVANT SEULE, marquée par l'absence de `tablesDeChute` : un document qui la porte (migré, ou
+ * révisé depuis) est laissé tel quel, sans porte.
+ * IDEMPOTENT : rejouée sur l'état final, elle reconnaît « déjà migré » et sort 0. FORMATAGE PRÉSERVÉ : le fichier lu est EXACTEMENT `JSON.stringify(doc, null, 2)`,
  * vérifié AVANT toute écriture ; la sortie l'est aussi.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const SHIP = 'ship-criticals.json';
@@ -79,7 +81,7 @@ const echecs = [];
 
 const brut = fs.readFileSync(CHEMIN, 'utf8');
 const doc = JSON.parse(brut);
-if (JSON.stringify(doc, null, 2) !== brut) {
+if (serializeDataset(doc) !== brut) {
   console.error(`ARBITRAGE REQUIS — ${SHIP} : FORME NON CANONIQUE (pas JSON.stringify(doc, null, 2))`);
   process.exit(1);
 }
@@ -87,7 +89,7 @@ if (JSON.stringify(doc, null, 2) !== brut) {
 const rangeesDe = (d) => Object.values(d.tables).flat();
 const coupsDe = (d) => rangeesDe(d).map((e) => e.crewHit).filter(Boolean);
 
-/** PREUVE sur le RÉSULTAT — jouée après écriture comme au rejeu (l'état final est le même). */
+/** PREUVE sur le RÉSULTAT, jouée après écriture. */
 function verifierResultat() {
   const relu = JSON.parse(fs.readFileSync(CHEMIN, 'utf8'));
   const rangees = rangeesDe(relu);
@@ -131,11 +133,9 @@ const sortirSurEchecs = () => {
   process.exit(1);
 };
 
-// ---- REJEU : les cinq rangées portent déjà leur coup, la table est posée.
-if (doc.tablesDeChute && Object.keys(RANGEES).every((id) => rangeesDe(doc).find((e) => e.id === id)?.crewHit)) {
-  verifierResultat();
-  sortirSurEchecs();
-  console.log(`${SHIP} : no-op (deja migre — ${coupsDe(doc).length} crewHit, table « ${TABLE_DE_CHUTE} » posee)`);
+// ---- REJEU : la table est posée.
+if (doc.tablesDeChute !== undefined) {
+  console.log(`${SHIP} : no-op (deja migre — ${coupsDe(doc).length} crewHit, table de chute posee)`);
   process.exit(0);
 }
 
@@ -151,7 +151,6 @@ if (doc.tablesDeChute && Object.keys(RANGEES).every((id) => rangeesDe(doc).find(
   for (const cle of Object.keys(AVANT)) {
     if (mesure[cle] !== AVANT[cle]) ecarts.push(`${SHIP} ${cle} : ${mesure[cle]} != ${AVANT[cle]}`);
   }
-  if (doc.tablesDeChute !== undefined) ecarts.push(`${SHIP} : tablesDeChute attendu ABSENT avant migration`);
   const parId = new Map(rangees.map((e) => [e.id, e]));
   for (const id of Object.keys(RANGEES)) {
     const e = parId.get(id);
@@ -176,7 +175,7 @@ for (const [k, v] of Object.entries(doc)) {
   if (k === 'replisSansExpose') sortie.tablesDeChute = TABLES_DE_CHUTE;
 }
 
-fs.writeFileSync(CHEMIN, JSON.stringify(sortie, null, 2), 'utf8');
+fs.writeFileSync(CHEMIN, serializeDataset(sortie), 'utf8');
 
 verifierResultat();
 sortirSurEchecs();

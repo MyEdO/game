@@ -276,9 +276,9 @@ const ATTENDU = {
     'scripts/migrations/lib/croissance.mjs',
     'scripts/migrations/lib/croissance.test.mjs',
     'scripts/migrations/lib/empreinteRejeu.test.mjs',
-    'scripts/migrations/lib/idempotence-ordre-des-cles.test.mjs',
     // +1 le 2026-09-22 (#1873) : `joue.mjs` COPIE la migration jouée dans le dépôt jetable que lui donne
     // chaque banc de migration (`copyFileSync`, sous `os.tmpdir()`) ; l'arbre n'est jamais écrit.
+    // #3080 : un banc écrit dans son dépôt jetable par `pose`, qui refuse une racine hors `os.tmpdir()`.
     // Son banc
     // `joue.test.mjs` réécrit (`writeFileSync`) les fichiers du dépôt jetable de `depot()` pour faire
     // mordre `crees`/`rienTouche` ; ce dépôt vit sous `os.tmpdir()` (`efface` en `t.after`), l'arbre
@@ -815,7 +815,6 @@ const ATTENDU = {
     // par `t.after` ; l'arbre n'est jamais écrit.
     "scripts/corpus/docs/plateforme-win32.test.mjs",
     "scripts/corpus/guards/lister.test.mjs",
-    "scripts/corpus/migrations/idempotence-ordre-des-cles.test.mjs",
     "scripts/docs/build-all.mjs",
     "scripts/docs/lib/ecriture-derives.mjs",
     "scripts/docs/lib/fraicheur-docs.mjs",

@@ -146,6 +146,7 @@ describe('migration #1657 B2c — fidélité, aller-retour et rejeu', () => {
       mkdirSync(join(dir, 'src', 'data'), { recursive: true });
       const script = join(dir, 'scripts', 'migrations', SCRIPT);
       copyFileSync(join(RACINE, 'scripts', 'migrations', SCRIPT), script);
+      copyFileSync(join(RACINE, 'src', 'data', 'serialize.ts'), join(dir, 'src', 'data', 'serialize.ts'));
       const avant = preImage();
       for (const f of FICHIERS) writeFileSync(join(dir, 'src', 'data', f), avant[f], 'utf8');
       // La pré-image DIFFÈRE de l'arbre : sans quoi le script sortirait en no-op et ne prouverait rien.

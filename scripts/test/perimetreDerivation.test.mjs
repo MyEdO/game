@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { bornerIR, depuisDTO, deriverDansLEnfant, deriverPerimetre, enDTO, FICHIERS_DE_CONTEXTE, FORMAT_DTO, LIMITE_IR, lireDuDisque, marqueurDeStade, memosDeDerivation, produireDTO, signatureDeProducteur, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
-import { derivationBornee } from './perimetre.mjs'
+import { derivationBornee, TAS_DERIVATION_MO } from './perimetre.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { spawnBorne } from '../guards/lib/processusBorne.mjs'
 import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
@@ -770,7 +770,7 @@ test('enfant : lancement canonique positif et résultat reconstruit nettoient Te
   let temp
   const lancer = async ({ argv, fichier }) => {
     temp = dirname(fichier)
-    assert.ok(argv.includes('--max-old-space-size=640'))
+    assert.ok(argv.includes(`--max-old-space-size=${TAS_DERIVATION_MO}`))
     writeFileSync(argv.at(-2), JSON.stringify(enDTO(images, derive)))
     return { code: 0, expiree: false, annulee: false, arret: { etat: 'mort', erreurs: [] } }
   }
