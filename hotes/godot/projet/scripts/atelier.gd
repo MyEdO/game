@@ -13,6 +13,8 @@ const TAILLE_DU_REPERE := 0.03
 const TAILLE_DE_L_ETIQUETTE := 0.0015
 const DEBUT_D_EMPREINTE := 12
 const DELAI_DE_REQUETE_S := 10.0
+## Le plus grand bloc que HTTPRequest lit par image : un GLB de base se reçoit en quelques images, pas en une par 64 Kio.
+const BLOC_DE_TELECHARGEMENT := 16777216
 
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 @onready var _support_du_modele: Node3D = $Modele
@@ -392,6 +394,7 @@ func _lire_json(relative: String) -> Dictionary:
 func _telecharger(relative: String) -> PackedByteArray:
 	var requete := HTTPRequest.new()
 	requete.timeout = DELAI_DE_REQUETE_S
+	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
 	add_child(requete)
 	var code := requete.request(_pont.adresse(relative))
 	if code != OK:
