@@ -337,17 +337,25 @@ const porteDe = async ere => {
   return juge;
 };
 
-test('#2503 témoins réels : la porte actuelle refuse les trois CLIQUET d\'avant #2472, la porte de leur ère aucun', async () => {
+test('#2503 témoins réels : la porte actuelle refuse les deux CLIQUET de commit d\'avant #2472, la porte de leur ère aucun', async () => {
   for (const [nom, fichier, net, declare] of [
     ['2503-d75a9f231', ECRIVAINS, 3, 5],
     ['2472-1befc7e36', BALAYAGES, 184, 189],
-    ['2503-4f007a449', BALAYAGES, 217, 318],
   ]) {
     const temoin = temoinReel(nom);
     const commit = enCommit(temoin);
     assert.deepEqual(refusPar({ refusDeLaPlage }, commit), [[fichier, net, declare]], nom);
     assert.deepEqual(refusPar(await porteDe(temoin.ere), commit), [], nom);
   }
+});
+
+test('#2503 #3023 témoin réel de FUSION 4f007a449 : 318 entrées nées par clé, 101 mortes ailleurs ne les paient pas', async () => {
+  const temoin = temoinReel('2503-4f007a449');
+  const commit = enCommit(temoin);
+  assert.match(temoin.message, /CLIQUET: scripts\/guards\/balayages-non-resolus-stock\.json \+318 /);
+  assert.deepEqual(refusPar({ refusDeLaPlage }, commit), []);
+  assert.deepEqual(refusPar({ refusDeLaPlage }, { ...commit, message: '' }), [[ECRIVAINS, 2, null], [BALAYAGES, 318, null]]);
+  assert.deepEqual(refusPar(await porteDe(temoin.ere), commit), []);
 });
 
 test('#2503 contre-témoin : les entrées de 1befc7e36 en commit NEUF, ère ⊇ 581b0be01, se jugent au net', async () => {

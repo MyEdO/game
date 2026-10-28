@@ -1,5 +1,5 @@
 export type SkillRefNode = { id: string; spec?: string; choix?: true | string[] };
-export type BookLike = { id: string; dir?: string | null; extractionDir?: string | null };
+export type BookLike = { id: string; dir?: string | null };
 
 export function isSentinel(s: string): boolean;
 export function walkSkillRefs(entry: unknown, visit: (node: SkillRefNode) => void, arrName?: 'skills' | 'talents'): void;

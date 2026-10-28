@@ -5,9 +5,9 @@ import type { Combatant } from './types';
 import {
   casterTalents, spellCost, learnableSpells, canCastFromGrimoire, knownCount,
 } from './grimoire';
-import { blessingsOf, spells, findSpell } from '../data';
+import { blessingsOf, spells, findSpellById } from '../data';
 
-const sp = (label: string) => findSpell(label)!;
+const sp = (id: string) => findSpellById(id)!;
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -40,19 +40,19 @@ describe('casterTalents — extraction des specs', () => {
 describe('coûts de mémorisation (Talents LDB 10)', () => {
   it('Magie mineure : BFM sorts INCLUS au Talent (0 PX, l.587), puis bandes inclusives ×50', () => {
     const c = hero({ talents: [{ talentId: 'magie-mineure', times: 1 }] }); // FM 35 → BFM 3
-    expect(spellCost(c, sp('Fléchette'))).toBe(0); // « vous mémorisez… BFM Sorts » au Talent
+    expect(spellCost(c, sp('flechette'))).toBe(0); // « vous mémorisez… BFM Sorts » au Talent
     c.spells = ['alerte', 'bruits']; // 2 connus < BFM → toujours inclus (ids de sort runtime)
-    expect(spellCost(c, sp('Fléchette'))).toBe(0);
+    expect(spellCost(c, sp('flechette'))).toBe(0);
     c.spells = ['alerte', 'bruits', 'choc']; // BFM atteint → payant : « Jusqu'à BFM ×1 » = 50
     expect(knownCount(c, 'mineure')).toBe(3);
-    expect(spellCost(c, sp('Fléchette'))).toBe(50);
+    expect(spellCost(c, sp('flechette'))).toBe(50);
     c.spells = [...c.spells, 'flechette']; // 4 connus → « Jusqu'à BFM ×2 » = 100
-    expect(spellCost(c, sp('Drain'))).toBe(100);
+    expect(spellCost(c, sp('drain'))).toBe(100);
   });
 
   it('Magie des Arcanes : bandes de BInt ×100 PX ; Domaine exigé pour les sorts de Domaine', () => {
     const c = hero({ talents: [{ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 }] });
-    expect(spellCost(c, sp('Arme aethyrique'))).toBe(100); // Arcane commun : OK
+    expect(spellCost(c, sp('arme-aethyrique'))).toBe(100); // Arcane commun : OK
     const feu = spells.find((s) => s.ecole === 'Magie des Arcanes' && s.subType === 'Feu')!;
     expect(spellCost(c, feu)).toBe(100);
     const ombres = spells.find((s) => s.ecole === 'Magie des Arcanes' && s.subType === 'Ombres')!;
@@ -94,16 +94,16 @@ describe('coûts de mémorisation (Talents LDB 10)', () => {
   it('Béni (Culte) : les SIX Bénédictions du culte à 0 PX, les autres refusées', () => {
     const c = hero({ talents: [{ talentId: 'beni', spec: 'shallya', times: 1 }] });
     expect(blessingsOf('shallya')).toContain('benediction-de-guerison'); // ids de sort
-    expect(spellCost(c, sp('Bénédiction de Guérison'))).toBe(0);
-    expect(spellCost(c, sp('Bénédiction de Bataille'))).toBeNull(); // pas chez Shallya (LDB 41)
+    expect(spellCost(c, sp('benediction-de-guerison'))).toBe(0);
+    expect(spellCost(c, sp('benediction-de-bataille'))).toBeNull(); // pas chez Shallya (LDB 41)
     const learn = learnableSpells(c);
     expect(learn.filter((l) => l.spell.ecole === 'Béni')).toHaveLength(6);
   });
 
   it('déjà connu / aucun Talent → null', () => {
-    expect(spellCost(hero(), sp('Fléchette'))).toBeNull();
+    expect(spellCost(hero(), sp('flechette'))).toBeNull();
     const c = hero({ talents: [{ talentId: 'magie-mineure', times: 1 }], spells: ['flechette'] });
-    expect(spellCost(c, sp('Fléchette'))).toBeNull();
+    expect(spellCost(c, sp('flechette'))).toBeNull();
   });
 });
 
@@ -113,10 +113,10 @@ describe('lecture au grimoire (LDB 47 l.21)', () => {
       talents: [{ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 }],
       items: [objetDeTest('grimoire', { uid: 'g1' })],
     });
-    expect(canCastFromGrimoire(c, sp('Arme aethyrique'))).toBe(true);
+    expect(canCastFromGrimoire(c, sp('arme-aethyrique'))).toBe(true);
     // LDB 47 l.21
-    expect(canCastFromGrimoire({ ...c, spells: ['arme-aethyrique'] } as Combatant, sp('Arme aethyrique'))).toBe(false);
-    expect(canCastFromGrimoire({ ...c, items: [] } as Combatant, sp('Arme aethyrique'))).toBe(false);
-    expect(canCastFromGrimoire(c, sp('Bénédiction de Guérison'))).toBe(false);
+    expect(canCastFromGrimoire({ ...c, spells: ['arme-aethyrique'] } as Combatant, sp('arme-aethyrique'))).toBe(false);
+    expect(canCastFromGrimoire({ ...c, items: [] } as Combatant, sp('arme-aethyrique'))).toBe(false);
+    expect(canCastFromGrimoire(c, sp('benediction-de-guerison'))).toBe(false);
   });
 });

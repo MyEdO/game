@@ -94,6 +94,6 @@ Avant d'évaluer, relire ou trier : ce qu'on signale, ce qu'on ignore, un exempl
 
 - La réponse d'abord, puis ce qui est prouvé et comment, puis les hypothèses prises, puis ce qui
   attend l'utilisateur, s'il y a quelque chose.
-- Une correction que l'utilisateur a dû faire va dans la mémoire, avec sa citation et sa date.
+- Une correction que l'utilisateur a dû faire : `.claude/skills/orchestrer-des-agents/repondre-a-l-utilisateur.md`.
 - Une règle qui doit tenir à chaque fois devient un hook ou une permission, pas une consigne de plus
   ([features-overview](https://code.claude.com/docs/en/features-overview#compare-similar-features)).

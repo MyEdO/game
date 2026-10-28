@@ -12,6 +12,8 @@ import type { Combatant, ShipPoste } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
 import { desDuTest } from '../engine/dice.testkit';
+import { ligneDe } from '../engine/modLine.testkit';
+import { RULE_REF } from '../engine/ruleRefs';
 
 /**
  * COMMANDANT D'ÉQUIPE (Talent, AA 13 l.29-35) — un Personnage doté du Talent peut, par un Test de
@@ -152,7 +154,7 @@ describe('(D) Substitution — l’équipe tire au score de Projectiles du comma
     const { chief, foe, all, posteUid } = setup({ x: 5, y: 5 }); // adjacent au chef
     const weapon = chief.weapons.find((w) => w.uid === posteUid)!;
     const { env } = attackEnv(mkGet(groundScene(), all), chief, foe, weapon);
-    const tc = env.find((m) => m.label === 'Commandant d’équipe');
+    const tc = ligneDe(env, RULE_REF['commandant-d-equipe']);
     expect(tc).toBeTruthy();
     expect(tc!.value).toBe(45); // combatValue(commander)=75 − combatValue(chief)=30
   });
@@ -172,14 +174,14 @@ describe('(D) Substitution — l’équipe tire au score de Projectiles du comma
     const { chief, foe, all, posteUid } = setup({ x: 5, y: 5 }, { dead: true });
     const weapon = chief.weapons.find((w) => w.uid === posteUid)!;
     const { env } = attackEnv(mkGet(groundScene(), all), chief, foe, weapon);
-    expect(env.find((m) => m.label === 'Commandant d’équipe')).toBeUndefined();
+    expect(ligneDe(env, RULE_REF['commandant-d-equipe'])).toBeUndefined();
   });
 
   it('commandant HORS portée de voix → bonus lapse (aucune ModLine)', () => {
     const { chief, foe, all, posteUid } = setup({ x: 35, y: 5 }); // 29 cases → 58 m > 50
     const weapon = chief.weapons.find((w) => w.uid === posteUid)!;
     const { env } = attackEnv(mkGet(groundScene(), all), chief, foe, weapon);
-    expect(env.find((m) => m.label === 'Commandant d’équipe')).toBeUndefined();
+    expect(ligneDe(env, RULE_REF['commandant-d-equipe'])).toBeUndefined();
   });
 });
 

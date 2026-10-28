@@ -8,7 +8,7 @@ import { useGame } from './store';
 import { pregen, PREGEN } from '../data/pregens';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { zdeDiameterMeters, zdeRadiusTiles, spellRangeTiles } from '../engine/magic';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { currentTargetingMode } from '../noyau/targetingModes';
 import type { Combatant } from '../engine/types';
 
@@ -47,9 +47,9 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     const w = wiz();
     w.pos = { x: 2, y: 2 };
     w.characteristics['force-mentale'] = 40; // BFM 4 → ZdE diamètre 4 m → rayon 1 case ; portée (FM) m → 20 cases
-    const e1 = spawnEnemy({ ref: 'brigand' }, 'e1', { x: 6, y: 6 });
-    const e2 = spawnEnemy({ ref: 'brigand' }, 'e2', { x: 7, y: 6 });
-    const e3 = spawnEnemy({ ref: 'brigand' }, 'e3', { x: 12, y: 12 }); // hors zone
+    const e1 = spawnEnemy({ ref: 'humain' }, 'e1', { x: 6, y: 6 });
+    const e2 = spawnEnemy({ ref: 'humain' }, 'e2', { x: 7, y: 6 });
+    const e3 = spawnEnemy({ ref: 'humain' }, 'e3', { x: 12, y: 12 }); // hors zone
     const battle = {
       combatants: [w, e1, e2, e3], order: [w.id, 'e1', 'e2', 'e3'], baseOrder: [w.id, 'e1', 'e2', 'e3'],
       turn: 0, round: 1, action: 'cast', selectedSpellId: 'explosion', reachable: new Map(),
@@ -109,7 +109,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
 
   it('Surincantation « +Zone » (LDB 47 l.15) : le gabarit s’agrandit du Ø initial et la pose ramasse plus loin', () => {
     const { w } = setupBattle();
-    const ni = findSpell('Explosion')!.cn ?? 0;
+    const ni = findSpellById('explosion')!.cn ?? 0;
     useGame.getState().battleClickTile({ x: 9, y: 9 });
     let pc = useGame.getState().pendingCast!;
     useGame.setState({ pendingCast: { ...pc, result: okCast(ni + 2) as never } }); // surplus 2 → 1 allocation

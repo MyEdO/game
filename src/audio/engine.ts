@@ -9,7 +9,8 @@
 import { SOUND_DEFS } from './_registry.generated';
 import type { SoundDef } from './types';
 import { musicDefsFor, type MusicSelection } from './music';
-import { lireDictionnaire, stockageWeb } from '../web/stockageWeb';
+import { lireDictionnaire } from '../lib/stockage';
+import { stockageWeb } from '../web/stockageWeb';
 import { entierDEntropie } from '../web/entropie';
 
 const LS_KEY = 'wfrp4.audio';
@@ -30,7 +31,7 @@ const volumeConforme = (v: unknown): v is number => typeof v === 'number' && v >
 /** Les réglages persistés ; une valeur non conforme (volume hors de 0..1, sourdine non booléenne) est
  *  ignorée : son défaut s'applique. */
 export function loadAudioPrefs(): AudioPrefs {
-  const p = lireDictionnaire('localStorage', LS_KEY) ?? {};
+  const p = lireDictionnaire(stockageWeb('localStorage'), LS_KEY) ?? {};
   return {
     volume: volumeConforme(p.volume) ? p.volume : AUDIO_PAR_DEFAUT.volume,
     musicVolume: volumeConforme(p.musicVolume) ? p.musicVolume : AUDIO_PAR_DEFAUT.musicVolume,

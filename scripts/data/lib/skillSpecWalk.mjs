@@ -2,9 +2,8 @@
  * Marche PARTAGÉE des `skills[].spec` / `talents[].spec` d'une entrée de catalogue (créature, niveau
  * de Carrière, espèce) et bornage du périmètre « livre EXTRAIT dans `Source/` » (#1342 L2-a).
  *
- * UNE implémentation, TROIS consommateurs de la marche : les migrations `scripts/migrations/
- * 2026-08-23-specs-livres-autorises.mjs` (l.177) et `scripts/migrations/
- * 2026-08-23-specs-frenchy-vers-catalogue.mjs` (l.237), et la garde `src/data/refs-migrated.test.ts`.
+ * UNE implémentation, DEUX consommateurs de la marche : la migration `scripts/migrations/
+ * 2026-08-23-specs-livres-autorises.mjs` (l.177) et la garde `src/data/refs-migrated.test.ts`.
  * Une marche dupliquée entre le geste et sa garde, c'est une garde qui mesure autre chose que le geste.
  *
  * Module ESM chargé par Node nu — typé par `skillSpecWalk.d.mts`. Ses imports hors `node:` sont la
@@ -16,7 +15,6 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { estNomDExtraction, numeroDuFichier } from '../../../src/data/source/decoupe.ts';
 import { norm } from '../../../src/lib/normalize.ts';
-import { sourceDirOf } from '../../raw/_lib.mjs';
 
 /** Sentinelle « (Au choix) » : un emplacement de spéc, pas une spéc. */
 export function isSentinel(s) {
@@ -73,7 +71,7 @@ export function extractedBooks(books, root) {
   const extraits = new Set();
   const dirManquant = [];
   for (const b of books) {
-    const dir = sourceDirOf(b);
+    const dir = b.dir;
     if (!dir) continue;
     const abs = join(root, dir);
     if (existsSync(abs) && aDesChapitres(abs)) extraits.add(b.id);
@@ -102,8 +100,7 @@ function densiteFR(dir) {
 }
 
 /** Dossiers d'extraction FR présents sous `Source/`, reconnus au CONTENU (le nom ne dit pas la
- *  langue : `Warhammer - Habitants & Creatures  du Vieux-Monde (Discord) PDF` est FR sans porter
- *  aucun préfixe du dépôt). */
+ *  langue : `WH4_FR_BI_Livre_Aventure` est FR sans porter aucun préfixe du dépôt). */
 export function frenchSourceDirs(root) {
   try {
     return readdirSync(join(root, 'Source'), { withFileTypes: true })

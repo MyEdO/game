@@ -6,7 +6,8 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { nommerChamps } from '../grammaire/meta';
+import { enumNomme } from '../grammaire/valeurs';
+import { tableTotale } from '../../../lib/tableTotale';
 import type { IdsParEspace } from '../_ids.generated';
 
 export const file = 'gabarits.json';
@@ -57,8 +58,14 @@ export const meta = doc.meta;
 
 export const exposition = doc.exposition;
 
+/** Le facteur qu'une surcharge nomme : une clé de `FACTEURS`, libellée par `NOMS`. */
+const facteurDeCarrureSchema = enumNomme(
+  tableTotale(Object.keys(FACTEURS) as (keyof typeof FACTEURS)[], (k) => NOMS[k].label),
+  tableTotale(Object.keys(FACTEURS) as (keyof typeof FACTEURS)[], (k) => NOMS[k].hint),
+);
+
 /** Surcharge PARTIELLE des facteurs d'une carrure, clés fermées (`raceAppearance.json › gabaritOverride`). */
-export const surchargeDeGabaritSchema = nommerChamps(z.strictObject(FACTEURS).partial(), NOMS);
+export const surchargeDeGabaritSchema = z.partialRecord(facteurDeCarrureSchema, facteur);
 
 /** VUE TS d'une entrée — le nœud rendu par la fabrique est SCELLÉ (`z.infer` y vaut `unknown`). */
 export interface GabaritDef {

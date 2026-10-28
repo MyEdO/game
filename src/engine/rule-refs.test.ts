@@ -176,14 +176,9 @@ function refLessProducers(): string[] {
  * `PassiveMod` porte l'identité Codex de sa source (`src`), et chaque site rend UNE ligne par
  * composante réelle, à son nom — pénalités d'État (`combatTestPenaltyParts`), bonus à l'attaquant
  * (`meleeAttackerBonusLines`), aura anti-Sort (`castWardLine`). Ce qui reste est MESURÉ, par famille :
- *  - RENVOIS légitimes — la ligne PORTE déjà l'identité de sa donnée dans son libellé : les quatre
- *    lignes volatiles de Caractéristique (`characteristics.ts` — la carac EST la fiche du libellé)
- *    et les trois modificateurs de MÉTÉO de scène (`sc.label`, poussés par `noyau/combatFlow.ts` :
- *    la donnée de scène ne porte aucune identité Codex (#1173), seule la branche `sc.concealed`
- *    en a une, celle de la Cible dissimulée).
- *  - lignes dont la RÈGLE n'a pas encore de fiche au catalogue (`regles.json`) : couvert de tir,
- *    allure forcée d'attelage, « Rounds tenus » de la bataille de masse, écrêtage « Combiner les
- *    Difficultés ». Leur dotation attend la fiche, elle ne s'invente pas au site.
+ *  - lignes dont la RÈGLE n'a pas encore de fiche au catalogue (`regles.json`) : « Rounds tenus »
+ *    de la bataille de masse, écrêtage de la cible. Leur dotation attend
+ *    la fiche, elle ne s'invente pas au site.
  *  - lignes AGRÉGÉES qui doivent d'abord se DÉPLIER par source, comme les pools de L4 : « Contrecoup »
  *    (somme de `castPenalties`), « autres » (résidu de réconciliation), le modificateur d'Activité
  *    (`activityModLines`, porté par la donnée de flux — SOURCE UNIQUE depuis #1153 : le calcul de
@@ -193,13 +188,7 @@ function refLessProducers(): string[] {
  *    par le pending (`PendingTest.mods`), donc hors de ce stock : l'affichage n'en produit plus.
  */
 const RATCHET = [
-  "src/noyau/combatFlow.ts · tr('cf.coverLabel', { cover })",
-  'src/noyau/combatFlow.ts · sc.label',
-  'src/noyau/combatFlow.ts · sc.label',
-  'src/noyau/combatFlow.ts · sc.label',
   "src/noyau/combatFlow.ts · 'Contrecoup'",
-  "src/noyau/travelFlow.ts · t('tf.modGallop')",
-  "src/noyau/travelFlow.ts · t('tf.modGalloped', { n: galloped })",
   "src/engine/activities.ts · modLabel ?? 'Modificateur'",
   "src/ui/ActivityModal.tsx · 'Rounds tenus'",
   "src/ui/RollLine.tsx · `${cut < 0 ? 'plafond' : 'plancher'} ${target}`",

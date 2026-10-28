@@ -1074,31 +1074,43 @@
                   },
                   {
                     "op": "grantTrait",
-                    "traitId": "arme",
-                    "indice": 4
+                    "trait": {
+                      "id": "arme",
+                      "value": 4
+                    }
                   },
                   {
                     "op": "grantTrait",
-                    "traitId": "armure",
-                    "indice": 2
+                    "trait": {
+                      "id": "armure",
+                      "value": 2
+                    }
                   },
                   {
                     "op": "grantTrait",
-                    "traitId": "morsure",
-                    "indice": 3
+                    "trait": {
+                      "id": "morsure",
+                      "value": 3
+                    }
                   },
                   {
                     "op": "grantTrait",
-                    "traitId": "peur",
-                    "indice": 2
+                    "trait": {
+                      "id": "peur",
+                      "value": 2
+                    }
                   },
                   {
                     "op": "grantTrait",
-                    "traitId": "pisteur"
+                    "trait": {
+                      "id": "pisteur"
+                    }
                   },
                   {
                     "op": "grantTrait",
-                    "traitId": "vision-nocturne"
+                    "trait": {
+                      "id": "vision-nocturne"
+                    }
                   }
                 ]
               },

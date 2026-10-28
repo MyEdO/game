@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** NADJ 16 l.11 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { charKeySchema, difficultySchema, enumNomme, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { charKeySchema, difficultySchema, enumNomme, maisonSchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { facilitationSchema, gameOpSchema, jetSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 import { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../../../engine/sequenceVocab';
@@ -66,7 +66,7 @@ const doc = document(
       skill: refOuSpec('skill').optional(),
       char: charKeySchema.optional(),
       /** Tag MAISON obligatoire : cet override n'est pas dans la source. */
-      maison: z.string(),
+      maison: maisonSchema,
     }), {
       skill: { label: 'Compétence' },
       char: { label: 'Caractéristique' },

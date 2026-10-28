@@ -92,7 +92,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
     horse.size = 'grande';
     horse.mountable = true;
     horse.kind = 'hero';
-    const other = spawnEnemy({ ref: 'brigand' }, 'other', { x: 1, y: 1 });
+    const other = spawnEnemy({ ref: 'humain' }, 'other', { x: 1, y: 1 });
     const battle: BattleState = {
       combatants: [hero, horse, other], order: ['other', 'horse', hero.id], baseOrder: ['other', 'horse', hero.id],
       turn: 2, round: 1, action: null, selectedSpellId: null, reachable: new Map(),

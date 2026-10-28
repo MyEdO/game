@@ -101,7 +101,7 @@ describe('une monture dont l\'espèce n\'est pas cuite pour le set : ALARME visi
  */
 describe('seatedRest — un attablé n’est pas un cavalier', () => {
   const HAMPE = armeDeDessin(buildWeapon({ label: 'Hallebarde', hands: 2, reach: 'Longue', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empalement' }] }));
-  const SK: SeatedBody = { sk: groundSkeleton(baseSkeleton(gabaritResolu({ race: { gabarit: 'moyen' }, legsMult: 1 }), 'M')), speciesPose: {}, viewPose: {}, };
+  const SK: SeatedBody = { sk: groundSkeleton(baseSkeleton(gabaritResolu({ race: { gabarit: { id: 'moyen' } }, legsMult: 1 }), 'M')), speciesPose: {}, viewPose: {}, };
   const ASSISE = 32; // unités de boîte — un tabouret, cf. `boxUnitsPerM`
 
   it('le corps assis vient de la primitive NEUTRE (jambes résolues), pas de la tenue d’arme', () => {

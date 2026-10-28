@@ -11,8 +11,10 @@ import { nommerChamps, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
-import { baseDe, cleDesSpecs, cleFiltree, lireCleDEspace, porteLeChampMarqueur } from './cle-d-espace';
+import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, porteLeChampMarqueur } from './cle-d-espace';
+import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
+import { marquerProduit } from './interne/produits';
 
 declare const marqueDeType: unique symbol;
 /** Id BRANDÉ par son type — frappé à la porte zod, jamais par un `as` d'appelant. */
@@ -85,6 +87,8 @@ export const TYPES = {
   classe: { espace: 'classes.json', catalogue: 'classes de carrière' },
   // GABARIT du rig (#2972) : `raceAppearance.json › gabarit` résout AU PARSE.
   gabarit: { espace: 'gabarits.json', catalogue: 'gabarits' },
+  // EDOC 12 l.217, l.241 ; LDB 85 l.120, l.164
+  groupe: { espace: 'groups.json', catalogue: 'groupes' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;
@@ -244,7 +248,7 @@ export function porteLeMarqueur(type: TypeEntite, marqueur: string): (id: string
 
 /** Catalogue de spécialisations d'UNE entrée (vide = l'entrée n'en déclare aucune) : l'espace de ses
  *  `specs` (`<espace>#[<id>].specs`), l'univers de sa `specsSource` compris (`lectureDeLEspace`). */
-function catalogueSpecs(type: TypeEntite, id: string): readonly string[] {
+export function catalogueSpecs(type: TypeEntite, id: string): readonly string[] {
   return [...(lireLEspace(cleDesSpecs(espaceDe(type), id)) ?? [])];
 }
 
@@ -259,13 +263,32 @@ export function entreeOuverte(type: TypeEntite, id: string): boolean {
 
 /**
  * L'entrée porte-t-elle des Spécialisations ? La DONNÉE le dit, par un catalogue NON VIDE — `specs[]`
- * inline ou univers d'une `specsSource` (INDEX DES IDS, `npm run gen`). Sans
- * catalogue, ni `spec` ni `choix` n'ont de sens : la réf est un `ref(type)` nu. Pour les Compétences,
- * ce catalogue est celui des Compétences Groupées (`LDB 09 l.36`) ; pour les autres types, c'est une
- * déclaration du catalogue app-owned, sans équivalent au livre.
+ * inline ou univers d'une `specsSource` (INDEX DES IDS, `npm run gen`) —, ou par le marqueur `specsOpen`
+ * d'une entrée OUVERTE, dont la spécialisation peut être un texte libre sans catalogue (l'Aspect d'un
+ * Trait, `LDB 85 l.81-83`). Sinon, ni `spec` ni `choix` n'ont de sens : la réf est un `ref(type)` nu.
+ * Pour les Compétences, ce catalogue est celui des Compétences Groupées (`LDB 09 l.36`) ; pour les
+ * autres types, c'est une déclaration du catalogue app-owned, sans équivalent au livre.
  */
 export function estSpecialisable(type: TypeEntite, id: string): boolean {
-  return catalogueSpecs(type, id).length > 0;
+  return catalogueSpecs(type, id).length > 0 || entreeOuverte(type, id);
+}
+
+/**
+ * Ce que la valeur d'un champ que la def d'une entrée DÉCLARE par un marqueur (paramètre `espace.marqueurs`
+ * du def) a pour FORME : un Indice s'écrit en `value`, une Portée en `range` (`LDB 85 l.94`, `l.209`).
+ */
+const FORMES_DE_MARQUEUR = [
+  { marqueur: 'indice', forme: /^\+?\d+\+?$/, nature: 'un Indice', champ: 'value' },
+  { marqueur: 'range', forme: /^\d+(?:[.,]\d+)?\s*(?:m|mètres?)$/i, nature: 'une Portée', champ: 'range' },
+] as const;
+
+/** Une forme de marqueur. */
+export type FormeDeMarqueur = (typeof FORMES_DE_MARQUEUR)[number];
+
+/** La forme de marqueur que `valeur` porte quand l'entrée `id` de `type` DÉCLARE ce marqueur, `undefined`
+ *  sinon — un espace sans ce marqueur n'en déclare aucun. */
+export function marqueurDeLaForme(type: TypeEntite, id: string, valeur: string): FormeDeMarqueur | undefined {
+  return FORMES_DE_MARQUEUR.find((f) => f.forme.test(valeur.trim()) && (lireLEspace(cleDuMarqueur(type, f.marqueur))?.has(id) ?? false));
 }
 
 /** Refus d'un id qu'aucune entrée du catalogue de `type` ne porte. */
@@ -506,19 +529,26 @@ export function refs<T extends TypeEntite>(type: T, opts?: { min?: number; sousL
 const META_ID = { label: "identifiant", texte: { regime: 'technique', usage: 'ids stables du registre de références' } } as const;
 
 /** L'objet CONCRET d'une référence `{ id, …extra }` de `type`, nommé par `metas` : le corps unique de
- *  `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser. */
-function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, metas: Readonly<Record<string, MetaChamp>>, sousListe?: SousListe) {
-  return nommerChamps(z.strictObject({ id: idDe(type, sousListe), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>);
+ *  `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser. `extraDuPorteur` : la part
+ *  d'`extra` que l'appelant a passée, sans les clés que la fabrique pose elle-même. */
+function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(
+  type: T,
+  extra: E,
+  metas: Readonly<Record<string, MetaChamp>>,
+  role: 'ref' | 'refTypee',
+  extraDuPorteur: Readonly<Record<string, z.ZodType>>,
+  sousListe?: SousListe,
+) {
+  return marquerProduit(nommerChamps(z.strictObject({ id: idDe(type, sousListe), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>), 'objetDeRef', role, extraDuPorteur);
 }
 
-/** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`). */
-export function ref<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
-  type: T,
-  extra?: E,
-  sousListe?: SousListe,
-): z.ZodType<{ id: Id<T> }>;
-export function ref(type: TypeEntite, extra?: Record<string, z.ZodType>, sousListe?: SousListe): z.ZodType<unknown> {
-  return objetDeRef(type, extra ?? {}, metasExtra(extra), sousListe);
+/** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`) ; sans
+ *  `extra`, la sous-liste se nomme seule (`ref('material', undefined, 'objet')`) et la sortie reste `{ id }`. */
+export function ref<T extends TypeEntite>(type: T, extra?: undefined, sousListe?: SousListe): ReturnType<typeof objetDeRef<T, Record<never, never>>>;
+export function ref<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, sousListe?: SousListe): ReturnType<typeof objetDeRef<T, E>>;
+export function ref(type: TypeEntite, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {
+  const extraDuPorteur = extra ?? {};
+  return objetDeRef(type, extraDuPorteur, metasExtra(extra), 'ref', extraDuPorteur, sousListe);
 }
 
 /** FORME de sortie d'une référence TYPÉE (`refTypee`) : l'id, et le type qui nomme l'espace où il résout. */
@@ -551,7 +581,7 @@ export const declarationDeRefTypee = (noeud: unknown): DeclarationDeRefTypee | u
  */
 export function refTypee<T extends TypeEntite>(types: z.ZodEnum<{ [K in T]: K }>): z.ZodType<RefTypee<T>> {
   const admis = types.options as readonly T[];
-  const [premiere, ...autres] = admis.map((t) => objetDeRef(t, { type: z.literal(t).pipe(types) }, { type: { label: 'type de la référence' } }));
+  const [premiere, ...autres] = admis.map((t) => objetDeRef(t, { type: z.literal(t).pipe(types) }, { type: { label: 'type de la référence' } }, 'refTypee', {}));
   const refus = `type de référence absent ou inconnu — admis : ${admis.map((t) => `« ${t} » (${TYPES[t].catalogue})`).join(', ')}.`;
   const noeud = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => (iss.code === 'invalid_union' ? refus : undefined) }) as unknown as z.ZodType<RefTypee<T>>;
   REFS_TYPEES.set(noeud, { types: admis, libelles: valeursDe(types) ?? {} });
@@ -588,23 +618,33 @@ export function memeSpecialisation(a: string | undefined, b: string | undefined)
  */
 const SENTINELLE_DE_SPEC = /^au[\s-]+choix$/i;
 
+/** Pourquoi une spécialisation est refusée (`refusDeSpec`). */
+export type RefusDeSpec = 'nonSpecialisable' | 'sentinelle' | 'marqueur' | 'horsCatalogue' | 'libelle';
+
 /**
  * La spécialisation `spec` de l'entrée `id` de `type` est-elle ADMISE, et sinon pourquoi — prédicat
  * UNIQUE, lu par le nœud à spécialisation ci-dessous et par la couverture d'un emplacement
- * (`slotCovers`, `engine/careerSlots.ts`) : `nonSpecialisable` (aucun catalogue), `sentinelle` (un
- * emplacement non désigné), `horsCatalogue` (entrée FERMÉE, spec absente de son catalogue), ou
- * `null` (admise).
+ * (`slotCovers`, `engine/careerSlots.ts`) : `nonSpecialisable` (ni catalogue ni entrée ouverte),
+ * `sentinelle` (un emplacement non désigné), `marqueur` (la forme d'un champ que l'entrée déclare par
+ * un marqueur, `marqueurDeLaForme`), `horsCatalogue` (entrée FERMÉE, spec absente de son catalogue),
+ * `libelle` (entrée OUVERTE, spec égale — aux marques, à la casse et aux blancs de bord près, `norm`, `src/lib/normalize.ts` —
+ * au LIBELLÉ d'une spécialisation de son catalogue, qui se désigne par son id), ou `null` (admise).
  */
-export function refusDeSpec(type: TypeEntite, id: string, spec: string): 'nonSpecialisable' | 'sentinelle' | 'horsCatalogue' | null {
+export function refusDeSpec(type: TypeEntite, id: string, spec: string): RefusDeSpec | null {
   if (!estSpecialisable(type, id)) return 'nonSpecialisable';
   if (SENTINELLE_DE_SPEC.test(spec)) return 'sentinelle';
-  if (entreeOuverte(type, id)) return null;
-  return catalogueSpecs(type, id).includes(spec) ? null : 'horsCatalogue';
+  if (marqueurDeLaForme(type, id, spec)) return 'marqueur';
+  const catalogue = catalogueSpecs(type, id);
+  if (catalogue.includes(spec)) return null;
+  if (!entreeOuverte(type, id)) return 'horsCatalogue';
+  if (catalogue.length === 0) return null;
+  const saisie = norm(spec);
+  return [...idsDesignes(cleDesLibelles(cleDesSpecs(espaceDe(type), id)), `refusDeSpec('${type}')`)].some((l) => norm(l) === saisie) ? 'libelle' : null;
 }
 
 /** Message UNIQUE d'un refus de `refusDeSpec` : le nœud à spécialisation et `specDe` le lisent.
  *  `admetChoix` : le porteur admet l'emplacement `choix`, que le refus `sentinelle` désigne alors. */
-function messageDeRefusDeSpec(type: TypeEntite, id: string, spec: string, refus: NonNullable<ReturnType<typeof refusDeSpec>>, admetChoix: boolean): string {
+function messageDeRefusDeSpec(type: TypeEntite, id: string, spec: string, refus: RefusDeSpec, admetChoix: boolean): string {
   const catalogue = TYPES[type].catalogue;
   const espace = espaceDe(type);
   switch (refus) {
@@ -612,8 +652,14 @@ function messageDeRefusDeSpec(type: TypeEntite, id: string, spec: string, refus:
       return `« ${id} » ne déclare aucune spécialisation au catalogue des ${catalogue} (${espace}) — « spec » et « choix » ne s'y appliquent pas.`;
     case 'sentinelle':
       return `« ${spec} » n'est pas une spécialisation mais un EMPLACEMENT non désigné de « ${id} » (catalogue des ${catalogue}, ${espace}) — ${admetChoix ? "s'écrit « choix »" : 'ce champ DÉSIGNE une spécialisation'}.`;
+    case 'marqueur': {
+      const forme = marqueurDeLaForme(type, id, spec);
+      return `« ${spec} » est ${forme?.nature} de « ${id} » (catalogue des ${catalogue}, ${espace}) — il s'écrit en « ${forme?.champ} », jamais en spécialisation.`;
+    }
     case 'horsCatalogue':
       return `« ${spec} » est absente des spécialisations de « ${id} » au catalogue des ${catalogue} (${espace}).`;
+    case 'libelle':
+      return `« ${spec} » est le LIBELLÉ d'une spécialisation de « ${id} » (catalogue des ${catalogue}, ${espace}) — une spécialisation se désigne par son id.`;
   }
 }
 
@@ -665,7 +711,7 @@ function noeudASpecialisation<T extends TypeEntite>(
   const { choix: _choix, ...designe } = champs;
   const metas = { id: META_ID, spec: { label: "spécialisation", texte: { regime: 'designation' as const } }, choix: { label: "choix", texte: { regime: 'designation' as const } }, ...metasExtra(extra) };
   const { choix: _metaChoix, ...metasDesignees } = metas;
-  return nommerChamps(z
+  return marquerProduit(nommerChamps(z
     .strictObject(admetChoix ? champs : (designe as typeof champs), {
       error: (iss) => (iss.code === 'unrecognized_keys' && iss.keys.includes('choix') ? choixRefuse(iss.input, iss.keys) : undefined),
     })
@@ -688,12 +734,12 @@ function noeudASpecialisation<T extends TypeEntite>(
       const candidats = aSpec ? [v.spec as string] : Array.isArray(v.choix) ? (v.choix as string[]) : [];
       const refus = candidats.map((c) => [c, refusDeSpec(type, String(v.id), c)] as const);
       // Une sentinelle masque le reste : l'auteur a écrit un emplacement là où il désignait.
-      const motif = refus.some(([, r]) => r === 'sentinelle') ? 'sentinelle' : 'horsCatalogue';
+      const sentinelle = refus.some(([, r]) => r === 'sentinelle');
       for (const [c, r] of refus) {
-        if (r !== motif) continue;
+        if (r === null || (sentinelle && r !== 'sentinelle')) continue;
         ctx.addIssue({ code: 'custom', path: [aSpec ? 'spec' : 'choix'], message: messageDeRefusDeSpec(type, String(v.id), c, r, admetChoix) });
       }
-    }), admetChoix ? metas : (metasDesignees as typeof metas));
+    }), admetChoix ? metas : (metasDesignees as typeof metas)), 'noeudASpecialisation', regime, extra);
 }
 
 /**
@@ -703,7 +749,7 @@ function noeudASpecialisation<T extends TypeEntite>(
  * catalogue de specs (`estSpecialisable`) ; `spec`/`choix` sont ensuite validés contre ce catalogue
  * quand l'entrée est FERMÉE (`entreeOuverte`).
  */
-export function specRef<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
+export function specRef<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
 ): z.ZodType<unknown> {
@@ -717,21 +763,21 @@ export function specRef<T extends TypeEntite, E extends Record<string, z.ZodType
  * seul nœud par site (jamais une union de deux graphies du même emplacement) : c'est la forme à
  * écrire dès qu'une donnée désigne une entrée « toute spécialisation comprise » aussi bien qu'une spécialisation précise.
  */
-export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
+export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
 ): z.ZodType<RefDesignee>;
-export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
+export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra: E | undefined,
   regime: 'specOuChoixFacultatifs',
 ): z.ZodType<RefASpecialisation>;
-export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
+export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra: E | undefined,
   regime: RegimeDePorteur,
 ): z.ZodType<RefASpecialisation>;
-export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
+export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
   regime: RegimeDePorteur = 'specSeule',
@@ -753,12 +799,23 @@ export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodTy
  * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `{random}`).
  */
 export function pick<T extends TypeEntite>(type: T, optionsDuPorteur: readonly z.ZodType<unknown>[] = []): z.ZodType<unknown> {
-  const n = z.number().int().positive();
   const option: z.ZodType<unknown> = z.lazy(() => z.union([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
   const noeud: z.ZodType<unknown> = z.union([
-    nommerChamps(z.strictObject({ pick: n, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }),
-    nommerChamps(z.strictObject({ pick: n, table: ref('table') }), { pick: { label: "sélection" }, table: { label: "table" } }),
+    marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of'),
+    tirageSurTable(ref('table')),
   ]);
   return noeud;
+}
+
+/** Le nombre `n` d'un « n parmi » ou d'un tirage. */
+const nombreDeTirages = (): z.ZodNumber => z.number().int().positive();
+
+/**
+ * Tirage sur table : `{ pick, table }` — `pick` tirages sur la table que désigne `table`, le nœud de
+ * référence que le PORTEUR déclare (`ref('table')` pour `pick`, un registre de tirage ailleurs). La branche
+ * de `pick`, et la SEULE graphie d'un tirage sur table de la grammaire.
+ */
+export function tirageSurTable<T>(table: z.ZodType<T>): z.ZodType<{ pick: number; table: T }> {
+  return marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), table }), { pick: { label: "sélection" }, table: { label: "table" } }), 'pick', 'table', { table });
 }
 

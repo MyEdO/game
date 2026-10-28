@@ -3,15 +3,18 @@ import { useGame } from './store';
 import { runFlow } from '../noyau/combatEffects';
 import { testFlow } from '../noyau/monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
-import type { Combatant } from '../engine/types';
+import type { Combatant, ModLine } from '../engine/types';
 import type { TravelPlan } from '../noyau/travelFlow';
 import { RULE_REF } from '../engine/ruleRefs';
+import { lignesDe } from '../engine/modLine.testkit';
+import { precipitationDef } from '../engine/seaWeather';
+import { t } from '../i18n';
 
 /**
  * INTÉGRATION scène → jet : le malus de Précipitations (MDG 13 l.185-200, canal `precipitationTestMods`)
  * atteint RÉELLEMENT un Test joué par `openSkillTest` (#183).
  */
-const meteo = (): unknown[] => (useGame.getState().pendingTest!.mods ?? []).filter((m) => m.ref === RULE_REF['meteo-maritime']);
+const meteo = (): ModLine[] => lignesDe(useGame.getState().pendingTest!.mods, RULE_REF['meteo-maritime']);
 describe('Météo maritime — Précipitations injectées au Test réel (#183, MDG 13 l.187-201)', () => {
   beforeEach(() => { useGame.setState({ battle: null, pendingTest: null, travelPlan: null }); });
 
@@ -49,7 +52,7 @@ describe('Météo maritime — Précipitations injectées au Test réel (#183, M
     const pt = useGame.getState().pendingTest!;
     expect(pt.skillValue).toBe(40); // base INCHANGÉE (le mod reste une ligne à part, pas fondu)
     expect(pt.target).toBe(20); // 40 − 20
-    expect(meteo()).toEqual([expect.objectContaining({ label: 'Météo : Abondantes', value: -20, famille: 'circonstance' })]);
+    expect(meteo()).toEqual([{ label: t('tp.modWeather', { weather: precipitationDef('abondantes').label }), value: -20, famille: 'circonstance', ref: RULE_REF['meteo-maritime'] }]);
   });
 
   it('Escalade sous Précipitations Légères (−10)', () => {

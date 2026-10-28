@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { applyOps, slBonus } from './ops';
+import { applyOps } from './ops';
+import { slBonus } from './formule';
 import { stacks } from './conditions';
 import type { Combatant } from './types';
 import { findTraitById } from '../data';

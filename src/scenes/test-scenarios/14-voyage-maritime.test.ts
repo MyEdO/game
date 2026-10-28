@@ -4,7 +4,7 @@ import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { partyMoneyTotal } from '../../noyau/bourseFlow';
-import { findSpell } from '../../data';
+import { findSpellById } from '../../data';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile } from '../../engine/magic';
 import { spellEffectOps } from '../../engine/flowCore';
 import { avanceEtapeCascade, draineCascade } from '../../state/cascade.testkit';
@@ -102,14 +102,14 @@ describe('Scénario Voyage maritime — beat de Magie des mers (lancer en mer)',
     expect(knowsCastingSkill(navi, 'langue', 'magick')).toBe(true); // incantation des Arcanes
     expect(knowsCastingSkill(navi, 'focalisation')).toBe(true); // Test étendu de Focalisation
     expect(navi.spells).toContain('bienfait-de-bel-shanaar'); // runtime = id de sort
-    const sp = findSpell('Bienfait de Bel Shanaar')!;
+    const sp = findSpellById('bienfait-de-bel-shanaar')!;
     expect(sp.domainId).toBe('cieux');
     expect(isArcaneSpell(sp)).toBe(true); // → bouton « ✨ Focaliser »
     expect(isMagicMissile(sp)).toBe(false); // non offensif → lançable en mer, hors combat
   });
 
   it('Bienfait de Bel Shanaar a un effet MÉCANIQUE : +2 DR aux Tests d’Orientation (skillDRBonus)', () => {
-    const sp = findSpell('Bienfait de Bel Shanaar')!;
+    const sp = findSpellById('bienfait-de-bel-shanaar')!;
     const ops = spellEffectOps(sp.effects);
     const dr = ops.find((o) => o.op === 'skillDRBonus') as { op: string; skill: string; bonus: number } | undefined;
     expect(dr).toBeTruthy();

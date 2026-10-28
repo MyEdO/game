@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
 import { GARDES_D_UNE_PARTIE_A_L_AUTRE, etatInitialDeLAdaptateur, useGame, type EtatDeLAdaptateur } from './store';
-import { AUTO_SLOT, readSlot, snapshotSave } from './saves';
+import { AUTO_SLOT, readSlot } from './saves';
+import { snapshotSave } from '../noyau/persistance/save';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { tableTotale } from '../lib/tableTotale';
 
@@ -57,7 +58,7 @@ describe('entrée en scène — la remise de l’interface (#2817 D5)', () => {
 
   it('chez l’invité, le changement de scène ne sauvegarde rien : la sauvegarde vit chez l’hôte', () => {
     g().loadProject({ scenes: [scene('entree-a'), scene('entree-b')], entryId: 'entree-a', projet: null });
-    useGame.setState({ net: { ...g().net, mode: 'guest' } });
+    useGame.setState({ net: { ...g().net, mode: 'guest', mySeat: 1 } });
     g().transitionTo('entree-b');
     expect(g().campaignSceneId, 'témoin : la scène a changé').toBe('entree-b');
     expect(readSlot(AUTO_SLOT)).toBeNull();
@@ -75,7 +76,7 @@ describe('une touche reliée est une préférence du joueur, pas un état de par
   it('elle survit au chargement d’une sauvegarde faite avant de la relier', () => {
     g().startScene(scene('entree-a'));
     g().setKeyBinding('pov-forward', 'KeyA');
-    const save = snapshotSave(g() as unknown as Record<string, unknown>, useGame.getInitialState() as unknown as Record<string, unknown>, '2026-10-20T00:00:00.000Z');
+    const save = snapshotSave(g(), '2026-10-20T00:00:00.000Z');
     g().setKeyBinding('pov-forward', 'KeyZ');
     expect(g().importGame(JSON.stringify(save)), 'témoin : la sauvegarde est acceptée').toBeNull();
     expect(g().keyOverrides['pov-forward']).toBe('KeyZ');

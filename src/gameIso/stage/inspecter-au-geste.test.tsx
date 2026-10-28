@@ -84,7 +84,7 @@ describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaqu
   function combat() {
     const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 3, y: 4 };
     const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 1, y: 1 };
-    const enemy: Combatant = spawnEnemy({ ref: 'brigand' }, 'e1', { x: 4, y: 4 }); // adjacent au héros
+    const enemy: Combatant = spawnEnemy({ ref: 'humain' }, 'e1', { x: 4, y: 4 }); // adjacent au héros
     const battle = {
       combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],
       turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),

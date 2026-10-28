@@ -26,11 +26,11 @@ function gabaritConnu(id: GabaritId) {
  */
 export function gabaritResolu({ gabarit, race, legsMult }: {
   gabarit?: GabaritId;
-  race: { gabarit: GabaritId; gabaritOverride?: SurchargeDeGabarit };
+  race: { gabarit: { id: GabaritId }; gabaritOverride?: SurchargeDeGabarit };
   legsMult: number;
 }): GabaritResolu {
   const { sl, st, legs, arms = 1, head = 1 } = gabarit
     ? gabaritConnu(gabarit)
-    : { ...gabaritConnu(race.gabarit), ...race.gabaritOverride };
+    : { ...gabaritConnu(race.gabarit.id), ...race.gabaritOverride };
   return { sl, st, legs: legs * legsMult, arms, head };
 }

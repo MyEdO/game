@@ -102,12 +102,12 @@ describe('apparence des objets de campagne', () => {
     };
     else {
       delete entite.usable;
-      entite.appearance = { apparencesObjets: { [objet.id]: 'hache_naine' } };
+      entite.appearance = { apparencesObjets: { [objet.id]: { id: 'hache_naine' } } };
     }
     const result = projetSchema.safeParse(doc);
     expect(result.success, result.success ? '' : JSON.stringify(result.error.issues)).toBe(true);
     if (surface === 'op') entite.usable.actions[0].flow.effect.ops[0].apparence.id = 'cape';
-    else entite.appearance.apparencesObjets[objet.id] = 'cape';
+    else entite.appearance.apparencesObjets[objet.id].id = 'cape';
     expect(projetSchema.safeParse(doc).success).toBe(false);
   });
   it('la forme du registre narratif compose la référence fermée du catalogue', () => {

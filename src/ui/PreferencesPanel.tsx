@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { PREFERENCES, pref, setPreference, type PrefValue } from '../state/preferences';
+import { PREFERENCES, pref, type PrefValue } from '../noyau/preferences';
+import { setPreference } from '../state/preferences';
 
 /**
- * Panneau « Confort de jeu » — GÉNÉRÉ depuis le registre `PREFERENCES` (`state/preferences.ts`).
+ * Panneau « Confort de jeu » — GÉNÉRÉ depuis la table `PREFERENCES` (`noyau/preferences.ts`).
  * Il ne connaît AUCUNE préférence : il itère le registre, rend un contrôle par entrée selon `kind`
  * et écrit par la couture unique `setPreference` (qui persiste et joue l'effet DÉCLARÉ sur l'entrée).
  * Ajouter un réglage de confort = ajouter une entrée au registre, zéro ligne ici.
  *
  * Ces réglages ne changent aucun état de jeu construit : ils restent modifiables PENDANT un combat,
- * contrairement aux règles optionnelles (`HouseRulesPanel`, verrou `houseRulesMutability`).
+ * contrairement aux règles optionnelles (`HouseRulesPanel`, verrou `reglesMaisonMutables`).
  */
 export function PreferencesPanel() {
   const [, force] = useState(0);

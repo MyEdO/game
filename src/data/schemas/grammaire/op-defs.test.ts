@@ -9,13 +9,14 @@ import { ARG_TEMPLATE, INDICE_TEMPLATE } from '../../../engine/flowCore';
 import { champsDOpASlot } from '../../../../scripts/docs/lib/slots-registre.mjs';
 import type { Combatant } from '../../../engine/types';
 import { desDuTest } from '../../../engine/dice.testkit';
+import { conditionIds } from '../../index';
 
 describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', () => {
   it('chaque famille garde les slots directs et confie les opérations imbriquées à leur propre entrée', () => {
     for (const famille of [mecaniqueDe({}), mecaniqueDe({ 'grantTalent.talent': 'specOuChoixFacultatifs' })]) {
       const champs = champsDOpASlot(famille.opDefs);
       expect(champs.has('rollTable.tableId')).toBe(true);
-      expect(champs.has('removeTrait.traitId')).toBe(true);
+      expect(champs.has('removeTrait.trait')).toBe(true);
       expect(champs.has('rollTable.rows')).toBe(false);
       expect(champs.has('transform.ops')).toBe(false);
     }
@@ -59,6 +60,24 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
       [{ op: 'condition', id: 'inconscient', perRound: true, durationHours: 1 }],
       { rng: desDuTest },
     ), 'le PARSE et l’APPLICATION disent le même refus').toThrow(messageRecurrenceHorloge('inconscient'));
+  });
+
+  it('une op `condition`/`removeCondition` qui nomme un État hors du registre est refusée AU CHAMP (#1463 LD.1)', () => {
+    const connu = conditionIds()[0];
+    expect(gameOpSchema.safeParse({ op: 'condition', id: connu, onlyIfCondition: connu, unlessCondition: connu }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'removeCondition', id: connu }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'condition', id: 'petrifie' }).success, 'un marqueur narratif est un État connu').toBe(true);
+    for (const op of [
+      { op: 'condition', id: 'etat-hors-registre' },
+      { op: 'condition', id: connu, onlyIfCondition: 'etat-hors-registre' },
+      { op: 'condition', id: connu, unlessCondition: 'etat-hors-registre' },
+      { op: 'removeCondition', id: 'etat-hors-registre' },
+    ]) {
+      const res = gameOpSchema.safeParse(op);
+      expect(res.success, JSON.stringify(op)).toBe(false);
+      const champ = Object.keys(op).find((k) => (op as Record<string, unknown>)[k] === 'etat-hors-registre')!;
+      expect(res.error!.issues.map((i) => i.path.join('.'))).toContain(champ);
+    }
   });
 
   it('une op inconnue des DEUX registres est NOMMÉE en erreur', () => {
@@ -147,13 +166,13 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
 
   it('les CHAMPS D’OP À SLOT se lisent sur `OP_DEFS` : feuille `idDe` du champ, jamais celles d’une op imbriquée', () => {
     const champs = champsDOpASlot();
-    // `summon.count` : une `Formula` porte le terme `{rule}`, feuille `idDe('regleOptionnelle')`.
-    for (const k of ['removeTrait.traitId', 'diseaseTestMod.diseases', 'testMod.exceptSkills', 'rollTable.tableId', 'transform.morphRef', 'summon.count', 'grantWeapon.form']) {
+    // `summon.count` : une `Formula` porte le terme `{rule}`, feuille `idDe('regleOptionnelle')` ; `summon.addTraits`
+    // des `traitInstanceSchema`, dont l'`id` est la feuille `idDe('trait')`.
+    for (const k of ['grantTrait.trait', 'removeTrait.trait', 'diseaseTestMod.diseases', 'testMod.exceptSkills', 'rollTable.tableId', 'transform.morphRef', 'summon.count', 'summon.addTraits', 'grantWeapon.form']) {
       expect(champs.has(k), k).toBe(true);
     }
-    // `rows`/`ops`/`thresholds`/`onCross`/`perRound`/`passive` portent des ops IMBRIQUÉES (`z.lazy`), `addTraits` un `traitInstanceSchema`
-    // dont l'`id` n'est pas une feuille `idDe` : aucun n'est un champ à slot.
-    for (const k of ['rollTable.rows', 'transform.ops', 'perRound.ops', 'rollThreshold.thresholds', 'delayed.ops', 'zone.onCross', 'zone.perRound', 'augmentWeapon.passive', 'summon.addTraits', 'skillDRBonus.testType']) {
+    // `rows`/`ops`/`thresholds`/`onCross`/`perRound`/`passive` portent des ops IMBRIQUÉES (`z.lazy`) : aucun n'est un champ à slot.
+    for (const k of ['rollTable.rows', 'transform.ops', 'perRound.ops', 'rollThreshold.thresholds', 'delayed.ops', 'zone.onCross', 'zone.perRound', 'augmentWeapon.passive', 'skillDRBonus.testType']) {
       expect(champs.has(k), k).toBe(false);
     }
   });

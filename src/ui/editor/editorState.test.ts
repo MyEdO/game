@@ -414,11 +414,11 @@ describe('editorState — pose', () => {
     expect(r2.scene.encounters[0].members).toHaveLength(2);
   });
   it('addEnemyMember : `ref` est un ID qui RÉSOUT, le libellé se DÉRIVE de la créature (jamais la clé)', () => {
-    const r = addEnemyMember(emptyScene('scene-test', 10, 10), '', 'villageois', { x: 1, y: 1 });
+    const r = addEnemyMember(emptyScene('scene-test', 10, 10), '', 'humain', { x: 1, y: 1 });
     const ent = r.scene.entities.find((e) => e.id === r.entityId)!;
     expect(findCreatureById(ent.ref)).toBeDefined();
     expect(ent).not.toHaveProperty('label');
-    expect(nomDEntite(ent, () => undefined)).toBe(creatureLabel('villageois'));
+    expect(nomDEntite(ent, () => undefined)).toBe(creatureLabel('humain'));
     // Un LIBELLÉ passé à la place d'un id est refusé net — le résolveur valide, il ne normalise pas.
     expect(() => addEnemyMember(emptyScene('scene-test', 10, 10), '', 'Villageois', { x: 2, y: 2 })).toThrow(/id de créature/);
   });

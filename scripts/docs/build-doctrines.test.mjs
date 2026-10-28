@@ -380,7 +380,7 @@ test('assistant — une annonce SANS le marqueur est REFUSÉE, nommée fichier:l
   for (const p of permises) assert.deepEqual(defautsDuTexteAssistant(fichier, p), [], p)
 })
 
-test('assistant — les FORMES de la classe : question citée introduite par « réponse à », option titrée puis écartée', () => {
+test('assistant — les FORMES de la classe : questions posées, question citée hors citation introduite ou suivie de sa réponse, option titrée puis écartée', () => {
   const fichier = '.claude/memory/user-doctrine-marqueur.md'
   // Ligne de base de user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata.md avant sa migration.
   const base =
@@ -392,6 +392,11 @@ test('assistant — les FORMES de la classe : question citée introduite par « 
     '- L’option « Règles à la carte » est écartée.',
     '- La proposition « Tout en 5e » non retenue.',
     '- Les options « A » et « B » ont été écartées.',
+    '**Choix (2026-10-25)**, à « Combien de Codex en parallèle ? » : « 2 au plus »',
+    '*Questions posées (AskUserQuestion) : A ? B ?*',
+    '- Lot (2026-10-25), en réponse au « Combien de lots ? » : « un seul »',
+    '- Lot (2026-10-25), sur « Combien de lots ? » : « un seul »',
+    '- « Combien de lots ? » → « un seul »',
   ]
   for (const v of annonces) {
     const defauts = defautsDuTexteAssistant(fichier, `a\n${v}\nb`)
@@ -401,6 +406,9 @@ test('assistant — les FORMES de la classe : question citée introduite par « 
     `- Place de la 5e (2026-09-18) : « Tu veux dire quoi par « carte » ? »`,
     `- L’option « ${REPONSE} » est retenue.`,
     '- Réponse de l’utilisateur (2026-09-18) : « Édition sélectionnable »',
+    '*Question posée (AskUserQuestion, non-verbatim utilisateur) : Combien de Codex en parallèle ?*\n**Choix (2026-10-25)** : « 2 au plus »',
+    '**Verbatim (2026-10-25)** : « je lance combien de sessions à la fois ? deux, pas plus »',
+    '**Verbatim (2026-10-25)** : « réponds à « pourquoi ? » avant de coder »',
   ]
   for (const p of permises) assert.deepEqual(defautsDuTexteAssistant(fichier, p), [], p)
 })

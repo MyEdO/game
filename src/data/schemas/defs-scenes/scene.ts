@@ -32,15 +32,11 @@ import { refEntiteResolue } from '../../index';
 import { capDecorAdmis } from '../../props.types';
 import { PARTS_RELIEF } from '../../materials.types';
 import type { AuthoredShipPoste } from '../../../engine/types';
-import type { OptionalEntry } from '../../../engine/statEntry';
+import { optionalEntrySchema } from '../defs/creatures';
 
 /** Un terrain est un id de catalogue (cf. src/noyau/monde/terrain.ts). L'intersection vide garde l'alias
  *  VISIBLE au checker (type contextuel d'un littéral) sans rien refuser à `string` (#1789). */
 export type Terrain = string & {};
-
-/** Marque de TYPE d'une valeur GELÉE : ce qu'une migration REJOUE, jamais la semence du jour —
- *  distinguable au checker par son alias, sans nom de symbole ni de fichier (#1789). */
-export type Fige<T> = T & { readonly __fige?: undefined };
 
 /** `Dir8` (`geometry/dir8.ts`) — orientation MONDE éditable, projetée au rendu. MÊME vocabulaire que le cap
  *  d'une place assise de décor (`defs/props.ts`) : la const NOMMÉE de la grammaire est partagée (#1694). */
@@ -55,8 +51,6 @@ export const authoredShipPosteSchema = z.custom<AuthoredShipPoste>();
 /** `NavalTraitRef` (`engine/types.ts`) — Amélioration d'INSTANCE d'un navire (MDG 12). C'est la
  *  référence INDICÉE de la grammaire (`refIndiceSchema`), pas une seconde graphie de sa signature. */
 export const navalTraitRefSchema = refIndiceSchema;
-/** `OptionalEntry` (`engine/statEntry.ts`) — `TraitInstance` OU note composée. T3-b. */
-export const optionalEntrySchema = z.custom<OptionalEntry>();
 /** `SeatOccupant` (`noyau/monde/seating.ts:53`) — un RANG du groupe (jamais un id de héros) ou un PNJ de la scène. */
 export const seatOccupantSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('party'), rang: z.number() }), { kind: { label: "type"  }, rang: { label: "rang" } }),

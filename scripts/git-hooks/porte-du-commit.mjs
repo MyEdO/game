@@ -57,8 +57,11 @@
 // CONSERVATION, pas une livraison. Il se commite et se pousse sans les trailers de livraison. » :
 // `evaluateAntiEsquive` et `evaluateJuge` se TAISENT ; toutes les évaluations qui lisent le DIFF du
 // commit jugent son APPORT PROPRE (de sa fusion automatique à l'image qu'elle commite, `diffDuCommit`),
-// jamais ce que ses parents fusionnés apportent. Une fusion PROPRE n'apporte rien ; son message ferme
-// toujours ses tickets par leur solde. Le pre-commit lit le même apport (`scripts/git-hooks/pre-commit.mjs`).
+// jamais ce que ses parents fusionnés apportent ; celles qui MESURENT une base (comptes, budget, stocks) la lisent
+// sur ses arbres RÉELS, jamais sur la fusion automatique à marqueurs : les comptes contre la base que la CI prendra
+// (`baseDesComptes`), les stocks contre leur fusion à trois voies et leur parent TRONC (`rangDuTronc`) (#1463, #3023).
+// Une fusion PROPRE n'apporte rien ;
+// son message ferme toujours ses tickets par leur solde. Le pre-commit lit le même apport (`scripts/git-hooks/pre-commit.mjs`).
 // Sa RÉSOLUTION se juge à la PUBLICATION (`fusionsNonJugees`, scripts/guards/lib/livraison.mjs) : au moins
 // `SUBSTANTIVE_MIN_LINES` lignes changées sous src/ exigent `JUGE:` et `REFUTATION:` (plus `JUGE-VISION:`
 // sur un écran), portés par le message de la fusion elle-même, sinon par un commit postérieur de la plage
@@ -70,7 +73,9 @@
 // `scripts/git-hooks/commit-msg.mjs`) ; `--no-verify` de `commit`/`merge`/`pull` et `core.hooksPath`
 // (`scripts/hooks/hooks-git-contournes-guard.mjs`) ; `git push --no-verify` : #2184.
 import { readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
 import { estPorteurDeStock, nonCouvertesDuBilan, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
 import { bilanDuCommit, entreeDeFusion, lecturesDeFusion } from '../guards/lib/plageStock.mjs'
 import {
@@ -78,11 +83,12 @@ import {
 } from '../guards/lib/reclassementCss.mjs'
 import { coteCss, sourceGit } from '../guards/lib/cssImages.mjs'
 import { memosDAnalyse } from '../guards/lib/memosDAnalyse.mjs'
+import { clotureDImports, estModule } from '../guards/lib/importGraph.mjs'
 import {
-  estCheminDuBudget, importsDe, mesurerBudget, refusDeBudget,
+  estCheminDuBudget, importsDe, mesurerBudget, referenceDeFusion, refusDeBudget,
 } from '../guards/budget-contexte.mjs'
 import {
-  GitIndisponible, INDEX, INDEX_DU_DEPOT, apportDeLaFusionEnCours, depotAuxPannes, racineSurDisque, ceQueFontLesCommits, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects,
+  GitIndisponible, INDEX, INDEX_DU_DEPOT, TRONC, apportDeLaFusionEnCours, baseCommune, depotAuxPannes, racineSurDisque, ceQueFontLesCommits, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects,
   entreesDe, fichiersDuGrep, fusionnesEnCours, histoireDeHead, imageDeHead, indexEmprunte, listerImage, patchsParChemin, shaDe, refusDeGit,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
@@ -90,9 +96,8 @@ import { SUBSTANTIVE_MIN_LINES, TRAILERS, apportDeLaResolution, apportsDesTicket
 import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import { lectureDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { decisionCumulee } from '../guards/lib/contratGarde.mjs'
-import { grammaireDesNatures, natureDuSolde } from '../guards/lib/nature.mjs'
+import { TITRE_DECISION, grammaireDesNatures, natureDuSolde, refusDeDecision } from '../guards/lib/nature.mjs'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
-import { DATE } from '../guards/memoire-forme.mjs'
 
 /** Des numéros canoniques (`fermetures.mjs`) en nombres, dédupliqués et triés. PURE. */
 const enNombres = (numeros) => [...new Set(numeros.map(Number))].sort((a, b) => a - b)
@@ -418,10 +423,8 @@ function checkRecetteVisuelle(content, { touchesUi, verifierCaptureDe }) {
 }
 
 const TITRE_SONDE = 'Sonde'
-const TITRE_DECISION = 'D[ée]cision'
 const BLOC_DE_CODE_RE = /^[ \t]*```[^\n]*\n[\s\S]*?^[ \t]*```[ \t]*\r?$/gm
 const SHA_RE = /\b[0-9a-f]{7,40}\b/g
-const CITATION_RE = /«[^»]+»/
 
 /** Les shas que cite la section « ## Sonde » d'un solde `caduc` (`natureDuSolde`), `[]` pour toute
  *  autre nature. PUR. @param {string | null} content @returns {string[]} */
@@ -433,7 +436,7 @@ function shasDeLaSonde(content) {
 /** La NATURE du solde (`natureDuSolde`) et sa preuve : `doublon` nomme `#M` ≠ `numero` ;
  *  `caduc` porte une « ## Sonde » à deux blocs de code (commande, sortie) qui nomme un sha ANCÊTRE de
  *  HEAD (`commitEstAncetre`, non joué sur un appel PUR) ; `décidé` porte une « ## Décision » dont une
- *  ligne cite `«…»` avec sa date (`DATE`, scripts/guards/memoire-forme.mjs). */
+ *  ligne cite `«…»` avec sa date (`refusDeDecision`, scripts/guards/lib/nature.mjs). */
 function checkNature(content, { numero, commitEstAncetre }) {
   const lu = natureDuSolde(content, numero)
   if (lu.erreur) return [lu.erreur]
@@ -449,11 +452,8 @@ function checkNature(content, { numero, commitEstAncetre }) {
     }
   }
   if (lu.nature === 'décidé') {
-    const decision = sectionDe(content, TITRE_DECISION)
-    if (decision === null) return ['"NATURE: décidé" sans section "## Décision" (la décision utilisateur, citée « … » avec sa date AAAA-MM-JJ sur la même ligne)']
-    if (!decision.split('\n').some((l) => CITATION_RE.test(l) && DATE.test(l))) {
-      return ['"## Décision" sans ligne qui cite la décision « … » ET porte sa date AAAA-MM-JJ']
-    }
+    const refus = refusDeDecision(sectionDe(content, TITRE_DECISION))
+    if (refus) return [refus]
   }
   return []
 }
@@ -911,13 +911,15 @@ export function refusDesPannes(pannes, { cwd = null, horsDepot = false } = {}) {
  * Lectures de ce que le commit EMPORTE dans `dir` : l'INDEX que git a préparé pour lui, `-a`, `-i` et
  * `-- <chemins>` compris (`GIT_INDEX_FILE`, hérité par `depotDe` sans `env`). `numstat()` (les champs du
  * `--numstat`, `analyzeDiffDuCommit`), `diff(chemins)` (le `-U0` `--no-renames` de ces chemins, de tout le
- * commit sans argument, comme la plage : `croissancesDeLaPlage`), `contenu(f)`/`lirePreImage(f)` (le fichier APRÈS le commit, et dans sa BASE),
- * `contenus(rels)`/`preImages(rels)` puis `images(chemins)` (les mêmes, lus par lot : `lireEnLot`).
+ * commit sans argument, comme la plage : `croissancesDeLaPlage`), `contenu(f)`/`contenus(rels)` (le fichier APRÈS le
+ * commit), `lirePreImages(f)` (le fichier dans chacune de ses `basesReelles()`), `lireToutDans(arbre, rels)`, puis
+ * `images(chemins)` (pré- et post-images d'un commit ordinaire, lues par lot : `lireEnLot`).
  * Diffs, chemins et renommages lus par `ceQuiChange` (plomberie), contre `base()` : l'image de HEAD
  * (`imageDeHead`), l'arbre vide dans un dépôt sans premier commit ; sous une fusion EN COURS
  * (`enFusion()`), sa fusion automatique : le commit se lit par son APPORT PROPRE (`apport()`,
  * `apportDeLaFusionEnCours`, une lecture), jamais par ce que ses parents fusionnés apportent (#2328 A2).
- * Une fusion que git ne rejoue pas LÈVE `GitIndisponible` à la lecture de `base()`. `depot` : celui de
+ * Une fusion que git ne rejoue pas LÈVE `GitIndisponible` à la lecture de `base()`. La fusion automatique n'est
+ * qu'une base de DIFF : aucun texte n'en est lu, ce qui lit une base lit `basesReelles()` (#1463). `depot` : celui de
  * `dir` par défaut, ses pannes dans `pannes`.
  * @param {string} [dir]
  * @param {{ pannes?: string[], depot?: import('../guards/lib/gitPorte.mjs').Depot }} [options]
@@ -934,10 +936,17 @@ export function diffDuCommit(dir = process.cwd(), { pannes = [], depot = depotAu
   const apport = () => (apportLu ??= enFusion() ? apportDeLaFusionEnCours(depot, INDEX, fusionnes) : null)
   let imageDeBase
   const base = () => (imageDeBase ??= enFusion() ? apport().change.base : imageDeHead(depot))
+  const parents = () => (enFusion() ? [shaDeHead(), ...fusionnes] : aHead() ? [shaDeHead()] : [])
+  /** Les arbres RÉELS contre lesquels le commit se mesure : sa base, ou sous une fusion en cours ses parents, jamais sa
+   *  fusion automatique, dont un conflit garde les marqueurs (#1463). */
+  const basesReelles = () => (enFusion() ? parents() : [base()])
   /** Ce que l'index change contre `avant` (la base du commit par défaut). */
   const vers = (avant = base()) => ceQuiChange(depot, avant, INDEX)
   const sourceA = (arbre) => sourceGit({ cwd: dir, arbre, depot })
-  const sourceDeLaBase = () => sourceA(base())
+  /** La pré-image d'un commit ordinaire ; une fusion se lit par ses `basesReelles()` ou par `fusion()`. */
+  const sourceDeLaTete = () => sourceA(enFusion() ? shaDeHead() : base())
+  let sourcesDesBases
+  const sourcesReelles = () => (sourcesDesBases ??= basesReelles().map(sourceA))
   let source = null
   const sourceDuCommit = () => (source ??= sourceA(INDEX))
   // La fusion en cours se lit aussi comme la plage lit une fusion (`lecturesDeFusion`), son image étant
@@ -948,7 +957,7 @@ export function diffDuCommit(dir = process.cwd(), { pannes = [], depot = depotAu
     if (!enFusion()) return (enCours = null)
     try {
       const { parents, change } = apport()
-      const lus = lecturesDeFusion(depot, { apres: INDEX, parents, fait: change, lireDepuis: vers })
+      const lus = lecturesDeFusion(depot, { apres: INDEX, parents, fait: change, mesure: TRONC.suivi, lireDepuis: vers })
       return (enCours = { ...lus, entree: entreeDeFusion(depot, lus.fusion, (f) => sourceDuCommit().lire(f)) })
     } catch (e) {
       if (!(e instanceof GitIndisponible)) throw e
@@ -956,10 +965,20 @@ export function diffDuCommit(dir = process.cwd(), { pannes = [], depot = depotAu
       return (enCours = null)
     }
   }
+  /** La base des COMPTES : hors fusion, sa base ; sous une fusion en cours, celle que la CI mesurera après elle, la base
+   *  commune de `TRONC.suivi` et de ses parents (le parent tronc quand il y en a un), et sans elle, en `repli` NOMMÉ, la
+   *  base commune de ses parents (#1463) ; `base` nulle quand ils n'en ont aucune. */
+  const baseDesComptes = () => {
+    if (!enFusion()) return { base: base(), repli: null }
+    const deLaCI = baseCommune(depot, TRONC.suivi, ...parents())
+    if (deLaCI !== null) return { base: deLaCI, repli: null }
+    const cause = shaDe(depot, TRONC.suivi) === null ? 'illisible' : 'sans base commune avec les parents'
+    return { base: baseCommune(depot, ...parents()), repli: `repli sans base de la CI (\`${TRONC.suivi}\` ${cause}) : mesuré contre la base commune des parents` }
+  }
   /** Les textes de `rels` que le commit EMPORTE, en un lot. */
   const contenus = (rels) => sourceDuCommit().lireTout(rels)
-  /** Les textes de `rels` dans sa BASE, en un lot ; aucun sans premier commit. */
-  const preImages = (rels) => (aHead() ? sourceDeLaBase().lireTout(rels) : new Map())
+  /** Les textes de `rels` dans sa pré-image, en un lot ; aucun sans premier commit. */
+  const preImages = (rels) => (aHead() ? sourceDeLaTete().lireTout(rels) : new Map())
   /** Les entrées de `chemins` dans HEAD, dans l'index du dépôt et dans ce que le commit emporte, quand
    *  git lui a préparé un index EMPRUNTÉ (`indexEmprunte`) ; `null` sous l'index du dépôt. */
   const stages = (chemins) => (indexEmprunte(depot) ? {
@@ -969,41 +988,67 @@ export function diffDuCommit(dir = process.cwd(), { pannes = [], depot = depotAu
   } : null)
   let memosCss
   const memos = () => (memosCss ??= memosDAnalyse(depot, { racine: dir }))
+  let modulesDuDetecteur
+  const toucheLeDetecteur = (chemins) => {
+    if (!chemins.some(estModule)) return false
+    modulesDuDetecteur ??= new Set([...sourcesReelles(), sourceDuCommit()].flatMap((s) => {
+      const fichiers = s.lister('.')
+      const abs = (rel) => resolve(dir, rel).split('\\').join('/')
+      const rel = (a) => relative(dir, a).split('\\').join('/')
+      const ensemble = new Set(fichiers)
+      const arbre = {
+        existe: (a) => ensemble.has(rel(a)),
+        lire: (abss) => {
+          const lus = s.lireTout(abss.map(rel))
+          return new Map(abss.map((a) => {
+            const texte = lus.get(rel(a)) ?? null
+            if (texte === null && ensemble.has(rel(a))) throw new Error(`Module du détecteur illisible : ${rel(a)}`)
+            return [a, texte]
+          }))
+        },
+        fichiers: fichiers.map(abs),
+      }
+      return [...clotureDImports([POINT_DES_COMPTES], { racine: dir, arbre, typesEffaces: true, retenir: estModule })]
+    }))
+    return chemins.some((c) => modulesDuDetecteur.has(c))
+  }
   return {
     base,
+    baseDesComptes,
+    toucheLeDetecteur,
     stages,
     numstat: () => vers().numstat([]),
     diff: (chemins) => (chemins?.length === 0 ? '' : vers().diff(chemins ?? [])),
     contenu: (f) => sourceDuCommit().lire(f),
-    lirePreImage: (f) => (aHead() ? sourceDeLaBase().lire(f) : null),
+    lirePreImages: (f) => (aHead() ? sourcesReelles().map((s) => s.lire(f)) : []),
+    lireToutDans: (arbre, rels) => sourceA(arbre).lireTout(rels),
     contenus,
-    preImages,
     images: (chemins) => {
       const post = contenus(chemins)
       const pre = preImages(chemins)
       return {
         lirePostImage: (f) => (post.has(f) ? post.get(f) : sourceDuCommit().lire(f)),
-        lirePreImage: (f) => (pre.has(f) ? pre.get(f) : aHead() ? sourceDeLaBase().lire(f) : null),
+        lirePreImage: (f) => (pre.has(f) ? pre.get(f) : aHead() ? sourceDeLaTete().lire(f) : null),
       }
     },
     renommages: () => new Map(vers().renommages([])),
     enFusion,
     apport,
-    parents: () => enFusion() ? apport().parents : aHead() ? [shaDeHead()] : [],
+    parents,
     fusion,
     deplaceLaFrontiereCss: (chemins) => {
       const { specificateurs } = memos()
       const f = fusion()
       return deplaceLaFrontiere(f
         ? { chemins: f.fait.chemins(), nesOuMorts: () => f.fait.chemins('AD'), base: sourceA(f.fusion.commune), commit: sourceDuCommit(), racine: dir, specificateurs }
-        : { chemins, nesOuMorts: () => vers().chemins('AD', []), base: sourceDeLaBase(), commit: sourceDuCommit(), racine: dir, specificateurs })
+        : { chemins, nesOuMorts: () => vers().chemins('AD', []), base: sourceDeLaTete(), commit: sourceDuCommit(), racine: dir, specificateurs })
     },
     cotesCss: () => {
       const f = fusion()
       const cote = (s) => coteCss(s, { racine: dir, specificateurs: memos().specificateurs })
       return f
         ? { base: cote(sourceA(f.fusion.commune)), commit: cote(sourceDuCommit()), parents: f.fusion.parents.map((p) => cote(sourceA(p))) }
-        : { base: cote(sourceDeLaBase()), commit: cote(sourceDuCommit()) }
+        : { base: cote(sourceDeLaTete()), commit: cote(sourceDuCommit()) }
     },
     /** Les mémos d'analyse lus par `deplaceLaFrontiereCss` et `cotesCss`, écrits UNE fois, le commit jugé (`memosDAnalyse`). */
     sauverLesMemos: () => memosCss?.sauver(),
@@ -1099,6 +1144,40 @@ export function mtimeMaxDe(fichiers, racine = process.cwd()) {
 // toujours le chemin le plus court vers une CI verte. La porte le rend VISIBLE au commit : la
 // croissance passe si, et seulement si, le message la DIT.
 
+const POINT_DES_COMPTES = 'scripts/guards/lib/corpusDesComptes.mts'
+const RACINE_DES_COMPTES = fileURLToPath(new URL('../../', import.meta.url))
+
+/** #2948 */
+export function mesurerLesComptesDeLIndex({ dir, base, message }, lancer = execFileResilient) {
+  const argv = [join(RACINE_DES_COMPTES, 'node_modules/tsx/dist/cli.mjs'),
+    join(RACINE_DES_COMPTES, 'scripts/guards/comptes-plage.mts'), '--index', '--base', base]
+  try {
+    const texte = lancer(process.execPath, argv, { cwd: dir, input: message, encoding: 'utf8', timeout: 260_000, maxBuffer: 1 << 26 }, { site: 'porte-du-commit/comptes' })
+    return texte.trim() ? { ok: true, texte: texte.trim() } : { ok: false, texte: '⛔ Comptes de l’index injugeables : la porte canonique ne publie aucun verdict.' }
+  } catch (e) {
+    const texte = [e.stdout, e.stderr].filter(Boolean).join('\n').trim()
+    if (e.status === 1 && texte) return { ok: false, texte }
+    return { ok: false, texte: `⛔ Comptes de l’index injugeables : ${e.message}${texte ? `\n${texte}` : ''}` }
+  }
+}
+
+/** #2948 */
+export function evaluateComptesDuCommit({ message, commentaire, fichiers, disponible, baseDesComptes, mesurer, toucheLeDetecteur }) {
+  const lu = lectureDeLaPorte({ message, commentaire })
+  const declare = /^[ \t]*FAUX-POSITIF\s*:/m.test(lu.satisfactions)
+  try {
+    if (!declare && !toucheLeDetecteur(fichiers)) return null
+    if (!disponible()) return declare ? { reason: '⛔ FAUX-POSITIF sans porte des comptes dans l’index ni sa base.' } : null
+    const { base, repli } = baseDesComptes()
+    const nomme = (texte) => (repli ? `${texte}\n  ${repli}` : texte)
+    if (base === null) return { reason: nomme('⛔ Comptes de l’index injugeables : les parents de la fusion n’ont aucune base commune.') }
+    const verdict = mesurer({ base, message: lu.satisfactions })
+    return verdict?.ok === true ? null : { reason: nomme(verdict?.texte || '⛔ Comptes de l’index injugeables : aucun verdict canonique.') }
+  } catch (e) {
+    return { reason: `⛔ Comptes de l’index injugeables : ${e.message}` }
+  }
+}
+
 /**
  * Décision « un stock nominatif a grossi sans que le message le dise ». `diff` = diff unifié de ce que
  * le commit emporte (les fichiers porteurs suffisent), `images` = les lecteurs de pré/post-image qui
@@ -1146,8 +1225,9 @@ export function evaluateBudgetContexte({ message, commentaire, mesure, reference
 
 /**
  * Le listeur d'entrées DIRECTES d'une IMAGE git (`listerImage` puis `enfantsDirects`, `gitPorte.mjs`)
- * qu'attend `mesurerBudget` : `INDEX` pour ce que le commit emporte, sa BASE (`diffDuCommit(…).base()`,
- * `imageDeHead`) pour sa pré-image.
+ * qu'attend `mesurerBudget` : `INDEX` pour ce que le commit emporte ; pour sa référence, sa BASE
+ * (`diffDuCommit(…).base()`, `imageDeHead`), ou sous une fusion en cours ses parents et leur base commune
+ * (`referenceDeFusion`).
  * @param {string} arbre @param {string} dir @returns {(dossier: string) => string[]}
  */
 export function listeurDuBudget(arbre, dir, { pannes = [] } = {}) {
@@ -1192,7 +1272,7 @@ const ouDeLaLecture = (dir) => ({ cwd: dir, horsDepot: racineSurDisque(dir) === 
 
 /** Les décisions de la porte sur `commit` (`diffDuCommit`) pour `entree` = `{ message, commentaire }`.
  *  Tout ce qui se lit sur DISQUE se lit dans `dir`, la racine de l'arbre qui committe. */
-async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
+async function decisionsDuCommit(entree, { commit, dir, today, pannes, mesurerComptes }) {
   const lu = lectureDeLaPorte(entree)
   const { fichiers } = analyzeDiffDuCommit(commit.numstat())
   const apport = apportDeLaResolution(patchsParChemin(commit.diff()))
@@ -1248,21 +1328,20 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
       lire: (p) => commit.contenu(p),
     })
   }
-  const importsDuContexte = [
-    ...importsDe(commit.contenu('CLAUDE.md')),
-    ...importsDe(commit.lirePreImage('CLAUDE.md')),
-  ]
-  const budget = fichiers.some((f) => estCheminDuBudget(f, importsDuContexte))
+  // Sous une fusion en cours, son APPORT (`commit.fusion`) : les porteurs de stock jugés, et les arbres réels de la
+  // référence du budget ; `null` en panne, confiée à `pannes`.
+  const fusion = commit.fusion()
+  const importsDuContexte = [commit.contenu('CLAUDE.md'), ...commit.lirePreImages('CLAUDE.md')].flatMap(importsDe)
+  const imageDuBudget = (arbre) => mesurerBudget(dir, { lireTout: (rels) => commit.lireToutDans(arbre, rels), lister: listeurDuBudget(arbre, dir, { pannes }) })
+  const budget = fichiers.some((f) => estCheminDuBudget(f, importsDuContexte)) && (fusion || !commit.enFusion())
     ? evaluateBudgetContexte({
       ...entree,
       mesure: mesurerBudget(dir, { lireTout: commit.contenus, lister: listeurDuBudget(INDEX, dir, { pannes }) }),
-      reference: mesurerBudget(dir, { lireTout: commit.preImages, lister: listeurDuBudget(commit.base(), dir, { pannes }) }),
+      reference: fusion ? referenceDeFusion(imageDuBudget, fusion.fusion) : imageDuBudget(commit.base()),
     })
     : null
   // UN `git diff -U0` de ce que le commit emporte (`croissanceDesStocks` n'en lit que les porteurs), et
-  // les images des porteurs par lot (`lireEnLot`). Sans porteur, rien n'est lu. Sous une fusion en
-  // cours, les porteurs sont ceux de son APPORT (`commit.fusion`).
-  const fusion = commit.fusion()
+  // les images des porteurs par lot (`lireEnLot`). Sans porteur, rien n'est lu.
   const porteursDeStock = (fusion ? fusion.entree.fichiers : fichiers).filter(estPorteurDeStock)
   const stocks = porteursDeStock.length ? evaluateStocksQuiGrandissent({
     ...entree,
@@ -1270,6 +1349,13 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
       ? { fusion: fusion.entree }
       : { diff: commit.diff(), images: { ...commit.images(porteursDeStock), renommages: commit.renommages() } }),
   }) : null
+  const comptes = evaluateComptesDuCommit({
+    ...entree, fichiers,
+    toucheLeDetecteur: commit.toucheLeDetecteur,
+    disponible: () => commit.contenu(POINT_DES_COMPTES) !== null || commit.lirePreImages(POINT_DES_COMPTES).some((texte) => texte !== null),
+    baseDesComptes: commit.baseDesComptes,
+    mesurer: (p) => mesurerComptes({ ...p, dir }),
+  })
   const reclassements = evaluateReclassementsCss({
     ...entree,
     deplace: () => commit.deplaceLaFrontiereCss(fichiers),
@@ -1277,7 +1363,7 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
   })
   commit.sauverLesMemos()
   const hunks = jugerOuConfier(() => evaluateHunksEmportes({ stages: commit.stages(fichiers) }), pannes)
-  return [decision, porteDuTicket, antiEsquive, juge, registresPorteurs, tombale, budget, stocks, reclassements, hunks]
+  return [decision, porteDuTicket, antiEsquive, juge, registresPorteurs, tombale, budget, stocks, comptes, reclassements, hunks]
 }
 
 /**
@@ -1289,9 +1375,9 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
  * @param {{ message: string, commentaire?: string, commit?: ReturnType<typeof diffDuCommit>, dir?: string, today: string, pannes?: string[] }} p
  * @returns {Promise<{ reason: string } | null>}
  */
-export async function jugerLeCommit({ message, commentaire = '#', dir = process.cwd(), today, pannes = [], commit = diffDuCommit(dir, { pannes }) }) {
+export async function jugerLeCommit({ message, commentaire = '#', dir = process.cwd(), today, pannes = [], commit = diffDuCommit(dir, { pannes }), mesurerComptes = mesurerLesComptesDeLIndex }) {
   try {
-    const decisions = await decisionsDuCommit({ message, commentaire }, { commit, dir, today, pannes })
+    const decisions = await decisionsDuCommit({ message, commentaire }, { commit, dir, today, pannes, mesurerComptes })
     return decisionCumulee([...decisions, refusDesPannes(pannes, ouDeLaLecture(dir))])
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e

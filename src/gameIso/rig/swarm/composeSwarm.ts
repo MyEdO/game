@@ -1,6 +1,6 @@
 /**
  * Gabarit NUÉE / ESSAIM (trait « Nuée », LDB 85) — une créature unique qui EST une masse grouillante
- * de petites bêtes (rats, araignées, marcassins, nurglings, snotlings, squigs, noctecorbes, zombies…).
+ * de petites bêtes (rats, araignées, squigs, noctecorbes, zombies…).
  * Rendu DATA-DRIVEN par l'ESPÈCE : `appearance.species` désigne une FORME (`SWARM_FORMS`, cf. `forms.ts`)
  * dont la silhouette d'UN constituant tapisse l'amas + une palette par défaut. Pas d'if-par-nom : la
  * forme vient de la table, et `appearance.colors` la surcharge. Anim propre : frémissement au repos.

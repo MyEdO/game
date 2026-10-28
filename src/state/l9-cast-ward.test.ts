@@ -62,7 +62,7 @@ describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', (
     const base = castingValue(E as Combatant, 'langue', 'magick');
     expect(pv.target).toBe(base - 20); // la cible ANNONCÉE est celle que `castRoll` appliquera
     // …et NOMMÉE par l'entité qui a posé l'aura, avec son renvoi Codex et son PORTEUR en provenance.
-    expect(pv.mods).toContainEqual({ label: 'N’écoutez point la Sorcière', value: -20, famille: 'jet', ref: { category: 'spells', id: 'n-ecoutez-point-la-sorciere' }, by: [{ id: P.id }] });
+    expect(pv.mods).toContainEqual({ label: (P as Combatant).activeEffects![0].label, value: -20, famille: 'jet', ref: { category: 'spells', id: 'n-ecoutez-point-la-sorciere' }, by: [{ id: P.id }] });
     // Contrôle : sans contexte de cible, l'aperçu ne peut pas connaître la protection de la victime.
     expect(previewCast(E as Combatant, spell, { missile: true, focused: false }).target).toBe(base);
   });

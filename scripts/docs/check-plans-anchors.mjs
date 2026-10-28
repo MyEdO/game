@@ -10,7 +10,7 @@
 //   `Instrument: <chemin>` — le plan est l'ENTRÉE d'un outil rejouable, donc il ne se supprime pas ;
 //     validé STRUCTURELLEMENT : le chemin cité existe ET ce fichier cite le plan en retour
 //     (back-référence bidirectionnelle) — un `Instrument:` déclaratif ne prouverait rien.
-// SENS 2 : tout chemin `docs/plans/…` cité par un fichier SUIVI doit exister — un plan supprimé
+// SENS 2 : tout chemin `docs/plans/…` cité par un fichier SUIVI hors corpus historique doit exister — un plan supprimé
 // laisse derrière lui des commentaires et des docs qui pointent dans le vide.
 // SENS 3 : personne ne cite un plan supprimé par son NOM NU (le basename seul, sans son dossier).
 //   Le SENS 2 ne le voit pas, et le lecteur, lui, croit à un artefact consultable : c'est le mode de
@@ -22,8 +22,8 @@
 //
 // PÉRIMÈTRE MESURÉ — l'énumération passe EXCLUSIVEMENT par `git ls-files` (fichiers SUIVIS) :
 //   SENS 1 : `docs/plans/**` en `.md`, `.html` (`.dc.html` compris).
-//   SENS 2 : tout fichier suivi d'extension `.md .mjs .mts .ts .tsx .js .json .yml .yaml .css .html`.
-//   SENS 3 : les mêmes fichiers que le SENS 2, moins les CORPUS HISTORIQUES (`CORPUS_HISTORIQUES`).
+//   SENS 2 et 3 : tout fichier suivi d'extension `.md .mjs .mts .ts .tsx .js .json .yml .yaml .css .html`,
+//   moins les CORPUS HISTORIQUES (`CORPUS_HISTORIQUES`).
 // La citation se cherche dans le texte JOINT (lignes recollées, préfixes de commentaire retirés) :
 // une réf coupée en fin de ligne (l'en-tête de src/engine/testOutcome.ts) est un chemin comme un autre. Le
 // jeton tolère les ESPACES (`docs/plans/Spec HUD Combat.dc.html`) et se valide par PRÉFIXES coupés
@@ -34,13 +34,16 @@
 //     `.wt-*`) portent des copies complètes de `docs/plans/` avec des plans déjà purgés ailleurs ; les
 //     énumérer ferait juger l'arbre d'une autre session. `git ls-files` est la seule vue du dépôt.
 //   - Un plan NON SUIVI (jamais `git add`) échappe aux deux sens : il n'existe pas pour le dépôt.
-//   - L'ancre est vérifiée dans sa FORME, pas dans sa VÉRITÉ : que l'issue `#N` soit encore OUVERTE
-//     n'est pas mesurable hors ligne — c'est l'étape ONLINE de `.github/workflows/canari.yml` qui la
-//     mesure (une issue fermée = plan exécuté, à supprimer).
+//   - HORS LIGNE, l'ancre est vérifiée dans sa FORME seule. EN LIGNE (étape plans-dates de
+//     `.github/workflows/canari.yml`), dans sa VÉRITÉ : au moins une issue ancrée est OUVERTE et cite le
+//     chemin du plan dans son corps ou un commentaire — lien dans les deux sens, une ancre sur un ticket
+//     qui ne revendique pas le plan n'en est pas une (#3028 ; grief 1 de la revue de palier
+//     `.claude/soldes/revue-palier-2026-09-18-9d66de88f-993107240.md`). La revendication est mesurée par
+//     SIMPLE PRÉSENCE du chemin dans le texte du ticket.
 //   - Le back-lien d'un `Instrument:` est mesuré par SIMPLE PRÉSENCE du chemin du plan dans le
 //     fichier instrument ; il ne juge pas que l'outil le LIT vraiment.
 //   - Les fichiers binaires et les extensions hors liste (`.txt`, `.svg`, `.sh`…) ne sont pas scannés.
-//   - Le SENS 3 porte la doctrine du corps historique dans `CORPUS_HISTORIQUES` : un rapport DATÉ
+//   - Les SENS 2 et 3 portent la doctrine du corps historique dans `CORPUS_HISTORIQUES` : un rapport DATÉ
 //     ADRESSE ses constats par le document audité (`### <doc>:<ligne>`) — requalifier ces adresses
 //     falsifierait le rapport, qui décrit l'arbre à SA date, pas l'arbre d'aujourd'hui.
 //   - Le SENS 3 ne juge que des noms de FICHIERS de `docs/plans/` : un basename trop commun
@@ -54,13 +57,14 @@
 //     de RÉCUPÉRATION d'historique (`git log --diff-filter=D -- <plan supprimé>`), qui vise
 //     précisément un fichier absent. Les fixtures de test sont exemptées AU SITE (`SITES_EXEMPTS`).
 //
-// INVARIANT — 100 % des plans SUIVIS portent leur ancre, et AUCUN fichier suivi ne cite un plan
-// supprimé (par son chemin comme par son nom nu). Toute violation est une régression. Le compte du
+// INVARIANT — 100 % des plans SUIVIS portent leur ancre, et AUCUN fichier suivi hors corpus historique
+// ne cite un plan supprimé (par son chemin comme par son nom nu). Toute violation est une régression. Le compte du
 // jour ne se fige PAS ici (une baseline chiffrée périme au commit suivant : celle du 2026-08-30
 // disait « 8 plans » là où l'arbre en portait 11) — `node scripts/docs/check-plans-anchors.mjs
 // --stats` l'imprime, mesuré à l'instant du run.
 // Re-run : node scripts/docs/check-plans-anchors.mjs (chaîné par `npm run docs:check`) ; en ligne :
-// `--online <issues-ouvertes.json>` (canari, cf. .github/workflows/canari.yml). Comportement couvert
+// `--ancres` liste les issues ancrées, puis `--online <issues-ancrees.json>` les juge (canari, cf.
+// .github/workflows/canari.yml). Comportement couvert
 // par scripts/docs/check-plans-anchors.test.mjs (`npm run test:docs`).
 import { execFileSync } from 'node:child_process'
 import { readFileSync, existsSync, statSync } from 'node:fs'
@@ -90,12 +94,21 @@ function pathExists(tok) {
   return existsSync(abs)
 }
 
-// `--online <fichier.json>` : liste des issues OUVERTES (sortie de `gh issue list --json number`,
-// UN seul appel API) — alors chaque `Ticket: #N` doit pointer une issue encore ouverte. Hors ligne
-// (mode par défaut), cette vérification est un angle mort assumé : elle vit dans le canari.
+// `--online <fichier.json>` : les issues ancrées encore OUVERTES, `[{ number, texte }]` où `texte` est
+// le corps et les commentaires joints (producteur unique : étape plans-dates de canari.yml). Une issue
+// absente du fichier est fermée. Hors ligne (mode par défaut), cette vérification vit dans le canari.
 const onlineArg = process.argv.indexOf('--online')
 const OPEN_ISSUES = onlineArg === -1 ? null
-  : new Set(JSON.parse(readFileSync(process.argv[onlineArg + 1], 'utf8')).map((i) => Number(i.number)))
+  : new Map(JSON.parse(readFileSync(process.argv[onlineArg + 1], 'utf8')).map((i) => {
+    if (!Number.isInteger(i.number) || typeof i.texte !== 'string') {
+      throw new Error(`--online : entrée attendue { number: entier, texte: chaîne }, lu ${JSON.stringify(i).slice(0, 120)}`)
+    }
+    return [i.number, i.texte]
+  }))
+/** `--ancres` : imprime les numéros d'issues ancrés par les plans (un par ligne) et sort — l'entrée du
+ *  producteur de `--online`, lue par le MÊME parseur d'ancre que le SENS 1. */
+const ANCRES = process.argv.includes('--ancres')
+const ancrees = new Set()
 
 /** Un basename trop commun désignerait n'importe quoi (un `README.md` supprimé sous les plans ferait
  *  rougir tous les README du dépôt) : mesuré 1 faux positif de cette classe. */
@@ -156,10 +169,15 @@ for (const plan of plans) {
     const reste = anchor.value.replace(/#\d+/g, '').replace(/[\s,]/g, '')
     if (!nums.length || reste) {
       problems.push({ file: plan, line: anchorLine, kind: 'ancre Ticket illisible', detail: `attendu \`Ticket: #N[, #M]\`, lu « ${anchor.value} »` })
-    } else if (OPEN_ISSUES) {
-      const fermees = nums.filter((n) => !OPEN_ISSUES.has(Number(n.slice(1))))
-      if (fermees.length === nums.length) {
-        problems.push({ file: plan, line: anchorLine, kind: 'plan exécuté, à supprimer', detail: `${fermees.join(', ')} fermée(s) — la politique docs/ veut la SUPPRESSION du plan (git porte l'historique)` })
+    } else {
+      for (const n of nums) ancrees.add(Number(n.slice(1)))
+      if (OPEN_ISSUES) {
+        const ouvertes = nums.filter((n) => OPEN_ISSUES.has(Number(n.slice(1))))
+        if (!ouvertes.length) {
+          problems.push({ file: plan, line: anchorLine, kind: 'plan exécuté, à supprimer', detail: `${nums.join(', ')} fermée(s) — la politique docs/ veut la SUPPRESSION du plan (git porte l'historique)` })
+        } else if (!ouvertes.some((n) => OPEN_ISSUES.get(Number(n.slice(1))).includes(plan))) {
+          problems.push({ file: plan, line: anchorLine, kind: 'ancre non revendiquée', detail: `${ouvertes.join(', ')} ouverte(s) mais ne cite(nt) pas « ${plan} » — citer ce chemin sur le ticket (corps ou commentaire), ou ré-ancrer le plan sur le ticket qui le revendique` })
+        }
       }
     }
   } else {
@@ -173,6 +191,11 @@ for (const plan of plans) {
       }
     }
   }
+}
+
+if (ANCRES) {
+  console.log([...ancrees].sort((a, b) => a - b).join('\n'))
+  process.exit(0)
 }
 
 // ───────────────────────── SENS 2 — référent → plan ─────────────────────────
@@ -223,6 +246,7 @@ const FICHIERS_DE_LA_GARDE = new Set([
 
 for (const file of tracked) {
   if (!SCAN_EXTS.some((x) => file.endsWith(x))) continue
+  if (CORPUS_HISTORIQUES.some((p) => file.startsWith(p))) continue
   if (FICHIERS_DE_LA_GARDE.has(file)) continue
   const text = read(file)
   if (text === null) continue

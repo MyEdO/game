@@ -391,7 +391,7 @@ import { deFixe, desDuTest, desEnSuite } from './dice.testkit';
 describe('MSRC 16 — Vers de carie : Traits de table PERMANENTS (l.103)', () => {
   it('grantTrait SANS durée = effet permanent → survit à la guérison + à un balayage d’effets expirés', () => {
     const c = fullSick();
-    applyOps(c, [{ op: 'grantTrait', traitId: 'nerveux' }], { rng: seq([]) }); // rangée 9 de la table
+    applyOps(c, [{ op: 'grantTrait', trait: { id: 'nerveux' } }], { rng: seq([]) }); // rangée 9 de la table
     expect((c.traits ?? []).some((t) => t.id === 'nerveux')).toBe(true);
     const eff = (c.activeEffects ?? []).find((e) => e.grantedTrait?.id === 'nerveux');
     expect(eff?.duration.scale).toBe('permanent'); // ni horloge ni Rounds → jamais purgé (l.103)

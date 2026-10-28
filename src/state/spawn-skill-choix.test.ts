@@ -23,44 +23,42 @@ const spawn = (creatureId: string, uid = `${creatureId}-1`) => {
 const poolDe = (skillId: string) => specPoolOf(byId('skill', skillId)!);
 
 describe('désignation au spawn d’un `choix` de spécialisation (L2 #1548)', () => {
-  it('citadin : Musicien 35 est porté par UNE spec du pool, désignée', () => {
-    const c = spawn('citadin');
-    const musicien = c.skills.filter((s) => s.id === 'musicien');
-    expect(musicien).toHaveLength(1);
-    const designee = musicien[0].spec;
-    expect(poolDe('musicien')).toContain(designee);
-    expect(testValue(c, 'musicien', undefined, designee)).toBe(35);
-    const autre = poolDe('musicien').find((id) => id !== designee)!;
-    expect(testValue(c, 'musicien', undefined, autre)).not.toBe(35); // Compétence UNIQUE par spéc
-    expect(skillInstanceLabel(musicien[0])).not.toMatch(/au choix/i);
+  it('heomreth-hibou-geant : Savoir 80 est porté par UNE spec du pool, désignée (ZI 05 l.393)', () => {
+    const c = spawn('heomreth-hibou-geant');
+    const savoir = c.skills.filter((s) => s.id === 'savoir');
+    expect(savoir).toHaveLength(1);
+    const designee = savoir[0].spec;
+    expect(poolDe('savoir')).toContain(designee);
+    expect(testValue(c, 'savoir', undefined, designee)).toBe(80);
+    const autre = poolDe('savoir').find((id) => id !== designee)!;
+    expect(testValue(c, 'savoir', undefined, autre)).not.toBe(80); // Compétence UNIQUE par spéc
+    expect(skillInstanceLabel(savoir[0])).not.toMatch(/au choix/i);
   });
 
-  it('ungor-adulte : la désignation reste DANS les ids bornés par la donnée', () => {
-    const c = spawn('ungor-adulte');
-    const metier = c.skills.filter((s) => s.id === 'metier');
-    expect(metier).toHaveLength(1);
-    expect(['armurier', 'forgeron']).toContain(metier[0].spec);
-    // 50 IMPRIMÉ + 5 de Doigts de fée ; la spec NON désignée ne reçoit pas les avances de la ligne.
-    expect(testValue(c, 'metier', undefined, metier[0].spec)).toBe(55);
-    expect(testValue(c, 'metier', undefined, 'tailleur')).toBe(45);
-  });
-
-  it('sorcier-du-chaos : la Divinité désignée est un des 3 Dieux Sombres bornés', () => {
-    const savoir = spawn('sorcier-du-chaos').skills.filter((s) => s.id === 'savoir');
-    expect(savoir.map((s) => s.spec).filter((sp) => ['tzeentch', 'slaanesh', 'nurgle'].includes(sp!))).toHaveLength(1);
+  it('choix BORNÉ : la désignation reste DANS les ids que la donnée borne', () => {
+    const borne = ['armurier', 'forgeron'];
+    const fiche = { ...findCreatureById('humain')!, id: 'artisan-borne', skills: [{ id: 'metier', choix: borne, value: 50 }] };
+    for (const uid of ['b-1', 'b-2', 'b-3', 'b-4', 'b-5']) {
+      const metier = creatureToCombatant(fiche, uid, { x: 0, y: 0 }).skills.filter((s) => s.id === 'metier');
+      expect(metier).toHaveLength(1);
+      expect(borne).toContain(metier[0].spec);
+    }
+    const vus = new Set(Array.from({ length: 40 }, (_, i) =>
+      creatureToCombatant(fiche, `b-${i}`, { x: 0, y: 0 }).skills.find((s) => s.id === 'metier')!.spec));
+    expect([...vus].sort()).toEqual(borne);
   });
 
   it('DÉTERMINISME : même uid → même désignation ; des uids différents désignent différemment', () => {
-    const specOf = (uid: string) => spawn('citadin', uid).skills.find((s) => s.id === 'musicien')!.spec;
-    expect(specOf('citadin-a')).toBe(specOf('citadin-a'));
-    const vus = new Set(Array.from({ length: 40 }, (_, i) => specOf(`citadin-${i}`)));
+    const specOf = (uid: string) => spawn('heomreth-hibou-geant', uid).skills.find((s) => s.id === 'savoir')!.spec;
+    expect(specOf('heomreth-a')).toBe(specOf('heomreth-a'));
+    const vus = new Set(Array.from({ length: 40 }, (_, i) => specOf(`heomreth-${i}`)));
     expect(vus.size, `40 uids → ${[...vus].join(', ')}`).toBeGreaterThan(1);
   });
 
-  it('Langue à choix : `magick` n’est VRAI que si magick a été RÉELLEMENT désigné', () => {
+  it('Langue à choix : `magick` n’est VRAI que si magick a été RÉELLEMENT désigné (ZI 05 l.370)', () => {
     // L'emplacement ne « répond » plus : `actorHasSkill` suit la spec désignée, jamais le choix ouvert.
-    for (const uid of ['m-1', 'm-2', 'm-3', 'm-4', 'm-5']) {
-      const c = spawn('marchand-services-urbains-frequents-usuels', uid);
+    for (const uid of ['m-1', 'm-2', 'm-3', 'm-4', 'm-5', 'm-60']) { // m-60 désigne magick
+      const c = spawn('grand-aigle', uid);
       const langues = c.skills.filter((s) => s.id === 'langue').map((s) => s.spec);
       expect(langues.every((sp) => sp != null)).toBe(true);
       expect(actorHasSkill(c, 'langue', 'magick')).toBe(langues.includes('magick'));

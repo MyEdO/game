@@ -36,6 +36,8 @@ const LIVRE: { [R in RegleChiffree]: Record<(typeof RANGEES_DE_REGLE)[R][number]
     'esquive-a-cheval': { mod: -20, ref: 'LDB 14 l.184' },
   },
   'possession-pas-a-sa-taille': { 'possession-pas-a-sa-taille': { mod: -20, ref: 'ADE II 2 l.710' } },
+  'climat-extreme': { 'climat-extreme': { mod: -20, ref: 'LDB 14 l.76' } },
+  'neige-eau-terrain-difficile': { 'neige-eau-terrain-difficile': { mod: -30, ref: 'LDB 14 l.82' } },
   empoignade: {
     'avantage-le-plus-faible': { mod: 20, ref: 'LDB 14 l.169' },
     'avantage-le-plus-fort': { mod: 10, ref: 'LDB 14 l.169' },
@@ -52,6 +54,7 @@ const LIVRE: { [R in RegleChiffree]: Record<(typeof RANGEES_DE_REGLE)[R][number]
   'allonge-longueur-d-arme': { 'arme-plus-longue': { mod: -10, ref: 'LDB 62 l.172' } },
   'equipe-incomplete-machine-de-guerre': { 'equipe-incomplete': { mod: -20, ref: 'ADE II 8 l.233' } },
   avantage: { 'par-point': { mod: 10, ref: 'LDB 14 l.215' } },
+  'allure-forcee-attelage': { 'par-km': { mod: -10, ref: 'EDOC 07 l.229' } },
 };
 
 describe('règles chiffrées — la donnée porte le nombre du livre', () => {

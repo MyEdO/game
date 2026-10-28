@@ -48,15 +48,15 @@ describe('Condition {slThreshold} — issue échelonnée sur la marge', () => {
   it('Flow if(slThreshold) branche sur la marge (Regard : ≥6 → Pétrifié)', () => {
     const flow: Flow = {
       kind: 'if', cond: { kind: 'slThreshold', op: '>=', value: 6 },
-      then: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'Pétrifié' }] } },
+      then: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'petrifie' }] } },
       else: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'sonne' }] } },
     };
     const hi = mk({ id: 'h' });
     runPureFlowLines(hi, mk({ id: 'a' }), flow, { rng: desDuTest, sl: 6 });
-    expect(hi.conditions.find((c) => c.id === 'Pétrifié')).toBeTruthy();
+    expect(hi.conditions.find((c) => c.id === 'petrifie')).toBeTruthy();
     const lo = mk({ id: 'l' });
     runPureFlowLines(lo, mk({ id: 'a' }), flow, { rng: desDuTest, sl: 3 });
     expect(lo.conditions.find((c) => c.id === 'sonne')).toBeTruthy();
-    expect(lo.conditions.find((c) => c.id === 'Pétrifié')).toBeUndefined();
+    expect(lo.conditions.find((c) => c.id === 'petrifie')).toBeUndefined();
   });
 });

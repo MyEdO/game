@@ -120,19 +120,19 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
     expect(selectionnerMessages(cast, (m) => m.ruleId === 'murs/marques'), 'un cast non justifié doit rougir').toHaveLength(1);
   });
 
-  it('`saves.ts` ne contient aucun cast de marque ni directive d’exemption, et ne rend aucune erreur de lint', async () => {
-    const reel = readFileSync('src/state/saves.ts', 'utf8');
+  it('`noyau/persistance/save.ts` ne contient aucun cast de marque ni directive d’exemption, et ne rend aucune erreur de lint', async () => {
+    const reel = readFileSync('src/noyau/persistance/save.ts', 'utf8');
     expect(reel, 'aucun cast de marque dans ce fichier').not.toMatch(/as\s+Built(CascadeStep|RollRow)/);
     expect(reel, 'aucune directive qui l’exempte').not.toMatch(/murs\/(marques|conteneur)/);
-    const [res] = await eslint.lintFiles(['src/state/saves.ts']);
+    const [res] = await eslint.lintFiles(['src/noyau/persistance/save.ts']);
     expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
     expect(res.errorCount, 'aucune autre erreur de lint sur le fichier').toBe(0);
   });
 
-  it('cas planté : un cast ajouté dans `saves.ts` est REFUSÉ — la règle y mord, sans exemption au fichier', async () => {
-    const reel = readFileSync('src/state/saves.ts', 'utf8');
+  it('cas planté : un cast ajouté dans `noyau/persistance/save.ts` est REFUSÉ — la règle y mord, sans exemption au fichier', async () => {
+    const reel = readFileSync('src/noyau/persistance/save.ts', 'utf8');
     const augmente = `${reel}\ndeclare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;\n`;
-    const [res] = await eslint.lintText(augmente, { filePath: 'src/state/saves.ts' });
+    const [res] = await eslint.lintText(augmente, { filePath: 'src/noyau/persistance/save.ts' });
     expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un cast non justifié doit rougir').toHaveLength(1);
   });
 

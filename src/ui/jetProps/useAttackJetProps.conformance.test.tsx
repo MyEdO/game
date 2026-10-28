@@ -15,6 +15,8 @@ import { RollShell } from '../RollShell';
 import { ANONYMES } from '../RollLine';
 import { useAttackJetProps } from './useAttackJetProps';
 import { resetRule, setRule } from '../../engine/policy';
+import { ligneDe } from '../../engine/modLine.testkit';
+import { refDeRegle } from '../../engine/reglesChiffrees';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -186,7 +188,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
     expect(dialog.querySelector('.rm-subtitle')?.textContent).toBe('Elsa — Piétinement (Corps à corps (Bagarre))');
     const avant = rendues!.rows[0].row.pending!;
     expect(avant.base, 'Bagarre, sans avance : la CC nue, pas la Spé de l’arme tenue').toBe(45);
-    expect(avant.mods?.map((m) => m.label)).not.toContain('Possession pas à sa taille');
+    expect(ligneDe(avant.mods, refDeRegle('possession-pas-a-sa-taille'))).toBeUndefined();
     act(() => useGame.getState().attackRoll());
     const jet = rendues!.rows[0].row.d!;
     expect([jet.base, jet.target], 'aperçu et jet : même valeur cible').toEqual([avant.base, avant.target]);
@@ -342,15 +344,15 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
    *  aucun (i) ne le précède (même arbitrage). */
   const nomDuJet = (v: HTMLDivElement) => ligne(v).querySelector('.rm-roll-label > .codex-ref');
 
-  it('RAW l.95 — brouillard + Localisation visée : « Très difficile (−30) », zéro chip de circonstance', () => {
+  it('RAW l.95 — brouillard + Localisation visée : « Très Difficile (−30) », zéro chip de circonstance', () => {
     const v = renderAttack({ ranged: true, fog: true, location: 'tete' });
-    expect(palier(v)).toBe('Très difficile (−30)');
+    expect(palier(v)).toBe('Très Difficile (−30)');
     expect(chips(v), 'les circonstances vivent dans le palier, pas en chips').toEqual([]);
     expect(ligne(v).textContent).not.toContain('plafond Difficultés');
     expect(ligne(v).textContent).not.toContain('autres');
     // Capacité de Tir 40 − 30 = 10, et non 40 − 40 : le plafond a mordu, le palier le DIT.
     expect(calcul(v)).toBe('40 −30 = 10');
-    expect(porte(v), 'le palier DÉRIVÉ porte l’infobulle de sa composition').toBe('Très difficile (−30)');
+    expect(porte(v), 'le palier DÉRIVÉ porte l’infobulle de sa composition').toBe('Très Difficile (−30)');
     const decl = ligne(v).querySelector('.rm-roll-diff .codex-ref')!;
     expect(infoPalier(v), 'la porte se SIGNALE : un (i) dans le déclencheur, pas à côté').toBeTruthy();
     // `lastChild` et non `lastElementChild` : le palier est un nœud TEXTE — l'ignorer rendrait
@@ -360,7 +362,7 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
     expect(
       ligne(v).querySelector('.rm-roll-diff .codex-ref')!.getAttribute('aria-label'),
       'le nom accessible COMMENCE par le texte visible et nomme la règle atteinte',
-    ).toBe('Très difficile (−30) — Combiner les Difficultés');
+    ).toBe('Très Difficile (−30) — Combiner les Difficultés');
     expect(ANONYMES.count).toBe(0);
   });
 
@@ -419,12 +421,12 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
   /**
    * Le palier ne se contente pas d'être une porte : son infobulle DIT sa composition. Sans cette
    * mesure, `difficultyParts` pourrait être vide/tronqué et le déclencheur resterait vert — le
-   * joueur lirait « Très difficile » sans jamais savoir de quoi c'est fait.
+   * joueur lirait « Très Difficile » sans jamais savoir de quoi c'est fait.
    */
   it('l’INFOBULLE du palier énumère les circonstances qui le composent', () => {
     const v = renderAttack({ ranged: true, fog: true, location: 'tete' });
     const pop = infobulle(v);
-    expect(pop, 'l’instance lue à l’écran ouvre l’infobulle').toContain('Très difficile (−30)');
+    expect(pop, 'l’instance lue à l’écran ouvre l’infobulle').toContain('Très Difficile (−30)');
     expect(pop, 'la règle qui plafonne est nommée').toContain('Combiner les Difficultés');
     expect(pop).toContain('−20 Brouillard');
     expect(pop).toContain('−20 Localisation visée');

@@ -10,230 +10,170 @@ import { EXEMPTS } from '../../data/schemas/exposition-derivee';
 /**
  * Gel de FORME du Codex + cliquet de PROVENANCE (#1467 L1b V-CODEX).
  *
- * Le registre projette une catégorie par entrée des tables ci-dessous (`CLES` les gèle une à une —
- * un compte recopié dans cette prose se périme au premier lot, il l'était déjà). À V-CODEX,
- * l'adoption du défaut d'enveloppe (`depuisEnveloppe`) ne changeait RIEN à l'écran ; à T3 (#1472)
- * elle SURFACE ce que la donnée portait déjà, chaque delta étant déclaré au compte dans `T3_DELTAS`.
- * Cinq mesures, aucune n'étant un dump des items :
+ * Le registre projette une catégorie par entrée des tables ci-dessous. Aucune mesure ne porte un id,
+ * un compte ou une liste d'entrées : ajouter une donnée de forme connue ne fait rougir aucune d'elles
+ * (#2995). Cinq mesures, aucune n'étant un dump des items :
  *
- *  1. CLÉS — le gel STRICT : pour chaque catégorie, le hash de `<id>|<clés triées>` ITEM PAR ITEM.
- *     Aucune valeur n'est filtrée : une clé posée à `undefined`/`null` compte comme présente. C'est
- *     la seule mesure qui voit un item perdre ou gagner une clé.
- *  2. FORME — l'UNION des clés par catégorie, à but de DIAGNOSTIC lisible. Elle ne voit PAS un item
- *     isolé qui gagne une clé que ses voisins portent déjà : c'est (1) qui l'attrape.
- *  3. T3_DELTAS — le COMBIEN : par catégorie, le nombre d'items exposant `desc`/`source`, plus la
- *     TAILLE de la table. (1) et (2) voient les clés, pas la population qui les porte.
+ *  1. CLÉS — pour chaque catégorie, le hash de l'ensemble des FORMES d'item distinctes (clés triées).
+ *     Aucune valeur n'est filtrée : une clé posée à `undefined`/`null` compte comme présente. Une forme
+ *     qui apparaît ou disparaît fait rougir ; un item de plus à une forme connue, jamais.
+ *  2. FORME — l'UNION des clés par catégorie, à but de DIAGNOSTIC lisible. Ni (1) ni (2) ne voient un
+ *     item isolé qui gagne ou perd une clé qu'une autre forme porte déjà : ce qui compte de cet angle,
+ *     que la provenance de la donnée arrive à l'item, c'est (5) qui l'attrape.
+ *  3. ANGLE MORT DE (5) — les catégories que le mapping déduit n'atteint pas (Critiques, nichés dans
+ *     leur document-table ; cargaisons, tableaux partiels) : chaque item y porte les champs déclarés.
  *  4. CANAL UNIQUE — la provenance passe par `source`, jamais par un fait de `meta` intitulé
  *     « Source » : le canal en double se lit à l'écran, aucune mesure de forme ne l'attrape.
  *     Son second volet gèle la VALEUR : tout `source.book` projeté est une ABRÉVIATION du
  *     catalogue `books`, jamais l'id brut qu'un site oubliant `src()` laisserait passer.
- *  5. PROVENANCE — hors vocabulaire interne explicitement exempté, pour chaque entrée portant `source` ou `desc`, l’item Codex
+ *  5. PROVENANCE — pour chaque entrée de `src/data/*.json` portant `source` ou `desc`, hors vocabulaire
+ *     que son def déclare interne à l'application (`EXEMPTS`, `exposition-derivee.ts`), l'item Codex
  *     de MÊME id doit les porter aussi. Le mapping dataset→catégorie est DÉDUIT (inclusion des ids),
  *     jamais une table à maintenir ; son ANGLE MORT (les tableaux qu'aucune catégorie ne couvre
  *     ENTIÈREMENT) est lui-même gelé, cf. `PARTIELS`/`ORPHELINS`.
  *
  * Régénérer les baselines : mesurer `CODEX` avec le même calcul que `clesDe`/`formeDe`/le corps du
  * test de provenance, et recopier les tables ci-dessous. Un écart NON VOULU se lit catégorie par
- * catégorie ; un écart VOULU (lot T3) se re-gèle avec sa raison dans le message de commit.
+ * catégorie ; un écart VOULU se re-gèle avec sa raison dans le message de commit.
  */
 
 const DATA_DIR = resolve(__dirname, '../../data');
 /** Les datasets de `src/data`, listés UNE fois — deux faits ci-dessous les relisent tous. */
 const DATASETS = listerDossier(DATA_DIR).filter((x) => x.endsWith('.json'));
 
-/**
- * sha256 (16 hex) de `<id>|<clés triées>` par item, jointes par \n — gel STRICT clé par clé.
- *
- * #1690 (correctifs du lot 3) : `depuisEnveloppe` projette désormais `maison` — l'arbitrage d'une
- * entrée qu'aucun folio n'imprime, jusque-là présent en donnée et muet à l'écran. 15 catégories
- * gagnent la clé sur 102 items (talents 9, axes 9, trappings 2, etats 1, symptoms 1, creatures 1,
- * traits 3, activities 8, structures 2, terrains 25, crewRoles 7, navalTraits 3, traumas 2,
- * criticalsJambe 1, reglesOptionnelles 28) : empreintes CLES et FORME recalées à la MESURE ; après le
- * rebase sur a6c963419 (train #1612 du tronc : Mendier), `effectTables` porte à son tour un `maison`
- * de premier rang → 16 catégories, empreintes de `activities`/`reglesOptionnelles`/`effectTables` mesurées.
- * `axes` y entre par une correction : sa projection était écrite à la main (`{ id, label, desc }`)
- * et court-circuitait le défaut d'enveloppe — l'invariant du bas de fichier l'a dénoncée.
- *
- * #1693 : un item dont l'`appearance` est un FRAGMENT porté projette `previewPorteur` — l'espèce du
- * porteur sur lequel il se prévisualise, déclarée par la catégorie (`porteurDApercu`). La clé ne se pose
- * QUE sur un item à fragment : `mutations` la gagne (FORME et CLES recalées à la MESURE), `traits` et
- * `psychologie` (même projection `traitItem`, à qui chaque catégorie passe SA clé) ne portent aucune
- * `appearance` en donnée — aucun de leurs items ne gagne la clé, CLES et FORME les gèlent sans elle.
- */
+/** sha256 (16 hex) de l'ensemble des formes d'item distinctes (clés triées) d'une catégorie. */
 const CLES: Record<string, string> = {
-  "arcanePhenomena": '68318e5ed9e81981',
-  "advancementCosts": '3fca5e9752e2dfab',
-  "disponibilite": '5bf0efe0e06d3102',
-  "sizes": '0a5b3b9c8f918a21',
-  "drivingMishap": '92fe6cc379b80542',
-  "drunkenness": '66aa24947d6ad160',
-  "encumbranceTiers": '065c74037364ee01',
-  "riverNavigation": '34c199b39cb4cf6a',
-  "grapple": '56b4ee72800485aa',
-  "miscastMinor": '3dc24773d14f1b94',
-  "miscastMajor": '416a3aa0219e8f4e',
-  "miscastWrath": '3da49a322927f1e7',
-  "nightStakes": '79447a698a535c8d',
-  // #1595 (2026-10-12) : +1 item `sea-degagement-debris` (MDG 13 l.487-491), l’empêtrement dans des Débris marins.
-  // #1595 (2026-10-12) : +1 item `sea-salissures` (MDG 13 l.148) ; `sea-overspeed` resourcé (MDG 13 l.121-142, p.105).
-  // #2533 (2026-10-09) : +2 items `land-peril` (LDB 51 l.208) et `land-peril-table` (LDB 51 l.210-221), les deux dés des péripéties.
-  "voyageStakes": '9df85225dd31b27d',
-  // #1920 B14 (2026-09-24) : −2 items (`recover-*` sur l'État), `sub` retiré.
-  // #700 (2026-10-05) : +1 item `perception-detect` (LDB 09 l.399), la découverte d'une porte secrète.
-  "flowStakes": 'd76691316e92b11c',
-  "combatStakes": '14a1a6b01990ab3b',
-  "races": '0728d04812275962',
-  "careers": '128ef2031ede96cd',
-  "characteristics": '532e47bfff4a9328',
-  "classes": '67fd1dcccf18c04c',
-  "stars": '4603d87c66f77bb2',
-  "skills": '7938829857c61067',
-  "talents": 'ea025260f80f752b',
-  "axes": '30e5605961af8d47',
-  "trappings": '711648dd06d431df',
-  "siegeEngines": 'a7d8202fa83a7827',
-  "weaponGroups": 'cf4eb9c47b2e73f0',
-  "qualities": '61b2f19869aadceb',
-  "etats": '7e64eca6c569f24e',
-  "maladies": '25e48bb168ea15e0',
-  "symptoms": 'f903df541e9b7ff5',
-  "mutations": 'bd3a933e0e43e9fd',
-  // #2948
-  "materials": '557cc47f1fd6db47',
-  "mutationTables": '0d6e17a2d2e12dca',
-  // #1612 : la table MAISON `mendier-ennuis` entre au dataset, et sa rangée de gardes porte l'AMENDE
-  // (op `money` à `Formula`, rendue par `opRows` comme toute autre op de rangée).
-  "effectTables": 'd20de6db72702b5d',
-  // #1765 : la manœuvre neuve `pietinement` entre, avec ses clés `ecartDeTailleMin`, `subType`, `damage`,
-  // `stake`, `stakeForm` — empreinte recalée à la MESURE ; FORME inchangée.
-  "maneuvers": 'b260da1b777da91e',
-  "psychologie": '2287ac1af26a59cb',
-  "domains": '4e7ed40a32f916d6',
-  // #1897 : 54 sorts du livre fan fusionnés dans l'entrée qui les double (ids retirés), 4 créés, et
-  // 52 entrées absorbantes gagnent `alsoIn` — empreinte recalée à la MESURE.
-  "spells": 'a5cea4643778e1ce',
-  "gods": 'd49beaef5ebba230',
-  "ventsTourbillonnants": '9a979156867c5f47',
-  // +1 : Chien de trait, EDOC 07 folio 22, #673.
-  "creatures": '55ac5c9b9846e8ec',
-  "traits": '8931be750818442f',
-  "locations": '53ca311b61c2a3f1',
-  "books": 'e0e3db4c3a333c83',
-  "careerLevels": '6f86fed09e1f4a98',
-  "eyes": 'd51e8a821203257f',
-  "hairs": 'f2f80b790111b030',
-  "calendarMonths": 'c4cec6a132a2bdb7',
-  "calendarIntercalary": '804a8d45d962e7d1',
-  "calendarWeekdays": '3eecf2c30bb67099',
-  "calendarPhases": '283caef56b8e1f4f',
-  "weather": '72364e50cea97c29',
-  "weatherConditions": '71dd66544ecbcbe1',
-  "raceAppearance": '90eb8b747119d31f',
-  "pregens": 'e33b6fca9b473190',
-  "oups": 'ad42edcb2ed4c50f',
-  "interludeEvents": '8c753b6a35cf9665',
-  "peripeties": 'baa2fbf2541f7bd8',
-  // #1612 : l'Activité Mendier entre au dataset, et la section « Issues par Degrés de Réussite » REND
-  // désormais les ops de chaque bande (primitive `opRows` — chips codex-liées + `rollTable` expansé)
-  // là où elle n'en imprimait que le COMPTE (« N op(s) sur le Personnage »).
-  // #1595 S8 : `pratiquer-competence` porte un `maison` (liste `freeSkill` par défaut, EDOC 8 l.172) — recalée à la MESURE.
-  "activities": 'd1cb50d1c3cd514a',
-  "massBattlePowerEstimate": '82674e9e4786f386',
-  "massBattleMightModifiers": '8b5e85f5fa1f537a',
-  "massBattleWarMachines": 'b77e9b7bc67a8d5b',
-  "massBattleStructures": 'c285c8dec9f7b877',
-  "massBattleHazards": 'e58c05b6a89d14d1',
-  "details": '1d94d0c95e00ff48',
-  // #1716 : catégorie NEUVE — les semences d'une scène neuve (objet unique `semences-de-scene.json`),
-  // même projection que `details` (un item, ses sections). Empreinte MESURÉE à son entrée.
-  "semencesDeScene": 'b0f469f176864315',
-  // #1789 : catégorie NEUVE — ce que le COMPILATEUR de scène pose quand l'auteur ne dit rien (objet
-  // unique `defauts-de-compilation.json`), même projection que sa jumelle `semencesDeScene` (un item,
-  // ses sections). Empreinte MESURÉE à son entrée.
-  "defautsDeCompilation": '2cf25f78c6cd4dbd',
-  "names": '8ab7649e0daf9e50',
-  // #1688 : `taille` + `maison` exigés sur les 24 structures (mesuré en donnée : `maison` 2 → 24,
-  // `taille` 0 → 24). La clé projetée qui bouge est `maison`, désormais portée par TOUS les items —
-  // `taille` entre par `meta`/`sections`, d'où une FORME inchangée. Empreinte recalée à la MESURE.
-  "structures": 'de0741d264020293',
-  "terrains": 'e542c259ce8b1e79',
-  // #1715 : les 7 types de bâtiment quittent le code pour `buildings.json` et entrent au Codex —
-  // empreinte MESURÉE, chaque item portant son `maison` (aucun folio n'imprime de catalogue de bâtiments).
-  "buildings": '90fe536489e3927b',
-  // #1595 corrb-3 : Barque et Chaland (LDB) fusionnés dans barque-fluviale et barge-fluviale, qui gagnent `alsoIn` et `desc` — empreinte MESURÉE.
-  "vehicles": 'c4bae7058909c685',
-  "celestialHouses": '0507cb49e07e8336',
-  // #680 (2026-09-29) : 2 Groupes NEUFS (`source` + `maison`) et la catégorie adopte
-  // `depuisEnveloppe` — sa projection écrite à la main (`{ id, label }`) taisait les deux. Empreinte MESURÉE.
-  "groups": 'f5f6e5916ca9349b',
-  "psychologies": 'a85f35c0a34172ef',
-  "seaShanties": '2bf96225710afb8c',
-  "crewRoles": '3d3b869cae4ba90e',
-  "crewTestTypes": '9ecd7be284174851',
-  // Empreinte recalculée (#1657 B3-2b-a) : le Trait naval `cale` entre au catalogue (MSRC 07 l.94
-  // gate le Critique de Superstructure dessus ; MSRC 10 l.90 le dit du navire marchand).
-  "navalTraits": '895d6c4f58df9a3e',
-  // NEUF (#1657 B3-2b-a) : catalogue FERMÉ des 5 présences à bord que les livres nomment.
-  "shipStations": '4fd49982faa44987',
-  "traumas": '3c0c6175299715b2',
-  "criticalsTete": '2f3e4405abc1be31',
-  "criticalsBras": '2888f3a0f39b49c1',
-  "criticalsCorps": 'cf02a7f4d323f141',
-  "criticalsJambe": '21835c6fa04f0a56',
-  "aaCriticalsTete": '18319705d4737a23',
-  "aaCriticalsBras": '59d82c2f7781002b',
-  "aaCriticalsCorps": '2ac41e2426b49db6',
-  "aaCriticalsJambe": 'd3a85697179f2d46',
-  "incidentsMonture": '245d13bec4d29c6b',
-  "problemesVehicule": 'be08717e5cb4e005',
-  "rencontresPositives": '005516ea5d3b70fd',
-  "rencontresFortuites": '7b04e3f65ef2ea8d',
-  "rencontresDangereuses": '0446e754073bdbbe',
-  "shipCriticalsCargaison": '31dffdc825bb5aac',
-  "shipCriticalsGreement": 'b3cb30a563bfd78d',
-  "shipCriticalsCoque": '50423b525fae7d8c',
-  "shipCriticalsAvirons": 'ac4815f65c3877aa',
-  "shipCriticalsEquipements": 'd0041160c877c84f',
-  "riverCriticalsGreement": '61d1e2547e056ad7',
-  "riverCriticalsAvirons": '69f70586f60d36d4',
-  "riverCriticalsGouvernail": 'f6fb5f2042e0aa4d',
-  "riverCriticalsCoque": 'df77f1ed19fe476c',
-  "riverCriticalsSuperstructure": '764a4347e01ffe06',
-  "seaManannFactors": '15fa1d9ae623dc94',
-  "seaBoardEvents": 'afb87b2336226c2d',
-  "seaPortEvents": '09ed8dec3c9e98e0',
-  "waterExposure": 'e4ceeca1e943d0cd',
-  "navalPorts": '73b923d02e3c9d73',
-  "navalProgression": '2291cebbdc91ae10',
-  "shipHullSizes": 'f527a8d6b518ea36',
-  "shipSpeedTraits": 'cf53c1c384e11f8f',
-  "shipConstructionTraits": '364e4dec54ddf769',
-  "seaNavigation": '83821f8854de4594',
-  "seaPerils": '71176a2d80f34467',
-  "seaWeather": '1c4ce48945ff48e0',
-  "montures": '753bb5df6cb62fd3',
-  "tavernGames": '8abef4f4ee68acfc',
-  "obsessions": '335a5d95e4a39469',
-  // #1599 : +`maladie-conscience-determination-minutes` (LDB 20 l.170, durée maison).
-  // #1612 : +5 règles `param` de l'Activité Mendier (heures par journée, discours, apparence, chance
-  // d'être surpris, amende des gardes) — LDB 09 l.97/l.99 n'en chiffre aucune.
-  // #700 (2026-10-05) : +4 règles maison — `porte-secrete-rayon-m`, `chute-tombant-non-debout`,
-  // `fenetre-suspension`, `fouille-piece-minutes`.
-  // #1595 (2026-10-12) : +1 item `sea-salissures-difficulty` (maison, MDG 13 l.148).
-  "reglesOptionnelles": '02464c302a53f5dd',
-  "surincantation": '561218369ab9cdfd',
-  "structureCriticals": '84e0df29c1ae4e21',
-  "artilleryMisfire": 'aa3ad3238b5356f8',
-  "landCargo": '283fcb2118d143fa',
-  "seaCargo": '7bb115dc3fd7550a',
-  "riverPerils": 'cb3eb25215968d32',
-  "crewMoraleFactors": '91a12d65f9274e14',
-  "crewMoraleBands": '817ce48b209e1729',
-  "steamBreakdowns": '0241598713ede3cd',
-  // #1595 (2026-10-12) : +2 items `degagement-debris-marins` (MDG 13 l.487-491) et `salissures-navire` (MDG 13 l.148-159), les règles des enjeux `sea-degagement-debris` et `sea-salissures`.
-  // #2533 (2026-10-18) : +1 item `peripeties-de-voyage` (LDB 51 l.208), la règle des enjeux `land-peril` et `land-peril-table`.
-  // #1173 (2026-10-18) : +2 items `saut` (LDB 15 l.74-76) et `corrompu` (LDB 19 l.66-70), les fiches des Tests nommés de leur règle.
-  "regles": '84733b8e9fbc7966',
+  "arcanePhenomena": '886ec722aaecdd8b',
+  "advancementCosts": '865800cac699c951',
+  "disponibilite": 'be7be9a901f0f010',
+  "sizes": '8617635e65741ec9',
+  "drivingMishap": 'ed935a21da6026cc',
+  "drunkenness": 'a51735b3d8064fc7',
+  "encumbranceTiers": '7ec365878940bd8f',
+  "riverNavigation": 'c36032d40e3c6576',
+  "grapple": 'be7be9a901f0f010',
+  "miscastMinor": '73266016a0d1fdd2',
+  "miscastMajor": '73266016a0d1fdd2',
+  "miscastWrath": '73266016a0d1fdd2',
+  "nightStakes": '379df048977ddf91',
+  "voyageStakes": '379df048977ddf91',
+  "flowStakes": '379df048977ddf91',
+  "combatStakes": '3f2728177225d7f2',
+  "races": '090b503dc034548c',
+  "careers": '4a1e1257849261cb',
+  "characteristics": '8f583e09b7e35f6e',
+  "classes": '379df048977ddf91',
+  "stars": '8f583e09b7e35f6e',
+  "skills": '8f583e09b7e35f6e',
+  "talents": 'de6ae6078edd292d',
+  "axes": 'c5ccf60afbeb7d87',
+  "trappings": '603115f165e3cb6c',
+  "siegeEngines": 'b3582e558e2c6a8a',
+  "weaponGroups": '15b1ab79bf407e8a',
+  "qualities": '3f2728177225d7f2',
+  "etats": '57a6bfb12a966af1',
+  "maladies": '8f583e09b7e35f6e',
+  "symptoms": '57a6bfb12a966af1',
+  "mutations": '14efb19a1299ec2f',
+  "materials": '5e54bf1063ade837',
+  "mutationTables": '15b1ab79bf407e8a',
+  "effectTables": '0efad77909a216b4',
+  "maneuvers": '8f583e09b7e35f6e',
+  "psychologie": '8d61fe8ff86828dc',
+  "domains": '0979002853c5dd7a',
+  "spells": '8f583e09b7e35f6e',
+  "gods": '8ef65740e30ca4c5',
+  "ventsTourbillonnants": 'cc7975018f78a439',
+  "creatures": 'd395e55f45ebbd79',
+  "traits": '9a093506fbe77ca8',
+  "locations": '7cadf9f2dd12544f',
+  "books": '07b120469c3198ea',
+  "careerLevels": '5501677f8f8939bf',
+  "eyes": '15b1ab79bf407e8a',
+  "hairs": '15b1ab79bf407e8a',
+  "calendarMonths": '8d0caf6fd088004a',
+  "calendarIntercalary": '8d0caf6fd088004a',
+  "calendarWeekdays": 'bbf72cb62b75aad4',
+  "calendarPhases": '06f42ede145518a6',
+  "weather": '8d0caf6fd088004a',
+  "weatherConditions": '632aa0a2a519310f',
+  "raceAppearance": 'bbe20fc5f0a09aea',
+  "pregens": '4d948e61d0850dcc',
+  "oups": '865800cac699c951',
+  "interludeEvents": 'd8970b82531d0dd6',
+  "peripeties": 'd8970b82531d0dd6',
+  "activities": '603115f165e3cb6c',
+  "massBattlePowerEstimate": '632aa0a2a519310f',
+  "massBattleMightModifiers": '632aa0a2a519310f',
+  "massBattleWarMachines": '7ec365878940bd8f',
+  "massBattleStructures": '7ec365878940bd8f',
+  "massBattleHazards": 'd8970b82531d0dd6',
+  "details": '8617635e65741ec9',
+  "semencesDeScene": '8617635e65741ec9',
+  "defautsDeCompilation": '8617635e65741ec9',
+  "names": 'a98fa4eded20b737',
+  "structures": '3cfcbcc97343fd44',
+  "terrains": 'ccbd49ae53a50267',
+  "buildings": '7b343ef76a1171dd',
+  "vehicles": 'bdfb8a6b68d945e1',
+  "celestialHouses": 'd8970b82531d0dd6',
+  "groups": '95aff48bfd7137c0',
+  "psychologies": '379df048977ddf91',
+  "seaShanties": '787b0cd98af7f936',
+  "crewRoles": 'b5e5a374b03e8f25',
+  "crewTestTypes": 'c36032d40e3c6576',
+  "navalTraits": 'c95dd6aa4d6baad5',
+  "shipStations": '632aa0a2a519310f',
+  "traumas": 'a7ad957d8671f158',
+  "criticalsTete": '8f583e09b7e35f6e',
+  "criticalsBras": '8f583e09b7e35f6e',
+  "criticalsCorps": '8f583e09b7e35f6e',
+  "criticalsJambe": '5837eb6693a3d9e3',
+  "aaCriticalsTete": '8f583e09b7e35f6e',
+  "aaCriticalsBras": '8f583e09b7e35f6e',
+  "aaCriticalsCorps": '8f583e09b7e35f6e',
+  "aaCriticalsJambe": '8f583e09b7e35f6e',
+  "incidentsMonture": 'a51735b3d8064fc7',
+  "problemesVehicule": 'a51735b3d8064fc7',
+  "rencontresPositives": 'a51735b3d8064fc7',
+  "rencontresFortuites": 'a51735b3d8064fc7',
+  "rencontresDangereuses": 'a51735b3d8064fc7',
+  "shipCriticalsCargaison": 'a51735b3d8064fc7',
+  "shipCriticalsGreement": 'a51735b3d8064fc7',
+  "shipCriticalsCoque": 'a51735b3d8064fc7',
+  "shipCriticalsAvirons": 'a51735b3d8064fc7',
+  "shipCriticalsEquipements": 'a51735b3d8064fc7',
+  "riverCriticalsGreement": 'a51735b3d8064fc7',
+  "riverCriticalsAvirons": 'a51735b3d8064fc7',
+  "riverCriticalsGouvernail": 'a51735b3d8064fc7',
+  "riverCriticalsCoque": 'a51735b3d8064fc7',
+  "riverCriticalsSuperstructure": 'a51735b3d8064fc7',
+  "seaManannFactors": '7ec365878940bd8f',
+  "seaBoardEvents": 'd8970b82531d0dd6',
+  "seaPortEvents": 'd8970b82531d0dd6',
+  "waterExposure": '787b0cd98af7f936',
+  "navalPorts": '029671927d6cb344',
+  "navalProgression": 'd8970b82531d0dd6',
+  "shipHullSizes": 'c36032d40e3c6576',
+  "shipSpeedTraits": '7ec365878940bd8f',
+  "shipConstructionTraits": '7ec365878940bd8f',
+  "seaNavigation": 'be7be9a901f0f010',
+  "seaPerils": '379df048977ddf91',
+  "seaWeather": 'c36032d40e3c6576',
+  "montures": 'fc072dd256014b9b',
+  "tavernGames": '632aa0a2a519310f',
+  "obsessions": '06f42ede145518a6',
+  "reglesOptionnelles": '1c5ecb5575a73f57',
+  "surincantation": '865800cac699c951',
+  "structureCriticals": 'ed935a21da6026cc',
+  "artilleryMisfire": 'ed935a21da6026cc',
+  "landCargo": '7ec365878940bd8f',
+  "seaCargo": 'bbf72cb62b75aad4',
+  "riverPerils": '8d0caf6fd088004a',
+  "crewMoraleFactors": 'd6999c398eb1da98',
+  "crewMoraleBands": '97b338e5362dfa4e',
+  "steamBreakdowns": '97b338e5362dfa4e',
+  "regles": '25fe3060daf41860',
 };
 
 /** Union des clés PRÉSENTES par catégorie (diagnostic lisible — un item isolé qui gagne une clé que
@@ -372,65 +312,23 @@ const FORME: Record<string, string> = {
   "regles": 'desc id label sections source',
 };
 
-/** #1472 T3 — LISTE NOMINATIVE DES DELTAS, gelée au compte. Chaque catégorie ci-dessous a adopté
- *  `depuisEnveloppe` : la valeur = le nombre d'items qui PORTENT le champ à l'écran aujourd'hui,
- *  le commentaire = le delta APPORTÉ par T3 (`+n` gagné, `-champ +n` : n items dont la clé posée à
- *  `undefined` devient ABSENTE — invisible au rendu). Une catégorie qui adopte le défaut SANS
- *  entrer ici fait rougir `CLES` ; un compte qui bouge fait rougir ce test-ci, nominativement. */
-const T3_DELTAS: Record<string, Record<string, number>> = {
-  "arcanePhenomena": { desc: 33, source: 41 }, // 41 items — T3 : source +8
-  "weaponGroups": { source: 38 }, // 38 items — T3 : source +38
-  "maladies": { desc: 18, source: 18 }, // 18 items — T3 : desc +16, source +16 ; +2 au trio #674/#672 (Pneumonie, Rhume commun — EDOC 08 folio 33)
-  "mutationTables": { source: 17 }, // 17 items — T3 : source +17
-  "gods": { desc: 40, source: 41 }, // 41 items — T3 : -desc +1
-  "careerLevels": { source: 432 }, // 432 items — T3 : source +432
-  "eyes": { source: 10 }, // 10 items — T3 : source +10
-  "hairs": { source: 10 }, // 10 items — T3 : source +10
-  "calendarMonths": { source: 12 }, // 12 items — T3 : source +12
-  "calendarIntercalary": { source: 6 }, // 6 items — T3 : source +6
-  "calendarWeekdays": { source: 8 }, // 8 items — T3 : source +8
-  "weather": { source: 4 }, // 4 items — T3 : source +4
-  "oups": { source: 8 }, // 8 items — T3 : source +8
-  "interludeEvents": { desc: 31, source: 31 }, // 31 items — T3 : source +31
-  "peripeties": { desc: 10, source: 10 }, // 10 items — T3 : source +10
-  "massBattlePowerEstimate": { desc: 5, source: 5 }, // 5 items — T3 : source +5
-  "massBattleMightModifiers": { desc: 9, source: 9 }, // 9 items — T3 : source +9
-  "massBattleWarMachines": { source: 10 }, // 10 items — T3 : source +10
-  "massBattleStructures": { source: 5 }, // 5 items — T3 : source +5
-  "massBattleHazards": { desc: 10, source: 10 }, // 10 items — T3 : source +10
-  "structures": { desc: 19, source: 24 }, // 24 items — T3 : -desc +5, source +24
-  "crewRoles": { desc: 9, source: 2 }, // 9 items — T3 : source +2
-  "crewTestTypes": { source: 10 }, // 10 items — T3 : source +10
-  "traumas": { desc: 29, source: 29 }, // 29 items — T3 : source +29
-  "criticalsTete": { desc: 20, source: 20 }, // 20 items — T3 : source +20
-  "criticalsBras": { desc: 20, source: 20 }, // 20 items — T3 : source +20
-  "criticalsCorps": { desc: 20, source: 20 }, // 20 items — T3 : source +20
-  "criticalsJambe": { desc: 20, source: 20 }, // 20 items — T3 : source +20
-  "aaCriticalsTete": { desc: 20, source: 20 }, // 20 items — T3 : source +20
-  "aaCriticalsBras": { desc: 20, source: 20 }, // 20 items — T3 : source +20
-  "aaCriticalsCorps": { desc: 20, source: 20 }, // 20 items — T3 : source +20
-  "aaCriticalsJambe": { desc: 20, source: 20 }, // 20 items — T3 : source +20
-  "seaManannFactors": { source: 26 }, // 26 items — T3 : source +26
-  "seaBoardEvents": { desc: 40, source: 40 }, // 40 items — T3 : source +40
-  "seaPortEvents": { desc: 18, source: 18 }, // 18 items — T3 : source +18
-  // 82 items (81 + la fenêtre de conscience par Détermination, #1599) — T3 : source +54.
-  // #1612 : 82 → 87 items, `source` INCHANGÉ à 54 — les 5 règles `param` de l'Activité Mendier sont
-  // MAISON : `LDB 09 l.97/l.99` ne chiffre aucune de leurs valeurs (partition XOR de
-  // `regles-optionnelles-partition.test.ts`), leur folio se lit dans `ref` et n'ancre rien.
-  // #700 (2026-10-05) : 87 → 91 items, `source` INCHANGÉ à 54 — les 4 règles maison de #700, cf. `CLES`.
-  // #1595 (2026-10-12) : 91 → 92 items, `source` INCHANGÉ à 54 — `sea-salissures-difficulty` MAISON (MDG 13 l.148).
-  "reglesOptionnelles": { desc: 93, source: 54 },
-  "landCargo": { source: 7 }, // 7 items — T3 : source +7
-  "seaCargo": { source: 11 }, // 11 items — T3 : source +11
-  "riverPerils": { source: 4 }, // 4 items — T3 : source +4
-  "crewMoraleFactors": { desc: 28, source: 28 }, // 28 items — T3 : source +28
-  "crewMoraleBands": { desc: 4, source: 4 }, // 4 items — T3 : desc +4, source +4
-  "steamBreakdowns": { desc: 6, source: 6 }, // 6 items — T3 : source +6
-  "groups": { source: 2 }, // 40 items — #680 (2026-09-29) : source +2, les 2 Groupes neufs
+/** ANGLE MORT de la PROVENANCE : catégories dont la donnée échappe au mapping déduit — les Critiques
+ *  (rangées nichées dans un document-table, `criticals.json#0` en `ORPHELINS`) et les cargaisons
+ *  (`land-cargo.json#0`, `sea-cargo.json#0` en `PARTIELS`). Chaque item y porte les champs déclarés. */
+const PORTES_HORS_MAPPING: Record<string, readonly ('desc' | 'source')[]> = {
+  criticalsTete: ['desc', 'source'],
+  criticalsBras: ['desc', 'source'],
+  criticalsCorps: ['desc', 'source'],
+  criticalsJambe: ['desc', 'source'],
+  aaCriticalsTete: ['desc', 'source'],
+  aaCriticalsBras: ['desc', 'source'],
+  aaCriticalsCorps: ['desc', 'source'],
+  aaCriticalsJambe: ['desc', 'source'],
+  landCargo: ['source'],
+  seaCargo: ['source'],
 };
 /** Cliquet POSITIF DÉCROISSANT : catégories dont ≥1 item DÉFAUSSE une `source`/`desc` que la donnée
- *  porte. VIDÉ par #1472 T3 (39 catégories → 0) : sur les 115 tableaux appariés, plus AUCUN item ne
- *  tait ce que sa donnée porte. Le gel à vide est l'assertion : une projection qui redroppe un champ
+ *  porte (#1472 T3). Plus AUCUN item apparié ne tait ce que sa donnée porte. Le gel à vide est l'assertion : une projection qui redroppe un champ
  *  repeuple cette table et rougit, nominativement. Ne JAMAIS y réinscrire une catégorie. */
 const MUETS: Record<string, number> = {};
 
@@ -475,7 +373,7 @@ const ORPHELINS: string[] = [
 ];
 
 const clesDe = (items: readonly object[]): string =>
-  createHash('sha256').update(items.map((i) => `${(i as { id: string }).id}|${Object.keys(i).sort().join(',')}`).join('\n')).digest('hex').slice(0, 16);
+  createHash('sha256').update([...new Set(items.map((i) => Object.keys(i).sort().join(',')))].sort().join('\n')).digest('hex').slice(0, 16);
 
 function formeDe(items: readonly object[]): string {
   const k = new Set<string>();
@@ -494,7 +392,7 @@ function tableauxIdentifies(v: unknown, out: Record<string, unknown>[][] = []): 
 }
 
 describe('Codex — défaut d’enveloppe (#1467 L1b)', () => {
-  it('les CLÉS de chaque item sont celles gelées (aucune clé n’apparaît ni ne disparaît, valeur comprise)', () => {
+  it('les FORMES d’item de chaque catégorie sont celles gelées (aucune n’apparaît ni ne disparaît)', () => {
     const mesure: Record<string, string> = {};
     for (const c of CODEX) mesure[c.key] = clesDe(c.items);
     expect(mesure).toEqual(CLES);
@@ -506,19 +404,14 @@ describe('Codex — défaut d’enveloppe (#1467 L1b)', () => {
     expect(mesure).toEqual(FORME);
   });
 
-  it('#1472 T3 : chaque catégorie qui expose desc/source le fait pour le NOMBRE d’items déclaré', () => {
-    const mesure: Record<string, Record<string, number>> = {};
-    for (const c of CODEX) {
-      const n: Record<string, number> = {};
-      for (const k of ['desc', 'source'] as const) {
-        const compte = c.items.filter((i) => k in i).length;
-        if (compte) n[k] = compte;
-      }
-      if (T3_DELTAS[c.key]) mesure[c.key] = n;
+  it('ANGLE MORT de la provenance : chaque item des catégories hors mapping porte ses champs déclarés', () => {
+    const manques: string[] = [];
+    for (const [cle, champs] of Object.entries(PORTES_HORS_MAPPING)) {
+      const c = CODEX.find((x) => x.key === cle);
+      if (!c) { manques.push(`${cle}: catégorie absente du Codex`); continue; }
+      for (const i of c.items) for (const k of champs) if (!(k in i)) manques.push(`${cle}/${i.id}: ${k}`);
     }
-    expect(mesure).toEqual(T3_DELTAS);
-    // La TAILLE est gelée à part : une catégorie retirée de la table sortirait sinon du filtre en silence.
-    expect(Object.keys(T3_DELTAS)).toHaveLength(43);
+    expect(manques).toEqual([]);
   });
 
   it('la PROVENANCE a UN seul canal : `source`, jamais un fait de méta intitulé « Source »', () => {
@@ -538,9 +431,8 @@ describe('Codex — défaut d’enveloppe (#1467 L1b)', () => {
     expect(bruts).toEqual([]);
   });
 
-  it('le vocabulaire interne explicitement exempté ne constitue pas une dette de provenance', () => {
+  it('le vocabulaire interne déclaré au def ne constitue pas une dette de provenance', () => {
     expect([...PARTIELS, ...ORPHELINS].filter((cle) => EXEMPTS[cle.split('#')[0]]?.kind === 'vocabulaire-app-interne')).toEqual([]);
-    expect(EXEMPTS['apparences.json']?.kind).toBe('vocabulaire-app-interne');
   });
 
   it('PROVENANCE : un item dont la donnée porte source/desc les porte au Codex — et l’angle mort du mapping est gelé', () => {

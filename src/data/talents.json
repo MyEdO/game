@@ -490,26 +490,6 @@
           "page": 36,
           "note": "ADE II 02 l.919"
         }
-      },
-      {
-        "id": "foret",
-        "label": "Forêt",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 138,
-          "note": "frenchy.bzh 26 l.335"
-        },
-        "pool": false
-      },
-      {
-        "id": "marais",
-        "label": "Marais",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 134,
-          "note": "frenchy.bzh 26 l.239"
-        },
-        "pool": false
       }
     ],
     "rand": null,
@@ -2392,26 +2372,6 @@
       {
         "id": "suivants-du-chaos",
         "label": "Suivants du Chaos"
-      },
-      {
-        "id": "ennemis-de-sigmar",
-        "label": "Ennemis de Sigmar",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 89,
-          "note": "frenchy.bzh 22 l.526"
-        },
-        "pool": false
-      },
-      {
-        "id": "ennemis-d-ulric",
-        "label": "Ennemis d’Ulric",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 92,
-          "note": "frenchy.bzh 22 l.608"
-        },
-        "pool": false
       },
       {
         "id": "cultistes",
@@ -4408,56 +4368,6 @@
           "page": 36,
           "note": "ADE II 02 l.927"
         }
-      },
-      {
-        "id": "bandits",
-        "label": "Bandits",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 44,
-          "note": "frenchy.bzh 15 l.181"
-        },
-        "pool": false
-      },
-      {
-        "id": "betes-sauvages",
-        "label": "Bêtes Sauvages",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 196,
-          "note": "frenchy.bzh 36 l.156"
-        },
-        "pool": false
-      },
-      {
-        "id": "nains",
-        "label": "Nains",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 356,
-          "note": "frenchy.bzh 55 l.223"
-        },
-        "pool": false
-      },
-      {
-        "id": "naufrageurs-et-pirates-fluviaux",
-        "label": "Naufrageurs & Pirates Fluviaux",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 51,
-          "note": "frenchy.bzh 16 l.185"
-        },
-        "pool": false
-      },
-      {
-        "id": "patrouilleurs",
-        "label": "Patrouilleurs",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 168,
-          "note": "frenchy.bzh 28 l.145"
-        },
-        "pool": false
       }
     ],
     "rand": null,
@@ -4715,16 +4625,6 @@
       {
         "id": "voies-fluviales",
         "label": "Voies fluviales"
-      },
-      {
-        "id": "local",
-        "label": "Local",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 126,
-          "note": "frenchy.bzh 25 l.142"
-        },
-        "pool": false
       }
     ],
     "rand": null,
@@ -4860,62 +4760,6 @@
           "book": "zoo-imperial",
           "page": 35,
           "note": "ZI 04 l.44"
-        },
-        "pool": false
-      },
-      {
-        "id": "armee",
-        "label": "Armée",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 30,
-          "note": "frenchy.bzh 13 l.128"
-        },
-        "alsoIn": [
-          {
-            "book": "frenchy-bzh",
-            "page": 64,
-            "note": "frenchy.bzh 19 l.105",
-            "quote": "Étiquette (Militaires)"
-          }
-        ],
-        "pool": false
-      },
-      {
-        "id": "lettres",
-        "label": "Lettrés",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 58,
-          "note": "frenchy.bzh 18 l.32"
-        },
-        "pool": false
-      },
-      {
-        "id": "cultes",
-        "label": "Cultes",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 77,
-          "note": "frenchy.bzh 22 l.163"
-        },
-        "alsoIn": [
-          {
-            "book": "frenchy-bzh",
-            "page": 150,
-            "note": "frenchy.bzh 26 l.688",
-            "quote": "Étiquette (Religieux)"
-          }
-        ],
-        "pool": false
-      },
-      {
-        "id": "skavens",
-        "label": "Skavens",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 339,
-          "note": "frenchy.bzh 53 l.109"
         },
         "pool": false
       },

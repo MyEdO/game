@@ -1,22 +1,16 @@
-// COLLECTIONS À COMPTE (#2705) : les stocks dont chaque entrée porte un COMPTE d'occurrences
-// (`occurrences`), déclarés UNE fois ici — leur porteur (fichier de stock), leur nom, l'identité de site d'une entrée, sa
-// MESURE dans le corpus scanné, et la CIBLE qui solde une hausse. Les contrats
-// (`src/data/structures-contrat.test.ts`, `src/data/slots-contrat.test.ts`), l'écrivain
-// (`scripts/guards/occurrences-structures.mts`) et la porte de plage (`scripts/guards/comptes-plage.mts`)
-// lisent cette liste.
+// VOLETS DE LA PORTE DES COMPTES (#2705, #3021) : ce que juge `refusDesComptes` (`scripts/guards/lib/corpusDesComptes.mts`),
+// déclaré UNE fois ici — le nom d'un volet, l'identité d'un site, son compte, la CIBLE qui solde une naissance ou une
+// hausse, et le juge propre d'un PLANCHER (`refus`). Chaque volet se mesure sur le CODE seul (defs, grammaire, `OP_DEFS`,
+// `Source/`) : ajouter ou retirer une donnée n'en fait bouger aucun (#2995). La dette que seule la donnée révèle n'est pas
+// ici : elle est INVENTORIÉE (`scripts/guards/lib/inventaireDeDette.mts`). Les COLLECTIONS À COMPTE sont les volets dont un
+// stock porte le compte ; leur contrat est `src/data/structures-contrat.test.ts`, l'écrivain de leurs baisses
+// `scripts/guards/occurrences-structures.mts`.
 import { analyserTexte, typescript } from './dialecte.mjs'
-import { CHAMP_D_OCCURRENCE, ecartsDeStock, refusDeCroissance } from './stock.mjs'
+import { CHAMP_D_OCCURRENCE, SEPARATEUR_DE_REMEDE, cleDeSite, ecartsDeStock, refusDeCroissance } from './stock.mjs'
 import { MOTIF_DECROISSANT } from './stockDeSites.mjs'
-import { ciblesDuSite } from '../../docs/lib/structures-lexique.mts'
 import { SOURCE_FORMAT } from '../../raw/check-source-format.mjs'
 import { PORTEURS } from './porteursDesComptes.mjs'
 
-export const siteDeForme = (f) => `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature}`
-export const siteDeSlot = (s) => `${s.dataset} | ${s.champ}`
-/** Le détail d'une divergence d'enveloppe qui en dit l'IDENTITÉ (la classe d'un `type divergent`) ; celui d'une
- *  `cible partielle` est un ratio de comptes, hors identité. */
-const detailIdentitaire = (e) => (e.motif === 'cible partielle' || !e.detail ? '' : `:${e.detail}`)
-export const siteDEnveloppe = (e) => `${e.role} | ${e.cle} | ${e.motif}${detailIdentitaire(e)} | ${e.document} › ${e.chemin}`
 const siteDeRedeclaration = (r) => `${r.def} | ${r.champ} | ${r.concept} | ${r.signature} | ${r.statut} | ${r.commun}`
 
 /** Le compte d'une entrée de collection à compte. */
@@ -24,22 +18,6 @@ export const occurrencesDe = (e) => e.occurrences
 
 /** La commande qui écrit les BAISSES mesurées. */
 export const COMMANDE_D_ECRITURE = 'node scripts/lancer-local.mjs tsx -- tsx scripts/guards/occurrences-structures.mts --write'
-
-const cibleDeForme = (_cle, f) => {
-  const cibles = ciblesDuSite(f.concept, f.dataset, f.champ)
-  return cibles.length
-    ? `Migrer ce site vers une forme CIBLE du lexique (${cibles.map((c) => `\`${c}\``).join(', ')} ; scripts/docs/lib/structures-lexique.mts).`
-    : 'Aucune cible déclarée à ce site : décider la cible (lexique + `STRUCTURES_CIBLES`) ou bloquer le lot sur sa migration.'
-}
-
-/**
- * Une op observée est une DETTE de L1c (#1468) quand son payload n'est pas typé — op de `OPS_NON_TYPEES`, ou
- * op que `OP_DEFS` ne connaît pas — ou quand, typée, elle porte une référence À PLAT là où la cible l'emboîte :
- * une clé de sa signature que `typage.aPlat` déclare feuille `idDe` du payload. `typage` = les ops de `OP_DEFS`,
- * `OPS_NON_TYPEES` et `aPlat` (`refsAPlat`, `corpusDesComptes.mts`) du schéma mesuré. PURE.
- */
-export const estDetteDOp = (o, { types, nonTypees, aPlat }) =>
-  !types.includes(o.op) || nonTypees.includes(o.op) || o.signature.split(',').some((k) => aPlat[o.op]?.includes(k) ?? false)
 
 /** Les redéclarations de l'AST des defs (`scannerRedeclarations`), comptées par identité. */
 function redeclarationsComptees(redeclarations) {
@@ -53,42 +31,139 @@ function redeclarationsComptees(redeclarations) {
 }
 
 /**
- * Les collections à compte. `mesure` lit le CORPUS `{ scan, sansSlot, inatteignables, redeclarations, typage }`
- * (`corpusDesComptes`, `scripts/guards/lib/corpusDesComptes.mts`) ; `site` est l'identité d'une entrée hors
- * compte et hors pilotage ; `cible` la phrase de la voie qui solde une hausse de ce site.
+ * Les collections à compte. `mesure` lit le CORPUS `{ redeclarations }` (`corpusDesComptes`,
+ * `scripts/guards/lib/corpusDesComptes.mts`) ; `site` est l'identité d'une entrée hors compte et hors pilotage ;
+ * `cible` la phrase de la voie qui solde une hausse de ce site.
  */
 export const COLLECTIONS_A_COMPTE = Object.freeze([
-  { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_FORMES', site: siteDeForme, cible: cibleDeForme,
-    mesure: ({ scan }) => scan.formes.filter((f) => f.statut === 'historique' || f.statut === 'divergente') },
-  { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_OPS', site: (o) => `${o.op} | ${o.signature} | ${o.dataset}`,
-    cible: () => 'Migrer la signature vers la cible L1c : union discriminée d’`OP_DEFS`, refs EMBOÎTÉES (`gameOpSchema`, src/data/schemas/grammaire/mecanique.ts).',
-    mesure: ({ scan, typage }) => scan.ops.filter((o) => estDetteDOp(o, typage)) },
-  { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_HOMONYMES', site: (h) => h.cle,
-    cible: () => 'Migrer : un nom de concept est RÉSERVÉ à son type (#1463 S2), la valeur hors concept change de clé.',
-    mesure: ({ scan }) => scan.homonymes.map((h) => ({ cle: h.cle, classes: h.classes, occurrences: h.total })) },
-  { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_ENVELOPPE', site: siteDEnveloppe,
-    cible: () => 'Migrer : l’enveloppe porte sa clé CIBLE (`ROLES_ENVELOPPE`, scripts/docs/lib/structures-lexique.mts) — L1b #1467, L1d #1469.',
-    mesure: ({ scan }) => scan.enveloppe.map((e) => ({ ...e, occurrences: e.entrees })) },
   { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_REDECLARATIONS', site: siteDeRedeclaration,
     cible: (_cle, r) => `Migrer : composer ${r.commun ? `\`${r.commun}\`` : 'le nœud commun'} de la grammaire (src/data/schemas/grammaire/) au lieu de le re-taper.`,
     mesure: ({ redeclarations }) => redeclarationsComptees(redeclarations) },
-  { porteur: PORTEURS.STRUCTURES, nom: 'STRUCTURES_ORPHELINES', site: (o) => `${o.dataset} | ${o.champ} | ${o.signature}`,
-    cible: () => 'Migrer : un nom de concept est RÉSERVÉ à son type (#1463 S2) — la clé qui annonce une référence porte une référence qui résout, ou change de nom.',
-    mesure: ({ scan }) => scan.orphelines },
-  { porteur: PORTEURS.SLOTS, nom: 'SLOTS_SANS_DECLARATION', site: siteDeSlot,
-    cible: () => 'Migrer : adopter la fabrique `ref`/`refs`/`specRef`/`pick` (`idDe`) sur le schéma du champ.',
-    mesure: ({ sansSlot }) => sansSlot },
-  { porteur: PORTEURS.SLOTS, nom: 'SLOTS_INATTEIGNABLES', site: siteDeSlot,
-    cible: () => 'Migrer : la référence se pose en chaîne, pour qu’une case de l’occurrence la porte (`ANGLES_MORTS_SLOTS`).',
-    mesure: ({ inatteignables }) => inatteignables },
 ].map((c) => Object.freeze(c)))
+
+/** Le motif d'un site de `DETTE_OPS` dont le payload n'est pas typé (`OPS_NON_TYPEES`). */
+export const MOTIF_NON_TYPEE = 'non typée'
+/** Le motif d'un site de `DETTE_OPS` dont la clé `cle` du payload est une feuille `idDe` À PLAT (`refsAPlat`). */
+export const motifAPlat = (cle) => `à plat:${cle}`
+
+/** Le volet DETTE_OPS (L1c #1468) : un site par op de `OPS_NON_TYPEES` et un par couple (op, clé) de `refsAPlat(OP_DEFS)`,
+ *  mesurés par `sitesDeDetteDOps` (`corpusDesComptes.mts`). */
+export const DETTE_OPS = Object.freeze({
+  nom: 'DETTE_OPS',
+  site: (o) => `${o.op} | ${o.motif}`,
+  nombre: () => 1,
+  cible: (_cle, o) => (o.motif === MOTIF_NON_TYPEE
+    ? 'Typer le payload de l’op dans `OP_DEFS` et la retirer d’`OPS_NON_TYPEES` (src/data/schemas/grammaire/mecanique.ts).'
+    : 'Emboîter la référence du payload (`skill: {id, spec}`, `OP_DEFS`, src/data/schemas/grammaire/mecanique.ts).'),
+})
+
+/** Le volet DETTE_ENVELOPPE (L1d #1469) : un site par type de `CONTENU_A_SOURCER` (`src/data/schemas/grammaire/sans-livre.ts`),
+ *  dont la provenance se mesure sans que la fabrique l'exige, mesuré par `sitesDEnveloppeASourcer` (`corpusDesComptes.mts`). */
+export const DETTE_ENVELOPPE = Object.freeze({
+  nom: 'DETTE_ENVELOPPE',
+  site: (e) => e.type,
+  nombre: () => 1,
+  cible: () => 'Sourcer le document et retirer son type de `CONTENU_A_SOURCER` (src/data/schemas/grammaire/sans-livre.ts) : la fabrique exige alors sa provenance.',
+})
+
+const cibleDeFeuille = () =>
+  'Rendre au chemin sa feuille `idDe` : une référence se pose par la fabrique (`ref`/`refs`/`specRef`/`pick`, src/data/schemas/grammaire/ref.ts), jamais en chaîne nue.'
+
+/**
+ * Le PLANCHER FEUILLES_D_ID : chaque chemin de schéma de document et son état (`cheminsDeDocument`,
+ * `structuresLocales.mts`). Il TIENT ses chemins `idDe` ; il CÈDE quand un chemin `idDe` à la base est encore un chemin du
+ * schéma de la tête et n'y est plus `idDe` (`libre` ou `ferme`) : une alternative d'union qui admet une valeur libre rend
+ * son chemin `libre` (`admisDe`). Un chemin né, disparu ou gagné ne cède rien. Règle CONSERVATRICE : ajouter sous un
+ * chemin `idDe` une alternative, même légitime, qui admet une valeur libre refuse ; aucune ligne de message ne l'admet,
+ * seul un renommage du chemin passe. Une baisse de son DÉTECTEUR se justifie par `FAUX-POSITIF:`
+ * (`baissesDuDetecteur`, `corpusDesComptes.mts`).
+ */
+export const FEUILLES_D_ID = Object.freeze({
+  nom: 'FEUILLES_D_ID',
+  site: cleDeSite,
+  nombre: () => 1,
+  cible: cibleDeFeuille,
+  plancher: Object.freeze({
+    tient: (e) => e.etat === 'idDe',
+    cede: (avant, apres) => {
+      const tete = new Map(apres.map((e) => [cleDeSite(e), e]))
+      return avant.filter((e) => e.etat === 'idDe' && tete.has(cleDeSite(e)) && tete.get(cleDeSite(e)).etat !== 'idDe')
+        .map((e) => `${cleDeSite(e)}${SEPARATEUR_DE_REMEDE}feuille \`idDe\` RELÂCHÉE : le chemin n’est plus \`idDe\` à la tête (\`${tete.get(cleDeSite(e)).etat}\`). ${cibleDeFeuille()} Aucune ligne de message ne l’admet.`)
+    },
+  }),
+})
+
+/** L'EMPREINTE de champs `[clé, type]` : `clé:type` triés, joints par `,` ; `champsDEmpreinte` la relit. PURE. */
+export const empreinteDeChamps = (champs) => champs.map(([cle, type]) => `${cle}:${type}`).sort().join(',')
+/** Les `clé:type` d'une EMPREINTE de site (`empreinteDeChamps`). PURE. */
+const champsDEmpreinte = (empreinte) =>
+  new Map(empreinte.split(',').filter(Boolean).map((c) => [c.slice(0, c.lastIndexOf(':')), c.slice(c.lastIndexOf(':') + 1)]))
+
+/** L'empreinte `ne` ÉTEND `disparu` : chaque clé du disparu au même type, chaque clé en plus optionnelle. PURE. */
+function etend(ne, disparu) {
+  const [n, d] = [champsDEmpreinte(ne), champsDEmpreinte(disparu)]
+  return [...d].every(([k, t]) => n.get(k) === t) && [...n].every(([k, t]) => d.has(k) || t === 'optional')
+}
+
+/** Un nom de branche NON discriminée dans une clé de site (`nomDeBranche`, `structuresLocales.mts`). */
+const BRANCHE_NON_DISCRIMINEE = /\|\{[^}]*\}/g
+/** `ref` privée, tour à tour, de chacun de ses noms de branche non discriminée. PURE. */
+const sansUneBranche = (ref) =>
+  [...ref.matchAll(BRANCHE_NON_DISCRIMINEE)].map((m) => `${ref.slice(0, m.index)}\u0000${ref.slice(m.index + m[0].length)}`)
+/** Deux clés qui ne diffèrent que par le nom d'UNE branche non discriminée. PURE. */
+function uneBrancheRenommee(a, b) {
+  const deA = new Set(sansUneBranche(a))
+  return sansUneBranche(b).some((x) => deA.has(x))
+}
+
+/**
+ * Les RENOMMAGES d'un site de structure entre `base` et `tete` (entrées mesurées, avec leur `empreinte`) : la clé
+ * (`cleDeSite`) de chaque site NÉ apparié à un site DISPARU du même document (`fichier`), (i) d'empreinte identique, sinon (ii) dont la
+ * clé ne diffère que par le nom d'UNE branche non discriminée et dont l'empreinte ÉTEND la sienne. Chaque disparu
+ * s'apparie une fois. PURE.
+ */
+export function renommagesDeStructure(base, tete) {
+  const [avant, apres] = [new Set(base.map(cleDeSite)), new Set(tete.map(cleDeSite))]
+  const disparus = base.filter((e) => !apres.has(cleDeSite(e)))
+  const nes = tete.filter((e) => !avant.has(cleDeSite(e)))
+  const pris = new Set()
+  const apparies = new Set()
+  const regles = [(n, d) => n.empreinte === d.empreinte, (n, d) => uneBrancheRenommee(n.ref, d.ref) && etend(n.empreinte, d.empreinte)]
+  for (const regle of regles) {
+    for (const n of nes) {
+      if (apparies.has(cleDeSite(n))) continue
+      const d = disparus.find((x) => !pris.has(x) && x.fichier === n.fichier && regle(n, x))
+      if (d === undefined) continue
+      pris.add(d)
+      apparies.add(cleDeSite(n))
+    }
+  }
+  return apparies
+}
+
+/** Le volet des STRUCTURES LOCALES (#3012) : un site par nœud de schéma, sans compte, mesuré par `sitesDeStructure`
+ *  (`structuresLocales.mts`) ; un site né que `renommages` apparie à un disparu n'est pas une naissance. */
+export const STRUCTURES_LOCALES = Object.freeze({
+  porteur: PORTEURS.STRUCTURES_LOCALES,
+  nom: 'STRUCTURES_LOCALES',
+  site: cleDeSite,
+  nombre: () => 1,
+  cible: (_cle, e) => (e.classe === 'D5'
+    ? 'Typer le nœud : un `z.unknown()`, `z.any()` ou `z.custom()` ne valide rien.'
+    : 'Composer un nœud PARTAGÉ de la grammaire (src/data/schemas/grammaire/) au lieu d’une structure locale au def.'),
+  renommages: renommagesDeStructure,
+})
 
 /**
  * Tout ce que juge la PORTE DES COMPTES (`jugerLesComptes`, `scripts/guards/lib/corpusDesComptes.mts`) : les collections
- * à compte, comptées par `occurrencesDe`, et le volet `SOURCE_FORMAT` (`scripts/raw/check-source-format.mjs`). Chaque
- * porteur est l'un de `PORTEURS_SOUS_LA_PORTE` (`porteursDesComptes.mjs`).
+ * à compte, comptées par `occurrencesDe`, les volets `DETTE_OPS` et `DETTE_ENVELOPPE`, le plancher `FEUILLES_D_ID`, le
+ * volet `STRUCTURES_LOCALES` et le volet `SOURCE_FORMAT` (`scripts/raw/check-source-format.mjs`). Un volet à stock nomme
+ * son porteur, l'un de `PORTEURS_SOUS_LA_PORTE` (`porteursDesComptes.mjs`).
  */
-export const SOUS_LA_PORTE = Object.freeze([...COLLECTIONS_A_COMPTE.map((c) => Object.freeze({ ...c, nombre: occurrencesDe })), SOURCE_FORMAT])
+export const SOUS_LA_PORTE = Object.freeze([
+  ...COLLECTIONS_A_COMPTE.map((c) => Object.freeze({ ...c, nombre: occurrencesDe })),
+  DETTE_OPS, DETTE_ENVELOPPE, FEUILLES_D_ID, STRUCTURES_LOCALES, SOURCE_FORMAT,
+])
 
 /** Les collections à compte par nom. */
 export const COLLECTIONS_A_COMPTE_PAR_NOM = Object.freeze(Object.fromEntries(COLLECTIONS_A_COMPTE.map((c) => [c.nom, c])))

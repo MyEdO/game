@@ -8,6 +8,8 @@ import { combatTestPenalty } from '../../engine/conditions';
 import { testValue, rawCombatTestBase, skillBaseValue } from '../../engine/skills';
 import { clampTarget, evaluateTest, rollTest } from '../../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../../engine/types';
+import { ligneDe } from '../../engine/modLine.testkit';
+import { refLabel } from '../../data';
 
 /**
  * LIGNE des étapes produites par le canal `triggeredTest` (#1153 L3) — les quatre producteurs de ce
@@ -152,9 +154,10 @@ describe('G3 — la ligne d’une étape MONO s’explique en entier', () => {
     const st = simpleTriggeredTestStep(c, FT, BRANCHES, EMPTY_FLOW, 'difficile')!;
     expect(st.difficulty).toBe('difficile');
     // La chip d'État est NOMMÉE par son entité (`combatTestPenaltyParts`), jamais un −10 anonyme.
-    const etat = (st.mods ?? []).filter((m) => m.value === combatTestPenalty(c) && combatTestPenalty(c) !== 0);
-    expect(etat.length, 'la pénalité d’État doit apparaître en ligne nommée').toBeGreaterThan(0);
-    expect(etat[0].label, 'la chip porte le nom de son entité').toBeTruthy();
+    const etat = ligneDe(st.mods, { category: 'etats', id: 'sonne' });
+    expect(combatTestPenalty(c)).not.toBe(0);
+    expect(etat?.value, 'la pénalité d’État doit apparaître en ligne nommée').toBe(combatTestPenalty(c));
+    expect(etat!.label, 'la chip porte le nom de son entité').toBe(refLabel('etats', { id: 'sonne' }));
     // `inexplique` est la grandeur que le réconciliateur de `RollLine` rendrait en chip « autres »
     // (sonde `ui/RollLine.ANONYMES`) : à zéro, aucune ligne anonyme ne peut naître de cette étape.
     expect(inexplique(st)).toBe(0);

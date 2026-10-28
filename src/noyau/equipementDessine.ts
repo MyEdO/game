@@ -4,9 +4,11 @@
  * chez chaque dessinateur et consomme cette projection.
  */
 import type { ArmourPoints, Combatant, HitLocation, ItemInstance, Weapon } from '../engine/types';
-import { emptyArmour, apparencesCandidates, choisirApparenceDObjet, isCapeItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type SourceDeForme, type TrappingResolver, isShieldItem } from '../engine/items';
+import { emptyArmour, apparencesCandidates, deciderApparencesDesArmes, isCapeItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type SourceDeForme, type TrappingResolver, isShieldItem } from '../engine/items';
 import { armourFromTraits, renderWeaponsFromTraits, weaponFromId } from '../engine/creatureEquip';
-import type { TraitList } from '../engine/statEntry';
+import type { TraitInstance } from '../engine/statEntry';
+import { traitsDeLIndividu } from './monde/spawn';
+import type { TraitPose } from '../data/schemas/grammaire/reference';
 import type { EntityAppearance } from '../engine/authoringAppearance';
 import { findCreatureById } from '../data';
 import { idsDeLaSousListe } from '../data/schemas/grammaire/ref';
@@ -150,18 +152,6 @@ function armesRangees(c: Combatant, maniement: ContexteDeManiement): Weapon[] {
   });
 }
 
-/** #2967 */
-export function deciderApparencesDesArmes(resolveTrapping: TrappingResolver, weapons: Weapon[], override: Pick<EntityAppearance, 'apparencesObjets'> | undefined, creatureId: string | undefined, instances: readonly ItemInstance[] = []): void {
-  const auteur = override?.apparencesObjets;
-  const record = findCreatureById(creatureId)?.appearance?.apparencesObjets;
-  const uids = new Set(instances.map((i) => i.uid));
-  for (const w of weapons) {
-    if (!w.trappingId || (w.uid !== undefined && uids.has(w.uid))) continue;
-    const apparence = auteur?.[w.trappingId] ?? record?.[w.trappingId];
-    if (apparence !== undefined) choisirApparenceDObjet(w, apparence, resolveTrapping);
-  }
-}
-
 /** Équipement DESSINÉ d'un combattant : ses armes tenues et rangées, ses pièces portées — sinon, armure de
  *  statbloc déclarée portée (`armurePorteeDe`), les pièces synthétisées de ses PA (`synthArmour`) —, sa cape. */
 export function equipementDessine(c: Combatant): EquipCtx {
@@ -177,16 +167,23 @@ export function equipementDessine(c: Combatant): EquipCtx {
 export interface EquipementDAuteur extends Pick<EntityAppearance, 'armurePortee' | 'apparencesObjets'> {
   /** Arme d'authoring (`trappingId`). */
   weapon?: string;
-  traits?: TraitList;
+  traits?: readonly TraitPose[];
   armour?: number;
+  /** Id du porteur (l'entité de scène) : ses fourchettes de Trait se tirent comme à son spawn. */
+  porteur?: string;
   /** Membre d'une rencontre : porte les ARMES des traits de son record (parité avec `creatureToCombatant`). */
   enrolled?: boolean;
 }
 
+/** Traits du porteur d'auteur, statbloc d'éditeur sinon record, tirés pour lui comme à son spawn
+ *  (`traitsDeLIndividu`). */
+const traitsDeLEntite = (ref: string | undefined, opts: EquipementDAuteur): TraitInstance[] =>
+  traitsDeLIndividu(opts.traits ?? findCreatureById(ref)?.traits ?? [], opts.porteur ?? ref ?? '');
+
 /** Armes du porteur d’auteur : traits explicites ou d’une entité enrôlée, puis arme équipée
  *  si son type n’est pas déjà représenté (`spawn.ts`, #126/#145). */
 export function armesDEntite(resolveTrapping: TrappingResolver, ref: string | undefined, opts: EquipementDAuteur = {}): Weapon[] {
-  const traits = opts.traits ?? findCreatureById(ref)?.traits ?? [];
+  const traits = traitsDeLEntite(ref, opts);
   const traitWeapons = renderWeaponsFromTraits(opts.traits || opts.enrolled ? traits : [], resolveTrapping);
   const idWeaponInst = opts.weapon ? weaponFromId(opts.weapon, resolveTrapping) : undefined;
   const idWeapon = idWeaponInst && !traitWeapons.some((w) => w.type === idWeaponInst.type) ? [idWeaponInst] : [];
@@ -197,7 +194,7 @@ export function armesDEntite(resolveTrapping: TrappingResolver, ref: string | un
 
 /** Équipement dessiné du porteur d’auteur (#2948). */
 export function equipementDEntite(resolveTrapping: TrappingResolver, ref: string | undefined, opts: EquipementDAuteur = {}): EquipCtx {
-  const traits = opts.traits ?? findCreatureById(ref)?.traits ?? [];
+  const traits = traitsDeLEntite(ref, opts);
   const armourPA: ArmourPoints = opts.armour != null ? emptyArmour(opts.armour) : armourFromTraits(traits);
   return equipDe(armesDEntite(resolveTrapping, ref, opts), synthArmour(armourPA, armurePorteeDe(opts, ref)));
 }

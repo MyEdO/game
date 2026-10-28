@@ -146,7 +146,7 @@ function especeManquante(espece: string, sujet: string | undefined, faute: strin
   if (import.meta.env?.DEV) diagOnce(`bodyPlan:manquant:${sujet ?? diagSubject()}:${espece}`, () => console.error(`[bodyPlan] « ${sujet ?? (diagSubject() || '(sans réf)')} » : ${faute}`));
   return { kind: 'plan', plan: 'manquant', species: espece, scale: 1 };
 }
-export function resolveRender(species: string | undefined, traits: import('../../engine/statEntry').TraitList | undefined, idOrName: string | undefined): RenderResolution {
+export function resolveRender(species: string | undefined, traits: import('../../engine/statEntry').TraitsDesignes | undefined, idOrName: string | undefined): RenderResolution {
   // Véhicule À COQUE → gabarit routé par la PROPULSION (`hull.propulsion`), DATA-DRIVEN. Prioritaire (un
   // nom de véhicule ne tombe pas sur la résolution créature). Navire (mer/fleuve) : l'ID de véhicule pilote
   // la silhouette (art de coque `SHIP_ARTS`, id sans art dédié → repli VISIBLE `orientedArtOr`/#223),

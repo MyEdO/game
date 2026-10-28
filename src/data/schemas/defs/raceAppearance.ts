@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { paletteDEspeceSchema, sexeSchema, surchargePaletteSchema } from '../grammaire/valeurs';
 import { SLOTS } from '../../palette.types';
-import { idDe } from '../grammaire/ref';
+import { ref } from '../grammaire/ref';
 import { surchargeDeGabaritSchema } from './gabarits';
 
 export const file = 'raceAppearance.json';
@@ -19,7 +19,7 @@ const doc = document(
   'raceAppearance',
   famille,
   {
-    gabarit: idDe('gabarit'),
+    gabarit: ref('gabarit'),
     gabaritOverride: surchargeDeGabaritSchema.optional(),
     palette: paletteDEspeceSchema.optional(),
     paletteF: paletteDEspeceSchema.optional(),

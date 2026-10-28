@@ -12,8 +12,7 @@
  * l.61`, fenêtre `ResolveWindow`), qui ne suspend que l'ÉTAT nommé (`suppressedCondition`).
  *
  * LIMITE MESURÉE : seules les sources qui s'ANNONCENT (`PassiveMod.src`) sont suspendables. Les
- * séquelles, la Faim, la Soif et l'Ivresse émettent SANS `src` (`engine/trauma.ts`) — rien ne les
- * suspend par ce canal.
+ * séquelles émettent SANS `src` (`engine/trauma.ts`) — rien ne les suspend par ce canal.
  */
 import type { Combatant, ActiveEffect } from './types';
 import type { Duration } from './duration';

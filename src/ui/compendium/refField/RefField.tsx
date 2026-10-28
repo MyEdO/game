@@ -69,6 +69,8 @@ export const REF_FIELD: Record<string, RefFieldCfg> = {
   chaosSpells: { ds: 'spells' },
   qualities: { ds: 'qualities', value: true },
   grantsManeuvers: { ds: 'maneuvers' },
+  // Atouts d'une Structure de siège : réfs NUES de Trait (`ref('trait')`, ADE II 8), sans Indice ni pose.
+  'structures.traits': { ds: 'traits' },
   // ── single (dataset réel) ───────────────────────────────────────────────────
   'trappings.subType': { ds: 'weaponGroups', single: true },
   'careers.class': { ds: 'classes', single: true },
@@ -428,10 +430,14 @@ function ListeDeSuggestions({ id, suggestions }: { id: string; suggestions: read
 
 /** Saisie LIBRE à suggestions : `<input list>` + sa `<datalist>` (une par instance, `useId`), une option
  *  par suggestion, ou la datalist PARTAGÉE d'un champ (`useSuggestionsPartagees`) ; `suggestions`
- *  absentes, un `<input>` nu. La saisie brute s'émet telle quelle. */
+ *  absentes, un `<input>` nu. La saisie brute s'émet telle quelle. `onValider` : la fin de la saisie
+ *  (blur, Entrée), pour le porteur qui tient sa frappe en BROUILLON (`SaisieEnBrouillon`). */
 export function SaisieSuggeree(
-  { suggestions, value, onChange, ariaLabel, invalide, describedBy }:
-  Accessibilite & { suggestions?: readonly string[] | SuggestionsPartagees; value: string; onChange: (v: string) => void },
+  { suggestions, value, onChange, onValider, ariaLabel, invalide, describedBy, placeholder }:
+  Accessibilite & {
+    suggestions?: readonly string[] | SuggestionsPartagees; value: string; onChange: (v: string) => void;
+    onValider?: () => void; placeholder?: string;
+  },
 ) {
   const dlId = useId();
   const propres = Array.isArray(suggestions) ? suggestions as readonly string[] : undefined;
@@ -439,9 +445,10 @@ export function SaisieSuggeree(
   return (
     <>
       <input
-        list={liste} value={value}
+        list={liste} value={value} placeholder={placeholder}
         aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy}
-        onChange={(e) => onChange(e.target.value)} />
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onValider} onKeyDown={onValider && ((e) => { if (e.key === 'Enter') onValider(); })} />
       {propres && <ListeDeSuggestions id={dlId} suggestions={propres} />}
     </>
   );

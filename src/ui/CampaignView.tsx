@@ -6,6 +6,7 @@ import { findActionById } from '../data/index';
 import { actionGate, runAction } from '../noyau/actionRegistry';
 import { actorIn, inBattleId } from '../noyau/monde/combatants';
 import { sceneNpc } from '../noyau/monde/sceneNpc';
+import { refusDeSauvegarde } from '../noyau/persistance/save';
 import type { IconIdInput } from './icons';
 import { ciblageEntiteArme } from '../noyau/targetingModes';
 import { MondeDeCampagne } from '../gameIso/stage/MondeDeCampagne';
@@ -67,6 +68,7 @@ import { useGamepad } from './useGamepad';
 import { lancerCampagne } from '../scenes/campaign';
 import { estNouveauPour } from '../noyau/monde/clues';
 import { presetPnjById } from '../state/campaignData';
+import { RetraitsDeChargement } from './RetraitsDeChargement';
 
 /** Défaite : dans une bataille de masse ou une scène, `dismissDefeat` ; sans scène, l'Arène se
  *  lance par le geste de « Lancer » (`lancerCampagne`, sans choix). Le refus de la porte vit le temps
@@ -137,6 +139,7 @@ export function CampaignView() {
   const povActive = useGame((s) => s.povActive);
   const battleClickEntity = useGame((s) => s.battleClickEntity);
   const netMode = useGame((s) => s.net.mode);
+  const refusSave = useGame((s) => refusDeSauvegarde(s, s.net.mySeat));
   const openRest = useGame((s) => s.openRest);
   const partyPos = useGame((s) => s.partyPos);
   // Offre de repos LÀ OÙ SE TIENT le groupe (zone d'auteur > scène > camp ; null = interdit).
@@ -272,10 +275,9 @@ export function CampaignView() {
         {/* Barre HUD supérieure : le menu ☰, le nom du LIEU et l'OBJECTIF — rien d'autre, en AUCUN
             mode (spec HUD combat § « Zone 11 ») : la date vit au menu ☰ et sur les écrans plein-champ
             (`ScreenMeta`), les ouvreurs d'écrans à l'extrémité droite du pont d'exploration hors
-            combat, sur le rail d'outils en combat. Sauvegarder : exploration seulement (refusée en
-            combat) et jamais l'invité (la save vit chez l'hôte). */}
+            combat, sur le rail d'outils en combat. Sauvegarder : sauf `refusDeSauvegarde`. */}
         <Row className="hud-topbar" align="start">
-        <GameMenu sceneName={scene?.label} time={gameTime} onQuit={() => setScreen('party')} onSaveLoad={mode === 'exploration' && netMode !== 'guest' ? () => setSaveOpen(true) : undefined} onEndSession={mode === 'exploration' && netMode !== 'guest' ? () => setSessionOpen(true) : undefined} />
+        <GameMenu sceneName={scene?.label} time={gameTime} onQuit={() => setScreen('party')} onSaveLoad={() => setSaveOpen(true)} refusDeSauvegarde={refusSave} onEndSession={() => setSessionOpen(true)} refusDeFinDeSeance={mode !== 'exploration' ? t('gameMenu.endSession.horsExploration') : netMode === 'guest' ? t('gameMenu.endSession.invite') : null} />
         {/* Lieu courant : premier étage de la pile — le nom de la scène se lit sur le HUD, sans ouvrir
             le menu. Sans nom authoré, aucune plaque (rien à annoncer). La MATIÈRE du nom est celle du
             chrome de nom (`CodexTitre`), posée sur le halo partagé des textes du monde nu. */}
@@ -322,6 +324,7 @@ export function CampaignView() {
             — `DialogueBox` ne porte pas de `.modal-overlay` (pas de voile plein écran), donc une
             modale système au-dessus resterait invisible/inatteignable sous elle sans cette garde. */}
         {saveOpen && !dialogue && <SaveLoadModal mode="save" onClose={() => setSaveOpen(false)} />}
+        {!dialogue && <RetraitsDeChargement />}
         {(sessionOpen || sessionEndOpen) && !dialogue && <SessionEndModal onClose={() => { setSessionOpen(false); closeSessionEnd(); }} />}
         <PartyDock heroes={dockHeroes} targeting={isTargeting} onOpen={onDockPortrait} onInspect={setInspectId} />
         {/* LA RANGÉE DU MONDE (#1848, `.stage-flot` — hud.css) : tout ce qui s'ancre AU BAS DU CHAMP

@@ -198,8 +198,8 @@ export const REGLES = Object.freeze([
   {
     motif: new RegExp(String.raw`^src/ui/creator/`),
     categorie: 'interface-wfrp',
-    raison: 'Assistant de création de personnage WFRP (draft, étapes, roue céleste).',
-    preuve: 'src/ui/creator/draft.ts imports engine/adresseDeCreation, careerSlots',
+    raison: 'Assistant de création de personnage WFRP (étapes, roue céleste).',
+    preuve: 'src/ui/creator/CharacterCreator.tsx imports ../../noyau/creation/brouillon, ../../engine/creation',
   },
   {
     motif: new RegExp(String.raw`^src/ui/jetProps/`),

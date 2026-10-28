@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { TRAITS } from './registry';
-import { parseTraitInstance, formatTrait } from './dispatch';
+import { formatTrait } from './dispatch';
 import type { TraitInstance } from '../statEntry';
 import { slugId } from '../../data/slug';
 
@@ -69,8 +69,6 @@ const COUVERT_AILLEURS = new Map<string, string>([
   ['Maladie', 'contraction post-combat (disease.ts — Lot D) ; arg = la maladie (rats/skavens : fievre-du-rongeur)'],
   ['Infecté', 'Blessure Purulente post-combat (disease.ts — Lot D)'],
   ['Corruption', 'exposition du groupe (corruptionFlow — Lot E)'],
-  // Invocation à la mort — op `summon` du Flow `onSlain`, moissonnée par notifySlain → summonFlow.applySummon
-  ['Charnier', 'death-spawn : 3d10 Zombies à la mort (op summon onSlain → resolveTriggerImpureOps/applySummon)'],
   // Reconstitution différée — op `scheduleRespawn` du Flow `onSlain` : programme la ré-invocation à
   // gameTime + d10 j (file scheduledEffects, horloge) ; fireScheduledEffects → applySummon ; précautions = cancelFlag.
   ['Gardien éternel', 'reconstitution d10 j si tué (op scheduleRespawn onSlain → resolveTriggerImpureOps → fireScheduledEffects/applySummon ; précautions = cancelFlag), #19'],
@@ -112,11 +110,6 @@ const JOURNAL_MJ = new Map<string, string>([
   // Traits ZI sans système support (desc verbatim, MJ).
   ['Fouissement', 'déplacement par creusement de tunnel — pas de système de fouissement (positionnement MJ)'],
   ['Déstabilisant', 'aura ZI : une créature Instable à proximité compte ses Avantages −2 en fin de Round — pas de système d’aura inter-créatures modélisé (MJ ; cf. Feu de Tzeentch)'],
-  // Traits homebrew frenchy.bzh — flavor d’aura/spawn sans système, desc verbatim.
-  // Aura de Mort : aura de LANCEMENT conditionnelle au DOMAINE (Nécromancie/Shyish + ; Ghyran/Hysh/Azyr −).
-  // Le câblage cast↔aura existe (cf. Aura de Dhar, DISPATCH) mais le GATING par Domaine du sort lancé n'est
-  // pas exprimable (skillDRBonus n'est pas conditionnel au Domaine) → reste à bâtir.
-  ['Aura de Mort', 'rayon 70 m : +DR Nécromancie/Shyish, −10 autres Domaines — gating par Domaine du cast à bâtir'],
   // Trait VDM sans SEAM de déclenchement — dette OUVERTE #862 (le dispatcher doit observer le TIERS) ;
   // la desc verbatim est affichée, rien n'est inventé. `raw.manifest.json` ne peut pas porter cette
   // dette : son intégrité (`validerDette`, scripts/raw/build-implemente.mjs) n'accepte qu'un topic
@@ -153,12 +146,6 @@ const DISPATCH = new Set<string>([
   // Redoutable (ZI) : Avantage min = Indice au début du tour — effet `onTurnStart` en donnée (op
   // topUpAdvantage, indice baké via withArg, gardé Empêtré/Surpris). Dispatché comme tout `effects`.
   'Redoutable',
-  // Aura de Dhar (frenchy-bzh 295 l.233 / 313 l.341) : DEUX entrées, une par dieu — le texte filtre les
-  // bénéficiaires par « de Slaanesh »/« de Nurgle » et n'a pas la même portée (10 m / 11 m). Aura
-  // `affectsGroups:[dieu]` + `includesSelf`, ops `skillDRBonus` Focalisation/Langue lues au lancement par
-  // `castTestTalentDR`. Dispatché (aura en donnée).
-  'Aura de Dhar (Slaanesh)',
-  'Aura de Dhar (Nurgle)',
   // Incantateur hasardeux (VDM 15 folio 214) : `effects` onRoundStart → op `rollTable` sur la table
   // référencée `vdm-incantateur-hasardeux-domaine` (tables.json). Dispatché comme tout `effects`. Le
   // gate RAW « lorsqu'il est attaqué » n'a pas de Trigger (aucun `onAttacked`) : la cadence retenue est
@@ -285,17 +272,6 @@ describe('parité — registre des Traits dérivé de traits.json', () => {
     }
     const dupes = [...seen.entries()].filter(([, n]) => n > 1).map(([l]) => l);
     expect(dupes).toEqual([]);
-  });
-
-  it('parseTraitInstance normalise Indice/argument/casse', () => {
-    expect(parseTraitInstance('Démoniaque 8+')).toEqual({ id: 'demoniaque', value: 8 });
-    expect(parseTraitInstance('Toile 40')).toEqual({ id: 'toile', value: 40 });
-    expect(parseTraitInstance('Immunité (Poison)')).toEqual({ id: 'immunite', arg: 'Poison' });
-    expect(parseTraitInstance('À Sang-froid').id).toBe('a-sang-froid'); // casse de la donnée ≠ id canonique
-    expect(parseTraitInstance('Vol 100')).toEqual({ id: 'vol', value: 100 });
-    expect(parseTraitInstance('Nuée').id).toBe('nuee');
-    expect(parseTraitInstance('Taille (Énorme)')).toEqual({ id: 'taille', arg: 'Énorme' });
-    expect(parseTraitInstance('Armure 4')).toEqual({ id: 'armure', value: 4 });
   });
 
   // La nature d'affichage est DÉRIVÉE de la donnée (jamais une liste en dur) :

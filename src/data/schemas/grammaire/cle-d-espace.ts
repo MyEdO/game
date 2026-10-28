@@ -6,6 +6,10 @@
  * `props.json?volume`). Les filtres sont les paramètres `espace` de la marque de la collection
  * (`grammaire/collection-cle.ts`) ; la table `IDS_PAR_ESPACE` (`_ids.generated.ts`) est keyée ici.
  *
+ * Deux formes de plus : `vocabulaire:<nom>`, l'espace d'un VOCABULAIRE du moteur
+ * (`grammaire/vocabulaires.ts`), qui n'est aucun document ; et le suffixe `!libellés`, l'espace des
+ * LIBELLÉS des éléments d'un espace (`!libellés=champ,…` : lus aux champs nommés, le premier non vide).
+ *
  * FEUILLE : aucun import exécutable (le type de la marque s'efface à la compilation) —
  * `grammaire/ref.ts` et `grammaire/idsVivants.ts` l'atteignent sans passer par les defs
  * (`idsVivants.ts`, en-tête).
@@ -22,15 +26,36 @@ export interface FiltreDEspace {
   readonly vaut?: string;
 }
 
-/** Une clé d'espace lue : son fichier, sa suite nichée (après `#`), son filtre (après `?`). */
+/** Une clé d'espace lue : son fichier, sa suite nichée (après `#`), son filtre (après `?`), et
+ *  `libelles` pour une clé de LIBELLÉS — les champs nommés, vide pour ceux que l'espace déclare. */
 export interface CleLue {
   readonly fichier: string;
   readonly niche?: string;
   readonly filtre?: FiltreDEspace;
+  readonly libelles?: readonly string[];
 }
 
 /** Caractères qu'un pas `[clé]`, une valeur de discriminant ou un marqueur ne portent jamais. */
-export const HORS_DE_LA_GRAPHIE = /[?=#]/;
+export const HORS_DE_LA_GRAPHIE = /[?=#!]/;
+
+/** Suffixe d'une clé de LIBELLÉS. */
+const SUFFIXE_DES_LIBELLES = '!libellés';
+
+/** Clé de l'espace des LIBELLÉS des éléments de l'espace `cle` : lus aux `champs` (le premier non vide),
+ *  ou, sans `champs`, là où l'espace les déclare (`lectureDeLEspace`). */
+export function cleDesLibelles(cle: string, champs?: readonly string[]): string {
+  return champs?.length ? `${cle}${SUFFIXE_DES_LIBELLES}=${champs.join(',')}` : `${cle}${SUFFIXE_DES_LIBELLES}`;
+}
+
+/** Préfixe de la clé d'un VOCABULAIRE du moteur. */
+const PREFIXE_DE_VOCABULAIRE = 'vocabulaire:';
+
+/** Clé de l'espace du vocabulaire `nom` (`grammaire/vocabulaires.ts`). */
+export const cleDuVocabulaire = (nom: string): string => `${PREFIXE_DE_VOCABULAIRE}${nom}`;
+
+/** Le nom du vocabulaire dont `fichier` est la clé, `undefined` si c'est un document. */
+export const vocabulaireDuFichier = (fichier: string): string | undefined =>
+  fichier.startsWith(PREFIXE_DE_VOCABULAIRE) ? fichier.slice(PREFIXE_DE_VOCABULAIRE.length) : undefined;
 
 /** Un PAS de suite nichée : un `champ`, l'élément `[clé]` d'une liste marquée, ou le `rang` (`[]`)
  *  d'un élément d'une liste non marquée. */
@@ -107,8 +132,20 @@ export function cleFiltree(base: string, filtre: FiltreDEspace): string {
   return filtre.vaut === undefined ? `${base}?${filtre.champ}` : `${base}?${filtre.champ}=${filtre.vaut}`;
 }
 
+/** La clé d'une lecture : l'inverse de `lireCleDEspace`. */
+export function cleDeLaLecture(lue: CleLue): string {
+  const cle = lue.filtre ? cleFiltree(baseDe(lue), lue.filtre) : baseDe(lue);
+  return lue.libelles ? cleDesLibelles(cle, lue.libelles) : cle;
+}
+
 /** Lecture d'une clé d'espace. */
 export function lireCleDEspace(cle: string): CleLue {
+  const l = cle.indexOf(SUFFIXE_DES_LIBELLES);
+  if (l >= 0) {
+    const suite = cle.slice(l + SUFFIXE_DES_LIBELLES.length);
+    if (suite !== '' && !suite.startsWith('=')) throw new Error(`clé d'espace « ${cle} » : « ${SUFFIXE_DES_LIBELLES} » suivi de « ${suite} ».`);
+    return { ...lireCleDEspace(cle.slice(0, l)), libelles: suite === '' ? [] : suite.slice(1).split(',') };
+  }
   const q = cle.indexOf('?');
   const base = q < 0 ? cle : cle.slice(0, q);
   const d = base.indexOf('#');
@@ -155,6 +192,28 @@ export function idsDeCollection(marque: MarqueDeCollection, valeur: unknown, fil
   if (filtre) throw new Error(`filtre « ${filtre.champ} » sur un record : un filtre d'espace ne se lit que sur une liste.`);
   const carte = carteDuRecord(marque, valeur);
   return estObjet(carte) ? Object.keys(carte) : [];
+}
+
+/** Le LIBELLÉ d'un élément : le premier de ses `champs` qui porte une chaîne non vide. SEUL lecteur, pour
+ *  un espace de libellés (`libellesDeCollection`) comme pour un id (`SPEC_SOURCES`, `src/data/index.ts`). */
+export function libelleDeLElement(el: Readonly<Record<string, unknown>>, champs: readonly string[]): string | undefined {
+  return champs.map((c) => el[c]).find((v): v is string => typeof v === 'string' && v !== '');
+}
+
+/**
+ * SEUL lecteur des LIBELLÉS d'une collection-LISTE marquée : pour chaque élément que `filtre` retient,
+ * le premier de ses `champs` qui porte une chaîne non vide, sans doublon, dans l'ordre de la donnée. Une
+ * collection-record ne porte aucun libellé : `undefined`.
+ */
+export function libellesDeCollection(marque: MarqueDeCollection, valeur: unknown, champs: readonly string[], filtre?: FiltreDEspace): string[] | undefined {
+  if (marque.forme !== 'liste') return undefined;
+  const libelles = new Set<string>();
+  for (const el of Array.isArray(valeur) ? valeur : []) {
+    if (!estObjet(el) || marque.de(el) === undefined || (filtre && !retenuParFiltre(filtre, el))) continue;
+    const libelle = libelleDeLElement(el, champs);
+    if (libelle !== undefined) libelles.add(libelle);
+  }
+  return [...libelles];
 }
 
 /** La CARTE d'un record marqué dans sa valeur : la valeur elle-même, ou son champ `sous`. Lue par

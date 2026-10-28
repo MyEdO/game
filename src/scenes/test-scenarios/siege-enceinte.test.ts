@@ -213,11 +213,11 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
     const b = useGame.getState().battle!;
-    const canonnier = b.combatants.find((c) => c.id === 'brg-canon')!; // brigand qui SERT le canon assaillant
+    const canonnier = b.combatants.find((c) => c.id === 'brg-canon')!; // mercenaire qui SERT le canon assaillant
     expect(canonnier.weapons.some((w) => w.type === 'ranged')).toBe(true); // pièce servie au spawn (poste de l'affût)
     // L'ARTILLERIE assaillante est un AFFÛT inerte rendu comme un ENGIN : espèce DÉRIVÉE de la ref (canon-petit),
-    // servi par le brigand → neutralisé en tuant l'équipage, pas en frappant l'affût.
-    const affutEnt = emplWithCrew('brg-canon'); // l'emplacement dont l'équipage est le brigand-canonnier
+    // servi par le mercenaire → neutralisé en tuant l'équipage, pas en frappant l'affût.
+    const affutEnt = emplWithCrew('brg-canon'); // l'emplacement dont l'équipage est le mercenaire-canonnier
     const affut = b.combatants.find((c) => c.id === affutEnt.id)!;
     expect(affut.inert).toBe(true);
     expect(affut.bodyShape).toBe('engin');
@@ -328,7 +328,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     expect(servingCrewPresent(cataCrew, b.combatants)).toBeGreaterThanOrEqual(1);
   });
 
-  it('ROSTER « assaut » : servants alliés-IA au rempart, emplacements INERTES, brigands + gobelins ennemis', () => {
+  it('ROSTER « assaut » : servants alliés-IA au rempart, emplacements INERTES, mercenaires + gobelins ennemis', () => {
     const enc = scenarioConstruit.scene.encounters.find((e) => e.id === 'assaut')!;
     const members = enc.members!;
     const by = (id: string) => members.find((m) => m.entityId === id);

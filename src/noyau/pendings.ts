@@ -1661,7 +1661,7 @@ export interface BladeTrapFreeze {
  * un dé de chute, elle les tire sur des Blessures qui n'ont pas encaissé.
  *
  * UNION FERMÉE de verbes SÉRIALISABLES, résolus par une TABLE (`clotures`, patron de la table `appliers`) : jamais
- * une fermeture JS. `pendingCascade` est SAUVEGARDÉ (`state/saves.ts`) et voyage sur le réseau — une
+ * une fermeture JS. `pendingCascade` est SAUVEGARDÉ (`persistance/save.ts`) et voyage sur le réseau — une
  * clôture qui serait une fonction ne survivrait ni à l'un ni à l'autre.
  */
 export type Cloture =

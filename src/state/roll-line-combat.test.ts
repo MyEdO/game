@@ -22,6 +22,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { refDeRegle } from '../engine/reglesChiffrees';
+import { ligneDe } from '../engine/modLine.testkit';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
@@ -171,7 +172,7 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
       id: 'sv', label: 'Survivant', conditions: ETAT, tookCriticalThisFight: true,
       skills: [{ id: 'resistance', advances: 10, characteristic: 'endurance' }] as never,
     } as never);
-    const bete = hero({ id: 'be', label: 'Bête', kind: 'enemy', dead: true, traits: [{ id: 'corruption', arg: 'Mineure' }] } as never);
+    const bete = hero({ id: 'be', label: 'Bête', kind: 'enemy', dead: true, traits: [{ id: 'corruption', arg: 'mineure' }] } as never);
     setBattle([survivant, bete], 'sv');
     survivant.diseaseExposure = [{ disease: 'courante-galopante', difficulty: 'intermediaire' }] as never;
 
@@ -273,8 +274,7 @@ describe('ORACLE du canal combat — balayage EXHAUSTIF (#1153 L1b, sonde promue
     const toutes = testValueParts(charge, 'natation', undefined, undefined, undefined);
     expect(etats.length, 'la fixture doit produire des parts d’État').toBeGreaterThan(0);
     expect(toutes.length).toBeGreaterThanOrEqual(etats.length);
-    expect(toutes.slice(0, etats.length).map((p) => [p.label, p.value]))
-      .toEqual(etats.map((p) => [p.label, p.value]));
+    expect(toutes.slice(0, etats.length)).toEqual(etats);
   });
 
   it('224 combinaisons (canal × État × effet × profil) : ZÉRO reconstruction en échec', () => {
@@ -412,14 +412,14 @@ describe('SONDES PROMUES (#1153 L1b) — ce que le monteur NE fait PAS encore', 
       // chips, et leur somme EST la valeur annoncée (le cran, ou le combiné).
       const parts = l.difficultyParts ?? [];
       expect(parts.reduce((s, m) => s + m.value, 0)).toBe(palier ? DIFFICULTY_MODIFIERS[palier] : combine);
-      expect(parts.map((m) => m.label)).toEqual(expect.arrayContaining(mods.filter((m) => m.famille === 'circonstance').map((m) => m.label)));
+      expect(parts).toEqual(expect.arrayContaining(mods.filter((m) => m.famille === 'circonstance')));
       expect(l.mods.some((m) => m.famille === 'circonstance'), 'aucune circonstance restée en chip').toBe(false);
-      expect(l.mods.map((m) => m.label)).toEqual(mods.filter((m) => m.famille !== 'circonstance').map((m) => m.label));
-      if (mord) expect(parts.find((m) => m.label === 'plafond Difficultés')).toMatchObject({ value: attendu - somme, ref: RULE_REF['combiner-les-difficultes'] });
+      expect(l.mods).toEqual(mods.filter((m) => m.famille !== 'circonstance'));
+      if (mord) expect(ligneDe(parts, RULE_REF['combiner-les-difficultes'])?.value).toBe(attendu - somme);
     } else {
       // Aucune circonstance à composer : la ligne garde sa Difficulté et TOUT se lit en chips.
       expect(l.difficultyParts).toBeUndefined();
-      expect(l.mods.find((m) => m.label === 'plafond Difficultés'), 'aucune chip décorative quand rien n’est amputé').toBeUndefined();
+      expect(ligneDe(l.mods, RULE_REF['combiner-les-difficultes']), 'aucune chip décorative quand rien n’est amputé').toBeUndefined();
     }
     expect(inexplique({ ...l }), 'aucune chip « autres »').toBe(0);
 
@@ -427,7 +427,7 @@ describe('SONDES PROMUES (#1153 L1b) — ce que le monteur NE fait PAS encore', 
     // Difficulté qu'il compose) est un régime de COMBAT, pas un défaut du monteur.
     const brut = rollLine({ difficulty: 'intermediaire', valeur: 60, surLaCible: mods });
     expect(brut.target).toBe(clampTarget(60 + somme).target);
-    expect(brut.mods.some((m) => m.label === 'plafond Difficultés')).toBe(false);
+    expect(ligneDe(brut.mods, RULE_REF['combiner-les-difficultes'])).toBeUndefined();
     expect(brut.difficulty).toBe('intermediaire');
     expect(brut.difficultyCombined).toBeUndefined();
     expect(brut.difficultyParts).toBeUndefined();

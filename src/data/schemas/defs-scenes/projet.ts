@@ -25,8 +25,7 @@ import { refs } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
 import { sceneSchema } from './scene';
 import { worldMapSchema } from './worldmap';
-import { validerReferencesDObjetsDansCampagne } from '../grammaire/valeurs';
-import { narratifSchema, type NarratifBlock } from './narratif';
+import { narratifSchema, validerReferencesDObjetsDansCampagne, type NarratifBlock } from './narratif';
 import { refsNarrativesPendantes, type NarratifAReferences } from './refs-narratives';
 
 /** Provenance d'une campagne AUTHORÉE À L'ÉDITEUR : aucun livre ne la publie, et un folio ne se

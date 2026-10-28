@@ -72,6 +72,8 @@ import { buildRiverDayCascade } from '../noyau/riverVoyageFlow';
 import { findVehicleById, refLabel } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { DIFFICULTY_LABELS } from '../engine/types';
+import { EXPOSURE_LADDER } from '../engine/corruption';
+import { resoudreTrait } from '../engine/statEntry';
 import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from '../noyau/monde/terrain';
@@ -123,9 +125,11 @@ import { etageActif, getViewZ, setViewZ } from './viewLevel';
 import { setRevealAll, computeStateVisible } from '../noyau/visionState';
 import { doorIsOpen, emptyScene, porteEnJeu } from '../noyau/monde/scene';
 import { rule, setRule, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
-import { houseRulesMutability, resetHouseRule } from './houseRules';
+import { remettreUneRegleMaisonWeb } from './reglesMaison';
+import { reglesMaisonMutables } from '../noyau/reglesMaison';
 import { cadence } from '../engine/cadence';
-import { PREFERENCES, preferenceDef, setPreference, resetPreference, type PrefValue } from './preferences';
+import { setPreference, resetPreference } from './preferences';
+import { PREFERENCES, preferenceDef, type PrefValue } from '../noyau/preferences';
 import { pickActiveModalKey, autoPolicyOf } from '../noyau/modalArbiter';
 import { willAutoResolve } from '../noyau/combatAuto';
 import { combatAdvanceBlocked } from '../noyau/combatGate';
@@ -521,9 +525,9 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
 }
 
 /** Réglage auto-rendu par le harnais : une RÈGLE optionnelle (`policy`) ou une PRÉFÉRENCE (`preferences`). */
-type SettingDef = { id: string; label: string; kind: string; options?: string[]; min?: number; max?: number; default: RuleValue };
+type SettingDef = { id: string; label: string; kind: string; options?: readonly string[]; min?: number; max?: number; default: RuleValue };
 
-const settingShape = (d: { kind: string; options?: string[]; min?: number; max?: number }) =>
+const settingShape = (d: { kind: string; options?: readonly string[]; min?: number; max?: number }) =>
   d.kind === 'mode' ? `{${d.options?.join('|')}}` : d.kind === 'param' ? `[${d.min}…${d.max}]` : '(true|false)';
 const settingUnknown = (id: string, api: 'rules' | 'prefs') => `réglage inconnu : ${id} — voir __wfrp.${api}()`;
 const settingDetail = (d: SettingDef, val: RuleValue | undefined) =>
@@ -1639,18 +1643,18 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  flux NORMAL (`checkBattleOver`) en LAISSANT la cascade OUVERTE — contrairement à `killEnemies`
      *  qui la résout d'office. C'est la mise en place de la recette « cascade de fin de combat » :
      *   - `tookCriticalThisFight` posé sur le héros → Test d'Infection post-critique (LDB 20 l.90) ;
-     *   - trait `corruption` (Mineure/Modérée/Majeure) posé sur un ennemi présent → Test d'exposition
+     *   - trait `corruption`, de Degré désigné par son id, posé sur un ennemi présent → Test d'exposition
      *     à la Corruption (LDB 19) pour TOUS les héros survivants ;
      *   - Destin/Résilience CRÉDITÉS au héros (≥1 chacun) → les boutons Chance/Résilience sont visibles
      *     dans la modale (preuve que le Test est INFLUENÇABLE avant l'écran de victoire).
      *  Puis tous les ennemis sont mis hors d'action et `checkBattleOver` ouvre la cascade
      *  (`combatEndBoundary`) AVANT `pendingVictory` — à conduire à la main (cascadeRoll/Next, Chance/
-     *  Résilience), sa fermeture enchaîne sur l'écran de victoire. `level` ∈ Mineure|Modérée|Majeure. */
+     *  Résilience), sa fermeture enchaîne sur l'écran de victoire. `corruption` ∈ `EXPOSURE_LADDER` ou false. */
     combatEnd: (opts?: { heroId?: string; critical?: boolean; corruption?: string | false }) => {
       const s = g();
       if (!s.battle || s.battle.over) return '✗ pas de combat en cours';
-      const level = opts?.corruption === undefined ? 'Modérée' : opts.corruption;
-      if (level !== false && typeof level !== 'string') return `✗ corruption « ${String(level)} » : le Degré du trait \`corruption\` (« Mineure », « Modérée », « Majeure ») ou false`;
+      const level = opts?.corruption === undefined ? 'moderee' : opts.corruption;
+      if (level !== false && !(EXPOSURE_LADDER as readonly unknown[]).includes(level)) return `✗ corruption « ${String(level)} » : l'id du Degré du trait \`corruption\` (${EXPOSURE_LADDER.map((n) => `« ${n} »`).join(', ')}) ou false`;
       const hero = (opts?.heroId
         ? s.battle.combatants.find((c) => c.id === opts.heroId && c.kind === 'hero')
         : s.battle.combatants.find((c) => c.kind === 'hero' && !isOutOfAction(c)));
@@ -1662,7 +1666,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const enemy = s.battle.combatants.find((c) => c.kind === 'enemy');
       if (level && enemy) {
         const traits = (enemy.traits ?? []).filter((t) => t.id !== 'corruption');
-        enemy.traits = [...traits, { id: 'corruption', arg: level }]; // exposition à la Corruption (LDB 85 → 19)
+        enemy.traits = [...traits, resoudreTrait({ id: 'corruption', arg: level })]; // exposition à la Corruption (LDB 85 → 19)
       }
       const combatants = s.battle.combatants.map((c) =>
         c.kind === 'enemy' && !isOutOfAction(c) ? { ...c, dead: true, wounds: { ...c.wounds, current: 0 } } : c,
@@ -1910,15 +1914,15 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  (Cible, Domaine…) et `value` (indice). Rend l'état RÉEL relu au store. */
     trait: (id: string, traitId: string, opts: { arg?: string; value?: number } = {}) => {
       if (!findTraitById(traitId)) return `✗ trait « ${traitId} » inconnu`;
-      const instance = { id: traitId, ...(opts.arg != null ? { arg: opts.arg } : {}), ...(opts.value != null ? { value: opts.value } : {}) };
+      const pose = { id: traitId, ...(opts.arg != null ? { arg: opts.arg } : {}), ...(opts.value != null ? { value: opts.value } : {}) };
       const grant = (c: Combatant): Combatant => {
         const porteur = structuredClone(c);
-        grantTrait(porteur, instance);
+        grantTrait(porteur, resoudreTrait(pose));
         return porteur;
       };
       useGame.setState((s) => ecrireActeur(s, id, grant));
-      const pose = actorIn(useGame.getState(), id)?.traits?.some((t) => t.id === traitId && (t.arg ?? null) === (opts.arg ?? null));
-      return pose ? `✓ ${id} → trait ${traitId}${opts.arg ? ` (${opts.arg})` : ''}` : `✗ ${id} : trait « ${traitId} » non posé (combattant absent)`;
+      const posee = actorIn(useGame.getState(), id)?.traits?.some((t) => t.id === traitId && (t.arg ?? null) === (opts.arg ?? null));
+      return posee ? `✓ ${id} → trait ${traitId}${opts.arg ? ` (${opts.arg})` : ''}` : `✗ ${id} : trait « ${traitId} » non posé (combattant absent)`;
     },
 
     /** RECETTE : simule une CHARGE de `enemyId` sur un héros (défaut : le plus proche) — déclenche le
@@ -2130,7 +2134,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** RECETTE : RÈGLES OPTIONNELLES (policy.ts / « règles maison »). `rules()` liste toutes les règles
      *  (id = valeur · forme) ; `rules(id)` détaille une règle ; `rules(id, value)` la règle (surcharge
      *  RUNTIME, non persistée — elle meurt au rechargement) ; `rules(id, null)` réinitialise au défaut
-     *  ET PURGE la surcharge PERSISTÉE (couture joueur `resetHouseRule` → `localStorage`), sinon la
+     *  ET PURGE la surcharge PERSISTÉE (couture joueur `remettreUneRegleMaisonWeb`), sinon la
      *  règle ressuscitait cochee au run suivant — piège mesuré en recette (#1279). La remise à zéro est
      *  refusée en combat, comme au panneau : le helper rend alors la raison au lieu de mentir.
      *  Valide la valeur selon le `kind` (flag/param/mode). Le rythme de résolution n'est PAS une règle :
@@ -2141,9 +2145,9 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!def) return settingUnknown(id, 'rules');
       if (value === undefined) return `${settingDetail(def, rule(id))} — ${def.ref}`;
       if (value === null) {
-        const verrou = houseRulesMutability();
+        const verrou = reglesMaisonMutables(useGame.getState());
         if (!verrou.mutable) return verrou.reason;
-        resetHouseRule(id);
+        remettreUneRegleMaisonWeb(id);
         return settingReset(def);
       }
       const c = coerceSetting(def, value);
@@ -2152,7 +2156,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return settingDone(id, c.v);
     },
 
-    /** RECETTE : PRÉFÉRENCES de confort (state/preferences.ts) — réglages hors règles de jeu, dont la
+    /** RECETTE : PRÉFÉRENCES de confort (noyau/preferences.ts) — réglages hors règles de jeu, dont la
      *  CADENCE de combat (`prefs('combat-cadence', 'auto')` : auto = l'IA joue aussi les héros ;
      *  'rapide' = jets auto sans dépense ; 'manuel' = défaut). `prefs()` liste ; `prefs(id)` détaille ;
      *  `prefs(id, value)` écrit par la couture joueur (persistée, effet déclaré joué) ; `prefs(id, null)`

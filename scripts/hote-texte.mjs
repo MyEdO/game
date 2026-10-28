@@ -26,7 +26,7 @@ process.chdir(RACINE)
 const entree = entreeDHote('hote-texte', [
   "export { creerHote } from '/src/hoteTexte/serveur.ts';",
   "export { testScenarios } from '/src/scenes/test-scenarios/index.ts';",
-  "export { CADENCE_MODES } from '/src/noyau/index.ts';",
+  "export { preferenceDef } from '/src/noyau/index.ts';",
 ])
 
 const { module } = await runnerImport(entree.id, {
@@ -77,7 +77,7 @@ const hote = module.creerHote({
 })
 
 const serveur = new McpServer({ name: 'hote-texte', version: '1.0.0' }, { instructions: INSTRUCTIONS })
-const definitions = outils({ scenarios: module.testScenarios.map((sc) => sc.id), cadences: [...module.CADENCE_MODES] })
+const definitions = outils({ scenarios: module.testScenarios.map((sc) => sc.id), cadences: [...module.preferenceDef('combat-cadence').options] })
 for (const [nom, { description, schema }] of Object.entries(definitions)) {
   serveur.registerTool(nom, { description, inputSchema: z.strictObject(schema) }, (entrees) => {
     const { texte, erreur } = hote[nom](entrees)

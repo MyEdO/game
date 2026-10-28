@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { skillDRBonus, incomingAttackLines, attackHasKeyword, incomingDamageNullified } from './ops';
 import { bonus, effectiveChar } from './characteristics';
 import type { Combatant } from './types';
+import { refLabel } from '../data';
 
 /** Combattant minimal (Ag 45 → Bonus d'Agilité 4). */
 const mk = (over: Partial<Combatant> = {}): Combatant => ({
@@ -51,11 +52,11 @@ describe('skillDRBonus — Pisteur (LDB 85) : +Bonus d’Initiative au DR de Pis
 describe('incomingAttackLines — le modificateur imposé à l’attaquant, à la fiche du trait (LDB 85)', () => {
   it('Parasité : −10 en mêlée (l.257), une ligne liée au trait', () => {
     expect(incomingAttackLines(mk({ traits: [{ id: 'parasite' }] }), 'melee'))
-      .toEqual([{ label: 'Parasité', value: -10, famille: 'circonstance', ref: { category: 'traits', id: 'parasite' } }]);
+      .toEqual([{ label: refLabel('traits', { id: 'parasite' }), value: -10, famille: 'circonstance', ref: { category: 'traits', id: 'parasite' } }]);
   });
   it('Nuée : +40 au tir (l.253), rien en mêlée', () => {
     expect(incomingAttackLines(mk({ traits: [{ id: 'nuee' }] }), 'ranged'))
-      .toEqual([{ label: 'Nuée', value: 40, famille: 'circonstance', ref: { category: 'traits', id: 'nuee' } }]);
+      .toEqual([{ label: refLabel('traits', { id: 'nuee' }), value: 40, famille: 'circonstance', ref: { category: 'traits', id: 'nuee' } }]);
     expect(incomingAttackLines(mk({ traits: [{ id: 'nuee' }] }), 'melee')).toEqual([]);
   });
   it('aucun effet à distance pour Parasité, ni sans trait', () => {

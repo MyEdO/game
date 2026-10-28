@@ -22,7 +22,7 @@ import { argsAvecVerdictLocal } from '../noyau/localIntent';
 import { withActingSeat } from '../noyau/netOwnership';
 import { refuserGeste, eteindreRefus } from '../noyau/refusVisible';
 import { netSnapshot, applyNetSnapshot } from './netFlow';
-import { snapshotSave } from './saves';
+import { snapshotSave } from '../noyau/persistance/save';
 import { runAction } from '../noyau/actionRegistry';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -279,11 +279,7 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
     useGame.setState({ battle: null, mode: 'exploration' });
     get().transitionTo(testScene().id); // seam RÉEL du checkpoint : l'entrée en scène fait sauvegarder l'hôte
     expect(get().refus, 'le refus a traversé le changement de scène').toBeNull();
-    const snap = snapshotSave(
-      get() as unknown as Record<string, unknown>,
-      useGame.getInitialState() as unknown as Record<string, unknown>,
-      '2026-08-20T00:00:00.000Z',
-    );
+    const snap = snapshotSave(get(), '2026-08-20T00:00:00.000Z');
     expect(snap.data.refus, 'un refus périmé part dans la sauvegarde').toBeNull();
   });
 });

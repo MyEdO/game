@@ -185,7 +185,7 @@ const CASSE = `export const a =${NBSP}1\n`
 const FIXTURE = 'src/lint-index-fixture.ts'
 const CONFIG = readFileSync(join(RACINE, CONFIG_LINT), 'utf8')
 /** La fermeture de la config de CET arbre, chemin → texte du disque. */
-const FERMETURE = tableTotale(fermetureDeConfig(RACINE), (rel) => readFileSync(join(RACINE, rel), 'utf8'))
+const FERMETURE = tableTotale(await fermetureDeConfig(RACINE), (rel) => readFileSync(join(RACINE, rel), 'utf8'))
 
 /** Dépôt forgé : `index` (chemin → texte) posé dans l'INDEX seul — la fermeture de la config de CET
  *  arbre y est posée aussi, sauf `config: false` —, `disque` (chemin → texte) sur le disque seul. */
@@ -206,78 +206,86 @@ function forge({ index = {}, disque = {}, config = true }) {
 }
 
 /** `lintDeLIndex` de CET arbre sur l'index du dépôt forgé, qui est jeté après. */
-function lintForge(params, chemins) {
+async function lintForge(params, chemins) {
   const { racine, depot } = forge(params)
   try {
-    return lintDeLIndex(RACINE, depot, chemins)
+    return await lintDeLIndex(RACINE, depot, chemins)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
 }
 
-test('LIGNE DE PROD : un fichier réel de l’index est jugé sous la config du dépôt, au site de son chemin', () => {
+test('LIGNE DE PROD : un fichier réel de l’index est jugé sous la config du dépôt, au site de son chemin', async () => {
   // `pre-commit.mjs` : `lintDeLIndex(ROOT, depot, staged)`. Le seul défaut rendu est celui ajouté au
   // texte stagé : le fichier n'est pas ignoré par la config, et son texte réel la passe.
   const rel = 'src/noyau/rollSeam.ts'
   const texte = readFileSync(join(RACINE, rel), 'utf8')
   const ligne = texte.split('\n').length
-  const vu = lintForge({ index: { [rel]: `${texte}${CASSE}` } }, [rel])
+  const vu = await lintForge({ index: { [rel]: `${texte}${CASSE}` } }, [rel])
   assert.equal(vu.saut, null)
   assert.deepEqual(vu.defauts.map((d) => `${d.site} ${d.regle}`), [`${rel}:${ligne}:17 no-irregular-whitespace`])
 })
 
-test('LIGNE DE PROD au-delà de 32 767 caractères de chemins : le lot est JUGÉ, jamais refusé sans rapport', () => {
+test('LIGNE DE PROD au-delà de 32 767 caractères de chemins : le lot est JUGÉ, jamais refusé sans rapport', async () => {
   const fichiers = Array.from({ length: 2000 }, (_, i) => `src/lib/lint-index-lot/fichier-${String(i).padStart(4, '0')}.ts`)
   assert.ok(fichiers.join(' ').length > 32767, 'le lot dépasse la ligne de commande que Windows sait créer')
   const dernier = fichiers.at(-1)
-  const vu = lintForge({ index: { ...tableTotale(fichiers, () => PROPRE), [dernier]: CASSE } }, fichiers)
+  const vu = await lintForge({ index: { ...tableTotale(fichiers, () => PROPRE), [dernier]: CASSE } }, fichiers)
   assert.equal(vu.saut, null)
   assert.deepEqual(vu.defauts.map((d) => `${d.site} ${d.regle}`), [`${dernier}:1:17 no-irregular-whitespace`])
 })
 
-test('`mursLint.mjs` STAGÉ qui diffère du disque : SAUT qui le nomme ; toute la fermeture identique, le lot est jugé', () => {
+test('`mursLint.mjs` STAGÉ qui diffère du disque : SAUT qui le nomme ; toute la fermeture identique, le lot est jugé', async () => {
   const MURS = 'scripts/guards/lib/mursLint.mjs'
-  const differe = lintForge({ index: { [FIXTURE]: CASSE, [MURS]: `${FERMETURE[MURS]}\n` } }, [FIXTURE])
+  const differe = await lintForge({ index: { [FIXTURE]: CASSE, [MURS]: `${FERMETURE[MURS]}\n` } }, [FIXTURE])
   assert.deepEqual(differe.defauts, [])
   assert.match(differe.saut ?? '', /^scripts\/guards\/lib\/mursLint\.mjs de l'index diffère du disque/)
-  const identique = lintForge({ index: { [FIXTURE]: CASSE } }, [FIXTURE])
+  const identique = await lintForge({ index: { [FIXTURE]: CASSE } }, [FIXTURE])
   assert.equal(identique.saut, null)
   assert.deepEqual(identique.defauts.map((d) => d.regle), ['no-irregular-whitespace'])
 })
 
-test('INDEX : stagé CASSÉ, disque PROPRE — le défaut, au site du chemin stagé', () => {
-  const vu = lintForge({ index: { [FIXTURE]: CASSE }, disque: { [FIXTURE]: PROPRE } }, [FIXTURE])
+test('fichier LU par la config au chargement (`LECTURES_DE_CONFIG`), stagé qui diffère du disque : SAUT qui le nomme', async () => {
+  const LU = 'src/data/index.ts'
+  assert.ok(LU in FERMETURE)
+  const differe = await lintForge({ index: { [FIXTURE]: CASSE, [LU]: `${FERMETURE[LU]}\n` } }, [FIXTURE])
+  assert.deepEqual(differe.defauts, [])
+  assert.match(differe.saut ?? '', /^src\/data\/index\.ts de l'index diffère du disque/)
+})
+
+test('INDEX : stagé CASSÉ, disque PROPRE — le défaut, au site du chemin stagé', async () => {
+  const vu = await lintForge({ index: { [FIXTURE]: CASSE }, disque: { [FIXTURE]: PROPRE } }, [FIXTURE])
   assert.equal(vu.saut, null)
   assert.deepEqual(vu.defauts.map((d) => `${d.site} ${d.regle}`), [`${FIXTURE}:1:17 no-irregular-whitespace`])
 })
 
-test('INDEX : stagé PROPRE, disque CASSÉ — aucun défaut', () => {
-  assert.deepEqual(lintForge({ index: { [FIXTURE]: PROPRE }, disque: { [FIXTURE]: CASSE } }, [FIXTURE]), { defauts: [], saut: null })
+test('INDEX : stagé PROPRE, disque CASSÉ — aucun défaut', async () => {
+  assert.deepEqual(await lintForge({ index: { [FIXTURE]: PROPRE }, disque: { [FIXTURE]: CASSE } }, [FIXTURE]), { defauts: [], saut: null })
 })
 
-test('`oxlint.config.mjs` STAGÉ qui diffère du disque : SAUT nommé ; identique, le lot est jugé', () => {
-  const differe = lintForge({ index: { [FIXTURE]: CASSE, [CONFIG_LINT]: `${CONFIG}\n` } }, [FIXTURE, CONFIG_LINT])
+test('`oxlint.config.mjs` STAGÉ qui diffère du disque : SAUT nommé ; identique, le lot est jugé', async () => {
+  const differe = await lintForge({ index: { [FIXTURE]: CASSE, [CONFIG_LINT]: `${CONFIG}\n` } }, [FIXTURE, CONFIG_LINT])
   assert.deepEqual(differe.defauts, [])
   assert.match(differe.saut ?? '', /oxlint\.config\.mjs de l'index diffère du disque/)
-  const identique = lintForge({ index: { [FIXTURE]: CASSE } }, [FIXTURE, CONFIG_LINT])
+  const identique = await lintForge({ index: { [FIXTURE]: CASSE } }, [FIXTURE, CONFIG_LINT])
   assert.equal(identique.saut, null)
   assert.deepEqual(identique.defauts.map((d) => d.regle), ['no-irregular-whitespace'])
 })
 
-test('`oxlint.config.mjs` NON stagé dont le disque diffère de l’index : SAUT nommé, aucun verdict', () => {
-  const vu = lintForge({ index: { [FIXTURE]: CASSE, [CONFIG_LINT]: `${CONFIG}\n` } }, [FIXTURE])
+test('`oxlint.config.mjs` NON stagé dont le disque diffère de l’index : SAUT nommé, aucun verdict', async () => {
+  const vu = await lintForge({ index: { [FIXTURE]: CASSE, [CONFIG_LINT]: `${CONFIG}\n` } }, [FIXTURE])
   assert.deepEqual(vu.defauts, [])
   assert.match(vu.saut ?? '', /oxlint\.config\.mjs de l'index diffère du disque/)
 })
 
-test('aucun chemin à extension jugée : rien n’est lu ni lancé', () => {
-  assert.deepEqual(lintDeLIndex(RACINE, null, ['docs/architecture.md', 'src/data/etats.json']), { defauts: [], saut: null })
+test('aucun chemin à extension jugée : rien n’est lu ni lancé', async () => {
+  assert.deepEqual(await lintDeLIndex(RACINE, null, ['docs/architecture.md', 'src/data/etats.json']), { defauts: [], saut: null })
 })
 
-test('PANNE — oxlint absent de l’arbre jugé : défaut d’outillage NOMMÉ, jamais un lot vide', () => {
+test('PANNE — oxlint absent de l’arbre jugé : défaut d’outillage NOMMÉ, jamais un lot vide', async () => {
   const { racine, depot } = forge({ index: { 'a.ts': PROPRE }, disque: { 'package.json': readFileSync(join(RACINE, 'package.json'), 'utf8') }, config: false })
   try {
-    const { defauts } = lintDeLIndex(racine, depot, ['a.ts'])
+    const { defauts } = await lintDeLIndex(racine, depot, ['a.ts'])
     assert.equal(defauts.length, 1)
     assert.equal(defauts[0].site, '(lint)')
     assert.match(defauts[0].message, /^oxlint a échoué sans rapport/)
@@ -286,8 +294,8 @@ test('PANNE — oxlint absent de l’arbre jugé : défaut d’outillage NOMMÉ,
   }
 })
 
-test('PANNE — un chemin que l’index ne rend pas (tabulation) : défaut d’outillage NOMMÉ', () => {
-  const { defauts } = lintForge({}, ['src/x\t.ts'])
+test('PANNE — un chemin que l’index ne rend pas (tabulation) : défaut d’outillage NOMMÉ', async () => {
+  const { defauts } = await lintForge({}, ['src/x\t.ts'])
   assert.equal(defauts.length, 1)
   assert.equal(defauts[0].site, '(lint)')
   assert.match(defauts[0].message, /^index illisible — /)

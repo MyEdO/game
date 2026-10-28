@@ -1,8 +1,7 @@
 /**
  * engine/spellspec + SpellData — métadonnées de résolution curées.
  * Les specs curées vivent dans SpellData (spells.json). Ces tests vérifient que la résolution
- * applique bien les effets curés et que la désambiguïsation par école fonctionne directement sur les
- * données JSON.
+ * applique bien les effets curés directement sur les données JSON.
  */
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
@@ -56,30 +55,20 @@ describe('specs curées — résolution', () => {
   });
 });
 
-describe('registre curé — couverture & désambiguïsation', () => {
-  it('les 19 Bénédictions sont toutes curées', () => {
-    const blessed = spells.filter((s) => s.ecole === 'Béni');
-    expect(blessed).toHaveLength(19);
-    for (const s of blessed) expect(s.curated, s.label).toBe(true);
-  });
-
-  it('labels en double : « Enchevêtrement » résolu par type (Arcane vs miracle de Taal)', () => {
-    const arcane = spells.find((s) => s.label === 'Enchevêtrement' && s.ecole === 'Magie des Arcanes');
-    const taal = spells.find((s) => s.label === 'Enchevêtrement' && s.ecole === 'Invocation');
-    expect(arcane?.ecole).toBe('Magie des Arcanes');
-    expect(taal?.ecole).toBe('Invocation');
+describe('registre — couverture', () => {
+  it('les 19 Bénédictions sont au registre', () => {
+    expect(spells.filter((s) => s.ecole === 'Béni')).toHaveLength(19);
   });
 });
 
 describe('spellSupport — seul ce qui PRODUIT un effet compte mécanique', () => {
   const sansOp = (p: Partial<SpellData>): SpellData => ({
-    ...findSpellById('explosion')!, missile: false, curated: true, effects: { kind: 'seq', steps: [] },
+    ...findSpellById('explosion')!, missile: false, effects: { kind: 'seq', steps: [] },
     target: { kind: 'area', span: 'diameter', meters: 8 }, ...p,
   });
 
-  it('une ZdE sans op ne fait que choisir des cibles : narratif, curée ou non', () => {
+  it('une ZdE sans op ne fait que choisir des cibles : narratif', () => {
     expect(spellSupportOf(sansOp({}))).toBe('narratif');
-    expect(spellSupportOf(sansOp({ curated: false }))).toBe('narratif');
   });
 
   it('la touche d’un Projectile et l’attaque du Souffle produisent un effet sans op', () => {

@@ -78,15 +78,15 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
   });
 
   it('fail-closed : une CLÉ de catalogue dont le texte porte un signe réservé est détectée, dans les deux entrées du slot', () => {
-    expect(scanActionLabels("label: composeRollLabel(force.actor, t('difficulty.intermediaire', { label }), test),")).toHaveLength(1);
-    expect(scanActionLabels("  actionLabel: tr('difficulty.intermediaire'),")).toHaveLength(1);
+    expect(scanActionLabels("label: composeRollLabel(force.actor, t('difficulty.combinee', { mod }), test),")).toHaveLength(1);
+    expect(scanActionLabels("  actionLabel: tr('difficulty.combinee'),")).toHaveLength(1);
     expect(scanActionLabels("label: composeRollLabel(force.actor, t('sv.degagement'), test),")).toEqual([]);
   });
 
   it('fail-closed : le `label` du FlowTest littéral d’`openSkillTest` est le slot ACTION', () => {
     expect(scanActionLabels("openSkillTest(get, set,\n  { skill: { id: skillId }, difficulty: 'intermediaire', label: `Avantage — ${skillLabel}`, stake: combatStakeRef('x', { values: { capChar } }) },\n  EMPTY_FLOW)")).toHaveLength(1);
     expect(scanActionLabels("openSkillTest(get, set, { stake: combatStakeRef('x', { values: { a: 1 } }), label: 'Recherche (au port)' }, EMPTY_FLOW)"), 'après deux niveaux imbriqués').toHaveLength(1);
-    expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'x' }, label: t('difficulty.intermediaire') }, EMPTY_FLOW)"), 'clé de catalogue').toHaveLength(1);
+    expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'x' }, label: t('difficulty.combinee') }, EMPTY_FLOW)"), 'clé de catalogue').toHaveLength(1);
     expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'commandement' }, label: t('step.contagion') }, EMPTY_FLOW)")).toEqual([]);
     expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'x', label: 'Voile (Chaland)' } }, EMPTY_FLOW)"), 'un `label:` imbriqué n’est pas le slot').toEqual([]);
   });

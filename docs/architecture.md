@@ -101,15 +101,16 @@ qui le rend inutile.
 | `hoteTexte`, `hotes` (`hotes/`) | hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` | oui |
 | `web` | services d'exécution du navigateur : minuteries, IndexedDB, stockage local, fichiers | feuilles | non |
 | `net`, `audio` | services de l'hôte web | feuilles (`audio` : et `web`) | non |
-| `state` | adaptateur du store web : pose le résultat du noyau, sélectionne pour l'affichage, persiste | tout ce qui précède ; `ui` en type seul | non |
-| `ui`, `gameIso` | présentation de l'hôte web, deux zones qui s'importent l'une l'autre | tout ce qui précède | non |
+| `state` | adaptateur du store web : pose le résultat du noyau, sélectionne pour l'affichage, persiste | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` compris) ; `ui` en type seul | non |
+| `ui`, `gameIso` | présentation de l'hôte web, deux zones qui s'importent l'une l'autre | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` : `ui` seule) | non |
 | racine de `src/` | entrée de l'hôte web (`main.tsx`) et tests transverses | tout | non |
 
 - **`src/state` ne décide d'aucun effet de jeu** (#2942) : chaque décision a une seule implémentation, au
   noyau, lue par le web, la recette et tout hôte. Un module pur qui n'est pas un adaptateur va dans la zone
   qui le lit : au noyau s'il sert le contenu ou un hôte, dans la présentation s'il ne sert que l'atelier.
 - **Le noyau ne lit de l'hôte que ce que l'hôte lui fournit** (mur `murs/sans-hote`) : la graine du RNG de
-  bataille, la cadence, les règles maison, l'appel différé (`programmer`, `src/noyau/plateforme.ts`), et,
+  bataille, la cadence, les règles maison, l'appel différé (`programmer`, `src/noyau/plateforme.ts`), le héros
+  persisté (`persisterLeHeros`, le roster de l'hôte qui a un stockage : `src/hote/roster.ts`), et,
   pour `validateScene`, les pistes de musique que l'hôte sait jouer.
 - **Registres fermés** : au noyau, un registre d'effets ou de crochets est une table statique typée par une
   union fermée (une entrée manquante ne compile pas), jamais une fonction d'inscription appelée à l'import.
@@ -288,6 +289,8 @@ src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de to
                             son chemin relatif, extension comprise.
                             `garanti.ts` : une valeur que son producteur garantit, absente, lève un
                             défaut interne qui nomme ce qu'on cherchait et sous quel id (`garanti`, #1906).
+                            `stockage.ts` : le port `Stockage` (sous-ensemble synchrone de `Storage`) et
+                            `lireDictionnaire`, la lecture d'un dictionnaire JSON qui lui est appliquée (#2404).
 src/web/                     Services d'exécution du NAVIGATEUR (`window`, `document`, `localStorage`,
                             `indexedDB`, `setTimeout`, `navigator`), feuille de `COUCHES` : `state`,
                             `audio` et la présentation l'importent, ni `noyau` ni `data`.
@@ -303,7 +306,7 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
                             (`clearTrackedTimers`, #405) ; seul lieu de `src/state`, `src/noyau`, `src/lib` et `src/web` où
                             `setTimeout`/`setInterval` s'écrivent (mur `murs/minuteries`, #415).
                             `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
-                            (`stockageWeb`) ; un dictionnaire persisté s'y relit par `lireDictionnaire`,
+                            (`stockageWeb`) ; un dictionnaire persisté s'y relit par `lireDictionnaire` (`lib/stockage.ts`),
                             chaque VALEUR validée par son lecteur contre son registre (#2404). Les clés
                             de stockage ne portent aucun numéro de version (`wfrp4.prefs`, pas
                             `wfrp4.prefs.v1`).
@@ -396,7 +399,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `cascade.ts`, `rollSeam.ts`, `sieges.ts`, `slotsDeJet.ts`, `stepBrand.ts`,
                             `fixedDieMark.ts`, `recapLine.ts`, `partyWipe.ts`, `voyageCadence.ts`,
                             `battleRng.ts`, `bus.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`,
-                            `reglesMaison.ts` (verrou des règles maison en partie, lu par tout hôte), et les flux
+                            `reglesMaison.ts` (verrou des règles maison en partie, lu par tout hôte, et leur pose : jeu
+                            persisté élagué, surcharge sous le verrou), `preferences.ts` (la table des préférences
+                            de confort : forme, défaut, lecture et écriture de leur valeur du moteur), et les flux
                             de jeu ci-dessous. Outils d'auteur purs, lus par l'éditeur et par les tests du
                             contenu : `validateScene.ts` (un projet avant le runtime ; l'hôte y passe ses
                             pistes de musique), `mapQC.ts` (harnais d'atteignabilité d'une carte),
@@ -497,9 +502,8 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
                             Les types que la donnée lit vivent avec leurs schémas : l'union `Effect` et
                             ses deux annotations du `z.lazy` (`DelayedEffect`, `PetitePriere`) dans
-                            `defs-scenes/effets.ts` ; `Terrain`, `ReliefDefaults`, `SceneRoofDefaults`
-                            et `Fige` (marque de type d'une valeur GELÉE : ce qu'une migration rejoue,
-                            jamais la semence du jour) dans `defs-scenes/scene.ts`.
+                            `defs-scenes/effets.ts` ; `Terrain`, `ReliefDefaults` et `SceneRoofDefaults`
+                            dans `defs-scenes/scene.ts`.
                             `CellSide` = l'ARÊTE d'une case (quel bord porte un mur) ; le CAP, lui, vit
                             au foyer des caps (`geometry/dir8.ts`)
   monde/seating.ts            ASSISE — source UNIQUE des places assises d'une Scène : `seatSlotsOf`
@@ -524,6 +528,16 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `monde/spawn.ts` reste sans
                             import de cette couche) et au portrait de dialogue (`gameIso/tokenBodyKind.tsx`).
   monde/spawn.ts            apparition des entités de scène et de rencontre (`spawnEnemy`)
+  creation/                 BROUILLON DE CRÉATION de personnage (LDB 04/05), sans écran : `brouillon.ts` (état pur :
+                            tirages figés, bonus PX, validation, `buildHero`), `defauts.ts` (`fillDraftDefaults`)
+  persistance/              documents PERSISTÉS, sans stockage : `elagage.ts` (`elaguerLePersiste`, seul élagage
+                            des ids hors registre, #1463 LD.1), `roster.ts` (le roster `RosterStocke` et l'export
+                            `ExportDeHeros` : lecture contrôlée et élaguée, écriture, mise à jour d'une entrée,
+                            export/import d'un héros), `save.ts` (la sauvegarde : `SaveGame`, dont le `data` est
+                            `EtatDeJeu` moins `HORS_SAVE`, jamais l'état d'affichage d'un hôte ; `snapshotSave`,
+                            `parseSave`, `elaguerSave`, `chargerLaSave` qui rend l'état de jeu à ouvrir, ses règles
+                            maison et ses retraits, `refusDeSauvegarde` ; règles maison du snapshot coop) et
+                            `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré)
 src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte fait d'une partie, sans écran ni
                             horloge. `partie.ts` (l'erreur structurée d'un geste et sa catégorie, l'en-tête d'une
                             partie, son ouverture : la partie du noyau, le scénario de test lancé, la tenue des jetons
@@ -535,7 +549,14 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             paramètres des verbes, `scripts/gen-verbes.mjs`), `gestes.ts` (`fenetreADessiner` : la
                             fenêtre qui tient la main, chacun de ses verbes en geste prêt à saisir et à rendre),
                             `ecran.ts` (`panneauDuCombat`, `corpsDeLaFenetre` : les textes d'un hôte qui dessine la
-                            partie, tirés du catalogue et des lecteurs du noyau). Entrée d'un hôte servi ou bâti par
+                            partie, tirés du catalogue et des lecteurs du noyau), `roster.ts` (la procédure du roster
+                            sur le `Stockage` que l'hôte fournit : charger, ajouter, retirer, mettre à jour — le
+                            service `persisterLeHeros` d'un hôte qui a un stockage ; le chargement REND ses témoins de
+                            retrait et d'élagage), `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
+                            `Stockage` ; un chargement de règles maison qui élague cumule son témoin sous sa propre
+                            clé, que `prendreLeTemoinDesReglesMaison` consomme au montage du panneau des règles),
+                            `temoin.ts` (le témoin persisté d'un chargement : cumul au témoin déjà posé, prise unique ;
+                            la relecture et l'union des retraits sont à `noyau/persistance/elagage.ts`). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
                             ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
@@ -579,25 +600,33 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               (`gameIso/stage/MondeDeCampagne`)
   stageYaw.ts                 LACET CONTINU de la caméra du stage (#1176) : cible + courant qui y
                               court, `viewYawDeg` (projection) et `viewRot` (cran EFFECTIF du dégagement)
-  saves.ts                    Sauvegarde/chargement de partie (localStorage 3 slots + export/import
-                              JSON). `version` vaut `FORMAT_SAVE` (FORMATS PERSISTÉS, plus bas) ;
-                              une save d'un autre format ou illisible est REJETÉE et RETIRÉE du
-                              stockage par `readSlot`, et le témoin `takeObsoleteNotice` fait afficher
-                              le message au joueur par `ui/SaveLoadModal`.
-                              Save AUTO-SUFFISANTE (#766) : le slot `campaignDoc`
-                              (`noyau/etat.ts`, snapshotté via `stateFields`) embarque le DOCUMENT SOURCE du
-                              paquet chargé (scènes + carte + narratif + scène d'entrée). Au chargement,
-                              `applyLoadedSave` RÉ-ENREGISTRE toutes ses scènes (`registerScene`) et
-                              RE-DÉRIVE `campaignNarratif` — sans lui, le `sceneRegistry` en mémoire
-                              module ne connaîtrait que l'Arène + la scène courante et les transitions
-                              vers les AUTRES scènes du paquet échoueraient en silence. `campaignNarratif`
-                              reste NON persisté (re-dérivé de `campaignDoc`).
-  roster.ts                   Roster persistant (localStorage) des personnages créés au créateur, et
-                              export/import d'un héros en fichier : enveloppes `RosterStocke` et
-                              `ExportDeHeros`, sous `FORMAT_ROSTER` et `FORMAT_EXPORT_HEROS`. Un
-                              roster d'un autre format est retiré (témoin `takeRosterNotice`, rendu
-                              par `ui/PartyScreen`) ; un export d'un autre format est refusé. Le
-                              roster ne voyage PAS dans la save de partie
+  saves.ts                    Emplacements de sauvegarde du web (localStorage 3 slots + AUTO,
+                              export/import JSON) ; la forme et les décisions : `noyau/persistance/save.ts`.
+                              Une save d'un autre format (`parseSave`) ou illisible est REJETÉE et RETIRÉE
+                              du stockage par `readSlot`, et le témoin `takeObsoleteNotice` fait afficher
+                              le message au joueur par `ui/SaveLoadModal`. Le store LIT le noyau :
+                              `applyLoadedSave` pose ce que rend `chargerLaSave` (élagage #1463 LD.1, nommé
+                              par `ui/RetraitsDeChargement`) sous la session coop courante et remet son
+                              interface comme pour une partie neuve ; `saveGame`/`autoSave` suivent
+                              `refusDeSauvegarde`. Save AUTO-SUFFISANTE (#766) : le slot `campaignDoc`
+                              (`noyau/etat.ts`) embarque le DOCUMENT SOURCE du paquet chargé ; au
+                              chargement, `chargerLaSave` RÉ-ENREGISTRE ses scènes et RE-DÉRIVE
+                              `campaignNarratif`, NON persisté.
+  roster.ts                   Câblage web du roster des personnages créés au créateur : son stockage
+                              (`stockageDuRoster`, `localStorage`) et le service `persisterLeHerosWeb`. Forme
+                              et export/import : `noyau/persistance/roster.ts` (enveloppes `RosterStocke` et
+                              `ExportDeHeros`, sous `FORMAT_ROSTER` et `FORMAT_EXPORT_HEROS`) ; procédure :
+                              `hote/roster.ts`. Un roster d'un autre format est retiré, un export d'un autre
+                              format est refusé. Un héros qui porte un État hors du registre courant est GARDÉ
+                              sans cet État (`noyau/persistance/elagage.ts`, #1463 LD.1) — roster réécrit ;
+                              import, retrait rendu. Tout chargement qui retire ou élague (quel que soit le
+                              geste : vivier, créateur, édition en jeu) cumule son témoin (`retire`,
+                              `elagage`) sous sa propre clé du même stockage ; `prendreLesTemoinsDuRoster`
+                              le lit puis le supprime, au montage du vivier de `ui/PartyScreen`, qui le
+                              nomme. Le roster ne voyage PAS dans la save de partie
+  reglesMaison.ts             Câblage web des règles maison : son stockage (`localStorage`) et l'état du
+                              store, sous la procédure `hote/reglesMaison.ts` ;
+                              seule couture du panneau, du harnais de recette et des tests du store.
   projectLibrary.ts           Bibliothèque des projets de campagne de l'éditeur (`SavedProject`).
                               Base IndexedDB `wfrp4-library` par `accesBase` (magasin `projects`, source de
                               vérité — supporte les grandes campagnes qui dépassent le quota
@@ -625,7 +654,7 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               schéma porte le FORMAT de son type sérialisé : `scripts/gen-formats.mjs`
                               (cible de code de `build-all --code`) DÉCLARE ses racines (`RACINES` : la
                               save `SaveGame`, le roster `RosterStocke`, l'export `ExportDeHeros`, le
-                              calque `CalqueStocke`) et écrit `src/state/formats.generated.ts`
+                              calque `CalqueStocke`) et écrit `src/noyau/persistance/formats.generated.ts`
                               (gitignoré) : une forme canonique du graphe des types (propriétés triées,
                               `?` porté, unions triées, fonctions nues sautées ; `any`/`unknown` ou un
                               drapeau de type non traité ÉCHOUE), indépendante des ids internes
@@ -691,7 +720,7 @@ src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE thr
                             zones) + FxLayer (rendu) + useWalkAnim (marche animée)
 src/ui/                     React : menus, CampaignView (HUD), CharacterSheet, modales
   creator/                    assistant de création multi-étapes (LDB 04/05) : CharacterCreator.tsx
-                              (rendu) + draft.ts (état pur : tirages figés, bonus PX, validation)
+                              (rendu) ; son état pur vit dans `src/noyau/creation/`
   gallery/DesignGallery.tsx   galerie design system IN-APP (#412, DEV uniquement) : MasterDetail
                               liste de primitives → spécimen vivant (données réelles) — référence de
                               goût pérenne du canon UI, voir docs/charte-ui.md § « Galerie design

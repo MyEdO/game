@@ -8,6 +8,8 @@ import { parseProject } from '../../noyau/worldMap';
 import { makeShowcaseParty } from '../../data/pregens';
 import { creditBourse } from '../../noyau/bourseFlow';
 import { bourseOf } from '../../engine/bourse';
+import { testValue } from '../../engine/skills';
+import { bonus, effectiveChar } from '../../engine/characteristics';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 import { lancerCampagne, campagneDuJeu, areneCampaign } from '../campaign';
 import { presetPnjById } from '../../state/campaignData';
@@ -183,10 +185,10 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     expect(m.patientId).toBe(party[1].id); // défaut = un patient soignable
     useGame.getState().medicAct('wounds'); // débit 5 pa + jet du PNJ
     const ph = useGame.getState().pendingHeal!;
-    // La valeur JOUÉE vient de la FICHE référencée par l'entité (`creatures.json` « medecin » :
-    // Guérison 50, Int 40 → Bonus 4) — l'effet n'en porte aucune.
-    expect(ph.skillValue).toBe(50);
-    expect(m.npc!.intBonus).toBe(4);
+    // La valeur JOUÉE vient de la FICHE référencée par l'entité ; l'effet n'en porte aucune.
+    const fiche = sceneNpc(hub, 'medecin', presetPnjById)!;
+    expect(ph.skillValue).toBe(testValue(fiche, 'guerison'));
+    expect(m.npc!.intBonus).toBe(bonus(effectiveChar(fiche, 'intelligence')));
     expect(bourseOf(useGame.getState().party.find((h) => h.id === ph.targetId)!).silver).toBe(5); // 10 − 5 pistoles débitées à la bourse du patient
     useGame.getState().healRoll();
     useGame.getState().healConfirm();

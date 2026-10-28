@@ -19,7 +19,6 @@ describe('spellRangeFormat — affichage DÉRIVÉ de la Portée et de la Cible',
     [{ kind: 'count', n: 3 }, '3 cibles'],
     [{ kind: 'area', span: 'diameter', meters: 8 }, 'ZdE diamètre 8 mètres'],
     [{ kind: 'area', span: 'radius', meters: { bonusOf: 'sociabilite' } }, 'ZdE rayon (Bonus de Sociabilité) mètres'],
-    [{ kind: 'cone', lengthMeters: 8, widthMeters: 2 }, 'Cône Longueur (8 mètres) x Largeur (2 mètres)'],
     [{ kind: 'special', text: 'Spécial' }, 'Spécial'],
   ];
   for (const [t, prose] of targets) it(`cible ${JSON.stringify(t)}`, () => expect(formatSpellTarget(t)).toBe(prose));

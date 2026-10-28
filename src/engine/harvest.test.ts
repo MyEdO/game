@@ -57,7 +57,7 @@ describe('harvest — Précieuses Entrailles (ZI)', () => {
   });
 
   it('sans Trait Taille : défaut Moyenne (arbitrage `effectiveSize`)', () => {
-    expect(harvestSizeOf({ traits: [{ id: 'bestial' }, { id: 'vol', value: 80 }] })).toBe('Moyenne');
+    expect(harvestSizeOf({ traits: [{ id: 'bestial' }, { id: 'vol' }] })).toBe('Moyenne');
     expect(harvestSizeOf({})).toBe('Moyenne');
   });
 });

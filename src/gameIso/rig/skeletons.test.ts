@@ -7,7 +7,7 @@ import { BONE_IDS } from './bones';
 import { species } from '../../data/index';
 import speciesRaceJson from '../../data/speciesRace.json';
 
-const carrure = (gabarit: GabaritId) => gabaritResolu({ race: { gabarit }, legsMult: 1 });
+const carrure = (gabarit: GabaritId) => gabaritResolu({ race: { gabarit: { id: gabarit } }, legsMult: 1 });
 
 describe('baseSpeciesOf', () => {
   it('normalise les variantes régionales', () => {

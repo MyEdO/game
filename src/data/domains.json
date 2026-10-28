@@ -828,8 +828,10 @@
     "casterOps": [
       {
         "op": "grantTrait",
-        "traitId": "peur",
-        "indice": 1,
+        "trait": {
+          "id": "peur",
+          "value": 1
+        },
         "durationRounds": {
           "dice": {
             "n": 1,
@@ -989,46 +991,6 @@
     "source": {
       "book": "livre-de-base",
       "page": 44
-    }
-  },
-  {
-    "id": "domaine-de-la-ruine",
-    "type": "domains",
-    "label": "Domaine de la Ruine",
-    "arcane": true,
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 359
-    }
-  },
-  {
-    "id": "domaine-des-ombres",
-    "type": "domains",
-    "label": "Domaine des Ombres",
-    "arcane": true,
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 371
-    }
-  },
-  {
-    "id": "domaine-de-la-peste",
-    "type": "domains",
-    "label": "Domaine de la Peste",
-    "arcane": true,
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 384
-    }
-  },
-  {
-    "id": "divinite",
-    "type": "domains",
-    "label": "Divinité",
-    "arcane": true,
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 269
     }
   },
   {

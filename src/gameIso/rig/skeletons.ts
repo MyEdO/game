@@ -138,7 +138,7 @@ function feminize(sk: Skeleton): Skeleton {
  */
 let _ref: Skeleton | null = null;
 export function referenceSkeleton(): Skeleton {
-  if (!_ref) _ref = applyBuild(baseSkeleton(gabaritResolu({ race: { gabarit: 'moyen' }, legsMult: 1 }), 'M'), 0.5);
+  if (!_ref) _ref = applyBuild(baseSkeleton(gabaritResolu({ race: { gabarit: { id: 'moyen' } }, legsMult: 1 }), 'M'), 0.5);
   return _ref;
 }
 

@@ -5,13 +5,13 @@ import { objetDeTest } from '../objetsDeTest.testkit';
 import { suffocationTick, prepareBreathHold, breathHoldSeconds, hasWaterContainer, isWaterSprayTarget, waterSprayCandidates } from './suffocation';
 import { inDeathCondition, hasCondition } from './conditions';
 import { applyOps } from './ops';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { spellOps } from './flowCore';
 import { setRule, resetRule } from './policy';
 import { desDuTest } from './dice.testkit';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */
-const opsOf = (label: string) => spellOps(findSpell(label)?.effects, 'target');
+const opsOf = (id: string) => spellOps(findSpellById(id)?.effects, 'target');
 
 function mk(over: Partial<Combatant> = {}): Combatant {
   return {
@@ -173,16 +173,16 @@ describe('Créature marine hors de l’eau — pont offTerrain→suffocation (MD
 
 describe('Effets curés — suffocation (lus de SpellData.effects)', () => {
   it('Bénédiction de Souffle porte l’op noBreath', () => {
-    expect(opsOf('Bénédiction de Souffle').some((o) => o.op === 'noBreath')).toBe(true);
+    expect(opsOf('benediction-de-souffle').some((o) => o.op === 'noBreath')).toBe(true);
   });
   it('Ombres étrangleuses : Exténué + suffocation + incantation coupée (« ne peuvent pas parler »)', () => {
-    const ops = opsOf('Ombres étrangleuses');
+    const ops = opsOf('ombres-etrangleuses');
     expect(ops.some((o) => o.op === 'suffocate')).toBe(true);
     expect(ops.some((o) => o.op === 'condition' && o.id === 'extenue')).toBe(true);
     expect(ops.some((o) => o.op === 'castPenalty' && o.blocked)).toBe(true);
   });
   it('Transmutation de Chamon : États persistants + 1 PA + suffocation', () => {
-    const ops = opsOf('Transmutation de Chamon');
+    const ops = opsOf('transmutation-de-chamon');
     expect(ops.some((o) => o.op === 'suffocate')).toBe(true);
     expect(ops.some((o) => o.op === 'ap')).toBe(true);
     for (const name of ['aveugle', 'assourdi', 'sonne']) {

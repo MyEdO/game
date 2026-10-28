@@ -42,6 +42,7 @@ import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 import { appliquerAcquisitions, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps, pettySpellQuotaFor } from './creation';
 import { sizeFromTalents } from './size';
+import { traitsDuPorteur } from './statEntry';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { sequence } from './sequences';
 
@@ -405,9 +406,11 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   const items = buildInventory(rawTrappings, contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }));
 
   // Trait RACIAL de l'espèce (#572) — Ogre `{id:'ogre'}` (encombrance/consommation ×2, ADE2 « Ogres
-  // et Mutations » l.708 « Un Lourd Fardeau ») : posé sur `Combatant.traits` (MÊME forme/lecture que
-  // le spawn de créature bestiaire, #513).
-  const speciesTraits: import('./statEntry').TraitList = sp.traits ?? [];
+  // et Mutations » l.708 « Un Lourd Fardeau ») : résolu et posé sur `Combatant.traits` (MÊME résolution
+  // que le spawn de créature bestiaire, #513).
+  const numero = prochainHeros.suivant();
+  const id = opts.id ?? `hero-${numero}`;
+  const speciesTraits = traitsDuPorteur(sp.traits ?? [], id);
 
   // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (#572) : `sizeFromTalents` sur les talents
   // résolus (espèce + carrière + signe astral) ci-dessus, sinon Moyenne.
@@ -419,14 +422,13 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   const fate = fateBase.fate + split.fate;
   const resilience = fateBase.resilience + split.resilience;
 
-  const numero = prochainHeros.suivant();
   const hero: Combatant = {
-    id: opts.id ?? `hero-${numero}`,
+    id,
     label: opts.label,
     kind: 'hero',
     species: opts.speciesId,
     career: opts.careerId,
-    groups: groupsFor({ speciesId: sp.id, careerId: opts.careerId, traits: speciesTraits, talents }), // Groupes déclarés par l'espèce, la carrière/classe et le culte du Talent de Prière (LDB 21, P3)
+    groups: groupsFor({ speciesId: sp.id }), // Groupes déclarés par l'espèce ; carrière, classe, culte et Traits lus en direct (`groupesDe`). LDB 21
     size,
     characteristics: chars,
     wounds: { current: 0, max: 0, base: 0 }, // posé après les effets de talents (Dur à cuire)

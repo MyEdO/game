@@ -18,7 +18,7 @@ import { poserEnjeu, type FlowTestNode } from './flowCore';
 import type { StakeRef } from '../data';
 import { isPainless, traitPassiveMods } from './traits/dispatch';
 import { findById, findConditionById, findPsychologyById, refLabel } from '../data';
-import type { CodexTarget } from './ruleRefs';
+import { RULE_REF, type CodexTarget } from './ruleRefs';
 import { talentPassiveMods } from './talentEffects';
 import { diseasePassiveOps } from './disease';
 import { sourceSuspended } from './suspension';
@@ -982,16 +982,17 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   if (c.diseases?.length && modSurvives(c, 'maladie')) {
     out.push(...diseasePassiveOps(c)); // déjà kind `maladie` + `src` = le symptôme émetteur
   }
+  const faim = { kind: 'faim' as const, src: RULE_REF['faim-et-soif'] };
   if (c.hunger && modSurvives(c, 'faim')) {
-    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of hungerCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, kind: 'faim' });
+    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of hungerCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, ...faim });
   }
   if (c.thirst && modSurvives(c, 'faim')) { // Soif (LDB 18 l.340) : même privation (kind `faim` — « Plus besoin de manger/boire »)
-    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of thirstCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, kind: 'faim' });
+    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of thirstCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, ...faim });
   }
   // Ivresse (LDB 09 l.475) : kind `ivresse`. Gaté à la
   // SOURCE par la Détermination : « ignorer les modificateurs négatifs de l'ivresse » (flag `drunkIgnore`).
   if (c.drunk && !hasActiveFlag(c, 'drunkIgnore')) {
-    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of drunkCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, kind: 'ivresse' });
+    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of drunkCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, kind: 'ivresse', label: tr('tra.kindIvresse'), src: { category: 'skills', id: 'resistance-a-l-alcool' } });
   }
   // États (LDB 16) : leur `passive: GameOp[]` (pénalité de Test → `testMod`, bonus à l'attaquant →
   // `incomingAttackMod`, échelle de Mouvement…) émis kind `etat` (pool NON-CUMUL, le pire seul, LDB 16 l.13).
@@ -1046,7 +1047,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   }
   // SUSPENSION d'une source (`engine/suspension.ts`) : tout ce qu'une source suspendue émet est écarté
   // ICI, au collecteur unique — aucun consommateur n'a à connaître le mécanisme. Les émetteurs SANS
-  // `src` (séquelles, Faim, Soif, Ivresse) ne sont pas suspendables : rien ne les nomme.
+  // `src` (séquelles) ne sont pas suspendables : rien ne les nomme.
   // (#1695) Une fenêtre de Détermination NOMME l'État qu'elle écarte (LDB 17 l.61, « Retirez un État ») :
   // le mod interrogé porte son id quand c'est une op `condition`, et lui seul tombe.
   return out.filter((m) => !sourceSuspended(c, m.src, m.op.op === 'condition' ? m.op.id : undefined));
@@ -1147,19 +1148,12 @@ export function passiveGlobalTestMod(c: Combatant): number {
  *    l'omet pas en silence (cliquet #1078, `rule-refs.test.ts`).
  * `amount` : la magnitude de l'op, que le lecteur connaît (les op-types la nomment différemment —
  * `mod` pour `skillMod`/`charMod`, `amount` pour `testMod`). Libellé VIDE = l'émetteur n'a ni entité
- * ni id : seul l'appelant sait si sa famille a un sens (cf. `CHAR_PENALTY_KIND_LABEL`).
+ * ni id.
  */
 export function passivePartLine(m: PassiveMod, amount: number): { label: string; value: number; famille: ModFamille; ref?: CodexTarget } {
   const ref = m.src && findById(m.src.category, m.src.id) ? m.src : undefined;
   return { label: m.label ?? (m.src ? refLabel(m.src.category, { id: m.src.id }) : ''), value: amount, famille: 'jet', ref };
 }
-
-/** Familles SANS entité émettrice — les SEULES à mériter un repli de famille : la Faim/Soif et
- *  l'Ivresse sont des états du CORPS, aucune fiche ne les octroie (≠ séquelle, maladie, État, qui ont
- *  toutes leur entité et donc leur nom propre, `passivePartLine`). */
-const CHAR_PENALTY_KIND_LABEL: Partial<Record<PassiveKind, string>> = {
-  faim: tr('tra.kindFaim'), ivresse: tr('tra.kindIvresse'),
-};
 
 /** Variante ÉTIQUETÉE de `traumaCharPenalties` : mêmes valeurs, NOMMÉES par leur octroyeur via le
  *  convertisseur UNIQUE `passivePartLine` (une séquelle s'appelle « Fracture », pas « Séquelle » — le
@@ -1172,7 +1166,7 @@ export function traumaCharPenaltiesLabeled(c: Combatant, key: CharKey): { kind: 
       const kind = m.kind ?? 'intrinseque';
       const mod = (m.op as Extract<GameOp, { op: 'charMod' }>).mod;
       const part = passivePartLine(m, mod);
-      return { kind, label: part.label || (CHAR_PENALTY_KIND_LABEL[kind] ?? kind), mod, ref: part.ref, src: m.src };
+      return { kind, label: part.label || kind, mod, ref: part.ref, src: m.src };
     });
 }
 

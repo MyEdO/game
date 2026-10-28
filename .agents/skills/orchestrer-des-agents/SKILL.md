@@ -1,6 +1,6 @@
 ---
 name: orchestrer-des-agents
-description: À utiliser pour écrire/modifier du code (même « petit »), dispatcher agent ou workflow, au retour d'un agent, avant tout agent() sans modèle/effort, avant AskUserQuestion, pour répondre à l'utilisateur.
+description: À utiliser pour écrire/modifier du code (même « petit »), dispatcher agent, workflow ou Codex, au retour d'agent, avant tout agent() sans modèle/effort, avant AskUserQuestion, répondre à l'utilisateur.
 ---
 <!-- GENERATED: agents:sync; source=.claude/skills/orchestrer-des-agents/SKILL.md -->
 
@@ -19,6 +19,7 @@ l'annexe au moment de son déclencheur.
 |---|---|
 | Étape 7 : commit, push, fusion de `main`, `ops:publier`, suite en fond ; avant tout `checkout`/`restore`/`reset`/`stash` ; avant de lancer un outil `scripts/ops/` qu'un agent édite | `.agents/skills/orchestrer-des-agents/publication.md` |
 | Étape 8 : fermer un ticket ou une phase, annoncer une vague ; écrire un ticket sur un socle | `.agents/skills/orchestrer-des-agents/fermeture.md` |
+| Briefer une session Codex du pont, lire son rendu, committer son diff | `.agents/skills/orchestrer-des-agents/codex.md` |
 | Choisir le type, le modèle et l'effort d'un agent ou d'un `agent()` ; un codeur ou un workflow multi-agents | `.agents/skills/orchestrer-des-agents/calibrage.md` |
 | Agents rendus, composer le prochain lot, remonter ou non un sujet à l'utilisateur, défaut dans un autre chantier, plan approuvé à déclarer fini, frictions, validation utilisateur en attente, sessions, épique, métriques | `.agents/skills/orchestrer-des-agents/regime-de-vague.md` |
 | Question, `AskUserQuestion`, réponse ou retour de l'utilisateur, demande de permission d'outil qui l'atteint | `.agents/skills/orchestrer-des-agents/repondre-a-l-utilisateur.md` |

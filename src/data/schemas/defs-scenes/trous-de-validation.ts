@@ -10,11 +10,6 @@
  * est ROUGE et se NOMME.
  */
 export const TROUS_DE_VALIDATION: Readonly<Record<string, { raison: string; lot: string }>> = {
-  'scene.ts:optionalEntrySchema': {
-    raison:
-      'OptionalEntry (engine/statEntry.ts:137) = TraitInstance | OptionalNote — même famille que les traits d’un statbloc (TraitInstance y est déjà la brique), et sa discrimination se fait par PRÉSENCE de `note` (isOptionalNote), pas par un discriminant.',
-    lot: 'L2 #1463 — concept « statblocs/créatures ». La brique `TraitInstance` est écrite UNE fois, à la grammaire (`grammaire/reference.ts:traitInstanceSchema`) : ce trou se ferme en la composant avec `OptionalWildcard`/`OptionalSwap` (union à discriminant `note`, dont `SwapGrant`), pas en la recopiant.',
-  },
   'scene.ts:authoredShipPosteSchema': {
     raison:
       'AuthoredShipPoste (engine/types.ts) porte le coffre de la pièce (`ammo: ItemInstance[]`) et `WeaponEnchant[]` : l’écrire strict aujourd’hui exigerait le schéma d’ItemInstance.',

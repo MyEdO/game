@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { pregen, PREGEN } from '../data/pregens';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
 
 describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTAGÉ castConfirm)', () => {
@@ -44,11 +44,11 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
   const okCast = () => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: 'lancé' });
 
   function setupZoneAwaitingCounter() {
-    const e = spawnEnemy({ ref: 'brigand' }, 'caster', { x: 5, y: 5 });
+    const e = spawnEnemy({ ref: 'humain' }, 'caster', { x: 5, y: 5 });
     e.kind = 'enemy';
     e.characteristics.intelligence = 60; e.characteristics['force-mentale'] = 60;
     e.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 40 } as never];
-    const spell = findSpell('Explosion')!; // Projectile magique à ZdE
+    const spell = findSpellById('explosion')!; // Projectile magique à ZdE
     e.spells = [spell.id];
     const h1 = dispeller(8, 8, 'h1');
     const h2 = dispeller(9, 8, 'h2'); // collés → un centre couvre les deux
@@ -114,10 +114,10 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
   });
 
   it('SYMÉTRIE — héros MANUEL : castConfirm sur une ZdE non posée RESTE en pose (attend le clic, PAS d\'auto-pose)', () => {
-    const spell = findSpell('Explosion')!;
+    const spell = findSpellById('explosion')!;
     const w = dispeller(2, 2, 'wiz'); // héros lanceur (kind hero → non aiDriven en cadence manuelle)
     w.spells = [spell.id, ...(w.spells ?? [])];
-    const t1 = spawnEnemy({ ref: 'brigand' }, 't1', { x: 8, y: 8 });
+    const t1 = spawnEnemy({ ref: 'humain' }, 't1', { x: 8, y: 8 });
     const battle = {
       combatants: [w, t1], order: [w.id, 't1'], baseOrder: [w.id, 't1'],
       turn: 0, round: 1, action: 'cast', selectedSpellId: spell.id, reachable: new Map(),

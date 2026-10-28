@@ -44,9 +44,9 @@ const combatRenderCases = (): Case[] => {
 };
 
 describe('détecteur de fuite des registres d’art du rig', () => {
-  it('une amputation de ARMOUR.plaque.{pied,main,cou} fait diverger 78 rendus de combat, et la remise les restaure', () => {
+  it('une amputation de ARMOUR.plaque.{pied,main,cou} fait diverger 18 rendus de combat, et la remise les restaure', () => {
     const cases = combatRenderCases();
-    expect(cases.length).toBe(1026); // 1020 → 1026 : +2 créatures à rendu de combat (Mouton, Cochon — EDOC 07 folio 24, #673 L1) × 3 rendus
+    expect(cases.length).toBe(339);
     const before = cases.map((c) => c.render());
 
     const P = ARMOUR.plaque as Record<string, unknown>;
@@ -60,7 +60,7 @@ describe('détecteur de fuite des registres d’art du rig', () => {
       Object.assign(P, saved);
     }
 
-    expect(cases.filter((_, i) => during[i] !== before[i]).length).toBe(78);
+    expect(cases.filter((_, i) => during[i] !== before[i]).length).toBe(18);
     expect(cases.map((c) => c.render())).toEqual(before); // remise → rendus identiques à l'origine
   });
 

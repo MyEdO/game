@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { scenario } from './magie-hors-combat';
-import { findSpell } from '../../data';
+import { findSpellById } from '../../data';
 import { layerTiles } from '../../noyau/monde/scene';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile, castInfo } from '../../engine/magic';
 const scenarioConstruit = scenario.construire();
@@ -31,14 +31,14 @@ describe('Scénario Magie hors combat', () => {
   it('le Sorcier maîtrise l’incantation et la Focalisation, et connaît un Sort d’Arcane focalisable', () => {
     expect(knowsCastingSkill(wiz, 'langue', 'magick')).toBe(true);
     expect(knowsCastingSkill(wiz, 'focalisation')).toBe(true);
-    const arme = findSpell('Armure Aethyrique')!;
+    const arme = findSpellById('armure-aethyrique')!;
     expect(wiz.spells).toContain('armure-aethyrique'); // runtime = id de sort
     expect(isArcaneSpell(arme)).toBe(true); // → bouton « ✨ Focaliser »
     expect(isMagicMissile(arme)).toBe(false); // non offensif → lançable hors combat
   });
 
   it('le Prêtre maîtrise la Prière et porte une Bénédiction de soin (effet modélisé)', () => {
-    const heal = findSpell('Bénédiction de Guérison')!;
+    const heal = findSpellById('benediction-de-guerison')!;
     expect(castInfo(heal).skill).toBe('priere');
     expect(knowsCastingSkill(priest, 'priere')).toBe(true);
     expect(priest.spells).toContain('benediction-de-guerison'); // runtime = id de sort
@@ -47,6 +47,6 @@ describe('Scénario Magie hors combat', () => {
 
   it('un allié est blessé (cible visible pour la Guérison) et un Projectile magique reste combat-only', () => {
     expect(wiz.wounds.current).toBeLessThan(wiz.wounds.max);
-    expect(isMagicMissile(findSpell('Fléchette')!)).toBe(true); // affiché « en combat » sur la fiche
+    expect(isMagicMissile(findSpellById('flechette')!)).toBe(true); // affiché « en combat » sur la fiche
   });
 });

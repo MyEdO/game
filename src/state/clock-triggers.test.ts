@@ -155,7 +155,7 @@ describe('BORNE du Trait accordé — la semaine du Désespoir (VDM 09 l.280) vi
    *  test rougit : rien n'est reconstruit à la main ici. */
   const grantDesespoir = () => {
     const sort = findSpellById('apercu-de-la-mort')!;
-    const op = spellEffectOps(sort.effects).find((o) => o.op === 'grantTrait' && o.traitId === 'desespoir');
+    const op = spellEffectOps(sort.effects).find((o) => o.op === 'grantTrait' && o.trait.id === 'desespoir');
     return { sort, op: op! };
   };
 

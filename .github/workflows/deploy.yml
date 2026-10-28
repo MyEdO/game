@@ -17,7 +17,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: package.json
+          check-latest: true
           cache: npm
       - run: npm ci
       # Le typage est jugé par sa gate, ici comme dans ci.yml (step `npm run typecheck`) — `build` ne construit que le bundle,

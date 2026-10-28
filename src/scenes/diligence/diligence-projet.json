@@ -76,7 +76,7 @@
       },
       {
        "id": "corruption",
-       "arg": "Modérée"
+       "arg": "moderee"
       },
       {
        "id": "demoniaque",
@@ -1296,7 +1296,7 @@
       },
       {
        "id": "corruption",
-       "arg": "Mineure"
+       "arg": "mineure"
       },
       {
        "id": "mutation",
@@ -1355,7 +1355,7 @@
       },
       {
        "id": "corruption",
-       "arg": "Mineure"
+       "arg": "mineure"
       },
       {
        "id": "mutation",
@@ -1414,7 +1414,7 @@
       },
       {
        "id": "corruption",
-       "arg": "Mineure"
+       "arg": "mineure"
       },
       {
        "id": "mutation",
@@ -1473,7 +1473,7 @@
       },
       {
        "id": "corruption",
-       "arg": "Mineure"
+       "arg": "mineure"
       },
       {
        "id": "mutation",
@@ -1539,7 +1539,7 @@
       },
       {
        "id": "corruption",
-       "arg": "Mineure"
+       "arg": "mineure"
       },
       {
        "id": "mutation",
@@ -1650,8 +1650,14 @@
       },
       {
        "id": "armure",
-       "value": 2,
-       "arg": "Chemise de mailles"
+       "parLocalisation": {
+        "tete": 0,
+        "brasG": 0,
+        "brasD": 0,
+        "corps": 2,
+        "jambeG": 0,
+        "jambeD": 0
+       }
       },
       {
        "id": "prejuge",
@@ -1773,12 +1779,22 @@
       },
       {
        "id": "armure",
-       "value": 1,
-       "arg": "Veste de cuir"
+       "parLocalisation": {
+        "tete": 0,
+        "brasG": 1,
+        "brasD": 1,
+        "corps": 1,
+        "jambeG": 0,
+        "jambeD": 0
+       }
       },
       {
        "id": "prejuge",
-       "arg": "criminel, personnes-qui-ne-leur-offrent-rien"
+       "arg": "criminel"
+      },
+      {
+       "id": "prejuge",
+       "arg": "personnes-qui-ne-leur-offrent-rien"
       }
      ],
      "optionals": [],
@@ -1988,8 +2004,14 @@
       },
       {
        "id": "armure",
-       "value": 1,
-       "arg": "Veste de cuir"
+       "parLocalisation": {
+        "tete": 0,
+        "brasG": 1,
+        "brasD": 1,
+        "corps": 1,
+        "jambeG": 0,
+        "jambeD": 0
+       }
       }
      ],
      "optionals": [],
@@ -2107,8 +2129,14 @@
       },
       {
        "id": "armure",
-       "value": 1,
-       "arg": "Veste de cuir"
+       "parLocalisation": {
+        "tete": 0,
+        "brasG": 1,
+        "brasD": 1,
+        "corps": 1,
+        "jambeG": 0,
+        "jambeD": 0
+       }
       },
       {
        "id": "arme",
@@ -2264,8 +2292,14 @@
       },
       {
        "id": "armure",
-       "value": 2,
-       "arg": "Veste de cuir et cotte de maille"
+       "parLocalisation": {
+        "tete": 0,
+        "brasG": 2,
+        "brasD": 2,
+        "corps": 2,
+        "jambeG": 0,
+        "jambeD": 0
+       }
       }
      ],
      "optionals": [],
@@ -2451,8 +2485,14 @@
       },
       {
        "id": "armure",
-       "value": 2,
-       "arg": "Veste de cuir et cotte de mailles"
+       "parLocalisation": {
+        "tete": 0,
+        "brasG": 2,
+        "brasD": 2,
+        "corps": 2,
+        "jambeG": 0,
+        "jambeD": 0
+       }
       }
      ],
      "optionals": [],

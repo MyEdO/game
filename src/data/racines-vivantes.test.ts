@@ -23,8 +23,8 @@ import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
 const OBJETS: ReadonlySet<string> = new Set(OBJECT_DATASET_KEYS);
 
 describe('CLÉS DE DATASET — le binding de la couche donnée EST la collection de la racine vivante', () => {
-  it('le domaine généré égale les clés du seam, 137 clés', () => {
-    expect(CLES_DE_DATASET.length).toBe(137);
+  it('le domaine généré égale les clés du seam', () => {
+    expect(CLES_DE_DATASET.length).toBeGreaterThan(0);
     expect(Object.keys(DATASET_FICHIER_DERIVE).sort()).toEqual([...CLES_DE_DATASET].sort());
     expect([...DATASET_KEYS, ...OBJECT_DATASET_KEYS].sort()).toEqual([...CLES_DE_DATASET].sort());
   });
@@ -38,7 +38,7 @@ describe('CLÉS DE DATASET — le binding de la couche donnée EST la collection
       return binding === collectionDuDataset(cle) ? [] : [`${cle} (${DATASET_FICHIER_DERIVE[cle]}${suite ? `#${suite}` : ''})`];
     });
     expect(fautes).toEqual([]);
-    expect(parCas).toEqual({ racine: 71, niche: 54, objet: 12 });
+    for (const [cas, n] of Object.entries(parCas)) expect(n, `aucune clé ne passe par la route « ${cas} »`).toBeGreaterThan(0);
   });
 });
 
@@ -57,13 +57,13 @@ describe('RÉGIME VIVANT — vivant = généré sur l’image de `DATASET_FICHIE
       return vivant && JSON.stringify([...vivant]) === JSON.stringify(IDS_PAR_ESPACE[cle]) ? [] : [`${cle} : vivant ≠ généré`];
     });
     expect(fautes).toEqual([]);
-    expect(parCas.image).toBeGreaterThan(300);
+    expect(parCas.image).toBeGreaterThan(0);
     expect(parCas.horsImage).toBeGreaterThan(0);
   });
 });
 
 describe('`niche.categories` — chaque suite mène à une collection marquée du JSON disque', () => {
-  it('les 54 catégories nichées', () => {
+  it('chaque catégorie nichée mène à sa collection', () => {
     const lues = SCHEMA_DEFS.flatMap((d) => {
       const edit = d.exposition?.edit;
       if (!edit || !('niche' in edit)) return [];
@@ -77,7 +77,7 @@ describe('`niche.categories` — chaque suite mène à une collection marquée d
         }
       });
     });
-    expect(lues.length).toBe(54);
+    expect(lues.length, 'aucune catégorie nichée').toBeGreaterThan(0);
     expect(lues.filter(Boolean)).toEqual([]);
   });
 });

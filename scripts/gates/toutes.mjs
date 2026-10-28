@@ -131,6 +131,7 @@ export const ECRIT_LU = {
       'session-start.mjs importe compat-cli.mjs : chargerRegistres ne fait que charger les registres de hooks ; runCompat et atomicWrite ne sont pas appelés, et la porte import.meta.main reste fermée ; ' +
       'patchCodex.test.mjs écrit son fichier et sa jonction réels uniquement sous mkdtempSync de os.tmpdir(), puis unlinkSync et rmSync en finally ; ' +
       'superviserProcessus.test.mjs écrit ses lanceurs, PID, battements et résultats JSON dans mkdtempSync de os.tmpdir(), puis rmSync en finally ; ses enfants écrivent ces seuls chemins temporaires ; ' +
+      'operationsFs.test.mjs écrit sous deux mkdtempSync de os.tmpdir() (racine refusée par l’interception, dehors permis), vérifie la racine vide, puis rmSync en finally ; ' +
       'arbreProcessus.test.mjs et son suspendeur (scripts/test/suspendeurDeMesure.mjs) écrivent pilote, script PowerShell et témoin d’armement dans mkdtempSync de os.tmpdir(), puis rmSync en t.after ; ' +
       'comptes-plage.test.mjs forge son dépôt sous mkdtempSync de os.tmpdir(), puis rmSync en finally ; son enfant tsx (jugerLesComptes) pose chaque borne sous mkdtempSync de os.tmpdir(), effacée en finally ; ' +
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
@@ -229,14 +230,15 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
     raison: RETRAIT_WORKTREE_FERME +
-      'la porte des collections à compte (#2705, scripts/guards/lib/corpusDesComptes.mts) lit l’HISTOIRE par git — ' +
+      'la porte des comptes (#2705, scripts/guards/lib/corpusDesComptes.mts) lit l’HISTOIRE par git — ' +
       '`merge-base origin/main..HEAD`, et les images de `src/`, `Source/`, `scripts/`, `package.json` et `tsconfig.json` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
       'et pose chacune une fois sous un `mkdtempSync` d’os.tmpdir(), effacé à la sortie du processus, ' +
       '`node_modules` lié (`lierDependances`) et ses cibles de code produites par SON `genererCode` dans un processus fils (cwd = l’image), ' +
       'puis, son `scripts/` retiré, la mesure deux fois : avec une COPIE de `scripts/`, `package.json` et `tsconfig.json` de l’arbre (le détecteur de la tête), ' +
       'puis avec ceux du commit de base lus par git (`detecteurDuCommit`) ; une mesure en échec se rejoue sur une image neuve, effacée en finally, ' +
       'dont les cibles de code sont produites par le `genererCode` du détecteur ; chaque image se mesure dans un processus tsx fils ; ' +
-      'aucune écriture dans l’arbre',
+      'puis l’inventaire de la dette de l’arbre (#3021, scripts/guards/lib/inventaireDeDette.mts) se rend sur la sortie et, ' +
+      'en CI, au résumé du job (`GITHUB_STEP_SUMMARY`, hors de l’arbre) ; aucune écriture dans l’arbre',
   },
   'test:corpus': {
     ecrit: [],

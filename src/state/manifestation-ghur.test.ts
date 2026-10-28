@@ -46,7 +46,7 @@ const spell = (domainId: string) =>
         effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'aveugle' }, { op: 'charMod', char: 'capacite-de-combat', mod: -10 }] },
       }],
     },
-    family: 'arcane', curated: true,
+    family: 'arcane',
   }) as unknown as Parameters<typeof applyCast>[4];
 
 const ok: CastResult = { cast: true, roll: 21, target: 70, sl: 2, isCritical: false, isFumble: false, log: 'lancé' };

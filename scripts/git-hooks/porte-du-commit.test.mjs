@@ -36,6 +36,8 @@ import {
   refusDesPannes,
   evaluateBudgetContexte,
   evaluateReclassementsCss,
+  evaluateComptesDuCommit,
+  mesurerLesComptesDeLIndex,
   fichiersCitantTickets,
   listeurDuBudget,
   jugerLeCommit,
@@ -44,7 +46,7 @@ import {
 import { apportDeLaResolution, estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
 import { lignesDuContenu } from '../guards/lib/stock.mjs'
-import { GitIndisponible, INDEX, ceQueFaitLeCommit, depotDe, histoireDeHead, patchsParChemin } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, INDEX, ceQueFaitLeCommit, depotDe, histoireDeHead, patchsParChemin, ecrireBlob, poserDansIndex, reussi } from '../guards/lib/gitPorte.mjs'
 import { depotReel, envDeDepotForge, envGitFeint, ENV_GIT_FEINT, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, gitDeLArbreReel, lancerGit, lancesDeGit, resultatDeGit, sousCommande } from '../test/gitDeBanc.mjs'
 
@@ -86,6 +88,148 @@ test('#2774 commit : seule la substance sous src déclenche les deux preuves', a
     const preuve = 'preuve indépendante sur le diff complet et les contournements discriminants'
     assert.equal(await evaluer(`chore: refs #2774\n\nJUGE: ${preuve}\nREFUTATION: ${preuve}`), null)
   } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2948 commit : un détecteur modifié sans stock délègue les comptes de l’INDEX, pas le WIP', async () => {
+  const point = 'scripts/guards/lib/corpusDesComptes.mts'
+  const { racine } = instanceDeDepot({ fichiers: { [point]: 'export const base = 1;\n', 'src/donnee.json': '["base"]\n' }, message: 'socle' })
+  const git = gitDe(racine)
+  try {
+    writeFileSync(join(racine, point), 'export const base = 2;\n')
+    git('add', point)
+    writeFileSync(join(racine, 'src/donnee.json'), '["WIP non emporte"]\n')
+    const message = 'chore: refs #2948\n\nFAUX-POSITIF: ["C","site",1] — preuve ciblée du site refusé'
+    const appels = []
+    const verdict = await jugerLeCommit({
+      message, dir: racine, today: TODAY,
+      mesurerComptes: (entree) => {
+        appels.push(entree)
+        assert.equal(lancerGit(['show', ':src/donnee.json'], { cwd: racine }), '["base"]\n')
+        return { ok: false, texte: 'refus canonique : le détecteur retire le site' }
+      },
+    })
+    assert.equal(appels.length, 1)
+    assert.equal(appels[0].base, git('rev-parse', 'HEAD').trim())
+    assert.equal(appels[0].message, message)
+    assert.match(verdict?.reason ?? '', /refus canonique : le détecteur retire le site/)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2948 commit : seuls les modules de la fermeture du détecteur et les faux positifs lancent la mesure', async () => {
+  const point = 'scripts/guards/lib/corpusDesComptes.mts'
+  const intermediaire = 'scripts/guards/lib/classer.mjs'
+  const classeur = 'src/classement.mjs'
+  const donnee = 'src/data/donnee.json'
+  const fichiers = {
+    [point]: "export { classer } from './classer.mjs';\nimport donnees from '../../../src/data/donnee.json';\n",
+    [intermediaire]: "export { classer } from '../../../src/classement.mjs';\n",
+    [classeur]: 'export const classer = () => 1;\n',
+    [donnee]: '[1]\n',
+    'src/hors-fermeture.mjs': 'export const autre = 1;\n',
+  }
+  const { racine } = instanceDeDepot({ fichiers, message: 'socle' })
+  const depot = depotDe(racine, { env: envDeDepotForge() })
+  const poser = (rel, texte) => {
+    writeFileSync(join(racine, rel), texte)
+    const blob = ecrireBlob(depot, texte)
+    assert.ok(reussi(blob))
+    assert.ok(reussi(poserDansIndex(depot, { index: join(racine, '.git/index'), entrees: [{ chemin: rel, mode: '100644', sha: blob.valeur.stdout.trim() }] })))
+  }
+  let appels = 0
+  const mesurerComptes = () => { appels++; return { ok: true, texte: 'mesure canonique' } }
+  const juger = (message = 'chore: refs #2948') => jugerLeCommit({ message, dir: racine, today: TODAY, mesurerComptes })
+  try {
+    poser(donnee, '[2]\n')
+    const debut = performance.now()
+    assert.equal(await juger(), null)
+    console.log(JSON.stringify({ banc: 'commit-donnee-seule', dureeMs: performance.now() - debut, mesures: appels }))
+    assert.equal(appels, 0, 'la donnée JSON importée est hors des modules exécutés')
+
+    poser(classeur, 'export const classer = () => 2;\n')
+    writeFileSync(join(racine, point), "export const sansImport = true;\n")
+    assert.equal(await juger(), null)
+    assert.equal(appels, 1, 'la fermeture est celle de l’index, pas du WIP')
+
+    poser(classeur, fichiers[classeur])
+    poser('src/hors-fermeture.mjs', 'export const autre = 2;\n')
+    assert.equal(await juger(), null)
+    assert.equal(appels, 1, 'un module extérieur ne déclenche aucune mesure')
+
+    poser(point, "export const sansImport = true;\n")
+    assert.equal(diffDuCommit(racine).toucheLeDetecteur([classeur]), true, 'la fermeture de base reste prise en compte après retrait de l’import')
+    assert.equal(await juger('chore: refs #2948\n\nFAUX-POSITIF: ["C","site",1] — preuve explicite de cette occurrence'), null)
+    assert.equal(appels, 2, 'un trailer impose la mesure indépendamment des fichiers')
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2948 commit : les comptes refusent une mesure absente, ses erreurs et les faux positifs sans univers', () => {
+  const entree = { message: 'refs #2948', fichiers: ['scripts/docs/lib/structures-scan.mts'], disponible: () => true, baseDesComptes: () => ({ base: 'base', repli: null }), toucheLeDetecteur: () => true }
+  assert.deepEqual(evaluateComptesDuCommit({ ...entree, mesurer: () => ({ ok: false, texte: 'refus exact du canonique' }) }), { reason: 'refus exact du canonique' })
+  const enRepli = { ...entree, baseDesComptes: () => ({ base: 'commune', repli: 'repli nommé' }) }
+  assert.deepEqual(evaluateComptesDuCommit({ ...enRepli, mesurer: ({ base }) => ({ ok: false, texte: `refus contre ${base}` }) }), { reason: 'refus contre commune\n  repli nommé' })
+  assert.deepEqual(evaluateComptesDuCommit({ ...enRepli, baseDesComptes: () => ({ base: null, repli: 'repli nommé' }), mesurer: () => assert.fail('aucune borne') }),
+    { reason: '⛔ Comptes de l’index injugeables : les parents de la fusion n’ont aucune base commune.\n  repli nommé' })
+  assert.equal(evaluateComptesDuCommit({ ...entree, mesurer: () => ({ ok: true, texte: 'vert' }) }), null)
+  assert.match(evaluateComptesDuCommit({ ...entree, mesurer: () => { throw new Error('spawn indisponible') } }).reason, /spawn indisponible/)
+  assert.match(evaluateComptesDuCommit({ ...entree, mesurer: () => undefined }).reason, /aucun verdict canonique/)
+  const sansUnivers = { ...entree, fichiers: [], disponible: () => false, mesurer: () => assert.fail('univers absent') }
+  assert.equal(evaluateComptesDuCommit(sansUnivers), null)
+  assert.match(evaluateComptesDuCommit({ ...sansUnivers, message: 'refs #2948\nFAUX-POSITIF: ["C","site",1] — preuve assez longue du site' }).reason, /sans porte des comptes/)
+  assert.equal(evaluateComptesDuCommit({ ...sansUnivers, message: 'refs #2948\n# FAUX-POSITIF: ["C","site",1] — commentaire ignoré' }), null)
+})
+
+test('#1463 commit : une fusion qui résout un conflit dans un module du détecteur se mesure contre la base de la CI, en repli NOMMÉ la base commune de ses parents, jamais contre sa fusion automatique à marqueurs', async () => {
+  const point = 'scripts/guards/lib/corpusDesComptes.mts'
+  const module = 'src/data/schemas/grammaire/ref.ts'
+  const feuille = (n) => `export const estFeuilleDId = (noeud: unknown): boolean => noeud === ${n};\n`
+  const { racine, git } = depotEnFusion({
+    socle: {
+      'scripts/hooks/registres-porteurs.json': '[]',
+      [point]: "import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';\nexport const lu = estFeuilleDId;\n",
+      [module]: feuille(1),
+    },
+    chantier: { [module]: feuille(2) },
+    main: { [module]: feuille(3) },
+  })
+  try {
+    assert.match(readFileSync(join(racine, module), 'utf8'), /^<<<<<<< /m, 'témoin : le conflit est dans le module importé')
+    writeFileSync(join(racine, module), feuille(4))
+    git('add', module)
+    const parents = [git('rev-parse', 'HEAD').trim(), git('rev-parse', 'MERGE_HEAD').trim()]
+    const commune = git('merge-base', ...parents).trim()
+    const appels = []
+    const juger = () => jugerLeCommit({
+      message: 'merge: refs #1463', dir: racine, today: TODAY,
+      mesurerComptes: (entree) => { appels.push(entree); return { ok: false, texte: 'refus canonique' } },
+    })
+    assert.match((await juger())?.reason ?? '', /refus canonique\n {2}repli sans base de la CI \(`origin\/main` illisible\) : mesuré contre la base commune des parents/)
+    assert.deepEqual(appels.map((a) => a.base), [commune], 'sans `origin/main` : en repli, la base commune des parents')
+    git('update-ref', 'refs/remotes/origin/main', git('commit-tree', git('hash-object', '-w', '-t', 'tree', '/dev/null').trim(), '-m', 'sans histoire commune').trim())
+    assert.match((await juger())?.reason ?? '', /repli sans base de la CI \(`origin\/main` sans base commune avec les parents\)/)
+    assert.equal(appels.at(-1).base, commune, '`origin/main` sans base commune avec les parents : le même repli, nommé')
+    git('update-ref', 'refs/remotes/origin/main', 'amont')
+    assert.doesNotMatch((await juger())?.reason ?? '', /repli/)
+    assert.equal(appels.at(-1).base, parents[1], 'le tronc fusionné : la base de la CI est le parent tronc')
+    git('update-ref', 'refs/remotes/origin/main', 'amont~1')
+    await juger()
+    assert.equal(appels.at(-1).base, git('rev-parse', 'amont~1').trim(), 'sans parent tronc : la base de la CI')
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2948 commit : l’hôte des comptes transmet base et message, et conserve les deux flux du refus', () => {
+  const entree = { dir: 'racine du depot', base: 'arbre-de-fusion', message: 'refs #2948\nFAUX-POSITIF: site exact' }
+  assert.deepEqual(mesurerLesComptesDeLIndex(entree, (executable, argv, options) => {
+    assert.equal(executable, process.execPath)
+    assert.equal(argv[0].endsWith(join('node_modules', 'tsx', 'dist', 'cli.mjs')), true)
+    assert.equal(argv[1].endsWith(join('scripts', 'guards', 'comptes-plage.mts')), true)
+    assert.deepEqual(argv.slice(2), ['--index', '--base', entree.base])
+    assert.equal(options.cwd, entree.dir)
+    assert.equal(options.input, entree.message)
+    return 'verdict vert\n'
+  }), { ok: true, texte: 'verdict vert' })
+  assert.deepEqual(mesurerLesComptesDeLIndex(entree, () => { throw Object.assign(new Error('exit 1'), { status: 1, stdout: 'mesure nommée', stderr: 'refus du site' }) }), { ok: false, texte: 'mesure nommée\nrefus du site' })
+  assert.match(mesurerLesComptesDeLIndex(entree, () => { throw Object.assign(new Error('spawn absent'), { code: 'ENOENT' }) }).texte, /injugeables.*spawn absent/)
+  assert.match(mesurerLesComptesDeLIndex(entree, () => '').texte, /aucun verdict/)
 })
 
 const TODAY = '2026-07-14'
@@ -1710,6 +1854,144 @@ function depotEnFusion({ socle, chantier, main, messageAmont = 'main' }) {
   const evaluer = (message) => jugerLeCommit({ message, dir: racine, today: TODAY })
   return { racine, git, evaluer }
 }
+
+test('#1463 fusion en cours : le budget du contexte se mesure contre ses deux parents réunis, jamais contre la fusion automatique à marqueurs', async () => {
+  const reunis = 'titre\nchantier ajoute\namont ajoute\n'
+  const { racine, git, evaluer } = depotEnFusion({
+    socle: { 'README.md': 'socle\n', 'scripts/hooks/registres-porteurs.json': '[]', 'CLAUDE.md': 'titre\n' },
+    chantier: { 'CLAUDE.md': 'titre\nchantier ajoute\n' },
+    main: { 'CLAUDE.md': 'titre\namont ajoute\n' },
+  })
+  try {
+    assert.match(readFileSync(join(racine, 'CLAUDE.md'), 'utf8'), /^<<<<<<< /m, 'témoin : le conflit est dans le contexte')
+    writeFileSync(join(racine, 'CLAUDE.md'), reunis)
+    git('add', 'CLAUDE.md')
+    assert.equal(await evaluer('merge: refs #1463'), null, 'garder les deux côtés n’apporte rien')
+    writeFileSync(join(racine, 'CLAUDE.md'), `${reunis}la resolution ajout\n`)
+    git('add', 'CLAUDE.md')
+    assert.match((await evaluer('merge: refs #1463'))?.reason ?? '', /CONTEXTE PERMANENT qui GRANDIT : .*soit \+20/)
+    assert.equal(await evaluer('merge: refs #1463\n\nCLIQUET: scripts/guards/budget-contexte.mjs +20 — la résolution ajoute une consigne'), null)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#1463 fusion en cours : la porte des comptes est disponible dès qu’une base RÉELLE la porte, même absente de la fusion automatique', async () => {
+  const point = 'scripts/guards/lib/corpusDesComptes.mts'
+  const corps = Array.from({ length: 20 }, (_, i) => `export const ligne${i} = ${i};\n`).join('')
+  const { racine } = instanceDeDepot({ fichiers: { 'README.md': 'socle\n', 'scripts/hooks/registres-porteurs.json': '[]', [point]: corps }, message: 'socle' })
+  const git = gitDe(racine)
+  try {
+    const courante = git('rev-parse', '--abbrev-ref', 'HEAD').trim()
+    git('checkout', '-q', '-b', 'amont')
+    git('mv', point, 'scripts/guards/lib/renomme.mts')
+    git('commit', '-q', '-m', 'amont renomme le point')
+    git('checkout', '-q', courante)
+    writeFileSync(join(racine, point), corps.replace('ligne0 = 0', 'ligne0 = 100'))
+    git('commit', '-q', '-am', 'chantier modifie le point')
+    resultatDeGit(['merge', '--no-commit', '--no-ff', 'amont'], { cwd: racine })
+    assert.ok(existsSync(join(racine, '.git', 'MERGE_HEAD')), 'témoin : fusion en cours')
+    assert.equal(lancerGit(['ls-files', '--', point], { cwd: racine }), '', 'témoin : la fusion automatique emporte le point ailleurs')
+    const appels = []
+    const verdict = await jugerLeCommit({
+      message: 'merge: refs #1463\n\nFAUX-POSITIF: ["C","site",1] — preuve explicite de cette occurrence', dir: racine, today: TODAY,
+      mesurerComptes: (entree) => { appels.push(entree); return { ok: true, texte: 'mesure canonique' } },
+    })
+    assert.equal(verdict, null)
+    assert.deepEqual(appels.map((a) => a.base), [git('merge-base', 'HEAD', 'MERGE_HEAD').trim()])
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+const PORTEUR_SOUS_LA_PORTE = 'scripts/guards/lib/horsStrateStock.mjs'
+const stockSousLaPorte = (...refs) => `export const STRUCTURES_LOCALES = [\n${refs.map((r) => `  { fichier: 'src/data#activities', ref: '[].${r}', occurrence: 1 },\n`).join('')}]\n`
+const GRANDIT_SOUS_LA_PORTE = /STOCK SOUS LA PORTE `comptes:plage` qui NAÎT ou GRANDIT : scripts\/guards\/lib\/horsStrateStock\.mjs : \+1/
+
+/** Une fusion de `amont` (le TRONC, `origin/main`) en cours dans le chantier, dont le stock sous la porte est en conflit. */
+function stockSousLaPorteEnConflit({ socle, chantier, main, conflit = true }) {
+  const enFusion = depotEnFusion({
+    socle,
+    chantier: { [PORTEUR_SOUS_LA_PORTE]: stockSousLaPorte(...chantier) },
+    main: { [PORTEUR_SOUS_LA_PORTE]: stockSousLaPorte(...main) },
+  })
+  enFusion.git('update-ref', 'refs/remotes/origin/main', 'amont')
+  if (conflit) assert.match(readFileSync(join(enFusion.racine, PORTEUR_SOUS_LA_PORTE), 'utf8'), /^<<<<<<< /m, 'témoin : le stock est en conflit')
+  const juger = (...refs) => {
+    writeFileSync(join(enFusion.racine, PORTEUR_SOUS_LA_PORTE), stockSousLaPorte(...refs))
+    enFusion.git('add', PORTEUR_SOUS_LA_PORTE)
+    return enFusion.evaluer('merge: refs #3023')
+  }
+  return { ...enFusion, juger }
+}
+
+test('#3023 fusion du tronc en cours : un stock SOUS LA PORTE en conflit, résolu comme le tronc ou sans dépasser son compte, admis ; une entrée de plus, refusée', async () => {
+  const { racine, git, juger } = stockSousLaPorteEnConflit({
+    socle: { 'README.md': 'socle\n', 'scripts/hooks/registres-porteurs.json': '[]', [PORTEUR_SOUS_LA_PORTE]: stockSousLaPorte('a', 'b', 'c', 'd', 'e') },
+    chantier: ['a', 'c', 'd', 'e'], main: ['a', 'b', 'e', 'nee-sur-main'],
+  })
+  try {
+    assert.equal(await juger('a', 'b', 'e', 'nee-sur-main'), null, 'identique au tronc, qui garde b que le chantier a soldé')
+    assert.equal(await juger('a', 'e', 'nee-sur-main'), null, 'les soldes des deux côtés réunis')
+    assert.match((await juger('a', 'b', 'e', 'nee-sur-main', 'neuve'))?.reason ?? '', GRANDIT_SOUS_LA_PORTE)
+    assert.equal(await juger('a', 'c', 'd', 'e'), null, 'identique au chantier : sa clé ne dépasse pas le compte du tronc')
+    git('update-ref', '-d', 'refs/remotes/origin/main')
+    assert.match((await juger('a', 'b', 'e', 'nee-sur-main'))?.reason ?? '', GRANDIT_SOUS_LA_PORTE, 'sans tronc, b que le chantier a soldé renaît')
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#3023 fusion du tronc en cours : un stock SOUS LA PORTE dont le tronc solde deux entrées que le chantier retouche, résolu comme le chantier, refusé ; comme le tronc, admis', async () => {
+  const { racine, juger } = stockSousLaPorteEnConflit({
+    socle: { 'README.md': 'socle\n', 'scripts/hooks/registres-porteurs.json': '[]', [PORTEUR_SOUS_LA_PORTE]: stockSousLaPorte('a', 'b', 'c') },
+    chantier: ['a', 'b-chantier', 'c'], main: ['a'],
+  })
+  try {
+    assert.match((await juger('a', 'b-chantier', 'c'))?.reason ?? '', /horsStrateStock\.mjs : \+2/)
+    assert.equal(await juger('a'), null)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#3023 fusion du tronc en cours : la réécriture du chantier gardée AVEC l’original du tronc, dédoublée, refusée', async () => {
+  const { racine, juger } = stockSousLaPorteEnConflit({
+    socle: { 'README.md': 'socle\n', 'scripts/hooks/registres-porteurs.json': '[]', [PORTEUR_SOUS_LA_PORTE]: stockSousLaPorte('a', 'b', 'c') },
+    chantier: ['a', 'b2', 'c'], main: ['a', 'b', 'c', 'm'], conflit: false,
+  })
+  try {
+    assert.equal(await juger('a', 'b2', 'c', 'm'), null, 'la fusion automatique')
+    assert.match((await juger('a', 'b', 'b2', 'c', 'm'))?.reason ?? '', GRANDIT_SOUS_LA_PORTE)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#3023 fusion du tronc en cours : un stock SOUS LA PORTE réécrit des deux côtés, résolu comme le chantier ou comme le tronc, admis ; les deux réécritures gardées, refusées', async () => {
+  const { racine, juger } = stockSousLaPorteEnConflit({
+    socle: { 'README.md': 'socle\n', 'scripts/hooks/registres-porteurs.json': '[]', [PORTEUR_SOUS_LA_PORTE]: stockSousLaPorte('a', 'b', 'c') },
+    chantier: ['a', 'b-chantier', 'c'], main: ['a', 'b-main', 'c'],
+  })
+  try {
+    assert.equal(await juger('a', 'b-chantier', 'c'), null, 'identique au chantier')
+    assert.equal(await juger('a', 'b-main', 'c'), null, 'identique au tronc')
+    assert.match((await juger('a', 'b-chantier', 'b-main', 'c'))?.reason ?? '', GRANDIT_SOUS_LA_PORTE)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#1463 #3023 fusion en cours d’une branche PÉRIMÉE que le tronc a déjà fusionnée : elle n’est pas le tronc, la résurrection d’un solde du tronc est refusée', async () => {
+  for (const forgee of [false, true]) {
+    const { racine } = instanceDeDepot({ fichiers: { 'README.md': 'socle\n', 'scripts/hooks/registres-porteurs.json': '[]', [PORTEUR_SOUS_LA_PORTE]: stockSousLaPorte('a', 'b', 'x'), 'p.txt': 'p\n' }, message: 'socle' })
+    const git = gitDe(racine)
+    const poser = (chemin, texte, message) => { writeFileSync(join(racine, chemin), texte); git('add', '-A'); git('commit', '-q', '--no-verify', '-m', message) }
+    try {
+      const socle = git('rev-parse', 'HEAD').trim()
+      git('checkout', '-q', '-b', 'perimee', socle); poser('p.txt', 'p2\n', 'la branche travaille')
+      const perimee = git('rev-parse', 'HEAD').trim()
+      git('checkout', '-q', '-b', 'tronc', socle); poser(PORTEUR_SOUS_LA_PORTE, stockSousLaPorte('a', 'b'), 'le tronc solde x')
+      const solde = git('rev-parse', 'HEAD').trim()
+      git('merge', '-q', '--no-ff', '--no-verify', '-m', 'le tronc fusionne la branche', 'perimee')
+      git('update-ref', 'refs/remotes/origin/main', 'HEAD')
+      git('checkout', '-q', '-b', 'chantier', forgee ? 'tronc' : solde); poser('autre.txt', 'q\n', 'le chantier travaille')
+      if (forgee) writeFileSync(join(racine, '.git', 'MERGE_HEAD'), `${perimee}\n`)
+      else resultatDeGit(['merge', '--no-commit', '--no-ff', 'perimee'], { cwd: racine })
+      writeFileSync(join(racine, PORTEUR_SOUS_LA_PORTE), stockSousLaPorte('a', 'b', 'x')); git('add', PORTEUR_SOUS_LA_PORTE)
+      const verdict = await jugerLeCommit({ message: 'merge: refs #3023', dir: racine, today: TODAY })
+      assert.match(verdict?.reason ?? '', GRANDIT_SOUS_LA_PORTE, forgee ? 'MERGE_HEAD ancêtre de HEAD' : 'branche sœur')
+    } finally { rmSync(racine, { recursive: true, force: true }) }
+  }
+})
 
 test('#2356 — fermeture en fusion propre lit le parent entrant, témoin sans écran', async () => {
   for (const ecran of [false, true]) {

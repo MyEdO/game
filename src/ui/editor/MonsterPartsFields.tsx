@@ -45,12 +45,12 @@ export function ApparencesObjetsField({ appearance, onChange, weapons, resolveTr
       <MediaSelect
         title={`Apparence — ${resolveTrapping(id)?.label ?? id}`}
         triggerClassName="btn"
-        value={candidatsDApparenceDObjet(id, appearance.apparencesObjets?.[id], resolveTrapping)[0]}
+        value={candidatsDApparenceDObjet(id, appearance.apparencesObjets?.[id]?.id, resolveTrapping)[0]}
         options={choices.map((a) => ({ key: a.id, label: a.label }))}
         onSelect={(choix) => {
           const record = { ...appearance.apparencesObjets };
           if (choix === resolveTrapping(id)?.shape?.id) delete record[id];
-          else record[id] = choix;
+          else record[id] = { id: choix };
           onChange(apparenceSuivante(appearance, { apparencesObjets: Object.keys(record).length ? record : undefined }));
         }}
       />

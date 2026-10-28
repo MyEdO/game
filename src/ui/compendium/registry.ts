@@ -12,14 +12,14 @@ import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
-  stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
+  stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, findGabaritById, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, findClassById, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel, windsOfMagicTable,
   isNamed, specCatalogOf, specLabel, seasonLabel,
   SYMPTOM_SEVERITIES,
-  vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
+  vehicles, celestialHouses, groups, groupLabel, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
   conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel,
 } from '../../data';
@@ -68,6 +68,7 @@ import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTa
 import type { CastingNumberMod, CastingNumberScope } from '../../engine/castingNumber';
 import { effectiveEntry } from '../../engine/variants';
 import { isOptionalNote, type TraitList } from '../../engine/statEntry';
+import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { damageString } from '../../engine/items';
 import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../weaponStats';
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
@@ -355,7 +356,7 @@ const foyerRow = (foyer: FoyerDeRegle): CodexRow => {
 /** Section « Règle » d'un porteur de foyer (`rule`). */
 const regleChips = (foyer: FoyerDeRegle | undefined) => chips('Règle', foyer ? [foyerRow(foyer)] : []);
 /** Rangées d'une `TraitList` par id, libellé formaté (`formatTrait`) en affichage. */
-const traitRefRows = (traits?: TraitList | null): CodexRow[] =>
+const traitRefRows = (traits?: readonly TraitPose[] | null): CodexRow[] =>
   (traits ?? []).map((t) => idRefRow('traits', t.id, undefined, formatTrait(t)));
 /** Rangée d'un `AdvancementRef` : `{pick}` → rangée de choix, référence → par id, `{random}` → pastille. */
 const advancementRow = (category: 'skills' | 'talents', a: AdvancementRef): CodexRow => {
@@ -1789,10 +1790,13 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'raceAppearance', label: 'Apparences', group: 'Tables', cluster: 'Création de personnage',
-    build: () => raceAppearance.map((r) => ({
-      id: r.id, label: r.label, sub: r.gabarit, appearance: { species: r.id },
-      meta: facts(fact('Gabarit', r.gabarit), fact('Tenue', r.tenue), fact('Tête', r.head), fact('Jambes', r.legs)),
-    })),
+    build: () => raceAppearance.map((r) => {
+      const gabarit = findGabaritById(r.gabarit.id)?.label;
+      return {
+        id: r.id, label: r.label, sub: gabarit, appearance: { species: r.id },
+        meta: facts(fact('Gabarit', gabarit), fact('Tenue', r.tenue), fact('Tête', r.head), fact('Jambes', r.legs)),
+      };
+    }),
   },
   {
     key: 'pregens', label: 'Pré-tirés', group: 'Tables', cluster: 'Création de personnage',
@@ -2479,7 +2483,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'obsessions', label: 'Obsessions (table)', group: 'Tables',
-    build: () => OBSESSIONS.map((o) => ({ id: o.id, label: o.label, sub: `2d10 ${fourchette(o.min, o.max)}` })),
+    build: () => OBSESSIONS.map((o) => ({ id: o.id, label: groupLabel(o.id), sub: `2d10 ${fourchette(o.min, o.max)}` })),
   },
   {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —

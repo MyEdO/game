@@ -9,6 +9,9 @@
  */
 import type { CharKey, EffectSource } from './types';
 import type { SizeCategory } from './size';
+import type { TraitPose } from '../data/schemas/grammaire/reference';
+import { hashSeed, makeRNG } from './dice';
+import { lirePlage, type ParLocalisation, type Plage } from './classementDeTrait';
 
 export interface StatEntry {
   /** Nom canonique (base), sans compte/bonus/indice/parenthèse : « Tentacules », « Arme »,
@@ -24,6 +27,8 @@ export interface StatEntry {
   indice?: number;
   /** Parenthèse NUMÉRIQUE : « À distance +8 (50) » → 50 (portée en mètres). */
   range?: number;
+  /** Fourchette, en fin ou en parenthèse : « Peur 1-2 » (ZI 13 l.31), « Protection (7-9) » (ZI 04 l.228). */
+  plage?: Plage;
   /** Chaîne d'origine, telle qu'affichée. */
   raw: string;
 }
@@ -44,10 +49,20 @@ export function parseStatEntry(raw: string): StatEntry {
   //    (« À distance (Arbalète) +9 (60) ») ; la 1re de chaque sorte l'emporte.
   for (const pm of s.matchAll(/\(([^)]*)\)/g)) {
     const inside = pm[1].trim();
+    const plage = lirePlage(inside);
     if (/^\d+$/.test(inside)) { if (out.range == null) out.range = parseInt(inside, 10); }
+    else if (plage) { if (out.plage == null) out.plage = plage; }
     else if (inside && out.arg == null) out.arg = inside;
   }
   s = s.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+
+  // 2b) Fourchette de fin (« Armure 1-3 ») — avant le bonus signé, qui y lirait « -3 ».
+  const pf = s.match(/\s(\d+\s*-\s*\d+)\s*$/);
+  const plageDeFin = pf ? lirePlage(pf[1]) : undefined;
+  if (pf && plageDeFin && out.plage == null) {
+    out.plage = plageDeFin;
+    s = s.slice(0, pf.index).trim();
+  }
 
   // 3) Bonus SIGNÉ (« +7 », « -2 ») n'importe où.
   const bm = s.match(/([+-]\d+)/);
@@ -67,13 +82,22 @@ export function parseStatEntry(raw: string): StatEntry {
   return out;
 }
 
+/** Ce qui n'a plus de fourchette : la pose tirée (`PoseTiree`) et l'instance résolue (`TraitInstance`). */
+interface SansFourchette {
+  plage?: never;
+}
+
+/** Trait posé dont la fourchette est tirée : ce que `resoudreTrait` résout. Une `TraitPose` n'y passe que
+ *  par `traitsDuPorteur`, ou quand sa forme littérale n'en porte aucune. */
+export type PoseTiree = Omit<TraitPose, 'plage'> & SansFourchette;
+
 /**
- * Trait STRUCTURÉ (de-POC : fin du parsing de chaînes au runtime). Le bestiaire stocke des
- * `TraitInstance`, plus des chaînes re-parsées partout. `id` = identifiant STABLE (slug du libellé
- * canonique), indépendant de la langue — clé de lookup registre/données ; `value` = numérique
- * (Indice ou bonus signé) ; `arg` = parenthèse non-numérique ; `count` = compte en tête ; `range` = portée.
+ * Trait RÉSOLU, l'instance que le jeu lit (`Combatant.traits`) : rendu d'un Trait posé (`TraitPose`,
+ * `data/schemas/grammaire/reference.ts`) par `resoudreTrait`, sans sa provenance de livre. `id` = identifiant
+ * STABLE (slug du libellé canonique), indépendant de la langue — clé de lookup registre/données ; `value` =
+ * numérique (Indice ou bonus signé) ; `arg` = parenthèse non-numérique ; `count` = compte en tête ; `range` = portée.
  */
-export interface TraitInstance {
+export interface TraitInstance extends SansFourchette {
   id: string;
   value?: number;
   arg?: string;
@@ -96,6 +120,41 @@ export interface TraitInstance {
    *  porté nativement ou accordé par un tiers (Haine d'une prière, LDB 226) n'est pas touché.
    *  Absent = instance NATIVE (statbloc/authoring). */
   src?: EffectSource;
+  /** Indice par Localisation (AA 09 l.184), lu par `armourFromTraits`. */
+  parLocalisation?: ParLocalisation;
+}
+
+/**
+ * Valeur d'une fourchette pour son porteur, tirée entre ses bornes incluses sur une graine stable (le porteur,
+ * l'id du Trait, son rang parmi ses homonymes). LDB 76 l.45 ; LDB 77 l.108 ; ZI 13 l.31 ; ZI 04 l.228 ; #1463.
+ */
+function tirerLaFourchette(plage: Plage, graine: string): number {
+  return makeRNG(hashSeed(`fourchette:${graine}`)).int(plage.min, plage.max);
+}
+
+/**
+ * La SEULE entrée d'un Trait posé (`TraitPose`) vers l'instance de jeu : chaque fourchette est tirée pour
+ * le porteur `porteur`, puis la pose est résolue. `dejaPortes` = les Traits que le porteur a déjà : le rang
+ * d'un homonyme part d'eux, et un Trait accordé ne retire pas la fourchette de celui qu'il a déjà. `src` =
+ * la provenance d'un Trait ACCORDÉ (`resoudreTrait`).
+ */
+export function traitsDuPorteur(poses: readonly TraitPose[], porteur: string, dejaPortes: TraitsDesignes = [], { src }: { src?: EffectSource } = {}): TraitInstance[] {
+  const rangs = new Map<string, number>();
+  for (const t of dejaPortes) rangs.set(t.id, (rangs.get(t.id) ?? 0) + 1);
+  return poses.map(({ plage, ...pose }) => {
+    const rang = rangs.get(pose.id) ?? 0;
+    rangs.set(pose.id, rang + 1);
+    return resoudreTrait(plage ? { ...pose, value: tirerLaFourchette(plage, `${porteur}:${pose.id}#${rang}`) } : pose, { src });
+  });
+}
+
+/**
+ * Résolution d'une pose tirée en instance de jeu : la provenance de livre (`source`, `alsoIn`, `maison`)
+ * reste à la donnée ; `src` est la provenance d'un Trait ACCORDÉ. PURE.
+ */
+export function resoudreTrait(pose: PoseTiree, { src }: { src?: EffectSource } = {}): TraitInstance {
+  const { source: _source, alsoIn: _alsoIn, maison: _maison, ...jeu } = pose;
+  return src ? { ...jeu, src } : jeu;
 }
 
 /**
@@ -104,6 +163,10 @@ export interface TraitInstance {
  * `SceneEntity.traits`, résolue au spawn) et à la migration de données — plus jamais au runtime.
  */
 export type TraitList = TraitInstance[];
+
+/** Traits lus par leur seule DÉSIGNATION (id et Aspect), posés ou résolus : ces lecteurs n'en lisent
+ *  jamais la valeur, qu'une fourchette laisse à la résolution. */
+export type TraitsDesignes = readonly Pick<TraitInstance, 'id' | 'arg'>[];
 
 /**
  * OPTIONNEL COMPOSÉ (LDB 76) — élément de la liste `optionals` d'une créature IRRÉDUCTIBLE à un
@@ -139,10 +202,10 @@ export interface OptionalSwap {
   wounds?: number;
 }
 export type OptionalNote = OptionalWildcard | OptionalSwap;
-/** Élément de la liste `optionals` (LDB 76) : Trait facultatif ordinaire OU note composée. */
-export type OptionalEntry = TraitInstance | OptionalNote;
+/** Élément de la liste `optionals` (LDB 76) : Trait facultatif ordinaire posé OU note composée. */
+export type OptionalEntry = TraitPose | OptionalNote;
 
-/** Une entrée d'`optionals` est-elle une NOTE composée (vs un `TraitInstance` ordinaire) ? */
+/** Une entrée d'`optionals` est-elle une NOTE composée (vs un Trait posé ordinaire) ? */
 export const isOptionalNote = (e: OptionalEntry): e is OptionalNote =>
   typeof (e as OptionalNote).note === 'string';
 

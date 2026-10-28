@@ -48,6 +48,6 @@ const narr = sortsNarratifs();
 console.log(`\n--- NARRATIFS : ${narr.length} (aucun effet appliqué par le moteur) ---`);
 if (process.argv.includes('--list')) {
   for (const s of narr) {
-    console.log(`  ${s.id.padEnd(38)} | ${s.family ?? '-'} | ${s.domainId ?? '-'} | ${s.source?.book} p.${s.source?.page} | curated:${s.curated === true}`);
+    console.log(`  ${s.id.padEnd(38)} | ${s.family ?? '-'} | ${s.domainId ?? '-'} | ${s.source?.book} p.${s.source?.page}`);
   }
 }

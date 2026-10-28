@@ -23,7 +23,7 @@ const construireScene = (): Scene => buildScene({
     'porte la bonne Compétence, la bonne carrière, la bonne espèce ou le bon Statut.' },
   entities: [
     {
-      id: 'garde', kind: 'personnage', ref: 'villageois', label: 'Garde du poste',
+      id: 'garde', kind: 'personnage', ref: 'humain', label: 'Garde du poste',
       pos: { x: 6, y: 3 }, dialogueId: 'dlg-garde',
     },
   ],

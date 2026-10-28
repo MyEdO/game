@@ -13227,7 +13227,9 @@
           },
           {
             "op": "grantTrait",
-            "traitId": "perturbant"
+            "trait": {
+              "id": "perturbant"
+            }
           }
         ]
       }
@@ -13336,7 +13338,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "regeneration"
+            "trait": {
+              "id": "regeneration"
+            }
           }
         ]
       }
@@ -13601,8 +13605,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "vol",
-            "indice": 20
+            "trait": {
+              "id": "vol",
+              "value": 20
+            }
           }
         ]
       }

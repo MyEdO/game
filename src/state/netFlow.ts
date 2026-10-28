@@ -18,10 +18,12 @@
  * le store (non sérialisables, jamais dans les snapshots).
  */
 import type { GameState, RemplacerLEtat } from './store';
-import { useGame } from './store';
+import { remettreLAdaptateur, useGame } from './store';
 import { registerScene, reposerPaquetDeCampagne } from '../noyau/monde/registreDesScenes';
-import { snapshotSave, packHouseRules, unpackHouseRules } from './saves';
-import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
+import { snapshotSave, packHouseRules, unpackHouseRules } from '../noyau/persistance/save';
+import { ruleOverrides, loadRuleOverrides, OPTIONAL_RULES } from '../engine/policy';
+import { etatIdsConnus } from '../engine/conditions';
+import { hash32 } from '../data/hash';
 import { HostSession, GuestSession } from '../net/session';
 import { sanitizeIntentArgs } from './intents';
 import { GUEST_INTENTS, appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
@@ -34,11 +36,11 @@ import { bus, EVT } from '../noyau/bus';
 import { scheduleFlowTimer, clearTrackedTimer } from '../web/minuteries';
 
 import type { Get, Set } from '../noyau/flowTypes';
-import { initialNet, type NetState } from '../noyau/etat';
+import { etatInitialDuJeu, initialNet, type NetState } from '../noyau/etat';
 import { fermerLeSiege } from '../noyau/sieges';
 import { t } from '../i18n';
 import { stockageWeb } from '../web/stockageWeb';
-import { FORMAT_SAVE } from './formats.generated';
+import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 
 /** Le nom d'un siège de coop : celui que le joueur a donné, sinon « Hôte » (siège 0) ou « Joueur n » (#1906) —
  *  SOURCE UNIQUE, jamais « L'hôte » pour un invité. */
@@ -64,19 +66,24 @@ const BUFFER_MAX = 256 * 1024;
 /** Token de reprise persisté par room — un reload de l'onglet reprend le même siège. */
 const tokenKey = (code: string) => `wfrp4.coop.token.${code}`;
 
+/** Le `build` comparé au `hello` (#1463 LD.1) : le FORMAT de l'état (`FORMAT_SAVE`) et l'empreinte des registres
+ *  dont un snapshot nomme les ids (règles optionnelles et leur forme, États connus). Deux clients qui divergent
+ *  sur l'un ou l'autre sont refusés par le seul `format-mismatch` du handshake (`net/session.ts`). Lu à
+ *  l'ouverture de la session. */
+export function buildDeLaCoop(): string {
+  const regles = OPTIONAL_RULES.flatMap((r) => [r.id, r.kind, (r.options ?? []).join('|'), r.min ?? '', r.max ?? '']);
+  return `${FORMAT_SAVE}.${hash32(...regles, '§', ...etatIdsConnus()).toString(36)}`;
+}
+
 /** Snapshot d'état pour le réseau — mêmes clés que la sauvegarde, SANS les scènes du projet de
  *  campagne (313 Ko pour l'Arène : elles voyagent UNE fois au join via le message `campaign`,
  *  spec v2 §5). Un stub nom-seul reste : les invités affichent la campagne choisie (cartouche
  *  de l'écran d'équipe) sans jamais la charger eux-mêmes (« Commencer » est hôte-seul).
  *  La FORME de ce `data` est celle de la sauvegarde : `PROTOCOL_VERSION` (`net/protocol.ts`) versionne
  *  les messages, pas leur charge — c'est `FORMAT_SAVE` qui date cette forme, et le `hello` refuse
- *  deux clients de formats différents. */
+ *  deux clients de formats ou de registres différents (`buildDeLaCoop`). */
 export function netSnapshot(get: Get): Record<string, unknown> {
-  const { data } = snapshotSave(
-    get() as unknown as Record<string, unknown>,
-    useGame.getInitialState() as unknown as Record<string, unknown>,
-    'net',
-  );
+  const { data } = snapshotSave(get(), 'net');
   const pc = (data as { pendingCampaign?: GameState['pendingCampaign'] }).pendingCampaign;
   const stub: GameState['pendingCampaign'] = pc
     ? { id: pc.id, label: pc.label, scenes: [], startSceneId: pc.startSceneId, worldMap: null, projet: pc.projet }
@@ -128,22 +135,28 @@ function scheduleBroadcast(get: Get): void {
   }, 120);
 }
 
-/** L'invité applique un snapshot : état de l'hôte + SON identité réseau préservée.
+/** L'invité applique un snapshot : état de JEU de l'hôte (`snapshotSave`) posé sur l'état initial du jeu, SON
+ *  interface intacte (hors snapshot), SON identité réseau préservée. Elle se remet comme chez l'hôte
+ *  (`remettreLAdaptateur`) quand la scène change, ou quand la partie change : le snapshot ne porte aucune
+ *  marque de partie, `gameTime` (qu'une partie n'avance que vers l'avant, `horloge.ts`) qui recule en tient lieu.
  *  Pendant la composition d'équipe, son écran « créateur » LOCAL est aussi préservé (sinon
  *  chaque broadcast de l'hôte l'éjecterait en pleine création et perdrait son brouillon).
  *  L'INTENTION armée (`localIntent`, spec HUD zone 4) l'est au même titre : c'est un mode d'ÉCRAN du
  *  client — un snapshot de l'hôte (arrivant toutes les ~120 ms) désarmerait la case sous le doigt. */
 export function applyNetSnapshot(set: RemplacerLEtat, data: Record<string, unknown>): void {
-  const base = JSON.parse(JSON.stringify(useGame.getInitialState())) as Partial<GameState>;
+  const base = etatInitialDuJeu();
   const mine = useGame.getState();
   const { game, rules } = unpackHouseRules(data);
   if (rules) loadRuleOverrides(rules); // l'invité adopte les règles maison de l'hôte (parité)
   const incoming = (game as { net?: NetState }).net;
-  const keepCreator = mine.screen === 'creator' && (game as Partial<GameState>).screen === 'party';
+  const entrant = game as Partial<GameState>;
+  const keepCreator = mine.screen === 'creator' && entrant.screen === 'party';
+  const neuve = (entrant.gameTime ?? mine.gameTime) < mine.gameTime;
+  if (neuve || (entrant.scene?.id ?? null) !== (mine.scene?.id ?? null)) remettreLAdaptateur(neuve);
   set({
     ...base,
-    ...(game as Partial<GameState>),
-    ...reposerPaquetDeCampagne((game as Partial<GameState>).campaignDoc),
+    ...entrant,
+    ...reposerPaquetDeCampagne(entrant.campaignDoc),
     ...(keepCreator ? { screen: 'creator' as const } : null),
     localIntent: mine.localIntent,
     dispelCarrierId: mine.dispelCarrierId, // le porteur élu est le choix EN COURS de ce client
@@ -231,7 +244,7 @@ export async function netHostStart(get: Get, set: Set, name: string): Promise<bo
   const rh = new RoomHost(room.code, room.hostToken);
   roomHost = rh;
   host = new HostSession({
-    build: FORMAT_SAVE,
+    build: buildDeLaCoop(),
     applyIntent: (action, args, seat) => appliquerLIntentionDUnSiege(get, seat, action, args),
     getSnapshot: () => netSnapshot(get),
     extraJoinMessages: () => campaignMessages(get),
@@ -306,7 +319,7 @@ export function netJoin(get: Get, set: Set, appliquerSnapshot: (data: Record<str
       settled = true;
       clearTrackedTimer(timeout);
       guest = new GuestSession({
-        build: FORMAT_SAVE,
+        build: buildDeLaCoop(),
         label: name,
         applySnapshot: appliquerSnapshot,
         onCampaign: (m) => {

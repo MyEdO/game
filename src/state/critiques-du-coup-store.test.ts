@@ -8,7 +8,7 @@ import { rederivePassiveAttack, issueAuJet, coupAApplique, causeDuCoupCritique, 
 import { setRule, resetRule } from '../engine/policy';
 import { evaluateMissile, type CastResult, type MissileResult } from '../engine/magic';
 import { bus, EVT } from '../noyau/bus';
-import { findSpell, type SpellData } from '../data';
+import { type SpellData, findSpellById } from '../data';
 import { hasCondition } from '../engine/conditions';
 import { critTableRows, critTableKeyFor, critImmediateSummary } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
@@ -399,7 +399,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
   function carreauSur(roll: number, pieces: (touche: string) => ItemInstance[]) {
     useGame.setState({ net: { ...useGame.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
     const { mage, cible } = carreauEnCombat();
-    const sort = findSpell('Carreau')!;
+    const sort = findSpellById('carreau')!;
     const touche = evaluateMissile(mage, cible, sort, { ...incantationCritique, roll });
     cible.important = true;
     cible.items = [...(cible.items ?? []), ...structuredClone(pieces(touche.location!))];
@@ -496,9 +496,9 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     cible.armour = { tete: 1, corps: 1, brasG: 1, brasD: 1, jambeG: 1, jambeD: 1 };
     cible.important = false;
     cible.wounds = { current: 1, max: 20 } as Combatant['wounds'];
-    const res = evaluateMissile(mage, cible, findSpell('Carreau')!, incantationCritique);
+    const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
     expect(res.woundsLost ?? 0, 'le Projectile dépasse la Blessure restante').toBeGreaterThan(1);
-    applyCast(useGame.getState, useGame.setState, mage, cible, findSpell('Carreau')!, res, true, false, 'critique');
+    applyCast(useGame.getState, useGame.setState, mage, cible, findSpellById('carreau')!, res, true, false, 'critique');
     const kinds = draineCascade(useGame.getState, 200, () => 1);
     const apres = useGame.getState().battle!.combatants.find((c) => c.id === cible.id)!;
     expect(apres.criticalWounds ?? 0).toBe(0);
@@ -511,11 +511,11 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     const { mage, cible } = carreauEnCombat();
     cible.important = false;
     cible.wounds = { current: 1, max: 20 } as Combatant['wounds'];
-    const res = evaluateMissile(mage, cible, findSpell('Carreau')!, incantationCritique);
+    const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
     const lieux: (string | undefined)[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; result: MissileResult }) => { if (p.kind === 'spell') lieux.push(p.result.location); });
     seedBattleRng(1);
-    applyCast(useGame.getState, useGame.setState, mage, cible, findSpell('Carreau')!, res, true, false, 'critique');
+    applyCast(useGame.getState, useGame.setState, mage, cible, findSpellById('carreau')!, res, true, false, 'critique');
     draineCascade(useGame.getState, 200, () => 1);
     lache();
     expect(lieux, 'la graine 1 relancerait la Localisation au Corps').toEqual([res.location]);
@@ -533,8 +533,8 @@ describe("'aa' : l'Incantation critique d'un Projectile sur une cible debout (LD
     cible.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
     cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
     if (chanceux) cible.talents = [...(cible.talents ?? []), { talentId: 'chanceux', times: 1 }] as never;
-    const res = evaluateMissile(mage, cible, findSpell('Carreau')!, incantationCritique);
-    applyCast(useGame.getState, useGame.setState, mage, cible, findSpell('Carreau')!, res, true, false, choix);
+    const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
+    applyCast(useGame.getState, useGame.setState, mage, cible, findSpellById('carreau')!, res, true, false, choix);
     draineCascade(useGame.getState, 200, () => 50);
     return useGame.getState().battle!.combatants.find((c) => c.id === cible.id)!;
   }
@@ -596,7 +596,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
     autre.pos = { x: 12, y: 11 };
     debout(cible); debout(autre);
     prepare(cible, autre);
-    const sort = opts.sort ?? findSpell('Carreau')!;
+    const sort = opts.sort ?? findSpellById('carreau')!;
     const res = evaluateMissile(mage, cible, sort, incantationCritique);
     const { phase, emis, lache } = ecoute();
     try {
@@ -625,7 +625,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
   });
 
   it("immunité de Domaine (Manifestation de Ghur) : une émission, sans Blessure ni Critique", () => {
-    const bete = { ...findSpell('Carreau')!, domainId: 'bete' };
+    const bete = { ...findSpellById('carreau')!, domainId: 'bete' };
     const { emis, cible } = lance((c) => { c.traits = [...(c.traits ?? []), { id: 'manifestation-de-ghur' }] as never; }, { sort: bete });
     expect(emis).toEqual([{ phase: 'applyCast', to: cible.id, critiques: 0, woundsLost: 0, cwAuMoment: 0 }]);
   });
@@ -653,8 +653,8 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
       if (p.kind === 'spell' && p.to === cible.id) emis.push(p.result.critiques);
     });
     try {
-      const res = evaluateMissile(mage, cible, findSpell('Carreau')!, incantationCritique);
-      applyCast(useGame.getState, useGame.setState, mage, cible, findSpell('Carreau')!, res, true, false, 'critique');
+      const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
+      applyCast(useGame.getState, useGame.setState, mage, cible, findSpellById('carreau')!, res, true, false, 'critique');
     } finally {
       lache();
     }
@@ -714,8 +714,8 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
     const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) emis.push(p.result.critiques); });
     let kinds: string[];
     try {
-      const res = evaluateMissile(mage, cible, findSpell('Carreau')!, incantationCritique);
-      applyCast(useGame.getState, useGame.setState, mage, cible, findSpell('Carreau')!, res, true, false, 'critique');
+      const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
+      applyCast(useGame.getState, useGame.setState, mage, cible, findSpellById('carreau')!, res, true, false, 'critique');
       kinds = draineCascade(useGame.getState, 200, () => 50, () => 'devier');
     } finally { lache(); }
     const apres = useGame.getState().battle!.combatants.find((c) => c.id === cible.id)!;
@@ -798,7 +798,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
     recomputeLoadout(cible);
     cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
     if (o.demoniaque != null) cible.traits = [...(cible.traits ?? []), { id: 'demoniaque', value: o.demoniaque }] as never;
-    const sort = findSpell('Carreau')!;
+    const sort = findSpellById('carreau')!;
     const touches = () => journal().filter((l) => l.startsWith(`${mage.label} lance ${sort.label} sur ${cible.label}`));
     const finales: MissileResult[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) finales.push(p.result); });
@@ -935,7 +935,7 @@ describe('la ligne de touche qualifie la Localisation relancée, au jet comme au
     useGame.setState({ net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     cible.important = true;
     cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
-    const sort = findSpell('Carreau')!;
+    const sort = findSpellById('carreau')!;
     const finales: MissileResult[] = [];
     const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) finales.push(p.result); });
     try {

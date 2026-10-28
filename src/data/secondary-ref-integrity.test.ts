@@ -83,35 +83,6 @@ describe('auditSecondaryRef — attestation POSITIVE (#563 Lot 1 item 2, morsure
     expect(r.via).toBe('quote');
   });
 
-  it('livre FAN (`extractionDir`, pied de page `N sur M`) : `Alarme` imprimé avant le pied `455 sur 630` est ATTESTÉ en folio 455 (frenchy.bzh 65 l.757)', () => {
-    const r = auditSecondaryRef({ book: 'frenchy-bzh', page: 455, label: undefined, quote: 'Alarme' });
-    expect(r.verdict).toBe('attesté');
-    expect(r.via).toBe('quote');
-  });
-
-  it('MORSURE (d) — livre FAN, folio VOISIN : `Alarme` déclaré en folio 454 → non-attesté (rouge)', () => {
-    const r = auditSecondaryRef({ book: 'frenchy-bzh', page: 454, label: undefined, quote: 'Alarme' });
-    expect(r.verdict).toBe('non-attesté');
-  });
-
-  it('MORSURE (e) — livre FAN, quote absent du folio 455 → non-attesté (rouge)', () => {
-    const r = auditSecondaryRef({ book: 'frenchy-bzh', page: 455, label: undefined, quote: 'Bidule' });
-    expect(r.verdict).toBe('non-attesté');
-  });
-
-  // Pied FUSIONNÉ à une note et queue de chapitre (#1897, sonde du juge du socle) : frenchy.bzh 84
-  // l.10 imprime « … 620 sur  630 » au bout d'une note ; frenchy.bzh 50 finit sur un pied fusionné
-  // « … 316 sur  630 » (l.397), après la rubrique « Putréfaction » (l.395).
-  it.each([
-    ['Adolf Stockhausen Albert Amrhein', 620, 'attesté'],
-    ['Adolf Stockhausen Albert Amrhein', 621, 'non-attesté'],
-    ['Le démon fait pourrir ou tourner toute la', 316, 'attesté'],
-    ['Le démon fait pourrir ou tourner toute la', 600, 'non-attesté'],
-    ['Le démon fait pourrir ou tourner toute la', 315, 'non-attesté'],
-  ] as const)('livre FAN, pied fusionné et queue de chapitre : « %s » en folio %i → %s', (quote, page, verdict) => {
-    expect(auditSecondaryRef({ book: 'frenchy-bzh', page, label: undefined, quote }).verdict).toBe(verdict);
-  });
-
   // Tête de chapitre (#1897) : ZI 11 - Chat sauvage.md l.27, avant le premier marqueur (l.47 = 83) ;
   // 10 - Macareux a bec tranchant.md finit sur 82.
   it.each([

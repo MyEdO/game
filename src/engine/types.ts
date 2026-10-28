@@ -1,5 +1,6 @@
 /** Types partagés du moteur de règles WFRP v4. */
 import type { AttackKind } from './creatureAttacks';
+import type { HitLocation } from './localisations';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
@@ -75,9 +76,7 @@ export const CHAR_LABELS: Record<CharKey, string> = {
 
 export type Characteristics = Record<CharKey, number>;
 
-/** Localisations d'impact (Tableau de Localisation, Livre de base p. 159). */
-export const LOCALISATIONS_DE_COUP = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'] as const;
-export type HitLocation = (typeof LOCALISATIONS_DE_COUP)[number];
+export { LOCALISATIONS_DE_COUP, type HitLocation } from './localisations';
 
 export const HIT_LOCATION_LABELS: Record<HitLocation, PlayerText> = {
   tete: t('hitloc.tete'),
@@ -267,8 +266,9 @@ export interface StructureData {
    *  verbatim ; AA (« Tableau des Structures Courantes », AA 10 l.26-92) donne l'Endurance BRUTE — `BE`
    *  se dérive alors par troncature à la dizaine (convention Bonus = dizaines de la Caractéristique). */
   char: { BE: number; B: number };
-  /** Atouts de structure (Résistant / Impénétrable) — réfs de Trait par id STABLE (JAMAIS le libellé). */
-  traits: { id: string; value?: number }[];
+  /** Atouts de structure (Résistant / Impénétrable) — réfs NUES de Trait par id STABLE (JAMAIS le
+   *  libellé), forme de `ref('trait')` (`src/data/schemas/defs/structures.ts`). */
+  traits: { id: string }[];
   /** ENC de la Structure transportée (AA 10 l.28-52) — `undefined` = N/A (Structure fixe, ne se transporte pas). */
   enc?: number;
   /** Limite d'Encombrement supportée par la Structure elle-même (AA 10 l.28-52) — `undefined` = N/A. */
@@ -1493,7 +1493,8 @@ export interface Combatant {
   /** (Détermination : l'immunité psy temporaire + l'ignorance des modifs de Critique sont
    *  portées par des `ActiveEffect` à `duration` Rounds — `psychImmune`/`ignoreCritMods` — expirées par
    *  le système de Durée unifié, plus de compteur/flag round-scopé ad hoc.) */
-  /** Groupes d'appartenance + traits psy possédés (matching des Cibles). */
+  /** Groupes DÉCLARÉS (espèce, entrée du bestiaire, statbloc, saisie d'éditeur, `groupsFor`) ; les Groupes
+   *  effectifs se lisent par `groupesDe` (`engine/groups.ts`), jamais ici. LDB 21. */
   groups?: string[];
   /** DOCTRINE TACTIQUE forcée en DONNÉE (id de `DOCTRINES` dans `noyau/monde/ai.ts` : `meute`/`soldats`/
    *  `tirailleurs`/`artillerie`/`horde`/`racaille`/`embuscade`/`standard`). Si présent et valide, l'IA
@@ -1510,7 +1511,7 @@ export interface Combatant {
   briseFromTerreur?: number;
   /** Traits de créature (STRUCTURÉS — `TraitInstance` : id/value/arg/count/range) → attaques
    *  naturelles gratuites & règles dérivées (Morsure, Attaque caudale, Souffle… cf.
-   *  engine/creatureAttacks). Lus sans aucun parsing (`resolveTraits`/`hasTraitKey`). Conservés au spawn. */
+   *  engine/creatureAttacks). Lus sans aucun parsing (`hasTraitKey`). Conservés au spawn. */
   traits?: import('./statEntry').TraitList;
   /** Traits dont les modificateurs de PROFIL (charMods/Mouvement, LDB 85 : Élite/Coriace/Brutal/Rapide…)
    *  s'appliquent en DIRECT par le collecteur passif (kind `intrinseque`) plutôt que d'être cuits dans
@@ -1943,7 +1944,8 @@ export type UpkeepDeferTest = (spec: {
   | { base: number; test?: never }
 )) => void;
 
-export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+/** Le NOM de chaque Difficulté (`LDB 12 l.143-151`, `EDO App.2 l.156-165`). */
+export const DIFFICULTY_NAMES: Record<Difficulty, string> = {
   tresFacile: t('difficulty.tresFacile'),
   facile: t('difficulty.facile'),
   accessible: t('difficulty.accessible'),
@@ -1955,3 +1957,19 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   impossible: t('difficulty.impossible'),
 };
 
+/** Un nombre signé tel qu'il se lit (« +10 », « −20 », « +0 ») : le signe moins typographique. */
+export const avecSigne = (n: number): string => `${n >= 0 ? '+' : '−'}${Math.abs(n)}`;
+
+/** Chaque Difficulté telle qu'elle s'affiche : son nom et son modificateur (« Difficile (−20) »). */
+const cran = (d: Difficulty): string => t('difficulty.cran', { nom: DIFFICULTY_NAMES[d], mod: avecSigne(DIFFICULTY_MODIFIERS[d]) });
+export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  tresFacile: cran('tresFacile'),
+  facile: cran('facile'),
+  accessible: cran('accessible'),
+  intermediaire: cran('intermediaire'),
+  complexe: cran('complexe'),
+  difficile: cran('difficile'),
+  tresDifficile: cran('tresDifficile'),
+  presqueImpossible: cran('presqueImpossible'),
+  impossible: cran('impossible'),
+};

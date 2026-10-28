@@ -12,10 +12,11 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
+import { maisonSchema, sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
 import { defDe, descendre, enfantsDe, ouverts } from './descente';
 import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
+import { marquerProduit } from './interne/produits';
 import { champsProse, refineAdapteDe, refineProse, type PorteurDeProse } from './prose';
 import { marquerCollection, marqueDeListe, marqueDeRecord, type EspaceDeNoms } from './collection-cle';
 
@@ -161,8 +162,8 @@ export interface OptionsDocument {
   /**
    * Le document porte un DÉ DE TIRAGE : la fabrique pose `die` (requis) avec sa méta FR
    * (`META_CHARGE`). Sans cette déclaration, `die` n'existe pas sur le document — le poser à tous
-   * ferait de `die` une clé DÉCLARÉE JAMAIS OBSERVÉE sur les documents qui n'en ont pas (mesuré :
-   * `STRUCTURES_DEFAUT` +5). Exige `rangee`.
+   * ferait de `die` une clé DÉCLARÉE JAMAIS OBSERVÉE sur les documents qui n'en ont pas (inventaire
+   * `STRUCTURES_DEFAUT`, `scripts/guards/lib/inventaireDeDette.mts`). Exige `rangee`.
    */
   readonly deDeTirage?: boolean;
   /**
@@ -314,15 +315,13 @@ function enveloppe(type: string, idDocument?: z.ZodType<string>, exiges: readonl
     source: champEnveloppe(sourceRefSchema, requis('source')),
     alsoIn: champEnveloppe(z.array(secondarySourceRefSchema), requis('alsoIn'), z.array(secondarySourceRefSchema).min(1)),
     /**
-     * Ce que le canon ne tranche pas : ce champ en porte la RAISON, en clair. `.min(1)` est
-     * STRUCTUREL : une chaîne vide ne prouve rien et le refine de provenance ci-dessous ne saurait
-     * pas la distinguer d'une raison réelle. Mesuré (2026-08-27) : aucune chaîne vide dans la donnée.
+     * Ce que le canon ne tranche pas : ce champ en porte la RAISON (`maisonSchema`, `grammaire/valeurs.ts`).
      *
      * Le TYPE est le contrat : une raison est une CHAÎNE. La forme booléenne (un drapeau « c'est
      * maison », qui ne dit aucune raison) est ÉTEINTE de la donnée — zéro `maison` non-chaîne sur les
      * deux racines, mesuré RÉCURSIVEMENT et gardé par `src/data/maison-sans-source.test.ts`.
      */
-    maison: champEnveloppe(z.string().min(1), requis('maison')),
+    maison: champEnveloppe(maisonSchema, requis('maison')),
     icon: champEnveloppe(z.string(), requis('icon'), z.string().min(1)),
   };
 }
@@ -511,10 +510,11 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   }
   verifieExposition(type, exposition);
   const nomsEntree = { ...tableTotale(Object.keys(enveloppe(type)) as CleEnveloppe[], k => ({ label: LIBELLES_ENVELOPPE[k] })), ...meta };
-  const entree = nommerChamps(z.strictObject({
+  const champsDuDef = champs as Record<string, z.ZodType>;
+  const entree = marquerProduit(nommerChamps(z.strictObject({
     ...enveloppe(type, idDocument, exiges, fragmentsAdmis),
-    ...(champs as Record<string, z.ZodType>),
-  }) as z.ZodObject<z.ZodRawShape>, nomsEntree);
+    ...champsDuDef,
+  }) as z.ZodObject<z.ZodRawShape>, nomsEntree), 'document', 'entree', champsDuDef);
   const declarees = [...(variantes ?? [])];
   for (const k of declarees) {
     if (!(k in entree.shape)) {
@@ -522,7 +522,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
     }
   }
   const complet = declarees.length
-    ? (z.strictObject({ ...entree.shape, variants: z.array(variantOf(entree, declarees)).optional() }) as z.ZodObject<z.ZodRawShape>)
+    ? marquerProduit(z.strictObject({ ...entree.shape, variants: z.array(variantOf(entree, declarees)).optional() }) as z.ZodObject<z.ZodRawShape>, 'document', 'variantes', champsDuDef)
     : entree;
   // SCEAU : `.pipe` rend un `ZodPipe` — ni `.extend` ni `.shape` AU RUNTIME, `safeParse`/`z.infer` et le
   // refus `strict` intacts (mesuré sur zod 4.4.3 : `.superRefine`/`.check`/`.refine`/`.brand` rendent,
@@ -532,20 +532,20 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   // diffèrent par leur structure — record clé→valeur, liste ordonnée de rangées.
   const corps =
     famille === 'record'
-      ? (z.strictObject({
+      ? marquerProduit(z.strictObject({
           ...complet.shape,
           entries: z.record(cleRecord ?? z.string().min(1), valeurRecord!),
-        }) as z.ZodObject<z.ZodRawShape>)
+        }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.record', champsDuDef)
       : rangee
-        ? (z.strictObject({
+        ? marquerProduit(z.strictObject({
             ...complet.shape,
             ...(deDeTirage ? { die: z.string().min(1) } : {}),
             entries: marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id')),
-          }) as z.ZodObject<z.ZodRawShape>)
+          }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.rangees', champsDuDef)
         : complet;
   const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };
   // PROSE de la partielle : les verrous de `avecProse` ci-dessous, sans obligation (#2206).
-  const partielle = corps.partial().superRefine(
+  const partielle = marquerProduit(corps.partial(), 'document', 'entreePartielle', champsDuDef).superRefine(
     refineProse({ type, exigeProse: false, porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
   const entreePartielle: z.ZodType<unknown> = nommerChamps(partielle, noms).pipe(z.transform((v) => v));

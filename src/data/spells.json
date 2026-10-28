@@ -43,8 +43,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-chance",
@@ -88,8 +87,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-charisme",
@@ -135,8 +133,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-conscience",
@@ -181,8 +178,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-convalescence",
@@ -225,8 +221,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-courage",
@@ -272,8 +267,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-droiture",
@@ -320,15 +314,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 90,
-        "quote": "Justice"
-      }
-    ],
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-finesse",
@@ -374,8 +360,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-grace",
@@ -421,8 +406,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-guerison",
@@ -464,15 +448,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 79,
-        "quote": "Soins"
-      }
-    ],
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-la-chasse",
@@ -518,8 +494,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-protection",
@@ -563,8 +538,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-puissance",
@@ -610,8 +584,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-sagesse",
@@ -657,8 +630,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-sauvagerie",
@@ -702,8 +674,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-souffle",
@@ -747,8 +718,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-tenacite",
@@ -791,8 +761,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-vigueur",
@@ -838,15 +807,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 90,
-        "quote": "Robustesse"
-      }
-    ],
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "benediction-de-vivacite",
@@ -892,15 +853,7 @@
       "book": "livre-de-base",
       "page": 221
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 96,
-        "quote": "Rapidité"
-      }
-    ],
-    "family": "beni",
-    "curated": true
+    "family": "beni"
   },
   {
     "id": "alerte",
@@ -944,15 +897,7 @@
       "book": "livre-de-base",
       "page": 240
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 455,
-        "quote": "Alarme"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "amitie-animale",
@@ -998,8 +943,7 @@
       "book": "livre-de-base",
       "page": 240
     },
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "bruits",
@@ -1048,15 +992,7 @@
       "book": "livre-de-base",
       "page": 240
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 324,
-        "quote": "Bruit"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "choc",
@@ -1098,8 +1034,7 @@
       "book": "livre-de-base",
       "page": 240
     },
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "conservation",
@@ -1147,15 +1082,7 @@
       "book": "livre-de-base",
       "page": 240
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 140,
-        "quote": "Conserve"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "coup-de-vent",
@@ -1201,15 +1128,7 @@
       "book": "livre-de-base",
       "page": 240
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 570,
-        "quote": "Courant d’Air"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "creer-un-petit-animal",
@@ -1251,8 +1170,7 @@
       "book": "livre-de-base",
       "page": 240
     },
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "drain",
@@ -1294,17 +1212,9 @@
       "book": "livre-de-base",
       "page": 240
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 145,
-        "quote": "Fatigue"
-      }
-    ],
     "family": "mineure",
     "missile": true,
-    "ignorePA": true,
-    "curated": true
+    "ignorePA": true
   },
   {
     "id": "eblouissant",
@@ -1354,8 +1264,7 @@
       "book": "livre-de-base",
       "page": 241
     },
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "en-catimini",
@@ -1399,8 +1308,7 @@
       "book": "livre-de-base",
       "page": 241
     },
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "feux-follets",
@@ -1450,15 +1358,7 @@
       "book": "livre-de-base",
       "page": 241
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 140,
-        "quote": "Feu Follet"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "flamme-magique",
@@ -1502,15 +1402,7 @@
       "book": "livre-de-base",
       "page": 241
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 247,
-        "quote": "Flamme"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "flechette",
@@ -1542,16 +1434,8 @@
       "book": "livre-de-base",
       "page": 241
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 145,
-        "quote": "Projectile Mineur"
-      }
-    ],
     "family": "mineure",
-    "missile": true,
-    "curated": true
+    "missile": true
   },
   {
     "id": "lumiere",
@@ -1601,8 +1485,7 @@
       "book": "livre-de-base",
       "page": 241
     },
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "murmures",
@@ -1651,15 +1534,7 @@
       "book": "livre-de-base",
       "page": 241
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 145,
-        "quote": "Chuchotis"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "pas-leger",
@@ -1704,15 +1579,7 @@
       "book": "livre-de-base",
       "page": 241
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 140,
-        "quote": "Pied Léger"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "protection-contre-la-pluie",
@@ -1756,8 +1623,7 @@
       "book": "livre-de-base",
       "page": 241
     },
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "purification-de-l-eau",
@@ -1801,15 +1667,7 @@
       "book": "livre-de-base",
       "page": 241
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 140,
-        "quote": "Eau Pure"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "putrefaction",
@@ -1857,15 +1715,7 @@
       "book": "livre-de-base",
       "page": 241
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 145,
-        "quote": "Pourriture"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "reperes",
@@ -1906,15 +1756,7 @@
       "book": "livre-de-base",
       "page": 242
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 140,
-        "quote": "Position"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "secousse",
@@ -1971,15 +1813,7 @@
       "book": "livre-de-base",
       "page": 242
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 293,
-        "quote": "Saccade"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "serrure-ouverte",
@@ -2021,8 +1855,7 @@
       "book": "livre-de-base",
       "page": 242
     },
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "sommeil",
@@ -2080,8 +1913,7 @@
       "book": "livre-de-base",
       "page": 242
     },
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "source",
@@ -2126,8 +1958,7 @@
       "book": "livre-de-base",
       "page": 242
     },
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "tendre-l-oreille",
@@ -2177,15 +2008,7 @@
       "book": "livre-de-base",
       "page": 242
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 268,
-        "quote": "Espionnage"
-      }
-    ],
-    "family": "mineure",
-    "curated": true
+    "family": "mineure"
   },
   {
     "id": "arme-aethyrique",
@@ -2240,8 +2063,7 @@
       "book": "livre-de-base",
       "page": 242
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "armure-aethyrique",
@@ -2286,8 +2108,7 @@
       "book": "livre-de-base",
       "page": 242
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "attaques-en-chaine",
@@ -2340,8 +2161,7 @@
     },
     "family": "arcane",
     "missile": true,
-    "damage": 4,
-    "curated": true
+    "damage": 4
   },
   {
     "id": "aura-ordinaire",
@@ -2386,8 +2206,7 @@
       "book": "livre-de-base",
       "page": 243
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "bouclier-anti-fleches",
@@ -2435,15 +2254,7 @@
       "book": "livre-de-base",
       "page": 243
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 247,
-        "quote": "Bouclier"
-      }
-    ],
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "bouclier-magique",
@@ -2487,8 +2298,7 @@
       "book": "livre-de-base",
       "page": 243
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "carreau",
@@ -2520,17 +2330,9 @@
       "book": "livre-de-base",
       "page": 243
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 247,
-        "quote": "Projectile"
-      }
-    ],
     "family": "arcane",
     "missile": true,
-    "damage": 4,
-    "curated": true
+    "damage": 4
   },
   {
     "id": "chute",
@@ -2587,8 +2389,7 @@
       "book": "livre-de-base",
       "page": 243
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "deplacement-d-objet",
@@ -2635,15 +2436,7 @@
       "book": "livre-de-base",
       "page": 243
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 571,
-        "quote": "Télékinésie"
-      }
-    ],
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "dome",
@@ -2680,8 +2473,10 @@
             "ops": [
               {
                 "op": "domeWard",
-                "traitId": "protection",
-                "indice": 6
+                "trait": {
+                  "id": "protection",
+                  "value": 6
+                }
               }
             ]
           }
@@ -2692,8 +2487,7 @@
       "book": "livre-de-base",
       "page": 243
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "effrayant",
@@ -2726,8 +2520,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1,
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                },
                 "indicePerSL": {
                   "every": 3,
                   "amount": 1
@@ -2742,8 +2538,7 @@
       "book": "livre-de-base",
       "page": 243
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "enchevetrement",
@@ -2797,15 +2592,7 @@
       "book": "livre-de-base",
       "page": 244
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 571,
-        "quote": "Entrave"
-      }
-    ],
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "envol",
@@ -2839,9 +2626,11 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "vol",
-                "indice": {
-                  "charOf": "agilite"
+                "trait": {
+                  "id": "vol",
+                  "value": {
+                    "charOf": "agilite"
+                  }
                 }
               }
             ]
@@ -2853,8 +2642,7 @@
       "book": "livre-de-base",
       "page": 244
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "explosion",
@@ -2890,8 +2678,7 @@
       "page": 244
     },
     "family": "arcane",
-    "missile": true,
-    "curated": true
+    "missile": true
   },
   {
     "id": "perturbant",
@@ -2924,7 +2711,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "perturbant"
+                "trait": {
+                  "id": "perturbant"
+                }
               }
             ]
           }
@@ -2935,8 +2724,7 @@
       "book": "livre-de-base",
       "page": 244
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "pont",
@@ -2989,8 +2777,7 @@
       "book": "livre-de-base",
       "page": 244
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "poussee",
@@ -3050,15 +2837,7 @@
       "book": "livre-de-base",
       "page": 244
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 247,
-        "quote": "Bélier"
-      }
-    ],
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "protection",
@@ -3091,8 +2870,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "protection",
-                "indice": 9
+                "trait": {
+                  "id": "protection",
+                  "value": 9
+                }
               }
             ]
           }
@@ -3103,8 +2884,7 @@
       "book": "livre-de-base",
       "page": 244
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "sang-corrosif",
@@ -3137,7 +2917,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "sang-corrosif"
+                "trait": {
+                  "id": "sang-corrosif"
+                }
               }
             ]
           }
@@ -3148,8 +2930,7 @@
       "book": "livre-de-base",
       "page": 244
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "souffle",
@@ -3181,8 +2962,7 @@
     },
     "family": "arcane",
     "missile": true,
-    "breathAttack": true,
-    "curated": true
+    "breathAttack": true
   },
   {
     "id": "teleportation",
@@ -3231,8 +3011,7 @@
       "book": "livre-de-base",
       "page": 244
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "terrifiant",
@@ -3265,8 +3044,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "terreur",
-                "indice": 1
+                "trait": {
+                  "id": "terreur",
+                  "value": 1
+                }
               }
             ]
           }
@@ -3277,8 +3058,7 @@
       "book": "livre-de-base",
       "page": 244
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "vision-dans-l-obscurite",
@@ -3311,7 +3091,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "infravision"
+                "trait": {
+                  "id": "infravision"
+                }
               }
             ]
           }
@@ -3322,8 +3104,7 @@
       "book": "livre-de-base",
       "page": 244
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "forme-bestiale",
@@ -3383,7 +3164,6 @@
     },
     "domainId": "bete",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -3435,20 +3215,28 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "rage"
+                "trait": {
+                  "id": "rage"
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "magique"
+                "trait": {
+                  "id": "magique"
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "belliqueux"
+                "trait": {
+                  "id": "belliqueux"
+                }
               },
               {
                 "op": "ap",
@@ -3479,7 +3267,6 @@
     },
     "domainId": "bete",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -3540,7 +3327,6 @@
     "family": "arcane",
     "missile": true,
     "damage": 12,
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -3594,7 +3380,6 @@
     },
     "domainId": "bete",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -3660,7 +3445,6 @@
     ],
     "domainId": "bete",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -3760,12 +3544,16 @@
               },
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "infravision"
+                "trait": {
+                  "id": "infravision"
+                }
               },
               {
                 "op": "grantTalent",
@@ -3785,7 +3573,6 @@
     },
     "domainId": "bete",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -3863,7 +3650,6 @@
     },
     "domainId": "bete",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -4000,7 +3786,6 @@
     },
     "domainId": "bete",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -4063,8 +3848,7 @@
     "domainId": "cieux",
     "family": "arcane",
     "missile": true,
-    "damage": 10,
-    "curated": true
+    "damage": 10
   },
   {
     "id": "bouclier-ceruleen",
@@ -4114,7 +3898,6 @@
     },
     "domainId": "cieux",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -4194,8 +3977,7 @@
     "domainId": "cieux",
     "family": "arcane",
     "missile": true,
-    "damage": 12,
-    "curated": true
+    "damage": 12
   },
   {
     "id": "ironie-du-destin",
@@ -4271,8 +4053,7 @@
       }
     ],
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "le-premier-signe-d-amul",
@@ -4330,8 +4111,7 @@
       }
     ],
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "le-second-signe-d-amul",
@@ -4393,8 +4173,7 @@
       }
     ],
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "le-troisieme-signe-d-amul",
@@ -4448,8 +4227,7 @@
       }
     ],
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "maudit",
@@ -4506,8 +4284,7 @@
       }
     ],
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "cauteriser",
@@ -4616,7 +4393,6 @@
     },
     "domainId": "feu",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -4704,7 +4480,6 @@
     },
     "domainId": "feu",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -4749,8 +4524,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                }
               },
               {
                 "op": "castPenalty",
@@ -4780,8 +4557,7 @@
       }
     ],
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "grands-feux-d-u-zhul",
@@ -4881,7 +4657,6 @@
     "missile": true,
     "damage": 10,
     "ignorePA": true,
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -4939,7 +4714,6 @@
     },
     "domainId": "feu",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -5041,7 +4815,6 @@
     },
     "domainId": "feu",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -5128,7 +4901,6 @@
     "domainId": "feu",
     "family": "arcane",
     "missile": true,
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -5203,7 +4975,6 @@
     },
     "domainId": "feu",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -5244,8 +5015,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 2
+                "trait": {
+                  "id": "peur",
+                  "value": 2
+                }
               },
               {
                 "op": "narrative",
@@ -5260,8 +5033,7 @@
       "book": "archives-de-l-empire-2",
       "page": 32
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "broyeur-d-os",
@@ -5311,8 +5083,7 @@
       "book": "archives-de-l-empire-2",
       "page": 32
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "festin-des-damnes",
@@ -5350,7 +5121,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "vampirique"
+                "trait": {
+                  "id": "vampirique"
+                }
               },
               {
                 "op": "narrative",
@@ -5365,8 +5138,7 @@
       "book": "archives-de-l-empire-2",
       "page": 32
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "goinfre-costaud",
@@ -5421,8 +5193,7 @@
       "book": "archives-de-l-empire-2",
       "page": 33
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "goutemort",
@@ -5464,8 +5235,7 @@
       "book": "archives-de-l-empire-2",
       "page": 33
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "la-gueule",
@@ -5518,8 +5288,7 @@
       "book": "archives-de-l-empire-2",
       "page": 33
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "trollboyaux",
@@ -5558,7 +5327,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "regeneration"
+                "trait": {
+                  "id": "regeneration"
+                }
               },
               {
                 "op": "narrative",
@@ -5573,8 +5344,7 @@
       "book": "archives-de-l-empire-2",
       "page": 33
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "bannissement",
@@ -5608,7 +5378,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "instable",
+                "trait": {
+                  "id": "instable"
+                },
                 "onlyGroups": [
                   "mort-vivant",
                   "demon"
@@ -5635,8 +5407,7 @@
       }
     ],
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "clarte-d-esprit",
@@ -5696,8 +5467,7 @@
       }
     ],
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "fauche-demon",
@@ -5762,8 +5532,7 @@
     "opposed": {
       "kind": "resist",
       "char": "force-mentale"
-    },
-    "curated": true
+    }
   },
   {
     "id": "filet-d-amyntok",
@@ -5822,8 +5591,7 @@
       }
     ],
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "lumiere-aveuglante",
@@ -5885,8 +5653,7 @@
       }
     ],
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "lumiere-de-guerison",
@@ -5981,7 +5748,6 @@
     },
     "domainId": "lumiere",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -6116,8 +5882,7 @@
       }
     ],
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "protection-de-pha",
@@ -6183,8 +5948,7 @@
       }
     ],
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "arme-enchantee",
@@ -6247,8 +6011,7 @@
       }
     ],
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "creuset-de-chamon",
@@ -6297,7 +6060,6 @@
     },
     "domainId": "metal",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -6342,8 +6104,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "protection",
-                "indice": 9
+                "trait": {
+                  "id": "protection",
+                  "value": 9
+                }
               },
               {
                 "op": "narrative",
@@ -6366,8 +6130,7 @@
       }
     ],
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "forge-de-chamon",
@@ -6425,8 +6188,7 @@
       }
     ],
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "l-or-des-fous",
@@ -6480,8 +6242,7 @@
       }
     ],
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "metal-changeant",
@@ -6528,7 +6289,6 @@
     },
     "domainId": "metal",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -6600,8 +6360,7 @@
       }
     ],
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "transmutation-de-chamon",
@@ -6684,8 +6443,7 @@
       }
     ],
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "caresse-de-laniph",
@@ -6735,7 +6493,6 @@
     "damage": 6,
     "ignorePA": true,
     "ignoreBE": true,
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -6795,7 +6552,6 @@
     },
     "domainId": "mort",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -6870,7 +6626,6 @@
     },
     "domainId": "mort",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -6921,8 +6676,10 @@
               },
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1,
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                },
                 "indicePerSL": {
                   "every": 2,
                   "amount": 1
@@ -6939,7 +6696,6 @@
     },
     "domainId": "mort",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -6990,7 +6746,6 @@
     },
     "domainId": "mort",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -7048,7 +6803,6 @@
     },
     "domainId": "mort",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -7135,7 +6889,6 @@
     "missile": true,
     "damage": 6,
     "ignorePA": true,
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -7201,7 +6954,6 @@
     "damage": 10,
     "ignorePA": true,
     "ignoreBE": true,
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -7280,7 +7032,6 @@
     },
     "domainId": "ombres",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -7347,7 +7098,6 @@
     },
     "domainId": "ombres",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -7424,7 +7174,6 @@
     },
     "domainId": "ombres",
     "family": "arcane",
-    "curated": true,
     "variants": [
       {
         "when": {
@@ -7483,7 +7232,6 @@
     },
     "domainId": "ombres",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -7559,7 +7307,6 @@
     },
     "domainId": "ombres",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -7631,7 +7378,6 @@
     },
     "domainId": "ombres",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -7688,7 +7434,6 @@
     },
     "domainId": "ombres",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -7757,7 +7502,6 @@
     },
     "domainId": "ombres",
     "family": "arcane",
-    "curated": true,
     "alsoIn": [
       {
         "book": "vents-de-la-magie",
@@ -7811,8 +7555,7 @@
       "page": 253
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "don-de-vie",
@@ -7839,7 +7582,6 @@
     "desc": "Ghyran inonde une zone brûlée ou désertique. Vous pouvez cibler un lit de rivière asséché, un puit, un champ ou un animal domestique. Si vous lancez le Sort avec succès, la cible reprend vie :\n\n• Une rivière asséchée recommence à couler\n\n• Un puit asséché ou pollué devient potable et frais\n\n• Un champ, un vignoble ou un verger fourmille de vie et toutes les cultures atteignent immédiatement leur pleine maturité\n\n• Un animal malade ou improductif guérit. La bête affectée est à présent en bonne santé et productive (les vaches produisent du lait, les poules pondent des œufs, les cuirs et toisons des vaches et des moutons sont sains et lustrés) et toutes les maladies sont guéries.",
     "domainId": "vie",
     "family": "arcane",
-    "curated": true,
     "effects": {
       "kind": "seq",
       "steps": [
@@ -7889,7 +7631,6 @@
     "desc": "En lançant ce Sort, vous disparaissez immédiatement dans le sol, dans un torrent sauvage de Ghyran. Vous apparaissez au début du prochain round à n'importe quel endroit situé à une distance en mètres égale à votre Force Mentale, faisant violemment irruption de la terre. Pour chaque +2 DR, vous pouvez augmenter la distance parcourue d'un nombre de mètres égal à votre Force Mentale. Tous les ennemis que vous avez Engagés lors de votre apparition gagnent l'État Surpris. Ce Sort ne vous permettra pas de vous déplacer à travers la pierre, mais vous permettra de vous déplacer à travers l'eau.",
     "domainId": "vie",
     "family": "arcane",
-    "curated": true,
     "effects": {
       "kind": "seq",
       "steps": [
@@ -7964,7 +7705,6 @@
     "desc": "Vous faites en sorte que la peau de la cible devienne dure et rugueuse comme l'écorce d'un arbre. Tant qu'elle est affectée par le Sort, la cible gagne +2 à son Bonus d'Endurance, mais subit une pénalité de -10 en Agilité et Dextérité.",
     "domainId": "vie",
     "family": "arcane",
-    "curated": true,
     "effects": {
       "kind": "seq",
       "steps": [
@@ -8036,7 +7776,6 @@
     "desc": "Ce Sort peut uniquement cibler un carré de terre (même très petit). Vous faites jaillir un amas dense de ronces et de vignes grimpantes qui recouvre la Zone d'Effet.\n\nTant que le Sort est actif, quiconque tente de traverser la zone à pied sans posséder le Talent Magie des Arcanes (Vie) doit réussir un Test d'Agilité Difficile (-20). Un échec signifie qu'il gagne 1 État Hémorragique et un État Empêtré, qui utilise votre Force Mentale pour sa Force. Une fois le Sort terminé, la végétation persiste mais perd ses propriétés surnaturelles.",
     "domainId": "vie",
     "family": "arcane",
-    "curated": true,
     "effects": {
       "kind": "seq",
       "steps": [
@@ -8122,7 +7861,6 @@
     "desc": "Vous inondez le corps de la cible du si nourrissant Ghyran. Elle n'a pas besoin de manger ou de boire, mais elle excrétera normalement, bien que les excréments soient d'un vert intense.",
     "domainId": "vie",
     "family": "arcane",
-    "curated": true,
     "effects": {
       "kind": "seq",
       "steps": [
@@ -8179,7 +7917,6 @@
     "desc": "Votre cible gagne le Trait de créature Régénération (voir page 341).",
     "domainId": "vie",
     "family": "arcane",
-    "curated": true,
     "effects": {
       "kind": "seq",
       "steps": [
@@ -8191,7 +7928,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "regeneration"
+                "trait": {
+                  "id": "regeneration"
+                }
               }
             ]
           }
@@ -8236,7 +7975,6 @@
     "desc": "Pour lancer ce Sort, vous devez être debout et pieds nus, en contact direct avec la terre. Pour la durée du Sort, toutes les créatures également en contact direct avec la terre à l'intérieur de la Zone d'Effet guérissent d'un nombre de Blessures égal à votre Bonus de Force Mentale au début de chaque round.",
     "domainId": "vie",
     "family": "arcane",
-    "curated": true,
     "effects": {
       "kind": "seq",
       "steps": [
@@ -8384,15 +8122,7 @@
       "book": "livre-de-base",
       "page": 254
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 143,
-        "quote": "Bienveillance"
-      }
-    ],
     "family": "arcane",
-    "curated": true,
     "domainId": "magie-naturelle"
   },
   {
@@ -8440,7 +8170,6 @@
       "page": 254
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "magie-naturelle"
   },
   {
@@ -8487,7 +8216,6 @@
       "page": 254
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "magie-naturelle"
   },
   {
@@ -8534,7 +8262,6 @@
       "page": 254
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "magie-naturelle"
   },
   {
@@ -8581,7 +8308,6 @@
       "page": 254
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "magie-naturelle"
   },
   {
@@ -8628,7 +8354,6 @@
       "page": 255
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "magie-naturelle"
   },
   {
@@ -8676,15 +8401,7 @@
       "book": "livre-de-base",
       "page": 255
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 148,
-        "quote": "Ruine"
-      }
-    ],
     "family": "arcane",
-    "curated": true,
     "domainId": "sorcellerie"
   },
   {
@@ -8732,7 +8449,6 @@
       "page": 255
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "sorcellerie"
   },
   {
@@ -8783,7 +8499,6 @@
       "page": 255
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "sorcellerie"
   },
   {
@@ -8839,7 +8554,6 @@
       "page": 255
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "sorcellerie"
   },
   {
@@ -8891,7 +8605,6 @@
       "page": 255
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "sorcellerie"
   },
   {
@@ -8961,15 +8674,7 @@
       "book": "livre-de-base",
       "page": 256
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 148,
-        "quote": "Nuée"
-      }
-    ],
     "family": "arcane",
-    "curated": true,
     "domainId": "sorcellerie"
   },
   {
@@ -9031,7 +8736,6 @@
       "page": 256
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "demonologie"
   },
   {
@@ -9079,7 +8783,6 @@
       "page": 256
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "demonologie"
   },
   {
@@ -9146,7 +8849,6 @@
       "page": 256
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "demonologie"
   },
   {
@@ -9197,7 +8899,6 @@
       "page": 256
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "demonologie"
   },
   {
@@ -9272,7 +8973,6 @@
     },
     "family": "arcane",
     "missile": true,
-    "curated": true,
     "domainId": "necromancie"
   },
   {
@@ -9319,15 +9019,7 @@
       "book": "livre-de-base",
       "page": 256
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 520,
-        "quote": "Appel de Vanhel"
-      }
-    ],
     "family": "arcane",
-    "curated": true,
     "domainId": "necromancie"
   },
   {
@@ -9400,7 +9092,6 @@
       "page": 257
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "necromancie"
   },
   {
@@ -9471,7 +9162,6 @@
       "page": 257
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "necromancie"
   },
   {
@@ -9588,8 +9278,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 79
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "aspect-sublime",
@@ -9635,8 +9324,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 79
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "decharge-de-corruption",
@@ -9695,17 +9383,9 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 80
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 269,
-        "quote": "Projectile de Dhar"
-      }
-    ],
     "family": "chaos",
     "missile": true,
-    "damage": 6,
-    "curated": true
+    "damage": 6
   },
   {
     "id": "dechirer-l-aethyr",
@@ -9770,8 +9450,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 80
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "esclave-des-tenebres",
@@ -9814,8 +9493,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 80
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "explosion-de-corruption",
@@ -9877,17 +9555,9 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 80
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 254,
-        "quote": "Explosion de Dhar"
-      }
-    ],
     "family": "chaos",
     "missile": true,
-    "damage": 5,
-    "curated": true
+    "damage": 5
   },
   {
     "id": "obsession",
@@ -9934,8 +9604,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 80
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "odieux-messager",
@@ -9981,8 +9650,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 81
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "pouvoir-du-chaos",
@@ -10034,8 +9702,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 81
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "flot-de-corruption",
@@ -10080,8 +9747,7 @@
     },
     "family": "chaos",
     "missile": true,
-    "breathAttack": true,
-    "curated": true
+    "breathAttack": true
   },
   {
     "id": "consentement",
@@ -10130,15 +9796,7 @@
       "book": "livre-de-base",
       "page": 257
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 290,
-        "quote": "Introspection"
-      }
-    ],
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "trahison-de-tzeentch",
@@ -10187,8 +9845,7 @@
       "book": "livre-de-base",
       "page": 257
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "aura-doree-de-tzeentch",
@@ -10221,8 +9878,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "protection",
-                "indice": 9
+                "trait": {
+                  "id": "protection",
+                  "value": 9
+                }
               }
             ]
           }
@@ -10233,8 +9892,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 81
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "avantage-de-tzeentch",
@@ -10279,8 +9937,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 81
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "eclair-du-changement",
@@ -10354,8 +10011,7 @@
     },
     "family": "chaos",
     "missile": true,
-    "damage": 7,
-    "curated": true
+    "damage": 7
   },
   {
     "id": "feu-bleu-de-tzeentch",
@@ -10408,16 +10064,8 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 82
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 322,
-        "quote": "Flammes Bleues de Tzeentch"
-      }
-    ],
     "family": "chaos",
-    "missile": true,
-    "curated": true
+    "missile": true
   },
   {
     "id": "feu-rose-de-tzeentch",
@@ -10467,17 +10115,9 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 82
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 321,
-        "quote": "Flammes Roses de Tzeentch"
-      }
-    ],
     "family": "chaos",
     "missile": true,
-    "damage": 6,
-    "curated": true
+    "damage": 6
   },
   {
     "id": "feu-spirituel",
@@ -10549,15 +10189,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 82
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 330,
-        "quote": "Esprit Enfiévré"
-      }
-    ],
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "flammes-vacillantes-du-capricieux-destin",
@@ -10607,8 +10239,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 82
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "la-main-pourpre",
@@ -10655,8 +10286,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 82
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "malediction-de-tzeentch",
@@ -10703,8 +10333,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 82
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "maitre-du-destin",
@@ -10759,8 +10388,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 82
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "parole-de-tzeentch",
@@ -10822,8 +10450,7 @@
     "opposed": {
       "kind": "resist",
       "char": "intelligence"
-    },
-    "curated": true
+    }
   },
   {
     "id": "percevoir-l-echeveau",
@@ -10865,15 +10492,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 83
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 330,
-        "quote": "Âme Dévoilée"
-      }
-    ],
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "tempete-de-feu-de-tzeentch",
@@ -10929,8 +10548,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 83
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "transformation-de-tzeentch",
@@ -10983,8 +10601,7 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 83
     },
-    "family": "chaos",
-    "curated": true
+    "family": "chaos"
   },
   {
     "id": "encalmine",
@@ -11032,8 +10649,7 @@
       "book": "livre-de-base",
       "page": 222
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "generosite-de-manann",
@@ -11083,8 +10699,7 @@
       "book": "livre-de-base",
       "page": 222
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "marcher-sur-les-eaux",
@@ -11129,8 +10744,7 @@
       "book": "livre-de-base",
       "page": 222
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "mer-dechainee",
@@ -11191,8 +10805,7 @@
       "book": "livre-de-base",
       "page": 222
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "vents-favorables",
@@ -11240,8 +10853,7 @@
       "book": "livre-de-base",
       "page": 222
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "visage-de-l-homme-noye",
@@ -11297,8 +10909,7 @@
       "book": "livre-de-base",
       "page": 223
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "aneantir-les-morts-vivants",
@@ -11357,8 +10968,7 @@
       "book": "livre-de-base",
       "page": 223
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "condamne",
@@ -11400,8 +11010,7 @@
       "book": "livre-de-base",
       "page": 223
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "main-de-morr",
@@ -11447,8 +11056,7 @@
       "book": "livre-de-base",
       "page": 223
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "masque-mortuaire",
@@ -11481,8 +11089,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                }
               }
             ]
           }
@@ -11493,8 +11103,7 @@
       "book": "livre-de-base",
       "page": 223
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "rites-funeraires",
@@ -11538,8 +11147,7 @@
       "book": "livre-de-base",
       "page": 223
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "seuil-du-portail",
@@ -11582,8 +11190,7 @@
       "book": "livre-de-base",
       "page": 223
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "appel-a-la-fureur",
@@ -11621,7 +11228,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "haine"
+                "trait": {
+                  "id": "haine"
+                }
               },
               {
                 "op": "narrative",
@@ -11636,8 +11245,7 @@
       "book": "livre-de-base",
       "page": 223
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "bouclier-de-myrmidia",
@@ -11686,8 +11294,7 @@
       "book": "livre-de-base",
       "page": 223
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "inspirant",
@@ -11742,8 +11349,7 @@
       "book": "livre-de-base",
       "page": 223
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "lance-de-myrmidia",
@@ -11802,8 +11408,7 @@
       "book": "livre-de-base",
       "page": 224
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "oeil-de-l-aigle",
@@ -11851,8 +11456,7 @@
       "book": "livre-de-base",
       "page": 224
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "soleil-flamboyant",
@@ -11903,8 +11507,7 @@
       "book": "livre-de-base",
       "page": 224
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "commander-la-legion",
@@ -11947,8 +11550,7 @@
       "book": "aux-armes",
       "page": 79
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "terrifier-l-ennemi",
@@ -11979,8 +11581,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "terreur",
-                "indice": 1
+                "trait": {
+                  "id": "terreur",
+                  "value": 1
+                }
               }
             ]
           }
@@ -11991,8 +11595,7 @@
       "book": "aux-armes",
       "page": 79
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "en-bon-ordre",
@@ -12045,8 +11648,7 @@
       "book": "aux-armes",
       "page": 79
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "connais-ton-ennemi",
@@ -12092,8 +11694,7 @@
       "book": "aux-armes",
       "page": 79
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "en-terrain-dangereux",
@@ -12146,8 +11747,7 @@
       "book": "aux-armes",
       "page": 79
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "frappe-rapide",
@@ -12189,8 +11789,7 @@
       "book": "aux-armes",
       "page": 79
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "devotion-de-la-vierge-guerriere",
@@ -12242,8 +11841,7 @@
       "book": "aux-armes",
       "page": 79
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "prouesses-martiales",
@@ -12300,8 +11898,7 @@
       "book": "aux-armes",
       "page": 79
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "fureur-vengeresse",
@@ -12343,8 +11940,7 @@
       "book": "aux-armes",
       "page": 79
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "grace-de-ranald",
@@ -12400,8 +11996,7 @@
       "book": "livre-de-base",
       "page": 224
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "invitation",
@@ -12445,8 +12040,7 @@
       "book": "livre-de-base",
       "page": 224
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "que-la-chance-persiste",
@@ -12497,8 +12091,7 @@
       "book": "livre-de-base",
       "page": 224
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "riche-pauvre-mendiant-voleur",
@@ -12546,8 +12139,7 @@
       "book": "livre-de-base",
       "page": 224
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "vous-ne-m-avez-pas-vu-n-est-ce-pas",
@@ -12596,8 +12188,7 @@
       "book": "livre-de-base",
       "page": 224
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "yeux-de-chat",
@@ -12645,15 +12236,7 @@
       "book": "livre-de-base",
       "page": 224
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 119,
-        "quote": "Oeil de Lynx"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "abri-de-rhya",
@@ -12695,8 +12278,7 @@
       "book": "livre-de-base",
       "page": 225
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "caresse-de-rhya",
@@ -12745,15 +12327,7 @@
       "book": "livre-de-base",
       "page": 225
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 156,
-        "quote": "Main de Rhya"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "enfants-de-rhya",
@@ -12798,8 +12372,7 @@
       "book": "livre-de-base",
       "page": 225
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "recolte-de-rhya",
@@ -12846,8 +12419,7 @@
       "book": "livre-de-base",
       "page": 225
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "secours-de-rhya",
@@ -12896,8 +12468,7 @@
       "book": "livre-de-base",
       "page": 225
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "union-de-rhya",
@@ -12943,8 +12514,7 @@
       "book": "livre-de-base",
       "page": 225
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "amere-catharsis",
@@ -12999,8 +12569,7 @@
       "book": "livre-de-base",
       "page": 225
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "baume-pour-un-esprit-blesse",
@@ -13049,15 +12618,7 @@
       "book": "livre-de-base",
       "page": 225
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 79,
-        "quote": "Apaisement"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "endurance-de-l-anachorete",
@@ -13109,15 +12670,7 @@
       "book": "livre-de-base",
       "page": 225
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 79,
-        "quote": "Résistance du Pénitent"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "innocence-immaculee",
@@ -13167,8 +12720,7 @@
       "book": "livre-de-base",
       "page": 225
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "larmes-de-shallya",
@@ -13219,8 +12771,7 @@
       "book": "livre-de-base",
       "page": 226
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "martyr",
@@ -13268,8 +12819,7 @@
       "book": "livre-de-base",
       "page": 226
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "comete-a-deux-queues",
@@ -13338,8 +12888,7 @@
       "book": "livre-de-base",
       "page": 226
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "feu-de-l-ame",
@@ -13404,8 +12953,7 @@
       "book": "livre-de-base",
       "page": 226
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "flambeau-de-vertu",
@@ -13461,15 +13009,7 @@
       "book": "livre-de-base",
       "page": 226
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 90,
-        "quote": "Modèle de Vertu"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "marteau-ardent-de-sigmar",
@@ -13541,15 +13081,7 @@
       "book": "livre-de-base",
       "page": 226
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 90,
-        "quote": "Marteau de Justice"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "n-ecoutez-point-la-sorciere",
@@ -13603,15 +13135,7 @@
       "book": "livre-de-base",
       "page": 226
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 90,
-        "quote": "Arrière, Sorcière !"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "vaincre-les-impies",
@@ -13649,18 +13173,24 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "haine",
-                "arg": "peau-verte"
+                "trait": {
+                  "id": "haine",
+                  "arg": "peau-verte"
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "haine",
-                "arg": "mort-vivant"
+                "trait": {
+                  "id": "haine",
+                  "arg": "mort-vivant"
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "haine",
-                "arg": "demon"
+                "trait": {
+                  "id": "haine",
+                  "arg": "demon"
+                }
               }
             ]
           }
@@ -13671,15 +13201,7 @@
       "book": "livre-de-base",
       "page": 226
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 90,
-        "quote": "Sus à l’Ennemi !"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "bondissant-comme-un-cerf",
@@ -13729,15 +13251,7 @@
       "book": "livre-de-base",
       "page": 227
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 162,
-        "quote": "Saut de Cabri"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "dent-et-griffe",
@@ -13793,8 +13307,7 @@
       "book": "livre-de-base",
       "page": 227
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "enchevetrement-2",
@@ -13852,8 +13365,7 @@
       "book": "livre-de-base",
       "page": 227
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "instincts-animaux",
@@ -13905,15 +13417,7 @@
       "book": "livre-de-base",
       "page": 227
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 162,
-        "quote": "Instinct Animal"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "roi-de-la-nature",
@@ -13977,8 +13481,7 @@
       "book": "livre-de-base",
       "page": 227
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "seigneur-de-la-chasse",
@@ -14023,8 +13526,7 @@
       "book": "livre-de-base",
       "page": 227
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "frisson-du-givre",
@@ -14058,8 +13560,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                }
               },
               {
                 "op": "narrative",
@@ -14074,8 +13578,7 @@
       "book": "livre-de-base",
       "page": 227
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "fureur-d-ulric",
@@ -14113,7 +13616,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "frenesie"
+                "trait": {
+                  "id": "frenesie"
+                }
               }
             ]
           }
@@ -14124,8 +13629,7 @@
       "book": "livre-de-base",
       "page": 227
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "hurlement-du-loup",
@@ -14198,8 +13702,7 @@
       "book": "livre-de-base",
       "page": 227
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "jugement-du-roi-de-la-neige",
@@ -14256,8 +13759,7 @@
       "book": "livre-de-base",
       "page": 227
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "morsure-de-l-hiver",
@@ -14350,15 +13852,7 @@
       "book": "livre-de-base",
       "page": 227
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 93,
-        "quote": "Morsure d’Hiver"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "peau-de-loup-d-hiver",
@@ -14403,15 +13897,7 @@
       "book": "livre-de-base",
       "page": 228
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 93,
-        "quote": "Chaleur de la Fourrure"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "entraves-a-la-verite",
@@ -14464,15 +13950,7 @@
       "book": "livre-de-base",
       "page": 228
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 96,
-        "quote": "Fers de Vérité"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "epee-de-justice",
@@ -14569,8 +14047,7 @@
       "book": "livre-de-base",
       "page": 228
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "justice-aveugle",
@@ -14614,8 +14091,7 @@
       "book": "livre-de-base",
       "page": 228
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "la-verite-eclatera",
@@ -14661,15 +14137,7 @@
       "book": "livre-de-base",
       "page": 228
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 97,
-        "quote": "La Vérité finit toujours par sortir"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "sagesse-de-la-chouette",
@@ -14726,15 +14194,7 @@
       "book": "livre-de-base",
       "page": 228
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 97,
-        "quote": "Sagesse du Hibou"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "verena-est-mon-temoin",
@@ -14778,15 +14238,7 @@
       "book": "livre-de-base",
       "page": 228
     },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 96,
-        "quote": "Verena m’est témoin !"
-      }
-    ],
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "bon-baiser-d-la-fosse-noire",
@@ -14851,8 +14303,7 @@
       "book": "zoo-imperial",
       "page": 10
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "nuee-d-escampette",
@@ -14915,8 +14366,7 @@
       "book": "zoo-imperial",
       "page": 10
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "toile-surprise",
@@ -14976,1323 +14426,7 @@
       "book": "zoo-imperial",
       "page": 10
     },
-    "family": "invocation",
-    "curated": true
-  },
-  {
-    "id": "abondance-de-rhya",
-    "type": "spells",
-    "label": "Abondance de Rhya",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "La nourriture touchée s’assainit et se multiplie. Il ne peut s’agir que de produits peu ou pas transformés : fruits, légumes, vin, bière… Moisissures et insectes disparaissent ; les produits retrouvent couleur, texture et forme ; leur quantité est doublée. La prêtresse peut toucher un tonnelet, une canette ou un panier par Tour.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 155
-    },
     "family": "invocation"
-  },
-  {
-    "id": "agression-aethyrique",
-    "type": "spells",
-    "label": "Agression AEthyrique",
-    "ecole": "Magie des Arcanes & de Nécromancie",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "Au lieu de simplement tenter d’annuler un sort d’un adversaire avec un Test Opposé de Langue (Magick), le vampire peut tenter une forme plus agressive. Si ce sort est lancéAVANTla fin de l’incantation de l’adversaire, le sort de l’adversaire rate automatiquement et il déclenche un accident mineur de magie.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 584
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "algues-cruelles",
-    "type": "spells",
-    "label": "Algues Cruelles",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 5,
-    "range": {
-      "kind": "distance",
-      "value": 90,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 9
-    },
-    "duration": {
-      "kind": "special",
-      "text": "Spécial"
-    },
-    "desc": "Les algues répondent à la volonté du mage. Elles agrippent toute personne dans la zone d’effet et inflige 1 État « Enchevêtré » par DR du Test de Langue (Magick) avec une Force égale à la FM du mage. Au Tour suivant, les algues attirent les cibles sous l’eau (appliquer les règles de noyade).",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 502
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "arme-souillee",
-    "type": "spells",
-    "label": "Arme Souillée",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 8,
-      "unit": "minutes"
-    },
-    "desc": "Le démon frotte 1 arme sur une blessure purulente. Une cible touchée per cette arme ou ces munitions souffre de 1 État « Empoisonné » en plus des dégâts. Les Tests de Résistance se font à (+0).",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 305
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "armure-d-aethyr",
-    "type": "spells",
-    "label": "Armure d’AEthyr",
-    "ecole": "Magie des Arcanes & de Nécromancie",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "rounds",
-      "value": 7
-    },
-    "desc": "Le PJ bénéficie de 2 Points d’Armure sur tout le corps. Le sort peut dévier un Coup Critique. En ce cas, le sort est annulé.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 522
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "armure-d-obscurite",
-    "type": "spells",
-    "label": "Armure d’Obscurité",
-    "ecole": "du Domaine des Ombres",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 40,
-      "unit": "minutes"
-    },
-    "desc": "le sorcier bénéficie de 2 Points d’Armure (corps entier) et d’un Bonus +20 en Discrétion.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 376
-    },
-    "family": "arcane",
-    "domainId": "domaine-des-ombres"
-  },
-  {
-    "id": "aux-innocents-les-mains-pleines",
-    "type": "spells",
-    "label": "Aux Innocents les Mains Pleines !",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "Si le prêtre est fouillé, on ne trouve sur lui que des objets du quotidien sans valeur. Pour chaque heure où des objets volés sont ainsi cachés, il y a 1% de chance cumulatif que les objets ne réapparaissent pas et que Ranald les garde pour lui !",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 118
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "avatar-du-rat-cornu",
-    "type": "spells",
-    "label": "Avatar du Rat Cornu",
-    "ecole": "Magie des Arcanes Skaven",
-    "subType": null,
-    "cn": 4,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "special",
-      "text": "5 Tours"
-    },
-    "desc": "Le visage du sorcier se tord et prend l’aspect du Rat Cornu en personne. Le sorcier gagne les Traits suivants : Belligérant, Peur 1, Haine. Pour chaque +2 DR au-dessus de +0 le Trait Peur augmente de +1. À la fin du sort, le sorcier effectue un Test de Résistance (+0) VS 1 État « Fatigue ».",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 417
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "baratin",
-    "type": "spells",
-    "label": "Baratin",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "Le prêtre peut utiliser un Bonus de +8 DR pour UN SEUL Test de Charme pendant la durée du Miracle afin de se sortir d’un mauvais pas après avoir été pris en flagrant délit.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 119
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "benedicite-de-taal",
-    "type": "spells",
-    "label": "Bénédicité de Taal",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "Le prêtre bénit de la nourriture qui a été chassée ou cueillie en zone sauvage. La nourriture s’en retrouve plus nourrissante. Quiconque mange cette nourriture bénie peut attendre 4 jours avant le prochain Test de Faim (Starvation). Le miracle permet de bénir jusqu’à six portions, donc de quoi nourrir six personnes.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 161
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "berceuse-soporifique-ua-ii",
-    "type": "spells",
-    "label": "Berceuse Soporifique UA II",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "distance",
-      "value": 85,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "special",
-      "text": "8 Tours"
-    },
-    "desc": "La cible n’a qu’une envie : dormir. Elle souffre de (1D10 - Bonus FM) États « Fatigue » (minimum 1). Si le nombre d’États est supérieur au Bonus de FM de la cible, cette dernière s’endort sur place, risquant de chuter.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 289
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "blizzard",
-    "type": "spells",
-    "label": "Blizzard",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "L’air autour du prêtre devient glacial. Le prêtre cause l’État « Peur 1 » à ses adversaires. Au début de chaque Tour, la Réserve d’Avantage des adversaires diminue du nombre d’adversaire dans la zone tellement ils se pétrifient de froid.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 92
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "bon-debarras",
-    "type": "spells",
-    "label": "Bon Débarras !",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "En touchant un objet récupéré de manière illicite ou de contrebande, le prêtre sait où trouver le meilleur acheteur ou receleur.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 118
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "bond-furtif",
-    "type": "spells",
-    "label": "Bond Furtif",
-    "ecole": "du Domaine des Ombres",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "La cible est téléportée dans la limite de 40 Mètres du du champ de vision du skaven. La zone visée doit être libre et disponible. La cible ne peut être que de Taille Moyenne ou moins.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 373
-    },
-    "family": "arcane",
-    "domainId": "domaine-des-ombres"
-  },
-  {
-    "id": "bouillon-revigorant",
-    "type": "spells",
-    "label": "Bouillon Revigorant",
-    "ecole": "Magie des Arcanes & des Taillis",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 3,
-      "unit": "hours"
-    },
-    "desc": "Le rebouteux prépare un bouillon qui réduit ou annule la fatigue. Le sort permet d’enchanter un bol pour une personne. le bouillon doit être immédiatement ingurgité brûlant. Pendant la durée du sort, les États « Fatigue » d’origine naturelle sont ignorés. Ils reviennent dès que le sort prend fin.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 142
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "brume-acide",
-    "type": "spells",
-    "label": "Brume Acide",
-    "ecole": "du Domaine de la Peste",
-    "subType": null,
-    "cn": 10,
-    "range": {
-      "kind": "distance",
-      "value": 70,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 7
-    },
-    "duration": {
-      "kind": "special",
-      "text": "7 Tours +",
-      "plus": true
-    },
-    "desc": "Le nuage de la zone contaminée s’élève jusqu’à 12 mètres. Toutes les créatures dans la zone effectue À CHAQUE TOURun Test de Résistance (-10) VS 3 PB (pas d’armure). Si une créature perd plus de 6 PB dans la zone, elle devient « Inconsciente ».",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 393
-    },
-    "family": "arcane",
-    "domainId": "domaine-de-la-peste"
-  },
-  {
-    "id": "brume-mystique",
-    "type": "spells",
-    "label": "Brume Mystique",
-    "ecole": "Magie Mineure",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "distance",
-      "value": 9,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 18
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 9,
-      "unit": "minutes"
-    },
-    "desc": "Une épaisse brume monte de la surface. On ne peut pas voir à travers.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 501
-    },
-    "family": "mineure"
-  },
-  {
-    "id": "cacophonie-scabreuse",
-    "type": "spells",
-    "label": "Cacophonie Scabreuse",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 8
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le démon hurle des obscénités. Tous les ennemis dans la zone subissent 3 Points de Dégâts par DR + 8 Points de Dégâts (pas d’armure).",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 289
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "catharsis",
-    "type": "spells",
-    "label": "Catharsis",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "Le miracle guérit un Poison ou une Maladie. Pour chaque +2 DR au-dessus de +0, le miracle peut annuler un autre poison ou une autre maladie sur la même cible. Pour chaque poison ou maladie guéri ainsi, le prêtre de Shallya encaisse (D10 - 5) Points de Blessure (minimum 1).",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 78
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "cogne-fort",
-    "type": "spells",
-    "label": "Cogne-Fort",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 5,
-    "range": {
-      "kind": "distance",
-      "value": 5,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "special",
-      "text": "Spécial"
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "La Réserve d’Avantages des Peaux-Vertes augmente de (1+DR) Points. Ils sont utilisables immédiatement.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 472
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "contamination",
-    "type": "spells",
-    "label": "Contamination",
-    "ecole": "du Domaine de la Peste",
-    "subType": null,
-    "cn": 4,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 6,
-      "unit": "days"
-    },
-    "desc": "Le sorcier infecte un vêtement, une couverture, de la nourriture ou autre avec la Peste Noire. Toute créature qui utilise l’objet contaminé est exposée à la maladie.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 389
-    },
-    "family": "arcane",
-    "domainId": "domaine-de-la-peste"
-  },
-  {
-    "id": "coup-d-boule",
-    "type": "spells",
-    "label": "Coup d’Boule !",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 5,
-    "range": {
-      "kind": "distance",
-      "value": 5,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Projectile magique qui toucheTOUJOURSla tête de la cible en infligeant +1 PB. Si la cible est un mage, les Dégâts montent à +6 !",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 472
-    },
-    "family": "arcane",
-    "missile": true
-  },
-  {
-    "id": "courage-du-loup",
-    "type": "spells",
-    "label": "Courage du Loup",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "Tous les alliés dans la zone perdent leur État « En Déroute ». Pendant la durée du miracle, ils sont immunisés VS Peur / Terreur / Intimidation.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 92
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "crepitement-funeste",
-    "type": "spells",
-    "label": "Crépitement Funeste",
-    "ecole": "du Domaine de la Ruine",
-    "subType": null,
-    "cn": 5,
-    "range": {
-      "kind": "distance",
-      "value": 2,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le sorcier provoque un arc d’énergie verdâtre qui frappe sa cible et inflige 6 Points de Dégâts (armure OK). La cible effectue un Test de Résistance (+0) VS 1 État « Étourdi ».",
-    "effects": {
-      "kind": "seq",
-      "steps": [
-        {
-          "kind": "do",
-          "effect": {
-            "type": "ops",
-            "on": "target",
-            "ops": [
-              {
-                "op": "wounds",
-                "amount": 6,
-                "ignoreTB": false,
-                "ignoreAP": false
-              }
-            ]
-          }
-        },
-        {
-          "kind": "test",
-          "test": {
-            "skill": {
-              "id": "resistance"
-            },
-            "difficulty": "intermediaire"
-          },
-          "success": {
-            "kind": "seq",
-            "steps": []
-          },
-          "fail": {
-            "kind": "seq",
-            "steps": [
-              {
-                "kind": "do",
-                "effect": {
-                  "type": "ops",
-                  "on": "target",
-                  "ops": [
-                    {
-                      "op": "condition",
-                      "id": "sonne",
-                      "value": 1
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-      ]
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 361
-    },
-    "family": "arcane",
-    "domainId": "domaine-de-la-ruine"
-  },
-  {
-    "id": "crepitements-vengeurs",
-    "type": "spells",
-    "label": "Crépitements Vengeurs",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "distance",
-      "value": 30,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 3
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Des éclairs verts jaillissent des doigts du shaman. Projectile magique qui inflige 7 Points de Dégâts (armure OK). Les cibles blessées effectuent un Test de Calme (+0) VS État « Étourdi ».",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 448
-    },
-    "family": "arcane",
-    "missile": true
-  },
-  {
-    "id": "crevasse",
-    "type": "spells",
-    "label": "Crevasse",
-    "ecole": "du Domaine de la Ruine",
-    "subType": null,
-    "cn": 11,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 50
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le sorcier frappe le sol du pied. Un crevasse apparaît. Elle mesure 1 Mètre de large et part en ligne droite jusqu’à 50 mètres du sorcier. Toute créature de taille moyenne ou inférieure sur la trajectoire de la crevasse effectue un Test d’Esquive (+20) VS Chute de 5 Mètres. Pour sortir de la crevasse, il faut effectuer un Test Étendu d’Escalade (+20). Si +4 DR au-dessus de +0, la crevasse s’élargit à 2 mètres et impacte les créatures de taille grande. Remarque : si la crevasse rencontre un obstacle, elle l’endommage. Les murs s’écroulent, les édifices sont grandement fragilisés. Dans une caverne ou une grotte, cela peut conduire à un éboulement effroyable. Les dégâts sont encore plus important avec une crevasse large de 2 mètres !",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 367
-    },
-    "family": "arcane",
-    "domainId": "domaine-de-la-ruine"
-  },
-  {
-    "id": "crue-mortelle",
-    "type": "spells",
-    "label": "Crue Mortelle",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 13,
-    "range": {
-      "kind": "distance",
-      "value": 9,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "special",
-      "text": "Spéci al"
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 1,
-      "unit": "hours"
-    },
-    "desc": "Pour lancer ce sort, le mage doit noyer une personne volontairement. Une fois le sort lancé, le niveau des eaux monte ou descend, au choix du mage, dans un rayon de 1 kilomètre. Le niveau d’eau change de 30 centimètres par DR du Test de Langue (Magick). En fonction de la topographie, la vague peut emporter des personnes, détruire des ponts de bois, endommager des moulins, détruire des récoltes…",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 502
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "culpabilite",
-    "type": "spells",
-    "label": "Culpabilité",
-    "ecole": "Bénédiction",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "La cible doit effectuer un Test de FM (+20) pour aller à l’encontre de l’un des Commandements (Stricture) de la Foi Antique. En cas d’échec au Test de FM, la cible ne fait rien pendant un Round entier (ni Mouvement ni Action), rongée par le remord et la honte.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 78
-    },
-    "family": "beni"
-  },
-  {
-    "id": "decharge-cerebrale",
-    "type": "spells",
-    "label": "Décharge Cérébrale",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 8,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le démon provoque chez sa cible une décharge de plaisir insoutenable. La cible se met à saigner des yeux, des oreilles et du nez : on détermine un Coup Critique à la tête en ignorant tout effet de fracture.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 289
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "demangeaison-agacante",
-    "type": "spells",
-    "label": "Démangeaison Agaçante",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 3,
-    "range": {
-      "kind": "distance",
-      "value": 30,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "special",
-      "text": "3 Tours"
-    },
-    "desc": "Le shaman peau-verte envoie des spores sur sa cible en battant des mains. Les spores atteignent nez, gorge, oreilles, yeux… de la cible. Elle démangent affreusement : Malus -1 DR àTOUSles Tests. Le Malus pass à -2 DR si la cible porte une armure métallique.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 448
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "depecage",
-    "type": "spells",
-    "label": "Dépeçage",
-    "ecole": "du Domaine de la Ruine",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "distance",
-      "value": 2,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Projectile magique qui inflige 6 Points de Dégâts (pas d’armure).",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 361
-    },
-    "family": "arcane",
-    "missile": true,
-    "domainId": "domaine-de-la-ruine"
-  },
-  {
-    "id": "desarroi",
-    "type": "spells",
-    "label": "Désarroi",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 12,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 10
-    },
-    "duration": {
-      "kind": "special",
-      "text": "10 Tours"
-    },
-    "desc": "Version étendu du sort « Introspection » (Acquiescence). Les cibles dans la zone d’effet du sort contemplent avec désarroi leurs échecs successifs et répétés. Leur Initiative est réduite à 10. Au moment de leur Tour de jeu, les cibles se déplacent en pleurnichant dans une direction aléatoire déterminée par le MJ. Chaque cible ne peut effectuer une Action qu’en réussissant un Test de Calme (+0). Sinon elle est trop occupé à se plaindre.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 297
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "disparition",
-    "type": "spells",
-    "label": "Disparition",
-    "ecole": "du Domaine des Ombres",
-    "subType": null,
-    "cn": 11,
-    "range": {
-      "kind": "distance",
-      "value": 7,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "special",
-      "text": "7 Max"
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 7,
-      "unit": "days"
-    },
-    "desc": "Une créature qui meurt alors que ce sort était actif voit son corps se dissoudre rapidement en une masse noire informe et gluante. Les Assassins du Clan Eshin ont souvent ce sort actif en mission.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 380
-    },
-    "family": "arcane",
-    "domainId": "domaine-des-ombres"
-  },
-  {
-    "id": "douces-paroles",
-    "type": "spells",
-    "label": "Douces Paroles",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "distance",
-      "value": 30,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "special",
-      "text": "3 Tours"
-    },
-    "desc": "Le peau-verte s’exprime en langage humain châtié.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 448
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "dressage-de-rhya",
-    "type": "spells",
-    "label": "Dressage de Rhya",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "Si la prêtresse croise une bête sauvage non-corrompue de Taille Grande ou plus petite, elle peut effectuer un Test d’Emprise sur Animaux (+20). En cas de réussite, la bête sauvage se montrera docile envers les humains et les elfes ainsi que les amis et alliés de la prêtresse. La bête sauvage pourra obéir à des ordres simples mais elle refusera de quitter son territoire.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 155
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "duplicite-de-tzeentch",
-    "type": "spells",
-    "label": "Duplicité de Tzeentch",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "distance",
-      "value": 85,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "special",
-      "text": "8 Tours"
-    },
-    "desc": "Pendant la durée du sort, la cible est perturbée et ne peut plu se servir d’AUCUN Talents ni d’AUCUNE Compétences. Il n’a accès qu’à ses valeurs de Caractéristiques brutes (celles à la Création de PJ).",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 326
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "eclat",
-    "type": "spells",
-    "label": "Éclat",
-    "ecole": "Magie Mineure",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "rounds",
-      "value": 6
-    },
-    "desc": "Si le Test de Mêlée (Bagarre) qui suit le sort est réussi, la cible subit 1 État « Aveuglé ».",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 246
-    },
-    "family": "mineure"
-  },
-  {
-    "id": "effigie-maudite",
-    "type": "spells",
-    "label": "Effigie Maudite",
-    "ecole": "Magie des Arcanes & de Sorcellerie",
-    "subType": null,
-    "cn": 9,
-    "range": {
-      "kind": "distance",
-      "value": 30,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "special",
-      "text": "3 Tours"
-    },
-    "desc": "La sorcière utilise une poupée ou une marionnette sensée représenter sa cible. Elle y enfonce des aiguilles. Suivant les membres touchés, elle inflige les effets suivants : Jambe : la cible est comme amputée. Si elle est debout, elle chute : État « À Terre ». Bras : comme amputé. La cible lâche immédiatement ce qu’elle tient en main. Tronc : la cible se tord de douleur. 1 État « Fatigue » + 1 État « À Terre ». Tête : 1 État « Étourdi ». Test Résistance (+20) VS État « Inconscient ». Tant que le sort est effectif, à chaque Tour la sorcière peut tenter un Test de Focalisation (+0) pour toucher une autre partie du corps ou la même partie si l’issue n’est pas satisfaisante.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 147
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "faux-semblant",
-    "type": "spells",
-    "label": "Faux- Semblant",
-    "ecole": "Magie des Arcanes & de Sorcellerie",
-    "subType": null,
-    "cn": 3,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 30,
-      "unit": "minutes"
-    },
-    "desc": "Pendant la durée du sort, personne ne peut détecter que la sorcière en est une, par aucun moyen. Cependant, si la sorcière lance un sort pendant cette durée, son camouflage disparaît.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 147
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "faveur-du-rat-cornu",
-    "type": "spells",
-    "label": "Faveur du Rat Cornu",
-    "ecole": "Magie Mineure Skaven",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 13,
-      "unit": "hours"
-    },
-    "desc": "Le Mage gagne +1 Point de Détermination. Remarque: impossible de relancer le sort pendant les 13 heures suivantes.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 416
-    },
-    "family": "mineure"
-  },
-  {
-    "id": "felure-aethyrique",
-    "type": "spells",
-    "label": "Fêlure AEthyrique",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 3,
-    "range": {
-      "kind": "distance",
-      "value": 70,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 7
-    },
-    "duration": {
-      "kind": "rounds",
-      "value": 7
-    },
-    "desc": "Le sorcier crée une fêlure dans la zone visée entre le monde réel et les dimensions chaotiques. On divise par 2 le NI des sorts qui sont lancés depuis cette zone ! De plus les Tests de Langue (Magick) et de Focalisation ont un Bonus de +20. Toute créature dans la zone effectue un Test de Résistance (+20) VS 1 Point de Corruption à la fin de chaque Tour.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 249
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "fertilisation",
-    "type": "spells",
-    "label": "Fertilisation",
-    "ecole": "Magie des Arcanes & des Taillis",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le sort garantit une bonne récolte à un champ, quelles que soient les conditions météos.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 142
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "flamme-verdatre",
-    "type": "spells",
-    "label": "Flamme Verdâtre",
-    "ecole": "du Domaine de la Ruine",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "distance",
-      "value": 20,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 1,
-      "unit": "hours"
-    },
-    "desc": "Le mage fait apparaître une bulle gazeuse qui s’enflamme dans les airs. S’il s'en sert de source lumineuse, elle éclaire comme une torche pendant 1 heure. S’il s’en sert de projectile, le mage utilise la Compétence Tir (Jet / Lancer). Le projectile inflige 5 Points de Dégâts (armures OK).",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 361
-    },
-    "family": "arcane",
-    "domainId": "domaine-de-la-ruine"
-  },
-  {
-    "id": "forme-spectrale",
-    "type": "spells",
-    "label": "Forme Spectrale",
-    "ecole": "Magie des Arcanes & de Nécromancie",
-    "subType": null,
-    "cn": 4,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "rounds",
-      "value": 7
-    },
-    "desc": "Le nécromancien devient « Éthéré » : il peut passer à travers les objets solides (portes, murs) et ne peut être blessé qu’avec des armes magiques ou des sorts.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 522
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "frenesie-artificielle",
-    "type": "spells",
-    "label": "Frénésie Artificielle",
-    "ecole": "Magie des Arcanes & de Nécromancie",
-    "subType": null,
-    "cn": 1,
-    "range": {
-      "kind": "distance",
-      "value": 4,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "special",
-      "text": "1 Créature Artificielle"
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le nécromancien déclenche l’État « Frénésie » chez une créature artificielle (zombie, squelette…).",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 516
-    },
-    "family": "arcane"
   },
   {
     "id": "infecte-benediction",
@@ -16333,7 +14467,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "infecte"
+                "trait": {
+                  "id": "infecte"
+                }
               }
             ]
           }
@@ -16345,1188 +14481,7 @@
       "page": 109
     },
     "family": "arcane",
-    "curated": true,
     "domainId": "sorcellerie"
-  },
-  {
-    "id": "furoncle-infecte",
-    "type": "spells",
-    "label": "Furoncle Infecté",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 5,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 8,
-      "unit": "hours"
-    },
-    "desc": "Le sort fait surgir un furoncle gorgé de pus. Le furoncle peut rester en l’état pour une durée indéterminée. Un démon peut avoir jusqu’à 7 furoncles sur son corps. En perçant le furoncle, le démon encaisse 1 PB puis récupère le pus qui en sort. Il peut enduire une arme avec. Si une telle arme inflige au moins 1 PB, la cible effectue un Test de Résistance (-20) VS 8 PB additionnels.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 305
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "haine-du-faible",
-    "type": "spells",
-    "label": "Haine du Faible",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "À chaque Tour, le prêtre peut relancer les dés en cas d’attaque ratée.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 92
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "haleine-fetide",
-    "type": "spells",
-    "label": "Haleine Fétide",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 8,
-    "range": {
-      "kind": "distance",
-      "value": 8,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "cone",
-      "lengthMeters": 8,
-      "widthMeters": 2
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le démon exhale une haleine fétide. Quiconque est dans la zone d’effet effectue un Test de Résistance (-10) VS 8 PB (pas d’armures). Pour chaque +2 DR au-dessus de +0, la largeur peut augmenter de +1 Mètre.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 310
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "hebetement",
-    "type": "spells",
-    "label": "Hébètement",
-    "ecole": "du Domaine de la Ruine",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "distance",
-      "value": 2,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le sorcier envoie une étincelle depuis son doigt vers sa cible. La cible effectue un test de Résistance (+0) VS 1 État « Étourdi ».",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 361
-    },
-    "family": "arcane",
-    "domainId": "domaine-de-la-ruine"
-  },
-  {
-    "id": "immuno-deficience",
-    "type": "spells",
-    "label": "Immuno - Déficience",
-    "ecole": "du Domaine de la Peste",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "distance",
-      "value": 4,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 24,
-      "unit": "hours"
-    },
-    "desc": "La cible effectue un Test de Résistance (+0). En cas d’échec, elle a un Malus de -20 pour résister aux maladies pendant 24 heures.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 386
-    },
-    "family": "arcane",
-    "domainId": "domaine-de-la-peste"
-  },
-  {
-    "id": "langue-aceree",
-    "type": "spells",
-    "label": "Langue Acérée",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "distance",
-      "value": 8,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "special",
-      "text": "8 Tours"
-    },
-    "desc": "Le démon projette sa langue devenue un instant protractile. La cible subit 11 Points de Dégâts (pas d’armure).",
-    "effects": {
-      "kind": "seq",
-      "steps": [
-        {
-          "kind": "do",
-          "effect": {
-            "type": "ops",
-            "on": "target",
-            "ops": [
-              {
-                "op": "wounds",
-                "amount": 11,
-                "ignoreTB": false,
-                "ignoreAP": true
-              }
-            ]
-          }
-        }
-      ]
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 289
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "langue-des-gors",
-    "type": "spells",
-    "label": "Langue des Gors",
-    "ecole": "Magie Mineure",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 40,
-      "unit": "minutes"
-    },
-    "desc": "Le sorcier peut échanger normalement avec des gors adeptes du même Dieu.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 267
-    },
-    "alsoIn": [
-      {
-        "book": "frenchy-bzh",
-        "page": 303,
-        "quote": "Langue des Pestigors"
-      },
-      {
-        "book": "frenchy-bzh",
-        "page": 287,
-        "quote": "Langue des Slaangors"
-      },
-      {
-        "book": "frenchy-bzh",
-        "page": 324,
-        "quote": "Langue des Tzaangors"
-      }
-    ],
-    "family": "mineure"
-  },
-  {
-    "id": "les-voies-de-la-nature",
-    "type": "spells",
-    "label": "Les Voies de la Nature",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "On utilise en général ce miracle avant un long voyage. On note le DR du Test de Prière. Chaque DR permet de relancer les dés pour les activités de voyage (Planification, Voyage, Campement).",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 161
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "lune-de-malheur",
-    "type": "spells",
-    "label": "Lune de Malheur",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 8,
-    "range": {
-      "kind": "distance",
-      "value": 6,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 6
-    },
-    "duration": {
-      "kind": "special",
-      "text": "6 Tours"
-    },
-    "desc": "Le shaman invoque une lune grimaçante qui flotte dans les airs. Les personnes ou créatures dans la zone sont maudites : elles subissent 1 État « Fatigue » et elles ne peuvent pas utiliser de Points de détermination pendant la durée du sort.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 455
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "maitrise-du-destin",
-    "type": "spells",
-    "label": "Maîtrise du Destin",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 8,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 8,
-      "unit": "days"
-    },
-    "desc": "Le démon effectue un Test de Langue (Magick) (+0) après avoir lancer ce sort. Si ce Test est réussi, le démon bénéficie de 1 Point de Détermination par DR au-dessus de +0 pendant toute la durée du sort. Si le Test est raté, le démon encaisse 1 Point de Corruption par DR en-dessous de -0.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 326
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "malveillance-absolue",
-    "type": "spells",
-    "label": "Malveillance Absolue",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 19,
-    "range": {
-      "kind": "distance",
-      "value": 6,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 6,
-      "affects": {
-        "kind": "relation",
-        "who": "target",
-        "is": "ally"
-      }
-    },
-    "duration": {
-      "kind": "special",
-      "text": "6 Tours"
-    },
-    "desc": "Pendant toute la durée du sort, toute attaque réussie par les alliés du shamans déclenche automatiquement un Coup Critique.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 455
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "marque-du-rat-cornu",
-    "type": "spells",
-    "label": "Marque du Rat Cornu",
-    "ecole": "Magie Mineure Skaven",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "distance",
-      "value": 5,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 10,
-      "unit": "hours"
-    },
-    "desc": "La cible effectue un Test de Calme (+0). En cas d’échec, elle est marquée du triangle skaven sur le front ou le revers de la main. La marque occasionne un Malus de -10 en Sociabilité avec les autres skavensMAISc'est souvent la marque d’un messager qu’on laisse donc passer partout.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 416
-    },
-    "family": "mineure"
-  },
-  {
-    "id": "mouchard",
-    "type": "spells",
-    "label": "Mouchard",
-    "ecole": "Magie des Arcanes & de Nécromancie",
-    "subType": null,
-    "cn": 2,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 8,
-      "unit": "hours"
-    },
-    "desc": "Le vampire enchante un objet qui va lui servir d’alarme. Quiconque passe à 8 mètres de l’objet est détecté et déclenche l’alarme qui alerte le vampire si celui-ci est à moins de 2 kilomètres. C’est bien l’objet qui est enchanté, pas la zone surveillée, ce qui signifie que l’objet peut être emporté. Une personne dotée du Talent « Sens de la Magie » peut détecter le mouchard avec un Test d’Intuition (-20).",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 570
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "nostrum",
-    "type": "spells",
-    "label": "Nostrum",
-    "ecole": "Magie des Arcanes & des Taillis",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "special",
-      "text": "Spécial"
-    },
-    "duration": {
-      "kind": "special",
-      "text": "3 Tours"
-    },
-    "desc": "Le rebouteux « bénit » une décoction d’herbes. Si la mixture est bue dans l’intervalle d’effet du sort, la cible récupère 3 Points de Blessure et est guérie définitivement d’un symptôme de maladie. Pour chaque +2 DR au-dessus de +0, on peut annuler un autre symptôme.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 142
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "nuee-de-mouches",
-    "type": "spells",
-    "label": "Nuée de Mouches",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 8
-    },
-    "duration": {
-      "kind": "special",
-      "text": "8 Tours +",
-      "plus": true
-    },
-    "desc": "Le démon développe le Trait « Distraction ». Les alliés et ennemis à moins de 3 mètres du démon subissent un Malus de -20 àTOUSleurs Tests.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 305
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "ouverture",
-    "type": "spells",
-    "label": "Ouverture",
-    "ecole": "Magie Mineure",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "special",
-      "text": "Spécial"
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le sort ouvre les serrures qui nécessiteraient normalement un Test de Crochetage (+0) avec une réussite de +0 DR. Les serrures complexes résistent au sort. Il permet en général d’ouvrir des serrures simples : porte de chambre, porte d’armoire, tiroir de secrétaire… Remarque: ce sort a été bridé car dans sa version initiale il est considéré comme beaucoup trop puissant, surtout pour un sort de magie mineure !",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 267
-    },
-    "family": "mineure"
-  },
-  {
-    "id": "pattes-gluantes",
-    "type": "spells",
-    "label": "Pattes Gluantes",
-    "ecole": "du Domaine des Ombres",
-    "subType": null,
-    "cn": 8,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 7,
-      "unit": "minutes"
-    },
-    "desc": "Le skaven gagne le Trait (Wallcrawler) : il peut progresser sur n’importe quelle surface avec sa pleine valeur de Mouvement et sans Tests d’Escalade. Y compris au plafond, la tête à l’envers.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 379
-    },
-    "family": "arcane",
-    "domainId": "domaine-des-ombres"
-  },
-  {
-    "id": "pierre-de-souffrance",
-    "type": "spells",
-    "label": "Pierre de Souffrance",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 5,
-    "range": {
-      "kind": "distance",
-      "value": 5,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "special",
-      "text": "5 Tours"
-    },
-    "desc": "La sorcière verse une goutte de sang sur une pierre. Cette pierre peut être utilisée comme arme improvisée ou comme arme de jet. Seule la sorcière peut s’en servir. Si la pierre inflige au moins 1 PB, la cible effectue un Test de Résistance (-10). Si le Test est raté, la cible subit une fracture mineure ! Une fois la fracture infligée, la pierre n’a plus aucun pouvoir.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 497
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "piste-froide",
-    "type": "spells",
-    "label": "Piste Froide",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "Après avoir commis un crime (cambriolage…), les personnes que croise le PJ l’ignorent, y compris les autorités ou le Guet. Le miracle prend fin si le prêtre commet un nouveau crime. Tant que le miracle est actif, le prêtre a un Malus de -3 DR pour les Tests de Sociabilité car ses interlocuteurs ne parviennent pas à se concentrer sur ce que le prêtre dit.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 119
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "poids-plume",
-    "type": "spells",
-    "label": "Poids Plume",
-    "ecole": "du Domaine des Ombres",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 40,
-      "unit": "minutes"
-    },
-    "desc": "le sorcier semble aussi léger que du liège. Il peut traverser n’importe quelle surface liquide comme si elle était solide. Sur une surface meuble (boue, sable, neige…), le sorcier ne laisse aucune trace. La Compétence « Pistage » se révèle inutile.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 376
-    },
-    "family": "arcane",
-    "domainId": "domaine-des-ombres"
-  },
-  {
-    "id": "poudre-d-escampette",
-    "type": "spells",
-    "label": "Poudre d’Escampette",
-    "ecole": "du Domaine des Ombres",
-    "subType": null,
-    "cn": 4,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "special",
-      "text": "DR Test + 4 Tours"
-    },
-    "desc": "Le skaven obtient un Bonus de +2 en Mouvement. Pour chaque +2 DR au-dessus de +0, le Mouvement peut encore être augmenté de +1.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 373
-    },
-    "family": "arcane",
-    "domainId": "domaine-des-ombres"
-  },
-  {
-    "id": "prise-de-tete",
-    "type": "spells",
-    "label": "Prise de Tête",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 4,
-    "range": {
-      "kind": "distance",
-      "value": 5,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le sort fait bouillir la cervelle de la cible qui subit immédiatement 1 État « À Terre » + 1 État « Étourdi ». Pour chaque +1 DR au-dessus de +0, on ajoute +1 État « Étourdi ». Si le nombre d’État « Étourdi » subis dépasse le Bonus d’Endurance de la cible, elle effectue un Test de Calme (+20). En cas d’échec, la cible encaisse un Coup Critique à la Tête.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 472
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "rafale-hurlante",
-    "type": "spells",
-    "label": "Rafale Hurlante",
-    "ecole": "du Domaine de la Ruine",
-    "subType": null,
-    "cn": 7,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 4,
-      "affects": {
-        "kind": "relation",
-        "who": "target",
-        "is": "opponent"
-      },
-      "maison": "`is:'opponent'` est RELATIF au lanceur : la zone retient donc aussi les personnages NEUTRES. Le desc ne parle que des « ennemis » et n'adresse pas les neutres (RAW silencieux) ; retenu pour rester juste quel que soit le camp du lanceur (arbitrage 2026-07-28)."
-    },
-    "duration": {
-      "kind": "special",
-      "text": "4 Tours +",
-      "plus": true
-    },
-    "desc": "Les ennemis dans la zone ne peuvent pas voler. Les Tirs des ennemis ont un Malus de -10. Les alliés du sorcier ne sont pas affectés.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 364
-    },
-    "family": "arcane",
-    "domainId": "domaine-de-la-ruine"
-  },
-  {
-    "id": "rage-meurtriere",
-    "type": "spells",
-    "label": "Rage Meurtrière",
-    "ecole": "du Domaine des Ombres",
-    "subType": null,
-    "cn": 5,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "special",
-      "text": "4 Tours +",
-      "plus": true
-    },
-    "desc": "La cible du sort gagne l’État « Frénésie ». Une cible récalcitrante peut tenter de résister en réussissant un test de Calme (+0). En ce cas, la cible perd 1 PB.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 373
-    },
-    "family": "arcane",
-    "domainId": "domaine-des-ombres"
-  },
-  {
-    "id": "ramanchage",
-    "type": "spells",
-    "label": "Ramanchage",
-    "ecole": "Magie des Arcanes & des Taillis",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le temps de guérison d’une fracture est réduit de D10 jours + D10 jours par DR au-dessus de +0. Le sort ne peut être lancé qu’une seule fois sur une fracture. Si un personnage a plusieurs membres fracturés, il peut bénéficier d’un sort par membre.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 142
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "rat-esclave",
-    "type": "spells",
-    "label": "Rat Esclave",
-    "ecole": "du Domaine des Ombres",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "distance",
-      "value": 40,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 10,
-      "unit": "hours"
-    },
-    "desc": "Le skaven invoque un rat ordinaire. Ils se comprennent parfaitement. Le rat obéit à tous les ordres, mêmes les plus suicidaires : ronger un lien, attraper un petit objet… Néanmoins les ordres sont limités par la faible intelligence du rat.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 373
-    },
-    "family": "arcane",
-    "domainId": "domaine-des-ombres"
-  },
-  {
-    "id": "regard-lubrique",
-    "type": "spells",
-    "label": "Regard Lubrique",
-    "ecole": "Magie Mineure",
-    "subType": null,
-    "cn": 0,
-    "range": {
-      "kind": "distance",
-      "value": 8,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "special",
-      "text": "Spécial"
-    },
-    "desc": "Le démon regarde intensément sa cible. S’il attaque la cible, il peut viser une zone spécifique de son anatomie et ignorer le Malus de -20 pour une telle action.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 288
-    },
-    "family": "mineure"
-  },
-  {
-    "id": "rejeton-de-slaanesh",
-    "type": "spells",
-    "label": "Rejeton de Slaanesh",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 10,
-    "range": {
-      "kind": "distance",
-      "value": 10,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "count",
-      "n": 1
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Une vague d’énergie frappe la cible. Elle subit 1 Mutation physique ou mentale + 1 autre Mutation par DR au-dessus de +0 !",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 293
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "sanctuaire",
-    "type": "spells",
-    "label": "Sanctuaire",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "Les PJ dans la zone de sanctuaire ont un Bonus de +20 pour les tests VS Peur et Terreur. Morts-vivants et démons ne peuventPASpénétrer dans la zone de sanctuaire. Pour que le sanctuaire reste actif, le prêtre ne doit ni bouger ni entreprendre d’autre action.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 89
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "secousse-tellurique",
-    "type": "spells",
-    "label": "Secousse Tellurique",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 8
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le sorcier frappe le sol du pied, provoquant une secousse. Toute les créatures dans la zoneSAUFle sorcier effectue un Test d’Agilité (+0) VS État « À Terre ».",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 253
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "shurikens-enchantes",
-    "type": "spells",
-    "label": "Shurikens Enchantés",
-    "ecole": "du Domaine des Ombres",
-    "subType": null,
-    "cn": 8,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "special",
-      "text": "Spécial"
-    },
-    "duration": {
-      "kind": "special",
-      "text": "7"
-    },
-    "desc": "Le skaven enchante (Bonus FM) shurikens. Une cible de ces shurikens encaissent +(Bonus FM Sorcier) Points de Dégâts en plus des Dégâts normaux. Ces shurikens enchantés ignorent TOUS les Points d’Armure.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 379
-    },
-    "family": "arcane",
-    "domainId": "domaine-des-ombres"
-  },
-  {
-    "id": "soleil-noir",
-    "type": "spells",
-    "label": "Soleil Noir",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 11,
-    "range": {
-      "kind": "distance",
-      "value": 8,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 8
-    },
-    "duration": {
-      "kind": "special",
-      "text": "8 Tours"
-    },
-    "desc": "Un soleil grimaçant apparaît. Les cibles dans la zone encaisse 8 Points de Dégâts à chaque Tour (armure OK). Les cibles effectue également, à chaque Tour, un Test Résistance (+0) VS 1 État « En Feu ».",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 480
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "terreur-nocturne",
-    "type": "spells",
-    "label": "Terreur Nocturne",
-    "ecole": "Magie des Arcanes & de Sorcellerie",
-    "subType": null,
-    "cn": 7,
-    "range": {
-      "kind": "touch"
-    },
-    "target": {
-      "kind": "special",
-      "text": "Spécial"
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 30,
-      "unit": "days"
-    },
-    "desc": "La sorcière peut maudire un endroit spécifique (une maison, une clairière…). Toute personne qui y pénètre se sent oppressée : 1 État « Fatigue ». Toute personne qui y reste est assaillie d’affreuxses sensations : Test Calme (+0) VS +1 État « Fatigue » + État « En Déroute ». Les État disparaissent en quittant les lieux.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 147
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "treve-de-taal-dsfl",
-    "type": "spells",
-    "label": "Trêve de Taal DSFL",
-    "ecole": "Miracle",
-    "subType": null,
-    "cn": null,
-    "range": null,
-    "target": null,
-    "duration": null,
-    "desc": "Toutes les bêtes dans la zone d’effet (dont l’Intelligence est inférieure ou égale à 25) deviennent calmes. Elles n’attaquent aucune créature pendant la durée du miracle. Le miracle ne fonctionne pas sur des bipèdes ou des créatures souillées par le chaos. Si on attaque les bêtes sauvages, le miracle prend fin.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 161
-    },
-    "family": "invocation"
-  },
-  {
-    "id": "trouble",
-    "type": "spells",
-    "label": "Trouble",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 3,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "rounds",
-      "value": 6
-    },
-    "desc": "La silhouette du Shaman est brouillée. Ses opposants effectuent tous leurs Tests le visant spécifiquement avec un Malus de -20.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 246
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "vague-scelerate",
-    "type": "spells",
-    "label": "Vague Scélérate",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 11,
-    "range": {
-      "kind": "special",
-      "text": "Spécial"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 9
-    },
-    "duration": {
-      "kind": "special",
-      "text": "1 Tour"
-    },
-    "desc": "Il faut que le mage soit à proximité immédiate d’un fleuve ou d’un lac. Le mage invoque une vague géante qui peut atteindre des cibles à (2 x Bonus FM mage) mètres du bord. C’est une attaque magique qui inflige 10 Points de Dégâts (armure OK) à toute personne ou créature dans la zone d’effet. Celles qui sont entre la source d’eau et la zone d’effet encaissent 5 Points de Dégâts. Toutes ces cibles effectuent un Test d’Athlétisme (+0). En cas d’échec, elles sont entraînées par le reflux et se retrouvent à l’eau à (DR Test Langue (Magick) + DR Test Athlétisme).",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 502
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "vol",
-    "type": "spells",
-    "label": "Vol",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": null,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "clock",
-      "value": 30,
-      "unit": "minutes"
-    },
-    "desc": "La sorcière peut s’envoler à une altitude maximum de 50 mètres. Les adversaires de la sorcière ont un Malus de -20 pour lui tirer dessus et portée est augmentée d’un rang (Portée Moyenne devient Portée Longue, etc).",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 146
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "waaagh",
-    "type": "spells",
-    "label": "WAAAGH !",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 11,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 85
-    },
-    "duration": {
-      "kind": "special",
-      "text": "8 Tours"
-    },
-    "desc": "Chaque cible dans la zone ajoute +1 Avantage dans la Réserve des Peaux-Vertes. Les alliés du shaman dans la zone perdent leurs États « En Déroute » et gagnent un Bonus de +2 DR pour les Tests de Calme et de Résistance.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 480
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "z-oeils-de-mork",
-    "type": "spells",
-    "label": "Z’Oeils de Mork",
-    "ecole": "Sort",
-    "subType": null,
-    "cn": 4,
-    "range": {
-      "kind": "distance",
-      "value": 55,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "special",
-      "text": "Spécial"
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Un rayon vert surgit des yeux du shaman. Toute personne ou créature sur la trajectoire du rayon encaisse 4 PB. Les structures dont l’Endurance est inférieure à 65 peuvent également être endommagées.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 472
-    },
-    "family": "arcane"
   },
   {
     "id": "apaiser-les-eaux",
@@ -17572,8 +14527,7 @@
       "book": "mer-des-griffes",
       "page": 87
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "benediction-de-l-albatros",
@@ -17619,8 +14573,7 @@
       "book": "mer-des-griffes",
       "page": 87
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "benediction-du-marinier",
@@ -17664,8 +14617,7 @@
       "book": "mer-des-griffes",
       "page": 87
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "contre-courants",
@@ -17711,8 +14663,7 @@
       "book": "mer-des-griffes",
       "page": 87
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "malediction-de-la-mer",
@@ -17758,8 +14709,7 @@
       "book": "mer-des-griffes",
       "page": 87
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "navigation-benie",
@@ -17801,8 +14751,7 @@
       "book": "mer-des-griffes",
       "page": 87
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "repousser-une-creature-marine",
@@ -17848,8 +14797,7 @@
       "book": "mer-des-griffes",
       "page": 87
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "respiration-aquatique",
@@ -17894,8 +14842,7 @@
       "book": "mer-des-griffes",
       "page": 87
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "faire-fi-de-l-humeur-de-manann",
@@ -17942,8 +14889,7 @@
       "book": "mer-des-griffes",
       "page": 91
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "flairer-le-sang",
@@ -17986,8 +14932,7 @@
       "book": "mer-des-griffes",
       "page": 91
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "lame-de-fond",
@@ -18030,8 +14975,7 @@
       "book": "mer-des-griffes",
       "page": 91
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "mal-de-mer",
@@ -18078,8 +15022,7 @@
       "book": "mer-des-griffes",
       "page": 91
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "malediction-de-la-maitresse-cruelle",
@@ -18125,8 +15068,7 @@
       "book": "mer-des-griffes",
       "page": 91
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "sacrifice-a-stromfels",
@@ -18169,8 +15111,7 @@
       "book": "mer-des-griffes",
       "page": 91
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "vents-de-tempete",
@@ -18217,8 +15158,7 @@
       "book": "mer-des-griffes",
       "page": 91
     },
-    "family": "invocation",
-    "curated": true
+    "family": "invocation"
   },
   {
     "id": "bourbier-vivant",
@@ -18266,8 +15206,7 @@
       "page": 15
     },
     "family": "arcane",
-    "domainId": "vie",
-    "curated": true
+    "domainId": "vie"
   },
   {
     "id": "que-d-eau-que-d-eau",
@@ -18310,8 +15249,7 @@
       "page": 15
     },
     "family": "arcane",
-    "domainId": "vie",
-    "curated": true
+    "domainId": "vie"
   },
   {
     "id": "tourbillon",
@@ -18358,8 +15296,7 @@
       "page": 15
     },
     "family": "arcane",
-    "domainId": "vie",
-    "curated": true
+    "domainId": "vie"
   },
   {
     "id": "bienfait-de-bel-shanaar",
@@ -18406,8 +15343,7 @@
       "page": 15
     },
     "family": "arcane",
-    "domainId": "cieux",
-    "curated": true
+    "domainId": "cieux"
   },
   {
     "id": "mer-d-huile",
@@ -18454,8 +15390,7 @@
       "page": 15
     },
     "family": "arcane",
-    "domainId": "cieux",
-    "curated": true
+    "domainId": "cieux"
   },
   {
     "id": "solution-de-tir-optimal-de-niezlib",
@@ -18503,8 +15438,7 @@
       "page": 15
     },
     "family": "arcane",
-    "domainId": "cieux",
-    "curated": true
+    "domainId": "cieux"
   },
   {
     "id": "assaut-de-pierre",
@@ -18590,8 +15524,7 @@
       "page": 62
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "bibliothecaire-instantane-de-meissner",
@@ -18644,8 +15577,7 @@
       "page": 62
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "collet-d-abulla",
@@ -18750,8 +15682,7 @@
       "page": 62
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "comprehension-parfaite",
@@ -18797,8 +15728,7 @@
       "page": 63
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "crevasse-lumiere",
@@ -18885,8 +15815,7 @@
       "page": 63
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "distorsion-temporelle",
@@ -18937,8 +15866,7 @@
       "page": 63
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "edifice-erige",
@@ -18996,8 +15924,7 @@
       "page": 63
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "edifice-illumine",
@@ -19049,8 +15976,7 @@
       "page": 63
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "halo-purificateur",
@@ -19102,8 +16028,7 @@
       "page": 64
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "intention-inspiree",
@@ -19164,8 +16089,7 @@
       "page": 64
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "lever-le-voile",
@@ -19217,8 +16141,7 @@
       "page": 64
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "lueur-eblouissante",
@@ -19299,8 +16222,7 @@
       "page": 64
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "mains-de-karkora",
@@ -19391,8 +16313,7 @@
       "page": 65
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "manteau-miroitant",
@@ -19438,8 +16359,7 @@
       "page": 65
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "orbe-de-hysh",
@@ -19489,8 +16409,7 @@
       "page": 65
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "yeux-de-volans",
@@ -19542,8 +16461,7 @@
       "page": 65
     },
     "domainId": "lumiere",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "armure-de-fer-blanc",
@@ -19600,8 +16518,7 @@
       "page": 74
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "bouclier-en-acier-dore",
@@ -19659,8 +16576,7 @@
       "page": 74
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "boussole-d-argent-de-puchta",
@@ -19711,8 +16627,7 @@
       "page": 74
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "cage-doree",
@@ -19766,8 +16681,7 @@
       "page": 74
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "contact-dore",
@@ -19853,8 +16767,7 @@
       "page": 75
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "defaut-metal",
@@ -19915,8 +16828,7 @@
       "page": 75
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "denouer-les-noeuds",
@@ -19968,8 +16880,7 @@
       "page": 75
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "devoiler-l-inconnu",
@@ -20035,8 +16946,7 @@
       "page": 75
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "globe-dore-de-gehenna",
@@ -20133,8 +17043,7 @@
       "page": 76
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "inscription",
@@ -20199,7 +17108,6 @@
     },
     "domainId": "metal",
     "family": "arcane",
-    "curated": true,
     "missile": true,
     "damage": 2
   },
@@ -20248,8 +17156,7 @@
       "page": 76
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "methode-essai-erreur",
@@ -20316,8 +17223,7 @@
       "page": 76
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "protections-de-fer-meteorique",
@@ -20356,8 +17262,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "protection",
-                "indice": 7
+                "trait": {
+                  "id": "protection",
+                  "value": 7
+                }
               },
               {
                 "op": "narrative",
@@ -20373,8 +17281,7 @@
       "page": 77
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "refraction-prismatique-de-habermas",
@@ -20433,8 +17340,7 @@
       "page": 77
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "reparer-du-metal",
@@ -20477,8 +17383,7 @@
       "page": 77
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "reproduction-de-levorg",
@@ -20528,8 +17433,7 @@
       "page": 77
     },
     "domainId": "metal",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "almanach",
@@ -20573,8 +17477,7 @@
       "page": 86
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "apotheose-verdoyante",
@@ -20625,8 +17528,7 @@
       "page": 86
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "cercueil-de-jade",
@@ -20677,8 +17579,7 @@
       "page": 86
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "chair-de-pierre",
@@ -20751,8 +17652,7 @@
       "page": 86
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "chant-revigorant",
@@ -20818,8 +17718,7 @@
       "page": 86
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "chute-de-feuilles",
@@ -20871,8 +17770,7 @@
       "page": 87
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "cri-de-guerre-du-druide",
@@ -20968,8 +17866,7 @@
       "page": 87
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "croissance-vitale",
@@ -21016,8 +17913,7 @@
       "page": 87
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "escalier-en-colimacon",
@@ -21067,8 +17963,7 @@
       "page": 88
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "etres-du-dessous",
@@ -21142,8 +18037,7 @@
       "page": 88
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "geyser",
@@ -21232,8 +18126,7 @@
       "page": 88
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "murmure-de-la-nature",
@@ -21279,8 +18172,7 @@
       "page": 88
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "transformation-en-arbre",
@@ -21327,8 +18219,7 @@
       "page": 89
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "transmutation-fantasmagorique-de-colchis",
@@ -21387,8 +18278,7 @@
       "page": 89
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "trouver-des-lignes-de-force-telluriques",
@@ -21442,8 +18332,7 @@
       "page": 89
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "la-voie-de-paranoth",
@@ -21497,8 +18386,7 @@
       "page": 89
     },
     "domainId": "vie",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "arche-de-saphir",
@@ -21551,8 +18439,7 @@
       "page": 98
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "destin-eclairci",
@@ -21596,8 +18483,7 @@
       "page": 99
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "ennemi-previsible",
@@ -21643,8 +18529,7 @@
       "page": 99
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "lames-d-azur",
@@ -21689,8 +18574,7 @@
       "page": 99
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "lentille-celeste",
@@ -21743,8 +18627,7 @@
       "page": 99
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "lueur-stellaire",
@@ -21791,8 +18674,7 @@
       "page": 99
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "malediction-du-destin",
@@ -21859,8 +18741,7 @@
       "page": 100
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "miroir-mystique",
@@ -21907,8 +18788,7 @@
       "page": 100
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "mistral-de-la-stratosphere",
@@ -22012,8 +18892,7 @@
       "page": 100
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "nettoyage-impeccable",
@@ -22060,8 +18939,7 @@
       "page": 100
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "prediction-prodigieuse",
@@ -22108,8 +18986,7 @@
       "page": 100
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "premonition",
@@ -22151,8 +19028,7 @@
       "page": 101
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "projection-astrale",
@@ -22198,8 +19074,7 @@
       "page": 101
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "que-soufflent-les-quatre-vents",
@@ -22274,8 +19149,7 @@
       "page": 101
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "tempete-de-shemtek",
@@ -22342,8 +19216,7 @@
       "page": 101
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "tornade-de-thorsen",
@@ -22415,8 +19288,7 @@
       "page": 101
     },
     "domainId": "cieux",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "ailes-grises",
@@ -22523,8 +19395,7 @@
       "page": 110
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "bosquet-d-ombre",
@@ -22578,8 +19449,7 @@
       "page": 110
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "charme-changeant",
@@ -22689,8 +19559,7 @@
     "opposed": {
       "kind": "resist",
       "char": "force-mentale"
-    },
-    "curated": true
+    }
   },
   {
     "id": "chut",
@@ -22741,8 +19610,7 @@
       "page": 110
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "corne-d-andar",
@@ -22851,8 +19719,7 @@
       "page": 110
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "danse-du-desespoir",
@@ -22938,8 +19805,7 @@
       "page": 111
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "desorientation",
@@ -23073,8 +19939,7 @@
       "page": 111
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "horreurs-noires",
@@ -23128,8 +19993,7 @@
       "page": 111
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "illusion-grandiose",
@@ -23183,8 +20047,7 @@
       "page": 111
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "illusion-retroactive-de-ribauld",
@@ -23231,8 +20094,7 @@
       "page": 112
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "ombre-errante",
@@ -23278,8 +20140,7 @@
       "page": 112
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "poches-profondes",
@@ -23326,8 +20187,7 @@
       "page": 113
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "pont-des-ombres",
@@ -23393,8 +20253,7 @@
       "page": 113
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "puits-de-tarnus",
@@ -23485,8 +20344,7 @@
       "page": 113
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "substance-de-l-ombre",
@@ -23518,7 +20376,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "ethere"
+                "trait": {
+                  "id": "ethere"
+                }
               }
             ]
           }
@@ -23543,8 +20403,7 @@
       "page": 113
     },
     "domainId": "ombres",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "traitre-de-tarn",
@@ -23612,8 +20471,7 @@
     "opposed": {
       "kind": "resist",
       "char": "force-mentale"
-    },
-    "curated": true
+    }
   },
   {
     "id": "amarante",
@@ -23689,8 +20547,7 @@
       "page": 122
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "ame-emprisonnee",
@@ -23734,8 +20591,7 @@
       "page": 122
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "apercu-de-la-mort",
@@ -23844,7 +20700,9 @@
                         "ops": [
                           {
                             "op": "grantTrait",
-                            "traitId": "desespoir",
+                            "trait": {
+                              "id": "desespoir"
+                            },
                             "durationHours": 168
                           }
                         ]
@@ -23876,8 +20734,7 @@
       "page": 122
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "cendre-et-poussiere",
@@ -24001,8 +20858,7 @@
       "page": 123
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "contraindre-les-esprits",
@@ -24125,8 +20981,7 @@
       "page": 123
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "destin-de-bjuna",
@@ -24270,8 +21125,7 @@
       "page": 123
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "embrasser-son-destin",
@@ -24330,8 +21184,7 @@
       "page": 123
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "etreinte-d-iyrtu",
@@ -24376,8 +21229,7 @@
       "page": 123
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "le-labyrinthe-de-cristal",
@@ -24489,8 +21341,7 @@
       "page": 124
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "liberation-de-la-mort",
@@ -24616,8 +21467,7 @@
       "page": 124
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "membre-fletri",
@@ -24678,8 +21528,7 @@
       "page": 124
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "parent-sauvage-de-zandox",
@@ -24725,8 +21574,7 @@
       "page": 124
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "poids-des-annees",
@@ -24845,8 +21693,7 @@
       "page": 124
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "shyish-a-decouvert",
@@ -24893,8 +21740,7 @@
       "page": 125
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "telepathie",
@@ -24952,8 +21798,7 @@
       "page": 125
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "vitesse-de-lykos",
@@ -25006,8 +21851,7 @@
       "page": 125
     },
     "domainId": "mort",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "allumer-le-feu",
@@ -25072,8 +21916,7 @@
       "page": 134
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "blizzard-ardent-d-ygethmor",
@@ -25185,8 +22028,7 @@
       "page": 134
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "cognat-de-l-atre",
@@ -25247,8 +22089,7 @@
       "page": 134
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "colerique",
@@ -25356,8 +22197,7 @@
       "page": 134
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "corps-de-feu",
@@ -25403,8 +22243,7 @@
       "page": 135
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "embrasement",
@@ -25456,8 +22295,7 @@
       "page": 135
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "epees-sanguines",
@@ -25507,8 +22345,7 @@
       "page": 135
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "flamme-fascinante",
@@ -25595,8 +22432,7 @@
       "page": 136
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "flamme-inextinguible",
@@ -25649,8 +22485,7 @@
       "page": 136
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "la-forge-de-tarnus",
@@ -25713,8 +22548,7 @@
       "page": 136
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "fournaise-fletrissante",
@@ -25782,8 +22616,7 @@
       "page": 136
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "gout-du-feu",
@@ -25830,8 +22663,7 @@
       "page": 136
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "sang-bouillant",
@@ -25913,8 +22745,7 @@
       "page": 137
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "tempete-de-flammes",
@@ -25973,8 +22804,7 @@
       "page": 137
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "tempete-de-magma",
@@ -26045,8 +22875,7 @@
       "page": 137
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "tete-enflammee",
@@ -26126,8 +22955,7 @@
       "page": 137
     },
     "domainId": "feu",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "appeler-une-monture",
@@ -26179,8 +23007,7 @@
       "page": 146
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "bete-indomptee",
@@ -26284,8 +23111,10 @@
                         "ops": [
                           {
                             "op": "grantTrait",
-                            "traitId": "peur",
-                            "indice": 1
+                            "trait": {
+                              "id": "peur",
+                              "value": 1
+                            }
                           },
                           {
                             "op": "narrative",
@@ -26307,8 +23136,7 @@
       "page": 146
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "capuche-vengeresse",
@@ -26372,8 +23200,7 @@
       "page": 146
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "eveil-du-bois",
@@ -26444,8 +23271,7 @@
       "page": 146
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "les-lunes-du-chasseur",
@@ -26519,8 +23345,7 @@
       "page": 147
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "malediction-d-anraheir",
@@ -26592,8 +23417,7 @@
       "page": 148
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "obstination-du-boeuf",
@@ -26656,8 +23480,7 @@
       "page": 148
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "pelage-d-hiver",
@@ -26716,8 +23539,7 @@
       "page": 148
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "regiment-monstrueux-de-merciw",
@@ -26786,8 +23608,7 @@
       "page": 148
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "suivre-le-fumet",
@@ -26833,8 +23654,7 @@
       "page": 148
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "transe-ambree",
@@ -26899,8 +23719,7 @@
       "page": 148
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "transformation-de-kadon",
@@ -26951,8 +23770,7 @@
       "page": 149
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "traversee-rapide",
@@ -27014,8 +23832,7 @@
       "page": 149
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "vaporisation-de-musc",
@@ -27076,8 +23893,7 @@
       "page": 149
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "ver-fretillant",
@@ -27132,8 +23948,7 @@
       "page": 149
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "yeux-de-la-meute",
@@ -27180,8 +23995,7 @@
       "page": 149
     },
     "domainId": "bete",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "agressivite-de-la-maresang",
@@ -27220,7 +24034,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "frenesie"
+                "trait": {
+                  "id": "frenesie"
+                }
               }
             ]
           }
@@ -27231,8 +24047,7 @@
       "book": "vents-de-la-magie",
       "page": 26
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "argile-fertile",
@@ -27282,8 +24097,7 @@
       "book": "vents-de-la-magie",
       "page": 26
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "decrypter-une-malediction",
@@ -27353,8 +24167,7 @@
       "book": "vents-de-la-magie",
       "page": 26
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "effondrement-de-fabrique",
@@ -27413,8 +24226,7 @@
       "book": "vents-de-la-magie",
       "page": 26
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "perturber-la-magie",
@@ -27473,8 +24285,7 @@
       "book": "vents-de-la-magie",
       "page": 26
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "secourir-un-serviteur-magique",
@@ -27550,8 +24361,7 @@
       "book": "vents-de-la-magie",
       "page": 26
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "silence",
@@ -27607,8 +24417,7 @@
       "book": "vents-de-la-magie",
       "page": 27
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "varech-avarie",
@@ -27647,7 +24456,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "perturbant"
+                "trait": {
+                  "id": "perturbant"
+                }
               }
             ]
           }
@@ -27658,8 +24469,7 @@
       "book": "vents-de-la-magie",
       "page": 27
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "bourbier-d-abattement",
@@ -27753,8 +24563,7 @@
       "page": 217
     },
     "domainId": "magie-du-marais-de-mona",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "brume-mystique-magie-du-marais",
@@ -27831,8 +24640,7 @@
       "page": 217
     },
     "domainId": "magie-du-marais-de-mona",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "de-la-boue-jusqu-au-bout",
@@ -27879,8 +24687,7 @@
       "page": 217
     },
     "domainId": "magie-du-marais-de-mona",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "empreint-de-bruine",
@@ -27953,8 +24760,7 @@
       "page": 217
     },
     "domainId": "magie-du-marais-de-mona",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "piqures-de-moustiques",
@@ -28061,8 +24867,7 @@
       "page": 217
     },
     "domainId": "magie-du-marais-de-mona",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "tourner-en-rond",
@@ -28120,8 +24925,7 @@
       "page": 217
     },
     "domainId": "magie-du-marais-de-mona",
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "peau-d-ecorce-et-d-os",
@@ -28175,8 +24979,7 @@
       "book": "vents-de-la-magie",
       "page": 218
     },
-    "family": "arcane",
-    "curated": true
+    "family": "arcane"
   },
   {
     "id": "art-de-la-malediction",
@@ -28217,8 +25020,7 @@
       "conditions": "Aucune.",
       "sacrifices": "Une malédiction est alimentée par la force vitale de son créateur. Il doit sacrifier un unique Point de Blessure, qui ne guérira jamais. De plus, ce processus équivaut à une Exposition Modérée à la Corruption (voir **WFJDR**, page 182).",
       "consequences": "Le Rituel échoue et les composants sont détruits."
-    },
-    "curated": true
+    }
   },
   {
     "id": "corrompre-une-pierre-gardienne",
@@ -28252,8 +25054,7 @@
       "conditions": "Aucune, hormis l'accès à une pierre gardienne.",
       "sacrifices": "Lors de chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Résistance Accessible (+20)** ou recevoir un État *Exténué*.",
       "consequences": "Le Rituel échoue."
-    },
-    "curated": true
+    }
   },
   {
     "id": "creer-un-fabrique",
@@ -28300,8 +25101,7 @@
       "conditions": "Il n'y a pas de condition nécessaire.",
       "sacrifices": "À chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Résistance Accessible (+20)** ou perdre définitivement un point de Force ou d'Endurance.",
       "consequences": "Le Rituel échoue."
-    },
-    "curated": true
+    }
   },
   {
     "id": "creer-un-familier",
@@ -28332,8 +25132,7 @@
       "conditions": "Il n'y a pas de condition nécessaire.",
       "sacrifices": "Les familiers constituent un investissement important. Durant le Rituel, le lanceur de sorts doit définitivement abandonner au choix 1 Point de Blessure, de Destin ou de Résilience.",
       "consequences": "Le Rituel échoue et le réceptacle est détruit."
-    },
-    "curated": true
+    }
   },
   {
     "id": "creer-une-pierre-de-pouvoir",
@@ -28373,8 +25172,7 @@
       "conditions": "Au moins deux apprentis doivent aider à trianguler le Vent de Magie désiré pour le dépôt aethyrique. Si le Rituel se déroule à une Jonction tellurique (page 197) ou à un Appui arcanique (page 198), le NI est réduit de moitié.",
       "sacrifices": "Le lanceur de sorts et ses apprentis doivent passer 1d10 heures à préparer ce Rituel avant de l'entamer.",
       "consequences": "Aucune."
-    },
-    "curated": true
+    }
   },
   {
     "id": "creer-une-propriete-de-pierre-gardienne",
@@ -28405,8 +25203,7 @@
       "conditions": "Vous devez avoir accès à une pierre gardienne active faisant partie d'une ligne de force artificielle.",
       "sacrifices": "Lors de chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Résistance Accessible (+20)** ou recevoir un État *Exténué*.",
       "consequences": "Le Rituel échoue."
-    },
-    "curated": true
+    }
   },
   {
     "id": "les-faux-croisees",
@@ -28441,8 +25238,7 @@
       "conditions": "Avant d'entamer le Rituel, le Sorcier doit graver un symbole de faux croisées pointant vers le bas au-dessus de l'entrée d'une tombe, d'une grotte, d'une guérite ou de tout autre portail. Cette action exige un Test étendu d'**Art (Gravure) Intermédiaire (+0)** totalisant 20 DR. Une créature morte-vivante qu'il cherche à anéantir doit se trouver au-delà du portail.",
       "sacrifices": "Lors de chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Calme Accessible (+20)** ou subir 1 Dégât qui ne peut pas être réduit par le Bonus d'Endurance ou les PA.",
       "consequences": "Le Rituel échoue et l'entité prend conscience des efforts pour la réprimer."
-    },
-    "curated": true
+    }
   },
   {
     "id": "graver-une-pierre-d-ogham",
@@ -28473,8 +25269,7 @@
       "conditions": "Avant de lancer le Rituel, vous devez marquer la pierre avec des symboles appropriés qui attirent ou repoussent les énergies magiques selon l'objectif recherché. Vous devez avoir le Talent *Lire/Écrire*, faire un Test de **Langue (Magick) Complexe (−10)** et un Test d'**Art (Gravure) Accessible (+20)**. Si vous réussissez ces deux Tests, le Rituel peut commencer.",
       "sacrifices": "À chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Résistance Accessible (+20)** ou recevoir un État *Exténué*.",
       "consequences": "Le Rituel échoue."
-    },
-    "curated": true
+    }
   },
   {
     "id": "impregner-un-baton",
@@ -28528,8 +25323,7 @@
       "conditions": "Aucune.",
       "sacrifices": "1 Point de Chance ou de Détermination (qui peut être regagné ultérieurement comme d'habitude).",
       "consequences": "Le Rituel échoue et les composants sont détruits."
-    },
-    "curated": true
+    }
   },
   {
     "id": "invocation-de-demon",
@@ -28564,8 +25358,7 @@
       "conditions": "L'invocateur doit lancer le Sort *Octogramme* (voir **WFJDR**, page 256) avant d'entamer le rituel.",
       "sacrifices": "À chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Résistance Accessible (+20)** ou perdre définitivement 1 point de Force ou d'Endurance (déterminé aléatoirement).",
       "consequences": "Le démon s'aperçoit qu'un mortel a essayé de l'invoquer. Sa réaction dépendra du démon en question, mais la plupart d'entre eux trouvent que de telles intrusions dans leur intimité constituent un sérieux affront."
-    },
-    "curated": true
+    }
   },
   {
     "id": "invocation-de-l-elementaire-incarne-de-la-mort",
@@ -28615,8 +25408,7 @@
       "conditions": "Une Saturation Extrême, un Appui arcanique ou une Tempête de Magie (voir **Chapitre 14**).",
       "sacrifices": "Lors de chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Résistance Intermédiaire (+0)** ou recevoir un État *Exténué*.",
       "consequences": "Les individus qui se trouvent dans un rayon de (Bonus de Force Mentale) mètres du lanceur de sorts, lui y compris, subissent des Dégâts égaux à son Bonus de Force Mentale et un État *À Terre*. Il s'agit d'une attaque magique qui n'est pas réduite par le Bonus d'Endurance ou les PA."
-    },
-    "curated": true
+    }
   },
   {
     "id": "invocation-de-jack-des-cendres",
@@ -28666,8 +25458,7 @@
       "conditions": "Une Saturation Extrême, un Appui arcanique ou une Tempête de Magie (voir **Chapitre 14**).",
       "sacrifices": "À chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Résistance Accessible (+20)** ou recevoir un État *Exténué*.",
       "consequences": "Les individus qui se trouvent dans un rayon de (Bonus de Force Mentale) mètres du lanceur de sorts, y compris lui, subissent 4 États *En flammes*."
-    },
-    "curated": true
+    }
   },
   {
     "id": "invocation-du-predateur-sanglant",
@@ -28717,8 +25508,7 @@
       "conditions": "Une Saturation Extrême, un Appui arcanique ou une Tempête de Magie (voir **Chapitre 14**).",
       "sacrifices": "À chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Résistance Accessible (+20)** ou recevoir un État *Exténué*.",
       "consequences": "Les individus qui se trouvent dans un rayon de (Bonus de Force Mentale) mètres du lanceur de sorts, lui y compris, subissent une explosion glacée de *Ghur* pur. Il s'agit d'une attaque avec Dégâts 12 qui ignore les armures faites de cuir ou de fourrure."
-    },
-    "curated": true
+    }
   },
   {
     "id": "lever-une-malediction",
@@ -28749,8 +25539,7 @@
       "conditions": "À la suite d'un Sort *Décrypter une malédiction* (voir page 26) réussi, l'objet doit s'avérer maudit.",
       "sacrifices": "À chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Calme Accessible (+20)** ou subir une Exposition Modérée à la Corruption (voir **WFJDR**, page 182).",
       "consequences": "Le Rituel échoue."
-    },
-    "curated": true
+    }
   },
   {
     "id": "lier-une-bete-monstrueuse",
@@ -28785,8 +25574,7 @@
       "conditions": "L'antre habité d'une bête appropriée doit se trouver dans (Force Mentale) mètres du lanceur.",
       "sacrifices": "Lors de chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Résistance Accessible (+20)** ou recevoir un État *Exténué*.",
       "consequences": "La bête devient immédiatement consciente que quelqu'un a essayé de l'asservir à sa volonté et se considère sérieusement menacée."
-    },
-    "curated": true
+    }
   },
   {
     "id": "lier-un-esprit-a-une-pierre-de-pouvoir",
@@ -28826,8 +25614,7 @@
       "conditions": "Si le Rituel se déroule à une Jonction tellurique (page 197) ou à un Appui arcanique (page 198), le NI est réduit de moitié.",
       "sacrifices": "Aucun sacrifice n'est requis.",
       "consequences": "Aucune."
-    },
-    "curated": true
+    }
   },
   {
     "id": "materialiser-le-marais-vivant",
@@ -28880,195 +25667,6 @@
       "conditions": "Saturation Élevée, Extrême ou Corrompue, un Appui arcanique ou une Tempête de Magie.",
       "sacrifices": "Lors de chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Résistance Accessible (+20)** ou perdre définitivement 1 point de Force ou d'Endurance (déterminé aléatoirement).",
       "consequences": "Le Rituel échoue. Le cœur-de-pierre est conservé."
-    },
-    "curated": true
-  },
-  {
-    "id": "invocation-d-un-colosses-necrofex",
-    "type": "spells",
-    "label": "Invocation d’un Colosses Necrofex",
-    "ecole": "Magie des Arcanes & de Nécromancie",
-    "subType": null,
-    "cn": 180,
-    "range": {
-      "kind": "distance",
-      "value": 70,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "special",
-      "text": "1 Cimetère / Charnier / Champ de Bataille"
-    },
-    "duration": {
-      "kind": "special",
-      "text": "jusqu’à l’aube suivante"
-    },
-    "desc": "Voir le profil de la créature par ailleurs.",
-    "effects": {
-      "kind": "seq",
-      "steps": []
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 524
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "invitation-a-la-danse-macabre-de-vanhel",
-    "type": "spells",
-    "label": "Invitation à la Danse Macabre de Vanhel",
-    "ecole": "Magie des Arcanes & de Nécromancie",
-    "subType": null,
-    "cn": 14,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 700
-    },
-    "duration": {
-      "kind": "special",
-      "text": "jusqu’à l’aube suivante"
-    },
-    "desc": "Sort issu du terrible_Liber Mortis_. Tous les corps décédés dans la zone se dressent s’ils n’ont pas été correctement enterrés et bénis. Pour chaque rayon de 100 mètres, le mage gagne 1 Point de Corruption. Si le mage est tué ou inconscient, les morts s’écroulent.",
-    "effects": {
-      "kind": "seq",
-      "steps": [
-        {
-          "kind": "do",
-          "effect": {
-            "type": "ops",
-            "on": "caster",
-            "ops": [
-              {
-                "op": "narrative",
-                "text": "Tous les corps décédés dans la zone se dressent s’ils n’ont pas été correctement enterrés et bénis."
-              },
-              {
-                "op": "narrative",
-                "text": "Pour chaque rayon de 100 mètres, le mage gagne 1 Point de Corruption."
-              },
-              {
-                "op": "narrative",
-                "text": "Si le mage est tué ou inconscient, les morts s’écroulent."
-              }
-            ]
-          }
-        }
-      ]
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 524
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "putrefaction-2",
-    "type": "spells",
-    "label": "Putréfaction",
-    "ecole": "Magie des Arcanes",
-    "subType": null,
-    "cn": 8,
-    "range": {
-      "kind": "distance",
-      "value": 85,
-      "unit": "m"
-    },
-    "target": {
-      "kind": "area",
-      "span": "diameter",
-      "meters": 8
-    },
-    "duration": {
-      "kind": "instant"
-    },
-    "desc": "Le démon fait pourrir ou tourner toute la nourriture et toutes les boissons dans la zone d’effet. Toute créature qui consomme ces aliments attrape automatiquement une Foirade (_Galloping_ _Trots_).",
-    "effects": {
-      "kind": "seq",
-      "steps": [
-        {
-          "kind": "do",
-          "effect": {
-            "type": "ops",
-            "on": "caster",
-            "ops": [
-              {
-                "op": "narrative",
-                "text": "Le démon fait pourrir ou tourner toute la nourriture et toutes les boissons dans la zone d’effet."
-              },
-              {
-                "op": "narrative",
-                "text": "Toute créature qui consomme ces aliments attrape automatiquement une Foirade (_Galloping_ _Trots_)."
-              }
-            ]
-          }
-        }
-      ]
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 306
-    },
-    "family": "arcane"
-  },
-  {
-    "id": "bouclier-ruine",
-    "type": "spells",
-    "label": "Bouclier",
-    "ecole": "du Domaine de la Ruine",
-    "subType": null,
-    "cn": 6,
-    "range": {
-      "kind": "self"
-    },
-    "target": {
-      "kind": "self"
-    },
-    "duration": {
-      "kind": "rounds",
-      "value": 2,
-      "plus": true
-    },
-    "desc": "Le sorcier bénéficie de +10 Points d’Armure. Si un adversaire attaque à mains nues ou avec une arme métallique, il encaisse 7 Points de Dégâts à cause des interférences (pas de PA d’armure métallique).",
-    "effects": {
-      "kind": "seq",
-      "steps": [
-        {
-          "kind": "do",
-          "effect": {
-            "type": "ops",
-            "on": "target",
-            "ops": [
-              {
-                "op": "ap",
-                "amount": 10
-              }
-            ]
-          }
-        },
-        {
-          "kind": "do",
-          "effect": {
-            "type": "ops",
-            "on": "target",
-            "ops": [
-              {
-                "op": "narrative",
-                "text": "Si un adversaire attaque à mains nues ou avec une arme métallique, il encaisse 7 Points de Dégâts à cause des interférences (pas de PA d’armure métallique)."
-              }
-            ]
-          }
-        }
-      ]
-    },
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 362
-    },
-    "family": "arcane"
+    }
   }
 ]

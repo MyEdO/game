@@ -44,15 +44,11 @@ const doc = document(
     /** Nom du fichier PDF officiel du livre sous `Source/` — résolu dans l'arbre principal par
      *  `scripts/raw/_lib.mjs#pdfDe`, seule construction d'un chemin de PDF de livre (#1739). */
     pdf: z.string().endsWith('.pdf').nullable().optional(),
-    /** Chemin d'extraction `Source/…` d'un livre HORS Atlas RAW (`scripts/raw/_lib.mjs#BOOKS`
-     *  ne le porte pas, donc pas de pont folio ni de fiche RAW) dont les chapitres sont néanmoins
-     *  sur disque et citables — `frenchy-bzh`. Lu par `scripts/raw/_lib.mjs#sourceDirOf`. */
-    extractionDir: z.string().nullable().optional(),
     language: z.string().nullable(),
     /** Corps de règles dont ce livre est le CŒUR — absent d'un supplément. Graphie NORMALISÉE
      *  (sans espace de bord, en minuscules) : un cœur = une valeur, `scripts/raw/_lib.mjs#coeurDe`
      *  la lit par `abbr` et `reconcile.mjs` en dérive son régime sans une ligne par livre.
-     *  `nullable` comme ses voisins éditables de ce def (`dir`, `extractionDir`) : l'atelier du
+     *  `nullable` comme ses voisins éditables de ce def (`dir`, `pdf`) : l'atelier du
      *  Compendium émet `null` quand on VIDE un champ, et retirer un cœur est un geste d'auteur. */
     coeur: z
       .string()
@@ -70,7 +66,6 @@ const doc = document(
     abbr: { label: 'Acronyme', hint: 'Acronyme d’affichage du livre (Compendium et Atlas RAW)' },
     dir: { label: 'Dossier d’extraction (Atlas)', hint: 'Chemin `Source/…` du livre, pour les livres couverts par l’Atlas RAW' },
     pdf: { label: 'PDF du livre', hint: 'Nom du fichier PDF officiel sous `Source/`, extension comprise ; vide = aucun PDF déclaré' },
-    extractionDir: { label: 'Dossier d’extraction (hors Atlas)', hint: 'Chemin `Source/…` d’un livre hors Atlas RAW mais citable' },
     language: { label: 'Langue', hint: 'Langue de l’édition (VF/VO)' },
     coeur: { label: 'Cœur de règles', hint: 'Corps de règles dont ce livre est le cœur ; vide pour un supplément' },
     teneur: { label: 'Teneur', hint: 'Ce que contiennent les chapitres non couverts par une fiche ; vide = livre de règles' },

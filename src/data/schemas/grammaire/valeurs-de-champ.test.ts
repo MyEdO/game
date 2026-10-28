@@ -88,6 +88,8 @@ const NOMMES = [
   // les 7 libellés de la table LDB 85 l.346-354.
   'minuscule|tresPetite|petite|moyenne|grande|enorme|monstrueuse',
   'nord|sud|est|ouest',
+  // `tablesDeCiblesSchema` : les tables de Cibles d'un Trait octroyé (EDOC 12 l.170).
+  'obsessions',
   // `windAspectSchema` (MDG 13 l.267-270).
   'arriere|lateral|face',
   // `buildingAnchorSchema` (#1715) : où un ornement d'identité s'accroche sur un bâtiment.
@@ -144,10 +146,12 @@ const NOMMES = [
   'noise|magic',
   'self|ally|opponent|party|neutral|hostile',
   'target|caster',
-  'weaponGroupsMelee|weaponGroupsRanged|winds|arcaneDomains|cultBlessings|cultMiracles|cultChaos|seaShanties|groups|diseases|sizes|mutations|breathTypes|damageTypes|weaponsMelee|weaponsRanged',
+  'weaponGroupsMelee|weaponGroupsRanged|winds|arcaneDomains|cultBlessings|cultMiracles|cultChaos|seaShanties|groups|diseases|sizes|mutations|breathTypes|damageTypes|weaponsMelee|weaponsRanged|exposureLevels|difficulties',
   'woundsCurrent|woundsMax|size|advantage',
   'onHit|onCrit|onWoundLoss|onSlain|onRoundStart|onStartled|onKill|onCharged|onGainCondition|onCombatStart|onCombatEnd|onRoundEnd|onTurnStart|onTurnEnd|onDayStart|onWake|onAttackResolved|onCastResolved|onMiscast|onOwnTestFailed',
   'self|victim|engaged|grappled',
+  // `surchargeDeGabaritSchema` (#2972) : les facteurs de carrure qu'une race surcharge (`raceAppearance › gabaritOverride`).
+  'sl|st|legs|arms|head',
   // Payloads d'`OP_DEFS` (#1473) : `armourBypassCategorieSchema`, `loseTurnWhatSchema`, `zoneShapeSchema`
   // (`grammaire/mecanique.ts`) ; `deDeTableSchema` (`grammaire/valeurs.ts`), partagé avec `tables.json` ;
   // `porteeDAssautSchema` (`grammaire/mecanique.ts`), source du type moteur `PorteeDAssaut`.

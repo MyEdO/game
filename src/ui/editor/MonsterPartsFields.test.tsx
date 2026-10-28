@@ -55,7 +55,7 @@ describe('apparence donnée — effets et ops', () => {
       onChange={(next) => { appearance = next; renderEntity(); }} />);
     act(renderEntity);
     choisirMediaSelect(root.container, 'Apparence — Hache du projet', 'Hache naine');
-    expect(appearance.apparencesObjets).toEqual({ [objet.id]: 'hache_naine' });
+    expect(appearance.apparencesObjets).toEqual({ [objet.id]: { id: 'hache_naine' } });
     choisirMediaSelect(root.container, 'Apparence — Hache du projet', 'Hache');
     expect(appearance).not.toHaveProperty('apparencesObjets');
   });
@@ -90,7 +90,7 @@ describe('apparence donnée — effets et ops', () => {
 
 describe('ApparencesObjetsField — contrat partagé', () => {
   it('déduplique les armes, propose les variantes admises et retire seulement la clé revenue au défaut', () => {
-    let next: EntityAppearance = { sex: 'M', apparencesObjets: { bouclier: 'bouclier_rectangle' } };
+    let next: EntityAppearance = { sex: 'M', apparencesObjets: { bouclier: { id: 'bouclier_rectangle' } } };
     const root = monterRacine(null);
     const render = () => root.rendre(<ApparencesObjetsField appearance={next} onChange={(a) => { next = a; render(); }}
       weapons={[{ trappingId: 'arme-simple' }, { trappingId: 'arme-simple' }, { trappingId: 'bouclier' }, {}]} />);
@@ -101,9 +101,9 @@ describe('ApparencesObjetsField — contrat partagé', () => {
     expect(labels).not.toContain('Bouclier rectangulaire');
     const choisir = (arme: string, label: string) => choisirMediaSelect(root.container, `Apparence — ${arme}`, label);
     choisir('Arme simple', 'Hache naine');
-    expect(next.apparencesObjets).toEqual({ bouclier: 'bouclier_rectangle', 'arme-simple': 'hache_naine' });
+    expect(next.apparencesObjets).toEqual({ bouclier: { id: 'bouclier_rectangle' }, 'arme-simple': { id: 'hache_naine' } });
     choisir('Arme simple', 'Épée');
-    expect(next.apparencesObjets).toEqual({ bouclier: 'bouclier_rectangle' });
+    expect(next.apparencesObjets).toEqual({ bouclier: { id: 'bouclier_rectangle' } });
     choisir('Bouclier', 'Bouclier');
     expect(next).toEqual({ sex: 'M' });
   });

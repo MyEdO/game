@@ -44,7 +44,7 @@ describe('raceAppearance.json — gabarit par référence, surcharge fermée (#2
   });
 
   it('un id de gabarit inconnu est refusé, nommément', () => {
-    expect(refus(schemaRaces, avecRace({ gabarit: 'humain' }))).toMatch(/« humain » est absent du catalogue des gabarits/);
+    expect(refus(schemaRaces, avecRace({ gabarit: { id: 'humain' } }))).toMatch(/« humain » est absent du catalogue des gabarits/);
   });
 
   it('une surcharge partielle des facteurs parse', () => {

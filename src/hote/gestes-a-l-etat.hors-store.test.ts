@@ -19,7 +19,7 @@ import { locationLabel, type Trauma } from '../engine/types';
 
 /** L'état de la partie `dome` (graine 7) à son lancement, la pause de début de Round ouverte. */
 function auDebutDuRound<T>(faire: (etat: Jeu) => T): T {
-  const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }));
+  const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
   try {
     return faire(partie.etat());
   } finally {

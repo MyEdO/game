@@ -14,7 +14,7 @@
  * changerait l'uid et tuerait l'adresse), jamais un libellé.
  *
  * ZONE = OBJET CREUX (`Record<number, …>`), jamais un tableau à trous : le snapshot de partie passe
- * par `JSON.parse(JSON.stringify(data))` (`saves.ts`), qui rend un trou `undefined` en `null` — soit,
+ * par `JSON.parse(JSON.stringify(data))` (`noyau/persistance/save.ts`), qui rend un trou `undefined` en `null` — soit,
  * ici, « case VIDÉE ». Poser une case au rang 3 aurait donc vidé les rangs 0-2 au rechargement.
  * Clé ABSENTE = rang laissé au pré-remplissage déduit ; `null` = case vidée par le joueur.
  *

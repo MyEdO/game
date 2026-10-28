@@ -12,7 +12,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { alternationDe } from '../../../lib/regex';
-import { sourceRefSchema, entityAppearanceSchema, validerReferencesDObjetsDansCampagne, raceKeySchema, sexeSchema } from '../grammaire/valeurs';
+import { maisonSchema, sourceRefSchema, entityAppearanceSchema, raceKeySchema, sexeSchema } from '../grammaire/valeurs';
 import { conditionCondCtxSchema } from './worldmap';
 import { idDeCreature } from './effets';
 import { couvreSchema, entreeDeFicheSchema } from './communs';
@@ -20,7 +20,8 @@ import { listeCle } from '../grammaire/collection-cle';
 import { champAdapteDe, proseNommee, refineAdapteDe, META_ADAPTE_DE } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
 import { apparenceDObjetSchema } from '../defs/trappings';
-import { findCreatureById, findTrappingById, byId, findTalentById, specResolves, porteCatalogueDeSpecs } from '../../index';
+import { findCreatureById, findTrappingById, byId, findTalentById, specResolves, porteCatalogueDeSpecs, trappingDesObjetsPuisDuCatalogue } from '../../index';
+import { messageDApparenceDObjet, type TrappingResolver } from '../../apparencesObjets';
 import type { CreatureData, TrappingData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
 import { exclusiviteAdapteDe, refuserSansProvenance } from '../grammaire/document';
@@ -163,7 +164,7 @@ export const etatNarratifSchema = nommerChamps(z.strictObject({
   id: z.string().min(1, 'id vide.'),
   label: z.string().min(1, 'libellé vide.'),
   source: sourceRefSchema.optional(),
-  maison: z.string().min(1).optional(),
+  maison: maisonSchema.optional(),
   forme: formeDEtatSchema,
 })
   .superRefine((etat, ctx) => refuserSansProvenance(etat, ctx, 'de l’état')), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, source: { label: "source" }, maison: { label: "maison" , texte: { regime: "technique"} }, forme: { label: "forme" } });
@@ -197,6 +198,23 @@ export const clotureSchema = nommerChamps(z.strictObject({
 
 /** Un id narratif COLLISIONNE avec la règle globale s'il résout déjà comme créature OU possession. */
 export const collisionneAvecLeGlobal = (id: string): boolean => !!findCreatureById(id) || !!findTrappingById(id);
+
+/** #2948 */
+export function validerReferencesDObjetsDansCampagne(objets: readonly TrappingData[], ctx: z.RefinementCtx): void {
+  const parId = new Map(objets.map((objet) => [objet.id, objet]));
+  const resolve: TrappingResolver = (id) => trappingDesObjetsPuisDuCatalogue(parId, id);
+  for (let i = ctx.issues.length - 1; i >= 0; i--) {
+    const issue = ctx.issues[i];
+    if (issue.code !== 'custom') continue;
+    const reference = issue.params?.referenceDObjet as { trappingId?: string; apparence?: string } | undefined;
+    if (!reference) continue;
+    const message = reference.apparence
+      ? messageDApparenceDObjet(reference.trappingId, reference.apparence, resolve)
+      : reference.trappingId && resolve(reference.trappingId) ? undefined : issue.message;
+    if (message) ctx.issues[i] = { ...issue, message };
+    else ctx.issues.splice(i, 1);
+  }
+}
 
 /**
  * Sémantique du bloc narratif — unicité des ids INTER-registres (l'unicité DANS un registre est la

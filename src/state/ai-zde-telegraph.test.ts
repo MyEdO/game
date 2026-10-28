@@ -17,7 +17,7 @@ import { runEnemyAI } from '../noyau/combatFlow';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { chebyshev } from '../engine/grid';
 import { pregen, PREGEN } from '../data/pregens';
-import { findSpell } from '../data';
+import { findSpellById } from '../data';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 
@@ -42,11 +42,11 @@ describe('ZdE ennemie — télégraphe visuel actorAoe (pose pendant le télégr
 
   function setupAiAreaCaster() {
     // Lanceur IA fort (DR ≥ NI d'Explosion d'un seul jet), deux héros COLLÉS → un centre couvre les deux.
-    const e = spawnEnemy({ ref: 'brigand' }, 'caster', { x: 5, y: 5 });
+    const e = spawnEnemy({ ref: 'humain' }, 'caster', { x: 5, y: 5 });
     e.kind = 'enemy';
     e.characteristics.intelligence = 70; e.characteristics['force-mentale'] = 70;
     e.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 } as never];
-    const spell = findSpell('Explosion')!; // Projectile magique à ZdE
+    const spell = findSpellById('explosion')!; // Projectile magique à ZdE
     e.spells = [spell.id];
     e.advantage = 0; e.movement = 4; e.pos = { x: 5, y: 5 };
     const h1 = target(8, 5, 'h1');

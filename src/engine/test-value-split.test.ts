@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { testValue, skillBaseValue, testValueParts, testValueSplit } from './skills';
 import { addCondition, COND } from './conditions';
+import { ligneDe } from './modLine.testkit';
+import { RULE_REF } from './ruleRefs';
+import { refLabel } from '../data';
 import type { Combatant, SkillInstance } from './types';
 
 /**
@@ -30,6 +33,7 @@ function empoisonne(): Combatant {
 }
 
 const SOUTIEN = { count: 2, bonus: 20, ids: ['h2', 'h3'] };
+const EMPOISONNE = { category: 'etats', id: 'empoisonne' };
 
 describe('#1178 — `testValueSplit` : la valeur fondue se lit en composantes NOMMÉES', () => {
   it('Soutien + État : base = Niveau de Compétence nu, chips = Soutien puis l’État, somme = valeur jetée', () => {
@@ -37,8 +41,8 @@ describe('#1178 — `testValueSplit` : la valeur fondue se lit en composantes NO
     const value = testValue(c, 'marchandage') + SOUTIEN.bonus;
     const { base, mods } = testValueSplit(c, value, { support: SOUTIEN, skill: 'marchandage' });
     expect(base).toBe(skillBaseValue(c, 'marchandage'));
-    expect(mods.map((m) => m.label)).toEqual(['Soutien', ...testValueParts(c, 'marchandage').map((p) => p.label)]);
-    expect(mods.some((m) => m.label === 'Empoisonné' && m.value < 0)).toBe(true);
+    expect(mods.map((m) => m.ref)).toEqual([RULE_REF.soutien, ...testValueParts(c, 'marchandage').map((p) => p.ref)]);
+    expect(ligneDe(mods, EMPOISONNE)!.value).toBeLessThan(0);
     expect(base + mods.reduce((s, m) => s + m.value, 0)).toBe(value); // la CIBLE ne bouge pas
   });
 
@@ -48,7 +52,7 @@ describe('#1178 — `testValueSplit` : la valeur fondue se lit en composantes NO
     const value = testValue(c, 'marchandage') + psych;
     const { base, mods } = testValueSplit(c, value, { skill: 'marchandage', fused: psych });
     expect(base).toBe(skillBaseValue(c, 'marchandage') + psych);
-    expect(mods.some((m) => m.label === 'Empoisonné')).toBe(true);
+    expect(ligneDe(mods, EMPOISONNE)).toBeDefined();
     expect(base + mods.reduce((s, m) => s + m.value, 0)).toBe(value);
   });
 
@@ -63,7 +67,7 @@ describe('#1178 — `testValueSplit` : la valeur fondue se lit en composantes NO
     // +7 arbitraire : la marque d'une valeur qui ne sort pas de `testValue` (valeur de combat, carac nue…).
     const value = testValue(c, 'marchandage') + SOUTIEN.bonus + 7;
     const { base, mods } = testValueSplit(c, value, { support: SOUTIEN, skill: 'marchandage' });
-    expect(mods.map((m) => m.label)).toEqual(['Soutien']);
+    expect(mods.map((m) => m.ref)).toEqual([RULE_REF.soutien]);
     expect(base).toBe(value - SOUTIEN.bonus);
   });
 
@@ -73,7 +77,7 @@ describe('#1178 — `testValueSplit` : la valeur fondue se lit en composantes NO
     // ce n'est pas un échec de décomposition (#1153).
     expect(testValueSplit(undefined, value, { support: SOUTIEN, skill: 'guerison' })).toEqual({
       base: value - SOUTIEN.bonus,
-      mods: [{ label: 'Soutien', value: SOUTIEN.bonus, famille: 'jet', ref: expect.anything(), by: [{ id: 'h2' }, { id: 'h3' }] }],
+      mods: [{ label: refLabel('regles', RULE_REF.soutien), value: SOUTIEN.bonus, famille: 'jet', ref: RULE_REF.soutien, by: [{ id: 'h2' }, { id: 'h3' }] }],
       exact: true,
     });
     expect(testValueSplit(empoisonne(), value)).toEqual({ base: value, mods: [], exact: true });

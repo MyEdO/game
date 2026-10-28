@@ -75,7 +75,7 @@ function meublerDeGens(depart: Scene): Scene {
       const pnj: SceneEntity = {
         id: convive.id,
         kind: 'personnage',
-        ref: 'villageois',
+        ref: 'humain',
         label: convive.label,
         pos: { x: slot.approach.x, y: slot.approach.y },
         facing: slot.facing,

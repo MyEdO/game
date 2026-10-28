@@ -152,8 +152,8 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
   });
 
   it('la projection de la garde reconnaît les sigles NON tokenisables et épargne les sigles-décor', () => {
-    // Trous d'un critère par tokens (`split`) : un sigle à ESPACE ou à POINT n'en est jamais un seul.
-    for (const l of ['Table — Nains (ADE I)', 'Table — Ogres (ADE II)', 'Bestiaire — Loup (frenchy.bzh)']) {
+    // Trou d'un critère par tokens (`split`) : un sigle à ESPACE n'en est jamais un seul.
+    for (const l of ['Table — Nains (ADE I)', 'Table — Ogres (ADE II)']) {
       expect(hasBookMarker(l), `provenance NON détectée : « ${l} »`).toBe(true);
     }
     // Faux positifs d'un critère par tokens : « Lustria »/« Salzemund » SONT des `abbr` de `books.json`,

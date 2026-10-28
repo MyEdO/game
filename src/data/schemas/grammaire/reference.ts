@@ -6,84 +6,128 @@ import { nommerChamps, metaDesChamps } from './meta';
  * la migration de la donnée se font aux lots L2/L3 (#1463).
  */
 import { z } from 'zod';
-import { countSpecSchema } from './valeurs';
-import { porteLeMarqueur, refusDeSpec } from './ref';
+import { countSpecSchema, formuleSansTirageSchema, maisonSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sourceRefSchema } from './valeurs';
+import { marquerProduit } from './interne/produits';
+import { idDe, marqueurDeLaForme, porteLeMarqueur, refusDeSpec } from './ref';
 
 /**
- * `TraitInstance` (`src/engine/statEntry.ts`) — Trait STRUCTURÉ partagé entre le bestiaire
- * (`creatures.json` `traits`/`optionals`) et l'espèce jouable (`species.json` `traits`, #572 :
- * trait RACIAL posé sur `Combatant.traits` à `createHero`, ex. Ogre `{id:'ogre'}` — encombrance/
- * consommation ×2 ; la Taille, elle, est portée par le TALENT Massif/Petit, pas un Trait). MÊME
- * forme partout — jamais recopiée.
+ * Trait POSÉ (`TraitPose`, la forme AUTHORÉE) — partagé entre le bestiaire (`creatures.json`
+ * `traits`/`optionals`), l'espèce jouable (`species.json` `traits`, #572 : Ogre `{id:'ogre'}`), le statbloc
+ * de scène, l'invocation (`summon.addTraits`) et l'octroi (`grantTrait.trait`, régime `octroi`). MÊME forme
+ * partout — jamais recopiée. Le jeu n'en lit que l'instance RÉSOLUE (`TraitInstance`, `src/engine/statEntry.ts`),
+ * rendue par `resoudreTrait`.
  */
-/** Ce que l'`arg` d'un Trait ne peut pas porter quand sa def DÉCLARE le champ qui le reçoit
- *  (`LDB 85` l.94, l.209) : le marqueur du def (`defs/traits.ts`), la forme de la valeur, son champ. */
-const ARG_DECLARE_AILLEURS = [
-  { marqueur: 'indice', forme: /^\+?\d+\+?$/, nature: 'un Indice', champ: 'value' },
-  { marqueur: 'range', forme: /^\d+(?:[.,]\d+)?\s*(?:m|mètres?)$/i, nature: 'une Portée', champ: 'range' },
-] as const;
-
-/** Prédicats « le Trait déclare ce marqueur », construits à la PREMIÈRE validation : `npm run gen`
- *  importe les defs avant d'avoir écrit la sous-liste que `porteLeMarqueur` exige à sa construction. */
-const declarants = new Map<string, (id: string) => boolean>();
-
 /**
  * Refus de l'`arg` `arg` sur le Trait `id` quand cet `arg` n'est qu'un Indice ou qu'une Portée que la
- * def du Trait DÉCLARE — message nommé (id, valeur, champ attendu), sinon `null`. Appelé par le schéma
- * d'instance ci-dessous.
+ * def du Trait DÉCLARE (`marqueurDeLaForme`) — message nommé (id, valeur, champ attendu), sinon `null`.
+ * Appelé par le schéma d'instance ci-dessous.
  */
 export function refusDArgDeTrait(id: string, arg: string): string | null {
-  for (const r of ARG_DECLARE_AILLEURS) {
-    if (!r.forme.test(arg.trim())) continue;
-    if (declare(r.marqueur, id)) return `Trait « ${id} » : « ${arg} » est ${r.nature} — il s'écrit en « ${r.champ} » (nombre), jamais en « arg ».`;
-  }
-  return null;
+  const forme = marqueurDeLaForme('trait', id, arg);
+  return forme ? `Trait « ${id} » : « ${arg} » est ${forme.nature} — il s'écrit en « ${forme.champ} » (nombre), jamais en « arg ».` : null;
+}
+
+/** Capacité que la def d'un Trait DÉCLARE pour admettre un champ d'instance : une fourchette fixe un
+ *  Indice (`indice`), l'Indice par Localisation a la sienne (`parLocalisation`). */
+const CAPACITES_DE_TRAIT = { plage: 'indice', parLocalisation: 'parLocalisation' } as const;
+const declareLaCapacite = {
+  plage: porteLeMarqueur('trait', CAPACITES_DE_TRAIT.plage),
+  parLocalisation: porteLeMarqueur('trait', CAPACITES_DE_TRAIT.parLocalisation),
+};
+
+/** La def du Trait `id` admet-elle le champ d'instance `champ` ? Lu par le schéma d'instance ci-dessous,
+ *  par la saisie (`parseTraitInstance`) et par l'éditeur. */
+export function traitAdmet(id: string, champ: keyof typeof CAPACITES_DE_TRAIT): boolean {
+  return declareLaCapacite[champ](id);
+}
+
+/** Refus du champ `champ` sur le Trait `id` quand sa def ne déclare pas la capacité qui l'admet — message
+ *  nommé, sinon `null`. Appelé par le schéma d'instance ci-dessous. */
+export function refusDeCapaciteDeTrait(id: string, champ: keyof typeof CAPACITES_DE_TRAIT): string | null {
+  return traitAdmet(id, champ) ? null : `Trait « ${id} » : sa def ne déclare pas « ${CAPACITES_DE_TRAIT[champ]} » — « ${champ} » ne s'y pose pas.`;
 }
 
 /** Joker d'un `arg` de Trait d'un statbloc RAW (« Animosité (un au choix) », « Peur (Au choix) ») : il
  *  désigne un choix, jamais une entrée du registre. */
 export const ARG_JOKER = /^(un |une |deux )?au choix$/i;
 
-/** Le prédicat « le Trait déclare ce marqueur », construit à la PREMIÈRE lecture (voir `declarants`). */
-function declare(marqueur: string, id: string): boolean {
-  let pred = declarants.get(marqueur);
-  if (!pred) declarants.set(marqueur, (pred = porteLeMarqueur('trait', marqueur)));
-  return pred(id);
-}
-
-/** Parts de l'`arg` `arg` du Trait `id` : liste séparée par virgules si la def déclare `specsMulti`,
- *  sinon l'arg entier ; jokers et parts vides écartés. */
-export function partsDArg(id: string, arg: string): string[] {
-  if (ARG_JOKER.test(arg.trim())) return [];
-  return (declare('specsMulti', id) ? arg.split(',') : [arg]).map((s) => s.trim()).filter((s) => s && !ARG_JOKER.test(s));
-}
-
 /**
- * Refus de l'`arg` `arg` sur le Trait `id` dont le registre (`specsSource`) est FERMÉ : chaque part qui
- * n'y résout pas — message nommé, sinon `null`. Prédicat UNIQUE, lu par le schéma d'instance ci-dessous
- * et par `src/data/trait-args-derived.test.ts` ; un registre OUVERT (`specsOpen`) admet le texte libre.
+ * Refus de l'`arg` `arg` sur le Trait `id` quand `refusDeSpec` le refuse parce qu'il ne résout aucune entrée
+ * d'un registre FERMÉ (`horsCatalogue`) ou parce qu'il reproduit, sur un registre OUVERT (`specsOpen`), le
+ * LIBELLÉ d'une de ses entrées (`libelle`) — message nommé, sinon `null`. Un joker n'est jamais refusé.
+ * Prédicat UNIQUE, lu par le schéma d'instance ci-dessous et par `src/data/trait-args-derived.test.ts` ; un
+ * registre ouvert admet tout autre texte libre. Une instance porte une seule spécialisation.
  */
 export function refusDArgHorsRegistre(id: string, arg: string): string | null {
-  const horsRegistre = partsDArg(id, arg).filter((part) => refusDeSpec('trait', id, part) === 'horsCatalogue');
-  return horsRegistre.length
-    ? `Trait « ${id} » : ${horsRegistre.map((x) => `« ${x} »`).join(', ')} ne résout aucune entrée de son registre — un id du registre, jamais un libellé.`
+  const spec = arg.trim();
+  if (!spec || ARG_JOKER.test(spec)) return null;
+  const refus = refusDeSpec('trait', id, spec);
+  return refus === 'horsCatalogue' || refus === 'libelle'
+    ? `Trait « ${id} » : « ${spec} » ne résout aucune entrée de son registre — un id du registre, jamais un libellé.`
     : null;
 }
 
-export const traitInstanceSchema = nommerChamps(z.strictObject({
-  id: z.string(),
-  value: z.number().optional(),
-  arg: z.string().optional(),
-  count: z.number().optional(),
-  range: z.number().optional(),
-  natural: z.boolean().optional(),
-  hidden: z.boolean().optional(),
-}).superRefine((t, ctx) => {
+/** L'id d'un Trait posé : le moteur porte des ids nus (`TraitInstance.id`, `engine/statEntry.ts`). */
+const idDeTrait: z.ZodType<string, string> = idDe('trait');
+
+/** Les libellés des champs du Trait posé, aux deux régimes. */
+const CHAMPS_DU_TRAIT_POSE = { id: { label: "identifiant" }, value: { label: "valeur" }, arg: { label: "argument" }, count: { label: "nombre" }, range: { label: "portée" }, plage: { label: "fourchette" }, parLocalisation: { label: "par Localisation" }, natural: { label: "naturel" }, hidden: { label: "caché" }, source: { label: "source" }, alsoIn: { label: "autres sources" }, maison: { label: "arbitrage maison" } } as const;
+
+/** Les refus du Trait posé, aux deux régimes : une seule clé de valeur, la capacité de la def, l'`arg`. */
+function refusDuTraitPose(t: { id: string; value?: unknown; arg?: string; plage?: { min: number; max: number }; parLocalisation?: unknown }, ctx: z.RefinementCtx): void {
+  const valeurs = (['value', 'plage', 'parLocalisation'] as const).filter((k) => t[k] !== undefined);
+  if (valeurs.length > 1) ctx.addIssue({ code: 'custom', path: [valeurs[1]], message: `Trait « ${t.id} » : « ${valeurs.join(' » et « ')} » disent tous deux sa valeur — une seule de ces clés.` });
+  if (t.parLocalisation && t.arg !== undefined) ctx.addIssue({ code: 'custom', path: ['arg'], message: `Trait « ${t.id} » : un Indice par Localisation nomme ses zones, sans Aspect.` });
+  if (t.plage && !(Number.isInteger(t.plage.min) && Number.isInteger(t.plage.max) && t.plage.min >= 0 && t.plage.min < t.plage.max)) ctx.addIssue({ code: 'custom', path: ['plage'], message: `Trait « ${t.id} » : une fourchette d'Indice va d'un entier positif ou nul à un entier plus grand.` });
+  for (const champ of ['plage', 'parLocalisation'] as const) {
+    const refus = t[champ] === undefined ? null : refusDeCapaciteDeTrait(t.id, champ);
+    if (refus) ctx.addIssue({ code: 'custom', path: [champ], message: refus });
+  }
   if (t.arg === undefined) return;
   for (const refus of [refusDArgDeTrait(t.id, t.arg), refusDArgHorsRegistre(t.id, t.arg)]) {
     if (refus) ctx.addIssue({ code: 'custom', path: ['arg'], message: refus });
   }
-}), { id: { label: "identifiant" }, value: { label: "valeur" }, arg: { label: "argument" }, count: { label: "nombre" }, range: { label: "portée" }, natural: { label: "naturel" }, hidden: { label: "caché" } });
+}
+
+/** L'Indice d'un Trait posé au statbloc : un nombre. */
+const indiceDePose = z.number();
+
+/**
+ * Le Trait posé, régime `pose` : son Indice (`value`) est un nombre. Le régime `octroi` (`traitOctroyeSchema`)
+ * en garde les clés et les refus.
+ */
+export const traitInstanceSchema = marquerProduit(nommerChamps(z.strictObject({
+  id: idDeTrait,
+  value: indiceDePose.optional(),
+  arg: z.string().optional(),
+  count: z.number().optional(),
+  range: z.number().optional(),
+  /** Fourchette imprimée à la place de l'Indice (« Peur 1-2 », ZI 13 l.31), tirée pour son porteur
+   *  (`traitsDuPorteur`) ; admise si la def déclare un Indice. */
+  plage: plageSchema.optional(),
+  /** Indice par Localisation (AA 09 l.184), à la place de l'Indice unique ; admis si la def le déclare. */
+  parLocalisation: parLocalisationSchema.optional(),
+  natural: z.boolean().optional(),
+  hidden: z.boolean().optional(),
+  /** PROVENANCE de la valeur posée, quand elle ne vient pas du passage de l'entrée qui la porte : la
+   *  `sourceRef` canonique (jugée par `folioLineAlign`), une seconde citation en `alsoIn`, ou la raison
+   *  `maison`. Aucune lecture de jeu : `resoudreTrait` ne la transmet pas. */
+  source: sourceRefSchema.optional(),
+  alsoIn: z.array(secondarySourceRefSchema).optional(),
+  maison: maisonSchema.optional(),
+}).superRefine(refusDuTraitPose), CHAMPS_DU_TRAIT_POSE), 'traitPose', 'pose', { value: indiceDePose });
+
+/** Le Trait OCTROYÉ (`grantTrait`, `grammaire/mecanique.ts`), régime `octroi` : son Indice est une formule
+ *  sans tirage, lue sur le lanceur (LDB 47 l.441). */
+export const traitOctroyeSchema = marquerProduit(nommerChamps(z.strictObject({
+  ...traitInstanceSchema.shape,
+  value: formuleSansTirageSchema.optional(),
+}).superRefine(refusDuTraitPose), CHAMPS_DU_TRAIT_POSE), 'traitPose', 'octroi', { value: formuleSansTirageSchema });
+
+/** La forme AUTHORÉE d'un Trait posé, inférée de son schéma. */
+export type TraitPose = z.infer<typeof traitInstanceSchema>;
+/** La forme AUTHORÉE d'un Trait octroyé, inférée de son schéma. */
+export type TraitOctroye = z.infer<typeof traitOctroyeSchema>;
 
 /**
  * `Ref` (`src/data/index.ts`) — réf structurée par id + spec optionnelle (talent/sort/manœuvre/dieu

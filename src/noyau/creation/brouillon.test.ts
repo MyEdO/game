@@ -1,0 +1,618 @@
+import { describe, it, expect } from 'vitest';
+import {
+  newDraft,
+  skillsSubMessage,
+  withSpecies,
+  withCareer,
+  rollDraftSpecies,
+  rollDraftCareer,
+  rollDraftChars,
+  rollDraftTalents,
+  speciesXp,
+  careerXp,
+  charsXp,
+  xpTotal,
+  charRolls,
+  draftChars,
+  speciesTalentRandomCount,
+  speciesTalentRandomDrawn,
+  talentsDone,
+  careerSkillEntries,
+  careerAdvTotal,
+  evenCareerSkillAdvances,
+  validateStep,
+  stepIds,
+  starXp,
+  rollDraftStar,
+  rollDraftAstrology,
+  buildHero,
+  draftWealth,
+  draftSpecies,
+  draftLevel,
+  careerCharKeys,
+  coastalSwapAvailable,
+  careerRollPool,
+  withCoastalSwap,
+  speciesTalentChoiceEntries,
+  unresolvedTrappingSlots,
+  rerollDraftTalent,
+  withRandomTalentSpec,
+  withSpeciesTalentChoice,
+} from './brouillon';
+import { CHAR_KEYS } from '../../engine/types';
+import { rigSpeciesId, trappingRefLabel } from '../../data';
+import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './brouillon';
+import { SEXE_DE_COIFFURE } from '../../data/schemas/_art.generated';
+import { garanti } from '../../lib/garanti';
+import { speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
+import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
+import { emplacementsDeDotation } from '../../engine/trappingChoices';
+import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
+import type { RefDesignee } from '../../data/schemas/grammaire/ref';
+import { careerSkillAdditions } from '../../engine/talentEffects';
+import { spells, stars, celestialHouses, species as allSpecies, careersForSpecies } from '../../data';
+
+// Page blanche : `newDraft` ne pré-tire plus race/carrière — les tests posent explicitement les
+// mêmes défauts dérivés qu'avant (1ʳᵉ espèce du LDB, sa 1ʳᵉ carrière accessible).
+const DEFAULT_SPECIES = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
+const DEFAULT_CAREER = careersForSpecies(DEFAULT_SPECIES.refCareer)[0]!;
+const draft = () => withCareer(withSpecies(newDraft(1234), DEFAULT_SPECIES.id), DEFAULT_CAREER.id);
+
+/** Spécialisation par défaut des jokers de carrière (1re du pool LIBRE) + répartition par défaut des
+ *  40 Augmentations (`evenCareerSkillAdvances`). */
+function carrierePrete(d: CreatorDraft): Pick<CreatorDraft, 'specChoices' | 'skillAdvances'> {
+  let specChoices: Record<AdresseDeCreation, string> = {};
+  for (const { adresse, ref } of careerSkillEntries(d)) {
+    if (ref.choix == null) continue;
+    const c = careerSkillEntries({ ...d, specChoices }).find((e) => e.adresse === adresse)!;
+    specChoices = { ...specChoices, [adresse]: designer('skill', c.ref, undefined, c.libre).spec! };
+  }
+  return { specChoices, skillAdvances: evenCareerSkillAdvances({ ...d, specChoices }) };
+}
+
+/** Brouillon minimal VALIDE jusqu'à l'étape 4 (répartitions par défaut, specs résolues). */
+function readyDraft() {
+  const d = draft();
+  const sp = draftSpecies(d)!;
+  const level = draftLevel(d)!;
+  // Résolution des entrées « (Au choix) » / « (A ou B) » qui reçoivent des augmentations
+  // de la carrière par défaut.
+  return {
+    ...d,
+    charsRolled: true, // gestes « Tirer aux dés » posés (#393 agentivité : exigés par la validation)
+    talentsRolled: true,
+    charAdvancesAlloc: { [level.characteristics[0]]: 5 }, // une Caractéristique du Niveau 1 de la carrière
+    fateSplit: { fate: Math.ceil(sp.fate.extra / 2), resilience: Math.floor(sp.fate.extra / 2) },
+    speciesPlus5: speciesSkillDefaults(sp).plus5,
+    speciesPlus3: speciesSkillDefaults(sp).plus3,
+    ...carrierePrete(d),
+    speciesTalentChoices: { [adresseDeCreation.especeTalent(0)]: { id: 'affable' } },
+    careerTalent: 'id' in level.talents[0] ? designer('talent', level.talents[0]) : undefined, // un Talent du Niveau 1 de la carrière (LDB 05 l.535)
+    label: 'Testeur',
+  };
+}
+
+describe('B3 — Répartition simple des Compétences de carrière (étape 5)', () => {
+  it('produit des clés de Compétence totalisant 40, lues par la grille/validation', () => {
+    const d = draft(); // 8 Compétences de Niveau 1 (LDB 05 l.535)
+    const alloc = evenCareerSkillAdvances(d);
+    // Toutes les clés sont des Compétences RECONNUES de la grille (careerSkillEntries).
+    expect(Object.keys(alloc).every((k) => careerSkillEntries(d).some((c) => c.cle === k))).toBe(true);
+    // +5 × 8 Compétences = 40, compté par careerAdvTotal (la grille ET validateStep).
+    expect(careerAdvTotal({ ...d, skillAdvances: alloc })).toBe(40);
+  });
+  it('n\'est PAS effacée par la répartition des Compétences de race (champs disjoints)', () => {
+    const d = draft();
+    const sp = draftSpecies(d)!;
+    // Carrière remplie, PUIS répartition de race appliquée (le symptôme rapporté).
+    const after = {
+      ...d,
+      skillAdvances: evenCareerSkillAdvances(d),
+      speciesPlus5: speciesSkillDefaults(sp).plus5,
+      speciesPlus3: speciesSkillDefaults(sp).plus3,
+    };
+    expect(careerAdvTotal(after)).toBe(40); // la carrière RESTE à 40
+  });
+});
+
+describe('aléatoire FIGÉ (anti-savescum)', () => {
+  it('les dix jets 2d10 sont identiques à chaque lecture ; une relance change le lot', () => {
+    const d = draft();
+    expect(charRolls(d)).toEqual(charRolls(d));
+    const rerolled = { ...d, charRerolls: 1 };
+    expect(charRolls(rerolled)).not.toEqual(charRolls(d));
+    expect(charRolls(rerolled)).toEqual(charRolls(rerolled));
+  });
+  it('le tirage d\'espèce est unique et ne se relance pas', () => {
+    const d1 = rollDraftSpecies(draft());
+    expect(d1.speciesRoll).toBeTruthy();
+    expect(rollDraftSpecies(d1)).toBe(d1); // déjà tiré → no-op
+  });
+  it('les talents d\'espèce aléatoires sont identiques à chaque résolution (seed fixe)', () => {
+    const d = rollDraftTalents(draft()); // geste 5c posé — Reiklander : « 3 Talent aléatoire »
+    expect(resolveSpeciesTalents(draftSpecies(d)!, d)).toEqual(resolveSpeciesTalents(draftSpecies(d)!, d));
+    // Changer un choix « A ou B » ne re-tire pas les dés des aléatoires.
+    const d2 = { ...d, speciesTalentChoices: { [adresseDeCreation.especeTalent(0)]: { id: 'affable' } } };
+    const randoms = (x: RefDesignee[]) => x.filter((t) => !['perspicace', 'affable', 'destinee'].includes(t.id));
+    expect(randoms(resolveSpeciesTalents(draftSpecies(d2)!, d2))).toEqual(randoms(resolveSpeciesTalents(draftSpecies(d)!, d)));
+  });
+});
+
+describe('une voie : le héros créé est celui que l\'écran montre (#1897)', () => {
+  // Graine 169, Reiklander : Doué en calcul aux tirages 0 et 1, le second relancé.
+  const tire = () => rollDraftTalents(withCareer(withSpecies(newDraft(169), 'humains-reiklander'), DEFAULT_CAREER.id));
+  const tiresDe = (h: { talents: { talentId: string }[] }, tires: { ref: RefDesignee }[]) => tires.filter((t) => h.talents.some((x) => x.talentId === t.ref.id)).length;
+
+  it('#393 : la fiche vivante (`buildHero`) ne porte aucun Talent tiré avant le geste ; après, les trois', () => {
+    const avant = withCareer(withSpecies(newDraft(169), 'humains-reiklander'), DEFAULT_CAREER.id);
+    const tires = speciesTalentRandomDrawn(rollDraftTalents(avant));
+    expect(tires.map((t) => t.ref.id)).toEqual(['doue-en-calcul', 'doue-en-calcul', 'sixieme-sens']);
+    expect(tiresDe(buildHero(avant), tires)).toBe(0);
+    expect(tiresDe(buildHero(rollDraftTalents(avant)), tires)).toBe(3);
+  });
+
+  it('la relance du brouillon atteint `createHero` : écran, `buildHero` et `createHero` des choix donnent les mêmes Talents', () => {
+    const d = rerollDraftTalent(tire(), adresseDeCreation.especeTirage(2, 1));
+    const ecran = speciesTalentRandomDrawn(d).map((t) => t.ref.id);
+    expect(ecran).toEqual(['doue-en-calcul', 'doigts-de-fee', 'sixieme-sens']);
+    const talents = (h: { talents: { talentId: string; times: number }[] }) => h.talents.map((t) => `${t.talentId}x${t.times}`);
+    const viaBuild = talents(buildHero(d));
+    const viaChoix = talents(createHero({
+      speciesId: d.speciesId, careerId: d.careerId, label: 'x', seed: d.seed, careerTalent: d.careerTalent,
+      speciesTalentChoices: d.speciesTalentChoices, randomSpecPicks: d.randomSpecPicks, talentRerolls: d.talentRerolls,
+    }));
+    expect(viaBuild).toEqual(viaChoix);
+    for (const id of ecran) expect(viaBuild.some((t) => t.startsWith(`${id}x`)), id).toBe(true);
+  });
+});
+
+describe('relance d\'un Talent tiré doublon (LDB 05 l.484)', () => {
+  // Graine 169, Reiklander : Doué en calcul aux tirages 0 et 1 ; graine 5 : Perspicace au tirage 1.
+  const tire = (seed: number) => rollDraftTalents(withCareer(withSpecies(newDraft(seed), 'humains-reiklander'), DEFAULT_CAREER.id));
+  const tirage = (i: number) => adresseDeCreation.especeTirage(2, i);
+
+  it('la relance porte le rang effectif + 1 ; sur un tirage non doublon, le brouillon est inchangé', () => {
+    const d = tire(169);
+    const relance = rerollDraftTalent(d, tirage(1));
+    expect(relance.talentRerolls).toEqual({ [tirage(1)]: 1 });
+    expect(speciesTalentRandomDrawn(relance).map((t) => t.ref.id)).toEqual(['doue-en-calcul', 'doigts-de-fee', 'sixieme-sens']);
+    expect(rerollDraftTalent(relance, tirage(1))).toBe(relance);
+    expect(rerollDraftTalent(d, tirage(0))).toBe(d);
+  });
+
+  it('un doublon au Maxi est signalé `auMaxi` (LDB 10 l.18) ; sous le Maxi, non', () => {
+    expect(speciesTalentRandomDrawn(withSpeciesTalentChoice(tire(5), adresseDeCreation.especeTalent(0), { id: 'perspicace' }))[1]).toMatchObject({ ref: { id: 'perspicace' }, doublon: true, auMaxi: true });
+    expect(speciesTalentRandomDrawn(tire(169))[1]).toMatchObject({ ref: { id: 'doue-en-calcul' }, doublon: true, auMaxi: false });
+  });
+
+  it('changer d\'option « A ou B » remet à zéro relances et spécialisations des tirages de CETTE entrée ; changer d\'espèce, de toutes', () => {
+    // Humains du Middenland : « Destinée ou Talent aléatoire » (entrée 1), puis 3 Talents aléatoires (entrée 2).
+    const de = (i: number, j: number) => adresseDeCreation.especeTirage(i, j);
+    const d = {
+      ...withSpecies(newDraft(1), 'humains-middenland'),
+      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { random: 1 } },
+      talentRerolls: { [de(1, 0)]: 1, [de(2, 1)]: 1 },
+      randomSpecPicks: { [de(1, 0)]: 'odorat', [de(2, 0)]: 'gout' },
+    };
+    expect(withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { random: 1 })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
+    const change = withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { id: 'destinee' });
+    expect(change.speciesTalentChoices).toEqual({ [adresseDeCreation.especeTalent(1)]: { id: 'destinee' } });
+    expect(change.talentRerolls).toEqual({ [de(2, 1)]: 1 });
+    expect(change.randomSpecPicks).toEqual({ [de(2, 0)]: 'gout' });
+    expect(withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(0), { id: 'guerrier-ne' })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
+    expect(withSpecies(d, 'nains')).toMatchObject({ talentRerolls: {}, randomSpecPicks: {} });
+  });
+
+  it('les tirages d’une entrée sont les SIENS : l’entrée 1 ne remet pas à zéro ceux de l’entrée 10', () => {
+    const de = (i: number, j: number) => adresseDeCreation.especeTirage(i, j);
+    const d = {
+      ...withSpecies(newDraft(1), 'humains-middenland'),
+      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { random: 1 } },
+      talentRerolls: { [de(1, 0)]: 1, [de(10, 0)]: 2 },
+      randomSpecPicks: { [de(1, 0)]: 'odorat', [de(10, 0)]: 'gout' },
+    };
+    const change = withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { id: 'destinee' });
+    expect(change.talentRerolls).toEqual({ [de(10, 0)]: 2 });
+    expect(change.randomSpecPicks).toEqual({ [de(10, 0)]: 'gout' });
+  });
+});
+
+describe('changer d’espèce ou de carrière écarte les spécialisations des emplacements de SA famille', () => {
+  const a = adresseDeCreation;
+  const autreEspece = allSpecies.find((s) => s.id !== DEFAULT_SPECIES.id)!.id;
+  const autreCarriere = careersForSpecies(DEFAULT_SPECIES.refCareer).find((c) => c.id !== DEFAULT_CAREER.id)!.id;
+  const d = () => ({ ...draft(), specChoices: { [a.especeTalent(0)]: 'e', [a.carriereCompetence(0)]: 'c', [a.ajout('metier')]: 'x', [a.signe(1)]: 's' } });
+
+  it('l’espèce écarte les emplacements d’espèce et les ajouts, garde la carrière et le signe', () => {
+    expect(withSpecies(d(), autreEspece).specChoices).toEqual({ [a.carriereCompetence(0)]: 'c', [a.signe(1)]: 's' });
+  });
+
+  it('la carrière écarte les emplacements de carrière et les ajouts, garde l’espèce et le signe', () => {
+    expect(withCareer(d(), autreCarriere).specChoices).toEqual({ [a.especeTalent(0)]: 'e', [a.signe(1)]: 's' });
+  });
+});
+
+describe('utilisation d\'un Talent tiré « (un au choix) » (LDB 05 l.484, table l.524 ; LDB 10 l.17)', () => {
+  // Graine 21, halflings : Sens aiguisé au tirage 0, doublon de « Sens aiguisé (Goût) » d'espèce.
+  const tire = () => rollDraftTalents(withCareer(withSpecies(newDraft(21), 'halflings'), 'agitateur'));
+  const tirage0 = adresseDeCreation.especeTirage(4, 0);
+  const tirage1 = adresseDeCreation.especeTirage(4, 1);
+  const message = 'Choisissez l\'utilisation du Talent tiré « Sens aiguisé ».';
+
+  it('le brouillon écrit l\'utilisation par adresse ; l\'écran la montre, hors du pool elle ne compte pas', () => {
+    const d = tire();
+    expect(speciesTalentRandomDrawn(d)[0]).toMatchObject({ ref: { id: 'sens-aiguise' }, adresse: tirage0, utilisations: ['ouie', 'odorat', 'gout', 'toucher', 'vue'], utilisationChoisie: null });
+    const choisi = withRandomTalentSpec(d, tirage0, 'odorat');
+    expect(choisi.randomSpecPicks).toEqual({ [tirage0]: 'odorat' });
+    expect(speciesTalentRandomDrawn(choisi)[0]).toMatchObject({ ref: { id: 'sens-aiguise', spec: 'odorat' }, utilisationChoisie: 'odorat' });
+    expect(speciesTalentRandomDrawn(withRandomTalentSpec(d, tirage0, 'chaos'))[0].utilisationChoisie).toBeNull();
+    expect(withRandomTalentSpec(choisi, tirage0, '').randomSpecPicks).toEqual({});
+  });
+
+  it('une relance efface l\'utilisation de SON adresse, et seulement elle', () => {
+    const d = { ...withRandomTalentSpec(tire(), tirage0, 'odorat'), randomSpecPicks: { [tirage0]: 'odorat', [tirage1]: 'vue' } };
+    expect(rerollDraftTalent(d, tirage0).randomSpecPicks).toEqual({ [tirage1]: 'vue' });
+  });
+
+  it('sans utilisation choisie, l\'étape Talents est bloquée par un message qui nomme le Talent', () => {
+    const d = tire();
+    expect(skillsSubMessage(d, 'talents')).toBe(message);
+    expect(talentsDone({ ...d, careerTalent: undefined })).toBe(false);
+    const choisi = withRandomTalentSpec(d, tirage0, 'odorat');
+    expect(skillsSubMessage(choisi, 'talents')).not.toBe(message);
+  });
+
+  it('`buildHero` et `createHero` portent l\'utilisation que l\'écran montre', () => {
+    const d = withRandomTalentSpec(tire(), tirage0, 'odorat');
+    const ecran = speciesTalentRandomDrawn(d)[0].ref;
+    const specs = (h: { talents: { talentId: string; spec?: string }[] }) => h.talents.filter((t) => t.talentId === 'sens-aiguise').map((t) => t.spec).sort();
+    const viaChoix = createHero({
+      speciesId: d.speciesId, careerId: d.careerId, label: 'x', seed: d.seed, careerTalent: d.careerTalent,
+      speciesTalentChoices: d.speciesTalentChoices, randomSpecPicks: d.randomSpecPicks, talentRerolls: d.talentRerolls,
+    });
+    expect(ecran.spec).toBe('odorat');
+    expect(specs(viaChoix)).toEqual(['gout', 'odorat']);
+    expect(specs(buildHero(d))).toEqual(specs(viaChoix));
+  });
+});
+
+describe('agentivité (#393, amendement « ossature enforcée ») — aucun résultat aléatoire avant le GESTE', () => {
+  it('caractéristiques : base d\'espèce seule avant le geste, jets révélés après — geste idempotent', () => {
+    const d = draft();
+    const sp = draftSpecies(d)!;
+    for (const k of CHAR_KEYS) expect(draftChars(d)[k]).toBe(sp.baseChar[k] ?? 20); // aucun 2d10 pré-affiché
+    const rolled = rollDraftChars(d);
+    expect(rolled.charsRolled).toBe(true);
+    expect(rollDraftChars(rolled)).toBe(rolled); // déjà tiré → no-op (les valeurs restent figées par le seed)
+    const rolls = charRolls(rolled);
+    CHAR_KEYS.forEach((k, i) => expect(draftChars(rolled)[k]).toBe((sp.baseChar[k] ?? 20) + rolls[i]));
+  });
+  it('validation étape 3 : le geste est EXIGÉ pour les voies aux dés, pas pour les 100 Points', () => {
+    expect(validateStep(draft(), 'chars')).toBe('Tirez vos Caractéristiques aux dés.');
+    expect(validateStep({ ...draft(), charMode: 'pointBuy' as const }, 'chars')).not.toMatch(/aux dés/);
+  });
+  it('talents aléatoires : AUCUN tiré avant le geste (ni liste ni résolution), révélés après — figés par le seed', () => {
+    const d = draft(); // Reiklander : « 3 Talent aléatoire »
+    expect(speciesTalentRandomCount(d)).toBe(3);
+    expect(speciesTalentRandomDrawn(d)).toEqual([]); // rien à l'écran avant le geste
+    const before = resolveSpeciesTalents(draftSpecies(d)!, d);
+    const rolled = rollDraftTalents(d);
+    const drawn = speciesTalentRandomDrawn(rolled);
+    expect(drawn).toHaveLength(3);
+    expect(resolveSpeciesTalents(draftSpecies(rolled)!, rolled)).toHaveLength(before.length + drawn.length);
+    expect(speciesTalentRandomDrawn(rollDraftTalents(draft()))).toEqual(drawn); // découverte, jamais un re-tirage
+  });
+  it('validation 5c : le tirage des Talents aléatoires est exigé (validateStep + talentsDone)', () => {
+    const untirés = { ...readyDraft(), talentsRolled: false };
+    expect(validateStep(untirés, 'skills')).toBe('Tirez vos Talents aléatoires aux dés.');
+    expect(talentsDone(untirés)).toBe(false);
+    expect(validateStep(readyDraft(), 'skills')).toBeNull();
+    expect(talentsDone(readyDraft())).toBe(true);
+  });
+  it('changer d\'espèce réinitialise le geste des Talents (la table de tirage appartient à l\'espèce)', () => {
+    const rolled = rollDraftTalents(draft());
+    const other = allSpecies.find((s) => s.id !== rolled.speciesId)!.id;
+    expect(withSpecies(rolled, other).talentsRolled).toBe(false);
+  });
+});
+
+describe('Riverains ⇄ Côtiers (MDG 09 l.9, #393 P2 correctif utilisateur)', () => {
+  const swappableSpecies = allSpecies.find((s) => coastalSwapAvailable(withSpecies(newDraft(1), s.id)))!;
+  const swappable = () => withSpecies(newDraft(1234), swappableSpecies.id);
+
+  it('la table effective exclut Riverains XOR Côtiers selon la bascule — jamais les deux', () => {
+    const off = careerRollPool({ ...swappable(), coastalSwap: false });
+    expect(off.some((c) => c.class === 'cotiers')).toBe(false);
+    expect(off.some((c) => c.class === 'riverains')).toBe(true);
+    const on = careerRollPool({ ...swappable(), coastalSwap: true });
+    expect(on.some((c) => c.class === 'riverains')).toBe(false);
+    expect(on.some((c) => c.class === 'cotiers')).toBe(true);
+  });
+
+  it('anti-exploit : la bascule refuse de changer d\'état une fois un jet posé (relance gratuite bloquée)', () => {
+    const rolled = rollDraftCareer(swappable());
+    expect(rolled.careerRolls.length).toBeGreaterThan(0);
+    const before = rolled.careerRolls;
+    const attempted = withCoastalSwap(rolled, !rolled.coastalSwap);
+    expect(attempted.coastalSwap).toBe(rolled.coastalSwap); // état INCHANGÉ
+    expect(attempted.careerRolls).toBe(before); // jets INTACTS (pas de reset détourné)
+  });
+
+  it('la bascule fonctionne normalement tant qu\'aucun jet n\'existe', () => {
+    const d = swappable();
+    expect(d.careerRolls.length).toBe(0);
+    const swapped = withCoastalSwap(d, !d.coastalSwap);
+    expect(swapped.coastalSwap).toBe(!d.coastalSwap);
+  });
+});
+
+describe('bonus de PX (LDB 04/05)', () => {
+  it('espèce : +20 tant qu\'on choisit une espèce de la borne tirée, 0 sinon', () => {
+    const d1 = rollDraftSpecies(draft());
+    expect(speciesXp(d1)).toBe(20);
+    // Une espèce HORS de la borne tirée perd le bonus (la borne d100 ne contient pas tout).
+    const outside = ['nains', 'halflings', 'hauts-elfes'].find((id) => !d1.speciesRoll!.ids.includes(id))!;
+    expect(speciesXp(withSpecies(d1, outside))).toBe(0);
+  });
+  it('carrière : +50 (1er jet), +25 (parmi 3), 0 (libre / relances)', () => {
+    const d1 = rollDraftCareer(draft());
+    expect(careerXp(d1)).toBe(50);
+    // Une carrière hors des bornes tirées (refusée sans relancer) → choix libre, 0 PX.
+    const rolledIds = new Set(d1.careerRolls.flatMap((r) => r.ids));
+    const other = ['soldat', 'artisan', 'apothicaire'].find((id) => !rolledIds.has(id))!;
+    expect(careerXp(withCareer(d1, other))).toBe(0);
+    const d3 = rollDraftCareer(d1);
+    expect(d3.careerRolls).toHaveLength(3);
+    expect(careerXp(withCareer(d3, d3.careerRolls[2].ids[0]))).toBe(25);
+    const dFree = rollDraftCareer(d3); // « continuez à relancer » (LDB 05 l.212)
+    expect(careerXp(dFree)).toBe(0);
+  });
+  it('caractéristiques : +50 gardées, +25 réassignées, 0 après relance ou 100 Points — et 0 sans le GESTE', () => {
+    expect(charsXp(draft())).toBe(0); // pas de bonus pour un tirage jamais lancé (#393 agentivité)
+    const d = rollDraftChars(draft());
+    expect(charsXp(d)).toBe(50);
+    expect(charsXp({ ...d, charMode: 'reassigned' })).toBe(25);
+    expect(charsXp({ ...d, charRerolls: 1 })).toBe(0);
+    expect(charsXp({ ...d, charMode: 'pointBuy' })).toBe(0);
+  });
+});
+
+describe('careerCharKeys (Augmentations de carrière)', () => {
+  it('renvoie les Caractéristiques de carrière en clés CharKey (jamais vide pour une carrière réelle)', () => {
+    const d = withCareer(draft(), 'soldat');
+    const keys = careerCharKeys(d);
+    expect(keys.length).toBeGreaterThan(0); // sinon la grille d'allocation est vide → étape infranchissable
+    // La donnée EST déjà en abréviations : chaque clé doit être un CharKey valide (régression #566 :
+    // un mapping libellé→clé renvoyait `undefined` pour tout → liste vide).
+    for (const k of keys) expect(CHAR_KEYS).toContain(k);
+    expect(keys).toContain('capacite-de-combat'); // Soldat : Capacité de Combat est de carrière
+    expect(keys).toEqual(draftLevel(d)!.characteristics);
+  });
+});
+
+describe('validation des étapes', () => {
+  it('Caractéristiques : 5 Augmentations et split Destin/Résilience exigés', () => {
+    const d = rollDraftChars(draft());
+    expect(validateStep(d, 'chars')).toMatch(/5 Augmentations/);
+    const ok = readyDraft();
+    expect(validateStep(ok, 'chars')).toBeNull();
+  });
+  it('Caractéristiques : réassignation = permutation stricte des dix jets', () => {
+    const d = { ...readyDraft(), charMode: 'reassigned' as const };
+    expect(validateStep(d, 'chars')).toBeNull();
+    const bad = { ...d, assignment: { ...d.assignment, 'capacite-de-combat': d.assignment['capacite-de-tir'] } };
+    expect(validateStep(bad, 'chars')).toMatch(/une seule fois/);
+  });
+  it('Compétences : 40 augmentations, max 10, 3+3 compétences d\'espèce, talent choisi', () => {
+    const d = readyDraft();
+    expect(validateStep(d, 'skills')).toBeNull();
+    expect(validateStep({ ...d, skillAdvances: {} }, 'skills')).toMatch(/40 Augmentations/);
+    expect(validateStep({ ...d, speciesPlus5: [] }, 'skills')).toMatch(/3 Compétences/);
+    expect(validateStep({ ...d, careerTalent: undefined }, 'skills')).toMatch(/Talent de carrière/);
+  });
+});
+
+describe('buildHero — bout en bout', () => {
+  it('l’apparence du brouillon passe au héros d’un seul tenant, et (c) draftFromHero la restitue, coiffure comprise', () => {
+    const coiffureF = garanti(Object.keys(SEXE_DE_COIFFURE).find((id) => SEXE_DE_COIFFURE[id] === 'F'), 'F', 'coiffure du sexe');
+    const d = readyDraft();
+    const apparence = { sex: 'F' as const, build: 0.3, seed: 42, hairstyle: coiffureF, colors: { cheveux: '#aa3300' } };
+    const hero = buildHero({ ...d, apparence }, 'h-apparence');
+    expect(hero.appearance).toEqual({ ...apparence, species: rigSpeciesId(d.speciesId) });
+    expect(draftFromHero(hero, 7).apparence).toEqual(apparence);
+  });
+  it('héros conforme : PX bonus, Augmentations, libellés résolus, désignations posées', () => {
+    let d = readyDraft();
+    d = { ...d, age: 20, height: 175, eyes: 'Bleu', hair: 'Brun' };
+    const hero = buildHero(d, 'h-test');
+    expect(hero.xp).toBe(xpTotal(d));
+    expect(Object.values(hero.charAdvances ?? {}).reduce((a, b) => a + (b ?? 0), 0)).toBe(5);
+    for (const s of hero.skills) expect(`${s.spec ?? ''}`).not.toMatch(/au choix/i);
+    expect(hero.details?.age).toBe(20);
+    expect(hero.appearance?.species).toBe(rigSpeciesId(d.speciesId));
+    // Le total des dix Caractéristiques = somme du brouillon (transferts +5 de talents possibles).
+    const sum = CHAR_KEYS.reduce((a, k) => a + hero.characteristics[k], 0);
+    const draftSum = CHAR_KEYS.reduce((a, k) => a + draftChars(d)[k], 0);
+    expect(sum).toBeGreaterThanOrEqual(draftSum + 5); // + 5 Augmentations (+ éventuels +5 de talents)
+  });
+  it('la richesse initiale est figée et conforme au Statut', () => {
+    const d = readyDraft();
+    expect(draftWealth(d)).toEqual(draftWealth(d));
+  });
+  it('careerSkillEntries : les huit Compétences de départ du Niveau (LDB 05 l.535)', () => {
+    const d = readyDraft();
+    expect(careerSkillEntries(d).map((c) => c.adresse)).toEqual((draftLevel(d)?.skills ?? []).map((_, i) => adresseDeCreation.carriereCompetence(i)));
+  });
+  it.each(['maitre-artisan', 'artiste'])('un ajout de Talent (%s) est hors de la grille des 40 Augmentations (LDB 05 l.535)', (id) => {
+    const d = { ...readyDraft(), careerTalent: { id } };
+    const adds = careerSkillAdditions(probeHero(d));
+    expect(adds.length).toBeGreaterThan(0);
+    const entries = careerSkillEntries(d);
+    for (const a of adds) expect(entries.some((c) => c.adresse === adresseDeCreation.ajout(a.id))).toBe(false);
+  });
+});
+
+describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, construct de choix d\'équipement)', () => {
+  const WEAPON_SLOT = emplacementsDeDotation('pretre-guerrier', 1).find((e) => e.sorte === 'joker')!.adresse;
+
+  it('trappingChoices (id STABLE) résout l\'emplacement en l\'objet catalogue choisi', () => {
+    // Prêtre Guerrier (Novice) : seule carrière du LDB à porter { wildcard: 'arme' } (l.1).
+    const d = { ...withCareer(readyDraft(), 'pretre-guerrier'), specChoices: {}, careerTalent: { id: 'obstine' }, trappingChoices: { [WEAPON_SLOT]: 'baton-de-combat' } };
+    const hero = buildHero(d, 'h-weapon');
+    expect((hero.items ?? []).some((it) => it.trappingId === 'baton-de-combat')).toBe(true);
+    // Sans choix : `resolveTrappingChoices` laisse le `{wildcard}` NON résolu — aucun objet fantôme.
+    const noChoice = buildHero({ ...d, trappingChoices: {} }, 'h-noweapon');
+    expect((noChoice.items ?? []).some((it) => it.trappingId === 'baton-de-combat')).toBe(false);
+  });
+
+  it('validateStep(\'trappings\') exige la résolution du `{wildcard}` de la carrière', () => {
+    const base = { ...withCareer(readyDraft(), 'pretre-guerrier'), specChoices: {}, careerTalent: { id: 'obstine' }, wealthRoll: true };
+    expect(validateStep({ ...base, trappingChoices: {} }, 'trappings')).toMatch(/Arme \(au choix\)/);
+    expect(validateStep({ ...base, trappingChoices: { [WEAPON_SLOT]: 'baton-de-combat' } }, 'trappings')).toBeNull();
+  });
+
+  it('la porte et `buildHero` lisent les MÊMES adresses : dotation de classe puis de niveau, branches comprises', () => {
+    avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, () => {
+      const dot = adresseDeCreation.dotation;
+      const d = { ...withCareer(readyDraft(), CARRIERE_FIXTURE), careerTalent: undefined, wealthRoll: true };
+      const [classe] = DOTATIONS_FIXTURE.classe;
+      const [joker, , branches] = DOTATIONS_FIXTURE.niveau;
+      expect(unresolvedTrappingSlots(d)).toEqual([classe, joker, branches].map(trappingRefLabel));
+      const trappingChoices = { [dot([0])]: 1, [dot([0, 1])]: 'solide', [dot([1])]: 'baton-de-combat', [dot([3])]: 0, [dot([3, 0])]: 1, [dot([3, 0, 1])]: 'dague' };
+      expect(unresolvedTrappingSlots({ ...d, trappingChoices })).toEqual([]);
+      const objets = (buildHero({ ...d, trappingChoices }, 'h-dotations').items ?? []).map((it) => it.trappingId);
+      expect(objets).toEqual(expect.arrayContaining(['fleuret', 'baton-de-combat', 'pinceau', 'dague']));
+      expect(objets).not.toContain('miroir-a-main');
+      expect(objets).not.toContain('grande-hache');
+    });
+  });
+});
+
+describe('Magie mineure à la création (LDB 10 l.714) — BFM sorts inclus au Talent', () => {
+  /** Brouillon Sorcier valide (Niveau 1 : talent « Magie mineure » choisissable). */
+  function sorcererDraft() {
+    const base = withCareer(readyDraft(), 'sorcier');
+    return {
+      ...base,
+      charAdvancesAlloc: { 'force-mentale': 5 },
+      ...carrierePrete(base),
+      careerTalent: { id: 'magie-mineure' },
+    };
+  }
+  const minorsOf = (n: number) => spells.filter((s) => s.ecole === 'Magie mineure').slice(0, n).map((s) => s.id);
+
+  it('quota = BFM final ; l\'étape 4 exige EXACTEMENT ce nombre de sorts', () => {
+    const d = sorcererDraft();
+    const quota = pettySpellQuota(d);
+    expect(quota).toBeGreaterThan(0);
+    expect(validateStep(d, 'skills')).toMatch(/sorts de Magie mineure/);
+    expect(validateStep({ ...d, pettySpells: minorsOf(quota) }, 'skills')).toBeNull();
+    expect(validateStep({ ...d, pettySpells: minorsOf(quota - 1) }, 'skills')).toMatch(/sorts de Magie mineure/);
+  });
+
+  it('buildHero mémorise les sorts choisis (0 PX — inclus au Talent)', () => {
+    const d = sorcererDraft();
+    const picks = minorsOf(pettySpellQuota(d));
+    const hero = buildHero({ ...d, pettySpells: picks }, 'h-petty');
+    for (const m of picks) expect(hero.spells).toContain(m);
+    expect(hero.xp).toBe(xpTotal(d)); // rien payé
+  });
+
+  it('sans le Talent : quota 0, aucune exigence à l\'étape 4', () => {
+    expect(pettySpellQuota(readyDraft())).toBe(0);
+    expect(validateStep(readyDraft(), 'skills')).toBeNull();
+  });
+
+  /** Talent « +5 FM » (Imperturbable, LDB 10) au quota : verrouille la source UNIQUE des +5 de
+   *  talent (`baseWithTalents`, jamais une boucle manuelle re-implémentée dans `pettySpellQuota`).
+   *  Humains (Tiléens) portent le choix « Imperturbable ou Affable » (Affable = Sociabilité, témoin
+   *  neutre) ; BFM figé en `pointBuy` pour franchir la décade sans dépendre du tirage. */
+  it('talent « +5 FM » (Imperturbable) : quota supérieur au témoin sans bonus de FM', () => {
+    const tileenSorcererDraft = (talentPick: 'imperturbable' | 'affable') => {
+      const base = withCareer(withSpecies(newDraft(4321), 'humains-tileens'), 'sorcier');
+      const sp = draftSpecies(base)!;
+      const speciesTalentChoices: CreatorDraft['speciesTalentChoices'] = {};
+      for (const { adresse, options } of speciesTalentChoiceEntries(base)) {
+        speciesTalentChoices[adresse] = options.find((o) => 'id' in o && o.id === talentPick) ?? options[0];
+      }
+      return {
+        ...base,
+        charMode: 'pointBuy' as const,
+        pointBuy: { ...base.pointBuy, 'force-mentale': 7 }, // base 20 + 7 = 27 (bonus 2), à la frontière de décade
+        charsRolled: true,
+        talentsRolled: true,
+        speciesPlus5: speciesSkillDefaults(sp).plus5,
+        speciesPlus3: speciesSkillDefaults(sp).plus3,
+        speciesTalentChoices,
+        ...carrierePrete(base),
+        careerTalent: { id: 'magie-mineure' },
+      };
+    };
+    const withImperturbable = pettySpellQuota(tileenSorcererDraft('imperturbable'));
+    const withoutFmBonus = pettySpellQuota(tileenSorcererDraft('affable'));
+    expect(withImperturbable).toBe(withoutFmBonus + 1);
+  });
+});
+
+describe('signe astral (ADE II 3) — étape, tirage, PX et effet', () => {
+  it('stepIds insère « star » juste après « chars » (règle activée par défaut)', () => {
+    const ids = stepIds();
+    expect(ids).toContain('star');
+    expect(ids.indexOf('star')).toBe(ids.indexOf('chars') + 1);
+  });
+
+  it('rollDraftStar : tirage FIGÉ (seed) ; le signe gardé = le signe tiré', () => {
+    const d = rollDraftStar(draft());
+    expect(d.starRoll).toBeTruthy();
+    expect(d.star).toBe(d.starRoll);
+    expect(rollDraftStar(draft()).starRoll).toBe(d.starRoll); // déterministe
+  });
+
+  it('starXp : +25 si le tirage est gardé, 0 si choix libre (l.36)', () => {
+    const rolled = rollDraftStar(draft());
+    expect(starXp(rolled)).toBe(25);
+    const other = stars.find((s) => s.id !== rolled.starRoll)!.id;
+    expect(starXp({ ...rolled, star: other })).toBe(0);
+    expect(starXp(draft())).toBe(0); // aucun tirage
+  });
+
+  it('rollDraftAstrology : une lecture par Demeure céleste, depuis la DONNÉE (ADE II 3 l.504-512)', () => {
+    const d = rollDraftAstrology(draft());
+    expect(d.ascendant).toBeTruthy();
+    expect(celestialHouses.length).toBe(5);
+    expect(d.dwellings!.map((w) => w.house)).toEqual(celestialHouses.map((h) => h.id));
+    for (const w of d.dwellings!) expect(w.sign).toBeTruthy();
+    expect(rollDraftAstrology(draft()).dwellings).toEqual(d.dwellings); // figé par le seed
+  });
+
+  it('buildHero applique les ±carac du signe aux attributs de départ', () => {
+    const base = readyDraft();
+    const a = buildHero(base, 'h-nostar');
+    const b = buildHero({ ...base, star: 'wymund-l-anachorete' }, 'h-star'); // id ; +2 Soc, +2 I, -3 Int
+    expect(b.characteristics.sociabilite - a.characteristics.sociabilite).toBe(2);
+    expect(b.characteristics.initiative - a.characteristics.initiative).toBe(2);
+    expect(b.characteristics.intelligence - a.characteristics.intelligence).toBe(-3);
+    expect(b.star).toBe('wymund-l-anachorete');
+  });
+});
+
+/** Un choix « A ou B » de Talent d'espèce se keye par l'ADRESSE de son entrée dans `sp.talents`, jamais par
+ *  un libellé (#1923) : renommer une option ne déprend aucun brouillon écrit. */
+describe('clés des choix de Talents d’espèce : l’adresse de l’entrée', () => {
+  it('chaque entrée « A ou B » de chaque espèce est adressée par son rang dans `sp.talents`', () => {
+    for (const sp of allSpecies) {
+      const attendues = sp.talents.flatMap((a, i) => ('pick' in a ? [adresseDeCreation.especeTalent(i)] : []));
+      expect(speciesTalentChoiceEntries(withSpecies(newDraft(7), sp.id)).map((e) => e.adresse)).toEqual(attendues);
+    }
+  });
+});
+
+describe('5b — un joker de carrière sur une Compétence déjà tenue (LDB 05 l.535)', () => {
+  it('le bandeau nomme le refus `slot.takenByOther`, que la sélection n\'offre plus', () => {
+    const d = withCareer(withSpecies(newDraft(1), 'humains-reiklander'), 'gladiateur');
+    const joker = careerSkillEntries(d).find((c) => c.ref.choix != null)!;
+    expect(joker.libre('bagarre')).toBe(false);
+    const pris = { ...d, specChoices: { [joker.adresse]: 'bagarre' } };
+    expect(skillsSubMessage(pris, 'career')).toBe('« Corps à corps (Bagarre) » : déjà pris par un autre emplacement de ce Niveau de Carrière.');
+  });
+});

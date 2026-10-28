@@ -102,7 +102,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     { kind: 'grantCareerSkill', category: 'skills', build: () => ({ op: 'grantCareerSkill', skill: { id: skills[0].id } }) },
     { kind: 'skillMod', category: 'skills', build: () => ({ op: 'skillMod', skill: { id: skills[0].id }, mod: -10 }) },
     { kind: 'skillDRBonus', category: 'skills', build: () => ({ op: 'skillDRBonus', skill: { id: skills[0].id }, bonus: 1 }) },
-    { kind: 'grantTrait', category: 'traits', build: () => ({ op: 'grantTrait', traitId: traits[0].id }) },
+    { kind: 'grantTrait', category: 'traits', build: () => ({ op: 'grantTrait', trait: { id: traits[0].id } }) },
     { kind: 'grantPsychTrait', category: 'psychologies', build: () => ({ op: 'grantPsychTrait', psychType: psychologies[0].id }) },
     { kind: 'removePsychTrait', category: 'psychologies', build: () => ({ op: 'removePsychTrait', psychType: psychologies[0].id }) },
     { kind: 'endPsych', category: 'psychologies', build: () => ({ op: 'endPsych', type: psychologies[0].id }) },
@@ -273,19 +273,19 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
 
 describe('opRow — grantTrait à Portée (LDB 85 l.209 ; LDB 79 l.142)', () => {
   it('la rangée montre la Portée de l’op', () => {
-    const row = opRow({ op: 'grantTrait', traitId: 'langue-prehensile', indice: 5, range: 12 });
+    const row = opRow({ op: 'grantTrait', trait: { id: 'langue-prehensile', value: 5, range: 12 } });
     expect(row.t).toBe('ref');
     if (row.t === 'ref') { expect(row.show).toBe('Langue préhensile +5 (12)'); expect(row.badge).toBeUndefined(); }
   });
 
   it('une attaque rend son Indice littéral en « +Dégâts »', () => {
-    const row = opRow({ op: 'grantTrait', traitId: 'morsure', indice: 4 });
+    const row = opRow({ op: 'grantTrait', trait: { id: 'morsure', value: 4 } });
     expect(row.t).toBe('ref');
     if (row.t === 'ref') { expect(row.show).toBe('Morsure +4'); expect(row.badge).toBeUndefined(); }
   });
 
   it('un Indice Formula reste en badge', () => {
-    const row = opRow({ op: 'grantTrait', traitId: 'vol', indice: { charOf: 'agilite' } });
+    const row = opRow({ op: 'grantTrait', trait: { id: 'vol', value: { charOf: 'agilite' } } });
     expect(row.t).toBe('ref');
     if (row.t === 'ref') { expect(row.show).toBe('Vol'); expect(row.badge).toBe(humanizeFormula({ charOf: 'agilite' })); }
   });
@@ -310,7 +310,7 @@ describe('pastille `charMod` — plancher et durée propre dits au producteur (E
   });
 
   it('`condition` lit la même durée propre', () => {
-    const r = opRow({ op: 'condition', id: 'etourdi', durationHours: 2 });
+    const r = opRow({ op: 'condition', id: etats[0].id, durationHours: 2 });
     expect(r.t === 'ref' ? r.badge : undefined).toBe('2 heures');
   });
 });

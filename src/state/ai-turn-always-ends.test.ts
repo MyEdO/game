@@ -10,7 +10,7 @@ const scenarioConstruit = scenario.construire();
  * encore intacte), un allié IA (`aiControlled`, ex. servant du crew d'un poste d'engin de siège) n'a
  * plus AUCUNE cible (`foeKind` en face = vide) — `runEnemyAI` retournait alors SANS appeler
  * `advanceTurn` : le tour ne se termine jamais (soft-lock, reproduit en recette sur `belier-porte`).
- * Scène RÉELLE (pas une fixture synthétique) : `crewIds` du poste bélier + `garde-du-village` PNJ IA
+ * Scène RÉELLE (pas une fixture synthétique) : `crewIds` du poste bélier + `brute` PNJ IA
  * (`ai:true` → `aiControlled`, `combatSlice.ts` bascule son `kind` en 'hero' car `side:'ally'`).
  */
 describe('un tour IA se termine TOUJOURS, même sans adversaire vivant et combat non terminé', () => {

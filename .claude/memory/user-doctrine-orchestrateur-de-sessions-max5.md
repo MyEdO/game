@@ -1,6 +1,6 @@
 ---
 name: user-doctrine-orchestrateur-de-sessions-max5
-description: "Régime MAX x5 : l'orchestrateur ne fait jamais le travail d'un chantier ; au plus 2 sessions Claude exécutantes, aucune Codex ; une session neuve par ticket, jamais --resume"
+description: "Régime MAX x5 : l'orchestrateur ne fait jamais le travail d'un chantier ; au plus 2 sessions Claude exécutantes, Codex par le pont à l'effectif de l'annexe codex.md ; une session neuve par ticket, jamais --resume"
 metadata:
   type: user
 ---
@@ -15,4 +15,16 @@ metadata:
 
 **Verbatim (2026-10-17)** : « je n'ai plus d'usage sur codex, donc inutile dans lancer de nouveau »
 
-**How to apply :** l'orchestrateur ne fait jamais le travail d'un chantier : il attribue et relaie. Au plus 2 sessions Claude exécutantes, aucune session Codex. Une session NEUVE par ticket, à consigne courte, fermée une fois le ticket publié, sauf si le ticket suivant retravaille les MÊMES fichiers juste après ; jamais `claude --resume`. Elle se lance, se liste et se ferme par `npm run ops:session` (skill `orchestrer-des-agents`).
+**Verbatim (2026-10-23)** : « Tu peux passer en orchestrator de session et donner du travail a Codex. Par contre pas d'agent claude », puis : « tu peux en avoir 2 des sessions codex »
+
+**Verbatim (2026-10-24)** : « j'ai réinitiatilé l'usage codex, tu peux de nouveau lancé des sessions », puis : « Ok, tu peux lancer un autre codex au besoin », puis : « Pas besoin d'un 3ieme codex ? », puis : « je preferais avoir le pont et utiliser la 0.164 », puis : « Tu peux ouvrir un claude sur ce sujet ? »
+
+*Question posée (AskUserQuestion, non-verbatim utilisateur) : Combien de Codex en parallèle (point E) ?*
+
+**Choix (2026-10-25)** : « 2 au plus »
+
+*Question posée (AskUserQuestion, non-verbatim utilisateur) : Qui relit le diff de Codex avant chaque commit (point B) ?*
+
+**Choix (2026-10-25)** : « Juge Claude + moi »
+
+**How to apply :** l'orchestrateur ne fait jamais le travail d'un chantier : il attribue et relaie. Au plus 2 sessions Claude exécutantes ; les sessions Codex passent par le pont 0.164, à l'effectif de l'annexe `codex.md` du skill `orchestrer-des-agents`. Une session NEUVE par ticket, à consigne courte, fermée une fois le ticket publié, sauf si le ticket suivant retravaille les MÊMES fichiers juste après ; jamais `claude --resume`. Elle se lance, se liste et se ferme par `npm run ops:session` (skill `orchestrer-des-agents`).

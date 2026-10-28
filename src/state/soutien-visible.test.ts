@@ -4,7 +4,8 @@ import { runFlow } from '../noyau/combatEffects';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 import { openPartyTest } from '../noyau/rollSeam';
 import { routeTriggeredTest } from '../noyau/combat/triggeredTest';
-import { findTrappingById } from '../data';
+import { findTrappingById, refLabel } from '../data';
+import { RULE_REF } from '../engine/ruleRefs';
 import { testFlow } from '../noyau/monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
@@ -97,7 +98,7 @@ describe('#1064 — le pending PORTE le détail du Soutien (couture)', () => {
     const step = useGame.getState().pendingCascade!.participants[0];
     expect(step.base).toBe(35); // Niveau de Compétence NU du meneur (Ag 30 + 5), LDB 09 l.17
     expect(step.target).toBe(45); // …le Soutien reste un MODIFICATEUR compris dans la cible (l.189-190)
-    expect(step.mods).toEqual([{ label: 'Soutien', value: 10, famille: 'jet', ref: { category: 'regles', id: 'soutien' }, by: [{ id: 'h2' }] }]);
+    expect(step.mods).toEqual([{ label: refLabel('regles', RULE_REF.soutien), value: 10, famille: 'jet', ref: RULE_REF.soutien, by: [{ id: 'h2' }] }]);
   });
 });
 

@@ -1,82 +1,49 @@
 /**
- * Dispatcher PUR des Traits de créature (LDB 85) : normalise chaque chaîne de trait (« Démoniaque 8+ »,
- * « Toile 40 », « Immunité (Poison) ») en { clé canonique, Indice, argument }, puis expose des
- * helpers typés que spawn/combat/IA appellent au lieu de tester des chaînes en dur. Aucune mutation.
- * Même patron que `engine/qualities/dispatch.ts`.
+ * Dispatcher PUR des Traits de créature (LDB 85) : lit chaque trait STRUCTURÉ { id, Indice, argument }
+ * et expose des helpers typés que spawn/combat/IA appellent au lieu de tester des chaînes en dur, plus
+ * son rendu « format livre » (`formatTrait`). Aucune mutation. Même patron que
+ * `engine/qualities/dispatch.ts`.
  */
 import type { CharKey, Combatant } from '../types';
-import { TRAITS, TraitDef } from './registry';
-import { parseStatEntry, isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry } from '../statEntry';
-import { ARG_JOKER } from '../../data/schemas/grammaire/reference';
-import { traitIdByLabel, findTraitById, findQualityById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
-import { slugId } from '../../data/slug';
+import { TRAITS } from './registry';
+import { isOptionalNote, type TraitList, type TraitsDesignes, type OptionalEntry } from '../statEntry';
+import { ARG_JOKER, type TraitPose } from '../../data/schemas/grammaire/reference';
+import { formaterParLocalisation } from '../classementDeTrait';
+import { findTraitById, findQualityById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
 import type { PassiveMod } from '../ops';
 import { t, type MsgKey } from '../../i18n';
-
-/** Résolution UNIQUE libellé (casse ignorée) → `id` STABLE (slug), DÉRIVÉE de `traits.json` (la
- *  donnée, AUSSI source de `TRAITS`) — source unique de l'import label→id (statblocs / migration).
- *  Les attaques naturelles (Morsure, Cornes…) et marqueurs spéciaux (Venin, Maladie, Mort-vivant…)
- *  sont désormais des traits EN DONNÉE : plus aucune liste de libellés en dur à tenir alignée. */
-/** COUTURE libellé→id (#602) : nom de trait SAISI (statbloc, migration) → `id` STABLE. Prend du
- *  TEXTE — le seul sens toléré par la doctrine ; aucun appelant ne l'alimente avec le `.label` d'une
- *  entité qu'il tient déjà (elle porte alors son `id`). Inconnu du registre → slug du texte. */
-export function canonTraitId(text: string): string {
-  return knownTraitId(text) ?? slugId(text);
-}
-
-/** Idem, mais `undefined` si le texte ne nomme AUCUN trait du registre (le repli par slug masquerait
- *  l'inconnu là où l'appelant doit le distinguer). */
-export function knownTraitId(text: string): string | undefined {
-  return traitIdByLabel(text);
-}
 
 /** Inverse : `id` → libellé FR canonique (affichage : inspecteur/Codex/éditeur). Même couverture —
  *  l'id d'un trait EST le slug de son libellé (`engine/traits/parity.test.ts`). */
 export const traitLabelById = (id: string): string => findTraitById(id)?.label ?? id;
 
-/** IMPORT (saisie éditeur / migration JSON) : chaîne de statbloc → trait STRUCTURÉ. La clé est
- *  canonicalisée sur le registre (« morsure » → « Morsure ») ; sinon le nom brut est conservé
- *  (« Arme », « À distance », « Griffes »). C'est le SEUL endroit qui parse — le runtime lit les champs. */
-export function parseTraitInstance(raw: string): TraitInstance {
-  const p = parseStatEntry(raw);
-  const t: TraitInstance = { id: canonTraitId(p.name) };
-  const value = p.bonus ?? p.indice;
-  if (value != null) t.value = value;
-  if (p.arg != null) t.arg = p.arg;
-  if (p.count != null) t.count = p.count;
-  if (p.range != null) t.range = p.range;
-  return t;
-}
-
 /** Résout l'ARGUMENT `arg` d'une instance de trait en LIBELLÉ d'affichage via le catalogue partagé
- *  `SPEC_SOURCES` de sa def : « poison » → « Poison », « sigmar » → « Sigmar », « noble, homme-bete »
- *  → « Noble, Homme-bête ». Sans `specsSource` (trait indice-seul, arg descriptif libre) ou joker
- *  « au choix » → verbatim. `specsMulti` : liste d'ids jointe par virgules, chaque part résolue (une
- *  part joker reste verbatim). Un id INCONNU / texte libre (`specsOpen`) reste verbatim — `SPEC_SOURCES
- *  [source].label` le rend tel quel (repli `?? id`), la saveur libre est donc préservée sans cas spécial. */
+ *  `SPEC_SOURCES` de sa def : « poison » → « Poison », « sigmar » → « Sigmar ». Sans `specsSource`
+ *  (trait indice-seul, arg descriptif libre) ou joker « au choix » → verbatim. Un id INCONNU / texte
+ *  libre (`specsOpen`) reste verbatim — `SPEC_SOURCES[source].label` le rend tel quel (repli `?? id`),
+ *  la saveur libre est donc préservée sans cas spécial. */
 function resolveTraitArg(def: TraitData | undefined, arg: string): string {
   const source = def?.specsSource;
-  if (!source || ARG_JOKER.test(arg)) return arg;
-  const one = (id: string) => (/au choix/i.test(id) ? id : SPEC_SOURCES[source].label(id));
-  return def.specsMulti ? arg.split(',').map((p) => one(p.trim())).join(', ') : one(arg.trim());
+  if (!source || ARG_JOKER.test(arg.trim())) return arg;
+  return SPEC_SOURCES[source].label(arg.trim());
 }
 
 /** Traits dont la valeur est un BONUS de Dégâts signé (« Morsure +9 », « À distance +8 ») — affichés
  *  « +N » et, pour les attaques typées, « Nom +N (Type) » (l'ordre du livre). Les autres traits à
  *  Indice gardent « Nom (Spec) N » (« Immunité (Poison) »), les sauvegardes « Nom N+ » (« Démoniaque 8+ »). */
-/** Rendu lisible et FIDÈLE d'un trait structuré (inverse exact de `parseTraitInstance` pour l'affichage)
+/** Rendu lisible et FIDÈLE d'un trait structuré (inverse exact de `parseTraitInstance`, `ui/editor/refFormatLivre.ts`)
  *  — inspecteur / Codex / éditeur / libellé d'attaque. Restitue le signe « + » des Dégâts (attaques),
  *  le « + » de seuil des sauvegardes, sinon l'Indice nu. La NATURE est lue en DONNÉE (jamais une liste
  *  en dur) : une attaque = trait qui octroie des Manœuvres (`grantsManeuvers`, mêlée) OU est une arme
  *  naturelle (`capabilities.naturalWeapon`, dont le tir) → sa valeur s'affiche « +Dégâts ». */
-export function formatTrait(t: TraitInstance): string {
+export function formatTrait(t: TraitPose): string {
   const td = findTraitById(t.id);
   const label = traitLabelById(t.id);
   const head = t.count != null ? `${t.count} ${label}` : label;
   const isAttack = !!td?.grantsManeuvers || !!td?.capabilities?.naturalWeapon;
   const ward = !isAttack && !!td?.capabilities?.wardSave;
-  const val = t.value == null ? '' : isAttack ? ` +${t.value}` : ward ? ` ${t.value}+` : ` ${t.value}`;
-  const arg = t.arg ? ` (${resolveTraitArg(td, t.arg)})` : '';
+  const val = t.plage ? ` ${t.plage.min}-${t.plage.max}` : t.value == null ? '' : isAttack ? ` +${t.value}` : ward ? ` ${t.value}+` : ` ${t.value}`;
+  const arg = t.parLocalisation ? ` (${formaterParLocalisation(t.parLocalisation)})` : t.arg ? ` (${resolveTraitArg(td, t.arg)})` : '';
   const range = t.range != null ? ` (${t.range})` : '';
   // Attaques : « Nom +Dégâts (Type) [(portée)] » ; autres : « Nom (Spec) Indice ».
   return isAttack ? `${head}${val}${arg}${range}` : `${head}${arg}${val}${range}`;
@@ -84,7 +51,7 @@ export function formatTrait(t: TraitInstance): string {
 
 /** `TraitList` → libellés affichables (UI/Codex/éditeur) : chaque `TraitInstance` formatée par
  *  `formatTrait` (inverse fidèle de `parseTraitInstance`). */
-export const traitLabels = (traits: TraitList | undefined): string[] =>
+export const traitLabels = (traits: readonly TraitPose[] | undefined): string[] =>
   (traits ?? []).map(formatTrait);
 
 /** Libellé d'un OPTIONNEL (LDB 76) : un `TraitInstance` ordinaire est formaté par `formatTrait` ; une
@@ -118,6 +85,8 @@ const SPEC_SOURCE_KEY: Record<SpecsSource, MsgKey> = {
   damageTypes: 'specSrc.damageType',
   weaponsMelee: 'specSrc.weapon',
   weaponsRanged: 'specSrc.weapon',
+  exposureLevels: 'specSrc.exposure',
+  difficulties: 'specSrc.difficulty',
 };
 
 /** Squelette d'ARGUMENT d'un Trait DÉRIVÉ de son schéma (sous-titre du Codex, remplace le champ figé
@@ -132,33 +101,9 @@ export function traitArgSkeleton(def: Pick<TraitData, 'indice' | 'specsSource' |
   return parts.length ? parts.join(' ') : undefined;
 }
 
-export interface ResolvedTrait {
-  /** `id` STABLE du trait (slug, identique à `TraitInstance.id`). */
-  id: string;
-  def: TraitDef;
-  indice?: number;
-  arg?: string;
-}
-
-/** Traits du registre présents sur la créature (`TraitInstance` structurés, zéro parsing). Traits hors
- *  registre (attaques naturelles, marqueurs) ignorés ici — ils ont leurs propres consommateurs. */
-export function resolveTraits(traits: TraitList | undefined): ResolvedTrait[] {
-  const out: ResolvedTrait[] = [];
-  for (const t of traits ?? []) {
-    const def = TRAITS()[t.id];
-    if (def) out.push({ id: t.id, def, indice: t.value, arg: t.arg });
-  }
-  return out;
-}
-
 /** La créature possède-t-elle le trait d'`id` donné ? (registre `defs/` UNIQUEMENT). */
 export function hasTrait(traits: TraitList | undefined, id: string): boolean {
   return (traits ?? []).some((t) => t.id === id && !!TRAITS()[id]);
-}
-
-/** Résout UN trait du registre par son `id` STABLE — source unique des lookups par-id (armure, taille…). */
-export function findResolvedTrait(traits: TraitList | undefined, id: string): ResolvedTrait | undefined {
-  return resolveTraits(traits).find((x) => x.id === id);
 }
 
 /** La créature porte-t-elle un trait/attaque d'`id` donné (registre OU hors registre : Venin, Lanceur
@@ -198,7 +143,7 @@ export function traitMovementMod(traits: TraitList | undefined): number {
 /** La créature a-t-elle la CAPACITÉ booléenne `cap` (drapeau de `TraitData.capabilities`, lu PAR ID) ?
  *  SOURCE UNIQUE des helpers de capacité (bestial/stupide/rage/…). Le seuil/type éventuel (Démoniaque 8+,
  *  Immunité (Poison)) vient de l'INDICE/arg de l'INSTANCE, lu par les helpers dédiés (wardSaves, etc.). */
-export function traitCapability(traits: TraitList | undefined, cap: keyof TraitCapabilities): boolean {
+export function traitCapability(traits: TraitsDesignes | undefined, cap: keyof TraitCapabilities): boolean {
   const list = traits ?? [];
   // Suppression GÉNÉRIQUE (Dressé (Dompté) « ignore son Trait Bestial », LDB 85 l.106) : un trait porté
   // peut annuler la capacité d'un AUTRE trait du même porteur — aucun code par-nom de discipline.
@@ -369,7 +314,7 @@ export function hasLeap(traits: TraitList | undefined): boolean {
 
 /** Trait Nuée (LDB 85 l.251-253) : SOURCE UNIQUE de la détection d'amas — pilote le gabarit « swarm » et le
  *  build ×5 PB — lue par le rendu, la classification et le spawn. */
-export function isSwarm(traits: TraitList | undefined): boolean {
+export function isSwarm(traits: TraitsDesignes | undefined): boolean {
   return traitCapability(traits, 'swarm');
 }
 

@@ -20,7 +20,7 @@ function setup() {
   const mount = spawnEnemy({ ref: 'cheval' }, 'mount-1', { x: 11, y: 9 });
   mount.size = 'grande'; // empreinte 2×2 → couvre (11,9)(12,9)(11,10)(12,10)
   mountUp(hero, mount); // appairage : hero.pos := (11,9), hero.mountId/mount.riderId
-  const foe = spawnEnemy({ ref: 'brigand' }, 'foe', { x: 13, y: 10 }); // adjacent à la monture, à 2 du cavalier
+  const foe = spawnEnemy({ ref: 'humain' }, 'foe', { x: 13, y: 10 }); // adjacent à la monture, à 2 du cavalier
   const battle = {
     combatants: [hero, mount, foe], order: [hero.id, 'mount-1', 'foe'], baseOrder: [hero.id, 'mount-1', 'foe'],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),

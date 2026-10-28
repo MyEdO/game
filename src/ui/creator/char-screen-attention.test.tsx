@@ -10,7 +10,7 @@ import { describe, it, expect, afterEach, beforeAll, beforeEach, vi } from 'vite
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CharScreen } from './CharacterCreator';
-import { newDraft, withSpecies, withCareer, type CreatorDraft } from './draft';
+import { newDraft, withSpecies, withCareer, type CreatorDraft } from '../../noyau/creation/brouillon';
 import { species as allSpecies, careersForSpecies } from '../../data';
 
 beforeAll(() => {

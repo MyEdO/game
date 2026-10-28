@@ -6,6 +6,8 @@ import { findActionById } from '../data/index';
 import { actionGate, runAction } from '../noyau/actionRegistry';
 import { openAttackCascade, previewAttack, STANCE_BLOCK } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
+import { ligneDe } from '../engine/modLine.testkit';
+import { refDeRegle } from '../engine/reglesChiffrees';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -102,7 +104,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
 
     // Le chiffre est celui de la PRODUCTION : l'écart mesuré est le cran « Complexe (-10) » du tir mobile.
     expect(vImmobile.target - vMobile.target).toBe(10);
-    const ligne = (p: typeof vMobile) => [...p.mods, ...(p.difficultyParts ?? [])].find((m) => m.label === 'Tir en bougeant');
+    const ligne = (p: typeof vMobile) => ligneDe([...p.mods, ...(p.difficultyParts ?? [])], refDeRegle('tir-en-mouvement'));
     expect(ligne(vMobile)?.value).toBe(-10);
     expect(ligne(vImmobile), 'posture armée : plus aucune ligne « Tir en bougeant »').toBeUndefined();
   });
@@ -260,7 +262,7 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
     const vise = previewAttack(useGame.getState, attaquant(), cible(), undefined, {});
     const tas = previewAttack(useGame.getState, attaquant(), cible(), undefined, { intoCrowd: pa.intoCrowd });
     expect(tas.target - vise.target).toBe(20); // groupe de 3 à 6 → Accessible (+20)
-    const ligne = [...tas.mods, ...(tas.difficultyParts ?? [])].find((m) => m.label.startsWith('Tirer dans le tas'));
+    const ligne = ligneDe([...tas.mods, ...(tas.difficultyParts ?? [])], refDeRegle('tirer-dans-le-tas'));
     expect(ligne?.value).toBe(20);
   });
 

@@ -102,7 +102,6 @@
     "type": "traits",
     "label": "Animosité",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "La créature n'aime pas la Cible. Voir page 190 pour les règles concernant l'Animosité.",
     "source": {
       "book": "livre-de-base",
@@ -149,6 +148,7 @@
     "id": "armure",
     "type": "traits",
     "label": "Armure",
+    "specsOpen": true,
     "indice": {
       "label": "Indice"
     },
@@ -157,7 +157,8 @@
       "book": "livre-de-base",
       "page": 338
     },
-    "standard": true
+    "standard": true,
+    "parLocalisation": true
   },
   {
     "id": "attaque-caudale",
@@ -407,9 +408,7 @@
     "id": "corruption",
     "type": "traits",
     "label": "Corruption",
-    "indice": {
-      "label": "Degré"
-    },
+    "specsSource": "exposureLevels",
     "desc": "La créature est corrompue par le Chaos, ou peut-être imprégnée de Magie noire. Le Degré de Corruption est indiqué entre parenthèses. Voir page 182.",
     "source": {
       "book": "livre-de-base",
@@ -574,7 +573,6 @@
     "type": "traits",
     "label": "Effrayé",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "La créature a Peur 0 de la Cible. Voir Psychologie dans le Chapitre 5 : Règles à la page 190 pour les règles concernant la Peur.",
     "source": {
       "book": "livre-de-base",
@@ -737,13 +735,17 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 2
+                "trait": {
+                  "id": "peur",
+                  "value": 2
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "armure",
-                "indice": 2
+                "trait": {
+                  "id": "armure",
+                  "value": 2
+                }
               }
             ]
           }
@@ -832,7 +834,6 @@
     "type": "traits",
     "label": "Haine",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "La créature hait profondément la Cible. Voir Haine à la page 190.",
     "source": {
       "book": "livre-de-base",
@@ -863,7 +864,6 @@
     "type": "traits",
     "label": "Immunité",
     "specsSource": "damageTypes",
-    "specsMulti": true,
     "desc": "La créature est totalement immunisée à un certain Type de Dégâts, comme ceux du poison, magiques ou électriques. Tous les Dégâts de ce Type, y compris les Dégâts Critiques, sont ignorés.",
     "source": {
       "book": "livre-de-base",
@@ -1063,7 +1063,6 @@
     "label": "Lanceur de Sorts",
     "specsSource": "arcaneDomains",
     "specsOpen": true,
-    "specsMulti": true,
     "desc": "La créature peut lancer des Sorts : le type de magie spécifique est indiqué entre parenthèses.",
     "source": {
       "book": "livre-de-base",
@@ -1200,6 +1199,7 @@
     "id": "morsure",
     "type": "traits",
     "label": "Morsure",
+    "specsOpen": true,
     "indice": {
       "label": "Indice"
     },
@@ -1425,7 +1425,6 @@
     "type": "traits",
     "label": "Préjugé",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "La créature n'apprécie pas la Cible. Voir page 190 pour les règles concernant les Préjugés.",
     "source": {
       "book": "livre-de-base",
@@ -1922,9 +1921,8 @@
     "id": "venin",
     "type": "traits",
     "label": "Venin",
-    "indice": {
-      "label": "Difficulté"
-    },
+    "specsSource": "difficulties",
+    "specsOpen": true,
     "desc": "Les attaques de la créature impliquent du poison ou du venin. Quand elle inflige des Points de Blessure avec ses Attaques venimeuses, son adversaire subit un État Empoisonné. Si aucune Difficulté n'est indiquée pour résister au Venin, le Test est considéré comme Intermédiaire. Voir page 168.",
     "effects": [
       {
@@ -2161,7 +2159,6 @@
     "type": "traits",
     "label": "Amour",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "Les poètes parlent tout le temps d'amour, et même les bardes du Reikland connaissent des dizaines de chansons qui sont autant d'odes au pouvoir de l'amour. Si votre Personnage possède le Trait Amour envers un ou plusieurs individus, ce dernier reflète une très forte relation émotionnelle entre les deux. Cela peut être l'amour romantique qu'il va éprouver envers sa femme, son mari ou son amoureux, un profond amour familial envers un frère, une sœur, un parent ou un enfant, ou encore une très forte amitié. Vous devez venir en aide à quelqu'un que vous aimez s'il se retrouve menacé, que ce soit physiquement ou verbalement. Vous êtes immunisé à la Peur et l'Intimidation tant que vous défendez les êtres aimés, et vous gagnez +1 DR à tous les Tests en rapport.",
     "source": {
       "book": "livre-de-base",
@@ -2176,7 +2173,6 @@
     "type": "traits",
     "label": "Camaraderie",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "La Camaraderie reflète les sentiments positifs ressentis envers un groupe d'individus. Vous devez alors leur venir en aide si ce groupe est menacé (que ce soit verbalement ou physiquement), et vous gagnez +1 DR lors des Tests effectués pour défendre ce groupe.",
     "source": {
       "book": "livre-de-base",
@@ -2191,7 +2187,6 @@
     "type": "traits",
     "label": "Phobie",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "Une phobie reflète une peur spécifique ; cela peut-être envers un Type de créature, ou envers un objet ou une situation particulière, tel que Phobie (Insectes), Phobie (Livres) ou Phobie (Espaces clos). Traitez l'objet de la Phobie comme causant Peur 1. Vous pouvez vouloir augmenter l'Indice de Peur si la Phobie est particulièrement forte.",
     "source": {
       "book": "livre-de-base",
@@ -2359,120 +2354,6 @@
       "book": "ennemi-dans-l-ombre",
       "page": 148
     }
-  },
-  {
-    "id": "aura-de-dhar-slaanesh",
-    "type": "traits",
-    "label": "Aura de Dhar (Slaanesh)",
-    "desc": "Le démon est enveloppé d’effluves de Dhar. Les sorciers et démons de Slaanesh à moins de 10 mètres bénéficient d’un Bonus de +1 DR à leur Tests de Focalisation et de Langue (Magick). Cela vaut pour le démon porteur de l’Aura également.",
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 295
-    },
-    "aura": {
-      "rangeMeters": 10,
-      "affectsGroups": [
-        "slaanesh"
-      ],
-      "includesSelf": true,
-      "passive": [
-        {
-          "op": "skillDRBonus",
-          "skill": {
-            "id": "focalisation"
-          },
-          "bonus": 1
-        },
-        {
-          "op": "skillDRBonus",
-          "skill": {
-            "id": "langue",
-            "spec": "magick"
-          },
-          "bonus": 1
-        }
-      ]
-    }
-  },
-  {
-    "id": "aura-de-dhar-nurgle",
-    "type": "traits",
-    "label": "Aura de Dhar (Nurgle)",
-    "desc": "Le démon est enveloppé d’effluves de Dhar. Les sorciers et démons de Nurgle à moins de 11 mètres bénéficient d’un Bonus de +1 DR à leur Tests de Focalisation et de Langue (Magick). Cela vaut pour le démon porteur de l’Aura également.",
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 313
-    },
-    "aura": {
-      "rangeMeters": 11,
-      "affectsGroups": [
-        "nurgle"
-      ],
-      "includesSelf": true,
-      "passive": [
-        {
-          "op": "skillDRBonus",
-          "skill": {
-            "id": "focalisation"
-          },
-          "bonus": 1
-        },
-        {
-          "op": "skillDRBonus",
-          "skill": {
-            "id": "langue",
-            "spec": "magick"
-          },
-          "bonus": 1
-        }
-      ]
-    }
-  },
-  {
-    "id": "aura-de-mort",
-    "type": "traits",
-    "label": "Aura de Mort",
-    "desc": "Dans un rayon de 70 mètres, les sorts de Nécromancie et de Shyish bénéficient d'un Bonus de +1 DR aux Tests réussis de Langue (Magick) et de Focalisation ; les sorts de Ghyran, Hysh et Azyr subissent un Malus de -10 à ces mêmes Tests.",
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 560
-    },
-    "maison": "DETTE de vocabulaire (#920) : les DEUX volets sont filtrés par le DOMAINE du sort lancé (verbatim ci-dessus : « les sorts de Nécromancie et de Shyish … les sorts de Ghyran, Hysh et Azyr »). L'op `skillDRBonus` ne discrimine que la Compétence et sa spéc (`langue`/`magick`, `focalisation`) : `castTestDRMods` (`src/engine/magic.ts`) ne lui passe JAMAIS de spéc de Domaine, et les jumeaux `aura-de-dhar-slaanesh`/`aura-de-dhar-nurgle` n'ont, eux, aucun filtre de Domaine à porter. Le seul canal indexé sur le Domaine (`domainSeaIncantationDR`/`domainWindDR`) appartient à la DONNÉE du Domaine, pas à une aura d'acteur. Poser l'aura sans filtre l'appliquerait à tous les Domaines."
-  },
-  {
-    "id": "charnier",
-    "type": "traits",
-    "label": "Charnier",
-    "desc": "Si la créature est vaincue, 3D10 Zombies sortent de sa carcasse et attaquent les êtres vivants les plus proches.",
-    "source": {
-      "book": "frenchy-bzh",
-      "page": 560
-    },
-    "effects": [
-      {
-        "trigger": "onSlain",
-        "on": "self",
-        "flow": {
-          "kind": "do",
-          "effect": {
-            "type": "ops",
-            "on": "caster",
-            "ops": [
-              {
-                "op": "summon",
-                "ref": "zombie",
-                "count": {
-                  "dice": {
-                    "n": 3,
-                    "sides": 10
-                  }
-                }
-              }
-            ]
-          }
-        }
-      }
-    ]
   },
   {
     "id": "redoutable",

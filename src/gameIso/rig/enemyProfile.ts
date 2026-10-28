@@ -43,7 +43,7 @@ export function classifyEnemy(creatureId: string): 'rig' | 'creature' {
 
 /** Classe de rendu DATA-DRIVEN (de-POC P5) — délègue au résolveur unique `resolveRender` : trait
  *  Nuée ou espèce EXPLICITE (arg/record, lookup exact) ; sans espèce → bipède (rig). */
-export function classifyBy(species: string | undefined, traits: import('../../engine/statEntry').TraitList | undefined, id: string | undefined): 'rig' | 'creature' {
+export function classifyBy(species: string | undefined, traits: import('../../engine/statEntry').TraitsDesignes | undefined, id: string | undefined): 'rig' | 'creature' {
   return resolveRender(species, traits, id).kind === 'plan' ? 'creature' : 'rig';
 }
 
@@ -263,6 +263,6 @@ export function entityRigProfileFor(resolveTrapping: TrappingResolver, ent: Scen
       console.error(`[rig] entité « ${ent.id} »${nom ? ` (${nom})` : ''} : ni réf de créature ni Espèce — donnée de scène à corriger.`);
     });
   return entityRigProfile(resolveTrapping, refName, hashSeed(ent.id), {
-    ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, armour: ent.statblock?.armour, enrolled,
+    ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, armour: ent.statblock?.armour, enrolled, porteur: ent.id,
   });
 }

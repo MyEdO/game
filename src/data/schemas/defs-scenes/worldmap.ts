@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionSchema } from '../grammaire/mecanique';
-import { enumNomme, sourceRefSchema } from '../grammaire/valeurs';
+import { enumNomme, maisonSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { refuserSansProvenance } from '../grammaire/document';
 import { idDe } from '../grammaire/ref';
 import { listeCle, marquerCollection, marqueDeRecord } from '../grammaire/collection-cle';
@@ -208,7 +208,7 @@ export const routeBilletSchema = nommerChamps(z.strictObject({
     paliers: z.array(palierDeBilletSchema).optional(),
   }), { presetId: { label: "vendeur (preset PNJ)" , texte: { regime: "technique"} }, paliers: { label: "paliers" } }).optional(),
   source: sourceRefSchema.optional(),
-  maison: z.string().min(1).optional(),
+  maison: maisonSchema.optional(),
 })
   .superRefine((billet, ctx) => refuserSansProvenance(billet, ctx, 'du billet')), { prix: { label: "prix par classe" , texte: { regime: "technique"} }, suite: { label: "routes suivantes couvertes" , texte: { regime: "technique"} }, depuis: { label: "lieu de départ" , texte: { regime: "technique"} }, marchandage: { label: "marchandage" }, source: { label: "source" }, maison: { label: "maison" , texte: { regime: "technique"} } });
 
@@ -231,7 +231,7 @@ function fautesDuBillet(route: { a: string; b: string; from?: string; modes: str
 /** Provenance d'une VALEUR d'auteur de route : `source` ou `maison`, jamais ni l'un ni l'autre. */
 export const provenanceDeValeurSchema = nommerChamps(z.strictObject({
   source: sourceRefSchema.optional(),
-  maison: z.string().min(1).optional(),
+  maison: maisonSchema.optional(),
 })
   .superRefine((p, ctx) => refuserSansProvenance(p, ctx, 'de la valeur')), { source: { label: "source" }, maison: { label: "maison" , texte: { regime: "technique"} } });
 

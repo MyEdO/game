@@ -39,7 +39,7 @@ export interface CreaturePerso {
   colors?: Palette;
   scale?: number;
   gabarit?: GabaritId;
-  /** Traits cosmétiques ADDITIFS par-dessus la race (cornes du Prophète gris…) — contrairement
+  /** Traits cosmétiques ADDITIFS par-dessus la race (cornes vestigiales des Jumeaux…) — contrairement
    *  à `monster` qui REMPLACE toute la structure de race (tête/membres/features). */
   features?: RaceFeature[];
   /** Tête monstrueuse (clé HEADS) remplaçant CELLE DE LA RACE seulement — queue/fourrure/

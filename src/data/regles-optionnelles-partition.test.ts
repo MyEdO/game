@@ -87,7 +87,7 @@ const COEXISTENCE: Record<string, number> = {
   // (LDB 119) ET dit en clair qu'il n'en chiffre ni ne répartit aucun.
   'tables.json': 1,
   'talents.json': 9,
-  'traits.json': 3,
+  'traits.json': 2,
   'trappings.json': 2,
   'traumas.json': 2,
 };

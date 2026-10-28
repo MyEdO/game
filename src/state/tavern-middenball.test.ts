@@ -20,6 +20,8 @@ import { tavernGameValue } from '../noyau/tavernFlow';
 import { pnjAuProfil } from '../noyau/monde/sceneNpc';
 import type { BatchParticipant, CascadeStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
+import { ligneDe } from '../engine/modLine.testkit';
+import { refDeRegle } from '../engine/reglesChiffrees';
 
 const get = useGame.getState.bind(useGame);
 const MIDDENBALL = findTavernGameById('middenball')!;
@@ -194,7 +196,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     choisir(0); // Bagarre au tour 2 : l'Avantage s'applique
     const rowT2 = bande()!.participants!.find((r) => r.id === party[0].id)!;
     expect(rowT2.target, 'cible du tour 2 = cible du tour 1 + 10').toBe(cibleT1 + 10);
-    expect(rowT2.mods?.some((m) => m.label === 'Avantage' && m.value === 10), 'la ligne est NOMMÉE').toBe(true);
+    expect(ligneDe(rowT2.mods, refDeRegle('avantage'))?.value, 'la ligne est NOMMÉE').toBe(10);
   });
 
   it('l’Avantage n’entre PAS dans la cible d’un Athlétisme (ce n’est pas un Test de Combat)', () => {
@@ -208,7 +210,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     choisir(1); // Athlétisme au tour 2
     const rowT2 = bande()!.participants!.find((r) => r.id === party[0].id)!;
     expect(rowT2.target, 'Test « non approprié » : la cible ne bouge pas').toBe(cibleT1);
-    expect(rowT2.mods?.some((m) => m.label === 'Avantage')).toBeFalsy();
+    expect(ligneDe(rowT2.mods, refDeRegle('avantage'))).toBeUndefined();
   });
 
   /** SYMÉTRIE (l.119) : l'Avantage est gagné par une ÉQUIPE. Les figurants n'ont pas de fiche — leur

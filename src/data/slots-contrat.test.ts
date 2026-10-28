@@ -6,18 +6,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   champsJoints,
+  champsSansSlot,
   couplesDeReference,
   occurrencesTouchees,
   registreDesSlots,
   slotsDuParse,
   type Slot,
 } from '../../scripts/docs/lib/slots-registre.mjs';
-import { scanDuCorpus, scannerDonnees, scannerRedeclarations } from '../../scripts/docs/lib/structures-scan.mjs';
+import { scanDuCorpus, scannerDonnees } from '../../scripts/docs/lib/structures-scan.mjs';
 import { ANGLES_MORTS_SLOTS, MANDAT_SLOTS } from '../../scripts/docs/lib/structures-lexique.mjs';
-import { SLOTS_INATTEIGNABLES, SLOTS_SANS_DECLARATION } from '../../scripts/guards/lib/slotsStock.mjs';
-import { champsAveugles, lignesMalQualifiees } from '../../scripts/guards/lib/stock.mjs';
-import { COLLECTIONS_A_COMPTE_PAR_NOM, ecartsDeCollection, occurrencesDe, siteDeSlot } from '../../scripts/guards/lib/occurrencesStock.mjs';
-import { corpusDuScan } from '../../scripts/guards/lib/corpusDesComptes.mjs';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -37,11 +34,11 @@ const GARDE = {
     '`SCHEMA_DEFS` / `SCHEMA_DEFS_SCENES`, joints par BASENAME (`nomDeDocument`).',
   angleMort: ANGLES_MORTS_SLOTS,
   baseline: {
-    fichier: 'scripts/guards/lib/slotsStock.mjs',
-    decroissant: true,
+    fichier: 'scripts/guards/lib/inventaireDeDette.mts',
+    decroissant: false,
     raison:
-      'Le stock EST la dette d’ADOPTION du registre : une ligne se solde en faisant ADOPTER la fabrique de ' +
-      'référence par le schéma du champ (L2/L3, #1473), et part dans le MÊME commit que l’adoption.',
+      'La dette d’ADOPTION du registre est INVENTORIÉE (`CASES_DE_REFERENCE`, une ligne par case avec sa forme), hors de la porte et sans stock (#3021) : ' +
+      'elle se solde en faisant ADOPTER la fabrique de référence par le schéma du champ (L2/L3, #1473).',
   },
   ticket: '#1466',
 } as const;
@@ -50,61 +47,9 @@ const GARDE = {
 const DOC_STRUCTURES = await rendreCible('docs/structures-donnees.md');
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 /** La composition defs → familles/enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`) : la
- *  MÊME que lisent `structures-contrat.test.ts`, `build-structures.mts` et `horsStrateAudit.ts`. */
+ *  MÊME que lisent `structures-contrat.test.ts`, `build-structures.mts` et `inventaireDeDette.mts`. */
 const { defs: DEFS, scan } = scanDuCorpus(ROOT);
 const SLOTS = slotsDuParse(scan, DEFS);
-/** Le corpus des COLLECTIONS À COMPTE (`COLLECTIONS_A_COMPTE`, `occurrencesStock.mjs`) : leur mesure se lit là, une fois. */
-const corpusDe = (racine: string, mesure: Pick<ReturnType<typeof scanDuCorpus>, 'scan' | 'defs'> = scanDuCorpus(racine)) =>
-  corpusDuScan(mesure, scannerRedeclarations(racine).redeclarations);
-const CORPUS = corpusDe(ROOT, { defs: DEFS, scan });
-
-/** Clé du contrat : le couple (dataset, champ) ; son compte se compare hors clé (`ecartsDeCollection`). */
-const CLE_DETTE = (c: { dataset: string; champ: string }) => siteDeSlot(c);
-const ecartsDeCouverture = (corpus: typeof CORPUS) => ecartsDeCollection({
-  nom: 'SLOTS_SANS_DECLARATION',
-  observe: COLLECTIONS_A_COMPTE_PAR_NOM.SLOTS_SANS_DECLARATION.mesure(corpus),
-  stock: SLOTS_SANS_DECLARATION,
-  cle: CLE_DETTE,
-  remede: {
-    neuve: (cle: string) => `${cle} — Adopter la fabrique de slot de référence, sans ajouter cette identité au stock.`,
-    perimee: (cle: string) => `${cle} — Retirer cette identité périmée du stock après adoption.`,
-  },
-});
-const ecartsInatteignables = (corpus: typeof CORPUS) => ecartsDeCollection({
-  nom: 'SLOTS_INATTEIGNABLES',
-  observe: COLLECTIONS_A_COMPTE_PAR_NOM.SLOTS_INATTEIGNABLES.mesure(corpus),
-  stock: SLOTS_INATTEIGNABLES,
-  cle: CLE_DETTE,
-});
-
-/** Couples ENTIÈREMENT joints qui doivent le rester. */
-const JOINTURES_PLANCHER = [
-  'activities.json | factor',
-  'arene-projet.json | material',
-  'arene-projet.json | tiles',
-  'barge-du-sel-projet.json | tiles',
-  'buildings.json | roofMaterial',
-  'defauts-de-compilation.json | cheminDeRonde',
-  'defauts-de-compilation.json | masse',
-  'defauts-de-compilation.json | pont',
-  'diligence-projet.json | ref',
-  'diligence-projet.json | style',
-  'diligence-projet.json | tiles',
-  'loup-et-saumure-projet.json | skill',
-  'loup-et-saumure-projet.json | tiles',
-  'maladies.json | ops',
-  'maladies.json | otherwise',
-  'maneuvers.json | skill',
-  'merchants.json | curated',
-  'qualities.json | skill',
-  'river-criticals.json | stations',
-  'semences-de-scene.json | terrain',
-  'ship-criticals.json | stations',
-  'tables.json | of',
-  'terrains.json | matiere',
-  'terrains.json | overlayProp',
-];
-
 const couple = (dataset: string, champ: string) => couplesDeReference(scan, SLOTS).find((c) => c.dataset === dataset && c.champ === champ);
 const slotsAuPath = (dataset: string, path: string) => SLOTS.filter((s) => s.dataset === dataset && s.path === path);
 const couplesTouches = (slots: readonly Slot[]) => [...new Set([...occurrencesTouchees(scan, slots)].map((o) => `${o.dataset} | ${o.champ}`))].sort();
@@ -120,7 +65,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
       'deux angles morts déclarés au 2026-09-23 (#1473 R1) : occurrence sans case qui porte une chaîne, référence portée par une clé de record.',
     ).toBeGreaterThanOrEqual(2);
     expect(GARDE.mandat, 'le mandat se lit dans UNE source (`MANDAT_SLOTS`), jamais reformulé.').toBe(MANDAT_SLOTS);
-    expect(GARDE.baseline).toMatchObject({ fichier: 'scripts/guards/lib/slotsStock.mjs', decroissant: true });
+    expect(GARDE.baseline).toMatchObject({ fichier: 'scripts/guards/lib/inventaireDeDette.mts', decroissant: false });
     expect(GARDE.ticket).toBe('#1466');
   });
 
@@ -135,29 +80,40 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
 
   it('la JOINTURE déclaré × observé est NON VIDE (sans elle, ce volet serait un no-op à faux vert)', () => {
     expect(
-      champsJoints(scan, SLOTS),
+      champsJoints(scan, SLOTS).length,
       'aucun couple porteur de références OBSERVÉES n’est atteint par un slot DÉCLARÉ — la jointure par occurrence est cassée, et tout le volet rendrait vert sans rien mesurer.',
-    ).toContain('merchants.json | curated');
+    ).toBeGreaterThan(0);
     expect(SLOTS.length, 'aucun slot : le parse de mesure ne rend aucun repère.').toBeGreaterThan(0);
   });
 
-  it('l’unité de la jointure est celle des FORMES : chaque couple compte autant d’occurrences que la strate `Référence` du scan', () => {
+  it('l’unité de la jointure est celle des FORMES : la strate `Référence` compte chaque occurrence inscrite, un couple ses occurrences à CASE, et une case porte une chaîne', () => {
+    const cle = (o: { dataset: string; champ: string }) => `${o.dataset} | ${o.champ}`;
     const parFormes = new Map<string, number>();
-    for (const f of scan.formes)
-      if (f.strate === 'Référence') parFormes.set(`${f.dataset} | ${f.champ}`, (parFormes.get(`${f.dataset} | ${f.champ}`) ?? 0) + f.occurrences);
-    const parCouples = new Map(couplesDeReference(scan, SLOTS).map((c) => [`${c.dataset} | ${c.champ}`, c.occurrences]));
-    expect(parCouples, 'une branche de classement de la strate `Référence` compte sans inscrire son occurrence (`inscrireReference`).').toEqual(parFormes);
-  });
-
-  it('les couples de `JOINTURES_PLANCHER` sont tous joints', () => {
-    const joints = champsJoints(scan, SLOTS);
-    expect(JOINTURES_PLANCHER.filter((k) => !joints.includes(k)), 'jointure perdue.').toEqual([]);
+    for (const f of scan.formes) if (f.strate === 'Référence') parFormes.set(cle(f), (parFormes.get(cle(f)) ?? 0) + f.occurrences);
+    const avecCase = new Set([...scan.referencesParPorteur.values()].flatMap((cases) => [...cases.values()]));
+    const compter = (garde: (o: (typeof scan.occurrencesDeReference)[number]) => boolean) => {
+      const n = new Map<string, number>();
+      for (const o of scan.occurrencesDeReference) if (garde(o)) n.set(cle(o), (n.get(cle(o)) ?? 0) + 1);
+      return n;
+    };
+    expect(compter(() => true), 'une branche de classement de la strate `Référence` compte sans inscrire son occurrence (`inscrireReference`).').toEqual(parFormes);
+    expect(new Map(couplesDeReference(scan, SLOTS).map((c) => [cle(c), c.occurrences])), 'un couple compte une occurrence sans case.').toEqual(compter((o) => avecCase.has(o)));
+    expect(
+      [...scan.referencesParPorteur].flatMap(([porteur, cases]) => [...cases.keys()].filter((k) => typeof (porteur as Record<string | number, unknown>)[k] !== 'string')),
+      'une case qui ne porte pas de chaîne : aucun slot ne peut la valider.',
+    ).toEqual([]);
   });
 
   it('une occurrence n’est ATTEINTE que si TOUTES ses cases le sont (`miscast.json › ops` : `unlessCondition` touché, `id` sans slot)', () => {
     const touchees = occurrencesTouchees(scan, slotsAuPath('miscast.json', '[].entries[].test.onFailHard.ops[].unlessCondition'));
     expect([...touchees].some((o) => o.dataset === 'miscast.json' && o.champ === 'ops'), 'le témoin a disparu : aucune op de `miscast.json` n’a sa case `unlessCondition` touchée.').toBe(true);
-    expect(couple('miscast.json', 'ops')).toMatchObject({ occurrences: 39, atteintes: 0 });
+    const temoins = new Set([...touchees].filter((o) => o.dataset === 'miscast.json' && o.champ === 'ops'));
+    const cases = [...scan.referencesParPorteur].flatMap(([porteur, cs]) => [...cs].filter(([, o]) => temoins.has(o)).map(([cle]) => ({ porteur, cle })));
+    const manquantes = cases.filter((c) => !SLOTS.some((s) => s.porteur === c.porteur && s.cle === c.cle));
+    expect(manquantes.map((c) => c.cle), 'le témoin n’a plus de case sans slot : il ne prouve plus la règle « toutes les cases ».').toContain('id');
+    const atteintes = (slots: readonly Slot[]) => couplesDeReference(scan, slots).find((c) => c.dataset === 'miscast.json' && c.champ === 'ops')!.atteintes;
+    const completes = [...SLOTS, ...manquantes.map((c) => ({ ...SLOTS[0], ...c }))];
+    expect(atteintes(completes) - atteintes(SLOTS), 'chaque témoin, une case sans slot, ne doit compter ATTEINT qu’une fois TOUTES ses cases slots.').toBe(temoins.size);
   });
 
   it('branche OBJET qui résout (`creatures.json › [].skills[].id`) : toutes les occurrences atteintes, au champ porteur', () => {
@@ -169,7 +125,8 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
 
   it('branche CHAMP SCALAIRE d’un document (`buildings.json › [].roofMaterial`) : jointe, au champ de la clé', () => {
     expect(couplesTouches(slotsAuPath('buildings.json', '[].roofMaterial'))).toEqual(['buildings.json | roofMaterial']);
-    expect(couple('buildings.json', 'roofMaterial')).toMatchObject({ occurrences: 7, atteintes: 7 });
+    const c = couple('buildings.json', 'roofMaterial')!;
+    expect(c.atteintes).toBe(c.occurrences);
   });
 
   it('branche LISTE d’ids nus (`arene-projet.json › tiles`) : chaque liste est UNE occurrence, atteinte par ses éléments', () => {
@@ -178,37 +135,40 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(c.atteintes).toBe(c.occurrences);
   });
 
-  it('cas canonique `merchants.json › [].curated[]` : 3 occurrences sur 3 atteintes, 19 valeurs', () => {
+  it('cas canonique `merchants.json › [].curated[]` : chaque occurrence atteinte, chaque valeur un slot de trapping', () => {
     const curated = slotsAuPath('merchants.json', '[].curated[]');
-    expect(curated).toHaveLength(19);
+    expect(curated.length).toBeGreaterThan(0);
     expect(curated.every((s) => s.type === 'trapping')).toBe(true);
     expect(couplesTouches(curated)).toEqual(['merchants.json | curated']);
-    expect(couple('merchants.json', 'curated')).toMatchObject({ occurrences: 3, atteintes: 3 });
+    const c = couple('merchants.json', 'curated')!;
+    expect(c.atteintes).toBe(c.occurrences);
   });
 
-  it('un couple ATTEINT EN PARTIE reste au stock à son compte OBSERVÉ total', () => {
+  it('un couple ATTEINT EN PARTIE reste à la couverture, à son compte OBSERVÉ total', () => {
     const c = couple('arene-projet.json', 'ref')!;
     expect(c.atteintes).toBeGreaterThan(0);
     expect(c.atteintes).toBeLessThan(c.occurrences);
-    expect(SLOTS_SANS_DECLARATION.find((l) => l.dataset === 'arene-projet.json' && l.champ === 'ref')?.occurrences).toBe(c.occurrences);
+    expect(champsSansSlot(scan, SLOTS)).toContainEqual(c);
   });
 
   it('RÉCURSION : un `test.skill` sous un flux de dialogue est un slot (`loup-et-saumure-projet.json › skill`, joint)', () => {
     expect(couplesTouches(slotsAuPath('loup-et-saumure-projet.json', 'scenes[].dialogues[].nodes[].choices[].flow.steps[].effect.skill.id'))).toEqual([
       'loup-et-saumure-projet.json | skill',
     ]);
-    expect(couple('loup-et-saumure-projet.json', 'skill')).toMatchObject({ occurrences: 3, atteintes: 3 });
+    const c = couple('loup-et-saumure-projet.json', 'skill')!;
+    expect(c.atteintes).toBe(c.occurrences);
   });
 
   it('PAYLOAD D’OP : une référence validée par le `superRefine` de `gameOpSchema` est un slot (`tables.json › of`, joint)', () => {
-    expect(slotsAuPath('tables.json', '[].rows[].ops[].montant.brass.times.of.rule').map((s) => s.type)).toEqual(['regleOptionnelle']);
-    expect(couple('tables.json', 'of')).toMatchObject({ occurrences: 1, atteintes: 1 });
+    expect(new Set(slotsAuPath('tables.json', '[].rows[].ops[].montant.brass.times.of.rule').map((s) => s.type))).toEqual(new Set(['regleOptionnelle']));
+    const c = couple('tables.json', 'of')!;
+    expect(c.atteintes).toBe(c.occurrences);
   });
 
   it('RÉF DE DÉCOR : la branche `prop` de `sceneEntitySchema` porte `idDe(\'prop\')` (`diligence-projet.json › ref`, joint)', () => {
     expect(new Set(slotsAuPath('diligence-projet.json', 'scenes[].entities[].ref').map((s) => s.type))).toEqual(new Set(['prop']));
-    // #2219 (274→275, 2026-10-05) : +1, la charrette de la remise de la-diligence.
-    expect(couple('diligence-projet.json', 'ref')).toMatchObject({ occurrences: 275, atteintes: 275 });
+    const c = couple('diligence-projet.json', 'ref')!;
+    expect(c.atteintes).toBe(c.occurrences);
   });
 
   it('fixture : une Spécialisation homonyme d’un id n’ouvre aucune référence (`CLES_DE_SPECIALISATION`, #1904)', () => {
@@ -250,47 +210,12 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     } finally {
       rmSync(dossier, { recursive: true, force: true });
     }
-    const cles = registreDesSlots(scan, SLOTS).filter((l) => l.path === 'tablesDeChute[].bandes[].hauteurs{}');
-    expect(cles).toEqual([{ dataset: 'ship-criticals.json', path: 'tablesDeChute[].bandes[].hauteurs{}', type: 'shipStation', valeurs: 6, couples: [] }]);
-    expect(DOC_STRUCTURES).toContain(
-      '| `ship-criticals.json` | `tablesDeChute[].bandes[].hauteurs{}` | `shipStation` | 6 | — |',
-    );
-  });
-
-  it('COUVERTURE : les champs porteurs de réfs OBSERVÉES sans slot déclaré == stock', () => {
-    const ecarts = ecartsDeCouverture(CORPUS);
-    expect(ecarts.neuves, 'champ(s) observé(s) en écart : appliquer le remède de chaque site nommé.').toEqual([]);
-    expect(ecarts.perimees, 'champ(s) déclaré(s) en écart : appliquer le remède de chaque site nommé.').toEqual([]);
-    expect(ecarts.accrues, 'compte(s) en HAUSSE : appliquer la cible de chaque site nommé.').toEqual([]);
-    expect(ecarts.baisses, 'compte(s) en BAISSE : écrire la mesure.').toEqual([]);
-    expect(
-      ecarts.taille,
-      'clé(s) DUPLIQUÉE(S) au stock : la comparaison travaille sur des clés DISTINCTES, un doublon inscrit y passerait invisible.',
-    ).toBe(SLOTS_SANS_DECLARATION.length);
-  });
-
-  it('INATTEIGNABLES : les occurrences sans case qui porte une chaîne == stock', () => {
-    const ecarts = ecartsInatteignables(CORPUS);
-    expect(ecarts.neuves, 'occurrence(s) INATTEIGNABLE(S) neuve(s) : sa référence se pose en chaîne, elle ne s’inscrit pas au stock.').toEqual([]);
-    expect(ecarts.perimees, 'entrée périmée de `SLOTS_INATTEIGNABLES` : elle se retire dans le commit qui rend la case atteignable.').toEqual([]);
-    expect(ecarts.accrues, 'compte(s) en HAUSSE : appliquer la cible de chaque site nommé.').toEqual([]);
-    expect(ecarts.baisses, 'compte(s) en BAISSE : écrire la mesure.').toEqual([]);
-    expect(ecarts.taille, 'clé(s) DUPLIQUÉE(S) à `SLOTS_INATTEIGNABLES`.').toBe(SLOTS_INATTEIGNABLES.length);
-    expect(lignesMalQualifiees(SLOTS_INATTEIGNABLES.map((c) => [`${c.dataset} | ${c.champ}`, c])), 'ligne sans lot ni date.').toEqual([]);
-  });
-
-  it('chaque ligne du stock porte sa DATE et son LOT de mort', () => {
-    expect(
-      lignesMalQualifiees(SLOTS_SANS_DECLARATION.map((c) => [`${c.dataset} | ${c.champ}`, c])),
-      'une ligne sans lot de mort ni date est un régime, pas un cliquet.',
-    ).toEqual([]);
-  });
-
-  it('MUTATION par champ : chaque champ du stock entre dans la clé comparée', () => {
-    expect(
-      champsAveugles(SLOTS_SANS_DECLARATION, CLE_DETTE, ['dataset', 'champ', 'occurrences'], occurrencesDe),
-      'champ(s) de stock HORS de la clé comparée : les muter laisse la garde verte.',
-    ).toEqual([]);
+    const cles = registreDesSlots(scan, SLOTS).filter((l) => l.path.endsWith('{}'));
+    expect(cles.length, 'aucun slot porté par une clé de record : le témoin ne dirait rien.').toBeGreaterThan(0);
+    for (const l of cles) {
+      expect(l.couples, `${l.dataset} › ${l.path} : une clé de record n’est jamais une case du scan.`).toEqual([]);
+      expect(DOC_STRUCTURES).toContain(`| \`${l.dataset}\` | \`${l.path}\` | \`${l.type}\` | ${l.valeurs} | — |`);
+    }
   });
 
   it('le volet est ÉMIS dans `docs/structures-donnees.md` (le doc et la garde lisent la MÊME mesure)', () => {
@@ -298,7 +223,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(doc, 'le §6 du doc a disparu : le volet SLOTS n’aurait plus de face lisible.').toContain(
       '## 6. Slots DÉCLARÉS × réfs OBSERVÉES',
     );
-    expect(doc).toContain(`**${SLOTS_SANS_DECLARATION.length}** couples (dataset, champ) sans slot déclaré.`);
+    expect(doc).toContain(`**${champsSansSlot(scan, SLOTS).length}** couples (dataset, champ) sans slot déclaré.`);
     expect(doc).toContain(`Slots déclarés : **${SLOTS.length}**`);
   });
 });

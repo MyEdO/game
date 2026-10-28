@@ -10,6 +10,8 @@
 import { describe, it, expect } from 'vitest';
 import { amputationCombatPenalty, weaponUsesHand, fingersLost, maxFingersLostForWeapon } from './trauma';
 import { attackModifiers } from './combat';
+import { ligneDe } from './modLine.testkit';
+import { RULE_REF } from './ruleRefs';
 import type { Combatant, Weapon, Trauma } from './types';
 
 const w1main = { name: 'Épée', type: 'melee', hands: 1, hand: 'main', qualities: [] } as unknown as Weapon; // 1 main, DROITE (principale)
@@ -78,10 +80,10 @@ describe('câblage : attackModifiers surface la ligne « Amputation » (effet de
   const attacker = (traumas: Trauma[]): Combatant => ({ advantage: 0, conditions: [], skills: [], traumas } as unknown as Combatant);
   it('doigts gauches + arme à 2 mains → ligne Amputation −10', () => {
     const mods = attackModifiers(attacker([fingers('brasG', 2)]), null, w2, { kind: 'melee' });
-    expect(mods.find((m) => m.label === 'Amputation')?.value).toBe(-10);
+    expect(ligneDe(mods, RULE_REF.amputation)?.value).toBe(-10);
   });
   it('doigts gauches + arme à 1 main DROITE → AUCUNE ligne Amputation (l’arme n’implique pas la main gauche)', () => {
     const mods = attackModifiers(attacker([fingers('brasG', 2)]), null, w1main, { kind: 'melee' });
-    expect(mods.find((m) => m.label === 'Amputation')).toBeUndefined();
+    expect(ligneDe(mods, RULE_REF.amputation)).toBeUndefined();
   });
 });

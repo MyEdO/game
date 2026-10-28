@@ -54,7 +54,7 @@ function mount(scene: Scene, sel: Sel) {
         }}
         sel={sel}
         setSel={() => undefined}
-        enemyCreatures={[{ id: 'humain', label: 'Humain' }, { id: 'garde-du-village', label: 'Garde' }]}
+        enemyCreatures={[{ id: 'humain', label: 'Humain' }, { id: 'brute', label: 'Brute' }]}
         openLogic={() => undefined}
         resizeScene={() => undefined}
         narratif={emptyNarratif()}
@@ -517,7 +517,7 @@ describe('Inspecteur — POSITION et LARGEUR d’une ouverture de façade (#841)
 function sceneNavale(): Scene {
   const entities: SceneEntity[] = [
     { id: 'coque', kind: 'personnage', ref: 'cogue', pos: { x: 4, y: 4 }, label: 'La cogue' },
-    { id: 'marin', kind: 'personnage', ref: 'garde-du-village', pos: { x: 6, y: 4 }, label: 'Marin' },
+    { id: 'marin', kind: 'personnage', ref: 'brute', pos: { x: 6, y: 4 }, label: 'Marin' },
   ];
   return {
     ...emptyScene('scene-test', 14, 14),

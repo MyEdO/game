@@ -7,7 +7,8 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { findCrewRoleById } from '../data';
 import { RULE_REF } from '../engine/ruleRefs';
-import type { Combatant, Weapon } from '../engine/types';
+import { lignesDe } from '../engine/modLine.testkit';
+import type { Combatant, ModLine, Weapon } from '../engine/types';
 import type { RNG } from '../engine/dice';
 import type { TravelPlan } from '../noyau/travelFlow';
 import { propulsionDuNavire } from '../engine/shipBuild';
@@ -28,7 +29,7 @@ const seaPlan = (): TravelPlan => ({
   },
 } as unknown as TravelPlan);
 
-const meteo = (mods: { ref?: unknown; value: number }[]): number[] => mods.filter((m) => m.ref === RULE_REF['meteo-maritime']).map((m) => m.value);
+const meteo = (mods: ModLine[]): number[] => lignesDe(mods, RULE_REF['meteo-maritime']).map((m) => m.value);
 const meteoApercu = (H: Combatant, E: Combatant): number[] => { const p = previewAttack(useGame.getState, H, E); return meteo([...p.mods, ...(p.difficultyParts ?? [])]); };
 const seq = (values: number[]): RNG => desEnSuite(values);
 

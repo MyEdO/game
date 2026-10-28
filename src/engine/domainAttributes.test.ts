@@ -7,7 +7,6 @@ import type { RNG } from './dice';
 import { hasArcaneTalent, metalAPAt, domainMissileMods, domainOnHitEffects, domainCasterOps, isLiving, domainSeaFocalisationDR, domainSeaFocalisationDoubled, domainSeaFocusCritMiscastMajeure, domainSeaIncantationDR, domainSeaWidensCritFumble, domainWindDR } from './domainAttributes';
 import { resolveFocus, resolveCasting, castLandProbability } from './magic';
 import { findDomainById } from '../data';
-import { groupsFor } from './groups';
 import { evaluateMissile } from './magic';
 import { hasCondition, stacks, addCondition } from './conditions';
 import { runPureFlowLines } from '../noyau/combat/flowEval';
@@ -110,9 +109,8 @@ describe('Riders « à la touche » data-driven (Feu / Lumière / Mort / Vie) �
     applyDomain(w, t, 'mort');
     applyDomain(w, t, 'mort');
     expect(stacks(t, 'extenue')).toBe(1);
-    // `groups` = ce que le spawn dérive du seul Trait (`capabilities.grantGroups`, engine/groups.ts) —
-    // `isUndead`/`isLiving` lisent PUREMENT `c.groups` (jamais un repli hasTraitKey).
-    const z = mk({ id: 'z', kind: 'enemy', traits: [{ id: 'mort-vivant' }], groups: groupsFor({ traits: [{ id: 'mort-vivant' }] }) });
+    // `isUndead`/`isLiving` lisent les Groupes effectifs (`groupesDe`) : le Trait porté suffit.
+    const z = mk({ id: 'z', kind: 'enemy', traits: [{ id: 'mort-vivant' }] });
     expect(isLiving(z)).toBe(false);
     applyDomain(w, z, 'mort');
     expect(stacks(z, 'extenue')).toBe(0); // « cible vivante » seulement

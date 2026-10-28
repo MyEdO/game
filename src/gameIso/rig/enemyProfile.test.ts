@@ -62,7 +62,7 @@ describe('classifyEnemy (cosmétique : humanoïde peau-humaine → rig, sinon cr
   it('IDs de bêtes / morts-vivants non humanoïdes → créature', () => {
     for (const id of [
       'rat-geant', 'dragon', 'loup', 'ours',
-      'araignee-geante', 'spectre', 'bete-des-marais', 'hydre',
+      'araignee-geante', 'spectre-de-cairn', 'bete-des-marais', 'hydre',
     ]) {
       expect(classifyEnemy(id), id).toBe('creature');
     }
@@ -159,12 +159,11 @@ describe('enemyRigProfile', () => {
     expect(parts.main!.svg).toBe(viewOrFront(MAIN_GRIFFUE, 'front')); // Nu griffu, PAS le gantelet d'acier
   });
 
-  it('Capitaine du Guet (bestiaire, OPTÉ armurePortee) — art d’armure PLEIN, zones dérivées comprises (gantelets/soleret/gorgerin)', () => {
-    // `capitaine-du-guet` porte `appearance.armurePortee: true` (curation #774) + trait Armure(8) →
-    // matériau inféré `plaque` (PA≥4) : l'armure synthétisée rend son art SUR TOUTES les zones,
-    // dérivées comprises — mieux que l'ancien régime #736 qui les exemptait systématiquement.
-    const c = mkEnemy('Capitaine du Guet', {
-      creatureId: 'capitaine-du-guet',
+  it('Moritz Valgeir (bestiaire, OPTÉ armurePortee) — art d’armure PLEIN, zones dérivées comprises (gantelets/soleret/gorgerin)', () => {
+    // `moritz-valgeir` porte `appearance.armurePortee: true` (#774) ; PA 8 au combattant → matériau
+    // inféré `plaque` (PA≥4) : l'armure synthétisée rend son art SUR TOUTES les zones, dérivées comprises (#736).
+    const c = mkEnemy('Moritz Valgeir', {
+      creatureId: 'moritz-valgeir',
       armour: { ...noArmour, corps: 8, tete: 8, brasG: 8, brasD: 8, jambeG: 8, jambeD: 8 },
     });
     const p = enemyRigProfile(c)!;
@@ -192,9 +191,9 @@ describe('enemyRigProfile', () => {
   });
 
   it('parité #181/#182 EN COMBAT : override d’entité (armurePortee: false) PRIME sur le record curé (true)', () => {
-    // Cas inverse : `capitaine-du-guet` est curé `armurePortee: true` au bestiaire, mais une entité
+    // Cas inverse : `moritz-valgeir` est curé `armurePortee: true` au bestiaire, mais une entité
     // d'auteur peut désactiver EXPLICITEMENT le rendu de son armure de statblock (override prime).
-    const c = spawnEnemy({ ref: 'capitaine-du-guet' }, 'capitaine-desarme-1', { x: 0, y: 0 }, {
+    const c = spawnEnemy({ ref: 'moritz-valgeir' }, 'capitaine-desarme-1', { x: 0, y: 0 }, {
       appearance: { armurePortee: false },
     });
     expect(enemyRigProfile(c)!.equip.armour).toEqual([]);
@@ -233,11 +232,11 @@ describe('entityRigProfile (entité de scène, ambiance hors combat)', () => {
     expect(p).not.toHaveProperty('overlays');
   });
   it('villageois (id de record) → espèce du record ; tenue portée en DONNÉE (plus d’inférence du nom)', () => {
-    const p = entityRigProfile(findTrappingById, 'villageois', 1)!;
+    const p = entityRigProfile(findTrappingById, 'humain', 1)!;
     expect(p.appearance.species).toBe('humain');
     expect(p.tenue).toBe('villageois'); // tenue DÉCLARÉE par le record ; elle ne se déduit plus du nom (POC retiré)
     // L'ambiance porte sa tenue via `appearance.tenue` (tokenBodyKind → opts.tenue) — honorée telle quelle (id).
-    expect(entityRigProfile(findTrappingById, 'villageois', 1, { tenue: 'mendiant' })!.tenue).toBe('mendiant');
+    expect(entityRigProfile(findTrappingById, 'humain', 1, { tenue: 'mendiant' })!.tenue).toBe('mendiant');
     // Une réf qui n'est PAS un id de record (un LIBELLE) ne résout AUCUNE espèce → défaut déclaré en donnée.
     const inconnue = entityRigProfile(findTrappingById, 'Villageois', 1)!;
     expect(inconnue.appearance.species).toBe(DEFAULT_RACE_ID);
@@ -295,37 +294,37 @@ describe('coiffure du record, sexe de l’entité — la coiffure retombe', () =
   it('coiffure F au record + `sex: M` sur l’entité → coiffure par défaut de l’espèce et du sexe rendus, jamais la chevelure d’erreur', () => {
     const avant = [...creatures];
     const rendu = (p: NonNullable<ReturnType<typeof entityRigProfile>>) => bonesToSvg(resolveRig(p.appearance, p.equip, {}, p.tenue, 'front', []));
-    const attendu = rendu(entityRigProfile(findTrappingById, 'villageois', 1, { sex: 'M' })!);
-    setDataset('creatures', creatures.map((c) => (c.id === 'villageois'
+    const attendu = rendu(entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M' })!);
+    setDataset('creatures', creatures.map((c) => (c.id === 'humain'
       ? { ...c, appearance: { ...c.appearance!, sex: 'F' as const, hairstyle: 'queue-de-cheval-haute-f' } }
       : c)));
     try {
-      expect(entityRigProfile(findTrappingById, 'villageois', 1)!.appearance).toMatchObject({ sex: 'F', hairstyle: 'queue-de-cheval-haute-f' });
-      const p = entityRigProfile(findTrappingById, 'villageois', 1, { sex: 'M' })!;
+      expect(entityRigProfile(findTrappingById, 'humain', 1)!.appearance).toMatchObject({ sex: 'F', hairstyle: 'queue-de-cheval-haute-f' });
+      const p = entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M' })!;
       expect(p.appearance.sex).toBe('M');
       expect(p.appearance.hairstyle).toBeUndefined();
       expect(rendu(p)).not.toContain(COIFFURE_HORS_POOL);
       expect(rendu(p)).toBe(attendu);
       // La contradiction posée par UNE couche reste une faute de donnée VISIBLE (le schéma la nomme).
-      expect(rendu(entityRigProfile(findTrappingById, 'villageois', 1, { sex: 'M', hairstyle: 'queue-de-cheval-haute-f' })!)).toContain(COIFFURE_HORS_POOL);
+      expect(rendu(entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M', hairstyle: 'queue-de-cheval-haute-f' })!)).toContain(COIFFURE_HORS_POOL);
     } finally {
       setDataset('creatures', avant);
     }
   });
   it('le retrait se DIT : un avertissement console nomme le sujet, la coiffure retirée et le sexe posé au-dessus', () => {
     const avant = [...creatures];
-    setDataset('creatures', creatures.map((c) => (c.id === 'villageois'
+    setDataset('creatures', creatures.map((c) => (c.id === 'humain'
       ? { ...c, appearance: { ...c.appearance!, sex: 'F' as const, hairstyle: 'queue-de-cheval-haute-f' } }
       : c)));
     resetDiagOnce();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
-      withDiagSubject('scene-x/pnj-1', () => entityRigProfile(findTrappingById, 'villageois', 1, { sex: 'M' }));
+      withDiagSubject('scene-x/pnj-1', () => entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M' }));
       expect(warn.mock.calls.map((c) => String(c[0]))).toEqual([
         "[rig] « scene-x/pnj-1 » : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) retirée au rendu — une couche d'apparence plus haute pose le sexe Masculin.",
       ]);
       warn.mockClear();
-      withDiagSubject('scene-x/pnj-2', () => entityRigProfile(findTrappingById, 'villageois', 1));
+      withDiagSubject('scene-x/pnj-2', () => entityRigProfile(findTrappingById, 'humain', 1));
       expect(warn).not.toHaveBeenCalled();
     } finally {
       warn.mockRestore();

@@ -16,6 +16,7 @@ import { SIZE_ORDER, effectiveSize } from './size';
 import { campOf } from './relations';
 import { aggregateCapabilities, chaosDomainOf } from './combatFeatures/dispatch';
 import { aPassifVisible } from './trauma';
+import { groupesDe } from './groups';
 import type { ActorView, ConditionCtx } from './flowCore';
 
 /** Vue d'un combattant pour les Conditions d'acteur (`compare`/`relation`/`has`/`capability`) : PB +
@@ -26,7 +27,7 @@ export function buildActorView(c: Combatant | undefined): ActorView | undefined 
   const vue: ActorView = {
     id: c.id, woundsCurrent: c.wounds.current, woundsMax: c.wounds.max, size: SIZE_ORDER[effectiveSize(c.size)],
     advantage: c.advantage ?? 0, camp: campOf(c),
-    groups: c.groups ?? [], talents: (c.talents ?? []).map((t) => ({ id: t.talentId, spec: t.spec })), traits: (c.traits ?? []).map((t) => t.id),
+    groups: groupesDe(c), talents: (c.talents ?? []).map((t) => ({ id: t.talentId, spec: t.spec })), traits: (c.traits ?? []).map((t) => t.id),
     conditions: Object.fromEntries((c.conditions ?? []).map((x) => [x.id, x.value ?? 1])), capabilities: aggregateCapabilities(c),
     ...(chaosDomainOf(c) ? { chaosDomain: chaosDomainOf(c) } : {}),
     // États psy ACTIFS (un trait ciblé RÉSISTÉ — `active:false` — ne compte pas comme « possédé »).

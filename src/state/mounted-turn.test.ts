@@ -21,7 +21,7 @@ function setup() {
   horse.mountable = true;
   horse.kind = 'hero'; // monture ALLIÉE (on n'enfourche que sa propre équipe)
   horse.initiative = 30;
-  const other = spawnEnemy({ ref: 'brigand' }, 'other', { x: 1, y: 1 });
+  const other = spawnEnemy({ ref: 'humain' }, 'other', { x: 1, y: 1 });
   other.initiative = 40;
   const battle = {
     combatants: [hero, horse, other], order: [hero.id, 'other', 'horse'], baseOrder: [hero.id, 'other', 'horse'],

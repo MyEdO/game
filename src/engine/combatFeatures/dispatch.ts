@@ -4,7 +4,7 @@
  * rollFlows / store. Aucune mutation. Même patron que `engine/qualities/dispatch.ts`.
  */
 import type { Combatant, RangeBandId, Weapon } from '../types';
-import { groupMatch } from '../groups';
+import { groupMatch, groupesDe, type PorteurDeGroupes } from '../groups';
 import { isShieldItem } from '../items';
 import { findTalentById, findTraitById } from '../../data';
 import { canStrikeFirst } from '../qualities/dispatch';
@@ -68,9 +68,9 @@ export function featuresOf(c: Combatant): { def: CombatFeature; ctx: CombatFeatu
  *  détection d'éligibilité (talent possédé vs l'Ennemi spécifié, par Groupes, ou ACCORDÉ par un
  *  sort sans spec, toutes sources). L'appelant (`sansPeurVs`) en déduit un seul Test de Calme
  *  Accessible (+20) à la rencontre — qui PEUT échouer, cf. `resolvePeurTest`/`resolveTerreurTest`. */
-export function fearImmuneVs(c: Combatant, foe: Pick<Combatant, 'groups'>): boolean {
+export function fearImmuneVs(c: Combatant, foe: PorteurDeGroupes): boolean {
   return featuresOf(c).some(
-    ({ def, ctx }) => def.fearImmune && (ctx.spec == null || groupMatch(ctx.spec, foe.groups ?? [])),
+    ({ def, ctx }) => def.fearImmune && (ctx.spec == null || groupMatch(ctx.spec, groupesDe(foe))),
   );
 }
 

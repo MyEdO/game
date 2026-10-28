@@ -2,8 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   rollSeaWeather, rollWindDirection, windAspect, tickWindForce, tickWindForceDay, windEffect, windAdjustedM,
   visibilityDRPenalty, precipitationTestMods, dailyWaterLitres, windForces, temperatureDef,
-  seaExposureTestsPerDay,
+  seaExposureTestsPerDay, precipitationDef,
 } from './seaWeather';
+import { lignesDe } from './modLine.testkit';
+import { RULE_REF } from './ruleRefs';
+import { t } from '../i18n';
 import type { RNG } from './dice';
 import { baseTestModLines } from './combat';
 import type { Combatant } from './types';
@@ -157,7 +160,7 @@ describe('effets d’ambiance — Précipitations / Température / Visibilité (
   });
 
   it('Précipitations : le canal rend UNE ligne « Météo » de famille circonstance, et frappe le Test de Caractéristique en Très abondantes', () => {
-    expect(precipitationTestMods('tres-abondantes', 'voile')).toEqual([expect.objectContaining({ label: 'Météo : Très abondantes', value: -20, famille: 'circonstance' })]);
+    expect(precipitationTestMods('tres-abondantes', 'voile')).toEqual([{ label: t('tp.modWeather', { weather: precipitationDef('tres-abondantes').label }), value: -20, famille: 'circonstance', ref: RULE_REF['meteo-maritime'] }]);
     expect(precipMod('tres-abondantes')).toBe(-10);
     expect(precipMod('abondantes')).toBe(0);
     expect(precipitationTestMods(undefined, 'voile')).toEqual([]);
@@ -206,7 +209,7 @@ describe('`baseTestModLines` — les Précipitations lisent la Compétence que l
     conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
     wounds: { current: 10, max: 10, base: 10 }, advantage: 0, envPrecipitation: 'tres-abondantes',
   }) as unknown as Combatant;
-  const meteo = (lines: ReturnType<typeof baseTestModLines>) => lines.filter((l) => l.label === 'Météo : Très abondantes').map((l) => l.value);
+  const meteo = (lines: ReturnType<typeof baseTestModLines>) => lignesDe(lines, RULE_REF['meteo-maritime']).map((l) => l.value);
 
   it('un Test d’Athlétisme porte le −30 de sa Compétence, pas le −10 du Test de Caractéristique', () => {
     expect(meteo(baseTestModLines(surLePont(), 'agilite', { skill: 'athletisme' }))).toEqual([-30]);

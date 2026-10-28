@@ -20,7 +20,8 @@
 import { RNG, roll as rollDice } from './dice';
 import { Money, fromBrass, toBrass, priceToMoney, PA_PER_SC, PA_PER_CO } from './money';
 import type { Combatant, Difficulty, SkillInstance, Availability, StakeForm } from './types';
-import { valeurSansTirage, type Formula, type FormuleSansTirage, type GameOp } from './ops';
+import type { Formula, FormuleSansTirage, GameOp } from './ops';
+import { valeurSansTirage } from './formule';
 import { evalCondition, type Condition, type ConditionCtx } from './flowCore';
 import { buildActorView } from './actorView';
 import type { ModLine } from './combat';

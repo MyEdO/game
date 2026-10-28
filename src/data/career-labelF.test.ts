@@ -36,8 +36,8 @@ describe('careers/careerLevels — labelF (forme féminine d’affichage)', () =
   });
 
   it('displayLabelForSex : accord d’un niveau de carrière', () => {
-    const lvl = careerLevels.find((l) => l.label === 'Sergent')!;
-    expect(displayLabelForSex('F', lvl.label, lvl.labelF)).toBe('Sergente');
-    expect(displayLabelForSex('M', lvl.label, lvl.labelF)).toBe('Sergent');
+    expect(displayLabelForSex('F', 'Sergent', 'Sergente')).toBe('Sergente');
+    expect(displayLabelForSex('M', 'Sergent', 'Sergente')).toBe('Sergent');
+    expect(displayLabelForSex('F', 'Artiste', undefined)).toBe('Artiste');
   });
 });

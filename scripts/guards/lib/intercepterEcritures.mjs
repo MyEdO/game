@@ -46,8 +46,9 @@ export function installer({ racine, gitCommun, signaler }) {
   const envelopper = (objet, nom, fabrique) => {
     if (typeof objet[nom] !== 'function') return
     const original = objet[nom]
-    originaux.push(() => { objet[nom] = original })
-    objet[nom] = fabrique(original)
+    const propre = Object.getOwnPropertyDescriptor(objet, nom)
+    originaux.push(() => { if (propre) Object.defineProperty(objet, nom, propre); else delete objet[nom] })
+    Object.defineProperty(objet, nom, { value: fabrique(original), writable: true, enumerable: propre?.enumerable ?? true, configurable: true })
   }
   const cheminDe = (p) => typeof p === 'number' ? descripteurs.get(p)
     : p instanceof NodeURL ? fileURLToPath(p) : Buffer.isBuffer(p) ? resoudre(p.toString()) : typeof p === 'string' ? resoudre(p) : p && typeof p.fd === 'number' ? descripteurs.get(p.fd) : null
@@ -74,14 +75,17 @@ export function installer({ racine, gitCommun, signaler }) {
     const definition = OPERATIONS_FS[nom]
     if (nom === 'createWriteStream' && args[1]?.fd !== undefined) verifier(nom, args[1].fd)
     if (definition.drapeaux !== undefined && !ouvreEnEcriture(args[definition.drapeaux])) return
-    for (const indice of definition.chemins) verifier(nom, args[indice])
+    for (const chemin of definition.chemins) {
+      if (typeof chemin === 'number') verifier(nom, args[chemin])
+      else if (args[chemin[0]] && typeof args[chemin[0]] === 'object') verifier(nom, args[chemin[0]][chemin[1]])
+    }
   }
   for (const [nom, definition] of Object.entries(OPERATIONS_FS)) {
     if (definition.drapeaux !== undefined) continue
-    for (const objet of [fs, fs.promises]) envelopper(objet, nom, (original) => function (...args) {
+    for (const objet of [fs, fs.promises]) envelopper(objet, nom, (original) => Object.assign(function (...args) {
       verifierArguments(nom, args)
-      return original.apply(this, args)
-    })
+      return new.target ? Reflect.construct(original, args, new.target) : original.apply(this, args)
+    }, { prototype: original.prototype }))
   }
   envelopper(fs, 'openSync', (original) => function (...args) {
     verifierArguments('openSync', args)

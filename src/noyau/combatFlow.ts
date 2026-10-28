@@ -138,7 +138,7 @@ import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import { gainCorruption, testDExposition } from './corruptionFlow';
-import { corruptionGain } from '../engine/corruption';
+import { corruptionGain, EXPOSURE_LADDER, type ExposureLevel } from '../engine/corruption';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { critTableSchema } from '../data/schemas/defs/criticals';
 import { canCastFromGrimoire } from '../engine/grimoire';
@@ -151,7 +151,7 @@ import {
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR, cibleMesuree } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
-import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence } from '../data';
+import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
@@ -219,7 +219,7 @@ import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
 import { fearSourceFor, refreshAllDefendedPsych, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType, psychTest } from '../engine/psychology';
-import { groupMatch } from '../engine/groups';
+import { groupMatch, groupesDe } from '../engine/groups';
 import { sceneCombatModifiers } from './monde/sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
@@ -744,11 +744,11 @@ export function attackEnv(
     // des deux (`DeckCoverClass ⊂ CoverClass`). `crewPosteOf` couvre tout l'équipage (chef ET support).
     const posteCover = crewPosteOf(target.id, battle.combatants)?.poste.cover;
     const cover = posteCover ? couvertLePlusProtecteur(los.cover, posteCover) : los.cover;
-    if (cover !== 'none') env.push({ label: tr('cf.coverLabel', { cover }), value: coverModifier(cover), famille: 'circonstance' });
+    if (cover !== 'none') env.push({ label: tr('cf.coverLabel', { cover }), value: coverModifier(cover), famille: 'circonstance', ref: RULE_REF['cible-sous-couverture'] });
     // Vision nocturne / Infravision (LDB 85) ou Talent Vision nocturne : annule la pénalité d'obscurité.
     // Cible dissimulée (LDB 14 l.75) et météo (l.76, l.82) : sommées sous le plafond de `combineMods` (LDB 14 l.95).
     if (sc.concealed && !seesInDark(attacker)) env.push({ label: sc.concealedLabel, value: -20, famille: 'circonstance', ref: RULE_REF['cible-dissimulee'] });
-    if (sc.attackMod) env.push({ label: sc.label, value: sc.attackMod, famille: 'circonstance' });
+    if (sc.attaque) env.push(sc.attaque);
     // Tir en bougeant (LDB 14 l.70) : si l'on bouge ET tire au même Round. Le Mouvement étant
     // DÉCOMPOSABLE (on peut bouger APRÈS le tir), un HÉROS qui garde sa mobilité encaisse la pénalité par défaut ;
     // il ne l'évite qu'en décidant de tirer IMMOBILE (heldGround → consomme son Mouvement, cf. attackConfirm)
@@ -774,7 +774,7 @@ export function attackEnv(
     return { env, blocked: false, inMelee, crowd, cm, sc };
   }
   // Mêlée : la météo (tempête/neige) pénalise l'attaque ; la neige pénalise aussi l'esquive (dodgeMods).
-  if (sc.attackMod) env.push({ label: sc.label, value: sc.attackMod, famille: 'circonstance' });
+  if (sc.attaque) env.push(sc.attaque);
   // La pénalité météo « Tests physiques » (EDOC 8 l.82) n'est PLUS ajoutée ici : le CANAL UNIQUE
   // `weatherTestMods` (attackModifiers, lu depuis `attacker.envWeather`) la porte pour l'attaque ET la défense
   // ET les activités — jamais recâblée par surface (#341). Seuls les mods météo WEAPON-contextuels restent (tir).
@@ -1013,7 +1013,7 @@ export function difficultyOf(p: AttackPreview): DifficultyShown | undefined {
  *  calcul pour tous les lecteurs — sinon la rangée adverse annonce une Difficulté que le jet contredit (#1153 L4). */
 export function defenseDodgeMods(s: Pick<Jeu, 'scene' | 'gameTime'>, defender: Combatant): ModLine[] {
   const sc = s.scene ? sceneCombatModifiers(s.scene, s.gameTime) : null;
-  const weather: ModLine[] = sc?.dodgeMod ? [{ label: sc.label, value: sc.dodgeMod, famille: 'circonstance' }] : [];
+  const weather: ModLine[] = sc?.esquive ? [sc.esquive] : [];
   return [...weather, ...mountedDodgeMods(defender)];
 }
 /** Ligne ADVERSE du panneau de jet pré-rempli (modale d'attaque) : ce que le joueur est en droit
@@ -1665,7 +1665,7 @@ export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source
   // Le vrai gate est la RESSOURCE (`fate > 0`, présente sur tout kind), pas le `kind` : un combattant à
   // Destin (héros, ou ennemi conduit doté de Destin) est sauvé ; sinon la mort est finalisée.
   if ((hero.fate ?? 0) > 0) {
-    const foeCible = foe ? (foe.groups?.[0] ?? foe.label) : undefined;
+    const foeCible = foe ? (groupesDe(foe)[0] ?? foe.label) : undefined;
     set({ pendingFateSave: { heroId: hero.id, source, restoreWounds, ...(foeCible ? { foeCible } : {}) } });
   } else {
     hero.dead = true;
@@ -1682,7 +1682,7 @@ export function notifySlain(get: Get, set: SetFn, c: Combatant): string[] {
   releaseSeatsOfDowned(get, set); // un corps mis hors d'action ne tient plus sa chaise
   const lines: string[] = [];
   emitCombatEvent('onSlain', { get, set, battle: get().battle!, self: c, sink: (line) => lines.push(line), triggerCtx: { rng: battleRng() } });
-  // Ops IMPURES « à la mort » (Charnier : 3d10 Zombies ; toute zone laissée en mourant) — inertes dans
+  // Ops IMPURES « à la mort » (Gardien éternel : reconstitution ; toute zone laissée en mourant) — inertes dans
   // applyOps, résolues ici (grille/initiative) comme au lancement d'un sort d'invocation/zone.
   lines.push(...resolveTriggerImpureOps(get, set, c, 'onSlain'));
   return lines;
@@ -5318,7 +5318,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const excludesCaster = spell.target?.kind === 'area' && spell.target.excludesCaster === true;
   // `affects` (src/engine/spellRange.ts:34) : Condition évaluée PAR CANDIDAT (`target` = le candidat,
   // `caster` = le lanceur). Absente → LDB 47 l.28.
-  const affects = spell.target?.kind === 'area' || spell.target?.kind === 'cone' ? spell.target.affects : undefined;
+  const affects = spell.target?.kind === 'area' ? spell.target.affects : undefined;
   // Le DR confronté par la Condition est celui que SUBIT le candidat (Résistance à la Magie, LDB 85
   // l.302 / LDB 10 l.1026). C'est ce filtre qui CONSTITUE la zone : chaque candidat est donc sa zone.
   const affected = (c: Combatant): boolean =>
@@ -5784,8 +5784,8 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   if (cible.wounds.current <= 0 && !cible.dead && !hasCondition(cible, COND.inconscient)) applyZeroWounds(cible);
   // Effets ADDITIONNELS d'un Projectile sur la cible (« Grands feux d'U'Zhul » : +2 En flammes, À
   // Terre ; « Drain » : soigne le lanceur) — lus depuis `spell.effects` (Flow éditable, feuilles
-  // `on:'target'`). Réservé aux sorts CURÉS : un sort sans spec n'a pas d'effet missile parsé (iso-POC).
-  if (spell.curated && spellOps(spell.effects, 'target').length) {
+  // `on:'target'`).
+  if (spellOps(spell.effects, 'target').length) {
     // Surincantation de DURÉE sur un PROJECTILE (#1695) : la touche transporte les pas alloués
     // (`ch.overcastDurationSteps`) — la règle se relit à sa SOURCE UNIQUE (`overcastDurationParts`),
     // comme la branche non-projectile (`rounds = base × mult + bonus`, plus bas). Sans elle, les effets
@@ -6364,7 +6364,7 @@ function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, opDeZon
 }
 
 /** Résout les ops IMPURES (grille/initiative) d'un déclencheur — GÉNÉRIQUE, pas limité à summon : un
- *  effet de DONNÉE déclenché (Trait/Talent/Atout) qui invoque (Charnier : 3d10 Zombies à la mort) ou
+ *  effet de DONNÉE déclenché (Trait/Talent/Atout) qui invoque ou
  *  pose une zone est résolu ICI, comme au lancement d'un sort. `summon`/`zone` sont inertes dans
  *  `applyOps` (moteur pur) ; on les moissonne (`triggerEffectOps`) et on les dispatche vers leur
  *  résolveur state (applySummon / placeZoneFromOp). Les autres impures (grantFreeAttack, interruptFocus,
@@ -6552,17 +6552,17 @@ function decideCombatEndHeroTests(
   return { diseases, corruption: c.dead ? null : worstCorruption };
 }
 
-/** Pire Degré d'EXPOSITION à la Corruption des créatures affrontées (LDB 85 l.87 → LDB 19) — `null`
- *  si aucune créature corrompue. Le niveau s'applique à TOUS les héros survivants (avoir affronté). */
-function worstCorruptionExposure(battle: BattleState): { level: import('../engine/corruption').ExposureLevel; label: string } | null {
-  const degrees = battle.combatants
+/** Pire Degré d'EXPOSITION à la Corruption des créatures affrontées (LDB 85 l.87 → LDB 19), désigné par
+ *  l'id de son Trait, avec le libellé de son registre — `null` si aucune créature corrompue. Le niveau
+ *  s'applique à TOUS les héros survivants (avoir affronté). */
+function worstCorruptionExposure(battle: BattleState): { level: ExposureLevel; label: string } | null {
+  const rangs = battle.combatants
     .filter((c) => c.kind !== 'hero')
-    .flatMap((c) => (c.traits ?? []).filter((t) => t.id === 'corruption').map((t) => t.arg).filter(Boolean));
-  if (!degrees.length) return null;
-  const rank = { mineure: 0, modérée: 1, majeure: 2 } as Record<string, number>;
-  const worst = degrees.reduce((a, b) => (rank[b!.toLowerCase()] > rank[a!.toLowerCase()] ? b : a))!;
-  const level = worst.toLowerCase() === 'majeure' ? 'majeure' : worst.toLowerCase() === 'modérée' ? 'moderee' : 'mineure';
-  return { level, label: worst };
+    .flatMap((c) => (c.traits ?? []).filter((t) => t.id === 'corruption').map((t) => EXPOSURE_LADDER.indexOf(t.arg as ExposureLevel)));
+  const pire = Math.max(-1, ...rangs);
+  if (pire < 0) return null;
+  const level = EXPOSURE_LADDER[pire];
+  return { level, label: SPEC_SOURCES.exposureLevels.label(level) };
 }
 
 /**
@@ -7541,7 +7541,7 @@ export function collectHeroRoundStartPsych(get: Get, c: Combatant): HeroPsychDue
   // Traits psy CIBLÉS (Animosité/Haine/… — LDB 21) : re-test des actifs, puis nouveaux déclenchements.
   const visible = visibleFoesAndAllies(battle, scene, c);
   for (const p of state) {
-    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => groupMatch(p.cible!, v.groups ?? [])))
+    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => groupMatch(p.cible!, groupesDe(v))))
       return { kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible: p.cible }; // affliction active à re-tester
   }
   const tt = targetedTrigger(c, visible);
@@ -7798,7 +7798,7 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
     if (brise > 0 && res.failCondition === COND.brise) {
       hero.briseFromTerreur = (hero.briseFromTerreur ?? 0) + brise;
       const foe = inBattleId(battle, cp.sourceId);
-      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, foe?.groups?.[0] ?? cp.sourceName ?? '');
+      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, (foe ? groupesDe(foe)[0] : undefined) ?? cp.sourceName ?? '');
       if (gained) {
         hero.psychTraits = [...(hero.psychTraits ?? []), gained.phobie];
         hero.briseFromTerreur = 0;

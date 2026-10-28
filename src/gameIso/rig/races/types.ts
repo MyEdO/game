@@ -22,7 +22,7 @@ export interface RaceFeature {
 export interface RaceDef {
   id: string;                   // 'humain', 'ogre', 'skaven'… (== sortie canonique de baseSpeciesOf)
   label: string;                // libellé d'affichage (« Haut-Elfe ») dont l'id est le slug
-  gabarit: GabaritId;           // id du gabarit par défaut
+  gabarit: { id: GabaritId };   // gabarit par défaut
   gabaritOverride?: SurchargeDeGabarit;
   palette?: PaletteDeclaree;      // peau/cheveux/yeux par défaut de l'espèce
   paletteF?: PaletteDeclaree;    // variante féminine (sinon palette sert aux deux sexes)

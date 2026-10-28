@@ -33,7 +33,7 @@ import {
   draftLevel,
   buildHero,
   type CreatorDraft,
-} from './draft';
+} from '../../noyau/creation/brouillon';
 import { species as allSpecies, careersForSpecies, findCareerById } from '../../data';
 import { CHAR_LABELS } from '../../engine/types';
 import { echapperRegex } from '../../lib/regex';

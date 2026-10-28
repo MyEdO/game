@@ -7,9 +7,9 @@ import {
   repairVehicleAttempt,
   forcedPaceCheck,
   forcedPaceBeastCheck,
-  forcedPaceModifier,
-  FORCED_PACE_PENALTY_PER_KM,
+  ligneAllureForcee,
 } from './vehicle';
+import { modDeRegle, refDeRegle } from './reglesChiffrees';
 import { desEnSuite } from './dice.testkit';
 
 /** RNG SCRIPTÉ : rend les jets dans l'ordre exact de consommation (aucun clamp — un jet de trop ou de
@@ -98,11 +98,11 @@ describe('réparation terrestre d’un véhicule (EDOC 07 l.349-353)', () => {
 });
 
 describe('course forcée d’un attelage (EDOC 07 l.229, l.253)', () => {
-  it('pénalité cumulative de −10 par kilomètre DÉJÀ couru ; réussite → aucune bête éprouvée', () => {
-    expect(FORCED_PACE_PENALTY_PER_KM).toBe(-10);
+  it('pénalité cumulative par kilomètre DÉJÀ couru, lue à sa fiche ; réussite → aucune bête éprouvée', () => {
+    const parKm = modDeRegle('allure-forcee-attelage', 'par-km');
     const r = forcedPaceCheck({ valeurConduite: 45, kmDejaCourus: 2, animaux: [{ valeurResistance: 40 }], rng: script(20) });
-    expect(r.modificateur).toBe(-20);
-    expect(r.conduite.target).toBe(25);
+    expect(r.ligne?.value).toBe(2 * parKm);
+    expect(r.conduite.target).toBe(45 + 2 * parKm);
     expect(r.retourAuPas).toBe(false);
     expect(r.animaux).toEqual([]);
   });
@@ -114,7 +114,7 @@ describe('course forcée d’un attelage (EDOC 07 l.229, l.253)', () => {
       animaux: [{ valeurResistance: 40 }, { valeurResistance: 40 }],
       rng: script(60, 20, 45),
     });
-    expect(r.modificateur).toBe(0);
+    expect(r.ligne).toBeNull();
     expect(r.retourAuPas).toBe(true);
     expect(r.animaux).toHaveLength(2);
     expect(r.animaux[0].etats).toEqual([]);
@@ -130,13 +130,11 @@ describe('course forcée d’un attelage (EDOC 07 l.229, l.253)', () => {
     expect(r.animaux[0].blessures).toBe(0);
   });
 
-  it('le modificateur de l.229 est une SOURCE UNIQUE (le 1ᵉʳ km rend 0, jamais −0)', () => {
-    expect(forcedPaceModifier(0)).toBe(0);
-    expect(Object.is(forcedPaceModifier(0), -0)).toBe(false);
-    expect(forcedPaceModifier(3)).toBe(3 * FORCED_PACE_PENALTY_PER_KM);
+  it('le modificateur de l.229 est une SOURCE UNIQUE (le 1ᵉʳ km ne nomme aucune ligne)', () => {
+    expect(ligneAllureForcee(0)).toBeNull();
+    expect(ligneAllureForcee(3)).toMatchObject({ ref: refDeRegle('allure-forcee-attelage'), value: 3 * modDeRegle('allure-forcee-attelage', 'par-km') });
     // Le composeur ne recalcule rien : il délègue au même résolveur.
-    expect(forcedPaceCheck({ valeurConduite: 45, kmDejaCourus: 3, animaux: [], rng: script(20) }).modificateur)
-      .toBe(forcedPaceModifier(3));
+    expect(forcedPaceCheck({ valeurConduite: 45, kmDejaCourus: 3, animaux: [], rng: script(20) }).ligne).toEqual(ligneAllureForcee(3));
   });
 
   it('le jet de bête est EXTRACTIBLE (forcedPaceBeastCheck) et rend le MÊME résultat que le composeur', () => {

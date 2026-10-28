@@ -46,6 +46,7 @@ const ATTENDU = {
     'scripts/guards/lib/processusWorktrees.test.mjs',
     // #2626
     'scripts/guards/lib/superviserProcessus.test.mjs',
+    'scripts/guards/lib/operationsFs.test.mjs',
     'scripts/guards/lib/superviserProcessus.mjs',
     // +2 le 2026-10-19 (#2586) : le suspendeur de mesure et le banc d'`arbreProcessus` écrivent pilote, script
     // PowerShell et témoin d'armement sous un `mkdtempSync` d'os.tmpdir(), retiré par `t.after` ; l'arbre n'est jamais écrit.
@@ -328,8 +329,9 @@ const ATTENDU = {
   // #2705 : la porte des comptes pose chaque borne de la plage sous un `mkdtempSync`
   // d'os.tmpdir(), effacé en finally, y lie `node_modules` (`replay-head.mjs`) et y produit et certifie les cibles de code
   // (`genererCode` de `build-all.mjs`, cwd = l'image, et ses écrivains atteints) ; l'arbre n'est
-  // jamais écrit.
-  'comptes:plage': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/guards/lib/corpusDesComptes.mts',
+  // jamais écrit. #3021 : `comptes-plage.mts` ajoute l'inventaire de la dette au résumé du job
+  // (`GITHUB_STEP_SUMMARY`), hors de l'arbre.
+  'comptes:plage': ['scripts/guards/comptes-plage.mts', 'scripts/guards/lib/protectionWorktree.mjs', 'scripts/guards/lib/corpusDesComptes.mts',
     'scripts/docs/build-all.mjs', 'scripts/docs/lib/ecriture-derives.mjs', 'scripts/docs/lib/fraicheur-docs.mjs',
     'scripts/git-hooks/journal.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs',
     'scripts/migrations/replay-head.mjs', 'scripts/test/verrou.mjs'],

@@ -13,9 +13,8 @@ import { ACTIVITIES } from '../engine/activities';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { deElide } from '../i18n';
 import { MISCAST_TABLES } from '../engine/miscast';
-import { slugId } from '../data/slug';
 import { isFrenzied, psychTest } from '../engine/psychology';
-import { etatConnu, conditionSeverity } from '../engine/conditions';
+import { etatExige, conditionSeverity } from '../engine/conditions';
 import { roundsLabel } from '../engine/duration';
 
 /** Clés STABLES des états-drapeaux (`EffectFlags`) — vocabulaire d'identité partagé par `flagChips`
@@ -69,14 +68,13 @@ export interface EffectChip {
 
 interface CondMeta { icon: IconId; severity: number; important: boolean; }
 
-/** Icône + sévérité d'AFFICHAGE d'un État — icône lue en DONNÉE (`etats.json`) ou sur un marqueur
- *  narratif (résolveur UNIQUE `etatConnu`, engine ; repli `journal/info`) ; sévérité déléguée
- *  à `conditionSeverity` (même résolveur). `important` =
- *  sévérité ≥ 50 (incapacitant, créneau unique de l'ordre de bataille). Clé SLUGIFIÉE → tolère un
- *  libellé ('Pétrifié' → 'petrifie'). */
-export function conditionMeta(name: string): CondMeta {
-  const icon = (etatConnu(slugId(name))?.icon as IconId | undefined) ?? 'journal/info';
-  const severity = conditionSeverity(name);
+/** Icône + sévérité d'AFFICHAGE d'un État par son id — icône lue en DONNÉE (`etats.json`) ou sur un marqueur
+ *  narratif (résolveur UNIQUE `etatExige`, engine, qui lève hors registre ; repli `journal/info` pour un État
+ *  connu sans icône) ; sévérité déléguée à `conditionSeverity` (même résolveur). `important` =
+ *  sévérité ≥ 50 (incapacitant, créneau unique de l'ordre de bataille). */
+export function conditionMeta(id: string): CondMeta {
+  const icon = (etatExige(id).icon as IconId | undefined) ?? 'journal/info';
+  const severity = conditionSeverity(id);
   return { icon, severity, important: severity >= 50 };
 }
 

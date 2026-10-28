@@ -17,10 +17,10 @@ import type { Combatant } from '../engine/types';
 // #671 — CÂBLAGE du registre de presets de PNJ nommés : un preset = base créature globale (par id) +
 // surcharges embarquées ; l'entité de scène le porte par `presetId`, instanciée base+profil au spawn.
 
-const BASE_ID = 'brigand'; // créature GLOBALE réelle (creatures.json)
+const BASE_ID = 'humain'; // créature GLOBALE réelle (creatures.json)
 const CC = 'capacite-de-combat';
 
-/** Narratif fixture avec un preset nommé : base `brigand`, CC surchargée + label du preset. */
+/** Narratif fixture avec un preset nommé : base `humain`, CC surchargée + label du preset. */
 function narratifFixture(): NarratifBlock {
   return {
     ...emptyNarratif(),
@@ -130,7 +130,7 @@ describe('cross-ref parseProject (#671, validation reportée de #765)', () => {
 
 /**
  * COOP (#1882) — la couche narrative d'un projet (`campaignNarratif`) est hors snapshot (`HORS_SAVE`,
- * saves.ts) : l'invité la RE-DÉRIVE de `campaignDoc`, par la même couture que la reprise de save
+ * noyau/persistance/save.ts) : l'invité la RE-DÉRIVE de `campaignDoc`, par la même couture que la reprise de save
  * (`reposerPaquetDeCampagne`, registreDesScenes.ts). Sans elle, un PNJ à preset n'a pas de fiche chez l'invité.
  */
 describe('coop — l’invité re-dérive la couche narrative du paquet de l’hôte (#1882)', () => {

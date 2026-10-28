@@ -39,22 +39,22 @@ const CHAMPS = Object.freeze({
   'v2/ErrorNotification': ['threadId', 'error.message'],
 })
 const EMPREINTES = Object.freeze({
-  'v1/InitializeParams': '623dacaf3ad710a70a827eaed46f138e085661cdeae6ba05b4772a124fbfbdc7',
+  'v1/InitializeParams': '19f874478560494c26dd5b7807ebf2fe69f05f68caec7128ca97d101afeed240',
   'v1/InitializeResponse': '5dbc854f567d45b4b0a2907547f63b64c84a399c71729e6a60a423084665f442',
   'v2/ThreadStartParams': '9dfbb8da33c180a230217e393d106d4f9953ddaf9ac741622ef824a26a4304bb',
   'v2/ThreadStartResponse': '32abd685e7f8680e2718627751068b65856595ed706a6fc07f861f55c2b3d611',
-  'v2/TurnStartParams': 'd1006b5d7a9342585ce867a6daf1d4b2cb2478ebd6c076b2558f3758e27de06a',
+  'v2/TurnStartParams': '28a6378affb6538742215a2686caa2988e5a6563b6725ba0b97c91cab71a4f86',
   'v2/TurnStartResponse': '036750364cd5d4d21ddded797dbe88d9f7f0104c1922df1b9981e63b09026a62',
-  'v2/TurnSteerParams': 'bc5faf38e6d2fe8b12ee5c0311db0341febc57f9a6549298c85d69fd3da0fde6',
+  'v2/TurnSteerParams': '1fa6af62b35f054ad849b79153076e7904eef48abec918f8d393214a02be3061',
   'v2/TurnSteerResponse': 'ec09e5b5b5cd62b0e6f2cabe4f2180e6cf8e136ec67bf43fde9d4934f10ebe00',
   'v2/TurnInterruptParams': 'c0cd7920406a77d4f75a2a441a7d35aea303b4c33b73760912294f020448464c',
   'v2/TurnInterruptResponse': '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
   'v2/TurnStartedNotification': 'abae1781e40c74769480a11971b850ab1b4a42f77a4fe76f6fe274972c2aa2c4',
-  'v2/TurnCompletedNotification': '12822e0f1551cc1dbdd6025e3f564865090d18648ecbff75e99e791f78b5349b',
-  'v2/ItemCompletedNotification': '973243d19a85605f9edfa7aad1dd90e9405e3212747157a2c6d7e8d6b8656a21',
-  'v2/ItemStartedNotification': '973243d19a85605f9edfa7aad1dd90e9405e3212747157a2c6d7e8d6b8656a21',
+  'v2/TurnCompletedNotification': '9d3f4e42eab34fa2d4b291fdbe61401a4f844486d719fedb92d958c15f905180',
+  'v2/ItemCompletedNotification': 'e72fcf82ed6307de0a846735078bab5df8c4907b7e895350bdc01ea685f05b65',
+  'v2/ItemStartedNotification': 'e72fcf82ed6307de0a846735078bab5df8c4907b7e895350bdc01ea685f05b65',
   'v2/ThreadTokenUsageUpdatedNotification': '8d41e6d6a92479e1fa9e411bbff6e2412959bfdd979e349fb31f87c57dc040b4',
-  'v2/ThreadStatusChangedNotification': '8e0b5553009531739bc455be014a6a1c04aebf3b1f3629ff439ae204f7e5cec6',
+  'v2/ThreadStatusChangedNotification': 'f2dfcb9985a3354599b4af9b555043114a3b8432ac67ab88fa773fd4ca0b6c7b',
   'v2/ErrorNotification': '0ee69aea58e82042178f3a259e15b8b4718ddcddd57f9bbcf0a242c5d0ce9b43',
 })
 const METHODES = {
@@ -63,19 +63,41 @@ const METHODES = {
   ServerNotification: { 'turn/started': 'v2/TurnStartedNotification', 'turn/completed': 'v2/TurnCompletedNotification', 'item/started': 'v2/ItemStartedNotification', 'item/completed': 'v2/ItemCompletedNotification', 'thread/tokenUsage/updated': 'v2/ThreadTokenUsageUpdatedNotification', 'thread/status/changed': 'v2/ThreadStatusChangedNotification', error: 'v2/ErrorNotification' },
 }
 function forme(schema, segments, definitions = schema?.definitions || {}) {
-  if (!schema) return null
-  if (schema.$ref) return forme(definitions[schema.$ref.split('/').at(-1)], segments, definitions)
-  const base = tableTotale(['type', 'enum', 'const'].filter((k) => Object.hasOwn(schema, k)), (k) => schema[k])
-  if (!segments.length) return base
-  if (segments[0].startsWith('@') && schema.properties?.type?.enum?.includes(segments[0].slice(1))) return forme(schema, segments.slice(1), definitions)
-  const alternatives = schema.oneOf || schema.anyOf || schema.allOf
-  if (alternatives && !Object.hasOwn(schema.properties ?? {}, segments[0])) {
-    const branches = alternatives.map((s) => s.type === 'null' ? { type: 'null' } : forme(s, segments, definitions)).filter(Boolean)
-    return branches.length ? { ...base, branches } : null
+  if (schema === undefined || schema === null) return null
+  if (schema === false) return false
+  if (schema === true) return true
+  if (segments[0]?.startsWith('@') && schema.properties?.type?.enum) {
+    if (!schema.properties.type.enum.includes(segments[0].slice(1))) return null
+    segments = segments.slice(1)
   }
-  const [key, ...reste] = segments
-  const enfant = forme(key === '[]' ? schema.items : schema.properties?.[key], reste, definitions)
-  return enfant ? { ...base, required: key === '[]' || (schema.required || []).includes(key), enfant } : null
+  const base = tableTotale(['type', 'enum', 'const'].filter((k) => Object.hasOwn(schema, k)), (k) => schema[k])
+  if (segments.length && !segments[0].startsWith('@')) {
+    const [key, ...reste] = segments
+    const child = key === '[]' ? schema.items : schema.properties?.[key]
+    const required = key === '[]' || (schema.required || []).includes(key)
+    if (child !== undefined || required) {
+      base.required = required
+      base.enfant = forme(child, reste, definitions)
+    }
+  }
+  const commun = Object.keys(base).length ? base : true
+  const contraintes = []
+  if (schema.$ref) contraintes.push(forme(definitions[schema.$ref.split('/').at(-1)], segments, definitions))
+  for (const operateur of ['oneOf', 'anyOf', 'allOf']) {
+    if (!schema[operateur]) continue
+    const branches = schema[operateur].map((s) => {
+      const projection = forme(s, segments, definitions)
+      if (!projection || projection === true) return projection
+      const residu = { ...projection }
+      for (const k of ['type', 'enum', 'const']) {
+        if (Object.hasOwn(base, k) && JSON.stringify(base[k]) === JSON.stringify(residu[k])) delete residu[k]
+      }
+      return Object.keys(residu).length ? residu : true
+    }).filter((s) => s !== null)
+    if (branches.some((s) => s !== true)) contraintes.push({ [operateur]: branches })
+  }
+  const pertinentes = [commun, ...contraintes].filter((s) => s !== true)
+  return pertinentes.length === 0 ? true : pertinentes.length === 1 ? pertinentes[0] : { allOf: pertinentes }
 }
 export function verifierProtocoleCodex({ executable, executer = spawnSync }) {
   let scratch

@@ -497,7 +497,7 @@
       "params": {
         "ship": "langskip",
         "crew": 45,
-        "crewRef": "maraudeur-du-chaos"
+        "crewRef": "humain"
       },
       "source": {
         "book": "mer-des-griffes",
@@ -611,8 +611,8 @@
         "ship": "cogue",
         "crew": 25,
         "greatGuns": 6,
-        "crewRef": "pirate-fluvial",
-        "chefRef": "chef-pirate"
+        "crewRef": "humain",
+        "chefRef": "jaego-roth"
       },
       "source": {
         "book": "mer-des-griffes",

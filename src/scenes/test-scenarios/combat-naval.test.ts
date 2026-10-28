@@ -59,9 +59,9 @@ describe('Scène compilée par buildScene — équivalence de map', () => {
     expect(byId('enemy-enc-naval-0').ref).toBe('cogue'); // index 0 = la cogue ennemie
     expect(byId('enemy-enc-naval-0').crewIds).toEqual(['enemy-enc-naval-1', 'enemy-enc-naval-2', 'enemy-enc-naval-3']);
     expect(byId('enemy-enc-naval-0').upgrades).toEqual([{ id: 'blindage-fer' }]);
-    expect(byId('enemy-enc-naval-1').ref).toBe('pirate-fluvial');
-    expect(byId('enemy-enc-naval-2').ref).toBe('pirate-fluvial');
-    expect(byId('enemy-enc-naval-3').ref).toBe('chef-pirate');
+    expect(byId('enemy-enc-naval-1').ref).toBe('humain');
+    expect(byId('enemy-enc-naval-2').ref).toBe('humain');
+    expect(byId('enemy-enc-naval-3').ref).toBe('jaego-roth');
     expect(byId('enemy-enc-naval-4').ref).toBe('bateau-de-patrouille'); // index 4 = la barge amie
   });
 
@@ -163,7 +163,7 @@ describe('Artillerie jouable — 2 héros SERVENT un poste de pierrier (pas d’
 });
 
 /**
- * PORTE JOUEUR : la barge amie lâche sa bordée sur un pirate-fluvial (MDG 14 l.128 « un ennemi »). Chaque
+ * PORTE JOUEUR : la barge amie lâche sa bordée sur un pirate (MDG 14 l.128 « un ennemi »). Chaque
  * pierrier est un coup de la couture du coup : la créature encaisse comme sous un tir ordinaire, sans
  * aucun État naval (EDOC 07 l.332).
  */

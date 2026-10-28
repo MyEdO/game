@@ -720,8 +720,8 @@ test('portée — aucune ENVELOPPE ne cache un stock de module', () => {
 
 // ── LA DÉFINITION : porteur = tableau OU objet atteignable depuis une liaison de module ───────────
 // Une entrée se lit sur l'IMAGE, par l'AST : c'est la POSITION dans le porteur qui la définit, jamais
-// la forme de son littéral. Les deux plus gros stocks du dépôt (`slotsStock`, `structuresStock`)
-// ouvrent leurs lignes par une accolade, et chacune de leurs entrées compte.
+// la forme de son littéral. Le plus gros stock du dépôt (`structuresStock`) ouvre ses lignes par une
+// accolade, et chacune de ses entrées compte.
 
 /** Les quatre formes de stock du dépôt, et les lignes (1-based) où vivent leurs entrées. */
 const FORMES = {
@@ -940,7 +940,6 @@ test('image — une extension hors de `DIALECTE` n’a pas d’image : `entreesN
 
 test('porteurs réels — l’image lit des entrées, et jamais moins que le repli de ligne', (t) => {
   const porteurs = [
-    'scripts/guards/lib/slotsStock.mjs',
     'scripts/guards/lib/structuresStock.mjs',
     'scripts/guards/lib/legacyVocabStock.mjs',
     'scripts/hooks/ecrans-ui.json',
@@ -1380,6 +1379,36 @@ test('#2223 FUSION (entrées) — une entrée IDENTIQUE des deux côtés compte 
 test('#2223 FUSION (entrées) — supprimée d’un côté, retouchée de l’autre, gardée : elle naît (figé)', () => {
   const [af, ag] = [e("'src/a.ts:f',"), e("'src/a.ts:g',")]
   assert.deepEqual(nets(apportDeFusion({ base: [af], parents: [[], [ag]], fusion: [ag] })), [["'src/a.ts:g',"], []])
+})
+
+test('#3023 FUSION (entrées) — même cas, le parent TRONC excuse ce qu’il porte : identique au tronc, rien ; ressuscitée contre le tronc, elle naît', () => {
+  const [af, ag] = [e("'src/a.ts:f',"), e("'src/a.ts:g',")]
+  assert.deepEqual(nets(apportDeFusion({ base: [af], parents: [[], [ag]], fusion: [ag], tronc: 1 })), [[], []], 'le tronc l’a retouchée : identique au tronc')
+  assert.deepEqual(nets(apportDeFusion({ base: [af], parents: [[], [ag]], fusion: [ag], tronc: 0 })), [["'src/a.ts:g',"], []], 'le tronc l’a soldée : elle naît')
+})
+
+test('#3023 FUSION (entrées) — le solde d’un côté ne paie jamais une entrée NEUVE, absente des deux parents', () => {
+  const [x, e1, neuve] = [e("'src/x.ts',"), e("'src/e1.ts',"), e("'src/neuve.ts',")]
+  for (const tronc of [null, 0, 1]) {
+    assert.deepEqual(nets(apportDeFusion({ base: [x, e1], parents: [[x], [x, e1]], fusion: [x, neuve], tronc })), [["'src/neuve.ts',"], []], `tronc ${tronc}`)
+  }
+})
+
+test('#3023 FUSION (entrées) — comptée par CLÉ contre l’automatique ET le tronc, et par fichier : aucune clé n’en paie une autre', () => {
+  const k = (cle, texte = cle) => e(`'src/${cle}.ts', // ${texte}`)
+  const croissance = ({ base, chantier, tronc, fusion }) => nets(apportDeFusion({ base, parents: [chantier, tronc], fusion, tronc: 1 }))
+  const [a, b, b2, c, m, x, e1, neuve, k1, k2] = [k('a'), k('k', 'b'), k('k', 'b2'), k('c'), k('k', 'm'), k('x'), k('e', 'e1'), k('e', 'neuve'), k('k1'), k('k2')]
+  assert.deepEqual(croissance({ base: [a, b, c], chantier: [a, b2, c], tronc: [a, b, c, m], fusion: [a, b, b2, c, m] }).map((l) => l.length), [1, 0],
+    'T1 : la réécriture du chantier gardée avec l’original du tronc, dédoublée')
+  assert.deepEqual(croissance({ base: [x, e1], chantier: [x, e1], tronc: [x], fusion: [x, neuve] }), [[neuve.texte], []],
+    'B1 : neuve à la place de e1, que le tronc a soldée, sous la même clé')
+  assert.deepEqual(croissance({ base: [a, x], chantier: [a, x], tronc: [a], fusion: [a, x] }), [[x.texte], []], 'B2 : la résurrection d’un solde du tronc')
+  assert.deepEqual(croissance({ base: [a, x], chantier: [a, c], tronc: [a, x, m], fusion: [a, x, m] }), [[], []], 'identique au tronc')
+  assert.deepEqual(croissance({ base: [a], chantier: [a, c], tronc: [a], fusion: [a, c] }), [[], []], 'une entrée ajoutée par le chantier')
+  assert.deepEqual(croissance({ base: [a, b], chantier: [a, b2], tronc: [a, b], fusion: [a, b2] }), [[], []], 'une réécriture seule')
+  assert.deepEqual(nets(apportDeFusion({ base: [a, k1], parents: [[a, k2], [a, k1]], fusion: [a, k1, k2], tronc: 1 })).map((l) => l.length), [1, 0],
+    'une clé renommée par le chantier, gardée sous ses deux noms : le fichier croît')
+  assert.deepEqual(croissance({ base: [a], chantier: [a, c], tronc: [a, m], fusion: [a, c, m] }), [[], []], 'chaque côté ajoute une entrée, toutes deux gardées')
 })
 
 test('#2223 FUSION (entrées) — gardée des deux côtés, retirée par la fusion : elle meurt', () => {

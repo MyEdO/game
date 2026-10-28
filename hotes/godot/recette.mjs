@@ -1,4 +1,4 @@
-// LA RECETTE DU TOUR COMPLET DE L'HÔTE GODOT (#2928, plan `docs/plans/2026-10-21-vague6-hote-godot.md`, critère 4) :
+// LA RECETTE DU TOUR COMPLET DE L'HÔTE GODOT (#2928) :
 // l'export Web (`node hotes/godot/construire.mjs --export --sortie <web>`) servi en statique, Chromium piloté au clic et
 // au clavier sur le canevas comme un joueur. Godot publie à la page ce que l'écran porte (`globalThis.wfrpEcran` : le
 // texte et le centre de chaque bouton, le point de chaque case) ; `wfrpPont.appeler('vue')` observe la partie, et chaque

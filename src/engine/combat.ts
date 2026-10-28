@@ -27,7 +27,7 @@ import { traumaDodgePenaltyParts, damageSBBonus, amputationCombatPenalty, passiv
 import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
-import { groupMatch } from './groups';
+import { groupMatch, groupesDe } from './groups';
 import { ignoredArmourAP, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom } from './psychology';
@@ -760,7 +760,7 @@ export function weaponReachPenalty(attackerWeapon: Weapon, targetMelee: Weapon |
 export function psychDRAdjust(attacker: Combatant, target: Combatant | null): number {
   if (!target || isPsychImmune(attacker)) return 0;
   const psy = attacker.psychState ?? [];
-  const groups = target.groups ?? [];
+  const groups = groupesDe(target);
   // Peur ANNULÉE si une affliction active immunise l'attaquant à ce CANAL (Haine vs son groupe l.41,
   // Amour l.75 dont l’`active` porte déjà « tant que vous défendez ») — siège UNIQUE `psychImmuneToFrom`,
   // partagé avec `fearSourceFor` et la porte hors combat : un seul verdict, aucun roster requis ici.

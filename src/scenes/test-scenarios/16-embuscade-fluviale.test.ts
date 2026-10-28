@@ -27,8 +27,8 @@ describe('Embuscade fluviale — scène compilée + roster', () => {
     const byId = (id: string) => scenConstruit.scene.entities.find((e) => e.id === id)!;
     expect(byId('enemy-enc-fluvial-0').ref).toBe('barque-fluviale');
     expect(byId('enemy-enc-fluvial-0').crewIds).toEqual(['enemy-enc-fluvial-1', 'enemy-enc-fluvial-2', 'enemy-enc-fluvial-3']);
-    expect(byId('enemy-enc-fluvial-1').ref).toBe('pirate-fluvial');
-    expect(byId('enemy-enc-fluvial-3').ref).toBe('chef-pirate');
+    expect(byId('enemy-enc-fluvial-1').ref).toBe('humain');
+    expect(byId('enemy-enc-fluvial-3').ref).toBe('jaego-roth');
     expect(byId('enemy-enc-fluvial-4').ref).toBe('anguille-du-reik');
     expect(byId('enemy-enc-fluvial-5').ref).toBe('barge-fluviale');
   });
