@@ -672,8 +672,8 @@ Surincantation après résultat : `QtyStepper` porte `.cart-step` / `.btn-step`,
 dont la durée offre cet axe. Le scénario `dome` fournit quatre combattants avec lanceuse
 pré-équipée ; voir § Dôme pour les gestes de carte.
 
-Parure d'objet : groupe → portrait HUD → onglet « Possessions » → ligne de l'objet →
-bouton « Parure ». Le bouton apparaît après sélection de l'objet.
+Apparence d'objet : groupe → portrait HUD → onglet « Possessions » → ligne de l'objet →
+sélecteur « Apparence ». Il apparaît après sélection d'un objet à au moins deux apparences admissibles.
 Limite datée du 2026-09-23 (#1925) : sur Chrome headless Linux/SwiftShader, la recette observait
 les anneaux sans jetons 3D, pareil sur main. Ce constat ne vaut pas
 garantie générale pour les machines actuelles ; juger le rendu 3D sur un environnement
@@ -1947,10 +1947,10 @@ Gestes du JOUEUR, re-mesurés au code (frictions des recettes #2177, #2199, #200
 
 Fiche du héros → panneau d'équipement (`src/ui/EquipmentPanel.tsx`) :
 
-- **En combat, l'équipement est VERROUILLÉ** (`VERROU_SETS`, `EquipmentPanel.tsx:19`) : chaque emplacement,
+- **En combat, l'équipement est VERROUILLÉ** (verdict `refusDInventaire`, `src/noyau/verrousDeFiche.ts`, que lisent l'écran et les gestes) : chaque emplacement,
   « Activer », « + Set d'armes » et la suppression d'un set sont des contrôles REFUSÉS (`aria-disabled`,
-  jamais `disabled`), dont la raison se lit au survol — « Équipement verrouillé en combat (changez de set
-  depuis la barre d'action). » ; `geste` (intention `agir`) LÈVE en la citant, `survoler` la rend. Équiper se recette HORS combat ; en
+  jamais `disabled`), dont la raison se lit au survol — « En combat, l’équipement se gère depuis la
+  barre d’action. » ; `geste` (intention `agir`) LÈVE en la citant, `survoler` la rend. Équiper se recette HORS combat ; en
   combat, le changement de set passe par la barre d'action.
 - **Le picker d'emplacement** : cliquer la cellule ouvre un `MediaSelect` (changer, retirer). Ses options
   se lisent « <arme> », suffixée « (2M) » pour une arme à deux mains (« Filet lesté (2M) »), « <armure>

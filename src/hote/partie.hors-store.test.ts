@@ -84,8 +84,10 @@ describe('l’en-tête d’une partie', () => {
 describe('l’ouverture d’une partie', () => {
   it('le héros que le noyau persiste passe par le service `persisterLeHeros` que l’hôte fournit (#3041)', () => {
     const persistes: Combatant[] = [];
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), (heros) => void persistes.push(heros));
+    // Hors combat : en combat, le background ne s'édite pas (`refusDuBackground`, `noyau/verrousDeFiche.ts`).
+    const { partie } = ouvrirLaPartie(nouvelEntete('entrainement', { graine: 7 }), (heros) => void persistes.push(heros));
     try {
+      expect(partie.etat().battle, 'témoin : la partie s’ouvre hors combat').toBeFalsy();
       const id = partie.etat().party[0].id;
       partie.envoyer({ type: 'setHeroBackground', args: [id, { motivation: 'Foi' }] });
       expect(persistes.map((h) => [h.id, h.motivation])).toEqual([[id, 'Foi']]);

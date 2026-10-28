@@ -238,8 +238,8 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
   /** Une dépense valide pour `c` (lu là où le jeu lit), hors du refus. */
   const DEPENSES: Record<string, (c: Combatant) => void> = {
     buyCharAdvance: (c) => useGame.getState().buyCharAdvance(c.id, 'capacite-de-combat'),
-    buySkillAdvance: (c) => { const sk = buildAdvancementView(c).skills.find((x) => x.known)!; useGame.getState().buySkillAdvance(c.id, sk.skillId, sk.spec); },
-    buyTalent: (c) => { const ta = buildAdvancementView(c).talents.find((x) => x.talentId && !x.maxReached)!; useGame.getState().buyTalent(c.id, ta.talentId!, ta.spec); },
+    buySkillAdvance: (c) => { const sk = buildAdvancementView(useGame.getState(), c).skills.find((x) => x.known)!; useGame.getState().buySkillAdvance(c.id, sk.skillId, sk.spec); },
+    buyTalent: (c) => { const ta = buildAdvancementView(useGame.getState(), c).talents.find((x) => x.talentId && !x.maxReached)!; useGame.getState().buyTalent(c.id, ta.talentId!, ta.spec); },
     buySpell: (c) => useGame.getState().buySpell(c.id, learnableSpells(c).find((x) => x.cost > 0)!.spell.id),
     trainProsthesis: (c) => useGame.getState().trainProsthesis(c.id, c.items!.find((i) => i.trappingId === 'fausse-jambe')!.uid),
     changeCareer: (c) => useGame.getState().changeCareer(c.id, careers.find((x) => x.id !== c.career)!.id, 1),
@@ -276,7 +276,6 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/noyau/pendings.ts | xp: number;': 'type',
     'src/ui/creator/CreatorDice.tsx | xp: number;': 'type',
     'src/engine/persistence.ts | xp: PERSISTE, charAdvances: PERSISTE, careerLevel: PERSISTE, careerSlotChoices: PERSISTE,': 'type',
-    'src/noyau/monde/advancement.ts | xp: hero.xp ?? 0,': 'lecture',
     'src/noyau/combatFlow.ts | xp: Math.max(0, (get().party[0]?.xp ?? 0) - c.xpAvant),': 'lecture',
     'src/state/devtools.ts | xp: (amount?: number) => {': 'lecture',
     'src/state/devtools.ts | return g().party.map((h) => ({ id: h.id, label: h.label, xp: actorIn(g(), h.id)?.xp ?? 0 }));': 'lecture',
@@ -352,7 +351,7 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
   });
 
   for (const [nom, depense] of Object.entries(DEPENSES)) {
-    it(`${nom} : refusée en combat (rien ne change, raison au journal), passe hors combat`, () => {
+    it(`${nom} : refusée en combat (rien ne change, refus VISIBLE), passe hors combat`, () => {
       const h = heros();
       useGame.setState({ battle: null, party: [h], pendingCascade: null, pendingRoundStart: null, journal: [] });
       useGame.getState().startScene(testScene());
@@ -361,7 +360,7 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
       const avant = structuredClone(cbt(h.id));
       depense(cbt(h.id));
       expect(cbt(h.id)).toEqual(avant);
-      expect(useGame.getState().journal.slice(-1)).toEqual([t('pf.xpInCombat')]);
+      expect(useGame.getState().refus?.texte).toBe(t('pf.xpInCombat'));
 
       useGame.setState({ battle: null, party: [{ ...heros(), id: h.id }], journal: [] });
       depense(grp(h.id));

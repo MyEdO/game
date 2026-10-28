@@ -30,7 +30,7 @@ const vehiclePossession = (uid: string, ownerId: string, vehicleId: string, carg
   ({ uid, ownerId, nature: 'vehicule', vehicleId, location: { kind: 'avec-le-groupe' }, items: [], cargo });
 
 const slice = (over: Partial<CarrierStateSlice> = {}): CarrierStateSlice => ({
-  party: [], vessel: null, worldMap: null, scene: null, possessions: [], ...over,
+  party: [], vessel: null, possessions: [], ...over,
 } as CarrierStateSlice);
 
 describe('partyCarriers — couture d’état des porteurs (#327 lot B)', () => {

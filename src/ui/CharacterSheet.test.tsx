@@ -13,6 +13,7 @@ import { apparencesCandidates, itemFromTrappingById } from '../engine/items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
+import { refusDeSoins } from '../noyau/medicFlow';
 
 /** Héros « Agitateur » niveau 1 (« Pamphlétaire ») avec 1000 PX, Charme (in-carrière) + Esquive (hors). */
 const hero = (): Combatant =>
@@ -110,14 +111,14 @@ describe('CharacterSheet — Apparence sur l’objet', () => {
     expect(useGame.getState().party[0].items!.map((it) => it.apparence)).toEqual(['choix-bouclier', 'choix-armure', 'choix-cape']);
   });
 
-  it('la variante courante vient des candidats et le sélecteur reste fermé en combat', () => {
+  it('la variante courante vient des candidats et le sélecteur reste OUVERT en combat (cosmétique, `choisirApparence` sans verrou)', () => {
     const h = { ...hero(), items: [{ ...itemFromTrappingById('arme-simple')!, apparence: 'choix-epee' }] };
     useGame.setState({ party: [h], sheetId: h.id });
     const { container } = monterRacine(<CharacterSheet heroId={h.id} onClose={() => {}} />);
     act(() => container.querySelector<HTMLElement>('.inv-item .plaque-row')!.click());
     expect(container.querySelector('.ir-form [aria-selected="true"] .ms-label')?.textContent).toBe('Épée ouvragée');
     act(() => useGame.setState({ battle: { combatants: [h], order: [h.id], log: [] } as never }));
-    expect(container.querySelector('.ir-form')).toBeNull();
+    expect(container.querySelector('.ir-form [aria-selected="true"] .ms-label')?.textContent, 'le sélecteur d’apparence s’est fermé en combat').toBe('Épée ouvragée');
   });
 });
 
@@ -273,9 +274,13 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(rows[2].querySelector('.sheet-idrow-label')?.textContent).toBe('Statut');
     expect(rows[2].querySelector('.metal-status')).toBeTruthy();
     expect(rows[3].querySelector('.sheet-idrow-label')?.textContent).toBe('Bourse');
-    // Structure figée : SANS alarme ni Soins éligibles, l'aside n'a que DEUX enfants directs (le nom,
-    // le bloc portrait) — un enfant de plus signalerait un ajout non voulu (scroll de fait).
-    expect([...aside.children].map((e) => e.className)).toEqual(['planche-nom', 'sheet-portrait']);
+    // Structure figée : SANS alarme, l'aside porte EXACTEMENT le nom, le bloc portrait et la rangée des Soins —
+    // un enfant de plus signalerait un ajout non voulu (scroll de fait).
+    expect([...aside.children].map((e) => e.className)).toEqual(['planche-nom', 'sheet-portrait', 'row']);
+    // Soins : contrôle REFUSÉ, jamais masqué — il porte la raison de `refusDeSoins` (héros indemne).
+    const soins = boutons(aside as HTMLElement).find((b) => b.texte.includes('Soins'))!;
+    expect(soins).toMatchObject({ ferme: true, raison: refusDeSoins({ battle: null, party: [h] }, h.id) });
+    expect(soins.raison).toBe(t('medic.rienASoigner', { name: h.label }));
   });
 
   it('les jauges VIVENT : re-rendent au switch de héros et après un soin (valeur/teinte suivent `hero.wounds`)', () => {

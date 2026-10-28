@@ -40,6 +40,7 @@ import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { libelleDeTest, libelleDuTestNomme } from './jetsEnVue';
 import { chargeArmee, courseArmee, intentionDuProprietaire } from './localIntent';
 import { refuserGeste } from './refusVisible';
+import { refusDuLanceurDeFiche, refuseSi } from './verrousDeFiche';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest } from './combatEffects';
 import type { MovementBlockReason } from './combatFlow';
 import { t, type MsgKey } from '../i18n';
@@ -3399,8 +3400,8 @@ export function createCombatSlice(get: Get, set: Set) {
     /** Ouvre une incantation HORS COMBAT (couture D) : un héros lanceur du groupe cible self/allié.
      *  Réservé aux sorts NON-offensifs — les Projectiles magiques exigent une cible ennemie (combat). */
     oocCastSpell: (casterId: string, spellId: string, targetId: string, fromGrimoire?: boolean) => {
-      const { battle, party } = get();
-      if (battle) return; // en combat : l'incantation passe par l'action de combat
+      if (refuseSi(get, set, refusDuLanceurDeFiche)) return;
+      const { party } = get();
       const caster = party.find((c) => c.id === casterId);
       const spell = findSpellById(spellId);
       if (!caster || !spell) return;
@@ -3561,8 +3562,8 @@ export function createCombatSlice(get: Get, set: Set) {
     dispelCancel: () => set({ pendingDispel: null }),
     /** Ouvre une Focalisation HORS COMBAT (couture D) : accumule `caster.focus` pour un Sort d'Arcane/Domaine. */
     oocFocusSpell: (casterId: string, spellId: string) => {
-      const { battle, party } = get();
-      if (battle) return; // en combat : Focalisation = action de combat
+      if (refuseSi(get, set, refusDuLanceurDeFiche)) return;
+      const { party } = get();
       const caster = party.find((c) => c.id === casterId);
       const spell = findSpellById(spellId);
       if (!caster || !spell) return;
@@ -3584,8 +3585,8 @@ export function createCombatSlice(get: Get, set: Set) {
      *  ouvre l'éligibilité à tout le groupe du même Domaine, comme les autres Tests de groupe hors
      *  combat (le même prédicat couvre déjà ce cas EN combat, cf. `battleDispelSpell`). */
     oocDispelSpell: (casterId: string, spellId: string, spellCasterId: string) => {
-      const { battle, party } = get();
-      if (battle) return; // en combat : Dissipation = action de combat
+      if (refuseSi(get, set, refusDuLanceurDeFiche)) return;
+      const { party } = get();
       const caster = party.find((c) => c.id === casterId);
       if (!caster) return;
       if (!actorHasSkill(caster, 'langue', 'magick')) { get().log(t('cs.cannotDispel')); return; }

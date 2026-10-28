@@ -20,7 +20,7 @@ let root: Root;
 
 const porteur = (id: string, cargo: { cargoId: string; enc: number }[], capacity: number): CargoCarrier => ({
   id, label: id, hull: 'vehicule' as CargoCarrier['hull'], capacity, discreteEnc: 0,
-  cargo: cargo as CargoCarrier['cargo'], placeId: 'bourg',
+  cargo: cargo as CargoCarrier['cargo'], location: { kind: 'au-lieu', placeId: 'bourg' },
 });
 
 function monter(onMove: (f: string, t: string, c: string, e: number) => void) {

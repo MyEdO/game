@@ -36,7 +36,7 @@ describe('buySpell', () => {
     expect(after.xp).toBe(10);
     useGame.getState().buySpell(w.id, 'eblouissant'); // 3 connus → bande ×2 : 100 PX > 10 restants
     expect(useGame.getState().party[0].spells).not.toContain('eblouissant');
-    expect(useGame.getState().journal.join('\n')).toMatch(/PX requis/);
+    expect(useGame.getState().journal).toContain(t('pf.notEnoughXp', { name: w.label, cost: 100 }));
   });
 
   it('Bénédictions du culte : 0 PX (incluses au Talent Béni)', () => {

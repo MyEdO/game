@@ -1008,6 +1008,11 @@ export function avecObjet(hero: Combatant, it: ItemInstance): Combatant {
   return clone;
 }
 
+/** PA d'une pièce d'armure, nette des dégâts subis. LDB 63 l.19 */
+export function paNette(it: ItemInstance): number {
+  return Math.max(0, (it.pa ?? 0) - (it.damageTaken ?? 0));
+}
+
 /**
  * PA portés par localisation, dérivés des pièces équipées. Une seule pièce compte par localisation
  * (la meilleure), SAUF Flexible (LDB 63) : « peut être portée sous une couche d'armure non
@@ -1021,7 +1026,7 @@ export function wornArmourPoints(items: ItemInstance[], exclude?: (it: ItemInsta
   for (const it of items) {
     if (!it.equipped || it.kind !== 'armor' || !it.pa || !it.locs || it.destroyed) continue;
     if (exclude?.(it)) continue;
-    const net = Math.max(0, it.pa - (it.damageTaken ?? 0)); // PA nette des dégâts (LDB 63 l.19)
+    const net = paNette(it);
     const layer = hasQuality(it, 'flexible') ? flex : rigid;
     for (const l of it.locs) layer[l] = Math.max(layer[l], net);
   }

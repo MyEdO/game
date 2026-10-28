@@ -11,28 +11,25 @@
  * ces mêmes champs par `persistCarriersCargo` (patron `shipDamage.ts`).
  */
 import type { Combatant } from '../engine/types';
-import type { Possession } from '../engine/possession';
+import type { Possession, PossessionLocation } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
 import { maxEncumbrance, totalEncumbrance } from '../engine/items';
 import { mountProfileForCreature } from '../engine/mountTravel';
 import { findVehicleById, libelleOuAbsence, dataLabel } from '../data';
 import type { PlayerText } from '../i18n/playerText';
-import { placeOfScene } from './worldMap';
 import { type CargoCarrier, type CargoLot, cargoTotalEnc, carrierFreeEnc, spoilCargoByPct, cargoRaidLossPct, type CargoRaidOutcome } from '../engine/cargo';
 import { rule } from '../engine/policy';
 import type { Jeu } from './etat';
 import type { PatchDeFlux } from './flowTypes';
 
 /** Tranche d'état lue pour dresser les porteurs — évite de dépendre du store entier (testable à plat). */
-export type CarrierStateSlice = Pick<Jeu, 'party' | 'vessel' | 'worldMap' | 'scene' | 'possessions'>;
+export type CarrierStateSlice = Pick<Jeu, 'party' | 'vessel' | 'possessions'>;
 
 /** id STABLE du porteur « navire de campagne » (un seul en jeu). */
 export const CAMPAIGN_VESSEL_CARRIER_ID = 'vessel';
 
-/** Lieu courant du groupe (co-localisation par défaut de tous ses porteurs à terre). */
-function currentPlaceId(s: CarrierStateSlice): string | undefined {
-  return placeOfScene(s.worldMap, s.scene?.id ?? undefined)?.id;
-}
+/** Localisation d'un porteur qui suit le groupe : héros, navire de campagne. */
+const AVEC_LE_GROUPE: PossessionLocation = { kind: 'avec-le-groupe' };
 
 const heroInParty = (h: Combatant): boolean => !h.dead && !h.outOfRencontre;
 
@@ -46,11 +43,8 @@ function possessionCarrierCapacity(p: Possession): number | undefined {
 }
 
 /** Construit le porteur `CargoCarrier` d'une Possession de bât/véhicule (capacité déjà résolue). */
-function possessionCarrier(p: Possession, capacity: number, placeId: string | undefined): CargoCarrier {
-  return {
-    id: p.uid, label: possessionLabel(p), hull: 'jambes', capacity, discreteEnc: 0, cargo: p.cargo ?? [], placeId,
-    aboard: p.location.kind === 'embarquee' ? p.location.hostUid : undefined,
-  };
+function possessionCarrier(p: Possession, capacity: number): CargoCarrier {
+  return { id: p.uid, label: possessionLabel(p), hull: 'jambes', capacity, discreteEnc: 0, cargo: p.cargo ?? [], location: p.location };
 }
 
 /** Possessions terrestres AVEC-LE-GROUPE d'un propriétaire du groupe, filtrées par nature. */
@@ -60,13 +54,13 @@ function partyLandPossessions(s: CarrierStateSlice): Possession[] {
 }
 
 /** Porteurs de bât/chargement possédés par le groupe, SÉPARÉS véhicules/bêtes (pour la priorité d'achat). */
-function landCarriers(s: CarrierStateSlice, placeId: string | undefined): { vehicles: CargoCarrier[]; beasts: CargoCarrier[] } {
+function landCarriers(s: CarrierStateSlice): { vehicles: CargoCarrier[]; beasts: CargoCarrier[] } {
   const vehicles: CargoCarrier[] = [];
   const beasts: CargoCarrier[] = [];
   for (const p of partyLandPossessions(s)) {
     const cap = possessionCarrierCapacity(p);
     if (cap == null) continue;
-    (p.nature === 'vehicule' ? vehicles : beasts).push(possessionCarrier(p, cap, placeId));
+    (p.nature === 'vehicule' ? vehicles : beasts).push(possessionCarrier(p, cap));
   }
   return { vehicles, beasts };
 }
@@ -77,26 +71,25 @@ export function nomDuNavire(vessel: { label?: string; vehicleId: string }): Play
 }
 
 /** Porteur « navire de campagne » : la cale (`vessel.cargo`) EST la source unique (verrou 1). */
-function vesselCarrier(s: CarrierStateSlice, placeId: string | undefined): CargoCarrier | undefined {
+function vesselCarrier(s: CarrierStateSlice): CargoCarrier | undefined {
   const vessel = s.vessel;
   if (!vessel) return undefined;
   const capacity = findVehicleById(vessel.vehicleId)?.ship?.capacity ?? 0;
-  return { id: CAMPAIGN_VESSEL_CARRIER_ID, label: nomDuNavire(vessel), hull: 'coque', capacity, discreteEnc: 0, cargo: vessel.cargo ?? [], placeId };
+  return { id: CAMPAIGN_VESSEL_CARRIER_ID, label: nomDuNavire(vessel), hull: 'coque', capacity, discreteEnc: 0, cargo: vessel.cargo ?? [], location: AVEC_LE_GROUPE };
 }
 
 /** TOUS les porteurs de charge réels du groupe (héros → bêtes/véhicules → navire). Chaque carrier LIT sa
  *  source unique (aucune copie persistée). */
 export function partyCarriers(s: CarrierStateSlice): CargoCarrier[] {
-  const placeId = currentPlaceId(s);
   const out: CargoCarrier[] = [];
   for (const h of s.party) {
     if (!heroInParty(h)) continue;
     // Le héros lui-même : contenu = objets DISCRETS (transfert d'objet = giveTrapping, hors canal vrac).
-    out.push({ id: h.id, label: h.label, hull: 'jambes', capacity: maxEncumbrance(h), discreteEnc: totalEncumbrance(h), cargo: [], placeId });
+    out.push({ id: h.id, label: h.label, hull: 'jambes', capacity: maxEncumbrance(h), discreteEnc: totalEncumbrance(h), cargo: [], location: AVEC_LE_GROUPE });
   }
-  const { vehicles, beasts } = landCarriers(s, placeId);
+  const { vehicles, beasts } = landCarriers(s);
   out.push(...vehicles, ...beasts);
-  const v = vesselCarrier(s, placeId);
+  const v = vesselCarrier(s);
   if (v) out.push(v);
   return out;
 }
@@ -104,10 +97,9 @@ export function partyCarriers(s: CarrierStateSlice): CargoCarrier[] {
 /** Porteurs qui HÉBERGENT du vrac (`CargoLot`) : bêtes de bât, véhicules terrestres, navire — hors héros
  *  (canal discret). Cible du commerce de cargaison et du transfert. */
 export function bulkCarriers(s: CarrierStateSlice): CargoCarrier[] {
-  const placeId = currentPlaceId(s);
-  const { vehicles, beasts } = landCarriers(s, placeId);
+  const { vehicles, beasts } = landCarriers(s);
   const out = [...vehicles, ...beasts];
-  const v = vesselCarrier(s, placeId);
+  const v = vesselCarrier(s);
   if (v) out.push(v);
   return out;
 }
@@ -119,10 +111,9 @@ const mostFree = (list: CargoCarrier[]): CargoCarrier | undefined =>
  *  sinon le véhicule terrestre le plus libre, sinon la bête de bât la plus libre. `undefined` = le groupe
  *  n'a AUCUN porteur → le commerce de cargaison refuse (Contenance = plafond réel). */
 export function primaryCargoCarrier(s: CarrierStateSlice): CargoCarrier | undefined {
-  const placeId = currentPlaceId(s);
-  const v = vesselCarrier(s, placeId);
+  const v = vesselCarrier(s);
   if (v) return v;
-  const { vehicles, beasts } = landCarriers(s, placeId);
+  const { vehicles, beasts } = landCarriers(s);
   return mostFree(vehicles) ?? mostFree(beasts);
 }
 
@@ -166,7 +157,7 @@ export function carrierById(s: CarrierStateSlice, id: string): CargoCarrier | un
 
 /** Porteurs de VRAC TERRESTRES du convoi (bêtes/véhicules — hors navire) : cible du vol terrestre. */
 export function landBulkCarriers(s: CarrierStateSlice): CargoCarrier[] {
-  const { vehicles, beasts } = landCarriers(s, currentPlaceId(s));
+  const { vehicles, beasts } = landCarriers(s);
   return [...vehicles, ...beasts];
 }
 

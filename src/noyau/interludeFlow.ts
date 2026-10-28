@@ -57,6 +57,7 @@ import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax, heroMaxWounds } from '../engine/talentEffects';
 import { findCareerById, levelsForCareer, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill, libelleOuAbsence } from '../data';
 import { findEffectTableById } from '../data/effectTables';
+import { currentPlaceId } from './worldMap';
 import { findTableEntry } from '../engine/tables';
 import { CHAR_LABELS, type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
@@ -473,14 +474,6 @@ export function craftStart(get: Get, set: Set, heroId: string, trappingId: strin
 }
 
 // ── Catalogue d'Activités data-driven (`activities.json`, contexte 'interlude') ────────────────
-
-/** Lieu courant sur la carte du monde : la place dont la scène EST la scène courante (« Être dans
- *  `scene` = être à ce lieu », worldMap.ts). `null` hors carte — les Activités à gate `where`
- *  (ACE = « à Altdorf ») y sont alors indisponibles. */
-export function currentPlaceId(s: Pick<Jeu, 'scene' | 'worldMap'>): string | null {
-  const sid = s.scene?.id;
-  return (sid && s.worldMap?.places.find((p) => p.scene === sid)?.id) || null;
-}
 
 /** Activités du catalogue proposables ICI (contexte 'interlude' + gate géographique `where`). Quand une
  *  bataille de masse est en attente de préparation (`massBattle.phase === 'prep'`), les Activités de

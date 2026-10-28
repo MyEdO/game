@@ -286,6 +286,13 @@ export function placeOfScene(map: WorldMap | null | undefined, sceneId: string |
   return map.places.find((p) => p.scene === sceneId);
 }
 
+/** Lieu courant du groupe sur la carte du monde : la place dont la scène EST la scène courante (« Être
+ *  dans `scene` = être à ce lieu »). `null` hors carte. SOURCE UNIQUE des gestes qui demandent « où est le
+ *  groupe ? » (Activités à gate `where`, possessions laissées). */
+export function currentPlaceId(s: { scene: { id: string } | null; worldMap: WorldMap | null }): string | null {
+  return placeOfScene(s.worldMap, s.scene?.id)?.id ?? null;
+}
+
 export function placeById(map: WorldMap, id: string): MapPlace | undefined {
   return map.places.find((p) => p.id === id);
 }
