@@ -12,7 +12,7 @@ import { useGame } from '../../state/store';
 import { Scene } from '../../noyau/monde/scene';
 import type { Pt } from '../../noyau/monde/path';
 import { exploreMovePlan, optionsDeCheminDuGroupe } from '../../noyau/monde/exploreNav';
-import { isOutOfAction, canTakeAction, hasCondition } from '../../engine/conditions';
+import { isOutOfAction, canTakeAction, isActionLocked } from '../../engine/conditions';
 import { isFrenzied } from '../../engine/psychology';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { controlsCombatant } from '../../noyau/netOwnership';
@@ -125,10 +125,10 @@ export function useHoverTargeting(
     const activeH = battle.combatants.find((c) => c.id === battle.order[battle.turn]);
     if (!activeH || !controlsCombatant(st(), activeH) || !activeH.pos) return null;
     // Mêmes verrous que battleClickEntity : Action consommée (sauf attaque libre de Frénésie),
-    // Sonné/Brisé, cible de Frénésie IMPOSÉE (le plus proche en LdV).
+    // Sonné, État qui verrouille l'Action (`isActionLocked`, LDB 16 l.52), cible de Frénésie IMPOSÉE (le plus proche en LdV).
     const freeFrenzy = battle.action === null && hasFreeWeaponAttack(activeH);
     if (battle.acted && !freeFrenzy) return null;
-    if (battle.action === null && (!canTakeAction(activeH) || hasCondition(activeH, 'brise'))) return null;
+    if (battle.action === null && (!canTakeAction(activeH) || isActionLocked(activeH))) return null;
     if (battle.action === null && isFrenzied(activeH)) {
       const ft = frenzyTarget(st, activeH);
       if (ft && ft.id !== occ.id) return null;

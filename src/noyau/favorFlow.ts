@@ -12,6 +12,7 @@ import { favorRequiredActivities, type Favor, type FavorLevel } from '../engine/
 import { t } from '../i18n';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { nextEntityId } from '../lib/entityId';
+import { refusDeRompreUneFaveur, refuseSi } from './verrousDeFiche';
 
 /** Crée une Faveur — primitive de création UNIQUE (contrepartie d'Activité/événement du Tableau,
  *  ou Effet d'éditeur `grantFavor`). */
@@ -77,6 +78,7 @@ export function resetInterruptedFavorProgress(get: Get, set: Set): void {
  *  arbitrage maison [entériné 2026-08-03] paramétrable (`favor-rumor-spreads`, défaut actif
  *  — au plus simple, la rumeur se répand toujours ; #509). */
 export function breakFavor(get: Get, set: Set, heroId: string, favorId: string): void {
+  if (refuseSi(get, set, refusDeRompreUneFaveur)) return;
   const favor = (get().favors ?? []).find((f) => f.id === favorId && f.heroId === heroId);
   const h = get().party.find((x) => x.id === heroId);
   if (!favor || !h) return;

@@ -8,7 +8,8 @@ import {
   fearSizeAsMount, shieldAdvantageLevel,
 } from './combatFeatures/dispatch';
 import { setRule, resetRule } from './policy';
-import type { Combatant, Weapon } from './types';
+import type { Combatant } from './types';
+import { itemFromTrappingById, weaponFromItem } from './items';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   ({ kind: 'hero', advantage: 0, talents: [], activeEffects: [], ...over }) as unknown as Combatant;
@@ -120,7 +121,7 @@ describe('CombatFeature — variante AA lue selon le toggle (aucun code ne nomme
   });
 
   it('Porte-Bouclier : gain d’Avantage LDB, désactivé en mode groupe (variante AA)', () => {
-    const shield = { name: 'Bouclier', trappingId: 'bouclier-targe', qualities: [{ id: 'protectrice', value: 1 }] } as unknown as Weapon;
+    const shield = weaponFromItem(itemFromTrappingById('bouclier-targe')!);
     const c = withTalent('porte-bouclier');
     expect(shieldAdvantageLevel(c, shield)).toBe(1);
     setRule('combat-aa-avantage-groupe', true);

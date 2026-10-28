@@ -23,6 +23,8 @@
     "hote-texte": "node scripts/hote-texte.mjs",
     "pont:godot": "node hotes/godot/construire.mjs --pont-seul",
     "godot:sonde": "node hotes/godot/construire.mjs --sonde",
+    "godot:importer": "node hotes/godot/importer.mjs",
+    "godot:evaluer": "node hotes/godot/asset/evaluer.mjs",
     "bench": "node scripts/lancer-local.mjs vitest -- vitest bench --run",
     "agents:sync": "node scripts/agents/compat-cli.mjs sync",
     "agents:check": "node scripts/agents/compat-cli.mjs check",

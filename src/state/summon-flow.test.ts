@@ -4,7 +4,7 @@ import type { Combatant } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import { gameOpSchema, OPS_NON_TYPEES } from '../data/schemas/grammaire/mecanique';
 import { spells } from '../data';
-import { atteignables, cheminsVersLeCatalogue } from './partage.testkit';
+import { atteignables, cheminsVersLeCatalogue } from '../scenes/partage.testkit';
 import { desDuTest } from '../engine/dice.testkit';
 
 /**

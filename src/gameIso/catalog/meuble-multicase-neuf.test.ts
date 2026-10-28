@@ -14,6 +14,7 @@ import { buildOpaque } from '../../noyau/monde/vision';
 import { interactionHalos } from '../builders/interactHalos';
 import { buildProps } from '../builders/props';
 
+
 /**
  * MEUBLE MULTI-CASE NEUF, ZÉRO LIGNE DE CODE (#1509) : une recette 3×1 NON carrée, OPAQUE, à trois
  * places, qu'aucun module ne connaît par son id, entre au catalogue par la seule donnée (`setDataset`).

@@ -1338,12 +1338,12 @@
        "crewIds": [],
        "ammo": [
         {
+         "reach": null,
+         "range": null,
          "uid": "ammo-boulet-et-poudre-1",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "a-explosion",
@@ -1359,6 +1359,11 @@
          "qty": 12
         },
         {
+         "reach": null,
+         "range": null,
+         "ammoRangeMod": {
+          "mult": 0.25
+         },
          "uid": "ammo-mitraille-et-poudre-2",
          "trappingId": "mitraille-et-poudre",
          "label": "Mitraille et poudre",
@@ -1367,8 +1372,6 @@
           "plusBF": false,
           "flat": -5
          },
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "tir-de-zone",
@@ -1378,10 +1381,7 @@
          "enc": 0,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 4,
-         "ammoRangeMod": {
-          "mult": 0.25
-         }
+         "qty": 4
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-1"
@@ -1393,12 +1393,12 @@
        "crewIds": [],
        "ammo": [
         {
+         "reach": null,
+         "range": null,
          "uid": "ammo-boulet-et-poudre-3",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "a-explosion",
@@ -1414,6 +1414,11 @@
          "qty": 12
         },
         {
+         "reach": null,
+         "range": null,
+         "ammoRangeMod": {
+          "mult": 0.25
+         },
          "uid": "ammo-mitraille-et-poudre-4",
          "trappingId": "mitraille-et-poudre",
          "label": "Mitraille et poudre",
@@ -1422,8 +1427,6 @@
           "plusBF": false,
           "flat": -5
          },
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "tir-de-zone",
@@ -1433,10 +1436,7 @@
          "enc": 0,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 4,
-         "ammoRangeMod": {
-          "mult": 0.25
-         }
+         "qty": 4
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-3"
@@ -1448,6 +1448,8 @@
        "crewIds": [],
        "ammo": [
         {
+         "reach": null,
+         "range": null,
          "uid": "ammo-balles-et-poudre-pierrier-5",
          "trappingId": "balles-et-poudre-pierrier",
          "label": "Balles et poudre pour 1 tir",
@@ -1456,8 +1458,6 @@
           "plusBF": false,
           "flat": 1
          },
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "empaleuse"
@@ -1588,12 +1588,12 @@
        "crewIds": [],
        "ammo": [
         {
+         "reach": null,
+         "range": null,
          "uid": "ammo-boulet-et-poudre-6",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "a-explosion",
@@ -1618,12 +1618,12 @@
        "crewIds": [],
        "ammo": [
         {
+         "reach": null,
+         "range": null,
          "uid": "ammo-boulet-et-poudre-7",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "a-explosion",
@@ -1648,12 +1648,12 @@
        "crewIds": [],
        "ammo": [
         {
+         "reach": null,
+         "range": null,
          "uid": "ammo-boulet-et-poudre-8",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "a-explosion",
@@ -2760,12 +2760,12 @@
        "crewIds": [],
        "ammo": [
         {
+         "reach": null,
+         "range": null,
          "uid": "ammo-boulet-et-poudre-9",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "a-explosion",
@@ -2781,6 +2781,11 @@
          "qty": 12
         },
         {
+         "reach": null,
+         "range": null,
+         "ammoRangeMod": {
+          "mult": 0.25
+         },
          "uid": "ammo-mitraille-et-poudre-10",
          "trappingId": "mitraille-et-poudre",
          "label": "Mitraille et poudre",
@@ -2789,8 +2794,6 @@
           "plusBF": false,
           "flat": -5
          },
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "tir-de-zone",
@@ -2800,10 +2803,7 @@
          "enc": 0,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 4,
-         "ammoRangeMod": {
-          "mult": 0.25
-         }
+         "qty": 4
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-9"
@@ -2815,12 +2815,12 @@
        "crewIds": [],
        "ammo": [
         {
+         "reach": null,
+         "range": null,
          "uid": "ammo-boulet-et-poudre-11",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "a-explosion",
@@ -2836,6 +2836,11 @@
          "qty": 12
         },
         {
+         "reach": null,
+         "range": null,
+         "ammoRangeMod": {
+          "mult": 0.25
+         },
          "uid": "ammo-mitraille-et-poudre-12",
          "trappingId": "mitraille-et-poudre",
          "label": "Mitraille et poudre",
@@ -2844,8 +2849,6 @@
           "plusBF": false,
           "flat": -5
          },
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "tir-de-zone",
@@ -2855,10 +2858,7 @@
          "enc": 0,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 4,
-         "ammoRangeMod": {
-          "mult": 0.25
-         }
+         "qty": 4
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-11"
@@ -2870,6 +2870,8 @@
        "crewIds": [],
        "ammo": [
         {
+         "reach": null,
+         "range": null,
          "uid": "ammo-balles-et-poudre-pierrier-13",
          "trappingId": "balles-et-poudre-pierrier",
          "label": "Balles et poudre pour 1 tir",
@@ -2878,8 +2880,6 @@
           "plusBF": false,
           "flat": 1
          },
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "empaleuse"
@@ -3010,12 +3010,12 @@
        "crewIds": [],
        "ammo": [
         {
+         "reach": null,
+         "range": null,
          "uid": "ammo-boulet-et-poudre-14",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "a-explosion",
@@ -3040,12 +3040,12 @@
        "crewIds": [],
        "ammo": [
         {
+         "reach": null,
+         "range": null,
          "uid": "ammo-boulet-et-poudre-15",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "a-explosion",
@@ -3070,12 +3070,12 @@
        "crewIds": [],
        "ammo": [
         {
+         "reach": null,
+         "range": null,
          "uid": "ammo-boulet-et-poudre-16",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
-         "reach": null,
-         "range": null,
          "qualities": [
           {
            "id": "a-explosion",

@@ -35,7 +35,6 @@ export function LandMarketView() {
   const party = useGame((s) => s.party);
   const vessel = useGame((s) => s.vessel);
   const worldMap = useGame((s) => s.worldMap);
-  const scene = useGame((s) => s.scene);
   const possessions = useGame((s) => s.possessions);
   const rumours = useGame((s) => s.tradeRumours);
   const close = useGame((s) => s.closeLandMarket);
@@ -51,7 +50,7 @@ export function LandMarketView() {
   // Bourse de groupe = somme des bourses personnelles (T-bourse #531) ; recalculée quand le groupe change.
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
 
-  const slice: CarrierStateSlice = useMemo(() => ({ party, vessel, worldMap, scene, possessions }), [party, vessel, worldMap, scene, possessions]);
+  const slice: CarrierStateSlice = useMemo(() => ({ party, vessel, possessions }), [party, vessel, possessions]);
   const carriers = useMemo(() => bulkCarriers(slice), [slice]);
   const refs = useMemo(() => bulkCargoRefs(slice), [slice]);
   const target = useMemo(() => primaryCargoCarrier(slice), [slice]);

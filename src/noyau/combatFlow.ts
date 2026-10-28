@@ -82,10 +82,12 @@ import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
 import { sizeGap } from '../engine/size';
+import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusRampe } from './refusDuTour';
+import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
 import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed } from './triggeredEffects';
-import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, contresEpuisees, talentCritExtraWounds, reloadDRBonus, arcaneDomainIdOf, retreatAdvantageCost, canDisengageWithLessAdvantage, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
+import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, contresEpuisees, talentCritExtraWounds, reloadDRBonus, arcaneDomainIdOf, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
 import {
   isStupid,
   flyMeters, runMultiplier,
@@ -153,7 +155,7 @@ import {
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
-import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES, groupLabel } from '../data';
+import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
@@ -170,7 +172,7 @@ import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from
 import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
+import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND, isActionLocked } from '../engine/conditions';
 import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, souffleDuType, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
@@ -209,7 +211,7 @@ import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollaps
 import { STEP_MAX_M } from './monde/relief';
 import { placeCombatant } from './monde/spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
-import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
+import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
 import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf } from './monde/shipPostes';
@@ -219,8 +221,9 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
-import { groupesDe, type PorteurDeGroupes } from '../engine/groups';
+import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import type { PorteurDeGroupes } from '../engine/groups';
+import { cibleDuPorteur, estCibleType, identiteDeCiblage, libelleDeCible, type CiblePsy } from '../engine/psych/ciblage';
 import { sceneCombatModifiers } from './monde/sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
@@ -233,7 +236,7 @@ import { weaponGroupKey } from '../engine/weaponGroup';
 import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, tileKey, tileFromKey, Pt, climbTraverseFor } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import { chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './monde/ai';
-import { resolveRun, chargeReach, testDuCavalier } from '../engine/movement';
+import { resolveRun, chargeReach, testDuCavalier, distanceDeCourse } from '../engine/movement';
 import type { RNG } from '../engine/dice';
 import { bus, EVT } from './bus';
 import { emitCombatEvent } from './combatEvents';
@@ -279,7 +282,7 @@ import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
 import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
 import { APRES_COUP, type PendingApproach } from './pendings';
-import { refuserGeste } from './refusVisible';
+import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import {
   freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, monoStep, pousseSi,
   hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory,
@@ -1210,8 +1213,11 @@ export function resolveMovement(get: Get, pt: Pt): MovementResolution {
   if (!battle) return { status: 'blocked', reason: 'no-battle' };
   if (!scene) return { status: 'blocked', reason: 'no-scene' };
   const tour = mobileDuTour(get(), battle);
-  if ('refus' in tour) return { status: 'blocked', reason: tour.refus };
-  const active = tour.mobile;
+  // Marche épuisée : la zone de Course reste résoluble (LDB 15 l.41).
+  const courseSeule = 'refus' in tour && tour.refus === 'movement-spent' && tour.mobile && computeRunReach(get).size > 0;
+  if ('refus' in tour && !courseSeule) return { status: 'blocked', reason: tour.refus };
+  const active = tour.mobile!;
+  const depart = 'case' in tour ? tour.case : active.pos!;
   const k = tileKey(pt.x, pt.y, pt.z ?? 0); // z-aware : une case de rempart (z1) ne matche plus la clé « x,y » du sol
   const reach = displayedReach(get);
   const inWalk = reach.has(k);
@@ -1223,7 +1229,7 @@ export function resolveMovement(get: Get, pt: Pt): MovementResolution {
     return { status: 'ok', kind: preview.kind, path: preview.path, cost: preview.cost };
   }
   const geom = mountOf(battle, active) ?? active;
-  const path = pathTo(scene, tour.case, pt, moveEnv(battle, geom));
+  const path = pathTo(scene, depart, pt, moveEnv(battle, geom));
   if (!path || path.length < 2) return { status: 'blocked', reason: 'no-path' };
   return { status: 'ok', kind: inWalk ? 'move' : 'run', path, cost: (inWalk ? reach.get(k) : runReach!.get(k)) ?? 0 };
 }
@@ -1258,41 +1264,29 @@ export function disengageOutcome(winner: 'attacker' | 'defender' | 'tie'): 'succ
   return winner === 'attacker' ? 'success' : winner === 'tie' ? 'tie' : 'failure';
 }
 
-/** Lance le Désengagement d'un combattant Engagé (LDB 15 l.43-49) : option A
- *  (Avantage > adversaires → résolue direct) ou option B (Test opposé d'Esquive vs le
- *  foe le plus dangereux). No-op « rouvre le mouvement » si plus aucun foe vivant. */
+/** Lance le Désengagement d'un combattant Engagé (LDB 15 l.43-49) : départ libre (LDB 85 l.253,
+ *  l.373-374) résolu direct, sinon le MENU de ses options ouvertes — Avantage, Esquive opposée au foe le
+ *  plus dangereux. Rouvre le mouvement si plus aucun foe vivant. Options : `noyau/combat/desengagement.ts`. */
 export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
   const battle = get().battle!;
-  const foes = (mover.engagedWith ?? [])
-    .map((id) => inBattleId(battle, id))
-    .filter((c): c is Combatant => !!c && !isOutOfAction(c));
-  // Désengagement GRATUIT du plus grand (LDB 85 l.373-374) : une créature plus grande que TOUS ses
-  // adversaires Engagés les écarte et se déplace librement, sans Test ni sacrifice d'Avantage.
-  // Plus grand que TOUS ses Engagés (85 l.373-374) OU Nuée (ignore l'Engagement en se déplaçant, LDB 85 l.253) → départ libre.
-  const freeDisengage = foes.length > 0 && (mover.swarm || foes.every((f) => sizeGap(mover.size, f.size) >= 1));
-  if (!foes.length || freeDisengage) {
-    if (freeDisengage) {
+  const ctx = { active: mover, battle };
+  const foes = adversairesEngages(ctx);
+  const libre = departLibre(ctx);
+  if (!foes.length || libre) {
+    if (libre) {
       for (const f of foes) disengageFrom(mover, f); // lève les liens Engagé avec les plus petits écartés
       battle.log.push(ev('move', tr('cf.pushThrough', { name: mover.label }), mover.id));
     }
-    // Lien d'Engagement périmé (foe mort/parti) OU désengagement gratuit : rouvrir le déplacement normal.
+    // Lien d'Engagement périmé (foe mort/parti) OU départ libre : rouvrir le déplacement normal.
     set({ battle: { ...battle, action: null, reachable: moveReachFor(mover, get().scene!, mover.pos!, effectiveMovement(mover), moveEnv(battle, mover)) } });
     return;
   }
-  // Option A du menu de Désengagement : « Sacrifier l'Avantage » (LDB 15 l.47, Avantage STRICTEMENT
-  // supérieur → tombe à 0) OU, en mode « Avantage de groupe », « Retraite stratégique » (AA 11 l.37 : dépense
-  // FIXE de 2 Avantages de la réserve du camp, abaissée à 1 par Impitoyable AA 13 l.74). Un seul chemin d'UI.
-  const maxFoeAdv = Math.max(...foes.map((f) => f.advantage));
-  // Impitoyable (LDB 10 l.591) : peut Sacrifier l'Avantage même sans supériorité stricte (mais il faut au
-  // moins 1 Avantage à dépenser). En mode groupe : Retraite stratégique = dépense FIXE de la réserve du camp.
-  const canSacrifice = groupAdvantage()
-    ? spendableAdvantage(get, mover) >= retreatAdvantageCost(mover)
-    : canDisengageWithLessAdvantage(mover)
-      ? mover.advantage > 0
-      : mover.advantage > maxFoeAdv; // Avantage strictement supérieur (l.87)
-  // Après avoir agi, seule l'option A (Sacrifier l'Avantage) reste possible — sans Avantage supérieur
-  // il n'y a RIEN à faire → no-op (pas de menu vide, et pas de relance d'Esquive : anti-boucle l.89).
-  if (battle.acted && !canSacrifice) return;
+  // Les options du MENU (`noyau/combat/desengagement.ts`) : l'Avantage (LDB 15 l.47 ; AA 11 l.37), l'Esquive
+  // (LDB 15 l.49) et la Fuite (LDB 15 l.61). Aucune ouverte → rien à offrir (pas de menu vide).
+  const canSacrifice = peutSacrifierLAvantage(ctx);
+  const refusEsquive = refusDEsquiveDeDesengagement(ctx);
+  const canFuir = peutFuir(ctx);
+  if (!canSacrifice && refusEsquive && !canFuir) return void refuserGesteDuSiege(get, set, refusEsquive);
   // Ouvre le MENU de choix. L'adversaire de référence (Esquive opposée + cible de la Fuite) =
   // le foe Engagé à la meilleure Compétence de Corps à corps (l.89). Son jet de CC est figé d'avance.
   const foe = foes.reduce((a, b) => (combatValue(b, 'melee') > combatValue(a, 'melee') ? b : a));
@@ -1302,7 +1296,8 @@ export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
       moverId: mover.id,
       foeId: foe.id,
       canSacrifice,
-      canEsquive: !battle.acted, // Esquive/Fuite coûtent l'Action — indispo si déjà agi (anti-boucle)
+      ...(refusEsquive ? { refusEsquive } : {}), // LDB 15 l.49
+      canFuir, // LDB 15 l.61
       phase: 'choice',
       atk,
       def: null,
@@ -1435,11 +1430,10 @@ export function computeMoveReach(get: Get): Map<string, number> {
   return briseFleeFilter(scene, battle, active, reach);
 }
 
-/** Brisé (LDB 16 l.52) : « se déplacer jusqu'à se retrouver à l'abri, HORS DE VUE de l'ennemi ». Si des
- *  cases atteignables BRISENT la Ligne de Vue de tout adversaire (`tileSeenByFoe` faux), on s'y limite
- *  (gagner une cachette prime) ; sinon, à défaut de cachette, fuir = ne pas se rapprocher (distance). */
+/** État qui verrouille l'Action et le Mouvement (`isActionLocked`) : LDB 16 l.52. Cases hors de vue de tout
+ *  adversaire (`tileSeenByFoe` faux) s'il y en a, sinon celles qui ne rapprochent pas. */
 function briseFleeFilter(scene: Scene, battle: BattleState, active: Combatant, reach: Map<string, number>): Map<string, number> {
-  if (!hasCondition(active, COND.brise)) return reach;
+  if (!isActionLocked(active)) return reach;
   const foes = battle.combatants.filter((c) => c.kind !== active.kind && !isOutOfAction(c) && c.pos);
   if (!foes.length) return reach;
   const smoke = smokeOf(battle);
@@ -1454,12 +1448,12 @@ function briseFleeFilter(scene: Scene, battle: BattleState, active: Combatant, r
   }));
 }
 
-/** Zone NOMINALE de Course (LDB 15 l.41) : Marche + Course (3M cases, avant DR) — affichée dans une
- *  autre couleur ; un clic dedans demande le Test de la fiche `course`, le déplacement réel dépendant du
- *  jet. Mêmes conditions que la Course : plein Mouvement, Action libre, non Engagé, pas À Terre. */
+/** Zone NOMINALE de Course (LDB 15 l.41) : le Mouvement RESTANT + la distance de Course (`distanceDeCourse`,
+ *  avant DR) depuis la case courante — affichée dans une autre couleur ; un clic dedans demande le Test de
+ *  la fiche `course`, le déplacement réel dépendant du jet. Verdict : `refusDeCourse`. */
 export function computeRunReach(get: Get): Map<string, number> {
   const { battle, scene } = get();
-  if (!battle || !scene || battle.over || battle.acted || battle.movementUsed > 0) return new Map();
+  if (!battle || !scene || battle.over) return new Map();
   // Mode-CASE (#198, résidus) : Pousser/Téléportation/pose de zone posent LEUR PROPRE ensemble dans
   // `battle.reachable` (déjà priorisé par `displayedReach` ci-dessous) — la zone de Course NOMINALE
   // (Marche+Course normales) n'a pas de sens pendant ces modes et ne doit pas s'y superposer (sinon la
@@ -1467,27 +1461,24 @@ export function computeRunReach(get: Get): Map<string, number> {
   if (battle.reachable.size > 0) return new Map();
   const active = activeCombatant(battle);
   if (!active || !controlsCombatant(get(), active) || !active.pos) return new Map();
-  if (isEngaged(active) || hasCondition(active, COND.aTerre) || !canTakeAction(active)) return new Map();
+  if (refusDeCourse(battle, active)) return new Map();
   const geom = mountOf(battle, active) ?? active;
-  const M = mountMovement(battle, active);
-  if (M <= 0) return new Map();
-  const reach = moveReachFor(geom, scene, active.pos, M * 3, moveEnv(battle, geom));
+  const budget = movementRemaining(battle, active) + distanceDeCourse(mouvementDeCourse(battle, active));
+  const reach = moveReachFor(geom, scene, active.pos, budget, moveEnv(battle, geom));
   return briseFleeFilter(scene, battle, active, reach);
 }
 
 /** Zone d'arrivée d'une CHARGE (LDB 15 l.35-37) : les cases atteignables avec le budget `chargeReach`
- *  (Course du Tableau des Mouvements, `engine/movement`). MÊMES portes que la branche `charge` de
- *  `attackPlan` — non Engagé, Mouvement intact, pas À Terre — pour que la bande AFFICHÉE soit
- *  exactement celle où un clic-ennemi partira en charge. Vide quand la Charge n'est pas offerte. */
+ *  (`engine/movement`). Verdict : `refusDeCharge`, celui de la case `charge-possible`. Vide quand la Charge
+ *  n'est pas offerte. */
 export function computeChargeReach(get: Get): Map<string, number> {
   const { battle, scene } = get();
-  if (!battle || !scene || battle.over || battle.movementUsed > 0) return new Map();
+  if (!battle || !scene || battle.over) return new Map();
   const active = activeCombatant(battle);
   if (!active || !controlsCombatant(get(), active) || !active.pos) return new Map();
-  if (isEngaged(active) || hasCondition(active, COND.aTerre) || !canTakeAction(active)) return new Map();
+  if (refusDeCharge(battle, active)) return new Map();
   const geom = mountOf(battle, active) ?? active;
   const M = mountMovement(battle, active);
-  if (M <= 0) return new Map();
   return moveReachFor(geom, scene, active.pos, chargeReach(M, runMultiplier(geom.traits)), moveEnv(battle, geom));
 }
 
@@ -1515,7 +1506,7 @@ export function aiApproachPlan(
   const enemy = input.enemy;
   const none = { plan: action, ran: null };
   if (action.kind !== 'move') return none;
-  if (isEngaged(enemy) || hasCondition(enemy, COND.aTerre) || !canTakeAction(enemy)) return none;
+  if (refusDeCourseDuPorteur(enemy)) return none;
   if (!enemy.weapons.some((w) => w.type === 'melee')) return none;
   const M = effectiveMovement(geom);
   if (M <= 0) return none;
@@ -1641,7 +1632,7 @@ export function attackPlan(get: Get, active: Combatant, target: Combatant, opts?
   if (isInanimate(target)) return { kind: 'blocked', reason: tr('cf.approcheToiPourFrapper') };
   if (isEngaged(active)) return { kind: 'blocked', reason: tr('cf.desengageAvantDeRejoindre') };
   const env = moveEnv(battle, geom);
-  if (battle.movementUsed === 0 && !hasCondition(active, COND.aTerre)) {
+  if (!refusMouvementEntame(battle) && !refusRampe(active)) {
     // Charge (LDB 15 l.35-37) : manœuvre PLEINE, portée de Course (2M × Bond/Foulée), arrivée
     // adjacente la moins chère.
     const M = mountMovement(battle, active);
@@ -1665,7 +1656,7 @@ export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source
   // Le vrai gate est la RESSOURCE (`fate > 0`, présente sur tout kind), pas le `kind` : un combattant à
   // Destin (héros, ou ennemi conduit doté de Destin) est sauvé ; sinon la mort est finalisée.
   if ((hero.fate ?? 0) > 0) {
-    const foeCible = foe ? groupesDe(foe)[0] : undefined;
+    const foeCible = foe ? cibleDuPorteur(foe) : undefined;
     set({ pendingFateSave: { heroId: hero.id, source, restoreWounds, ...(foeCible ? { foeCible } : {}) } });
   } else {
     hero.dead = true;
@@ -3417,7 +3408,7 @@ function applyShieldReaction(get: Get, set: SetFn, defender: Combatant, attacker
   const battle = get().battle;
   if (!battle || isOutOfAction(defender)) return false;
   const cost = shieldReactionCost(defender, parryWeapon);
-  if (cost <= 0 || defender.usedShieldReactionRound || spendableAdvantage(get, defender) < cost) return false;
+  if (cost <= 0 || defender.usedShieldReactionRound || spendableAdvantage(get().battle, defender) < cost) return false;
   if (kind === 'damage' && !defenseGagnee) return false;
   campSpend(get, defender, cost);
   defender.usedShieldReactionRound = true;
@@ -4088,7 +4079,7 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
   if ((uses[fa.key] ?? 0) >= fa.cap) return undefined; // plafond /Round atteint (= niveau du talent)
   const ck = `${fa.key}:${target.id}`;
   if (op.perChargerOncePerRound && (uses[ck] ?? 0) >= 1) return undefined; // 1 riposte par chargeur (Frappe réactive)
-  const solde = spendableAdvantage(get, actor); // ce que `campSpend` débite (AA 11 l.30-38)
+  const solde = spendableAdvantage(get().battle, actor); // ce que `campSpend` débite (AA 11 l.30-38)
   if (op.advantageCost != null && solde < op.advantageCost) return undefined; // Avantage insuffisant
   if (op.advantageOrMovement && solde <= 0) return undefined; // LDB 10 l.78 : seule la dépense d'Avantage est jouée
   if (op.advantageCost != null) campSpend(get, actor, op.advantageCost); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
@@ -4301,7 +4292,7 @@ export function aiMaybeSpecialAction(get: Get, set: SetFn, enemy: Combatant): bo
   // adversaire ARMÉ pas plus grand que lui, quand la réserve/l'Avantage adverse est non nul (sinon inutile).
   if (hasBattement(enemy)) {
     const battle = get().battle;
-    const foe = battle?.combatants.find((c) => battementEligible(enemy, c) && spendableAdvantage(get, c) > 0);
+    const foe = battle?.combatants.find((c) => battementEligible(enemy, c) && spendableAdvantage(get().battle, c) > 0);
     if (foe) return aiBattement(get, set, enemy, foe);
   }
   // Distraire (LDB 10 l.364 / AA 13 l.51) : à défaut d'attaque productive, un PNJ qui porte le Talent nie
@@ -4309,7 +4300,7 @@ export function aiMaybeSpecialAction(get: Get, set: SetFn, enemy: Combatant): bo
   if (hasDistraire(enemy) && enemy.pos) {
     const battle = get().battle;
     const foe = battle?.combatants.find(
-      (c) => distraireEligible(enemy, c) && !c.distractedRounds && spendableAdvantage(get, c) > 0 && !!c.pos && combatDistance(enemy, c) <= 1,
+      (c) => distraireEligible(enemy, c) && !c.distractedRounds && spendableAdvantage(get().battle, c) > 0 && !!c.pos && combatDistance(enemy, c) <= 1,
     );
     if (foe) return aiDistraire(get, set, enemy, foe);
   }
@@ -7520,7 +7511,7 @@ export function markActed(get: Get, set: SetFn): BattleState {
 }
 
 /** Forme commune d'un Test de Psychologie de combat DÛ pour un héros (cumul `prevDR` = 0 sauf Peur étendue). */
-type HeroPsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: string };
+type HeroPsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: CiblePsy };
 
 /** Combattants en Ligne de Vue de `c` (hors lui-même, debout). Mutualisé par les deux collectes. */
 function visibleFoesAndAllies(battle: BattleState, scene: import('./monde/scene').Scene, c: Combatant): Combatant[] {
@@ -7546,7 +7537,7 @@ export function collectHeroRoundStartPsych(get: Get, c: Combatant): HeroPsychDue
   // Traits psy CIBLÉS (Animosité/Haine/… — LDB 21) : re-test des actifs, puis nouveaux déclenchements.
   const visible = visibleFoesAndAllies(battle, scene, c);
   for (const p of state) {
-    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise({ groupe: p.cible! }, { genre: 'combattant', c: v }, 'percu')))
+    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu')))
       return { kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible: p.cible }; // affliction active à re-tester
   }
   const tt = targetedTrigger(c, visible);
@@ -7628,7 +7619,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
       meta: { prevDR: t.prevDR, ...(sansPeur ? { sansPeur: true } : {}) },
     },
     icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
-    label: cl ? (t.cible ? stepPrecision(dataLabel(cl.label), groupLabel(t.cible)) : dataLabel(cl.label)) : stepPsych(t.kind, t.indice),
+    label: cl ? (t.cible ? stepPrecision(dataLabel(cl.label), libelleDeCible(t.cible)) : dataLabel(cl.label)) : stepPsych(t.kind, t.indice),
   };
 }
 
@@ -7644,7 +7635,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
  * les collecteurs — c'est la seule chose que la bande ajoute.
  */
 const combatPsychBands = makeBandFactory<CombatPsychDue>({
-  cle: ({ decl: d }) => `${d.kind}|${d.sourceId}|${d.cible ?? ''}|${d.indice}`,
+  cle: ({ decl: d }) => `${d.sourceId}|${identiteDeCiblage(d.kind, d.cible)}|${d.indice}`,
   rangee: (due) => due.row,
   situation: ({ decl: d, icon, label }, { index }) => ({
     id: `psych-${d.kind}-${index}`, kind: 'combatPsych', icon, label,
@@ -7787,11 +7778,11 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
     if (brise > 0 && res.failCondition === COND.brise) {
       hero.briseFromTerreur = (hero.briseFromTerreur ?? 0) + brise;
       const foe = inBattleId(battle, cp.sourceId);
-      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, foe ? groupesDe(foe)[0] : undefined);
+      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, foe ? cibleDuPorteur(foe) : undefined);
       if (gained) {
         hero.psychTraits = [...(hero.psychTraits ?? []), gained.phobie];
         hero.briseFromTerreur = 0;
-        phobieLine = tr('cf.phobieGain', { name: hero.label, groupe: groupLabel(gained.phobie.cible) });
+        phobieLine = tr('cf.phobieGain', { name: hero.label, groupe: libelleDeCible(gained.phobie.cible) });
       }
     }
   } else if (cible) {

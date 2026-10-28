@@ -1,0 +1,157 @@
+{
+  "schema_version": 2,
+  "model": "Skeleton_Warrior.glb",
+  "default_head": "tete",
+  "head_options": [
+    {
+      "id": "tete"
+    }
+  ],
+  "pieces": {
+    "Skeleton_Warrior_ArmLeft": {
+      "node": "Skeleton_Warrior_ArmLeft",
+      "component": "corps",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Skeleton_Warrior_ArmRight": {
+      "node": "Skeleton_Warrior_ArmRight",
+      "component": "corps",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Skeleton_Warrior_Body": {
+      "node": "Skeleton_Warrior_Body",
+      "component": "corps",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Skeleton_Warrior_LegLeft": {
+      "node": "Skeleton_Warrior_LegLeft",
+      "component": "corps",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Skeleton_Warrior_LegRight": {
+      "node": "Skeleton_Warrior_LegRight",
+      "component": "corps",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Skeleton_Warrior_Head": {
+      "node": "Skeleton_Warrior_Head",
+      "component": "tete",
+      "headVariant": "tete",
+      "hiddenBy": []
+    },
+    "Skeleton_Warrior_Jaw": {
+      "node": "Skeleton_Warrior_Jaw",
+      "component": "tete",
+      "headVariant": "tete",
+      "hiddenBy": []
+    },
+    "Skeleton_Warrior_Eyes": {
+      "node": "Skeleton_Warrior_Eyes",
+      "component": "tete",
+      "headVariant": "tete",
+      "hiddenBy": []
+    },
+    "Skeleton_Warrior_Helmet": {
+      "node": "Skeleton_Warrior_Helmet",
+      "component": "casque",
+      "headVariant": null,
+      "hiddenBy": []
+    },
+    "Skeleton_Warrior_Cloak": {
+      "node": "Skeleton_Warrior_Cloak",
+      "component": "cape",
+      "headVariant": null,
+      "hiddenBy": []
+    }
+  },
+  "components": {
+    "corps": {
+      "label_fr": "Corps",
+      "apparence": null
+    },
+    "casque": {
+      "label_fr": "Casque",
+      "apparence": "heaume"
+    },
+    "cape": {
+      "label_fr": "Cape",
+      "apparence": "cape"
+    }
+  },
+  "incompatibilities": [],
+  "defaults": [
+    "corps",
+    "casque",
+    "cape"
+  ],
+  "presets": {},
+  "clips": {
+    "idle": "Idle",
+    "walk": "Walking_A",
+    "melee": "1H_Melee_Attack_Chop",
+    "hit": "Hit_A",
+    "death": "Death_A"
+  },
+  "montage": {
+    "attaches": {
+      "main": {
+        "os": "handslot.r",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      },
+      "off": {
+        "os": "handslot.l",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      },
+      "dos": {
+        "os": "chest",
+        "position": [
+          0,
+          0,
+          -0.15
+        ],
+        "rotation": [
+          0,
+          0,
+          3.141592653589793
+        ]
+      },
+      "ceinture": {
+        "os": "hips",
+        "position": [
+          0.18,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "composants": {}
+  }
+}

@@ -18,8 +18,9 @@ import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCa
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
 import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
-import { useId, useMemo } from 'react';
-import { giveTrappingSchema, type Effect } from '../../data/schemas/defs-scenes/effets';
+import { useId } from 'react';
+import { ObjetDonneField } from './ObjetDonneField';
+import { type Effect } from '../../data/schemas/defs-scenes/effets';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
 import { giveTrappingLabel } from '../../engine/items';
 import { FlowEditor } from './FlowEditor';
@@ -39,7 +40,7 @@ import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTY_LABELS, Difficulty } from '
 import { ChaosAlign } from '../../engine/corruption';
 import { chaosAlignSchema, NATURES_D_INFLUENCE, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeLaNature } from './interne/libelleDeLaNature';
-import { valeursDe } from '../../data/schemas/grammaire/meta';
+import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { POWER_ESTIMATE, clampMight, type MassBattleSpec } from '../../engine/massBattle';
 import { PURSUIT_ESCAPE_DISTANCE } from '../../engine/pursuit';
 import { battleSceneById, nomDArmee } from '../../noyau/massBattleFlow';
@@ -320,25 +321,6 @@ export function newEffect(type: Effect['type']): Effect {
   return EFFECT_HANDLERS[type].make();
 }
 
-/** Objet donné par l'Effet `giveTrapping` : le sélecteur résout la saisie dans les objets du projet puis le
- *  catalogue, sous la feuille `giveTrappingSchema.shape.trappingId` (`RefField`, `entreesEnTete`) ; l'id
- *  émis qui se résout (`trappingDesObjetsPuisDuCatalogue`) est un `trappingId`, toute autre saisie un `custom`. */
-function ObjetDonneField({ objets, value, upd }: { objets: readonly TrappingData[]; value: string | undefined; upd: (patch: object) => void }) {
-  const parId = useMemo(() => new Map(objets.map((o) => [o.id, o])), [objets]);
-  return (
-    <RefField
-      cfg={{ ds: 'trappings', freeText: true }}
-      noeud={giveTrappingSchema.shape.trappingId}
-      entreesEnTete={objets}
-      value={value}
-      onChange={(v) => {
-        const val = v as string | undefined;
-        upd(val && trappingDesObjetsPuisDuCatalogue(parId, val) ? { trappingId: val, custom: undefined } : { custom: val, trappingId: undefined });
-      }}
-    />
-  );
-}
-
 /** Corps DÉPLIÉ d'un effet (feuille `do` d'un Flow) : menu de type + champs spécifiques. */
 export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChange: (e: Effect) => void; ctx: Ctx }) {
   const e = effect as any;
@@ -441,7 +423,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'giveTrapping' && (
           <>
-            <ObjetDonneField objets={objetsDuProjet(ctx)} value={e.trappingId ?? e.custom} upd={upd} />
+            <ObjetDonneField objets={objetsDuProjet(ctx)} value={e} onChange={onChange} />
             <input
               placeholder="Qualités magiques ajoutées (virgules, ex. De plaies atroces)"
               value={(e.qualities ?? []).join(', ')}
@@ -628,7 +610,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                 EDOC alignée. « règle globale » = laisse décider le réglage Règles maison. */}
             <select value={e.align ?? ''} onChange={(ev) => upd({ align: (ev.target.value || undefined) as ChaosAlign | undefined })}>
               <option value="">Mutation : règle globale (par défaut)</option>
-              {Object.entries(valeursDe(chaosAlignSchema) ?? {}).map(([k, l]) => (
+              {optionsDuNoeud(chaosAlignSchema).map(([k, l]) => (
                 <option key={k} value={k}>Table EDOC : {l}</option>
               ))}
             </select>
@@ -830,7 +812,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                 )}
               </div>
             )}
-            <GameOpEditor ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
+            <GameOpEditor objets={objetsDuProjet(ctx)} ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
           </div>
         )}
         {effect.type === 'setLight' && (
@@ -890,7 +872,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <label className="dr">Centre <NumberField variant="nu" label="Centre — X" value={e.center?.x ?? 0} onChange={(x) => upd({ center: { x, y: e.center?.y ?? 0 } })} />,<NumberField variant="nu" label="Centre — Y" value={e.center?.y ?? 0} onChange={(y) => upd({ center: { x: e.center?.x ?? 0, y } })} /></label>
               <label className="dr">Rayon <NumberField variant="nu" label="Rayon" min={0} value={e.radius ?? 0} onChange={(radius) => upd({ radius })} /></label>
             </div>
-            <GameOpEditor ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
+            <GameOpEditor objets={objetsDuProjet(ctx)} ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
           </div>
         )}
         {effect.type === 'startCombat' && (
@@ -917,9 +899,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             <label>Seuil d'évasion (défaut {PURSUIT_ESCAPE_DISTANCE})
               <NumberField variant="nu" label="Seuil d'évasion" min={2} value={e.escapeAt ?? PURSUIT_ESCAPE_DISTANCE} onChange={(escapeAt) => upd({ escapeAt })} />
             </label>
-            <label>Compétence de Mouvement (id)
-              <input value={e.skill ?? ''} placeholder="athletisme / chevaucher / conduite-d-attelage" onChange={(ev) => upd({ skill: ev.target.value })} />
-            </label>
+            <RefField cfg={{ ds: 'skills', single: true, spec: true }} label="Compétence de Mouvement" value={e.skill} onChange={(v) => upd({ skill: (v as { id: string; spec?: string }) || { id: '' } })} />
             <label>Rencontre au rattrapage
               <select value={e.encounter ?? ''} onChange={(ev) => upd({ encounter: ev.target.value })}>
                 <option value="">— aucune (dénouement narratif) —</option>

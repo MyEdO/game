@@ -39,7 +39,8 @@ const rollBlisterLocation = (rng: RNG): HitLocation => findTableEntry(HUMANOID_L
 import { rollTest } from './tests';
 import { maladies, diseaseLabel, findSymptomById, symptomLabel, conditionLabel, SYMPTOM_SEVERITIES, memoParVersion, type SymptomCapabilities } from '../data';
 import type { GameOp, PassiveMod } from './ops';
-import type { PsychTrait, PsychType } from './psychology';
+import type { PsychTrait } from './psychology';
+import { traitOctroye } from './psych/opsPsy';
 import { t, type MsgKey } from '../i18n';
 import { fateSaveOrDie } from './fortune';
 import { addCondition } from './conditions';
@@ -328,7 +329,7 @@ export function diseasePassiveOps(c: Combatant): PassiveMod[] {
 export function diseasePsychTraits(c: Combatant): PsychTrait[] {
   const out: PsychTrait[] = [];
   for (const { op } of diseasePassiveOps(c)) {
-    if (op.op === 'grantPsychTrait') out.push({ type: op.psychType as PsychType, ...(op.cible ? { cible: op.cible } : {}) });
+    if (op.op === 'grantPsychTrait') out.push(traitOctroye(op));
   }
   return out;
 }

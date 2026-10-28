@@ -8,7 +8,7 @@ import { dossierDuNavire } from '../noyau/seaVoyageFlow';
 import { foulingEffects } from '../engine/seaNavigation';
 import { moraleBand, findMoraleFactor } from '../engine/crewMorale';
 import { fromBrass } from '../engine/money';
-import { bulkCarriers, type CarrierStateSlice, nomDuNavire } from '../noyau/carriers';
+import { bulkCarriers, nomDuNavire } from '../noyau/carriers';
 import { Coins } from './Coins';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { rigSchema } from '../data/schemas/defs/vehicles';
@@ -53,12 +53,11 @@ type DossierTab = 'apercu' | 'cargaison' | 'equipage';
 export function ShipDossier({ onClose, initialTab }: { onClose: () => void; initialTab?: DossierTab }) {
   const vessel = useGame((s) => s.vessel);
   const party = useGame((s) => s.party);
-  const worldMap = useGame((s) => s.worldMap);
-  const scene = useGame((s) => s.scene);
   const possessions = useGame((s) => s.possessions);
   const move = useGame((s) => s.moveCargo);
-  // Transfert navire ↔ porteur terrestre CO-LOCALISÉ (au port). `bulkCarriers` réunit cale + bêtes/véhicules.
-  const carriers = useMemo(() => bulkCarriers({ party, vessel, worldMap, scene, possessions } as CarrierStateSlice), [party, vessel, worldMap, scene, possessions]);
+  // Transfert navire ↔ porteur terrestre CO-LOCALISÉ (`carriersColocated` : avec le groupe, ou au même Lieu).
+  // `bulkCarriers` réunit cale + bêtes/véhicules.
+  const carriers = useMemo(() => bulkCarriers({ party, vessel, possessions }), [party, vessel, possessions]);
   if (!vessel) return null;
   const transfer = <CargoTransferPanel carriers={carriers} onMove={move} labelOf={(id) => findCargoById(id)?.label ?? id} />;
   return <ShipDossierView vessel={vessel} party={party} onClose={onClose} initialTab={initialTab} transfer={transfer} />;

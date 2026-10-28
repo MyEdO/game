@@ -15,6 +15,7 @@
  */
 import { Combatant, type EffectSource } from './types';
 import { parsePsychTraits, type PsychTrait, type PsychType } from './psychology';
+import { identiteDeCiblage, type CiblePsy } from './psych/ciblage';
 import type { TraitInstance } from './statEntry';
 
 /** Re-dérive les scalaires psy depuis les traits courants (Peur/Terreur/Immunité). */
@@ -62,7 +63,7 @@ export function grantTrait(c: Combatant, accorde: TraitInstance): void {
  *  `grantPsychTrait` (`ops.ts`, effet temporisé) et `attachMutation` (`corruption.ts`, permanent :
  *  Colère impie → Frénésie, mutation → Haine). `src` = PROVENANCE de l'instance, comme `TraitInstance.src`
  *  de `grantTrait`. Mute `c`. */
-export function grantPsychTrait(c: Combatant, type: PsychType, cible?: string, src?: EffectSource): void {
+export function grantPsychTrait(c: Combatant, type: PsychType, cible?: CiblePsy, src?: EffectSource): void {
   c.psychTraits = [...(c.psychTraits ?? []), { type, ...(cible ? { cible } : {}), ...(src ? { src: structuredClone(src) } : {}) }]; // #2097
 }
 
@@ -76,7 +77,8 @@ export function removeGrantedTrait(c: Combatant, t: TraitInstance): void {
   if (li >= 0) c.liveTraits = [...c.liveTraits!.slice(0, li), ...c.liveTraits!.slice(li + 1)];
   resyncPsychScalars(c);
   for (const pt of contributionPsy(t)) {
-    const j = dernierIndex(c.psychTraits ?? [], (x) => x.type === pt.type && (x.cible ?? '') === (pt.cible ?? '') && memeSource(x.src, pt.src));
+    const identite = identiteDeCiblage(pt.type, pt.cible);
+    const j = dernierIndex(c.psychTraits ?? [], (x) => identiteDeCiblage(x.type, x.cible) === identite && memeSource(x.src, pt.src));
     if (j >= 0) c.psychTraits = [...c.psychTraits!.slice(0, j), ...c.psychTraits!.slice(j + 1)];
   }
   if (c.psychTraits && !c.psychTraits.length) delete c.psychTraits;

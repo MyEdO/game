@@ -8,7 +8,7 @@
  * SKINS d'objets uniques/légendaires (futur) : `art` peut porter des `@tokens` de couleur
  * (même mécanisme que les parts monstrueuses, cf. `parts/monstrous.ts` : `@peau`, `@metal`…)
  * et `palette` fournit la table par défaut clé→couleur. Un objet légendaire (ItemInstance)
- * pourra alors override `palette` pour un skin personnalisé sans toucher au def.
+ * pourra alors override `palette` pour une teinte personnalisée sans toucher au def.
  */
 import type { RigHeldDef } from '../types';
 import type { PaletteDeCouchePortee } from '../../palette';
@@ -17,7 +17,7 @@ import type { PaletteDeCouchePortee } from '../../palette';
  *  de COMBAT. `art` (hérité) peut porter des `@tokens` palette (skins légendaires) résolus via `palette`. */
 export interface WeaponDef extends RigHeldDef {
   type: 'melee' | 'ranged';
-  /** Groupe canonique WFRP4 (subType) — métadonnée de FORME (l'anim, elle, passe par handling.ts). */
+  /** Groupe canonique WFRP4 (subType) — métadonnée de FORME (l'anim, elle, passe par `maniementDe`, src/noyau/animation.ts). */
   group: string;
   /** Table par défaut clé→couleur pour les jetons de `art` (override possible par objet légendaire). */
   palette?: PaletteDeCouchePortee;

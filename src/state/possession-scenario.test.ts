@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { addPossession, stablePossession } from '../noyau/possessionsFlow';
+import { addPossession } from '../noyau/possessionsFlow';
 import { snapshotSave, lireSave, type SaveGame } from '../noyau/persistance/save';
 import { possessionTotalEnc } from '../engine/possession';
 import type { Possession } from '../engine/possession';
@@ -27,8 +27,7 @@ const set = useGame.setState.bind(useGame);
 
 describe('scénario-étalon possessions — charrette + mule chargée (terrestre, §5)', () => {
   it('possessionTotalEnc survit à un round-trip snapshotSave → lireSave', () => {
-    const charretteUid = addPossession(get, set, vehicule('charrette', [{ cargoId: 'grain', enc: 15, basePriceGold: 3 }]));
-    stablePossession(get, set, charretteUid, 'ecurie');
+    const charretteUid = addPossession(get, set, { ...vehicule('charrette', [{ cargoId: 'grain', enc: 15, basePriceGold: 3 }]), location: { kind: 'au-lieu', placeId: 'ecurie' } });
     const muleUid = addPossession(get, set, bete('mule', [{ cargoId: 'vin', enc: 4, basePriceGold: 8 }]));
 
     const before = get().possessions;

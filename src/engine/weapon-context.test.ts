@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { effectiveWeapon, effectiveWeaponDamage } from './weaponDamage';
 import { resolveMelee, hasWeaponGroupSkill, combatValue } from './combat';
-import { weaponHands, recomputeLoadout, itemFromTrappingById } from './items';
+import { weaponHands, recomputeLoadout, itemFromTrappingById, weaponFromItem } from './items';
 import { dangerousNine, hasQuality } from './qualities/dispatch';
 import { makeRNG } from './dice';
 import type { Weapon, Combatant } from './types';
@@ -11,10 +11,7 @@ import type { Weapon, Combatant } from './types';
 //  - 43.1b Fléau sans la Spécialisation → Défaut Dangereuse, aucun autre Atout (l.146-147)
 //  - 43.1a Cavalerie (2M) à pied → vraie arme à Deux Mains (l.142-143)
 
-const lance = (): Weapon => ({
-  label: 'Lance de cavalerie', type: 'melee', subType: 'cavalerie', reach: 'Très longue',
-  damage: { plusBF: true, flat: 6 }, qualities: [{ id: 'empaleuse' }, { id: 'percutante' }],
-});
+const lance = (): Weapon => weaponFromItem(itemFromTrappingById('lance-de-cavalerie')!);
 const fleau = (): Weapon => ({
   label: 'Fléau', type: 'melee', subType: 'fleau', reach: 'Moyenne',
   damage: { plusBF: true, flat: 5 }, qualities: [{ id: 'perturbante' }, { id: 'a-enroulement' }],
@@ -30,6 +27,17 @@ const combatant = (p: Partial<Combatant>): Combatant => ({
 } as unknown as Combatant);
 
 describe('43.1c — Lance de cavalerie hors Charge → Arme improvisée (LDB 62 l.58)', () => {
+  /** #2967 ; LDB 62 l.58 ; AA 08 l.212 */
+  it.each(['lance-de-cavalerie', 'demi-lance-de-cavalerie'])('la %s née conserve ses profils de Charge quand son libellé change', (id) => {
+    const item = itemFromTrappingById(id)!;
+    item.label = 'Présent du duc';
+    const arme = weaponFromItem(item);
+    arme.label = 'Présent du duc';
+    expect(effectiveWeapon(arme, { charged: true }).damage).toEqual(item.damage);
+    expect(effectiveWeapon(arme, { charged: false }).damage).toEqual({ plusBF: true, flat: 1 });
+    expect(effectiveWeapon(arme, { charged: false }).qualities).toEqual([{ id: 'inoffensive' }]);
+  });
+
   it('NON chargé → +BF+1, Inoffensive, Atouts perdus (Empaleuse/Percutante)', () => {
     const w = effectiveWeapon(lance(), { charged: false });
     expect(w.damage).toEqual({ plusBF: true, flat: 1 });

@@ -752,15 +752,17 @@ export function incomingMeleeAdvantage(target: Combatant): number {
  *  lues en DONNÉES (`StatusData.gating`, etats.json/psychology.json), JAMAIS par-nom : un nouvel État/
  *  trait psy déclare son blocage dans le JSON et le moteur l'applique. Agrégation : `action:'none'` et
  *  `cannotDefend` sont des OU (un seul statut bloquant suffit) ; le Mouvement prend le PIRE
- *  (`none` > `half`/`crawl` > normal). « Etat comme Psy » : `PsychologyData extends StatusData`. */
-export function conditionGating(c: Combatant): { noAction: boolean; cannotDefend: boolean; movement: 'normal' | 'half' | 'none' } {
-  let noAction = false; let cannotDefend = false; let movement: 'normal' | 'half' | 'none' = 'normal';
-  const apply = (g?: { action?: 'none'; movement?: 'none' | 'half' | 'crawl'; cannotDefend?: true }): void => {
+ *  (`none` > `crawl` > `half` > normal). `crawl` (LDB 16 l.35) est une moitié de Mouvement (`effectiveMovement`)
+ *  qui ferme en plus la Course (`refusDeCourse`). « Etat comme Psy » : `PsychologyData extends StatusData`. */
+export type MouvementDuStatut = 'normal' | 'half' | 'crawl' | 'none';
+const RANG_DU_MOUVEMENT: Record<MouvementDuStatut, number> = { normal: 0, half: 1, crawl: 2, none: 3 };
+export function conditionGating(c: Combatant): { noAction: boolean; cannotDefend: boolean; movement: MouvementDuStatut } {
+  let noAction = false; let cannotDefend = false; let movement: MouvementDuStatut = 'normal';
+  const apply = (g?: { action?: 'none'; movement?: Exclude<MouvementDuStatut, 'normal'>; cannotDefend?: true }): void => {
     if (!g) return;
     if (g.action === 'none') noAction = true;
     if (g.cannotDefend) cannotDefend = true;
-    if (g.movement === 'none') movement = 'none';
-    else if ((g.movement === 'half' || g.movement === 'crawl') && movement !== 'none') movement = 'half';
+    if (g.movement && RANG_DU_MOUVEMENT[g.movement] > RANG_DU_MOUVEMENT[movement]) movement = g.movement;
   };
   for (const cond of c.conditions ?? []) apply(findConditionById(cond.id)?.gating);
   for (const p of c.psychState ?? []) apply(findPsychologyById(p.type)?.gating);
@@ -787,6 +789,14 @@ export function restrictingConditions(c: Combatant): { id: string; stacks: numbe
     if (findConditionById(cond.id)?.restrictsAction) out.push({ id: cond.id, stacks: cond.value });
   }
   return out;
+}
+
+/** Refus de l'État qui verrouille l'Action et le Mouvement du porteur (`restrictsAction`), nommé depuis la
+ *  donnée ; `null` s'il est libre. Lu par le gate `hors-verrou-d-etat` et par le clic d'attaque. `LDB 16 l.52`. */
+export function refusVerrouDAction(c: Combatant): string | null {
+  const verrou = restrictingConditions(c)[0];
+  if (!verrou) return null;
+  return t('cs.stateLockFlee', { name: c.label, etat: findConditionById(verrou.id)?.label ?? verrou.id });
 }
 
 /** Le combattant porte-t-il un État qui VERROUILLE son Action (`restrictsAction`) ? Une seule vérité de

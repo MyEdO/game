@@ -130,10 +130,10 @@ describe('infirmerie ouverte depuis la fiche — le dialogue du dessus est celui
     expect(actif()).toBe('Appliquer');
     await frappe('Enter');
     expect(useGame.getState().pendingHeal, 'Entrée résout le jet').toBeNull();
-    // Situation : le patient est rétabli, « Soins » (l'invocateur) quitte la fiche.
+    // Situation : le patient est rétabli, « Soins » (l'invocateur) est REFUSÉ (`refusDeSoins`), jamais masqué.
     act(() => useGame.setState({ party: [soigneur, { ...patient, wounds: { current: 12, max: 12 } }] } as never));
     await vider();
-    expect(bouton(fiche, 'Soins'), 'l’invocateur n’existe plus').toBeUndefined();
+    expect(bouton(fiche, 'Soins').getAttribute('aria-disabled'), 'l’invocateur est refusé').toBe('true');
     act(() => bouton(infirmerie(), 'Terminer').click());
     await vider();
     expect(useGame.getState().medic, 'l’infirmerie est fermée').toBeNull();

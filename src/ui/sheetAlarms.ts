@@ -1,7 +1,8 @@
 import { Combatant } from '../engine/types';
 import { maxEncumbrance, totalEncumbrance } from '../engine/items';
 import { diseaseLabel, psychologyLabel } from '../data';
-import { isAfflictionActive, PsychAffliction } from '../engine/psychology';
+import { isPsychAfflictionActive } from '../engine/psychology';
+import { identiteDeCiblage } from '../engine/psych/ciblage';
 
 /** ids STABLES des rubriques de l'onglet État — ancres de scroll RENDUES par `EtatPanel.tsx`.
  *  (La Corruption est une jauge de la bande Constitution, pas une Section : elle n'en reçoit pas.) */
@@ -18,15 +19,6 @@ export const ETAT_ANCHOR_ENCOMBREMENT = 'etat-encombrement';
 export interface SheetAlarm {
   key: string;
   label: string;
-}
-
-/** Une affliction psy (`PsychAffliction`) est-elle ACTIVE ? `isAfflictionActive` (`engine/psychology.ts`)
- *  + Frénésie (présence ⟹ active, comme `isFrenzied`) — la Frénésie n'est pas surmontable par un Test
- *  de Calme (cf. commentaire de la fonction engine), donc hors de son vocabulaire. Exportée : LE MÊME
- *  filtre sert au COMPTAGE (atterrissage) et au RENDU (rubrique Psychologie, `EtatPanel.tsx`). */
-export function isPsychAfflictionActive(p: PsychAffliction): boolean {
-  if (p.type === 'frenesie') return true;
-  return isAfflictionActive(p);
 }
 
 /** Afflictions du héros pour la RÈGLE D'ATTERRISSAGE (§3.2 design v4, #492) : l'apparition d'une
@@ -57,7 +49,7 @@ export function sheetAlarms(hero: Combatant): SheetAlarm[] {
 
   for (const p of hero.psychState ?? []) {
     if (!isPsychAfflictionActive(p)) continue;
-    out.push({ key: `psych-${p.type}-${p.cible ?? ''}`, label: psychologyLabel(p.type) });
+    out.push({ key: `psych-${identiteDeCiblage(p.type, p.cible)}`, label: psychologyLabel(p.type) });
   }
 
   if (totalEncumbrance(hero) > maxEncumbrance(hero)) out.push({ key: 'surcharge', label: 'Surchargé' });

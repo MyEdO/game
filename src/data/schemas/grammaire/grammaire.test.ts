@@ -699,7 +699,9 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //         `materials` (81 → 79) — trois defs SCELLÉS en deviennent un, la population perd 2.
     //   #1690 : `terrains` naît SCELLÉ (79 → 80) — le registre TS des 25 sols devient un dataset.
     //   #1715 : `buildings` naît SCELLÉ (80 → 81) — le registre TS des 7 types de bâtiment devient un dataset.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 81, mesures: 0 });
+    //   #2948 : `apparences` naît SCELLÉ (81 → 82) — le catalogue des apparences d'objet devient un dataset.
+    //   #2972 : `gabarits` naît SCELLÉ (82 → 83) — le registre TS des carrures du rig devient un dataset.
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 83, mesures: 0 });
   });
 
 });
@@ -1333,6 +1335,17 @@ describe('byId — la PORTE de résolution d’une entité par son id STABLE', (
     // @ts-expect-error — la marque de type ferme l'affectation croisée entre deux types d'entité.
     const idTalent: Id<'talent'> = idCompetence;
     expect(idTalent).toBe(UNE_COMPETENCE.id);
+  });
+
+  it("`ref(type)` sans `extra` sort `{ id: Id<type> }`, ni index ouvert ni `id` perdu", () => {
+    const competence = ref('skill');
+    expectTypeOf<z.output<typeof competence>>().toEqualTypeOf<{ id: Id<'skill'> }>();
+    expectTypeOf(competence.parse({ id: UNE_COMPETENCE.id })).toEqualTypeOf<{ id: Id<'skill'> }>();
+  });
+
+  it("`ref(type, undefined, sousListe)` garde la même sortie `{ id: Id<type> }`", () => {
+    const parSousListe = ref('material', undefined, 'objet');
+    expectTypeOf<z.output<typeof parSousListe>>().toEqualTypeOf<{ id: Id<'material'> }>();
   });
 });
 

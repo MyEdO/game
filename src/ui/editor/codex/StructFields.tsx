@@ -7,7 +7,7 @@
  * On édite les VRAIS objets de `src/data/*.json` (rien de transformé) → la donnée stockée reste celle
  * que le moteur lit (DiseaseSymptom / CombatFeature / AdvancementRef / TrappingRef).
  */
-import { RefField, useSuggestionsPartagees, useValeursDistinctes, type RefFieldCfg, type SuggestionsPartagees } from '../../compendium/refField/RefField';
+import { ChoixDeSpec, ChoixDeSpecs, RefField, reposerLId, typeDuDataset, useSuggestionsPartagees, useValeursDistinctes, type RefFieldCfg, type SuggestionsPartagees } from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { datasetArray } from '../../../data/overrides';
 import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, type Difficulty, type CharKey } from '../../../engine/types';
@@ -17,7 +17,7 @@ import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/
 import type { AdvancementRef, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';
 import { dispoSaisonniereSchema, harvestRaritySchema } from '../../../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
-import { valeursDe } from '../../../data/schemas/grammaire/meta';
+import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { missileBypassSchema } from '../../../data/schemas/defs/domains';
 import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, seasonLabel } from '../../../data';
 import type { z } from 'zod';
@@ -253,7 +253,7 @@ export function TalentTestField({ value, onChange }: { value: TalentTest | undef
             <select value={m.char != null ? '@char' : (m.skill?.id ?? '')} onChange={(e) => {
               const v = e.target.value;
               if (v === '@char') setM(i, { skill: undefined, specFromInstance: undefined, exceptSpec: undefined, char: CHAR_KEYS[0] });
-              else setM(i, { char: undefined, skill: { id: v, ...(m.skill?.spec ? { spec: m.skill.spec } : {}) } });
+              else setM(i, { char: undefined, exceptSpec: undefined, skill: reposerLId(m.skill ?? { id: '' }, v) });
             }}>
               <option value="">— compétence —</option>
               {skillsList.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
@@ -264,11 +264,11 @@ export function TalentTestField({ value, onChange }: { value: TalentTest | undef
                 {CHAR_KEYS.map((ck) => <option key={ck} value={ck}>{CHAR_LABELS[ck]}</option>)}
               </select>
             )}
-            {m.skill != null && !m.specFromInstance && (
-              <input value={m.skill.spec ?? ''} placeholder="spec" title="spécialisation FIXE (Langue (Magick)…)" onChange={(e) => setM(i, { skill: { id: m.skill!.id, ...(e.target.value ? { spec: e.target.value } : {}) } })} />
+            {m.skill != null && !m.specFromInstance && m.exceptSpec == null && (
+              <ChoixDeSpec type="skill" id={m.skill.id} value={m.skill.spec} ariaLabel={`Spécialisation fixe — modificateur ${i + 1}`} onChange={(spec) => setM(i, { skill: { id: m.skill!.id, ...(spec ? { spec } : {}) } })} />
             )}
-            {m.skill != null && (
-              <input value={m.exceptSpec ?? ''} placeholder="sauf spec" title="EXCLUT une spécialisation (Linguistique : toute Langue sauf Magick)" onChange={(e) => setM(i, { exceptSpec: e.target.value || undefined })} />
+            {m.skill != null && m.skill.spec == null && (
+              <ChoixDeSpec type="skill" id={m.skill.id} value={m.exceptSpec} ariaLabel={`Spécialisation exclue — modificateur ${i + 1}`} onChange={(exceptSpec) => setM(i, { exceptSpec })} />
             )}
             {m.skill != null && (
               <label title="« (Au choix) » : matche la spécialisation CHOISIE du talent (Métier (Au choix)…)">
@@ -380,11 +380,11 @@ export function CombatField(
             <>
               {/* `reverseFailed.skills` est une LISTE (Pilote → Ramer OU Voile) ; ce sélecteur MONO édite
                   la 1ʳᵉ Compétence, les suivantes sont conservées telles quelles. */}
-              <select value={tete.id} onChange={(e) => poseTete({ id: e.target.value, ...(tete.spec ? { spec: tete.spec } : {}) })}>
+              <select value={tete.id} onChange={(e) => poseTete(reposerLId(tete, e.target.value))}>
                 {!tete.id && <option value="">— (choisir une compétence) —</option>}
                 {datasetArray('skills').map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
               </select>
-              <input className="dr" placeholder="spec" value={tete.spec ?? ''} onChange={(e) => poseTete({ id: tete.id, ...(e.target.value ? { spec: e.target.value } : {}) })} />
+              <ChoixDeSpec type="skill" id={tete.id} value={tete.spec} ariaLabel="Spécialisation — Inverse un Test raté" onChange={(spec) => poseTete({ id: tete.id, ...(spec ? { spec } : {}) })} />
               <label className="dr">cap DR<NumberField variant="nu" label="Inverse un Test raté — cap DR" value={rf.capDR ?? 0} onChange={(n) => emit({ ...c, reverseFailed: { ...rf, capDR: n || undefined } })} /></label>
             </>
           );
@@ -444,10 +444,9 @@ export function AdvancementRefField(
             )}
             {mode === 'choix' && 'id' in a && (
               <>
-                <RefField cfg={{ ds, single: true as const }} fieldKey="joker" value={{ id: a.id }} onChange={(v) => set(i, { id: ((v as RefDesignee) ?? { id: '' }).id, choix: a.choix ?? true })} />
-                <label className="dr">specs restreintes (CSV d'ids — vide = « Au choix »)
-                  <input value={Array.isArray(a.choix) ? a.choix.join(', ') : ''} onChange={(e) => { const opts = e.target.value.split(',').map((s) => s.trim()).filter(Boolean); set(i, { id: a.id, choix: opts.length ? opts : true }); }} />
-                </label>
+                <RefField cfg={{ ds, single: true as const }} fieldKey="joker" value={a.id} onChange={(v) => { const id = (v as string) ?? ''; if (id !== a.id) set(i, { id, choix: true }); }} />
+                <ChoixDeSpecs type={typeDuDataset(ds)} id={a.id} value={Array.isArray(a.choix) ? a.choix : undefined} label="Spécialisations restreintes (aucune cochée = « Au choix »)"
+                  onChange={(specs) => set(i, { id: a.id, choix: specs ?? true })} />
               </>
             )}
             {'pick' in a && (
@@ -686,7 +685,7 @@ export function DomainEffectsField(
           <div className="tf-row">
             <label className="dr">ignore
               <select value={missile.bypass} onChange={(e) => onMissile({ ...missile, bypass: e.target.value as NonNullable<DomainData['missile']>['bypass'] })}>
-                {Object.entries(valeursDe(missileBypassSchema) ?? {}).map(([b, l]) => <option key={b} value={b}>{l}</option>)}
+                {optionsDuNoeud(missileBypassSchema).map(([b, l]) => <option key={b} value={b}>{l}</option>)}
               </select>
             </label>
             <label className="dr"><input type="checkbox" checked={!!missile.bonusFromBypass} onChange={(e) => onMissile({ ...missile, bonusFromBypass: e.target.checked || undefined })} /> + ajoute aux Dégâts</label>

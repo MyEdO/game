@@ -12,7 +12,7 @@ import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe } from './bourse
 import { refuserGeste } from './refusVisible';
 import { cadenceAuto } from '../engine/cadence';
 import { deMonde, type RNG } from '../engine/dice';
-import type { CampaignVessel, Jeu } from './etat';
+import type { BattleState, CampaignVessel, Jeu } from './etat';
 import type { NightEntry } from './restFlow';
 import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
@@ -211,6 +211,17 @@ export function shipSaboteurDR(ship: Combatant): number {
  *  le RAW ne chiffre pas le quart ; on prend le quart de veille naval STANDARD de 4 heures (240 min). */
 export const QUART_MINUTES = 240;
 export const quartIndex = (gameTime: number): number => Math.floor(gameTime / QUART_MINUTES);
+
+/** Le quart en cours a-t-il déjà eu la chanson de ce navire ? MDG 09 l.40. */
+export const quartChante = (ship: Combatant, gameTime: number): boolean => ship.lastShantyQuart === quartIndex(gameTime);
+
+/** Le CHANTEUR du navire (`exposedCrew`, `knownShanties`, `singingShanty`), lu par le gate `chanteur-disponible`
+ *  et `battleSingShanty`. MDG 09 l.32-38. */
+export function chanteurDuNavire(ship: Combatant, battle: BattleState): Combatant | undefined {
+  const crew = exposedCrew((ship.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c));
+  return crew.filter((c) => knownShanties(c).length > 0 && !c.singingShanty)
+    .sort((a, b) => knownShanties(b).length - knownShanties(a).length)[0];
+}
 
 /** Préfixe d'identité des effets de chanson (retrait ciblé à l'interruption — MDG 09 l.38). */
 const SHANTY_LABEL = (label: string): string => t('crew.shantyLabel', { label });

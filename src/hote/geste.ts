@@ -150,7 +150,7 @@ export function intentionDuGeste(etat: Jeu, geste: Geste, pistes: PistesDeLectur
     const offres = offresDeLaBarre(etat, pistes);
     controlerLeContexte(geste.offre, geste.ctx, offres, pistes);
     const barre = etatDeLaBarre(etat);
-    const ctx = barre.forme === 'ouverte' ? { active: barre.active, battle: barre.battle, netMode: etat.net.mode, args: geste.ctx } : undefined;
+    const ctx = barre.forme === 'ouverte' ? { active: barre.active, battle: barre.battle, netMode: etat.net.mode, gameTime: etat.gameTime, args: geste.ctx } : undefined;
     if (!offreDesignee(offres, geste.offre, geste.ctx)) {
       const pertinence = ctx ? actionGate(geste.offre, ctx) : undefined;
       const raison = pertinence && !pertinence.ok ? pertinence.reason : offres.some((o) => o.actionId === geste.offre) ? 'aucun candidat ne correspond au contexte' : 'aucun candidat';

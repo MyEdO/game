@@ -25,6 +25,7 @@ import { ENEMY_RING, HERO_RING } from '../teamColors';
 import { actorBillboards, actorPoses, type ActorPose, type BillboardSubject } from '../backends/webgl/sceneMeshes';
 import { buildTokens } from '../builders/tokens';
 import type { BattleState } from '../../noyau/etat';
+import { findTrappingById } from '../../data';
 
 /**
  * SILHOUETTE DU CORPS À TRAVERS LES MURS (#1297, LOT C) — le pendant, pour le corps, du jumeau
@@ -90,7 +91,7 @@ async function monter(frame: StageFrame): Promise<void> {
   root = createRoot(hôte);
   await act(async () => {
     root!.render(
-      <GameStage3D lecture="jeu"
+      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
         scene={SCENE}
         mpt={sceneMetresPerTile(SCENE)}
         frame={frame}

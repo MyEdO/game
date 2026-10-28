@@ -12,6 +12,7 @@ import { tokenChrome, type TokenChromeMark } from '../builders/tokenChrome';
 import { combatantBodyTopFrac, combatantTokenScale } from '../sizeScale';
 import { discCapPath, teamRingDecor } from '../builders/dynamicMarks';
 
+
 /**
  * L'ABONNEMENT AU CAP EST PORTÉ PAR LE PION (#1176, P3-5c) — `store.facing` n'est LU que par le disque,
  * qui n'existe que sous le verdict `pionsEnDisques`. L'écriture d'un cap reforge la table entière à

@@ -29,6 +29,7 @@ import { makeRNG } from '../engine/dice';
 import { traitsDuPorteur, type TraitList, type TraitsDesignes } from '../engine/statEntry';
 import { customStatblockSchema } from '../data/schemas/defs-scenes/communs';
 import type { Combatant } from '../engine/types';
+import { traitOctroye } from '../engine/psych/opsPsy';
 
 /** Op-kinds du `passive` d'une mutation, classés. Un op-kind NEUF non classé rougit la garde. */
 const OPS_ACQUISITION = ['grantTrait', 'grantPsychTrait', 'grantTalent'] as const; // (c), (d)
@@ -128,8 +129,9 @@ function fautesDuPorteur(p: Porteur): string[] {
         const n = (c.traits ?? []).filter((t) => t.id === op.trait.id && estDeM(t.src)).length;
         if (n !== attendu) fautes.push(`${p.ou} : (c) trait « ${op.trait.id} » de « ${id} » posé ${n} fois, attendu ${attendu}`);
       } else if (op.op === 'grantPsychTrait') {
-        const n = (c.psychTraits ?? []).filter((t) => t.type === op.psychType && estDeM(t.src)).length;
-        if (n !== k) fautes.push(`${p.ou} : (c) trait psy « ${op.psychType} » de « ${id} » posé ${n} fois, attendu ${k}`);
+        const { type } = traitOctroye(op);
+        const n = (c.psychTraits ?? []).filter((t) => t.type === type && estDeM(t.src)).length;
+        if (n !== k) fautes.push(`${p.ou} : (c) trait psy « ${type} » de « ${id} » posé ${n} fois, attendu ${k}`);
       }
     }
   }

@@ -96,8 +96,8 @@ describe('Sans Peur (Ennemi) — Test de Calme Accessible (+20), un seul Test (L
   });
 
   it('fearSourceFor ne supprime PLUS la source pour un porteur de Sans Peur (plus d’immunité auto)', () => {
-    const ogre = mk({ id: 'o', causesPeur: 2, groups: ['Ogre'] });
-    const brave = mk({ talents: [{ talentId: 'sans-peur', spec: 'Ogre', times: 1 }] });
+    const ogre = mk({ id: 'o', causesPeur: 2, groups: ['ogre'] });
+    const brave = mk({ talents: [{ talentId: 'sans-peur', spec: 'ogre', times: 1 }] });
     expect(sansPeurVs(brave, ogre)).toBe(true);
     expect(fearSourceFor(brave, ogre)?.kind).toBe('peur'); // détectée → le porteur la TESTE (+20)
   });

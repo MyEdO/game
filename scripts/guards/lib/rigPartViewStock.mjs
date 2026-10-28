@@ -7,7 +7,7 @@
 // `partViewAudit.ts`) — la garde l'importe, elle n'en réplique pas la définition.
 //
 // PÉRIMÈTRE : les DEUX registres qui alimentent les slots de corps de `resolveParts` — les TENUES
-// (clé `<tenueId>:<slot>`) et les ARMURES (clé `armure:<materiau>:<slot>`). L'armure PRIME sur la
+// (clé `<tenueId>:<slot>`) et les ARMURES (clé `armure:<matiere>:<slot>`). L'armure PRIME sur la
 // tenue (`resolve.ts`, `armed ?? tenuePart`) : hors périmètre, elle laissait le format vert sur une
 // tenue conforme pendant qu'un personnage en plaque recevait un bras de face plaqué.
 //
@@ -23,9 +23,9 @@
 // (politique `DECROISSANT` : elle refuse SITE PAR SITE, `refusDeCroissance`). Toute prose posée ENTRE les entrées est mangée à la
 // régénération — l'explication vit dans cet en-tête.
 // Le dégât MESURÉ par `resolveParts` (le chemin réel), pas supposé, tient à deux mécanismes selon le slot :
-//   - `bras` (78 clés) : `resolve.ts` ne substitue RIEN sur ce slot — `viewOrFront` retombe sur `front`,
+//   - `bras` (15 clés, dont les 3 armures) : `resolve.ts` ne substitue RIEN sur ce slot — `viewOrFront` retombe sur `front`,
 //     donc l'art de FACE est servi VERBATIM de profil et de dos (« FRONT PLAQUE »).
-//   - `torse`/`jambes`/`tete` (89 clés) : `resolve.ts` invente une silhouette générique
+//   - `torse`/`jambes`/`tete` (60 clés) : `resolve.ts` invente une silhouette générique
 //     (`PROFILE_TORSE`/`BACK_JAMBE`…) teintée par `dominantCloth` — l'art de la tenue est IGNORÉ.
 //
 // --- PART_VIEW_ALIAS_RATCHET : vues DÉCLARÉES mais ALIASÉES sur le front ---
@@ -50,20 +50,19 @@
 // tenue neuve fournit ses 3 vues ; (b) sur toute entrée qui ne viole PLUS. Un slot se solde en
 // DESSINANT la vue, jamais en allongeant la liste — et l'allonger se voit à la porte de plage.
 //
-// Ampleur à la pose (2026-07-17) : 171 slots front-only / 426 fournis (40,1 %) sur 121 porteurs
-// (117 tenues + 4 armures). Tenues : 167/410 (40,7 %) ; 93 des 117 defs (79,5 %) portent au moins un
-// slot au stock — bras 78/101 (77,2 %), jambes 72/117 (61,5 %), torse 13/117 (11,1 %), tete 4/75
-// (5,3 %). Armures : 4/16 — les 4 matériaux (cuir/maille/plaque/rembourre) servent leurs 3 vues sur
-// tete/torse/jambes et sont front-only sur le SEUL slot `bras`. Ces 171 slots sont TOUS des strings
+// Ampleur mesurée le 2026-10-23 (`auditPartViews`, slots `SLOTS`) : 75 slots front-only / 508 fournis
+// (14,8 %) sur 112 porteurs (109 tenues + 3 armures). Tenues : 72/493 (14,6 %) ; 60 des 109 defs
+// (55,0 %) portent au moins un slot au stock — jambes 54/109 (49,5 %), bras 12/101 (11,9 %), torse
+// 4/109 (3,7 %), tete 2/74 (2,7 %), pied 0/100. Armures : 3/15 — les 3 defs (cuir/maille/plaque)
+// servent leurs 3 vues hors du slot `bras`, front-only. Ces 75 slots sont TOUS des strings
 // pures : aucun def ne fournit une vue partielle (profil sans dos ou l'inverse) — population bimodale.
 // Clé = `<id de tenue>:<slot>` (id STABLE `slugId(def.name)`, jamais le libellé) ou
-// `armure:<materiau>:<slot>` ; le libellé est en commentaire.
+// `armure:<matiere>:<slot>` ; le libellé est en commentaire.
 
 export const PART_VIEW_RATCHET = [
   { fichier: 'src/gameIso/rig/parts/armour/defs/Cuir.ts', ref: 'armure:cuir:bras', occurrence: 1 },
   { fichier: 'src/gameIso/rig/parts/armour/defs/Maille.ts', ref: 'armure:maille:bras', occurrence: 1 },
   { fichier: 'src/gameIso/rig/parts/armour/defs/Plaque.ts', ref: 'armure:plaque:bras', occurrence: 1 },
-  { fichier: 'src/gameIso/rig/parts/armour/defs/Rembourre.ts', ref: 'armure:rembourre:bras', occurrence: 1 },
   { fichier: 'src/gameIso/rig/parts/tenues/defs/Apothicaire.ts', ref: 'apothicaire:jambes', occurrence: 1 },
   { fichier: 'src/gameIso/rig/parts/tenues/defs/Artiste.ts', ref: 'artiste:jambes', occurrence: 1 },
   { fichier: 'src/gameIso/rig/parts/tenues/defs/Bailli.ts', ref: 'bailli:jambes', occurrence: 1 },

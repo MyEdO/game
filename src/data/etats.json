@@ -68,7 +68,7 @@
       }
     ],
     "gating": {
-      "movement": "half"
+      "movement": "crawl"
     },
     "lockedUntil": {
       "kind": "compare",

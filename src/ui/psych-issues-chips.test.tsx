@@ -20,6 +20,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { CascadeBody } from './CascadeModal';
 import type { Combatant } from '../engine/types';
+import { opPsy } from '../engine/psych/opsPsy';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -82,10 +83,10 @@ describe('#1189 — la bande de Psychologie DIT ses issues en chips d’ops', ()
     const step = bande();
     expect(branchCertainOps(step.meta?.onFail, heroNow())).toEqual([
       { op: 'condition', id: 'brise', value: 2, valuePerSL: { every: 1, amount: 1, onFailure: true } },
-      { op: 'beginPsych', type: 'peur', indice: 2, calmeDR: 0, surmontee: false, sourceId: 'scripted:Une vision terrifiante' },
+      opPsy.pose('peur', { indice: 2, calmeDR: 0, surmontee: false, sourceId: 'scripted:Une vision terrifiante' }),
     ]);
     expect(branchCertainOps(step.meta?.onSuccess, heroNow()), 'la réussite n’exempte que de la Terreur (LDB 21 l.56)').toEqual([
-      { op: 'beginPsych', type: 'peur', indice: 2, calmeDR: 0, surmontee: false, sourceId: 'scripted:Une vision terrifiante' },
+      opPsy.pose('peur', { indice: 2, calmeDR: 0, surmontee: false, sourceId: 'scripted:Une vision terrifiante' }),
     ]);
   });
 

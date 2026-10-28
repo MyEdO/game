@@ -1,4 +1,4 @@
-import { nommerChamps } from '../grammaire/meta';
+import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `trappings.json` — vocabulaire UNIFIÉ des objets (armes/armures/munitions/possessions/
  * consommables/véhicules-marqueur). Dérivé de l'interface `TrappingData` EXISTANTE
@@ -16,10 +16,28 @@ import { gameOpSchema, flowSchema, triggeredEffectSchema } from '../grammaire/me
  *  mesurée par `grammaire/formes-partagees.test.ts` à défaut d'être refinée au parse. */
 import { qualityRefSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
+import { ref, refs, refusDeLEntree } from '../grammaire/ref';
+import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
 
 export const file = 'trappings.json';
 export const famille = 'entite';
+
+export const apparenceDObjetSchema = nommerChamps(z.looseObject({
+  shape: ref('apparence', undefined, RACINE_D_APPARENCE).optional(),
+  formChoices: refs('apparence', { sousListe: RACINE_D_APPARENCE }).optional(),
+}), {
+  shape: { label: 'Forme racine', hint: 'Forme par défaut de l’objet, fixée sur l’instance à sa naissance' },
+  formChoices: { label: 'Formes proposées', hint: 'Formes racines parmi lesquelles l’apparence de l’objet peut être choisie' },
+});
+
+/** Une armure porte son TYPE d'armure : `subType` = id de la sous-liste `armour` des Groupes
+ *  (`weaponGroups.json?kind=armour`). Matière que le dessin et les exemptions de matériau
+ *  (`armourMaterialOf`, `src/engine/armourBypass.ts`) lisent. Jugé par le refus de la sous-liste
+ *  (`refusDeLEntree`, celui de `idDe('weaponGroup', 'armour')`) : une feuille `idDe` exécutée hors de l'arbre
+ *  du schéma échappe à la marche du parse de mesure (`grammaire/parse-de-mesure.test.ts`, COUVERTURE). */
+const refusDuTypeDArmure = (subType: string | null): string | null =>
+  subType === null ? 'aucun type d’armure' : refusDeLEntree('weaponGroup', 'armour', { id: subType });
 
 /** CATÉGORIE de catalogue d'une possession — id de logique qui ne s'affiche jamais nu. */
 export const trappingCategorieSchema = enumNomme({
@@ -50,6 +68,7 @@ const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   disarmImmune: z.boolean().optional(),
   ropeMode: z.boolean().optional(),
   waterContainer: z.boolean().optional(),
+  improvisedWithoutCharge: z.boolean().optional(),
 }), {
   preventForcedDrop: { label: 'Empêche la perte forcée' },
   weatherProtection: { label: 'Protection contre les intempéries' },
@@ -63,6 +82,7 @@ const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   disarmImmune: { label: 'Immunité au désarmement' },
   ropeMode: { label: 'Usage de la corde' },
   waterContainer: { label: 'Récipient d’eau' },
+  improvisedWithoutCharge: { label: 'Improvisée sans Charge' },
 });
 
 /** LDB 73 */
@@ -140,8 +160,7 @@ const doc = document(
      *  pierrier/canon/baliste/mortier là où `subType`='armes-de-siege' seul ne le fait pas (hint joueur,
      *  `ammoFamilyLabel`). */
     defaultAmmo: z.string().optional(),
-    shape: z.string().optional(),
-    formChoices: z.array(z.string()).optional(),
+    ...apparenceDObjetSchema.shape,
     requiresMastery: z.boolean().optional(),
     /** LDB 73 l.19/23 */
     prosthesisTraining: z
@@ -227,11 +246,7 @@ const doc = document(
       label: 'Munition représentative',
       hint: 'Munition affichée par défaut pour cette arme de siège (indication au joueur)',
     },
-    shape: { label: 'Forme à l’écran', hint: 'Forme sous laquelle l’objet s’affiche dans l’apparence de son porteur', renduPur: true },
-    formChoices: {
-      label: 'Formes proposées',
-      hint: 'Formes visuelles alternatives que le joueur peut choisir pour cet objet',
-    },
+    ...metaDesChamps(apparenceDObjetSchema, { exigees: true }),
     requiresMastery: {
       label: 'Maîtrise requise',
       hint: 'Arme inhabituelle : sans maîtrise acquise, le Test se fait sur la Caractéristique brute',
@@ -288,7 +303,19 @@ const doc = document(
   },
   // `categorie` : univers des sources `weaponsMelee`/`weaponsRanged` (`grammaire/sourcesDeSpecs.ts`).
   // `service` : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`).
-  { exiges: ['source'], espace: { discriminant: 'categorie', marqueurs: ['service'] } },
+  {
+    exiges: ['source'],
+    espace: { discriminant: 'categorie', marqueurs: ['service'] },
+    affinerEntree: (entree) =>
+      entree.superRefine((v, ctx) => {
+        const e = v as { id: string; categorie: string; subType: string | null; shape?: { id: string } };
+        if (e.categorie !== 'armor') return;
+        const refus = refusDuTypeDArmure(e.subType);
+        if (refus !== null) ctx.addIssue({ code: 'custom', path: ['subType'], message: `${e.id} : une armure porte un type d'armure — ${refus}` });
+        // Le TYPE est la matière ; la SILHOUETTE est sa forme, racine du catalogue des apparences (#2948).
+        if (e.shape === undefined) ctx.addIssue({ code: 'custom', path: ['shape'], message: `${e.id} : une armure porte sa forme (\`shape\`, racine de apparences.json)` });
+      }),
+  },
 );
 
 export const schema = doc.schema;

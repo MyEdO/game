@@ -67,7 +67,7 @@ describe('PossessionsRegistry (#649) — registre des possessions dont le héros
         uid: 'pos-7', ownerId: 'h1', nature: 'bete', ref: { creatureId: 'cheval' }, location: { kind: 'avec-le-groupe' },
         items: [
           { uid: 'i1', trappingId: 'outils-professionnels', spec: 'Maréchal-ferrant', label: 'Outils professionnels', kind: 'misc', qualities: [], enc: 1, equipped: false },
-          { uid: 'i2', trappingId: 'bouclier', label: 'Bouclier', kind: 'armor', qualities: [], enc: 1, equipped: false },
+          { uid: 'i2', trappingId: 'bouclier', label: 'Bouclier', kind: 'melee', subType: 'base', qualities: [], enc: 1, equipped: false },
         ],
       } as unknown as Possession,
     ];

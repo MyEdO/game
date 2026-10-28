@@ -25,7 +25,7 @@ describe('buyTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)', () =>
   it('porteur de la Marque de Tzeentch : la rangée d’avancement s’ACHÈTE — PX débités, Talent acquis', () => {
     const h = soldat({ traits: [...(pregen(PREGEN.soldat).traits ?? []), ...MARQUE] });
     expect(h.talents.some((t) => t.talentId === 'magie-des-arcanes')).toBe(false);
-    expect(buildAdvancementView(h).talents.some((r) => r.talentId === 'magie-des-arcanes' && r.spec === 'feu')).toBe(true);
+    expect(buildAdvancementView({ battle: null, flags: {} }, h).talents.some((r) => r.talentId === 'magie-des-arcanes' && r.spec === 'feu')).toBe(true);
     useGame.setState({ party: [h] });
     useGame.getState().buyTalent(h.id, 'magie-des-arcanes', 'feu');
     const apres = useGame.getState().party[0];
@@ -35,7 +35,7 @@ describe('buyTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)', () =>
 
   it('sans la Marque : ni rangée, ni achat — refus « hors carrière », PX intacts', () => {
     const h = soldat();
-    expect(buildAdvancementView(h).talents.some((r) => r.talentId === 'magie-des-arcanes')).toBe(false);
+    expect(buildAdvancementView({ battle: null, flags: {} }, h).talents.some((r) => r.talentId === 'magie-des-arcanes')).toBe(false);
     useGame.setState({ party: [h] });
     useGame.getState().buyTalent(h.id, 'magie-des-arcanes', 'feu');
     const apres = useGame.getState().party[0];

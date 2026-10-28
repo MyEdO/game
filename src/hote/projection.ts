@@ -5,11 +5,7 @@
  * règle ne se calcule ici : un champ est un lecteur du noyau, ou un champ de l'état lu tel quel (provenance :
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
-import {
-  activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed,
-  porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey,
-  type Combatant, type EtatDeLaBarre, type GesteDExploration, type Jeu, type JetEnVue, type Offre, type Pt,
-} from '../noyau/index';
+import { activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, equipementDessine, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, type Combatant, type EtatDeLaBarre, type GesteDExploration, type Jeu, type JetEnVue, type Offre, type Pt } from '../noyau/index';
 
 /** Un combattant projeté. */
 export interface CombattantProjete {
@@ -26,6 +22,7 @@ export interface CombattantProjete {
   /** Ses États (`conditions`), chacun avec sa valeur. */
   etats: { id: string; valeur: number }[];
   horsCombat: boolean;
+  equipement: ReturnType<typeof equipementDessine>;
 }
 
 /** Une entité de la scène en exploration : id, genre, nom, case. */
@@ -129,6 +126,7 @@ function combattant(c: Combatant, actif: Combatant | undefined): CombattantProje
     engage: !!actif && c.id !== actif.id && !!actif.engagedWith?.includes(c.id),
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
     horsCombat: !!c.dead || !!c.outOfRencontre,
+    equipement: equipementDessine(c),
   };
 }
 
@@ -147,7 +145,7 @@ const etapeDe = (f: NonNullable<ReturnType<typeof fenetreDuJeu>>) =>
 
 /** Les offres de l'actif d'une barre ouverte (`offresDeLActif`, l'énumération que lit la console). */
 export const offresDeLaBarreOuverte = (etat: Jeu, barre: Extract<EtatDeLaBarre, { forme: 'ouverte' }>): Offre[] =>
-  offresDeLActif({ active: barre.active, battle: barre.battle, netMode: etat.net.mode, state: etat });
+  offresDeLActif({ active: barre.active, battle: barre.battle, netMode: etat.net.mode, gameTime: etat.gameTime, state: etat });
 
 /** Les offres ouvertes, une par action, ses candidats comptés, dans l'ordre du registre. */
 function offresEnVue(offres: readonly Offre[]): OffreEnVue[] {

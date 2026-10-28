@@ -26,6 +26,7 @@ import type { OffreRendue, OffresRenduesParPorteur } from '../../state/offreRend
 import { estPropVolumique, type DecorDEntite, type PropEl, type TokenEl, type TokenSubjectEl } from './types';
 import type { PartyToken } from './tokens';
 
+
 /** ALVÉOLES RÉSERVÉES du chrome d'un jeton — autant de places que le rack d'États du portrait
  *  (`PortraitTile maxStates`) : les deux surfaces montrent le même nombre d'États d'un combattant.
  *  Le peintre (`TokenChromeMarks`) place la place `i` à une abscisse FIXE, déduite de ce compte et

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
+import { t } from '../i18n';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
@@ -32,7 +33,7 @@ describe('Désengagement après avoir attaqué (option A — LDB 15 l.47)', () =
     const pd = useGame.getState().pendingDisengage;
     expect(pd).not.toBeNull();
     expect(pd!.canSacrifice).toBe(true);
-    expect(pd!.canEsquive).toBe(false); // Esquive indisponible (coûte l'Action) → pas de boucle infinie
+    expect(pd!.refusEsquive).toBe(t('agate.actionSpent')); // Esquive indisponible (coûte l'Action, LDB 15 l.49) → pas de boucle infinie
 
     useGame.getState().disengageConfirmA();
     st = useGame.getState();

@@ -1,14 +1,17 @@
 /**
  * Actions GROUPE (hors combat) — module à part du store, même patron
- * `(get, set)` que combatFlow : équipement (équiper/transférer/skin), avancement PX
+ * `(get, set)` que combatFlow : équipement (équiper/transférer), avancement PX
  * (caractéristiques/compétences/talents/carrière, prothèses), consommables de fiche, butin.
- * Refacto pure — comportement préservé.
  */
 import { Combatant, CharKey, CHAR_LABELS, ItemInstance } from '../engine/types';
-import { recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, equipConflicts, canStow } from '../engine/items';
+import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, equipConflicts, canStow, isOffHandEligible, setADeuxMains } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
-import { resolveCarrier, carriersCoLocated } from './monde/carrier';
+import { resolveCarrier, porteurLocalise } from './monde/carrier';
+import { carriersColocated } from '../engine/cargo';
+import { refuserGeste } from './refusVisible';
+import { refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
+import { refusDepensePx, mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement } from './depenseDePx';
 import {
   buyCharAdvance as engineBuyCharAdvance,
   buySkillAdvance as engineBuySkillAdvance,
@@ -16,9 +19,9 @@ import {
   changeCareer as engineChangeCareer,
   isCareerLevelComplete,
   inCareerChar,
-  mentorBlocks,
+  advanceCost,
+  talentCost,
 } from '../engine/advancement';
-import { rule } from '../engine/policy';
 import {
   skillSlots,
   talentSlots,
@@ -26,8 +29,7 @@ import {
   designationsFor,
   freeSlotFor,
   designateSlot,
-  talentMaxReached,
-  arcaneDomainGate,
+  talentAcquisitions,
 } from '../engine/careerSlots';
 import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, competenceEnCarriere, talentEnCarriere } from '../engine/talentEffects';
 import { heroSessionXp, regainDetermination } from '../engine/session';
@@ -38,7 +40,8 @@ import { castingKindOf } from '../engine/combatFeatures/dispatch';
 import { canAfford, toMoney, Money, formatMoney } from '../engine/money';
 import { isArcaneSpell } from '../engine/magic';
 import { spellCost, verdictApprentissage } from '../engine/grimoire';
-import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, findTalentById, refLabel, dataLabel } from '../data/index';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
+import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, refLabel, dataLabel, type SpellData } from '../data/index';
 import { t } from '../i18n';
 import { decidingSeat, seatSlotsRemaining } from './netOwnership';
 import { PARTY_MAX, actorIn, ecrireActeur } from './monde/combatants';
@@ -117,6 +120,7 @@ function applyToggleEquip(items: ItemInstance[], uid: string, label: string): st
  *  « porteur unique » #614/#620) — un héros recalcule aussi ses armes/armure actives (`recomputeLoadout`,
  *  réservé aux Combatant : une possession n'a pas de loadout d'arme). */
 export function toggleEquip(get: Get, set: Set, carrierId: string, uid: string): void {
+  if (refuseSi(get, set, refusDInventaire)) return;
   let msg = '';
   set((s) => {
     const carrier = resolveCarrier(s, carrierId);
@@ -166,6 +170,7 @@ function applyStow(items: ItemInstance[], uid: string, containerUid: string | nu
 
 /** Même patron que `toggleEquip` (clone + recomputeLoadout réservé au héros) — porteur héros OU possession. */
 export function stowItem(get: Get, set: Set, carrierId: string, uid: string, containerUid: string | null): void {
+  if (refuseSi(get, set, refusDInventaire)) return;
   let msg = '';
   set((s) => {
     const carrier = resolveCarrier(s, carrierId);
@@ -204,16 +209,59 @@ function mutLoadout(set: Set, heroId: string, fn: (c: Combatant) => void): void 
   }));
 }
 
-export function createLoadout(_get: Get, set: Set, heroId: string): void {
-  mutLoadout(set, heroId, (c) => loadoutCreate(c));
+/** Applique `fn` au loadout du héros, sauf refus d'inventaire (`refusDInventaire`), qui se DIT. */
+function gesteDeSet(get: Get, set: Set, heroId: string, fn: (c: Combatant) => void): void {
+  if (refuseSi(get, set, refusDInventaire)) return;
+  mutLoadout(set, heroId, fn);
 }
-export function deleteLoadout(_get: Get, set: Set, heroId: string, id: string): void {
+
+export function createLoadout(get: Get, set: Set, heroId: string): void {
+  gesteDeSet(get, set, heroId, (c) => loadoutCreate(c));
+}
+/** Refus de supprimer le set `id` de `hero` : la raison affichée, ou `null`. Combat (`refusDInventaire`), set
+ *  introuvable, set d'une arme invoquée (le sort le gère), dernier set (le héros en garde toujours un).
+ *  Verdict UNIQUE de `deleteLoadout` et du bouton Supprimer d'`EquipmentPanel`. */
+export function refusDeSupprimerSet(s: Pick<Jeu, 'battle'>, hero: Combatant, id: string): string | null {
+  const verrou = refusDInventaire(s);
+  if (verrou) return verrou;
+  const lo = hero.loadouts?.find((l) => l.id === id);
+  if (!lo) return t('pf.loadoutNotFound');
+  if ((hero.items ?? []).find((it) => it.uid === lo.main)?.conjured) return t('pf.loadoutConjured');
+  return (hero.loadouts?.length ?? 0) > 1 ? null : t('pf.loadoutLast');
+}
+
+export function deleteLoadout(get: Get, set: Set, heroId: string, id: string): void {
+  const hero = actorIn(get(), heroId);
+  const refus = hero ? refusDeSupprimerSet(get(), hero, id) : t('pf.loadoutNotFound');
+  if (refus) return void refuserGeste(get, set, refus);
   mutLoadout(set, heroId, (c) => loadoutDelete(c, id));
 }
-export function setActiveLoadout(_get: Get, set: Set, heroId: string, id: string): void {
-  mutLoadout(set, heroId, (c) => loadoutSetActive(c, id));
+export function setActiveLoadout(get: Get, set: Set, heroId: string, id: string): void {
+  gesteDeSet(get, set, heroId, (c) => loadoutSetActive(c, id));
 }
-export function setLoadoutSlot(_get: Get, set: Set, heroId: string, id: string, slot: 'main' | 'off', uid: string | null): void {
+/** Refus de tenir `uid` (ou de vider l'emplacement, `null`) dans la main `slot` du set `loadoutId` : la
+ *  raison affichée, ou `null`. Verdict UNIQUE du geste `setLoadoutSlot` et des deux écrans d'armes
+ *  (`EquipmentPanel`, `HandPicker`). `hero` = la copie que l'appelant lit (`actorIn`). LDB 14 l.138 */
+export function refusEmplacementDeMain(
+  s: Pick<Jeu, 'battle'>, hero: Combatant, loadoutId: string, slot: 'main' | 'off', uid: string | null,
+): string | null {
+  const verrou = refusDInventaire(s);
+  if (verrou) return verrou;
+  const lo = hero.loadouts?.find((l) => l.id === loadoutId);
+  if (!lo) return t('pf.loadoutNotFound');
+  if ((hero.items ?? []).find((it) => it.uid === lo.main)?.conjured) return t('pf.loadoutConjured');
+  if (slot === 'off' && setADeuxMains(hero, lo)) return t('pf.offHandTwoHanded');
+  if (uid == null) return null;
+  const it = (hero.items ?? []).find((i) => i.uid === uid);
+  if (!it) return t('pf.loadoutItemNotFound');
+  return slot === 'off' && !isOffHandEligible(it) ? t('pf.offHandIneligible') : null;
+}
+
+export function setLoadoutSlot(get: Get, set: Set, heroId: string, id: string, slot: 'main' | 'off', uid: string | null): void {
+  const hero = actorIn(get(), heroId);
+  if (!hero) return void refuserGeste(get, set, t('pf.loadoutNotFound'));
+  const refus = refusEmplacementDeMain(get(), hero, id, slot, uid);
+  if (refus) return void refuserGeste(get, set, refus);
   mutLoadout(set, heroId, (c) => loadoutSetSlot(c, id, slot, uid));
 }
 
@@ -224,17 +272,20 @@ function carrierLabel(carrier: { kind: 'hero'; hero: Combatant } | { kind: 'poss
 
 /** Donne un objet d'un PORTEUR (héros ou possession) à un autre — #620 généralise le don héros→héros
  *  aux 4 combinaisons (héros↔héros, héros↔possession, possession↔possession). `recomputeLoadout`
- *  reste réservé aux Combatant (armes actives) — une possession n'a pas de loadout. */
+ *  reste réservé aux Combatant (armes actives) — une possession n'a pas de loadout. En combat, rien ne
+ *  change de mains (`refusDInventaire`) : un don à sa mule contournerait le verrou de `toggleEquip`. */
 export function transferItem(get: Get, set: Set, uid: string, fromCarrierId: string, toCarrierId: string): void {
-  if (fromCarrierId === toCarrierId) return;
+  if (refuseSi(get, set, refusDInventaire)) return;
   const state = get();
   const from = resolveCarrier(state, fromCarrierId);
   const to = resolveCarrier(state, toCarrierId);
-  if (!from || !to) return;
-  if (!carriersCoLocated(from, to)) return;
-  const fromItems = from.kind === 'hero' ? (from.hero.items ?? []) : from.possession.items;
+  const fromItems = !from ? [] : from.kind === 'hero' ? (from.hero.items ?? []) : from.possession.items;
   const item = fromItems.find((i) => i.uid === uid);
-  if (!item) return;
+  if (!from || !to || !item) return void refuserGeste(get, set, t('pf.giveNotFound'));
+  if (fromCarrierId === toCarrierId) return void refuserGeste(get, set, t('pf.giveSelf', { from: carrierLabel(from), item: item.label }));
+  if (!carriersColocated(porteurLocalise(from), porteurLocalise(to))) {
+    return void refuserGeste(get, set, t('pf.giveNotColocated', { from: carrierLabel(from), to: carrierLabel(to), item: item.label }));
+  }
   const contents = item.container ? fromItems.filter((i) => i.inside === item.uid) : [];
   const fromLabel = carrierLabel(from);
   const toLabel = carrierLabel(to);
@@ -282,52 +333,13 @@ export function transferItem(get: Get, set: Set, uid: string, fromCarrierId: str
   get().log(t('pf.give', { from: fromLabel, item: item.label, to: toLabel }));
 }
 
-function applySkinPatch(it: ItemInstance, patch: Record<string, string | undefined>): void {
-  const next: Record<string, string> = { ...(it.skin ?? {}) };
-  for (const [k, v] of Object.entries(patch)) { if (v == null) delete next[k]; else next[k] = v; }
-  it.skin = Object.keys(next).length ? next : undefined;
-}
-
-/** Skin (habillage cosmétique) d'un objet — porteur héros OU possession (#620). `recomputeLoadout`
- *  (propage skin → `Weapon.skin` actif) reste réservé au héros. */
-export function setItemSkin(_get: Get, set: Set, carrierId: string, uid: string, patch: Record<string, string | undefined>): void {
-  set((s) => {
-    const carrier = resolveCarrier(s, carrierId);
-    if (!carrier) return {};
-    if (carrier.kind === 'hero') {
-      return ecrireActeur(s, carrierId, (h) => {
-        const clone: Combatant = structuredClone(h);
-        const it = (clone.items ?? []).find((i) => i.uid === uid);
-        if (it) {
-          applySkinPatch(it, patch);
-          recomputeLoadout(clone); // propage skin → Weapon.skin actif
-        }
-        return clone;
-      });
-    }
-    return {
-      possessions: s.possessions.map((p) => {
-        if (p.uid !== carrierId) return p;
-        const clone: Possession = structuredClone(p);
-        const it = clone.items.find((i) => i.uid === uid);
-        if (it) applySkinPatch(it, patch);
-        return clone;
-      }),
-    };
-  });
-}
-
-/** Change la FORME d'une arme ABSTRAITE (« Arme simple » → épée/hache/masse/marteau de guerre/demi-lance) :
- *  pose `item.formeChoisie` parmi les `formChoices` du trapping (forme hors-liste → no-op), puis recompute
- *  pour que l'arme active (si tenue) porte ce choix (`Weapon.formeChoisie`). Cosmétique RAW — toutes les formes d'une
- *  Arme simple partagent les mêmes stats (LDB 62). Même patron (clone + recomputeLoadout) que setItemSkin. */
-export function choisirForme(_get: Get, set: Set, heroId: string, uid: string, forme: string): void {
+/** #2967 */
+export function choisirApparence(get: Get, set: Set, heroId: string, uid: string, apparence: string): void {
+  const resolveTrapping = objetDuNarratif(get().campaignNarratif);
   mutLoadout(set, heroId, (c) => {
     const it = (c.items ?? []).find((i) => i.uid === uid);
     if (!it?.trappingId) return;
-    const choices = findTrappingById(it.trappingId)?.formChoices;
-    if (!choices?.includes(forme)) return; // forme hors `formChoices` → ignorée
-    it.formeChoisie = forme;
+    choisirApparenceDObjet(it, apparence, resolveTrapping);
   });
 }
 
@@ -342,16 +354,11 @@ export function grantXp(get: Get, set: Set, heroId: string, amount: number): voi
   if (name) get().log(`${name} : ${amount >= 0 ? '+' : ''}${amount} PX.`);
 }
 
-/** Refus d'une dépense de PX : la raison affichée, ou `null`. LDB 05 l.907. */
-export function refusDepensePx(s: Pick<Jeu, 'battle'>): string | null {
-  return s.battle ? t('pf.xpInCombat') : null;
-}
-
 /** SEULE couture de dépense de PX : le refus (`refusDepensePx`) tombe ici, sinon `depense` s'écrit par
  *  `ecrireActeur`. Rend `false` au refus. */
 export function depenserPx(get: Get, set: Set, heroId: string, depense: (h: Combatant) => Combatant): boolean {
   const refus = refusDepensePx(get());
-  if (refus) { get().log(refus); return false; }
+  if (refus) return !refuserGeste(get, set, refus);
   set((s) => ecrireActeur(s, heroId, depense));
   return true;
 }
@@ -361,8 +368,13 @@ export function buyCharAdvance(get: Get, set: Set, heroId: string, char: CharKey
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
     const inC = inCareerChar(careerCtx(clone).careerChars, char);
-    if (mentorBlocks(inC, rule('advancement-mentor') === true, !!get().flags['mentor'])) {
+    if (mentorRequis(get(), inC)) {
       msg = t('pf.charNeedsMentor', { name: clone.label, what: CHAR_LABELS[char] });
+      return h;
+    }
+    const manque = refusDePx(clone, advanceCost(clone.charAdvances?.[char] ?? 0, 'characteristic', inC));
+    if (manque) {
+      msg = manque;
       return h;
     }
     const r = engineBuyCharAdvance(clone, char, inC);
@@ -375,11 +387,6 @@ export function buyCharAdvance(get: Get, set: Set, heroId: string, char: CharKey
     return clone;
   })) return;
   if (msg) get().log(msg);
-}
-
-/** Libellé d'affichage d'une Compétence/Talent concret. */
-function lbl(name: string, spec?: string): string {
-  return spec ? `${name} (${spec})` : name;
 }
 
 /** Achète une Augmentation de Compétence — identité (skillId, spec), LDB 09 l.42. L'achat via un
@@ -395,22 +402,28 @@ export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: str
     const known = clone.skills.some((sk) => sk.id === skillId && memeSpecialisation(sk.spec, spec));
     const { statut: status, remise: discount } = competenceEnCarriere(clone, ctx.sSlots, ctx.designations, skillId, spec);
     const inC = status != null;
-    if (known && mentorBlocks(inC, rule('advancement-mentor') === true, !!get().flags['mentor'])) {
-      msg = t('pf.charNeedsMentor', { name: clone.label, what: lbl(skillLabel, spec) });
+    if (known && mentorRequis(get(), inC)) {
+      msg = t('pf.charNeedsMentor', { name: clone.label, what: libelleAvecSpec(skillLabel, spec) });
       return h;
     }
     if (!known) {
       if (!inC) {
-        msg = t('pf.skillNotAcquirable', { name: clone.label, what: lbl(skillLabel, spec) });
+        msg = t('pf.skillNotAcquirable', { name: clone.label, what: libelleAvecSpec(skillLabel, spec) });
         return h;
       }
       // Acquérir la Compétence de carrière à advances 0, puis l'augmenter (l'Augmentation est payée).
       const characteristic = skillCharacteristicById(skillId); // par id (≠ 2e lookup par libellé)
       clone.skills.push({ id: skillId, spec, characteristic, advances: 0 });
     }
+    const avant = clone.skills.find((sk) => sk.id === skillId && memeSpecialisation(sk.spec, spec))?.advances ?? 0;
+    const manque = refusDePx(clone, advanceCost(avant, 'skill', inC, discount));
+    if (manque) {
+      msg = manque;
+      return h;
+    }
     const r = engineBuySkillAdvance(clone, skillId, spec, inC, discount);
     if (!r.ok) {
-      msg = t('pf.refused', { name: clone.label, what: lbl(skillLabel, spec), reason: r.reason ?? '' });
+      msg = t('pf.refused', { name: clone.label, what: libelleAvecSpec(skillLabel, spec), reason: r.reason ?? '' });
       return h;
     }
     // Première allocation via un slot joker libre → désignation automatique (LDB 09 l.38).
@@ -418,7 +431,7 @@ export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: str
       const slot = freeSlotFor(ctx.sSlots, ctx.designations, skillId, spec, [...ctx.sSlots, ...ctx.tSlots]);
       if (slot) designateSlot(clone, ctx.career, slot, skillId, spec, [...ctx.sSlots, ...ctx.tSlots]);
     }
-    msg = t('pf.advanceBought', { name: clone.label, what: lbl(skillLabel, spec), cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
+    msg = t('pf.advanceBought', { name: clone.label, what: libelleAvecSpec(skillLabel, spec), cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
     return clone;
   })) return;
   if (msg) get().log(msg);
@@ -465,16 +478,15 @@ export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, 
       msg = t('pf.talentOutOfCareer', { name: clone.label, label: talentLabel });
       return h;
     }
-    if (talentMaxReached(clone, talentId, spec)) {
-      msg = t('pf.talentMaxed', { name: clone.label, label: talentLabel });
+    const refusPropre = refusDAcquerirLeTalent(clone, talentId, spec);
+    if (refusPropre) {
+      msg = refusPropre;
       return h;
     }
-    if (spec != null && findTalentById(talentId)?.grantsArcaneDomain) {
-      const gate = arcaneDomainGate(clone, spec);
-      if (!gate.ok) {
-        msg = t('pf.refused', { name: clone.label, what: talentLabel, reason: gate.reason ?? '' });
-        return h;
-      }
+    const manque = refusDePx(clone, talentCost(talentAcquisitions(clone, talentId, spec)));
+    if (manque) {
+      msg = manque;
+      return h;
     }
     const fortuneBefore = fortuneMax(clone);
     const resolveBefore = resolveMax(clone);
@@ -526,8 +538,9 @@ export function buySpell(get: Get, set: Set, heroId: string, spellId: string, op
     // son prix normal (pour un minimum de 100PX) » — remise sur CET achat seul, jamais au-dessus
     // du prix normal (plancher inerte pour les sorts à moins de 100 PX).
     const cost = opts.discountXp && full > 0 ? Math.min(full, Math.max(100, full - opts.discountXp)) : full;
-    if ((clone.xp ?? 0) < cost) {
-      msg = t('pf.spellNeedsXp', { name: clone.label, cost, spell: sp.label, left: clone.xp ?? 0 });
+    const manque = refusDePx(clone, cost);
+    if (manque) {
+      msg = manque;
       return h;
     }
     clone.xp = (clone.xp ?? 0) - cost;
@@ -548,21 +561,35 @@ export function buySpell(get: Get, set: Set, heroId: string, spellId: string, op
  *  Sort. » Le composant absorbe le contrecoup à l'incantation (consumé) — cf. applyMiscast. */
 export function buySpellComponent(get: Get, set: Set, heroId: string, spellId: string): void {
   const hero = actorIn(get(), heroId);
-  const sp = findSpellById(spellId);
-  if (!hero || !sp) { get().log(t('pf.componentSpellNotFound')); return; }
-  if (!isArcaneSpell(sp) || sp.cn == null) { get().log(t('pf.componentArcaneOnly', { spell: sp.label })); return; }
-  if (!(hero.spells ?? []).includes(spellId)) { get().log(t('pf.spellUnknown', { name: hero.label, spell: sp.label })); return; }
-  // Coût = NI (cn) pistoles d'argent (silver), débité de la Bourse de l'incantateur (bénéficiaire = ce héros).
-  const cost = toMoney({ silver: sp.cn });
-  if (!canAfford(bourseOf(hero), cost)) { get().log(t('pf.componentTooExpensive', { spell: sp.label, money: formatMoney(cost) })); return; }
+  const refus = refusAchatDeComposant(hero, spellId);
+  if (refus) return void refuserGeste(get, set, refus);
+  const sp = findSpellById(spellId)!;
+  const cost = coutDuComposant(sp);
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'Composant d’incantation' });
   set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, componentSpells: [...(h.componentSpells ?? []), spellId] })));
-  get().log(t('pf.componentBought', { name: hero.label, spell: sp.label, money: formatMoney(cost) }));
+  get().log(t('pf.componentBought', { name: hero!.label, spell: sp.label, money: formatMoney(cost) }));
+}
+
+/** Coût d'un composant d'incantation. LDB 46 l.113 */
+export function coutDuComposant(sp: Pick<SpellData, 'cn'>): Money {
+  return toMoney({ silver: sp.cn ?? 0 });
+}
+
+/** Refus d'acheter un composant pour `spellId` : la raison affichée, ou `null`. Verdict UNIQUE du geste
+ *  `buySpellComponent` et de la fiche. LDB 46 l.107-113 */
+export function refusAchatDeComposant(hero: Combatant | undefined, spellId: string): string | null {
+  const sp = findSpellById(spellId);
+  if (!hero || !sp) return t('pf.componentSpellNotFound');
+  if (!isArcaneSpell(sp) || sp.cn == null) return t('pf.componentArcaneOnly', { spell: sp.label });
+  if (!(hero.spells ?? []).includes(spellId)) return t('pf.spellUnknown', { name: hero.label, spell: sp.label });
+  const cost = coutDuComposant(sp);
+  return canAfford(bourseOf(hero), cost) ? null : t('pf.componentTooExpensive', { spell: sp.label, money: formatMoney(cost) });
 }
 
 /** Édite la bio MUTABLE d'un héros (hors combat) : Motivation + Ambitions court/long terme (LDB 05).
  *  Mute `store.party` (→ persisté par la save) ET propage au roster s'il y est (`persisterLeHeros`). */
 export function setHeroBackground(get: Get, set: Set, heroId: string, patch: { motivation?: string; ambitionShort?: string; ambitionLong?: string }): void {
+  if (refuseSi(get, set, refusDuBackground)) return;
   set((s) => ecrireActeur(s, heroId, (h) => ({
     ...h,
     motivation: patch.motivation ?? h.motivation,
@@ -634,7 +661,8 @@ export function trainProsthesis(get: Get, set: Set, heroId: string, uid: string)
       msg = done ? t('pf.prosthesisTrained', { name: clone.label, item: it.label }) : t('pf.prosthesisNotTrainable', { name: clone.label });
       return h;
     }
-    if ((clone.xp ?? 0) < tier.px) { msg = t('pf.notEnoughXp', { name: clone.label, cost: tier.px }); return h; }
+    const manque = refusDePx(clone, tier.px);
+    if (manque) { msg = manque; return h; }
     clone.xp = (clone.xp ?? 0) - tier.px;
     grantProsthesisTier(it, tier);
     msg = t('pf.prosthesisTierBought', { name: clone.label, item: it.label, tier: tier.label, cost: tier.px });
@@ -649,10 +677,12 @@ export function changeCareer(get: Get, set: Set, heroId: string, newCareer: stri
     const clone: Combatant = structuredClone(h);
     // Validation LDB 07 l.137 + LDB 07 l.144-148 : complétion, niveau cible, surcoût de Classe.
     const completed = isCompleted(clone);
-    const sameClass = findCareerById(clone.career ?? '')?.class === findCareerById(newCareer)?.class;
-    const targetLevelExists = levelsForCareer(newCareer).some((l) => l.level === newLevel);
-    const gmJump = rule('advancement-career-jump') === true;
-    const r = engineChangeCareer(clone, newCareer, newLevel, { completed, sameClass, targetLevelExists, gmJump });
+    const refus = refusDeChangerDeCarriere(get(), clone, newCareer, newLevel, completed);
+    if (refus) {
+      msg = refus;
+      return h;
+    }
+    const r = engineChangeCareer(clone, newCareer, newLevel, contexteDeChangement(clone, newCareer, newLevel, completed));
     if (!r.ok) {
       msg = t('pf.careerRefused', { name: clone.label, reason: r.reason ?? '' });
       return h;
@@ -774,8 +804,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     setActiveLoadout: (heroId, id) => setActiveLoadout(get, set, heroId, id),
     setLoadoutSlot: (heroId, id, slot, uid) => setLoadoutSlot(get, set, heroId, id, slot, uid),
     transferItem: (uid, fromHeroId, toHeroId) => transferItem(get, set, uid, fromHeroId, toHeroId),
-    setItemSkin: (heroId, uid, patch) => setItemSkin(get, set, heroId, uid, patch),
-    choisirForme: (heroId, uid, forme) => choisirForme(get, set, heroId, uid, forme),
+    choisirApparence: (heroId, uid, apparence) => choisirApparence(get, set, heroId, uid, apparence),
     grantXp: (heroId, amount) => grantXp(get, set, heroId, amount),
     buyCharAdvance: (heroId, char) => buyCharAdvance(get, set, heroId, char),
     buySkillAdvance: (heroId, skillId, spec) => buySkillAdvance(get, set, heroId, skillId, spec),

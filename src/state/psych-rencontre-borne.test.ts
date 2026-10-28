@@ -19,6 +19,8 @@ import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import type { Scene, SceneEntity } from '../noyau/monde/scene';
 import { desDuTest } from '../engine/dice.testkit';
+import { opPsy } from '../engine/psych/opsPsy';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 function ent(over: Partial<SceneEntity> & Pick<SceneEntity, 'id'>): SceneEntity {
   return { kind: 'personnage', pos: { x: 1, y: 1 }, ...over } as SceneEntity;
@@ -128,7 +130,7 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
   it('VIGILANCE — une pose AUTHORÉE d’Amour survit à la borne, et le refresh l’éteint hors combat', () => {
     const h = phobique();
     h.psychTraits = [{ type: 'amour', cible: 'famille' }];
-    applyOps(h as unknown as Combatant, [{ op: 'beginPsych', type: 'amour', cible: 'famille', active: true }], { rng: desDuTest });
+    applyOps(h as unknown as Combatant, [opPsy.pose('amour', { cible: ciblePsy.groupe('famille'), active: true })], { rng: desDuTest });
     expect(h.psychState, 'pose authorée : aucun `fromTest`').toEqual([{ type: 'amour', cible: 'famille', active: true }]);
 
     useGame.setState({ party: [h] });

@@ -25,7 +25,8 @@
     "surface": "deduite-du-set",
     "gate": [
       "set-de-melee",
-      "charge-possible"
+      "charge-possible",
+      "hors-verrou-d-etat"
     ],
     "intent": "portee-charge",
     "coutAction": "mouvement",
@@ -48,7 +49,7 @@
     "label": "Course",
     "icon": "travel/foot",
     "surface": "grille",
-    "gate": "mouvement-restant-fantassin",
+    "gate": "course-possible",
     "intent": "portee-course",
     "coutAction": "action",
     "rule": {
@@ -90,7 +91,8 @@
     "surface": "deduite-du-set",
     "gate": [
       "tireur",
-      "action-libre-hors-frenesie"
+      "action-libre-hors-frenesie",
+      "pas-deja-en-joue"
     ],
     "run": "battleAim",
     "coutAction": "action",
@@ -113,7 +115,10 @@
     "label": "Recharger",
     "icon": "journal/reload",
     "surface": "deduite-du-set",
-    "gate": "action-libre-hors-frenesie",
+    "gate": [
+      "action-libre-hors-frenesie",
+      "arme-a-recharger"
+    ],
     "run": "battleReload",
     "candidates": "armes-a-recharge",
     "panneau": true,
@@ -506,6 +511,7 @@
     "gate": [
       "distraire-connu",
       "mouvement-intact",
+      "hors-verrou-d-etat",
       "distraire-cible-eligible"
     ],
     "run": "battleDistraire",
@@ -563,7 +569,10 @@
     "label": "Choisir l’attaque",
     "icon": "action/attack",
     "surface": "grille",
-    "gate": "toujours",
+    "gate": [
+      "hors-verrou-d-etat",
+      "peut-agir"
+    ],
     "run": "battleSelectAttack",
     "candidates": "attaques-de-trait",
     "coutAction": "aucun",
@@ -659,7 +668,8 @@
     "surface": "geste-d-etat",
     "gate": [
       "monte",
-      "mouvement-intact"
+      "mouvement-intact",
+      "hors-verrou-d-etat"
     ],
     "run": "battleDismount",
     "coutAction": "mouvement",
@@ -787,7 +797,8 @@
     "surface": "grille",
     "gate": [
       "navire",
-      "navire-action"
+      "navire-action",
+      "pieces-au-navire"
     ],
     "run": "battleSelectAction",
     "armed": "battery",
@@ -827,7 +838,10 @@
     "label": "Chanson de marin",
     "icon": "scenario/opera",
     "surface": "grille",
-    "gate": "navire",
+    "gate": [
+      "navire",
+      "chanteur-disponible"
+    ],
     "run": "battleSingShanty",
     "coutAction": "gratuit",
     "maison": "tâche PARALLÈLE : le chant occupe le chanteur, pas l’Action du navire — arbitrage maison (l’acte exige pourtant un Test).",
@@ -845,7 +859,10 @@
     "label": "Recharger la pièce",
     "icon": "journal/reload",
     "surface": "grille",
-    "gate": "vehicule",
+    "gate": [
+      "vehicule",
+      "piece-dechargee"
+    ],
     "run": "battleShipReload",
     "coutAction": "gratuit",
     "maison": "tâche d’équipage PARALLÈLE : elle occupe l’équipage, pas le tour du navire — arbitrage maison (l’acte exige pourtant un Test).",

@@ -21,6 +21,7 @@
  */
 import type { Get, Set } from './flowTypes';
 import { sequence } from '../engine/sequences';
+import { decidingSeat } from './netOwnership';
 
 /** Le refus AFFICHÉ (un seul à la fois : le dernier geste refusé). */
 export interface RefusIHM {
@@ -43,6 +44,14 @@ export function refuserGeste(get: Get, set: Set, texte: string): boolean {
   }
   set({ refus: { texte, nonce: nonces.suivant() } });
   return true;
+}
+
+/** `refuserGeste` pour un geste qui peut arriver d'un AUTRE siège : appliqué chez l'hôte au nom d'un invité
+ *  (`decidingSeat` ≠ `mySeat`), le refus n'est pas posé ici, l'invité le lit au gate de sa propre console.
+ *  Renvoie `true` (le geste est refusé) dans les deux cas. */
+export function refuserGesteDuSiege(get: Get, set: Set, texte: string): boolean {
+  if (decidingSeat(get()) !== get().net.mySeat) return true;
+  return refuserGeste(get, set, texte);
 }
 
 /** Éteint le refus affiché — SI c'est toujours celui qu'on croit : un refus survenu entre-temps a sa

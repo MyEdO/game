@@ -68,10 +68,10 @@ export function buildAuthorPerilSteps(route: MapRoute, destLabel: string, interr
 }
 
 /** Applique les effets d'un péril SUR-LE-CHAMP (protocole maritime : `resumeTravel` rejoue la traversée). */
-export const applyPerilEffectsNow: PerilInterruptHandler = (get, set, effects) => {
+export function applyPerilEffectsNow(get: Get, set: Set, effects: Effect[]): string[] {
   jouerFlowEntier(applyEffects(get, set, effects));
   return [];
-};
+}
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
 export const GENRES_D_ETAPE = [AUTHOR_PERIL_KIND] as const;

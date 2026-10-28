@@ -17,18 +17,19 @@ import type { BattleState, Jeu } from './etat';
 import { entityPickables } from './combatEffects';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { currentTargetingMode } from './targetingModes';
-import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat } from '../engine/conditions';
+import { isOutOfAction, raisonRefusDetermination, raisonVerrouEtat, refusVerrouDAction } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
+import { desengagementSansAction, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
 import { isVehicle, estNavire } from '../engine/coque';
 import { compatibleAmmo, activeLoadout, isUnarmed } from '../engine/items';
+import { aRecharger } from '../engine/weaponLoad';
 import { canPushback } from '../engine/qualities/dispatch';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { actorHasSkill, possesses } from '../engine/skills';
 import { isConsumable } from '../engine/consumables';
 import { hasFreeWeaponAttack, battementFoes, distraireFoes, availableAttacks, type AttackOption } from './combatManeuvers';
 import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
-import { inBattleId } from './monde/combatants';
 import { wastesAction, endTurnArmed } from './endTurnGuard';
 import { HEAL_SKILL, healableTargets } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
@@ -38,14 +39,17 @@ import { surfaceTientLaMain } from './modalArbiter';
 import { dispellableSpellsOn } from '../engine/dispel';
 import { combatAdvantageSkills } from '../engine/skillCombatApps';
 import { activeCombatant, placingZoneOf, STANCE_BLOCK } from './combatFlow';
-import { canMove, mountablesNear, mountMovement } from './mount';
-import { servablePostes, crewPosteOf, shipOfCrew } from './monde/shipPostes';
+import { canMove, mountablesNear } from './mount';
+import { refusActionDepensee, refusCoque, refusDeCharge, refusDeCourse, refusHorsDEtatDAgir, refusMouvementEntame, refusSansMouvement } from './refusDuTour';
+import { servablePostes, crewPosteOf, shipOfCrew, posteARecharger } from './monde/shipPostes';
+import { chanteurDuNavire, quartChante } from './shipCrew';
 import { type ShipPoste } from '../engine/types';
 import { pushSlot } from './siegePush';
 import { ACTIONS, findConditionById, findSpellById, type ActionDef } from '../data/index';
 import { isArcaneSpell, castBlockedBy, focusSkillFor, focusWindLabel } from '../engine/magic';
 import { t } from '../i18n';
 import { aPorteeDe } from './monde/exploreNav';
+import { postesPretsAFaireFeu } from './monde/shipBattery';
 
 /** Verdict d'un gate : l'indisponibilité PORTE SA RAISON (patron `GatedAction`, charte UI). */
 export interface ActionGate {
@@ -67,6 +71,9 @@ export interface ActionCtx {
    *  candidat (« au plafond de CETTE méthode d'Avantage »). Les gates de règle pure les ignorent ; le
    *  dispatcher reçoit exactement les mêmes (`runAction`), d'où une seule et même mesure. */
   args?: ActionRunCtx;
+  /** L'heure de jeu (`Jeu.gameTime`) : le quart de veille (`chanteur-disponible`) s'y lit. Chaque surface la
+   *  prend à SON état. */
+  gameTime: number;
 }
 
 /** Le gate qui désigne une entrée comme REMÈDE de l'État qu'elle déclare : deux lecteurs le nomment,
@@ -75,6 +82,8 @@ export const GATE_ETAT_PORTE = 'etat-porte';
 
 const ok: ActionGate = { ok: true };
 const no = (reason: string): ActionGate => ({ ok: false, reason });
+/** Un refus élémentaire (`refusDuTour.ts`) en verdict de gate. */
+const verdict = (refus: string | null): ActionGate => (refus ? no(refus) : ok);
 
 /** L'ÉTAT qu'une entrée de remède déclare (`rule`, de type `etat`). FAIL-FAST : une entrée
  *  portée au gate `etat-porte` sans État déclaré est un bug de donnée, que la garde de registre
@@ -89,31 +98,30 @@ function etatDeclare(def?: ActionDef): string {
 const instanceDeLEtat = ({ active, def }: ActionCtx) =>
   active.conditions?.find((c) => c.id === etatDeclare(def));
 
-/** L'Action du Tour est-elle encore disponible ET utilisable ? (Sonné/Inconscient → `canTakeAction`).
- *  Périmètre STRICT de l'économie du tour : les restrictions d'ÉTAT propres à une famille d'actes
- *  (Brisé interdit l'offensive, Frénésie ferme tout sauf CC/Athlétisme) sont des gates à part. */
-function actionLibre({ active, battle }: ActionCtx): ActionGate {
-  if (battle.acted) return no(t('agate.actionSpent'));
-  if (!canTakeAction(active)) return no(t('agate.unableToAct'));
-  return ok;
+/** Le porteur est-il libre de tout État qui VERROUILLE son Action et son Mouvement (`restrictsAction`,
+ *  `refusVerrouDAction`) ? `LDB 16 l.52`. Ce qui sert la fuite ne le compose pas (course,
+ *  mouvement, désengagement, se relever) ; tout ce qui coûte l'Action le compose par `action-libre`. */
+function horsVerrouDEtat({ active }: ActionCtx): ActionGate {
+  return verdict(refusVerrouDAction(active));
 }
 
-/** Désengagement (LDB 15 l.45-49) : l'option d'Esquive coûte l'Action, l'option d'Avantage non —
- *  d'où un gate qui reste ouvert Action dépensée quand l'Avantage est strictement supérieur. Sa
- *  pertinence (être Engagé) est le gate `engage`. */
+/** Le porteur PEUT-il effectuer une Action (`canTakeAction`, `LDB 16 l.125`) ? Composé par `actionLibre`,
+ *  et seul par l'entrée qui n'engage pas l'Action du Tour elle-même (`select-attack`). */
+function peutAgir({ active }: ActionCtx): ActionGate {
+  return verdict(refusHorsDEtatDAgir(active));
+}
+
+/** L'Action du Tour est-elle encore disponible ET utilisable ? Dépensée, impossible (`peutAgir`), ou
+ *  verrouillée par un État (`horsVerrouDEtat`). La Frénésie est un gate à part (`action-libre-hors-frenesie`). */
+function actionLibre(ctx: ActionCtx): ActionGate {
+  return verdict(refusActionDepensee(ctx.battle) ?? refusHorsDEtatDAgir(ctx.active) ?? refusVerrouDAction(ctx.active));
+}
+
+/** Désengagement (LDB 15 l.43-49) : ouvert si l'UNE de ses options l'est (`noyau/combat/desengagement.ts`) —
+ *  l'Esquive, l'Avantage ou le départ libre. Sa pertinence (être Engagé) est le gate `engage`. */
 function desengagementGate(ctx: ActionCtx): ActionGate {
-  if (!ctx.battle.acted) return ok;
-  return freeDisengage(ctx) ? ok : no(t('agate.actionSpentNoFreeDisengage'));
-}
-
-/** Le désengagement est-il GRATUIT ? Avantage strictement supérieur à TOUS les foes Engagés encore
- *  en jeu (LDB 15 l.45-49, « Utiliser l'Avantage »). Prédicat PARTAGÉ (barre + économie du tour). */
-export function freeDisengage({ active, battle }: ActionCtx): boolean {
-  if (!isEngaged(active)) return false;
-  const foes = (active.engagedWith ?? [])
-    .map((id) => inBattleId(battle, id))
-    .filter((c): c is Combatant => !!c && !isOutOfAction(c));
-  return foes.length > 0 && active.advantage > Math.max(0, ...foes.map((f) => f.advantage));
+  const refus = refusDEsquiveDeDesengagement(ctx);
+  return !refus || desengagementSansAction(ctx) ? ok : no(refus);
 }
 
 /** Le Mouvement du Tour est-il ENCORE INTACT ? Prédicat PARTAGÉ (gestes qui exigent l'élan complet). */
@@ -121,8 +129,7 @@ function mouvementIntact({ active, battle }: ActionCtx): ActionGate {
   // Un porteur qu'un État CLOUE (`gating.movement: 'none'` — Inconscient, Surpris ; LDB 16 l.113/l.132)
   // n'a aucun Mouvement à dépenser : le geste qui en coûte se REFUSE en le disant, au lieu de laisser
   // le dispatcher rendre en silence. Le budget est celui de la monture s'il en a une (`mountMovement`).
-  if (mountMovement(battle, active) <= 0) return no(t('agate.cannotMove'));
-  return battle.movementUsed > 0 ? no(t('agate.movementStarted')) : ok;
+  return verdict(refusSansMouvement(battle, active) ?? refusMouvementEntame(battle));
 }
 
 /** L'acteur a-t-il un CORPS de fantassin ? Une coque n'en a pas (`engine/vehicle.ts` : « ni arme
@@ -130,7 +137,7 @@ function mouvementIntact({ active, battle }: ActionCtx): ActionGate {
  *  la défensive — ne lui sont pas offerts, et le refus le DIT au lieu de dépenser son Action. Un
  *  navire agit par ses Tests d'équipage et sa barre. */
 function fantassin({ active }: ActionCtx): ActionGate {
-  return isVehicle(active) ? no(t('agate.hullHasNoBody')) : ok;
+  return verdict(refusCoque(active));
 }
 
 /** ET séquentiel de gates : le PREMIER refus l'emporte, avec SA raison (aucune raison fabriquée). */
@@ -147,6 +154,8 @@ const et =
 /** Les PRÉDICATS d'offre du registre, par id (`gate` de `actions.json`). */
 export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   toujours: () => ok,
+  'hors-verrou-d-etat': horsVerrouDEtat,
+  'peut-agir': peutAgir,
   'action-libre': actionLibre,
   'action-libre-hors-frenesie': (ctx) =>
     isFrenzied(ctx.active) ? no(t('agate.frenzyOnly')) : actionLibre(ctx),
@@ -160,12 +169,14 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
    *  et aux contextes de surface : `live` pour la console, `cur` pour la touche). */
   'deplacement-annulable': ({ battle }) => {
     if (!battle.moveSnapshot || (battle.movementUsed ?? 0) === 0) return no(t('agate.noMoveToUndo'));
-    return battle.acted ? no(t('agate.actionSpent')) : ok;
+    return verdict(refusActionDepensee(battle));
   },
   /** Charge — fiche `regles/charger` (`LDB 15 l.35-37`), foyer du verbatim au Codex. */
-  'charge-possible': (ctx) => (isEngaged(ctx.active) ? no(t('agate.alreadyEngaged')) : mouvementIntact(ctx)),
+  'charge-possible': ({ active, battle }) => verdict(refusDeCharge(battle, active)),
   'mouvement-restant': ({ active, battle }) => (canMove(battle, active) ? ok : no(t('agate.noMovementLeft'))),
   desengagement: desengagementGate,
+  /** Course — verdict `refusDeCourse` (`refusDuTour.ts`, LDB 15 l.41), que lisent aussi `battleRun` et `computeRunReach`. */
+  'course-possible': ({ active, battle }) => verdict(refusDeCourse(battle, active)),
   // Deux refus, un seul gate : plus de point en réserve, OU un État que rien ne lève (le fait porteur
   // le déclare — LDB 20 l.188 ; source unique `raisonRefusDetermination`). `conditionId` absent (dépenses
   // Psychologie/Critique de LDB 17 l.59-60) : seule la réserve compte.
@@ -258,8 +269,31 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   'equipage-suffisant': ({ active, battle }) =>
     (pushSlot(active, battle.combatants).undercrew ? no(t('agate.pushUndercrew')) : ok),
   'navire-action': ({ battle }) => (battle.acted ? no(t('agate.vesselActionSpent')) : ok),
+  // ── PRÉALABLES DE DISPATCHER : le prédicat même que lit le dispatcher, pour que l'offre refuse ce qu'il refuse.
+  /** L'arme de la case (`args.weaponUid`), ou à défaut l'une des armes du porteur, a un cycle de charge à faire
+   *  (`aRecharger`, lu par `battleReload`). */
+  'arme-a-recharger': ({ active, args }) => {
+    const armes = args?.weaponUid ? active.weapons.filter((w) => w.uid === args.weaponUid) : active.weapons;
+    return armes.some((w) => aRecharger(active, w)) ? ok : no(t('agate.nothingToReload'));
+  },
+  /** Chant de marin (MDG 09 l.32-40) : le quart n'a pas eu sa chanson (`quartChante`) et un chanteur est libre
+   *  (`chanteurDuNavire`) — les prédicats de `battleSingShanty`. */
+  'chanteur-disponible': ({ active, battle, gameTime }) => {
+    if (quartChante(active, gameTime)) return no(t('agate.shantyQuartSung'));
+    return chanteurDuNavire(active, battle) ? ok : no(t('agate.noShantySinger'));
+  },
+  /** La pièce de la case (`args.posteUid`) est déchargée et son chef libre ce Round (`posteARecharger`, lu par
+   *  `battleShipReload`). LDB 62 l.335. */
+  'piece-dechargee': ({ active, battle, args }) => {
+    const poste = active.postes?.find((p) => p.item.uid === args?.posteUid);
+    return poste && posteARecharger(active, poste, battle) ? ok : no(t('agate.noPosteToReload'));
+  },
+  /** Une pièce du navire est prête à faire feu (`postesPretsAFaireFeu`, lu par `battleShipBattery` via `batteryBlock`). */
+  'pieces-au-navire': ({ active }) => (postesPretsAFaireFeu(active).length > 0 ? ok : no(t('agate.noLoadedPostes'))),
   // ── PERTINENCE (#2911) : l'entrée a-t-elle lieu d'être offerte à CE porteur (`GATES_DE_PERTINENCE`) ?
   fantassin,
+  /** Déjà en joue : Viser n'a pas lieu d'être offert (`LDB 14 l.61`). */
+  'pas-deja-en-joue': ({ active }) => (active.aiming ? no(t('agate.alreadyAiming')) : ok),
   'set-de-melee': (ctx) => et(fantassin, ({ active }) => (setDeMelee(active) ? ok : no(t('agate.noMeleeSet'))))(ctx),
   tireur: ({ active }) => (armesADistance(active).length > 0 ? ok : no(t('agate.noRangedWeapon'))),
   'arme-de-repousse': ({ active }) =>
@@ -284,7 +318,7 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
  *  `offresDeLActif` ne l'offre pas ; tout autre refus FERME l'offre en gardant sa raison. */
 export const GATES_DE_PERTINENCE: ReadonlySet<string> = new Set([
   'fantassin', 'set-de-melee', 'tireur', 'arme-de-repousse', 'engage', 'battement-connu', 'distraire-connu',
-  'frenesie-possible', 'equipe-a-aider', 'monte', 'poste-servi', 'a-la-barre', 'navire', 'vehicule', 'pause-de-round', GATE_ETAT_PORTE,
+  'frenesie-possible', 'equipe-a-aider', 'monte', 'pas-deja-en-joue', 'poste-servi', 'a-la-barre', 'navire', 'vehicule', 'pause-de-round', GATE_ETAT_PORTE,
 ]);
 
 /** Les armes à distance du porteur — population du sélecteur `armes-a-distance` et du gate `tireur`. */

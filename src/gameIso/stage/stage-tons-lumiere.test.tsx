@@ -20,6 +20,7 @@ import * as THREE from 'three';
 import { emptyScene, sceneMetresPerTile, heightAt, type Scene } from '../../noyau/monde/scene';
 import { mapLights, type LightSource } from '../../noyau/monde/vision';
 import { combatantLights } from '../../noyau/monde/vision';
+import { objetDeTest } from '../../engine/objetsDeTest.testkit';
 import { lightTones, props as propsData, trappings, type LightToneDef } from '../../data';
 import { setDataset } from '../../data/overrides';
 import { schema as lightTonesSchema } from '../../data/schemas/defs/lightTones';
@@ -268,17 +269,14 @@ describe('Le billboard et la lampe partagent l’intensité de l’INSTANT (#124
   });
 });
 
-// ── 5. NON-RÉGRESSION : sans ton, c'est la source d'avant le lot ────────────────────────────────
 
 describe('Absence de `tone` = `flamme`, et le reste ne bouge pas d’un octet (#1245 L4)', () => {
   it('place, portée et intensité de REPOS sont celles d’avant le lot (`flamme.intensity` = 1)', () => {
     expect(FLAMME.intensity).toBe(1);
     const w = pointLightWrites([source()], OPTS)[0]!;
-    // La formule d'AVANT ce lot, recopiée telle quelle : le ton n'y ajoute qu'un facteur 1.
     const avant = FLAME_INTENSITY * Math.PI * (1 - AMB_NUIT);
     expect(w.intensity).toBe(avant);
     expect([w.x, w.z, w.distance]).toEqual([3 * MPT, 4 * MPT, 4 * MPT]);
-    // ÉCART ASSUMÉ (le seul) : la lampe naît désormais ORANGE et VACILLANTE au lieu de blanche et fixe.
     expect(w.color).toBe(toneHex(FLAMME));
     expect(w.flicker).toEqual(FLAMME.flicker);
   });
@@ -308,8 +306,8 @@ describe('Absence de `tone` = `flamme`, et le reste ne bouge pas d’un octet (#
       id: 'h1',
       pos: { x: 2, y: 2 },
       items: [
-        { uid: 'i1', trappingId: 'bougie', equipped: true },
-        { uid: 'i2', trappingId: 'lanterne', equipped: true },
+        objetDeTest('bougie', { uid: 'i1', equipped: true }),
+        objetDeTest('lanterne', { uid: 'i2', equipped: true }),
       ],
     }, MPT);
     expect(l.map((x) => [x.radiusTiles, x.tone])).toEqual([[10, 'lanterne']]);

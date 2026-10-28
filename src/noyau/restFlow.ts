@@ -41,7 +41,8 @@ import { exposureTestCount, expireOnRespite, exposureShelterFromTent, applyExpos
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { applyForcedMarch } from '../engine/travel';
 import { startCascade, runCascadeImmediate } from './cascade';
-import { nightBands, bandeDeNuit, nightRowId, genuineExposureFail, nextExposureWave, exposureWaveBand, EXPOSURE_BAND_KINDS } from './nightBands';
+import { nightBands, bandeDeNuit, nightRowId, genuineExposureFail, nextExposureWave, exposureWaveBand } from './nightBands';
+import { EXPOSURE_BAND_KINDS } from './bandesDExposition';
 import { freeCons, monoStep, choiceStep, pousseSi } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import type { CascadeStepMeta } from './pendings';

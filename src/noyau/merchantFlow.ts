@@ -6,7 +6,7 @@
 import type { Jeu } from './etat';
 import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type CharKey } from '../engine/types';
-import { recomputeLoadout, itemFromTrappingById, avecObjet } from '../engine/items';
+import { recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { bargainBuyFactor, bargainSellFactor, bargainPct, type BargainOutcome } from '../engine/bargain';
 import { SL_ASTOUNDING, estJete } from '../engine/tests';
@@ -47,6 +47,7 @@ import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { refusDInventaire, refuseSi } from './verrousDeFiche';
 
 /** Boutique OUVERTE (état de la visite en cours). Le stock persistant vit dans `merchantStocks`. */
 export interface MerchantState {
@@ -704,7 +705,7 @@ export function barterExchange(get: Get, set: Set, opts: DemandeDeTroc): void {
   const hero = garanti(get().party.find((h) => h.id === opts.giveHeroId), opts.giveHeroId, 'troc — héros cédant');
   const givable = exemplairesCedables(hero, opts.giveTrappingId);
   const soldUids = givable.slice(0, quote.giveCount).map((i) => i.uid);
-  const acquis = Array.from({ length: getCount }, () => itemFromTrappingById(opts.getStockId)).filter((i) => i !== null);
+  const acquis = Array.from({ length: getCount }, () => itemFromTrappingById(opts.getStockId, undefined, contexteDeNaissanceDObjet(hero))).filter((i) => i !== null);
   const newStock = m.stock.map((l) => (l.id === opts.getStockId ? { ...l, qty: l.qty - getCount } : l));
   set((s) => {
     const eid = s.merchant!.entityId;
@@ -949,6 +950,7 @@ export function gameDay(get: Get): number {
 }
 
 export function appraiseItem(get: Get, set: Set, uid: string, heroId: string, mode: 'evaluate' | 'detect' = 'evaluate'): void {
+  if (refuseSi(get, set, refusDInventaire)) return;
   const hero = actorIn(get(), heroId);
   const item = hero?.items?.find((i) => i.uid === uid); if (!item) return;
   if (mode === 'detect' && item.detectTried) return; // une seule tentative par artefact (LDB 10 l.336)

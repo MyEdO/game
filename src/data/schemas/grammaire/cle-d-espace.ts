@@ -14,7 +14,11 @@
  * `grammaire/ref.ts` et `grammaire/idsVivants.ts` l'atteignent sans passer par les defs
  * (`idsVivants.ts`, en-tête).
  */
-import type { MarqueDeCollection } from './collection-cle';
+import type { EspaceDeNoms, MarqueDeCollection } from './collection-cle';
+
+/** Les champs discriminants d'un espace de noms (`EspaceDeNoms.discriminant`), en liste — vide sans eux. */
+export const champsDiscriminants = (espace: EspaceDeNoms): readonly string[] =>
+  espace.discriminant === undefined ? [] : typeof espace.discriminant === 'string' ? [espace.discriminant] : espace.discriminant;
 
 /** Filtre d'une clé d'espace : `vaut` posé = discriminant ; sinon marqueur. */
 export interface FiltreDEspace {
@@ -165,7 +169,7 @@ export function porteLeChampMarqueur(e: Readonly<Record<string, unknown>>, champ
 }
 
 /** L'élément `e` est-il retenu par le filtre ? SEUL prédicat de filtre, lu par `idsDeCollection`. */
-function retenuParFiltre(filtre: FiltreDEspace, e: Readonly<Record<string, unknown>>): boolean {
+export function retenuParFiltre(filtre: FiltreDEspace, e: Readonly<Record<string, unknown>>): boolean {
   return filtre.vaut === undefined ? porteLeChampMarqueur(e, filtre.champ) : e[filtre.champ] === filtre.vaut;
 }
 

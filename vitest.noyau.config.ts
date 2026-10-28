@@ -2,7 +2,7 @@
  * La suite du NOYAU (#2817, `SUITES_VITEST_DE_CI['test:noyau']`) : les tests hors store (`MOTIF_HORS_STORE`, que la suite principale exclut),
  * chacun dans son propre graphe de modules (`isolate: true`), sans le store ni le socle de test de
  * `vite.config.ts`. Les données se chargent par la même porte que la suite : le gel du catalogue
- * (`src/data/overrides.ts`, #2097) et le greffon `proseSource()`.
+ * (`src/data/overrides.ts`, #2097) et le greffon `proseSource()` ; son setup est `src/test-setup-noyau.ts` (#3058).
  */
 import { defineConfig } from 'vitest/config';
 import { fileURLToPath, URL } from 'node:url';
@@ -16,6 +16,6 @@ export default defineConfig({
     environment: 'node',
     include: [SUITES_VITEST_DE_CI['test:noyau'].motif],
     isolate: true,
-    setupFiles: [fileURLToPath(new URL('./src/data/overrides.ts', import.meta.url))],
+    setupFiles: [fileURLToPath(new URL('./src/test-setup-noyau.ts', import.meta.url))],
   },
 });

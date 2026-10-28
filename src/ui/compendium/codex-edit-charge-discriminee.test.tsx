@@ -14,14 +14,15 @@
  */
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
+import { choisirMediaSelect } from '../MediaSelect.testkit';
 import { createRoot, type Root } from 'react-dom/client';
 
 import { CodexEdit, editableDataset, editableObjectDataset, dedicatedFieldKeys } from '../editor/codex/CodexEdit';
 import { libelleDuChamp, inferFields } from './editFields';
 import { metaPourFichier, chargeDiscriminee, schemaForFile } from '../../data/schemas/validate';
 import { CODEX } from './registry';
-import { datasetArray, datasetFile } from '../../data/overrides';
-import { materials, oups } from '../../data';
+import { setDataset, datasetArray, datasetFile } from '../../data/overrides';
+import { creatures, materials, oups } from '../../data';
 import { META_PROSE, versDisque } from '../../data/schemas/grammaire/prose';
 
 beforeAll(() => {
@@ -73,17 +74,28 @@ function libellesEtrangers(domaine: string): string[] {
 }
 
 describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)', () => {
+  it('l’apparence du statbloc propose ses armes et conserve le choix dans le brouillon', () => {
+    const avant = creatures.slice();
+    act(() => setDataset('creatures', avant.map((c) => c.id === 'humain' ? { ...c, traits: [{ id: 'arme', arg: 'arme-simple', value: 7 }] } : c)));
+    try {
+      monte('creatures', 'humain');
+      const choisir = (label: string) => choisirMediaSelect(container, 'Apparence — Arme simple', label);
+      choisir('Hache naine');
+      expect(container.querySelector('[title="Apparence — Arme simple"] .ms-label')?.textContent).toBe('Hache naine');
+      choisir('Épée');
+      expect(container.querySelector('[title="Apparence — Arme simple"] .ms-label')?.textContent).toBe('Épée');
+    } finally {
+      act(() => setDataset('creatures', avant));
+    }
+  });
   it('une matière de DÉCOR n’édite aucun champ de toiture ni de relief', () => {
     const m = UNE_MATIERE('prop');
     monte('materials', m.id);
     const presentes = champsPresentes();
     expect(presentes, 'la charge du domaine n’est pas montée — le formulaire ne mesure rien').toContain('Couleur');
     const etrangers = libellesEtrangers('prop');
-    // 23 = les 26 clés de charge DÉCLARÉES du document moins les 3 du domaine `prop` (la sonde du juge
-    // en comptait 21 : elle mesurait l'union OBSERVÉE des entrées, où `couverture` n'apparaît pas).
-    // 22 → 23 (#1691) : `vueDeDessus` entre à la charge du domaine `roof` — le plan vu du dessus se
-    // DÉCLARE en donnée au lieu d'être atteint par son id littéral au call-site.
-    expect(etrangers.length, 'le témoin d’étrangers est vide — la mesure ne prouverait rien').toBe(23);
+    expect(etrangers, 'le témoin d’étrangers est vide — la mesure ne prouverait rien').toContain('Palette');
+    expect(etrangers).toContain('Couleur de face');
     expect(presentes.filter((l) => etrangers.includes(l))).toEqual([]);
   });
 
@@ -92,8 +104,15 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
     monte('materials', m.id);
     const select = champ('Domaine')?.querySelector('select');
     expect(select, 'le champ discriminant n’est pas un choix borné').toBeTruthy();
-    expect([...select!.options].map((o) => o.textContent)).toEqual(['Décor', 'Toiture', 'Relief']);
+    expect([...select!.options].map((o) => o.textContent)).toEqual(['Décor', 'Toiture', 'Relief', 'Objet']);
     expect(select!.value).toBe('roof');
+  });
+
+  it('une teinte d’objet édite sa palette, sans charge de décor, toiture ni relief', () => {
+    monte('materials', UNE_MATIERE('objet').id);
+    const presentes = champsPresentes();
+    expect(presentes).toContain('Palette');
+    expect(presentes.filter((l) => libellesEtrangers('objet').includes(l))).toEqual([]);
   });
 
   it('changer le DOMAINE au formulaire change les champs présentés (la charge suit le cas)', () => {

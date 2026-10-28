@@ -27,6 +27,9 @@ function makeHarness(party: Combatant[], possessions: Possession[] = []): { get:
     possessions,
     flags: {},
     gameTime: 0,
+    // Lieu courant du groupe (`lieuCourant`) : la scène `sc-1` est le Lieu `lieu-1` de la carte.
+    worldMap: { places: [{ id: 'lieu-1', scene: 'sc-1' }] },
+    scene: { id: 'sc-1' },
     log: () => {},
     net: { ownership: {} as Record<string, number> },
   } as unknown as Jeu;
@@ -83,7 +86,7 @@ const mule = (ownerId: string): Omit<BetePossession, 'uid'> => ({
 
 describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
   it('addPossession attribue pos-1 puis pos-2 par scan du registre', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     const uid1 = addPossession(get, set, mule('h1'));
     const uid2 = addPossession(get, set, mule('h1'));
     expect(uid1).toBe('pos-1');
@@ -92,7 +95,7 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
   });
 
   it('anti-collision par SCAN : pos-1 encore présent → un 3e ajout prend pos-3, jamais pos-1', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     addPossession(get, set, mule('h1')); // pos-1
     addPossession(get, set, mule('h1')); // pos-2
     const uid3 = addPossession(get, set, mule('h1'));
@@ -100,7 +103,7 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
   });
 
   it('anti-collision par SCAN : pos-1 retiré du registre → le prochain ajout reste au-delà du max restant', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     addPossession(get, set, mule('h1')); // pos-1
     addPossession(get, set, mule('h1')); // pos-2
     // pos-1 retiré directement (simule une consommation externe du registre)
@@ -110,30 +113,30 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
   });
 
   it('renamePossession pose le label d’instance', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     const uid = addPossession(get, set, mule('h1'));
     renamePossession(get, set, uid, 'Marguerite');
     expect(get().possessions.find((p) => p.uid === uid)?.label).toBe('Marguerite');
   });
 
   it('transferPossession réaffecte ownerId', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     const uid = addPossession(get, set, mule('h1'));
     transferPossession(get, set, uid, 'h2');
     expect(get().possessions.find((p) => p.uid === uid)?.ownerId).toBe('h2');
   });
 
   it('stablePossession → au-lieu, retrievePossession → avec-le-groupe', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     const uid = addPossession(get, set, mule('h1'));
-    stablePossession(get, set, uid, 'lieu-1');
+    stablePossession(get, set, uid);
     expect(get().possessions.find((p) => p.uid === uid)?.location).toEqual({ kind: 'au-lieu', placeId: 'lieu-1' });
     retrievePossession(get, set, uid);
     expect(get().possessions.find((p) => p.uid === uid)?.location).toEqual({ kind: 'avec-le-groupe' });
   });
 
   it('embark → embarquee sur hostUid, disembark → avec-le-groupe', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     const uid = addPossession(get, set, mule('h1'));
     const hostUid = addPossession(get, set, barge('h1'));
     embark(get, set, uid, hostUid);
@@ -143,14 +146,14 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
   });
 
   it('embark refuse un hôte introuvable — no-op (registre incohérent)', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     const uid = addPossession(get, set, mule('h1'));
     embark(get, set, uid, 'pos-inexistant');
     expect(get().possessions.find((p) => p.uid === uid)?.location).toEqual({ kind: 'avec-le-groupe' });
   });
 
   it('embark refuse navire sur navire — nature incompatible (§5)', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     const uidA = addPossession(get, set, barge('h1'));
     const uidB = addPossession(get, set, barge('h1'));
     embark(get, set, uidA, uidB);
@@ -158,7 +161,7 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
   });
 
   it('embark refuse si la capacité libre de l’hôte est dépassée', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     // barge → capacité 300 Enc (MDG 12) ; une charrette (véhicule) pèse 10 (own) + son cargo.
     const hostUid = addPossession(get, set, barge('h1'));
     const idA = addPossession(get, set, vehicule('h1', 'charrette', [{ cargoId: 'grain', enc: 280, basePriceGold: 1 }]));
@@ -170,14 +173,14 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
   });
 
   it('abandonPossession pose destroyed=true (la confirmation reste côté appelant)', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     const uid = addPossession(get, set, mule('h1'));
     abandonPossession(get, set, uid);
     expect(get().possessions.find((p) => p.uid === uid)?.destroyed).toBe(true);
   });
 
   it('learnPossessionTrait ajoute un trait appris (nature bete), idempotent', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     const uid = addPossession(get, set, mule('h1'));
     learnPossessionTrait(get, set, uid, 'dresse-monter');
     learnPossessionTrait(get, set, uid, 'dresse-monter'); // pas de doublon
@@ -186,7 +189,7 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
   });
 
   it('possessionsByOwner filtre par propriétaire', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     addPossession(get, set, mule('h1'));
     addPossession(get, set, mule('h2'));
     expect(possessionsByOwner(get, 'h1')).toHaveLength(1);
@@ -194,7 +197,7 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
   });
 
   it('possessionsByLocation filtre par localisation et exclut les détruites', () => {
-    const { get, set } = makeHarness([]);
+    const { get, set } = makeHarness([makeHero('h1')]);
     const uid1 = addPossession(get, set, mule('h1'));
     addPossession(get, set, { ...mule('h1'), location: { kind: 'au-lieu', placeId: 'l1' } });
     abandonPossession(get, set, uid1);

@@ -17,12 +17,13 @@ import type { Mutation } from '../src/engine/corruption';
 import type { Combatant, Trauma } from '../src/engine/types';
 import type { Appearance } from '../src/engine/authoringAppearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
-import { equipDe } from '../src/gameIso/rig/parts/equipment';
-import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
+import { equipDe, type EquipCtx } from '../src/noyau/equipementDessine';
+import { itemFromGive } from '../src/engine/items';
 import type { RigOverlay } from '../src/gameIso/rig/bones';
 import { VIEWS, type View } from '../src/gameIso/rig/facing';
-import type { ItemInstance, Weapon } from '../src/engine/types';
+import type { Weapon } from '../src/engine/types';
 import { assertWardrobeId } from './_lib-wardrobe';
+
 
 // la tenue de `rigComposition` se résout par ID de garde-robe (carrière ∪ classe ∪ tenue) — ids seulement,
 // validés fail-fast : un id qui retombe sur « nu » masquerait la mutation sous un corps nu (#1338).
@@ -66,9 +67,7 @@ section('Vues — les détails de visage disparaissent de dos/profil', VUES.flat
   VIEWS.map((view) => mutCell(id, { view }))));
 
 // 3) Collisions avec l'armure équipée + arme en main (Soldat cuirassé).
-const piece = (uid: string, pa: number, locs: ItemInstance['locs']): ItemInstance =>
-  ({ uid, label: `Protection (${locs![0]})`, kind: 'armor', qualities: [], pa, locs, enc: 0, equipped: true });
-const ARMOUR: ItemInstance[] = [piece('a1', 3, ['corps']), piece('a2', 2, ['tete']), piece('a3', 1, ['brasG', 'brasD']), piece('a4', 1, ['jambeG', 'jambeD'])];
+const ARMOUR = ['chemise-de-mailles', 'coiffe-de-mailles', 'veste-de-cuir', 'jambieres-en-cuir'].map((trappingId) => ({ ...itemFromGive({ trappingId }), equipped: true }));
 const EPEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] };
 const SOLDAT: Parameters<typeof cell>[3] = { equip: equipDe([EPEE], ARMOUR), career: TENUE_SOLDAT, bg: '#222a24', tint: '#be9' };
 section('Sur armure équipée (épée en main)', [

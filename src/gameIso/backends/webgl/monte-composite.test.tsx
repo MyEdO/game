@@ -21,7 +21,7 @@ import { planById, planOptsForRecord, resolveRender } from '../../rig/bodyPlan';
 import { harnaisDeMonture, mountedRest, seatRiderOnMount } from '../../rig/mountedRig';
 import { resolveRig } from '../../rig/composeRig';
 import { bonesToSvg } from '../../rig/renderBones';
-import { armePrincipale } from '../../rig/parts/equipment';
+import { armePrincipale } from '../../../noyau/equipementDessine';
 import { VIEWS, type View } from '../../rig/facing';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
 import type { BattleState } from '../../../noyau/etat';
@@ -29,6 +29,8 @@ import type { Combatant, Weapon } from '../../../engine/types';
 import { BB_W, BB_H } from '../../pov/billboardCore';
 import { subjectQuad } from './billboardMath';
 import { MISSING_TONE } from '../../rig/viewArt';
+import { findTrappingById } from '../../../data';
+import { itemFromTrappingById, weaponFromItem } from '../../../engine/items';
 
 const scene = emptyScene('scene-test', 6, 6);
 const mpt = sceneMetresPerTile(scene);
@@ -142,7 +144,7 @@ function bbox(svg: string): { minX: number; minY: number; maxX: number; maxY: nu
   return { minX: +minX.toFixed(1), minY: +minY.toFixed(1), maxX: +maxX.toFixed(1), maxY: +maxY.toFixed(1) };
 }
 
-const LANCE = { label: 'Lance de cavalerie', type: 'melee', group: 'cavalerie', damage: 5, trappingId: 'lance' } as unknown as Weapon;
+const LANCE: Weapon = weaponFromItem(itemFromTrappingById('lance', findTrappingById)!);
 
 describe('Couple monté — UN billboard composite (monture + cavalier)', () => {
   it('le couple entre comme UN acteur (la monture porte la case, le cavalier voyage avec) et sort en UN sujet', () => {

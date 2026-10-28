@@ -4,10 +4,12 @@ import { weaponFromTrait } from '../../engine/creatureEquip';
 import { enemyRigProfile } from '../../gameIso/rig/enemyProfile';
 import { teintesTirees } from '../../gameIso/rig/parts/tirageIndividuel';
 import { raceById } from '../../gameIso/rig/races';
-import { armeDeDessin, weaponFamily } from '../../gameIso/rig/parts/equipment';
+import { weaponFamily } from '../../gameIso/rig/parts/equipment';
+import { armeDeDessin } from '../equipementDessine';
 import { blessingsOf, findCreatureById, talentConcrete } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
 import { knowsCastingSkill, castingValue } from '../../engine/magic';
+
 
 /** Traits d'arme FR vérifiés dans L'ennemi dans l'Ombre ch.2 (Knud Cratinx & co). */
 describe('weaponFromTrait — armement des monstres dans les Traits (FR)', () => {

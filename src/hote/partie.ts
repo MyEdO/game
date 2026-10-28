@@ -2,12 +2,12 @@
  * CE QU'UN HÔTE DU NOYAU FAIT D'UNE PARTIE (#2928), commun à
  * l'hôte texte (`src/hoteTexte/`) et aux hôtes externes (`hotes/`) : l'erreur structurée d'un geste et sa catégorie,
  * l'en-tête d'une partie (son scénario de test et ses entrées), son ouverture (la partie du noyau, le scénario lancé, la
- * tenue des jetons programmés), et l'horloge virtuelle d'un hôte sans minuteur, qui les rejoue. Un hôte qui a ses
+ * tenue des jetons programmés, que l'horloge virtuelle du noyau rejoue chez un hôte sans minuteur). Un hôte qui a ses
  * minuteurs (Godot) rend lui-même chaque jeton ; le geste joué sur la partie vit dans `geste.ts`.
  */
 import {
   creerPartie, etatInitialDuJeu, preferenceDef, refusDesSurcharges, valeurDEntree,
-  type Cadence, type EntreesDeLaPartie, type IdDePreference, type PrefValue, type Jeton, type Partie, type ResultatDeLAppel,
+  type Cadence, type EntreesDeLaPartie, type IdDePreference, type PrefValue, type Jeton, type Partie, type Programme, type ResultatDeLAppel,
 } from '../noyau/index';
 import { lancementDuScenario, type TestScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
@@ -69,12 +69,6 @@ function preference(id: IdDePreference, v: unknown): PrefValue {
   return valeur;
 }
 
-/** Un jeton programmé, numéroté : un jeton du noyau est une identité d'objet (`partie.ts`), qui ne traverse pas JSON. */
-export interface Programme {
-  id: number;
-  delai: number;
-}
-
 /** La tenue des jetons programmés d'une partie : chaque jeton qu'un résultat programme reçoit un numéro, dans l'ordre
  *  d'arrivée (`programmes`) ; `reprendre` rejoue celui d'un numéro, une fois. */
 export function tenueDesJetons(partie: Pick<Partie, 'reprendre'>) {
@@ -100,30 +94,6 @@ export function tenueDesJetons(partie: Pick<Partie, 'reprendre'>) {
 
 /** La tenue des jetons d'une partie. */
 export type TenueDesJetons = ReturnType<typeof tenueDesJetons>;
-
-/** Le plafond de reprises d'une horloge virtuelle : au-delà, la partie boucle. */
-const PLAFOND_DE_REPRISES = 100_000;
-
-/** L'horloge virtuelle d'un hôte sans minuteur : reprend les jetons `premiers`, puis ceux que chaque reprise programme,
- *  par échéance puis par numéro (l'ordre d'arrivée), jusqu'à ce qu'il n'en reste aucun ; rend le nombre de reprises.
- *  Au-delà de `PLAFOND_DE_REPRISES`, elle lève. */
-export function horlogeVirtuelle(premiers: readonly Programme[], reprendre: (id: number) => readonly Programme[]): number {
-  const file: { id: number; echeance: number }[] = [];
-  let horloge = 0;
-  const armer = (programmes: readonly Programme[]) => {
-    for (const p of programmes) file.push({ id: p.id, echeance: horloge + p.delai });
-  };
-  armer(premiers);
-  let reprises = 0;
-  for (; file.length; reprises++) {
-    if (reprises >= PLAFOND_DE_REPRISES) throw new Error(`[hôte] plus de ${PLAFOND_DE_REPRISES} reprises : la partie boucle`);
-    file.sort((a, b) => a.echeance - b.echeance || a.id - b.id);
-    const { id, echeance } = file.shift()!;
-    horloge = echeance;
-    armer(reprendre(id));
-  }
-  return reprises;
-}
 
 /** Une partie ouverte : la partie du noyau, la tenue de ses jetons, et le résultat du lancement de son scénario. */
 export interface PartieOuverte {

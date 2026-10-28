@@ -17,21 +17,21 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { useGame } from '../state/store';
 import type { Combatant } from '../engine/types';
 import type { Possession } from '../engine/possession';
-import { possessionLabel, possessionCapacity, possessionLoadEnc, embarkedEnc, canEmbarkNow } from '../engine/possession';
+import { possessionLabel, possessionCapacity, possessionLoadEnc, embarkedEnc } from '../engine/possession';
 import { cargoTotalEnc } from '../engine/cargo';
 import { findCargoById } from '../engine/seaVoyage';
 import {
   mountProfileForCreature, ALLURES, allureLabel, ALLURE_KMH_PER_M, allureEnduranceHours,
 } from '../engine/mountTravel';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
-import { placeOfScene } from '../noyau/worldMap';
-import { bulkCarriers, type CarrierStateSlice } from '../noyau/carriers';
+import { refusGestePossession, ciblesDEmbarquement, type EtatDesPossessions } from '../noyau/possessionsFlow';
+import { bulkCarriers } from '../noyau/carriers';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
 import { Tabs, type TabItem } from './composites/Tabs';
 import { PlaqueRow } from './PlaqueRow';
 import { DetailFrame } from './DetailFrame';
-import { GatedAction } from './GatedAction';
+import { GatedAction, raisonSi } from './GatedAction';
 import { ChoiceButtons } from './OptionChooser';
 import { LifeBar } from './LifeBar';
 import { NotchGauge } from './NotchGauge';
@@ -87,8 +87,8 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
   const moveCargo = useGame((s) => s.moveCargo);
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const carriers = useMemo(
-    () => bulkCarriers({ party, vessel, worldMap, scene, possessions } as CarrierStateSlice),
-    [party, vessel, worldMap, scene, possessions],
+    () => bulkCarriers({ party, vessel, possessions }),
+    [party, vessel, possessions],
   );
 
   const [search, setSearch] = useState('');
@@ -105,18 +105,17 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
   const selected = selectedUid != null ? possessions.find((p) => p.uid === selectedUid && !p.destroyed) : undefined;
   const selectedOwner = selected ? party.find((h) => h.id === selected.ownerId) : undefined;
 
-  const placeId = placeOfScene(worldMap, scene?.id ?? undefined)?.id;
-
   // Onglets conditionnels (#620) : Soute pour une CALE (navire/véhicule avec capacité) — le bât d'une bête
   // relève de son Inventaire/Enc (Aperçu), pas d'une cale ; Voyage pour une bête au profil d'allures EDOC.
   const selectedCapacity = selected ? possessionCapacity(selected) : undefined;
   const selectedCreatureId = selected && selected.nature === 'bete' && 'creatureId' in selected.ref ? selected.ref.creatureId : undefined;
   const mountProfile = selectedCreatureId ? mountProfileForCreature(selectedCreatureId) : undefined;
 
-  // Navires du groupe pouvant accueillir `selected` MAINTENANT (nature + capacité libre, #620 Lot 2c
-  // — jamais un premier-trouvé implicite, le joueur CHOISIT sa cale de destination).
-  const naviresDuGroupe = possessions.filter((h) => h.nature === 'navire' && !h.destroyed && h.location.kind === 'avec-le-groupe');
-  const embarkTargets = selected ? naviresDuGroupe.filter((navire) => canEmbarkNow(selected, navire, possessions)) : [];
+  // Verdicts du noyau (`refusGestePossession`), ceux que les gestes appliquent au clic ; navires qui
+  // accueillent `selected` MAINTENANT (#620 Lot 2c — le joueur CHOISIT sa cale de destination).
+  const etat: EtatDesPossessions = { party, possessions, worldMap, scene };
+  const refusDe = (kind: 'laisser' | 'reprendre' | 'debarquer' | 'abandonner') => (selected ? refusGestePossession(etat, selected.uid, { kind }) : null);
+  const embarquement = selected ? ciblesDEmbarquement(etat, selected.uid) : { cibles: [], refus: null };
 
   const select = (uid: string) => {
     setSelectedUid(uid);
@@ -131,28 +130,10 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
     ...(mountProfile ? [{ key: 'voyage' as const, label: 'Voyage' }] : []),
   ];
 
-  // Chaque gate reflète l'état RÉEL de la possession — la raison n'est calculée QUE quand elle sera
-  // rendue (`GatedAction` ne l'affiche que si `!enabled`), jamais en avance sur un chemin déjà permis.
-  const canLaisser = !!selected && selected.location.kind === 'avec-le-groupe' && placeId != null;
-  const canReprendre = !!selected && selected.location.kind === 'au-lieu';
-  const canDebarquer = !!selected && selected.location.kind === 'embarquee';
-  const canEmbarquer = !!selected && selected.location.kind === 'avec-le-groupe' && embarkTargets.length > 0;
-  const canAbandonner = !!selected && !selected.destroyed;
-
-  const laisserReason = () =>
-    selected!.location.kind !== 'avec-le-groupe' ? 'Cette possession n’est pas avec le groupe.' : 'Aucun lieu courant (hors campagne).';
-
-  const reprendreReason = () =>
-    selected!.location.kind === 'avec-le-groupe' ? 'Déjà avec le groupe.' : 'Cette possession est embarquée — utilisez Débarquer.';
-
-  const debarquerReason = () =>
-    selected!.location.kind === 'avec-le-groupe' ? 'Déjà avec le groupe.' : 'Cette possession n’est pas embarquée.';
-
-  const embarquerReason = () => {
-    if (selected!.location.kind !== 'avec-le-groupe') return 'Cette possession doit être avec le groupe pour embarquer.';
-    if (naviresDuGroupe.length === 0) return 'Aucun navire du groupe ne peut l’accueillir.';
-    return 'Toutes les cales sont pleines.';
-  };
+  const refusLaisser = refusDe('laisser');
+  const refusReprendre = refusDe('reprendre');
+  const refusDebarquer = refusDe('debarquer');
+  const refusAbandonner = refusDe('abandonner');
 
   // Aperçu visuel de la possession (#620 DoD) — `CreaturePreview` (Codex, `CodexEntry.tsx:140`) route
   // vers le BON gabarit (bipède/quadrupède/ailé…) via `resolveRender` : jamais `CharacterPreview`
@@ -203,19 +184,19 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
   ) : (
     <>
       <div className="bar">
-        <GatedAction id="pos-laisser" label="Laisser" enabled={canLaisser} reason={canLaisser ? '' : laisserReason()}
-          onClick={() => placeId && stablePossession(selected.uid, placeId)} primary={false} />
-        <GatedAction id="pos-reprendre" label="Reprendre" enabled={canReprendre} reason={canReprendre ? '' : reprendreReason()}
+        <GatedAction id="pos-laisser" label="Laisser" enabled={!refusLaisser} {...raisonSi(refusLaisser)}
+          onClick={() => stablePossession(selected.uid)} primary={false} />
+        <GatedAction id="pos-reprendre" label="Reprendre" enabled={!refusReprendre} {...raisonSi(refusReprendre)}
           onClick={() => retrievePossession(selected.uid)} primary={false} />
-        <GatedAction id="pos-debarquer" label="Débarquer" enabled={canDebarquer} reason={canDebarquer ? '' : debarquerReason()}
+        <GatedAction id="pos-debarquer" label="Débarquer" enabled={!refusDebarquer} {...raisonSi(refusDebarquer)}
           onClick={() => disembark(selected.uid)} primary={false} />
-        {canEmbarquer ? (
+        {embarquement.cibles.length > 0 ? (
           <MediaSelect
             align="left"
             triggerClassName="btn small"
             title="Choisir le navire de destination"
             trigger="Embarquer"
-            options={embarkTargets.map((navire) => ({
+            options={embarquement.cibles.map((navire) => ({
               key: navire.uid,
               label: possessionLabel(navire),
               sub: `Cale ${embarkedEnc(navire.uid, possessions)}/${possessionCapacity(navire) ?? '∞'}`,
@@ -223,19 +204,19 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
             onSelect={(navireUid) => embark(selected.uid, navireUid)}
           />
         ) : (
-          <GatedAction id="pos-embarquer" label="Embarquer" enabled={false} reason={embarquerReason()}
+          <GatedAction id="pos-embarquer" label="Embarquer" enabled={false} {...raisonSi(embarquement.refus)}
             onClick={() => {}} primary={false} />
         )}
         {confirmingAbandon ? (
           <ChoiceButtons options={[
             { key: 'cancel', label: 'Annuler', ghost: true, onSelect: () => setConfirmingAbandon(false) },
             {
-              key: 'confirm', label: 'Confirmer l’abandon', primary: true, disabled: !canAbandonner,
+              key: 'confirm', label: 'Confirmer l’abandon', primary: true, disabled: !!refusAbandonner,
               onSelect: () => { abandonPossession(selected.uid); setSelectedUid(null); setConfirmingAbandon(false); },
             },
           ]} />
         ) : (
-          <GatedAction id="pos-abandonner" label="Abandonner" enabled={canAbandonner} reason="Déjà abandonnée."
+          <GatedAction id="pos-abandonner" label="Abandonner" enabled={!refusAbandonner} {...raisonSi(refusAbandonner)}
             onClick={() => setConfirmingAbandon(true)} primary={false} btnClassName="danger" />
         )}
       </div>

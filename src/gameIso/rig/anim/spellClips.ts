@@ -13,13 +13,12 @@
 import type { Clip, ClipStep } from './clips';
 import { findSpell } from '../../../data';
 import { castInfo, isMagicMissile } from '../../../engine/magic';
+import type { StyleDeSort } from '../../../noyau/animation';
 
 const REST = {};
 const c = (steps: ClipStep[], onImpact?: number): Clip => ({ steps, onImpact });
 
-export type SpellCastStyle = 'bolt' | 'blessing';
-
-const CAST: Record<SpellCastStyle, Clip> = {
+const CAST: Record<StyleDeSort, Clip> = {
   // Offensif : rassemble l'énergie (bras repliés) puis PROJETTE des deux mains.
   bolt: c([
     { pose: { epauleG: -50, epauleD: -50, avantBrasG: -30, avantBrasD: -30, tete: -4 }, ms: 200, easing: 'easeOut' },
@@ -35,13 +34,13 @@ const CAST: Record<SpellCastStyle, Clip> = {
 };
 
 /** Style de geste depuis la relation lanceur↔cible (offensif vs soutien). */
-export function spellCastStyle(casterKind?: string, targetKind?: string, isSelf = false): SpellCastStyle {
+export function spellCastStyle(casterKind?: string, targetKind?: string, isSelf = false): StyleDeSort {
   if (isSelf) return 'blessing';
   if (casterKind && targetKind && casterKind === targetKind) return 'blessing'; // sur un allié
   return 'bolt'; // sur un ennemi
 }
 
-export function spellCastClip(style: SpellCastStyle): Clip {
+export function spellCastClip(style: StyleDeSort): Clip {
   return CAST[style];
 }
 

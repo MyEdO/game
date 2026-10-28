@@ -10,6 +10,7 @@ import { findCreatureById } from '../../data';
 import type { SceneEntity } from '../../noyau/monde/scene';
 import type { ContenuDeScenario } from '../../noyau/lancementDeScenario';
 import { presetPnjById } from '../../state/campaignData';
+import { findTrappingById } from '../../data';
 
 /**
  * Chaque personnage AUTHORÉ d'un scénario de test doit être rendable par SA donnée : réf de créature,
@@ -55,9 +56,9 @@ describe('scénarios de test — aucun personnage sans espèce résolue (#936)',
       [c.scene, ...(c.extraScenes ?? [])].flatMap((sc) => sc.encounters.flatMap((e) => (e.members ?? []).map((m) => m.entityId))),
     );
     for (const ent of persos(c).filter(authoreIci)) {
-      tokenBodyKind({ kind: 'sceneEntity', ent, enrolled: enroles.has(ent.id) });
+      tokenBodyKind(findTrappingById, { kind: 'sceneEntity', ent, enrolled: enroles.has(ent.id) });
       if (!enroles.has(ent.id)) continue; // un figurant qui n'entre jamais en combat n'est jamais spawné
-      tokenBodyKind({ kind: 'combatant', combatant: ficheDEntite(ent, presetPnjById) }); // la fiche que spawne `combatSlice`
+      tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: ficheDEntite(ent, presetPnjById) }); // la fiche que spawne `combatSlice`
     }
     const dits = [...err.mock.calls, ...warn.mock.calls].map((c) => String(c[0]));
     expect(dits, `scénario « ${id} » : ${dits.join(' | ')}`).toEqual([]);

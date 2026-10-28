@@ -28,15 +28,19 @@ import { spellCastClip } from './spellClips';
 import { CORPSE_POSE, PRONE_POSE, planGroundPose } from '../../groundPose';
 import { planById } from '../bodyPlan';
 import { STEP_MS } from '../../../geometry/walk';
-import { armeDeDessin } from '../parts/equipment';
+import { armeDeDessin } from '../../../noyau/equipementDessine';
 import type { Weapon } from '../../../engine/types';
+import { findTrappingById } from '../../../data';
+import { buildWeapon, itemFromTrappingById, weaponFromItem } from '../../../engine/items';
 
-const w = (label: string, type: Weapon['type'], extra: Partial<Weapon> = {}): Weapon =>
-  ({ label, type, damage: { plusBF: true, flat: 4 }, qualities: [], ...extra }) as Weapon;
-/** Projection d'une arme : forme RÉSOLUE par son id de Possession. */
+const w = (label: string, type: Weapon['type'], extra: Partial<Weapon> = {}): Weapon => {
+  const objet = extra.trappingId ? itemFromTrappingById(extra.trappingId, findTrappingById) : null;
+  return { ...(objet ? weaponFromItem(objet) : buildWeapon({ label, type, damage: { plusBF: true, flat: 4 } })), label, type, ...extra };
+};
+/** #2967 */
 const P = armeDeDessin;
 
-// Le maniement se route par ID STABLE (forme résolue de `trappingId`/`attackKind`, cf. `handling.ts`), jamais par libellé.
+// #2967
 const HACHE_2M = w('Hache à deux mains', 'melee', { trappingId: 'grande-hache', hands: 2 });
 const EPEE = w('Épée', 'melee', { trappingId: 'dague' });
 const A_PIED: RigSelectCtx = { seated: false, mainWeapon: P(EPEE), shield: false };

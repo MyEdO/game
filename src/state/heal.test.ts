@@ -27,9 +27,9 @@ function setBattle(combatants: Combatant[], activeId: string) {
     mode: 'battle',
     battle: {
       combatants, order, baseOrder: order, turn: order.indexOf(activeId), round: 1,
-      action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false,
+      action: 'heal', selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false,
       log: [], over: null,
-    } as any,
+    } as any, // le Soin se commet depuis son mode armé (`HEAL_MODE`)
     pendingHeal: null,
   });
 }
@@ -107,7 +107,7 @@ describe('Guérison — flux combat', () => {
     setBattle([doc, t], 'doc');
     useGame.getState().battleHeal('al', 'bleed');
     expect(useGame.getState().pendingHeal!.difficulty).toBe('intermediaire'); // mode LDB par défaut
-    useGame.setState({ pendingHeal: null });
+    useGame.setState({ pendingHeal: null, battle: { ...useGame.getState().battle!, action: 'heal' } }); // re-armé
 
     try {
       setRule('combat-aa-blessures', 'aa');
@@ -167,7 +167,7 @@ describe('Guérison — flux combat', () => {
     expect(al.conditions.find((c) => c.id === 'munition-logee')).toBeUndefined();
     // plafond relevé : un soin de Blessures ultérieur peut désormais atteindre le max complet
     al.soinRencontreUtilise = false;
-    useGame.setState({ battle: { ...useGame.getState().battle!, acted: false, action: null } });
+    useGame.setState({ battle: { ...useGame.getState().battle!, acted: false, action: 'heal' } });
     useGame.getState().battleHeal('al', 'wounds');
     useGame.getState().healRoll();
     useGame.setState({ pendingHeal: { ...useGame.getState().pendingHeal!, success: true, sl: 5 } });

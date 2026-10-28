@@ -8,6 +8,7 @@
  * rest.test / upkeep-cascade.
  */
 import { fixtureText } from '../i18n/fixtureText';
+import { itemFromTrappingById } from '../engine/items';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from '../noyau/combatEffects';
@@ -28,7 +29,7 @@ import type { CascadeStep } from '../noyau/pendings';
 import { resetCadence, setCadence } from '../engine/cadence';
 import { cascadeDeTest } from './cascade.testkit';
 
-const ration = (uid: string): ItemInstance => ({ uid, label: 'Ration', trappingId: 'ration', kind: 'misc', qualities: [], enc: 0, equipped: false });
+const ration = (uid: string): ItemInstance => ({ ...itemFromTrappingById('ration')!, uid, enc: 0 });
 
 /** Pose la bourse de la BANDE à un montant EXACT : purge toute bourse existante, puis crédite le doyen
  *  (les tests de repos ne vérifient que le TOTAL du groupe, qu'il tienne sur une ou plusieurs bourses). */
@@ -210,7 +211,7 @@ describe('openRest / choix par héros', () => {
     const sc = emptyScene('scene-test', 10, 10);
     sc.weather = 'pluie';
     useGame.setState({ scene: sc });
-    useGame.getState().party[1].items!.push({ uid: 't', label: 'Tente', trappingId: 'tente', kind: 'misc', qualities: [], enc: 2, equipped: false } as ItemInstance);
+    useGame.getState().party[1].items!.push({ ...itemFromTrappingById('tente')!, uid: 't', enc: 2, equipped: false });
     useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     useGame.getState().restSleep();
     const cas = useGame.getState().pendingCascade!;

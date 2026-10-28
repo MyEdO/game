@@ -30,7 +30,7 @@ import { battementRemoval } from './combatManeuvers';
 import { fleeBackstab, fleeTouche } from './pendings';
 import type { PendingEncounterPsych } from './encounterPsychFlow';
 import type { PendingActivity } from './interludeFlow';
-import { estCibleType } from '../engine/psychology';
+import { estCibleType } from '../engine/psych/ciblage';
 import { psychologyLabel } from '../data';
 import { activityById, matchOutcomes } from '../engine/activities';
 import { isFumble } from '../engine/oups';

@@ -24,11 +24,11 @@ function poolsOf(battle: { advantagePools?: AdvantagePools }): AdvantagePools {
 }
 
 /** Avantage DISPONIBLE pour dépense par `c` : en mode groupe, la réserve de SON camp (source de vérité) ;
- *  sinon son Avantage individuel (LDB). SOURCE UNIQUE des gardes d'abordabilité d'une dépense de camp. */
-export function spendableAdvantage(get: Get, c: Combatant): number {
-  const battle = get().battle;
+ *  sinon son Avantage individuel (LDB). SOURCE UNIQUE des gardes d'abordabilité d'une dépense de camp.
+ *  PUR : lit la bataille sans y créer de réserve. */
+export function spendableAdvantage(battle: { advantagePools?: AdvantagePools } | null | undefined, c: Combatant): number {
   if (!groupAdvantage() || !battle) return c.advantage;
-  return poolsOf(battle)[advantageCampOf(c)];
+  return (battle.advantagePools ?? emptyPools())[advantageCampOf(c)];
 }
 
 /**
@@ -79,7 +79,7 @@ export function campAdvantageHooks(get: Get): Required<Pick<OpsCtx, 'onGainAdvan
 /** Avantage que `c` lira APRÈS `campSpend(get, c, n)` — le solde que le débit pose, SOURCE UNIQUE du
  *  débit et de l'aperçu d'un geste qui le paie (le jet se tire sur l'Avantage restant). */
 export function avantageApresDepense(get: Get, c: Combatant, n: number): number {
-  return avantageApresPerte(spendableAdvantage(get, c), Math.max(0, n));
+  return avantageApresPerte(spendableAdvantage(get().battle, c), Math.max(0, n));
 }
 
 /**

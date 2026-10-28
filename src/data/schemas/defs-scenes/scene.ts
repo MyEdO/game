@@ -657,7 +657,7 @@ export const sceneEffectZoneSchema = nommerChamps(z.strictObject({
   perRound: z.array(gameOpSchema).optional(),
   crossTest: flowTestSchema.optional(),
   /** BARRIÈRE : `blockGroups` vide/absent = bloque tout le monde ; sinon ids de Groupes. */
-  barrier: nommerChamps(z.strictObject({ blockGroups: z.array(z.string()).optional() }), { blockGroups: { label: "groupes bloqués" , texte: { regime: "technique"} } }).optional(),
+  barrier: nommerChamps(z.strictObject({ blockGroups: refs('groupe').optional() }), { blockGroups: { label: "groupes bloqués" , texte: { regime: "technique"} } }).optional(),
   z: z.number().optional(),
   couvre: couvreSchema.optional(),
 }).superRefine((zone, ctx) => {

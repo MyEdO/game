@@ -97,27 +97,6 @@ describe('Boucle de jeu (store)', () => {
     vi.useRealTimers();
   });
 
-  it('setItemSkin pose le skin sur l’objet ET le propage à l’arme active (recomputeLoadout)', () => {
-    const hero = {
-      id: 'h1', label: 'Test', kind: 'hero',
-      characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-      wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
-      weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-      items: [{ uid: 'w1', label: 'Épée bâtarde', kind: 'melee', damage: { plusBF: true, flat: 5 }, qualities: [], enc: 1, equipped: true } as ItemInstance],
-    } as unknown as Combatant;
-    useGame.setState({ party: [hero] });
-
-    useGame.getState().setItemSkin('h1', 'w1', { metal: '#caa64a' });
-    let h = useGame.getState().party[0];
-    expect(h.items?.find((i) => i.uid === 'w1')?.skin).toEqual({ metal: '#caa64a' });
-    expect(h.weapons.find((w) => w.label === 'Épée bâtarde')?.skin).toEqual({ metal: '#caa64a' }); // propagé à l'arme
-
-    useGame.getState().setItemSkin('h1', 'w1', { metal: undefined }); // reset du seul slot → skin retiré
-    h = useGame.getState().party[0];
-    expect(h.items?.find((i) => i.uid === 'w1')?.skin).toBeUndefined();
-    expect(h.weapons.find((w) => w.label === 'Épée bâtarde')?.skin).toBeUndefined();
-  });
-
   it('charge une scène et place le groupe au départ', () => {
     useGame.getState().startScene(testScene());
     const st = useGame.getState();
@@ -1253,7 +1232,9 @@ describe('Boucle de jeu (store)', () => {
     const posBefore = { ...H.pos! };
     useGame.getState().battleClickTile({ x: posBefore.x - 1, y: posBefore.y }, { confirm: true }); // re-clic sol
     st = useGame.getState();
-    expect(st.pendingDisengage).toBeNull(); // pas de NOUVELLE Esquive (l'Action est déjà dépensée)
+    // Pas de NOUVELLE Esquive (l'Action est dépensée, LDB 15 l.49) : seule la Fuite, « coup dans le dos », reste
+    // (LDB 15 l.49, l.61).
+    expect(st.pendingDisengage).toMatchObject({ refusEsquive: t('agate.actionSpent'), canFuir: true, canSacrifice: false });
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(posBefore); // ni déplacement libre
   });
 
@@ -1483,7 +1464,7 @@ describe('Avancement par PX (store) — câblage moteur', () => {
     // Conseiller (Niveau 1) : « Savoir-vivre (Au choix) ». Le héros possède déjà
     // Savoir-vivre (Criminels) ×1 (espèce) — cas utilisateur « Sens aiguisé (Goût) ».
     set1(mkHero({ xp: 1000, career: 'conseiller', talents: [{ talentId: 'savoir-vivre', spec: 'criminels', times: 1 }] }));
-    const view = buildAdvancementView(h0());
+    const view = buildAdvancementView(useGame.getState(), h0());
     const slot = view.talents.find((t) => t.entry === 'Savoir-vivre (Au choix)')!;
     // `option.label` est la clé de câblage OPAQUE (refKey) ; `display` porte le texte.
     expect(slot.options!.some((o) => o.display === 'Savoir-vivre (Criminels)' && o.owned)).toBe(true);

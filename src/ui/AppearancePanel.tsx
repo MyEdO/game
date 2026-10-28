@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { RigSprite, useCompositionRig } from '../gameIso/rig/composeRig';
 import type { Appearance, RigSpeciesId } from '../engine/authoringAppearance';
-import type { EquipCtx } from '../gameIso/rig/parts/equipment';
+import type { EquipCtx } from '../noyau/equipementDessine';
 import { apparenceSuivante } from '../gameIso/rig/parts/cosmetic';
 import { ColorPalettePickers } from './ColorPalettePickers';
 import { ReglagesApparence } from './editor/MonsterPartsFields';

@@ -2,7 +2,7 @@ import { flowFromEffects } from '../../noyau/monde/flow';
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import { contractDisease } from '../../engine/disease';
-import { itemFromTrappingById } from '../../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
 import { Combatant } from '../../engine/types';
 import { rigSpeciesId } from '../../data';
 import { WorldMap } from '../../noyau/worldMap';
@@ -23,7 +23,7 @@ function groupe(): Combatant[] {
   const bjorn = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Bjorn (test)', motivation: 'Test', seed: 2401, id: 'bjorn' });
   bjorn.travelRole = { activityId: 'plein-air' };
   renforcerCompetence(bjorn, 'survie-en-exterieur', 60);
-  bjorn.items = [...(bjorn.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
+  bjorn.items = [...(bjorn.items ?? []), itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(bjorn))!, itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(bjorn))!, itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(bjorn))!];
   bjorn.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.55 };
 
   // Éclaireuse — Rester aux aguets (Perception) : le groupe ne peut être surpris cette Étape.

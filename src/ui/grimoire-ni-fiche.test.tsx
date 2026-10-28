@@ -22,6 +22,7 @@ import { setRule, resetRule } from '../engine/policy';
 import { effectiveSpellOf } from '../noyau/combatFlow';
 import { findSpellById, spells } from '../data';
 import type { Combatant } from '../engine/types';
+import { objetDeTest } from '../engine/objetsDeTest.testkit';
 
 const RULE = 'magic-vdm-incantation';
 const SPELL = 'caresse-de-laniph';
@@ -47,7 +48,7 @@ const sorcier = (): Combatant =>
     ],
     talents: [{ talentId: 'magie-des-arcanes', spec: 'mort', times: 1 }],
     spells: [],
-    items: [{ uid: 'g', trappingId: 'grimoire', label: 'Grimoire', kind: 'misc', qualities: [], enc: 1, equipped: false }],
+    items: [objetDeTest('grimoire', { uid: 'g', equipped: false })],
     movement: 4,
     xp: 0,
     charAdvances: {},

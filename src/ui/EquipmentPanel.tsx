@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import type { Combatant, HitLocation, ItemInstance } from '../engine/types';
-import { armourLayer, isCapeItem, itemLabel, weaponHands, compatibleAmmo, loadoutLabel, isOffHandEligible, isUnarmed, setADeuxMains, type ArmourLayer } from '../engine/items';
+import { armourLayer, isCapeItem, itemLabel, weaponHands, compatibleAmmo, loadoutLabel, isUnarmed, setADeuxMains, paNette, type ArmourLayer } from '../engine/items';
 import { CodexRef } from './compendium/CodexRef';
 import { QualityChips } from './EntityChip';
 import { ItemIcon } from './ItemIcon';
@@ -11,12 +11,11 @@ import { weaponStatParts } from './weaponStats';
 import { Icon } from './Icon';
 import { Band } from './Band';
 import { Grid } from './Layout';
-import { GatedAction } from './GatedAction';
+import { GatedAction, raisonSi } from './GatedAction';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import { objetSourceDeLArme } from '../engine/weaponLoad';
-
-/** Raison UNIQUE du verrou des SETS d'armes pendant un combat. */
-const VERROU_SETS = 'Équipement verrouillé en combat (changez de set depuis la barre d’action).';
+import { refusEmplacementDeMain, refusDeSupprimerSet } from '../noyau/partyFlow';
+import { refusDInventaire } from '../noyau/verrousDeFiche';
 
 /**
  * Écran d'EMPLACEMENTS d'équipement (onglet Possessions de la fiche) — façon jeu vidéo : colonne
@@ -173,15 +172,15 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
   const setActiveLoadout = useGame((s) => s.setActiveLoadout);
   const createLoadout = useGame((s) => s.createLoadout);
   const deleteLoadout = useGame((s) => s.deleteLoadout);
-  const inBattle = useGame((s) => !!s.battle);
+  const battle = useGame((s) => s.battle);
+  // Verrou de l'équipement : le verdict du noyau (`refusDInventaire`), celui que rendent ses gestes.
+  const refusSets = refusDInventaire({ battle });
 
   const items = hero.items ?? [];
   const armours = items.filter((i) => i.kind === 'armor' && (i.locs?.length ?? 0) > 0);
   const capes = items.filter(isCapeItem);
   const wornCape = capes.find((i) => i.equipped);
   const weapons = items.filter((i) => (i.kind === 'melee' || i.kind === 'ranged') && !i.destroyed);
-  // Main SECONDAIRE (LDB 14 l.138) : armes de mêlée à une main OU pistolets seulement (pas d'arc/arbalète ordinaire).
-  const offHandWeapons = weapons.filter(isOffHandEligible);
   const strBonus = bonus(effectiveChar(hero, 'force'));
 
   const activeWeapons = hero.weapons.filter((w) => !isUnarmed(w));
@@ -212,7 +211,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
               {LAYERS.map((layer) => {
                 const worn = covering.find((i) => i.equipped && armourLayer(i) === layer.key);
                 const candidates = covering.filter((i) => !i.equipped && armourLayer(i) === layer.key);
-                const netPa = worn ? Math.max(0, (worn.pa ?? 0) - (worn.damageTaken ?? 0)) : undefined;
+                const netPa = worn ? paNette(worn) : undefined;
                 return (
                   <SlotCell
                     key={layer.key}
@@ -221,7 +220,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                     item={worn}
                     pa={netPa}
                     value={worn?.uid ?? ''}
-                    refus={inBattle ? VERROU_SETS : undefined}
+                    refus={refusSets ?? undefined}
                     desc={`${layer.label} — équiper`}
                     options={[{ key: '', label: '— retirer —', disabled: !worn }, ...candidates.map(armourOpt)]}
                     onSelect={(v) => toggleEquip(hero.id, v || worn!.uid)}
@@ -243,7 +242,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
             nom="Cape"
             item={wornCape}
             value={wornCape?.uid ?? ''}
-            refus={inBattle ? VERROU_SETS : undefined}
+            refus={refusSets ?? undefined}
             desc="Équiper une cape"
             options={[{ key: '', label: '— retirer —', disabled: !wornCape }, ...capes.filter((c) => !c.equipped).map(capeOpt)]}
             onSelect={(v) => toggleEquip(hero.id, v || wornCape!.uid)}
@@ -261,7 +260,10 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
           const mainItem = weapons.find((w) => w.uid === lo.main);
           const offItem = weapons.find((w) => w.uid === lo.off);
           const mainTwoHanded = setADeuxMains(hero, lo);
-          const canDelete = !conjured && (hero.loadouts?.length ?? 0) > 1; // garder ≥1 set
+          // Verdict du noyau : la cellule (`null` = vider) et chaque arme candidate.
+          const refusMain = (uid: string | null) => refusEmplacementDeMain({ battle }, hero, lo.id, 'main', uid);
+          const refusOff = (uid: string | null) => refusEmplacementDeMain({ battle }, hero, lo.id, 'off', uid);
+          const refusSuppression = refusDeSupprimerSet({ battle }, hero, lo.id);
           return (
             <div key={lo.id} className={`set-card ${setActive ? 'active' : ''} ${conjured ? 'conjured' : ''}`}>
               <div className="set-card-head">
@@ -276,10 +278,10 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                       nom="Main principale"
                       item={mainItem}
                       fallback={weaponFallback(mainItem, conjured)}
-                      refus={conjured ? 'Arme invoquée — le sort la gère, elle ne se change pas à la main.' : inBattle ? VERROU_SETS : undefined}
+                      refus={refusMain(null) ?? undefined}
                       value={lo.main ?? ''}
                       desc="Main principale — choisir une arme"
-                      options={[{ key: '', label: '— mains nues —' }, ...weapons.map(weaponOpt)]}
+                      options={[{ key: '', label: '— mains nues —' }, ...weapons.filter((w) => !refusMain(w.uid)).map(weaponOpt)]}
                       onSelect={(v) => setLoadoutSlot(hero.id, lo.id, 'main', v || null)}
                     />
                     <span className="set-slot-cap">Principale</span>
@@ -290,10 +292,10 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                       nom="Seconde main"
                       item={offItem}
                       fallback={weaponFallback(offItem, conjured)}
-                      refus={mainTwoHanded ? 'Arme à deux mains — pas de seconde main.' : conjured ? 'Arme invoquée — le sort la gère, elle ne se change pas à la main.' : inBattle ? VERROU_SETS : undefined}
+                      refus={refusOff(null) ?? undefined}
                       value={lo.off ?? ''}
                       desc="2nde — arme de mêlée à une main, bouclier ou pistolet"
-                      options={[{ key: '', label: mainTwoHanded ? '— (2 mains) —' : '— vide —' }, ...offHandWeapons.filter((w) => w.uid !== lo.main).map(weaponOpt)]}
+                      options={[{ key: '', label: mainTwoHanded ? '— (2 mains) —' : '— vide —' }, ...weapons.filter((w) => w.uid !== lo.main && !refusOff(w.uid)).map(weaponOpt)]}
                       onSelect={(v) => setLoadoutSlot(hero.id, lo.id, 'off', v || null)}
                     />
                     <span className="set-slot-cap">2nde <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="off-malus">−20</CodexRef></span>
@@ -310,25 +312,23 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                     <GatedAction
                       id={`loadout-activate-${lo.id}`}
                       label="Activer"
-                      enabled={!inBattle}
-                      reason={VERROU_SETS}
+                      enabled={!refusSets}
+                      {...raisonSi(refusSets)}
                       onClick={() => setActiveLoadout(hero.id, lo.id)}
                       primary={false}
                       btnClassName="small"
                     />
                   )}
-                  {canDelete && (
-                    <GatedAction
-                      id={`loadout-delete-${lo.id}`}
-                      label={<Icon id="ui/delete" size="sm" />}
-                      ariaLabel="Supprimer ce set"
-                      enabled={!inBattle}
-                      reason={VERROU_SETS}
-                      onClick={() => deleteLoadout(hero.id, lo.id)}
-                      primary={false}
-                      btnClassName="small"
-                    />
-                  )}
+                  <GatedAction
+                    id={`loadout-delete-${lo.id}`}
+                    label={<Icon id="ui/delete" size="sm" />}
+                    ariaLabel="Supprimer ce set"
+                    enabled={!refusSuppression}
+                    {...raisonSi(refusSuppression)}
+                    onClick={() => deleteLoadout(hero.id, lo.id)}
+                    primary={false}
+                    btnClassName="small"
+                  />
                 </span>
               </div>
             </div>
@@ -338,8 +338,8 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
           <GatedAction
             id="loadout-add"
             label="+ Set d’armes"
-            enabled={!inBattle}
-            reason={VERROU_SETS}
+            enabled={!refusSets}
+            {...raisonSi(refusSets)}
             onClick={() => createLoadout(hero.id)}
             primary={false}
             btnClassName="small set-add"

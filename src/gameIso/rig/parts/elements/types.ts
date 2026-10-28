@@ -9,8 +9,7 @@ export type ElementOverlay = RaceFeature & { replace?: boolean; behind?: boolean
 
 /**
  * Un ÉLÉMENT d'apparence réutilisable — vocabulaire UNIQUE (comme `GameOp` côté mécanique). Effets
- * cumulables : calques (`overlays`), remplacement d'œil (`eye`), morpho (`build`/`legs`), recolor
- * (`skin`), visage retourné (`faceFlip`). 1 élément = 1 fichier `defs/<key>.ts` (registre auto-chargé :
+ * cumulables : calques (`overlays`), remplacement d'œil (`eye`), morpho (`build`/`legs`), visage retourné (`faceFlip`). 1 élément = 1 fichier `defs/<key>.ts` (registre auto-chargé :
  * en ajouter un = déposer un fichier).
  */
 export interface AppearanceElement {
@@ -21,5 +20,5 @@ export interface AppearanceElement {
   overlays?: ElementOverlay[];
   eye?: { G?: string; D?: string };
   build?: number; legs?: number;
-  skin?: string; faceFlip?: boolean;
+  faceFlip?: boolean;
 }

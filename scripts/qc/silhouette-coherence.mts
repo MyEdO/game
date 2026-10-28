@@ -23,10 +23,12 @@ import { TENUE_DEFS } from '../../src/gameIso/rig/parts/tenues/_registry.generat
 import type { Appearance } from '../../src/engine/authoringAppearance';
 import type { BoneId } from '../../src/gameIso/rig/bones';
 import type { View } from '../../src/gameIso/rig/facing';
+import { equipDe } from '../../src/noyau/equipementDessine';
+
 
 // ── Archétype humain FIXE (le corps ne varie pas — seule la tenue et la vue changent). ──
 const APP: Appearance = { species: 'Humain', sex: 'M', build: 0.55, seed: 4, hairstyle: 'crane-rase-m' } as Appearance;
-const EQUIP = { weapons: [], armour: [] } as any;
+const EQUIP = equipDe([], []);
 
 const RENDER_W = 240; // viewBox 120×150 → 240×300 px : assez fin pour le contour, rapide.
 

@@ -18,14 +18,13 @@
  * (entrée = un `Combatant`).
  */
 import { CSSProperties, useMemo } from 'react';
-import { CHAR_KEYS, CharKey, Combatant } from '../../engine/types';
-import { effectiveChar } from '../../engine/characteristics';
+import type { Combatant } from '../../engine/types';
 import { Coins } from '../Coins';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { CharacterPreview } from '../CharacterPreview';
 import { Icon } from '../Icon';
 import { CharStatsGrid } from '../CharStatsGrid';
-import { HeroSheet, RoadmapChip } from '../HeroSheet';
+import { HeroSheet, RoadmapChip, annotationsDeCaracteristiques } from '../HeroSheet';
 import { careerLabelFor, findStarById, rigSpeciesId } from '../../data';
 import {
   CreatorDraft,
@@ -80,24 +79,12 @@ export function CreatorSummary({ d, step = 0 }: { d: CreatorDraft; step?: number
   const sp = draftSpecies(d);
   const level = draftLevel(d);
   const baseChars = draftChars(d);
-  // Surlignage des Caractéristiques MODIFIÉES (talents +5, Augmentations gratuites, malus) : l'écart
-  // se mesure à la valeur EFFECTIVE (`effectiveChar`, lecteur canonique #498) contre l'ÉDITION brute
-  // du brouillon (`baseChars`) — idiome du site canonique `CharacterSheet.tsx` (`ok-text`/`warn-text`,
-  // `HeroSheet` `statAnnotations`, data-driven, aucun branchement créateur dans la primitive).
-  const statAnnotations = useMemo(() => {
-    if (!hero) return undefined;
-    const out: Partial<Record<CharKey, { valClass?: string; note?: string }>> = {};
-    for (const k of CHAR_KEYS) {
-      const e = effectiveChar(hero, k);
-      const b = baseChars[k];
-      if (e > b) {
-        out[k] = { valClass: 'ok-text', note: `${b} + Augmentations/talents` };
-      } else if (e < b) {
-        out[k] = { valClass: 'warn-text', note: `Base ${b} (${e - b} de modificateurs)` };
-      }
-    }
-    return out;
-  }, [hero, baseChars]);
+  // Surlignage des Caractéristiques MODIFIÉES (talents +5, Augmentations gratuites, malus) contre
+  // l'ÉDITION brute du brouillon (`baseChars`) — même composeur que la fiche (`annotationsDeCaracteristiques`).
+  const statAnnotations = useMemo(
+    () => (hero ? annotationsDeCaracteristiques(hero, (k) => baseChars[k], { gain: 'd’Augmentations et de talents', perte: 'de modificateurs' }) : undefined),
+    [hero, baseChars],
+  );
   const started = hasSpecies(d); // au moins une race choisie → la fiche commence à vivre
   const careerLabel = d.careerId ? careerLabelFor({ career: d.careerId, appearance: { sex: d.apparence.sex } }) : '';
   // Repli si le brouillon ne construit aucun héros valide : apparence du brouillon (race choisie), sans équipement.

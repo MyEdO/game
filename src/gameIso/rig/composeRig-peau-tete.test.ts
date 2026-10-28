@@ -8,11 +8,13 @@ import { bonesToSvg } from './renderBones';
 import { asRigSpeciesId } from './appearance';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { VIEWS, type View } from './facing';
+import { equipDe } from '../../noyau/equipementDessine';
+
 const GNOME_LEZARD: Appearance = { species: asRigSpeciesId('gnome'), sex: 'M', build: 0.5, seed: 1, monster: { tete: 'lezard' } };
 
 describe('peau greffée par la tête', () => {
   it.each<View>(VIEWS)('gnome à tête de lézard (%s) : peau #5d7a42, ombre #495f33', (view) => {
-    const svg = bonesToSvg(resolveRig(GNOME_LEZARD, { weapons: [], armour: [] }, {}, 'nu', view));
+    const svg = bonesToSvg(resolveRig(GNOME_LEZARD, equipDe([], []), {}, 'nu', view));
     expect(svg).toContain('#5d7a42');
     expect(svg).toContain('#495f33');
   });

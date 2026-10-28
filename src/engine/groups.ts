@@ -12,7 +12,7 @@ import { norm } from '../lib/normalize';
 import type { TraitInstance } from './statEntry';
 import { findCareerById, findClassById, findCreatureById, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById, type CreatureData } from '../data';
 
-/** Groupe de tout porteur d'une mutation (`groups.json`). EDOC 12 l.42, l.181. */
+/** Groupe de tout porteur d'une mutation (`groups.json`). EDOC 12 l.56, l.181. */
 const GROUPE_DES_MUTANTS = 'mutants';
 
 /** Groupes DÉCLARÉS, posés une fois sur `Combatant.groups` : espèce (`SpeciesData.grantGroups`) ∪ entrée du

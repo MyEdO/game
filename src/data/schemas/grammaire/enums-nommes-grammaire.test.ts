@@ -11,7 +11,8 @@
  *    déclaration inline sous lui rendrait un jumeau par déroulé (1 475 mesurés pour `who`).
  */
 import { describe, it, expect } from 'vitest';
-import { valeursDe, libelleDeValeur } from './meta';
+import { z } from 'zod';
+import { valeursDe, libelleDeValeur, optionsDuNoeud } from './meta';
 import {
   specsSourceSchema,
   symptomSeveritySchema,
@@ -103,6 +104,12 @@ describe('enums de GRAMMAIRE nommés (#1694 B2) — le libellé de chaque VALEUR
       for (const [v, l] of Object.entries(attendu)) expect(libelleDeValeur(noeud, v)).toBe(l);
     });
   }
+
+  it('`optionsDuNoeud` rend les paires `[valeur, libellé]` du nœud dans l’ordre de ses options, aucune pour un nœud muet', () => {
+    for (const [chemin, noeud, attendu] of MIGRES) expect(optionsDuNoeud(noeud), chemin).toEqual(Object.entries(attendu));
+    expect(optionsDuNoeud(z.enum(['a', 'b']))).toEqual([]);
+    expect(optionsDuNoeud(undefined)).toEqual([]);
+  });
 
   it('les options d’un enum nommé SONT les clés de sa table — aucun libellé orphelin', () => {
     for (const [chemin, noeud] of MIGRES) {

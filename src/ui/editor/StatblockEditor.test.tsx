@@ -7,6 +7,8 @@ import { StatblockEditor } from './StatblockEditor';
 import type { CustomStatblock } from '../../engine/statblock';
 import { charAbr, creatures } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
+import { idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
+import { DECLARABLE_PAR_UN_PORTEUR } from '../../data/schemas/grammaire/sousListes';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -14,10 +16,10 @@ beforeAll(() => {
 
 describe('StatblockEditor — exposition Psychologie (P4)', () => {
   it('affiche le champ Groupes (extras) avec la valeur courante', () => {
-    const stat: CustomStatblock = { type: 'statblock', label: 'X', char: { M: 4 }, groups: ['Sigmarite', 'Cultiste'] };
+    const [groupe] = idsDeLaSousListe('groupe', DECLARABLE_PAR_UN_PORTEUR);
+    const stat: CustomStatblock = { type: 'statblock', label: 'X', char: { M: 4 }, groups: [groupe] };
     const html = renderToStaticMarkup(<StatblockEditor chemin="banc/statblock" stat={stat} onChange={() => {}} />);
-    expect(html).toContain('Groupes');
-    expect(html).toContain('Sigmarite, Cultiste');
+    expect(html).toContain(`value="${groupe}" selected=""`);
   });
 
   it('documente la syntaxe des Traits psy (Peur/Terreur/Animosité)', () => {

@@ -14,18 +14,19 @@ import { useGame } from '../../../state/store';
 import type { BattleState } from '../../../noyau/etat';
 import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import { createHero } from '../../../engine/character';
-import { damageArmour } from '../../../engine/items';
+import { damageArmour, itemFromTrappingById, weaponFromItem } from '../../../engine/items';
 import { loadRegister } from '../../../engine/weaponLoad';
 import { rigIdleDef } from '../../rig/anim/actorAnimSelect';
 import { VIEWS } from '../../rig/facing';
-import type { Combatant, ItemInstance, Weapon } from '../../../engine/types';
+import type { Combatant, ItemInstance } from '../../../engine/types';
+import { findTrappingById } from '../../../data';
 
 const scene = emptyScene('scene-test', 8, 8);
 const mpt = sceneMetresPerTile(scene);
 
 function combat(): { H: Combatant; E: Combatant } {
   const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
-  H.weapons = [{ uid: 'w-arb', label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], subType: 'Arbalète', reload: 1, trappingId: 'arbalete' } as unknown as Weapon];
+  H.weapons = [{ ...weaponFromItem(itemFromTrappingById('arbalete', findTrappingById)!), uid: 'w-arb', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], subType: 'Arbalète', reload: 1 }];
   H.items = [...(H.items ?? []), { uid: 'am1', label: 'Carreau', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arbalète', qty: 3 } as ItemInstance];
   loadRegister(H, H.weapons[0]).loaded = true;
   H.pos = { x: 0, y: 0 };
@@ -56,7 +57,7 @@ function tracerTout(): void {
           s.svg(view, mirror, 0);
           s.frameSvg?.(view, mirror, rigIdleDef(), 2, 8);
         }
-    renderToStaticMarkup(<svg>{tokenBodyKind({ kind: 'combatant', combatant: c }, 'top').body}</svg>);
+    renderToStaticMarkup(<svg>{tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: c }, 'top').body}</svg>);
   }
 }
 

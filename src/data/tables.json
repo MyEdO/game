@@ -1524,8 +1524,12 @@
           },
           {
             "op": "grantPsychTrait",
-            "psychType": "prejuge",
-            "cible": "etranger"
+            "psychType": {
+              "id": "prejuge"
+            },
+            "cible": {
+              "id": "etranger"
+            }
           }
         ]
       },

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Combatant, CharKey } from '../engine/types';
+import { CHAR_KEYS, type Combatant, type CharKey } from '../engine/types';
 import type { Money } from '../engine/money';
 import { dominantAxes } from '../engine/axes';
 import { effectiveChar } from '../engine/characteristics';
@@ -31,6 +31,26 @@ export type HeroSheetSection = (typeof HERO_SHEET_SECTIONS)[number];
  *  2026-07-17) l'omet plutôt que de dupliquer le chiffre, sans devoir dupliquer tout le markup. */
 export const HERO_SHEET_DERIVED_FIELDS = ['wounds', 'movement', 'fate', 'resilience'] as const;
 export type HeroSheetDerivedField = (typeof HERO_SHEET_DERIVED_FIELDS)[number];
+
+/** Annotation PAR CARACTÉRISTIQUE de la grille (`CharStatsGrid` `valClass`/`note`). */
+export type AnnotationsDeCaracteristiques = Partial<Record<CharKey, { valClass?: string; note?: string }>>;
+
+/** Annotations de la grille : écart de la valeur EFFECTIVE (`effectiveChar`) à la base de comparaison de
+ *  l'appelant (`base`) — `ok-text` au-dessus, `warn-text` en dessous ; `origine` nomme ce qui fait l'écart,
+ *  selon son SIGNE (`gain` au-dessus, `perte` en dessous).
+ *  Source UNIQUE de la fiche (`CharacterSheet`) et de la fiche vivante du créateur (`CreatorSummary`). */
+export function annotationsDeCaracteristiques(
+  hero: Combatant, base: (k: CharKey) => number, origine: { gain: string; perte: string },
+): AnnotationsDeCaracteristiques {
+  const out: AnnotationsDeCaracteristiques = {};
+  for (const k of CHAR_KEYS) {
+    const b = base(k);
+    const e = effectiveChar(hero, k);
+    if (e > b) out[k] = { valClass: 'ok-text', note: `Base ${b} (+${e - b} ${origine.gain})` };
+    else if (e < b) out[k] = { valClass: 'warn-text', note: `Base ${b} (${e - b} ${origine.perte})` };
+  }
+  return out;
+}
 
 /**
  * HeroSheet — corps de FICHE HÉROS, consécration de la duplication entre la fiche vivante du
@@ -71,7 +91,7 @@ export function HeroSheet({
   /** Annotation PAR CARACTÉRISTIQUE de la grille (`CharStatsGrid` `valClass`/`note`) — data-driven,
    *  aucun branchement créateur ICI : l'appelant (ex. `CreatorSummary`, augmentations/talents)
    *  calcule ses propres classes/notes et les fournit. */
-  statAnnotations?: Partial<Record<CharKey, { valClass?: string; note?: string }>>;
+  statAnnotations?: AnnotationsDeCaracteristiques;
   /** Rubriques rendues — TOUTES par défaut (rétro-compatible). Un appelant qui porte déjà une partie
    *  du corps ailleurs (ex. la fiche : Blessures dans l'aside) restreint la liste plutôt que de
    *  dupliquer le markup à la main (arbitrage 2026-07-17). */

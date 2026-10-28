@@ -17,6 +17,7 @@ import { validateScene } from '../../noyau/validateScene';
 import { DIR4_ORDER, type Dir4 } from '../../geometry/dir8';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { detenteur } from '../../detenteur.testkit';
+import { findTrappingById } from '../../data';
 
 /**
  * LE DÉCOR VOLUMIQUE — les refs de `props.json` dont le corps MONDE est leur recette, et dont le SVG
@@ -116,7 +117,7 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
     const scene = sceneWith(propEntity({ id: `e-${id}`, ref: id, pos: { x: 2, y: 2 }, facing: 'S' }));
     expect(buildProps(scene)[0]).toMatchObject({ entId: `e-${id}`, faces: expect.any(Array) });
     const els = wholeSceneBillboardEls(scene);
-    expect(collectBillboards(scene, sceneMetresPerTile(scene), els).some((b) => b.identity.includes(`e-${id}`))).toBe(false);
+    expect(collectBillboards(findTrappingById, scene, sceneMetresPerTile(scene), els).some((b) => b.identity.includes(`e-${id}`))).toBe(false);
   });
 
   /**

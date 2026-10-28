@@ -22,7 +22,7 @@ import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, toMoney, formatMoney, priceToMoney, canAfford, parseStatus, PA_PER_SC } from '../engine/money';
 import { partyMoneyTotal, payWithAllocation, payFromGroup, soloPayer, creditBourse, debitBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
-import { itemFromTrappingById, recomputeLoadout, buildWeapon, autoStowNewItem } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, recomputeLoadout, buildWeapon, autoStowNewItem } from '../engine/items';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
 import { resetInterruptedFavorProgress } from './favorFlow';
@@ -57,6 +57,7 @@ import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax, heroMaxWounds } from '../engine/talentEffects';
 import { findCareerById, levelsForCareer, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill, libelleOuAbsence } from '../data';
 import { findEffectTableById } from '../data/effectTables';
+import { currentPlaceId } from './worldMap';
 import { findTableEntry } from '../engine/tables';
 import { CHAR_LABELS, type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
@@ -190,7 +191,7 @@ export function startInterlude(get: Get, set: Set, weeks = 1): void {
   // les commandes du cycle précédent sont livrées à l'ouverture de CET interlude.
   for (const o of get().pendingOrders ?? []) {
     const hero = party.find((h) => h.id === o.heroId);
-    const it = hero ? itemFromTrappingById(o.trappingId) : null;
+    const it = hero ? itemFromTrappingById(o.trappingId, undefined, contexteDeNaissanceDObjet(hero)) : null;
     if (hero && it) {
       hero.items = [...(hero.items ?? []), it];
       autoStowNewItem(hero, it); // #204 : rangement par défaut
@@ -473,14 +474,6 @@ export function craftStart(get: Get, set: Set, heroId: string, trappingId: strin
 }
 
 // ── Catalogue d'Activités data-driven (`activities.json`, contexte 'interlude') ────────────────
-
-/** Lieu courant sur la carte du monde : la place dont la scène EST la scène courante (« Être dans
- *  `scene` = être à ce lieu », worldMap.ts). `null` hors carte — les Activités à gate `where`
- *  (ACE = « à Altdorf ») y sont alors indisponibles. */
-export function currentPlaceId(s: Pick<Jeu, 'scene' | 'worldMap'>): string | null {
-  const sid = s.scene?.id;
-  return (sid && s.worldMap?.places.find((p) => p.scene === sid)?.id) || null;
-}
 
 /** Activités du catalogue proposables ICI (contexte 'interlude' + gate géographique `where`). Quand une
  *  bataille de masse est en attente de préparation (`massBattle.phase === 'prep'`), les Activités de
@@ -805,9 +798,8 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       if (!h.craft) return { lines: [] };
       const { total: drDone, done } = extendedTestStep(pa.drBefore ?? 0, { success: !!pa.success, sl: pa.sl }, h.craft.drTarget);
       if (done) {
-        const it = itemFromTrappingById(h.craft.trappingId);
+        const it = itemFromTrappingRef({ id: h.craft.trappingId, qualities: [...h.craft.atouts, ...h.craft.defauts].map((id) => ({ id })) }, undefined, contexteDeNaissanceDObjet(h));
         if (it) {
-          it.qualities = [...(it.qualities ?? []), ...h.craft.atouts.map((id) => ({ id })), ...h.craft.defauts.map((id) => ({ id }))]; // ids → QualityInstance
           h.items = [...(h.items ?? []), it];
           autoStowNewItem(h, it); // #204 : rangement par défaut
           recomputeLoadout(h);

@@ -21,6 +21,7 @@ import type { ManeuverDef, StakeRef, SpellData } from '../data';
 import type { CastResult, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
 import type { HealMode } from '../engine/healing';
 import type { PsychType } from '../engine/psychology';
+import type { CiblePsy } from '../engine/psych/ciblage';
 import type { RecoverOpposition } from './combat/recover';
 import type { RecapLine } from './recapLine';
 import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFactory';
@@ -75,8 +76,8 @@ export interface ScheduledEffect {
 export interface PendingVictory {
   xp: number;
   gold: Money;
-  /** Équipement (giveTrapping) du butin — ATTRIBUABLE par portrait sur l'écran (qualités/skin
-   *  conservés), au lieu d'aller d'office au 1er héros. Non attribué → 1er héros à la fermeture. */
+  /** Équipement (giveTrapping) du butin — ATTRIBUABLE par portrait sur l'écran (qualités/teinte
+   *  conservées), au lieu d'aller d'office au 1er héros. Non attribué → 1er héros à la fermeture. */
   gear?: LootGear[];
   defeated: { label: string; count: number; creatureId?: string }[];
   /** Créatures déjà récoltées (« Précieuses Entrailles », ZI) sur cet écran — grise le bouton (par id). */
@@ -1278,10 +1279,11 @@ export interface PendingDefense {
 export interface PendingDisengage {
   moverId: string; // héros qui se désengage (actif)
   foeId: string; // adversaire de référence (meilleure CC) pour l'Esquive et la Fuite
-  canSacrifice: boolean; // Avantage > tous les foes Engagés → option « Sacrifier l'Avantage » dispo
-  /** Esquive/Fuite disponibles ? Faux si l'Action est déjà dépensée (elles la coûtent) → seule
-   *  l'option A « Sacrifier l'Avantage » reste, ce qui évite la boucle infinie d'Esquive. */
-  canEsquive?: boolean;
+  canSacrifice: boolean; // option « Utiliser l'Avantage » ouverte (`peutSacrifierLAvantage`)
+  /** Raison qui ferme l'Esquive (`refusDEsquiveDeDesengagement`, `noyau/combat/desengagement.ts`). Absente = ouverte. */
+  refusEsquive?: string;
+  /** Fuite ouverte (`peutFuir`, LDB 15 l.61). Absente = ouverte. */
+  canFuir?: boolean;
   phase: 'choice' | 'esquive' | 'fuir'; // 'choice' = menu ; 'esquive' = Test d'Esquive ; 'fuir' = coup dans le dos SUBI + Test `fuite` influençable
   atk: TestResult | null; // Esquive : jet de Corps à corps du foe, figé (jamais relancé)
   def: TestResult | null; // Esquive : jet d'Esquive du mover
@@ -2208,7 +2210,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  — type psy + source + cible + Indice — face à laquelle les héros appelés à l'entrée de scène sont
    *  les RANGÉES (`participants`, `aggregate:'none'`). L'applier 'encounterPsych' pose le `psychState`
    *  RANGÉE PAR RANGÉE ; Détermination (LDB 17 l.59) jouée par rangée (`BatchParticipant.immune`). */
-  encounterPsych?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: string };
+  encounterPsych?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy };
   /** DÉCLARATION d'une BANDE de Psychologie EN COMBAT (LDB 21) : l'entrée de règle mise en jeu — type
    *  psy + source + cible + Indice — face à laquelle les héros appelés sont les RANGÉES
    *  (`participants`, `aggregate:'none'`). Les Traits ciblés ET les NOUVELLES Terreurs se testent au
@@ -2216,7 +2218,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  DR déjà cumulé (`meta.prevDR`) et l'allègement Sans Peur (`meta.sansPeur`) vivent PAR RANGÉE.
    *  Distinct d'`encounterPsych` (simple) car la Peur de combat est ÉTENDUE. Détermination = immunité
    *  (LDB 17 l.59), jouée par rangée (`BatchParticipant.immune`). */
-  combatPsych?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: string };
+  combatPsych?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy };
   /** Étape « choix » : options présentées au joueur (l'option retenue pilote la conséquence). Leur
    *  `label` est du TEXTE JOUEUR marqué (#1318 V8a₁), comme celui de l'étape qui les porte. `refus` =
    *  la CAUSE d'indisponibilité de CETTE option (coût d'Avantage hors de portée…), rendue au survol/

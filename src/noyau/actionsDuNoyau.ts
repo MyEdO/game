@@ -159,12 +159,8 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Donne un objet d'un héros à un autre (transfert d'inventaire). Arrive NON équipé chez le
    *  destinataire ; recalcule les deux loadouts. Permet de confier une arme/armure au bon porteur. */
   transferItem: (uid: IdDObjet, fromHeroId: IdDePorteur, toHeroId: IdDePorteur) => void;
-  /** Skin cosmétique d'un objet (override de palette clé→hex ; clé à `undefined` = reset).
-   *  Propagé à l'arme active via recomputeLoadout → le rendu se recolore (objet légendaire). */
-  setItemSkin: (heroId: IdDePorteur, uid: IdDObjet, patch: Record<string, string | undefined>) => void;
-  /** Change la FORME (silhouette) d'une arme abstraite parmi ses `formChoices` (« Arme simple » →
-   *  épée/hache/masse/…). Pose `ItemInstance.formeChoisie` puis recompute → l'arme tenue change de silhouette. */
-  choisirForme: (heroId: IdDeHeros, uid: IdDObjet, forme: string) => void;
+  /** Choisit un id du catalogue d’apparences admis par l’objet ; le défaut retire la clé (#2113). */
+  choisirApparence: (heroId: IdDeHeros, uid: IdDObjet, apparence: string) => void;
   // ── Avancement par PX (LDB 07-Carrières) — câblage du moteur testé ──
   /** Octroie des PX à un héros. */
   grantXp: (heroId: IdDeHeros, amount: number) => void;
@@ -806,8 +802,8 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   renamePossession: (uid: IdDePossession, label: string) => void;
   /** Réaffecte le propriétaire (succession, don, vente). */
   transferPossession: (uid: IdDePossession, newOwnerId: IdDeHeros) => void;
-  /** Dépose la possession sur place. */
-  stablePossession: (uid: IdDePossession, placeId: string) => void;
+  /** Dépose la possession au lieu courant du groupe. */
+  stablePossession: (uid: IdDePossession) => void;
   /** Reprend une possession déposée. */
   retrievePossession: (uid: IdDePossession) => void;
   /** Embarque la possession sur un hôte (véhicule/navire). */
