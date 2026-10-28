@@ -1,11 +1,12 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
- * Schéma de `gods.json` — dérivé du contenu RÉEL (41 entrées, script d'inventaire) et de
+ * Schéma de `gods.json` — dérivé du contenu RÉEL (script d'inventaire) et de
  * `GodData` (`src/data/index.ts`). `blessings`/`miracles`/`chaosSpells` = ids de sort (`refs('spell')`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { refs } from '../grammaire/ref';
+import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
 export const file = 'gods.json';
 export const famille = 'entite';
@@ -16,7 +17,7 @@ const doc = document(
   {
     /** Ids de `groups.json` accordés au fidèle de ce culte — poussés par un Talent qui porte
      *  `grantSpecGroups` et dont le `spec` nomme ce dieu (`groupesDe`). Absent = aucun Groupe. */
-    grantGroups: z.array(z.string()).optional(),
+    grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     title: z.string().optional(),
     blessings: refs('spell'),
     miracles: refs('spell'),

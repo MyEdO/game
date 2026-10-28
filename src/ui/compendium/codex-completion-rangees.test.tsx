@@ -36,10 +36,9 @@ describe('Codex — un objet présent se rend par l’objet de son nœud', () =>
     expect(degats).toEqual(['plusBF de Dégâts', 'flat de Dégâts']);
   });
 
-  it('alvatafl : la Compétence `{ id, spec }` d’une option s’ouvre en objet, ses sous-champs nommés par la méta', () => {
-    const competence = libelles('tavernGames', 'alvatafl').filter((l) => / de Compétence de la rangée 2 de Options de Test$/.test(l));
-    expect(competence.map((l) => l.split(' de Compétence ')[0])).toEqual(expect.arrayContaining(['identifiant', 'spécialisation']));
-    expect(competence).toContain('spécialisation de Compétence de la rangée 2 de Options de Test');
+  it('alvatafl : la Compétence `{ id, spec }` d’une option se rend par sa référence à spécialisation, ses deux contrôles nommés par sa position', () => {
+    const competence = libelles('tavernGames', 'alvatafl').filter((l) => /Compétence de la rangée 2 de Options de Test$/.test(l));
+    expect(competence).toEqual(['Compétence de la rangée 2 de Options de Test', 'Spécialisation — Compétence de la rangée 2 de Options de Test']);
   });
 
   it('cogue : le `pos` d’un poste NEUF s’ouvre en objet, `x`/`y` saisissables', () => {

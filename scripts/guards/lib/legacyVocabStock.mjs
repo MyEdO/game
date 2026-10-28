@@ -196,13 +196,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/refs-migrated.test.ts",
-    motif: "désormais",
-    ancre: "4bis de L2 #1548 : ces lignes portent désormais `choix: [ids]`, que la marche ci-dessus rend au",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/schema-contract.test.ts",
     motif: "désormais",
     ancre: "(c) CLIQUET : une entrée `PENDING` qui a désormais un schéma doit en SORTIR (sinon la liste ne",

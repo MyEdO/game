@@ -13,3 +13,7 @@ export const INSTANCIABLE_PAR_ID = { horsMarqueurs: ['service'] } as const;
  *  des entrées marquées `forme`, qui sont des variantes. Cible de `forme` et de `trappings.json ›
  *  shape`/`formChoices`. */
 export const RACINE_D_APPARENCE = { horsMarqueurs: ['forme'] } as const;
+
+/** Groupes qu'un PORTEUR déclare (`grantGroups`, `groups`) : l'espace `groups.json` privé des Groupes-Cibles
+ *  jokers, marqués `matchesAll` — un joker vise, il ne se déclare pas. #3045 */
+export const DECLARABLE_PAR_UN_PORTEUR = { horsMarqueurs: ['matchesAll'] } as const;

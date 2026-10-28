@@ -48,6 +48,8 @@ import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
 import { suppressPsychTraits, type PsychType } from './psychology';
+import { ciblePsyLue, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
+import { traitOctroye } from './psych/opsPsy';
 import { norm } from '../lib/normalize';
 import { ConjureForm, conjureFormOptions, equipConjuredWeapon, specDArmeInvoquee } from './conjuredWeapons';
 import { polymorphOps } from './polymorph';
@@ -499,16 +501,18 @@ export type GameOp =
   /** Retire un état PSYCHOLOGIQUE porté (`PsychAffliction.type` — collection `psychState`, DISTINCTE de
    *  `conditions` : pas de perte d'Avantage à la pose, LDB 21 ≠ LDB 16). GÉNÉRIQUE (paramétré par `type`) :
    *  sortie de Frénésie (`effects: onTurnStart` → fin + Exténué, LDB 21 l.35). Journalisé via `t()`. */
-  | { op: 'endPsych'; type: string }
+  | { op: 'endPsych'; type: { id: string } }
   /** POSE (ou met à jour) un état PSYCHOLOGIQUE porté — JUMELLE d'`endPsych`, même collection
    *  `psychState` (DISTINCTE de `conditions` : pas de perte d'Avantage à la pose, LDB 21 ≠ LDB 16).
-   *  UPSERT : l'entrée visée est celle de même `type` ET même `cible` (Traits CIBLÉS), ou — sans
-   *  `cible` — de même `sourceId` (Peur/Terreur : une entrée par créature source) ; absente, créée.
-   *  Charge utile lue par le moteur de Psychologie : `indice` (Indice à surmonter), `calmeDR` (DR
-   *  cumulé du Test étendu), `surmontee` (Peur surmontée), `active` (Trait ciblé subi / résisté),
-   *  `lastTestRound` (n° de Round du dernier Test). Champ absent = INCHANGÉ sur une entrée existante.
+   *  UPSERT : l'entrée visée est celle de même identité (`identiteDeCiblage`) pour un Trait CIBLÉ
+   *  (`cible`), ou — sans `cible` — de même `type` et `sourceId` (Peur/Terreur : une entrée par créature
+   *  source) ; absente, créée. Charge utile lue par le moteur de Psychologie : `indice` (Indice à
+   *  surmonter), `active` (Trait ciblé subi / résisté), `lastTestRound` (n° de Round du dernier Test) :
+   *  absents, INCHANGÉS sur une entrée existante, sauf `active` d'un Trait ciblé, qui vaut subi. `calmeDR`
+   *  (DR cumulé du Test étendu), `surmontee` (Peur surmontée) et `fromTest` (née d'un Test) disent CETTE
+   *  pose : absents, ils retombent. LDB 21 l.9, l.25, l.56
    *  Journalisé via `t()` ; une entrée `active:false` est un marqueur inerte (aucune ligne). */
-  | { op: 'beginPsych'; type: string; cible?: string; sourceId?: string; indice?: Formula; calmeDR?: Formula; surmontee?: boolean; active?: boolean; lastTestRound?: number; fromTest?: boolean }
+  | { op: 'beginPsych'; type: { id: string }; cible?: RefDeCible; sourceId?: string; indice?: Formula; calmeDR?: Formula; surmontee?: boolean; active?: boolean; lastTestRound?: number; fromTest?: boolean }
   /** Modificateur de caractéristique temporisé (ActiveEffect, pool `poolDeNonCumul`).
    *  `durationRounds` absent = durée du
    *  contexte (sort : Rounds, horloge, ou permanent — cf. `durationFromCtx`).
@@ -606,12 +610,12 @@ export type GameOp =
    *  instance, pas une par jour). */
   | { op: 'removeTrait'; trait: { id: string } }
   /** Trait PSYCHOLOGIQUE conféré (Colère impie → Frénésie). PASSIF (mutation/trait) : posé dans
-   *  `c.psychTraits` à l'attache. `psychType` = `PsychType` (frenesie, peur…). */
-  | { op: 'grantPsychTrait'; psychType: string; cible?: string }
+   *  `c.psychTraits` à l'attache. `psychType.id` = `PsychType` (frenesie, peur…). */
+  | { op: 'grantPsychTrait'; psychType: { id: string }; cible?: RefDeCible }
   /** Retire UN Trait psychologique porté (`c.psychTraits` — la DONNÉE persistée, ≠ `endPsych` qui
    *  retire une affliction de combat `psychState`). `psychType` absent = un Trait AU CHOIX (le 1ᵉʳ
    *  porté). Convalescence « Les choses s'arrangent » (ADE II Annexe I) : éliminer un Trait psy indésirable. */
-  | { op: 'removePsychTrait'; psychType?: string }
+  | { op: 'removePsychTrait'; psychType?: { id: string } }
   /** Talent OCTROYÉ, TEMPORAIRE porté par l'`ActiveEffect` (`grantedTalent`) ou STRUCTUREL dans
    *  `c.talents` quand l'octroi n'a pas d'échéance (Marques Arcaniques, VDM 02 l.238). La DURÉE vient du
    *  contexte, ce n'est pas une propriété de l'op : `durationFromCtx` retombe sur `{ scale: 'permanent' }`
@@ -1896,48 +1900,56 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'endPsych': {
         // Retrait d'un état psychologique porté (collection `psychState`, ≠ `conditions`). GÉNÉRIQUE.
-        if (target.psychState?.some((p) => p.type === o.type)) {
-          target.psychState = target.psychState.filter((p) => p.type !== o.type);
-          lines.push(t('op.endPsych', { name: target.label, psych: psychologyLabel(o.type) }));
+        const type = o.type.id;
+        if (target.psychState?.some((p) => p.type === type)) {
+          target.psychState = target.psychState.filter((p) => p.type !== type);
+          lines.push(t('op.endPsych', { name: target.label, psych: psychologyLabel(type) }));
         }
         break;
       }
       case 'beginPsych': {
         // Pose/mise à jour d'un état psychologique porté (collection `psychState`, ≠ `conditions`).
-        // UPSERT par (`type` + `cible`) pour un Trait CIBLÉ, par (`type` + `sourceId`) sinon : un
-        // re-Test contre la MÊME source met à jour SON entrée au lieu d'en empiler une seconde.
+        // UPSERT par identité pour un Trait CIBLÉ, par (`type` + `sourceId`) sinon : un re-Test contre la
+        // MÊME source met à jour SON entrée au lieu d'en empiler une seconde.
         const list = [...(target.psychState ?? [])];
-        const at = list.findIndex((p) => p.type === o.type && (o.cible != null ? p.cible === o.cible : p.sourceId === o.sourceId));
+        const type = o.type.id as PsychType;
+        const cible = o.cible === undefined ? undefined : ciblePsyLue(o.cible);
+        const identite = identiteDeCiblage(type, cible);
+        const at = list.findIndex((p) => (cible !== undefined ? identiteDeCiblage(p.type, p.cible) === identite : p.type === type && p.sourceId === o.sourceId));
+        const precedente: Partial<(typeof list)[number]> = at >= 0 ? list[at] : {};
+        const { calmeDR: _calmeDR, surmontee: _surmontee, fromTest: _fromTest, ...gardee } = precedente;
+        const active = o.active ?? (estCibleType(type) ? true : undefined);
         const next = {
-          ...(at >= 0 ? list[at] : {}),
-          type: o.type as PsychType,
-          ...(o.cible != null ? { cible: o.cible } : {}),
+          ...gardee,
+          type,
+          ...(cible !== undefined ? { cible } : {}),
           ...(o.sourceId != null ? { sourceId: o.sourceId } : {}),
           ...(o.indice != null ? { indice: Math.max(0, resolveFormula(o.indice, ref, rng, ctx.rolled, ctx.indice, ctx.stacks)) } : {}),
           ...(o.calmeDR != null ? { calmeDR: Math.max(0, resolveFormula(o.calmeDR, ref, rng)) } : {}),
           ...(o.surmontee != null ? { surmontee: o.surmontee } : {}),
-          ...(o.active != null ? { active: o.active } : {}),
+          ...(active != null ? { active } : {}),
           ...(o.lastTestRound != null ? { lastTestRound: o.lastTestRound } : {}),
           ...(o.fromTest != null ? { fromTest: o.fromTest } : {}),
         };
         if (at >= 0) list[at] = next; else list.push(next);
         target.psychState = list;
         // `active:false` = marqueur d'affliction RÉSISTÉE (empêche le re-déclenchement) : rien n'est subi.
-        if (o.active !== false) lines.push(t('op.beginPsych', { name: target.label, psych: psychologyLabel(o.type) }));
+        if (o.active !== false) lines.push(t('op.beginPsych', { name: target.label, psych: psychologyLabel(type) }));
         break;
       }
       case 'grantPsychTrait': {
         // Trait PSYCHOLOGIQUE conféré (≠ état de combat) : posé dans `c.psychTraits` (la DONNÉE persistée),
         // noyau PARTAGÉ `grantPsychTrait` (`grantedTraits.ts`) — même chemin qu'`attachMutation` (permanent).
-        grantPsychTrait(target, o.psychType as PsychType, o.cible, source);
-        lines.push(t('op.grantPsychTrait', { name: target.label, psych: psychologyLabel(o.psychType), src: nomDeSource(ctx) }));
+        const { type, cible } = traitOctroye(o);
+        grantPsychTrait(target, type, cible, source);
+        lines.push(t('op.grantPsychTrait', { name: target.label, psych: psychologyLabel(type), src: nomDeSource(ctx) }));
         break;
       }
       case 'removePsychTrait': {
         // Convalescence « Les choses s'arrangent » (ADE II Annexe I) : retire UN Trait psy de `c.psychTraits`
         // (≠ `endPsych`, qui apaise une affliction de combat `psychState`). Sans `psychType` = le 1ᵉʳ porté.
         const traits = [...(target.psychTraits ?? [])];
-        const idx = o.psychType ? traits.findIndex((p) => p.type === o.psychType) : (traits.length ? 0 : -1);
+        const idx = o.psychType ? traits.findIndex((p) => p.type === o.psychType!.id) : (traits.length ? 0 : -1);
         if (idx >= 0) {
           const [removed] = traits.splice(idx, 1);
           target.psychTraits = traits;

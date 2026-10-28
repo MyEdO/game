@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ConditionEditor, WhenEditor, recast } from './ConditionEditor';
-import { condSummary } from './interne/resumeDeCondition';
+import { condSummary, valeurDeHas } from './interne/resumeDeCondition';
+import { datasetArray } from '../../data/overrides';
+import { catalogueSpecs, entreeOuverte, estSpecialisable, idsDe } from '../../data/schemas/grammaire/ref';
 import type { Condition } from '../../engine/flowCore';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
@@ -46,9 +48,11 @@ describe('ConditionEditor — conditions party-level (skill/career/species/statu
   });
 
   it('skill rend le sélecteur de Compétence + spec + seuil d’avances + who', () => {
-    const html = renderToStaticMarkup(<ConditionEditor cond={{ kind: 'skill', id: 'crochetage', spec: 'Serrures', advances: 2, who: 'all' }} onChange={() => {}} />);
-    expect(html).toContain('value="crochetage"');
-    expect(html).toContain('value="Serrures"');
+    const id = [...idsDe('skill')].find((s) => !entreeOuverte('skill', s) && catalogueSpecs('skill', s).length > 0)!;
+    const [spec] = catalogueSpecs('skill', id);
+    const html = renderToStaticMarkup(<ConditionEditor cond={{ kind: 'skill', id, spec, advances: 2, who: 'all' }} onChange={() => {}} />);
+    expect(html).toContain(`value="${id}"`);
+    expect(html).toMatch(new RegExp(`aria-label="Spécialisation de la Compétence"[^>]*>.*value="${spec}" selected=""`));
     expect(html).toContain('value="2"');
     expect(html).toContain('tout le groupe');
   });
@@ -177,5 +181,41 @@ describe('ConditionEditor — états de campagne (#2539) : offre par USAGE de la
   it('condSummary nomme l’état et la valeur par leur LIBELLÉ', () => {
     expect(condSummary({ kind: 'etat', etat: 'issue', value: 'condamne' }, narratif)).toBe('état « Issue du procès » = Condamné');
     expect(condSummary({ kind: 'partyDead', who: { etat: 'sosie' } }, narratif)).toBe('héros désigné « Le sosie » mort');
+  });
+});
+
+describe('condSummary — la valeur d’une Condition `has` se lit au LIBELLÉ de son registre', () => {
+  const whats = Object.keys(valeursDe(hasWhatSchema) ?? {}) as Extract<Condition, { kind: 'has' }>['what'][];
+  it('chaque `what` : le libellé de l’entrée, jamais son id brut', () => {
+    expect(whats.length).toBeGreaterThan(0);
+    for (const what of whats) {
+      const { ds } = valeurDeHas({ kind: 'has', who: 'target', what, value: '' }).cfg;
+      const entree = (datasetArray(ds) as { id: string; label: string }[]).find((e) => e.label && e.label !== e.id);
+      expect(entree, what).toBeDefined();
+      const resume = condSummary({ kind: 'has', who: 'target', what, value: entree!.id });
+      expect(resume, what).toContain(`« ${entree!.label}`);
+      expect(resume, what).not.toContain(`« ${entree!.id}`);
+    }
+  });
+});
+
+describe('ConditionEditor — la spécialisation du Talent d’un `has` se choisit dans le catalogue du Talent', () => {
+  const talents = [...idsDe('talent')];
+  const rendu = (value: string) => renderToStaticMarkup(<ConditionEditor cond={{ kind: 'has', who: 'target', what: 'talent', value }} onChange={() => {}} />);
+  const optionsDuChoix = (html: string): string[] => {
+    const select = /<select aria-label="Spécialisation du Talent"[^>]*>(.*?)<\/select>/.exec(html)?.[1];
+    return select === undefined ? [] : [...select.matchAll(/value="([^"]*)"/g)].map((m) => m[1]).filter(Boolean);
+  };
+
+  it('Talent FERMÉ à catalogue : ses spécialisations, aucune autre', () => {
+    const ferme = talents.find((id) => !entreeOuverte('talent', id) && catalogueSpecs('talent', id).length > 0);
+    expect(ferme).toBeDefined();
+    expect(optionsDuChoix(rendu(ferme!))).toEqual([...catalogueSpecs('talent', ferme!)]);
+  });
+
+  it('Talent sans spécialisation : aucun contrôle de spécialisation', () => {
+    const nu = talents.find((id) => !estSpecialisable('talent', id));
+    expect(nu).toBeDefined();
+    expect(rendu(nu!)).not.toContain('Spécialisation du Talent');
   });
 });

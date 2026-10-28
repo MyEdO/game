@@ -33,7 +33,7 @@ const ARG_CHAMPS = 2;
 const MODULES_GRAMMAIRE = /(^|\/)(grammaire|defs-scenes)(\/|$)/;
 
 /** Le fichier scanné EST-il un module de grammaire ? (ses consts locales y sont des schémas de la
- *  grammaire : `refSchema.extend(…)` dans `grammaire/reference.ts` étend bien une porte partagée). */
+ *  grammaire : un `.extend(…)` dans `grammaire/reference.ts` étend bien une porte partagée). */
 const estModuleGrammaire = (rel) => MODULES_GRAMMAIRE.test(rel.replace(/\/[^/]*$/, ''));
 
 /** @param {ts.SourceFile} sf @param {ts.Node} n @returns {number} ligne 1-based */

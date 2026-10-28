@@ -78,6 +78,8 @@ const NOMMES = [
   // `VDM 04`–`VDM 11`, partagé par `windModifiers[].when` et `…cancelledBy.circumstance`.
   'feu-proche|volcan-actif|ville-en-flammes|charnier|lieu-de-massacre|lieu-sans-mort|eau-abondante|milieu-sec|mois-sommerzeit|mois-vorgeheim|mois-ulriczeit|mois-vorhexen|tour|colline-elevee|sommet-de-montagne|en-vol|voyage-vers-equateur|metaux-abondants|temps-orageux|temps-brumeux|temps-ensoleille|brise-legere|ville|cite|pleine-nature|region-reculee|middenheim|assistance-chantee',
   'clair|pluie|brouillard|neige|tempete',
+  // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
+  'chaos|unravel',
   'heroStart|personnage|prop',
   'hip|gable|shed|flat',
   'mineure|majeure|importante',
@@ -201,7 +203,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'caniculaire|chaude|mediane|froide|glaciale',
   'cargaison|greement|coque|avirons|equipements|gouvernail|superstructure',
   'chaleur|froid',
-  'chaos|unravel',
   'classe|relais|compagnie|peage|patrouille',
   'complet|partiel',
   'complet|sans-disponibilite|sans-marchandage|simplifie',

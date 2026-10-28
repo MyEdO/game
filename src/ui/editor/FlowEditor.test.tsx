@@ -7,6 +7,8 @@ import { EMPTY_FLOW } from '../../engine/flowCore';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
+import { idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
+import { DECLARABLE_PAR_UN_PORTEUR } from '../../data/schemas/grammaire/sousListes';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -23,9 +25,10 @@ const testFlow = (skill: string, vsGroups?: string[]): Flow => ({
 
 describe('FlowEditor — nœud Test : champ Interlocuteur/groupes (P3)', () => {
   it('un Test de SOCIABILITÉ (Charme) expose le champ des groupes de l’interlocuteur', () => {
-    const html = renderToStaticMarkup(<FlowEditor flow={testFlow('charme', ['Elfe'])} onChange={() => {}} ctx={ctx} />);
+    const [groupe] = idsDeLaSousListe('groupe', DECLARABLE_PAR_UN_PORTEUR);
+    const html = renderToStaticMarkup(<FlowEditor flow={testFlow('charme', [groupe])} onChange={() => {}} ctx={ctx} />);
     expect(html).toMatch(/Interlocuteur/i);
-    expect(html).toContain('Elfe'); // la valeur courante est affichée
+    expect(html).toContain(`value="${groupe}" selected=""`); // la valeur courante est choisie
   });
 
   it('un Test NON-social (Escalade) MASQUE le champ (pas de no-op silencieux)', () => {

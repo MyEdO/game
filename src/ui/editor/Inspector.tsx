@@ -53,9 +53,9 @@ import { allMusicDefs } from '../../audio/music';
 import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, refEstVolumique, siegeEngines, MERCHANT_ARCHETYPES } from '../../data';
 import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEffective, TypeNonNomme } from '../../noyau/sceneEdit';
 import { activitiesFor } from '../../engine/activities';
-import { hintDeValeur, libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
+import { hintDeValeur, libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
-import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
+import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneEffectZoneSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
 
 /** Cibles d'une ANCRE de bataille (`Scene.stations[].sceneId`) : les Scènes de Round du catalogue
  *  d'Activités (contexte `bataille-round`) — le SEUL espace d'ids que le consommateur sait résoudre
@@ -67,7 +67,7 @@ import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from './
 import { isSwarm } from '../../engine/traits/dispatch';
 import { armesDEntite, equipementDAuteurDe } from '../../noyau/equipementDessine';
 import { effectCtxOf } from './EffectList';
-import { RefNarrativeField } from '../compendium/refField/RefField';
+import { ListeDIds, RefNarrativeField } from '../compendium/refField/RefField';
 import { GameOpEditor } from './GameOpEditor';
 import { FlowEditor, TestFields } from './FlowEditor';
 import { actionsDe, ACTION_FOUILLER } from '../../noyau/monde/usable';
@@ -458,7 +458,7 @@ export function Inspector({
                     onChange={(event) => poseToiture('profile', (event.target.value || undefined) as RoofDefaults['profile'])}
                   >
                     <option value="" />
-                    {Object.entries(valeursDe(roofProfileSchema) ?? {}).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                    {optionsDuNoeud(roofProfileSchema).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
                   </select>
                 </label>
                 {toiture.profile === 'shed' && (
@@ -619,7 +619,7 @@ export function Inspector({
                               : candidate),
                           })}
                         >
-                          {Object.entries(valeursDe(facadeFeatureKindSchema) ?? {}).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                          {optionsDuNoeud(facadeFeatureKindSchema).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
                         </select>
                       </label>
                       <label className="ed-field">
@@ -757,7 +757,7 @@ export function Inspector({
                 <label className="ed-field">
                   Profil
                   <select value={roofSection.profile} onChange={(event) => updateRoofSection({ profile: event.target.value as BuildingMass['profile'] })}>
-                    {Object.entries(valeursDe(roofProfileSchema) ?? {}).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                    {optionsDuNoeud(roofProfileSchema).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
                   </select>
                 </label>
                 <label className="ed-field">
@@ -863,11 +863,11 @@ export function Inspector({
                         <OptionalTraitsPicker creature={cr} value={ent.combat?.optionals} onChange={(optionals) => updateSelCombat({ optionals })} />
                         <SpellsField value={ent.combat?.spells} onChange={(spells) => updateSelCombat({ spells })} />
                         <RefField
-                          cfg={{ ds: 'skills', value: true }}
+                          cfg={{ ds: 'skills', value: true, spec: true }}
                           fieldKey="Compétences ajoutées (fusionnées à celles du bestiaire au spawn)"
                           value={ent.combat?.skills ?? []}
                           onChange={(v) => {
-                            const skills = (v as { id: string; value?: number }[]).map((r) => ({ id: r.id, value: r.value ?? 0 }));
+                            const skills = (v as { id: string; spec?: string; value?: number }[]).map((r) => ({ ...r, value: r.value ?? 0 }));
                             updateSelCombat({ skills: skills.length ? skills : undefined });
                           }}
                         />
@@ -1103,17 +1103,12 @@ export function Inspector({
                     <Icon id="mechanic/ward" size="sm" /> Barrière infranchissable (mur magique, cercle de ward)
                   </label>
                   {efz.barrier && (
-                    <label className="ed-field">
-                      Bloque les groupes (vide = tout le monde)
-                      <input
-                        value={(efz.barrier.blockGroups ?? []).join(', ')}
-                        placeholder="Démon, Mort-vivant"
-                        onChange={(e) => {
-                          const blockGroups = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
-                          setEfz({ ...efz, barrier: { blockGroups: blockGroups.length ? blockGroups : undefined } });
-                        }}
-                      />
-                    </label>
+                    <ListeDIds
+                      noeud={sceneEffectZoneSchema.shape.barrier.unwrap().shape.blockGroups}
+                      label="Bloque les groupes (vide = tout le monde)"
+                      value={efz.barrier.blockGroups}
+                      onChange={(blockGroups) => setEfz({ ...efz, barrier: { blockGroups } })}
+                    />
                   )}
                 </Fold>
                 <div className="insp-actions">
@@ -1169,7 +1164,7 @@ export function Inspector({
                         <span>Découvrable depuis</span>
                         <select value={secret.face ?? ''} aria-invalid={!secret.face || undefined} onChange={(e) => choisirSecret({ ...secret, face: e.target.value as FaceDArete })}>
                           {!secret.face && <option value="" disabled>— à choisir —</option>}
-                          {Object.entries(valeursDe(faceDAreteSchema) ?? {}).map(([k, lbl]) => (<option key={k} value={k}>{lbl}</option>))}
+                          {optionsDuNoeud(faceDAreteSchema).map(([k, lbl]) => (<option key={k} value={k}>{lbl}</option>))}
                         </select>
                       </div>
                       {etat && <ChipDeRefus fixe refus={{ message: etat }} />}
@@ -2228,7 +2223,7 @@ function SceneProps({
               ville ne nomme alors aucune météo, et aucun modificateur de combat ne s'applique. */}
           <select value={scene.weather ?? ''} onChange={(e) => setScene({ ...scene, weather: (e.target.value || undefined) as Scene['weather'] })}>
             <option value="">Non spécifiée</option>
-            {Object.entries(valeursDe(sceneWeatherSchema) ?? {}).map(([id, label]) => (
+            {optionsDuNoeud(sceneWeatherSchema).map(([id, label]) => (
               <option key={id} value={id} title={hintDeValeur(sceneWeatherSchema, id)}>{label}</option>
             ))}
           </select>

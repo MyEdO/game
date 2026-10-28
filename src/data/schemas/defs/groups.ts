@@ -5,6 +5,8 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { refs } from '../grammaire/ref';
+import { MOTIF_D_ID_DE_GROUPE } from '../../../engine/psych/ciblage';
 
 export const file = 'groups.json';
 export const famille = 'entite';
@@ -17,7 +19,7 @@ const doc = document(
      *  d'un `exceptGroups`. Absent = appartenance STRICTE par id. */
     matchesAll: z.literal(true).optional(),
     /** Ids de `groups.json` RETRANCHÉS du joker — un combattant qui en porte un n'est pas visé. */
-    exceptGroups: z.array(z.string()).optional(),
+    exceptGroups: refs('groupe').optional(),
   },
   {
     matchesAll: { label: 'Groupe joker', hint: 'Vise tout combattant, hormis les porteurs d’un Groupe exclu' },
@@ -26,6 +28,11 @@ const doc = document(
   {
     codex: { keys: ['groups'] },
     edit: { dataset: 'groups' },
+  },
+  // `matchesAll` : marqueur de la sous-liste `DECLARABLE_PAR_UN_PORTEUR` (`grammaire/sousListes.ts`).
+  {
+    espace: { marqueurs: ['matchesAll'] },
+    idDocument: z.string().regex(MOTIF_D_ID_DE_GROUPE, `id de Groupe : minuscules, chiffres et tirets (${MOTIF_D_ID_DE_GROUPE.source}).`),
   },
 );
 

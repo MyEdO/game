@@ -724,7 +724,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     .filter((p) => findPsychologyById(p.type)?.attackDR?.vs === 'group' && p.active && p.cible)
     .map((p) => p.cible!);
   const hatedOf = (pool: Combatant[]) =>
-    hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => vise({ groupe: cb }, { genre: 'combattant', c: h }, 'appartenance'))) : []; // #3045
+    hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => vise(cb, { genre: 'combattant', c: h }, 'appartenance'))) : []; // #3045
   /** Restreint un vivier au groupe haï s'il y en a un présent, sinon le vivier brut. */
   const restrict = (pool: Combatant[]): Combatant[] => { const hp = hatedOf(pool); return hp.length ? hp : pool; };
   /** En Frénésie, la cible est IMPÉRATIVEMENT le plus proche en LdV (LDB 21 l.33) — on contraint le vivier

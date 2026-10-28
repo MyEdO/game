@@ -19,8 +19,10 @@ import type { DeDeTable } from '../../data/schemas/grammaire/valeurs';
 import { statName } from '../../engine/statEntry';
 import {
   conditionLabel, psychologyLabel, diseaseLabel, symptomLabel, creatureLabel,
-  refLabel, findTrappingById, findEffectTableById, mutationTables, findPsychologyById, groupLabel,
+  refLabel, findTrappingById, findEffectTableById, mutationTables, findPsychologyById,
 } from '../../data';
+import { ciblePsyLue, libelleDeCible } from '../../engine/psych/ciblage';
+import { traitOctroye } from '../../engine/psych/opsPsy';
 
 const textRow = (o: GameOp): CodexRow => ({ t: 'text', text: humanizeOp(o) });
 
@@ -91,29 +93,30 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'traits', id: o.trait.id, label, show: traitOctroyeLisible(o), badge: indice != null && typeof indice !== 'number' ? humanizeFormula(indice) : undefined };
     }
     case 'grantPsychTrait': {
-      const label = psychologyLabel(o.psychType);
-      return { t: 'ref', category: 'psychologies', id: o.psychType, label, show: label, badge: o.cible ? groupLabel(o.cible) : undefined };
+      const { type, cible } = traitOctroye(o);
+      const label = psychologyLabel(type);
+      return { t: 'ref', category: 'psychologies', id: type, label, show: label, badge: cible !== undefined ? libelleDeCible(cible) : undefined };
     }
     case 'removePsychTrait': {
       if (!o.psychType) return textRow(o); // « au choix » : pas d'ancre
-      const label = psychologyLabel(o.psychType);
-      return { t: 'ref', category: 'psychologies', id: o.psychType, label, show: label };
+      const label = psychologyLabel(o.psychType.id);
+      return { t: 'ref', category: 'psychologies', id: o.psychType.id, label, show: label };
     }
     case 'endPsych': {
-      const label = psychologyLabel(o.type);
-      return { t: 'ref', category: 'psychologies', id: o.type, label, show: label };
+      const label = psychologyLabel(o.type.id);
+      return { t: 'ref', category: 'psychologies', id: o.type.id, label, show: label };
     }
     case 'beginPsych': {
-      const label = psychologyLabel(o.type);
+      const label = psychologyLabel(o.type.id);
       // L'Indice (Peur 2, Terreur 3) est le BADGE de la chip : c'est le DR à surmonter, pas un nom.
       // `active:false` = le Trait ciblé RÉSISTÉ (LDB 21 l.19/l.48) : l'issue n'est pas vide, elle porte le
       // modificateur social « contenu » déclaré par l'entrée (`containedSocialMod`).
-      const mod = o.active === false ? findPsychologyById(o.type)?.containedSocialMod : undefined;
+      const mod = o.active === false ? findPsychologyById(o.type.id)?.containedSocialMod : undefined;
       const badge = [
-        (o.cible ? groupLabel(o.cible) : undefined) ?? (o.indice != null ? humanizeFormula(o.indice) : undefined),
+        (o.cible ? libelleDeCible(ciblePsyLue(o.cible)) : undefined) ?? (o.indice != null ? humanizeFormula(o.indice) : undefined),
         mod != null ? `${mod < 0 ? '−' : '+'}${Math.abs(mod)} Sociabilité` : undefined,
       ].filter((s): s is string => !!s).join(' · ') || undefined;
-      return { t: 'ref', category: 'psychologies', id: o.type, label, show: label, badge };
+      return { t: 'ref', category: 'psychologies', id: o.type.id, label, show: label, badge };
     }
     case 'condition': {
       const label = conditionLabel(o.id);

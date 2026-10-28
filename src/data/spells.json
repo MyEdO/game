@@ -22126,7 +22126,9 @@
             "ops": [
               {
                 "op": "grantPsychTrait",
-                "psychType": "prejuge"
+                "psychType": {
+                  "id": "prejuge"
+                }
               }
             ]
           }
@@ -22146,7 +22148,9 @@
               "ops": [
                 {
                   "op": "grantPsychTrait",
-                  "psychType": "animosite"
+                  "psychType": {
+                    "id": "animosite"
+                  }
                 }
               ]
             }
@@ -22167,7 +22171,9 @@
               "ops": [
                 {
                   "op": "grantPsychTrait",
-                  "psychType": "haine"
+                  "psychType": {
+                    "id": "haine"
+                  }
                 }
               ]
             }

@@ -74,6 +74,7 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import { DIFFICULTY_LABELS } from '../engine/types';
 import { EXPOSURE_LADDER } from '../engine/corruption';
 import { resoudreTrait } from '../engine/statEntry';
+import { opPsy } from '../engine/psych/opsPsy';
 import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from '../noyau/monde/terrain';
@@ -2085,7 +2086,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
       if (!findPsychologyById(type)) return `✗ état psychologique « ${type} » inconnu — ids valides : ${psychologies.map((p) => p.id).join(', ')}`;
-      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [{ op: 'beginPsych', type }] }]), 'devtools.psych');
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [opPsy.pose(type)] }]), 'devtools.psych');
       return `✓ ${c.label} : ${psychologyLabel(type)}`;
     },
 

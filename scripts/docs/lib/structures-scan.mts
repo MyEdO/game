@@ -1384,7 +1384,7 @@ function kindsDeCondition(root: string): Set<string> {
 /**
  * Schémas COMMUNS candidats, par signature de clés (lus dans la grammaire par AST). Le schéma dont la
  * signature est celle de son littéral RACINE l'emporte sur celui qui ne la porte qu'en sous-objet
- * (`refSchema` plutôt que le `hasSkill` niché de `flowTestSchema`) — sinon le gagnant dépendrait de
+ * (un schéma écrit en racine plutôt que le même littéral niché dans un autre) — sinon le gagnant dépendrait de
  * l'ordre de lecture des fichiers de la grammaire.
  * Les littéraux s'apparient par leur FORME (`formeDuLitteral`), pas par leur seule signature.
  */

@@ -9,6 +9,7 @@ import {
   refreshDefendedPsych, sansPeurVs, type PsychAffliction, type PsychType,
 } from './psychology';
 import { psychDRAdjust } from './combat';
+import { ciblePsy } from './psych/ciblage';
 import { buildActorView } from './actorView';
 import { socialPsychMod } from './skills';
 import { groups, psychologies, talents, traits } from '../data';
@@ -34,24 +35,24 @@ describe('vise — un prédicat, deux lectures (#3045)', () => {
 
   it('un Groupe CACHÉ appartient au porteur sans être perçu', () => {
     const cache = { genre: 'combattant', c: porteur('p', true) } as const;
-    expect(vise({ groupe: groupeDuTrait }, cache, 'appartenance')).toBe(true);
-    expect(vise({ groupe: groupeDuTrait }, cache, 'percu')).toBe(false);
+    expect(vise(ciblePsy.groupe(groupeDuTrait), cache, 'appartenance')).toBe(true);
+    expect(vise(ciblePsy.groupe(groupeDuTrait), cache, 'percu')).toBe(false);
     const visible = { genre: 'combattant', c: porteur('p', false) } as const;
-    expect(vise({ groupe: groupeDuTrait }, visible, 'percu')).toBe(true);
+    expect(vise(ciblePsy.groupe(groupeDuTrait), visible, 'percu')).toBe(true);
   });
 
   it('un interlocuteur n’a que les Groupes que le Test lui décrit : les deux lectures s’y confondent', () => {
     const s = { genre: 'interlocuteur', groups: [groupeDuTrait] } as const;
-    expect(vise({ groupe: groupeDuTrait }, s, 'percu')).toBe(true);
-    expect(vise({ groupe: groupeDuTrait }, s, 'appartenance')).toBe(true);
-    expect(vise({ groupe: groupeDuTrait }, { genre: 'interlocuteur', groups: [] }, 'percu')).toBe(false);
+    expect(vise(ciblePsy.groupe(groupeDuTrait), s, 'percu')).toBe(true);
+    expect(vise(ciblePsy.groupe(groupeDuTrait), s, 'appartenance')).toBe(true);
+    expect(vise(ciblePsy.groupe(groupeDuTrait), { genre: 'interlocuteur', groups: [] }, 'percu')).toBe(false);
   });
 
   it('un Groupe joker se résout par `groupMatch`, pour toute source', () => {
     const joker = groups.find((g) => g.matchesAll && !g.exceptGroups?.length);
     expect(joker).toBeDefined();
-    expect(vise({ groupe: joker!.id }, { genre: 'interlocuteur', groups: [] }, 'percu')).toBe(true);
-    expect(vise({ groupe: joker!.id }, { genre: 'combattant', c: mk('x') }, 'appartenance')).toBe(true);
+    expect(vise(ciblePsy.groupe(joker!.id), { genre: 'interlocuteur', groups: [] }, 'percu')).toBe(true);
+    expect(vise(ciblePsy.groupe(joker!.id), { genre: 'combattant', c: mk('x') }, 'appartenance')).toBe(true);
   });
 });
 

@@ -1,4 +1,4 @@
-import { nommerChamps, metaDesChamps } from './meta';
+import { nommerChamps } from './meta';
 /**
  * RÉFÉRENCES de la grammaire de document (#1466 L1a) — les formes ACTUELLES de désignation d'une
  * entité par son id (réf simple, réf de Qualité, dotation, emplacement d'avancement, Trait posé).
@@ -169,9 +169,19 @@ export const qualityRefSchema = refIndiceSchema;
  *  texte narratif hors catalogue (+ quantité), dotation VÉHICULE (`vehicleId`, foyer `vehicles.json` —
  *  grant de POSSESSION, matérialisé en T1), dotation BÊTE (`creatureId`, foyer `creatures.json` — SOCLE
  *  POSSESSIONS #615/#617 §9), choix « A ou B » (`choice`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`),
- *  ou joker (`wildcard`). Dupliqué dans `careerLevels`/`classes`/`creatures`. */
+ *  ou joker (`wildcard`). Dupliqué dans `careerLevels`/`classes`/`creatures`. Sa `spec` est la PRÉCISION
+ *  d'un objet, nommée comme telle : `trappings.json` ne déclare aucun catalogue de Spécialisations. */
 type CountSpecInfer = z.infer<typeof countSpecSchema>;
 type QualityRefInfer = z.infer<typeof qualityRefSchema>;
+/** Dotation d'un objet du catalogue : sa `spec` est la précision de la dotation, pas une Spécialisation. */
+export const dotationDeCatalogueSchema = nommerChamps(z.strictObject({
+  id: z.string(),
+  spec: z.string().optional(),
+  count: countSpecSchema.optional(),
+  qualities: z.array(qualityRefSchema).optional(),
+  qualityChoice: z.literal(true).optional(),
+}), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, qualityChoice: { label: 'qualité au choix' } });
+
 export const trappingRefSchema: z.ZodType<
   | { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; qualityChoice?: true }
   | { text: string; count?: CountSpecInfer }
@@ -180,11 +190,7 @@ export const trappingRefSchema: z.ZodType<
   | { choice: unknown[] }
   | { wildcard: string }
 > = z.union([
-  nommerChamps(refSchema.extend({
-    count: countSpecSchema.optional(),
-    qualities: z.array(qualityRefSchema).optional(),
-    qualityChoice: z.literal(true).optional(),
-  }), { ...metaDesChamps(refSchema, { exigees: true }), count: { label: 'nombre' }, qualities: { label: 'qualités' }, qualityChoice: { label: 'qualité au choix' } }),
+  dotationDeCatalogueSchema,
   nommerChamps(z.strictObject({ text: z.string(), count: countSpecSchema.optional() }), { text: { label: "texte" }, count: { label: "nombre" } }),
   nommerChamps(z.strictObject({ vehicleId: z.string(), count: countSpecSchema.optional(), label: z.string().optional() }), { vehicleId: { label: "véhicule" }, count: { label: "nombre" }, label: { label: "libellé" } }),
   nommerChamps(z.strictObject({ creatureId: z.string(), count: countSpecSchema.optional(), label: z.string().optional() }), { creatureId: { label: "créature" }, count: { label: "nombre" }, label: { label: "libellé" } }),

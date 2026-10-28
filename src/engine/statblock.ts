@@ -28,7 +28,7 @@ export interface CustomStatblock {
   traits?: TraitPose[];
   /** Catégorie de Taille (LDB 85) — sinon dérivée du trait « Taille (X) », défaut Moyenne. */
   size?: SizeCategory;
-  /** Groupes d'appartenance manuels supplémentaires (Sigmarite, Cultiste…) pour les Traits psy ciblés (LDB 21). */
+  /** Groupes d'appartenance manuels supplémentaires (ids de groups.json) pour les Traits psy ciblés (LDB 21). */
   groups?: string[];
   /** Sorts connus (ids de spells.json) — choix d'AUTEUR ; l'IA incante les Projectiles magiques. */
   spells?: string[];

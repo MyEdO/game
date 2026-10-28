@@ -5,7 +5,9 @@
 import type { GameOp } from '../../../engine/ops';
 import type { JsonFormula } from '../../../engine/miscast';
 import type { DatasetKey } from '../../../data/overrides';
-import { charAbr, conditionLabel, findCrewTestTypeById, groupLabel, psychologyLabel, qualityRefLabel, refLabel } from '../../../data';
+import { charAbr, conditionLabel, findCrewTestTypeById, psychologyLabel, qualityRefLabel, refLabel } from '../../../data';
+import { ciblePsyLue, libelleDeCible } from '../../../engine/psych/ciblage';
+import { traitOctroye } from '../../../engine/psych/opsPsy';
 import { findFallTable } from '../../../data/shipCriticals';
 import { libelleDeValeur } from '../../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../../data/schemas/grammaire/valeurs';
@@ -58,8 +60,8 @@ export function opSummary(o: GameOp): string {
     case 'healCaster': return `+${formulaSummary(o.amount)} PB au lanceur`;
     case 'condition': return [`${conditionLabel(o.id)}${o.value && o.value !== 1 ? ` ×${formulaSummary(o.value)}` : ''}${o.perRound ? '/Round' : ''}`, dureePropre(o)].filter(Boolean).join(', ');
     case 'removeCondition': return `${o.id ? conditionLabel(o.id) : '(au choix)'}`;
-    case 'endPsych': return psychologyLabel(o.type);
-    case 'beginPsych': return `${psychologyLabel(o.type)}${o.cible ? ` (${groupLabel(o.cible)})` : ''}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
+    case 'endPsych': return psychologyLabel(o.type.id);
+    case 'beginPsych': return `${psychologyLabel(o.type.id)}${o.cible ? ` (${libelleDeCible(ciblePsyLue(o.cible))})` : ''}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
     case 'sbBonus': return `+${o.amount} BF aux Dégâts`;
     case 'incomingSpellDRMod': return `${typeof o.amount === 'number' && o.amount >= 0 ? '+' : ''}${formulaSummary(o.amount)} DR de Sort / point`;
     case 'charMod': return [`${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.char]}`, plancher(o), dureePropre(o)].filter(Boolean).join(', ');
@@ -93,7 +95,10 @@ export function opSummary(o: GameOp): string {
     case 'grantNaturalWeapon': return `${o.label} (${o.plusBF !== false ? 'BF+' : ''}${formulaSummary(o.damage)})`;
     case 'grantTrait': return traitOctroyeLisible(o, formulaSummary);
     case 'removeTrait': return formatTrait(o.trait);
-    case 'grantPsychTrait': return `${psychologyLabel(o.psychType)}${o.cible ? ` (${groupLabel(o.cible)})` : ''}`;
+    case 'grantPsychTrait': {
+      const { type, cible } = traitOctroye(o);
+      return `${psychologyLabel(type)}${cible !== undefined ? ` (${libelleDeCible(cible)})` : ''}`;
+    }
     case 'grantTalent': return `${refLabel('talents', o.talent)}`;
     case 'grantCareerSkill': return `${refLabel('skills', o.skill)}`;
     case 'grantCareerTalent': return `${refLabel('talents', o.talent)}`;

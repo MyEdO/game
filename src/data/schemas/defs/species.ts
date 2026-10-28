@@ -1,17 +1,18 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
- * Schéma de `species.json` — dérivé du contenu RÉEL (27 entrées, script d'inventaire) et de
+ * Schéma de `species.json` — dérivé du contenu RÉEL (script d'inventaire) et de
  * `SpeciesData` (`src/data/index.ts`). `skills`/`talents` = emplacements d'avancement
  * (`grammaire/avancement.ts`), `baseChar` = `Partial<Record<CharKey, number>>`. Mêmes petites formes
  * partagées que `careerLevels.ts`, PROMUES dans `grammaire/avancement.ts`, `grammaire/reference.ts`
  * (Ref/TraitPose) et `grammaire/valeurs.ts` (CharKey). `mutationBodyMax` est ABSENT sur une partie des
- * entrées (18/27) : optionnel, conforme à l'interface ; `grantGroups` est porté par les 27.
+ * entrées : optionnel, conforme à l'interface.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, raceKeySchema, refCareerIdSchema } from '../grammaire/valeurs';
 import { traitInstanceSchema } from '../grammaire/reference';
-import { ref } from '../grammaire/ref';
+import { ref, refs } from '../grammaire/ref';
+import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { avancement } from '../grammaire/avancement';
 
 export const file = 'species.json';
@@ -42,7 +43,7 @@ const doc = document(
     /** Talents d'espèce : réf, choix « A ou B » (`pick`), « Au choix » (`choix`), tirage (`random`). */
     talents: z.array(avancement('talent')),
     /** LDB 21 */
-    grantGroups: z.array(z.string()),
+    grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }),
     /** LDB 77 l.7 */
     profilStandard: ref('creature').optional(),
     /** LDB 19 l.78-81 */

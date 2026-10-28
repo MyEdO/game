@@ -50,18 +50,29 @@ function kindsDuType(): string[] {
   return kinds;
 }
 
+/** Les branches d'une union (`|N`). */
+const branches = (union: unknown) => enfantsDe(union).filter((e) => e.segment.startsWith('|')).map((e) => e.noeud);
+
+/** Le `kind` d'une option : son littéral, ou celui, UNIQUE, de toutes les branches d'une union imbriquée
+ *  (la Condition `has`, discriminée par `what`). */
+function kindDeLOption(noeud: unknown): string {
+  const sous = branches(noeud);
+  if (sous.length) {
+    const kinds = new Set(sous.map(kindDeLOption));
+    if (kinds.size !== 1) throw new Error(`Union imbriquée à plusieurs kind : ${[...kinds].join(', ')}`);
+    return [...kinds][0];
+  }
+  const valeurs = defDe(enfantsDe(noeud).find((e) => e.cle === 'kind')?.noeud)?.values;
+  if (!Array.isArray(valeurs) || valeurs.length !== 1 || typeof valeurs[0] !== 'string')
+    throw new Error('Discriminant kind absent ou non littéral de chaîne unique');
+  return valeurs[0];
+}
+
 /** Les discriminants des options de `conditionSchema` — le `z.lazy` est déroulé pour atteindre le
  *  `discriminatedUnion` réellement servi à la porte. */
 function kindsDuSchema(): string[] {
   const union = ouverts([conditionSchema]).find((n) => defDe(n)?.type === 'union');
-  return enfantsDe(union)
-    .filter((e) => e.segment.startsWith('|'))
-    .map(({ noeud }) => {
-      const valeurs = defDe(enfantsDe(noeud).find((e) => e.cle === 'kind')?.noeud)?.values;
-      if (!Array.isArray(valeurs) || valeurs.length !== 1 || typeof valeurs[0] !== 'string')
-        throw new Error('Discriminant kind absent ou non littéral de chaîne unique');
-      return valeurs[0];
-    });
+  return branches(union).map(kindDeLOption);
 }
 
 describe('`conditionSchema` — verrou d\'union : les discriminants du SCHÉMA == ceux du TYPE', () => {
