@@ -8,8 +8,9 @@
 //              `pick_random`, `rand_from_seed`, `shuffle`…), `seed` et `hash` ;
 //   `chemin` : les classes de recherche de chemin du moteur (`AStar…`, `Navigation…`) ;
 //   `calcul` : toute arithmétique binaire (`+ - * / % ** << >>` et leurs affectations composées), hormis le `+` et le
-//              `%` d'un littéral de chaîne (concaténation, mise en forme) ; le moins unaire passe ; et `Expression`, qui
-//              évalue un calcul écrit en chaîne ;
+//              `%` d'un littéral de chaîne (concaténation, mise en forme) ; le moins unaire et le nœud unique `%Nom`
+//              passent : un opérateur est binaire après une valeur de la même instruction, qu'un saut de ligne hors
+//              parenthèses et sans `\` termine ; et `Expression`, qui évalue un calcul écrit en chaîne ;
 //   `ordre`  : toute comparaison d'ordre (`< > <= >=`) ;
 //   `mesure` : tout appel d'une fonction de mesure (`MESURES` : valeur absolue, bornes, arrondis, distances, normes…).
 // `calcul`, `ordre` et `mesure` sont permis dans le seul module de mise en page (`estMiseEnPage`), reconnu par sa
@@ -72,8 +73,14 @@ export function estMiseEnPage(src) {
 export function calculsDeRegle(src) {
   const code = lexemesGdscript(src).code.replace(/\$[\w/]+/g, (m) => '_'.repeat(m.length))
   const miseEnPage = estMiseEnPage(src)
-  const jetons = [...code.matchAll(JETON)].map((m) => ({ texte: m[0], index: m.index, chaine: !!m[1], valeur: !!(m[1] || m[2]), mot: !!m[3] }))
-  const finitUneValeur = (j) => !!j && (j.valeur || (j.mot && !PREFIXES.has(j.texte)) || [')', ']', '}'].includes(j.texte))
+  let profondeur = 0
+  const jetons = [...code.matchAll(JETON)].map((m) => {
+    profondeur += '([{'.includes(m[0]) ? 1 : ')]}'.includes(m[0]) ? -1 : 0
+    return { texte: m[0], index: m.index, profondeur, chaine: !!m[1], valeur: !!(m[1] || m[2]), mot: !!m[3] }
+  })
+  const finInstruction = (avant, j) => avant.profondeur <= 0 && code.slice(avant.index + avant.texte.length, j.index).replace(/\\\r?\n/g, '').includes('\n')
+  const finitUneValeur = (avant, j) => !!avant && !finInstruction(avant, j)
+    && (avant.valeur || (avant.mot && !PREFIXES.has(avant.texte)) || [')', ']', '}'].includes(avant.texte))
   const ligneDe = (index) => code.slice(0, index).split('\n').length
   const trouves = []
   jetons.forEach((j, k) => {
@@ -84,8 +91,8 @@ export function calculsDeRegle(src) {
         : j.mot && j.texte === 'Expression' ? 'calcul'
           : miseEnPage ? null
             : j.mot && MESURES.has(j.texte) && apres?.texte === '(' ? 'mesure'
-              : ORDRE.has(j.texte) && finitUneValeur(avant) ? 'ordre'
-                : ARITHMETIQUE.has(j.texte) && finitUneValeur(avant) && !(DE_CHAINE.has(j.texte) && (avant.chaine || apres?.chaine)) ? 'calcul'
+              : ORDRE.has(j.texte) && finitUneValeur(avant, j) ? 'ordre'
+                : ARITHMETIQUE.has(j.texte) && finitUneValeur(avant, j) && !(DE_CHAINE.has(j.texte) && (avant.chaine || apres?.chaine)) ? 'calcul'
                   : null
     if (famille) trouves.push({ famille, ligne: ligneDe(j.index), extrait: code.slice(avant?.index ?? j.index, (apres?.index ?? j.index) + (apres?.texte.length ?? j.texte.length)).replace(/\s+/g, ' ') })
   })

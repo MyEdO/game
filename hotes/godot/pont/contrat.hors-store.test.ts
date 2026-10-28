@@ -13,6 +13,7 @@ import type { VueDuPont } from './pont';
 import { CLICS_DU_CHAMP, plateauDeLaScene } from '../../../src/noyau/index';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
+import { baseSchema3 } from '../asset/schema3.testkit.ts';
 
 /** La panne d'un lecteur de la vue, armée par le test de la catégorie `interne`. */
 const panne = vi.hoisted(() => ({ projeter: false }));
@@ -40,7 +41,13 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, vue, jouer, reprendre, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, vue, jouer, reprendre, modeles, erreursGlobales)');
+  });
+
+  it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` se refuse', () => {
+    expect(appel('modeles', { manifestes: { humanoide: baseSchema3() } })).toMatchObject({ ok: true, bases: [{ id: 'humanoide', base: 'humanoide' }], elements: [], refus: [] });
+    expect(erreurDe(appel('modeles', {}))).toEqual({ categorie: 'validation', message: 'modeles : manifestes, un objet id de modèle → manifeste' });
+    expect(erreurDe(appel('modeles'))).toEqual({ categorie: 'validation', message: 'modeles : manifestes, un objet id de modèle → manifeste' });
   });
 
   it('`vue`, `jouer` et `reprendre` se refusent sans partie', () => {

@@ -1,7 +1,8 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde et retour, le centre du plateau, le quart de tour de la
-## caméra, son zoom borné, et les millisecondes du pont en secondes de minuteur. Seul script où l'arithmétique et la
-## mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune
-## typée et sur au plus un vecteur, sans état.
+## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, l'image voisine d'une animation et l'écart
+## de deux instants. Seul script où l'arithmétique et la mesure sont permises
+## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au plus
+## un vecteur, sans état.
 class_name MiseEnPage
 extends RefCounted
 
@@ -39,3 +40,13 @@ static func distance_zoomee(distance: float, sens: float, minimum: float, maximu
 ## Un délai du pont (millisecondes) en secondes de minuteur.
 static func secondes(ms: float) -> float:
 	return ms / MS_PAR_SECONDE
+
+
+## L'instant de l'image voisine de `instant` dans le sens `sens` (1 ou -1), sur la grille de `pas`, borné à [0, `duree`].
+static func image_voisine(instant: float, pas: float, sens: float, duree: float) -> float:
+	return clampf(snappedf(instant, pas) + sens * pas, 0.0, duree)
+
+
+## L'écart de `debut` à `fin`.
+static func ecart(debut: float, fin: float) -> float:
+	return fin - debut

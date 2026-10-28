@@ -1,9 +1,9 @@
 // LA RECETTE DU TOUR COMPLET DE L'HÔTE GODOT (#2928) :
-// l'export Web (`node hotes/godot/construire.mjs --export --sortie <web>`) servi en statique, Chromium piloté au clic et
+// l'export Web (`node hotes/godot/construire.mjs --export --sortie <web>`) servi par `servir.mjs`, Chromium piloté au clic et
 // au clavier sur le canevas comme un joueur. Godot publie à la page ce que l'écran porte (`globalThis.wfrpEcran` : le
 // texte et le centre de chaque bouton, le point de chaque case) ; `wfrpPont.appeler('vue')` observe la partie, et chaque
 // bouton se trouve par le texte que la vue lui donne. Aucun geste ne passe par le pont : chaque intention part d'un clic
-// ou d'une frappe. Le tour : la fenêtre du round à l'Entrée, une charge sur l'ennemi le plus proche, la localisation, le
+// ou d'une frappe. Le tour : le bouton « Combat » du menu d'entrée, la fenêtre du round à l'Entrée, une charge sur l'ennemi le plus proche, la localisation, le
 // jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche d'une case (aperçu puis
 // déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de Godot jusqu'à la Défense du
 // héros visé, jetée et confirmée, puis le round 2. Chaque étape est assertée sur la vue ; une assertion fausse, une
@@ -11,10 +11,8 @@
 //
 //   node hotes/godot/recette.mjs --web <dossier de l'export> --captures <dossier> [--scenario dome] [--graine 7]
 import assert from 'node:assert/strict'
-import { createServer } from 'node:http'
-import { createReadStream, statSync } from 'node:fs'
-import { extname, resolve, sep } from 'node:path'
 import { parseArgs } from 'node:util'
+import { servir } from './servir.mjs'
 import { clic, consoleGuard, evaluate, geste, launchSession, realKey, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
 
 const { values: o } = parseArgs({ options: { web: { type: 'string' }, captures: { type: 'string' }, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' } } })
@@ -22,22 +20,7 @@ if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs
 
 /** Le WebGL 2 de l'export, en logiciel dans un Chrome sans GPU, sans l'avertissement de repli. */
 const WEBGL_LOGICIEL = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm', '.png': 'image/png' }
-
-/** Sert `dossier` en statique sur un port libre de la boucle locale. */
-function servir(dossier) {
-  const racine = resolve(dossier)
-  const serveur = createServer((req, res) => {
-    const chemin = resolve(racine, decodeURIComponent(new URL(req.url, 'http://local').pathname).replace(/^\/+/, '') || 'index.html')
-    const st = chemin.startsWith(racine + sep) ? statSync(chemin, { throwIfNoEntry: false }) : undefined
-    if (!st?.isFile()) return void res.writeHead(404).end()
-    res.writeHead(200, { 'Content-Type': TYPES[extname(chemin)] ?? 'application/octet-stream', 'Content-Length': st.size })
-    createReadStream(chemin).pipe(res)
-  })
-  return new Promise((ok) => serveur.listen(0, '127.0.0.1', () => ok({ url: `http://127.0.0.1:${serveur.address().port}/`, fermer: () => serveur.close() })))
-}
-
-const srv = await servir(o.web)
+const srv = await servir({ web: o.web })
 const session = await launchSession({ width: 1280, height: 720, timeoutMs: 30000, args: WEBGL_LOGICIEL })
 const garde = consoleGuard(session)
 const noter = (t) => console.log('·', t)
@@ -87,6 +70,9 @@ let echec = null
 try {
   await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}` })
   await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  await cliquerBouton('Combat')
+  noter('menu : bouton « Combat » cliqué')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   let v = await vue()
   assert.ok(v.fenetre, 'la fenêtre du round tient la main')
   assert.equal(v.projection.combat.round, 1)

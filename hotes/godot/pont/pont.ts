@@ -12,6 +12,7 @@ import { estObjet } from '../../../src/hote/formes';
 import { modelesDesCombattants, type CouvertureDesModeles } from './equipement';
 import { fenetreADessiner, type FenetreADessiner } from '../../../src/hote/gestes';
 import { panneauDuCombat, type PanneauDuCombat } from '../../../src/hote/ecran';
+import { modelesDeLAtelier } from './atelier';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
 const sansRoster = (): void => {};
@@ -135,6 +136,11 @@ export function creerPont() {
       const e = entreeDe('reprendre', json, ['jeton']);
       valider(Number.isInteger(e.jeton), 'reprendre : jeton, le numéro d’un jeton programmé');
       return suite(o, o.jetons.reprendre(e.jeton as number));
+    },
+    modeles(json) {
+      const e = entreeDe('modeles', json, ['manifestes']);
+      valider(estObjet(e.manifestes), 'modeles : manifestes, un objet id de modèle → manifeste');
+      return modelesDeLAtelier(e.manifestes as Record<string, unknown>);
     },
     erreursGlobales(json) {
       entreeDe('erreursGlobales', json, []);

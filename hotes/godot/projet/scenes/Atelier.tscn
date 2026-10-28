@@ -1,0 +1,170 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/atelier.gd" id="1_atelier"]
+
+[sub_resource type="Environment" id="Environment_atelier"]
+background_mode = 1
+background_color = Color(0.07, 0.06, 0.05, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.62, 0.58, 0.52, 1)
+ambient_light_energy = 0.55
+
+[sub_resource type="StandardMaterial3D" id="Materiau_sol"]
+albedo_color = Color(0.22, 0.2, 0.18, 1)
+
+[sub_resource type="PlaneMesh" id="Maillage_sol"]
+material = SubResource("Materiau_sol")
+size = Vector2(4, 4)
+
+[sub_resource type="StyleBoxFlat" id="Fond_panneau"]
+bg_color = Color(0.11, 0.1, 0.09, 0.92)
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+
+[sub_resource type="ButtonGroup" id="Groupe_vitesses"]
+
+[node name="Atelier" type="Node3D"]
+script = ExtResource("1_atelier")
+
+[node name="Environnement" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_atelier")
+
+[node name="Soleil" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.95, 0.55, 0)
+light_color = Color(1, 0.95, 0.86, 1)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="Sol" type="MeshInstance3D" parent="."]
+mesh = SubResource("Maillage_sol")
+
+[node name="Modele" type="Node3D" parent="."]
+
+[node name="Camera" type="Camera3D" parent="."]
+position = Vector3(-0.7, 1.1, 3.8)
+rotation = Vector3(-0.08, 0, 0)
+current = true
+fov = 40.0
+
+[node name="Interface" type="CanvasLayer" parent="."]
+
+[node name="Panneau" type="PanelContainer" parent="Interface"]
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 440.0
+grow_vertical = 2
+theme_override_styles/panel = SubResource("Fond_panneau")
+
+[node name="Defilement" type="ScrollContainer" parent="Interface/Panneau"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Colonne" type="VBoxContainer" parent="Interface/Panneau/Defilement"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Etat" type="Label" parent="Interface/Panneau/Defilement/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="Corps" type="HFlowContainer" parent="Interface/Panneau/Defilement/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Outils" type="HFlowContainer" parent="Interface/Panneau/Defilement/Colonne"]
+layout_mode = 2
+
+[node name="Recharger" type="Button" parent="Interface/Panneau/Defilement/Colonne/Outils"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Recharger"
+
+[node name="AideOs" type="CheckButton" parent="Interface/Panneau/Defilement/Colonne/Outils"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Os"
+
+[node name="AideEmplacements" type="CheckButton" parent="Interface/Panneau/Defilement/Colonne/Outils"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Emplacements"
+
+[node name="AidePrises" type="CheckButton" parent="Interface/Panneau/Defilement/Colonne/Outils"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Prises"
+
+[node name="Points" type="VBoxContainer" parent="Interface/Panneau/Defilement/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Clips" type="ScrollContainer" parent="Interface/Panneau/Defilement/Colonne"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ListeDesClips" type="VBoxContainer" parent="Interface/Panneau/Defilement/Colonne/Clips"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Lecteur" type="HFlowContainer" parent="Interface/Panneau/Defilement/Colonne"]
+layout_mode = 2
+
+[node name="Lecture" type="Button" parent="Interface/Panneau/Defilement/Colonne/Lecteur"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Lecture"
+
+[node name="Pause" type="Button" parent="Interface/Panneau/Defilement/Colonne/Lecteur"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Pause"
+
+[node name="ImagePrecedente" type="Button" parent="Interface/Panneau/Defilement/Colonne/Lecteur"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Image précédente"
+
+[node name="ImageSuivante" type="Button" parent="Interface/Panneau/Defilement/Colonne/Lecteur"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Image suivante"
+
+[node name="Vitesses" type="HFlowContainer" parent="Interface/Panneau/Defilement/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Quart" type="Button" parent="Interface/Panneau/Defilement/Colonne/Vitesses"]
+layout_mode = 2
+toggle_mode = true
+button_group = SubResource("Groupe_vitesses")
+text = "×0.25"
+metadata/vitesse = 0.25
+
+[node name="Demi" type="Button" parent="Interface/Panneau/Defilement/Colonne/Vitesses"]
+layout_mode = 2
+toggle_mode = true
+button_group = SubResource("Groupe_vitesses")
+text = "×0.5"
+metadata/vitesse = 0.5
+
+[node name="Normale" type="Button" parent="Interface/Panneau/Defilement/Colonne/Vitesses"]
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+button_group = SubResource("Groupe_vitesses")
+text = "×1"
+metadata/vitesse = 1.0
+
+[node name="Double" type="Button" parent="Interface/Panneau/Defilement/Colonne/Vitesses"]
+layout_mode = 2
+toggle_mode = true
+button_group = SubResource("Groupe_vitesses")
+text = "×2"
+metadata/vitesse = 2.0

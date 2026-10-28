@@ -14,10 +14,10 @@ export const estSchema3 = (m: unknown): m is Record<string, unknown> => estObjet
 export const estBase = (m: unknown): boolean => estSchema3(m) && Object.prototype.hasOwnProperty.call(m, 'os');
 const identite = (base: unknown, cle: Record<string, unknown>): string => JSON.stringify([base, Object.entries(cle).sort(([a], [b]) => a.localeCompare(b))]);
 
-/** L'index (base, clé) et les bases, indépendants du nom de fichier et de l'ordre des champs de clé. */
-export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: ReadonlyMap<string, EntreeDeModele>; refus: string[] } {
+/** L'index (base, clé) → élément et les bases, indépendants du nom de fichier et de l'ordre des champs de clé. */
+export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: ReadonlyMap<string, EntreeDeModele>; elements: ReadonlyMap<string, EntreeDeModele>; refus: string[] } {
   const bases = new Map<string, EntreeDeModele>();
-  const cles = new Map<string, string>();
+  const cles = new Map<string, EntreeDeModele>();
   const refus: string[] = [];
   for (const entree of entrees) {
     const m = entree.brut;
@@ -30,12 +30,12 @@ export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: Rea
     } else if (estObjet(m.cle)) {
       const cle = identite(m.base, m.cle);
       const precedent = cles.get(cle);
-      if (precedent) refus.push(`[cle-en-doublon] ${cle} : ${precedent}, ${entree.id}`);
-      else cles.set(cle, entree.id);
+      if (precedent) refus.push(`[cle-en-doublon] ${cle} : ${precedent.id}, ${entree.id}`);
+      else cles.set(cle, entree);
     }
   }
   for (const { id, brut: m } of entrees) if (estSchema3(m) && !estBase(m) && typeof m.base === 'string' && !bases.has(m.base)) refus.push(`[base-absente] ${id} : ${m.base}`);
-  return { bases, refus };
+  return { bases, elements: cles, refus };
 }
 
 /** Un validateur par contrat : personnage schéma 2, base schéma 3, élément schéma 3 contre sa base validée. */

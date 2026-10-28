@@ -1,4 +1,4 @@
-# Contrat du pont `wfrpPont` (v6, #2928, #2948)
+# Contrat du pont `wfrpPont` (v7, #2928, #2948, #3086)
 
 Godot est un hôte du noyau, au même titre que l'hôte texte (`src/hoteTexte/`) : il envoie des gestes et lit une vue faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
 
@@ -28,6 +28,7 @@ Les trois premières catégories sont celles du module commun (`CategorieDErreur
 | `vue` | aucune | `{ vue }` |
 | `jouer` | un geste : `{ offre, ctx? }` (une offre du registre et son contexte) ou `{ type, args?, siege? }` (un verbe de la partie, ses arguments, le siège qui le joue) | une `Suite` |
 | `reprendre` | `{ jeton }` : le numéro d'un jeton programmé | une `Suite` : la reprise du jeton |
+| `modeles` | `{ manifestes }` : un objet id de modèle → manifeste, celui du listage servi (`GET modeles/`, section « Atelier 3D ») | `{ bases, elements, refus }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), sans partie |
 | `erreursGlobales` | aucune | `{ erreurs: { message, source }[] }` : les événements `error` et `unhandledrejection` de la page depuis le dernier relevé, puis vidés ; `source` vaut `fichier:ligne`, `unhandledrejection` ou `null` |
 
 `demarrer` ouvre la partie une seule fois par page : un second appel se refuse, et recommencer, c'est recharger la page. Un `demarrer` refusé n'ouvre rien.
@@ -92,6 +93,36 @@ Le plateau transmet `equipements[id]` au combattant depuis la vue reçue. Le mod
 
 La recette native `projet/recettes/equipement.gd` reçoit une vue JSON figée par `figer-recette-equipement.mjs`. Elle contrôle les nœuds montés et leurs os, l’absence de skin des pièces donneuses, le masquage des armes du porteur et les absences de modèles, sans serveur ni navigateur. Son objet de campagne à plusieurs formes traverse `Partie.lancer`, `etat.campaignNarratif` et la projection du pont ; la recette contrôle son montage à partir des candidats de son apparence donnée. Son objet teinté contrôle la couleur du matériau local contre la palette publiée ; l'autre instance du même modèle reste vivante et son matériau est contrôlé intact après tous les montages.
 
+## Atelier 3D
+
+L'atelier dessine les bases et leurs éléments d'après la réponse de `modeles`, jamais en relisant les manifestes lui-même. Le pck exporté est figé : l'atelier tire les modèles par HTTP, à côté de `index.html`, et un GLB réexporté se recharge à chaud. Le serveur de l'export (`hotes/godot/servir.mjs`) sert :
+
+- `GET modeles/` : le listage, `{ manifestes: Record<id, manifeste>, erreurs: string[] }` (`manifestesDesModeles`, `asset/release.ts`), relu à chaque appel. Godot passe `manifestes` tel quel à `modeles`.
+- `GET modeles/<fichier>` : chaque fichier du dossier des modèles (manifeste, GLB), servi en `Cache-Control: no-store`.
+
+La réponse de `modeles` :
+
+```ts
+type ModelesDeLAtelier = {
+  bases: { id: string; base: string; empreinte: string; points: PointDAccroche[] }[];
+  elements: { id: string; base: string; categorie: string; empreinte: string }[];
+  refus: string[];
+};
+type PointDAccroche = { id: string; genre: 'emplacement' | 'prise'; attache: { os: string; position: [number, number, number]; rotation: [number, number, number] }; elements: string[] };
+```
+
+- `bases` : les bases de l'index (base, clé) → élément (`indexerModeles`, `asset/modeles.ts`). Les `points` d'une base listent ses `emplacements`, puis ses `prises` ; à chaque point vont les ids des éléments de cette base liés en `liaison.mode === 'rigide'`.
+- `elements` : les éléments dont la base est présente, rigides ou skinnés. `empreinte` vaut `glb.sha256`, celle d'une base comme celle d'un élément.
+- `refus` : ceux de l'index (`[base-absente]`, `[cle-en-doublon]`, `[base-en-doublon]`, `[forme]`). Un manifeste qui n'est pas du schéma 3 est ignoré.
+
 ## Écran publié
 
-Chaque vue mise en page, Godot pose `globalThis.wfrpEcran = { boutons: { texte, x, y }[], cases: Record<"x,y", [x, y]> }` : le texte et le centre de chaque bouton actif, le point de l'écran de chaque case du plateau. Chaque publication remplace l'objet. La recette du tour complet (`hotes/godot/recette.mjs`) y lit où cliquer ; elle observe la partie par `vue` et ne joue aucun geste par le pont.
+L'entrée de l'application est un menu (`scenes/Accueil.tscn`, `run/main_scene`) à deux boutons, « Combat » et « Atelier ». Arbitrage utilisateur, 2026-10-28 : « A terme le menu de l'application passera aussi par godot et il existera un bouton du menu pour aller dans l'atelier ».
+
+Chaque vue mise en page, Godot pose `globalThis.wfrpEcran`. Chaque publication remplace l'objet.
+
+- Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
+- Au combat : `{ boutons: { texte, x, y }[], cases: Record<"x,y", [x, y]> }`, plus le point de l'écran de chaque case du plateau.
+- À l'atelier : `{ boutons: { texte, x, y, cle? }[], atelier: { base: string|null, empreinte: string|null, clip: string|null, instant: number, lecture: boolean, vitesse: number, montes: Record<point, element>, aides: { os: boolean, emplacements: boolean, prises: boolean }, erreurs: string[] } }`. `cle` est optionnelle : un bouton d'emplacement la porte, `"<point>/<element>"` ou `"<point>/vide"`, parce que son texte (« vide », un id d'élément) se répète d'une ligne à l'autre.
+
+La recette du tour complet (`hotes/godot/recette.mjs`) clique « Combat » au menu, puis y lit où cliquer ; elle observe la partie par `vue` et ne joue aucun geste par le pont.

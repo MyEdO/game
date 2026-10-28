@@ -55,6 +55,36 @@ func publier_l_ecran(ecran: Dictionary) -> void:
 	JavaScriptBridge.eval("globalThis.wfrpEcran = %s" % JSON.stringify(ecran), true)
 
 
+## Les boutons à l'écran sous `racines` : chaque `BaseButton` actif et visible qu'aucun défilement ne cache, son texte,
+## son centre, et sa méta `cle` s'il la porte.
+static func boutons_a_l_ecran(racines: Array) -> Array:
+	var boutons := []
+	for racine in racines:
+		for bouton in racine.find_children("*", "BaseButton", true, false):
+			var centre: Vector2 = bouton.get_global_rect().get_center()
+			if bouton.is_visible_in_tree() and not bouton.disabled and _a_l_ecran(bouton, centre):
+				var publie := {texte = bouton.text, x = centre.x, y = centre.y}
+				if bouton.has_meta("cle"):
+					publie.cle = bouton.get_meta("cle")
+				boutons.append(publie)
+	return boutons
+
+
+## Si `point` de `controle` se voit à travers chaque défilement qui le contient.
+static func _a_l_ecran(controle: Control, point: Vector2) -> bool:
+	var parent := controle.get_parent()
+	while parent != null:
+		if parent is ScrollContainer and not (parent as ScrollContainer).get_global_rect().has_point(point):
+			return false
+		parent = parent.get_parent()
+	return true
+
+
+## L'adresse absolue de `relative` contre celle de la page.
+func adresse(relative: String) -> String:
+	return str(JavaScriptBridge.eval("new URL(%s, location.href).href" % JSON.stringify(relative), true))
+
+
 ## Le paramètre `cle` de l'adresse de la page, `""` s'il est absent.
 func parametre(cle: String) -> String:
 	return str(JavaScriptBridge.eval("new URLSearchParams(location.search).get(%s) ?? ''" % JSON.stringify(cle), true))

@@ -29,6 +29,23 @@ static func manifeste_du_modele(modele: String) -> Dictionary:
 	return manifeste("res://modeles/%s.manifeste.json" % modele.get_basename())
 
 
+## Le `Portage` d'un point d'attache `{os, position, rotation}` (`hotes/godot/asset/attache.ts`), posé sous `squelette`
+## par le `BoneAttachment3D` nommé `nom` ; `null` si l'os est absent.
+static func attacher(squelette: Skeleton3D, declaration: Dictionary, nom: String) -> Node3D:
+	if squelette.find_bone(declaration.os) == -1:
+		return null
+	var attache := BoneAttachment3D.new()
+	attache.name = nom
+	squelette.add_child(attache)
+	attache.bone_name = declaration.os
+	var support := Node3D.new()
+	support.name = "Portage"
+	support.position = Vector3(declaration.position[0], declaration.position[1], declaration.position[2])
+	support.rotation = Vector3(declaration.rotation[0], declaration.rotation[1], declaration.rotation[2])
+	attache.add_child(support)
+	return support
+
+
 func masquer_armes(modele: Node, m: Dictionary) -> void:
 	for piece in m.pieces.values():
 		if m.montage.composants.has(piece.component):
@@ -98,21 +115,13 @@ func _monter(squelette: Skeleton3D, porteur: Dictionary, objet: Dictionary, empl
 				return
 		source.free()
 	var declaration: Dictionary = porteur.montage.attaches[nom_attache]
-	if squelette.find_bone(declaration.os) == -1:
+	var support := attacher(squelette, declaration, "Equipement_%s_%d" % [emplacement, position])
+	if support == null:
 		_abandonner(pieces, "os-absent : %s" % declaration.os)
 		return
-	var attache := BoneAttachment3D.new()
-	attache.name = "Equipement_%s_%d" % [emplacement, position]
-	squelette.add_child(attache)
-	attache.bone_name = declaration.os
-	var support := Node3D.new()
-	support.name = "Portage"
-	support.position = Vector3(declaration.position[0], declaration.position[1], declaration.position[2])
-	support.rotation = Vector3(declaration.rotation[0], declaration.rotation[1], declaration.rotation[2])
-	attache.add_child(support)
 	for piece in pieces:
 		support.add_child(piece)
-	_montes.append(attache)
+	_montes.append(support.get_parent())
 
 
 func _teinter(piece: MeshInstance3D, matieres: Array, palette: Variant) -> bool:

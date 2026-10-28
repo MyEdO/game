@@ -54,6 +54,21 @@ test('la mise en scène sans calcul passe : moins unaire, chaîne mise en forme 
   assert.deepEqual(familles(src), [])
 })
 
+test('le nœud unique `%Nom` n’est pas un modulo ; le modulo de deux valeurs l’est', () => {
+  const noeuds = [
+    'func _ready() -> void:',
+    '\tf(1)',
+    '\t%Bouton.pressed.connect(f)',
+    '%Titre.text = "x"',
+    'g(%Bouton, h(%Liste))',
+    'var l := [%Bouton,',
+    '\t%Liste]',
+  ].join('\n')
+  assert.deepEqual(familles(noeuds), [])
+  assert.deepEqual(familles('var r := a % b\nvar s := a %b\nvar t := (a\n\t% b)\nvar u := a \\\n\t% b'), ['calcul:1', 'calcul:2', 'calcul:4', 'calcul:6'])
+  assert.deepEqual(familles('var t := "%d" % x'), [])
+})
+
 test('un commentaire ou une chaîne ne comptent pas', () => {
   assert.deepEqual(familles('# randi() et a.x - b.x <= 1\nvar t := "AStar2D, seed, a - b, abs(x)"'), [])
 })
