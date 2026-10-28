@@ -125,6 +125,6 @@
     "type": "raw.manifest",
     "label": "Test d'incantation",
     "ticket": "#1456",
-    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:52`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
+    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:56`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
   }
 ]

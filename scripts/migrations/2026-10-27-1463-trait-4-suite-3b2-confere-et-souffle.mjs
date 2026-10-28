@@ -21,16 +21,20 @@
  *
  * ENTRÉES : écrites — `src/data/traits.json`, `src/data/maneuvers.json`, `src/data/breath-types.json`,
  * `src/data/etats.json`, `src/data/domains.json`, `src/data/creatures.json`, `src/data/tables.json`.
- * FAIL-FAST — avant toute écriture, sortie 1 : un fichier hors de son formatage ; une entrée attendue
- * introuvable ; un Trait de fiche qui ne porte ni la forme d'avant ni celle d'après ; une manœuvre `souffle-*`
- * dont le profil diffère de celui de `souffle` ; un Domaine des Arcanes absent de `SOUFFLES_DES_DOMAINES` ; un
- * octroi de la forme hybride qui ne porte ni la forme d'avant ni celle d'après.
+ * FORME D'AVANT SEULE : chaque geste n'agit que sur la forme d'avant qu'il reconnaît, quel que soit l'ordre de
+ * ses clés ; une entrée déjà à la forme cible, ajoutée ou révisée après la migration, ou absente, est
+ * laissée telle quelle.
+ * FAIL-FAST — avant toute écriture, sortie 1 : un fichier hors de son formatage ; une des six manœuvres
+ * `souffle-<Type>` d'avant dont le profil diffère de celui de `souffle` ; un Domaine marqué `arcane: true`
+ * absent de `SOUFFLES_DES_DOMAINES` ou qui porte déjà un `maison` ; un Domaine sans marque `true` qui porte
+ * encore `breathType`.
  * IDEMPOTENT : rejouée sur l'état final, aucun geste n'est à faire et rien ne s'écrit.
  * FORMATAGE PRÉSERVÉ : un dataset est EXACTEMENT `JSON.stringify(doc, null, 2)` (sans saut de ligne final).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isDeepStrictEqual as egal } from 'node:util';
 import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -53,21 +57,15 @@ for (const rel of Object.values(F)) {
   docs.set(rel, { doc, avant: texte });
 }
 const doc = (rel) => docs.get(rel).doc;
-const egal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 let gestes = 0;
 
 // 1. traits.json
 const ATTAQUES = ['a-distance', 'arme', 'attaque-caudale', 'cornes', 'langue-prehensile', 'morsure', 'souffle', 'tentacules', 'vomissement'];
 const traits = doc(F.traits);
-const trait = (id) => traits.find((t) => t.id === id) ?? void fautes.push(`${F.traits} : Trait « ${id} » introuvable`);
+const trait = (id) => traits.find((t) => t.id === id);
 for (const id of ATTAQUES) {
   const t = trait(id);
-  if (t && t.attaque !== true) { t.attaque = true; gestes++; }
-}
-const souffle = trait('souffle');
-if (souffle) {
-  if (souffle.difficulte !== true) { souffle.difficulte = true; gestes++; }
-  if (!egal(souffle.grantsManeuvers, [{ id: 'souffle' }])) { souffle.grantsManeuvers = [{ id: 'souffle' }]; gestes++; }
+  if (t && t.attaque === undefined) { t.attaque = true; gestes++; }
 }
 
 // 2-3. maneuvers.json, breath-types.json
@@ -82,6 +80,16 @@ const REGLES = {
   poison: { ignoreAP: true, etat: 'empoisonne' },
   fumee: { fumee: true },
 };
+const ANCIENNES = new Set(Object.keys(REGLES).map((t) => `souffle-${t}`));
+const souffle = trait('souffle');
+const octroisAnciens = souffle?.grantsManeuvers?.filter((g) => ANCIENNES.has(g.id)) ?? [];
+if (octroisAnciens.length) {
+  if (souffle.difficulte === undefined) souffle.difficulte = true;
+  const i = souffle.grantsManeuvers.findIndex((g) => ANCIENNES.has(g.id));
+  souffle.grantsManeuvers = souffle.grantsManeuvers.filter((g, j) => j < i || !ANCIENNES.has(g.id));
+  souffle.grantsManeuvers.splice(i, 0, { id: 'souffle' });
+  gestes++;
+}
 const PROFIL = ['kind', 'activation', 'advantageCost', 'stat', 'defense', 'targeting', 'range', 'blast', 'magic', 'source'];
 const SOUFFLE = {
   id: 'souffle', type: 'maneuvers', label: 'Souffle', kind: 'souffle', activation: 'free', advantageCost: 2,
@@ -92,15 +100,11 @@ const SOUFFLE = {
   stakeForm: 'descripteur',
 };
 const manoeuvres = doc(F.maneuvers);
-const anciennes = manoeuvres.filter((m) => /^souffle-/.test(m.id));
+const anciennes = manoeuvres.filter((m) => ANCIENNES.has(m.id));
 for (const m of anciennes) for (const k of PROFIL) if (!egal(m[k], SOUFFLE[k])) fautes.push(`${F.maneuvers} : « ${m.id} ».${k} diffère du profil de « souffle »`);
-const iSouffle = manoeuvres.findIndex((m) => m.id === 'souffle');
-if (iSouffle < 0) {
-  const i = manoeuvres.findIndex((m) => /^souffle-/.test(m.id));
-  if (i < 0) fautes.push(`${F.maneuvers} : ni « souffle » ni « souffle-* »`);
-  else { manoeuvres.splice(i, 0, SOUFFLE); gestes++; }
-} else if (!egal(manoeuvres[iSouffle], SOUFFLE)) { manoeuvres[iSouffle] = SOUFFLE; gestes++; }
-for (let i = manoeuvres.length - 1; i >= 0; i--) if (/^souffle-/.test(manoeuvres[i].id)) { manoeuvres.splice(i, 1); gestes++; }
+const iAncienne = manoeuvres.findIndex((m) => ANCIENNES.has(m.id));
+if (iAncienne >= 0 && !manoeuvres.some((m) => m.id === 'souffle')) { manoeuvres.splice(iAncienne, 0, SOUFFLE); gestes++; }
+for (let i = manoeuvres.length - 1; i >= 0; i--) if (ANCIENNES.has(manoeuvres[i].id)) { manoeuvres.splice(i, 1); gestes++; }
 
 // Middenheim 04 l.29
 const BF_PLUS = (n) => ({ sum: [{ bonusOf: 'force' }, n] });
@@ -111,35 +115,28 @@ const HYBRIDE = [
 const hybride = manoeuvres.find((m) => m.id === 'forme-hybride-ulric');
 const octroisHybrides = hybride?.effects?.flatMap((e) => e.flow?.effect?.ops ?? []).flatMap((o) => (o.op === 'transform' ? o.ops : [])).filter((o) => o.op === 'grantTrait') ?? [];
 for (const { id, avant, apres } of HYBRIDE) {
-  const octrois = octroisHybrides.filter((o) => o.trait?.id === id);
-  if (octrois.length !== 1) { fautes.push(`${F.maneuvers} : « forme-hybride-ulric » octroie ${octrois.length} Trait(s) « ${id} », attendu 1`); continue; }
-  const [o] = octrois;
-  if (egal(o.trait, { id, value: apres })) continue;
-  if (!egal(o.trait, { id, value: avant })) { fautes.push(`${F.maneuvers} : « forme-hybride-ulric » octroie ${JSON.stringify(o.trait)}`); continue; }
-  o.trait = { id, value: apres };
-  gestes++;
+  for (const o of octroisHybrides) if (egal(o.trait, { id, value: avant })) { o.trait = { id, value: apres }; gestes++; }
 }
 const ENJEU_HYBRIDE = ['les Traits Arme 4, Armure 2, Morsure 3,', 'les Traits Arme (BF +4), Armure 2, Morsure (BF +3),'];
 if (hybride?.stake?.includes(ENJEU_HYBRIDE[0])) { hybride.stake = hybride.stake.replace(...ENJEU_HYBRIDE); gestes++; }
-else if (!hybride?.stake?.includes(ENJEU_HYBRIDE[1])) fautes.push(`${F.maneuvers} : enjeu de « forme-hybride-ulric » inattendu`);
 
 const types = doc(F.breath);
+const formeDAvantDuType = (t) => egal(Object.keys(t).sort(), ['id', 'label', 'type']);
+let registreDAvant = false;
 for (const [id, regle] of Object.entries(REGLES)) {
   const t = types.find((x) => x.id === id);
-  if (!t) { fautes.push(`${F.breath} : Type « ${id} » introuvable`); continue; }
-  const voulu = { id: t.id, type: t.type, label: t.label, source: SOURCE_LDB, ...regle };
-  if (!egal(t, voulu)) { types[types.indexOf(t)] = voulu; gestes++; }
+  if (!t || !formeDAvantDuType(t)) continue;
+  Object.assign(t, { source: SOURCE_LDB, ...regle });
+  registreDAvant = true;
+  gestes++;
 }
 const COMPOSE = { id: 'corrosion-et-poison', type: 'breath-types', label: 'Corrosion et Poison', source: SOURCE_EDOC, types: [{ id: 'corrosif' }, { id: 'poison' }] };
-const iCompose = types.findIndex((x) => x.id === COMPOSE.id);
-if (iCompose < 0) { types.push(COMPOSE); gestes++; }
-else if (!egal(types[iCompose], COMPOSE)) { types[iCompose] = COMPOSE; gestes++; }
+if (registreDAvant && !types.some((x) => x.id === COMPOSE.id)) { types.push(COMPOSE); gestes++; }
 
 // 4. etats.json
 const empoisonne = doc(F.etats).find((e) => e.id === 'empoisonne');
-const testDElimination = empoisonne?.effects?.map((e) => e.flow).find((f) => f.kind === 'test' && f.test?.skill?.id === 'resistance');
-if (!testDElimination) fautes.push(`${F.etats} : Test de Résistance d'Empoisonné introuvable`);
-else if (testDElimination.test.argDifficulty !== true) { testDElimination.test.argDifficulty = true; gestes++; }
+const testDElimination = empoisonne?.effects?.map((e) => e.flow).find((f) => f?.kind === 'test' && f.test?.skill?.id === 'resistance');
+if (testDElimination && testDElimination.test.argDifficulty === undefined) { testDElimination.test.argDifficulty = true; gestes++; }
 
 // 5. domains.json — LDB 47 l.509 ; Types de LDB 85 l.322-329
 const lecture = (vent) => `Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : ${vent}`;
@@ -161,59 +158,52 @@ const SOUFFLES_DES_DOMAINES = {
 };
 for (const d of doc(F.domains)) {
   const voulu = SOUFFLES_DES_DOMAINES[d.id];
-  if (!d.arcane) { if (voulu || d.breathType !== undefined) fautes.push(`${F.domains} : « ${d.id} » hors des Arcanes porte un Type de Souffle`); continue; }
-  if (d.arcane !== true && d.arcane !== voulu?.id && !types.some((t) => t.id === d.arcane)) { fautes.push(`${F.domains} : « ${d.id} ».arcane « ${d.arcane} » n’est ni une marque ni un Type`); continue; }
+  if (d.arcane !== true) { if (d.breathType !== undefined) fautes.push(`${F.domains} : « ${d.id} » porte encore « breathType »`); continue; }
   if (!voulu) { fautes.push(`${F.domains} : Domaine des Arcanes « ${d.id} » absent de SOUFFLES_DES_DOMAINES`); continue; }
   if (!types.some((t) => t.id === voulu.id)) { fautes.push(`${F.breath} : Type « ${voulu.id} » introuvable`); continue; }
-  if (d.maison !== undefined && !d.maison.startsWith(lecture(''))) { fautes.push(`${F.domains} : « ${d.id} » porte déjà un autre arbitrage maison`); continue; }
-  if (d.arcane === voulu.id && d.maison === voulu.maison && d.breathType === undefined) continue;
+  if (d.maison !== undefined) { fautes.push(`${F.domains} : « ${d.id} » porte déjà un arbitrage maison`); continue; }
   delete d.breathType;
   d.arcane = voulu.id;
   d.maison = voulu.maison;
   gestes++;
 }
 
-// 6. Fiches : Trait de la fiche (liste, rang parmi les Traits de cet id) → forme d'avant, forme d'après.
+// 6. Fiches : dans la liste `liste` de la fiche, le Trait à la forme `avant` est réécrit en `apres`.
 const FICHES = [
   // Middenheim 04 l.29
-  { fiche: 'enfant-d-ulric', liste: 'traits', id: 'arme', avant: { id: 'arme', arg: 'BF +4' }, apres: { id: 'arme', value: { sum: [{ bonusOf: 'force' }, 4] } } },
-  { fiche: 'enfant-d-ulric', liste: 'traits', id: 'morsure', avant: { id: 'morsure', arg: 'BF +3' }, apres: { id: 'morsure', value: { sum: [{ bonusOf: 'force' }, 3] } } },
+  { fiche: 'enfant-d-ulric', liste: 'traits', avant: { id: 'arme', arg: 'BF +4' }, apres: { id: 'arme', value: { sum: [{ bonusOf: 'force' }, 4] } } },
+  { fiche: 'enfant-d-ulric', liste: 'traits', avant: { id: 'morsure', arg: 'BF +3' }, apres: { id: 'morsure', value: { sum: [{ bonusOf: 'force' }, 3] } } },
   // VDM 02 l.479
-  { fiche: 'fabrique-par-magie', liste: 'optionals', id: 'cornes', avant: { id: 'cornes', arg: 'BF +3' }, apres: { id: 'cornes', value: { sum: [{ bonusOf: 'force' }, 3] } } },
+  { fiche: 'fabrique-par-magie', liste: 'optionals', avant: { id: 'cornes', arg: 'BF +3' }, apres: { id: 'cornes', value: { sum: [{ bonusOf: 'force' }, 3] } } },
   // ZI 03 l.75, l.77
-  { fiche: 'vouivre-zoo-imperial', liste: 'traits', id: 'arme', avant: { id: 'arme', value: 10, arg: 'Crocs' }, apres: { id: 'arme', value: 10, arg: 'Crocs', confere: [{ id: 'infecte' }] } },
-  { fiche: 'vouivre-zoo-imperial', liste: 'traits', id: 'attaque-caudale', avant: { id: 'attaque-caudale', value: 12, arg: 'Venin' }, apres: { id: 'attaque-caudale', value: 12, confere: [{ id: 'venin' }] } },
+  { fiche: 'vouivre-zoo-imperial', liste: 'traits', avant: { id: 'arme', value: 10, arg: 'Crocs' }, apres: { id: 'arme', value: 10, arg: 'Crocs', confere: [{ id: 'infecte' }] } },
+  { fiche: 'vouivre-zoo-imperial', liste: 'traits', avant: { id: 'attaque-caudale', value: 12, arg: 'Venin' }, apres: { id: 'attaque-caudale', value: 12, confere: [{ id: 'venin' }] } },
   // ZI 06 l.32
-  { fiche: 'cockatrice', liste: 'traits', id: 'arme', avant: { id: 'arme', value: 7, arg: 'Serres', natural: true }, apres: { id: 'arme', value: 7, arg: 'Serres', natural: true, confere: [{ id: 'venin', arg: 'difficile' }] } },
-  { fiche: 'cockatrice', liste: 'optionals', id: 'souffle', avant: { id: 'souffle', value: 9, arg: 'Corrosion' }, apres: { id: 'souffle', value: 9, arg: 'corrosif' } },
+  { fiche: 'cockatrice', liste: 'traits', avant: { id: 'arme', value: 7, arg: 'Serres', natural: true }, apres: { id: 'arme', value: 7, arg: 'Serres', natural: true, confere: [{ id: 'venin', arg: 'difficile' }] } },
+  { fiche: 'cockatrice', liste: 'optionals', avant: { id: 'souffle', value: 9, arg: 'Corrosion' }, apres: { id: 'souffle', value: 9, arg: 'corrosif' } },
   // ZI 13 l.61
-  { fiche: 'wyrm-des-mers', liste: 'traits', id: 'arme', avant: { id: 'arme', value: 11, arg: 'Gueule bardée de crocs' }, apres: { id: 'arme', value: 11, arg: 'Gueule bardée de crocs', confere: [{ id: 'venin', arg: 'complexe' }] } },
-  { fiche: 'wyrm-des-mers', liste: 'traits', id: 'morsure', avant: { id: 'morsure', value: 11, arg: 'Gueule bardée de crocs' }, apres: { id: 'morsure', value: 11, arg: 'Gueule bardée de crocs', confere: [{ id: 'venin', arg: 'complexe' }] } },
+  { fiche: 'wyrm-des-mers', liste: 'traits', avant: { id: 'arme', value: 11, arg: 'Gueule bardée de crocs' }, apres: { id: 'arme', value: 11, arg: 'Gueule bardée de crocs', confere: [{ id: 'venin', arg: 'complexe' }] } },
+  { fiche: 'wyrm-des-mers', liste: 'traits', avant: { id: 'morsure', value: 11, arg: 'Gueule bardée de crocs' }, apres: { id: 'morsure', value: 11, arg: 'Gueule bardée de crocs', confere: [{ id: 'venin', arg: 'complexe' }] } },
   // ZI 13 l.101
-  { fiche: 'dragon-barbele', liste: 'traits', id: 'morsure', avant: { id: 'morsure', value: 11 }, apres: { id: 'morsure', value: 11, confere: [{ id: 'venin' }] } },
+  { fiche: 'dragon-barbele', liste: 'traits', avant: { id: 'morsure', value: 11 }, apres: { id: 'morsure', value: 11, confere: [{ id: 'venin' }] } },
   // ZI 13 l.132
-  { fiche: 'le-fantasma', liste: 'traits', id: 'morsure', avant: { id: 'morsure', value: 11 }, apres: { id: 'morsure', value: 11, confere: [{ id: 'venin' }] } },
+  { fiche: 'le-fantasma', liste: 'traits', avant: { id: 'morsure', value: 11 }, apres: { id: 'morsure', value: 11, confere: [{ id: 'venin' }] } },
   // MDG 16 l.226
-  { fiche: 'hydre-d-os', liste: 'traits', id: 'souffle', avant: { id: 'souffle', value: 10, arg: 'Poison, Difficulté Difficile (–20)' }, apres: { id: 'souffle', value: 10, arg: 'poison', difficulte: 'difficile' } },
+  { fiche: 'hydre-d-os', liste: 'traits', avant: { id: 'souffle', value: 10, arg: 'Poison, Difficulté Difficile (–20)' }, apres: { id: 'souffle', value: 10, arg: 'poison', difficulte: 'difficile' } },
 ];
 const creatures = doc(F.creatures);
-for (const { fiche, liste, id, avant, apres } of FICHES) {
+for (const { fiche, liste, avant, apres } of FICHES) {
   const c = creatures.find((x) => x.id === fiche);
-  const poses = c?.[liste]?.filter((t) => t.id === id) ?? [];
-  if (poses.length !== 1) { fautes.push(`${F.creatures} : « ${fiche} ».${liste} porte ${poses.length} Trait(s) « ${id} », attendu 1`); continue; }
-  const [t] = poses;
-  if (egal(t, apres)) continue;
-  if (!egal(t, avant)) { fautes.push(`${F.creatures} : « ${fiche} ».${liste} « ${id} » vaut ${JSON.stringify(t)}`); continue; }
-  c[liste][c[liste].indexOf(t)] = apres;
+  const i = c?.[liste]?.findIndex((t) => egal(t, avant)) ?? -1;
+  if (i < 0) continue;
+  c[liste][i] = apres;
   gestes++;
 }
 
 // 7. tables.json
 const nurgle = doc(F.tables).find((t) => t.id === 'allure-demoniaque-nurgle');
 const octroi = nurgle?.rows?.flatMap((r) => r.ops ?? []).find((o) => o.op === 'grantTrait' && o.trait?.id === 'souffle');
-if (!octroi) fautes.push(`${F.tables} : Souffle de « allure-demoniaque-nurgle » introuvable`);
-else if (octroi.trait.arg === 'Corrosion et Poison') { octroi.trait.arg = 'corrosion-et-poison'; gestes++; }
-else if (octroi.trait.arg !== 'corrosion-et-poison') fautes.push(`${F.tables} : Souffle de Nurgle d'argument « ${octroi.trait.arg} »`);
+if (octroi?.trait.arg === 'Corrosion et Poison') { octroi.trait.arg = 'corrosion-et-poison'; gestes++; }
 
 if (fautes.length) {
   console.error(`ARRÊT — rien n'est écrit :\n${fautes.join('\n')}`);

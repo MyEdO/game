@@ -27,9 +27,8 @@ const DATA_DIR = __dirname;
 /** Les datasets `.json` de `src/data`, en ordre total — UN listage pour les deux sites qui le lisent. */
 const DATASETS = listerDossier(DATA_DIR).filter((f) => f.endsWith('.json'));
 
-/** `reglesOptionnelles.json` (E8 du programme #1318) : le cliquet ouvert à 55 le 2026-08-16 est SOLDÉ
- *  au 2026-08-20 — les 54 entrées restantes portent leur `source: {book,page}`, folio IMPRIMÉ relevé
- *  au marqueur `data-folio` gouvernant la ligne de leur `ref` (les 27 autres portent `maison`). */
+/** `reglesOptionnelles.json` (E8 du programme #1318) : chaque entrée sourcée porte sa `source: {book,page}`,
+ *  folio IMPRIMÉ relevé au marqueur `data-folio` gouvernant la ligne de sa `ref` ; les autres portent `maison`. */
 function missingByFile(): Record<string, number> {
   const missing: Record<string, number> = {};
   for (const f of DATASETS) {

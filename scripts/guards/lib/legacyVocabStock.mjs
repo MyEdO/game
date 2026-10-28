@@ -203,13 +203,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/regles-optionnelles-partition.test.ts",
-    motif: "désormais",
-    ancre: "// 2 → 24 (#1688) : les 24 Structures citent leur folio (ADE II 89, AA 119-120) ET portent désormais",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/schema-contract.test.ts",
     motif: "désormais",
     ancre: "(c) CLIQUET : une entrée `PENDING` qui a désormais un schéma doit en SORTIR (sinon la liste ne",
