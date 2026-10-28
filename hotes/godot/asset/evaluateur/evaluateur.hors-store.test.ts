@@ -129,8 +129,23 @@ describe('gardePistesDEchelle', () => {
 });
 
 describe('échantillonnage et gardePiedsAuSol', () => {
-  it('les instants vont de 0 à la durée au pas donné', () => {
-    expect(instants(1, 0.5)).toEqual([0, 0.5, 1]);
+  it('les instants sont la grille de 0 à la durée au pas donné et les clés de toutes les pistes, sans doublon', () => {
+    const c = new AnimationClip('Pas', 1, [
+      new VectorKeyframeTrack('racine.position', [0, 0.25, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0]),
+      new VectorKeyframeTrack('haut.position', [0, Math.fround(0.3), Math.fround(0.7)], [0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0]),
+    ]);
+    expect(instants(c, 0.1).map((t) => +t.toFixed(6))).toEqual([0, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]);
+  });
+
+  it('ROUGE : un clip qui ne plonge sous le sol qu’à une clé entre deux pas', () => {
+    const { scene, mesh } = cylindre();
+    const plongeon = new AnimationClip('Plongeon', 1, [
+      new VectorKeyframeTrack('racine.position', [0, 0.2, 0.25, 0.3, 1], [0, 0, 0, 0, 0, 0, 0, -0.1, 0, 0, 0, 0, 0, 0, 0]),
+    ]);
+    const niveaux = [...echantillonner(scene, [mesh], [plongeon], 0.5)].map((e) => ({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, ['Corps']) }));
+    const ecarts = gardePiedsAuSol(niveaux);
+    expect(ecarts.map((e) => [e.code, e.clip, e.t])).toEqual([['sous-le-sol', 'Plongeon', 0.25]]);
+    expect(ecarts[0].valeur).toBeCloseTo(-0.1, 5);
   });
 
   it('VERT : un clip immobile garde le corps au sol ; ROUGE : un clip qui l’enfonce, la pose de repos rendue ensuite', () => {

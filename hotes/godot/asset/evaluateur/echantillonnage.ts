@@ -1,5 +1,5 @@
 /**
- * L'ÉCHANTILLONNAGE D'UNE SCÈNE ANIMÉE (#2972) : pour chaque (clip, t) à pas fixe, les positions monde déformées de chaque
+ * L'ÉCHANTILLONNAGE D'UNE SCÈNE ANIMÉE (#2972, #3098) : pour chaque (clip, t) de la grille à pas fixe et des clés du clip, les positions monde déformées de chaque
  * sommet des meshes demandés (`getVertexPosition` : shape keys et skinning) et les matrices monde des os, joués par
  * `AnimationMixer` ; et la même mesure sur la pose de repos, gabarit et silhouettes appliqués.
  */
@@ -44,11 +44,18 @@ function poseCourante(scene: Object3D, meshes: readonly Mesh[]): Pose {
 /** La pose de repos de `scene` (gabarit et silhouettes déjà posés) pour `meshes`. */
 export const poseDeRepos = (scene: Object3D, meshes: readonly Mesh[]): Pose => poseCourante(scene, meshes);
 
-/** Les instants d'échantillonnage d'un clip de durée `duree` : 0, `pas`, 2 `pas`… jusqu'à `duree`. */
-export const instants = (duree: number, pas: number): number[] =>
-  Array.from({ length: Math.floor(duree / pas + 1e-9) + 1 }, (_, k) => k * pas);
+/** Deux instants plus proches que cet écart, en secondes, sont un seul instant (clés glTF en float32). */
+const INSTANTS_CONFONDUS = 1e-6;
 
-/** Chaque (clip, t) de `clips` joué sur `scene` à pas `pas`, pour `meshes`. La pose de repos est rendue à la fin de chaque clip. */
+/** Les instants d'échantillonnage de `clip` : l'union de la grille 0, `pas`, 2 `pas`… jusqu'à sa durée et des instants
+ *  de toutes les clés de ses pistes, triés, sans doublon. */
+export function instants(clip: AnimationClip, pas: number): number[] {
+  const grille = Array.from({ length: Math.floor(clip.duration / pas + 1e-9) + 1 }, (_, k) => k * pas);
+  const cles = clip.tracks.flatMap((piste) => Array.from(piste.times)).filter((t) => t >= 0 && t <= clip.duration);
+  return [...grille, ...cles].sort((a, b) => a - b).filter((t, i, liste) => i === 0 || t - liste[i - 1] > INSTANTS_CONFONDUS);
+}
+
+/** Chaque (clip, t) de `clips` joué sur `scene` aux `instants` du clip au pas `pas`, pour `meshes`. La pose de repos est rendue à la fin de chaque clip. */
 export function* echantillonner(scene: Object3D, meshes: readonly Mesh[], clips: readonly AnimationClip[], pas = PAS_PAR_DEFAUT): Generator<Echantillon> {
   for (const clip of clips) {
     const mixer = new AnimationMixer(scene);
@@ -57,7 +64,7 @@ export function* echantillonner(scene: Object3D, meshes: readonly Mesh[], clips:
     action.clampWhenFinished = true;
     action.play();
     try {
-      for (const t of instants(clip.duration, pas)) {
+      for (const t of instants(clip, pas)) {
         mixer.setTime(t);
         yield { clip: clip.name, t, ...poseCourante(scene, meshes) };
       }
