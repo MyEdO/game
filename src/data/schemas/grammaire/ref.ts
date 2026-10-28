@@ -533,7 +533,8 @@ const META_ID = { label: "identifiant", texte: { regime: 'technique', usage: 'id
 
 /** L'objet CONCRET d'une référence `{ id, …extra }` de `type`, nommé par `metas` : le corps unique de
  *  `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser. `extraDuPorteur` : la part
- *  d'`extra` que l'appelant a passée, sans les clés que la fabrique pose elle-même. */
+ *  d'`extra` que l'appelant a passée, sans les clés que la fabrique pose elle-même. `sousListe` restreint
+ *  l'`id` comme `idDe`. */
 function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(
   type: T,
   extra: E,

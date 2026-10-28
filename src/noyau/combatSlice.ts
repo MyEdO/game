@@ -88,7 +88,8 @@ import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbu
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
-import { findSeaShantyById, conditionLabel, libelleOuAbsence, groupLabel } from '../data';
+import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
+import { identiteDeCiblage, libelleDeCible, type CiblePsy } from '../engine/psych/ciblage';
 import { findCrewTestTypeById, findCrewRoleById, findStructureById, combatStakeRef } from '../data';
 import { structureCombatant } from '../engine/structures';
 import { targetArc, headingToBear } from './monde/fireArc';
@@ -142,12 +143,13 @@ const combatBusy = (s: Pick<Jeu, 'pendingCleave' | 'pendingDualStrike' | 'pendin
 
 /** Animosité & Haine sur Destin dépensé (ADE II 09 l.15 ; Cible : ADE II (VO) 09 l.14) : pose le Trait que décide `animositeOrHaine` sur la Cible
  *  `foeCible` (id de Groupe de l'adversaire) et rend la ligne de journal ; `null` sans Trait. */
-function acquireAnimositeOnFate(hero: Combatant, foeCible: string | undefined): string | null {
+function acquireAnimositeOnFate(hero: Combatant, foeCible: CiblePsy | undefined): string | null {
   const res = animositeOrHaine(hero, foeCible, battleRng());
   if (!res?.trait) return null;
-  if (res.replacesAnimosite) hero.psychTraits = (hero.psychTraits ?? []).filter((p) => !(p.type === 'animosite' && p.cible === foeCible));
+  const animosite = identiteDeCiblage('animosite', res.trait.cible);
+  if (res.replacesAnimosite) hero.psychTraits = (hero.psychTraits ?? []).filter((p) => identiteDeCiblage(p.type, p.cible) !== animosite);
   hero.psychTraits = [...(hero.psychTraits ?? []), res.trait];
-  return t(res.trait.type === 'haine' ? 'cs.haineGain' : 'cs.animositeGain', { name: hero.label, groupe: groupLabel(foeCible) });
+  return t(res.trait.type === 'haine' ? 'cs.haineGain' : 'cs.animositeGain', { name: hero.label, groupe: libelleDeCible(res.trait.cible) });
 }
 
 /** OUVERTURE partagée d'un Test d'équipage MULTI (MDG 14) : contributeurs par rôle (`crewTestContributors` —

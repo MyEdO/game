@@ -772,7 +772,7 @@ export function psychDRAdjust(attacker: Combatant, target: Combatant | null): nu
     const applies = adr.vs === 'source'
       ? p.sourceId === target.id && sousPeur(p)
       : adr.vs === 'group'
-        ? !!p.active && !!p.cible && vise({ groupe: p.cible }, { genre: 'combattant', c: target }, 'appartenance') // LDB 21 l.41 ; #3045
+        ? !!p.active && !!p.cible && vise(p.cible, { genre: 'combattant', c: target }, 'appartenance') // LDB 21 l.41 ; #3045
         : !!p.active; // 'any' : Amour/Camaraderie (défense), dès lors qu'actif
     if (!applies || (adr.amount < 0 && fearCancelled)) continue; // malus de Peur effacé par Haine/Amour
     dr += adr.amount;

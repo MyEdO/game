@@ -8,6 +8,8 @@ import { humanizeOp } from './humanize';
 import { opRow } from './opRows';
 import { groupLabel, groups, psychologies, psychologyLabel } from '../../data';
 import type { GameOp } from '../../engine/ops';
+import { opPsy } from '../../engine/psych/opsPsy';
+import { ciblePsy } from '../../engine/psych/ciblage';
 
 const psy = psychologies.find((p) => !p.label.includes(p.id));
 const groupe = groups.find((g) => !g.matchesAll && !g.label.includes(g.id));
@@ -24,8 +26,8 @@ describe('ops psychologiques : libellés, jamais ids', () => {
   });
 
   it.each<[string, () => GameOp]>([
-    ['beginPsych', () => ({ op: 'beginPsych', type: psy!.id, cible: groupe!.id })],
-    ['grantPsychTrait', () => ({ op: 'grantPsychTrait', psychType: psy!.id, cible: groupe!.id })],
+    ['beginPsych', () => opPsy.pose(psy!.id, { cible: ciblePsy.groupe(groupe!.id) })],
+    ['grantPsychTrait', () => opPsy.octroi(psy!.id, ciblePsy.groupe(groupe!.id))],
   ])('%s : la psychologie et sa Cible', (_op, build) => {
     for (const texte of textes(build())) {
       expect(texte).toContain(groupLabel(groupe!.id));

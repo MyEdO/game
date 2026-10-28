@@ -32,6 +32,8 @@ import { fallTables } from '../../data/shipCriticals';
 import { terrainsElectifs } from '../../noyau/monde/terrain';
 import { ListeDIds, RefField } from '../compendium/refField/RefField';
 import { ObjetDonneField } from './ObjetDonneField';
+import { ciblePsy, estCibleType, refDeCible, type RefDeCible } from '../../engine/psych/ciblage';
+import { opPsy } from '../../engine/psych/opsPsy';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTraits } from './refFormatLivre';
@@ -437,8 +439,8 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'healCaster': return { op: 'healCaster', amount: 1 };
     case 'condition': return { op: 'condition', id: '', value: 1 };
     case 'removeCondition': return { op: 'removeCondition' };
-    case 'endPsych': return { op: 'endPsych', type: '' };
-    case 'beginPsych': return { op: 'beginPsych', type: '' };
+    case 'endPsych': return opPsy.fin('');
+    case 'beginPsych': return opPsy.pose('');
     case 'sbBonus': return { op: 'sbBonus', amount: 1 };
     case 'incomingSpellDRMod': return { op: 'incomingSpellDRMod', amount: -1 };
     case 'charMod': return { op: 'charMod', char: 'force', mod: -10 };
@@ -467,8 +469,8 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'grantFreeAttack': return { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true };
     case 'grantTrait': return { op: 'grantTrait', trait: { id: '' } };
     case 'removeTrait': return { op: 'removeTrait', trait: { id: '' } };
-    case 'grantPsychTrait': return { op: 'grantPsychTrait', psychType: '' };
-    case 'removePsychTrait': return { op: 'removePsychTrait' };
+    case 'grantPsychTrait': return opPsy.octroi('');
+    case 'removePsychTrait': return opPsy.retrait();
     case 'grantTalent': return { op: 'grantTalent', talent: { id: '' } };
     case 'grantCareerSkill': return { op: 'grantCareerSkill', skill: { id: '' } };
     case 'grantCareerTalent': return { op: 'grantCareerTalent', talent: { id: '' } };
@@ -548,6 +550,7 @@ const DEDICATED: ReadonlySet<GameOp['op']> = new Set([
   'corruption', 'sinMod', 'corruptionExposure', 'gainResource', 'grantTrait', 'grantTalent', 'grantNaturalWeapon', 'narrative',
   'summon', 'polymorph', 'lifeSteal', 'push', 'teleport', 'chain', 'rollTable', 'rollMutation', 'armourPierce', 'light',
   'fall', 'domeWard', 'offTerrainMod', 'moveScale', 'maxWeaponHands', 'giveTrapping', 'banish',
+  'endPsych', 'beginPsych', 'grantPsychTrait', 'removePsychTrait',
 ]);
 
 /** `ListeDIds` du champ `champ` de l'op éditée, sur son nœud. */
@@ -683,6 +686,27 @@ function TraitOctroyeFields({ trait, indiceRequis, indiceMin, onChange }: { trai
   );
 }
 
+/** La référence `{ id }` du type de psychologie élu, et la Cible qu'il perd s'il n'en vise aucune (`estCibleType`). */
+function typeDePsychologie(v: unknown): { ref: { id: string }; perdue: { cible?: undefined } } {
+  const id = typeof v === 'string' ? v : '';
+  return { ref: { id }, perdue: estCibleType(id) ? {} : { cible: undefined } };
+}
+
+/** Cible d'un Trait psy, élue au registre des Groupes : sa référence de donnée (`refDeCible`). */
+function CibleField({ value, onChange }: { value: RefDeCible | undefined; onChange: (cible: RefDeCible | undefined) => void }) {
+  return (
+    <RefField cfg={{ ds: 'groups', single: true }} fieldKey="Cible" nullable
+      value={value?.id ?? ''} onChange={(v) => onChange(typeof v === 'string' && v ? refDeCible(ciblePsy.groupe(v)) : undefined)} />
+  );
+}
+
+/** Type d'une op psychologique, élu au registre restreint à la feuille du schéma (`type.id`, `psychType.id`). */
+function TypePsyField({ fieldKey, noeud, value, nullable, onChange }: {
+  fieldKey: string; noeud: unknown; value: { id: string } | undefined; nullable?: boolean; onChange: (v: unknown) => void;
+}) {
+  return <RefField cfg={{ ds: 'psychologies', single: true }} fieldKey={fieldKey} noeud={noeud} nullable={nullable} value={value?.id ?? ''} onChange={onChange} />;
+}
+
 function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown }) {
   const objets = useContext(ObjetsDOpContext);
   const identite = useId();
@@ -776,17 +800,28 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <label className="dr">DR de Sort / point<NumberField variant="nu" label="Degrés de Réussite de Sort par point" value={typeof o.amount === 'number' ? o.amount : 0} onChange={(amount) => upd({ amount })} /></label>
         )}
         {op.op === 'endPsych' && (
-          <label className="dr">Type psy<input value={o.type ?? ''} onChange={(e) => upd({ type: e.target.value })} /></label>
+          <TypePsyField fieldKey="État psychologique" noeud={noeudDuChamp(noeudDOp, 'type.id')} value={op.type}
+            onChange={(v) => upd({ type: typeDePsychologie(v).ref })} />
         )}
         {op.op === 'beginPsych' && (
           <>
-            <RefField cfg={{ ds: 'psychologies', single: true }} fieldKey="État psychologique"
-              value={o.type ?? ''} onChange={(v) => upd({ type: (v as string) ?? '' })} />
-            <RefField cfg={{ ds: 'groups', single: true }} fieldKey="Cible" nullable
-              value={o.cible ?? ''} onChange={(v) => upd({ cible: typeof v === 'string' && v ? v : undefined })} />
+            <TypePsyField fieldKey="État psychologique" noeud={noeudDuChamp(noeudDOp, 'type.id')} value={op.type}
+              onChange={(v) => { const { ref, perdue } = typeDePsychologie(v); upd({ type: ref, ...perdue }); }} />
+            {estCibleType(op.type.id) && <CibleField value={op.cible} onChange={(cible) => upd({ cible })} />}
             <label className="dr"><input type="checkbox" checked={o.indice != null} onChange={(e) => upd({ indice: e.target.checked ? 1 : undefined })} /> Indice</label>
             {o.indice != null && <FormulaField label="Valeur" champ="indice" value={o.indice} min={0} onChange={(indice) => upd({ indice })} />}
           </>
+        )}
+        {op.op === 'grantPsychTrait' && (
+          <>
+            <TypePsyField fieldKey="Trait psychologique" noeud={noeudDuChamp(noeudDOp, 'psychType.id')} value={op.psychType}
+              onChange={(v) => { const { ref, perdue } = typeDePsychologie(v); upd({ psychType: ref, ...perdue }); }} />
+            {estCibleType(op.psychType.id) && <CibleField value={op.cible} onChange={(cible) => upd({ cible })} />}
+          </>
+        )}
+        {op.op === 'removePsychTrait' && (
+          <TypePsyField fieldKey="Trait psychologique" noeud={noeudDuChamp(noeudDOp, 'psychType.id')} value={op.psychType} nullable
+            onChange={(v) => upd({ psychType: typeof v === 'string' && v ? typeDePsychologie(v).ref : undefined })} />
         )}
         {op.op === 'testMod' && (
           <>

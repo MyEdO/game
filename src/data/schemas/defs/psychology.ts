@@ -95,8 +95,8 @@ const doc = document(
   },
   {
     exiges: ['desc', 'source'],
-    // `psychImmune` : sous-liste marquée de `traits.json › capabilities.psychType`.
-    espace: { marqueurs: ['psychImmune'] },
+    // `psychImmune` : sous-liste marquée de `traits.json › capabilities.psychType` ; `becomes` : de l'op `beginPsych`.
+    espace: { marqueurs: ['psychImmune', 'becomes'] },
   },
 );
 

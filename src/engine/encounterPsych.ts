@@ -16,12 +16,13 @@
  */
 import { Combatant } from './types';
 import { targetedTrigger, targetCausedTrigger, isPsychImmune, PsychType } from './psychology';
+import type { CiblePsy } from './psych/ciblage';
 
 export interface EncounterPsychTrigger {
   kind: PsychType;
   sourceId: string;
   indice: number;
-  cible?: string;
+  cible?: CiblePsy;
 }
 
 /** Premier Test de Psychologie dû à `hero` face aux `npcs` présents HORS COMBAT, ou null. Peur/Terreur

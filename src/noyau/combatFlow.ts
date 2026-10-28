@@ -153,7 +153,7 @@ import {
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
-import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES, groupLabel } from '../data';
+import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
@@ -219,8 +219,9 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
-import { groupesDe, type PorteurDeGroupes } from '../engine/groups';
+import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import type { PorteurDeGroupes } from '../engine/groups';
+import { cibleDuPorteur, estCibleType, identiteDeCiblage, libelleDeCible, type CiblePsy } from '../engine/psych/ciblage';
 import { sceneCombatModifiers } from './monde/sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
@@ -1665,7 +1666,7 @@ export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source
   // Le vrai gate est la RESSOURCE (`fate > 0`, présente sur tout kind), pas le `kind` : un combattant à
   // Destin (héros, ou ennemi conduit doté de Destin) est sauvé ; sinon la mort est finalisée.
   if ((hero.fate ?? 0) > 0) {
-    const foeCible = foe ? groupesDe(foe)[0] : undefined;
+    const foeCible = foe ? cibleDuPorteur(foe) : undefined;
     set({ pendingFateSave: { heroId: hero.id, source, restoreWounds, ...(foeCible ? { foeCible } : {}) } });
   } else {
     hero.dead = true;
@@ -7520,7 +7521,7 @@ export function markActed(get: Get, set: SetFn): BattleState {
 }
 
 /** Forme commune d'un Test de Psychologie de combat DÛ pour un héros (cumul `prevDR` = 0 sauf Peur étendue). */
-type HeroPsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: string };
+type HeroPsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: CiblePsy };
 
 /** Combattants en Ligne de Vue de `c` (hors lui-même, debout). Mutualisé par les deux collectes. */
 function visibleFoesAndAllies(battle: BattleState, scene: import('./monde/scene').Scene, c: Combatant): Combatant[] {
@@ -7546,7 +7547,7 @@ export function collectHeroRoundStartPsych(get: Get, c: Combatant): HeroPsychDue
   // Traits psy CIBLÉS (Animosité/Haine/… — LDB 21) : re-test des actifs, puis nouveaux déclenchements.
   const visible = visibleFoesAndAllies(battle, scene, c);
   for (const p of state) {
-    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise({ groupe: p.cible! }, { genre: 'combattant', c: v }, 'percu')))
+    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu')))
       return { kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible: p.cible }; // affliction active à re-tester
   }
   const tt = targetedTrigger(c, visible);
@@ -7628,7 +7629,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
       meta: { prevDR: t.prevDR, ...(sansPeur ? { sansPeur: true } : {}) },
     },
     icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
-    label: cl ? (t.cible ? stepPrecision(dataLabel(cl.label), groupLabel(t.cible)) : dataLabel(cl.label)) : stepPsych(t.kind, t.indice),
+    label: cl ? (t.cible ? stepPrecision(dataLabel(cl.label), libelleDeCible(t.cible)) : dataLabel(cl.label)) : stepPsych(t.kind, t.indice),
   };
 }
 
@@ -7644,7 +7645,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
  * les collecteurs — c'est la seule chose que la bande ajoute.
  */
 const combatPsychBands = makeBandFactory<CombatPsychDue>({
-  cle: ({ decl: d }) => `${d.kind}|${d.sourceId}|${d.cible ?? ''}|${d.indice}`,
+  cle: ({ decl: d }) => `${d.sourceId}|${identiteDeCiblage(d.kind, d.cible)}|${d.indice}`,
   rangee: (due) => due.row,
   situation: ({ decl: d, icon, label }, { index }) => ({
     id: `psych-${d.kind}-${index}`, kind: 'combatPsych', icon, label,
@@ -7787,11 +7788,11 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
     if (brise > 0 && res.failCondition === COND.brise) {
       hero.briseFromTerreur = (hero.briseFromTerreur ?? 0) + brise;
       const foe = inBattleId(battle, cp.sourceId);
-      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, foe ? groupesDe(foe)[0] : undefined);
+      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, foe ? cibleDuPorteur(foe) : undefined);
       if (gained) {
         hero.psychTraits = [...(hero.psychTraits ?? []), gained.phobie];
         hero.briseFromTerreur = 0;
-        phobieLine = tr('cf.phobieGain', { name: hero.label, groupe: groupLabel(gained.phobie.cible) });
+        phobieLine = tr('cf.phobieGain', { name: hero.label, groupe: libelleDeCible(gained.phobie.cible) });
       }
     }
   } else if (cible) {

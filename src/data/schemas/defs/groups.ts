@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { refs } from '../grammaire/ref';
+import { MOTIF_D_ID_DE_GROUPE } from '../../../engine/psych/ciblage';
 
 export const file = 'groups.json';
 export const famille = 'entite';
@@ -29,7 +30,10 @@ const doc = document(
     edit: { dataset: 'groups' },
   },
   // `matchesAll` : marqueur de la sous-liste `DECLARABLE_PAR_UN_PORTEUR` (`grammaire/sousListes.ts`).
-  { espace: { marqueurs: ['matchesAll'] } },
+  {
+    espace: { marqueurs: ['matchesAll'] },
+    idDocument: z.string().regex(MOTIF_D_ID_DE_GROUPE, `id de Groupe : minuscules, chiffres et tirets (${MOTIF_D_ID_DE_GROUPE.source}).`),
+  },
 );
 
 export const schema = doc.schema;

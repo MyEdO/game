@@ -111,6 +111,8 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/possessionGrants.ts', 'Octroi de possessions'],
   ['src/engine/prayer.ts', 'Prières, miracles'],
   ['src/engine/provisions.ts', 'Provisions, faim'],
+  ['src/engine/psych/ciblage.ts', 'Cible d’un Trait psychologique'],
+  ['src/engine/psych/opsPsy.ts', 'Ops psychologiques (fabriques)'],
   ['src/engine/psych/registry.ts', 'Registre de psychologie'],
   ['src/engine/psych/types.ts', 'Types de psychologie'],
   ['src/engine/psychology.ts', 'Psychologie : Peur, Terreur, Frénésie'],

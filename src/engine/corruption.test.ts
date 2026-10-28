@@ -16,6 +16,7 @@ import { testValue } from './skills';
 import { effectiveMovement } from './encumbrance';
 import { desDuTest } from './dice.testkit';
 import { groupesDe } from './groups';
+import { opPsy } from './psych/opsPsy';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -122,7 +123,7 @@ describe('effets de mutation lus à la volée', () => {
   it('attachMutation pousse les Traits dérivés (créature + psychologie)', () => {
     const c = hero();
     attachMutation(c, { id: 'tentacule-epais', label: 'Tentacule épais', desc: '', kind: 'physique', roll: 38, passive: [{ op: 'grantTrait', trait: { id: 'tentacules' } }] }, desDuTest);
-    attachMutation(c, { id: 'colere-impie', label: 'Colère impie', desc: '', kind: 'mentale', roll: 93, passive: [{ op: 'grantPsychTrait', psychType: 'frenesie' }] }, desDuTest);
+    attachMutation(c, { id: 'colere-impie', label: 'Colère impie', desc: '', kind: 'mentale', roll: 93, passive: [opPsy.octroi('frenesie')] }, desDuTest);
     // L'instance accordée porte SA provenance (`TraitInstance.src`) : c'est ce registre que le
     // `removeTrait` d'une mutation interroge pour ne retirer que le sien.
     expect(c.traits).toContainEqual({ id: 'tentacules', src: { kind: 'mutation', id: 'tentacule-epais' } });

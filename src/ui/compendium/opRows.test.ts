@@ -12,6 +12,7 @@ import { characteristics, talents, skills, traits, psychologies, etats, trapping
 import type { CharKey } from '../../engine/types';
 import { psychBranchOps } from '../../engine/psychology';
 import { spellOps } from '../../engine/flowCore';
+import { opPsy } from '../../engine/psych/opsPsy';
 
 const ALL_KINDS = Object.keys(OP_LABEL) as GameOp['op'][];
 
@@ -103,9 +104,9 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     { kind: 'skillMod', category: 'skills', build: () => ({ op: 'skillMod', skill: { id: skills[0].id }, mod: -10 }) },
     { kind: 'skillDRBonus', category: 'skills', build: () => ({ op: 'skillDRBonus', skill: { id: skills[0].id }, bonus: 1 }) },
     { kind: 'grantTrait', category: 'traits', build: () => ({ op: 'grantTrait', trait: { id: traits[0].id } }) },
-    { kind: 'grantPsychTrait', category: 'psychologies', build: () => ({ op: 'grantPsychTrait', psychType: psychologies[0].id }) },
-    { kind: 'removePsychTrait', category: 'psychologies', build: () => ({ op: 'removePsychTrait', psychType: psychologies[0].id }) },
-    { kind: 'endPsych', category: 'psychologies', build: () => ({ op: 'endPsych', type: psychologies[0].id }) },
+    { kind: 'grantPsychTrait', category: 'psychologies', build: () => opPsy.octroi(psychologies[0].id) },
+    { kind: 'removePsychTrait', category: 'psychologies', build: () => opPsy.retrait(psychologies[0].id) },
+    { kind: 'endPsych', category: 'psychologies', build: () => opPsy.fin(psychologies[0].id) },
     { kind: 'condition', category: 'etats', build: () => ({ op: 'condition', id: etats[0].id }) },
     { kind: 'removeCondition', category: 'etats', build: () => ({ op: 'removeCondition', id: etats[0].id }) },
     { kind: 'giveTrapping', category: 'trappings', build: () => ({ op: 'giveTrapping', trappingId: trappings[0].id }) },

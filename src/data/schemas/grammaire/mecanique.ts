@@ -22,6 +22,7 @@ import { traitInstanceSchema } from './reference';
 import { catalogueSpecs, idDe, marquerOpAtteinte, ref, refs, refOuSpec, specDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
+import { estCibleType } from '../../../engine/psych/ciblage';
 
 /** Catégorie d'armure ignorée d'un `ArmourBypass` (`engine/armourBypass.bypassedAP`) ; `nonMetal` : LDB 62 l.270. */
 export const armourBypassCategorieSchema = enumNomme({
@@ -112,6 +113,13 @@ const estNoeudZod = (v: unknown): v is z.ZodType => typeof v === 'object' && v !
 
 /** Prose du retrait du jeu (`banish`) : LDB 85 l.98, l.199. */
 export const banishNarrationSchema = enumNomme({ chaos: 'banni aux Royaumes du Chaos', unravel: 'se délite' }, { chaos: 'LDB 85 l.98', unravel: 'LDB 85 l.199' });
+
+/** Une Cible n'est portée que par un type CIBLÉ (`psychology.json`, `targeted`). LDB 21 l.17-19 */
+function refuserLaCibleHorsCiblage(type: string, cible: unknown, ctx: z.RefinementCtx): void {
+  if (cible !== undefined && !estCibleType(type)) {
+    ctx.addIssue({ code: 'custom', path: ['cible'], message: `« ${type} » ne vise aucune Cible : « cible » est refusée.` });
+  }
+}
 
 /**
  * Payload STRICT par op (`src/engine/ops.ts`, union `GameOp`). Chaque entrée est un contrat POSITIF
@@ -222,6 +230,21 @@ const DECLARATIONS_D_OPS = {
       ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${o.cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
     }
   }), { op: { label: "opération" }, trait: { label: "Trait" }, cible: { label: "Cible tirée" }, indicePerSL: { label: "Indice par DR" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  /** Pose d'AUTEUR d'un état psychologique : jamais une entrée qui en devient une autre (`becomes`). LDB 21 l.56 */
+  beginPsych: nommerChamps(z.strictObject({
+    op: z.literal('beginPsych'),
+    type: ref('psychology', undefined, { horsMarqueurs: ['becomes'] }),
+    cible: ref('groupe').optional(),
+    indice: formulaSchema.optional(),
+    active: z.boolean().optional(),
+  }).superRefine((o, ctx) => refuserLaCibleHorsCiblage(o.type.id, o.cible, ctx)), { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, indice: { label: "Indice", texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } }, active: { label: "subi" } }),
+  endPsych: nommerChamps(z.strictObject({ op: z.literal('endPsych'), type: ref('psychology') }), { op: { label: "opération" }, type: { label: "état psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
+  grantPsychTrait: nommerChamps(z.strictObject({
+    op: z.literal('grantPsychTrait'),
+    psychType: ref('psychology'),
+    cible: ref('groupe').optional(),
+  }).superRefine((o, ctx) => refuserLaCibleHorsCiblage(o.psychType.id, o.cible, ctx)), { op: { label: "opération" }, psychType: { label: "Trait psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, cible: { label: "Cible", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
+  removePsychTrait: nommerChamps(z.strictObject({ op: z.literal('removePsychTrait'), psychType: ref('psychology').optional() }), { op: { label: "opération" }, psychType: { label: "Trait psychologique", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
   removeTrait: nommerChamps(z.strictObject({ op: z.literal('removeTrait'), trait: ref('trait') }), { op: { label: "opération"  }, trait: { label: "Trait" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} } }),
   /** `domeWard` — le dôme OCTROIE un Trait à ceux qu'il couvre (`LDB 47 l.410`) : le Trait octroyé
    *  (`traitInstanceSchema`). AUCUNE zone : elle est déjà écrite par la ligne « Cible » du sort (ZdE,
@@ -484,13 +507,13 @@ export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Re
  */
 export const OPS_NON_TYPEES: readonly string[] = [
   'actGate', 'ap', 'armourPierce', 'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod',
-  'beginPsych', 'breakBlade', 'chain', 'charDamage', 'condition',
+  'breakBlade', 'chain', 'charDamage', 'condition',
   'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm',
-  'endPsych', 'endTransform', 'freeReroll', 'gainResource', 'grantFreeAttack',
-  'grantNaturalWeapon', 'grantPsychTrait', 'handGate', 'ignoreAnimosity',
+  'endTransform', 'freeReroll', 'gainResource', 'grantFreeAttack',
+  'grantNaturalWeapon', 'handGate', 'ignoreAnimosity',
   'ignoreStatePenalties', 'interruptFocus',
   'intoxicate', 'lifeSteal', 'light', 'martyr', 'maxWeaponHands', 'mitigateIncoming', 'moveMod', 'moveScale',
-  'preventInfection', 'push', 'reduceToZero', 'removeCondition', 'removePsychTrait', 'removeShipPoste',
+  'preventInfection', 'push', 'reduceToZero', 'removeCondition', 'removeShipPoste',
   'rollMutation', 'sbBonus', 'senseLoss', 'sinMod', 'statusMod', 'suppressPsych', 'teamCommander',
   'teleport', 'weaponDamageMod', 'weaponRollMod', 'weatherWard', 'wounds',
 ];

@@ -2232,5 +2232,23 @@
     "concept": "état de Peur (LDB 21 l.25 ; LDB 10 l.1051) : `sousPeur` seul lecteur du drapeau `surmontee`, `indiceDePeur` seul lecteur de l’Indice, `pasDePeur` seule arithmétique du Test étendu et de Sans Peur, `sansPeurFace` seule décision de la rangée allégée",
     "perimetre": "lecteurs de la Peur (DR, approche, icône, vue d’acteur, re-test, IA), Test étendu des héros et de l’IA, portes de Psychologie en combat et à la rencontre",
     "verrou": "src/engine/psych-vise.test.ts, src/engine/sans-peur.test.ts, src/engine/psych-branch-ops.test.ts"
+  },
+  {
+    "id": "ciblePsy",
+    "type": "primitives.manifest",
+    "label": "CiblePsy/ciblePsy/selonCible/cibleDuPorteur/MOTIF_D_ID_DE_GROUPE/identiteDeCiblage/libelleDeCible/estCibleType/RefDeCible/ciblePsyLue/refDeCible",
+    "fichier": "src/engine/psych/ciblage.ts",
+    "concept": "Cible d’un Trait psy (#1463, #3045) : un Groupe par son id, frappé par la seule fabrique `ciblePsy` (motif des ids de Groupe `MOTIF_D_ID_DE_GROUPE`, partagé avec le schéma des Groupes), lu par le seul `selonCible`, tiré d’un porteur par `cibleDuPorteur`, comparé par `identiteDeCiblage` (type et Cible), affiché par `libelleDeCible` ; `estCibleType` dit si un type de psychologie porte une Cible ; `ciblePsyLue` est la seule couture de la référence de donnée `{ id }` (`RefDeCible`) vers la Cible, `refDeCible` sa réciproque",
+    "perimetre": "psychologie (état, ops, bandes, IA, affichage), Cible des ops psy, éditeurs des ops psy",
+    "verrou": "src/engine/psych/ciblage.test.ts"
+  },
+  {
+    "id": "opPsy",
+    "type": "primitives.manifest",
+    "label": "opPsy/traitOctroye",
+    "fichier": "src/engine/psych/opsPsy.ts",
+    "concept": "ops psychologiques de `GameOp` (#1468, #1463) : `opPsy` (`pose`, `fin`, `octroi`, `retrait`) seule graphie de leurs références emboîtées `{ id }`, `traitOctroye` seul lecteur du Trait qu’accorde un `grantPsychTrait`",
+    "perimetre": "producteurs des ops `beginPsych`, `endPsych`, `grantPsychTrait`, `removePsychTrait` (Psychologie, recette, éditeur, tests) ; lecteurs de `grantPsychTrait` (ops, mutations, maladies)",
+    "verrou": "src/engine/psych/opsPsy.test.ts"
   }
 ]

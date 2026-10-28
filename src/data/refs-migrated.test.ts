@@ -1219,17 +1219,17 @@ describe('GameOp — toute référence de la donnée committée résout dans son
   it('la garde n’est pas vacante — une op à référence fantôme est REFUSÉE (contre-épreuve)', () => {
     const fixture = [{
       file: 'fixture.json',
-      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'grantPsychTrait', psychType: 'frenesie' }] } } }] }],
+      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'removeCondition', id: 'aveugle' }] } } }] }],
     }];
     expect(scanGameOpRefs({ sources: fixture, resolvers }).offenders).toEqual([]);
     const phantom = [{
       file: 'fixture.json',
-      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'grantPsychTrait', psychType: 'psychologie-fantome' }] } } }] }],
+      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'removeCondition', id: 'etat-fantome' }] } } }] }],
     }];
     const out = scanGameOpRefs({ sources: phantom, resolvers }).offenders;
     expect(out).toHaveLength(1);
-    expect(out[0].registry).toBe('psychology');
-    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].psychType');
+    expect(out[0].registry).toBe('etats');
+    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].id');
   });
 
   it('le registre `etats` résout par `etatConnu` : un marqueur narratif (`NARRATIVE_MARKERS`) passe, un libellé est un offenseur', () => {
