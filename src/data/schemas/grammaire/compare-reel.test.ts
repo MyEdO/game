@@ -28,18 +28,21 @@ const comparesDe = (valeur: unknown, chemin: string, dans: { chemin: string; noe
   for (const [k, v] of Object.entries(obj)) comparesDe(v, `${chemin}.${k}`, dans);
 };
 
-/** Les fichiers des deux racines : `src/scenes` n'en porte aucun aujourd'hui, la première Condition authorée EN
- *  SCÈNE entre par ici. */
-const FICHIERS = ['src/data', 'src/scenes'].flatMap(fichiersJson);
-
-const POPULATION = (() => {
+/** Chaque `compare` du parcours (`POPULATION`) et les `"kind": "compare"` du TEXTE des mêmes fichiers, mesurés
+ *  sans le parcours (`DANS_LE_TEXTE`). `src/scenes` n'en porte aucun aujourd'hui : la première Condition
+ *  authorée EN SCÈNE entre par ici. */
+const { POPULATION, DANS_LE_TEXTE } = (() => {
   const trouves: { chemin: string; noeud: unknown }[] = [];
-  for (const f of FICHIERS) comparesDe(JSON.parse(readFileSync(f, 'utf8')), f, trouves);
-  return trouves;
+  let texte = 0;
+  for (const racine of ['src/data', 'src/scenes']) {
+    for (const f of fichiersJson(racine)) {
+      const brut = readFileSync(f, 'utf8');
+      texte += brut.match(/"kind":\s*"compare"/g)?.length ?? 0;
+      comparesDe(JSON.parse(brut), f, trouves);
+    }
+  }
+  return { POPULATION: trouves, DANS_LE_TEXTE: texte };
 })();
-
-/** Les `"kind": "compare"` du TEXTE des mêmes fichiers, mesurés sans le parcours. */
-const DANS_LE_TEXTE = FICHIERS.reduce((n, f) => n + (readFileSync(f, 'utf8').match(/"kind":\s*"compare"/g)?.length ?? 0), 0);
 
 describe('grammaire — les `compare` RÉELLEMENT authorés parsent contre la grammaire', () => {
   it('le parcours trouve chaque `compare` que porte le texte des deux racines (le scan mord)', () => {
