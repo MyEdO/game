@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { charKeySchema, enumNomme, sourceRefSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { flowTestSchema, gameOpSchema, triggeredEffectSchema } from '../grammaire/mecanique';
-import { refOuSpec } from '../grammaire/ref';
+import { idDe, refOuSpec } from '../grammaire/ref';
 
 export const file = 'domains.json';
 export const famille = 'entite';
@@ -51,7 +51,8 @@ const doc = document(
 
     wind: z.string().optional(),
 
-    arcane: z.boolean().optional(),
+    /** LDB 47 l.509 */
+    arcane: idDe('breathType').optional(),
     /** VDM 02 l.192 ; LDB 50. */
     dark: z.boolean().optional(),
     /** VDM 02 l.238. */
@@ -62,8 +63,6 @@ const doc = document(
     missile: nommerChamps(z.strictObject({ bypass: missileBypassSchema, bonusFromBypass: z.boolean().optional() }), { bypass: { label: 'armure ignorée' }, bonusFromBypass: { label: 'bonus tiré de l’armure ignorée' } }).optional(),
     /** Ops appliquées AU LANCEUR après une incantation réussie. */
     casterOps: z.array(gameOpSchema).optional(),
-
-    breathType: z.string().optional(),
 
     castBonus: nommerChamps(z.strictObject({ perCondition: z.string(), radiusStat: charKeySchema, bonus: z.number() }), {
       perCondition: { label: 'par État' },
@@ -137,7 +136,7 @@ const doc = document(
   },
   {
     wind: { label: 'Vent de magie', hint: 'Couleur associée (Aqshy, Ghyran…), extraite du texte' },
-    arcane: { label: 'Enseignable (Magie des Arcanes)', hint: 'Domaine ouvert via le Talent Magie des Arcanes' },
+    arcane: { label: 'Magie des Arcanes : Type de Souffle', hint: 'Domaine ouvert via le Talent Magie des Arcanes ; Type du sort Souffle (LDB 47 l.509)' },
     dark: { label: 'Domaine sombre', hint: 'Nécromancie/Démonologie' },
     tables: { label: 'Tables associées', hint: 'Tables de tables.json déclarées par le Domaine, par clé de rôle' },
     effects: { label: 'Effets déclenchés', hint: 'Effets à la touche d’un Sort du Domaine' },
@@ -146,7 +145,6 @@ const doc = document(
       hint: 'Les Sorts à Dégâts du Domaine ignorent les PA d’une matière — et peuvent en tirer un bonus de Dégâts',
     },
     casterOps: { label: 'Effets appliqués au lanceur', hint: 'Ops appliquées au lanceur après une incantation réussie' },
-    breathType: { label: 'Type de Souffle', hint: 'Élément conféré par le Talent Magie des Arcanes du Domaine' },
     castBonus: { label: 'Bonus d’incantation conditionnel', hint: 'Bonus lié à un État porté à portée' },
     castingChar: {
       label: 'Caractéristique d’incantation',

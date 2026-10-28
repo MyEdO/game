@@ -7,6 +7,8 @@ import { fr } from '../i18n/messages/fr.ts';
 import { norm } from '../lib/normalize.ts';
 import { tableTotale } from '../lib/tableTotale.ts';
 import { LOCALISATIONS_DE_COUP, type HitLocation } from './localisations.ts';
+import type { CharKey } from './types.ts';
+import type { FormuleSansTirage } from './ops.ts';
 
 
 /** Fourchette d'Indice imprimée, bornes incluses (`lirePlage`). */
@@ -15,8 +17,13 @@ export type Plage = { min: number; max: number };
 export type ParLocalisation = Record<HitLocation, number>;
 /** Emplacements d'une pièce d'armure nommée, ou `undefined` (`emplacementsDesPieces`). */
 export type PiecesDArmure = (nom: string) => readonly HitLocation[] | undefined;
-/** Ce que l'appelant sait d'une parenthèse : l'Indice imprimé hors d'elle, les pièces d'armure du Trait qui les lit. */
-export type ContexteDeParenthese = { indice?: number; pieces?: PiecesDArmure };
+/** La Caractéristique qu'abrège un sigle imprimé (« F », « FM »), ou `undefined`. */
+export type CaracDuSigle = (sigle: string) => CharKey | undefined;
+/** Ce que l'appelant sait d'une parenthèse : l'Indice imprimé hors d'elle, les pièces d'armure du Trait qui
+ *  les lit, les sigles des Caractéristiques d'un Indice relatif. */
+export type ContexteDeParenthese = { indice?: number; pieces?: PiecesDArmure; caracs?: CaracDuSigle };
+/** Indice relatif : le Bonus d'une Caractéristique, plus ou moins un nombre (`lireIndiceRelatif`). */
+export type IndiceRelatif = { bonusOf: CharKey } | { sum: [{ bonusOf: CharKey }, number] };
 
 const libelle = (loc: HitLocation): string => fr[`hitloc.${loc}`];
 
@@ -148,18 +155,41 @@ export function lireAspectIndice(texte: string): { aspect: string; indice: numbe
   return m ? { aspect: m[1], indice: Number(m[2]) } : undefined;
 }
 
+/** Indice relatif imprimé (« BF +4 », Middenheim 04 l.29 ; « BF +3 », VDM 02 l.479) : « B » suivi du sigle
+ *  d'une Caractéristique, puis un nombre signé facultatif ; `undefined` sinon. */
+export function lireIndiceRelatif(texte: string, caracs: CaracDuSigle): IndiceRelatif | undefined {
+  const m = /^B(\S+?)\s*(?:([+\-–−])\s*(\d+))?$/.exec(texte.trim());
+  const k = m ? caracs(m[1]) : undefined;
+  if (!m || !k) return undefined;
+  if (m[3] === undefined) return { bonusOf: k };
+  return { sum: [{ bonusOf: k }, (m[2] === '+' ? 1 : -1) * Number(m[3])] };
+}
+
+/** Texte d'un Indice relatif (« BF +4 »), relu par `lireIndiceRelatif` ; `undefined` pour une formule d'une
+ *  autre forme. `sigle` = le sigle imprimé d'une Caractéristique. */
+export function formaterIndiceRelatif(f: FormuleSansTirage, sigle: (k: CharKey) => string): string | undefined {
+  if (typeof f !== 'object' || f === null) return undefined;
+  if ('bonusOf' in f) return `B${sigle(f.bonusOf)}`;
+  if (!('sum' in f) || f.sum.length !== 2) return undefined;
+  const [b, n] = f.sum;
+  if (typeof b !== 'object' || b === null || !('bonusOf' in b) || typeof n !== 'number') return undefined;
+  return `B${sigle(b.bonusOf)} ${n < 0 ? '-' : '+'}${Math.abs(n)}`;
+}
+
 /** Classement du texte d'une parenthèse d'un Trait à Indice imprimé : fourchette, Indice par
- *  Localisation (quand l'appelant donne les `pieces` d'un Trait qui le lit), ou Aspect et Indice ;
- *  `undefined` si le texte n'est qu'un Aspect. Avec un Indice imprimé hors de la parenthèse (`indice`),
- *  seul l'Indice par Localisation s'y lit. */
+ *  Localisation (quand l'appelant donne les `pieces` d'un Trait qui le lit), Indice relatif (quand il donne
+ *  les sigles des Caractéristiques, `caracs`), ou Aspect et Indice ; `undefined` si le texte n'est qu'un
+ *  Aspect. Avec un Indice imprimé hors de la parenthèse (`indice`), seul l'Indice par Localisation s'y lit. */
 export function classerParenthese(
   texte: string,
   contexte: ContexteDeParenthese = {},
-): { plage: Plage } | { parLocalisation: ParLocalisation } | { aspect: string; indice: number } | undefined {
+): { plage: Plage } | { parLocalisation: ParLocalisation } | { formule: IndiceRelatif } | { aspect: string; indice: number } | undefined {
   const parLocalisation = contexte.pieces ? lireParLocalisation(texte, contexte) : undefined;
   if (contexte.indice !== undefined) return parLocalisation ? { parLocalisation } : undefined;
   const plage = lirePlage(texte);
   if (plage) return { plage };
   if (parLocalisation) return { parLocalisation };
+  const formule = contexte.caracs ? lireIndiceRelatif(texte, contexte.caracs) : undefined;
+  if (formule) return { formule };
   return lireAspectIndice(texte);
 }

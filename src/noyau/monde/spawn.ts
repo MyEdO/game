@@ -4,7 +4,7 @@
  */
 import { Combatant, Characteristics, type Weapon, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../../engine/types';
 import { skillCharacteristicById } from '../../engine/character';
-import { isOptionalNote, resoudreTrait, traitsDuPorteur, type TraitInstance, type TraitList, type TraitsDesignes, type OptionalEntry, type OptionalSwap } from '../../engine/statEntry';
+import { isOptionalNote, resoudreTrait, traitsDuPorteur, type PorteurDeTraits, type TraitInstance, type TraitList, type TraitsDesignes, type OptionalEntry, type OptionalSwap } from '../../engine/statEntry';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../../data';
 import { vehicleCombatant } from '../../engine/vehicle';
@@ -20,6 +20,7 @@ import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engi
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { emptyArmour, buildWeapon, hydratePoste, loadWeapon } from '../../engine/items';
 import { maxWounds, bonus, refreshWounds } from '../../engine/characteristics';
+import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
 import { appliquerAcquisitions } from '../../engine/talentEffects';
 import { parsePsychTraits } from '../../engine/psychology';
@@ -227,9 +228,16 @@ export interface SpawnExtras {
  *  valeurs. */
 export const traitsDeLIndividu = (
   poses: readonly TraitPose[],
-  id: string,
+  porteur: PorteurDeTraits,
   { appris = [], dejaPortes }: { appris?: readonly string[]; dejaPortes?: TraitsDesignes } = {},
-): TraitInstance[] => [...traitsDuPorteur(poses, id, dejaPortes), ...appris.map((t) => resoudreTrait({ id: t }))];
+): TraitInstance[] => [...traitsDuPorteur(poses, porteur, dejaPortes), ...appris.map((t) => resoudreTrait({ id: t }))];
+
+/** Le porteur d'un profil IMPRIMÉ (« – » → 0, #2304) : ses Indices formulés se lisent sur ce profil. Rendu
+ *  d'exploration d'une entité, invocation. Middenheim 04 l.29 */
+export const porteurDuProfil = (id: string, char: Partial<Record<string, number | null>>): PorteurDeTraits => {
+  const profil = charsFrom(char, 0);
+  return { id, indice: indiceSurLeProfil((k) => profil[k]) };
+};
 
 /** Profil de l'individu au spawn : le tirage FIGÉ d'une Possession (`charsRolled`, seedé sur l'uid, jamais
  *  relancé) PRIME sur les Caractéristiques aléatoires demandées. LDB 77 l.108. */
@@ -238,7 +246,7 @@ const profilDeLIndividu = (chars: Characteristics, id: string, charsRolled: Char
 
 /** Profil + modificateurs de PROFIL des traits `live` (Élite/Coriace/Brutal…) — pour les valeurs DÉRIVÉES
  *  au spawn (Blessures) qui doivent refléter les traits, alors que `characteristics` ne stocke que la base. */
-function withTraitChars(chars: Characteristics, live: TraitList | undefined): Characteristics {
+function withTraitChars(chars: Characteristics, live: TraitsDesignes | undefined): Characteristics {
   const out = { ...chars };
   for (const [k, v] of Object.entries(traitCharMods(live))) out[k as keyof Characteristics] += v ?? 0;
   return out;
@@ -250,14 +258,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   // vs NOTES composées « swap » (Grand Loup/Griffon ZI). Le joker « all-traits » (Mutant) est une
   // indication au picker (« n'importe quel Trait peut être ajouté ») → aucun effet mécanique au spawn.
   const optPoses = optEntries.filter((e): e is TraitPose => !isOptionalNote(e));
-  const individu = traitsDeLIndividu([...creature.traits, ...optPoses], id, { appris: extras?.learnedTraits });
-  const optTraits = individu.slice(creature.traits.length, creature.traits.length + optPoses.length);
   const swaps = optEntries.filter((e): e is OptionalSwap => isOptionalNote(e) && e.note === 'swap');
-  // Variante « swap » (ZI) : RETIRE les Traits qu'elle nomme (Bestial/Dressé/Territorial) — en échange
-  // d'un bonus (appliqué plus bas). Traits FACULTATIFS (LDB 76 l.45) fusionnés AVANT toutes les
-  // dérivations (armes, armure, psy, nuée…), puis les Traits retirés par les variantes sont ôtés.
-  const removedBySwap = new Set(swaps.flatMap((s) => s.remove));
-  const traits = individu.filter((t) => !removedBySwap.has(t.id));
   // « – » imprimé (`null`) → 0 : #2304. Int/FM nulles d'un Fabriqué : LDB 85 l.142.
   let chars = charsFrom(creature.char, 0);
   // Bonus de caractéristique octroyé par une variante « swap » (Grand Loup +15 Soc, Griffon +20 Soc,
@@ -283,7 +284,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   // (bidirectionnel : Grand Loup Moyenne→Grande, Vouivre Énorme→Grande). PRIME sur celle du bestiaire
   // et applique « Utiliser les Tailles » (LDB 85 l.276-277 : ±10 F/E, ∓5 Ag par catégorie d'écart).
   const swapSize = swaps.map((s) => s.size).find((x): x is SizeCategory => !!x);
-  const optSize = sizeFromTraits(optTraits) ?? swapSize ?? null;
+  const optSize = sizeFromTraits(optPoses) ?? swapSize ?? null;
   const size = optSize ?? baseSize;
   if (optSize && optSize !== baseSize) chars = resizeBySteps(chars, SIZE_ORDER[optSize] - SIZE_ORDER[baseSize]);
   // char.B (bestiaire) = la valeur livre d'UNE créature (≈ formule × Taille) → base/surcharge ; la
@@ -291,7 +292,15 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   const profileChanged = !!extras?.randomChars || !!extras?.charsRolled || (optSize != null && optSize !== baseSize);
   // Blessures dérivées de F/E/FM : computées sur le profil INCLUANT les facultatifs (Coriace +E, Élite +FM…),
   // même si `characteristics` ne stocke que la base — sinon une créature renforcée perdrait ses PB de trait.
-  const charsEff = withTraitChars(chars, optTraits);
+  const charsEff = withTraitChars(chars, optPoses);
+  // Traits de l'individu, leurs Indices formulés lus sur ce profil (Middenheim 04 l.29). Variante « swap »
+  // (ZI) : RETIRE les Traits qu'elle nomme (Bestial/Dressé/Territorial) — en échange d'un bonus (appliqué
+  // plus haut). Traits FACULTATIFS (LDB 76 l.45) fusionnés AVANT toutes les dérivations (armes, armure,
+  // psy, nuée…), puis les Traits retirés par les variantes sont ôtés.
+  const individu = traitsDeLIndividu([...creature.traits, ...optPoses], { id, indice: indiceSurLeProfil((k) => charsEff[k]) }, { appris: extras?.learnedTraits });
+  const optTraits = individu.slice(creature.traits.length, creature.traits.length + optPoses.length);
+  const removedBySwap = new Set(swaps.flatMap((s) => s.remove));
+  const traits = individu.filter((t) => !removedBySwap.has(t.id));
   // Blessures IMPOSÉES par une variante « swap » (Vouivre : « réduire ses B à 42 ») — remplace la valeur
   // livre ET la formule par Taille, aucune des deux ne reprend la main.
   const swapWounds = swaps.map((s) => s.wounds).find((w): w is number => w != null);
@@ -337,7 +346,8 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
 }
 
 export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: number; y: number; z?: number }, appearance?: EntityAppearance, extras?: SpawnExtras): Combatant {
-  const traits = traitsDeLIndividu(sb.traits ?? [], id, { appris: extras?.learnedTraits });
+  const poses = sb.traits ?? [];
+  const designes = [...poses, ...(extras?.learnedTraits ?? []).map((t) => ({ id: t }))];
   let chars = charsFrom(sb.char);
   // Compétences (refs `SkillRef` structurées, avances dérivées du profil SAISI) + talents du statbloc.
   const skills = skillsFromBook(sb.skills, chars, `spec:${id}`);
@@ -347,11 +357,12 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   // Traits à modificateurs de PROFIL (Élite, Coriace, Brutal, Rapide… — LDB 85) : un statbloc d'ÉDITEUR
   // part d'un profil standard et AJOUTE les Traits (LDB 77) → tous appliqués en DIRECT via `liveTraits`
   // (collecteur passif). `characteristics` reste le profil de BASE saisi ; `effectiveChar` ajoute les traits.
-  const size = tailleDuProfil({ size: sb.size, traits, talents: sb.talents });
+  const size = tailleDuProfil({ size: sb.size, traits: designes, talents: sb.talents });
   // Blessures : surcharge explicite `char.B` si fournie, sinon formule par Taille (vide ⇒ formule, LDB 85).
   // La formule reprend la main si les caractéristiques ont été tirées (le B saisi valait pour le profil rond).
   // Blessures sur le profil INCLUANT les traits (Coriace +E…) ; `characteristics` ne garde que la base saisie.
-  const charsEff = withTraitChars(chars, traits);
+  const charsEff = withTraitChars(chars, designes);
+  const traits = traitsDeLIndividu(poses, { id, indice: indiceSurLeProfil((k) => charsEff[k]) }, { appris: extras?.learnedTraits }); // Middenheim 04 l.29
   let wounds = typeof sb.char.B === 'number' && !rolled ? (sb.char.B as number) : maxWounds(charsEff, size, traits);
   // Endurant (LDB 85 l.130) : +Bonus d'Endurance Blessures (sur la formule — un B explicite du
   // statbloc est réputé final, comme au bestiaire).

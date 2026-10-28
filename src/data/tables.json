@@ -89,7 +89,7 @@
             "op": "grantTrait",
             "trait": {
               "id": "souffle",
-              "arg": "Corrosion et Poison",
+              "arg": "corrosion-et-poison",
               "value": 7
             }
           }

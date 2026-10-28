@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { isOptionalNote, parseStatEntry, resoudreTrait, statName, traitsDuPorteur } from './statEntry';
 import type { EffectSource } from './types';
-import { creatureToCombatant, statblockToCombatant } from '../noyau/monde/spawn';
+import { creatureToCombatant, porteurDuProfil, statblockToCombatant } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
 import { armourFromTraits } from './creatureEquip';
 
@@ -60,25 +60,34 @@ describe('traitsDuPorteur / resoudreTrait — d’un Trait posé à l’instance
 
   it('l’instance de jeu garde tout le Trait posé sauf sa provenance de livre', () => {
     expect(resoudreTrait({ ...jeu, ...provenance })).toEqual(jeu);
-    expect(traitsDuPorteur([{ ...jeu, ...provenance }], 'porteur-fixture')).toEqual([jeu]);
+    expect(traitsDuPorteur([{ ...jeu, ...provenance }], porteurDuProfil('porteur-fixture', {}))).toEqual([jeu]);
   });
   it('un Trait accordé porte la provenance de son octroi', () => {
     expect(resoudreTrait({ ...jeu, ...provenance }, { src })).toEqual({ ...jeu, src });
   });
   it('une fourchette se tire pour son porteur, entre ses bornes, toujours la même pour le même porteur', () => {
     const pose = { id: 'trait-fixture', plage: { min: 1, max: 3 } };
-    const valeurs = Array.from({ length: 40 }, (_, i) => traitsDuPorteur([pose], `porteur-${i}`)[0].value!);
+    const valeurs = Array.from({ length: 40 }, (_, i) => traitsDuPorteur([pose], porteurDuProfil(`porteur-${i}`, {}))[0].value!);
     expect(valeurs.every((v) => v >= 1 && v <= 3)).toBe(true);
     expect(new Set(valeurs)).toEqual(new Set([1, 2, 3]));
-    expect(traitsDuPorteur([pose], 'porteur-7')).toEqual([{ id: 'trait-fixture', value: valeurs[7] }]);
+    expect(traitsDuPorteur([pose], porteurDuProfil('porteur-7', {}))).toEqual([{ id: 'trait-fixture', value: valeurs[7] }]);
   });
   it('le tirage d’une fourchette ne dépend que de son Trait et de son rang parmi les homonymes que le porteur a', () => {
     const pose = { id: 'trait-fixture', plage: { min: 1, max: 20 } };
-    const seule = traitsDuPorteur([pose], 'porteur-fixture')[0];
-    expect(traitsDuPorteur([{ id: 'autre-fixture', value: 2 }, pose], 'porteur-fixture')[1]).toEqual(seule);
-    const [premiere, seconde] = traitsDuPorteur([pose, pose], 'porteur-fixture');
+    const seule = traitsDuPorteur([pose], porteurDuProfil('porteur-fixture', {}))[0];
+    expect(traitsDuPorteur([{ id: 'autre-fixture', value: 2 }, pose], porteurDuProfil('porteur-fixture', {}))[1]).toEqual(seule);
+    const [premiere, seconde] = traitsDuPorteur([pose, pose], porteurDuProfil('porteur-fixture', {}));
     expect(premiere).toEqual(seule);
-    expect(traitsDuPorteur([pose], 'porteur-fixture', [{ id: 'trait-fixture' }])).toEqual([seconde]);
+    expect(traitsDuPorteur([pose], porteurDuProfil('porteur-fixture', {}), [{ id: 'trait-fixture' }])).toEqual([seconde]);
+  });
+  it('un Indice formulé se lit sur le profil du porteur (Middenheim 04 l.29)', () => {
+    const pose = { id: 'trait-fixture', value: { sum: [{ bonusOf: 'force' as const }, 4] } };
+    expect(traitsDuPorteur([pose], porteurDuProfil('porteur-fixture', { force: 35 }))).toEqual([{ id: 'trait-fixture', value: 7 }]);
+    expect(traitsDuPorteur([pose], porteurDuProfil('porteur-fixture', { force: 52 }))).toEqual([{ id: 'trait-fixture', value: 9 }]);
+  });
+  it('les Traits conférés se résolvent pour le porteur du Trait qui les confère (ZI 03 l.75, l.77)', () => {
+    const pose = { id: 'trait-fixture', value: 3, confere: [{ id: 'autre-fixture', value: { bonusOf: 'force' as const }, ...provenance }] };
+    expect(traitsDuPorteur([pose], porteurDuProfil('porteur-fixture', { force: 40 }))).toEqual([{ id: 'trait-fixture', value: 3, confere: [{ id: 'autre-fixture', value: 4 }] }]);
   });
   it('une fourchette non tirée ne se résout pas : la pose tirée est un type', () => {
     // @ts-expect-error — `resoudreTrait` prend une `PoseTiree` ; une fourchette passe par `traitsDuPorteur`.
@@ -88,6 +97,10 @@ describe('traitsDuPorteur / resoudreTrait — d’un Trait posé à l’instance
   it('le spawn d’un statbloc pose les Traits résolus', () => {
     const c = statblockToCombatant({ type: 'statblock', label: 'Fixture', char: {}, traits: [{ id: 'elite', ...provenance }] }, 'fixture', { x: 0, y: 0 });
     expect(c.traits).toEqual([{ id: 'elite' }]);
+  });
+  it('le spawn lit l’Indice formulé sur le profil du statbloc', () => {
+    const sb = { type: 'statblock' as const, label: 'Fixture', char: { force: 35 }, traits: [{ id: 'arme', value: { sum: [{ bonusOf: 'force' as const }, 4] } }] };
+    expect(statblockToCombatant(sb, 'fixture', { x: 0, y: 0 }).traits).toEqual([{ id: 'arme', value: 7 }]);
   });
   it('le spawn fixe la fourchette sur la graine du porteur, et l’Armure tirée vaut à toutes ses Localisations', () => {
     const sb = { type: 'statblock' as const, label: 'Fixture', char: {}, traits: [{ id: 'armure', plage: { min: 1, max: 3 } }] };

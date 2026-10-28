@@ -29,7 +29,7 @@ import type { NatureDInfluence, SourceRef } from '../data/schemas/grammaire/vale
 import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
 import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, dropExpiredGrantedTraits, sameInstance } from './grantedTraits';
-import { evaluer, slBonus, valeurSansTirage } from './formule';
+import { caracDuCombattant, evaluer, slBonus, valeurSansTirage } from './formule';
 import { traitsOctroyes } from './traitOctroye';
 import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
@@ -79,7 +79,7 @@ import {
 } from './types';
 import { formatTrait, formatWardSave } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
-import type { TraitOctroye, TraitPose } from '../data/schemas/grammaire/reference';
+import type { TraitPose } from '../data/schemas/grammaire/reference';
 import type { ChaosAlign, ExposureLevel } from './corruption';
 import { t, pluriel, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
@@ -151,7 +151,7 @@ export type FormuleSansTirage = FormuleDe<never>;
  *  jet courant d'un `rollThreshold` (injectée par l'op ; 0 hors de ce contexte) ; `indice` = Indice
  *  de l'attaque naturelle d'une manœuvre (`{indiceOf}`, 0 hors contexte). */
 export function resolveFormula(f: Formula, ref: Combatant, rng: RNG, rolled?: number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number, sl?: number): number {
-  return evaluer<TermeDeJet>(f, ref, (t) => ('rolled' in t ? rolled ?? 0 : 'sl' in t ? sl ?? 0 : rollDice(t.dice, rng)), indice, stacks, gap, woundsDealt);
+  return evaluer<TermeDeJet>(f, caracDuCombattant(ref), (t) => ('rolled' in t ? rolled ?? 0 : 'sl' in t ? sl ?? 0 : rollDice(t.dice, rng)), indice, stacks, gap, woundsDealt);
 }
 
 /** L'Avantage d'un CAMP SANS FICHE (habitué, figurants) après des ops DÉCLARÉES : seul le vocabulaire
@@ -456,6 +456,9 @@ export type GameOp =
        *  cible qui se débat »). Résolue contre le RÉFÉRENT et FIGÉE sur l'entrée de condition ; ZI 2 l.178 ne
        *  chiffre pas ce montant — champ de DONNÉE éditable (qualité `filet-barbele`), rien en dur ici. */
       struggleDamage?: Formula;
+      /** Difficulté des Tests qui éliminent l'État, dictée par sa source (LDB 16 l.70 ; MDG 16 l.226) —
+       *  FIGÉE sur l'entrée d'État, lue par le Test `argDifficulty` de l'État. */
+      difficulte?: import('./types').Difficulty;
       /** VERROU de Critique (LDB 18) : l'État posé ne pourra être RETIRÉ que lorsque cette Condition
        *  (algèbre flowCore) sera vraie. Ex. Aveuglé « tant que tous les Hémorragique n'ont pas été
        *  éliminés » (Tête 46-50) ⇒ `{ kind:'compare', subject:{who:'target',condition:'hemorragique'},
@@ -595,7 +598,7 @@ export type GameOp =
    *  `condition` (résolue MAINTENANT depuis `ctx.now`, purgée par `purgeClockEffects` qui retire le
    *  trait accordé via `dropExpiredGrantedTraits`) : un Trait borné en JOURS le dit ici (Désespoir,
    *  VDM 09 l.280). Exclusif de `durationRounds` ; absent = durée du contexte (`durationFromCtx`). */
-  | { op: 'grantTrait'; trait: TraitOctroye; cible?: TirageDeCible; indicePerSL?: PerSL; onlyGroups?: string[]; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
+  | { op: 'grantTrait'; trait: TraitPose; cible?: TirageDeCible; indicePerSL?: PerSL; onlyGroups?: string[]; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
   /** RETRAIT d'un Trait de créature porté (`c.traits`) — l'INVERSE de `grantTrait`, même vocabulaire :
    *  retire ce que LA SOURCE COURANTE (`ctx.source`) a accordé, instances retrouvées par le registre
    *  `TraitInstance.src`. Une instance NATIVE, ou accordée par un TIERS (Haine d'une prière, LDB 226),
@@ -747,7 +750,7 @@ export type GameOp =
   /** Dôme (LDB 47 l.410) — aura sur la cible, qui OCTROIE `trait` à ceux qu'elle couvre : le Trait octroyé de
    *  `grantTrait`, Indice requis. AUCUNE zone ne s'authore ici : elle est DÉJÀ déclarée par la ligne « Cible »
    *  du sort (`SpellTarget`, ZdE en DIAMÈTRE — LDB 47 l.28), lue par `zdeDiameterMeters`. */
-  | { op: 'domeWard'; trait: TraitOctroye }
+  | { op: 'domeWard'; trait: TraitPose }
   /** Bénédiction de Protection (LDB 41 — L13) : « Les ennemis doivent effectuer un Test de FM
    *  Accessible (+20) pour attaquer votre cible ». Drapeau lu à la déclaration d'attaque. */
   | { op: 'attackWardFM' }
@@ -1840,7 +1843,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           // valeur est figée maintenant, l'op `condition` littérale est re-jouée chaque fin de Round,
           // gates compris. L'effet porteur dure ce que l'op déclare, sinon ce que le contexte déclare.
           const duree: Duration | undefined = rounds != null ? { scale: 'rounds', left: rounds } : undefined;
-          pushPerRound(target, [{ op: 'condition', id: o.id, value: v, ...(o.onlyIfCondition ? { onlyIfCondition: o.onlyIfCondition } : {}), ...(o.unlessCondition ? { unlessCondition: o.unlessCondition } : {}), ...(escape != null ? { escapeStrength: escape } : {}), ...(threshold != null ? { escapeThreshold: threshold } : {}), ...(o.entangleOnFail ? { entangleOnFail: true } : {}), ...(struggleDamage != null ? { struggleDamage } : {}) }], ctx, duree);
+          pushPerRound(target, [{ op: 'condition', id: o.id, value: v, ...(o.onlyIfCondition ? { onlyIfCondition: o.onlyIfCondition } : {}), ...(o.unlessCondition ? { unlessCondition: o.unlessCondition } : {}), ...(escape != null ? { escapeStrength: escape } : {}), ...(threshold != null ? { escapeThreshold: threshold } : {}), ...(o.entangleOnFail ? { entangleOnFail: true } : {}), ...(struggleDamage != null ? { struggleDamage } : {}), ...(o.difficulte ? { difficulte: o.difficulte } : {}) }], ctx, duree);
           // CAUSE PERSISTANTE (`LDB 16 l.117`) : l'op se gate sur l'État qu'elle pose — le porteur ne
           // subit pas un État de plus par Round, il le REGAGNE s'il s'en débarrasse. Journal dédié.
           lines.push(estCausePersistante(o) && rounds != null
@@ -1850,13 +1853,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           // État à durée d'HORLOGE (Belladone/Fleur de lune : sommeil « 1d10+4/5 heures ») — échéance
           // résolue MAINTENANT depuis ctx.now, purgée par purgeClockEffects (patron castPenalty.minutes).
           const min = clockMin;
-          addClockCondition(target, o.id, v, (ctx.now ?? 0) + min, escape, threshold, o.entangleOnFail, struggleDamage);
+          addClockCondition(target, o.id, v, (ctx.now ?? 0) + min, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
           lines.push(t('op.condTimed', { name: target.label, v, cond: conditionLabel(o.id), roundsTxt: min >= 60 ? t('op.frag.hours', { n: Math.round(min / 60), s: min >= 120 ? 's' : '' }) : t('op.frag.min', { n: min }) }));
         } else if (rounds != null) {
-          addTimedCondition(target, o.id, v, rounds, escape, threshold, o.entangleOnFail, struggleDamage);
+          addTimedCondition(target, o.id, v, rounds, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
           lines.push(t('op.condTimed', { name: target.label, v, cond: conditionLabel(o.id), roundsTxt: t('op.frag.roundsCap', { n: rounds, s: rounds > 1 ? 's' : '' }) }));
         } else {
-          addCondition(target, o.id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }); // verrous : prédicat d'état / acte de soin (LDB 18)
+          addCondition(target, o.id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }, o.difficulte); // verrous : prédicat d'état / acte de soin (LDB 18)
           // REJEU d'une cause persistante (`LDB 16 l.117`) : c'est le DRAPEAU de rejeu qui le dit
           // (`ctx.rejeuRecurrent`, posé par `endOfRound` seul), jamais la forme de l'op — une première
           // pose gatée reste une pose. La ligne NOMME la cause, portée par le `ctx.label` relayé.

@@ -1,0 +1,226 @@
+/**
+ * Migration #1463 (lot Trait 3b-2, #3038) — l'Indice formulé d'un Trait posé, les Traits que confère une
+ * attaque, et le Souffle composé de la règle de son Type.
+ *
+ * GESTES :
+ *  1. `traits.json` : les Traits d'attaque portent le marqueur `attaque` (ZI 03 l.75, l.77 ; ZI 06 l.32) ;
+ *     le Souffle porte `difficulte` (MDG 16 l.226 ; LDB 16 l.70) et octroie la seule manœuvre `souffle`.
+ *  2. `maneuvers.json` : les six manœuvres `souffle-<Type>` cèdent la place à la manœuvre `souffle`
+ *     (Dégâts d'Arme égaux à l'Indice, LDB 85 l.320), dont l'enjeu laisse un trou à la règle du Type ; la
+ *     règle de chaque Type passe sur son Type. La forme hybride d'Enfant d'Ulric octroie Arme et Morsure à
+ *     l'Indice formulé (Middenheim 04 l.29).
+ *  3. `breath-types.json` : chaque Type porte sa règle (PA ignorées, État infligé, équipement endommagé,
+ *     fumée) et son folio (LDB 85 l.322-329) ; le Type imprimé
+ *     « Corrosion et Poison » (EDOC 13 l.237) entre au registre et nomme ses deux Types.
+ *  4. `etats.json` : le Test de Résistance qui élimine Empoisonné prend la Difficulté de l'État (LDB 16 l.70).
+ *  5. `domains.json` : la marque `arcane` d'un Domaine des Arcanes devient l'`id` du Type de son Souffle,
+ *     dont la raison se dit à son `maison`, motivée par la description de son Vent (LDB 47 l.509).
+ *  6. Fiches (`FICHES`) : Indice imprimé en formule (Middenheim 04 l.29 ; VDM 02 l.479), Traits conférés
+ *     (ZI 03 l.75, l.77 ; ZI 06 l.32 ; ZI 13 l.61, l.101, l.132), Type et Difficulté du Souffle (MDG 16 l.226).
+ *  7. `tables.json` : le Souffle du Tableau de l'Allure démoniaque de Nurgle désigne son Type (EDOC 13 l.237).
+ *
+ * ENTRÉES : écrites — `src/data/traits.json`, `src/data/maneuvers.json`, `src/data/breath-types.json`,
+ * `src/data/etats.json`, `src/data/domains.json`, `src/data/creatures.json`, `src/data/tables.json`.
+ * FAIL-FAST — avant toute écriture, sortie 1 : un fichier hors de son formatage ; une entrée attendue
+ * introuvable ; un Trait de fiche qui ne porte ni la forme d'avant ni celle d'après ; une manœuvre `souffle-*`
+ * dont le profil diffère de celui de `souffle` ; un Domaine des Arcanes absent de `SOUFFLES_DES_DOMAINES` ; un
+ * octroi de la forme hybride qui ne porte ni la forme d'avant ni celle d'après.
+ * IDEMPOTENT : rejouée sur l'état final, aucun geste n'est à faire et rien ne s'écrit.
+ * FORMATAGE PRÉSERVÉ : un dataset est EXACTEMENT `JSON.stringify(doc, null, 2)` (sans saut de ligne final).
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
+
+const ROOT = fileURLToPath(new URL('../../', import.meta.url));
+const F = {
+  traits: 'src/data/traits.json',
+  maneuvers: 'src/data/maneuvers.json',
+  breath: 'src/data/breath-types.json',
+  etats: 'src/data/etats.json',
+  domains: 'src/data/domains.json',
+  creatures: 'src/data/creatures.json',
+  tables: 'src/data/tables.json',
+};
+
+const fautes = [];
+const docs = new Map();
+for (const rel of Object.values(F)) {
+  const texte = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+  const doc = JSON.parse(texte);
+  if (serializeDataset(doc) !== texte) fautes.push(`${rel} : formatage non canonique`);
+  docs.set(rel, { doc, avant: texte });
+}
+const doc = (rel) => docs.get(rel).doc;
+const egal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+let gestes = 0;
+
+// 1. traits.json
+const ATTAQUES = ['a-distance', 'arme', 'attaque-caudale', 'cornes', 'langue-prehensile', 'morsure', 'souffle', 'tentacules', 'vomissement'];
+const traits = doc(F.traits);
+const trait = (id) => traits.find((t) => t.id === id) ?? void fautes.push(`${F.traits} : Trait « ${id} » introuvable`);
+for (const id of ATTAQUES) {
+  const t = trait(id);
+  if (t && t.attaque !== true) { t.attaque = true; gestes++; }
+}
+const souffle = trait('souffle');
+if (souffle) {
+  if (souffle.difficulte !== true) { souffle.difficulte = true; gestes++; }
+  if (!egal(souffle.grantsManeuvers, [{ id: 'souffle' }])) { souffle.grantsManeuvers = [{ id: 'souffle' }]; gestes++; }
+}
+
+// 2-3. maneuvers.json, breath-types.json
+const SOURCE_LDB = { book: 'livre-de-base', page: 341 };
+const SOURCE_EDOC = { book: 'ennemi-dans-l-ombre-compagnon', page: 78 };
+const aLaTouche = (ops) => ({ trigger: 'onHit', on: 'victim', flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops } } });
+const REGLES = {
+  feu: { ignoreAP: true, etat: 'en-flammes' },
+  froid: { etat: 'sonne' },
+  corrosif: { endommageLEquipement: true },
+  electrique: { ignoreAP: true, etat: 'sonne' },
+  poison: { ignoreAP: true, etat: 'empoisonne' },
+  fumee: { fumee: true },
+};
+const PROFIL = ['kind', 'activation', 'advantageCost', 'stat', 'defense', 'targeting', 'range', 'blast', 'magic', 'source'];
+const SOUFFLE = {
+  id: 'souffle', type: 'maneuvers', label: 'Souffle', kind: 'souffle', activation: 'free', advantageCost: 2,
+  stat: 'capacite-de-tir', defense: 'esquive', targeting: 'zone', range: { bonusOf: 'endurance', plus: 20 },
+  blast: { bonusOf: 'force' }, magic: true, source: SOURCE_LDB,
+  effects: [aLaTouche([{ op: 'wounds', amount: { indiceOf: true }, ignoreTB: false, ignoreAP: false }])],
+  stake: 'Esquive — réussie : le souffle est évité. Ratée : Dégâts d’Arme égaux à l’Indice{regleDuType}.',
+  stakeForm: 'descripteur',
+};
+const manoeuvres = doc(F.maneuvers);
+const anciennes = manoeuvres.filter((m) => /^souffle-/.test(m.id));
+for (const m of anciennes) for (const k of PROFIL) if (!egal(m[k], SOUFFLE[k])) fautes.push(`${F.maneuvers} : « ${m.id} ».${k} diffère du profil de « souffle »`);
+const iSouffle = manoeuvres.findIndex((m) => m.id === 'souffle');
+if (iSouffle < 0) {
+  const i = manoeuvres.findIndex((m) => /^souffle-/.test(m.id));
+  if (i < 0) fautes.push(`${F.maneuvers} : ni « souffle » ni « souffle-* »`);
+  else { manoeuvres.splice(i, 0, SOUFFLE); gestes++; }
+} else if (!egal(manoeuvres[iSouffle], SOUFFLE)) { manoeuvres[iSouffle] = SOUFFLE; gestes++; }
+for (let i = manoeuvres.length - 1; i >= 0; i--) if (/^souffle-/.test(manoeuvres[i].id)) { manoeuvres.splice(i, 1); gestes++; }
+
+// Middenheim 04 l.29
+const BF_PLUS = (n) => ({ sum: [{ bonusOf: 'force' }, n] });
+const HYBRIDE = [
+  { id: 'arme', avant: 4, apres: BF_PLUS(4) },
+  { id: 'morsure', avant: 3, apres: BF_PLUS(3) },
+];
+const hybride = manoeuvres.find((m) => m.id === 'forme-hybride-ulric');
+const octroisHybrides = hybride?.effects?.flatMap((e) => e.flow?.effect?.ops ?? []).flatMap((o) => (o.op === 'transform' ? o.ops : [])).filter((o) => o.op === 'grantTrait') ?? [];
+for (const { id, avant, apres } of HYBRIDE) {
+  const octrois = octroisHybrides.filter((o) => o.trait?.id === id);
+  if (octrois.length !== 1) { fautes.push(`${F.maneuvers} : « forme-hybride-ulric » octroie ${octrois.length} Trait(s) « ${id} », attendu 1`); continue; }
+  const [o] = octrois;
+  if (egal(o.trait, { id, value: apres })) continue;
+  if (!egal(o.trait, { id, value: avant })) { fautes.push(`${F.maneuvers} : « forme-hybride-ulric » octroie ${JSON.stringify(o.trait)}`); continue; }
+  o.trait = { id, value: apres };
+  gestes++;
+}
+const ENJEU_HYBRIDE = ['les Traits Arme 4, Armure 2, Morsure 3,', 'les Traits Arme (BF +4), Armure 2, Morsure (BF +3),'];
+if (hybride?.stake?.includes(ENJEU_HYBRIDE[0])) { hybride.stake = hybride.stake.replace(...ENJEU_HYBRIDE); gestes++; }
+else if (!hybride?.stake?.includes(ENJEU_HYBRIDE[1])) fautes.push(`${F.maneuvers} : enjeu de « forme-hybride-ulric » inattendu`);
+
+const types = doc(F.breath);
+for (const [id, regle] of Object.entries(REGLES)) {
+  const t = types.find((x) => x.id === id);
+  if (!t) { fautes.push(`${F.breath} : Type « ${id} » introuvable`); continue; }
+  const voulu = { id: t.id, type: t.type, label: t.label, source: SOURCE_LDB, ...regle };
+  if (!egal(t, voulu)) { types[types.indexOf(t)] = voulu; gestes++; }
+}
+const COMPOSE = { id: 'corrosion-et-poison', type: 'breath-types', label: 'Corrosion et Poison', source: SOURCE_EDOC, types: [{ id: 'corrosif' }, { id: 'poison' }] };
+const iCompose = types.findIndex((x) => x.id === COMPOSE.id);
+if (iCompose < 0) { types.push(COMPOSE); gestes++; }
+else if (!egal(types[iCompose], COMPOSE)) { types[iCompose] = COMPOSE; gestes++; }
+
+// 4. etats.json
+const empoisonne = doc(F.etats).find((e) => e.id === 'empoisonne');
+const testDElimination = empoisonne?.effects?.map((e) => e.flow).find((f) => f.kind === 'test' && f.test?.skill?.id === 'resistance');
+if (!testDElimination) fautes.push(`${F.etats} : Test de Résistance d'Empoisonné introuvable`);
+else if (testDElimination.test.argDifficulty !== true) { testDElimination.test.argDifficulty = true; gestes++; }
+
+// 5. domains.json — LDB 47 l.509 ; Types de LDB 85 l.322-329
+const lecture = (vent) => `Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : ${vent}`;
+const SOUFFLES_DES_DOMAINES = {
+  feu: { id: 'feu', maison: lecture('le Feu se manifeste par des flammes vives et une chaleur intense (LDB 48 l.203).') },
+  cieux: { id: 'electrique', maison: lecture('les Sorts des Cieux s’accompagnent du craquement de la foudre (LDB 48 l.104).') },
+  metal: { id: 'corrosif', maison: lecture('Chamon s’attache aux substances métalliques et frappe ceux qui s’enveloppent de métal (LDB 48 l.397-399) ; le Corrosif endommage l’équipement porté.') },
+  ombres: { id: 'fumee', maison: lecture('les Sorts des Ombres enveloppent le lanceur d’ombres et de volutes de fumée (LDB 48 l.588).') },
+  bete: { id: 'froid', maison: lecture('Ghur reflète une férocité primitive et glaciale (LDB 48 l.9).') },
+  mort: { id: 'froid', maison: lecture('les cibles de la Mort demeurent affaiblies et léthargiques (LDB 48 l.501) ; le Froid les Sonne.') },
+  lumiere: { id: 'electrique', maison: lecture('la Lumière émet des rayons éclatants d’une lumière aveuglante (LDB 48 l.300) ; l’Électrique ignore les PA et Sonne, au plus près de l’Aveuglé du Domaine.') },
+  vie: { id: 'poison', maison: lecture('Ghyran se manifeste par des vignes, des sous-bois et des phénomènes naturels (LDB 48 l.688) ; le Poison est le seul Type végétal.') },
+  'magie-naturelle': { id: 'poison', maison: lecture('les Élus tirent leurs composants des herbes et des plantes (LDB 48 l.796).') },
+  'magie-du-marais-de-mona': { id: 'poison', maison: lecture('Mòna erre dans les marais en quête de champignons vénéneux (VDM 15 l.240).') },
+  necromancie: { id: 'poison', maison: lecture('la Nécromancie use de corps en décomposition, la plus infecte des Magies (LDB 50 l.61).') },
+  sorcellerie: { id: 'poison', maison: lecture('la Sorcellerie mêle tous les Vents et d’horribles composants arrachés aux bêtes (LDB 49 l.5-7).') },
+  gueule: { id: 'corrosif', maison: lecture('la Magie des Entrailles met en avant une faim intense (ADE II 02 l.733) ; le Corrosif est celui des sucs.') },
+  demonologie: { id: 'froid', maison: lecture('la description de la Démonologie (LDB 50 l.9) n’appuie aucun Type ; le Froid, premier Type de la liste (LDB 85 l.324).') },
+};
+for (const d of doc(F.domains)) {
+  const voulu = SOUFFLES_DES_DOMAINES[d.id];
+  if (!d.arcane) { if (voulu || d.breathType !== undefined) fautes.push(`${F.domains} : « ${d.id} » hors des Arcanes porte un Type de Souffle`); continue; }
+  if (d.arcane !== true && d.arcane !== voulu?.id && !types.some((t) => t.id === d.arcane)) { fautes.push(`${F.domains} : « ${d.id} ».arcane « ${d.arcane} » n’est ni une marque ni un Type`); continue; }
+  if (!voulu) { fautes.push(`${F.domains} : Domaine des Arcanes « ${d.id} » absent de SOUFFLES_DES_DOMAINES`); continue; }
+  if (!types.some((t) => t.id === voulu.id)) { fautes.push(`${F.breath} : Type « ${voulu.id} » introuvable`); continue; }
+  if (d.maison !== undefined && !d.maison.startsWith(lecture(''))) { fautes.push(`${F.domains} : « ${d.id} » porte déjà un autre arbitrage maison`); continue; }
+  if (d.arcane === voulu.id && d.maison === voulu.maison && d.breathType === undefined) continue;
+  delete d.breathType;
+  d.arcane = voulu.id;
+  d.maison = voulu.maison;
+  gestes++;
+}
+
+// 6. Fiches : Trait de la fiche (liste, rang parmi les Traits de cet id) → forme d'avant, forme d'après.
+const FICHES = [
+  // Middenheim 04 l.29
+  { fiche: 'enfant-d-ulric', liste: 'traits', id: 'arme', avant: { id: 'arme', arg: 'BF +4' }, apres: { id: 'arme', value: { sum: [{ bonusOf: 'force' }, 4] } } },
+  { fiche: 'enfant-d-ulric', liste: 'traits', id: 'morsure', avant: { id: 'morsure', arg: 'BF +3' }, apres: { id: 'morsure', value: { sum: [{ bonusOf: 'force' }, 3] } } },
+  // VDM 02 l.479
+  { fiche: 'fabrique-par-magie', liste: 'optionals', id: 'cornes', avant: { id: 'cornes', arg: 'BF +3' }, apres: { id: 'cornes', value: { sum: [{ bonusOf: 'force' }, 3] } } },
+  // ZI 03 l.75, l.77
+  { fiche: 'vouivre-zoo-imperial', liste: 'traits', id: 'arme', avant: { id: 'arme', value: 10, arg: 'Crocs' }, apres: { id: 'arme', value: 10, arg: 'Crocs', confere: [{ id: 'infecte' }] } },
+  { fiche: 'vouivre-zoo-imperial', liste: 'traits', id: 'attaque-caudale', avant: { id: 'attaque-caudale', value: 12, arg: 'Venin' }, apres: { id: 'attaque-caudale', value: 12, confere: [{ id: 'venin' }] } },
+  // ZI 06 l.32
+  { fiche: 'cockatrice', liste: 'traits', id: 'arme', avant: { id: 'arme', value: 7, arg: 'Serres', natural: true }, apres: { id: 'arme', value: 7, arg: 'Serres', natural: true, confere: [{ id: 'venin', arg: 'difficile' }] } },
+  { fiche: 'cockatrice', liste: 'optionals', id: 'souffle', avant: { id: 'souffle', value: 9, arg: 'Corrosion' }, apres: { id: 'souffle', value: 9, arg: 'corrosif' } },
+  // ZI 13 l.61
+  { fiche: 'wyrm-des-mers', liste: 'traits', id: 'arme', avant: { id: 'arme', value: 11, arg: 'Gueule bardée de crocs' }, apres: { id: 'arme', value: 11, arg: 'Gueule bardée de crocs', confere: [{ id: 'venin', arg: 'complexe' }] } },
+  { fiche: 'wyrm-des-mers', liste: 'traits', id: 'morsure', avant: { id: 'morsure', value: 11, arg: 'Gueule bardée de crocs' }, apres: { id: 'morsure', value: 11, arg: 'Gueule bardée de crocs', confere: [{ id: 'venin', arg: 'complexe' }] } },
+  // ZI 13 l.101
+  { fiche: 'dragon-barbele', liste: 'traits', id: 'morsure', avant: { id: 'morsure', value: 11 }, apres: { id: 'morsure', value: 11, confere: [{ id: 'venin' }] } },
+  // ZI 13 l.132
+  { fiche: 'le-fantasma', liste: 'traits', id: 'morsure', avant: { id: 'morsure', value: 11 }, apres: { id: 'morsure', value: 11, confere: [{ id: 'venin' }] } },
+  // MDG 16 l.226
+  { fiche: 'hydre-d-os', liste: 'traits', id: 'souffle', avant: { id: 'souffle', value: 10, arg: 'Poison, Difficulté Difficile (–20)' }, apres: { id: 'souffle', value: 10, arg: 'poison', difficulte: 'difficile' } },
+];
+const creatures = doc(F.creatures);
+for (const { fiche, liste, id, avant, apres } of FICHES) {
+  const c = creatures.find((x) => x.id === fiche);
+  const poses = c?.[liste]?.filter((t) => t.id === id) ?? [];
+  if (poses.length !== 1) { fautes.push(`${F.creatures} : « ${fiche} ».${liste} porte ${poses.length} Trait(s) « ${id} », attendu 1`); continue; }
+  const [t] = poses;
+  if (egal(t, apres)) continue;
+  if (!egal(t, avant)) { fautes.push(`${F.creatures} : « ${fiche} ».${liste} « ${id} » vaut ${JSON.stringify(t)}`); continue; }
+  c[liste][c[liste].indexOf(t)] = apres;
+  gestes++;
+}
+
+// 7. tables.json
+const nurgle = doc(F.tables).find((t) => t.id === 'allure-demoniaque-nurgle');
+const octroi = nurgle?.rows?.flatMap((r) => r.ops ?? []).find((o) => o.op === 'grantTrait' && o.trait?.id === 'souffle');
+if (!octroi) fautes.push(`${F.tables} : Souffle de « allure-demoniaque-nurgle » introuvable`);
+else if (octroi.trait.arg === 'Corrosion et Poison') { octroi.trait.arg = 'corrosion-et-poison'; gestes++; }
+else if (octroi.trait.arg !== 'corrosion-et-poison') fautes.push(`${F.tables} : Souffle de Nurgle d'argument « ${octroi.trait.arg} »`);
+
+if (fautes.length) {
+  console.error(`ARRÊT — rien n'est écrit :\n${fautes.join('\n')}`);
+  process.exit(1);
+}
+for (const [rel, { doc: d, avant }] of docs) {
+  const apres = serializeDataset(d);
+  if (apres !== avant) fs.writeFileSync(path.join(ROOT, rel), apres);
+}
+console.log(`migration 1463 trait 3b-2 : ${gestes} geste(s).`);

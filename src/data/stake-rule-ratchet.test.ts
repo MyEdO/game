@@ -151,10 +151,13 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
     expect(sansForme, 'enjeu sans forme déclarée (stakeForm)').toEqual([]);
     // Chemin RÉEL : la descente à l'entrée doit rendre le texte DE L'ENTRÉE, pas celui du kind.
     const gabarit = COMBAT_STAKES.find((e) => e.kind === 'maneuverDefense')!.template;
+    // Les trous d'un enjeu (`{regleDuType}` du Souffle) reçoivent les valeurs de la composition (`ManeuverDef.enjeu`).
+    const remplir = (texte: string) => texte.replace(/\{(\w+)\}/g, (_m, nom: string) => `«${nom}»`);
     for (const m of maneuvers) {
-      const r = resolveStake({ key: { dataset: 'combat', kind: 'maneuverDefense', entryId: m.id } });
+      const values = Object.fromEntries([...(m.stake ?? '').matchAll(/\{(\w+)\}/g)].map(([, nom]) => [nom, `«${nom}»`]));
+      const r = resolveStake({ key: { dataset: 'combat', kind: 'maneuverDefense', entryId: m.id }, ...(Object.keys(values).length ? { values } : {}) });
       expect(r.text, `${m.id} : l’étape rend le gabarit du kind au lieu de l’enjeu de l’entrée`).not.toBe(gabarit);
-      expect(r.text, `${m.id} : enjeu vide`).toBe(m.stake);
+      expect(r.text, `${m.id} : enjeu vide`).toBe(remplir(m.stake!));
       expect(r.rule, `${m.id} : renvoi hors de sa propre fiche`).toEqual({ category: 'maneuvers', id: m.id });
     }
   });

@@ -21,6 +21,7 @@ import { skillRefLabel, talentRefLabel, talents } from './data';
 import { parseSkillRef, parseTalentRef, parseTraitInstance } from './ui/editor/refFormatLivre';
 import { formatTrait } from './engine/traits/dispatch';
 import type { TraitInstance } from './engine/statEntry';
+import type { TraitPose } from './data/schemas/grammaire/reference';
 
 /**
  * Garde-fou « logique par LABEL interdite » (#142, #289, #909, #1988 §7 ; doctrine AGENTS.md bloc
@@ -234,6 +235,12 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
         { id: 'haine', arg: 'homme-bete' },
         { id: 'morsure', value: 9 },
       ] as TraitInstance[]) expect(parseTraitInstance(formatTrait(trait))).toEqual(trait);
+    },
+    nommeUnTrait: () => {
+      for (const trait of [
+        { id: 'attaque-caudale', value: 12, confere: [{ id: 'venin' }] },
+        { id: 'arme', value: 10, arg: 'Crocs', confere: [{ id: 'infecte' }] },
+      ] as TraitPose[]) expect(parseTraitInstance(formatTrait(trait))).toEqual(trait);
     },
   };
 

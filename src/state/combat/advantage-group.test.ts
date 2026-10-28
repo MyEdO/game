@@ -6,6 +6,8 @@ import { baseTestMods } from '../../engine/combat';
 import type { Combatant } from '../../engine/types';
 import type { AdvantagePools } from '../../engine/advantagePool';
 import { creatures } from '../../data';
+import { traitsDuPorteur } from '../../engine/statEntry';
+import { porteurDuProfil } from '../../noyau/monde/spawn';
 
 const mk = (id: string, kind: Combatant['kind'], over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -277,7 +279,7 @@ describe('Redoutable — la clause AA suit le MODULE de règles, pas le livre du
     (book) => {
       setRule('combat-aa-avantage-groupe', true);
       const carrier = carriersByBook(book)[0];
-      const indice = (carrier.traits ?? []).find((t) => t.id === 'redoutable')!.value ?? 1;
+      const indice = traitsDuPorteur(carrier.traits ?? [], porteurDuProfil(carrier.id, carrier.char)).find((t) => t.id === 'redoutable')!.value ?? 1;
       const a = mk('h1', 'hero');
       const e = mk(carrier.id, 'enemy', { traits: [{ id: 'redoutable', value: indice }], advantage: 0 });
       const { get, set, battle } = makeGet([a, e], { allies: 0, foes: 0 });
@@ -291,7 +293,7 @@ describe('Redoutable — la clause AA suit le MODULE de règles, pas le livre du
     'un porteur %s ne nourrit RIEN quand le module AA est inactif (mode Livre de base)',
     (book) => {
       const carrier = carriersByBook(book)[0];
-      const indice = (carrier.traits ?? []).find((t) => t.id === 'redoutable')!.value ?? 1;
+      const indice = traitsDuPorteur(carrier.traits ?? [], porteurDuProfil(carrier.id, carrier.char)).find((t) => t.id === 'redoutable')!.value ?? 1;
       const a = mk('h1', 'hero');
       const e = mk(carrier.id, 'enemy', { traits: [{ id: 'redoutable', value: indice }], advantage: 0 });
       const { get, set, battle } = makeGet([a, e]);

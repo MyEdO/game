@@ -16,7 +16,7 @@ import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './r
 import { Combatant, HitLocation, CHAR_LABELS, type FireArc, type Weapon } from '../engine/types';
 import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { toRecapLines } from './recapLine';
-import { creatureAttacks, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
+import { creatureAttacks, attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
 import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, castOvercastAxes, overcastReset, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes } from './combatManeuvers';
@@ -1220,7 +1220,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const attacker = inBattleId(battle, pm.attackerId);
       set({ pendingManeuver: null });
       if (!attacker) return;
-      const a = creatureAttacks(attacker.traits ?? []).find((x) => x.def.id === pm.maneuverId);
+      const a = attaqueDeCle(attacker.traits ?? [], pm.attaque);
       if (!a) return;
       const prevActed = battle.acted;
       // RÉSOLVEUR GÉNÉRIQUE unique : dépense `avantageSpent`, choisit la/les cible(s) (clic = `targetId`),

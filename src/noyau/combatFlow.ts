@@ -166,13 +166,12 @@ import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
-import { norm } from '../lib/normalize';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
 import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
-import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
+import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, souffleDuType, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
 /** Deux lancers de Blessure Critique, dont le porteur CHOISIT le résultat gardé (LDB 41 l.170) :
@@ -6194,13 +6193,12 @@ export function applyCast(
       if (spec.breathAttack) {
         if (battle && caster.pos) {
           const type = domainBreathType(caster);
-          // Manœuvre Souffle de 1ʳᵉ classe (données) choisie par le Type du Domaine ; défaut `souffle-feu`.
           // Indice = Bonus d'Endurance du lanceur (RAW : « Dégâts = Bonus d'Endurance »). Coût d'Avantage 0
           // (le sort EST l'activation).
-          const sDef = (type && findManeuverById(`souffle-${norm(type)}`)) || findManeuverById('souffle-feu')!;
+          const sDef = souffleDuType(findManeuverById('souffle')!, type);
           const indice = bonus(effectiveChar(caster, 'endurance'));
           applyAreaAttack(get, set, caster, {
-            kind: 'souffle', label: sDef.label, bonus: indice, indice, def: sDef,
+            cle: sDef.id, kind: 'souffle', label: sDef.label, bonus: indice, indice, def: sDef,
             trigger: 'free', avantage: 0, aoe: true, magic: true, ...(type ? { type } : {}),
           }, target);
           if (!type) logLines.push(tr('cf.breathNoType'));
@@ -6414,12 +6412,9 @@ function scheduleRespawnFromOp(
   return [tr('cf.sourceRebuilds', { name: actor.label, days, s: days > 1 ? 's' : '' })];
 }
 
-/** Type de Souffle « correspondant le mieux » au Domaine du lanceur (sort Souffle, LDB 47 l.509 :
- *  « Le MJ détermine quel type d'attaque de Souffle correspond le mieux à votre Talent Magie des
- *  Arcanes ») — jeu sans MJ : seuls les Domaines au Type canonique évident sont mappés
- *  (Feu→Feu, Cieux→Électricité, Métal→Corrosif, Ombres→Fumée) ; les autres soufflent des Dégâts purs. */
+/** Type de Souffle du Domaine des Arcanes du lanceur (`DomainData.arcane`). LDB 47 l.509 */
 function domainBreathType(caster: Combatant): string | undefined {
-  return findDomainById(arcaneDomainIdOf(caster))?.breathType;
+  return findDomainById(arcaneDomainIdOf(caster))?.arcane;
 }
 
 /** Bonus d'incantation CONDITIONNEL du Domaine (Aqshy l.157 : +`bonus` par État `perCondition` situé à

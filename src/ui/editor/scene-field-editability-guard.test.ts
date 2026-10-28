@@ -254,6 +254,8 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     // et sa provenance (`SourceRef`, composée par `source`/`alsoIn`) entrent donc au périmètre.
     // #1463 PR-3b : la fourchette (`Plage`) de la pose, et les clés de l'Indice par Localisation — shape
     // DÉRIVÉ (`tableTotale`), propriétés synthétiques rattachées à la déclaration de `parLocalisation`.
+    // #1463 Trait 3b-2 : la pose, récursive par `confere`, a un type DÉCLARÉ (`TraitPose`) ; ses champs
+    // se nomment à leur premier porteur du document.
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
@@ -274,22 +276,23 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'ParLocalisation.tete @ src/data/schemas/grammaire/reference.ts',
       'Plage.max @ src/data/schemas/grammaire/valeurs.ts',
       'Plage.min @ src/data/schemas/grammaire/valeurs.ts',
+      'SceneEntity.combat.optionals.alsoIn @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.arg @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.count @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.difficulte @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.hidden @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.id @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.maison @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.natural @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.parLocalisation @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.plage @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.range @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.source @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.combat.optionals.value @ src/data/schemas/grammaire/reference.ts',
       'SourceRef.book @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.note @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.page @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.quote @ src/data/schemas/grammaire/valeurs.ts',
-      'TraitInstance.alsoIn @ src/data/schemas/grammaire/reference.ts',
-      'TraitInstance.arg @ src/data/schemas/grammaire/reference.ts',
-      'TraitInstance.count @ src/data/schemas/grammaire/reference.ts',
-      'TraitInstance.hidden @ src/data/schemas/grammaire/reference.ts',
-      'TraitInstance.id @ src/data/schemas/grammaire/reference.ts',
-      'TraitInstance.maison @ src/data/schemas/grammaire/reference.ts',
-      'TraitInstance.natural @ src/data/schemas/grammaire/reference.ts',
-      'TraitInstance.parLocalisation @ src/data/schemas/grammaire/reference.ts',
-      'TraitInstance.plage @ src/data/schemas/grammaire/reference.ts',
-      'TraitInstance.range @ src/data/schemas/grammaire/reference.ts',
-      'TraitInstance.source @ src/data/schemas/grammaire/reference.ts',
-      'TraitInstance.value @ src/data/schemas/grammaire/reference.ts',
     ]);
     // Contre-témoin : `Rect` ne doit RIEN à l'inclusion par identité — il est déclaré DANS le document,
     // son renommage `Trigger.rect.*` → `Rect.*` vient du NOMMAGE du porteur rendu par `z.infer`.

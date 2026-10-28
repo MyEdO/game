@@ -17,7 +17,7 @@ import { etatConnu } from '../../../engine/conditions';
 import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
 import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, messageDeTermeDeJet, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, surchargePaletteSchema, symptomSeveritySchema } from './valeurs';
-import { traitInstanceSchema, traitOctroyeSchema } from './reference';
+import { traitInstanceSchema } from './reference';
 import { catalogueSpecs, idDe, marquerOpAtteinte, ref, refs, refOuSpec, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { INSTANCIABLE_PAR_ID } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
@@ -193,12 +193,13 @@ const DECLARATIONS_D_OPS = {
   loseTurn: nommerChamps(z.strictObject({ op: z.literal('loseTurn'), what: loseTurnWhatSchema.optional() }), { op: { label: "opération"  }, what: { label: "objet"  } }),
   noBreath: nommerChamps(z.strictObject({ op: z.literal('noBreath') }), { op: { label: "opération"  } }),
   noHunger: nommerChamps(z.strictObject({ op: z.literal('noHunger') }), { op: { label: "opération"  } }),
-  /** `grantTrait` — le Trait OCTROYÉ est le Trait posé au régime `octroi` (`traitOctroyeSchema`). Sa Cible est
+  /** `grantTrait` — le Trait OCTROYÉ est un Trait posé (`traitInstanceSchema`), son Indice lu sur le lanceur
+   *  (LDB 47 l.441). Sa Cible est
    *  posée (`trait.arg`) ou TIRÉE (`cible`, `pick` tirages sur une table de Cibles) : EDOC 12 l.217, l.241.
    *  `indicePerSL` s'ajoute à l'Indice au DR du jet : LDB 47 l.420. */
   grantTrait: nommerChamps(z.strictObject({
     op: z.literal('grantTrait'),
-    trait: traitOctroyeSchema,
+    trait: traitInstanceSchema,
     cible: tirageDeCibleSchema.optional(),
     indicePerSL: perSLSchema.optional(),
     onlyGroups: refs('groupe').optional(),
@@ -219,9 +220,9 @@ const DECLARATIONS_D_OPS = {
   }), { op: { label: "opération" }, trait: { label: "Trait" }, cible: { label: "Cible tirée" }, indicePerSL: { label: "Indice par DR" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   removeTrait: nommerChamps(z.strictObject({ op: z.literal('removeTrait'), trait: ref('trait') }), { op: { label: "opération"  }, trait: { label: "Trait" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} } }),
   /** `domeWard` — le dôme OCTROIE un Trait à ceux qu'il couvre (`LDB 47 l.410`) : le Trait octroyé
-   *  (`traitOctroyeSchema`). AUCUNE zone : elle est déjà écrite par la ligne « Cible » du sort (ZdE,
+   *  (`traitInstanceSchema`). AUCUNE zone : elle est déjà écrite par la ligne « Cible » du sort (ZdE,
    *  `LDB 47 l.28`) — l'op la LIT. */
-  domeWard: nommerChamps(z.strictObject({ op: z.literal('domeWard'), trait: traitOctroyeSchema }).superRefine((o, ctx) => {
+  domeWard: nommerChamps(z.strictObject({ op: z.literal('domeWard'), trait: traitInstanceSchema }).superRefine((o, ctx) => {
     if (o.trait.value === undefined) ctx.addIssue({ code: 'custom', path: ['trait', 'value'], message: `Dôme : le Trait octroyé « ${o.trait.id} » porte son Indice (LDB 47 l.410).` });
   }), { op: { label: "opération"  }, trait: { label: "Trait" } }),
   suffocate: nommerChamps(z.strictObject({ op: z.literal('suffocate') }), { op: { label: "opération"  } }),
@@ -496,7 +497,7 @@ export const OPS_NON_TYPEES: readonly string[] = [
  *  les champs de LUTTE, figés par `addCondition` à la pose — que la réconciliation appelle NU. */
 export const CHAMPS_EXCLUS_DE_CARRIED = [
   'durationRounds', 'durationMinutes', 'durationHours', 'perRound', 'lockedUntil', 'unlockBy',
-  'escapeStrength', 'escapeThreshold', 'entangleOnFail', 'struggleDamage', 'grapple',
+  'escapeStrength', 'escapeThreshold', 'entangleOnFail', 'struggleDamage', 'difficulte', 'grapple',
 ] as const;
 
 /** Champs d'une op `condition`/`removeCondition` qui nomment un État. */

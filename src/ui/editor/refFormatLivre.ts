@@ -12,13 +12,15 @@
  * (« Savoir (Zorglub) » persiste « Zorglub »), faute d'id à désigner. Doctrine « toute LOGIQUE est
  * keyée par id STABLE » (AGENTS.md).
  */
-import { byId, findSkill, findTalent, findTalentById, findTraitById, specCatalogOf, specIdByLabel, specLabel, specResolves, traitIdByLabel, emplacementsDesPiecesDuCatalogue, type SkillRef, type TalentRef, type TraitData } from '../../data';
+import { byId, caracDuSigle, findSkill, findTalent, findTalentById, findTraitById, specCatalogOf, specIdByLabel, specLabel, specResolves, traitIdByLabel, emplacementsDesPiecesDuCatalogue, type SkillRef, type TalentRef, type TraitData } from '../../data';
 import { ARG_JOKER, traitAdmet } from '../../data/schemas/grammaire/reference';
 import { slugId } from '../../data/slug';
 import { parseStatEntry } from '../../engine/statEntry';
 import { classerParenthese } from '../../engine/classementDeTrait';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { t } from '../../i18n';
+import { norm } from '../../lib/normalize';
+import { DIFFICULTY_NAMES, type Difficulty } from '../../engine/types';
 
 /** Saisie « (Au choix) » : un EMPLACEMENT, jamais une spécialisation (#1548). Le mot lu est celui que
  *  l'affichage compose (`ref.motAuChoix`, `choixLabel`). */
@@ -95,25 +97,53 @@ function argDeTraitSaisi(def: TraitData | undefined, texte: string): string {
   return specIdByLabel(texte, source) ?? texte.trim();
 }
 
+/** Une parenthèse qui nomme un Trait du registre (« Venin », « Venin (Complexe) »). */
+const nommeUnTrait = (texte: string): boolean => !!findTraitById(idDeTraitSaisi(parseStatEntry(texte).name));
+
+/** « Poison, Difficulté Difficile (–20) » → l'Aspect et la Difficulté qui le suit (MDG 16 l.226) ; un texte
+ *  sans Difficulté reconnue reste l'Aspect. */
+function aspectEtDifficulte(texte: string): { aspect?: string; difficulte?: Difficulty } {
+  const m = /^(?:(.*?),\s*)?Difficulté\s+(.+)$/i.exec(texte.trim());
+  const nom = m ? norm(m[2].replace(/\s*\(.*\)\s*$/, '')) : undefined;
+  const difficulte = nom ? (Object.keys(DIFFICULTY_NAMES) as Difficulty[]).find((d) => norm(DIFFICULTY_NAMES[d]) === nom) : undefined;
+  if (!m || !difficulte) return { aspect: texte };
+  return { ...(m[1] ? { aspect: m[1] } : {}), difficulte };
+}
+
 /** Parse une saisie « Trait (Argument) Indice » → Trait posé (`TraitPose` : id stable, argument en ids,
- *  Indice/bonus ou fourchette ou Indice par Localisation, compte, portée). Inverse de `formatTrait`. */
+ *  Indice/bonus ou Indice relatif ou fourchette ou Indice par Localisation, Difficulté, Traits conférés,
+ *  compte, portée). Inverse de `formatTrait`. */
 export function parseTraitInstance(text: string): TraitPose {
   const p = parseStatEntry(text);
   const trait: TraitPose = { id: idDeTraitSaisi(p.name) };
   const def = findTraitById(trait.id);
   const value = p.bonus ?? p.indice;
+  // Sur un Trait d'attaque, une parenthèse qui nomme un Trait en est un Trait conféré (ZI 03 l.75, l.77).
+  const groupes = [p.arg, ...(p.suites ?? [])].filter((g): g is string => g != null);
+  const conferes = traitAdmet(trait.id, 'confere') ? groupes.filter(nommeUnTrait) : [];
   // La parenthèse d'un Trait à Indice imprimé se classe (`classerParenthese`) ; celle d'un Trait qui admet
   // l'Indice par Localisation peut désigner des Localisations ou des pièces du catalogue.
   const pieces = traitAdmet(trait.id, 'parLocalisation') ? emplacementsDesPiecesDuCatalogue() : undefined;
-  const classe = p.plage == null && p.arg != null && def?.indice ? classerParenthese(p.arg, { indice: value, pieces }) : undefined;
-  if (value != null && !(classe && 'parLocalisation' in classe)) trait.value = value;
+  let aspect: string | undefined;
+  if (value != null) trait.value = value;
   if (p.plage) trait.plage = p.plage;
-  if (classe && 'plage' in classe) trait.plage = classe.plage;
-  else if (classe && 'parLocalisation' in classe) trait.parLocalisation = classe.parLocalisation;
-  else if (classe && 'aspect' in classe) {
-    trait.arg = argDeTraitSaisi(def, classe.aspect);
-    trait.value = classe.indice;
-  } else if (p.arg != null) trait.arg = argDeTraitSaisi(def, p.arg);
+  for (const g of groupes.filter((x) => !conferes.includes(x))) {
+    const classe = p.plage == null && def?.indice ? classerParenthese(g, { indice: value, pieces, caracs: caracDuSigle }) : undefined;
+    if (!classe) aspect ??= g;
+    else if ('plage' in classe) trait.plage = classe.plage;
+    else if ('parLocalisation' in classe) {
+      trait.parLocalisation = classe.parLocalisation;
+      delete trait.value;
+    } else if ('formule' in classe) trait.value = classe.formule;
+    else {
+      aspect ??= classe.aspect;
+      trait.value = classe.indice;
+    }
+  }
+  const lu = aspect != null && traitAdmet(trait.id, 'difficulte') ? aspectEtDifficulte(aspect) : { aspect };
+  if (lu.aspect != null) trait.arg = argDeTraitSaisi(def, lu.aspect);
+  if (lu.difficulte) trait.difficulte = lu.difficulte;
+  if (conferes.length) trait.confere = conferes.map(parseTraitInstance);
   if (p.count != null) trait.count = p.count;
   if (p.range != null) trait.range = p.range;
   return trait;
@@ -123,21 +153,22 @@ export function parseTraitInstance(text: string): TraitPose {
 const memesNombres = (a: Readonly<Record<string, number>> | undefined, b: Readonly<Record<string, number>> | undefined): boolean =>
   a === b || (!!a && !!b && Object.keys(a).length === Object.keys(b).length && Object.keys(a).every((k) => a[k] === b[k]));
 
-/** Même VALEUR posée : même id, Indice ou fourchette ou Indice par Localisation, Aspect, compte et
- *  portée — ce qu'atteste une provenance. */
+/** Même VALEUR posée : même id, Indice (nombre ou formule) ou fourchette ou Indice par Localisation,
+ *  Aspect, Difficulté, compte, portée et Traits conférés de même valeur — ce qu'atteste une provenance. */
 const memeValeur = (a: TraitPose, b: TraitPose): boolean =>
-  a.id === b.id && a.value === b.value && memesNombres(a.plage, b.plage) && memesNombres(a.parLocalisation, b.parLocalisation)
-  && a.arg === b.arg && a.count === b.count && a.range === b.range;
+  a.id === b.id && JSON.stringify(a.value) === JSON.stringify(b.value) && memesNombres(a.plage, b.plage) && memesNombres(a.parLocalisation, b.parLocalisation)
+  && a.arg === b.arg && a.difficulte === b.difficulte && a.count === b.count && a.range === b.range
+  && (a.confere ?? []).length === (b.confere ?? []).length && (a.confere ?? []).every((c, i) => memeValeur(c, b.confere![i]));
 /** Même Trait au même Aspect, quelle que soit la valeur. */
 const memeAspect = (a: TraitPose, b: TraitPose): boolean => a.id === b.id && a.arg === b.arg;
 /** Même Trait. */
 const memeId = (a: TraitPose, b: TraitPose): boolean => a.id === b.id;
 
-/** La saisie relue sur une pose EXISTANTE. `formatTrait` ne rend que l'id, l'Indice, l'Aspect, le compte
- *  et la portée ; le reste de la pose ne survit qu'à ce qu'il qualifie :
+/** La saisie relue sur une pose EXISTANTE. `formatTrait` ne rend que l'id, l'Indice, l'Aspect, la Difficulté,
+ *  le compte, la portée et les Traits conférés ; le reste de la pose ne survit qu'à ce qu'il qualifie :
  *  - les drapeaux (`natural`, `hidden`) qualifient le TRAIT : ils survivent au même id ;
  *  - la provenance (`source`, `alsoIn`, `maison`) atteste la VALEUR posée : elle survit à la même valeur
- *    (`memeValeur`) et tombe dès que l'un de ses termes change.
+ *    (`memeValeur`) et tombe dès que l'un de ses termes change, avec celle des Traits conférés.
  *  Relue UNE fois à la fin de la saisie (`SaisieEnBrouillon`), jamais à chaque frappe. SEULE voie
  *  d'édition en chaîne d'un Trait déjà posé : `parseTraitInstance` nu repose une pose NEUVE. */
 export function relireTrait(text: string, avant: TraitPose): TraitPose {
@@ -151,6 +182,7 @@ export function relireTrait(text: string, avant: TraitPose): TraitPose {
     ...(valeur && avant.source !== undefined ? { source: avant.source } : {}),
     ...(valeur && avant.alsoIn !== undefined ? { alsoIn: avant.alsoIn } : {}),
     ...(valeur && avant.maison !== undefined ? { maison: avant.maison } : {}),
+    ...(valeur && avant.confere !== undefined ? { confere: avant.confere } : {}),
   };
 }
 

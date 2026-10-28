@@ -12,7 +12,7 @@ import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { useGame } from './store';
 import { resolvePresetCreature } from '../noyau/monde/resolveursDuNarratif';
 import { presetPnjById } from './campaignData';
-import { creatureToCombatant, statblockToCombatant } from '../noyau/monde/spawn';
+import { creatureToCombatant, porteurDuProfil, statblockToCombatant } from '../noyau/monde/spawn';
 import { parseProject } from '../noyau/worldMap';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { Scene } from '../noyau/monde/scene';
@@ -63,7 +63,7 @@ function porteursDuNarratif(ou: string, narratif: NarratifBlock): Porteur[] {
     const r = resolvePresetCreature(preset.id, presetPnjById);
     if (!r || !porteMutation(r.creature.traits)) return [];
     const creature = r.creature;
-    return [{ ou: `${ou} › preset ${preset.id}`, traits: traitsDuPorteur(creature.traits, preset.id), nativeTalents: talentsNatifs(creature.talents), spawn: () => creatureToCombatant(creature, preset.id, ORIGINE) }];
+    return [{ ou: `${ou} › preset ${preset.id}`, traits: traitsDuPorteur(creature.traits, porteurDuProfil(preset.id, creature.char)), nativeTalents: talentsNatifs(creature.talents), spawn: () => creatureToCombatant(creature, preset.id, ORIGINE) }];
   });
 }
 
@@ -71,13 +71,13 @@ function porteursDeScene(ou: string, scene: Scene): Porteur[] {
   return scene.entities.flatMap((ent) => {
     const sb = (ent as { statblock?: CustomStatblock }).statblock;
     if (!sb || !porteMutation(sb.traits)) return [];
-    return [{ ou: `${ou} › ${scene.id} › ${ent.id}`, traits: traitsDuPorteur(sb.traits ?? [], ent.id), nativeTalents: talentsNatifs(sb.talents), spawn: () => statblockToCombatant(sb, ent.id, ORIGINE, (ent as { appearance?: never }).appearance) }];
+    return [{ ou: `${ou} › ${scene.id} › ${ent.id}`, traits: traitsDuPorteur(sb.traits ?? [], porteurDuProfil(ent.id, sb.char)), nativeTalents: talentsNatifs(sb.talents), spawn: () => statblockToCombatant(sb, ent.id, ORIGINE, (ent as { appearance?: never }).appearance) }];
   });
 }
 
 function tousLesPorteurs(): Porteur[] {
   const out: Porteur[] = [];
-  for (const c of creatures) if (porteMutation(c.traits)) out.push({ ou: `creatures.json › ${c.id}`, traits: traitsDuPorteur(c.traits, `garde-${c.id}`), nativeTalents: talentsNatifs(c.talents), spawn: () => creatureToCombatant(c, `garde-${c.id}`, ORIGINE) });
+  for (const c of creatures) if (porteMutation(c.traits)) out.push({ ou: `creatures.json › ${c.id}`, traits: traitsDuPorteur(c.traits, porteurDuProfil(`garde-${c.id}`, c.char)), nativeTalents: talentsNatifs(c.talents), spawn: () => creatureToCombatant(c, `garde-${c.id}`, ORIGINE) });
   for (const rel of listerProjetsLivres()) {
     const projet = parseProject(lireProjetLivre(rel));
     out.push(...porteursDuNarratif(rel, projet.narratif));

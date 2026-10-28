@@ -522,7 +522,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Empoignade (LDB 14 l.161) : action de Test opposé de Force entre deux Empoignés → flux dédié.
   if (option.targeting === 'grapple') return get().battleGrapple(target.id);
   if (option.targeting === 'zone') {
-    set({ pendingManeuver: { attackerId: active.id, kind: option.kind!, maneuverId: option.def!.id, targetId: target.id, avantageSpent: option.advantageMode === 'variable' ? 1 : option.cost.advantage, result: null }, battle: { ...battle, action: null, selectedAttack: undefined } });
+    set({ pendingManeuver: { attackerId: active.id, kind: option.kind!, attaque: option.id, targetId: target.id, avantageSpent: option.advantageMode === 'variable' ? 1 : option.cost.advantage, result: null }, battle: { ...battle, action: null, selectedAttack: undefined } });
     return;
   }
   // === MÊLÉE : approche-puis-frappe (le SEUL exécuteur charge/moveAttack du jeu) ===

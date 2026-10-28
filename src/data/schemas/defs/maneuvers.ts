@@ -49,6 +49,8 @@ const doc = document(
     range: maneuverMeasure.optional(),
     blast: maneuverMeasure.optional(),
     magic: z.boolean().optional(),
+    /** LDB 85 l.329 */
+    fumee: z.boolean().optional(),
     /** LDB 85 l.387 */
     ecartDeTailleMin: z.number().int().min(1).optional(),
     subType: ref('weaponGroup').optional(),
@@ -70,6 +72,7 @@ const doc = document(
     range: { label: 'Portée' },
     blast: { label: 'Zone d’effet' },
     magic: { label: 'Magique' },
+    fumee: { label: 'Fumée', hint: 'La zone se remplit de fumée qui bloque les Lignes de vue pendant Bonus d’Endurance Rounds' },
     ecartDeTailleMin: { label: 'Écart de Taille minimal', hint: 'Ouverte à tout combattant plus grand que sa cible d’au moins ce nombre de catégories de Taille' },
     subType: { label: 'Groupe d’armes', hint: 'Spécialisation de Corps à corps du jet d’attaque' },
     damage: { label: 'Dégâts', hint: 'Dégâts de l’attaque, à défaut l’Indice du trait qui l’octroie' },

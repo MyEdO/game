@@ -974,6 +974,25 @@ export function racinesDeFlow(scene: unknown): RacineDeFlow[] {
   listeDe(sc.encounters).forEach((e, i) => pousse(objetDe(e).onVictory, ['encounters', i, 'onVictory'], 'encounter', idDe(objetDe(e))));
   return out;
 }
+/** RÉÉCRITURE d'un Flow, des feuilles vers la racine : `f` reçoit chaque nœud, ses branches déjà réécrites.
+ *  Immuable (copie). */
+export function reecrireFlow<E = EffectOp>(flow: Flow<E>, f: (node: Flow<E>) => Flow<E>): Flow<E> {
+  switch (flow.kind) {
+    case 'seq': return f({ ...flow, steps: flow.steps.map((s) => reecrireFlow(s, f)) });
+    case 'if': return f({ ...flow, then: reecrireFlow(flow.then, f), ...(flow.else ? { else: reecrireFlow(flow.else, f) } : {}) });
+    case 'test': return f({ ...flow, success: reecrireFlow(flow.success, f), fail: reecrireFlow(flow.fail, f) });
+    case 'choice': return f({ ...flow, yes: reecrireFlow(flow.yes, f), ...(flow.no ? { no: reecrireFlow(flow.no, f) } : {}) });
+    case 'do': return f(flow);
+  }
+}
+
+/** Les ops des feuilles EffectOp d'un Flow, réécrites par `f` ; une op rendue `null` tombe. Immuable. */
+export function reecrireLesOps<E = EffectOp>(flow: Flow<E>, f: (op: GameOp) => GameOp | null): Flow<E> {
+  return reecrireFlow(flow, (n) => (n.kind === 'do' && isEffectOp(n.effect)
+    ? { ...n, effect: { ...n.effect, ops: n.effect.ops.map(f).filter((o): o is GameOp => o != null) } }
+    : n));
+}
+
 /** Visite RÉCURSIVE de tous les nœuds d'un Flow (branches `if`/`test` comprises) — pour la validation
  *  (effets référencés, bornes des conditions horaires) sur l'arbre ENTIER, pas seulement le 1er niveau.
  *  `visit` reçoit aussi le CHEMIN du nœud depuis `flow`, pour qui doit nommer un nœud fautif. */
