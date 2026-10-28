@@ -137,6 +137,10 @@ const doc = document(
     /** LDB 85 l.37-39 */
     parLocalisation: z.boolean().optional(),
     range: z.boolean().optional(),
+    /** LDB 85 l.31-33 ; ZI 03 l.75, l.77 */
+    attaque: z.boolean().optional(),
+    /** LDB 16 l.70 ; MDG 16 l.226 */
+    difficulte: z.boolean().optional(),
     specsSource: specsSourceSchema.optional(),
     specsOpen: z.boolean().optional(),
     /** LDB 48 l.23 */
@@ -174,6 +178,14 @@ const doc = document(
       label: 'Porte une portée',
       hint: 'Le Trait prend une portée chiffrée EN PLUS de son argument, affichée « (Portée) » (À distance, Langue préhensile)',
     },
+    attaque: {
+      label: 'Trait d’attaque',
+      hint: 'L’Indice du Trait est celui des Dégâts d’une attaque, affiché « +N » ; une instance peut conférer des Traits à ses touches (`confere`)',
+    },
+    difficulte: {
+      label: 'Porte une Difficulté',
+      hint: 'Une instance peut fixer la Difficulté des Tests qui éliminent l’État que le Trait inflige (`difficulte`)',
+    },
     specsSource: {
       label: 'Registre de spécialisations',
       hint: 'Catalogue partagé (armes, Vents, Domaines, Cultes…) d’où proviennent les spécialisations',
@@ -200,7 +212,7 @@ const doc = document(
     edit: { dataset: 'traits' },
   },
   /** LDB 85 l.94 ; LDB 85 l.209 ; LDB 85 */
-  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'parLocalisation', 'range', 'specsOpen'] } },
+  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'parLocalisation', 'range', 'specsOpen', 'attaque', 'difficulte'] } },
 );
 
 export const schema = doc.schema;

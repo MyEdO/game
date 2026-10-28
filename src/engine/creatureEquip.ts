@@ -67,6 +67,12 @@ function creatureWeapon(it: ItemInstance, dmg: WeaponDamageSpec, range: number |
  * une étiquette naturelle (→ weaponFamily renvoie '' = aucune arme dessinée).
  */
 export function weaponFromTrait(t: TraitInstance): Weapon | null {
+  const w = armeDuTrait(t);
+  return w && t.confere?.length ? { ...w, traitsConferes: t.confere } : w;
+}
+
+/** L'arme d'un Trait d'arme, sans les Traits qu'il confère (`weaponFromTrait`). */
+function armeDuTrait(t: TraitInstance): Weapon | null {
   // Indice de créature = SB déjà inclus → PAS de token BF (« +N », « -N » négatif) ; à défaut d'Indice,
   // arme générique « +BF » nu (SB-relatif). Le constructeur d'arme UNIQUE porte les deux conventions.
   const dmg: WeaponDamageSpec = t.value != null ? { plusBF: false, flat: t.value } : { plusBF: true, flat: 0, bare: true };

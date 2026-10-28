@@ -5,6 +5,7 @@ import type { Combatant, Weapon } from './types';
 import { effectiveWeaponRange } from './weaponDamage';
 import { rangeBandModifier } from './combat';
 import { traitsDuPorteur, type TraitInstance } from './statEntry';
+import { porteurDuProfil } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
 
 const t = (o: TraitInstance): TraitInstance => o;
@@ -15,6 +16,11 @@ describe('creatureEquip — dérivation traits → armes (source unique de l’a
     expect(w).not.toBeNull();
     expect(w!.label).toBe('Épée');
     expect(w!.type).toBe('melee');
+  });
+
+  it('l’arme d’un Trait d’attaque porte les Traits qu’il confère (ZI 06 l.32)', () => {
+    expect(weaponFromTrait(t({ id: 'arme', arg: 'Serres', value: 7, confere: [{ id: 'venin', arg: 'difficile' }] }))!.traitsConferes).toEqual([{ id: 'venin', arg: 'difficile' }]);
+    expect(weaponFromTrait(t({ id: 'arme', arg: 'Serres', value: 7 }))!.traitsConferes).toBeUndefined();
   });
 
   it('trait « Arme » sans type ni Indice → arme de mêlée générique', () => {
@@ -127,7 +133,7 @@ describe('creatureEquip — armourFromTraits (lookup par id stable)', () => {
 
   it('Moritz (MCLB 02 l.698) : le Heaume à la Tête, le groupe PLATE ailleurs (LDB 63 l.53-58)', () => {
     const moritz = findCreatureById('moritz-valgeir')!;
-    expect(armourFromTraits(traitsDuPorteur(moritz.traits, moritz.id))).toEqual({ tete: 2, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 });
+    expect(armourFromTraits(traitsDuPorteur(moritz.traits, porteurDuProfil(moritz.id, moritz.char)))).toEqual({ tete: 2, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 });
   });
 
   it('Indice par Localisation → chaque Localisation porte le sien', () => {

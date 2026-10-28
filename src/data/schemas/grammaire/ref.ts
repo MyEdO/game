@@ -83,6 +83,8 @@ export const TYPES = {
   steamBreakdown: { espace: 'steam-breakdown.json', catalogue: 'pannes de navire à vapeur' },
   // EDOC 12 l.217, l.241 ; LDB 85 l.120, l.164
   groupe: { espace: 'groups.json', catalogue: 'groupes' },
+  // EDOC 13 l.237 ; LDB 85 l.322
+  breathType: { espace: 'breath-types.json', catalogue: 'types de Souffle' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;

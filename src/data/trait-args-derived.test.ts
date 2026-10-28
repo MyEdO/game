@@ -25,8 +25,8 @@
  * des Traits par un bonus », Grand Loup/Griffon ZI). Ces notes n'ont ni `id` ni `value` de premier niveau
  * (le bonus vit sous `grant`) → naturellement hors des invariants #1/#2, sans exclusion ad hoc.
  *
- * Le Trait OCTROYÉ par op (`grantTrait.trait`) est un `traitOctroyeSchema` : le parse lui oppose les
- * refus de `traitInstanceSchema`. Toute dérive FUTURE (un `value` sans `indice`, un `arg` pris pour un
+ * Le Trait OCTROYÉ par op (`grantTrait.trait`) est un Trait posé (`traitInstanceSchema`) : le parse lui
+ * oppose les mêmes refus. Toute dérive FUTURE (un `value` sans `indice`, un `arg` pris pour un
  * libellé) fait échouer la garde en LISTANT les fautifs.
  */
 import { describe, it, expect } from 'vitest';

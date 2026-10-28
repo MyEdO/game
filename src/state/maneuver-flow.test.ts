@@ -54,11 +54,11 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   it('Souffle : ouvrir n’ouvre PAS de jet (result===null) ; Lancer→Appliquer dépense 2 Av, Action préservée, Dégâts', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();
-    H.traits = [{ id: 'souffle', value: 15, arg: 'Feu' }];
+    H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90; // touche déterministe vs Esquive
     H.advantage = 3;
     const before = E.wounds.current;
-    activate('souffle-feu', E.id);
+    activate('souffle', E.id);
     const pm = useGame.getState().pendingManeuver;
     expect(pm).toBeTruthy();
     expect(pm!.kind).toBe('souffle');
@@ -142,12 +142,12 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   it('Résilience : forceSuccess garantit la réussite du jet d’attaquant (touche puis Dégâts)', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();
-    H.traits = [{ id: 'souffle', value: 15, arg: 'Feu' }];
+    H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 1; // raterait sans Résilience
     H.advantage = 3;
     H.resilience = 1;
     const before = E.wounds.current;
-    activate('souffle-feu', E.id);
+    activate('souffle', E.id);
     useGame.getState().maneuverRoll();
     expect(useGame.getState().pendingManeuver!.result!.success).toBe(false); // jet raté
     useGame.getState().maneuverForceSuccess();
@@ -159,12 +159,12 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   it('orientation : une manœuvre CIBLÉE tourne l’attaquant vers sa cible avant l’animation', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();
-    H.traits = [{ id: 'souffle', value: 15, arg: 'Feu' }];
+    H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90;
     H.advantage = 3;
     E.pos = { x: 10, y: 9 }; // adjacente PLEIN NORD de l’attaquant (10,10)
     useGame.setState({ facing: { [H.id]: 'S' } }); // dos tourné à la cible avant la manœuvre
-    activate('souffle-feu', E.id);
+    activate('souffle', E.id);
     useGame.getState().maneuverRoll();
     useGame.getState().maneuverConfirm();
     expect(useGame.getState().facing[H.id]).toBe('N');
@@ -173,7 +173,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   it('orientation : cible choisie MORTE avant la résolution → l’attaquant vise le centre RECENTRÉ, pas le clic périmé', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();
-    H.traits = [{ id: 'souffle', value: 15, arg: 'Feu' }];
+    H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90;
     H.advantage = 3;
     const D = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
@@ -182,7 +182,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     D.pos = { x: 10, y: 11 }; // plein SUD : la cible CLIQUÉE
     E.pos = { x: 10, y: 9 }; // plein NORD : le seul ennemi encore debout à la résolution
     useGame.setState({ facing: { [H.id]: 'O' } });
-    activate('souffle-feu', D.id);
+    activate('souffle', D.id);
     useGame.getState().maneuverRoll();
     D.dead = true; // elle tombe avant que le souffle ne parte → la zone se recentre sur le plus proche vivant
     useGame.getState().maneuverConfirm();

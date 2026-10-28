@@ -312,9 +312,9 @@ export function Palette({
                     setLastTerrain(t as Terrain);
                     setTool({ mode: 'tile', terrain: t as Terrain });
                   }}
-                  title={terrainLabel(t) ?? t}
+                  title={terrainLabel(t)}
                 >
-                  {terrainLabel(t) ?? t}
+                  {terrainLabel(t)}
                 </button>
               ))}
             </div>

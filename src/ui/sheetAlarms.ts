@@ -1,6 +1,6 @@
 import { Combatant } from '../engine/types';
 import { maxEncumbrance, totalEncumbrance } from '../engine/items';
-import { findPsychologyById, diseaseLabel } from '../data';
+import { diseaseLabel, psychologyLabel } from '../data';
 import { isAfflictionActive, PsychAffliction } from '../engine/psychology';
 
 /** ids STABLES des rubriques de l'onglet État — ancres de scroll RENDUES par `EtatPanel.tsx`.
@@ -57,8 +57,7 @@ export function sheetAlarms(hero: Combatant): SheetAlarm[] {
 
   for (const p of hero.psychState ?? []) {
     if (!isPsychAfflictionActive(p)) continue;
-    const def = findPsychologyById(p.type);
-    out.push({ key: `psych-${p.type}-${p.cible ?? ''}`, label: def?.label ?? p.type });
+    out.push({ key: `psych-${p.type}-${p.cible ?? ''}`, label: psychologyLabel(p.type) });
   }
 
   if (totalEncumbrance(hero) > maxEncumbrance(hero)) out.push({ key: 'surcharge', label: 'Surchargé' });

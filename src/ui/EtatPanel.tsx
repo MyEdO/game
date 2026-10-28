@@ -35,7 +35,7 @@ import { formatRemaining } from '../engine/disease';
 import { CHAR_LABELS, LOCALISATIONS_DE_COUP, type ConditionInstance } from '../engine/types';
 import { chipNom, summarizeEffects } from '../gameIso/effectIcons';
 import { fortuneMax, resolveMax } from '../engine/talentEffects';
-import { diseaseLabel, findPsychologyById, symptomLabel, symptomInstanceLabel, mutationLabel } from '../data';
+import { diseaseLabel, findPsychologyById, psychologyLabel, symptomLabel, symptomInstanceLabel, mutationLabel } from '../data';
 import { datasetArray } from '../data/overrides';
 import { isPsychAfflictionActive, ETAT_ANCHOR_CRITIQUES, ETAT_ANCHOR_MALADIES, ETAT_ANCHOR_MUTATIONS, ETAT_ANCHOR_TRAUMAS, ETAT_ANCHOR_PSYCHOLOGIE, ETAT_ANCHOR_ENCOMBREMENT } from './sheetAlarms';
 import { useGame } from '../state/store';
@@ -423,11 +423,12 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
         <Section anchor={ETAT_ANCHOR_PSYCHOLOGIE} title="Psychologie" count={activePsych.length} codexCategory="psychologies">
           {activePsych.map((p, i) => {
             const def = findPsychologyById(p.type);
+            const label = psychologyLabel(p.type);
             return (
               <PlaqueRow valueMuted
                 key={i}
                 prefix={<Icon id={(def?.icon as IconIdInput | undefined) ?? FALLBACK_ICON} size="sm" />}
-                content={<CodexRef category="psychologies" id={p.type} label={def?.label ?? p.type}>{def?.label ?? p.type}</CodexRef>}
+                content={<CodexRef category="psychologies" id={p.type} label={label}>{label}</CodexRef>}
                 fx={def?.passive?.length ? <GameOpChips ops={def.passive} /> : undefined}
               />
             );

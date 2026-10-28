@@ -4,7 +4,7 @@ import { Modal } from './Modal';
 import { ChipDeRefus } from './ChipDeRefus';
 import { t } from '../i18n';
 
-/** Ce qu'une sauvegarde CHARGÉE a perdu à l'élagage (règles, États hors du registre courant, #1463 LD.1) : la
+/** Ce qu'une sauvegarde CHARGÉE a perdu à l'élagage (règles, États, Traits psychologiques à Cible hors du registre courant, #1463 LD.1) : la
  *  partie est là, le joueur lit les ids retirés une fois puis ferme. */
 export function RetraitsDeChargement() {
   const retraits = useGame((s) => s.retraitsDeChargement);

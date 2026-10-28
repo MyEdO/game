@@ -1555,8 +1555,9 @@ export interface PsychologyData extends StatusData {
    *  Lu par `psychImmuneToFrom` (siège unique : `fearSourceFor` + `psychDRAdjust`). */
   immuneToFromTarget?: string[];
   /** Contribution de cet état psy au DEGRÉ DE RÉUSSITE de l'ATTAQUE de son porteur (LDB 21, ±1 DR) — lu
-   *  par `psychDRAdjust` (plus de ±1 codé par-nom). `vs:'source'` = Peur vs sa source (active non vaincue,
-   *  l.29) ; `vs:'group'` = Haine/Animosité vs le groupe ciblé actif (l.22/41) ; `vs:'any'` = Amour/
+   *  par `psychDRAdjust` (plus de ±1 codé par-nom). `vs:'source'` = Peur vs sa source (`sousPeur`,
+   *  l.29) ; `vs:'group'` = Haine/Animosité vs le groupe ciblé actif (l.22/41), qui oriente aussi le
+   *  vivier de l'IA (`noyau/monde/ai.ts`) ; `vs:'any'` = Amour/
    *  Camaraderie en défense, dès lors qu'actif (l.77/82). */
   attackDR?: { amount: number; vs: 'source' | 'group' | 'any' };
   /** RAW LDB 21 l.75 : tant que cette affliction est active, son porteur est IMMUNISÉ aux CANAUX listés,
@@ -1702,6 +1703,8 @@ export interface ManeuverDef {
   blast?: ManeuverMeasure;
   /** Attaque magique (Souffle, Étreinte glaciale) → soumise à la Résistance à la Magie, etc. */
   magic?: boolean;
+  /** La zone se remplit de fumée (`souffleDuType`). LDB 85 l.329 */
+  fumee?: boolean;
   /** Écart de Taille minimal sur la cible au contact : la manœuvre est ouverte à TOUT combattant, sans
    *  trait (`attaquesNaturelles`). LDB 85 l.387 ; LDB 85 l.344 */
   ecartDeTailleMin?: number;
@@ -1722,6 +1725,8 @@ export interface ManeuverDef {
   stake?: string;
   /** FORME déclarée de l'enjeu — `verbatim` (contigu au Source) ou `descripteur` (assemblage des ops). */
   stakeForm?: StakeForm;
+  /** Valeurs des trous de `stake`, posées par la composition (`souffleDuType`) ; aucune entrée n'en porte. */
+  enjeu?: Record<string, string>;
 }
 /** Drapeaux de CAPACITÉ IRRÉDUCTIBLES d'un trait (LDB 85) — décisions d'IA/psychologie, règles de
  *  résolution de combat, capacités de construction/déplacement/vision : NI un modificateur (`passive`)
@@ -1856,6 +1861,12 @@ export interface TraitData {
   parLocalisation?: boolean;
   /** L'instance porte-t-elle un champ `range` (portée en mètres/cases : Souffle, Aura…) ? Absent/`false` = non. */
   range?: boolean;
+  /** Trait d'ATTAQUE : son Indice est celui des Dégâts (« +N ») et une instance peut conférer des Traits à
+   *  ses touches (`TraitPose.confere`). LDB 85 l.31-33 ; ZI 03 l.75, l.77 */
+  attaque?: boolean;
+  /** Une instance peut fixer la Difficulté des Tests qui éliminent l'État que le Trait inflige
+   *  (`TraitPose.difficulte`). LDB 16 l.70 ; MDG 16 l.226 */
+  difficulte?: boolean;
   /** Registre de l'ARGUMENT `arg` du trait (catalogue `SPEC_SOURCES` : `groups`/`diseases`/`sizes`/
    *  `mutations`/`breathTypes`/`weaponGroups*`…). Le pool DÉRIVE alors du registre, jamais d'une liste en dur. */
   specsSource?: SpecsSource;
@@ -2047,6 +2058,8 @@ export interface DomainData {
   label: string;
   desc?: string;
   source?: SourceRef;
+  /** Raison d'un arbitrage maison de l'entrée (le Type de Souffle de `arcane`, LDB 47 l.509). */
+  maison?: string;
   /** Emplacements SECONDAIRES du même Domaine — republication à l'identique (doctrine « UNE entité,
    *  N livres ») : l'attribut du Domaine de la Lumière est reparu tel quel dans les Vents de Magie
    *  (`VDM 04 l.252-260`, folio 62). L'ancre `source` reste seule à porter la `desc`. */
@@ -2059,8 +2072,10 @@ export interface DomainData {
   wind?: string;
   /** Domaine ENSEIGNABLE via le Talent Magie des Arcanes (LDB 48) : SOURCE du pool `arcaneDomains`
    *  (SPEC_SOURCES) — fin de la liste `specs[]` maintenue à la main sur `magie-des-arcanes`. Les Lores de
-   *  sorts non-arcanes (ex. Magie des mers de Triton) ne le portent pas. */
-  arcane?: boolean;
+   *  sorts non-arcanes (ex. Magie des mers de Triton) ne le portent pas. La marque EST le Type de Souffle
+   *  (id de `breath-types.json`) du sort Souffle lancé par un mage du Domaine ; l'arbitrage se dit au
+   *  `maison` de l'entrée. LDB 47 l.509 */
+  arcane?: string;
   /** `VDM 02 l.192` (`careerSlots.arcaneDomainGate`) — Nécromancie, Démonologie (LDB 50). */
   dark?: boolean;
   /** Tables d'effets (`tables.json`) DÉCLARÉES par le Domaine, par CLÉ de rôle — résolues par l'op
@@ -2077,9 +2092,6 @@ export interface DomainData {
    *  Canal CAPABILITY (pas passive ni effects) : l'effet cible le lanceur lui-même, non une cible.
    *  Exécutées par `domainCasterOps` (engine/domainAttributes) via `applyOps`. */
   casterOps?: import('../engine/ops').GameOp[];
-  /** Élément du Souffle conféré par le Talent Magie des Arcanes du Domaine (Cieux → Électricité,
-   *  Métal → Corrosif, Ombres → Fumée, Feu → Feu) — lu par le résolveur de Souffle. */
-  breathType?: string;
   /** Bonus d'incantation CONDITIONNEL (Aqshy l.157) : +`bonus` par État `perCondition` porté par un
    *  combattant situé à `radiusStat` (Bonus de carac.) mètres du lanceur (géométrie résolue par state).
    *  CAPABILITY irréductible : modifie le JET d'incantation via la géométrie de l'arène → hors GameOp
@@ -2350,6 +2362,10 @@ export const characteristics = characteristicsJson as CharacteristicsData;
  *  par `id` (jamais recopiée en dur dans l'UI — `CharKey` reste un id opaque, cf. engine/types.ts). */
 const charARoulerParId = indexParChamp('characteristics', characteristics, (c) => (c.nature === 'roll' ? c.id : undefined));
 export const charAbr = (k: CharKey): PlayerText => dataLabel(charARoulerParId(k)?.abr, k);
+/** La caractéristique à jet qu'abrège un sigle imprimé (« F », « FM »), casse ignorée — inverse de
+ *  `charAbr`, lu par la saisie d'un Indice relatif (`lireIndiceRelatif`). */
+export const caracDuSigle = (sigle: string): CharKey | undefined =>
+  characteristics.find((c) => c.nature === 'roll' && c.abr != null && norm(c.abr) === norm(sigle))?.id as CharKey | undefined;
 export const species = speciesJson as SpeciesData[];
 export const classes = classesJson as ClassData[];
 export const careers = careersJson as CareerData[];
@@ -3265,9 +3281,20 @@ export function findGroupById(id: string | null | undefined): GroupData | undefi
 export function groupLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? groupeParId(id)?.label : '', id ?? '');
 }
-/** Type de Souffle d'une créature (Feu/Froid/Corrosif/Électrique/Poison/Fumée) — argument du Trait Souffle,
- *  aligné sur les manœuvres `souffle-*`. Registre SSOT (`breath-types.json`). */
-export interface BreathTypeData { id: string; type: 'breath-types'; label: string; }
+/** Libellés d'une liste de Groupes, joints comme le Test les décrit (`FlowTest.vsGroups`). */
+export function groupesLabel(ids: readonly string[]): PlayerText {
+  return dataLabel(ids.map(groupLabel).join('/'));
+}
+/** Type de Souffle — argument du Trait Souffle et règle du Type, composée par `souffleDuType`
+ *  (`engine/creatureAttacks.ts`). Registre SSOT (`breath-types.json`). LDB 85 l.322-329 ; EDOC 13 l.237 */
+export interface BreathTypeData {
+  id: string; type: 'breath-types'; label: string; source?: SourceRef;
+  ignoreAP?: boolean;
+  etat?: string;
+  endommageLEquipement?: boolean;
+  fumee?: boolean;
+  types?: { id: string }[];
+}
 export const breathTypes = breathTypesJson as BreathTypeData[];
 const typeSouffleParId = indexParId('breathTypes', breathTypes);
 /** Résout un Type de Souffle par son `id` STABLE. */

@@ -179,7 +179,6 @@ export const EXEMPT_DATASETS = {
   'lightTones.json': "tons de lumière (#1245 : couleur, part d'intensité, vacillement d'une source ponctuelle) — APPARENCE de rendu, aucune règle à citer : le RAYON, la seule grandeur RAW d'une source (LDB 74), vit sur la source elle-même.",
   'raceAppearance.json': "presets d'apparence (rendu iso) par race — esthétique, pas une règle RAW.",
   'structureAppearance.json': "presets d'apparence de structure (rendu iso), pas une donnée RAW.",
-  'breath-types.json': "vocabulaire de catégorisation (id+label uniquement, ex. « feu »/« poison ») — aucune valeur mécanique propre à sourcer, la RÈGLE (souffle de créature) est ailleurs.",
   'damage-types.json': "vocabulaire de catégorisation (id+label uniquement) — aucune valeur mécanique propre à sourcer.",
   'qualityTypes.json': "vocabulaire de catégorisation des Qualités/Défauts (id+label, Atout/Défaut) — aucune valeur mécanique propre.",
   'qualitySubtypes.json': "vocabulaire de catégorisation des Qualités/Défauts (id+label, Arme/Armure/Objet) — aucune valeur mécanique propre.",

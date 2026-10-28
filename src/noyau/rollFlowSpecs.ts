@@ -23,12 +23,12 @@ import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
 import { actorIn, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import {
-  resolveAttack, attackWeaponOf, firedWeapon, effectiveSpellOf, disengageOutcome, castContextMods, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor, clearApproachMoves, defenseDodgeMods,
+  resolveAttack, attackWeaponOf, firedWeapon, effectiveSpellOf, disengageOutcome, castContextMods, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor, clearApproachMoves, defenseDodgeMods, overcastReset,
 } from './combatFlow';
 import { bestDefenseMode, rollManeuverAttacker, maneuverAttackerDifficulty, distraireAttackValue } from './combatManeuvers';
 import { bus, EVT } from './bus';
 import { campRestitue, campSpend } from './combat/advantagePool';
-import { creatureAttacks } from '../engine/creatureAttacks';
+import { attaqueDeCle } from '../engine/creatureAttacks';
 import { mountMovement, chargeDmgProxy } from './mount';
 import { sceneMetresPerTile } from './monde/scene';
 import { metresRetenus, phaseDeChute, refusDesRangeesDues, tombantsNommes } from './fallMove';
@@ -44,7 +44,7 @@ import { rollLine } from './rollSeam';
 import { activityModLines } from '../engine/activities';
 import { testValue, valeurDuTest, effectiveSkillCharKey, skillBaseValue } from '../engine/skills';
 import { skillDRBonus, charDRBonusOf, offTerrainTestDR } from '../engine/ops';
-import { resolveFocus, resolveMagicMissile, resolveCasting, rederiveCastSL, castTestDRMods, talentTestSLBonus, resolveCounterspell, counterspellOutcomeFrom, withCastTestDRMods, castTestOf, castTestTarget, castingValue, castInfoIsPrayer, malepierreDR, malepierreReserveOf } from '../engine/magic';
+import { resolveFocus, resolveMagicMissile, resolveCasting, rederiveCastSL, castTestDRMods, talentTestSLBonus, resolveCounterspell, counterspellOutcomeFrom, withCastTestDRMods, castTestOf, castTestTarget, castingValue, castInfoIsPrayer, malepierreDR, malepierreReserveOf, castingNumberOf, type CastResult } from '../engine/magic';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { rule } from '../engine/policy';
 import { effectiveChar, bonus } from '../engine/characteristics';
@@ -510,6 +510,12 @@ function refusDuJetDeChute(s: Jeu, pid: string): string | null {
   return part.attempt === true ? null : t('fall.refus.sansTest', { tombant: tombantsNommes(s, [part]) });
 }
 
+/** Patch d'un jet d'incantation qui remplace `result` : le budget de Surincantation a changé, l'allocation
+ *  retombe (`overcastReset`). */
+function castRelance(s: Jeu, p: PendingCast, result: CastResult): Partial<PendingCast> {
+  return { result, ...overcastReset(p, sceneMetresPerTile(s.scene)) };
+}
+
 export const FLOWS = {
   /**
    * Attaque (modale différée). Le JET INITIAL reste métier (`attackRoll` : +1 Avantage si cible
@@ -710,7 +716,8 @@ export const FLOWS = {
   }),
 
   /**
-   * Incantation / Prière. Le JET INITIAL reste métier (`castRoll` : wards journalisés,
+   * Incantation / Prière. Tout jet qui remplace `result` change le budget de Surincantation : l'allocation
+   * retombe (`castRelance`, `overcastReset`). Le JET INITIAL reste métier (`castRoll` : wards journalisés,
    * Surincantation automatique de l'IA, déclaration de Contre-sort ennemi) — le cycle
    * Chance/Pacte/Résilience/dé choisi vit ici.
    */
@@ -736,18 +743,18 @@ export const FLOWS = {
         const t = actorIn(s, p.targetId); const spell = effectiveSpellOf(p);
         if (!actor || !t || !spell || !p.result) return null;
         const sl = tr.sl + castTestDRMods(actor, 'incantation', { success: tr.success, spell, sea: seaMagicContext(s) });
-        return { result: rederiveCastSL(actor, t, spell, { ...p.result, roll: tr.roll, sl }, p.missile, p.focused, 0) };
+        return castRelance(s, p, rederiveCastSL(actor, t, spell, { ...p.result, roll: tr.roll, sl }, p.missile, p.focused, 0));
       },
       // Voie RÉSILIENCE : le point acheté fait PARTIR le sort (DR ≥ NI, LDB 17 l.75), et la Malepierre
       // (LDB 46 l.173, INCONDITIONNELLE) se re-calcule sur CE DR — celle figée au jet d'origine est périmée.
       resilience: (s, p, actor, _g, tr) => {
         const t = actorIn(s, p.targetId); const spell = effectiveSpellOf(p);
         if (!actor || !t || !spell || !p.result) return null;
-        const ni = p.focused ? 0 : spell.cn ?? 0;
+        const ni = castingNumberOf(spell, p.focused, {}, [], actor);
         const sl0 = tr.sl + castTestDRMods(actor, 'incantation', { success: tr.success, spell, sea: seaMagicContext(s) });
         const malepierreConsumed = malepierreDR(Math.max(0, sl0), malepierreReserveOf(actor));
         const sl = sl0 + malepierreConsumed;
-        return { result: rederiveCastSL(actor, t, spell, { ...p.result, roll: tr.roll, sl, malepierreConsumed }, p.missile, p.focused, Math.max(0, ni - sl)) };
+        return castRelance(s, p, rederiveCastSL(actor, t, spell, { ...p.result, roll: tr.roll, sl, malepierreConsumed }, p.missile, p.focused, Math.max(0, ni - sl)));
       },
     },
     resolve: (s, p, actor, _get, forced) => {
@@ -756,7 +763,7 @@ export const FLOWS = {
       if (!actor || !target || !spell) return null;
       if (forced) {
         // — Résilience « Je ne faillirai pas ! » (LDB 17 l.68) —
-        const ni = p.focused ? 0 : spell.cn ?? 0;
+        const ni = castingNumberOf(spell, p.focused, {}, [], actor);
         // FENÊTRE PRÉ-JET : sans jet posé, la cible du dé choisi est celle que le jet naturel aurait
         // employée — `castTestTarget` (miroir de `resolveCasting`) avec le MÊME ward et la MÊME
         // Difficulté que la branche de jet normal ci-dessous. Jet posé : sa cible fait foi.
@@ -776,7 +783,7 @@ export const FLOWS = {
         const cur = p.result ?? { cast: false, roll: cDie, target: tgt, sl: cSL, isCritical: false, isFumble: false, log: '' };
         // `Math.max(0, …)` : le DR du MEILLEUR dé suffit — un +1 fantôme au-dessus du maximum
         // nourrirait la Surincantation (LDB 47) sans rien dans la source pour le justifier.
-        return { result: rederiveCastSL(actor, target, spell, { ...cur, roll: cDie, target: tgt, sl: cSL }, p.missile, p.focused, Math.max(0, ni - cSL)) };
+        return castRelance(s, p, rederiveCastSL(actor, target, spell, { ...cur, roll: cDie, target: tgt, sl: cSL }, p.missile, p.focused, Math.max(0, ni - cSL)));
       }
       // — Jet NORMAL (relance Chance/Pacte) : re-jet complet — wards recalculés (Sorcière LDB 42 + Aqshy LDB 48). —
       // Ward = pénalité « Sorcière » (LDB 42) + bonus conditionnel de Domaine (Aqshy près des flammes,
@@ -789,7 +796,7 @@ export const FLOWS = {
       const res = p.missile
         ? resolveMagicMissile(actor, target, spell, battleRng(), p.focused, ward, seaMagicContext(s))
         : resolveCasting(actor, spell, battleRng(), difficulty, p.focused, ward, seaMagicContext(s));
-      return { result: res };
+      return castRelance(s, p, res);
     },
     // Issue CANONIQUE = d100 propre réussi (roll ≤ cible) — relance/Pacte alignés sur le jet propre.
     outcome: (p) => cleanRollOutcome(p.result),
@@ -799,7 +806,7 @@ export const FLOWS = {
         const target = actorIn(s, p.targetId);
         const spell = effectiveSpellOf(p);
         if (!target || !spell) return null;
-        return { result: rederiveCastSL(actor, target, spell, p.result!, p.missile, p.focused, 1) };
+        return castRelance(s, p, rederiveCastSL(actor, target, spell, p.result!, p.missile, p.focused, 1));
       },
     },
   }),
@@ -1339,7 +1346,7 @@ export const FLOWS = {
     caps: { forced: true },
     resolve: (_s, p, actor) => {
       if (!actor) return null;
-      const stat = creatureAttacks(actor.traits ?? []).find((a) => a.def.id === p.maneuverId)?.stat ?? 'capacite-de-tir';
+      const stat = attaqueDeCle(actor.traits ?? [], p.attaque)?.stat ?? 'capacite-de-tir';
       return { result: rollManeuverAttacker(actor, stat, battleRng(), maneuverAttackerDifficulty(p.kind)) };
     },
     outcome: (p) => testOutcome(p.result),
@@ -1353,7 +1360,7 @@ export const FLOWS = {
       applyRoll: (_s, _slot, _actor, _get, tr) => ({ result: tr }),
       dieTarget: (p, actor) => {
         if (p.result?.target != null) return cibleBrute(p.result);
-        const stat = creatureAttacks(actor.traits ?? []).find((a) => a.def.id === p.maneuverId)?.stat ?? 'capacite-de-tir';
+        const stat = attaqueDeCle(actor.traits ?? [], p.attaque)?.stat ?? 'capacite-de-tir';
         return cibleDuTest(combatValue(actor, stat === 'capacite-de-combat' ? 'melee' : 'ranged'), maneuverAttackerDifficulty(p.kind));
       },
     },

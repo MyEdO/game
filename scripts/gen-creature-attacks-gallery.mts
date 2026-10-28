@@ -12,6 +12,7 @@ import { mul, translate, type Matrix } from '../src/gameIso/rig/kinematics';
 import type { ResolvedBone } from '../src/gameIso/rig/composeRig';
 import { creatureAttacks, type AttackKind } from '../src/engine/creatureAttacks';
 import { traitsDuPorteur } from '../src/engine/statEntry';
+import { porteurDuProfil } from '../src/noyau/monde/spawn';
 import { libelleDeValeur } from '../src/data/schemas/grammaire/meta';
 import { attackKindSchema } from '../src/data/schemas/defs/maneuvers';
 
@@ -61,7 +62,7 @@ let nCreatures = 0, nAttacks = 0;
 for (const c of creatures) {
   const planId = bodyPlanById(c.id);
   if (planId === 'biped') continue; // bipèdes → armes (anim-gallery)
-  const attacks = creatureAttacks(traitsDuPorteur(c.traits ?? [], c.id));
+  const attacks = creatureAttacks(traitsDuPorteur(c.traits ?? [], porteurDuProfil(c.id, c.char)));
   if (!attacks.length) continue;
   nCreatures++;
   nAttacks += attacks.length;

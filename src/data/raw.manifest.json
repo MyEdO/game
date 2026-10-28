@@ -121,17 +121,10 @@
     "bloque": "Maladie (Pourriture de Nurgle) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.239) posée sans Type : la maladie est absente de la VF, sa définition VO (Compagnon du Rat Cornu, Aventures à Ubersreik III : livres non extraits au registre `books.json`) n'entre pas dans `maladies.json` (prose d'une entrée VO non extraite, Durée jusqu'à la mort, symptômes par paliers d'un Test hebdomadaire, Difficulté de Contraction par source)"
   },
   {
-    "id": "4e/combat#synthese-comparative-cout-action-defense-magie",
-    "type": "raw.manifest",
-    "label": "Synthèse comparative (coût, action, défense, magie)",
-    "ticket": "#3038",
-    "bloque": "Souffle +7 (Corrosion et Poison) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.237) : un Souffle à deux Types (LDB 85 l.316-331) ; l'argument imprimé ne résout aucune entrée de `breath-types.json`"
-  },
-  {
     "id": "4e/magie#test-d-incantation",
     "type": "raw.manifest",
     "label": "Test d'incantation",
     "ticket": "#1456",
-    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:52`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
+    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:56`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
   }
 ]

@@ -40,7 +40,7 @@ describe('le chargement des règles maison d’un stockage', () => {
     chargerLesReglesMaison(s);
     expect(rule(FLAG.id)).toBe(!FLAG.default);
     expect(persiste(s)).toEqual({ [FLAG.id]: !FLAG.default });
-    expect(prendreLeTemoinDesReglesMaison(s)).toEqual({ regles: [REGLE_INCONNUE], etats: [] });
+    expect(prendreLeTemoinDesReglesMaison(s)).toEqual({ regles: [REGLE_INCONNUE], etats: [], groupes: [] });
     expect(prendreLeTemoinDesReglesMaison(s), 'le témoin se consomme une fois').toBeNull();
   });
 
@@ -49,7 +49,7 @@ describe('le chargement des règles maison d’un stockage', () => {
     s.setItem(CLE, JSON.stringify({ [REGLE_INCONNUE]: true }));
     chargerLesReglesMaison(s);
     chargerLesReglesMaison(s);
-    expect(prendreLeTemoinDesReglesMaison(s)).toEqual({ regles: [REGLE_INCONNUE], etats: [] });
+    expect(prendreLeTemoinDesReglesMaison(s)).toEqual({ regles: [REGLE_INCONNUE], etats: [], groupes: [] });
   });
 
   it('deux chargements qui élaguent des règles différentes avant la prise : le témoin les CUMULE', () => {
@@ -58,7 +58,7 @@ describe('le chargement des règles maison d’un stockage', () => {
     chargerLesReglesMaison(s);
     s.setItem(CLE, JSON.stringify({ [FLAG.id]: 'oui' }));
     chargerLesReglesMaison(s);
-    expect(prendreLeTemoinDesReglesMaison(s)).toEqual({ regles: [REGLE_INCONNUE, FLAG.id], etats: [] });
+    expect(prendreLeTemoinDesReglesMaison(s)).toEqual({ regles: [REGLE_INCONNUE, FLAG.id], etats: [], groupes: [] });
   });
 
   it('un magasin conforme, `param` à sa borne `max` compris : tout s’applique, sans témoin (#2404)', () => {
@@ -81,7 +81,7 @@ describe('le chargement des règles maison d’un stockage', () => {
       chargerLesReglesMaison(s);
       expect([rule(FLAG.id), rule(MODE.id), rule(PARAM.id)], JSON.stringify(magasin)).toEqual(attendu);
       expect(Object.keys(persiste(s) as object), JSON.stringify(magasin)).not.toContain(retiree);
-      expect(prendreLeTemoinDesReglesMaison(s)).toEqual({ regles: [retiree], etats: [] });
+      expect(prendreLeTemoinDesReglesMaison(s)).toEqual({ regles: [retiree], etats: [], groupes: [] });
     }
   });
 

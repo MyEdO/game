@@ -38,11 +38,11 @@ function souffleLance(gmSeat: number | undefined): Combatant {
   E.pos = { x: 11, y: 10 };
   E.wounds = { current: 30, max: 30, base: 30 } as Combatant['wounds'];
   E.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
-  H.traits = [{ id: 'souffle', value: 15, arg: 'Feu' }] as Combatant['traits'];
+  H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }] as Combatant['traits'];
   H.characteristics['capacite-de-tir'] = 90;
   H.advantage = 3;
   useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, acted: false } });
-  useGame.getState().battleSelectAttack('souffle-feu');
+  useGame.getState().battleSelectAttack('souffle');
   useGame.getState().battleClickEntity(E.id);
   useGame.getState().maneuverRoll();
   return E;

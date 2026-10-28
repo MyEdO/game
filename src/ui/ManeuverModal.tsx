@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import { combatValue } from '../engine/combat';
-import { creatureAttacks } from '../engine/creatureAttacks';
+import { attaqueDeCle } from '../engine/creatureAttacks';
 import { MANEUVER_ICON, maneuverDefensePending } from '../noyau/combatManeuvers';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
@@ -34,14 +34,14 @@ export function ManeuverModal() {
   if (!pm || !battle) return null;
   const attacker = battle.combatants.find((c) => c.id === pm.attackerId);
   if (!attacker) return null;
-  const a = creatureAttacks(attacker.traits ?? []).find((x) => x.def.id === pm.maneuverId);
+  const a = attaqueDeCle(attacker.traits ?? [], pm.attaque);
   if (!a) return null;
   const r = pm.result;
   const rolled = !!r;
   // Jet d'attaquant : CC (mêlée) ou CT (distance/zone) ; Vomi → Facile (+40) à courte distance (l.376).
   const stat = a.stat ?? 'capacite-de-tir';
   const base = combatValue(attacker, stat === 'capacite-de-combat' ? 'melee' : 'ranged');
-  const label = libelleDeManoeuvre(attacker, pm.maneuverId);
+  const label = libelleDeManoeuvre(attacker, pm.attaque);
   const difficulty = pm.kind === 'vomi' ? 'facile' : 'intermediaire'; // Vomi : +40 à courte distance (l.376)
   // Regard (Avantage variable, l.238) : sélecteur PRÉ-JET 1..Avantage → +N DR sur la marge.
   const variable = a.advantageMode === 'variable';
