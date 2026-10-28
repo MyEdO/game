@@ -10,7 +10,7 @@ import { cheminsAbsolus, validerManifeste, type CodeDErreur } from './manifeste.
 import { ATTACHES } from './montage';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
-import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, productionSchema3, deposerSchema3 } from './schema3.testkit.ts';
+import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, LICENCE_DE_PRODUCTION, productionSchema3, deposerSchema3 } from './schema3.testkit.ts';
 import {
   DOSSIER_DES_MODELES, fichiersDuModele, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   TAG, urlDAsset, type AssetAPublier, type Gh,
@@ -445,6 +445,14 @@ describe('importerPersonnage', () => {
       writeFileSync(join(d, 'LICENSE-Pack.txt'), 'Pack\nLicense: MIT\n');
       return d;
     }, /^\[licence-inconnue\] LICENSE-Pack\.txt : « MIT »$/],
+    ['une production sans composant licencié ni texte de licence', () => dossierDeProduction((m) => {
+      delete (m.components.corps as { asset?: unknown }).asset;
+    }), /^\[licence-absente\] /],
+    ['une production schéma 3 sans composant licencié ni texte de licence', () => {
+      const d = productionSchema3(temporaire(), baseSchema3(), GLB_DE_BASE);
+      rmSync(join(d, LICENCE_DE_PRODUCTION));
+      return d;
+    }, /^\[licence-absente\] /],
     ['un manifeste absent', () => {
       const d = dossierDeProduction();
       rmSync(join(d, MANIFESTE_DE_PRODUCTION));

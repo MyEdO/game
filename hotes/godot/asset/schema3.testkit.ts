@@ -18,9 +18,13 @@ export const elementSchema3 = (base = 'humanoide') => ({
   surfaces: [{ nom: 'metal', teinte: true }], glb: empreinte(GLB_D_ELEMENT),
 });
 
+/** Le texte de licence de pack que `productionSchema3` dépose : une production importable établit sa licence. */
+export const LICENCE_DE_PRODUCTION = 'LICENSE-Pack.txt';
+
 export function productionSchema3(dossier: string, manifeste: unknown, octets: Uint8Array): string {
   mkdirSync(dossier, { recursive: true });
   writeFileSync(join(dossier, 'asset.glb'), octets);
+  writeFileSync(join(dossier, LICENCE_DE_PRODUCTION), 'Pack\nLicense: CC0\n');
   writeFileSync(join(dossier, 'manifest.json'), JSON.stringify({ model: 'asset.glb', model_sha256: sha256(octets), manifeste }));
   return dossier;
 }
