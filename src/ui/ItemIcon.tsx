@@ -1,8 +1,18 @@
+/**
+ * Icône d'OBJET — primitive UNIQUE pour afficher une arme/armure/bouclier (silhouette SVG du rig,
+ * cf. `weaponPart`/`armourPart`/`shieldPart`) ou un glyphe de catégorie (objets sans art). Réutilisée
+ * par le Sac, l'onglet Combat de la fiche, les pickers `MediaSelect` et la hotbar de combat.
+ *
+ * Cadrage carré : l'arme (manche à l'origine, lame vers -y) est tournée ~−40° puis recadrée serré sur
+ * sa boîte englobante mesurée (`getBBox`) — affinage au navigateur AVANT peinture (`useLayoutEffect`),
+ * repli par catégorie en SSR/test (jsdom n'implémente pas `getBBox`).
+ */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ItemInstance, Weapon } from '../engine/types';
-import { isCapeItem, isShieldItem } from '../engine/items';
+import { isCapeItem, isShieldItem, weaponFromItem } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
-import { armeDeDessin, armourPart, bouclierDeDessin, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
+import { armourPart, objetSansPorteur, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
+import { armeDeDessin, bouclierDeDessin, pieceDeDessin } from '../noyau/equipementDessine';
 import { viewOrFront } from '../gameIso/rig/parts/types';
 import type { Slot } from '../engine/authoringAppearance';
 import { defsGlobaux } from '../gameIso/sprites';
@@ -10,16 +20,7 @@ import { Icon } from './Icon';
 import { useVersionDesDatasets } from './useVersionDesDatasets';
 import type { IconId } from './icons';
 
-/**
- * Icône d'OBJET — primitive UNIQUE pour afficher une arme/armure/bouclier (silhouette SVG du rig,
- * cf. `weaponPart`/`armourPart`/`shieldPart`) ou un glyphe de catégorie (objets sans art). Réutilisée
- * par le Sac, l'onglet Combat de la fiche, les pickers `MediaSelect` et la hotbar de combat — il n'y a
- * PAS d'autre rendu d'objet autonome (l'ancien `ItemSkinPreview` ad-hoc est dissous ici).
- *
- * Cadrage carré : l'arme (manche à l'origine, lame vers -y) est tournée ~−40° puis recadrée serré sur
- * sa boîte englobante mesurée (`getBBox`) — affinage au navigateur AVANT peinture (`useLayoutEffect`),
- * repli par catégorie en SSR/test (jsdom n'implémente pas `getBBox`).
- */
+
 
 type Geom = 'weapon' | 'shield' | 'armor';
 /** `glyph` = id d'icône de catégorie (registre src/ui/icons, famille item/*) quand l'objet n'a pas d'art rig. */
@@ -27,12 +28,6 @@ type Resolved = { art: string; geom: Geom } | { glyph: IconId };
 
 /** Ordre de préférence des emplacements pour l'aperçu d'une pièce d'armure (le torse = plus lisible). */
 const ARMOUR_SLOTS: Slot[] = ['torse', 'tete', 'bras', 'jambes'];
-
-/** Arme minimale pour le routage d'art à partir d'un objet : ce dont sa forme se résout (`trappingId`,
- *  `form`, `formeChoisie`, cf. `formeResolue`), `skin` et `subType` — la MÊME forme que le pion. */
-function asWeapon(item: ItemInstance): Weapon {
-  return { label: item.label, type: item.kind === 'ranged' ? 'ranged' : 'melee', damage: { plusBF: false, flat: 0 }, qualities: item.qualities ?? [], skin: item.skin, form: item.form, formeChoisie: item.formeChoisie, trappingId: item.trappingId, subType: item.subType };
-}
 
 function resolve(item: ItemInstance | Weapon): Resolved {
   if ('kind' in item) {
@@ -45,7 +40,7 @@ function resolve(item: ItemInstance | Weapon): Resolved {
     }
     if (item.kind === 'melee' || item.kind === 'ranged') {
       if (isShieldItem(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
-      const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(asWeapon(item)))), 'front');
+      const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(weaponFromItem(item)))), 'front');
       return a ? { art: a, geom: 'weapon' } : { glyph: 'item/weapon' };
     }
     if (item.kind === 'ammo') return { glyph: 'item/ammo' };

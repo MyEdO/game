@@ -1,20 +1,23 @@
 import { describe, it, expect } from 'vitest';
-import { weaponPart, weaponFamily, shieldPart, armourPart, armourMaterial, equipPorte, pieceDeDessin, armeDeDessin, armePrincipale, equipDe, bouclierDeDessin, type FormeDArme } from './equipment';
+import { weaponPart, weaponFamily, shieldPart, armourPart, ART_DE_MATIERE } from './equipment';
+import { ARMOUR } from './armour';
+import { equipementDessine, pieceDeDessin, armeDeDessin, armePrincipale, equipDe, bouclierDeDessin, type FormeDArme } from '../../../noyau/equipementDessine';
 import { resolveParts } from './resolve';
 import { rigAttackDef, rigDefenseDef } from '../anim/actorAnimSelect';
 import { contexteDeGeste } from '../../fx/animTracks';
 import { weaponFromId } from '../../../engine/creatureEquip';
 import { viewOrFront } from './types';
-import type { Combatant, Weapon, ItemInstance } from '../../../engine/types';
-import { findMutationById, trappings } from '../../../data';
-import { isShieldItem, itemFromGive, recomputeLoadout, weaponFromItem } from '../../../engine/items';
+import type { Combatant, Weapon, ItemInstance, HitLocation } from '../../../engine/types';
+import { findMutationById, trappings, weaponGroups } from '../../../data';
+import { isShieldItem, itemFromGive, itemFromTrappingById, recomputeLoadout, weaponFromItem } from '../../../engine/items';
 import { weaponGroup } from '../../../engine/weaponGroup';
+
 
 const wep = (name: string, type: 'melee' | 'ranged', q: { id: string; value?: number }[] = [], subType?: string): Weapon =>
   ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: q, subType } as Weapon);
 const wpv = (name: string, type: 'melee' | 'ranged' = 'melee') => viewOrFront(weaponPart(armeDeDessin(wep(name, type))), 'front');
 /** Projection de forme déjà RÉSOLUE (id stable) — plus aucun routage par libellé au runtime. */
-const wepShape = (forme: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, forme });
+const wepShape = (forme: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, candidats: [forme] });
 const famShape = (shape: string, type: 'melee' | 'ranged' = 'melee') => weaponFamily(wepShape(shape, type));
 
 describe('weaponPart', () => {
@@ -54,26 +57,15 @@ describe('isShieldItem — la marque de l’entrée fait le bouclier (LDB 62 l.3
   });
 });
 
-describe('armourMaterial — corrections audit', () => {
-  const mat = (name: string, pa: number) =>
-    armourMaterial({ uid: 'x', label: name, kind: 'armor', qualities: [], pa, locs: ['corps'], enc: 1, equipped: true } as ItemInstance);
-  it('« Plastron de cuir » = cuir (cuir prime sur plaque)', () => {
-    expect(mat('Plastron de cuir', 2)).toBe('cuir');
-  });
-  it('« Plastron » (plaque) = plaque', () => {
-    expect(mat('Plastron', 5)).toBe('plaque');
-  });
-  it('« Jambières d’acier » et « Brassards » = plaque', () => {
-    expect(mat("Jambières d'acier", 2)).toBe('plaque');
-    expect(mat('Brassards', 2)).toBe('plaque');
-  });
-  it('« Cotte de mailles » = maille', () => {
-    expect(mat('Cotte de mailles', 2)).toBe('maille');
+describe('pieceDeDessin — matière par id de type d’armure (#2948)', () => {
+  it('une pièce du catalogue porte le `subType` de son trapping, jamais une lecture de libellé', () => {
+    expect(pieceDeDessin(itemFromGive({ trappingId: 'plastron-de-cuir' })).matiere).toBe('cuir-bouilli');
+    expect(pieceDeDessin(itemFromGive({ trappingId: 'veste-de-cuir' })).matiere).toBe('cuir-souple');
   });
 });
 
 describe('armourPart', () => {
-  const mail = pieceDeDessin({ uid: '1', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps'], enc: 1, equipped: true });
+  const mail = pieceDeDessin({ uid: '1', label: 'Cotte de mailles', kind: 'armor', subType: 'mailles', qualities: [], pa: 2, locs: ['corps'], enc: 1, equipped: true });
   it('mappe une pièce de corps sur le slot torse', () => {
     expect(viewOrFront(armourPart(mail, 'torse'), 'front')).toContain('<');
   });
@@ -88,45 +80,44 @@ describe('shieldPart', () => {
   });
 });
 
-describe('equipPorte', () => {
+describe('equipementDessine', () => {
   it('extrait armes actives + pièces d’armure équipées + bouclier', () => {
     const c = {
       weapons: [wep('Épée', 'melee'), weaponFromId('bouclier')!],
       items: [
-        { uid: 'a', label: 'Plastron', kind: 'armor', qualities: [], pa: 1, locs: ['corps'], enc: 1, equipped: true } as ItemInstance,
-        { uid: 'b', label: 'Heaume', kind: 'armor', qualities: [], pa: 1, locs: ['tete'], enc: 0, equipped: false } as ItemInstance,
+        { uid: 'a', label: 'Plastron', kind: 'armor', subType: 'plate', qualities: [], pa: 1, locs: ['corps'], enc: 1, equipped: true } as ItemInstance,
+        { uid: 'b', label: 'Heaume', kind: 'armor', subType: 'plate', qualities: [], pa: 1, locs: ['tete'], enc: 0, equipped: false } as ItemInstance,
       ],
     } as unknown as Combatant;
-    const e = equipPorte(c);
+    const e = equipementDessine(c);
     expect(e.armour.map((i) => i.locs)).toEqual([['corps']]); // 'Heaume' non équipé exclu
     expect(e.shield).toBeTruthy();
     expect(e.weapons.length).toBe(2);
   });
 
-  it('superposition : la couche du DESSUS s’affiche (plaque > maille > cuir), par slot', () => {
-    const piece = (uid: string, name: string, locs: string[]): ItemInstance =>
-      ({ uid, label: name, kind: 'armor', qualities: [], pa: 1, locs, enc: 1, equipped: true } as ItemInstance);
+  it('superposition : la couche du DESSUS s’affiche (plate > mailles > cuir), par slot', () => {
+    const piece = (trappingId: string, locs: HitLocation[]): ItemInstance => ({ ...itemFromGive({ trappingId }), locs, equipped: true });
     const c = {
       weapons: [],
       items: [
-        piece('cuir', 'Veste de cuir', ['brasG', 'brasD', 'corps']),
-        piece('maille', 'Chemise de mailles', ['corps']),
-        piece('plate', 'Plastron', ['corps']),
+        piece('veste-de-cuir', ['brasG', 'brasD', 'corps']),
+        piece('chemise-de-mailles', ['corps']),
+        piece('plastron', ['corps']),
       ],
     } as unknown as Combatant;
-    const e = equipPorte(c);
-    expect(e.armour.map((i) => i.materiau)).toEqual(['plaque', 'maille', 'cuir']);
+    const e = equipementDessine(c);
+    expect(e.armour.map((i) => i.matiere)).toEqual(['plate', 'mailles', 'cuir-souple']);
     // resolve.ts prend la 1re pièce couvrant le slot → torse = plate, bras = cuir (seule à couvrir).
     expect(viewOrFront(armourPart(e.armour.find((i) => (i.locs ?? []).includes('corps'))!, 'torse'), 'front'))
       .toBe(viewOrFront(armourPart(e.armour[0], 'torse'), 'front'));
   });
 
   it('cape/manteau porté → EquipCtx.cape (cosmétique) ; non porté → absent', () => {
-    const cape = { uid: 'c', label: 'Cape', trappingId: 'cape', kind: 'misc', qualities: [], enc: 0, equipped: true } as ItemInstance;
+    const cape = { ...itemFromTrappingById('cape')!, uid: 'c', equipped: true };
     const c = { weapons: [], items: [cape] } as unknown as Combatant;
-    expect(equipPorte(c).cape).toBe(true);
+    expect(equipementDessine(c).cape).toBe(true);
     cape.equipped = false;
-    expect(equipPorte(c).cape).toBeUndefined();
+    expect(equipementDessine(c).cape).toBeUndefined();
   });
 
   it('chaque trapping d’arme à Groupe (`subType`) garde son Groupe jusqu’à l’arme tenue par le héros (#602)', () => {
@@ -137,7 +128,7 @@ describe('equipPorte', () => {
       const c = { id: 'h', label: 'Héros', items: [it], loadouts: [{ id: 'lo', main: it.uid }], activeLoadoutId: 'lo' } as unknown as Combatant;
       recomputeLoadout(c);
       const tenue = c.weapons?.find((w) => w.uid === it.uid);
-      if (tenue) expect(equipPorte(c).weapons, `${t.id} : l’arme tenue manque à l’équipement porté`).toContainEqual(armeDeDessin(tenue));
+      if (tenue) expect(equipementDessine(c).weapons, `${t.id} : l’arme tenue manque à l’équipement porté`).toContainEqual(armeDeDessin(tenue));
       const w = armeDeDessin(tenue ?? weaponFromItem(it)); // machine à Équipe (ADE II 8 l.233) : hors loadout, servie en poste
       (tenue ? tenues : enPoste).push(t.id);
       if (weaponGroup(w) !== t.subType) perdues.push(`${t.id}: ${t.subType} → ${String(weaponGroup(w))}`);
@@ -153,7 +144,7 @@ describe('héros cornu sans arme au set : le rig ne dessine aucune arme pour les
     const hero = { id: 'h', label: 'h', kind: 'hero', items: [], weapons: [], traits: [], activeEffects: [], mutations: [findMutationById('cornes-asymetriques')!] } as unknown as Combatant;
     recomputeLoadout(hero);
     expect(hero.weapons?.[0]?.label, 'PRÉMISSE : les Cornes sont la première arme du set').toBe('Cornes');
-    const cornes = armePrincipale(equipPorte(hero))!;
+    const cornes = armePrincipale(equipementDessine(hero))!;
     expect(cornes.natural).toBe(true);
     expect(weaponFamily(cornes)).toBe('');
   });
@@ -176,5 +167,13 @@ describe('#2097 J6 — porteur d’un bouclier SEUL : ses gestes suivent ce qui 
 
   it('attaque sans arme postée : à mains nues', () => {
     expect(rigAttackDef({ kind: 'weapon' }, ctx).key).toBe('rig:attack:pied:nu');
+  });
+});
+
+describe('ART_DE_MATIERE (#2948)', () => {
+  it('peint exactement les Groupes « armour » de weaponGroups.json, chacun par un def d’art existant', () => {
+    const ids = weaponGroups.filter((g) => g.kind === 'armour').map((g) => g.id).sort();
+    expect(Object.keys(ART_DE_MATIERE).sort()).toEqual(ids);
+    for (const def of Object.values(ART_DE_MATIERE)) expect(ARMOUR[def], def).toBeDefined();
   });
 });

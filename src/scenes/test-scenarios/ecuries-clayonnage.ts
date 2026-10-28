@@ -1,4 +1,4 @@
-import { itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
 import { pregen, PREGEN } from '../../data/pregens';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
@@ -35,9 +35,9 @@ function poserDepart(base: Scene): Scene {
  *  le set d'armes par défaut (`ensureDefaultLoadout`) tient sa mêlée : on rend ACTIF un set à l'arc. */
 function chasseurArme(): Combatant {
   const h = pregen(PREGEN.chasseur);
-  const arc = itemFromTrappingById('arc')!;
+  const arc = itemFromTrappingById('arc', undefined, contexteDeNaissanceDObjet(h))!;
   arc.equipped = true;
-  const fleches = itemFromTrappingById('fleche')!;
+  const fleches = itemFromTrappingById('fleche', undefined, contexteDeNaissanceDObjet(h))!;
   h.items = [...(h.items ?? []), arc, fleches];
   loadoutSetSlot(h, loadoutCreate(h), 'main', arc.uid);
   recomputeLoadout(h);

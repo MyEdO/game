@@ -1051,7 +1051,9 @@
               "ops": [
                 {
                   "op": "endPsych",
-                  "type": "frenesie"
+                  "type": {
+                    "id": "frenesie"
+                  }
                 },
                 {
                   "op": "condition",

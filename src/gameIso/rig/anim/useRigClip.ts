@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Pose } from '../poses';
-import { CLIPS, sampleClip, type Clip, type ClipName } from './clips';
+import { CLIPS, sampleClip, type Clip } from './clips';
+import type { RoleDeCombat } from '../../../noyau/animation';
 import { isTileVisible } from '../../viewport';
 
 interface Active {
@@ -55,14 +56,14 @@ export function useRigClip(restClip?: Clip, pos?: { x: number; y: number }) {
   }, []);
 
   /** Joue un clip nommé du registre de base (idle/walk/hit/dodge…). */
-  const play = useCallback((name: ClipName, opts?: { onImpact?: () => void; onDone?: () => void }) => {
+  const play = useCallback((name: RoleDeCombat, opts?: { onImpact?: () => void; onDone?: () => void }) => {
     active.current = { clip: CLIPS[name], start: performance.now(), onImpact: opts?.onImpact, onDone: opts?.onDone, impactDone: false, hold: false };
   }, []);
   /** Joue un clip arbitraire (gestes par-arme/par-sort résolus dynamiquement). */
   const playClip = useCallback((clip: Clip, opts?: { onImpact?: () => void; onDone?: () => void }) => {
     active.current = { clip, start: performance.now(), onImpact: opts?.onImpact, onDone: opts?.onDone, impactDone: false, hold: false };
   }, []);
-  const hold = useCallback((name: ClipName) => {
+  const hold = useCallback((name: RoleDeCombat) => {
     active.current = { clip: CLIPS[name], start: performance.now(), impactDone: true, hold: true };
   }, []);
   /** Maintient un clip arbitraire (boucle d'ambiance ou posture tenue). */

@@ -1,9 +1,6 @@
-/**
- * Grimoire — apprentissage/mémorisation (LDB 46 l.16-20, 47 l.33-34, Talents LDB 10) :
- * coûts par bandes (BFM ×50 / BInt ×100 / 100×connus), éligibilité par Talent,
- * Bénédictions par culte (six incluses), lecture au grimoire (NI ×2).
- */
+/** LDB 46 l.16-20 ; LDB 47 l.21,33-34 ; LDB 10 */
 import { describe, it, expect } from 'vitest';
+import { objetDeTest } from './objetsDeTest.testkit';
 import type { Combatant } from './types';
 import {
   casterTalents, spellCost, learnableSpells, canCastFromGrimoire, knownCount,
@@ -114,10 +111,10 @@ describe('lecture au grimoire (LDB 47 l.21)', () => {
   it('sort de son Domaine NON mémorisé + grimoire porté → lançable (NI ×2 côté flux)', () => {
     const c = hero({
       talents: [{ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 }],
-      items: [{ uid: 'g1', name: 'Grimoire', trappingId: 'grimoire', kind: 'misc', enc: 1, qualities: [] } as never],
+      items: [objetDeTest('grimoire', { uid: 'g1' })],
     });
     expect(canCastFromGrimoire(c, sp('arme-aethyrique'))).toBe(true);
-    // mémorisé → inutile ; sans grimoire → impossible ; Prière → jamais.
+    // LDB 47 l.21
     expect(canCastFromGrimoire({ ...c, spells: ['arme-aethyrique'] } as Combatant, sp('arme-aethyrique'))).toBe(false);
     expect(canCastFromGrimoire({ ...c, items: [] } as Combatant, sp('arme-aethyrique'))).toBe(false);
     expect(canCastFromGrimoire(c, sp('benediction-de-guerison'))).toBe(false);

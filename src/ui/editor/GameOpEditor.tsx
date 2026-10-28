@@ -13,24 +13,27 @@ import { useId } from 'react';
 import { ProseField } from '../ProseField';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { tableTotale } from '../../lib/tableTotale';
-import { Formula, GameOp, type ResolveWindow } from '../../engine/ops';
+import { Formula, GameOp, type PerSL, type ResolveWindow } from '../../engine/ops';
 import type { JsonFormula } from '../../engine/miscast';
 import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
 import { noeudObjet, payloadDeFamille } from '../../data/schemas/validate';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
-import { valeursDe } from '../../data/schemas/grammaire/meta';
+import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
-import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
+import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, banishNarrationSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
 import { ConditionEditor } from './ConditionEditor';
 import { OP_LABEL, opsMissingRefs } from './refsDOp';
 import { opSummary } from './interne/resumeDOp';
 import type { Condition } from '../../engine/flowCore';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
-import { etats, effectTables, mutationTables, lightTones, memoParVersion } from '../../data';
+import { etats, effectTables, mutationTables, lightTones, memoParVersion, type TrappingData } from '../../data';
 import { fallTables } from '../../data/shipCriticals';
 import { terrainsElectifs } from '../../noyau/monde/terrain';
-import { RefField } from '../compendium/refField/RefField';
+import { ListeDIds, RefField } from '../compendium/refField/RefField';
+import { ObjetDonneField } from './ObjetDonneField';
+import { ciblePsy, estCibleType, refDeCible, type RefDeCible } from '../../engine/psych/ciblage';
+import { opPsy } from '../../engine/psych/opsPsy';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTraits } from './refFormatLivre';
@@ -207,6 +210,8 @@ function enfantDeCle(noeud: unknown, cle: string): unknown {
   }
   return undefined;
 }
+
+const ObjetsDOpContext = createContext<readonly TrappingData[]>([]);
 
 /** NŒUD de l'op éditée : la VARIANTE de la liste d'ops (`GameOpEditor.noeud`) dont le champ `op`
  *  accepte cette op. Chaque `FormulaField` d'op y lit le nœud de SON champ (`champ`). */
@@ -434,8 +439,8 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'healCaster': return { op: 'healCaster', amount: 1 };
     case 'condition': return { op: 'condition', id: '', value: 1 };
     case 'removeCondition': return { op: 'removeCondition' };
-    case 'endPsych': return { op: 'endPsych', type: '' };
-    case 'beginPsych': return { op: 'beginPsych', type: '' };
+    case 'endPsych': return opPsy.fin('');
+    case 'beginPsych': return opPsy.pose('');
     case 'sbBonus': return { op: 'sbBonus', amount: 1 };
     case 'incomingSpellDRMod': return { op: 'incomingSpellDRMod', amount: -1 };
     case 'charMod': return { op: 'charMod', char: 'force', mod: -10 };
@@ -464,8 +469,8 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'grantFreeAttack': return { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true };
     case 'grantTrait': return { op: 'grantTrait', trait: { id: '' } };
     case 'removeTrait': return { op: 'removeTrait', trait: { id: '' } };
-    case 'grantPsychTrait': return { op: 'grantPsychTrait', psychType: '' };
-    case 'removePsychTrait': return { op: 'removePsychTrait' };
+    case 'grantPsychTrait': return opPsy.octroi('');
+    case 'removePsychTrait': return opPsy.retrait();
     case 'grantTalent': return { op: 'grantTalent', talent: { id: '' } };
     case 'grantCareerSkill': return { op: 'grantCareerSkill', skill: { id: '' } };
     case 'grantCareerTalent': return { op: 'grantCareerTalent', talent: { id: '' } };
@@ -544,8 +549,14 @@ const DEDICATED: ReadonlySet<GameOp['op']> = new Set([
   'wounds', 'heal', 'healCaster', 'condition', 'removeCondition', 'charMod', 'skillMod', 'moveMod', 'ap', 'testMod',
   'corruption', 'sinMod', 'corruptionExposure', 'gainResource', 'grantTrait', 'grantTalent', 'grantNaturalWeapon', 'narrative',
   'summon', 'polymorph', 'lifeSteal', 'push', 'teleport', 'chain', 'rollTable', 'rollMutation', 'armourPierce', 'light',
-  'fall', 'domeWard', 'offTerrainMod', 'moveScale', 'maxWeaponHands',
+  'fall', 'domeWard', 'offTerrainMod', 'moveScale', 'maxWeaponHands', 'giveTrapping', 'banish',
+  'endPsych', 'beginPsych', 'grantPsychTrait', 'removePsychTrait',
 ]);
+
+/** `ListeDIds` du champ `champ` de l'op éditée, sur son nœud. */
+function ListeDIdsDOp({ champ, ...props }: { champ: string; label: string; value: string[] | undefined; onChange: (ids: string[] | undefined) => void }) {
+  return <ListeDIds noeud={noeudDuChamp(useContext(NoeudDOpContext), champ)} {...props} />;
+}
 
 /** Durée PROPRE en Rounds d'une op qui en porte une (`durationFromOp`, engine/ops) : une `Formula`,
  *  donc la borne basse d'une entrée (`{minimum, of}` — AA 07 l.113) s'y édite comme toute autre forme.
@@ -557,6 +568,23 @@ function DureeRoundsField({ value, onChange }: { value: JsonFormula | undefined;
       <label className="dr"><input type="checkbox" checked={value != null}
         onChange={(e) => onChange(e.target.checked ? 1 : undefined)} /> dure N Rounds</label>
       {value != null && <FormulaField label="Durée (Rounds)" champ="durationRounds" value={value} min={0} onChange={onChange} />}
+    </>
+  );
+}
+
+/** Échelle « par +N DR » (`PerSL`, `perSLSchema`) : palier, quantité par palier, échelle sur l'échec.
+ *  SOURCE UNIQUE de la saisie de toute échelle `PerSL` d'une op ; `libelle` nomme la case qui la pose. */
+function PerSLField({ libelle, value, onChange }: { libelle: string; value: PerSL | undefined; onChange: (p: PerSL | undefined) => void }) {
+  return (
+    <>
+      <label className="dr"><input type="checkbox" checked={value != null} onChange={(e) => onChange(e.target.checked ? { every: 1, amount: 1 } : undefined)} /> {libelle}</label>
+      {value != null && (
+        <>
+          <label className="dr">tous les<NumberField variant="nu" label="Palier en Degrés de Réussite" title="DR" min={1} value={value.every} onChange={(every) => onChange({ ...value, every })} /> DR</label>
+          <label className="dr">+<NumberField variant="nu" label="quantité par palier" title="quantité par palier" value={value.amount} onChange={(amount) => onChange({ ...value, amount })} /></label>
+          <label className="dr"><input type="checkbox" checked={!!value.onFailure} onChange={(e) => onChange(sansClesVides({ ...value, onFailure: e.target.checked || undefined }))} /> sur l'échec (niveau d'échec)</label>
+        </>
+      )}
     </>
   );
 }
@@ -658,7 +686,29 @@ function TraitOctroyeFields({ trait, indiceRequis, indiceMin, onChange }: { trai
   );
 }
 
+/** La référence `{ id }` du type de psychologie élu, et la Cible qu'il perd s'il n'en vise aucune (`estCibleType`). */
+function typeDePsychologie(v: unknown): { ref: { id: string }; perdue: { cible?: undefined } } {
+  const id = typeof v === 'string' ? v : '';
+  return { ref: { id }, perdue: estCibleType(id) ? {} : { cible: undefined } };
+}
+
+/** Cible d'un Trait psy, élue au registre des Groupes : sa référence de donnée (`refDeCible`). */
+function CibleField({ value, onChange }: { value: RefDeCible | undefined; onChange: (cible: RefDeCible | undefined) => void }) {
+  return (
+    <RefField cfg={{ ds: 'groups', single: true }} fieldKey="Cible" nullable
+      value={value?.id ?? ''} onChange={(v) => onChange(typeof v === 'string' && v ? refDeCible(ciblePsy.groupe(v)) : undefined)} />
+  );
+}
+
+/** Type d'une op psychologique, élu au registre restreint à la feuille du schéma (`type.id`, `psychType.id`). */
+function TypePsyField({ fieldKey, noeud, value, nullable, onChange }: {
+  fieldKey: string; noeud: unknown; value: { id: string } | undefined; nullable?: boolean; onChange: (v: unknown) => void;
+}) {
+  return <RefField cfg={{ ds: 'psychologies', single: true }} fieldKey={fieldKey} noeud={noeud} nullable={nullable} value={value?.id ?? ''} onChange={onChange} />;
+}
+
 function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown }) {
+  const objets = useContext(ObjetsDOpContext);
   const identite = useId();
   const noeudDOp = useMemo(() => varianteDOp(noeudListe, op.op), [noeudListe, op.op]);
   const o = op as any;
@@ -679,6 +729,11 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         onChange={onChange}
       />
       <div className="tf-row">
+        {op.op === 'giveTrapping' && <>
+          <ObjetDonneField objets={objets} value={o} onChange={onChange} />
+          <NumberField label="Nombre d’objets" vide value={o.count} onChange={(count) => upd({ count })} />
+          <PerSLField libelle="objets en plus par DR" value={o.perSL} onChange={(perSL) => upd({ perSL })} />
+        </>}
         {(op.op === 'wounds' || op.op === 'heal' || op.op === 'healCaster') && (
           <FormulaField label="Quantité" champ="amount" value={o.amount} min={0} onChange={(amount) => upd({ amount })} />
         )}
@@ -701,7 +756,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
             {o.easeSteps == null && (
               <>
                 <select value={o.level ?? 'mineure'} onChange={(e) => upd({ level: e.target.value as ExposureLevel })}>
-                  {Object.entries(valeursDe(exposureLevelSchema) ?? {}).map(([k, l]) => (
+                  {optionsDuNoeud(exposureLevelSchema).map(([k, l]) => (
                     <option key={k} value={k}>Exposition {l}</option>
                   ))}
                 </select>
@@ -722,7 +777,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
             <label className="dr">Points<NumberField variant="nu" label="Points de Corruption" value={o.amount ?? 1} onChange={(amount) => upd({ amount })} /></label>
             <select value={o.align ?? ''} onChange={(e) => upd({ align: (e.target.value || undefined) as ChaosAlign | undefined })}>
               <option value="">Mutation : règle globale</option>
-              {Object.entries(valeursDe(chaosAlignSchema) ?? {}).map(([k, l]) => (
+              {optionsDuNoeud(chaosAlignSchema).map(([k, l]) => (
                 <option key={k} value={k}>Table EDOC : {l}</option>
               ))}
             </select>
@@ -745,17 +800,28 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <label className="dr">DR de Sort / point<NumberField variant="nu" label="Degrés de Réussite de Sort par point" value={typeof o.amount === 'number' ? o.amount : 0} onChange={(amount) => upd({ amount })} /></label>
         )}
         {op.op === 'endPsych' && (
-          <label className="dr">Type psy<input value={o.type ?? ''} onChange={(e) => upd({ type: e.target.value })} /></label>
+          <TypePsyField fieldKey="État psychologique" noeud={noeudDuChamp(noeudDOp, 'type.id')} value={op.type}
+            onChange={(v) => upd({ type: typeDePsychologie(v).ref })} />
         )}
         {op.op === 'beginPsych' && (
           <>
-            <RefField cfg={{ ds: 'psychologies', single: true }} fieldKey="État psychologique"
-              value={o.type ?? ''} onChange={(v) => upd({ type: (v as string) ?? '' })} />
-            <RefField cfg={{ ds: 'groups', single: true }} fieldKey="Cible" nullable
-              value={o.cible ?? ''} onChange={(v) => upd({ cible: typeof v === 'string' && v ? v : undefined })} />
+            <TypePsyField fieldKey="État psychologique" noeud={noeudDuChamp(noeudDOp, 'type.id')} value={op.type}
+              onChange={(v) => { const { ref, perdue } = typeDePsychologie(v); upd({ type: ref, ...perdue }); }} />
+            {estCibleType(op.type.id) && <CibleField value={op.cible} onChange={(cible) => upd({ cible })} />}
             <label className="dr"><input type="checkbox" checked={o.indice != null} onChange={(e) => upd({ indice: e.target.checked ? 1 : undefined })} /> Indice</label>
             {o.indice != null && <FormulaField label="Valeur" champ="indice" value={o.indice} min={0} onChange={(indice) => upd({ indice })} />}
           </>
+        )}
+        {op.op === 'grantPsychTrait' && (
+          <>
+            <TypePsyField fieldKey="Trait psychologique" noeud={noeudDuChamp(noeudDOp, 'psychType.id')} value={op.psychType}
+              onChange={(v) => { const { ref, perdue } = typeDePsychologie(v); upd({ psychType: ref, ...perdue }); }} />
+            {estCibleType(op.psychType.id) && <CibleField value={op.cible} onChange={(cible) => upd({ cible })} />}
+          </>
+        )}
+        {op.op === 'removePsychTrait' && (
+          <TypePsyField fieldKey="Trait psychologique" noeud={noeudDuChamp(noeudDOp, 'psychType.id')} value={op.psychType} nullable
+            onChange={(v) => upd({ psychType: typeof v === 'string' && v ? typeDePsychologie(v).ref : undefined })} />
         )}
         {op.op === 'testMod' && (
           <>
@@ -779,14 +845,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
             {op.op === 'condition' && (
               <>
                 <label className="dr"><input type="checkbox" checked={!!o.perRound} onChange={(e) => upd({ perRound: e.target.checked || undefined })} /> chaque Round</label>
-                <label className="dr"><input type="checkbox" checked={o.valuePerSL != null} onChange={(e) => upd({ valuePerSL: e.target.checked ? { every: 1, amount: 1 } : undefined })} /> par DR</label>
-                {o.valuePerSL != null && (
-                  <>
-                    <label className="dr">tous les<NumberField variant="nu" label="Palier en Degrés de Réussite" title="DR" min={1} value={o.valuePerSL.every ?? 1} onChange={(every) => upd({ valuePerSL: { ...o.valuePerSL, every } })} /> DR</label>
-                    <label className="dr">+<NumberField variant="nu" label="quantité par palier" title="quantité par palier" value={o.valuePerSL.amount ?? 1} onChange={(amount) => upd({ valuePerSL: { ...o.valuePerSL, amount } })} /></label>
-                    <label className="dr"><input type="checkbox" checked={!!o.valuePerSL.onFailure} onChange={(e) => upd({ valuePerSL: sansClesVides({ ...o.valuePerSL, onFailure: e.target.checked || undefined }) })} /> sur l'échec (niveau d'échec)</label>
-                  </>
-                )}
+                <PerSLField libelle="par DR" value={o.valuePerSL} onChange={(valuePerSL) => upd({ valuePerSL })} />
                 {/* Se libérer (LDB 16 l.66 / Filets, Zoo Impérial p.29) — escapeStrength (Test opposé) et
                     escapeThreshold (Test à seuil) sont MUTUELLEMENT EXCLUSIFS (cf. resolveRecoverTest). */}
                 <label className="dr"><input type="checkbox" checked={o.escapeStrength != null} onChange={(e) => upd({ escapeStrength: e.target.checked ? { charOf: 'force' } : undefined, escapeThreshold: e.target.checked ? undefined : o.escapeThreshold })} /> Force d'évasion (opposée)</label>
@@ -861,7 +920,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         )}
         {op.op === 'skillMod' && (
           <>
-            <RefField cfg={{ ds: 'skills', single: true }} fieldKey="Compétence" value={o.skill} onChange={(v) => upd({ skill: (v as string) ?? '' })} />
+            <RefField cfg={{ ds: 'skills', single: true, spec: true }} fieldKey="Compétence" value={o.skill} onChange={(v) => upd({ skill: (v as { id: string; spec?: string }) || { id: '' } })} />
             <label className="dr">Modif.<NumberField variant="nu" label="Modificateur de Compétence" value={o.mod ?? 0} onChange={(mod) => upd({ mod })} /></label>
             <label className="dr">Sens{/* Surdité, LDB 18 : restreint au Test de Perception basé sur ce sens */}
               <select value={o.sense ?? ''} onChange={(e) => upd({ sense: (e.target.value || undefined) as 'vue' | 'ouie' | undefined })}>
@@ -906,7 +965,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                   ? { cible: { pick: op.cible?.pick ?? 1, table: { id: e.target.value } }, trait: sansClesVides({ ...op.trait, arg: undefined }) }
                   : { cible: undefined })}>
                 <option value="">posée par le Trait</option>
-                {Object.entries(valeursDe(tablesDeCiblesSchema) ?? {}).map(([k, l]) => <option key={k} value={k}>tirée sur {l}</option>)}
+                {optionsDuNoeud(tablesDeCiblesSchema).map(([k, l]) => <option key={k} value={k}>tirée sur {l}</option>)}
               </select>
             </label>
             {op.cible != null && (
@@ -1017,7 +1076,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
             <label className="dr">Matériau ignoré
               <select value={o.bypass ?? ''} onChange={(e) => upd({ bypass: (e.target.value || undefined) as ArmourBypass | undefined })}>
                 <option value="">— aucun —</option>
-                {Object.entries(valeursDe(armourBypassCategorieSchema) ?? {}).map(([k, l]) => (
+                {optionsDuNoeud(armourBypassCategorieSchema).map(([k, l]) => (
                   <option key={k} value={k}>{l}</option>
                 ))}
               </select>
@@ -1056,7 +1115,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
               <>
                 <label className="dr">Dé
                   <select value={o.die ?? 'd10'} onChange={(e) => upd({ die: e.target.value as 'd10' | 'd100' })}>
-                    {Object.entries(valeursDe(deDeTableSchema) ?? {}).map(([k, l]) => (
+                    {optionsDuNoeud(deDeTableSchema).map(([k, l]) => (
                       <option key={k} value={k}>{l}</option>
                     ))}
                   </select>
@@ -1064,6 +1123,17 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                 <RollTableRowsField rows={o.rows ?? []} onChange={(rows) => upd({ rows })} />
               </>
             )}
+          </>
+        )}
+        {op.op === 'banish' && (
+          <>
+            <label className="dr">Narration
+              <select value={o.narration ?? ''} onChange={(e) => upd({ narration: e.target.value || undefined })}>
+                <option value="">— (par défaut) —</option>
+                {optionsDuNoeud(banishNarrationSchema).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+            </label>
+            <ListeDIdsDOp champ="onlyGroups" label="Groupes visés (vide = toute cible)" value={o.onlyGroups} onChange={(onlyGroups) => upd({ onlyGroups })} />
           </>
         )}
         {op.op === 'rollMutation' && (
@@ -1091,7 +1161,8 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
 
 /** `noeud` : schéma zod de la liste d'ops éditée ; chaque `Formula` d'op y lit le dialecte du nœud de
  *  SON champ, dans la variante de son op (`varianteDOp`). Absent = `gameOpSchema`, le vocabulaire du moteur. */
-export function GameOpEditor({ ops, onChange, noeud = gameOpSchema }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown }) {
+export function GameOpEditor({ ops, onChange, noeud = gameOpSchema, objets }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown; objets?: readonly TrappingData[] }) {
+  const herites = useContext(ObjetsDOpContext);
   const swap = (i: number, j: number) => {
     if (j < 0 || j >= ops.length) return;
     const next = [...ops];
@@ -1100,7 +1171,7 @@ export function GameOpEditor({ ops, onChange, noeud = gameOpSchema }: { ops: Gam
   };
   const cles = useClesDeRangees(ops);
   return (
-    <div className="eff-list">
+    <ObjetsDOpContext.Provider value={objets ?? herites}><div className="eff-list">
       {ops.map((o, i) => (
         <details className="eff-row" key={cles[i]}>
           <summary>
@@ -1119,6 +1190,6 @@ export function GameOpEditor({ ops, onChange, noeud = gameOpSchema }: { ops: Gam
         label="+ Op mécanique"
         groups={pickable(OP_MENU_GROUPS, (key) => onChange([...ops, newOp(key)]))}
       />
-    </div>
+    </div></ObjetsDOpContext.Provider>
   );
 }

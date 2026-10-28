@@ -23,7 +23,8 @@ import { mutationBodyMaxForSpecies } from '../data';
 import { acquerirTalent, retirerTalent } from './careerSlots';
 import { passiveCharSum } from './trauma';
 import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';
-import type { PsychType } from './psychology';
+import { traitOctroye } from './psych/opsPsy';
+import { identiteDeCiblage } from './psych/ciblage';
 import type { GameOp } from './ops';
 import { traitsOctroyes } from './traitOctroye';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -215,7 +216,8 @@ export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG): Mutatio
       // son `removeTrait` de re-ciblage et par `detachMutation`.
       for (const t of traitsOctroyes(op, { lanceur: c, porteur: c, rng, src })) grantTrait(c, t);
     } else if (op.op === 'grantPsychTrait') {
-      grantPsychTrait(c, op.psychType as PsychType, op.cible, src);
+      const { type, cible } = traitOctroye(op);
+      grantPsychTrait(c, type, cible, src);
     } else if (op.op === 'grantTalent') {
       if (acquerirTalent(c, op.talent)) talentsAcquis.push(op.talent);
     }
@@ -252,7 +254,9 @@ export function detachMutation(c: Combatant, m: Mutation): void {
         if (k >= 0) removeGrantedTrait(c, c.traits![k]);
       }
     } else if (op.op === 'grantPsychTrait') {
-      const j = dernierIndex(c.psychTraits ?? [], (x) => x.type === op.psychType && deLaMutation(x.src));
+      const { type, cible } = traitOctroye(op);
+      const identite = identiteDeCiblage(type, cible);
+      const j = dernierIndex(c.psychTraits ?? [], (x) => identiteDeCiblage(x.type, x.cible) === identite && deLaMutation(x.src));
       if (j >= 0) c.psychTraits = [...c.psychTraits!.slice(0, j), ...c.psychTraits!.slice(j + 1)];
       if (c.psychTraits && !c.psychTraits.length) delete c.psychTraits;
     }

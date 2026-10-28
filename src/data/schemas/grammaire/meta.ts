@@ -23,9 +23,6 @@ export interface MetaChamp {
   widget?: string;
   /** Rang d'affichage dans le formulaire ; à défaut, l'ordre de déclaration des `champs`. */
   ordre?: number;
-  /** RENDU PUR : la valeur ne sert qu'à l'apparence. Une instance ne la recopie jamais, son dessin la
-   *  résout au catalogue courant (#2113) — garde `src/engine/rendu-pur-jamais-recopie.test.ts`. */
-  renduPur?: true;
 }
 
 /** Méta EXIGÉE pour chaque clé de `champs` d'un document — une clé de moins = erreur de type. */
@@ -120,6 +117,12 @@ export function derouleEnum(noeud: unknown): { noyau: NoeudEnum; liste: boolean 
 export function valeursDe(noeud: unknown): Readonly<Record<string, string>> | undefined {
   const valeurs = (noyauEnum(noeud)?.meta?.() as { valeurs?: Readonly<Record<string, string>> } | undefined)?.valeurs;
   return valeurs && Object.keys(valeurs).length ? valeurs : undefined;
+}
+
+/** Les options `[valeur, libellé]` d'un nœud énuméré nommé (`valeursDe`), dans l'ordre de sa déclaration ;
+ *  aucune pour un nœud non nommé. */
+export function optionsDuNoeud(noeud: unknown): [string, string][] {
+  return Object.entries(valeursDe(noeud) ?? {});
 }
 
 /**

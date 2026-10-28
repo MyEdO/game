@@ -1,6 +1,6 @@
 import { BONE_IDS, type BoneId, type Bone, type Skeleton } from './bones';
 import { worldTransforms, apply } from './kinematics';
-import { gabaritById, type GabaritDef } from './gabarits';
+import { gabaritResolu, type GabaritResolu } from '../../noyau/apparence/gabarit';
 import speciesRaceJson from '../../data/speciesRace.json';
 import { DEFAULT_RACE_ID } from '../../data';
 import type { Sexe } from '../../data/schemas/grammaire/valeurs';
@@ -91,7 +91,7 @@ export function baseSpeciesOf(species: string): string {
 }
 
 
-export function baseSkeleton(p: GabaritDef, sex: Sexe): Skeleton {
+export function baseSkeleton(p: GabaritResolu, sex: Sexe): Skeleton {
   let sk = scaleSkeleton(HUMAIN_M, p.sl, p.st);
   // Jambes spécifiques (Nain/Halfling courtes, Elfe longues). On raccourcit la
   // LONGUEUR des os de jambe ET le pivot des joints enfants (tibia sur cuisse,
@@ -107,7 +107,7 @@ export function baseSkeleton(p: GabaritDef, sex: Sexe): Skeleton {
   }
   // Bras allongés (ex. Troll, bras jusqu'au sol) — même logique que les jambes : longueur des
   // os + pivot des joints enfants (avant-bras sur épaule, main sur avant-bras).
-  const arms = p.arms ?? 1;
+  const { arms, head } = p;
   if (arms !== 1) {
     for (const id of ['epauleG', 'avantBrasG', 'epauleD', 'avantBrasD'] as BoneId[])
       sk[id] = { ...sk[id], length: sk[id].length * arms };
@@ -116,7 +116,6 @@ export function baseSkeleton(p: GabaritDef, sex: Sexe): Skeleton {
   }
   // Tête surdimensionnée (gremlins) : la PART tête se rend à l'échelle (thickness/réf,
   // length/réf) de l'os `tete` → on agrandit cet os pour une grosse tête sur petit corps.
-  const head = p.head ?? 1;
   if (head !== 1) sk.tete = { ...sk.tete, length: sk.tete.length * head, thickness: sk.tete.thickness * head };
   if (sex === 'F') sk = feminize(sk);
   return sk;
@@ -139,7 +138,7 @@ function feminize(sk: Skeleton): Skeleton {
  */
 let _ref: Skeleton | null = null;
 export function referenceSkeleton(): Skeleton {
-  if (!_ref) _ref = applyBuild(baseSkeleton(gabaritById('moyen'), 'M'), 0.5);
+  if (!_ref) _ref = applyBuild(baseSkeleton(gabaritResolu({ race: { gabarit: { id: 'moyen' } }, legsMult: 1 }), 'M'), 0.5);
   return _ref;
 }
 

@@ -14,7 +14,8 @@ import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, porteLeChampMarqueur } from './cle-d-espace';
 import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
-import { marquerProduit } from './interne/produits';
+import { marquerProduit, produitDe } from './interne/produits';
+import { enfantsDe } from './descente';
 
 declare const marqueDeType: unique symbol;
 /** Id BRANDÉ par son type — frappé à la porte zod, jamais par un `as` d'appelant. */
@@ -81,6 +82,12 @@ export const TYPES = {
   quality: { espace: 'qualities.json', catalogue: 'qualités' },
   characteristic: { espace: 'characteristics.json', catalogue: 'caractéristiques' },
   steamBreakdown: { espace: 'steam-breakdown.json', catalogue: 'pannes de navire à vapeur' },
+  // APPARENCE d'objet (#2948) : `trappings.json › shape`/`formChoices` résolvent AU PARSE contre les
+  // racines du catalogue, une variante nomme sa racine et ses étiquettes de naissance.
+  apparence: { espace: 'apparences.json', catalogue: 'apparences' },
+  classe: { espace: 'classes.json', catalogue: 'classes de carrière' },
+  // GABARIT du rig (#2972) : `raceAppearance.json › gabarit` résout AU PARSE.
+  gabarit: { espace: 'gabarits.json', catalogue: 'gabarits' },
   // EDOC 12 l.217, l.241 ; LDB 85 l.120, l.164
   groupe: { espace: 'groups.json', catalogue: 'groupes' },
   // EDOC 13 l.237 ; LDB 85 l.322
@@ -126,25 +133,30 @@ function idsDesignes(cle: string, site: string): ReadonlySet<string> {
 }
 
 /**
- * Clé d'espace de la sous-liste `valeur` d'un type discriminé : le CHAMP discriminant se lit aux clés
- * de l'INDEX DES IDS (`<espace>?<champ>=<valeur>`), où la phase 2 l'écrit depuis le paramètre
- * `espace.discriminant` du def — une seule déclaration, au nœud.
+ * Clé d'espace de la sous-liste `valeur` d'un type discriminé : le CHAMP discriminant qui porte cette
+ * valeur se lit aux clés de l'INDEX DES IDS (`<espace>?<champ>=<valeur>`), où la phase 2 l'écrit depuis le
+ * paramètre `espace.discriminant` du def — une seule déclaration, au nœud. Un espace à plusieurs champs
+ * discriminants (`weaponGroups.json` : `combat`, `kind`) désigne une sous-liste par une valeur qu'UN SEUL
+ * de ses champs porte.
  */
-const champsDiscriminants = new Map<string, string>();
+const champDeLaValeur = new Map<string, string>();
 function cleDeSousListe(type: TypeEntite, valeur: string, site: string): string {
   const espace = espaceDe(type);
-  const connu = champsDiscriminants.get(espace);
+  const memo = `${espace}\u0000${valeur}`;
+  const connu = champDeLaValeur.get(memo);
   if (connu !== undefined) return cleFiltree(espace, { champ: connu, vaut: valeur });
   const champs = new Set(
     clesDeLIndex().flatMap((cle) => {
       const lue = lireCleDEspace(cle);
-      return baseDe(lue) === espace && lue.filtre?.vaut !== undefined ? [lue.filtre.champ] : [];
+      return baseDe(lue) === espace && lue.filtre?.vaut === valeur ? [lue.filtre.champ] : [];
     }),
   );
   if (champs.size !== 1)
-    throw new Error(`${site} : ${espace} ${champs.size ? `a ${champs.size} champs discriminants (${[...champs].join(', ')})` : "n'a aucun champ discriminant (paramètre `espace.discriminant` de son def)"}.`);
+    throw new Error(
+      `${site} : ${espace} ${champs.size ? `porte la valeur « ${valeur} » sous ${champs.size} champs discriminants (${[...champs].join(', ')})` : `n'a aucune sous-liste discriminée « ${valeur} » (paramètre \`espace.discriminant\` de son def)`}.`,
+    );
   const [champ] = champs;
-  champsDiscriminants.set(espace, champ);
+  champDeLaValeur.set(memo, champ);
   return cleFiltree(espace, { champ, vaut: valeur });
 }
 
@@ -521,24 +533,26 @@ const META_ID = { label: "identifiant", texte: { regime: 'technique', usage: 'id
 
 /** L'objet CONCRET d'une référence `{ id, …extra }` de `type`, nommé par `metas` : le corps unique de
  *  `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser. `extraDuPorteur` : la part
- *  d'`extra` que l'appelant a passée, sans les clés que la fabrique pose elle-même. */
+ *  d'`extra` que l'appelant a passée, sans les clés que la fabrique pose elle-même. `sousListe` restreint
+ *  l'`id` comme `idDe`. */
 function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(
   type: T,
   extra: E,
   metas: Readonly<Record<string, MetaChamp>>,
   role: 'ref' | 'refTypee',
   extraDuPorteur: Readonly<Record<string, z.ZodType>>,
+  sousListe?: SousListe,
 ) {
-  return marquerProduit(nommerChamps(z.strictObject({ id: idDe(type), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>), 'objetDeRef', role, extraDuPorteur);
+  return marquerProduit(nommerChamps(z.strictObject({ id: idDe(type, sousListe), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>), 'objetDeRef', role, extraDuPorteur);
 }
 
-/** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`). */
-export function ref<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
-  type: T,
-  extra?: E,
-) {
-  const extraDuPorteur = (extra ?? {}) as E;
-  return objetDeRef(type, extraDuPorteur, metasExtra(extra), 'ref', extraDuPorteur);
+/** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`) ; sans
+ *  `extra`, la sous-liste se nomme seule (`ref('material', undefined, 'objet')`) et la sortie reste `{ id }`. */
+export function ref<T extends TypeEntite>(type: T, extra?: undefined, sousListe?: SousListe): ReturnType<typeof objetDeRef<T, Record<never, never>>>;
+export function ref<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, sousListe?: SousListe): ReturnType<typeof objetDeRef<T, E>>;
+export function ref(type: TypeEntite, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {
+  const extraDuPorteur = extra ?? {};
+  return objetDeRef(type, extraDuPorteur, metasExtra(extra), 'ref', extraDuPorteur, sousListe);
 }
 
 /** FORME de sortie d'une référence TYPÉE (`refTypee`) : l'id, et le type qui nomme l'espace où il résout. */
@@ -676,6 +690,16 @@ export type RegimeDeSpec = 'specOuChoix' | 'specSeule' | 'specOuChoixFacultatifs
 /** Régime qu'un PORTEUR déclare pour une référence dont la spécialisation est facultative (`refOuSpec`). */
 export type RegimeDePorteur = Exclude<RegimeDeSpec, 'specOuChoix'>;
 
+/** Ce qu'un nœud à spécialisation (`specRef`, `refOuSpec`) déclare : le type de l'entrée que désigne
+ *  son `id`, son régime et les clés propres au porteur ; `undefined` hors d'un tel nœud. Un clone à
+ *  enfants identiques se lit comme son original (`produitDe`). */
+export function declarationDeRefASpecialisation(noeud: unknown): { type: TypeEntite; regime: RegimeDeSpec; extra: readonly string[] } | undefined {
+  const produit = produitDe(noeud);
+  if (produit?.fabrique !== 'noeudASpecialisation') return undefined;
+  const type = typeDeFeuilleDId(enfantsDe(noeud).find((e) => e.cle === 'id')?.noeud);
+  return type && { type, regime: produit.role as RegimeDeSpec, extra: Object.keys(produit.clesDExtra) };
+}
+
 /** Nœud `{ id, spec?, choix?, …extra }` + validation de la spécialisation, au `regime` du porteur. */
 function noeudASpecialisation<T extends TypeEntite>(
   type: T,
@@ -739,7 +763,7 @@ function noeudASpecialisation<T extends TypeEntite>(
  * catalogue de specs (`estSpecialisable`) ; `spec`/`choix` sont ensuite validés contre ce catalogue
  * quand l'entrée est FERMÉE (`entreeOuverte`).
  */
-export function specRef<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
+export function specRef<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
 ): z.ZodType<unknown> {
@@ -753,21 +777,21 @@ export function specRef<T extends TypeEntite, E extends Record<string, z.ZodType
  * seul nœud par site (jamais une union de deux graphies du même emplacement) : c'est la forme à
  * écrire dès qu'une donnée désigne une entrée « toute spécialisation comprise » aussi bien qu'une spécialisation précise.
  */
-export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
+export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
 ): z.ZodType<RefDesignee>;
-export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
+export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra: E | undefined,
   regime: 'specOuChoixFacultatifs',
 ): z.ZodType<RefASpecialisation>;
-export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
+export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra: E | undefined,
   regime: RegimeDePorteur,
 ): z.ZodType<RefASpecialisation>;
-export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
+export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
   regime: RegimeDePorteur = 'specSeule',

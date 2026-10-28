@@ -251,11 +251,11 @@ test('préflights Codex : chaque exécuteur reçoit le même environnement netto
     assert.equal(exe, b.fichiers.codex)
     assert.deepEqual(options.env, propre)
     appels.push(args.join(' '))
-    return { status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.163.0' : args[0] === '--help' ? 'app-server --dangerously-bypass-hook-trust --config' : '--listen' }
+    return { status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.164.0' : args[0] === '--help' ? 'app-server --dangerously-bypass-hook-trust --config' : '--listen' }
   }
   await assert.rejects(lancerSession({ ticket: 2528, agent: 'codex', consigne }, {
     contexte: () => ({ worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }), natif: () => b.fichiers.codex, env, executer,
-    version: (exe, options = {}) => verifierVersionCodex(exe, { ...options, executer: options.executer ?? executer, fetcher: async () => ({ ok: true, json: async () => ({ version: '0.163.0' }) }) }),
+    version: (exe, options = {}) => verifierVersionCodex(exe, { ...options, executer: options.executer ?? executer, fetcher: async () => ({ ok: true, json: async () => ({ version: '0.164.0' }) }) }),
     protocole: ({ executable, executer: commande = executer }) => { commande(executable, ['--version'], {}); commande(executable, ['app-server', 'generate-json-schema'], {}) },
     preflight: async () => hooksBanc.codex, terminal: () => { throw new Error('préflights terminés') },
   }), /préflights terminés/)
@@ -981,15 +981,15 @@ test('correction 7 : existence exe insuffisante, contrat CLI injecté requis ava
   await assert.rejects(lancerSession({ ticket: 2461, consigne, nom: 'banc', agent: 'codex', worktree: b.dossier }, gestes), /CONTRAT CLI INCOMPATIBLE/)
   assert.equal(contrats, 1); assert.equal(wt, 0); assert.equal(b.sessions.lister().cartes.length, 0)
   const requis = ['--dangerously-bypass-hook-trust', '--config', '--listen']
-  const executer = (omis) => (exe, args, options) => { assert.equal(exe, b.fichiers.codex); assert.equal(options.shell, false); assert.ok(options.timeout <= 10000); return { status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.163.0' : args[0] === '--help' ? `Commands: app-server\n${requis.filter((x) => x !== '--listen' && x !== omis).join('\n')}` : omis === '--listen' ? '' : '--listen' } }
+  const executer = (omis) => (exe, args, options) => { assert.equal(exe, b.fichiers.codex); assert.equal(options.shell, false); assert.ok(options.timeout <= 10000); return { status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.164.0' : args[0] === '--help' ? `Commands: app-server\n${requis.filter((x) => x !== '--listen' && x !== omis).join('\n')}` : omis === '--listen' ? '' : '--listen' } }
   verifierContratAgent('codex', b.fichiers.codex, { executer: executer(), env: {} })
   for (const omis of requis) assert.throws(() => verifierContratAgent('codex', b.fichiers.codex, { executer: executer(omis), env: {} }), new RegExp(`CONTRAT CLI INCOMPATIBLE : ${omis}`))
-  assert.throws(() => verifierContratAgent('codex', b.fichiers.codex, { executer: (exe, args) => ({ status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.163.0' : args[0] === '--help' ? `Commands: review\n${requis.join('\n')}` : requis.join('\n') }), env: {} }), /CONTRAT CLI INCOMPATIBLE : app-server/)
+  assert.throws(() => verifierContratAgent('codex', b.fichiers.codex, { executer: (exe, args) => ({ status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.164.0' : args[0] === '--help' ? `Commands: review\n${requis.join('\n')}` : requis.join('\n') }), env: {} }), /CONTRAT CLI INCOMPATIBLE : app-server/)
 })
 
 test('contrat CLI : timeout de mesure retentable, incompatibilité et exécutable absent non retentables', () => {
   const reponses = {
-    '--version': 'codex-cli 0.163.0',
+    '--version': 'codex-cli 0.164.0',
     '--help': 'app-server --dangerously-bypass-hook-trust --config',
     'app-server --help': '--listen',
   }

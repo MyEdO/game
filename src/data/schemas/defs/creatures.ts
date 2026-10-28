@@ -1,15 +1,15 @@
 import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
- * Schéma de `creatures.json` — le BESTIAIRE (493 entrées), miroir de `CreatureData`
- * (`src/data/index.ts`). GROS dataset : inventaire de clés fait par script node sur
- * TOUTES les entrées du fichier (histogramme complet, pas d'échantillonnage) — le compte
- * ci-dessus suit le fichier, il ne le fige pas.
+ * Schéma de `creatures.json` — le BESTIAIRE, miroir de `CreatureData` (`src/data/index.ts`). GROS
+ * dataset : inventaire de clés fait par script node sur TOUTES les entrées du fichier (histogramme
+ * complet, pas d'échantillonnage).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { availabilitySchema, charKeySchema, harvestRaritySchema, entityAppearanceSchema, moneySchema, profilChiffreSchema } from '../grammaire/valeurs';
 import { talentRefSchema, trappingRefSchema, traitInstanceSchema } from '../grammaire/reference';
 import { ref, refOuSpec, refs } from '../grammaire/ref';
+import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
 export const file = 'creatures.json';
 export const famille = 'entite';
@@ -65,7 +65,7 @@ const champs = {
     folder: z.string().nullable(),
     /** Ids de `groups.json` de cette créature (`groupsFor`) : sa CATÉGORIE (« demon », « bete »…) et,
      *  le cas échéant, le Groupe du dieu du Chaos qu'elle sert. Absent = aucun Groupe. */
-    grantGroups: z.array(z.string()).optional(),
+    grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** Entrée du bestiaire dont cette créature est une espèce ou une variante (`groupsFor`). */
     genre: ref('creature').optional(),
     /** src/data/index.ts */

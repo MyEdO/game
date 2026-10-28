@@ -11,23 +11,20 @@ import type { PsychTrait, PsychType } from '../psychology';
 import type { TraitList } from '../statEntry';
 import { findTraitById, findGroupById } from '../../data';
 import { ARG_JOKER } from '../../data/schemas/grammaire/reference';
+import { ciblePsy, estCibleType, type CiblePsy } from './ciblage';
 
 export type { PsychParse } from './types';
-
-/** Traits psy CIBLÉS (Cible = `instance.arg`, un id de Groupe) ; Peur/Terreur portent un Indice
- *  (`instance.value`). */
-const TARGETED: ReadonlySet<string> = new Set(['animosite', 'haine', 'prejuge', 'amour', 'camaraderie', 'phobie']);
 
 /** Cibles d'UNE instance : son `arg` est une seule Cible — plusieurs Cibles sont plusieurs instances,
  *  agrégées par `parsePsychTraits`. « (un/une/deux) au choix » = wildcard(s) — Cible `undefined`
  *  (inerte tant que non désignée par l'éditeur ; « deux au choix » émet 2 entrées wildcard). Un `arg`
  *  qui ne résout PAS un id de Groupe connu (`groups.json`) → `undefined` (inerte), jamais une chaîne FR
  *  résiduelle. */
-function ciblesDeLInstance(arg: string | undefined): (string | undefined)[] {
+function ciblesDeLInstance(arg: string | undefined): (CiblePsy | undefined)[] {
   if (!arg) return [undefined];
   const id = arg.trim();
   if (ARG_JOKER.test(id)) return /^deux /i.test(id) ? [undefined, undefined] : [undefined];
-  return [findGroupById(id) ? id : undefined];
+  return [findGroupById(id) ? ciblePsy.groupe(id) : undefined];
 }
 
 /** Propriétés psy d'un combattant, dérivées de ses `TraitInstance` via les capacités de la donnée. */
@@ -42,7 +39,7 @@ export function parsePsychTraits(traits: TraitList): PsychParse {
       if (x.value != null) out.causesPeur = x.value;
     } else if (pt === 'terreur') {
       if (x.value != null) out.causesTerreur = x.value;
-    } else if (pt && TARGETED.has(pt)) {
+    } else if (pt && estCibleType(pt)) {
       for (const cible of ciblesDeLInstance(x.arg ?? caps.psychCible)) {
         const trait: PsychTrait = { type: pt as PsychType, cible };
         if (caps.psychIndice != null) trait.indice = caps.psychIndice;

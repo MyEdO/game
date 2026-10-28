@@ -27,6 +27,7 @@ import { actorDrawInputs } from '../../backends/webgl/sceneMeshes';
 import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';
 
+
 describe('golden — rendu COMBAT (spawn→enemyRigProfile→visuels d’état) du bestiaire bipède', () => {
   for (const cr of creatures) {
     const c = creatureToCombatant(cr, `g-${cr.label}`, { x: 0, y: 0 });

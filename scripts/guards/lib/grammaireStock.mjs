@@ -92,6 +92,5 @@ export const GRAMMAIRE_STOCK = {
   // ── Formes POSSÉDÉES par la grammaire, re-tapées ou étendues ─────────────────────────────────
   'src/data/schemas/defs/raceAppearance.ts:doc.parts|redeclaration|entityAppearanceSchema {cheveux,visage}': e('`parts` d’apparence re-tapé (`STRUCTURES_REDECLARATIONS` raceAppearance.ts, commun `entityAppearanceSchema`).', L1a),
   'src/data/schemas/defs/raceAppearance.ts:doc.eyes|redeclaration|entityAppearanceSchema {D,G}': e('`eyes` d’apparence re-tapé (`STRUCTURES_REDECLARATIONS` raceAppearance.ts, commun `entityAppearanceSchema`).', L1a),
-  'src/data/schemas/grammaire/reference.ts:trappingRefSchema|extend|refSchema.extend(…)': e('Branche `{id, spec, count, qualities, qualityChoice}` de `TrappingRef` construite en ÉTENDANT `refSchema` — meurt avec l’adoption de `ref(\'trapping\')` par les dotations.', L3),
   'src/data/schemas/grammaire/valeurs.ts:secondarySourceRefSchema|extend|sourceRefSchema.extend(…)': e('Réf de source SECONDAIRE construite en ÉTENDANT `sourceRefSchema` — meurt avec la refonte du concept source.', L1d),
 };

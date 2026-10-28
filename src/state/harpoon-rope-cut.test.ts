@@ -1,13 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import type { Combatant, ItemInstance, Weapon } from '../engine/types';
+import type { Combatant } from '../engine/types';
+import { customTrapping } from '../engine/items';
+import { armeDeTest, objetDeTest } from '../engine/objetsDeTest.testkit';
 import type { PendingAttack } from '../noyau/pendings';
 import { firedWeapon, weaponContextOf } from '../noyau/combatFlow';
 import * as capabilities from '../engine/capabilities';
 
-// Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677) : choix joueur AVANT le jet
-// (`PendingAttack.harpoonRopeCut`), GATÉ sur la capacité `ItemCapabilities.ropeMode` de l'arme
-// tirée (jamais un id d'arme en dur, #476). `trappings.json` porte cette capacité sur
-// `lance-harpon` — le test « arme réelle » ci-dessous tourne SANS stub contre le catalogue réel.
+// ADE II 02 l.677 ; #476
 afterEach(() => vi.restoreAllMocks());
 
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -22,11 +21,8 @@ const mk = (p: Partial<Combatant>): Combatant => ({
 
 const target = mk({ id: 't', kind: 'enemy', pos: { x: 1, y: 0 } });
 
-const harpoon: Weapon = {
-  label: 'Lance-harpon', type: 'ranged', hands: 2, uid: 'hp', range: 20,
-  damage: { plusBF: false, flat: 10 }, qualities: [{ id: 'immobilisante' }, { id: 'recharge', value: 2 }],
-};
-const harpoonItem: ItemInstance = { uid: 'hp', trappingId: 'lance-harpon', label: 'Lance-harpon', kind: 'ranged', qualities: [], enc: 5, equipped: true };
+const harpoon = armeDeTest('lance-harpon', { uid: 'hp' });
+const harpoonItem = objetDeTest('lance-harpon', { uid: 'hp', equipped: true });
 
 describe('Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677, #476)', () => {
   it('toggle posé + arme éligible (ropeMode) → arme résolue au tir Portée 60, Immobilisante perdue', () => {
@@ -35,7 +31,7 @@ describe('Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677, #476
     const w = firedWeapon(atk, target, 'hp', undefined, true);
     expect(w.range).toBe(60);
     expect(w.qualities.some((q) => q.id === 'immobilisante')).toBe(false);
-    expect(w.qualities.some((q) => q.id === 'recharge')).toBe(true); // Recharge(2) conservée
+    expect(w.qualities.some((q) => q.id === 'recharge')).toBe(true); // ADE II 02 l.677
   });
 
   it('toggle NON posé (même arme éligible) → profil de base inchangé (Portée 20, Immobilisante conservée)', () => {
@@ -52,8 +48,8 @@ describe('Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677, #476
     expect(ctx.harpoonRopeCut).toBe(true);
   });
 
-  it('arme SANS aucune capacité ropeMode (trapping inconnu) → le toggle est ignoré même posé', () => {
-    const otherItem: ItemInstance = { uid: 'hp', trappingId: 'autre-arme-inconnue', label: 'Autre', kind: 'ranged', qualities: [], enc: 5, equipped: true };
+  it('objet custom SANS capacité ropeMode → le toggle est ignoré même posé', () => {
+    const otherItem = { ...customTrapping('Autre'), uid: 'hp', equipped: true };
     const atk = mk({ weapons: [harpoon], items: [otherItem] });
     const ctx = weaponContextOf(atk, harpoon, target, { harpoonRopeCut: true });
     expect(ctx.harpoonRopeCut).toBe(false);

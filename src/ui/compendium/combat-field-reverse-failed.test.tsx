@@ -9,6 +9,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CombatField } from '../editor/codex/StructFields';
 import type { CombatFeature } from '../../engine/combatFeatures/types';
+import { catalogueSpecs, entreeOuverte, idsDe } from '../../data/schemas/grammaire/ref';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -60,15 +61,15 @@ describe('CombatField — reverseFailed.skills (L2 #1548)', () => {
     expect(valeur?.reverseFailed?.skills).toEqual([{ id: 'athletisme' }, { id: 'voile' }]);
   });
 
-  it('reposer la spec de la TÊTE conserve aussi la queue', () => {
-    mount({ reverseFailed: { skills: [{ id: 'ramer' }, { id: 'voile' }], capDR: 2 } });
-    const spec = container.querySelector('input[placeholder="spec"]') as HTMLInputElement;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
-    act(() => {
-      setter.call(spec, 'chaloupe');
-      spec.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    expect(valeur?.reverseFailed?.skills).toEqual([{ id: 'ramer', spec: 'chaloupe' }, { id: 'voile' }]);
+  it('reposer la spec de la TÊTE, choisie dans son catalogue, conserve aussi la queue', () => {
+    const tete = [...idsDe('skill')].find((id) => !entreeOuverte('skill', id) && catalogueSpecs('skill', id).length > 0);
+    expect(tete).toBeDefined();
+    const [sienne] = catalogueSpecs('skill', tete!);
+    mount({ reverseFailed: { skills: [{ id: tete! }, { id: 'voile' }], capDR: 2 } });
+    const spec = container.querySelector<HTMLSelectElement>('select[aria-label^="Spécialisation"]')!;
+    expect([...spec.options].map((o) => o.value).filter(Boolean)).toEqual([...catalogueSpecs('skill', tete!)]);
+    choisir(spec, sienne);
+    expect(valeur?.reverseFailed?.skills).toEqual([{ id: tete, spec: sienne }, { id: 'voile' }]);
     expect(valeur?.reverseFailed?.capDR).toBe(2);
   });
 });

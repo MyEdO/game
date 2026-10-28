@@ -17,7 +17,7 @@ import type { CritEscalation } from '../data/criticals';
 import { poserEnjeu, type FlowTestNode } from './flowCore';
 import type { StakeRef } from '../data';
 import { isPainless, traitPassiveMods } from './traits/dispatch';
-import { findById, findConditionById, findPsychologyById, findTrappingById, refLabel } from '../data';
+import { findById, findConditionById, findPsychologyById, refLabel } from '../data';
 import { RULE_REF, type CodexTarget } from './ruleRefs';
 import { talentPassiveMods } from './talentEffects';
 import { diseasePassiveOps } from './disease';
@@ -823,8 +823,8 @@ function tierAcquis(it: ItemInstance, tier: ProsthesisTier, cumul: number): bool
  *  entraînable, n'est pas porté, ou est déjà entièrement maîtrisé.
  *  SOURCE UNIQUE partagée par l'écran d'Avancement et `trainProsthesis` (noyau/partyFlow.ts). */
 export function nextProsthesisTier(it: ItemInstance): ProsthesisTier | undefined {
-  if (!it.equipped || !it.trappingId) return undefined;
-  const tiers = findTrappingById(it.trappingId)?.prosthesisTraining ?? [];
+  if (!it.equipped) return undefined;
+  const tiers = it.prosthesisTraining ?? [];
   let cumul = 0;
   for (const tier of tiers) {
     cumul += tier.reduces ?? 0;
@@ -1026,7 +1026,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   for (const it of c.items ?? []) {
     const held = !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
     if (!held || !it.trappingId) continue;
-    for (const op of findTrappingById(it.trappingId)?.passive ?? []) out.push({ op, kind: 'intrinseque', src: { category: 'trappings', id: it.trappingId }, label: it.label });
+    for (const op of it.passive ?? []) out.push({ op, kind: 'intrinseque', src: { category: 'trappings', id: it.trappingId }, label: it.label });
   }
   // Traits à modificateur de PROFIL appliqués en DIRECT (LDB 85 : Élite/Coriace/Brutal/Rapide… facultatifs,
   // statbloc d'éditeur, traits accordés) — leurs `PassiveMod` (vocab GameOp unifié, `TraitData.passive`) émis

@@ -5,12 +5,11 @@
  *
  * Décisions : voir docs/superpowers/specs/2026-06-05-F1-ennemis-rig-design.md
  */
-import type { Combatant, ItemInstance, ArmourPoints, HitLocation } from '../../engine/types';
-import { equipDe, equipPorte, type EquipCtx } from './parts/equipment';
-import { emptyArmour } from '../../engine/items';
-import { renderWeaponsFromTraits, armourFromTraits, weaponFromId } from '../../engine/creatureEquip';
-import { porteurDuProfil, traitsDeLIndividu } from '../../noyau/monde/spawn';
-import type { TraitPose } from '../../data/schemas/grammaire/reference';
+import type { Combatant } from '../../engine/types';
+import { equipementDAuteurDe, equipementDessine, equipementDEntite, type EquipCtx, type EquipementDAuteur } from '../../noyau/equipementDessine';
+import type { RigOverlay } from './bones';
+import { defaultAppearance } from './appearance';
+import { combatantAppearance, combatantOverlays } from './parts/combatantVisuals';
 import { eyesArtFromKeys } from './parts/eyes';
 import { hashSeed } from '../../engine/dice';
 import type { SceneEntity } from '../../noyau/monde/scene';
@@ -28,6 +27,7 @@ import { sexeSchema, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetPnjById } from '../../state/campaignData';
+import type { TrappingResolver } from '../../engine/items';
 
 export interface EnemyRigProfile {
   appearance: Appearance;
@@ -64,26 +64,6 @@ function apparenceDAuteur(a: ApparenceDAuteur | undefined): Omit<Partial<Appeara
     sex: a.sex, build: a.build, monster: a.monster,
     features: a.features, colors: a.colors, parts: a.parts, hairstyle: a.hairstyle, eyes: eyesArtFromKeys(a.eyes),
   };
-}
-
-/** Synthèse d'items d'armure depuis les PA par localisation (matériau via palier) — UNIQUEMENT si
- *  l'apparence de la créature DÉCLARE son armure de statblock PORTÉE (`armurePortee`) [entériné
- *  2026-07-22, #774 : « Les PA ne devrait pas impacté l'apparence, sauf si on le décide »]. Par défaut,
- *  les PA restent mécaniques PURS (PA/zoneBadges/enc lisent `c.armour`/de vrais items) : aucun item
- *  d'art n'est fabriqué. Curation par créature dans `creatures.json` (`appearance.armurePortee`). */
-function synthArmour(ap: ArmourPoints, armurePortee: boolean | undefined): ItemInstance[] {
-  if (!armurePortee) return [];
-  const items: ItemInstance[] = [];
-  const piece = (uid: string, name: string, pa: number, locs: HitLocation[]) => {
-    items.push({ uid, label: name, kind: 'armor', qualities: [], pa, locs, enc: 0, equipped: true });
-  };
-  if (ap.corps > 0) piece('syn-corps', 'Protection (corps)', ap.corps, ['corps']);
-  if (ap.tete > 0) piece('syn-tete', 'Protection (tête)', ap.tete, ['tete']);
-  const bras = Math.max(ap.brasG, ap.brasD);
-  if (bras > 0) piece('syn-bras', 'Protection (bras)', bras, ['brasG', 'brasD']);
-  const jambes = Math.max(ap.jambeG, ap.jambeD);
-  if (jambes > 0) piece('syn-jambes', 'Protection (jambes)', jambes, ['jambeG', 'jambeD']);
-  return items;
 }
 
 /** Résolution PARTAGÉE (combat ET exploration, IDENTIQUE) : espèce → def bipède canonique + race
@@ -216,15 +196,23 @@ export function enemyRigProfile(c: Combatant): EnemyRigProfile | null {
   // Tenue DATA-DRIVEN : carrière du Combatant → record → défaut de la def (perso/race) → Nu (l'auteur l'habille).
   const tenue = bipedTenue(c.career, cd, bb.perso, bb.race);
 
-  // Équipement : l'inventaire du combattant prime ; sinon armure synthétisée des PA (visible SEULEMENT
-  // si l'apparence la déclare portée — override d'authoring (`c.appearanceOverride.armurePortee`) PRIME
-  // sur le record (`cd?.armurePortee`), symétrique de `entityRigProfile` (`opts.armurePortee ?? cd?.armurePortee`,
-  // parité #181/#182 : une entité à statbloc SANS record honore SON armurePortee en combat comme en explo).
-  const equip = equipPorte(c, () => synthArmour(c.armour, ov?.armurePortee ?? cd?.armurePortee));
+  // Calques de mutation = donnée (`combatantOverlays(c)`, appliqués par `rigDuCombattant`), jamais le nom :
+  // un mutant déclare son tell via un trait « Mutation (X) » → c.mutations au spawn.
+  return { appearance, tenue, equip: equipementDessine(c) };
+}
 
-  // Calques de mutation = donnée (`combatantOverlays(c.mutations)`, appliqués par `sceneMeshes.actorDrawInputs`),
-  // jamais le nom : un mutant déclare son tell via un trait « Mutation (X) » → c.mutations au spawn.
-  return { appearance, tenue, equip };
+/** Ce qu'on dessine d'un combattant BIPÈDE, résolu à UN endroit pour le monde volumique, le portrait, le
+ *  geste et la toise : profil d'ennemi sauf inventaire propre (`rendersFromOwnInventory`), sinon son
+ *  apparence, son équipement porté et sa carrière (garde-robe) ; calques d'état (`combatantOverlays`). */
+export interface RigDuCombattant { appearance: Appearance; equip: EquipCtx; tenue: string | undefined; overlays: RigOverlay[] }
+export function rigDuCombattant(c: Combatant): RigDuCombattant {
+  const prof = rendersFromOwnInventory(c) ? null : enemyRigProfile(c);
+  return {
+    appearance: combatantAppearance(prof?.appearance ?? c.appearance ?? defaultAppearance(c), c),
+    equip: prof?.equip ?? equipementDessine(c),
+    tenue: prof?.tenue ?? c.career,
+    overlays: combatantOverlays(c),
+  };
 }
 
 /**
@@ -233,23 +221,12 @@ export function enemyRigProfile(c: Combatant): EnemyRigProfile | null {
  * null si la réf désigne une créature non-humanoïde.
  */
 export function entityRigProfile(
+  resolveTrapping: TrappingResolver,
   name: string | undefined,
   seed: number,
   /** L'apparence d'AUTEUR ENTIÈRE (`EntityAppearance`) — sa graine POSÉE l'emporte sur `seed` (instance)
-   *  et sur le record ; `armurePortee` pour une entité SANS record, repli sur `cd?.armurePortee` sinon. */
-  opts?: EntityAppearance & {
-    /** Arme d'authoring (`trappingId`, `SceneEntity.weapon`). */
-    weapon?: string;
-    /** Profil de combat de l'entité (statbloc d'éditeur) → équipement affiché en explo, comme au combat. */
-    traits?: readonly TraitPose[]; armour?: number;
-    /** Profil du statbloc d'éditeur : référent des Indices formulés de ses `traits`. */
-    char?: Partial<Record<string, number | null>>;
-    /** Id du porteur (l'entité de scène) : ses fourchettes de Trait se tirent comme à son spawn. */
-    porteur?: string;
-    /** L'entité est ENRÔLÉE dans une rencontre (membre d'un `EncounterDef`) : elle porte les ARMES que
-     *  les traits de son record déclarent (parité avec le spawn `creatureToCombatant`). Non enrôlée (défaut
-     *  `false`) : mains libres. */
-    enrolled?: boolean },
+   *  et sur le record — et ce que l'entité déclare de son équipement (`equipementDEntite`). */
+  opts?: EntityAppearance & EquipementDAuteur,
 ): EnemyRigProfile | null {
   const rec = findCreatureById(name);
   // Résolution d'espèce par la DONNÉE (espèce explicite de l'entité → espèce du record) — IDENTIQUE à
@@ -261,24 +238,10 @@ export function entityRigProfile(
   const base = bipedBase(r); // espèce RÉSOLUE → def/race/perso corrects
   // Une entité d'ambiance « mutée » déclare ses parts/overlays dans son apparence (monster), pas via le nom.
   const override = apparenceDAuteur(opts);
-  // Équipement : MÊME dérivation qu'au combat (parité explo↔combat). Traits de l'entité : statbloc
-  // d'éditeur (`opts.traits`), sinon ceux du record. L'ARMURE fait partie de l'apparence : elle se dérive
-  // toujours de ces traits. Les ARMES n'en sortent que pour une entité enrôlée (`enrolled`). Armes
-  // EXPLICITES seulement (`renderWeaponsFromTraits`, pas de repli « Arme » générique dessiné en épée).
-  const traits = traitsDeLIndividu(opts?.traits ?? rec?.traits ?? [], porteurDuProfil(opts?.porteur ?? name ?? '', (opts?.traits ? opts.char : rec?.char) ?? {}));
-  const traitsArmes = opts?.traits || opts?.enrolled ? traits : [];
-  // `opts.weapon` (trappingId d'authoring) ne s'ajoute QUE si les Traits n'ont PAS déjà produit une arme du
-  // MÊME type (melee/ranged) — même règle que le spawn de combat (`spawn.ts` spawnEnemy), sinon
-  // DUPLICATION du rendu (#126/#145). Un type ABSENT des Traits reste additif (Garde du Village posté
-  // « archer » : trait Arme mêlée générique + `weapon:'arc'`).
-  const traitWeapons = renderWeaponsFromTraits(traitsArmes);
-  const idWeaponInst = opts?.weapon ? weaponFromId(opts.weapon) : undefined;
-  const idWeapon = idWeaponInst && !traitWeapons.some((w) => w.type === idWeaponInst.type) ? [idWeaponInst] : [];
-  const armourPA: ArmourPoints = opts?.armour != null ? emptyArmour(opts.armour) : armourFromTraits(traits);
   return {
     appearance: rigAppearance(graineDeTirage(opts?.seed, seed, rec), base, cd, override),
     tenue: bipedTenue(opts?.tenue, cd, base.perso, base.race),
-    equip: equipDe([...idWeapon, ...traitWeapons], synthArmour(armourPA, opts?.armurePortee ?? cd?.armurePortee)),
+    equip: equipementDEntite(resolveTrapping, name, opts),
   };
 }
 
@@ -292,14 +255,12 @@ export function refOf(ent: Pick<SceneEntity, 'ref'>): string | undefined {
 /** Profil rig d'une ENTITÉ de scène (perso), dérivation UNIQUE partagée par `tokenBodyKind` (iso) et
  *  `buildPovBillboards` (POV) : mêmes seed / refName / apparence / équipement (dont `enrolled`). Une
  *  entité sans réf NI Espèce n'a aucune apparence à résoudre : signalée en dev, nommée par son id. */
-export function entityRigProfileFor(ent: SceneEntity, enrolled?: boolean): EnemyRigProfile | null {
+export function entityRigProfileFor(resolveTrapping: TrappingResolver, ent: SceneEntity, enrolled?: boolean): EnemyRigProfile | null {
   const refName = refOf(ent);
   if (import.meta.env?.DEV && !refName && !ent.appearance?.species)
     diagOnce(`rig:entite:${diagSubject() || ent.id}`, () => {
       const nom = nomDEntite(ent, presetPnjById);
       console.error(`[rig] entité « ${ent.id} »${nom ? ` (${nom})` : ''} : ni réf de créature ni Espèce — donnée de scène à corriger.`);
     });
-  return entityRigProfile(refName, hashSeed(ent.id), {
-    ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, char: ent.statblock?.char, armour: ent.statblock?.armour, enrolled, porteur: ent.id,
-  });
+  return entityRigProfile(resolveTrapping, refName, hashSeed(ent.id), equipementDAuteurDe(ent, enrolled));
 }

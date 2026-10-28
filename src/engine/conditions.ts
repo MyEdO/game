@@ -789,6 +789,14 @@ export function restrictingConditions(c: Combatant): { id: string; stacks: numbe
   return out;
 }
 
+/** Refus de l'État qui verrouille l'Action et le Mouvement du porteur (`restrictsAction`), nommé depuis la
+ *  donnée ; `null` s'il est libre. Lu par le gate `hors-verrou-d-etat` et par le clic d'attaque. `LDB 16 l.52`. */
+export function refusVerrouDAction(c: Combatant): string | null {
+  const verrou = restrictingConditions(c)[0];
+  if (!verrou) return null;
+  return t('cs.stateLockFlee', { name: c.label, etat: findConditionById(verrou.id)?.label ?? verrou.id });
+}
+
 /** Le combattant porte-t-il un État qui VERROUILLE son Action (`restrictsAction`) ? Une seule vérité de
  *  données partagée par le gate de hotbar (`battleSelectAction`) ET l'IA (`planProactiveSpend`). */
 export function isActionLocked(c: Combatant): boolean {

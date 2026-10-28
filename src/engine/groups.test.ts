@@ -4,6 +4,8 @@ import { targetedTrigger } from './psychology';
 import type { Combatant } from './types';
 import { creatures, findCreatureById, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById } from '../data';
 import { resetData, setDataset } from '../data/overrides';
+import { schema as groupsSchema } from '../data/schemas/defs/groups';
+import groupsJson from '../data/groups.json';
 
 describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3)', () => {
   it('la CATÉGORIE de la créature est DÉCLARÉE sur son entrée (`grantGroups`) — plus aucune dérivation par folder', () => {
@@ -136,7 +138,7 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
     expect(findTraitById('demoniaque')?.capabilities?.grantGroups).toEqual(['demon']);
   });
 
-  it('ESPÈCE : les 27 entrées portent leur `grantGroups` (aucune ne dépend plus d’un mot-clé de label)', () => {
+  it('ESPÈCE : les Groupes d’une espèce sont ses `grantGroups`, jamais un mot-clé de son libellé', () => {
     expect(findSpeciesById('gnomes')?.grantGroups).toEqual(['gnome']);
     expect(findSpeciesById('hauts-elfes')?.grantGroups).toEqual(['elfe']);
     expect(findSpeciesById('humains-tileens')?.grantGroups).toEqual(['humain', 'tileen']);
@@ -151,7 +153,7 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
 });
 
 describe('Groupes du Tableau des Obsessions portés par le moteur (EDOC 12 l.180-181)', () => {
-  it('Mutants : le porteur d’au moins une mutation (EDOC 12 l.42), après ses Groupes déclarés', () => {
+  it('Mutants : le porteur d’au moins une mutation (EDOC 12 l.56, l.181), après ses Groupes déclarés', () => {
     expect(groupesDe({ groups: ['cultiste'], mutations: [{ id: 'mutation-fixture' }] })).toEqual(['cultiste', 'mutants']);
     expect(groupesDe({ groups: ['cultiste'], mutations: [] })).toEqual(['cultiste']);
     expect(groupesDe({ groups: ['cultiste'], traits: [{ id: 'corruption-mentale' }] })).not.toContain('mutants');
@@ -165,6 +167,20 @@ describe('Groupes du Tableau des Obsessions portés par le moteur (EDOC 12 l.180
       expect(groupsFor({ creature: { grantGroups: ['groupe-fixture'] } })).toEqual(['groupe-fixture']);
     } finally {
       resetData();
+    }
+  });
+});
+
+describe('schéma de groups.json : un id de Groupe suit le motif des Groupes (#1463)', () => {
+  it('le registre commité passe', () => {
+    expect(groupsSchema.safeParse(groupsJson).success).toBe(true);
+  });
+
+  it('un id hors du motif est refusé, dont un `@` en tête', () => {
+    for (const id of [`@${groupsJson[0].id}`, groupsJson[0].label]) {
+      const refus = groupsSchema.safeParse(groupsJson.map((g, i) => (i === 0 ? { ...g, id } : g)));
+      expect(refus.success, id).toBe(false);
+      expect(JSON.stringify(refus.error?.issues), id).toMatch(/id de Groupe/);
     }
   });
 });

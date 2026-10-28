@@ -1,8 +1,6 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/combattant.gd" id="1_combattant"]
-[ext_resource type="PackedScene" path="res://scenes/Chevalier.tscn" id="2_heros"]
-[ext_resource type="PackedScene" path="res://modeles/Skeleton_Warrior.glb" id="3_adversaires"]
 
 [sub_resource type="StandardMaterial3D" id="Materiau_selection"]
 shading_mode = 0
@@ -15,8 +13,8 @@ outer_radius = 0.42
 
 [node name="Combattant" type="Node3D"]
 script = ExtResource("1_combattant")
-modele_heros = ExtResource("2_heros")
-modele_adversaires = ExtResource("3_adversaires")
+manifeste_heros = "res://modeles/Knight.manifeste.json"
+manifeste_adversaires = "res://modeles/Skeleton_Warrior.manifeste.json"
 
 [node name="Modele" type="Node3D" parent="."]
 scale = Vector3(0.65, 0.65, 0.65)

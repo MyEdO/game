@@ -34,7 +34,7 @@ function auTourDUnHeros(): Partie {
 
 const contexte = (partie: Partie): ActionCtx => {
   const s = partie.etat();
-  return { active: activeCombatant(s.battle!)!, battle: s.battle!, netMode: s.net.mode };
+  return { active: activeCombatant(s.battle!)!, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime };
 };
 
 describe('Partie.lancer — le lancement d’un scénario est un appel de la partie', () => {
@@ -103,8 +103,8 @@ describe('les lecteurs de la vue', () => {
       const ctx = { ...contexte(partie), state: partie.etat() };
       const offres = offresDeLActif(ctx);
       const offertes = (surface: Parameters<typeof offresParPorteur>[1]) => offres.filter((o) => o.def.surface === surface).map((o) => o.actionId);
-      expect(actionGate('reload', ctx).ok, 'témoin : le prédicat de Recharger est fermé').toBe(true);
-      expect(offertes('deduite-du-set'), 'Recharger est offert sans munition à charger').not.toContain('reload');
+      expect(actionGate('water', ctx).ok, 'témoin : le prédicat d’Aspersion est fermé').toBe(true);
+      expect(offertes('deduite-du-set'), 'Asperger est offert sans récipient ni cible').not.toContain('water');
       expect(offertes('pastille-entite'), 'témoin : le champ n’offre plus ses gestes').toEqual(expect.arrayContaining(['mount', 'pickup']));
       expect(offertes('pastille-entite'), 'Servir est offert sans poste à servir').not.toContain('man-poste');
     } finally {

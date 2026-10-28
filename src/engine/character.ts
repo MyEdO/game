@@ -19,7 +19,7 @@
  * DÉSIGNÉS dans `careerSlotChoices` (cf. engine/careerSlots.ts).
  */
 import { RNG, roll, fluxDerive } from './dice';
-import { buildInventory, recomputeLoadout, emptyArmour } from './items';
+import { contexteDeNaissanceDObjet, buildInventory, recomputeLoadout, emptyArmour } from './items';
 import { groupsFor } from './groups';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant, SkillInstance, TalentInstance, HeroDetails } from './types';
 import {
@@ -404,7 +404,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   //    stats → ignorées par buildInventory (un libellé non catalogué n'est pas trouvé). Les emplacements
   //    de dotation se résolvent par `opts.trappingChoices` AVANT `buildInventory`.
   const rawTrappings = resolveTrappingChoices(opts.careerId, 1, opts.trappingChoices ?? {});
-  const items = buildInventory(rawTrappings);
+  const items = buildInventory(rawTrappings, contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }));
 
   // Trait RACIAL de l'espèce (#572) — Ogre `{id:'ogre'}` (encombrance/consommation ×2, ADE2 « Ogres
   // et Mutations » l.708 « Un Lourd Fardeau ») : résolu et posé sur `Combatant.traits` (MÊME résolution

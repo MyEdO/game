@@ -15,9 +15,9 @@ export type VerdictDeGeste = (s: Pick<Jeu, 'battle'>) => string | null;
 /** Le verdict « refusé en combat », dit par le message `cle`. */
 export const refusEnCombat = (cle: MsgKey): VerdictDeGeste => (s) => (s.battle ? t(cle) : null);
 
-/** Refus de toucher à un objet de la fiche (porter, ranger, donner, choisir une forme, évaluer, utiliser,
- *  tenir une arme, gérer ses sets) : en combat, l'équipement se gère depuis la barre d'action. La parure,
- *  cosmétique, n'est pas fermée. */
+/** Refus de toucher à un objet de la fiche (porter, ranger, donner, évaluer, utiliser, tenir une arme,
+ *  gérer ses sets) : en combat, l'équipement se gère depuis la barre d'action. L'apparence d'un objet
+ *  (`choisirApparence`), cosmétique et sans règle qui la ferme, ne l'est pas. */
 export const refusDInventaire: VerdictDeGeste = refusEnCombat('pf.inventoryLocked');
 
 /** Refus des lanceurs HORS COMBAT de la fiche (`oocCastSpell`, `oocFocusSpell`, `oocDispelSpell`) : en

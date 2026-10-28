@@ -15,6 +15,7 @@ import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { byId, stakeSpeaks, matieresDe } from '../data';
 import { versionDesDatasets } from '../data/versionDataset';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
+import { validerReferencesDObjetsDansCampagne } from '../data/schemas/defs-scenes/narratif';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
 // Registre des effets : les réfs que chaque handler valide (`handler.refs`).
@@ -74,8 +75,10 @@ export type ArchitectureWarningRef =
  *  seul l'objet modifié se re-parse, et une écriture au catalogue (Compendium) re-date tous les
  *  verdicts — les réfs se résolvent au catalogue VIVANT. */
 const verdictsDeSchema = memoByRefDeps<object, readonly Faute[] | null>();
-const fautesDeSchema = (schema: Parameters<typeof validerFormeVivante>[0], objet: object): readonly Faute[] | null =>
-  verdictsDeSchema(objet, [versionDesDatasets(), schema], () => validerFormeVivante(schema, objet)?.fautes ?? null);
+const fautesDeSchema = (schema: Parameters<typeof validerFormeVivante>[0], objet: object, narratif?: NarratifBlock): readonly Faute[] | null =>
+  verdictsDeSchema(objet, [versionDesDatasets(), schema, narratif], () => validerFormeVivante(narratif
+    ? schema.superRefine((_valeur, ctx) => validerReferencesDObjetsDansCampagne(narratif.objets, ctx))
+    : schema, objet)?.fautes ?? null);
 
 /** PORTÉE d'une faute pour l'éditeur (clic → sélection), par la suite des LISTES à clé que son lieu
  *  traverse depuis la racine ; les clés rencontrées nomment la sélection. Choix d'ÉCRAN : une façade
@@ -138,7 +141,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       out.push({ level: 'error', sceneId: worldMap.id, scope: 'worldMap', refId, message });
     // Le SCHÉMA de carte (`worldMapSchema`) : unicité des lieux, routes et POI, cibles exclusives d'un
     // POI — une carte VIVANTE de l'éditeur ne repasse pas par le parse, l'auteur l'apprend ici.
-    for (const faute of fautesDeSchema(worldMapSchema, worldMap) ?? []) {
+    for (const faute of fautesDeSchema(worldMapSchema, worldMap, narratif) ?? []) {
       const f = fautifDe(faute.lieu, 'worldMap');
       out.push({ level: 'error', sceneId: worldMap.id, scope: f.scope, refId: f.element?.cle, message: messageDeFaute(f, faute.message) });
     }
@@ -217,7 +220,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // Le SCHÉMA de scène (`sceneSchema`) : il prouve au parse toutes les références de catalogue, la
     // forme de la scène et l'unicité des clés de ses listes ; une scène VIVANTE de l'éditeur ne repasse
     // pas par le parse, l'auteur l'apprend donc ici, rattaché à son fautif (#877, #1897).
-    for (const faute of fautesDeSchema(sceneSchema, s) ?? []) {
+    for (const faute of fautesDeSchema(sceneSchema, s, narratif) ?? []) {
       const f = fautifDe(faute.lieu, 'scene');
       add('error', f.scope, f.element?.cle, messageDeFaute(f, faute.message), f.architectureRef);
     }

@@ -1,5 +1,5 @@
 /**
- * Schéma de `careers.json` — dérivé du contenu RÉEL (108 entrées) et de `CareerData`
+ * Schéma de `careers.json` — dérivé du contenu RÉEL et de `CareerData`
  * (`src/data/index.ts`). `rand` = Tableau des Classes et Carrières aléatoires
  * (LDB 05 l.197+) : borne haute d100 par colonne d'espèce, `null` = carrière indisponible pour
  * cette espèce (l.360). Deux jeux de clés distincts observés (2 key-sets, cohérent
@@ -12,6 +12,8 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { refCareerIdSchema } from '../grammaire/valeurs';
+import { refs } from '../grammaire/ref';
+import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
 export const file = 'careers.json';
 export const famille = 'entite';
@@ -24,7 +26,7 @@ const doc = document(
     class: z.string(),
     /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupesDe`), en plus de ceux de
      *  sa Classe. Absent = la carrière n'ouvre aucun Groupe d'appartenance. */
-    grantGroups: z.array(z.string()).optional(),
+    grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** id d'une tenue spécifique (`TENUE_BY_ID`) réutilisée par cette carrière quand son rendu
      *  reprend la tenue d'une autre carrière (variants MDG « (Côtier) », MDG 09 l.255/343/458). */
     tenue: z.string().optional(),

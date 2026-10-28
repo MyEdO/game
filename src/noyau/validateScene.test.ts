@@ -2,7 +2,8 @@ import { flowFromEffects, testFlow } from './monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { describe, it, expect } from 'vitest';
 import { validateScene, type Warning } from './validateScene';
-import { resolveStake, matieresDe } from '../data';
+import { emptyNarratif } from './monde/campaignNarratif';
+import { resolveStake, matieresDe, findTrappingById } from '../data';
 import { emptyScene, type Scene } from './monde/scene';
 import { METRES_PER_LEVEL } from './monde/relief';
 import type { WorldMap, MapPlace } from './worldMap';
@@ -15,6 +16,17 @@ function base() {
 const msgs = (w: Warning[]) => w.map((x) => x.message);
 
 describe('validateScene', () => {
+  it('le verdict de l’éditeur suit les objets de campagne, y compris quand seul le narratif change', () => {
+    const objet = { ...findTrappingById('arme-simple')!, id: 'hache-du-projet', shape: { id: 'hache' }, formChoices: ['hache'] };
+    const narratif = { ...emptyNarratif(), objets: [objet] };
+    const s = base();
+    s.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 },
+      appearance: { apparencesObjets: { [objet.id]: { id: 'hache_naine' } } } });
+    const erreurs = (n: typeof narratif) => validateScene([s], undefined, n).filter((w) => w.level === 'error');
+    expect(erreurs(narratif)).toEqual([]);
+    const change = erreurs({ ...narratif, objets: [{ ...objet, shape: { id: 'epee' }, formChoices: ['epee'] }] });
+    expect(change.some((w) => w.message.includes(objet.id) && w.message.includes('hache_naine'))).toBe(true);
+  });
   it('scène propre = 0 avertissement', () => {
     expect(validateScene([base()])).toEqual([]);
   });

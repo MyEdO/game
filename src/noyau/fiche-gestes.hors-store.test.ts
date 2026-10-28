@@ -163,18 +163,16 @@ describe('transferItem et stowItem — le verdict (`refusDInventaire`, co-locali
 });
 
 describe('gestes d’objet et de fiche en combat — un verdict par famille, celui des gestes', () => {
-  it('choisirForme, usePartyItem, appraiseItem : refusés en combat (`refusDInventaire`), rien ne change', () => {
+  it('usePartyItem, appraiseItem : refusés en combat (`refusDInventaire`), rien ne change', () => {
     const H0 = heroDuDuel();
-    const arme = { ...itemFromTrappingById('arme-simple')!, uid: 'arme-simple-1' };
     const biere = { ...itemFromTrappingById('biere-pinte')!, uid: 'biere-1' };
     const inconnu = { ...itemFromTrappingById('arme-simple')!, uid: 'inconnu-1', identified: false };
-    H0.items = [...(H0.items ?? []), arme, biere, inconnu];
+    H0.items = [...(H0.items ?? []), biere, inconnu];
     H0.skills = [...H0.skills, { id: 'evaluation', characteristic: 'intelligence', advances: 10 }, { id: 'intuition', characteristic: 'initiative', advances: 10 }];
     enCombat((partie, H) => {
       const lu = () => partie.etat().battle!.combatants.find((c) => c.id === H.id)!;
       const avant = structuredClone(lu().items);
       const gestes: [string, () => void][] = [
-        ['choisirForme', () => partie.envoyer({ type: 'choisirForme', args: [H.id, arme.uid, 'hache'] })],
         ['usePartyItem', () => partie.envoyer({ type: 'usePartyItem', args: [H.id, biere.uid] })],
         ['appraiseItem', () => partie.envoyer({ type: 'appraiseItem', args: [inconnu.uid, H.id] })],
         ['appraiseItem (detect)', () => partie.envoyer({ type: 'appraiseItem', args: [inconnu.uid, H.id, 'detect'] })],
@@ -188,13 +186,13 @@ describe('gestes d’objet et de fiche en combat — un verdict par famille, cel
     }, { party: [H0] });
   });
 
-  it('la Parure, cosmétique, reste ouverte en combat : `setItemSkin` écrit les deux copies', () => {
+  it('l’apparence d’un objet, cosmétique, reste ouverte en combat : `choisirApparence` écrit les deux copies', () => {
     enCombat((partie, H) => {
-      const objet = H.items!.find((i) => i.kind === 'armor')!;
-      expect(refusNeuf(partie, () => partie.envoyer({ type: 'setItemSkin', args: [H.id, objet.uid, { metal: '#ff0000' }] })), 'la Parure a été refusée en combat').toBeUndefined();
-      const peau = (c: Combatant) => c.items!.find((i) => i.uid === objet.uid)!.skin;
-      expect(peau(partie.etat().battle!.combatants.find((c) => c.id === H.id)!)).toEqual({ metal: '#ff0000' });
-      expect(peau(partie.etat().party.find((c) => c.id === H.id)!)).toEqual({ metal: '#ff0000' });
+      const objet = H.items!.find((i) => i.trappingId === 'arme-simple')!;
+      expect(refusNeuf(partie, () => partie.envoyer({ type: 'choisirApparence', args: [H.id, objet.uid, 'hache'] })), 'l’apparence a été refusée en combat').toBeUndefined();
+      const forme = (c: Combatant) => c.items!.find((i) => i.uid === objet.uid)!.shape;
+      expect(forme(partie.etat().battle!.combatants.find((c) => c.id === H.id)!)).toEqual({ id: 'hache' });
+      expect(forme(partie.etat().party.find((c) => c.id === H.id)!)).toEqual({ id: 'hache' });
     });
   });
 

@@ -32,7 +32,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "baton"
+    "shape": {
+      "id": "baton"
+    }
   },
   {
     "id": "hallebarde",
@@ -70,7 +72,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "hallebarde",
+    "shape": {
+      "id": "hallebarde"
+    },
     "bladed": true
   },
   {
@@ -103,7 +107,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "lance"
+    "shape": {
+      "id": "lance"
+    }
   },
   {
     "id": "pique",
@@ -135,7 +141,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "pique"
+    "shape": {
+      "id": "pique"
+    }
   },
   {
     "id": "mains-nues",
@@ -189,7 +197,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "poing"
+    "shape": {
+      "id": "poing"
+    }
   },
   {
     "id": "arme-improvisee",
@@ -217,7 +227,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "improvisee"
+    "shape": {
+      "id": "improvisee"
+    }
   },
   {
     "id": "arme-simple",
@@ -245,7 +257,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "epee",
+    "shape": {
+      "id": "epee"
+    },
     "formChoices": [
       "epee",
       "hache",
@@ -291,7 +305,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "rond"
+    "shape": {
+      "id": "rond"
+    }
   },
   {
     "id": "bouclier-grand",
@@ -330,7 +346,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "grand"
+    "shape": {
+      "id": "grand"
+    }
   },
   {
     "id": "bouclier-targe",
@@ -369,7 +387,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "targe"
+    "shape": {
+      "id": "targe"
+    }
   },
   {
     "id": "couteau",
@@ -400,7 +420,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "couteau",
+    "shape": {
+      "id": "couteau"
+    },
     "bladed": true
   },
   {
@@ -428,7 +450,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "dague",
+    "shape": {
+      "id": "dague"
+    },
     "bladed": true
   },
   {
@@ -469,7 +493,9 @@
         "quote": "Cimeterre"
       }
     ],
-    "shape": "cimeterre",
+    "shape": {
+      "id": "cimeterre"
+    },
     "bladed": true
   },
   {
@@ -515,7 +541,9 @@
         "quote": "Dague ballock"
       }
     ],
-    "shape": "dague_ballock",
+    "shape": {
+      "id": "dague_ballock"
+    },
     "bladed": true
   },
   {
@@ -551,7 +579,9 @@
       "book": "aux-armes",
       "page": 91
     },
-    "shape": "massue"
+    "shape": {
+      "id": "massue"
+    }
   },
   {
     "id": "pique-d-armes",
@@ -586,7 +616,9 @@
       "book": "aux-armes",
       "page": 91
     },
-    "shape": "pique_armes"
+    "shape": {
+      "id": "pique_armes"
+    }
   },
   {
     "id": "lance-de-cavalerie",
@@ -621,7 +653,12 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "lance_cavalerie"
+    "shape": {
+      "id": "lance_cavalerie"
+    },
+    "capabilities": {
+      "improvisedWithoutCharge": true
+    }
   },
   {
     "id": "marteau-a-bec-de-corbin",
@@ -653,7 +690,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "bec_de_corbin"
+    "shape": {
+      "id": "bec_de_corbin"
+    }
   },
   {
     "id": "epee-batarde",
@@ -688,7 +727,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "epee_batarde",
+    "shape": {
+      "id": "epee_batarde"
+    },
     "bladed": true
   },
   {
@@ -727,7 +768,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "grande_hache",
+    "shape": {
+      "id": "grande_hache"
+    },
     "bladed": true
   },
   {
@@ -766,7 +809,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "marteau_guerre"
+    "shape": {
+      "id": "marteau_guerre"
+    }
   },
   {
     "id": "pioche-a-deux-mains",
@@ -804,7 +849,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "pioche_2m"
+    "shape": {
+      "id": "pioche_2m"
+    }
   },
   {
     "id": "zweihander",
@@ -839,7 +886,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "zweihander",
+    "shape": {
+      "id": "zweihander"
+    },
     "bladed": true
   },
   {
@@ -874,7 +923,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "fleuret",
+    "shape": {
+      "id": "fleuret"
+    },
     "bladed": true
   },
   {
@@ -902,7 +953,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "rapiere",
+    "shape": {
+      "id": "rapiere"
+    },
     "bladed": true
   },
   {
@@ -930,7 +983,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "fleau"
+    "shape": {
+      "id": "fleau"
+    }
   },
   {
     "id": "fleau-a-grain",
@@ -961,7 +1016,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "fleau_grain"
+    "shape": {
+      "id": "fleau_grain"
+    }
   },
   {
     "id": "fleau-d-armes",
@@ -996,7 +1053,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "fleau_armes"
+    "shape": {
+      "id": "fleau_armes"
+    }
   },
   {
     "id": "brise-epee",
@@ -1027,7 +1086,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "brise_epee",
+    "shape": {
+      "id": "brise_epee"
+    },
     "bladed": true
   },
   {
@@ -1055,7 +1116,9 @@
       "book": "livre-de-base",
       "page": 294
     },
-    "shape": "main_gauche",
+    "shape": {
+      "id": "main_gauche"
+    },
     "bladed": true
   },
   {
@@ -1090,7 +1153,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "arbalete",
+    "shape": {
+      "id": "arbalete"
+    },
     "organicProjectile": true
   },
   {
@@ -1123,7 +1188,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "arbalete_poing",
+    "shape": {
+      "id": "arbalete_poing"
+    },
     "organicProjectile": true
   },
   {
@@ -1161,7 +1228,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "arbalete_lourde",
+    "shape": {
+      "id": "arbalete_lourde"
+    },
     "organicProjectile": true
   },
   {
@@ -1191,7 +1260,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "arc",
+    "shape": {
+      "id": "arc"
+    },
     "organicProjectile": true
   },
   {
@@ -1221,7 +1292,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "arc_court",
+    "shape": {
+      "id": "arc_court"
+    },
     "organicProjectile": true
   },
   {
@@ -1258,7 +1331,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "arc_elfique",
+    "shape": {
+      "id": "arc_elfique"
+    },
     "organicProjectile": true
   },
   {
@@ -1292,7 +1367,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "arc_long",
+    "shape": {
+      "id": "arc_long"
+    },
     "organicProjectile": true
   },
   {
@@ -1326,7 +1403,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "fouet"
+    "shape": {
+      "id": "fouet"
+    }
   },
   {
     "id": "lasso",
@@ -1358,7 +1437,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "lasso"
+    "shape": {
+      "id": "lasso"
+    }
   },
   {
     "id": "filet",
@@ -1387,7 +1468,9 @@
       "book": "zoo-imperial",
       "page": 29
     },
-    "shape": "filet_leste"
+    "shape": {
+      "id": "filet_leste"
+    }
   },
   {
     "id": "bombe",
@@ -1428,7 +1511,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "bombe"
+    "shape": {
+      "id": "bombe"
+    }
   },
   {
     "id": "bombe-incendiaire",
@@ -1466,7 +1551,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "bombe_incendiaire"
+    "shape": {
+      "id": "bombe_incendiaire"
+    }
   },
   {
     "id": "fronde",
@@ -1494,7 +1581,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "fronde"
+    "shape": {
+      "id": "fronde"
+    }
   },
   {
     "id": "fustibale",
@@ -1523,7 +1612,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "fustibale"
+    "shape": {
+      "id": "fustibale"
+    }
   },
   {
     "id": "bolas",
@@ -1558,7 +1649,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "bolas"
+    "shape": {
+      "id": "bolas"
+    }
   },
   {
     "id": "couteau-de-lancer",
@@ -1588,7 +1681,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "couteau_lancer"
+    "shape": {
+      "id": "couteau_lancer"
+    }
   },
   {
     "id": "flechette",
@@ -1622,7 +1717,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "flechette"
+    "shape": {
+      "id": "flechette"
+    }
   },
   {
     "id": "hache-de-lancer",
@@ -1656,7 +1753,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "hache_lancer"
+    "shape": {
+      "id": "hache_lancer"
+    }
   },
   {
     "id": "javelot",
@@ -1690,7 +1789,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "javelot",
+    "shape": {
+      "id": "javelot"
+    },
     "organicProjectile": true
   },
   {
@@ -1718,7 +1819,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "rocher"
+    "shape": {
+      "id": "rocher"
+    }
   },
   {
     "id": "arquebus-a-repetition",
@@ -1765,7 +1868,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "arquebus_rep"
+    "shape": {
+      "id": "arquebus_rep"
+    }
   },
   {
     "id": "pistolet-a-repetition",
@@ -1814,7 +1919,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "pistolet_rep"
+    "shape": {
+      "id": "pistolet_rep"
+    }
   },
   {
     "id": "arquebuse",
@@ -1857,7 +1964,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "arquebuse"
+    "shape": {
+      "id": "arquebuse"
+    }
   },
   {
     "id": "long-fusil-d-hochland",
@@ -1903,7 +2012,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "hochland"
+    "shape": {
+      "id": "hochland"
+    }
   },
   {
     "id": "pistolet",
@@ -1945,7 +2056,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "pistolet"
+    "shape": {
+      "id": "pistolet"
+    }
   },
   {
     "id": "tromblon",
@@ -1992,7 +2105,9 @@
       "book": "livre-de-base",
       "page": 295
     },
-    "shape": "tromblon"
+    "shape": {
+      "id": "tromblon"
+    }
   },
   {
     "id": "carreau",
@@ -2264,6 +2379,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "calotte"
     }
   },
   {
@@ -2288,6 +2406,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "jambieres"
     }
   },
   {
@@ -2312,6 +2433,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "justaucorps"
     }
   },
   {
@@ -2336,6 +2460,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "veste"
     }
   },
   {
@@ -2363,6 +2490,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "plastron"
     }
   },
   {
@@ -2394,6 +2524,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "jambieres"
     }
   },
   {
@@ -2425,6 +2558,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "justaucorps"
     }
   },
   {
@@ -2463,6 +2599,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "coiffe"
     }
   },
   {
@@ -2494,6 +2633,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "veste"
     }
   },
   {
@@ -2528,6 +2670,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "brassards"
     }
   },
   {
@@ -2566,6 +2711,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "heaume"
     }
   },
   {
@@ -2601,6 +2749,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "heaume-ouvert"
     }
   },
   {
@@ -2635,6 +2786,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "jambieres"
     }
   },
   {
@@ -2669,6 +2823,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
+    },
+    "shape": {
+      "id": "plastron"
     }
   },
   {
@@ -3106,6 +3263,9 @@
     "id": "cape",
     "type": "trappings",
     "label": "Cape",
+    "shape": {
+      "id": "cape"
+    },
     "capabilities": {
       "weatherProtection": true
     },
@@ -8102,7 +8262,9 @@
       "book": "aux-armes",
       "page": 92
     },
-    "shape": "pavois"
+    "shape": {
+      "id": "pavois"
+    }
   },
   {
     "id": "filet-leste",
@@ -8155,7 +8317,9 @@
         "quote": "Filet lesté"
       }
     ],
-    "shape": "filet_leste"
+    "shape": {
+      "id": "filet_leste"
+    }
   },
   {
     "id": "baliste",
@@ -8738,7 +8902,12 @@
       "book": "aux-armes",
       "page": 90
     },
-    "shape": "demi_lance"
+    "shape": {
+      "id": "demi_lance"
+    },
+    "capabilities": {
+      "improvisedWithoutCharge": true
+    }
   },
   {
     "id": "sabre",
@@ -8771,7 +8940,9 @@
       "book": "aux-armes",
       "page": 90
     },
-    "shape": "sabre",
+    "shape": {
+      "id": "sabre"
+    },
     "bladed": true
   },
   {
@@ -8804,7 +8975,9 @@
       "book": "aux-armes",
       "page": 90
     },
-    "shape": "epee_cour",
+    "shape": {
+      "id": "epee_cour"
+    },
     "bladed": true
   },
   {
@@ -8840,7 +9013,9 @@
       "book": "aux-armes",
       "page": 90
     },
-    "shape": "gaffe"
+    "shape": {
+      "id": "gaffe"
+    }
   },
   {
     "id": "gantelet-a-pointes",
@@ -8875,7 +9050,9 @@
       "book": "aux-armes",
       "page": 90
     },
-    "shape": "gantelet_pointes"
+    "shape": {
+      "id": "gantelet_pointes"
+    }
   },
   {
     "id": "griffe-de-tigre",
@@ -8903,7 +9080,9 @@
       "book": "nuits-agitees-et-dures-journees",
       "page": 67
     },
-    "shape": "griffe_tigre",
+    "shape": {
+      "id": "griffe_tigre"
+    },
     "bladed": true
   },
   {
@@ -8939,7 +9118,9 @@
       "book": "aux-armes",
       "page": 94
     },
-    "shape": "gantelet_verrouille"
+    "shape": {
+      "id": "gantelet_verrouille"
+    }
   },
   {
     "id": "lacet-etrangleur",
@@ -8981,7 +9162,9 @@
       "book": "aux-armes",
       "page": 90
     },
-    "shape": "lacet_etrangleur"
+    "shape": {
+      "id": "lacet_etrangleur"
+    }
   },
   {
     "id": "cape-2",
@@ -9023,7 +9206,9 @@
         "quote": "Cape"
       }
     ],
-    "shape": "cape"
+    "shape": {
+      "id": "cape"
+    }
   },
   {
     "id": "ahlspiess",
@@ -9059,7 +9244,9 @@
       "book": "aux-armes",
       "page": 96
     },
-    "shape": "ahlspiess"
+    "shape": {
+      "id": "ahlspiess"
+    }
   },
   {
     "id": "attrape-coquin",
@@ -9095,7 +9282,9 @@
       "book": "aux-armes",
       "page": 96
     },
-    "shape": "attrape_coquin"
+    "shape": {
+      "id": "attrape_coquin"
+    }
   },
   {
     "id": "hache-d-armes",
@@ -9144,7 +9333,9 @@
         "quote": "Hache d'armes"
       }
     ],
-    "shape": "hache_armes",
+    "shape": {
+      "id": "hache_armes"
+    },
     "bladed": true
   },
   {
@@ -9192,7 +9383,9 @@
         "quote": "Pertuisane/Fauchard"
       }
     ],
-    "shape": "pertuisane",
+    "shape": {
+      "id": "pertuisane"
+    },
     "bladed": true
   },
   {
@@ -9239,7 +9432,9 @@
         "quote": "Serpe de guerre"
       }
     ],
-    "shape": "serpe_guerre",
+    "shape": {
+      "id": "serpe_guerre"
+    },
     "bladed": true
   },
   {
@@ -9280,7 +9475,9 @@
       "book": "aux-armes",
       "page": 96
     },
-    "shape": "zweihander_flamberge",
+    "shape": {
+      "id": "zweihander_flamberge"
+    },
     "bladed": true
   },
   {
@@ -9500,7 +9697,9 @@
       "book": "aux-armes",
       "page": 100
     },
-    "shape": "arquebuse_double"
+    "shape": {
+      "id": "arquebuse_double"
+    }
   },
   {
     "id": "arquebuse-a-meche",
@@ -9538,7 +9737,9 @@
       "book": "aux-armes",
       "page": 100
     },
-    "shape": "arquebuse_meche"
+    "shape": {
+      "id": "arquebuse_meche"
+    }
   },
   {
     "id": "hache-arquebuse",
@@ -9579,7 +9780,9 @@
       "book": "aux-armes",
       "page": 100
     },
-    "shape": "hache_arquebuse"
+    "shape": {
+      "id": "hache_arquebuse"
+    }
   },
   {
     "id": "hallebarde-arquebuse",
@@ -9620,7 +9823,9 @@
       "book": "aux-armes",
       "page": 100
     },
-    "shape": "hallebarde_arquebuse"
+    "shape": {
+      "id": "hallebarde_arquebuse"
+    }
   },
   {
     "id": "haquebute",
@@ -9661,7 +9866,9 @@
       "book": "aux-armes",
       "page": 100
     },
-    "shape": "haquebute"
+    "shape": {
+      "id": "haquebute"
+    }
   },
   {
     "id": "pistolet-patte-de-griffon",
@@ -9702,7 +9909,9 @@
       "book": "aux-armes",
       "page": 100
     },
-    "shape": "pistolet_griffon"
+    "shape": {
+      "id": "pistolet_griffon"
+    }
   },
   {
     "id": "tromblon-a-meche",
@@ -9744,7 +9953,9 @@
       "book": "aux-armes",
       "page": 100
     },
-    "shape": "tromblon_meche"
+    "shape": {
+      "id": "tromblon_meche"
+    }
   },
   {
     "id": "canne-pistolet",
@@ -9784,7 +9995,9 @@
       "book": "aux-armes",
       "page": 100
     },
-    "shape": "canne_pistolet"
+    "shape": {
+      "id": "canne_pistolet"
+    }
   },
   {
     "id": "mortier-a-main",
@@ -9825,7 +10038,9 @@
       "book": "aux-armes",
       "page": 100
     },
-    "shape": "mortier_main"
+    "shape": {
+      "id": "mortier_main"
+    }
   },
   {
     "id": "poivriere",
@@ -9869,7 +10084,9 @@
       "book": "aux-armes",
       "page": 100
     },
-    "shape": "poivriere"
+    "shape": {
+      "id": "poivriere"
+    }
   },
   {
     "id": "balle-de-gros-calibre-et-poudre",
@@ -10171,7 +10388,9 @@
       }
     ],
     "enc": 3,
-    "shape": "jezail"
+    "shape": {
+      "id": "jezail"
+    }
   },
   {
     "id": "canon-ratling",
@@ -10221,7 +10440,9 @@
       }
     ],
     "enc": 4,
-    "shape": "canon_ratling"
+    "shape": {
+      "id": "canon_ratling"
+    }
   },
   {
     "id": "pistolet-a-malepierre",
@@ -10273,7 +10494,9 @@
       }
     ],
     "enc": 0,
-    "shape": "pistolet_malepierre"
+    "shape": {
+      "id": "pistolet_malepierre"
+    }
   },
   {
     "id": "baiser-de-la-vouivre",
@@ -10761,7 +10984,9 @@
     },
     "qualities": [],
     "enc": 0,
-    "shape": "dague_funeste",
+    "shape": {
+      "id": "dague_funeste"
+    },
     "bladed": true
   },
   {
@@ -10797,7 +11022,10 @@
         "value": -10
       }
     ],
-    "enc": 8
+    "enc": 8,
+    "shape": {
+      "id": "armure-complete"
+    }
   },
   {
     "id": "lame-a-poignee-en-bois-de-cerf",
@@ -10825,7 +11053,9 @@
     },
     "qualities": [],
     "enc": 1,
-    "shape": "lame_bois_cerf",
+    "shape": {
+      "id": "lame_bois_cerf"
+    },
     "bladed": true
   },
   {
@@ -10873,7 +11103,9 @@
     },
     "qualities": [],
     "enc": 0,
-    "shape": "surin_aigle",
+    "shape": {
+      "id": "surin_aigle"
+    },
     "bladed": true
   },
   {
@@ -11015,7 +11247,9 @@
       }
     ],
     "enc": 3,
-    "shape": "broyeur_os"
+    "shape": {
+      "id": "broyeur_os"
+    }
   },
   {
     "id": "silence",
@@ -11047,7 +11281,9 @@
       }
     ],
     "enc": 1,
-    "shape": "silence",
+    "shape": {
+      "id": "silence"
+    },
     "bladed": true
   },
   {
@@ -11088,7 +11324,9 @@
       }
     ],
     "enc": 1,
-    "shape": "rond"
+    "shape": {
+      "id": "rond"
+    }
   },
   {
     "id": "cape-du-loup",
@@ -11458,7 +11696,9 @@
       "book": "archives-de-l-empire-2",
       "page": 29
     },
-    "shape": "massue"
+    "shape": {
+      "id": "massue"
+    }
   },
   {
     "id": "poing-de-fer",
@@ -11498,7 +11738,9 @@
       "book": "archives-de-l-empire-2",
       "page": 29
     },
-    "shape": "gantelet_pointes"
+    "shape": {
+      "id": "gantelet_pointes"
+    }
   },
   {
     "id": "grande-massue-ogre",
@@ -11532,7 +11774,9 @@
       "book": "archives-de-l-empire-2",
       "page": 29
     },
-    "shape": "massue"
+    "shape": {
+      "id": "massue"
+    }
   },
   {
     "id": "lance-harpon",
@@ -11574,7 +11818,9 @@
       "book": "archives-de-l-empire-2",
       "page": 30
     },
-    "shape": "arbalete_lourde",
+    "shape": {
+      "id": "arbalete_lourde"
+    },
     "organicProjectile": true
   },
   {
@@ -11611,7 +11857,9 @@
       "book": "archives-de-l-empire-2",
       "page": 29
     },
-    "shape": "filet_leste"
+    "shape": {
+      "id": "filet_leste"
+    }
   },
   {
     "id": "grande-lance",
@@ -11647,7 +11895,9 @@
       "book": "archives-de-l-empire-2",
       "page": 29
     },
-    "shape": "javelot",
+    "shape": {
+      "id": "javelot"
+    },
     "organicProjectile": true
   },
   {
@@ -11687,7 +11937,9 @@
       "book": "archives-de-l-empire-2",
       "page": 29
     },
-    "shape": "tromblon"
+    "shape": {
+      "id": "tromblon"
+    }
   },
   {
     "id": "pistolet-ogre",
@@ -11725,7 +11977,9 @@
       "book": "archives-de-l-empire-2",
       "page": 29
     },
-    "shape": "pistolet"
+    "shape": {
+      "id": "pistolet"
+    }
   },
   {
     "id": "harpon",
@@ -11852,6 +12106,9 @@
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 29
+    },
+    "shape": {
+      "id": "plastron"
     }
   },
   {
@@ -12825,7 +13082,9 @@
       "book": "vents-de-la-magie",
       "page": 152
     },
-    "shape": "baton"
+    "shape": {
+      "id": "baton"
+    }
   },
   {
     "id": "parchemin-de-sort",
@@ -13720,7 +13979,9 @@
       "book": "vents-de-la-magie",
       "page": 170
     },
-    "shape": "arc",
+    "shape": {
+      "id": "arc"
+    },
     "organicProjectile": true
   },
   {
@@ -13774,6 +14035,9 @@
     "source": {
       "book": "vents-de-la-magie",
       "page": 171
+    },
+    "shape": {
+      "id": "veste"
     }
   },
   {
@@ -13811,7 +14075,9 @@
       "book": "vents-de-la-magie",
       "page": 171
     },
-    "shape": "dague",
+    "shape": {
+      "id": "dague"
+    },
     "bladed": true,
     "onHitEffects": [
       {
@@ -14014,7 +14280,9 @@
       "book": "vents-de-la-magie",
       "page": 171
     },
-    "shape": "marteau_guerre"
+    "shape": {
+      "id": "marteau_guerre"
+    }
   },
   {
     "id": "epee-de-retenue",
@@ -14042,7 +14310,9 @@
       "book": "vents-de-la-magie",
       "page": 171
     },
-    "shape": "epee",
+    "shape": {
+      "id": "epee"
+    },
     "bladed": true
   },
   {
@@ -14091,7 +14361,9 @@
       "book": "vents-de-la-magie",
       "page": 172
     },
-    "shape": "fleau"
+    "shape": {
+      "id": "fleau"
+    }
   },
   {
     "id": "hache-de-fureur-incessante",
@@ -14119,7 +14391,9 @@
       "book": "vents-de-la-magie",
       "page": 172
     },
-    "shape": "hache_armes",
+    "shape": {
+      "id": "hache_armes"
+    },
     "bladed": true
   },
   {
@@ -14199,7 +14473,9 @@
       "book": "vents-de-la-magie",
       "page": 172
     },
-    "shape": "pistolet"
+    "shape": {
+      "id": "pistolet"
+    }
   },
   {
     "id": "poings-d-ignominie",
@@ -14250,7 +14526,9 @@
       "book": "vents-de-la-magie",
       "page": 172
     },
-    "shape": "poing"
+    "shape": {
+      "id": "poing"
+    }
   },
   {
     "id": "anneau-d-opsianon",

@@ -611,6 +611,18 @@
         },
         {
           "files": [
+            "apparences.json"
+          ],
+          "desc": "LES apparences d'objet — une entrée sans `forme` est une forme (cible de `shape`/`formChoices` de `trappings.json`), une entrée avec `forme` en est une variante, avec ses étiquettes de naissance"
+        },
+        {
+          "files": [
+            "gabarits.json"
+          ],
+          "desc": "LES carrures du rig — facteurs (longueur, épaisseur, jambes, bras, tête) du squelette humain de référence ; une race (`raceAppearance.json`) ou une créature en nomme une, résolue par `src/noyau/apparence/gabarit.ts`"
+        },
+        {
+          "files": [
             "terrains.json"
           ],
           "desc": "LES terrains de la grille — un document où la RÈGLE (`walkable`, `priority`, `opaque`, `built`) et le RENDU (`swatch`, `stops`, `detail`, `overlayProp`, `solidHeightM`) vivent dans la MÊME entrée ; lu par la façade `src/noyau/monde/terrain`"

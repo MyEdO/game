@@ -1,8 +1,8 @@
 /**
  * Cœur d'inventaire d'un PORTEUR (#620 SOCLE POSSESSIONS T1-e, Lot 1b — « composer, pas dupliquer »,
  * #373). Extrait de la fiche héros (`CharacterSheet.tsx`) : la liste d'objets par groupe, la rangée
- * `PlaqueRow` (icône, libellé codex, stats mécaniques, Enc/remplissage, badges équipé/parure/non-
- * identifié) et les actions COMMUNES à tout porteur — Équiper/Porter, Ranger, Transférer, Parure,
+ * `PlaqueRow` (icône, libellé codex, stats mécaniques, Enc/remplissage, badges équipé/non-
+ * identifié) et les actions COMMUNES à tout porteur — Équiper/Porter, Ranger, Transférer,
  * Sortir — routées par `carrierId` (héros OU possession, `resolveCarrier`, Lot 1a #620).
  *
  * Les extensions HÉROS-ONLY (sets d'armes/mains, Évaluer/Détecter, Utiliser un consommable) restent
@@ -27,21 +27,9 @@ import { Band } from './Band';
 import { CharFrame } from './CharFrame';
 import { QualityChips } from './EntityChip';
 import { resolveQualities } from '../engine/qualities/dispatch';
-import { ColorPalettePickers } from './ColorPalettePickers';
 import { prefixOf } from './PossessionsRegistry';
 import { GatedAction, raisonSi } from './GatedAction';
 import { refusDInventaire } from '../noyau/verrousDeFiche';
-import type { Palette } from '../engine/authoringAppearance';
-import { projectionEditeur } from '../gameIso/rig/clesDePalette';
-
-/** Emplacements de couleur d'un SKIN d'OBJET légendaire (`metal/cuir/accent` = slots de palette). */
-const WEAPON_SKIN_SLOTS = projectionEditeur(['metal', 'cuir', 'accent'], {
-  metal: 'Métal (lame / canon)', cuir: 'Bois & cuir', accent: 'Or & détails',
-});
-const ARMOUR_SKIN_SLOTS = projectionEditeur(['metal', 'cuir'], {
-  metal: 'Métal (plaque / maille)', cuir: 'Cuir / rembourrage',
-});
-const skinSlotsFor = (kind: ItemInstance['kind']) => (kind === 'armor' ? ARMOUR_SKIN_SLOTS : WEAPON_SKIN_SLOTS);
 
 const LOC_SHORT: Record<HitLocation, string> = {
   tete: 'Tête',
@@ -91,14 +79,12 @@ export function CarrierInventory({
   const toggleEquip = useGame((s) => s.toggleEquip);
   const stowItem = useGame((s) => s.stowItem);
   const transferItem = useGame((s) => s.transferItem);
-  const setItemSkin = useGame((s) => s.setItemSkin);
   const battle = useGame((s) => s.battle);
   // Verdict du noyau, celui que rendent les gestes d'objet (porter, ranger, sortir, donner).
   const refusInventaire = refusDInventaire({ battle });
   const possessions = useGame((s) => s.possessions);
   // Registre (#492 lot POSSESSIONS B) : un clic ÉLIT une seule rangée à la fois (ré-clic désélectionne).
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
-  const [skinOpenUid, setSkinOpenUid] = useState<string | null>(null);
   const carrier = { items };
 
   // Cibles « Donner » (#723) : héros ET possessions CO-LOCALISÉES avec le porteur source (`carriersColocated`,
@@ -140,12 +126,9 @@ export function CarrierInventory({
     const handLabel = isWeaponItem ? (weaponHandLabel?.(it) ?? null) : null;
     // Surbrillance « équipé » : arme tenue dans le set ACTIF (défaut `it.equipped`) ; sinon armure portée.
     const highlighted = isWeaponItem ? (weaponHighlighted ? weaponHighlighted(it) : it.equipped) : it.equipped;
-    const isSkinnable = it.kind === 'melee' || it.kind === 'ranged' || it.kind === 'armor';
-    const skinned = !!it.skin && Object.keys(it.skin).length > 0;
     const selected = selectedUid === it.uid;
-    const skinOpen = isSkinnable && skinOpenUid === it.uid;
 
-    // Une vérité, un badge : équipé/en main · skin · non-identifié.
+    // Une vérité, un badge : équipé/en main · non-identifié.
     const badges: ReactNode[] = [];
     if (highlighted) {
       badges.push(
@@ -154,7 +137,6 @@ export function CarrierInventory({
         </span>,
       );
     }
-    if (skinned) badges.push(<span key="skin" className="chip"><Icon id="action/cast" size="sm" /> Parure</span>);
     if (it.identified === false) {
       badges.push(
         <span key="unid" className="chip tone-warn" title="Évaluer (ou Détecter l'artefact) pour révéler ses qualités">
@@ -192,16 +174,6 @@ export function CarrierInventory({
                 btnClassName="small"
               />
             ) : null}
-            {isSkinnable && (
-              <button
-                className="btn small"
-                aria-expanded={skinOpen}
-                title="Parure légendaire — recolorer l'objet"
-                onClick={() => setSkinOpenUid(skinOpen ? null : it.uid)}
-              >
-                <Icon id="action/cast" size="sm" /> Parure
-              </button>
-            )}
             {containers.length > 0 && refusInventaire && (
               <GatedAction id={`inv-stow-${it.uid}`} label={<><Icon id="item/misc" size="sm" /> Ranger</>} enabled={false} {...raisonSi(refusInventaire)} onClick={() => {}} primary={false} btnClassName="small" />
             )}
@@ -250,23 +222,6 @@ export function CarrierInventory({
                 btnClassName="small"
               />
             )}
-          </div>
-        )}
-        {skinOpen && (
-          <div className="inv-skin">
-            <ItemIcon item={it} size="lg" />
-            <div className="inv-skin-body">
-              <ColorPalettePickers
-                colors={it.skin as Palette | undefined}
-                slots={skinSlotsFor(it.kind)}
-                onColors={(patch) => setItemSkin(carrierId, it.uid, patch)}
-              />
-              {skinned && (
-                <button className="btn small inv-skin-remove" onClick={() => setItemSkin(carrierId, it.uid, Object.fromEntries(skinSlotsFor(it.kind).map(([, s]) => [s, undefined])))}>
-                  Retirer la parure
-                </button>
-              )}
-            </div>
           </div>
         )}
         {it.container && (() => {

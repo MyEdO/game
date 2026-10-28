@@ -1,27 +1,22 @@
 // @vitest-environment jsdom
-/**
- * #2097 A7, #2113 A3 — une surface React montée recompose son rig à l'édition d'un catalogue : la forme
- * d'une arme portée (invoquée par `form`, ou Possession par `trappingId`) éditée par
- * `setDataset('trappings', …)` change le dessin de la poupée d'un héros sans autre rendu de l'appelant
- * (`CharacterPreview` : la version des catalogues entre dans le mémo de sa projection).
- */
+/** #2967 ; #2113 */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CharacterPreview } from '../../ui/CharacterPreview';
 import { setDataset } from '../../data/overrides';
-import { creatures, trappings } from '../../data';
+import { creatures, trappings, findTrappingById } from '../../data';
 import { CreaturePreview } from '../../ui/compendium/CreaturePreview';
 import { WEAPON_DEFS } from './parts/weapons/_registry.generated';
 import { createHero } from '../../engine/character';
-import { itemFromTrappingById, weaponFromItem } from '../../engine/items';
+import { buildWeapon, itemFromTrappingById, weaponFromItem } from '../../engine/items';
 import type { Combatant, Weapon } from '../../engine/types';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const slugs = new Set(WEAPON_DEFS.map((d) => d.slug));
-const armeDeCatalogue = trappings.find((t) => t.shape && slugs.has(t.shape))!;
-const autreForme = [...slugs].find((s) => s !== armeDeCatalogue.shape)!;
+const armeDeCatalogue = trappings.find((t) => t.shape && slugs.has(t.shape.id))!;
+const autreForme = [...slugs].find((s) => s !== armeDeCatalogue.shape?.id)!;
 const catalogueDOrigine = trappings.slice();
 const bestiaireDOrigine = creatures.slice();
 
@@ -31,7 +26,7 @@ function héros(arme: Weapon): Combatant {
   h.weapons = [arme];
   return h;
 }
-const éditerLaForme = (id: string, shape: string) => setDataset('trappings', trappings.map((t) => (t.id === id ? { ...t, shape } : t)));
+const éditerLaForme = (id: string, shape: string) => setDataset('trappings', trappings.map((t) => (t.id === id ? { ...t, shape: { id: shape } } : t)));
 
 let root: Root | null = null;
 let hôte: HTMLDivElement | null = null;
@@ -45,17 +40,17 @@ afterEach(() => {
   act(() => setDataset('creatures', bestiaireDOrigine));
 });
 
-describe('surface React montée : l’édition d’un catalogue recompose son rig', () => {
+describe('surface React montée : la forme d’un objet reste celle de sa naissance', () => {
   const PORTEURS: [string, () => Combatant, () => void][] = [
     [
       'arme invoquée (`form`)',
-      () => héros({ label: 'x', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], form: armeDeCatalogue.id }),
+      () => héros(buildWeapon({ label: 'x', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], shape: findTrappingById(armeDeCatalogue.id)!.shape })),
       () => éditerLaForme(armeDeCatalogue.id, autreForme),
     ],
     ['Possession portée (`trappingId`)', () => héros(weaponFromItem(itemFromTrappingById('arbalete')!, 'main')), () => éditerLaForme('arbalete', 'hache_lancer')],
   ];
   for (const [nom, porteur, éditer] of PORTEURS)
-    it(`${nom} : la forme éditée au catalogue change le dessin de la poupée du héros`, () => {
+    it(`${nom} : l’édition de fiche affecte les nouvelles naissances et conserve le dessin de l’objet porté`, () => {
       hôte = document.createElement('div');
       document.body.appendChild(hôte);
       root = createRoot(hôte);
@@ -65,7 +60,9 @@ describe('surface React montée : l’édition d’un catalogue recompose son ri
 
       act(éditer);
 
-      expect(hôte.innerHTML, 'l’aperçu n’a pas suivi l’édition du catalogue').not.toBe(avant);
+      expect(hôte.innerHTML, 'la forme de l’objet né est conservée').toBe(avant);
+      act(() => root!.render(<CharacterPreview hero={porteur()} />));
+      expect(hôte.innerHTML, 'une nouvelle naissance prend la forme éditée').not.toBe(avant);
     });
 });
 

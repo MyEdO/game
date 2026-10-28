@@ -199,8 +199,8 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   it('Sans Peur (Ennemi, LDB 10 l.1051) : allègement PAR RANGÉE (Calme Accessible +20) ; réussite → Peur ignorée', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup('grande'); // source de Peur 1 (Taille)
-    E.groups = ['Ogre'];
-    H.talents = [...(H.talents ?? []), { talentId: 'sans-peur', spec: 'Ogre', times: 1 }]; // Sans Peur (Ogre)
+    E.groups = ['ogre'];
+    H.talents = [...(H.talents ?? []), { talentId: 'sans-peur', spec: 'ogre', times: 1 }]; // Sans Peur (Ogre)
     openRoundEndCascade(useGame.getState, useGame.setState);
     expect(band().combatPsych?.kind).toBe('peur');
     // L'allègement est PROPRE au porteur du Talent : il vit sur SA rangée, jamais sur la déclaration.
@@ -219,9 +219,9 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   it('Sans Peur RATÉ face à une Peur 0 : surmontée par le Test étendu, jamais « ignorée » (LDB 10 l.1051 ; LDB 85 l.122)', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup('moyenne');
-    E.groups = ['Ogre'];
-    H.psychTraits = [{ type: 'phobie', cible: 'Ogre', indice: 0 }];
-    H.talents = [...(H.talents ?? []), { talentId: 'sans-peur', spec: 'Ogre', times: 1 }];
+    E.groups = ['ogre'];
+    H.psychTraits = [{ type: 'phobie', cible: 'ogre', indice: 0 }];
+    H.talents = [...(H.talents ?? []), { talentId: 'sans-peur', spec: 'ogre', times: 1 }];
     openRoundEndCascade(useGame.getState, useGame.setState);
     expect(band().combatPsych).toMatchObject({ kind: 'peur', indice: 0 });
     expect(row(H.id).meta?.sansPeur).toBe(true);
@@ -298,9 +298,9 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
   it('DÉBUT de Round : deux héros au MÊME Trait ciblé → UNE étape à DEUX rangées (une fenêtre, pas « jet 1/2 »)', () => {
     useGame.getState().seedRng(7);
     const { A, B, E1 } = duo();
-    E1.groups = ['Mort-vivant'];
+    E1.groups = ['mort-vivant'];
     for (const h of [A, B]) {
-      h.psychTraits = [{ type: 'animosite', cible: 'Mort-vivant' }];
+      h.psychTraits = [{ type: 'animosite', cible: 'mort-vivant' }];
       h.characteristics['force-mentale'] = 1; // Test de Calme raté quasi sûr
     }
     openRoundStartPsych(useGame.getState, useGame.setState);
@@ -327,8 +327,8 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
   it('POSSESSION : deux héros appelés → fenêtre PARTAGÉE ; un seul → la bande EST la sienne', () => {
     useGame.getState().seedRng(7);
     const { A, B, E1 } = duo();
-    E1.groups = ['Mort-vivant'];
-    for (const h of [A, B]) h.psychTraits = [{ type: 'animosite', cible: 'Mort-vivant' }];
+    E1.groups = ['mort-vivant'];
+    for (const h of [A, B]) h.psychTraits = [{ type: 'animosite', cible: 'mort-vivant' }];
     openRoundStartPsych(useGame.getState, useGame.setState);
     const deux = useGame.getState().pendingCascade!.participants[0];
     expect(deux.groupOwner).toBe(true);
@@ -461,8 +461,8 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     useGame.getState().seedRng(3);
     const { A, B, E1 } = duo();
     E1.causesPeur = 2;
-    E1.groups = ['Ogre'];
-    A.talents = [...(A.talents ?? []), { talentId: 'sans-peur', spec: 'Ogre', times: 1 }];
+    E1.groups = ['ogre'];
+    A.talents = [...(A.talents ?? []), { talentId: 'sans-peur', spec: 'ogre', times: 1 }];
     openRoundEndCascade(useGame.getState, useGame.setState);
     const bande = useGame.getState().pendingCascade!.participants.find((s) => s.kind === 'combatPsych')!;
     expect(bande.participants!.map((p) => p.id)).toEqual([A.id, B.id]); // UNE fenêtre malgré la divergence

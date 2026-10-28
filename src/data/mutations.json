@@ -815,7 +815,9 @@
       },
       {
         "op": "grantPsychTrait",
-        "psychType": "frenesie"
+        "psychType": {
+          "id": "frenesie"
+        }
       }
     ],
     "source": {

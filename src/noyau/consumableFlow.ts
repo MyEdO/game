@@ -34,7 +34,7 @@ import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { refusDInventaire, refuseSi } from './verrousDeFiche';
 
 /** ConditionCtx de SCÈNE augmenté du BUVEUR comme acteur (`target` ET `caster`) — les Conditions
- *  d'acteur (`has group Elfe` de la Fleur de lune, `compare woundsCurrent` de la Potion de guérison)
+ *  d'acteur (`has group elfe` de la Fleur de lune, `compare woundsCurrent` de la Potion de guérison)
  *  s'évaluent sur LUI, les Conditions de scène (flags/horloge/bourse) restent celles du monde. */
 function drinkerCtx(get: Get, hero: Combatant): ConditionCtx {
   const view = buildActorView(hero);
@@ -83,7 +83,7 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
       }
       case 'test': {
         const cc = drinkerCtx(get, hero);
-        // Gates op-level (Bonnet de fou : `exceptGroups:['Peau-Verte']` — les peaux-vertes ne testent
+        // Gates op-level (Bonnet de fou : `exceptGroups: ['peau-verte']` — les peaux-vertes ne testent
         // pas, LDB 71 l.20) : no-op → on continue la séquence.
         if (flowTestGated(node.test, hero, cc)) break;
         const after: Flow = { kind: 'seq', steps: stack.splice(0) };

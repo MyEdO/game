@@ -60,3 +60,23 @@ describe('GameOpEditor — une clé vidée s’OMET, jusque dans un SOUS-objet',
     expect((vus[vus.length - 1][0] as unknown as { valuePerSL: unknown }).valuePerSL).toEqual({ every: 1, amount: 1, onFailure: true });
   });
 });
+
+describe('GameOpEditor — `giveTrapping.perSL` se saisit par ses champs typés (`perSLSchema`)', () => {
+  it('cocher l’échelle pose `{ every, amount }`, décocher l’ôte, « sur l’échec » s’y pose', () => {
+    const vus: GameOp[][] = [];
+    monter([{ op: 'giveTrapping', trappingId: 'arme-simple', count: 1 }], vus);
+    act(() => {
+      caseACocher('objets en plus par DR').click();
+    });
+    expect(vus[vus.length - 1][0]).toEqual({ op: 'giveTrapping', trappingId: 'arme-simple', count: 1, perSL: { every: 1, amount: 1 } });
+    act(() => { root.render(<GameOpEditor ops={vus[vus.length - 1]} onChange={(next) => vus.push(next)} />); });
+    act(() => {
+      caseACocher("sur l'échec").click();
+    });
+    expect(vus[vus.length - 1][0]).toMatchObject({ perSL: { every: 1, amount: 1, onFailure: true } });
+    act(() => {
+      caseACocher('objets en plus par DR').click();
+    });
+    expect('perSL' in vus[vus.length - 1][0], 'l’échelle décochée reste à `undefined`').toBe(false);
+  });
+});

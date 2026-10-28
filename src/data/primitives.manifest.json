@@ -407,11 +407,20 @@
   {
     "id": "refField",
     "type": "primitives.manifest",
-    "label": "RefField/refusDuNoeud/cfgDeLaFeuille/RefNarrativeField/SaisieSuggeree/useSuggestionsPartagees",
+    "label": "RefField/refusDuNoeud/cfgDeLaFeuille/cfgDeLaListe/cfgDuNoeudASpec/ListeDIds/ChoixDeSpec/ChoixDeSpecs/SpecSelect/reposerLId/RefNarrativeField/SaisieSuggeree/useSuggestionsPartagees",
     "fichier": "src/ui/compendium/refField/RefField.tsx",
-    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste ; `cfgDeLaFeuille` nomme le catalogue que désigne la feuille `idDe` fermée d'un nœud, et le champ générique du Codex (`Field`) s'y rend en sélecteur `single` ; `RefNarrativeField` = son mode `single` sur les entrées (`entrees`) du registre du narratif que désigne une clé de `REFERENCES_NARRATIVES` ; `SaisieSuggeree` = son contrôle `<input list>` + `<datalist>` (modes `freeText`, `vocab`), saisie libre à suggestions émise telle quelle, seul propriétaire du motif (mur `murs/datalist`) ; `useSuggestionsPartagees` = UNE `<datalist>` partagée par les rangées d'un même champ",
-    "perimetre": "toute ref id statique du Compendium (champ générique d'une feuille `idDe` compris, à toute profondeur), champ objet de l'Effet `giveTrapping` ; toute référence narrative de l'éditeur (Effects, stade d'indice, preset d'entité) ; toute saisie libre à suggestions de l'UI (chaîne de trait, libellé de dataset)",
-    "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx, tavern-specials-editeur.test.tsx, saisie-suggeree.test.tsx"
+    "concept": "picker de référence multilangue-safe (par id) ; son mode `liste` stocke des ids NUS quand l'élément du nœud est une feuille `idDe` (`refs`) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste ; `cfgDeLaFeuille` nomme le catalogue que désigne la feuille `idDe` fermée d'un nœud, et le champ générique du Codex (`Field`) s'y rend en sélecteur `single` ; `cfgDeLaListe` nomme celui de l'élément d'une liste `refs`, et le même champ s'y rend en mode `liste`, ses rangées nommées par sa position (`sujet`) ; `cfgDuNoeudASpec` nomme celui d'une référence à spécialisation (`refOuSpec`, `specRef`, lue par `declarationDeRefASpecialisation`), et le même champ, objet seul ou rangée d'une liste, s'y rend en mode `single` à `spec`, ses deux contrôles nommés par sa position (`sujet`), ses autres clés gardées ; le mode `liste` à `spec` offre la spécialisation de chaque rangée ; `ListeDIds` = son mode `liste` sur le catalogue que désigne le nœud d'un champ `refs`, liste vidée rendue absente ; `ChoixDeSpec` = la spécialisation d'une entrée, choisie dans son catalogue (`SpecSelect`) quand l'entrée est fermée, saisie quand elle est ouverte, absente quand elle n'est pas spécialisable — le mode `spec` la compose ; `ChoixDeSpecs` = les spécialisations restreintes d'un emplacement `choix`, cochées dans le catalogue sans réordonner la valeur, celles hors catalogue d'une entrée ouverte cochées à la suite et complétées par saisie libre ; `reposerLId` = poser un autre id sur une référence en retirant la spécialisation de l'entrée quittée, lu par tout sélecteur d'id à spécialisation (modes `single` et `liste`, éditeurs dédiés) ; `RefNarrativeField` = son mode `single` sur les entrées (`entrees`) du registre du narratif que désigne une clé de `REFERENCES_NARRATIVES` ; `SaisieSuggeree` = son contrôle `<input list>` + `<datalist>` (modes `freeText`, `vocab`), saisie libre à suggestions émise telle quelle, seul propriétaire du motif (mur `murs/datalist`) ; `useSuggestionsPartagees` = UNE `<datalist>` partagée par les rangées d'un même champ",
+    "perimetre": "toute ref id statique du Compendium (champ générique d'une feuille `idDe` compris, à toute profondeur), champ objet de l'Effet `giveTrapping`, champs de Groupe de l'atelier (statbloc, Test, barrière, Condition `has`, op `banish`, listes du Codex) ; toute spécialisation de Compétence ou de Talent saisie à l'atelier et au créateur, toute référence à spécialisation du champ générique du Codex (objet ou rangée, à toute profondeur), les Compétences ajoutées d'une entité de scène ; toute référence narrative de l'éditeur (Effects, stade d'indice, preset d'entité) ; toute saisie libre à suggestions de l'UI (chaîne de trait, libellé de dataset)",
+    "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx, tavern-specials-editeur.test.tsx, saisie-suggeree.test.tsx, groupes-au-clic.test.tsx, ConditionEditor.test.tsx, combat-field-reverse-failed.test.tsx, RefField.test.tsx, spec-au-changement-d-id.test.tsx, Inspector.test.tsx"
+  },
+  {
+    "id": "optionsDuNoeud",
+    "type": "primitives.manifest",
+    "label": "optionsDuNoeud",
+    "fichier": "src/data/schemas/grammaire/meta.ts",
+    "concept": "options `[valeur, libellé]` d'un `<select>` sur un enum NOMMÉ (`enumNomme`, `valeursDe`), dans l'ordre de sa déclaration",
+    "perimetre": "tout `<select>` de l'atelier (Conditions, ops, Effets, Codex, inspecteur de scène) dont les options sont celles d'un enum nommé",
+    "verrou": "enums-nommes-grammaire.test.ts"
   },
   {
     "id": "saisieEnBrouillon",
@@ -571,11 +580,11 @@
   {
     "id": "sousListesNommees",
     "type": "primitives.manifest",
-    "label": "INSTANCIABLE_PAR_ID",
+    "label": "INSTANCIABLE_PAR_ID/DECLARABLE_PAR_UN_PORTEUR",
     "fichier": "src/data/schemas/grammaire/sousListes.ts",
-    "concept": "sous-liste marquée déclarée UNE fois (module feuille sans import) : les trappings que le moteur instancie par leur seul id",
-    "perimetre": "feuilles `idDe`/`refs` des trappings instanciés (op et Effet `giveTrapping`, `grantWeapon.form`, `merchants.curated`), `itemFromTrappingById`, `trappingsInstanciables`",
-    "verrou": "src/data/trappings-instanciables.test.ts"
+    "concept": "sous-listes marquées déclarées UNE fois (module feuille sans import) : les trappings que le moteur instancie par leur seul id ; les Groupes qu'un porteur déclare, jokers `matchesAll` exclus",
+    "perimetre": "feuilles `idDe`/`refs` des trappings instanciés (op et Effet `giveTrapping`, `grantWeapon.form`, `merchants.curated`), `itemFromTrappingById`, `trappingsInstanciables` ; champs de Groupe d'un porteur (`grantGroups`, `CustomStatblock.groups`, `FlowTest.vsGroups`)",
+    "verrou": "src/data/trappings-instanciables.test.ts, src/data/schemas/grammaire/refs-groupe.test.ts"
   },
   {
     "id": "jugementDeSousListe",
@@ -1075,12 +1084,21 @@
   {
     "id": "reglagesApparence",
     "type": "primitives.manifest",
-    "label": "ReglagesApparence/MonsterPartsFields",
+    "label": "ReglagesApparence/MonsterPartsFields/ApparencesObjetsField",
     "fichier": "src/ui/editor/MonsterPartsFields.tsx",
     "css": "src/ui/styles/reglages-apparence.css",
     "concept": "réglages d’une apparence, liste des réglages rendus en donnée, toute écriture par apparenceSuivante",
     "perimetre": "rubrique Apparence de l’Inspecteur, du Narratif, du Codex et du créateur",
     "verrou": "apparence-une-rubrique.test.tsx"
+  },
+  {
+    "id": "objetDonneField",
+    "type": "primitives.manifest",
+    "label": "ObjetDonneField",
+    "fichier": "src/ui/editor/ObjetDonneField.tsx",
+    "concept": "écrivain partagé de l’objet donné et de son apparence ; résolution campagne puis catalogue, admission canonique, absence du défaut",
+    "perimetre": "effets de scène et ops mécaniques giveTrapping",
+    "verrou": "src/ui/editor/MonsterPartsFields.test.tsx"
   },
   {
     "id": "heroSheet",
@@ -1546,7 +1564,7 @@
     "label": "gelerProfond/estUneDonneeGelee/GELER_LA_DONNEE/gelerLaConstante",
     "fichier": "src/lib/gelerProfond.ts",
     "concept": "gel profond de la DONNÉE en développement et en test : une écriture en place dans une donnée gelée lève au site fautif ; `estUneDonneeGelee` dit si un objet a été gelé comme donnée, ce qu'une constante gelée à sa définition n'est pas ; `gelerLaConstante` gèle en profondeur, à sa définition, une constante de module que l'état tient par référence (`EMPTY_FLOW`, `RULE_REF`)",
-    "perimetre": "clés de `memoByRef` (`noyau/monde/sceneMemo.ts`), entrées des datasets-tableaux (`data/overrides.ts`), garde de partage des tests (`state/partage.testkit.ts`), constantes de module partagées avec l'état (#2097)",
+    "perimetre": "clés de `memoByRef` (`noyau/monde/sceneMemo.ts`), entrées des datasets-tableaux (`data/overrides.ts`), garde de partage des tests (`scenes/partage.testkit.ts`), constantes de module partagées avec l'état (#2097)",
     "verrou": "garde de partage après chaque test (`src/test-setup.ts`, #2097)"
   },
   {
@@ -2056,20 +2074,29 @@
   {
     "id": "equipementDeDessin",
     "type": "primitives.manifest",
-    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
-    "fichier": "src/gameIso/rig/parts/equipment.ts",
-    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`forme` par `formeResolue`, `engine/items.ts` ; `bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
-    "perimetre": "tout producteur d'équipement de rig (`equipPorte`, `enemyRigProfile`, `entityRigProfile`, galeries), tout lecteur du rig (forme, maniement, clips, pièces)",
-    "verrou": "src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
+    "label": "equipementDessine/equipementDEntite/armesDEntite/EquipCtx/equipDe/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
+    "fichier": "src/noyau/equipementDessine.ts",
+    "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent à la naissance par `deciderApparencesDesArmes` puis `choisirApparenceDObjet` sur les armes réelles sans instance ; le dessin lit leur forme et leur apparence déjà décidées ; les constructions d’entité et décisions d’auteur reçoivent un TrappingResolver obligatoire, injecté par l’hôte ; le dessin d’un porteur déjà né consomme ses propriétés copiées sans résolveur ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule ; l'art d'une matière se résout côté rig (`ART_DE_MATIERE`, `src/gameIso/rig/parts/equipment.ts`)",
+    "perimetre": "tout producteur d'équipement dessiné (`equipementDessine`, `equipementDEntite`, `enemyRigProfile`, `entityRigProfile`, `rigDuCombattant`, galeries), tout lecteur du rig ou d'un hôte 3D (forme, maniement, clips, pièces)",
+    "verrou": "src/noyau/equipementDessine.test.ts, src/hote/projection.hors-store.test.ts, src/noyau/armure-portee-guard.test.ts, src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
   },
   {
     "id": "formeResolue",
     "type": "primitives.manifest",
-    "label": "formeResolue/SourceDeForme",
+    "label": "apparencesCandidates/choisirApparenceDObjet/deciderApparencesDesArmes/racineDesCandidats/formeResolue/SourceDeForme",
     "fichier": "src/engine/items.ts",
-    "concept": "FORME d'un objet porté résolue au catalogue courant par id stable (arme naturelle, arme invoquée `form`, `formeChoisie` parmi les `formChoices`, `shape` du trapping) — l'UNIQUE résolution de forme, jamais recopiée dans une instance (#2113)",
-    "perimetre": "tout lecteur d'une forme d'arme ou de bouclier : rig (`armeDeDessin`, `bouclierDeDessin`), icône d'inventaire, sélecteur de forme de la fiche, outillage de recette (`__wfrp.battle`)",
-    "verrou": "src/engine/rendu-pur-jamais-recopie.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
+    "concept": "forme racine mécanique `shape` copiée à la naissance ; `choisirApparenceDObjet` admet une décision explicite par `shape` et `formChoices` de la fiche résolue, puis écrit la même racine et l’apparence sur l’instance ; les CANDIDATS de l’objet porté lisent cette racine et la variante compatible, sans relire la fiche ; une arme naturelle ne publie aucun candidat ; `racineDesCandidats` lit la dernière entrée, que `formeResolue` rend (#2967)",
+    "perimetre": "tout lecteur d’une apparence ou de sa racine : rig (`armeDeDessin`, `bouclierDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `choisirApparenceDObjet`, outillage de recette (`__wfrp.battle`)",
+    "verrou": "src/engine/apparences-candidates.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
+  },
+  {
+    "id": "admissionApparenceDObjet",
+    "type": "primitives.manifest",
+    "label": "candidatsDApparenceDObjet/apparencesAdmissiblesDObjet/referenceDApparenceDObjet/messageDApparenceDObjet",
+    "fichier": "src/data/apparencesObjets.ts",
+    "concept": "résolution canonique des candidats d’un trapping par résolveur injecté (catalogue par défaut) : shape et formChoices admettent la racine de l’apparence ; lecteurs versionnés partagés avec la façade data/index ; référence d’auteur absente pour la forme par défaut ou une apparence non admise ; refus commun aux références d’auteur",
+    "perimetre": "décision de naissance et choix explicite par choisirApparenceDObjet, sélecteurs d’apparence de la fiche et des éditeurs, parse de giveTrapping effet et op, EntityAppearance.apparencesObjets, contrôles d’auteur d’objets non nés",
+    "verrou": "src/data/schemas/grammaire/apparences-objets.test.ts, src/engine/apparences-candidates.test.ts"
   },
   {
     "id": "successionDesCorps",
@@ -2180,6 +2207,15 @@
     "verrou": "scripts/guards/lib/perimetreSansEcriture.test.mjs"
   },
   {
+    "id": "naissanceDObjet",
+    "type": "primitives.manifest",
+    "label": "ContexteDeNaissanceDObjet/contexteDeNaissanceDObjet/itemFromTrappingById/itemFromTrappingRef/itemFromGive",
+    "fichier": "src/engine/items.ts",
+    "concept": "apparence décidée une seule fois à la naissance : contexte explicite du destinataire, qualités finales de l’objet, référence d’auteur prioritaire ; sans contexte ni décision d’auteur, aucune clé apparence",
+    "perimetre": "créateur, boutique, octrois, fabrication et effets ; aucune re-décision au transfert",
+    "verrou": "src/engine/apparenceNaissance.test.ts, src/state/apparence-naissance.test.ts"
+  },
+  {
     "id": "vise",
     "type": "primitives.manifest",
     "label": "vise/SourcePsy",
@@ -2196,5 +2232,23 @@
     "concept": "état de Peur (LDB 21 l.25 ; LDB 10 l.1051) : `sousPeur` seul lecteur du drapeau `surmontee`, `indiceDePeur` seul lecteur de l’Indice, `pasDePeur` seule arithmétique du Test étendu et de Sans Peur, `sansPeurFace` seule décision de la rangée allégée",
     "perimetre": "lecteurs de la Peur (DR, approche, icône, vue d’acteur, re-test, IA), Test étendu des héros et de l’IA, portes de Psychologie en combat et à la rencontre",
     "verrou": "src/engine/psych-vise.test.ts, src/engine/sans-peur.test.ts, src/engine/psych-branch-ops.test.ts"
+  },
+  {
+    "id": "ciblePsy",
+    "type": "primitives.manifest",
+    "label": "CiblePsy/ciblePsy/selonCible/cibleDuPorteur/MOTIF_D_ID_DE_GROUPE/identiteDeCiblage/libelleDeCible/estCibleType/RefDeCible/ciblePsyLue/refDeCible",
+    "fichier": "src/engine/psych/ciblage.ts",
+    "concept": "Cible d’un Trait psy (#1463, #3045) : un Groupe par son id, frappé par la seule fabrique `ciblePsy` (motif des ids de Groupe `MOTIF_D_ID_DE_GROUPE`, partagé avec le schéma des Groupes), lu par le seul `selonCible`, tiré d’un porteur par `cibleDuPorteur`, comparé par `identiteDeCiblage` (type et Cible), affiché par `libelleDeCible` ; `estCibleType` dit si un type de psychologie porte une Cible ; `ciblePsyLue` est la seule couture de la référence de donnée `{ id }` (`RefDeCible`) vers la Cible, `refDeCible` sa réciproque",
+    "perimetre": "psychologie (état, ops, bandes, IA, affichage), Cible des ops psy, éditeurs des ops psy",
+    "verrou": "src/engine/psych/ciblage.test.ts"
+  },
+  {
+    "id": "opPsy",
+    "type": "primitives.manifest",
+    "label": "opPsy/traitOctroye",
+    "fichier": "src/engine/psych/opsPsy.ts",
+    "concept": "ops psychologiques de `GameOp` (#1468, #1463) : `opPsy` (`pose`, `fin`, `octroi`, `retrait`) seule graphie de leurs références emboîtées `{ id }`, `traitOctroye` seul lecteur du Trait qu’accorde un `grantPsychTrait`",
+    "perimetre": "producteurs des ops `beginPsych`, `endPsych`, `grantPsychTrait`, `removePsychTrait` (Psychologie, recette, éditeur, tests) ; lecteurs de `grantPsychTrait` (ops, mutations, maladies)",
+    "verrou": "src/engine/psych/opsPsy.test.ts"
   }
 ]

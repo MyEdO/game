@@ -45,13 +45,9 @@ import { propSvg } from '../../catalog/decor';
 import { AMBIANCE, METEO_SANS_EFFET, type WeatherLight } from '../../catalog/ambiance';
 import { bonesToSvg } from '../../rig/renderBones';
 import { poseRig, rigComposition, type RigComposition } from '../../rig/composeRig';
-import type { RigOverlay } from '../../rig/bones';
-import { entityRigProfileFor, enemyRigProfile, refOf, rendersFromOwnInventory } from '../../rig/enemyProfile';
+import { entityRigProfileFor, refOf, rigDuCombattant, type RigDuCombattant } from '../../rig/enemyProfile';
 import { planById, planOptsForRecord, type RenderResolution, type ResolveOpts, type WingState } from '../../rig/bodyPlan';
-import { defaultAppearance } from '../../rig/appearance';
-import type { Appearance } from '../../../engine/authoringAppearance';
-import { armePrincipale, equipPorte, type EquipCtx } from '../../rig/parts/equipment';
-import { combatantAppearance, combatantOverlays } from '../../rig/parts/combatantVisuals';
+import { armePrincipale } from '../../../noyau/equipementDessine';
 import { harnaisDeMonture, mountedRest, seatPlacement, seatRiderOnMount, seatedRest } from '../../rig/mountedRig';
 import { seatSitHeight, type SeatPose } from '../../../noyau/monde/seating';
 import { diagOnce } from '../../rig/devDiag';
@@ -74,6 +70,7 @@ import type { Dir8 } from '../../../geometry/dir8';
 import { doorIsOpen, heightAt, porteAuteur, porteEnJeu, structureIsDown, tuilesEffondreesSignature, type LectureDArete, type Scene, type SceneEntity, type WallSide } from '../../../noyau/monde/scene';
 import { memoByRef, memoByRefDeps } from '../../../noyau/monde/sceneMemo';
 import { PERCABLE_ATTRIBUT } from './percageLocal';
+import type { TrappingResolver } from '../../../engine/items';
 
 /** ÉCHANTILLONNEUR du champ de teinte de visibilité (1 = pleine), fourni par l'appelant
  *  (`visibilityTint.visibilityField`). `x`/`y` sont des coordonnées de GRILLE CONTINUES — un sommet de
@@ -847,14 +844,14 @@ export function wholeSceneBillboardEls(scene: Scene): SceneBillboardEls {
 /** Sujets de billboard de la scène : personnages FIGURANTS (`kind:'personnage'`) puis décor. Les
  *  COMBATTANTS n'entrent pas ici — ils passent par `actorBillboards`, à leur position visuelle ; c'est
  *  le builder qui garantit qu'une entité enrôlée n'est pas dessinée deux fois. */
-export function collectBillboards(scene: Scene, mpt: number, els: SceneBillboardEls): BillboardSubject[] {
+export function collectBillboards(resolveTrapping: TrappingResolver, scene: Scene, mpt: number, els: SceneBillboardEls): BillboardSubject[] {
   const out: BillboardSubject[] = [];
   const defs = `<defs>${defsGlobaux()}</defs>`;
   for (const tk of els.tokens) {
     if (tk.subject.kind !== 'figurant') continue;
     const { ent, enrolled, seat } = tk.subject;
     if (ent.kind !== 'personnage') continue;
-    const entrées = figurantDrawInputs(ent, enrolled);
+    const entrées = figurantDrawInputs(resolveTrapping, ent, enrolled);
     if (!entrées) continue;
     const instantané = structuredClone(drawSnapshot(entrées, undefined, seat));
     const scaleK = instantané.inputs.scaleK;
@@ -1052,7 +1049,7 @@ export interface ActorDrawInputs {
   /** Multiplicateur de taille du jeton (espèce × Taille, ou empreinte propre). */
   scaleK: number;
   /** Branche RIG (humanoïde) — absente pour un gabarit de créature. */
-  rig?: { appearance: Appearance; equip: EquipCtx; tenue: string | undefined; overlays: RigOverlay[] };
+  rig?: RigDuCombattant;
   /** Branche GABARIT (`plan.resolve`) — opts d'apparence du record + override d'authoring. */
   plan?: ResolveOpts;
 }
@@ -1064,18 +1061,7 @@ export function actorDrawInputs(c: Combatant): ActorDrawInputs {
   const ground = groundStateOf(c);
   const scaleK = combatantTokenScale(c);
   if (render.kind !== 'rig') return { render, ground, scaleK, plan: planOptsForRecord(c.creatureId, c.appearanceOverride) };
-  const prof = rendersFromOwnInventory(c) ? null : enemyRigProfile(c);
-  return {
-    render,
-    ground,
-    scaleK,
-    rig: {
-      appearance: combatantAppearance(prof?.appearance ?? c.appearance ?? defaultAppearance(c), c),
-      equip: prof?.equip ?? equipPorte(c),
-      tenue: prof?.tenue ?? c.career,
-      overlays: combatantOverlays(c),
-    },
-  };
+  return { render, ground, scaleK, rig: rigDuCombattant(c) };
 }
 
 /** Entrées de dessin d'un FIGURANT de scène : la MÊME valeur que celles d'un acteur, résolue par la
@@ -1083,12 +1069,12 @@ export function actorDrawInputs(c: Combatant): ActorDrawInputs {
  *  profil et équipement (`entityRigProfileFor`, dont l'appartenance à une rencontre : `enrolled`), opts
  *  d'apparence d'un gabarit (`planOptsForRecord`, précédence de l'entité sur son record). `null` = aucun
  *  profil de rig résoluble. */
-function figurantDrawInputs(ent: SceneEntity, enrolled: boolean): ActorDrawInputs | null {
+function figurantDrawInputs(resolveTrapping: TrappingResolver, ent: SceneEntity, enrolled: boolean): ActorDrawInputs | null {
   const e = sceneEntityForRender(ent);
   const render = entityRender(e);
   const scaleK = entityTokenScale(ent);
   if (render.kind !== 'rig') return { render, ground: null, scaleK, plan: planOptsForRecord(refOf(e), e.appearance) };
-  const prof = entityRigProfileFor(e, enrolled);
+  const prof = entityRigProfileFor(resolveTrapping, e, enrolled);
   if (!prof) return null;
   return { render, ground: null, scaleK, rig: { appearance: prof.appearance, equip: prof.equip, tenue: prof.tenue, overlays: [] } };
 }

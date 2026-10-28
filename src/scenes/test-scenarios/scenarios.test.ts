@@ -6,6 +6,7 @@ import { enemyRigProfile } from '../../gameIso/rig/enemyProfile';
 import { refs } from '../../data/schemas/grammaire/ref';
 import { presetPnjById } from '../../state/campaignData';
 
+
 describe('Batterie de scénarios de test', () => {
   it('couvre au moins 6 scénarios', () => {
     expect(testScenarios.length).toBeGreaterThanOrEqual(6);

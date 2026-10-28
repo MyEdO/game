@@ -11,6 +11,7 @@ import { spawnEnemy } from '../../../noyau/monde/spawn';
 import { actorDrawInputs } from './sceneMeshes';
 import { combatantRender, footprintTokenScale, sizeTokenScale } from '../../sizeScale';
 
+
 describe('échelle d’une monture : art × Taille, ou empreinte', () => {
   it('seules les réfs à empreinte propre quittent la chaîne art × Taille, et elles suivent l’empreinte', () => {
     const muet = vi.spyOn(console, 'error').mockImplementation(() => {});

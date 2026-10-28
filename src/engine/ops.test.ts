@@ -10,11 +10,13 @@ import { groupMatch, groupesDe } from './groups';
 import { hasTraitKey } from './traits/dispatch';
 import { woundsFromHit } from './combat';
 import type { Weapon } from './types';
-import { recomputeLoadout, isUnarmed, itemFromTrappingById } from './items';
+import { recomputeLoadout, isUnarmed, itemFromTrappingById, itemFromGive, loadoutSetSlot } from './items';
 import { effectiveChar } from './characteristics';
 import { spellOps } from './flowCore';
 import { findSpellById } from '../data';
 import { deFixe, desDuTest, desEnSuite } from './dice.testkit';
+import { opPsy } from './psych/opsPsy';
+import { ciblePsy } from './psych/ciblage';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -428,7 +430,7 @@ describe('applyOps — opérations unitaires', () => {
 
     // #476 — Poing de fer ogre (ADE II 02 l.694-698) : capacité `disarmImmune` (`ItemCapabilities`).
     it("capacité disarmImmune (Poing de fer, ADE II 02 l.694-698) → refuse le désarmement, l'arme reste tenue", () => {
-      const c = hero({ items: [{ uid: 'w1', trappingId: 'poing-de-fer', label: 'Poing de fer', kind: 'melee', equipped: true, qualities: [], enc: 2 } as never] });
+      const c = hero({ items: [{ ...itemFromTrappingById('poing-de-fer')!, uid: 'w1', equipped: true }] });
       c.loadouts = [{ id: 'l1', main: 'w1' }];
       c.activeLoadoutId = 'l1';
       recomputeLoadout(c);
@@ -576,29 +578,29 @@ describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveCh
 describe("op:'grantPsychTrait' / op:'removePsychTrait' — Traits psychologiques (c.psychTraits)", () => {
   it("grantPsychTrait pose le Trait dans c.psychTraits (type + cible)", () => {
     const c = hero({ psychTraits: [] });
-    applyOps(c, [{ op: 'grantPsychTrait', psychType: 'phobie', cible: 'Araignées' }], { rng: desDuTest });
-    expect(c.psychTraits).toEqual([{ type: 'phobie', cible: 'Araignées' }]);
+    applyOps(c, [opPsy.octroi('phobie', ciblePsy.groupe('serpent'))], { rng: desDuTest });
+    expect(c.psychTraits).toEqual([{ type: 'phobie', cible: 'serpent' }]);
   });
   it("grantPsychTrait sans cible (Frénésie)", () => {
     const c = hero({ psychTraits: [] });
-    applyOps(c, [{ op: 'grantPsychTrait', psychType: 'frenesie' }], { rng: desDuTest });
+    applyOps(c, [opPsy.octroi('frenesie')], { rng: desDuTest });
     expect(c.psychTraits).toEqual([{ type: 'frenesie' }]);
   });
   it("grantPsychTrait porte la PROVENANCE de l'effet, comme l'op grantTrait (#1853)", () => {
     const c = hero({ psychTraits: [] });
-    applyOps(c, [{ op: 'grantPsychTrait', psychType: 'frenesie' }], { rng: desDuTest, label: 'Colère', source: { kind: 'spell', id: 'colere' } });
+    applyOps(c, [opPsy.octroi('frenesie')], { rng: desDuTest, label: 'Colère', source: { kind: 'spell', id: 'colere' } });
     expect(c.psychTraits).toEqual([{ type: 'frenesie', src: { kind: 'spell', id: 'colere' } }]);
   });
   it("removePsychTrait { psychType } retire le Trait correspondant (laisse les autres)", () => {
-    const c = hero({ psychTraits: [{ type: 'phobie', cible: 'Araignées' }, { type: 'haine', cible: 'Skavens' }] });
-    applyOps(c, [{ op: 'removePsychTrait', psychType: 'phobie' }], { rng: desDuTest });
-    expect(c.psychTraits).toEqual([{ type: 'haine', cible: 'Skavens' }]);
+    const c = hero({ psychTraits: [{ type: 'phobie', cible: ciblePsy.groupe('serpent') }, { type: 'haine', cible: ciblePsy.groupe('skaven') }] });
+    applyOps(c, [opPsy.retrait('phobie')], { rng: desDuTest });
+    expect(c.psychTraits).toEqual([{ type: 'haine', cible: 'skaven' }]);
   });
   it("removePsychTrait sans type retire UN Trait au choix (le 1er) ; aucun → inerte", () => {
-    const c = hero({ psychTraits: [{ type: 'animosite', cible: 'Elfes' }] });
-    applyOps(c, [{ op: 'removePsychTrait' }], { rng: desDuTest });
+    const c = hero({ psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }] });
+    applyOps(c, [opPsy.retrait()], { rng: desDuTest });
     expect(c.psychTraits).toEqual([]);
-    expect(() => applyOps(c, [{ op: 'removePsychTrait' }], { rng: desDuTest })).not.toThrow();
+    expect(() => applyOps(c, [opPsy.retrait()], { rng: desDuTest })).not.toThrow();
     expect(c.psychTraits).toEqual([]);
   });
 });
@@ -799,5 +801,19 @@ describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', 
     const lignes = applyOps(cible(), [{ op: 'transform', tag: 'forme', ops: [{ op: 'condition', id: 'sonne', value: 1 }] }] as never[], { rng: makeRNG(1), surLigne: (rang, l) => { recues.push([rang, l]); } });
     expect(lignes).toEqual(['Cible reçoit 1 État Sonné.', 'Cible se métamorphose (forme).']);
     expect(recues).toEqual([[0, 'Cible reçoit 1 État Sonné.'], [0, 'Cible se métamorphose (forme).']]);
+  });
+});
+
+describe('augmentWeapon — l’arme tenue est celle du set actif résolu', () => {
+  it('arme à deux mains en `main`, dague en `off` : la dague n’est pas tenue, l’enchantement qui la vise échoue', () => {
+    const c = hero({ items: [{ ...itemFromGive({ trappingId: 'grande-hache' }), uid: 'grande-hache' }, { ...itemFromGive({ trappingId: 'dague' }), uid: 'dague' }] });
+    recomputeLoadout(c);
+    const lo = c.loadouts![0];
+    loadoutSetSlot(c, lo.id, 'main', 'grande-hache');
+    loadoutSetSlot(c, lo.id, 'off', 'dague');
+    recomputeLoadout(c);
+    const lignes = applyOps(c, [{ op: 'augmentWeapon', addQualities: ['magique'], requiresWeapon: ['dague'] }], { rng: desDuTest, label: 'Sonde', defaultDurationRounds: 2 });
+    expect(lignes).toEqual(['Cobaye : aucune arme en main à enchanter (Sonde).']);
+    expect(c.items!.find((i) => i.uid === 'dague')!.enchants).toBeUndefined();
   });
 });

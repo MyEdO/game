@@ -1,0 +1,38 @@
+/**
+ * Fabriques des ops psychologiques de `GameOp` (`beginPsych`, `endPsych`, `grantPsychTrait`,
+ * `removePsychTrait`) : SEULE graphie de leurs références emboîtées (`{ id }`), la Cible passant par
+ * `refDeCible`. #1468 #1463 #3045
+ */
+import type { GameOp } from '../ops';
+import type { PsychTrait, PsychType } from '../psychology';
+import { ciblePsyLue, refDeCible, type CiblePsy } from './ciblage';
+
+type OpDe<K extends GameOp['op']> = Extract<GameOp, { op: K }>;
+
+/** Les champs d'une pose autres que son type et sa Cible. */
+export type ChampsDePose = Omit<OpDe<'beginPsych'>, 'op' | 'type' | 'cible'> & { readonly cible?: CiblePsy };
+
+export const opPsy = {
+  /** Pose (ou met à jour) l'état psychologique `type`. */
+  pose(type: string, champs: ChampsDePose = {}): OpDe<'beginPsych'> {
+    const { cible, ...reste } = champs;
+    return { op: 'beginPsych', type: { id: type }, ...(cible !== undefined ? { cible: refDeCible(cible) } : {}), ...reste };
+  },
+  /** Retire l'état psychologique `type`. */
+  fin(type: string): OpDe<'endPsych'> {
+    return { op: 'endPsych', type: { id: type } };
+  },
+  /** Accorde le Trait psychologique `type`, visant `cible` s'il est ciblé. */
+  octroi(type: string, cible?: CiblePsy): OpDe<'grantPsychTrait'> {
+    return { op: 'grantPsychTrait', psychType: { id: type }, ...(cible !== undefined ? { cible: refDeCible(cible) } : {}) };
+  },
+  /** Retire le Trait psychologique `type`, ou un Trait au choix sans `type`. */
+  retrait(type?: string): OpDe<'removePsychTrait'> {
+    return type === undefined ? { op: 'removePsychTrait' } : { op: 'removePsychTrait', psychType: { id: type } };
+  },
+};
+
+/** Le Trait psychologique qu'accorde un `grantPsychTrait` : SEUL lecteur de ses références. */
+export function traitOctroye(op: OpDe<'grantPsychTrait'>): Pick<PsychTrait, 'type' | 'cible'> {
+  return { type: op.psychType.id as PsychType, ...(op.cible !== undefined ? { cible: ciblePsyLue(op.cible) } : {}) };
+}

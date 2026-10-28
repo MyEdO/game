@@ -37,7 +37,7 @@ import { activityById, activitiesFor, travelActivitySpec, type ActivityDef } fro
 import { appliquerIssueActivite } from './activityIssue';
 import { peutTenter, refusNePeutTenter } from '../engine/skills';
 import type { PlayerText } from '../i18n/playerText';
-import { itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, payWithAllocation, soloPayer, distributeCredit } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
@@ -285,7 +285,7 @@ export const TABLES = {
       const stashGold = typeof step.meta?.stashGold === 'number' ? step.meta.stashGold : 0;
       const j: string[] = [];
       if (step.result.success) {
-        const it = itemFromTrappingById('carte-marine');
+        const it = itemFromTrappingById('carte-marine', undefined, contexteDeNaissanceDObjet(hero));
         if (it) {
           it.price = { gold: Math.max(0, step.result.sl), silver: 0, brass: 0 };
           hero.items = [...(hero.items ?? []), it];

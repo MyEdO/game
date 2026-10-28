@@ -80,7 +80,7 @@
  *    chez lui, jamais chez la victime qui lève « Should not already be working » plus loin (#1724).
  *
  * 5. GARDE DE PARTAGE (`partagesDeLEtat`, `afterEach`, #2097) : l'état laissé par le test n'atteint
- *    aucune donnée par identité. Racines et sources : `state/partage.testkit.ts`.
+ *    aucune donnée par identité. Racines et sources : `scenes/partage.testkit.ts`.
  *
  * Les barrières §1 (art), §3, §4 et §5 jouent en TROIS temps : elles LISENT toutes les fuites, REMETTENT
  * l'état partagé à vierge, puis JUGENT par un seul `throw` qui joint tous les verdicts. Aucune ne
@@ -89,7 +89,7 @@
 import { afterAll, afterEach, beforeEach, expect, vi } from 'vitest';
 import { useGame, type GameState } from './state/store';
 import { resetSceneRegistry, scenesDuRegistre } from './noyau/monde/registreDesScenes';
-import { partagesDeLEtat } from './state/partage.testkit';
+import { messagePartage, partagesDeLEtat } from './scenes/partage.testkit';
 import './data/overrides'; // gel des entrées du catalogue au chargement (#2097)
 import { loadRuleOverrides } from './engine/policy';
 import { clearTrackedTimers } from './web/minuteries';
@@ -386,17 +386,6 @@ export function messageActEnVol(fichier: string, enVol: boolean): string | null 
     `act() encore EN VOL à la fin d'un test de ${fichier} (file d'act de react non rendue).\n`
     + `Un act() asynchrone s'attend (await act(async () => …)) : sans quoi son travail s'écoule pendant le test SUIVANT, `
     + `hors de son act() à lui (#1724).`
-  );
-}
-
-/** Verdict de la garde de partage (§5) : les chemins de l'état vers une donnée, ou `null`. */
-export function messagePartage(partages: readonly string[]): string | null {
-  if (!partages.length) return null;
-  return (
-    `État mutable laissé PARTAGÉ avec une donnée par ce test (#2097), ${partages.length} chemin(s) :\n`
-    + `${partages.slice(0, 12).join('\n')}\n`
-    + `Copier à la COUTURE qui a stocké la donnée. Un test qui bâtit son état hors des coutures du jeu passe `
-    + `par leur porte (\`spawnEnemy\`…).`
   );
 }
 

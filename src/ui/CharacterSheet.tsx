@@ -1,11 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useGame, type SheetTab } from '../state/store';
+import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { appraiseRefus } from '../noyau/merchantFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { Planche } from './Planche';
 import { ramenerEnVue } from './useRamenerEnVue';
 import { Tabs } from './composites/Tabs';
-import { isWeaponActive, maxEncumbrance, totalEncumbrance, formeResolue } from '../engine/items';
+import { isWeaponActive, maxEncumbrance, totalEncumbrance, apparencesCandidates, choisirApparenceDObjet } from '../engine/items';
+import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { OptionChooser } from './OptionChooser';
 import { ItemInstance, Combatant, LOCALISATIONS_DE_COUP } from '../engine/types';
 import { effectiveChar, bonus } from '../engine/characteristics';
@@ -28,10 +30,9 @@ import { rule } from '../engine/policy';
 import { bourseOf } from '../engine/bourse';
 import { learnableSpells, canCastFromGrimoire, carriedGrimoire, casterTalents } from '../engine/grimoire';
 import { spellSupportOf } from '../engine/spellspec';
-import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, findClassById, findTrappingById, libelleOuAbsence } from '../data';
+import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, findClassById, libelleOuAbsence } from '../data';
 import { heroStatusLabel } from './CharCard';
 import { MetalStatus } from './MetalStatus';
-import { weaponFormLabel } from '../gameIso/rig/parts/weaponForms';
 import { CodexRef } from './compendium/CodexRef';
 import { CharValue } from './CharValue';
 import { HeroSheet, annotationsDeCaracteristiques } from './HeroSheet';
@@ -41,6 +42,7 @@ import { PossessionsRegistry } from './PossessionsRegistry';
 import { CharFrame } from './CharFrame';
 import { ItemIcon } from './ItemIcon';
 import { MediaSelect } from './MediaSelect';
+import { useVersionDesDatasets } from './useVersionDesDatasets';
 import { BackgroundPanel } from './BackgroundPanel';
 import { Icon } from './Icon';
 import { EffectChips } from './EffectChips';
@@ -179,7 +181,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
       memoire={{ cle: tab, lire: () => useGame.getState().sheetScroll[tab] ?? 0, retenir: (top) => setSheetScroll(tab, top) }}
       aside={(
         <>
-          {/* Arbitrage utilisateur 2026-07-17 (#492) : « arrête de polluer l'écran de gauche ». */}
+          {/* #492 */}
           <div className="sheet-portrait">
             <FigTile
               preview={{ hero }}
@@ -525,36 +527,25 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
   );
 }
 
-/** Sélecteur visuel de FORME d'une arme ABSTRAITE (« Arme simple » → épée/hache/masse/marteau de
- *  guerre/demi-lance) : pose `ItemInstance.formeChoisie` parmi les `formChoices` du trapping. Option
- *  courante = la forme RÉSOLUE (`formeResolue`, celle du pion) ; chaque option = la silhouette (ItemIcon
- *  de ce choix) + le libellé du WeaponDef. Cosmétique RAW (stats identiques) — refusé en combat (`refusDInventaire` ; le
- *  token rendu vient de la copie de bataille, pas du groupe muté). Réutilise la primitive `MediaSelect`. */
-function FormPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
-  const choisirForme = useGame((s) => s.choisirForme);
-  const battle = useGame((s) => s.battle);
-  const choices = it.trappingId ? findTrappingById(it.trappingId)?.formChoices : undefined;
-  if (!choices || choices.length < 2) return null;
-  const current = formeResolue(it) ?? choices[0];
-  // Verdict du noyau (`refusDInventaire`), celui que `choisirForme` applique.
-  const refus = refusDInventaire({ battle });
-  if (refus) {
-    return (
-      <GatedAction id={`sheet-forme-${it.uid}`} label={weaponFormLabel(current)} ariaLabel="Forme de l’arme"
-        enabled={false} {...raisonSi(refus)} onClick={() => {}} primary={false} btnClassName="small" />
-    );
-  }
+/** #2948 */
+function ApparencePicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
+  useVersionDesDatasets();
+  const narratif = useGame((s) => s.campaignNarratif);
+  const resolveTrapping = objetDuNarratif(narratif);
+  const choisirApparence = useGame((s) => s.choisirApparence);
+  const choices = apparencesAdmissiblesDObjet(it, resolveTrapping);
+  if (choices.length < 2) return null;
   return (
-    <div className="ir-form" title="Forme de l’arme (silhouette)">
+    <div className="ir-form" title="Apparence">
       <MediaSelect
-        value={current}
-        title="Choisir la forme de l’arme"
-        options={choices.map((slug) => ({
-          key: slug,
-          media: <ItemIcon item={{ ...it, formeChoisie: slug }} size="sm" />,
-          label: weaponFormLabel(slug),
-        }))}
-        onSelect={(slug) => choisirForme(hero.id, it.uid, slug)}
+        value={apparencesCandidates(it)[0]}
+        title="Apparence"
+        options={choices.map((a) => {
+          const apercu = { ...it };
+          choisirApparenceDObjet(apercu, a.id, resolveTrapping);
+          return { key: a.id, media: <ItemIcon item={apercu} size="sm" />, label: a.label };
+        })}
+        onSelect={(id) => choisirApparence(hero.id, it.uid, id)}
       />
     </div>
   );
@@ -625,7 +616,7 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                     )}
                   </>
                 )}
-                {isWeaponItem && <FormPicker hero={hero} it={it} />}
+                <ApparencePicker hero={hero} it={it} />
                 {isWeaponItem && <HandPicker hero={hero} it={it} />}
                 {consumable && (
                   <GatedAction

@@ -1,9 +1,4 @@
-/**
- * Galerie ANIMÉE des animations par arme (SVG + CSS, pas de GIF) : pour chaque arme canonique
- * (une par CLASSE DE MANIEMENT), le rig joue en boucle « porté » (statique) · « attaque » ·
- * « parade ». 1 rig + @keyframes CSS par os mobile (cf. _lib-anim-rig). Forme résolue par
- * `trappingId` (`formeResolue`), geste naturel par `attackKind`. Lancer : npx tsx scripts/gen-anim-gallery.mts → public/anim-gallery.html
- */
+/** #2967 */
 import type { Pose } from '../src/gameIso/rig/poses';
 import { writeFileSync } from 'node:fs';
 import { resolveRig } from '../src/gameIso/rig/composeRig';
@@ -16,11 +11,11 @@ import { animatedRig, sampleTimes } from './_lib-anim-rig';
 import type { Appearance } from '../src/engine/authoringAppearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
-import { armeDeDessin, equipDe } from '../src/gameIso/rig/parts/equipment';
+import { armeDeDessin, equipDe, type EquipCtx } from '../src/noyau/equipementDessine';
 import { itemFromTrappingById, weaponFromItem } from '../src/engine/items';
 import { weaponFromTrait } from '../src/engine/creatureEquip';
-import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import { assertWardrobeId } from './_lib-wardrobe';
+
 
 // Mannequin de la planche : ID de garde-robe (carrière ∪ classe ∪ tenue), validé fail-fast —
 // un id qui retombe sur « nu » déshabillerait toutes les tuiles en silence (#1338).

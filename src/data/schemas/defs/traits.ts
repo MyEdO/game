@@ -2,7 +2,8 @@ import { nommerChamps } from '../grammaire/meta';
 /** LDB 85 */
 import { z } from 'zod';
 import { entityAppearanceSchema, charKeySchema, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
-import { idDe, ref } from '../grammaire/ref';
+import { idDe, ref, refs } from '../grammaire/ref';
+import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
 import { gameOpSchema, mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
 
@@ -46,8 +47,8 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   psychType: idDe('psychology', { horsMarqueurs: ['psychImmune'] }).optional(),
   psychImmune: z.boolean().optional(),
   psychIndice: z.number().optional(),
-  psychCible: z.string().optional(),
-  grantGroups: z.array(z.string()).optional(),
+  psychCible: idDe('groupe').optional(),
+  grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
   frenzyCapable: z.boolean().optional(),
   mindless: z.boolean().optional(),
   woundsUseForce: z.boolean().optional(),

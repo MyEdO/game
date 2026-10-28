@@ -2,6 +2,7 @@ import { Combatant } from '../engine/types';
 import { maxEncumbrance, totalEncumbrance } from '../engine/items';
 import { diseaseLabel, psychologyLabel } from '../data';
 import { isPsychAfflictionActive } from '../engine/psychology';
+import { identiteDeCiblage } from '../engine/psych/ciblage';
 
 /** ids STABLES des rubriques de l'onglet État — ancres de scroll RENDUES par `EtatPanel.tsx`.
  *  (La Corruption est une jauge de la bande Constitution, pas une Section : elle n'en reçoit pas.) */
@@ -48,7 +49,7 @@ export function sheetAlarms(hero: Combatant): SheetAlarm[] {
 
   for (const p of hero.psychState ?? []) {
     if (!isPsychAfflictionActive(p)) continue;
-    out.push({ key: `psych-${p.type}-${p.cible ?? ''}`, label: psychologyLabel(p.type) });
+    out.push({ key: `psych-${identiteDeCiblage(p.type, p.cible)}`, label: psychologyLabel(p.type) });
   }
 
   if (totalEncumbrance(hero) > maxEncumbrance(hero)) out.push({ key: 'surcharge', label: 'Surchargé' });

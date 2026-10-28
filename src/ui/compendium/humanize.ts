@@ -24,6 +24,8 @@ import { CHAR_LABELS, HIT_LOCATION_LABELS, type CharKey, type ArmourBypass } fro
 import { formatTrait, formatWardSave, traitLabelById } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
 import { traumaLabelOf } from '../../engine/trauma';
+import { ciblePsyLue, libelleDeCible } from '../../engine/psych/ciblage';
+import { traitOctroye } from '../../engine/psych/opsPsy';
 import { formatMoney } from '../../engine/money';
 import { rule, ruleDef } from '../../engine/policy';
 import {
@@ -410,8 +412,8 @@ export function humanizeOp(o: GameOp): string {
       return `gagne ${o.value != null && o.value !== 1 ? `${humanizeFormula(o.value)} × ` : ''}l'État ${stateItal(o.id)}${perSL}${duree}${o.perRound ? ' à chaque Round' : ''}${determination}`;
     }
     case 'removeCondition': return `perd ${o.id ? `l'État ${stateItal(o.id)}` : 'un État au choix'}${o.valuePerSL ? ` (${humanizePerSL(o.valuePerSL)})` : ''}`;
-    case 'endPsych': return `n'est plus sous l'effet de ${psychologyLabel(o.type)}`;
-    case 'beginPsych': return `tombe sous ${psychologyLabel(o.type)}${o.cible ? ` (${groupLabel(o.cible)})` : ''}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}`;
+    case 'endPsych': return `n'est plus sous l'effet de ${psychologyLabel(o.type.id)}`;
+    case 'beginPsych': return `tombe sous ${psychologyLabel(o.type.id)}${o.cible ? ` (${libelleDeCible(ciblePsyLue(o.cible))})` : ''}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}`;
     case 'charMod': return `${[`${o.mod >= 0 ? 'gagne' : 'subit'} ${o.mod >= 0 ? '+' : ''}${o.mod} en ${CHAR_LABELS[o.char]}`, plancher(o)].filter(Boolean).join(', ')}${pendant(o)}`;
     case 'ap': return `gagne +${humanizeFormula(o.amount)} PA${o.loc ? ` (${HIT_LOCATION_LABELS[o.loc]})` : ' à toutes les Localisations'}`;
     case 'corruption': return `gagne ${o.amount >= 0 ? '+' : ''}${o.amount} point(s) de Corruption`;
@@ -432,8 +434,11 @@ export function humanizeOp(o: GameOp): string {
     case 'grantReverseToken': return `peut inverser ${o.skill ? refLabel('skills', o.skill) : 'un Test concernant sa cible'} une fois pendant sa prochaine aventure`;
     case 'grantTrait': return `gagne le Trait ${traitOctroyeLisible(o, humanizeFormula)}${pendant(o)}`;
     case 'removeTrait': return `perd le Trait ${formatTrait(o.trait)}`;
-    case 'grantPsychTrait': return `gagne l'état psychologique ${psychologyLabel(o.psychType)}${o.cible ? ` (${groupLabel(o.cible)})` : ''}`;
-    case 'removePsychTrait': return `perd ${o.psychType ? `l'état psychologique ${psychologyLabel(o.psychType)}` : 'un état psychologique au choix'}`;
+    case 'grantPsychTrait': {
+      const { type, cible } = traitOctroye(o);
+      return `gagne l'état psychologique ${psychologyLabel(type)}${cible !== undefined ? ` (${libelleDeCible(cible)})` : ''}`;
+    }
+    case 'removePsychTrait': return `perd ${o.psychType ? `l'état psychologique ${psychologyLabel(o.psychType.id)}` : 'un état psychologique au choix'}`;
     case 'grantTalent': return `gagne le Talent ${refLabel('talents', o.talent)}`;
     case 'grantCareerSkill': return `ajoute ${refLabel('skills', o.skill)} à ses carrières`;
     case 'grantCareerTalent': return `ajoute le Talent ${refLabel('talents', o.talent)} à ses carrières`;

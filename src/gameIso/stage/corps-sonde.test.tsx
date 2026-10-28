@@ -11,12 +11,13 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type * as THREE from 'three';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { createHero } from '../../engine/character';
-import type { Combatant, Weapon } from '../../engine/types';
+import type { Combatant } from '../../engine/types';
 import { buildApi } from '../../state/devtools';
 import { idsDeLActeur, type ActorPose, type KeepEl, type SceneBillboardEls, type TintAt } from '../backends/webgl/sceneMeshes';
 import { GameStage3D, setStageRendererFactory, type StageFrame, type StageWalkAnim } from './GameStage3D';
 import { estCorps } from './corpsActeur';
-import { BancRenderer, PLAFOND_ATTENTE_MS, brancherArdoise, corpsDessines, respirer, scènes, simulerRasterisation, viderCaptures, type Rasterisation } from './banc-volumique';
+import { BancRenderer, PLAFOND_ATTENTE_MS, brancherArdoise, corpsDessines, hérosAvecArme, respirer, scènes, simulerRasterisation, viderCaptures, type Rasterisation } from './banc-volumique';
+import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -46,11 +47,8 @@ const anim: StageWalkAnim = {
 };
 
 const BASE = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
-/** Le héros `h1` tenant l'arme `trappingId` du catalogue (#2113) : une arme neuve est un dessin neuf, donc une cuisson. */
-function héros(trappingId: string): Combatant {
-  const arme = ({ uid: 'w1', trappingId, label: 'Arme', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] } satisfies Partial<Weapon>) as Weapon;
-  return { ...BASE, id: 'h1', weapons: [arme] } as Combatant;
-}
+// #2967
+const héros = (trappingId: string): Combatant => hérosAvecArme(BASE, trappingId);
 const CHEVAL = {
   id: 'm1', label: 'Cheval', kind: 'enemy', creatureId: 'cheval', pos: { x: 5, y: 4 }, size: 'grande',
   conditions: [], wounds: { current: 10, max: 10 },
@@ -61,7 +59,7 @@ const enSelle = (arme = 'dague'): ActorPose[] => [{ c: CHEVAL, rider: héros(arm
 function rendre(actors: ActorPose[]): void {
   act(() => {
     root!.render(
-      <GameStage3D lecture="jeu" scene={SCENE} mpt={MPT} frame={CADRE} tintAt={TINT} keepEl={KEEP} els={ELS}
+      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu" scene={SCENE} mpt={MPT} frame={CADRE} tintAt={TINT} keepEl={KEEP} els={ELS}
         actors={actors} gameTime={MINUIT} lightLevel={1} lights={[]} anim={anim} />,
     );
   });
