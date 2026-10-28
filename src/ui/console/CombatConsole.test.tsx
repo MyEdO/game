@@ -1751,7 +1751,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     monter(h, { foes: [foe('e1', 9, 9)] });
     const det = caseAction('resolve-psych-immune')!;
     expect(det.hasAttribute('data-gated')).toBe(true);
-    const attendue = actionGate('resolve-psych-immune', { active: h, battle: useGame.getState().battle! }).reason;
+    const attendue = actionGate('resolve-psych-immune', { active: h, battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
     // La raison du REGISTRE (jamais une chaîne recopiée ici) se lit au survol ET au focus…
     expect(refusAuSurvol(det)).toBe(attendue);
     expect(refusAuFocus(det)).toBe(attendue);
@@ -2398,7 +2398,8 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     hull.kind = 'hero';
     hull.pos = { x: 5, y: 5 };
     hull.crewIds = ['gunner'];
-    hull.postes = [poste()];
+    // Une pièce CHARGÉE (la Bordée a de quoi faire feu, `postesPretsAFaireFeu`) et une DÉCHARGÉE (la recharge a son objet).
+    hull.postes = [poste(), { ...poste(), loaded: true, item: { ...poste().item, uid: 'canon-charge' } } as ShipPoste];
     return hull;
   }
 
@@ -2435,7 +2436,8 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     }
     // Manœuvrer / Bordée / Rude épreuve : Action du navire INTACTE → offertes (gates du registre).
     for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve']) {
-      expect(caseAction(id)!.disabled, `« ${id} » est inerte alors que l’Action du navire est intacte`).toBe(false);
+      expect(estFermee(caseAction(id)!), `« ${id} » est fermée alors que l’Action du navire est intacte`).toBe(false);
+      expect(caseAction(id)!.hasAttribute('data-gated'), `« ${id} » porte une raison de refus`).toBe(false);
     }
     // … et aucune case de FANTASSIN ne s'invite : une coque n'a ni poing ni Charge.
     expect(caseAction('attaque'), 'une coque n’a pas d’attaque d’arme').toBeNull();
@@ -2504,7 +2506,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
       const c = caseAction(id);
       expect(c, `la géométrie garde sa case « ${id} »`).not.toBeNull();
       expect(estFermee(c!), `« ${id} » reste cliquable au tour d’une coque`).toBe(true);
-      const attendue = actionGate(id, { active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle! }).reason;
+      const attendue = actionGate(id, { active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
       expect(refusAuSurvol(c!), `« ${id} » se ferme sans dire pourquoi au survol`).toBe(attendue);
       const copie = c!.querySelector('.hors-ecran[data-gate]');
       expect(copie?.textContent, `« ${id} » : rien à lire pour un lecteur d’écran`).toBe(attendue);
@@ -2515,7 +2517,8 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     act(() => caseAction('defend')!.click());
     expect(useGame.getState().battle!.acted, 'la Défensive a dépensé l’Action de la coque').toBe(false);
     expect(useGame.getState().battle!.combatants[0].defensiveStance).toBeFalsy();
-    expect(caseAction('battery')!.disabled, 'l’Action du navire doit rester offerte à la Bordée').toBe(false);
+    expect(estFermee(caseAction('battery')!), 'l’Action du navire doit rester offerte à la Bordée').toBe(false);
+    expect(caseAction('battery')!.hasAttribute('data-gated'), 'la Bordée porte une raison de refus').toBe(false);
   });
 });
 
@@ -2776,21 +2779,16 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     expect(host.querySelector('.cc-bay-head [data-ammo]'), 'la munition reste LUE dans l’en-tête').not.toBeNull();
   });
 
-  it('FRÉNÉSIE : le choix est REFUSÉ et le refus se LIT au survol (raison du registre), jamais escamoté', () => {
+  it('FRÉNÉSIE : le choix de munition reste OUVERT (`select-ammo` ne coûte aucune Action — LDB 21 l.33)', () => {
     const h = tireur();
     h.psychState = [{ type: 'frenesie' }] as never;
+    const w = h.weapons.find((x) => x.type === 'ranged')!;
     monter(h);
-    expect(chip(), 'le chip reste à l’écran : le refus ne fait pas disparaître l’affordance').not.toBeNull();
-    expect(chip()!.getAttribute('aria-disabled'), 'le chip refusé doit rester focalisable, donc `aria-disabled`').toBe('true');
-    expect(chip()!.disabled).toBe(false);
-    // Le chip garde sa ligne d'en-tête PROPRE : la raison naît de son survol, dans la même infobulle que
-    // sa fiche de munition (arbitrage user 2026-08-24), et son `aria-describedby` reste câblé.
-    expect(refusAuSurvol(chip()!), 'la raison ne se lit pas au survol du chip').toBe(t('agate.frenzyOnly'));
-    const copie = host.querySelector('.cc-bay-head [data-gate]')!;
-    expect(copie.textContent).toBe(t('agate.frenzyOnly'));
-    expect(copie.className, 'la copie de la raison doit être HORS ÉCRAN').toContain('hors-ecran');
-    expect(chip()!.getAttribute('aria-describedby')).toBe(copie.id);
-    expect(chip()!.getAttribute('title'), 'infobulle native proscrite').toBeNull();
+    expect(chip()!.hasAttribute('aria-disabled'), 'aucun refus sur le chip').toBe(false);
+    expect(host.querySelector('.cc-bay-head [data-gate]'), 'aucune raison de refus portée').toBeNull();
+    ouvrir();
+    act(() => { candidats()[1].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    expect(selectedAmmo(acteur(), w)?.uid, 'le candidat cliqué est commis sous Frénésie').toBe('i-c2');
   });
 
   // Le panneau appartient à l'ARME qui l'a ouvert. Commuter de set refait l'arme au poing : le chip
@@ -3814,7 +3812,7 @@ describe('CombatConsole — la raison d’une case fermée s’atteint au clavie
   it('FOCUS RÉEL (clavier) : la case gatée prend le focus et ouvre sa raison ; le blur la referme', () => {
     const det = consoleGatee();
     const attendue = actionGate('resolve-psych-immune', {
-      active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!,
+      active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime,
     }).reason;
     expect(refusAuFocus(det)).toBe(attendue);
     // La boîte de CETTE case porte aussi la porte vers sa fiche de règle : elle survit au temps du pont
@@ -3840,7 +3838,7 @@ describe('CombatConsole — la raison d’une case fermée s’atteint au clavie
   it('TACTILE : un tap sur la case fermée MONTRE sa raison — et n’exécute rien', () => {
     const det = consoleGatee();
     const attendue = actionGate('resolve-psych-immune', {
-      active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!,
+      active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime,
     }).reason;
     const avant = useGame.getState().battle!.combatants[0].resolve;
     expect(refusAuTap(det), 'au doigt, la raison reste introuvable').toBe(attendue);
@@ -3850,10 +3848,9 @@ describe('CombatConsole — la raison d’une case fermée s’atteint au clavie
 });
 
 /**
- * ÉTAT QUI VERROUILLE L'ACTION — la console ne connaît AUCUN nom d'État : elle lit le drapeau
- * `restrictsAction` de la donnée (`isActionLocked`, `LDB 16 l.52`). La sonde parcourt donc TOUS les
- * États qui le déclarent : le jour où un second le porte, il ferme les mêmes cases sans une ligne
- * de code — et ce test le vérifie déjà.
+ * ÉTAT QUI VERROUILLE L'ACTION (`LDB 16 l.52`, #3059) — la console n'a AUCUN verrou propre : la case se ferme
+ * par le verdict du registre (`hors-verrou-d-etat`, composé dans `action-libre`), qui lit le drapeau
+ * `restrictsAction` de la donnée, et elle montre SA raison. La sonde parcourt TOUS les États qui le déclarent.
  */
 describe('CombatConsole — tout État qui déclare `restrictsAction` ferme les mêmes cases', () => {
   const caseAction = (id: string) => host.querySelector(`[data-action="${id}"]`) as HTMLButtonElement | null;
@@ -3865,16 +3862,31 @@ describe('CombatConsole — tout État qui déclare `restrictsAction` ferme les 
     const libre = hero('h1', 'Gunnar');
     libre.conditions = [];
     monter(libre, { foes: [foe('e1', 9, 9)] });
-    expect(caseAction('defend')!.disabled, 'sans État verrouillant, la Défensive devrait être offerte').toBe(false);
+    expect(caseAction('defend')!.getAttribute('data-gated'), 'sans État verrouillant, la Défensive devrait être offerte').toBeNull();
     for (const etat of verrouillants) {
       const h = hero('h1', 'Gunnar');
       h.conditions = [{ id: etat.id, value: 1 }] as ConditionInstance[];
       monter(h, { foes: [foe('e1', 9, 9)] });
       expect(
-        caseAction('defend')!.disabled,
+        caseAction('defend')!.getAttribute('data-gated'),
         `l’État ${etat.id} déclare restrictsAction, la Défensive reste pourtant ouverte`,
-      ).toBe(true);
+      ).toBe('');
+      const b = useGame.getState().battle!;
+      expect(caseAction('defend')!.querySelector('[data-gate]')?.textContent, 'la case ne dit pas la raison du registre')
+        .toBe(actionGate('defend', { active: b.combatants.find((c) => c.id === 'h1')!, battle: b, gameTime: useGame.getState().gameTime }).reason);
     }
+  });
+
+  it('Distraire coûte le Mouvement (`LDB 10 l.364`) : l’Action dépensée, sa case reste ouverte, comme son gate', () => {
+    const h = hero('h1', 'Gunnar');
+    h.conditions = [];
+    h.talents = [...(h.talents ?? []), { talentId: 'distraire', times: 1 }] as Combatant['talents'];
+    monter(h, { foes: [foe('e1', 6, 5)] });
+    act(() => caseAction('defend')!.click());
+    expect(useGame.getState().battle!.acted, 'témoin : l’Action n’est pas dépensée').toBe(true);
+    expect(caseAction('distraire'), 'témoin : la case Distraire n’est pas rendue').not.toBeNull();
+    expect(caseAction('distraire')!.getAttribute('data-gated'), 'la console ferme Distraire sur l’Action dépensée').toBeNull();
+    expect(caseAction('distraire')!.disabled).toBe(false);
   });
 });
 

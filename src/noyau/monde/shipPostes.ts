@@ -368,6 +368,14 @@ export function crewPosteOf(id: string, combatants: Combatant[]): { hull: Combat
   return undefined;
 }
 
+/** La pièce `poste` de la coque `ship` se recharge-t-elle ce Round (`loaded`, chef `crewIds[0]`, `crewActed`) ?
+ *  Lu par le gate `piece-dechargee` et `battleShipReload`. LDB 62 l.333-335. */
+export function posteARecharger(ship: Combatant, poste: ShipPoste, battle: { combatants: Combatant[]; crewActed?: Record<string, string[]> }): boolean {
+  const chefId = poste.crewIds?.[0];
+  if (poste.loaded !== false || !chefId || !battle.combatants.some((c) => c.id === chefId)) return false;
+  return !(battle.crewActed?.[ship.id] ?? []).includes(chefId);
+}
+
 /** Postes qu'un `actor` peut REJOINDRE maintenant : ceux d'un emplacement/coque ADJACENT (empreinte, ≤ 1 case)
  *  dont il ne fait PAS DÉJÀ partie de l'équipage. Une pièce déjà servie reste « rejoignable » en SUPPORT (Arme
  *  d'équipe : on peut être plusieurs à servir) — `serveAtPoste` décide ensuite chef-vs-support. KIND-AGNOSTIQUE

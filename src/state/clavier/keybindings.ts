@@ -310,7 +310,7 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: (s) => {
       if (!cur(s)) return false;
       const active = activeCombatant(s.battle!);
-      return !!active && actionGate('switch-loadout', { active, battle: s.battle!, netMode: s.net.mode }).ok;
+      return !!active && actionGate('switch-loadout', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
     },
     // La touche CHOISIT le set suivant (geste de clavier) ; l'EXÉCUTION passe par le registre
     // d'actions (`runAction('switch-loadout')`) — le clavier est un CONSOMMATEUR du registre, pas
@@ -415,7 +415,7 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: (s) => {
       if (!cur(s)) return false;
       const active = activeCombatant(s.battle!);
-      return !!active && actionGate('undo-move', { active, battle: s.battle!, netMode: s.net.mode }).ok;
+      return !!active && actionGate('undo-move', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
     },
     run: (g) => runAction('undo-move', g),
   },
