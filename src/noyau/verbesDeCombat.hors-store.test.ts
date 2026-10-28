@@ -11,6 +11,7 @@ import { mountMovement, mountUp, movementRemaining, mouvementDeCourse } from './
 import { testScene } from '../scenes/test-fixture';
 import { addCondition, refusVerrouDAction } from '../engine/conditions';
 import { engage } from '../engine/engagement';
+import { chebyshev } from '../engine/grid';
 import { distanceDeCourse } from '../engine/movement';
 import { runMovementBonus } from '../engine/combatFeatures/dispatch';
 import { effectiveMovement } from '../engine/encumbrance';
@@ -224,8 +225,8 @@ describe('Brisé en donnée (LDB 16 l.52, `restrictsAction`) : la Marche du verr
       const fuite = computeMoveReach(lire(partie));
       expect(fuite.size).toBeGreaterThan(0);
       expect(fuite.size).toBeLessThan(libre.size);
-      const d = (k: string) => { const [x, y] = k.split(',').map(Number); return Math.max(Math.abs(x - E.pos!.x), Math.abs(y - E.pos!.y)); };
-      const ici = Math.max(Math.abs(H.pos!.x - E.pos!.x), Math.abs(H.pos!.y - E.pos!.y));
+      const d = (k: string) => { const [x, y] = k.split(',').map(Number); return chebyshev({ x, y }, E.pos!); };
+      const ici = chebyshev(H.pos!, E.pos!);
       expect([...fuite.keys()].filter((k) => d(k) < ici)).toEqual([]);
     } finally {
       partie.fermer();
