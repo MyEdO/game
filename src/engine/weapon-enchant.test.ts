@@ -118,13 +118,13 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
   });
 
   it('Épée de justice : onHit porte un NŒUD FLOW `test` GATÉ par le Groupe « Criminel » (Inconscient sur échec)', () => {
-    // Le Test « à la touche » de l'Épée de justice est un nœud de STRUCTURE Flow `{kind:'test'}` (plus
-    // une op `test` — supprimée Lot 4d), gaté par `onlyGroups:['Criminel']` sur le FlowTest. L'enchant
+    // Le Test « à la touche » de l'Épée de justice est un nœud de STRUCTURE Flow `{kind:'test'}`, gaté
+    // par `onlyGroups:['criminel']` sur le FlowTest. L'enchant
     // doit PORTER ce nœud sur l'arme active. La RÉSOLUTION cadence-aware du gate `onlyGroups` (no-op si la
     // victime n'est pas du Groupe) est couverte par `venin-test.test.ts` (même `resolveFlowTest`).
     const justiceTest: Flow = {
       kind: 'test',
-      test: { skill: { id: 'resistance' }, difficulty: 'accessible', onlyGroups: ['Criminel'] },
+      test: { skill: { id: 'resistance' }, difficulty: 'accessible', onlyGroups: ['criminel'] },
       success: { kind: 'seq', steps: [] },
       fail: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'inconscient' }] } },
     };
@@ -137,7 +137,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
     expect(node.kind).toBe('test');
     if (node.kind === 'test') {
       expect(node.test.skill).toEqual({ id: 'resistance' });
-      expect(node.test.onlyGroups).toEqual(['Criminel']); // gate porté par le FlowTest
+      expect(node.test.onlyGroups).toEqual(['criminel']); // gate porté par le FlowTest
     }
     endOfRound(c, desDuTest); endOfRound(c, desDuTest); endOfRound(c, desDuTest); endOfRound(c, desDuTest);
     expect(heldEnchants(c)).toBeUndefined(); // dissipé avec l'enchantement

@@ -119,6 +119,12 @@ export function valeursDe(noeud: unknown): Readonly<Record<string, string>> | un
   return valeurs && Object.keys(valeurs).length ? valeurs : undefined;
 }
 
+/** Les options `[valeur, libellé]` d'un nœud énuméré nommé (`valeursDe`), dans l'ordre de sa déclaration ;
+ *  aucune pour un nœud non nommé. */
+export function optionsDuNoeud(noeud: unknown): [string, string][] {
+  return Object.entries(valeursDe(noeud) ?? {});
+}
+
 /**
  * LIBELLÉ FR d'une VALEUR d'un nœud énuméré — lecture canonique de l'enum nommé (#1694), partagée par
  * le Codex (groupe/sous-titre/fait), le `select` de l'atelier et tout site d'affichage. Repli sur la

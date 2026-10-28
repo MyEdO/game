@@ -217,7 +217,8 @@ export type Condition =
    *  un **Talent** (par id, `spec` éventuel — « Magie des Arcanes (Feu) »), un **Trait** (par id), ou
    *  un **état psychologique** actif (par type — `psych`, ex. 'frenesie' : gate du Contrôle de la
    *  Frénésie, LDB 10). Généralise les gates op-level `onlyGroups`/`unlessImmune`. Acteur absent = false. */
-  | { kind: 'has'; who: ActorRef; what: 'group' | 'talent' | 'trait' | 'psych'; value: string; spec?: string }
+  | { kind: 'has'; who: ActorRef; what: 'talent'; value: string; spec?: string }
+  | { kind: 'has'; who: ActorRef; what: 'group' | 'trait' | 'psych'; value: string }
   /** Le Domaine du Chaos du LANCEUR (`ctx.caster.chaosDomain`, `chaosDomainOf`) est-il `is` ? Gate
    *  GÉNÉRIQUE de tout Sort d'Arcanes du Chaos « se manifestant selon le Domaine spécifique » (EDOC 13
    *  l.264-266) — la branche du Flow sélectionne sa colonne (Allure démoniaque : Nurgle/Slaanesh/Tzeentch/

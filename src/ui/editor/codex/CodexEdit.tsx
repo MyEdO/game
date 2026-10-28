@@ -16,7 +16,7 @@ import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noe
 import { enfantsDe } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
 import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../compendium/editFields';
-import { libelleDeValeur, valeursDe } from '../../../data/schemas/grammaire/meta';
+import { libelleDeValeur, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey, entryKey } from '../../compendium/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
 import type { ActivityContext, OutcomeBand, BattleOutcome, BattleSide, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
@@ -24,7 +24,7 @@ import { weatherCondition } from '../../../engine/travelStages';
 import { weatherIdSchema } from '../../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema, battleSideSchema } from '../../../data/schemas/defs/activities';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
-import { RefField, SaisieSuggeree, cfgDeLaFeuille, cfgDuNoeudType, refFieldCfg, libelleDeDataset, useSuggestionsPartagees, useValeursDistinctes } from '../../compendium/refField/RefField';
+import { ChoixDeSpec, RefField, SaisieSuggeree, reposerLId, cfgDeLaFeuille, cfgDeLaListe, cfgDuNoeudASpec, cfgDuNoeudType, refFieldCfg, libelleDeDataset, useSuggestionsPartagees, useValeursDistinctes } from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { DescRefField } from '../../compendium/DescRefField';
 import type { DescRef } from '../../../data/source/decoupe';
@@ -1029,11 +1029,7 @@ function TriggeredEffectsField({ value, onChange, label = 'effets déclenchés (
 /** Options d'un champ ÉNUMÉRÉ d'un document, lues SUR SON NŒUD (`enumNomme`, #1694) :
  *  l'éditeur dédié d'une manœuvre tire ses `<option>` de la MÊME déclaration que le formulaire
  *  générique et que le Codex — plus aucune table de libellés par valeur ici. */
-const optionsDe = (fichier: string, champ: string): [string, string][] => Object.entries(valeursDe(noeudDuChamp(fichier, champ)) ?? {});
-
-/** Options d'un nœud énuméré IMPORTÉ (enum NICHÉ, hors d'atteinte de `noeudDuChamp` qui ne voit que le
- *  premier niveau) — même lecture, même déclaration : `valeursDe` du nœud lui-même. */
-const optionsDuNoeud = (noeud: unknown): [string, string][] => Object.entries(valeursDe(noeud) ?? {});
+const optionsDe = (fichier: string, champ: string): [string, string][] => optionsDuNoeud(noeudDuChamp(fichier, champ));
 
 /** Éditeur d'une MANŒUVRE (entité de 1ʳᵉ classe, `maneuvers.json`) : son PROFIL (type/activation/coût/
  *  jet/défense/ciblage/portée/magie) + ses effets AUTHORÉS (Dégâts + États en GameOp, via
@@ -1156,11 +1152,11 @@ function SkillSpecListField({ value, onChange, hint = 'compétences du rôle (au
       <span>{hint}</span>
       {list.map((s, i) => (
         <div className="tf-row" key={i}>
-          <select value={s.id} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, id: e.target.value } : x)))}>
+          <select value={s.id} onChange={(e) => set(list.map((x, j) => (j === i ? reposerLId(x, e.target.value) : x)))}>
             {!s.id && <option value="">— (choisir une compétence) —</option>}
             {skillOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
-          <input placeholder="spécialisation (facultatif)" value={s.spec ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, spec: e.target.value || undefined } : x)))} />
+          <ChoixDeSpec type="skill" id={s.id} value={s.spec} ariaLabel={`Spécialisation — compétence ${i + 1}`} onChange={(spec) => set(list.map((x, j) => (j === i ? { ...x, spec } : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
@@ -1180,11 +1176,11 @@ function TalentSpecListField({ value, onChange }: { value: RefDesignee[] | undef
       <span>talents contribuant à l'axe (facultatif)</span>
       {list.map((s, i) => (
         <div className="tf-row" key={i}>
-          <select value={s.id} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, id: e.target.value } : x)))}>
+          <select value={s.id} onChange={(e) => set(list.map((x, j) => (j === i ? reposerLId(x, e.target.value) : x)))}>
             {!s.id && <option value="">— (choisir un talent) —</option>}
             {talentOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
-          <input placeholder="spécialisation (facultatif)" value={s.spec ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, spec: e.target.value || undefined } : x)))} />
+          <ChoixDeSpec type="talent" id={s.id} value={s.spec} ariaLabel={`Spécialisation — talent ${i + 1}`} onChange={(spec) => set(list.map((x, j) => (j === i ? { ...x, spec } : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
@@ -1320,12 +1316,12 @@ function RestartTestField({ value, onChange }: { value: RestartTest[] | undefine
       <span>Test de redémarrage du moteur — Compétence OU Caractéristique + Difficulté (DR cumulés si Test étendu)</span>
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
-          <select value={r.skill?.id ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, skill: e.target.value ? { ...x.skill, id: e.target.value } : undefined } : x)))}>
+          <select value={r.skill?.id ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, skill: e.target.value ? reposerLId(x.skill ?? { id: '' }, e.target.value) : undefined } : x)))}>
             <option value="">— (Caractéristique) —</option>
             {skillOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
           {r.skill
-            ? <input placeholder="spécialisation (facultatif)" value={r.skill.spec ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, skill: { id: x.skill!.id, spec: e.target.value || undefined } } : x)))} />
+            ? <ChoixDeSpec type="skill" id={r.skill.id} value={r.skill.spec} ariaLabel={`Spécialisation — Test ${i + 1}`} onChange={(spec) => set(list.map((x, j) => (j === i ? { ...x, skill: { id: x.skill!.id, spec } } : x)))} />
             : (
               <select value={r.char ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, char: (e.target.value || undefined) as CharKey | undefined } : x)))}>
                 <option value="">— (choisir une Caractéristique) —</option>
@@ -1354,10 +1350,11 @@ function WaterTestField({ value, onChange }: { value: WaterTest | undefined; onC
     <div className="ed-field">
       <span>Test de Résistance (MSRC 16 l.13) — Compétence + Difficulté</span>
       <div className="tf-row">
-        <select value={v.skill.id} onChange={(e) => onChange({ ...v, skill: { ...v.skill, id: e.target.value } })}>
+        <select value={v.skill.id} onChange={(e) => onChange({ ...v, skill: reposerLId(v.skill, e.target.value) })}>
           {!v.skill.id && <option value="">— (choisir une compétence) —</option>}
           {skillOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
         </select>
+        <ChoixDeSpec type="skill" id={v.skill.id} value={v.skill.spec} ariaLabel="Spécialisation — Test de Résistance" onChange={(spec) => onChange({ ...v, skill: spec ? { id: v.skill.id, spec } : { id: v.skill.id } })} />
         <select value={v.difficulty} onChange={(e) => onChange({ ...v, difficulty: e.target.value as Difficulty })}>
           {DIFFICULTIES.map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}
         </select>
@@ -1746,13 +1743,15 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
   const refDs = REF_LIST_DATASET[key];
   const nom = sujet ? `${label} ${sujet}` : label;
   const nomPositionne = sujet ? nom : undefined;
-  const libelles = useValeursDistinctes(kind === 'stringList' ? refDs : undefined, 'label');
+  const cfgListe = kind === 'stringList' ? cfgDeLaListe(field.noeud) : undefined;
+  const libelles = useValeursDistinctes(kind === 'stringList' && !cfgListe ? refDs : undefined, 'label');
   const { partagees, datalist } = useSuggestionsPartagees(libelles);
 
   const cfgType = cfgDuNoeudType(field.noeud);
   if (cfgType) return <RefField cfg={cfgType} label={label} ariaLabel={nomPositionne} nullable={field.nullable} noeud={field.noeud} value={value} onChange={onChange} />;
   const cfgDId = kind === 'text' ? cfgDeLaFeuille(field.noeud) : undefined;
   if (cfgDId) return <RefField cfg={cfgDId} label={label} ariaLabel={nomPositionne} nullable={field.nullable} noeud={field.noeud} value={value} onChange={onChange} />;
+  if (cfgListe) return <RefField cfg={cfgListe} label={label} sujet={sujet} noeud={field.noeud} value={value} onChange={onChange} />;
   if (kind === 'stringList') {
     const list = (value as string[]) ?? [];
     const set = (next: string[]) => onChange(next);
@@ -1970,18 +1969,30 @@ function retenirLesCles(rangees: readonly RangeeDeRecord[]): RangeeDeRecord[] {
   return out;
 }
 
+/** Les champs d'une rangée ou d'un objet que la référence à spécialisation de son nœud (`cfgDuNoeudASpec`)
+ *  ne saisit pas déjà : son `id` et sa `spec` passent par `RefField`, ses autres clés par `Field`. */
+const horsDeLaRef = (champs: readonly FieldDesc[], aSpec: boolean): readonly FieldDesc[] =>
+  aSpec ? champs.filter((f) => f.key !== 'id' && f.key !== 'spec') : champs;
+
 /** Objet de config hétérogène (`interludeEvents.fx`, `raceAppearance.eyes`…) : SOUS-FORMULAIRE inféré
  *  (récursif) — chaque sous-champ retrouve son kind structuré (number/checkbox/stringList/recordText/…)
- *  via le MÊME `inferFields` + `Field`, sans repli JSON pour les objets plats. */
+ *  via le MÊME `inferFields` + `Field`, sans repli JSON pour les objets plats. Une référence à
+ *  spécialisation se choisit par `RefField` (`spec`). */
 function ObjectField({ chemin, sujet, label, value, noeud, onChange }: { chemin: string; sujet?: string; label: string; value: Record<string, unknown> | undefined; noeud?: unknown; onChange: (v: Record<string, unknown>) => void }) {
   const obj = value ?? {};
+  const objet = useMemo(() => noeudObjet(noeud), [noeud]);
+  const cfgSpec = cfgDuNoeudASpec(objet);
+  const aSpec = cfgSpec !== undefined;
   // Régime PROFONDEUR (`libelleDuChamp`) : un sous-champ se nomme par la méta de SON nœud objet, jamais
   // par l'enveloppe ; le nœud porte aussi les libellés de VALEURS de ses enums nommés (#1694).
-  const subFields = useMemo(() => inferFields([obj], { niveau: 'profondeur', noeud: noeudObjet(noeud) }), [obj, noeud]);
+  const subFields = useMemo(() => horsDeLaRef(inferFields([obj], { niveau: 'profondeur', noeud: objet }), aSpec), [obj, objet, aSpec]);
+  const laRef = cfgSpec && <RefField cfg={cfgSpec} label={label} sujet={sujet} value={obj} onChange={(v) => onChange(v as Record<string, unknown>)} />;
+  if (laRef && !subFields.length) return laRef;
   return (
     <div className="ed-field ed-subform">
       <span>{label}</span>
       <Grid className="ed-champs" min="sm" gap="sm">
+        {laRef}
         {subFields.map((f) => (
           <Field key={f.key} chemin={`${chemin}/${f.key}`} sujet={`de ${label}${sujet ? ` ${sujet}` : ''}`} field={f} value={obj[f.key]} onChange={(v) => onChange({ ...obj, [f.key]: v })} />
         ))}
@@ -2004,8 +2015,10 @@ function ObjectField({ chemin, sujet, label, value, noeud, onChange }: { chemin:
 function GenericArrayField({ chemin, sujet, label, value, noeud, onChange, columns }: { chemin: string; sujet?: string; label: string; value: Record<string, unknown>[] | undefined; noeud?: unknown; onChange: (v: Record<string, unknown>[]) => void; columns?: FieldDesc[] }) {
   const list = value ?? [];
   // Colonnes de PROFONDEUR : même régime que `ObjectField`, nommées par le nœud de rangée.
-  const selfCols = useMemo(() => inferFields(list, { niveau: 'profondeur', noeud: noeudObjet(noeud) }), [list, noeud]);
-  const cols = columns ?? selfCols;
+  const objet = useMemo(() => noeudObjet(noeud), [noeud]);
+  const cfgSpec = cfgDuNoeudASpec(objet);
+  const selfCols = useMemo(() => inferFields(list, { niveau: 'profondeur', noeud: objet }), [list, objet]);
+  const cols = horsDeLaRef(columns ?? selfCols, cfgSpec !== undefined);
   const nestedCols = useMemo(() => {
     const map = new Map<string, FieldDesc[]>();
     for (const f of cols) {
@@ -2023,6 +2036,7 @@ function GenericArrayField({ chemin, sujet, label, value, noeud, onChange, colum
       <span>{label}</span>
       {list.map((row, i) => (
         <Grid className="ed-champs" min="sm" gap="sm" key={cles[i]}>
+          {cfgSpec && <RefField cfg={cfgSpec} label={label} sujet={`de la rangée ${i + 1}${sujet ? ` ${sujet}` : ''}`} value={row} onChange={(v) => onChange(list.map((r, j) => (j === i ? (v as Record<string, unknown>) : r)))} />}
           {cols.map((f) => nestedCols.has(f.key)
             ? <GenericArrayField key={f.key} chemin={`${chemin}/${cles[i]}/${f.key}`} sujet={rangee(i)} label={f.label} value={(row[f.key] as Record<string, unknown>[] | undefined) ?? []} noeud={f.noeud} columns={nestedCols.get(f.key)} onChange={(v) => setRow(i, f.key, v)} />
             : <Field key={f.key} chemin={`${chemin}/${cles[i]}/${f.key}`} sujet={rangee(i)} field={f} value={row[f.key]} onChange={(v) => setRow(i, f.key, v)} />)}

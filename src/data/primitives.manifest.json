@@ -407,11 +407,20 @@
   {
     "id": "refField",
     "type": "primitives.manifest",
-    "label": "RefField/refusDuNoeud/cfgDeLaFeuille/RefNarrativeField/SaisieSuggeree/useSuggestionsPartagees",
+    "label": "RefField/refusDuNoeud/cfgDeLaFeuille/cfgDeLaListe/cfgDuNoeudASpec/ListeDIds/ChoixDeSpec/ChoixDeSpecs/SpecSelect/reposerLId/RefNarrativeField/SaisieSuggeree/useSuggestionsPartagees",
     "fichier": "src/ui/compendium/refField/RefField.tsx",
-    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste ; `cfgDeLaFeuille` nomme le catalogue que désigne la feuille `idDe` fermée d'un nœud, et le champ générique du Codex (`Field`) s'y rend en sélecteur `single` ; `RefNarrativeField` = son mode `single` sur les entrées (`entrees`) du registre du narratif que désigne une clé de `REFERENCES_NARRATIVES` ; `SaisieSuggeree` = son contrôle `<input list>` + `<datalist>` (modes `freeText`, `vocab`), saisie libre à suggestions émise telle quelle, seul propriétaire du motif (mur `murs/datalist`) ; `useSuggestionsPartagees` = UNE `<datalist>` partagée par les rangées d'un même champ",
-    "perimetre": "toute ref id statique du Compendium (champ générique d'une feuille `idDe` compris, à toute profondeur), champ objet de l'Effet `giveTrapping` ; toute référence narrative de l'éditeur (Effects, stade d'indice, preset d'entité) ; toute saisie libre à suggestions de l'UI (chaîne de trait, libellé de dataset)",
-    "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx, tavern-specials-editeur.test.tsx, saisie-suggeree.test.tsx"
+    "concept": "picker de référence multilangue-safe (par id) ; son mode `liste` stocke des ids NUS quand l'élément du nœud est une feuille `idDe` (`refs`) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste ; `cfgDeLaFeuille` nomme le catalogue que désigne la feuille `idDe` fermée d'un nœud, et le champ générique du Codex (`Field`) s'y rend en sélecteur `single` ; `cfgDeLaListe` nomme celui de l'élément d'une liste `refs`, et le même champ s'y rend en mode `liste`, ses rangées nommées par sa position (`sujet`) ; `cfgDuNoeudASpec` nomme celui d'une référence à spécialisation (`refOuSpec`, `specRef`, lue par `declarationDeRefASpecialisation`), et le même champ, objet seul ou rangée d'une liste, s'y rend en mode `single` à `spec`, ses deux contrôles nommés par sa position (`sujet`), ses autres clés gardées ; le mode `liste` à `spec` offre la spécialisation de chaque rangée ; `ListeDIds` = son mode `liste` sur le catalogue que désigne le nœud d'un champ `refs`, liste vidée rendue absente ; `ChoixDeSpec` = la spécialisation d'une entrée, choisie dans son catalogue (`SpecSelect`) quand l'entrée est fermée, saisie quand elle est ouverte, absente quand elle n'est pas spécialisable — le mode `spec` la compose ; `ChoixDeSpecs` = les spécialisations restreintes d'un emplacement `choix`, cochées dans le catalogue sans réordonner la valeur, celles hors catalogue d'une entrée ouverte cochées à la suite et complétées par saisie libre ; `reposerLId` = poser un autre id sur une référence en retirant la spécialisation de l'entrée quittée, lu par tout sélecteur d'id à spécialisation (modes `single` et `liste`, éditeurs dédiés) ; `RefNarrativeField` = son mode `single` sur les entrées (`entrees`) du registre du narratif que désigne une clé de `REFERENCES_NARRATIVES` ; `SaisieSuggeree` = son contrôle `<input list>` + `<datalist>` (modes `freeText`, `vocab`), saisie libre à suggestions émise telle quelle, seul propriétaire du motif (mur `murs/datalist`) ; `useSuggestionsPartagees` = UNE `<datalist>` partagée par les rangées d'un même champ",
+    "perimetre": "toute ref id statique du Compendium (champ générique d'une feuille `idDe` compris, à toute profondeur), champ objet de l'Effet `giveTrapping`, champs de Groupe de l'atelier (statbloc, Test, barrière, Condition `has`, op `banish`, listes du Codex) ; toute spécialisation de Compétence ou de Talent saisie à l'atelier et au créateur, toute référence à spécialisation du champ générique du Codex (objet ou rangée, à toute profondeur), les Compétences ajoutées d'une entité de scène ; toute référence narrative de l'éditeur (Effects, stade d'indice, preset d'entité) ; toute saisie libre à suggestions de l'UI (chaîne de trait, libellé de dataset)",
+    "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx, tavern-specials-editeur.test.tsx, saisie-suggeree.test.tsx, groupes-au-clic.test.tsx, ConditionEditor.test.tsx, combat-field-reverse-failed.test.tsx, RefField.test.tsx, spec-au-changement-d-id.test.tsx, Inspector.test.tsx"
+  },
+  {
+    "id": "optionsDuNoeud",
+    "type": "primitives.manifest",
+    "label": "optionsDuNoeud",
+    "fichier": "src/data/schemas/grammaire/meta.ts",
+    "concept": "options `[valeur, libellé]` d'un `<select>` sur un enum NOMMÉ (`enumNomme`, `valeursDe`), dans l'ordre de sa déclaration",
+    "perimetre": "tout `<select>` de l'atelier (Conditions, ops, Effets, Codex, inspecteur de scène) dont les options sont celles d'un enum nommé",
+    "verrou": "enums-nommes-grammaire.test.ts"
   },
   {
     "id": "saisieEnBrouillon",
@@ -571,11 +580,11 @@
   {
     "id": "sousListesNommees",
     "type": "primitives.manifest",
-    "label": "INSTANCIABLE_PAR_ID",
+    "label": "INSTANCIABLE_PAR_ID/DECLARABLE_PAR_UN_PORTEUR",
     "fichier": "src/data/schemas/grammaire/sousListes.ts",
-    "concept": "sous-liste marquée déclarée UNE fois (module feuille sans import) : les trappings que le moteur instancie par leur seul id",
-    "perimetre": "feuilles `idDe`/`refs` des trappings instanciés (op et Effet `giveTrapping`, `grantWeapon.form`, `merchants.curated`), `itemFromTrappingById`, `trappingsInstanciables`",
-    "verrou": "src/data/trappings-instanciables.test.ts"
+    "concept": "sous-listes marquées déclarées UNE fois (module feuille sans import) : les trappings que le moteur instancie par leur seul id ; les Groupes qu'un porteur déclare, jokers `matchesAll` exclus",
+    "perimetre": "feuilles `idDe`/`refs` des trappings instanciés (op et Effet `giveTrapping`, `grantWeapon.form`, `merchants.curated`), `itemFromTrappingById`, `trappingsInstanciables` ; champs de Groupe d'un porteur (`grantGroups`, `CustomStatblock.groups`, `FlowTest.vsGroups`)",
+    "verrou": "src/data/trappings-instanciables.test.ts, src/data/schemas/grammaire/refs-groupe.test.ts"
   },
   {
     "id": "jugementDeSousListe",

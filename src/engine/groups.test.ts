@@ -136,7 +136,7 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
     expect(findTraitById('demoniaque')?.capabilities?.grantGroups).toEqual(['demon']);
   });
 
-  it('ESPÈCE : les 27 entrées portent leur `grantGroups` (aucune ne dépend plus d’un mot-clé de label)', () => {
+  it('ESPÈCE : les Groupes d’une espèce sont ses `grantGroups`, jamais un mot-clé de son libellé', () => {
     expect(findSpeciesById('gnomes')?.grantGroups).toEqual(['gnome']);
     expect(findSpeciesById('hauts-elfes')?.grantGroups).toEqual(['elfe']);
     expect(findSpeciesById('humains-tileens')?.grantGroups).toEqual(['humain', 'tileen']);
@@ -151,7 +151,7 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
 });
 
 describe('Groupes du Tableau des Obsessions portés par le moteur (EDOC 12 l.180-181)', () => {
-  it('Mutants : le porteur d’au moins une mutation (EDOC 12 l.42), après ses Groupes déclarés', () => {
+  it('Mutants : le porteur d’au moins une mutation (EDOC 12 l.56, l.181), après ses Groupes déclarés', () => {
     expect(groupesDe({ groups: ['cultiste'], mutations: [{ id: 'mutation-fixture' }] })).toEqual(['cultiste', 'mutants']);
     expect(groupesDe({ groups: ['cultiste'], mutations: [] })).toEqual(['cultiste']);
     expect(groupesDe({ groups: ['cultiste'], traits: [{ id: 'corruption-mentale' }] })).not.toContain('mutants');

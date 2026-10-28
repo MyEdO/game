@@ -7,13 +7,23 @@ import type { NarratifBlock } from '../../../data/schemas/defs-scenes/narratif';
 import { HIT_LOCATION_LABELS } from '../../../engine/types';
 import { libelleDeValeur, valeursDe } from '../../../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../../../data/schemas/defs/maneuvers';
-import { actorFieldSchema, actorRefSchema, hasWhatSchema, relationOrCampSchema, startleCauseSchema } from '../../../data/schemas/grammaire/mecanique';
-import { findTrappingById } from '../../../data';
+import { actorFieldSchema, actorRefSchema, hasConditionSchema, hasWhatSchema, relationOrCampSchema, startleCauseSchema } from '../../../data/schemas/grammaire/mecanique';
+import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
+import { findTrappingById, refLabel } from '../../../data';
+import { cfgDeLaFeuille } from '../../compendium/refField/RefField';
 import { formatMoney } from '../../../engine/money';
 import { libelleDEtat } from '../../compendium/libellesNarratifs';
 
 /** Libellé d'affichage d'un `trappingId` (objet catalogué) — repli sur l'id brut (objet CUSTOM par nom). */
 const trappingLabelOrId = (id?: string): string => (id ? findTrappingById(id)?.label ?? id : '');
+
+/** La `value` d'une Condition `has` : le nœud de sa branche et le catalogue que désigne sa feuille `idDe`. */
+export function valeurDeHas(c: Extract<Condition, { kind: 'has' }>): { noeud: unknown; cfg: NonNullable<ReturnType<typeof cfgDeLaFeuille>> } {
+  const noeud = pasDeDonnee(ouverts([hasConditionSchema], c), 'value')[0];
+  const cfg = cfgDeLaFeuille(noeud);
+  if (!cfg) throw new Error(`Condition « has » : la branche « ${c.what} » n'a pas de feuille \`idDe\` en \`value\`.`);
+  return { noeud, cfg };
+}
 
 /** Résumé d'un sélecteur de héros. */
 const quiResume = (who: PartySelector | undefined, narratif: NarratifBlock | undefined): string =>
@@ -69,7 +79,7 @@ export function condSummary(c: Condition | undefined, narratif?: NarratifBlock):
     case 'nearestFoe': return `ennemi le + proche ${c.op} ${c.value} cases`;
     case 'capability': return `${libelleDeValeur(actorRefSchema, c.who)} : capacité « ${c.id || '?'} » ${c.op ?? '>='} ${c.value ?? 1}`;
     case 'relation': return `${libelleDeValeur(actorRefSchema, c.who)} : ${libelleDeValeur(relationOrCampSchema, c.is)}`;
-    case 'has': return `${libelleDeValeur(actorRefSchema, c.who)} a ${libelleDeValeur(hasWhatSchema, c.what)} « ${c.value || '?'}${c.spec ? ` (${c.spec})` : ''} »`;
+    case 'has': return `${libelleDeValeur(actorRefSchema, c.who)} a ${libelleDeValeur(hasWhatSchema, c.what)} « ${c.value ? refLabel(valeurDeHas(c).cfg.ds, { id: c.value, spec: c.what === 'talent' ? c.spec : undefined }) : '?'} »`;
     case 'casterChaosDomain': return `Domaine du Chaos du lanceur = ${c.is || '?'}`;
     case 'skill': return `${quiResume(c.who, narratif)} : Compétence « ${c.id || '?'}${c.spec ? ` (${c.spec})` : ''} »${c.advances ? ` ≥${c.advances}` : ''}`;
     case 'career': return `${quiResume(c.who, narratif)} : carrière « ${c.id || '?'} »`;

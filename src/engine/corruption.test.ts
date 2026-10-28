@@ -173,7 +173,7 @@ describe('Talent octroyé par une mutation — acquisition bornée par le Maxi (
   });
 });
 
-describe('Groupe des Mutants lu en direct sur les mutations portées (EDOC 12 l.42)', () => {
+describe('Groupe des Mutants lu en direct sur les mutations portées (EDOC 12 l.56, l.181)', () => {
   it('l’attache fait un Mutant, le détachement le défait', () => {
     const crete = mutationById('crete-sur-la-tete')!;
     const c = hero({ groups: ['humain'] });

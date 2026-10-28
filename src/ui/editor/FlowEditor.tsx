@@ -21,7 +21,8 @@ import { Icon } from '../Icon';
 import { DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { isSocialTest } from '../../engine/skills';
 import { menaceIds } from '../../engine/menace';
-import { RefField } from '../compendium/refField/RefField';
+import { ListeDIds, RefField } from '../compendium/refField/RefField';
+import { flowTestSchema } from '../../data/schemas/grammaire/mecanique';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { refLabel } from '../../data';
@@ -174,13 +175,12 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
       </div>
       {isSocialTest(test.skill?.id, test.characteristic) && (
         <div className="tf-row">
-          <input
-            placeholder="Interlocuteur — groupes (Sociabilité : Animosité/Préjugé −20/−10, ex. « Elfe, Mort-vivant »)"
-            value={(test.vsGroups ?? []).join(', ')}
-            onChange={(e) => {
-              const g = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
-              upd({ vsGroups: g.length ? g : undefined });
-            }}
+          <ListeDIds
+            noeud={flowTestSchema.shape.vsGroups}
+            label="Groupes de l’interlocuteur"
+            title="Animosité et Préjugé du jeteur envers ces Groupes modifient le Test de Sociabilité"
+            value={test.vsGroups}
+            onChange={(vsGroups) => upd({ vsGroups })}
           />
         </div>
       )}

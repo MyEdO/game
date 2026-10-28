@@ -45,7 +45,6 @@ import {
   memoParVersion,
   spells as allSpells,
   rigSpeciesId,
-  specLabel,
   sourceRefLabel,
   skillInstanceLabel,
   speciesSize,
@@ -84,6 +83,7 @@ import { Tabs } from '../composites/Tabs';
 import { AppearancePanel } from '../AppearancePanel';
 import { BackgroundFields } from '../BackgroundFields';
 import { CodexRef } from '../compendium/CodexRef';
+import { SpecSelect } from '../compendium/refField/RefField';
 import { Prose, mdToText } from '../Prose';
 import { CodexSections } from '../compendium/CodexEntry';
 import { EntityRef, EntityChoice, cleDAvancement, SkillChip, TalentChip } from '../EntityChip';
@@ -1197,28 +1197,6 @@ function AllocStepper({ value, min = 0, max, onChange, label }: { value: number;
       decLabel={`${label} : diminuer`}
       incLabel={`${label} : augmenter`}
     />
-  );
-}
-
-/** Sélecteur de spécialisation d'un emplacement joker : valeurs = ids de spec, libellés par `specLabel`. */
-function SpecSelect({ category, id, options, value, onChange, vide = '— spécialisation —', label }: {
-  category: 'skills' | 'talents';
-  id: string;
-  options: string[];
-  value: string;
-  onChange: (spec: string) => void;
-  vide?: string;
-  label?: string;
-}) {
-  return (
-    <select value={value} aria-label={label} onChange={(e) => onChange(e.target.value)}>
-      <option value="">{vide}</option>
-      {options.map((s) => (
-        <option key={s} value={s}>
-          {specLabel(category, id, s)}
-        </option>
-      ))}
-    </select>
   );
 }
 

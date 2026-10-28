@@ -2534,8 +2534,6 @@ export const STYLE_INLINE_RATCHET = [
   { fichier: 'src/ui/creator/CreatorSummary.tsx', ref: 'div.creator-fig :: expr', occurrence: 1 },
   { fichier: 'src/ui/creator/CreatorSummary.tsx', ref: 'div.creator-id :: expr', occurrence: 1 },
   { fichier: 'src/ui/creator/CreatorSummary.tsx', ref: 'div.creator-xp :: expr', occurrence: 1 },
-  { fichier: 'src/ui/editor/ConditionEditor.tsx', ref: 'input :: width', occurrence: 1 },
-  { fichier: 'src/ui/editor/ConditionEditor.tsx', ref: 'input :: width', occurrence: 2 },
   { fichier: 'src/ui/editor/EditorCanvas.tsx', ref: 'g :: expr', occurrence: 1 },
   { fichier: 'src/ui/editor/EditorCanvas.tsx', ref: 'g :: expr', occurrence: 2 },
   { fichier: 'src/ui/editor/EditorCanvas.tsx', ref: 'g :: expr', occurrence: 3 },

@@ -8,6 +8,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { talentRefSchema, traitInstanceSchema } from '../grammaire/reference';
 import { refOuSpec, refs } from '../grammaire/ref';
+import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import type { SkillRef } from '../../index';
 import { profilChiffreSchema, sizeCategorySchema } from '../grammaire/valeurs';
@@ -40,12 +41,16 @@ export const couvreSchema = listeCle(entreeDeFicheSchema, { nom: 'entrée de fic
  *  `CustomStatblock` porte des ids nus (`byId`, `src/data/index.ts`), l'éditeur les saisit au `<select>`. */
 const sortsConnusSchema: z.ZodType<string[], string[]> = refs('spell');
 
+/** `CustomStatblock.groups` — ids de `groups.json` qu'un PORTEUR déclare (`DECLARABLE_PAR_UN_PORTEUR`) : même
+ *  FORME DE SORTIE nue que `sortsConnusSchema`, le type moteur `CustomStatblock` porte des ids nus. #3045 */
+const groupesDuStatblocSchema: z.ZodType<string[], string[]> = refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR });
+
 /** `CustomStatblock.char` — `Partial<Record<CharKey | 'M' | 'B', number>>`. */
 export const charStatsSchema = profilChiffreSchema(z.number());
 
 /**
  * `CustomStatblock` (`engine/statblock.ts`) — profil PNJ/bête custom d'éditeur, DOCUMENT EMBARQUÉ du
- * document de scène : il porte son `type` comme tout document (#1467 L1b), et ses 14 champs sont
+ * document de scène : il porte son `type` comme tout document (#1467 L1b), et ses champs sont
  * déclarés UN À UN, calés sur l'interface TS (aucun champ n'y est plus large qu'elle — `char` compris,
  * dont les clés sont FERMÉES sur `charStatKeySchema`).
  */
@@ -57,7 +62,7 @@ export const customStatblockSchema = nommerChamps(z.strictObject({
   armour: z.number().optional(),
   traits: z.array(traitInstanceSchema).optional(),
   size: sizeCategorySchema.optional(),
-  groups: z.array(z.string()).optional(),
+  groups: groupesDuStatblocSchema.optional(),
   spells: sortsConnusSchema.optional(),
   skills: z.array(competenceChiffreeSchema).optional(),
   talents: z.array(talentRefSchema).optional(),

@@ -8,7 +8,7 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   lightLevels: 'configuration de rendu — paliers d’éclairage du monde volumique',
   lightTones: 'configuration de rendu — teintes de lumière du monde volumique',
   props:
-    'catalogue des placeables de décor — le DOCUMENT est de l’art (volume, libellé, empreinte, et la solidité physique de l’objet : aucune table ne chiffre qu’un tonneau bloque le passage). Trois de ses CHAMPS sont des règles et ne sont pas couverts par cette exemption : `light` (éclairage, LDB 74 l.43/56/58), `cover` et `opaque` (couvert, LDB 14 l.72/81/86) — les 41 entrées qui en portent un (mesuré le 2026-09-02) exigent `source` OU `maison` À L’ENTRÉE, par `affinerEntree` de `schemas/defs/props.ts`, et les 41 portent leur `maison`',
+    'catalogue des placeables de décor — le DOCUMENT est de l’art (volume, libellé, empreinte, et la solidité physique de l’objet : aucune table ne chiffre qu’un tonneau bloque le passage). Trois de ses CHAMPS sont des règles et ne sont pas couverts par cette exemption : `light` (éclairage, LDB 74 l.43/56/58), `cover` et `opaque` (couvert, LDB 14 l.72/81/86) — les entrées qui en portent un exigent `source` OU `maison` À L’ENTRÉE, par `affinerEntree` de `schemas/defs/props.ts`, et chacune porte son `maison`',
   raceAppearance: 'configuration de rendu — apparences par race pour le rig, art maison',
   gabarits: 'configuration de rendu — carrures du rig (facteurs du squelette de référence), art maison',
   materials:
@@ -18,9 +18,9 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   renduMonte: 'configuration de rendu — réglages d’assiette de la monture à l’écran',
   structureAppearance: 'configuration de rendu — apparences de structures bâties',
   buildings:
-    'catalogue des TYPES DE BÂTIMENT — le DOCUMENT est de l’art (empreinte offerte à la pose, matière de couverture, ornements d’identité posés en billboard) ; aucun folio n’imprime de catalogue de bâtiments. Chacune des 7 entrées EXIGE `maison` (`exiges` de `schemas/defs/buildings.ts`) : ce qu’un bâtiment vaut en cases et sous quelle couverture est un arbitrage, et il se dit à l’entrée',
+    'catalogue des TYPES DE BÂTIMENT — le DOCUMENT est de l’art (empreinte offerte à la pose, matière de couverture, ornements d’identité posés en billboard) ; aucun folio n’imprime de catalogue de bâtiments. Chaque entrée EXIGE `maison` (`exiges` de `schemas/defs/buildings.ts`) : ce qu’un bâtiment vaut en cases et sous quelle couverture est un arbitrage, et il se dit à l’entrée',
   terrains:
-    'catalogue des SOLS de la grille — le DOCUMENT est de l’art (teinte, rampe de dégradé, recette de surface, décor posé) ; aucun folio n’imprime de catalogue de sols. Quatre de ses CHAMPS sont des règles et ne sont pas couverts par cette exemption : `walkable`, `priority`, `opaque` et `built` — les 25 entrées les portent toutes et EXIGENT `maison` (`exiges` de `schemas/defs/terrains.ts`)',
+    'catalogue des SOLS de la grille — le DOCUMENT est de l’art (teinte, rampe de dégradé, recette de surface, décor posé) ; aucun folio n’imprime de catalogue de sols. Quatre de ses CHAMPS sont des règles et ne sont pas couverts par cette exemption : `walkable`, `priority`, `opaque` et `built` — chaque entrée les porte et EXIGE `maison` (`exiges` de `schemas/defs/terrains.ts`)',
   teintesJeu: 'configuration de rendu — palette de teintes de l’interface de jeu',
   'semences-de-scene':
     'configuration d’AUTHORING (#1716) — les DÉFAUTS d’une scène NEUVE (`emptyScene`, `noyau/monde/scene.ts`) : échelle de case, ambiance, éclairage, sol de départ, matières de relief, toiture. Aucun folio n’imprime le défaut d’un éditeur de scène. Le document EST son entrée (famille `config`) et EXIGE `maison` à sa racine (`exiges` de `schemas/defs/semences-de-scene.ts`) : ce qu’une scène neuve reçoit est un arbitrage, et il se dit là',
@@ -30,8 +30,8 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   'primitives.manifest': 'manifeste d’outillage — primitives partagées, décrit le dépôt',
   'raw.manifest': 'manifeste d’outillage — dette/blocage par id de topic ou de fiche RAW, décrit le dépôt',
   'systemes.manifest': 'manifeste d’outillage — systèmes du jeu, décrit le dépôt',
-  actions: 'vocabulaire des actes du moteur — une action porte un folio quand une règle la nomme (12/55), jamais par construction',
-  books: 'index d’app des livres eux-mêmes — un livre ne se cite pas lui-même (29/29 sans provenance)',
+  actions: 'vocabulaire des actes du moteur — une action porte un folio quand une règle la nomme, jamais par construction',
+  books: 'index d’app des livres eux-mêmes — un livre ne se cite pas lui-même',
   'progression-schemas.derived':
     'artefact GÉNÉRÉ par scripts/data/gen-progression-schemas.py — la provenance est PORTÉE PAR CHAQUE BANDE (book, page = folio imprimé, page PDF, ordonnée), relevée sur la page ; une source racine recopierait à la main ce que le générateur mesure',
 };
@@ -49,17 +49,17 @@ export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {
   // (1) VOCABULAIRES DE CATÉGORISATION — id + label, aucune valeur mécanique propre. Le concept est
   //     RAW, mais il est imprimé en PLUSIEURS endroits : un `page` scalaire en désignerait un seul.
   qualityTypes:
-    'vocabulaire de catégorisation (id+label : Atout/Défaut) — IMPRIMÉS en trois paires de folios distinctes, un `page` scalaire en désignerait une et mentirait pour les deux autres : LDB 60 l.9 / 60 l.40 (folios 291/292), 62 l.217 / 62 l.309 (297/299), 63 l.68 / 63 l.80 (300/300). Les Qualités elles-mêmes portent chacune son folio (qualities.json, 59/59)',
+    'vocabulaire de catégorisation (id+label : Atout/Défaut) — IMPRIMÉS en trois paires de folios distinctes, un `page` scalaire en désignerait une et mentirait pour les deux autres : LDB 60 l.9 / 60 l.40 (folios 291/292), 62 l.217 / 62 l.309 (297/299), 63 l.68 / 63 l.80 (300/300). Les Qualités elles-mêmes portent chacune son folio (qualities.json)',
   qualitySubtypes:
-    'vocabulaire de catégorisation (id+label : Arme/Armure/Objet) — même famille que `qualityTypes`, mêmes trois paires de folios ; aucune valeur mécanique propre à sourcer (3/3 entrées sans provenance, mesuré)',
+    'vocabulaire de catégorisation (id+label : Arme/Armure/Objet) — même famille que `qualityTypes`, mêmes trois paires de folios ; aucune valeur mécanique propre à sourcer',
   'damage-types':
-    'vocabulaire de catégorisation (id+label) — aucune valeur mécanique propre : le type est un PARAMÈTRE d’un Trait sourcé (traits.json), et l’énumération n’est imprimée nulle part en liste (4/4 sans provenance)',
+    'vocabulaire de catégorisation (id+label) — aucune valeur mécanique propre : le type est un PARAMÈTRE d’un Trait sourcé (traits.json), et l’énumération n’est imprimée nulle part en liste',
   localisation:
     'table de dé INVERSÉ (résultat de dé → zone de touche) — vocabulaire structurel du moteur ; les zones sont LDB et déjà tenues par `hitLocationSchema`, l’inversion ne l’est nulle part',
 
   // (2) INDEX & CATALOGUES D'APPLICATION — l'objet décrit est le dépôt ou son contenu, pas une règle.
   groups:
-    'index d’app des groupes cibles (38 {id,label}) — tags de regroupement/rencontre, pas une notion RAW nommée ; les espèces sourcées vivent dans species.json',
+    'index d’app des groupes cibles ({id,label}) — tags de regroupement/rencontre, pas une notion RAW nommée ; les espèces sourcées vivent dans species.json',
   names:
     'listes de PRÉNOMS et noms d’authoring par race — aucune mécanique mesurable, aucune règle à sourcer',
   speciesRace:
@@ -93,8 +93,8 @@ export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {
  * n'en portent pas reste le lot L1d #1469).
  *
  * Les configurations de RENDU et les manifestes d'outillage de cette liste sont des données de
- * l'application, pas des règles ; `actions.json` est le vocabulaire des actes du moteur (12 de ses
- * 55 entrées citent malgré tout un folio, d'où une source optionnelle et non interdite).
+ * l'application, pas des règles ; `actions.json` est le vocabulaire des actes du moteur (certaines de
+ * ses entrées citent malgré tout un folio, d'où une source optionnelle et non interdite).
  *
  * Clé = `type` du document, égal au nom de base de son dataset. Une entrée ne se retire que par le
  * commit qui SOURCE le document ; aucune entrée ne s'ajoute sans sa raison mesurée.
@@ -106,36 +106,28 @@ export const SANS_LIVRE: Readonly<Record<string, string>> = { ...SANS_LIVRE_DEFI
  * `SANS_LIVRE` : ceux-ci ONT un livre, plusieurs même, mais pas à la RACINE. Chaque sous-entrée
  * porte son `source: {book,page}` ; la racine, elle, ne doit JAMAIS en porter — `auditDataset`
  * (`scripts/guards/lib/citationCoverage.mjs:83`) rend `{total:1, cited:1}` dès qu'une racine cite,
- * ce qui ferait sortir 490 sous-entrées du dénominateur de la garde de couverture. Verrouillé par
+ * ce qui ferait sortir ses sous-entrées du dénominateur de la garde de couverture. Verrouillé par
  * `src/data/source-racine-aveugle.test.ts`.
  *
  * La fabrique les exempte comme `SANS_LIVRE` (même effet : aucune provenance exigée à l'entrée de
  * racine), mais le MOTIF n'est pas le même et les deux listes ne se soldent pas ensemble — d'où deux
- * constantes. Comptes mesurés le 2026-08-27.
- *
- * `miscast` en est SORTI le 2026-08-28 (#1467 L1b V-FLIP-TABLE) : son fichier ne porte plus une
- * racine nue mais 5 DOCUMENTS, chacun avec SA `source` (LDB 234 ×2, VDM 24, VDM 25, LDB 218) — la
- * provenance y est redevenue exigible à l'entrée, et la fabrique l'exige.
- *
- * `criticals` et `aa-criticals` en sont SORTIS le 2026-09-02 (#1657 B2a) par le MÊME chemin : les
- * deux racines nues sont devenues 8 DOCUMENTS-tables dans un seul fichier, chacun portant SA
- * `source` (LDB 174 ×4 ; AA 83/84/85/86) en plus des 160 rangées qui gardent la leur.
+ * constantes.
  */
 export const SOURCE_EN_PROFONDEUR: Readonly<Record<string, string>> = {
-  'sea-weather': 'racine nue, citations par sous-entrée (34/34) — une source racine rendrait le dataset aveugle',
-  'sea-events': 'racine nue, citations par sous-entrée (58/58) — une source racine rendrait le dataset aveugle',
-  'sea-navigation': 'racine nue, citations par sous-entrée (2/2) — une source racine rendrait le dataset aveugle',
-  'sea-perils': 'racine nue, citations par sous-entrée (15/15) — une source racine rendrait le dataset aveugle',
-  'sea-cargo': 'racine nue, citations par sous-entrée (13/13) — une source racine rendrait le dataset aveugle',
-  'land-cargo': 'racine nue, citations par sous-entrée (35/35) — une source racine rendrait le dataset aveugle',
-  'river-perils': 'racine nue, citations par sous-entrée (4/4) — une source racine rendrait le dataset aveugle',
-  weather: 'racine nue, citations par sous-entrée (10/10) — une source racine rendrait le dataset aveugle',
-  'mass-battle': 'racine nue, citations par sous-entrée (39/39) — une source racine rendrait le dataset aveugle',
-  'arcane-phenomena': 'racine nue, citations par sous-entrée (41/41) — une source racine rendrait le dataset aveugle',
-  'ship-construction': 'racine nue, citations par sous-entrée (22/22) — une source racine rendrait le dataset aveugle',
-  'crew-test-types': 'racine nue, citations par sous-entrée (10/10) — une source racine rendrait le dataset aveugle',
-  disponibilite: 'racine nue, citations par sous-entrée (6/6) — une source racine rendrait le dataset aveugle',
-  'naval-progression': 'racine nue, citations par sous-entrée (5/5) — une source racine rendrait le dataset aveugle',
+  'sea-weather': 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  'sea-events': 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  'sea-navigation': 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  'sea-perils': 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  'sea-cargo': 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  'land-cargo': 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  'river-perils': 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  weather: 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  'mass-battle': 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  'arcane-phenomena': 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  'ship-construction': 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  'crew-test-types': 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  disponibilite: 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
+  'naval-progression': 'racine nue, citations par sous-entrée — une source racine rendrait le dataset aveugle',
 };
 
 /** UNION des deux régimes d'exemption — ce que la fabrique ET le cliquet consultent. */

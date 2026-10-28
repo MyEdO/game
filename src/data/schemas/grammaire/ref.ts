@@ -14,7 +14,8 @@ import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, porteLeChampMarqueur } from './cle-d-espace';
 import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
-import { marquerProduit } from './interne/produits';
+import { marquerProduit, produitDe } from './interne/produits';
+import { enfantsDe } from './descente';
 
 declare const marqueDeType: unique symbol;
 /** Id BRANDÉ par son type — frappé à la porte zod, jamais par un `as` d'appelant. */
@@ -687,6 +688,16 @@ export type RegimeDeSpec = 'specOuChoix' | 'specSeule' | 'specOuChoixFacultatifs
 
 /** Régime qu'un PORTEUR déclare pour une référence dont la spécialisation est facultative (`refOuSpec`). */
 export type RegimeDePorteur = Exclude<RegimeDeSpec, 'specOuChoix'>;
+
+/** Ce qu'un nœud à spécialisation (`specRef`, `refOuSpec`) déclare : le type de l'entrée que désigne
+ *  son `id`, son régime et les clés propres au porteur ; `undefined` hors d'un tel nœud. Un clone à
+ *  enfants identiques se lit comme son original (`produitDe`). */
+export function declarationDeRefASpecialisation(noeud: unknown): { type: TypeEntite; regime: RegimeDeSpec; extra: readonly string[] } | undefined {
+  const produit = produitDe(noeud);
+  if (produit?.fabrique !== 'noeudASpecialisation') return undefined;
+  const type = typeDeFeuilleDId(enfantsDe(noeud).find((e) => e.cle === 'id')?.noeud);
+  return type && { type, regime: produit.role as RegimeDeSpec, extra: Object.keys(produit.clesDExtra) };
+}
 
 /** Nœud `{ id, spec?, choix?, …extra }` + validation de la spécialisation, au `regime` du porteur. */
 function noeudASpecialisation<T extends TypeEntite>(

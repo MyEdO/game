@@ -18,10 +18,10 @@ import type { JsonFormula } from '../../engine/miscast';
 import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
 import { noeudObjet, payloadDeFamille } from '../../data/schemas/validate';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
-import { valeursDe } from '../../data/schemas/grammaire/meta';
+import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
-import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
+import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, banishNarrationSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
 import { ConditionEditor } from './ConditionEditor';
 import { OP_LABEL, opsMissingRefs } from './refsDOp';
 import { opSummary } from './interne/resumeDOp';
@@ -30,7 +30,7 @@ import { SizeCategory, SIZE_LABEL } from '../../engine/size';
 import { etats, effectTables, mutationTables, lightTones, memoParVersion, type TrappingData } from '../../data';
 import { fallTables } from '../../data/shipCriticals';
 import { terrainsElectifs } from '../../noyau/monde/terrain';
-import { RefField } from '../compendium/refField/RefField';
+import { ListeDIds, RefField } from '../compendium/refField/RefField';
 import { ObjetDonneField } from './ObjetDonneField';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { formatTrait } from '../../engine/traits/dispatch';
@@ -547,8 +547,13 @@ const DEDICATED: ReadonlySet<GameOp['op']> = new Set([
   'wounds', 'heal', 'healCaster', 'condition', 'removeCondition', 'charMod', 'skillMod', 'moveMod', 'ap', 'testMod',
   'corruption', 'sinMod', 'corruptionExposure', 'gainResource', 'grantTrait', 'grantTalent', 'grantNaturalWeapon', 'narrative',
   'summon', 'polymorph', 'lifeSteal', 'push', 'teleport', 'chain', 'rollTable', 'rollMutation', 'armourPierce', 'light',
-  'fall', 'domeWard', 'offTerrainMod', 'moveScale', 'maxWeaponHands', 'giveTrapping',
+  'fall', 'domeWard', 'offTerrainMod', 'moveScale', 'maxWeaponHands', 'giveTrapping', 'banish',
 ]);
+
+/** `ListeDIds` du champ `champ` de l'op éditée, sur son nœud. */
+function ListeDIdsDOp({ champ, ...props }: { champ: string; label: string; value: string[] | undefined; onChange: (ids: string[] | undefined) => void }) {
+  return <ListeDIds noeud={noeudDuChamp(useContext(NoeudDOpContext), champ)} {...props} />;
+}
 
 /** Durée PROPRE en Rounds d'une op qui en porte une (`durationFromOp`, engine/ops) : une `Formula`,
  *  donc la borne basse d'une entrée (`{minimum, of}` — AA 07 l.113) s'y édite comme toute autre forme.
@@ -727,7 +732,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
             {o.easeSteps == null && (
               <>
                 <select value={o.level ?? 'mineure'} onChange={(e) => upd({ level: e.target.value as ExposureLevel })}>
-                  {Object.entries(valeursDe(exposureLevelSchema) ?? {}).map(([k, l]) => (
+                  {optionsDuNoeud(exposureLevelSchema).map(([k, l]) => (
                     <option key={k} value={k}>Exposition {l}</option>
                   ))}
                 </select>
@@ -748,7 +753,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
             <label className="dr">Points<NumberField variant="nu" label="Points de Corruption" value={o.amount ?? 1} onChange={(amount) => upd({ amount })} /></label>
             <select value={o.align ?? ''} onChange={(e) => upd({ align: (e.target.value || undefined) as ChaosAlign | undefined })}>
               <option value="">Mutation : règle globale</option>
-              {Object.entries(valeursDe(chaosAlignSchema) ?? {}).map(([k, l]) => (
+              {optionsDuNoeud(chaosAlignSchema).map(([k, l]) => (
                 <option key={k} value={k}>Table EDOC : {l}</option>
               ))}
             </select>
@@ -880,7 +885,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         )}
         {op.op === 'skillMod' && (
           <>
-            <RefField cfg={{ ds: 'skills', single: true }} fieldKey="Compétence" value={o.skill} onChange={(v) => upd({ skill: (v as string) ?? '' })} />
+            <RefField cfg={{ ds: 'skills', single: true, spec: true }} fieldKey="Compétence" value={o.skill} onChange={(v) => upd({ skill: (v as { id: string; spec?: string }) || { id: '' } })} />
             <label className="dr">Modif.<NumberField variant="nu" label="Modificateur de Compétence" value={o.mod ?? 0} onChange={(mod) => upd({ mod })} /></label>
             <label className="dr">Sens{/* Surdité, LDB 18 : restreint au Test de Perception basé sur ce sens */}
               <select value={o.sense ?? ''} onChange={(e) => upd({ sense: (e.target.value || undefined) as 'vue' | 'ouie' | undefined })}>
@@ -925,7 +930,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                   ? { cible: { pick: op.cible?.pick ?? 1, table: { id: e.target.value } }, trait: sansClesVides({ ...op.trait, arg: undefined }) }
                   : { cible: undefined })}>
                 <option value="">posée par le Trait</option>
-                {Object.entries(valeursDe(tablesDeCiblesSchema) ?? {}).map(([k, l]) => <option key={k} value={k}>tirée sur {l}</option>)}
+                {optionsDuNoeud(tablesDeCiblesSchema).map(([k, l]) => <option key={k} value={k}>tirée sur {l}</option>)}
               </select>
             </label>
             {op.cible != null && (
@@ -1036,7 +1041,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
             <label className="dr">Matériau ignoré
               <select value={o.bypass ?? ''} onChange={(e) => upd({ bypass: (e.target.value || undefined) as ArmourBypass | undefined })}>
                 <option value="">— aucun —</option>
-                {Object.entries(valeursDe(armourBypassCategorieSchema) ?? {}).map(([k, l]) => (
+                {optionsDuNoeud(armourBypassCategorieSchema).map(([k, l]) => (
                   <option key={k} value={k}>{l}</option>
                 ))}
               </select>
@@ -1075,7 +1080,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
               <>
                 <label className="dr">Dé
                   <select value={o.die ?? 'd10'} onChange={(e) => upd({ die: e.target.value as 'd10' | 'd100' })}>
-                    {Object.entries(valeursDe(deDeTableSchema) ?? {}).map(([k, l]) => (
+                    {optionsDuNoeud(deDeTableSchema).map(([k, l]) => (
                       <option key={k} value={k}>{l}</option>
                     ))}
                   </select>
@@ -1083,6 +1088,17 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                 <RollTableRowsField rows={o.rows ?? []} onChange={(rows) => upd({ rows })} />
               </>
             )}
+          </>
+        )}
+        {op.op === 'banish' && (
+          <>
+            <label className="dr">Narration
+              <select value={o.narration ?? ''} onChange={(e) => upd({ narration: e.target.value || undefined })}>
+                <option value="">— (par défaut) —</option>
+                {optionsDuNoeud(banishNarrationSchema).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+            </label>
+            <ListeDIdsDOp champ="onlyGroups" label="Groupes visés (vide = toute cible)" value={o.onlyGroups} onChange={(onlyGroups) => upd({ onlyGroups })} />
           </>
         )}
         {op.op === 'rollMutation' && (

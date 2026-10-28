@@ -1484,7 +1484,8 @@
       "species": "serpent"
     },
     "grantGroups": [
-      "bete"
+      "bete",
+      "serpent"
     ]
   },
   {
@@ -2619,7 +2620,8 @@
     },
     "grantGroups": [
       "bete",
-      "monstres"
+      "monstres",
+      "pieuvre-des-tourbieres"
     ]
   },
   {
@@ -4544,7 +4546,8 @@
       "tenue": "sanguinaire"
     },
     "grantGroups": [
-      "demon"
+      "demon",
+      "khorne"
     ]
   },
   {
@@ -4616,7 +4619,8 @@
       "tenue": "demonette"
     },
     "grantGroups": [
-      "demon"
+      "demon",
+      "slaanesh"
     ]
   },
   {
@@ -4828,7 +4832,8 @@
       "tenue": "nu"
     },
     "grantGroups": [
-      "demon"
+      "demon",
+      "tzeentch"
     ]
   },
   {
@@ -4918,7 +4923,8 @@
       "tenue": "nu"
     },
     "grantGroups": [
-      "demon"
+      "demon",
+      "tzeentch"
     ]
   },
   {
@@ -5005,7 +5011,8 @@
       "species": "slenderthigh-whiptongue"
     },
     "grantGroups": [
-      "demon"
+      "demon",
+      "slaanesh"
     ]
   },
   {
@@ -5101,7 +5108,8 @@
       "species": "fr-hough-mournbreath"
     },
     "grantGroups": [
-      "demon"
+      "demon",
+      "nurgle"
     ]
   },
   {
@@ -21474,7 +21482,11 @@
     "appearance": {
       "species": "horreur-bleue",
       "tenue": "nu"
-    }
+    },
+    "grantGroups": [
+      "demon",
+      "tzeentch"
+    ]
   },
   {
     "id": "xirat-p-celui-qui-lit",
@@ -21550,6 +21562,10 @@
     "appearance": {
       "species": "horreur-bleue",
       "tenue": "nu"
-    }
+    },
+    "grantGroups": [
+      "demon",
+      "tzeentch"
+    ]
   }
 ]
