@@ -1007,7 +1007,7 @@ export const FLOWS = {
    */
   cascade: makeRollFlow<PendingCascade, CascadeStep>({
     key: 'pendingCascade',
-    multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: (s, id) => refusDuJetDEtape(s, id) }, // lu au jet, pas au chargement : `cascade` ↔ `rollFlowSpecs` sont en cycle d'import
+    multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDEtape },
     rolled: (st) => !!st.result,
     actor: (s, st) => (st.actorId ? actorIn(s, st.actorId) : undefined),
     // ACCESSEUR DE DÉ de l'étape (une étape sans jet — `target` nul — n'en a pas). En Test OPPOSÉ,
