@@ -17,7 +17,7 @@ import type { BattleState, Jeu } from './etat';
 import { entityPickables } from './combatEffects';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { currentTargetingMode } from './targetingModes';
-import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat, restrictingConditions } from '../engine/conditions';
+import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat, refusVerrouDAction } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
 import { isVehicle, estNavire } from '../engine/coque';
@@ -96,13 +96,11 @@ const instanceDeLEtat = ({ active, def }: ActionCtx) =>
   active.conditions?.find((c) => c.id === etatDeclare(def));
 
 /** Le porteur est-il libre de tout État qui VERROUILLE son Action et son Mouvement (`restrictsAction`,
- *  lu en donnée par `restrictingConditions`) ? `LDB 16 l.52`. Ce qui sert la fuite ne le compose pas (course,
+ *  `refusVerrouDAction`) ? `LDB 16 l.52`. Ce qui sert la fuite ne le compose pas (course,
  *  mouvement, désengagement, se relever) ; tout ce qui coûte l'Action le compose par `action-libre`. */
 function horsVerrouDEtat({ active }: ActionCtx): ActionGate {
-  const verrou = restrictingConditions(active)[0];
-  if (!verrou) return ok;
-  const etat = findConditionById(verrou.id)?.label ?? verrou.id;
-  return no(t('cs.stateLockFlee', { name: active.label, etat }));
+  const refus = refusVerrouDAction(active);
+  return refus ? no(refus) : ok;
 }
 
 /** Le porteur PEUT-il effectuer une Action (`canTakeAction`, `LDB 16 l.125`) ? Composé par `actionLibre`,
