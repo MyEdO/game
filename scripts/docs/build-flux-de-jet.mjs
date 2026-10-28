@@ -66,15 +66,20 @@ function rendu() {
 
   // ── Le REGISTRE : `FLOW_VERBS`, entrée par entrée ────────────────────────────────────────────────
 
-  /** Objet littéral d'un `export const NOM = { … }` (avec ou sans `as const`/`satisfies`). */
+  /** Objet littéral d'un `export const NOM = { … }` (avec ou sans `as const`/`satisfies`), ou passé seul à une
+   *  fabrique (`paresseux({ … })`, src/noyau/rollFlowSpecs.ts). */
   function objetExporte(sf, nom, chemin) {
     let init
     sf.forEachChild((n) => {
       if (!ts.isVariableStatement(n)) return
       for (const d of n.declarationList.declarations) {
         if (!ts.isIdentifier(d.name) || d.name.text !== nom) continue
-        let e = d.initializer
-        while (e && (ts.isAsExpression(e) || ts.isSatisfiesExpression?.(e) || ts.isParenthesizedExpression(e))) e = e.expression
+        const deballer = (x) => {
+          while (x && (ts.isAsExpression(x) || ts.isSatisfiesExpression?.(x) || ts.isParenthesizedExpression(x))) x = x.expression
+          return x
+        }
+        let e = deballer(d.initializer)
+        if (e && ts.isCallExpression(e) && e.arguments.length === 1) e = deballer(e.arguments[0])
         init = e
       }
     })

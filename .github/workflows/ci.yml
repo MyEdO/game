@@ -107,7 +107,7 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # Lectures du même graphe TypeScript et gates courtes.
+  # Lectures du graphe TypeScript et du noyau : suites hors store, chargement des modules, typecheck, pont, lint.
   types:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -125,6 +125,11 @@ jobs:
         run: npm run test:runner
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:noyau
+      # `noyau:chargement` (#3058, scripts/guards/chargement-en-premier.mjs) : chaque module du noyau, du moteur, de la
+      # donnée, des feuilles, des hôtes (hotes/ compris) et des scénarios chargé EN PREMIER dans un graphe neuf de
+      # Vite.
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run noyau:chargement
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run deps:unused
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
