@@ -9,7 +9,8 @@ const { importerPersonnage, DOSSIER_DES_MODELES, publierAssets, TAG } = await ch
 
 const USAGE = `Usage : node hotes/godot/importer.mjs <dossier de production> <id de modèle> [--destination <dossier>] [--sans-publier]
   <dossier de production>  manifest.json : model, model_sha256, manifeste (base ou élément schéma 3) ; au plus un *.blend ; des LICENSE*.txt
-  <id de modèle>           le nom des fichiers déposés : <id>.manifeste.json, <id>.provenance.json (et <id>.glb tiré de la Release)
+  <id de modèle>           le nom des fichiers déposés : <id>.manifeste.json, <id>.provenance.json, les LICENSE-*.txt ;
+                           schéma 3 : <id>.glb écrit aussi ; schéma 2 : <id>.glb tiré de la Release à la construction (construire.mjs)
   --destination <dossier>  où les déposer (défaut : ${DOSSIER_DES_MODELES})
   --sans-publier           ne verse rien dans la Release ${TAG} (tests et sondes)`
 

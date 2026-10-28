@@ -10,7 +10,8 @@ export interface BaseLivree { readonly brut: unknown; readonly octets: Uint8Arra
 export type VerdictDeModele = { readonly ok: true; readonly manifeste: ManifesteDeModele } | { readonly ok: false; readonly refus: readonly string[] };
 
 export const estSchema3 = (m: unknown): m is Record<string, unknown> => estObjet(m) && m.schema === 3;
-export const estBase = (m: unknown): boolean => estSchema3(m) && !Object.prototype.hasOwnProperty.call(m, 'categorie') && !Object.prototype.hasOwnProperty.call(m, 'cle');
+/** Une base porte son squelette (`ManifesteDeBase.os`), champ qu'aucune catégorie d'élément n'admet (`element.ts`). */
+export const estBase = (m: unknown): boolean => estSchema3(m) && Object.prototype.hasOwnProperty.call(m, 'os');
 const identite = (base: unknown, cle: Record<string, unknown>): string => JSON.stringify([base, Object.entries(cle).sort(([a], [b]) => a.localeCompare(b))]);
 
 /** L'index (base, clé) et les bases, indépendants du nom de fichier et de l'ordre des champs de clé. */

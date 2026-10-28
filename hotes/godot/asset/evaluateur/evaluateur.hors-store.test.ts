@@ -405,6 +405,13 @@ describe('evaluer', () => {
     await expect(evaluer({ base: glbFabrique(), facteurs: { legs: 1.1 } })).rejects.toThrow(/sans manifeste/);
     await expect(evaluer({ base: glbFabrique(), clips: ['Absent'] })).rejects.toThrow(/Absent/);
   });
+
+  it('refuse une silhouette ou une carrure que la base ne porte pas', async () => {
+    const base = glbFabrique({ clips: { Repos: [0, 0] } });
+    expect((await evaluer({ base, silhouettes: { feminin: 1 }, pas: 0.5 })).ecarts).toEqual([]);
+    await expect(evaluer({ base, silhouettes: { feminin: 1, masculin: 1 }, pas: 0.5 })).rejects.toThrow(/\[silhouette-absente\] masculin /);
+    await expect(evaluer({ base, manifeste: manifesteDe(base), facteurs: { st: 1.1 }, pas: 0.5 })).rejects.toThrow(/\[carrure-absente\] st=1\.1 .*carrure_plus/);
+  });
 });
 
 describe('appuis des clips walk', () => {

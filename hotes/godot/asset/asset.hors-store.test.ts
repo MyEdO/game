@@ -10,7 +10,7 @@ import { cheminsAbsolus, validerManifeste, type CodeDErreur } from './manifeste.
 import { ATTACHES } from './montage';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
-import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, productionSchema3, deposerSchema3 } from './schema3.testkit.ts';
+import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, LICENCE_DE_PRODUCTION, productionSchema3, deposerSchema3 } from './schema3.testkit.ts';
 import {
   DOSSIER_DES_MODELES, fichiersDuModele, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   TAG, urlDAsset, type AssetAPublier, type Gh,
@@ -286,6 +286,7 @@ describe('import et chargement au schéma 3', () => {
     ['glb-different', avecBase, () => ({ ...elementSchema3(), glb: { sha256: 'a'.repeat(64), octets: GLB_D_ELEMENT.byteLength } })],
     ['cle-en-doublon', () => { const d = avecBase(); deposerSchema3(d, 'autre', elementSchema3(), GLB_D_ELEMENT); return d; }, () => elementSchema3()],
     ['base-en-doublon', avecBase, () => baseSchema3()],
+    ['categorie-inconnue', avecBase, () => { const { categorie: _c, cle: _k, ...incomplet } = elementSchema3(); return incomplet; }],
     ['os-inconnu', () => { const d = avecBase(); writeFileSync(join(d, 'corps-reference.manifeste.json'), JSON.stringify({ ...baseSchema3(), os: ['absent'] })); return d; }, () => elementSchema3()],
     ['glb-de-base-absent', () => { const d = avecBase(); rmSync(join(d, 'corps-reference.glb')); return d; }, () => elementSchema3()],
     ['provenance-de-base-differente', () => { const d = avecBase(); writeFileSync(join(d, 'corps-reference.provenance.json'), JSON.stringify({ model: 'corps-reference.glb', model_sha256: 'a'.repeat(64) })); return d; }, () => elementSchema3()],
@@ -444,6 +445,14 @@ describe('importerPersonnage', () => {
       writeFileSync(join(d, 'LICENSE-Pack.txt'), 'Pack\nLicense: MIT\n');
       return d;
     }, /^\[licence-inconnue\] LICENSE-Pack\.txt : « MIT »$/],
+    ['une production sans composant licencié ni texte de licence', () => dossierDeProduction((m) => {
+      delete (m.components.corps as { asset?: unknown }).asset;
+    }), /^\[licence-absente\] /],
+    ['une production schéma 3 sans composant licencié ni texte de licence', () => {
+      const d = productionSchema3(temporaire(), baseSchema3(), GLB_DE_BASE);
+      rmSync(join(d, LICENCE_DE_PRODUCTION));
+      return d;
+    }, /^\[licence-absente\] /],
     ['un manifeste absent', () => {
       const d = dossierDeProduction();
       rmSync(join(d, MANIFESTE_DE_PRODUCTION));

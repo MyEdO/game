@@ -1,5 +1,6 @@
 // L'ÉVALUATEUR EN LIGNE DE COMMANDE (#2972) : `evaluateur/evaluer.ts` sur un GLB, chargé comme les assets
-// (`chargerEvaluateur`, `charger.mjs`). Une ligne par écart ; code de sortie 1 s'il y a un écart, 0 sinon.
+// (`chargerEvaluateur`, `charger.mjs`). Une ligne par écart ; code de sortie 1 s'il y a un écart ou
+// si la base ne porte pas un clip, une silhouette ou la carrure demandés, 0 sinon.
 //   npm run godot:evaluer -- <glb> [--base <glb>] [--manifeste <json>]
 //     [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1]
 //     [--pas 0.0416] [--clips a,b] [--json <sortie>]
@@ -66,6 +67,9 @@ const fiche = await evaluer({
   ...(silhouettes === undefined ? {} : { silhouettes }),
   ...(pas === undefined ? {} : { pas }),
   ...(values.clips ? { clips: values.clips.split(',').filter(Boolean) } : {}),
+}).catch((erreur) => {
+  console.error(erreur instanceof Error ? erreur.message : String(erreur))
+  process.exit(1)
 })
 
 const { triangles, sommets, os, images, corps, clips } = fiche.mesures

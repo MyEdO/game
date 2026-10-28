@@ -1,6 +1,7 @@
 /**
  * L'IMPORT D'UN PERSONNAGE 3D DE PRODUCTION (#2948) : un dossier dont `manifest.json` nomme le GLB (`model`) et son
- * empreinte (`model_sha256`), avec au plus une source `*.blend` et des licences `LICENSE*.txt`, devient, sous un id de
+ * empreinte (`model_sha256`), avec au plus une source `*.blend`, et dont la licence s'établit par au moins un composant
+ * licencié (`components.<id>.asset.license_basis`) ou un texte `LICENSE*.txt`, devient, sous un id de
  * modèle, un GLB et sa source versés dans la Release des modèles sous leur empreinte (`release.ts`), puis le manifeste
  * réduit et validé (`manifeste.ts`), la provenance et les licences, déposés dans le dossier des modèles du projet Godot.
  * Les licences se comparent par leur identifiant SPDX (`licences.json`). Tout se juge avant la première publication : un
@@ -75,9 +76,13 @@ function licencesDe(manifeste: Brut): Record<string, LicenceDeComposant> {
 const licencesInconnues = (textes: readonly string[], ou: string): string[] =>
   [...new Set(textes)].filter((t) => !IDENTIFIANT_SPDX.has(t)).map((t) => `[licence-inconnue] ${ou} : « ${t} »`);
 
-/** Les refus de licence des composants : un texte inconnu de la table, ou un en-tête et un pack tous deux déclarés dont
- *  les identifiants SPDX diffèrent. */
-function refusDeLicence(licences: Readonly<Record<string, LicenceDeComposant>>): string[] {
+/** Les refus de licence de la provenance : aucune licence établie (ni composant licencié, ni texte `LICENSE*.txt`), puis,
+ *  par composant, un texte inconnu de la table, ou un en-tête et un pack tous deux déclarés dont les identifiants SPDX
+ *  diffèrent. */
+function refusDeLicence({ licences, licences_de_pack }: Pick<Provenance, 'licences' | 'licences_de_pack'>): string[] {
+  if (!Object.keys(licences).length && !licences_de_pack.length) {
+    return ['[licence-absente] ni composant licencié (components.<id>.asset.license_basis), ni texte LICENSE*.txt dans le dossier de production'];
+  }
   const identifiants = (l: readonly string[]) => [...new Set(l.map((t) => IDENTIFIANT_SPDX.get(t)))].sort().join(' | ');
   return Object.entries(licences).flatMap(([id, l]) => {
     const inconnues = licencesInconnues([...l.en_tete, ...l.annoncees], `licence du composant ${id}`);
@@ -191,7 +196,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   };
   const fuites = cheminsAbsolus(provenance, 'provenance');
   if (fuites.length) return { ok: false, refus: fuites.map(ligneDErreur) };
-  const refus = refusDeLicence(provenance.licences);
+  const refus = refusDeLicence(provenance);
   if (refus.length) return { ok: false, refus };
 
   const assets: AssetAPublier[] = [

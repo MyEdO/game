@@ -100,7 +100,7 @@ describe('validerElement : chaque refus nommé', () => {
 describe('CLI godot:valider : base validée avant l’élément', () => {
   const dossiers: string[] = [];
   afterEach(() => dossiers.splice(0).forEach(d => rmSync(d, { recursive: true, force: true })));
-  it.each(['valide', 'os-inconnu', 'glb-different', 'base-absente', 'forme'] as const)('%s', cas => {
+  it.each(['valide', 'os-inconnu', 'glb-different', 'base-absente', 'forme', 'chemin-absolu'] as const)('%s', cas => {
     const d = mkdtempSync(join(tmpdir(), 'element-cli-'));
     dossiers.push(d);
     const base = baseSchema3();
@@ -108,7 +108,8 @@ describe('CLI godot:valider : base validée avant l’élément', () => {
     if (cas === 'glb-different') base.glb.sha256 = 'a'.repeat(64);
     writeFileSync(join(d, 'base.manifeste.json'), JSON.stringify(base));
     if (cas !== 'base-absente') writeFileSync(join(d, 'base.glb'), GLB_DE_BASE);
-    const element = cas === 'forme' ? { ...elementSchema3(), surfaces: undefined } : elementSchema3();
+    const element = cas === 'forme' ? { ...elementSchema3(), surfaces: undefined }
+      : cas === 'chemin-absolu' ? { ...elementSchema3(), surfaces: [{ nom: 'C:\\Users\\x\\metal.png', teinte: true }] } : elementSchema3();
     writeFileSync(join(d, 'element.json'), JSON.stringify(element));
     writeFileSync(join(d, 'element.glb'), GLB_D_ELEMENT);
     const r = spawnSync(process.execPath, ['hotes/godot/asset/valider.mjs', join(d, 'element.json'), join(d, 'base.manifeste.json'), join(d, 'element.glb')], { encoding: 'utf8', timeout: 60000 });

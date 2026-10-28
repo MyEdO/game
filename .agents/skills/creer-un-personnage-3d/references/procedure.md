@@ -357,7 +357,8 @@ et ses `LICENSE*.txt` (ligne `License:` obligatoire). Pour une base ou un élém
 Remplacer `manifeste` par le manifeste COMPLET de base ou d'élément. Les métadonnées de licences
 des composants restent dans `components.<id>.asset` de l'enveloppe (`license_basis`,
 `explicit_header`, `packs[].announced_license`), les sources d'animation dans `animation_sources`.
-Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé.
+Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé. Une production sans
+composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 
 Importer la base avant ses éléments, dans la même destination :
 
