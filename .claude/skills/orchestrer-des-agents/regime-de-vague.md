@@ -21,6 +21,11 @@ prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, 
 - **Cycle d'une session** : `npm run ops:session -- lancer .git/suivi/consignes/<N>.md` rend le `jeton`
   que `fermer` exige (stdin `{"jeton":"…"}` ou `WFRP_SESSION_JETON`) et la commande `veille`.
   `scripts/ops/session.mjs:19`
+- **Une session lancée orchestre son ticket** (utilisateur, 2026-10-28 : « D'ailleurs pourquoi la
+  session n'utilise aucun agent, c'est sensé etre un orchestrator sur son ticket non ? ») : sa consigne
+  l'ouvre par le skill `orchestrer-des-agents`. Elle dépêche les codeurs, le juge de diff et le recetteur,
+  et committe par chemins sur sa branche. Elle ne reçoit jamais un brief de codeur (« l'orchestrateur
+  committe ton diff ») : ce brief-là la fait coder seule.
 - **Un plan approuvé s'exécute jusqu'au bout** : avant de le dire terminé, inventaire item par item
   (exécuté, dispatché, ou ancré avec son BLOCAGE NOMMÉ) ; toute annonce « je ferai » est un item.
 - **Re-mesurer la sous-tâche contre l'objectif macro** (arbitrer un détail d'un but large = zoom out ;
