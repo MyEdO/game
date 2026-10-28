@@ -13,6 +13,7 @@ import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { chebyshev } from '../engine/grid';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
@@ -108,7 +109,7 @@ describe('GOLDEN parité Lot 2 — gardes RAW/psychologie (forcées, hors scorin
   });
 
   it('Animosité/Haine active → filtre le vivier sur le groupe haï', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: 'haine', cible: 'elfe', active: true }] });
+    const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: 'haine', cible: ciblePsy.groupe('elfe'), active: true }] });
     const hated = mk('hated', 'hero', { x: 5, y: 6 }, { wounds: { current: 10, max: 10 }, groups: ['elfe'] });
     const weak = mk('weak', 'hero', { x: 5, y: 4 }, { wounds: { current: 1, max: 10 }, groups: ['humain'] });
     expect(tidOf(chooseEnemyAction(input(e, [hated, weak])))).toBe('hated');

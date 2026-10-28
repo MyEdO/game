@@ -9,6 +9,7 @@ import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
 import { nommerLesRetraits } from './elagage';
 import type { Combatant } from '../../engine/types';
 import { t } from '../../i18n';
+import { ciblePsy } from '../../engine/psych/ciblage';
 
 /** Un État du registre courant, et un id qu'aucun registre ne porte. */
 const ETAT_CONNU = 'a-terre';
@@ -45,8 +46,8 @@ describe('roster — lecture et écriture sous `FORMAT_ROSTER`', () => {
 });
 
 describe('roster — Trait psychologique à Cible hors de `groups.json` (#1463 LD.1, LDB 21 l.17-21)', () => {
-  const connu = { type: 'animosite', cible: GROUPE_CONNU };
-  const inconnu = { type: 'haine', cible: GROUPE_INCONNU };
+  const connu = { type: 'animosite', cible: ciblePsy.groupe(GROUPE_CONNU) };
+  const inconnu = { type: 'haine', cible: ciblePsy.groupe(GROUPE_INCONNU) };
   const peur = { type: 'peur', sourceId: 'goule-1', indice: 1 };
   const avecPsy = (traits: object[]): RosterEntry => ({
     ...entry('h1'),

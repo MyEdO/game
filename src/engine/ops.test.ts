@@ -579,7 +579,7 @@ describe("op:'grantPsychTrait' / op:'removePsychTrait' — Traits psychologiques
   it("grantPsychTrait pose le Trait dans c.psychTraits (type + cible)", () => {
     const c = hero({ psychTraits: [] });
     applyOps(c, [opPsy.octroi('phobie', ciblePsy.groupe('serpent'))], { rng: desDuTest });
-    expect(c.psychTraits).toEqual([{ type: 'phobie', cible: 'serpent' }]);
+    expect(c.psychTraits).toEqual([{ type: 'phobie', cible: ciblePsy.groupe('serpent') }]);
   });
   it("grantPsychTrait sans cible (Frénésie)", () => {
     const c = hero({ psychTraits: [] });
@@ -594,7 +594,7 @@ describe("op:'grantPsychTrait' / op:'removePsychTrait' — Traits psychologiques
   it("removePsychTrait { psychType } retire le Trait correspondant (laisse les autres)", () => {
     const c = hero({ psychTraits: [{ type: 'phobie', cible: ciblePsy.groupe('serpent') }, { type: 'haine', cible: ciblePsy.groupe('skaven') }] });
     applyOps(c, [opPsy.retrait('phobie')], { rng: desDuTest });
-    expect(c.psychTraits).toEqual([{ type: 'haine', cible: 'skaven' }]);
+    expect(c.psychTraits).toEqual([{ type: 'haine', cible: ciblePsy.groupe('skaven') }]);
   });
   it("removePsychTrait sans type retire UN Trait au choix (le 1er) ; aucun → inerte", () => {
     const c = hero({ psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }] });

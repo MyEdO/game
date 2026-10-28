@@ -15,6 +15,7 @@ import { ligneDe } from '../engine/modLine.testkit';
 import { psychTest, sansPeurLabel } from '../engine/psychology';
 import { refLabel } from '../data';
 import { t } from '../i18n';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 /**
  * Flux de Psychologie À LA RENCONTRE, hors combat (couture C). Depuis 2026-06-10 : la Peur/Terreur de
@@ -49,7 +50,7 @@ function timoreux(name: string, fm = 1) {
 /** Héros timoré portant une Animosité (Elfe) — le Trait social qui se déclenche hors combat. */
 function animosite(name: string) {
   const h = timoreux(name);
-  h.psychTraits = [{ type: 'animosite', cible: 'elfe' }];
+  h.psychTraits = [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }];
   return h;
 }
 
@@ -84,12 +85,12 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
    *  est une Cible de Haine, jouée à la rencontre comme en combat. */
   it('un Trait OPTIONNEL de la fiche (Mort-vivant) fait du PNJ la Cible d’une Haine à la rencontre', () => {
     const h = timoreux('H');
-    h.psychTraits = [{ type: 'haine', cible: 'mort-vivant' }];
+    h.psychTraits = [{ type: 'haine', cible: ciblePsy.groupe('mort-vivant') }];
     useGame.setState({ party: [h] });
     useGame.getState().startScene(scene([ent({ id: 'revenant', ref: 'humain', combat: { optionals: [{ id: 'mort-vivant' }] } })]));
     const step = useGame.getState().pendingCascade?.participants[0];
     expect(step?.encounterPsych?.kind).toBe('haine');
-    expect(step?.encounterPsych?.cible).toBe('mort-vivant');
+    expect(step?.encounterPsych?.cible).toBe(ciblePsy.groupe('mort-vivant'));
   });
 
   it('une Terreur ne déclenche AUCUNE cascade à la rencontre (hors combat = non hostile)', () => {
@@ -108,7 +109,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const step = c.participants[0];
     expect(step.kind).toBe('encounterPsych');
     expect(step.encounterPsych?.kind).toBe('animosite');
-    expect(step.encounterPsych?.cible).toBe('elfe');
+    expect(step.encounterPsych?.cible).toBe(ciblePsy.groupe('elfe'));
     // BANDE : le jet vit sur la RANGÉE, jamais sur l'étape (contrat `aggregate:'none'`).
     expect(step.aggregate).toBe('none');
     expect(step.target).toBeUndefined();
@@ -123,7 +124,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     useGame.getState().cascadeBatchRoll(h.id);
     useGame.getState().cascadeNext();
     const hero = useGame.getState().party[0];
-    expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.cible === 'elfe' && p.active === true)).toBe(true);
+    expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.cible === ciblePsy.groupe('elfe') && p.active === true)).toBe(true);
     expect(useGame.getState().pendingCascade).toBeNull();
   });
 
@@ -181,7 +182,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
   it('BANDES : deux entrées de règle DIFFÉRENTES → deux étapes, dans l’ordre de première rencontre', () => {
     const a = animosite('A');
     const b = timoreux('B');
-    b.psychTraits = [{ type: 'haine', cible: 'elfe' }];
+    b.psychTraits = [{ type: 'haine', cible: ciblePsy.groupe('elfe') }];
     useGame.setState({ party: [a, b] });
     useGame.getState().startScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
     const c = useGame.getState().pendingCascade!;
@@ -256,24 +257,24 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
    *  hors combat (playtest 2026-06-10) ne l'atteint pas. Mesuré sur le flux RÉEL (`startScene`). */
   it('Phobie (Araignées) : une araignée présente ouvre la bande du régime PEUR — hors combat', () => {
     const h = timoreux('H');
-    h.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];
+    h.psychTraits = [{ type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }];
     useGame.setState({ party: [h] });
-    useGame.getState().startScene(scene([ent({ id: 'arai', statblock: { type: 'statblock', label: 'Araignée géante', char: { B: 10 }, groups: ['araignees'] } })]));
+    useGame.getState().startScene(scene([ent({ id: 'arai', statblock: { type: 'statblock', label: 'Araignée géante', char: { B: 10 }, groups: ['bete'] } })]));
     const c = useGame.getState().pendingCascade;
     expect(c, 'aucune bande : le phobique ne teste plus rien hors combat').toBeTruthy();
     const step = c!.participants[0];
     expect(step.kind).toBe('encounterPsych');
-    expect(step.encounterPsych).toMatchObject({ kind: 'peur', indice: 1, sourceId: 'arai', cible: 'araignees' });
+    expect(step.encounterPsych).toMatchObject({ kind: 'peur', indice: 1, sourceId: 'arai', cible: ciblePsy.groupe('bete') });
     expect(step.participants!.map((p) => p.id)).toEqual([h.id]);
   });
 
   it('Phobie, héros Exténué ×3 : la rangée nomme l’État et le jet affronte Calme −30 (LDB 16 l.90)', () => {
     const h = timoreux('H', 60);
     h.talents = [];
-    h.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];
+    h.psychTraits = [{ type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }];
     h.conditions = [{ id: 'extenue', value: 3 }];
     useGame.setState({ party: [h] });
-    useGame.getState().startScene(scene([ent({ id: 'arai', statblock: { type: 'statblock', label: 'Araignée géante', char: { B: 10 }, groups: ['araignees'] } })]));
+    useGame.getState().startScene(scene([ent({ id: 'arai', statblock: { type: 'statblock', label: 'Araignée géante', char: { B: 10 }, groups: ['bete'] } })]));
     const rangee = () => useGame.getState().pendingCascade!.participants[0].participants![0];
     expect(rangee().base, 'base nue : Calme 60').toBe(60);
     expect(ligneDe(rangee().mods, { category: 'etats', id: 'extenue' })?.value, 'l’État est nommé sur la rangée').toBe(-30);
@@ -284,12 +285,12 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
 
   it('Sans Peur (Ennemi) : la rangée du porteur est Accessible et nommée, celle du voisin reste déclarée (LDB 10 l.1051)', () => {
     const brave = timoreux('Brave');
-    brave.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];
-    brave.talents = [{ talentId: 'sans-peur', spec: 'araignees', times: 1 }];
+    brave.psychTraits = [{ type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }];
+    brave.talents = [{ talentId: 'sans-peur', spec: 'bete', times: 1 }];
     const autre = timoreux('Autre');
-    autre.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];
+    autre.psychTraits = [{ type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }];
     useGame.setState({ party: [brave, autre] });
-    useGame.getState().startScene(scene([ent({ id: 'arai', statblock: { type: 'statblock', label: 'Araignée géante', char: { B: 10 }, groups: ['araignees'] } })]));
+    useGame.getState().startScene(scene([ent({ id: 'arai', statblock: { type: 'statblock', label: 'Araignée géante', char: { B: 10 }, groups: ['bete'] } })]));
     const [b, a] = useGame.getState().pendingCascade!.participants[0].participants!;
     const { skill, difficulty } = psychTest('peur');
     expect(b.difficulty).toBe('accessible');
@@ -301,7 +302,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
 
   it('Phobie hors de sa Cible : aucune bande (la porte reste bornée au Groupe du Trait)', () => {
     const h = timoreux('H');
-    h.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];
+    h.psychTraits = [{ type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }];
     useGame.setState({ party: [h] });
     useGame.getState().startScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
     expect(useGame.getState().pendingCascade).toBeNull();
@@ -309,11 +310,11 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
 
   it('TÉMOIN — l’Animosité garde son Test PROPRE (binaire), la Phobie ne l’a pas absorbée', () => {
     const h = animosite('H');
-    h.psychTraits = [...h.psychTraits!, { type: 'phobie', cible: 'araignees', indice: 1 }];
+    h.psychTraits = [...h.psychTraits!, { type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }];
     useGame.setState({ party: [h] });
     useGame.getState().startScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
     const step = useGame.getState().pendingCascade!.participants[0];
-    expect(step.encounterPsych).toMatchObject({ kind: 'animosite', cible: 'elfe' });
+    expect(step.encounterPsych).toMatchObject({ kind: 'animosite', cible: ciblePsy.groupe('elfe') });
   });
 });
 

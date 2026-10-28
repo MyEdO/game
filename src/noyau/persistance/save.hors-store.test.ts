@@ -10,6 +10,7 @@ import { emptyScene } from '../monde/scene';
 import { OPTIONAL_RULES, rule, loadRuleOverrides } from '../../engine/policy';
 import { conditionIds } from '../../data/index';
 import { FORMAT_SAVE } from './formats.generated';
+import { ciblePsy } from '../../engine/psych/ciblage';
 
 /** L'état d'un hôte web : l'état du jeu, plus des clés de son interface. */
 const etatDUnHote = (): EtatDeJeu & Record<string, unknown> => ({ ...etatInitialDuJeu(), camRot: 2, zoom: 1.8, reveler: true, sheetId: 'h', keyOverrides: { a: 'KeyA' } });
@@ -82,9 +83,9 @@ describe('chargerLaSave — l’état de jeu à ouvrir, ses règles, ses retrait
 
   it('retire ENTIER le Trait psychologique dont la Cible est hors de `groups.json`, la nomme, garde le reste (LDB 21 l.17-21)', () => {
     const connu = conditionIds()[0];
-    const animosite = { type: 'animosite', cible: 'skaven' };
+    const animosite = { type: 'animosite', cible: ciblePsy.groupe('skaven') };
     const save = snapshotSave(etatInitialDuJeu(), 'x');
-    const h = { ...heros('h', connu), psychTraits: [{ type: 'haine', cible: 'groupe-hors-registre' }, animosite, { type: 'trauma' }] };
+    const h = { ...heros('h', connu), psychTraits: [{ type: 'haine', cible: ciblePsy.groupe('groupe-hors-registre') }, animosite, { type: 'trauma' }] };
     save.data = { ...save.data, party: [h] as unknown as SaveGame['data']['party'] };
     const { etat, retraits } = chargerLaSave(save);
     expect(etat.party[0].psychTraits).toEqual([animosite, { type: 'trauma' }]);

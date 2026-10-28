@@ -4,6 +4,7 @@ import { openRoundStartPsych } from '../noyau/combatFlow';
 import { resolvePsychAI } from '../noyau/combat/turnHooks';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 /**
  * Traits psy CIBLÉS en COMBAT (Animosité/Haine/…, LDB 21 l.9 : Test de Calme « au début du Round »).
@@ -47,7 +48,7 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
   it('Animosité (Mort-vivant) : la cascade s’ouvre face à un ennemi du groupe ; échec → affliction active', () => {
     useGame.getState().seedRng(7);
     const { H, E } = setup();
-    H.psychTraits = [{ type: 'animosite', cible: 'mort-vivant' }];
+    H.psychTraits = [{ type: 'animosite', cible: ciblePsy.groupe('mort-vivant') }];
     E.groups = ['mort-vivant'];
     H.characteristics['force-mentale'] = 1; // Test de Calme raté quasi sûr
     openRoundStartPsych(useGame.getState, useGame.setState);
@@ -66,7 +67,7 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
   it('succès (Résilience) → marqueur inerte, plus de re-déclenchement ce Round', () => {
     useGame.getState().seedRng(7);
     const { H, E } = setup();
-    H.psychTraits = [{ type: 'animosite', cible: 'mort-vivant' }];
+    H.psychTraits = [{ type: 'animosite', cible: ciblePsy.groupe('mort-vivant') }];
     E.groups = ['mort-vivant'];
     H.resilience = 1;
     openRoundStartPsych(useGame.getState, useGame.setState);
@@ -81,11 +82,11 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
   it('IA : resolvePsychAI pose une affliction ciblée active sur échec (Haine)', () => {
     useGame.getState().seedRng(7);
     const { H, E } = setup();
-    E.psychTraits = [{ type: 'haine', cible: 'Humain' }];
-    H.groups = ['Humain'];
+    E.psychTraits = [{ type: 'haine', cible: ciblePsy.groupe('humain') }];
+    H.groups = ['humain'];
     E.characteristics['force-mentale'] = 1; // échec quasi sûr
     resolvePsychAI(useGame.getState, useGame.setState, E);
     const e = useGame.getState().battle!.combatants.find((c) => c.id === E.id)!;
-    expect((e.psychState ?? []).some((p) => p.type === 'haine' && p.cible === 'Humain' && p.active)).toBe(true);
+    expect((e.psychState ?? []).some((p) => p.type === 'haine' && p.cible === ciblePsy.groupe('humain') && p.active)).toBe(true);
   });
 });

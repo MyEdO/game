@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { psychDRAdjust } from './combat';
 import { refreshDefendedPsych } from './psychology';
 import type { Combatant } from './types';
+import { ciblePsy } from './psych/ciblage';
 
 function mk(opts: Partial<Combatant>): Combatant {
   return {
@@ -19,18 +20,18 @@ function mk(opts: Partial<Combatant>): Combatant {
  */
 describe('psychDRAdjust — Traits psy modulent le DR de l’attaque (LDB 21)', () => {
   it('Animosité active vs un membre du groupe Cible → +1 DR', () => {
-    const att = mk({ psychState: [{ type: 'animosite', cible: 'elfe', active: true }] });
+    const att = mk({ psychState: [{ type: 'animosite', cible: ciblePsy.groupe('elfe'), active: true }] });
     const tgt = mk({ id: 't', groups: ['elfe', 'soldat'] });
     expect(psychDRAdjust(att, tgt)).toBe(1);
   });
 
   it('Animosité active vs un NON-membre → aucun bonus', () => {
-    const att = mk({ psychState: [{ type: 'animosite', cible: 'elfe', active: true }] });
+    const att = mk({ psychState: [{ type: 'animosite', cible: ciblePsy.groupe('elfe'), active: true }] });
     expect(psychDRAdjust(att, mk({ id: 't', groups: ['humain'] }))).toBe(0);
   });
 
   it('Animosité INACTIVE (résistée) → aucun bonus', () => {
-    const att = mk({ psychState: [{ type: 'animosite', cible: 'elfe', active: false }] });
+    const att = mk({ psychState: [{ type: 'animosite', cible: ciblePsy.groupe('elfe'), active: false }] });
     expect(psychDRAdjust(att, mk({ id: 't', groups: ['elfe'] }))).toBe(0);
   });
 
@@ -39,7 +40,7 @@ describe('psychDRAdjust — Traits psy modulent le DR de l’attaque (LDB 21)', 
     const att = mk({
       psychState: [
         { type: 'peur', sourceId: 't', indice: 2, calmeDR: 0 },
-        { type: 'haine', cible: 'skaven', active: true },
+        { type: 'haine', cible: ciblePsy.groupe('skaven'), active: true },
       ],
     });
     expect(psychDRAdjust(att, tgt)).toBe(1); // Peur annulée par Haine (l.41), +1 DR du groupe haï
@@ -60,11 +61,11 @@ describe('psychDRAdjust — Traits psy modulent le DR de l’attaque (LDB 21)', 
    *  les 3 résolutions d'attaque — qui n'ont AUCUN roster en portée — lisent le verdict sans le recalculer. */
   it('Amour actif, l’aimé PRÉSENT → immunité Peur + +1 DR (on le défend) → +1 DR net', () => {
     const tgt = mk({ id: 't', groups: [] });
-    const aime = mk({ id: 'a', groups: ['Famille'] });
+    const aime = mk({ id: 'a', groups: ['humain'] });
     const att = mk({
       psychState: [
         { type: 'peur', sourceId: 't', indice: 2, calmeDR: 0 },
-        { type: 'amour', cible: 'Famille', active: true },
+        { type: 'amour', cible: ciblePsy.groupe('humain'), active: true },
       ],
     });
     refreshDefendedPsych(att, [att, aime]); // le détenteur du roster pose le verdict de présence
@@ -76,7 +77,7 @@ describe('psychDRAdjust — Traits psy modulent le DR de l’attaque (LDB 21)', 
     const att = mk({
       psychState: [
         { type: 'peur', sourceId: 't', indice: 2, calmeDR: 0 },
-        { type: 'amour', cible: 'Famille', active: true },
+        { type: 'amour', cible: ciblePsy.groupe('humain'), active: true },
       ],
     });
     refreshDefendedPsych(att, [att]); // aucun aimé : l’immunité s’éteint

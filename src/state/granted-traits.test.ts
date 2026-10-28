@@ -7,6 +7,7 @@ import { endOfRound } from '../engine/conditions';
 import { hasTrait } from '../engine/traits/dispatch';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 /**
  * Jalon 2.6 — Traits temporisés accordés par un sort (op `grantTrait`) : Envol (Vol héros),
@@ -67,11 +68,11 @@ describe('grantTrait / removeGrantedTrait (engine/grantedTraits)', () => {
 describe('contribution psy d’un Trait accordé : retrait PAR PROVENANCE (#1853)', () => {
   it('Haine accordée par une mutation : sa contribution porte la provenance, la Haine NATIVE de même cible survit', () => {
     const src = { kind: 'mutation', id: 'haine-sporadique' } as const;
-    const c = dummy({ traits: [{ id: 'haine', arg: 'skavens' }], psychTraits: [{ type: 'haine', cible: 'skavens' }] });
+    const c = dummy({ traits: [{ id: 'haine', arg: 'skaven' }], psychTraits: [{ type: 'haine', cible: ciblePsy.groupe('skaven') }] });
     const natif = structuredClone(c.psychTraits);
-    grantTrait(c, { id: 'haine', arg: 'skavens', src });
+    grantTrait(c, { id: 'haine', arg: 'skaven', src });
     expect(c.psychTraits?.filter((p) => p.src?.id === src.id)).toHaveLength(1);
-    removeGrantedTrait(c, { id: 'haine', arg: 'skavens', src });
+    removeGrantedTrait(c, { id: 'haine', arg: 'skaven', src });
     expect(c.psychTraits).toEqual(natif);
   });
 });

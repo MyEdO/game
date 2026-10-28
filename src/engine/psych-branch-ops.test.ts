@@ -13,6 +13,7 @@ import { psychBranchOps, failConditionAmount, psychResolution, sousPeur, type Ps
 import { applyOps } from './ops';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
+import { ciblePsy } from './psych/ciblage';
 
 const hero = (psychState: PsychAffliction[] = []): Combatant => ({
   id: 'h1', name: 'h1', label: 'Anselme', kind: 'hero',
@@ -69,16 +70,16 @@ describe('#1189 — la branche de RÉUSSITE est l’état qu’un porteur IMMUNI
 
   it('Trait CIBLÉ : marqueur INERTE (`active:false`), non re-déclenchable', () => {
     const c = hero();
-    applyOps(c, psychBranchOps({ kind: 'haine', sourceId: 'srcH', cible: 'gobelins', indice: 0 }, { success: true }), { rng: desDuTest });
-    expect(c.psychState).toEqual([{ type: 'haine', cible: 'gobelins', sourceId: 'srcH', active: false, fromTest: true }]);
+    applyOps(c, psychBranchOps({ kind: 'haine', sourceId: 'srcH', cible: ciblePsy.groupe('peau-verte'), indice: 0 }, { success: true }), { rng: desDuTest });
+    expect(c.psychState).toEqual([{ type: 'haine', cible: ciblePsy.groupe('peau-verte'), sourceId: 'srcH', active: false, fromTest: true }]);
   });
 
   it('Trait CIBLÉ raté : la MÊME entrée, ACTIVE — jamais une seconde', () => {
     const c = hero();
-    const stake: PsychStake = { kind: 'haine', sourceId: 'srcH', cible: 'gobelins', indice: 0 };
+    const stake: PsychStake = { kind: 'haine', sourceId: 'srcH', cible: ciblePsy.groupe('peau-verte'), indice: 0 };
     applyOps(c, psychBranchOps(stake, { success: true }), { rng: desDuTest });
     applyOps(c, psychBranchOps(stake, { success: false, round: 2 }), { rng: desDuTest });
-    expect(c.psychState).toEqual([{ type: 'haine', cible: 'gobelins', sourceId: 'srcH', active: true, fromTest: true, lastTestRound: 2 }]);
+    expect(c.psychState).toEqual([{ type: 'haine', cible: ciblePsy.groupe('peau-verte'), sourceId: 'srcH', active: true, fromTest: true, lastTestRound: 2 }]);
   });
 });
 

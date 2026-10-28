@@ -33,3 +33,8 @@ declare const PLAYER_TEXT: unique symbol;
 
 /** Texte destiné à l'ŒIL DU JOUEUR, sorti d'un des trois minteurs (cf. JSDoc ci-dessus). */
 export type PlayerText = string & { readonly [PLAYER_TEXT]: true };
+
+declare const NON_AFFICHABLE: unique symbol;
+
+/** Marque d'une chaîne qui n'est PAS du texte joueur (une `CiblePsy`, #3045) : `Params` de `t()` la refuse. */
+export type NonAffichable = { readonly [NON_AFFICHABLE]: true };

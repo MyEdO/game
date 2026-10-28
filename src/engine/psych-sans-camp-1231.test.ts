@@ -8,6 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { agressifEnvers, fearSourceFor, targetedTrigger } from './psychology';
 import { markAttacked, decayEngagement, engage } from './engagement';
 import type { Combatant } from './types';
+import { ciblePsy } from './psych/ciblage';
 
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 35, force: 40, endurance: 40, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 } as const;
 
@@ -74,13 +75,13 @@ describe('#1231 — trace d’attaque du Round, ORIENTÉE', () => {
 
 describe('#1231 — Traits psy CIBLÉS : le Groupe-Cible seul, jamais le camp (LDB 21)', () => {
   it('Animosité (elfe) se déclenche sur un ALLIÉ du groupe honni (l.19 : « un groupe de personnes ou de créatures »)', () => {
-    const self = mk('s', 'hero', { psychTraits: [{ type: 'animosite', cible: 'elfe' }] as never });
+    const self = mk('s', 'hero', { psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }] });
     const allieElfe = mk('f', 'hero', { groups: ['elfe'] });
-    expect(targetedTrigger(self, [allieElfe])).toEqual({ type: 'animosite', cible: 'elfe', sourceId: 'f', indice: undefined });
+    expect(targetedTrigger(self, [allieElfe])).toEqual({ type: 'animosite', cible: ciblePsy.groupe('elfe'), sourceId: 'f', indice: undefined });
   });
 
   it('Amour ne se déclenche que si l’aimé est MENACÉ (l.75), fût-il d’un autre camp', () => {
-    const self = mk('s', 'hero', { psychTraits: [{ type: 'amour', cible: 'soldat' }] as never });
+    const self = mk('s', 'hero', { psychTraits: [{ type: 'amour', cible: ciblePsy.groupe('soldat') }] });
     const aime = mk('a', 'npc', { groups: ['soldat'] });
     const brigand = mk('b', 'enemy');
     expect(targetedTrigger(self, [aime, brigand])).toBeNull(); // présent mais tranquille : rien à défendre
@@ -89,7 +90,7 @@ describe('#1231 — Traits psy CIBLÉS : le Groupe-Cible seul, jamais le camp (L
   });
 
   it('Camaraderie : un compagnon menacé par un NEUTRE ne compte qu’une fois ce neutre agressif', () => {
-    const self = mk('s', 'hero', { psychTraits: [{ type: 'camaraderie', cible: 'soldat' }] as never });
+    const self = mk('s', 'hero', { psychTraits: [{ type: 'camaraderie', cible: ciblePsy.groupe('soldat') }] });
     const compagnon = mk('c', 'hero', { groups: ['soldat'] });
     const boeuf = mk('boeuf', 'npc');
     expect(targetedTrigger(self, [compagnon, boeuf])).toBeNull();
@@ -103,7 +104,7 @@ describe('#1231 — Traits psy CIBLÉS : le Groupe-Cible seul, jamais le camp (L
     // opposé à l'aimé se déclencherait sur SA PROPRE agression : « venir en aide » contre soi-même n'est
     // écrit nulle part (LDB 21 l.75). Les deux sites de production filtrent déjà `self` en amont
     // (`visibleFoesAndAllies`, `resolvePsychAI`) : c'est le contrat qui est verrouillé ici, pas eux.
-    const self = mk('s', 'enemy', { psychTraits: [{ type: 'amour', cible: 'soldat' }] as never });
+    const self = mk('s', 'enemy', { psychTraits: [{ type: 'amour', cible: ciblePsy.groupe('soldat') }] });
     const aime = mk('a', 'hero', { groups: ['soldat'] });
     expect(agressifEnvers(self, aime)).toBe(true); // il EST bien agressif envers elle…
     expect(targetedTrigger(self, [self, aime])).toBeNull(); // …et pourtant rien ne se déclenche

@@ -11,6 +11,7 @@ import { rollMutation } from '../../data/mutations';
 import { statblockToCombatant } from '../../noyau/monde/spawn';
 import creatures from '../../data/creatures.json';
 import type { Combatant } from '../types';
+import { ciblePsy } from '../psych/ciblage';
 
 /** Câblage du Trait « Marque de Tzeentch » (EDOC 13 l.522-524, #568) — chaque canal RAW prouvé isolément.
  *  PLUS LÉGER que Marque de Khorne (#516) : ni Frénésie ni blocage d'incantation (non RAW pour Tzeentch). */
@@ -36,13 +37,13 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
   });
 
   it('Animosité (Nurgle) : Cible FIXE dérivée du Trait (capabilities.psychCible)', () => {
-    expect(bearer().psychTraits).toEqual([{ type: 'animosite', cible: 'nurgle' }]);
+    expect(bearer().psychTraits).toEqual([{ type: 'animosite', cible: ciblePsy.groupe('nurgle') }]);
   });
 
   it('Animosité (Nurgle) : se déclenche au contact d’un disciple de Nurgle visible (targetedTrigger)', () => {
     const nurgleFollower = { id: 'foe', name: 'Disciple', kind: 'hero', groups: ['nurgle'] } as unknown as Combatant;
     const trig = targetedTrigger(bearer(), [nurgleFollower]);
-    expect(trig).toEqual({ type: 'animosite', cible: 'nurgle', sourceId: 'foe', indice: undefined });
+    expect(trig).toEqual({ type: 'animosite', cible: ciblePsy.groupe('nurgle'), sourceId: 'foe', indice: undefined });
   });
 
   it('Groupe « tzeentch » : `capabilities.grantGroups` expose le porteur au ciblage', () => {
@@ -52,17 +53,17 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
   it('Réciproque (EDOC 13 l.522-524) : un disciple de Nurgle éprouve Animosité envers le porteur VISIBLE', () => {
     const nurgleFollower = {
       id: 'nurgle-1', name: 'Porte-Peste', kind: 'enemy', groups: [],
-      psychTraits: [{ type: 'animosite' as const, cible: 'tzeentch' }],
+      psychTraits: [{ type: 'animosite' as const, cible: ciblePsy.groupe('tzeentch') }],
     } as unknown as Combatant;
     const marked = { id: 'tzeentch-1', name: 'Porteur', kind: 'hero', groups: [], traits: [{ id: 'marque-de-tzeentch' }] } as unknown as Combatant;
     const trig = targetedTrigger(nurgleFollower, [marked]);
-    expect(trig).toEqual({ type: 'animosite', cible: 'tzeentch', sourceId: 'tzeentch-1', indice: undefined });
+    expect(trig).toEqual({ type: 'animosite', cible: ciblePsy.groupe('tzeentch'), sourceId: 'tzeentch-1', indice: undefined });
   });
 
   it('Réciproque : COUPÉE si la Marque est dissimulée (`hidden`, tant que la Marque de Tzeentch est visible)', () => {
     const nurgleFollower = {
       id: 'nurgle-1', name: 'Porte-Peste', kind: 'enemy', groups: [],
-      psychTraits: [{ type: 'animosite' as const, cible: 'tzeentch' }],
+      psychTraits: [{ type: 'animosite' as const, cible: ciblePsy.groupe('tzeentch') }],
     } as unknown as Combatant;
     const hiddenTraits = [{ id: 'marque-de-tzeentch', hidden: true }];
     const marked = { id: 'tzeentch-1', name: 'Porteur', kind: 'hero', groups: [], traits: hiddenTraits } as unknown as Combatant;
@@ -73,7 +74,7 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
   it('Réciproque : INERTE chez un disciple de Nurgle immunisé (`isPsychImmune` court-circuite `encounterPsych` avant `targetedTrigger`)', () => {
     const immuneNurgleFollower = {
       id: 'nurgle-1', name: 'Porte-Peste', kind: 'enemy', groups: [], psychImmune: true,
-      psychTraits: [{ type: 'animosite' as const, cible: 'tzeentch' }],
+      psychTraits: [{ type: 'animosite' as const, cible: ciblePsy.groupe('tzeentch') }],
     } as unknown as Combatant;
     const marked = { id: 'tzeentch-1', name: 'Porteur', kind: 'hero', groups: [], traits: [{ id: 'marque-de-tzeentch' }] } as unknown as Combatant;
     expect(isPsychImmune(immuneNurgleFollower)).toBe(true);
@@ -104,7 +105,7 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
 
   it('Ni Frénésie ni blocage d’incantation (PLUS LÉGER que Marque de Khorne — non RAW pour Tzeentch)', () => {
     const traits = [{ id: 'marque-de-tzeentch' }];
-    expect(parsePsychTraits(traits).psychTraits).toEqual([{ type: 'animosite', cible: 'nurgle' }]);
+    expect(parsePsychTraits(traits).psychTraits).toEqual([{ type: 'animosite', cible: ciblePsy.groupe('nurgle') }]);
   });
 
   it('Mutations au spawn : ⌈1d10/3⌉ tirages ALTERNÉS mentale→physique sur les tables Tzeentch (EDOC 13 l.522-524)', () => {
