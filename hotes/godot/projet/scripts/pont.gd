@@ -6,7 +6,7 @@ class_name PontDuNoyau
 extends Node
 
 signal pret
-signal refus(erreur: Dictionary)
+signal refus(message: String)
 signal panne(message: String)
 
 const INTERFACE := "wfrpPont"
@@ -39,11 +39,14 @@ func est_pret() -> bool:
 	return _pont != null
 
 
-## Le pont rejoint par un écran : chaque refus rendu à `au_refus` (son message), chaque panne à `a_la_panne` ; `true` une
-## fois le pont prêt, `false` (la panne signalée) hors d'une page.
+## Le pont rejoint par un écran : chaque refus rendu à `au_refus` (son message), chaque panne à `a_la_panne`, chacun abonné
+## une fois et désabonné à la libération de son objet ; `true` une fois le pont prêt, `false` (la panne signalée) hors
+## d'une page.
 func rejoindre(au_refus: Callable, a_la_panne: Callable) -> bool:
-	refus.connect(func(erreur: Dictionary) -> void: au_refus.call(str(erreur.message)))
-	panne.connect(a_la_panne)
+	if not refus.is_connected(au_refus):
+		refus.connect(au_refus)
+	if not panne.is_connected(a_la_panne):
+		panne.connect(a_la_panne)
 	if not est_web:
 		_signaler("Cet hôte joue dans une page : son pont est `wfrp-pont.js` (export Web).")
 		return false
@@ -56,7 +59,7 @@ func rejoindre(au_refus: Callable, a_la_panne: Callable) -> bool:
 func appeler(methode: String, entree: Variant = null) -> Dictionary:
 	var reponse := _decoder(methode, _pont.call("appeler", methode, null if entree == null else JSON.stringify(entree)))
 	if reponse.get("ok") == false:
-		refus.emit(reponse.erreur)
+		refus.emit(str(reponse.erreur.message))
 	var releve := _decoder("erreursGlobales", _pont.call("appeler", "erreursGlobales"))
 	for e in releve.get("erreurs", []):
 		_signaler("%s (%s)" % [e.message, e.source])

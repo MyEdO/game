@@ -83,16 +83,9 @@ text = "Prises"
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Clips" type="ScrollContainer" parent="Interface/Panneau/Defilement/Colonne"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 160)
-layout_mode = 2
-horizontal_scroll_mode = 0
-
-[node name="ListeDesClips" type="VBoxContainer" parent="Interface/Panneau/Defilement/Colonne/Clips"]
+[node name="ListeDesClips" type="VBoxContainer" parent="Interface/Panneau/Defilement/Colonne"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
 
 [node name="Lecteur" type="HFlowContainer" parent="Interface/Panneau/Defilement/Colonne"]
 layout_mode = 2

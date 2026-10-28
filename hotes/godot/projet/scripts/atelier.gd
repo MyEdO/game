@@ -1,6 +1,7 @@
 ## L'atelier 3D (#3086) : les modèles que le serveur de l'export liste (`GET modeles/`), indexés par le pont
 ## (`modeles`, `hotes/godot/pont/atelier.ts`), et chaque GLB chargé à l'exécution (`GET modeles/<id>.glb`). Le joueur y
-## choisit un corps, monte un élément par point d'accroche (`MontageDEquipement.attacher`), joue les clips de la base
+## choisit un corps, monte un élément par point d'accroche (`hotes/godot/asset/evaluateur/evaluer.ts` `monter`,
+## `MontageDEquipement.attacher`), joue les clips de la base
 ## image par image, montre les aides (os, emplacements, prises) et recharge les GLB réexportés sans relancer l'atelier.
 ## Chaque geste mis en page, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
 extends Node3D
@@ -9,7 +10,9 @@ const VIDE := "vide"
 const AIDE_DU_GENRE := {emplacement = "emplacements", prise = "prises"}
 const COULEUR_DES_AIDES := {os = Color(0.95, 0.85, 0.2), emplacements = Color(0.3, 0.8, 1.0), prises = Color(1.0, 0.4, 0.35)}
 const ORIGINE := [0.0, 0.0, 0.0]
-const TAILLE_DU_REPERE := 0.03
+const RAYON_DU_REPERE_D_OS := 0.02
+## Plus grand que celui d'un os : le repère d'un point déborde de celui de son os, quel que soit l'ordre de rendu.
+const RAYON_DU_REPERE_DE_POINT := 0.035
 const TAILLE_DE_L_ETIQUETTE := 0.0015
 const DEBUT_D_EMPREINTE := 12
 const DELAI_DE_REQUETE_S := 10.0
@@ -28,6 +31,8 @@ const BLOC_DE_TELECHARGEMENT := 16777216
 
 var _modeles: Dictionary = {}
 var _base: Dictionary = {}
+## L'id de la base demandée en dernier, posée ou en chargement.
+var _base_demandee: Variant = null
 ## Le chargement retenu : un chargement qu'un autre remplace jette son résultat.
 var _chargement: RefCounted = null
 var _modele: Node3D = null
@@ -59,8 +64,7 @@ func _ready() -> void:
 		bouton.pressed.connect(_regler_la_vitesse.bind(float(bouton.get_meta("vitesse"))))
 	for aide in _cases_des_aides:
 		_cases_des_aides[aide].toggled.connect(_montrer_l_aide.bind(aide))
-	for defilement in [%Defilement, %Clips]:
-		defilement.get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier())
+	%Defilement.get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier())
 	if await _pont.rejoindre(_signaler, _signaler):
 		await _charger({})
 
@@ -69,7 +73,7 @@ func _process(_delta: float) -> void:
 	_instant.text = "%.3f s" % _lecteur.current_animation_position if _a_un_clip() else ""
 
 
-## Le listage du serveur, puis l'index du pont, puis la base retenue (la même si elle reste listée, la première sinon),
+## Le listage du serveur, puis l'index du pont, puis la base retenue (la demandée si elle reste listée, la première sinon),
 ## qui remonte les éléments `montes` que ses points listent encore.
 func _charger(montes: Dictionary) -> void:
 	var chargement := RefCounted.new()
@@ -80,7 +84,7 @@ func _charger(montes: Dictionary) -> void:
 		return
 	for erreur in listage.get("erreurs", []):
 		_erreurs.append(str(erreur))
-	var reponse := _pont.appeler("modeles", {manifestes = listage.get("manifestes", {})})
+	var reponse := _pont.appeler("modeles", {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {})})
 	if reponse.get("ok") != true:
 		_montrer_l_etat()
 		return
@@ -93,18 +97,21 @@ func _charger(montes: Dictionary) -> void:
 	var retenue: Variant = null
 	for base in reponse.bases:
 		_boutons_des_bases[base.id] = _bascule(base.id, groupe, _corps, _choisir_la_base.bind(base.id))
-		if retenue == null or base.id == _base.get("id"):
+		if retenue == null or base.id == _base_demandee:
 			retenue = base
+	_base_demandee = null if retenue == null else retenue.id
 	await _poser(retenue, montes, chargement)
 
 
+## La base `id` demandée : le dernier clic gagne, contre la base posée comme contre celle en chargement.
 func _choisir_la_base(id: String) -> void:
 	_marquer(_boutons_des_bases, _base.get("id"))
-	if id == _base.get("id"):
+	if id == _base_demandee:
 		_publier()
 		return
 	for base in _modeles.bases:
 		if base.id == id:
+			_base_demandee = id
 			_reprise = {}
 			var chargement := RefCounted.new()
 			_chargement = chargement
@@ -137,7 +144,7 @@ func _poser(base: Variant, montes: Dictionary, chargement: RefCounted) -> void:
 		for os in _squelette.get_bone_count():
 			var declaration := {os = _squelette.get_bone_name(os), position = ORIGINE, rotation = ORIGINE}
 			var support := MontageDEquipement.attacher(_squelette, declaration, "Os_%d" % os)
-			support.add_child(_repere(COULEUR_DES_AIDES.os))
+			support.add_child(_repere(COULEUR_DES_AIDES.os, RAYON_DU_REPERE_D_OS))
 			_reperes.os.append(support)
 	for point in _base.get("points", []):
 		_ligne_du_point(point)
@@ -228,7 +235,8 @@ func _choisir(point: Dictionary, element: String) -> void:
 	var demande := RefCounted.new()
 	_demandes[point.id] = demande
 	if _supports.has(point.id):
-		_supports[point.id].get_parent().free()
+		for support in _supports[point.id]:
+			support.get_parent().free()
 		_supports.erase(point.id)
 		_montes.erase(point.id)
 	_marquer(_boutons_des_points[point.id], VIDE)
@@ -237,7 +245,9 @@ func _choisir(point: Dictionary, element: String) -> void:
 	_publier()
 
 
-## `element` monté au point `point` une fois son GLB chargé, si `demande` reste la demande retenue de ce point.
+## `element` monté au point `point` une fois son GLB chargé, si `demande` reste la demande retenue de ce point : chaque
+## mesh rigide pendu à un os du GLB, à sa transformation locale, sous l'os de même nom de la base
+## (`hotes/godot/asset/evaluateur/evaluer.ts` `monter`) ; rien de monté s'il n'en a aucun ou si l'un de ses os manque.
 func _monter(point: Dictionary, element: String, demande: RefCounted) -> void:
 	var squelette := _squelette
 	if squelette == null:
@@ -250,16 +260,38 @@ func _monter(point: Dictionary, element: String, demande: RefCounted) -> void:
 	if scene == null:
 		_montrer_l_etat()
 		return
-	var support := MontageDEquipement.attacher(squelette, point.attache, "Monte_%s" % point.id)
-	if support == null:
-		scene.free()
-		_erreurs.append("os-absent : %s" % point.attache.os)
+	var pieces := _rigides_pendus(scene)
+	if pieces.is_empty():
+		_erreurs.append("rigide-sans-os : %s" % element)
+	var supports: Array[Node3D] = []
+	for piece in pieces:
+		var os: String = (piece.get_parent() as BoneAttachment3D).bone_name
+		var support := MontageDEquipement.attacher(squelette, {os = os, position = ORIGINE, rotation = ORIGINE}, "Monte_%s_%s" % [point.id, piece.name])
+		if support == null:
+			_erreurs.append("os-absent : %s" % os)
+			break
+		supports.append(support)
+		piece.owner = null
+		piece.reparent(support, false)
+	scene.free()
+	if pieces.is_empty() or supports.size() != pieces.size():
+		for support in supports:
+			support.get_parent().free()
 		_montrer_l_etat()
 		return
-	support.add_child(scene)
-	_supports[point.id] = support
+	_supports[point.id] = supports
 	_montes[point.id] = element
 	_marquer(_boutons_des_points[point.id], element)
+
+
+## Les meshes rigides de `scene` pendus à un os : l'import glTF pose chacun sous un `BoneAttachment3D` de son os.
+func _rigides_pendus(scene: Node3D) -> Array[MeshInstance3D]:
+	var pieces: Array[MeshInstance3D] = []
+	for noeud in scene.find_children("*", "MeshInstance3D", true, false):
+		var piece := noeud as MeshInstance3D
+		if piece.skin == null and piece.get_parent() is BoneAttachment3D:
+			pieces.append(piece)
+	return pieces
 
 
 func _poser_l_aide_du_point(point: Dictionary) -> void:
@@ -269,7 +301,7 @@ func _poser_l_aide_du_point(point: Dictionary) -> void:
 	var support := MontageDEquipement.attacher(_squelette, point.attache, "Aide_%s" % point.id)
 	if support == null:
 		return
-	support.add_child(_repere(COULEUR_DES_AIDES[aide]))
+	support.add_child(_repere(COULEUR_DES_AIDES[aide], RAYON_DU_REPERE_DE_POINT))
 	var etiquette := Label3D.new()
 	etiquette.text = point.id
 	etiquette.pixel_size = TAILLE_DE_L_ETIQUETTE
@@ -280,14 +312,14 @@ func _poser_l_aide_du_point(point: Dictionary) -> void:
 	_reperes[aide].append(support)
 
 
-func _repere(couleur: Color) -> MeshInstance3D:
+func _repere(couleur: Color, rayon: float) -> MeshInstance3D:
 	var matiere := StandardMaterial3D.new()
 	matiere.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	matiere.albedo_color = couleur
 	matiere.no_depth_test = true
 	var boule := SphereMesh.new()
-	boule.radius = TAILLE_DU_REPERE
-	boule.height = TAILLE_DU_REPERE
+	boule.radius = rayon
+	boule.height = MiseEnPage.diametre(rayon)
 	boule.material = matiere
 	var repere := MeshInstance3D.new()
 	repere.mesh = boule

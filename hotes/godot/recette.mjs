@@ -10,9 +10,10 @@
 //   héros visé, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la partie, et chaque bouton se
 //   trouve par le texte que la vue lui donne.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
-//   `modeles/` ; la base choisie, ses points sans élément ; `--element` importé puis « Recharger » ; les aides, l'élément
-//   monté puis démonté (« vide ») ; un clip joué, mis en pause, avancé et reculé d'une image (au clic puis à l'Entrée),
-//   sa vitesse réglée ; puis les fichiers de la base et de l'élément qui la référence supprimés (l'import refuse un id
+//   `modeles/` ; la base choisie, ses points sans élément ; `--element` importé puis « Recharger » : l'élément listé aux
+//   seuls points dont l'os porte sa lame (`osDesRigides` du listage), les autres disant « aucun élément » ; les aides,
+//   l'élément monté puis démonté (« vide ») ; un clip joué, mis en pause, avancé et reculé d'une image (au clic puis à
+//   l'Entrée), sa vitesse réglée ; puis les fichiers de la base et de l'élément qui la référence supprimés (l'import refuse un id
 //   présent, et un élément dont la base manque), `--reexport` importé à la place de la base puis l'élément réimporté,
 //   « Recharger » sans relancer la page : l'empreinte publiée devient celle du manifeste réimporté, l'état
 //   (clip, instant, pause, vitesse, montés, aides) est gardé.
@@ -29,6 +30,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { servir } from './servir.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { clic, consoleGuard, evaluate, geste, launchSession, molette, realKey, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
 
 const chaine = { type: 'string' }
@@ -172,7 +174,7 @@ async function parcoursCombat() {
 }
 
 const IMPORTER = fileURLToPath(new URL('./importer.mjs', import.meta.url))
-/** Le point du panneau de l'atelier où tourne la molette : sur les lignes des points, hors de la liste des clips. */
+/** Le point du panneau de l'atelier où tourne la molette : sur les lignes des points. */
 const PANNEAU = { x: 60, y: 400 }
 const CRANS = 150
 const production = (dossier) => JSON.parse(readFileSync(join(dossier, 'manifest.json'), 'utf8'))
@@ -198,6 +200,32 @@ async function amener(quoi, sens, ou = PANNEAU) {
   }
   throw new Error(`bouton ${JSON.stringify(quoi)} hors de l'écran après ${CRANS} crans de molette`)
 }
+/** Le panneau tourné à la molette au point `PANNEAU` dans le sens `sens` jusqu'à ce que l'écran publié ne change plus ;
+ *  `relever` reçoit chaque écran publié. */
+async function tournerJusquAuBout(sens, relever = () => {}) {
+  let avant = null
+  for (let cran = 0; cran < CRANS; cran++) {
+    const { boutons } = await ecran()
+    relever(boutons)
+    const maintenant = JSON.stringify(boutons)
+    if (maintenant === avant) return
+    avant = maintenant
+    await molette(session, { surface: 'canvas', x: PANNEAU.x, y: PANNEAU.y }, sens * 360)
+    await sleep(300)
+  }
+  throw new Error(`panneau encore en mouvement après ${CRANS} crans de molette`)
+}
+/** Les clés des boutons d'emplacement par point, relevées du haut au bas du panneau, triées ; le panneau revient en haut.
+ *  Un point sans clé dit « aucun élément ». */
+async function clesDuPanneau() {
+  await tournerJusquAuBout(-1)
+  const cles = new Set()
+  await tournerJusquAuBout(1, (boutons) => boutons.forEach((b) => b.cle && cles.add(b.cle)))
+  await tournerJusquAuBout(-1)
+  const parPoint = {}
+  for (const cle of [...cles].sort()) (parPoint[cle.split('/')[0]] ??= []).push(cle)
+  return parPoint
+}
 async function cliquerAmene(quoi, sens, ou) {
   await amener(quoi, sens, ou)
   await cliquerBouton(quoi)
@@ -222,9 +250,12 @@ async function parcoursAtelier() {
   importer(o.element, elementId)
   await cliquerBouton('Recharger')
   await attendreLAtelier(`b.some((x) => x.cle?.endsWith(${JSON.stringify(`/${elementId}`)}))`)
-  const choix = (await ecran()).boutons.filter((b) => b.cle)
-  assert.ok(choix.every((b) => [`${b.cle.split('/')[0]}/vide`, `${b.cle.split('/')[0]}/${elementId}`].includes(b.cle)), 'chaque point liste « vide » et l’élément indexé')
-  noter(`« Recharger » : chaque point liste « vide » et « ${elementId} » (${choix.length / 2} points à l’écran)`)
+  const { osDesRigides } = await (await fetch(`${srv.url}modeles/`)).json()
+  const porteurs = Object.entries({ ...p0.manifeste.emplacements, ...p0.manifeste.prises }).filter(([, attache]) => osDesRigides[elementId].includes(attache.os)).map(([point]) => point)
+  assert.ok(porteurs.includes('main'), `l’os de la prise « main » porte la lame (${osDesRigides[elementId].join(', ')})`)
+  const choix = await clesDuPanneau()
+  assert.deepEqual(choix, tableTotale(porteurs, (p) => [`${p}/${elementId}`, `${p}/vide`].sort()), `« ${elementId} » listé aux seuls points de l’os qui porte la lame`)
+  noter(`« Recharger » : « ${elementId} » listé aux points ${porteurs.join(', ')} (os ${osDesRigides[elementId].join(', ')}) ; les autres disent « aucun élément »`)
   for (const aide of ['Os', 'Prises']) await cliquerBouton(aide)
   a = await atelier()
   assert.deepEqual(a.aides, { os: true, emplacements: false, prises: true }, 'les aides cochées sont montrées')

@@ -11,7 +11,8 @@
 //              `%` d'un littéral de chaîne (concaténation, mise en forme) ; le moins unaire et le nœud unique `%Nom`
 //              passent : un opérateur est binaire après une valeur de la même instruction, qu'un saut de ligne hors
 //              parenthèses et sans `\` termine ; et `Expression`, qui évalue un calcul écrit en chaîne ;
-//   `ordre`  : toute comparaison d'ordre (`< > <= >=`) ;
+//   `ordre`  : toute comparaison d'ordre (`< > <= >=`), et le test d'appartenance (`in`, hors de l'en-tête d'un `for`) à
+//              une liste littérale qui porte un nombre ou à un `range` ;
 //   `mesure` : tout appel d'une fonction de mesure (`MESURES` : valeur absolue, bornes, arrondis, distances, normes…).
 // `calcul`, `ordre` et `mesure` sont permis dans le seul module de mise en page (`estMiseEnPage`), reconnu par sa
 // STRUCTURE et jamais par son nom : au niveau du script, rien que `class_name`, `extends`, des `const` et des
@@ -76,11 +77,14 @@ export function calculsDeRegle(src) {
   let profondeur = 0
   const jetons = [...code.matchAll(JETON)].map((m) => {
     profondeur += '([{'.includes(m[0]) ? 1 : ')]}'.includes(m[0]) ? -1 : 0
-    return { texte: m[0], index: m.index, profondeur, chaine: !!m[1], valeur: !!(m[1] || m[2]), mot: !!m[3] }
+    return { texte: m[0], index: m.index, profondeur, chaine: !!m[1], nombre: !!m[2], valeur: !!(m[1] || m[2]), mot: !!m[3] }
   })
   const finInstruction = (avant, j) => avant.profondeur <= 0 && code.slice(avant.index + avant.texte.length, j.index).replace(/\\\r?\n/g, '').includes('\n')
   const finitUneValeur = (avant, j) => !!avant && !finInstruction(avant, j)
     && (avant.valeur || (avant.mot && !PREFIXES.has(avant.texte)) || [')', ']', '}'].includes(avant.texte))
+  const enTeteDeFor = (k) => jetons[k - 2]?.texte === 'for' || (jetons[k - 4]?.texte === 'for' && jetons[k - 2]?.texte === ':')
+  const fin = (k) => { let i = k + 1; while (jetons[i] && jetons[i].profondeur >= jetons[k].profondeur) i++; return i }
+  const plageNumerique = (k) => jetons[k]?.texte === 'range' || (jetons[k]?.texte === '[' && jetons.slice(k + 1, fin(k)).some((j) => j.nombre))
   const ligneDe = (index) => code.slice(0, index).split('\n').length
   const trouves = []
   jetons.forEach((j, k) => {
@@ -91,7 +95,7 @@ export function calculsDeRegle(src) {
         : j.mot && j.texte === 'Expression' ? 'calcul'
           : miseEnPage ? null
             : j.mot && MESURES.has(j.texte) && apres?.texte === '(' ? 'mesure'
-              : ORDRE.has(j.texte) && finitUneValeur(avant, j) ? 'ordre'
+              : (ORDRE.has(j.texte) && finitUneValeur(avant, j)) || (j.texte === 'in' && !enTeteDeFor(k) && plageNumerique(k + 1)) ? 'ordre'
                 : ARITHMETIQUE.has(j.texte) && finitUneValeur(avant, j) && !(DE_CHAINE.has(j.texte) && (avant.chaine || apres?.chaine)) ? 'calcul'
                   : null
     if (famille) trouves.push({ famille, ligne: ligneDe(j.index), extrait: code.slice(avant?.index ?? j.index, (apres?.index ?? j.index) + (apres?.texte.length ?? j.texte.length)).replace(/\s+/g, ' ') })

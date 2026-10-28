@@ -1,6 +1,6 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde et retour, le centre du plateau, le quart de tour de la
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
-## voisine d'un instant. Seul script où l'arithmétique et la mesure sont permises
+## voisine d'un instant, le diamètre d'une sphère. Seul script où l'arithmétique et la mesure sont permises
 ## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au plus
 ## un vecteur, sans état.
 class_name MiseEnPage
@@ -11,6 +11,11 @@ const DEMI_CASE := 0.5
 const QUART_DE_TOUR := PI / 2.0
 const PAS_DE_ZOOM := 1.15
 const TOLERANCE_D_IMAGE := 0.001
+
+
+## Le diamètre d'une sphère de rayon `rayon` (`SphereMesh.height`).
+static func diametre(rayon: float) -> float:
+	return 2.0 * rayon
 
 
 ## Le centre de la case `case` sur le sol (y = 0).

@@ -1,7 +1,8 @@
 // LE SERVEUR DE L'EXPORT WEB DE L'HÔTE GODOT (#2928, #3086, `pont/CONTRAT.md`, section « Atelier 3D ») : l'export servi
 // en statique sur un port libre de la boucle locale, et, à côté de la page, le dossier des modèles : `GET /modeles/` rend
-// ses manifestes validés contre leur GLB (`listage`), relus à chaque appel, et `GET /modeles/<fichier>` chacun de ses
-// fichiers, en `Cache-Control: no-store`. Une requête défaillante reçoit son statut d'erreur, le serveur continue.
+// ses manifestes validés contre leur GLB et les os qui en portent les meshes rigides (`listage`), relus à chaque appel,
+// et `GET /modeles/<fichier>` chacun de ses fichiers, en `Cache-Control: no-store`. Une requête défaillante reçoit son
+// statut d'erreur, le serveur continue.
 //
 //   node hotes/godot/servir.mjs --web <dossier de l'export> [--modeles <dossier>]
 import { createServer } from 'node:http'
@@ -10,7 +11,8 @@ import { extname, join, resolve, sep } from 'node:path'
 import { parseArgs } from 'node:util'
 import { chargerAssets } from './asset/charger.mjs'
 
-const { DOSSIER_DES_MODELES, fichiersDuModele, manifestesDesModeles, verdictsDesModeles } = await chargerAssets([
+const { DOSSIER_DES_MODELES, fichiersDuModele, lireGlb, manifestesDesModeles, verdictsDesModeles } = await chargerAssets([
+  "export { lireGlb } from '/hotes/godot/asset/glb.ts';",
   "export { manifestesDesModeles } from '/hotes/godot/asset/release.ts';",
   "export { fichiersDuModele, verdictsDesModeles } from '/hotes/godot/asset/modeles.ts';",
 ])
@@ -35,8 +37,9 @@ function envoyer(res, chemin, entetes = {}) {
   })
 }
 
-/** Le listage de `dossier` : les manifestes que `verdictsDesModeles` accepte contre leur GLB, et les erreurs (manifeste
- *  illisible, GLB illisible, refus, dossier illisible). */
+/** Le listage de `dossier` : les manifestes que `verdictsDesModeles` accepte contre leur GLB, de chacun les os qui portent
+ *  ses meshes rigides (`parentDesRigides` de `lireGlb`), et les erreurs (manifeste illisible, GLB illisible, refus,
+ *  dossier illisible). */
 function listage(dossier) {
   try {
     const lus = manifestesDesModeles(dossier)
@@ -51,13 +54,16 @@ function listage(dossier) {
       }
     }
     const manifestes = {}
+    const osDesRigides = {}
     for (const { id, brut, verdict } of verdictsDesModeles(lus.entrees, octets)) {
-      if (verdict.ok) manifestes[id] = brut
-      else erreurs.push(`${fichiersDuModele(id).manifeste} : ${verdict.refus.join(' ; ')}`)
+      if (verdict.ok) {
+        manifestes[id] = brut
+        osDesRigides[id] = [...new Set(lireGlb(octets.get(id)).parentDesRigides.values())]
+      } else erreurs.push(`${fichiersDuModele(id).manifeste} : ${verdict.refus.join(' ; ')}`)
     }
-    return { manifestes, erreurs }
+    return { manifestes, osDesRigides, erreurs }
   } catch (e) {
-    return { manifestes: {}, erreurs: [`${dossier} : ${e.code ?? e.message}`] }
+    return { manifestes: {}, osDesRigides: {}, erreurs: [`${dossier} : ${e.code ?? e.message}`] }
   }
 }
 
