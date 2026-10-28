@@ -13,9 +13,9 @@ import { addPose, rotOf, type Pose } from './poses';
 import type { View } from './facing';
 import { apply, worldTransforms, type Matrix } from './kinematics';
 import type { BoneId } from './bones';
-import { handlingClass, type Handling } from './anim/handling';
+import { maniementDe, type Maniement } from '../../noyau/animation';
 import { seatedPose, weaponRest } from './anim/weaponClips';
-import type { FormeDArme } from './parts/equipment';
+import type { FormeDArme } from '../../noyau/equipementDessine';
 import type { ResolveOpts } from './bodyPlan';
 import { DEFAUT_HARNAIS_MONTE } from './quadruped/harnais';
 import { QUAD_RIDER_Z } from './quadruped/quadZ';
@@ -161,7 +161,7 @@ export function seatedBodyPose(view: View, body: SeatedBody, drop: number): Pose
 
 // ── TENUE D'ARME MONTÉE (remplace weaponRest à pied), par classe de maniement + vue ─────────
 // Convention os `arme` : repos 165 = pointe BAS ; delta −75 ≈ horizontale (avant), −150 ≈ dressée.
-function mountedWeaponHold(h: Handling, view: View): Pose {
+function mountedWeaponHold(h: Maniement, view: View): Pose {
   if (view === 'profile') {
     switch (h) {
       case 'lance_cav': return { arme: -86, epauleD: 18 };       // lance COUCHÉE vers l'avant (en arrêt)
@@ -176,7 +176,7 @@ function mountedWeaponHold(h: Handling, view: View): Pose {
 
 /** Pose complète du cavalier au repos monté = corps en selle + tenue d'arme, par vue. */
 export function mountedRest(view: View, weapon?: FormeDArme): Pose {
-  const h = weapon ? handlingClass(weapon) : 'lame1m';
+  const h = weapon ? maniementDe(weapon) : 'lame1m';
   return addPose(riderBodyPose(view), mountedWeaponHold(h, view));
 }
 

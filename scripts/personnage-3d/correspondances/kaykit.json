@@ -1,0 +1,50 @@
+{
+  "bones": {
+    "root": "Root",
+    "hips": "pelvis",
+    "spine": "spine_01",
+    "chest": "spine_03",
+    "head": "head",
+    "upperarm.l": "upperarm_l",
+    "lowerarm.l": "lowerarm_l",
+    "wrist.l": "hand_l",
+    "upperleg.l": "thigh_l",
+    "lowerleg.l": "calf_l",
+    "foot.l": "foot_l",
+    "toes.l": "ball_l",
+    "upperarm.r": "upperarm_r",
+    "lowerarm.r": "lowerarm_r",
+    "wrist.r": "hand_r",
+    "upperleg.r": "thigh_r",
+    "lowerleg.r": "calf_r",
+    "foot.r": "foot_r",
+    "toes.r": "ball_r"
+  },
+  "height_bones": [
+    "head", "spine", "chest", "hips",
+    "upperleg.l", "lowerleg.l", "foot.l", "toes.l",
+    "upperleg.r", "lowerleg.r", "foot.r", "toes.r"
+  ],
+  "clips": {
+    "idle": "Idle",
+    "walk": "Walking_A",
+    "melee": "1H_Melee_Attack_Chop",
+    "hit": "Hit_A",
+    "death": "Death_A",
+    "parry": "Block",
+    "ranged": "1H_Ranged_Shooting",
+    "cast": "Spellcast_Shoot",
+    "dodge": "Dodge_Backward"
+  },
+  "source_clips": {
+    "idle": "Unarmed_Idle",
+    "walk": "Walking_A",
+    "melee": "1H_Melee_Attack_Chop",
+    "hit": "Hit_A",
+    "death": "Death_A",
+    "parry": "Block",
+    "ranged": "1H_Ranged_Shooting",
+    "cast": "Spellcast_Shoot",
+    "dodge": "Dodge_Backward"
+  }
+}

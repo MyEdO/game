@@ -5,9 +5,9 @@
  * Deux faces, indissociables :
  *  - un sujet déjà construit est une VALEUR : muter l'état vivant (arme déchargée ou retirée en place,
  *    catalogue édité) ne change pas un octet de ce qu'il dessine ;
- *  - le sujet RECONSTRUIT après la mutation change d'identité SI ET SEULEMENT SI son dessin change —
+ *  - le sujet RECONSTRUIT après la mutation change d'identité quand sa projection de dessin change —
  *    l'acteur (identité de texture, `actorPoseKey`, `actorIdentityKey`) comme le figurant de scène.
- * Le « seulement si » est faux devant une édition de catalogue SANS rapport : l'instantané hache
+ * Les candidats d’apparence sont hachés même si le SVG ne dessine que leur racine. L'instantané hache
  * `version` (#2113 phase B, `it.fails` ci-dessous).
  */
 import { afterEach, describe, expect, it } from 'vitest';
@@ -16,7 +16,7 @@ import { emptyScene, sceneMetresPerTile, type SceneEntity } from '../../../noyau
 import type { SeatPose } from '../../../noyau/monde/seating';
 import type { TokenEl } from '../../builders/types';
 import { createHero } from '../../../engine/character';
-import { itemFromTrappingById, unloadWeapon, weaponFromItem } from '../../../engine/items';
+import { buildWeapon, choisirApparenceDObjet, itemFromTrappingById, unloadWeapon, weaponFromItem } from '../../../engine/items';
 import { loadRegister } from '../../../engine/weaponLoad';
 import { setDataset } from '../../../data/overrides';
 import { abonnerAuxDatasets } from '../../../data/versionDataset';
@@ -25,6 +25,7 @@ import { WEAPON_DEFS } from '../../rig/parts/weapons/_registry.generated';
 import { rigIdleDef } from '../../rig/anim/actorAnimSelect';
 import { VIEWS } from '../../rig/facing';
 import type { Combatant, ItemInstance, Weapon } from '../../../engine/types';
+import { findTrappingById } from '../../../data';
 
 const scene = emptyScene('scene-test', 8, 8);
 const mpt = sceneMetresPerTile(scene);
@@ -36,10 +37,10 @@ const couples = VIEWS.flatMap((view) => [false, true].map((mirror) => ({ view, m
 const dessins = (s: BillboardSubject): string[] =>
   couples.flatMap(({ view, mirror }) => [s.svg(view, mirror, 0), s.frameSvg?.(view, mirror, rigIdleDef(), 1, 8) ?? '']);
 
-/** Arme dont la FORME vient du catalogue (`form` → `findTrappingById(...).shape`), et une autre forme connue. */
+/** #2967 */
 const slugs = new Set(WEAPON_DEFS.map((d) => d.slug));
-const armeDeCatalogue = trappings.find((t) => t.shape && slugs.has(t.shape))!;
-const autreForme = [...slugs].find((s) => s !== armeDeCatalogue.shape)!;
+const armeDeCatalogue = trappings.find((t) => t.shape && slugs.has(t.shape.id))!;
+const autreForme = [...slugs].find((s) => s !== armeDeCatalogue.shape?.id)!;
 const catalogueDOrigine = trappings.slice();
 afterEach(() => setDataset('trappings', catalogueDOrigine));
 
@@ -58,7 +59,7 @@ function arbalétrier(): Combatant {
 
 function porteurDeCatalogue(): Combatant {
   const h = arbalétrier();
-  h.weapons = [{ label: 'x', type: 'melee', group: 'basic', damage: 4, form: armeDeCatalogue.id } as unknown as Weapon];
+  h.weapons = [buildWeapon({ label: 'x', type: 'melee', damage: { plusBF: false, flat: 4 }, shape: findTrappingById(armeDeCatalogue.id)!.shape })];
   return h;
 }
 
@@ -69,7 +70,7 @@ function porteurDArmeSimple(): Combatant {
   return h;
 }
 const formeAlternative = trappings.find((t) => t.id === 'arme-simple')!.formChoices!.find((f) => f !== 'epee')!;
-const éditerLaForme = (id: string, shape: string) => setDataset('trappings', trappings.map((t) => (t.id === id ? { ...t, shape } : t)));
+const éditerLaForme = (id: string, shape: string) => setDataset('trappings', trappings.map((t) => (t.id === id ? { ...t, shape: { id: shape } } : t)));
 
 /** Pièce d'armure équipée du porteur — l'exiger fait mordre la mutation qui la vise. */
 function armureEquipee(c: Combatant): ItemInstance {
@@ -80,14 +81,14 @@ function armureEquipee(c: Combatant): ItemInstance {
 
 function soldatEnArmure(): Combatant {
   const h = arbalétrier();
-  h.items = [...(h.items ?? []), { uid: 'arm-1', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps', 'brasG', 'brasD'], enc: 2, equipped: true } as ItemInstance];
+  h.items = [...(h.items ?? []), { uid: 'arm-1', label: 'Cotte de mailles', kind: 'armor', subType: 'mailles', qualities: [], pa: 2, locs: ['corps', 'brasG', 'brasD'], enc: 2, equipped: true } as ItemInstance];
   return h;
 }
 
-/** `dessinChange` : ce que la mutation fait au dessin du sujet RECONSTRUIT. L'état de jeu d'une arme ou
+/** `dessinChange` : ce que la mutation fait au SVG du sujet RECONSTRUIT. L'état de jeu d'une arme ou
  *  d'une pièce (chargement, dégâts subis, qualité) ne se dessine pas ; retirer l'arme, changer sa forme
  *  (en place ou au catalogue), si. */
-const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) => void; dessinChange: boolean }[] = [
+const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) => void; dessinChange: boolean; identiteChange?: boolean }[] = [
   { nom: 'unloadWeapon', porteur: arbalétrier, muter: (c) => unloadWeapon(c, c.weapons[0]), dessinChange: false },
   {
     nom: 'unloadWeapon puis rechargement',
@@ -106,20 +107,23 @@ const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) 
     dessinChange: false,
     muter: (c) => void (c.weapons[0].qualities = [...c.weapons[0].qualities, { id: 'de-plaies-atroces' }]),
   },
-  { nom: 'forme de l’arme choisie en place', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].formeChoisie = formeAlternative), dessinChange: true },
+  { nom: 'forme de l’arme choisie en place', porteur: porteurDArmeSimple, muter: (c) => void choisirApparenceDObjet(c.weapons[0], formeAlternative, findTrappingById), dessinChange: true },
+  { nom: 'variante admise de même racine', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].apparence = 'epee_ebrechee'), dessinChange: false, identiteChange: true },
+  { nom: 'apparence non admise ignorée', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].apparence = 'zweihander'), dessinChange: false },
   { nom: 'arme retirée en place', porteur: arbalétrier, muter: (c) => void c.weapons.splice(0, 1), dessinChange: true },
   {
     nom: 'setDataset (forme d’arme au catalogue)',
     porteur: porteurDeCatalogue,
-    dessinChange: true,
-    muter: () => setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: autreForme } : t))),
+    dessinChange: false,
+    identiteChange: true,
+    muter: () => setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: { id: autreForme } } : t))),
   },
-  { nom: 'setDataset (forme de l’arme PORTÉE, par `trappingId`)', porteur: arbalétrier, muter: () => éditerLaForme('arbalete', 'hache_lancer'), dessinChange: true },
+  { nom: 'setDataset (forme de l’arme PORTÉE, par `trappingId`)', porteur: arbalétrier, muter: () => éditerLaForme('arbalete', 'hache_lancer'), dessinChange: false, identiteChange: true },
 ];
 
-describe('un sujet est une VALEUR, et son identité change SI ET SEULEMENT SI son dessin change', () => {
-  for (const { nom, porteur, muter, dessinChange } of MUTATIONS)
-    it(`${nom} : le sujet déjà composé rend le MÊME octet ; le reconstruit change d’identité ⇔ son dessin change`, () => {
+describe('un sujet est une VALEUR, et son identité suit sa projection de dessin', () => {
+  for (const { nom, porteur, muter, dessinChange, identiteChange = dessinChange } of MUTATIONS)
+    it(`${nom} : le sujet déjà composé rend le MÊME octet ; l’identité du reconstruit suit la projection`, () => {
       const c = porteur();
       const s = sujet(pose(c));
       const avant = dessins(s);
@@ -127,7 +131,7 @@ describe('un sujet est une VALEUR, et son identité change SI ET SEULEMENT SI so
       expect(dessins(s)).toEqual(avant);
       const neuf = sujet(pose(c));
       expect(dessins(neuf).some((d, i) => d !== avant[i]), 'le dessin du sujet reconstruit').toBe(dessinChange);
-      expect(neuf.identity !== s.identity, 'l’identité du sujet reconstruit').toBe(dessinChange);
+      expect(neuf.identity !== s.identity, 'l’identité du sujet reconstruit').toBe(identiteChange);
     });
 });
 
@@ -152,24 +156,22 @@ describe('#2097 — les trois états du tir (chargée, déchargée, rechargée) 
   });
 });
 
-describe('#2113 B1 — forme d’arme changée au catalogue : le dessin change, donc les TROIS clés de l’acteur', () => {
+describe('forme racine née : une édition de fiche ne repeint pas le porteur', () => {
   const PORTEURS: [string, () => Combatant, () => void][] = [
     ['arme invoquée (`form`)', porteurDeCatalogue, () => éditerLaForme(armeDeCatalogue.id, autreForme)],
     ['arme portée de catalogue (`trappingId`, #2113 S1)', arbalétrier, () => éditerLaForme('arbalete', 'hache_lancer')],
     ['arme portée à formes proposées, sans choix (`formChoices`)', porteurDArmeSimple, () => éditerLaForme('arme-simple', formeAlternative)],
   ];
   for (const [nom, porteur, éditer] of PORTEURS)
-    it(`${nom} : identité de texture, actorPoseKey et actorIdentityKey suivent l’édition du catalogue`, () => {
+    it(`${nom} : seul un nouveau porteur prend la forme éditée`, () => {
       const c = porteur();
       const s = sujet(pose(c));
       const avant = dessins(s);
-      const clés = [actorPoseKey(pose(c)), actorIdentityKey(pose(c))];
       éditer();
-      const neuf = sujet(pose(c));
-      expect(dessins(neuf).some((d, i) => d !== avant[i]), 'la forme éditée se dessine').toBe(true);
-      expect(neuf.identity).not.toBe(s.identity);
-      expect(actorPoseKey(pose(c))).not.toBe(clés[0]);
-      expect(actorIdentityKey(pose(c))).not.toBe(clés[1]);
+      expect(dessins(sujet(pose(c)))).toEqual(avant);
+      const autre = porteur();
+      expect(autre.weapons[0].shape).not.toEqual(c.weapons[0].shape);
+      expect(dessins(sujet(pose(autre))).some((d, i) => d !== avant[i]), 'une nouvelle naissance prend la forme éditée').toBe(true);
     });
 });
 
@@ -193,7 +195,7 @@ describe('catalogue édité : le témoin notifie le stage, et le sujet reconstru
     const désabonner = abonnerAuxDatasets(() => {
       notifications += 1;
     });
-    setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: autreForme } : t)));
+    setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: { id: autreForme } } : t)));
     désabonner();
     expect(notifications, 'l’abonné du stage est notifié').toBeGreaterThan(0);
     expect(sujet(pose(c)).identity).not.toBe(s.identity);
@@ -205,7 +207,7 @@ describe('#2113 B2 — figurant de scène : son identité hache ses entrées de 
     ({ id: 'f1', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 }, facing: 'S', appearance }) as SceneEntity;
   const jeton = (ent: SceneEntity): TokenEl =>
     ({ kind: 'token', key: `fig:${ent.id}`, id: ent.id, cell: { x: 2, y: 2, z: 0 }, subject: { kind: 'figurant', ent, enrolled: false, inBattle: false } }) as unknown as TokenEl;
-  const sujetFigurant = (ent: SceneEntity) => collectBillboards(scene, mpt, { tokens: [jeton(ent)], props: [] })[0];
+  const sujetFigurant = (ent: SceneEntity) => collectBillboards(findTrappingById, scene, mpt, { tokens: [jeton(ent)], props: [] })[0];
   const base = sujetFigurant(figurant({ species: 'humain' } as SceneEntity['appearance']));
 
   const VARIANTES: [string, SceneEntity['appearance']][] = [

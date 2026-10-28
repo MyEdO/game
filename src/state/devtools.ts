@@ -280,7 +280,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.pad('A'|'B'|…) → simule un BOUTON de manette (Playwright n'a pas l'API Gamepad) — MÊME chemin
  *                           que le pad réel ; __wfrp.padDir('up'|'down'|'left'|'right') → croix/stick
  *   __wfrp.battle()       → snapshot combat (round, actif, modales, combattants en une ligne chacun, armes
- *                           tenues par `trappingId`/`formeChoisie`/`formeResolue`)
+ *                           tenues par `trappingId`/`apparence`/`formeResolue`)
  *   __wfrp.lastRoll()     → DERNIER Test résolu {actorId,success,sl,roll,target} (observation pure,
  *                           lecture seule, `null` si aucun depuis le chargement) — jamais une regex sur `innerText`
  *   __wfrp.log(n)         → queue lisible des journaux (exploration + feed de combat)
@@ -1324,7 +1324,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** Snapshot COMBAT compact : round, actif, modales ouvertes, et chaque combattant en une ligne
-     *  (armes tenues comprises : `trappingId`, `formeChoisie`, `formeResolue`). */
+     *  (armes tenues comprises : `trappingId`, `apparence`, `formeResolue`). */
     battle: () => {
       const s = g();
       const b = s.battle;
@@ -1347,8 +1347,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
           id: c.id, name: c.label, kind: c.kind, pos: c.pos,
           pb: `${c.wounds.current}/${c.wounds.max}`,
           états: (c.conditions ?? []).map((x) => `${x.id}${x.value > 1 ? ` ×${x.value}` : ''}`),
-          // Armes TENUES (`weapons`, dérivées) : id de catalogue, forme CHOISIE, forme RÉSOLUE (`formeResolue`).
-          armes: (c.weapons ?? []).map((w) => ({ label: w.label, trappingId: w.trappingId ?? null, formeChoisie: w.formeChoisie ?? null, formeResolue: formeResolue(w) ?? null })),
+          // Armes TENUES (`weapons`, dérivées) : id de catalogue, apparence, forme RÉSOLUE (`formeResolue`).
+          armes: (c.weapons ?? []).map((w) => ({ label: w.label, trappingId: w.trappingId ?? null, apparence: w.apparence ?? null, formeResolue: formeResolue(w) ?? null })),
         })),
       };
     },

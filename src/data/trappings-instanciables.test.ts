@@ -21,7 +21,7 @@ const horsDeLaVue = (): string[] => trappings.filter((t) => !idsDeLaVue().includ
 const messages = (r: { success: boolean; error?: { issues: { message: string }[] } }): string => (r.error?.issues ?? []).map((i) => i.message).join('\n');
 const effet = (trappingId: string) => giveTrappingSchema.safeParse({ type: 'giveTrapping', trappingId });
 const op = (trappingId: string) => gameOpSchema.safeParse({ op: 'giveTrapping', trappingId });
-const forme = (form: string) => gameOpSchema.safeParse({ op: 'grantWeapon', label: 'Arme', damage: 1, form });
+const forme = (id: string) => gameOpSchema.safeParse({ op: 'grantWeapon', label: 'Arme', damage: 1, form: { id } });
 
 describe('vue `trappingsInstanciables`', () => {
   it('tout id de la vue s’instancie sans lever', () => {

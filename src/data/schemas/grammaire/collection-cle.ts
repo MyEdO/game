@@ -24,7 +24,7 @@
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { coDescendre, defDe, descendre, enfantsDe, ouverts, pasDeDonnee, type DecisionDeVisite, type PointDeDonnee } from './descente';
-import { baseDe, cleDesLibelles, cleDesSpecs, cleDuVocabulaire, cleNichee, estPrefixeDeSuite, idsDeCollection, libellesDeCollection, lireCleDEspace, pasDeLaSuite, suiteAvecPas, type CleLue, type FiltreDEspace } from './cle-d-espace';
+import { baseDe, champsDiscriminants, cleDesLibelles, cleDesSpecs, cleDuVocabulaire, cleNichee, estPrefixeDeSuite, idsDeCollection, libellesDeCollection, lireCleDEspace, pasDeLaSuite, suiteAvecPas, type CleLue, type FiltreDEspace } from './cle-d-espace';
 import { estFeuilleDId } from './ref';
 import { LIBELLE_AU_LABEL, SOURCES_DE_SPECS, type SourceDeSpecs } from './sourcesDeSpecs';
 
@@ -38,13 +38,14 @@ export type CleDElement<T> =
 /**
  * Paramètres d'un ESPACE DE NOMS — une collection marquée `espace` en ouvre un, et chaque paramètre
  * y ajoute des espaces FILTRÉS (`grammaire/cle-d-espace.ts`) : `discriminant`, un espace par valeur du
- * champ (`materials.json?domain=prop`) ; `marqueurs`, un espace par champ, les éléments qui le PORTENT
+ * champ (`materials.json?domain=prop`), ou de CHACUN des champs d'une liste (`weaponGroups.json?combat=melee`,
+ * `weaponGroups.json?kind=armour`) ; `marqueurs`, un espace par champ, les éléments qui le PORTENT
  * (`props.json?volume`). La phase 2 de `npm run gen` (`scripts/gen-espaces.mts`) les lit au nœud.
  */
 export interface EspaceDeNoms {
-  readonly discriminant?: string;
+  readonly discriminant?: string | readonly string[];
   /** Second rôle du `discriminant` : les clés de CHARGE admises par valeur du champ, ce que l'atelier
-   *  présente d'une entrée (`chargeDiscriminee`, `schemas/validate.ts`). Exige `discriminant`. */
+   *  présente d'une entrée (`chargeDiscriminee`, `schemas/validate.ts`). Exige un `discriminant` UNIQUE. */
   readonly chargeParDiscriminant?: Readonly<Record<string, readonly string[]>>;
   readonly marqueurs?: readonly string[];
 }
@@ -121,8 +122,8 @@ function porteUneFeuilleDId(noeud: unknown): boolean {
  * d'élément est une feuille `idDe` — une liste de RÉFÉRENCES n'est jamais un espace de noms.
  */
 export function marquerCollection<N extends z.ZodType>(noeud: N, marque: MarqueDeCollection): N {
-  if (marque.espace?.chargeParDiscriminant && marque.espace.discriminant === undefined)
-    throw new Error('marquerCollection : `chargeParDiscriminant` sans `discriminant` — la charge se partitionne par les valeurs d’un champ discriminant.');
+  if (marque.espace?.chargeParDiscriminant && typeof marque.espace.discriminant !== 'string')
+    throw new Error('marquerCollection : `chargeParDiscriminant` sans `discriminant` unique — la charge se partitionne par les valeurs d’UN champ discriminant.');
   if (marque.espace && noeudsDeCle(noeud, marque).some(porteUneFeuilleDId)) {
     const cle = marque.forme === 'liste' ? `la clé « ${marque.nom} »` : 'la clé de record';
     throw new Error(`marquerCollection : \`espace\` refusé — ${cle} est une feuille \`idDe\`, la collection est une liste de RÉFÉRENCES.`);
@@ -370,7 +371,7 @@ export type LectureDEspace = { readonly ids: readonly string[] } | { readonly un
 
 /** Le filtre est-il un paramètre `espace` déclaré par la marque ? */
 const filtreDeclare = (espace: EspaceDeNoms, filtre: FiltreDEspace): boolean =>
-  filtre.vaut === undefined ? (espace.marqueurs ?? []).includes(filtre.champ) : espace.discriminant === filtre.champ;
+  filtre.vaut === undefined ? (espace.marqueurs ?? []).includes(filtre.champ) : champsDiscriminants(espace).includes(filtre.champ);
 
 /** La SOURCE de spécialisations (`grammaire/sourcesDeSpecs.ts`) dont l'espace lu `lue` est l'espace des
  *  `specs` d'une entrée, `undefined` s'il ne l'est pas. */

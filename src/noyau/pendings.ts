@@ -75,8 +75,8 @@ export interface ScheduledEffect {
 export interface PendingVictory {
   xp: number;
   gold: Money;
-  /** Équipement (giveTrapping) du butin — ATTRIBUABLE par portrait sur l'écran (qualités/skin
-   *  conservés), au lieu d'aller d'office au 1er héros. Non attribué → 1er héros à la fermeture. */
+  /** Équipement (giveTrapping) du butin — ATTRIBUABLE par portrait sur l'écran (qualités/teinte
+   *  conservées), au lieu d'aller d'office au 1er héros. Non attribué → 1er héros à la fermeture. */
   gear?: LootGear[];
   defeated: { label: string; count: number; creatureId?: string }[];
   /** Créatures déjà récoltées (« Précieuses Entrailles », ZI) sur cet écran — grise le bouton (par id). */

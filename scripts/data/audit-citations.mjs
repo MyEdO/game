@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // Rapport de couverture de citation par ENTRÉE (#309, phase 1) — pour CHAQUE dataset de
 // `src/data/*.json`, compte les entrées RÉELLES (premier niveau — jamais les ids imbriqués,
-// cf. `citationCoverage.mjs`) et la présence de `source`/`_source`. Sortie console (tableau trié
+// cf. `citationCoverage.mjs`) et leur citation. Sortie console (tableau trié
 // par % croissant) + `--json` pour un export exploitable (phase 2 de curation).
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { auditDataset, EXEMPT_DATASETS } from '../guards/lib/citationCoverage.mjs';
+import { auditDataset, exemptionDeDataset } from '../guards/lib/citationCoverage.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DATA_DIR = join(ROOT, 'src', 'data');
@@ -22,7 +22,7 @@ const rows = files.map((f) => {
   const { total, cited, missing, shape } = auditDataset(data);
   const missingCount = total - cited;
   const pct = total === 0 ? 100 : Math.round((cited / total) * 1000) / 10;
-  const exempt = EXEMPT_DATASETS[f] ?? null;
+  const exempt = exemptionDeDataset(f) ?? null;
   return { file: f, shape, total, cited, missing: missingCount, pct, exempt, missingIds: missing };
 });
 

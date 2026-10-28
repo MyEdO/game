@@ -21,6 +21,7 @@ import { ARMOUR } from './parts/armour';
 import { HAIRSTYLE_DEFS } from './parts/hairstyles';
 import { rigArtRegistrySignatures } from '../../test-setup';
 
+
 type Case = { name: string; render: () => string };
 
 /** Les cas du golden de combat (`golden/creature-combat-render-golden.test.ts`), montés par le MÊME

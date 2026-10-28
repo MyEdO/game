@@ -1,6 +1,6 @@
 import { createHero } from '../../engine/character';
 import { acquerirTalent } from '../../engine/careerSlots';
-import { itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
 import type { Combatant, ItemInstance } from '../../engine/types';
 import type { Scene } from '../../noyau/monde/scene';
 import type { CustomStatblock } from '../../engine/statblock';
@@ -44,10 +44,10 @@ function tireur(): Combatant {
     seed: 3101,
     id: 'tr-tireur',
   });
-  const arb = itemFromTrappingById('arbalete')!; // Recharge 1 + Empaleuse
+  const arb = itemFromTrappingById('arbalete', undefined, contexteDeNaissanceDObjet(h))!; // Recharge 1 + Empaleuse
   arb.equipped = true;
-  const carreaux = itemFromTrappingById('carreau')!;
-  const lant = itemFromTrappingById('lanterne')!;
+  const carreaux = itemFromTrappingById('carreau', undefined, contexteDeNaissanceDObjet(h))!;
+  const lant = itemFromTrappingById('lanterne', undefined, contexteDeNaissanceDObjet(h))!;
   lant.equipped = true; // PORTÉE → halo de lumière qui le suit (gate : un objet rangé n'éclaire pas)
   h.items = [arb, carreaux, lant];
   h.loadouts = undefined;
@@ -69,8 +69,8 @@ function bretteur(): Combatant {
   if (!h.talents.some((t) => t.talentId === 'maniement-de-deux-armes')) {
     acquerirTalent(h, { id: 'maniement-de-deux-armes' });
   }
-  const main = itemFromTrappingById('arme-simple'); // formChoices (épée→hache/masse/…), forme résolue au catalogue
-  const off = itemFromTrappingById('dague');
+  const main = itemFromTrappingById('arme-simple', undefined, contexteDeNaissanceDObjet(h)); // formChoices (épée→hache/masse/…), forme résolue au catalogue
+  const off = itemFromTrappingById('dague', undefined, contexteDeNaissanceDObjet(h));
   h.items = [...(h.items ?? []), main, off].filter(Boolean) as ItemInstance[];
   if (main && off) {
     const id = loadoutCreate(h);

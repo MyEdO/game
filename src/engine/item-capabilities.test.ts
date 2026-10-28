@@ -1,6 +1,6 @@
 /**
- * Résolveur de CAPACITÉS d'objet (`engine/capabilities`) — canal `capabilities` unifié, lu PAR ID dans
- * le catalogue (trappingId), MÊME logique cross-source que traits/qualités/maladies. Vérifie les DEUX
+ * Résolveur de CAPACITÉS d'objet (`engine/capabilities`) — canal intrinsèque `capabilities`.
+ * Vérifie les DEUX
  * natures de lecture :
  *  - `itemCapability(it, cap)` : par-OBJET, NON gatée sur le port (ration/grimoire dans le sac comptent) ;
  *  - `hasCapability(c, cap)` : agrégat par-PERSONNAGE, GATÉ sur le port pour les objets (cape PORTÉE,
@@ -9,17 +9,18 @@
  */
 import { describe, it, expect } from 'vitest';
 import { itemCapability, hasCapability } from './capabilities';
+import { customTrapping, itemFromTrappingById } from './items';
 import type { Combatant, ItemInstance, Weapon } from './types';
 
 const item = (uid: string, trappingId: string | undefined, extra: Partial<ItemInstance> = {}): ItemInstance =>
-  ({ uid, label: uid, trappingId, kind: 'misc', qualities: [], enc: 0, equipped: false, ...extra }) as ItemInstance;
+  ({ ...(trappingId ? itemFromTrappingById(trappingId)! : customTrapping(uid)), uid, ...extra });
 
 /** Combattant minimal porteur d'un inventaire (et d'un loadout actif `weapons` pour la garde TENU). */
 const carrier = (items: ItemInstance[], weapons: Weapon[] = []): Combatant =>
   ({ id: 'c', name: 'Porteur', items, weapons } as unknown as Combatant);
 
-describe('itemCapability — lecture par-OBJET (catalogue, NON gatée sur le port)', () => {
-  it('reconnaît la capacité au trappingId, quel que soit equipped', () => {
+describe('itemCapability — lecture par-OBJET NON gatée sur le port', () => {
+  it('reconnaît la capacité née sur l’objet, quel que soit equipped', () => {
     // Ration / grimoire dans le sac (equipped:false) : la capacité par-objet répond VRAI (on mange/lit
     // depuis le sac — pas de gating).
     expect(itemCapability(item('r', 'ration'), 'isRations')).toBe(true);

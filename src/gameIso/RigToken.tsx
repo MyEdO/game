@@ -2,7 +2,7 @@ import { RigSprite, useCompositionRig } from './rig/composeRig';
 import { ambientClip } from './rig/anim/ambientClips';
 import { addPose } from './rig/poses';
 import { useRigAnim } from './useRigAnim';
-import type { EquipCtx } from './rig/parts/equipment';
+import type { EquipCtx } from '../noyau/equipementDessine';
 import type { Dir8 } from '../geometry/dir8';
 import type { Appearance } from '../engine/authoringAppearance';
 import type { RigOverlay } from './rig/bones';

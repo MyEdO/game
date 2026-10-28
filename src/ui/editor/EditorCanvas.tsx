@@ -1,4 +1,3 @@
-import type { JSX } from 'react';
 /**
  * Canvas SVG iso de l'éditeur v2 : rendu WYSIWYG (sol, toits, entités, spawns) + calques
  * d'auteur (triggers, zones de repos, points d'entrée) + interactions pointeur — peindre, poser,
@@ -6,6 +5,7 @@ import type { JSX } from 'react';
  * Les overlays sont en `pointer-events: none` : tout le picking passe par `hitAt` (les calques
  * masqués laissent cliquer à travers). La logique de mutation vit dans `editorState` (pur).
  */
+import type { JSX } from 'react';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Scene, sceneMetresPerTile, isDescriptiveZone, type SceneEffectZone } from '../../noyau/monde/scene';
 import { sceneZoneTiles } from '../../noyau/monde/zones';
@@ -36,6 +36,7 @@ import { buildTokens } from '../../gameIso/builders/tokens';
 import type { ActorPose, KeepEl, TintAt } from '../../gameIso/backends/webgl/sceneMeshes';
 import { calageActif } from '../../gameIso/backends/webgl/calageProps';
 import { mapLights, type LightSource } from '../../noyau/monde/vision';
+import type { TrappingResolver } from '../../engine/items';
 
 /** Jaune d'ACCENT de SÉLECTION de l'éditeur (arêtes/zones/toits/entités sélectionnés) — même teinte que
  *  l'anneau d'unité active en combat, mais concept distinct (édition, pas tour de jeu). */
@@ -175,6 +176,7 @@ function buildZoneDraws(zones: readonly SceneEffectZone[] | undefined, dims: Dim
 }
 
 export function EditorCanvas({
+  resolveTrapping,
   scene,
   view,
   setScene,
@@ -205,6 +207,7 @@ export function EditorCanvas({
   traceCalibStep,
   onTraceCalibClick,
 }: {
+  resolveTrapping: TrappingResolver;
   scene: Scene;
   view: ReturnType<typeof useEditorView>;
   setScene: (s: Scene) => void;
@@ -756,7 +759,7 @@ export function EditorCanvas({
             (2304×1312 px mesurés sur La Diligence en iso), pas la seule fenêtre — le défilement reste
             NATIF, sans un écouteur de plus, et `setPixelRatio` n'est posé qu'au montage. Un cadrage
             à la fenêtre est une piste tickée, pas une promesse de ce lot. */}
-        <GameStage3D
+        <GameStage3D resolveTrapping={resolveTrapping}
           scene={sceneMonde}
           lecture="auteur"
           mpt={mpt}

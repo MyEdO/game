@@ -11,7 +11,7 @@ import { spells, blessingsOf, miraclesOf, findSkill, findTalent, rigSpeciesId } 
 import { slugId } from '../../data/slug';
 import { refCouvre, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import { acquerirTalent, splitLabel } from '../../engine/careerSlots';
-import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import type { Combatant, CharKey, SkillInstance, ItemInstance } from '../../engine/types';
 
 /** Deep-clone d'un pré-tiré (données pures) pour le bricoler sans toucher la base. */
@@ -89,7 +89,7 @@ export function makeFlagellant(base: Combatant, id: string, name: string, cult: 
   const f = makePriest(base, id, name, cult, chars);
   addTalents(f, ['Frénésie']);
   boostSkill(f, 'Corps à corps', "Armes d'hast", 'capacite-de-combat', 45);
-  const axe = itemFromTrappingById('hache-d-armes');
+  const axe = itemFromTrappingById('hache-d-armes', undefined, contexteDeNaissanceDObjet(f));
   if (axe) {
     f.items = [...(f.items ?? []), axe] as ItemInstance[];
     recomputeLoadout(f);

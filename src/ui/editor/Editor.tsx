@@ -58,6 +58,7 @@ import { dialoguesSchema, triggersSchema, encountersSchema, sceneSchema } from '
 import { nommerChamps, metaDesChamps } from '../../data/schemas/grammaire/meta';
 import { rapportDeFautes, validerFormeVivante } from '../../data/schemas/validate';
 import { idDEntropie } from '../../web/entropie';
+import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 
 /** Titres des gestes du menu Fichier dont le refus n'a aucune modale à lui (`refusDuGeste`) : le
  *  même mot que le contrôle cliqué — l'auteur retrouve SON geste en tête de la fenêtre. */
@@ -1094,7 +1095,7 @@ export function Editor({
           onRetry={() => {}}
           cleDeReprise={scene}
         >
-        <EditorCanvas
+        <EditorCanvas resolveTrapping={objetDuNarratif(narratif)}
           scene={scene}
           view={view}
           setScene={setScene}

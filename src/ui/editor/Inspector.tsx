@@ -24,6 +24,7 @@ import {
   type FaceDArete,
   type WallSecret,
   isDescriptiveZone,
+  enrolledEntityIds,
   porteAuteur,
   sceneMetresPerTile,
   secretAuteur,
@@ -40,7 +41,7 @@ import { TIME_COST } from '../../engine/timeCost';
 import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
 import type { WorldMap } from '../../noyau/worldMap';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
-import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
+import { presetDuNarratif, objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { Settlement } from '../../engine/disponibilite';
 import { SCENE_ANIMS } from '../../gameIso/sceneAnims';
 import { tokenBodyKind } from '../../gameIso/tokenBodyKind';
@@ -62,8 +63,9 @@ import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfil
  *  espace : une ancre qui en nomme une est ignorée sans un mot (#841). */
 const battleAnchorTargets = (): { id: string; label: string }[] =>
   activitiesFor('bataille-round').map((def) => ({ id: def.id, label: def.label }));
-import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
+import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { isSwarm } from '../../engine/traits/dispatch';
+import { armesDEntite, equipementDAuteurDe } from '../../noyau/equipementDessine';
 import { effectCtxOf } from './EffectList';
 import { RefNarrativeField } from '../compendium/refField/RefField';
 import { GameOpEditor } from './GameOpEditor';
@@ -1470,7 +1472,7 @@ function EntityPanel({
           ) : (
             // Aperçu unifié via le MÊME classifieur que le canvas (tokenBodyKind) — le classifieur route
             // par la NATURE de l'entité (`kind`), un décor n'atteint jamais le registre créature/véhicule.
-            tokenBodyKind({ kind: 'sceneEntity', ent }).body
+            tokenBodyKind(objetDuNarratif(narratif), { kind: 'sceneEntity', ent }).body
           )}
         </svg>
         <span className="hint">
@@ -1514,6 +1516,11 @@ function EntityPanel({
               appearance={ent.appearance ?? {}}
               onChange={(appearance) => updateSel({ appearance })}
               reglages={['monster', 'eyes', 'features', 'tenue', 'colors']}
+              apresArme={<ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)}
+                appearance={ent.appearance ?? {}}
+                onChange={(appearance) => updateSel({ appearance })}
+                weapons={armesDEntite(objetDuNarratif(narratif), ent.ref, equipementDAuteurDe(ent, enrolledEntityIds(scene).has(ent.id)))}
+              />}
               weapon={ent.weapon}
               onWeapon={(w) => updateSel({ weapon: w })}
             />

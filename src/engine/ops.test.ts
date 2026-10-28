@@ -10,7 +10,7 @@ import { groupMatch, groupesDe } from './groups';
 import { hasTraitKey } from './traits/dispatch';
 import { woundsFromHit } from './combat';
 import type { Weapon } from './types';
-import { recomputeLoadout, isUnarmed, itemFromTrappingById } from './items';
+import { recomputeLoadout, isUnarmed, itemFromTrappingById, itemFromGive, loadoutSetSlot } from './items';
 import { effectiveChar } from './characteristics';
 import { spellOps } from './flowCore';
 import { findSpellById } from '../data';
@@ -428,7 +428,7 @@ describe('applyOps — opérations unitaires', () => {
 
     // #476 — Poing de fer ogre (ADE II 02 l.694-698) : capacité `disarmImmune` (`ItemCapabilities`).
     it("capacité disarmImmune (Poing de fer, ADE II 02 l.694-698) → refuse le désarmement, l'arme reste tenue", () => {
-      const c = hero({ items: [{ uid: 'w1', trappingId: 'poing-de-fer', label: 'Poing de fer', kind: 'melee', equipped: true, qualities: [], enc: 2 } as never] });
+      const c = hero({ items: [{ ...itemFromTrappingById('poing-de-fer')!, uid: 'w1', equipped: true }] });
       c.loadouts = [{ id: 'l1', main: 'w1' }];
       c.activeLoadoutId = 'l1';
       recomputeLoadout(c);
@@ -799,5 +799,19 @@ describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', 
     const lignes = applyOps(cible(), [{ op: 'transform', tag: 'forme', ops: [{ op: 'condition', id: 'sonne', value: 1 }] }] as never[], { rng: makeRNG(1), surLigne: (rang, l) => { recues.push([rang, l]); } });
     expect(lignes).toEqual(['Cible reçoit 1 État Sonné.', 'Cible se métamorphose (forme).']);
     expect(recues).toEqual([[0, 'Cible reçoit 1 État Sonné.'], [0, 'Cible se métamorphose (forme).']]);
+  });
+});
+
+describe('augmentWeapon — l’arme tenue est celle du set actif résolu', () => {
+  it('arme à deux mains en `main`, dague en `off` : la dague n’est pas tenue, l’enchantement qui la vise échoue', () => {
+    const c = hero({ items: [{ ...itemFromGive({ trappingId: 'grande-hache' }), uid: 'grande-hache' }, { ...itemFromGive({ trappingId: 'dague' }), uid: 'dague' }] });
+    recomputeLoadout(c);
+    const lo = c.loadouts![0];
+    loadoutSetSlot(c, lo.id, 'main', 'grande-hache');
+    loadoutSetSlot(c, lo.id, 'off', 'dague');
+    recomputeLoadout(c);
+    const lignes = applyOps(c, [{ op: 'augmentWeapon', addQualities: ['magique'], requiresWeapon: ['dague'] }], { rng: desDuTest, label: 'Sonde', defaultDurationRounds: 2 });
+    expect(lignes).toEqual(['Cobaye : aucune arme en main à enchanter (Sonde).']);
+    expect(c.items!.find((i) => i.uid === 'dague')!.enchants).toBeUndefined();
   });
 });

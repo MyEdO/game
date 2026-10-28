@@ -1,25 +1,27 @@
 /**
  * Schéma de `materials.json` — LE dataset des matières du monde (#1686 lot 2), consommé comme
- * `MaterialEntry[]` (`src/data/materials.types.ts`), en trois domaines : les matières de décor
+ * `MaterialEntry[]` (`src/data/materials.types.ts`), en quatre domaines : les matières de décor
  * volumique, celles de toiture (les couvertures et le « plan » vu du dessus, marqué `vueDeDessus`),
- * celles de relief.
+ * celles de relief et les palettes de teintes d’objet du domaine `objet`.
  *
- * Le champ de charge `domain` porte l'identité : ses valeurs sont celles de `MaterialRef.domain`
- * (`src/data/materials.types.ts`), servies par `DOMAINES_MATIERE`, qui les tient sous `satisfies`.
+ * Le champ de charge `domain` porte l'identité : ses valeurs sont celles de `DOMAINES_MATIERE`
+ * (`src/data/materials.types.ts`), tenues sous `satisfies` contre les domaines de `MaterialRef` plus
+ * `objet`, qui vit hors du pivot de rendu du sol.
  *
  * UNE SEULE FORME D'ENTRÉE, la disjonction portée par un REFINE ⟺ (`affinerEntree`, patron
  * `defs/oups.ts`) : toutes les clés de charge sont déclarées `.optional()`, et le refine (1) EXIGE
  * par domaine ses clés requises, (2) REFUSE toute clé d'un AUTRE domaine, nommément. Une union de
- * trois `strictObject` dirait la même chose au parse, mais elle n'a ni `.shape` ni enveloppe :
+ * quatre `strictObject` dirait la même chose au parse, mais elle n'a ni `.shape` ni enveloppe :
  * `document()` ne saurait y poser ni sa provenance, ni son `type`, ni ses métas d'édition.
  *
- * CHARGE COMMUNE = ∅ (mesuré) : aucune clé n'est partagée par les trois domaines — `detail` l'est par
- * `roof` et `relief`, et par eux seuls. Aucun renommage : `color` (décor), `N`/`E`/`S`/`O` (pentes de
- * toit) et `face` (relief) ne sont pas la même forme (`src/gameIso/backends/webgl/faceColors.ts`).
+ * CHARGE COMMUNE = ∅ : aucune clé n'est partagée par les quatre domaines — `detail` l'est par
+ * `roof` et `relief`, et par eux seuls. `color` (décor), `N`/`E`/`S`/`O` (pentes de toit),
+ * `face` (relief) et `palette` (teinte d’objet) portent des charges distinctes
+ * (`src/gameIso/backends/webgl/faceColors.ts`, `src/gameIso/rig/parts/equipment.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { couleurHexSchema, detailRecipeSchema, enumNomme } from '../grammaire/valeurs';
+import { couleurHexSchema, detailRecipeSchema, enumNomme, surchargePaletteSchema } from '../grammaire/valeurs';
 import { type MaterialDomain } from '../../materials.types';
 
 export const file = 'materials.json';
@@ -34,6 +36,7 @@ const LIBELLES_DE_DOMAINE = {
   prop: 'Décor',
   roof: 'Toiture',
   relief: 'Relief',
+  objet: 'Objet',
 } as const satisfies Record<MaterialDomain, string>;
 
 /**
@@ -41,6 +44,7 @@ const LIBELLES_DE_DOMAINE = {
  * clé étrangère). `requises` ⊆ `cles` ; ce qui n'est pas requis est optionnel dans ce domaine.
  */
 const CHARGE_PAR_DOMAINE = {
+  objet: { cles: ['palette'], requises: ['palette'] },
   prop: { cles: ['color', 'roughness', 'metalness'], requises: ['color', 'roughness', 'metalness'] },
   roof: {
     cles: [
@@ -56,7 +60,7 @@ const CHARGE_PAR_DOMAINE = {
 /**
  * CHARGE par valeur du DISCRIMINANT, telle que la lit l'atelier (`espace.chargeParDiscriminant` de la
  * marque de racine, `chargeDiscriminee`) : une entrée de matière n'édite que les champs de SON domaine,
- * jamais l'union des trois. Dérivée de la table ci-dessus — le refine et le formulaire lisent la MÊME
+ * jamais les champs des autres domaines. Dérivée de la table ci-dessus — le refine et le formulaire lisent la MÊME
  * déclaration.
  */
 const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
@@ -71,6 +75,7 @@ const doc = document(
   famille,
   {
     domain: enumNomme(LIBELLES_DE_DOMAINE),
+    palette: surchargePaletteSchema.optional(),
     // ── domaine `prop`
     color: couleurHexSchema.optional(),
     roughness: z.number().min(0).max(1).optional(),
@@ -105,8 +110,9 @@ const doc = document(
   {
     domain: {
       label: 'Domaine',
-      hint: 'Ce que la matière peint : décor volumique, toiture, relief — les clés admises en dépendent',
+      hint: 'Ce que la matière peint : décor volumique, toiture, relief, objet — les clés admises en dépendent',
     },
+    palette: { label: 'Palette' },
     color: { label: 'Couleur', hint: 'Teinte hexadécimale `#rrggbb` du matériau' },
     roughness: { label: 'Rugosité', hint: 'Réponse mate/brillante à la lumière' },
     metalness: { label: 'Métallicité', hint: 'Part de réponse métallique à la lumière' },

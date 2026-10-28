@@ -12,7 +12,7 @@ import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
-  stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
+  stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, findGabaritById, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, findClassById, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, psychologyLabel,
   allAxes,
@@ -1790,10 +1790,13 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'raceAppearance', label: 'Apparences', group: 'Tables', cluster: 'Création de personnage',
-    build: () => raceAppearance.map((r) => ({
-      id: r.id, label: r.label, sub: r.gabarit, appearance: { species: r.id },
-      meta: facts(fact('Gabarit', r.gabarit), fact('Tenue', r.tenue), fact('Tête', r.head), fact('Jambes', r.legs)),
-    })),
+    build: () => raceAppearance.map((r) => {
+      const gabarit = findGabaritById(r.gabarit.id)?.label;
+      return {
+        id: r.id, label: r.label, sub: gabarit, appearance: { species: r.id },
+        meta: facts(fact('Gabarit', gabarit), fact('Tenue', r.tenue), fact('Tête', r.head), fact('Jambes', r.legs)),
+      };
+    }),
   },
   {
     key: 'pregens', label: 'Pré-tirés', group: 'Tables', cluster: 'Création de personnage',

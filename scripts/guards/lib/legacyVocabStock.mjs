@@ -217,13 +217,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/schemas/grammaire/sans-livre.ts",
-    motif: "désormais",
-    ancre: "désormais `maison`. Mesuré le 2026-09-05 (après la fusion des trois catalogues de matières en",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/stake-rule-ratchet.test.ts",
     motif: "désormais",
     ancre: "fiche curée pour un jet DOIT désormais être référencée par un dataset d'enjeu. Une fiche qui",
@@ -563,13 +556,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/gameIso/stage/redessin-pilote.test.tsx",
     motif: "désormais",
     ancre: "désormais quelque chose de peint là où il n'y avait rien.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/gameIso/stage/stage-tons-lumiere.test.tsx",
-    motif: "désormais",
-    ancre: "// ÉCART ASSUMÉ (le seul) : la lampe naît désormais ORANGE et VACILLANTE au lieu de blanche et fixe.",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

@@ -25,6 +25,7 @@ import { GameStage3D, setStageRendererFactory, type StageWalkAnim } from './Game
 import { BancRenderer, brancherArdoise, brancherImagesPilotees, scènes, viderCaptures } from './banc-volumique';
 import { POINT_LIGHT_BUDGET, resolveTone } from './stagePointLights';
 import { battreStageFrames, resetStageFrames } from './stageFrames';
+import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -69,7 +70,7 @@ let commitsReact = 0;
  *  (`ui/editor/EditorCanvas`), qui monte le même écran sans aucune prop d'animation. */
 const écran = (yawDeg = 0, avecAnim = true): JSX.Element => (
   <Profiler id="stage" onRender={() => { commitsReact += 1; }}>
-    <GameStage3D lecture="jeu"
+    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={{ mode: 'plateau', dims: dimsDe(yawDeg), cam: { x: 0, y: 0 }, zoom: 1 }}

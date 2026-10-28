@@ -10,7 +10,7 @@ import type { Combatant, ItemInstance } from '../../../engine/types';
 import { findTrappingById, trappings } from '../../../data';
 import { ItemIcon } from '../../../ui/ItemIcon';
 import { contexteDeGeste } from '../../fx/animTracks';
-import { armePrincipale, equipDe, equipPorte } from './equipment';
+import { armePrincipale, equipDe, equipementDessine } from '../../../noyau/equipementDessine';
 import { resolveParts } from './resolve';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
@@ -53,14 +53,14 @@ describe('complétude : toute entrée marquée bouclier se dessine en une silhou
     expect(marquees.map((t) => t.id)).toContain('bouclier');
   });
   for (const t of marquees) it(t.id, () => {
-    expect(slugs.has(formeResolue(itemFromTrappingById(t.id)!) ?? ''), `forme « ${t.shape} »`).toBe(true);
+    expect(slugs.has(formeResolue(itemFromTrappingById(t.id)!) ?? ''), `forme « ${t.shape?.id} »`).toBe(true);
   });
 });
 
 describe('sens inverse : la forme d’une entrée suit sa marque', () => {
   const boucliers = new Set(SHIELD_DEFS.map((d) => d.slug));
   const armes = new Set(WEAPON_DEFS.map((d) => d.slug));
-  const formes = (t: (typeof trappings)[number]) => [t.shape, ...(t.formChoices ?? [])].filter((s): s is string => !!s);
+  const formes = (t: (typeof trappings)[number]) => [t.shape?.id, ...(t.formChoices ?? [])].filter((s): s is string => !!s);
   it('PRÉMISSE : des entrées non marquées portent une forme d’arme', () => {
     expect(trappings.some((t) => !isShieldTrapping(t.id) && formes(t).some((s) => armes.has(s)))).toBe(true);
   });
@@ -84,7 +84,7 @@ const geom = (id: string) => {
   return /item-icon-shield/.test(html) ? 'shield' : /item-icon-weapon/.test(html) ? 'weapon' : 'autre';
 };
 const parade = (c: Combatant, id: string) => {
-  const eq = equipPorte(c);
+  const eq = equipementDessine(c);
   return rigDefenseDef({ kind: 'weapon', defense: 'parade', parryWeapon: c.weapons.find((x) => x.trappingId === id)! }, contexteDeGeste(eq))!.key;
 };
 
@@ -93,8 +93,9 @@ describe('non-boucliers porteurs de Protectrice, par un vrai inventaire', () => 
   for (const [ids, id] of cas) it(ids.join(' + '), () => {
     const c = heros(ids);
     const arme = c.weapons.find((x) => x.trappingId === id)!;
-    const eq = equipPorte(c);
-    const mainFaible = eq.weapons.find((x) => x.hand === 'off')?.forme ?? null;
+    const eq = equipementDessine(c);
+    const candidats = eq.weapons.find((x) => x.hand === 'off')?.candidats;
+    const mainFaible = candidats?.[candidats.length - 1] ?? null;
     expect(c.weapons.length, 'PRÉMISSE : les objets donnés sont tenus').toBe(ids.length);
     expect(arme.qualities.some((q) => q.id === 'protectrice'), 'PRÉMISSE : porte Protectrice').toBe(true);
     expect(isShieldItem(arme)).toBe(false);
@@ -109,7 +110,7 @@ describe('non-boucliers porteurs de Protectrice, par un vrai inventaire', () => 
   it('témoin : arme-simple + bouclier', () => {
     const c = heros(['arme-simple', 'bouclier']);
     const b = c.weapons.find((x) => x.trappingId === 'bouclier')!;
-    const eq = equipPorte(c);
+    const eq = equipementDessine(c);
     expect(c.weapons.map((x) => `${x.trappingId}/${x.hand}`)).toEqual(expect.arrayContaining(['arme-simple/main', 'bouclier/off']));
     expect(isShieldItem(b)).toBe(true);
     expect(shieldAdvantageLevel(c, b)).toBe(2);
@@ -128,7 +129,7 @@ describe('les boucliers du livre, par un vrai inventaire', () => {
     const b = c.weapons.find((x) => x.trappingId === id)!;
     expect(findTrappingById(id)?.shield, 'marque').toBe(true);
     expect(isShieldItem(b)).toBe(true);
-    expect(equipPorte(c).shield, 'rig : os bouclier').toBeDefined();
+    expect(equipementDessine(c).shield, 'rig : os bouclier').toBeDefined();
     expect(slugs.has(formeResolue(b) ?? ''), 'forme de SHIELD_DEFS').toBe(true);
     expect(shieldAdvantageLevel(c, b), 'Porte-bouclier LDB 10 l.972').toBe(2);
     expect(geom(id), 'icône').toBe('shield');

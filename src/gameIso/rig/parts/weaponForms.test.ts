@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { WEAPON_FORMS, SHIELD_FORMS } from './weaponForms';
-import { weaponFamily, shieldPart, type FormeDArme } from './equipment';
+import { weaponFamily, shieldPart } from './equipment';
+import { type FormeDArme } from '../../../noyau/equipementDessine';
 import { declaredView } from '../viewArt';
 import { trappings } from '../../../data';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 
 /** Projection de forme déjà RÉSOLUE (id stable) — plus aucun routage par libellé. */
-const byShape = (forme: string | undefined, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, forme });
+const byShape = (forme: string | undefined, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, candidats: forme ? [forme] : [] });
 
 /** Sous-types NON tenus en main → hors contrat de silhouette : engins de siège servis par un équipage
  *  et munitions/projectiles. Le rig ne dessine pas d'arme portée pour eux. */
@@ -19,11 +20,11 @@ const isWeaponShape = (s: string) => WEAPON_SLUGS.has(s);
 
 describe('weaponForms — shape catalogué sur les armes tenues en main', () => {
   it('chaque arme melee/ranged de la donnée (hors siège & munitions) porte un shape = slug réel', () => {
-    const bad = (trappings as { id: string; label: string; categorie: string; subType?: string; shape?: string }[])
+    const bad = (trappings as { id: string; label: string; categorie: string; subType?: string; shape?: { id: string } }[])
       .filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && !NON_PORTEE.has(t.subType ?? ''))
       .filter((t) => t.id !== 'mains-nues') // Mains nues : aucune silhouette tenue (pas de shape) — par design
-      .filter((t) => !(t.shape && (isWeaponShape(t.shape) || SHIELD_SLUGS.has(t.shape))))
-      .map((t) => `${t.label} → shape=${t.shape ?? '∅'}`);
+      .filter((t) => !(t.shape && (isWeaponShape(t.shape.id) || SHIELD_SLUGS.has(t.shape.id))))
+      .map((t) => `${t.label} → shape=${t.shape?.id ?? '∅'}`);
     expect(bad).toEqual([]);
   });
 
@@ -35,14 +36,14 @@ describe('weaponForms — shape catalogué sur les armes tenues en main', () => 
   });
 
   it('tout slug de WEAPON_DEFS et de SHIELD_DEFS est visé par une shape ou une formChoices du catalogue', () => {
-    const vises = new Set(trappings.flatMap((t) => [t.shape, ...(t.formChoices ?? [])]));
+    const vises = new Set(trappings.flatMap((t) => [t.shape?.id, ...(t.formChoices ?? [])]));
     const defs = [...WEAPON_DEFS, ...SHIELD_DEFS].map((d) => d.slug);
     expect(defs.some((s) => vises.has(s)), 'PRÉMISSE : le catalogue vise des défs du rig').toBe(true);
     expect(defs.filter((s) => !vises.has(s))).toEqual([]);
   });
 
   it('Mains nues n’a pas de shape (aucune arme dessinée)', () => {
-    const mn = (trappings as { id: string; shape?: string }[]).find((t) => t.id === 'mains-nues');
+    const mn = (trappings as { id: string; shape?: { id: string } }[]).find((t) => t.id === 'mains-nues');
     expect(mn?.shape).toBeUndefined();
   });
 
@@ -67,7 +68,7 @@ describe('routage de l’art PAR ID (shape) — plus aucun libellé', () => {
   });
 
   it('une attaque naturelle (natural:true) → aucune arme tenue', () => {
-    expect(weaponFamily({ type: 'melee', forme: undefined, natural: true })).toBe('');
+    expect(weaponFamily({ type: 'melee', candidats: [], natural: true })).toBe('');
   });
 
   it('un shape inconnu retombe sur le Groupe (pas de crash, pas de routage par nom)', () => {

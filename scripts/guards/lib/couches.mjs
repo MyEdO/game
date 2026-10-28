@@ -9,10 +9,11 @@
 //  - `portes` : pour une zone importée, le SEUL module qu'elle en lit (sa surface), en valeur comme en type ;
 //  - `survit` : la zone survit à la bascule vers Godot (#2794) — elle ne charge aucun paquet de l'hôte web
 //    (`PAQUETS_DE_L_HOTE_WEB`), même pour un type, n'écrit aucun JSX, et ne lit aucun module hors des zones ;
-//  - `outillage` : pour un script d'outillage de la zone (lancé par Node à la construction, à la recette ou par les
-//    tests, jamais chargé par l'hôte), les seuls modules hors des zones qu'il lit (`horsZoneOuvert`) ;
-//  - `tests` (#3058), pour une zone qui survit : `outillage`, les chemins hors des zones (dossier ou module d'outil
-//    Node) dont ses SUITES lisent le code ; une suite d'une zone qui survit lit toute zone qui survit (`fermetureDUnTest`).
+//  - `outillage` : pour un outillage de la zone (lancé par Node à la construction, à la recette ou par les tests,
+//    jamais chargé par l'hôte), les seuls modules hors des zones qu'il lit (`horsZoneOuvert`) ;
+//  - `paquetsDOutillage` : pour un outillage de la zone, les seuls paquets de l'hôte web que ses modules chargent
+//    (`paquetFerme`) ; aucun module de la zone hors de cet outillage ne l'importe (`outillageAtteint`).
+// La clé d'un outillage (`couvre`) : finie par `/`, un dossier et tout ce qu'il contient ; sinon, un fichier exact.
 // Toute autre zone lui est fermée, même pour un type.
 import { posix as cheminPosix } from 'node:path';
 
@@ -36,33 +37,30 @@ const DROITS_D_HOTE = Object.freeze({ importe: Object.freeze(['noyau', 'scenes',
 const DROITS_DES_HOTES = Object.freeze({ ...DROITS_D_HOTE, importe: Object.freeze([...DROITS_D_HOTE.importe, 'hote']) });
 
 export const COUCHES = Object.freeze({
-  lib: { importe: [], survit: true, tests: { outillage: ['scripts/guards/lib'] } },
+  lib: { importe: [], survit: true },
   geometry: { importe: [], survit: true },
   i18n: { importe: [], survit: true },
-  engine: { importe: ['data', ...FEUILLES], survit: true, tests: { outillage: ['scripts/guards/lib'] } },
-  data: {
-    importe: ['engine', ...FEUILLES],
-    survit: true,
-    tests: {
-      outillage: ['scripts/guards/lib', 'scripts/docs', 'scripts/source', 'scripts/data/lib', 'scripts/raw', 'scripts/migrations', 'scripts/arene', 'scripts/gen-espaces.mts', 'scripts/gen-registry.mjs'],
-    },
-  },
-  noyau: { importe: ['engine', 'data', ...FEUILLES], survit: true, tests: { outillage: ['scripts/guards/lib', 'scripts/docs'] } },
-  hote: { ...DROITS_D_HOTE, tests: { outillage: ['scripts/guards/lib'] } },
+  engine: { importe: ['data', ...FEUILLES], survit: true },
+  data: { importe: ['engine', ...FEUILLES], survit: true },
+  noyau: { importe: ['engine', 'data', ...FEUILLES], survit: true },
+  hote: DROITS_D_HOTE,
   hoteTexte: DROITS_DES_HOTES,
   hotes: {
     dossier: 'hotes',
     ...DROITS_DES_HOTES,
     outillage: {
       'hotes/godot/construire.mjs': ['scripts/entree-d-hote.mjs', 'scripts/guards/lib/lister.mjs'],
+      'hotes/godot/asset/charger.mjs': ['scripts/entree-d-hote.mjs'],
+      'hotes/godot/asset/importer.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
+      'hotes/godot/asset/release.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
       'hotes/godot/recette.mjs': ['scripts/recette/lib.mjs'],
     },
+    paquetsDOutillage: { 'hotes/godot/asset/evaluateur/': ['three'] },
   },
   scenes: {
     importe: ['noyau', 'data', 'engine', ...FEUILLES],
     survit: true,
     outillage: { 'src/scenes/projetsLivres.testkit.ts': ['scripts/guards/lib/projetsLivres.mjs'] },
-    tests: { outillage: ['scripts/guards/lib', 'scripts/campagne', 'scripts/source'] },
   },
   net: { importe: [...FEUILLES], types: ['hote'] },
   web: { importe: [...FEUILLES] },
@@ -119,26 +117,33 @@ export function fermeture(de, vers, typeSeul) {
   return 'type';
 }
 
-/** Le module hors des zones `cibleRel` est-il ouvert à `importeurRel` (chemins relatifs à la racine) : un script
- *  d'outillage de la zone `de` (`outillage`) qui le déclare ? */
-export const horsZoneOuvert = (de, importeurRel, cibleRel) => estZone(de) && (COUCHES[de].outillage?.[importeurRel] ?? []).includes(cibleRel);
+/** La clé d'outillage `cle` couvre-t-elle le chemin `rel` (relatif à la racine) : finie par `/`, `rel` est sous ce
+ *  dossier ; sinon, `rel` est ce fichier. PURE. */
+export const couvre = (cle, rel) => (cle.endsWith('/') ? rel.startsWith(cle) : rel === cle);
 
-/** La zone `de` refuse-t-elle le paquet `paquet` : elle survit à la bascule, et c'est un paquet de l'hôte web ? */
-export const paquetFerme = (de, paquet) => estZone(de) && COUCHES[de].survit === true && PAQUETS_DE_L_HOTE_WEB.includes(paquet);
+/** Les valeurs déclarées pour `rel` dans la table d'outillage `table` (`outillage`, `paquetsDOutillage`) : celles de
+ *  chaque clé qui le couvre (`couvre`). */
+const declarePour = (table, rel) => Object.entries(table ?? {}).flatMap(([cle, valeurs]) => (couvre(cle, rel) ? valeurs : []));
 
-/** Le verdict d'un arc d'une SUITE de la zone `de` vers `cibleRel` (chemin relatif à la racine) : `null` s'il est
- *  ouvert, sinon ce qui le ferme — `'zone'`, une zone qui ne survit pas à la bascule ; `'hors-zone'`, un module hors
- *  des zones, ni sous un dossier de `tests.outillage` ni l'un de ses modules (`moduleDe`, extension de script ignorée)
- *  (l'appelant écarte une donnée, qui n'importe rien). Le sens des couches entre zones qui survivent est celui des
- *  murs du code, pas de ce verdict. Une zone qui ne survit pas, et un dossier de `src/` sans ligne (`murs/zone`), ne
- *  se jugent pas. PURE. */
-export function fermetureDUnTest(de, cibleRel) {
-  if (!estZone(de) || COUCHES[de].survit !== true) return null;
-  const vers = zoneDe(cibleRel);
-  if (estZone(vers)) return COUCHES[vers].survit === true ? null : 'zone';
-  if (vers !== null) return null;
-  return (COUCHES[de].tests?.outillage ?? []).some((d) => moduleDe(cibleRel) === moduleDe(d) || cibleRel.startsWith(`${d}/`)) ? null : 'hors-zone';
-}
+/** Le module hors des zones `cibleRel` est-il ouvert à `importeurRel` (chemins relatifs à la racine) : un outillage
+ *  de la zone `de` (`outillage`) qui le déclare ? */
+export const horsZoneOuvert = (de, importeurRel, cibleRel) => estZone(de) && declarePour(COUCHES[de].outillage, importeurRel).includes(cibleRel);
+
+/** Le paquet `paquet` est-il ouvert à `importeurRel` (chemin relatif à la racine) : un outillage de la zone `de`
+ *  (`paquetsDOutillage`) le contient et le déclare ? */
+const paquetDOutillage = (de, paquet, importeurRel) => importeurRel !== undefined && declarePour(COUCHES[de].paquetsDOutillage, importeurRel).includes(paquet);
+
+/** L'outillage de la zone `de` (clé de `paquetsDOutillage`) que l'arc de `importeurRel` vers `cibleRel` (chemins
+ *  relatifs à la racine) atteint du dehors : la cible est sous lui, l'importeur hors de lui ; `null` sinon. PURE. */
+export const outillageAtteint = (de, importeurRel, cibleRel) => (estZone(de)
+  ? Object.keys(COUCHES[de].paquetsDOutillage ?? {}).find((cle) => couvre(cle, cibleRel) && !couvre(cle, importeurRel)) ?? null
+  : null);
+
+/** La zone `de` refuse-t-elle le paquet `paquet` à `importeurRel` : elle survit à la bascule, c'est un paquet de l'hôte
+ *  web, et aucun outillage de la zone ne le lui ouvre (`paquetsDOutillage`) ? Sans importeur, le verdict de
+ *  la zone. */
+export const paquetFerme = (de, paquet, importeurRel) => estZone(de) && COUCHES[de].survit === true && PAQUETS_DE_L_HOTE_WEB.includes(paquet)
+  && !paquetDOutillage(de, paquet, importeurRel);
 
 /** Le module d'un chemin RELATIF à la racine, sans extension de script ni `index` final : `src/noyau/index.ts`,
  *  `src/noyau/index` et `src/noyau` désignent le même module. PURE. */

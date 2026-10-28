@@ -31,6 +31,7 @@ import { setSpritePicker } from './spritePicker';
 import { SENSIBILITE_DRAG_DEG_PX, getStageYaw, poserYaw, resetStageYaw } from '../../state/stageYaw';
 import { getStagePan, resetStagePan } from '../../state/stagePan';
 
+
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn() });
 // L'implémentation par défaut se REPOSE avant CHAQUE test : `restoreMocks: true` (vite.config.ts)
@@ -1245,8 +1246,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     });
     setSpritePicker(() => ({ kind: 'entity', id: 'table-1' }));
     // PRÉCONDITION : le halo appelle — il n'y a plus de place, mais la fouille n'est pas épuisée.
-    expect(interactionHalos(
-      [],
+    expect(interactionHalos([],
       [{ kind: 'prop', key: 'prop:table-1', cell: { x: 2, y: 3, z: 0 }, source: 'entity', entId: 'table-1', span: { w: 1, h: 1 },
         ref: 'table-ronde-4-tabourets', foot: { offX: 0, offY: 0, scale: 1 }, states: { visible: true } } satisfies BillboardPropEl],
       useGame.getState().scene!, {}, { survol: null, reveler: true },

@@ -99,6 +99,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/movement.ts', 'Mouvement, terrain'],
   ['src/engine/names.ts', 'Génération de noms'],
   ['src/engine/navalTraits.ts', 'Traits navals'],
+  ['src/engine/objetsDeTest.testkit.ts', 'Objets : harnais de test (objet et arme nés par la naissance canonique)'],
   ['src/engine/ops.ts', "GameOp : vocabulaire d'effet unifié"],
   ['src/engine/oups.ts', 'Maladresses, Colère des Dieux'],
   ['src/engine/overcast.ts', 'Incantation en surtension (Overcast)'],

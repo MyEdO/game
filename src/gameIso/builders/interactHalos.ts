@@ -25,6 +25,7 @@ import { RING_A_PX } from './dynamicMarks';
 import { ancrageDuDecor, ancrageDuJeton, type Ancrage } from './tokenChrome';
 import type { PropEl, TokenEl } from './types';
 
+
 /** GABARIT des halos en PIXELS de la projection iso (`geometry/iso`) — l'échelle de référence dont le
  *  monde volumique tire ses rayons monde (`haloRadiusK`). Le demi-axe ry y vaut la moitié de rx :
  *  c'est la projection LOSANGE d'un cercle monde (`RING_A_PX / RING_B_PX`,

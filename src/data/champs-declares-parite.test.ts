@@ -4,7 +4,7 @@ import { MORALE_FACTORS } from '../engine/crewMorale';
 import { MISCAST_TABLES } from '../engine/miscast';
 import { MOUNT_INCIDENTS } from '../engine/travelTables';
 import { activityById } from '../engine/activities';
-import { isUnarmedTrapping, isImprovisedTrapping } from '../engine/items';
+import { isUnarmed, itemFromTrappingById, customTrapping } from '../engine/items';
 import { CHAR_KEYS } from '../engine/types';
 import { ruleDef } from '../engine/policy';
 import { isTradeHubEntry, isEchangeable } from '../engine/cargo';
@@ -39,16 +39,16 @@ describe('#1318 E4/C4-δ2 — parité « le moteur ne nomme plus d’id, l’ent
 
   it('POSSESSIONS — `unarmed` : exactement les Mains nues, et le prédicat du moteur les lit', () => {
     expect(trappings.filter((t) => t.unarmed).map((t) => t.id)).toEqual(['mains-nues']);
-    expect(isUnarmedTrapping('mains-nues')).toBe(true);
-    expect(isUnarmedTrapping('epee')).toBe(false);
-    expect(isUnarmedTrapping(undefined)).toBe(false);
+    expect(isUnarmed(itemFromTrappingById('mains-nues')!)).toBe(true);
+    expect(isUnarmed(itemFromTrappingById('arme-simple')!)).toBe(false);
+    expect(isUnarmed(customTrapping('Sonde'))).toBe(false);
   });
 
   it('POSSESSIONS — `improvised` : exactement l’Arme improvisée, et le prédicat du moteur la lit', () => {
     expect(trappings.filter((t) => t.improvised).map((t) => t.id)).toEqual(['arme-improvisee']);
-    expect(isImprovisedTrapping('arme-improvisee')).toBe(true);
-    expect(isImprovisedTrapping('mains-nues')).toBe(false);
-    expect(isImprovisedTrapping(undefined)).toBe(false);
+    expect(itemFromTrappingById('arme-improvisee')?.improvised).toBe(true);
+    expect(itemFromTrappingById('mains-nues')?.improvised).toBeUndefined();
+    expect(customTrapping('Sonde').improvised).toBeUndefined();
   });
 
   it('COMPÉTENCES — `specsSource: weaponGroupsMelee` : exactement Corps à corps (conjuredWeapons, combat.parryPenalty)', () => {

@@ -24,12 +24,13 @@ import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';
 import { planById, resolveById, planOptsForRecord } from '../bodyPlan';
 import { VIEWS, type View } from '../facing';
+import { findTrappingById } from '../../../data';
 const SEED = 7;
 
 function renderSvg(id: string, view: View): string {
   const r = resolveById(id); // résolution data-driven par ID de record (espèce explicite, jamais un name-match)
   if (r.kind === 'rig') {
-    const p = entityRigProfile(id, SEED);
+    const p = entityRigProfile(findTrappingById, id, SEED);
     return p ? bonesToSvg(resolveRig(p.appearance, p.equip, {}, p.tenue, view, [])) : '∅rig';
   }
   const plan = planById(r.plan);

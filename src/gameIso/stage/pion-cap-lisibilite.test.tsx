@@ -14,6 +14,7 @@ import { combatantBodyTopFrac, combatantTokenScale } from '../sizeScale';
 import { discCapPath, discR, teamRingDecor } from '../builders/dynamicMarks';
 import { NEUTRAL_TINT } from '../teamColors';
 
+
 /**
  * LE CAP DU PION SE LIT — DANS LES HUIT DIRECTIONS, ET SANS ÉQUIPE (#1176, P3-5c).
  *

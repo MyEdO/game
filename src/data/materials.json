@@ -250,5 +250,38 @@
     "domain": "relief",
     "built": true,
     "face": "#565a61"
+  },
+  {
+    "id": "aethyrique",
+    "type": "materials",
+    "label": "Aethyrique",
+    "domain": "objet",
+    "palette": {
+      "metal": "#8fd4ff",
+      "cuir": "#34557f",
+      "accent": "#bfe6ff"
+    }
+  },
+  {
+    "id": "ardente-de-rhuin",
+    "type": "materials",
+    "label": "Ardente de Rhuin",
+    "domain": "objet",
+    "palette": {
+      "metal": "#ff8a3a",
+      "cuir": "#5a2410",
+      "accent": "#ffce4a"
+    }
+  },
+  {
+    "id": "shyish",
+    "type": "materials",
+    "label": "Shyish",
+    "domain": "objet",
+    "palette": {
+      "metal": "#b07fdc",
+      "cuir": "#2b1b3d",
+      "accent": "#d6acff"
+    }
   }
 ]

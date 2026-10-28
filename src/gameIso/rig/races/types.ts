@@ -2,7 +2,7 @@ import type { BoneId } from '../bones';
 import type { View } from '../facing';
 import type { PaletteDeclaree } from '../palette';
 import type { Palette } from '../../../engine/authoringAppearance';
-import type { GabaritDef } from '../gabarits/types';
+import type { GabaritId, SurchargeDeGabarit } from '../../../data/schemas/defs/gabarits';
 import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 
 /** Trait de corps d'une race, ancré à un os, éventuellement échelonné à la taille de l'os. */
@@ -22,8 +22,8 @@ export interface RaceFeature {
 export interface RaceDef {
   id: string;                   // 'humain', 'ogre', 'skaven'… (== sortie canonique de baseSpeciesOf)
   label: string;                // libellé d'affichage (« Haut-Elfe ») dont l'id est le slug
-  gabarit: string;              // id du gabarit par défaut
-  gabaritOverride?: Partial<Pick<GabaritDef, 'sl' | 'st' | 'legs' | 'arms' | 'head'>>;
+  gabarit: { id: GabaritId };   // gabarit par défaut
+  gabaritOverride?: SurchargeDeGabarit;
   palette?: PaletteDeclaree;      // peau/cheveux/yeux par défaut de l'espèce
   paletteF?: PaletteDeclaree;    // variante féminine (sinon palette sert aux deux sexes)
   head?: string;                // id de part de tête monstrueuse (HEADS), sinon visage humain cosmétique

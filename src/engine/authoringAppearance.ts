@@ -8,6 +8,7 @@
 
 import type { Sexe } from '../data/schemas/grammaire/valeurs';
 import type { Slot as CleDePalette } from '../data/palette.types';
+import type { GabaritId } from '../data/schemas/defs/gabarits';
 
 /** Vocabulaire (marque NOMINALE, #406) : id RIG (slug d'espèce `species.json`, id de créature/race/
  *  véhicule/affût-de-siège) — jamais un `SpeciesData.label` (« Humains (Reiklander) »). UNE seule
@@ -79,6 +80,8 @@ export interface EntityAppearance {
    *  (#774, #775) : le statblock de PA ne pilote pas l'apparence. Absent = les PA restent mécaniques
    *  PURS, aucun art d'armure synthétisé (`synthArmour`). */
   armurePortee?: boolean;
+  /** Apparence des objets sans instance : id de trapping → référence au catalogue des apparences. */
+  apparencesObjets?: Record<string, { id: string }>;
   /** Coiffure IMPOSÉE — id STABLE d'une coiffure (`hairstyles/defs`, jamais un index ni un libellé, #637).
    *  Vide = tirage sexe+ordre dérivé du seed. Hors du pool espèce×sexe : chevelure d'erreur visible au rendu. */
   hairstyle?: string;
@@ -93,7 +96,7 @@ export interface EntityAppearance {
 /** Descripteur d'apparence COSMÉTIQUE RÉSOLU (type pur ; l'engine ne le lit jamais). */
 export interface Appearance {
   species: RigSpeciesId;
-  gabarit?: string;                                 // id de carrure résolu (sinon dérivé de l'espèce)
+  gabarit?: GabaritId;                              // id de carrure résolu (sinon dérivé de l'espèce)
   sex: Sexe;
   build: number;                                   // 0..1
   legs?: number;                                   // multiplicateur de longueur de jambes (mutation Court sur pattes)

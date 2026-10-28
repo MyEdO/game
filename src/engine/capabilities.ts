@@ -5,7 +5,7 @@
  *
  *  - `itemCapability(it, cap)` — par-OBJET, NON gaté sur le port : « cet objet EST une ration / un
  *    grimoire / une cape ». Trouver une ration dans le sac pour la manger, ou lire un grimoire, ne
- *    demande pas de le « porter » au sens armure. Lu DEPUIS le catalogue par `trappingId` (comme `passive`).
+ *    demande pas de le « porter » au sens armure.
  *
  *  - `hasCapability(c, cap)` — agrégat par-PERSONNAGE, CROSS-SOURCE et GATÉ sur le port pour les OBJETS :
  *    « le personnage A cette capacité ». Un objet ne compte que PORTÉ (`it.equipped`) ou TENU (`c.weapons`
@@ -15,15 +15,14 @@
  *    intacts — `hasCapability` les RÉUTILISE, il ne les remplace pas.
  */
 import type { Combatant, ItemInstance } from './types';
-import { findTrappingById, type ItemCapabilities } from '../data';
+import type { ItemCapabilities } from '../data';
 import { traitCapability } from './traits/dispatch';
 import { resolveQualities } from './qualities/dispatch';
 import { hasActiveCapability } from './disease';
 
-/** Lecture par-OBJET (catalogue, NON gatée) : cet objet porte-t-il la capacité `cap` ? Lue PAR ID dans
- *  `TrappingData.capabilities` — un objet custom (sans `trappingId`) n'a aucune capacité. */
+/** #2967 */
 export function itemCapability(it: ItemInstance, cap: keyof ItemCapabilities): boolean {
-  return !!(it.trappingId && findTrappingById(it.trappingId)?.capabilities?.[cap]);
+  return it.capabilities?.[cap] === true;
 }
 
 /** Un objet est-il PORTÉ (equipped) ou TENU (arme du loadout actif `c.weapons`) ? Même garde que le

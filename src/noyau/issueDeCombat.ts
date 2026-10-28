@@ -77,7 +77,7 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
       if (leftover.length) jouerFlowEntier(applyEffects(get, set, leftover));
     },
     assignLootGear: (index, heroId) => assignGearAt(get, set, 'pendingLoot', index, heroId),
-    /** Attribue un objet d'équipement du butin de victoire au héros choisi (qualités/skin conservés). */
+    /** Attribue un objet d'équipement du butin de victoire au héros choisi (qualités/teinte conservées). */
     assignVictoryGear: (index, heroId) => assignGearAt(get, set, 'pendingVictory', index, heroId),
     harvestCreature: (creatureId) => harvestVictoryCreature(get, set, creatureId),
     victoryReady: () => {

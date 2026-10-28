@@ -4,10 +4,12 @@
 //    d'`import.meta.glob` compris) d'une zone vers une autre n'existe que si la table l'ouvre ; un arc
 //    de type seul passe là où la table n'ouvre que le type ; vers une zone dont la ligne déclare une porte
 //    (`portes`), l'arc ne vise que ce module, en valeur comme en type (`porteManquee`). Une zone qui survit à
-//    la bascule (`survit`) ne charge aucun paquet de l'hôte web (`paquetFerme`), même pour un type. Hors de
+//    la bascule (`survit`) ne charge aucun paquet de l'hôte web (`paquetFerme`), même pour un type, hors des paquets que sa
+//    ligne ouvre à un outillage (`paquetsDOutillage`) ; aucun module de la zone hors de cet outillage ne l'importe, en
+//    valeur comme en type (`outillageAtteint`). Hors de
 //    `racine`, un motif de glob dont le dossier de zone est un joker est refusé (`dossierJoker`). Une zone qui survit
 //    n'écrit aucun JSX et ne lit aucun module de CODE hors des zones (`scripts/`, `server/`… ; `estCode` : une donnée
-//    n'importe rien), sauf, pour un script d'outillage de la zone, les modules que sa ligne déclare (`outillage`,
+//    n'importe rien), sauf, pour un outillage de la zone, les modules que sa ligne déclare (`outillage`,
 //    `horsZoneOuvert`).
 //  - `murs/reexportation` (#2817 D2) : le fichier ne réexporte rien — ni `export … from` sous aucune forme
 //    d'arc, ni `export { … }` d'une liaison importée ; la config le borne.
@@ -16,11 +18,7 @@
 //  - `murs/quarantaine` : le fichier n'a aucun arc, sous aucune forme et en type compris, ni aucun motif
 //    d'`import.meta.glob`, dont la cible lexicale répond à un glob de `cibles` (`correspondGlob`, options :
 //    `{ cibles, message }`) ;
-//    la config nomme les fichiers en quarantaine ;
-//  - `murs/tests-survivants` (#3058) : une suite (`estSuiteVitest`) d'une zone qui survit (`survit`) n'a aucun arc, sous
-//    aucune forme et en type compris, motifs d'`import.meta.glob` compris, vers une zone qui ne survit pas, ni vers un
-//    module de code hors des zones et des chemins de `tests.outillage` (`fermetureDUnTest`), ni vers un paquet de l'hôte
-//    web (`paquetFerme`) ; la config exempte les fichiers du stock (`testsSurvivantsStock.mjs`).
+//    la config nomme les fichiers en quarantaine.
 // La zone d'une cible se lit sur son chemin NORMALISÉ sans disque (`cibleLexicale`, alias du dépôt et
 // chemin `/…` compris), par `zoneDe` (`couches.mjs`). Un motif `!…` n'est pas jugé. Hors de portée : un
 // réexport EN VALEUR (`export const x = importe`) et un `export default` d'une liaison importée.
@@ -29,7 +27,7 @@ import { extname, relative } from 'node:path';
 import picomatch from 'picomatch';
 import { cibleLexicale, posix } from './interneLint.mjs';
 import { nomDe, visiteurDArcs } from './arcsDImport.mjs';
-import { COUCHES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe, estZone, fermeture, fermetureDUnTest, horsZoneOuvert, ouvertes, paquetFerme, porteManquee, zoneDe } from './couches.mjs';
+import { COUCHES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe, estZone, fermeture, horsZoneOuvert, outillageAtteint, ouvertes, paquetFerme, porteManquee, zoneDe } from './couches.mjs';
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { estSuiteVitest } from './fichierVitest.mjs';
 import { correspondGlob } from './lister.mjs';
@@ -91,16 +89,21 @@ const purete = {
       const cible = cibleLexicale(importeur, spec, racine);
       if (cible === null) {
         const paquet = paquetDe(spec);
-        if (paquetFerme(de, paquet)) {
-          context.report({ node, message: `Paquet d’hôte (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne charge pas \`${paquet}\`, paquet de l’hôte web, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} le ferme (\`survit\`, \`PAQUETS_DE_L_HOTE_WEB\`) : laisser ce qui en dépend à l’hôte web.` });
+        if (paquetFerme(de, paquet, importeurRel)) {
+          context.report({ node, message: `Paquet d’hôte (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne charge pas \`${paquet}\`, paquet de l’hôte web, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} le ferme (\`survit\`, \`PAQUETS_DE_L_HOTE_WEB\`) : laisser ce qui en dépend à l’hôte web, ou, pour un outillage de la zone, le déclarer dans sa ligne (\`paquetsDOutillage\`).` });
         }
         return;
       }
       const cibleRel = posix(relative(racine, cible));
       const vers = zoneDe(cibleRel);
+      const atteint = outillageAtteint(de, importeurRel, cibleRel);
+      if (atteint !== null) {
+        context.report({ node, message: `Outillage atteint (#2972) : ${nommer(de)} n’importe rien de l’outillage \`${atteint}\` hors de lui, en valeur comme en type — il charge des paquets de l’hôte web (\`paquetsDOutillage\` de ${TABLE}), que le graphe de l’hôte ne doit pas atteindre : le charger par Node à l’exécution, ou déplacer la forme partagée hors de l’outillage.` });
+        return;
+      }
       if (!estZone(vers)) {
         if (survit && estCode(cibleRel) && !horsZoneOuvert(de, importeurRel, cibleRel)) {
-          context.report({ node, message: `Hors zone (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne lit aucun module hors des zones (\`${cibleRel}\`), ni à l’EXÉCUTION ni pour un TYPE — sa fermeture ne doit atteindre que des zones qui survivent : déplacer la forme partagée dans une zone qui survit, ou, pour un script d’outillage de la zone, la déclarer dans sa ligne de ${TABLE} (\`outillage\`).` });
+          context.report({ node, message: `Hors zone (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne lit aucun module hors des zones (\`${cibleRel}\`), ni à l’EXÉCUTION ni pour un TYPE — sa fermeture ne doit atteindre que des zones qui survivent : déplacer la forme partagée dans une zone qui survit, ou, pour un outillage de la zone, la déclarer dans sa ligne de ${TABLE} (\`outillage\`).` });
         }
         return;
       }
@@ -200,38 +203,4 @@ const quarantaine = {
   },
 };
 
-/** Ce qu'un message de `murs/tests-survivants` dit fermé : une zone (son nom), un module hors des zones (son chemin) ou un
- *  paquet — la `ref` d'une entrée de son stock (`testsSurvivantsStock.mjs`). */
-export const FERME_AU_TEST = /^Test survivant \(#3058\) : [^`]*`([^`]+)`/;
-
-const testsSurvivants = {
-  meta: { type: 'problem' },
-  create(context) {
-    const racine = context.cwd;
-    const importeur = posix(context.filename);
-    const importeurRel = posix(relative(racine, importeur));
-    const de = zoneDe(importeurRel);
-    if (!estZone(de) || COUCHES[de].survit !== true || !estSuiteVitest(importeurRel)) return {};
-    const remede = 'piloter le noyau par son banc (`src/noyau/banc.testkit.ts`)';
-    const juger = (node, spec) => {
-      const cible = cibleLexicale(importeur, spec, racine);
-      if (cible === null) {
-        const paquet = paquetDe(spec);
-        if (paquetFerme(de, paquet)) context.report({ node, message: `Test survivant (#3058) : une suite de ${nommer(de)} ne charge pas \`${paquet}\`, paquet de l’hôte web, ni à l’EXÉCUTION ni pour un TYPE — sa zone survit à la bascule : ${remede}.` });
-        return;
-      }
-      const cibleRel = posix(relative(racine, cible));
-      const verdict = fermetureDUnTest(de, cibleRel);
-      if (verdict === null || (verdict === 'hors-zone' && !estCode(cibleRel))) return;
-      const ferme = verdict === 'zone' ? zoneDe(cibleRel) : cibleRel;
-      const pourquoi = verdict === 'zone' ? 'une zone qui ne survit pas' : `un module hors des zones que ${TABLE} n’ouvre pas à ses tests (\`tests.outillage\`)`;
-      context.report({ node, message: `Test survivant (#3058) : une suite de ${nommer(de)} ne lit pas \`${ferme}\`, ${pourquoi}, ni à l’EXÉCUTION ni pour un TYPE — sa zone survit à la bascule : ${remede}.` });
-    };
-    return visiteurDArcs({
-      surArc: (node, spec) => juger(node, spec.replace(/\?.*$/s, '')),
-      surMotif: (node, motif) => { if (motif !== null && !motif.startsWith('!')) juger(node, motif); },
-    });
-  },
-};
-
-export default { zone, purete, reexportation, suiteJouee, quarantaine, testsSurvivants };
+export default { zone, purete, reexportation, suiteJouee, quarantaine };

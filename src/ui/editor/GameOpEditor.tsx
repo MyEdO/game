@@ -13,7 +13,7 @@ import { useId } from 'react';
 import { ProseField } from '../ProseField';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { tableTotale } from '../../lib/tableTotale';
-import { Formula, GameOp, type ResolveWindow } from '../../engine/ops';
+import { Formula, GameOp, type PerSL, type ResolveWindow } from '../../engine/ops';
 import type { JsonFormula } from '../../engine/miscast';
 import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
 import { noeudObjet, payloadDeFamille } from '../../data/schemas/validate';
@@ -27,10 +27,11 @@ import { OP_LABEL, opsMissingRefs } from './refsDOp';
 import { opSummary } from './interne/resumeDOp';
 import type { Condition } from '../../engine/flowCore';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
-import { etats, effectTables, mutationTables, lightTones, memoParVersion } from '../../data';
+import { etats, effectTables, mutationTables, lightTones, memoParVersion, type TrappingData } from '../../data';
 import { fallTables } from '../../data/shipCriticals';
 import { terrainsElectifs } from '../../noyau/monde/terrain';
 import { RefField } from '../compendium/refField/RefField';
+import { ObjetDonneField } from './ObjetDonneField';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTraits } from './refFormatLivre';
@@ -207,6 +208,8 @@ function enfantDeCle(noeud: unknown, cle: string): unknown {
   }
   return undefined;
 }
+
+const ObjetsDOpContext = createContext<readonly TrappingData[]>([]);
 
 /** NŒUD de l'op éditée : la VARIANTE de la liste d'ops (`GameOpEditor.noeud`) dont le champ `op`
  *  accepte cette op. Chaque `FormulaField` d'op y lit le nœud de SON champ (`champ`). */
@@ -544,7 +547,7 @@ const DEDICATED: ReadonlySet<GameOp['op']> = new Set([
   'wounds', 'heal', 'healCaster', 'condition', 'removeCondition', 'charMod', 'skillMod', 'moveMod', 'ap', 'testMod',
   'corruption', 'sinMod', 'corruptionExposure', 'gainResource', 'grantTrait', 'grantTalent', 'grantNaturalWeapon', 'narrative',
   'summon', 'polymorph', 'lifeSteal', 'push', 'teleport', 'chain', 'rollTable', 'rollMutation', 'armourPierce', 'light',
-  'fall', 'domeWard', 'offTerrainMod', 'moveScale', 'maxWeaponHands',
+  'fall', 'domeWard', 'offTerrainMod', 'moveScale', 'maxWeaponHands', 'giveTrapping',
 ]);
 
 /** Durée PROPRE en Rounds d'une op qui en porte une (`durationFromOp`, engine/ops) : une `Formula`,
@@ -557,6 +560,23 @@ function DureeRoundsField({ value, onChange }: { value: JsonFormula | undefined;
       <label className="dr"><input type="checkbox" checked={value != null}
         onChange={(e) => onChange(e.target.checked ? 1 : undefined)} /> dure N Rounds</label>
       {value != null && <FormulaField label="Durée (Rounds)" champ="durationRounds" value={value} min={0} onChange={onChange} />}
+    </>
+  );
+}
+
+/** Échelle « par +N DR » (`PerSL`, `perSLSchema`) : palier, quantité par palier, échelle sur l'échec.
+ *  SOURCE UNIQUE de la saisie de toute échelle `PerSL` d'une op ; `libelle` nomme la case qui la pose. */
+function PerSLField({ libelle, value, onChange }: { libelle: string; value: PerSL | undefined; onChange: (p: PerSL | undefined) => void }) {
+  return (
+    <>
+      <label className="dr"><input type="checkbox" checked={value != null} onChange={(e) => onChange(e.target.checked ? { every: 1, amount: 1 } : undefined)} /> {libelle}</label>
+      {value != null && (
+        <>
+          <label className="dr">tous les<NumberField variant="nu" label="Palier en Degrés de Réussite" title="DR" min={1} value={value.every} onChange={(every) => onChange({ ...value, every })} /> DR</label>
+          <label className="dr">+<NumberField variant="nu" label="quantité par palier" title="quantité par palier" value={value.amount} onChange={(amount) => onChange({ ...value, amount })} /></label>
+          <label className="dr"><input type="checkbox" checked={!!value.onFailure} onChange={(e) => onChange(sansClesVides({ ...value, onFailure: e.target.checked || undefined }))} /> sur l'échec (niveau d'échec)</label>
+        </>
+      )}
     </>
   );
 }
@@ -659,6 +679,7 @@ function TraitOctroyeFields({ trait, indiceRequis, indiceMin, onChange }: { trai
 }
 
 function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown }) {
+  const objets = useContext(ObjetsDOpContext);
   const identite = useId();
   const noeudDOp = useMemo(() => varianteDOp(noeudListe, op.op), [noeudListe, op.op]);
   const o = op as any;
@@ -679,6 +700,11 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         onChange={onChange}
       />
       <div className="tf-row">
+        {op.op === 'giveTrapping' && <>
+          <ObjetDonneField objets={objets} value={o} onChange={onChange} />
+          <NumberField label="Nombre d’objets" vide value={o.count} onChange={(count) => upd({ count })} />
+          <PerSLField libelle="objets en plus par DR" value={o.perSL} onChange={(perSL) => upd({ perSL })} />
+        </>}
         {(op.op === 'wounds' || op.op === 'heal' || op.op === 'healCaster') && (
           <FormulaField label="Quantité" champ="amount" value={o.amount} min={0} onChange={(amount) => upd({ amount })} />
         )}
@@ -779,14 +805,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
             {op.op === 'condition' && (
               <>
                 <label className="dr"><input type="checkbox" checked={!!o.perRound} onChange={(e) => upd({ perRound: e.target.checked || undefined })} /> chaque Round</label>
-                <label className="dr"><input type="checkbox" checked={o.valuePerSL != null} onChange={(e) => upd({ valuePerSL: e.target.checked ? { every: 1, amount: 1 } : undefined })} /> par DR</label>
-                {o.valuePerSL != null && (
-                  <>
-                    <label className="dr">tous les<NumberField variant="nu" label="Palier en Degrés de Réussite" title="DR" min={1} value={o.valuePerSL.every ?? 1} onChange={(every) => upd({ valuePerSL: { ...o.valuePerSL, every } })} /> DR</label>
-                    <label className="dr">+<NumberField variant="nu" label="quantité par palier" title="quantité par palier" value={o.valuePerSL.amount ?? 1} onChange={(amount) => upd({ valuePerSL: { ...o.valuePerSL, amount } })} /></label>
-                    <label className="dr"><input type="checkbox" checked={!!o.valuePerSL.onFailure} onChange={(e) => upd({ valuePerSL: sansClesVides({ ...o.valuePerSL, onFailure: e.target.checked || undefined }) })} /> sur l'échec (niveau d'échec)</label>
-                  </>
-                )}
+                <PerSLField libelle="par DR" value={o.valuePerSL} onChange={(valuePerSL) => upd({ valuePerSL })} />
                 {/* Se libérer (LDB 16 l.66 / Filets, Zoo Impérial p.29) — escapeStrength (Test opposé) et
                     escapeThreshold (Test à seuil) sont MUTUELLEMENT EXCLUSIFS (cf. resolveRecoverTest). */}
                 <label className="dr"><input type="checkbox" checked={o.escapeStrength != null} onChange={(e) => upd({ escapeStrength: e.target.checked ? { charOf: 'force' } : undefined, escapeThreshold: e.target.checked ? undefined : o.escapeThreshold })} /> Force d'évasion (opposée)</label>
@@ -1091,7 +1110,8 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
 
 /** `noeud` : schéma zod de la liste d'ops éditée ; chaque `Formula` d'op y lit le dialecte du nœud de
  *  SON champ, dans la variante de son op (`varianteDOp`). Absent = `gameOpSchema`, le vocabulaire du moteur. */
-export function GameOpEditor({ ops, onChange, noeud = gameOpSchema }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown }) {
+export function GameOpEditor({ ops, onChange, noeud = gameOpSchema, objets }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown; objets?: readonly TrappingData[] }) {
+  const herites = useContext(ObjetsDOpContext);
   const swap = (i: number, j: number) => {
     if (j < 0 || j >= ops.length) return;
     const next = [...ops];
@@ -1100,7 +1120,7 @@ export function GameOpEditor({ ops, onChange, noeud = gameOpSchema }: { ops: Gam
   };
   const cles = useClesDeRangees(ops);
   return (
-    <div className="eff-list">
+    <ObjetsDOpContext.Provider value={objets ?? herites}><div className="eff-list">
       {ops.map((o, i) => (
         <details className="eff-row" key={cles[i]}>
           <summary>
@@ -1119,6 +1139,6 @@ export function GameOpEditor({ ops, onChange, noeud = gameOpSchema }: { ops: Gam
         label="+ Op mécanique"
         groups={pickable(OP_MENU_GROUPS, (key) => onChange([...ops, newOp(key)]))}
       />
-    </div>
+    </div></ObjetsDOpContext.Provider>
   );
 }

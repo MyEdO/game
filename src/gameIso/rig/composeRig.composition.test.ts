@@ -9,12 +9,12 @@ import { resolveRig, rigComposition, poseRig } from './composeRig';
 import { bonesToSvg } from './renderBones';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { asRigSpeciesId } from './appearance';
-import { equipDe } from './parts/equipment';
-import type { EquipCtx } from './parts/equipment';
+import { equipDe, type EquipCtx } from '../../noyau/equipementDessine';
 import type { RigOverlay } from './bones';
 import type { View } from './facing';
 import type { Pose } from './poses';
 import type { Sexe } from '../../data/schemas/grammaire/valeurs';
+
 
 const sword = { label: 'Épée', type: 'melee' as const, damage: { plusBF: true, flat: 4 }, qualities: [] };
 const equipNu: EquipCtx = equipDe([], []);

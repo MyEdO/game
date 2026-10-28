@@ -5,6 +5,7 @@
  * parent, comme `Editor`) pour que les éditions successives s'enchaînent sur le narratif à jour.
  */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { choisirMediaSelect } from '../MediaSelect.testkit';
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
@@ -71,6 +72,19 @@ function setValue(el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 }
 
 describe('NarratifEditor — onglet PNJ éditable (#671 lot B)', () => {
+  it('édite les apparences des armes du profil PNJ puis retire le défaut', () => {
+    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'garde', base: 'humain', profil: { label: 'Garde', traits: [{ id: 'arme', arg: 'arme-simple', value: 7 }] } }] });
+    click(btn('PNJ'));
+    click(btn('Garde'));
+    const onglet = [...container.querySelectorAll<HTMLElement>('[role="tab"]')].find((e) => e.textContent === 'Apparence')!;
+    click(onglet);
+    const choisir = (label: string) => choisirMediaSelect(container, 'Apparence — Arme simple', label);
+    choisir('Hache naine');
+    expect(last.presetsPnj[0].apparence?.apparencesObjets).toEqual({ 'arme-simple': { id: 'hache_naine' } });
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+    choisir('Épée');
+    expect(last.presetsPnj[0].apparence?.apparencesObjets).toBeUndefined();
+  });
   it('ajoute un preset via onChange (base valide par défaut)', () => {
     mount();
     click(btn('PNJ'));            // onglet

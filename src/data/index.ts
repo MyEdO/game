@@ -8,7 +8,7 @@ import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
-import { libelleDeLElement, lireCleDEspace, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
+import { libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
 import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_LA_RACINE } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
@@ -51,13 +51,14 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals
 import structureCriticalsRawJson from './structure-criticals.json';
 import artilleryMisfireRawJson from './artillery-misfire.json';
 import miscastRawJson from './miscast.json';
-import trappingsJson from './trappings.json';
+import { trappings, findTrappingById } from './apparencesObjets';
+export { trappings, apparences, findTrappingById, findApparenceById } from './apparencesObjets';
 import vehiclesJson from './vehicles.json';
 import merchantsJson from './merchants.json';
 import structuresJson from './structures.json';
 import structureAppearanceJson from './structureAppearance.json';
 import materialsJson from './materials.json';
-import type { MaterialDomain, MaterialEntry, MatiereDe, PropMaterialData, RoofMaterialDef } from './materials.types';
+import type { MaterialDomain, MaterialEntry, MatiereDe, PropMaterialData, RoofMaterialDef, TeinteDObjet } from './materials.types';
 import terrainsJson from './terrains.json';
 import type { TerrainDef } from './terrains.types';
 import buildingsJson from './buildings.json';
@@ -104,6 +105,8 @@ import locationsJson from './locations.json';
 import booksJson from './books.json';
 import namesJson from './names.json';
 import raceAppearanceJson from './raceAppearance.json';
+import gabaritsJson from './gabarits.json';
+import type { GabaritDef, GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 import godsJson from './gods.json';
 import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
@@ -1127,6 +1130,8 @@ export interface TalentData {
  *  par le nom FR de l'objet. Lues par `engine/capabilities` (`itemCapability` par-objet, `hasCapability`
  *  agrégat par-personnage cross-source). */
 export interface ItemCapabilities {
+  /** LDB 62 l.58 ; AA 08 l.212 */
+  improvisedWithoutCharge?: boolean;
   /** Gantelet verrouillé (AA folio 94) : le porteur NE LÂCHE PAS l'arme tenue dans la main gantée la 1re
    *  fois que les circonstances l'y forceraient (désarmement / Piège-lame) — lu par `applyBladeTrap`
    *  (GATÉ sur le port). */
@@ -1226,24 +1231,16 @@ export interface TrappingData {
    *  en donnée (2, belier-ade2, #210) reste éditable au Compendium plutôt que codée en dur ailleurs. Absent
    *  = empreinte 1 (affûts compacts type baliste/canon). */
   siegeFootprint?: number;
-  /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art d'arme/bouclier (rig),
-   *  ≠ libellé. Posé à la migration par jointure `norm(label)` → forme. Absent pour munitions/armes de
-   *  siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance : `formeResolue` (`engine/items`) le
-   *  résout par `trappingId` (#2113). */
-  shape?: string;
-  /** Cette entrée EST l'arme « Mains nues » du catalogue (`LDB 62 l.28`) : marque STABLE et multilangue,
-   *  SEULE lecture de `isUnarmed`/`isUnarmedTrapping` (`engine/items`) — les poings ne comptent pas comme
-   *  arme tenue (`EquipmentPanel`, choix d'attaque/parade) et ne sont pas invocables (`conjuredWeapons`). */
+  /** #2967 */
+  shape?: { id: string };
+  /** LDB 62 l.28 */
   unarmed?: true;
-  /** Cette entrée EST l'« Arme improvisée » du catalogue (`LDB 62 l.31`), lue par `isImprovisedTrapping`
-   *  (`engine/items`). À NE PAS confondre avec `weaponDamage.isImprovised`, qui décrit une arme RÉDUITE à
-   *  l'état improvisé par l'usure (`LDB 62 l.135`). */
+  /** LDB 62 l.31 ; LDB 62 l.135 */
   improvised?: true;
-  /** Cette entrée EST un bouclier (LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911), lue par `isShieldTrapping`
-   *  (`engine/items`). ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
+  /** LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911 ; AA 08 l.290 ; ADE II 02 l.613 */
   shield?: true;
-  /** Formes choisibles (slugs `WeaponDef.slug`) d'une arme ABSTRAITE (« Arme simple » → épée/hache/
-   *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.formeChoisie` ;
+  /** Formes choisibles (racines de `apparences.json`) d'une arme ABSTRAITE (« Arme simple » → épée/hache/
+   *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.apparence` ;
    *  défaut = `shape` du trapping. Absent pour une arme à forme unique. */
   formChoices?: string[];
   /** Arme INHABITUELLE (ACE 12 l.17 « Entraînement avec une arme inhabituelle ») : exige la
@@ -2313,15 +2310,15 @@ export interface BookData {
 }
 /**
  * Apparence de base d'une espèce de rig (Humain, Ogre, Skaven…) — éditable dans le Compendium.
- * PAR RÉFÉRENCE : `featureKeys` (catalogue d'éléments, résolus par `feat()`), ids de gabarit/tête/
- * jambes, libellé de tenue, couleurs. Les SVG/gabarits restent des registres CODE (résolus par le
- * rig). Le rig (`raceById`) lit ce dataset comme SOURCE et le résout en `RaceDef`.
+ * PAR RÉFÉRENCE : `featureKeys` (catalogue d'éléments, résolus par `feat()`), id de gabarit
+ * (`gabarits.json`), ids de tête/jambes, libellé de tenue, couleurs. Les SVG restent des registres CODE
+ * (résolus par le rig). Le rig (`raceById`) lit ce dataset comme SOURCE et le résout en `RaceDef`.
  */
 export interface RaceAppearanceData {
   id: string;
   label: string;
-  gabarit: string;
-  gabaritOverride?: Record<string, number>;
+  gabarit: { id: GabaritId };
+  gabaritOverride?: SurchargeDeGabarit;
   palette?: import('./palette.types').PaletteDEspece;
   paletteF?: import('./palette.types').PaletteDEspece;
   head?: string;
@@ -2494,7 +2491,7 @@ export function findMutationById(id: string | null | undefined): MutationData | 
 export function mutationLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? (mutationParId(id)?.label ?? id) : '');
 }
-export const trappings = trappingsJson as TrappingData[];
+
 /** Engins de siège POSABLES = trappings portant un art d'affût (`siegeRig`). FOYER UNIQUE du filtre :
  *  l'invariant « posable ⇔ l'engin a un art d'affût, et c'est ce rig qui rend l'affût inerte en
  *  éditeur comme en combat » ne vit QU'ICI — partagé par l'outil emplacement de l'éditeur
@@ -2860,6 +2857,8 @@ export const refEstVolumique = (ref: string | undefined): boolean => ref !== und
  *  jamais un index cuit au chargement. Unicité des ids sur tout le périmètre des matières :
  *  `data/materials-identite.test.ts` (#1686). */
 export const findPropMaterialById = (id: string): PropMaterialData | undefined => matieresDe('prop').find((m) => m.id === id);
+/** Teinte d’objet par id — lecture vivante du catalogue, absence si l’id est inconnu. */
+export const findTeinteById = (id: string | undefined): TeinteDObjet | undefined => matieresDe('objet').find((m) => m.id === id);
 /** Domaines de magie app-owned (LDB 48) — ENTITÉ éditable au Codex (attributs en données : onHit,
  *  projectile, post-incantation). Le RUNTIME résout par `id` STABLE (= `SpellData.domainId`, cf.
  *  `findDomainById`). */
@@ -2942,6 +2941,10 @@ export const stars = starsJson as StarData[];
 export const celestialHouses = astrologyJson as CelestialHouseData[];
 /** Apparences d'espèce de rig (app-owned, éditable) — SOURCE lue+résolue par `raceById` (rig). */
 export const raceAppearance = raceAppearanceJson as RaceAppearanceData[];
+export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
+/** Carrures du rig (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */
+export const gabarits = gabaritsJson as GabaritDef[];
+export const findGabaritById = indexParId('gabarits', gabarits);
 export const locations = locationsJson as LocationData[];
 const lieuParId = indexParId('locations', locations);
 /** Résout un Lieu par son `id` STABLE (cible de `LocationData.parent`). Le libellé ne sert qu'à l'affichage. */
@@ -3342,11 +3345,6 @@ export function findStarById(id: string | null | undefined): StarData | undefine
   return signeAstralParId(id);
 }
 
-const possessionParId = indexParId('trappings', trappings);
-/** Résout une Possession par son `id` STABLE. */
-export function findTrappingById(id: string): TrappingData | undefined {
-  return possessionParId(id);
-}
 /** Possession résolue par id STABLE parmi des `objets` d'abord (objets d'une campagne, #767), puis au
  *  catalogue (`findTrappingById`) — SEULE définition de la chaîne, lue par le jeu (`objetDuNarratif`,
  *  `noyau/monde/resolveursDuNarratif.ts`) et par l'éditeur (objets du projet édité, `ui/editor/EffectList.tsx`). */
@@ -3516,15 +3514,18 @@ function libelleDeSource(decl: SourceDeSpecs): (id: string) => string {
 }
 /** UNE source de spéc, lue sur sa déclaration (`SOURCES_DE_SPECS`) : `pool()` = ids CHOISISSABLES par un
  *  joueur ; `resolves()` = l'id appartient-il à l'UNIVERS de la source (⊇ pool) ; `label()` = affichage.
+ *  `admetEntree()` juge une entrée résolue par le filtre déclaré de l'univers, campagne comprise.
  *  Le pool borne le CHOIX joueur ; l'univers borne la VALIDITÉ des données (le Triton, MDG 16 l.283). */
 export const SPEC_SOURCES = tableTotale(
   Object.keys(SOURCES_DE_SPECS) as SpecsSource[],
-  (src): { pool(): string[]; label(id: string): string; resolves(id: string): boolean } => {
+  (src): { pool(): string[]; label(id: string): string; resolves(id: string): boolean; admetEntree(entree: { readonly id: string }): boolean } => {
     const decl: SourceDeSpecs = SOURCES_DE_SPECS[src];
+    const { filtre } = lireCleDEspace(decl.univers);
     return {
       pool: () => [...(lireLEspace(decl.pool ?? decl.univers) ?? [])],
       label: libelleDeSource(decl),
       resolves: (id: string) => lireLEspace(decl.univers)?.has(id) ?? false,
+      admetEntree: (entree) => filtre ? retenuParFiltre(filtre, entree as Readonly<Record<string, unknown>>) : (lireLEspace(decl.univers)?.has(entree.id) ?? false),
     };
   },
 );

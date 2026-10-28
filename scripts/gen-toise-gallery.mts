@@ -15,6 +15,7 @@ import { planById, resolveById, resolveSpecies, planOptsForRecord, type BodyPlan
 import { sizeTokenScale } from '../src/gameIso/sizeScale';
 import { SIZE_LABEL, SIZE_ORDER, type SizeCategory } from '../src/engine/size';
 import { creatures, tailleDuProfil } from '../src/data/index';
+import { findTrappingById } from '../src/data';
 
 /** Os STATIQUES (repos) — bipède de face (rig), gabarit en profil. Résolution EXPLICITE :
  *  `r` (espèce/plan déjà résolus), `rigId` = id de record OU espèce pour le profil bipède,
@@ -24,7 +25,7 @@ function restBones(r: RenderResolution, rigId: string, rigSpecies?: string): Res
     const plan = planById(r.plan as BodyPlanId);
     return plan.resolve(r.species, 'profile', plan.restPose(), planOptsForRecord(rigId));
   }
-  const prof = entityRigProfile(rigId, 7, rigSpecies ? { species: rigSpecies } : undefined);
+  const prof = entityRigProfile(findTrappingById, rigId, 7, rigSpecies ? { species: rigSpecies } : undefined);
   if (!prof) return [];
   return resolveRig(prof.appearance, prof.equip, {}, prof.tenue, 'front', []);
 }

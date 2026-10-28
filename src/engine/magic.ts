@@ -42,7 +42,7 @@ import type { CastingNumberMod, CastingNumberSubject } from './castingNumber';
 import { armourMaterialOf } from './armourBypass';
 import { MINUTES_PER_DAY, minutesUntilNext, dawnMinute } from './clock';
 import { ALL_MAGIC, Combatant, HitLocation, Difficulty, CharKey, CastPenalty, type ItemInstance } from './types';
-import { findTraitById, findTalentById, findDomainById, findGodById, findTrappingById, type TestMatch } from '../data';
+import { findTraitById, findTalentById, findDomainById, findGodById, type TestMatch } from '../data';
 import { effectiveTalents, talentPassiveMods } from './talentEffects';
 import { effectiveEntry } from './variants';
 import { ritualReduction, type RitualReduced } from './grimoire';
@@ -1200,28 +1200,28 @@ export function malepierreCharge(chargesRemaining: number, dr: number, ratePerDR
 }
 
 /** Objet PORTÉ par `c` apportant une réserve de NI ENCORE DISPONIBLE — reconnu par sa DONNÉE
- *  (réserve déjà entamée `ItemInstance.niReserve`, ou catalogue `TrappingData.niPerGram` encore
- *  intact), JAMAIS par id. Une pierre à réserve ÉPUISÉE (`niReserve <= 0`) est IGNORÉE ici : elle ne
+ *  (réserve déjà entamée `ItemInstance.niReserve`, ou réserve initiale `ItemInstance.niPerGram` encore
+ *  intacte), JAMAIS par id. Une pierre à réserve ÉPUISÉE (`niReserve <= 0`) est IGNORÉE ici : elle ne
  *  masque plus indéfiniment une seconde pierre intacte portée par le même combattant. `undefined` =
  *  aucun objet de ce type porté, ou tous épuisés. */
 export function malepierreItemOf(c: Combatant): ItemInstance | undefined {
   return (c.items ?? []).find((it) => {
     if (it.destroyed) return false;
-    const reserve = it.niReserve ?? findTrappingById(it.trappingId ?? '')?.niPerGram;
+    const reserve = it.niReserve ?? it.niPerGram;
     return reserve != null && reserve > 0;
   });
 }
 
 /** Réserve de NI ACTUELLE du premier objet malepierre encore disponible porté par `c` (0 = aucun
  *  objet porté, ou tous épuisés). Option `magic-vdm-incantation` ACTIVE : réserve comptée en NI
- *  (`ItemInstance.niReserve`, à défaut le catalogue `TrappingData.niPerGram` — `VDM 02 l.165`,
+ *  (`ItemInstance.niReserve`, à défaut sa réserve initiale `ItemInstance.niPerGram` — `VDM 02 l.165`,
  *  `1 g = 20 NI`). Option INACTIVE (Livre de base seul, `LDB 46 l.173`) : `Infinity` tant qu'un
  *  objet est porté. Lue par `resolveCasting`/`resolveFocus` (point de lecture UNIQUE du bonus). */
 export function malepierreReserveOf(c: Combatant): number {
   const it = malepierreItemOf(c);
   if (!it) return 0;
   if (rule('magic-vdm-incantation') !== true) return Infinity;
-  return it.niReserve ?? findTrappingById(it.trappingId ?? '')?.niPerGram ?? 0;
+  return it.niReserve ?? it.niPerGram ?? 0;
 }
 
 /** Décrémente la réserve de NI de l'objet malepierre porté par `c`, du DR consommé CE Test/Round
@@ -1234,7 +1234,6 @@ export function consumeMalepierre(c: Combatant, drConsumed: number | undefined):
   if (rule('magic-vdm-incantation') !== true) return;
   const it = malepierreItemOf(c);
   if (!it) return;
-  const trap = findTrappingById(it.trappingId ?? '');
-  const before = it.niReserve ?? trap?.niPerGram ?? 0;
-  it.niReserve = malepierreCharge(before, drConsumed, trap?.niConsumedPerDR ?? 1);
+  const before = it.niReserve ?? it.niPerGram ?? 0;
+  it.niReserve = malepierreCharge(before, drConsumed, it.niConsumedPerDR ?? 1);
 }

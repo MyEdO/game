@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { CODEX, depuisEnveloppe } from './registry';
 import { books } from '../../data';
+import { EXEMPTS } from '../../data/schemas/exposition-derivee';
 
 /**
  * Gel de FORME du Codex + cliquet de PROVENANCE (#1467 L1b V-CODEX).
@@ -25,7 +26,8 @@ import { books } from '../../data';
  *     « Source » : le canal en double se lit à l'écran, aucune mesure de forme ne l'attrape.
  *     Son second volet gèle la VALEUR : tout `source.book` projeté est une ABRÉVIATION du
  *     catalogue `books`, jamais l'id brut qu'un site oubliant `src()` laisserait passer.
- *  5. PROVENANCE — pour chaque entrée de `src/data/*.json` portant `source` ou `desc`, l'item Codex
+ *  5. PROVENANCE — pour chaque entrée de `src/data/*.json` portant `source` ou `desc`, hors vocabulaire
+ *     que son def déclare interne à l'application (`EXEMPTS`, `exposition-derivee.ts`), l'item Codex
  *     de MÊME id doit les porter aussi. Le mapping dataset→catégorie est DÉDUIT (inclusion des ids),
  *     jamais une table à maintenir ; son ANGLE MORT (les tableaux qu'aucune catégorie ne couvre
  *     ENTIÈREMENT) est lui-même gelé, cf. `PARTIELS`/`ORPHELINS`.
@@ -336,26 +338,14 @@ const MUETS: Record<string, number> = {};
  *  Ce qui est gelé est le TABLEAU (fichier + rang), jamais son nombre d'entrées : un dataset
  *  app-owned croît légitimement, et un cardinal gelé ferait payer un recalage à chaque ajout (#1812). */
 const PARTIELS: string[] = [
-  "actions.json#0",
-  "breath-types.json#0",
-  "damage-types.json#0",
   "land-cargo.json#0",
-  "lightLevels.json#0",
-  "lightTones.json#0",
-  "merchantFamilies.json#0",
   "merchants.json#0",
-  // Le catalogue de décor est app-owned : aucune page ne le source — MÊME angle mort source/desc que
-  // les autres tableaux ci-dessus.
-  "props.json#0",
-  "qualitySubtypes.json#0",
   "river-navigation.json#0",
   "sea-cargo.json#0",
   "sea-perils.json#0",
   "sea-perils.json#1",
   "sea-perils.json#2",
   "sea-weather.json#3",
-  "structureAppearance.json#0",
-  "systemes.manifest.json#0",
   "water-exposure.json#0",
 ];
 
@@ -367,15 +357,7 @@ const ORPHELINS: string[] = [
   // ce que le Codex expose, ce sont leurs RANGÉES, jamais le document porteur. Un document sans item
   // Codex propre n'est donc pas un manque, c'est la charge qui compte.
   "criticals.json#0",
-  "donnees.manifest.json#0",
-  "lieux-services.json#0",
   "miscast.json#0",
-  // Manifeste d'OUTILLAGE : aucune catégorie Codex ne l'expose — une primitive neuve y entre sans
-  // toucher ce cliquet (#1812).
-  "primitives.manifest.json#0",
-  "qualityTypes.json#0",
-  // Entrées de manifeste sans catégorie Codex (même angle mort : dette de règle, jamais une fiche).
-  "raw.manifest.json#0",
   "reseau-routier.json#0",
   "river-navigation.json#1",
   "sea-cargo.json#1",
@@ -449,12 +431,17 @@ describe('Codex — défaut d’enveloppe (#1467 L1b)', () => {
     expect(bruts).toEqual([]);
   });
 
+  it('le vocabulaire interne déclaré au def ne constitue pas une dette de provenance', () => {
+    expect([...PARTIELS, ...ORPHELINS].filter((cle) => EXEMPTS[cle.split('#')[0]]?.kind === 'vocabulaire-app-interne')).toEqual([]);
+  });
+
   it('PROVENANCE : un item dont la donnée porte source/desc les porte au Codex — et l’angle mort du mapping est gelé', () => {
     const muets: Record<string, number> = {};
     const apparies: string[] = [];
     const partiels: string[] = [];
     const orphelins: string[] = [];
     for (const f of DATASETS) {
+      if (EXEMPTS[f]?.kind === 'vocabulaire-app-interne') continue;
       for (const [n, arr] of tableauxIdentifies(JSON.parse(readFileSync(join(DATA_DIR, f), 'utf8'))).entries()) {
         const ids = arr.map((e) => e.id as string);
         let etat: 'total' | 'partiel' | 'orphelin' = 'orphelin';

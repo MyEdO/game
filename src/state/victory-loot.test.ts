@@ -21,7 +21,7 @@ describe('dismissVictory — fermeture de l’écran de victoire', () => {
 });
 
 /**
- * Écran de victoire — ÉQUIPEMENT (giveTrapping) : attribuable au héros choisi, qualités/skin conservés
+ * Écran de victoire — ÉQUIPEMENT (giveTrapping) : attribuable au héros choisi, qualités/teinte conservées
  * (ne part plus d'office au 1er héros) ; non attribué → 1er héros à la fermeture (rien de perdu).
  */
 describe('assignVictoryGear — équipement attribuable, qualités conservées', () => {

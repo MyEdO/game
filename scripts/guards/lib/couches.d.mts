@@ -10,11 +10,11 @@ export interface Couche {
   /** La zone survit à la bascule : aucun paquet de l'hôte web (`PAQUETS_DE_L_HOTE_WEB`), même pour un type, aucun JSX,
    *  aucun module hors des zones. */
   readonly survit?: true;
-  /** Pour un script d'outillage de la zone, les seuls modules hors des zones qu'il lit (chemins relatifs à la racine). */
+  /** Pour un outillage de la zone (clé : `couvre`), les seuls modules hors des zones qu'il lit (chemins relatifs à la racine). */
   readonly outillage?: Readonly<Record<string, readonly string[]>>;
-  /** Pour une zone qui survit, les chemins hors des zones (dossier ou module d'outil Node) dont ses suites lisent le
-   *  code (#3058). */
-  readonly tests?: { readonly outillage?: readonly string[] };
+  /** Pour un outillage de la zone (clé : `couvre`), les seuls paquets de l'hôte web que ses modules chargent ; aucun module de
+   *  la zone hors de lui ne l'importe. */
+  readonly paquetsDOutillage?: Readonly<Record<string, readonly string[]>>;
 }
 
 /** La surface du noyau : porte de `noyau`, seul module de `src/state/` et `src/noyau/` qui réexporte. */
@@ -26,11 +26,19 @@ export const ZONES_SANS_REEXPORTATION: readonly string[];
 /** Les paquets de l'hôte web : aucune zone qui survit à la bascule ne les charge. */
 export const PAQUETS_DE_L_HOTE_WEB: readonly string[];
 
-/** Le module hors des zones `cibleRel` est-il ouvert à `importeurRel` : un script d'outillage de la zone `de` qui le déclare ? */
+/** La clé d'outillage `cle` couvre-t-elle `rel` : finie par `/`, `rel` est sous ce dossier ; sinon, `rel` est ce fichier. */
+export function couvre(cle: string, rel: string): boolean;
+
+/** Le module hors des zones `cibleRel` est-il ouvert à `importeurRel` : un outillage de la zone `de` qui le déclare ? */
 export function horsZoneOuvert(de: string, importeurRel: string, cibleRel: string): boolean;
 
-/** La zone `de` refuse-t-elle le paquet `paquet` : elle survit à la bascule, et c'est un paquet de l'hôte web ? */
-export function paquetFerme(de: string, paquet: string | null): boolean;
+/** L'outillage de la zone `de` (clé de `paquetsDOutillage`) que l'arc de `importeurRel` vers `cibleRel` atteint du dehors,
+ *  `null` sinon. */
+export function outillageAtteint(de: string, importeurRel: string, cibleRel: string): string | null;
+
+/** La zone `de` refuse-t-elle le paquet `paquet` à `importeurRel` : elle survit à la bascule, c'est un paquet de l'hôte web,
+ *  et aucun outillage de la zone ne le lui ouvre ? Sans importeur, le verdict de la zone. */
+export function paquetFerme(de: string, paquet: string | null, importeurRel?: string): boolean;
 
 /** Les zones du dépôt et leurs sens d'import (#2882, #2928). */
 export const COUCHES: Readonly<Record<string, Couche>>;
@@ -51,10 +59,6 @@ export function zoneDe(rel: string): string | null;
 /** Le verdict d'un arc de la zone `de` vers la zone `vers` : `null` s'il est ouvert, sinon ce qui le
  *  ferme — `'execution'` (un type passerait) ou `'type'` (fermé même pour un type). */
 export function fermeture(de: string, vers: string, typeSeul: boolean): null | 'execution' | 'type';
-
-/** Le verdict d'un arc d'une suite de la zone `de` vers `cibleRel` : `null` s'il est ouvert, `'zone'` vers une zone qui
- *  ne survit pas, `'hors-zone'` vers un module hors des zones et de `tests.outillage`. */
-export function fermetureDUnTest(de: string, cibleRel: string): null | 'zone' | 'hors-zone';
 
 /** `z` est-il une zone de la table ? Clé PROPRE seulement. */
 export function estZone(z: unknown): z is string;
