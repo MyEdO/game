@@ -297,7 +297,7 @@ export function rendreLesOffres(etat: Jeu, offres: readonly Offre[], options: { 
   if (!choisies.length) {
     const barre = etatDeLaBarre(etat);
     const pertinence = options.id && barre.forme === 'ouverte' && ACTIONS.some((a) => a.id === options.id)
-      ? actionGate(options.id, { active: barre.active, battle: barre.battle, netMode: etat.net.mode })
+      ? actionGate(options.id, { active: barre.active, battle: barre.battle, netMode: etat.net.mode, gameTime: etat.gameTime })
       : undefined;
     const raison = pertinence && !pertinence.ok ? ` : ${pertinence.reason}` : '';
     return [`aucune offre${options.id ? ` ${options.id}` : options.toutes ? '' : ` ouverte (${appelEcrit('lire', { quoi: 'offres', toutes: true })})`}${raison}`];

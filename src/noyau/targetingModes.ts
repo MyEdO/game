@@ -22,7 +22,8 @@ import { attackTestLabel, isHelplessTarget, rangeBandModifier } from '../engine/
 import { castInfo, isMagicMissile, missileDamage } from '../engine/magic';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { effectiveRange } from '../engine/weaponDamage';
-import { isOutOfAction, canTakeAction, hasCondition, COND } from '../engine/conditions';
+import { isOutOfAction, canTakeAction } from '../engine/conditions';
+import { ACTION_GATES } from './actionRegistry';
 import { isEngaged, reachTiles } from '../engine/engagement';
 import { avantageApresDepense, campGain, campSpend } from './combat/advantagePool';
 import { hasActiveFlag } from '../engine/activeFlags';
@@ -500,7 +501,10 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   const option = selectedAttackOption(active, battle);
   if (!option || !scene) return;
   if (target.kind === active.kind) return; // camp RELATIF : on ne frappe que le camp ADVERSE (soin/sort via leurs modes)
-  if (!canTakeAction(active) || hasCondition(active, COND.brise)) { refuserGeste(get, set, t('agate.unableToAct')); return; } // Sonné/Brisé : pas d'attaque (parité boutons)
+  if (!canTakeAction(active)) { refuserGeste(get, set, t('agate.unableToAct')); return; }
+  // État qui verrouille l'Action (LDB 16 l.52) : le gate du registre, celui des offres d'attaque.
+  const verrou = ACTION_GATES['hors-verrou-d-etat']({ active, battle, gameTime: get().gameTime });
+  if (!verrou.ok) { refuserGeste(get, set, verrou.reason!); return; }
   // Frénésie (LDB 21 l.33) : la cible est IMPOSÉE — l'ennemi le plus proche en Ligne de Vue.
   if (isFrenzied(active)) {
     const ft = frenzyTarget(get, active);

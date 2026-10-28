@@ -15,9 +15,8 @@ import { inBattleId } from './monde/combatants';
  * (la divergence entre les deux dérivations a déjà coûté un bug, Détermination, commit `0e14119b`).
  * Pur : les gates consommés ne lisent que l'acteur et son combat.
  */
-export function hasMeaningfulOption(active: Combatant, battle: BattleState): boolean {
-  if (active.kind !== 'hero') return false;
-  const ctx: ActionCtx = { active, battle };
+export function hasMeaningfulOption(ctx: ActionCtx): boolean {
+  if (ctx.active.kind !== 'hero') return false;
   // Action disponible · Mouvement restant · désengagement gratuit (LDB 15 l.47) · Piétinement gratuit
   // (LDB 85) · attaque d'Arme gratuite de Frénésie (LDB 21 l.33) · Détermination en réserve (LDB 17 l.59-61).
   const gates = [

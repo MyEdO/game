@@ -54,17 +54,22 @@ export const SHIP_ARC_PREF: FireArc[] = ['tribord', 'babord', 'proue', 'poupe'];
 /** Le bord le PLUS ARMÉ d'une coque (pièces CHARGÉES), départagé par `SHIP_ARC_PREF`. `null` si aucune pièce chargée. PUR. */
 export function mostArmedSide(ship: Combatant): FireArc | null {
   const counts = new Map<FireArc, number>();
-  for (const p of ship.postes ?? []) if (p.loaded !== false && p.side) counts.set(p.side, (counts.get(p.side) ?? 0) + 1);
+  for (const p of postesPretsAFaireFeu(ship)) if (p.side) counts.set(p.side, (counts.get(p.side) ?? 0) + 1);
   let best: FireArc | null = null;
   let bestN = 0;
   for (const s of SHIP_ARC_PREF) { const n = counts.get(s) ?? 0; if (n > bestN) { best = s; bestN = n; } }
   return best;
 }
 
-/** Pièces d'un navire sur le bord `side` qui peuvent FAIRE FEU : montées sur ce bord ET **chargées**
- *  (`loaded !== false` ; une pièce qui a tiré reste muette jusqu'à la FIN de son Test étendu de recharge,
- *  MDG 12 / LDB 62 l.333 — pas d'auto-rechargement). PUR — source unique du filtre « le bord qui peut
- *  lâcher une bordée ». */
+/** Pièces d'un navire qui peuvent FAIRE FEU : **chargées** (`loaded !== false`, MDG 12 / LDB 62 l.333). PUR —
+ *  source unique lue par la bordée (`bearingPostes` → `batteryBlock`, commit de `battleShipBattery`) et par
+ *  le gate d'offre `pieces-au-navire`. */
+export function postesPretsAFaireFeu(ship: Combatant): ShipPoste[] {
+  return (ship.postes ?? []).filter((p) => p.loaded !== false);
+}
+
+/** Pièces prêtes à faire feu (`postesPretsAFaireFeu`) montées sur le bord `side` : « le bord qui peut lâcher
+ *  une bordée ». PUR. */
 export function bearingPostes(ship: Combatant, side: FireArc): ShipPoste[] {
-  return (ship.postes ?? []).filter((p) => p.side === side && p.loaded !== false);
+  return postesPretsAFaireFeu(ship).filter((p) => p.side === side);
 }
