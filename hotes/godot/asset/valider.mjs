@@ -1,3 +1,4 @@
+// LA VALIDATION D'UN ÉLÉMENT SCHÉMA 3 CONTRE SA BASE (#2972) : `validerModele` (`modeles.ts`), la composition de l'import.
 import { existsSync, readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { chargerAssets } from './charger.mjs'
@@ -21,15 +22,11 @@ try {
   const octets = readFileSync(cheminGlb)
   const cheminGlbBase = values['glb-base'] ?? cheminBase.replace(/(?:\.manifeste)?\.json$/, '.glb')
   if (!existsSync(cheminGlbBase)) {
-    console.log(JSON.stringify({ ok: false, ecarts: [{ code: 'glb-de-base-absent', ou: cheminGlbBase, detail: 'GLB de base attendu' }] }, null, 2))
+    console.log(JSON.stringify({ ok: false, refus: [`[glb-de-base-absent] ${cheminGlbBase}`] }, null, 2))
     process.exit(1)
   }
-  const { validerElement, validerManifesteDeBase } = await chargerAssets([
-    "export { validerElement } from '/hotes/godot/asset/element.ts';",
-    "export { validerManifesteDeBase } from '/hotes/godot/asset/manifesteDeBase.ts';",
-  ])
-  const verdictDeBase = validerManifesteDeBase(base, readFileSync(cheminGlbBase))
-  const verdict = verdictDeBase.ok ? validerElement(element, verdictDeBase.manifeste, octets) : verdictDeBase
+  const { validerModele } = await chargerAssets(["export { validerModele } from '/hotes/godot/asset/modeles.ts';"])
+  const verdict = validerModele(element, octets, new Map([[base?.base, { brut: base, octets: readFileSync(cheminGlbBase) }]]))
   console.log(JSON.stringify(verdict, null, 2))
   process.exitCode = verdict.ok ? 0 : 1
 } catch (erreur) {

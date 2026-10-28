@@ -9,7 +9,7 @@ import { lireGlb } from '../glb.ts';
 import { chargerScene, type SceneChargee } from './chargement.ts';
 import type { Ecart } from './ecart.ts';
 import { echantillonner, PAS_PAR_DEFAUT, poseDeRepos } from './echantillonnage.ts';
-import { appliquerGabarit, FACTEURS_NEUTRES, poserSilhouettes, type Facteurs } from './gabarit.ts';
+import { appliquerGabarit, CARRURE_MOINS, CARRURE_PLUS, FACTEURS_NEUTRES, poserSilhouettes, type Facteurs } from './gabarit.ts';
 import { validerManifesteDeBase, type ManifesteDeBase } from '../manifesteDeBase.ts';
 import { gardeBudget, PLAFOND_ASSEMBLE, trianglesDe } from './gardes/budget.ts';
 import { mesurerAppuis, poserPieds, surfacesDesPieds, type AppuisDuClip, type PoseDuPied } from './gardes/appuis.ts';
@@ -28,6 +28,7 @@ export interface EntreeDEvaluation {
   readonly manifeste?: unknown;
   /** Les facteurs de gabarit donnés, les autres à 1 (`FACTEURS_NEUTRES`). */
   readonly facteurs?: Partial<Facteurs>;
+  /** Les shape keys posées, par nom ; chacune doit être une forme du GLB de base. */
   readonly silhouettes?: Readonly<Record<string, number>>;
   /** Les clips échantillonnés, par nom ; tous sans liste. */
   readonly clips?: readonly string[];
@@ -97,6 +98,11 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   if (!manifeste && !estNeutre(facteurs)) throw new Error('évaluation : des facteurs de gabarit sans manifeste de base valide');
 
   const contenus = [entree.base, ...(entree.elements ?? [])].map(lireGlb);
+  const formes = contenus[0].formes;
+  const absentes = Object.keys(entree.silhouettes ?? {}).filter((nom) => !formes.has(nom));
+  if (absentes.length) throw new Error(`évaluation : [silhouette-absente] ${absentes.join(', ')} : shape key(s) absente(s) de la base ; shape keys : ${[...formes].join(', ') || 'aucune'}`);
+  const carrure = facteurs.st < 1 ? CARRURE_MOINS : facteurs.st > 1 ? CARRURE_PLUS : null;
+  if (carrure && !formes.has(carrure)) throw new Error(`évaluation : [carrure-absente] st=${facteurs.st} : la base ne porte pas la shape key ${carrure}`);
   const base = await chargerScene(entree.base);
   const elements = await Promise.all((entree.elements ?? []).map(chargerScene));
   const corps = base.meshes.filter((m) => typeof zoneDe(m) === 'string');

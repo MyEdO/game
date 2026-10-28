@@ -286,6 +286,7 @@ describe('import et chargement au schéma 3', () => {
     ['glb-different', avecBase, () => ({ ...elementSchema3(), glb: { sha256: 'a'.repeat(64), octets: GLB_D_ELEMENT.byteLength } })],
     ['cle-en-doublon', () => { const d = avecBase(); deposerSchema3(d, 'autre', elementSchema3(), GLB_D_ELEMENT); return d; }, () => elementSchema3()],
     ['base-en-doublon', avecBase, () => baseSchema3()],
+    ['categorie-inconnue', avecBase, () => { const { categorie: _c, cle: _k, ...incomplet } = elementSchema3(); return incomplet; }],
     ['os-inconnu', () => { const d = avecBase(); writeFileSync(join(d, 'corps-reference.manifeste.json'), JSON.stringify({ ...baseSchema3(), os: ['absent'] })); return d; }, () => elementSchema3()],
     ['glb-de-base-absent', () => { const d = avecBase(); rmSync(join(d, 'corps-reference.glb')); return d; }, () => elementSchema3()],
     ['provenance-de-base-differente', () => { const d = avecBase(); writeFileSync(join(d, 'corps-reference.provenance.json'), JSON.stringify({ model: 'corps-reference.glb', model_sha256: 'a'.repeat(64) })); return d; }, () => elementSchema3()],
