@@ -85,7 +85,6 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
   const abandonPossession = useGame((s) => s.abandonPossession);
   const vessel = useGame((s) => s.vessel);
   const moveCargo = useGame((s) => s.moveCargo);
-  const isGuest = useGame((s) => s.net.mode) === 'guest';
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const carriers = useMemo(
     () => bulkCarriers({ party, vessel, worldMap, scene, possessions } as CarrierStateSlice),
@@ -303,7 +302,6 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
             carriers={carriers}
             onMove={moveCargo}
             labelOf={(id) => findCargoById(id)?.label ?? id}
-            disabled={isGuest}
           />
         </>
       ) : mountProfile ? (

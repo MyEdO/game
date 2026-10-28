@@ -5,18 +5,17 @@ import { CharFrame } from './CharFrame';
 import { OptionChooser } from './OptionChooser';
 import { Prose } from './Prose';
 import {
-  seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus,
+  seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus, plafondDeMiseDOpportunite, plafondDePlanque,
   type SeaActivityPick,
 } from '../noyau/seaActivities';
-import { findVehicleById, findRegleById } from '../data';
-import { cargoTotalEnc } from '../engine/seaVoyage';
-import { toBrass, PA_PER_CO } from '../engine/money';
-import { partyMoneyTotal } from '../noyau/bourseFlow';
-import { bourseOf } from '../engine/bourse';
+import { findRegleById } from '../data';
+import { encLibreNominale } from '../noyau/portFlow';
+import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { Icon } from './Icon';
 import { Grid } from './Layout';
+import { GatedAction, raisonSi } from './GatedAction';
 
 /** MDG 15 l.266-306 */
 export function SeaActivitiesModal() {
@@ -25,23 +24,23 @@ export function SeaActivitiesModal() {
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const confirm = useGame((s) => s.seaActivitiesConfirm);
   const vessel = useGame((s) => s.vessel);
-  const freeEnc = vessel
-    ? Math.max(0, (findVehicleById(vessel.vehicleId)?.ship?.capacity ?? 0) - cargoTotalEnc(vessel.cargo ?? []))
-    : 0;
+  const net = useGame((s) => s.net);
   const catalog = useMemo(() => seaActivitiesCatalog(), []);
   // Le texte d'ouverture est une fiche de Règle ADRESSÉE (`regles.json`), pas une constante de code.
   const intro = findRegleById('activites-en-mer');
   const [picks, setPicks] = useState<Record<string, SeaActivityPick | null>>({});
   if (!pending) return null;
   const heroes = party.filter((h) => !h.dead && !h.outOfRencontre);
-  const investCap = Math.min(freeEnc, Math.floor(toBrass(money) / PA_PER_CO));
+  const investCap = plafondDeMiseDOpportunite({ vessel, party });
+  const refusGroupe = refusDeGesteSurLeGroupe({ net });
+  const freeEnc = encLibreNominale(vessel);
   const set = (id: string, pick: SeaActivityPick | null) => setPicks((p) => ({ ...p, [id]: pick }));
 
   return (
     <Modal title={<><Icon id="travel/anchor" size="sm" /> Activités en mer — semaine écoulée</>} taille="large"
       footer={
         <>
-          <button type="button" className="btn btn-primary" onClick={() => confirm(picks)}>Valider la semaine</button>
+          <GatedAction id="sea-act-confirm" label="Valider la semaine" enabled={refusGroupe == null} {...raisonSi(refusGroupe)} onClick={() => confirm(picks)} />
         </>
       }
     >
@@ -55,8 +54,7 @@ export function SeaActivitiesModal() {
           const pick = picks[h.id];
           const chosen = pick?.activityId ?? '';
           const chosenDef = chosen ? catalog.find((d) => d.id === chosen) : undefined;
-          // MDG 15 l.276,292
-          const stashCap = Math.floor(toBrass(bourseOf(h)) / PA_PER_CO);
+          const stashCap = plafondDePlanque(h);
           return (
             <section key={h.id} className="panel sea-act-hero">
               <h4><CharFrame c={h} variant="identity" size="xs" /> {h.label}</h4>

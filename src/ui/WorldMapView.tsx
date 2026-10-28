@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { nomDuNavire } from '../noyau/carriers';
+import { shipboardSouls } from '../noyau/shipCrew';
 import { useGame } from '../state/store';
 import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
 import { t, deElide } from '../i18n';
@@ -7,7 +8,7 @@ import { placeOfScene, placeById, routesCliquables, routesEtat, visiblePlaces, o
 import { baseHoursPerDay, maxHoursPerDay, passagePayant, hoursTravelledToday, travelDayBudget, routeDuJourFaite, MOUNT_MAX_HOURS } from '../noyau/travelFlow';
 import { clockLabel } from '../engine/duration';
 import { descenteJouee } from '../noyau/riverVoyageFlow';
-import { forcePaceRefus, millesDeCroisiere, dureeDeTraversee, mDeCroisiere, refusDAppareiller, raisonDuRefusDAppareiller } from '../noyau/seaVoyageFlow';
+import { forcePaceRefus, millesDeCroisiere, dureeDeTraversee, mDeCroisiere, refusDAppareiller, raisonDuRefusDAppareiller, dossierDuNavire } from '../noyau/seaVoyageFlow';
 import {
   TravelMode, travelModeLabels, travelModeIcon, travelSpeed, travelPlanCalc, transportCost,
   routeDistanceLabel, vehicleTravel, classeRetenue, prixParPassager, placesPayees,
@@ -17,8 +18,7 @@ import {
   type Allure, allureLabel, availableAllures, partyFullyMounted, partyMounts,
 } from '../engine/mountTravel';
 import { rationCount, provisioningManifest } from '../engine/provisions';
-import { cargoOverload, cargoTotalEnc } from '../engine/seaVoyage';
-import { findVehicleById, skillInstanceLabel } from '../data';
+import { skillInstanceLabel } from '../data';
 import { formatMoney, canAfford, fromBrass } from '../engine/money';
 import { partyMoneyTotal, condCtx } from '../noyau/bourseFlow';
 import { Coins } from './Coins';
@@ -217,7 +217,6 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
 
   // Traversée MARITIME (routes `sea`, MDG 13/15) : sur le navire de campagne — estimation en milles/jour.
   const vessel = useGame((s) => s.vessel);
-  const vesselData = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   const vesselLabel = vessel ? nomDuNavire(vessel) : '';
   // COQUE qui portera l'équipage — la seule chose dont l'épinglage des STATIONS a besoin (ses RÉFS
   // navales gatent `cale`/`nid-de-pie`). Deux porteurs, deux adaptateurs, un seul gate : le navire de
@@ -240,9 +239,9 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const seaPaceChoices = seaRig ? [0, 1, 2].filter((b) => b === 0 || forcePaceDifficulty(b, seaRig.mode) != null) : [0];
   const seaPaceRefus = seaRig ? forcePaceRefus(party, seaRig.competence) : null;
   // Surcharge de la cale : MDG 12 l.70-75.
-  const seaOverload = vessel && vesselData?.ship ? cargoOverload(cargoTotalEnc(vessel.cargo ?? []), vesselData.ship.capacity) : null;
-  // Population embarquée pour le manifeste d'avitaillement (#245) : héros + effectif PNJ nominal présent.
-  const seaCrewCount = vessel ? Math.max(0, (vesselData?.ship?.crew ?? 0) - (vessel.crewLost ?? 0)) : 0;
+  const seaOverload = vessel ? dossierDuNavire(vessel, party)?.overload ?? null : null;
+  // Population embarquée pour le manifeste d'avitaillement (#245) : MDG 14 l.238.
+  const seaCrewCount = shipboardSouls({ party, vessel }).crew;
 
   // Estimations du trajet sélectionné (mêmes formules que le flux — RAW l.207-224).
   const base = baseHoursPerDay(map);

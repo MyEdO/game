@@ -5,31 +5,17 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
+import { acheterAuPanier } from './marchand.testkit';
 import { emptyScene } from '../noyau/monde/scene';
-import { careers, levelsForCareer } from '../data';
-import { actorStatus } from '../engine/social';
-import { statusBudgetBrass, type StatusTier } from '../engine/money';
+import { statutLePlusHaut } from '../engine/statut.testkit';
 import { toBrass } from '../engine/money';
 import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 
-/** Carrière+niveau au Statut le PLUS HAUT (budget « Tenir les comptes » maximal) — trouvé sur la donnée. */
-function richestCareer(): { career: string; level: number } {
-  let best = { career: '', level: 1, budget: -1 };
-  for (const c of careers) {
-    levelsForCareer(c.id).forEach((_l, i) => {
-      const st = actorStatus({ career: c.id, careerLevel: i + 1 } as Combatant);
-      const b = statusBudgetBrass(st.tier.toLowerCase() as StatusTier, st.standing);
-      if (b > best.budget) best = { career: c.id, level: i + 1, budget: b };
-    });
-  }
-  return { career: best.career, level: best.level };
-}
-
 const richHero = (): Combatant => {
-  const { career, level } = richestCareer();
-  return { id: 'h', name: 'H', career, careerLevel: level, items: [], skills: [], talents: [], characteristics: {}, wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant;
+  const { career, careerLevel } = statutLePlusHaut();
+  return { id: 'h', name: 'H', career, careerLevel, items: [], skills: [], talents: [], characteristics: {}, wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant;
 };
 
 const merchantScene = () => {
@@ -49,7 +35,7 @@ describe('Tenir les comptes (LDB 59 l.9-11)', () => {
     useGame.getState().openMerchant('pnj');
     const line = useGame.getState().merchant!.stock.find((l) => l.qty > 0)!;
     const before = toBrass(partyMoneyTotal(useGame.getState));
-    useGame.getState().buyItem(line.id, 'h');
+    acheterAuPanier(line.id);
     const st = useGame.getState();
     expect(st.party[0].items!.some((i) => i.trappingId === line.id)).toBe(true); // objet reçu
     expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(before); // aucune pièce comptée (dans les moyens du Statut)
@@ -62,7 +48,7 @@ describe('Tenir les comptes (LDB 59 l.9-11)', () => {
     useGame.getState().openMerchant('pnj');
     const line = useGame.getState().merchant!.stock.find((l) => l.qty > 0)!;
     const before = toBrass(partyMoneyTotal(useGame.getState));
-    useGame.getState().buyItem(line.id, 'h');
+    acheterAuPanier(line.id);
     expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(before); // débité
   });
 });

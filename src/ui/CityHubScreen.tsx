@@ -1,15 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useGame } from '../state/store';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
-import { placeServices, placeServiceMerchantId, serviceIcon, poiIcon, type ResolvedPlaceService, type MapPlace } from '../noyau/worldMap';
+import { placeServices, produitsDuProfil, lieuAUnPlan, placeServiceMerchantId, serviceIcon, poiIcon, type ResolvedPlaceService, type MapPlace } from '../noyau/worldMap';
 import type { Scene } from '../noyau/monde/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
 import { restServicePrice, type RestPlaces } from '../noyau/restFlow';
 import { libelleOuAbsence } from '../data';
-import { findLandCargoById, findLandCargoEntryById } from '../engine/landCargo';
-import { findCargoEntryById, isEchangeable } from '../engine/seaVoyage';
-import { isTradeHubEntry } from '../engine/cargo';
+import { findLandCargoById } from '../engine/landCargo';
 import { innGatherInfoMinutes } from '../noyau/innFlow';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
@@ -22,7 +20,8 @@ import { Coins } from './Coins';
 import { Icon, IconG } from './Icon';
 import { SpeakerBanner } from './SpeakerBanner';
 import { ActivityPane } from './ActivityPane';
-import { GatedAction } from './GatedAction';
+import { GatedAction, raisonSi } from './GatedAction';
+import { refusDEntrerAuPort } from '../noyau/portFlow';
 
 /**
  * HUB DE VILLE (#343) — l'écran UNIQUE d'un LIEU de la carte : on n'empile plus des boutons flottants
@@ -37,45 +36,17 @@ import { GatedAction } from './GatedAction';
  * `restServicePrice`), action Dormir (flux de repos existant), rumeurs déjà glanées.
  */
 
-/** Services d'un lieu tels que listés par le hub (délégué à `placeServices`, source unique) — surface
- *  PURE testable (composition + ordre : port, marché, puis services de catalogue dont l'auberge). */
-export function cityHubServices(place: MapPlace, scene?: Scene): ResolvedPlaceService[] {
-  return placeServices(place, scene);
-}
-
-/** Porte de l'onglet Plan (#345 phase 5) — surface PURE testable : le lieu doit porter au moins un
- *  POI, sinon l'onglet n'a rien à montrer et reste absent (source unique de la condition d'affichage,
- *  partagée par `CityHubScreen` et son test). */
-export function cityHubHasPlan(place: MapPlace): boolean {
-  return (place.poi ?? []).length > 0;
-}
-
-/** Porte du bouton « Entrer au port » — surface PURE testable : `openPort` (`portFlow.ts`) est un
- *  no-op silencieux sans navire de campagne (`!get().vessel`). Sans cette porte le bouton resterait
- *  une affordance MORTE (clic muet) — source unique de la condition, partagée par `CityHubScreen`
- *  (désactive le bouton avec sa raison) et son test. */
-export function cityHubCanEnterPort(vessel: unknown): boolean {
-  return vessel != null;
-}
-
-/** Entrée de la colonne Produits/Production, TERRESTRE ou MARITIME — le hub sert les deux profils et
- *  les deux catalogues partagent la même forme d'entrée (`CargoEntry`). */
-const produitEntry = (id: string) => findLandCargoEntryById(id) ?? findCargoEntryById(id);
-
 /** Carte de synthèse d'un profil commercial (port/marché) : Taille/Richesse + colonne Produits. */
 function ProfileSynth({ taille, richesse, production }: { taille: number; richesse: number; production?: string[] }) {
-  // Les MARCHANDISES seules se listent : un marqueur de l'Index porte son exclusion en champ.
-  const goods = (production ?? []).filter((p) => { const e = produitEntry(p); return !e || isEchangeable(e); });
-  // La PLAQUE TOURNANTE se lit sur l'entrée marqueur (`tradeHub`) — son `label` est celui de la donnée.
-  const hub = (production ?? []).map(produitEntry).find(isTradeHubEntry);
+  const { plaque, marchandises } = produitsDuProfil(production);
   return (
     <ul className="city-hub-synth">
       <li><span className="city-hub-synth-k">Taille</span><span className="city-hub-synth-v">{taille}</span></li>
       <li><span className="city-hub-synth-k">Richesse</span><span className="city-hub-synth-v">{richesse}</span></li>
-      {(goods.length > 0 || hub) && (
+      {(marchandises.length > 0 || plaque) && (
         <li>
           <span className="city-hub-synth-k">Produits</span>
-          <span className="city-hub-synth-v">{[hub?.label ?? null, ...goods.map((id) => produitEntry(id)?.label ?? id)].filter(Boolean).join(', ')}</span>
+          <span className="city-hub-synth-v">{[plaque, ...marchandises].filter(Boolean).join(', ')}</span>
         </li>
       )}
     </ul>
@@ -107,12 +78,7 @@ export function CityHubScreen({
   const gatherInnInfo = useGame((s) => s.gatherInnInfo);
   const transitionTo = useGame((s) => s.transitionTo);
 
-  const base = cityHubServices(place, scene);
-  // Couchage sur place SANS auberge déclarée (camp/maison) : un service « Repos » de repli, pour que le
-  // repli des boutons flottants (#343) n'ampute jamais le Dormir d'un lieu qui l'offrait.
-  const services = rest && !base.some((s) => s.category === 'auberge')
-    ? [...base, { id: 'repos', category: 'auberge', label: 'Repos', icon: 'nav/rest', rest: rest.places } as ResolvedPlaceService]
-    : base;
+  const services = placeServices(place, scene, rest?.places);
   const [selId, setSelId] = useState<string | null>(services[0]?.id ?? null);
   const sel = services.find((s) => s.id === selId) ?? services[0];
 
@@ -123,11 +89,12 @@ export function CityHubScreen({
 
   // « Entrer » un écran plein-champ existant : on FERME le hub d'abord (pas de ScreenShell imbriqué).
   const enter = (open: () => void) => { onClose(); open(); };
+  const refusPort = refusDEntrerAuPort({ vessel });
 
   /** OUVREURS par écran DÉCLARÉ (`ResolvedPlaceService.opensScreen`) : la valeur du catalogue choisit
    *  l'ouvreur ET sa garde. Table TOTALE de l'union — un écran de plus ne compile pas sans sa ligne. */
-  const SCREEN_ROUTES: Record<NonNullable<ResolvedPlaceService['opensScreen']>, { open: () => void; enabled: () => boolean; reason: string }> = {
-    port: { open: openPort, enabled: () => cityHubCanEnterPort(vessel), reason: 'Aucun navire de campagne.' },
+  const SCREEN_ROUTES: Record<NonNullable<ResolvedPlaceService['opensScreen']>, { open: () => void; refus: () => string | null }> = {
+    port: { open: openPort, refus: () => refusPort },
   };
 
   /** Panneau de détail d'un SERVICE résolu — source UNIQUE, appelée pour la sélection de l'onglet
@@ -155,7 +122,7 @@ export function CityHubScreen({
             </>
           }
         >
-          {/* Jamais une promesse d'action impossible (cf. `cityHubCanEnterPort`) : sans offre de
+          {/* Jamais une promesse d'action impossible (cf. `refusDEntrerAuPort`) : sans offre de
               couchage effective (`svc.rest`), les prix de chambre/repas ne s'affichent pas — ils ne
               mènent nulle part ici (recette 2026-07-12). */}
           {svc.rest
@@ -190,8 +157,8 @@ export function CityHubScreen({
             <GatedAction
               id="city-hub-port-enter"
               label="Entrer au port"
-              enabled={cityHubCanEnterPort(vessel)}
-              reason="Aucun navire de campagne."
+              enabled={refusPort == null}
+              {...raisonSi(refusPort)}
               onClick={() => enter(openPort)}
             />
           }
@@ -248,8 +215,8 @@ export function CityHubScreen({
             <GatedAction
               id={`city-hub-${svc.id}-enter`}
               label={svc.enterLabel ?? `Entrer : ${svc.label}`}
-              enabled={route.enabled()}
-              reason={route.reason}
+              enabled={route.refus() == null}
+              {...raisonSi(route.refus())}
               onClick={() => enter(route.open)}
             />
           }
@@ -320,7 +287,7 @@ export function CityHubScreen({
 
   const screenTabs: TabItem<'services' | 'plan'>[] = [
     { key: 'services', label: 'Services' },
-    ...(cityHubHasPlan(place) ? [{ key: 'plan' as const, label: 'Plan' }] : []),
+    ...(lieuAUnPlan(place) ? [{ key: 'plan' as const, label: 'Plan' }] : []),
   ];
 
   return (

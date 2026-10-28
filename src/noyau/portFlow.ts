@@ -31,14 +31,16 @@ import { resolveOpposed, bumpSL, estJete, type TestResult } from '../engine/test
 import { bargainPct } from '../engine/bargain';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney, priceToMoney } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
-import { findVehicleById, findCrewRoleById, combatStakeRef, refLabel } from '../data';
+import { partyMoneyTotal, payFromGroup, distributeCredit, refusDeGesteSurLeGroupe, refuseLeGesteDeGroupe, totalDesBourses } from './bourseFlow';
+import { remiseMaximaleDeMarchandage } from './merchantFlow';
+import { refuserGeste } from './refusVisible';
+import { findVehicleById, findCrewRoleById, crewRoles, combatStakeRef, refLabel, type CrewRoleData } from '../data';
 import { t } from '../i18n';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
 import {
   rollCargoAvailability, rollMerchantSkill, rollMerchantOpposition, buySellerDR, cargoBasePrice, rollRandomCargo,
   sellChance, offerPricePct, sellRelation, dumpingPricePct, cargoTotalEnc, findCargoById,
-  cargoOverload, overloadMaxEnc, isSeaTradeHub,
+  cargoOverload, overloadMaxEnc, OVERLOAD_HARD_CAP_PCT, isSeaTradeHub,
   type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
 import { seasonOfMonth } from '../engine/travelStages';
@@ -50,6 +52,7 @@ import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
+import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
@@ -71,11 +74,6 @@ export interface PortState {
    *  catalogue pour l'en-tête du hub. Absent = port authoré sans référence de catalogue. */
   ref?: string;
   port: PortProfile;
-  /** Contenance libre NOMINALE du navire (Enc) — headroom sans surcharge (l.325). */
-  freeEnc: number;
-  /** Enc embarquable avant le plafond DUR de surcharge (Contenance × 150 %, MDG 12 l.75) — au-delà de
-   *  `freeEnc` = zone de surcharge (l'achat avertit, #243). */
-  maxLoadEnc: number;
   offers: PortOffer[];
 }
 
@@ -91,28 +89,75 @@ export function currentPort(get: Get): { placeId: string; label: string; ref?: s
   return { placeId: place.id, label: place.label, ref: place.port.ref, port: place.port, cosmopolite: !!place.port.cosmopolite };
 }
 
-/** Contenance libre NOMINALE du navire (Contenance − cargaison embarquée, min 0) — headroom SANS surcharge. */
-export function vesselFreeEnc(get: Get): number {
-  const vessel = get().vessel;
+
+/** Contenance libre NOMINALE du navire (Contenance − cargaison embarquée, min 0) — headroom SANS surcharge. PUR. */
+export function encLibreNominale(vessel: Jeu['vessel']): number {
   if (!vessel) return 0;
   const capacity = findVehicleById(vessel.vehicleId)?.ship?.capacity ?? 0;
   return Math.max(0, capacity - cargoTotalEnc(vessel.cargo ?? []));
 }
 
-/** Enc EMBARQUABLE avant le plafond DUR de surcharge (MDG 12 l.75 : Contenance × 150 % − cargaison). Au-delà de
- *  la Contenance nominale = zone de SURCHARGE (paliers d'assiette, `cargoOverload`) — l'achat y AVERTIT (#243). */
-export function vesselMaxLoadEnc(get: Get): number {
-  const vessel = get().vessel;
+function encEmbarquable(vessel: Jeu['vessel']): number {
   if (!vessel) return 0;
   const capacity = findVehicleById(vessel.vehicleId)?.ship?.capacity ?? 0;
   return Math.max(0, overloadMaxEnc(capacity) - cargoTotalEnc(vessel.cargo ?? []));
+}
+
+/** Enc EMBARQUABLE avant le plafond DUR de surcharge (MDG 12 l.75 : Contenance × 150 % − cargaison). Au-delà de
+ *  la Contenance nominale = zone de SURCHARGE (paliers d'assiette, `cargoOverload`) — l'achat y AVERTIT (#243). */
+export function vesselMaxLoadEnc(get: Get): number {
+  return encEmbarquable(get().vessel);
+}
+
+/** Prix d'un lot embarqué en CO (MDG 15 l.319-349) : `pct` = effet du Marchandage. */
+function prixDuLotEnPort(enc: number, basePrice: number, pct: number): number {
+  return Math.max(0, Math.round(enc * basePrice * (1 + pct / 100)));
+}
+
+/** Cale du navire à l'escale : place libre nominale, Enc embarquable jusqu'au plafond dur, et ce plafond en %
+ *  de la Contenance (MDG 12 l.70-75, donnée `hardCapPct`). Lue par l'écran du port. PUR. */
+export function caleALEscale(vessel: Jeu['vessel']): { libre: number; embarquable: number; plafondPct: number } {
+  return { libre: encLibreNominale(vessel), embarquable: encEmbarquable(vessel), plafondPct: OVERLOAD_HARD_CAP_PCT };
+}
+
+/** Devis d'achat d'une cargaison à l'escale, AVANT Marchandage : Enc retenu (défaut : l'offre dans la place
+ *  libre nominale, au moins 1) et sa borne `max` (l'offre ∩ le plafond dur, MDG 12 l.75), estimation, PLANCHER
+ *  au meilleur Marchandage possible du groupe (`remiseMaximaleDeMarchandage`), entrée en surcharge
+ *  (MDG 12 l.70-75), refus (`null` : le geste passe au Marchandage). Une bourse sous le plancher refuse avant
+ *  le jet ; entre le plancher et le prix, elle se juge après le jet (`finalizePortBuy`). SOURCE UNIQUE de
+ *  `portBuyCargo` et de l'écran du port. PUR. */
+export type DevisDAchatEnPort = { enc: number; max: number; estimationGold: number; plancherGold: number; surcharge: boolean } & (
+  | { refus: null; offre: PortOffer }
+  | { refus: string; offre?: PortOffer }
+);
+
+export function devisDAchatEnPort(s: Pick<Jeu, 'port' | 'vessel' | 'net' | 'party'>, cargoId: string, enc?: number): DevisDAchatEnPort {
+  const offre = s.port?.offers.find((o) => o.cargoId === cargoId);
+  const libre = encLibreNominale(s.vessel);
+  const max = offre ? Math.min(offre.enc, encEmbarquable(s.vessel)) : 0;
+  const voulu = enc ?? (offre ? Math.min(offre.enc, Math.max(libre, 1)) : 0);
+  const want = Math.max(0, Math.min(Math.floor(voulu), max));
+  const plancherGold = offre ? prixDuLotEnPort(want, offre.basePrice, -remiseMaximaleDeMarchandage(s.party)) : 0;
+  const base = { enc: want, max, estimationGold: offre ? prixDuLotEnPort(want, offre.basePrice, 0) : 0, plancherGold, surcharge: want > libre, offre };
+  const refus = refusDeGesteSurLeGroupe(s) ?? (!offre || !s.vessel ? t('port.offreAbsente') : want <= 0 ? t('port.holdFull')
+    : !canAfford(totalDesBourses(s.party), toMoney({ gold: plancherGold })) ? t('cargo.bourseSousPlancher', { plancher: plancherGold })
+    : null);
+  return refus === null && offre ? { ...base, offre, refus } : { ...base, refus: refus ?? t('port.offreAbsente') };
+}
+
+/** Refus d'entrer au port : la raison affichée, ou `null`. Le négoce maritime se fait sur le navire de
+ *  campagne (MDG 15 l.319). Tombe dans `openPort`, lu par le hub du lieu. */
+export function refusDEntrerAuPort(s: Pick<Jeu, 'vessel'>): string | null {
+  return s.vessel ? null : t('port.sansNavire');
 }
 
 /** Génère les offres d'ACHAT de l'escale (l.319-331) : Production + Surplus (Enc = (Taille+Richesse+
  *  Surplus)×1d10×10, 1 → rien), et une cargaison aléatoire par « commerce » (3× si cosmopolite, l.347). */
 export function openPort(get: Get, set: Set): void {
   const cur = currentPort(get);
-  if (!cur || !get().vessel) return;
+  if (!cur) return;
+  const refus = refusDEntrerAuPort(get());
+  if (refus) { refuserGeste(get, set, refus); return; }
   ouvrirEtal(get, set, 'port', `Port — ${cur.label}`);
 }
 
@@ -146,7 +191,7 @@ function genererEtalPort(get: Get, set: Set, rng: RNG, phase: (label: string) =>
       surplus: (port.surplus?.[cargoId] ?? 0) > 0,
     });
   }
-  set({ port: { placeId: cur.placeId, label: cur.label, ref: cur.ref, port: structuredClone(port), freeEnc: vesselFreeEnc(get), maxLoadEnc: vesselMaxLoadEnc(get), offers } }); // #2097
+  set({ port: { placeId: cur.placeId, label: cur.label, ref: cur.ref, port: structuredClone(port), offers } }); // #2097
 }
 
 export function closePort(_get: Get, set: Set): void {
@@ -170,15 +215,15 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
   if (!offer) return [];
   const enc = Math.max(0, Math.min(want, offer.enc, vesselMaxLoadEnc(get)));
   if (enc <= 0) return [t('port.holdFull')];
-  const price = Math.max(0, Math.round(enc * basePrice * (1 + pct / 100)));
+  const price = prixDuLotEnPort(enc, basePrice, pct);
   const cost = toMoney({ gold: price });
-  if (!canAfford(partyMoneyTotal(get), cost)) return [t('port.purseShort', { price, label: offer.label, bargain: bargainLine })];
+  if (!canAfford(partyMoneyTotal(get), cost)) return [t('cargo.purseShort', { price, label: offer.label, bargain: bargainLine })];
   const cargo: CargoLot = { cargoId, enc, basePriceGold: basePrice };
   const nextCargo = [...(vessel.cargo ?? []), cargo];
   payFromGroup(get, set, cost, { purpose: 'cargaison navire' });
   set({
     vessel: { ...vessel, cargo: nextCargo },
-    port: { ...st, freeEnc: Math.max(0, st.freeEnc - enc), maxLoadEnc: st.maxLoadEnc - enc, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, enc: o.enc - enc } : o).filter((o) => o.enc > 0) },
+    port: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, enc: o.enc - enc } : o).filter((o) => o.enc > 0) },
   });
   const lines = [t('port.loaded', { enc, label: offer.label, bargain: bargainLine, money: formatMoney(fromBrass(toBrass(cost))) })];
   // Surcharge de la cale (MDG 12 l.70-75) : au-delà de la Contenance nominale, avertir du palier d'assiette.
@@ -195,12 +240,10 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
  *  plein (aucun jet). Débité, ajouté à la cale plafonnée à 150 % (MDG 12 l.75). */
 export function portBuyCargo(get: Get, set: Set, cargoId: string, enc: number): void {
   const st = get().port;
-  const vessel = get().vessel;
-  if (!st || !vessel) return;
-  const offer = st.offers.find((o) => o.cargoId === cargoId);
-  if (!offer) return;
-  const want = Math.max(0, Math.min(Math.floor(enc), offer.enc, vesselMaxLoadEnc(get)));
-  if (want <= 0) { log(get, set, [t('port.holdFull')]); return; }
+  if (!st) return;
+  const devis = devisDAchatEnPort(get(), cargoId, enc);
+  if (devis.refus !== null) { refuserGeste(get, set, devis.refus); return; }
+  const { offre: offer, enc: want } = devis;
   const partial = want < offer.enc;
   const best = partyAssisted(get().party, 'marchandage');
   // Toujours tiré (même sans marchandeur) — parité RNG avec la vente (la porte du seam ne touche pas le rng).
@@ -242,13 +285,8 @@ function finalizePortSale(get: Get, set: Set, cargoIndex: number, sellEnc: numbe
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
   const gross = Math.max(0, Math.round(sellEnc * lot.basePriceGold * (offerPct / 100) * (1 + bargainPctVal / 100)));
   const nextCargo = sellEnc >= lot.enc ? (vessel.cargo ?? []).filter((_, i) => i !== cargoIndex) : (vessel.cargo ?? []).map((l, i) => i === cargoIndex ? { ...l, enc: l.enc - sellEnc } : l);
-  const capacity = findVehicleById(vessel.vehicleId)?.ship?.capacity ?? 0;
-  const freed = cargoTotalEnc(nextCargo);
   distributeCredit(get, set, fromBrass(gross * PA_PER_CO));
-  set({
-    vessel: { ...vessel, cargo: nextCargo },
-    port: { ...st, freeEnc: Math.max(0, capacity - freed), maxLoadEnc: Math.max(0, overloadMaxEnc(capacity) - freed) },
-  });
+  set({ vessel: { ...vessel, cargo: nextCargo } });
   return t('port.sold', { enc: sellEnc, label, pct: offerPct, bargain: bargainLine, money: formatMoney(fromBrass(gross * PA_PER_CO)) });
 }
 
@@ -307,6 +345,7 @@ const PORT_SELL_GOSSIP_KIND = 'port-sell-gossip';
  *  Retire le lot vendu de la cale, crédite la bourse. CASCADE (Ragot → acheteur → Marchandage) —
  *  chaque étape routée par la policy M/V/I (cf. docstring d'en-tête). */
 export function portSellCargo(get: Get, set: Set, cargoIndex: number): void {
+  if (refuseLeGesteDeGroupe(get, set)) return;
   const st = get().port;
   const vessel = get().vessel;
   if (!st || !vessel) return;
@@ -333,6 +372,13 @@ export function portSellCargo(get: Get, set: Set, cargoIndex: number): void {
   openPortSellBuyerStep(get, set, cargoIndex, lot.enc, true, 1);
 }
 
+/** Refus de brader le lot `cargoId` au port ouvert : `refusDeGesteSurLeGroupe`, puis port qui ne rachète pas ce
+ *  lot (`dumpingPricePct` nul, MDG 15 l.399) ; `null` sinon. Tombe dans `portDumpCargo`, lu par l'écran. */
+export function refusDeBradageEnPort(s: Pick<Jeu, 'net' | 'port'>, cargoId: string): string | null {
+  return refusDeGesteSurLeGroupe(s)
+    ?? (s.port && dumpingPricePct(s.port.port, cargoId) == null ? t('port.dumpRefused', { label: findCargoById(cargoId)?.label ?? cargoId }) : null);
+}
+
 /** BRADER un lot (l.399) : ¼ du prix de base dans un port « commerce » ou en Demande — sinon refus. */
 export function portDumpCargo(get: Get, set: Set, cargoIndex: number): void {
   const st = get().port;
@@ -340,19 +386,32 @@ export function portDumpCargo(get: Get, set: Set, cargoIndex: number): void {
   if (!st || !vessel) return;
   const lot = (vessel.cargo ?? [])[cargoIndex];
   if (!lot) return;
-  const pct = dumpingPricePct(st.port, lot.cargoId);
+  const refus = refusDeBradageEnPort(get(), lot.cargoId);
+  if (refus) { refuserGeste(get, set, refus); return; }
+  const pct = garanti(dumpingPricePct(st.port, lot.cargoId), lot.cargoId, 'pourcentage de bradage');
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
-  if (pct == null) { log(get, set, [t('port.dumpRefused', { label })]); return; }
   const gross = Math.max(0, Math.round(lot.enc * lot.basePriceGold * (pct / 100)));
   const nextCargo = (vessel.cargo ?? []).filter((_, i) => i !== cargoIndex);
-  const capacity = findVehicleById(vessel.vehicleId)?.ship?.capacity ?? 0;
-  const freed = cargoTotalEnc(nextCargo);
   distributeCredit(get, set, fromBrass(gross * PA_PER_CO));
-  set({
-    vessel: { ...vessel, cargo: nextCargo },
-    port: { ...st, freeEnc: Math.max(0, capacity - freed), maxLoadEnc: Math.max(0, overloadMaxEnc(capacity) - freed) },
-  });
+  set({ vessel: { ...vessel, cargo: nextCargo } });
   log(get, set, [t('port.dumped', { enc: lot.enc, label, pct, money: formatMoney(fromBrass(gross * PA_PER_CO)) })]);
+}
+
+/** Rôles recrutables à quai : ceux qui portent un barème de solde (MDG 14 l.293-302, `crew-roles.json`). */
+export function rolesRecrutables(): CrewRoleData[] {
+  return crewRoles.filter((r) => r.wage?.weekly);
+}
+
+/** Refus d'embaucher au rôle `roleId` : `refusHote` (`refusDeGesteSurLeGroupe`), sans navire, ou rôle sans
+ *  barème ; `null` sinon. Tombe dans `portHireCrew`, lu par l'écran d'escale. */
+export function refusDEmbauche(vessel: Jeu['vessel'], roleId: string, refusHote: string | null): string | null {
+  return refusHote ?? (!vessel ? t('port.sansNavire') : findCrewRoleById(roleId)?.wage?.weekly ? null : t('port.roleSansSolde', { role: findCrewRoleById(roleId)?.label ?? roleId }));
+}
+
+/** Refus de débarquer un membre du rôle `roleId` : `refusHote`, sans navire, ou aucun membre de ce rôle à bord ;
+ *  `null` sinon. Tombe dans `portDismissCrew`, lu par l'écran d'escale. */
+export function refusDeDebarquement(vessel: Jeu['vessel'], roleId: string, refusHote: string | null): string | null {
+  return refusHote ?? (!vessel ? t('port.sansNavire') : vessel.crew?.some((h) => h.roleId === roleId && h.count > 0) ? null : t('port.aucunABord', { role: findCrewRoleById(roleId)?.label ?? roleId }));
 }
 
 /** RECRUTEMENT à quai (#228, escale-hub) : embauche `count` PNJ salariés au rôle `roleId` — fusionné
@@ -361,10 +420,11 @@ export function portDumpCargo(get: Get, set: Set, cargoIndex: number): void {
  *  l'embauche (aucune avance dans le modèle), la bourse ne bouge pas ici. Un rôle sans barème (`wage`
  *  absent) n'est pas recrutable. Renvoie le journal (ligne de solde totale recalculée). */
 export function portHireCrew(get: Get, set: Set, roleId: string, count = 1): string[] {
-  const vessel = get().vessel;
-  if (!vessel || count <= 0) return [];
-  const role = findCrewRoleById(roleId);
-  if (!role?.wage) return [];
+  const refus = refusDEmbauche(get().vessel, roleId, refusDeGesteSurLeGroupe(get()));
+  if (refus) { refuserGeste(get, set, refus); return []; }
+  const vessel = garanti(get().vessel, 'vessel', 'navire de l’embauche');
+  const role = garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage');
+  if (count <= 0 || !role.wage) return [];
   const crew = vessel.crew ?? [];
   const next = crew.some((h) => h.roleId === roleId)
     ? crew.map((h) => h.roleId === roleId ? { ...h, count: h.count + count } : h)
@@ -378,11 +438,12 @@ export function portHireCrew(get: Get, set: Set, roleId: string, count = 1): str
 /** DÉBARQUEMENT d'un membre salarié à quai (#228) : retire `count` PNJ du rôle `roleId` (poste supprimé
  *  s'il tombe à 0). Aucune indemnité modélisée (le moteur ne débite qu'à la paie). Renvoie le journal. */
 export function portDismissCrew(get: Get, set: Set, roleId: string, count = 1): string[] {
-  const vessel = get().vessel;
-  if (!vessel || count <= 0) return [];
+  const refus = refusDeDebarquement(get().vessel, roleId, refusDeGesteSurLeGroupe(get()));
+  if (refus) { refuserGeste(get, set, refus); return []; }
+  const vessel = garanti(get().vessel, 'vessel', 'navire du débarquement');
   const crew = vessel.crew ?? [];
-  const cur = crew.find((h) => h.roleId === roleId);
-  if (!cur) return [];
+  const cur = garanti(crew.find((h) => h.roleId === roleId), roleId, 'poste à débarquer');
+  if (count <= 0) return [];
   const left = cur.count - count;
   const next = left > 0 ? crew.map((h) => h.roleId === roleId ? { ...h, count: left } : h) : crew.filter((h) => h.roleId !== roleId);
   set({ vessel: { ...vessel, crew: next } });

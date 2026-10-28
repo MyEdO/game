@@ -257,8 +257,6 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** « Baisse des prix » (LDB 59 l.60) : (dé)cale d'un cran le nombre de divisions de moitié consenties
    *  à la vente d'une instance (améliore la Disponibilité de l'acheteur, réduit le gain). */
   setSellHalving: (uid: IdDObjet, delta: number) => void;
-  /** Achat direct (#2, primitif) : débite la Bourse et crée l'objet dans le sac du héros (défaut : 1er). */
-  buyItem: (label: string, heroId?: IdDeHeros) => void;
   /** Panier (#2) : ajoute / retire / vide. L'achat passe par le panier → `payCart` (UI). */
   addToCart: (label: string) => void;
   decFromCart: (label: string) => void;

@@ -8,7 +8,8 @@ import type { Combatant } from '../engine/types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
 import { crewRoleValue, competencesDuRole, moraleBand, MORALE_BASE, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, payChoices, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
-import { partyMoneyTotal, payFromGroup } from './bourseFlow';
+import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe } from './bourseFlow';
+import { refuserGeste } from './refusVisible';
 import { cadenceAuto } from '../engine/cadence';
 import { deMonde, type RNG } from '../engine/dice';
 import type { CampaignVessel, Jeu } from './etat';
@@ -160,27 +161,27 @@ export function shipMoraleScore(get: Get, ship: Combatant): number {
 }
 
 /**
- * Manque de bras GLOBAL d'un navire (MDG 14 l.55) : `undercrewPenalty(nominal, présent)` où le NOMINAL vient
- * du type (`vehicles.json` ship.crew) et le PRÉSENT = les `crewIds` encore EN ÉTAT (`exposedCrew`), MOINS les
- * marins déjà retirés de la campagne par Embrigadement (MDG 15 l.245, `CampaignVessel.crewLost`). Les
- * morts/inconscients de combat (Éclats, critiques « Équipage ») alimentent aussi le déficit. Lit l'état persistant
- * du vaisseau de campagne comme `shipMoraleScore` (keyé `creatureId === vehicleId`). */
-/**
  * POPULATION EMBARQUÉE qui consomme eau et vivres (MDG 14 l.238 : « l'équipage … a besoin de beaucoup d'eau
  * et de nourriture pour rester en forme ») — SOURCE CANONIQUE unique : les héros (PJ à bord) PLUS l'effectif
  * PNJ NOMINAL encore présent (`ship.crew − crewLost`, MÊME agrégat que le Manque de bras / la désertion /
  * l'Embrigadement). Le roster salarié (`vessel.crew`, #216) REMPLIT ces postes nominaux — jamais des corps EN
  * SUS (la caractéristique Équipage du type EST le complément entier, MDG 12 l.85) → jamais additionné, sous
  * peine de double compte. `heroes`/`crew` séparés pour le manifeste (les héros mangent leurs rations, l'équipage
- * ses vivres de cale). PUR (lit le store). */
-export function shipboardSouls(get: Get): { heroes: number; crew: number; total: number } {
-  const heroes = get().party.filter((h) => !h.dead).length;
-  const vessel = get().vessel;
+ * ses vivres de cale). PUR. */
+export function shipboardSouls(s: Pick<Jeu, 'party' | 'vessel'>): { heroes: number; crew: number; total: number } {
+  const heroes = s.party.filter((h) => !h.dead).length;
+  const vessel = s.vessel;
   const nominal = vessel ? findVehicleById(vessel.vehicleId)?.ship?.crew ?? 0 : 0;
   const crew = Math.max(0, nominal - (vessel?.crewLost ?? 0));
   return { heroes, crew, total: heroes + crew };
 }
 
+/**
+ * Manque de bras GLOBAL d'un navire (MDG 14 l.55) : `undercrewPenalty(nominal, présent)` où le NOMINAL vient
+ * du type (`vehicles.json` ship.crew) et le PRÉSENT = les `crewIds` encore EN ÉTAT (`exposedCrew`), MOINS les
+ * marins déjà retirés de la campagne par Embrigadement (MDG 15 l.245, `CampaignVessel.crewLost`). Les
+ * morts/inconscients de combat (Éclats, critiques « Équipage ») alimentent aussi le déficit. Lit l'état persistant
+ * du vaisseau de campagne comme `shipMoraleScore` (keyé `creatureId === vehicleId`). */
 export function shipUndercrew(get: Get, ship: Combatant, combatants: Combatant[]): UndercrewPenalty {
   const nominal = profilNavalDe(ship)?.crew ?? 0;
   // Équipage ABSTRAIT (MDG 14 l.39 : « la performance des Personnages représente celle de tout l'équipage ») → le
@@ -461,7 +462,9 @@ function factorLedger(rolls: MoraleRoll[]): NightEntry[] {
 export function councilPay(get: Get, set: SetFn, decision: string): void {
   const p = get().pendingCouncil;
   const vessel = get().vessel;
-  if (!p || !vessel || !choixDePaieOuverts(get()).includes(decision)) return;
+  if (!p || !vessel) return;
+  const refus = refusDeChoixDePaie(get(), decision);
+  if (refus) { refuserGeste(get, set, refus); return; }
   const out = resolveVesselWeek(vessel, partyMoneyTotal(get), decision, p.today, battleRng());
   if (out.costBrass > 0) payFromGroup(get, set, fromBrass(out.costBrass), { purpose: 'gages équipage' });
   set({
@@ -478,6 +481,12 @@ export function choixDePaieOuverts(s: Jeu): string[] {
   if (!p || p.phase !== 'choix' || !s.vessel) return [];
   const bourse = partyMoneyTotal(() => s);
   return payChoices().map((c) => c.factorId).filter((id) => isFreePayChoice(id) || canAfford(bourse, fromBrass(payChoiceCostBrass(p.wageBrass, id))));
+}
+
+/** Refus d'un choix de paie du Conseil : `refusDeGesteSurLeGroupe`, ou la bourse ne couvre pas ce choix ;
+ *  `null` sinon. Tombe dans `councilPay`, lu par l'écran du Conseil. #229 */
+export function refusDeChoixDePaie(s: Jeu, decision: string): string | null {
+  return refusDeGesteSurLeGroupe(s) ?? (choixDePaieOuverts(s).includes(decision) ? null : t('crew.paieHorsBourse'));
 }
 
 /** Les chansons que `shantySetSong` accepte : celles que le chanteur de `pendingShanty` connaît (`knownShanties`) et que
@@ -528,8 +537,7 @@ export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): stri
   if (!vessel) return [];
   const threshold = moraleBand(vessel.morale.score).desertionRoll;
   if (!threshold) return []; // Moral > 75 : bande sans seuil de désertion (MDG 14 l.187-191)
-  const nominal = findVehicleById(vessel.vehicleId)?.ship?.crew ?? 0;
-  const present = Math.max(0, nominal - (vessel.crewLost ?? 0));
+  const present = shipboardSouls(get()).crew;
   let deserters = 0;
   for (let i = 0; i < present; i++) if (deMonde(rng) <= threshold) deserters++;
   if (!deserters) return [];

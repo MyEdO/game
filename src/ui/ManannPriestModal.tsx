@@ -1,11 +1,10 @@
-import { useMemo } from 'react';
 import { useGame } from '../state/store';
 import { Modal } from './Modal';
 import { EmbeddedShell } from './RollShell';
 import { ChoiceButtons } from './OptionChooser';
 import { Coins } from './Coins';
-import { canAfford } from '../engine/money';
-import { partyMoneyTotal } from '../noyau/bourseFlow';
+import { refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
+import { refusDePayerManann } from '../noyau/seaVoyageFlow';
 import { Icon } from './Icon';
 
 /**
@@ -16,12 +15,10 @@ import { Icon } from './Icon';
  */
 export function ManannBody({ embedded = false }: { embedded?: boolean } = {}) {
   const p = useGame((s) => s.pendingManannPriest);
-  const party = useGame((s) => s.party);
-  const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const resolve = useGame((s) => s.resolveManannPriest);
-  const isGuest = useGame((s) => s.net.mode) === 'guest';
+  const refusPayer = useGame(refusDePayerManann);
+  const refusRefuser = useGame(refusDeGesteSurLeGroupe);
   if (!p) return null;
-  const affordable = canAfford(money, p.cost);
   const title = <><Icon id="faith/church" size="sm" /> Un Prêtre de Manann s'avance…</>;
   const body = (
     <>
@@ -36,8 +33,8 @@ export function ManannBody({ embedded = false }: { embedded?: boolean } = {}) {
       <ChoiceButtons
         idPrefix="manann"
         options={[
-          { key: 'payer', label: <><Icon id="resource/gold-purse" size="sm" /> Payer (<Coins money={p.cost} />)</>, primary: true, refus: isGuest ? 'L\'hôte décide.' : !affordable ? 'La bourse ne suit pas.' : undefined, onSelect: () => resolve(true), title: isGuest || !affordable ? undefined : 'Payer la bénédiction' },
-          { key: 'refuser', label: <><Icon id="faith/trident" size="sm" /> Refuser (−4d10 Humeur de Manann)</>, refus: isGuest ? 'L\'hôte décide.' : undefined, onSelect: () => resolve(false), title: isGuest ? undefined : 'Refuser la bénédiction — Manann reste courroucé' },
+          { key: 'payer', label: <><Icon id="resource/gold-purse" size="sm" /> Payer (<Coins money={p.cost} />)</>, primary: true, refus: refusPayer ?? undefined, onSelect: () => resolve(true), title: refusPayer ? undefined : 'Payer la bénédiction' },
+          { key: 'refuser', label: <><Icon id="faith/trident" size="sm" /> Refuser (−4d10 Humeur de Manann)</>, refus: refusRefuser ?? undefined, onSelect: () => resolve(false), title: refusRefuser ? undefined : 'Refuser la bénédiction — Manann reste courroucé' },
         ]}
       />
   );

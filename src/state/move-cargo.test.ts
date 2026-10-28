@@ -3,6 +3,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { carrierById, persistCarriersCargo } from '../noyau/carriers';
+import { t } from '../i18n';
 import type { WorldMap } from '../noyau/worldMap';
 import type { CargoLot } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
@@ -43,9 +44,10 @@ describe('moveCargo — transfert entre porteurs co-localisés', () => {
 
   it('REFUSE (moved 0) si le porteur cible est plein — plafond dur', () => {
     setup([{ cargoId: 'vin', enc: 10, basePriceGold: 3 }], [{ cargoId: 'sel', enc: 25, basePriceGold: 1 }]); // charrette pleine (25/25)
+    const refus = t('cg.ciblePleine', { porteur: carrierById(get(), 'cart')!.label });
     get().moveCargo('mule', 'cart', 'vin', 6);
     expect(carrierById(get(), 'mule')!.cargo).toEqual([{ cargoId: 'vin', enc: 10, basePriceGold: 3 }]); // inchangé
-    expect(get().journal.some((l) => /Transfert impossible/.test(l))).toBe(true);
+    expect(get().journal.some((l) => l.includes(refus)), 'la cible pleine est nommée').toBe(true);
   });
 
   it('porteur inconnu = no-op', () => {

@@ -1218,7 +1218,8 @@ describe('services portuaires (#30)', () => {
     expect(get().gameTime).toBeGreaterThan(t0);
     // Bourse insuffisante → refus (il ne reste que 10 CO, la réparation de 40 Blessures en coûte 40).
     set({ vessel: { ...get().vessel!, wounds: { current: 10, max: 50 } } });
-    expect(portRepairVessel(get, set)[0]).toContain('bourse');
+    expect(portRepairVessel(get, set)).toEqual([]);
+    expect(get().journal).toContain(t('sv.yardTooExpensive', { cost: 40 }));
   });
 
   it('pose d’une Amélioration : coût par bande de Taille (MDG 12) — Nid-de-pie sur une cogue (25 m, Moyenne) = 5 CO', () => {
@@ -1228,7 +1229,8 @@ describe('services portuaires (#30)', () => {
     expect(partyMoneyTotal(get).gold).toBe(5);
     expect(get().vessel!.upgrades).toEqual([{ id: 'nid-de-pie' }]);
     // Un Trait de CONSTRUCTION ne se pose pas après coup (ch.12 l.169).
-    expect(portInstallUpgrade(get, set, 'renforce')[0]).toContain('Trait de construction');
+    expect(portInstallUpgrade(get, set, 'renforce')).toEqual([]);
+    expect(get().journal.some((l) => l.includes('Trait de construction'))).toBe(true);
   });
 });
 
@@ -1275,11 +1277,12 @@ describe('Prêtre de Manann — CHOIX joueur, pas paiement automatique (#132, MD
     expect(score).toBeGreaterThanOrEqual(-40);
   });
 
-  it('choix PAYER avec bourse insuffisante : garde défensive — aucune mutation (l’UI désactive le bouton)', () => {
-    // Bourse du groupe VIDE (aucun héros financé) → payFromGroup insolvable → garde défensive.
+  it('choix PAYER avec bourse insuffisante : refusé et dit, le choix reste ouvert, aucune mutation', () => {
+    // Bourse du groupe VIDE (aucun héros financé) → `refusDePayerManann` refuse avant tout débit.
     triggerPriest();
     resolveManannPriest(get, set, true);
-    expect(get().pendingManannPriest).toBeNull();
+    expect(get().pendingManannPriest).not.toBeNull();
+    expect(get().journal).toContain(t('sv.benedictionHorsBourse'));
     expect(partyMoneyTotal(get)).toEqual({ gold: 0, silver: 0, brass: 0 });
     expect(get().vessel!.manann?.score ?? 0).toBe(0);
   });

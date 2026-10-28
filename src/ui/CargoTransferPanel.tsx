@@ -1,43 +1,43 @@
 import { useState } from 'react';
 import type { CargoCarrier } from '../engine/cargo';
-import { carriersColocated, carrierFreeEnc } from '../engine/cargo';
+import { carrierFreeEnc } from '../engine/cargo';
+import { planDeTransfert } from '../noyau/carriers';
+import { refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
+import { useGame } from '../state/store';
+import { GatedAction, raisonSi } from './GatedAction';
 import { spanFull } from './Layout';
 import { NumberField } from './NumberField';
 
 /**
  * SURFACE DE TRANSFERT de cargaison entre porteurs CO-LOCALISÉS (#327, décision 9) — composée dans les
  * écrans EXISTANTS (marché terrestre bât↔véhicule, dossier navire navire↔porteur terrestre au port). Route
- * sur l'action store `moveCargo` (→ `transferCargo` du tronc). Aucune 2ᵉ modale : un simple formulaire
- * source→cible→lot→quantité, filtré aux porteurs au même endroit (`carriersColocated`). Ne s'affiche que
- * s'il y a au moins deux porteurs et du vrac à déplacer.
+ * sur l'action store `moveCargo`. Aucune 2ᵉ modale : un simple formulaire source→cible→lot→quantité, dont
+ * choix, plafond et refus sont ceux du plan du noyau (`planDeTransfert`). Ne s'affiche que s'il y a au
+ * moins deux porteurs et du vrac à déplacer.
  */
-export function CargoTransferPanel({ carriers, onMove, labelOf, disabled, ...placement }: {
+export function CargoTransferPanel({ carriers, onMove, labelOf, ...placement }: {
   carriers: CargoCarrier[];
   onMove: (fromId: string, toId: string, cargoId: string, enc: number) => void;
   labelOf: (cargoId: string) => string;
-  disabled?: boolean;
 } & Partial<typeof spanFull>) {
   const [rawFrom, setFrom] = useState('');
   const [rawTo, setTo] = useState('');
   const [rawCargo, setCargo] = useState('');
   const [encSaisi, setEncSaisi] = useState<number | null>(null);
+  // Transférer touche la cale du groupe : refus d'invité lu au noyau, comme `moveCargo` le lit en tête.
+  const refusHote = useGame(refusDeGesteSurLeGroupe);
+  const disabled = refusHote != null;
 
-  const sources = carriers.filter((c) => c.cargo.length > 0);
-  if (sources.length === 0 || carriers.length < 2) return null;
-
-  const from = sources.find((c) => c.id === rawFrom) ?? sources[0];
-  const dests = carriers.filter((c) => c.id !== from.id && carriersColocated(from, c));
-  const to = dests.find((c) => c.id === rawTo) ?? dests[0];
-  const lot = from.cargo.find((l) => l.cargoId === rawCargo) ?? from.cargo[0];
-  const maxEnc = lot && to ? Math.min(lot.enc, carrierFreeEnc(to)) : 0;
-  const amount = encSaisi == null ? maxEnc : Math.max(0, Math.min(Math.floor(encSaisi), maxEnc));
+  const plan = planDeTransfert(carriers, { fromId: rawFrom, toId: rawTo, cargoId: rawCargo, enc: encSaisi });
+  const { sources, from, dests, to, lot, maxEnc, enc: amount } = plan;
+  if (!from || carriers.length < 2) return null;
 
   return (
     <details className="fold cargo-transfer-fold" {...placement}>
       <summary><span className="fold-title">Transférer une cargaison</span></summary>
       <div className="fold-body">
-        {dests.length === 0 ? (
-          <p className="port-hint">Aucun autre porteur co-localisé pour recevoir la cargaison.</p>
+        {!to ? (
+          <p className="port-hint">{plan.refus}</p>
         ) : (
           <div className="bar cargo-transfer">
             <label>De
@@ -61,10 +61,11 @@ export function CargoTransferPanel({ carriers, onMove, labelOf, disabled, ...pla
                 min={0} max={maxEnc} placeholder={String(maxEnc)} disabled={disabled}
               />
             </label>
-            <button type="button" className="btn small" disabled={disabled || !to || !lot || amount <= 0}
-              onClick={() => { if (to && lot && amount > 0) { onMove(from.id, to.id, lot.cargoId, amount); setEncSaisi(null); } }}>
-              Transférer
-            </button>
+            <GatedAction
+              id="cargo-transfer" label="Transférer" primary={false} btnClassName="small"
+              enabled={refusHote == null && plan.refus === null} {...raisonSi(refusHote ?? plan.refus)}
+              onClick={() => { if (plan.refus === null) { onMove(plan.from.id, plan.to.id, plan.lot.cargoId, amount); setEncSaisi(null); } }}
+            />
           </div>
         )}
       </div>

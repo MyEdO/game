@@ -162,7 +162,7 @@ describe('allowlist coop (state/intents)', () => {
   });
 
   it('aucune action de persistance/économie/exploration dans l’allowlist (périmètre combat + groupe)', () => {
-    for (const forbidden of ['saveGame', 'loadGame', 'importGame', 'buyItem', 'confirmSell', 'payCart',
+    for (const forbidden of ['saveGame', 'loadGame', 'importGame', 'confirmSell', 'payCart',
       'startTravel', 'moveParty', 'transitionTo', 'startInterlude', 'interludeEnd', 'loadProject',
       'startScene', 'setParty', 'grantXp', 'seedRng', 'netAssignSlot', 'netAssign']) {
       expect(GUEST_INTENTS.has(forbidden), forbidden).toBe(false);

@@ -268,16 +268,6 @@ const V8C1: Site[] = [
     apres: t('mf.barterDone', { giveCount: 2, giveLabel: 'Corde', getCount: 1, getLabel: 'Torche', giveAv: 'commun', ratio: `${2}:${1}`, getAv: 'rare' }),
   },
   {
-    site: 'merchantFlow.ts:466 — achat GRATUIT « Tenir les comptes » (branche VRAIE du ternaire)',
-    avant: `Achat : ${OBJET} (dans les moyens du Statut du groupe — Tenir les comptes).`,
-    apres: t('mf.buyFree', { label: OBJET }),
-  },
-  {
-    site: 'merchantFlow.ts:466 — achat payé (branche FAUSSE du même ternaire)',
-    avant: `Achat : ${OBJET}.`,
-    apres: t('mf.buy', { label: OBJET }),
-  },
-  {
     site: 'merchantFlow.ts:986 — fourchette d’estimation (le séparateur est de la typographie, pas du code)',
     avant: `${'2 CO'} – ${'3 CO'}`,
     apres: t('mf.estimateRange', { min: '2 CO', max: '3 CO' }),
@@ -528,7 +518,7 @@ const V8C3: Site[] = [
   },
   {
     site: 'seaVoyageFlow.ts:2539 — carénage (fragment de coût optionnel, deux valeurs)',
-    avant: `Coque raclée en cale sèche${` (${12} CO — ${25} % du coût de base, ch.13 l.152)`}.`,
+    avant: `Coque raclée en cale sèche${` (${12} CO — ${25} % du coût de base)`}.`,
     apres: t('sv.careened', { cost: t('sv.fragCareenCost', { cost: 12, pct: 25 }) }),
   },
   {
@@ -833,12 +823,12 @@ describe('#1318 V8b/V8b₂/V8c₀/V8c₁/V8c₂ — la migration au catalogue es
     expect(MARQUAGE.length, 'les sites rougis par le MARQUAGE du contrat (V8b₂), panneau compris').toBe(9);
     expect(SIGNES.length, 'DR positif, nul, négatif — le signe ne vit pas dans le gabarit').toBe(3);
     expect(COMBAT.length, 'les littéraux de combatFlow rendus au catalogue (V8c₀)').toBe(6 + 1);
-    expect(V8C1.length, 'échantillons des trois flux passés MIGRÉS par V8c₁ (interlude / bataille de masse / marchand)').toBe(17);
+    expect(V8C1.length, 'échantillons des trois flux passés MIGRÉS par V8c₁ (interlude / bataille de masse / marchand)').toBe(15);
     expect(V8C2.length, 'échantillons des cinq fichiers passés MIGRÉS par V8c₂ (effets / store / voyage terrestre / fluvial / maladies)').toBe(22);
     expect(V8C3.length, 'échantillons des fichiers passés MIGRÉS par V8c₃ (mer / guérison / repos / nuit / équipage / séquelles)').toBe(18);
     expect(V8C4.length, 'échantillons des QUATORZE fichiers de la longue traîne passés MIGRÉS par V8c₄').toBe(19);
     expect(V8C5.length, 'échantillons de la TRANCHE FINALE (18 fichiers gelés + advancement/careerSlots)').toBe(27);
-    expect(TOUS.length).toBe(130);
+    expect(TOUS.length).toBe(128);
   });
 
   it('MUTATION : l’oracle est SENSIBLE — un tiret cadratin changé en tiret court diverge', () => {

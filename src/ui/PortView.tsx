@@ -1,16 +1,15 @@
 import { useMemo, useState } from 'react';
 import { nomDuNavire } from '../noyau/carriers';
 import { useGame } from '../state/store';
-import { partyMoneyTotal } from '../noyau/bourseFlow';
-import { findVehicleById, NAVAL_TRAITS, findNavalPortById, crewRoles, type NavalPortData } from '../data';
+import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
+import { findVehicleById, findNavalTrait, findNavalPortById, type NavalPortData } from '../data';
 import { findCargoById, findCargoEntryById, type PortProfile } from '../engine/seaVoyage';
-import { installCost } from '../engine/shipBuild';
-import { shipHasNavalTrait, vesselNavalTraits } from '../engine/navalTraits';
 import { foulingEffects } from '../engine/seaNavigation';
-import { canAfford, toMoney, priceToMoney, formatMoney } from '../engine/money';
+import { toMoney, priceToMoney } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
 import type { CampaignVessel } from '../noyau/etat';
-import type { PendingShoreLeave, PendingManannPriest } from '../noyau/seaVoyageFlow';
+import { devisDAchatEnPort, caleALEscale, refusDeBradageEnPort, rolesRecrutables, refusDEmbauche, refusDeDebarquement } from '../noyau/portFlow';
+import { devisDeChantier, ameliorationsAuChantier, type PendingShoreLeave, type PendingManannPriest } from '../noyau/seaVoyageFlow';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { Prose } from './Prose';
@@ -22,11 +21,9 @@ import { Tabs } from './composites/Tabs';
 import { TradeTable, type TradeGroup } from './TradeTable';
 import { ShoreLeaveBody } from './ShoreLeaveModal';
 import { ManannBody } from './ManannPriestModal';
-import { GatedAction } from './GatedAction';
+import { GatedAction, raisonSi } from './GatedAction';
 import { Grid, Split } from './Layout';
 
-/** Raison UNIQUE du refus des gestes de port à un invité : l'hôte seul engage la bourse du groupe. */
-const REFUS_INVITE = 'L’hôte seul engage les dépenses du groupe.';
 
 /** Libellé d'une entrée de la colonne Production de l'Index — marchandise ou marqueur, même catalogue. */
 const cargoLabel = (id: string): string => findCargoEntryById(id)?.label ?? id;
@@ -55,12 +52,12 @@ export function PortHeader({ pp, catalogue }: { pp: PortProfile; catalogue?: Nav
  *  terre MDG 15 l.245 / Prêtre de Manann l.246 — le hub COMPOSE `ShoreLeaveBody`/`ManannBody`, déjà
  *  résolvants et branchés au store, aucune 2e prose de décision) et RECRUTEMENT salarié (MDG 14
  *  l.293-302, `crew-roles.json`, PUR sur ce volet — `onHire`/`onDismiss` en props). */
-export function EscaleTab({ vessel, isGuest, pendingShoreLeave, pendingManannPriest, onHire, onDismiss }: {
-  vessel: CampaignVessel; isGuest: boolean;
+export function EscaleTab({ vessel, refusHote, pendingShoreLeave, pendingManannPriest, onHire, onDismiss }: {
+  vessel: CampaignVessel; refusHote: string | null;
   pendingShoreLeave: PendingShoreLeave | null; pendingManannPriest: PendingManannPriest | null;
   onHire: (roleId: string) => void; onDismiss: (roleId: string) => void;
 }) {
-  const hireable = crewRoles.filter((r) => r.wage?.weekly);
+  const hireable = rolesRecrutables();
   const countOf = (roleId: string) => vessel.crew?.find((h) => h.roleId === roleId)?.count ?? 0;
   const hasEvent = !!(pendingShoreLeave || pendingManannPriest);
   return (
@@ -86,13 +83,13 @@ export function EscaleTab({ vessel, isGuest, pendingShoreLeave, pendingManannPri
                 <div className="port-crew-actions">
                   <GatedAction
                     id={`port-hire-${role.id}`} label="Embaucher" ariaLabel={`Embaucher un ${role.label}`}
-                    enabled={!isGuest} reason={REFUS_INVITE}
+                    enabled={refusDEmbauche(vessel, role.id, refusHote) == null} {...raisonSi(refusDEmbauche(vessel, role.id, refusHote))}
                     onClick={() => onHire(role.id)} primary={false} btnClassName="small"
                   />
                   <GatedAction
                     id={`port-dismiss-${role.id}`} label="Débarquer" ariaLabel={`Débarquer un ${role.label}`}
-                    enabled={!isGuest && n > 0}
-                    reason={isGuest ? REFUS_INVITE : `Aucun ${role.label} à bord.`}
+                    enabled={refusDeDebarquement(vessel, role.id, refusHote) == null}
+                    {...raisonSi(refusDeDebarquement(vessel, role.id, refusHote))}
                     onClick={() => onDismiss(role.id)} primary={false} btnClassName="small ghost"
                   />
                 </div>
@@ -132,30 +129,18 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const dismiss = useGame((s) => s.portDismissCrew);
   const pendingShoreLeave = useGame((s) => s.pendingShoreLeave);
   const pendingManannPriest = useGame((s) => s.pendingManannPriest);
-  const isGuest = useGame((s) => s.net.mode) === 'guest';
+  const refusHote = useGame(refusDeGesteSurLeGroupe);
+  const net = useGame((s) => s.net);
   const [tab, setTab] = useState<'coque' | 'cargaison' | 'escale'>(initialTab);
   const [buyEnc, setBuyEnc] = useState<Record<string, number>>({});
 
   const vd = vessel ? findVehicleById(vessel.vehicleId) : undefined;
-  const upgrades = useMemo(() => {
-    if (!vd?.ship) return [];
-    const owned = new Set((vessel?.upgrades ?? []).map((u) => u.id));
-    return NAVAL_TRAITS
-      .filter((t) => t.kind === 'amelioration' && t.install && !owned.has(t.id))
-      .map((t) => ({ def: t, cost: installCost(t.install!, vd.ship!.lengthM, 1) }))
-      .filter((u) => u.cost.gold != null);
-  }, [vessel?.upgrades, vd?.ship]);
-
+  const upgrades = vessel ? ameliorationsAuChantier(vessel, money, refusHote) : [];
   if (!port || !vessel || !vd?.ship) return null;
-  const woundsMax = vessel.wounds?.max ?? vd.hull?.char.B ?? 0;
-  const woundsCur = vessel.wounds?.current ?? woundsMax;
-  const missing = woundsMax - woundsCur;
-  const foulLevel = vessel.fouling?.level ?? 0;
-  const traits = vesselNavalTraits(vessel);
-  const lissage = shipHasNavalTrait(traits, 'lissage');
-  const repairCost = Math.ceil(missing * (lissage ? 1.5 : 1));
-  const careenPct = foulingEffects(foulLevel).repairPctOfBase;
-  const careenCost = Math.ceil((vd.purchase?.price?.gold ?? 0) * (careenPct / 100));
+  const devisDe = (cargoId: string) => devisDAchatEnPort({ port, vessel, net, party }, cargoId, buyEnc[cargoId]);
+  const chantier = devisDeChantier(vessel, money, refusHote);
+  const cale = caleALEscale(vessel);
+  const { max: woundsMax, current: woundsCur, missing, lissage, reparationGold: repairCost, foulLevel, carenagePct: careenPct, carenageGold: careenCost } = chantier;
   const cargo = vessel.cargo ?? [];
   const catalogue = port.ref ? findNavalPortById(port.ref) : undefined;
   const hasEscaleEvent = !!(pendingShoreLeave || pendingManannPriest);
@@ -188,8 +173,8 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                 id="port-repair"
                 label={<><Icon id="travel/repair" size="sm" /> Réparer{missing > 0 ? <> — {missing} Blessure(s), <Coins money={toMoney({ gold: repairCost })} /></> : null}</>}
                 ariaLabel="Réparer la coque"
-                enabled={!isGuest && (missing > 0 || !!vessel.criticals?.length)}
-                reason={isGuest ? REFUS_INVITE : 'La coque est intacte.'}
+                enabled={!chantier.refusReparation}
+                {...raisonSi(chantier.refusReparation)}
                 descOfferte={`1 CO par Blessure restaurée${lissage ? ' · +50 % coque lissée' : ''}`}
                 onClick={repair}
                 primary={false}
@@ -208,8 +193,8 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                 id="port-careen"
                 label={<><Icon id="travel/careen" size="sm" /> Caréner{careenCost > 0 ? <> — <Coins money={toMoney({ gold: careenCost })} /></> : null}</>}
                 ariaLabel="Caréner la coque"
-                enabled={!isGuest && (foulLevel > 0 || !!vessel.crabs)}
-                reason={isGuest ? REFUS_INVITE : 'La coque est propre.'}
+                enabled={!chantier.refusCarenage}
+                {...raisonSi(chantier.refusCarenage)}
                 descOfferte={`Cale sèche — ${careenPct} % du coût de base`}
                 onClick={careen}
                 primary={false}
@@ -219,22 +204,22 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
               <h3>Améliorations</h3>
               {upgrades.length === 0 && <p className="port-hint">Toutes les Améliorations installables le sont déjà.</p>}
               <Grid min="md" stackBelow={700}>
-                {upgrades.map(({ def, cost }) => (
-                  <div key={def.id} className="port-upgrade">
+                {upgrades.map((devis) => (
+                  <div key={devis.traitId} className="port-upgrade">
                     <div className="port-upgrade-head">
-                      <b>{def.label}</b>
+                      <b>{devis.label}</b>
                       <GatedAction
-                        id={`port-upgrade-${def.id}`}
-                        label={<>Installer — <Coins money={toMoney({ gold: cost.gold ?? 0 })} /></>}
-                        ariaLabel={`Installer ${def.label}`}
-                        enabled={!isGuest && canAfford(money, toMoney({ gold: cost.gold ?? 0 }))}
-                        reason={isGuest ? REFUS_INVITE : `Bourse insuffisante (${formatMoney(toMoney({ gold: cost.gold ?? 0 }))}).`}
-                        onClick={() => install(def.id, 1)}
+                        id={`port-upgrade-${devis.traitId}`}
+                        label={<>Installer — <Coins money={toMoney({ gold: devis.gold ?? 0 })} /></>}
+                        ariaLabel={`Installer ${devis.label}`}
+                        enabled={devis.refus === null}
+                        {...raisonSi(devis.refus)}
+                        onClick={() => install(devis.traitId, 1)}
                         primary={false}
                         btnClassName="small"
                       />
                     </div>
-                    <Prose md={def.desc} porteur={{ type: 'navalTraits', id: def.id, chemin: 'desc' }} />
+                    <Prose md={findNavalTrait(devis.traitId)?.desc ?? ''} porteur={{ type: 'navalTraits', id: devis.traitId, chemin: 'desc' }} />
                   </div>
                 ))}
               </Grid>
@@ -245,8 +230,8 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
             <section className="panel port-section">
               <h3>Acheter — offres de l’escale</h3>
               <p className="port-hint">
-                Cale libre : <b>{port.freeEnc} Enc</b>
-                {port.maxLoadEnc > port.freeEnc && <> · surcharge possible jusqu’à <b>+{port.maxLoadEnc - port.freeEnc} Enc</b> (jusqu’à 150 %)</>}
+                Cale libre : <b>{cale.libre} Enc</b>
+                {cale.embarquable > cale.libre && <> · surcharge possible jusqu’à <b>+{cale.embarquable - cale.libre} Enc</b> (jusqu’à {cale.plafondPct} %)</>}
               </p>
               {port.offers.length === 0 && <p className="port-hint">Aucune cargaison à vendre dans ce port (production « minimum vital » ou stock épuisé).</p>}
               {port.offers.length > 0 && (
@@ -260,30 +245,26 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                   priceLabel="Prix/Enc"
                   price={(o) => toMoney({ gold: o.basePrice })}
                   disabled={(o) => {
-                    const want = buyEnc[o.cargoId] ?? Math.min(o.enc, Math.max(port.freeEnc, 1));
-                    const estCost = toMoney({ gold: Math.round(want * o.basePrice) });
-                    return !canAfford(money, estCost) ? { reason: 'Bourse insuffisante' } : false;
+                    const refus = devisDe(o.cargoId).refus;
+                    return refus ? { reason: refus } : false;
                   }}
                   action={(o) => {
-                    const want = buyEnc[o.cargoId] ?? Math.min(o.enc, Math.max(port.freeEnc, 1));
-                    const estCost = toMoney({ gold: Math.round(want * o.basePrice) });
-                    const affordable = canAfford(money, estCost);
-                    const wouldOverload = want > port.freeEnc; // achat qui pousse en zone de surcharge (#243)
+                    const devis = devisDe(o.cargoId);
                     return (
-                      <div className={`market-offer-buy ${affordable ? '' : 'unaffordable'}`}>
+                      <div className={`market-offer-buy ${devis.refus ? 'unaffordable' : ''}`}>
                         <NumberField
                           variant="nu" label={`Enc à embarquer — ${o.label}`}
-                          min={1} max={Math.min(o.enc, port.maxLoadEnc)} value={want}
+                          min={1} max={devis.max} value={devis.enc}
                           onChange={(n) => setBuyEnc((s) => ({ ...s, [o.cargoId]: n }))}
                         />
-                        <span className="market-offer-total">≈ <Coins money={estCost} /></span>
+                        <span className="market-offer-total">≈ <Coins money={toMoney({ gold: devis.estimationGold })} /></span>
                         <GatedAction
                           id={`port-buy-${o.cargoId}`}
-                          label={wouldOverload ? 'Surcharger' : 'Acheter'}
-                          enabled={!isGuest && port.maxLoadEnc > 0 && affordable}
-                          reason={isGuest ? REFUS_INVITE : port.maxLoadEnc <= 0 ? 'La cale ne peut plus rien recevoir.' : 'Bourse insuffisante.'}
-                          descOfferte={wouldOverload ? 'Embarquer en surcharge (pénalités d’assiette)' : 'Estimation avant Marchandage'}
-                          onClick={() => buy(o.cargoId, want)}
+                          label={devis.surcharge ? 'Surcharger' : 'Acheter'}
+                          enabled={devis.refus === null}
+                          {...raisonSi(devis.refus)}
+                          descOfferte={devis.surcharge ? 'Embarquer en surcharge (pénalités d’assiette)' : 'Estimation avant Marchandage'}
+                          onClick={() => buy(o.cargoId, devis.enc)}
                           primary={false}
                           btnClassName="small"
                         />
@@ -307,12 +288,12 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                   action={(r) => (
                     <div className="port-sell-actions">
                       <GatedAction
-                        id={`port-sell-${r.i}`} label="Vendre" enabled={!isGuest} reason={REFUS_INVITE}
+                        id={`port-sell-${r.i}`} label="Vendre" enabled={!refusHote} {...raisonSi(refusHote)}
                         descOfferte="Trouver un acheteur puis marchander"
                         onClick={() => sell(r.i)} primary={false} btnClassName="small"
                       />
                       <GatedAction
-                        id={`port-dump-${r.i}`} label="Brader" enabled={!isGuest} reason={REFUS_INVITE}
+                        id={`port-dump-${r.i}`} label="Brader" enabled={refusDeBradageEnPort({ net, port }, r.lot.cargoId) == null} {...raisonSi(refusDeBradageEnPort({ net, port }, r.lot.cargoId))}
                         descOfferte="Brader à ¼ du prix de base"
                         onClick={() => dump(r.i)} primary={false} btnClassName="small ghost"
                       />
@@ -324,7 +305,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
           </Split>
         ) : (
           <EscaleTab
-            vessel={vessel} isGuest={isGuest}
+            vessel={vessel} refusHote={refusHote}
             pendingShoreLeave={pendingShoreLeave} pendingManannPriest={pendingManannPriest}
             onHire={(roleId) => hire(roleId, 1)} onDismiss={(roleId) => dismiss(roleId, 1)}
           />

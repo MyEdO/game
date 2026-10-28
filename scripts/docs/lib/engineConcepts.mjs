@@ -149,6 +149,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/spellspec.ts', 'Spécification de sort'],
   ['src/engine/statEntry.ts', 'Entrée de statistique'],
   ['src/engine/statblock.ts', 'Statblock de créature'],
+  ['src/engine/statut.testkit.ts', 'Statut : harnais de test (carrière au Statut le plus haut, budget « Tenir les comptes »)'],
   ['src/engine/structureCritical.ts', 'Coups Critiques de structure'],
   ['src/engine/structures.ts', 'Structures (siège)'],
   ['src/engine/suffocation.ts', 'Suffocation'],

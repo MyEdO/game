@@ -12,14 +12,34 @@ import { conditionCtx, type ConditionCtx } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import { actorIn, ecrireActeur } from './monde/combatants';
+import { t } from '../i18n';
+import { refuserGeste } from './refusVisible';
 
 const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2097
+
+/** Refus d'un geste qui touche la BOURSE ou la CALE du groupe (dépense, vente, bradage, troc, transfert de
+ *  cargaison, évaluation de lot) depuis un siège invité (coop) : la raison affichée, ou `null`. Le geste
+ *  noyau le lit en tête (`refuserGeste`), l'écran le lit pour fermer sa case. */
+export function refusDeGesteSurLeGroupe(s: Pick<Jeu, 'net'>): string | null {
+  return s.net.mode === 'guest' ? t('groupe.hoteSeul') : null;
+}
+
+/** Tête de geste de groupe : dit `refusDeGesteSurLeGroupe` par `refuserGeste` et rend `true` s'il refuse. */
+export function refuseLeGesteDeGroupe(get: Get, set: Set): boolean {
+  const refus = refusDeGesteSurLeGroupe(get());
+  return refus ? refuserGeste(get, set, refus) : false;
+}
 
 
 /** Somme des bourses des héros — SEULE source d'un affichage d'argent agrégé (il n'y a pas de bourse
  *  de groupe : l'argent vit sur les héros). */
 export function partyMoneyTotal(get: Get): Money {
-  return get().party.reduce((sum, h) => moneyAdd(sum, bourseOf(h)), ZERO_MONEY);
+  return totalDesBourses(get().party);
+}
+
+/** Somme des bourses d'un groupe donné (forme PURE de `partyMoneyTotal`, pour un verdict sur un état). */
+export function totalDesBourses(party: Combatant[]): Money {
+  return party.reduce((sum, h) => moneyAdd(sum, bourseOf(h)), ZERO_MONEY);
 }
 
 /** `ConditionCtx` de SCÈNE depuis l'état vivant — SOURCE UNIQUE (remplace le `Jeu.money`

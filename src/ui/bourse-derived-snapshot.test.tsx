@@ -16,7 +16,6 @@ const vessel = { vehicleId: 'cogue', label: 'Navire de test', morale: { score: 7
 const port = {
   placeId: 'port-test', label: 'Port de test',
   port: { taille: 4, richesse: 5, production: [], surplus: {}, demande: {}, cosmopolite: false },
-  freeEnc: 5, maxLoadEnc: 5,
   offers: [{ cargoId: 'poisson-sale', label: 'Poisson salé', enc: 5, basePrice: 1, surplus: false }],
 };
 
@@ -52,6 +51,8 @@ describe('bourses dérivées — trois consommateurs montés sous StrictMode', (
       expect(container.textContent).toContain('Mise (CO, max 3)');
       expect(coins(container, 3)).toBe(true);
     } else {
+      // Port : 3 CO restent sous le prix plancher du lot (5 Enc à 1 CO, moins la meilleure remise de Marchandage
+      // possible, au plus −30 %) : l'achat est fermé avant le jet.
       expect(bouton(container, cas === 'manann' ? 'Payer' : 'Acheter').getAttribute('aria-disabled')).toBe('true');
       if (cas === 'port') expect(coins(container, 3)).toBe(true);
     }

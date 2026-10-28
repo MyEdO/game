@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { creditBourse } from '../noyau/bourseFlow';
+import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
+import { toBrass, priceToMoney } from '../engine/money';
+import { statutLePlusHaut } from '../engine/statut.testkit';
+import { catalogEntryOf } from '../noyau/merchantFlow';
+import { acheterAuPanier } from './marchand.testkit';
 import { emptyScene } from '../noyau/monde/scene';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
@@ -56,16 +60,20 @@ describe('#93 — marketRule : override par-entité prime sur le global', () => 
     expect(useGame.getState().merchant!.stock.length).toBeGreaterThan(0);
   });
 
-  it('tenirComptes : override false prime — un achat n’est PAS marqué « dans les moyens du Statut » malgré le global actif', () => {
-    useGame.setState({ party: [hero()], scene: sceneWith({ tenirComptes: false }), journal: [] });
+  it('tenirComptes : override false prime — un achat dans les moyens du Statut est débité malgré le global actif', () => {
+    const { career, careerLevel, budget } = statutLePlusHaut();
+    useGame.setState({ party: [{ ...hero(), career, careerLevel }], scene: sceneWith({ tenirComptes: false }), journal: [] });
     creditBourse(useGame.getState, useGame.setState, useGame.getState().party[0].id, { gold: 100, silver: 0, brass: 0 });
     setRule('market-tenir-comptes', true);
     useGame.getState().openMerchant('pnj');
-    const cheap = useGame.getState().merchant!.stock.find((l) => l.qty > 0);
-    if (cheap) {
-      useGame.getState().buyItem(cheap.id);
-      expect(useGame.getState().journal.some((l) => /Tenir les comptes/.test(l))).toBe(false); // override désactivé
-    }
+    const ligne = useGame.getState().merchant!.stock.find((l) => {
+      const prix = toBrass(priceToMoney(catalogEntryOf(l.id)?.price ?? null));
+      return l.qty > 0 && prix > 0 && prix <= budget;
+    })!;
+    expect(ligne, 'stock sans ligne dans les moyens du Statut — le cas ne distinguerait pas l’override').toBeTruthy();
+    const avant = toBrass(partyMoneyTotal(useGame.getState));
+    acheterAuPanier(ligne.id);
+    expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(avant); // override désactivé : la ligne se paie
   });
 
   it('tenirComptes : absent → hérite du global actif (achat gratuit dans les moyens du Statut)', () => {

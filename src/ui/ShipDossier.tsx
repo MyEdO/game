@@ -3,10 +3,10 @@ import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
 import { findVehicleById } from '../data';
-import { findCargoById, findManannFactor, cargoTotalEnc, cargoOverload, overloadMaxEnc } from '../engine/seaVoyage';
+import { findCargoById, findManannFactor } from '../engine/seaVoyage';
+import { dossierDuNavire } from '../noyau/seaVoyageFlow';
 import { foulingEffects } from '../engine/seaNavigation';
-import { moraleBand, weeklyCrewWageBrass, findMoraleFactor } from '../engine/crewMorale';
-import { provisioningManifest } from '../engine/provisions';
+import { moraleBand, findMoraleFactor } from '../engine/crewMorale';
 import { fromBrass } from '../engine/money';
 import { bulkCarriers, type CarrierStateSlice, nomDuNavire } from '../noyau/carriers';
 import { Coins } from './Coins';
@@ -57,11 +57,10 @@ export function ShipDossier({ onClose, initialTab }: { onClose: () => void; init
   const scene = useGame((s) => s.scene);
   const possessions = useGame((s) => s.possessions);
   const move = useGame((s) => s.moveCargo);
-  const isGuest = useGame((s) => s.net.mode) === 'guest';
   // Transfert navire ↔ porteur terrestre CO-LOCALISÉ (au port). `bulkCarriers` réunit cale + bêtes/véhicules.
   const carriers = useMemo(() => bulkCarriers({ party, vessel, worldMap, scene, possessions } as CarrierStateSlice), [party, vessel, worldMap, scene, possessions]);
   if (!vessel) return null;
-  const transfer = <CargoTransferPanel carriers={carriers} onMove={move} labelOf={(id) => findCargoById(id)?.label ?? id} disabled={isGuest} />;
+  const transfer = <CargoTransferPanel carriers={carriers} onMove={move} labelOf={(id) => findCargoById(id)?.label ?? id} />;
   return <ShipDossierView vessel={vessel} party={party} onClose={onClose} initialTab={initialTab} transfer={transfer} />;
 }
 
@@ -71,21 +70,13 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
   const [tab, setTab] = useState<DossierTab>(initialTab);
 
   const vd = findVehicleById(vessel.vehicleId);
-  if (!vd?.ship) return null;
+  const vue = dossierDuNavire(vessel, party);
+  if (!vd?.ship || !vue) return null;
 
   const name = nomDuNavire(vessel);
   const rig = rigDuNavire(vd.ship);
-  const woundsMax = vessel.wounds?.max ?? vd.hull?.char.B ?? 0;
-  const woundsCur = vessel.wounds?.current ?? woundsMax;
-  const missing = woundsMax - woundsCur;
-
-  const capacity = vd.ship.capacity;
+  const { woundsMax, woundsCur, missing, capacity, cargoEnc, overload, cargoMax, cargoMarks, crewCount, autonomyDays, provisionDays, weeklyWageBrass } = vue;
   const cargo = vessel.cargo ?? [];
-  const cargoEnc = cargoTotalEnc(cargo);
-  // Surcharge de la cale (MDG 12 l.70-75) : palier d'assiette + marques de jauge (120/140/150 % de la Contenance).
-  const overload = cargoOverload(cargoEnc, capacity);
-  const cargoMax = overloadMaxEnc(capacity); // domaine de la jauge = plafond dur (150 %)
-  const cargoMarks = [Math.round(capacity), Math.round(capacity * 1.2), Math.round(capacity * 1.4)];
 
   const manann = vessel.manann;
   const manannScore = manann?.score ?? 0;
@@ -93,16 +84,6 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
 
   const foulLevel = vessel.fouling?.level ?? 0;
   const criticals = vessel.criticals ?? [];
-
-  // POPULATION EMBARQUÉE (#245) : héros + effectif PNJ nominal présent (`ship.crew − crewLost`).
-  const crewCount = Math.max(0, (vd.ship.crew ?? 0) - (vessel.crewLost ?? 0));
-  // Autonomie en eau (jours) : eau requise/jour de TOUTE la population embarquée — autonomie = eau ÷ besoin.
-  const dailyWater = provisioningManifest(party, vessel.waterLitres, 1, { count: crewCount, provisions: vessel.provisions }).eauRequiseLitres;
-  const autonomyDays = vessel.waterLitres != null && dailyWater > 0 ? Math.floor(vessel.waterLitres / dailyWater) : null;
-  // Autonomie en vivres d'équipage (jours) : rations de cale ÷ effectif PNJ.
-  const provisionDays = vessel.provisions != null && crewCount > 0 ? Math.floor(vessel.provisions / crewCount) : null;
-
-  const weeklyWageBrass = weeklyCrewWageBrass(vessel.crew);
 
   return (
     <ScreenShell
@@ -180,7 +161,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
                 </div>
               )}
               {vessel.saboteurDR ? <p className="port-hint">Sabotage actif : <b>{vessel.saboteurDR} DR</b> aux Tests d’équipage.</p> : null}
-              <p className="port-hint">À bord : <b>{party.filter((h) => !h.dead).length} héros + {crewCount} d’équipage</b>.</p>
+              <p className="port-hint">À bord : <b>{vue.heroes} héros + {crewCount} d’équipage</b>.</p>
               <p className="port-hint">
                 Eau douce : <b>{vessel.waterLitres != null ? `${vessel.waterLitres} L` : 'ravitaillement réputé assuré'}</b>
                 {autonomyDays != null ? ` · autonomie ~${autonomyDays} jour(s)` : ''}
@@ -212,7 +193,8 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
             <section className="panel port-section">
               <h3>Cale</h3>
               <NotchGauge label="Soute" value={cargoEnc} max={cargoMax} marks={cargoMarks} stacked tone={cargoTone} format={(v) => `${v} / ${capacity} Enc${overload.palierId ? ` — ${overload.label} (${overload.ratioPct} %)` : ''}`} />
-              {overload.palierId && <p className="port-hint">Surcharge : <b>{overload.mMod} M</b>, <b>{overload.manoeuvreDR} DR Manœuvre</b>.{!overload.canSail && ' Impossible de prendre la mer.'}</p>}
+              {overload.palierId && <p className="port-hint">Surcharge : <b>{overload.mMod} M</b>, <b>{overload.manoeuvreDR} DR Manœuvre</b>.</p>}
+              {vue.refusDAppareiller && <p className="port-hint">{vue.refusDAppareiller}</p>}
               {cargo.length === 0 ? (
                 <p className="port-hint">La cale est vide.</p>
               ) : (
@@ -238,15 +220,15 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
           <Split aside="md" stackBelow={900} gap="xl" pad="xl">
             <section className="panel port-section">
               <h3>Équipage salarié</h3>
-              {vessel.crew?.length ? (
+              {vue.soldesParRole.length ? (
                 <table className="port-table">
                   <thead><tr><th>Rôle</th><th>Nombre</th><th>Salaire / semaine</th></tr></thead>
                   <tbody>
-                    {vessel.crew.map((h) => (
+                    {vue.soldesParRole.map((h) => (
                       <tr key={h.roleId}>
                         <td>{crewRoleLabel(h.roleId)}</td>
                         <td>{h.count}</td>
-                        <td><b><Coins money={fromBrass(weeklyCrewWageBrass([h]))} /></b></td>
+                        <td><b><Coins money={fromBrass(h.weeklyBrass)} /></b></td>
                       </tr>
                     ))}
                     <tr>
