@@ -1054,10 +1054,18 @@ export type GameOp =
    *  jamais « lancé »). */
   | { op: 'offTerrainMod'; terrain: string; mSet?: number; testDR?: number; suffocates?: boolean }
   /** Modificateur d'un ATTRIBUT SECONDAIRE À MAXIMUM (≠ CharKey, ≠ Mouvement) : Blessures (Dur à cuire +BE),
-   *  Chance (Chanceux), Détermination (Obstiné). `mod` = Formula (`{bonusOf:'endurance'}` pour Dur à cuire).
-   *  Lu par heroMaxWounds/fortuneMax/resolveMax — data-driven, jamais par libellé. Destin/Résilience
-   *  N'ONT PAS de maximum dérivé (un octroi passe par `gainResource`) → EXCLUS de l'union (#292). */
-  | { op: 'attrMod'; attr: 'wounds' | 'fortune' | 'resolve'; mod: Formula }
+   *  Chance (Chanceux), Détermination (Obstiné). `mod` = formule lue avant tout jet (`{bonusOf:'endurance'}`
+   *  pour Dur à cuire). Passif : lu sur TOUT porteur du collecteur `passiveMods` (`sommeAttrMods`) par
+   *  fortuneMax/resolveMax ; Blessures d'un talent dans `wounds.base` (`extraWounds`), des autres porteurs
+   *  au delta d'`effectiveMaxWounds` (#3060). Destin/Résilience N'ONT PAS de maximum dérivé (un octroi
+   *  passe par `gainResource`) → EXCLUS de l'union (#292). */
+  | { op: 'attrMod'; attr: 'fortune' | 'resolve'; mod: FormuleSansTirage }
+  /** `attrMod` des Blessures. `auTotal` (#3060 ; Middenheim 04 l.27, LDB 71 l.20) : `mod` est le changement
+   *  TOTAL des Blessures max que produit la liste d'ops qui le porte. Les `charMod` de cette liste et de ses
+   *  descentes (`transform`, `polymorph`…) sont marqués `ActiveEffect.blessuresAuTotal` et n'entrent pas dans
+   *  le recalcul (`effectiveMaxWounds`) : la source déplace les Blessures max d'exactement `mod`, quels que
+   *  soient les autres modificateurs, et son retrait rend la valeur d'avant. Canal exécuté (`applyOps`). */
+  | { op: 'attrMod'; attr: 'wounds'; mod: FormuleSansTirage; auTotal?: true }
   /** Plafond de mains d'arme maniables — GÉNÉRALISE `noTwoHanded` (hands:1 = pas d'arme à deux mains).
    *  Une amputation de main/bras pose `maxWeaponHands:1` (PERMANENT, via Trauma.ops). `durationRounds` :
    *  effet TEMPORAIRE à durée intrinsèque (Aux Armes « main/bras inutilisable Nd10 [−BE] Rounds », l.2557/
@@ -1275,6 +1283,10 @@ export interface OpsCtx {
    *  Sert l'identité de retrait/détection (`transform`/`endTransform`, chansons de marin…) — JAMAIS le `label`
    *  (affichage, non stable/traductible). */
   effectId?: string;
+  /** Une op de la liste en cours, ou d'une liste qui l'englobe, est un `attrMod` de Blessures `auTotal` :
+   *  chaque `charMod` posé ici est marqué `ActiveEffect.blessuresAuTotal` (#3060). Dérivé par `applyOps`
+   *  et transmis aux descentes ; jamais posé par un site d'application. */
+  blessuresAuTotal?: true;
   /** Durée (en Rounds) des `charMod` sans durée propre — celle du sort. */
   defaultDurationRounds?: number;
   /** Échéance d'HORLOGE (minutes `gameTime`) des effets actifs d'un sort à durée en
@@ -1616,7 +1628,7 @@ function desDeclaresDe(o: GameOp, target: Combatant, ctx: OpsCtx): DeDeclare[] {
  */
 /** GELÉS : primitifs/données pures, portés VERBATIM par le `meta` de l'étape (sérialisables, coop). */
 export const OPS_CTX_GELES = [
-  'sourceSpell', 'sourceSpellId', 'conjureForm', 'label', 'rejeuRecurrent', 'source', 'effectId',
+  'sourceSpell', 'sourceSpellId', 'conjureForm', 'label', 'rejeuRecurrent', 'source', 'effectId', 'blessuresAuTotal',
   'defaultDurationRounds', 'defaultUntilTime', 'now', 'sl', 'overcastDurationSteps', 'chosenTableRolls',
   'noReentryOwnTestFailed', 'woundsDealt', 'rolled', 'indice', 'stacks', 'engagedAdvantageGap',
   'engagedAdvantageLead', 'location', 'attackKind', 'startleCause', 'foeInLoS', 'hiddenFromFoes',
@@ -1731,7 +1743,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
   // ctx est vivant pendant la boucle (`ctx.woundsDealt`), un instantané pris ici le figerait.
   //  Les DÉS POSÉS n'y descendent pas non plus : leurs clés (`cleDeDe`) sont indexées sur le rang de
   //  l'op dans CE tableau, et le rang 0 d'une descente collisionnerait avec le rang 0 du parent.
-  const imbrique = (extra?: Partial<OpsCtx>): OpsCtx => ({ ...ctx, ...extra, rejeuRecurrent: undefined, des: undefined, surLigne: undefined });
+  //  Le marquage des Blessures au total (`blessuresAuTotal`, #3060) y descend : la liste qui porte
+  //  l'`attrMod` couvre ses descentes.
+  const blessuresAuTotal = ctx.blessuresAuTotal ?? (ops.some((o) => o.op === 'attrMod' && o.attr === 'wounds' && o.auTotal) ? true : undefined);
+  const imbrique = (extra?: Partial<OpsCtx>): OpsCtx => ({ ...ctx, blessuresAuTotal, ...extra, rejeuRecurrent: undefined, des: undefined, surLigne: undefined });
   // LE DÉ D'UNE OP (#1508), seul point de consommation du canal : la valeur POSÉE par la porte pour le
   // champ DÉCLARÉ (`DES_DUNE_OP`), à défaut le tirage — au même point du rng qu'avant le canal. Le
   // `case` ne connaît ni la clé ni sa graphie : il nomme son CHAMP, comme la déclaration.
@@ -1984,6 +1999,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const dur: Duration = durationFromOp(o, ctx, ref);
         applyActiveEffect(target, {
           label: nomDeSource(ctx), char: o.char, bonus: o.mod, duration: dur,
+          ...(blessuresAuTotal ? { blessuresAuTotal } : {}),
           ...(ctx.sourceSpell ? { spell: ctx.sourceSpell } : {}),
           ...(ctx.sourceSpellId ? { sourceSpellId: ctx.sourceSpellId } : {}),
           ...(source ? { source } : {}),

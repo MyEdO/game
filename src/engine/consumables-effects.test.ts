@@ -117,7 +117,7 @@ describe('bonnet-de-fou (LDB 71 l.20)', () => {
   it('« +10 en Force, +4 Blessures et le Talent Frénésie » + perte 1d10 PB à la dissipation (delayed afterDuration)', () => {
     const ops = consumableOps(itemFromTrappingById('bonnet-de-fou')!.consumable);
     expect(ops).toContainEqual({ op: 'charMod', char: 'force', mod: 10 });
-    expect(ops).toContainEqual({ op: 'attrMod', attr: 'wounds', mod: 4 });
+    expect(ops).toContainEqual({ op: 'attrMod', attr: 'wounds', mod: 4, auTotal: true }); // #3060
     expect(ops).toContainEqual({ op: 'grantTalent', talent: { id: 'frenesie' } });
     const delayed = ops.find((o) => o.op === 'delayed') as Extract<import('./ops').GameOp, { op: 'delayed' }>;
     expect(delayed.afterDuration).toBe(true);

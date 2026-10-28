@@ -767,6 +767,9 @@ export interface ActiveEffect {
   effectId?: string;
   /** Caractéristique modifiée, le cas échéant. */
   char?: CharKey;
+  /** Posé par un `charMod` dont la liste d'ops porte un `attrMod` de Blessures `auTotal` (#3060) : `char`
+   *  compte partout, sauf dans le recalcul des Blessures max (`effectiveMaxWounds`). */
+  blessuresAuTotal?: true;
   /** Valeur du bonus (ex. +10). */
   bonus: number;
   /** Durée de l'effet (échelle Rounds, horloge `gameTime`, ou permanent) — représentation UNIQUE

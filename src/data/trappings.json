@@ -6064,7 +6064,8 @@
               {
                 "op": "attrMod",
                 "attr": "wounds",
-                "mod": 4
+                "mod": 4,
+                "auTotal": true
               },
               {
                 "op": "grantTalent",

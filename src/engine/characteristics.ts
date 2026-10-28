@@ -4,7 +4,7 @@
 import { CharKey, Characteristics, Combatant, effectRef, type ActiveEffect } from './types';
 import { isPrayerFamily } from './combatFeatures/types';
 import type { CodexTarget } from './ruleRefs';
-import { traumaCharPenaltiesLabeled, passiveCharSum } from './trauma';
+import { traumaCharPenaltiesLabeled, passiveCharSum, passiveMods, sommeAttrMods } from './trauma';
 import { traitCharMods, traitCapability } from './traits/dispatch';
 import { SizeCategory, woundsForSize, effectiveSize } from './size';
 import { findTalentById, findSpellById } from '../data';
@@ -47,9 +47,9 @@ interface VolatileEntry { label: string; value: number; ref?: CodexTarget; pool?
  *  son meilleur bonus et sa pire pénalité (`effectPool`) ; le reste — effets hors pool, réductions
  *  passives (traumatisme, faim…, `traumaCharPenaltiesLabeled`) — est retenu en entier. Sépare la BASE
  *  (permanente : `characteristics` + `passiveCharSum`) des contributions volatiles. */
-function volatileCharEntries(c: Combatant, key: CharKey): VolatileEntry[] {
+function volatileCharEntries(c: Combatant, key: CharKey, retenu: (e: ActiveEffect) => boolean = () => true): VolatileEntry[] {
   // Effet actif : son `label` propre + son renvoi (`effectRef`) — MÊME règle que les passifs (#1153).
-  const entries: VolatileEntry[] = (c.activeEffects ?? []).filter((e) => e.char === key).map((e) => ({ label: e.label, value: e.bonus, ref: effectRef(e), pool: effectPool(e) }));
+  const entries: VolatileEntry[] = (c.activeEffects ?? []).filter((e) => e.char === key && retenu(e)).map((e) => ({ label: e.label, value: e.bonus, ref: effectRef(e), pool: effectPool(e) }));
   entries.push(...traumaCharPenaltiesLabeled(c, key).map((p) => ({ label: p.label, value: p.mod, ref: p.ref, pool: poolDeNonCumul(p.src) })));
   return retenirParPool(entries);
 }
@@ -73,12 +73,23 @@ export function retenirParPool<T extends { value: number; pool?: string }>(entri
   return retained;
 }
 
-/** Valeur effective d'une Caractéristique : BASE + contributions volatiles retenues (`volatileCharEntries`). */
-export function effectiveChar(c: Combatant, key: CharKey): number {
+/** BASE + contributions volatiles retenues (`volatileCharEntries`) des effets actifs que `retenu` garde,
+ *  écartés AVANT les pools de non-cumul. */
+function charRetenue(c: Combatant, key: CharKey, retenu?: (e: ActiveEffect) => boolean): number {
   // Mutations de Corruption (LDB 19) : modifs PERMANENTES de la caractéristique (« +5 Force », « -10
   // Sociabilité »…) — s'ajoutent à la BASE via le collecteur passif unifié (kind `intrinseque`, sommé).
   const base = c.characteristics[key] + passiveCharSum(c, key);
-  return volatileCharEntries(c, key).reduce((s, e) => s + e.value, base);
+  return volatileCharEntries(c, key, retenu).reduce((s, e) => s + e.value, base);
+}
+
+/** Valeur effective d'une Caractéristique : tous les effets actifs (`charRetenue`). */
+export function effectiveChar(c: Combatant, key: CharKey): number {
+  return charRetenue(c, key);
+}
+
+/** Caractéristique qui entre dans le recalcul des Blessures max : sans les effets `blessuresAuTotal` (#3060). */
+function charDesBlessures(c: Combatant, key: CharKey): number {
+  return charRetenue(c, key, (e) => !e.blessuresAuTotal);
 }
 
 /** Lignes ÉTIQUETÉES des contributions volatiles retenues (issue #202 — affichage dans la modale
@@ -134,6 +145,7 @@ function talentCharModSum(c: Combatant, key: CharKey): number {
  *
  * Référence du delta = MÊME BASE que `wounds.base` : `characteristics + liveTraits + talents`, sans
  * mutations (post-création → contribuent au delta). `eff − raw` = delta VOLATILE (mutations + sorts).
+ * Un effet `blessuresAuTotal` n'entre pas dans `eff` : sa source compte par son seul `attrMod` (#3060).
  */
 export function effectiveMaxWounds(c: Combatant): number {
   const size = effectiveSize(c.size);
@@ -141,8 +153,8 @@ export function effectiveMaxWounds(c: Combatant): number {
   // Fabriqué (LDB 85 l.142) : Bonus de Force au lieu du Bonus de Force Mentale, sur `eff` ET `raw` (le
   // delta doit rester cohérent avec la SUBSTITUTION, pas juste sa valeur BF/BFM de base).
   const woundsUseForce = traitCapability(c.traits, 'woundsUseForce');
-  const effBFM = woundsUseForce ? bonus(effectiveChar(c, 'force')) : bonus(effectiveChar(c, 'force-mentale'));
-  const eff = woundsForSize(bonus(effectiveChar(c, 'force')), bonus(effectiveChar(c, 'endurance')), effBFM, size);
+  const effBFM = woundsUseForce ? bonus(charDesBlessures(c, 'force')) : bonus(charDesBlessures(c, 'force-mentale'));
+  const eff = woundsForSize(bonus(charDesBlessures(c, 'force')), bonus(charDesBlessures(c, 'endurance')), effBFM, size);
   // Référence = base au spawn : characteristics + liveTraitCharMods (créatures) + talentCharMods (héros).
   // Les mutations viennent APRÈS la création → elles restent dans le delta pour affecter effectiveMaxWounds.
   const rawF = c.characteristics.force + (traitCharMods(c.liveTraits).force ?? 0) + talentCharModSum(c, 'force');
@@ -152,9 +164,12 @@ export function effectiveMaxWounds(c: Combatant): number {
   // Modif. de Blessures PLATS d'effets actifs (op `attrMod{wounds}` exécutée — Bonnet de fou « +4
   // Blessures », LDB 71 l.20) : sommés au delta, repris/rendus par `refreshWounds` (pose + expiration).
   const flat = (c.activeEffects ?? []).reduce((s, e) => s + (e.attrMods?.wounds ?? 0), 0);
+  // `attrMod{wounds}` PASSIFS des porteurs hors talents (mutation, objet, Trait, État…) : ceux des talents
+  // sont dans `wounds.base` (`extraWounds`), comme leurs `charMod` dans `raw` (#3060).
+  const passifs = sommeAttrMods(passiveMods(c, false), 'wounds', c);
   // Nuée : LDB 85 l.253.
   const parCreatureType = c.swarm ? 5 : 1;
-  return base + (eff - raw) * parCreatureType + flat;
+  return base + (eff - raw) * parCreatureType + flat + passifs;
 }
 
 /**

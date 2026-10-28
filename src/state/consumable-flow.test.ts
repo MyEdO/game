@@ -108,11 +108,9 @@ describe('bonnet-de-fou (LDB 71 l.20) — +4 Blessures (attrMod exécutable) + p
     const maxBefore = h.wounds.max;
     useGame.getState().usePartyItem('h1', 'bf1');
     const p = useGame.getState().party.find((c) => c.id === 'h1')!;
-    // « +4 Blessures » (attrMod exécuté) — le +10 F du même flow peut AUSSI monter le max via le BF
-    // (Blessures dynamiques, LDB 85) : on isole la part attrMod, puis on borne le total.
+    // « +4 Blessures » au total, Force +10 comprise (#3060).
     expect((p.activeEffects ?? []).find((e) => e.attrMods?.wounds)?.attrMods?.wounds).toBe(4);
-    expect(p.wounds.max).toBeGreaterThanOrEqual(maxBefore + 4);
-    expect(p.wounds.max).toBeLessThanOrEqual(maxBefore + 5); // +4 plats, +1 possible de BF (F +10)
+    expect(p.wounds.max).toBe(maxBefore + 4);
     expect((p.activeEffects ?? []).some((e) => e.grantedTalent?.talentId === 'frenesie')).toBe(true);
     // « Quand l'effet se dissipe, l'utilisateur perd 1d10 Points de Blessure » : programmé À l'échéance
     // de la durée (2d10 min) — même minute que l'expiration des effets.
