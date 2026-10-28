@@ -27,6 +27,7 @@ import { dossierDe } from './lib/couches.mjs'
 import { TRAVAIL, depotDe, listerImage } from './lib/gitPorte.mjs'
 import { spawnBorne } from './lib/processusBorne.mjs'
 import { MARQUE_DE_VERDICT } from './lib/chargementDUnModule.mjs'
+import { estFichierVitest, estKitDeTest } from './lib/fichierVitest.mjs'
 
 /** Les zones dont chaque module se charge en premier (`COUCHES`, couches.mjs) : le noyau, le moteur, la donnée et les
  *  feuilles qu'il compose, ses hôtes (`hote`, `hoteTexte`, `hotes` hors de `src/`) et les scénarios qu'ils chargent. */
@@ -40,9 +41,10 @@ const bornesDuLot = (n) => 90_000 + 20_000 * n
 
 const TRAVAILLEUR = fileURLToPath(new URL('./lib/chargementDUnModule.mjs', import.meta.url))
 
-/** Le chemin POSIX relatif `rel` est-il un module à charger : source TypeScript, ni test, ni testkit, ni déclaration. */
+/** Le chemin POSIX relatif `rel` est-il un module à charger : source TypeScript, ni instrument ni kit de test
+ *  (`fichierVitest.mjs`), ni déclaration. */
 export const estModuleACharger = (rel) =>
-  /\.(m?ts|tsx)$/.test(rel) && !/\.d\.m?ts$/.test(rel) && !/\.(test|testkit)\./.test(rel)
+  /\.(m?ts|tsx)$/.test(rel) && !/\.d\.m?ts$/.test(rel) && !estFichierVitest(rel) && !estKitDeTest(rel)
 
 /** Les modules de la zone `zone` (`dossierDe`, couches.mjs) sous `racine`, suivis ou non encore indexés, triés. */
 export const modulesDeZone = (racine, zone) =>
