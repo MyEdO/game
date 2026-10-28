@@ -333,6 +333,19 @@ export const ECRIT_LU = {
       'chargés par `src/data/overrides.ts` et le greffon `proseSource()` (scripts/source/prose-source-plugin.mjs), qui ' +
       'LIT Source/ pour la prose adressée ; aucun `registryGen` : aucune cible de code produite, rien d’écrit dans l’arbre',
   },
+  'noyau:chargement': {
+    ecrit: [],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
+    raison: RETRAIT_WORKTREE_FERME +
+      'La garde de chargement (#3058, scripts/guards/chargement-en-premier.mjs) : `git ls-files` des zones (`ZONES` : ' +
+      'noyau, engine, data, lib, geometry, i18n, hote, hoteTexte, hotes, scenes ; `hotes/` hors de src/), puis des ' +
+      'travailleurs (scripts/guards/lib/chargementDUnModule.mjs) qui chargent chaque module par le module runner de Vite ' +
+      '(`configFile: false`, aucune config recompilée), avec le greffon `proseSource()` (scripts/source/prose-source-plugin.mjs), ' +
+      'qui LIT Source/ pour la prose adressée ; la sortie de chaque lot va sous un `mkdtempSync` d’os.tmpdir(), effacé ' +
+      'en finally (`spawnBorne`, scripts/guards/lib/processusBorne.mjs) ; LIT les zones chargées, son code, ' +
+      '`package.json` (`engines`, scripts/node-requis.mjs) et tsconfig.json (transformation de Vite) ; aucun module des ' +
+      'zones n’écrit dans l’arbre à son chargement',
+  },
   'test:docs': {
     ecrit: [],
     lit: [

@@ -315,6 +315,10 @@ const ATTENDU = {
     // +1 le 2026-10-05 (#2328) : le banc de la porte de publication forge ses chantiers fusionnés sous
     // `instanceDeDepot` (os.tmpdir(), `rmSync` en finally) ; l'arbre du dépôt n'est jamais écrit.
     'scripts/guards/lib/livraison.test.mjs',
+    // +2 le 2026-10-28 (#3058) : le banc de la garde de chargement pose ses modules sous un `mkdtempSync` d'os.tmpdir(),
+    // `rmSync` en `t.after`, et la garde y pose la sortie de ses lots, effacée en finally ; l'arbre n'est jamais écrit.
+    'scripts/guards/chargement-en-premier.test.mjs',
+    'scripts/guards/chargement-en-premier.mjs',
     // +2 le 2026-10-17 (#2586) : les bancs qui importent `perimetre.mjs` atteignent `memoire.mjs`, qui pose ses émissions
     // et son diagnostic sous un `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER` ou d'os.tmpdir() ; le banc du domaine natif
     // (`domaineNatif.test.mjs`) pose ses fixtures sous os.tmpdir(), `rmSync` en finally. L'arbre n'est jamais écrit.
@@ -861,6 +865,16 @@ const ATTENDU = {
   'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs'],
   'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs'],
   'server:typecheck': [],
+  // #3058, ECRIT_LU (`scripts/gates/toutes.mjs`) : la garde pose la sortie de chaque lot sous un `mkdtempSync`
+  // d'os.tmpdir(), effacé en finally ; `spawnBorne` atteint `superviserProcessus.mjs` (dossier `mkdtempSync`
+  // d'os.tmpdir(), `rmSync`), qui atteint `verrou.mjs` par `lancerDetache.mjs` pour la seule constante
+  // `PREFIXE_JETON_VERROU`, et avec lui `ecritureJsonAtomique.mjs` et `renommageResilient.mjs`, jamais appelés ici ;
+  // `controleEcritures.mjs` ne restitue de rapport que pour un lancement `node --test` sous précharge, que la garde ne
+  // fait pas. L'arbre n'est jamais écrit.
+  'noyau:chargement': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/guards/chargement-en-premier.mjs',
+    'scripts/guards/lib/controleEcritures.mjs',
+    'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs',
+    'scripts/guards/lib/superviserProcessus.mjs', 'scripts/test/verrou.mjs'],
 }
 
 for (const gate of GATES) ATTENDU[gate].push('scripts/guards/lib/controleEcritures.mjs')
