@@ -1336,6 +1336,17 @@ describe('byId — la PORTE de résolution d’une entité par son id STABLE', (
     const idTalent: Id<'talent'> = idCompetence;
     expect(idTalent).toBe(UNE_COMPETENCE.id);
   });
+
+  it("`ref(type)` sans `extra` sort `{ id: Id<type> }`, ni index ouvert ni `id` perdu", () => {
+    const competence = ref('skill');
+    expectTypeOf<z.output<typeof competence>>().toEqualTypeOf<{ id: Id<'skill'> }>();
+    expectTypeOf(competence.parse({ id: UNE_COMPETENCE.id })).toEqualTypeOf<{ id: Id<'skill'> }>();
+  });
+
+  it("`ref(type, undefined, sousListe)` garde la même sortie `{ id: Id<type> }`", () => {
+    const parSousListe = ref('material', undefined, 'objet');
+    expectTypeOf<z.output<typeof parSousListe>>().toEqualTypeOf<{ id: Id<'material'> }>();
+  });
 });
 
 /**

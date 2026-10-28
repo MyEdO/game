@@ -32,10 +32,12 @@ describe('garde-fou « armure portée » — résolue au seul noyau (ABSOLU, #29
     ).toEqual([]);
   });
 
-  it('le corpus scanné est NON VIDE, GDScript compris', () => {
+  it('le corpus scanné couvre chaque racine et chaque langage de la règle, et chaque FOYER exclu existe', () => {
+    const lu = readCorpus(SCAN_DIRS, { exts: EXTS });
     const fichiers = corpus();
-    expect(fichiers.length).toBeGreaterThan(1000);
-    expect(fichiers.some((f) => f.rel.endsWith('.gd'))).toBe(true);
+    for (const racine of SCAN_DIRS) expect(fichiers.some((f) => f.rel.startsWith(`${racine}/`)), racine).toBe(true);
+    for (const ext of EXTS) expect(fichiers.some((f) => f.rel.endsWith(ext)), ext).toBe(true);
+    for (const foyer of FOYERS) expect(lu.some((f) => f.rel === foyer), foyer).toBe(true);
   });
 
   it.each([

@@ -365,7 +365,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     const h = {
       ...hero(),
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 },
-      items: [{ uid: 'a1', label: 'Cotte de mailles', kind: 'armor', subType: 'mailles', qualities: [], enc: 2, equipped: true, pa: 2, locs: ['corps'], damageTaken: 1 } as never],
+      items: [{ ...itemFromTrappingById('chemise-de-mailles')!, uid: 'a1', equipped: true, damageTaken: 1 }],
     } as unknown as Combatant;
     useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
     mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);

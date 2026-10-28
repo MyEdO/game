@@ -12,4 +12,3 @@ export interface Ecart {
   readonly seuil: number | string | null;
   readonly detail: string;
 }
-

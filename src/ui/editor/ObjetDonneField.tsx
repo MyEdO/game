@@ -46,4 +46,3 @@ export function ObjetDonneField<T extends ObjetDonne>({ objets = [], value, onCh
     </div>}
   </>;
 }
-
