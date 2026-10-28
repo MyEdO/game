@@ -5,25 +5,26 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { Planche } from './Planche';
 import { ramenerEnVue } from './useRamenerEnVue';
 import { Tabs } from './composites/Tabs';
-import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance, formeResolue } from '../engine/items';
+import { isWeaponActive, maxEncumbrance, totalEncumbrance, formeResolue } from '../engine/items';
 import { OptionChooser } from './OptionChooser';
-import { ItemInstance, Combatant, CharKey, CHAR_KEYS, LOCALISATIONS_DE_COUP } from '../engine/types';
+import { ItemInstance, Combatant, LOCALISATIONS_DE_COUP } from '../engine/types';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { baseWithTalents } from '../engine/talentEffects';
 import { refKey, parseRefKey } from '../engine/careerSlots';
 import { buildAdvancementView } from '../noyau/monde/advancement';
-import { HEAL_SKILL, isHealable } from '../engine/healing';
 import { isConsumable } from '../engine/consumables';
 import { isMagicMissile, isArcaneSpell, castBlockedBy, castInfoIsPrayer } from '../engine/magic';
 import { effectiveSpellOf } from '../noyau/combatFlow';
 import { GatedAction, raisonSi } from './GatedAction';
-import { refusDepensePx } from '../noyau/partyFlow';
+import { refusEmplacementDeMain, refusAchatDeComposant, coutDuComposant } from '../noyau/partyFlow';
+import { libelleAvecSpec } from '../noyau/depenseDePx';
+import { refusDeSoins } from '../noyau/medicFlow';
+import { refusDInventaire, refusDuLanceurDeFiche } from '../noyau/verrousDeFiche';
 import { t, type MsgKey } from '../i18n';
-import { actorHasSkill, peutTenter } from '../engine/skills';
+import { actorHasSkill } from '../engine/skills';
 import { nextProsthesisTier } from '../engine/trauma';
 import { dispellableSpellsOn } from '../engine/dispel';
 import { rule } from '../engine/policy';
-import { canAfford, toMoney, formatMoney } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { learnableSpells, canCastFromGrimoire, carriedGrimoire, casterTalents } from '../engine/grimoire';
 import { spellSupportOf } from '../engine/spellspec';
@@ -33,7 +34,7 @@ import { MetalStatus } from './MetalStatus';
 import { weaponFormLabel } from '../gameIso/rig/parts/weaponForms';
 import { CodexRef } from './compendium/CodexRef';
 import { CharValue } from './CharValue';
-import { HeroSheet } from './HeroSheet';
+import { HeroSheet, annotationsDeCaracteristiques } from './HeroSheet';
 import { Coins } from './Coins';
 import { EquipmentPanel } from './EquipmentPanel';
 import { PossessionsRegistry } from './PossessionsRegistry';
@@ -114,7 +115,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
   const setSheetScroll = useGame((s) => s.setSheetScroll);
   const setSheetAlarmsSeen = useGame((s) => s.setSheetAlarmsSeen);
   const openMedic = useGame((s) => s.openMedic);
-  const inBattle = useGame((s) => !!s.battle);
+  const battle = useGame((s) => s.battle);
 
   // Règle d'atterrissage (§3.2) : force l'onglet État seulement à la PREMIÈRE ouverture depuis une
   // alarme NOUVELLE (empreinte jamais vue pour ce héros) — jamais au switch de héros (deps VIDES :
@@ -142,7 +143,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
 
   // Guérison hors-combat : un soigneur du groupe peut panser ce héros (sans avancer le temps, pour
   // stopper une hémorragie AVANT que l'horloge ne la fasse ticker — LDB 09-Compétences).
-  const canSoigner = !inBattle && isHealable(hero) && party.some((h) => peutTenter(h, HEAL_SKILL));
+  const refusSoins = refusDeSoins({ battle, party }, hero.id);
 
   // GATE CORRIGÉ (#492 bug 2) : un lanceur de Bénédictions sans sort mémorisé encore (Bienheureux
   // avant sa 1re Bénédiction) garde son onglet Magie & Foi — `spells.length` seul le privait à tort.
@@ -158,14 +159,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
   // Annotation par Caractéristique (base+talents vs effective — buffs/malus actifs) pour la table de
   // Compétences & Talents : composée par `HeroSheet` (`statAnnotations`, data-driven), calculée ICI
   // (l'appelant fournit ses propres classes/notes, jamais un branchement dans la primitive).
-  const statAnnotations: Partial<Record<CharKey, { valClass?: string; note?: string }>> = {};
-  for (const k of CHAR_KEYS) {
-    const b = baseWithTalents(hero, k), e = effectiveChar(hero, k);
-    statAnnotations[k] = {
-      valClass: e > b ? 'ok-text' : e < b ? 'warn-text' : undefined,
-      note: e !== b ? `Base ${b} (${e > b ? '+' : ''}${e - b} de modificateurs actifs)` : undefined,
-    };
-  }
+  const statAnnotations = annotationsDeCaracteristiques(hero, (k) => baseWithTalents(hero, k), { gain: 'de modificateurs actifs', perte: 'de modificateurs actifs' });
 
   return (
     <Planche
@@ -224,14 +218,19 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
             </div>
           </div>
           <SheetActiveEffects hero={hero} />
-          {canSoigner && (
-            <Row>
-              <button className="btn small" onClick={() => openMedic({ patientId: hero.id })}
-                title="Soins du groupe (Tests de Guérison) — ouvre l'infirmerie sur ce héros">
-                <Icon id="journal/heal" size="sm" /> Soins
-              </button>
-            </Row>
-          )}
+          {/* Verdict du noyau (`refusDeSoins`), celui que rend `openMedic` : refusé, le bouton dit pourquoi. */}
+          <Row>
+            <GatedAction
+              id="sheet-soins"
+              label={<><Icon id="journal/heal" size="sm" /> Soins</>}
+              enabled={!refusSoins}
+              {...raisonSi(refusSoins)}
+              descOfferte="Soins du groupe (Tests de Guérison) — ouvre l'infirmerie sur ce héros"
+              onClick={() => openMedic({ patientId: hero.id })}
+              primary={false}
+              btnClassName="small"
+            />
+          </Row>
         </>
       )}
     >
@@ -279,22 +278,17 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
 
 /** Grimoire/livre de prières — incantation HORS COMBAT (couture D). Un héros lanceur cible self/allié.
  *  Les Projectiles magiques (offensifs) sont marqués « en combat » : ils exigent une cible ennemie. */
-/** Raison UNIQUE du refus des lanceurs de la fiche pendant un combat — le geste existe, il vit ailleurs. */
-const RAISON_HORS_COMBAT = 'En combat, les sorts se lancent depuis la console.';
-
 function SpellbookSection({ hero }: { hero: Combatant }) {
   const party = useGame((s) => s.party);
   // Les verbes `ooc*` sont des lanceurs HORS COMBAT : pendant un combat, le lancement passe par la
-  // console (le sort y consomme l'Action, ouvre son Test et sa cible). La fiche cesse donc d'offrir
-  // un bouton qui ne ferait RIEN, et dit pourquoi au survol plutôt que de disparaître.
-  const enCombat = useGame((s) => !!s.battle);
+  // console. Verdict du noyau (`refusDuLanceurDeFiche`), celui que les trois gestes appliquent.
+  const battle = useGame((s) => s.battle);
+  const refusLanceur = refusDuLanceurDeFiche({ battle });
   const oocCastSpell = useGame((s) => s.oocCastSpell);
   const oocFocusSpell = useGame((s) => s.oocFocusSpell);
   const oocDispelSpell = useGame((s) => s.oocDispelSpell);
   const buySpellComponent = useGame((s) => s.buySpellComponent);
   const removeSpellComponent = useGame((s) => s.removeSpellComponent);
-  // Bourse PERSONNELLE de l'incantateur : c'est SA Bourse qui paie le composant (débit solo).
-  const bourse = useGame((s) => bourseOf(s.party.find((h) => h.id === hero.id) ?? hero));
   const [targetId, setTargetId] = useState(hero.id);
   const spells = (hero.spells ?? [])
     .map((x) => findSpellById(x)) // hero.spells = ids de sort (runtime)
@@ -337,7 +331,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
         {spells.map((sp) => {
           const offensive = isMagicMissile(sp);
           const support = spellSupportOf(sp);
-          const castBlocked = enCombat ? RAISON_HORS_COMBAT : castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue');
+          const refusDeLancer = refusLanceur ?? castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue');
           return (
             <div className="spell-row" key={sp.label} title={support !== 'mecanique' ? 'Tout ou partie de l’effet est journalisé (« arbitrage MJ ») — pas encore mécanisé (cf. docs/sorts-implementation.md).' : undefined}>
               <span className="spell-name">
@@ -356,8 +350,8 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                       <GatedAction
                         id={`sheet-focus-${hero.id}-${sp.id}`}
                         label={<><Icon id="flag/focus" size="sm" /> Focaliser</>}
-                        enabled={!(enCombat ? RAISON_HORS_COMBAT : castBlockedBy(hero, 'focalisation'))}
-                        {...raisonSi(enCombat ? RAISON_HORS_COMBAT : castBlockedBy(hero, 'focalisation'))}
+                        enabled={!(refusLanceur ?? castBlockedBy(hero, 'focalisation'))}
+                        {...raisonSi(refusLanceur ?? castBlockedBy(hero, 'focalisation'))}
                         primary={false}
                         btnClassName="small"
                         onClick={() => oocFocusSpell(hero.id, sp.id)}
@@ -368,8 +362,8 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                   <GatedAction
                     id={`sheet-cast-${hero.id}-${sp.id}`}
                     label={<><Icon id="nav/dice" size="sm" /> Lancer</>}
-                    enabled={!castBlocked}
-                    {...raisonSi(castBlocked)}
+                    enabled={!refusDeLancer}
+                    {...raisonSi(refusDeLancer)}
                     primary={false}
                     btnClassName="small"
                     onClick={() => oocCastSpell(hero.id, sp.id, targetId)}
@@ -392,8 +386,8 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                 <GatedAction
                   id={`sheet-cast-grimoire-${hero.id}-${sp.id}`}
                   label={<><Icon id="nav/compendium" size="sm" /> Lancer (grimoire)</>}
-                  enabled={!(enCombat ? RAISON_HORS_COMBAT : castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue'))}
-                  {...raisonSi(enCombat ? RAISON_HORS_COMBAT : castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue'))}
+                  enabled={!(refusLanceur ?? castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue'))}
+                  {...raisonSi(refusLanceur ?? castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue'))}
                   primary={false}
                   btnClassName="small"
                   onClick={() => oocCastSpell(hero.id, sp.id, targetId, true)}
@@ -452,8 +446,8 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
             <div className="spell-list">
               {arcane.map((sp) => {
                 const n = countOf(sp.id);
-                const cost = toMoney({ silver: sp.cn! });
-                const afford = canAfford(bourse, cost);
+                const cost = coutDuComposant(sp);
+                const refusAchat = refusAchatDeComposant(hero, sp.id);
                 return (
                   <div className="spell-row" key={`comp-${sp.id}`}>
                     <span className="spell-name">
@@ -470,8 +464,8 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                         id={`spell-comp-buy-${sp.id}`}
                         label={<>+ <Coins money={cost} /></>}
                         ariaLabel={`Acheter un composant pour ${sp.label}`}
-                        enabled={afford}
-                        reason={`Bourse insuffisante (${formatMoney(cost)}).`}
+                        enabled={!refusAchat}
+                        {...raisonSi(refusAchat)}
                         onClick={() => buySpellComponent(hero.id, sp.id)}
                         primary={false}
                         btnClassName="small"
@@ -494,12 +488,14 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
  *  l'option déjà active la retire. (Verrouillé en combat : la bascule de set passe par la barre d'action.) */
 function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
   const setLoadoutSlot = useGame((s) => s.setLoadoutSlot);
+  const battle = useGame((s) => s.battle);
   const lo = (hero.loadouts ?? []).find((l) => l.id === hero.activeLoadoutId) ?? hero.loadouts?.[0];
   if (!lo) return null;
   const isMain = lo.main === it.uid;
   const isOff = lo.off === it.uid;
-  const mainTwoH = setADeuxMains(hero, lo);
-  const offOk = isOffHandEligible(it) && !mainTwoH;
+  // Verdict du noyau (`refusEmplacementDeMain`), celui que le geste applique au clic.
+  const refusMain = refusEmplacementDeMain({ battle }, hero, lo.id, 'main', isMain ? null : it.uid);
+  const refusOff = refusEmplacementDeMain({ battle }, hero, lo.id, 'off', isOff ? null : it.uid);
   return (
     <div className="ir-hand" title="Régler la main qui tient cette arme (set actif)">
     <OptionChooser
@@ -509,7 +505,8 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
           key: 'main',
           label: 'Principale',
           selected: isMain,
-          title: 'Tenir dans la main principale',
+          title: refusMain ? undefined : 'Tenir dans la main principale',
+          refus: refusMain ?? undefined,
           onSelect: () => setLoadoutSlot(hero.id, lo.id, 'main', isMain ? null : it.uid),
         },
         {
@@ -518,12 +515,8 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
           selected: isOff,
           // La RAISON du refus se lit au survol/focus/tap dans l'infobulle partagée (`refus`), jamais
           // par un `disabled` muet ; le `title` ne reste que pour l'option OFFERTE.
-          title: offOk ? 'Main secondaire : −20 aux attaques de cette main' : undefined,
-          refus: offOk
-            ? undefined
-            : mainTwoH
-              ? 'Main principale à deux mains — pas de seconde main'
-              : 'Inéligible : seules une arme de mêlée à une main ou un pistolet vont en seconde main',
+          title: refusOff ? undefined : 'Main secondaire : −20 aux attaques de cette main',
+          refus: refusOff ?? undefined,
           onSelect: () => setLoadoutSlot(hero.id, lo.id, 'off', isOff ? null : it.uid),
         },
       ]}
@@ -535,13 +528,22 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
 /** Sélecteur visuel de FORME d'une arme ABSTRAITE (« Arme simple » → épée/hache/masse/marteau de
  *  guerre/demi-lance) : pose `ItemInstance.formeChoisie` parmi les `formChoices` du trapping. Option
  *  courante = la forme RÉSOLUE (`formeResolue`, celle du pion) ; chaque option = la silhouette (ItemIcon
- *  de ce choix) + le libellé du WeaponDef. Cosmétique RAW (stats identiques) — verrouillé en combat (le
+ *  de ce choix) + le libellé du WeaponDef. Cosmétique RAW (stats identiques) — refusé en combat (`refusDInventaire` ; le
  *  token rendu vient de la copie de bataille, pas du groupe muté). Réutilise la primitive `MediaSelect`. */
 function FormPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
   const choisirForme = useGame((s) => s.choisirForme);
+  const battle = useGame((s) => s.battle);
   const choices = it.trappingId ? findTrappingById(it.trappingId)?.formChoices : undefined;
   if (!choices || choices.length < 2) return null;
   const current = formeResolue(it) ?? choices[0];
+  // Verdict du noyau (`refusDInventaire`), celui que `choisirForme` applique.
+  const refus = refusDInventaire({ battle });
+  if (refus) {
+    return (
+      <GatedAction id={`sheet-forme-${it.uid}`} label={weaponFormLabel(current)} ariaLabel="Forme de l’arme"
+        enabled={false} {...raisonSi(refus)} onClick={() => {}} primary={false} btnClassName="small" />
+    );
+  }
   return (
     <div className="ir-form" title="Forme de l’arme (silhouette)">
       <MediaSelect
@@ -561,10 +563,13 @@ function FormPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
 function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' }) {
   const usePartyItem = useGame((s) => s.usePartyItem);
   const appraiseItem = useGame((s) => s.appraiseItem);
+  const battle = useGame((s) => s.battle);
+  // Verdict du noyau (`refusDInventaire`), celui que rendent les gestes d'objet de la fiche.
+  const refusObjet = refusDInventaire({ battle });
   const items = hero.items ?? [];
   const party = useGame((s) => s.party);
-  const refusEval = appraiseRefus(party);
-  const refusDetect = appraiseRefus(party, 'detect');
+  const refusEval = refusObjet ?? appraiseRefus(party);
+  const refusDetect = refusObjet ?? appraiseRefus(party, 'detect');
   // Verrou d'Évaluation : un échec bloque la re-tentative jusqu'au lendemain (LDB 12 l.94).
   const today = useGame((s) => Math.floor(s.gameTime / MINUTES_PER_DAY));
 
@@ -587,12 +592,12 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
             const activeLo = (hero.loadouts ?? []).find((l) => l.id === hero.activeLoadoutId) ?? hero.loadouts?.[0];
             return activeLo?.main === it.uid ? 'Main principale' : activeLo?.off === it.uid ? 'Main secondaire' : null;
           }}
-          rowExtra={(it, { inBattleNow: locked, handLabel }) => {
+          rowExtra={(it) => {
             const isWeaponItem = it.kind === 'melee' || it.kind === 'ranged';
             const consumable = isConsumable(it);
             return (
               <>
-                {it.identified === false && !locked && (
+                {it.identified === false && (
                   <>
                     {it.appraiseTriedDay !== today && (
                       <GatedAction
@@ -620,24 +625,14 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                     )}
                   </>
                 )}
-                {isWeaponItem && !locked && <FormPicker hero={hero} it={it} />}
-                {isWeaponItem && (
-                  locked ? (
-                    handLabel && (
-                      <span className="chip" title="Arme en main (verrouillé en combat — changez de set depuis la barre d’action)">
-                        <Icon id="item/weapon" size="sm" /> {handLabel}
-                      </span>
-                    )
-                  ) : (
-                    <HandPicker hero={hero} it={it} />
-                  )
-                )}
+                {isWeaponItem && <FormPicker hero={hero} it={it} />}
+                {isWeaponItem && <HandPicker hero={hero} it={it} />}
                 {consumable && (
                   <GatedAction
                     id={`sheet-use-${it.uid}`}
                     label="Utiliser"
-                    enabled={!locked}
-                    reason="En combat, utilisez l’objet depuis la barre d’action (coûte l’Action)."
+                    enabled={!refusObjet}
+                    {...raisonSi(refusObjet)}
                     onClick={() => usePartyItem(hero.id, it.uid)}
                     primary={false}
                     btnClassName="small"
@@ -662,25 +657,22 @@ function SlotChoiceRow({
   entry,
   options,
   acquireCost,
-  afford,
-  refus,
+  refusSansChoix,
   onPick,
 }: {
   entry: string;
-  /** `cost` : coût propre de l'option (sinon `acquireCost`) ; `maxReached` : non achetable, désignable si possédée. */
-  options: { key: string; display?: string; owned: boolean; hint?: string; cost?: number; maxReached?: boolean }[];
+  /** `cost` : coût propre de l'option (sinon `acquireCost`) ; `maxReached` : affichage ; `refus` : refus de
+   *  l'ACQUISITION rendu par la vue du noyau — la désignation d'une option possédée n'est pas une dépense. */
+  options: { key: string; display?: string; owned: boolean; hint?: string; cost?: number; maxReached?: boolean; refus: string | null }[];
   acquireCost: number;
-  afford: (c: number) => boolean;
-  /** Raison d'un refus de dépense de PX (`refusDepensePx`) ; la désignation d'une option possédée n'est pas une dépense. */
-  refus: string | null;
+  /** Refus de toute dépense tant qu'aucune option n'est choisie (`AdvancementView.refus`). */
+  refusSansChoix: string | null;
   onPick: (key: string, owned: boolean) => void;
 }) {
   const [choice, setChoice] = useState('');
   const opt = options.find((o) => o.key === choice);
   const optCost = opt?.cost ?? acquireCost;
-  const cost = opt?.owned ? 0 : optCost;
-  const bloquee = !!opt && !opt.owned && !!opt.maxReached;
-  const refuse = !!refus && !opt?.owned;
+  const refus = !opt ? refusSansChoix : opt.owned ? null : opt.refus;
   return (
     <div className="adv-row acquire">
       <span className="adv-name">
@@ -701,8 +693,8 @@ function SlotChoiceRow({
         id={`adv-slot-${entry}`}
         primary={false}
         btnClassName="small"
-        enabled={!!opt && !bloquee && !refuse && afford(cost)}
-        {...raisonSi(refuse ? refus : null)}
+        enabled={!!opt && !refus}
+        {...raisonSi(refus)}
         onClick={() => opt && onPick(opt.key, opt.owned)}
         label={opt?.owned ? 'Désigner · 0 PX' : `Acquérir · ${optCost} PX`}
       />
@@ -733,12 +725,16 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
   const changeCareer = useGame((s) => s.changeCareer);
   const trainProsthesis = useGame((s) => s.trainProsthesis);
   const [target, setTarget] = useState('');
-  const refus = useGame(refusDepensePx);
+  const battle = useGame((s) => s.battle);
+  const flags = useGame((s) => s.flags);
 
-  const v = buildAdvancementView(hero);
-  const afford = (c: number) => v.xp >= c;
+  // Verdicts du noyau (`buildAdvancementView`) : chaque Caractéristique, Compétence, Talent (emplacements
+  // compris) et cible de Carrière porte le refus que son geste rend ; sorts et prothèses lisent `refusPx`
+  // (combat, PX).
+  const v = buildAdvancementView({ battle, flags }, hero);
+  const { refus, refusPx } = v;
+  const refusChangement = target ? v.refusChangementVers(target) : refus;
   const pill = (inC: boolean) => <span className={`career-pill ${inC ? 'in' : 'out'}`}>{inC ? 'carrière' : '×2'}</span>;
-  const skillLabel = (name: string, spec?: string) => (spec ? `${name} (${spec})` : name);
 
   return (
     <div className="adv-panel">
@@ -760,7 +756,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             <span className="adv-meta">×{c.advances}</span>
             <GatedAction
               id={`adv-car-${c.key}`} primary={false} btnClassName="small"
-              enabled={!refus && afford(c.nextCost)} {...raisonSi(refus)}
+              enabled={!c.refus} {...raisonSi(c.refus)}
               onClick={() => buyCharAdvance(hero.id, c.key)}
               label={`+1 · ${c.nextCost} PX`}
             />
@@ -774,13 +770,13 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
         {v.skills.map((s) => (
           <div className={`adv-row ${s.known ? '' : 'acquire'}`} key={`${s.skillId}|${s.spec ?? ''}`}>
             <span className="adv-name">
-              {skillLabel(s.label, s.spec)} <em>{baseWithTalents(hero, s.characteristic) + s.advances}</em> {pill(s.inCareer)}
+              {libelleAvecSpec(s.label, s.spec)} <em>{baseWithTalents(hero, s.characteristic) + s.advances}</em> {pill(s.inCareer)}
               {s.known ? '' : <span className="acquire-tag">à apprendre</span>}
             </span>
             <span className="adv-meta">+{s.advances}</span>
             <GatedAction
               id={`adv-comp-${s.skillId}-${s.spec ?? ''}`} primary={false} btnClassName="small"
-              enabled={!refus && afford(s.nextCost)} {...raisonSi(refus)}
+              enabled={!s.refus} {...raisonSi(s.refus)}
               onClick={() => buySkillAdvance(hero.id, s.skillId, s.spec)}
               label={`${s.known ? '+1' : 'Apprendre'} · ${s.nextCost} PX`}
             />
@@ -792,13 +788,13 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             key={slot.slotKey}
             entry={slot.entry}
             acquireCost={slot.nextCost}
-            afford={afford}
-            refus={refus}
+            refusSansChoix={refus}
             options={slot.options.map((o) => ({
               key: refKey(slot.groupId, o.spec), // clé de câblage OPAQUE (id+spec), jamais affichée
               display: `${slot.group} (${o.display})`,
               owned: o.ownedAdvances > 0,
               hint: o.ownedAdvances > 0 ? `+${o.ownedAdvances}` : undefined,
+              refus: o.refus,
             }))}
             onPick={(key, owned) => {
               const { id, spec } = parseRefKey(key);
@@ -824,7 +820,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               <span className="adv-meta">{t.maxReached ? 'Maxi atteint' : ''}</span>
               <GatedAction
                 id={`adv-talent-${t.slotKey}`} primary={false} btnClassName="small"
-                enabled={!refus && !t.maxReached && afford(t.nextCost)} {...raisonSi(refus)}
+                enabled={!t.refus} {...raisonSi(t.refus)}
                 onClick={() => buyTalent(hero.id, t.talentId!, t.spec)}
                 label={`${t.times > 0 ? '+1' : 'Acquérir'} · ${t.nextCost} PX`}
               />
@@ -834,9 +830,8 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               key={t.slotKey}
               entry={t.entry}
               acquireCost={t.nextCost}
-              afford={afford}
-              refus={refus}
-              options={(t.options ?? []).map((o) => ({ key: o.refKey, display: o.display, owned: o.owned, cost: o.nextCost, maxReached: o.maxReached }))}
+              refusSansChoix={refus}
+              options={(t.options ?? []).map((o) => ({ key: o.refKey, display: o.display, owned: o.owned, cost: o.nextCost, maxReached: o.maxReached, refus: o.refus }))}
               onPick={(key, owned) => {
                 const { id, spec } = parseRefKey(key);
                 if (owned) designateCareerSlot(hero.id, t.slotKey, id, spec);
@@ -868,7 +863,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
                   <span className="adv-meta" />
                   <GatedAction
                     id={`adv-sort-${spell.id}`} primary={false} btnClassName="small"
-                    enabled={!refus && (cost === 0 || afford(cost))} {...raisonSi(refus)}
+                    enabled={!refusPx(cost)} {...raisonSi(refusPx(cost))}
                     onClick={() => buySpell(hero.id, spell.id)}
                     label={`${cost > 0 ? `Mémoriser · ${cost} PX` : 'Inclus au Talent'}${spell.family === 'chaos' ? ' · +1 Corruption' : ''}`}
                   />
@@ -908,7 +903,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
                   <span className="adv-meta" />
                   <GatedAction
                     id={`adv-prothese-${r.key}`} primary={false} btnClassName="small"
-                    enabled={!refus && afford(r.cost)} {...raisonSi(refus)}
+                    enabled={!refusPx(r.cost)} {...raisonSi(refusPx(r.cost))}
                     onClick={r.onBuy}
                     label={`Entraîner · ${r.cost} PX`}
                   />
@@ -930,8 +925,8 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             key={t.level}
             id={`career-target-${t.level}`}
             label={`${t.level > v.careerLevel ? 'Monter' : 'Redescendre'} : ${t.label} (niv. ${t.level}) · ${t.cost} PX`}
-            enabled={!refus && t.ok && afford(t.cost)}
-            reason={refus ?? (!t.ok ? (t.reason ?? 'Ce changement de Carrière n’est pas ouvert.') : `PX insuffisants — ${t.cost} PX requis.`)}
+            enabled={!t.refus}
+            {...raisonSi(t.refus)}
             onClick={() => changeCareer(hero.id, t.career, t.level)}
             primary={false}
             btnClassName="small"
@@ -950,8 +945,8 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
           </select>
           <GatedAction
             id="adv-changer-carriere" primary={false} btnClassName="small"
-            enabled={!refus && !!target && afford(target ? v.changeCostFor(target) : v.changeCost)}
-            {...raisonSi(refus)}
+            enabled={!!target && !refusChangement}
+            {...raisonSi(refusChangement)}
             onClick={() => {
               if (target) changeCareer(hero.id, target, 1);
               setTarget('');

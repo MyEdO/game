@@ -1947,10 +1947,10 @@ Gestes du JOUEUR, re-mesurés au code (frictions des recettes #2177, #2199, #200
 
 Fiche du héros → panneau d'équipement (`src/ui/EquipmentPanel.tsx`) :
 
-- **En combat, l'équipement est VERROUILLÉ** (`VERROU_SETS`, `EquipmentPanel.tsx:19`) : chaque emplacement,
+- **En combat, l'équipement est VERROUILLÉ** (verdict `refusDInventaire`, `src/noyau/verrousDeFiche.ts`, que lisent l'écran et les gestes) : chaque emplacement,
   « Activer », « + Set d'armes » et la suppression d'un set sont des contrôles REFUSÉS (`aria-disabled`,
-  jamais `disabled`), dont la raison se lit au survol — « Équipement verrouillé en combat (changez de set
-  depuis la barre d'action). » ; `geste` (intention `agir`) LÈVE en la citant, `survoler` la rend. Équiper se recette HORS combat ; en
+  jamais `disabled`), dont la raison se lit au survol — « En combat, l’équipement se gère depuis la
+  barre d’action. » ; `geste` (intention `agir`) LÈVE en la citant, `survoler` la rend. Équiper se recette HORS combat ; en
   combat, le changement de set passe par la barre d'action.
 - **Le picker d'emplacement** : cliquer la cellule ouvre un `MediaSelect` (changer, retirer). Ses options
   se lisent « <arme> », suffixée « (2M) » pour une arme à deux mains (« Filet lesté (2M) »), « <armure>

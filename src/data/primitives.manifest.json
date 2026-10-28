@@ -290,7 +290,7 @@
   {
     "id": "depenserPx",
     "type": "primitives.manifest",
-    "label": "depenserPx/refusDepensePx",
+    "label": "depenserPx",
     "fichier": "src/noyau/partyFlow.ts",
     "concept": "dépense de PX d'un héros : refus en combat, puis écriture par id",
     "perimetre": "tout achat de progression, rachat de prothèse, changement de Carrière (#2312)",

@@ -31,6 +31,7 @@ import type { Get, Set as SetFn } from './flowTypes';
 import { bus, EVT } from './bus';
 import { t } from '../i18n';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import { refusDInventaire, refuseSi } from './verrousDeFiche';
 
 /** ConditionCtx de SCÈNE augmenté du BUVEUR comme acteur (`target` ET `caster`) — les Conditions
  *  d'acteur (`has group Elfe` de la Fleur de lune, `compare woundsCurrent` de la Potion de guérison)
@@ -128,7 +129,7 @@ export function runConsumable(get: Get, set: SetFn, hero: Combatant, item: ItemI
  *  consommé, journalisé, Flow exécuté (un Test « au boire » ouvre sa modale). Le combat passe par
  *  `battleUseItem` (coûte l'Action). */
 export function usePartyItem(get: Get, set: SetFn, heroId: string, uid: string): void {
-  if (get().battle) return; // en combat → battleUseItem
+  if (refuseSi(get, set, refusDInventaire)) return; // en combat → battleUseItem
   const party = get().party;
   const hero = party.find((h) => h.id === heroId);
   const it = hero?.items?.find((i) => i.uid === uid);

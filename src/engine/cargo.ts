@@ -9,6 +9,7 @@
 import { d100, rollDice, type DiceSpec, type RNG } from './dice';
 import { findTableEntryIndex } from './tables';
 import type { Season } from './travelStages';
+import type { PossessionLocation } from './possession';
 
 /** Un type de cargaison (bien volumineux) : plages saisonnières d100 (Tableau des cargaisons) + prix de
  *  base par saison (CO par 10 points d'Encombrement) — ou un jet de dés (`{dice}`, ex. Vin maritime 3d10). */
@@ -169,6 +170,13 @@ export function cargoRaidLossPct(outcome: CargoRaidOutcome, fleePct: number, los
   return Math.max(0, Math.min(100, outcome === 'fled' ? fleePct : lossPct));
 }
 
+/** Ce qui SITUE un porteur (décision 5) : son id STABLE — id de Combattant, uid de Possession, ou id du
+ *  navire de campagne — et sa localisation : avec le groupe, laissé à un Lieu, ou embarqué sur un hôte. */
+export interface PorteurLocalise {
+  id: string;
+  location: PossessionLocation;
+}
+
 // ── LE PORTEUR DE CHARGE (« CargoCarrier ») — tronc générique #327 ─────────────────────────────────
 // Décision 1 (conception 2026-07-11) : UN concept pour héros, bête de bât, véhicule terrestre, barge et
 // navire — ils diffèrent par leur SOURCE de capacité et leur modèle de contenu, pas par leur nature. Ce
@@ -183,9 +191,7 @@ export type CarrierHull = 'jambes' | 'coque';
 /** Un PORTEUR DE CHARGE générique. `capacity`/`discreteEnc` sont des Enc déjà RÉSOLUS par la couture d'état
  *  (héros : `maxEncumbrance`/`totalEncumbrance` ; bête : `encPortee` ; véhicule : `chargement` ; navire :
  *  `ship.capacity`). L'Enc occupé se DÉRIVE (`carrierUsedEnc`) — jamais un 2ᵉ compteur à maintenir. */
-export interface CargoCarrier {
-  /** id STABLE : id de Combattant, uid d'ItemInstance (bête/véhicule), ou id de navire de campagne. */
-  id: string;
+export interface CargoCarrier extends PorteurLocalise {
   label: string;
   hull: CarrierHull;
   /** Capacité en Points d'Enc (source de la donnée du maillon). `Infinity` = non plafonné (convoi abstrait
@@ -195,10 +201,6 @@ export interface CargoCarrier {
   discreteEnc: number;
   /** Cargaison en VRAC (cale/convoi/bât) — canal `CargoLot`. Vide, pas absent, pour l'uniformité. */
   cargo: CargoLot[];
-  /** Localisation DÉRIVÉE (décision 5) : lieu courant du groupe (`MapPlace.id`)… */
-  placeId?: string;
-  /** …ou embarqué : uid/id du porteur-hôte (mule chargée sur une barge). */
-  aboard?: string;
 }
 
 /** Enc TOTAL occupé par un porteur = objets discrets + cargaison en vrac (décision 2). PUR. */
@@ -231,14 +233,20 @@ export function unloadCargo(c: CargoCarrier, cargoId: string, enc: number): { ca
   return { carrier: { ...c, cargo: lots }, removed };
 }
 
-/** Deux porteurs sont CO-LOCALISÉS (décision 5) : embarqués l'un sur l'autre, embarqués sur le même hôte,
- *  ou au même Lieu de la carte. Un porteur n'est jamais co-localisé avec lui-même. PUR. */
-export function carriersColocated(a: CargoCarrier, b: CargoCarrier): boolean {
+/** Deux porteurs sont-ils CO-LOCALISÉS (décision 5) ? L'un est embarqué sur l'autre, ou ils partagent la
+ *  MÊME localisation : avec le groupe, au même Lieu, embarqués sur le même hôte. Un porteur n'est jamais
+ *  co-localisé avec lui-même. Verdict UNIQUE du transfert d'objet (`noyau/partyFlow.ts`) et de cargaison
+ *  (`transferCargo`). PUR. */
+export function carriersColocated(a: PorteurLocalise, b: PorteurLocalise): boolean {
   if (a.id === b.id) return false;
-  if (a.aboard && a.aboard === b.id) return true;
-  if (b.aboard && b.aboard === a.id) return true;
-  if (a.aboard && a.aboard === b.aboard) return true;
-  return a.placeId != null && a.placeId === b.placeId;
+  const la = a.location;
+  const lb = b.location;
+  if ((la.kind === 'embarquee' && la.hostUid === b.id) || (lb.kind === 'embarquee' && lb.hostUid === a.id)) return true;
+  switch (la.kind) {
+    case 'avec-le-groupe': return lb.kind === 'avec-le-groupe';
+    case 'au-lieu': return lb.kind === 'au-lieu' && lb.placeId === la.placeId;
+    case 'embarquee': return lb.kind === 'embarquee' && lb.hostUid === la.hostUid;
+  }
 }
 
 /** TRANSFÈRE jusqu'à `enc` points d'une cargaison d'un porteur vers un autre CO-LOCALISÉ (décision 8).

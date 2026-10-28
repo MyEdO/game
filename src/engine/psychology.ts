@@ -188,6 +188,12 @@ export function isAfflictionActive(p: PsychAffliction): boolean {
   return sousPeur(p);
 }
 
+/** Une affliction psy (`PsychAffliction`) PÈSE-t-elle sur le héros ? `isAfflictionActive`, Frénésie
+ *  comprise (`isFrenzied`). LDB 21 l.33 */
+export function isPsychAfflictionActive(p: PsychAffliction): boolean {
+  return p.type === 'frenesie' || isAfflictionActive(p);
+}
+
 /** SIÈGE UNIQUE des immunités psy portées par une affliction ACTIVE de `self`, pour un CANAL donné —
  *  LDB 21 l.41 (Haine, `immuneToFromTarget` : seulement contre un membre de sa Cible, « mais pas
  *  Terreur ») et l.75 (Amour, `immuneWhileActive`, hors-groupe). Pour ce second canal, « tant que vous

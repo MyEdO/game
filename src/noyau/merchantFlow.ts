@@ -46,6 +46,7 @@ import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { refusDInventaire, refuseSi } from './verrousDeFiche';
 
 /** Boutique OUVERTE (état de la visite en cours). Le stock persistant vit dans `merchantStocks`. */
 export interface MerchantState {
@@ -864,6 +865,7 @@ export function gameDay(get: Get): number {
 }
 
 export function appraiseItem(get: Get, set: Set, uid: string, heroId: string, mode: 'evaluate' | 'detect' = 'evaluate'): void {
+  if (refuseSi(get, set, refusDInventaire)) return;
   const hero = actorIn(get(), heroId);
   const item = hero?.items?.find((i) => i.uid === uid); if (!item) return;
   if (mode === 'detect' && item.detectTried) return; // une seule tentative par artefact (LDB 10 l.336)

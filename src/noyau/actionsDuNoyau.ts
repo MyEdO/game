@@ -808,8 +808,8 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   renamePossession: (uid: IdDePossession, label: string) => void;
   /** Réaffecte le propriétaire (succession, don, vente). */
   transferPossession: (uid: IdDePossession, newOwnerId: IdDeHeros) => void;
-  /** Dépose la possession sur place. */
-  stablePossession: (uid: IdDePossession, placeId: string) => void;
+  /** Dépose la possession au lieu courant du groupe. */
+  stablePossession: (uid: IdDePossession) => void;
   /** Reprend une possession déposée. */
   retrievePossession: (uid: IdDePossession) => void;
   /** Embarque la possession sur un hôte (véhicule/navire). */
