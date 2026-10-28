@@ -596,6 +596,7 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             `pont/entree.ts` (`globalThis.wfrpPont`), contrat `pont/CONTRAT.md` ; `construire.mjs
                             --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
   asset/                    le contrat d'asset d'un personnage 3D (lecteur GLB, manifeste, import par `importer.mjs`) ;
+                            le manifeste d'élément du schéma 3 et sa validation contre la base (`asset/element.ts`) ;
                             les GLB vivent dans la Release `modeles-3d`, nommés par leur SHA-256, que la provenance
                             commitée épingle (`asset/release.ts` : `recupererModeles` avant Godot, `publierAssets` à l'import).
   projet/                   le projet Godot 4.7 (GDScript, scènes, manifestes et provenances des modèles KayKit, leur licence) : il dessine la
