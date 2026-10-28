@@ -1555,8 +1555,9 @@ export interface PsychologyData extends StatusData {
    *  Lu par `psychImmuneToFrom` (siège unique : `fearSourceFor` + `psychDRAdjust`). */
   immuneToFromTarget?: string[];
   /** Contribution de cet état psy au DEGRÉ DE RÉUSSITE de l'ATTAQUE de son porteur (LDB 21, ±1 DR) — lu
-   *  par `psychDRAdjust` (plus de ±1 codé par-nom). `vs:'source'` = Peur vs sa source (active non vaincue,
-   *  l.29) ; `vs:'group'` = Haine/Animosité vs le groupe ciblé actif (l.22/41) ; `vs:'any'` = Amour/
+   *  par `psychDRAdjust` (plus de ±1 codé par-nom). `vs:'source'` = Peur vs sa source (`sousPeur`,
+   *  l.29) ; `vs:'group'` = Haine/Animosité vs le groupe ciblé actif (l.22/41), qui oriente aussi le
+   *  vivier de l'IA (`noyau/monde/ai.ts`) ; `vs:'any'` = Amour/
    *  Camaraderie en défense, dès lors qu'actif (l.77/82). */
   attackDR?: { amount: number; vs: 'source' | 'group' | 'any' };
   /** RAW LDB 21 l.75 : tant que cette affliction est active, son porteur est IMMUNISÉ aux CANAUX listés,
@@ -3264,6 +3265,10 @@ export function findGroupById(id: string | null | undefined): GroupData | undefi
 /** Libellé d'affichage d'un Groupe d'appartenance par son id (repli sur l'id). SOURCE UNIQUE du nom de Groupe. */
 export function groupLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? groupeParId(id)?.label : '', id ?? '');
+}
+/** Libellés d'une liste de Groupes, joints comme le Test les décrit (`FlowTest.vsGroups`). */
+export function groupesLabel(ids: readonly string[]): PlayerText {
+  return dataLabel(ids.map(groupLabel).join('/'));
 }
 /** Type de Souffle d'une créature (Feu/Froid/Corrosif/Électrique/Poison/Fumée) — argument du Trait Souffle,
  *  aligné sur les manœuvres `souffle-*`. Registre SSOT (`breath-types.json`). */

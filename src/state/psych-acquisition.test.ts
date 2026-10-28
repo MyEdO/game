@@ -133,7 +133,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `combatPsych`, Te
     const { h, lignes } = terreurRatee(source(['mort-vivant']));
     expect(h.psychTraits).toEqual([{ type: 'phobie', cible: 'mort-vivant', indice: 1 }]);
     expect(h.briseFromTerreur).toBe(0);
-    expect(lignes).toContain(t('cf.phobieGain', { name: 'Hardi', cible: groupLabel('mort-vivant') }));
+    expect(lignes).toContain(t('cf.phobieGain', { name: 'Hardi', groupe: groupLabel('mort-vivant') }));
     expect(groupLabel('mort-vivant')).not.toBe('mort-vivant');
   });
 

@@ -64,11 +64,11 @@ describe('Peur — les DEUX portes du RAW (Trait LDB 85 l.264-266 / Taille LDB 8
     expect(fearSourceFor(halfelin, ogre)).toBeNull();
   });
 
-  it('−1 DR (LDB 21 l.27) contre la source portée, fût-elle un allié, tant que la Peur n’est pas vaincue', () => {
+  it('−1 DR (LDB 21 l.27) contre la source portée, fût-elle un allié, tant que la Peur n’est pas surmontée', () => {
     const skel = mk('skel', 'hero', { causesPeur: 2 });
     const necro = mk('necro', 'hero', { psychState: [{ type: 'peur', sourceId: 'skel', indice: 2, calmeDR: 0 }] as never });
     expect(psychDRAdjust(necro, skel)).toBe(-1);
-    const vaincue = mk('necro2', 'hero', { psychState: [{ type: 'peur', sourceId: 'skel', indice: 2, calmeDR: 2 }] as never });
+    const vaincue = mk('necro2', 'hero', { psychState: [{ type: 'peur', sourceId: 'skel', indice: 2, calmeDR: 2, surmontee: true }] as never });
     expect(psychDRAdjust(vaincue, skel)).toBe(0);
   });
 

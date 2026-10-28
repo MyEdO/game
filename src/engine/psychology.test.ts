@@ -32,16 +32,16 @@ describe('Psychologie (pur)', () => {
     expect(peurTerreurFromSize('moyenne', 'moyenne')).toBeNull();
     expect(peurTerreurFromSize('petite', 'grande')).toBeNull(); // plus petit ne fait pas peur
   });
-  it('resolvePeurTest : cumule le DR jusqu’à l’Indice (vaincue)', () => {
+  it('resolvePeurTest : cumule le DR jusqu’à l’Indice (surmontée)', () => {
     const r = resolvePeurTest(80, 2, 0, makeRNG(2));
     expect(r.dr).toBeGreaterThanOrEqual(0);
     expect(typeof r.calmeDR).toBe('number');
-    expect(r.calmeDR >= 2).toBe(r.vaincue); // vaincue ⟺ DR cumulé ≥ Indice
+    expect(r.calmeDR >= 2).toBe(r.surmontee); // surmontée ⟺ DR cumulé ≥ Indice
   });
-  it('resolveTerreurTest : échec → Brisé = Indice + |DR négatifs| ; devient Peur', () => {
+  it('resolveTerreurTest : échec → Brisé = Indice + |DR négatifs| ; la Peur héritée n’est pas surmontée', () => {
     const r = resolveTerreurTest(1, 3, makeRNG(2)); // FM 1 → échec quasi sûr
     if (!r.success) expect(r.brise).toBeGreaterThanOrEqual(3);
-    expect(r.devientPeur).toBe(3);
+    expect(r.peurSurmontee).toBe(false);
   });
   it('isFrenzyCapable : trait OU talent « Frénésie »', () => {
     expect(isFrenzyCapable({ traits: [{ id: 'frenesie' }], talents: [] } as unknown as Combatant)).toBe(true);

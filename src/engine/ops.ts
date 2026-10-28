@@ -504,10 +504,10 @@ export type GameOp =
    *  UPSERT : l'entrée visée est celle de même `type` ET même `cible` (Traits CIBLÉS), ou — sans
    *  `cible` — de même `sourceId` (Peur/Terreur : une entrée par créature source) ; absente, créée.
    *  Charge utile lue par le moteur de Psychologie : `indice` (Indice à surmonter), `calmeDR` (DR
-   *  cumulé du Test étendu), `active` (Trait ciblé subi / résisté), `lastTestRound` (n° de Round du
-   *  dernier Test). Champ absent = INCHANGÉ sur une entrée existante. Journalisé via `t()` ; une
-   *  entrée `active:false` est un marqueur inerte (aucune ligne). */
-  | { op: 'beginPsych'; type: string; cible?: string; sourceId?: string; indice?: Formula; calmeDR?: Formula; active?: boolean; lastTestRound?: number; fromTest?: boolean }
+   *  cumulé du Test étendu), `surmontee` (Peur surmontée), `active` (Trait ciblé subi / résisté),
+   *  `lastTestRound` (n° de Round du dernier Test). Champ absent = INCHANGÉ sur une entrée existante.
+   *  Journalisé via `t()` ; une entrée `active:false` est un marqueur inerte (aucune ligne). */
+  | { op: 'beginPsych'; type: string; cible?: string; sourceId?: string; indice?: Formula; calmeDR?: Formula; surmontee?: boolean; active?: boolean; lastTestRound?: number; fromTest?: boolean }
   /** Modificateur de caractéristique temporisé (ActiveEffect, pool `poolDeNonCumul`).
    *  `durationRounds` absent = durée du
    *  contexte (sort : Rounds, horloge, ou permanent — cf. `durationFromCtx`).
@@ -1915,6 +1915,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           ...(o.sourceId != null ? { sourceId: o.sourceId } : {}),
           ...(o.indice != null ? { indice: Math.max(0, resolveFormula(o.indice, ref, rng, ctx.rolled, ctx.indice, ctx.stacks)) } : {}),
           ...(o.calmeDR != null ? { calmeDR: Math.max(0, resolveFormula(o.calmeDR, ref, rng)) } : {}),
+          ...(o.surmontee != null ? { surmontee: o.surmontee } : {}),
           ...(o.active != null ? { active: o.active } : {}),
           ...(o.lastTestRound != null ? { lastTestRound: o.lastTestRound } : {}),
           ...(o.fromTest != null ? { fromTest: o.fromTest } : {}),

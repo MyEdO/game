@@ -20,6 +20,7 @@ import type { Combatant } from './types';
 import { byId } from '../data';
 import { effectiveChar, bonus } from './characteristics';
 import { skillBaseValue, possesses } from './skills';
+import { sousPeur } from './psychology';
 
 /** Valeur d'un Test de la Compétence `skillId` (spécialisation `spec`) pour `c` — SOURCE UNIQUE partagée
  *  avec la valeur de défense sociale : `skillBaseValue` (Caractéristique EFFECTIVE + carac alternative +
@@ -50,9 +51,9 @@ export function combatAdvantageSkills(c: Combatant): { skillId: string; cap: num
 
 // ── B) Substitution sociale en combat ───────────────────────────────────────
 
-/** `foe` est-il sous une Peur SOURCÉE par `self` (non surmontée) — gate `fear` des substitutions (l.287) ? */
+/** `foe` est-il sous une Peur SOURCÉE par `self` (`sousPeur`) — gate `fear` des substitutions (l.287) ? */
 export function fearsBy(foe: Combatant, self: Combatant): boolean {
-  return (foe.psychState ?? []).some((p) => p.type === 'peur' && p.sourceId === self.id && (p.indice ?? 0) > (p.calmeDR ?? 0));
+  return (foe.psychState ?? []).some((p) => p.sourceId === self.id && sousPeur(p));
 }
 
 /** Compétence sociale que `self` peut SUBSTITUER à sa Compétence de combat contre `foe`, pour un `role`

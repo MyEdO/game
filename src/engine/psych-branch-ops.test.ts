@@ -9,7 +9,7 @@
  * *Peur* équivalent à son *Indice* de *Terreur*. »
  */
 import { describe, it, expect } from 'vitest';
-import { psychBranchOps, failConditionAmount, psychResolution, type PsychStake, type PsychAffliction } from './psychology';
+import { psychBranchOps, failConditionAmount, psychResolution, sousPeur, type PsychStake, type PsychAffliction } from './psychology';
 import { applyOps } from './ops';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
@@ -42,29 +42,29 @@ describe('#1189 — psychBranchOps : l’arithmétique APPLIQUÉE est celle du m
     const c = hero();
     applyOps(c, psychBranchOps(terreur(5), { success: true, round: 3 }), { rng: desDuTest, sl: 2 });
     expect(c.conditions, 'la réussite n’exempte que de la Terreur, elle n’inflige rien').toEqual([]);
-    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 0, lastTestRound: 3 }]);
+    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 0, surmontee: false, lastTestRound: 3 }]);
   });
 
   it('l’échec pose l’État PUIS la MÊME Peur héritée, à plein Indice', () => {
     const c = hero();
     applyOps(c, psychBranchOps(terreur(5), { success: false, round: 3 }), { rng: desDuTest, sl: -2 });
     expect(briseOf(c)).toBe(7);
-    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 0, lastTestRound: 3 }]);
+    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 0, surmontee: false, lastTestRound: 3 }]);
   });
 });
 
 describe('#1189 — la branche de RÉUSSITE est l’état qu’un porteur IMMUNISÉ obtient', () => {
-  it('Terreur : Peur héritée à PLEIN Indice, zéro État infligé', () => {
+  it('Terreur : Peur héritée à PLEIN Indice, NON surmontée, zéro État infligé', () => {
     const c = hero();
-    applyOps(c, psychBranchOps(terreur(4), { success: true, calmeDR: 4 }), { rng: desDuTest });
-    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'src', indice: 4, calmeDR: 0 }]);
+    applyOps(c, psychBranchOps(terreur(4), { success: true, calmeDR: 4, surmontee: true }), { rng: desDuTest });
+    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'src', indice: 4, calmeDR: 0, surmontee: false }]);
     expect(c.conditions).toEqual([]);
   });
 
-  it('Peur (Test ÉTENDU) : l’entrée est posée au DR fourni — surmontée quand il atteint l’Indice', () => {
+  it('Peur (Test ÉTENDU) : l’entrée est posée au DR et au verdict fournis par le site', () => {
     const c = hero();
-    applyOps(c, psychBranchOps({ kind: 'peur', sourceId: 'srcP', indice: 2 }, { success: true, calmeDR: 2 }), { rng: desDuTest });
-    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'srcP', indice: 2, calmeDR: 2, fromTest: true }]);
+    applyOps(c, psychBranchOps({ kind: 'peur', sourceId: 'srcP', indice: 2 }, { success: true, calmeDR: 2, surmontee: true }), { rng: desDuTest });
+    expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'srcP', indice: 2, calmeDR: 2, surmontee: true, fromTest: true }]);
   });
 
   it('Trait CIBLÉ : marqueur INERTE (`active:false`), non re-déclenchable', () => {
@@ -87,7 +87,25 @@ describe('#1189 — UPSERT : un second Test contre la MÊME source ne dédouble 
     const c = hero([{ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 4 }]);
     applyOps(c, psychBranchOps(terreur(5), { success: false, round: 4 }), { rng: desDuTest, sl: -1 });
     expect(c.psychState).toHaveLength(1);
-    expect(c.psychState![0]).toEqual({ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 0, lastTestRound: 4 });
+    expect(c.psychState![0]).toEqual({ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 0, surmontee: false, lastTestRound: 4 });
+  });
+
+  it('Terreur re-testée sur une Peur SURMONTÉE : le cumul repart de zéro, donc la Peur aussi (LDB 21 l.25, l.56)', () => {
+    const c = hero([{ type: 'peur', sourceId: 'src', indice: 5, calmeDR: 5, surmontee: true }]);
+    applyOps(c, psychBranchOps(terreur(5), { success: true }), { rng: desDuTest });
+    expect(c.psychState![0]).toMatchObject({ calmeDR: 0, surmontee: false });
+    expect(sousPeur(c.psychState![0])).toBe(true);
+  });
+
+  it('Peur réussie PUIS ratée contre la même source : sujet à nouveau à la Peur (LDB 21 l.9, l.25)', () => {
+    const c = hero();
+    const stake: PsychStake = { kind: 'peur', sourceId: 'scripted:x', indice: 2 };
+    applyOps(c, psychBranchOps(stake, { success: true, calmeDR: 2, surmontee: true }), { rng: desDuTest });
+    expect(sousPeur(c.psychState![0])).toBe(false);
+    applyOps(c, psychBranchOps(stake, { success: false, calmeDR: 0, surmontee: false }), { rng: desDuTest });
+    expect(c.psychState).toHaveLength(1);
+    expect(c.psychState![0]).toMatchObject({ calmeDR: 0, surmontee: false });
+    expect(sousPeur(c.psychState![0])).toBe(true);
   });
 
   it('Peur étendue : le DR cumulé calculé par le site est versé sur l’entrée EXISTANTE', () => {

@@ -50,8 +50,8 @@ describe('psychDRAdjust — Traits psy modulent le DR de l’attaque (LDB 21)', 
     expect(psychDRAdjust(att, mk({ id: 't', groups: [] }))).toBe(-1);
   });
 
-  it('Peur VAINCUE (calmeDR ≥ indice) → aucun malus', () => {
-    const att = mk({ psychState: [{ type: 'peur', sourceId: 't', indice: 2, calmeDR: 2 }] });
+  it('Peur SURMONTÉE → aucun malus', () => {
+    const att = mk({ psychState: [{ type: 'peur', sourceId: 't', indice: 2, calmeDR: 2, surmontee: true }] });
     expect(psychDRAdjust(att, mk({ id: 't', groups: [] }))).toBe(0);
   });
 

@@ -150,7 +150,7 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR, cibleMesuree } from '../engine/tests';
+import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleMesuree } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
 import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES, groupLabel } from '../data';
@@ -220,8 +220,8 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, refreshAllDefendedPsych, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType, psychTest } from '../engine/psychology';
-import { groupMatch, groupesDe, type PorteurDeGroupes } from '../engine/groups';
+import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import { groupesDe, type PorteurDeGroupes } from '../engine/groups';
 import { sceneCombatModifiers } from './monde/sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
@@ -284,12 +284,12 @@ import { refuserGeste } from './refusVisible';
 import {
   freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, monoStep, pousseSi,
   hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory,
-  stepDetail, stepPrecision, stepPsych,
+  stepDetail, stepPrecision, stepPsych, stepSansPeur,
   type ChoiceSpec, type Consequence, type TableSpec,
 } from './rollSeam';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
-import { dataLabel } from '../data';
+import { dataLabel, psychologyLabel } from '../data';
 import { zoneEnPose, type ZoneEnPose } from './targetingHolder';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
@@ -1561,12 +1561,11 @@ export function frenzyTarget(get: Get, c: Combatant): Combatant | null {
 }
 
 /** Source de PEUR active dont `dest` RAPPROCHE l'acteur (LDB 21 l.27) — null si aucune, ou si
- *  immunisé à la Psychologie. « Sous l'emprise » ⟺ Test étendu de Calme pas encore au niveau
- *  de l'Indice (calmeDR < indice). Pure. */
+ *  immunisé à la Psychologie. « Sous l'emprise » : `sousPeur`. Pure. */
 export function fearedSourceTowards(battle: BattleState, active: Combatant, dest: Pt): Combatant | null {
   if (!active.pos || isPsychImmune(active)) return null;
   for (const p of active.psychState ?? []) {
-    if (p.type !== 'peur' || (p.calmeDR ?? 0) >= (p.indice ?? 1)) continue;
+    if (!sousPeur(p)) continue;
     const src = inBattleId(battle, p.sourceId);
     if (src?.pos && !isOutOfAction(src) && chebyshev(dest, src.pos) < chebyshev(active.pos, src.pos)) return src;
   }
@@ -7445,10 +7444,10 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   const dues: { c: Combatant; indice: number }[] = [];
   for (const c of battle.combatants) {
     if (c.id === mover.id || isOutOfAction(c) || !c.pos) continue; // la Peur portée nomme sa source, quel que soit son camp
-    const peur = (c.psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === mover.id && (p.calmeDR ?? 0) < (p.indice ?? 0));
+    const peur = (c.psychState ?? []).find((p) => p.sourceId === mover.id && sousPeur(p));
     if (!peur) continue;
     if (chebyshev(arrivee, c.pos) >= chebyshev(fromPos, c.pos)) continue; // n'a pas fini plus près
-    dues.push({ c, indice: peur.indice ?? 0 });
+    dues.push({ c, indice: indiceDePeur(peur) });
   }
   if (!dues.length) return;
   // Le foyer est l'ENTRÉE de psychologie affrontée (`peur`), qui porte déjà son enjeu et sa fiche — pas
@@ -7552,7 +7551,7 @@ export function collectHeroRoundStartPsych(get: Get, c: Combatant): HeroPsychDue
   // Traits psy CIBLÉS (Animosité/Haine/… — LDB 21) : re-test des actifs, puis nouveaux déclenchements.
   const visible = visibleFoesAndAllies(battle, scene, c);
   for (const p of state) {
-    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => groupMatch(p.cible!, groupesDe(v))))
+    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise({ groupe: p.cible! }, { genre: 'combattant', c: v }, 'percu')))
       return { kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible: p.cible }; // affliction active à re-tester
   }
   const tt = targetedTrigger(c, visible);
@@ -7576,11 +7575,11 @@ export function collectHeroRoundEndPsych(get: Get, c: Combatant): HeroPsychDue |
     if (!src || src.kind !== 'peur' || state.some((p) => p.sourceId === foe.id)) continue;
     return { kind: 'peur', sourceId: foe.id, sourceName: foe.label, indice: src.indice, prevDR: 0 };
   }
-  // Peur ACTIVE (DR cumulé < Indice) non encore testée ce Round → Test étendu (cumul vers l'Indice).
+  // `sousPeur`, une fois par Round. LDB 21 l.25
   for (const p of state) {
-    if (p.type === 'peur' && (p.calmeDR ?? 0) < (p.indice ?? 0) && p.lastTestRound !== battle.round) {
+    if (sousPeur(p) && p.lastTestRound !== battle.round) {
       const src = inBattleId(battle, p.sourceId);
-      return { kind: 'peur', sourceId: p.sourceId!, sourceName: libelleOuAbsence(src, 'combattant', p.sourceId!), indice: p.indice ?? 1, prevDR: p.calmeDR ?? 0 };
+      return { kind: 'peur', sourceId: p.sourceId!, sourceName: libelleOuAbsence(src, 'combattant', p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0 };
     }
   }
   return null;
@@ -7610,16 +7609,8 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
   if (!t) return null;
   const isCible = estCibleType(t.kind);
   const cl = isCible ? cibleLabel(t.kind) : null;
-  const td = psychTest(t.kind);
-  const skill = td.skill;
-  // Sans Peur (Ennemi) (LDB 10 l.1051) : face à une NOUVELLE Peur/Terreur de l'ennemi spécifié, « un
-  // seul Test de Calme Accessible (+20) » pour l'ignorer. Pas sur les re-tests d'une Peur déjà subie
-  // (entrée psychState existante → Test étendu normal +0) ni sur les Traits ciblés.
-  const sourceFoe = !isCible ? inBattleId(get().battle, t.sourceId) : undefined;
-  const isNewSource = !(c.psychState ?? []).some((p) => p.type === 'peur' && p.sourceId === t.sourceId);
-  const sansPeur = !!sourceFoe && isNewSource && sansPeurVs(c, sourceFoe);
-  // Sans Peur force Accessible (+20) ; sinon la difficulté déclarée (défaut Intermédiaire +0).
-  const difficulty: Difficulty = sansPeur ? 'accessible' : td.difficulty;
+  const sansPeur = sansPeurFace(c, t.kind, inBattleId(get().battle, t.sourceId)); // LDB 10 l.1051
+  const { skill, difficulty } = psychTest(t.kind, sansPeur);
   const skillLabel = refLabel('skills', skill);
   // Peur de combat = Test ÉTENDU (LDB 21 l.25) : le cumul `prevDR`→`indice` voyage SUR LA RANGÉE
   // (`extendedDrTarget`/`extendedDrDone` de `BatchParticipant`) — SOURCE UNIQUE de la présentation
@@ -7632,7 +7623,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
       id: c.id, interactive: true, result: null,
       // Le Test allégé se lit SUR LA RANGÉE qui en profite (sa Difficulté, son libellé de ligne) : deux
       // héros face à la MÊME source ne partagent pas forcément le Talent.
-      label: sansPeur ? `${skillLabel} · Sans Peur` : skillLabel,
+      label: sansPeur ? stepSansPeur(skillLabel) : skillLabel,
       skillId: skill.id, difficulty,
       // Ligne montée par le monteur CANONIQUE (#1153), canal `combat` NON-attaque : base NUE, pénalité
       // d'États NOMMÉE (LDB 16 : « -10 à tous vos Tests » par palier) et comptée UNE fois dans la cible.
@@ -7642,7 +7633,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
       meta: { prevDR: t.prevDR, ...(sansPeur ? { sansPeur: true } : {}) },
     },
     icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
-    label: cl ? (t.cible ? stepPrecision(dataLabel(cl.label), dataLabel(t.cible)) : dataLabel(cl.label)) : stepPsych(t.kind, t.indice),
+    label: cl ? (t.cible ? stepPrecision(dataLabel(cl.label), groupLabel(t.cible)) : dataLabel(cl.label)) : stepPsych(t.kind, t.indice),
   };
 }
 
@@ -7784,20 +7775,14 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
   let phobieLine: string | null = null;
   const res = psychResolution(cp.kind);
   const cible = estCibleType(cp.kind);
-  // Peur = Test ÉTENDU de Calme (LDB 21 l.25) : cumuler le DR vers l'Indice (calque resolvePeurTest).
-  // Sans Peur (LDB 10 l.1051) : « un seul Test (+20) » → une réussite IGNORE la Peur d'emblée
-  // (DR porté à l'Indice) ; un échec laisse le porteur sujet (re-tests suivants = Peur normale +0).
-  // Sinon Test étendu LDB 12 MUTUALISÉ (`extendedTestStep`) — un Round raté RETIRE les DR négatifs
-  // (planché à 0), au lieu de l'ancien cumul add-only (bug : la Peur ne pouvait jamais régresser).
-  // C'est le SEUL terme que la donnée ne porte pas : il voyage dans l'op de pose de la branche.
-  const calmeDR = res.mode === 'terreur' || cible ? undefined
-    : rm.sansPeur && r.success
-      ? Math.max(rm.prevDR, cp.indice)
-      : extendedTestStep(rm.prevDR, r, cp.indice, !!rule('test-extended-min-sl')).total;
+  // Peur = Test ÉTENDU de Calme (LDB 21 l.25) : le pas `pasDePeur`, partagé avec l'IA, porte le cumul et
+  // Sans Peur (LDB 10 l.1051). C'est le SEUL terme que la donnée ne porte pas : il voyage dans l'op de
+  // pose de la branche.
+  const pas = res.mode === 'terreur' || cible ? undefined : pasDePeur(rm.prevDR, r, cp.indice, rm.sansPeur);
   // CONSÉQUENCES de la branche réalisée, en ops dérivées de `psychology.json` — les MÊMES que la
   // surface annonce (`meta.onSuccess`/`onFail`). Le DR du jet est versé au contexte : la quantité
   // d'État de l'échec (`valuePerSL{onFailure}`) s'y résout, même arithmétique que `failConditionAmount`.
-  applyOps(hero, psychBranchOps(cp, { success: r.success, calmeDR, round: battle?.round }), { rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: cp.kind } });
+  applyOps(hero, psychBranchOps(cp, { success: r.success, calmeDR: pas?.calmeDR, surmontee: pas?.surmontee, sansPeur: rm.sansPeur, round: battle?.round }), { rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: cp.kind } });
   if (res.mode === 'terreur') {
     // 1ʳᵉ rencontre (LDB 21 l.54-56) : échec → État `failCondition` = Indice + |DR négatifs| ; devient
     // l'état `becomes` (LDB 21 l.56, INCONDITIONNEL, à PLEIN Indice — #1190). Conséquences en DONNÉES.
@@ -7811,19 +7796,20 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
       if (gained) {
         hero.psychTraits = [...(hero.psychTraits ?? []), gained.phobie];
         hero.briseFromTerreur = 0;
-        phobieLine = tr('cf.phobieGain', { name: hero.label, cible: groupLabel(gained.phobie.cible) });
+        phobieLine = tr('cf.phobieGain', { name: hero.label, groupe: groupLabel(gained.phobie.cible) });
       }
     }
   } else if (cible) {
     // Trait ciblé : échec → affliction active ; succès → marqueur inerte (pas de re-déclenchement).
-    const cl = cibleLabel(cp.kind);
-    line = r.success ? tr('out.cibleMaster', { name: hero.label, kind: cl?.label.toLowerCase() ?? cp.kind }) : tr('out.cibleGrip', { name: hero.label, kind: cl?.label.toLowerCase() ?? cp.kind });
+    const psych = psychologyLabel(cp.kind);
+    line = r.success ? tr('out.cibleMaster', { name: hero.label, psych }) : tr('out.cibleGrip', { name: hero.label, psych });
   } else {
-    const name = hero.label;
-    const foe = cp.sourceName;
-    line = (calmeDR ?? 0) < cp.indice ? tr('cf.fearHeld', { name, dr: calmeDR ?? 0, indice: cp.indice })
-      : rm.sansPeur ? (foe ? tr('turn.fearVanquished', { name, foe }) : tr('cf.fearIgnored', { name }))
-      : foe ? tr('out.fearOvercome', { name, foe }) : tr('turn.fearOvercome', { name });
+    const issue = issueDePeur({ success: r.success, surmontee: !!pas?.surmontee }, rm.sansPeur);
+    if (issue === 'tient') line = tr('cf.fearHeld', { name: hero.label, dr: pas?.calmeDR ?? 0, indice: cp.indice });
+    else if (issue === 'ignoree') {
+      const talent = sansPeurLabel();
+      line = cp.sourceName ? tr('turn.fearVanquished', { name: hero.label, foe: cp.sourceName, talent }) : tr('cf.fearIgnored', { name: hero.label, talent });
+    } else line = cp.sourceName ? tr('out.fearOvercome', { name: hero.label, foe: cp.sourceName }) : tr('turn.fearOvercome', { name: hero.label });
   }
   // Immunités croisées (LDB 21) : Animosité/Préjugé cèdent dès qu'on tombe sous un effet psy dominant.
   return freeCons([line, ...(phobieLine ? [phobieLine] : []), ...supersededLines(hero, hero.label)]);
