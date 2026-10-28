@@ -1,3 +1,4 @@
+import { estTriplet, type Attache } from './attache';
 import type { ContenuGlb } from './glb';
 import type { ErreurDeManifeste, ManifesteDePersonnage } from './manifeste';
 import { estObjet } from '../../../src/hote/formes';
@@ -5,12 +6,6 @@ import { SLOTS } from '../../../src/noyau/index';
 
 export const ATTACHES = ['main', 'off', 'dos', 'ceinture'] as const;
 export type NomDAttache = (typeof ATTACHES)[number];
-type Vecteur = readonly [number, number, number];
-export interface Attache {
-  readonly os: string;
-  readonly position: Vecteur;
-  readonly rotation: Vecteur;
-}
 export interface EmplacementDeMatiere {
   readonly cle: (typeof SLOTS)[number];
   readonly piece: string;
@@ -22,8 +17,6 @@ export interface Montage {
 }
 export type ManifesteMontable = ManifesteDePersonnage & { readonly montage: Montage };
 
-const vecteur = (v: unknown): v is Vecteur => Array.isArray(v) && v.length === 3 && v.every(n => typeof n === 'number' && Number.isFinite(n));
-
 export function lireMontage(brut: unknown): { montage?: Montage; erreurs: ErreurDeManifeste[] } {
   const erreurs: ErreurDeManifeste[] = [];
   const forme = (ou: string) => erreurs.push({ code: 'forme', ou, detail: 'déclaration de montage invalide' });
@@ -31,7 +24,7 @@ export function lireMontage(brut: unknown): { montage?: Montage; erreurs: Erreur
   const attaches: Partial<Record<NomDAttache, Attache>> = {};
   for (const nom of ATTACHES) {
     const a = brut.attaches[nom];
-    if (!estObjet(a) || typeof a.os !== 'string' || !a.os || !vecteur(a.position) || !vecteur(a.rotation)) forme(`montage.attaches.${nom}`);
+    if (!estObjet(a) || typeof a.os !== 'string' || !a.os || !estTriplet(a.position) || !estTriplet(a.rotation)) forme(`montage.attaches.${nom}`);
     else attaches[nom] = { os: a.os, position: a.position, rotation: a.rotation };
   }
   for (const cle of Object.keys(brut.attaches)) if (!ATTACHES.includes(cle as NomDAttache)) forme(`montage.attaches.${cle}`);

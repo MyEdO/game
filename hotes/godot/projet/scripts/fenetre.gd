@@ -51,9 +51,7 @@ func _ready() -> void:
 ## Montre `fenetre` (`FenetreADessiner`), ou se cache quand rien ne tient la main (`null`).
 func montrer(fenetre: Variant) -> void:
 	for conteneur in [_pile, _pied]:
-		for enfant in conteneur.get_children():
-			conteneur.remove_child(enfant)
-			enfant.queue_free()
+		Controles.vider(conteneur)
 	if fenetre == null:
 		_cadre.hide()
 		return

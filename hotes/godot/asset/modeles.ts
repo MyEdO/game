@@ -1,6 +1,7 @@
 import { validerElement, type ManifesteDElement } from './element.ts';
 import { lireGlb } from './glb.ts';
-import { cheminsAbsolus, estObjet, ligneDErreur, validerManifeste } from './manifeste.ts';
+import { estObjet } from '../../../src/hote/formes';
+import { cheminsAbsolus, ligneDErreur, validerManifeste } from './manifeste.ts';
 import { validerManifesteDeBase, type ManifesteDeBase } from './manifesteDeBase.ts';
 import type { ManifesteMontable } from './montage';
 
@@ -9,15 +10,18 @@ export interface EntreeDeModele { readonly id: string; readonly brut: unknown }
 export interface BaseLivree { readonly brut: unknown; readonly octets: Uint8Array }
 export type VerdictDeModele = { readonly ok: true; readonly manifeste: ManifesteDeModele } | { readonly ok: false; readonly refus: readonly string[] };
 
+/** Les fichiers du modèle `id` dans le projet : le GLB (tiré de la Release, ignoré de git), le manifeste et la provenance (commités). */
+export const fichiersDuModele = (id: string) => ({ glb: `${id}.glb`, manifeste: `${id}.manifeste.json`, provenance: `${id}.provenance.json` });
+
 export const estSchema3 = (m: unknown): m is Record<string, unknown> => estObjet(m) && m.schema === 3;
 /** Une base porte son squelette (`ManifesteDeBase.os`), champ qu'aucune catégorie d'élément n'admet (`element.ts`). */
 export const estBase = (m: unknown): boolean => estSchema3(m) && Object.prototype.hasOwnProperty.call(m, 'os');
 const identite = (base: unknown, cle: Record<string, unknown>): string => JSON.stringify([base, Object.entries(cle).sort(([a], [b]) => a.localeCompare(b))]);
 
-/** L'index (base, clé) et les bases, indépendants du nom de fichier et de l'ordre des champs de clé. */
-export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: ReadonlyMap<string, EntreeDeModele>; refus: string[] } {
+/** L'index (base, clé) → élément et les bases, indépendants du nom de fichier et de l'ordre des champs de clé. */
+export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: ReadonlyMap<string, EntreeDeModele>; elements: ReadonlyMap<string, EntreeDeModele>; refus: string[] } {
   const bases = new Map<string, EntreeDeModele>();
-  const cles = new Map<string, string>();
+  const cles = new Map<string, EntreeDeModele>();
   const refus: string[] = [];
   for (const entree of entrees) {
     const m = entree.brut;
@@ -30,12 +34,21 @@ export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: Rea
     } else if (estObjet(m.cle)) {
       const cle = identite(m.base, m.cle);
       const precedent = cles.get(cle);
-      if (precedent) refus.push(`[cle-en-doublon] ${cle} : ${precedent}, ${entree.id}`);
-      else cles.set(cle, entree.id);
+      if (precedent) refus.push(`[cle-en-doublon] ${cle} : ${precedent.id}, ${entree.id}`);
+      else cles.set(cle, entree);
     }
   }
   for (const { id, brut: m } of entrees) if (estSchema3(m) && !estBase(m) && typeof m.base === 'string' && !bases.has(m.base)) refus.push(`[base-absente] ${id} : ${m.base}`);
-  return { bases, refus };
+  return { bases, elements: cles, refus };
+}
+
+/** Le verdict (`validerModele`) de chaque entrée dont `octets` porte le GLB, les bases d'abord : un élément se valide
+ *  contre la base de `entrees` qui a ses octets. */
+export function verdictsDesModeles(entrees: readonly EntreeDeModele[], octets: ReadonlyMap<string, Uint8Array>): { readonly id: string; readonly brut: unknown; readonly verdict: VerdictDeModele }[] {
+  const livrees = entrees.flatMap((e) => { const o = octets.get(e.id); return o ? [{ ...e, octets: o }] : []; });
+  const bases = new Map<string, BaseLivree>();
+  for (const { brut, octets: o } of livrees) if (estBase(brut)) bases.set(String((brut as Record<string, unknown>).base), { brut, octets: o });
+  return livrees.sort((a, b) => Number(estBase(b.brut)) - Number(estBase(a.brut))).map(({ id, brut, octets: o }) => ({ id, brut, verdict: validerModele(brut, o, bases) }));
 }
 
 /** Un validateur par contrat : personnage schéma 2, base schéma 3, élément schéma 3 contre sa base validée. */

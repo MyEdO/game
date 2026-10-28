@@ -12,6 +12,8 @@ import { estObjet } from '../../../src/hote/formes';
 import { modelesDesCombattants, type CouvertureDesModeles } from './equipement';
 import { fenetreADessiner, type FenetreADessiner } from '../../../src/hote/gestes';
 import { panneauDuCombat, type PanneauDuCombat } from '../../../src/hote/ecran';
+import { modelesDeLAtelier } from './atelier';
+import { estListeDeChaines } from '../asset/attache';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
 const sansRoster = (): void => {};
@@ -135,6 +137,12 @@ export function creerPont() {
       const e = entreeDe('reprendre', json, ['jeton']);
       valider(Number.isInteger(e.jeton), 'reprendre : jeton, le numéro d’un jeton programmé');
       return suite(o, o.jetons.reprendre(e.jeton as number));
+    },
+    modeles(json) {
+      const e = entreeDe('modeles', json, ['manifestes', 'osDesRigides']);
+      valider(estObjet(e.manifestes), 'modeles : manifestes, un objet id de modèle → manifeste');
+      valider(estObjet(e.osDesRigides) && Object.values(e.osDesRigides).every(estListeDeChaines), 'modeles : osDesRigides, un objet id de modèle → os de ses meshes rigides');
+      return modelesDeLAtelier(e.manifestes as Record<string, unknown>, e.osDesRigides as Record<string, string[]>);
     },
     erreursGlobales(json) {
       entreeDe('erreursGlobales', json, []);

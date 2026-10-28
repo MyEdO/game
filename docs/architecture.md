@@ -605,7 +605,7 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             `scripts/guards/lib/gdscriptSansRegle.mjs`) ;
                             jetons armés en minuteurs. `construire.mjs --sonde` l'importe et contrôle chaque script
                             avec l'éditeur épinglé (`npm run godot:sonde`, étape de la CI) ; `--export --sortie`
-                            produit l'export Web, que `recette.mjs` joue au navigateur, un tour complet.
+                            produit l'export Web, que `recette.mjs` joue au navigateur : un tour complet, ou l'atelier.
 src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du noyau (store Zustand), sélectionne
                             pour l'affichage et persiste (saves, roster, bibliothèque, préférences), sans
                             décider d'aucun effet de jeu (§ Couches).

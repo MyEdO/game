@@ -2364,11 +2364,15 @@ test('deplierVers : une molette qui ne fait plus défiler LÈVE en le nommant', 
   await assert.rejects(() => deplierVers(session, '#loin', { pauseMs: 0 }), /la molette ne fait plus défiler vers « #loin »/)
 })
 
-test('molette : un cran CDP `mouseWheel` au centre de la partie visible de la cible, sans scrollIntoView', async () => {
+test('molette : le pointeur posé puis un cran CDP `mouseWheel` au centre de la partie visible de la cible, sans scrollIntoView', async () => {
   const { etat, session } = pageDefilante('<div id="liste" data-y="100">liste</div>')
+  const souris = []
+  const rpc = socketDe(session).gerer
+  socketDe(session).gerer = async (m, params) => { if (m === 'Input.dispatchMouseEvent') souris.push([params.type, params.x, params.y]); return rpc(m, params) }
   const point = await molette(session, { selecteur: '#liste' }, 120)
   assert.deepEqual({ x: point.x, y: point.y }, { x: 60, y: 110 })
   assert.deepEqual(etat.crans, [120])
+  assert.deepEqual(souris, [['mouseMoved', 60, 110], ['mouseWheel', 60, 110]], 'le pointeur est posé au point du cran avant la molette')
   await assert.rejects(() => molette(session, { selecteur: '#absente' }, 120), /molette : aucune cible « #absente »/)
 })
 

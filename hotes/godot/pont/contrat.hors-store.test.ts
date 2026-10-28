@@ -13,6 +13,7 @@ import type { VueDuPont } from './pont';
 import { CLICS_DU_CHAMP, plateauDeLaScene } from '../../../src/noyau/index';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
+import { baseSchema3, elementSchema3 } from '../asset/schema3.testkit.ts';
 
 /** La panne d'un lecteur de la vue, armée par le test de la catégorie `interne`. */
 const panne = vi.hoisted(() => ({ projeter: false }));
@@ -40,7 +41,20 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, vue, jouer, reprendre, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, vue, jouer, reprendre, modeles, erreursGlobales)');
+  });
+
+  it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
+    const manifestes = { humanoide: baseSchema3(), epee: elementSchema3() };
+    expect(appel('modeles', { manifestes, osDesRigides: { humanoide: [], epee: ['root'] } })).toMatchObject({
+      ok: true, bases: [{ id: 'humanoide', points: [{ id: 'main', elements: ['epee'] }, { id: 'off', elements: ['epee'] }] }], glb: { humanoide: 'humanoide.glb', epee: 'epee.glb' }, refus: [],
+    });
+    const sansManifestes = { categorie: 'validation', message: 'modeles : manifestes, un objet id de modèle → manifeste' };
+    expect(erreurDe(appel('modeles', {}))).toEqual(sansManifestes);
+    expect(erreurDe(appel('modeles'))).toEqual(sansManifestes);
+    const sansOs = { categorie: 'validation', message: 'modeles : osDesRigides, un objet id de modèle → os de ses meshes rigides' };
+    expect(erreurDe(appel('modeles', { manifestes }))).toEqual(sansOs);
+    expect(erreurDe(appel('modeles', { manifestes, osDesRigides: { epee: 'root' } }))).toEqual(sansOs);
   });
 
   it('`vue`, `jouer` et `reprendre` se refusent sans partie', () => {
