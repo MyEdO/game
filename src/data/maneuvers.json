@@ -427,23 +427,13 @@
                   {
                     "op": "wounds",
                     "amount": {
-                      "bonusOf": "endurance"
+                      "sum": [
+                        {
+                          "bonusOf": "endurance"
+                        },
+                        4
+                      ]
                     },
-                    "ignoreTB": false,
-                    "ignoreAP": false
-                  }
-                ]
-              }
-            },
-            {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "wounds",
-                    "amount": 4,
                     "ignoreTB": false,
                     "ignoreAP": false
                   }
@@ -470,8 +460,7 @@
                 "on": "target",
                 "ops": [
                   {
-                    "op": "damageArmour",
-                    "material": "cuir"
+                    "op": "damageWornGear"
                   }
                 ]
               }
@@ -484,7 +473,7 @@
       "book": "livre-de-base",
       "page": 343
     },
-    "stake": "Esquive — réussie : la gerbe est évitée. Ratée : Dégâts égaux au Bonus d’Endurance de l’attaquant, puis 4 Dégâts de plus (Bonus d’Endurance et PA déduits), État Sonné, et l’armure de cuir touchée est rongée.",
+    "stake": "Esquive — réussie : la gerbe est évitée. Ratée : Dégâts d’Arme égaux au Bonus d’Endurance de l’attaquant +4 (Bonus d’Endurance et PA déduits), État Sonné, et toutes les Armures et Armes portées subissent 1 Dégât.",
     "stakeForm": "descripteur"
   },
   {

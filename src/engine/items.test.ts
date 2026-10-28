@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme } from './items';
+import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme } from './items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
 import { rangeBandName } from './combat';
 import { trappings } from '../data';
 import { Combatant, ItemInstance, Weapon } from './types';
+import type { Mutation } from './corruption';
 
 
 const item = (o: Partial<ItemInstance>): ItemInstance =>
@@ -701,6 +702,120 @@ describe('Dégâts d’armure (LDB 63 l.19-21)', () => {
   });
   it('damageArmour : pas d’armure utilisable → false', () => {
     expect(damageArmour({ armour: emptyArmour() } as unknown as Combatant, 'corps')).toBe(false);
+  });
+});
+
+/** Mutation fabriquée : `ap` partout, marquée hors Déviation ou non. */
+const mutationAP = (id: string, amount: number, noDeviation?: boolean): Mutation =>
+  ({ id, label: id, desc: '', kind: 'physique', roll: 0, passive: [{ op: 'ap', amount, ...(noDeviation ? { noDeviation } : {}) }] });
+
+/** LDB 85 l.325, l.447 ; LDB 63 l.19 ; LDB 62 l.135 */
+describe('endommagerLEquipementPorte — toutes les Armures et Armes portées subissent 1 Dégât', () => {
+  const porteur = (items: ItemInstance[], main?: string, off?: string): Combatant => {
+    const c = ({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items, armour: emptyArmour(),
+      talents: [], skills: [], conditions: [], wounds: { current: 10, max: 10 }, advantage: 0,
+      loadouts: [{ id: 'l1', name: 'set', main, off }], activeLoadoutId: 'l1' } as unknown as Combatant);
+    recomputeLoadout(c);
+    return c;
+  };
+  const arme = (uid: string, p: Partial<ItemInstance> = {}): ItemInstance =>
+    item({ uid, label: uid, kind: 'melee', subType: 'Base', hands: 1, equipped: true, damage: { plusBF: true, flat: 4 }, ...p });
+
+  it('chaque pièce portée perd 1 PA, chaque arme tenue prend 1 Dégât ; une pièce rangée est intacte', () => {
+    const c = porteur([
+      item({ uid: 'casque', kind: 'armor', pa: 2, locs: ['tete'], equipped: true }),
+      item({ uid: 'veste', kind: 'armor', pa: 1, locs: ['corps'], equipped: true }),
+      item({ uid: 'sac', kind: 'armor', pa: 3, locs: ['corps'], equipped: false }),
+      arme('epee'), arme('dague', { damage: { plusBF: true, flat: 2 } }),
+    ], 'epee', 'dague');
+    expect(endommagerLEquipementPorte(c)).toEqual({ localisations: 2, armes: 2 });
+    expect(c.armour.tete).toBe(1);
+    expect(c.armour.corps).toBe(0);
+    expect(c.items!.find((i) => i.uid === 'sac')!.damageTaken).toBeUndefined();
+    expect(c.items!.find((i) => i.uid === 'epee')!.damageTaken).toBe(1);
+    expect(c.items!.find((i) => i.uid === 'dague')!.damageTaken).toBe(1);
+  });
+  it('les armes de TOUS les sets sont portées ; une arme rangée dans un contenant ne l’est pas', () => {
+    const c = porteur([arme('epee'), arme('hache', { equipped: false }), arme('arc', { equipped: false, inside: 'sac' })], 'epee');
+    c.loadouts!.push({ id: 'l2', main: 'hache' });
+    expect(endommagerLEquipementPorte(c).armes).toBe(2);
+    expect(c.items!.map((i) => [i.uid, i.damageTaken])).toEqual([['epee', 1], ['hache', 1], ['arc', undefined]]);
+  });
+  it('arme Incassable : intacte', () => {
+    const c = porteur([arme('runique', { qualities: [{ id: 'incassable' }] })], 'runique');
+    expect(endommagerLEquipementPorte(c).armes).toBe(0);
+    expect(c.items![0].damageTaken).toBeUndefined();
+  });
+  it('arme à Dégâts +0 (improvisée) : détruite, Mains nues en main', () => {
+    const c = porteur([arme('baton', { damage: { plusBF: true, flat: 0 } })], 'baton');
+    expect(endommagerLEquipementPorte(c).armes).toBe(1);
+    expect(c.items![0].destroyed).toBe(true);
+    expect(tientUneArme(c.weapons)).toBe(false);
+  });
+  it('statbloc sans objet : l’armure plate perd 1 PA à chaque Localisation qui en a ; les attaques naturelles sont épargnées', () => {
+    const griffe = buildWeapon({ label: 'Griffes', natural: true, damage: { plusBF: true, flat: 3 } });
+    const lame = buildWeapon({ label: 'Lame', damage: { plusBF: true, flat: 4 } });
+    const c = { items: [], weapons: [griffe, lame], armour: { ...emptyArmour(), tete: 2, corps: 1 } } as unknown as Combatant;
+    expect(endommagerLEquipementPorte(c)).toEqual({ localisations: 2, armes: 1 });
+    expect(c.armour).toMatchObject({ tete: 1, corps: 0, brasG: 0 });
+    expect(griffe.damageTaken).toBeUndefined();
+    expect(lame.damageTaken).toBe(1);
+  });
+
+  it('héros muté sans pièce portée : l’usure se compte sur la mutation, son `passive` intact, et survit au recalcul et au JSON', () => {
+    const c = porteur([]);
+    c.mutations = [mutationAP('peau', 2)];
+    const passive = structuredClone(c.mutations[0].passive);
+    recomputeLoadout(c);
+    expect(c.armour).toEqual({ ...emptyArmour(), tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 });
+    expect(endommagerLEquipementPorte(c)).toEqual({ localisations: 6, armes: 0 });
+    recomputeLoadout(c);
+    expect(c.armour).toEqual({ ...emptyArmour(), tete: 1, brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 });
+    expect(endommagerLEquipementPorte(c)).toEqual({ localisations: 6, armes: 0 });
+    expect(endommagerLEquipementPorte(c)).toEqual({ localisations: 0, armes: 0 });
+    expect(c.mutations[0].passive).toEqual(passive);
+    expect(c.mutations[0].usure).toEqual({ tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 });
+    const relu = JSON.parse(JSON.stringify(c)) as Combatant;
+    recomputeLoadout(relu);
+    expect(relu.armour).toEqual(emptyArmour());
+  });
+  it('héros muté : une pièce portée prend l’usure à sa Localisation, la mutation l’ailleurs ; une Localisation sans PA n’est pas comptée', () => {
+    const c = porteur([item({ uid: 'casque', kind: 'armor', pa: 2, locs: ['tete'], equipped: true })]);
+    c.mutations = [{ ...mutationAP('cornes', 1), passive: [{ op: 'ap', loc: 'corps', amount: 1 }] }];
+    recomputeLoadout(c);
+    expect(endommagerLEquipementPorte(c)).toEqual({ localisations: 2, armes: 0 });
+    recomputeLoadout(c);
+    expect(c.armour).toMatchObject({ tete: 1, corps: 0, brasG: 0 });
+  });
+});
+
+/** LDB 63 l.19, l.30 ; EDO App.2 l.196 */
+describe('damageArmour — armure dérivée d’un héros sans pièce à la Localisation', () => {
+  const heros = (mutations: Mutation[]): Combatant => {
+    const c = ({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items: [], armour: emptyArmour(),
+      talents: [], skills: [], conditions: [], wounds: { current: 10, max: 10 }, advantage: 0, mutations } as unknown as Combatant);
+    recomputeLoadout(c);
+    return c;
+  };
+
+  it('le PA de mutation usé persiste après recalcul', () => {
+    const c = heros([mutationAP('peau', 2)]);
+    expect(damageArmour(c, 'corps')).toBe(true);
+    recomputeLoadout(c);
+    expect(c.armour.corps).toBe(1);
+    expect(c.armour.tete).toBe(2);
+  });
+  it('un PA déviable s’use d’abord ; le PA hors Déviation reste, non déviable', () => {
+    const c = heros([mutationAP('ecailles', 1, true), mutationAP('peau', 1)]);
+    expect(deviatableArmourAt(c, 'corps')).toBe(true);
+    expect(damageArmour(c, 'corps')).toBe(true);
+    recomputeLoadout(c);
+    expect(c.armour.corps).toBe(1);
+    expect(deviatableArmourAt(c, 'corps')).toBe(false);
+    expect(damageArmour(c, 'corps')).toBe(true);
+    recomputeLoadout(c);
+    expect(c.armour.corps).toBe(0);
+    expect(damageArmour(c, 'corps')).toBe(false);
   });
 });
 

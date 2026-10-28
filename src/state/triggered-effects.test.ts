@@ -12,7 +12,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { evalCondition } from '../engine/flowCore';
+import { evalCondition, spellEffectOps } from '../engine/flowCore';
 import { applyOps } from '../engine/ops';
 import { makeRNG } from '../engine/dice';
 import type { Combatant, Weapon } from '../engine/types';
@@ -178,7 +178,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
   });
 
   it('Condition `compare` générique : who (cible/lanceur) × donnée/État · opérateur · valeur (const ou acteur)', () => {
-    const target = { id: 't', woundsCurrent: 5, woundsMax: 15, size: 2, advantage: 0, camp: 'hostile' as const, groups: ['Morts-vivants'], talents: [], traits: ['mort-vivant'], conditions: { brise: 3 }, chars: {} as Record<string, number> }; // Petite (2), ennemi mort-vivant (conditions keyées par id)
+    const target = { id: 't', woundsCurrent: 5, woundsMax: 15, size: 2, advantage: 0, camp: 'hostile' as const, groups: ['Morts-vivants'], talents: [], traits: ['mort-vivant'], immunities: ['poison'], conditions: { brise: 3 }, chars: {} as Record<string, number> }; // Petite (2), ennemi mort-vivant (conditions keyées par id)
     const caster = { id: 'c', woundsCurrent: 12, woundsMax: 12, size: 4, advantage: 1, camp: 'party' as const, groups: [], talents: [{ id: 'magie-des-arcanes', spec: 'Feu' }], traits: [], conditions: {} as Record<string, number>, chars: {} as Record<string, number> }; // Grande (4), mage de Feu
     const ctx = { flags: {}, gameTime: 0, target, caster };
     expect(evalCondition({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 }, ctx)).toBe(true);
@@ -197,6 +197,8 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     // Condition `has` : appartenance Groupe / Talent (spec) / Trait.
     expect(evalCondition({ kind: 'has', who: 'target', what: 'group', value: 'Morts-vivants' }, ctx)).toBe(true);
     expect(evalCondition({ kind: 'has', who: 'target', what: 'trait', value: 'mort-vivant' }, ctx)).toBe(true);
+    expect(evalCondition({ kind: 'has', who: 'target', what: 'immunity', value: 'poison' }, ctx)).toBe(true); // LDB 85 l.174
+    expect(evalCondition({ kind: 'has', who: 'caster', what: 'immunity', value: 'poison' }, ctx)).toBe(false);
     expect(evalCondition({ kind: 'has', who: 'caster', what: 'talent', value: 'magie-des-arcanes', spec: 'Feu' }, ctx)).toBe(true);
     expect(evalCondition({ kind: 'has', who: 'caster', what: 'talent', value: 'magie-des-arcanes', spec: 'Mort' }, ctx)).toBe(false); // spec ≠
   });
@@ -537,6 +539,20 @@ describe('Traits conférés par une attaque, Difficulté portée par l’État',
     const cible = mk({ id: 'ci' });
     applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte: 'difficile' }], { rng: makeRNG(1) });
     expect(cible.conditions.find((x) => x.id === 'empoisonne')?.difficulte).toBe('difficile');
+  });
+  // #3060 : lecture révisable (recommandation), Difficulté la plus dure des poisons cumulés (LDB 16 l.70-76).
+  it('des poisons de Difficultés différentes laissent à l’État la plus dure, dans les deux ordres', () => {
+    for (const ordre of [['facile', 'difficile'], ['difficile', 'facile']] as const) {
+      const cible = mk({ id: 'ci' });
+      for (const difficulte of ordre) applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte }], { rng: makeRNG(1) });
+      expect(cible.conditions.find((x) => x.id === 'empoisonne'), ordre.join(' puis ')).toMatchObject({ value: 2, difficulte: 'difficile' });
+    }
+  });
+  it('l’État `argDifficulty` d’un Trait prend la Difficulté de l’arg, et reste posé sans arg (LDB 85 l.423, l.425)', () => {
+    const opsDuVenin = (arg?: string) => effectSourcesOf(mk({ traits: [{ id: 'venin', ...(arg ? { arg } : {}) }] }))
+      .find((s) => s.key === 'trait:venin')!.effects.flatMap((e) => spellEffectOps(e.flow));
+    expect(opsDuVenin('difficile')).toEqual([{ op: 'condition', id: 'empoisonne', difficulte: 'difficile' }]);
+    expect(opsDuVenin()).toEqual([{ op: 'condition', id: 'empoisonne' }]);
   });
   it('le Test qui élimine Empoisonné prend la Difficulté que l’État porte', () => {
     const difficulteDuTest = (c: Combatant) => effectSourcesOf(c).find((s) => s.key === 'cond:empoisonne')!.effects

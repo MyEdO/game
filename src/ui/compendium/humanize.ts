@@ -150,6 +150,7 @@ function formuleEnMots(f: Formula, regles: string[] | null): string {
     return `${valeur} (règle « ${def.label} »)`;
   }
   if ('minimum' in f) return `${formuleEnMots(f.of, regles)} (minimum de ${f.minimum})`;
+  if ('parTranche' in f) return `1 par tranche de ${f.parTranche} de ${formuleEnMots(f.of, regles)}`;
   if ('sum' in f) return f.sum.map((t) => formuleEnMots(t, regles)).join(' + ');
   // Le FACTEUR est une `Formula` comme le multiplicande (`formulaSchema`, grammaire/valeurs.ts) :
   // il s'humanise, il ne s'interpole pas — sans quoi « × {sl:true} » s'imprime « × [object Object] ».
@@ -287,6 +288,7 @@ export function humanizeCondition(c: Condition, neg = false): string {
       if (c.what === 'talent') return `${who(c.who)} ${v} le Talent ${refLabel('talents', { id: c.value, spec: c.spec })}`;
       if (c.what === 'trait') return `${who(c.who)} ${v} le Trait ${traitLabelById(c.value)}`;
       if (c.what === 'psych') return `${who(c.who)} ${v} l'état psychologique ${psychologyLabel(c.value)}`;
+      if (c.what === 'immunity') return `${who(c.who)} ${neg ? "n'est pas" : 'est'} immunisé(e) au ${refLabel('damageTypes', { id: c.value })}`;
       return `${who(c.who)} ${neg ? "n'appartient pas" : 'appartient'} au Groupe ${groupLabel(c.value)}`;
     }
     case 'casterChaosDomain': return `le Domaine du Chaos du lanceur ${neg ? "n'est pas" : 'est'} ${refLabel('gods', { id: c.is })}`;
@@ -463,6 +465,7 @@ export function humanizeOp(o: GameOp): string {
     case 'freeReroll': return `peut relancer son prochain Test raté`;
     case 'critTwice': return `lance deux fois ses Blessures critiques et garde le meilleur`;
     case 'damageArmour': return `voit une pièce d'armure en cuir perdre 1 PA`;
+    case 'damageWornGear': return 'voit chaque Armure et Arme portée subir 1 Dégât';
     case 'suppressPsych': return `voit tous ses Traits psychologiques apaisés`;
     case 'castWard': return `impose ${o.mod >= 0 ? '+' : '−'}${Math.abs(o.mod)} aux Tests de magie dans un rayon ${deFormule(o.radius)} m`;
     case 'suffocate': return `est soumis aux règles de la Suffocation`;

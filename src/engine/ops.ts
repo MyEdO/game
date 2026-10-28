@@ -42,7 +42,7 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { contexteDeNaissanceDObjet, damageLeatherArmour, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive } from './items';
+import { contexteDeNaissanceDObjet, damageLeatherArmour, endommagerLEquipementPorte, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
@@ -139,7 +139,11 @@ export type FormuleDe<J> =
    *  qui la reçoit : « inutilisable pour 1d10 – (Bonus d'Endurance) Rounds (minimum de 1) »
    *  (`AA 07 l.113`, `LDB 18 l.88`) s'écrit `{minimum:1, of:{sum:[…]}}`. Récursif. `minimum` nomme CE
    *  concept seul — `atLeast` est déjà le seuil d'un palier (`rollThreshold`) et d'une Condition. */
-  | { minimum: number; of: FormuleDe<J> };
+  | { minimum: number; of: FormuleDe<J> }
+  /** NOMBRE DE TRANCHES ENTIÈRES de `parTranche` dans `of` (`⌊of / parTranche⌋`) — « l'État Sonné pour
+   *  chaque tranche de 5 Blessures subies » (`LDB 85 l.324`) s'écrit
+   *  `{minimum:1, of:{parTranche:5, of:{woundsDealt:true}}}`. Récursif. */
+  | { parTranche: number; of: FormuleDe<J> };
 
 /** Quantité résolue à l'application : littéral, « (Bonus de X) », « (X) », dés, terme de jet. */
 export type Formula = FormuleDe<TermeDeJet>;
@@ -172,7 +176,7 @@ export function avantageDeCampSansFiche(avant: number, ops: readonly GameOp[], p
 /** Clés reconnues d'une `Formula` OBJET — SOURCE UNIQUE, alignée sur l'union `Formula` et sur les
  *  branches de `resolveFormula`. Réutilisée par le garde-fou d'intégrité des données
  *  (`src/data/data-wellformed.test.ts`) pour valider les champs Formula des `GameOp` sans re-coder la liste. */
-export const FORMULA_OBJECT_KEYS = ['bonusOf', 'charOf', 'dice', 'rolled', 'indiceOf', 'stacks', 'engagedAdvantageGap', 'woundsDealt', 'sl', 'rule', 'sum', 'times', 'minimum'] as const;
+export const FORMULA_OBJECT_KEYS = ['bonusOf', 'charOf', 'dice', 'rolled', 'indiceOf', 'stacks', 'engagedAdvantageGap', 'woundsDealt', 'sl', 'rule', 'sum', 'times', 'minimum', 'parTranche'] as const;
 
 /** Une valeur est-elle une `Formula` VALIDE — résoluble par `resolveFormula` sans planter ? `number` FINI,
  *  ou objet portant exactement une clé connue (`sum` récursif). PUR. Rejette une string (un `'$indice'`
@@ -182,6 +186,7 @@ export function isValidFormula(f: unknown): f is Formula {
   if (typeof f !== 'object' || f === null) return false;
   const o = f as Record<string, unknown>;
   if ('minimum' in o) return typeof o.minimum === 'number' && Number.isFinite(o.minimum) && isValidFormula(o.of);
+  if ('parTranche' in o) return Number.isInteger(o.parTranche) && (o.parTranche as number) > 0 && isValidFormula(o.of);
   if ('sum' in o) return Array.isArray(o.sum) && o.sum.every(isValidFormula);
   if ('times' in o) {
     const t = o.times as Record<string, unknown> | null;
@@ -243,6 +248,7 @@ export function formulaExpectation(f: Formula, ref: Combatant): number {
   if ('rolled' in f) return 5.5; // référence neutre (dé moyen d'un d10) — jamais tiré
   if ('rule' in f) { const v = rule(f.rule); return typeof v === 'number' && Number.isFinite(v) ? v : 0; }
   if ('minimum' in f) return Math.max(f.minimum, formulaExpectation(f.of, ref));
+  if ('parTranche' in f) return Math.floor(formulaExpectation(f.of, ref) / f.parTranche);
   if ('sum' in f) return f.sum.reduce<number>((acc, term) => acc + formulaExpectation(term, ref), 0);
   if ('times' in f) return formulaExpectation(f.times.of, ref) * formulaExpectation(f.times.factor, ref);
   return 0; // indiceOf / stacks / engagedAdvantageGap / woundsDealt / sl : hors contexte au planning
@@ -459,6 +465,10 @@ export type GameOp =
       /** Difficulté des Tests qui éliminent l'État, dictée par sa source (LDB 16 l.70 ; MDG 16 l.226) —
        *  FIGÉE sur l'entrée d'État, lue par le Test `argDifficulty` de l'État. */
       difficulte?: import('./types').Difficulty;
+      /** La `difficulte` vient de l'argument d'instance du porteur (« Venin (Difficile) », `LDB 85 l.423`),
+       *  posée par `withArg` (`noyau/triggeredEffects`) ; sans argument, l'État n'en porte aucune et son Test
+       *  garde la sienne (`LDB 85 l.425`). Même drapeau que le Test `argDifficulty`. */
+      argDifficulty?: boolean;
       /** VERROU de Critique (LDB 18) : l'État posé ne pourra être RETIRÉ que lorsque cette Condition
        *  (algèbre flowCore) sera vraie. Ex. Aveuglé « tant que tous les Hémorragique n'ont pas été
        *  éliminés » (Tête 46-50) ⇒ `{ kind:'compare', subject:{who:'target',condition:'hemorragique'},
@@ -737,6 +747,9 @@ export type GameOp =
   /** Putréfaction (LDB 47) : « le cuir se racornit (perdant 1 PA à 1 Localisation) » — seule la
    *  matière `cuir` est mécanisée (pièce d'armure portée) ; le reste (denrées, vêtements) reste MJ. */
   | { op: 'damageArmour'; material: 'cuir' }
+  /** 1 Dégât aux Armures et Armes portées par la cible (`endommagerLEquipementPorte`, `engine/items`), journalisé
+   *  en Localisations d'armure et en armes usées. LDB 85 l.325, l.447 */
+  | { op: 'damageWornGear' }
   /** Baume pour un esprit blessé (LDB 42) : « Tous les Traits Psychologiques sont retirés pour la
    *  durée du Miracle » — Traits psy SUSPENDUS (portés par l'effet), restitués à l'expiration. */
   | { op: 'suppressPsych' }
@@ -1362,13 +1375,21 @@ export function durationFromCtx(ctx: OpsCtx): Duration {
 /** Champs de DURÉE qu'une op peut porter — consommés à la pose par `durationFromOp`. */
 interface OpDuree { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
 
+/** Résout `f` dans le contexte `ctx` de l'op qui la porte : TOUS les termes de contexte (`rolled`, `indiceOf`,
+ *  `stacks`, `engagedAdvantageGap`, `woundsDealt`, `sl`) y valent leur valeur courante — un terme qu'un
+ *  site omettrait vaudrait 0 en silence. `ctx` est lu à l'appel : `woundsDealt` est vivant pendant la
+ *  boucle d'`applyOps`. */
+function formuleDuCtx(f: Formula, ref: Combatant, ctx: OpsCtx): number {
+  return resolveFormula(f, ref, ctx.rng, ctx.rolled, ctx.indice, ctx.stacks, ctx.engagedAdvantageGap, ctx.woundsDealt, ctx.sl);
+}
+
 /** Durée INTRINSÈQUE portée par l'op (Rounds, sinon horloge depuis `ctx.now`), à défaut celle du
  *  contexte — mêmes échelles exclusives que `durationFromCtx` (LDB 47). Un minimum de durée vit dans
  *  la FORMULE de l'entrée (`{minimum, of}`), jamais au site d'appel. */
-function durationFromOp(o: OpDuree, ctx: OpsCtx, ref: Combatant, rng: RNG): Duration {
-  if (o.durationRounds != null) return { scale: 'rounds', left: resolveFormula(o.durationRounds, ref, rng) };
+function durationFromOp(o: OpDuree, ctx: OpsCtx, ref: Combatant): Duration {
+  if (o.durationRounds != null) return { scale: 'rounds', left: formuleDuCtx(o.durationRounds, ref, ctx) };
   if (o.durationMinutes != null || o.durationHours != null) {
-    return { scale: 'clock', until: (ctx.now ?? 0) + resolveFormula(o.durationMinutes ?? 0, ref, rng) + resolveFormula(o.durationHours ?? 0, ref, rng) * 60 };
+    return { scale: 'clock', until: (ctx.now ?? 0) + formuleDuCtx(o.durationMinutes ?? 0, ref, ctx) + formuleDuCtx(o.durationHours ?? 0, ref, ctx) * 60 };
   }
   return durationFromCtx(ctx);
 }
@@ -1730,7 +1751,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
     switch (o.op) {
       case 'wounds': {
         if (!groupGate(o.onlyGroups)) break;
-        const raw = Math.max(0, resolveFormula(o.amount, ref, rng, ctx.rolled, ctx.indice, ctx.stacks, ctx.engagedAdvantageGap, ctx.woundsDealt) + slBonus(ctx.sl, o.perSL));
+        const raw = Math.max(0, formuleDuCtx(o.amount, ref, ctx) + slBonus(ctx.sl, o.perSL));
         // MODE COUP D'ARME (S1) : délègue au résolveur partagé `woundsFromHit` → qualités d'arme
         // (Perforante/Empaleuse), armure à la `ctx.location` et BE, sans dupliquer la mitigation.
         if (o.weaponHit && ctx.weapon) {
@@ -1757,7 +1778,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'heal': {
-        const n = soinMagiqueOperant(target) ? Math.max(0, resolveFormula(o.amount, ref, rng, ctx.rolled, ctx.indice, ctx.stacks) + slBonus(ctx.sl, o.perSL)) : 0; // AA 10 l.134
+        const n = soinMagiqueOperant(target) ? Math.max(0, formuleDuCtx(o.amount, ref, ctx) + slBonus(ctx.sl, o.perSL)) : 0; // AA 10 l.134
         // SOURCE UNIQUE `applyHealWounds` (`healing.ts`) : plafonné par munition Empaleuse logée (LDB
         // 62 l.250) comme le reste ; ni verrou « soin de rencontre » (Guérison seulement) ni réveil
         // ici — sort/potion inconscient géré par `receiveMedicalAid`/`releaseConditionLocks` ci-dessous.
@@ -1768,14 +1789,14 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'healCaster': {
         const who = ctx.caster ?? target;
-        const n = Math.max(0, resolveFormula(o.amount, ref, rng));
+        const n = Math.max(0, formuleDuCtx(o.amount, ref, ctx));
         lines.push(...applyHealWounds(who, n, { skillCheck: false, wake: false, log: (healed) => [t('op.heal', { name: who.label, n: healed })] }));
         lines.push(...receiveMedicalAid(who)); // sort/prière de soin = Aide Médicale (LDB 18 l.311)
         lines.push(...releaseConditionLocks(who, 'magic')); // healCaster = soin d'un sort → magie (lève aussi les verrous Aide Médicale, LDB 18)
         break;
       }
       case 'gainAdvantage': {
-        const n = Math.max(0, resolveFormula(o.amount, ref, rng, ctx.rolled, ctx.indice, ctx.stacks));
+        const n = Math.max(0, formuleDuCtx(o.amount, ref, ctx));
         const avant = target.advantage ?? 0;
         if (ctx.onGainAdvantage) ctx.onGainAdvantage(target, n);
         else gainAvantage(target, n);
@@ -1785,7 +1806,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'topUpAdvantage': {
         // Porte l'Avantage à AU MOINS `amount` (jamais réduit) — Redoutable complète jusqu'à l'Indice.
-        const want = Math.max(0, resolveFormula(o.amount, ref, rng, ctx.rolled, ctx.indice, ctx.stacks));
+        const want = Math.max(0, formuleDuCtx(o.amount, ref, ctx));
         if ((target.advantage ?? 0) < want) { target.advantage = want; lines.push(t('op.topUpAdvantage', { name: target.label, n: want })); }
         // Clause AA Redoutable (MDG 16 l.13) : l'op S'EXÉCUTE ⇒ le garde-fou de la donnée (empetre/
         // inconscient/surpris, dans le nœud `if` englobant) est déjà franchi — l'Indice PLEIN part EN
@@ -1805,7 +1826,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           if (o.onlyIfCondition && !hasCondition(target, o.onlyIfCondition)) break;
           if (o.unlessCondition && hasCondition(target, o.unlessCondition)) break;
         }
-        const v = Math.max(1, resolveFormula(o.value ?? 1, ref, rng, ctx.rolled, ctx.indice, ctx.stacks) + slBonus(ctx.sl, o.valuePerSL));
+        const v = Math.max(1, formuleDuCtx(o.value ?? 1, ref, ctx) + slBonus(ctx.sl, o.valuePerSL));
         if (o.carried) {
           // État PORTÉ (#1695, LDB 48 l.495) : UN effet porteur par op — deux lancers du même sort font
           // deux effets, donc deux pions (LDB 16 l.11). L'op passive porte la valeur RÉSOLUE ; le pion,
@@ -1829,15 +1850,15 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Force d'évasion (Empêtré « se libérer » — LDB 16 l.66) : résolue MAINTENANT contre le
         // référent (le lanceur pour un sort) et FIGÉE sur l'entrée d'État → le flux de récupération
         // l'opposera, même si le lanceur n'est plus en jeu.
-        const escape = o.escapeStrength != null ? Math.max(0, resolveFormula(o.escapeStrength, ref, rng)) : undefined;
-        const threshold = o.escapeThreshold != null ? Math.max(0, resolveFormula(o.escapeThreshold, ref, rng)) : undefined;
-        const struggleDamage = o.struggleDamage != null ? Math.max(0, resolveFormula(o.struggleDamage, ref, rng)) : undefined;
+        const escape = o.escapeStrength != null ? Math.max(0, formuleDuCtx(o.escapeStrength, ref, ctx)) : undefined;
+        const threshold = o.escapeThreshold != null ? Math.max(0, formuleDuCtx(o.escapeThreshold, ref, ctx)) : undefined;
+        const struggleDamage = o.struggleDamage != null ? Math.max(0, formuleDuCtx(o.struggleDamage, ref, ctx)) : undefined;
         // Durée PORTÉE par l'op, résolue UNE fois ici : horloge (minutes/heures depuis `ctx.now`) ou
         // Rounds. Exclusives (cf. JSDoc du champ) — l'horloge prime, aucun dé n'est tiré pour l'autre.
         const clockMin = o.durationMinutes != null || o.durationHours != null
-          ? resolveFormula(o.durationMinutes ?? 0, ref, rng) + resolveFormula(o.durationHours ?? 0, ref, rng) * 60
+          ? formuleDuCtx(o.durationMinutes ?? 0, ref, ctx) + formuleDuCtx(o.durationHours ?? 0, ref, ctx) * 60
           : undefined;
-        const rounds = clockMin == null && o.durationRounds != null ? resolveFormula(o.durationRounds, ref, rng) : undefined;
+        const rounds = clockMin == null && o.durationRounds != null ? formuleDuCtx(o.durationRounds, ref, ctx) : undefined;
         const avantageAvant = target.advantage ?? 0;
         if (o.perRound) {
           // État récurrent = cas particulier de l'effet récurrent général (op `perRound`) : la
@@ -1883,7 +1904,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           // `all` : retire TOUT l'État (Potion de vitalité « tout État Exténué ») ; sinon `value` pions (défaut 1).
           const v = o.all
             ? (target.conditions.find((x) => x.id === id)?.value ?? 1)
-            : Math.max(1, resolveFormula(o.value ?? 1, ref, rng) + slBonus(ctx.sl, o.valuePerSL));
+            : Math.max(1, formuleDuCtx(o.value ?? 1, ref, ctx) + slBonus(ctx.sl, o.valuePerSL));
           // Le retrait peut être INERTE (État verrouillé, LDB 18 ; pion porté par un fait vivant) : la
           // ligne et la notification suivent le retrait EFFECTIF, mesuré aux pions.
           const avant = target.conditions.find((x) => x.id === id)?.value ?? 0;
@@ -1924,8 +1945,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           type,
           ...(cible !== undefined ? { cible } : {}),
           ...(o.sourceId != null ? { sourceId: o.sourceId } : {}),
-          ...(o.indice != null ? { indice: Math.max(0, resolveFormula(o.indice, ref, rng, ctx.rolled, ctx.indice, ctx.stacks)) } : {}),
-          ...(o.calmeDR != null ? { calmeDR: Math.max(0, resolveFormula(o.calmeDR, ref, rng)) } : {}),
+          ...(o.indice != null ? { indice: Math.max(0, formuleDuCtx(o.indice, ref, ctx)) } : {}),
+          ...(o.calmeDR != null ? { calmeDR: Math.max(0, formuleDuCtx(o.calmeDR, ref, ctx)) } : {}),
           ...(o.surmontee != null ? { surmontee: o.surmontee } : {}),
           ...(active != null ? { active } : {}),
           ...(o.lastTestRound != null ? { lastTestRound: o.lastTestRound } : {}),
@@ -1960,7 +1981,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'charMod': {
-        const dur: Duration = durationFromOp(o, ctx, ref, rng);
+        const dur: Duration = durationFromOp(o, ctx, ref);
         applyActiveEffect(target, {
           label: nomDeSource(ctx), char: o.char, bonus: o.mod, duration: dur,
           ...(ctx.sourceSpell ? { spell: ctx.sourceSpell } : {}),
@@ -1978,7 +1999,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'ap': {
         // Signe PRÉSERVÉ : un `amount` négatif RETIRE des PA (VDM 05). Le plancher 0 est celui du TOTAL,
         // appliqué par `effectiveArmourAt` — jamais à la pose.
-        const n = resolveFormula(o.amount, ref, rng);
+        const n = formuleDuCtx(o.amount, ref, ctx);
         // « à la Localisation touchée » (VDM 05) : la Localisation vient du COUP courant. Hors contexte
         // de touche, rien n'est posé — jamais un repli silencieux sur « toutes les Localisations ».
         const loc = o.atHitLocation ? ctx.location : o.loc;
@@ -2075,18 +2096,18 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         };
         let dureeTxt = '';
         if (o.rounds != null) {
-          cp.roundsLeft = resolveFormula(o.rounds, ref, rng);
+          cp.roundsLeft = formuleDuCtx(o.rounds, ref, ctx);
           dureeTxt = t('op.frag.roundsCap', { n: cp.roundsLeft, s: cp.roundsLeft > 1 ? 's' : '' });
         } else if (o.minutes != null) {
-          const min = resolveFormula(o.minutes, ref, rng);
+          const min = formuleDuCtx(o.minutes, ref, ctx);
           cp.untilTime = (ctx.now ?? 0) + min;
           dureeTxt = t('op.frag.min', { n: min });
         } else if (o.hours != null) {
-          const h = resolveFormula(o.hours, ref, rng);
+          const h = formuleDuCtx(o.hours, ref, ctx);
           cp.untilTime = (ctx.now ?? 0) + h * 60;
           dureeTxt = t('op.frag.hours', { n: h, s: h > 1 ? 's' : '' });
         } else if (o.days != null) {
-          const d = resolveFormula(o.days, ref, rng);
+          const d = formuleDuCtx(o.days, ref, ctx);
           cp.untilTime = (ctx.now ?? 0) + d * 24 * 60;
           dureeTxt = t('op.frag.days', { n: d, s: d > 1 ? 's' : '' });
         }
@@ -2101,7 +2122,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'statusMod': {
-        const n = resolveFormula(o.amount, ref, rng);
+        const n = formuleDuCtx(o.amount, ref, ctx);
         if (n === 0) break;
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, statusMod: n });
@@ -2116,7 +2137,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantTrait': {
         if (!groupGate(o.onlyGroups)) break; // « les Mort-vivant/Démoniaque gagnent Instable » (Bannissement)
-        const duree = durationFromOp(o, ctx, ref, rng);
+        const duree = durationFromOp(o, ctx, ref);
         for (const inst of traitsOctroyes(o, { lanceur: ref, porteur: target, rng, sl: ctx.sl, src: source })) {
           grantTrait(target, inst);
           target.activeEffects = target.activeEffects ?? [];
@@ -2137,7 +2158,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'augmentWeapon': {
-        const dmg = o.damageBonus != null ? Math.max(0, resolveFormula(o.damageBonus, ref, rng)) : undefined;
+        const dmg = o.damageBonus != null ? Math.max(0, formuleDuCtx(o.damageBonus, ref, ctx)) : undefined;
         // LDB 42 l.145 ; LDB 43 l.252,281
         const lo = activeLoadout(target);
         const held = [lo?.main, lo?.off]
@@ -2237,7 +2258,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const loc = o.loc ?? ctx.location ?? 'corps';
         // Quantité perdue par les séquelles CUMULATIVES : dé de la ligne (« 1d10 dents ») + échelle de DR
         // (« un orteil par DR en dessous de 0 ») — le dé est une QUANTITÉ, jamais un Test.
-        const units = Math.max(1, (o.unites != null ? resolveFormula(o.unites, ref, rng) : 1) + slBonus(ctx.sl, o.unitesPerSL));
+        const units = Math.max(1, (o.unites != null ? formuleDuCtx(o.unites, ref, ctx) : 1) + slBonus(ctx.sl, o.unitesPerSL));
         // Au plus UNE plaie chirurgicale par membre : l'escalade de la ligne (« Pied écrasé », LDB 18 l.180)
         // l'a déjà posée avec son échéance (`stampCriticalEscalation`) — la doubler perdrait cette échéance.
         const dejaPlaie = (target.traumas ?? []).some((t) => estPlaieAmputation(t) && t.location === loc);
@@ -2340,6 +2361,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           : t('op.noLeatherToRot', { name: target.label }));
         break;
       }
+      case 'damageWornGear': {
+        const { localisations, armes } = endommagerLEquipementPorte(target);
+        lines.push(t('op.wornGearDamaged', { name: target.label, localisations, armes }));
+        break;
+      }
       case 'suppressPsych': {
         const suppressed = suppressPsychTraits(target);
         if (!suppressed) {
@@ -2395,7 +2421,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // EXÉCUTABLE (Bonnet de fou « +4 Blessures », LDB 71 l.20) : effet actif `attrMods`, lu par le
         // calcul du max concerné (wounds → effectiveMaxWounds/refreshWounds ; fortune → fortuneMax ;
         // resolve → resolveMax). Destin/Résilience exclus de l'union `attr` (#292, ci-dessus).
-        const n = resolveFormula(o.mod, ref, rng);
+        const n = formuleDuCtx(o.mod, ref, ctx);
         if (!n) break;
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
@@ -2491,7 +2517,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'money': {
-        const n = Math.round(resolveFormula(o.montant.brass, ref, rng, ctx.rolled, ctx.indice, ctx.stacks, ctx.engagedAdvantageGap, ctx.woundsDealt, ctx.sl));
+        const n = Math.round(formuleDuCtx(o.montant.brass, ref, ctx));
         if (n === 0) break;
         const avant = bourseBrass(target);
         const apres = setBourseBrass(target, avant + n); // plancher 0 : on ne doit jamais d'argent
@@ -2558,7 +2584,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'charDamage': {
         // Perte PERMANENTE de Caractéristique de BASE (Vers de carie, MSRC 16 l.94-103) — jamais sous 0.
-        const n = Math.max(0, resolveFormula(o.amount, ref, rng, ctx.rolled, ctx.indice, ctx.stacks));
+        const n = Math.max(0, formuleDuCtx(o.amount, ref, ctx));
         if (n > 0) {
           const before = target.characteristics[o.char];
           target.characteristics[o.char] = Math.max(0, before - n);
@@ -2568,7 +2594,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'grantNaturalWeapon': {
-        const n = Math.max(0, resolveFormula(o.damage, ref, rng) + (o.damagePlus ?? 0));
+        const n = Math.max(0, formuleDuCtx(o.damage, ref, ctx) + (o.damagePlus ?? 0));
         const weapon = armeNaturelleAccordee(o, n, { uid: o.uid ?? { prefix: `nat-${norm(o.label)}` }, source });
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
@@ -2582,7 +2608,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'grantWeapon': {
-        const flat = Math.max(0, resolveFormula(o.damage, ref, rng) + (o.damagePlus ?? 0));
+        const flat = Math.max(0, formuleDuCtx(o.damage, ref, ctx) + (o.damagePlus ?? 0));
         // #2967
         const form = o.chooseForm ? (ctx.conjureForm ?? conjureFormOptions(ref)[0]) : null;
         const item = weaponItem(specDArmeInvoquee(findTrappingById, o, flat, source, form));
@@ -2604,10 +2630,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'castWard': {
-        let radius = Math.max(0, resolveFormula(o.radius, ref, rng));
+        let radius = Math.max(0, formuleDuCtx(o.radius, ref, ctx));
         if (o.perSL) {
           radius += Math.floor(Math.max(0, ctx.sl ?? 0) / Math.max(1, o.perSL.every))
-            * Math.max(0, resolveFormula(o.perSL.radiusFormula, ref, rng));
+            * Math.max(0, formuleDuCtx(o.perSL.radiusFormula, ref, ctx));
         }
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
@@ -2678,7 +2704,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Hauteur ENTIÈRE (nid-de-pie) : aucun dé n'est DÉCLARÉ, la Formule donne le nombre telle quelle.
         const metres = declares.some((d) => d.champ === 'hauteur')
           ? de('hauteur')
-          : resolveFormula(hauteur, ref, rng, ctx.rolled, ctx.indice, ctx.stacks, ctx.engagedAdvantageGap, ctx.woundsDealt);
+          : formuleDuCtx(hauteur, ref, ctx);
         const d10Chute = de('degats');
         const avant = target.wounds.current;
         // Les États que la chute POSE se lisent par DIFFÉRENCE — la ligne ne nomme aucun État : c'est
@@ -2768,7 +2794,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0, duration: durationFromCtx(ctx),
-          drBonus: [{ skill: o.skill?.id, ...(o.skill?.spec != null ? { spec: o.skill.spec } : {}), bonus: resolveFormula(o.bonus, ref, rng) }],
+          drBonus: [{ skill: o.skill?.id, ...(o.skill?.spec != null ? { spec: o.skill.spec } : {}), bonus: formuleDuCtx(o.bonus, ref, ctx) }],
         });
         lines.push(t('op.drBonus', { name: target.label, what: o.skill?.id ?? o.testType ?? '', src: nomDeSource(ctx) }));
         break;
@@ -2777,7 +2803,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0, duration: durationFromCtx(ctx),
-          drBonus: [{ char: o.char, bonus: resolveFormula(o.bonus, ref, rng) }],
+          drBonus: [{ char: o.char, bonus: formuleDuCtx(o.bonus, ref, ctx) }],
         });
         lines.push(t('op.drBonus', { name: target.label, what: CHAR_LABELS[o.char], src: nomDeSource(ctx) }));
         break;
@@ -2796,7 +2822,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Chemin SORT : pose un ActiveEffect.light TEMPORISÉ (durée du sort), lu par `combatantLights`
         // (vision) au MÊME point que la lumière d'un objet porté. (Côté OBJET le `passive` n'est jamais
         // exécuté par applyOps → l'op est naturellement inerte là-bas.)
-        const dur: Duration = durationFromOp(o, ctx, ref, rng);
+        const dur: Duration = durationFromOp(o, ctx, ref);
         const lumière = o.tone ? { radiusM: o.radiusM, tone: o.tone } : { radiusM: o.radiusM };
         applyActiveEffect(target, { label: nomDeSource(ctx, 'lumiere'), bonus: 0, light: lumière, duration: dur });
         lines.push(t('op.light', { name: target.label, n: o.radiusM, src: nomDeSource(ctx) }));
@@ -2806,7 +2832,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0,
-          duration: durationFromOp(o, ctx, ref, rng),
+          duration: durationFromOp(o, ctx, ref),
           passive: [sansDuree(o)],
         });
         lines.push(t('op.moveScale', { name: target.label, num: o.num, den: o.den, src: nomDeSource(ctx) }));
@@ -2826,7 +2852,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0,
-          duration: durationFromOp(o, ctx, ref, rng),
+          duration: durationFromOp(o, ctx, ref),
           passive: [sansDuree(o)],
         });
         lines.push(t('op.maxWeaponHands', { name: target.label, hands: o.hands, src: nomDeSource(ctx) }));

@@ -292,7 +292,7 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
   const valeurs: Record<(typeof CHAMPS_EXCLUS_DE_CARRIED)[number], unknown> = {
     durationRounds: 3, durationMinutes: 10, durationHours: 2, perRound: true,
     lockedUntil: { kind: 'always' }, unlockBy: 'medicalAid',
-    escapeStrength: 40, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 2, difficulte: 'difficile', grapple: true,
+    escapeStrength: 40, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 2, difficulte: 'difficile', argDifficulty: true, grapple: true,
   };
 
   it('chaque champ de `CHAMPS_EXCLUS_DE_CARRIED` est refusé en se NOMMANT — durées, verrous ET champs de lutte', () => {

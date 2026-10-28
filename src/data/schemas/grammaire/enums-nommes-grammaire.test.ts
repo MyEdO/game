@@ -54,7 +54,7 @@ const MIGRES: readonly [string, unknown, Record<string, string>][] = [
     woundsCurrent: 'PB courants', woundsMax: 'PB max', size: 'Taille', advantage: 'Avantage',
   }],
   ['Condition has.what', hasWhatSchema, {
-    group: 'le Groupe', talent: 'le Talent', trait: 'le Trait', psych: 'l’état psy',
+    group: 'le Groupe', talent: 'le Talent', trait: 'le Trait', psych: 'l’état psy', immunity: 'l’Immunité',
   }],
   ['Condition partyDead|skill|career|species|status.who', partyWhoSchema, {
     any: 'un héros au moins', all: 'tout le groupe',

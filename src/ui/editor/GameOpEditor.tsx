@@ -88,7 +88,7 @@ const OP_ICON: Record<GameOp['op'], IconIdInput> = {
   suppressSymptom: 'medical/infection', aggravateSymptom: 'medical/infection', attenuateSymptom: 'medical/infection', grantSymptom: 'medical/infection',
   actGate: 'ui/wait', delayed: 'ui/wait', suppressPsych: 'mechanic/mind',
   suffocate: 'mechanic/ward', noBreath: 'mechanic/ward', noHunger: 'mechanic/ward', ignoreAnimosity: 'mechanic/ward', weatherWard: 'mechanic/ward',
-  damageArmour: 'item/armour', reduceToZero: 'journal/damage', banish: 'magic/area', martyr: 'action/defend',
+  damageArmour: 'item/armour', damageWornGear: 'item/armour', reduceToZero: 'journal/damage', banish: 'magic/area', martyr: 'action/defend',
   giveTrapping: 'item/misc', perRound: 'ui/wait', summon: 'mechanic/invoke', scheduleRespawn: 'ui/wait',
   zone: 'scenario/trap', polymorph: 'mechanic/invoke', transform: 'mechanic/invoke', endTransform: 'ui/wait',
   lifeSteal: 'condition/bleeding', light: 'fire/flame', skillMod: 'mechanic/stat-mod',
@@ -111,7 +111,7 @@ const OP_GROUPS: [string, GameOp['op'][]][] = [
   ['Zones', ['zone']],
   ['Projection & téléportation', ['push', 'teleport', 'chain']],
   ['Soin avancé', ['cureDisease', 'reduceDiseaseDays', 'preventInfection', 'cureCriticalWound', 'diseaseTestMod', 'suppressSymptom', 'aggravateSymptom', 'attenuateSymptom', 'grantSymptom']],
-  ['Divers', ['suppressPsych', 'suffocate', 'noBreath', 'noHunger', 'weatherWard', 'damageArmour', 'martyr', 'giveTrapping', 'perRound', 'delayed', 'loseTurn', 'actGate', 'removeShipPoste', 'light']],
+  ['Divers', ['suppressPsych', 'suffocate', 'noBreath', 'noHunger', 'weatherWard', 'damageArmour', 'damageWornGear', 'martyr', 'giveTrapping', 'perRound', 'delayed', 'loseTurn', 'actGate', 'removeShipPoste', 'light']],
   ['Séquelles & mobilité', ['amputer', 'skillMod', 'moveScale', 'moveMod', 'offTerrainMod', 'maxWeaponHands', 'disarm', 'handGate', 'senseLoss']],
   ['Atouts/Défauts d’arme (passifs)', ['weaponRollMod', 'weaponDamageMod', 'armourPierce', 'critOnRoll']],
   ['Contrôle', ['rollThreshold', 'rollTable', 'rollMutation', 'spendAdvantage']],
@@ -139,7 +139,7 @@ const paramsDeRegle = memoParVersion('reglesOptionnelles', () => OPTIONAL_RULES.
  *  (`GameOpEditor.formule-totale.test.tsx`). */
 export type FormulaShape =
   | 'lit' | 'bonus' | 'char' | 'dice' | 'times' | 'rolled' | 'indice' | 'pions' | 'ecartAvantage'
-  | 'blessuresInfligees' | 'dr' | 'regle' | 'minimum' | 'somme' | 'peche';
+  | 'blessuresInfligees' | 'dr' | 'regle' | 'minimum' | 'tranches' | 'somme' | 'peche';
 
 /** Libellé de chaque forme au sélecteur, dans l'ordre du sélecteur. Termes de contexte : `engine/ops.ts`
  *  (`Formula`) ; Péché : `LDB 40 l.58`. */
@@ -157,6 +157,7 @@ export const LIBELLE_DE_FORME: Record<FormulaShape, string> = {
   dr: 'DR du Test',
   regle: 'Règle optionnelle',
   minimum: 'Minimum',
+  tranches: 'Tranches entières',
   somme: 'Somme de termes',
   peche: 'Points de Péché',
 };
@@ -165,7 +166,7 @@ export const LIBELLE_DE_FORME: Record<FormulaShape, string> = {
 const FORME_DE_CLE: Readonly<Record<string, FormulaShape>> = {
   bonusOf: 'bonus', charOf: 'char', dice: 'dice', times: 'times', rolled: 'rolled', indiceOf: 'indice',
   stacks: 'pions', engagedAdvantageGap: 'ecartAvantage', woundsDealt: 'blessuresInfligees', sl: 'dr',
-  rule: 'regle', minimum: 'minimum', sum: 'somme', sinPoints: 'peche',
+  rule: 'regle', minimum: 'minimum', parTranche: 'tranches', sum: 'somme', sinPoints: 'peche',
 };
 
 /** Termes CONSTANTS : leur forme est leur valeur, sans champ à saisir. */
@@ -245,7 +246,7 @@ export function formulaForShape(s: FormulaShape, current: JsonFormula | undefine
   if (current != null && s === shapeOf(current)) return current; // déjà la bonne forme → inchangée (pas de clobber)
   // QUITTER la borne basse rend la formule qu'elle enveloppait — symétrique de l'enveloppement
   // ci-dessous : l'aller-retour Minimum → autre forme ne jette pas la quantité éditée.
-  if (current != null && typeof current === 'object' && 'minimum' in current) return formulaForShape(s, current.of);
+  if (current != null && typeof current === 'object' && ('minimum' in current || 'parTranche' in current)) return formulaForShape(s, current.of);
   const constant = TERME_CONSTANT[s];
   if (constant !== undefined) return constant;
   // Le terme de Péché n'entre dans aucune composition de `formulaSinSchema` hors de sa somme de tête :
@@ -261,6 +262,8 @@ export function formulaForShape(s: FormulaShape, current: JsonFormula | undefine
     // Le minimum ENVELOPPE la formule courante (« 1d10 – (Bonus d'Endurance) Rounds (minimum de 1) »,
     // AA 07 l.113) : la quantité éditée n'est pas perdue au changement de forme.
     case 'minimum': return { minimum: 1, of: enveloppe };
+    // Les tranches ENVELOPPENT la formule courante (« pour chaque tranche de 5 Blessures subies », LDB 85 l.324).
+    case 'tranches': return { parTranche: 5, of: enveloppe };
     // Une SOMME neuve part du terme courant + un second terme à éditer (« 1d10 + … », LDB 16 l.84).
     case 'somme': return { sum: [enveloppe, 0] };
     default: throw new Error(`formulaForShape : forme sans terme (${s})`);
@@ -353,6 +356,17 @@ export function FormulaField(props: FormulaFieldProps) {
             ≤
             <FormulaField label="" dialecte={dialecteDesFacteurs(dialecte)} value={value.of} min={min}
               onChange={(of: Formula) => onChange({ minimum: value.minimum, of })} />
+          </span>
+        )}
+        {/* `parTranche` = NOMBRE DE TRANCHES ENTIÈRES de la formule enveloppée (LDB 85 l.324) : `of` s'édite
+            par le MÊME `FormulaField` (récursif), la tranche est un entier ≥ 1 (`formulaSchema`). */}
+        {shape === 'tranches' && typeof value === 'object' && value != null && 'parTranche' in value && (
+          <span className="fml-dice">
+            <FormulaField label="" dialecte={dialecteDesFacteurs(dialecte)} value={value.of}
+              onChange={(of: Formula) => onChange({ parTranche: value.parTranche, of })} />
+            ÷
+            <NumberField variant="nu" label="tranche" title="tranche" min={1} value={value.parTranche}
+              onChange={(parTranche) => onChange({ parTranche, of: value.of })} />
           </span>
         )}
         {/* `sum` = COMPOSITION de termes (« 1d10 + (pions − 1) », LDB 16 l.84) : chaque terme est un
@@ -493,6 +507,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'noHunger': return { op: 'noHunger' };
     case 'weatherWard': return { op: 'weatherWard' };
     case 'damageArmour': return { op: 'damageArmour', material: 'cuir' };
+    case 'damageWornGear': return { op: 'damageWornGear' };
     case 'reduceToZero': return { op: 'reduceToZero' };
     case 'banish': return { op: 'banish' };
     case 'kill': return { op: 'kill' };

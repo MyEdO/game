@@ -493,8 +493,8 @@ export const CONCEPTS: readonly Concept[] = [
     ],
     noyau: ['sec', 'secOcc', 'sum'],
   },
-  // Le noyau est BORNÉ à `sum`/`sinPoints` — les deux clés qui, MESURÉES sur les 2 racines, ne
-  // nomment QUE la composition d'une `Formula`. `dice` et `times` en sont EXCLUS : `dice` est aussi
+  // Le noyau est BORNÉ à `sum`/`sinPoints`/`minimum`/`parTranche` — les clés qui, MESURÉES sur les 2 racines,
+  // ne nomment QUE la composition d'une `Formula`. `dice` et `times` en sont EXCLUS : `dice` est aussi
   // la clé d'un `DiseaseTime` (`{dice, unit}`, 37 occurrences de `maladies.json`), d'un pot de jeu de
   // taverne et d'un `overcastPerSpell` ; `times` est le COMPTE d'une réf de Talent de créature
   // (48 occurrences). Les inclure ferait changer de propriétaire 7 formes étrangères (mesuré) — un
@@ -508,8 +508,9 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'sum', statut: 'cible' },
       { sig: 'sinPoints', statut: 'cible', note: 'terme « (Points de Péché) » — LDB 40 l.58/62/63/65/68/71/72/73/75/77' },
       { sig: 'minimum,of', statut: 'cible', note: 'borne basse d’un terme — « (minimum de 1) », AA 07 l.113 / LDB 18 l.88' },
+      { sig: 'of,parTranche', statut: 'cible', note: 'tranches entières d’un terme — « pour chaque tranche de 5 Blessures subies », LDB 85 l.324' },
     ],
-    noyau: ['sum', 'sinPoints', 'minimum'],
+    noyau: ['sum', 'sinPoints', 'minimum', 'parTranche'],
     noyauMin: 1,
   },
   {

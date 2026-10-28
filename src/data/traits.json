@@ -1935,45 +1935,26 @@
               {
                 "kind": "not",
                 "of": {
-                  "kind": "compare",
-                  "subject": {
-                    "who": "target",
-                    "condition": "empoisonne"
-                  },
-                  "op": ">=",
-                  "value": 1
+                  "kind": "has",
+                  "who": "target",
+                  "what": "immunity",
+                  "value": "poison"
                 }
               }
             ]
           },
           "then": {
-            "kind": "test",
-            "test": {
-              "characteristic": "endurance",
-              "skill": {
-                "id": "resistance"
-              },
-              "difficulty": "intermediaire",
-              "argDifficulty": true,
-              "unlessImmune": "poison",
-              "menace": "poison"
-            },
-            "success": {
-              "kind": "seq",
-              "steps": []
-            },
-            "fail": {
-              "kind": "do",
-              "effect": {
-                "type": "ops",
-                "on": "target",
-                "ops": [
-                  {
-                    "op": "condition",
-                    "id": "empoisonne"
-                  }
-                ]
-              }
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "condition",
+                  "id": "empoisonne",
+                  "argDifficulty": true
+                }
+              ]
             }
           }
         }

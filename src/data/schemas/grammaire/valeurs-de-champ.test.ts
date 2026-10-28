@@ -143,7 +143,7 @@ const NOMMES = [
   'success|failure|fumble',
   'test|combat|threat|hold|rally',
   'any|all',
-  'group|talent|trait|psych',
+  'group|talent|trait|psych|immunity',
   'moderee|grave',
   'noise|magic',
   'self|ally|opponent|party|neutral|hostile',

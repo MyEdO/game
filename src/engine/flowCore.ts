@@ -105,6 +105,9 @@ export type CompareOp = '>=' | '<=' | '==' | '<' | '>';
 export interface ActorView {
   id: string; woundsCurrent: number; woundsMax: number; size: number; advantage: number; camp: Camp;
   groups: string[]; talents: { id: string; spec?: string }[]; traits: string[];
+  /** Types de Dégâts dont l'acteur est immunisé (`immunityTypes` — Immunité (Type), LDB 85 l.174), lus par
+   *  `has what:'immunity'`. Absent → aucune Immunité. */
+  immunities?: string[];
   conditions: Record<string, number>;
   /** États PSYCHOLOGIQUES actifs portés (`psychState` — types dont l'affliction n'est pas résistée) —
    *  lus par `has what:'psych'` (gate « porteur en Frénésie » du Contrôle de la Frénésie, LDB 10). */
@@ -216,9 +219,10 @@ export type Condition =
   /** L'acteur (`who`) POSSÈDE un élément : appartenance à un **Groupe** (faction, via `groupMatch`),
    *  un **Talent** (par id, `spec` éventuel — « Magie des Arcanes (Feu) »), un **Trait** (par id), ou
    *  un **état psychologique** actif (par type — `psych`, ex. 'frenesie' : gate du Contrôle de la
-   *  Frénésie, LDB 10). Généralise les gates op-level `onlyGroups`/`unlessImmune`. Acteur absent = false. */
+   *  Frénésie, LDB 10), ou une **Immunité** à un Type de Dégâts (par id — Immunité (Poison) : Venin sans
+   *  effet ; gate d'un Test de poison). Généralise la gate op-level `onlyGroups`. Acteur absent = false. */
   | { kind: 'has'; who: ActorRef; what: 'talent'; value: string; spec?: string }
-  | { kind: 'has'; who: ActorRef; what: 'group' | 'trait' | 'psych'; value: string }
+  | { kind: 'has'; who: ActorRef; what: 'group' | 'trait' | 'psych' | 'immunity'; value: string }
   /** Le Domaine du Chaos du LANCEUR (`ctx.caster.chaosDomain`, `chaosDomainOf`) est-il `is` ? Gate
    *  GÉNÉRIQUE de tout Sort d'Arcanes du Chaos « se manifestant selon le Domaine spécifique » (EDOC 13
    *  l.264-266) — la branche du Flow sélectionne sa colonne (Allure démoniaque : Nurgle/Slaanesh/Tzeentch/
@@ -389,6 +393,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
       if (cond.what === 'group') return groupMatch(cond.value, a.groups);
       if (cond.what === 'talent') return a.talents.some((t) => refCouvre({ id: cond.value, spec: cond.spec }, t));
       if (cond.what === 'psych') return (a.psych ?? []).includes(cond.value);
+      if (cond.what === 'immunity') return (a.immunities ?? []).includes(cond.value);
       return a.traits.includes(cond.value);
     }
     case 'casterChaosDomain': return ctx.caster?.chaosDomain === cond.is;
@@ -473,9 +478,6 @@ export interface FlowTest {
    *  substituée à la collecte (`withArg`/`effectsOf`) ; `difficulty` ci-dessus est le défaut (arg absent).
    *  GATE reportée de l'op `test` (sémantique IDENTIQUE) — honorée par `resolveFlowTest`. */
   argDifficulty?: boolean;
-  /** Saute le Test (= no-op, ni étape ni branche) si la cible est IMMUNISÉE au type donné — Immunité
-   *  (Poison) → Venin sans effet. Même `immunityTypes()` que l'op `test`. */
-  unlessImmune?: string;
   /** Le Test n'a lieu que si la cible appartient à l'un de ces Groupes (Épée de justice : « Criminel »).
    *  Sinon = no-op. Même `groupMatch` que l'op `test`. */
   onlyGroups?: string[];
@@ -483,7 +485,7 @@ export interface FlowTest {
    *  Mort-vivant/Démon). Même `groupMatch` que l'op `test`. */
   exceptGroups?: string[];
   /** GATE générique : le Test n'a lieu QUE si cette Condition est vraie (sinon no-op — ni étape ni branche,
-   *  comme `unlessImmune`/`onlyGroups`). Généralise ces gates à l'algèbre de Conditions (Brisé : « pas
+   *  comme `onlyGroups`). Généralise ces gates à l'algèbre de Conditions (Brisé : « pas
    *  Engagé OU Cœur vaillant, ET pions restants »). Évaluée AVANT le jet par `resolveFlowTest`/`resolveInlineFlowTest`. */
   gate?: Condition;
   /** SOUTIEN (LDB 12 l.197) — TRI-ÉTAT, jamais une denylist par id de Compétence/Caractéristique ;
@@ -987,10 +989,11 @@ export function reecrireFlow<E = EffectOp>(flow: Flow<E>, f: (node: Flow<E>) => 
   }
 }
 
-/** Les ops des feuilles EffectOp d'un Flow, réécrites par `f` ; une op rendue `null` tombe. Immuable. */
-export function reecrireLesOps<E = EffectOp>(flow: Flow<E>, f: (op: GameOp) => GameOp | null): Flow<E> {
+/** Les ops des feuilles EffectOp d'un Flow, réécrites par `f` ; une op rendue `null` tombe, une liste prend
+ *  sa place. Immuable. */
+export function reecrireLesOps<E = EffectOp>(flow: Flow<E>, f: (op: GameOp) => GameOp | GameOp[] | null): Flow<E> {
   return reecrireFlow(flow, (n) => (n.kind === 'do' && isEffectOp(n.effect)
-    ? { ...n, effect: { ...n.effect, ops: n.effect.ops.map(f).filter((o): o is GameOp => o != null) } }
+    ? { ...n, effect: { ...n.effect, ops: n.effect.ops.flatMap((o) => f(o) ?? []) } }
     : n));
 }
 

@@ -181,10 +181,11 @@ export function effectiveWeapon(w: Weapon, ctx?: WeaponContext): Weapon {
   return w;
 }
 
-/** Inflige 1 point de Dégât à l'arme (sauf Incassable). */
-export function damageWeapon(w: Weapon): void {
-  if (isUnbreakable(w)) return;
+/** Inflige 1 point de Dégât à l'arme (sauf Incassable, LDB 62 l.262) ; rend s'il a porté. */
+export function damageWeapon(w: Weapon): boolean {
+  if (isUnbreakable(w)) return false;
   w.damageTaken = (w.damageTaken ?? 0) + 1;
+  return true;
 }
 
 /** Seuil de Sauvegarde (1d10 ≥ seuil ⇒ l'arme résiste) contre une cassure instantanée pour une arme

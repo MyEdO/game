@@ -202,6 +202,8 @@ const DECLARATIONS_D_OPS = {
   topUpAdvantage: nommerChamps(z.strictObject({ op: z.literal('topUpAdvantage'), amount: ouReserve(formulaSchema, INDICE_TEMPLATE), feedOpposingPool: z.boolean().optional() }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, feedOpposingPool: { label: "réserve adverse" } }),
   spendAdvantage: nommerChamps(z.strictObject({ op: z.literal('spendAdvantage'), amount: z.number().optional() }), { op: { label: "opération"  }, amount: { label: "quantité" } }),
   kill: nommerChamps(z.strictObject({ op: z.literal('kill') }), { op: { label: "opération"  } }),
+  /** LDB 85 l.325, l.447 */
+  damageWornGear: nommerChamps(z.strictObject({ op: z.literal('damageWornGear') }), { op: { label: "opération"  } }),
   loseTurn: nommerChamps(z.strictObject({ op: z.literal('loseTurn'), what: loseTurnWhatSchema.optional() }), { op: { label: "opération"  }, what: { label: "objet"  } }),
   noBreath: nommerChamps(z.strictObject({ op: z.literal('noBreath') }), { op: { label: "opération"  } }),
   noHunger: nommerChamps(z.strictObject({ op: z.literal('noHunger') }), { op: { label: "opération"  } }),
@@ -524,7 +526,7 @@ export const OPS_NON_TYPEES: readonly string[] = [
  *  les champs de LUTTE, figés par `addCondition` à la pose — que la réconciliation appelle NU. */
 export const CHAMPS_EXCLUS_DE_CARRIED = [
   'durationRounds', 'durationMinutes', 'durationHours', 'perRound', 'lockedUntil', 'unlockBy',
-  'escapeStrength', 'escapeThreshold', 'entangleOnFail', 'struggleDamage', 'difficulte', 'grapple',
+  'escapeStrength', 'escapeThreshold', 'entangleOnFail', 'struggleDamage', 'difficulte', 'argDifficulty', 'grapple',
 ] as const;
 
 /** Champs d'une op `condition`/`removeCondition` qui nomment un État. */
@@ -634,7 +636,7 @@ export const partySelectorSchema = z.union([
 export const startleCauseSchema = enumNomme({ noise: 'Bruits forts', magic: 'Magie' });
 
 /** Nature de l'appartenance testée par la Condition `has`. */
-export const hasWhatSchema = enumNomme({ group: 'le Groupe', talent: 'le Talent', trait: 'le Trait', psych: 'l’état psy' });
+export const hasWhatSchema = enumNomme({ group: 'le Groupe', talent: 'le Talent', trait: 'le Trait', psych: 'l’état psy', immunity: 'l’Immunité' });
 
 /** Le `what` d'une branche de la Condition `has`, NOMMÉ par `hasWhatSchema`. */
 const whatDeHas = (what: z.infer<typeof hasWhatSchema>) => z.literal(what).pipe(hasWhatSchema);
@@ -654,6 +656,7 @@ export const hasConditionSchema = z.discriminatedUnion('what', [
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('talent'), value: idDe('talent'), spec: z.string().optional() }).superRefine(refusDeSpecDeLaValeur('talent')), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } }, spec: { label: "spécialisation", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('trait'), value: idDe('trait') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('psych'), value: idDe('psychology') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
+  nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('immunity'), value: idDe('damageType') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
 ]);
 
 
@@ -803,7 +806,6 @@ export const flowTestSchema = nommerChamps(z.strictObject({
   vsCapricieux: z.boolean().optional(),
   easierIf: facilitationSchema.optional(),
   argDifficulty: z.boolean().optional(),
-  unlessImmune: z.string().optional(),
   onlyGroups: refs('groupe').optional(),
   exceptGroups: refs('groupe').optional(),
   gate: conditionSchema.optional(),
@@ -847,7 +849,7 @@ export const flowTestSchema = nommerChamps(z.strictObject({
     message: 'jet SANS compétence ni caractéristique : la porte le jouerait sur une valeur de 0 '
       + '(auto-échec muet). Nommer `skill` (id de compétence) ou `characteristic`.',
   });
-}), { stake: { label: "enjeu" }, ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" , texte: { regime: "technique"} }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" }, easierIf: { label: "facilité conditionnelle" }, argDifficulty: { label: "difficulté de l’argument" }, unlessImmune: { label: "sauf immunité" , texte: { regime: "technique"} }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, gate: { label: "condition d’accès" }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, difficultyBy: { label: "difficultés conditionnelles" }, opposed: { label: "opposition" } });
+}), { stake: { label: "enjeu" }, ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" , texte: { regime: "technique"} }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" }, easierIf: { label: "facilité conditionnelle" }, argDifficulty: { label: "difficulté de l’argument" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, gate: { label: "condition d’accès" }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, difficultyBy: { label: "difficultés conditionnelles" }, opposed: { label: "opposition" } });
 
 
 /** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à `targetDR`

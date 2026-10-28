@@ -172,7 +172,7 @@ export type TileClickOpts = { confirm?: boolean; courseArmee?: boolean };
  *  COMPLÈTE côté offensif : un offensif oublié = sort injouable sur l'ennemi (le bug d'origine). */
 const HARMFUL_TARGET_OPS = new Set<string>([
   'condition', 'wounds', 'corruption', 'lifeSteal', 'suffocate', 'senseLoss', 'loseTurn',
-  'breakBlade', 'damageArmour', 'armourPierce', 'reduceToZero', 'castPenalty',
+  'breakBlade', 'damageArmour', 'damageWornGear', 'armourPierce', 'reduceToZero', 'castPenalty',
 ]);
 /** Ops « cible » BÉNÉFIQUES-SANS-AMBIGUÏTÉ → buff sur allié/soi. Liste tenue EXHAUSTIVE au même titre
  *  que HARMFUL_TARGET_OPS (recensement du catalogue `GameOp`, engine/ops.ts) POUR LES OPS DONT LE SIGNE

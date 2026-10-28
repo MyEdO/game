@@ -65,9 +65,10 @@ const typesAppliques = (t: BreathTypeData): BreathTypeData[] =>
 /** Ce que la règle d'un Type fait aux cibles touchées. La Difficulté du Trait est celle des États posés.
  *  LDB 85 l.324-328 ; MDG 16 l.226 ; LDB 16 l.70 */
 function opsDeLaRegle(r: BreathTypeData, difficulte: Difficulty | undefined): GameOp[] {
+  const value = r.trancheDeBlessures ? { value: { minimum: 1, of: { parTranche: r.trancheDeBlessures, of: { woundsDealt: true as const } } } } : {};
   return [
-    ...(r.etat ? [{ op: 'condition' as const, id: r.etat, ...(difficulte ? { difficulte } : {}) }] : []),
-    ...(r.endommageLEquipement ? [{ op: 'damageArmour' as const, material: 'cuir' as const }] : []),
+    ...(r.etat ? [{ op: 'condition' as const, id: r.etat, ...value, ...(difficulte ? { difficulte } : {}) }] : []),
+    ...(r.endommageLEquipement ? [{ op: 'damageWornGear' as const }] : []),
   ];
 }
 
@@ -75,9 +76,9 @@ function opsDeLaRegle(r: BreathTypeData, difficulte: Difficulty | undefined): Ga
  *  LDB 85 l.322-329 ; MDG 16 l.226 */
 function regleDuType(regles: BreathTypeData[], difficulte: Difficulty | undefined): string {
   const suites = regles.flatMap((r) => [
-    ...(r.etat ? [difficulte
-      ? t('souffle.enjeu.etatDifficulte', { etat: findConditionById(r.etat)?.label ?? r.etat, difficulte: DIFFICULTY_LABELS[difficulte] })
-      : t('souffle.enjeu.etat', { etat: findConditionById(r.etat)?.label ?? r.etat })] : []),
+    ...(r.etat ? [t('souffle.enjeu.etat', { etat: findConditionById(r.etat)?.label ?? r.etat })
+      + (r.trancheDeBlessures ? t('souffle.enjeu.parTranche', { n: r.trancheDeBlessures }) : '')
+      + (difficulte ? t('souffle.enjeu.difficulte', { difficulte: DIFFICULTY_LABELS[difficulte] }) : '')] : []),
     ...(r.endommageLEquipement ? [t('souffle.enjeu.equipement')] : []),
     ...(r.fumee ? [t('souffle.enjeu.fumee')] : []),
   ]);
@@ -85,18 +86,19 @@ function regleDuType(regles: BreathTypeData[], difficulte: Difficulty | undefine
     + (suites.length ? t('souffle.enjeu.puis', { suites: suites.join(t('souffle.enjeu.et')) }) : '');
 }
 
-/** Le Souffle `base` composé avec les règles de son Type ; un Type hors registre garde le Souffle seul.
+/** Le Souffle `base` composé avec les règles de son Type ; un Type hors registre garde le Souffle seul. Les
+ *  règles suivent les Dégâts dans leur liste d'ops : elles lisent les Blessures subies (`woundsDealt`).
  *  LDB 85 l.320-329 ; EDOC 13 l.237 */
 export function souffleDuType(base: ManeuverDef, typeId: string | undefined, difficulte?: Difficulty): ManeuverDef {
   const type = findBreathTypeById(typeId);
   const regles = type ? typesAppliques(type) : [];
   const ignoreAP = regles.some((r) => r.ignoreAP);
   const ops = regles.flatMap((r) => opsDeLaRegle(r, difficulte));
-  const effets = (base.effects ?? []).map((e) => ({ ...e, flow: reecrireLesOps(e.flow, (o) => (o.op === 'wounds' && ignoreAP ? { ...o, ignoreAP: true } : o)) }));
+  const effets = (base.effects ?? []).map((e) => ({ ...e, flow: reecrireLesOps(e.flow, (o) => (o.op === 'wounds' ? [ignoreAP ? { ...o, ignoreAP: true } : o, ...ops] : o)) }));
   return {
     ...base,
     label: type ? `${base.label} (${type.label})` : base.label,
-    effects: ops.length ? [...effets, { trigger: 'onHit', on: 'victim', flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops } } }] : effets,
+    effects: effets,
     ...(regles.some((r) => r.fumee) ? { fumee: true } : {}),
     enjeu: { regleDuType: regleDuType(regles, difficulte) },
   };

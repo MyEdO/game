@@ -370,3 +370,49 @@ describe('terme `{rule}` d’une Formula — l’id résout dans le registre des
     expect(fautifs, 'terme `{rule}` qui ne résout pas').toEqual([]);
   });
 });
+
+/** Une somme de Dégâts est UNE op `wounds` : scindée en ops sœurs de MÊME mitigation sur la même cible, chacune
+ *  retrancherait BE et PA (LDB 85 l.447 ; #3060). Les branches d'un `if` sont exclusives. */
+describe('un Dégât = une op `wounds` par cible, mitigation et liste', () => {
+  type Compte = Map<string, number>;
+  const cle = (on: unknown, o: Record<string, unknown>): string => {
+    const mitigation = { ...o };
+    delete mitigation.amount;
+    return `${String(on)}|${JSON.stringify(Object.fromEntries(Object.entries(mitigation).sort(([a], [b]) => a.localeCompare(b))))}`;
+  };
+  const fusion = (a: Compte, b: Compte, f: (x: number, y: number) => number): Compte => {
+    const out: Compte = new Map(a);
+    for (const [k, v] of b) out.set(k, f(out.get(k) ?? 0, v));
+    return out;
+  };
+  /** Les ops `wounds` qu'un nœud Flow joue au plus, par cible et mitigation. */
+  const compte = (n: unknown): Compte => {
+    const f = n as { kind?: string; effect?: { type?: string; on?: unknown; ops?: Record<string, unknown>[] }; steps?: unknown[]; then?: unknown; else?: unknown };
+    if (f?.kind === 'do' && f.effect?.type === 'ops') {
+      return (f.effect.ops ?? []).filter((o) => o?.op === 'wounds').reduce<Compte>((m, o) => fusion(m, new Map([[cle(f.effect!.on, o), 1]]), (x, y) => x + y), new Map());
+    }
+    if (f?.kind === 'seq') return (f.steps ?? []).reduce<Compte>((m, s) => fusion(m, compte(s), (x, y) => x + y), new Map());
+    if (f?.kind === 'if') return fusion(compte(f.then), f.else ? compte(f.else) : new Map(), Math.max);
+    return new Map();
+  };
+  const scindes = (n: unknown, file: string, path = ''): string[] => {
+    if (Array.isArray(n)) return n.flatMap((v, i) => scindes(v, file, `${path}[${i}]`));
+    if (!n || typeof n !== 'object') return [];
+    const o = n as Record<string, unknown>;
+    const ici = (o.kind === 'do' || o.kind === 'seq') && [...compte(o).values()].some((k) => k > 1) ? [`${file}${path}`] : [];
+    return [...ici, ...Object.entries(o).flatMap(([k, v]) => scindes(v, file, `${path}.${k}`))];
+  };
+
+  it('aucune liste d’ops ni séquence n’inflige deux ops `wounds` de même mitigation à la même cible', () => {
+    expect(files.flatMap((f) => scindes(JSON.parse(readFileSync(join(DIR, f), 'utf8')), f))).toEqual([]);
+  });
+  it('contre-épreuve : le scan voit une somme scindée, même sous un `if` ; pas deux cibles, deux mitigations ni deux branches', () => {
+    const pas = (on: string, w: Record<string, unknown> = {}) => ({ kind: 'do', effect: { type: 'ops', on, ops: [{ op: 'wounds', amount: 4, ...w }] } });
+    const cond = { kind: 'always' };
+    expect(scindes({ kind: 'seq', steps: [pas('target'), pas('target')] }, 'fixture')).toEqual(['fixture']);
+    expect(scindes({ kind: 'seq', steps: [pas('target'), { kind: 'if', cond, then: pas('target') }] }, 'fixture')).toEqual(['fixture']);
+    expect(scindes({ kind: 'seq', steps: [pas('target'), pas('caster')] }, 'fixture')).toEqual([]);
+    expect(scindes({ kind: 'seq', steps: [pas('target'), pas('target', { ignoreAP: true })] }, 'fixture')).toEqual([]);
+    expect(scindes({ kind: 'if', cond, then: pas('target'), else: pas('target') }, 'fixture')).toEqual([]);
+  });
+});

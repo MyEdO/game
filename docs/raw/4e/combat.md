@@ -3067,7 +3067,7 @@ Le Vol de vie ne s'applique qu'à la **Morsure** (pas aux autres attaques), et c
 **Venin (Difficulté)** — `LDB 85 l.423-425`
 > « Quand elle inflige des Points de Blessure avec ses Attaques venimeuses, son adversaire subit un État _Empoisonné_ . Si aucune Difficulté n'est indiquée pour résister au Venin, le Test est considéré comme Intermédiaire. Voir page 168. »
 
-Le Venin ne déclenche que si l'attaque venimeuse **fait perdre des PB**. La cible tente un Test (Résistance / Endurance) de **Difficulté indiquée entre parenthèses** ; **défaut = Intermédiaire (+0)** ; en cas d'échec → État Empoisonné.
+Le Venin ne déclenche que si l'attaque venimeuse **fait perdre des PB** : la cible **subit** alors un État Empoisonné, **sans Test pour l'éviter**. La **Difficulté indiquée entre parenthèses** est celle des Tests qui **éliminent** le poison (`LDB 16 l.70`, Test de Résistance de fin de Round `LDB 16 l.76`) ; **défaut = Intermédiaire (+0)**. Corroboré par le basilic : « Les attaques du basilic confèrent des États *Empoisonné* … aux cibles blessées, qui nécessitent un Test de **Résistance Intermédiaire (+0)** pour les éliminer » — `AU1 04 l.24`.
 
 ### Règles invoquées par ces Traits
 

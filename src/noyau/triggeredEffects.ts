@@ -48,8 +48,8 @@ function withSource(effects: TriggeredEffect[], source: EffectSource): Triggered
   return structuredClone(effects.map((e) => (e.source ? e : { ...e, source }))); // #2097
 }
 
-/** PARAMÈTRE un effet de trait par l'ARGUMENT d'instance du porteur : substitue la difficulté d'un Test
- *  `argDifficulty` par celle que désigne l'arg (`difficulteDeLArg`). Rend les effets
+/** PARAMÈTRE un effet de trait par l'ARGUMENT d'instance du porteur : substitue la difficulté d'un Test ou
+ *  d'un État `argDifficulty` par celle que désigne l'arg (`difficulteDeLArg`). Rend les effets
  *  authorés réutilisables et éditables tout en restant tunés par leur instance. Immuable (clone partiel). */
 function withArg(effects: TriggeredEffect[], arg?: string, value?: number): TriggeredEffect[] {
   const diff = arg ? difficulteDeLArg(arg) : undefined;
@@ -57,8 +57,15 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
   // « (peste) » → `exposeDisease{disease:'$arg'}`) ; `INDICE_TEMPLATE` reçoit l'Indice numérique de l'instance
   // (Redoutable `value:2` → `topUpAdvantage{amount:'$indice'}`). Une seule convention, pas de variante.
   // Si l'instance N'A PAS le paramètre attendu (trait templé posé sans arg/value), l'op est DROPPÉE (null) :
-  // JAMAIS un placeholder qui fuit vers les résolveurs (`resolveFormula('$indice')` planterait sinon).
+  // JAMAIS un placeholder qui fuit vers les résolveurs (`resolveFormula('$indice')` planterait sinon). Seul un
+  // champ REQUIS porte un gabarit (`op-defs.test.ts`) : l'op tombe faute de ce qu'elle ne peut exécuter sans.
   const substOp = (op: GameOp): GameOp | null => {
+    if (op.op === 'condition' && op.argDifficulty) {
+      // L'État prend la Difficulté de l'arg (Venin, `LDB 85 l.423`) ; sans arg, il n'en porte aucune (`LDB 85 l.425`).
+      const pose = { ...op };
+      delete pose.argDifficulty;
+      return diff ? { ...pose, difficulte: diff } : pose;
+    }
     const o = op as Record<string, unknown>;
     const hasArg = Object.values(o).includes(ARG_TEMPLATE);
     const hasInd = Object.values(o).includes(INDICE_TEMPLATE);
@@ -300,10 +307,10 @@ function flowHasChoiceSeulement(flow: Flow): boolean {
 function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx: OpsCtx, get?: Get): string[] {
   if (flow.kind !== 'test') throw new Error('resolveInlineFlowTest: nœud non-`test` (un test enfoui exige un routeur cadence-aware).');
   const ft = flow.test;
-  // GATE (op-level immunité/groupes + Condition générique `gate`) + difficulté DYNAMIQUE (`difficultyBy`) :
+  // GATE (op-level groupes + Condition générique `gate`) + difficulté DYNAMIQUE (`difficultyBy`) :
   // SOURCE UNIQUE partagée avec la voie cascade (`resolveFlowTest`). Le `ConditionCtx` est construit de la
   // géométrie d'arène déjà injectée dans `ctx` par le dispatcher (Brisé : caché/Engagé/proximité). Gate
-  // fermée ⇒ no-op (ni jet ni branche, comme `unlessImmune`/`onlyGroups` — un Test top-level n'a pas d'`after`).
+  // fermée ⇒ no-op (ni jet ni branche, comme `onlyGroups` — un Test top-level n'a pas d'`after`).
   const cc = combatConditionCtx(c, ctx);
   if (flowTestGated(ft, c, cc)) return [];
   // `base` BRUT (sans pénalité d'État) + `combatTestPenalty` une SEULE fois (RAW : −10 d'Empoisonné/Sonné/

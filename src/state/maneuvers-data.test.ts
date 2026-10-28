@@ -13,6 +13,7 @@ import { DIFFICULTY_LABELS } from '../engine/types';
 import { souffleDuType } from '../engine/creatureAttacks';
 import { setDataset } from '../data/overrides';
 import { makeRNG } from '../engine/dice';
+import { buildWeapon } from '../engine/items';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
 
@@ -53,6 +54,13 @@ describe('manœuvres = donnée éditable (GameOp)', () => {
     expect(before - tank.wounds.current).toBeGreaterThanOrEqual(5); // ≥ 1d10(≥1) + 4, NON réduit par BE 7 + PA 9
   });
 
+  it('vomissement (LDB 85 l.447) : UN Dégât d’Arme de BE +4, BE et PA de la cible déduits une seule fois', () => {
+    const e = mk({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 1, jambeG: 0, jambeD: 0 } }); // BE 3, PA 1
+    fire('vomissement', e, 0);
+    expect(e.wounds.current).toBe(30 - (3 + 4 - 3 - 1));
+    expect(cond(e, 'sonne')).toBeTruthy();
+  });
+
   it('ÉDITER les effects d’une ManeuverDef CHANGE la résolution (recréable depuis le Codex)', () => {
     const avant = [...maneuvers];
     const edited: TriggeredEffect[] = [
@@ -76,11 +84,13 @@ describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type'
     { id: 'perce-fixture', type: 'breath-types', label: 'Perce', ignoreAP: true, etat: 'empoisonne' },
     { id: 'etourdit-fixture', type: 'breath-types', label: 'Étourdit', etat: 'sonne' },
     { id: 'compose-fixture', type: 'breath-types', label: 'Perce et Étourdit', types: [{ id: 'perce-fixture' }, { id: 'etourdit-fixture' }] },
+    { id: 'glace-fixture', type: 'breath-types', label: 'Glace', etat: 'sonne', trancheDeBlessures: 5 },
+    { id: 'ronge-fixture', type: 'breath-types', label: 'Ronge', endommageLEquipement: true },
   ];
   const souffle = (type?: string, difficulte?: 'difficile') => souffleDuType(findManeuverById('souffle')!, type, difficulte);
-  const frappe = (type?: string, difficulte?: 'difficile') => {
-    const e = mk({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 5, jambeG: 0, jambeD: 0 } }); // BE 3, PA 5
-    applyTriggeredEffects(get, mk({ id: 'a' }), souffle(type, difficulte).effects ?? [], 'onHit', { victim: e, indice: 15, rng: makeRNG(2) });
+  const frappe = (type?: string, difficulte?: 'difficile', indice = 15, over: Partial<Combatant> = {}) => {
+    const e = mk({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 5, jambeG: 0, jambeD: 0 }, ...over }); // BE 3, PA 5
+    applyTriggeredEffects(get, mk({ id: 'a' }), souffle(type, difficulte).effects ?? [], 'onHit', { victim: e, indice, rng: makeRNG(2) });
     return e;
   };
   const avant = [...breathTypes];
@@ -115,6 +125,25 @@ describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type'
     expect(enjeu('perce-fixture', 'difficile')).toContain(`État ${etat('empoisonne')} (${DIFFICULTY_LABELS.difficile})`);
     expect(enjeu('etourdit-fixture')).not.toContain('PA ignorées');
     expect(enjeu('compose-fixture')).toMatch(new RegExp(`PA ignorées, puis État ${etat('empoisonne')}.*État ${etat('sonne')}`));
+  });
+  it('Froid (LDB 85 l.324) : un État par tranche de 5 Blessures subies, minimum 1', () => {
+    expect(cond(frappe('glace-fixture', undefined, 23), 'sonne')?.value).toBe(3); // 23 − BE 3 − PA 5 = 15
+    expect(cond(frappe('glace-fixture', undefined, 15), 'sonne')?.value).toBe(1); // 7 Blessures
+    expect(cond(frappe('glace-fixture', undefined, 0), 'sonne')?.value).toBe(1);  // LDB 85 l.324
+  });
+  it('Corrosif (LDB 85 l.325) : chaque Armure et Arme portée subit 1 Dégât', () => {
+    const lame = buildWeapon({ label: 'Lame', damage: { plusBF: true, flat: 4 } });
+    const e = frappe('ronge-fixture', undefined, 15, { weapons: [lame] });
+    expect(e.armour.corps).toBe(4);
+    expect(lame.damageTaken).toBe(1);
+  });
+  it('l’enjeu dit la tranche du Froid et l’équipement rongé du Corrosif', () => {
+    const enjeu = (type: string) => {
+      const def = souffle(type);
+      return resolveStake(combatStakeRef('maneuverDefense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) })).text!;
+    };
+    expect(enjeu('glace-fixture')).toContain(`État ${findConditionById('sonne')!.label} par tranche de 5 Blessures subies (minimum 1)`);
+    expect(enjeu('ronge-fixture')).toContain('toutes les Armures et Armes portées subissent 1 Dégât');
   });
   it('la Difficulté du Trait est celle de l’État que le Souffle pose', () => {
     expect(cond(frappe('perce-fixture', 'difficile'), 'empoisonne')?.difficulte).toBe('difficile');

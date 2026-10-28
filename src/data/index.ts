@@ -946,7 +946,7 @@ export function specEntryLabel(e: SpecEntry): PlayerText {
  *  (Immunité, Peur, Vulnérabilité, Mutation, Souffle…) : `groups` (Groupe d'appartenance — `groups.json`),
  *  `diseases` (Maladie — `maladies.json`), `sizes` (catégorie de Taille — `engine/size`), `mutations`
  *  (Mutation — `mutations.json`), `breathTypes` (Type de Souffle — `breath-types.json`), `damageTypes`
- *  (Immunité aux Dégâts — `damage-types.json`, matché aussi par `unlessImmune` des Flows), `weaponsMelee`/
+ *  (Immunité aux Dégâts — `damage-types.json`, lue par la Condition `has … what:'immunity'`), `weaponsMelee`/
  *  `weaponsRanged` (Arme / À distance, LDB 85 l.33/9 — `arg` = une arme PRÉCISE du catalogue `trappings`
  *  filtrée par `type`, `specsOpen` car ces traits acceptent aussi une attaque naturelle/générique hors
  *  catalogue), `exposureLevels` (Degré de Corruption — vocabulaire `ExposureLevel`), `difficulties`
@@ -3294,6 +3294,7 @@ export interface BreathTypeData {
   id: string; type: 'breath-types'; label: string; source?: SourceRef;
   ignoreAP?: boolean;
   etat?: string;
+  trancheDeBlessures?: number;
   endommageLEquipement?: boolean;
   fumee?: boolean;
   types?: { id: string }[];
@@ -3309,7 +3310,7 @@ export function breathTypeLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? typeSouffleParId(id)?.label : '', id ?? '');
 }
 /** Type de Dégâts ignoré par le Trait Immunité (LDB 85 : « poison, magiques ou électriques ») — argument du
- *  Trait Immunité (multi-valeurs) ET référent des `unlessImmune` des Flows (Venin (Poison)…). Registre SSOT
+ *  Trait Immunité (multi-valeurs) ET valeur de la Condition `has … what:'immunity'` (Venin (Poison)…). Registre SSOT
  *  (`damage-types.json`, éditable). */
 export interface DamageTypeData { id: string; type: 'damage-types'; label: string; }
 export const damageTypes = damageTypesJson as DamageTypeData[];

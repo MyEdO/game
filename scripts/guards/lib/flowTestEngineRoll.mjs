@@ -81,7 +81,7 @@ const NODE_TYPES = new Set(['FlowTest', 'FlowTestNode', 'CritTestNode', 'ShipCre
  *  nœud (critère (L)(b)). @type {Set<string>} */
 const FLOWTEST_FIELDS = new Set([
   'skill', 'characteristic', 'difficulty', 'difficultyBy', 'requireSL', 'sense', 'stake', 'gate',
-  'opposed', 'menace', 'noSupport', 'tool', 'argDifficulty', 'unlessImmune', 'onlyGroups',
+  'opposed', 'menace', 'noSupport', 'tool', 'argDifficulty', 'onlyGroups',
   'exceptGroups', 'vsGroups', 'vsStatus', 'begging', 'vsCapricieux', 'easierIf',
 ]);
 

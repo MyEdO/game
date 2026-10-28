@@ -18,6 +18,8 @@ const doc = document(
     ignoreAP: z.boolean().optional(),
     /** LDB 85 l.324, l.326-328 */
     etat: idDe('etat').optional(),
+    /** LDB 85 l.324 */
+    trancheDeBlessures: z.number().int().positive().optional(),
     /** LDB 85 l.325 */
     endommageLEquipement: z.boolean().optional(),
     /** LDB 85 l.329 */
@@ -28,6 +30,7 @@ const doc = document(
   {
     ignoreAP: { label: 'Ignore les PA', hint: 'Toutes les Blessures infligées par le Souffle ignorent les Points d’Armure' },
     etat: { label: 'État infligé', hint: 'L’État que gagnent les cibles touchées' },
+    trancheDeBlessures: { label: 'Tranche de Blessures', hint: 'Les cibles gagnent l’État pour chaque tranche de ce nombre de Blessures subies (minimum 1)' },
     endommageLEquipement: { label: 'Endommage l’équipement', hint: 'Toutes les Armures et Armes portées par les cibles subissent 1 Dégât' },
     fumee: { label: 'Fumée', hint: 'La zone se remplit de fumée qui bloque les Lignes de vue pendant Bonus d’Endurance Rounds' },
     types: { label: 'Types composés', hint: 'Type imprimé qui en nomme plusieurs : le Souffle applique les règles de chacun' },
