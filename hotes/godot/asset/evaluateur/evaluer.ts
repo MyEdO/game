@@ -22,7 +22,8 @@ import { gardePoids } from './gardes/poids.ts';
 export interface EntreeDEvaluation {
   readonly base: Uint8Array;
   readonly elements?: readonly Uint8Array[];
-  /** Le manifeste de base brut, validé ici (`validerManifesteDeBase`) ; sans lui, ni gabarit ni prise. */
+  /** Le manifeste de base brut, validé ici (`validerManifesteDeBase`) ; sans lui, ni gabarit ni prise, et seule la
+   *  racine a une position animée. */
   readonly manifeste?: unknown;
   /** Les facteurs de gabarit donnés, les autres à 1 (`FACTEURS_NEUTRES`). */
   readonly facteurs?: Partial<Facteurs>;
@@ -118,7 +119,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     }),
     ...gardeEnroulement(meshes),
     ...gardeBudget(meshes, entree.plafond ?? PLAFOND_ASSEMBLE),
-    ...gardePistesDEchelle(clips, manifeste?.gabarit.racine ?? racineDu(base)),
+    ...gardePistesDEchelle(clips, manifeste?.gabarit.racine ?? racineDu(base), manifeste?.osAPositionAnimee ?? []),
     ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste ? [manifeste.prises.main.os, manifeste.prises.off.os] : []))),
   );
 

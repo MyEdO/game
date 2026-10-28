@@ -105,18 +105,23 @@ describe('gardeBudget', () => {
 });
 
 describe('gardePistesDEchelle', () => {
-  it('VERT : rotations, échelle à 1, position de la racine et du pelvis', () => {
+  it('VERT : rotations, échelle à 1, position de la racine et d’un os à position animée', () => {
     const clips = [new AnimationClip('Marche', 1, [
       new VectorKeyframeTrack('haut.scale', [0, 1], [1, 1, 1, 1, 1, 1]),
       new VectorKeyframeTrack('racine.position', [0, 1], [0, 0, 0, 0, 0, 1]),
       new VectorKeyframeTrack('pelvis.position', [0, 1], [0, 1, 0, 0, 0.9, 0]),
     ])];
-    expect(gardePistesDEchelle(clips, 'racine')).toEqual([]);
+    expect(gardePistesDEchelle(clips, 'racine', ['pelvis'])).toEqual([]);
+  });
+
+  it('ROUGE : la position d’un os que la liste des os à position animée ne nomme pas', () => {
+    const clips = [clip('Marche', 'pelvis.position', [0, 1, 0], [0, 0.9, 0])];
+    expect(gardePistesDEchelle(clips, 'racine', []).map((e) => [e.code, e.detail])).toEqual([['position-animee', 'pelvis.position animée ; valeur : son amplitude en m']]);
   });
 
   it('ROUGE : une échelle animée et une position d’os animée', () => {
     const clips = [clip('Frappe', 'haut.scale', [1, 1, 1], [1.2, 1.2, 1.2]), clip('Tend', 'haut.position', [0, 0.5, 0], [0, 0.6, 0])];
-    const ecarts = gardePistesDEchelle(clips, 'racine');
+    const ecarts = gardePistesDEchelle(clips, 'racine', []);
     expect(ecarts.map((e) => [e.code, e.clip])).toEqual([['echelle-animee', 'Frappe'], ['position-animee', 'Tend']]);
     expect(ecarts[1].valeur).toBeCloseTo(0.1, 6);
   });
@@ -212,8 +217,9 @@ const TAILLE = { SCALAR: 1, VEC3: 3, VEC4: 4, MAT4: 16 } as const;
 const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 /** Un GLB fabriqué (chunks JSON et BIN) : un triangle `Corps` (zone `torse`, shape key `feminin`) skinné sur l'os `racine`,
- *  avec au choix une texture d'image, un jeu d'influence `JOINTS_1`, et des clips de translation de `racine`. */
-function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; clips?: Record<string, readonly [number, number]> } = {}): Uint8Array {
+ *  avec au choix une texture d'image, un jeu d'influence `JOINTS_1`, un os `pelvis` enfant de `racine`, et des clips de
+ *  translation de `racine`, ou de `pelvis` s'il est là. */
+function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]> } = {}): Uint8Array {
   const morceaux: Uint8Array[] = [];
   const vues: object[] = [];
   const accesseurs: object[] = [];
@@ -236,10 +242,12 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; clips?: Re
     WEIGHTS_0: accesseur(Float32Array.from([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]), 'VEC4'),
     ...(options.jeuEtendu ? { JOINTS_1: accesseur(new Uint16Array(12), 'VEC4'), WEIGHTS_1: accesseur(new Float32Array(12), 'VEC4') } : {}),
   };
-  const inverseBindMatrices = accesseur(Float32Array.from([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]), 'MAT4');
+  const identite = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  const joints = options.pelvis ? [1, 2] : [1];
+  const inverseBindMatrices = accesseur(Float32Array.from(joints.flatMap(() => identite)), 'MAT4');
   const animations = Object.entries(options.clips ?? {}).map(([name, [de, a]]) => ({
     name,
-    channels: [{ sampler: 0, target: { node: 1, path: 'translation' } }],
+    channels: [{ sampler: 0, target: { node: joints[joints.length - 1], path: 'translation' } }],
     samplers: [{ input: accesseur(Float32Array.from([0, 1]), 'SCALAR', { min: [0], max: [1] }), output: accesseur(Float32Array.from([0, de, 0, 0, a, 0]), 'VEC3'), interpolation: 'LINEAR' }],
   }));
   const image = options.image ? { images: [{ bufferView: vue(PNG), mimeType: 'image/png' }], textures: [{ source: 0, sampler: 0 }], samplers: [{}] } : {};
@@ -249,10 +257,10 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; clips?: Re
     asset: { version: '2.0' },
     scene: 0,
     scenes: [{ nodes: [0, 1] }],
-    nodes: [{ name: 'Corps', mesh: 0, skin: 0, extras: { zone: 'torse' } }, { name: 'racine' }],
+    nodes: [{ name: 'Corps', mesh: 0, skin: 0, extras: { zone: 'torse' } }, { name: 'racine', ...(options.pelvis ? { children: [2] } : {}) }, ...(options.pelvis ? [{ name: 'pelvis' }] : [])],
     meshes: [{ primitives: [{ attributes, material: 0 }], extras: { targetNames: ['feminin'] } }],
     materials: [{ name: 'peau', pbrMetallicRoughness: options.image ? { baseColorTexture: { index: 0 } } : {} }],
-    skins: [{ joints: [1], inverseBindMatrices }],
+    skins: [{ joints, inverseBindMatrices }],
     ...(animations.length ? { animations } : {}),
     ...image,
     accessors: accesseurs,
@@ -260,6 +268,18 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; clips?: Re
     buffers: [{ byteLength: decalage }],
   }, bin);
 }
+
+const ATTACHE = { os: 'racine', position: [0, 0, 0], rotation: [0, 0, 0] };
+
+/** Le manifeste qui décrit le GLB `octets` de `glbFabrique`, d'os `os`. */
+const manifesteDe = (octets: Uint8Array, os = ['racine']) => ({
+  schema: 3, base: 'fabrique', os, chaines: { jambe: ['racine'] }, zones: ['torse'], emplacements: { dos: { ...ATTACHE } },
+  prises: { main: { ...ATTACHE }, off: { ...ATTACHE } }, silhouettes: ['feminin'], gabarit: { ...TABLE, legs: [] },
+  porteur: { race: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
+  appuis: { pieds: ['racine'], vitesseAuSol: 1.4 },
+  osAPositionAnimee: os.filter((o) => o !== 'racine'),
+  glb: { sha256: sha256(octets), octets: octets.byteLength },
+});
 
 describe('chargerScene et lireGlb', () => {
   it('charge sans DOM un GLB qui embarque une image', async () => {
@@ -283,12 +303,8 @@ describe('chargerScene et lireGlb', () => {
 
 describe('validerManifesteDeBase', () => {
   const octets = glbFabrique();
-  const attache = { os: 'racine', position: [0, 0, 0], rotation: [0, 0, 0] };
-  const valide = () => ({
-    schema: 3, base: 'fabrique', os: ['racine'], chaines: { jambe: ['racine'] }, zones: ['torse'], emplacements: { dos: { ...attache } },
-    prises: { main: { ...attache }, off: { ...attache } }, silhouettes: ['feminin'], gabarit: { ...TABLE, legs: [] },
-    glb: { sha256: sha256(octets), octets: octets.byteLength },
-  });
+  const attache = ATTACHE;
+  const valide = () => manifesteDe(octets);
   const codes = (brut: unknown): CodeDEcartDeBase[] => {
     const verdict = validerManifesteDeBase(brut, octets);
     return verdict.ok ? [] : verdict.ecarts.map((e) => e.code);
@@ -311,6 +327,24 @@ describe('validerManifesteDeBase', () => {
   ])('refuse par le code %s', (code, alterer) => {
     expect(codes(alterer(valide()))).toEqual([code]);
   });
+
+  it.each<[string, CodeDEcartDeBase, (m: ReturnType<typeof valide>) => unknown]>([
+    ['porteur absent', 'forme', ({ porteur: _, ...m }) => m],
+    ['race vide', 'forme', (m) => ({ ...m, porteur: { ...m.porteur, race: '' } })],
+    ['gabarit absent', 'forme', (m) => ({ ...m, porteur: { ...m.porteur, gabarit: undefined } })],
+    ['taille non chaîne', 'forme', (m) => ({ ...m, porteur: { ...m.porteur, taille: 3 } })],
+    ['échelle d’art nulle', 'forme', (m) => ({ ...m, porteur: { ...m.porteur, echelleDArt: 0 } })],
+    ['échelle d’art infinie', 'forme', (m) => ({ ...m, porteur: { ...m.porteur, echelleDArt: Infinity } })],
+    ['appuis absents', 'forme', ({ appuis: _, ...m }) => m],
+    ['aucun pied', 'forme', (m) => ({ ...m, appuis: { ...m.appuis, pieds: [] } })],
+    ['pied hors des os', 'os-inconnu', (m) => ({ ...m, appuis: { ...m.appuis, pieds: ['fantome'] } })],
+    ['vitesse au sol négative', 'forme', (m) => ({ ...m, appuis: { ...m.appuis, vitesseAuSol: -1.4 } })],
+    ['vitesse au sol absente', 'forme', (m) => ({ ...m, appuis: { pieds: m.appuis.pieds } })],
+    ['os à position animée absents', 'forme', ({ osAPositionAnimee: _, ...m }) => m],
+    ['os à position animée hors des os', 'os-inconnu', (m) => ({ ...m, osAPositionAnimee: ['fantome'] })],
+  ])('refuse %s par le code %s', (_cas, code, alterer) => {
+    expect(new Set(codes(alterer(valide())))).toEqual(new Set([code]));
+  });
 });
 
 describe('evaluer', () => {
@@ -324,6 +358,15 @@ describe('evaluer', () => {
   it('ROUGE : le binaire et l’animation composent leurs écarts, le manifeste invalide est un écart', async () => {
     const fiche = await evaluer({ base: glbFabrique({ jeuEtendu: true, clips: { Plonge: [0, -0.1] } }), manifeste: { schema: 2 }, pas: 0.5 });
     expect(fiche.ecarts.map((e) => `${e.garde}/${e.code}`)).toEqual(expect.arrayContaining(['manifeste/version-inconnue', 'poids/influences-au-dela-de-4', 'piedsAuSol/sous-le-sol']));
+  });
+
+  it('les os à position animée viennent du manifeste ; sans lui, seule la racine', async () => {
+    const base = glbFabrique({ pelvis: true, clips: { Marche: [0, 0.1] } });
+    const positionsAnimees = (fiche: Awaited<ReturnType<typeof evaluer>>) => fiche.ecarts.filter((e) => e.garde === 'pistesDEchelle').map((e) => e.detail);
+    expect(positionsAnimees(await evaluer({ base, pas: 0.5 }))).toEqual(['pelvis.position animée ; valeur : son amplitude en m']);
+    const fiche = await evaluer({ base, manifeste: manifesteDe(base, ['racine', 'pelvis']), pas: 0.5 });
+    expect(fiche.ecarts.filter((e) => e.garde === 'manifeste')).toEqual([]);
+    expect(positionsAnimees(fiche)).toEqual([]);
   });
 
   it('refuse des facteurs de gabarit sans manifeste valide, et un clip absent', async () => {

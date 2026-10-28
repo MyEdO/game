@@ -2,7 +2,8 @@
 // (`chargerEvaluateur`, `charger.mjs`). Une ligne par écart ; code de sortie 1 s'il y a un écart, 0 sinon.
 //   npm run godot:evaluer -- <glb> [--base <glb>] [--manifeste <json>]
 //     [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--pas 0.0416] [--clips a,b] [--json <sortie>]
-// Avec `--base`, `<glb>` est un élément monté sur cette base ; sans lui, `<glb>` est la base.
+// Avec `--base`, `<glb>` est un élément monté sur cette base ; sans lui, `<glb>` est la base. Sans `--manifeste`, seule
+// la racine a une position animée (`osAPositionAnimee` du manifeste de base).
 import { readFileSync, writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { chargerEvaluateur } from './charger.mjs'
@@ -29,6 +30,7 @@ const { values, positionals } = parseArgs({
 })
 if (positionals.length !== 1) {
   console.error('usage : npm run godot:evaluer -- <glb> [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--pas 0.0416] [--clips a,b] [--json <sortie>]')
+  console.error('  sans --manifeste : ni gabarit ni prise, et seule la racine a une position animée')
   process.exit(2)
 }
 const pas = values.pas === undefined ? undefined : Number(values.pas)
