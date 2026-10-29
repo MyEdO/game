@@ -43,7 +43,7 @@
 {"offre":"end-turn"}
 {"offre":"end-turn"}
 {"offre":"end-turn"}
-{"type":"cascadeTableRoll","args":["cons-deviation-sorciere-corps-0"]}
-{"type":"cascadeTableSetForcedRoll","args":["cons-deviation-sorciere-corps-0",40]}
-{"type":"cascadeNext","args":[]}
+{"type":"cascadeTableRoll","args":["cons-deviation-protegee-corps-0"]}
+{"type":"cascadeTableSetForcedRoll","args":["cons-deviation-protegee-corps-0",40]}
+{"type":"cascadeChoose","args":["cons-deviation-protegee-corps-0","subir"]}
 {"type":"cascadeNext","args":[]}

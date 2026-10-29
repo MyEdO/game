@@ -173,7 +173,10 @@
     "type": "psychology",
     "label": "Animosité",
     "icon": "flag/anger",
-    "targeted": true,
+    "cibles": [
+      "groupe",
+      "individu"
+    ],
     "descRef": {
       "book": "livre-de-base",
       "ch": "21",
@@ -213,7 +216,10 @@
     "type": "psychology",
     "label": "Haine",
     "icon": "flag/anger",
-    "targeted": true,
+    "cibles": [
+      "groupe",
+      "individu"
+    ],
     "descRef": {
       "book": "livre-de-base",
       "ch": "21",
@@ -254,7 +260,10 @@
     "type": "psychology",
     "label": "Préjugé",
     "icon": "flag/anger",
-    "targeted": true,
+    "cibles": [
+      "groupe",
+      "individu"
+    ],
     "descRef": {
       "book": "livre-de-base",
       "ch": "21",
@@ -290,7 +299,9 @@
     "type": "psychology",
     "label": "Amour",
     "icon": "flag/bond",
-    "targeted": true,
+    "cibles": [
+      "individu"
+    ],
     "descRef": {
       "book": "livre-de-base",
       "ch": "21",
@@ -332,7 +343,10 @@
     "type": "psychology",
     "label": "Camaraderie",
     "icon": "flag/bond",
-    "targeted": true,
+    "cibles": [
+      "groupe",
+      "individu"
+    ],
     "descRef": {
       "book": "livre-de-base",
       "ch": "21",
@@ -371,7 +385,10 @@
     "type": "psychology",
     "label": "Phobie",
     "icon": "flag/fear",
-    "targeted": true,
+    "cibles": [
+      "groupe",
+      "individu"
+    ],
     "descRef": {
       "book": "livre-de-base",
       "ch": "21",

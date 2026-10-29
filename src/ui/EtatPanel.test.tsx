@@ -1,5 +1,10 @@
-import { describe, it, expect } from 'vitest';
+// @vitest-environment jsdom
+import { describe, it, expect, afterEach } from 'vitest';
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { ciblePsy } from '../engine/psych/ciblage';
+import { psychologies } from '../data';
 import { Combatant } from '../engine/types';
 import { EtatPanel, zoneAfflictions } from './EtatPanel';
 import { traumaById, consolidateAmputations, traumaCharPenalties } from '../engine/trauma';
@@ -335,5 +340,34 @@ describe('EtatPanel — une durée d’HORLOGE dit le TEMPS RESTANT', () => {
   it('un État d’instance à échéance d’horloge (Belladone) dit son reste dans sa rangée', () => {
     const h = mkHero((c) => { c.conditions = [{ id: 'inconscient', value: 1, untilTime: maintenant + 5 * 60 } as never]; });
     expect(renderToStaticMarkup(<EtatPanel hero={h} />)).toContain('5 h');
+  });
+});
+
+describe('EtatPanel — la Cible d’individu d’une affliction psy (EDOC 11 l.648 ; #3045)', () => {
+  (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  let root: Root | null = null;
+  afterEach(() => { act(() => root?.unmount()); root = null; useGame.setState(useGame.getInitialState(), true); });
+  const type = psychologies.find((p) => p.cibles?.includes('individu'))!;
+  const rendre = (h: Combatant): HTMLElement => {
+    const el = document.createElement('div');
+    root = createRoot(el);
+    act(() => root!.render(<EtatPanel hero={h} />));
+    return el;
+  };
+  const visant = (id: string) => mkHero((c) => { c.psychState = [{ type: type.id, cible: ciblePsy.individu(id), active: true } as never]; });
+
+  it('nomme l’individu visé et suit son nom, jamais son id', () => {
+    useGame.setState({ battle: { combatants: [{ id: 'kirstin', label: 'Dame Kirstin' }] } as never });
+    const el = rendre(visant('kirstin'));
+    expect(el.textContent).toContain('(Dame Kirstin)');
+    expect(el.textContent).not.toContain('@kirstin');
+    act(() => useGame.setState({ battle: { combatants: [{ id: 'kirstin', label: 'Kirstin la Rouge' }] } as never }));
+    expect(el.textContent).toContain('(Kirstin la Rouge)');
+  });
+
+  it('un individu sans nom connu se dit « une personne de la scène »', () => {
+    const el = rendre(visant('absent'));
+    expect(el.textContent).toContain('(une personne de la scène)');
+    expect(el.textContent).not.toContain('@absent');
   });
 });

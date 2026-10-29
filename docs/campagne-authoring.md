@@ -500,6 +500,20 @@ Une fiche de dossier de chapitre (`docs/dossiers/<ABBR>/<NN>.json`, schéma `fic
   Garde : `src/data/dossiers-couverture.test.ts` — tout lien résout à une entrée de fiche commitée, aucune
   entrée n'est couverte et écartée dans le même paquet ; une entrée non couverte n'est jamais rouge.
 
+## 10sexies. Cible d'individu d'un Trait psy (`@id`, #3045)
+
+Un Trait psy ciblé vise un Groupe (id de `groups.json`) ou un individu (EDOC 11 l.648 ; LDB 21 l.75). Les
+variantes que chaque type admet sont déclarées dans `psychology.json` (`cibles`).
+
+- **Statbloc d'une entité de scène** : l'`arg` du Trait (source `ciblesPsy`) écrit l'individu `@` + id d'entité,
+  `{ "id": "haine", "arg": "@kirstin" }` ; un Groupe s'écrit par son id nu. C'est la seule pose d'un individu
+  en donnée : les cas du livre sont tous des statblocs.
+- **Op psy** (`beginPsych`, `grantPsychTrait`) : la Cible est un Groupe, `"cible": { "id": "nain" }`, dans tout
+  document.
+- **Portée** : le personnage est une entité de la MÊME scène, `validateScene` refuse un id qu'aucune ne porte.
+  Le Trait posé du catalogue `src/data` et la péripétie de route (`worldMap.routes[].perils`) refusent `@id`.
+- **Affichage** : le nom de l'individu, à défaut « une personne de la scène », jamais son id.
+
 ## 11. Règles d'or
 
 - **IDS partout** — `ref`/`skill`/`spell`/`weapon`/`species`/`tenue`/`trappingId`/`factorId`/`roleId` sont

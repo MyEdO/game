@@ -29,12 +29,12 @@ const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
   tete: { categorie: 'tete', cle: { tete: 'humain-m-1' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: ['tete'], silhouettes: ['feminin'], surfaces: PALETTE },
   pilosite: { categorie: 'pilosite', cle: { coiffure: 'tonsure' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: [], surfaces: [{ nom: 'poil', palette: 'cheveux' }] },
   vetement: {
-    categorie: 'vetement', cle: { piece: 'robe-de-bure' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: ['torse', 'bras_haut', 'hanches', 'cuisses'], chaines: ['jupe'],
+    categorie: 'vetement', cle: { piece: 'pourpoint' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: ['torse', 'bras_haut', 'hanches', 'cuisses'], chaines: ['jupe'],
     emplacements: { ceinture_avant: { os: 'spine_01', position: [0, 0.04, 0.13], rotation: [0, 0, 0] } }, silhouettes: ['feminin', 'corpulence'],
     surfaces: [{ nom: 'tissu', palette: 'vet1' }, { nom: 'cuir', palette: 'cuir' }],
   },
-  armure: { categorie: 'armure', cle: { piece: 'plastron-de-plates' }, liaison: { mode: 'squelette' }, couche: 'armure', couvre: ['torse'], silhouettes: ['feminin'], surfaces: TEINTE },
-  accessoire: { categorie: 'accessoire', cle: { piece: 'bandouliere' }, liaison: { mode: 'surface' }, couche: 'tenue', surfaces: TEINTE },
+  armure: { categorie: 'armure', cle: { piece: 'plastron' }, liaison: { mode: 'squelette' }, couche: 'armure', couvre: ['torse'], silhouettes: ['feminin'], surfaces: TEINTE },
+  accessoire: { categorie: 'accessoire', cle: { piece: 'baudrier' }, liaison: { mode: 'surface' }, couche: 'tenue', surfaces: TEINTE },
   rigide: { categorie: 'rigide', cle: { apparence: 'epee' }, liaison: { mode: 'rigide' }, surfaces: TEINTE },
   trait: { categorie: 'trait', cle: { trait: 'verrues' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: ['torse'], surfaces: [{ nom: 'peau', palette: 'peau' }] },
   decor: { categorie: 'decor', cle: { prop: 'tonneau' }, liaison: { mode: 'rigide' }, surfaces: TEINTE },
@@ -75,7 +75,10 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['cle-mal-formee', 'clé d’une autre catégorie', manifeste('rigide', { cle: { piece: 'epee' } })],
   ['cle-mal-formee', 'clé de corps sans `forme`', manifeste('corps', { cle: { partie: 'jambes' } })],
   ['cle-mal-formee', 'clé à champ en trop', manifeste('rigide', { cle: { apparence: 'epee', piece: 'epee' } })],
-  ['cle-mal-formee', 'id vide',manifeste('tete', { cle: { tete: '' } })],
+  ['cle-mal-formee', 'id vide', manifeste('tete', { cle: { tete: '' } })],
+  ['cle-inconnue', 'pièce absente de la garde-robe', manifeste('vetement', { cle: { piece: 'robe-de-bure' } })],
+  ['cle-inconnue', 'apparence absente du jeu', manifeste('rigide', { cle: { apparence: 'epee-de-verre' } })],
+  ['piece-hors-categorie', 'armure qui vise un vêtement', manifeste('armure', { cle: { piece: 'pourpoint' } })],
   ['base-differente', 'élément construit pour une autre base', manifeste('rigide', { base: 'quadrupede' })],
   ['liaison-hors-categorie', 'vêtement en surface', manifeste('vetement', { liaison: { mode: 'surface' } })],
   ['liaison-hors-categorie', 'mode inconnu', manifeste('accessoire', { liaison: { mode: 'colle' } })],
@@ -97,7 +100,7 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
 describe('validerElement : chaque refus nommé', () => {
   it('chaque code a son cas', () => {
     const attendus: Record<CodeDEcartDElement, true> = {
-      forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'base-differente': true,
+      forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'cle-inconnue': true, 'piece-hors-categorie': true, 'base-differente': true,
       'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true,
       'silhouette-absente': true, 'surface-hors-categorie': true, 'palette-inconnue': true, 'glb-different': true,
       'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true,
@@ -126,7 +129,10 @@ describe('validerElement : un mesh rigide se monte sous un os de la base', () =>
 describe('CLI godot:valider : base validée avant l’élément', () => {
   const dossiers: string[] = [];
   afterEach(() => dossiers.splice(0).forEach(d => rmSync(d, { recursive: true, force: true })));
-  it.each(['valide', 'os-inconnu', 'glb-different', 'base-absente', 'forme', 'chemin-absolu'] as const)('%s', cas => {
+  const vetement = (piece: string) => ({
+    ...elementSchema3(), categorie: 'vetement', cle: { piece }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: [], surfaces: [{ nom: 'metal', palette: 'vet1' }],
+  });
+  it.each(['valide', 'vetement', 'os-inconnu', 'glb-different', 'base-absente', 'forme', 'chemin-absolu', 'cle-inconnue'] as const)('%s', cas => {
     const d = mkdtempSync(join(tmpdir(), 'element-cli-'));
     dossiers.push(d);
     const base = baseSchema3();
@@ -135,12 +141,15 @@ describe('CLI godot:valider : base validée avant l’élément', () => {
     writeFileSync(join(d, 'base.manifeste.json'), JSON.stringify(base));
     if (cas !== 'base-absente') writeFileSync(join(d, 'base.glb'), GLB_DE_BASE);
     const element = cas === 'forme' ? { ...elementSchema3(), surfaces: undefined }
-      : cas === 'chemin-absolu' ? { ...elementSchema3(), surfaces: [{ nom: 'C:\\Users\\x\\metal.png', teinte: true }] } : elementSchema3();
+      : cas === 'chemin-absolu' ? { ...elementSchema3(), surfaces: [{ nom: 'C:\\Users\\x\\metal.png', teinte: true }] }
+      : cas === 'vetement' ? vetement('pourpoint') : cas === 'cle-inconnue' ? vetement('robe-de-bure') : elementSchema3();
     writeFileSync(join(d, 'element.json'), JSON.stringify(element));
     writeFileSync(join(d, 'element.glb'), GLB_D_ELEMENT);
     const r = spawnSync(process.execPath, ['hotes/godot/asset/valider.mjs', join(d, 'element.json'), join(d, 'base.manifeste.json'), join(d, 'element.glb')], { encoding: 'utf8', timeout: 60000 });
     expect(r.error).toBeUndefined();
-    expect(r.status, r.stderr + r.stdout).toBe(cas === 'valide' ? 0 : 1);
-    if (cas !== 'valide') expect(r.stdout + r.stderr).toContain(cas === 'base-absente' ? 'glb-de-base-absent' : cas);
+    const accepte = cas === 'valide' || cas === 'vetement';
+    expect(r.status, r.stderr + r.stdout).toBe(accepte ? 0 : 1);
+    if (cas === 'cle-inconnue') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.piece : robe-de-bure');
+    else if (!accepte) expect(r.stdout + r.stderr).toContain(cas === 'base-absente' ? 'glb-de-base-absent' : cas);
   }, 65000);
 });

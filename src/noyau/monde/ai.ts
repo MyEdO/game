@@ -44,7 +44,7 @@ import { spellEffectOps } from '../../engine/flowCore';
 /** Aversion au TIR AMI d'une ZdE : blesser/incapaciter un allié pèse FOIS-CECI un gain ennemi équivalent
  *  (>1 → l'IA ne nuke jamais son camp pour un gain marginal). Ressenti, latitude IA. */
 const FRIENDLY_FIRE_AVERSION = 2;
-import { findPsychologyById, type SpellData } from '../../data';
+import type { SpellData } from '../../data';
 import { hasCondition, canTakeAction, isActionLocked, restrictingConditions, COND } from '../../engine/conditions';
 import { effectiveMovement } from '../../engine/encumbrance';
 import { isEngaged, meleeReachTiles } from '../../engine/engagement';
@@ -53,7 +53,7 @@ import { facingToward, type Dir8 } from '../../geometry/dir8';
 import { groupMatch, groupesDe } from '../../engine/groups';
 import { isBestial, isTerritorial, isMindless, isStupid } from '../../engine/traits/dispatch';
 import { creatureAttacks } from '../../engine/creatureAttacks';
-import { isFrenzied, vise } from '../../engine/psychology';
+import { ciblesAPulsion, isFrenzied, vise } from '../../engine/psychology';
 
 // === TRACE DE DÉCISION IA (DEV uniquement, GATÉE) ============================================
 // Diagnostic dev : capture le CLASSEMENT des candidats (l'« intention ») du DERNIER appel à
@@ -108,6 +108,9 @@ export interface EnemyTurnInput {
   enemy: Combatant;
   /** Héros encore en action (vivants), tous avec `pos`. */
   heroes: Combatant[];
+  /** Combattants en action de tout `kind` que vise une Cible à pulsion d'attaque de l'ennemi (`ciblesDePulsion`,
+   *  `engine/psychology.ts`) : ils rejoignent ses viviers de cible. ABSENT = aucun. #3045 */
+  ciblesDePulsion?: Combatant[];
   scene: Scene;
   /** Cases occupées par d'autres combattants (l'ennemi lui-même exclu) — bloquent le TRANSIT. */
   blocked: Set<string>;
@@ -508,6 +511,12 @@ function argmax(cands: Candidate[]): Candidate | null {
   return best;
 }
 
+/** Le vivier de cibles de l'ennemi : les héros, puis les combattants que vise sa pulsion (`ciblesDePulsion`), sans
+ *  doublon. SEULE lecture du vivier : tout choix ou jugement d'une cible de l'IA part de là. #3045 */
+export function adversairesDe(input: Pick<EnemyTurnInput, 'heroes' | 'ciblesDePulsion'>): Combatant[] {
+  return [...input.heroes, ...(input.ciblesDePulsion ?? []).filter((c) => c.pos && !input.heroes.some((h) => h.id === c.id))];
+}
+
 /** Choisit l'action d'un ennemi pour son tour. Pure et déterministe. */
 export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const { enemy, scene, blocked, smoke, flying, facing, traverse } = input;
@@ -521,9 +530,10 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const squad = input.squad ?? [];
   // Vision réciproque : l'ennemi ne cible/poursuit que les héros qu'il PERÇOIT (LoS + lumière, comme le
   // groupe). `perceived` absent = aucun gate (comportement historique / tests purs).
+  const adversaires = adversairesDe(input);
   const heroes = input.perceived
-    ? input.heroes.filter((h) => h.pos && input.perceived!.has(`${h.pos.x},${h.pos.y},0`))
-    : input.heroes;
+    ? adversaires.filter((h) => h.pos && input.perceived!.has(`${h.pos.x},${h.pos.y},0`))
+    : adversaires;
   // Gardes FORCÉES (psychologie/RAW, hors scoring) : la trace = action forcée, classement VIDE.
   const forced = (a: EnemyAction): EnemyAction => { if (AI_TRACE) _lastRanking = []; return a; };
   if (input.heroes.length === 0) return forced({ kind: 'end' }); // plus AUCUN adversaire (combat fini) → passe la main
@@ -620,7 +630,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const shootableStructureInView = hasRanged && !reloadNeeded
     && (input.structures ?? []).some((st) => st.pos && los.clear(pos, { ...structureAimCell(pos, st), z: pos.z }));
   if (heroes.length === 0 && !shootableStructureInView) {
-    const closest = [...input.heroes].filter((h) => h.pos).sort((a, b) => manhattan(pos, a.pos!) - manhattan(pos, b.pos!))[0];
+    const closest = [...adversaires].filter((h) => h.pos).sort((a, b) => manhattan(pos, a.pos!) - manhattan(pos, b.pos!))[0];
     if (!closest) return forced({ kind: 'end' });
     let to: Pt | null = null;
     let bestD: number | null = null;
@@ -720,9 +730,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // Animosité/Haine ACTIVE (LDB 21 l.21/41) : filtre de VIVIER appliqué AVANT le choix de cible — on
   // s'en prend en priorité au groupe haï présent dans le vivier considéré (sinon vivier brut).
-  const hatedCibles = (enemy.psychState ?? [])
-    .filter((p) => findPsychologyById(p.type)?.attackDR?.vs === 'group' && p.active && p.cible !== undefined)
-    .map((p) => p.cible!);
+  const hatedCibles = ciblesAPulsion(enemy);
   const hatedOf = (pool: Combatant[]) =>
     hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => vise(cb, { genre: 'combattant', c: h }, 'appartenance'))) : []; // #3045
   /** Restreint un vivier au groupe haï s'il y en a un présent, sinon le vivier brut. */

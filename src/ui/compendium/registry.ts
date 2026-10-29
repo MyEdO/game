@@ -69,6 +69,7 @@ import type { CastingNumberMod, CastingNumberScope } from '../../engine/castingN
 import { effectiveEntry } from '../../engine/variants';
 import { isOptionalNote, type TraitList } from '../../engine/statEntry';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
+import type { NomDIndividu } from '../../engine/psych/ciblage';
 import { damageString } from '../../engine/items';
 import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../weaponStats';
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
@@ -78,7 +79,7 @@ import { POWER_ESTIMATE, MIGHT_MODIFIERS, WAR_MACHINES, STRUCTURES as MASS_BATTL
 import { AVAILABILITIES } from '../../engine/types';
 import { ACTIVITIES } from '../../engine/activities';
 import type { OutcomeBand } from '../../engine/activities';
-import { formatTrait, traitArgSkeleton } from '../../engine/traits/dispatch';
+import { traitArgSkeleton, traitLisible } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
 import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
 import type { ResolveurDePreset } from '../../noyau/monde/resolveursDuNarratif';
@@ -355,9 +356,9 @@ const foyerRow = (foyer: FoyerDeRegle): CodexRow => {
 };
 /** Section « Règle » d'un porteur de foyer (`rule`). */
 const regleChips = (foyer: FoyerDeRegle | undefined) => chips('Règle', foyer ? [foyerRow(foyer)] : []);
-/** Rangées d'une `TraitList` par id, libellé formaté (`formatTrait`) en affichage. */
-const traitRefRows = (traits?: readonly TraitPose[] | null): CodexRow[] =>
-  (traits ?? []).map((t) => idRefRow('traits', t.id, undefined, formatTrait(t)));
+/** Rangées d'une `TraitList` par id, libellé joueur (`traitLisible`, l'individu nommé par `nomDIndividu`). */
+const traitRefRows = (traits?: readonly TraitPose[] | null, nomDIndividu?: NomDIndividu): CodexRow[] =>
+  (traits ?? []).map((t) => idRefRow('traits', t.id, undefined, traitLisible(t, nomDIndividu)));
 /** Rangée d'un `AdvancementRef` : `{pick}` → rangée de choix, référence → par id, `{random}` → pastille. */
 const advancementRow = (category: 'skills' | 'talents', a: AdvancementRef): CodexRow => {
   if ('pick' in a) return { t: 'choice', category, advancement: a };
@@ -1672,7 +1673,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sections: sections(
         { title: 'Caractéristiques', layout: 'grid', rows: kvRows(Object.entries(c.char)) },
         chips('Traits', traitRefRows(c.traits)),
-        chips('Traits optionnels', (c.optionals ?? []).map((e) => (isOptionalNote(e) ? { t: 'chip', label: e.label } as CodexRow : idRefRow('traits', e.id, undefined, formatTrait(e))))),
+        chips('Traits optionnels', (c.optionals ?? []).map((e) => (isOptionalNote(e) ? { t: 'chip', label: e.label } as CodexRow : idRefRow('traits', e.id, undefined, traitLisible(e))))),
         chips('Compétences', c.skills.map((r) => idRefRow('skills', r.id, r.spec, skillRefLabel(r)))),
         chips('Talents', c.talents.map((r) => idRefRow('talents', r.id, r.spec, talentRefLabel(r)))),
         chips('Sorts', c.spells.map((id) => idRefRow('spells', id))),
@@ -2698,8 +2699,9 @@ const ARMOUR_LOCS: readonly HitLocation[] = [tete, corps, brasG, brasD, jambeG, 
 
 /** Statbloc d'un combattant VIVANT (valeurs réelles : carac, armes/armure dérivées, états déjà à
  *  part) en sections — MÊME rendu que la fiche Codex (CodexEntry/CodexSections). Sert l'inspection
- *  d'un ennemi en combat sans recopier un panneau partiel. TOUTES les caracs (« – » si inexistante). */
-export function combatantSections(c: Combatant): CodexSection[] {
+ *  d'un ennemi en combat sans recopier un panneau partiel. TOUTES les caracs (« – » si inexistante). La Cible
+ *  d'individu d'un Trait psy est nommée par `nomDIndividu`. */
+export function combatantSections(c: Combatant, nomDIndividu?: NomDIndividu): CodexSection[] {
   const ch = c.characteristics;
   const charRows: CodexRow[] = [
     { t: 'kv', k: 'M', v: String(c.movement), kref: { category: 'characteristics', id: 'mouvement', label: 'Mouvement' } },
@@ -2721,7 +2723,7 @@ export function combatantSections(c: Combatant): CodexSection[] {
     { title: 'Caractéristiques', layout: 'grid', rows: charRows },
     weaponRows.length ? { title: 'Armes', layout: 'chips', rows: weaponRows } : null,
     worn.length ? { title: 'Armure', layout: 'list', rows: [{ t: 'text', text: worn.map((l) => `${HIT_LOCATION_LABELS[l]} ${c.armour![l]}`).join(' · ') }] } : null,
-    chips('Traits', traitRefRows(c.traits)),
+    chips('Traits', traitRefRows(c.traits, nomDIndividu)),
     skillRows.length ? { title: 'Compétences', layout: 'chips', rows: skillRows } : null,
     chips('Talents', (c.talents ?? []).map((t) => idRefRow('talents', t.talentId, t.spec))),
     chips('Sorts', (c.spells ?? []).map((id) => idRefRow('spells', id))),

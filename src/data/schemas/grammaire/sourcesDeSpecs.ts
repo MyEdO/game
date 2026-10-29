@@ -29,7 +29,8 @@ export interface SourceDeSpecs {
 export const LIBELLE_AU_LABEL = { champs: ['label'] } as const satisfies LibelleDeSource;
 
 /** Corps à corps : `LDB 09 l.160` ; Projectiles : `LDB 09 l.428` ; Focalisation : `LDB 09 l.252` ;
- *  Corruption : `LDB 85 l.85`, `LDB 19 l.33-56` ; Venin : `LDB 85 l.423`, `LDB 12 l.143-151`. */
+ *  Corruption : `LDB 85 l.85`, `LDB 19 l.33-56` ; Venin : `LDB 85 l.423`, `LDB 12 l.143-151` ;
+ *  Cibles psy : `LDB 21 l.19`, `l.75`. */
 export const SOURCES_DE_SPECS = {
   weaponGroupsMelee: { univers: 'weaponGroups.json?combat=melee', libelle: LIBELLE_AU_LABEL },
   weaponGroupsRanged: { univers: 'weaponGroups.json?combat=ranged', libelle: LIBELLE_AU_LABEL },
@@ -39,7 +40,7 @@ export const SOURCES_DE_SPECS = {
   cultMiracles: { univers: 'gods.json', pool: 'gods.json?miracles', libelle: LIBELLE_AU_LABEL },
   cultChaos: { univers: 'gods.json', pool: 'gods.json?chaosSpells', libelle: LIBELLE_AU_LABEL },
   seaShanties: { univers: 'sea-shanties.json', libelle: LIBELLE_AU_LABEL },
-  groups: { univers: 'groups.json', libelle: LIBELLE_AU_LABEL },
+  ciblesPsy: { univers: 'groups.json', libelle: LIBELLE_AU_LABEL },
   diseases: { univers: 'maladies.json', libelle: LIBELLE_AU_LABEL },
   sizes: { univers: 'sizes.json#rangedMod', libelle: { vocabulaire: 'tailles' } },
   mutations: { univers: 'mutations.json', libelle: LIBELLE_AU_LABEL },

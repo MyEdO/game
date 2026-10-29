@@ -8,7 +8,7 @@
  * Le trait `Souffle` octroie la manœuvre `souffle`, que `souffleDuType` compose avec les règles de son
  * Type (`breath-types.json`).
  */
-import { formatTrait } from './traits/dispatch';
+import { traitLisible } from './traits/dispatch';
 import { findTraitById, findManeuverById, findBreathTypeById, findConditionById, maneuvers, type BreathTypeData, type ManeuverDef } from '../data';
 import { t } from '../i18n';
 import { reecrireLesOps, spellEffectOps } from './flowCore';
@@ -113,7 +113,7 @@ function manoeuvreDeLInstance(id: string, inst: TraitInstance): ManeuverDef | un
 
 /** Attaques naturelles d'une créature à partir de ses traits : chaque trait d'attaque OCTROIE sa/ses
  *  manœuvre(s) (`grantsManeuvers`) ; on résout chaque octroi en `CreatureAttack` portant la `ManeuverDef`
- *  + l'Indice/compte/type lus de l'INSTANCE. Le libellé est reconstruit par `formatTrait`. Ajouter une
+ *  + l'Indice/compte/type lus de l'INSTANCE. Le libellé est reconstruit par `traitLisible`. Ajouter une
  *  attaque naturelle = un dataset `maneuvers` + un `grantsManeuvers` dans `traits.json` (jamais une table). */
 export function creatureAttacks(traits: TraitList): CreatureAttack[] {
   const out: CreatureAttack[] = [];
@@ -124,7 +124,7 @@ export function creatureAttacks(traits: TraitList): CreatureAttack[] {
       const type = inst.arg && !/divers|au choix/i.test(inst.arg) ? inst.arg : undefined;
       const indice = inst.value ?? 0;
       out.push({
-        cle: def.id, kind: def.kind, label: formatTrait(inst), bonus: indice, indice, type, def,
+        cle: def.id, kind: def.kind, label: traitLisible(inst), bonus: indice, indice, type, def,
         trigger: def.activation, avantage: def.advantageCost,
         ...(def.stat ? { stat: def.stat } : {}), ...(def.advantageMode ? { advantageMode: def.advantageMode } : {}),
         ...(inst.count != null ? { count: inst.count } : {}),

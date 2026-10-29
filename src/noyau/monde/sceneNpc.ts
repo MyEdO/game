@@ -9,7 +9,10 @@ import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { Scene, SceneEntity } from './scene';
 import { spawnEnemy } from './spawn';
 import type { PorteurDeFiche } from '../../engine/statblock';
-import { nomDePreset, resolvePresetCreature, type ResolveurDePreset } from './resolveursDuNarratif';
+import { nomDePreset, presetDuNarratif, resolvePresetCreature, type ResolveurDePreset } from './resolveursDuNarratif';
+import type { NomDIndividu } from '../../engine/psych/ciblage';
+import type { Jeu } from '../etat';
+import { inBattleId } from './combatants';
 import { typeNonNomme } from '../../data/schemas/defs-scenes/scene';
 import { findCreatureById, profilsStandard, refEntiteResolue } from '../../data';
 
@@ -40,6 +43,20 @@ export function nomDEntite(ent: SceneEntity, presetDe: ResolveurDePreset): strin
   }
   if (ent.statblock) return ent.statblock.label;
   return ent.ref !== undefined ? findCreatureById(ent.ref)?.label : undefined;
+}
+
+/** Ce que lit `nomDIndividu` de l'état de la partie : le groupe, la bataille, la scène et son narratif. */
+export type EtatDesIndividus = Pick<Jeu, 'party' | 'battle' | 'scene' | 'campaignNarratif'>;
+
+/** Le nom d'un individu par son id (Cible d'individu, `libelleDeCible`), lu sur l'état COURANT : le groupe,
+ *  puis les combattants de la bataille, puis les entités de la scène (`nomDEntite`). #3045 */
+export function nomDIndividu(etat: EtatDesIndividus): NomDIndividu {
+  return (id) => {
+    const combattant = etat.party.find((c) => c.id === id) ?? inBattleId(etat.battle, id);
+    if (combattant) return combattant.label;
+    const ent = etat.scene?.entities.find((e) => e.id === id);
+    return ent && nomDEntite(ent, presetDuNarratif(etat.campaignNarratif));
+  };
 }
 
 /** La fiche sous le NOM de l'entité (`nomDEntite`) : la fiche donne les valeurs, l'entité le nom —

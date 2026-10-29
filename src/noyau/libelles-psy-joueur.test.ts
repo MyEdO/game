@@ -8,7 +8,7 @@ import { describeEncounterPsych } from './flowOutcomes';
 import { psychologies, psychologyLabel } from '../data';
 import type { PsychType } from '../engine/psychology';
 
-const cible = psychologies.find((p) => p.targeted && !p.label.includes(p.id));
+const cible = psychologies.find((p) => p.cibles && !p.label.includes(p.id));
 
 describe('issue d’un Trait ciblé à la rencontre : le libellé, jamais l’id', () => {
   it('précondition : un Trait ciblé dont le libellé ne contient pas l’id', () => {

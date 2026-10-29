@@ -17,10 +17,10 @@ import type { Get, Set } from './flowTypes';
 import { Combatant } from '../engine/types';
 import { Scene } from './monde/scene';
 import type { CascadeStep, BatchParticipant } from './pendings';
-import { ficheDEntite } from './monde/sceneNpc';
+import { ficheDEntite, nomDIndividu } from './monde/sceneNpc';
 import { presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
 import { encounterPsych } from '../engine/encounterPsych';
-import { estCibleType, identiteDeCiblage, libelleDeCible, type CiblePsy } from '../engine/psych/ciblage';
+import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
 import { cibleLabel, PsychType, psychTest, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych, sansPeurFace } from '../engine/psychology';
 import { refLabel, combatStakeRef } from '../data';
 import { applyOps } from '../engine/ops';
@@ -31,7 +31,7 @@ import { freeCons, resultLines, makeBandFactory, rollStep, type Consequence } fr
 import { actorIn } from './monde/combatants';
 import { touchActors } from './combatOrParty';
 import { dataLabel } from '../data';
-import { stepDetail, stepPrecision, stepPsych, stepSansPeur } from './rollSeam';
+import { stepDetail, stepPsych, stepSansPeur } from './rollSeam';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { battleRng } from './battleRng';
 
@@ -135,7 +135,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
       decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: src.label, indice: trig.indice, cible: trig.cible },
       icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
       label: cl
-        ? (trig.cible ? stepPrecision(dataLabel(cl.label), libelleDeCible(trig.cible)) : dataLabel(cl.label))
+        ? libelleDePsy(trig.kind, trig.cible, nomDIndividu(s))
         : stepDetail(stepPsych(trig.kind, trig.indice), dataLabel(src?.label, '?')),
     });
   }

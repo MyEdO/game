@@ -25,7 +25,7 @@ import { slugId } from '../../../data/slug';
 import { ConditionEditor } from '../ConditionEditor';
 import { isOptionalNote, type OptionalEntry } from '../../../engine/statEntry';
 import type { TraitPose } from '../../../data/schemas/grammaire/reference';
-import { formatTrait, optionalLabel } from '../../../engine/traits/dispatch';
+import { formatTrait, optionalLabel, traitLisible } from '../../../engine/traits/dispatch';
 import { relireTrait } from '../refFormatLivre';
 import { ProvenanceDeValeur } from '../ProvenanceDeValeur';
 import { AlsoInField } from '../../AlsoInField';
@@ -730,7 +730,7 @@ function RangeeDeTraitPose(
         <button className="btn small danger" title={titreDeRetrait} onClick={onRetirer}>✕</button>
       </div>
       <details className="fold">
-        <summary><span className="fold-title">{`Pose de « ${formatTrait(t) || 'ce trait'} » : drapeaux et provenance`}</span></summary>
+        <summary><span className="fold-title">{`Pose de « ${traitLisible(t) || 'ce trait'} » : drapeaux et provenance`}</span></summary>
         <div className="fold-body">
           {plage && (
             <div className="dr">

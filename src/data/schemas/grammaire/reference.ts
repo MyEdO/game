@@ -1,4 +1,4 @@
-import { nommerChamps } from './meta';
+import { libelleDeValeur, nommerChamps } from './meta';
 /**
  * RÉFÉRENCES de la grammaire de document (#1466 L1a) — les formes ACTUELLES de désignation d'une
  * entité par son id (réf simple, réf de Qualité, dotation, emplacement d'avancement, Trait posé).
@@ -6,9 +6,11 @@ import { nommerChamps } from './meta';
  * la migration de la donnée se font aux lots L2/L3 (#1463).
  */
 import { z } from 'zod';
-import { countSpecSchema, difficultySchema, formuleSansTirageSchema, maisonSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sourceRefSchema } from './valeurs';
+import { countSpecSchema, difficultySchema, formuleSansTirageSchema, maisonSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
 import { idDe, marqueurDeLaForme, porteLeMarqueur, refusDeSpec } from './ref';
+import { findTraitById, psychologyLabel } from '../../index';
+import { cibleDeLArg, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 
 /**
  * Trait POSÉ (`TraitPose`, la forme AUTHORÉE) — partagé entre le bestiaire (`creatures.json`
@@ -71,14 +73,41 @@ export function refusDArgHorsRegistre(id: string, arg: string): string | null {
     : null;
 }
 
+/** Ce que la Cible d'un Trait psy peut désigner selon le document qui la pose : le catalogue n'a que des
+ *  Groupes, une scène a aussi ses personnages. #3045 */
+type RegimeDeCible = 'catalogue' | 'scene';
+
+/** Refus de toute Cible d'individu (`individusNommes`) de `valeur`, dans un `document` sans personnages de scène.
+ *  EDOC 11 l.648 ; #3045 */
+export function refuserLesIndividus(valeur: unknown, ctx: z.RefinementCtx, document: string): void {
+  for (const id of new Set(individusNommes(valeur)))
+    ctx.addIssue({ code: 'custom', message: `Cible psy « ${id} » : ${document} n'a pas de personnages de scène, sa Cible est un Groupe.` });
+}
+
+/** L'`arg` du Trait `id` désigne-t-il un individu (`@id`) à la place d'une Cible psy (`specsSource: ciblesPsy`) ? */
+function argDIndividu(id: string, arg: string): boolean {
+  const cible = cibleDeLArg(id, arg);
+  return cible !== undefined && varianteDe(cible) === 'individu';
+}
+
+/** Refus de l'`arg` du Trait psy `id` dont le type (`capabilities.psychType`) n'admet pas la variante de Cible
+ *  (`psychology.json`, `cibles`) — message nommé, sinon `null`. */
+function refusDeVarianteDeCible(id: string, arg: string): string | null {
+  const type = findTraitById(id)?.capabilities?.psychType;
+  const cible = cibleDeLArg(id, arg);
+  if (!type || cible === undefined || varianteAdmise(type, varianteDe(cible))) return null;
+  return `Trait « ${id} » : ${psychologyLabel(type)} ne vise pas ${libelleDeValeur(varianteDeCibleSchema, varianteDe(cible))} (« ${arg} »).`;
+}
+
 /** L'id d'un Trait posé : le moteur porte des ids nus (`TraitInstance.id`, `engine/statEntry.ts`). */
 const idDeTrait: z.ZodType<string, string> = idDe('trait');
 
 /** Les libellés des champs du Trait posé. */
 const CHAMPS_DU_TRAIT_POSE = { id: { label: "identifiant" }, value: { label: "valeur" }, arg: { label: "argument" }, count: { label: "nombre" }, range: { label: "portée" }, plage: { label: "fourchette" }, parLocalisation: { label: "par Localisation" }, difficulte: { label: "Difficulté" }, confere: { label: "Traits conférés" }, natural: { label: "naturel" }, hidden: { label: "caché" }, source: { label: "source" }, alsoIn: { label: "autres sources" }, maison: { label: "arbitrage maison" } } as const;
 
-/** Les refus du Trait posé : une seule clé de valeur, la capacité de la def, l'`arg`. */
-function refusDuTraitPose(t: { id: string; value?: unknown; arg?: string; plage?: { min: number; max: number }; parLocalisation?: unknown; confere?: unknown; difficulte?: unknown }, ctx: z.RefinementCtx): void {
+/** Les refus du Trait posé : une seule clé de valeur, la capacité de la def, l'`arg` (un individu, hors du
+ *  registre, n'est admis que dans une scène, `regime`). EDOC 11 l.648 ; #3045 */
+function refusDuTraitPose(t: { id: string; value?: unknown; arg?: string; plage?: { min: number; max: number }; parLocalisation?: unknown; confere?: unknown; difficulte?: unknown }, ctx: z.RefinementCtx, regime: RegimeDeCible): void {
   const valeurs = (['value', 'plage', 'parLocalisation'] as const).filter((k) => t[k] !== undefined);
   if (valeurs.length > 1) ctx.addIssue({ code: 'custom', path: [valeurs[1]], message: `Trait « ${t.id} » : « ${valeurs.join(' » et « ')} » disent tous deux sa valeur — une seule de ces clés.` });
   if (t.parLocalisation && t.arg !== undefined) ctx.addIssue({ code: 'custom', path: ['arg'], message: `Trait « ${t.id} » : un Indice par Localisation nomme ses zones, sans Aspect.` });
@@ -88,7 +117,9 @@ function refusDuTraitPose(t: { id: string; value?: unknown; arg?: string; plage?
     if (refus) ctx.addIssue({ code: 'custom', path: [champ], message: refus });
   }
   if (t.arg === undefined) return;
-  for (const refus of [refusDArgDeTrait(t.id, t.arg), refusDArgHorsRegistre(t.id, t.arg)]) {
+  const refusDIndividu = regime === 'scene' ? null : `Trait « ${t.id} » : « ${t.arg} » désigne une personne de la scène ; hors d'une scène, sa Cible est un Groupe.`;
+  const refusDeRegistre = argDIndividu(t.id, t.arg) ? refusDIndividu : refusDArgHorsRegistre(t.id, t.arg);
+  for (const refus of [refusDArgDeTrait(t.id, t.arg), refusDeRegistre, refusDeVarianteDeCible(t.id, t.arg)]) {
     if (refus) ctx.addIssue({ code: 'custom', path: ['arg'], message: refus });
   }
 }
@@ -126,12 +157,22 @@ export type TraitPose = z.infer<z.ZodObject<typeof champsDuTraitPose>> & { confe
  * Le Trait posé. Son Indice (`value`) est une formule sans tirage, lue sur le profil du porteur au statbloc
  * (« Arme (BF +4) », Middenheim 04 l.29) ou sur le lanceur à l'octroi (LDB 47 l.441).
  */
-export const traitInstanceSchema: z.ZodType<TraitPose> = marquerProduit(nommerChamps(z.strictObject({
-  ...champsDuTraitPose,
-  /** Traits conférés aux touches de ce Trait d'attaque (ZI 03 l.75, l.77 ; ZI 06 l.32) ; admis si la def
-   *  déclare `attaque`. */
-  confere: z.array(z.lazy(() => traitInstanceSchema)).optional(),
-}).superRefine(refusDuTraitPose), CHAMPS_DU_TRAIT_POSE), 'traitPose', 'pose', { value: formuleSansTirageSchema });
+const poseDeTrait = (regime: RegimeDeCible): z.ZodType<TraitPose> => {
+  const pose: z.ZodType<TraitPose> = marquerProduit(nommerChamps(z.strictObject({
+    ...champsDuTraitPose,
+    /** Traits conférés aux touches de ce Trait d'attaque (ZI 03 l.75, l.77 ; ZI 06 l.32) ; admis si la def
+     *  déclare `attaque`. */
+    confere: z.array(z.lazy(() => pose)).optional(),
+  }).superRefine((t, ctx) => refusDuTraitPose(t, ctx, regime)), CHAMPS_DU_TRAIT_POSE), 'traitPose', 'pose', { value: formuleSansTirageSchema });
+  return pose;
+};
+
+/** Le Trait posé d'un document du CATALOGUE : la Cible d'un Trait psy y est un Groupe. */
+export const traitInstanceSchema = poseDeTrait('catalogue');
+
+/** Le Trait posé du statbloc d'une SCÈNE : la Cible d'un Trait psy y est aussi un individu (`@id`, EDOC 11
+ *  l.648), dont `validateScene` juge l'existence. #3045 */
+export const traitPoseDeSceneSchema = poseDeTrait('scene');
 
 /**
  * `Ref` (`src/data/index.ts`) — réf structurée par id + spec optionnelle (talent/sort/manœuvre/dieu

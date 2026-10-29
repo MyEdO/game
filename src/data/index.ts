@@ -107,6 +107,8 @@ import namesJson from './names.json';
 import raceAppearanceJson from './raceAppearance.json';
 import gabaritsJson from './gabarits.json';
 import type { GabaritDef, GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
+import gardeRobeJson from './garde-robe.json';
+import type { GardeRobeEntree, PieceDef } from './schemas/defs/garde-robe';
 import godsJson from './gods.json';
 import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
@@ -145,6 +147,7 @@ import type { InterludeEvent } from './interludeEvents';
 import type { Peripetie } from './peripeties';
 import type { CharacteristicsData } from './schemas/defs/characteristics';
 import type { AxesData } from './schemas/defs/axes';
+import type { VarianteDeCible } from './schemas/grammaire/valeurs';
 import type { NavalProgressionData } from './schemas/defs/naval-progression';
 import type { SeaNavigationData } from './schemas/defs/sea-navigation';
 import type { SeaPerilsData } from './schemas/defs/sea-perils';
@@ -943,7 +946,8 @@ export function specEntryLabel(e: SpecEntry): PlayerText {
  *  `arcane` de `domains.json`, AFFICHE le Lore), `cultBlessings`/`cultMiracles`/`cultChaos` (Béni /
  *  Invocation / Magie du Chaos — `gods.id` filtrés par `blessings`/`miracles`/`chaosSpells`, AFFICHE le
  *  nom du dieu), `seaShanties` (Chanson de marin — ids de `sea-shanties.json`). Sources d'ARGUMENT de Trait
- *  (Immunité, Peur, Vulnérabilité, Mutation, Souffle…) : `groups` (Groupe d'appartenance — `groups.json`),
+ *  (Immunité, Peur, Vulnérabilité, Mutation, Souffle…) : `ciblesPsy` (Cible d'un Trait psy ciblé — un Groupe de `groups.json` ; une scène admet en plus `@id`, un
+ *  individu, `refusDuTraitPose` de `grammaire/reference.ts`),
  *  `diseases` (Maladie — `maladies.json`), `sizes` (catégorie de Taille — `engine/size`), `mutations`
  *  (Mutation — `mutations.json`), `breathTypes` (Type de Souffle — `breath-types.json`), `damageTypes`
  *  (Immunité aux Dégâts — `damage-types.json`, lue par la Condition `has … what:'immunity'`), `weaponsMelee`/
@@ -960,7 +964,7 @@ export type SpecsSource =
   | 'cultMiracles'
   | 'cultChaos'
   | 'seaShanties'
-  | 'groups'
+  | 'ciblesPsy'
   | 'diseases'
   | 'sizes'
   | 'mutations'
@@ -1541,9 +1545,9 @@ export interface PsychologyData extends StatusData {
   /** Porter cet état psy IMMUNISE à la Psychologie (Frénésie, LDB 21 l.33) — lu GÉNÉRIQUEMENT par
    *  `isPsychImmune` (jamais codé par-nom), à l'égal du drapeau de trait « Immunité (Psychologie) ». */
   psychImmune?: boolean;
-  /** Trait psychologique CIBLÉ (Animosité/Haine/Préjugé/Amour/Camaraderie/Phobie, LDB 21) : résolution
-   *  binaire de Calme pilotée par un Groupe-Cible. Dérive `estCibleType` de la donnée (jamais un Set codé). */
-  targeted?: boolean;
+  /** Variantes de Cible admises (Groupe, individu) d'un Trait psychologique CIBLÉ (LDB 21) ; leur présence
+   *  fait le type ciblé (`estCibleType`), lues par `varianteAdmise` (`engine/psych/ciblage.ts`). #3045 */
+  cibles?: VarianteDeCible[];
   /** RAW LDB 21 : cette affliction CIBLÉE cesse dès que son porteur tombe sous un AUTRE effet psychologique
    *  « dominant » (Peur/Terreur/Haine…) — « Animosité est annulé par Peur et Terreur » ; Préjugé idem. */
   endedByOtherPsych?: boolean;
@@ -1864,7 +1868,7 @@ export interface TraitData {
   /** Une instance peut fixer la Difficulté des Tests qui éliminent l'État que le Trait inflige
    *  (`TraitPose.difficulte`). LDB 16 l.70 ; MDG 16 l.226 */
   difficulte?: boolean;
-  /** Registre de l'ARGUMENT `arg` du trait (catalogue `SPEC_SOURCES` : `groups`/`diseases`/`sizes`/
+  /** Registre de l'ARGUMENT `arg` du trait (catalogue `SPEC_SOURCES` : `ciblesPsy`/`diseases`/`sizes`/
    *  `mutations`/`breathTypes`/`weaponGroups*`…). Le pool DÉRIVE alors du registre, jamais d'une liste en dur. */
   specsSource?: SpecsSource;
   /** L'`arg` accepte un TEXTE LIBRE (argument authentiquement descriptif, hors registre). Absent/`false`
@@ -2945,6 +2949,11 @@ export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 /** Carrures du rig (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */
 export const gabarits = gabaritsJson as GabaritDef[];
 export const findGabaritById = indexParId('gabarits', gabarits);
+/** Garde-robe des éléments 3D (`garde-robe.json`, #3114) : emplacements, pièces, ensembles. */
+export const gardeRobe = gardeRobeJson as GardeRobeEntree[];
+/** Résout une PIÈCE (`kind: 'piece'`) par son id ; une autre ligne de la garde-robe n'en est pas une. */
+const pieceParId = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'piece' ? e.id : undefined));
+export const findPieceById = (id: string | null | undefined): PieceDef | undefined => pieceParId(id) as PieceDef | undefined;
 export const locations = locationsJson as LocationData[];
 const lieuParId = indexParId('locations', locations);
 /** Résout un Lieu par son `id` STABLE (cible de `LocationData.parent`). Le libellé ne sert qu'à l'affichage. */

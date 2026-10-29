@@ -129,6 +129,7 @@ const NOMMES = [
   'bravoure|ami|staggering|belligerent|blackout',
   'fixed|perDR|perHit|perKill',
   'generalDown|intervention|noIntervention|combatWon|combatLost',
+  'groupe|individu',
   'harness|jolt|wheel|crash',
   'incantation|focalisation|dissipation',
   'ingestion|immersion',
@@ -148,7 +149,7 @@ const NOMMES = [
   'noise|magic',
   'self|ally|opponent|party|neutral|hostile',
   'target|caster',
-  'weaponGroupsMelee|weaponGroupsRanged|winds|arcaneDomains|cultBlessings|cultMiracles|cultChaos|seaShanties|groups|diseases|sizes|mutations|breathTypes|damageTypes|weaponsMelee|weaponsRanged|exposureLevels|difficulties',
+  'weaponGroupsMelee|weaponGroupsRanged|winds|arcaneDomains|cultBlessings|cultMiracles|cultChaos|seaShanties|ciblesPsy|diseases|sizes|mutations|breathTypes|damageTypes|weaponsMelee|weaponsRanged|exposureLevels|difficulties',
   'woundsCurrent|woundsMax|size|advantage',
   'onHit|onCrit|onWoundLoss|onSlain|onRoundStart|onStartled|onKill|onCharged|onGainCondition|onCombatStart|onCombatEnd|onRoundEnd|onTurnStart|onTurnEnd|onDayStart|onWake|onAttackResolved|onCastResolved|onMiscast|onOwnTestFailed',
   'self|victim|engaged|grappled',
@@ -166,6 +167,10 @@ const NOMMES = [
   'porteuse|voisine|les-deux',
   // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
   'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
+  // `defs/garde-robe.ts` (#3114) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.
+  'emplacement|piece|ensemble',
+  'vetement|armure|accessoire',
+  'trapping|apparence',
 ].sort();
 
 /**

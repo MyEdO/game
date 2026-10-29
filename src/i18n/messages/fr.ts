@@ -1321,6 +1321,8 @@ export const fr = {
   'cf.phobieGain': '{name} développe une Phobie durable : {groupe}.',
   'cs.haineGain': '{name} voue désormais une Haine à {groupe} (frôler la mort a durci son cœur).',
   'cs.animositeGain': '{name} développe une Animosité envers {groupe} (frôler la mort a laissé une marque).',
+  // Cible d'individu sans nom connu (`libelleDeCible`, `engine/psych/ciblage.ts`).
+  'cible.personneDeLaScene': 'une personne de la scène',
   'cf.stupid': '{name} (Stupide) bave et regarde dans le vide — Mouvement et Action perdus.',
   'cs.focusCrit': '{name} — Focalisation CRITIQUE : {spell} est lançable au prochain Round (NI 0) !',
   'cs.focusHarmonized': "Harmonisation aethyrique : le contrecoup est maîtrisé (pas d'Imparfaite).",

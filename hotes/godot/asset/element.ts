@@ -2,10 +2,11 @@
  * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine pour une base, et sa validation
  * contre le manifeste de cette base (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme de
  * `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements` et `silhouettes`, et le choix
- * palette ou teinte des surfaces, et si un mesh rigide peut rester à la racine de la scène (`REGLES_DES_CATEGORIES`).
+ * palette ou teinte des surfaces, et si un mesh rigide peut rester à la racine de la scène (`REGLES_DES_CATEGORIES`) ;
+ * une clé bien formée se résout contre la donnée du jeu (`ecartsDeCleDElement`, surface du noyau).
  */
 import { estObjet } from '../../../src/hote/formes';
-import { SLOTS } from '../../../src/noyau/index.ts';
+import { ecartsDeCleDElement, SLOTS, type CodeDEcartDeCle } from '../../../src/noyau/index.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
@@ -94,6 +95,7 @@ export type CodeDEcartDElement =
   | 'categorie-inconnue'
   | 'champ-hors-categorie'
   | 'cle-mal-formee'
+  | CodeDEcartDeCle
   | 'base-differente'
   | 'liaison-hors-categorie'
   | 'couche-hors-categorie'
@@ -151,6 +153,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
   if (cle !== undefined) {
     const bienFormee = estObjet(cle) && Object.keys(cle).length === regle.cle.length && regle.cle.every((c) => typeof cle[c] === 'string' && cle[c] !== '');
     if (!bienFormee) refus('cle-mal-formee', 'cle', `${JSON.stringify(cle)} : ${liste(regle.cle)}, ids non vides et seuls, attendus pour un élément \`${categorie}\``);
+    else for (const e of ecartsDeCleDElement(categorie, cle as Record<string, string>)) refus(e.code, `cle.${e.champ}`, e.detail);
   }
 
   if (brut.liaison !== undefined) {

@@ -163,6 +163,7 @@ import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../eng
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
 import { actorIn, inBattleId } from './monde/combatants';
+import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
 import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
@@ -221,9 +222,9 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
 import type { PorteurDeGroupes } from '../engine/groups';
-import { cibleDuPorteur, estCibleType, identiteDeCiblage, libelleDeCible, type CiblePsy } from '../engine/psych/ciblage';
+import { cibleDuPorteur, estCibleType, identiteDeCiblage, libelleDeCible, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
 import { sceneCombatModifiers } from './monde/sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
@@ -235,7 +236,7 @@ import type { TravelRecapDay } from './travelFlow';
 import { weaponGroupKey } from '../engine/weaponGroup';
 import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, tileKey, tileFromKey, Pt, climbTraverseFor } from './monde/path';
 import { chebyshev } from '../engine/grid';
-import { chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './monde/ai';
+import { adversairesDe, chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './monde/ai';
 import { resolveRun, chargeReach, testDuCavalier, distanceDeCourse } from '../engine/movement';
 import type { RNG } from '../engine/dice';
 import { bus, EVT } from './bus';
@@ -1510,8 +1511,9 @@ export function aiApproachPlan(
   if (!enemy.weapons.some((w) => w.type === 'melee')) return none;
   const M = effectiveMovement(geom);
   if (M <= 0) return none;
+  const adversaires = adversairesDe(input);
   const atContact = (a: EnemyAction): boolean =>
-    a.kind === 'move' && combatDistance({ ...enemy, pos: { ...a.to, h: heightAt(input.scene, a.to.x, a.to.y, a.to.z ?? 0) } } as Combatant, input.heroes.find((h) => h.id === a.thenTargetId) ?? input.heroes[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
+    a.kind === 'move' && combatDistance({ ...enemy, pos: { ...a.to, h: heightAt(input.scene, a.to.x, a.to.y, a.to.z ?? 0) } } as Combatant, adversaires.find((h) => h.id === a.thenTargetId) ?? adversaires[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
   if (atContact(action)) return none; // la Marche suffit déjà
   // Charge (portée de Course, sans Test — LDB 15 l.35-37).
   const courseBudget = chargeReach(M, runMultiplier(geom.traits));
@@ -5369,6 +5371,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
   const foeKind = enemy.kind === 'enemy' ? 'hero' : 'enemy';
   const heroes = battle.combatants.filter((c) => c.kind === foeKind && !isOutOfAction(c));
   const squad = battle.combatants.filter((c) => c.kind === enemy.kind && !isOutOfAction(c) && c.pos && c.id !== enemy.id);
+  const pulsion = ciblesDePulsion(enemy, battle.combatants); // #3045
   // Géométrie porteuse (Combat monté, LDB 14) → empreinte + Mouvement + cases bloquées.
   const geom = mountOf(battle, enemy) ?? enemy;
   const blocked = occupied(battle, geom);
@@ -5419,7 +5422,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
     : undefined;
   const smoke = smokeOf(battle);
   return {
-    enemy, heroes, scene, blocked, noStop: cannotStopOn(battle, geom), movement, spells,
+    enemy, heroes, ...(pulsion.length ? { ciblesDePulsion: pulsion } : {}), scene, blocked, noStop: cannotStopOn(battle, geom), movement, spells,
     smoke, flying: flyM != null, traverse: climbTraverseFor(enemy.traits), perceived, facing: get().facing, squad,
     // Mémo de Ligne de Vue de CETTE décision : posé ici parce que c'est ici que la scène et les fumées de
     // la décision sont fixées, et repassé tel quel aux ré-énumérations d'`aiApproachPlan`.
@@ -7606,7 +7609,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
       meta: { prevDR: t.prevDR, ...(sansPeur ? { sansPeur: true } : {}) },
     },
     icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
-    label: cl ? (t.cible ? stepPrecision(dataLabel(cl.label), libelleDeCible(t.cible)) : dataLabel(cl.label)) : stepPsych(t.kind, t.indice),
+    label: cl ? libelleDePsy(t.kind, t.cible, nomDIndividu(get())) : stepPsych(t.kind, t.indice),
   };
 }
 

@@ -12,6 +12,7 @@ import { formaterIndiceRelatif, formaterParLocalisation } from '../classementDeT
 import { charAbr, findTraitById, findQualityById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
 import type { PassiveMod } from '../ops';
 import { t, type MsgKey } from '../../i18n';
+import { cibleDeLArg, libelleDeCible, type NomDIndividu } from '../psych/ciblage';
 
 /** Inverse : `id` → libellé FR canonique (affichage : inspecteur/Codex/éditeur). Même couverture —
  *  l'id d'un trait EST le slug de son libellé (`engine/traits/parity.test.ts`). */
@@ -37,8 +38,23 @@ function resolveTraitArg(def: TraitData | undefined, arg: string): string {
  *  +4) », Middenheim 04 l.29), une autre formule omise. La NATURE est lue en DONNÉE (jamais une liste en
  *  dur) : un Trait d'attaque (`attaque`) affiche « +Dégâts », puis chaque Trait qu'il confère entre
  *  parenthèses (« Attaque caudale +12 (Venin) », ZI 03 l.77). La Difficulté suit l'Aspect (« Souffle +10
- *  (Poison, Difficulté Difficile (–20)) », MDG 16 l.226). */
+ *  (Poison, Difficulté Difficile (–20)) », MDG 16 l.226). Forme d'ALLER-RETOUR de l'éditeur : l'affichage
+ *  passe par `traitLisible`. */
 export function formatTrait(t: TraitPose): string {
+  return formaterTrait(t, (_id, def, arg) => resolveTraitArg(def, arg));
+}
+
+/** Libellé JOUEUR d'un Trait posé (inspection, fiches, journal, Codex, libellé d'attaque) : `formatTrait`, la
+ *  Cible psy de son `arg` (`cibleDeLArg`) dite par `libelleDeCible`, l'individu nommé par `nomDIndividu`. */
+export function traitLisible(t: TraitPose, nomDIndividu?: NomDIndividu): string {
+  return formaterTrait(t, (id, def, arg) => {
+    const cible = cibleDeLArg(id, arg);
+    return cible === undefined ? resolveTraitArg(def, arg) : libelleDeCible(cible, nomDIndividu);
+  });
+}
+
+/** Le rendu d'un Trait posé, son `arg` lu par `lireArg`. */
+function formaterTrait(t: TraitPose, lireArg: (id: string, def: TraitData | undefined, arg: string) => string): string {
   const td = findTraitById(t.id);
   const label = traitLabelById(t.id);
   const head = t.count != null ? `${t.count} ${label}` : label;
@@ -47,24 +63,23 @@ export function formatTrait(t: TraitPose): string {
   const val = t.plage ? ` ${t.plage.min}-${t.plage.max}` : typeof t.value !== 'number' ? '' : isAttack ? ` +${t.value}` : ward ? ` ${t.value}+` : ` ${t.value}`;
   const relatif = t.value === undefined || typeof t.value === 'number' ? undefined : formaterIndiceRelatif(t.value, charAbr);
   const rel = relatif ? ` (${relatif})` : '';
-  const aspect = [t.arg ? resolveTraitArg(td, t.arg) : '', t.difficulte ? `Difficulté ${DIFFICULTY_LABELS[t.difficulte]}` : ''].filter(Boolean).join(', ');
+  const aspect = [t.arg ? lireArg(t.id, td, t.arg) : '', t.difficulte ? `Difficulté ${DIFFICULTY_LABELS[t.difficulte]}` : ''].filter(Boolean).join(', ');
   const arg = t.parLocalisation ? ` (${formaterParLocalisation(t.parLocalisation)})` : aspect ? ` (${aspect})` : '';
   const range = t.range != null ? ` (${t.range})` : '';
-  const conferes = (t.confere ?? []).map((c) => ` (${formatTrait(c)})`).join('');
+  const conferes = (t.confere ?? []).map((c) => ` (${formaterTrait(c, lireArg)})`).join('');
   // Attaques : « Nom +Dégâts (Type) [(portée)] (conférés) » ; autres : « Nom (Spec) Indice ».
   return isAttack ? `${head}${val}${rel}${arg}${range}${conferes}` : `${head}${arg}${rel}${val}${range}`;
 }
 
-/** `TraitList` → libellés affichables (UI/Codex/éditeur) : chaque `TraitInstance` formatée par
- *  `formatTrait` (inverse fidèle de `parseTraitInstance`). */
+/** `TraitList` → libellés affichables (UI/Codex) : chaque `TraitInstance` par `traitLisible`. */
 export const traitLabels = (traits: readonly TraitPose[] | undefined): string[] =>
-  (traits ?? []).map(formatTrait);
+  (traits ?? []).map((t) => traitLisible(t));
 
-/** Libellé d'un OPTIONNEL (LDB 76) : un `TraitInstance` ordinaire est formaté par `formatTrait` ; une
+/** Libellé d'un OPTIONNEL (LDB 76) : un `TraitInstance` ordinaire est dit par `traitLisible` ; une
  *  NOTE composée (joker « Tous les traits », variante « swap ») affiche son `label` source VERBATIM.
- *  SOURCE UNIQUE d'affichage des `optionals` — jamais `formatTrait` sur une note (sinon libellé `undefined`). */
+ *  SOURCE UNIQUE d'affichage des `optionals` — jamais `traitLisible` sur une note (sinon libellé `undefined`). */
 export const optionalLabel = (e: OptionalEntry): string =>
-  isOptionalNote(e) ? e.label : formatTrait(e);
+  isOptionalNote(e) ? e.label : traitLisible(e);
 
 /** Liste d'optionnels → libellés affichables (Codex/picker), notes composées incluses. */
 export const optionalLabels = (list: OptionalEntry[] | undefined): string[] =>
@@ -83,7 +98,7 @@ const SPEC_SOURCE_KEY: Record<SpecsSource, MsgKey> = {
   cultMiracles: 'specSrc.cult',
   cultChaos: 'specSrc.cult',
   seaShanties: 'specSrc.shanty',
-  groups: 'specSrc.target',
+  ciblesPsy: 'specSrc.target',
   diseases: 'specSrc.disease',
   sizes: 'specSrc.size',
   mutations: 'specSrc.mutation',

@@ -16,7 +16,7 @@ import { GELER_LA_DONNEE, gelerProfond } from '../lib/gelerProfond';
 import {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, props, eyes, hairs, stars, locations, books, raceAppearance, gods, structures,
-  materials, terrains, buildings, apparences, gabarits,
+  materials, terrains, buildings, apparences, gabarits, gardeRobe,
   pregens, oups, interludeEvents, peripeties, details, semencesDeScene, defautsDeCompilation, names, allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
@@ -163,6 +163,8 @@ const ARRAYS = {
   apparences,
   // Carrures du rig (#2972) : vocabulaire d'art, édité au fichier.
   gabarits,
+  // Garde-robe des éléments 3D (#3114) : vocabulaire d'art, édité au fichier.
+  gardeRobe,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   // #168 : catalogue UNIQUE des Activités (interlude/voyage/mer/bataille de masse) exposé au Codex —

@@ -16,9 +16,9 @@ const chemise = {
   schema: 3, base: 'humanoide', categorie: 'vetement', cle: { piece: 'chemise' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: ['torse'],
   surfaces: [{ nom: 'tissu', palette: 'tissu' }], glb: epee.glb,
 };
-const broche = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'broche' }, liaison: { mode: 'surface' }, couvre: [] };
-const bouclier = { ...elementSchema3('humanoide'), cle: { apparence: 'bouclier' } };
-const lanterne = { ...elementSchema3('humanoide'), cle: { apparence: 'lanterne' } };
+const broche = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'baudrier' }, liaison: { mode: 'surface' }, couvre: [] };
+const bouclier = { ...elementSchema3('humanoide'), cle: { apparence: 'bouclier_blason' } };
+const lanterne = { ...elementSchema3('humanoide'), cle: { apparence: 'targe' } };
 const orpheline = { ...elementSchema3('nain'), cle: { apparence: 'hache' } };
 const schema2 = { schema_version: 2, model: 'Lame.glb' };
 
