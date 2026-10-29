@@ -14,8 +14,8 @@
  * modélisable reste une op `narrative` (journalisée, arbitrage MJ, rien d'inventé).
  */
 import { RNG, roll, type DiceSpec, rollDice } from './dice';
-import { bonus, effectiveChar, refreshWounds } from './characteristics';
-import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions } from './conditions';
+import { bonus, effectiveChar, blessuresReconciliees } from './characteristics';
+import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions, removeActiveEffects } from './conditions';
 import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch, groupesDe } from './groups';
@@ -28,7 +28,7 @@ import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/sc
 import type { NatureDInfluence, SourceRef } from '../data/schemas/grammaire/valeurs';
 import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
-import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, dropExpiredGrantedTraits, sameInstance } from './grantedTraits';
+import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, sameInstance } from './grantedTraits';
 import { caracDuCombattant, evaluer, slBonus, valeurSansTirage } from './formule';
 import { traitsOctroyes } from './traitOctroye';
 import { rollMutation } from '../data/mutations';
@@ -37,7 +37,7 @@ import { findEffectTableById } from '../data/effectTables';
 import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
 import { cureDiseases, blessDiseaseDuration } from './rest';
-import { applyAlcoholTest } from './drunkenness';
+import { applyAlcoholTest, EFFET_D_IVRESSE } from './drunkenness';
 import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, traumaFicheById, estPlaieAmputation, amputationWoundDesc } from './trauma';
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
@@ -607,8 +607,8 @@ export type GameOp =
    *  par `traitsOctroyes` (Indice formulé lu sur le lanceur, LDB 47 l.441 ; `indicePerSL` : LDB 47 l.420).
    *  `cible` : la Cible est TIRÉE sur une table de Cibles, une instance par tirage — EDOC 12 l.217, l.241.
    *  `durationHours`/`durationMinutes` : durée d'HORLOGE intrinsèque — MÊME patron que `charMod`/
-   *  `condition` (résolue MAINTENANT depuis `ctx.now`, purgée par `purgeClockEffects` qui retire le
-   *  trait accordé via `dropExpiredGrantedTraits`) : un Trait borné en JOURS le dit ici (Désespoir,
+   *  `condition` (résolue MAINTENANT depuis `ctx.now`, purgée par `purgeClockEffects`, dont le retrait
+   *  `removeActiveEffects` dé-accorde le trait) : un Trait borné en JOURS le dit ici (Désespoir,
    *  VDM 09 l.280). Exclusif de `durationRounds` ; absent = durée du contexte (`durationFromCtx`). */
   | { op: 'grantTrait'; trait: TraitPose; cible?: TirageDeCible; indicePerSL?: PerSL; onlyGroups?: string[]; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
   /** RETRAIT d'un Trait de créature porté (`c.traits`) — l'INVERSE de `grantTrait`, même vocabulaire :
@@ -1464,8 +1464,7 @@ export function applyActiveEffect(target: Combatant, effect: ActiveEffect) {
   const idx = sp ? target.activeEffects.findIndex((e) => e.char === effect.char && e.spell?.spellId === sp.spellId && e.spell.casterId === sp.casterId) : -1;
   if (idx >= 0) target.activeEffects[idx] = effect;
   else target.activeEffects.push(effect);
-  // Les Blessures dérivent de F/E/FM (LDB 85) → un buff de ces caractéristiques recale les PB max + courants.
-  if (effect.char === 'force' || effect.char === 'endurance' || effect.char === 'force-mentale') refreshWounds(target);
+  target.wounds = blessuresReconciliees(target);
 }
 
 /**
@@ -2438,17 +2437,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'attrMod': {
         // EXÉCUTABLE (Bonnet de fou « +4 Blessures », LDB 71 l.20) : effet actif `attrMods`, lu par le
-        // calcul du max concerné (wounds → effectiveMaxWounds/refreshWounds ; fortune → fortuneMax ;
+        // calcul du max concerné (wounds → effectiveMaxWounds ; fortune → fortuneMax ;
         // resolve → resolveMax). Destin/Résilience exclus de l'union `attr` (#292, ci-dessus).
         const n = formuleDuCtx(o.mod, ref, ctx);
         if (!n) break;
-        target.activeEffects = target.activeEffects ?? [];
-        target.activeEffects.push({
-          label: nomDeSource(ctx), bonus: 0,
-          duration: durationFromCtx(ctx),
-          attrMods: { [o.attr]: n },
-        });
-        if (o.attr === 'wounds') refreshWounds(target); // le max bouge → PB courants suivent le delta
+        applyActiveEffect(target, { label: nomDeSource(ctx), bonus: 0, duration: durationFromCtx(ctx), attrMods: { [o.attr]: n } });
         lines.push(t('op.attrMod', { name: target.label, mod: `${n >= 0 ? '+' : ''}${n}`, attr: t(ATTR_KEY[o.attr]), src: nomDeSource(ctx) }));
         break;
       }
@@ -2594,7 +2587,6 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           target.activeEffects.push({ label: nomDeSource(ctx, 'mutation'), bonus: 0, duration: dur, grantedMutation: m });
         }
         if (target.items?.length) recomputeLoadout(target); // armes/PA naturels de mutation → loadout
-        refreshWounds(target); // F/E/FM rongés → max de PB suit
         // Libellé FIDÈLE à la durée RÉELLE (jamais « permanente » en dur pour un octroi temporisé,
         // même vocabulaire que les autres effets à durée, cf. `op.suppressPsych`/`op.suppressSymptom`
         // « pour la durée »).
@@ -2607,7 +2599,6 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         if (n > 0) {
           const before = target.characteristics[o.char];
           target.characteristics[o.char] = Math.max(0, before - n);
-          refreshWounds(target); // E/F rongées → le max de PB suit (comme un charMod permanent du profil)
           lines.push(t('op.charDamage', { name: target.label, n: before - target.characteristics[o.char], char: CHAR_LABELS[o.char] }));
         }
         break;
@@ -2775,13 +2766,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'endTransform': {
-        const eff = target.activeEffects ?? [];
-        const removed = eff.filter((e) => e.effectId === o.tag);
-        if (!removed.length) break; // pas dans cette forme → no-op
-        dropExpiredGrantedTraits(target, removed); // dé-accorde les Traits posés par la transformation
-        target.activeEffects = eff.filter((e) => e.effectId !== o.tag);
-        refreshWounds(target); // les deltas de profil (F/E/FM) retirés → PB max recalés
-        lines.push(t('op.endTransform', { name: target.label, tag: o.tag }));
+        const portes: string[] = [];
+        if (!removeActiveEffects(target, (e) => e.effectId === o.tag, ctx.onCondition, portes).length) break; // pas dans cette forme → no-op
+        lines.push(t('op.endTransform', { name: target.label, tag: o.tag }), ...portes);
         break;
       }
       case 'lifeSteal': {
@@ -2950,9 +2937,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const { log, drunkOps } = applyAlcoholTest(target, false, be, rng);
         lines.push(...log);
         // La MÉCANIQUE du résultat d'Ivresse (Bravoure/meilleur ami/belligérant, `drunkenness.json`)
-        // est un `GameOp[]` — exécutée ICI (`effectId:'ivresse'` marque les ActiveEffect posés, retirés
-        // en bloc par `soberUp`), pas dans `drunkenness.ts` (cycle d'import évité, cf. son en-tête).
-        if (drunkOps?.length) lines.push(...applyOps(target, drunkOps, imbrique({ effectId: 'ivresse' })));
+        // est un `GameOp[]` — exécutée ICI, sous le ctx imbriqué de l'op (`EFFET_D_IVRESSE` marque les
+        // ActiveEffect posés, retirés en bloc par `soberUpDissipate`).
+        if (drunkOps?.length) lines.push(...applyOps(target, drunkOps, imbrique({ effectId: EFFET_D_IVRESSE })));
         break;
       }
       case 'narrative':
@@ -2978,6 +2965,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
   // `grantSymptom`/`contractDisease`/`suppressSymptom`…) : la réconciliation clôt l'application, une fois,
   // au lieu d'être recopiée sur chaque case. IDEMPOTENTE — les descentes imbriquées n'écrivent rien de plus.
   lines.push(...syncDerivedConditions(target, ctx.onCondition));
+  target.wounds = blessuresReconciliees(target);
   const surLigne = ctx.surLigne;
   if (surLigne) {
     debuts.forEach((d, rang) => { for (const l of lines.slice(d, debuts[rang + 1] ?? finDesOps)) surLigne(rang, l); });

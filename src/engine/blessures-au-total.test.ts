@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { applyOps, type GameOp } from './ops';
-import { effectiveChar, refreshWounds } from './characteristics';
+import { effectiveChar } from './characteristics';
 import { endOfRound } from './conditions';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
@@ -28,11 +28,8 @@ const SOURCE_AU_TOTAL: GameOp[] = [
 /** Pose `ops` pour un Round, sous le libellé `label`. */
 const poser = (c: Combatant, ops: GameOp[], label: string) => applyOps(c, ops, { rng: desDuTest, label, defaultDurationRounds: 1 });
 
-/** Frontière de Round : les durées tombent (`endOfRound`), puis le hook `refresh-wounds` recale les Blessures. */
-const finDeRound = (c: Combatant) => {
-  endOfRound(c, desDuTest);
-  refreshWounds(c);
-};
+/** Frontière de Round : les durées tombent (`endOfRound`, retrait par `removeActiveEffects`). */
+const finDeRound = (c: Combatant) => endOfRound(c, desDuTest);
 
 describe('attrMod de Blessures au total — la source déplace les Blessures max d’exactement N', () => {
   it('pose : +4 exactement malgré la Force +10 ; la Force compte ailleurs ; retrait : la valeur d’avant', () => {

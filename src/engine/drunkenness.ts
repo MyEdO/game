@@ -10,7 +10,7 @@
  *  - « Après une heure passée sans boire, effectuez un Test de Résistance à l'alcool Intermédiaire (+0).
  *    Les effets de l'ivresse se dissiperont après 10 − DR heures … Une fois tous les effets dissipés,
  *    effectuez un nouveau Test … Vous avez à présent la gueule de bois, qui correspond à l'État Exténué
- *    et ne peut pas être retiré pendant 5 − DR heures. » → `soberUp` (dissipation) + gueule de bois =
+ *    et ne peut pas être retiré pendant 5 − DR heures. » → `soberUpDissipate` (dissipation) + `soberUpHangover` (gueule de bois) =
  *    Exténué à durée d'horloge (`addClockCondition`, purgée par l'entretien).
  *  - « Vous pouvez dépenser 1 Point de Détermination pour ignorer les modificateurs négatifs de
  *    l'ivresse jusqu'à la fin du prochain Round. » → flag `drunkIgnore` (ActiveEffect 1 Round) lu par
@@ -20,20 +20,19 @@
  * n'a d'effet que si un personnage BOIT de l'alcool (consommable Flow d'une boisson alcoolisée →
  * op `intoxicate` sur un Test raté). PUR : mute
  * `c`, renvoie journaux ; le RNG est injecté ; la valeur du Test de Résistance à l'alcool et le Bonus
- * d'Endurance sont passés par l'appelant (comme `provisions.ts`, pour éviter le cycle d'import).
+ * d'Endurance sont passés par l'appelant (comme `provisions.ts`).
  */
 import type { Combatant, CharKey } from './types';
 import { RNG, d10 } from './dice';
 import { findTableEntry } from './tables';
 import type { GameOp } from './ops';
+import { addClockCondition, removeActiveEffects } from './conditions'; // cycle runtime (conditions→characteristics→trauma→drunkenness) : appelés au dessoûlage, jamais à l'init
 import drunkennessJson from '../data/drunkenness.json';
 import { t } from '../i18n';
 
-// Cycle d'import évité comme `provisions.ts` : ce module n'importe PAS `conditions`/`ops` (import
-// de VALEUR — `ops.ts` importe CE module par valeur, l'inverse boucherait). La MÉCANIQUE d'un résultat
-// d'Ivresse (Bravoure/meilleur ami/belligérant) est donc RENDUE en `GameOp[]` (`DrunkEntry.ops`, données
-// de `drunkenness.json`) et appliquée par l'APPELANT (`case 'intoxicate'` d'`applyOps`, le seul, cf. son
-// en-tête) — même patron que `soberUp`/`hangover` ci-dessous (« la source rend, l'appelant applique »).
+// La MÉCANIQUE d'un résultat d'Ivresse (Bravoure/meilleur ami/belligérant) est RENDUE en `GameOp[]`
+// (`DrunkEntry.ops`, données de `drunkenness.json`) et appliquée par l'APPELANT, sous le ctx imbriqué de
+// son op (`case 'intoxicate'` d'`applyOps`, le seul).
 
 /** Caractéristiques pénalisées par l'Ivresse (LDB 09 l.475). */
 export const DRUNK_CARACS: CharKey[] = ['capacite-de-combat', 'capacite-de-tir', 'agilite', 'dexterite', 'intelligence'];
@@ -101,7 +100,7 @@ export function applyAlcoholTest(c: Combatant, success: boolean, be: number, rng
  *  La MÉCANIQUE (Bravoure → +20 Calme ; « meilleur ami » → ignore Préjugés/Animosités ; « tous » →
  *  Animosité (Tout le monde)) est `entry.ops` (`GameOp[]` de `drunkenness.json`) — RENDUE, pas exécutée
  *  ici (cf. en-tête) ; c'est `applyAlcoholTest`/l'appelant qui la joue via `applyOps`. La gueule de bois
- *  et le risque d'Empoisonné du résultat « blackout » restent résolus au dessoûlage (`soberUp`). Mute `c`. */
+ *  et le risque d'Empoisonné du résultat « blackout » restent résolus au dessoûlage (`soberUpDissipate`, `soberUpHangover`). Mute `c`. */
 export function applyDrunkResult(c: Combatant, rng: RNG): DrunkEntry {
   const roll = d10(rng);
   const entry = findTableEntry(DRUNK_TABLE, roll);
@@ -119,42 +118,24 @@ export function drunkStaggers(c: Combatant): boolean {
   return c.drunk?.result === 'piece-tourne';
 }
 
-/**
- * Dessoûlage (l.485) : après une heure sans boire, un Test de Résistance à l'alcool Intermédiaire dont
- * le DR fixe la dissipation (10 − DR heures) ; un second fixe la gueule de bois (Exténué non retirable
- * pendant 5 − DR heures). Ici : les pénalités d'Ivresse sont levées (état sobre, ActiveEffect d'ivresse
- * retirés) et le SPEC de gueule de bois est RENVOYÉ (`hangover`) pour que l'appelant pose l'État Exténué à
- * durée d'horloge (`addClockCondition`, cf. en-tête — évite le cycle d'import). `now` = minute `gameTime`.
- * `drDissipation`/`drHangover` = DR des deux Tests (roulés/différés par l'appelant). Mute `c`.
- */
+/** Id des ActiveEffect d'ivresse : posé par l'op d'alcool (`applyOps`), retiré au dessoûlage. */
+export const EFFET_D_IVRESSE = 'ivresse';
+
 /** 1ᵉʳ Test du dessoûlage (l.485) : le DR fixe la dissipation (10 − DR h). Lève l'état d'Ivresse et retire
  *  les ActiveEffect d'ivresse (marqués `effectId:'ivresse'` — identité, jamais le libellé). `{ log: [] }`
  *  si le combattant n'était pas ivre (no-op). Mute `c`. */
 export function soberUpDissipate(c: Combatant, drDissipation: number): { log: string[] } {
   if (!c.drunk) return { log: [] };
   const dissipH = Math.max(0, 10 - drDissipation);
-  c.activeEffects = (c.activeEffects ?? []).filter((e) => e.effectId !== 'ivresse');
+  removeActiveEffects(c, (e) => e.effectId === EFFET_D_IVRESSE);
   c.drunk = undefined;
   return { log: [t('drunk.soberUp', { name: c.label, h: dissipH })] };
 }
 
-/** 2ᵉ Test du dessoûlage (l.485) : le DR fixe la gueule de bois (Exténué non retirable pendant 5 − DR h,
- *  durée d'horloge purgée à l'entretien). RENVOIE le spec `hangover` à poser par l'appelant
- *  (`addClockCondition` — évite le cycle d'import). `now` = minute `gameTime`. Ne mute pas `c`. */
-export function soberUpHangover(c: Combatant, now: number, drHangover: number): { log: string[]; hangover: { id: string; value: number; until: number } } {
+/** 2ᵉ Test du dessoûlage (l.485) : le DR fixe la gueule de bois, posée ici : Exténué à durée d'horloge
+ *  (`addClockCondition`, purgée à l'entretien) pendant 5 − DR h. `now` = minute `gameTime`. Mute `c`. */
+export function soberUpHangover(c: Combatant, now: number, drHangover: number): { log: string[] } {
   const hangoverH = Math.max(1, 5 - drHangover);
-  return { log: [t('drunk.hangover', { name: c.label, h: hangoverH })], hangover: { id: 'extenue', value: 1, until: now + hangoverH * 60 } };
-}
-
-/**
- * Dessoûlage COMPLET (l.485) — les DEUX Tests roulés/fournis d'un coup (chemin INLINE non influençable :
- * entretien en combat, témoin pré-résolu). Le chemin INFLUENÇABLE (cascade de nuit/voyage) n'appelle PAS
- * ceci : il enchaîne `soberUpDissipate` (1ʳᵉ étape) puis `soberUpHangover` (2ᵉ étape INSÉRÉE) — chacune
- * son jet de Chance/Résilience (#253). `now` = minute `gameTime`. Mute `c`.
- */
-export function soberUp(c: Combatant, now: number, drDissipation: number, drHangover: number): { log: string[]; hangover?: { id: string; value: number; until: number } } {
-  const d = soberUpDissipate(c, drDissipation);
-  if (!d.log.length) return { log: [] };
-  const h = soberUpHangover(c, now, drHangover);
-  return { log: [...d.log, ...h.log], hangover: h.hangover };
+  addClockCondition(c, 'extenue', 1, now + hangoverH * 60);
+  return { log: [t('drunk.hangover', { name: c.label, h: hangoverH })] };
 }

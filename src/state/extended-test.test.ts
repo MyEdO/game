@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { setRule, resetRule } from '../engine/policy';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 /** Test Étendu SÉQUENTIEL (LDB 12 l.172-174 : « atteindre un certain DR … les DR obtenus à chaque
  *  Round sont additionnés … Si le DR total passe en dessous de 0, recommencer depuis le début »).
@@ -51,9 +52,9 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
 
   it('Dissipation (LDB 46 l.158-160) : DR cumulé atteignant le NI retire les effets du sort de ses porteurs', () => {
     const h = hero();
-    const cible = { id: 'cible', name: 'Cible', kind: 'hero', conditions: [],
+    const cible = combattantDeTest({ id: 'cible', label: 'Cible', kind: 'hero',
       activeEffects: [{ label: 'Écorce', char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 5 },
-        spell: { spellId: 'ecorce', ni: 2, casterId: h.id, label: 'Écorce' } }] } as any;
+        spell: { spellId: 'ecorce', ni: 2, casterId: h.id, label: 'Écorce' } }] });
     useGame.setState({ battle: { round: 1, combatants: [h, cible], log: [] } as any });
     useGame.getState().startExtendedTest({ actorId: h.id, label: 'Dissiper Écorce', skillLabel: 'Langue (Magick)',
       target: 60, targetDR: 2, dispel: { spellId: 'ecorce', casterId: h.id, label: 'Écorce' } });

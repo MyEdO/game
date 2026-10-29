@@ -11,7 +11,7 @@ import { indexParId } from '../data/versionDataset';
 import { t } from '../i18n';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
-import { bonus, effectiveChar, effectPool, retenirParPool } from './characteristics';
+import { bonus, effectiveChar, effectPool, retenirParPool, blessuresReconciliees } from './characteristics';
 import { d100, RNG } from './dice';
 import { passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './trauma';
 import { memeSource } from './suspension';
@@ -23,7 +23,6 @@ import { dropExpiredGrantedResources } from './grantedResources';
 import { dropExpiredGrantedWeapons } from './conjuredWeapons';
 import { dropExpiredGrantedMutations } from './corruption';
 import { recomputeLoadout } from './items';
-import { refreshWounds } from './characteristics';
 import { restoreSuppressedPsych } from './psychology';
 import { hasActiveFlag } from './activeFlags';
 import { isVehicle } from './coque';
@@ -866,13 +865,6 @@ export function endOfRound(c: Combatant, rng: RNG, emit?: ConditionEmit): string
   return log;
 }
 
-/**
- * Décrément des DURÉES à la frontière de Round — SOURCE UNIQUE (effets magiques temporisés, États de
- * sort, contrecoups d'incantation en Rounds) : un SEUL point décrémente les
- * `roundsLeft`, branché par le hook `tick-durations` (order 15.5, après les dégâts périodiques, avant
- * `refresh-wounds`). RNG-FREE (décrément + filtre + retraits) → n'altère pas le flux déterministe.
- * Rejoué hors combat par `outOfCombatUpkeep` (les durées en Rounds tickent aussi à l'horloge).
- */
 /** Retire d'un combattant les ActiveEffect satisfaisant `pred`, en RÉVERSANT proprement leurs octrois
  *  (traits/ressources/armes accordés, Traits psy suspendus) — EXACTEMENT comme l'expiration naturelle.
  *  SOURCE UNIQUE du retrait d'effets actifs : expiration en Rounds (`tickDurations`), horloge, et
@@ -888,12 +880,13 @@ export function removeActiveEffects(c: Combatant, pred: (e: ActiveEffect) => boo
   dropExpiredGrantedTraits(c, removed); // traits accordés (op grantTrait) retirés avec leur effet
   dropExpiredGrantedResources(c, removed); // Chance/Destin accordés (gainResource) non dépensés
   dropExpiredGrantedWeapons(c, removed); // armes invoquées/naturelles accordées : loadout recomposé
-  if (dropExpiredGrantedMutations(c, removed)) { recomputeLoadout(c); refreshWounds(c); } // mutation TEMPORISÉE (op rollMutation) détachée → loadout/PB dérivés recalculés
+  if (dropExpiredGrantedMutations(c, removed)) recomputeLoadout(c); // mutation TEMPORISÉE (op rollMutation) détachée → loadout recomposé
   restoreSuppressedPsych(c, removed); // Traits psy suspendus (Baume, LDB 42) restitués
   // États PORTÉS par l'effet (#1695) : ils partent au MÊME geste. IDEMPOTENTE. La réconciliation est
   // INCONDITIONNELLE — un `log?.push(...sync())` l'aurait court-circuitée chez tout appelant sans journal.
   const portes = syncDerivedConditions(c, emit);
   log?.push(...portes);
+  c.wounds = blessuresReconciliees(c);
   return removed;
 }
 
@@ -928,6 +921,13 @@ export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: bo
   return [...removed.map((x) => t('cond.effectExpire', { name: c.label, label: x.label })), ...porte];
 }
 
+/**
+ * Décrément des DURÉES à la frontière de Round — SOURCE UNIQUE (effets magiques temporisés, États de
+ * sort, contrecoups d'incantation en Rounds) : un SEUL point décrémente les
+ * `roundsLeft`, branché par le hook `tick-durations` (order 15.5, après les dégâts périodiques).
+ * RNG-FREE (décrément + filtre + retraits) → n'altère pas le flux déterministe.
+ * Rejoué hors combat par `outOfCombatUpkeep` (les durées en Rounds tickent aussi à l'horloge).
+ */
 export function tickDurations(c: Combatant, emit?: ConditionEmit): string[] {
   const log: string[] = [];
   // Effets magiques temporisés (Bénédictions, Sorts de bonus) : décrément des durées en Rounds.

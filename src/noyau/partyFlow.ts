@@ -31,7 +31,7 @@ import {
   designateSlot,
   talentAcquisitions,
 } from '../engine/careerSlots';
-import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, competenceEnCarriere, talentEnCarriere } from '../engine/talentEffects';
+import { applyTalentAcquisition, recalerLaBaseDesBlessures, fortuneMax, resolveMax, competenceEnCarriere, talentEnCarriere } from '../engine/talentEffects';
 import { heroSessionXp, regainDetermination } from '../engine/session';
 import { skillCharacteristicById } from '../engine/character';
 import { nextProsthesisTier, grantProsthesisTier } from '../engine/trauma';
@@ -59,18 +59,6 @@ import { gainCorruption } from './corruptionFlow';
 import { touchActors } from './combatOrParty';
 import { nePeutPasDifferer, applyEffects } from './combatEffects';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
-
-/** Recalcule les Blessures max (BF + 2·BE + BFM × Taille + Dur à cuire) après une Augmentation
- *  de Caractéristique ou un nouveau Talent ; un gain de max augmente aussi le courant (mute). */
-function recomputeWounds(hero: Combatant) {
-  // Augmentation permanente de Caractéristique → recalcul de la BASE (formule × Taille de l'espèce).
-  const newMax = heroMaxWounds(hero);
-  const delta = newMax - hero.wounds.max;
-  hero.wounds.base = newMax;
-  hero.wounds.max = newMax;
-  if (delta > 0) hero.wounds.current += delta;
-  if (hero.wounds.current > newMax) hero.wounds.current = newMax;
-}
 
 /** Contexte carrière d'un héros : niveaux + slots cumulés/courants + désignations (LDB 07). */
 function careerCtx(hero: Combatant) {
@@ -382,7 +370,7 @@ export function buyCharAdvance(get: Get, set: Set, heroId: string, char: CharKey
       msg = t('pf.refused', { name: clone.label, what: CHAR_LABELS[char], reason: r.reason ?? '' });
       return h;
     }
-    recomputeWounds(clone);
+    recalerLaBaseDesBlessures(clone);
     msg = t('pf.advanceBought', { name: clone.label, what: CHAR_LABELS[char], cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
     return clone;
   })) return;
@@ -501,7 +489,7 @@ export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, 
     }
     // Effets d'acquisition (+5 Caractéristique de départ, Véloce) + attributs dérivés.
     applyTalentAcquisition(clone, talentId, spec);
-    recomputeWounds(clone); // Dur à cuire / Très résistant (BE)
+    recalerLaBaseDesBlessures(clone); // Dur à cuire / Très résistant (BE)
     clone.fortune = (clone.fortune ?? 0) + (fortuneMax(clone) - fortuneBefore); // Chanceux
     clone.resolve = (clone.resolve ?? 0) + (resolveMax(clone) - resolveBefore); // Obstiné
     msg = t('pf.talentBought', { name: clone.label, label: talentLabel, cost: r.cost });

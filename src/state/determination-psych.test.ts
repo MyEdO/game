@@ -5,8 +5,9 @@ import { psychDRAdjust } from '../engine/combat';
 import { traumaCharPenalties, traumaMovementHalved, traumaDodgePenalty, passiveTestMod } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
 import { ciblePsy } from '../engine/psych/ciblage';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
-const C = (o: Partial<Combatant>): Combatant => o as unknown as Combatant;
+const C = (o: Partial<Combatant>): Combatant => combattantDeTest(o);
 
 describe('isPsychImmune — prédicat central (trait / Frénésie / Détermination temp)', () => {
   it('trait Immunité ou Frénésie → immunisé', () => {
