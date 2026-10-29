@@ -3,7 +3,8 @@
  * `noyau/favorFlow.ts`) et l'écran d'interlude les lisent, sans que l'un importe l'autre.
  * Le geste applique le verdict en tête (`refuseSi`) ; l'écran le lit sans le recalculer.
  */
-import { libelleOuAbsence } from '../data';
+import { findCareerById, libelleOuAbsence } from '../data';
+import { interludeEventFor } from '../data/interludeEvents';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { Jeu } from './etat';
@@ -47,4 +48,31 @@ export function refusDeRetrait(s: EtatDInterlude, index: number): string | null 
   const dep = (s.bank ?? [])[index];
   if (!dep) return null;
   return dep.kind === 'stash' ? refusDuTirage(s, dep.heroId) : refusDActivite(s, dep.heroId);
+}
+
+/** Classe du héros, `id` STABLE (`ClassData.id`) — les événements visent une Classe par id
+ *  (`revenueClasses`/`revenueBlockedClasses`, eux aussi en id). Carrière → id de classe. */
+export function heroClass(h: Combatant): string {
+  return findCareerById(h.career ?? '')?.class ?? '';
+}
+
+/** Libellé de l'Événement d'un héros — appelé sous une garde `fx` (le dé et `fx` sont écrits ENSEMBLE
+ *  au dénouement) ; sans dé, il se tait au lieu de nommer la première ligne du tableau. */
+export const eventLabelOf = (st: { eventRoll?: number }): string =>
+  st.eventRoll == null ? t('if.eventGeneric') : interludeEventFor(st.eventRoll).label;
+
+/** L'Événement de la période bloque-t-il les Revenus pour la Classe du héros : la raison, ou `null`.
+ *  Lu par la chronique ; le geste et l'écran lisent `refusDeRevenus`. LDB 22 */
+export function blocageDeRevenus(s: EtatDInterlude, heroId: string): string | null {
+  const st = s.interlude?.perHero[heroId];
+  const h = s.party.find((x) => x.id === heroId);
+  const bloquees = st?.fx?.revenueBlockedClasses;
+  if (!st || !h || !bloquees || !(bloquees.includes('*') || bloquees.includes(heroClass(h)))) return null;
+  return t('if.incomeBlocked', { name: h.label, event: eventLabelOf(st) });
+}
+
+/** Refus d'entreprendre les Revenus : celui de toute Activité, puis le blocage de l'Événement. Verdict
+ *  UNIQUE du geste, de l'entrée et du volet. LDB 22, LDB 23 l.5 */
+export function refusDeRevenus(s: EtatDInterlude, heroId: string): string | null {
+  return refusDActivite(s, heroId) ?? blocageDeRevenus(s, heroId);
 }

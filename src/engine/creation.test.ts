@@ -10,7 +10,6 @@ import {
   rollCareer,
   validatePointBuy,
   POINT_BUY_TOTAL,
-  parseStatus,
   rollInitialWealth,
   rollAge,
   rollHeight,
@@ -196,23 +195,17 @@ describe('répartition de 100 Points (LDB 05 l.341 : min 4, max 18)', () => {
 });
 
 describe('Richesse initiale (LDB 05 l.578-583)', () => {
-  it('parseStatus : Bronze/Argent/Or + Standing ; typo de données « Agent 1 » tolérée', () => {
-    expect(parseStatus('Bronze 2')).toEqual({ tier: 'Bronze', standing: 2 });
-    expect(parseStatus('Argent 5')).toEqual({ tier: 'Argent', standing: 5 });
-    expect(parseStatus('Or 7')).toEqual({ tier: 'Or', standing: 7 });
-    expect(parseStatus('Agent 1')).toEqual({ tier: 'Argent', standing: 1 });
-  });
   it('Bronze N : 2N d10 sous ; Argent N : N d10 pistoles ; Or N : N CO ; Standing 0 : rien', () => {
-    const bronze = rollInitialWealth({ tier: 'Bronze', standing: 3 }, makeRNG(1));
+    const bronze = rollInitialWealth({ tier: 'bronze', standing: 3 }, makeRNG(1)).montant;
     expect(bronze.gold).toBe(0);
     expect(bronze.silver).toBe(0);
     expect(bronze.brass).toBeGreaterThanOrEqual(6); // 6d10
     expect(bronze.brass).toBeLessThanOrEqual(60);
-    const silver = rollInitialWealth({ tier: 'Argent', standing: 3 }, makeRNG(1));
+    const silver = rollInitialWealth({ tier: 'argent', standing: 3 }, makeRNG(1)).montant;
     expect(silver.silver).toBeGreaterThanOrEqual(3);
     expect(silver.silver).toBeLessThanOrEqual(30);
-    expect(rollInitialWealth({ tier: 'Or', standing: 3 }, makeRNG(1))).toEqual({ gold: 3, silver: 0, brass: 0 });
-    expect(rollInitialWealth({ tier: 'Bronze', standing: 0 }, makeRNG(1))).toEqual({ gold: 0, silver: 0, brass: 0 });
+    expect(rollInitialWealth({ tier: 'or', standing: 3 }, makeRNG(1)).montant).toEqual({ gold: 3, silver: 0, brass: 0 });
+    expect(rollInitialWealth({ tier: 'bronze', standing: 0 }, makeRNG(1)).montant).toEqual({ gold: 0, silver: 0, brass: 0 });
   });
 });
 

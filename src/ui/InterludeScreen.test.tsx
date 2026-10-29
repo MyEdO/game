@@ -7,12 +7,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
-import { draineCascade } from '../noyau/cascade.testkit';
+import { draineCascade, poseSurDeNonTombe } from '../noyau/cascade.testkit';
 import { createHero } from '../engine/character';
 import { fromBrass } from '../engine/money';
 import { partyMoneyTotal, distributeCredit } from '../noyau/bourseFlow';
 import { testScene } from '../scenes/test-fixture';
 import { interludeCatalog, bestActivitySkill } from '../noyau/interludeFlow';
+import { refusDeRevenus } from '../noyau/verdictsDInterlude';
 import { setRule, resetRule } from '../engine/policy';
 import { interludeEventFor } from '../data/interludeEvents';
 import { InterludeScreen, type InterludeSeam } from './InterludeScreen';
@@ -27,6 +28,13 @@ const mdToPlain = (html: string) => html
   .replace(/&lt;/g, '<')
   .replace(/&gt;/g, '>')
   .replace(/&amp;/g, '&');
+
+/** La raison accessible rendue sous l'id `id`, ou `undefined`. */
+const raisonDId = (html: string, id: string) => mdToPlain(html.match(new RegExp(`id="${id}">([^<]*)</p>`))?.[1] ?? '') || undefined;
+/** La balise du bouton d'entrée `key` FERMÉE (liée à sa raison), ou `undefined`. */
+const entreeFermee = (html: string, key: string) => html.match(new RegExp(`<button[^>]*aria-describedby="interlude-act-${key}-reason"[^>]*>`))?.[0];
+/** La raison accessible de l'entrée `key`, ou `undefined` si elle est ouverte. */
+const raisonDe = (html: string, key: string) => raisonDId(html, `interlude-act-${key}-reason`);
 
 function buildSeam(weeks = 3): InterludeSeam {
   const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
@@ -127,7 +135,6 @@ describe('InterludeScreen — refonte LOT 6', () => {
     expect(html).toContain('rm-roll pending'); // la ligne de pré-jet (PendingRollLine)
     expect(html).toContain('Accessible'); // la Difficulté du Test de Revenus (LDB 08)
     expect(html).toContain('Entreprendre');
-    expect(html).toMatch(/\d ×/); // la formule de Revenus (« N × 2d10 sous »…)
   });
 
   it('pied FIXE d’une Activité du CATALOGUE : compétence en chip + Difficulté avant « Entreprendre » (Convalescence)', () => {
@@ -434,10 +441,6 @@ describe('InterludeScreen — l’entrée d’Activité lit le verdict du noyau 
   beforeEach(() => { vi.useFakeTimers(); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
-  /** La balise du bouton d'entrée `key` FERMÉE (liée à sa raison), ou `undefined`. */
-  const entreeFermee = (html: string, key: string) => html.match(new RegExp(`<button[^>]*aria-describedby="interlude-act-${key}-reason"[^>]*>`))?.[0];
-  /** La raison accessible de l'entrée `key`, ou `undefined` si elle est ouverte. */
-  const raisonDe = (html: string, key: string) => mdToPlain(html.match(new RegExp(`id="interlude-act-${key}-reason">([^<]*)</p>`))?.[1] ?? '') || undefined;
 
   it('sans Activité restante : les entrées qui en consomment disent la raison du noyau, l’engagement d’Artisanat reste ouvert', () => {
     const seam = buildSeam(1);
@@ -463,5 +466,47 @@ describe('InterludeScreen — l’entrée d’Activité lit le verdict du noyau 
     for (const key of ['revenus', 'craft', 'bank']) {
       expect(raisonDe(html, key), key).toBe('Vétéran ne peut rien entreprendre tant que les Événements de la période ne sont pas tirés.');
     }
+  });
+});
+
+describe('InterludeScreen — Revenus bloqués par l’Événement : entrée et volet lisent `refusDeRevenus` (#3059 S3)', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  /** Un Larron (roublard, Voleur N2) et un Vétéran (guerrier) dont l'Événement est « Répression du crime » (d100 20). */
+  function apresLaRepression(): InterludeSeam {
+    const larron = createHero({ speciesId: 'humains-reiklander', careerId: 'voleur', label: 'Larron', seed: 1701 });
+    larron.careerLevel = 2; // Voleur N2 : Bronze 3
+    const veteran = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
+    useGame.setState({ party: [larron, veteran], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
+    useGame.getState().startScene(testScene());
+    vi.clearAllTimers();
+    useGame.setState({ screen: 'interlude' });
+    useGame.getState().seedRng(7);
+    useGame.getState().startInterlude(1);
+    draineCascade(useGame.getState, 200, poseSurDeNonTombe(20));
+    const s = useGame.getState();
+    return { interlude: s.interlude!, party: s.party, money: partyMoneyTotal(useGame.getState), bank: s.bank, pendingOrders: s.pendingOrders, phase: 'activities' };
+  }
+
+  it('l’entrée et le volet du roublard (Bronze 3) disent la raison du noyau et se ferment ; le volet dit la formule de ses 3 Standings', () => {
+    const seam = apresLaRepression();
+    const larron = seam.party[0];
+    const raison = refusDeRevenus(useGame.getState(), larron.id);
+    expect(raison).toBe('Larron ne peut pas entreprendre Revenus (événement : Répression du crime).');
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, openPane: { heroId: larron.id, pane: 'revenus' } }} />);
+    expect(raisonDId(html, 'interlude-revenus-go-reason'), 'le volet').toBe(raison);
+    expect(html).toMatch(/<button[^>]*aria-disabled="true"[^>]*aria-describedby="interlude-revenus-go-reason"|<button[^>]*aria-describedby="interlude-revenus-go-reason"[^>]*aria-disabled="true"/);
+    const liste = renderToStaticMarkup(<InterludeScreen seam={seam} />);
+    expect(raisonDe(liste, 'revenus'), 'l’entrée de liste').toBe(raison);
+    expect(entreeFermee(liste, 'revenus')).toContain('aria-disabled="true"');
+    expect(mdToPlain(html)).toContain('Succès : 6d10 sous de cuivre');
+  });
+
+  it('la chronique : la puce du roublard porte `blocageDeRevenus`, celle du guerrier les LIBELLÉS des Classes bloquées', () => {
+    const seam = apresLaRepression();
+    const html = mdToPlain(renderToStaticMarkup(<InterludeScreen seam={{ ...seam, phase: 'events' }} />));
+    expect(html).toContain('Larron ne peut pas entreprendre Revenus (événement : Répression du crime).');
+    expect(html).toContain('Revenus bloqués pour : Roublards');
   });
 });

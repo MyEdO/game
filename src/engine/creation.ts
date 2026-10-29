@@ -17,7 +17,7 @@
 import { RNG, roll } from './dice';
 import { findTableEntry } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
-import { Money } from './money';
+import { Money, gainDeStatut, enPieces, type Status } from './money';
 import { SpeciesData, CareerData, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById } from '../data';
 import { idsDeLaSousListe, type RefASpecialisation } from '../data/schemas/grammaire/ref';
 import type { RaceKey } from '../data/schemas/grammaire/valeurs';
@@ -108,29 +108,14 @@ export function validatePointBuy(alloc: Record<CharKey, number>): { ok: true } |
   return { ok: true };
 }
 
-export interface Status {
-  tier: 'Bronze' | 'Argent' | 'Or';
-  standing: number;
-}
+/** Un tirage de richesse : la face de chaque dé, et le montant qu'elles font. */
+export interface TirageDeRichesse { faces: number[]; montant: Money }
 
-/** Parse « Bronze 2 » / « Or 5 » — tolère la typo de données « Agent 1 » (= Argent). */
-export function parseStatus(s: string): Status {
-  const m = s.trim().match(/^(\S+)\s+(\d+)$/);
-  const raw = (m?.[1] ?? s).toLowerCase();
-  const standing = m ? parseInt(m[2], 10) : 0;
-  const tier: Status['tier'] = raw.startsWith('or') ? 'Or' : raw.startsWith('bron') ? 'Bronze' : 'Argent';
-  return { tier, standing };
-}
-
-/** Richesse initiale (LDB 05 l.578) : Bronze 2d10 sc × Standing ; Argent 1d10 pa ×
- *  Standing ; Or 1 CO × Standing. Standing 0 (ex. Mendiant « Bronze 0 ») → rien. */
-export function rollInitialWealth(status: Status, rng: RNG): Money {
-  const m: Money = { gold: 0, silver: 0, brass: 0 };
-  if (status.standing <= 0) return m;
-  if (status.tier === 'Bronze') m.brass = roll(2 * status.standing, 10, rng);
-  else if (status.tier === 'Argent') m.silver = roll(status.standing, 10, rng);
-  else m.gold = status.standing;
-  return m;
+/** Richesse initiale : la grille de `gainDeStatut`, en pièces de son Échelon. LDB 05 l.576-578 */
+export function rollInitialWealth(status: Status, rng: RNG): TirageDeRichesse {
+  const { de, unite } = gainDeStatut(status.tier, status.standing);
+  const faces = Array.from({ length: de.n }, () => roll(1, de.sides, rng));
+  return { faces, montant: enPieces(unite, faces.reduce((a, f) => a + f, de.plus ?? 0)) };
 }
 
 /** Formule « base + N d10 » des tables de détails (details.json), colonne `refChar` (id `RaceKey`,

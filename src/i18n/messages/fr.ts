@@ -575,6 +575,7 @@ export const fr = {
   'saveload.error.load': 'Emplacement vide ou incompatible.',
   'saveload.error.import': 'Fichier de sauvegarde illisible.',
   'saveload.error.import.autreFormat': 'Sauvegarde d’un autre format : elle ne peut pas être importée.',
+  'saveload.error.import.sceneInvalide': 'Sauvegarde dont une scène n’est plus valide : elle ne peut pas être importée.',
   // Sauvegarde chargée ÉLAGUÉE (`noyau/persistance/elagage.ts`) : ce qu'elle nommait hors du registre courant.
   'saveload.elague.titre': 'Sauvegarde chargée',
   'saveload.elague': 'Cette version du jeu ne connaît plus ce que la sauvegarde nommait : {liste}. La partie est chargée sans eux.',
@@ -585,6 +586,7 @@ export const fr = {
   // Sauvegarde retirée du stockage, par CAUSE (`ObsoleteCause`, `noyau/persistance/save.ts`), sous le nom de son emplacement.
   'saveload.error.autreFormat': '{emplacement} : sauvegarde d’un autre format, retirée.',
   'saveload.error.unreadable': '{emplacement} : sauvegarde illisible, retirée.',
+  'saveload.error.sceneInvalide': '{emplacement} : sauvegarde dont une scène n’est plus valide, retirée.',
   // Lobby coop (CoopLobby) — Phase D.
   'coop.title.local': 'Jouer en ligne',
   'coop.title.guest': 'Salon — invité',
@@ -626,6 +628,19 @@ export const fr = {
   'interlude.recap.title': "Clore l'interlude ?",
   'interlude.recap.cancel': 'Pas encore',
   'interlude.recap.confirm': "Clore l'interlude",
+  'interlude.fx.bourses': '{pct} % sur la bourse du groupe (pire tirage appliqué une fois)',
+  'interlude.fx.moinsUneActivite': '−1 Activité',
+  'interlude.fx.chance': '+{n} Point{s} de Chance',
+  'interlude.fx.revenus': 'Revenus {sign}{pct} %',
+  'interlude.statut': 'Statut {echelon} {standing}',
+  'interlude.revenus.note': 'Succès : {formule} · échec : moitié · Échec Stupéfiant : rien. Crédités à la reprise.',
+  'createur.resumeDeCarriere': 'Classe {classe} · carrière {carriere} — départ {niveau}, {statut}.',
+  'interlude.fx.banque': "{pct} % sur l'argent placé en banque",
+  'interlude.fx.planqueDevalisee': 'Planque dévalisée !',
+  'interlude.fx.faillite': 'Les banques vérifient leur faillite immédiatement',
+  'interlude.fx.devoirElfique': '−1 Activité (devoir elfique)',
+  'interlude.fx.revenusPour': 'Revenus {sign}{pct} % ({classes})',
+  'interlude.fx.revenusBloquesPour': 'Revenus bloqués pour : {classes}',
   // ── Phase C : narration moteur (États/upkeep). Patrons byte-identiques aux littéraux d'origine. ──
   // (Les Résistances Empoisonné/Sonné sont désormais data-driven — leur journal vient des ops
   //  `removeCondition`/`condition`, sans clé `cond.poison*`/`cond.stun*` dédiée.)
@@ -676,6 +691,7 @@ export const fr = {
   'absent.mois': 'mois n° {id} (hors calendrier)',
   'absent.race': 'race « {id} » retirée du Compendium',
   'absent.carriere': 'carrière « {id} » retirée du Compendium',
+  'absent.classe': 'classe « {id} » retirée du Compendium',
   // Nom SINGULIER d'un individu de chaque race, keyé par `RaceKey` (`species.json` `refChar`) — lu par
   // `data/index.ts#speciesSingular` ; la variante régionale vient de la donnée (`variant`).
   'espece.individu.humain': 'Humain',
@@ -3078,6 +3094,9 @@ export const fr = {
   'money.silver': "{n} pistole{s} d'argent",
   'money.brass': '{n} sou{s} de cuivre',
   'money.none': 'aucune monnaie',
+  'statut.echelon.bronze': 'Bronze',
+  'statut.echelon.argent': 'Argent',
+  'statut.echelon.or': 'Or',
 
   // ── #1318 V8c₅ — CLASSE DE QUALITÉ d'un objet artisanal (`engine/qualities/craftEconomy.ts`,
   // `craft.*`, LDB 60 l.7/11/42). La fonction rend désormais un id STABLE ; ces clés en sont l'affichage.

@@ -1,6 +1,6 @@
 /** LDB 7. */
 import { z } from 'zod';
-import { charKeySchema } from '../grammaire/valeurs';
+import { charKeySchema, statutSchema } from '../grammaire/valeurs';
 import { trappingRefSchema } from '../grammaire/reference';
 import { avancement } from '../grammaire/avancement';
 import { document } from '../grammaire/document';
@@ -19,9 +19,8 @@ const doc = document(
     talents: z.array(avancement('talent')),
     trappings: z.array(trappingRefSchema),
     characteristics: z.array(charKeySchema),
-    /** Échelon de statut (« Bronze/Argent/Or N ») — VERBATIM du livre : chaîne libre, 432/432 entrées
-     *  conformes à la graphie Bronze/Argent/Or + échelon. */
-    status: z.string(),
+    /** Statut du Niveau (« Argent 2 ») — VERBATIM du livre. */
+    status: statutSchema,
   },
   {
     career: { label: 'Carrière', hint: 'Carrière à laquelle appartient ce Niveau' },

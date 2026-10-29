@@ -16,10 +16,10 @@
  * JSON, jamais ce fichier.
  */
 import { Combatant } from '../engine/types';
-import { Money } from '../engine/money';
+import { statutDeDonnee, type Money } from '../engine/money';
 import { createHero, fluxDeCreation, type ChoixDeCreation } from '../engine/character';
 import type { ChoixDesPretires } from './schemas/defs/pregens';
-import { rollInitialWealth, parseStatus, pettySpellQuotaFor, fillPettySpellsToQuota } from '../engine/creation';
+import { rollInitialWealth, pettySpellQuotaFor, fillPettySpellsToQuota } from '../engine/creation';
 import { levelsForCareer, pregens } from './index';
 import type { Sexe } from './schemas/grammaire/valeurs';
 
@@ -84,8 +84,8 @@ export function makePregensWithWealth(): { hero: Combatant; wealth: Money }[] {
       const hero = buildPregenHero(d);
       const level = levelsForCareer(d.career).find((l) => l.level === 1);
       if (!level) throw new Error(`Pré-tiré « ${d.label} » : aucun Niveau 1 pour la carrière « ${d.career} ».`);
-      const status = parseStatus(level.status);
-      const wealth = rollInitialWealth(status, fluxDeCreation(d.seed, 'bourse'));
+      const status = statutDeDonnee(level.status);
+      const wealth = rollInitialWealth(status, fluxDeCreation(d.seed, 'bourse')).montant;
       out.push({ hero, wealth });
     } catch (e) {
       console.error(`Pré-tiré « ${d.label} » ignoré :`, e);

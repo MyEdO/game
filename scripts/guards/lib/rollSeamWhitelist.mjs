@@ -235,7 +235,7 @@ export const DES_HORS_PORTE_STOCK = new Map([
   ['src/noyau/triggeredEffects.ts', { n: 1, kind: 'dette', why: 'mesuré : rollTest×1. Test déclenché roulé en direct -> #1508 T3.' }],
   ['src/noyau/upkeep.ts', { n: 3, kind: 'dette', why: 'mesuré : applyOps×1, dailyFoodUpkeep×1, dailyWaterUpkeep×1. B + entretien quotidien -> #1508 T2.' }],
   ['src/noyau/monde/zones.ts', { n: 4, kind: 'dette', why: 'mesuré : applyOps×2, resolveFormula×2. B (magnitudes d\'`applyOps`/`resolveFormula` de zone) -> #1508 T2.' }],
-  ['src/ui/creator/CharacterCreator.tsx', { n: 2, kind: 'dette', why: 'mesuré : generateName×1, rng.int×1. cérémonie du créateur — pose sous « Dés fixés » à instruire -> #1508 T6.' }],
+  ['src/ui/creator/CharacterCreator.tsx', { n: 1, kind: 'dette', why: 'mesuré : generateName×1. cérémonie du créateur — pose sous « Dés fixés » à instruire -> #1508 T6.' }],
   ['src/noyau/creation/brouillon.ts', { n: 15, kind: 'dette', why: 'mesuré : rollCareer×4, rollStar×2, resolveSpeciesTalentsDetail×2, rng.int×1, rollAge×1, rollEyes×1, rollHair×1, rollHeight×1, rollInitialWealth×1, rollSpecies×1. cérémonie du créateur (`CreatorDice`) — la pose sous « Dés fixés » reste à instruire -> #1508 T6.' }],
 ]);
 

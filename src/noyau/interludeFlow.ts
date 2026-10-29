@@ -19,14 +19,15 @@ import { INTERLUDE_EVENTS, interludeEventFor, type InterludeEventFx } from '../d
 import { startCascade } from './cascade';
 import { freeCons, rollLine } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
-import { fromBrass, toBrass, toMoney, formatMoney, priceToMoney, canAfford, parseStatus, PA_PER_SC } from '../engine/money';
+import { fromBrass, toBrass, toMoney, formatMoney, priceToMoney, canAfford, PA_PER_SC, type Status } from '../engine/money';
+import { actorStatus } from '../engine/social';
 import { partyMoneyTotal, payWithAllocation, payFromGroup, soloPayer, creditBourse, debitBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, recomputeLoadout, buildWeapon, autoStowNewItem } from '../engine/items';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
 import { refuseSi } from './verrousDeFiche';
-import { refusDActivite, refusDeRetrait, refusDuTirage } from './verdictsDInterlude';
+import { eventLabelOf, heroClass, refusDActivite, refusDeRetrait, refusDeRevenus, refusDuTirage } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, massBattleBegin, battlePrepEntries } from './massBattleFlow';
 import {
@@ -34,7 +35,7 @@ import {
   entrainementOptions, entrainementTutorCost,
   ACTIVITIES, activitiesFor, activityById, matchOutcomes, activityAvailableAt, activityTestMod, classGatedDifficulty,
   RESOLVER_OWNER,
-  type PriceTier, type ActivityDef, type ActivityResolver, type ResolverOf,
+  type ActivityDef, type ActivityResolver, type ResolverOf,
 } from '../engine/activities';
 import { outOfTradeReason } from '../engine/disponibilite';
 import { buildActivityWorldRollSteps } from './activityWorldRolls';
@@ -57,7 +58,7 @@ import { buyTalent as engineBuyTalent, talentCost, buySkillAdvance as engineBuyS
 import { talentAcquisitions } from '../engine/careerSlots';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax, recalerLaBaseDesBlessures } from '../engine/talentEffects';
-import { findCareerById, levelsForCareer, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill, libelleOuAbsence } from '../data';
+import { levelsForCareer, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill, libelleOuAbsence } from '../data';
 import { findEffectTableById } from '../data/effectTables';
 import { currentPlaceId } from './worldMap';
 import { findTableEntry } from '../engine/tables';
@@ -268,12 +269,6 @@ function finishInterludeDraw(get: Get, set: Set): string[] {
   return lines;
 }
 
-/** Libellé de l'Événement d'un héros pour le JOURNAL des Activités — appelé sous une garde `st.fx`
- *  (le dé et `fx` sont écrits ENSEMBLE au dénouement) ; sans dé, il se tait au lieu de nommer la
- *  première ligne du tableau. */
-const eventLabelOf = (st: InterludeHeroState): string =>
-  st.eventRoll == null ? msg('if.eventGeneric') : interludeEventFor(st.eventRoll).label;
-
 // ── Activités (LDB 23) — flux de jet par modale (fabrique rollFlow) ────────────────────────────
 
 /** Grandeurs d'un Test OPPOSÉ d'Activité — Scène « Tenez votre position » (ADE II 8 l.161-163) —
@@ -369,18 +364,10 @@ export interface PendingActivityFields extends PendingBase {
 /** Statut « Échelon Standing » d'un héros (CareerLevelData.status, ex. « Argent 2 »), + modificateur
  *  TEMPORAIRE « pour la prochaine aventure » (LDB 23 l.228-234 « Réputation » : op `statusMod`,
  *  `ActiveEffect.duration.scale === 'adventure'`) — plancher 1 (jamais sous Bronze 1). */
-export function heroStatus(h: Combatant): { tier: PriceTier; standing: number } {
-  const levels = levelsForCareer(h.career ?? '');
-  const lvl = levels[Math.max(0, (h.careerLevel ?? 1) - 1)];
-  const st = parseStatus(lvl?.status) ?? { tier: 'bronze' as const, standing: 1 };
+export function heroStatus(h: Combatant): Status {
+  const st = actorStatus(h);
   const tempMod = (h.activeEffects ?? []).reduce((s, e) => s + (e.statusMod ?? 0), 0);
   return { tier: st.tier, standing: Math.max(1, st.standing + tempMod) };
-}
-
-/** Classe du héros, `id` STABLE (`ClassData.id`) — les événements visent une Classe par id
- *  (`revenueClasses`/`revenueBlockedClasses`, eux aussi en id). Carrière → id de classe. */
-export function heroClass(h: Combatant): string {
-  return findCareerById(h.career ?? '')?.class ?? '';
 }
 
 /** Compétence de carrière « qui permet de Gagner de l'argent » (LDB 08 l.110 : celle en italique
@@ -543,7 +530,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   const def = activityById(activityId);
-  if (refuseSi(get, set, (s) => refusDActivite(s, heroId))) return;
+  if (refuseSi(get, set, (s) => (def?.resolver === 'income' ? refusDeRevenus : refusDActivite)(s, heroId))) return;
   if (!st || !h || !def?.contexts.includes('interlude') || def.blocked) return;
   if (!activityAvailableAt(def, currentPlaceId(get()))) {
     get().log(msg('if.placeOnly', { label: def.label }));
@@ -559,13 +546,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
   const extra: Partial<PendingActivityFields> = {};
   if (def.resolver === 'income') {
     // Revenus (« Gagner de l'argent grâce au Statut », LDB 08 l.107-118) : Test de la Compétence de
-    // Carrière « en italique du premier Niveau » (approximée par `incomeSkillOf`). Gate : événement
-    // qui bloque les Revenus pour la Classe du héros (Fausse monnaie & co, LDB 22).
-    const blocked = st.fx?.revenueBlockedClasses;
-    if (blocked && (blocked.includes('*') || blocked.includes(heroClass(h)))) {
-      get().log(msg('if.incomeBlocked', { name: h.label, event: eventLabelOf(st) }));
-      return;
-    }
+    // Carrière « en italique du premier Niveau » (approximée par `incomeSkillOf`).
     const skill = incomeSkillOf(h);
     skillValue = testValue(h, skill);
     skillLabel = refLabel('skills', { id: skill });
