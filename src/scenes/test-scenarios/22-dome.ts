@@ -68,9 +68,11 @@ export const scenario: TestScenario = {
   order: 20,
   category: 'magie',
   icon: 'scenario/magic',
-  title: 'Dôme — la sauvegarde octroyée par une zone (LDB 47 l.410)',
+  // LDB 47 l.410
+  title: 'Dôme — la sauvegarde octroyée par une zone',
   tests:
-    'Le Dôme OCTROIE un Trait (`LDB 47 l.410`), il n’est pas une sauvegarde à part : son Indice vient de '
+    // LDB 47 l.410
+    'Le Dôme OCTROIE un Trait, il n’est pas une sauvegarde à part : son Indice vient de '
     + 'la DONNÉE du sort et rejoint le collecteur unique des sauvegardes « 1d10 ≥ Indice » '
     + '(`wardSaves`), au même site que Démoniaque/Protection. À voir : un TIR de l’extérieur ouvre la '
     + 'sauvegarde et le journal nomme le Trait qui a sauvé ; un coup de MÊLÉE sous la voûte n’en ouvre '

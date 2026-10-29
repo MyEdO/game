@@ -3455,7 +3455,7 @@ export function choixPiegeLame(pbt: PendingBladeTrap, defenseur: Combatant, atta
  *  ABANDONNÉE — aucun producteur ne la remet en file ; la file de frappes du tour est #1858. */
 function refuserLaDefense(attacker: Combatant, target: Combatant): boolean {
   const msg = `[combat] défense déjà ouverte : ${attacker.label} déclare une frappe sur ${target.label} `
-    + 'avant que la précédente soit résolue — la frappe est refusée (LDB 85 l.41-43).';
+    + 'avant que la précédente soit résolue — la frappe est refusée.';
   console.error(msg);
   if (import.meta.env?.DEV) throw new Error(msg);
   return true;
@@ -4548,6 +4548,7 @@ export function useSpellComponent(caster: Combatant, spellId: string, lines: str
   const next = [...owned];
   next.splice(i, 1); // retire UNE occurrence (consommée par l'incantation)
   caster.componentSpells = next;
+  // LDB 46 l.111
   lines.push(tr('cf.componentConsumed', { name: caster.label }));
   return true;
 }

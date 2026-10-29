@@ -158,9 +158,11 @@ export const scenario: TestScenario = {
   icon: 'scenario/hamlet',
   title: 'La fenêtre sur les écuries',
   tests:
-    'Croisée franchissable d’étage (4 m, se suspendre = 2 m, EDO 01 l.229-231) : sauter en exploration puis EN COMBAT ' +
+    // EDO 01 l.229-231
+    'Croisée franchissable d’étage (4 m, se suspendre = 2 m) : sauter en exploration puis EN COMBAT ' +
     '(rencontre `enc-homme-de-main`, ouverte par le dialogue de l’homme de main) ; remonter par l’escalier. Porte secrète ' +
-    'Complexe du bureau (EDO 08 l.404) : découverte à l’approche, ou « Fouiller la pièce » ; la cachette et son coffre derrière.',
+    // EDO 08 l.404
+    'Complexe du bureau : découverte à l’approche, ou « Fouiller la pièce » ; la cachette et son coffre derrière.',
   partyNote:
     'Pré-tirés, à l’étage. Gestes : sauter/se suspendre à la croisée (hors combat, puis en combat via l’homme de main) · ' +
     'remonter par l’escalier de la salle basse · entrer au bureau (découverte à l’approche) · Fouiller la pièce.',

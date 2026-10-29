@@ -111,8 +111,10 @@ export const scenario: TestScenario = {
   tests:
     'Quatre Effets d’auteur testés au moteur mais orphelins de scénario (#96/#97), chacun câblé à un ' +
     'déclencheur réel : `medicalAid` (dialogue du médecin, soins payants distincts de Guérison), ' +
-    '`petitePriere` (autel interactif, LDB 25, option `prayer-petites`), `ambitionLost` (dialogue du ' +
-    'messager, ADE II Annexe I), `fall`+`inflictTrauma` (trappe vermoulue, LDB 15/18, repositionnement).',
+    // LDB 25
+    '`petitePriere` (autel interactif, option `prayer-petites`), `ambitionLost` (dialogue du ' +
+    // ADE II Annexe I ; LDB 15 ; LDB 18
+    'messager), `fall`+`inflictTrauma` (trappe vermoulue, repositionnement).',
   partyNote: 'Pré-tirés',
   construire: () => ({ party: makePregens(), scene: construireVillage() }),
   rules: { 'prayer-petites': true, 'psych-acquisition-optional': true },

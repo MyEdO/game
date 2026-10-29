@@ -93,6 +93,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   const isAboard = (h: Combatant) => (aboardSet ? aboardSet.has(h.id) : !h.dead);
 
   const journalMark = get().journal.length;
+  // MDG 13 l.674
   const opening: string[] = [t('wreck.sinks', { ship: shipName })];
   // Cascade Possession (#618 SOCLE POSSESSIONS) : `CampaignVessel` et `Possession{nature:'navire'}`
   // n'ont pas de `uid` partagé — la clé de jointure est `vehicleId` (`NavalPossessionState` miroite déjà
@@ -149,6 +150,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
       const tr = rollSansPilote(get, h, value, diff, rng);
       lines.push(traceLineOf({
         who: h.label, label: swimTestLabel(diff), roll: tr.roll, target: tr.target, success: tr.success,
+        // LDB 18 l.344
         issue: tr.success ? t('wreck.issueSwims') : t('wreck.issueDrowns'),
       }));
       if (tr.success) { h.outOfRencontre = false; h.exitReason = undefined; } else h.dead = true;

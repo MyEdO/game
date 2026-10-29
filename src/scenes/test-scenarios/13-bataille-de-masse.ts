@@ -85,7 +85,8 @@ export const scenario: TestScenario = {
   icon: 'action/attack',
   title: 'Bataille de masse',
   tests:
-    'Puissance de Bataille (ADE II 08) : Activités pré-combat, SITUATION par Round (sous-ensemble + menace ' +
+    // ADE II 08
+    'Puissance de Bataille : Activités pré-combat, SITUATION par Round (sous-ensemble + menace ' +
     'Intrus qui s\'impose + enchaînements), Scènes MULTI-PJ en Soutien (Test OU combat qui nourrit la Puissance en ' +
     'touches + kills), Rassemblement, Test spectaculaire de Puissance (10 + DR, min 5), issue.',
   partyNote: '4 pré-tirés (soldat, chasseur, sorcier, tueur)',

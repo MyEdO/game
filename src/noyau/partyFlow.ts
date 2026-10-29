@@ -357,6 +357,7 @@ export function buyCharAdvance(get: Get, set: Set, heroId: string, char: CharKey
     const clone: Combatant = structuredClone(h);
     const inC = inCareerChar(careerCtx(clone).careerChars, char);
     if (mentorRequis(get(), inC)) {
+      // LDB 07 l.89
       msg = t('pf.charNeedsMentor', { name: clone.label, what: CHAR_LABELS[char] });
       return h;
     }
@@ -391,6 +392,7 @@ export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: str
     const { statut: status, remise: discount } = competenceEnCarriere(clone, ctx.sSlots, ctx.designations, skillId, spec);
     const inC = status != null;
     if (known && mentorRequis(get(), inC)) {
+      // LDB 07 l.89
       msg = t('pf.charNeedsMentor', { name: clone.label, what: libelleAvecSpec(skillLabel, spec) });
       return h;
     }
