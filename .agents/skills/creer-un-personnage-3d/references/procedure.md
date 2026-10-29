@@ -163,7 +163,7 @@ surfaces réelles, sans coordonnées d'un ancien personnage. Emprunter les poids
 repos, puis ceux des chaînes requises ; transférer les silhouettes. Vérifier d'abord que les
 helpers nécessaires existent : ne pas confondre une extension prévue du kit avec une API livrée.
 
-Pour un personnage complet, trois agents à fichiers/sorties disjoints : tête et pilosité ;
+Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
 budget et fichiers possédés. Aucun agent ne modifie le kit partagé ni les voisins ; une adaptation
 nécessaire revient à l'orchestrateur. Sérialiser les builds lourds, chacun borné à **moins de 270 s**.

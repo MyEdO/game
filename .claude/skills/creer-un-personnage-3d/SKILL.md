@@ -21,7 +21,7 @@ substituer un rig personnel, morpher un corps par personnage ou réparer la base
 Construire avec `scripts/personnage-3d/`, une pièce à la fois ; interroger le porteur et emprunter
 ses poids. Les requêtes Blender servent à construire ; seule la mesure Node valide.
 
-Pour un personnage, répartir trois agents à fichiers et sorties disjoints : tête/pilosité ;
+Pour un personnage, répartir trois agents `modeleur` à fichiers et sorties disjoints : tête/pilosité ;
 corps/vêtements/armure ; rigides/accessoires. Borne de chaque build : moins de 270 s.
 Après deux échecs du même défaut, changer de méthode avant une troisième retouche.
 
