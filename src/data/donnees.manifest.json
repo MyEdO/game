@@ -625,7 +625,7 @@
           "files": [
             "garde-robe.json"
           ],
-          "desc": "LA garde-robe des éléments 3D — un document, le `kind` (`emplacement` · `piece` · `ensemble`) porté par l'entrée ; un ensemble habille UN objet ou UNE apparence de la liste ordonnée de ses pièces"
+          "desc": "LA garde-robe des éléments 3D, clés des éléments portés sur le corps — un document, le `kind` (`tete` · `coiffure` · `emplacement` · `piece` · `ensemble`) porté par l'entrée ; une tête par espèce jouable nomme sa `race` de rendu (`raceAppearance.json`) ; un ensemble habille UN objet ou UNE apparence de la liste ordonnée de ses pièces"
         },
         {
           "files": [

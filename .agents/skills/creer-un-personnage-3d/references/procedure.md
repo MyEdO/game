@@ -75,8 +75,8 @@ Lire la table exécutable des catégories avant d'écrire le manifeste :
 | Catégorie | Champs exacts de clé | Résolution à l'import | Liaison | Couleur |
 |---|---|---|---|---|
 | corps | partie, forme | non résolu à l'import | squelette | palette |
-| tete | tete | non résolu à l'import | squelette | palette |
-| pilosite | coiffure | non résolu à l'import | squelette | palette |
+| tete | tete | tête de `src/data/garde-robe.json` | squelette | palette |
+| pilosite | coiffure | coiffure de `src/data/garde-robe.json` | squelette | palette |
 | vetement | piece | pièce `vetement` de `src/data/garde-robe.json` | squelette | palette |
 | armure | piece | pièce `armure` de `src/data/garde-robe.json` | squelette | teinte |
 | accessoire | piece | pièce `accessoire` de `src/data/garde-robe.json` | rigide ou surface | teinte |
@@ -87,14 +87,17 @@ Lire la table exécutable des catégories avant d'écrire le manifeste :
 
 Un champ de clé qui a sa ligne dans `RESOLUTIONS` (`ecartsDeCleDElement`,
 `src/noyau/apparence/cleDElement.ts`) est résolu à l'import contre le fichier que nomme la colonne : absent, l'import le refuse `cle-inconnue` ; une pièce
-d'une autre catégorie que l'élément, `piece-hors-categorie`. Exemples : `{ "piece": "pourpoint" }`
+d'une autre catégorie que l'élément, `piece-hors-categorie`. Exemples : `{ "tete": "humain" }` (tete),
+`{ "coiffure": "crane-rase" }` (pilosite), `{ "piece": "pourpoint" }`
 (vetement), `{ "piece": "plastron" }` (armure), `{ "piece": "baudrier" }` (accessoire),
 `{ "apparence": "epee" }` (rigide).
 
 Choisir les ids sémantiques dans la donnée du jeu, jamais dans un libellé. Rechercher l'id et
-les variantes du concept avant d'en créer un. Une clé de tête n'a pas de sexe ; une variation de
-couleur n'ajoute aucun élément. Une pièce absente de la garde-robe s'y ajoute d'abord
-(skill `ajouter-une-donnee`) : l'import refuse son élément tant qu'elle manque. Un seul élément par
+les variantes du concept avant d'en créer un. Une clé de tête ou de coiffure n'a pas de sexe ; une variation de
+couleur n'ajoute aucun élément. Une tête, une coiffure ou une pièce absente de la garde-robe s'y
+ajoute d'abord (skill `ajouter-une-donnee`) : l'import refuse son élément tant qu'elle manque. Une
+tête existe par espèce jouable de `src/data/species.json` et nomme sa race de rendu dans son champ
+`race` ; une tête monstrueuse attend #3123 (têtes monstrueuses en donnée). Un seul élément par
 (base, clé) ; un nom local dérivé tel que `humanoide--rigide--epee` distingue les catégories,
 et pour un corps il inclut partie et forme. Le manifeste ne porte pas d'id arbitraire.
 
@@ -361,7 +364,7 @@ Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur liv
 | Besoin | Source à sonder | Lot si absent |
 |---|---|---|
 | base hachée et porte complète, chaînes/silhouettes et matrice | constructeur humanoïde, manifeste livré, rapports et revue | L1 |
-| garde-robe, pièces et ensembles résolvant la clé | données du jeu et identité publiée par le noyau | T |
+| garde-robe (têtes, coiffures, pièces, ensembles) résolvant la clé | données du jeu et identité publiée par le noyau | T |
 | constructeur par données, découverte AST et extensions du kit | kit personnage-3d, point d'entrée de construction | chaîne L1/L2, méthode L5 |
 | couverture, liaison et autres gardes complètes | appels de gardes de l'évaluateur Node | L1 |
 | import contrôlé schéma 3, unicité, rapport de couverture | importeur d'assets et ses tests | L3 |

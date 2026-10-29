@@ -108,7 +108,7 @@ import raceAppearanceJson from './raceAppearance.json';
 import gabaritsJson from './gabarits.json';
 import type { GabaritDef, GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 import gardeRobeJson from './garde-robe.json';
-import type { GardeRobeEntree, PieceDef } from './schemas/defs/garde-robe';
+import type { GardeRobeEntree } from './schemas/defs/garde-robe';
 import godsJson from './gods.json';
 import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
@@ -2977,11 +2977,16 @@ export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 /** Carrures du rig (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */
 export const gabarits = gabaritsJson as GabaritDef[];
 export const findGabaritById = indexParId('gabarits', gabarits);
-/** Garde-robe des éléments 3D (`garde-robe.json`, #3114) : emplacements, pièces, ensembles. */
+/** Garde-robe des éléments 3D (`garde-robe.json`, #3114, #3113) : têtes, coiffures, emplacements, pièces, ensembles. */
 export const gardeRobe = gardeRobeJson as GardeRobeEntree[];
-/** Résout une PIÈCE (`kind: 'piece'`) par son id ; une autre ligne de la garde-robe n'en est pas une. */
-const pieceParId = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'piece' ? e.id : undefined));
-export const findPieceById = (id: string | null | undefined): PieceDef | undefined => pieceParId(id) as PieceDef | undefined;
+/** Lecteur d'une nature de la garde-robe par id ; une ligne d'une autre nature n'en est pas une. */
+const parNature = <K extends GardeRobeEntree['kind']>(kind: K) => {
+  const idx = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === kind ? e.id : undefined));
+  return (id: string | null | undefined) => idx(id) as Extract<GardeRobeEntree, { kind: K }> | undefined;
+};
+export const findPieceById = parNature('piece');
+export const findTeteById = parNature('tete');
+export const findCoiffureById = parNature('coiffure');
 export const locations = locationsJson as LocationData[];
 const lieuParId = indexParId('locations', locations);
 /** Résout un Lieu par son `id` STABLE (cible de `LocationData.parent`). Le libellé ne sert qu'à l'affichage. */
