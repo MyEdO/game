@@ -42,6 +42,9 @@ import { touchActors } from './combatOrParty';
 import { battleRng } from './battleRng';
 import { toBrass, fromBrass, formatMoney } from '../engine/money';
 import { creditBourse, payWithAllocation, soloPayer } from './bourseFlow';
+import { refuseSi } from './verrousDeFiche';
+import { rule } from '../engine/policy';
+import type { Jeu } from './etat';
 import { bourseOf } from '../engine/bourse';
 import {
   freeCons, opposedAttackerLabel, monoStep, bandStep, choiceStep, quantityStep, rollStep, composeRollLabel, surfaceOf, effectiveTarget, tableStep, displayStep,
@@ -169,9 +172,22 @@ function tavernTestSpec(game: TavernGame): { skill?: string; char?: CharKey; spe
   return { skill: 'pari' };
 }
 
+/** La table de taverne est PARTAGÉE (une seule séquence) : seul l'hôte l'ouvre et y fait jouer ; un siège
+ *  invité est refusé. */
+export function refusDeTableDHote(s: Pick<Jeu, 'net'>): string | null {
+  return s.net.mode === 'guest' ? t('tavern.hoteSeul') : null;
+}
+
+/** Refus d'ouvrir la table : table d'hôte (`refusDeTableDHote`), puis option `tavern-games`
+ *  éteinte. Verdict UNIQUE du geste, de l'Effet qui l'ouvre et de l'écran ; `null` s'il ouvre. */
+export function refusDOuvrirLaTaverne(s: Pick<Jeu, 'net'>): string | null {
+  return refusDeTableDHote(s) ?? (rule('tavern-games') ? null : t('tavern.optionEteinte'));
+}
+
 /** OUVRE la table. `npcId` = le PNJ qui PROPOSE la partie (son dialogue vient de l'ouvrir) : la
  *  modale s'ouvre sur SON offre. GÉNÉRIQUE — tout PNJ à `tavernGame` en hérite, aucun n'est nommé. */
-export function openTavernGames(_get: Get, set: Set, npcId?: string): void {
+export function openTavernGames(get: Get, set: Set, npcId?: string): void {
+  if (refuseSi(get, set, refusDOuvrirLaTaverne)) return;
   set({ tavernGames: { result: null, ...(npcId ? { npcId } : {}) } });
 }
 
@@ -346,6 +362,7 @@ export function playTavernGame(
   // qu'une première court la faisait donc disparaître SANS verdict — sa mise engagée perdue, son
   // étape orpheline restant dans la fenêtre à côté de celle de la nouvelle. Le slot de séquence est
   // unique : on le dit ici plutôt que de laisser l'écrasement le découvrir.
+  if (refuseSi(get, set, refusDeTableDHote)) return;
   if (activeSequence(get)) {
     get().log(t('tavern.dejaEnCours'));
     return;

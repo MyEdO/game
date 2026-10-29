@@ -43,6 +43,8 @@ import {
   type ClashResult, type BattleOutcome, type HoldState, type BattleHold, type MassBattleSpec,
 } from '../engine/massBattle';
 import { t } from '../i18n';
+import { refusDActivite } from './verdictsDInterlude';
+import { refuseSi } from './verrousDeFiche';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Une armée engagée dans la Puissance de Bataille, modélisée comme un COMBATTANT INANIMÉ à Blessures
@@ -363,16 +365,11 @@ function openBattlePending(_get: Get, set: Set, o: {
   set({ pendingActivity: o.opposition ? { ...pa, ...o.opposition } : pa });
 }
 
-/** Budget d'Activités restant d'un héros — le budget UNIQUE de l'interlude (LDB 23 l.5 / ADE II 8
- *  l.65). Une prépa de bataille EST une Activité d'interlude : sans interlude ouvert, aucun budget. */
-function heroBudget(get: Get, heroId: string): number {
-  return get().interlude?.perHero[heroId]?.left ?? 0;
-}
-
-/** Héros MENEURS éligibles d'une Activité de préparation : vivants ET disposant du budget d'interlude
- *  (`left > 0`). Sans interlude ouvert, personne — une bataille sans préparation démarre au Round 1. */
+/** Héros éligibles au SOUTIEN d'une Activité de préparation : vivants ET que `refusDActivite` laisse agir (budget
+ *  UNIQUE d'interlude, LDB 23 l.5 / ADE II 8 l.65). Sans interlude ouvert, personne. */
 function budgetedParty(get: Get): Combatant[] {
-  return get().party.filter((h) => !h.dead && heroBudget(get, h.id) > 0);
+  const s = get();
+  return s.party.filter((h) => !h.dead && refusDActivite(s, h.id) === null);
 }
 
 // ── Activités pré-combat (l.79-110) ──────────────────────────────────────────────────────────────
@@ -472,10 +469,9 @@ export function battleActionRefus(mb: MassBattleState, party: Combatant[], def: 
   return (posted.length ? posted : party).some((c) => peutTenterAction(c, def)) ? null : refusTenterAction(posted, def);
 }
 
-/** Sélectionne l'équipe SOUTENUE (Soutien LDB 12) d'une Activité/Scène de bataille : les PJ POSTÉS (à
- *  défaut le meilleur PJ SEUL), puis la meilleure option assistée. Personne qui puisse tenter : refus nommé
- *  au journal, `null`. Source UNIQUE du motif crew→solo→team→picked (Planification l.81, Scènes multi-PJ
- *  l.116-118, tenue l.161). */
+/** Sélectionne l'équipe SOUTENUE (Soutien LDB 12) d'une Scène de Round : les PJ POSTÉS (à défaut le meilleur
+ *  PJ SEUL), puis la meilleure option assistée. Personne qui puisse tenter : refus nommé au journal, `null`.
+ *  Source UNIQUE du motif crew→solo→team→picked des Scènes (multi-PJ l.116-118, tenue l.161). */
 function resolveAssistedTeam(
   get: Get, mb: MassBattleState, party: Combatant[], def: ActivityDef,
 ): { team: Combatant[]; picked: NonNullable<ReturnType<typeof bestAssistedOption>> } | null {
@@ -487,19 +483,21 @@ function resolveAssistedTeam(
   return { team, picked };
 }
 
-/** Ouvre le Test d'une Activité de bataille pré-combat (Planification/Infiltration/… l.79-106). Un Test
- *  COMBINÉ (Infiltration/Repérage, `def.combined`) confronte UN jet aux DEUX compétences de l'acteur ;
- *  une Activité SOUTENABLE (`def.assisted`, Planification l.81) est résolue en Soutien multi-PJ. */
-export function openMassBattleActivity(get: Get, set: Set, activityId: string): void {
+/** Ouvre le Test d'une Activité de bataille pré-combat (Planification/Infiltration/… l.79-106), MENÉE par `heroId`.
+ *  Le meneur sans Activité restante ou qui ne peut pas tenter le Test est refusé, jamais remplacé. Un Test COMBINÉ
+ *  (Infiltration/Repérage, `def.combined`) confronte UN jet aux DEUX compétences du meneur ; une Activité SOUTENABLE
+ *  (`def.assisted`, Planification l.81) reçoit le Soutien des PJ postés. ADE II 8 l.65, LDB 09 l.30 */
+export function openMassBattleActivity(get: Get, set: Set, activityId: string, heroId: string): void {
   const mb = get().massBattle;
   const def = battleActivityById(activityId);
   if (!mb || mb.phase !== 'prep' || !def) return;
   if (mb.activitiesDone.includes(activityId)) return; // anti-répétition (l.67)
   const flags = prepFlags(mb);
   if (!(def.requires ?? []).every((f) => flags.has(f))) return;
-  // Budget UNIQUE (l.65) : seuls les meneurs disposant d'une Activité d'interlude peuvent préparer.
-  const party = budgetedParty(get);
-  if (!party.length) return;
+  if (refuseSi(get, set, (s) => refusDActivite(s, heroId))) return;
+  const hero = get().party.find((h) => h.id === heroId);
+  if (!hero) return;
+  if (refuseSi(get, set, () => (peutTenterAction(hero, def) ? null : refusTenterAction([hero], def)))) return;
   // Le Test dépense le RÉSERVOIR de modificateur que l'entrée déclare (Planification ⇐ Repérage/
   // Infiltration, `testModFrom: planningBonus`, l.75/100), et sa Difficulté peut être DÉRIVÉE de
   // l'écart d'armées (Discours inspirant, `difficultyFrom`, l.71).
@@ -507,14 +505,9 @@ export function openMassBattleActivity(get: Get, set: Set, activityId: string): 
   const modLabel = mod ? t('mbf.modPrep') : undefined;
   const difficulty = battleActivityDifficulty(def, mb);
   if (def.combined && def.skills && def.skills.length >= 2) {
-    // Test COMBINÉ (l.75/102) : le premier posté qui peut le tenter décide (sans poste, SUGGESTION = celui
-    // maximisant le PLUS FAIBLE des deux). Les DEUX valeurs de l'acteur retenu sont dérivées via une passe SINGLETON.
     const [sk1, sk2] = def.skills;
-    const posted = assignedHeroesFor(mb, party, activityId);
-    const picked = posted.length
-      ? posted.map((h) => bestForCombined([h], sk1, sk2, def.char)).find((p) => p !== null) ?? null
-      : bestForCombined(party, sk1, sk2, def.char);
-    if (!picked) { get().log(refusTenterAction(posted, def)); return; }
+    const picked = bestForCombined([hero], sk1, sk2, def.char);
+    if (!picked) return;
     openBattlePending(get, set, {
       actor: picked.actor, battle: 'prep', def, skillValue: picked.value1, skillId: def.skills[0].id, spec: def.skills[0].spec, char: def.char,
       difficulty, mod, modLabel,
@@ -523,11 +516,11 @@ export function openMassBattleActivity(get: Get, set: Set, activityId: string): 
     return;
   }
   if (def.assisted) {
-    // Activité SOUTENABLE (Planification l.81) : résolue comme une Scène de Round. Équipe = les PJ POSTÉS ;
-    // à défaut, la SUGGESTION = le meilleur PJ SEUL. Valeur SOUTENUE (`bestAssistedOption`, LDB 12).
-    const at = resolveAssistedTeam(get, mb, party, def);
-    if (!at) return;
-    const { team, picked } = at;
+    // Activité SOUTENABLE (Planification l.81) : le meneur, soutenu par les PJ POSTÉS qui gardent une Activité.
+    // Valeur SOUTENUE (`bestAssistedOption`, LDB 12).
+    const team = [hero, ...assignedHeroesFor(mb, budgetedParty(get), activityId).filter((h) => h.id !== heroId)];
+    const picked = bestAssistedOption(team, def.skills, def.char, hero);
+    if (!picked) return;
     openBattlePending(get, set, {
       actor: picked.actor, battle: 'prep', def, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec, char: def.char,
       difficulty, mod, modLabel,
@@ -535,13 +528,9 @@ export function openMassBattleActivity(get: Get, set: Set, activityId: string): 
     });
     return;
   }
-  // Activité SOLO (RAW l.75/102/106 « un Personnage », sans aide) : le premier posté qui peut la tenter (sans
-  // poste, SUGGESTION).
-  const posted = assignedHeroesFor(mb, party, activityId);
-  const picked = posted.length
-    ? posted.map((h) => bestForSkills([h], def.skills, def.char)).find((p) => p !== null) ?? null
-    : bestForSkills(party, def.skills, def.char);
-  if (!picked) { get().log(refusTenterAction(posted, def)); return; }
+  // Activité SOLO (RAW l.75/102/106 « un Personnage », sans aide).
+  const picked = bestForSkills([hero], def.skills, def.char);
+  if (!picked) return;
   openBattlePending(get, set, {
     actor: picked.actor, battle: 'prep', def, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec, char: def.char,
     difficulty, mod, modLabel,
@@ -973,7 +962,7 @@ export function creerActionsDeBatailleDeMasse(get: Get, set: Set) {
     // Combat de masse / Puissance de Bataille (ADE II 08) — flux d'orchestration + jet de PJ différé.
     startMassBattle: (spec) => startMassBattle(get, set, spec),
     massBattleBegin: () => massBattleBegin(get, set),
-    massBattleActivity: (activityId) => openMassBattleActivity(get, set, activityId),
+    massBattleActivity: (activityId, heroId) => openMassBattleActivity(get, set, activityId, heroId),
     massBattleScene: (sceneId) => openMassBattleScene(get, set, sceneId),
     setMassBattleHero: (actionId, heroIds) => setMassBattleHero(get, set, actionId, heroIds),
     massBattleRally: () => openMassBattleRally(get, set),

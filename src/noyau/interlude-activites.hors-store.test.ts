@@ -11,6 +11,7 @@ import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import { battleActivityById, peutTenterAction } from './massBattleFlow';
 
 /** Texte FIGÉ du refus « plus d'Activité » du héros de ce banc. */
 const PLUS_D_ACTIVITE = 'Vétéran n’a plus d’Activité d’interlude.';
@@ -119,7 +120,7 @@ describe('refusDActivite — un geste qui consomme une Activité', () => {
     const { banc, heroId } = apresLeTirage();
     banc.actions.startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     expect(banc.getState().massBattle?.phase, 'témoin : la bataille attend sa préparation').toBe('prep');
-    banc.actions.massBattleActivity('reperage');
+    banc.actions.massBattleActivity('reperage', heroId);
     expect(banc.getState().pendingActivity?.battle, 'témoin : une préparation est ouverte').toBe('prep');
     banc.actions.activityRoll();
     expect(banc.getState().pendingActivity?.roll, 'témoin : le jet est posé').toBeTypeOf('number');
@@ -156,5 +157,33 @@ describe('refusDuTirage — un geste qui ne consomme pas d’Activité', () => {
     const { banc, heroId } = enTirage();
     expect(journalDe(banc, () => banc.actions.interludeWithdraw(0))).toEqual([TIRAGE_EN_ATTENTE]);
     expect(banc.getState().bank[0]).toEqual({ heroId, kind: 'stash', brass: 100, rate: 0 });
+  });
+});
+
+describe('massBattleActivity — la préparation de bataille est MENÉE par le héros nommé (ADE II 8 l.65)', () => {
+  it('meneur sans Activité restante : refusé et dit, sans repli sur un autre héros, rien n’est consommé', () => {
+    const veteranne = veteran();
+    const compagnon = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Compagnon', seed: 1602 }), { gold: 1, silver: 0, brass: 0 });
+    const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [veteranne, compagnon] } });
+    banc.actions.startInterlude(1);
+    draineCascade(banc.getState);
+    epuiser(banc, veteranne.id);
+    banc.actions.startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    const prepa = ['inspire', 'reperage', 'rassembler-des-forces']
+      .find((id) => [veteranne, compagnon].every((h) => peutTenterAction(h, battleActivityById(id)!)))!;
+    expect(banc.getState().interlude!.perHero[compagnon.id].left, 'témoin : le compagnon garde une Activité').toBeGreaterThan(0);
+    const avant = JSON.stringify([banc.getState().interlude, banc.getState().massBattle]);
+    expect(journalDe(banc, () => banc.actions.massBattleActivity(prepa, veteranne.id))).toEqual([PLUS_D_ACTIVITE]);
+    expect(banc.getState().pendingActivity, 'la préparation s’est ouverte sur un autre héros').toBeNull();
+    expect(JSON.stringify([banc.getState().interlude, banc.getState().massBattle])).toBe(avant);
+  });
+
+  it('meneur qui ne peut pas tenter le Test : refusé et dit, sans repli sur un autre héros', () => {
+    const { banc, heroId } = apresLeTirage();
+    banc.actions.startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    expect(peutTenterAction(banc.getState().party[0], battleActivityById('planification')!), 'témoin : sans Savoir (Guerre)').toBe(false);
+    expect(journalDe(banc, () => banc.actions.massBattleActivity('planification', heroId)))
+      .toEqual(['Aucun Personnage désigné (Vétéran) ne peut tenter « Planification ».']);
+    expect(banc.getState().pendingActivity).toBeNull();
   });
 });

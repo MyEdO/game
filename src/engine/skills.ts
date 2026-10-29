@@ -449,7 +449,18 @@ export function partyAssisted(
   spec?: string,
   eligible?: (c: Combatant) => boolean,
 ): { actor: Combatant; value: number; base: number; support: SupportDetail } | null {
-  const leader = partyBest(party, skill, characteristic, extraMod, spec);
+  return soutenuPar(party, partyBest(party, skill, characteristic, extraMod, spec), skill, characteristic, spec, eligible);
+}
+
+/** Le Test SOUTENU d'un meneur déjà retenu (`leader`, sa valeur seule) : `partyAssisted` sans le choix du meneur. */
+function soutenuPar(
+  party: Combatant[],
+  leader: { actor: Combatant; value: number } | null,
+  skill?: string,
+  characteristic?: CharKey,
+  spec?: string,
+  eligible?: (c: Combatant) => boolean,
+): { actor: Combatant; value: number; base: number; support: SupportDetail } | null {
   if (!leader) return null;
   const support = soutienDetail(party, leader.actor, skill, characteristic, spec, eligible);
   return {
@@ -506,12 +517,19 @@ export function bestAssistedOption(
   crew: Combatant[],
   skills: RefDesignee[] | undefined,
   char: CharKey | undefined,
+  meneur?: Combatant,
 ): { actor: Combatant; value: number; skillId?: string; spec?: string; support: SupportDetail } | null {
   // Options = les compétences AU CHOIX de la Scène, ou une unique option de PURE Caractéristique (repli
-  // char-only, calqué sur `bestForSkills`). Chaque option est résolue en Soutien sur TOUT l'équipage `crew`.
+  // char-only, calqué sur `bestForSkills`). Chaque option est résolue en Soutien sur TOUT l'équipage `crew`,
+  // menée par `meneur` quand le geste le nomme, par le plus compétent sinon.
   const options: RefDesignee[] = skills?.length ? skills : [{ id: undefined as unknown as string, spec: undefined }];
   const perOption = options
-    .map((opt) => ({ opt, res: partyAssisted(crew, opt.id, char, undefined, opt.spec) }))
+    .map((opt) => ({
+      opt,
+      res: meneur
+        ? soutenuPar(crew, partyBest([meneur], opt.id, char, undefined, opt.spec), opt.id, char, opt.spec)
+        : partyAssisted(crew, opt.id, char, undefined, opt.spec),
+    }))
     .filter((x): x is { opt: RefDesignee; res: NonNullable<ReturnType<typeof partyAssisted>> } => x.res !== null);
   const r = maxBy(perOption, (x) => x.res.value);
   return r
