@@ -6,7 +6,7 @@
  * module de test, pas de périmètre runtime.
  */
 import type { CascadeApplier } from '../noyau/cascade';
-import type { GameState } from './store';
+import type { Jeu } from '../noyau/etat';
 import type { BatchParticipant, CascadeStep, PendingCascade } from '../noyau/pendings';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
 import type { ModLine } from '../engine/combat';
@@ -76,7 +76,7 @@ export type ChoisitCle = (etape: CascadeStep) => string | undefined;
 
 /** Le dé d'une TABLE ou d'un DÉ NU, jumeaux (#1508) : POSÉ si le banc le fixe (« Dés fixés » — le dé posé
  *  remplace aussi un dé résolu d'office), LAISSÉ si le banc le refuse, LANCÉ sinon s'il n'est pas tombé. */
-function jetteLeDe(get: () => GameState, cur: CascadeStep, poser?: PoseDe): void {
+function jetteLeDe(get: () => Jeu, cur: CascadeStep, poser?: PoseDe): void {
   if (cur.table && cur.de) throw new Error(`étape « ${cur.id} » : elle porte à la fois une \`table\` et un \`de\` — le kit ne sait quel dé jouer`);
   const s = get();
   const porteur = cur.table
@@ -104,7 +104,7 @@ function jetteLeDe(get: () => GameState, cur: CascadeStep, poser?: PoseDe): void
  * se présente ici en `'affichage'` : rien à lancer, on valide — le kit n'a AUCUNE branche pour la
  * politique du socle, il joue ce que la fenêtre offre.
  */
-export function avanceEtapeCascade(get: () => GameState, poser?: PoseDe, choisir?: ChoisitCle): string | undefined {
+export function avanceEtapeCascade(get: () => Jeu, poser?: PoseDe, choisir?: ChoisitCle): string | undefined {
   const p = get().pendingCascade;
   if (!p) return undefined;
   const cur = p.participants[p.cursor];
@@ -136,7 +136,7 @@ export function avanceEtapeCascade(get: () => GameState, poser?: PoseDe, choisir
 
 /** DRAINE la cascade active jusqu'à sa clôture (ou `max` étapes — garde d'emballement), en jouant
  *  chaque étape par `avanceEtapeCascade`. Rend les `kind` rencontrés, dans l'ordre. */
-export function draineCascade(get: () => GameState, max = 200, poser?: PoseDe, choisir?: ChoisitCle): string[] {
+export function draineCascade(get: () => Jeu, max = 200, poser?: PoseDe, choisir?: ChoisitCle): string[] {
   const kinds: string[] = [];
   for (let i = 0; i < max && get().pendingCascade; i++) {
     const k = avanceEtapeCascade(get, poser, choisir);
@@ -157,7 +157,7 @@ export function draineCascade(get: () => GameState, max = 200, poser?: PoseDe, c
  * Les étapes sont relues à CHAQUE pas (une étape apparaît en cours de route, une autre reçoit sa
  * conséquence à son commit) et indexées par id — jamais deux fois la même ligne.
  */
-export function draineEtLit(get: () => GameState, max = 200): string[] {
+export function draineEtLit(get: () => Jeu, max = 200): string[] {
   const parEtape = new Map<string, string[]>();
   const capte = () => {
     for (const s of get().pendingCascade?.participants ?? []) {
@@ -181,7 +181,7 @@ export function draineEtLit(get: () => GameState, max = 200): string[] {
  * prix → Marchandage) : sans l'horloge, le drainage rendrait la main entre deux maillons et le geste
  * du joueur paraîtrait sans effet. Le kit ne POSSÈDE pas l'horloge du test — il la demande.
  */
-export function draineCascadeDifferee(get: () => GameState, avancerTimers: () => void, max = 20): string[] {
+export function draineCascadeDifferee(get: () => Jeu, avancerTimers: () => void, max = 20): string[] {
   const kinds: string[] = [];
   for (let i = 0; i < max && get().pendingCascade; i++) {
     const k = avanceEtapeCascade(get);

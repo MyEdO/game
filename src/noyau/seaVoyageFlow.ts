@@ -95,7 +95,8 @@ import { crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewT
 import type { NightEntry } from './restFlow';
 import { provisioningManifest } from '../engine/provisions';
 import { toMoney, canAfford, type Money } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, refuseLeGesteDeGroupe, totalDesBourses } from './bourseFlow';
+import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
+import { refuseSi } from './verrousDeFiche';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog } from './combatEffects';
@@ -2573,7 +2574,7 @@ export function refusDePayerManann(s: Pick<Jeu, 'net' | 'party' | 'pendingManann
 export function resolveManannPriest(get: Get, set: Set, pay: boolean): void {
   const p = get().pendingManannPriest;
   if (!p) return;
-  if (refuseLeGesteDeGroupe(get, set)) return;
+  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const refus = pay ? refusDePayerManann(get()) : null;
   if (refus) { refuserGeste(get, set, refus); return; }
   set({ pendingManannPriest: null });

@@ -3,10 +3,12 @@ import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
 import { interludeEventFor } from '../data/interludeEvents';
 import { memoParVersion } from '../data/versionDataset';
-import { formatMoney, fromBrass, toBrass, toMoney, add as moneyAdd, PA_PER_SC, type Money } from '../engine/money';
+import { formatMoney, fromBrass, toBrass, toMoney, PA_PER_SC, type Money } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { heroStatus, heroClass, incomeSkillOf, interludeCatalog, bestActivitySkill, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
+import { desEnAttente, interludeDrawPending, refusDActivite, refusDeRetrait, refusDuTirage, type EtatDInterlude } from '../noyau/verdictsDInterlude';
+import { totalDesBourses } from '../noyau/bourseFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, battleActivityDifficulty, battlePrepEntries, peutTenterAction, refusTenterAction, type MassBattleState } from '../noyau/massBattleFlow';
 import {
@@ -54,7 +56,7 @@ import { SearchFilterField, useFilteredList } from './SearchFilterField';
 import { MasterDetail } from './MasterDetail';
 import { Tabs } from './composites/Tabs';
 import { t } from '../i18n';
-import { GatedAction, lieeA, type PropsDeRaison } from './GatedAction';
+import { GatedAction, lieeA, raisonSi, type PropsDeRaison } from './GatedAction';
 
 /** Repli NOMMÉ d'une Activité fermée. Jamais une chaîne VIDE : `GatedAction` ne tient `aria-disabled`
  *  que s'il a une raison à faire atteindre — sans texte il rendrait un `disabled` natif, donc un
@@ -144,7 +146,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   const party = seam?.party ?? storeParty;
   // Somme des bourses PERSONNELLES du groupe (#531) — plus aucune bourse commune. Affichages agrégés
   // (bandeau de synthèse, récap de clôture) ; les affordances PAR héros lisent `bourseOf(hero)`.
-  const money = seam?.money ?? party.reduce((sum, h) => moneyAdd(sum, bourseOf(h)), { gold: 0, silver: 0, brass: 0 });
+  const money = seam?.money ?? totalDesBourses(party);
   const bank = seam?.bank ?? storeBank;
   const pendingOrders = seam?.pendingOrders ?? storeOrders;
   const favors = seam?.favors ?? storeFavors ?? [];
@@ -175,6 +177,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   const ownsHero = (id: string) => ownsLocalNet(net, id);
   const ownerName = (id: string) => nomDuSiege(net, net.ownership[id] ?? 0);
   const isGuest = net.mode === 'guest';
+  const etat: EtatDInterlude = { interlude, party, bank };
   return (
     <div className="interlude-shell tx-ink">
       <div className="interlude-column">
@@ -194,7 +197,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
         />
         <RuleDivider label={phase === 'events' ? 'Les nouvelles de la période' : 'Les Activités du groupe'} />
         {phase === 'events' ? (
-          <EventsIntro heroes={heroes} interlude={interlude} onDone={() => setPhase('activities')} />
+          <EventsIntro heroes={heroes} etat={etat} onDone={() => setPhase('activities')} />
         ) : (
           <>
             {massBattle?.phase === 'prep' && <BattleBanner mb={massBattle} />}
@@ -209,6 +212,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
               )}
               {activeHero && (
                 <HeroCard
+                  etat={etat}
                   hero={activeHero}
                   st={interlude.perHero[activeHero.id]}
                   catalog={catalog}
@@ -225,7 +229,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
             {bank.length > 0 && (
               <section className="interlude-hero panel">
                 <h3><Icon id="resource/gold-purse" size="sm" /> Dépôts en cours</h3>
-                <BankList bank={bank} party={party} interlude={interlude} canDrive={ownsHero} />
+                <BankList etat={etat} canDrive={ownsHero} />
               </section>
             )}
             {/* Jeux de taverne (NADJ 16) — délassement entre deux aventures ; affordance montrée
@@ -260,11 +264,10 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
 }
 
 /** Pips d'Activités restantes (●○) d'un héros — partagés entre le bandeau et les tooltips. */
-function ActivityPips({ st, weeks }: { st: InterludeHeroState; weeks: number }) {
-  const total = Math.max(st.left, Math.min(3, weeks));
+function ActivityPips({ st }: { st: InterludeHeroState }) {
   return (
     <span className="interlude-pips" title={`${st.left} Activité${st.left > 1 ? 's' : ''} restante${st.left > 1 ? 's' : ''}`}>
-      {'●'.repeat(st.left)}{'○'.repeat(Math.max(0, total - st.left))}
+      {'●'.repeat(st.left)}{'○'.repeat(Math.max(0, st.granted - st.left))}
     </span>
   );
 }
@@ -290,7 +293,7 @@ function SynthBar({ heroes, interlude, money, activeId, ownsHero, ownerName }: {
             <CharFrame c={h} variant="full" size="sm" maxStates={3} />
             <div className="interlude-synth-meta">
               <span className="interlude-synth-name">{h.label}</span>
-              <ActivityPips st={st} weeks={interlude.weeks} />
+              <ActivityPips st={st} />
               {!ownsHero(h.id) && (
                 <span className="interlude-owner"><Icon id="nav/seat-owner" size="sm" /> {ownerName(h.id)}</span>
               )}
@@ -357,11 +360,13 @@ function fxChips(st: InterludeHeroState, hero: Combatant): { icon: IconId; label
 
 /** Phase 1 — les événements d100 de la période, racontés héros par héros (audit M1). L'impact
  *  mécanique se lit en chips ET dans le bandeau de synthèse (déjà appliqué au store). */
-function EventsIntro({ heroes, interlude, onDone }: { heroes: Combatant[]; interlude: InterludeState; onDone: () => void }) {
+function EventsIntro({ heroes, etat, onDone }: { heroes: Combatant[]; etat: EtatDInterlude; onDone: () => void }) {
   // Dés d'Événement encore à poser (#942 L7, phase 'tirage') : la pose se fait dans la fenêtre de
   // séquence (`CascadeModal`), jamais ici — la chronique ATTEND, elle n'affiche pas un dé qui
-  // n'existe pas, et les Activités ne s'ouvrent pas avant le dernier dé.
-  const enAttente = heroes.filter((h) => interlude.perHero[h.id].eventRoll == null);
+  // n'existe pas, et les Activités ne s'ouvrent pas avant le dénouement du tirage.
+  const interlude = etat.interlude!;
+  const tirage = interludeDrawPending(etat);
+  const enAttente = desEnAttente(etat);
   return (
     <>
       <p className="interlude-phase-hint">
@@ -400,18 +405,20 @@ function EventsIntro({ heroes, interlude, onDone }: { heroes: Combatant[]; inter
         })}
       </div>
       <div className="interlude-phase-actions">
-        {enAttente.length > 0 && (
+        {tirage && (
           <p className="hint" id="interlude-draw-pending">
-            {enAttente.length} dé{enAttente.length > 1 ? 's' : ''} d’Événement à poser ({enAttente.map((h) => h.label).join(', ')}) avant d’entreprendre la moindre Activité.
+            {enAttente.length > 0
+              ? t('interlude.events.pending', { n: enAttente.length, s: enAttente.length > 1 ? 's' : '', names: enAttente.map((h) => h.label).join(', ') })
+              : t('interlude.events.groupPending')}
           </p>
         )}
         {/* La raison est DÉJÀ à l'écran (le rappel des dés en attente) : l'action s'y LIE au lieu
             d'ouvrir une bulle qui la redirait — forme `reasonId`, `aria-disabled` + clic inerte. */}
         <GatedAction
           id="interlude-events-next"
-          {...lieeA(enAttente.length > 0 ? 'interlude-draw-pending' : undefined)}
+          {...lieeA(tirage ? 'interlude-draw-pending' : undefined)}
           label={t('interlude.events.next')}
-          enabled={enAttente.length === 0}
+          enabled={!tirage}
           onClick={onDone}
         />
       </div>
@@ -448,7 +455,9 @@ const PANE_ICON = {
   entrainement: 'nav/compendium',
 } as const;
 
-function HeroCard({ hero, st, catalog, mecenat, favors, massBattle, canDrive, ownerName, pane, onPane }: {
+function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDrive, ownerName, pane, onPane }: {
+  /** L'état que lisent les verdicts d'interlude (`noyau/verdictsDInterlude.ts`). */
+  etat: EtatDInterlude;
   hero: Combatant; st: InterludeHeroState;
   /** Faveurs dues par CE héros (LDB 23, #509) — gate l'affordance « Acquitter une Faveur ». */
   favors: Favor[];
@@ -469,12 +478,13 @@ function HeroCard({ hero, st, catalog, mecenat, favors, massBattle, canDrive, ow
   // Le dé peut manquer (phase 'tirage', #942 L7) : la rangée d'événement dit alors l'attente.
   const ev = st.eventRoll != null ? interludeEventFor(st.eventRoll) : null;
   const status = heroStatus(hero);
-  const none = st.left <= 0 || !canDrive;
-  // Raison NOMMÉE de la fermeture GLOBALE des Activités de ce héros — une seule formulation, portée
-  // par chaque volet jusqu'à son action (un bouton fermé dit toujours pourquoi).
-  const noneRaison = !canDrive
-    ? 'Ce héros est mené par un autre joueur.'
-    : st.left <= 0 ? 'Plus d’Activité d’interlude pour ce héros.' : undefined;
+  // Raisons NOMMÉES de la fermeture des Activités de ce héros, portées par chaque volet jusqu'à son
+  // action : le verdict du noyau (`refusDActivite` pour une Activité, `refusDuTirage` pour engager un
+  // Artisanat, qui n'en consomme pas), ou la possession coop.
+  const mene = canDrive ? null : t('interlude.drivenElsewhere');
+  const refusAct = mene ?? refusDActivite(etat, hero.id) ?? undefined;
+  const refusEngagement = mene ?? refusDuTirage(etat, hero.id) ?? undefined;
+  const refusDe = (key: string): string | undefined => (key === 'craft' && !hero.craft ? refusEngagement : refusAct);
   // Affordance PAR héros : chaque débit d'Activité (matériaux/tuteur/commande/dépôt) est ponctionné
   // sur la bourse PERSONNELLE du héros actif (#531), jamais sur un total de groupe.
   const purse = bourseOf(hero);
@@ -491,19 +501,19 @@ function HeroCard({ hero, st, catalog, mecenat, favors, massBattle, canDrive, ow
   /** … et son PORTEUR : cette desc EST le champ `desc` de l'entrée d'Activité de même id. */
   const corePorteur = (id: string): Porteur => ({ type: 'activities', id, chemin: 'desc' });
   const detail =
-    pane === 'revenus' ? <RevenusPane hero={hero} st={st} refus={noneRaison} desc={coreDesc('revenus')} porteur={corePorteur('revenus')} />
+    pane === 'revenus' ? <RevenusPane hero={hero} st={st} refus={refusAct} desc={coreDesc('revenus')} porteur={corePorteur('revenus')} />
     : pane === 'craft' ? (hero.craft
-        ? <CraftProgressPane hero={hero} craft={hero.craft} refus={noneRaison} desc={coreDesc('craft')} porteur={corePorteur('craft')} />
-        : <CraftPane hero={hero} refus={noneRaison} money={purse} desc={coreDesc('craft')} porteur={corePorteur('craft')} />)
-    : pane === 'learn' ? <LearnPane hero={hero} refus={noneRaison} fails={st.learnFails} money={purse} desc={coreDesc('learn')} porteur={corePorteur('learn')} />
-    : pane === 'order' ? <OrderPane hero={hero} refus={noneRaison} money={purse} />
-    : pane === 'bank' ? <BankPane hero={hero} refus={noneRaison} bronzeBlocked={status.tier === 'bronze'} money={purse} mecenat={mecenat} />
-    : pane === 'identify' ? <IdentifyPane hero={hero} refus={noneRaison} desc={coreDesc('identify')} porteur={corePorteur('identify')} />
-    : pane === 'entrainement' ? <EntrainementPane hero={hero} refus={noneRaison} money={purse} desc={coreDesc('entrainement')} porteur={corePorteur('entrainement')} />
-    : pane === 'favor-settle' && favors.length ? <FavorSettlePane hero={hero} refus={noneRaison} favors={favors} />
+        ? <CraftProgressPane hero={hero} craft={hero.craft} refus={refusAct} desc={coreDesc('craft')} porteur={corePorteur('craft')} />
+        : <CraftPane hero={hero} refus={refusEngagement} money={purse} desc={coreDesc('craft')} porteur={corePorteur('craft')} />)
+    : pane === 'learn' ? <LearnPane hero={hero} refus={refusAct} fails={st.learnFails} money={purse} desc={coreDesc('learn')} porteur={corePorteur('learn')} />
+    : pane === 'order' ? <OrderPane hero={hero} refus={refusAct} money={purse} />
+    : pane === 'bank' ? <BankPane hero={hero} refus={refusAct} bronzeBlocked={status.tier === 'bronze'} money={purse} mecenat={mecenat} />
+    : pane === 'identify' ? <IdentifyPane hero={hero} refus={refusAct} desc={coreDesc('identify')} porteur={corePorteur('identify')} />
+    : pane === 'entrainement' ? <EntrainementPane hero={hero} refus={refusAct} money={purse} desc={coreDesc('entrainement')} porteur={corePorteur('entrainement')} />
+    : pane === 'favor-settle' && favors.length ? <FavorSettlePane hero={hero} refus={refusAct} favors={favors} />
     : def ? (def.contexts.includes('bataille')
-        ? <BattlePrepPane hero={hero} def={def} refus={noneRaison} entry={prepState?.get(def.id)} />
-        : <CatalogPane hero={hero} def={def} refus={noneRaison} />)
+        ? <BattlePrepPane hero={hero} def={def} refus={refusAct} entry={prepState?.get(def.id)} />
+        : <CatalogPane hero={hero} def={def} refus={refusAct} />)
     : <p className="interlude-detail interlude-master-empty">Choisissez une Activité à gauche pour voir sa description et le jet à faire.</p>;
   return (
     <section className={`interlude-hero panel${pane ? ' active' : ''}`}>
@@ -522,7 +532,7 @@ function HeroCard({ hero, st, catalog, mecenat, favors, massBattle, canDrive, ow
         className="interlude-master"
         listLabel={`Activités de ${hero.label}`}
         list={
-          <ActivityList hero={hero} catalog={catalog} favors={favors} pane={pane} onPane={onPane} canDrive={canDrive} none={none} ownerName={ownerName} />
+          <ActivityList hero={hero} catalog={catalog} favors={favors} pane={pane} onPane={onPane} canDrive={canDrive} refusDe={refusDe} ownerName={ownerName} />
         }
         detail={detail}
       />
@@ -533,12 +543,15 @@ function HeroCard({ hero, st, catalog, mecenat, favors, massBattle, canDrive, ow
 /** Slot GAUCHE du maître-détail (`MasterDetail`) : liste des Activités du héros — les 6 activités
  *  « socle » (LDB/ADE II, volets dédiés) + les Activités du catalogue SANS volet dédié (Mécénat
  *  exclu : variante du volet Banque). Filtre si la liste est longue (`SearchFilterField`). */
-function ActivityList({ hero, catalog, favors, pane, onPane, canDrive, none, ownerName }: {
+function ActivityList({ hero, catalog, favors, pane, onPane, canDrive, refusDe, ownerName }: {
   hero: Combatant; catalog: ActivityDef[];
   /** Faveurs dues par ce héros (LDB 23, #509) — l'entrée « Acquitter une Faveur » n'apparaît que si non-vide. */
   favors: Favor[];
   pane: string | null; onPane: (pane: string | null) => void;
-  canDrive: boolean; none: boolean; ownerName?: string;
+  canDrive: boolean;
+  /** Refus de l'entrée `key` (verdict du noyau), ou `undefined` : une entrée refusée reste refermable. */
+  refusDe: (key: string) => string | undefined;
+  ownerName?: string;
 }) {
   const item = (key: string, label: ReactNode, textLabel: string) => ({
     id: key,
@@ -549,8 +562,8 @@ function ActivityList({ hero, catalog, favors, pane, onPane, canDrive, none, own
         id={`interlude-act-${key}`}
         label={label}
         ariaLabel={textLabel}
-        enabled={canDrive && !(none && pane !== key)}
-        reason={canDrive ? 'Plus d’Activité d’interlude pour ce héros.' : `Mené par ${ownerName ?? 'un autre joueur'}.`}
+        enabled={canDrive && (!refusDe(key) || pane === key)}
+        {...raisonSi(canDrive ? refusDe(key) : t('interlude.drivenBy', { owner: ownerName ?? t('interlude.otherPlayer') }))}
         onClick={() => onPane(pane === key ? null : key)}
         primary={false}
         ariaPressed={pane === key}
@@ -631,7 +644,7 @@ function RevenusPane({ hero, st, refus, desc, porteur }: { hero: Combatant; st: 
 }
 
 /** Lancer d'un ouvrage EN COURS — « Chaque Activité […] vous permet d'effectuer un lancer pour
- *  votre Test étendu » (ch.23 l.92). */
+ *  votre Test étendu » (LDB 23 l.102). */
 function CraftProgressPane({ hero, craft, refus, desc, porteur }: {
   hero: Combatant; craft: NonNullable<Combatant['craft']>; refus?: string; desc?: string; porteur?: Porteur;
 }) {
@@ -700,7 +713,7 @@ function TrappingSelect({ options, value, onChange, detail }: {
   );
 }
 
-/** Engager un Artisanat (ch.23 l.66) : catalogue + Atouts/Défauts visés ; matériaux ¼ du prix. */
+/** Engager un Artisanat (LDB 23 l.76) : catalogue + Atouts/Défauts visés ; matériaux ¼ du prix. */
 function CraftPane({ hero, refus, money, desc, porteur }: { hero: Combatant; refus?: string; money: Money; desc?: string; porteur?: Porteur }) {
   const craftStart = useGame((s) => s.interludeCraftStart);
   const catalog = useMemo(() => craftCatalog(), []);
@@ -764,7 +777,7 @@ function CraftPane({ hero, refus, money, desc, porteur }: { hero: Combatant; ref
   );
 }
 
-/** Apprentissage particulier (ch.23 l.58-63) : Talent hors carrière — Test Difficile (−20) sur la
+/** Apprentissage particulier (LDB 23 l.66-72) : Talent hors carrière — Test Difficile (−20) sur la
  *  Caractéristique du Maxi (+10 par tentative ratée) ; PX et argent perdus MÊME sur un échec. */
 function LearnPane({ hero, refus, fails, money, desc, porteur }: { hero: Combatant; refus?: string; fails?: Record<string, number>; money: Money; desc?: string; porteur?: Porteur }) {
   const activity = useGame((s) => s.interludeActivity);
@@ -832,7 +845,7 @@ function LearnPane({ hero, refus, fails, money, desc, porteur }: { hero: Combata
   );
 }
 
-/** Entraînement (ch.23 l.130-136) : Compétence ou Caractéristique HORS carrière, avec un tuteur —
+/** Entraînement (LDB 23 l.132-136) : Compétence ou Caractéristique HORS carrière, avec un tuteur —
  *  PAS de jet (achat direct comme Passer commande/Banque). Coût = PX normal (hors carrière, déjà
  *  doublé) + tuteur 1D10 sc, doublé pour une Compétence Avancée (l.135). */
 function EntrainementPane({ hero, refus, money, desc, porteur }: { hero: Combatant; refus?: string; money: Money; desc?: string; porteur?: Porteur }) {
@@ -927,7 +940,7 @@ function FavorSettlePane({ hero, refus, favors }: { hero: Combatant; refus?: str
   );
 }
 
-/** Passer commande (ch.23 l.167-172) : objet Exotique payé MAINTENANT, livré au prochain interlude.
+/** Passer commande (LDB 23 l.178-184) : objet Exotique payé MAINTENANT, livré au prochain interlude.
  *  Pas de jet — le pied porte le coût et la formule. */
 function OrderPane({ hero, refus, money }: { hero: Combatant; refus?: string; money: Money }) {
   const order = useGame((s) => s.interludeOrder);
@@ -960,7 +973,7 @@ function OrderPane({ hero, refus, money }: { hero: Combatant; refus?: string; mo
   );
 }
 
-/** Opérations bancaires (ch.23 l.154-165) + Mécénat (ACE 12 l.45-49) : dépôt sans jet — le pied porte
+/** Opérations bancaires (LDB 23 l.164-176) + Mécénat (ACE 12 l.45-49) : dépôt sans jet — le pied porte
  *  les formules (Indice d'intérêts, découverte de planque) et les trois dépôts possibles. */
 function BankPane({ hero, refus, bronzeBlocked, money, mecenat }: { hero: Combatant; refus?: string; bronzeBlocked: boolean; money: Money; mecenat?: ActivityDef }) {
   const bankDeposit = useGame((s) => s.interludeBank);
@@ -1251,19 +1264,16 @@ function BattlePrepPane({ hero, def, refus, entry }: {
   );
 }
 
-function BankList({ bank, party, interlude, canDrive }: {
-  bank: BankDeposit[]; party: Combatant[]; interlude: InterludeState;
+function BankList({ etat, canDrive }: {
+  etat: EtatDInterlude;
   canDrive: (heroId: string) => boolean;
 }) {
   const withdraw = useGame((s) => s.interludeWithdraw);
   return (
     <div className="interlude-actions">
-      {bank.map((b, i) => {
-        const owner = party.find((h) => h.id === b.heroId);
-        const left = owner ? interlude.perHero[owner.id]?.left ?? 0 : 0;
-        const foreign = !canDrive(b.heroId);
-        // Retirer un invest OU un mécénat exige une Activité (la planque est libre).
-        const locked = b.kind !== 'stash' && left <= 0;
+      {etat.bank.map((b, i) => {
+        const owner = etat.party.find((h) => h.id === b.heroId);
+        const refus = canDrive(b.heroId) ? refusDeRetrait(etat, i) : t('interlude.depositForeign');
         return (
           <GatedAction
             key={i}
@@ -1274,10 +1284,8 @@ function BankList({ bank, party, interlude, canDrive }: {
               {b.kind === 'invest' && <> → <CoinsB brass={bankPayout('invest', b.brass, b.rate)} /> (Indice {b.rate})</>} — Retirer
             </>}
             ariaLabel={`Retirer le dépôt de ${libelleOuAbsence(owner, 'heros', b.heroId)}`}
-            enabled={!foreign && !locked}
-            reason={foreign
-              ? 'Dépôt d’un héros mené par un autre joueur.'
-              : 'Retirer ce dépôt exige une Activité — il n’en reste plus.'}
+            enabled={!refus}
+            {...raisonSi(refus)}
             descOfferte={b.kind === 'invest'
               ? `Retirer (1 Activité) : ${fmt(bankPayout('invest', b.brass, b.rate))} si la banque tient (faillite sur d100 ≤ ${b.rate})`
               // ACE 12 l.49/57-65

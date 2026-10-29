@@ -834,9 +834,10 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
     // 4ᵉ Activité : budget épuisé → la préparation de bataille (Sabotage) est REFUSÉE (l.65).
     useGame.getState().massBattleActivity('sabotage');
     expect(pending()).toBeNull();
-    // …et une Activité d'interlude normale l'est aussi (source de budget UNIQUE).
+    // …et une Activité d'interlude normale l'est aussi (source de budget UNIQUE), refus dit.
     useGame.getState().interludeActivity(hero, 'revenus');
     expect(pending()).toBeNull();
+    expect(useGame.getState().journal.slice(-1)[0]).toBe(`${useGame.getState().party[0].label} n’a plus d’Activité d’interlude.`);
   });
 
   it('les Scènes de Round (`battle === \'round\'`) ne consomment PAS le budget d\'interlude', () => {
