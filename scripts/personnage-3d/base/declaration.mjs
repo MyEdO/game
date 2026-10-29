@@ -12,12 +12,13 @@ const chargerDonnee = () =>
   ]))
 
 /** La déclaration du corps à `chemin`, refusée si la race ou le gabarit du porteur n'existe pas dans la donnée, ou si
- *  sa Taille ou son échelle d'art diffère de celle que la donnée donne à sa race. */
-export async function lireDeclaration(chemin) {
+ *  sa Taille ou son échelle d'art diffère de celle que la donnée donne à sa race. `lireDonnee` rend les lectures de la
+ *  donnée (`raceAppearance`, `gabarits`, `taillesDeLaRace`, `speciesScale`). */
+export async function lireDeclaration(chemin, lireDonnee = chargerDonnee) {
   const declaration = JSON.parse(readFileSync(chemin, 'utf8'))
   const { porteur, clipsDeMarche } = declaration
   if (!Array.isArray(clipsDeMarche) || !clipsDeMarche.length) throw new Error(`${chemin} : clipsDeMarche, liste non vide attendue`)
-  const { raceAppearance, gabarits, taillesDeLaRace, speciesScale } = await chargerDonnee()
+  const { raceAppearance, gabarits, taillesDeLaRace, speciesScale } = await lireDonnee()
   if (!raceAppearance.some((r) => r.id === porteur?.race)) throw new Error(`${chemin} : porteur.race ${porteur?.race} absente de raceAppearance.json`)
   if (!gabarits.some((g) => g.id === porteur.gabarit)) throw new Error(`${chemin} : porteur.gabarit ${porteur.gabarit} absent de gabarits.json`)
   const tailles = taillesDeLaRace(porteur.race)

@@ -4,9 +4,10 @@
  * licencié (`components.<id>.asset.license_basis`) ou un texte `LICENSE*.txt`, devient, sous un id de
  * modèle, un GLB et sa source versés dans la Release des modèles sous leur empreinte (`release.ts`), puis le manifeste
  * réduit et validé (`manifeste.ts`), la provenance et les licences, déposés dans le dossier des modèles du projet Godot.
- * Les licences se comparent par leur identifiant SPDX (`licences.json`). Une production qui se déclare hors Release
- * (`CLE_HORS_RELEASE`, `dossierDeProduction.ts`) ne s'importe que sans publication, et sa provenance en reporte la raison. Tout se juge avant la première publication : un
- * dossier refusé ne publie ni n'écrit rien.
+ * Les licences se comparent par leur identifiant SPDX (`licences.json`). Un modèle hors Release (`CLE_HORS_RELEASE`,
+ * `dossierDeProduction.ts`) : une production qui s'y déclare, ou un élément dont la base déposée l'est (#2948,
+ * arbitrages n°14 et n°19) ; il ne s'importe que sans publication, et sa provenance en reporte la raison. Tout se juge
+ * avant la première publication : un dossier refusé ne publie ni n'écrit rien.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -102,9 +103,8 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : JSON illisible (${(e as Error).message})`] };
   }
   if (!estObjet(brut)) return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : objet JSON attendu`] };
-  const horsRelease = brut[CLE_HORS_RELEASE];
-  if (horsRelease !== undefined && !(typeof horsRelease === 'string' && horsRelease.trim())) return { ok: false, refus: [`[hors-release] ${MANIFESTE_DE_PRODUCTION} : ${CLE_HORS_RELEASE}, raison non vide attendue`] };
-  if (publier && horsRelease !== undefined) return { ok: false, refus: [`[hors-release] ${horsRelease} : import sans publication seulement (--sans-publier)`] };
+  const horsReleaseDeclare = brut[CLE_HORS_RELEASE];
+  if (horsReleaseDeclare !== undefined && !(typeof horsReleaseDeclare === 'string' && horsReleaseDeclare.trim())) return { ok: false, refus: [`[hors-release] ${MANIFESTE_DE_PRODUCTION} : ${CLE_HORS_RELEASE}, raison non vide attendue`] };
   const { model, model_sha256: declaree } = brut;
   const entrees = readdirSync(dossier, { withFileTypes: true });
   if (typeof model !== 'string' || !entrees.some((e) => e.isFile() && e.name === model)) return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : model « ${String(model)} », fichier du dossier de production attendu`] };
@@ -138,6 +138,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   const fichiers = fichiersDuModele(id);
   const candidat = Object.prototype.hasOwnProperty.call(brut, 'manifeste') ? brut.manifeste : { ...brut, model: fichiers.glb };
   const bases = new Map<string, BaseLivree>();
+  let horsReleaseDeLaBase: string | undefined;
   if (estSchema3(candidat)) {
     const lus = manifestesDesModeles(destination);
     const index = indexerModeles([...lus.entrees, { id, brut: candidat }]);
@@ -154,8 +155,11 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
       const epingle = epingles.modeles.find(m => m.id === entree.id);
       if (!epingle || sha256(octetsDeBase) !== epingle.empreinte) return { ok: false, refus: [`[provenance-de-base-differente] ${base} : ${entree.id}`] };
       bases.set(base, { brut: entree.brut, octets: octetsDeBase });
+      if (epingle.hors_release !== undefined) horsReleaseDeLaBase = `base ${entree.id} : ${epingle.hors_release}`;
     }
   }
+  const horsRelease = typeof horsReleaseDeclare === 'string' ? horsReleaseDeclare : horsReleaseDeLaBase;
+  if (publier && horsRelease !== undefined) return { ok: false, refus: [`[hors-release] ${horsRelease} : import sans publication seulement (--sans-publier)`] };
   const verdict = validerModele(candidat, octets, bases);
   if (!verdict.ok) return verdict;
 
@@ -167,7 +171,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     licences: licencesDe(brut),
     licences_de_pack: [...licencesDePack.values()],
     animation_sources: sourcesDAnimation(brut),
-    ...(typeof horsRelease === 'string' ? { hors_release: horsRelease } : {}),
+    ...(horsRelease !== undefined ? { hors_release: horsRelease } : {}),
   };
   const fuites = cheminsAbsolus(provenance, 'provenance');
   if (fuites.length) return { ok: false, refus: fuites.map(ligneDErreur) };

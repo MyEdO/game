@@ -1,8 +1,9 @@
 /** LE CONTRAT DE NOMMAGE D'UN DOSSIER DE PRODUCTION (#2948, #3106) : ce que l'import lit (`importer.ts`) et ce que la
- *  construction d'une base écrit (`scripts/personnage-3d/base/production.ts`), sans dépendance pour se charger hors
- *  du graphe de l'hôte. */
+ *  construction d'une base écrit (`scripts/personnage-3d/base/production.ts`), sans dépendance hors des modules feuilles,
+ *  pour se charger hors du graphe de l'hôte. */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { estObjet } from '../../../src/hote/formes.ts';
 
 /** Le seul nom fixe d'un dossier de production : son manifeste, qui nomme le reste. */
 export const MANIFESTE_DE_PRODUCTION = 'manifest.json';
@@ -32,7 +33,7 @@ export function chargerLicences(chemin: string = TABLE_DES_LICENCES): ReadonlyMa
   } catch (e) {
     throw new TableDesLicencesInvalide(chemin, e instanceof Error ? e.message : String(e));
   }
-  if (!brut || typeof brut !== 'object' || Array.isArray(brut)) throw new TableDesLicencesInvalide(chemin, 'un objet attendu');
+  if (!estObjet(brut)) throw new TableDesLicencesInvalide(chemin, 'un objet attendu');
   const horsForme = Object.entries(brut).filter(([, v]) => typeof v !== 'string').map(([k]) => `« ${k} »`);
   if (horsForme.length) throw new TableDesLicencesInvalide(chemin, `identifiant non textuel pour ${horsForme.join(', ')}`);
   return new Map(Object.entries(brut as Record<string, string>));

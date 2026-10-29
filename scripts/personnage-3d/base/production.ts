@@ -60,7 +60,7 @@ function cheminReel(chemin: string): string {
  *  ancêtre de la source dont la ligne `License:` se résout par la table des licences. */
 function refusDeLicence(table: ReadonlyMap<string, string>, source: string, licence: string): string | null {
   if (!estFichier(licence)) return `[licence-absente] ${licence} : texte de licence introuvable`;
-  if (!contient(dirname(cheminReel(licence)), cheminReel(source))) return `[licence-hors-du-pack] ${licence} : hors des dossiers ancêtres de ${source}`;
+  if (!contient(dirname(cheminReel(licence)), cheminReel(source))) return `[licence-hors-des-ancetres] ${licence} : hors des dossiers ancêtres de ${source}`;
   const declaree = licenceDeclaree(readFileSync(licence, 'utf8'));
   if (!declaree) return `[licence-sans-ligne] ${licence} : aucune ligne « License: »`;
   if (!table.has(declaree)) return `[licence-inconnue] ${licence} : « ${declaree} » absente de la table des licences`;
@@ -69,7 +69,8 @@ function refusDeLicence(table: ReadonlyMap<string, string>, source: string, lice
 
 /** Le dossier de production du GLB `glb`, ou le refus qui l'écarte : un GLB hors `.glb`, un dossier dans un arbre de
  *  travail du dépôt (liens résolus), un dossier qui porte un fichier que la production n'écrit pas, une source absente,
- *  un texte de licence absent, hors du pack, sans ligne `License:` ou hors de la table des licences. */
+ *  un texte de licence absent, hors des dossiers ancêtres de sa source, sans ligne `License:` ou hors de la table des
+ *  licences. */
 export function verifierProduction({ glb, sources, licences }: { glb: string; sources: SourcesDeBase; licences: LicencesDeBase }): { dossier: string } {
   if (!glb.endsWith('.glb')) throw new ProductionRefusee(`[sortie] ${glb} : un .glb attendu`);
   const dossier = dirname(resolve(glb));

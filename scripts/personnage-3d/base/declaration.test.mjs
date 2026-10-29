@@ -32,6 +32,11 @@ describe('lireDeclaration', () => {
     await assert.rejects(lireDeclaration(declarationAvec('sans-espece', { race: 'orc' })), /porteur\.taille moyenne, Taille de la race orc indéterminée dans la donnée \(aucune espèce\)/)
   })
 
+  it('refuse une race à plusieurs Tailles dans la donnée, en les nommant', async () => {
+    const donnee = { raceAppearance: [{ id: 'humain' }], gabarits: [{ id: 'moyen' }], taillesDeLaRace: () => ['moyenne', 'grande'], speciesScale: () => 1 }
+    await assert.rejects(lireDeclaration(declarationAvec('deux-tailles', { race: 'humain', gabarit: 'moyen' }), async () => donnee), /porteur\.taille moyenne, Taille de la race humain indéterminée dans la donnée \(moyenne, grande\)/)
+  })
+
   it('refuse une échelle d’art que la donnée ne donne pas à la race, en nommant champ, déclaré et donnée', async () => {
     await assert.rejects(lireDeclaration(declarationAvec('echelle', { echelleDArt: 1.2 })), /porteur\.echelleDArt 1\.2, la donnée donne 1 à la race humain/)
   })

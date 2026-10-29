@@ -399,7 +399,8 @@ schéma 3, `<id>.glb` local. `--sans-publier` conserve ces dépôts locaux sans 
 Sans ce drapeau, le GLB et l'éventuel `.blend` sont versés sous leur empreinte dans la Release
 `modeles-3d` avant les écritures locales. La destination par défaut est `hotes/godot/projet/modeles`.
 Une production dont `manifest.json` porte `hors_release` (une raison non vide, ainsi la base
-construite de packs Quaternius) est refusée `[hors-release]` sans `--sans-publier`.
+construite de packs Quaternius) est refusée `[hors-release]` sans `--sans-publier`. Un élément dont la
+base déposée est hors Release en hérite : même refus, et sa provenance porte `hors_release` (`base <id> : <raison>`).
 
 Ce contrôle d'import ne prouve pas le montage L4 ni les mesures géométriques de l'évaluateur.
 La validation des clés par le noyau et le rapport de couverture appartiennent à L3b, après T3.

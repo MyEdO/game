@@ -6,6 +6,7 @@
 import { sha256 } from './empreinte.ts';
 import { lireGlb } from './glb.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
+import { estObjet } from '../../../src/hote/formes.ts';
 
 export const VERSION_DU_SCHEMA_DE_BASE = 3;
 
@@ -70,7 +71,6 @@ export interface EcartDeBase {
 export type VerdictDeBase = { readonly ok: true; readonly manifeste: ManifesteDeBase } | { readonly ok: false; readonly ecarts: readonly EcartDeBase[] };
 
 type Brut = Record<string, unknown>;
-const estObjet = (v: unknown): v is Brut => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /** La réduction de `brut` au schéma 3, ou ses écarts de forme. */
 function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeBase[] } {

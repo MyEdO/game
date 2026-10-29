@@ -304,6 +304,24 @@ describe('import et chargement au schéma 3', () => {
     expect(verses).toEqual([]);
     expect(listerDossier(destination).map(f => [f, readFileSync(join(destination, f)).toString('base64')])).toEqual(avant);
   });
+  it('un élément dont la base déposée est hors Release en hérite : publication refusée, provenance marquée, fichiers non suivis, GLB du poste exigé', async () => {
+    const destination = temporaire();
+    const base = productionSchema3(temporaire(), baseSchema3(), GLB_DE_BASE);
+    const manifest = JSON.parse(readFileSync(join(base, MANIFESTE_DE_PRODUCTION), 'utf8'));
+    writeFileSync(join(base, MANIFESTE_DE_PRODUCTION), JSON.stringify({ ...manifest, hors_release: 'essai sur le poste' }));
+    expect(importerPersonnage({ dossier: base, id: 'humanoide', destination, date: '2026-10-29', publier: null }).ok).toBe(true);
+    const avant = listerDossier(destination);
+    const verses: AssetAPublier[] = [];
+    expect(importer(destination, elementSchema3(), GLB_D_ELEMENT, 'epee', (a) => { verses.push(...a); return []; }))
+      .toEqual({ ok: false, refus: ['[hors-release] base humanoide : essai sur le poste : import sans publication seulement (--sans-publier)'] });
+    expect([verses, listerDossier(destination)]).toEqual([[], avant]);
+    const r = importer(destination, elementSchema3(), GLB_D_ELEMENT, 'epee');
+    expect(r.ok && r.provenance.hors_release).toBe('base humanoide : essai sur le poste');
+    const suivis = ['epee.manifeste.json', 'epee.provenance.json', 'humanoide.manifeste.json'];
+    expect(suivisHorsRelease(modelesEpingles(destination).modeles, suivis)).toEqual(suivis);
+    rmSync(join(destination, 'epee.glb'));
+    await expect(recupererModeles({ dossier: destination, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow('[hors-release] epee.glb');
+  });
   it('refuse un second import du même couple même sous le même id', () => {
     const d = avecBase();
     expect(importer(d, elementSchema3()).ok).toBe(true);
@@ -842,7 +860,7 @@ describe('dossier de production d’une base (#3106)', () => {
     ['une sortie qui porte un texte de licence périmé', async () => ({ glb: sortieAvec('LICENSE-x.txt'), ...packs() }), /^\[sortie-etrangere\] .* : LICENSE-x\.txt ; /],
     ['une sortie qui porte une source .blend', async () => ({ glb: sortieAvec('humanoide.blend'), ...packs() }), /^\[sortie-etrangere\] .* : humanoide\.blend ; /],
     ['un texte de licence absent', async () => ({ glb: sortie(), ...packs({ ual2: { ...pack('UAL2_Standard.glb'), licence: join(temporaire(), 'License.txt') } }) }), /^\[licence-absente\] .*License\.txt : texte de licence introuvable$/],
-    ['un texte de licence hors des dossiers ancêtres de sa source', async () => ({ glb: sortie(), ...packs({ ual1: { ...pack('UAL1_Standard.glb'), licence: pack('Autre.glb').licence } }) }), /^\[licence-hors-du-pack\] .*License\.txt : hors des dossiers ancêtres de .*UAL1_Standard\.glb$/],
+    ['un texte de licence hors des dossiers ancêtres de sa source', async () => ({ glb: sortie(), ...packs({ ual1: { ...pack('UAL1_Standard.glb'), licence: pack('Autre.glb').licence } }) }), /^\[licence-hors-des-ancetres\].*License\.txt : hors des dossiers ancêtres de .*UAL1_Standard\.glb$/],
     ['un texte de licence sans ligne License:', async () => ({ glb: sortie(), ...packs({ corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt', 'Public Domain Dedication\r\n') }) }), /^\[licence-sans-ligne\] .*License_Standard\.txt : aucune ligne « License: »$/],
     ['un texte de licence hors de la table des licences', async () => ({ glb: sortie(), ...packs({ ual2: pack('UAL2_Standard.glb', 'License.txt', 'License: MIT\n') }) }), /^\[licence-inconnue\] .*License\.txt : « MIT » absente de la table des licences$/],
   ])('refuse %s sans rien écrire', async (_, cas, motif) => {
