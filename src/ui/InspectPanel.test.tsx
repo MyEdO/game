@@ -1,5 +1,10 @@
-import { describe, it, expect } from 'vitest';
+// @vitest-environment jsdom
+import { describe, it, expect, afterEach } from 'vitest';
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { useGame } from '../state/store';
+import { traits } from '../data';
 import { InspectPanel } from './InspectPanel';
 import { createHero } from '../engine/character';
 import { creatureToCombatant } from '../noyau/monde/spawn';
@@ -52,5 +57,35 @@ describe('InspectPanel', () => {
     expect(html).toContain('60/80');
     expect(html).toContain('Proue-idole de Stromfels');
     expect(html).not.toContain('Caractéristiques'); // pas de grille de caracs pour une coque
+  });
+});
+
+describe('InspectPanel — la Cible d’individu d’un Trait psy (EDOC 11 l.648 ; #3045)', () => {
+  (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  let root: Root | null = null;
+  afterEach(() => { act(() => root?.unmount()); root = null; useGame.setState(useGame.getInitialState(), true); });
+  const trait = traits.find((t) => t.specsSource === 'ciblesPsy')!;
+  const inspecter = (arg: string): string => {
+    const pnj = { ...creatureToCombatant(findCreatureById('loup')!, 'pnj', { x: 0, y: 0 }), traits: [{ id: trait.id, arg }] };
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    root = createRoot(el);
+    act(() => root!.render(<InspectPanel combatant={pnj} onClose={() => {}} />));
+    const texte = document.body.textContent ?? '';
+    el.remove();
+    return texte;
+  };
+
+  it('le statbloc nomme l’individu visé, jamais son id', () => {
+    useGame.setState({ battle: { combatants: [{ id: 'kirstin', label: 'Dame Kirstin' }] } as never });
+    const texte = inspecter('@kirstin');
+    expect(texte).toContain(`${trait.label} (Dame Kirstin)`);
+    expect(texte).not.toContain('@kirstin');
+  });
+
+  it('un individu sans nom connu se dit « une personne de la scène »', () => {
+    const texte = inspecter('@absent');
+    expect(texte).toContain(`${trait.label} (une personne de la scène)`);
+    expect(texte).not.toContain('@absent');
   });
 });

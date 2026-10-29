@@ -27,6 +27,10 @@ s'imprime sur la sortie standard ; un fichier non classé le suit sur la sortie 
 - **Arcs** : sites d'import de `sitesDeModule` (`scripts/guards/lib/importGraph.mjs`), résolus par
   `resolveImport` contre l'arbre de la révision et les alias de son `tsconfig.json` ; zone de chaque cible par
   `zoneDe` (`scripts/guards/lib/couches.mjs`). Un arc de type seul n'est pas un arc d'exécution.
+- **Transit** : pour chaque arc d'exécution hors de `src/state`, sa clôture statique d'exécution
+  (`clotureDImports` d'`importGraph.mjs`, types effacés, sans `import()`), marchée dans `src/` sur l'arbre de la
+  révision. Elle charge `src/state` quand elle atteint le store ou un module de `src/state` hors banc ; la colonne
+  « Transit vers src/state » nomme `<cible> → <module atteint>` (le store s'il y est).
 - **Clés** : propriétés de `EtatDeLAdaptateur` et `ActionsDeLAdaptateur` (adaptateur) et de `GameState` hors
   adaptateur (jeu), lues par le vérificateur TypeScript (`repoProgram`) sur `src/state/store.ts`, les sources de
   la révision recouvrant le disque (les paquets se lisent sous `node_modules`). Une clé est lue par un test quand
@@ -40,8 +44,8 @@ Dans cet ordre (`classer`, `classeur.mjs`) :
 | Classe | Critère |
 |---|---|
 | `doublon` | importe une procédure de `src/hote` qu'un test hors store (`MOTIF_HORS_STORE`, `racinesDeLaSuite.mjs`) importe déjà (candidat, nommé avec ses tests hors store) |
-| `moteur` | aucun arc d'exécution vers `src/state` |
-| `mixte` | part web (clé de l'adaptateur lue, ou module de `src/state` hors store et hors banc `*.testkit.*`/`*.fixture.*` importé) et clé du jeu lue |
+| `moteur` | aucun arc d'exécution vers `src/state`, ni direct ni en transit |
+| `mixte` | part web (clé de l'adaptateur lue, module de `src/state` hors store et hors banc `*.testkit.*`/`*.fixture.*` importé, ou transit) et clé du jeu lue |
 | `web` | part web seule |
 | `noyau` | le reste : `src/state` importé par le store ou un banc, aucune part web |
 
@@ -54,7 +58,11 @@ classe prend le reste.
 - Cadence `auto` : `initCombatAuto`, ou la chaîne `'auto'` dans un fichier qui écrit la cadence (`setCadence`,
   champ `cadence`, préférence `'combat-cadence'`).
 - Comptes par classe et par zone du test.
-- Citations : fichiers de `scripts/guards`, `docs/` et `src/**/*.json` qui citent un chemin
-  `src/state/….test.<ext>`, avec le nombre de chemins distincts cités et ceux absents de l'arbre.
+- Transit : fichiers qui chargent `src/state` par un arc hors de `src/state`, et ceux que ce critère reclasse
+  (classe sans le transit → classe).
+- Citations : fichiers de `scripts/guards`, `docs/` et `src/` qui citent un test de `src/state`, par son chemin
+  `src/state/….test.<ext>` (nombre de chemins distincts, et ceux absents de l'arbre) ou par son nom de base NU,
+  sans dossier (`nomsNusCites`) : un renommage ne retrouve pas ce dernier par le chemin, et un homonyme d'une
+  autre zone le rend ambigu.
 
 Les fonctions pures (`classeur.mjs`) sont testées par `classeur.test.mjs`, joué par `npm run test:ops`.

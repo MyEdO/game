@@ -28,7 +28,8 @@ import { t } from '../i18n';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, distributeCredit, refusDeGesteSurLeGroupe, refuseLeGesteDeGroupe, totalDesBourses } from './bourseFlow';
+import { partyMoneyTotal, payFromGroup, distributeCredit, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
+import { refuseSi } from './verrousDeFiche';
 import {
   type LandMarketProfile, rollFindMerchant, rollCargoQuantity, rollRandomLandCargo, landCargoBasePrice,
   findLandCargoById, sellDemandTarget, sellOfferPct, landDumpingPct, rollMerchantSkill, partialSurchargePct, minCargoEnc,
@@ -182,7 +183,7 @@ export function generateTradeRumour(get: Get, set: Set, currentPlaceId: string, 
  *  Intermédiaire (Accessible si le meneur a Résistance à l'alcool ≥ 50). Sur un succès, révèle la vraie qualité ;
  *  sur un échec, une FAUSSE indication décalée du degré d'échec. Un lot ne s'évalue qu'une fois. */
 export function landEvalWine(get: Get, set: Set, cargoId: string): void {
-  if (refuseLeGesteDeGroupe(get, set)) return;
+  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const st = get().landMarket;
   if (!st) return;
   const offer = st.offers.find((o) => o.cargoId === cargoId);
@@ -210,7 +211,7 @@ export function closeLandMarket(_get: Get, set: Set): void {
  *  du tronc (jamais une 2ᵉ arithmétique) puis RE-PERSISTE les deux porteurs. Le refus du plan
  *  (`planDuTransfertDemande`) tombe avant toute écriture. */
 export function moveCargo(get: Get, set: Set, fromId: string, toId: string, cargoId: string, enc: number): void {
-  if (refuseLeGesteDeGroupe(get, set)) return;
+  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const plan = planDuTransfertDemande(bulkCarriers(get()), fromId, toId, cargoId, enc);
   if (plan.refus !== null) { refuserGeste(get, set, plan.refus); return; }
   const { from, to } = plan;
@@ -340,7 +341,7 @@ export function landBuyCargo(get: Get, set: Set, cargoId: string, enc: number): 
  * le POSE quand l'option « Dés fixés » est active, et le voit passer sinon.
  */
 export function landSellCargo(get: Get, set: Set, carrierId: string, cargoIndex: number): void {
-  if (refuseLeGesteDeGroupe(get, set)) return;
+  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const carrier = carrierById(get(), carrierId);
   const lot = carrier?.cargo[cargoIndex];
   if (!get().landMarket || !carrier || !lot) return;

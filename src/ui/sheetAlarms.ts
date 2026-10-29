@@ -1,8 +1,8 @@
 import { Combatant } from '../engine/types';
 import { maxEncumbrance, totalEncumbrance } from '../engine/items';
-import { diseaseLabel, psychologyLabel } from '../data';
+import { diseaseLabel } from '../data';
 import { isPsychAfflictionActive } from '../engine/psychology';
-import { identiteDeCiblage } from '../engine/psych/ciblage';
+import { identiteDeCiblage, libelleDePsy, type NomDIndividu } from '../engine/psych/ciblage';
 
 /** ids STABLES des rubriques de l'onglet État — ancres de scroll RENDUES par `EtatPanel.tsx`.
  *  (La Corruption est une jauge de la bande Constitution, pas une Section : elle n'en reçoit pas.) */
@@ -25,8 +25,9 @@ export interface SheetAlarm {
  *  affliction NOUVELLE (empreinte jamais vue) force l'onglet État à la première ouverture de la fiche.
  *  Ne porte JAMAIS Blessures/États bénins (déjà sur les vitals + les chips d'effets actifs de l'aside).
  *  Le `label` inclut le compte/degré : sa variation (une Corruption qui monte, une Séquelle de plus)
- *  compte comme une affliction nouvelle. */
-export function sheetAlarms(hero: Combatant): SheetAlarm[] {
+ *  compte comme une affliction nouvelle. Le `label` d'une affliction ciblée nomme sa Cible (`libelleDePsy`,
+ *  l'individu par `nomDIndividu`). */
+export function sheetAlarms(hero: Combatant, nomDIndividu?: NomDIndividu): SheetAlarm[] {
   const out: SheetAlarm[] = [];
 
   const criticals = hero.criticalWounds ?? 0; // ACTIF (décompté au soin) — pas l'historique `critEntriesSuffered`
@@ -49,7 +50,7 @@ export function sheetAlarms(hero: Combatant): SheetAlarm[] {
 
   for (const p of hero.psychState ?? []) {
     if (!isPsychAfflictionActive(p)) continue;
-    out.push({ key: `psych-${identiteDeCiblage(p.type, p.cible)}`, label: psychologyLabel(p.type) });
+    out.push({ key: `psych-${identiteDeCiblage(p.type, p.cible)}`, label: libelleDePsy(p.type, p.cible, nomDIndividu) });
   }
 
   if (totalEncumbrance(hero) > maxEncumbrance(hero)) out.push({ key: 'surcharge', label: 'Surchargé' });

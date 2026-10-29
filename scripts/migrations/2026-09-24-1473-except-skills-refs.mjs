@@ -13,12 +13,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/etats.json');
-/** Reflet de `src/data/serialize.ts#serializeDataset` (pas d'import TS depuis un script .mjs). */
-const serializeDataset = (value) => JSON.stringify(value, null, 2);
-
 const arret = (msg) => { console.error(`ARRÊT — ${msg}`); process.exit(1); };
 
 const brut = fs.readFileSync(CIBLE, 'utf8');

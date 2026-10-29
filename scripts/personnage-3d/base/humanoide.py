@@ -10,12 +10,15 @@ du corps (`silhouettes.py`) : le corps F d'UBC, aux mêmes os, donne la clé `fe
 chaque clé passe aux peaux secondaires. Puis chaque clip est posé au sol et la marche plantée (`sol.py`) ; un clip sans
 sol (pelvis source sous le sol) se retire. La part du manifeste de base que pose la construction (os, chaînes, zones,
 emplacements, prises, silhouettes, table du gabarit, pieds, os à position animée) passe, après l'export, à
-`manifeste.mjs`, qui écrit le manifeste complet à côté du GLB, dans `<sortie>.manifeste.json`, avec la déclaration du
-corps `humanoide.json`.
+`manifeste.mjs`, qui complète le manifeste avec la déclaration du corps `humanoide.json` et écrit le dossier de
+production du GLB (`production.ts`) ; il juge déclaration, sortie hors dépôt et textes de licence nommés des packs avant
+Blender.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py \\
         --ual1 <UAL1_Standard.glb> --ual2 <UAL2_Standard.glb> --corps <Superhero_Male_FullBody.gltf> \\
-        --corps-feminin <Superhero_Female_FullBody.gltf> --mpfb <dossier data de MPFB> --sortie <humanoide.glb>
+        --corps-feminin <Superhero_Female_FullBody.gltf> --licence-ual1 <License.txt> --licence-ual2 <License.txt> \\
+        --licence-corps <License_Standard.txt> --licence-corps-feminin <License_Standard.txt> \\
+        --mpfb <dossier data de MPFB> --sortie <humanoide.glb>
 """
 import argparse
 import json
@@ -42,6 +45,8 @@ from sol import bas_des_sources, poser_les_clips_au_sol, retirer_sans_sol  # noq
 PELVIS = 'pelvis'
 OS_A_POSITION = ('root', PELVIS)
 """Os dont la piste de position reste : la racine et le pelvis."""
+PACKS = ('ual1', 'ual2', 'corps', 'corps_feminin')
+"""Les packs sources tracés au dossier de production, chacun avec son texte de licence (`production.ts`)."""
 TOLERANCE_DOUBLON = 1e-5
 """Écart maximal entre les clés de deux clips homonymes pour les tenir pour le même clip."""
 
@@ -159,14 +164,16 @@ def silhouettes(peaux):
     return noms
 
 
-def completer(sortie, construit):
-    """Écrit le manifeste complet de `sortie` par `manifeste.mjs`, à qui passe la part `construit`."""
-    print(lancer(ICI / 'manifeste.mjs', [DECLARATION, sortie], json.dumps(construit, ensure_ascii=False)), end='',
-          flush=True)
+def manifeste_mjs(args, *options, entree=None):
+    """Lance `manifeste.mjs` sur la sortie et les packs sources de `args` : `--verifier` juge déclaration, sortie et
+    licences avant la construction ; sans lui, la part `entree` complète le dossier de production."""
+    sources = [a for s in PACKS for o in (s, f'licence_{s}') for a in (f'--{o.replace("_", "-")}', getattr(args, o))]
+    print(lancer(ICI / 'manifeste.mjs', [DECLARATION, args.sortie, *sources, *options], entree), end='', flush=True)
 
 
 def construire(args):
     import bpy
+    manifeste_mjs(args, '--verifier')
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.scene.render.fps = IMAGES_PAR_SECONDE
     rig1, figurants1, clips = importer(bpy, args.ual1)
@@ -220,7 +227,7 @@ def construire(args):
     print('CLIPS', len(clips), 'OS', len(manifeste['os']), 'ZONES', len(manifeste['zones']),
           'EMPLACEMENTS', len(manifeste['emplacements']), 'SILHOUETTES', formes, 'ST', bornes,
           'POSITION', manifeste['osAPositionAnimee'], flush=True)
-    completer(args.sortie, manifeste)
+    manifeste_mjs(args, entree=json.dumps(manifeste, ensure_ascii=False))
     print('HUMANOIDE_OK', args.sortie, flush=True)
 
 
@@ -231,6 +238,10 @@ def main():
     parser.add_argument('--corps', type=Path, required=True, help="corps UBC (.gltf/.glb) skinné aux os d'UAL")
     parser.add_argument('--corps-feminin', type=Path, required=True,
                         help="corps UBC féminin (.gltf/.glb) aux mêmes os : source de la clé `feminin`")
+    for pack in PACKS:
+        option = pack.replace('_', '-')
+        parser.add_argument(f'--licence-{option}', type=Path, required=True,
+                            help=f'texte de licence du pack de --{option}, dans un dossier ancêtre de la source')
     parser.add_argument('--mpfb', type=Path, required=True,
                         help='dossier `data` de MPFB (3dobjs, targets) : donneur de la clé `corpulence`')
     parser.add_argument('--sortie', type=Path, required=True, help='humanoide.glb produit')

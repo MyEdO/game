@@ -392,13 +392,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/engine/talentEffects.ts",
-    motif: "désormais",
-    ancre: "Le +5 Caractéristique et le +1 Mouvement sont désormais des PASSIFS CONTINUS dans `passive: GameOp[]`",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/engine/traits/parity.test.ts",
     motif: "désormais",
     ancre: "Parité des Traits de créature (LDB 85). Le registre `TRAITS` est désormais DÉRIVÉ 1:1 de la donnée",
@@ -665,7 +658,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/buy-spell.test.ts",
+    fichier: "src/noyau/buy-spell.hors-store.test.ts",
     motif: "désormais",
     ancre: "désormais les règles de création, leur quota de sorts mineurs varie avec leur seed) : BFM 2,",
     lot: "L7 désormais",
@@ -749,14 +742,14 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/crit-test-porte.test.ts",
+    fichier: "src/noyau/crit-test-porte.hors-store.test.ts",
     motif: "désormais",
     ancre: "Il naît désormais comme une ÉTAPE, et c'est le socle (`resolveFlowTest`) qui décide de sa surface.",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/crit-test-porte.test.ts",
+    fichier: "src/noyau/crit-test-porte.hors-store.test.ts",
     motif: "désormais",
     ancre: "ignorait les États du jeteur — donc sans Chance, sans Pacte, sans Résilience. Ils naissent désormais",
     lot: "L7 désormais",
@@ -784,7 +777,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/flowtest-derived-stake.test.ts",
+    fichier: "src/noyau/flowtest-derived-stake.hors-store.test.ts",
     motif: "désormais",
     ancre: "désormais l'enjeu au TYPE) → `resolveStake` (la porte unique de la surface).",
     lot: "L7 désormais",
@@ -875,7 +868,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/port-sell-cargo.test.ts",
+    fichier: "src/noyau/port-sell-cargo.hors-store.test.ts",
     motif: "désormais",
     ancre: "Marchandage est désormais une CASCADE (`openRoll` par étape, enchaînée via `chainStep`,",
     lot: "L7 désormais",
@@ -898,7 +891,7 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/state/rest-lodging-price-source.test.ts",
     motif: "désormais",
-    ancre: "`src/state/merchants/service-trappings.test.ts`). Convergence #343 : `restCost` RÉSOUT désormais ces",
+    ancre: "`src/noyau/service-trappings.hors-store.test.ts`). Convergence #343 : `restCost` RÉSOUT désormais ces",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
@@ -924,7 +917,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/rollflow-outcome-invariant.test.ts",
+    fichier: "src/noyau/rollflow-outcome-invariant.hors-store.test.ts",
     motif: "désormais",
     ancre: "désormais sa fenêtre du succès de la LIGNE (`row.d.success`) : si une modale y pose une issue",
     lot: "L7 désormais",
@@ -938,14 +931,14 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/sea-finition.test.ts",
+    fichier: "src/noyau/sea-finition.hors-store.test.ts",
     motif: "désormais",
     ancre: "désormais UNE cascade `purpose:'travelDay'` (#275 Ronde 2 cran 3) : chaque étape est soit MONO",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/sea-finition.test.ts",
+    fichier: "src/noyau/sea-finition.hors-store.test.ts",
     motif: "désormais",
     ancre: "// Seam de jet (#273 Étape 2) : Cartographie est désormais une étape de CASCADE influençable —",
     lot: "L7 désormais",
@@ -966,7 +959,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/sequence-contrat-socle.test.ts",
+    fichier: "src/noyau/sequence-contrat-socle.hors-store.test.ts",
     motif: "désormais",
     ancre: "// Ce que fait `startCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE",
     lot: "L7 désormais",
@@ -980,14 +973,14 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/ship-crew-hit-porte.test.ts",
+    fichier: "src/noyau/ship-crew-hit-porte.hors-store.test.ts",
     motif: "désormais",
     ancre: "`applyCrewHit`, avec le RNG du combat, marin par marin. Il naît désormais comme UNE BANDE — une",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/ship-maneuver.test.ts",
+    fichier: "src/noyau/ship-maneuver.hors-store.test.ts",
     motif: "désormais",
     ancre: "(openCrewTestPending ET shipManeuverParams, consommé par deriveManeuverFromCrew) — site canonique désormais",
     lot: "L7 désormais",
@@ -1036,7 +1029,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/travel-carto.test.ts",
+    fichier: "src/noyau/travel-carto.hors-store.test.ts",
     motif: "désormais",
     ancre: "Voyage — poste « Établir des cartes » (EDOC 8 l.161) : Test ÉTENDU inter-Étapes, désormais UNE RANGÉE",
     lot: "L7 désormais",
@@ -1057,7 +1050,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/vessel-morale.test.ts",
+    fichier: "src/noyau/vessel-morale.hors-store.test.ts",
     motif: "désormais",
     ancre: "inchangé ; en cadence manuelle un équipage salarié convoque désormais le Conseil de bord (#229, ci-dessous).",
     lot: "L7 désormais",

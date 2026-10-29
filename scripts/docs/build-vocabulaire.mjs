@@ -305,7 +305,7 @@ function rendu() {
   out += `\`GameOp\` est la langue de l'axe EFFET/MODIFICATEUR — une op s'APPLIQUE à une cible (\`applyOps(target, ops)\`).\n`
   out += `Ce n'est pas le seul canal par lequel une entité porte sa mécanique en donnée ; la table ci-dessous est\n`
   out += `DÉRIVÉE des DÉCLARATIONS de champs (AST) des sources de \`${CANAUX_ROOTS.join('`, `')}\`, jamais des commentaires :\n\n`
-  out += `- **\`passive: GameOp[]\`** — modificateurs de VALEUR, exécutés par \`applyOps\` (collecteur \`passiveMods\`) ;\n`
+  out += `- **\`passive: OpPassive[]\`** — modificateurs de VALEUR, lus par le collecteur \`passiveMods\` ;\n`
   out += `- **\`effects: TriggeredEffect[]\`** — effets DÉCLENCHÉS sur un \`EffectTrigger\`, dispatchés par \`fireTriggers\` ;\n`
   out += `- **\`capabilities\` / \`combat\`** — DRAPEAUX sans cible, lus par des dispatchers génériques qui ne nomment\n`
   out += `  aucune entité. Un drapeau n'est pas une op inachevée : n'ayant AUCUNE cible, il n'est pas un effet\n`

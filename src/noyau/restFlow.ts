@@ -29,7 +29,7 @@ import { battleRng } from './battleRng';
 import { partyAssisted, peutTenter, testValue } from '../engine/skills';
 import { HEAL_SKILL } from '../engine/healing';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
-import { addCondition, loseWounds, addClockCondition } from '../engine/conditions';
+import { addCondition, loseWounds } from '../engine/conditions';
 import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, type RestRoll } from '../engine/rest';
 import { rollContraction, diseaseDefs, contagiousDiseases, contractionDue, applyContraction, applyDiseaseGangrene, diseaseTestModLines } from '../engine/disease';
 import { applyOps } from '../engine/ops';
@@ -783,6 +783,7 @@ export const TABLES = {
       const insert = band ? nextExposureWave(get, band, ctx.steps.map((s) => (s.id === step.id ? { ...s, chosen: step.chosen } : s))) : [];
       if (step.chosen === 'jeter') {
         const name = dropHeaviestPossession(hero);
+        // LDB 18 l.332
         return { consequences: freeCons([t('rf.dropped', { name: hero.label, what: name ?? t('rf.fragHeaviest') })]), insert };
       }
       return { consequences: freeCons(applyExposureFailure(hero, Number(step.meta?.failNumber ?? 1), battleRng(), 'chaleur').log), insert };
@@ -818,9 +819,7 @@ export const TABLES = {
     }),
     dessoulageHangover: bandeDeNuit((get, _set, _band, row, hero) => {
       // 2ᵉ Test du dessoûlage (l.485), désormais influençable : le DR fixe la durée de la gueule de bois.
-      const h = soberUpHangover(hero, get().gameTime, row.result!.sl);
-      addClockCondition(hero, h.hangover.id, h.hangover.value, h.hangover.until);
-      return { consequences: freeCons(h.log) };
+      return { consequences: freeCons(soberUpHangover(hero, get().gameTime, row.result!.sl).log) };
     }),
     traumaFracture: bandeDeNuit((_get, _set, _band, row, hero) => {
       return { consequences: freeCons(applyFractureEnd(hero, row.result!.success, String(row.meta?.severity ?? 'mineur'), String(row.meta?.location ?? ''), String(row.meta?.traumaLabel ?? t('rf.fractureFallback')))) };

@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /** MDG 13 ; MDG */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { gameOpSchema, shipCritEntrySchema } from '../grammaire/mecanique';
+import { executeesDe, shipCritEntrySchema } from '../grammaire/mecanique';
 import { formulaSchema, replisSansExposeSchema, shipSizeSchema } from '../grammaire/valeurs';
 import { idDe } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
@@ -29,7 +29,7 @@ const doc = document(
   famille,
   {
     die: z.string(),
-    shrapnelHit: z.array(gameOpSchema),
+    shrapnelHit: executeesDe(),
     replisSansExpose: replisSansExposeSchema,
     tablesDeChute: z.array(tableDeChuteSchema),
     tables: nommerChamps(z.strictObject({

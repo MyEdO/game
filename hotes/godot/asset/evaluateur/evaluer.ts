@@ -67,11 +67,13 @@ export interface FicheDeMesures {
 const estNeutre = (f: Facteurs): boolean => Object.values(f).every((v) => v === 1);
 
 /** Monte `element` sur la base : un mesh skinné se lie aux os de la base de même nom, un rigide sous un os passe sous
- *  l'os de la base de même nom, à la même position locale. */
-function monter(base: SceneChargee, element: SceneChargee): void {
+ *  l'os de la base de même nom, à la même position locale. Le rigide est le nœud glTF de la primitive (`SceneChargee.noeuds`). */
+export function monter(base: SceneChargee, element: SceneChargee): void {
   const osDeLaBase = new Map<string, Bone>();
   base.scene.traverse((n) => { if ((n as Bone).isBone) osDeLaBase.set(n.name, n as Bone); });
   element.scene.updateMatrixWorld(true);
+  const noeudDe = (o: Object3D): Object3D => (element.noeuds.has(o) || !o.parent ? o : noeudDe(o.parent));
+  const rigides = new Set<Object3D>();
   for (const m of element.meshes) {
     const s = m as SkinnedMesh;
     if (s.isSkinnedMesh) {
@@ -80,9 +82,12 @@ function monter(base: SceneChargee, element: SceneChargee): void {
       s.bind(squelette, s.bindMatrix);
       continue;
     }
-    const parent = m.parent && (m.parent as Bone).isBone ? osDeLaBase.get(m.parent.name) : undefined;
-    if (parent) parent.add(m);
-    else base.scene.attach(m);
+    rigides.add(noeudDe(m));
+  }
+  for (const n of rigides) {
+    const parent = n.parent && (n.parent as Bone).isBone ? osDeLaBase.get(n.parent.name) : undefined;
+    if (parent) parent.add(n);
+    else base.scene.attach(n);
   }
 }
 

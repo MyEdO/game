@@ -6,7 +6,7 @@
 import type { EntityAppearance, RigSpeciesId } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
-import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle } from './schemas/grammaire/valeurs';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
@@ -107,6 +107,8 @@ import namesJson from './names.json';
 import raceAppearanceJson from './raceAppearance.json';
 import gabaritsJson from './gabarits.json';
 import type { GabaritDef, GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
+import gardeRobeJson from './garde-robe.json';
+import type { GardeRobeEntree, PieceDef } from './schemas/defs/garde-robe';
 import godsJson from './gods.json';
 import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
@@ -145,6 +147,7 @@ import type { InterludeEvent } from './interludeEvents';
 import type { Peripetie } from './peripeties';
 import type { CharacteristicsData } from './schemas/defs/characteristics';
 import type { AxesData } from './schemas/defs/axes';
+import type { VarianteDeCible } from './schemas/grammaire/valeurs';
 import type { NavalProgressionData } from './schemas/defs/naval-progression';
 import type { SeaNavigationData } from './schemas/defs/sea-navigation';
 import type { SeaPerilsData } from './schemas/defs/sea-perils';
@@ -925,7 +928,7 @@ export interface CareerLevelData {
  *  `specsSource` n'a PAS de `specs[]` (le pool DÉRIVE du registre partagé, cf. `specPoolOf`).
  *  `pool: false` — l'entrée est VALIDE (résolution, `testValue`, bonus de règle) mais n'est pas
  *  PROPOSÉE d'office par le créateur/l'avancement (`LDB 09 l.40`) ; les écrans de RÉFÉRENCE
- *  l'impriment (`specCatalogOf`). Absente = dans le pool. VALIDITÉ ⊇ POOL, cf. `specResolves`. */
+ *  l'impriment (`specCatalogOf`). Absente = dans le pool. CATALOGUE ⊇ POOL (`specAuCatalogue`, `grammaire/ref.ts`). */
 export type SpecEntry = { id: string; label: string; source?: SourceRef; alsoIn?: SecondaryRef[]; pool?: false };
 /** id d'une entrée `specs[]`. */
 export function specEntryId(e: SpecEntry): string {
@@ -943,7 +946,8 @@ export function specEntryLabel(e: SpecEntry): PlayerText {
  *  `arcane` de `domains.json`, AFFICHE le Lore), `cultBlessings`/`cultMiracles`/`cultChaos` (Béni /
  *  Invocation / Magie du Chaos — `gods.id` filtrés par `blessings`/`miracles`/`chaosSpells`, AFFICHE le
  *  nom du dieu), `seaShanties` (Chanson de marin — ids de `sea-shanties.json`). Sources d'ARGUMENT de Trait
- *  (Immunité, Peur, Vulnérabilité, Mutation, Souffle…) : `groups` (Groupe d'appartenance — `groups.json`),
+ *  (Immunité, Peur, Vulnérabilité, Mutation, Souffle…) : `ciblesPsy` (Cible d'un Trait psy ciblé — un Groupe de `groups.json` ; une scène admet en plus `@id`, un
+ *  individu, `refusDuTraitPose` de `grammaire/reference.ts`),
  *  `diseases` (Maladie — `maladies.json`), `sizes` (catégorie de Taille — `engine/size`), `mutations`
  *  (Mutation — `mutations.json`), `breathTypes` (Type de Souffle — `breath-types.json`), `damageTypes`
  *  (Immunité aux Dégâts — `damage-types.json`, lue par la Condition `has … what:'immunity'`), `weaponsMelee`/
@@ -960,7 +964,7 @@ export type SpecsSource =
   | 'cultMiracles'
   | 'cultChaos'
   | 'seaShanties'
-  | 'groups'
+  | 'ciblesPsy'
   | 'diseases'
   | 'sizes'
   | 'mutations'
@@ -1105,11 +1109,11 @@ export interface TalentData {
    *  féroce `onHit`, Frappe réactive `onCharged`…), appliqués par `noyau/triggeredEffects` exactement comme
    *  les traits. Type-only (le moteur reste pur). Édité au Codex par `TriggeredEffectsField`. */
   effects?: TriggeredEffect[];
-  /** Modificateurs PASSIFS continus (Coup puissant, Dur à cuire…) en `GameOp[]` — MÊME vocabulaire que les
+  /** Modificateurs PASSIFS continus (Coup puissant, Dur à cuire…) en `OpPassive[]` — MÊME vocabulaire que les
    *  sorts/traits, lus par le collecteur passif (`talentPassiveMods` → `passiveMods`, kind `intrinseque`,
    *  répété par niveau). Édité au Codex par `GameOpEditor`. L'octroi d'attaque gratuite (Frénésie) vit ici :
    *  `grantFreeAttack{when:'available'}`, lu par `availableAttacks`. */
-  passive?: import('../engine/ops').GameOp[];
+  passive?: import('../engine/ops').OpPassive[];
   /** Capacités de combat/jeu (LDB 10) en DONNÉE : sac de flags lu par `featuresOf`/`dispatch` (Coup
    *  puissant `meleeDamageBonus`, Riposte, Tueur, castingKind…). Remplace les `combatFeatures/defs/*.ts`. */
   combat?: import('../engine/combatFeatures/types').CombatFeature;
@@ -1329,10 +1333,10 @@ export interface TrappingData {
    *  `weatherProtection` (Cape/Manteau), `isShelter` (Tente), `isRations` (Ration), `isGrimoire`
    *  (Grimoire), `preventForcedDrop` (Gantelet verrouillé). Édité au Compendium. */
   capabilities?: ItemCapabilities;
-  /** Modificateurs PASSIFS continus de l'objet (GameOp[], MÊME vocabulaire que traits/qualités/sorts) —
+  /** Modificateurs PASSIFS continus de l'objet (OpPassive[], MÊME vocabulaire que traits/qualités/sorts) —
    *  appliqués tant que l'objet est PORTÉ ou TENU (collecteur `passiveMods`). Ex. Bésicles → `skillMod`
    *  +20 Langue/Perception (LDB 67). */
-  passive?: import('../engine/ops').GameOp[];
+  passive?: import('../engine/ops').OpPassive[];
   /** Tarif d'un SERVICE (LDB 66 l.12-14), pas un objet possédable : marqueur de la sous-liste
    *  `INSTANCIABLE_PAR_ID` (`schemas/grammaire/sousListes.ts`), hors de `trappingsInstanciables` ;
    *  reste la source de PRIX de son consommateur (référencée par id) et visible au Codex/Compendium. */
@@ -1341,24 +1345,50 @@ export interface TrappingData {
 /** Groupe d'objet (taxonomie `subType` id-ifiée) : Groupe d'ARME (Base, Escrime, Deux-mains, Armes
  *  d'hast…), famille de MUNITION (Arc, Arbalète, Poudre noire…), type d'ARMURE (Plate, Mailles, Cuir
  *  souple/bouilli) ou catégorie d'INVENTAIRE (Outils, Possessions diverses…). `id` = cible de
- *  `Trapping/Weapon/ItemInstance.subType` (réf, ≠ libellé) ; `kind` = métadonnée d'affichage. */
-export interface WeaponGroupData {
+ *  `Trapping/Weapon/ItemInstance.subType` (réf, ≠ libellé). Union discriminée par `kind`, chaque cas sa
+ *  CHARGE (`defs/weaponGroups.ts`). */
+export type WeaponGroupData = GroupeDArme | GroupeDeMunition | GroupeDArmure | GroupeDInventaire;
+interface GroupeDObjet {
   id: string;
   type: 'weaponGroups';
   label: string;
-  kind: 'weapon' | 'ammo' | 'armour' | 'inventory';
-  /** Matériau d'une armure (groupes `kind:'armour'`) — source TYPÉE des exemptions de Magie des Arcanes
-   *  (LDB 46 l.150-152 ; `chaos` = armure du Chaos, exemptée pour le Sorcier du Chaos, VDM 02 l.169).
-   *  Remplace la devinette par regex sur le nom. */
-  material?: 'metal' | 'leather' | 'chaos';
-  /** Sous-ensemble de COMBAT d'un Groupe d'arme (`kind:'weapon'`/`'ammo'`) : `melee` = Spé de Corps à corps,
-   *  `ranged` = Spé de Projectiles. SOURCE des pools `weaponGroupsMelee`/`weaponGroupsRanged` (SPEC_SOURCES)
-   *  — fin des `specs[]` maintenues à la main sur `corps-a-corps`/`projectiles`. */
-  combat?: 'melee' | 'ranged';
   /** Qualités COMMUNES à toute la famille (mêmes ids que `TrappingData.qualities`) — mergées avec les
    *  qualités propres de l'arme par `resolveQualities` (`engine/qualities/dispatch.ts`), qui l'emportent
    *  en cas de conflit. Ex. Escrime → Rapide+Empaleuse (LDB 62 l.137). */
   qualities?: QualityRef[];
+}
+export interface GroupeDArme extends GroupeDObjet {
+  kind: 'weapon';
+  /** `melee` = Spé de Corps à corps, `ranged` = Spé de Projectiles : SOURCE des pools
+   *  `weaponGroupsMelee`/`weaponGroupsRanged` (SPEC_SOURCES) ; absent sur les Groupes de siège. */
+  combat?: 'melee' | 'ranged';
+  /** Forme dessinée d'une arme du Groupe sans forme propre (`null` : rien en main). */
+  forme: { id: string } | null;
+  maniement: Maniement;
+  poudre?: true;
+}
+export interface GroupeDeMunition extends GroupeDObjet {
+  kind: 'ammo';
+  poudre?: true;
+}
+/** Id d'un Groupe d'armure : la sous-liste `armour` (`IdsParEspace`), type d'armure d'une pièce. */
+export type GroupeDArmureId = IdsParEspace['weaponGroups.json?kind=armour'];
+export interface GroupeDArmure extends GroupeDObjet {
+  id: GroupeDArmureId;
+  kind: 'armour';
+  /** Matériau — source TYPÉE des exemptions de Magie des Arcanes (LDB 46 l.150-152 ; `chaos` = armure du
+   *  Chaos, exemptée pour le Sorcier du Chaos, VDM 02 l.169). */
+  material: 'metal' | 'leather' | 'chaos';
+  /** Rang de couche affichée, unique parmi les Groupes d'armure. */
+  couche: number;
+  /** Def d'art (`src/gameIso/rig/parts/armour/defs/`) qui peint la matière. */
+  art: string;
+  /** PA à partir desquels une armure de statbloc portée se dessine dans cette matière, unique ; `null` :
+   *  aucune (#2948). */
+  palierPA: number | null;
+}
+export interface GroupeDInventaire extends GroupeDObjet {
+  kind: 'inventory';
 }
 /** Groupe d'APPARTENANCE (WFRP4, Traits psy ciblés — LDB 21) : identité CANONIQUE i18n-safe.
  *  `id` STABLE (jamais traduit) ; `label` = rendu FR localisable. Registre SSOT (`groups.json`),
@@ -1449,7 +1479,7 @@ export interface CreatureData {
 }
 /** Base PARTAGÉE d'un STATUT porté pilotant des effets en DONNÉES — soit un État (LDB 16, `EtatData`), soit
  *  un état psychologique (LDB 21, `PsychologyData`). Porte le vocabulaire commun : modificateurs PASSIFS
- *  (`passive: GameOp[]`, MÊME éditeur `GameOpEditor` que traits/atouts) ET effets DÉCLENCHÉS
+ *  (`passive: OpPassive[]`, MÊME éditeur `GameOpEditor` que traits/atouts) ET effets DÉCLENCHÉS
  *  (`effects: TriggeredEffect[]`). Folding UNIQUE : `passiveMods` (passifs) + `fireStatusEffects` (déclenchés)
  *  itèrent indifféremment États et états psy → zéro duplication de schéma ni de collecteur. */
 export interface StatusData {
@@ -1464,9 +1494,9 @@ export interface StatusData {
    *  `grammaire/prose.ts`). */
   descRef?: DescRef;
   source: SourceRef;
-  /** Modificateurs PASSIFS continus (pénalité de Test, `incomingAttackMod`, `sbBonus`…) en `GameOp[]`, lus
+  /** Modificateurs PASSIFS continus (pénalité de Test, `incomingAttackMod`, `sbBonus`…) en `OpPassive[]`, lus
    *  par `passiveMods` (kind `etat` : pool non-cumul, le pire seul, LDB 16 l.13). MÊME éditeur GameOpEditor. */
-  passive?: import('../engine/ops').GameOp[];
+  passive?: import('../engine/ops').OpPassive[];
   /** Effets DÉCLENCHÉS (dégâts par round → `onRoundEnd` ; sortie de Frénésie → `onTurnStart`…) en
    *  `TriggeredEffect[]`, diffusés par `fireStatusEffects` — le même cœur `applyTriggeredEffects`. */
   effects?: TriggeredEffect[];
@@ -1541,9 +1571,9 @@ export interface PsychologyData extends StatusData {
   /** Porter cet état psy IMMUNISE à la Psychologie (Frénésie, LDB 21 l.33) — lu GÉNÉRIQUEMENT par
    *  `isPsychImmune` (jamais codé par-nom), à l'égal du drapeau de trait « Immunité (Psychologie) ». */
   psychImmune?: boolean;
-  /** Trait psychologique CIBLÉ (Animosité/Haine/Préjugé/Amour/Camaraderie/Phobie, LDB 21) : résolution
-   *  binaire de Calme pilotée par un Groupe-Cible. Dérive `estCibleType` de la donnée (jamais un Set codé). */
-  targeted?: boolean;
+  /** Variantes de Cible admises (Groupe, individu) d'un Trait psychologique CIBLÉ (LDB 21) ; leur présence
+   *  fait le type ciblé (`estCibleType`), lues par `varianteAdmise` (`engine/psych/ciblage.ts`). #3045 */
+  cibles?: VarianteDeCible[];
   /** RAW LDB 21 : cette affliction CIBLÉE cesse dès que son porteur tombe sous un AUTRE effet psychologique
    *  « dominant » (Peur/Terreur/Haine…) — « Animosité est annulé par Peur et Terreur » ; Préjugé idem. */
   endedByOtherPsych?: boolean;
@@ -1864,7 +1894,7 @@ export interface TraitData {
   /** Une instance peut fixer la Difficulté des Tests qui éliminent l'État que le Trait inflige
    *  (`TraitPose.difficulte`). LDB 16 l.70 ; MDG 16 l.226 */
   difficulte?: boolean;
-  /** Registre de l'ARGUMENT `arg` du trait (catalogue `SPEC_SOURCES` : `groups`/`diseases`/`sizes`/
+  /** Registre de l'ARGUMENT `arg` du trait (catalogue `SPEC_SOURCES` : `ciblesPsy`/`diseases`/`sizes`/
    *  `mutations`/`breathTypes`/`weaponGroups*`…). Le pool DÉRIVE alors du registre, jamais d'une liste en dur. */
   specsSource?: SpecsSource;
   /** L'`arg` accepte un TEXTE LIBRE (argument authentiquement descriptif, hors registre). Absent/`false`
@@ -1886,11 +1916,11 @@ export interface TraitData {
    *  `maneuvers`. Un trait d'attaque naturelle octroie sa/ses manœuvre(s) ; `engine/creatureAttacks`
    *  les résout par id (`findManeuverById`). Le trait Souffle en octroie plusieurs (un par Type). */
   grantsManeuvers?: RefDesignee[];
-  /** Modificateurs de PROFIL PASSIFS (Élite +20 CC/CT/FM, Brutal −1 M…) en `GameOp[]` — le MÊME vocabulaire
+  /** Modificateurs de PROFIL PASSIFS (Élite +20 CC/CT/FM, Brutal −1 M…) en `OpPassive[]` — le MÊME vocabulaire
    *  d'ops que les sorts et `Trauma.ops`, CONTINUS (sans wrapper Flow/déclencheur, ≠ `effects`) : édités par
    *  `GameOpEditor` (le composant de liste d'ops existant), lus par le collecteur passif (`traitPassiveMods`
    *  → liveTraits) qui leur AFFECTE le `kind` `intrinseque` (comme la séquelle dérive le sien). */
-  passive?: import('../engine/ops').GameOp[];
+  passive?: import('../engine/ops').OpPassive[];
   /** Apparence COSMÉTIQUE déclarée en DONNÉE (calques du catalogue via `features` + `colors` + `eyes`) —
    *  fusionnée sur le rig quand le trait est présent (cf. `combatantVisuals`). Même fragment éditable
    *  (`AppearanceField`) que les créatures/mutations. */
@@ -1902,7 +1932,7 @@ export interface TraitData {
    *  X » — LDB 85 : Dressé (Dompté) ignore Bestial). Mécanisme GÉNÉRIQUE de suppression, lu par
    *  `traitCapability` : une capacité supprimée par n'importe quel trait porté répond false. */
   suppressesCapabilities?: (keyof TraitCapabilities)[];
-  /** AURA de combat : projette des `passive` GameOp[] sur les combattants À PORTÉE (Perturbant : −20 aux
+  /** AURA de combat : projette des `passive` OpPassive[] sur les combattants À PORTÉE (Perturbant : −20 aux
    *  Tests à `rangeChar` mètres, LDB 85 l.262 ; `affects` = quel camp est touché ; l'émetteur ne se touche
    *  jamais).
    *  Recalculée chaque Round par le hook GÉNÉRIQUE `recompute-auras`, accumulée dans `Combatant.auraMods`
@@ -1912,7 +1942,7 @@ export interface TraitData {
   aura?: {
     rangeChar: CharKey;
     affects?: 'enemies' | 'allies' | 'all';
-    passive: import('../engine/ops').GameOp[];
+    passive: import('../engine/ops').OpPassive[];
   };
   /** Trait STANDARD (LDB 76 l.28-31 : « ajoutés à la liste Facultative de TOUTES les créatures ») —
    *  proposé par le picker de Traits facultatifs sur n'importe quel bestiaire. Édité au Codex. */
@@ -1980,9 +2010,9 @@ export interface QualityData {
   alsoIn?: SecondaryRef[];
   effects?: TriggeredEffect[];
   /** Modificateurs PASSIFS continus (objet Laid : −10 aux Tests de Soc ; PASSIFS d'arme : weaponRollMod/
-   *  weaponDamageMod/armourPierce/critOnRoll) en `GameOp[]` — MÊME vocab/éditeur (`GameOpEditor`) que les
+   *  weaponDamageMod/armourPierce/critOnRoll) en `OpPassive[]` — MÊME vocab/éditeur (`GameOpEditor`) que les
    *  traits et les sorts ; lus par `engine/qualities/dispatch` (par id) et le collecteur passif. */
-  passive?: import('../engine/ops').GameOp[];
+  passive?: import('../engine/ops').OpPassive[];
   /** Drapeaux/marqueurs de CAPACITÉ irréductibles (résolution combat, artisanat) — lus PAR ID par
    *  `engine/qualities/dispatch`. Édité au Codex. */
   capabilities?: QualityCapabilities;
@@ -1990,6 +2020,8 @@ export interface QualityData {
    *  la valeur quand le livre en pose une (`AA 08 l.87` « Taillade (XA) » ; `LDB 62 l.66` « Recharge 1 »
    *  n'en a pas). Lue par `qualityRefLabel`. */
   indice?: { label: string; unite?: string };
+  /** Qualité d'ASPECT (LDB 60 l.24 ; LDB 60 l.52) : une apparence d'objet peut naître d'elle (`defs/apparences.ts`). */
+  aspect?: true;
 }
 /** Capacités IRRÉDUCTIBLES d'un symptôme de maladie — drapeaux lus par la machinerie de cycle
  *  (`engine/disease`), pour les comportements non exprimables en GameOp continu. */
@@ -2013,8 +2045,8 @@ export interface SymptomData {
   label: string;
   desc: string;
   source?: SourceRef;
-  passive?: import('../engine/ops').GameOp[];
-  passiveBySeverity?: { moderee?: import('../engine/ops').GameOp[]; grave?: import('../engine/ops').GameOp[] };
+  passive?: import('../engine/ops').OpPassive[];
+  passiveBySeverity?: { moderee?: import('../engine/ops').OpPassive[]; grave?: import('../engine/ops').OpPassive[] };
   /** Effets DÉCLENCHÉS du symptôme (MÊME `TriggeredEffect` que Traits/Atouts/États) — dispatchés par
    *  `fireTriggers` quand le porteur est actif (Crampes abdominales : `onOwnTestFailed` → Sonné/FM/
    *  Inconscient par paliers de `slThreshold`, MSRC 16 l.152-158). Source du dispatcher via
@@ -2039,7 +2071,7 @@ export interface SymptomData {
   /** Passifs conditionnés à la VISIBILITÉ de la lésion (Vers du Reik : « si l'ampoule se trouve à un endroit
    *  visible… −10 Sociabilité », MSRC 16 l.140) — appliqués SEULEMENT si la localisation tirée à l'entrée en
    *  phase active (`Disease.blisterLocation`) ∈ `visibleLocations`. Jet de Localisation canonique (`hitLocation`). */
-  visiblePassive?: import('../engine/ops').GameOp[];
+  visiblePassive?: import('../engine/ops').OpPassive[];
   /** Localisations comptées comme VISIBLES (arbitrage `maison` : tête/bras visibles, corps/jambes couverts) —
    *  gate de `visiblePassive`. Éditable au Codex. */
   visibleLocations?: import('../engine/types').HitLocation[];
@@ -2591,7 +2623,7 @@ export const teintesJeu: Record<import('./schemas/defs/teintesJeu').TeinteId, st
 /** Traits & Améliorations de navire (MDG 12) — catalogue app-owned éditable au Codex. La DONNÉE (`desc`
  *  verbatim + effet) vit ici ; `engine/navalTraits.ts` ne fait que la LIRE (aucune valeur codée en dur).
  *  `kind` distingue Trait (construction) et Amélioration (ajout/retrait) ; `ranked` = prend un Indice
- *  (« Renforcé 2 », « Peu maniable 1 »). L'EFFET mécanique passe par la langue UNIQUE `GameOp[]` (`passive`,
+ *  (« Renforcé 2 », « Peu maniable 1 »). L'EFFET mécanique passe par la langue UNIQUE des ops (`passive: OpPassive[]`,
  *  MÊME vocabulaire/éditeur que traits & mutations) — `ap` (Blindage → PA de coque), `moveMod` (Lissage → M),
  *  `skillDRBonus` (Peu maniable → DR des Tests de Voile/Ramer). Restent en CHAMP DE DOMAINE les sous-systèmes
  *  navire hors vocabulaire combattant : `ram` (Bélier → collision proue/frontale) et `deckCover` (Sabord →
@@ -2634,9 +2666,9 @@ export interface NavalTraitData {
   install?: NavalInstall;
   /** Prend un Indice (le libellé authoré peut être « Renforcé 2 ») — l'effet `passive` est répété par niveau. */
   ranked?: boolean;
-  /** Effet mécanique en `GameOp[]` (langue unique) — lu par `navalPassiveOps` puis filtré par effet
+  /** Effet mécanique en `OpPassive[]` (langue unique) — lu par `navalPassiveOps` puis filtré par effet
    *  (`ap`/`moveMod`/`skillDRBonus`), répété ×Indice si `ranked`. MÊME éditeur `GameOpEditor` que les traits. */
-  passive?: import('../engine/ops').GameOp[];
+  passive?: import('../engine/ops').OpPassive[];
   /** Bélier (MDG 12 l.221) : bonus de COLLISION (géométrie proue/frontale) — sous-système navire hors
    *  vocabulaire combattant (≠ `ap` qui mitige TOUT) → injecté dans `resolveCollision` via `belierRam`. */
   ram?: { ic: number; ap: number };
@@ -2916,7 +2948,7 @@ export function seasonLabel(id: string): PlayerText {
 
 /** Nature d'une entité dont l'ABSENCE est atteignable en jeu (#1906) : héros sorti du groupe, combattant
  *  sorti du combat, lieu effacé de la carte, navire retiré du catalogue, saison sans fiche météo. */
-export type NatureAbsente = 'heros' | 'combattant' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere';
+export type NatureAbsente = 'heros' | 'combattant' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere' | 'classe';
 /** Le libellé d'une entité résolue, ou son ABSENCE nommée en français de joueur par sa nature (#1906) —
  *  jamais un littéral qui la masque. Une absence IMPOSSIBLE ne passe pas ici : elle lève. */
 export function libelleOuAbsence(e: { label: string } | undefined, nature: NatureAbsente, id: string): PlayerText {
@@ -2945,6 +2977,11 @@ export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 /** Carrures du rig (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */
 export const gabarits = gabaritsJson as GabaritDef[];
 export const findGabaritById = indexParId('gabarits', gabarits);
+/** Garde-robe des éléments 3D (`garde-robe.json`, #3114) : emplacements, pièces, ensembles. */
+export const gardeRobe = gardeRobeJson as GardeRobeEntree[];
+/** Résout une PIÈCE (`kind: 'piece'`) par son id ; une autre ligne de la garde-robe n'en est pas une. */
+const pieceParId = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'piece' ? e.id : undefined));
+export const findPieceById = (id: string | null | undefined): PieceDef | undefined => pieceParId(id) as PieceDef | undefined;
 export const locations = locationsJson as LocationData[];
 const lieuParId = indexParId('locations', locations);
 /** Résout un Lieu par son `id` STABLE (cible de `LocationData.parent`). Le libellé ne sert qu'à l'affichage. */
@@ -3125,6 +3162,11 @@ export function speciesSize(sp: SpeciesData): import('../engine/size').SizeCateg
   const ids = sp.talents.filter((t): t is RefDesignee => 'id' in t && t.choix == null).map((t) => t.id);
   return sizeFromTalents(ids, tailleDuTalent) ?? 'moyenne';
 }
+/** Tailles DISTINCTES (`speciesSize`) des espèces d'une race de rig, jointes par `species.refChar`
+ *  (`names-species-keyspaces.test.ts`) : une seule est la Taille de la race ; aucune ou plusieurs, elle est indéterminée. */
+export function taillesDeLaRace(race: string): import('../engine/size').SizeCategory[] {
+  return [...new Set(species.filter((sp) => sp.refChar === race).map(speciesSize))];
+}
 /** Race de rig par DÉFAUT, déclarée en donnée (`speciesRace.json` `default`). */
 export const DEFAULT_RACE_ID: string = (speciesRaceJson as { default: string }).default;
 /** id d'espèce RIG (clé `appearance.species`) d'un id d'espèce RULES : l'id passe tel quel (un id
@@ -3181,6 +3223,8 @@ const classeParId = indexParId('classes', classes);
 export function findClassById(id: string | undefined): ClassData | undefined {
   return classeParId(id);
 }
+/** Libellé de la Classe `id`, ou son absence nommée — SOURCE UNIQUE du libellé de Classe. */
+export const libelleDeClasse = (id: string): PlayerText => libelleOuAbsence(findClassById(id), 'classe', id);
 export function levelsForCareer(careerId: string): CareerLevelData[] {
   return careerLevels.filter((c) => c.career === careerId).sort((a, b) => a.level - b.level);
 }
@@ -3267,6 +3311,14 @@ const groupeObjetParId = indexParId('weaponGroups', weaponGroups);
 /** Résout un Groupe d'objet par son `id` STABLE (= `subType` d'un trapping/Weapon/ItemInstance). */
 export function findWeaponGroupById(id: string | null | undefined): WeaponGroupData | undefined {
   return groupeObjetParId(id);
+}
+/** Groupes d'armure du registre (`kind:'armour'`). */
+export const groupesDArmure = (): GroupeDArmure[] => weaponGroups.filter((g): g is GroupeDArmure => g.kind === 'armour');
+/** Groupe d'armure d'un id typé ; un id absent du registre vivant (Groupe retiré à l'atelier) lève. */
+export function groupeDArmure(id: GroupeDArmureId): GroupeDArmure {
+  const groupe = findWeaponGroupById(id);
+  if (groupe?.kind !== 'armour') throw new Error(`groupeDArmure : « ${id} » n’est aucun Groupe d’armure de weaponGroups.json.`);
+  return groupe;
 }
 /** Libellé d'affichage d'un Groupe d'objet par son id (repli sur l'id). SOURCE UNIQUE du nom de Groupe. */
 export function weaponGroupLabel(id: string | null | undefined): PlayerText {
@@ -3514,18 +3566,17 @@ function libelleDeSource(decl: SourceDeSpecs): (id: string) => string {
   };
 }
 /** UNE source de spéc, lue sur sa déclaration (`SOURCES_DE_SPECS`) : `pool()` = ids CHOISISSABLES par un
- *  joueur ; `resolves()` = l'id appartient-il à l'UNIVERS de la source (⊇ pool) ; `label()` = affichage.
- *  `admetEntree()` juge une entrée résolue par le filtre déclaré de l'univers, campagne comprise.
- *  Le pool borne le CHOIX joueur ; l'univers borne la VALIDITÉ des données (le Triton, MDG 16 l.283). */
+ *  joueur ; `label()` = affichage. `admetEntree()` juge une entrée résolue par le filtre déclaré de
+ *  l'univers, campagne comprise. Le pool borne le CHOIX joueur ; l'univers (⊇ pool) est le catalogue de
+ *  l'entrée qui la déclare (`catalogueSpecs`, `grammaire/ref.ts`), le Triton compris (MDG 16 l.283). */
 export const SPEC_SOURCES = tableTotale(
   Object.keys(SOURCES_DE_SPECS) as SpecsSource[],
-  (src): { pool(): string[]; label(id: string): string; resolves(id: string): boolean; admetEntree(entree: { readonly id: string }): boolean } => {
+  (src): { pool(): string[]; label(id: string): string; admetEntree(entree: { readonly id: string }): boolean } => {
     const decl: SourceDeSpecs = SOURCES_DE_SPECS[src];
     const { filtre } = lireCleDEspace(decl.univers);
     return {
       pool: () => [...(lireLEspace(decl.pool ?? decl.univers) ?? [])],
       label: libelleDeSource(decl),
-      resolves: (id: string) => lireLEspace(decl.univers)?.has(id) ?? false,
       admetEntree: (entree) => filtre ? retenuParFiltre(filtre, entree as Readonly<Record<string, unknown>>) : (lireLEspace(decl.univers)?.has(entree.id) ?? false),
     };
   },
@@ -3539,7 +3590,7 @@ export function specIdByLabel(label: string, source: SpecsSource): string | unde
 /** POOL d'une def (Compétence/Talent) — ce qu'un choix joueur PROPOSE d'office (`LDB 09 l.40`) :
  *  pool DÉRIVÉ du registre partagé si `specsSource` (SSOT `SPEC_SOURCES`), sinon les entrées `specs[]`
  *  inline SANS `pool: false`. Consommé par `wildcardSpecs` (créateur), l'avancement et l'Entraînement.
- *  Ne JAMAIS l'utiliser pour juger de la VALIDITÉ d'une spec (cf. `specResolves`). */
+ *  Ne JAMAIS l'utiliser pour juger de la VALIDITÉ d'une spec (`refusDeSpec`, `grammaire/ref.ts`). */
 export function specPoolOf(def: { specsSource?: SpecsSource; specs?: SpecEntry[] }): string[] {
   return def.specsSource
     ? SPEC_SOURCES[def.specsSource].pool()
@@ -3547,23 +3598,10 @@ export function specPoolOf(def: { specsSource?: SpecsSource; specs?: SpecEntry[]
 }
 /** CATALOGUE ÉNUMÉRABLE d'une def : toutes les entrées `specs[]` (y compris `pool: false`), sinon le
  *  pool du registre partagé. C'est la liste qu'un écran de RÉFÉRENCE imprime (Codex/éditeur) et la
- *  base des round-trips libellé→id. `specsSource` résout AU-DELÀ de cet énumérable (registre entier,
- *  cf. `specResolves`) : ce qui est énumérable ⊆ ce qui est valide. */
+ *  base des round-trips libellé→id. Le catalogue d'une `specsSource` va AU-DELÀ de cet énumérable
+ *  (univers entier, `specAuCatalogue`, `grammaire/ref.ts`) : ce qui est énumérable ⊆ ce qui est désigné. */
 export function specCatalogOf(def: { specsSource?: SpecsSource; specs?: SpecEntry[] }): string[] {
   return def.specsSource ? SPEC_SOURCES[def.specsSource].pool() : (def.specs ?? []).map(specEntryId);
-}
-/** VALIDITÉ d'une spéc pour une def : l'id existe au catalogue inline (pool ou non) OU dans le REGISTRE
- *  d'une `specsSource` (⊇ son pool joueur — un statbloc RAW porte une spéc réelle non choisissable).
- *  Porte de la RÉSOLUTION (`testValue` par id, bonus de règle) et des gardes. */
-export function specResolves(def: { specsSource?: SpecsSource; specs?: SpecEntry[] }, specId: string): boolean {
-  return def.specsSource
-    ? SPEC_SOURCES[def.specsSource].resolves(specId)
-    : (def.specs ?? []).some((e) => specEntryId(e) === specId);
-}
-/** La def PORTE-t-elle un catalogue de spécs (`specs[]` non vide ou `specsSource`) ? Sans catalogue, la
- *  spéc d'un Talent est un texte d'instance (#1621). */
-export function porteCatalogueDeSpecs(def: { specsSource?: SpecsSource; specs?: SpecEntry[] } | undefined): boolean {
-  return !!def?.specsSource || (Array.isArray(def?.specs) && def.specs.length > 0);
 }
 /** Libellé d'affichage d'une spéc (`RefDesignee.spec`) : si la def désigne une `specsSource`, résout via le
  *  catalogue `SPEC_SOURCES` (registre partagé d'ids : Groupe d'arme → libellé, Vent, Lore, dieu, chanson) ;

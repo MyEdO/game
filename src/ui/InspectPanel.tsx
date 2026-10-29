@@ -17,6 +17,8 @@ import { isEngin } from '../engine/structures';
 import { ShipInspectBody } from './console/ShipSheet';
 import { Icon } from './Icon';
 import { WoundsBadge } from './WoundsBadge';
+import { useNomDIndividu } from './useNomDIndividu';
+import { individusNommes } from '../engine/psych/ciblage';
 
 /**
  * Panneau d'INSPECTION d'une entité (geste secondaire d'un jeton ou d'un portrait, touche `inspecter`) — un
@@ -41,6 +43,7 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
   const fx = summarizeEffects(c.conditions, c.activeEffects ?? [], Infinity, combatantFlags(c));
   const prose = hull ? null : proseDeFiche(c, presetPnjById, (cle, id, suite) => porteurDuNarratif({ campaignDoc }, cle, id, suite));
   const [onglet, setOnglet] = useState<'profil' | 'description'>('profil');
+  const nomDe = useNomDIndividu(individusNommes(c.traits));
   const crew = hull ? (c.crewIds ?? []).map((id) => battle?.combatants.find((x) => x.id === id)).filter((x): x is Combatant => !!x) : [];
 
   return (
@@ -101,7 +104,7 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
           {prose ? (
             <div className="insp-statblock insp-onglets">
               <div inert={onglet !== 'profil'} aria-hidden={onglet !== 'profil'}>
-                <CodexSections sections={combatantSections(c)} />
+                <CodexSections sections={combatantSections(c, nomDe)} />
               </div>
               <div inert={onglet !== 'description'} aria-hidden={onglet !== 'description'}>
                 <CodexSections sections={[prose.section]} entree={prose.entree} />
@@ -109,7 +112,7 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
             </div>
           ) : (
             <div className="insp-statblock">
-              <CodexSections sections={combatantSections(c)} />
+              <CodexSections sections={combatantSections(c, nomDe)} />
             </div>
           )}
         </>

@@ -228,6 +228,7 @@ export const REGISTRIES = [
     arrayName: 'ARMOUR_DEFS',
     type: 'ArmourDef',
     typeFrom: './types',
+    projection: { nom: 'ARTS_D_ARMURE' },
   },
   {
     // Arts d'engin de siège (silhouette statique 3 vues, plan 'engin') : 1 engin = 1 fichier defs/ —

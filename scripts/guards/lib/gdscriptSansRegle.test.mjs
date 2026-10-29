@@ -37,6 +37,11 @@ test('chaque calcul de règle de la sonde du juge rougit', () => {
   assert.deepEqual(familles(sonde.adjacence), ['calcul:1', 'mesure:2', 'mesure:2', 'mesure:2', 'ordre:2'])
 })
 
+test('ordre : l’appartenance à une liste littérale de nombres ou à un `range`, hors de l’en-tête d’un `for`', () => {
+  assert.deepEqual(familles('if n in [0, 1]:\n\tpass\nif n not in [-1, [2]]:\n\tpass\nvar ok := n in range(0, 3)'), ['ordre:1', 'ordre:3', 'ordre:5'])
+  assert.deepEqual(familles('for i in range(3):\n\tpass\nfor i: int in [0, 1]:\n\tpass\nif x in [VIDE, "a"]:\n\tpass\nif e in p.elements:\n\tpass'), [])
+})
+
 test('la mise en scène sans calcul passe : moins unaire, chaîne mise en forme ou concaténée, égalité, chemin de nœud', () => {
   const src = [
     'var p := MiseEnPage.centre_de_case(case)',
@@ -52,6 +57,21 @@ test('la mise en scène sans calcul passe : moins unaire, chaîne mise en forme 
     '\tpass',
   ].join('\n')
   assert.deepEqual(familles(src), [])
+})
+
+test('le nœud unique `%Nom` n’est pas un modulo ; le modulo de deux valeurs l’est', () => {
+  const noeuds = [
+    'func _ready() -> void:',
+    '\tf(1)',
+    '\t%Bouton.pressed.connect(f)',
+    '%Titre.text = "x"',
+    'g(%Bouton, h(%Liste))',
+    'var l := [%Bouton,',
+    '\t%Liste]',
+  ].join('\n')
+  assert.deepEqual(familles(noeuds), [])
+  assert.deepEqual(familles('var r := a % b\nvar s := a %b\nvar t := (a\n\t% b)\nvar u := a \\\n\t% b'), ['calcul:1', 'calcul:2', 'calcul:4', 'calcul:6'])
+  assert.deepEqual(familles('var t := "%d" % x'), [])
 })
 
 test('un commentaire ou une chaîne ne comptent pas', () => {

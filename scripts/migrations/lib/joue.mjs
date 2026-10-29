@@ -1,8 +1,8 @@
 // Une migration DATÉE jouée dans un DÉPÔT JETABLE : elle y est COPIÉE, puis lancée dans son propre
 // processus. Une migration lit sa racine depuis `import.meta.url` — c'est l'emplacement de la copie
 // qui la fait travailler sur le dépôt jetable, jamais sur l'arbre réel.
-// Source UNIQUE des outils des bancs de migration : fabrication du dépôt (`depot`), témoin
-// d'écriture (`ANTIDATE`, `rienTouche`, `crees`), refus d'avant-écriture (`refuse`), lecture de
+// Source UNIQUE des outils des bancs de migration : fabrication du dépôt (`depot`, `copieDuCorpus`), écriture
+// dans le dépôt (`pose`, seule écriture d'un banc dans le dépôt jetable), témoin d'écriture (`ANTIDATE`, `rienTouche`, `crees`), refus d'avant-écriture (`refuse`), lecture de
 // l'arbre (`lireArbre`) et du dépôt (`lireDans`). Les formes canoniques d'un document vivent dans
 // `croissance.mjs` (`FORMES`, `serialise`).
 import { strict as assert } from 'node:assert';
@@ -26,6 +26,17 @@ export const lireArbre = (rel) => fs.readFileSync(path.join(RACINE, rel), 'utf8'
 /** Le texte d'un fichier du dépôt jetable `racine`. */
 export const lireDans = (racine, rel) => fs.readFileSync(path.join(racine, rel), 'utf8');
 
+/** `texte` posé à `rel` dans le dépôt jetable `racine`, antidaté. Une racine hors de `os.tmpdir()` est refusée :
+ *  l'arbre réel n'est jamais écrit par un banc. */
+export function pose(racine, rel, texte) {
+  const relRacine = path.relative(os.tmpdir(), racine);
+  if (!relRacine || relRacine.startsWith('..') || path.isAbsolute(relRacine)) throw new Error(`pose : ${racine} n'est pas un dépôt jetable de os.tmpdir()`);
+  const cible = path.join(racine, rel);
+  fs.mkdirSync(path.dirname(cible), { recursive: true });
+  fs.writeFileSync(cible, texte, 'utf8');
+  fs.utimesSync(cible, ANTIDATE, ANTIDATE);
+}
+
 /**
  * Dépôt jetable sous `os.tmpdir()` : les chemins `copies` de l'arbre (fichiers ou dossiers) y sont
  * COPIÉS, puis `fichiers` (`{ <rel>: texte }`) y est posé par-dessus, antidaté. REND
@@ -36,13 +47,31 @@ export function depot(fichiers, copies = []) {
   for (const rel of copies) fs.cpSync(path.join(RACINE, rel), path.join(racine, rel), { recursive: true });
   const avant = new Map();
   for (const [rel, texte] of Object.entries(fichiers)) {
-    const cible = path.join(racine, rel);
-    fs.mkdirSync(path.dirname(cible), { recursive: true });
-    fs.writeFileSync(cible, texte, 'utf8');
-    fs.utimesSync(cible, ANTIDATE, ANTIDATE);
+    pose(racine, rel, texte);
     avant.set(rel, texte);
   }
   return { racine, avant };
+}
+
+/**
+ * Ce que le dépôt jetable doit porter pour qu'une migration échoue sur son CONTRAT et jamais sur une
+ * absence de dépôt : sans `Source/`, des migrations sortent 1 sur une extraction introuvable — une
+ * raison de dépôt, pas de contrat. COPIE PURE : aucun lien.
+ *
+ * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les PDF (lourds,
+ * gitignorés) sont écartés de la copie par leur EXTENSION — jamais par le nom de leur dossier.
+ */
+const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/gameIso/catalog', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/jsonCanonique.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'src/lib/tableTotale.ts', 'docs/raw', 'Source'];
+
+/** Dépôt jetable sous `os.tmpdir()` portant une COPIE du `CORPUS` de l'arbre. REND sa racine. */
+export function copieDuCorpus() {
+  const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-corpus-'));
+  for (const rel of CORPUS)
+    fs.cpSync(path.join(RACINE, rel), path.join(racine, rel), {
+      recursive: true,
+      filter: (src) => path.extname(src).toLowerCase() !== '.pdf',
+    });
+  return racine;
 }
 
 /** Le dépôt jetable, effacé : il ne porte que des COPIES, rien de l'arbre ne part avec. */
@@ -60,9 +89,13 @@ export function rienTouche(racine, avant) {
   return fautes;
 }
 
-/** Les fichiers du dossier `dossier` (relatif à `racine`) qui ne sont pas au nombre des posés. */
+/** Par racine de dépôt jetable, les dépendances statiques que `joue` y a copiées de l'arbre. */
+const dependancesPosees = new Map();
+
+/** Les fichiers du dossier `dossier` (relatif à `racine`) qui ne sont ni au nombre des posés, ni une
+ *  dépendance que `joue` y a copiée. */
 export function crees(racine, avant, dossier) {
-  const poses = new Set(avant.keys());
+  const poses = new Set([...avant.keys(), ...(dependancesPosees.get(racine) ?? [])]);
   return fs
     .readdirSync(path.join(racine, dossier))
     .map((f) => path.posix.join(dossier, f))
@@ -84,6 +117,8 @@ export function joue(racine, migration) {
     if (fs.existsSync(destination)) continue;
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.copyFileSync(path.join(RACINE, rel), destination);
+    if (!dependancesPosees.has(racine)) dependancesPosees.set(racine, new Set());
+    dependancesPosees.get(racine).add(rel.split(path.sep).join('/'));
   }
   const r = spawnSync(process.execPath, [cible], { encoding: 'utf8' });
   const stdout = r.stdout ?? '';

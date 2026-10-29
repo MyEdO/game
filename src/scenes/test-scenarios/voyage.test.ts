@@ -5,7 +5,7 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { distributeCredit } from '../../noyau/bourseFlow';
 import { interludeCatalog } from '../../noyau/interludeFlow';
 import { currentPlaceId } from '../../noyau/worldMap';
-import { draineCascade } from '../../state/cascade.testkit';
+import { draineCascade } from '../../noyau/cascade.testkit';
 import { scenario } from './voyage';
 const scenarioConstruit = scenario.construire();
 

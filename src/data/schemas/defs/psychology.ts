@@ -2,8 +2,8 @@ import { nommerChamps } from '../grammaire/meta';
 /** LDB 21 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { difficultySchema, stakeFormSchema } from '../grammaire/valeurs';
-import { gameOpSchema, triggeredEffectSchema } from '../grammaire/mecanique';
+import { difficultySchema, stakeFormSchema, varianteDeCibleSchema } from '../grammaire/valeurs';
+import { passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'psychology.json';
@@ -13,7 +13,7 @@ const doc = document(
   'psychology',
   famille,
   {
-    passive: z.array(gameOpSchema).optional(),
+    passive: passifsDe().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
     gating: nommerChamps(z
       .strictObject({
@@ -27,7 +27,7 @@ const doc = document(
     })
       .optional(),
     psychImmune: z.boolean().optional(),
-    targeted: z.boolean().optional(),
+    cibles: z.array(varianteDeCibleSchema).min(1).optional(),
     endedByOtherPsych: z.boolean().optional(),
     immuneToFromTarget: z.array(z.string()).optional(),
     attackDR: nommerChamps(z.strictObject({ amount: z.number(), vs: z.enum(['source', 'group', 'any']) }), { amount: { label: 'Quantité' }, vs: { label: 'Contre' } }).optional(),
@@ -58,9 +58,9 @@ const doc = document(
     effects: { label: 'Effets déclenchés' },
     gating: { label: 'Restrictions Action/Mouvement/défense' },
     psychImmune: { label: 'Immunise à toute Psychologie' },
-    targeted: {
-      label: 'Vise une cible',
-      hint: 'Ce type de Psychologie porte sur une cible désignée (Animosité, Haine, Préjugé, Phobie — la Cible est un Groupe)',
+    cibles: {
+      label: 'Cibles admises',
+      hint: 'Ce que la Cible peut désigner : un Groupe, une personne (Amour : des individus seulement)',
     },
     endedByOtherPsych: { label: 'Levée par un autre état psy' },
     immuneToFromTarget: { label: 'Immunités face à la Cible' },

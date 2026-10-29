@@ -2,12 +2,14 @@
  * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine pour une base, et sa validation
  * contre le manifeste de cette base (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme de
  * `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements` et `silhouettes`, et le choix
- * palette ou teinte des surfaces (`REGLES_DES_CATEGORIES`).
+ * palette ou teinte des surfaces, et si un mesh rigide peut rester à la racine de la scène (`REGLES_DES_CATEGORIES`) ;
+ * une clé bien formée se résout contre la donnée du jeu (`ecartsDeCleDElement`, surface du noyau).
  */
 import { estObjet } from '../../../src/hote/formes';
-import { SLOTS } from '../../../src/noyau/index.ts';
+import { ecartsDeCleDElement, SLOTS, type CodeDEcartDeCle } from '../../../src/noyau/index.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
-import { sha256 } from './empreinte.ts';
+import { EMPREINTE, sha256 } from './empreinte.ts';
+import type { ContenuGlb } from './glb.ts';
 import type { ManifesteDeBase } from './manifesteDeBase.ts';
 
 export const VERSION_DU_SCHEMA_D_ELEMENT = 3;
@@ -32,10 +34,12 @@ interface RegleDeCategorie {
   readonly emplacements: boolean;
   readonly silhouettes: boolean;
   readonly couleur: 'palette' | 'teinte';
+  /** Un mesh rigide de l'élément peut rester à la racine de la scène (non tenu). */
+  readonly racine: boolean;
 }
 
-const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true } as const;
-const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, couleur: 'teinte' } as const;
+const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, racine: false } as const;
+const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, couleur: 'teinte', racine: false } as const;
 
 /** Les règles de chaque catégorie, seule source du type `ManifesteDElement` et de `validerElement`. */
 export const REGLES_DES_CATEGORIES = {
@@ -47,8 +51,8 @@ export const REGLES_DES_CATEGORIES = {
   accessoire: { ...SKINNE, cle: ['piece'], liaisons: ['rigide', 'surface'], couvre: 'optionnel', couleur: 'teinte' },
   rigide: { ...RIGIDE, cle: ['apparence'] },
   trait: { ...SKINNE, cle: ['trait'], couleur: 'palette' },
-  decor: { ...RIGIDE, cle: ['prop'] },
-  vehicule: { ...RIGIDE, cle: ['definition'] },
+  decor: { ...RIGIDE, cle: ['prop'], racine: true },
+  vehicule: { ...RIGIDE, cle: ['definition'], racine: true },
 } as const satisfies Record<string, RegleDeCategorie>;
 
 type Regles = typeof REGLES_DES_CATEGORIES;
@@ -91,6 +95,7 @@ export type CodeDEcartDElement =
   | 'categorie-inconnue'
   | 'champ-hors-categorie'
   | 'cle-mal-formee'
+  | CodeDEcartDeCle
   | 'base-differente'
   | 'liaison-hors-categorie'
   | 'couche-hors-categorie'
@@ -100,7 +105,10 @@ export type CodeDEcartDElement =
   | 'silhouette-absente'
   | 'surface-hors-categorie'
   | 'palette-inconnue'
-  | 'glb-different';
+  | 'glb-different'
+  | 'rigide-sans-mesh'
+  | 'rigide-sur-os-absent'
+  | 'rigide-a-la-racine';
 
 export interface EcartDElement {
   readonly code: CodeDEcartDElement;
@@ -115,8 +123,8 @@ const estCategorie = (v: unknown): v is CategorieDElement => typeof v === 'strin
 const estSlot = (v: unknown): v is Slot => (SLOTS as readonly unknown[]).includes(v);
 const liste = (l: readonly string[]) => l.map((e) => `\`${e}\``).join(', ');
 
-/** Le manifeste `brut` réduit au schéma 3 et validé contre la base qu'il nomme. */
-export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint8Array): VerdictDElement {
+/** Le manifeste `brut` réduit au schéma 3 et validé contre la base qu'il nomme et le GLB `octets`, lu en `glb` (`lireGlb`). */
+export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint8Array, glb: ContenuGlb): VerdictDElement {
   const ecarts: EcartDElement[] = [];
   const refus = (code: CodeDEcartDElement, ou: string, detail: string) => ecarts.push({ code, ou, detail });
   if (!estObjet(brut)) return { ok: false, ecarts: [{ code: 'forme', ou: '', detail: 'le manifeste n’est pas un objet' }] };
@@ -145,12 +153,21 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
   if (cle !== undefined) {
     const bienFormee = estObjet(cle) && Object.keys(cle).length === regle.cle.length && regle.cle.every((c) => typeof cle[c] === 'string' && cle[c] !== '');
     if (!bienFormee) refus('cle-mal-formee', 'cle', `${JSON.stringify(cle)} : ${liste(regle.cle)}, ids non vides et seuls, attendus pour un élément \`${categorie}\``);
+    else for (const e of ecartsDeCleDElement(categorie, cle as Record<string, string>)) refus(e.code, `cle.${e.champ}`, e.detail);
   }
 
   if (brut.liaison !== undefined) {
     const mode = estObjet(brut.liaison) && Object.keys(brut.liaison).length === 1 ? brut.liaison.mode : undefined;
     if (typeof mode !== 'string') refus('forme', 'liaison', '`{ mode }` seul attendu');
     else if (!regle.liaisons.includes(mode as ModeDeLiaison)) refus('liaison-hors-categorie', 'liaison.mode', `${mode} : ${liste(regle.liaisons)} attendue pour un élément \`${categorie}\``);
+    else if (mode === 'rigide') {
+      if (!glb.rigides.size) refus('rigide-sans-mesh', 'liaison.mode', 'le GLB ne porte aucun mesh rigide');
+      for (const mesh of glb.rigides) {
+        const os = glb.parentDesRigides.get(mesh);
+        if (os === undefined && !regle.racine) refus('rigide-a-la-racine', 'liaison.mode', `${mesh} ne pend directement à aucune articulation d’un skin : un élément \`${categorie}\` ne reste pas à la racine de la scène`);
+        else if (os !== undefined && !base.os.includes(os)) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os}, qui n’est pas un os de la base \`${base.base}\``);
+      }
+    }
   }
 
   if (regle.couches && brut.couche !== undefined) {
@@ -194,7 +211,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
 
   if (brut.glb !== undefined) {
     const g = brut.glb;
-    if (!(estObjet(g) && typeof g.sha256 === 'string' && /^[0-9a-f]{64}$/.test(g.sha256) && Number.isInteger(g.octets) && (g.octets as number) > 0 && Object.keys(g).length === 2)) {
+    if (!(estObjet(g) && typeof g.sha256 === 'string' && EMPREINTE.test(g.sha256) && Number.isInteger(g.octets) && (g.octets as number) > 0 && Object.keys(g).length === 2)) {
       refus('forme', 'glb', '`sha256` hexadécimal de 64 caractères et `octets` entier positif attendus');
     } else {
       const somme = sha256(octets);

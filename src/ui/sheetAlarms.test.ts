@@ -3,6 +3,9 @@ import { sheetAlarms, alarmsFingerprint } from './sheetAlarms';
 import type { Combatant, Trauma, ItemInstance } from '../engine/types';
 import type { Disease } from '../engine/disease';
 import type { Mutation } from '../engine/corruption';
+import { ciblePsy, libelleDeCible } from '../engine/psych/ciblage';
+import { groups, psychologies, psychologyLabel } from '../data';
+import type { PsychType } from '../engine/psychology';
 
 /** Héros de test minimal — mêmes caractéristiques que le patron `EquipmentPanel.test.tsx` (mkHero). */
 const mkHero = (mut?: (c: Combatant) => void): Combatant => {
@@ -81,6 +84,26 @@ describe('sheetAlarms', () => {
       c.traumas = [{ label: 'Bras cassé', location: 'brasG' } as Trauma];
     });
     expect(sheetAlarms(hero).find((a) => a.key === 'traumas')?.label).toBe('Séquelles 1');
+  });
+
+  it('deux afflictions ciblées de même type, un Groupe et un individu : deux alarmes, chacune nomme sa Cible (#3045)', () => {
+    const type = psychologies.find((p) => p.cibles?.includes('groupe') && p.cibles.includes('individu'));
+    const groupe = groups[0];
+    expect(type).toBeDefined();
+    const hero = mkHero((c) => {
+      c.psychState = [
+        { type: type!.id as PsychType, cible: ciblePsy.groupe(groupe.id), active: true },
+        { type: type!.id as PsychType, cible: ciblePsy.individu('pnj'), active: true },
+      ];
+    });
+    const nom = (id: string) => (id === 'pnj' ? 'Nom du PNJ' : undefined);
+    const psy = sheetAlarms(hero, nom).filter((a) => a.key.startsWith('psych-'));
+    expect(new Set(psy.map((a) => a.key)).size).toBe(2);
+    expect(psy.map((a) => a.label)).toEqual([
+      `${psychologyLabel(type!.id)} (${libelleDeCible(ciblePsy.groupe(groupe.id))})`,
+      `${psychologyLabel(type!.id)} (Nom du PNJ)`,
+    ]);
+    expect(psy.some((a) => a.label.includes('@'))).toBe(false);
   });
 
   it('fingerprint : stable pour le même relevé, différent si une affliction s’ajoute', () => {

@@ -245,7 +245,7 @@ Module principal : **`src/engine/characteristics.ts`**
 | `effectiveChar(c, key)` | Valeur effective : base + passifs permanents + meilleur bonus − pire pénalité des effets magiques actifs — LDB 46 l.119 |
 | `maxWounds(chars, size)` | Blessures de départ : `BF + 2×BE + BFM` avec variation par Taille — LDB 05 l.365/451, LDB 85 l.391-406 |
 | `effectiveMaxWounds(c)` | Blessures dynamiques : `wounds.base + Δ` dû aux buffs F/E/FM actifs |
-| `refreshWounds(c)` | Recale `wounds.max` et `wounds.current` quand les Blessures max changent (buffs/dispels) |
+| `blessuresReconciliees(c)` | Réconciliation : `wounds.max` recalé, `wounds.current` déplacé du même delta (plancher 0, LDB 48 l.27) — LDB 05 l.1001, LDB 48 l.23 ; coutures : fin d'`applyOps`, `applyActiveEffect`, `removeActiveEffects` |
 | `effectiveArmourAt(c, loc)` | PA effectifs à une localisation : armure portée + PA temporaires des effets magiques actifs |
 
 Module secondaire : **`src/engine/size.ts`**

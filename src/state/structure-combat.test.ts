@@ -10,7 +10,7 @@ import { critiquesDuCoup, relanceLaLocalisation } from '../engine/critical';
 import { setRule, resetRule } from '../engine/policy';
 import type { TestResult } from '../engine/tests';
 import { stepInteraction } from '../noyau/cascade';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { findTableEntry } from '../engine/tables';
 import { tableDesCritiquesDeStructure } from '../engine/structureCritical';
 import { rollStructureCritical } from '../engine/structureCritical';

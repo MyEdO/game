@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier } from '../noyau/cascade.testkit';
 import { setGmSeat } from './netFlow';
 import { openRoll, rollSansPilote, type RollRequest } from '../noyau/rollSeam';
 import { humanControlled } from '../noyau/netOwnership';

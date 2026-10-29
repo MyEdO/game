@@ -11,6 +11,7 @@ import { OPTIONAL_RULES, rule, loadRuleOverrides } from '../../engine/policy';
 import { conditionIds } from '../../data/index';
 import { FORMAT_SAVE } from './formats.generated';
 import { ciblePsy } from '../../engine/psych/ciblage';
+import { scenario as conditionsEtendues } from '../../scenes/test-scenarios/98-conditions-etendues';
 
 /** L'état d'un hôte web : l'état du jeu, plus des clés de son interface. */
 const etatDUnHote = (): EtatDeJeu & Record<string, unknown> => ({ ...etatInitialDuJeu(), camRot: 2, zoom: 1.8, reveler: true, sheetId: 'h', keyOverrides: { a: 'KeyA' } });
@@ -49,6 +50,26 @@ describe('lireSave — le format courant seul', () => {
     expect(lireSave(exporterLaSauvegarde(save))).toEqual(save);
     expect(lireSave('{pas du json')).toBe('illisible');
     expect(lireSave(JSON.stringify({ ...save, version: 'autre-format' }))).toBe('autreFormat');
+  });
+});
+
+describe('lireSave — la porte des scènes (`parseSceneDeProjet`)', () => {
+  /** Le texte d'une save dont la scène courante ET le paquet portent la scène du scénario « Conditions étendues »,
+   *  dont un choix de dialogue est gardé par `{ kind: 'status', atLeast: 'Argent 1' }`. */
+  const texteDeSave = (): string => {
+    const scene = conditionsEtendues.construire().scene;
+    const campaignDoc = { scenes: [scene], narratif: { presetsPnj: [] }, startSceneId: scene.id, projet: null };
+    return exporterLaSauvegarde(snapshotSave({ ...etatInitialDuJeu(), scene, campaignDoc } as unknown as EtatDeJeu, 'x'));
+  };
+
+  it('une save dont les scènes passent la porte se relit', () => {
+    expect(typeof lireSave(texteDeSave()), 'la save est refusée').toBe('object');
+  });
+
+  it('un Statut illisible dans une scène (« Argent » sans Standing) : refus `sceneInvalide`', () => {
+    const brut = texteDeSave();
+    expect(brut, 'témoin : la Condition de Statut est dans la save').toContain('"atLeast": "Argent 1"');
+    expect(lireSave(brut.split('"atLeast": "Argent 1"').join('"atLeast": "Argent"'))).toBe('sceneInvalide');
   });
 });
 

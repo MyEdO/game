@@ -23,7 +23,7 @@ import { initialNet } from '../noyau/etat';
 import { makePregens } from '../data/pregens';
 import type { Combatant, Weapon } from '../engine/types';
 import { createHero } from '../engine/character';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { modalOwnerOf } from '../noyau/modalArbiter';
 
 const NET0 = useGame.getState().net;

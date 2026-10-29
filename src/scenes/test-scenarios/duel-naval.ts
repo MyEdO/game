@@ -83,7 +83,8 @@ export const scenario: TestScenario = {
   icon: 'scenario/naval',
   title: 'Duel naval (échelle Mer)',
   tests:
-    'Modèle DEUX-ÉCHELLES couche MER (MDG 13-14) : 2 jetons-coques sur l’eau à ~150 m, équipage ABSTRAIT ' +
+    // MDG 13 ; MDG 14
+    'Modèle DEUX-ÉCHELLES couche MER : 2 jetons-coques sur l’eau à ~150 m, équipage ABSTRAIT ' +
     '(passager, hors ordre/rendu), le joueur joue LE TOUR DU NAVIRE (Manœuvrer / Bordée), l’IA de coque adverse ' +
     'manœuvre pour aligner sa bordée puis fait feu. Reddition à mi-coque. Le combat naval person-scale (abordage) ' +
     'reste le scénario « Combat naval ».',

@@ -1,0 +1,253 @@
+[
+  {
+    "id": "tete",
+    "type": "garde-robe",
+    "label": "Tête",
+    "kind": "emplacement"
+  },
+  {
+    "id": "visage",
+    "type": "garde-robe",
+    "label": "Visage",
+    "kind": "emplacement"
+  },
+  {
+    "id": "cou",
+    "type": "garde-robe",
+    "label": "Cou",
+    "kind": "emplacement"
+  },
+  {
+    "id": "epaule_g",
+    "type": "garde-robe",
+    "label": "Épaule gauche",
+    "kind": "emplacement"
+  },
+  {
+    "id": "epaule_d",
+    "type": "garde-robe",
+    "label": "Épaule droite",
+    "kind": "emplacement"
+  },
+  {
+    "id": "dos",
+    "type": "garde-robe",
+    "label": "Dos",
+    "kind": "emplacement"
+  },
+  {
+    "id": "ceinture_g",
+    "type": "garde-robe",
+    "label": "Ceinture, côté gauche",
+    "kind": "emplacement"
+  },
+  {
+    "id": "ceinture_d",
+    "type": "garde-robe",
+    "label": "Ceinture, côté droit",
+    "kind": "emplacement"
+  },
+  {
+    "id": "ceinture_avant",
+    "type": "garde-robe",
+    "label": "Ceinture, devant",
+    "kind": "emplacement"
+  },
+  {
+    "id": "ceinture_arriere",
+    "type": "garde-robe",
+    "label": "Ceinture, derrière",
+    "kind": "emplacement"
+  },
+  {
+    "id": "cuisse_g",
+    "type": "garde-robe",
+    "label": "Cuisse gauche",
+    "kind": "emplacement"
+  },
+  {
+    "id": "cuisse_d",
+    "type": "garde-robe",
+    "label": "Cuisse droite",
+    "kind": "emplacement"
+  },
+  {
+    "id": "genou_g",
+    "type": "garde-robe",
+    "label": "Genou gauche",
+    "kind": "emplacement"
+  },
+  {
+    "id": "genou_d",
+    "type": "garde-robe",
+    "label": "Genou droit",
+    "kind": "emplacement"
+  },
+  {
+    "id": "poignet_g",
+    "type": "garde-robe",
+    "label": "Poignet gauche",
+    "kind": "emplacement"
+  },
+  {
+    "id": "poignet_d",
+    "type": "garde-robe",
+    "label": "Poignet droit",
+    "kind": "emplacement"
+  },
+  {
+    "id": "poitrine",
+    "type": "garde-robe",
+    "label": "Poitrine",
+    "kind": "emplacement"
+  },
+  {
+    "id": "casque",
+    "type": "garde-robe",
+    "label": "Casque",
+    "kind": "piece",
+    "categorie": "armure"
+  },
+  {
+    "id": "plastron",
+    "type": "garde-robe",
+    "label": "Plastron",
+    "kind": "piece",
+    "categorie": "armure"
+  },
+  {
+    "id": "epaulieres",
+    "type": "garde-robe",
+    "label": "Épaulières",
+    "kind": "piece",
+    "categorie": "armure"
+  },
+  {
+    "id": "brassards",
+    "type": "garde-robe",
+    "label": "Brassards",
+    "kind": "piece",
+    "categorie": "armure"
+  },
+  {
+    "id": "tassettes",
+    "type": "garde-robe",
+    "label": "Tassettes",
+    "kind": "piece",
+    "categorie": "armure"
+  },
+  {
+    "id": "chemise",
+    "type": "garde-robe",
+    "label": "Chemise",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
+    "id": "pourpoint",
+    "type": "garde-robe",
+    "label": "Pourpoint",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
+    "id": "haut-de-chausses",
+    "type": "garde-robe",
+    "label": "Haut-de-chausses",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
+    "id": "bas",
+    "type": "garde-robe",
+    "label": "Bas",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
+    "id": "bottes",
+    "type": "garde-robe",
+    "label": "Bottes",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
+    "id": "gants",
+    "type": "garde-robe",
+    "label": "Gants",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
+    "id": "insigne",
+    "type": "garde-robe",
+    "label": "Insigne",
+    "kind": "piece",
+    "categorie": "accessoire",
+    "emplacement": {
+      "id": "poitrine"
+    }
+  },
+  {
+    "id": "baudrier",
+    "type": "garde-robe",
+    "label": "Baudrier",
+    "kind": "piece",
+    "categorie": "accessoire",
+    "emplacement": {
+      "id": "epaule_d"
+    }
+  },
+  {
+    "id": "trapping-plastron",
+    "type": "garde-robe",
+    "label": "Plastron",
+    "kind": "ensemble",
+    "habille": {
+      "id": "plastron",
+      "type": "trapping"
+    },
+    "pieces": [
+      "plastron"
+    ]
+  },
+  {
+    "id": "trapping-brassards",
+    "type": "garde-robe",
+    "label": "Brassards",
+    "kind": "ensemble",
+    "habille": {
+      "id": "brassards",
+      "type": "trapping"
+    },
+    "pieces": [
+      "brassards"
+    ]
+  },
+  {
+    "id": "trapping-bottes",
+    "type": "garde-robe",
+    "label": "Bottes",
+    "kind": "ensemble",
+    "habille": {
+      "id": "bottes",
+      "type": "trapping"
+    },
+    "pieces": [
+      "bottes"
+    ]
+  },
+  {
+    "id": "trapping-gants",
+    "type": "garde-robe",
+    "label": "Gants",
+    "kind": "ensemble",
+    "habille": {
+      "id": "gants",
+      "type": "trapping"
+    },
+    "pieces": [
+      "gants"
+    ]
+  }
+]

@@ -21,7 +21,7 @@ interne moteur). Presque tout se **dédouble** : `(donnée = le flag/effet poss�
 l'algorithme générique qui le lit)`.
 
 **Restent machinerie légitime** (ne nomment aucune entité, itèrent génériquement) : décrément des
-durées, `refresh-wounds`, `tick-death` (règle de mort), `clear-psych-of-dead`, `purge-summons`,
+durées, `tick-death` (règle de mort), `clear-psych-of-dead`, `purge-summons`,
 ré-ordonnancement d'initiative, surnombre (la règle ; les exemptions sont des traits = donnée),
 `suffocation-tick` (règle environnementale universelle, gatée par le drapeau d'effet éditable
 `suffocates`/`noBreath`).

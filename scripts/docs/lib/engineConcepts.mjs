@@ -16,6 +16,7 @@
 //     (motif obsolète, cf. la même règle sur `CONCEPTS` de `build-vocabulaire.mjs`).
 export const FILE_CONCEPTS = new Map([
   ['src/engine/activeFlags.ts', "Drapeaux d'effet actif : consommation, relance gratuite"],
+  ['src/engine/activiteMer.testkit.ts', 'Activités : harnais de test (Activité de mer sans résolveur, posée au catalogue par le seam)'],
   ['src/engine/activities.ts', 'Activités hors combat : contexte, issues, bandes de résultat'],
   ['src/engine/advancement.ts', 'Avancement de personnage : Points d\'Expérience, changement de Carrière'],
   ['src/engine/advantage.ts', 'Avantage de combat'],
@@ -44,6 +45,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/combat.ts', 'Combat : modificateurs de test, résolution'],
   ['src/engine/combatFeatures/dispatch.ts', 'Aiguillage des fonctionnalités de combat par trait/talent'],
   ['src/engine/combatFeatures/types.ts', 'Types des fonctionnalités de combat'],
+  ['src/engine/combattantDeTest.testkit.ts', 'Combattant : harnais de test (combattant valide, profil complet, sans corpus)'],
   ['src/engine/conditions.ts', 'États (Conditions LDB 16)'],
   ['src/engine/conjuredWeapons.ts', 'Armes conjurées (magie)'],
   ['src/engine/consumables.ts', 'Consommables : usage, effets'],
@@ -107,6 +109,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/pick.ts', 'Sélection aléatoire pondérée'],
   ['src/engine/policy.ts', 'Politique, règles optionnelles'],
   ['src/engine/polymorph.ts', 'Métamorphose, forme alternative'],
+  ['src/engine/porteursDePassifs.testkit.ts', 'Porteurs de passifs : harnais de test (chaque porteur hors talent pose une liste `passive`)'],
   ['src/engine/possession.ts', 'Possession (objet en main)'],
   ['src/engine/possessionGrants.ts', 'Octroi de possessions'],
   ['src/engine/prayer.ts', 'Prières, miracles'],

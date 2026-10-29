@@ -20,7 +20,7 @@
  * de l'état : inverser `defenderId`↔`attackerId` dans `FLOW_VERBS` laisserait cette garde VERTE
  * (mesuré par mutation). Ce plan-là est couvert par `jet-owner-vs-spec.test.ts` (confrontation
  * table⇄`spec.actor` sur sentinelles distinctes) et par les sondes de flux RÉEL
- * (`jet-owner-real-flows.test.ts`, `attack-intent-ownership.test.ts`,
+ * (`jet-owner-real-flows.hors-store.test.ts`, `attack-intent-ownership.test.ts`,
  * `cast-influence-ownership.test.tsx`). L'INVENTAIRE littéral ci-dessous NOMME les intents routés ET
  * leur surface invité : une ligne de table qui disparaît sort de la boucle par flux SANS échec de
  * structure — seule l'assertion nominative la rattrape.
@@ -31,7 +31,7 @@ import { intentAllowedFor, seatInfluences } from '../noyau/netOwnership';
 import { modalOwnerOf } from '../noyau/modalArbiter';
 import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 import type { GameState } from './store';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { PENDING_BY_JET, type HostJet } from '../noyau/slotsDeJet';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from '../noyau/noyau.testkit';

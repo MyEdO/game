@@ -399,7 +399,7 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   /** Passifs d'ARME conférés par une ALTÉRATION (op `augmentWeapon.passive`, repliés par `applyEnchants`) —
    *  MÊME vocabulaire que le `passive` d'un Atout/Défaut du registre, lus au MÊME point (`weaponPassiveOps`,
    *  engine/qualities/dispatch). VDM 05 Défaut : « −1 DR à tous les Tests pour attaquer avec elle ». */
-  passive?: import('./ops').GameOp[];
+  passive?: import('./ops').OpPassive[];
   /** Qualités NEUTRALISÉES sur cette arme par id (altération `augmentWeapon.removeQualities`) — retirées
    *  APRÈS la fusion des qualités de FAMILLE (`resolveQualities`), qui sont sur le même plan RAW. */
   removedQualities?: string[];
@@ -551,7 +551,7 @@ export interface WeaponEnchant {
   suppressEnchants?: boolean;
   /** Passifs d'ARME conférés — MÊME vocabulaire que le `passive` d'un Atout/Défaut du registre, lu au MÊME
    *  point (`weaponPassiveOps`). VDM 05 Défaut : « −1 DR à tous les Tests pour attaquer avec elle ». */
-  passive?: import('./ops').GameOp[];
+  passive?: import('./ops').OpPassive[];
 }
 
 /** Points d'Armure par localisation. */
@@ -812,7 +812,7 @@ export interface ActiveEffect {
    *  LDB 48 l.495, « qui persistent tous pour la durée du Sort ». L'effet EST la durée et le verrou du
    *  pion ; il part avec lui (expiration, Dissipation, purge). Canal UNIQUE des passifs d'effet : tout
    *  ce qu'un effet émet passe par ici, avec sa source (`effectRef`) et son libellé. */
-  passive?: import('./ops').GameOp[];
+  passive?: import('./ops').OpPassive[];
   /** PA temporisés à TOUTES les localisations (Armure Aethyrique : « +1 PA à toutes les
    *  Localisations ») — lus par effectiveArmourAt à la mitigation des Dégâts. */
   apAll?: number;
@@ -998,7 +998,7 @@ export interface Trauma {
    *  `cannotWieldTwoHanded`) avec annulation par prothèse : `charMod` (carac), `skillMod` (Esquive,
    *  Langue/Chevaucher/Perception…), `moveScale` (Mouvement), `maxWeaponHands` (mains d'arme),
    *  `senseLoss` (sens perdu). Éditables dans le Codex (GameOpEditor). */
-  ops?: import('./ops').GameOp[];
+  ops?: import('./ops').OpPassive[];
   /** Texte canon LDB 18 VERBATIM (DISPLAY-ONLY) — jamais parsé pour de la mécanique (≠ `ops`). Provient
    *  de la fiche `traumas.json` ou d'une séquelle synthétique (fracture mal ressoudée). */
   desc?: string;
@@ -1631,7 +1631,7 @@ export interface Combatant {
    *  PERSISTÉE AU HÉROS (survit à la clôture d'un interlude — `InterludeState.perHero` est
    *  reconstruit à neuf à CHAQUE ouverture, `startInterlude`). `trappingId` = id de l'objet
    *  fabriqué ; `atouts`/`defauts` = ids de qualité (runtime). */
-  craft?: { trappingId: string; tier: import('./activities').PriceTier; avail: Availability; atouts: string[]; defauts: string[]; drDone: number; drTarget: number; difficulty: Difficulty };
+  craft?: { trappingId: string; tier: import('./money').StatusTier; avail: Availability; atouts: string[]; defauts: string[]; drDone: number; drTarget: number; difficulty: Difficulty };
   /** Rituel en cours de Focalisation (Activité « Accomplir un Rituel », `VDM 02 l.777`) — DONNÉE
    *  PERSISTÉE AU HÉROS (même raison que `craft` ci-dessus). DR cumulé par Round, un Round par
    *  Activité, jusqu'à `drTarget` (NI réduit de moitié, arrondi sup., l.777). Composants/Conditions/

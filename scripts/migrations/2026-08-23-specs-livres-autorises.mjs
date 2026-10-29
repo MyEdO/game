@@ -18,9 +18,14 @@
  * Un `REMAP` vers `null` RETIRE la `ref` entière du tableau `skills` (`splice`) : effacer la seule
  * `spec` laisserait une Compétence de plus que la liste imprimée.
  *
- * REJOUABLE : un second passage ne réécrit rien. FAIL-FAST : arrêt en 1 si une `specs[]` cible
- * manque, si un id ajouté entre en collision, si une fusion ou un retrait ne trouve pas sa cible,
- * ou s'il reste une spéc non résolue sous un livre extrait — l'arbre n'est écrit qu'après mesure.
+ * FORME D'AVANT SEULE (`lib/formeDAvant.mjs`) : une entrée de `ADDS` n'entre au catalogue que pour un
+ * porteur qui en porte encore le libellé imprimé (ou l'arbitrage de `REMAP`) ; la spéc `mort` d'une fusion ne
+ * part qu'EXACTEMENT à sa forme d'avant ; Langue (Estalien) n'est restaurée qu'avec le retrait du
+ * Savoir (Tilée) qui l'avait remplacée. Une entrée absente, déjà migrée ou révisée après la migration est
+ * laissée telle quelle ; une spéc qu'aucun geste ne résout aussi (la garde `src/data/refs-migrated.test.ts`).
+ * REJOUABLE : un second passage ne réécrit rien. FAIL-FAST : arrêt en 1, pour un geste à faire, si sa
+ * `specs[]` cible manque, si un id ajouté entre en collision, si une fusion ne trouve pas sa cible ou si
+ * l'ancre de Langue (Estalien) manque — l'arbre n'est écrit qu'après mesure.
  *
  * Entrées : `src/data/books.json` + les dossiers d'extraction `Source/<dir>/NN - ….md` qu'il déclare
  * (périmètre « livre EXTRAIT », `extractedBooks`), `src/data/skills.json` (catalogue, écrit) et les
@@ -30,14 +35,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isSentinel, skillArraysOf, walkSkillRefs, extractedBooks } from '../data/lib/skillSpecWalk.mjs';
+import { isDeepStrictEqual as egal } from 'node:util';
 import { norm } from '../../src/lib/normalize.ts';
+import { porteLaTranche, remplacerLaFormeDAvant } from './lib/formeDAvant.mjs';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA_DIR = path.join(ROOT, 'src/data');
 const J = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
 
-/** Reflet de `src/data/serialize.ts#serializeDataset` (pas d'import TS depuis ce script .mjs). */
-const serializeDataset = (value) => JSON.stringify(value, null, 2);
 
 /** Entrées de catalogue à créer, par id de Compétence. `note` = citation à la ligne (chapitre du
  *  fichier d'extraction), `page` = folio imprimé qui gouverne cette ligne. */
@@ -89,10 +95,10 @@ const ADDS = {
   ],
 };
 
-/** Deux entrées, UNE spéc : `mort` disparaît de `specs[]`, ses porteurs passent à `vers`.
- *  ADE I 07 l.156/197 imprime « Signes secrets (Ranger) », dont l.197 sur la Carrière nommée
- *  *Rôdeur fantôme* ; ZI 04 l.42 imprime « Signes secrets (Rôdeur) ». */
-const FUSIONS = [{ skillId: 'signes-secrets', mort: 'ranger', vers: 'rodeur' }];
+/** Deux entrées, UNE spéc : `mort` (`avant` : sa forme d'avant) disparaît de `specs[]`, ses porteurs
+ *  passent à `vers`. ADE I 07 l.156/197 imprime « Signes secrets (Ranger) », dont l.197 sur la Carrière
+ *  nommée *Rôdeur fantôme* ; ZI 04 l.42 imprime « Signes secrets (Rôdeur) ». */
+const FUSIONS = [{ skillId: 'signes-secrets', mort: 'ranger', avant: { id: 'ranger', label: 'Ranger' }, vers: 'rodeur' }];
 
 /** Arbitrages nominatifs, clé `"<skillId> <spec>"`, valeur = id (`null` = la `ref` entière part). */
 const REMAP = new Map([
@@ -112,7 +118,7 @@ const REMAP = new Map([
 
 /** AA 05 l.122 : `Langue (Estalien)` de la liste imprimée manque à `humains-tileens` (perdue au
  *  profit du `Savoir (Tilée)` que le Source n'imprime pas, retiré ci-dessus). */
-const ESTALIEN = { species: 'humains-tileens', after: 'arabien', noeud: { id: 'langue', spec: 'estalien' } };
+const ESTALIEN = { species: 'humains-tileens', after: 'arabien', noeud: { id: 'langue', spec: 'estalien' }, remplace: { id: 'savoir', spec: 'Tilée' } };
 
 // -- Catalogues de référence -------------------------------------------------------------------
 const skillsPath = path.join(DATA_DIR, 'skills.json');
@@ -124,14 +130,34 @@ if (!EXTRAITS.size) {
 }
 if (dirManquant.length) console.warn(`AVERTISSEMENT — dir déclaré mais absent du disque : ${dirManquant.join(', ')}`);
 
+const CIBLES = ['creatures.json', 'careerLevels.json', 'species.json'];
+const DOCS = new Map(CIBLES.map((f) => [f, J(path.join(DATA_DIR, f))]));
+
+/** Les spéc. encore IMPRIMÉES des porteurs (Compétence à catalogue, spéc. ni id de ce catalogue ni sentinelle). */
+const imprimees = new Map();
+for (const data of DOCS.values()) {
+  for (const entry of data) {
+    walkSkillRefs(entry, (node) => {
+      if (typeof node.spec !== 'string' || isSentinel(node.spec)) return;
+      const catalogue = skills.find((s) => s.id === node.id)?.specs;
+      if (!Array.isArray(catalogue) || catalogue.some((e) => e.id === node.spec)) return;
+      if (!imprimees.has(node.id)) imprimees.set(node.id, new Set());
+      imprimees.get(node.id).add(node.spec);
+    });
+  }
+}
+/** Un porteur attend-il l'entrée `e` de `skillId` (par son libellé, ou par un arbitrage) ? Une spéc. qui EST `e.id` est
+ *  déjà sa référence. */
+const attendue = (skillId, e) => [...(imprimees.get(skillId) ?? [])].some((spec) => spec !== e.id && (
+  norm(spec) === norm(e.label) || REMAP.get(`${skillId} ${spec}`) === e.id
+  || FUSIONS.some((f) => f.skillId === skillId && f.mort === spec && f.vers === e.id)));
+
 let ajoutees = 0;
 for (const [skillId, entries] of Object.entries(ADDS)) {
+  const aFaire = entries.filter((e) => attendue(skillId, e));
+  if (!aFaire.length) continue;
   const def = skills.find((s) => s.id === skillId);
-  if (!def || !Array.isArray(def.specs)) {
-    console.error(`ARRÊT — ${skillId} : pas de specs[] inline dans skills.json.`);
-    process.exit(1);
-  }
-  for (const e of entries) {
+  for (const e of aFaire) {
     const deja = def.specs.find((s) => s.id === e.id);
     if (deja) {
       if (deja.label !== e.label) {
@@ -146,14 +172,15 @@ for (const [skillId, entries] of Object.entries(ADDS)) {
 }
 
 let fusionnees = 0;
-for (const { skillId, mort, vers } of FUSIONS) {
+for (const { skillId, mort, avant, vers } of FUSIONS) {
   const def = skills.find((s) => s.id === skillId);
+  const enAttente = def?.specs?.some((s) => egal(s, avant)) || imprimees.get(skillId)?.has(mort);
+  if (!enAttente) continue;
   if (!def?.specs?.some((s) => s.id === vers)) {
     console.error(`ARRÊT — fusion ${skillId}/${mort} vers ${vers} : la cible ${vers} n'existe pas.`);
     process.exit(1);
   }
-  const at = def.specs.findIndex((s) => s.id === mort);
-  if (at >= 0) { def.specs.splice(at, 1); fusionnees++; }
+  fusionnees += remplacerLaFormeDAvant(def.specs, avant, []);
   REMAP.set(`${skillId} ${mort}`, vers);
 }
 
@@ -168,7 +195,6 @@ for (const s of skills) {
 
 // -- Passe de réécriture -----------------------------------------------------------------------
 const migrees = [];
-const restantes = [];
 
 function migrerEntree(entry, file, ownerId) {
   const book = entry.source?.book;
@@ -191,8 +217,6 @@ function migrerEntree(entry, file, ownerId) {
       if (vers === null) aRetirer.add(node);
       else node.spec = vers;
       n++;
-    } else if (extrait) {
-      restantes.push(`${file} ${ownerId} (${book}) ${node.id}/${JSON.stringify(node.spec)}`);
     }
   });
   // Retrait de la `ref` PORTEUSE, jamais de la seule `spec` (sinon une Compétence de plus).
@@ -204,20 +228,16 @@ function migrerEntree(entry, file, ownerId) {
   return n;
 }
 
-const CIBLES = ['creatures.json', 'careerLevels.json', 'species.json'];
 const aEcrire = [];
 for (const f of CIBLES) {
   const full = path.join(DATA_DIR, f);
-  const data = J(full);
+  const data = DOCS.get(f);
+  const sp = f === 'species.json' ? data.find((s) => s.id === ESTALIEN.species) : undefined;
+  const estalienAFaire = Array.isArray(sp?.skills) && sp.skills.some((a) => porteLaTranche(a, ESTALIEN.remplace));
   let n = 0;
   for (const entry of data) n += migrerEntree(entry, f, entry.id ?? entry.label ?? '?');
 
-  if (f === 'species.json') {
-    const sp = data.find((s) => s.id === ESTALIEN.species);
-    if (!sp || !Array.isArray(sp.skills)) {
-      console.error(`ARRÊT — species ${ESTALIEN.species} introuvable ou sans skills[].`);
-      process.exit(1);
-    }
+  if (estalienAFaire) {
     if (!sp.skills.some((a) => a.id === 'langue' && a.spec === ESTALIEN.noeud.spec)) {
       const at = sp.skills.findIndex((a) => a.id === 'langue' && a.spec === ESTALIEN.after);
       if (at < 0) {
@@ -234,11 +254,6 @@ for (const f of CIBLES) {
 }
 
 // Écriture APRÈS la mesure complète : un arrêt fail-fast laisse l'arbre intact.
-if (restantes.length) {
-  console.error(`ARRÊT — ${restantes.length} spec(s) d'un livre EXTRAIT restent hors catalogue :`);
-  for (const r of restantes) console.error(`  ${r}`);
-  process.exit(1);
-}
 const ecrits = [];
 for (const { f, full, data } of aEcrire) { fs.writeFileSync(full, serializeDataset(data), 'utf8'); ecrits.push(f); }
 if (ajoutees || fusionnees) fs.writeFileSync(skillsPath, serializeDataset(skills), 'utf8');
@@ -257,4 +272,4 @@ for (const m of migrees) {
 for (const [k, b] of [...parCle.entries()].sort()) {
   console.log(`  ${String([...b.values()].reduce((a, x) => a + x, 0)).padStart(4)}  ${k}   {${[...b.entries()].map(([x, n]) => `${x}:${n}`).join(', ')}}`);
 }
-console.log('\nLivres extraits : 0 spec hors catalogue.');
+

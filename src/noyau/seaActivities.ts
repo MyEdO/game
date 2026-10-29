@@ -39,7 +39,8 @@ import { peutTenter, refusNePeutTenter } from '../engine/skills';
 import type { PlayerText } from '../i18n/playerText';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
-import { payFromGroup, payWithAllocation, soloPayer, distributeCredit, totalDesBourses, refuseLeGesteDeGroupe } from './bourseFlow';
+import { payFromGroup, payWithAllocation, soloPayer, distributeCredit, totalDesBourses, refusDeGesteSurLeGroupe } from './bourseFlow';
+import { refuseSi } from './verrousDeFiche';
 import { encLibreNominale } from './portFlow';
 import { bourseOf } from '../engine/bourse';
 import { OPPORTUNITE, opportunityTradePct } from '../engine/seaVoyage';
@@ -92,6 +93,7 @@ export function plafondDePlanque(hero: Combatant): number {
 /** Raison de BLOCAGE d'une Activité en mer pour un héros (affordance expliquée, jamais muette). */
 export function seaActivityBlocked(get: Get, def: ActivityDef): string | null {
   if (def.resolver === 'crewTraining') {
+    // MDG 14
     return t('sact.crewIsPlayers');
   }
   if (def.resolver === 'opportunityTrade' && encLibreNominale(get().vessel) <= 0) {
@@ -196,7 +198,7 @@ function buildSeaActivitiesCascade(get: Get, set: Set, picks: Record<string, Sea
 export function seaActivitiesConfirm(get: Get, set: Set, picks: Record<string, SeaActivityPick | null>): void {
   const pending = get().pendingSeaActivities;
   if (!pending) return;
-  if (refuseLeGesteDeGroupe(get, set)) return;
+  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const { steps, oppHeroIds } = buildSeaActivitiesCascade(get, set, picks);
   set({ pendingSeaActivities: { ...pending, picks, opportunityQueue: oppHeroIds } });
   if (!steps.length) { continueSeaActivitiesAfterCascade(get, set); return; }
@@ -297,12 +299,14 @@ export const TABLES = {
           autoStowNewItem(hero, it); // #204 : rangement par défaut
           recomputeLoadout(hero);
         }
+        // MDG 15
         j.push(t('sact.chartOk', { name: hero.label, gold: Math.max(0, step.result.sl) }));
         const stashCO = Math.max(0, Math.min(stashGold, plafondDePlanque(hero)));
         if (stashCO > 0) {
           const stashBrass = stashCO * PA_PER_CO;
           payWithAllocation(get, set, { debits: soloPayer(hero.id, fromBrass(stashBrass)), recipient: hero.id, purpose: 'planque cartographie' });
           set({ bank: [...get().bank, { heroId: hero.id, kind: 'stash', brass: stashBrass, rate: 50, chartSecured: true }] });
+          // MDG 15 l.292
           j.push(t('sact.stash', { name: hero.label, money: formatMoney(fromBrass(stashBrass)) }));
         }
       } else {

@@ -6,7 +6,7 @@
  *    `user-doctrine-regle-ligne-de-tableau-adresse-le-tableau-entier`, utilisateur, 2026-09-28 :
  *    « Le tableau entier (Recommandé) ».
  *  - (B) partie stricte d'un bloc de prose ou de liste → le BLOC entier : extension d'ingénierie,
- *    révisable, par analogie à la même fiche — elle ne couvre que les lignes de table.
+ *    par analogie à la même fiche — elle ne couvre que les lignes de table.
  *
  * ENTRÉES :
  *   - `src/data/regles.json`  (le SEUL document écrit)

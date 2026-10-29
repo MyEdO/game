@@ -20,13 +20,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
+import { SOURCES_DE_SPECS } from '../../src/data/schemas/grammaire/sourcesDeSpecs.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA_DIR = path.join(ROOT, 'src/data');
 const J = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
-
-/** Reflet de `src/data/serialize.ts#serializeDataset` (pas d'import TS depuis ce script .mjs). */
-const serializeDataset = (value) => JSON.stringify(value, null, 2);
 
 /** Fichiers d'AUTHORING TypeScript porteurs de `skills: [{ id, spec, value }]`. */
 const TS_AUTHORING = ['src/scenes/test-scenarios/96-presets-edo.ts'];
@@ -36,19 +35,21 @@ const norm = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 // ── Catalogue de spécialisations, par Compétence ─────────────────────────────────────────────────
 const skills = J(path.join(DATA_DIR, 'skills.json'));
-const weaponGroups = J(path.join(DATA_DIR, 'weaponGroups.json'));
-const domains = J(path.join(DATA_DIR, 'domains.json'));
-/** Reflet de `SPEC_SOURCES` (`src/data/index.ts:3134`) pour les sources RENCONTRÉES sur `skills.json`.
- *  `resolves` ⊇ `pool` : la VALIDITÉ d'une donnée est le registre entier, pas le pool joueur. */
-const SPEC_SOURCES = { weaponGroupsMelee: weaponGroups, weaponGroupsRanged: weaponGroups, winds: domains };
+/** Le registre entier d'une source : le dataset de l'univers que `SOURCES_DE_SPECS` lui déclare, filtre
+ *  non lu — `resolves` ⊇ `pool` : la VALIDITÉ d'une donnée est le registre entier, pas le pool joueur. */
+const registreDe = (source) => {
+  const dataset = /^([\w-]+\.json)(?:[?#]|$)/.exec(SOURCES_DE_SPECS[source]?.univers ?? '')?.[1];
+  return dataset ? J(path.join(DATA_DIR, dataset)) : undefined;
+};
 
 const CATALOGUE = new Map();
 for (const def of skills) {
-  if (def.specsSource && !SPEC_SOURCES[def.specsSource]) {
-    console.error(`ARRÊT — source de spécialisations non reflétée par ce script : ${def.id} → ${def.specsSource}`);
+  const registre = def.specsSource ? registreDe(def.specsSource) : undefined;
+  if (def.specsSource && !registre) {
+    console.error(`ARRÊT — source de spécialisations sans dataset déclaré : ${def.id} → ${def.specsSource}`);
     process.exit(1);
   }
-  const entries = def.specsSource ? SPEC_SOURCES[def.specsSource] : (def.specs ?? []);
+  const entries = def.specsSource ? registre : (def.specs ?? []);
   const byLabel = new Map();
   for (const e of entries) {
     for (const label of [e.label, e.wind].filter(Boolean)) {

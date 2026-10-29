@@ -25,7 +25,7 @@ export const estTest = estSuiteVitest
 export const estHorsStore = estDeLaSuiteDuNoyau
 
 /** Un module de banc (`estKitDeTest`, `*.fixture.*`) : il porte le store au test, il n'est pas une liaison web. */
-const estBanc = (rel) => estKitDeTest(rel) || /\.fixture\.[^/]+$/.test(rel)
+export const estBanc = (rel) => estKitDeTest(rel) || /\.fixture\.[^/]+$/.test(rel)
 
 /** Les noms de minuteries de Vitest qu'un test appelle : la pose de l'horloge, puis ce qui l'avance. */
 const POSE_DE_L_HORLOGE = 'useFakeTimers'
@@ -140,21 +140,26 @@ export function signauxDuTest({ noms, identifiants, chaines }) {
 /**
  * La CLASSE d'un test, par critères mécaniques, dans cet ordre :
  *  - `doublon` : il importe une procédure de `src/hote` qu'un test hors store importe déjà ;
- *  - `moteur` : aucun arc d'exécution vers `src/state` ;
- *  - sinon, part web (une clé de l'adaptateur lue, ou un module de `src/state` hors store et hors banc importé) et
- *    part jeu (une clé du jeu lue) : les deux → `mixte`, la part web seule → `web`, sinon `noyau`.
+ *  - `moteur` : aucun arc d'exécution vers `src/state`, ni direct ni en transit ;
+ *  - sinon, part web (une clé de l'adaptateur lue, un module de `src/state` hors store et hors banc importé, ou un
+ *    arc d'exécution hors de `src/state` qui charge `src/state` en transit) et part jeu (une clé du jeu lue) : les
+ *    deux → `mixte`, la part web seule → `web`, sinon `noyau`.
  * `base` : la classe que le test aurait sans le critère `doublon`.
  * @param {{ lecture: ReturnType<typeof lireUnTest>, arcs: ReturnType<typeof arcsDuTest> }} test
- * @param {{ adaptateur: Set<string>, jeu: Set<string>, horsStore: Map<string, string[]> }} contexte `horsStore` :
- *   `<module>#<nom>` → tests hors store qui l'importent
+ * @param {{ adaptateur: Set<string>, jeu: Set<string>, horsStore: Map<string, string[]>,
+ *   chargeLeStore: (cible: string) => string | null }} contexte `horsStore` : `<module>#<nom>` → tests hors store qui
+ *   l'importent ; `chargeLeStore` : le module de `src/state` (le store, ou un module hors banc) que la cible hors de
+ *   `src/state` charge à l'exécution, `null` si aucun
  */
-export function classer({ lecture, arcs }, { adaptateur, jeu, horsStore }) {
+export function classer({ lecture, arcs }, { adaptateur, jeu, horsStore, chargeLeStore }) {
   const etat = arcs.filter((a) => a.zone === 'state' && !a.typeSeul)
   const clesAdaptateur = [...lecture.noms].filter((k) => adaptateur.has(k)).sort()
   const clesJeu = [...lecture.noms].filter((k) => jeu.has(k)).sort()
   const modulesWeb = [...new Set(etat.map((a) => a.cible).filter((c) => c !== STORE && !estBanc(c)))].sort()
-  const web = clesAdaptateur.length > 0 || modulesWeb.length > 0
-  const base = etat.length === 0 ? 'moteur' : web && clesJeu.length ? 'mixte' : web ? 'web' : 'noyau'
+  const transits = [...new Set(arcs.filter((a) => a.zone !== 'state' && !a.typeSeul).map((a) => a.cible))].sort()
+    .flatMap((cible) => { const via = chargeLeStore(cible); return via ? [`${cible} → ${via}`] : [] })
+  const web = clesAdaptateur.length > 0 || modulesWeb.length > 0 || transits.length > 0
+  const base = etat.length === 0 && transits.length === 0 ? 'moteur' : web && clesJeu.length ? 'mixte' : web ? 'web' : 'noyau'
   const doublons = proceduresDeLHote(arcs).filter((p) => horsStore.has(p))
   return {
     classe: doublons.length ? 'doublon' : base,
@@ -162,6 +167,7 @@ export function classer({ lecture, arcs }, { adaptateur, jeu, horsStore }) {
     clesAdaptateur,
     clesJeu: clesJeu.length,
     modulesWeb,
+    transits,
     doublons: doublons.map((p) => ({ procedure: p, tests: horsStore.get(p) })),
   }
 }
@@ -172,4 +178,14 @@ const CITATION = new RegExp(String.raw`src/state/[\w./-]*?${SUFFIXE_SUITE}(?![\w
 /** Les chemins de tests de `src/state` que cite `texte`, sans doublon, triés. */
 export function cheminsCites(texte) {
   return [...new Set(texte.match(CITATION) ?? [])].sort()
+}
+
+/** Un nom de fichier de test NU (sans dossier) dans un texte : ni précédé d'un chemin ni d'un mot. */
+const NOM_NU = new RegExp(String.raw`(?<![\w./-])[\w-]+(?:\.[\w-]+)*?${SUFFIXE_SUITE}(?!\w|\.\w)`, 'g')
+
+/** Les noms de base de `noms` (`<nom>.test.<ext>` de tests de `src/state`) que `texte` cite NUS, sans dossier :
+ *  une citation qu'un renommage ne retrouve pas par son chemin, et qu'un homonyme d'une autre zone rend ambiguë.
+ *  Sans doublon, triés. */
+export function nomsNusCites(texte, noms) {
+  return [...new Set((texte.match(NOM_NU) ?? []).filter((n) => noms.has(n)))].sort()
 }

@@ -1,6 +1,6 @@
 /**
  * Effets des Talents qui influencent la création / les attributs — PILOTÉS PAR LES DONNÉES :
- * chaque talent de talents.json porte `passive: GameOp[]` (charMod/moveMod/attrMod/grantCareerSkill/
+ * chaque talent de talents.json porte `passive: OpPassive[]` (charMod/moveMod/attrMod/grantCareerSkill/
  * grantCareerTalent…), posés par l'extraction des livres ; un supplément qui ajoute un talent étiqueté
  * pareil est couvert sans code. Plus AUCUN champ bespoke (`addCharacteristic`/`addSkill`/`addTalent`
  * ont été éliminés au profit du vocabulaire `GameOp` unifié).
@@ -27,7 +27,7 @@
  * par l'espèce. Les autres talents (combat, social…) sont hors périmètre.
  */
 import { Combatant, CHAR_KEYS, CharKey, TalentInstance } from './types';
-import { maxWounds } from './characteristics';
+import { maxWounds, blessuresReconciliees } from './characteristics';
 import { findTalentById, findTraitById, blessingsOf } from '../data';
 import { wildcardSpecs, inCareerStatus, type CareerSlot, type InCareerStatus } from './careerSlots';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
@@ -40,7 +40,8 @@ import { memeSpecialisation } from '../data/schemas/grammaire/ref';
  * de mutations/traumas/sorts/maladies. Utilisé par les lecteurs BRUTS hors-combat
  * (affichage de fiche, calcul PX, Blessures max initiales) qui ont besoin du « vrai départ »
  * incluant les +5 de talent (désormais passifs, plus cuits dans `characteristics`).
- * On ne peut PAS importer `passiveCharSum`/`characteristics` ici (cycle) → lecture LOCALE.
+ * Lecture LOCALE des seuls passifs de talents : `passiveCharSum` (trauma.ts) somme les `charMod` additifs
+ * de tous les porteurs.
  */
 export function baseWithTalents(c: Combatant, key: CharKey): number {
   let val = c.characteristics[key] ?? 0;
@@ -66,10 +67,10 @@ export function talentCharBonusById(talentId: string): CharKey | null {
 /**
  * Applique l'effet d'acquisition d'un Talent (création OU achat PX) — mute le héros. Référence
  * STRUCTURÉE : `talentId` STABLE + `spec` concret (cult de « Béni » : « Sigmar »…).
- * Le +5 Caractéristique et le +1 Mouvement sont désormais des PASSIFS CONTINUS dans `passive: GameOp[]`
- * (charMod/moveMod), lus par le collecteur `passiveMods` — plus cuits dans `characteristics`/`movement`.
+ * Le +5 Caractéristique et le +1 Mouvement sont des PASSIFS CONTINUS de `passive: OpPassive[]` (charMod/moveMod),
+ * lus par le collecteur `passiveMods`.
  * Les effets dérivés (Blessures, Chance, Détermination) sont des helpers recalculés par
- * l'appelant (heroMaxWounds / fortuneMax / resolveMax).
+ * l'appelant (recalerLaBaseDesBlessures / fortuneMax / resolveMax).
  */
 export function applyTalentAcquisition(hero: Combatant, talentId: string, spec?: string): void {
   // Béni (Culte) — LDB 10/41 : « reçoit les SIX Bénédictions de son culte » → octroi AUTOMATIQUE
@@ -105,6 +106,12 @@ export function heroMaxWounds(hero: Combatant): number {
     'force-mentale': baseWithTalents(hero, 'force-mentale'),
   };
   return maxWounds(chars, hero.size ?? 'moyenne') + extraWounds(hero);
+}
+
+/** Augmentation de Caractéristique ou Talent acquis (LDB 05 l.1001) : `wounds.base` reprend
+ *  `heroMaxWounds`, puis `blessuresReconciliees`. Mute le héros. */
+export function recalerLaBaseDesBlessures(hero: Combatant): void {
+  hero.wounds = blessuresReconciliees({ ...hero, wounds: { ...hero.wounds, base: heroMaxWounds(hero) } });
 }
 
 /** Σ des `attrMods{attr}` d'effets ACTIFS (op `attrMod` exécutée — buff temporaire, ext. consommables) —
@@ -271,7 +278,7 @@ export function effectiveTalents(c: Combatant): TalentInstance[] {
 }
 
 /** Modificateurs PASSIFS continus des talents POSSÉDÉS (`TalentData.passive` : Coup puissant, Dur à cuire…,
- *  ou Frénésie → `grantFreeAttack`) en `GameOp[]`, émis kind `intrinseque` et RÉPÉTÉS par niveau (`t.times`).
+ *  ou Frénésie → `grantFreeAttack`) en `OpPassive[]`, émis kind `intrinseque` et RÉPÉTÉS par niveau (`t.times`).
  *  Lus par le collecteur `passiveMods` (trauma) EXACTEMENT comme `traitPassiveMods` pour les traits — le
  *  talent (instance = id seul) est résolu par `findTalentById`. Disjoint des traits → zéro double-comptage. */
 export function talentPassiveMods(c: Combatant): PassiveMod[] {

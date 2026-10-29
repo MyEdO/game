@@ -125,7 +125,7 @@
     "css": "src/ui/styles/roll-shell.css",
     "concept": "coquille de jet mono/multi (Lancer→Chance→Pacte→Résilience→Appliquer) ; posée dans `Modal` ou `EmbeddedShell`, ou rendue à part (`useRollShell` : titre, corps, gestes) pour l'hôte qui l'englobe dans SA boîte",
     "perimetre": "toute modale de jet, mono (N=1) et multi (N contributeurs)",
-    "verrou": "roll-modal-invariant.test.ts"
+    "verrou": "roll-modal-invariant.hors-store.test.ts"
   },
   {
     "id": "rollRow",
@@ -162,7 +162,7 @@
     "fichier": "src/engine/tests.ts",
     "concept": "issue d'un Test que son porteur ne peut pas tenter (LDB 09 l.30 ; #2588 Q1) : ÉCHEC, DR 0, sans dé, refus nommé sur la ligne ; `estJete` sépare un dé tombé de cette issue, `jete` (`src/engine/tests.testkit.ts`) l'exige en test",
     "perimetre": "`rollStep` (`refus`), rangées d'équipage (`crewRoleValue`, `rollCrewRole`, `openCrewTestPending`), barre sans barreur (`rollShipManeuver`, voyage fluvial), rangée témoin de `buildParticipantRows`",
-    "verrou": "sea-voyage-flow.test.ts, ship-maneuver.test.ts, peut-tenter.test.ts"
+    "verrou": "sea-voyage-flow.test.ts, ship-maneuver.hors-store.test.ts, peut-tenter.test.ts"
   },
   {
     "id": "optionChooser",
@@ -2045,6 +2045,15 @@
     "verrou": "mur de l'ordre total d'oxlint.config.mjs (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs"
   },
   {
+    "id": "jsonCanonique",
+    "type": "primitives.manifest",
+    "label": "jsonCanonique",
+    "fichier": "src/lib/jsonCanonique.mjs",
+    "concept": "JSON d'une valeur aux clés triées à chaque niveau (unités de code), clé de valeur undefined omise et élément undefined de liste rendu null (comme JSON.stringify) : deux valeurs égales en profondeur ont le même texte, quel que soit l'ordre d'insertion de leurs clés",
+    "perimetre": "toute empreinte ou égalité d'une valeur JSON indépendante de l'ordre de ses clés : forme d'avant d'une migration, suivi de vague, égalité tous champs d'une fusion de stocks, signature de dessin d'un acteur, comparaisons de test",
+    "verrou": "src/lib/jsonCanonique.test.ts"
+  },
+  {
     "id": "stockageWeb",
     "type": "primitives.manifest",
     "label": "stockageWeb",
@@ -2076,7 +2085,7 @@
     "type": "primitives.manifest",
     "label": "equipementDessine/equipementDEntite/armesDEntite/EquipCtx/equipDe/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
     "fichier": "src/noyau/equipementDessine.ts",
-    "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent à la naissance par `deciderApparencesDesArmes` puis `choisirApparenceDObjet` sur les armes réelles sans instance ; le dessin lit leur forme et leur apparence déjà décidées ; les constructions d’entité et décisions d’auteur reçoivent un TrappingResolver obligatoire, injecté par l’hôte ; le dessin d’un porteur déjà né consomme ses propriétés copiées sans résolveur ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule ; l'art d'une matière se résout côté rig (`ART_DE_MATIERE`, `src/gameIso/rig/parts/equipment.ts`)",
+    "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent à la naissance par `deciderApparencesDesArmes` puis `choisirApparenceDObjet` sur les armes réelles sans instance ; le dessin lit leur forme et leur apparence déjà décidées ; les constructions d’entité et décisions d’auteur reçoivent un TrappingResolver obligatoire, injecté par l’hôte ; le dessin d’un porteur déjà né consomme ses propriétés copiées sans résolveur ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule ; l'art d'une matière se résout côté rig sur l'`art` de son Groupe d'armure (`artDeMatiere`, `src/gameIso/rig/parts/equipment.ts`)",
     "perimetre": "tout producteur d'équipement dessiné (`equipementDessine`, `equipementDEntite`, `enemyRigProfile`, `entityRigProfile`, `rigDuCombattant`, galeries), tout lecteur du rig ou d'un hôte 3D (forme, maniement, clips, pièces)",
     "verrou": "src/noyau/equipementDessine.test.ts, src/hote/projection.hors-store.test.ts, src/noyau/armure-portee-guard.test.ts, src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
   },
@@ -2218,11 +2227,11 @@
   {
     "id": "vise",
     "type": "primitives.manifest",
-    "label": "vise/SourcePsy",
+    "label": "vise/SourcePsy/ciblesAPulsion/ciblesDePulsion",
     "fichier": "src/engine/psychology.ts",
-    "concept": "seul prédicat de ciblage par Groupe d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch`",
+    "concept": "seul prédicat de ciblage d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch` pour un Groupe, l’id du combattant pour un individu ; `ciblesAPulsion` (Cibles des afflictions actives à pulsion d’attaque) et `ciblesDePulsion` (combattants de tout `kind` qu’elles visent) forment le vivier de l’IA",
     "perimetre": "+DR contre le groupe, immunités causées par le groupe, êtres aimés à défendre, vivier de l’IA, déclencheurs de Traits ciblés et de Phobie, présence au re-test, malus social, Sans Peur (Ennemi)",
-    "verrou": "src/engine/psych-vise.test.ts"
+    "verrou": "src/engine/psych-vise.test.ts, src/noyau/psych-individu.test.ts"
   },
   {
     "id": "sousPeur",
@@ -2236,11 +2245,11 @@
   {
     "id": "ciblePsy",
     "type": "primitives.manifest",
-    "label": "CiblePsy/ciblePsy/selonCible/cibleDuPorteur/cibleDArgument/MOTIF_D_ID_DE_GROUPE/identiteDeCiblage/libelleDeCible/estCibleType/RefDeCible/ciblePsyLue/refDeCible",
+    "label": "CiblePsy/ciblePsy/selonCible/cibleDuPorteur/ciblePsyLue/cibleDeLArg/individuDe/individusNommes/MOTIF_D_ID_DE_GROUPE/identiteDeCiblage/libelleDeCible/libelleDePsy/NomDIndividu/estCibleType/RefDeCible/cibleDeRef/refDeCible/varianteDe/varianteAdmise",
     "fichier": "src/engine/psych/ciblage.ts",
-    "concept": "Cible d’un Trait psy (#1463, #3045) : un Groupe par son id, chaîne marquée (`string & NonAffichable`) frappée par la seule fabrique `ciblePsy` (motif des ids de Groupe `MOTIF_D_ID_DE_GROUPE`, partagé avec le schéma des Groupes), lu par le seul `selonCible`, tiré d’un porteur par `cibleDuPorteur`, nommé par un argument (`arg` de Trait, spécialisation de Talent) par `cibleDArgument`, comparé par `identiteDeCiblage` (type et Cible), affiché par `libelleDeCible` ; `estCibleType` dit si un type de psychologie porte une Cible ; `ciblePsyLue` est la seule couture de la référence de donnée `{ id }` (`RefDeCible`) vers la Cible, `refDeCible` sa réciproque",
+    "concept": "Cible d’un Trait psy (#1463, #3045) : un Groupe par son id, ou un individu par son id de combattant (`@id`), chaîne marquée (`string & NonAffichable`) frappée par la seule fabrique `ciblePsy` (`groupe` au motif des ids de Groupe `MOTIF_D_ID_DE_GROUPE`, partagé avec le schéma des Groupes ; `individu` sur un id non vide sans `@`), lue par le seul `selonCible`, tirée d’un porteur par `cibleDuPorteur`, lue d’une chaîne de donnée (spécialisation, Cible persistée) par `ciblePsyLue`, de l’`arg` d’un Trait posé par le seul `cibleDeLArg` (source `ciblesPsy`), comparée par `identiteDeCiblage` (type et Cible), affichée par `libelleDeCible` (l’individu par le `NomDIndividu` de l’appelant, dans l’UI `useNomDIndividu`) et, avec son type, par `libelleDePsy` (« Haine (Nains) ») ; un Trait posé s’affiche par `traitLisible` (`engine/traits/dispatch.ts`), `formatTrait` restant la forme d’aller-retour de l’éditeur ; `individuDe` rend l’id d’un individu visé, `individusNommes` les individus qu’une donnée nomme à toute profondeur, que refuse une péripétie de route (`refuserLesIndividus`) et que `validateScene` juge dans une scène (l’individu ne se pose en donnée que par l’`arg` d’un Trait de statbloc de scène) ; `estCibleType` dit si un type de psychologie porte une Cible, `varianteAdmise` si une variante (`varianteDe` d’une Cible) est de celles que déclare `psychology.json` (`cibles`) ; `cibleDeRef` est la seule couture de la référence d’op (`RefDeCible` : `{ id }` d’un Groupe, seule forme de la donnée, ou `{ personnage }`, l’individu d’une op que pose le moteur) vers la Cible, `refDeCible` sa réciproque",
     "perimetre": "psychologie (état, ops, bandes, IA, affichage), Cible des ops psy, éditeurs des ops psy",
-    "verrou": "src/engine/psych/ciblage.test.ts ; murs/marques (src/noyau/built-brand-lint.test.ts)"
+    "verrou": "src/engine/psych/ciblage.test.ts, src/noyau/psych-individu.test.ts ; murs/marques (src/noyau/built-brand-lint.test.ts)"
   },
   {
     "id": "opPsy",

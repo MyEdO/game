@@ -804,7 +804,7 @@ const LIGNE_A_LA_MAIN_STOCK: Record<string, number> = {
   // rangée batch du Test de Peur (`encounterPsychFlow`) et le dé d'une manœuvre (`rollFlowSpecs`).
   // HORS COMBAT — les sites de jet sont routés par `rollLine`/`rollStep` ; ce qui reste n'est pas une cible.
   'src/noyau/seaVoyageFlow.ts': 1, // reste : conversion Difficulté→DR d'une infestation (pas une cible)
-  'src/state/cascade.testkit.ts': 1, // le cliquet lui-même (`inexplique`)
+  'src/noyau/cascade.testkit.ts': 1, // le cliquet lui-même (`inexplique`)
 };
 
 /** Dette TOTALE MESURÉE sur `HEAD` + ce lot : 2 occurrences / 2 fichiers, aucune en combat — verrou

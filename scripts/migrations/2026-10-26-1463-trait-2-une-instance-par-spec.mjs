@@ -5,14 +5,15 @@
  *
  * GESTES :
  *  1. `traits.json` : le champ `specsMulti` est retiré de toute entrée.
- *  2. Les instances de `ECLATEMENTS` (profil imprimé cité ligne par ligne) deviennent une instance par
- *     spec, aux autres champs de l'instance recopiés.
+ *  2. L'instance de `ECLATEMENTS` (profil imprimé cité ligne par ligne) EXACTEMENT à sa forme d'avant
+ *     `{ id: trait, arg }` devient une instance par spec.
  *
  * ENTRÉES : écrites — `src/data/traits.json`, `src/data/creatures.json`,
  * `src/scenes/diligence/diligence-projet.json` ; aucun autre fichier n'est lu.
- * FAIL-FAST — avant toute écriture, sortie 1 : un hôte ou une liste de `ECLATEMENTS` introuvable ; une
- * instance de la table ni présente ni déjà éclatée ; une instance d'un Trait à registre FERMÉ dont l'`arg`
- * joint encore plusieurs parts par une virgule ; un fichier hors de son formatage.
+ * FORME D'AVANT SEULE (`lib/formeDAvant.mjs`) : un hôte absent, une instance déjà éclatée ou révisée
+ * après la migration, est laissé tel quel.
+ * FAIL-FAST — avant toute écriture, sortie 1 : une instance d'un Trait à registre FERMÉ dont l'`arg` joint
+ * encore plusieurs parts par une virgule ; un fichier hors de son formatage.
  * IDEMPOTENT : rejouée sur l'état final, aucun geste n'est à faire et rien ne s'écrit.
  * FORMATAGE PRÉSERVÉ, constaté avant l'écriture : un dataset est EXACTEMENT `JSON.stringify(doc, null, 2)`
  * (sans saut de ligne final), le projet de campagne `JSON.stringify(doc, null, 1) + '\n'`.
@@ -20,10 +21,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
+import { remplacerLaFormeDAvant } from './lib/formeDAvant.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-/** Reflet de `src/data/serialize.ts#serializeDataset` (pas d'import TS depuis un script .mjs). */
-const serializeDataset = (value) => JSON.stringify(value, null, 2);
 const serializeProjet = (value) => `${JSON.stringify(value, null, 1)}\n`;
 
 const TRAITS = 'src/data/traits.json';
@@ -37,7 +38,7 @@ const FICHIERS = {
   [DILIGENCE]: { serialiser: serializeProjet, listes: (doc) => (doc.narratif?.presetsPnj ?? []).map((p) => [p.id, p.profil ?? {}]) },
 };
 
-/** Instance à éclater : `arg` joint → une instance par entrée de `specs` (ids du registre du Trait). */
+/** Instance à éclater `{ id: trait, arg }` → une instance par entrée de `specs` (ids du registre du Trait). */
 const ECLATEMENTS = [
   // LDB 77 l.95
   { fichier: CREATURES, hote: 'bella-la-noire', liste: 'traits', trait: 'animosite', arg: 'noble, homme-bete', specs: ['noble', 'homme-bete'] },
@@ -71,24 +72,11 @@ for (const t of traits) {
 
 /** Liste `liste` de l'hôte `hote` dans `rel`, ou `undefined`. */
 function listeDe(rel, hote, liste) {
-  const trouve = FICHIERS[rel].listes(docs.get(rel).doc).find(([id]) => id === hote);
-  const l = trouve?.[1]?.[liste];
-  return Array.isArray(l) ? l : undefined;
+  return FICHIERS[rel].listes(docs.get(rel).doc).find(([id]) => id === hote)?.[1]?.[liste];
 }
 
 for (const { fichier, hote, liste, trait, arg, specs } of ECLATEMENTS) {
-  const l = listeDe(fichier, hote, liste);
-  if (!l) {
-    fautes.push(`${fichier} : ${hote}.${liste} introuvable`);
-    continue;
-  }
-  const i = l.findIndex((x) => x.id === trait && x.arg === arg);
-  if (i >= 0) {
-    l.splice(i, 1, ...specs.map((spec) => ({ ...l[i], arg: spec })));
-    gestes++;
-  } else if (!specs.every((spec) => l.some((x) => x.id === trait && x.arg === spec))) {
-    fautes.push(`${fichier} : ${hote}.${liste} ne porte ni ${trait} « ${arg} » ni ses ${specs.length} instances`);
-  }
+  gestes += remplacerLaFormeDAvant(listeDe(fichier, hote, liste), { id: trait, arg }, specs.map((spec) => ({ id: trait, arg: spec })));
 }
 
 /** Traits à registre FERMÉ : une virgule dans leur `arg` joint plusieurs specs. */

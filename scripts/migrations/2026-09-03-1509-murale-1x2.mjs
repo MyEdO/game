@@ -27,17 +27,19 @@
  * ENTRÉES : `src/data/props.json` (seule donnée lue et écrite). Cardinal : 1 recette, 1 volume,
  * 7 primitives, 2 places.
  *
- * MARQUEUR D'IDEMPOTENCE : la longueur du plateau. À 3,00 m le travail est fait, le script n'écrit rien.
+ * FORME D'AVANT SEULE, marquée par la longueur du plateau : seul un plateau de 1,92 m s'étire. Une
+ * entrée absente, ou dont le plateau mesure autre chose (3,00 m : le travail est fait ; une autre cote :
+ * révisée depuis), est laissée telle quelle et le script n'écrit rien.
  *
- * FAIL-FAST (porte de lecture, avant toute écriture) : entrée absente, cardinal de primitives ou de
- * places inattendu, cotes d'origine autres que celles mesurées, ou empreinte dérivée qui ne passerait
- * pas de 1×1 à 2×1 au cap d'identité — ce script étire UNE recette connue, il ne retaille pas une
+ * FAIL-FAST (porte de lecture, avant toute écriture) : recette sans place, ou empreinte dérivée qui ne
+ * passerait pas de 1×1 à 2×1 au cap d'identité — ce script étire UNE recette connue, il ne retaille pas une
  * recette qu'il ne reconnaît pas.
  * FORMATAGE PRÉSERVÉ : le fichier est EXACTEMENT `JSON.stringify(doc, null, 2)`, vérifié AVANT écriture.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/props.json');
@@ -61,10 +63,6 @@ if (!Array.isArray(avant)) {
 }
 
 const entree = avant.find((e) => e?.id === ID);
-if (!entree) {
-  console.error(`ARBITRAGE REQUIS — ${CIBLE} : entrée « ${ID} » absente`);
-  process.exit(1);
-}
 
 // ── L'empreinte que le CORPS dérive, recalculée ICI : une migration ne dépend pas du code applicatif
 // (il changera ; le fichier migré, non). Même définition que `empreinteDeriveeDuProp` — sièges exclus,
@@ -99,19 +97,16 @@ const empreinteDuCorps = (prop) => {
   return Number.isFinite(x0) ? { w: enCases(x1 - x0), h: enCases(y1 - y0) } : { w: 1, h: 1 };
 };
 
-const plateau = (entree.volume?.primitives ?? []).find((p) => p.kind === 'box');
-if (plateau && plateau.size.xM === LONGUEUR_APRES) {
-  console.log(`src/data/props.json : no-op (déjà migré — ${ID}, plateau de ${LONGUEUR_APRES} m)`);
+const plateau = (entree?.volume?.primitives ?? []).find((p) => p.kind === 'box');
+if (plateau?.size?.xM !== LONGUEUR_AVANT) {
+  console.log(`src/data/props.json : no-op (${ID} sans plateau de ${LONGUEUR_AVANT} m)`);
   process.exit(0);
 }
 
 // FORME, jamais cardinal (#1812) : une recette de décor est ÉDITABLE — lui ajouter une primitive ou
 // une place ne doit rien recaler ici. L'identité de la cible est son `id` et la COTE de son plateau
-// (ci-dessous), mesurée à l'octet.
-if (!(entree.volume?.primitives ?? []).length) echecs.push(`${ID} : recette sans primitive — périmètre déplacé`);
+// (ci-dessus), mesurée à l'octet.
 if (!(entree.seatSlots ?? []).length) echecs.push(`${ID} : aucune place — périmètre déplacé`);
-if (!plateau || plateau.size.xM !== LONGUEUR_AVANT)
-  echecs.push(`${ID} : plateau de ${plateau ? plateau.size.xM : 'aucune caisse'} m ≠ ${LONGUEUR_AVANT} m mesurés`);
 const avantEmpreinte = entree.volume ? empreinteDuCorps(entree) : null;
 if (!avantEmpreinte || avantEmpreinte.w !== 1 || avantEmpreinte.h !== 1)
   echecs.push(`${ID} : empreinte de départ ${avantEmpreinte ? `${avantEmpreinte.w}×${avantEmpreinte.h}` : 'sans recette'} ≠ 1×1 à ${MPT} m/case`);
@@ -149,7 +144,7 @@ if (apresEmpreinte.w !== 2 || apresEmpreinte.h !== 1) {
 }
 
 const apres = avant.map((e) => (e?.id === ID ? etire : e));
-const sortieTexte = JSON.stringify(apres, null, 2);
+const sortieTexte = serializeDataset(apres);
 fs.writeFileSync(CIBLE, sortieTexte, 'utf8');
 
 // ── PREUVE post-écriture : même cardinal d'entrées et même ordre, la recette étirée rend 2×1, et

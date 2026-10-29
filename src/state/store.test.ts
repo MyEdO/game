@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { resetFields } from '../noyau/stateFields';
 import { GARDES_D_UNE_PARTIE_A_L_AUTRE, useGame } from './store';
-import { acheterAuPanier } from './marchand.testkit';
+import { acheterAuPanier } from '../noyau/marchand.testkit';
 import type { BattleState } from '../noyau/etat';
-import { avanceEtapeCascade, draineCascade, cascadeDeTest } from './cascade.testkit';
+import { avanceEtapeCascade, draineCascade, cascadeDeTest } from '../noyau/cascade.testkit';
 import { flowFromEffects, testFlow } from '../noyau/monde/flow';
 import { flowEffects, EMPTY_FLOW } from '../engine/flowCore';
 import { buildAdvancementView } from '../noyau/monde/advancement';
@@ -3312,7 +3312,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     useGame.getState().openMerchant('pnj');
     const line = useGame.getState().merchant!.stock[0];
     const before = toBrass(partyMoneyTotal(useGame.getState));
-    acheterAuPanier(line.id);
+    acheterAuPanier(useGame.getState, line.id);
     const st = useGame.getState();
     expect(st.party[0].items!.some((i) => i.trappingId === line.id)).toBe(true);
     expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(before);
@@ -3323,7 +3323,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     useGame.setState({ party: [hero()], scene: merchantScene() });
     useGame.getState().openMerchant('pnj');
     const line = useGame.getState().merchant!.stock[0];
-    acheterAuPanier(line.id);
+    acheterAuPanier(useGame.getState, line.id);
     expect(useGame.getState().party[0].items!.length).toBe(0);
   });
 
@@ -3601,7 +3601,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
       useGame.setState({ merchant: { ...m, buyMarkup: markup } });
       const id = useGame.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
       const before = toBrass(partyMoneyTotal(useGame.getState));
-      acheterAuPanier(id);
+      acheterAuPanier(useGame.getState, id);
       return before - toBrass(partyMoneyTotal(useGame.getState));
     };
     expect(buyAt(1.5)).toBeGreaterThan(buyAt(1)); // +50 % → coûte plus cher
@@ -3660,7 +3660,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     useGame.getState().openMerchant('pnj');
     const id = useGame.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     const q0 = useGame.getState().merchant!.stock.find((l) => l.id === id)!.qty;
-    acheterAuPanier(id);
+    acheterAuPanier(useGame.getState, id);
     useGame.getState().closeMerchant();
     useGame.getState().openMerchant('pnj'); // ré-ouverture immédiate → stock déplété conservé
     expect(useGame.getState().merchant!.stock.find((l) => l.id === id)!.qty).toBe(q0 - 1);
@@ -3672,7 +3672,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     useGame.getState().openMerchant('pnj');
     const rolled0 = useGame.getState().merchantStocks['pnj'].rolledAt;
     const id = useGame.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
-    acheterAuPanier(id);
+    acheterAuPanier(useGame.getState, id);
     useGame.getState().closeMerchant();
     useGame.setState({ gameTime: t0 + 2 * 24 * 60 }); // +2 jours (≥ restockDays défaut 1)
     useGame.getState().openMerchant('pnj');

@@ -101,4 +101,10 @@ describe('Sans Peur (Ennemi) — Test de Calme Accessible (+20), un seul Test (L
     expect(sansPeurVs(brave, ogre)).toBe(true);
     expect(fearSourceFor(brave, ogre)?.kind).toBe('peur'); // détectée → le porteur la TESTE (+20)
   });
+
+  it('la spécialisation nomme un Groupe : une spécialisation `@id` ne vise pas le combattant de cet id (#3045)', () => {
+    const ogre = mk({ id: 'o', causesPeur: 2, groups: ['ogre'] });
+    const brave = mk({ talents: [{ talentId: 'sans-peur', spec: '@o', times: 1 }] });
+    expect(sansPeurVs(brave, ogre)).toBe(false);
+  });
 });

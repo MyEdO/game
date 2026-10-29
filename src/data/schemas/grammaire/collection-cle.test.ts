@@ -17,7 +17,7 @@ import { sceneSchema } from '../defs-scenes/scene';
 import { validateDocument, cheminLisible } from '../validate';
 import { parseProject, ProjetRefuse } from '../../../noyau/worldMap';
 import areneProjet from '../../../scenes/arene/arene-projet.json';
-import { collectionDe, collectionsDesDocuments, collectionsPerdues, collectionsRetrouvees, listeCle, marquerCollection, marqueDeRecord, noeudsDeLElement, type MarqueDeCollection } from './collection-cle';
+import { collectionDe, collectionsDesDocuments, collectionsPerdues, collectionsRetrouvees, listeCle, marquerCollection, marqueDeRecord, noeudsDeLElement, refusDeCharge, type MarqueDeCollection } from './collection-cle';
 import { descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { champsDeChoix } from './choixDeCreation';
 import { schema as schemaDesTailles } from '../defs/sizes';
@@ -70,6 +70,7 @@ const LISTES_DE_REFERENCES: Readonly<Record<string, string>> = {
   '.scenes[].effectZones[].onCross[]^testMod.exceptSkills[]': 'références de Compétences (skills.json)',
   '.scenes[].triggers[].when.of[]': 'conditions composées : `id` d’un objet/talent désigné',
   '.scenes[].entities[].statblock.traits[]': 'références de Traits (`traits.json`)',
+  '.scenes[].entities[].statblock.traits[].confere[]': 'références de Traits conférés (`traits.json`)',
   '.scenes[].entities[].statblock.skills[]': 'références de Compétences (`skills.json`)',
   '.scenes[].entities[].statblock.talents[]': 'références de Talents (`talents.json`)',
   '.scenes[].entities[].upgrades[]': 'références d’Améliorations navales (`naval-traits.json`)',
@@ -184,6 +185,20 @@ const { defs: DEFS, scan } = scanDuCorpus(ROOT);
 const COLLECTIONS = scan.collections;
 const ESPACES = COLLECTIONS.filter((c) => c.marque.espace);
 const trie = (ids: readonly string[]) => [...ids].sort();
+
+describe('`refusDeCharge` — la charge par discriminant se vérifie à la CONSTRUCTION', () => {
+  const espace = { discriminant: 'cas', chargeParDiscriminant: { a: ['x'], b: [] } };
+
+  it('sans charge déclarée, aucun refus n’est posé', () => {
+    expect(refusDeCharge('sonde', {}, ['cas', 'x'])).toBeUndefined();
+  });
+
+  it('une clé de charge, une exigence hors de sa charge, un cas d’exigence inconnu lèvent', () => {
+    expect(() => refusDeCharge('sonde', espace, ['cas'])).toThrow(/la clé de charge « x » n’est aucun champ de l’entrée/);
+    expect(() => refusDeCharge('sonde', { ...espace, requisesParDiscriminant: { b: ['x'] } }, ['cas', 'x'])).toThrow(/« x » est exigée du cas « b » sans appartenir à sa charge/);
+    expect(() => refusDeCharge('sonde', { ...espace, requisesParDiscriminant: { c: [] } }, ['cas', 'x'])).toThrow(/nomme le cas « c »/);
+  });
+});
 
 describe('co-descente ⇄ descente — une collection relevée dans la donnée est une collection que la descente du schéma retrouve', () => {
   it('toute collection relevée par la co-descente est retrouvée par `collectionsRetrouvees` sur le def de son document', () => {

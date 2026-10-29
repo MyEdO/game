@@ -21,13 +21,13 @@
  *
  * ENTRÉES : écrites — `src/data/traits.json`, `src/data/maneuvers.json`, `src/data/breath-types.json`,
  * `src/data/etats.json`, `src/data/domains.json`, `src/data/creatures.json`, `src/data/tables.json`.
- * FORME D'AVANT SEULE : chaque geste n'agit que sur la forme d'avant qu'il reconnaît, quel que soit l'ordre de
- * ses clés ; une entrée déjà à la forme cible, ajoutée ou révisée après la migration, ou absente, est
- * laissée telle quelle.
- * FAIL-FAST — avant toute écriture, sortie 1 : un fichier hors de son formatage ; une des six manœuvres
- * `souffle-<Type>` d'avant dont le profil diffère de celui de `souffle` ; un Domaine marqué `arcane: true`
- * absent de `SOUFFLES_DES_DOMAINES` ou qui porte déjà un `maison` ; un Domaine sans marque `true` qui porte
- * encore `breathType`.
+ * FORME D'AVANT SEULE (`lib/formeDAvant.mjs`) : chaque geste n'agit que sur la forme d'avant EXACTE de ce
+ * qu'il réécrit, quel que soit l'ordre de ses clés ; une entrée longue (une manœuvre entière) se reconnaît à
+ * l'EMPREINTE de sa forme d'avant, prise au parent du commit qui introduit la migration. Une entrée déjà à la
+ * forme cible, ajoutée ou révisée après la migration, ou absente, est laissée telle quelle.
+ * FAIL-FAST — avant toute écriture, sortie 1 : un fichier hors de son formatage ; un Domaine marqué
+ * `arcane: true` sans `maison` absent de `SOUFFLES_DES_DOMAINES`, ou dont le Type est absent du registre ;
+ * un Domaine sans marque `true` qui porte encore `breathType`.
  * IDEMPOTENT : rejouée sur l'état final, aucun geste n'est à faire et rien ne s'écrit.
  * FORMATAGE PRÉSERVÉ : un dataset est EXACTEMENT `JSON.stringify(doc, null, 2)` (sans saut de ligne final).
  */
@@ -36,6 +36,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual as egal } from 'node:util';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { empreinteDeForme, porteLaTranche } from './lib/formeDAvant.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const F = {
@@ -80,17 +81,21 @@ const REGLES = {
   poison: { ignoreAP: true, etat: 'empoisonne' },
   fumee: { fumee: true },
 };
-const ANCIENNES = new Set(Object.keys(REGLES).map((t) => `souffle-${t}`));
+/** Les six manœuvres `souffle-<Type>` d'avant, à l'empreinte de leur forme d'avant. */
+const ANCIENNES = {
+  'souffle-feu': 'c37064b6c58a62004e3cd26e02ffa318dc2e03b1f74b9a4b4000284bdab2bd31',
+  'souffle-froid': '2c104dd2e6d26bb7ea99dc16af0beb441696570646de41d6ed90754796bb4fef',
+  'souffle-corrosif': '0bb75c6754a08ce2731f39de3bf5bbd4781cfc45df5257593777f22a2e37715a',
+  'souffle-electrique': '4c27be30f3b87f786323be270627d85926ce3b2e02887d41561752de04fd2237',
+  'souffle-poison': '55844e166ea51028085a1bd4e6dada8f1f47898deef2895fa0f6280b7634c93b',
+  'souffle-fumee': '5530cb5b43ba7733f0650bbb3ec0c11fb3551c78e0333c77cc62195412c6a5db',
+};
 const souffle = trait('souffle');
-const octroisAnciens = souffle?.grantsManeuvers?.filter((g) => ANCIENNES.has(g.id)) ?? [];
-if (octroisAnciens.length) {
-  if (souffle.difficulte === undefined) souffle.difficulte = true;
-  const i = souffle.grantsManeuvers.findIndex((g) => ANCIENNES.has(g.id));
-  souffle.grantsManeuvers = souffle.grantsManeuvers.filter((g, j) => j < i || !ANCIENNES.has(g.id));
-  souffle.grantsManeuvers.splice(i, 0, { id: 'souffle' });
+if (porteLaTranche(souffle, { grantsManeuvers: Object.keys(ANCIENNES).map((id) => ({ id })), difficulte: undefined })) {
+  souffle.difficulte = true;
+  souffle.grantsManeuvers = [{ id: 'souffle' }];
   gestes++;
 }
-const PROFIL = ['kind', 'activation', 'advantageCost', 'stat', 'defense', 'targeting', 'range', 'blast', 'magic', 'source'];
 const SOUFFLE = {
   id: 'souffle', type: 'maneuvers', label: 'Souffle', kind: 'souffle', activation: 'free', advantageCost: 2,
   stat: 'capacite-de-tir', defense: 'esquive', targeting: 'zone', range: { bonusOf: 'endurance', plus: 20 },
@@ -100,11 +105,10 @@ const SOUFFLE = {
   stakeForm: 'descripteur',
 };
 const manoeuvres = doc(F.maneuvers);
-const anciennes = manoeuvres.filter((m) => ANCIENNES.has(m.id));
-for (const m of anciennes) for (const k of PROFIL) if (!egal(m[k], SOUFFLE[k])) fautes.push(`${F.maneuvers} : « ${m.id} ».${k} diffère du profil de « souffle »`);
-const iAncienne = manoeuvres.findIndex((m) => ANCIENNES.has(m.id));
+const estAncienne = (m) => Object.hasOwn(ANCIENNES, m.id) && empreinteDeForme(m) === ANCIENNES[m.id];
+const iAncienne = manoeuvres.findIndex(estAncienne);
 if (iAncienne >= 0 && !manoeuvres.some((m) => m.id === 'souffle')) { manoeuvres.splice(iAncienne, 0, SOUFFLE); gestes++; }
-for (let i = manoeuvres.length - 1; i >= 0; i--) if (ANCIENNES.has(manoeuvres[i].id)) { manoeuvres.splice(i, 1); gestes++; }
+for (let i = manoeuvres.length - 1; i >= 0; i--) if (estAncienne(manoeuvres[i])) { manoeuvres.splice(i, 1); gestes++; }
 
 // Middenheim 04 l.29
 const BF_PLUS = (n) => ({ sum: [{ bonusOf: 'force' }, n] });
@@ -112,20 +116,26 @@ const HYBRIDE = [
   { id: 'arme', avant: 4, apres: BF_PLUS(4) },
   { id: 'morsure', avant: 3, apres: BF_PLUS(3) },
 ];
+/** Empreinte de la forme d'avant de la manœuvre `forme-hybride-ulric`. */
+const HYBRIDE_D_AVANT = '3edfed145e810d9d65479adefd1f5ffe8775d0a5bf85a22bc4736e84cf1c5a4c';
 const hybride = manoeuvres.find((m) => m.id === 'forme-hybride-ulric');
-const octroisHybrides = hybride?.effects?.flatMap((e) => e.flow?.effect?.ops ?? []).flatMap((o) => (o.op === 'transform' ? o.ops : [])).filter((o) => o.op === 'grantTrait') ?? [];
-for (const { id, avant, apres } of HYBRIDE) {
-  for (const o of octroisHybrides) if (egal(o.trait, { id, value: avant })) { o.trait = { id, value: apres }; gestes++; }
+if (hybride && empreinteDeForme(hybride) === HYBRIDE_D_AVANT) {
+  const octroisHybrides = hybride.effects.flatMap((e) => e.flow?.effect?.ops ?? []).flatMap((o) => (o.op === 'transform' ? o.ops : [])).filter((o) => o.op === 'grantTrait');
+  for (const { id, avant, apres } of HYBRIDE) {
+    for (const o of octroisHybrides) if (egal(o.trait, { id, value: avant })) { o.trait = { id, value: apres }; gestes++; }
+  }
+  const ENJEU_HYBRIDE = ['les Traits Arme 4, Armure 2, Morsure 3,', 'les Traits Arme (BF +4), Armure 2, Morsure (BF +3),'];
+  hybride.stake = hybride.stake.replace(...ENJEU_HYBRIDE);
+  gestes++;
 }
-const ENJEU_HYBRIDE = ['les Traits Arme 4, Armure 2, Morsure 3,', 'les Traits Arme (BF +4), Armure 2, Morsure (BF +3),'];
-if (hybride?.stake?.includes(ENJEU_HYBRIDE[0])) { hybride.stake = hybride.stake.replace(...ENJEU_HYBRIDE); gestes++; }
 
 const types = doc(F.breath);
-const formeDAvantDuType = (t) => egal(Object.keys(t).sort(), ['id', 'label', 'type']);
+/** Libellé de chaque Type à sa forme d'avant `{ id, type, label }`. */
+const LIBELLES_D_AVANT = { feu: 'Feu', froid: 'Froid', corrosif: 'Corrosif', electrique: 'Électrique', poison: 'Poison', fumee: 'Fumée' };
 let registreDAvant = false;
 for (const [id, regle] of Object.entries(REGLES)) {
   const t = types.find((x) => x.id === id);
-  if (!t || !formeDAvantDuType(t)) continue;
+  if (!t || !egal(t, { id, type: 'breath-types', label: LIBELLES_D_AVANT[id] })) continue;
   Object.assign(t, { source: SOURCE_LDB, ...regle });
   registreDAvant = true;
   gestes++;
@@ -136,15 +146,17 @@ if (registreDAvant && !types.some((x) => x.id === COMPOSE.id)) { types.push(COMP
 // 4. etats.json
 const empoisonne = doc(F.etats).find((e) => e.id === 'empoisonne');
 const testDElimination = empoisonne?.effects?.map((e) => e.flow).find((f) => f?.kind === 'test' && f.test?.skill?.id === 'resistance');
-if (testDElimination && testDElimination.test.argDifficulty === undefined) { testDElimination.test.argDifficulty = true; gestes++; }
+const TEST_D_AVANT = { skill: { id: 'resistance' }, difficulty: 'intermediaire', label: 'Résistance à l’Empoisonné' };
+if (egal(testDElimination?.test, TEST_D_AVANT)) { testDElimination.test.argDifficulty = true; gestes++; }
 
 // 5. domains.json — LDB 47 l.509 ; Types de LDB 85 l.322-329
 const lecture = (vent) => `Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : ${vent}`;
+/** Domaine → son Type de Souffle (`id`), sa raison (`maison`), et le `breathType` imprimé de sa forme d'avant. */
 const SOUFFLES_DES_DOMAINES = {
-  feu: { id: 'feu', maison: lecture('le Feu se manifeste par des flammes vives et une chaleur intense (LDB 48 l.203).') },
-  cieux: { id: 'electrique', maison: lecture('les Sorts des Cieux s’accompagnent du craquement de la foudre (LDB 48 l.104).') },
-  metal: { id: 'corrosif', maison: lecture('Chamon s’attache aux substances métalliques et frappe ceux qui s’enveloppent de métal (LDB 48 l.397-399) ; le Corrosif endommage l’équipement porté.') },
-  ombres: { id: 'fumee', maison: lecture('les Sorts des Ombres enveloppent le lanceur d’ombres et de volutes de fumée (LDB 48 l.588).') },
+  feu: { breathType: 'Feu', id: 'feu', maison: lecture('le Feu se manifeste par des flammes vives et une chaleur intense (LDB 48 l.203).') },
+  cieux: { breathType: 'Électrique', id: 'electrique', maison: lecture('les Sorts des Cieux s’accompagnent du craquement de la foudre (LDB 48 l.104).') },
+  metal: { breathType: 'Corrosif', id: 'corrosif', maison: lecture('Chamon s’attache aux substances métalliques et frappe ceux qui s’enveloppent de métal (LDB 48 l.397-399) ; le Corrosif endommage l’équipement porté.') },
+  ombres: { breathType: 'Fumée', id: 'fumee', maison: lecture('les Sorts des Ombres enveloppent le lanceur d’ombres et de volutes de fumée (LDB 48 l.588).') },
   bete: { id: 'froid', maison: lecture('Ghur reflète une férocité primitive et glaciale (LDB 48 l.9).') },
   mort: { id: 'froid', maison: lecture('les cibles de la Mort demeurent affaiblies et léthargiques (LDB 48 l.501) ; le Froid les Sonne.') },
   lumiere: { id: 'electrique', maison: lecture('la Lumière émet des rayons éclatants d’une lumière aveuglante (LDB 48 l.300) ; l’Électrique ignore les PA et Sonne, au plus près de l’Aveuglé du Domaine.') },
@@ -157,11 +169,12 @@ const SOUFFLES_DES_DOMAINES = {
   demonologie: { id: 'froid', maison: lecture('la description de la Démonologie (LDB 50 l.9) n’appuie aucun Type ; le Froid, premier Type de la liste (LDB 85 l.324).') },
 };
 for (const d of doc(F.domains)) {
-  const voulu = SOUFFLES_DES_DOMAINES[d.id];
+  const voulu = Object.hasOwn(SOUFFLES_DES_DOMAINES, d.id) ? SOUFFLES_DES_DOMAINES[d.id] : undefined;
   if (d.arcane !== true) { if (d.breathType !== undefined) fautes.push(`${F.domains} : « ${d.id} » porte encore « breathType »`); continue; }
+  if (d.maison !== undefined) continue;
   if (!voulu) { fautes.push(`${F.domains} : Domaine des Arcanes « ${d.id} » absent de SOUFFLES_DES_DOMAINES`); continue; }
+  if (!porteLaTranche(d, { breathType: voulu.breathType })) continue;
   if (!types.some((t) => t.id === voulu.id)) { fautes.push(`${F.breath} : Type « ${voulu.id} » introuvable`); continue; }
-  if (d.maison !== undefined) { fautes.push(`${F.domains} : « ${d.id} » porte déjà un arbitrage maison`); continue; }
   delete d.breathType;
   d.arcane = voulu.id;
   d.maison = voulu.maison;
@@ -203,7 +216,7 @@ for (const { fiche, liste, avant, apres } of FICHES) {
 // 7. tables.json
 const nurgle = doc(F.tables).find((t) => t.id === 'allure-demoniaque-nurgle');
 const octroi = nurgle?.rows?.flatMap((r) => r.ops ?? []).find((o) => o.op === 'grantTrait' && o.trait?.id === 'souffle');
-if (octroi?.trait.arg === 'Corrosion et Poison') { octroi.trait.arg = 'corrosion-et-poison'; gestes++; }
+if (egal(octroi?.trait, { id: 'souffle', arg: 'Corrosion et Poison', value: 7 })) { octroi.trait.arg = 'corrosion-et-poison'; gestes++; }
 
 if (fautes.length) {
   console.error(`ARRÊT — rien n'est écrit :\n${fautes.join('\n')}`);

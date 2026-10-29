@@ -21,8 +21,8 @@
  * Ce qui délimite le périmètre est l'id NU : aucun ne survit à l'écriture, et CHAQUE domaine porte
  * EXACTEMENT UNE entrée de catalogue (l'homonyme se COMPOSE — c'est une arité d'IDENTITÉ, pas une
  * population).
- * MARQUEUR D'IDEMPOTENCE : l'id des deux entrées de catalogue. Rejouée sur l'arbre migré, la
- * migration n'écrit rien et sort 0.
+ * FORME D'AVANT SEULE, marquée par l'id NU : sans aucun id nu (entrées migrées, absentes ou révisées
+ * depuis), la migration n'écrit rien et sort 0.
  * FAIL-FAST : id ni initial ni final, porteur d'une référence `ardoise` qui n'est ni une masse de
  * toit ni une primitive de recette, deux entrées à un même domaine, formatage non canonique → rien
  * n'est écrit.
@@ -115,8 +115,6 @@ if (restes.length) echec(`référence \`${NU}\` hors masse de toit / primitive d
 // périmètre est l'id NU : aucun ne doit survivre, et les deux entrées COMPOSÉES doivent exister.
 const total = (t) => t.catalogueToit + t.catalogueDecor + t.primitives + t.masses;
 if (total(mesure) === 0) {
-  for (const k of ['catalogueToit', 'catalogueDecor'])
-    if (!dejaFait[k]) echec(`déjà migrée en apparence, mais ${k} = 0 — l'entrée composée manque`);
   console.log(`[${NOM}] déjà migrée — rien à écrire`);
   process.exit(0);
 }

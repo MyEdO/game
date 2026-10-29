@@ -57,7 +57,7 @@ describe('Frénésie/Haine IA — contrainte de cible (LDB 21, P3)', () => {
   });
 
   it('le vivier ne se restreint que pour une affliction dont la donnée vise le groupe (`attackDR.vs`)', () => {
-    const autre = psychologies.find((p) => p.targeted && p.attackDR?.vs !== 'group');
+    const autre = psychologies.find((p) => p.cibles && p.attackDR?.vs !== 'group');
     expect(autre).toBeDefined();
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: autre!.id as PsychType, cible: ciblePsy.groupe(groupe), active: true }] });
     const membre = mk('membre', 'hero', { x: 5, y: 6 }, { traits: [{ id: traitAGroupe!.id }] });

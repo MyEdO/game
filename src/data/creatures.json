@@ -7231,7 +7231,8 @@
     ],
     "trappings": [
       {
-        "text": "grosse chope lourdement renforcée (arme simple)"
+        "id": "arme-simple",
+        "spec": "grosse chope lourdement renforcée"
       },
       {
         "text": "assortiment de pièces de toutes origines d'une valeur de 6d10 pistoles"
@@ -9672,7 +9673,11 @@
     ],
     "trappings": [
       {
-        "text": "arc long avec des flèches à l'aspect sinistre"
+        "id": "arc-long"
+      },
+      {
+        "id": "fleche",
+        "spec": "à l'aspect sinistre"
       },
       {
         "text": "tatouage de Morrslieb"
@@ -12375,22 +12380,24 @@
     ],
     "trappings": [
       {
-        "id": "massue-ogre",
-        "count": {
-          "fixed": 2
-        }
-      },
-      {
-        "text": "L'une des massues est faite d'une tête de boulet de canon (« Retour à l'envoyeur »)"
+        "id": "arme-simple",
+        "spec": "massue à tête de boulet de canon"
       },
       {
         "id": "pansiere-ogre"
       },
       {
+        "id": "arme-simple",
+        "spec": "massue"
+      },
+      {
         "id": "arc"
       },
       {
-        "id": "fleche"
+        "id": "fleche",
+        "count": {
+          "fixed": 12
+        }
       },
       {
         "text": "2d10 sous de cuivre"
@@ -18763,7 +18770,14 @@
     ],
     "trappings": [
       {
-        "text": "bandoulière avec 12 pistolets chargés"
+        "text": "bandoulière"
+      },
+      {
+        "id": "pistolet",
+        "spec": "chargés",
+        "count": {
+          "fixed": 12
+        }
       },
       {
         "id": "cache-oeil"
@@ -18772,7 +18786,7 @@
         "id": "crochet"
       },
       {
-        "text": "épée"
+        "id": "arme-simple"
       },
       {
         "text": "jambe de bois"
@@ -18781,7 +18795,10 @@
         "text": "perroquet (Pièce)"
       },
       {
-        "text": "poudre et munitions pour 24 tirs"
+        "id": "balle-et-poudre",
+        "count": {
+          "fixed": 24
+        }
       },
       {
         "text": "rhum tord-boyaux"
@@ -19387,7 +19404,7 @@
         "text": "pistolet patte d'oie à malepierre"
       },
       {
-        "text": "épée"
+        "id": "arme-simple"
       },
       {
         "id": "hallebarde"
@@ -19593,13 +19610,15 @@
     ],
     "trappings": [
       {
-        "text": "bouclier rouillé"
+        "id": "bouclier",
+        "spec": "rouillé"
       },
       {
         "text": "chemise de mailles rouillée"
       },
       {
-        "text": "dague rouillée"
+        "id": "dague",
+        "spec": "rouillée"
       },
       {
         "id": "arme-simple"

@@ -40,7 +40,8 @@ export const RACINES = Object.freeze({
   'test:recette': Object.freeze(['scripts/recette']),
   'test:raw': Object.freeze(['scripts/raw', 'scripts/source']),
   'test:ops': Object.freeze(['scripts/ops']),
-  'test:corpus': Object.freeze(['scripts/corpus']),
+  // `scripts/personnage-3d` : la déclaration d'une base 3D jugée contre la donnée réelle du dépôt (#3106).
+  'test:corpus': Object.freeze(['scripts/corpus', 'scripts/personnage-3d']),
   // Les balayages du dépôt réel joués hors de la concurrence de `test:corpus` : `--test-concurrency=1` (package.json, #2586).
   'test:corpus-isole': Object.freeze(['scripts/corpus-isole']),
 })

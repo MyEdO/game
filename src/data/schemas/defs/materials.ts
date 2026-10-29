@@ -8,9 +8,10 @@
  * (`src/data/materials.types.ts`), tenues sous `satisfies` contre les domaines de `MaterialRef` plus
  * `objet`, qui vit hors du pivot de rendu du sol.
  *
- * UNE SEULE FORME D'ENTRÉE, la disjonction portée par un REFINE ⟺ (`affinerEntree`, patron
- * `defs/oups.ts`) : toutes les clés de charge sont déclarées `.optional()`, et le refine (1) EXIGE
- * par domaine ses clés requises, (2) REFUSE toute clé d'un AUTRE domaine, nommément. Une union de
+ * UNE SEULE FORME D'ENTRÉE, la disjonction portée par la charge par domaine, que `document()` borne
+ * au parse (`refusDeCharge`, `grammaire/collection-cle.ts`) : toutes les clés de charge sont déclarées
+ * `.optional()`, et la charge (1) EXIGE par domaine ses clés requises, (2) REFUSE toute clé d'un AUTRE
+ * domaine, nommément. Une union de
  * quatre `strictObject` dirait la même chose au parse, mais elle n'a ni `.shape` ni enveloppe :
  * `document()` ne saurait y poser ni sa provenance, ni son `type`, ni ses métas d'édition.
  *
@@ -40,8 +41,9 @@ const LIBELLES_DE_DOMAINE = {
 } as const satisfies Record<MaterialDomain, string>;
 
 /**
- * Clés de CHARGE par domaine — la déclaration dont le refine tire ses DEUX verdicts (requis manquant,
- * clé étrangère). `requises` ⊆ `cles` ; ce qui n'est pas requis est optionnel dans ce domaine.
+ * Clés de CHARGE par domaine — la déclaration dont `document()` tire ses DEUX verdicts au parse (requis
+ * manquant, clé étrangère : `refusDeCharge`, `grammaire/collection-cle.ts`). `requises` ⊆ `cles` ; ce
+ * qui n'est pas requis est optionnel dans ce domaine.
  */
 const CHARGE_PAR_DOMAINE = {
   objet: { cles: ['palette'], requises: ['palette'] },
@@ -58,17 +60,16 @@ const CHARGE_PAR_DOMAINE = {
 } as const satisfies Record<MaterialDomain, { cles: readonly string[]; requises: readonly string[] }>;
 
 /**
- * CHARGE par valeur du DISCRIMINANT, telle que la lit l'atelier (`espace.chargeParDiscriminant` de la
- * marque de racine, `chargeDiscriminee`) : une entrée de matière n'édite que les champs de SON domaine,
- * jamais les champs des autres domaines. Dérivée de la table ci-dessus — le refine et le formulaire lisent la MÊME
- * déclaration.
+ * CHARGE et EXIGENCES par valeur du DISCRIMINANT (`espace.chargeParDiscriminant`,
+ * `espace.requisesParDiscriminant`), dérivées de la table ci-dessus : une entrée de matière ne porte et
+ * n'édite que les champs de SON domaine.
  */
 const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
   Object.entries(CHARGE_PAR_DOMAINE).map(([domaine, charge]) => [domaine, charge.cles as readonly string[]]),
 );
-
-/** Toutes les clés de charge du document, dérivées de la table ci-dessus. */
-const CLES_DE_CHARGE = new Set(Object.values(CHARGE_PAR_DOMAINE).flatMap((d) => d.cles as readonly string[]));
+const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
+  Object.entries(CHARGE_PAR_DOMAINE).map(([domaine, charge]) => [domaine, charge.requises as readonly string[]]),
+);
 
 const doc = document(
   'materials',
@@ -154,31 +155,10 @@ const doc = document(
     edit: { dataset: 'materials' },
   },
   {
-    espace: { discriminant: 'domain', chargeParDiscriminant },
+    espace: { discriminant: 'domain', chargeParDiscriminant, requisesParDiscriminant },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const e = v as Record<string, unknown>;
-        const domaine = e.domain as keyof typeof CHARGE_PAR_DOMAINE;
-        const charge = CHARGE_PAR_DOMAINE[domaine];
-        if (!charge) return;
-        const admises = new Set<string>(charge.cles);
-        for (const cle of charge.requises as readonly string[]) {
-          if (e[cle] === undefined) {
-            ctx.addIssue({
-              code: 'custom',
-              path: [cle],
-              message: `materials : le domaine « ${domaine} » EXIGE la clé « ${cle} » (${String(e.id)}).`,
-            });
-          }
-        }
-        for (const cle of Object.keys(e)) {
-          if (!CLES_DE_CHARGE.has(cle) || admises.has(cle) || e[cle] === undefined) continue;
-          ctx.addIssue({
-            code: 'custom',
-            path: [cle],
-            message: `materials : la clé « ${cle} » n’appartient pas au domaine « ${domaine} » (${String(e.id)}).`,
-          });
-        }
         // Une matière de toiture COUVRE un pan, ou elle EST le plan vu du dessus (#1691) — jamais les
         // deux : le plan n'a ni pente ni égout, la couverture n'est pas une convention de plan.
         if (e.couverture !== undefined && e.vueDeDessus !== undefined)
@@ -196,7 +176,7 @@ const doc = document(
         if (plans.length === 1) return;
         ctx.addIssue({
           code: 'custom',
-          path: ['vueDeDessus'],
+          path: [],
           message:
             `materials.json : ${plans.length} entrée(s) marquée(s) « plan vu du dessus » ` +
             `(${plans.map((e) => e.id).join(', ') || 'aucune'}) — il en faut EXACTEMENT une, celle que le rendu du plan résout.`,

@@ -12,7 +12,7 @@ import { chebyshev } from '../../engine/grid';
 import { runEnemyAI, checkBattleOver } from '../../noyau/combatFlow';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import { fr } from '../../i18n/messages/fr';
-import { draineCascade, poseSurDeNonTombe } from '../../state/cascade.testkit';
+import { draineCascade, poseSurDeNonTombe } from '../../noyau/cascade.testkit';
 const scenarioConstruit = scenario.construire();
 
 /** Lance le scénario duel dans le store (comme `__wfrp.scenario`), Round 1 acquitté, RNG SEMÉE. */

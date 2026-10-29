@@ -45,8 +45,14 @@ export type CleDElement<T> =
 export interface EspaceDeNoms {
   readonly discriminant?: string | readonly string[];
   /** Second rôle du `discriminant` : les clés de CHARGE admises par valeur du champ, ce que l'atelier
-   *  présente d'une entrée (`chargeDiscriminee`, `schemas/validate.ts`). Exige un `discriminant` UNIQUE. */
+   *  présente d'une entrée (`chargeDiscriminee`, `schemas/validate.ts`) et ce que `document()` borne au
+   *  parse (`refusDeCharge`). Le champ qui partitionne la charge est le `discriminant` unique, ou, d'une
+   *  LISTE de discriminants, celui que nomme `champDeCharge`. */
   readonly chargeParDiscriminant?: Readonly<Record<string, readonly string[]>>;
+  readonly champDeCharge?: string;
+  /** Clés de la charge EXIGÉES par valeur du champ de charge, sous-ensemble de sa charge ; une valeur
+   *  absente de cette table exige toute sa charge. */
+  readonly requisesParDiscriminant?: Readonly<Record<string, readonly string[]>>;
   readonly marqueurs?: readonly string[];
 }
 
@@ -115,6 +121,53 @@ function porteUneFeuilleDId(noeud: unknown): boolean {
   return enfantsDe(noeud).some((e) => e.segment === '' && porteUneFeuilleDId(e.noeud));
 }
 
+/** Le champ discriminant qui partitionne la CHARGE d'un espace : son `discriminant` unique, ou le
+ *  `champDeCharge` qu'il nomme parmi sa liste ; `undefined` sinon. */
+export function champDeCharge(espace: EspaceDeNoms): string | undefined {
+  const { discriminant, champDeCharge: nomme } = espace;
+  if (typeof discriminant === 'string') return nomme === undefined || nomme === discriminant ? discriminant : undefined;
+  return nomme !== undefined && discriminant?.includes(nomme) ? nomme : undefined;
+}
+
+/**
+ * Refus de CHARGE d'une entrée d'un document dont l'`espace` déclare `chargeParDiscriminant` : une clé
+ * de charge d'un AUTRE cas que celui de l'entrée, une clé EXIGÉE de son cas absente
+ * (`requisesParDiscriminant`, toute la charge du cas par défaut). `undefined` sans charge déclarée.
+ * FAIL-FAST à la CONSTRUCTION : une clé de charge ou d'exigence hors des champs de l'entrée, une
+ * exigence hors de la charge de son cas.
+ */
+export function refusDeCharge(
+  type: string,
+  espace: EspaceDeNoms,
+  clesEntree: readonly string[],
+): ((entree: Record<string, unknown>, ctx: z.RefinementCtx) => void) | undefined {
+  const table = espace.chargeParDiscriminant;
+  const champ = champDeCharge(espace);
+  if (!table || champ === undefined) return undefined;
+  const toutes = [...new Set(Object.values(table).flat())];
+  for (const cle of toutes)
+    if (!clesEntree.includes(cle)) throw new Error(`refusDeCharge('${type}') : la clé de charge « ${cle} » n’est aucun champ de l’entrée.`);
+  const requises = espace.requisesParDiscriminant ?? {};
+  for (const [cas, cles] of Object.entries(requises)) {
+    const charge = table[cas];
+    if (!charge) throw new Error(`refusDeCharge('${type}') : \`requisesParDiscriminant\` nomme le cas « ${cas} », absent de \`chargeParDiscriminant\`.`);
+    for (const cle of cles)
+      if (!charge.includes(cle)) throw new Error(`refusDeCharge('${type}') : « ${cle} » est exigée du cas « ${cas} » sans appartenir à sa charge.`);
+  }
+  const porteurs = (cle: string) => Object.keys(table).filter((cas) => table[cas].includes(cle)).join(', ');
+  return (entree, ctx) => {
+    const cas = entree[champ];
+    const charge = typeof cas === 'string' ? table[cas] : undefined;
+    if (!charge) return;
+    const nom = `« ${String(entree.id)} » (${champ} « ${cas} »)`;
+    for (const cle of requises[cas as string] ?? charge)
+      if (entree[cle] === undefined) ctx.addIssue({ code: 'custom', path: [cle], message: `${type} : ${nom} exige « ${cle} ».` });
+    for (const cle of toutes)
+      if (!charge.includes(cle) && entree[cle] !== undefined)
+        ctx.addIssue({ code: 'custom', path: [cle], message: `${type} : « ${cle} » n’appartient qu’au(x) cas ${champ} « ${porteurs(cle)} » — refusée sur ${nom}.` });
+  };
+}
+
 /**
  * Marque la collection `noeud` et rend le nœud FINAL qui porte la marque. Une liste y gagne l'UNICITÉ
  * de sa clé (un élément sans clé lisible n'entre pas dans le compte : sa forme est refusée ailleurs,
@@ -122,8 +175,8 @@ function porteUneFeuilleDId(noeud: unknown): boolean {
  * d'élément est une feuille `idDe` — une liste de RÉFÉRENCES n'est jamais un espace de noms.
  */
 export function marquerCollection<N extends z.ZodType>(noeud: N, marque: MarqueDeCollection): N {
-  if (marque.espace?.chargeParDiscriminant && typeof marque.espace.discriminant !== 'string')
-    throw new Error('marquerCollection : `chargeParDiscriminant` sans `discriminant` unique — la charge se partitionne par les valeurs d’UN champ discriminant.');
+  if (marque.espace?.chargeParDiscriminant && champDeCharge(marque.espace) === undefined)
+    throw new Error('marquerCollection : `chargeParDiscriminant` sans `discriminant` unique ni `champDeCharge` parmi ses discriminants — la charge se partitionne par les valeurs d’UN champ discriminant.');
   if (marque.espace && noeudsDeCle(noeud, marque).some(porteUneFeuilleDId)) {
     const cle = marque.forme === 'liste' ? `la clé « ${marque.nom} »` : 'la clé de record';
     throw new Error(`marquerCollection : \`espace\` refusé — ${cle} est une feuille \`idDe\`, la collection est une liste de RÉFÉRENCES.`);

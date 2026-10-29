@@ -320,6 +320,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { 
   const logs: string[] = [];
 
   const eff = riverWindEffect(river.windForce, river.windDir);
+  // MSRC 7 l.21
   logs.push(t('rv.windOfDay', {
     // La FORCE passe par la DONNÉE (`riverForceLabel`) : la capitaliser depuis l'id rendait « Modere ».
     force: riverForceLabel(river.windForce),
@@ -693,6 +694,7 @@ function holeBoat(get: Get, set: Set, plan: TravelPlan, tell: (l: string[]) => v
       return [];
     }
   } else tell([t('rv.noCaulker')]);
+  // MSRC 7 l.103
   sinkBoat(get, set, tell, t('rv.sinkLeak'));
   return [];
 }
@@ -935,6 +937,7 @@ export const TABLES = {
         };
       }
       const j: import('./rollSeam').FreeConsLine[] = [];
+      // MSRC 7 l.40
       sinkBoat(get, set, (l) => j.push(...l), t('rv.sinkNotRighted', { be }));
       return { consequences: freeCons(j) };
     },
@@ -1051,6 +1054,7 @@ export const TABLES = {
         return { consequences: freeCons([{ text: t('rv.holeRepairOk', { name, n: healed }), tone: 'ok' }]) };
       }
       const j: import('./rollSeam').FreeConsLine[] = [{ text: t('rv.holeRepairKo', { name }), tone: 'bad' }];
+      // MSRC 7 l.103
       sinkBoat(get, set, (l) => j.push(...l), t('rv.sinkLeak'));
       return { consequences: freeCons(j) };
     },

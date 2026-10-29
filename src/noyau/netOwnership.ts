@@ -376,6 +376,8 @@ const idArg = (a: unknown): string | undefined => (typeof a === 'string' ? a : u
 const TOUJOURS: Route = { rule: () => true };
 /** Possession du combattant désigné par le 1ᵉʳ argument. */
 const PAR_ARG0: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[0])) };
+/** Possession du combattant désigné par le 2ᵉ argument. */
+const PAR_ARG1: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[1])) };
 
 /**
  * CLIC DE CARTE pendant un ciblage détenu par une fenêtre HORS registre de modales (#1016) — c'est
@@ -494,7 +496,7 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['toggleCluePin', TOUJOURS],
     ['markCluesSeen', TOUJOURS],
     // Butin de victoire : un siège n'attribue qu'à SES héros (le bénéficiaire est le 2ᵉ argument).
-    ['assignVictoryGear', { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[1])) }],
+    ['assignVictoryGear', PAR_ARG1],
     // Composition du groupe : un siège remplit SES emplacements (quota attribué par l'hôte) et
     // ne retire que SES héros.
     ['partyAddHero', { rule: (s, seat) => seatSlotsRemaining(s, seat) > 0 }],
@@ -508,6 +510,10 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['interludeCraftStart', PAR_ARG0],
     ['interludeOrder', PAR_ARG0],
     ['interludeBank', PAR_ARG0],
+    ['interludeEntrainement', PAR_ARG0],
+    ['favorSettle', PAR_ARG0],
+    // Préparation de bataille : le héros MENEUR est le 2ᵉ argument.
+    ['massBattleActivity', PAR_ARG1],
     // Retrait bancaire : le dépôt appartient à un héros — son propriétaire retire.
     ['interludeWithdraw', {
       rule: (s, seat, args) => {

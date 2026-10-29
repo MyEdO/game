@@ -11,7 +11,7 @@ import { clampTarget } from '../engine/tests';
 import { setRule, resetRule } from '../engine/policy';
 import { volatileCharLines } from '../engine/characteristics';
 import { traumaById, dechirureFractureFicheId } from '../engine/trauma';
-import { inexplique } from './cascade.testkit';
+import { inexplique } from '../noyau/cascade.testkit';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { makePregens, makePregensWithWealth, makeShowcaseParty, pregen, pregenParty, PREGEN } from './pregens';
 import { skillInstanceLabel, talentConcrete, findSpellById, levelsForCareer, blessingsOf, rigSpeciesId, pregens as definitions } from './index';
-import { parseStatus } from '../engine/creation';
+import { statutDeDonnee } from '../engine/money';
 import { validateDataset } from './schemas/validate';
 import { toBrass } from '../engine/money';
 import { setDataset } from './overrides';
@@ -52,14 +52,14 @@ describe('Personnages pré-tirés', () => {
         const brass = toBrass(wealth);
         expect(brass, `${hero.label} (${hero.career}) : bourse nulle`).toBeGreaterThan(0);
         const level = levelsForCareer(hero.career!).find((l) => l.level === 1)!;
-        const status = parseStatus(level.status);
+        const status = statutDeDonnee(level.status);
         // Bornes de la formule officielle (Bronze 2d10×Standing / Argent 1d10×Standing / Or 1 CO×Standing) :
         // le jet réel du pré-tiré doit tomber dans les bornes de SA formule (seed distinct, même tier/Standing).
-        const perDie = status.tier === 'Bronze' ? 2 * status.standing : status.tier === 'Argent' ? status.standing : 0;
-        if (status.tier === 'Or') {
+        const perDie = status.tier === 'bronze' ? 2 * status.standing : status.tier === 'argent' ? status.standing : 0;
+        if (status.tier === 'or') {
           expect(brass).toBe(status.standing * 240); // 1 CO = 20 sc = 240 br (money.ts)
         } else {
-          const unit = status.tier === 'Bronze' ? 1 : 12; // 1 sc = 12 br
+          const unit = status.tier === 'bronze' ? 1 : 12; // 1 sc = 12 br
           expect(brass).toBeGreaterThanOrEqual(perDie * unit);
           expect(brass).toBeLessThanOrEqual(perDie * 10 * unit);
         }

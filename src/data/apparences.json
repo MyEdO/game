@@ -7,47 +7,56 @@
   {
     "id": "arbalete",
     "type": "apparences",
-    "label": "Arbalète"
+    "label": "Arbalète",
+    "maniement": "arbalete"
   },
   {
     "id": "arbalete_lourde",
     "type": "apparences",
-    "label": "Arbalète lourde"
+    "label": "Arbalète lourde",
+    "maniement": "arbalete"
   },
   {
     "id": "arbalete_poing",
     "type": "apparences",
-    "label": "Arbalète de poing"
+    "label": "Arbalète de poing",
+    "maniement": "arbalete"
   },
   {
     "id": "arc",
     "type": "apparences",
-    "label": "Arc"
+    "label": "Arc",
+    "maniement": "arc"
   },
   {
     "id": "arc_court",
     "type": "apparences",
-    "label": "Arc court"
+    "label": "Arc court",
+    "maniement": "arc"
   },
   {
     "id": "arc_elfique",
     "type": "apparences",
-    "label": "Arc elfique"
+    "label": "Arc elfique",
+    "maniement": "arc"
   },
   {
     "id": "arc_long",
     "type": "apparences",
-    "label": "Arc long"
+    "label": "Arc long",
+    "maniement": "arc"
   },
   {
     "id": "arquebus_rep",
     "type": "apparences",
-    "label": "Arquebus à répétition"
+    "label": "Arquebus à répétition",
+    "maniement": "arme_feu"
   },
   {
     "id": "arquebuse",
     "type": "apparences",
-    "label": "Arquebuse"
+    "label": "Arquebuse",
+    "maniement": "arme_feu"
   },
   {
     "id": "arquebuse_double",
@@ -67,32 +76,38 @@
   {
     "id": "baton",
     "type": "apparences",
-    "label": "Bâton de combat"
+    "label": "Bâton de combat",
+    "maniement": "hampe"
   },
   {
     "id": "bec_de_corbin",
     "type": "apparences",
-    "label": "Marteau à bec-de-corbin"
+    "label": "Marteau à bec-de-corbin",
+    "maniement": "lame1m"
   },
   {
     "id": "bolas",
     "type": "apparences",
-    "label": "Bolas"
+    "label": "Bolas",
+    "maniement": "jet"
   },
   {
     "id": "bombe",
     "type": "apparences",
-    "label": "Bombe"
+    "label": "Bombe",
+    "maniement": "explosif"
   },
   {
     "id": "bombe_incendiaire",
     "type": "apparences",
-    "label": "Bombe incendiaire"
+    "label": "Bombe incendiaire",
+    "maniement": "explosif"
   },
   {
     "id": "brise_epee",
     "type": "apparences",
-    "label": "Brise-épée"
+    "label": "Brise-épée",
+    "maniement": "parade"
   },
   {
     "id": "broyeur_os",
@@ -122,17 +137,20 @@
   {
     "id": "couteau",
     "type": "apparences",
-    "label": "Couteau"
+    "label": "Couteau",
+    "maniement": "lame1m"
   },
   {
     "id": "couteau_lancer",
     "type": "apparences",
-    "label": "Couteau de lancer"
+    "label": "Couteau de lancer",
+    "maniement": "jet"
   },
   {
     "id": "dague",
     "type": "apparences",
-    "label": "Dague"
+    "label": "Dague",
+    "maniement": "lame1m"
   },
   {
     "id": "dague_ballock",
@@ -157,7 +175,8 @@
   {
     "id": "epee_batarde",
     "type": "apparences",
-    "label": "Épée bâtarde"
+    "label": "Épée bâtarde",
+    "maniement": "lourde2m"
   },
   {
     "id": "epee_cour",
@@ -172,42 +191,50 @@
   {
     "id": "fleau",
     "type": "apparences",
-    "label": "Fléau"
+    "label": "Fléau",
+    "maniement": "fleau"
   },
   {
     "id": "fleau_armes",
     "type": "apparences",
-    "label": "Fléau d'armes"
+    "label": "Fléau d'armes",
+    "maniement": "fleau"
   },
   {
     "id": "fleau_grain",
     "type": "apparences",
-    "label": "Fléau à grain"
+    "label": "Fléau à grain",
+    "maniement": "fleau"
   },
   {
     "id": "flechette",
     "type": "apparences",
-    "label": "Fléchette"
+    "label": "Fléchette",
+    "maniement": "jet"
   },
   {
     "id": "fleuret",
     "type": "apparences",
-    "label": "Fleuret"
+    "label": "Fleuret",
+    "maniement": "escrime"
   },
   {
     "id": "fouet",
     "type": "apparences",
-    "label": "Fouet"
+    "label": "Fouet",
+    "maniement": "entraves"
   },
   {
     "id": "fronde",
     "type": "apparences",
-    "label": "Fronde"
+    "label": "Fronde",
+    "maniement": "fronde"
   },
   {
     "id": "fustibale",
     "type": "apparences",
-    "label": "Fustibale"
+    "label": "Fustibale",
+    "maniement": "fronde"
   },
   {
     "id": "gaffe",
@@ -227,7 +254,8 @@
   {
     "id": "grande_hache",
     "type": "apparences",
-    "label": "Grande hache"
+    "label": "Grande hache",
+    "maniement": "lourde2m"
   },
   {
     "id": "griffe_tigre",
@@ -252,12 +280,14 @@
   {
     "id": "hache_lancer",
     "type": "apparences",
-    "label": "Hache de lancer"
+    "label": "Hache de lancer",
+    "maniement": "jet"
   },
   {
     "id": "hallebarde",
     "type": "apparences",
-    "label": "Hallebarde"
+    "label": "Hallebarde",
+    "maniement": "hampe"
   },
   {
     "id": "hallebarde_arquebuse",
@@ -272,17 +302,20 @@
   {
     "id": "hochland",
     "type": "apparences",
-    "label": "Long fusil d'Hochland"
+    "label": "Long fusil d'Hochland",
+    "maniement": "arme_feu"
   },
   {
     "id": "improvisee",
     "type": "apparences",
-    "label": "Arme improvisée"
+    "label": "Arme improvisée",
+    "maniement": "lame1m"
   },
   {
     "id": "javelot",
     "type": "apparences",
-    "label": "Javelot"
+    "label": "Javelot",
+    "maniement": "jet"
   },
   {
     "id": "jezail",
@@ -302,27 +335,32 @@
   {
     "id": "lance",
     "type": "apparences",
-    "label": "Lance"
+    "label": "Lance",
+    "maniement": "hampe"
   },
   {
     "id": "lance_cavalerie",
     "type": "apparences",
-    "label": "Lance de cavalerie"
+    "label": "Lance de cavalerie",
+    "maniement": "lance_cav"
   },
   {
     "id": "lasso",
     "type": "apparences",
-    "label": "Lasso"
+    "label": "Lasso",
+    "maniement": "entraves"
   },
   {
     "id": "main_gauche",
     "type": "apparences",
-    "label": "Main Gauche"
+    "label": "Main Gauche",
+    "maniement": "parade"
   },
   {
     "id": "marteau_guerre",
     "type": "apparences",
-    "label": "Marteau de guerre"
+    "label": "Marteau de guerre",
+    "maniement": "lourde2m"
   },
   {
     "id": "masse",
@@ -347,12 +385,14 @@
   {
     "id": "pioche_2m",
     "type": "apparences",
-    "label": "Pioche à deux mains"
+    "label": "Pioche à deux mains",
+    "maniement": "lourde2m"
   },
   {
     "id": "pique",
     "type": "apparences",
-    "label": "Pique"
+    "label": "Pique",
+    "maniement": "hampe"
   },
   {
     "id": "pique_armes",
@@ -362,7 +402,8 @@
   {
     "id": "pistolet",
     "type": "apparences",
-    "label": "Pistolet"
+    "label": "Pistolet",
+    "maniement": "arme_feu"
   },
   {
     "id": "pistolet_griffon",
@@ -377,12 +418,14 @@
   {
     "id": "pistolet_rep",
     "type": "apparences",
-    "label": "Pistolet à répétition"
+    "label": "Pistolet à répétition",
+    "maniement": "arme_feu"
   },
   {
     "id": "poing",
     "type": "apparences",
-    "label": "Coup-de-poing"
+    "label": "Coup-de-poing",
+    "maniement": "poings"
   },
   {
     "id": "poivriere",
@@ -392,12 +435,14 @@
   {
     "id": "rapiere",
     "type": "apparences",
-    "label": "Rapière"
+    "label": "Rapière",
+    "maniement": "escrime"
   },
   {
     "id": "rocher",
     "type": "apparences",
-    "label": "Rocher"
+    "label": "Rocher",
+    "maniement": "jet"
   },
   {
     "id": "sabre",
@@ -422,7 +467,8 @@
   {
     "id": "tromblon",
     "type": "apparences",
-    "label": "Tromblon"
+    "label": "Tromblon",
+    "maniement": "arme_feu"
   },
   {
     "id": "tromblon_meche",
@@ -432,7 +478,8 @@
   {
     "id": "zweihander",
     "type": "apparences",
-    "label": "Zweihänder"
+    "label": "Zweihänder",
+    "maniement": "lourde2m"
   },
   {
     "id": "zweihander_flamberge",

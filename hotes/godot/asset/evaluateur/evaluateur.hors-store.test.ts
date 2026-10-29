@@ -10,7 +10,7 @@ import { sha256 } from '../empreinte.ts';
 import { ecrireGlb, lireGlb } from '../glb.ts';
 import { chargerScene } from './chargement.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
-import { evaluer } from './evaluer.ts';
+import { evaluer, monter } from './evaluer.ts';
 import { appliquerGabarit, CARRURE_MOINS, CARRURE_PLUS, FACTEURS_NEUTRES, poidsDeCarrure, poserSilhouettes } from './gabarit.ts';
 import { validerManifesteDeBase, type CodeDEcartDeBase } from '../manifesteDeBase.ts';
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
@@ -663,5 +663,29 @@ describe('gardeSilhouettes', () => {
     const plusBasDuRepos = async (entree: Partial<Parameters<typeof evaluer>[0]>) => (await evaluerAnneau(formes, entree)).mesures.clips[0].plusBas.min;
     expect(await plusBasDuRepos({})).toBeCloseTo(0, 6);
     expect(await plusBasDuRepos({ silhouettes: { feminin: 1 } })).toBeCloseTo(-0.05, 6);
+  });
+});
+
+/** Un élément dont le nœud `lame`, mesh rigide de `primitives` primitives, pend à l'articulation `racine` de son skin. */
+function glbRigide(primitives: number): Uint8Array {
+  const bin = new Uint8Array(Float32Array.from([0, 0, 0, 1, 0, 0, 0, 1, 0]).buffer);
+  return ecrireGlb({
+    asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [0] }],
+    nodes: [{ name: 'racine', children: [1] }, { name: 'lame', mesh: 0, translation: [0, 0.1, 0] }], skins: [{ joints: [0] }],
+    meshes: [{ primitives: Array.from({ length: primitives }, () => ({ attributes: { POSITION: 0 }, material: 0 })) }], materials: [{ name: 'metal' }],
+    accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3', min: [0, 0, 0], max: [1, 1, 0] }],
+    bufferViews: [{ buffer: 0, byteLength: bin.byteLength }], buffers: [{ byteLength: bin.byteLength }],
+  }, bin);
+}
+
+describe('monter', () => {
+  it.each([1, 2])('un rigide à %i primitive(s) passe, nœud entier, sous l’os de la base de même nom, à sa position locale', async (primitives) => {
+    const base = await chargerScene(glbFabrique());
+    monter(base, await chargerScene(glbRigide(primitives)));
+    const os = base.scene.getObjectByName('racine');
+    const lame = base.scene.getObjectByName('lame');
+    expect(lame?.parent === os && os !== undefined).toBe(true);
+    expect(lame?.position.toArray()).toEqual([0, 0.1, 0]);
+    expect(os?.getObjectsByProperty('isMesh', true).length).toBe(primitives);
   });
 });

@@ -32,8 +32,9 @@ export const refusDuBackground: VerdictDeGeste = refusEnCombat('pf.backgroundInC
 export const refusDeRompreUneFaveur: VerdictDeGeste = refusEnCombat('favor.breakInCombat');
 
 /** Applique `verdict` en tête d'un geste : rend `true` (le geste s'arrête) quand il refuse, et le refus se
- *  DIT (`refuserGeste`) ; `false` sinon. */
-export function refuseSi(get: Get, set: Set, verdict: VerdictDeGeste): boolean {
+ *  DIT (`refuserGeste`) ; `false` sinon. Le verdict lit l'état entier : un `VerdictDeGeste` comme un verdict
+ *  qui lit d'autres clés (`refusDActivite`, `noyau/verdictsDInterlude.ts`). */
+export function refuseSi(get: Get, set: Set, verdict: (s: Jeu) => string | null): boolean {
   const refus = verdict(get());
   return refus ? refuserGeste(get, set, refus) : false;
 }

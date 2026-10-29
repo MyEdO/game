@@ -1,24 +1,12 @@
 /**
- * Activités « Entre deux aventures » (LDB 23 + LDB 08) — calculs PURS, cités à la source :
- *
- *  - **Artisanat** (ch.23 l.65-92) : « Pour créer l'équipement, effectuez un Test étendu de
- *    Métier, dont la Difficulté est [fixée par] la Disponibilité de l'Équipement » (Commune
- *    Accessible +20 / Limitée Intermédiaire +0 / Rare Complexe −10 / Exotique Très difficile
- *    −30) ; « Le nombre nécessaire de DR » par prix courant (Bronze 5 / Argent 10 / Or 15+) ;
- *    « Chaque Défaut diminue de moitié le nombre de DR requis, et chaque Atout ajoute +5
- *    (ajouté après avoir appliqué les Défauts). »
- *  - **Apprentissage particulier** (ch.23 l.58-63) : « le prix pour apprendre le Talent est de
- *    2D10 pistoles d'argent par 100PX que coûte l'achat du Talent. »
- *  - **Opérations bancaires** (ch.23 l.154-165) : invest — « Lancez 1d100 : si le résultat est
- *    inférieur ou égal à votre Indice d'intérêts, l'entreprise a fait faillite » ; planque —
- *    « si le résultat est de 10 ou inférieur, votre planque a été découverte ».
- *  - **Revenus** = « Gagner de l'argent grâce au Statut » (LDB 08 l.105-120) : Bronze
- *    « 2d10 sous de cuivre » / Argent « 1d10 pistoles d'argent » / Or « 1 couronne d'or »
- *    PAR Standing ; « Sur un Échec, vous ne gagnez que la moitié de la somme. Sur un Échec
- *    Stupéfiant (-6) […] vous n'avez rien gagné. »
+ * Activités « Entre deux aventures » — calculs PURS.
+ *  - Artisanat : LDB 23 l.74-102
+ *  - Apprentissage particulier : LDB 23 l.66-72
+ *  - Opérations bancaires : LDB 23 l.164-176
+ *  - Revenus : LDB 08 l.105-120 (`gainDeStatut`, `engine/money`)
  */
-import { RNG, roll as rollDice } from './dice';
-import { Money, fromBrass, toBrass, priceToMoney, PA_PER_SC, PA_PER_CO } from './money';
+import { RNG, roll, rollDice } from './dice';
+import { Money, fromBrass, toBrass, priceToMoney, gainDeStatut, enPieces, PA_PER_SC, type StatusTier } from './money';
 import type { Combatant, Difficulty, SkillInstance, Availability, StakeForm } from './types';
 import type { Formula, FormuleSansTirage, GameOp } from './ops';
 import { valeurSansTirage } from './formule';
@@ -504,13 +492,10 @@ export function classGatedDifficulty(
 }
 
 /** Plafond des revenus d'une semaine par Statut (« le maximum de vos revenus standards », Réputation
- *  LDB 23 l.228-234) — MÊME grille que `statusIncome` (LDB 08 l.105-120), bornes hautes des dés (2d10 →
- *  20, 1d10 → 10), sans tirage. PURE. */
-export function statusIncomeMax(tier: PriceTier, standing: number): Money {
-  const n = Math.max(0, standing);
-  if (tier === 'bronze') return fromBrass(n * 20);
-  if (tier === 'argent') return fromBrass(n * 10 * PA_PER_SC);
-  return fromBrass(n * PA_PER_CO);
+ *  LDB 23 l.228-234) : la grille de `gainDeStatut` à ses bornes hautes, sans tirage. PURE. */
+export function statusIncomeMax(tier: StatusTier, standing: number): Money {
+  const { de, unite } = gainDeStatut(tier, standing);
+  return fromBrass(toBrass(enPieces(unite, de.n * de.sides + (de.plus ?? 0))));
 }
 
 /** Catalogue app-owned des Activités (data-driven, éditable). */
@@ -748,9 +733,7 @@ export function stageAssignmentFromRoles(party: Combatant[]): Record<string, Sta
   return out;
 }
 
-export type PriceTier = 'bronze' | 'argent' | 'or';
-
-const CRAFT_BASE_DR: Record<PriceTier, number> = { bronze: 5, argent: 10, or: 15 };
+const CRAFT_BASE_DR: Record<StatusTier, number> = { bronze: 5, argent: 10, or: 15 };
 const CRAFT_DIFFICULTY: Record<Availability, Difficulty> = {
   Commune: 'accessible',
   Limitée: 'intermediaire',
@@ -758,28 +741,28 @@ const CRAFT_DIFFICULTY: Record<Availability, Difficulty> = {
   Exotique: 'tresDifficile',
 };
 
-/** Cible d'un Test étendu d'Artisanat : DR requis + Difficulté (ch.23 l.68-85). */
-export function craftTarget(tier: PriceTier, avail: Availability, atouts: number, defauts: number): { dr: number; difficulty: Difficulty } {
+/** Cible d'un Test étendu d'Artisanat : DR requis + Difficulté (LDB 23 l.78-95). */
+export function craftTarget(tier: StatusTier, avail: Availability, atouts: number, defauts: number): { dr: number; difficulty: Difficulty } {
   let dr = CRAFT_BASE_DR[tier];
   for (let i = 0; i < Math.max(0, defauts); i++) dr = Math.ceil(dr / 2); // « chaque Défaut diminue de moitié »
   dr += Math.max(0, atouts) * 5; // « chaque Atout ajoute +5 (après les Défauts) »
   return { dr: Math.max(1, dr), difficulty: CRAFT_DIFFICULTY[avail] };
 }
 
-/** Coût du tuteur d'Apprentissage particulier : 2d10 pa PAR tranche de 100 PX (ch.23 l.63). */
+/** Coût du tuteur d'Apprentissage particulier : 2d10 pa PAR tranche de 100 PX (LDB 23 l.72). */
 export function apprenticeshipTutorCost(talentXpCost: number, rng: RNG): Money {
   const tranches = Math.max(1, Math.ceil(talentXpCost / 100));
   let pa = 0;
-  for (let i = 0; i < tranches; i++) pa += rollDice(2, 10, rng);
+  for (let i = 0; i < tranches; i++) pa += roll(2, 10, rng);
   return fromBrass(pa * PA_PER_SC);
 }
 
-/** Coût du tuteur d'Entraînement (ch.23 l.132-136) : « PX + 1D10 sous de cuivre, où PX est le coût
+/** Coût du tuteur d'Entraînement (LDB 23 l.136) : « PX + 1D10 sous de cuivre, où PX est le coût
  *  d'achat en PX de l'Augmentation. Le tutorat pour les Compétences Avancées coûte le double de ce
  *  montant. » Le double porte sur la part MONÉTAIRE (« ce montant » = le paiement du tuteur — le
  *  coût en PX, lui, est le coût normal de l'Augmentation, déjà doublé hors carrière par `advanceCost`). */
 export function entrainementTutorCost(advanced: boolean, rng: RNG): Money {
-  const sc = rollDice(1, 10, rng) * (advanced ? 2 : 1);
+  const sc = roll(1, 10, rng) * (advanced ? 2 : 1);
   return fromBrass(sc);
 }
 
@@ -795,7 +778,7 @@ export interface EntrainementOption {
   id: string;
   spec?: string;
   label: string;
-  /** Compétence Avancée (ch.23 l.135 : « le tutorat […] coûte le double ») — toujours false pour une Caractéristique. */
+  /** Compétence Avancée (LDB 23 l.136 : « le tutorat […] coûte le double ») — toujours false pour une Caractéristique. */
   advanced: boolean;
   /** Augmentations déjà acquises (0 si la Compétence n'est pas encore connue). */
   advances: number;
@@ -805,7 +788,7 @@ export interface EntrainementOption {
   tutorMaxBrass: number;
 }
 
-/** Options d'Entraînement (ch.23 l.130-136) : Compétences et Caractéristiques HORS carrière
+/** Options d'Entraînement (LDB 23 l.132-136) : Compétences et Caractéristiques HORS carrière
  *  seulement — celles DE carrière s'achètent par l'Avancement normal (`buySkillAdvance`/
  *  `buyCharAdvance`), sans tuteur à payer. Une Compétence à Spécialisations liste UNE option par
  *  spec (LDB 09 l.42 : chaque Spécialisation est une Compétence distincte). */
@@ -848,8 +831,8 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
   return [...chars, ...skillOptions.sort((a, b) => parLibelle(a.label, b.label))];
 }
 
-/** Retrait bancaire (ch.23 l.157-159) : `roll` = le 1d100 du retrait. Planque : seuil de découverte
- *  fixe à 10 (ch.23 l.170), sauf `rate` positionné (MDG 15 l.292 : 50 pour la Planque liée à une
+/** Retrait bancaire (LDB 23 l.168-170) : `roll` = le 1d100 du retrait. Planque : seuil de découverte
+ *  fixe à 10 (LDB 23 l.170), sauf `rate` positionné (MDG 15 l.292 : 50 pour la Planque liée à une
  *  Carte marine). */
 export function bankWithdrawOutcome(kind: 'invest' | 'stash', rate: number, roll: number): 'ok' | 'lost' {
   if (kind === 'invest') return roll <= Math.max(1, Math.min(10, rate)) ? 'lost' : 'ok';
@@ -866,7 +849,7 @@ export function bankPayout(kind: 'invest' | 'stash', amountBrass: number, rate: 
 // ── Catalogues des Activités (pour des sélecteurs UI alimentés par la DONNÉE — fini la saisie
 //    du libellé exact). Tout reste cité ; les arbitrages « jeu sans MJ » sont documentés. ──────
 
-/** Compétence Métier (≥ 1 avance) du héros — porte d'entrée RAW de l'Artisanat (ch.23 l.66 :
+/** Compétence Métier (≥ 1 avance) du héros — porte d'entrée RAW de l'Artisanat (LDB 23 l.76 :
  *  « si vous possédez les Compétences Métier appropriées »). */
 export function metierOf(c: Combatant): SkillInstance | undefined {
   return c.skills.find((s) => s.id === 'metier' && (s.advances ?? 0) > 0);
@@ -876,11 +859,11 @@ export function metierOf(c: Combatant): SkillInstance | undefined {
 const listedBrass = (p: TrappingData['price']): number => toBrass(priceToMoney(p));
 
 /** Dérivation Artisanat d'un équipement : gamme de prix, Disponibilité jouable et matériaux
- *  (« un quart du prix de l'équipement », ch.23 l.66). `null` = objet NON FABRICABLE : sans
+ *  (« un quart du prix de l'équipement », LDB 23 l.76). `null` = objet NON FABRICABLE : sans
  *  Disponibilité, `craftTarget` n'a pas de Difficulté à dériver et le RAW ne fournit aucune classe de
  *  repli (LDB 59 l.15, `isTradable`) — l'appelant refuse en le disant, il ne devine pas. */
 export function craftSpecOf(t: Pick<TrappingData, 'price' | 'availability'>): {
-  tier: PriceTier; avail: Availability; priceBrass: number; materialsBrass: number;
+  tier: StatusTier; avail: Availability; priceBrass: number; materialsBrass: number;
 } | null {
   const avail = t.availability;
   if (!isTradable(avail)) return null;
@@ -900,7 +883,7 @@ export interface CraftOption {
   label: string;
   /** CATÉGORIE de catalogue (`TrappingData.categorie` : melee/ranged/armor/trapping…) — groupe le sélecteur. */
   categorie: string;
-  tier: PriceTier;
+  tier: StatusTier;
   avail: Availability;
   priceBrass: number;
   materialsBrass: number;
@@ -909,9 +892,9 @@ export interface CraftOption {
   difficulty: Difficulty;
 }
 
-/** Catalogue d'Artisanat : « créer de l'équipement du Chapitre 11 » (ch.23 l.66) = tout
+/** Catalogue d'Artisanat : « créer de l'équipement du Chapitre 11 » (LDB 23 l.76) = tout
  *  équipement de la base à prix chiffré ET dans le commerce ordinaire (`craftSpecOf` → null sinon).
- *  La source exige seulement « les Compétences Métier appropriées » (ch.23 l.66), sans table
+ *  La source exige seulement « les Compétences Métier appropriées » (LDB 23 l.76), sans table
  *  d'adéquation Métier→objet — jeu sans MJ : catalogue non restreint (le Métier reste requis), point
  *  ouvert tranché en donnée. Trié par famille puis prix croissant. Lit `trappingsInstanciables`. */
 export function craftCatalog(): CraftOption[] {
@@ -926,7 +909,7 @@ export function craftCatalog(): CraftOption[] {
     .sort((a, b) => (a.categorie === b.categorie ? a.priceBrass - b.priceBrass : parLibelle(a.categorie, b.categorie)));
 }
 
-/** Fourchette du prix du tuteur (« 2D10 pistoles d'argent par 100PX », ch.23 l.63) — pour
+/** Fourchette du prix du tuteur (« 2D10 pistoles d'argent par 100PX », LDB 23 l.72) — pour
  *  afficher le risque AVANT de s'engager (le tirage réel reste 2d10/tranche). */
 export function tutorCostRange(talentXpCost: number): { minBrass: number; maxBrass: number } {
   const tranches = Math.max(1, Math.ceil(talentXpCost / 100));
@@ -944,7 +927,7 @@ export interface LearnOption {
 }
 
 /** Talents apprenables par Apprentissage particulier : « apprendre un Talent en dehors de
- *  votre Carrière » (ch.23 l.59) → exclut les talents offerts par la Carrière courante
+ *  votre Carrière » (LDB 23 l.68) → exclut les talents offerts par la Carrière courante
  *  (jusqu'au Niveau atteint — eux s'achètent par l'Avancement), ceux au Maxi (`talentMaxReached`), et
  *  ceux à spécialisation (`specCatalogOf(t).length > 0`) : `LearnOption` ne porte aucune spec, l'achat
  *  ne produirait pas l'identité `(talentId, spec)` que lit `arcaneDomainGate` (`careerSlots.ts`). */
@@ -970,7 +953,7 @@ export function learnableTalents(hero: Combatant): LearnOption[] {
 /** Ce qui interdit « Passer commande » sur un équipement, ou `null` s'il est commandable. Porte
  *  d'entrée = la MARCHANDISE CHIFFRÉE que le commerce ordinaire ne tient pas : l'Activité sert à
  *  « acquérir des objets peu communs ou hautement spécialisés qui ne sont jamais simplement “en
- *  stock” dans les boutiques de l'Empire » (ch.23 l.180).
+ *  stock” dans les boutiques de l'Empire » (LDB 23 l.180).
  *  - `'sans-prix'` : rien à payer à la commande, donc rien à commander (« Les licences de Guilde ne
  *    s'achètent pas », LDB 68 l.25) ;
  *  - `'stock-ordinaire'` : Commune/Limitée/Rare — celles-là se tiennent en stock (LDB 59 l.17-19),
@@ -985,7 +968,7 @@ export function orderBlockOf(t: Pick<TrappingData, 'price' | 'availability'>): '
   return null;
 }
 
-/** Catalogue de « Passer commande » (ch.23 l.167-172), payé à la commande — porte d'entrée
+/** Catalogue de « Passer commande » (LDB 23 l.178-184), payé à la commande — porte d'entrée
  *  `orderBlockOf` (partagée avec `orderItem`), sur `trappingsInstanciables`. */
 export function orderCatalog(): { id: string; label: string; categorie: string; priceBrass: number }[] {
   return trappingsInstanciables()
@@ -996,18 +979,14 @@ export function orderCatalog(): { id: string; label: string; categorie: string; 
 
 /** Revenus d'une semaine de travail par Statut (LDB 08 l.105-120). */
 export function statusIncome(
-  tier: PriceTier,
+  tier: StatusTier,
   standing: number,
   rng: RNG,
   outcome: 'success' | 'fail' | 'astoundingFail' = 'success',
 ): Money {
   if (outcome === 'astoundingFail') return fromBrass(0);
-  let brass = 0;
-  for (let i = 0; i < Math.max(0, standing); i++) {
-    if (tier === 'bronze') brass += rollDice(2, 10, rng); // 2d10 sous de cuivre
-    else if (tier === 'argent') brass += rollDice(1, 10, rng) * PA_PER_SC; // 1d10 pistoles
-    else brass += PA_PER_CO; // 1 couronne d'or
-  }
+  const { de, unite } = gainDeStatut(tier, standing);
+  let brass = toBrass(enPieces(unite, rollDice(de, rng)));
   if (outcome === 'fail') brass = Math.floor(brass / 2); // « la moitié de la somme »
   return fromBrass(brass);
 }

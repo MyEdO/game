@@ -26,6 +26,7 @@ import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './
 import { mountMovement, riderFearSize } from '../mount';
 import { losClear } from '../monde/lineOfSight';
 import { smokeOf } from '../monde/combatGeometry';
+import { nomDIndividu } from '../monde/sceneNpc';
 import {
   fearSourceFor, sansPeurVs, issueDePeur, sansPeurLabel, resolvePeurTest, resolveTerreurTest, calmeValue, isFrenzyCapable, isFrenzied, isPsychImmune,
   resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, suppressSupersededPsych, psychResolution,
@@ -213,7 +214,7 @@ export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
   if (tt) {
     const r = resolveCalmeSimple(calmeValue(enemy), battleRng());
     enemy.psychState.push({ type: tt.type, cible: tt.cible, sourceId: tt.sourceId, active: !r.success, lastTestRound: battle.round });
-    if (!r.success) log.push(t('turn.afflictionGrip', { name: enemy.label, psych: psychologyLabel(tt.type), groupe: libelleDeCible(tt.cible) }));
+    if (!r.success) log.push(t('turn.afflictionGrip', { name: enemy.label, psych: psychologyLabel(tt.type), groupe: libelleDeCible(tt.cible, nomDIndividu(get())) }));
   }
   // Immunités croisées (LDB 21) : Animosité/Préjugé cèdent dès qu'on tombe sous un effet psy dominant (Peur/…).
   for (const tp of suppressSupersededPsych(enemy)) log.push(t('turn.psychSuperseded', { name: enemy.label, psych: psychologyLabel(tp) }));
@@ -246,6 +247,7 @@ export const TABLES = {
         defaultChoice: 'action',
       });
       return {
+        // LDB 71
         consequences: freeCons([t('turn.actGateFail', { name: hero.label })]),
         ...(choix ? { insert: [choix] } : {}),
       };

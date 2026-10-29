@@ -465,7 +465,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
 import { applyAttackResult } from '../noyau/combatFlow';
 import type { AttackResult } from '../engine/combat';
 import { resetCadence } from '../engine/cadence';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
 
 describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16)', () => {
@@ -540,7 +540,7 @@ describe('Traits conférés par une attaque, Difficulté portée par l’État',
     applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte: 'difficile' }], { rng: makeRNG(1) });
     expect(cible.conditions.find((x) => x.id === 'empoisonne')?.difficulte).toBe('difficile');
   });
-  // #3060 : lecture révisable (recommandation), Difficulté la plus dure des poisons cumulés (LDB 16 l.70-76).
+  // (#3060 ; LDB 16 l.70) Difficulté la plus dure des poisons cumulés.
   it('des poisons de Difficultés différentes laissent à l’État la plus dure, dans les deux ordres', () => {
     for (const ordre of [['facile', 'difficile'], ['difficile', 'facile']] as const) {
       const cible = mk({ id: 'ci' });

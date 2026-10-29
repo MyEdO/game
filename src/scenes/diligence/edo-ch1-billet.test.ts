@@ -21,7 +21,7 @@ import { billetApresDepart, offreDePassage } from '../../noyau/billetFlow';
 import { cleDeBillet, parseProject, ProjetRefuse, type ProjectDoc } from '../../noyau/worldMap';
 import { skillBaseValue } from '../../engine/skills';
 import { pnjAuPreset } from '../../noyau/monde/sceneNpc';
-import { draineCascade } from '../../state/cascade.testkit';
+import { draineCascade } from '../../noyau/cascade.testkit';
 import { presetPnjById } from '../../state/campaignData';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 

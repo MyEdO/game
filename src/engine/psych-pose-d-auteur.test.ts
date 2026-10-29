@@ -23,8 +23,8 @@ const porteur = (psychState: PsychAffliction[] = []): Combatant => ({
 const devenant = psychologies.find((p) => !!p.becomes);
 const devenue = psychologies.find((p) => p.id === devenant?.becomes);
 const etendue = psychologies.find((p) => p.resolution === 'extended');
-const ciblee = psychologies.find((p) => p.targeted && !p.targetCauses);
-const nonCiblee = psychologies.find((p) => !p.targeted && !p.becomes);
+const ciblee = psychologies.find((p) => p.cibles && !p.targetCauses);
+const nonCiblee = psychologies.find((p) => !p.cibles && !p.becomes);
 const groupe = groups[0];
 
 describe('préconditions de forme', () => {

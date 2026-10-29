@@ -51,7 +51,7 @@ export const OPERA_BASE: Terrain = 'vide';
 /** Légende des ARÊTES de l'ASCII (`MapSpec.wallLegend`) : le char `w` vaut mur ET porte une APPARENCE de
  *  rendu, sans structure ni PV — les refends entre loges voisines des deux flancs de l'étage sont en bois
  *  (NADJ 08 folio 39 — plan (image) : aucun matériau n'y figure ; le bois est un choix d'authoring MAISON,
- *  révisable, comme les frontières `clip` de `ZONES_ETAGE`). UNE table pour TOUS les lecteurs de ces deux
+ *  comme les frontières `clip` de `ZONES_ETAGE`). UNE table pour TOUS les lecteurs de ces deux
  *  grilles, y compris `puitsRim`, dont le flood ne la lit pas : aucun lecteur sans table — cf.
  *  `zonesFromSeeds`, `noyau/monde/asciiMap.ts`. */
 export const OPERA_WALL_LEGEND = { w: { appearance: 'mur-en-bois' } } satisfies Record<string, WallOverlay>;
@@ -203,7 +203,7 @@ export const ZONES_ETAGE: Record<string, Piece> = {
   a: { id: 'antichambre-ducale', label: 'Antichambre ducale', presentation: 'interior', seeds: [[2, 3]] },            // 32
   b: { id: 'loge-royale', label: 'Loge royale', presentation: 'interior', seeds: [[8, 3]] },                          // 30
   // `clip` : au folio 39, 31 et 29 partagent UNE aire sans aucun trait entre elles (31 côté couloir, 29 côté
-  // salle) — la colonne de partage est un choix d’authoring MAISON, révisable, faute de frontière au plan. Même
+  // salle) — la colonne de partage est un choix d’authoring MAISON, faute de frontière au plan. Même
   // raison pour les balcons 33/34/35, fer à cheval de gradins continu, et pour les aires que le plan ouvre
   // l'une sur l'autre sans porte (couloirs 10 ↔ salon/galerie, galerie 36 ↔ bar 37).
   c: { id: 'salon-de-la-loge-gauche', label: 'Salon de la loge', presentation: 'interior', seeds: [[2, 9]], clip: { x1: 5, y1: 10 } },   // 31

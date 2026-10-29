@@ -120,7 +120,7 @@ const doc = document(
           if (porteurs.length === 1) continue;
           ctx.addIssue({
             code: 'custom',
-            path: [role],
+            path: [],
             message:
               `rôle « ${role} » : EXACTEMENT UNE entrée de \`terrains.json\` doit le porter — ` +
               `${porteurs.length} mesurée(s)${porteurs.length ? ` : ${porteurs.join(', ')}` : ''}`,
@@ -131,14 +131,14 @@ const doc = document(
         // d'écriture ; un glyphe de la GRAMMAIRE (mur, porte, fenêtre, diagonale, jonction, fond)
         // serait lu comme une arête ou le fond, jamais comme ce terrain.
         const parGlyphe = new Map<string, string[]>();
-        for (const e of entrees) {
+        for (const [i, e] of entrees.entries()) {
           if (typeof e.ascii !== 'string') continue;
           const id = typeof e.id === 'string' ? e.id : '?';
           parGlyphe.set(e.ascii, [...(parGlyphe.get(e.ascii) ?? []), id]);
           if (GLYPHES_RESERVES.has(e.ascii))
             ctx.addIssue({
               code: 'custom',
-              path: ['ascii'],
+              path: [i, 'ascii'],
               message:
                 `glyphe « ${e.ascii} » (terrain « ${id} ») : RÉSERVÉ par la grammaire de la carte ASCII ` +
                 `(${glyphesReservesEnClair()}) — la lecture du plan y verrait une arête ou le fond`,
@@ -148,7 +148,7 @@ const doc = document(
           if (ids.length < 2) continue;
           ctx.addIssue({
             code: 'custom',
-            path: ['ascii'],
+            path: [],
             message: `glyphe « ${glyphe} » : déclaré par ${ids.length} terrains (${ids.join(', ')}) — un glyphe d'authoring en désigne UN SEUL`,
           });
         }

@@ -12,17 +12,18 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { listerDossier } from '../../../../scripts/guards/lib/lister.mjs';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
-import { entreeOuverte, specRef, type TypeEntite } from './ref';
-import { skills, talents, traits, creatures, specCatalogOf, specResolves } from '../../index';
+import { entreeOuverte, lireLEspace, specRef, type TypeEntite } from './ref';
+import { SOURCES_DE_SPECS } from './sourcesDeSpecs';
+import { skills, talents, traits, creatures, specCatalogOf, type SpecsSource } from '../../index';
 
-const DATASETS: { fichier: string; type: TypeEntite; entrees: { id: string; specsSource?: string }[] }[] = [
+const DATASETS: { fichier: string; type: TypeEntite; entrees: { id: string; specsSource?: SpecsSource }[] }[] = [
   { fichier: 'skills.json', type: 'skill', entrees: skills as never },
   { fichier: 'talents.json', type: 'talent', entrees: talents as never },
   { fichier: 'traits.json', type: 'trait', entrees: traits as never },
 ];
 
 describe('catalogue de spécialisations — le registre généré et le catalogue applicatif s’accordent', () => {
-  it('une entrée à `specsSource` expose l’UNIVERS de sa source : il contient le pool, et chacun de ses ids résout', () => {
+  it('une entrée à `specsSource` expose l’UNIVERS de sa source : il contient le pool, et chacun de ses ids appartient à l’univers de la source', () => {
     let compares = 0;
     for (const { fichier, entrees } of DATASETS) {
       for (const e of entrees) {
@@ -31,7 +32,8 @@ describe('catalogue de spécialisations — le registre généré et le catalogu
         const genere = IDS_PAR_ESPACE[`${fichier}#[${e.id}].specs`] ?? [];
         expect(genere.length, `${fichier} « ${e.id} »`).toBeGreaterThan(0);
         expect(specCatalogOf(e as never).filter((id) => !genere.includes(id)), `${fichier} « ${e.id} » : pool hors univers`).toEqual([]);
-        expect(genere.filter((id) => !specResolves(e as never, id)), `${fichier} « ${e.id} » : univers non résolu`).toEqual([]);
+        const univers = lireLEspace(SOURCES_DE_SPECS[e.specsSource].univers) ?? new Set<string>();
+        expect(genere.filter((id) => !univers.has(id)), `${fichier} « ${e.id} » : hors de l’univers de la source`).toEqual([]);
       }
     }
     expect(compares).toBeGreaterThan(0);

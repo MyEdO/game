@@ -58,7 +58,7 @@ describe('vise — un prédicat, deux lectures (#3045)', () => {
 
 describe('les lecteurs : déclencher lit le perçu, s’appliquer lit l’appartenance', () => {
   it('déclenchement d’un Trait ciblé (LDB 21 l.9) : un membre caché ne déclenche pas', () => {
-    const d = entree((p) => !!p.targeted && !p.targetCauses && p.triggerOn !== 'threatened');
+    const d = entree((p) => !!p.cibles && !p.targetCauses && p.triggerOn !== 'threatened');
     expect(d).toBeDefined();
     const obs = mk('o', { psychTraits: [{ type: d!.id as PsychType, cible: ciblePsy.groupe(groupeDuTrait) }] });
     expect(targetedTrigger(obs, [porteur('p', true)])).toBeNull();

@@ -41,7 +41,7 @@ const MIGRES: readonly [string, unknown, Record<string, string>][] = [
     weaponGroupsMelee: 'Groupes d’arme (mêlée)', weaponGroupsRanged: 'Groupes d’arme (distance)',
     winds: 'Vents de magie', arcaneDomains: 'Domaines arcaniques', cultBlessings: 'Bénédictions (dieux)',
     cultMiracles: 'Miracles (dieux)', cultChaos: 'Magie du Chaos (dieux)', seaShanties: 'Chansons de marin',
-    groups: 'Groupes (créatures/factions)', diseases: 'Maladies', sizes: 'Tailles', mutations: 'Mutations',
+    ciblesPsy: 'Cibles psychologiques (Groupes, personnes)', diseases: 'Maladies', sizes: 'Tailles', mutations: 'Mutations',
     breathTypes: 'Types de Souffle', damageTypes: 'Types de Dégâts (immunité)',
     weaponsMelee: 'Armes de mêlée', weaponsRanged: 'Armes à distance',
     exposureLevels: 'Degrés d’Exposition', difficulties: 'Difficultés',

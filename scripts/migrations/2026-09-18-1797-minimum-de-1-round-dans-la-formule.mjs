@@ -15,17 +15,19 @@
  *    devient inutilisable pour 1d10 - (Bonus d'Endurance) Rounds (minimum de 1). »
  *
  * ENTRÉE : `src/data/criticals.json`, aux SEULES entrées nommées ci-dessous, sur leur op
- * `maxWeaponHands`. Cardinal ASSERTÉ : 2 durées.
+ * `maxWeaponHands` : 2 durées.
+ * FORME D'AVANT SEULE : une durée ne se borne qu'EXACTEMENT à sa forme d'avant
+ * (`1d10 + (Bonus d'Endurance) × -1`) ; une entrée ou une op absentes, bornées ou révisées depuis,
+ * sont laissées telles quelles.
  * IDEMPOTENT : rejouée sur l'état final, les deux durées sont déjà bornées et elle sort 0 sans écrire.
- * FAIL-FAST GROUPÉ : une entrée absente, une op `maxWeaponHands` absente ou multiple, une formule
- * autre que `1d10 + (Bonus d'Endurance) × -1` → sortie 1, AUCUNE écriture.
  * FORMATAGE PRÉSERVÉ : `JSON.stringify(doc, null, 2)` exact (LF, newline final constaté), vérifié
  * AVANT toute écriture.
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { porteLaTranche } from './lib/formeDAvant.mjs';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FICHIER = 'src/data/criticals.json';
@@ -36,13 +38,12 @@ const PORTEUSES = ['choc-violent-au-bras', 'aa-bras-11'];
 const DUREE_ATTENDUE = { sum: [{ dice: { n: 1, sides: 10 } }, { times: { of: { bonusOf: 'endurance' }, factor: -1 } }] };
 /** Borne basse d'arrivée : « (minimum de 1) ». */
 const MINIMUM = 1;
-const CARDINAL = 2;
 
 const abs = path.join(ROOT, FICHIER);
 const brut = fs.readFileSync(abs, 'utf8');
 const data = JSON.parse(brut);
 const suffixe = brut.endsWith('\n') ? '\n' : '';
-if (JSON.stringify(data, null, 2) + suffixe !== brut) {
+if (serializeDataset(data) + suffixe !== brut) {
   console.error(`FORME NON CANONIQUE — ${FICHIER} n'est pas un JSON indenté à 2 ; AUCUNE écriture.`);
   process.exit(1);
 }
@@ -54,55 +55,19 @@ if (!Array.isArray(data)) {
 /** L'entrée `id`, où qu'elle vive dans les tables du fichier. */
 const entree = (doc, id) => doc.flatMap((table) => table.entries ?? []).find((e) => e && e.id === id);
 
-const anomalies = [];
-const sites = []; // { id, op } — op `maxWeaponHands` dont la durée doit être bornée
-let dejaBornees = 0;
-
-for (const id of PORTEUSES) {
-  const e = entree(data, id);
-  if (!e) { anomalies.push(`${id} : entrée ABSENTE de ${FICHIER}`); continue; }
-  const mains = (e.ops ?? []).filter((o) => o && o.op === 'maxWeaponHands');
-  if (mains.length !== 1) { anomalies.push(`${id} : ${mains.length} op \`maxWeaponHands\`, 1 attendue`); continue; }
-  const [op] = mains;
-  if (JSON.stringify(op.durationRounds) === JSON.stringify({ minimum: MINIMUM, of: DUREE_ATTENDUE })) { dejaBornees++; continue; }
-  if (JSON.stringify(op.durationRounds) !== JSON.stringify(DUREE_ATTENDUE)) {
-    anomalies.push(`${id} : durée ${JSON.stringify(op.durationRounds)} inattendue (${JSON.stringify(DUREE_ATTENDUE)} attendue)`);
-    continue;
-  }
-  sites.push({ id, op });
-}
-
-if (anomalies.length) {
-  console.error(`ANOMALIES (${anomalies.length}) — AUCUNE écriture :`);
-  for (const a of anomalies) console.error(`  - ${a}`);
-  process.exit(1);
-}
+const sites = PORTEUSES.flatMap((id) =>
+  (entree(data, id)?.ops ?? [])
+    .filter((o) => porteLaTranche(o, { op: 'maxWeaponHands', durationRounds: DUREE_ATTENDUE }))
+    .map((op) => ({ id, op })),
+);
 
 if (sites.length === 0) {
-  assert.equal(dejaBornees, CARDINAL, `état final attendu : ${CARDINAL} durées bornées, vu ${dejaBornees}`);
-  console.log(`RIEN À FAIRE — les ${CARDINAL} durées « Choc au bras » portent déjà « minimum de ${MINIMUM} ».`);
+  console.log(`RIEN À FAIRE — aucune durée « Choc au bras » à sa forme d'avant.`);
   process.exit(0);
 }
 
-assert.equal(sites.length + dejaBornees, CARDINAL, `cardinal attendu ${CARDINAL} durées, vu ${sites.length + dejaBornees}`);
-
 for (const { op } of sites) op.durationRounds = { minimum: MINIMUM, of: op.durationRounds };
 
-// SEULES les op relevées ont changé : le document d'entrée, aux SEULS sites relevés réécrits, est
-// deep-equal au document écrit.
-const temoin = JSON.parse(brut);
-for (const id of PORTEUSES) {
-  const op = (entree(temoin, id).ops ?? []).find((o) => o.op === 'maxWeaponHands');
-  if (JSON.stringify(op.durationRounds) === JSON.stringify(DUREE_ATTENDUE)) op.durationRounds = { minimum: MINIMUM, of: DUREE_ATTENDUE };
-}
-assert.deepEqual(data, temoin, `${FICHIER} : la migration a changé autre chose que les durées relevées`);
-
-// L'ARRIVÉE se PROUVE : les deux durées portent la borne, sur la formule EXACTE du livre.
-for (const id of PORTEUSES) {
-  const op = entree(data, id).ops.find((o) => o.op === 'maxWeaponHands');
-  assert.deepEqual(op.durationRounds, { minimum: MINIMUM, of: DUREE_ATTENDUE }, `${id} : durée d'arrivée inattendue`);
-}
-
-fs.writeFileSync(abs, JSON.stringify(data, null, 2) + suffixe);
+fs.writeFileSync(abs, serializeDataset(data) + suffixe);
 console.log(`${sites.length} durée(s) « Choc au bras » bornées à « minimum de ${MINIMUM} » (AA 07 l.113, LDB 18 l.88) :`);
 for (const s of sites) console.log(`  ${s.id}.maxWeaponHands`);

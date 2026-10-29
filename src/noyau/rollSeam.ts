@@ -905,7 +905,7 @@ export type LigneMontee = { base: number; mods?: ModLine[]; target: number; clam
  *  après l'étalement, et AUCUN n'ouvre le mode plafonné (le seul régime qui DÉRIVE un palier). Le
  *  jour où l'un le fait, il lui faut relayer les deux champs ensemble — sans quoi les chips
  *  amputées de leurs circonstances laisseraient un écart « autres ». Verrouillé par la garde
- *  « `rollStep` + `plafond` » (`src/state/roll-line-combat.test.ts`). */
+ *  « `rollStep` + `plafond` » (`src/noyau/roll-line-combat.hors-store.test.ts`). */
 export function rollStep(spec: RollLineSpec): LigneMontee {
   const line = rollLine(spec);
   return {

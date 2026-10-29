@@ -17,7 +17,8 @@ import { lireLaSauvegarde, retirerLaSauvegarde, listerLesSauvegardes, ecrireLaSa
 import { chargerLaSave, lireSave, snapshotSave, exporterLaSauvegarde, type SaveGame } from '../noyau/persistance/save';
 import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 import { rule, setRule, loadRuleOverrides, OPTIONAL_RULES } from '../engine/policy';
-import { talents, careerLevels, specResolves, combatStakeRef, conditionIds } from '../data/index';
+import { talents, careerLevels, combatStakeRef, conditionIds } from '../data/index';
+import { specAuCatalogue } from '../data/schemas/grammaire/ref';
 import { applierDe } from '../noyau/cascade';
 import { talentSlots, slotCovers } from '../engine/careerSlots';
 import { createHero } from '../engine/character';
@@ -40,16 +41,17 @@ import { spellEffectOps } from '../engine/flowCore';
 import { applyOps } from '../engine/ops';
 import { desDuTest } from '../engine/dice.testkit';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
-/** Porteur minimal : `stampCriticalEscalation` ne lit que ses séquelles. */
-const hero38 = (): Combatant => ({ id: 'h', label: 'H', kind: 'hero', conditions: [], skills: [], traumas: [] } as unknown as Combatant);
+/** Porteur sans séquelle. */
+const hero38 = (): Combatant => combattantDeTest({ id: 'h', label: 'H', kind: 'hero', traumas: [] });
 
-/** Le MÊME porteur, doté de ses Caractéristiques : `resolveCritique` lit l'Endurance (sévérité du d100). */
-const heroCritique = (): Combatant => ({
-  ...hero38(),
-  characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
+/** Le MÊME porteur : `resolveCritique` lit l'Endurance (sévérité du d100). */
+const heroCritique = (): Combatant => combattantDeTest({
+  id: 'h', label: 'H', kind: 'hero', traumas: [],
+  characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40 },
   wounds: { current: 6, max: 12 }, bodyShape: 'humanoide', critEntriesSuffered: [],
-} as unknown as Combatant);
+});
 
 describe('Sauvegarde / chargement (Jalon 5)', () => {
   beforeEach(() => {
@@ -285,8 +287,8 @@ describe('forme persistée — ce que le chargement lit', () => {
 
   it('la spéc en LIBELLÉ ne couvre pas son emplacement (#1548)', () => {
     const sv = talents.find((t) => t.id === 'savoir-vivre')!;
-    expect(specResolves(sv, 'Érudit'), 'valeur PERSISTÉE par un héros de 33').toBe(false);
-    expect(specResolves(sv, 'erudits')).toBe(true);
+    expect(specAuCatalogue('talent', sv.id, 'Érudit'), 'valeur PERSISTÉE par un héros de 33').toBe(false);
+    expect(specAuCatalogue('talent', sv.id, 'erudits')).toBe(true);
     const slots = talentSlots(careerLevels.filter((l) => l.career === 'apothicaire'), 1);
     const slot = slots.find((s) => s.options.some((o) => o.optionId === 'savoir-vivre'))!;
     expect(slotCovers(slot, 'savoir-vivre', 'Érudit')).toBe(false);

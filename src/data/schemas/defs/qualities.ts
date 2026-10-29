@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /** LDB 62-63 ; AA ; MDG */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { gameOpSchema, triggeredEffectSchema } from '../grammaire/mecanique';
+import { passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 
 export const file = 'qualities.json';
 export const famille = 'entite';
@@ -74,10 +74,12 @@ const doc = document(
      *  `null` (TS `string | null`), non vu dans les 59 entrées actuelles mais le type source fait foi. */
     subType: z.enum(['arme', 'armure', 'objet']).nullable(),
     effects: z.array(triggeredEffectSchema).optional(),
-    passive: z.array(gameOpSchema).optional(),
+    passive: passifsDe().optional(),
     capabilities: qualityCapabilities.optional(),
     /** LDB 60 l.28 ; AA 08 l.87 ; LDB 62 l.66 */
     indice: nommerChamps(z.strictObject({ label: z.string(), unite: z.string().optional() }), { label: { label: 'Libellé' }, unite: { label: 'Unité' } }).optional(),
+    /** LDB 60 l.24 ; LDB 60 l.52 — marqueur de la sous-liste lue par `defs/apparences.ts`. */
+    aspect: z.literal(true).optional(),
   },
   {
     polarite: { label: 'Polarité', hint: 'Atout ou Défaut' },
@@ -89,12 +91,13 @@ const doc = document(
       label: 'Qualité indicée',
       hint: 'Descripteur : la Qualité est notée (valeur sur l’instance), avec son libellé affiché',
     },
+    aspect: { label: 'Qualité d’aspect', hint: 'La Qualité se voit sur l’objet : une apparence peut naître d’elle' },
   },
   {
     codex: { keys: ['qualities'] },
     edit: { dataset: 'qualities' },
   },
-  { exiges: ['desc', 'source'] },
+  { exiges: ['desc', 'source'], espace: { marqueurs: ['aspect'] } },
 );
 
 export const schema = doc.schema;

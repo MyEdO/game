@@ -19,13 +19,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA_DIR = path.join(ROOT, 'src/data');
 const J = (rel) => JSON.parse(fs.readFileSync(path.join(ROOT, rel), 'utf8'));
-
-/** Reflet de `src/data/serialize.ts#serializeDataset` (pas d'import TS depuis ce script .mjs). */
-const serializeDataset = (value) => JSON.stringify(value, null, 2);
 
 /** `skillId|specId` — mesure du 2026-08-23 : sourcées (L2), hors liste « Spécialisations : » du
  *  LDB 09, employées UNIQUEMENT par des statblocs de `creatures.json`. */

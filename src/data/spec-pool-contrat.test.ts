@@ -4,12 +4,12 @@ import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { fileURLToPath } from 'node:url';
-import { skills, talents, careerLevels, species, stars, specCatalogOf, specLabel, specPoolOf, specResolves, specEntryId } from './index';
+import { skills, talents, careerLevels, species, stars, specCatalogOf, specLabel, specPoolOf, specEntryId } from './index';
 import tablesJson from './tables.json';
 import activitiesJson from './activities.json';
 import tavernGamesJson from './tavernGames.json';
 import crewRolesJson from './crew-roles.json';
-import { estSpecialisable, refOuSpec } from './schemas/grammaire/ref';
+import { estSpecialisable, refOuSpec, specAuCatalogue } from './schemas/grammaire/ref';
 import { norm } from '../lib/normalize';
 import { nommerNoeud } from './schemas/grammaire/meta';
 
@@ -29,7 +29,7 @@ import { nommerNoeud } from './schemas/grammaire/meta';
  *     `specs` inline ne font pas un domaine groupé (`LDB 10 l.17` ; `attirant`, `EDOC 12 l.84`) ; une
  *     COMPÉTENCE à `specs` est Groupée (`LDB 09 l.40`) et son pool vide est refusé par « aucune
  *     Compétence spécialisable n’a un pool VIDE » (describe `L2 #1548`, catalogue RÉSOLU, inline compris) ;
- *  4. VALIDITÉ ⊇ POOL, par construction, sur chaque def.
+ *  4. CATALOGUE ⊇ POOL, par construction, sur chaque def.
  */
 const DEFS = [...skills, ...talents];
 
@@ -53,6 +53,10 @@ const REFS_EN_LIBELLE: string[] = [];
 const DEF_BY_ID = new Map(DEFS.map((d) => [d.id, d]));
 /** Ids de COMPÉTENCE — le concept dont la sentinelle est ÉTEINTE (L2 #1548). */
 const EST_COMPETENCE = new Set(skills.map((s) => s.id));
+/** La spéc `spec` est-elle au catalogue de la def `def` (`specAuCatalogue`) ? Son type se lit à
+ *  l'IDENTITÉ de la def : un id peut nommer une Compétence ET un Talent. */
+const auCatalogue = (def: (typeof DEFS)[number], spec: string): boolean =>
+  specAuCatalogue((skills as readonly object[]).includes(def) ? 'skill' : 'talent', def.id, spec);
 /** « au choix » / « Environnement au choix » : un EMPLACEMENT à désigner, pas une spécialisation. */
 const SENTINELLE_CHOIX = /au choix/i;
 
@@ -100,7 +104,7 @@ describe('#1342 L3 — contrat `pool` des spécialisations', () => {
       const def = DEF_BY_ID.get(defId);
       if (!def) continue; // le defId n'est pas une Compétence/Talent (garde d'existence : refs-migrated)
       const cle = `${where}|${defId}|${spec}`;
-      if (!specResolves(def, spec)) {
+      if (!auCatalogue(def, spec)) {
         if (REFS_EN_LIBELLE.includes(cle)) detteVue.add(cle);
         else detteNeuve.push(`${cle} (ne résout pas — dette de migration NEUVE, cf. #1342)`);
         continue;
@@ -117,14 +121,14 @@ describe('#1342 L3 — contrat `pool` des spécialisations', () => {
     expect(perimees, `clé(s) de dette PÉRIMÉE(s) — la ref a été migrée, retirer la ligne :\n${perimees.join('\n')}`).toEqual([]);
   });
 
-  it('VALIDITÉ ⊇ POOL', () => {
+  it('CATALOGUE ⊇ POOL', () => {
     const fuites: string[] = [];
     for (const def of DEFS) {
-      for (const id of specPoolOf(def)) if (!specResolves(def, id)) fuites.push(`${def.id}/${id}`);
+      for (const id of specPoolOf(def)) if (!auCatalogue(def, id)) fuites.push(`${def.id}/${id}`);
       const inline = (def.specs ?? []).map(specEntryId);
       if (inline.length) expect(specPoolOf(def).length, def.id).toBeLessThanOrEqual(inline.length);
     }
-    expect(fuites, `spec(s) proposées mais non valides :\n${fuites.join('\n')}`).toEqual([]);
+    expect(fuites, `spec(s) proposées mais hors catalogue :\n${fuites.join('\n')}`).toEqual([]);
   });
 });
 
@@ -222,7 +226,7 @@ describe('L2 #1548 — aucune `spec` de Compétence ni de Talent écrite en LIBE
         if (SENTINELLE_CHOIX.test(spec)) sentinelles.push(`${ou}|${defId}|${spec}`);
         const cat = CATALOGUE.get(defId)!;
         const attendu = cat.parLabel.get(norm(spec));
-        if (attendu && !specResolves(cat.def, spec)) {
+        if (attendu && !auCatalogue(cat.def, spec)) {
           const cle = `${ou}|${defId}|${spec}`;
           if (SPECS_EN_LIBELLE.some((d) => d.cle === cle)) vues.add(cle);
           else regressions.push(`${cle} — LIBELLÉ FR du catalogue (id attendu « ${attendu} ») : \`testValue\` n'appariera aucune spéc possédée`);
@@ -234,7 +238,7 @@ describe('L2 #1548 — aucune `spec` de Compétence ni de Talent écrite en LIBE
       if (talentDefId && typeof spec === 'string' && CATALOGUE_TALENT.has(talentDefId)) {
         const cat = CATALOGUE_TALENT.get(talentDefId)!;
         const attendu = cat.parLabel.get(norm(spec));
-        if (attendu && !specResolves(cat.def, spec)) {
+        if (attendu && !auCatalogue(cat.def, spec)) {
           const cle = `${ou}|${talentDefId}|${spec}`;
           if (SPECS_EN_LIBELLE.some((d) => d.cle === cle)) vues.add(cle);
           else regressions.push(`${cle} — LIBELLÉ FR du catalogue de Talent (id attendu « ${attendu} ») : une spéc authorée est un ID`);

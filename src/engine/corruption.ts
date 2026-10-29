@@ -25,7 +25,7 @@ import { passiveCharSum } from './trauma';
 import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';
 import { traitOctroye } from './psych/opsPsy';
 import { identiteDeCiblage } from './psych/ciblage';
-import type { GameOp } from './ops';
+import type { OpPassive } from './ops';
 import { traitsOctroyes } from './traitOctroye';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { TriggeredEffect } from './flowCore';
@@ -73,7 +73,7 @@ export interface Mutation {
    *  `ap` (armure naturelle, loc absent = toutes — lue par mutationArmourBonus) ; `grantNaturalWeapon`
    *  (arme de créature, lue par recomputeLoadout) ; `grantTrait` / `grantPsychTrait` (traits de créature
    *  et psychologiques conférés, posés par attachMutation). Plus aucun champ ad hoc. */
-  passive?: GameOp[];
+  passive?: OpPassive[];
   /** PA de mutation perdus par Localisation (Dégâts subis), compteur d'état à part du `passive` authoré, comme
    *  `damageTaken` d'une pièce d'armure. Lu par `mutationArmourBonus`. LDB 63 l.19 */
   usure?: Partial<Record<HitLocation, number>>;
@@ -194,7 +194,7 @@ export function mutationLimitExceeded(c: Combatant): boolean {
 
 /** `charMod` à plancher résolu en delta FIGÉ sur la base PERMANENTE du porteur (`characteristics` +
  *  `passiveCharSum`, hors pool volatil) : `max(mod, min(0, plancher − base))`, jamais positif. EDO 11 l.190 ; #1853. */
-function resoudrePlancher(c: Combatant, op: GameOp): GameOp {
+function resoudrePlancher(c: Combatant, op: OpPassive): OpPassive {
   if (op.op !== 'charMod' || op.min == null) return op;
   const { min, ...fige } = op;
   const base = c.characteristics[op.char] + passiveCharSum(c, op.char);

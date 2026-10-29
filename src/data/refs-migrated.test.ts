@@ -14,12 +14,12 @@ import {
   findCareerById, findClassById, findSpeciesById, findConditionById, findDiseaseById, findWeaponGroupById, findSymptomById,
   findCreatureById, findVehicleById, refEntiteResolue, findGroupById, findPsychologyById, findTraitById, findCrewTestTypeById, findLightToneById,
   mutationTables,
-  specLabel, refLabel, specEntryId, specEntryLabel, specResolves, porteCatalogueDeSpecs, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
+  specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
 import { avancement } from './schemas/grammaire/avancement';
 import { fauteDEspece } from './schemas/grammaire/art';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
-import { entreeOuverte, mesureDuParse, refusDeSpec } from './schemas/grammaire/ref';
+import { catalogueSpecs, entreeOuverte, mesureDuParse, refusDeSpec, specAuCatalogue } from './schemas/grammaire/ref';
 import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
 import { itemFromTrappingById } from '../engine/items';
 import { COND } from '../engine/conditions';
@@ -322,8 +322,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
     const absents: string[] = [];
     const nonResolus: string[] = [];
     for (const p of PAIRES_NOMMEES) {
-      const def = p.cat === 'skills' ? byId('skill', p.def) : findTalentById(p.def);
-      if (!def || !specResolves(def, p.id)) { nonResolus.push(`${p.cat}:${p.def} → ${p.id}`); continue; }
+      if (!specAuCatalogue(p.cat === 'skills' ? 'skill' : 'talent', p.def, p.id)) { nonResolus.push(`${p.cat}:${p.def} → ${p.id}`); continue; }
       const vu = vues.get(`${p.cat}|${p.def}`) ?? new Set<string>();
       if (!vu.has(p.id)) absents.push(`${p.cat}:${p.def} → ${p.id} (paire FOSSILE : plus aucune référence)`);
       if (vu.has(p.imprime)) morts.push(`${p.cat}:${p.def} → ${JSON.stringify(p.imprime)} (graphie d’origine SURVIVANTE)`);
@@ -587,16 +586,13 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   });
 });
 
-// ── CONTRAT POSITIF (#1342 L2-a) — `skills[].spec` d'une entrée SOURCÉE d'un livre EXTRAIT dans
-// `Source/` : la spéc RÉSOUT au catalogue, toujours. Le statbloc est citable ligne à ligne, donc la
-// spéc imprimée est soit une entrée du catalogue, soit une entrée à y créer (`skills.json#specs[]`,
-// `source` à l'appui) — jamais du texte libre. Le périmètre et la marche des `skills[]` viennent du
-// module PARTAGÉ avec la migration (`scripts/data/lib/skillSpecWalk.mjs`) : une garde qui remarcherait
-// la donnée à sa façon mesurerait autre chose que le geste qu'elle garde.
-type SpecDef = { specsSource?: SpecsSource; specs?: SpecEntry[] };
-/** Une spéc RENCONTRÉE qui ne résout pas, nommée par sa clé stable `fichier|porteur|refId|spec`.
- *  `catalogue` = la def PORTE un catalogue de spécs (`specs[]` non vide ou `specsSource`). */
-type SpecHors = { where: string; key: string; book: string; refId: string; spec: string; catalogue: boolean; site: EntreeDeSite };
+// ── OBSERVATIONS NOMMÉES des `skills[]`/`talents[]` de statbloc, de Carrière et d'espèce : l'ADMISSION
+// d'une spéc se juge au parse (`refusDeSpec`, par la fabrique de chaque porteur) ; restent ici les stocks
+// que la fabrique admet sans les solder. Le périmètre et la marche viennent du module PARTAGÉ avec la
+// migration (`scripts/data/lib/skillSpecWalk.mjs`) : une garde qui remarcherait la donnée à sa façon
+// mesurerait autre chose que le geste qu'elle garde.
+/** Un texte d'instance de Talent (`nonSpecialisable`, #1621), nommé par sa clé stable `fichier|porteur|refId|spec`. */
+type TexteDInstance = { key: string; site: EntreeDeSite };
 
 const empreinteIntegrite = (texte: string): string => createHash('sha256').update(texte).digest('hex');
 const siteIntegrite = (famille: string, fichier: string, owner: string, champ: string, id = '', texte = '') => ({ famille, file: fichier, ref: JSON.stringify([owner, champ, id, texte ? empreinteIntegrite(texte) : '']) });
@@ -660,24 +656,19 @@ const partiellesDeCreatures = (): [string, EntreeDeSpecs[]][] => {
 };
 
 /**
- * MARCHE PARTAGÉE des deux contrats positifs — Compétences (#1342 L2-a) et Talents (#1457 B1) : même
- * périmètre (`creatures`/`careerLevels`/`species`, et les entrées partielles de `creatures` embarquées
- * ailleurs), MÊME walker (`walkSkillRefs`, paramétré par son
- * tableau porteur) et MÊME porte de validité (`specResolves`, pool ou hors pool, #1342 L3). Deux
- * marches séparées mesureraient deux choses. `corpus` n'est fourni que par les contre-épreuves.
+ * MARCHE PARTAGÉE des observations — Compétences (#1342 L2-a) et Talents (#1457 B1) : même périmètre
+ * (`creatures`/`careerLevels`/`species`, et les entrées partielles de `creatures` embarquées ailleurs),
+ * MÊME walker (`walkSkillRefs`, paramétré par son tableau porteur) et MÊME prédicat (`refusDeSpec`).
  */
 function collecteSpecs(
   arrName: 'skills' | 'talents',
-  defOf: (id: string) => SpecDef | undefined,
-  corpus?: [string, EntreeDeSpecs[]][],
-): { hors: SpecHors[]; nues: { where: string; book: string; refId: string; site: EntreeDeSite }[]; seen: number; sentinelles: EntreeDeSite[] } {
-  const hors: SpecHors[] = [];
+): { textes: TexteDInstance[]; nues: { where: string; book: string; refId: string; site: EntreeDeSite }[]; sentinelles: EntreeDeSite[] } {
+  const textes: TexteDInstance[] = [];
   const nues: { where: string; book: string; refId: string; site: EntreeDeSite }[] = [];
   const sentinelles: EntreeDeSite[] = [];
-  let seen = 0;
-  const listes = corpus ?? ([
+  const listes: [string, EntreeDeSpecs[]][] = [
     ['creatures', creatures], ['careerLevels', careerLevels], ['species', species], ...partiellesDeCreatures(),
-  ] as [string, EntreeDeSpecs[]][]);
+  ] as [string, EntreeDeSpecs[]][];
   for (const [file, list] of listes) {
     for (const entry of list) {
       const book = entry.source?.book ?? '(sans source)';
@@ -687,33 +678,28 @@ function collecteSpecs(
       if (!fichier) throw new Error(`${file} : document absent du corpus`);
       const site = (famille: string, node: { id: string; spec?: string }) => sitesEnEntrees([siteIntegrite(famille, fichier, owner, arrName, node.id, node.spec ?? '')])[0];
       walkSkillRefs(entry, (node) => {
-        const def = defOf(node.id);
-        const catalogue = porteCatalogueDeSpecs(def);
+        const type = arrName === 'skills' ? 'skill' : 'talent';
+        const catalogue = catalogueSpecs(type, node.id).length > 0;
         // Un nœud à `choix` PORTE un régime de spécialisation (borne ou libre) : ce n'est pas une réf NUE.
         if (node.choix != null) return;
         if (node.spec == null) { if (catalogue) nues.push({ where: `${file}(${owner})`, book, refId: node.id, site: site('competence-nue', node) }); return; }
         if (isSentinel(node.spec)) { sentinelles.push(site('talent-sentinelle', node)); return; }
-        seen++;
-        if (def && specResolves(def, node.spec)) return;
-        hors.push({ where: `${file}(${owner})`, key: `${file}|${owner}|${node.id}|${node.spec}`, book, refId: node.id, spec: node.spec, catalogue, site: site('talent-texte', node) });
+        if (refusDeSpec(type, node.id, node.spec) !== 'nonSpecialisable') return;
+        textes.push({ key: `${file}|${owner}|${node.id}|${node.spec}`, site: site('talent-texte', node) });
       }, arrName);
     }
   }
-  return { hors, nues, seen, sentinelles };
+  return { textes, nues, sentinelles };
 }
 
-describe('spec de Compétence d’un livre EXTRAIT — résout au catalogue (#1342 L2-a)', () => {
+describe('Compétences de statbloc, de Carrière et d’espèce — observations nommées (#1342 L2-a)', () => {
   const ROOT = fileURLToPath(new URL('../../', import.meta.url));
   const { extraits: EXTRAITS, dirManquant } = extractedBooks(books, ROOT);
-  const { hors, nues, seen } = collecteSpecs('skills', (id) => byId('skill', id));
+  const { nues } = collecteSpecs('skills');
 
-  it('creatures/careerLevels/species : zéro spec hors catalogue sous un livre extrait dans Source/', () => {
-    // NON-VACUITÉ : sans lignes scannées ni extraction sur disque, le contrat serait vert à vide.
-    expect(seen).toBeGreaterThan(500);
+  it('books.json#dir : chaque livre déclaré a son extraction sur disque', () => {
     expect(EXTRAITS.size).toBeGreaterThan(10);
     expect(dirManquant, `books.json#dir sans extraction sur disque : ${dirManquant.join(', ')}`).toEqual([]);
-    const bad = hors.filter((h) => EXTRAITS.has(h.book)).map((h) => `${h.where} [${h.book}] : ${h.refId} → ${JSON.stringify(h.spec)}`);
-    expect(bad, bad.join('\n')).toEqual([]);
   });
 
   // Le périmètre se DÉDUIT du dossier déclaré par le livre (`dir`) : une extraction FR que personne ne
@@ -761,49 +747,23 @@ describe('spec de Compétence d’un livre EXTRAIT — résout au catalogue (#13
   });
 });
 
-// ── CONTRAT POSITIF (#1457 B1) — `talents[].spec` d'une entrée SOURCÉE d'un livre EXTRAIT : la spéc
-// RÉSOUT au catalogue du Talent. Les listes de spécialisation des Talents concernés sont OUVERTES au RAW
-// (`LDB 10 l.117`, `LDB 10 l.1071`) : le geste juste est de CRÉER l'entrée `talents.json#specs[]` avec sa
-// `source` (patron `savoir-vivre›mercenaires`, `AA 04 l.119`), jamais de mapper une valeur imprimée vers
-// un id voisin. Hors des tableaux `talents[]` que walke ce contrat (`walkSkillRefs`), une référence de
-// Talent est un `refOuSpec('talent')` — ops de Talent, `axes.json › talents` (#1473, train 2a) : sa spéc
-// est jugée AU PARSE, contre le catalogue ou l'entrée ouverte.
-describe('spec de Talent d’un livre EXTRAIT — résout au catalogue (#1457 B1)', () => {
-  const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-  const { extraits: EXTRAITS } = extractedBooks(books, ROOT);
-  const { hors, seen, sentinelles } = collecteSpecs('talents', (id) => findTalentById(id));
-  const dette = hors.filter((h) => h.catalogue);
-  const textesDInstance = hors.filter((h) => !h.catalogue);
-
-  it('creatures/careerLevels/species : zéro spec de Talent hors catalogue sous un livre extrait', () => {
-    // NON-VACUITÉ : sans lignes scannées ni extraction sur disque, le contrat serait vert à vide.
-    expect(seen).toBeGreaterThan(300);
-    expect(EXTRAITS.size).toBeGreaterThan(10);
-    const bad = dette
-      .filter((h) => EXTRAITS.has(h.book))
-      .map((h) => `${h.where} [${h.book}] : ${h.refId} → ${JSON.stringify(h.spec)} — clé ${h.key}`);
-    expect(bad, `spec de Talent qui ne résout pas — créer l'entrée sourcée dans talents.json#specs[] :\n${bad.join('\n')}`).toEqual([]);
-  });
+// ── OBSERVATIONS NOMMÉES (#1457 B1) — `talents[]` de statbloc, de Carrière et d'espèce : la spéc est
+// admise au parse (`talentRefSchema`, `refOuSpec('talent')`) ; les deux passes de `talentRefSchema`
+// (texte d'instance, sentinelle) restent des stocks nommés ici.
+describe('Talents de statbloc, de Carrière et d’espèce — observations nommées (#1457 B1)', () => {
+  const { textes, sentinelles } = collecteSpecs('talents');
 
   // LDB 10 l.315
   it('les textes de Talent sans catalogue restent des observations nommées', () => {
-    expect(textesDInstance.length).toBeGreaterThan(0);
+    expect(textes.length).toBeGreaterThan(0);
     const RACINES_DE_CORPUS = new Set(['creatures', 'careerLevels', 'species']);
-    expect(textesDInstance.some((h) => !RACINES_DE_CORPUS.has(h.key.split('|')[0])), 'aucune entrée partielle de texte de Talent').toBe(true);
-    ecartIntegrite(textesDInstance.map((h) => h.site), TALENTS_TEXTES, true);
+    expect(textes.some((h) => !RACINES_DE_CORPUS.has(h.key.split('|')[0])), 'aucune entrée partielle de texte de Talent').toBe(true);
+    ecartIntegrite(textes.map((h) => h.site), TALENTS_TEXTES, true);
   });
 
   // #1621
   it('les sentinelles de Talent sont nommées et soldées', () => {
     ecartIntegrite(sentinelles, TALENTS_SENTINELLES);
-  });
-
-  it('CONTRÔLE POSITIF — une spec de Talent inconnue posée sur une créature FIXTURE est ATTRAPÉE (mutation EN MÉMOIRE, jamais au disque)', () => {
-    const fixture = { id: 'fixture-1457-b1', source: { book: 'livre-de-base' }, talents: [{ id: 'savoir-vivre', spec: 'Vagabonds fantômes' }] };
-    const corpus = [['creatures', [fixture]]] as unknown as [string, { id?: string; label?: string; source?: { book?: string } }[]][];
-    const { hors: mordu } = collecteSpecs('talents', (id) => findTalentById(id), corpus);
-    expect(mordu.map((h) => h.key)).toEqual(['creatures|fixture-1457-b1|savoir-vivre|Vagabonds fantômes']);
-    expect(mordu[0].catalogue, 'savoir-vivre PORTE un catalogue de spécs : la fixture mesure bien une DETTE de spec').toBe(true);
   });
 });
 

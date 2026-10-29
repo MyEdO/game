@@ -3,6 +3,7 @@
  * emplacements, ses prises, ses shape keys, la table du gabarit, son porteur de référence, ses appuis et ses os à
  * position animée, validés contre le GLB livré (`lireGlb`, `glb.ts`).
  */
+import { estObjet } from '../../../src/hote/formes.ts';
 import { sha256 } from './empreinte.ts';
 import { lireGlb } from './glb.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
@@ -70,7 +71,6 @@ export interface EcartDeBase {
 export type VerdictDeBase = { readonly ok: true; readonly manifeste: ManifesteDeBase } | { readonly ok: false; readonly ecarts: readonly EcartDeBase[] };
 
 type Brut = Record<string, unknown>;
-const estObjet = (v: unknown): v is Brut => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /** La réduction de `brut` au schéma 3, ou ses écarts de forme. */
 function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeBase[] } {

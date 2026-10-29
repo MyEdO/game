@@ -14,6 +14,7 @@ import { conditionSchema } from '../grammaire/mecanique';
 import { enumNomme, maisonSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { refuserSansProvenance } from '../grammaire/document';
 import { idDe } from '../grammaire/ref';
+import { refuserLesIndividus } from '../grammaire/reference';
 import { listeCle, marquerCollection, marqueDeRecord } from '../grammaire/collection-cle';
 import { couvreSchema } from './communs';
 import { findVehicleById } from '../../index';
@@ -186,7 +187,7 @@ export const routePerilSchema = nommerChamps(z.strictObject({
   label: z.string(),
   chancePct: z.number(),
   effects: z.array(effectSchema),
-}), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
+}).superRefine((peril, ctx) => refuserLesIndividus(peril.effects, ctx, 'une péripétie de route')), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
 
 /** Prix d'un passage par classe du véhicule (`vehicles.json` `travel.classes[].id`), en sous par passager. */
 const prixParClasseSchema = marquerCollection(z.record(z.string(), z.number().int().min(0)), marqueDeRecord());

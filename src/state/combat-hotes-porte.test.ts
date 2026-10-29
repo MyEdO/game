@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import {
   maybeOpenDefense, openSurfacedDefense, openAttackCascade, startDisengage, openCastCascade,
   openCastOpposition, shareCastStep, applyStructureCriticalToTarget, applyMiscast, resolveDeviation,

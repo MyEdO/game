@@ -22,7 +22,7 @@ import type { Get, Set } from './flowTypes';
 import type { Combatant } from '../engine/types';
 import { battleRng } from './battleRng';
 import { zoneCovers } from './monde/zones';
-import { bonus, effectiveChar, refreshWounds } from '../engine/characteristics';
+import { bonus, effectiveChar, blessuresReconciliees } from '../engine/characteristics';
 import { recomputeLoadout } from '../engine/items';
 import {
   corruptionThresholdExceeded,
@@ -258,9 +258,9 @@ function finishMutation(
   const rng = battleRng();
   const lines: string[] = [];
   attachMutation(hero, m, rng);
-  // Effets dérivés immédiats : PA naturels (loadout) + Blessures max si F/E/FM permanents.
+  // Effets dérivés immédiats : PA naturels (loadout), Blessures (LDB 05 l.1001).
   if (hero.items?.length) recomputeLoadout(hero);
-  refreshWounds(hero);
+  hero.wounds = blessuresReconciliees(hero);
   // Le dé de table (`m.roll`) est DÉJÀ affiché par la rangée `TableRollLine` (dice: m.roll, révélation
   // ci-dessous) — pas de re-print (#295 Lot 4). Le jet du Test `corrompu` est lui aussi
   // déjà affiché par SA propre rangée (Corruption/Renounce) en amont — jamais réimprimé ici (#295 Lot 5).

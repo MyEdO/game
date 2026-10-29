@@ -5,7 +5,7 @@
  */
 import type { GameOp } from '../ops';
 import type { PsychTrait, PsychType } from '../psychology';
-import { ciblePsyLue, refDeCible, type CiblePsy } from './ciblage';
+import { cibleDeRef, refDeCible, type CiblePsy } from './ciblage';
 
 type OpDe<K extends GameOp['op']> = Extract<GameOp, { op: K }>;
 
@@ -34,5 +34,5 @@ export const opPsy = {
 
 /** Le Trait psychologique qu'accorde un `grantPsychTrait` : SEUL lecteur de ses références. */
 export function traitOctroye(op: OpDe<'grantPsychTrait'>): Pick<PsychTrait, 'type' | 'cible'> {
-  return { type: op.psychType.id as PsychType, ...(op.cible !== undefined ? { cible: ciblePsyLue(op.cible) } : {}) };
+  return { type: op.psychType.id as PsychType, ...(op.cible !== undefined ? { cible: cibleDeRef(op.cible) } : {}) };
 }

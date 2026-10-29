@@ -9,7 +9,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { blocageDeLivraison, charKeySchema, difficultySchema, enumNomme, formulaSchema, formuleSansTirageSchema, foyerDeRegleSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
-import { conditionSchema, gameOpSchema, stageOutcomeSchema } from '../grammaire/mecanique';
+import { conditionSchema, executeesDe, stageOutcomeSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'activities.json';
@@ -90,7 +90,7 @@ const outcomeBandSchema = nommerChamps(z.strictObject({
   on: outcomeOnSchema.optional(),
   minSL: z.number().optional(),
   maxSL: z.number().optional(),
-  ops: z.array(gameOpSchema).optional(),
+  ops: executeesDe().optional(),
   resolver: activityResolverSchema.optional(),
   payoutPct: z.number().optional(),
   note: z.string().optional(),
@@ -126,12 +126,12 @@ const doc = document(
       id: z.string().min(1),
       label: z.string().min(1),
       cible: formulaSchema,
-      ops: z.array(gameOpSchema),
+      ops: executeesDe(),
       unless: conditionSchema.optional(),
     }), { id: { label: "identifiant" }, label: { label: "nom" }, cible: { label: "cible" }, ops: { label: "opérations" }, unless: { label: "sauf si" } })).optional(),
     weatherMod: z.record(z.string(), z.number()).optional(),
     resolver: activityResolverSchema.optional(),
-    onSuccess: z.array(gameOpSchema).optional(),
+    onSuccess: executeesDe().optional(),
     outcomes: z.array(outcomeBandSchema).optional(),
     where: z.array(z.string()).optional(),
     minInvest: moneyPartialSchema.optional(),

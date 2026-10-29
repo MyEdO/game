@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { seedBattleRng, battleRng } from '../../noyau/battleRng';
 import { simpleTriggeredTestStep, simpleBatchTestStep, frozenOpposedBatchStep, rollFrozenOpposedAttacker, withDerivedStake } from '../../noyau/combat/triggeredTest';
-import { inexplique } from '../cascade.testkit';
+import { inexplique } from '../../noyau/cascade.testkit';
 import { EMPTY_FLOW, type FlowTest } from '../../engine/flowCore';
 import { rollStep } from '../../noyau/rollSeam';
 import { combatTestPenalty } from '../../engine/conditions';

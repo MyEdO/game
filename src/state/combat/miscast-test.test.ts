@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
 import { applyMiscast } from '../../noyau/combatFlow';
 import { seedBattleRng } from '../../noyau/battleRng';
-import { avanceEtapeCascade } from '../cascade.testkit';
+import { avanceEtapeCascade } from '../../noyau/cascade.testkit';
 import { createHero } from '../../engine/character';
 import { hasCondition } from '../../engine/conditions';
 

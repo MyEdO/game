@@ -17,7 +17,7 @@
  * Garde-fou : les primitives de résolution (RNG, moteur) ne sont appelées QUE par `resolve`/
  * `reresolve`/`bonus.derive`/`force.derive`, eux-mêmes invoqués uniquement par les résolveurs
  * générés ici — câblés dans le store sous des noms `*Roll`/`*Reroll`/… que le test statique
- * `roll-modal-invariant.test.ts` continue de vérifier.
+ * `roll-modal-invariant.hors-store.test.ts` continue de vérifier.
  */
 import type { Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
@@ -423,7 +423,7 @@ export interface RollFlowHandlers {
  * (`PendingBase` : le pending entier en mono, un participant en multi) et écrit son patch via un
  * `commit` qui sait OÙ ranger le résultat. Les résolveurs métier sont passés PRÉ-LIÉS (closures sur
  * s/p/actor/get) → le même corps sert les deux fabriques sans rien recopier. Comportement IDENTIQUE
- * à l'ancien `makeRollFlow` (garde-fou : suite + `roll-modal-invariant.test.ts`).
+ * à l'ancien `makeRollFlow` (garde-fou : suite + `roll-modal-invariant.hors-store.test.ts`).
  */
 type Commit<P> = (patch: Partial<P>, opts?: { rerolled?: boolean; forced?: boolean; fixed?: boolean; touch?: boolean }) => void;
 

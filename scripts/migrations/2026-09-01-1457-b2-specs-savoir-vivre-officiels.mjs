@@ -21,15 +21,22 @@
  * (les 9 porteurs, écrit). Marche des `talents[]` : `scripts/data/lib/skillSpecWalk.mjs`
  * (`walkSkillRefs`), la MÊME que la garde `src/data/refs-migrated.test.ts`.
  *
- * IDEMPOTENT : rejouée, elle n'écrit rien (l'état d'arrivée est reconnu porteur par porteur).
- * FAIL-FAST : arrêt en 1 si le catalogue manque, si un id neuf entre en collision, ou si un porteur
- * n'est NI dans l'état de départ NI dans l'état d'arrivée — l'arbre n'est écrit qu'après mesure.
+ * FORME D'AVANT SEULE (`lib/formeDAvant.mjs`) : un porteur n'est remappé que tant qu'il porte la spéc
+ * IMPRIMÉE ; une entrée de `ENTREES_NEUVES` n'entre que pour un porteur à remapper ; une source n'est posée
+ * que sur l'entrée EXACTEMENT `{ id, label }`. Un porteur ou une entrée absents, déjà migrés ou révisés après
+ * la migration, sont laissés tels quels.
+ * IDEMPOTENT : rejouée, elle n'écrit rien.
+ * FAIL-FAST : arrêt en 1, pour un porteur à remapper, si sa cible manque au catalogue ou si l'entrée neuve
+ * qu'il appelle y entre en collision — l'arbre n'est écrit qu'après mesure.
  * FORMATAGE : `JSON.stringify(doc, null, 2)`, vérifié canonique AVANT toute écriture.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isDeepStrictEqual as egal } from 'node:util';
 import { walkSkillRefs } from '../data/lib/skillSpecWalk.mjs';
+import { porteLaTranche } from './lib/formeDAvant.mjs';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA = path.join(ROOT, 'src/data');
@@ -85,7 +92,7 @@ const lire = (f) => {
   const abs = path.join(DATA, f);
   const brut = fs.readFileSync(abs, 'utf8');
   const doc = JSON.parse(brut);
-  if (brut !== JSON.stringify(doc, null, 2)) {
+  if (brut !== serializeDataset(doc)) {
     console.error(`FORME NON CANONIQUE — src/data/${f} ; AUCUNE écriture.`);
     process.exit(1);
   }
@@ -93,84 +100,60 @@ const lire = (f) => {
 };
 
 const ecrire = ({ abs, brut, doc }, quoi) => {
-  const out = JSON.stringify(doc, null, 2);
+  const out = serializeDataset(doc);
   if (out === brut) { console.log(`${path.basename(abs)} — INCHANGÉ (no-op byte-identique).`); return; }
   if (out.includes('\r')) { console.error(`${abs} : \\r dans le texte réécrit ; AUCUNE écriture.`); process.exit(1); }
   fs.writeFileSync(abs, out, 'utf8');
   console.log(`${path.basename(abs)} — ${quoi}`);
 };
 
-// -- Catalogue ---------------------------------------------------------------------------------
+// -- Porteurs encore à leur spéc imprimée ------------------------------------------------------
 const talents = lire('talents.json');
-const def = talents.doc.find((t) => t.id === TALENT);
-if (!def || !Array.isArray(def.specs)) {
-  console.error(`« ${TALENT} » absent de talents.json, ou sans specs[] inline ; AUCUNE écriture.`);
-  process.exit(1);
-}
+const creatures = lire('creatures.json');
+const parId = new Map(creatures.doc.map((c) => [c.id, c]));
+/** Les nœuds `savoir-vivre` du porteur de `a` encore EXACTEMENT à la spéc imprimée. */
+const noeudsImprimes = (a) => {
+  const noeuds = [];
+  const c = parId.get(a.creature);
+  if (c) walkSkillRefs(c, (node) => { if (porteLaTranche(node, { id: TALENT, spec: a.imprime })) noeuds.push(node); }, 'talents');
+  return noeuds;
+};
+const aRemapper = ARBITRAGES.map((a) => ({ ...a, noeuds: noeudsImprimes(a) })).filter((a) => a.noeuds.length);
+
+// -- Catalogue ---------------------------------------------------------------------------------
+const specs = talents.doc.find((t) => t.id === TALENT)?.specs;
 let ajoutees = 0;
-let horsPool = 0;
 for (const e of ENTREES_NEUVES) {
-  const deja = def.specs.find((s) => s.id === e.id);
-  if (deja) {
-    if (deja.label !== e.label) {
-      console.error(`COLLISION d'id ${TALENT}/${e.id} : catalogue « ${deja.label} » vs ajout « ${e.label} » ; AUCUNE écriture.`);
-      process.exit(1);
-    }
-    if (deja.pool !== false) { deja.pool = false; horsPool++; }
-    continue;
+  if (!Array.isArray(specs) || !aRemapper.some((a) => a.vers === e.id)) continue;
+  const deja = specs.find((s) => s.id === e.id);
+  if (!deja) { specs.push(e); ajoutees++; continue; }
+  if (deja.label !== e.label) {
+    console.error(`COLLISION d'id ${TALENT}/${e.id} : catalogue « ${deja.label} » vs ajout « ${e.label} » ; AUCUNE écriture.`);
+    process.exit(1);
   }
-  def.specs.push(e);
-  ajoutees++;
 }
 
 let sourcees = 0;
 for (const s of SOURCES_MANQUANTES) {
-  const e = def.specs.find((x) => x.id === s.id);
-  if (!e) { console.error(`ENTRÉE ABSENTE — ${TALENT}/${s.id} ; AUCUNE écriture.`); process.exit(1); }
-  if (e.label !== s.attendu) {
-    console.error(`LIBELLÉ INATTENDU — ${TALENT}/${s.id} : « ${e.label} » au lieu de « ${s.attendu} » ; AUCUNE écriture.`);
-    process.exit(1);
-  }
-  if (e.source) {
-    if (JSON.stringify(e.source) !== JSON.stringify(s.source)) {
-      console.error(`SOURCE DIVERGENTE — ${TALENT}/${s.id} : ${JSON.stringify(e.source)} ; AUCUNE écriture.`);
-      process.exit(1);
-    }
-    continue;
-  }
+  const e = Array.isArray(specs) ? specs.find((x) => egal(x, { id: s.id, label: s.attendu })) : undefined;
+  if (!e) continue;
   e.source = s.source;
   sourcees++;
 }
 
-const IDS = new Set(def.specs.map((s) => s.id));
-for (const a of ARBITRAGES) {
-  if (IDS.has(a.vers)) continue;
-  console.error(`CIBLE ABSENTE — ${TALENT}/${a.vers} (${a.creature}, « ${a.imprime} ») ; AUCUNE écriture.`);
-  process.exit(1);
-}
-
 // -- Porteurs ----------------------------------------------------------------------------------
-const creatures = lire('creatures.json');
-const parId = new Map(creatures.doc.map((c) => [c.id, c]));
 let remappees = 0;
-let dejaFaites = 0;
-for (const a of ARBITRAGES) {
-  const c = parId.get(a.creature);
-  if (!c) { console.error(`PORTEUR ABSENT — creatures/${a.creature} ; AUCUNE écriture.`); process.exit(1); }
-  let touche = 0;
-  let arrivee = 0;
-  walkSkillRefs(c, (node) => {
-    if (node.id !== TALENT) return;
-    if (node.spec === a.imprime) { node.spec = a.vers; touche++; return; }
-    if (node.spec === a.vers) arrivee++;
-  }, 'talents');
-  if (touche) { remappees += touche; console.log(`  creatures/${a.creature} : ${TALENT} « ${a.imprime} » → ${a.vers}  [${a.cite}]`); continue; }
-  if (arrivee) { dejaFaites++; continue; }
-  console.error(`ÉTAT INATTENDU — creatures/${a.creature} ne porte NI ${TALENT}/« ${a.imprime} » NI ${TALENT}/${a.vers} ; AUCUNE écriture.`);
-  process.exit(1);
+for (const a of aRemapper) {
+  if (!Array.isArray(specs) || !specs.some((s) => s.id === a.vers)) {
+    console.error(`CIBLE ABSENTE — ${TALENT}/${a.vers} (${a.creature}, « ${a.imprime} ») ; AUCUNE écriture.`);
+    process.exit(1);
+  }
+  for (const node of a.noeuds) node.spec = a.vers;
+  remappees += a.noeuds.length;
+  console.log(`  creatures/${a.creature} : ${TALENT} « ${a.imprime} » → ${a.vers}  [${a.cite}]`);
 }
 
 // Écriture APRÈS la mesure complète des deux documents : un arrêt fail-fast laisse l'arbre intact.
-ecrire(talents, `${ajoutees} entrée(s) ajoutée(s) au catalogue de ${TALENT}, ${horsPool} passée(s) hors pool, ${sourcees} attestée(s).`);
+ecrire(talents, `${ajoutees} entrée(s) ajoutée(s) au catalogue de ${TALENT}, ${sourcees} attestée(s).`);
 ecrire(creatures, `${remappees} spéc(s) de ${TALENT} ramenée(s) à leur id.`);
-console.log(`Catalogue : +${ajoutees} · porteurs remappés : ${remappees} · déjà à l'id : ${dejaFaites} / ${ARBITRAGES.length}`);
+console.log(`Catalogue : +${ajoutees} · porteurs remappés : ${remappees} / ${ARBITRAGES.length} arbitrage(s)`);

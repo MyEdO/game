@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../state/store';
 import { type CascadeApplier } from './cascade';
-import { spyApplier } from '../state/cascade.testkit';
+import { spyApplier } from './cascade.testkit';
 import { setGmSeat } from '../state/netFlow';
 import { openRoll, openSequence, monoStep, rollTitle, composeRollLabel, resultLine, freeCons, type RollRequest, type Consequence } from './rollSeam';
 import { testSkillLabel } from '../data';

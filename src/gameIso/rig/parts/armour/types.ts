@@ -8,7 +8,7 @@ export type ArmourSet = Partial<Record<'tete' | 'torse' | 'bras' | 'jambes' | 'p
 
 /**
  * Une armure = un fichier `defs/<Nom>.ts`. `id` = la CLÉ de lookup ('cuir' | 'maille' | 'plaque') —
- * `armourPart` (equipment.ts) y résout la matière de la pièce (`matiere`) par `ART_DE_MATIERE`.
+ * `armourPart` (equipment.ts) y résout la matière de la pièce (`matiere`) par `artDeMatiere`.
  *
  * `palette` : couleurs par défaut des `@tokens` de l'art (PaletteDeCouchePortee = hex exact) → rendu sans
  * perte + recoloriage cohérent par la teinte d'objet, EXACTEMENT comme les tenues.

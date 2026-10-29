@@ -7,6 +7,8 @@
  * pistoles d'argent (« 6/8 », « 20/– »), sc (sou de cuivre). `formatMoney` = SOURCE UNIQUE d'affichage.
  */
 import { t } from '../i18n';
+import { formatDice, type DiceSpec } from './dice';
+import { garanti } from '../lib/garanti';
 export interface Money { gold: number; silver: number; brass: number; }
 export const PA_PER_SC = 12;
 export const PA_PER_CO = 240; // 20 × 12
@@ -45,17 +47,31 @@ export function priceToMoney(p: Partial<Money> | 'ND' | null): Money {
 export function toMoney(p: { gold?: number; silver?: number; brass?: number }): Money {
   return { gold: p.gold ?? 0, silver: p.silver ?? 0, brass: p.brass ?? 0 };
 }
-/**
- * « Tenir les comptes » (LDB 59 l.9-11, règle optionnelle de simplification) : « Si un objet coûte moins
- * que votre niveau de Statut — donc, si vous avez un Statut Argent 2, n'importe quel objet coûtant 2
- * pistoles d'argent ou moins — on considère que vous pouvez acheter autant de fois que nécessaire cet
- * objet. » Seuil (en sous de cuivre) en deçà duquel un objet est réputé toujours abordable : Bronze N =
- * N sous, Argent N = N pistoles, Or N = N couronnes.
- */
+/** Échelon de Statut, et de prix (`CRAFT_BASE_DR`, `engine/activities`). LDB 08 l.9 */
 export type StatusTier = 'bronze' | 'argent' | 'or';
+/** Un Statut : son Échelon et son Standing. */
+export interface Status { tier: StatusTier; standing: number }
+
+/** Le libellé joueur d'un Échelon (« Argent »). */
+export const libelleDEchelon = (tier: StatusTier): string => t(`statut.echelon.${tier}`);
+
+/** Décompose un libellé de Statut (« Argent 2 », « Bronze 1 », « Or 3 ») ; `null` s'il n'est pas reconnu.
+ *  SOURCE UNIQUE du parsing, et de la validation des Statuts de donnée (`statutSchema`). */
+export function parseStatus(status: string | undefined | null): Status | null {
+  const m = /^(bronze|argent|or)\s+(\d+)$/i.exec(status?.trim() ?? '');
+  return m ? { tier: m[1].toLowerCase() as StatusTier, standing: Number(m[2]) } : null;
+}
+
+/** Le Statut d'une donnée CHARGÉE — dataset, projet, ou scène d'une save (`lireSave`) —, que son schéma a
+ *  validé par `parseStatus` (`statutSchema`). */
+export const statutDeDonnee = (status: string): Status => garanti(parseStatus(status), status, 'Statut validé au schéma');
+
+/**
+ * « Tenir les comptes » (LDB 59 l.9-11) : seuil, en sous de cuivre, en deçà duquel un objet est réputé
+ * toujours abordable — `standing` pièces de la monnaie de l'Échelon.
+ */
 export function statusBudgetBrass(tier: StatusTier, standing: number): number {
-  const unit = tier === 'or' ? PA_PER_CO : tier === 'argent' ? PA_PER_SC : 1;
-  return Math.max(0, standing) * unit;
+  return toBrass(enPieces(GAIN_PAR_STANDING[tier].unite, Math.max(0, standing)));
 }
 
 /** Un objet est-il « toujours abordable » sous « Tenir les comptes » : prix ≤ seuil de Statut (LDB 59) ? */
@@ -63,13 +79,33 @@ export function withinStatusBudget(priceBrass: number, tier: StatusTier, standin
   return priceBrass <= statusBudgetBrass(tier, standing);
 }
 
-/** Décompose un libellé de Statut de carrière (« Argent 2 », « Bronze 1 », « Or 3 ») en Échelon + Standing.
- *  null si le libellé n'est pas reconnu (Statut absent / « — »). Sert à « Tenir les comptes ». */
-export function parseStatus(status: string | undefined | null): { tier: StatusTier; standing: number } | null {
-  if (!status) return null;
-  const m = /^(bronze|argent|or)\s*(\d+)/i.exec(status.trim());
-  if (!m) return null;
-  return { tier: m[1].toLowerCase() as StatusTier, standing: Number(m[2]) };
+/** Somme par Standing de chaque Échelon : ses dés (`n` à 0 = somme fixe `plus`) et sa pièce. LDB 08
+ *  l.115-119, LDB 05 l.576-578 */
+const GAIN_PAR_STANDING: Record<StatusTier, { de: DiceSpec; unite: keyof Money }> = {
+  bronze: { de: { n: 2, sides: 10 }, unite: 'brass' },
+  argent: { de: { n: 1, sides: 10 }, unite: 'silver' },
+  or: { de: { n: 0, sides: 0, plus: 1 }, unite: 'gold' },
+};
+
+/** Le gain de Statut d'un `standing` (plancher 0) : les dés de TOUS ses Standings réunis et la pièce
+ *  qu'ils comptent. SOURCE UNIQUE de la grille, que lisent Revenus, leur plafond et la richesse
+ *  initiale. LDB 08 l.115-119, LDB 05 l.576-578 */
+export function gainDeStatut(tier: StatusTier, standing: number): { de: DiceSpec; unite: keyof Money } {
+  const { de, unite } = GAIN_PAR_STANDING[tier];
+  const k = Math.max(0, standing);
+  return { de: { n: de.n * k, sides: de.sides, plus: (de.plus ?? 0) * k }, unite };
+}
+
+/** `valeur` pièces de `unite`, sans conversion. */
+export const enPieces = (unite: keyof Money, valeur: number): Money => ({ gold: 0, silver: 0, brass: 0, [unite]: valeur });
+
+/** La formule joueur du gain de Statut (« 4d10 sous de cuivre », « 3 couronnes d'or ») ; sans
+ *  `standing`, celle d'UN Standing. LDB 08 l.115-119, LDB 05 l.576-578 */
+export function formuleDeRevenus(tier: StatusTier, standing = 1): string {
+  const { de, unite } = gainDeStatut(tier, standing);
+  const fixe = de.plus ?? 0;
+  if (de.n === 0 && fixe === 0) return t('money.none');
+  return t(`money.${unite}`, de.n > 0 ? { n: formatDice(de), s: 's' } : { n: fixe, s: fixe > 1 ? 's' : '' });
 }
 
 /** Affichage canon de la monnaie (LDB 57 « La monnaie », l.25/31/33). Abréviations canon : couronne

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
+import { avanceEtapeCascade, cascadeDeTest } from '../noyau/cascade.testkit';
 import { applyAttackResult } from '../noyau/combatFlow';
 import { combatAdvanceBlocked } from '../noyau/combatGate';
 import { createHero } from '../engine/character';

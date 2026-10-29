@@ -18,6 +18,7 @@ export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/pol
 export { actionGate, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
 export { findApparenceById, findTeinteById } from '../data/index';
+export { ecartsDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
 export { SLOTS } from '../data/palette.types';
 export { mouvementDuTour } from './mount';
 export { combatDistance } from './monde/footprint';
@@ -55,7 +56,7 @@ export { poserLesReglesMaisonPersistees, surchargerUneRegleMaison, retablirUneRe
 export { preferenceDef, preferencesAPersister, poserLesPreferencesPersistees, valeurDEntree, type IdDePreference, type Preference, type PrefValue } from './preferences';
 export {
   snapshotSave, metaDeSave, lireSave, exporterLaSauvegarde, chargerLaSave, refusDeSauvegarde,
-  type SaveGame, type SaveMeta, type ObsoleteCause,
+  type SaveGame, type SaveMeta, type ObsoleteCause, CAUSES_DE_REFUS_DE_SAVE,
 } from './persistance/save';
 export { aEcrire, campagneDUneEntree, entreesRelues, idDesignable, projetDUneEntree, type CampagneLancee, type EntreeListee, type SavedProject } from './persistance/bibliotheque';
 export { ProjetRefuse, type ProjectDoc } from './worldMap';

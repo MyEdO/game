@@ -4,7 +4,7 @@
  * « Faire un seul Test, en comparant donc un unique jet de pourcentage avec la valeur de ces deux
  * Compétences est bien plus simple. »
  *
- * Ce que le socle expose est mesuré ailleurs (`state/cascade-quantite-second.test.ts`) ; ICI c'est le
+ * Ce que le socle expose est mesuré ailleurs (`noyau/cascade-quantite-second.hors-store.test.ts`) ; ICI c'est le
  * TEXTE rendu qui est jugé, parce que c'est lui qui a manqué au joueur : une seconde cible portée par
  * la donnée mais jamais peinte ne vaut rien. Trois états : PRÉ-JET (la cible s'annonce, le DR reste au
  * tiret d'attente), RÉSOLU (✓/✗ + DR de CETTE lecture), MASQUÉ (une ligne d'adversaire opaque ne

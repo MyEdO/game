@@ -21,7 +21,7 @@ import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 // Groupes de COMBAT du registre canonique (`weaponGroups.json` — `combat` renseigné) : le
 // générateur lit les IDS, `label` ne sert qu'au titre de rubrique ; une arme porte l'id de son Groupe
 // en `subType` (#1338).
-const GROUPS = weaponGroups.filter((g) => g.combat === 'melee' || g.combat === 'ranged');
+const GROUPS = weaponGroups.filter((g) => g.kind === 'weapon' && g.combat !== undefined);
 const GROUP_IDS = new Set(GROUPS.map((g) => g.id));
 const all = trappingsInstanciables().filter(
   (t) => (t.categorie === 'melee' || t.categorie === 'ranged') && t.subType != null && GROUP_IDS.has(t.subType),

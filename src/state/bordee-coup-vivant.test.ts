@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { jouerLesTirsDeBordee } from '../noyau/combatFlow';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { resolveVolley } from '../engine/volley';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, ShipPoste } from '../engine/types';

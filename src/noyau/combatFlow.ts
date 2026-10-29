@@ -163,6 +163,7 @@ import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../eng
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
 import { actorIn, inBattleId } from './monde/combatants';
+import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
 import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
@@ -221,9 +222,9 @@ import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import { fearSourceFor, refreshAllDefendedPsych, sansPeurFace, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, cibleLabel, PsychType, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
 import type { PorteurDeGroupes } from '../engine/groups';
-import { cibleDuPorteur, estCibleType, identiteDeCiblage, libelleDeCible, type CiblePsy } from '../engine/psych/ciblage';
+import { cibleDuPorteur, estCibleType, identiteDeCiblage, libelleDeCible, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
 import { sceneCombatModifiers } from './monde/sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
@@ -232,10 +233,10 @@ import {
 } from '../engine/travelStages';
 import { weatherExposure, type ExposureSeverity } from '../engine/exposure';
 import type { TravelRecapDay } from './travelFlow';
-import { weaponGroupKey } from '../engine/weaponGroup';
+import { groupeAPoudre, weaponGroup } from '../engine/weaponGroup';
 import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, tileKey, tileFromKey, Pt, climbTraverseFor } from './monde/path';
 import { chebyshev } from '../engine/grid';
-import { chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './monde/ai';
+import { adversairesDe, chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './monde/ai';
 import { resolveRun, chargeReach, testDuCavalier, distanceDeCourse } from '../engine/movement';
 import type { RNG } from '../engine/dice';
 import { bus, EVT } from './bus';
@@ -672,12 +673,6 @@ export function windsOfMagicAtCombatStart(get: Get, set: SetFn): void {
   rerollWindsOfMagic(get, set);
 }
 
-/** Une arme tire-t-elle à la POUDRE noire (poudre exposée inutilisable sous la pluie diluvienne, EDOC 8 l.82) ? */
-function isBlackPowderWeapon(w: Weapon): boolean {
-  const k = weaponGroupKey(w);
-  return k === 'poudre' || k === 'ingenierie';
-}
-
 /**
  * Le combat VU AVEC l'attaquant à la position qu'il OCCUPERA au moment de frapper.
  *
@@ -735,7 +730,7 @@ export function attackEnv(
     // (l.127) — MÊME contexte de « conditions du jour » que les Activités de l'Étape.
     if (dayW) {
       if (weatherRangedUseless(dayW)) return { env, blocked: true, inMelee: false, crowd: [], cm: null, sc };
-      if (weatherPowderUseless(dayW) && isBlackPowderWeapon(weapon)) return { env, blocked: true, inMelee: false, crowd: [], cm: null, sc };
+      if (weatherPowderUseless(dayW) && groupeAPoudre(weaponGroup(weapon))) return { env, blocked: true, inMelee: false, crowd: [], cm: null, sc };
       const rm = weatherRangedMod(dayW);
       if (rm) env.push({ label: tr('tp.modWeather', { weather: weatherCondition(dayW).label }), value: rm, famille: 'circonstance', ref: weatherRef(dayW) });
     }
@@ -1510,8 +1505,9 @@ export function aiApproachPlan(
   if (!enemy.weapons.some((w) => w.type === 'melee')) return none;
   const M = effectiveMovement(geom);
   if (M <= 0) return none;
+  const adversaires = adversairesDe(input);
   const atContact = (a: EnemyAction): boolean =>
-    a.kind === 'move' && combatDistance({ ...enemy, pos: { ...a.to, h: heightAt(input.scene, a.to.x, a.to.y, a.to.z ?? 0) } } as Combatant, input.heroes.find((h) => h.id === a.thenTargetId) ?? input.heroes[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
+    a.kind === 'move' && combatDistance({ ...enemy, pos: { ...a.to, h: heightAt(input.scene, a.to.x, a.to.y, a.to.z ?? 0) } } as Combatant, adversaires.find((h) => h.id === a.thenTargetId) ?? adversaires[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
   if (atContact(action)) return none; // la Marche suffit déjà
   // Charge (portée de Course, sans Test — LDB 15 l.35-37).
   const courseBudget = chargeReach(M, runMultiplier(geom.traits));
@@ -3453,7 +3449,7 @@ export function choixPiegeLame(pbt: PendingBladeTrap, defenseur: Combatant, atta
  *  ABANDONNÉE — aucun producteur ne la remet en file ; la file de frappes du tour est #1858. */
 function refuserLaDefense(attacker: Combatant, target: Combatant): boolean {
   const msg = `[combat] défense déjà ouverte : ${attacker.label} déclare une frappe sur ${target.label} `
-    + 'avant que la précédente soit résolue — la frappe est refusée (LDB 85 l.41-43).';
+    + 'avant que la précédente soit résolue — la frappe est refusée.';
   console.error(msg);
   if (import.meta.env?.DEV) throw new Error(msg);
   return true;
@@ -4546,6 +4542,7 @@ export function useSpellComponent(caster: Combatant, spellId: string, lines: str
   const next = [...owned];
   next.splice(i, 1); // retire UNE occurrence (consommée par l'incantation)
   caster.componentSpells = next;
+  // LDB 46 l.111
   lines.push(tr('cf.componentConsumed', { name: caster.label }));
   return true;
 }
@@ -5369,6 +5366,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
   const foeKind = enemy.kind === 'enemy' ? 'hero' : 'enemy';
   const heroes = battle.combatants.filter((c) => c.kind === foeKind && !isOutOfAction(c));
   const squad = battle.combatants.filter((c) => c.kind === enemy.kind && !isOutOfAction(c) && c.pos && c.id !== enemy.id);
+  const pulsion = ciblesDePulsion(enemy, battle.combatants); // #3045
   // Géométrie porteuse (Combat monté, LDB 14) → empreinte + Mouvement + cases bloquées.
   const geom = mountOf(battle, enemy) ?? enemy;
   const blocked = occupied(battle, geom);
@@ -5419,7 +5417,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
     : undefined;
   const smoke = smokeOf(battle);
   return {
-    enemy, heroes, scene, blocked, noStop: cannotStopOn(battle, geom), movement, spells,
+    enemy, heroes, ...(pulsion.length ? { ciblesDePulsion: pulsion } : {}), scene, blocked, noStop: cannotStopOn(battle, geom), movement, spells,
     smoke, flying: flyM != null, traverse: climbTraverseFor(enemy.traits), perceived, facing: get().facing, squad,
     // Mémo de Ligne de Vue de CETTE décision : posé ici parce que c'est ici que la scène et les fumées de
     // la décision sont fixées, et repassé tel quel aux ré-énumérations d'`aiApproachPlan`.
@@ -7230,9 +7228,8 @@ export function advanceTurn(get: Get, set: SetFn) {
       };
       // TOUTE la séquence de franchissement de Round est déléguée aux hooks `roundBoundary`
       // (noyau/combat/roundHooks), ordonnés par `order` : end-of-round 10 → poison-resist 15 →
-      // refresh-wounds 20 → triggers 25 → Instable 30 → Bestial 40 → Perturbant 50 → Surnombre 55 →
+      // triggers 25 → Instable 30 → Bestial 40 → Perturbant 50 → Surnombre 55 →
       // Détermination 70/72 → broken-recovery 74 → tail 76-79.5 → règles optionnelles (se-fatiguer 80).
-      // (Mâchoires d'acier n'est plus un hook de Round : c'est un effet `onGainCondition` data-driven.)
       // advanceTurn orchestre seulement le CADRE (Round, ordre, révélation) ; le CONTENU vit en hooks.
       // (Frénésie : l'Arme libre est un grant de DONNÉE plafonné par freeAttacksThisTurn, remis à zéro au tour.)
       // Unique porte (#316) : le site MÉTIER émet via le bus ; les boucles internes `fireTriggers`
@@ -7606,7 +7603,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
       meta: { prevDR: t.prevDR, ...(sansPeur ? { sansPeur: true } : {}) },
     },
     icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
-    label: cl ? (t.cible ? stepPrecision(dataLabel(cl.label), libelleDeCible(t.cible)) : dataLabel(cl.label)) : stepPsych(t.kind, t.indice),
+    label: cl ? libelleDePsy(t.kind, t.cible, nomDIndividu(get())) : stepPsych(t.kind, t.indice),
   };
 }
 

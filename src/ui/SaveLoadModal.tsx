@@ -30,6 +30,7 @@ const autoMetaOf = (): SaveMeta | null => {
 const OBSOLETE_MSG: Record<ObsoleteCause, MsgKey> = {
   autreFormat: 'saveload.error.autreFormat',
   illisible: 'saveload.error.unreadable',
+  sceneInvalide: 'saveload.error.sceneInvalide',
 };
 
 /** Le nom, dans un message, d'un emplacement de sauvegarde. */
@@ -40,6 +41,7 @@ const nomDEmplacement = (slot: AnySlot): string =>
 const IMPORT_MSG: Record<ObsoleteCause, MsgKey> = {
   autreFormat: 'saveload.error.import.autreFormat',
   illisible: 'saveload.error.import',
+  sceneInvalide: 'saveload.error.import.sceneInvalide',
 };
 
 export function SaveLoadModal({ mode, onClose }: { mode: 'save' | 'load'; onClose: () => void }) {

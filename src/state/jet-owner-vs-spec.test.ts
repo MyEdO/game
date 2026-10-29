@@ -17,7 +17,7 @@
  *
  * ANGLE MORT ÉNONCÉ : la confrontation prouve l'ACCORD des deux sources, pas leur justesse RAW — si
  * `spec.actor` lui-même désignait le mauvais combattant, les deux côtés mentiraient de concert et ce
- * test serait vert. C'est l'échantillonnage de flux RÉEL (`jet-owner-real-flows.test.ts`, plus
+ * test serait vert. C'est l'échantillonnage de flux RÉEL (`jet-owner-real-flows.hors-store.test.ts`, plus
  * `attack-intent-ownership.test.ts`) qui couvre ce plan-là.
  */
 import { describe, it, expect } from 'vitest';

@@ -6,7 +6,7 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { toBrass } from '../../engine/money';
 import { distributeCredit, partyMoneyTotal } from '../../noyau/bourseFlow';
 import { primaryCargoCarrier } from '../../noyau/carriers';
-import { avanceEtapeCascade, draineCascadeDifferee } from '../../state/cascade.testkit';
+import { avanceEtapeCascade, draineCascadeDifferee } from '../../noyau/cascade.testkit';
 import { carrierFreeEnc } from '../../engine/cargo';
 import { REIK_INDEX } from './_reik-index';
 

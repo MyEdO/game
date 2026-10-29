@@ -1,6 +1,7 @@
 export const ANTIDATE: Date;
 export const lireArbre: (rel: string) => string;
 export const lireDans: (racine: string, rel: string) => string;
+export function pose(racine: string, rel: string, texte: string): void;
 export function depot(fichiers: Record<string, string>, copies?: string[]): { racine: string; avant: Map<string, string> };
 export const efface: (racine: string) => void;
 export function rienTouche(racine: string, avant: Map<string, string>): string[];

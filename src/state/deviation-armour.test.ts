@@ -11,7 +11,7 @@ import { mutationById } from '../data/mutations';
 import type { Combatant, Weapon, ItemInstance } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { emptyScene } from '../noyau/monde/scene';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { stepInteraction } from '../noyau/cascade';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
 import { desDuTest } from '../engine/dice.testkit';

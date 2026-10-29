@@ -22,16 +22,18 @@
  *
  * ENTRÉES : `src/data/donnees.manifest.json` (la seule donnée lue et écrite).
  *
- * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : une rubrique portant déjà l'`id` attendu est reconnue
- * migrée ; rejouée sur l'état final, la migration n'écrit rien et sort 0.
- * FAIL-FAST : compte de rubriques ≠ 11, libellé inconnu de la table, `id` présent mais DIVERGENT de
- * l'attendu, collision d'ids → rien n'est écrit, sortie 1.
+ * FORME D'AVANT SEULE : seule une rubrique SANS `id` reçoit le sien, et la note ne se déplace que tant
+ * que `narratifNote` est à la racine ; une rubrique absente, déjà migrée ou révisée après la migration est
+ * laissée telle quelle ; rejouée sur l'état final, la migration n'écrit rien et sort 0.
+ * FAIL-FAST : rubrique sans `id` au libellé inconnu de la table, collision d'ids posés, note de racine
+ * sans porteuse ou de forme inattendue → rien n'est écrit, sortie 1.
  * FORMATAGE PRÉSERVÉ : le fichier est EXACTEMENT `JSON.stringify(doc, null, 2)` (vérifié avant toute
  * écriture — une forme non canonique fait sortir 1 plutôt que reflower le document en silence).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/donnees.manifest.json');
@@ -54,7 +56,7 @@ const IDS = new Map([
 const brut = fs.readFileSync(CIBLE, 'utf8');
 const data = JSON.parse(brut);
 
-if (JSON.stringify(data, null, 2) !== brut) {
+if (serializeDataset(data) !== brut) {
   console.error('FORME NON CANONIQUE — src/data/donnees.manifest.json n’est pas `JSON.stringify(doc, null, 2)` ; AUCUNE écriture.');
   process.exit(1);
 }
@@ -63,20 +65,15 @@ const echecs = [];
 const migres = [];
 const dejaMigres = [];
 
-if (!Array.isArray(data.rubriques) || data.rubriques.length !== IDS.size) {
-  echecs.push(`rubriques : ${data.rubriques?.length ?? 'absentes'}, ${IDS.size} attendues — périmètre déplacé`);
-}
-
-if (!echecs.length) {
+if (Array.isArray(data.rubriques)) {
   data.rubriques = data.rubriques.map((r, i) => {
+    if (r.id !== undefined) {
+      dejaMigres.push(r.id);
+      return r;
+    }
     const attendu = IDS.get(r.label);
     if (!attendu) {
       echecs.push(`rubrique #${i} : libellé ${JSON.stringify(r.label)} inconnu de la table d’ids — arbitrage requis`);
-      return r;
-    }
-    if (r.id !== undefined) {
-      if (r.id === attendu) dejaMigres.push(attendu);
-      else echecs.push(`rubrique #${i} (${r.label}) : \`id\` = ${JSON.stringify(r.id)} DIVERGENT de l’attendu \`${attendu}\``);
       return r;
     }
     migres.push(attendu);
@@ -85,7 +82,7 @@ if (!echecs.length) {
   });
 
   const ids = data.rubriques.map((r) => r.id).filter((v) => typeof v === 'string');
-  if (new Set(ids).size !== ids.length) echecs.push(`ids de rubrique en collision : ${ids.join(', ')}`);
+  if (migres.length && new Set(ids).size !== ids.length) echecs.push(`ids de rubrique en collision : ${ids.join(', ')}`);
 }
 
 /** Rubrique à laquelle appartient la note de racine — son SEUL sujet (le bloc `narratif` d'un paquet
@@ -93,8 +90,8 @@ if (!echecs.length) {
 const PORTEUSE_DE_LA_NOTE = 'campagne';
 let noteDeplacee = false;
 
-if (!echecs.length) {
-  const cible = data.rubriques.find((r) => r.id === PORTEUSE_DE_LA_NOTE);
+if (!echecs.length && data.narratifNote !== undefined) {
+  const cible = Array.isArray(data.rubriques) ? data.rubriques.find((r) => r.id === PORTEUSE_DE_LA_NOTE) : undefined;
   if (!cible) {
     echecs.push(`rubrique « ${PORTEUSE_DE_LA_NOTE} » introuvable : la note de racine n'a pas de porteuse`);
   } else if (typeof data.narratifNote === 'string') {
@@ -108,10 +105,8 @@ if (!echecs.length) {
       delete data.narratifNote;
       noteDeplacee = true;
     }
-  } else if (data.narratifNote !== undefined) {
+  } else {
     echecs.push(`\`narratifNote\` de forme inattendue ${JSON.stringify(data.narratifNote)} (chaîne attendue)`);
-  } else if (typeof cible.note !== 'string' || !cible.note) {
-    echecs.push('ni `narratifNote` de racine ni `note` sur la rubrique porteuse — la note est PERDUE');
   }
 }
 
@@ -121,14 +116,15 @@ if (echecs.length) {
   process.exit(1);
 }
 
-const out = JSON.stringify(data, null, 2);
+const out = serializeDataset(data);
 if (out !== brut) fs.writeFileSync(CIBLE, out, 'utf8');
 
-// PREUVE post-écriture : chaque rubrique porte SON id, et les libellés n'ont pas bougé.
+// PREUVE post-écriture : chaque rubrique migrée porte SON id, et la note déplacée a sa porteuse.
 const apres = JSON.parse(out);
-const fautifs = apres.rubriques.filter((r) => r.id !== IDS.get(r.label));
-const porteuse = apres.rubriques.find((r) => r.id === PORTEUSE_DE_LA_NOTE);
-if (fautifs.length || apres.narratifNote !== undefined || !porteuse?.note) {
+const rubriques = apres.rubriques ?? [];
+const fautifs = rubriques.filter((r) => migres.includes(r.id) && r.id !== IDS.get(r.label));
+const porteuse = rubriques.find((r) => r.id === PORTEUSE_DE_LA_NOTE);
+if (fautifs.length || apres.narratifNote !== undefined || (noteDeplacee && !porteuse?.note)) {
   console.error(
     `VÉRIFICATION POST-ÉCRITURE ROUGE : ${fautifs.length} id(s) fautif(s) [${fautifs.map((r) => r.label).join(', ')}] ; ` +
       `\`narratifNote\` de racine ${apres.narratifNote === undefined ? 'absente (OK)' : 'ENCORE PRÉSENTE'} ; ` +
@@ -138,8 +134,8 @@ if (fautifs.length || apres.narratifNote !== undefined || !porteuse?.note) {
 }
 
 console.log(`donnees.manifest.json — \`id\` de rubrique posé : ${migres.length}`);
-for (const r of apres.rubriques) console.log(`  ${r.id.padEnd(18)} ${r.label}`);
+for (const r of rubriques) console.log(`  ${String(r.id).padEnd(18)} ${r.label}`);
 console.log(`Déjà migrées (no-op) : ${dejaMigres.length}`);
 console.log(`\`narratifNote\` de racine → \`note\` de la rubrique « ${PORTEUSE_DE_LA_NOTE} » : ${noteDeplacee ? 'DÉPLACÉE' : 'déjà en place (no-op)'}`);
-console.log(`Rubriques : ${apres.rubriques.length}/${IDS.size} ; ids distincts : ${new Set(apres.rubriques.map((r) => r.id)).size}`);
+console.log(`Rubriques : ${rubriques.length} ; ids distincts : ${new Set(rubriques.map((r) => r.id)).size}`);
 console.log(`Fichier ${out !== brut ? 'réécrit' : 'INCHANGÉ'} : src/data/donnees.manifest.json`);

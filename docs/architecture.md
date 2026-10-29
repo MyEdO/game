@@ -596,7 +596,7 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             `pont/entree.ts` (`globalThis.wfrpPont`), contrat `pont/CONTRAT.md` ; `construire.mjs
                             --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
   asset/                    le contrat d'asset d'un personnage 3D (lecteur GLB, manifeste, import par `importer.mjs`) ;
-                            le manifeste d'élément du schéma 3 et sa validation contre la base (`asset/element.ts`) ;
+                            le manifeste d'élément du schéma 3 et sa validation contre la base et la donnée du jeu (`asset/element.ts`) ;
                             les GLB vivent dans la Release `modeles-3d`, nommés par leur SHA-256, que la provenance
                             commitée épingle (`asset/release.ts` : `recupererModeles` avant Godot, `publierAssets` à l'import).
   projet/                   le projet Godot 4.7 (GDScript, scènes, manifestes et provenances des modèles KayKit, leur licence) : il dessine la
@@ -605,7 +605,7 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             `scripts/guards/lib/gdscriptSansRegle.mjs`) ;
                             jetons armés en minuteurs. `construire.mjs --sonde` l'importe et contrôle chaque script
                             avec l'éditeur épinglé (`npm run godot:sonde`, étape de la CI) ; `--export --sortie`
-                            produit l'export Web, que `recette.mjs` joue au navigateur, un tour complet.
+                            produit l'export Web, que `recette.mjs` joue au navigateur : un tour complet, ou l'atelier.
 src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du noyau (store Zustand), sélectionne
                             pour l'affichage et persiste (saves, roster, bibliothèque, préférences), sans
                             décider d'aucun effet de jeu (§ Couches).
@@ -869,8 +869,8 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   immédiate est un bloc synchrone HÔTE-SEUL qui ne passe par AUCUN owner/intent du registre de modales
   (`modalArbiter.ts`) — elle piloterait donc silencieusement les Tests de routine des postes tenus par des
   PERSONNAGES D'INVITÉS sans leur passer la main (contradiction avec le gating spectateur/ownership,
-  `netOwnership.controlsActive`). Garde : `src/state/jets-sans-classe.test.ts` (coop × commandée),
-  `src/state/voyage-cadence.test.ts` (jour sous ordres par route). Lever ⇒ router les Tests de routine par
+  `netOwnership.controlsActive`). Garde : `src/noyau/jets-sans-classe.hors-store.test.ts` (coop × commandée),
+  `src/noyau/voyage-cadence.hors-store.test.ts` (jour sous ordres par route). Lever ⇒ router les Tests de routine par
   owner de poste comme le fait déjà le registre de modales pour les interruptions.
 - **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `src/noyau/modalArbiter.ts` l.110-112 :
   décision de bourse PARTAGÉE (argent du groupe) → seul l'hôte la tranche, comme les autres actions à

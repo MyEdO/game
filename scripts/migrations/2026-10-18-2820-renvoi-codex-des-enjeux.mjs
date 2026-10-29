@@ -22,12 +22,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const abs = (rel) => path.join(ROOT, rel);
-/** Reflet de `src/data/serialize.ts#serializeDataset` (pas d'import TS depuis un script .mjs). */
-const serializeDataset = (value) => JSON.stringify(value, null, 2);
-
 /** Catégorie Codex → type de la grammaire (`TYPES`, `grammaire/ref.ts`) et fichier de son espace. */
 const CATEGORIES = {
   regles: { type: 'regle', fichier: 'regles.json' },

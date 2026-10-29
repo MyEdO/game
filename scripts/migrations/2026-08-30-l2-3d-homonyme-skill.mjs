@@ -32,6 +32,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { jsonCanonique } from '../../src/lib/jsonCanonique.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -210,21 +211,12 @@ function versAvant(noeud, gestes) {
   return sortie;
 }
 
-/** La ré-insertion du geste 3 doit rendre l'ORDRE d'origine : on compare des documents TRIÉS par clé. */
-function trierCles(n) {
-  if (Array.isArray(n)) return n.map(trierCles);
-  if (!estObjet(n)) return n;
-  const sortie = {};
-  for (const k of Object.keys(n).sort()) sortie[k] = trierCles(n[k]);
-  return sortie;
-}
-
 let ecrits = 0;
 for (const [f, { abs, brut, data, forme }] of documents) {
   const out = forme.rendu(data);
   try {
     const gestes = GESTES.filter((g) => g.fichier === f);
-    assert.deepEqual(trierCles(versAvant(JSON.parse(out), gestes)), trierCles(versAvant(JSON.parse(brut), gestes)));
+    assert.equal(jsonCanonique(versAvant(JSON.parse(out), gestes)), jsonCanonique(versAvant(JSON.parse(brut), gestes)));
     assert.equal(out.includes('\r'), false, `${f} : le texte réécrit contient un \`\\r\``);
   } catch (e) {
     console.error(`VÉRIFICATION PRÉ-ÉCRITURE ROUGE : ${e.message}`);

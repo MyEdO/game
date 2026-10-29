@@ -41,16 +41,20 @@
  * n'écrit rien : le no-op se décide sur les CARDINAUX des quatre volets, jamais sur une égalité à
  * l'octet du fichier entier.
  *
- * FAIL-FAST (porte de lecture, avant toute écriture) : racine non-tableau, forme non canonique,
- * cardinal d'entrées à règle inattendu, entrée à règle portant DÉJÀ `source` (arbitrage : ce script
- * n'écrase aucune provenance), `maison` non-chaîne, cible du recalage introuvable ou à une valeur
- * inattendue, émetteur neuf déjà pourvu de `light`, primitive `emet` introuvable dans sa recette,
- * entrée sans phrase de provenance prévue → rien n'est écrit, sortie 1.
+ * FORME D'AVANT SEULE : les quatre volets n'agissent que sur une entrée SANS `maison` ; une entrée
+ * absente, ou déjà pourvue (révisée ou non depuis), est laissée telle quelle, sans porte.
+ *
+ * FAIL-FAST (porte de lecture, avant toute écriture), sur les seules entrées à migrer : racine
+ * non-tableau, forme non canonique, entrée à règle portant DÉJÀ `source` (arbitrage : ce script
+ * n'écrase aucune provenance), `maison` non-chaîne, rayon à recaler à une valeur inattendue, émetteur
+ * neuf déjà pourvu de `light`, primitive `emet` introuvable dans sa recette, entrée sans phrase de
+ * provenance prévue → rien n'est écrit, sortie 1.
  * FORMATAGE PRÉSERVÉ : le fichier est EXACTEMENT `JSON.stringify(doc, null, 2)`, vérifié AVANT écriture.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/props.json');
@@ -192,6 +196,9 @@ const RAISONS = {
  */
 const rayonEnCases = (e) => (e?.light?.radiusM !== undefined ? e.light.radiusM / 2 : e?.light?.radiusTiles);
 
+/** La forme d'avant : une entrée à règle (ou un émetteur neuf) SANS `maison`, le marqueur des quatre volets. */
+const aMigrer = (e) => !!e && typeof e === 'object' && typeof e.maison !== 'string' && (aUneRegle(e) || EMETTEURS_NEUFS[e.id] !== undefined);
+
 const echecs = [];
 const brut = fs.readFileSync(CIBLE, 'utf8');
 const avant = JSON.parse(brut);
@@ -203,45 +210,38 @@ const avant = JSON.parse(brut);
     console.error('src/data/props.json : racine non-TABLEAU — rien n’est écrit');
     process.exit(1);
   }
-  if (JSON.stringify(avant, null, 2) !== brut) {
+  if (serializeDataset(avant) !== brut) {
     console.error('src/data/props.json : FORME NON CANONIQUE (pas `JSON.stringify(doc, null, 2)`) — rien n’est écrit');
     process.exit(1);
   }
-  const parId = new Map(avant.map((e) => [e?.id, e]));
+  const parId = new Map(avant.filter(aMigrer).map((e) => [e.id, e]));
   // FORME, jamais cardinal (#1812) : le catalogue de décor grandit, et un émetteur neuf doit se voir
   // poser sa provenance, pas faire sortir 1. Ce qui mord, c'est une entrée à règle SANS `maison`.
-  const aRegleAvant = avant.filter(aUneRegle).length;
-  if (!aRegleAvant) ecarts.push('aucune entrée à règle — périmètre déplacé');
-
-  for (const e of avant) {
+  for (const e of parId.values()) {
     if (!aUneRegle(e)) continue;
     if (e.source !== undefined) ecarts.push(`${e.id} : porte DÉJÀ \`source\` — ce script n’écrase aucune provenance`);
     if (e.maison !== undefined && typeof e.maison !== 'string') ecarts.push(`${e.id} : \`maison\` non-CHAÎNE (${typeof e.maison})`);
   }
   for (const [id, { de }] of Object.entries(RECALAGES)) {
     const e = parId.get(id);
-    if (!e) ecarts.push(`${id} : entrée introuvable (recalage)`);
-    else if (rayonEnCases(e) !== de && rayonEnCases(e) !== RECALAGES[id].vers)
+    if (e && rayonEnCases(e) !== de && rayonEnCases(e) !== RECALAGES[id].vers)
       ecarts.push(`${id} : rayon ${rayonEnCases(e)} ∉ {${de} (à recaler), ${RECALAGES[id].vers} (déjà recalé)}`);
   }
   for (const id of Object.keys(EMETTEURS_NEUFS)) {
     const e = parId.get(id);
-    if (!e) ecarts.push(`${id} : entrée introuvable (émetteur neuf)`);
-    else if (e.light && typeof e.maison !== 'string')
+    if (e?.light)
       ecarts.push(`${id} : porte DÉJÀ \`light\` sans être migrée — arbitrage requis`);
   }
   for (const [id, { rang, material }] of Object.entries(FOYERS)) {
-    const prims = parId.get(id)?.volume?.primitives;
+    if (!parId.has(id)) continue;
+    const prims = parId.get(id).volume?.primitives;
     if (!prims) ecarts.push(`${id} : recette volumique introuvable (foyer)`);
     else if (!prims[rang]) ecarts.push(`${id} : primitive de rang ${rang} absente (${prims.length} primitive(s))`);
     else if (prims[rang].material !== material)
       ecarts.push(`${id} : primitive de rang ${rang} en « ${prims[rang].material} » ≠ « ${material} » — recette réordonnée`);
   }
-  // Toute entrée à règle doit avoir sa phrase, et toute phrase doit servir : une raison orpheline est
-  // une entrée disparue dont personne n'a vu partir la règle.
-  const idsARegle = new Set([...avant.filter(aUneRegle).map((e) => e.id), ...Object.keys(EMETTEURS_NEUFS)]);
-  for (const id of idsARegle) if (!RAISONS[id]) ecarts.push(`${id} : entrée à règle SANS phrase de provenance prévue`);
-  for (const id of Object.keys(RAISONS)) if (!idsARegle.has(id)) ecarts.push(`${id} : phrase de provenance ORPHELINE (aucune entrée à règle)`);
+  // Toute entrée à migrer doit avoir sa phrase.
+  for (const id of parId.keys()) if (!RAISONS[id]) ecarts.push(`${id} : entrée à règle SANS phrase de provenance prévue`);
 
   if (ecarts.length) {
     console.error(`ARBITRAGE REQUIS — rien n’est écrit (${ecarts.length}) :`);
@@ -272,11 +272,10 @@ const ordonner = (e) => {
 };
 
 const apres = avant.map((e) => {
-  if (!e || typeof e !== 'object') return e;
+  if (!aMigrer(e)) return e;
   const neuf = EMETTEURS_NEUFS[e.id];
   const recalage = RECALAGES[e.id];
   const foyer = FOYERS[e.id];
-  if (!aUneRegle(e) && !neuf) return e;
 
   const sortie = { ...e };
   // (1) RECALAGE du rayon sur l'étalon que le décor porte.
@@ -298,10 +297,8 @@ const apres = avant.map((e) => {
     };
   }
   // (4) PROVENANCE en clair.
-  if (typeof sortie.maison !== 'string') {
-    provenances++;
-    sortie.maison = RAISONS[e.id];
-  }
+  provenances++;
+  sortie.maison = RAISONS[e.id];
   return ordonner(sortie);
 });
 
@@ -316,7 +313,7 @@ if (recales + allumes + foyers + provenances === 0) {
   process.exit(0);
 }
 
-const sortieTexte = JSON.stringify(apres, null, 2);
+const sortieTexte = serializeDataset(apres);
 
 fs.writeFileSync(CIBLE, sortieTexte, 'utf8');
 
@@ -325,16 +322,18 @@ fs.writeFileSync(CIBLE, sortieTexte, 'utf8');
 // entrée sans règle n'a gagné de provenance (le script ne tague que ce qui porte une règle).
 {
   const relu = JSON.parse(fs.readFileSync(CIBLE, 'utf8'));
+  const migrees = new Set(avant.filter(aMigrer).map((e) => e.id));
   if (relu.length !== avant.length) echecs.push(`POST : ${relu.length} entrée(s) ≠ ${avant.length}`);
   for (let i = 0; i < relu.length; i++)
     if (relu[i].id !== avant[i].id) echecs.push(`POST [${i}] : id ${relu[i].id} ≠ ${avant[i].id}`);
   const aRegle = relu.filter(aUneRegle);
-  if (aRegle.length !== avant.filter(aUneRegle).length) echecs.push(`POST : ${aRegle.length} entrée(s) à règle ≠ ${avant.filter(aUneRegle).length} lues`);
-  for (const e of aRegle) {
+  const attendues = avant.filter(aUneRegle).length + allumes;
+  if (aRegle.length !== attendues) echecs.push(`POST : ${aRegle.length} entrée(s) à règle ≠ ${attendues} (lues + émetteurs neufs)`);
+  for (const e of aRegle.filter((x) => migrees.has(x.id))) {
     if (typeof e.maison !== 'string' || !e.maison) echecs.push(`POST ${e.id} : \`maison\` absente ou vide`);
     if (e.source !== undefined) echecs.push(`POST ${e.id} : \`source\` posée — ce script n’en pose aucune`);
   }
-  for (const e of relu) {
+  for (const e of relu.filter((x) => migrees.has(x.id))) {
     if (!aUneRegle(e) && e.maison !== undefined) echecs.push(`POST ${e.id} : provenance sur une entrée SANS règle`);
     const emet = (e.volume?.primitives ?? []).filter((p) => p.emet);
     if (emet.length > 1) echecs.push(`POST ${e.id} : ${emet.length} primitives « emet » — une source n’a qu’UN foyer`);
@@ -343,11 +342,11 @@ fs.writeFileSync(CIBLE, sortieTexte, 'utf8');
   }
   const parId = new Map(relu.map((e) => [e.id, e]));
   for (const [id, { vers }] of Object.entries(RECALAGES))
-    if (rayonEnCases(parId.get(id)) !== vers) echecs.push(`POST ${id} : rayon ${rayonEnCases(parId.get(id))} ≠ ${vers}`);
+    if (migrees.has(id) && rayonEnCases(parId.get(id)) !== vers) echecs.push(`POST ${id} : rayon ${rayonEnCases(parId.get(id))} ≠ ${vers}`);
   for (const [id, { radiusTiles }] of Object.entries(EMETTEURS_NEUFS))
-    if (rayonEnCases(parId.get(id)) !== radiusTiles) echecs.push(`POST ${id} : rayon ${rayonEnCases(parId.get(id))} ≠ ${radiusTiles}`);
+    if (migrees.has(id) && rayonEnCases(parId.get(id)) !== radiusTiles) echecs.push(`POST ${id} : rayon ${rayonEnCases(parId.get(id))} ≠ ${radiusTiles}`);
   for (const [id, { rang }] of Object.entries(FOYERS))
-    if (!parId.get(id)?.volume?.primitives?.[rang]?.emet) echecs.push(`POST ${id} : primitive de rang ${rang} sans « emet »`);
+    if (migrees.has(id) && !parId.get(id)?.volume?.primitives?.[rang]?.emet) echecs.push(`POST ${id} : primitive de rang ${rang} sans « emet »`);
 }
 
 if (echecs.length) {

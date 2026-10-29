@@ -159,7 +159,8 @@ function construireReik(): { scenes: Scene[]; carte: WorldMap } {
 
   const carte: WorldMap = {
     id: 'reik-commerce-carte',
-    label: 'Le Reik marchand (Index géographique, MSRC 13)',
+    // MSRC 13
+    label: 'Le Reik marchand (Index géographique)',
     params: { perilDie: 0 },
     places,
     routes,
@@ -174,13 +175,16 @@ export const scenario: TestScenario = {
   icon: 'scenario/market',
   title: 'Commerce fluvial (le Reik)',
   tests:
-    'Commerce de cargaison MSRC 13 JOUABLE : le Reik peuplé de ses VRAIES localités marchandes (Index ' +
+    // MSRC 13
+    'Commerce de cargaison JOUABLE : le Reik peuplé de ses VRAIES localités marchandes (Index ' +
     'géographique l.185-270, indices Taille/Richesse/Produits verbatim), reliées par des routes de BARGE. ' +
     'Boucle du marchand : acheter une cargaison à Grünburg (R 2), descendre le fleuve en barge (le convoi ' +
     'persiste sur le chariot de convoi), revendre à Altdorf (Florissant R 5, Mise à prix +10 %, l.156) — profit. ' +
     'Marché à chaque ville, Marchandage/Évaluation du vin/rumeurs (Berta). La descente Grünburg → Altdorf ' +
-    'EXERCE les périls du fleuve (MSRC 7 : débris, barrage de débris à forcer ou dégager) et l’exposition ' +
-    'hydrique (MSRC 16) : en approchant d’Altdorf, l’équipage risque une maladie de l’eau.',
+    // MSRC 7
+    'EXERCE les périls du fleuve (débris, barrage de débris à forcer ou dégager) et l’exposition ' +
+    // MSRC 16
+    'hydrique : en approchant d’Altdorf, l’équipage risque une maladie de l’eau.',
   partyNote: 'Berta (Marchande — Marchandage/Ragot/Évaluation) · Gunnar (batelier) · Otto (garde) · Lise (scribe)',
   construire: () => {
     const { scenes, carte } = construireReik();

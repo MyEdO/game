@@ -5,7 +5,7 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { flowSchema, gameOpSchema, noeudTest, triggeredEffectSchema } from '../grammaire/mecanique';
+import { executeesDe, flowSchema, noeudTest, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { difficultySchema, hitLocationSchema } from '../grammaire/valeurs';
 
 export const file = 'symptoms.json';
@@ -35,7 +35,7 @@ const noeudDuCycle = noeudTest(flowSchema, { difficulteRequise: true, echecSeulS
 const onTickSchema = nommerChamps(z
   .strictObject({
     test: noeudDuCycle.optional(),
-    ops: z.array(gameOpSchema).optional(),
+    ops: executeesDe().optional(),
     /** LDB 20 l.215 */
     difficultyBySeverity: nommerChamps(z
       .strictObject({
@@ -74,19 +74,19 @@ const doc = document(
   'symptoms',
   famille,
   {
-    passive: z.array(gameOpSchema).optional(),
+    passive: passifsDe().optional(),
     /** LDB 20 l.157 */
     passiveBySeverity: nommerChamps(z
       .strictObject({
-        moderee: z.array(gameOpSchema).optional(),
-        grave: z.array(gameOpSchema).optional(),
+        moderee: passifsDe().optional(),
+        grave: passifsDe().optional(),
       }), { moderee: { label: 'Modérée' }, grave: { label: 'Grave' } })
       .optional(),
     /** MSRC 16 */
     effects: z.array(triggeredEffectSchema).optional(),
     onTick: onTickSchema.optional(),
     /** MSRC 16 l.140 */
-    visiblePassive: z.array(gameOpSchema).optional(),
+    visiblePassive: passifsDe().optional(),
     /** Localisations VISIBLES (`maison`) qui activent `visiblePassive`. */
     visibleLocations: z.array(hitLocationSchema).optional(),
     capabilities: symptomCapabilitiesSchema.optional(),

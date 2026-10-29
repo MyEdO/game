@@ -14,7 +14,7 @@ import type { Combatant } from '../../engine/types';
 import { armedIntentPortee, chargeArmee, PORTEE_COURSE } from '../../noyau/localIntent';
 import { effectiveMovement } from '../../engine/encumbrance';
 import { t } from '../../i18n';
-import { cascadeDeTest } from '../../state/cascade.testkit';
+import { cascadeDeTest } from '../../noyau/cascade.testkit';
 import { cleDeFixture } from '../../noyau/noyau.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

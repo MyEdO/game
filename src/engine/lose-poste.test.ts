@@ -5,6 +5,7 @@ import type { Combatant, ShipPoste } from './types';
 import type { ShipCrewHit } from '../data/shipCriticals';
 import { isUnarmed } from './items';
 import { deFixe, deSelonLaPlage } from './dice.testkit';
+import { combattantDeTest } from './combattantDeTest.testkit';
 
 /** Marin minimal — assez pour `testValue('athletisme')` (Ag=36) + `applyOps` wounds (BE=3, PA=0). */
 const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => ({
@@ -21,7 +22,7 @@ const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => ({
 describe('op removeShipPoste — Canon perdu (MDG 13 l.765)', () => {
   const setup = () => {
     const poste: ShipPoste = { item: { uid: 'p1', name: 'Pierrier' } as never, side: 'tribord', crewIds: ['chef'] };
-    const hull = { id: 'hull', name: 'Cogue', postes: [poste] } as unknown as Combatant;
+    const hull = combattantDeTest({ id: 'hull', label: 'Cogue', postes: [poste] });
     const chef = { id: 'chef', name: 'Canonnier', mannedPoste: poste, weapons: [{ uid: 'p1', name: 'Pierrier', type: 'ranged' }] } as unknown as Combatant;
     return { hull, chef, poste };
   };
@@ -43,7 +44,7 @@ describe('op removeShipPoste — Canon perdu (MDG 13 l.765)', () => {
   });
 
   it('coque sans poste → inerte (aucun retrait fantôme)', () => {
-    const hull = { id: 'hull', postes: [] } as unknown as Combatant;
+    const hull = combattantDeTest({ id: 'hull', postes: [] });
     applyOps(hull, [{ op: 'removeShipPoste' }], { crew: [], rng: rng0 });
     expect(hull.postes).toHaveLength(0);
   });
@@ -106,7 +107,7 @@ describe('applyCrewHit — Canon détaché (data-driven, MDG 13 l.763-764)', () 
   });
 
   it('coque sans poste → personne de visé (rien à détacher)', () => {
-    const hull = { id: 'hull', postes: [] } as unknown as Combatant;
+    const hull = combattantDeTest({ id: 'hull', postes: [] });
     expect(applyCrewHit(hull, [], detachTest, rngPoste).victims).toEqual([]);
   });
 

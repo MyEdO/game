@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { byId, specPoolOf, specCatalogOf, specResolves, specLabel } from '../data';
+import { byId, specPoolOf, specCatalogOf, specLabel } from '../data';
+import { specAuCatalogue } from '../data/schemas/grammaire/ref';
 import { wildcardSpecs } from './careerSlots';
 import { createHero } from './character';
 import { adresseDeCreation } from './adresseDeCreation';
@@ -7,7 +8,7 @@ import { testValue } from './skills';
 import type { Combatant, SkillInstance } from './types';
 
 /**
- * #1342 L3 — VALIDITÉ ⊇ POOL sur les `specs[]` inline. Une entrée `pool: false` est VALIDE partout
+ * #1342 L3 — CATALOGUE ⊇ POOL sur les `specs[]` inline. Une entrée `pool: false` est au catalogue
  * (résolution d'un id, `testValue` par spec, round-trip libellé→id, écran de référence) et n'est PAS
  * proposée d'office par le créateur/l'avancement (`LDB 09 l.40`).
  *
@@ -32,8 +33,8 @@ describe('#1342 L3 — spécialisation hors pool : valide partout, jamais propos
     expect(specLabel('skills', savoir.id, HORS_POOL.specId)).toBe(HORS_POOL.label);
   });
 
-  it('VALIDITÉ : l\'id résout, et le catalogue de référence (Codex/éditeur) l\'imprime', () => {
-    expect(specResolves(savoir, HORS_POOL.specId)).toBe(true);
+  it('CATALOGUE : l\'id y est désigné, et le catalogue de référence (Codex/éditeur) l\'imprime', () => {
+    expect(specAuCatalogue('skill', savoir.id, HORS_POOL.specId)).toBe(true);
     expect(specCatalogOf(savoir)).toContain(HORS_POOL.specId);
   });
 

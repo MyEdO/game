@@ -119,6 +119,7 @@ const NOMMES = [
   // par `DIFFICULTY_LABELS` ; `couvertDifficultySchema` en est le sous-univers de couvert (AA 10 l.28-51).
   'tresFacile|facile|accessible|intermediaire|complexe|difficile|tresDifficile|presqueImpossible|impossible',
   'intermediaire|complexe|difficile|tresDifficile',
+  'lame1m|escrime|lourde2m|hampe|lance_cav|fleau|parade|poings|arc|arbalete|arme_feu|fronde|jet|entraves|explosif|cornes',
   // `teneurSchema` (#1825 lot E) : ce que contiennent les chapitres d'un livre non couverts par une
   // fiche de l'Atlas — absente = livre de règles (`defs/books.ts`).
   'scenario|mixte',
@@ -129,6 +130,7 @@ const NOMMES = [
   'bravoure|ami|staggering|belligerent|blackout',
   'fixed|perDR|perHit|perKill',
   'generalDown|intervention|noIntervention|combatWon|combatLost',
+  'groupe|individu',
   'harness|jolt|wheel|crash',
   'incantation|focalisation|dissipation',
   'ingestion|immersion',
@@ -148,7 +150,7 @@ const NOMMES = [
   'noise|magic',
   'self|ally|opponent|party|neutral|hostile',
   'target|caster',
-  'weaponGroupsMelee|weaponGroupsRanged|winds|arcaneDomains|cultBlessings|cultMiracles|cultChaos|seaShanties|groups|diseases|sizes|mutations|breathTypes|damageTypes|weaponsMelee|weaponsRanged|exposureLevels|difficulties',
+  'weaponGroupsMelee|weaponGroupsRanged|winds|arcaneDomains|cultBlessings|cultMiracles|cultChaos|seaShanties|ciblesPsy|diseases|sizes|mutations|breathTypes|damageTypes|weaponsMelee|weaponsRanged|exposureLevels|difficulties',
   'woundsCurrent|woundsMax|size|advantage',
   'onHit|onCrit|onWoundLoss|onSlain|onRoundStart|onStartled|onKill|onCharged|onGainCondition|onCombatStart|onCombatEnd|onRoundEnd|onTurnStart|onTurnEnd|onDayStart|onWake|onAttackResolved|onCastResolved|onMiscast|onOwnTestFailed',
   'self|victim|engaged|grappled',
@@ -166,6 +168,10 @@ const NOMMES = [
   'porteuse|voisine|les-deux',
   // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
   'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
+  // `defs/garde-robe.ts` (#3114) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.
+  'emplacement|piece|ensemble',
+  'vetement|armure|accessoire',
+  'trapping|apparence',
 ].sort();
 
 /**

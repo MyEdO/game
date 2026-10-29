@@ -40,6 +40,8 @@ import { diseaseLabel, findPsychologyById, psychologyLabel, symptomLabel, sympto
 import { datasetArray } from '../data/overrides';
 import { ETAT_ANCHOR_CRITIQUES, ETAT_ANCHOR_MALADIES, ETAT_ANCHOR_MUTATIONS, ETAT_ANCHOR_TRAUMAS, ETAT_ANCHOR_PSYCHOLOGIE, ETAT_ANCHOR_ENCOMBREMENT } from './sheetAlarms';
 import { useGame } from '../state/store';
+import { individuDe, libelleDePsy } from '../engine/psych/ciblage';
+import { useNomDIndividu } from './useNomDIndividu';
 import { CodexRef } from './compendium/CodexRef';
 import { EntityRef } from './EntityChip';
 import { GameOpChips } from './GameOpChips';
@@ -234,6 +236,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
   const mutations = hero.mutations ?? [];
   const traumas = hero.traumas ?? [];
   const activePsych = (hero.psychState ?? []).filter(isPsychAfflictionActive);
+  const nomDe = useNomDIndividu(activePsych.map((p) => p.cible && individuDe(p.cible)).filter((id): id is string => id !== undefined));
   const overEnc = totalEncumbrance(hero) > maxEncumbrance(hero);
   // Palier de Surcharge (0 sans signal ici, puisque `overEnc` filtre déjà) — l'id/label CODEX (#422)
   // vit dans `encumbranceTiers.json`, résolu par `tier` (le moteur n'expose que la valeur numérique).
@@ -425,11 +428,12 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
           {activePsych.map((p, i) => {
             const def = findPsychologyById(p.type);
             const label = psychologyLabel(p.type);
+            const texte = libelleDePsy(p.type, p.cible, nomDe);
             return (
               <PlaqueRow valueMuted
                 key={i}
                 prefix={<Icon id={(def?.icon as IconIdInput | undefined) ?? FALLBACK_ICON} size="sm" />}
-                content={<CodexRef category="psychologies" id={p.type} label={label}>{label}</CodexRef>}
+                content={<CodexRef category="psychologies" id={p.type} label={label}>{texte}</CodexRef>}
                 fx={def?.passive?.length ? <GameOpChips ops={def.passive} /> : undefined}
               />
             );

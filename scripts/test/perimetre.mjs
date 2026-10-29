@@ -62,6 +62,13 @@ const SIGNAUX = Object.freeze(['symbole', 'module', 'reste'])
  *  84,7 s ; node : 20 fichiers de moins de 3 s sur 15 workers, mur 4,5 s. */
 export const REPLI_SURCOUT_MS = Object.freeze({ vitest: 3749, node: 2911 })
 
+/** Borne du vieil espace V8 de l'enfant de `derivationBornee`, en Mo : paramètre de BANC, mesuré le 2026-10-28 sur un
+ *  conteneur de 4 cœurs et 15,7 Go, Node 24.22.0, dérivation `balayages` sans mémos, par paliers de
+ *  `--max-old-space-size` : l'arbre ea6f10e50e meurt à 580 et passe à 640 ; un seul test ajouté par le lot de #3080
+ *  (`retrait-des-entrees-nommees.test.mjs`) décale les lots `LOT_D_ANALYSE` qui le suivent, l'arbre meurt alors à 640 et
+ *  passe à 720 ; à 1024, 122 s et 1 193 Mo de mémoire résidente au pic (#3080). */
+export const TAS_DERIVATION_MO = 1024
+
 /** Les POPULATIONS d'une durée de la CI, chacune son facteur (`facteursCi`). */
 const POPULATIONS = Object.freeze(['vitest-node', 'vitest-jsdom', 'node'])
 
@@ -735,7 +742,7 @@ function stadeAtteint(marqueur, attendre) {
 }
 
 /** La dérivation de `entree` dans un ENFANT borné (#2603) : `perimetreDerivation.mjs` sous `lancer`, `limiteMs` et
- *  640 Mo de tas, son DTO relu par `depuisDTO`. Un échec lève en nommant le stade atteint (`stadeAtteint`, `attendre`) ; le
+ *  `TAS_DERIVATION_MO` de tas, son DTO relu par `depuisDTO`. Un échec lève en nommant le stade atteint (`stadeAtteint`, `attendre`) ; le
  *  dossier temporaire ne se retire que sous preuve de mort de l'enfant, sinon `retenir`. */
 export async function derivationBornee(entree, { limiteMs = 180_000, lancer = spawnBorne, env = process.env, signal, retenir = () => {}, attendre = attendreSync, module = fileURLToPath(new URL('./perimetreDerivation.mjs', import.meta.url)) } = {}) {
   const temporaire = mkdtempSync(join(tmpdir(), 'perimetre-derivation-'))
@@ -744,7 +751,7 @@ export async function derivationBornee(entree, { limiteMs = 180_000, lancer = sp
   try {
     const input = join(temporaire, 'entree.json'), output = join(temporaire, 'sortie.json'), marqueur = join(temporaire, 'stade.json')
     ecrireJsonAtomique(input, entree, { indentation: 0 })
-    const vu = await lancer({ argv: ['--max-old-space-size=640', module, input, output, marqueur], fichier: join(temporaire, 'journal.txt'), limiteMs, cwd: entree.racine, env, signal, site: 'perimetre' })
+    const vu = await lancer({ argv: [`--max-old-space-size=${TAS_DERIVATION_MO}`, module, input, output, marqueur], fichier: join(temporaire, 'journal.txt'), limiteMs, cwd: entree.racine, env, signal, site: 'perimetre' })
     const bornes = `durée ${Math.round(performance.now() - debut)} ms, limite ${limiteMs} ms`
     retraitPermis = vu.arret?.etat === 'mort'
     if (!retraitPermis) retenir()

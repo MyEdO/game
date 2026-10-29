@@ -9,6 +9,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import type { FormuleSansTirage } from '../../../engine/ops';
 import { z } from 'zod';
+import { parseStatus } from '../../../engine/money';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
 import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
@@ -80,10 +81,21 @@ export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Me
 export const deDeTableSchema = enumNomme({ d10: '1d10', d100: '1d100' });
 export type DeDeTable = z.infer<typeof deDeTableSchema>;
 
+/** Maniement d'une arme : l'axe d'ANIMATION (prise physique), distinct du Groupe de règles — UNE déclaration
+ *  pour les racines de `apparences.json` (`defs/apparences.ts`) et les Groupes d'arme de `weaponGroups.json`
+ *  (`defs/weaponGroups.ts`), lus par `maniementDe` (`src/noyau/animation.ts`). #3076 */
+export const maniementSchema = enumNomme({
+  lame1m: 'Lame à une main', escrime: 'Escrime', lourde2m: 'Arme lourde à deux mains', hampe: 'Hampe',
+  lance_cav: 'Lance de cavalerie', fleau: 'Fléau', parade: 'Parade', poings: 'Poings',
+  arc: 'Arc', arbalete: 'Arbalète', arme_feu: 'Arme à feu', fronde: 'Fronde', jet: 'Jet',
+  entraves: 'Entraves', explosif: 'Explosif', cornes: 'Cornes',
+});
+export type Maniement = z.infer<typeof maniementSchema>;
+
 /**
  * Registre d'où DÉRIVE le pool de spécialisations d'une def (`SpecsSource`, `src/data/index.ts` ;
  * catalogue `SPEC_SOURCES`) — UNE déclaration pour les trois defs qui portent ce champ
- * (`skills`/`talents`/`traits`), qui en tenaient chacune une copie. La couverture est TOTALE (16/16 de
+ * (`skills`/`talents`/`traits`), qui en tenaient chacune une copie. La couverture est TOTALE (toutes les clés de
  * `SPEC_SOURCES`, verrouillée par `grammaire/enums-nommes-grammaire.test.ts`) : elle ne peut pas être
  * partielle, les options SONT les clés de la table. `weaponsMelee`/`weaponsRanged` portent le
  * libellé de la catégorie de catalogue que leur `pool()` FILTRE (`trappings.categorie`,
@@ -98,7 +110,7 @@ export const specsSourceSchema = enumNomme({
   cultMiracles: 'Miracles (dieux)',
   cultChaos: 'Magie du Chaos (dieux)',
   seaShanties: 'Chansons de marin',
-  groups: 'Groupes (créatures/factions)',
+  ciblesPsy: 'Cibles psychologiques (Groupes, personnes)',
   diseases: 'Maladies',
   sizes: 'Tailles',
   mutations: 'Mutations',
@@ -116,6 +128,11 @@ export const specsSourceSchema = enumNomme({
  * les charges des ops `aggravateSymptom`/`grantSymptom` (`grammaire/mecanique.ts`).
  */
 export const symptomSeveritySchema = enumNomme({ moderee: 'Modérée', grave: 'Grave' });
+
+/** Variante de Cible qu'un type de psychologie CIBLÉ admet (`psychology.json`, `cibles`) : un Groupe (LDB 21
+ *  l.19), un individu (LDB 21 l.75 ; EDOC 11 l.648). Son libellé nomme la variante dans les refus. #3045 */
+export const varianteDeCibleSchema = enumNomme({ groupe: 'un Groupe', individu: 'une personne' });
+export type VarianteDeCible = z.infer<typeof varianteDeCibleSchema>;
 
 /**
  * Alignement d'une source de Corruption (`ChaosAlign`, `src/engine/corruption.ts`) — UNE déclaration
@@ -160,6 +177,8 @@ export const dir8Schema = enumNomme({
  * `trappings`).
  */
 export const availabilitySchema = z.enum(AVAILABILITIES);
+/** Libellé de Statut (« Argent 2 ») : lisible par `parseStatus`, que `statutDeDonnee` garantit ensuite. LDB 08 l.9 */
+export const statutSchema = z.string().refine((s) => parseStatus(s) !== null, 'Statut illisible : « Bronze N », « Argent N » ou « Or N » attendu.');
 
 /**
  * Rareté d'une pièce de créature récoltée (`HarvestRarity`, `src/data/index.ts`) = les paliers de

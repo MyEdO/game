@@ -17,6 +17,7 @@ import { pruneSeatAssignments } from '../monde/seating';
 import { reposerPaquetDeCampagne } from '../monde/registreDesScenes';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 import { FORMAT_SAVE } from './formats.generated';
+import { exigerUnRefus, parseSceneDeProjet } from '../worldMap';
 
 export interface SaveMeta {
   version: string;
@@ -110,7 +111,8 @@ export function metaDeSave(save: SaveGame): SaveMeta {
 
 /** CAUSE du rejet d'une sauvegarde — l'écran de chargement en fait un message DISTINCT : une save d'un
  *  autre format et un contenu illisible ne se disent pas d'un même mot. */
-export type ObsoleteCause = 'autreFormat' | 'illisible';
+export const CAUSES_DE_REFUS_DE_SAVE = ['autreFormat', 'illisible', 'sceneInvalide'] as const;
+export type ObsoleteCause = (typeof CAUSES_DE_REFUS_DE_SAVE)[number];
 
 /** Un texte de save : la save au `FORMAT_SAVE`, ou la CAUSE de son refus. Source unique de la lecture d'un
  *  emplacement et de l'import. */
@@ -121,7 +123,21 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
   } catch {
     return 'illisible';
   }
-  return isValidSave(parsed) ? parsed : 'autreFormat';
+  if (!isValidSave(parsed)) return 'autreFormat';
+  return scenesRefusees(parsed.data) ? 'sceneInvalide' : parsed;
+}
+
+/** Une scène de `data` (la courante, celles du paquet de campagne) est-elle refusée par la porte des scènes
+ *  (`parseSceneDeProjet`) ? */
+function scenesRefusees(data: DonneesDeSave): boolean {
+  const scenes = [...(data.scene ? [data.scene] : []), ...(data.campaignDoc?.scenes ?? [])];
+  try {
+    for (const s of scenes) parseSceneDeProjet(s);
+    return false;
+  } catch (e) {
+    exigerUnRefus(e);
+    return true;
+  }
 }
 
 /** L'export d'une save : JSON lisible (téléchargement, presse-papier). */

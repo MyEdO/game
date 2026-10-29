@@ -7,8 +7,7 @@ extends CanvasLayer
 signal offre_choisie(offre: String)
 
 const LARGEUR_PANNEAU := 300.0
-const FOND := Color(0.11, 0.1, 0.09, 0.92)
-const MARGE := 10.0
+const FOND_DU_PANNEAU := preload("res://art/fond_panneau.tres")
 
 var _tour := Label.new()
 var _fiche := Label.new()
@@ -46,11 +45,8 @@ func _ready() -> void:
 
 
 func _panneau(preset: Control.LayoutPreset, taille: Vector2, en_largeur: Control.GrowDirection, en_hauteur: Control.GrowDirection) -> VBoxContainer:
-	var fond := StyleBoxFlat.new()
-	fond.bg_color = FOND
-	fond.set_content_margin_all(MARGE)
 	var cadre := PanelContainer.new()
-	cadre.add_theme_stylebox_override("panel", fond)
+	cadre.add_theme_stylebox_override("panel", FOND_DU_PANNEAU)
 	cadre.custom_minimum_size = taille
 	cadre.grow_horizontal = en_largeur
 	cadre.grow_vertical = en_hauteur
@@ -67,8 +63,7 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 		var texte: Variant = ligne.get("texte") if ligne.de == "journal" else ligne.evenement.get("text")
 		if texte != null:
 			_journal.add_text("%s\n" % texte)
-	for bouton in _offres.get_children():
-		bouton.queue_free()
+	Controles.vider(_offres)
 	var panneau: Variant = vue.panneau
 	for etiquette in [_tour, _fiche, _raison, _apercu, _titre_du_journal]:
 		etiquette.text = ""
