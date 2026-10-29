@@ -249,5 +249,74 @@
     "pieces": [
       "gants"
     ]
+  },
+  {
+    "id": "humain",
+    "type": "garde-robe",
+    "label": "Tête humaine",
+    "kind": "tete",
+    "race": {
+      "id": "humain"
+    }
+  },
+  {
+    "id": "halfling",
+    "type": "garde-robe",
+    "label": "Tête halfling",
+    "kind": "tete",
+    "race": {
+      "id": "halfling"
+    }
+  },
+  {
+    "id": "nain",
+    "type": "garde-robe",
+    "label": "Tête naine",
+    "kind": "tete",
+    "race": {
+      "id": "nain"
+    }
+  },
+  {
+    "id": "gnome",
+    "type": "garde-robe",
+    "label": "Tête gnome",
+    "kind": "tete",
+    "race": {
+      "id": "gnome"
+    }
+  },
+  {
+    "id": "ogre",
+    "type": "garde-robe",
+    "label": "Tête ogre",
+    "kind": "tete",
+    "race": {
+      "id": "ogre"
+    }
+  },
+  {
+    "id": "haut-elfe",
+    "type": "garde-robe",
+    "label": "Tête de haut-elfe",
+    "kind": "tete",
+    "race": {
+      "id": "haut-elfe"
+    }
+  },
+  {
+    "id": "elfe-sylvain",
+    "type": "garde-robe",
+    "label": "Tête d’elfe sylvain",
+    "kind": "tete",
+    "race": {
+      "id": "elfe-sylvain"
+    }
+  },
+  {
+    "id": "crane-rase",
+    "type": "garde-robe",
+    "label": "Crâne rasé",
+    "kind": "coiffure"
   }
 ]
