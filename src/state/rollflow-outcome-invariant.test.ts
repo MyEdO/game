@@ -25,7 +25,7 @@ import { cleDeFixture } from '../noyau/noyau.testkit';
  * Observable = le Point de Chance : `opReroll` ne le dépense QUE si `rolled && !outcome.won` (via
  * `canReroll`) ET que la re-résolution aboutit. Le cas GAGNANT court-circuite AVANT toute re-résolution
  * (donc toujours sûr) ; le cas PERDANT exige une re-résolution valide (d'où les fixtures minimales mais
- * complètes ci-dessous, calquées sur `resilience-die-choice.test.ts`).
+ * complètes ci-dessous, calquées sur `resilience-die-choice.hors-store.test.ts`).
  */
 
 const C = (over: Partial<Combatant>): Combatant =>

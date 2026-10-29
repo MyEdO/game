@@ -1,5 +1,5 @@
 /**
- * #T2 Voyage — flux store : trajets sur la carte du monde (temps, rations, paiement, péripéties
+ * #T2 Voyage — flux du noyau : trajets sur la carte du monde (temps, rations, paiement, péripéties
  * d'auteur, interruption/reprise). RAW : section « Voyage » du LDB (`51 - Magie du Chaos.md`).
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
