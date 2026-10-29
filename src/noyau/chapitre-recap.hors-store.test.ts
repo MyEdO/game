@@ -15,17 +15,19 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { emptyNarratif } from './monde/campaignNarratif';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function hero(id: string, xp: number, over: Partial<Combatant> = {}): Combatant {
-  return {
+  return combattantDeTest({
     id, label: id.toUpperCase(), kind: 'hero', xp,
     characteristics: {} as Combatant['characteristics'],
-    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 },
+    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
     ...over,
-  } as unknown as Combatant;
+  });
 }
 
 const CLOTURE = { when: { kind: 'flag' as const, expr: 'chapitre-clos' }, titre: 'Chapitre 1 — accompli' };

@@ -8,6 +8,7 @@ import { pregen, PREGEN } from '../data/pregens';
 import { areGrappling } from '../engine/grapple';
 import { stacks } from '../engine/conditions';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -90,7 +91,7 @@ describe('IA Empoignade — dispatch (runEnemyAI) : l’Empoigné LUTTE, le tire
     e.conditions = [{ id: 'empetre', value: 1, sourceId: 'h' }];
     const h = pregen(PREGEN.sorcier);
     h.id = 'h'; h.pos = { x: 6, y: 5 }; h.engagedWith = ['e']; h.advantage = 0;
-    h.grapplingWith = ['e']; h.wounds = { ...h.wounds, max: 30, current: 30 };
+    h.grapplingWith = ['e']; h.wounds = blessuresDeBase(30);
     const battle = {
       combatants: [e, h], order: ['e', 'h'], baseOrder: ['e', 'h'], turn: 0, round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,

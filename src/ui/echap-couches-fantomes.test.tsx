@@ -25,6 +25,7 @@ import { GameMenu } from './GameMenu';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { VictoryScreen } from './VictoryScreen';
 import { tacheSuivante } from './focus.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
 
@@ -41,7 +42,7 @@ beforeEach(() => {
   resetDismissLayers();
   useGame.setState({
     screen: 'campaign', mode: 'battle', gameMenuOpen: false, dialogue: null,
-    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [{ id: 'chef', kind: 'hero', pos: { x: 1, y: 1 } }], movementUsed: 0, preview: null },
+    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'hero', pos: { x: 1, y: 1 } })], movementUsed: 0, preview: null },
     net: { mode: 'local', mySeat: 0 }, combatCursor: null, preemptAiming: null,
     localIntent: { actionId: 'charge' }, pendingVictory: null,
   } as never);

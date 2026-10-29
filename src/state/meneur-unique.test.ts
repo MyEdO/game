@@ -19,6 +19,8 @@ import { bus, EVT } from '../noyau/bus';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 
 const TABLE = 'table-ronde-4-tabourets';
@@ -28,17 +30,17 @@ const ABORD_NORD = { x: 5, y: 4 };
 const MENEUR: SeatOccupant = { kind: 'party', rang: 1 };
 
 const hero = (id: string, wounds: number, talents: { talentId: string; times: number }[] = []): Combatant =>
-  ({
+  combattantDeTest({
     id,
     label: id.toUpperCase(),
     kind: 'hero',
     species: 'humains-reiklander',
     xp: 0,
-    wounds: { current: wounds, max: 12 },
+    wounds: blessuresDeBase(12, wounds),
     conditions: [],
     movement: 4,
     talents,
-  }) as unknown as Combatant;
+  });
 
 /** A = premier du roster, À TERRE (0 Blessure) ; B = le suivant, DEBOUT. Le meneur, c'est B. */
 const A_A_TERRE = () => hero('a', 0);
@@ -260,7 +262,7 @@ describe('le cap du GROUPE traverse le combat', () => {
     useGame.getState().pivotParty(1);
     const capAvant = capDuGroupe(useGame.getState());
     const heros = useGame.getState().party.map((h, i) => ({ ...h, pos: { x: 1 + i, y: 1 } }));
-    const orc = { id: 'orc', label: 'Orc', kind: 'enemy', wounds: { current: 8, max: 8 }, conditions: [], pos: { x: 5, y: 1 } } as unknown as Combatant;
+    const orc = combattantDeTest({ id: 'orc', label: 'Orc', kind: 'enemy', wounds: blessuresDeBase(8), conditions: [], pos: { x: 5, y: 1 } });
     useGame.setState({ battle: { combatants: [...heros, orc] } as never });
     useGame.getState().faceAtCombatStart();
 

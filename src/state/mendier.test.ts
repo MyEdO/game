@@ -26,7 +26,7 @@ import { applyOps, resolveFormula, FORMULA_OBJECT_KEYS, type Formula } from '../
 import { activityById, activityTestMod, activityAvailableAt, matchOutcomes } from '../engine/activities';
 import { findEffectTableById } from '../data/effectTables';
 import { schema as activitiesSchema } from '../data/schemas/defs/activities';
-import { statusOf, statusMeets } from '../engine/social';
+import { actorStatus, statusMeets } from '../engine/social';
 import { aPassifVisible } from '../engine/trauma';
 import { buildActorView } from '../engine/actorView';
 import { careers } from '../data';
@@ -119,7 +119,7 @@ describe('Exemption de Statut (LDB 09 l.99) — DÉRIVÉE du registre des carri�
   /** Les carrières dont le Statut d'ENTRÉE (niveau 1) n'atteint pas Bronze 1 : « sans ressources ». */
   const sansRessources = careers
     .map((c) => c.id)
-    .filter((id) => !statusMeets(statusOf(id, 1), 'Bronze 1'));
+    .filter((id) => !statusMeets(actorStatus({ career: id, careerLevel: 1 }), 'Bronze 1'));
 
   it('le registre en porte au moins une, et Mendiant en est', () => {
     expect(sansRessources.length).toBeGreaterThan(0);

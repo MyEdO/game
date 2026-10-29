@@ -3,6 +3,7 @@ import { fireTriggers } from '../noyau/triggeredEffects';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * Instable (LDB 85 l.177) — MIGRÉ en DONNÉES (trait `instable` effects onRoundEnd) : « Chaque fois qu'elle
@@ -13,7 +14,7 @@ import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 const mk = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
   id: 'u', label: 'Zombie', kind: 'enemy',
   armour: { corps: 4 } as Combatant['armour'], // PA 4 : doit être IGNORÉ (perte directe)
-  wounds: { current: 8, max: 8, base: 8 }, engagedWith: [],
+  wounds: blessuresDeBase(8), engagedWith: [],
   ...over,
 });
 

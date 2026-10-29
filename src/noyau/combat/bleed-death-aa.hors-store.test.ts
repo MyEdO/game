@@ -8,6 +8,7 @@ import { addCondition, stacks, COND } from '../../engine/conditions';
 import { setRule } from '../../engine/policy';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -33,7 +34,7 @@ describe('#38 (d) — gate AA du jet de mort par Hémorragique (AA 07 l.7)', () 
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true)); // une seule source vivante → RNG déterministe
-    E.wounds = { current: 20, max: 20 }; // marge : les dégâts d'Hémorragie ne le tuent pas avant le jet
+    E.wounds = blessuresDeBase(20); // marge : les dégâts d'Hémorragie ne le tuent pas avant le jet
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { E };
   }
@@ -60,7 +61,7 @@ describe('#38 (d) — gate AA du jet de mort par Hémorragique (AA 07 l.7)', () 
     setRule('combat-aa-blessures', 'aa');
     const { E } = setup();
     seedBattleRng(21);
-    E.wounds = { current: 0, max: 20 };
+    E.wounds = blessuresDeBase(20, 0);
     addCondition(E, COND.inconscient, 1);
     addCondition(E, COND.hemorragique, 3);
     roundEndHooksOnly();

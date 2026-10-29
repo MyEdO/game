@@ -7,6 +7,7 @@ import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import type { Combatant } from '../engine/types';
 import type { RNG } from '../engine/dice';
 import { desEnSuite } from '../engine/dice.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -46,7 +47,7 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
   // LDB 18 l.74
   it('État à valeur TIRÉE (Commotion cérébrale, Sonné 1d10) : la modale donne la valeur réelle, le bandeau ne l’affiche pas', () => {
     seedBattleRng(3);
-    const heros = mk({ id: 'h', label: 'Héros', kind: 'hero', wounds: { current: 12, max: 12 } });
+    const heros = mk({ id: 'h', label: 'Héros', kind: 'hero', wounds: blessuresDeBase(12) });
     const crit = resolveCritique('ldb', heros, 'tete', seq(78), { overkill: 0 });
     expect(crit.entryId).toBe('commotion-cerebrale');
     applyCriticalToTarget(heros, 'tete', 0, [], banc.setState, { prerolled: crit, get: banc.getState });

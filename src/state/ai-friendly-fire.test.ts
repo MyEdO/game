@@ -10,6 +10,7 @@ import { spellTargetHarm } from '../noyau/monde/aiSpellValue';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 import type { SpellData } from '../data';
+import { blessuresDeBase } from '../engine/characteristics';
 
 // Sort de ZONE de CONTRÔLE (aveugle tous les couverts) — ZÉRO dégât : tout le « mal » passe par l'État.
 const BLIND_AOE: SpellData = {
@@ -21,7 +22,7 @@ const BLIND_AOE: SpellData = {
 const castable = (): CastableSpell => ({ id: BLIND_AOE.id, data: BLIND_AOE, cn: 0, range: 20, shape: { area: { radius: 3 } }, landProb: 1, focusState: 'none', active: false });
 const scene = emptyScene('scene-test', 20, 20);
 function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant {
-  return { id, label: id, kind, pos, wounds: { current: 12, max: 12 }, weapons: [], characteristics: {} as never,
+  return { id, label: id, kind, pos, wounds: blessuresDeBase(12), weapons: [], characteristics: {} as never,
     advantage: 0, conditions: [], armour: {} as never, skills: [], talents: [], movement: 4 } as Combatant;
 }
 function input(enemy: Combatant, heroes: Combatant[], squad: Combatant[]): EnemyTurnInput {

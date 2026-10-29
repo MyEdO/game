@@ -15,6 +15,7 @@ import { testScene } from '../scenes/test-fixture';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -101,7 +102,7 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
-    H.characteristics.endurance = 90; H.wounds.max = 100; H.wounds.current = 100; // Résistance réussie (pas de Brisé)
+    H.characteristics.endurance = 90; H.wounds = blessuresDeBase(100); // Résistance réussie (pas de Brisé)
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
     const banshee = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
@@ -155,12 +156,12 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     const goule = enemies[1];
     goule.kind = 'hero'; goule.aiControlled = true; goule.dead = false;
     goule.traits = []; goule.groups = ['mort-vivant']; goule.pos = { x: 9, y: 10 };
-    goule.wounds = { current: 15, max: 15 };
+    goule.wounds = blessuresDeBase(15);
     // Vrai Mort-vivant : PORTE le Trait (capability `undead`) → doit rester EXCLU.
     const trueUndead = enemies[2];
     trueUndead.kind = 'hero'; trueUndead.aiControlled = true; trueUndead.dead = false;
     trueUndead.traits = [{ id: 'mort-vivant' }]; trueUndead.groups = ['mort-vivant']; trueUndead.pos = { x: 11, y: 10 };
-    trueUndead.wounds = { current: 15, max: 15 };
+    trueUndead.wounds = blessuresDeBase(15);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
 
     applyWail(banc.getState, banc.setState, banshee);
@@ -191,14 +192,14 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     banshee.traits = [...(banshee.traits ?? []), { id: 'hurlement-fantomatique', value: 0 }];
     banshee.pos = { x: 10, y: 10 };
     banshee.advantage = 3;
-    banshee.wounds = { current: 15, max: 15 };
+    banshee.wounds = blessuresDeBase(15);
     const allie = enemies[1]; // MÊME camp que la banshee, vivant, sans Trait Mort-vivant
     allie.traits = []; allie.groups = []; allie.pos = { x: 9, y: 10 };
-    allie.wounds = { current: 15, max: 15 };
+    allie.wounds = blessuresDeBase(15);
     // « créatures VIVANTES » : un chariot (véhicule-coque) n'entend rien et n'est jamais « attaqué ».
     const chariot = enemies[2];
     chariot.traits = []; chariot.groups = []; chariot.pos = { x: 11, y: 10 };
-    chariot.dead = false; chariot.bodyShape = 'vehicule'; chariot.wounds = { current: 15, max: 15 };
+    chariot.dead = false; chariot.bodyShape = 'vehicule'; chariot.wounds = blessuresDeBase(15);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
 
     applyWail(banc.getState, banc.setState, banshee);

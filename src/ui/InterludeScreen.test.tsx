@@ -9,15 +9,16 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
 import { draineCascade, poseSurDeNonTombe } from '../noyau/cascade.testkit';
 import { createHero } from '../engine/character';
-import { fromBrass } from '../engine/money';
-import { partyMoneyTotal, distributeCredit } from '../noyau/bourseFlow';
+import { fromBrass, toBrass } from '../engine/money';
+import { partyMoneyTotal, distributeCredit, debitBourse } from '../noyau/bourseFlow';
+import { bourseOf } from '../engine/bourse';
 import { testScene } from '../scenes/test-fixture';
 import { interludeCatalog, bestActivitySkill } from '../noyau/interludeFlow';
 import { refusDeRevenus } from '../noyau/verdictsDInterlude';
 import { setRule, resetRule } from '../engine/policy';
 import { interludeEventFor } from '../data/interludeEvents';
 import { InterludeScreen, type InterludeSeam } from './InterludeScreen';
-import { ACTIVITIES } from '../engine/activities';
+import { ACTIVITIES, craftCatalog, entrainementOptions, orderCatalog } from '../engine/activities';
 
 /** Texte NU d'un rendu statique : balises retirées, entités HTML de React décodées — pour confronter
  *  un texte de DONNÉE (apostrophes comprises) au markup rendu. */
@@ -219,6 +220,14 @@ describe('InterludeScreen — refonte LOT 6', () => {
       <InterludeScreen seam={{ ...seam, phase: 'activities', openPane: { heroId: hero.id, pane: 'bank' } }} />,
     );
     expect(html).not.toContain('rm-stake');
+  });
+
+  it('clôture : le Standing retenu se nomme par le libellé de l’Activité qui l’a produit', () => {
+    const seam = buildSeam(2);
+    const hero = seam.party[0];
+    const interlude = { ...seam.interlude, perHero: { ...seam.interlude.perHero, [hero.id]: { ...seam.interlude.perHero[hero.id], closeOps: [{ ops: [{ op: 'statusMod' as const, amount: 1 }], ctx: { label: 'Faire jaser la cour' } }] } } };
+    const html = mdToPlain(renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude, phase: 'closing' }} />));
+    expect(html).toContain('Vétéran : Standing +1 pour la prochaine aventure (Faire jaser la cour).');
   });
 
   it('clôture : récapitulatif confirmé (argent gaspillé annoncé, temps qui passe)', () => {
@@ -508,5 +517,106 @@ describe('InterludeScreen — Revenus bloqués par l’Événement : entrée et 
     const html = mdToPlain(renderToStaticMarkup(<InterludeScreen seam={{ ...seam, phase: 'events' }} />));
     expect(html).toContain('Larron ne peut pas entreprendre Revenus (événement : Répression du crime).');
     expect(html).toContain('Revenus bloqués pour : Roublards');
+  });
+});
+
+describe('InterludeScreen — abordabilité (#3059 S4) : chaque volet payant lit le verdict du noyau', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  /** Le seam relu sur le store, après un geste de mise en place. */
+  const relu = (seam: InterludeSeam): InterludeSeam => {
+    const s = useGame.getState();
+    return { ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities' };
+  };
+  /** Vide la bourse du héros par la couture de débit. */
+  const viderLaBourse = (heroId: string) => {
+    const h = useGame.getState().party.find((x) => x.id === heroId)!;
+    expect(debitBourse(useGame.getState, useGame.setState, heroId, bourseOf(h)), 'témoin : bourse vidée').toBe(true);
+  };
+  /** La raison que le geste dit au journal. */
+  const raisonDuGeste = (geste: () => void): string[] => {
+    const avant = useGame.getState().journal.length;
+    geste();
+    return useGame.getState().journal.slice(avant);
+  };
+  /** L'action du volet `paneId` est fermée et liée à sa bannière. */
+  const lieeALaBanniere = (html: string, paneId: string) =>
+    expect(html.match(/<button[^>]*>/g)?.some((b) => b.includes('aria-disabled="true"') && b.includes(`aria-describedby="${paneId}-blocked"`)), paneId).toBe(true);
+
+  it('Apprentissage : PX insuffisants, la bannière dit la raison du geste', () => {
+    const seam = buildSeam();
+    const hero = seam.party[0];
+    useGame.getState().party[0].xp = 50;
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: hero.id, pane: 'learn', choix: 'chanceux' } }} />);
+    expect(raisonDId(html, 'pane-learn-blocked')).toBe('Vétéran : PX insuffisants (100).');
+    lieeALaBanniere(html, 'pane-learn');
+    expect(raisonDuGeste(() => useGame.getState().interludeActivity(hero.id, 'learn', { talentId: 'chanceux' }))).toEqual(['Vétéran : PX insuffisants (100).']);
+  });
+
+  it('Entraînement : bourse sous le tuteur le moins cher, même raison au volet et au geste', () => {
+    const seam = buildSeam();
+    const hero = seam.party[0];
+    viderLaBourse(hero.id);
+    const opt = entrainementOptions(useGame.getState().party[0]).find((o) => o.kind === 'characteristic')!;
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: hero.id, pane: 'entrainement', choix: `${opt.kind}|${opt.id}|` } }} />);
+    expect(raisonDId(html, 'pane-entrainement-blocked')).toBe('Vétéran : la bourse ne couvre même pas le tuteur le moins cher (1 sc).');
+    lieeALaBanniere(html, 'pane-entrainement');
+    expect(raisonDuGeste(() => useGame.getState().interludeEntrainement(hero.id, opt.kind, opt.id, opt.spec))).toEqual([raisonDId(html, 'pane-entrainement-blocked')]);
+  });
+
+  it('Commande : prix hors de la bourse, même raison au volet et au geste', () => {
+    const seam = buildSeam();
+    const hero = seam.party[0];
+    viderLaBourse(hero.id);
+    const objet = orderCatalog()[0];
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: hero.id, pane: 'order', choix: objet.id } }} />);
+    const banniere = raisonDId(html, 'pane-order-blocked');
+    expect(banniere).toMatch(/^Commande trop chère \(.+\)\.$/);
+    lieeALaBanniere(html, 'pane-order');
+    expect(raisonDuGeste(() => useGame.getState().interludeOrder(hero.id, objet.id))).toEqual([banniere]);
+  });
+
+  it('Artisanat : matériaux hors de la bourse, même raison au volet et au geste', () => {
+    const seam = buildSeam();
+    const forgeron = seam.party[1];
+    viderLaBourse(forgeron.id);
+    const ouvrage = craftCatalog()[0];
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: forgeron.id, pane: 'craft', choix: ouvrage.id } }} />);
+    const banniere = raisonDId(html, 'pane-craft-start-blocked');
+    expect(banniere).toMatch(/^Matériaux trop chers \(.+\) pour la bourse de Forgeron\.$/);
+    lieeALaBanniere(html, 'pane-craft-start');
+    expect(raisonDuGeste(() => useGame.getState().interludeCraftStart(forgeron.id, ouvrage.id, [], []))).toEqual([banniere]);
+  });
+
+  it('Banque, Bronze à la bourse courte : chaque dépôt dit SON refus, comme son geste', () => {
+    const seam = buildSeam();
+    const forgeron = seam.party[1];
+    viderLaBourse(forgeron.id);
+    const catalog = ACTIVITIES.filter((a) => a.resolver === 'mecenat');
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), catalog, openPane: { heroId: forgeron.id, pane: 'bank' } }} />);
+    expect(raisonDId(html, 'pane-bank-blocked'), 'la bannière : la bourse').toBe('La bourse de Forgeron ne couvre pas ce dépôt.');
+    expect(raisonDId(html, 'interlude-bank-invest-reason'), 'Investir : le Statut').toBe('Forgeron : investir en banque exige le Statut Argent ou Or.');
+    expect(raisonDId(html, 'interlude-bank-mecenat-reason'), 'Mécénat : le lieu').toBe('Le Mécénat ne se pratique pas ici.');
+    expect(raisonDuGeste(() => useGame.getState().interludeBank(forgeron.id, 'invest', 120))).toEqual(['Forgeron : investir en banque exige le Statut Argent ou Or.']);
+    expect(raisonDuGeste(() => useGame.getState().interludeBank(forgeron.id, 'stash', 120))).toEqual(['La bourse de Forgeron ne couvre pas ce dépôt.']);
+    expect(raisonDuGeste(() => useGame.getState().interludeBank(forgeron.id, 'mecenat', 120))).toEqual(['Le Mécénat ne se pratique pas ici.']);
+  });
+
+  it('Banque : l’investissement Bronze dit la raison du noyau ; le dépôt prévu est celui que rabote l’Événement', () => {
+    const seam = buildSeam();
+    const forgeron = seam.party[1];
+    const itl = useGame.getState().interlude!;
+    itl.perHero[forgeron.id] = { ...itl.perHero[forgeron.id], fx: { bankPct: -20 } };
+    useGame.setState({ interlude: { ...itl } });
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: forgeron.id, pane: 'bank' } }} />);
+    expect(raisonDId(html, 'interlude-bank-invest-reason')).toBe('Forgeron : investir en banque exige le Statut Argent ou Or.');
+    expect(mdToPlain(html)).toContain('dépôt prévu : 8/–');
+    const avant = useGame.getState().bank.length;
+    const bourse = () => toBrass(bourseOf(useGame.getState().party.find((h) => h.id === forgeron.id)!));
+    const bourseAvant = bourse();
+    useGame.getState().interludeBank(forgeron.id, 'stash', 120);
+    expect(useGame.getState().bank.slice(avant).map((d) => d.brass), 'le geste dépose ce que le volet annonce').toEqual([96]);
+    expect(bourseAvant - bourse(), 'la bourse paie le montant saisi').toBe(120);
   });
 });

@@ -256,7 +256,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     });
 
     it('Test raté MAIS 1 Point de Destin (LDB 17 l.29-37) → sauvé in extremis, pas mort', () => {
-      const { c, tick } = toxine({ fate: 1, wounds: { current: 0, max: 10 } });
+      const { c, tick } = toxine({ fate: 1, wounds: blessuresDeBase(10, 0) });
       const log = applique(c, tick, { success: false }, desDuTest);
       expect(c.dead).toBeFalsy();
       expect(c.fate).toBe(0);
@@ -305,7 +305,7 @@ import { applyOps } from './ops';
 const fullSick = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
   id: 'p', label: 'Cobaye', kind: 'hero',
   characteristics: { endurance: 40, agilite: 40, sociabilite: 35 },
-  wounds: { current: 12, max: 12 }, items: [], diseases: [],
+  wounds: blessuresDeBase(12), items: [], diseases: [],
   ...over,
 });
 
@@ -385,6 +385,7 @@ describe('MSRC 16 — Vers du Reik : −10 Soc GATÉ visibilité (l.140) + écla
 import { activeDiseaseTestMod } from './disease';
 import { dropExpiredGrantedTraits } from './grantedTraits';
 import { deFixe, desDuTest, desEnSuite } from './dice.testkit';
+import { blessuresDeBase } from './characteristics';
 
 describe('MSRC 16 — Vers de carie : Traits de table PERMANENTS (l.103)', () => {
   it('grantTrait SANS durée = effet permanent → survit à la guérison + à un balayage d’effets expirés', () => {

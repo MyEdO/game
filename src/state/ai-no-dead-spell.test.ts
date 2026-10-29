@@ -13,6 +13,7 @@ import { spells } from '../data';
 import { spellActionValue, spellIsOffensive, type SpellPlacement } from '../noyau/monde/aiSpellValue';
 import { spellOps } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const chars = (v: number) => ({ 'capacite-de-combat': v, 'capacite-de-tir': v, force: v, endurance: v, initiative: v, agilite: v, dexterite: v, intelligence: v, 'force-mentale': v, sociabilite: v });
 const MELEE = { label: 'Épée', type: 'melee' as const, damage: { plusBF: true, flat: 4 }, qualities: [] };
@@ -21,21 +22,21 @@ const ARM0 = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 /** Lanceur ARMÉ + ENTAMÉ (pour valoriser un auto-soin/healCaster), FM/Int hautes (Projectiles chiffrables). */
 const caster = (): Combatant => ({
   id: 'caster', label: 'Lanceur', kind: 'enemy',
-  characteristics: { ...chars(40), 'force-mentale': 60, intelligence: 60 }, wounds: { current: 4, max: 14, base: 14 },
+  characteristics: { ...chars(40), 'force-mentale': 60, intelligence: 60 }, wounds: blessuresDeBase(14, 4),
   advantage: 0, conditions: [], weapons: [MELEE], armour: { ...ARM0 }, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 },
 } as Combatant);
 
 /** Cible ennemie de référence — porte les `onlyGroups` requis par les ops de dégâts du sort (placement pertinent). */
 const enemyTarget = (groups: string[]): Combatant => ({
   id: 'foe', label: 'Cible', kind: 'hero', characteristics: { ...chars(30) },
-  wounds: { current: 12, max: 12, base: 12 }, advantage: 0, conditions: [], weapons: [MELEE], armour: { ...ARM0 },
+  wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [MELEE], armour: { ...ARM0 },
   skills: [], talents: [], movement: 4, pos: { x: 2, y: 0 }, groups,
 } as Combatant);
 
 /** Allié entamé (pour les sorts de soin de cible). */
 const woundedAlly = (): Combatant => ({
   id: 'ally', label: 'Allié', kind: 'enemy', characteristics: { ...chars(35) },
-  wounds: { current: 2, max: 14, base: 14 }, advantage: 0, conditions: [], weapons: [MELEE], armour: { ...ARM0 },
+  wounds: blessuresDeBase(14, 2), advantage: 0, conditions: [], weapons: [MELEE], armour: { ...ARM0 },
   skills: [], talents: [], movement: 4, pos: { x: 1, y: 0 },
 } as Combatant);
 

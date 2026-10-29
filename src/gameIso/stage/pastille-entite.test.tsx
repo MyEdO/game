@@ -18,7 +18,9 @@ import { itemFromTrappingById } from '../../engine/items';
 import { ACTIONS, type ActionDef } from '../../data/index';
 import { ACTION_CANDIDATES, ACTION_PORTEURS } from '../../noyau/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
+import { combattantDeTest } from '../../engine/combattantDeTest.testkit';
 import type { Scene } from '../../noyau/monde/scene';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 /**
  * LES PASTILLES D'ENTITÉ (#1411 P2-C, spec HUD combat zone 4) — « le geste vit sur ce qui l'offre » :
@@ -43,11 +45,10 @@ const CHARS = {
 };
 
 const hero = (id: string, pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
-  ({
-    id, label: id, name: id, kind: 'hero', pos, size: 'moyenne', characteristics: CHARS,
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], weapons: [], items: [],
-    skills: [], talents: [], armour: {}, movement: 4, loaded: true, ...over,
-  }) as unknown as Combatant;
+  combattantDeTest({
+    id, label: id, kind: 'hero', pos, size: 'moyenne', characteristics: CHARS,
+    wounds: blessuresDeBase(12), items: [], ...over,
+  });
 
 const combat = (combatants: Combatant[], over: Partial<BattleState> = {}): BattleState =>
   ({
@@ -142,8 +143,7 @@ function svgTémoin(el: HTMLElement): { svg: SVGSVGElement; capture: ReturnType<
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId)!, crewIds });
 
 const mkHull = (postes: ShipPoste[], pos = { x: 4, y: 3 }): Combatant =>
-  ({ id: 'hull', label: 'Bélier', name: 'Bélier', kind: 'enemy', pos, conditions: [], weapons: [],
-    inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes }) as unknown as Combatant;
+  combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'enemy', pos, inert: true, wounds: blessuresDeBase(0), postes });
 
 /** Une scène portant un TAS d'objets ramassables adjacent au héros. */
 function sceneAvecTas(nb: number): Scene {

@@ -32,7 +32,7 @@ import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 // Type SEUL (effacé à la compilation — aucun cycle runtime) : `StakeRef` est la forme canonique de la
 // zone d'enjeu, et la redéclarer ici serait la 2ᵉ source du même vocabulaire que #1117 combat.
 import type { StakeRef } from '../data';
-import { statusOf, statusMeets } from './social';
+import { actorStatus, statusMeets, type PorteurDeStatut } from './social';
 import { gelerLaConstante } from '../lib/gelerProfond';
 
 /** Fenêtre horaire d'un trigger/Condition (heure-du-jour, `before` EXCLUSIF). Champs absents = borne
@@ -247,7 +247,9 @@ export interface ConditionCtx {
     skills?: { id: string; spec?: string; advances?: number }[];
     /** Carrière/espèce/niveau de carrière courants (#711 `career`/`species`/`status`) — bruts,
      *  comme `Combatant.career`/`species`/`careerLevel`. */
-    career?: string; species?: string; careerLevel?: number }[];
+    career?: string; species?: string; careerLevel?: number;
+    /** Effets actifs (`statusMod` : Standing temporaire lu par `actorStatus`). */
+    activeEffects?: PorteurDeStatut['activeEffects'] }[];
   money?: Purse;
   /** ÉTATS DE CAMPAGNE posés (`GameState.etats` : id d'état → id de héros ou de valeur) — lus par la
    *  Condition `etat` et le sélecteur `{etat}`. Absent → aucun état n'est défini. */
@@ -403,7 +405,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
         refCouvre({ id: cond.id, spec: cond.spec }, s) && (s.advances ?? 0) >= (cond.advances ?? 0)));
     case 'career': return matchParty(ctx, cond.who ?? 'any', (m) => m.career === cond.id);
     case 'species': return matchParty(ctx, cond.who ?? 'any', (m) => m.species === cond.id);
-    case 'status': return matchParty(ctx, cond.who ?? 'any', (m) => statusMeets(statusOf(m.career, m.careerLevel), cond.atLeast));
+    case 'status': return matchParty(ctx, cond.who ?? 'any', (m) => statusMeets(actorStatus(m), cond.atLeast));
     case 'all': return cond.of.every((c) => evalCondition(c, ctx));
     case 'any': return cond.of.some((c) => evalCondition(c, ctx));
     case 'not': return !evalCondition(cond.of, ctx);

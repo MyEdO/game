@@ -13,6 +13,8 @@ import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 import { applyNetSnapshot } from './netFlow';
 import { instantaneDeLaCoop } from '../noyau/coop';
 import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
@@ -21,7 +23,7 @@ const MJ = 0;
 const INVITE = 1;
 
 const hero = (id: string): Combatant =>
-  ({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: { current: 12, max: 12 }, conditions: [], movement: 4 }) as unknown as Combatant;
+  combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
 const pris = (id: string): SeatOccupant => ({ kind: 'entity', entityId: id });
 const occupants = (sc: Scene) => Object.values(sc.seatAssignments ?? {}).flatMap((m) => Object.values(m));

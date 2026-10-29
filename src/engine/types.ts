@@ -12,6 +12,21 @@ import type { ArmourBypass } from '../data/schemas/grammaire/mecanique';
 import type { ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
 
+declare const MAXIMUM_DES_BLESSURES: unique symbol;
+/**
+ * Le maximum de Blessures DÉRIVÉ d'un porteur (#1463) : `blessuresDeBase` et `blessuresReconciliees`
+ * (`engine/characteristics.ts`) le forgent. Le type refuse un nombre posé à la main (littéral, spread
+ * sans cast) et l'affectation (`readonly`) ; le lint `murs/marques` (`oxlint.config.mjs`) refuse le cast
+ * qui NOMME la marque (`x as MaximumDesBlessures`, `<MaximumDesBlessures>x`, alias de type).
+ *
+ * TROIS LIMITES ASSUMÉES — ce que NI le type NI le lint ne couvrent, le sélecteur filtrant par NOM :
+ *  1. `Object.assign(c.wounds, { max })` : la cible n'est pas lue au type de la marque ;
+ *  2. le cast de l'objet par type INDEXÉ, `{ ...c.wounds, max } as Combatant['wounds']` ;
+ *  3. le cast du champ par type INDEXÉ, `n as Combatant['wounds']['max']`.
+ * Dans ces cas c'est la relecture du site qui couvre, pas le compilateur. Sonde `built-brand-lint.test.ts`.
+ */
+export type MaximumDesBlessures = number & { readonly [MAXIMUM_DES_BLESSURES]: true };
+
 /** Libellés d'AFFICHAGE de l'axe d'Allonge, PAR id d'axe (`ReachId`, `engine/items.ts` — LDB 62
  *  l.156-164). Toute LOGIQUE d'Allonge passe par `reachIdOf`/`reachRankOf`, jamais par ce libellé. */
 export const REACH_LABELS = {
@@ -819,7 +834,7 @@ export interface ActiveEffect {
   /** PA temporisés à une Localisation précise (op `ap` avec `loc`) — lus par effectiveArmourAt. */
   apAt?: Partial<Record<HitLocation, number>>;
   /** Modificateur TEMPORAIRE de Standing (op `statusMod` — LDB 23 l.228-234 « Réputation » : +1/+2/−1
-   *  « pour la prochaine aventure »). Composé par `heroStatus` (interludeFlow.ts). `duration` porte
+   *  « pour la prochaine aventure »). Composé par `actorStatus` (engine/social.ts). `duration` porte
    *  presque toujours `{scale:'adventure'}` (purgé à l'interlude SUIVANT). */
   statusMod?: number;
   /** Jeton d'INVERSION de Test CONSOMMABLE « pour votre prochaine aventure » (op `grantReverseToken` —
@@ -1576,8 +1591,9 @@ export interface Combatant {
   dispelledThisRound?: boolean;
   characteristics: Characteristics;
   /** Points de Blessure. `base` = Blessures à vide (snapshot/surcharge au spawn) ; `max` dynamique
-   *  = base + delta des buffs F/E/FM × Taille (cf. effectiveMaxWounds) ; `current` = PB restants. */
-  wounds: { current: number; max: number; base?: number };
+   *  = base + delta des buffs F/E/FM × Taille (cf. effectiveMaxWounds) ; `current` = PB restants.
+   *  `max` est marqué (`MaximumDesBlessures`) : il ne s'écrit que par ses fabriques (#1463). */
+  wounds: { current: number; readonly max: MaximumDesBlessures; base?: number };
   advantage: number;
   conditions: ConditionInstance[];
   /** Armes/armure ACTIVES (dérivées de l'équipement) — utilisées en combat. */

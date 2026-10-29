@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Combatant } from '../engine/types';
-import { Money } from '../engine/money';
+import { Money, libelleDEchelon } from '../engine/money';
+import { actorStatus } from '../engine/social';
 import { CharacterPreview } from './CharacterPreview';
 import { OrnateFrame } from './Ornaments';
 import { Icon } from './Icon';
@@ -10,7 +11,7 @@ import { RoseAxes, type RoseAxisValue } from './RoseAxes';
 import { MetalStatus } from './MetalStatus';
 import { WaxSeal } from './WaxSeal';
 import { EntityRef } from './EntityChip';
-import { speciesSingular, careerLabelFor, skillInstanceLabel, talentConcrete, allAxes, levelsForCareer, coreAxisIds, type AxisData } from '../data';
+import { speciesSingular, careerLabelFor, skillInstanceLabel, talentConcrete, allAxes, coreAxisIds, type AxisData } from '../data';
 import { dominantAxes, axesProfile } from '../engine/axes';
 import { t } from '../i18n';
 import { GatedAction } from './GatedAction';
@@ -38,12 +39,10 @@ export function heroHook(hero: Combatant): string | undefined {
   return hero.details?.ambitionShort || hero.motivation || undefined;
 }
 
-/** Statut « Échelon Standing » AFFICHÉ (« Bronze 2 ») — MÊME lookup que `heroStatus`
- *  (`noyau/interludeFlow.ts`), la forme texte brute pour `MetalStatus` (#417). */
+/** Statut « Échelon Standing » AFFICHÉ (« Bronze 2 ») du héros, lu sur `actorStatus`, pour `MetalStatus` (#417). */
 export function heroStatusLabel(hero: Combatant): string {
-  const levels = levelsForCareer(hero.career ?? '');
-  const lvl = levels[Math.max(0, (hero.careerLevel ?? 1) - 1)];
-  return lvl?.status ?? 'Bronze 1';
+  const { tier, standing } = actorStatus(hero);
+  return `${libelleDEchelon(tier)} ${standing}`;
 }
 
 /** Résout des ids d'axes en `AxisData[]`, dans l'ORDRE fourni (ids inconnus écartés). */

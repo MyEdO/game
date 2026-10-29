@@ -5,6 +5,8 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * F3 (recette 2026-07-11, #345) — VERROU de l'ordonnancement, éprouvé PAR LE VRAI CHEMIN : `checkBattleOver`
@@ -23,10 +25,10 @@ const set = useGame.setState;
 /** Ennemi GÉNÉRIQUE (ne suit PAS les règles de Personnage) : sa mort n'ouvre AUCUNE cascade de fin de
  *  combat — on isole ainsi la SEULE cascade de Surprise. Vivant (embusqueur) au moment d'`applySurprise`. */
 const ambusher = (over: Partial<Combatant> = {}): Combatant =>
-  ({ id: 'e', kind: 'enemy', name: 'Bandit',
+  combattantDeTest({ id: 'e', kind: 'enemy', label: 'Bandit',
     characteristics: { agilite: 40, perception: 30, endurance: 30, initiative: 30 } as never,
-    wounds: { current: 10, max: 10 }, dead: false, conditions: [], skills: [], items: [], weapons: [],
-    movement: 4, advantage: 0, traits: [], ...over } as unknown as Combatant);
+    wounds: blessuresDeBase(10), dead: false, conditions: [], skills: [], items: [], weapons: [],
+    movement: 4, advantage: 0, traits: [], ...over });
 
 /** Marque tous les ennemis debout comme MORTS (état d'ENTITÉ, dégâts encaissés — PAS l'état interne d'une
  *  cascade) : simule le dernier coup létal APRÈS l'établissement de la Surprise. */

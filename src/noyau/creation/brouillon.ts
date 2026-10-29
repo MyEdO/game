@@ -650,10 +650,13 @@ export function careerTalentOptions(d: CreatorDraft): { ref: RefASpecialisation;
 }
 
 // ── 5) Possessions ──
-/** Le Statut du Niveau choisi ; Bronze 0 sans Niveau. */
+/** Statut d'un brouillon dont aucun Niveau n'est encore choisi : il ne gagne rien (`draftWealth`). */
+const STATUT_SANS_NIVEAU: Status = { tier: 'bronze', standing: 0 };
+
+/** Le Statut du Niveau choisi, ou `STATUT_SANS_NIVEAU`. */
 export function draftStatus(d: CreatorDraft): Status {
   const lvl = draftLevel(d);
-  return lvl ? statutDeDonnee(lvl.status) : { tier: 'bronze', standing: 0 };
+  return lvl ? statutDeDonnee(lvl.status) : STATUT_SANS_NIVEAU;
 }
 /** La bourse — faces et montant d'UN tirage, PUR/déterministe (`d.seed`), jamais une relance (LDB 05 :
  *  un seul jet). La ceinture d'agentivité (`wealthRoll`, geste requis avant affichage) vit dans l'UI. */

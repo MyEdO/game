@@ -18,17 +18,18 @@ import type { Combatant } from '../engine/types';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import { desDuTest } from '../engine/dice.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 const KIND = cleDeFixture('sonde-siege-invite');
 
 const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  combattantDeTest({
     id, label: `Héros ${id}`, kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     skills: [{ id: 'resistance', characteristic: 'endurance', advances: 20 }],
     conditions: [], talents: [], fortune: 1, resilience: 1,
     ...over,
-  }) as unknown as Combatant;
+  });
 
 const req = (actorId: string): RollRequest => ({
   side: { actorId },

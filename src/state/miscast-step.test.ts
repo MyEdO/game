@@ -12,7 +12,7 @@ import {
 } from '../engine/miscast';
 import { hasBookMarker } from '../data/bookMarker';
 import { hasCondition } from '../engine/conditions';
-import { bonus, effectiveChar } from '../engine/characteristics';
+import { bonus, effectiveChar, blessuresDeBase } from '../engine/characteristics';
 import { corruptionThresholdExceeded } from '../engine/corruption';
 import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { setRule, resetRule } from '../engine/policy';
@@ -62,8 +62,7 @@ function joueEnRetenant(max = 30): { des: number[]; lignes: string[] } {
 
 function mageSolo(seed = 3): Combatant {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed });
-  h.wounds.max = 200;
-  h.wounds.current = 200;
+  h.wounds = blessuresDeBase(200);
   useGame.setState({ battle: null, party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [] });
   return useGame.getState().party[0];
 }

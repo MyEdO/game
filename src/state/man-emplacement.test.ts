@@ -12,6 +12,8 @@ import type { Combatant, ShipPoste, FireArc } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
 import { initialNet } from '../noyau/etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * « SERVIR CETTE PIÈCE » (manning runtime, MDG 12-13) — l'action de combat KIND-AGNOSTIQUE par laquelle
@@ -30,25 +32,25 @@ const CHARS = (CT = 75) =>
   ({ 'capacite-de-combat': 30, 'capacite-de-tir': CT, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
 
 const mkActor = (id: string, kind: 'hero' | 'npc' | 'enemy', pos: { x: number; y: number }, CT = 75): Combatant =>
-  ({
-    id, name: id, kind, characteristics: CHARS(CT),
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [], weapons: [],
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos, loaded: true,
-  }) as unknown as Combatant;
+  combattantDeTest({
+    id, label: id, kind, characteristics: CHARS(CT),
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [], weapons: [],
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos,
+  });
 
 const mkCrewman = (id: string, alive = true): Combatant =>
-  ({ id, name: id, kind: 'npc', conditions: [], weapons: [], skills: [], talents: [], characteristics: CHARS(30) as never,
-    dead: !alive, wounds: { current: alive ? 5 : 0, max: 5 } }) as unknown as Combatant;
+  combattantDeTest({ id, label: id, kind: 'npc', conditions: [], weapons: [], skills: [], talents: [], characteristics: CHARS(30) as never,
+    dead: !alive, wounds: blessuresDeBase(5, alive ? 5 : 0) });
 
 const mkEnemyTarget = (id: string, x: number, y: number, E = 30, wounds = 60): Combatant =>
-  ({ id, name: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
-    characteristics: { ...CHARS(0), endurance: E }, wounds: { current: wounds, max: wounds }, advantage: 0,
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant;
+  combattantDeTest({ id, label: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
+    characteristics: { ...CHARS(0), endurance: E }, wounds: blessuresDeBase(wounds), advantage: 0,
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
 
 /** Emplacement AU SOL : une SceneEntity NON-navire qui PORTE la pièce (`postes`). */
 const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
-  ({ id: 'emplacement', name: 'Affût de baliste', kind: 'enemy', pos, conditions: [], weapons: [],
-    inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste] }) as unknown as Combatant; // affût RAW-pur (AA 10 l.136-193) : 0 Blessure, immune
+  combattantDeTest({ id: 'emplacement', label: 'Affût de baliste', kind: 'enemy', pos, conditions: [], weapons: [],
+    inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] }); // affût RAW-pur (AA 10 l.136-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[] = [], side?: FireArc): ShipPoste =>
   ({ item: itemFromTrappingById(engineId)!, crewIds, ...(side ? { side } : {}) });

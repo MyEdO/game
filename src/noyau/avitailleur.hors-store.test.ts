@@ -11,6 +11,8 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { emptyScene } from './monde/scene';
 import { setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -59,7 +61,7 @@ describe('#220 — archétype avitailleur (registre)', () => {
  * vaut pour TOUT mode de marché : le mode simplifié / sans-Disponibilité passe par `fullStock`, qui
  * excluait les Exotiques SANS regarder le `curated` — l'Avitailleur perdait sa mitraille (Exotique).
  */
-const hero = (): Combatant => ({ id: 'h', name: 'H', items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
+const hero = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
 
 const sceneWithAvitailleur = (marketMode?: string) => {
   const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';

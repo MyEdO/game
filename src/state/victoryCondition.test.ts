@@ -5,6 +5,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { structureIsDown, structureDownKey } from '../noyau/monde/scene';
 import type { Scene } from '../noyau/monde/scene';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * OBJECTIF de victoire authorable (#197) — `checkBattleOver` ne se rabat plus systématiquement sur
@@ -118,7 +119,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       startFixtureCombat();
       const b = useGame.getState().battle!;
       const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
-      enemy.wounds = { current: 4, max: 10 }; // 40% < 50%
+      enemy.wounds = blessuresDeBase(10, 4); // 40% < 50%
       useGame.setState({
         battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, belowPercent: 50 } },
       });
@@ -135,7 +136,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       startFixtureCombat();
       const b = useGame.getState().battle!;
       const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
-      enemy.wounds = { current: 8, max: 10 }; // 80% ≥ 50%
+      enemy.wounds = blessuresDeBase(10, 8); // 80% ≥ 50%
       useGame.setState({
         battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, belowPercent: 50 } },
       });
@@ -150,7 +151,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       startFixtureCombat();
       const b = useGame.getState().battle!;
       const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
-      enemy.wounds = { current: 0, max: 10 };
+      enemy.wounds = blessuresDeBase(10, 0);
       enemy.dead = true;
       useGame.setState({
         battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, belowPercent: 50 } },

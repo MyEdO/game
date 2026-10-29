@@ -9,6 +9,7 @@ import type { Combatant } from '../engine/types';
 import { recomputeLoadout } from '../engine/items';
 import type { RNG } from '../engine/dice';
 import { desEnSuite } from '../engine/dice.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * #38 — BRANCHEMENTS runtime du système ALTERNATIF de Blessures d'Aux Armes (`combat-aa-blessures=aa`).
@@ -55,7 +56,7 @@ describe('#38 — branchements AA au site de résolution (applyCriticalToTarget)
   it('Coup Critique sur DOUBLE même avec PB restants (l.29) : crit appliqué, il reste des Blessures', () => {
     seedBattleRng(1);
     setRule('combat-aa-blessures', 'aa');
-    const target = mk({ wounds: { current: 10, max: 10 } });
+    const target = mk({ wounds: blessuresDeBase(10) });
     // Coup Critique (double) sans overkill : la cible a 10 PB → le Critique s'applique quand même.
     const crit = resolveCritique('aa', target, 'brasD', seq(25), { overkill: 0 }); // 1 Blessure supplémentaire
     applyCriticalToTarget(target, 'brasD', 0, [], noop, { prerolled: crit, get: getStub });
@@ -126,13 +127,13 @@ describe('#38 — mort par accumulation de Blessures Critiques (inDeathCondition
   afterEach(() => resetRule('combat-aa-blessures'));
 
   const dying = (cw: number): Combatant =>
-    mk({ wounds: { current: 0, max: 10 }, conditions: [{ id: 'inconscient', value: 1 }] as never, criticalWounds: cw });
+    mk({ wounds: blessuresDeBase(10, 0), conditions: [{ id: 'inconscient', value: 1 }] as never, criticalWounds: cw });
 
   it('mode AA : Inconscient + 0 PB + Blessures Critiques > BE → mort (route par aaDeathByCriticalCount)', () => {
     setRule('combat-aa-blessures', 'aa');
     expect(inDeathCondition(dying(4))).toBe(true);   // 4 > BE 3
     expect(inDeathCondition(dying(3))).toBe(false);  // 3 n’est pas > 3
-    expect(inDeathCondition(mk({ wounds: { current: 5, max: 10 }, conditions: [{ id: 'inconscient', value: 1 }] as never, criticalWounds: 4 }))).toBe(false); // PB > 0
+    expect(inDeathCondition(mk({ wounds: blessuresDeBase(10, 5), conditions: [{ id: 'inconscient', value: 1 }] as never, criticalWounds: 4 }))).toBe(false); // PB > 0
   });
 
   it('même formule qu’en LDB (l.34 ≡ l.73) : comportement identique', () => {

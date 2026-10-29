@@ -1,22 +1,24 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import type { Combatant } from '../engine/types';
+import type { Combatant, ItemInstance } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const w = (uid: string, label: string): unknown =>
-  ({ uid, label, kind: 'melee', qualities: [], enc: 1, equipped: true, hands: 1, damage: { plusBF: true, flat: 4 } });
+const w = (uid: string, label: string): ItemInstance =>
+  ({ uid, label, kind: 'melee', qualities: [], enc: 1, equipped: true, hands: 1, damage: { plusBF: true, flat: 4 } }) as ItemInstance;
 
 const hero = (): Combatant =>
-  ({
+  combattantDeTest({
     id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 },
-    conditions: [], wounds: { current: 12, max: 12 }, advantage: 0,
+    conditions: [], wounds: blessuresDeBase(12), advantage: 0,
     items: [w('e', 'Épée'), w('ha', 'Hache')],
-    loadouts: [{ id: 'lo-epee', name: 'Épée', main: 'e' }, { id: 'lo-hache', name: 'Hache', main: 'ha' }],
+    loadouts: [{ id: 'lo-epee', main: 'e' }, { id: 'lo-hache', main: 'ha' }],
     activeLoadoutId: 'lo-epee',
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-  } as unknown as Combatant);
+  });
 
 const setBattle = (over: Partial<{ loadoutSwapped: boolean }> = {}) =>
   banc.setState({

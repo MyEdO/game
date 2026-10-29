@@ -5,6 +5,7 @@ import { traumaById, dechirureFractureFicheId } from './trauma';
 import type { HitLocation } from './types';
 const tk = (k: 'dechirure' | 'fracture', s: 'mineur' | 'majeur', loc: HitLocation, opts?: { be?: number; d10?: number }) => traumaById(dechirureFractureFicheId(k, s, loc), opts, loc);
 import type { Combatant } from './types';
+import { blessuresDeBase } from './characteristics';
 
 function baseCombatant(over: Partial<Combatant> = {}): Combatant {
   return {
@@ -43,7 +44,7 @@ describe('persistence — classement RAW des États', () => {
 describe('persistence — carryOverState', () => {
   it('conserve Blessures, critiques, mort et les États persistants ; jette le transitoire', () => {
     const c = baseCombatant({
-      wounds: { current: 4, max: 12 },
+      wounds: blessuresDeBase(12, 4),
       conditions: [{ id: 'hemorragique', value: 2 }, { id: 'surpris', value: 1 }, { id: 'extenue', value: 1 }],
       criticalWounds: 1, roundsAtZero: 0, dead: false, outOfRencontre: false,
     });

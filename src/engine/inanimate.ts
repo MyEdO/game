@@ -14,6 +14,7 @@
 import type { Combatant, Characteristics, BodyShape } from './types';
 import type { TraitList } from './statEntry';
 import { emptyArmour } from './items';
+import { blessuresDeBase } from './characteristics';
 
 const ZERO_CHARS: Characteristics = { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 };
 
@@ -52,7 +53,7 @@ export function inanimateCombatant(s: InanimateSpec): Combatant {
     kind: 'npc',
     creatureId: s.refId,
     characteristics: { ...ZERO_CHARS, endurance: s.hull?.e ?? 0 },
-    wounds: { current: max, max, base: max },
+    wounds: blessuresDeBase(max),
     advantage: 0,
     conditions: [],
     weapons: [],

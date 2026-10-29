@@ -11,6 +11,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { findSpellById, type SpellData } from '../data';
 import { isDispellableSpell } from '../engine/magic';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
@@ -104,8 +105,8 @@ describe('chooseEnemyAction — soin & anti-spam (op-driven)', () => {
 
   it('SOIGNE l’allié le plus BAS (PB manquants) et PAS un allié plein', () => {
     const e = caster('e', { x: 5, y: 5 }, { weapons: [] });
-    const hurt = caster('a-hurt', { x: 6, y: 5 }, { wounds: { current: 2, max: 12, base: 12 } });
-    const full = caster('a-full', { x: 4, y: 5 }, { wounds: { current: 12, max: 12, base: 12 } });
+    const hurt = caster('a-hurt', { x: 6, y: 5 }, { wounds: blessuresDeBase(12, 2) });
+    const full = caster('a-full', { x: 4, y: 5 }, { wounds: blessuresDeBase(12) });
     const h = foeAt('h', 5, 14); // héros LOIN → soin gagne
     const a = chooseEnemyAction(input(e, [h], { squad: [hurt, full], spells: [healSpell] }));
     expect(a.kind).toBe('cast');
@@ -114,7 +115,7 @@ describe('chooseEnemyAction — soin & anti-spam (op-driven)', () => {
 
   it('rien à soigner (allié plein) → soin de valeur 0 → repli ATTAQUE (mêlée au contact)', () => {
     const e = caster('e', { x: 5, y: 5 }, { weapons: [MELEE] });
-    const ally = caster('a', { x: 4, y: 5 }, { wounds: { current: 12, max: 12, base: 12 } });
+    const ally = caster('a', { x: 4, y: 5 }, { wounds: blessuresDeBase(12) });
     const h = foeAt('h', 5, 6); // au contact → attaque utile
     const a = chooseEnemyAction(input(e, [h], { squad: [ally], spells: [healSpell] }));
     expect(a).toEqual({ kind: 'melee', targetId: 'h' });
@@ -129,7 +130,7 @@ describe('chooseEnemyAction — soin & anti-spam (op-driven)', () => {
 
   it('FRÉNÉSIE : aucun sort de soutien lancé (le frénétique ne lance RIEN, LDB 21 l.33)', () => {
     const e = caster('e', { x: 5, y: 5 }, { psychState: [{ type: 'frenesie' }] } as Partial<Combatant>);
-    const ally = caster('a', { x: 6, y: 5 }, { wounds: { current: 1, max: 12, base: 12 } });
+    const ally = caster('a', { x: 6, y: 5 }, { wounds: blessuresDeBase(12, 1) });
     const h = foeAt('h', 5, 6);
     expect(chooseEnemyAction(input(e, [h], { squad: [ally], spells: [healSpell] })).kind).not.toBe('cast');
   });

@@ -42,6 +42,7 @@ import { applyOps } from '../engine/ops';
 import { desDuTest } from '../engine/dice.testkit';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /** Porteur sans séquelle. */
 const hero38 = (): Combatant => combattantDeTest({ id: 'h', label: 'H', kind: 'hero', traumas: [] });
@@ -50,7 +51,7 @@ const hero38 = (): Combatant => combattantDeTest({ id: 'h', label: 'H', kind: 'h
 const heroCritique = (): Combatant => combattantDeTest({
   id: 'h', label: 'H', kind: 'hero', traumas: [],
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40 },
-  wounds: { current: 6, max: 12 }, bodyShape: 'humanoide', critEntriesSuffered: [],
+  wounds: blessuresDeBase(12, 6), bodyShape: 'humanoide', critEntriesSuffered: [],
 });
 
 describe('Sauvegarde / chargement (Jalon 5)', () => {
@@ -359,7 +360,7 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
     const lue = {
       ...save(FORMAT_SAVE),
       rules: { [r.id]: !r.default, 'regle-hors-registre': true, [autre.id]: 'texte' },
-      data: { party: [{ id: 'h', label: 'H', kind: 'hero', conditions: [{ id: connu, value: 1 }, { id: 'etat-hors-registre', value: 1 }] }] },
+      data: { party: [combattantDeTest({ id: 'h', label: 'H', kind: 'hero', conditions: [{ id: connu, value: 1 }, { id: 'etat-hors-registre', value: 1 }] })] },
     };
     ls().setItem(stableKey(1), JSON.stringify(lue));
     expect(lireLaSauvegarde(stockageDesSauvegardes(), 1), 'la dérive du registre ne jette pas la save').not.toBeNull();
@@ -374,7 +375,7 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
 
   it('chargerLaSave : une save que le registre reconnaît entière ne perd rien, et ne dit rien', () => {
     const r = OPTIONAL_RULES[0];
-    const entiere = { ...save(FORMAT_SAVE), rules: { [r.id]: r.default }, data: { party: [{ id: 'h', conditions: [{ id: conditionIds()[0], value: 1 }] }] } } as unknown as SaveGame;
+    const entiere = { ...save(FORMAT_SAVE), rules: { [r.id]: r.default }, data: { party: [combattantDeTest({ id: 'h', conditions: [{ id: conditionIds()[0], value: 1 }] })] } } as unknown as SaveGame;
     const chargee = chargerLaSave(entiere);
     expect(chargee.retraits).toBeNull();
     expect(chargee.regles).toEqual(entiere.rules);

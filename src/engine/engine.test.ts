@@ -3,7 +3,7 @@ import { makeRNG } from './dice';
 import { addCondition, combatTestPenalty, meleeAttackerBonus, cannotDefend } from './conditions';
 import { parseQualityInstance } from './qualities/normalize';
 import { evaluateTest, resolveOpposed } from './tests';
-import { bonus, maxWounds } from './characteristics';
+import { bonus, maxWounds, blessuresDeBase } from './characteristics';
 import { effectiveWeaponDamage } from './weaponDamage';
 import {
   reverseRoll,
@@ -305,7 +305,7 @@ describe('Avantage en combat (LDB Déplacement l.37 : +10 par point)', () => {
     label: 'c',
     kind: 'enemy',
     characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 },
+    wounds: blessuresDeBase(10),
     advantage,
     conditions: [],
     weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],
@@ -454,7 +454,7 @@ function dummy(name: string, chars: Partial<Characteristics>, wounds: number, we
     label: name,
     kind: 'enemy',
     characteristics: { ...base, ...chars },
-    wounds: { current: wounds, max: wounds },
+    wounds: blessuresDeBase(wounds),
     advantage: 0,
     conditions: [],
     weapons: [weapon],
@@ -570,7 +570,7 @@ function caster(chars: Partial<Characteristics>, skills: SkillInstance[] = [], w
     label: 'Mage',
     kind: 'hero',
     characteristics: { ...base, ...chars },
-    wounds: { current: wounds, max: wounds },
+    wounds: blessuresDeBase(wounds),
     advantage: 0,
     conditions: [],
     weapons: [],

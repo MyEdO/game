@@ -21,6 +21,7 @@ import { assignSeat, seatPoseOf } from '../noyau/monde/seating';
 import { stockageDesSauvegardes } from './saves';
 import { lireLaSauvegarde } from '../hote/sauvegardes';
 import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 const TABLE = 'table-ronde-4-tabourets';
@@ -28,8 +29,7 @@ const PROP = 'table-1';
 /** Les places de la table, dans l'ordre du catalogue : une par rang, pour lire le résultat d'un œil. */
 const SLOT_DU_RANG = ['place-1', 'place-2', 'place-3', 'place-4'];
 
-const hero = (id: string): Combatant =>
-  ({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: { current: 12, max: 12 }, conditions: [], movement: 4 }) as unknown as Combatant;
+const hero = (id: string): Combatant => combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero', xp: 0 });
 
 const poseDe = (rang: number) => seatPoseOf(useGame.getState().scene!, { kind: 'party', rang });
 const placesDeGroupe = () =>

@@ -6,12 +6,13 @@ import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
 import { deFixe, desDuTest } from './dice.testkit';
 import { combattantDeTest } from './combattantDeTest.testkit';
+import { blessuresDeBase } from './characteristics';
 
 const fixed = deFixe;
 /** Porteur à 0 PB et Inconscient (LDB 16 l.105), ou à `pb` PB conscient. */
 function mk(stacks: number, pb = 0): Combatant {
   const conditions = [...(stacks ? [{ id: 'hemorragique', value: stacks }] : []), ...(pb ? [] : [{ id: 'inconscient', value: 1 }])];
-  return combattantDeTest({ label: 'X', wounds: { current: pb, max: 10 }, conditions });
+  return combattantDeTest({ label: 'X', wounds: blessuresDeBase(10, pb), conditions });
 }
 
 describe('bleedDeathRoll — mort par Hémorragique (LDB 16 l.105)', () => {
@@ -45,7 +46,7 @@ describe('bleedDeathRoll — mort par Hémorragique (LDB 16 l.105)', () => {
 
 /** Porteur de 2 Hémorragique : BE 3, 3 PB, aucune armure (fixture nommée « Ilyanwe saignée »). */
 function ilyanweSaignee(pb = 3): Combatant {
-  return combattantDeTest({ label: 'Ilyanwe', kind: 'hero', wounds: { current: pb, max: 18 }, conditions: [{ id: 'hemorragique', value: 2 }] });
+  return combattantDeTest({ label: 'Ilyanwe', kind: 'hero', wounds: blessuresDeBase(18, pb), conditions: [{ id: 'hemorragique', value: 2 }] });
 }
 
 describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {

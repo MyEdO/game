@@ -15,6 +15,7 @@ import { setDataset } from '../data/overrides';
 import type { Combatant } from '../engine/types';
 import type { SpellTarget } from '../engine/spellRange';
 import type { CastResult } from '../engine/magic';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const SPELL = 'regiment-monstrueux-de-merciw';
 
@@ -23,7 +24,7 @@ const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isC
 function caster(x: number, y: number, spellId: string, id = 'caster'): Combatant {
   const h = pregen(PREGEN.sorcier);
   h.id = id; h.label = id; h.pos = { x, y, z: 0 };
-  h.wounds = { ...h.wounds, max: 99, current: 99 };
+  h.wounds = blessuresDeBase(99);
   const sk = h.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 40);
   else h.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 40 } as never);

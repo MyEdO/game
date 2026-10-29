@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { applyExposureFailure, exposureNight, sealskinDR } from './exposure';
 import { makeRNG } from './dice';
 import type { Combatant } from './types';
+import { blessuresDeBase } from './characteristics';
 
 /**
  * Exposition CHALEUR (LDB 18 l.330) + peau de phoque au FROID (MDG 14 l.277-279) — le système unique
@@ -26,7 +27,7 @@ describe('applyExposureFailure — volet CHALEUR (LDB 18 l.330)', () => {
   });
 
   it('3e échec : 1d10 Blessures (ignore PA), pas d’Inconscient (spécifique au froid)', () => {
-    const c = dummy({ wounds: { current: 3, max: 12 } });
+    const c = dummy({ wounds: blessuresDeBase(12, 3) });
     const r = applyExposureFailure(c, 3, makeRNG(1), 'chaleur');
     expect(r.wounds).toBeGreaterThanOrEqual(1);
     expect((c.conditions ?? []).some((x) => x.id === 'inconscient')).toBe(false);

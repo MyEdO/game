@@ -22,6 +22,7 @@ import { hotbar } from '../state/hotbarBridge';
 import { campaignStart } from '../engine/clock';
 import type { Dialogue, DialogueNode } from '../noyau/monde/scene';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 function Harness() {
   useGameKeyboard();
@@ -108,7 +109,7 @@ describe('#1869 — les touches 1-9 choisissent la réponse NUMÉROTÉE', () => 
     hotbar.capacites = [{ actionId: 'attaquer', run: tire }];
     monter({
       mode: 'battle',
-      battle: { over: null, order: ['h1'], turn: 0, combatants: [{ id: 'h1', kind: 'hero' }] } as never,
+      battle: { over: null, order: ['h1'], turn: 0, combatants: [combattantDeTest({ id: 'h1', kind: 'hero' })] } as never,
     });
     frapper('Digit1');
     expect(choisis).toEqual([0]);
@@ -120,7 +121,7 @@ describe('#1869 — les touches 1-9 choisissent la réponse NUMÉROTÉE', () => 
     hotbar.capacites = [{ actionId: 'attaquer', run: tire }];
     monter({
       mode: 'battle', dialogue: null,
-      battle: { over: null, order: ['h1'], turn: 0, combatants: [{ id: 'h1', kind: 'hero' }] } as never,
+      battle: { over: null, order: ['h1'], turn: 0, combatants: [combattantDeTest({ id: 'h1', kind: 'hero' })] } as never,
     });
     frapper('Digit1');
     expect(tire).toHaveBeenCalledTimes(1);

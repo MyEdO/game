@@ -14,6 +14,8 @@ import type { Scene } from './monde/scene';
 import { desDuTest } from '../engine/dice.testkit';
 import { ligneDe } from '../engine/modLine.testkit';
 import { RULE_REF } from '../engine/ruleRefs';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -30,31 +32,31 @@ const CHARS = (over: Partial<Record<string, number>> = {}) =>
 
 /** Commandant (héros) — porte le Talent + une Compétence de Commandement (Soc). */
 const mkCommander = (id: string, pos: { x: number; y: number }, over: Partial<Record<string, number>> = {}, withTalent = true): Combatant =>
-  ({
-    id, name: id, kind: 'hero', characteristics: CHARS(over),
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], weapons: [],
+  combattantDeTest({
+    id, label: id, kind: 'hero', characteristics: CHARS(over),
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 30 }],
     talents: withTalent ? [{ talentId: 'commandant-d-equipe', times: 1 }] : [],
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos, loaded: true,
-  }) as unknown as Combatant;
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos,
+  });
 
 /** Chef de pièce (héros) servant une Arme d'équipe (baliste : `arme-d-equipe`). */
 const mkChief = (id: string, pos: { x: number; y: number }, over: Partial<Record<string, number>> = {}): Combatant =>
-  ({
-    id, name: id, kind: 'hero', characteristics: CHARS(over),
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [], weapons: [],
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos, loaded: true,
-  }) as unknown as Combatant;
+  combattantDeTest({
+    id, label: id, kind: 'hero', characteristics: CHARS(over),
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [], weapons: [],
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos,
+  });
 
 const mkEnemy = (id: string, x: number, y: number): Combatant =>
-  ({ id, name: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
-    characteristics: CHARS({ 'capacite-de-tir': 0 }), wounds: { current: 60, max: 60 }, advantage: 0,
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant;
+  combattantDeTest({ id, label: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
+    characteristics: CHARS({ 'capacite-de-tir': 0 }), wounds: blessuresDeBase(60), advantage: 0,
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
 
 /** Emplacement portant la baliste, servie par le chef `crewIds[0]`. */
 const mkEmplacement = (poste: ShipPoste, pos = { x: 7, y: 7 }): Combatant =>
-  ({ id: 'emplacement', name: 'Affût', kind: 'hero', pos, conditions: [], weapons: [], skills: [], talents: [],
-    wounds: { current: 30, max: 30 }, advantage: 0, postes: [poste] }) as unknown as Combatant;
+  combattantDeTest({ id: 'emplacement', label: 'Affût', kind: 'hero', pos, conditions: [], weapons: [], skills: [], talents: [],
+    wounds: blessuresDeBase(30), advantage: 0, postes: [poste] });
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
   ({ item: itemFromTrappingById(engineId)!, crewIds });

@@ -14,6 +14,8 @@ import type { Combatant, ShipPoste, Weapon, ArmourPoints } from '../engine/types
 import type { AttackResult } from '../engine/combat';
 import { makeRNG } from '../engine/dice';
 import { deFixe } from '../engine/dice.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -28,13 +30,13 @@ const SANS_PA: ArmourPoints = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0
 const chars = (end: number) => ({ 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: end, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
 
 // ── Coque : la bordée (MDG 14 l.128) ─────────────────────────────────────────────────────────────
-const gunnerPJ = (): Combatant => ({ id: 'gunner', label: 'Artilleur', kind: 'hero', characteristics: chars(30), wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], fortune: 2, resilience: 1,
+const gunnerPJ = (): Combatant => combattantDeTest({ id: 'gunner', label: 'Artilleur', kind: 'hero', characteristics: chars(30), wounds: blessuresDeBase(10), advantage: 0, conditions: [], fortune: 2, resilience: 1,
   skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 30 }], talents: [], weapons: [],
-  armour: { ...SANS_PA }, movement: 4, pos: { x: 5, y: 5 } }) as unknown as Combatant;
+  armour: { ...SANS_PA }, movement: 4, pos: { x: 5, y: 5 } });
 const battPoste = (): ShipPoste => ({ side: 'tribord', item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: ['gunner'] }) as unknown as ShipPoste;
-const firingShip = (): Combatant => ({ id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 }, wounds: { current: 60, max: 60 }, conditions: [], weapons: [] }) as unknown as Combatant;
-const coque = (end: number, blindage = 0): Combatant => ({ id: 'target', label: 'Caraque', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
-  characteristics: chars(end), wounds: { current: 90, max: 90, base: 90 }, advantage: 0, conditions: [], weapons: [], armour: { ...SANS_PA, corps: blindage }, skills: [], talents: [], crewIds: [] }) as unknown as Combatant;
+const firingShip = (): Combatant => combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 }, wounds: blessuresDeBase(60), conditions: [], weapons: [] });
+const coque = (end: number, blindage = 0): Combatant => combattantDeTest({ id: 'target', label: 'Caraque', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
+  characteristics: chars(end), wounds: blessuresDeBase(90), advantage: 0, conditions: [], weapons: [], armour: { ...SANS_PA, corps: blindage }, skills: [], talents: [], crewIds: [] });
 const mer = () => ({ id: 's', name: 's', dimensions: { w: 20, h: 20 }, ambiance: 'jour', metresPerTile: 10, layers: [{ z: 0, tiles: new Array(400).fill('eau') }], entities: [], dialogues: [], triggers: [], encounters: [] });
 /** Le d100 du canonnier : 44, un double réussi. */
 const fixe = deFixe;
