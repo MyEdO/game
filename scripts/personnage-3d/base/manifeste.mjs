@@ -1,9 +1,9 @@
 // LE MANIFESTE COMPLET D'UNE BASE (#2972, `ManifesteDeBase` de `hotes/godot/asset/manifesteDeBase.ts`), écrit à côté
 // de son GLB exporté, `<base>.manifeste.json`. Chaque champ a une source :
 // - construit par la construction Blender (`humanoide.py`), lu en JSON sur l'entrée standard : `os`, `chaines`,
-//   `zones`, `emplacements`, `prises`, `silhouettes`, `gabarit` sans `st`, `appuis.pieds`, `osAPositionAnimee` ;
+//   `zones`, `emplacements`, `prises`, `silhouettes`, `gabarit` (dont `st`, `silhouettes.bornes_de_st`), `appuis.pieds`,
+//   `osAPositionAnimee` ;
 // - déclaré par le corps (`<declaration.json>`) : `base`, `porteur`, et les clips de marche ;
-// - tiré de la donnée : `gabarit.st`, les extrêmes de `st` des gabarits et des surcharges de race ;
 // - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitessesAuSol`, une par clip de marche ;
 // - pris au GLB : `glb.sha256` et `glb.octets`.
 //   node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> < <construit.json>
@@ -19,15 +19,6 @@ const lireDonnee = (nom) => JSON.parse(readFileSync(new URL(`../../../src/data/$
 /** Vitesse posée sur chaque clip de marche le temps de la mesure : `mesurerAppuis` (`appuis.ts`) ne la lit que pour
  *  juger l'écart et le glissement, jamais pour mesurer la vitesse au sol. */
 const VITESSE_DE_SONDE = 1
-
-/** Les extrêmes de `st` atteignables : chaque gabarit, et chaque surcharge de race qui le pose. */
-function bornesDeSt() {
-  const valeurs = [
-    ...lireDonnee('gabarits.json').map((g) => g.st),
-    ...lireDonnee('raceAppearance.json').flatMap((r) => (r.gabaritOverride?.st === undefined ? [] : [r.gabaritOverride.st])),
-  ]
-  return { min: Math.min(...valeurs), max: Math.max(...valeurs) }
-}
 
 /** La déclaration du corps, refusée si une race ou un gabarit du porteur n'existe pas dans la donnée. */
 function lireDeclaration(chemin) {
@@ -64,7 +55,6 @@ async function main() {
   const octets = readFileSync(cheminGlb)
   const manifeste = (vitessesAuSol) => ({
     schema: VERSION_DU_SCHEMA_DE_BASE, base, ...construit,
-    gabarit: { ...construit.gabarit, st: bornesDeSt() },
     porteur,
     appuis: { ...construit.appuis, vitessesAuSol },
     glb: { sha256: sha256(octets), octets: octets.byteLength },

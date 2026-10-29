@@ -1,17 +1,21 @@
 """Base humanoïde (#2972, lots B1 à B3) : le squelette UAL (65 os), le corps UBC skinné dessus et découpé en zones, les
-clips UAL1 + UAL2, les emplacements et les prises (`anatomie.py`).
+clips UAL1 + UAL2, les emplacements et les prises (`anatomie.py`), les silhouettes (`silhouettes.py`).
 
 Le corps UBC porte les 65 os d'UAL1, mêmes noms et même hiérarchie, sur son propre repos : ce repos est gardé, et chaque
 clip s'y joue relatif au repos (les clés Blender de l'import glTF). Pistes de position retirées hors `root` et `pelvis`,
 interpolation LINEAR. Au repos, le sommet le plus bas des peaux est posé au sol de la racine (`poser_au_sol`), et les
-poids sont lissés là où un clip étire la peau (`poids.py`), puis chaque clip est posé au sol et la marche plantée
-(`sol.py`) ; un clip sans sol (pelvis source sous le sol) se retire. La part du manifeste de base que pose la construction
-(os, chaînes, zones, emplacements, prises, silhouettes, table du gabarit, pieds, os à position animée) passe, après
-l'export, à `manifeste.mjs`, qui écrit le manifeste complet à côté du GLB, dans `<sortie>.manifeste.json`, avec la
-déclaration du corps `humanoide.json`.
+poids sont lissés là où un clip étire la peau (`poids.py`). Sur ces poids, ceux de l'export, se posent les silhouettes
+du corps (`silhouettes.py`) : le corps F d'UBC, aux mêmes os, donne la clé `feminin` ; la carrure se pose aux bornes de
+`st` de la donnée, publiées dans `gabarit.st` ; MakeHuman (données de MPFB) donne `corpulence` (`corpulence.py`) ;
+chaque clé passe aux peaux secondaires. Puis chaque clip est posé au sol et la marche plantée (`sol.py`) ; un clip sans
+sol (pelvis source sous le sol) se retire. La part du manifeste de base que pose la construction (os, chaînes, zones,
+emplacements, prises, silhouettes, table du gabarit, pieds, os à position animée) passe, après l'export, à
+`manifeste.mjs`, qui écrit le manifeste complet à côté du GLB, dans `<sortie>.manifeste.json`, avec la déclaration du
+corps `humanoide.json`.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py \\
-        --ual1 <UAL1_Standard.glb> --ual2 <UAL2_Standard.glb> --corps <Superhero_Male_FullBody.gltf> --sortie <humanoide.glb>
+        --ual1 <UAL1_Standard.glb> --ual2 <UAL2_Standard.glb> --corps <Superhero_Male_FullBody.gltf> \\
+        --corps-feminin <Superhero_Female_FullBody.gltf> --mpfb <dossier data de MPFB> --sortie <humanoide.glb>
 """
 import argparse
 import json
@@ -31,7 +35,9 @@ from animation import assign_action, clear_animation, meshes_for  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 from seuils import IMAGES_PAR_SECONDE  # noqa: E402
 from pistes import sacs  # noqa: E402
+from corpulence import ajouter_corpulence  # noqa: E402
 from poids import lisser_les_poids  # noqa: E402
+from silhouettes import ajouter_feminin_et_carrure, bornes_de_st, corps_et_secondaires, finir_les_silhouettes  # noqa: E402
 from sol import bas_des_sources, poser_les_clips_au_sol, retirer_sans_sol  # noqa: E402
 
 PELVIS = 'pelvis'
@@ -86,7 +92,8 @@ def poser_au_sol(bpy, rig, peaux):
             os.translate(montee)
     bpy.ops.object.mode_set(mode='OBJECT')
     for peau in peaux:
-        peau.data.transform(Matrix.Translation(peau.matrix_world.inverted().to_3x3() @ Vector((0, 0, hauteur))))
+        peau.data.transform(Matrix.Translation(peau.matrix_world.inverted().to_3x3() @ Vector((0, 0, hauteur))),
+                            shape_keys=True)
     print('SOL monté de', round(hauteur, 6), 'm', flush=True)
 
 
@@ -170,10 +177,11 @@ def construire(args):
     rig2, figurants2, clips2 = importer(bpy, args.ual2)
     squelette, objets, _ = importer(bpy, args.corps)
     resoudre_images(bpy, args.corps)
+    squelette_f, objets_f, _ = importer(bpy, args.corps_feminin)
     reference = hierarchie(rig1)
     if len(reference) != args.os:
         raise RuntimeError(f'{args.ual1.name} : {len(reference)} os, {args.os} attendus')
-    for nom, rig in ((args.ual2.name, rig2), (args.corps.name, squelette)):
+    for nom, rig in ((args.ual2.name, rig2), (args.corps.name, squelette), (args.corps_feminin.name, squelette_f)):
         if hierarchie(rig) != reference:
             raise RuntimeError(f'{nom} : noms ou parents d\'os différents de {args.ual1.name}')
     peaux = meshes_for(bpy, squelette)
@@ -188,10 +196,20 @@ def construire(args):
         preparer(action)
     poser_au_sol(bpy, squelette, peaux)
     lisser_les_poids(squelette, peaux, clips)
+    squelette.animation_data.action = None
+    corps, secondaires = corps_et_secondaires(peaux)
+    corps_f, _ = corps_et_secondaires(meshes_for(bpy, squelette_f))
+    bornes = bornes_de_st()
+    ajouter_feminin_et_carrure(squelette, corps, squelette_f, corps_f, bornes)
+    for objet in [squelette_f, *objets_f]:
+        bpy.data.objects.remove(objet, do_unlink=True)
+    ajouter_corpulence(squelette, corps, args.mpfb)
+    finir_les_silhouettes(squelette, corps, secondaires)
     poser_les_clips_au_sol(squelette, peaux, clips, sources, PIEDS, gabarit(squelette)['racine'], PELVIS,
                            json.loads(DECLARATION.read_text(encoding='utf-8'))['clipsDeMarche'])
     formes = silhouettes(peaux)
     manifeste = poser(squelette, peaux)
+    manifeste['gabarit']['st'] = bornes
     manifeste = {'os': [b.name for b in squelette.data.bones], 'chaines': {}, **manifeste, 'silhouettes': formes,
                  'osAPositionAnimee': os_a_position_animee(squelette, clips, manifeste['gabarit']['racine'])}
     for image in bpy.data.images:
@@ -203,7 +221,7 @@ def construire(args):
                               export_animation_mode='ACTIONS', export_force_sampling=False,
                               export_optimize_animation_size=False, export_extras=True)
     print('CLIPS', len(clips), 'OS', len(manifeste['os']), 'ZONES', len(manifeste['zones']),
-          'EMPLACEMENTS', len(manifeste['emplacements']), 'SILHOUETTES', len(formes),
+          'EMPLACEMENTS', len(manifeste['emplacements']), 'SILHOUETTES', formes, 'ST', bornes,
           'POSITION', manifeste['osAPositionAnimee'], flush=True)
     completer(args.sortie, manifeste)
     print('HUMANOIDE_OK', args.sortie, flush=True)
@@ -214,6 +232,10 @@ def main():
     parser.add_argument('--ual1', type=Path, required=True, help='UAL1_Standard.glb : squelette de référence et clips')
     parser.add_argument('--ual2', type=Path, required=True, help='UAL2_Standard.glb : clips sur le même squelette')
     parser.add_argument('--corps', type=Path, required=True, help="corps UBC (.gltf/.glb) skinné aux os d'UAL")
+    parser.add_argument('--corps-feminin', type=Path, required=True,
+                        help="corps UBC féminin (.gltf/.glb) aux mêmes os : source de la clé `feminin`")
+    parser.add_argument('--mpfb', type=Path, required=True,
+                        help='dossier `data` de MPFB (3dobjs, targets) : donneur de la clé `corpulence`')
     parser.add_argument('--sortie', type=Path, required=True, help='humanoide.glb produit')
     parser.add_argument('--os', type=int, default=65, help="nombre d'os du squelette UAL")
     construire(parser.parse_args())

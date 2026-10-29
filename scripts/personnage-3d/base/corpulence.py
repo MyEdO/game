@@ -6,8 +6,9 @@ Donneur : `3dobjs/base.obj` (corps seul, groupe `body`) chargé des cibles `macr
 l'état poids moyen, à genre, âge et muscle fixés. Pose commune : celle du donneur. Le donneur est mis à l'échelle et
 recalé sur le tronc du squelette par moindres carrés ; chaque os des membres du corps UBC prend, par son armature, la
 position, la direction et la longueur des articulations MakeHuman (groupes `joint-*` de `base.obj`). Le corps posé se
-lie au donneur, le donneur reçoit le delta, le déplacement lié est lissé sur le corps posé, puis revient au repos par
-l'inverse du skin linéaire de chaque sommet.
+lie au donneur, le donneur reçoit le delta, et le déplacement lié revient au repos par l'inverse du skin linéaire de
+chaque sommet ; le lissage de la clé et ses extrémités invariantes sont ceux de toutes les silhouettes
+(`silhouettes.finir_les_silhouettes`).
 """
 import gzip
 from pathlib import Path
@@ -22,11 +23,9 @@ ETAT = 'male-young-maxmuscle'
 """Genre, âge et muscle du donneur : le corps UBC est un homme jeune très musclé (« Superhero »)."""
 REFERENCE, POIDS_MAX = 'averageweight', 'maxweight'
 NOM = 'corpulence'
-LISSAGE = 8
-"""Passes de lissage laplacien du déplacement lié, sur le corps posé."""
 ECART_MAX = 1e-4
 """Écart maximal (m) des deux contrôles : corps lié au donneur intact, et corps posé portant la clé contre le
-déplacement lissé (inverse du skin)."""
+déplacement lié (inverse du skin)."""
 
 RECALAGE = (('joint-l-upper-leg', 'thigh_l'), ('joint-r-upper-leg', 'thigh_r'), ('joint-l-shoulder', 'upperarm_l'),
             ('joint-r-shoulder', 'upperarm_r'), ('joint-neck', 'neck_01'), ('joint-head', 'Head'))
@@ -203,25 +202,6 @@ def coordonnees(bpy, objet):
     return points @ m[:3, :3].T + m[:3, 3]
 
 
-def lisser(champ, positions, aretes, passes):
-    """Lissage laplacien (pas 1/2) de `champ` sur le maillage, `passes` fois ; les sommets confondus (coutures du glTF)
-    forment un seul nœud, et reçoivent la même valeur."""
-    _, noeud = np.unique(np.round(positions, 6), axis=0, return_inverse=True)
-    noeud = noeud.ravel()
-    a, b = noeud[aretes[:, 0]], noeud[aretes[:, 1]]
-    a, b = np.concatenate([a, b]), np.concatenate([b, a])
-    n = noeud.max() + 1
-    valeur = np.zeros((n, 3))
-    np.add.at(valeur, noeud, champ)
-    valeur /= np.bincount(noeud, minlength=n)[:, None]
-    voisins = np.maximum(np.bincount(a, minlength=n), 1)[:, None]
-    for _ in range(passes):
-        somme = np.zeros((n, 3))
-        np.add.at(somme, a, valeur[b])
-        valeur = 0.5 * valeur + 0.5 * somme / voisins
-    return valeur[noeud]
-
-
 def objet_maillage(bpy, nom, sommets, faces):
     maillage = bpy.data.meshes.new(nom)
     maillage.from_pydata([tuple(p) for p in sommets], [], faces)
@@ -268,8 +248,7 @@ def ajouter_corpulence(squelette, corps, mpfb: Path) -> None:
         raise RuntimeError(f'corpulence : Surface Deform ne lie pas le corps posé au donneur (écart {ecart_de_liaison:.2e} m)')
     cible.data.vertices.foreach_set('co', poids_max.ravel())
     cible.data.update()
-    aretes = np.array([tuple(e.vertices) for e in corps.data.edges])
-    deplacement = lisser(coordonnees(bpy, liee) - posees, posees, aretes, LISSAGE)
+    deplacement = coordonnees(bpy, liee) - posees
 
     repos = np.linalg.solve(matrices_du_skin(squelette, corps), deplacement[..., None])[..., 0]
     if corps.data.shape_keys is None:
@@ -282,7 +261,7 @@ def ajouter_corpulence(squelette, corps, mpfb: Path) -> None:
     ecart = float(np.abs(coordonnees(bpy, corps) - posees - deplacement).max())
     cle.value = 0.0
     if ecart > ECART_MAX:
-        raise RuntimeError(f'corpulence : clé posée à {ecart:.2e} m du déplacement lissé (> {ECART_MAX})')
+        raise RuntimeError(f'corpulence : clé posée à {ecart:.2e} m du déplacement lié (> {ECART_MAX})')
 
     for objet in (liee, cible):
         maillage = objet.data
