@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { statblockToCombatant } from './monde/spawn';
 import { attackModifiers } from '../engine/combat';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -103,7 +103,6 @@ function franchirLeRound(battle: ReturnType<typeof startNuee>['battle']) {
 describe('Nuée AUTHORÉE en scène — spawn et Round joués par le store (LDB 85 l.251-253)', () => {
   const netInitial = initialNet();
   beforeEach(() => { banc.setState({ battle: null, pendingDisengage: null, net: netInitial }); });
-  afterEach(() => { banc.setState({ net: netInitial }); });
 
   it('statbloc d’AUTEUR : le spawn de scène applique le build de Nuée (×5 PB, +10 CC, Psychologie ignorée)', () => {
     const { scene, nueeId } = nueeScene();

@@ -88,7 +88,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
   it('incubation → active : les symptômes se déclarent, puis comptent', () => {
     // L'État *Exténué* du Malaise (LDB 20 l.188) est un op `condition` du canal PASSIF du symptôme :
     // il n'est émis que lorsque la maladie est ACTIVE. C'est ce que le collecteur montre ici ; sa
-    // matérialisation sur le porteur est le socle `syncDerivedConditions` (voir `rest.test.ts`).
+    // matérialisation sur le porteur est le socle `syncDerivedConditions` (voir `rest.hors-store.test.ts`).
     const extenuePorte = (x: Combatant) => diseasePassiveOps(x).filter((m) => m.op.op === 'condition' && m.op.id === 'extenue').length;
     const c = sick({ diseases: [contractDisease('infection-mineure', seq([]), { incubation: 2, duration: 5 })!] });
     expect(extenuePorte(c)).toBe(0); // incubation = pas encore de symptômes

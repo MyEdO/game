@@ -4,7 +4,7 @@ import { makePregens } from '../data/pregens';
 import { seedBattleRng } from './battleRng';
 import { activityById, travelActivitySpec } from '../engine/activities';
 import { activiteMer, avecActivite } from '../engine/activiteMer.testkit';
-import { setRule, resetRule } from '../engine/policy';
+import { setRule } from '../engine/policy';
 import { buildSeaGenericStep } from './seaActivities';
 import { composeRollLabel, effectiveTarget, type RollRequest } from './rollSeam';
 import { testValue } from '../engine/skills';
@@ -189,15 +189,11 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     expect(eteint.target).toBe(travelActivitySpec(cible, def)!.target);
     expect(eteint.target).toBe(99);
 
-    try {
-      setRule('test-over-100', true);
-      const actif = avecActivite(def, () => buildSeaGenericStep(get, set, cible, def))!;
-      expect(actif.target, 'le plafond se lève avec la règle').toBeGreaterThan(99);
-      expect(actif.target, 'la cible est la valeur PLEINE : 80 Dex + 200 avances, Difficulté intermédiaire (+0)').toBe(280);
-      expect(actif.target).toBe(actif.base! + sommeMods(actif.mods) + DIFFICULTY_MODIFIERS[def.difficulty ?? 'intermediaire']);
-      expect(travelActivitySpec(cible, def)!.target, 'la même cible bornée par le constructeur').toBe(actif.target);
-    } finally {
-      resetRule('test-over-100');
-    }
+    setRule('test-over-100', true);
+    const actif = avecActivite(def, () => buildSeaGenericStep(get, set, cible, def))!;
+    expect(actif.target, 'le plafond se lève avec la règle').toBeGreaterThan(99);
+    expect(actif.target, 'la cible est la valeur PLEINE : 80 Dex + 200 avances, Difficulté intermédiaire (+0)').toBe(280);
+    expect(actif.target).toBe(actif.base! + sommeMods(actif.mods) + DIFFICULTY_MODIFIERS[def.difficulty ?? 'intermediaire']);
+    expect(travelActivitySpec(cible, def)!.target, 'la même cible bornée par le constructeur').toBe(actif.target);
   });
 });

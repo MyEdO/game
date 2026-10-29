@@ -61,7 +61,7 @@
  *    lit ou joue : une boucle qui lit et appelle une telle fonction dont la ligne droite joue n'est pas un
  *    site (fonctions MUTUELLES comprises) — 0 occurrence (sonde : #1765 issuecomment-6195158339 L-B,
  *    variante `disqPrete`). Les 11 boucles externes qui appellent une fonction déjà au stock
- *    (`travel.hors-store.test.ts`, `miscast-step.test.ts`, `15-commerce-fluvial.test.ts`, `tavern-regime-rapide.test.ts`)
+ *    (`travel.hors-store.test.ts`, `miscast-step.test.ts`, `15-commerce-fluvial.test.ts`, `tavern-regime-rapide.hors-store.test.ts`)
  *    ne sont pas des pilotes : leur pilote, la fonction appelée, est déjà au stock ;
  *  - une itération qui ne pilote QUE par l'appel d'un helper ne disqualifie pas la fonction qui la porte :
  *    cette fonction prête encore ce qu'elle lit ou joue directement, et la boucle qui l'appelle peut

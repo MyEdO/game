@@ -13,7 +13,7 @@ import { createHero } from '../engine/character';
 import { combatStakeRef } from '../data';
 import { monoStep } from './rollSeam';
 import { hasCondition, COND } from '../engine/conditions';
-import { setRule, resetRule } from '../engine/policy';
+import { setRule } from '../engine/policy';
 import { startSequence, sequenceTableRow, sequencePhaseOf, sequenceRoundOps } from './sequenceCore';
 import { type SequenceParams, type SequenceRound, type SequenceVerdict } from './sequenceContract';
 import { avecLesTables, sequenceDeFixture, cleDeFixture } from './noyau.testkit';
@@ -152,15 +152,13 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
 
   it('en combat sous « Avantage de groupe », le gain de manche passe par la réserve du camp (AA 11 l.11-13)', () => {
     setRule('combat-aa-avantage-groupe', true);
-    try {
-      const h = banc.getState().party[0];
-      const battle = { combatants: [h], advantagePools: { allies: 0, foes: 0 }, log: [] };
-      const get = (() => ({ battle, party: [h] })) as never;
-      const seq = { def: JOUTE, round: 1, cum: {}, params: { rounds: { winner: [{ op: 'gainAdvantage', amount: 2 }] } }, payload: { lices: [], passes: [] } } as never;
-      sequenceRoundOps(get, seq, 1, { winners: [h.id] });
-      expect(battle.advantagePools).toEqual({ allies: 2, foes: 0 });
-      expect(h.advantage, 'projection de la réserve').toBe(2);
-    } finally { resetRule('combat-aa-avantage-groupe'); }
+    const h = banc.getState().party[0];
+    const battle = { combatants: [h], advantagePools: { allies: 0, foes: 0 }, log: [] };
+    const get = (() => ({ battle, party: [h] })) as never;
+    const seq = { def: JOUTE, round: 1, cum: {}, params: { rounds: { winner: [{ op: 'gainAdvantage', amount: 2 }] } }, payload: { lices: [], passes: [] } } as never;
+    sequenceRoundOps(get, seq, 1, { winners: [h.id] });
+    expect(battle.advantagePools).toEqual({ allies: 2, foes: 0 });
+    expect(h.advantage, 'projection de la réserve').toBe(2);
   });
 
   it('LDB 14 l.219 : sous une séquence qui admet l’Avantage, le perdant de la manche le perd tout', () => {
@@ -176,16 +174,14 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
 
   it('sous « Avantage de groupe », la manche perdue ne touche pas la réserve du camp (AA 11 l.42-44)', () => {
     setRule('combat-aa-avantage-groupe', true);
-    try {
-      const h = banc.getState().party[0];
-      h.advantage = 3;
-      const battle = { combatants: [h], advantagePools: { allies: 3, foes: 1 }, log: [] };
-      const get = (() => ({ battle, party: [h] })) as never;
-      const seq = { def: JOUTE, round: 1, cum: {}, params: { avantage: true }, payload: { lices: [], passes: [] } } as never;
-      sequenceRoundOps(get, seq, 1, { losers: [h.id], all: [h.id] });
-      expect(battle.advantagePools).toEqual({ allies: 3, foes: 1 });
-      expect(h.advantage).toBe(3);
-    } finally { resetRule('combat-aa-avantage-groupe'); }
+    const h = banc.getState().party[0];
+    h.advantage = 3;
+    const battle = { combatants: [h], advantagePools: { allies: 3, foes: 1 }, log: [] };
+    const get = (() => ({ battle, party: [h] })) as never;
+    const seq = { def: JOUTE, round: 1, cum: {}, params: { avantage: true }, payload: { lices: [], passes: [] } } as never;
+    sequenceRoundOps(get, seq, 1, { losers: [h.id], all: [h.id] });
+    expect(battle.advantagePools).toEqual({ allies: 3, foes: 1 });
+    expect(h.advantage).toBe(3);
   });
 
   it('LDB 14 l.219 : le participant qui ne gagne pas la manche sans la perdre perd 1 Avantage, plancher 0', () => {

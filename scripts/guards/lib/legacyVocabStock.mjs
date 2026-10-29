@@ -658,7 +658,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/buy-spell.test.ts",
+    fichier: "src/noyau/buy-spell.hors-store.test.ts",
     motif: "désormais",
     ancre: "désormais les règles de création, leur quota de sorts mineurs varie avec leur seed) : BFM 2,",
     lot: "L7 désormais",
