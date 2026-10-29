@@ -1,22 +1,16 @@
-// La déclaration du corps d'une base validée contre la donnée (#3106) : `lireDeclaration`.
+// La déclaration du corps d'une base validée contre la donnée (#3106) : `lireDeclaration`, `jugerDeclaration`.
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { after, describe, it } from 'node:test'
+import { readFileSync } from 'node:fs'
+import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { lireDeclaration } from './declaration.mjs'
+import { jugerDeclaration, lireDeclaration } from './declaration.mjs'
 
 const HUMANOIDE = fileURLToPath(new URL('./humanoide.json', import.meta.url))
-const dossier = mkdtempSync(join(tmpdir(), 'declaration-'))
-after(() => rmSync(dossier, { recursive: true, force: true }))
 
-/** `humanoide.json` au porteur surchargé par `porteur`, écrit sous `dossier`. */
-function declarationAvec(nom, porteur) {
+/** `humanoide.json` au porteur surchargé par `porteur`, jugé sous le nom `<nom>.json`. */
+function jugerAvec(nom, porteur, lireDonnee) {
   const declaration = JSON.parse(readFileSync(HUMANOIDE, 'utf8'))
-  const chemin = join(dossier, `${nom}.json`)
-  writeFileSync(chemin, JSON.stringify({ ...declaration, porteur: { ...declaration.porteur, ...porteur } }))
-  return chemin
+  return jugerDeclaration({ ...declaration, porteur: { ...declaration.porteur, ...porteur } }, `${nom}.json`, lireDonnee)
 }
 
 describe('lireDeclaration', () => {
@@ -25,19 +19,19 @@ describe('lireDeclaration', () => {
   })
 
   it('refuse une Taille que la donnée ne donne pas à la race, en nommant champ, déclaré et donnée', async () => {
-    await assert.rejects(lireDeclaration(declarationAvec('taille', { taille: 'grande' })), /porteur\.taille grande, la donnée donne moyenne à la race humain/)
+    await assert.rejects(jugerAvec('taille', { taille: 'grande' }), /porteur\.taille grande, la donnée donne moyenne à la race humain/)
   })
 
   it('refuse une race dont la donnée ne détermine pas la Taille, en nommant champ, déclaré et race', async () => {
-    await assert.rejects(lireDeclaration(declarationAvec('sans-espece', { race: 'orc' })), /porteur\.taille moyenne, Taille de la race orc indéterminée dans la donnée \(aucune espèce\)/)
+    await assert.rejects(jugerAvec('sans-espece', { race: 'orc' }), /porteur\.taille moyenne, Taille de la race orc indéterminée dans la donnée \(aucune espèce\)/)
   })
 
   it('refuse une race à plusieurs Tailles dans la donnée, en les nommant', async () => {
     const donnee = { raceAppearance: [{ id: 'humain' }], gabarits: [{ id: 'moyen' }], taillesDeLaRace: () => ['moyenne', 'grande'], speciesScale: () => 1 }
-    await assert.rejects(lireDeclaration(declarationAvec('deux-tailles', { race: 'humain', gabarit: 'moyen' }), async () => donnee), /porteur\.taille moyenne, Taille de la race humain indéterminée dans la donnée \(moyenne, grande\)/)
+    await assert.rejects(jugerAvec('deux-tailles', { race: 'humain', gabarit: 'moyen' }, async () => donnee), /porteur\.taille moyenne, Taille de la race humain indéterminée dans la donnée \(moyenne, grande\)/)
   })
 
   it('refuse une échelle d’art que la donnée ne donne pas à la race, en nommant champ, déclaré et donnée', async () => {
-    await assert.rejects(lireDeclaration(declarationAvec('echelle', { echelleDArt: 1.2 })), /porteur\.echelleDArt 1\.2, la donnée donne 1 à la race humain/)
+    await assert.rejects(jugerAvec('echelle', { echelleDArt: 1.2 }), /porteur\.echelleDArt 1\.2, la donnée donne 1 à la race humain/)
   })
 })

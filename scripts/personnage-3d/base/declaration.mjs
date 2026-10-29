@@ -11,11 +11,13 @@ const chargerDonnee = () =>
     "export { speciesScale } from '/src/gameIso/rig/creatures/index.ts';",
   ]))
 
-/** La déclaration du corps à `chemin`, refusée si la race ou le gabarit du porteur n'existe pas dans la donnée, ou si
- *  sa Taille ou son échelle d'art diffère de celle que la donnée donne à sa race. `lireDonnee` rend les lectures de la
+/** La déclaration du corps à `chemin`, jugée par `jugerDeclaration`. */
+export const lireDeclaration = (chemin, lireDonnee) => jugerDeclaration(JSON.parse(readFileSync(chemin, 'utf8')), chemin, lireDonnee)
+
+/** `declaration`, lue à `chemin`, refusée si la race ou le gabarit du porteur n'existe pas dans la donnée, ou si sa
+ *  Taille ou son échelle d'art diffère de celle que la donnée donne à sa race. `lireDonnee` rend les lectures de la
  *  donnée (`raceAppearance`, `gabarits`, `taillesDeLaRace`, `speciesScale`). */
-export async function lireDeclaration(chemin, lireDonnee = chargerDonnee) {
-  const declaration = JSON.parse(readFileSync(chemin, 'utf8'))
+export async function jugerDeclaration(declaration, chemin, lireDonnee = chargerDonnee) {
   const { porteur, clipsDeMarche } = declaration
   if (!Array.isArray(clipsDeMarche) || !clipsDeMarche.length) throw new Error(`${chemin} : clipsDeMarche, liste non vide attendue`)
   const { raceAppearance, gabarits, taillesDeLaRace, speciesScale } = await lireDonnee()

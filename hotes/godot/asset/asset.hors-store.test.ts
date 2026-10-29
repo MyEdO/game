@@ -851,6 +851,7 @@ describe('dossier de production d’une base (#3106)', () => {
   };
   const sortie = () => join(temporaire(), 'humanoide.glb');
   it.each<[string, () => Promise<{ glb: string; sources: SourcesDeBase; licences: SourcesDeBase }>, RegExp]>([
+    ['une sortie qui n’est pas un .glb', async () => ({ glb: join(temporaire(), 'humanoide.gltf'), ...packs() }), /^\[sortie\] .*humanoide\.gltf : un \.glb attendu$/],
     ['une sortie dans l’arbre du dépôt', async () => ({ glb: join(process.cwd(), 'production-3106-sonde', 'humanoide.glb'), ...packs() }), /^\[sortie-dans-le-depot\] /],
     ['une sortie dans l’arbre du dépôt par une jonction', async () => {
       const lien = join(temporaire(), 'lien');
@@ -859,6 +860,7 @@ describe('dossier de production d’une base (#3106)', () => {
     }, /^\[sortie-dans-le-depot\] /],
     ['une sortie qui porte un texte de licence périmé', async () => ({ glb: sortieAvec('LICENSE-x.txt'), ...packs() }), /^\[sortie-etrangere\] .* : LICENSE-x\.txt ; /],
     ['une sortie qui porte une source .blend', async () => ({ glb: sortieAvec('humanoide.blend'), ...packs() }), /^\[sortie-etrangere\] .* : humanoide\.blend ; /],
+    ['une source absente', async () => ({ glb: sortie(), ...packs({ corps: { ...pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt'), source: join(temporaire(), 'Superhero_Male_FullBody.gltf') } }) }), /^\[source-absente\] --corps .*Superhero_Male_FullBody\.gltf$/],
     ['un texte de licence absent', async () => ({ glb: sortie(), ...packs({ ual2: { ...pack('UAL2_Standard.glb'), licence: join(temporaire(), 'License.txt') } }) }), /^\[licence-absente\] .*License\.txt : texte de licence introuvable$/],
     ['un texte de licence hors des dossiers ancêtres de sa source', async () => ({ glb: sortie(), ...packs({ ual1: { ...pack('UAL1_Standard.glb'), licence: pack('Autre.glb').licence } }) }), /^\[licence-hors-des-ancetres\].*License\.txt : hors des dossiers ancêtres de .*UAL1_Standard\.glb$/],
     ['un texte de licence sans ligne License:', async () => ({ glb: sortie(), ...packs({ corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt', 'Public Domain Dedication\r\n') }) }), /^\[licence-sans-ligne\] .*License_Standard\.txt : aucune ligne « License: »$/],
