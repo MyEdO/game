@@ -93,6 +93,22 @@ const MODELE_DU_MUR = 'parents-sequentiels-servis'
 /** Le mémo des surcoûts de lancement appris, sous `dossierDesMesures` : `{ [famille]: ms }`, sous `MODELE_DU_MUR`. */
 export const SURCOUTS = nomDuMemo('surcouts', MODELE_DU_MUR)
 
+/** Les gates de `ci.yml` que `test:perimetre` DÉLÈGUE à la CI sans les jouer (#3145), avec les préfixes de chemin qui les
+ *  désignent et la raison mesurée ; chaque préfixe est sous le `lit` de sa gate (`ECRIT_LU`, scripts/gates/toutes.test.mjs). */
+export const GATES_DELEGUEES = Object.freeze({
+  'personnage-3d:tests': Object.freeze({
+    prefixes: Object.freeze(['scripts/personnage-3d/', 'hotes/godot/projet/modeles/']),
+    raison: 'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation), ' +
+      'plus le GLB que dépose `godot:sonde` : à venv chaud, 31 s de mur sur le poste, mesuré le 2026-10-29',
+  }),
+})
+
+/** Les gates DÉLÉGUÉES (`GATES_DELEGUEES`) qu'un des fichiers `touches` désigne, chacune avec son premier touché. PURE. */
+export const gatesDelegueesDe = (touches, delegues = GATES_DELEGUEES) => Object.entries(delegues).flatMap(([gate, { prefixes, raison }]) => {
+  const touche = touches.find((t) => prefixes.some((p) => t.startsWith(p)))
+  return touche ? [{ gate, touche, raison }] : []
+})
+
 /** Les arguments de reporter d'un lancement Vitest, rapport de durées sous `sortie` (`dureesVitest.mjs`). */
 const reportersVitest = (sortie) => ['--reporter=default', `--reporter=${pathToFileURL(join(RACINE, 'scripts/test/dureesVitest.mjs')).href}`, `--outputFile.durees=${sortie}`]
 
@@ -589,6 +605,8 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
   journal(`budget ${budget} s de mur (touché hors budget) : ${plan.lances.length} lancé(s), mur estimé ${texteDuMur(plan.murMs, plan)}, dont ${secondes(plan.murBudgeteMs)} au budget ; → CI ${plan.aLaCI.length}`)
   for (const t of plan.aLaCI.filter((t) => GATES_D_AUDIT.includes(gateDe(t))))
     journal(`→ CI ${t} : audit du dépôt réel, gate ${gateDe(t)} (${texteDuLien(retenus.get(t))})`)
+  for (const { gate, touche, raison } of gatesDelegueesDe(touches))
+    journal(`→ CI gate ${gate} : déléguée (${raison}), désignée par ${touche}`)
   journal(`lint : ${aLinter(touches, post).length} fichier(s) touché(s)${options.liste ? ' (non joué sous --liste)' : ''}`)
   const noyau = suiteDuNoyauALancer(touches, post)
   journal(`suite du noyau : ${noyau.length ? `entière (un fichier de src/ touché), ${noyau.length} fichier(s)` : 'aucun fichier de src/ touché'}${noyau.length ? ` : ${noyau.join(', ')}` : ''}${options.liste && noyau.length ? ' (non joué sous --liste)' : ''}`)

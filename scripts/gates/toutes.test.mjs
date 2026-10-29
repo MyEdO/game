@@ -15,6 +15,7 @@ import { dirname, isAbsolute, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { cheminsIgnores, depotDe } from '../guards/lib/gitPorte.mjs'
+import { GATES_DELEGUEES } from '../test/perimetre.mjs'
 import {
   COEURS_SUITE_EN_LANES,
   arreterGatesSurSignal,
@@ -527,6 +528,14 @@ test('chaque chemin `lit`/`ecrit` de la table est VIVANT ; une clé `ecritFerme`
   const fermes = entrees.flatMap(([nom, e]) => Object.keys(e.ecritFerme ?? {}).filter((c) => !estVivant(c)).map((chemin) => ({ nom, chemin })))
   const ignores = cheminsIgnores(depotDe(RACINE), fermes.map(({ chemin }) => chemin), { suivisCompris: true })
   assert.deepEqual([...stricts, ...fermes.filter(({ chemin }) => !ignores.has(chemin)).map(({ nom, chemin }) => `${nom} : ${chemin}`)], [])
+})
+
+test('chaque gate que `test:perimetre` délègue à la CI est une gate de ci.yml, désignée par des chemins qu’elle LIT (#3145)', () => {
+  const ecarts = Object.entries(GATES_DELEGUEES).flatMap(([nom, { prefixes }]) => [
+    ...(NOMS.includes(nom) ? [] : [`${nom} : aucune gate de ci.yml de ce nom`]),
+    ...prefixes.filter((p) => !(ECRIT_LU[nom]?.lit ?? []).some((lu) => p.startsWith(lu))).map((p) => `${nom} : ${p} hors de son lit`),
+  ])
+  assert.deepEqual(ecarts, [])
 })
 
 test('--serie joue EXACTEMENT les mêmes gates que les lanes, dans l’ordre de ci.yml', () => {

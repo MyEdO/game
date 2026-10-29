@@ -150,6 +150,21 @@ jobs:
           key: modeles-3d-${{ hashFiles('hotes/godot/projet/modeles/*.provenance.json') }}
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:sonde
+      # `personnage-3d:tests` (#3145) : `scripts/personnage-3d/tests.py` dans le venv épinglé de
+      # `scripts/personnage-3d/environnement.mjs`, sous le CPython de son `PYTHON` (marqueur `python_version` de
+      # requirements.txt), après `godot:sonde`, qui dépose les GLB du projet que lit `ModeleCommite`. Le cache de pip
+      # est keyé par requirements.txt ; le venv, lié à l'interpréteur du runner, ne se cache pas.
+      - id: python-3d
+        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: node --input-type=module -e "import { PYTHON } from './scripts/personnage-3d/environnement.mjs'; console.log('version=' + PYTHON)" >> "$GITHUB_OUTPUT"
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ steps.python-3d.outputs.version }}
+          cache: pip
+          cache-dependency-path: scripts/personnage-3d/requirements.txt
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run personnage-3d:tests
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run lint
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}

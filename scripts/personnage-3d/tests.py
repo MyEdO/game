@@ -1,6 +1,6 @@
-"""Tests de la chaîne de production 3D, dans le venv épinglé :
+"""Tests de la chaîne de production 3D, dans le venv épinglé (gate `personnage-3d:tests` de ci.yml, #3145) :
 
-    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/tests.py
+    npm run personnage-3d:tests
 """
 import sys
 import unittest

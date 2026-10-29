@@ -863,6 +863,9 @@ const ATTENDU = {
   // #2928, #2948, ECRIT_LU (`scripts/gates/toutes.mjs`).
   'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs'],
   'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs'],
+  // #3145, ECRIT_LU (`scripts/gates/toutes.mjs`) : `environnement.mjs` écrit le venv et son témoin sous
+  // `~/.cache/wfrp-personnage-3d/`, hors de l'arbre.
+  'personnage-3d:tests': ['scripts/personnage-3d/environnement.mjs'],
   'server:typecheck': [],
   // #3058, ECRIT_LU (`scripts/gates/toutes.mjs`) : la garde pose la sortie de chaque lot sous un `mkdtempSync`
   // d'os.tmpdir(), effacé en finally ; `spawnBorne` atteint `superviserProcessus.mjs` (dossier `mkdtempSync`

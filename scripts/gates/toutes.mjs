@@ -455,6 +455,20 @@ export const ECRIT_LU = {
       'Écrit sous hotes/godot/projet/modeles/ les seuls GLB ' +
       '(`ecritFerme`)',
   },
+  'personnage-3d:tests': {
+    ecrit: [],
+    ecritFerme: {
+      'scripts/personnage-3d/__pycache__/':
+        'le bytecode que CPython écrit à l’import des modules de la chaîne 3D, ignoré par `__pycache__/` (.gitignore) : ' +
+        'absent des listes que les gates tirent de git (`listerImage`, `git ls-files`) et du step « Arbre inchangé »',
+    },
+    lit: ['scripts/personnage-3d/', 'hotes/godot/projet/modeles/', 'package.json'],
+    raison:
+      '`tests.py` (#3145) dans le venv épinglé d’`environnement.mjs`, qui vit hors de l’arbre ' +
+      '(`~/.cache/wfrp-personnage-3d/`) ; les tests écrivent leurs GLB sous `tempfile.TemporaryDirectory()`. LIT ' +
+      'scripts/personnage-3d/ (lanceur, exigences, modules et tests) et, sous hotes/godot/projet/modeles/, le manifeste ' +
+      'et le GLB de la Release (`ModeleCommite`), que dépose `godot:sonde`, joué avant elle dans le job et la lane `types`',
+  },
   lint: {
     ecrit: [],
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', '.claude/workflows/', '.claude/skills/', 'oxlint.config.mjs', 'package.json', 'kill-pid.mjs'],

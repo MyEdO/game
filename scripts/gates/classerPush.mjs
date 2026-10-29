@@ -13,6 +13,7 @@ import { basename, join } from 'node:path'
 import { env, exit, stderr, stdout } from 'node:process'
 import { GitIndisponible, TRONC, baseCommune, ceQuiChange, depotDe, fetchOrigin, refusDeGit, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 import { SKILLS, racinesDeMods, racinesDeModsParmi } from '../mods/racines.mjs'
+import { COMMANDE_VERSION_PYTHON_3D } from './gatesDeCi.mjs'
 
 /**
  * Chemins NON EXÉCUTABLES, chacun avec sa raison. Un push dont TOUS les fichiers changés tombent
@@ -52,6 +53,8 @@ export const DOCUMENTAIRE = {
 export const CI_SEULEMENT_PRODUIT = {
   'npm --prefix server ci':
     'install du worker, prérequis du seul `server:typecheck` — inutile quand rien de server/ ne bouge',
+  [COMMANDE_VERSION_PYTHON_3D]:
+    'version de CPython du seul `personnage-3d:tests`, sautable sur un push documentaire',
 }
 
 /** Action composite du PROLOGUE de chaque job vérifiant de `ci.yml` (Node, classement, `npm ci`),
