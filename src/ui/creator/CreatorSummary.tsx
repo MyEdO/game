@@ -91,7 +91,7 @@ export function CreatorSummary({ d, step = 0 }: { d: CreatorDraft; step?: number
   const appearance: Appearance | null = sp
     ? { ...d.apparence, species: rigSpeciesId(d.speciesId) }
     : null;
-  const wealth = d.careerId ? draftWealth(d) : null;
+  const wealth = d.careerId ? draftWealth(d).montant : null;
 
   return (
     <aside className="creator-summary">

@@ -21,7 +21,7 @@ import { hasTalent } from '../engine/magic';
 import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type Settlement, type CatalogItem, type StockLine } from '../engine/disponibilite';
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
-import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type StatusTier, type Money } from '../engine/money';
+import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type Money } from '../engine/money';
 import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { actorStatus } from '../engine/social';
@@ -145,7 +145,7 @@ function partyStatusBudgetBrass(party: Combatant[]): number {
   let best = 0;
   for (const h of party) {
     const st = actorStatus(h);
-    best = Math.max(best, statusBudgetBrass(st.tier.toLowerCase() as StatusTier, st.standing));
+    best = Math.max(best, statusBudgetBrass(st.tier, st.standing));
   }
   return best;
 }

@@ -30,7 +30,7 @@ import { rule } from '../engine/policy';
 import { bourseOf } from '../engine/bourse';
 import { learnableSpells, canCastFromGrimoire, carriedGrimoire, casterTalents } from '../engine/grimoire';
 import { spellSupportOf } from '../engine/spellspec';
-import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, findClassById, libelleOuAbsence } from '../data';
+import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, libelleDeClasse, libelleOuAbsence } from '../data';
 import { heroStatusLabel } from './CharCard';
 import { MetalStatus } from './MetalStatus';
 import { CodexRef } from './compendium/CodexRef';
@@ -931,7 +931,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               .filter((c) => c.id !== v.career)
               .map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.label} ({findClassById(c.class)?.label ?? c.class}) · {v.changeCostFor(c.id)} PX
+                  {c.label} ({libelleDeClasse(c.class)}) · {v.changeCostFor(c.id)} PX
                 </option>
               ))}
           </select>

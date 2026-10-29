@@ -1,6 +1,6 @@
 import { careers, levelsForCareer } from '../data';
 import { actorStatus } from './social';
-import { statusBudgetBrass, type StatusTier } from './money';
+import { statusBudgetBrass } from './money';
 import type { Combatant } from './types';
 
 /**
@@ -12,7 +12,7 @@ export function statutLePlusHaut(): { career: string; careerLevel: number; budge
   for (const c of careers) {
     levelsForCareer(c.id).forEach((_l, i) => {
       const st = actorStatus({ career: c.id, careerLevel: i + 1 } as Combatant);
-      const budget = statusBudgetBrass(st.tier.toLowerCase() as StatusTier, st.standing);
+      const budget = statusBudgetBrass(st.tier, st.standing);
       if (budget > best.budget) best = { career: c.id, careerLevel: i + 1, budget };
     });
   }

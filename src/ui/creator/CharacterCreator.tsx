@@ -27,6 +27,7 @@ import {
   displayLabelForSex,
   findSpeciesById,
   findClassById,
+  libelleDeClasse,
   byId,
   findTalentById,
   refLabel,
@@ -56,7 +57,7 @@ import {
 } from '../../data';
 import { SIZE_LABEL } from '../../engine/size';
 import { refKey, splitLabel } from '../../engine/careerSlots';
-import { CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, cleDOption, fluxDeCreation, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
+import { CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, cleDOption, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { bandeAuDe } from '../../engine/tables';
 import { brancheChoisie, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
@@ -141,6 +142,7 @@ import {
   careerTalentOptions,
   pettySpellQuota,
   draftWealth,
+  draftStatus,
   rollDraftWealth,
   rolledDetails,
   validateStep,
@@ -176,9 +178,10 @@ import {
   probeHero,
   xpTotal,
 } from '../../noyau/creation/brouillon';
-import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_STAR_ROLLED, parseStatus, speciesAllowed } from '../../engine/creation';
+import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_STAR_ROLLED, speciesAllowed } from '../../engine/creation';
+import { formuleDeRevenus } from '../../engine/money';
+import { t as msg } from '../../i18n'; // `msg` : alias local — `t` nomme aussi un trapping ou une minuterie dans ce module
 import { PARTY_MAX } from '../../noyau/monde/combatants';
-import { garanti } from '../../lib/garanti';
 import { GatedAction } from '../GatedAction';
 import { Grid, Row } from '../Layout';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
@@ -308,7 +311,7 @@ export function CharacterCreator() {
 
   const create = () => {
     const hero = buildHero(d, editing?.heroId); // édition : on conserve l'id du héros
-    const wealth = draftWealth(d);
+    const wealth = draftWealth(d).montant;
     ajouterAuRoster(stockageDuRoster(), { hero, wealth, draft: d }); // roster persistant + brouillon EXACT (round-trip futur)
     if (editing) {
       // Remplacement EN PLACE (primitive atomique) : préserve l'index/ordre et transfère la
@@ -333,8 +336,7 @@ export function CharacterCreator() {
     const c = findCareerById(d.careerId);
     if (!c) return null;
     const lvl1 = levelsForCareer(d.careerId).find((l) => l.level === 1);
-    const cl = findClassById(c.class);
-    return `Classe ${cl?.label ?? c.class} · carrière ${c.label} — départ ${lvl1?.label ?? '—'}, ${lvl1?.status ?? ''}.`;
+    return msg('createur.resumeDeCarriere', { classe: libelleDeClasse(c.class), carriere: c.label, niveau: lvl1?.label ?? '—', statut: lvl1?.status ?? '' });
   };
 
   // Une réf Codex cliquée ouvre la fiche en MODALE par-dessus l'assistant (cf. CodexOverlay) : le
@@ -834,7 +836,7 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
         <>
           {career.class && (
             <span className="chip">
-              <CodexRef category="classes" id={career.class} label={findClassById(career.class)?.label ?? career.class}>{findClassById(career.class)?.label ?? career.class}</CodexRef>
+              <CodexRef category="classes" id={career.class} label={libelleDeClasse(career.class)}>{libelleDeClasse(career.class)}</CodexRef>
             </span>
           )}
           <span className="chip">Départ <b>{lvl1.label}</b></span>
@@ -1985,26 +1987,15 @@ function trappingMeta(id: string): string {
 //      planche ratifiée du créateur) : gabarit DEUX ZONES (panneau + fiche vivante, MÊME composition
 //      que Caractéristiques/Compétences) — le panneau porte le statut en tête, puis les bandes « De
 //      carrière » / « De classe » (chips d'équipement comptées) / « La bourse » (rappel de la formule +
-//      montant, jet figé sans dés à rejouer) / « La classe » (prose RAW verbatim). Mécanique INCHANGÉE
-//      (draftWealth/trappingChoices, brouillon.ts) — la fiche vivante RÉSOUT son chip roadmap « dotations » en
-//      arrivant sur cette étape (`CreatorSummary`, `pending.possessions`).
-/** Faces INDIVIDUELLES du jet de bourse — même flux/ordre RNG que `draftWealth`
- *  (`fluxDeCreation(d.seed, 'bourse')`, `rollInitialWealth`) : rejoue le MÊME nombre de `rng.int(1,10)` pour figer
- *  les dés à l'écran (mock7 : faces + total) au lieu du seul total texte (retouche juge vision
- *  #393 P5). Bronze N : 2N d10 ; Argent N : N d10 ; Or (aucun dé, CO=Standing) : []. */
-function draftWealthDice(d: CreatorDraft): number[] {
-  const status = parseStatus(draftLevel(d)?.status ?? 'Bronze 0');
-  if (status.standing <= 0 || status.tier === 'Or') return [];
-  const n = status.tier === 'Bronze' ? 2 * status.standing : status.standing;
-  const rng = fluxDeCreation(d.seed, 'bourse');
-  return Array.from({ length: n }, () => d10Face(rng.int(1, 10)));
-}
-
+//      montant, jet figé sans dés à rejouer) / « La classe » (prose RAW verbatim). La mécanique vit au
+//      noyau (`draftWealth`/`trappingChoices`, brouillon.ts) — la fiche vivante RÉSOUT son chip roadmap
+//      « dotations » en arrivant sur cette étape (`CreatorSummary`, `pending.possessions`).
 export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
   const level = draftLevel(d);
   const career = findCareerById(d.careerId);
   const klass = findClassById(career?.class);
-  const wealth = draftWealth(d);
+  const bourse = draftWealth(d);
+  const wealth = bourse.montant;
   const { rolling, landed, trigger, skip } = useRollFrisson(() => setD(rollDraftWealth(d)));
   const emplacements = level ? emplacementsDeDotation(d.careerId, 1).filter(estEmplacementRacine) : [];
 
@@ -2026,9 +2017,9 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
   };
   const classItems = (klass?.trappings ?? []).filter((t) => !estEmplacementDeDotation(t));
   const careerItems = level.trappings.filter((t) => !estEmplacementDeDotation(t));
-  // Formule de bourse fixée par le TIER du statut (SOURCE UNIQUE : titre de bande, sous-texte du geste
-  // et note d'intro la citent tous — planche `finale-mock7`, « 2d10 sous de cuivre » sous « La bourse »).
-  const purseFormula = level.status.startsWith('Bronze') ? '2d10 sous de cuivre' : level.status.startsWith('Argent') ? '1d10 pistoles' : "1 couronne d'or";
+  // Formule de bourse d'UN Standing : titre de bande, sous-texte du geste et note d'intro la citent tous
+  // (planche `finale-mock7`, « 2d10 sous de cuivre » sous « La bourse »).
+  const purseFormula = formuleDeRevenus(draftStatus(d).tier);
 
   // Bande d'ACTION (slot requis de l'ossature) : le GESTE de l'étape — « Tirer aux dés — la
   // bourse » (jet figé, agentivité #393 P5) remonte en tête, avec le statut qui fixe sa formule.
@@ -2061,15 +2052,14 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
             </span>
           </button>
         ) : (
-          // Faces RÉELLES figées (draftWealthDice, même graine/ordre RNG que draftWealth) — jamais une
-          // face fabriquée ; le total est porté par la barre (`right`).
+          // Faces du tirage du noyau (`draftWealth`) ; le total est porté par la barre (`right`).
           <>
             {/* `Row` : la bande est une COLONNE flex (ses enfants s'étirent) — le plateau doit
                 rester à la taille de ses dés, pas s'allonger en bandeau vide. */}
             <Row>
               <span className="dicewell-tray">
-                {draftWealthDice(d).map((n, i) => (
-                  <span key={i} className="rm-die dicewell-die"><DieFace n={n} landed tone="gold" /></span>
+                {bourse.faces.map((n, i) => (
+                  <span key={i} className="rm-die dicewell-die"><DieFace n={d10Face(n)} landed tone="gold" /></span>
                 ))}
               </span>
             </Row>
@@ -2093,7 +2083,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
         <div className="skill-tags">{careerItems.map(chip)}</div>
       </Band>
 
-      <Band title={<>De classe<small>{klass?.label ?? '—'}</small></>} right={<span className="hint">{classItems.length} objet{classItems.length > 1 ? 's' : ''}</span>}>
+      <Band title={<>De classe<small>{libelleDeClasse(career.class)}</small></>} right={<span className="hint">{classItems.length} objet{classItems.length > 1 ? 's' : ''}</span>}>
         <div className="skill-tags">{classItems.map(chip)}</div>
       </Band>
 
@@ -2111,7 +2101,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
         );
       })}
 
-      <div className="mini-title">La classe — {klass?.label ?? '—'}</div>
+      <div className="mini-title">La classe — {libelleDeClasse(career.class)}</div>
       <LoreText md={klass?.desc} porteur={klass && { type: 'classes', id: klass.id, chemin: 'desc' }} />
 
       {/* Note de PIED (planche `finale-mock7`, `.c-note` en bas de zone) : où atterrit le butin de départ. */}
@@ -2331,7 +2321,7 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
             <span><Icon id="resource/movement" size="sm" /> Mouvement <b>{hero.movement}</b></span>
             <span><Icon id="resource/fate" size="sm" /> Destin <b>{hero.fate ?? '—'}</b> · Chance <b>{hero.fortune ?? '—'}</b></span>
             <span><Icon id="resource/resilience" size="sm" /> Résilience <b>{hero.resilience ?? '—'}</b> · Dét. <b>{hero.resolve ?? '—'}</b></span>
-            <span><Icon id="resource/gold-purse" size="sm" /> Bourse <b><Coins money={draftWealth(d)} /></b></span>
+            <span><Icon id="resource/gold-purse" size="sm" /> Bourse <b><Coins money={draftWealth(d).montant} /></b></span>
             <span>PX création <b>+{xpTotal(d)}</b></span>
           </div>
         </Rubrique>
@@ -2416,7 +2406,7 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
           écrasés « Pamphl étaire »/« Bronz »). */}
       {levels.length > 0 && (
         <div className="presentation-col" style={{ gridColumn: '1 / -1' }}>
-          <Rubrique title={<>Évolution — {career?.class ? garanti(findClassById(career.class), career.class, 'classe de carrière').label : ''}</>}>
+          <Rubrique title={<>Évolution — {career?.class ? libelleDeClasse(career.class) : ''}</>}>
             <CareerPath levels={levels} currentLevel={1} selected={1} />
           </Rubrique>
         </div>

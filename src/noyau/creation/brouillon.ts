@@ -21,13 +21,13 @@
 import { tableTotale } from '../../lib/tableTotale';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
-import { Money } from '../../engine/money';
+import { statutDeDonnee, type Status } from '../../engine/money';
 import {
   rollSpecies,
   rollCareer,
   validatePointBuy,
-  parseStatus,
   rollInitialWealth,
+  type TirageDeRichesse,
   rollAge,
   rollHeight,
   rollEyes,
@@ -650,11 +650,15 @@ export function careerTalentOptions(d: CreatorDraft): { ref: RefASpecialisation;
 }
 
 // ── 5) Possessions ──
-/** Montant de la bourse — PUR/déterministe (`d.seed`), jamais une relance (LDB 05 : un seul jet).
- *  La ceinture d'agentivité (`wealthRoll`, geste requis avant affichage) vit dans l'UI, pas ici. */
-export function draftWealth(d: CreatorDraft): Money {
-  const status = parseStatus(draftLevel(d)?.status ?? 'Bronze 0');
-  return rollInitialWealth(status, fluxDeCreation(d.seed, 'bourse'));
+/** Le Statut du Niveau choisi ; Bronze 0 sans Niveau. */
+export function draftStatus(d: CreatorDraft): Status {
+  const lvl = draftLevel(d);
+  return lvl ? statutDeDonnee(lvl.status) : { tier: 'bronze', standing: 0 };
+}
+/** La bourse — faces et montant d'UN tirage, PUR/déterministe (`d.seed`), jamais une relance (LDB 05 :
+ *  un seul jet). La ceinture d'agentivité (`wealthRoll`, geste requis avant affichage) vit dans l'UI. */
+export function draftWealth(d: CreatorDraft): TirageDeRichesse {
+  return rollInitialWealth(draftStatus(d), fluxDeCreation(d.seed, 'bourse'));
 }
 /** Pose le geste « Tirer aux dés » de la bourse — FIGÉ (aucune relance, LDB 05 l.578 n'en offre
  *  aucune) : le montant lui-même est déjà déterminé par `d.seed`, ce geste n'en découvre que

@@ -9,6 +9,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import type { FormuleSansTirage } from '../../../engine/ops';
 import { z } from 'zod';
+import { parseStatus } from '../../../engine/money';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
 import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
@@ -176,6 +177,8 @@ export const dir8Schema = enumNomme({
  * `trappings`).
  */
 export const availabilitySchema = z.enum(AVAILABILITIES);
+/** Libellé de Statut (« Argent 2 ») : lisible par `parseStatus`, que `statutDeDonnee` garantit ensuite. LDB 08 l.9 */
+export const statutSchema = z.string().refine((s) => parseStatus(s) !== null, 'Statut illisible : « Bronze N », « Argent N » ou « Or N » attendu.');
 
 /**
  * Rareté d'une pièce de créature récoltée (`HarvestRarity`, `src/data/index.ts`) = les paliers de

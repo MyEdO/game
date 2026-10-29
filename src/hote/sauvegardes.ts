@@ -8,7 +8,7 @@
  * (`hote/temoin.ts`), que `prendreLesRetraitsDeSauvegardes` consomme. Aucune migration. Un stockage
  * absent (`null`) ou qui lève : aucune save, l'écriture rend `false`.
  */
-import { lireSave, metaDeSave, type ObsoleteCause, type SaveGame, type SaveMeta } from '../noyau/index';
+import { CAUSES_DE_REFUS_DE_SAVE, lireSave, metaDeSave, type ObsoleteCause, type SaveGame, type SaveMeta } from '../noyau/index';
 import { lireLeTexte, retirerLaCle, type Stockage } from '../lib/stockage';
 import { prendreLeTemoin, temoigner, type FormeDeTemoin } from './temoin';
 
@@ -26,7 +26,7 @@ const CLE_DU_TEMOIN = 'wfrp4.save.temoins';
 export type RetraitDeSave = { slot: AnySlot; cause: ObsoleteCause };
 
 const estEmplacement = (v: unknown): v is AnySlot => v === AUTO_SLOT || SAVE_SLOTS.includes(v as SaveSlot);
-const estCause = (v: unknown): v is ObsoleteCause => v === 'autreFormat' || v === 'illisible';
+const estCause = (v: unknown): v is ObsoleteCause => (CAUSES_DE_REFUS_DE_SAVE as readonly unknown[]).includes(v);
 
 /** Le témoin des saves retirées, dans l'ordre des lectures : un emplacement n'y figure qu'une fois. */
 const RETRAITS_DE_SAVES: FormeDeTemoin<RetraitDeSave[]> = {

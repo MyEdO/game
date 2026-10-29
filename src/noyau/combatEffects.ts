@@ -22,7 +22,7 @@ import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
 import { partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue, actorHasSkill } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
-import { parseStatus } from '../engine/creation';
+import { statutDeDonnee } from '../engine/money';
 import { easeDifficulty } from '../engine/tests';
 import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
@@ -805,7 +805,7 @@ export function openSkillTest(
   // Modulateurs sociaux PAR ACTEUR (un Test social vs un interlocuteur) : malus psy Animosité/Préjugé
   // (LDB 21) + mod de Statut Échelon/Standing (LDB 08). Le Statut compare l'acteur à la cible `vsStatus`.
   const isSocial = isSocialTest(spec.skill?.id, spec.characteristic);
-  const tgtStatus = isSocial && spec.vsStatus ? parseStatus(spec.vsStatus) : undefined;
+  const tgtStatus = isSocial && spec.vsStatus ? statutDeDonnee(spec.vsStatus) : undefined;
   const psychMod = spec.vsGroups?.length && isSocial ? (c: Combatant) => socialPsychMod(c, spec.vsGroups!) : undefined;
   // 1d10 « réaction au Statut » (option, LDB 08 l.40/59) tiré UNE fois par Test (RNG seedé) — appliqué à
   // tous les candidats de façon cohérente (la réaction de l'interlocuteur ne dépend pas du héros choisi).

@@ -56,7 +56,7 @@ export { poserLesReglesMaisonPersistees, surchargerUneRegleMaison, retablirUneRe
 export { preferenceDef, preferencesAPersister, poserLesPreferencesPersistees, valeurDEntree, type IdDePreference, type Preference, type PrefValue } from './preferences';
 export {
   snapshotSave, metaDeSave, lireSave, exporterLaSauvegarde, chargerLaSave, refusDeSauvegarde,
-  type SaveGame, type SaveMeta, type ObsoleteCause,
+  type SaveGame, type SaveMeta, type ObsoleteCause, CAUSES_DE_REFUS_DE_SAVE,
 } from './persistance/save';
 export { aEcrire, campagneDUneEntree, entreesRelues, idDesignable, projetDUneEntree, type CampagneLancee, type EntreeListee, type SavedProject } from './persistance/bibliotheque';
 export { ProjetRefuse, type ProjectDoc } from './worldMap';

@@ -2948,7 +2948,7 @@ export function seasonLabel(id: string): PlayerText {
 
 /** Nature d'une entité dont l'ABSENCE est atteignable en jeu (#1906) : héros sorti du groupe, combattant
  *  sorti du combat, lieu effacé de la carte, navire retiré du catalogue, saison sans fiche météo. */
-export type NatureAbsente = 'heros' | 'combattant' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere';
+export type NatureAbsente = 'heros' | 'combattant' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere' | 'classe';
 /** Le libellé d'une entité résolue, ou son ABSENCE nommée en français de joueur par sa nature (#1906) —
  *  jamais un littéral qui la masque. Une absence IMPOSSIBLE ne passe pas ici : elle lève. */
 export function libelleOuAbsence(e: { label: string } | undefined, nature: NatureAbsente, id: string): PlayerText {
@@ -3223,6 +3223,8 @@ const classeParId = indexParId('classes', classes);
 export function findClassById(id: string | undefined): ClassData | undefined {
   return classeParId(id);
 }
+/** Libellé de la Classe `id`, ou son absence nommée — SOURCE UNIQUE du libellé de Classe. */
+export const libelleDeClasse = (id: string): PlayerText => libelleOuAbsence(findClassById(id), 'classe', id);
 export function levelsForCareer(careerId: string): CareerLevelData[] {
   return careerLevels.filter((c) => c.career === careerId).sort((a, b) => a.level - b.level);
 }
