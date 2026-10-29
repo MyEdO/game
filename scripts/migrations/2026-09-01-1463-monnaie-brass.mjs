@@ -2,7 +2,7 @@
  * Migration L-monnaie-2 (#1463) — la clé `bronze` d'un montant meurt : la 3ᵉ dénomination de la
  * bourse s'écrit `brass`, comme le porte le moteur depuis toujours (`Money`, `src/engine/money.ts:10`).
  * La pièce est un SOU DE CUIVRE (LDB 57 l.7) ; `bronze` est par ailleurs l'ÉCHELON de Statut
- * (`StatusTier`, `PriceTier`) — deux concepts sous un mot, un seul migre.
+ * (`StatusTier`) — deux concepts sous un mot, un seul migre.
  *
  * RENOMMAGE PAR CLÉ, jamais par mot : la migration ne visite que les 5 chemins de schéma ci-dessous
  * (relevé exhaustif des 2 racines authorées, 2026-09-01) et ne touche QUE la clé `bronze` d'un

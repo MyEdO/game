@@ -1,24 +1,12 @@
 /**
- * Activités « Entre deux aventures » (LDB 23 + LDB 08) — calculs PURS, cités à la source :
- *
- *  - **Artisanat** (LDB 23 l.74-102) : « Pour créer l'équipement, effectuez un Test étendu de
- *    Métier, dont la Difficulté est [fixée par] la Disponibilité de l'Équipement » (Commune
- *    Accessible +20 / Limitée Intermédiaire +0 / Rare Complexe −10 / Exotique Très difficile
- *    −30) ; « Le nombre nécessaire de DR » par prix courant (Bronze 5 / Argent 10 / Or 15+) ;
- *    « Chaque Défaut diminue de moitié le nombre de DR requis, et chaque Atout ajoute +5
- *    (ajouté après avoir appliqué les Défauts). »
- *  - **Apprentissage particulier** (LDB 23 l.66-72) : « le prix pour apprendre le Talent est de
- *    2D10 pistoles d'argent par 100PX que coûte l'achat du Talent. »
- *  - **Opérations bancaires** (LDB 23 l.164-176) : invest — « Lancez 1d100 : si le résultat est
- *    inférieur ou égal à votre Indice d'intérêts, l'entreprise a fait faillite » ; planque —
- *    « si le résultat est de 10 ou inférieur, votre planque a été découverte ».
- *  - **Revenus** = « Gagner de l'argent grâce au Statut » (LDB 08 l.105-120) : Bronze
- *    « 2d10 sous de cuivre » / Argent « 1d10 pistoles d'argent » / Or « 1 couronne d'or »
- *    PAR Standing ; « Sur un Échec, vous ne gagnez que la moitié de la somme. Sur un Échec
- *    Stupéfiant (-6) […] vous n'avez rien gagné. »
+ * Activités « Entre deux aventures » — calculs PURS.
+ *  - Artisanat : LDB 23 l.74-102
+ *  - Apprentissage particulier : LDB 23 l.66-72
+ *  - Opérations bancaires : LDB 23 l.164-176
+ *  - Revenus : LDB 08 l.105-120 (`gainDeStatut`, `engine/money`)
  */
-import { RNG, roll as rollDice } from './dice';
-import { Money, fromBrass, toBrass, priceToMoney, PA_PER_SC, PA_PER_CO } from './money';
+import { RNG, roll, rollDice } from './dice';
+import { Money, fromBrass, toBrass, priceToMoney, gainDeStatut, enPieces, PA_PER_SC, type StatusTier } from './money';
 import type { Combatant, Difficulty, SkillInstance, Availability, StakeForm } from './types';
 import type { Formula, FormuleSansTirage, GameOp } from './ops';
 import { valeurSansTirage } from './formule';
@@ -504,13 +492,10 @@ export function classGatedDifficulty(
 }
 
 /** Plafond des revenus d'une semaine par Statut (« le maximum de vos revenus standards », Réputation
- *  LDB 23 l.228-234) — MÊME grille que `statusIncome` (LDB 08 l.105-120), bornes hautes des dés (2d10 →
- *  20, 1d10 → 10), sans tirage. PURE. */
-export function statusIncomeMax(tier: PriceTier, standing: number): Money {
-  const n = Math.max(0, standing);
-  if (tier === 'bronze') return fromBrass(n * 20);
-  if (tier === 'argent') return fromBrass(n * 10 * PA_PER_SC);
-  return fromBrass(n * PA_PER_CO);
+ *  LDB 23 l.228-234) : la grille de `gainDeStatut` à ses bornes hautes, sans tirage. PURE. */
+export function statusIncomeMax(tier: StatusTier, standing: number): Money {
+  const { de, unite } = gainDeStatut(tier, standing);
+  return fromBrass(toBrass(enPieces(unite, de.n * de.sides + (de.plus ?? 0))));
 }
 
 /** Catalogue app-owned des Activités (data-driven, éditable). */
@@ -748,9 +733,7 @@ export function stageAssignmentFromRoles(party: Combatant[]): Record<string, Sta
   return out;
 }
 
-export type PriceTier = 'bronze' | 'argent' | 'or';
-
-const CRAFT_BASE_DR: Record<PriceTier, number> = { bronze: 5, argent: 10, or: 15 };
+const CRAFT_BASE_DR: Record<StatusTier, number> = { bronze: 5, argent: 10, or: 15 };
 const CRAFT_DIFFICULTY: Record<Availability, Difficulty> = {
   Commune: 'accessible',
   Limitée: 'intermediaire',
@@ -759,7 +742,7 @@ const CRAFT_DIFFICULTY: Record<Availability, Difficulty> = {
 };
 
 /** Cible d'un Test étendu d'Artisanat : DR requis + Difficulté (LDB 23 l.78-95). */
-export function craftTarget(tier: PriceTier, avail: Availability, atouts: number, defauts: number): { dr: number; difficulty: Difficulty } {
+export function craftTarget(tier: StatusTier, avail: Availability, atouts: number, defauts: number): { dr: number; difficulty: Difficulty } {
   let dr = CRAFT_BASE_DR[tier];
   for (let i = 0; i < Math.max(0, defauts); i++) dr = Math.ceil(dr / 2); // « chaque Défaut diminue de moitié »
   dr += Math.max(0, atouts) * 5; // « chaque Atout ajoute +5 (après les Défauts) »
@@ -770,7 +753,7 @@ export function craftTarget(tier: PriceTier, avail: Availability, atouts: number
 export function apprenticeshipTutorCost(talentXpCost: number, rng: RNG): Money {
   const tranches = Math.max(1, Math.ceil(talentXpCost / 100));
   let pa = 0;
-  for (let i = 0; i < tranches; i++) pa += rollDice(2, 10, rng);
+  for (let i = 0; i < tranches; i++) pa += roll(2, 10, rng);
   return fromBrass(pa * PA_PER_SC);
 }
 
@@ -779,7 +762,7 @@ export function apprenticeshipTutorCost(talentXpCost: number, rng: RNG): Money {
  *  montant. » Le double porte sur la part MONÉTAIRE (« ce montant » = le paiement du tuteur — le
  *  coût en PX, lui, est le coût normal de l'Augmentation, déjà doublé hors carrière par `advanceCost`). */
 export function entrainementTutorCost(advanced: boolean, rng: RNG): Money {
-  const sc = rollDice(1, 10, rng) * (advanced ? 2 : 1);
+  const sc = roll(1, 10, rng) * (advanced ? 2 : 1);
   return fromBrass(sc);
 }
 
@@ -880,7 +863,7 @@ const listedBrass = (p: TrappingData['price']): number => toBrass(priceToMoney(p
  *  Disponibilité, `craftTarget` n'a pas de Difficulté à dériver et le RAW ne fournit aucune classe de
  *  repli (LDB 59 l.15, `isTradable`) — l'appelant refuse en le disant, il ne devine pas. */
 export function craftSpecOf(t: Pick<TrappingData, 'price' | 'availability'>): {
-  tier: PriceTier; avail: Availability; priceBrass: number; materialsBrass: number;
+  tier: StatusTier; avail: Availability; priceBrass: number; materialsBrass: number;
 } | null {
   const avail = t.availability;
   if (!isTradable(avail)) return null;
@@ -900,7 +883,7 @@ export interface CraftOption {
   label: string;
   /** CATÉGORIE de catalogue (`TrappingData.categorie` : melee/ranged/armor/trapping…) — groupe le sélecteur. */
   categorie: string;
-  tier: PriceTier;
+  tier: StatusTier;
   avail: Availability;
   priceBrass: number;
   materialsBrass: number;
@@ -996,18 +979,14 @@ export function orderCatalog(): { id: string; label: string; categorie: string; 
 
 /** Revenus d'une semaine de travail par Statut (LDB 08 l.105-120). */
 export function statusIncome(
-  tier: PriceTier,
+  tier: StatusTier,
   standing: number,
   rng: RNG,
   outcome: 'success' | 'fail' | 'astoundingFail' = 'success',
 ): Money {
   if (outcome === 'astoundingFail') return fromBrass(0);
-  let brass = 0;
-  for (let i = 0; i < Math.max(0, standing); i++) {
-    if (tier === 'bronze') brass += rollDice(2, 10, rng); // 2d10 sous de cuivre
-    else if (tier === 'argent') brass += rollDice(1, 10, rng) * PA_PER_SC; // 1d10 pistoles
-    else brass += PA_PER_CO; // 1 couronne d'or
-  }
+  const { de, unite } = gainDeStatut(tier, standing);
+  let brass = toBrass(enPieces(unite, rollDice(de, rng)));
   if (outcome === 'fail') brass = Math.floor(brass / 2); // « la moitié de la somme »
   return fromBrass(brass);
 }

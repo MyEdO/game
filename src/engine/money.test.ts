@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toBrass, fromBrass, add, subtract, canAfford, formatMoney, spellMoney, priceToMoney, statusBudgetBrass, withinStatusBudget, parseStatus } from './money';
+import { toBrass, fromBrass, add, subtract, canAfford, formatMoney, spellMoney, priceToMoney, statusBudgetBrass, withinStatusBudget, parseStatus, formuleDeRevenus } from './money';
 
 describe('« Tenir les comptes » — budget par Statut (LDB 59 l.9-11)', () => {
   it('statusBudgetBrass : Bronze N = N sous, Argent N = N pistoles, Or N = N couronnes', () => {
@@ -14,6 +14,7 @@ describe('« Tenir les comptes » — budget par Statut (LDB 59 l.9-11)', () => 
   it('parseStatus : décompose « Argent 2 » / « Bronze 1 » / libellé inconnu', () => {
     expect(parseStatus('Argent 2')).toEqual({ tier: 'argent', standing: 2 });
     expect(parseStatus('Bronze 1')).toEqual({ tier: 'bronze', standing: 1 });
+    expect(parseStatus('Or 7')).toEqual({ tier: 'or', standing: 7 });
     expect(parseStatus('—')).toBeNull();
     expect(parseStatus(undefined)).toBeNull();
   });
@@ -60,5 +61,19 @@ describe('money — monnaie impériale (LDB 57 : 1 CO=20 SC=240 PA, 1 SC=12 PA)'
     expect(spellMoney({ gold: 0, silver: 0, brass: 1 })).toBe('1 sou de cuivre'); // sou seul, singulier
     expect(spellMoney({ gold: 2, silver: 3, brass: 4 })).toBe("2 couronnes d'or, 3 pistoles d'argent, 4 sous de cuivre"); // mixte
     expect(spellMoney({ gold: 0, silver: 0, brass: 0 })).toBe('aucune monnaie'); // zéro
+  });
+});
+
+describe('formuleDeRevenus — la grille de Statut en texte joueur (LDB 08 l.115-119, LDB 05 l.576-578)', () => {
+  it('UN Standing : la ligne du tableau', () => {
+    expect(formuleDeRevenus('bronze')).toBe('2d10 sous de cuivre');
+    expect(formuleDeRevenus('argent')).toBe("1d10 pistoles d'argent");
+    expect(formuleDeRevenus('or')).toBe("1 couronne d'or");
+  });
+  it('N Standings : les dés réunis, le pluriel de la somme fixe, rien sous Standing 0', () => {
+    expect(formuleDeRevenus('bronze', 3)).toBe('6d10 sous de cuivre');
+    expect(formuleDeRevenus('argent', 3)).toBe("3d10 pistoles d'argent");
+    expect(formuleDeRevenus('or', 3)).toBe("3 couronnes d'or");
+    expect(formuleDeRevenus('bronze', 0)).toBe('aucune monnaie');
   });
 });

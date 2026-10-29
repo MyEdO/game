@@ -511,10 +511,6 @@ export const DETTES_DE_LIBELLE = {
   // #2104 — Axes de récolte (Rareté / Danger / Taille / Conservation) — quatre vocabulaires FR en clés de table.
   'src/engine/harvest.ts#label-literal': 1,
   'src/engine/harvest.ts#label-record': 4,
-  // #2104 — Axe Statut social (Bronze/Argent/Or) — `Status.tier` porte le libellé, lu du texte des carrières.
-  'src/engine/creation.ts#label-literal': 2,
-  'src/engine/social.ts#label-literal': 2,
-  'src/ui/creator/CharacterCreator.tsx#label-literal': 2,
   // #2104 — Statut d'un indice de campagne (révélé/réfuté) — porté par la donnée de scène et les sauvegardes.
   'src/noyau/monde/clues.ts#label-literal': 2,
   'src/noyau/combatEffects.ts#label-literal': 1,

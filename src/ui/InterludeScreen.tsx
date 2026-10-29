@@ -3,11 +3,11 @@ import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
 import { interludeEventFor } from '../data/interludeEvents';
 import { memoParVersion } from '../data/versionDataset';
-import { formatMoney, fromBrass, toBrass, toMoney, PA_PER_SC, type Money } from '../engine/money';
+import { formatMoney, formuleDeRevenus, libelleDEchelon, fromBrass, toBrass, toMoney, PA_PER_SC, type Money } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { heroStatus, heroClass, incomeSkillOf, interludeCatalog, bestActivitySkill, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
-import { desEnAttente, interludeDrawPending, refusDActivite, refusDeRetrait, refusDuTirage, type EtatDInterlude } from '../noyau/verdictsDInterlude';
+import { heroStatus, incomeSkillOf, interludeCatalog, bestActivitySkill, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
+import { blocageDeRevenus, desEnAttente, interludeDrawPending, refusDActivite, refusDeRetrait, refusDeRevenus, refusDuTirage, type EtatDInterlude } from '../noyau/verdictsDInterlude';
 import { totalDesBourses } from '../noyau/bourseFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, battleActivityDifficulty, battlePrepEntries, peutTenterAction, refusTenterAction, type MassBattleState } from '../noyau/massBattleFlow';
@@ -25,7 +25,7 @@ import { peutTenter, testValue } from '../engine/skills';
 import { combatValue } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { buildWeapon } from '../engine/items';
-import { findTalentById, skillInstanceLabel, findTrappingById, qualities, refLabel, activityStakeRef, hasActivityStake, libelleOuAbsence } from '../data';
+import { findTalentById, skillInstanceLabel, findTrappingById, qualities, refLabel, activityStakeRef, hasActivityStake, libelleDeClasse, libelleOuAbsence } from '../data';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { favorLevelSchema } from '../data/schemas/defs-scenes/effets';
 import { trappingCategorieSchema } from '../data/schemas/defs/trappings';
@@ -340,21 +340,29 @@ function TavernGamesEntry() {
   );
 }
 
+/** Libellés des Classes `ids`, joints pour une puce. */
+const libellesDeClasses = (ids: readonly string[]): string => ids.map(libelleDeClasse).join(', ');
+
 /** Conséquences mécaniques d'un événement, STRUCTURÉES (LDB 22) : les ops sont de la donnée, ceci
  *  est un RENDU — chaque conséquence porte son icône du registre (`<FxChip>`), aucun parsing. */
-function fxChips(st: InterludeHeroState, hero: Combatant): { icon: IconId; label: string }[] {
+function fxChips(etat: EtatDInterlude, st: InterludeHeroState, hero: Combatant): { icon: IconId; label: string }[] {
   const fx = st.fx;
   const chips: { icon: IconId; label: string }[] = [];
-  if (fx?.moneyPct) chips.push({ icon: 'resource/gold-purse', label: `${fx.moneyPct} % sur la bourse du groupe (pire tirage appliqué une fois)` });
-  if (fx?.loseActivity) chips.push({ icon: 'nav/activity', label: '−1 Activité' });
-  if (fx?.fortuneMaxDelta) chips.push({ icon: 'resource/fortune', label: `+${fx.fortuneMaxDelta} Point${fx.fortuneMaxDelta > 1 ? 's' : ''} de Chance` });
-  if (fx?.revenuePct) chips.push({ icon: 'resource/gold-purse', label: `Revenus ${fx.revenuePct > 0 ? '+' : ''}${fx.revenuePct} %${fx.revenueClasses ? ` (${fx.revenueClasses.join(', ')})` : ''}` });
-  if (fx?.revenueBlockedClasses) chips.push({ icon: 'resource/gold-purse', label: fx.revenueBlockedClasses.includes('*') || fx.revenueBlockedClasses.includes(heroClass(hero)) ? 'Revenus impossibles cette période' : `Revenus bloqués pour : ${fx.revenueBlockedClasses.join(', ')}` });
-  if (fx?.bankPct) chips.push({ icon: 'resource/gold-purse', label: `${fx.bankPct} % sur l'argent placé en banque` });
-  if (fx?.stashRaided) chips.push({ icon: 'ui/warning', label: 'Planque dévalisée !' });
-  if (fx?.bankCrashCheck) chips.push({ icon: 'ui/warning', label: 'Les banques vérifient leur faillite immédiatement' });
+  if (fx?.moneyPct) chips.push({ icon: 'resource/gold-purse', label: t('interlude.fx.bourses', { pct: fx.moneyPct }) });
+  if (fx?.loseActivity) chips.push({ icon: 'nav/activity', label: t('interlude.fx.moinsUneActivite') });
+  if (fx?.fortuneMaxDelta) chips.push({ icon: 'resource/fortune', label: t('interlude.fx.chance', { n: fx.fortuneMaxDelta, s: fx.fortuneMaxDelta > 1 ? 's' : '' }) });
+  if (fx?.revenuePct) {
+    const pct = { sign: fx.revenuePct > 0 ? '+' : '', pct: fx.revenuePct };
+    chips.push({ icon: 'resource/gold-purse', label: fx.revenueClasses ? t('interlude.fx.revenusPour', { ...pct, classes: libellesDeClasses(fx.revenueClasses) }) : t('interlude.fx.revenus', pct) });
+  }
+  if (fx?.revenueBlockedClasses) {
+    chips.push({ icon: 'resource/gold-purse', label: blocageDeRevenus(etat, hero.id) ?? t('interlude.fx.revenusBloquesPour', { classes: libellesDeClasses(fx.revenueBlockedClasses) }) });
+  }
+  if (fx?.bankPct) chips.push({ icon: 'resource/gold-purse', label: t('interlude.fx.banque', { pct: fx.bankPct }) });
+  if (fx?.stashRaided) chips.push({ icon: 'ui/warning', label: t('interlude.fx.planqueDevalisee') });
+  if (fx?.bankCrashCheck) chips.push({ icon: 'ui/warning', label: t('interlude.fx.faillite') });
   // Devoir elfique : conséquence APPLIQUÉE par le flow (règle optionnelle comprise) — jamais re-dérivée ici.
-  if (st.elfDuty) chips.push({ icon: 'nav/activity', label: '−1 Activité (devoir elfique)' });
+  if (st.elfDuty) chips.push({ icon: 'nav/activity', label: t('interlude.fx.devoirElfique') });
   return chips;
 }
 
@@ -387,7 +395,7 @@ function EventsIntro({ heroes, etat, onDone }: { heroes: Combatant[]; etat: Etat
             );
           }
           const ev = interludeEventFor(st.eventRoll);
-          const chips = fxChips(st, h);
+          const chips = fxChips(etat, st, h);
           return (
             <ParchmentCard key={h.id} seal={{ label: 'd100', roll: st.eventRoll }} title={ev.label}>
               <header className="interlude-chronicle-head">
@@ -479,12 +487,13 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
   const ev = st.eventRoll != null ? interludeEventFor(st.eventRoll) : null;
   const status = heroStatus(hero);
   // Raisons NOMMÉES de la fermeture des Activités de ce héros, portées par chaque volet jusqu'à son
-  // action : le verdict du noyau (`refusDActivite` pour une Activité, `refusDuTirage` pour engager un
-  // Artisanat, qui n'en consomme pas), ou la possession coop.
+  // action : le verdict du noyau (`refusDActivite` pour une Activité, `refusDeRevenus` pour les Revenus,
+  // `refusDuTirage` pour engager un Artisanat, qui n'en consomme pas), ou la possession coop.
   const mene = canDrive ? null : t('interlude.drivenElsewhere');
   const refusAct = mene ?? refusDActivite(etat, hero.id) ?? undefined;
   const refusEngagement = mene ?? refusDuTirage(etat, hero.id) ?? undefined;
-  const refusDe = (key: string): string | undefined => (key === 'craft' && !hero.craft ? refusEngagement : refusAct);
+  const refusRevenus = mene ?? refusDeRevenus(etat, hero.id) ?? undefined;
+  const refusDe = (key: string): string | undefined => (key === 'craft' && !hero.craft ? refusEngagement : key === 'revenus' ? refusRevenus : refusAct);
   // Affordance PAR héros : chaque débit d'Activité (matériaux/tuteur/commande/dépôt) est ponctionné
   // sur la bourse PERSONNELLE du héros actif (#531), jamais sur un total de groupe.
   const purse = bourseOf(hero);
@@ -501,7 +510,7 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
   /** … et son PORTEUR : cette desc EST le champ `desc` de l'entrée d'Activité de même id. */
   const corePorteur = (id: string): Porteur => ({ type: 'activities', id, chemin: 'desc' });
   const detail =
-    pane === 'revenus' ? <RevenusPane hero={hero} st={st} refus={refusAct} desc={coreDesc('revenus')} porteur={corePorteur('revenus')} />
+    pane === 'revenus' ? <RevenusPane hero={hero} refus={refusRevenus} desc={coreDesc('revenus')} porteur={corePorteur('revenus')} />
     : pane === 'craft' ? (hero.craft
         ? <CraftProgressPane hero={hero} craft={hero.craft} refus={refusAct} desc={coreDesc('craft')} porteur={corePorteur('craft')} />
         : <CraftPane hero={hero} refus={refusEngagement} money={purse} desc={coreDesc('craft')} porteur={corePorteur('craft')} />)
@@ -522,7 +531,7 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
         <b className="interlude-name">{hero.label}</b>
         <span className="interlude-left">
           {!canDrive && <span className="interlude-owner"><Icon id="nav/seat-owner" size="sm" /> {ownerName ?? 'autre joueur'} · </span>}
-          Statut {status.tier} {status.standing}
+          {t('interlude.statut', { echelon: libelleDEchelon(status.tier), standing: status.standing })}
         </span>
       </h3>
       {ev
@@ -603,21 +612,9 @@ function ActivityList({ hero, catalog, favors, pane, onPane, canDrive, refusDe, 
 
 /** Revenus (LDB 08 l.105-120) : Test Accessible (+20) de la compétence de carrière — la formule
  *  ET le pré-jet sont lisibles AVANT d'entreprendre. */
-function RevenusPane({ hero, st, refus, desc, porteur }: { hero: Combatant; st: InterludeHeroState; refus?: string; desc?: string; porteur?: Porteur }) {
+function RevenusPane({ hero, refus, desc, porteur }: { hero: Combatant; refus?: string; desc?: string; porteur?: Porteur }) {
   const activity = useGame((s) => s.interludeActivity);
-  const ev = st.eventRoll != null ? interludeEventFor(st.eventRoll) : null;
-  // `fx` et le dé sont écrits ENSEMBLE au dénouement du tirage : pas de blocage sans événement tiré.
-  const blockedCls = st.fx?.revenueBlockedClasses;
-  const blocked = ev && !!blockedCls && (blockedCls.includes('*') || blockedCls.includes(heroClass(hero)))
-    ? `Interdit par l'événement de la période (${ev.label}).`
-    : null;
   const status = heroStatus(hero);
-  // « Gagner de l'argent grâce au Statut » (LDB 08 l.105-120) — la formule, lisible AVANT le jet.
-  const incomeFormula = status.tier === 'bronze'
-    ? `${status.standing} × 2d10 sous`
-    : status.tier === 'argent'
-      ? `${status.standing} × 1d10 pistole${status.standing > 1 ? 's' : ''}`
-      : `${status.standing} couronne${status.standing > 1 ? 's' : ''} d'or`;
   const skillId = incomeSkillOf(hero);
   return (
     <ActivityPane
@@ -626,15 +623,14 @@ function RevenusPane({ hero, st, refus, desc, porteur }: { hero: Combatant; st: 
       title="Revenus — une semaine de travail"
       desc={desc}
       porteur={porteur}
-      blocked={blocked}
       prejet={withStake(testPending(<SkillChip skillId={skillId} />, testValue(hero, skillId), undefined, 'accessible'), 'revenus')}
-      note={<>Succès : <b>{incomeFormula}</b> · échec : moitié · Échec Stupéfiant : rien. Crédités à la reprise.</>}
+      note={t('interlude.revenus.note', { formule: formuleDeRevenus(status.tier, status.standing) })}
       actions={
         <GatedAction
           id="interlude-revenus-go"
           label="Entreprendre"
-          enabled={!refus && !blocked}
-          {...refusDuVolet('pane-revenus', blocked, refus)}
+          enabled={!refus}
+          {...refusDuVolet('pane-revenus', undefined, refus)}
           onClick={() => activity(hero.id, 'revenus')}
           btnClassName="small"
         />

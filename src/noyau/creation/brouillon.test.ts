@@ -1,3 +1,4 @@
+import { gainDeStatut } from '../../engine/money';
 import { describe, it, expect } from 'vitest';
 import {
   newDraft,
@@ -27,6 +28,7 @@ import {
   rollDraftAstrology,
   buildHero,
   draftWealth,
+  draftStatus,
   draftSpecies,
   draftLevel,
   careerCharKeys,
@@ -435,9 +437,14 @@ describe('buildHero — bout en bout', () => {
     const draftSum = CHAR_KEYS.reduce((a, k) => a + draftChars(d)[k], 0);
     expect(sum).toBeGreaterThanOrEqual(draftSum + 5); // + 5 Augmentations (+ éventuels +5 de talents)
   });
-  it('la richesse initiale est figée et conforme au Statut', () => {
+  it('la richesse initiale est figée, et ses faces font son montant', () => {
     const d = readyDraft();
     expect(draftWealth(d)).toEqual(draftWealth(d));
+    const { faces, montant } = draftWealth(d);
+    const { tier, standing } = draftStatus(d);
+    const { de, unite } = gainDeStatut(tier, standing);
+    expect(faces).toHaveLength(de.n);
+    expect(montant[unite]).toBe(faces.reduce((a, f) => a + f, de.plus ?? 0));
   });
   it('careerSkillEntries : les huit Compétences de départ du Niveau (LDB 05 l.535)', () => {
     const d = readyDraft();
