@@ -10,6 +10,7 @@ import { exigerUnRefus, parseProject } from '../worldMap';
 import { emptyNarratif } from './campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { emptyScene } from './scene';
+import { avecLesEntreesDeSpecs, CREEE, FERMEE, LIBELLE, OUVERTE } from '../../data/schemas/grammaire/specs.testkit';
 
 // ids RÉELS de la règle globale (`src/data`) — base de preset valide + cible de collision.
 const GLOBAL_CREATURE = 'humain';
@@ -117,9 +118,9 @@ describe('paquet de campagne — bloc narratif', () => {
   });
 
   // ── #1342 L3 : la référence PAR ID va jusqu'à la spécialisation d'une Compétence de profil.
-  const presetSkill = (spec: string) => {
+  const presetSkill = (spec: string, id = 'savoir') => {
     const n = validNarratif();
-    n.presetsPnj.push({ id: 'pnj-savant', base: GLOBAL_CREATURE, profil: { skills: [{ id: 'savoir', spec, value: 40 }] } as NarratifBlock['presetsPnj'][number]['profil'] });
+    n.presetsPnj.push({ id: 'pnj-savant', base: GLOBAL_CREATURE, profil: { skills: [{ id, spec, value: 40 }] } as NarratifBlock['presetsPnj'][number]['profil'] });
     return n;
   };
 
@@ -128,21 +129,29 @@ describe('paquet de campagne — bloc narratif', () => {
     expect(parseProject(doc(presetSkill('reikland'))).narratif.presetsPnj.length).toBe(2);
   });
 
-  it('(k) preset PNJ : LÈVE sur une spec qui ne résout pas ; la sentinelle « Au choix » est REFUSÉE sur une Compétence (un emplacement non désigné s’écrit « choix »)', () => {
-    expect(() => parseProject(doc(presetSkill('Rivières')))).toThrow(/spécialisation inconnue « Rivières »/);
-    expect(() => parseProject(doc(presetSkill('Au choix')))).toThrow(/n'est pas une spécialisation mais un EMPLACEMENT non désigné .* s'écrit « choix »/);
-  });
+  // LDB 09 l.40 ; LDB 08 l.140
+  it('(k) preset PNJ : une Compétence OUVERTE admet une spécialisation créée et refuse le LIBELLÉ de son catalogue ; une FERMÉE refuse le hors-catalogue ; la sentinelle « Au choix » est REFUSÉE (un emplacement non désigné s’écrit « choix »)', () =>
+    avecLesEntreesDeSpecs(() => {
+      expect(parseProject(doc(presetSkill(CREEE, OUVERTE))).narratif.presetsPnj.length).toBe(2);
+      expect(() => parseProject(doc(presetSkill(LIBELLE, OUVERTE)))).toThrow(/est le LIBELLÉ d'une spécialisation/);
+      expect(() => parseProject(doc(presetSkill(CREEE, FERMEE)))).toThrow(/est absente des spécialisations/);
+      expect(() => parseProject(doc(presetSkill('Au choix', FERMEE)))).toThrow(/n'est pas une spécialisation mais un EMPLACEMENT non désigné .* s'écrit « choix »/);
+    }));
 
-  const presetTalent = (spec: string) => {
+  const presetTalent = (spec: string, id = 'savoir-vivre') => {
     const n = validNarratif();
-    n.presetsPnj.push({ id: 'pnj-mondain', base: GLOBAL_CREATURE, profil: { talents: [{ id: 'savoir-vivre', spec }] } as NarratifBlock['presetsPnj'][number]['profil'] });
+    n.presetsPnj.push({ id: 'pnj-mondain', base: GLOBAL_CREATURE, profil: { talents: [{ id, spec }] } as NarratifBlock['presetsPnj'][number]['profil'] });
     return n;
   };
 
-  it('(l) preset PNJ : la spec d’un TALENT est validée au même titre', () => {
-    expect(() => parseProject(doc(presetTalent('PAS-UN-ID')))).toThrow(/spécialisation inconnue « PAS-UN-ID » pour le Talent/);
-    expect(parseProject(doc(presetTalent('Au choix'))).narratif.presetsPnj.length).toBe(2);
-  });
+  // LDB 08 l.140
+  it('(l) preset PNJ : la spec d’un TALENT est jugée par le même prédicat que la Compétence ; la sentinelle passe (#1463 L3)', () =>
+    avecLesEntreesDeSpecs(() => {
+      expect(parseProject(doc(presetTalent(CREEE, OUVERTE))).narratif.presetsPnj.length).toBe(2);
+      expect(() => parseProject(doc(presetTalent(LIBELLE, OUVERTE)))).toThrow(/est le LIBELLÉ d'une spécialisation/);
+      expect(() => parseProject(doc(presetTalent(CREEE, FERMEE)))).toThrow(/est absente des spécialisations/);
+      expect(parseProject(doc(presetTalent('Au choix', FERMEE))).narratif.presetsPnj.length).toBe(2);
+    }));
 
   it('(m) preset PNJ : un Talent SANS catalogue de spécs porte un texte d’instance, admis comme dans creatures.json (#1621)', () => {
     const n = validNarratif();

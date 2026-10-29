@@ -260,6 +260,14 @@ export function catalogueSpecs(type: TypeEntite, id: string): readonly string[] 
   return [...(lireLEspace(cleDesSpecs(espaceDe(type), id)) ?? [])];
 }
 
+/** La spécialisation `spec` DÉSIGNE-t-elle une entrée du catalogue de l'entrée `id` de `type`
+ *  (`catalogueSpecs`) ? Appartenance seule — la résolution d'un id en libellé, le parse inverse d'un
+ *  libellé, une garde « la spéc imprimée est au catalogue » ; l'ADMISSION se juge par `refusDeSpec`,
+ *  qui la lit. */
+export function specAuCatalogue(type: TypeEntite, id: string, spec: string): boolean {
+  return catalogueSpecs(type, id).includes(spec);
+}
+
 /**
  * L'entrée `id` de `type` admet-elle une spécialisation en TEXTE LIBRE hors de son catalogue ? La
  * DONNÉE le dit, entrée par entrée : le marqueur `specsOpen` (paramètre `espace.marqueurs` du def,
@@ -300,7 +308,7 @@ export function marqueurDeLaForme(type: TypeEntite, id: string, valeur: string):
 }
 
 /** Refus d'un id qu'aucune entrée du catalogue de `type` ne porte. */
-function refMorte(type: TypeEntite, id: string): string {
+export function refMorte(type: TypeEntite, id: string): string {
   return `« ${id} » est absent du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`;
 }
 
@@ -632,8 +640,10 @@ export type RefusDeSpec = 'nonSpecialisable' | 'sentinelle' | 'marqueur' | 'hors
 
 /**
  * La spécialisation `spec` de l'entrée `id` de `type` est-elle ADMISE, et sinon pourquoi — prédicat
- * UNIQUE, lu par le nœud à spécialisation ci-dessous et par la couverture d'un emplacement
- * (`slotCovers`, `engine/careerSlots.ts`) : `nonSpecialisable` (ni catalogue ni entrée ouverte),
+ * UNIQUE de la validité d'une spécialisation, lu par le nœud à spécialisation ci-dessous, par `specDe`,
+ * par la couverture d'un emplacement (`slotCovers`, `engine/careerSlots.ts`) et par la référence de
+ * Talent (`talentRefSchema`, `grammaire/reference.ts`). `LDB 09 l.40`, `LDB 08 l.140`.
+ * `nonSpecialisable` (ni catalogue ni entrée ouverte),
  * `sentinelle` (un emplacement non désigné), `marqueur` (la forme d'un champ que l'entrée déclare par
  * un marqueur, `marqueurDeLaForme`), `horsCatalogue` (entrée FERMÉE, spec absente de son catalogue),
  * `libelle` (entrée OUVERTE, spec égale — aux marques, à la casse et aux blancs de bord près, `norm`, `src/lib/normalize.ts` —
@@ -643,17 +653,16 @@ export function refusDeSpec(type: TypeEntite, id: string, spec: string): RefusDe
   if (!estSpecialisable(type, id)) return 'nonSpecialisable';
   if (SENTINELLE_DE_SPEC.test(spec)) return 'sentinelle';
   if (marqueurDeLaForme(type, id, spec)) return 'marqueur';
-  const catalogue = catalogueSpecs(type, id);
-  if (catalogue.includes(spec)) return null;
+  if (specAuCatalogue(type, id, spec)) return null;
   if (!entreeOuverte(type, id)) return 'horsCatalogue';
-  if (catalogue.length === 0) return null;
+  if (catalogueSpecs(type, id).length === 0) return null;
   const saisie = norm(spec);
   return [...idsDesignes(cleDesLibelles(cleDesSpecs(espaceDe(type), id)), `refusDeSpec('${type}')`)].some((l) => norm(l) === saisie) ? 'libelle' : null;
 }
 
-/** Message UNIQUE d'un refus de `refusDeSpec` : le nœud à spécialisation et `specDe` le lisent.
- *  `admetChoix` : le porteur admet l'emplacement `choix`, que le refus `sentinelle` désigne alors. */
-function messageDeRefusDeSpec(type: TypeEntite, id: string, spec: string, refus: RefusDeSpec, admetChoix: boolean): string {
+/** Message UNIQUE d'un refus de `refusDeSpec` : le nœud à spécialisation, `specDe` et `talentRefSchema`
+ *  le lisent. `admetChoix` : le porteur admet l'emplacement `choix`, que le refus `sentinelle` désigne alors. */
+export function messageDeRefusDeSpec(type: TypeEntite, id: string, spec: string, refus: RefusDeSpec, admetChoix: boolean): string {
   const catalogue = TYPES[type].catalogue;
   const espace = espaceDe(type);
   switch (refus) {

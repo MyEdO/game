@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { props, skills, domains, refEstVolumique, SPEC_SOURCES, type PropData, type SkillData, type DomainData } from './index';
+import { props, skills, domains, traits, refEstVolumique, type PropData, type SkillData, type DomainData } from './index';
 import { datasetObject, setDataset, setObjectDataset } from './overrides';
-import { idDe, entreeOuverte, lireLEspace, refusDeSpec } from './schemas/grammaire/ref';
+import { idDe, entreeOuverte, lireLEspace, refusDeSpec, specAuCatalogue } from './schemas/grammaire/ref';
 import { poserRegimeVivant } from './schemas/grammaire/idsVivants';
 import { sceneEntitySchema } from './schemas/defs-scenes/scene';
 
@@ -92,12 +92,13 @@ describe('régime vivant — un arbre posé à deux éléments de même clé se 
 });
 
 describe('régime vivant — un espace NICHÉ se lit sur la racine vivante de son fichier (#1463)', () => {
-  it('une clé posée dans `sizes.json#rangedMod` par `setObjectDataset` entre aussitôt dans l’espace et dans l’univers `sizes`', () => {
+  it('une clé posée dans `sizes.json#rangedMod` par `setObjectDataset` entre aussitôt dans l’espace et au catalogue d’une entrée à `specsSource: sizes`', () => {
+    const porteur = traits.find((t) => t.specsSource === 'sizes')!.id;
     expect(lireLEspace('sizes.json#rangedMod')?.has('colossale')).toBe(false);
-    expect(SPEC_SOURCES.sizes.resolves('colossale')).toBe(false);
+    expect(specAuCatalogue('trait', porteur, 'colossale')).toBe(false);
     setObjectDataset('sizes', { ...structuredClone(TAILLES_LIVREES), rangedMod: Object.assign(structuredClone(TAILLES_LIVREES.rangedMod), { colossale: 80 }) });
     expect(lireLEspace('sizes.json#rangedMod')?.has('colossale')).toBe(true);
-    expect(SPEC_SOURCES.sizes.resolves('colossale')).toBe(true);
+    expect(specAuCatalogue('trait', porteur, 'colossale')).toBe(true);
   });
 });
 

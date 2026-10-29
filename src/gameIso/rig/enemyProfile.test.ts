@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { classifyEnemy, enemyRigProfile, entityRigProfile } from './enemyProfile';
 import { combatantOverlays } from './parts/combatantVisuals';
 import { creatures, DEFAULT_RACE_ID, findTrappingById, SPEC_SOURCES } from '../../data';
+import { specAuCatalogue } from '../../data/schemas/grammaire/ref';
 import { setDataset } from '../../data/overrides';
 import { mutationById } from '../../data/mutations';
 import { raceById } from './races';
@@ -254,7 +255,7 @@ describe('entityRigProfile (entité de scène, ambiance hors combat)', () => {
     // QUE si l'authoring la déclare portée (`opts.armurePortee`, override, ex. `ent.appearance.armurePortee`).
     // L'arme du trait par un id de catalogue qui SE RÉSOUT (un libellé ne se résout pas, #1957).
     const armeId = SPEC_SOURCES.weaponsMelee.pool().find((id) => findTrappingById(id)?.shape && !isShieldTrapping(id))!;
-    expect(SPEC_SOURCES.weaponsMelee.resolves(armeId)).toBe(true);
+    expect(specAuCatalogue('trait', 'arme', armeId)).toBe(true);
     const p = entityRigProfile(findTrappingById, 'Soldat', 1, { traits: [{ id: 'arme', value: 7, arg: armeId }] as never, armour: 2, armurePortee: true })!;
     expect(p.equip.weapons.map(weaponFamily)).toContain(findTrappingById(armeId)!.shape?.id); // arme EXPLICITE tenue en main
     expect(p.equip.armour.length).toBeGreaterThan(0);                       // armure dessinée (PA → pièces)
