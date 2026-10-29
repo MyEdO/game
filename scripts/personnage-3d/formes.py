@@ -1,9 +1,11 @@
 """Shape keys d'un mesh (#2972, L1d #3101) : lecture et écriture des décalages d'une clé, lissage d'un champ de
-décalages jusqu'à des étirements bornés, et transfert des clés d'une source vers une cible par liaison de surface
-(modificateur Surface Deform), pour les peaux secondaires de la base comme pour les éléments posés sur elle.
+décalages jusqu'à des étirements bornés, liaison des sommets d'un corps à la surface d'un donneur (`lier`, `transporter`)
+et transfert des clés d'une source vers une cible par liaison de surface (modificateur Surface Deform), pour les peaux
+secondaires de la base comme pour les éléments posés sur elle.
 """
 import bpy
 import numpy
+from mathutils.bvhtree import BVHTree
 
 
 def positions(mesh, cle=None):
@@ -46,17 +48,30 @@ def rapports(x, champ, aretes):
             / numpy.linalg.norm(x[aretes[:, 0]] - x[aretes[:, 1]], axis=1))
 
 
+def aux_noeuds(champ, noeud):
+    """Le champ par sommet `champ` (sommets, …) moyenné sur chaque nœud `noeud` (`poids.jumeaux`) : (nœuds, …)."""
+    n = noeud.max() + 1
+    valeur = numpy.zeros((n, *champ.shape[1:]))
+    numpy.add.at(valeur, noeud, champ)
+    return valeur / numpy.maximum(numpy.bincount(noeud, minlength=n), 1).reshape(-1, *[1] * (champ.ndim - 1))
+
+
+def pas_laplacien(valeur, aretes):
+    """Un pas de lissage laplacien, pas 1/2, des valeurs `valeur` (nœuds, …) le long des arêtes `aretes`
+    (`aretes_des_triangles`) : chaque nœud prend la moitié de sa valeur et la moitié de la moyenne de ses voisins."""
+    a, b = numpy.concatenate([aretes[:, 0], aretes[:, 1]]), numpy.concatenate([aretes[:, 1], aretes[:, 0]])
+    somme = numpy.zeros_like(valeur)
+    numpy.add.at(somme, a, valeur[b])
+    voisins = numpy.maximum(numpy.bincount(a, minlength=len(valeur)), 1).reshape(-1, *[1] * (valeur.ndim - 1))
+    return 0.5 * valeur + 0.5 * somme / voisins
+
+
 def lisser(champ, x, noeud, aretes, facteur, bornes, passes_max):
-    """Le champ de décalages `champ` (sommets, 3) des sommets `x`, lissé (laplacien, pas 1/2, sur les nœuds `noeud` et
-    leurs arêtes `aretes`, `aretes_des_triangles`) puis multiplié par `facteur` (sommets,), jusqu'à ce que le rapport de
+    """Le champ de décalages `champ` (sommets, 3) des sommets `x`, lissé (`pas_laplacien` sur les nœuds `noeud` et leurs
+    arêtes `aretes`, `aretes_des_triangles`) puis multiplié par `facteur` (sommets,), jusqu'à ce que le rapport de
     chaque arête, sous le champ et contre `x` (`rapports`), tienne dans `bornes` ; les sommets d'un même nœud reçoivent
     la même valeur. Rend le champ et le nombre de passes ; au-delà de `passes_max`, la construction s'arrête."""
-    n = noeud.max() + 1
-    valeur = numpy.zeros((n, 3))
-    numpy.add.at(valeur, noeud, champ)
-    valeur /= numpy.maximum(numpy.bincount(noeud, minlength=n), 1)[:, None]
-    a, b = numpy.concatenate([aretes[:, 0], aretes[:, 1]]), numpy.concatenate([aretes[:, 1], aretes[:, 0]])
-    voisins = numpy.maximum(numpy.bincount(a, minlength=n), 1)[:, None]
+    valeur = aux_noeuds(champ, noeud)
     for passe in range(passes_max + 1):
         resultat = valeur[noeud] * facteur[:, None]
         r = rapports(x, resultat, aretes)
@@ -65,9 +80,45 @@ def lisser(champ, x, noeud, aretes, facteur, bornes, passes_max):
             return resultat, passe
         if passe == passes_max:
             raise RuntimeError(f'{int(hors.sum())} arête(s) hors de {bornes} après {passes_max} passes de lissage')
-        somme = numpy.zeros((n, 3))
-        numpy.add.at(somme, a, valeur[b])
-        valeur = 0.5 * valeur + 0.5 * somme / voisins
+        valeur = pas_laplacien(valeur, aretes)
+
+
+def voisins(rig, noms):
+    """Par os (indice dans `noms`), les indices de lui-même, de son parent et de ses enfants."""
+    index = {n: i for i, n in enumerate(noms)}
+    return [sorted({index[b.name], *([index[b.parent.name]] if b.parent else []), *(index[c.name] for c in b.children)})
+            for b in (rig.data.bones[n] for n in noms)]
+
+
+def lier(x, os_de_x, surface, faces, os_des_faces, voisinage):
+    """Lie chaque point `x` (points, 3) à son point le plus proche sur la surface d'un donneur (`surface`, sommets, 3 ;
+    `faces`, triangles, 3), parmi les seules faces dont l'os dominant `os_des_faces` est voisin (`voisinage`, par os, la
+    liste de ses os candidats, `voisins`) de l'os `os_de_x` du point : la surface la plus proche d'un autre membre n'est
+    pas candidate. Rend, par point, la face retenue, les coordonnées barycentriques du point lié dans cette face
+    (points, 3) et la distance ; un champ porté par les sommets du donneur se lit au point lié par `transporter`."""
+    sommets = [tuple(p) for p in surface]
+    parties = {o: numpy.flatnonzero(os_des_faces == o) for o in numpy.unique(os_des_faces)}
+    arbres = {o: BVHTree.FromPolygons(sommets, faces[f].tolist(), all_triangles=True) for o, f in parties.items()}
+    face, points, distances = numpy.empty(len(x), dtype=int), numpy.empty_like(x), numpy.empty(len(x))
+    for i, (p, o) in enumerate(zip(x, os_de_x)):
+        (point, _, local, distance), v = min(
+            ((arbres[v].find_nearest(tuple(p)), v) for v in voisinage[o] if v in arbres),
+            key=lambda t: t[0][3] if t[0][0] is not None else numpy.inf)
+        if point is None:
+            raise RuntimeError(f'point {i} : aucune face de son os ni de ses voisins')
+        face[i], points[i], distances[i] = parties[v][local], point, distance
+    a, b, c = (surface[faces[face, k]] for k in range(3))
+    u, v, q = b - a, c - a, points - a
+    uu, uv, vv = (u * u).sum(1), (u * v).sum(1), (v * v).sum(1)
+    qu, qv = (q * u).sum(1), (q * v).sum(1)
+    det = uu * vv - uv * uv
+    beta, gamma = (vv * qu - uv * qv) / det, (uu * qv - uv * qu) / det
+    return face, numpy.stack([1.0 - beta - gamma, beta, gamma], axis=1), distances
+
+
+def transporter(champ, faces, face, barycentres):
+    """Le champ `champ` (sommets du donneur, 3) lu en chaque point lié par `lier` (`face`, `barycentres`) : (points, 3)."""
+    return numpy.einsum('pk,pkc->pc', barycentres, champ[faces[face]])
 
 
 def noms_des_cles(objet):

@@ -1,21 +1,25 @@
 """Silhouette `corpulence` de la base humanoïde (#3101, décision 2) : le delta de poids max de MakeHuman, transféré au
-corps UBC par liaison de surface (Surface Deform).
+corps UBC par la liaison à un donneur filtrée par os (`formes.lier`).
 
 Donneur : `3dobjs/base.obj` (corps seul, groupe `body`) chargé des cibles `macrodetails` d'un homme jeune très musclé
 (`targetservice.py` `calculate_target_stack_from_macro_info_dict`) ; la clé est la différence entre l'état poids max et
 l'état poids moyen, à genre, âge et muscle fixés. Pose commune : celle du donneur. Le donneur est mis à l'échelle et
 recalé sur le tronc du squelette au repos par moindres carrés ; chaque os des membres du corps UBC prend, par son
 armature, la position, la direction et la longueur des articulations MakeHuman (groupes `joint-*` de `base.obj`). Le
-corps se pose par le skin linéaire aux poids de l'export (`poids.peau_lineaire`), se lie au donneur, le donneur reçoit
-le delta, et le déplacement lié revient au repos par l'inverse de ce même skin, sommet par sommet ; le lissage de la clé
-et ses extrémités invariantes sont ceux de toutes les silhouettes (`silhouettes.finir_les_silhouettes`).
+corps se pose par le skin linéaire aux poids de l'export (`poids.peau_lineaire`) et chaque sommet se lie au donneur :
+l'os dominant d'une face du donneur est celui de ses sommets aux poids du rig `game_engine` de MPFB, dont les os portent
+les noms d'UAL (`OS_DU_DONNEUR`). Le delta lu au point lié revient au repos par l'inverse de ce même skin, sommet par
+sommet ; le lissage de la clé et ses extrémités invariantes sont ceux de toutes les silhouettes
+(`silhouettes.finir_les_silhouettes`).
 """
 import gzip
+import json
 from pathlib import Path
 
 import numpy as np
 
-from formes import poser_la_cle
+from animation import clear_animation
+from formes import lier, poser_la_cle, transporter, voisins
 from poids import deformer, peau_lineaire, repos as inverses_du_repos
 
 SOMMETS_DU_CORPS = 13380
@@ -26,9 +30,10 @@ ETAT = 'male-young-maxmuscle'
 """Genre, âge et muscle du donneur : le corps UBC est un homme jeune très musclé (« Superhero »)."""
 REFERENCE, POIDS_MAX = 'averageweight', 'maxweight'
 NOM = 'corpulence'
+OS_DU_DONNEUR = 'game_engine'
+"""Le rig MPFB (`rigs/standard/weights.<rig>.json`) dont les os nomment ceux d'UAL, à la casse près."""
 ECART_MAX = 1e-4
-"""Écart maximal (m) des deux contrôles : corps lié au donneur intact, et corps posé portant la clé contre le
-déplacement lié (inverse du skin)."""
+"""Écart maximal (m) entre le corps posé portant la clé et le déplacement lié (inverse du skin)."""
 
 RECALAGE = (('joint-l-upper-leg', 'thigh_l'), ('joint-r-upper-leg', 'thigh_r'), ('joint-l-shoulder', 'upperarm_l'),
             ('joint-r-shoulder', 'upperarm_r'), ('joint-neck', 'neck_01'), ('joint-head', 'Head'))
@@ -95,8 +100,7 @@ def vers_blender(points):
 
 def donneur(mpfb):
     """`(référence, poids max, triangles, joints)` du donneur, en repère Blender et unités MakeHuman ; ses quads sont
-    coupés en triangles, que Surface Deform ne refuse jamais pour concavité ; `joints` donne le centre de chaque groupe
-    `joint-*` à la référence."""
+    coupés en triangles ; `joints` donne le centre de chaque groupe `joint-*` à la référence."""
     macro = Path(mpfb) / 'targets' / 'macrodetails'
     sommets, faces, groupes = lire_obj(Path(mpfb) / '3dobjs' / 'base.obj')
     taille = len(sommets)
@@ -106,8 +110,27 @@ def donneur(mpfb):
         - lire_cible(macro / f'universal-{ETAT}-{REFERENCE}.target.gz', taille)
     reference, poids_max = vers_blender(reference), vers_blender(poids_max)
     joints = {nom: reference[indices].mean(axis=0) for nom, indices in groupes.items()}
-    triangles = [t for a, b, c, d in faces for t in ((a, b, c), (a, c, d))]
+    triangles = np.array([t for a, b, c, d in faces for t in ((a, b, c), (a, c, d))])
     return reference[:SOMMETS_DU_CORPS], poids_max[:SOMMETS_DU_CORPS], triangles, joints
+
+
+def os_des_faces(mpfb, noms, triangles):
+    """Par triangle du donneur, l'indice dans `noms` de son os dominant : l'os le plus fréquent parmi les os dominants
+    de ses sommets, aux poids du rig `OS_DU_DONNEUR`."""
+    chemin = Path(mpfb) / 'rigs' / 'standard' / f'weights.{OS_DU_DONNEUR}.json'
+    poids = json.loads(chemin.read_text(encoding='utf-8'))['weights']
+    index = {n.lower(): i for i, n in enumerate(noms)}
+    if set(o.lower() for o in poids) - index.keys():
+        raise RuntimeError(f'{chemin} : os hors du squelette {sorted(set(o.lower() for o in poids) - index.keys())}')
+    w = np.zeros((SOMMETS_DU_CORPS, len(noms)))
+    for os_, liste in poids.items():
+        for i, p in liste:
+            if i < SOMMETS_DU_CORPS:
+                w[i, index[os_.lower()]] = max(w[i, index[os_.lower()]], p)
+    if not w[np.unique(triangles)].sum(axis=1).all():
+        raise RuntimeError(f'{chemin} : sommet du corps du donneur sans poids')
+    dominants = w.argmax(axis=1)
+    return np.array([np.bincount(dominants[t], minlength=len(noms)).argmax() for t in triangles])
 
 
 def tetes(squelette):
@@ -167,18 +190,12 @@ def poser_comme_le_donneur(bpy, squelette, joints):
     return heritage
 
 
-def au_repos(bpy, squelette):
-    """Remet chaque os de `squelette` au repos : un clip joué avant laisse sa dernière pose aux os."""
-    for pb in squelette.pose.bones:
-        pb.matrix_basis.identity()
-    bpy.context.view_layer.update()
-
-
 def rendre_l_heritage(bpy, squelette, heritage):
     """Remet `squelette` au repos et son `inherit_scale` d'origine."""
     for b in squelette.data.bones:
         b.inherit_scale = heritage[b.name]
-    au_repos(bpy, squelette)
+    clear_animation(squelette)
+    bpy.context.view_layer.update()
 
 
 def peau_de_la_pose(squelette):
@@ -188,43 +205,14 @@ def peau_de_la_pose(squelette):
     return poses @ inverses_du_repos(squelette).astype(np.float64)
 
 
-def coordonnees(bpy, objet):
-    """Sommets évalués (modificateurs et clés compris) de `objet`, en repère monde."""
-    evalue = objet.evaluated_get(bpy.context.evaluated_depsgraph_get())
-    maillage = evalue.to_mesh()
-    points = np.empty(len(maillage.vertices) * 3)
-    maillage.vertices.foreach_get('co', points)
-    evalue.to_mesh_clear()
-    points = points.reshape(-1, 3)
-    m = np.array(objet.matrix_world)
-    return points @ m[:3, :3].T + m[:3, 3]
-
-
-def objet_maillage(bpy, nom, sommets, faces):
-    maillage = bpy.data.meshes.new(nom)
-    maillage.from_pydata([tuple(p) for p in sommets], [], faces)
-    maillage.update()
-    objet = bpy.data.objects.new(nom, maillage)
-    bpy.context.scene.collection.objects.link(objet)
-    return objet
-
-
-def distances_de_liaison(posees, reference, faces):
-    """Distance de chaque sommet posé à la surface du donneur de référence."""
-    from mathutils import Vector
-    from mathutils.bvhtree import BVHTree
-    arbre = BVHTree.FromPolygons([tuple(p) for p in reference], faces)
-    return np.array([arbre.find_nearest(Vector(p))[3] for p in posees])
-
-
 def ajouter_corpulence(squelette, corps, mpfb: Path) -> None:
-    """Pose sur `corps` (skinné à `squelette`, remis au repos) la shape key `corpulence` : le delta de poids max de
-    MakeHuman, lié par Surface Deform dans la pose du donneur, ramené au repos par l'inverse du skin."""
+    """Pose sur `corps` (skinné à `squelette`, au repos) la shape key `corpulence` : le delta de poids max de
+    MakeHuman, lu au point lié au donneur (`formes.lier`) dans la pose du donneur, ramené au repos par l'inverse du
+    skin."""
     import bpy
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
     x, w = x.astype(np.float64), w.astype(np.float64)
-    au_repos(bpy, squelette)
     reference, poids_max, faces, joints = donneur(mpfb)
     echelle, translation = recalage(joints, tetes(squelette))
     reference, poids_max = reference * echelle + translation, poids_max * echelle + translation
@@ -233,28 +221,14 @@ def ajouter_corpulence(squelette, corps, mpfb: Path) -> None:
     peau = peau_de_la_pose(squelette)
     rendre_l_heritage(bpy, squelette, heritage)
     posees = deformer(w, x, peau[None])[0]
-    distances = distances_de_liaison(posees, reference, faces)
+    face, barycentres, distances = lier(posees, w.argmax(axis=1), reference, faces, os_des_faces(mpfb, noms, faces),
+                                        voisins(squelette, noms))
     pire = int(distances.argmax())
     print('CORPULENCE recalage', round(echelle, 6), 'liaison (m) médiane', round(float(np.median(distances)), 4),
           'p99', round(float(np.percentile(distances, 99)), 4), 'max', round(float(distances[pire]), 4), 'sommet', pire,
           flush=True)
 
-    cible = objet_maillage(bpy, 'corpulence_donneur', reference, faces)
-    liee = objet_maillage(bpy, 'corpulence_liee', posees, [list(p.vertices) for p in corps.data.polygons])
-    modificateur = liee.modifiers.new('liaison', 'SURFACE_DEFORM')
-    modificateur.target = cible
-    bpy.context.view_layer.objects.active = liee
-    bpy.ops.object.surfacedeform_bind(modifier=modificateur.name)
-    ecart_de_liaison = float(np.abs(coordonnees(bpy, liee) - posees).max())
-    if not modificateur.is_bound or ecart_de_liaison > ECART_MAX:
-        raise RuntimeError(f'corpulence : Surface Deform ne lie pas le corps posé au donneur (écart {ecart_de_liaison:.2e} m)')
-    cible.data.vertices.foreach_set('co', poids_max.ravel())
-    cible.data.update()
-    deplacement = coordonnees(bpy, liee) - posees
-    for objet in (liee, cible):
-        maillage = objet.data
-        bpy.data.objects.remove(objet, do_unlink=True)
-        bpy.data.meshes.remove(maillage)
+    deplacement = transporter(poids_max - reference, faces, face, barycentres)
 
     skin = np.einsum('sb,bij->sij', w, peau[:, :3, :3])
     repos = np.linalg.solve(skin, deplacement[..., None])[..., 0]

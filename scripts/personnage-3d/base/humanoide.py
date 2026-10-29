@@ -196,7 +196,8 @@ def construire(args):
         preparer(action)
     poser_au_sol(bpy, squelette, peaux)
     lisser_les_poids(squelette, peaux, clips)
-    squelette.animation_data.action = None
+    clear_animation(squelette)
+    bpy.context.view_layer.update()
     corps, secondaires = corps_et_secondaires(peaux)
     corps_f, _ = corps_et_secondaires(meshes_for(bpy, squelette_f))
     bornes = bornes_de_st()
