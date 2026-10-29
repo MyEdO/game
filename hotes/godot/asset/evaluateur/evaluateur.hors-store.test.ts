@@ -1,7 +1,7 @@
 // L'évaluateur d'une base 3D et de ses éléments (#2972) : chargement sans DOM, manifeste de base, gabarit, échantillonnage, gardes.
 import { describe, expect, it } from 'vitest';
 import {
-  AnimationClip, Bone, BufferAttribute, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
+  AnimationClip, Bone, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
   Uint16BufferAttribute, VectorKeyframeTrack,
 } from 'three';
 import { tableTotale } from '../../../../src/lib/tableTotale';
@@ -19,6 +19,7 @@ import { aretesDe, ETIREMENT_MAX, ETIREMENT_MIN, gardeEtirement, mesurerEtiremen
 import { gardePiedsAuSol, plusBas, SOL_TOLERANCE_M } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids, INFLUENCES_MAX } from './gardes/poids.ts';
+import { mesurerSilhouettes, TOLERANCE_EPAISSEUR } from './gardes/silhouettes.ts';
 
 const TABLE = { legs: ['racine'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 } };
 
@@ -555,7 +556,7 @@ describe('gardeSilhouettes', () => {
 
   it('ROUGE : une carrure qui n’atteint pas `st`', async () => {
     const courte = await evaluerAnneau({ ...JUSTES, [CARRURE_PLUS]: homothetie(1.1) });
-    expect(ecarts(courte).map((e) => [e.code, e.valeur])).toEqual([['epaisseur-hors-st', expect.closeTo(0.1, 5)]]);
+    expect(ecarts(courte).map((e) => [e.code, e.valeur])).toEqual([['epaisseur-hors-st', expect.closeTo(0.1 / 1.2, 5)]]);
     expect(courte.mesures.silhouettes?.carrure?.ecartAuSegment).toBeCloseTo(0.05, 5);
   });
 
@@ -563,6 +564,52 @@ describe('gardeSilhouettes', () => {
     const base = glbFabrique({ clips: { Repos: [0, 0] } });
     const f = await evaluer({ base, manifeste: manifesteDe(base), pas: 0.5 });
     expect(ecarts(f).map((e) => e.code)).toContain('anneau-indetectable');
+  });
+
+  /** Une bande cylindrique de rayon 0,1 m couchée sur X : trois cercles de huit sommets, sans couture dupliquée, en
+   *  x = 0,4, 0,5 et 0,6 m, mi-`racine` mi-`haut` ; `racine` tourné pour que l'axe Y de `haut` (en x = 0,5 m) suive X.
+   *  Par shape key, l'homothétie radiale de rapport k autour de X. */
+  function bandeCouchee(formes: Record<string, number>) {
+    const geometrie = new BufferGeometry();
+    geometrie.setAttribute('position', new Float32BufferAttribute([0.4, 0.5, 0.6].flatMap((x) =>
+      Array.from({ length: 8 }, (_, k) => [x, 0.1 * Math.cos(k * Math.PI / 4), 0.1 * Math.sin(k * Math.PI / 4)]).flat()), 3));
+    const p = geometrie.attributes.position;
+    geometrie.setAttribute('skinIndex', new Uint16BufferAttribute(Array.from({ length: p.count }, () => [0, 1, 0, 0]).flat(), 4));
+    geometrie.setAttribute('skinWeight', new Float32BufferAttribute(Array.from({ length: p.count }, () => [0.5, 0.5, 0, 0]).flat(), 4));
+    geometrie.morphAttributes.position = Object.entries(formes).map(([nom, k]) => Object.assign(
+      new Float32BufferAttribute(Array.from({ length: p.count }, (_, i) => [0, (k - 1) * p.getY(i), (k - 1) * p.getZ(i)]).flat(), 3), { name: nom }));
+    geometrie.morphTargetsRelative = true;
+    const racine = Object.assign(new Bone(), { name: 'racine' });
+    racine.rotation.z = -Math.PI / 2;
+    const haut = Object.assign(new Bone(), { name: 'haut' });
+    haut.position.y = 0.5;
+    racine.add(haut);
+    const mesh = Object.assign(new SkinnedMesh(geometrie, new MeshBasicMaterial()), { name: 'Corps' });
+    mesh.updateMorphTargets();
+    const scene = new Group();
+    scene.add(mesh);
+    mesh.add(racine);
+    scene.updateMatrixWorld(true);
+    mesh.bind(new Skeleton([racine, haut]));
+    return mesurerSilhouettes({ scene, corps: [mesh], silhouettes: Object.keys(formes), st: ST_DE_LA_BASE });
+  }
+  const ST_DE_LA_BASE = { min: 0.72, max: 1.7 };
+
+  it('le rayon d’un anneau d’étendue axiale non nulle se mesure perpendiculairement à son os : homothétie radiale k, rapport k', () => {
+    const { mesures, ecarts: e } = bandeCouchee({ [CARRURE_MOINS]: ST_DE_LA_BASE.min, [CARRURE_PLUS]: ST_DE_LA_BASE.max });
+    expect(e).toEqual([]);
+    expect(mesures.carrure?.os).toBe('haut');
+    expect(mesures.carrure?.rayonDeRepos).toBeCloseTo(0.1, 6);
+    expect(mesures.carrure?.points.map((q) => q.st)).toEqual([0.72, 0.86, 1, 1.35, 1.7]);
+    for (const q of mesures.carrure?.points ?? []) expect(q.rapport).toBeCloseTo(q.st, 6);
+  });
+
+  it('l’épaisseur suit st en écart relatif : 1,5 % de 1,7 passe, 2,5 % non', () => {
+    const passe = bandeCouchee({ [CARRURE_MOINS]: ST_DE_LA_BASE.min, [CARRURE_PLUS]: ST_DE_LA_BASE.max * 1.015 });
+    expect(passe.ecarts).toEqual([]);
+    expect(passe.mesures.carrure?.ecartASt).toBeCloseTo(0.015, 6);
+    const hors = bandeCouchee({ [CARRURE_MOINS]: ST_DE_LA_BASE.min, [CARRURE_PLUS]: ST_DE_LA_BASE.max * 1.025 });
+    expect(hors.ecarts.map((x) => [x.code, x.valeur, x.seuil])).toEqual([['epaisseur-hors-st', expect.closeTo(0.025, 6), TOLERANCE_EPAISSEUR]]);
   });
 
   it('restaure les silhouettes demandées avant l’échantillonnage des clips', async () => {

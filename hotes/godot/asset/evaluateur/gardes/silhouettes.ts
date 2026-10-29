@@ -4,11 +4,11 @@
  * hors carrure est prise à 1, seule ; la carrure par `poidsDeCarrure` aux `st` de `pointsDeCarrure`. Sous chaque
  * silhouette et la carrure à une borne de `st`, le centre de chaque anneau articulaire (`anneauxArticulaires`) reste à
  * moins de `FRACTION_DU_RAYON` × son rayon de repos, et au moins un sommet du corps bouge de plus de
- * `DEPLACEMENT_INERTE_M`. L'épaisseur (rayon moyen de l'anneau le plus épais au repos) suit `st` à
- * `TOLERANCE_EPAISSEUR` près ; l'écart des 5 rapports au segment entre les extrêmes (linéarité) se rapporte. L'état
- * des shape keys trouvé à l'entrée est restauré à la sortie.
+ * `DEPLACEMENT_INERTE_M`. L'épaisseur (rayon de l'anneau le plus épais au repos) suit `st` à `TOLERANCE_EPAISSEUR`
+ * près, en écart relatif ; l'écart des 5 rapports au segment entre les extrêmes (linéarité) se rapporte. L'état des
+ * shape keys trouvé à l'entrée est restauré à la sortie.
  */
-import type { Mesh, Object3D, SkinnedMesh } from 'three';
+import { Vector3, type Matrix4, type Mesh, type Object3D, type SkinnedMesh } from 'three';
 import type { Ecart } from '../ecart.ts';
 import { poseDeRepos } from '../echantillonnage.ts';
 import { CARRURE_MOINS, CARRURE_PLUS, poidsDeCarrure } from '../gabarit.ts';
@@ -24,9 +24,8 @@ export const FRACTION_DU_RAYON = 0.1;
 /** Le déplacement de sommet, en mètres, sous lequel une silhouette est inerte : `SOL_TOLERANCE_M`, distance que la
  *  chaîne tient pour nulle entre deux positions d'un sommet du corps. */
 export const DEPLACEMENT_INERTE_M = SOL_TOLERANCE_M;
-/** L'écart admis entre le rapport d'épaisseur et `st` : la demi-unité du centième, précision à laquelle les bornes de
- *  `st` sont déclarées (0,72 et 1,7, #2972 J12). */
-export const TOLERANCE_EPAISSEUR = 0.005;
+/** L'écart relatif admis entre le rapport d'épaisseur et `st`, |rapport − st| / st (#3101 issuecomment-6484977455). */
+export const TOLERANCE_EPAISSEUR = 0.02;
 /** Le nombre minimal de sommets d'un anneau : trois points non alignés posent une section. */
 export const SOMMETS_MIN_DE_L_ANNEAU = 3;
 
@@ -40,7 +39,8 @@ export interface Anneau {
   readonly sommets: readonly { readonly mesh: string; readonly indice: number }[];
 }
 
-/** L'état d'un anneau dans une pose : `centre` = centroïde de ses sommets, `rayon` = leur distance moyenne au centre. */
+/** L'état d'un anneau dans une pose : `centre` = centroïde de ses sommets, `rayon` = leur distance moyenne à la droite
+ *  qui passe par `centre` dans la direction de l'os de l'anneau. */
 interface Section {
   readonly centre: Point;
   readonly rayon: number;
@@ -61,7 +61,7 @@ export interface MesuresDeCarrure {
   readonly rayonDeRepos: number;
   /** Aux `st` de `pointsDeCarrure`, le rapport du rayon de cet anneau à son rayon de repos. */
   readonly points: readonly { readonly st: number; readonly rapport: number }[];
-  /** Le plus grand |rapport − st| des points. */
+  /** Le plus grand |rapport − st| / st des points. */
   readonly ecartASt: number;
   /** Le plus grand écart d'un point au segment qui joint les points extrêmes. */
   readonly ecartAuSegment: number;
@@ -105,7 +105,16 @@ export function anneauxArticulaires(meshes: readonly SkinnedMesh[]): Anneau[] {
   return [...parOs].filter(([, sommets]) => sommets.length >= SOMMETS_MIN_DE_L_ANNEAU).map(([os, sommets]) => ({ os, sommets }));
 }
 
-function section(anneau: Anneau, positions: ReadonlyMap<string, Float32Array>): Section {
+/** La direction de l'os `nom` dans la pose `os` : l'axe Y de sa matrice monde, image de l'axe tête → queue de l'os
+ *  Blender, défini aussi pour un os sans enfant. */
+function axeDeLOs(os: ReadonlyMap<string, Matrix4>, nom: string): Point {
+  const matrice = os.get(nom);
+  if (!matrice) throw new Error(`silhouettes : os absent ${nom}`);
+  const { x, y, z } = new Vector3().setFromMatrixColumn(matrice, 1).normalize();
+  return [x, y, z];
+}
+
+function section(anneau: Anneau, positions: ReadonlyMap<string, Float32Array>, axe: Point): Section {
   const points = anneau.sommets.map(({ mesh, indice }): Point => {
     const p = positions.get(mesh);
     if (!p) throw new Error(`silhouettes : mesh absent ${mesh}`);
@@ -113,7 +122,12 @@ function section(anneau: Anneau, positions: ReadonlyMap<string, Float32Array>): 
   });
   const moyenne = (c: 0 | 1 | 2) => points.reduce((s, p) => s + p[c], 0) / points.length;
   const centre: Point = [moyenne(0), moyenne(1), moyenne(2)];
-  return { centre, rayon: points.reduce((s, p) => s + Math.hypot(p[0] - centre[0], p[1] - centre[1], p[2] - centre[2]), 0) / points.length };
+  const aLaDroite = (p: Point) => {
+    const d = [p[0] - centre[0], p[1] - centre[1], p[2] - centre[2]];
+    const le = d[0] * axe[0] + d[1] * axe[1] + d[2] * axe[2];
+    return Math.hypot(d[0] - le * axe[0], d[1] - le * axe[1], d[2] - le * axe[2]);
+  };
+  return { centre, rayon: points.reduce((s, p) => s + aLaDroite(p), 0) / points.length };
 }
 
 function deplacementMax(de: ReadonlyMap<string, Float32Array>, a: ReadonlyMap<string, Float32Array>): number {
@@ -159,13 +173,19 @@ export function mesurerSilhouettes({ scene, corps, silhouettes, st }: SujetDeSil
   const formes = meshesAFormes(scene);
   const entree = formes.map((m) => [...(m.morphTargetInfluences as number[])]);
   const ecarts: Ecart[] = [];
-  const mesurer = (poids: Readonly<Record<string, number>>) => {
+  const poser = (poids: Readonly<Record<string, number>>) => {
     poserSeules(formes, poids);
-    const positions = poseDeRepos(scene, corps).positions;
-    return { positions, sections: anneaux.map((a) => section(a, positions)) };
+    return poseDeRepos(scene, corps);
   };
   try {
-    const reference = mesurer({});
+    const repos = poser({});
+    const axes = anneaux.map((a) => axeDeLOs(repos.os, a.os));
+    const sections = (positions: ReadonlyMap<string, Float32Array>) => anneaux.map((a, i) => section(a, positions, axes[i]));
+    const mesurer = (poids: Readonly<Record<string, number>>) => {
+      const { positions } = poser(poids);
+      return { positions, sections: sections(positions) };
+    };
+    const reference = { positions: repos.positions, sections: sections(repos.positions) };
     const aCarrure = silhouettes.includes(CARRURE_MOINS) && silhouettes.includes(CARRURE_PLUS);
     const etats = [
       ...silhouettes.filter((s) => s !== CARRURE_MOINS && s !== CARRURE_PLUS).map((nom) => ({ nom, poids: { [nom]: 1 } })),
@@ -192,10 +212,11 @@ export function mesurerSilhouettes({ scene, corps, silhouettes, st }: SujetDeSil
       const points = pointsDeCarrure(st).map((s) => ({ st: s, rapport: mesurer(poidsDeCarrure(s, st)).sections[epais].rayon / rayonDeRepos }));
       const [premier, dernier] = [points[0], points[points.length - 1]];
       const surSegment = (s: number) => premier.rapport + (dernier.rapport - premier.rapport) * (s - premier.st) / (dernier.st - premier.st);
-      const ecartASt = Math.max(...points.map((p) => Math.abs(p.rapport - p.st)));
+      const relatif = (p: { st: number; rapport: number }) => Math.abs(p.rapport - p.st) / p.st;
+      const ecartASt = Math.max(...points.map(relatif));
       carrure = { os: anneaux[epais].os, rayonDeRepos, points, ecartASt, ecartAuSegment: Math.max(...points.map((p) => Math.abs(p.rapport - surSegment(p.st)))) };
-      const pire = points.find((p) => Math.abs(p.rapport - p.st) === ecartASt) ?? points[0];
-      if (ecartASt > TOLERANCE_EPAISSEUR) ecarts.push({ garde: GARDE, code: 'epaisseur-hors-st', valeur: ecartASt, seuil: TOLERANCE_EPAISSEUR, detail: `st=${pire.st} : épaisseur de l’anneau de ${carrure.os} à ${pire.rapport} fois celle du repos` });
+      const pire = points.find((p) => relatif(p) === ecartASt) ?? points[0];
+      if (ecartASt > TOLERANCE_EPAISSEUR) ecarts.push({ garde: GARDE, code: 'epaisseur-hors-st', valeur: ecartASt, seuil: TOLERANCE_EPAISSEUR, detail: `st=${pire.st} : écart relatif à st ; épaisseur de l’anneau de ${carrure.os} à ${pire.rapport} fois celle du repos` });
     }
     return { mesures: { anneaux: anneaux.length, silhouettes: mesures, carrure }, ecarts };
   } finally {
