@@ -75,8 +75,8 @@ Lire la table exécutable des catégories avant d'écrire le manifeste :
 | Catégorie | Champs exacts de clé | Résolution à l'import | Liaison | Couleur |
 |---|---|---|---|---|
 | corps | partie, forme | non résolu à l'import | squelette | palette |
-| tete | tete | non résolu à l'import | squelette | palette |
-| pilosite | coiffure | non résolu à l'import | squelette | palette |
+| tete | tete | tête de `src/data/garde-robe.json` | squelette | palette |
+| pilosite | coiffure | coiffure de `src/data/garde-robe.json` | squelette | palette |
 | vetement | piece | pièce `vetement` de `src/data/garde-robe.json` | squelette | palette |
 | armure | piece | pièce `armure` de `src/data/garde-robe.json` | squelette | teinte |
 | accessoire | piece | pièce `accessoire` de `src/data/garde-robe.json` | rigide ou surface | teinte |
@@ -87,12 +87,13 @@ Lire la table exécutable des catégories avant d'écrire le manifeste :
 
 Un champ de clé qui a sa ligne dans `RESOLUTIONS` (`ecartsDeCleDElement`,
 `src/noyau/apparence/cleDElement.ts`) est résolu à l'import contre le fichier que nomme la colonne : absent, l'import le refuse `cle-inconnue` ; une pièce
-d'une autre catégorie que l'élément, `piece-hors-categorie`. Exemples : `{ "piece": "pourpoint" }`
+d'une autre catégorie que l'élément, `piece-hors-categorie`. Exemples : `{ "tete": "humain" }` (tete,
+l'id de la race de rendu), `{ "coiffure": "crane-rase" }` (pilosite), `{ "piece": "pourpoint" }`
 (vetement), `{ "piece": "plastron" }` (armure), `{ "piece": "baudrier" }` (accessoire),
 `{ "apparence": "epee" }` (rigide).
 
 Choisir les ids sémantiques dans la donnée du jeu, jamais dans un libellé. Rechercher l'id et
-les variantes du concept avant d'en créer un. Une clé de tête n'a pas de sexe ; une variation de
+les variantes du concept avant d'en créer un. Une clé de tête ou de coiffure n'a pas de sexe ; une variation de
 couleur n'ajoute aucun élément. Une pièce absente de la garde-robe s'y ajoute d'abord
 (skill `ajouter-une-donnee`) : l'import refuse son élément tant qu'elle manque. Un seul élément par
 (base, clé) ; un nom local dérivé tel que `humanoide--rigide--epee` distingue les catégories,

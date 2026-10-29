@@ -1,12 +1,13 @@
 /**
- * #3114 — ce que le SCHÉMA de `garde-robe.json` tient au parse : une pièce d'accessoire nomme son
- * emplacement et elle seule, un ensemble habille UNE chose sous l'id qui la nomme, et toute référence
- * interne (emplacement, pièces) résout dans sa sous-liste.
+ * #3114, #3113 — ce que le SCHÉMA de `garde-robe.json` tient au parse : une pièce d'accessoire nomme son
+ * emplacement et elle seule, un ensemble habille UNE chose sous l'id qui la nomme, toute référence
+ * interne (emplacement, pièces) résout dans sa sous-liste, et une tête ou une coiffure ne porte aucune
+ * clé de charge.
  */
 import { describe, expect, it } from 'vitest';
 import { schema } from './garde-robe';
 import gardeRobeJson from '../../garde-robe.json';
-import { findPieceById } from '../../index';
+import { findCoiffureById, findPieceById, findTeteById } from '../../index';
 
 type Entree = { id: string; [k: string]: unknown };
 const avec = (id: string, champs: Record<string, unknown>): Entree[] => {
@@ -20,7 +21,7 @@ const refus = (doc: unknown): string => {
   return r.success ? '' : r.error.issues.map((i) => i.message).join(' ');
 };
 
-describe('garde-robe.json — emplacements, pièces, ensembles (#3114)', () => {
+describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensembles (#3114, #3113)', () => {
   it('le document réel parse', () => {
     const r = schema.safeParse(gardeRobeJson);
     expect(r.success, r.success ? '' : r.error.issues.map((i) => `${i.path.join('.')} : ${i.message}`).join('\n')).toBe(true);
@@ -65,6 +66,30 @@ describe('garde-robe.json — emplacements, pièces, ensembles (#3114)', () => {
 
   it('une pièce sans catégorie est refusée', () => {
     expect(refus(avec('casque', { categorie: undefined }))).toMatch(/kind « piece » EXIGE la clé « categorie » \(casque\)/);
+  });
+
+  it('une tête et une coiffure sans charge parsent', () => {
+    const doc = [
+      { id: 'tete-test', type: 'garde-robe', label: 'Tête de test', kind: 'tete' },
+      { id: 'coiffure-test', type: 'garde-robe', label: 'Coiffure de test', kind: 'coiffure' },
+    ];
+    const r = schema.safeParse(doc);
+    expect(r.success, r.success ? '' : r.error.issues.map((i) => i.message).join('\n')).toBe(true);
+  });
+
+  it('une clé de charge sur une tête ou une coiffure est refusée', () => {
+    expect(refus(avec('humain', { categorie: 'vetement' }))).toMatch(/la clé « categorie » n’appartient pas au kind « tete » \(humain\)/);
+    expect(refus(avec('crane-rase', { emplacement: { id: 'tete' } }))).toMatch(/la clé « emplacement » n’appartient pas au kind « coiffure » \(crane-rase\)/);
+  });
+
+  it.each([
+    ['tete', findTeteById],
+    ['coiffure', findCoiffureById],
+  ] as const)('`find` de la sorte « %s » résout toute ligne de sa sorte sur elle-même et aucune autre ligne', (kind, find) => {
+    for (const e of gardeRobeJson as Entree[]) {
+      if (e.kind === kind) expect(find(e.id), e.id).toBe(e);
+      else expect(find(e.id), e.id).toBeUndefined();
+    }
   });
 
   it('`findPieceById` résout toute pièce sur elle-même et aucune autre ligne', () => {
