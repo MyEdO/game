@@ -43,7 +43,7 @@ import { activeSeaPrecipitation, openPortAt, vesselManann, setVesselHull } from 
 import { applyManannFactor, addManann, findManannFactor } from '../engine/seaVoyage';
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
-import { tavernNpcOffers } from './tavernFlow';
+import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
 import { openRest, placesOfKind, sceneLieu } from './restFlow';
 import { traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
 import { DAY_PHASES, minutesUntilNext, scheduleAt } from '../engine/clock';
@@ -2019,7 +2019,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     // une partie (`SceneEntity.tavernGame`) : la table s'ouvre alors sur SON offre. Aucun PNJ n'est
     // nommé ici — tout proposeur en hérite, et une ouverture hors dialogue reste générique.
     apply: (_e, env) => {
-      if (!rule('tavern-games')) return;
+      if (refusDOuvrirLaTaverne(env.get())) return;
       const parle = env.get().dialogue?.speakerId;
       const propose = parle && tavernNpcOffers(env.get().scene, presetDuNarratif(env.get().campaignNarratif)).some((o) => o.id === parle);
       env.get().openTavernGames(propose ? parle : undefined);

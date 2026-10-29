@@ -1,8 +1,8 @@
 /**
- * #T2 Voyage — flux store : trajets sur la carte du monde (temps, rations, paiement, péripéties
+ * #T2 Voyage — flux du noyau : trajets sur la carte du monde (temps, rations, paiement, péripéties
  * d'auteur, interruption/reprise). RAW : section « Voyage » du LDB (`51 - Magie du Chaos.md`).
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { itemFromTrappingById } from '../engine/items';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
@@ -13,7 +13,7 @@ import { campaignStart, dayIndex } from '../engine/clock';
 import { toBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { rationCount } from '../engine/provisions';
-import { setRule, resetRule } from '../engine/policy';
+import { setRule } from '../engine/policy';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import { draineCascade } from './cascade.testkit';
@@ -95,10 +95,6 @@ function sleepThroughHalt(): void {
   banc.getState().restSleep();
   drainCascade();
 }
-
-beforeEach(() => {
-  seedBattleRng(1);
-});
 
 describe('startTravel — à pied', () => {
   it('court trajet (12 km à M4, 3 h) : arrive le jour même, horloge avancée, transition vers la scène du lieu', () => {
@@ -365,12 +361,6 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
  * Exposition de fin d'Étape optionnels.
  */
 describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
-  afterEach(() => {
-    resetRule('travel-etapes');
-    resetRule('travel-etapes-count-bonus');
-    resetRule('travel-attraper-froid');
-  });
-
   it('OFF (défaut) : voyage INCHANGÉ — aucune ligne de Météo/Étape, arrivée identique au chemin de base', () => {
     setup(map({ km: 12, perilDie: 0 }));
     const t0 = banc.getState().gameTime;
@@ -576,10 +566,6 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
  * d'un attelage (l.229 + Problème de véhicule l.253).
  */
 describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () => {
-  afterEach(() => {
-    resetRule('travel-allures');
-  });
-
   /** Possession `nature: 'bete'` montable (SOCLE POSSESSIONS #617/#618) — `cheval-de-monte` = Palefroi. */
   const mountPossession = (
     uid: string, ownerId: string, creatureId = 'cheval-de-monte',

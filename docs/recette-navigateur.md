@@ -1162,7 +1162,7 @@ Rejeu MOTEUR (headless) de ces trois gestes : `src/scenes/test-scenarios/22-dome
 posée par le VRAI lancer (`applyCast`), le tireur TIRE dès son premier tour, le TIR ouvre son étape de
 sauvegarde (suspension AVANT toute Blessure), la MÊLÉE n'en ouvre aucune. Les contrats du socle sont
 ailleurs : la porte qui suspend et rend la main (`src/state/combat/sauvegarde-a-la-porte.test.ts`,
-`pousserSauvegarde`), la lecture en seuil du dé (`src/state/cascade-seuil.test.ts`, `lireEnSeuil`).
+`pousserSauvegarde`), la lecture en seuil du dé (`src/noyau/cascade-seuil.hors-store.test.ts`, `lireEnSeuil`).
 
 Hors combat, la fiche (**Magie & Foi**) garde ses boutons « Lancer » / « Focaliser » ; **pendant** un
 combat ils sont gatés, avec leur raison au survol (« En combat, les sorts se lancent depuis la

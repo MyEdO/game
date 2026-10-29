@@ -125,7 +125,7 @@
     "css": "src/ui/styles/roll-shell.css",
     "concept": "coquille de jet mono/multi (Lancer→Chance→Pacte→Résilience→Appliquer) ; posée dans `Modal` ou `EmbeddedShell`, ou rendue à part (`useRollShell` : titre, corps, gestes) pour l'hôte qui l'englobe dans SA boîte",
     "perimetre": "toute modale de jet, mono (N=1) et multi (N contributeurs)",
-    "verrou": "roll-modal-invariant.test.ts"
+    "verrou": "roll-modal-invariant.hors-store.test.ts"
   },
   {
     "id": "rollRow",

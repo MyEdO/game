@@ -213,7 +213,10 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // `interludeActivity` = chemin UNIQUE de toutes les Activités à jet (Revenus/Artisanat/Apprentissage/
   // Identification + catalogue) ; `interludeCraftStart` engage l'ouvrage (setup, sans jet).
   interludeActivity: 'invité', interludeCraftStart: 'invité', interludeOrder: 'invité',
-  interludeBank: 'invité', interludeWithdraw: 'invité',
+  interludeBank: 'invité', interludeWithdraw: 'invité', interludeEntrainement: 'invité', favorSettle: 'invité',
+  // Préparation de bataille : le héros MENEUR est le 2e argument ; l'affectation de l'armée
+  // (`setMassBattleHero`), partagée, reste à l'hôte.
+  massBattleActivity: 'invité',
   // Jet d'Activité : verbes DÉRIVÉS (flux mono `activity`, « Annuler » compris) ; l'application est une
   // action de store hors `FLOW_VERBS`.
   activityConfirm: 'invité',
@@ -231,7 +234,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────
   buyCharAdvance: 'hôte', buySkillAdvance: 'hôte', buyTalent: 'hôte', buySpell: 'hôte',
   changeCareer: 'hôte', designateCareerSlot: 'hôte', trainProsthesis: 'hôte', buySpellComponent: 'hôte',
-  removeSpellComponent: 'hôte', setHeroBackground: 'hôte', favorBreak: 'hôte', favorSettle: 'hôte',
+  removeSpellComponent: 'hôte', setHeroBackground: 'hôte', favorBreak: 'hôte',
   oocCastSpell: 'hôte', oocFocusSpell: 'hôte', oocDispelSpell: 'hôte', openMedic: 'hôte',
   usePartyItem: 'hôte', appraiseItem: 'hôte', appraiseGear: 'hôte',
   // ── Possessions / inventaire / équipement (lot coop non ouvert) ───────────────────────────────
@@ -266,7 +269,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   acquitterOuverture: 'hôte', cloreChapitre: 'hôte', ajournerChapterRecap: 'hôte',
   chooseDialogue: 'hôte', designerHerosChoisir: 'hôte',
   // ── Interlude : ouverture/clôture et bataille de masse ────────────────────────────────────────
-  interludeEnd: 'hôte', interludeEntrainement: 'hôte', massBattleActivity: 'hôte',
+  interludeEnd: 'hôte',
   setMassBattleHero: 'hôte', massBattleAdvance: 'hôte', massBattleClash: 'hôte',
   massBattleHazard: 'hôte', massBattleRally: 'hôte', massBattleScene: 'hôte', endMassBattle: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
@@ -310,7 +313,7 @@ export const PARTY_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invit�
 /** Activités d'interlude. `startInterlude`/`interludeEnd` sont `hôte` (l'hôte seul ouvre et clôt la période). */
 export const INTERLUDE_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invité'>>([
   'interludeActivity', 'interludeCraftStart', 'interludeOrder', 'interludeBank', 'interludeWithdraw',
-  'activityConfirm',
+  'interludeEntrainement', 'favorSettle', 'massBattleActivity', 'activityConfirm',
 ]);
 
 /** Intents manuscrits du COMBAT : la classe `invité` hors groupe et interlude. */

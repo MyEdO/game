@@ -742,14 +742,14 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/crit-test-porte.test.ts",
+    fichier: "src/noyau/crit-test-porte.hors-store.test.ts",
     motif: "désormais",
     ancre: "Il naît désormais comme une ÉTAPE, et c'est le socle (`resolveFlowTest`) qui décide de sa surface.",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/crit-test-porte.test.ts",
+    fichier: "src/noyau/crit-test-porte.hors-store.test.ts",
     motif: "désormais",
     ancre: "ignorait les États du jeteur — donc sans Chance, sans Pacte, sans Résilience. Ils naissent désormais",
     lot: "L7 désormais",
@@ -777,7 +777,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/flowtest-derived-stake.test.ts",
+    fichier: "src/noyau/flowtest-derived-stake.hors-store.test.ts",
     motif: "désormais",
     ancre: "désormais l'enjeu au TYPE) → `resolveStake` (la porte unique de la surface).",
     lot: "L7 désormais",
@@ -917,7 +917,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/rollflow-outcome-invariant.test.ts",
+    fichier: "src/noyau/rollflow-outcome-invariant.hors-store.test.ts",
     motif: "désormais",
     ancre: "désormais sa fenêtre du succès de la LIGNE (`row.d.success`) : si une modale y pose une issue",
     lot: "L7 désormais",
@@ -959,7 +959,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/sequence-contrat-socle.test.ts",
+    fichier: "src/noyau/sequence-contrat-socle.hors-store.test.ts",
     motif: "désormais",
     ancre: "// Ce que fait `startCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE",
     lot: "L7 désormais",

@@ -2,14 +2,14 @@
  * #220 — Avitailleur (chandlerie navale) : archétype au registre + stock garanti (`curated`)
  * contenant l'eau douce et les pièces détachées de navire indispensables au réassort en mer.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { makeRNG } from '../engine/dice';
 import { rollStock, type CatalogItem } from '../engine/disponibilite';
 import { trappings, findMerchantArchetypeById } from '../data';
 import { garanti } from '../lib/garanti';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { emptyScene } from './monde/scene';
-import { setRule, resetRule } from '../engine/policy';
+import { setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 
 let banc: Banc;
@@ -69,7 +69,6 @@ const sceneWithAvitailleur = (marketMode?: string) => {
 
 describe('curated garanti QUEL QUE SOIT le mode de marché (chemin réel `openMerchant`)', () => {
   beforeEach(() => banc.setState({ party: [], scene: null, merchant: null, merchantStocks: {} }));
-  afterEach(() => resetRule('market-mode'));
 
   for (const mode of ['simplifie', 'sans-disponibilite'] as const) {
     it(`mode « ${mode} » : la mitraille (Exotique, curatée par l’avitailleur) reste en stock`, () => {

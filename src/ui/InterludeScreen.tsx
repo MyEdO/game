@@ -9,6 +9,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { heroStatus, incomeSkillOf, interludeCatalog, bestActivitySkill, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
 import { blocageDeRevenus, desEnAttente, interludeDrawPending, refusDActivite, refusDeRetrait, refusDeRevenus, refusDuTirage, type EtatDInterlude } from '../noyau/verdictsDInterlude';
 import { totalDesBourses } from '../noyau/bourseFlow';
+import { refusDOuvrirLaTaverne } from '../noyau/tavernFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, battleActivityDifficulty, battlePrepEntries, peutTenterAction, refusTenterAction, type MassBattleState } from '../noyau/massBattleFlow';
 import {
@@ -331,11 +332,12 @@ function BattleBanner({ mb }: { mb: MassBattleState }) {
 /** Entrée « Jeux de taverne » (NADJ 16) : ouvre la modale de jeu (choix jeu + adversaire). */
 function TavernGamesEntry() {
   const open = useGame((s) => s.openTavernGames);
+  const refus = useGame(refusDOuvrirLaTaverne);
   return (
     <section className="interlude-hero panel">
       <h3><Icon id="nav/dice" size="sm" /> Jeux de taverne</h3>
       <p className="interlude-detail">Un moment de détente : dés, boules, bras de fer… (Nuits agitées, ch.16).</p>
-      <button className="btn small btn-primary" onClick={() => open()}>Proposer une partie</button>
+      <GatedAction id="interlude-tavern-open" label="Proposer une partie" enabled={!refus} {...raisonSi(refus)} onClick={() => open()} btnClassName="small" />
     </section>
   );
 }
@@ -1193,8 +1195,8 @@ function CatalogPane({ hero, def, refus }: { hero: Combatant; def: ActivityDef; 
 }
 
 /** Volet d'une Activité de PRÉPARATION de bataille (ADE II 8), rendu DANS le menu d'interlude par le
- *  gabarit `ActivityPane` (comme toute Activité). « Entreprendre » DÉSIGNE ce héros comme meneur puis ouvre
- *  le jet par le canal UNIQUE de bataille (`massBattleActivity`) — l'issue porte sur l'ARMÉE,
+ *  gabarit `ActivityPane` (comme toute Activité). « Entreprendre » ouvre le jet MENÉ par ce héros par le
+ *  canal UNIQUE de bataille (`massBattleActivity`) — l'issue porte sur l'ARMÉE,
  *  le budget d'Activité consommé est celui, UNIQUE, de l'interlude. Le pré-jet montre la compétence du héros ;
  *  la résolution RAW (Soutien/Test combiné/prérequis) reste dans `openMassBattleActivity`. */
 function BattlePrepPane({ hero, def, refus, entry }: {
@@ -1203,7 +1205,6 @@ function BattlePrepPane({ hero, def, refus, entry }: {
   entry?: { done: boolean; blocked: string | null };
 }) {
   const battleActivity = useGame((s) => s.massBattleActivity);
-  const setHero = useGame((s) => s.setMassBattleHero);
   const mb = useGame((s) => s.massBattle);
   // Difficulté : celle que l'entrée DÉCLARE — dérivée de l'écart d'armées quand elle porte
   // `difficultyFrom` (Discours, l.71), sinon fixe. MÊME source que l'ouverture du jet.
@@ -1227,10 +1228,7 @@ function BattlePrepPane({ hero, def, refus, entry }: {
   const done = entry?.done ?? false;
   const blocked = done ? 'Déjà réalisée cette bataille (Activité non répétable).'
     : entry?.blocked ?? (peutTenterAction(hero, def) ? null : refusTenterAction([hero], def));
-  const undertake = () => {
-    setHero(def.id, [hero.id]); // désigne CE héros comme meneur de l'Activité de préparation
-    battleActivity(def.id);
-  };
+  const undertake = () => battleActivity(def.id, hero.id);
   return (
     <ActivityPane
       id={`pane-prep-${def.id}`}

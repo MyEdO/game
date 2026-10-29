@@ -20,7 +20,7 @@
  * de l'état : inverser `defenderId`↔`attackerId` dans `FLOW_VERBS` laisserait cette garde VERTE
  * (mesuré par mutation). Ce plan-là est couvert par `jet-owner-vs-spec.test.ts` (confrontation
  * table⇄`spec.actor` sur sentinelles distinctes) et par les sondes de flux RÉEL
- * (`jet-owner-real-flows.test.ts`, `attack-intent-ownership.test.ts`,
+ * (`jet-owner-real-flows.hors-store.test.ts`, `attack-intent-ownership.test.ts`,
  * `cast-influence-ownership.test.tsx`). L'INVENTAIRE littéral ci-dessous NOMME les intents routés ET
  * leur surface invité : une ligne de table qui disparaît sort de la boucle par flux SANS échec de
  * structure — seule l'assertion nominative la rattrape.

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useGame } from '../state/store';
 import { TAVERN_GAMES, findTavernGameById, tavernFastRegime, difficulteDeBase, difficulteDuJoueur, specialsApplicables, type TavernGame } from '../engine/tavernGame';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
-import { HABITUE, tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type TavernOpponent } from '../noyau/tavernFlow';
+import { HABITUE, refusDeTableDHote, refusDOuvrirLaTaverne, tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type TavernOpponent } from '../noyau/tavernFlow';
 import { pnjAuProfil, sceneNpc } from '../noyau/monde/sceneNpc';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
 import { Row } from './Layout';
@@ -14,7 +14,7 @@ import { OptionChooser } from './OptionChooser';
 import { CharFrame } from './CharFrame';
 import { Coins } from './Coins';
 import { Prose } from './Prose';
-import { GatedAction } from './GatedAction';
+import { GatedAction, raisonSi } from './GatedAction';
 import { t } from '../i18n';
 import { SceneBackdrop } from './SceneBackdrop';
 import { NumberField } from './NumberField';
@@ -65,6 +65,8 @@ export function TavernGameModal() {
   // réglage — la cascade (RollShell) porte l'interaction tant qu'elle n'a pas committé.
   const rolling = useGame(tavernPartieEnCours);
   const arbitreTientLaMain = useGame((s) => !!pickActiveModalKey(s));
+  const refusHote = useGame(refusDeTableDHote);
+  const refusDeRejouer = useGame(refusDOuvrirLaTaverne);
 
   const heroes = party.filter((h) => !h.dead);
   const [gameId, setGameId] = useState(TAVERN_GAMES[0]?.id ?? '');
@@ -145,7 +147,7 @@ export function TavernGameModal() {
 
   // POURQUOI on ne peut pas jouer — en TEXTE, jamais un bouton muet (`GatedAction`). La raison d'une
   // mise absente est celle de la garde du moteur, à la lettre : une seule vérité pour les deux.
-  const raison = !game
+  const raison = refusHote ?? (!game
     ? 'Choisissez un jeu.'
     : !challenger
       ? 'Choisissez qui joue.'
@@ -157,7 +159,7 @@ export function TavernGameModal() {
             ? 'Personne dans cette scène ne propose de partie.'
           : oppKind === 'profil' && (!habitue || (equipe && !coequipier))
             ? 'Choisissez un profil standard.'
-            : '';
+            : '');
   const canPlay = !raison;
 
   const onPlay = () => {
@@ -177,7 +179,7 @@ export function TavernGameModal() {
   // PIED : les gestes du volet courant — rejouer ou fermer après une partie ; fermer ou jouer avant.
   const footer = rolling ? undefined : result ? (
     <>
-      <button className="btn" onClick={() => replay()}>Rejouer</button>
+      <GatedAction id="tavern-replay" label="Rejouer" enabled={!refusDeRejouer} {...raisonSi(refusDeRejouer)} onClick={() => replay()} primary={false} />
       <button className="btn btn-primary" onClick={close}>Fermer</button>
     </>
   ) : (

@@ -23,9 +23,11 @@
 
 /** @type {import('./stock.mjs').EntreeDeSite[]} */
 export const PILOTE_CASCADE_RATCHET = [
+  { fichier: 'src/noyau/disease-contraction.hors-store.test.ts', ref: 'fn:resolveCombatEnd', occurrence: 1 },
   { fichier: 'src/noyau/land-market-flow.hors-store.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
   { fichier: 'src/noyau/land-market-flow.hors-store.test.ts', ref: 'fn:sellAtB', occurrence: 1 },
   { fichier: 'src/noyau/land-market.hors-store.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
+  { fichier: 'src/noyau/maladie-porte-valeur.hors-store.test.ts', ref: 'it:B2 — le HARNAIS de test et la NUIT réelle appliquent la MÊME guérison (Exténué collant compris)', occurrence: 1 },
   { fichier: 'src/noyau/port-sell-cargo.hors-store.test.ts', ref: 'fn:drain', occurrence: 1 },
   { fichier: 'src/noyau/shipwreck.test.ts', ref: 'fn:drainSwimCascade', occurrence: 1 },
   { fichier: 'src/noyau/tavernFlow.test.ts', ref: 'fn:drain', occurrence: 1 },
@@ -36,10 +38,8 @@ export const PILOTE_CASCADE_RATCHET = [
   { fichier: 'src/scenes/test-scenarios/15-commerce-fluvial.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
   { fichier: 'src/scenes/test-scenarios/duel-naval.test.ts', ref: 'fn:settleCascade', occurrence: 1 },
   { fichier: 'src/state/combat-entity-reconcile.test.ts', ref: 'fn:drainCombatEndCascade', occurrence: 1 },
-  { fichier: 'src/state/disease-contraction.test.ts', ref: 'fn:resolveCombatEnd', occurrence: 1 },
   { fichier: 'src/state/firstBlood.test.ts', ref: 'fn:drainCombatEndCascade', occurrence: 1 },
   { fichier: 'src/state/inn-flow.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
-  { fichier: 'src/state/maladie-porte-valeur.test.ts', ref: 'it:B2 — le HARNAIS de test et la NUIT réelle appliquent la MÊME guérison (Exténué collant compris)', occurrence: 1 },
   { fichier: 'src/state/miscast-step.test.ts', ref: 'fn:joueEnRetenant', occurrence: 1 },
   { fichier: 'src/state/night-bands.test.ts', ref: 'it:deux jours de Dessoûlage → deux bandes de gueule de bois aux ids DISTINCTS', occurrence: 1 },
   { fichier: 'src/state/rest-flow.test.ts', ref: 'fn:walkCascade', occurrence: 1 },

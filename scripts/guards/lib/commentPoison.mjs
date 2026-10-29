@@ -598,9 +598,8 @@ const CONSERVATION_ANCIENS_APPELS =
 const INACHEVE_ICI = String.raw`\b(?:non|pas)\s+(?:encore\s+)?(?:codée?s?|implémentée?s?|câblée?s?|branchée?s?|gérée?s?|traitée?s?|supportée?s?)\s+ici(?![\wÀ-ÿ])`;
 // #2199
 const LOT_A_VENIR = String.raw`(?:(?<!#\d+\s*)\(|=\s*)(?:sous-)?lots?\s+(?:suivants?|ultérieurs?|futurs?|à\s+venir)(?![\wÀ-ÿ])`;
-// Une lecture, un choix ou une valeur déclarés bons À REVOIR plus tard (#1463, sites à ea6f10e50e :
-// `src/state/combat/venin.test.ts:93`, `src/ui/opposedFrozen.ts:10`) : la réserve tient lieu de référence, excuse au
-// sens de 6b. Une lecture se prouve par sa réf nue, un choix d'ingénierie se décrit. L'adjectif et l'infinitif ne sont pas écrits
+// Une lecture, un choix ou une valeur déclarés bons À REVOIR plus tard (#1463, verbatim de sites à ea6f10e50e) : la
+// réserve tient lieu de référence, excuse au sens de 6b. Une lecture se prouve par sa réf nue, un choix d'ingénierie se décrit. L'adjectif et l'infinitif ne sont pas écrits
 // ici (ils mordraient sur ce commentaire même) : ils sont plantés en chaîne dans le test (#828).
 const RESERVE_DE_REVISION = '(?<![\\wÀ-ÿ])(?:r' + 'évisables?|à\\s+r' + 'éviser)(?![\\wÀ-ÿ])';
 export const EXCUSE_RX = new RegExp(

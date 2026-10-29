@@ -49,7 +49,7 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 // cascade RÉELLEMENT ouverte — un Test d'amputation différée (LDB 18 l.171), routé par la porte, peut
 // l'avoir ouverte à lui seul (`startCascade` renonce sur une liste d'étapes vide) ; sans cette pose, sa
 // fermeture rappellerait `openCombatEndCascade` et rejouerait l'Exposition à la Corruption. Le « reset »
-// compté est la repose du pending entier, pas une purge (`src/state/crit-test-porte.test.ts` (vii) le verrouille).
+// compté est la repose du pending entier, pas une purge (`src/noyau/crit-test-porte.hors-store.test.ts` (vii) le verrouille).
 // +1 totalCalls (#717, mesure exacte 746/301) : `chapitreRecap.armChapterRecapIfDue` POSE le récap de
 // fin de chapitre quand la clôture authorée devient vraie — UN site pour tous les lots d'effets (la
 // couture est appelée en pied d'`applyEffects`), aucun reset de cadre : la borne `chapitreDepuis` et

@@ -75,7 +75,7 @@ const ENTREE_B = "  'src/ui/CampaignView.test.tsx // div',"
 const ENTREE_CLE = "  'scripts/guards/lib/labelLogic.mjs': 'raison mesurée',"
 
 test('périmètre — les porteurs de stock, et eux seuls', () => {
-  assert.equal(estPorteurDeStock('src/state/flowtest-derived-stake.test.ts'), true)
+  assert.equal(estPorteurDeStock('src/noyau/flowtest-derived-stake.hors-store.test.ts'), true)
   assert.equal(estPorteurDeStock('scripts/guards/lib/folioRatchetStock.mjs'), true)
   assert.equal(estPorteurDeStock('scripts/hooks/fermetures-sans-solde.test.mjs'), true)
   assert.equal(estPorteurDeStock('scripts/hooks/ecrans-ui.json'), true)
@@ -474,8 +474,8 @@ test('entrée — un chemin cité en PROSE ou en commentaire n en est pas une', 
 })
 
 test('croissance — un stock qui NAÎT est une croissance nette, avec ses exemples', () => {
-  const [c] = croissanceDesStocks(diffDe('src/state/flowtest-derived-stake.test.ts', [ENTREE_A, ENTREE_B]), REPLI)
-  assert.equal(c.fichier, 'src/state/flowtest-derived-stake.test.ts')
+  const [c] = croissanceDesStocks(diffDe('src/noyau/flowtest-derived-stake.hors-store.test.ts', [ENTREE_A, ENTREE_B]), REPLI)
+  assert.equal(c.fichier, 'src/noyau/flowtest-derived-stake.hors-store.test.ts')
   assert.deepEqual([c.ajoutees, c.retirees, c.net], [2, 0, 2])
   assert.deepEqual(c.exemples, [ENTREE_A.trim(), ENTREE_B.trim()])
 })
@@ -527,7 +527,7 @@ test('fichierNommePar : la clé d’une entrée est le fichier qu’elle nomme, 
 test('croissance — un diff qui n’est PAS une chaîne LÈVE, et un « 0 » ne peut plus mentir', () => {
   // Témoin POSITIF d'abord : sans lui, un `[]` prouverait autant que la lib cassée. Le même diff,
   // passé en OBJET (l'appel qu'un juge a fait le 2026-09-04), doit lever au lieu de rendre [].
-  const diff = diffDe('src/state/flowtest-derived-stake.test.ts', [ENTREE_A, ENTREE_B])
+  const diff = diffDe('src/noyau/flowtest-derived-stake.hors-store.test.ts', [ENTREE_A, ENTREE_B])
   assert.ok(croissanceDesStocks(diff, REPLI).length > 0, 'témoin positif muet : la mesure ne mesure rien')
   assert.throws(() => croissanceDesStocks({ diff }, REPLI), /POSITIONNELLE/)
   assert.throws(() => croissanceDesStocks(undefined, REPLI), /attend le diff en CHAÎNE/)
@@ -539,9 +539,9 @@ test('croissance — hors fichier PORTEUR, la règle se tait', () => {
 })
 
 test('CLIQUET — le message couvre le fichier s il annonce le BON compte et un motif', () => {
-  const diff = diffDe('src/state/flowtest-derived-stake.test.ts', [ENTREE_A, ENTREE_B])
+  const diff = diffDe('src/noyau/flowtest-derived-stake.hors-store.test.ts', [ENTREE_A, ENTREE_B])
   const couvrant =
-    'feat: lot\n\nCLIQUET: src/state/flowtest-derived-stake.test.ts +2 — deux familles auto-résolues mesurées ce jour\n'
+    'feat: lot\n\nCLIQUET: src/noyau/flowtest-derived-stake.hors-store.test.ts +2 — deux familles auto-résolues mesurées ce jour\n'
   assert.deepEqual(cliquetsDuMessage(couvrant).map((k) => k.n), [2])
   assert.deepEqual(croissancesNonCouvertes({ diff, message: couvrant }, REPLI), [])
 })
@@ -562,22 +562,22 @@ test('déclarations — UN lecteur par mot-clé : `CLIQUET:` et `RECLASSEMENT:` 
 })
 
 test('CLIQUET — un compte FAUX ou un motif de tampon ne couvre rien, et le refus le dit', () => {
-  const diff = diffDe('src/state/flowtest-derived-stake.test.ts', [ENTREE_A, ENTREE_B])
-  const fauxCompte = 'CLIQUET: src/state/flowtest-derived-stake.test.ts +1 — motif suffisamment long pour passer'
+  const diff = diffDe('src/noyau/flowtest-derived-stake.hors-store.test.ts', [ENTREE_A, ENTREE_B])
+  const fauxCompte = 'CLIQUET: src/noyau/flowtest-derived-stake.hors-store.test.ts +1 — motif suffisamment long pour passer'
   const [c] = croissancesNonCouvertes({ diff, message: fauxCompte }, REPLI)
   assert.deepEqual([c.net, c.declare], [2, 1])
   assert.match(raisonDeRefus([c]), /annonce `\+1`, pas \+2/)
-  const tampon = 'CLIQUET: src/state/flowtest-derived-stake.test.ts +2 — besoin'
+  const tampon = 'CLIQUET: src/noyau/flowtest-derived-stake.hors-store.test.ts +2 — besoin'
   assert.equal(croissancesNonCouvertes({ diff, message: tampon }, REPLI).length, 1)
   const autreFichier = 'CLIQUET: scripts/guards/lib/folioRatchetStock.mjs +2 — un motif assez long mais pour un autre fichier'
   assert.equal(croissancesNonCouvertes({ diff, message: autreFichier }, REPLI).length, 1)
 })
 
 test('CLIQUET — deux lignes pour le MÊME fichier (`+999` puis le bon compte) → refus nommé : une déclaration par porteur', () => {
-  const diff = diffDe('src/state/flowtest-derived-stake.test.ts', [ENTREE_A, ENTREE_B])
+  const diff = diffDe('src/noyau/flowtest-derived-stake.hors-store.test.ts', [ENTREE_A, ENTREE_B])
   const double = [
-    'CLIQUET: src/state/flowtest-derived-stake.test.ts +999 — motif suffisamment long pour passer',
-    'CLIQUET: src/state/flowtest-derived-stake.test.ts +2 — motif suffisamment long pour passer',
+    'CLIQUET: src/noyau/flowtest-derived-stake.hors-store.test.ts +999 — motif suffisamment long pour passer',
+    'CLIQUET: src/noyau/flowtest-derived-stake.hors-store.test.ts +2 — motif suffisamment long pour passer',
   ].join('\n')
   const [c] = croissancesNonCouvertes({ diff, message: double }, REPLI)
   assert.deepEqual([c.net, c.declare, c.declarees], [2, 999, [999, 2]])

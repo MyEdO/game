@@ -257,6 +257,17 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
     expect(intentAllowedFor(s, 1, 'interludeBank', ['h2', 'stash', 120])).toBe(true);
   });
 
+  it('Entraînement, Faveur (1er argument) et préparation de bataille (meneur en 2e argument) : son propriétaire agit, pas les autres', () => {
+    const s = interludeState();
+    expect(intentAllowedFor(s, 1, 'interludeEntrainement', ['h2', 'characteristic', 'intelligence'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'interludeEntrainement', ['h1', 'characteristic', 'intelligence'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'favorSettle', ['h2'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'favorSettle', ['h1'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'massBattleActivity', ['planification', 'h2'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'massBattleActivity', ['planification', 'h1'])).toBe(false);
+    expect(intentAllowedFor(s, 0, 'massBattleActivity', ['planification', 'h2'])).toBe(false);
+  });
+
   it('retrait bancaire : le dépôt appartient à un héros — son propriétaire retire', () => {
     const s = interludeState();
     expect(intentAllowedFor(s, 1, 'interludeWithdraw', [0])).toBe(true); // dépôt de h2 (siège 1)

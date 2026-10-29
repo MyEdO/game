@@ -2,20 +2,19 @@
  * Budget d'heures de voyage PAR JOUR CALENDAIRE + portes d'heure de départ + nuit forcée (#340).
  *
  * Le budget RAW de 6 h sans Test (LDB 51 l.195) se compte PAR JOUR, pas par trajet : des trajets à pied
- * ENCHAÎNÉS le même jour cumulent leur budget (l'accumulateur unique `store.travelDayHours` keyé sur
+ * ENCHAÎNÉS le même jour cumulent leur budget (l'accumulateur unique `travelDayHours` (état du jeu) keyé sur
  * `dayIndex(gameTime)`) ; l'allure choisie au départ borne la journée, et la marche forcée (case cochée)
  * se teste dès que le cumul dépasse 6 h (un seul Test/jour). Portes maison : départ terrestre/fluvial de l'aube au crépuscule
  * (`travel-departure-gate`), privation de sommeil au jour franchi sans nuit (`travel-sleep-forced`).
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { seedBattleRng } from './battleRng';
 import { emptyScene, Scene } from './monde/scene';
 import { WorldMap } from './worldMap';
 import { maxHoursPerDay } from './travelFlow';
 import { sceneLieu } from './restFlow';
 import { campaignStart, dayIndex } from '../engine/clock';
-import { setRule, resetRule, rule } from '../engine/policy';
+import { setRule, rule } from '../engine/policy';
 import { stacks } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 
@@ -45,9 +44,6 @@ function setup(km = 16, party: Combatant[] = [hero()]): void {
   get().loadProject({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: map(km), projet: null });
   banc.setState({ gameTime: campaignStart() });
 }
-
-beforeEach(() => { seedBattleRng(1); });
-afterEach(() => { resetRule('travel-sleep-forced'); resetRule('travel-departure-gate'); resetRule('sea-night-sailing'); });
 
 describe('#340 / #2533 — budget d’heures PAR JOUR CALENDAIRE (LDB 51 l.195)', () => {
   // `LDB 51 l.195` — le groupe ne dépasse le budget que s'il l'a CHOISI au départ (case « marche forcée »).
