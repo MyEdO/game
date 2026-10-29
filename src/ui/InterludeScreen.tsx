@@ -3,21 +3,25 @@ import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
 import { interludeEventFor } from '../data/interludeEvents';
 import { memoParVersion } from '../data/versionDataset';
-import { formatMoney, formuleDeRevenus, libelleDEchelon, fromBrass, toBrass, toMoney, PA_PER_SC, type Money } from '../engine/money';
+import { formatMoney, formuleDeRevenus, libelleDEchelon, fromBrass, toBrass, PA_PER_SC, type Money, type Status } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
+import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { heroStatus, incomeSkillOf, interludeCatalog, bestActivitySkill, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
-import { blocageDeRevenus, desEnAttente, interludeDrawPending, refusDActivite, refusDeRetrait, refusDeRevenus, refusDuTirage, type EtatDInterlude } from '../noyau/verdictsDInterlude';
+import { incomeSkillOf, interludeCatalog, bestActivitySkill, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
+import {
+  blocageDeRevenus, desEnAttente, devisDeDepot, interludeDrawPending, refusDActivite, refusDApprentissage, refusDArtisanat, refusDeCommande,
+  refusDEntrainement, refusDeRetrait, refusDeRevenus, refusDuTirage, type DevisDeDepot, type EtatDeDepot, type EtatDInterlude, type GenreDeDepot,
+} from '../noyau/verdictsDInterlude';
 import { totalDesBourses } from '../noyau/bourseFlow';
 import { refusDOuvrirLaTaverne } from '../noyau/tavernFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, battleActivityDifficulty, battlePrepEntries, peutTenterAction, refusTenterAction, type MassBattleState } from '../noyau/massBattleFlow';
 import {
-  craftCatalog, craftTarget, learnableTalents, orderCatalog, metierOf, bankPayout, entrainementOptions,
+  craftCatalog, craftTarget, learnableTalents, orderCatalog, metierOf, bankPayout, entrainementOptions, entrainementTutorRange,
   classGatedDifficulty, activityTestMod, activityModLines,
   type ActivityDef, type ActivityResolver, type CraftOption, type LearnOption, type EntrainementOption,
 } from '../engine/activities';
-import type { GameOp } from '../engine/ops';
+import { nomDeSource, type GameOp } from '../engine/ops';
 import { learnableSpells } from '../engine/grimoire';
 import { DIFFICULTY_LABELS, CHAR_LABELS, type CharKey, type Difficulty } from '../engine/types';
 import { describeQuality } from '../engine/qualities/describe';
@@ -110,8 +114,9 @@ export interface InterludeSeam {
   favors?: Favor[];
   /** Phase d'ouverture forcée ('activities' saute l'intro Événements). */
   phase?: 'events' | 'activities' | 'closing';
-  /** Volet OUVERT forcé (tests SSR du gabarit : pied pré-jet visible). */
-  openPane?: { heroId: string; pane: string };
+  /** Volet OUVERT forcé (tests SSR du gabarit : pied pré-jet visible), et son choix initial (`choix` : l'id
+   *  du Talent, de l'équipement, ou la clé `kind|id|spec` de l'option d'Entraînement). */
+  openPane?: { heroId: string; pane: string; choix?: string };
   /** Catalogue d'Activités data-driven proposables ICI (contexte 'interlude' + gate `where`) —
    *  en jeu, dérivé du store (`interludeCatalog`) ; en SSR, fourni par le seam (le store SSR sert
    *  l'état initial, comme les autres lectures). */
@@ -178,7 +183,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   const ownsHero = (id: string) => ownsLocalNet(net, id);
   const ownerName = (id: string) => nomDuSiege(net, net.ownership[id] ?? 0);
   const isGuest = net.mode === 'guest';
-  const etat: EtatDInterlude = { interlude, party, bank };
+  const etat: EtatDeDepot = { interlude, party, bank, scene, worldMap };
   return (
     <div className="interlude-shell tx-ink">
       <div className="interlude-column">
@@ -224,6 +229,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
                   ownerName={ownsHero(activeHero.id) ? undefined : ownerName(activeHero.id)}
                   pane={pane}
                   onPane={setPane}
+                  choix={seam?.openPane?.choix}
                 />
               )}
             </div>
@@ -465,9 +471,9 @@ const PANE_ICON = {
   entrainement: 'nav/compendium',
 } as const;
 
-function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDrive, ownerName, pane, onPane }: {
+function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDrive, ownerName, pane, onPane, choix }: {
   /** L'état que lisent les verdicts d'interlude (`noyau/verdictsDInterlude.ts`). */
-  etat: EtatDInterlude;
+  etat: EtatDeDepot;
   hero: Combatant; st: InterludeHeroState;
   /** Faveurs dues par CE héros (LDB 23, #509) — gate l'affordance « Acquitter une Faveur ». */
   favors: Favor[];
@@ -484,21 +490,22 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
   /** Volet ouvert de CE héros (état remonté à l'écran — un seul volet ouvert à la fois). */
   pane: string | null;
   onPane: (pane: string | null) => void;
+  /** Choix initial du volet ouvert (`InterludeSeam.openPane.choix`). */
+  choix?: string;
 }) {
   // Le dé peut manquer (phase 'tirage', #942 L7) : la rangée d'événement dit alors l'attente.
   const ev = st.eventRoll != null ? interludeEventFor(st.eventRoll) : null;
-  const status = heroStatus(hero);
+  const status = actorStatus(hero);
   // Raisons NOMMÉES de la fermeture des Activités de ce héros, portées par chaque volet jusqu'à son
   // action : le verdict du noyau (`refusDActivite` pour une Activité, `refusDeRevenus` pour les Revenus,
   // `refusDuTirage` pour engager un Artisanat, qui n'en consomme pas), ou la possession coop.
-  const mene = canDrive ? null : t('interlude.drivenElsewhere');
+  const mene = canDrive ? undefined : t('interlude.drivenElsewhere');
   const refusAct = mene ?? refusDActivite(etat, hero.id) ?? undefined;
   const refusEngagement = mene ?? refusDuTirage(etat, hero.id) ?? undefined;
   const refusRevenus = mene ?? refusDeRevenus(etat, hero.id) ?? undefined;
   const refusDe = (key: string): string | undefined => (key === 'craft' && !hero.craft ? refusEngagement : key === 'revenus' ? refusRevenus : refusAct);
-  // Affordance PAR héros : chaque débit d'Activité (matériaux/tuteur/commande/dépôt) est ponctionné
-  // sur la bourse PERSONNELLE du héros actif (#531), jamais sur un total de groupe.
-  const purse = bourseOf(hero);
+  // Chaque volet payant lit SON verdict d'abordabilité (`noyau/verdictsDInterlude.ts`) sur la bourse
+  // PERSONNELLE du héros (#531) ; `mene` reste la seule raison propre à l'écran (possession coop).
   // État (bloqué/déjà fait) des Activités de PRÉPARATION de bataille par id — source UNIQUE `battlePrepEntries`.
   const prepState = massBattle?.phase === 'prep'
     ? new Map(battlePrepEntries(massBattle).map((e) => [e.def.id, e]))
@@ -512,20 +519,20 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
   /** … et son PORTEUR : cette desc EST le champ `desc` de l'entrée d'Activité de même id. */
   const corePorteur = (id: string): Porteur => ({ type: 'activities', id, chemin: 'desc' });
   const detail =
-    pane === 'revenus' ? <RevenusPane hero={hero} refus={refusRevenus} desc={coreDesc('revenus')} porteur={corePorteur('revenus')} />
+    pane === 'revenus' ? <RevenusPane hero={hero} status={status} refus={refusRevenus} desc={coreDesc('revenus')} porteur={corePorteur('revenus')} />
     : pane === 'craft' ? (hero.craft
         ? <CraftProgressPane hero={hero} craft={hero.craft} refus={refusAct} desc={coreDesc('craft')} porteur={corePorteur('craft')} />
-        : <CraftPane hero={hero} refus={refusEngagement} money={purse} desc={coreDesc('craft')} porteur={corePorteur('craft')} />)
-    : pane === 'learn' ? <LearnPane hero={hero} refus={refusAct} fails={st.learnFails} money={purse} desc={coreDesc('learn')} porteur={corePorteur('learn')} />
-    : pane === 'order' ? <OrderPane hero={hero} refus={refusAct} money={purse} />
-    : pane === 'bank' ? <BankPane hero={hero} refus={refusAct} bronzeBlocked={status.tier === 'bronze'} money={purse} mecenat={mecenat} />
+        : <CraftPane hero={hero} etat={etat} mene={mene} choix={choix} desc={coreDesc('craft')} porteur={corePorteur('craft')} />)
+    : pane === 'learn' ? <LearnPane hero={hero} etat={etat} mene={mene} choix={choix} fails={st.learnFails} desc={coreDesc('learn')} porteur={corePorteur('learn')} />
+    : pane === 'order' ? <OrderPane hero={hero} etat={etat} mene={mene} choix={choix} />
+    : pane === 'bank' ? <BankPane hero={hero} etat={etat} mene={mene} money={bourseOf(hero)} mecenat={mecenat} />
     : pane === 'identify' ? <IdentifyPane hero={hero} refus={refusAct} desc={coreDesc('identify')} porteur={corePorteur('identify')} />
-    : pane === 'entrainement' ? <EntrainementPane hero={hero} refus={refusAct} money={purse} desc={coreDesc('entrainement')} porteur={corePorteur('entrainement')} />
+    : pane === 'entrainement' ? <EntrainementPane hero={hero} etat={etat} mene={mene} choix={choix} desc={coreDesc('entrainement')} porteur={corePorteur('entrainement')} />
     : pane === 'favor-settle' && favors.length ? <FavorSettlePane hero={hero} refus={refusAct} favors={favors} />
     : def ? (def.contexts.includes('bataille')
         ? <BattlePrepPane hero={hero} def={def} refus={refusAct} entry={prepState?.get(def.id)} />
         : <CatalogPane hero={hero} def={def} refus={refusAct} />)
-    : <p className="interlude-detail interlude-master-empty">Choisissez une Activité à gauche pour voir sa description et le jet à faire.</p>;
+    : <p className="interlude-detail interlude-master-empty">{t('interlude.choisir.activite')}</p>;
   return (
     <section className={`interlude-hero panel${pane ? ' active' : ''}`}>
       <h3>
@@ -614,9 +621,8 @@ function ActivityList({ hero, catalog, favors, pane, onPane, canDrive, refusDe, 
 
 /** Revenus (LDB 08 l.105-120) : Test Accessible (+20) de la compétence de carrière — la formule
  *  ET le pré-jet sont lisibles AVANT d'entreprendre. */
-function RevenusPane({ hero, refus, desc, porteur }: { hero: Combatant; refus?: string; desc?: string; porteur?: Porteur }) {
+function RevenusPane({ hero, status, refus, desc, porteur }: { hero: Combatant; status: Status; refus?: string; desc?: string; porteur?: Porteur }) {
   const activity = useGame((s) => s.interludeActivity);
-  const status = heroStatus(hero);
   const skillId = incomeSkillOf(hero);
   return (
     <ActivityPane
@@ -712,23 +718,19 @@ function TrappingSelect({ options, value, onChange, detail }: {
 }
 
 /** Engager un Artisanat (LDB 23 l.76) : catalogue + Atouts/Défauts visés ; matériaux ¼ du prix. */
-function CraftPane({ hero, refus, money, desc, porteur }: { hero: Combatant; refus?: string; money: Money; desc?: string; porteur?: Porteur }) {
+function CraftPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant; etat: EtatDInterlude; mene?: string; choix?: string; desc?: string; porteur?: Porteur }) {
   const craftStart = useGame((s) => s.interludeCraftStart);
   const catalog = useMemo(() => craftCatalog(), []);
-  const [id, setId] = useState('');
+  const [id, setId] = useState(choix ?? '');
   const [atouts, setAtouts] = useState<string[]>([]);
   const [defauts, setDefauts] = useState<string[]>([]);
   const metier = metierOf(hero);
   const sel: CraftOption | undefined = catalog.find((o) => o.id === id);
   const target = sel ? craftTarget(sel.tier, sel.avail, atouts.length, defauts.length) : null;
-  const affordable = !sel || toBrass(money) >= sel.materialsBrass;
+  const verdict = refusDArtisanat(etat, hero.id, sel?.id) ?? undefined;
+  const banniere = mene ? undefined : verdict;
   const toggle = (list: string[], setList: (v: string[]) => void, q: string) =>
     setList(list.includes(q) ? list.filter((x) => x !== q) : [...list, q]);
-  const blockedMsg = !metier
-    ? <>Aucune Compétence Métier avec avances — impossible de fabriquer.</>
-    : !affordable && sel
-      ? <>Matériaux trop chers (<CoinsB brass={sel.materialsBrass} />) pour votre bourse.</>
-      : null;
   const chip = metier
     ? <SkillChip skillId={metier.id} show={skillInstanceLabel(metier)} />
     : <b>Métier</b>;
@@ -739,7 +741,7 @@ function CraftPane({ hero, refus, money, desc, porteur }: { hero: Combatant; ref
       title="Artisanat — engager un ouvrage"
       desc={desc}
       porteur={porteur}
-      blocked={blockedMsg}
+      blocked={banniere}
       prejet={sel && target
         ? withStake(testPending(chip, metier ? testValue(hero, 'metier', undefined, metier.spec) : 0, undefined, target.difficulty), 'craft')
         : undefined}
@@ -751,8 +753,8 @@ function CraftPane({ hero, refus, money, desc, porteur }: { hero: Combatant; ref
         <GatedAction
           id="interlude-craft-start"
           label="Entreprendre"
-          enabled={!refus && !!sel && !!metier && affordable}
-          {...refusDuVolet('pane-craft-start', blockedMsg, refus ?? (!sel ? 'Choisissez un équipement du catalogue.' : undefined))}
+          enabled={!mene && !verdict && !!sel}
+          {...refusDuVolet('pane-craft-start', banniere, mene ?? t('interlude.choisir.ouvrage'))}
           onClick={() => sel && craftStart(hero.id, sel.id, atouts, defauts)}
           btnClassName="small"
         />
@@ -775,20 +777,18 @@ function CraftPane({ hero, refus, money, desc, porteur }: { hero: Combatant; ref
   );
 }
 
-/** Apprentissage particulier (LDB 23 l.66-72) : Talent hors carrière — Test Difficile (−20) sur la
- *  Caractéristique du Maxi (+10 par tentative ratée) ; PX et argent perdus MÊME sur un échec. */
-function LearnPane({ hero, refus, fails, money, desc, porteur }: { hero: Combatant; refus?: string; fails?: Record<string, number>; money: Money; desc?: string; porteur?: Porteur }) {
+/** Apprentissage particulier : Talent hors carrière, PX et tuteur lus sur `learnableTalents`. LDB 23 l.66-72 */
+function LearnPane({ hero, etat, mene, choix, fails, desc, porteur }: { hero: Combatant; etat: EtatDInterlude; mene?: string; choix?: string; fails?: Record<string, number>; desc?: string; porteur?: Porteur }) {
   const activity = useGame((s) => s.interludeActivity);
   const options = useMemo(() => learnableTalents(hero), [hero]);
-  const [id, setId] = useState('');
+  const [id, setId] = useState(choix ?? '');
   const { search, setSearch, filtered } = useFilteredList(options, (o) => o.label);
   const sel: LearnOption | undefined = options.find((o) => o.id === id);
   const xp = hero.xp ?? 0;
   const failCount = sel ? fails?.[sel.id] ?? 0 : 0;
-  const xpOk = !sel || xp >= sel.xpCost;
-  const purseOk = !sel || toBrass(money) >= sel.tutorMinBrass;
   // La bannière du volet EST la raison : le bouton s'y LIE au lieu de la redire au survol.
-  const banniereXp = sel && !xpOk ? <>PX insuffisants : {xp}/{sel.xpCost}.</> : undefined;
+  const verdict = (sel ? refusDApprentissage(etat, hero.id, sel.id) : refusDActivite(etat, hero.id)) ?? undefined;
+  const banniere = mene ? undefined : verdict;
   // Caractéristique du Test = celle du Maxi du Talent, sinon Int (même dérivation que le flux,
   // `noyau/interludeFlow.ts`) — donc lue sur l'entrée EFFECTIVE : une variante réglée (AA) peut
   // remplacer le `max` (`{bonusOf}` → nombre), et l'affichage suivrait sinon la base.
@@ -814,18 +814,18 @@ function LearnPane({ hero, refus, fails, money, desc, porteur }: { hero: Combata
       title="Apprentissage particulier"
       desc={desc}
       porteur={porteur}
-      blocked={banniereXp}
+      blocked={banniere}
       prejet={prejet}
       cost={sel ? <>{sel.xpCost} PX (il vous en reste {xp}) + tuteur <CoinsB brass={sel.tutorMinBrass} /> à <CoinsB brass={sel.tutorMaxBrass} /></> : undefined}
       note={sel
-        ? <><EntityRef category="talents" id={sel.id} label={sel.label} /> — tuteur 2d10 pa / 100 PX ; PX et argent perdus même sur un échec.</>
-        : <>Choisir un Talent hors carrière — tuteur 2d10 pa / 100 PX ; PX et argent perdus même sur un échec.</>}
+        ? <><EntityRef category="talents" id={sel.id} label={sel.label} /> — {t('interlude.learn.perteSurEchec')}</>
+        : t('interlude.learn.choisir')}
       actions={
         <GatedAction
           id="interlude-learn-go"
           label="Entreprendre"
-          enabled={!refus && !!sel && xpOk && purseOk}
-          {...refusDuVolet('pane-learn', banniereXp, refus ?? (!sel ? 'Choisissez un Talent hors carrière.' : 'La bourse ne couvre même pas le tuteur le moins cher.'))}
+          enabled={!mene && !verdict && !!sel}
+          {...refusDuVolet('pane-learn', banniere, mene ?? t('interlude.choisir.talent'))}
           onClick={() => sel && activity(hero.id, 'learn', { talentId: sel.id })}
           btnClassName="small"
         />
@@ -835,7 +835,7 @@ function LearnPane({ hero, refus, fails, money, desc, porteur }: { hero: Combata
       <select className="interlude-select" value={id} onChange={(e) => setId(e.target.value)} size={Math.min(8, Math.max(3, filtered.length))}>
         {filtered.map((o) => (
           <option key={o.id} value={o.id} title={mdToText(effectiveEntry(findTalentById(o.id))?.desc ?? '')}>
-            {o.label} — {o.xpCost} PX · tuteur {fmt(o.tutorMinBrass)} à {fmt(o.tutorMaxBrass)}
+            {t('interlude.option', { label: o.label, px: o.xpCost, min: fmt(o.tutorMinBrass), max: fmt(o.tutorMaxBrass) })}
           </option>
         ))}
       </select>
@@ -843,21 +843,19 @@ function LearnPane({ hero, refus, fails, money, desc, porteur }: { hero: Combata
   );
 }
 
-/** Entraînement (LDB 23 l.132-136) : Compétence ou Caractéristique HORS carrière, avec un tuteur —
- *  PAS de jet (achat direct comme Passer commande/Banque). Coût = PX normal (hors carrière, déjà
- *  doublé) + tuteur 1D10 sc, doublé pour une Compétence Avancée (l.135). */
-function EntrainementPane({ hero, refus, money, desc, porteur }: { hero: Combatant; refus?: string; money: Money; desc?: string; porteur?: Porteur }) {
+/** Entraînement : Compétence ou Caractéristique hors carrière, sans jet, PX et tuteur lus sur
+ *  `entrainementOptions`. LDB 23 l.132-136 */
+function EntrainementPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant; etat: EtatDInterlude; mene?: string; choix?: string; desc?: string; porteur?: Porteur }) {
   const entrainement = useGame((s) => s.interludeEntrainement);
   const options = useMemo(() => entrainementOptions(hero), [hero]);
-  const [key, setKey] = useState('');
+  const [key, setKey] = useState(choix ?? '');
   const keyOf = (o: EntrainementOption) => `${o.kind}|${o.id}|${o.spec ?? ''}`;
   const { search, setSearch, filtered } = useFilteredList(options, (o) => o.label);
   const sel = options.find((o) => keyOf(o) === key);
   const xp = hero.xp ?? 0;
-  const xpOk = !sel || xp >= sel.xpCost;
-  const purseOk = !sel || toBrass(money) >= sel.tutorMinBrass;
   // La bannière du volet EST la raison : le bouton s'y LIE au lieu de la redire au survol.
-  const banniereXp = sel && !xpOk ? <>PX insuffisants : {xp}/{sel.xpCost}.</> : undefined;
+  const verdict = (sel ? refusDEntrainement(etat, hero.id, sel.kind, sel.id, sel.spec) : refusDActivite(etat, hero.id)) ?? undefined;
+  const banniere = mene ? undefined : verdict;
   return (
     <ActivityPane
       id="pane-entrainement"
@@ -865,17 +863,20 @@ function EntrainementPane({ hero, refus, money, desc, porteur }: { hero: Combata
       title="Entraînement"
       desc={desc}
       porteur={porteur}
-      blocked={banniereXp}
+      blocked={banniere}
       cost={sel ? <>{sel.xpCost} PX (il vous en reste {xp}) + tuteur <CoinsB brass={sel.tutorMinBrass} /> à <CoinsB brass={sel.tutorMaxBrass} /></> : undefined}
       note={sel
-        ? <>{sel.kind === 'skill' ? <SkillChip skillId={sel.id} show={sel.label} /> : sel.label} hors carrière{sel.advanced ? ' (Compétence Avancée — tuteur doublé)' : ''} — 1d10 sc de tuteur{sel.advanced ? ' ×2' : ''}, sans jet.</>
-        : <>Choisir une Compétence ou une Caractéristique hors carrière — tuteur 1d10 sc (×2 pour une Compétence Avancée), sans jet.</>}
+        ? <>{sel.kind === 'skill' ? <SkillChip skillId={sel.id} show={sel.label} /> : sel.label} {t(sel.advanced ? 'interlude.entrainement.avancee' : 'interlude.entrainement.base', { min: fmt(sel.tutorMinBrass), max: fmt(sel.tutorMaxBrass) })}</>
+        : t('interlude.entrainement.choisir', {
+            min: fmt(entrainementTutorRange(false).minBrass), max: fmt(entrainementTutorRange(false).maxBrass),
+            minAvancee: fmt(entrainementTutorRange(true).minBrass), maxAvancee: fmt(entrainementTutorRange(true).maxBrass),
+          })}
       actions={
         <GatedAction
           id="interlude-entrainement-go"
           label="Entreprendre"
-          enabled={!refus && !!sel && xpOk && purseOk}
-          {...refusDuVolet('pane-entrainement', banniereXp, refus ?? (!sel ? 'Choisissez une Compétence ou une Caractéristique hors carrière.' : 'La bourse ne couvre même pas le tuteur le moins cher.'))}
+          enabled={!mene && !verdict && !!sel}
+          {...refusDuVolet('pane-entrainement', banniere, mene ?? t('interlude.choisir.entrainement'))}
           onClick={() => sel && entrainement(hero.id, sel.kind, sel.id, sel.spec)}
           btnClassName="small"
         />
@@ -885,7 +886,7 @@ function EntrainementPane({ hero, refus, money, desc, porteur }: { hero: Combata
       <select className="interlude-select" value={key} onChange={(e) => setKey(e.target.value)} size={Math.min(8, Math.max(3, filtered.length))}>
         {filtered.map((o) => (
           <option key={keyOf(o)} value={keyOf(o)}>
-            {o.label}{o.advanced ? ' (Avancée)' : ''} — {o.xpCost} PX · tuteur {fmt(o.tutorMinBrass)} à {fmt(o.tutorMaxBrass)}
+            {t(o.advanced ? 'interlude.optionAvancee' : 'interlude.option', { label: o.label, px: o.xpCost, min: fmt(o.tutorMinBrass), max: fmt(o.tutorMaxBrass) })}
           </option>
         ))}
       </select>
@@ -940,13 +941,13 @@ function FavorSettlePane({ hero, refus, favors }: { hero: Combatant; refus?: str
 
 /** Passer commande (LDB 23 l.178-184) : objet Exotique payé MAINTENANT, livré au prochain interlude.
  *  Pas de jet — le pied porte le coût et la formule. */
-function OrderPane({ hero, refus, money }: { hero: Combatant; refus?: string; money: Money }) {
+function OrderPane({ hero, etat, mene, choix }: { hero: Combatant; etat: EtatDInterlude; mene?: string; choix?: string }) {
   const order = useGame((s) => s.interludeOrder);
   const catalog = useMemo(() => orderCatalog(), []);
-  const [id, setId] = useState('');
+  const [id, setId] = useState(choix ?? '');
   const sel = catalog.find((o) => o.id === id);
-  const affordable = !sel || toBrass(money) >= sel.priceBrass;
-  const banniereOrdre = sel && !affordable ? <>Votre bourse ne couvre pas ce prix.</> : undefined;
+  const verdict = (sel ? refusDeCommande(etat, hero.id, sel.id) : refusDActivite(etat, hero.id)) ?? undefined;
+  const banniereOrdre = mene ? undefined : verdict;
   return (
     <ActivityPane
       id="pane-order"
@@ -959,8 +960,8 @@ function OrderPane({ hero, refus, money }: { hero: Combatant; refus?: string; mo
         <GatedAction
           id="interlude-order-go"
           label="Entreprendre"
-          enabled={!refus && !!sel && affordable}
-          {...refusDuVolet('pane-order', banniereOrdre, refus ?? 'Choisissez un objet du catalogue.')}
+          enabled={!mene && !verdict && !!sel}
+          {...refusDuVolet('pane-order', banniereOrdre, mene ?? t('interlude.choisir.objet'))}
           onClick={() => sel && order(hero.id, sel.id)}
           btnClassName="small"
         />
@@ -973,15 +974,21 @@ function OrderPane({ hero, refus, money }: { hero: Combatant; refus?: string; mo
 
 /** Opérations bancaires (LDB 23 l.164-176) + Mécénat (ACE 12 l.45-49) : dépôt sans jet — le pied porte
  *  les formules (Indice d'intérêts, découverte de planque) et les trois dépôts possibles. */
-function BankPane({ hero, refus, bronzeBlocked, money, mecenat }: { hero: Combatant; refus?: string; bronzeBlocked: boolean; money: Money; mecenat?: ActivityDef }) {
+function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat: EtatDeDepot; mene?: string; money: Money; mecenat?: ActivityDef }) {
   const bankDeposit = useGame((s) => s.interludeBank);
   const [amountPa, setAmountPa] = useState(10);
   const purseBrass = toBrass(money);
   const pa = Math.max(1, Math.floor(amountPa));
   const amountBrass = pa * PA_PER_SC;
   const quick = (frac: number) => setAmountPa(Math.max(1, Math.floor(purseBrass * frac / PA_PER_SC)));
-  const mecenatMinBrass = toBrass(toMoney(mecenat?.minInvest ?? {}));
-  const banniereBourse = amountBrass > purseBrass ? <>Dépôt au-delà de votre bourse.</> : undefined;
+  const devis = (kind: GenreDeDepot) => devisDeDepot(etat, hero.id, kind, amountBrass);
+  const investir = devis('invest');
+  const planquer = devis('stash');
+  const mecene = devis('mecenat');
+  // La planque n'a que les refus communs aux trois dépôts (Activité, bourse) : ils font la bannière.
+  const banniereBourse = mene ? undefined : planquer.refus ?? undefined;
+  // Chaque dépôt dit SON refus : lié à la bannière s'il est le sien, sinon porté par le bouton.
+  const raisonDuDepot = (d: DevisDeDepot) => refusDuVolet('pane-bank', d.refus && d.refus === banniereBourse ? banniereBourse : undefined, mene ?? d.refus ?? undefined);
   return (
     <ActivityPane
       id="pane-bank"
@@ -992,15 +999,14 @@ function BankPane({ hero, refus, bronzeBlocked, money, mecenat }: { hero: Combat
       note={<>
         Sans jet · Investir : intérêts de l'Indice (1-10) %, faillite au retrait sur d100 ≤ Indice
         (retirer coûte 1 Activité) · Planquer : aucun intérêt, retrait libre, découverte sur d100 ≤ 10.
-        {bronzeBlocked && <span className="interlude-blocked"> Investir exige le Statut Argent ou Or.</span>}
       </>}
       actions={<>
         <GatedAction
           id="interlude-bank-invest"
           label={<><Icon id="resource/gold-purse" size="sm" /> Investir</>}
           ariaLabel="Investir"
-          enabled={!refus && !bronzeBlocked && amountBrass <= purseBrass}
-          {...refusDuVolet('pane-bank', banniereBourse, refus ?? '« Vous devez être des échelons Or et Argent pour épargner dans une banque »')}
+          enabled={!mene && !investir.refus}
+          {...raisonDuDepot(investir)}
           onClick={() => bankDeposit(hero.id, 'invest', amountBrass)}
           btnClassName="small"
         />
@@ -1008,8 +1014,8 @@ function BankPane({ hero, refus, bronzeBlocked, money, mecenat }: { hero: Combat
           id="interlude-bank-stash"
           label={<><Icon id="item/misc" size="sm" /> Planquer</>}
           ariaLabel="Planquer"
-          enabled={!refus && amountBrass <= purseBrass}
-          {...refusDuVolet('pane-bank', banniereBourse, refus)}
+          enabled={!mene && !planquer.refus}
+          {...raisonDuDepot(planquer)}
           onClick={() => bankDeposit(hero.id, 'stash', amountBrass)}
           btnClassName="small"
         />
@@ -1018,9 +1024,8 @@ function BankPane({ hero, refus, bronzeBlocked, money, mecenat }: { hero: Combat
             id="interlude-bank-mecenat"
             label={<><Icon id="scenario/opera" size="sm" /> Mécénat</>}
             ariaLabel="Mécénat"
-            enabled={!refus && amountBrass <= purseBrass && amountBrass >= mecenatMinBrass}
-            {...refusDuVolet('pane-bank', amountBrass > purseBrass ? banniereBourse : undefined,
-              refus ?? `Mise minimale ${formatMoney(fromBrass(mecenatMinBrass))}.`)}
+            enabled={!mene && !mecene.refus}
+            {...raisonDuDepot(mecene)}
             onClick={() => bankDeposit(hero.id, 'mecenat', amountBrass)}
             btnClassName="small"
           />
@@ -1037,7 +1042,7 @@ function BankPane({ hero, refus, bronzeBlocked, money, mecenat }: { hero: Combat
         <button className="btn small" onClick={() => quick(1)} title="Toute la bourse">Tout</button>
       </div>
       <p className="interlude-detail">
-        Votre bourse : <b><Coins money={money} /></b> · dépôt prévu : <b><CoinsB brass={amountBrass} /></b>
+        Votre bourse : <b><Coins money={money} /></b> · dépôt prévu : <b><CoinsB brass={planquer.depose} /></b>
       </p>
     </ActivityPane>
   );
@@ -1341,19 +1346,24 @@ function CloseRecap({ heroes, interlude, money, bank, pendingOrders, onCancel }:
             Carrière (« Avec le pouvoir »).
           </li>
         ))}
-        {heroes.filter((h) => interlude.perHero[h.id]?.closeOps?.length).map((h) => {
-          // Les ÉTATS réels de clôture passent par la primitive partagée (chips + popover Codex) ;
-          // une op non-État éventuelle reste en clair.
-          const ops = interlude.perHero[h.id]!.closeOps ?? [];
-          const conds = ops.filter((o) => o.op === 'condition').map((o) => ({ id: o.id as ConditionId, value: typeof o.value === 'number' ? o.value : 1 }));
-          const others = ops.filter((o) => o.op !== 'condition');
+        {heroes.flatMap((h) => (interlude.perHero[h.id]?.closeOps ?? []).map((lot, i) => {
+          // Les ÉTATS réels de clôture passent par la primitive partagée (chips + popover Codex), le
+          // Standing par sa ligne, nommée par la source du lot ; une autre op éventuelle reste en clair.
+          const conds = lot.ops.filter((o) => o.op === 'condition').map((o) => ({ id: o.id as ConditionId, value: typeof o.value === 'number' ? o.value : 1 }));
+          const standing = lot.ops.reduce((n, o) => n + (o.op === 'statusMod' && typeof o.amount === 'number' ? o.amount : 0), 0);
+          const others = lot.ops.filter((o) => o.op !== 'condition' && o.op !== 'statusMod');
           return (
-            <li key={`close-${h.id}`} className="interlude-blocked">
-              {h.label} : <EffectChips conditions={conds} />{others.length > 0 && ` ${others.map((o) => o.op).join(', ')}`} au premier
-              jour de la prochaine aventure (Activité échouée).
-            </li>
+            <Fragment key={`close-${h.id}-${i}`}>
+              {(conds.length > 0 || others.length > 0) && (
+                <li className="interlude-blocked">
+                  {h.label} : <EffectChips conditions={conds} />{others.length > 0 && ` ${others.map((o) => o.op).join(', ')}`} au premier
+                  jour de la prochaine aventure (Activité échouée).
+                </li>
+              )}
+              {standing !== 0 && <li>{t('interlude.close.standing', { name: h.label, delta: `${standing > 0 ? '+' : ''}${standing}`, source: nomDeSource(lot.ctx) })}</li>}
+            </Fragment>
           );
-        })}
+        }))}
         <li>
           <Icon id="time/night" size="sm" /> Le temps passe : {interlude.weeks * 7} jours (récupération et
           convalescence comprises) — reprise <GameDate time={gameTime + interlude.weeks * 7 * MINUTES_PER_DAY} />.

@@ -1,7 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { setRule, resetRule } from './policy';
-import { statusCharmMod, statusCharmLabel } from './social';
+import { statusCharmMod, statusCharmLabel, decalerLeStatut } from './social';
 import type { Status } from './money';
+import { createHero } from './character';
+import { applyOps } from './ops';
+import { desDuTest } from './dice.testkit';
+import { conditionCtx, evalCondition } from './flowCore';
 
 const S = (tier: Status['tier'], standing: number): Status => ({ tier, standing });
 
@@ -109,5 +113,30 @@ describe('statusCharmLabel', () => {
   it('mendicité : mentionne le mode', () => {
     setRule('social-begging-bonus', true);
     expect(statusCharmLabel(S('bronze', 2), S('argent', 1), { begging: true })).toBe('Statut (mendicité Bronze>Argent) +10');
+  });
+});
+
+describe('Statut EFFECTIF — le Standing temporaire de Réputation compte pendant l’aventure (LDB 23 l.234)', () => {
+  it('un héros Argent 1 passe la Condition « au moins Argent 2 » une fois son Standing monté de +1', () => {
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
+    const cond = { kind: 'status' as const, atLeast: 'Argent 2' };
+    const ctx = () => conditionCtx({ flags: {}, gameTime: 0, party: [h] });
+    expect(evalCondition(cond, ctx()), 'témoin : Argent 1 de carrière').toBe(false);
+    applyOps(h, [{ op: 'statusMod', amount: 1 }], { rng: desDuTest, label: 'Réputation' });
+    expect(evalCondition(cond, ctx())).toBe(true);
+  });
+});
+
+describe('decalerLeStatut — le Standing qui atteint 0 fait descendre l’Échelon (LDB 08 l.101)', () => {
+  it.each([
+    [S('bronze', 1), -1, S('bronze', 0)],
+    [S('argent', 1), -1, S('bronze', 5)],
+    [S('or', 1), -1, S('argent', 5)],
+    [S('bronze', 0), -1, S('bronze', 0)],
+    [S('bronze', 2), -1, S('bronze', 1)],
+    [S('bronze', 0), 1, S('bronze', 1)],
+    [S('or', 5), 2, S('or', 7)],
+  ])('%o décalé de %i → %o', (statut, delta, attendu) => {
+    expect(decalerLeStatut(statut, delta)).toEqual(attendu);
   });
 });

@@ -126,5 +126,11 @@
     "label": "Test d'incantation",
     "ticket": "#1456",
     "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:56`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
+  },
+  {
+    "id": "4e/activites#tableau-des-evenements-d100",
+    "type": "raw.manifest",
+    "label": "Tableau des Événements (d100)",
+    "bloque": "Mercenaires particuliers (LDB 22 l.135) : −20 % des coûts d'Entraînement et d'Apprentissage particulier pour les Compétences et Talents martiaux, +20 % aux Tests adaptés d'Entraînement au Combat — aucune classification « martial » des Compétences et Talents dans la donnée"
   }
 ]

@@ -6,13 +6,13 @@
  * bénéficiaire d'un achat est INDÉPENDANT des payeurs. Miroir de `creditPartyMoney`/`merchantFlow`.
  */
 import type { Combatant, ItemInstance } from '../engine/types';
-import { add as moneyAdd, subtract as moneySub, canAfford, toBrass, fromBrass, type Money } from '../engine/money';
+import { add as moneyAdd, subtract as moneySub, canAfford, toBrass, fromBrass, formatMoney, type Money } from '../engine/money';
 import { bourseInstanceOf, bourseOf, withBourseMoney } from '../engine/bourse';
 import { conditionCtx, type ConditionCtx } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import { actorIn, ecrireActeur } from './monde/combatants';
-import { t } from '../i18n';
+import { t, type MsgKey } from '../i18n';
 
 const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2097
 
@@ -23,6 +23,12 @@ export function refusDeGesteSurLeGroupe(s: Pick<Jeu, 'net'>): string | null {
   return s.net.mode === 'guest' ? t('groupe.hoteSeul') : null;
 }
 
+/** Refus d'une dépense de `cout` que la bourse PERSONNELLE du héros ne couvre pas : le message `cle` du
+ *  geste (paramètres `name`, `cost`, et ceux que le geste ajoute), ou `null`. Verdict UNIQUE des dépenses
+ *  sur la bourse d'un héros. */
+export function refusDeBourse(hero: Combatant, cout: Money, cle: MsgKey, params?: Parameters<typeof t>[1]): string | null {
+  return canAfford(bourseOf(hero), cout) ? null : t(cle, { ...params, name: hero.label, cost: formatMoney(cout) });
+}
 
 /** Somme des bourses des héros — SEULE source d'un affichage d'argent agrégé (il n'y a pas de bourse
  *  de groupe : l'argent vit sur les héros). */

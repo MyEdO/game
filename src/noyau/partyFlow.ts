@@ -37,7 +37,7 @@ import { skillCharacteristicById } from '../engine/character';
 import { nextProsthesisTier, grantProsthesisTier } from '../engine/trauma';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { castingKindOf } from '../engine/combatFeatures/dispatch';
-import { canAfford, toMoney, Money, formatMoney } from '../engine/money';
+import { toMoney, Money, formatMoney } from '../engine/money';
 import { isArcaneSpell } from '../engine/magic';
 import { spellCost, verdictApprentissage } from '../engine/grimoire';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
@@ -48,7 +48,7 @@ import { PARTY_MAX, actorIn, ecrireActeur } from './monde/combatants';
 import { releaseSeat } from './monde/seating';
 import type { Scene } from './monde/scene';
 import { persisterLeHeros } from './plateforme';
-import { creditBourse, payWithAllocation, soloPayer } from './bourseFlow';
+import { creditBourse, payWithAllocation, refusDeBourse, soloPayer } from './bourseFlow';
 import { ensureBourse, bourseOf } from '../engine/bourse';
 import { transferPossession } from './possessionsFlow';
 
@@ -573,7 +573,7 @@ export function refusAchatDeComposant(hero: Combatant | undefined, spellId: stri
   if (!isArcaneSpell(sp) || sp.cn == null) return t('pf.componentArcaneOnly', { spell: sp.label });
   if (!(hero.spells ?? []).includes(spellId)) return t('pf.spellUnknown', { name: hero.label, spell: sp.label });
   const cost = coutDuComposant(sp);
-  return canAfford(bourseOf(hero), cost) ? null : t('pf.componentTooExpensive', { spell: sp.label, money: formatMoney(cost) });
+  return refusDeBourse(hero, cost, 'pf.componentTooExpensive', { spell: sp.label });
 }
 
 /** Édite la bio MUTABLE d'un héros (hors combat) : Motivation + Ambitions court/long terme (LDB 05).

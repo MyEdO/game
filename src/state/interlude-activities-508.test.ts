@@ -102,7 +102,7 @@ describe('Réputation (LDB 23 l.228-234) — coût dépensé DANS TOUS LES CAS, 
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
-  it('succès : +1 Standing (statusMod), coût débité', () => {
+  it('succès : +1 Standing (statusMod) retenu pour la clôture, coût débité', () => {
     const heroId = setup('agitateur'); // classe citadins
     useGame.getState().interludeActivity(heroId, 'reputation');
     const before = toBrass(partyMoneyTotal(useGame.getState));
@@ -111,7 +111,8 @@ describe('Réputation (LDB 23 l.228-234) — coût dépensé DANS TOUS LES CAS, 
     useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
     useGame.getState().activityConfirm();
     const hero = useGame.getState().party[0];
-    expect(hero.activeEffects?.some((e) => e.statusMod === 1)).toBe(true);
+    expect(useGame.getState().interlude?.perHero[heroId].closeOps).toEqual([{ ops: [{ op: 'statusMod', amount: 1 }], ctx: { label: 'Réputation', source: { kind: 'activity', id: 'reputation' }, sl: 2 } }]);
+    expect(hero.activeEffects?.some((e) => e.statusMod), 'posé avant la prochaine aventure').toBeFalsy();
     expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(before);
   });
 });

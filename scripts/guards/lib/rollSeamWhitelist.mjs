@@ -210,7 +210,7 @@ export const DES_HORS_PORTE_STOCK = new Map([
   ['src/noyau/encounterPsychFlow.ts', { n: 2, kind: 'dette', why: 'mesuré : applyOps×2. B -> #1508 T2.' }],
   ['src/noyau/monde/etalLot.ts', { n: 2, kind: 'dette', why: 'mesuré : rng.int×2. F (désignation `rng.int`) -> #1508 T6.' }],
   ['src/noyau/innFlow.ts', { n: 1, kind: 'dette', why: 'mesuré : applyOps×1. B -> #1508 T2.' }],
-  ['src/noyau/interludeFlow.ts', { n: 15, kind: 'dette', why: 'mesuré : applyOps×5, d100×1, d10×1, deMonde×3, apprenticeshipTutorCost×1, entrainementTutorCost×1, roll×2, statusIncome×1. A (les 3 `deMonde` du contremaître), B, C -> #1508 T2/T4/T5.' }],
+  ['src/noyau/interludeFlow.ts', { n: 14, kind: 'dette', why: 'mesuré : applyOps×4, d100×1, d10×1, deMonde×3, apprenticeshipTutorCost×1, entrainementTutorCost×1, roll×2, statusIncome×1. A (les 3 `deMonde` du contremaître), B, C -> #1508 T2/T4/T5.' }],
   ['src/noyau/landMarketFlow.ts', { n: 7, kind: 'dette', why: 'mesuré : rollMerchantSkill×2, opposedTest×1, rng.int×1, rollCargoQuantity×1, rollFindMerchant×1, rollTradeRumour×1. C (peuplement de la halle), F -> #1508 T5/T6.' }],
   ['src/noyau/massBattleFlow.ts', { n: 5, kind: 'dette', why: 'mesuré : applyOps×2, d10×1, d100×1, rng.int×1. B, C, F -> #1508 T2/T5/T6.' }],
   ['src/noyau/medicFlow.ts', { n: 3, kind: 'dette', why: 'mesuré : applyOps×1, d10×1, rng.int×1. B, C (magnitude de soin), F -> #1508 T2/T5/T6.' }],
