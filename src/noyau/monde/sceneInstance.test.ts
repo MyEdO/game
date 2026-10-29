@@ -15,8 +15,8 @@ function fixtureScene(id: string): Scene {
   const s = emptyScene('scene-test', 6, 6);
   s.id = id;
   s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
-  s.entities.push({ id: 'decor-untouche', kind: 'prop', pos: { x: 2, y: 0 } });
-  s.entities.push({ id: 'decor-retire', kind: 'prop', pos: { x: 3, y: 0 } });
+  s.entities.push({ id: 'decor-untouche', kind: 'prop', pos: { x: 2, y: 0 }, ref: 'tonneau' });
+  s.entities.push({ id: 'decor-retire', kind: 'prop', pos: { x: 3, y: 0 }, ref: 'tonneau' });
   s.walls = [DOOR_OPENED, DOOR_UNTOUCHED];
   return s;
 }
