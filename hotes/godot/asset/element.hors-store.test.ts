@@ -24,8 +24,8 @@ const TEINTE = [{ nom: 'plaque', teinte: true }];
 /** Un manifeste valide par catégorie. */
 const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
   corps: { categorie: 'corps', cle: { partie: 'jambes', forme: 'chevre' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: ['cuisses'], surfaces: PALETTE },
-  tete: { categorie: 'tete', cle: { tete: 'humain-m-1' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: ['tete'], silhouettes: ['feminin'], surfaces: PALETTE },
-  pilosite: { categorie: 'pilosite', cle: { coiffure: 'tonsure' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: [], surfaces: [{ nom: 'poil', palette: 'cheveux' }] },
+  tete: { categorie: 'tete', cle: { tete: 'humain' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: ['tete'], silhouettes: ['feminin'], surfaces: PALETTE },
+  pilosite: { categorie: 'pilosite', cle: { coiffure: 'crane-rase' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: [], surfaces: [{ nom: 'poil', palette: 'cheveux' }] },
   vetement: {
     categorie: 'vetement', cle: { piece: 'pourpoint' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: ['torse', 'bras_haut', 'hanches', 'cuisses'], chaines: ['jupe'],
     emplacements: { ceinture_avant: { os: 'spine_01', position: [0, 0.04, 0.13], rotation: [0, 0, 0] } }, silhouettes: ['feminin', 'corpulence'],
@@ -72,6 +72,8 @@ const REFUS: [CodeDEcartDElement, string, unknown][] = [
   ['cle-mal-formee', 'clé à champ en trop', manifeste('rigide', { cle: { apparence: 'epee', piece: 'epee' } })],
   ['cle-mal-formee', 'id vide', manifeste('tete', { cle: { tete: '' } })],
   ['cle-inconnue', 'pièce absente de la garde-robe', manifeste('vetement', { cle: { piece: 'robe-de-bure' } })],
+  ['cle-inconnue', 'tête absente de la garde-robe', manifeste('tete', { cle: { tete: 'humain-m-1' } })],
+  ['cle-inconnue', 'coiffure absente de la garde-robe', manifeste('pilosite', { cle: { coiffure: 'tonsure' } })],
   ['cle-inconnue', 'apparence absente du jeu', manifeste('rigide', { cle: { apparence: 'epee-de-verre' } })],
   ['piece-hors-categorie', 'armure qui vise un vêtement', manifeste('armure', { cle: { piece: 'pourpoint' } })],
   ['base-differente', 'élément construit pour une autre base', manifeste('rigide', { base: 'quadrupede' })],
@@ -106,7 +108,13 @@ describe('CLI godot:valider : base validée avant l’élément', () => {
   const vetement = (piece: string) => ({
     ...elementSchema3(), categorie: 'vetement', cle: { piece }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: [], surfaces: [{ nom: 'metal', palette: 'vet1' }],
   });
-  it.each(['valide', 'vetement', 'os-inconnu', 'glb-different', 'base-absente', 'forme', 'chemin-absolu', 'cle-inconnue'] as const)('%s', cas => {
+  const tete = (id: string) => ({
+    ...elementSchema3(), categorie: 'tete', cle: { tete: id }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: [], surfaces: [{ nom: 'metal', palette: 'peau' }],
+  });
+  const pilosite = (coiffure: string) => ({
+    ...elementSchema3(), categorie: 'pilosite', cle: { coiffure }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: [], surfaces: [{ nom: 'metal', palette: 'cheveux' }],
+  });
+  it.each(['valide', 'vetement', 'tete', 'pilosite', 'os-inconnu', 'glb-different', 'base-absente', 'forme', 'chemin-absolu', 'cle-inconnue', 'cle-inconnue-tete'] as const)('%s', cas => {
     const d = mkdtempSync(join(tmpdir(), 'element-cli-'));
     dossiers.push(d);
     const base = baseSchema3();
@@ -116,14 +124,17 @@ describe('CLI godot:valider : base validée avant l’élément', () => {
     if (cas !== 'base-absente') writeFileSync(join(d, 'base.glb'), GLB_DE_BASE);
     const element = cas === 'forme' ? { ...elementSchema3(), surfaces: undefined }
       : cas === 'chemin-absolu' ? { ...elementSchema3(), surfaces: [{ nom: 'C:\\Users\\x\\metal.png', teinte: true }] }
-      : cas === 'vetement' ? vetement('pourpoint') : cas === 'cle-inconnue' ? vetement('robe-de-bure') : elementSchema3();
+      : cas === 'vetement' ? vetement('pourpoint') : cas === 'cle-inconnue' ? vetement('robe-de-bure')
+      : cas === 'tete' ? tete('humain') : cas === 'cle-inconnue-tete' ? tete('humain-m-1')
+      : cas === 'pilosite' ? pilosite('crane-rase') : elementSchema3();
     writeFileSync(join(d, 'element.json'), JSON.stringify(element));
     writeFileSync(join(d, 'element.glb'), GLB_D_ELEMENT);
     const r = spawnSync(process.execPath, ['hotes/godot/asset/valider.mjs', join(d, 'element.json'), join(d, 'base.manifeste.json'), join(d, 'element.glb')], { encoding: 'utf8', timeout: 60000 });
     expect(r.error).toBeUndefined();
-    const accepte = cas === 'valide' || cas === 'vetement';
+    const accepte = cas === 'valide' || cas === 'vetement' || cas === 'tete' || cas === 'pilosite';
     expect(r.status, r.stderr + r.stdout).toBe(accepte ? 0 : 1);
     if (cas === 'cle-inconnue') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.piece : robe-de-bure');
+    else if (cas === 'cle-inconnue-tete') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.tete : humain-m-1');
     else if (!accepte) expect(r.stdout + r.stderr).toContain(cas === 'base-absente' ? 'glb-de-base-absent' : cas);
   }, 65000);
 });

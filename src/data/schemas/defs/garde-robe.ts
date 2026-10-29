@@ -1,7 +1,11 @@
 /**
- * Schéma de `garde-robe.json` — LA garde-robe des éléments 3D (#2972 v4, #3114) : collection à
- * discriminant `kind` (doctrine `user-direction-fusion-json-par-type`), patron `defs/materials.ts`.
+ * Schéma de `garde-robe.json` — LA garde-robe des éléments 3D (#2972 v4, #3114, #3113) : les clés des
+ * éléments portés sur le corps (têtes, coiffures, pièces), collection à discriminant `kind` (doctrine
+ * `user-direction-fusion-json-par-type`), patron `defs/materials.ts`.
  *
+ * - `tete` : une tête ; l'id d'une tête cosmétique vaut sa race de rendu (`raceAppearance.json`, #3113) ;
+ *   têtes monstrueuses : #3123.
+ * - `coiffure` : une coiffure, non sexuée (#3113).
  * - `emplacement` : un point d'accroche d'accessoire.
  * - `piece` : une pièce d'habit (`categorie`) ; une pièce d'`accessoire` nomme son `emplacement`,
  *   toute autre n'en porte aucun.
@@ -22,6 +26,8 @@ export const famille = 'entite';
 
 /** Valeurs du discriminant `kind`. */
 const LIBELLES_DE_KIND = {
+  tete: 'Tête',
+  coiffure: 'Coiffure',
   emplacement: 'Emplacement',
   piece: 'Pièce',
   ensemble: 'Ensemble',
@@ -42,6 +48,8 @@ export type CategorieDePiece = keyof typeof LIBELLES_DE_CATEGORIE;
  * clé étrangère). `requises` ⊆ `cles` ; ce qui n'est pas requis est optionnel dans ce `kind`.
  */
 const CHARGE_PAR_KIND = {
+  tete: { cles: [], requises: [] },
+  coiffure: { cles: [], requises: [] },
   emplacement: { cles: [], requises: [] },
   piece: { cles: ['categorie', 'emplacement'], requises: ['categorie'] },
   ensemble: { cles: ['habille', 'pieces'], requises: ['habille', 'pieces'] },
@@ -72,7 +80,7 @@ const doc = document(
     pieces: refs('gardeRobe', { min: 1, sousListe: 'piece' }).optional(),
   },
   {
-    kind: { label: 'Nature', hint: 'Emplacement d’accessoire, pièce d’habit ou ensemble — les clés admises en dépendent' },
+    kind: { label: 'Nature', hint: 'Tête, coiffure, emplacement d’accessoire, pièce d’habit ou ensemble — les clés admises en dépendent' },
     categorie: { label: 'Catégorie', hint: 'Vêtement, armure ou accessoire' },
     emplacement: { label: 'Emplacement', hint: 'Point d’accroche d’une pièce d’accessoire' },
     habille: { label: 'Habille', hint: 'L’objet ou l’apparence que l’ensemble revêt' },
@@ -83,10 +91,10 @@ const doc = document(
       exempt: {
         kind: 'vocabulaire-app-interne',
         raison:
-          'garde-robe des éléments 3D (art, pas règle) — aucune catégorie du Codex ne l’expose, aucun écran ne l’écrit : elle s’édite au fichier `src/data/garde-robe.json`',
+          'garde-robe des éléments 3D, clés des têtes, coiffures et pièces portées (art, pas règle) — aucune catégorie du Codex ne l’expose, aucun écran ne l’écrit : elle s’édite au fichier `src/data/garde-robe.json`',
       },
     },
-    edit: { none: 'vocabulaire d’art, édité au fichier `src/data/garde-robe.json` — aucun écran ne l’écrit', dataset: 'gardeRobe' },
+    edit: { none: 'vocabulaire d’art (têtes, coiffures, pièces portées), édité au fichier `src/data/garde-robe.json` — aucun écran ne l’écrit', dataset: 'gardeRobe' },
   },
   {
     espace: { discriminant: 'kind', chargeParDiscriminant },
@@ -131,6 +139,12 @@ export const meta = doc.meta;
 
 export const exposition = doc.exposition;
 
+/** Id d'une tête : la sous-liste `kind=tete` de l'espace `garde-robe.json` (`npm run gen`). */
+export type TeteId = IdsParEspace['garde-robe.json?kind=tete'];
+
+/** Id d'une coiffure : la sous-liste `kind=coiffure` de l'espace `garde-robe.json` (`npm run gen`). */
+export type CoiffureId = IdsParEspace['garde-robe.json?kind=coiffure'];
+
 /** Id d'une pièce : la sous-liste `kind=piece` de l'espace `garde-robe.json` (`npm run gen`). */
 export type PieceId = IdsParEspace['garde-robe.json?kind=piece'];
 
@@ -147,8 +161,26 @@ export interface PieceDef {
   emplacement?: { id: EmplacementId };
 }
 
+/** VUE TS d'une ligne `tete`. */
+export interface TeteDef {
+  id: TeteId;
+  type: 'garde-robe';
+  kind: 'tete';
+  label: string;
+}
+
+/** VUE TS d'une ligne `coiffure`. */
+export interface CoiffureDef {
+  id: CoiffureId;
+  type: 'garde-robe';
+  kind: 'coiffure';
+  label: string;
+}
+
 /** VUE TS d'une ligne de la garde-robe. */
 export type GardeRobeEntree =
+  | TeteDef
+  | CoiffureDef
   | { id: string; type: 'garde-robe'; kind: 'emplacement'; label: string }
   | PieceDef
   | { id: string; type: 'garde-robe'; kind: 'ensemble'; label: string; habille: RefTypee<'trapping' | 'apparence'>; pieces: PieceId[] };

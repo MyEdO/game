@@ -1,8 +1,8 @@
 /**
- * LA CLÉ D'UN ÉLÉMENT 3D résolue contre la donnée (#2972 v4, « `cle` par catégorie » ; #3114) : chaque champ de clé
+ * LA CLÉ D'UN ÉLÉMENT 3D résolue contre la donnée (#2972 v4, « `cle` par catégorie » ; #3114, #3113) : chaque champ de clé
  * résolu y trouve son id. Une ligne par champ de clé résolu (`RESOLUTIONS`), jamais par catégorie.
  */
-import { findApparenceById, findPieceById } from '../../data';
+import { findApparenceById, findCoiffureById, findPieceById, findTeteById } from '../../data';
 
 export type CodeDEcartDeCle = 'cle-inconnue' | 'piece-hors-categorie';
 
@@ -17,6 +17,8 @@ type Resolution = (id: string, categorie: string) => Omit<EcartDeCle, 'champ'> |
 
 /** La résolution de chaque champ de clé résolu. */
 const RESOLUTIONS: Readonly<Record<string, Resolution>> = {
+  tete: (id) => (findTeteById(id) ? undefined : { code: 'cle-inconnue', detail: `${id} n’est aucune tête de \`garde-robe.json\`` }),
+  coiffure: (id) => (findCoiffureById(id) ? undefined : { code: 'cle-inconnue', detail: `${id} n’est aucune coiffure de \`garde-robe.json\`` }),
   piece: (id, categorie) => {
     const piece = findPieceById(id);
     if (!piece) return { code: 'cle-inconnue', detail: `${id} n’est aucune pièce de \`garde-robe.json\`` };
