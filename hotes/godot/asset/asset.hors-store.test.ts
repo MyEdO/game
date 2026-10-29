@@ -55,8 +55,11 @@ const production = () => ({
   defaults: ['corps', 'casque'],
   presets: { garde: { label_fr: 'Garde', components: ['corps', 'bouclier'] } },
   clips: { idle: 'Idle', death: 'Death_A' },
-  animation_sources: { 1: { path: '/home/x/anims/UAL1_Standard.glb', sha256: 'abc', bones: 65 } },
+  packs_sources: { ual1: { path: '/home/x/anims/UAL1_Standard.glb', sha256: 'abc' } },
 });
+
+/** Le nom de dépôt d'un texte de licence CC0 de contenu `texte` (`nomDeLicence`, `importer.ts`). */
+const nomCC0 = (texte: string) => `LICENSE-CC0-1.0-${sha256(Buffer.from(texte)).slice(0, 16)}.txt`;
 
 /** `production()` sans tête interchangeable : aucune `head_options`, aucune pièce de tête. */
 const sansTete = () => {
@@ -378,9 +381,6 @@ describe('importerPersonnage', () => {
     return d;
   };
 
-  /** Le nom sous lequel se dépose le texte de licence CC0 `texte`. */
-  const nomCC0 = (texte: string) => `LICENSE-CC0-1.0-${sha256(Buffer.from(texte)).slice(0, 16)}.txt`;
-
   it('publie le GLB sous son empreinte, puis dépose le manifeste réduit et la provenance sans chemin', () => {
     const destination = temporaire();
     const dossier = dossierDeProduction();
@@ -399,7 +399,7 @@ describe('importerPersonnage', () => {
       importe_le: '2026-10-23',
       licences: { corps: { base: 'explicit asset header', en_tete: ['CC0'], annoncees: ['CC0 (official asset-pack page)'] } },
       licences_de_pack: [],
-      animation_sources: [{ fichier: 'UAL1_Standard.glb', sha256: 'abc' }],
+      packs_sources: [{ pack: 'ual1', fichier: 'UAL1_Standard.glb', sha256: 'abc' }],
     });
   });
 
@@ -817,22 +817,25 @@ describe('dossier de production d’une base (#3106)', () => {
     const manifest = JSON.parse(readFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), 'utf8'));
     expect(manifest).toEqual({
       model: 'humanoide.glb', model_sha256: sha256(GLB_DE_BASE), manifeste: baseSchema3(),
-      animation_sources: {
-        ual1: { path: sources.ual1, sha256: sha256(readFileSync(sources.ual1)) },
-        ual2: { path: sources.ual2, sha256: sha256(readFileSync(sources.ual2)) },
-      },
+      packs_sources: tableTotale(PACKS, (s) => ({ path: sources[s], sha256: sha256(readFileSync(sources[s])), licence: `LICENSE-${s}.txt` })),
       hors_release: HORS_RELEASE_DE_BASE,
     });
     for (const s of ['ual1', 'ual2', 'corps'] as const) expect(readFileSync(join(dossier, `LICENSE-${s}.txt`), 'utf8')).toBe(LICENCE_QUATERNIUS);
     const destination = temporaire();
     const r = importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: null });
     expect(r.ok ? [r.provenance.licences_de_pack.map((l) => l.licence), r.provenance.hors_release] : r.refus).toEqual([['CC0 1.0 Universal (CC0 1.0)'], HORS_RELEASE_DE_BASE]);
+    expect(r.ok ? r.provenance.packs_sources : r.refus).toEqual([
+      { pack: 'ual1', fichier: 'UAL1_Standard.glb', sha256: sha256(readFileSync(sources.ual1)), licence: nomCC0(LICENCE_QUATERNIUS) },
+      { pack: 'ual2', fichier: 'UAL2_Standard.glb', sha256: sha256(readFileSync(sources.ual2)), licence: nomCC0(LICENCE_QUATERNIUS) },
+      { pack: 'corps', fichier: 'Superhero_Male_FullBody.gltf', sha256: sha256(readFileSync(sources.corps)), licence: nomCC0(LICENCE_QUATERNIUS) },
+    ]);
     expect(JSON.parse(readFileSync(join(destination, 'humanoide.manifeste.json'), 'utf8'))).toEqual(baseSchema3());
   });
 
   it.each<[string, (m: Record<string, unknown>) => void, string]>([
     ['se déclare hors Release', () => {}, `[hors-release] ${HORS_RELEASE_DE_BASE} : import sans publication seulement (--sans-publier)`],
     ['porte une raison hors Release vide', (m) => { m.hors_release = ' '; }, '[hors-release] manifest.json : hors_release, raison non vide attendue'],
+    ['nomme pour un pack un texte de licence absent du dossier', (m) => { (m.packs_sources as Record<string, Record<string, unknown>>).corps.licence = 'LICENSE-ubc.txt'; }, '[licence-de-pack-absente] corps : LICENSE-ubc.txt'],
   ])('refuse à la publication une production qui %s, sans rien publier ni écrire', (_, muter, refus) => {
     const dossier = join(construite(), '..');
     const manifest = JSON.parse(readFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), 'utf8'));

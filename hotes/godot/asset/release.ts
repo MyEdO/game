@@ -71,6 +71,16 @@ export interface LicenceDePack {
   readonly licence: string;
 }
 
+/** Un pack source du modèle (`packs_sources.<pack>` du dossier de production) : clips, corps ou tout autre. */
+export interface PackSource {
+  readonly pack: string;
+  /** Le nom du fichier source, sans son chemin. */
+  readonly fichier: string;
+  readonly sha256: string;
+  /** Le texte de licence déposé qu'il porte (`LicenceDePack.fichier`), partagé ou non avec d'autres packs. */
+  readonly licence?: string;
+}
+
 /** La provenance commitée d'un modèle (`fichiersDuModele(id).provenance`). */
 export interface Provenance {
   readonly model: string;
@@ -80,7 +90,7 @@ export interface Provenance {
   readonly importe_le: string;
   readonly licences: Readonly<Record<string, LicenceDeComposant>>;
   readonly licences_de_pack: readonly LicenceDePack[];
-  readonly animation_sources: readonly { readonly fichier: string; readonly sha256: string }[];
+  readonly packs_sources: readonly PackSource[];
   /** La raison verbatim d'une production hors Release (`CLE_HORS_RELEASE`) : le modèle vit sur le poste seulement. */
   readonly hors_release?: string;
 }

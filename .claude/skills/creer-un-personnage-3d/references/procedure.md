@@ -55,8 +55,10 @@ clips de marche), les bornes de `st` tirées de `src/data/gabarits.json` et des 
 l'empreinte du GLB. Le manifeste refusé par `validerManifesteDeBase` fait échouer la construction.
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
-`animation_sources`, `hors_release`) et `LICENSE-ual1.txt`, `LICENSE-ual2.txt`, `LICENSE-corps.txt`,
-copies des textes de licence des packs. Il s'importe tel quel, sans publication (section 6) :
+`packs_sources`, `hors_release`) et `LICENSE-ual1.txt`, `LICENSE-ual2.txt`, `LICENSE-corps.txt`,
+copies des textes de licence des packs ; `packs_sources.<pack>` porte le chemin, l'empreinte et la
+copie de licence (`licence`) de chaque pack, que la provenance garde par pack sous le nom du texte
+déposé. Il s'importe tel quel, sans publication (section 6) :
 
 ```sh
 node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier
@@ -201,8 +203,10 @@ Lire au besoin la référence diagnostics du skill.
 2. Construire grands volumes et raccords, puis articuler ; préserver les voisins.
 3. Exporter **seulement cet élément** en GLB avec ses matériaux, morphs et liaison compatibles.
    L'armature nécessaire au skin peut être exportée, sans dupliquer les meshes du corps ni les
-   clips de base ; les animations viennent de la base. Un rigide tenu conserve la hiérarchie
-   vers l'os de prise nécessaire au montage par l'évaluateur. Réimporter le GLB réellement livré.
+   clips de base ; les animations viennent de la base. Un rigide tenu pend à un os de la
+   base : l'import refuse un élément rigide sans mesh, un mesh sur un os absent de la base, ou à la
+   racine hors `decor`/`vehicule` (`hotes/godot/asset/element.ts` `REGLES_DES_CATEGORIES`).
+   Réimporter le GLB réellement livré.
 4. Écrire le manifeste schéma 3, valider sa forme contre la base, vérifier son empreinte et
    évaluer le GLB monté sur cette base (commandes ci-dessous).
 5. Comparer source ↔ GLB sous même caméra/pose/lumière, à taille du jeu et en gros plans exposant
@@ -372,7 +376,9 @@ et ses `LICENSE*.txt` (ligne `License:` obligatoire). Pour une base ou un élém
 
 Remplacer `manifeste` par le manifeste COMPLET de base ou d'élément. Les métadonnées de licences
 des composants restent dans `components.<id>.asset` de l'enveloppe (`license_basis`,
-`explicit_header`, `packs[].announced_license`), les sources d'animation dans `animation_sources`.
+`explicit_header`, `packs[].announced_license`), les packs sources (clips, corps) dans
+`packs_sources.<pack>` (`path`, `sha256`, `licence` : un `LICENSE*.txt` du dossier, sans quoi
+l'import refuse `[licence-de-pack-absente]`).
 Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé. Une production sans
 composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 

@@ -20,7 +20,7 @@ import { cheminsAbsolus, ligneDErreur, type Brut } from './manifeste.ts';
 import { estBase, estSchema3, fichiersDuModele, indexerModeles, validerModele, type BaseLivree, type ManifesteDeModele } from './modeles.ts';
 import {
   DOSSIER_DES_MODELES, nomDAsset, manifestesDesModeles, modelesEpingles,
-  type AssetAPublier, type LicenceDeComposant, type LicenceDePack, type Provenance,
+  type AssetAPublier, type LicenceDeComposant, type LicenceDePack, type PackSource, type Provenance,
 } from './release.ts';
 
 const ID_DE_MODELE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
@@ -70,11 +70,23 @@ function refusDeLicence({ licences, licences_de_pack }: Pick<Provenance, 'licenc
 
 const nomDeFichier = (chemin: string): string => chemin.split(/[\\/]/).pop() ?? '';
 
-/** `animation_sources.<n>.{path, sha256}`, le chemin réduit au nom de fichier. */
-function sourcesDAnimation(manifeste: Brut): { fichier: string; sha256: string }[] {
-  const sources = estObjet(manifeste.animation_sources) ? manifeste.animation_sources : {};
-  return Object.values(sources).flatMap((s) =>
-    estObjet(s) && typeof s.path === 'string' && typeof s.sha256 === 'string' ? [{ fichier: nomDeFichier(s.path), sha256: s.sha256 }] : []);
+/** `packs_sources.<pack>.{path, sha256, licence?}`, le chemin réduit au nom de fichier et `licence`, texte `LICENSE*.txt`
+ *  du dossier de production, au nom de son dépôt dans `deposes` ; ou les refus `[licence-de-pack-absente]` des packs
+ *  dont la licence ne nomme aucun texte du dossier. */
+function packsSources(manifeste: Brut, deposes: ReadonlyMap<string, string>): { readonly packs: PackSource[] } | { readonly refus: string[] } {
+  const sources = estObjet(manifeste.packs_sources) ? manifeste.packs_sources : {};
+  const refus: string[] = [];
+  const packs = Object.entries(sources).flatMap(([pack, s]): PackSource[] => {
+    if (!estObjet(s) || typeof s.path !== 'string' || typeof s.sha256 !== 'string') return [];
+    if (s.licence === undefined) return [{ pack, fichier: nomDeFichier(s.path), sha256: s.sha256 }];
+    const licence = typeof s.licence === 'string' ? deposes.get(s.licence) : undefined;
+    if (licence === undefined) {
+      refus.push(`[licence-de-pack-absente] ${pack} : ${String(s.licence)}`);
+      return [];
+    }
+    return [{ pack, fichier: nomDeFichier(s.path), sha256: s.sha256, licence }];
+  });
+  return refus.length ? { refus } : { packs };
 }
 
 /** Le nom sous lequel se dépose le texte de licence `octets` d'identifiant SPDX `spdx` : deux textes distincts d'une
@@ -125,6 +137,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   if (sources.length > 1) return { ok: false, refus: [`plusieurs sources .blend (${sources.join(', ')}) : une seule attendue`] };
   const licences = new Map<string, Buffer>();
   const licencesDePack = new Map<string, LicenceDePack>();
+  const deposes = new Map<string, string>();
   for (const source of contenu.filter((f) => FICHIER_DE_LICENCE.test(f))) {
     const octetsDeLicence = readFileSync(join(dossier, source));
     const licence = licenceDeclaree(octetsDeLicence.toString('utf8'));
@@ -134,7 +147,10 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     const fichier = nomDeLicence(spdx, octetsDeLicence);
     licences.set(fichier, octetsDeLicence);
     licencesDePack.set(fichier, { fichier, licence });
+    deposes.set(source, fichier);
   }
+  const packs = packsSources(brut, deposes);
+  if ('refus' in packs) return { ok: false, refus: packs.refus };
 
   const fichiers = fichiersDuModele(id);
   const candidat = Object.prototype.hasOwnProperty.call(brut, 'manifeste') ? brut.manifeste : { ...brut, model: fichiers.glb };
@@ -171,7 +187,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     importe_le: date,
     licences: licencesDe(brut),
     licences_de_pack: [...licencesDePack.values()],
-    animation_sources: sourcesDAnimation(brut),
+    packs_sources: packs.packs,
     ...(horsRelease !== undefined ? { hors_release: horsRelease } : {}),
   };
   const fuites = cheminsAbsolus(provenance, 'provenance');
