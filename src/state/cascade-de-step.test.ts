@@ -7,7 +7,7 @@ import {
   specDeEtape, tableSpec, rollTableStep, tableStepNaturalRange,
 } from '../noyau/cascade';
 import { dieStep, pushDie } from '../noyau/rollSeam';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier } from '../noyau/cascade.testkit';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { WORLD_STEP_OWNER } from '../noyau/pendings';
 import type { CascadeStep } from '../noyau/pendings';

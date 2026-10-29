@@ -24,7 +24,7 @@ import { AuContactModal } from './AuContactModal';
 import { DisengageModal } from './DisengageModal';
 import type { BattleState } from '../noyau/etat';
 import type { Combatant, Weapon } from '../engine/types';
-import { cascadeDeTest } from '../state/cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 
 beforeAll(() => {

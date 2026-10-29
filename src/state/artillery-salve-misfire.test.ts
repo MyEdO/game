@@ -3,7 +3,7 @@ import { applyOups } from '../noyau/combatFlow';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
 import { useGame } from './store';
 import type { CascadeStep } from '../noyau/pendings';
-import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
+import { draineCascade, poseSurDeNonTombe } from '../noyau/cascade.testkit';
 import type { Combatant, Weapon } from '../engine/types';
 import { hydratePoste, recomputeLoadout } from '../engine/items';
 

@@ -4,7 +4,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { startCascade } from '../noyau/cascade';
 import { freeCons } from '../noyau/rollSeam';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier } from '../noyau/cascade.testkit';
 import { tickCombatAuto } from '../noyau/combatAuto';
 
 import type { CascadeStep } from '../noyau/pendings';

@@ -18,7 +18,7 @@ import { findTavernGameById } from '../engine/tavernGame';
 import { resolveSequencePotTurn, sequenceAbandonEtatOf, sequenceAbandonOf, sequenceBoardOf } from '../noyau/sequenceCore';
 import { tavernParams, potProchain } from '../noyau/tavernFlow';
 import type { Combatant } from '../engine/types';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 
 const get = useGame.getState.bind(useGame);
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));

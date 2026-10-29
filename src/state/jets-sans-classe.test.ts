@@ -19,7 +19,7 @@ import { makePregens } from '../data/pregens';
 import { buildBand, bandStep, monoStep, surfaceDesEtapes, surfaceDeLEtape } from '../noyau/rollSeam';
 import { type BuiltCascadeStep } from '../noyau/stepBrand';
 import { startCascade } from '../noyau/cascade';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { fixtureText } from '../i18n/fixtureText';
 import { voyageStakeRef } from '../data';

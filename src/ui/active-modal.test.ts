@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { pickActiveModalKey as pick } from './ActiveModal';
 import type { GameState } from '../state/store';
-import { cascadeDeTest } from '../state/cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import type { Weapon } from '../engine/types';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 

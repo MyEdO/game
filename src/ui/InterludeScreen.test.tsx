@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
-import { draineCascade } from '../state/cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { createHero } from '../engine/character';
 import { fromBrass } from '../engine/money';
 import { partyMoneyTotal, distributeCredit } from '../noyau/bourseFlow';

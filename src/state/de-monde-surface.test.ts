@@ -32,7 +32,7 @@ import type { WorldMap } from '../noyau/worldMap';
 import type { LandMarketProfile } from '../engine/landCargo';
 import type { CargoLot } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
-import { avanceEtapeCascade, draineCascadeDifferee, type PoseDe } from './cascade.testkit';
+import { avanceEtapeCascade, draineCascadeDifferee, type PoseDe } from '../noyau/cascade.testkit';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import type { GenreDEtape, GenreDeCascade } from '../noyau/tablesPosees';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
@@ -274,7 +274,7 @@ function lancer(): void {
  * (acheteur → marchand → Marchandage opposé) ne dépend NI de l'option de pose, NI de la fenêtre. Le
  * dé d'acheteur est un dé de MONDE : il se joue dans sa fenêtre (« Lancer ») au lieu de tomber en
  * silence, mais il tombe au MÊME rang — donc le MÊME gain sous la MÊME graine. Aucun autre test du
- * dépôt ne verrouille cet ordre pour le marché TERRESTRE : `land-market-flow.test.ts` compare des
+ * dépôt ne verrouille cet ordre pour le marché TERRESTRE : `land-market-flow.hors-store.test.ts` compare des
  * gains ENTRE EUX (rumeur ×2), ce qu'un décalage de flux laisse passer intact.
  */
 describe('#1426 — le flux RNG de la vente terrestre ne dépend pas de l’option de pose', () => {

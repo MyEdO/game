@@ -9,7 +9,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, ItemInstance } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
-import { draineCascade, type ChoisitCle } from './cascade.testkit';
+import { draineCascade, type ChoisitCle } from '../noyau/cascade.testkit';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
 
 const LIEUX = LOCALISATIONS_DE_COUP;

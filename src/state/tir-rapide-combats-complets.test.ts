@@ -7,7 +7,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import type { Combatant, Weapon } from '../engine/types';
 
 /**

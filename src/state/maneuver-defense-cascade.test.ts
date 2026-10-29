@@ -20,7 +20,7 @@ import { findConditionById, resolveStake } from '../data';
 
 import type { Combatant } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 
 describe('Défense de manœuvre de zone — cascade influençable (héros) vs silence (IA)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); useGame.setState({ battle: null, pendingCascade: null }); });

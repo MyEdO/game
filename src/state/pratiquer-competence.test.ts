@@ -15,8 +15,8 @@ import { activityById, competencesAPratiquer, postingTenu, refusCandidatActivite
 import { refusNePeutTenter } from '../engine/skills';
 import { ECHEC_SANS_JET } from '../engine/tests';
 import { refLabel, skills, specPoolOf } from '../data';
-import { avecActivite } from './activiteMer.testkit';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avecActivite } from '../engine/activiteMer.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import type { Combatant } from '../engine/types';
 import type { BatchParticipant } from '../noyau/pendings';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';

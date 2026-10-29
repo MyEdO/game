@@ -17,7 +17,7 @@ import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { routeTriggeredTest, bandeTriggeredTest, runCombatFlow } from '../noyau/combat/triggeredTest';
 import { flowTestGated, combatConditionCtx } from '../noyau/combat/flowEval';
 import { pushCombatStep } from '../noyau/combatEffects';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { itemFromTrappingById } from '../engine/items';
 import { decorHorsCombat, noeudsDeTest, porteDeMaladie, rendreMalade, nuitDuMalade, type Noeud } from './noeudsDeTest.testkit';
 import type { Combatant } from '../engine/types';

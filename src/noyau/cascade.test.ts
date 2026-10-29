@@ -6,7 +6,7 @@ import { createHero } from '../engine/character';
 import { startCascade, type CascadeApplier, stepInteraction, stepReady, buildConsequenceSteps, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, compteurDeSequence } from './cascade';
 import { freeCons, monoStep, displayStep, buildBand } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
-import { spyApplier } from '../state/cascade.testkit';
+import { spyApplier } from './cascade.testkit';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { journaliser } from './combatLog';
 import type { CascadeStep, BatchParticipant } from './pendings';

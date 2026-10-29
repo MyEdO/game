@@ -4,7 +4,7 @@ import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { addCondition, stacks, hasCondition, combatTestPenalty, COND } from '../../engine/conditions';
 import { rawCombatTestBase, skillBaseValue } from '../../engine/skills';
-import { inexplique } from '../cascade.testkit';
+import { inexplique } from '../../noyau/cascade.testkit';
 import { DIFFICULTY_MODIFIERS } from '../../engine/types';
 
 import { testScene } from '../../scenes/test-fixture';

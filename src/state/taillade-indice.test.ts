@@ -20,7 +20,7 @@ import { itemFromTrappingById, weaponFromItem } from '../engine/items';
 import type { Combatant, Weapon } from '../engine/types';
 import { applyAttackResult } from '../noyau/combatFlow';
 import type { AttackResult } from '../engine/combat';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 
 /** L'arme du catalogue, telle que le combat la porte (Atouts résolus depuis `trappings.json`). */
 function armeDuCatalogue(id: string): Weapon {

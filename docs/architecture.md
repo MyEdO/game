@@ -870,7 +870,7 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   (`modalArbiter.ts`) — elle piloterait donc silencieusement les Tests de routine des postes tenus par des
   PERSONNAGES D'INVITÉS sans leur passer la main (contradiction avec le gating spectateur/ownership,
   `netOwnership.controlsActive`). Garde : `src/state/jets-sans-classe.test.ts` (coop × commandée),
-  `src/state/voyage-cadence.test.ts` (jour sous ordres par route). Lever ⇒ router les Tests de routine par
+  `src/noyau/voyage-cadence.hors-store.test.ts` (jour sous ordres par route). Lever ⇒ router les Tests de routine par
   owner de poste comme le fait déjà le registre de modales pour les interruptions.
 - **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `src/noyau/modalArbiter.ts` l.110-112 :
   décision de bourse PARTAGÉE (argent du groupe) → seul l'hôte la tranche, comme les autres actions à

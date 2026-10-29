@@ -12,7 +12,7 @@ import { rollMerchantOpposition, type PortProfile } from '../engine/seaVoyage';
 import { rollMerchantSkill as rollLandMerchantSkill } from '../engine/landCargo';
 import { landBuyCargo, landSellCargo } from '../noyau/landMarketFlow';
 import { persistCarriersCargo } from '../noyau/carriers';
-import { draineCascadeDifferee } from './cascade.testkit';
+import { draineCascadeDifferee } from '../noyau/cascade.testkit';
 import { createHero } from '../engine/character';
 import { d100 } from '../engine/dice';
 import { evaluateTest } from '../engine/tests';

@@ -35,7 +35,7 @@ import type { CascadeStep, CascadeStepMeta } from '../noyau/pendings';
 import { monoStep } from '../noyau/rollSeam';
 import { type BuiltCascadeStep } from '../noyau/stepBrand';
 import { nightStakeRef } from '../data';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import type { GenreDEtape } from '../noyau/tablesPosees';
 import { deFixe } from '../engine/dice.testkit';
 

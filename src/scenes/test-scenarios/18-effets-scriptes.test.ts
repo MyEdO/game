@@ -6,7 +6,7 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { hasTalent } from '../../engine/magic';
 import type { SkillInstance } from '../../engine/types';
 import { scenario } from './18-effets-scriptes';
-import { draineCascade } from '../../state/cascade.testkit';
+import { draineCascade } from '../../noyau/cascade.testkit';
 const scenarioConstruit = scenario.construire();
 
 /**

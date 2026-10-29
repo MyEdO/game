@@ -465,7 +465,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
 import { applyAttackResult } from '../noyau/combatFlow';
 import type { AttackResult } from '../engine/combat';
 import { resetCadence } from '../engine/cadence';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
 
 describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16)', () => {

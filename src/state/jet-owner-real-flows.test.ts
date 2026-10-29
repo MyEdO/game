@@ -15,7 +15,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { openAttackCascade } from '../noyau/combatFlow';
 import { gainCorruption } from '../noyau/corruptionFlow';
 import { openMedic, medicAct } from '../noyau/medicFlow';

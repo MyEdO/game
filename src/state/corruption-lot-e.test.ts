@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { gainCorruption } from '../noyau/corruptionFlow';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { corruptionThresholdExceeded } from '../engine/corruption';
 import { PREGEN } from '../data/pregens';
 import { createHero } from '../engine/character';

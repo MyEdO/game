@@ -23,7 +23,7 @@ import { setDataset } from '../data/overrides';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { FICHE_DE_TEST, poserFicheDeTest, restaurerFiche, testDeFiche, testDuJeu } from './ficheDeTest.testkit';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 
 /**
  * CÂBLAGE des Tests nommés (#2779, #1173) : la compétence et la Difficulté d'un Test que nomme une règle

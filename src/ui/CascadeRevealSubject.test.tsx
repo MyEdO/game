@@ -15,7 +15,7 @@ import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
 import { CascadeBody } from './CascadeModal';
 import type { RevealEntry } from '../noyau/pendings';
-import { cascadeDeTest } from '../state/cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 
 beforeAll(() => {

@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { bonus } from '../engine/characteristics';
 import { startCascade } from '../noyau/cascade';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier } from '../noyau/cascade.testkit';
 import { FLOW_VERBS } from '../noyau/flowVerbs';
 import { frozenOpposedBatchStep } from '../noyau/combat/triggeredTest';
 import type { CascadeStep, BatchParticipant } from '../noyau/pendings';

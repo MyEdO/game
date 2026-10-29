@@ -27,7 +27,7 @@ import { modalOwnerOf } from '../noyau/modalArbiter';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import type { CascadeStep } from '../noyau/pendings';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 

@@ -21,7 +21,7 @@ import { appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
 import { seedBattleRng } from '../noyau/battleRng';
 import { bonus } from '../engine/characteristics';
 import type { Combatant, Weapon } from '../engine/types';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { applyAttackResult, applyCast, applyOpposedCritical, resolveAttack, type CastCritChoice } from '../noyau/combatFlow';
-import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascade.testkit';
+import { avanceEtapeCascade, draineCascade, type ChoisitCle } from '../noyau/cascade.testkit';
 import { createHero } from '../engine/character';
 import { rederivePassiveAttack, issueAuJet, coupAApplique, causeDuCoupCritique, type AttackResult } from '../engine/combat';
 import { setRule, resetRule } from '../engine/policy';

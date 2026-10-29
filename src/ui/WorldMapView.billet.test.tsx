@@ -16,7 +16,7 @@ import { makePregensWithWealth, PREGEN } from '../data/pregens';
 import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { toBrass } from '../engine/money';
 import { setRule, resetRule } from '../engine/policy';
-import { draineCascade } from '../state/cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 
 beforeAll(() => {
