@@ -7,7 +7,7 @@
 import { estObjet } from '../../../src/hote/formes';
 import { SLOTS } from '../../../src/noyau/index.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
-import { sha256 } from './empreinte.ts';
+import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
 import type { ManifesteDeBase } from './manifesteDeBase.ts';
 
@@ -208,7 +208,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
 
   if (brut.glb !== undefined) {
     const g = brut.glb;
-    if (!(estObjet(g) && typeof g.sha256 === 'string' && /^[0-9a-f]{64}$/.test(g.sha256) && Number.isInteger(g.octets) && (g.octets as number) > 0 && Object.keys(g).length === 2)) {
+    if (!(estObjet(g) && typeof g.sha256 === 'string' && EMPREINTE.test(g.sha256) && Number.isInteger(g.octets) && (g.octets as number) > 0 && Object.keys(g).length === 2)) {
       refus('forme', 'glb', '`sha256` hexadécimal de 64 caractères et `octets` entier positif attendus');
     } else {
       const somme = sha256(octets);

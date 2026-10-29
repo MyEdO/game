@@ -377,8 +377,11 @@ et ses `LICENSE*.txt` (ligne `License:` obligatoire). Pour une base ou un élém
 Remplacer `manifeste` par le manifeste COMPLET de base ou d'élément. Les métadonnées de licences
 des composants restent dans `components.<id>.asset` de l'enveloppe (`license_basis`,
 `explicit_header`, `packs[].announced_license`), les packs sources (clips, corps) dans
-`packs_sources.<pack>` (`path`, `sha256`, `licence` : un `LICENSE*.txt` du dossier, sans quoi
-l'import refuse `[licence-de-pack-absente]`).
+`packs_sources.<pack>` (`path`, `sha256`, `licence` : le nom d'un `LICENSE*.txt` du dossier).
+L'import refuse `[pack-source-mal-forme]` un `packs_sources` ou une entrée qui n'est pas un objet, un `path` ou une
+`licence` qui n'est pas une chaîne, un `sha256` qui n'est pas un SHA-256 hexadécimal minuscule ;
+`[licence-de-pack-absente]` une `licence` qui ne nomme aucun texte `LICENSE*.txt` du dossier ;
+`[packs-sources-absents]` une base qui ne déclare aucun pack.
 Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé. Une production sans
 composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 

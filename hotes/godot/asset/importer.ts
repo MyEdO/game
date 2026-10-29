@@ -13,8 +13,7 @@ import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { chargerLicences, CLE_HORS_RELEASE, FICHIER_DE_LICENCE, licenceDeclaree, MANIFESTE_DE_PRODUCTION } from './dossierDeProduction.ts';
-import { sha256 } from './empreinte.ts';
-import { lireGlb, GlbIllisible } from './glb.ts';
+import { EMPREINTE, sha256 } from './empreinte.ts';
 import { estObjet } from '../../../src/hote/formes.ts';
 import { cheminsAbsolus, ligneDErreur, type Brut } from './manifeste.ts';
 import {
@@ -22,7 +21,7 @@ import {
   type BaseLivree, type EntreeDeModele, type ManifesteDeModele,
 } from './modeles.ts';
 import {
-  DOSSIER_DES_MODELES, EMPREINTE, nomDAsset, manifestesDesModeles, modelesEpingles,
+  DOSSIER_DES_MODELES, nomDAsset, manifestesDesModeles, modelesEpingles,
   type AssetAPublier, type LicenceDeComposant, type LicenceDePack, type ModeleEpingle, type PackSource, type Provenance,
 } from './release.ts';
 
@@ -75,7 +74,7 @@ const nomDeFichier = (chemin: string): string => chemin.split(/[\\/]/).pop() ?? 
 
 /** `packs_sources.<pack>.{path, sha256, licence}`, le chemin réduit au nom de fichier et `licence`, texte `LICENSE*.txt`
  *  du dossier de production, au nom de son dépôt dans `deposes` ; ou les refus : `[pack-source-mal-forme]` d'une entrée
- *  sans `path`, sans `licence` ou dont `sha256` n'est pas un SHA-256 (`EMPREINTE`), `[licence-de-pack-absente]` d'un pack
+ *  qui n'est pas un objet, sans `path` ou sans `licence` en chaîne, ou dont `sha256` n'est pas un SHA-256 (`EMPREINTE`), `[licence-de-pack-absente]` d'un pack
  *  dont la licence ne nomme aucun texte du dossier, `[packs-sources-absents]` quand `exige` (une base) et qu'aucun pack
  *  n'est déclaré. */
 function packsSources(manifeste: Brut, deposes: ReadonlyMap<string, string>, exige: boolean): { readonly packs: PackSource[] } | { readonly refus: string[] } {
@@ -87,14 +86,16 @@ function packsSources(manifeste: Brut, deposes: ReadonlyMap<string, string>, exi
       refus.push(`[pack-source-mal-forme] ${pack} : objet attendu`);
       return [];
     }
-    const { path, sha256: empreinte, licence } = s;
-    const formes = [
-      ...(typeof path === 'string' ? [] : ['path, chaîne attendue']),
-      ...(typeof empreinte === 'string' && EMPREINTE.test(empreinte) ? [] : [`sha256 « ${String(empreinte)} » n'est pas un SHA-256`]),
-      ...(typeof licence === 'string' ? [] : ['licence, nom d\'un texte LICENSE*.txt du dossier attendu']),
-    ];
-    if (formes.length || typeof path !== 'string' || typeof empreinte !== 'string' || typeof licence !== 'string') {
-      refus.push(...formes.map((f) => `[pack-source-mal-forme] ${pack} : ${f}`));
+    const path = typeof s.path === 'string' ? s.path : null;
+    const empreinte = typeof s.sha256 === 'string' && EMPREINTE.test(s.sha256) ? s.sha256 : null;
+    const licence = typeof s.licence === 'string' ? s.licence : null;
+    if (path === null || empreinte === null || licence === null) {
+      const formes = [
+        [path, 'path, chaîne attendue'],
+        [empreinte, `sha256 « ${String(s.sha256)} » n'est pas un SHA-256`],
+        [licence, 'licence, nom d\'un texte LICENSE*.txt du dossier attendu'],
+      ] as const;
+      refus.push(...formes.flatMap(([valeur, f]) => (valeur === null ? [`[pack-source-mal-forme] ${pack} : ${f}`] : [])));
       return [];
     }
     const depose = deposes.get(licence);
@@ -147,7 +148,8 @@ const enJson = (v: unknown): string => `${JSON.stringify(v, null, 2)}\n`;
  *  verse le GLB et la source dans la Release (`publierAssets`) et rend les noms versés ; `null` ne publie rien
  *  (`--sans-publier`, tests et sondes). `remplacer` (`--remplacer`) remplace un modèle schéma 3 déjà importé sous
  *  `id` : une base ne se remplace que si chaque élément qui la référence passe contre elle (`refusDeRemplacement`), et
- *  les textes de licence que l'ancienne provenance était seule à nommer se retirent (`retires`). */
+ *  les textes de licence que l'ancienne provenance était seule à nommer se retirent (`retires`) ; sur une production
+ *  schéma 2, il se refuse (`[remplacer-hors-schema-3]`). */
 export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODELES, date, publier, remplacer = false }: {
   dossier: string;
   id: string;
@@ -176,12 +178,6 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   const empreinte = sha256(octets);
   if (declaree !== empreinte) return { ok: false, refus: [`empreinte SHA-256 du GLB ${empreinte}, ${MANIFESTE_DE_PRODUCTION} déclare ${String(declaree)}`] };
 
-  try {
-    lireGlb(octets);
-  } catch (e) {
-    if (e instanceof GlbIllisible) return { ok: false, refus: [e.message] };
-    throw e;
-  }
   const contenu = entrees.filter((e) => e.isFile()).map((e) => e.name).sort();
   const sources = contenu.filter((f) => f.endsWith('.blend'));
   if (sources.length > 1) return { ok: false, refus: [`plusieurs sources .blend (${sources.join(', ')}) : une seule attendue`] };
@@ -201,6 +197,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   }
   const fichiers = fichiersDuModele(id);
   const candidat = Object.prototype.hasOwnProperty.call(brut, 'manifeste') ? brut.manifeste : { ...brut, model: fichiers.glb };
+  if (remplacer && !estSchema3(candidat)) return { ok: false, refus: [`[remplacer-hors-schema-3] ${id} : --remplacer ne remplace qu'un modèle schéma 3`] };
   const packs = packsSources(brut, deposes, estBase(candidat));
   if ('refus' in packs) return { ok: false, refus: packs.refus };
 

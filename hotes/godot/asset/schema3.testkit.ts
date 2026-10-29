@@ -27,13 +27,15 @@ export const elementSchema3 = (base = 'humanoide') => ({
 
 /** Le texte de licence de pack que `productionSchema3` dépose : une production importable établit sa licence. */
 export const LICENCE_DE_PRODUCTION = 'LICENSE-Pack.txt';
+/** Le contenu de `LICENCE_DE_PRODUCTION`. */
+export const TEXTE_DE_LICENCE_DE_PRODUCTION = 'Pack\nLicense: CC0\n';
 
 /** Le dossier de production de `manifeste` dans `dossier`, et pour une base le pack source qu'elle déclare, qui porte
  *  `LICENCE_DE_PRODUCTION` (`ecrireProduction`). */
 export function productionSchema3(dossier: string, manifeste: unknown, octets: Uint8Array): string {
   mkdirSync(dossier, { recursive: true });
   writeFileSync(join(dossier, 'asset.glb'), octets);
-  writeFileSync(join(dossier, LICENCE_DE_PRODUCTION), 'Pack\nLicense: CC0\n');
+  writeFileSync(join(dossier, LICENCE_DE_PRODUCTION), TEXTE_DE_LICENCE_DE_PRODUCTION);
   const packs = estBase(manifeste) ? { packs_sources: { corps: { path: 'corps.gltf', sha256: sha256(octets), licence: LICENCE_DE_PRODUCTION } } } : {};
   writeFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), JSON.stringify({ model: 'asset.glb', model_sha256: sha256(octets), manifeste, ...packs }));
   return dossier;

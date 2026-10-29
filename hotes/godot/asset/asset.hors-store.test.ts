@@ -14,7 +14,7 @@ import { ATTACHES } from './montage';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { depotDe, INDEX, listerImage } from '../../../scripts/guards/lib/gitPorte.mjs';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
-import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, LICENCE_DE_PRODUCTION, productionSchema3, deposerSchema3 } from './schema3.testkit.ts';
+import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, LICENCE_DE_PRODUCTION, productionSchema3, deposerSchema3, TEXTE_DE_LICENCE_DE_PRODUCTION } from './schema3.testkit.ts';
 import {
   DOSSIER_DES_MODELES, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   suivisHorsRelease, TAG, urlDAsset, type AssetAPublier, type Gh,
@@ -61,9 +61,6 @@ const production = () => ({
   clips: { idle: 'Idle', death: 'Death_A' },
   packs_sources: { ual1: { path: '/home/x/anims/UAL1_Standard.glb', sha256: EMPREINTE_DE_PACK, licence: LICENCE_DE_PRODUCTION } },
 });
-/** Le texte de licence que `dossierDeProduction` dépose sous `LICENCE_DE_PRODUCTION`, nommé par le pack de `production()`. */
-const TEXTE_DE_PACK = 'Pack\nLicense: CC0\n';
-
 /** Le nom de dépôt d'un texte de licence CC0 de contenu `texte` (`nomDeLicence`, `importer.ts`). */
 const nomCC0 = (texte: string) => `LICENSE-CC0-1.0-${sha256(Buffer.from(texte)).slice(0, 16)}.txt`;
 
@@ -424,7 +421,7 @@ describe('import et chargement au schéma 3', () => {
     const texte = 'Pack réexporté\nLicense: CC0\n';
     writeFileSync(join(dossier, LICENCE_DE_PRODUCTION), texte);
     const r = reimporter(dossier, destination, true);
-    expect(r.ok ? r.retires : r.refus).toEqual([join(destination, nomCC0('Pack\nLicense: CC0\n'))]);
+    expect(r.ok ? r.retires : r.refus).toEqual([join(destination, nomCC0(TEXTE_DE_LICENCE_DE_PRODUCTION))]);
     expect(listerDossier(destination).filter((f) => f.startsWith('LICENSE'))).toEqual([nomCC0(texte)]);
   });
   it.each<[string, (m: Record<string, unknown>) => void, string]>([
@@ -435,6 +432,8 @@ describe('import et chargement au schéma 3', () => {
     ['dont un pack n’a pas d’empreinte', (m) => { m.packs_sources = { corps: { path: 'corps.gltf', licence: LICENCE_DE_PRODUCTION } }; }, '[pack-source-mal-forme] corps : sha256 « undefined » n\'est pas un SHA-256'],
     ['dont l’empreinte d’un pack n’est pas un SHA-256', (m) => { m.packs_sources = { corps: { path: 'corps.gltf', sha256: 'abc', licence: LICENCE_DE_PRODUCTION } }; }, '[pack-source-mal-forme] corps : sha256 « abc » n\'est pas un SHA-256'],
     ['dont un pack ne nomme aucun texte de licence', (m) => { m.packs_sources = { corps: { path: 'corps.gltf', sha256: EMPREINTE_DE_PACK } }; }, '[pack-source-mal-forme] corps : licence, nom d\'un texte LICENSE*.txt du dossier attendu'],
+    ['dont un pack n’est pas un objet', (m) => { m.packs_sources = { corps: 'x' }; }, '[pack-source-mal-forme] corps : objet attendu'],
+    ['dont un pack n’a pas de path', (m) => { m.packs_sources = { corps: { sha256: EMPREINTE_DE_PACK, licence: LICENCE_DE_PRODUCTION } }; }, '[pack-source-mal-forme] corps : path, chaîne attendue'],
     ['dont packs_sources n’est pas un objet', (m) => { m.packs_sources = []; }, '[pack-source-mal-forme] packs_sources : objet attendu'],
   ])('refuse une base %s', (_, muter, refus) => {
     const dossier = productionSchema3(temporaire(), baseSchema3(), GLB_DE_BASE);
@@ -466,7 +465,7 @@ describe('importerPersonnage', () => {
     const m = { ...production(), model_sha256: empreinte ?? EMPREINTE };
     muter(m);
     writeFileSync(join(d, m.model), GLB);
-    writeFileSync(join(d, LICENCE_DE_PRODUCTION), TEXTE_DE_PACK);
+    writeFileSync(join(d, LICENCE_DE_PRODUCTION), TEXTE_DE_LICENCE_DE_PRODUCTION);
     writeFileSync(join(d, MANIFESTE_DE_PRODUCTION), JSON.stringify(m));
     return d;
   };
@@ -488,8 +487,8 @@ describe('importerPersonnage', () => {
       model_sha256: EMPREINTE,
       importe_le: '2026-10-23',
       licences: { corps: { base: 'explicit asset header', en_tete: ['CC0'], annoncees: ['CC0 (official asset-pack page)'] } },
-      licences_de_pack: [{ fichier: nomCC0(TEXTE_DE_PACK), licence: 'CC0' }],
-      packs_sources: [{ pack: 'ual1', fichier: 'UAL1_Standard.glb', sha256: EMPREINTE_DE_PACK, licence: nomCC0(TEXTE_DE_PACK) }],
+      licences_de_pack: [{ fichier: nomCC0(TEXTE_DE_LICENCE_DE_PRODUCTION), licence: 'CC0' }],
+      packs_sources: [{ pack: 'ual1', fichier: 'UAL1_Standard.glb', sha256: EMPREINTE_DE_PACK, licence: nomCC0(TEXTE_DE_LICENCE_DE_PRODUCTION) }],
     });
   });
 
@@ -537,6 +536,13 @@ describe('importerPersonnage', () => {
     expect([f.manifeste, f.provenance].map((nom) => existsSync(join(destination, nom)))).toEqual([false, false]);
   });
 
+  it('refuse --remplacer sur une production schéma 2, sans rien écrire', () => {
+    const destination = join(temporaire(), 'modeles');
+    const r = importerPersonnage({ dossier: dossierDeProduction(), id: 'Essai', destination, date: '2026-10-29', publier: null, remplacer: true });
+    expect(r).toEqual({ ok: false, refus: ['[remplacer-hors-schema-3] Essai : --remplacer ne remplace qu\'un modèle schéma 3'] });
+    expect(existsSync(destination)).toBe(false);
+  });
+
   it('ne publie rien sans publication (--sans-publier)', () => {
     const r = importerPersonnage({ dossier: dossierDeProduction(), id: 'Essai', destination: temporaire(), date: '2026-10-23', publier: null });
     expect(r.ok && r.publies).toEqual([]);
@@ -544,6 +550,12 @@ describe('importerPersonnage', () => {
 
   it.each<[string, () => string, RegExp | string]>([
     ['un manifeste d’un autre GLB', () => dossierDeProduction(() => {}, '0'.repeat(64)), /^empreinte SHA-256 du GLB [0-9a-f]{64}, manifest\.json déclare 0{64}$/],
+    ['un GLB illisible', () => {
+      const illisible = Buffer.from('pas un glb');
+      const d = dossierDeProduction(() => {}, sha256(illisible));
+      writeFileSync(join(d, 'animated.glb'), illisible);
+      return d;
+    }, /^\[glb-illisible\] GLB illisible : 10 octets, en-tête incomplet$/],
     ['un manifeste sans empreinte', () => dossierDeProduction((m) => { delete (m as { model_sha256?: string }).model_sha256; }), /, manifest\.json déclare undefined$/],
     ['un chemin absolu laissé', () => dossierDeProduction((m) => { m.components.bouclier.label_fr = '/home/x/bouclier'; }), /chemin-absolu/],
     ['une licence d’en-tête que le pack n’annonce pas', () => dossierDeProduction((m) => {

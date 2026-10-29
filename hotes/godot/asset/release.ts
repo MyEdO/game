@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { CLE_HORS_RELEASE, FICHIER_DE_LICENCE } from './dossierDeProduction.ts';
-import { sha256 } from './empreinte.ts';
+import { EMPREINTE, sha256 } from './empreinte.ts';
 import { estObjet } from '../../../src/hote/formes';
 import { fichiersDuModele, indexerModeles, verdictsDesModeles, type EntreeDeModele } from './modeles.ts';
 
@@ -94,9 +94,6 @@ export interface Provenance {
   /** La raison verbatim d'une production hors Release (`CLE_HORS_RELEASE`) : le modèle vit sur le poste seulement. */
   readonly hors_release?: string;
 }
-
-/** Une empreinte SHA-256 en hexadécimal minuscule. */
-export const EMPREINTE = /^[0-9a-f]{64}$/;
 
 /** Les ids des fichiers de `fichiers` qui portent le nom `nom` de `fichiersDuModele`. */
 const idsPar = (fichiers: readonly string[], nom: 'manifeste' | 'provenance'): Set<string> => {
