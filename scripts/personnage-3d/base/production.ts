@@ -18,12 +18,12 @@ import { chargerLicences, CLE_HORS_RELEASE, licenceDeclaree, MANIFESTE_DE_PRODUC
 import { sha256 } from '../../../hotes/godot/asset/empreinte.ts';
 import { tableTotale } from '../../../src/lib/tableTotale.ts';
 
-/** Les packs dont une base se construit : les deux bibliothèques de clips et le corps. */
-export interface SourcesDeBase { readonly ual1: string; readonly ual2: string; readonly corps: string }
+/** Les packs dont une base se construit : les deux bibliothèques de clips, le corps et son corps féminin. */
+export interface SourcesDeBase { readonly ual1: string; readonly ual2: string; readonly corps: string; readonly 'corps-feminin': string }
 type Source = keyof SourcesDeBase;
 /** Le texte de licence nommé pour chaque pack de `SourcesDeBase`. */
 type LicencesDeBase = SourcesDeBase;
-const SOURCES: readonly Source[] = ['ual1', 'ual2', 'corps'];
+export const SOURCES: readonly Source[] = ['ual1', 'ual2', 'corps', 'corps-feminin'];
 
 /** La raison qui tient une base de packs Quaternius hors Release : #2948, arbitrages n°14 et n°19. */
 export const HORS_RELEASE_DE_BASE = "base d'essai construite de packs Quaternius (UAL, UBC), jamais en Release (#2948, arbitrages n°14 et n°19)";

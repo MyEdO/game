@@ -5,7 +5,7 @@ import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../battleRng';
 import { ev } from '../combatLog';
 import { addCondition, hasCondition, COND } from '../../engine/conditions';
-import { bonus, effectiveChar } from '../../engine/characteristics';
+import { bonus, effectiveChar, blessuresDeBase } from '../../engine/characteristics';
 import { setRule } from '../../engine/policy';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
@@ -37,7 +37,7 @@ describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)',
     // Hors Mort Subite, donc en jeu à 0 PB : PNJ important (LDB 18 l.46), à Talent Chanceux (AA 07 l.67).
     E.important = true;
     E.talents = [...(E.talents ?? []), { talentId: 'chanceux', times: 1 }];
-    E.wounds = { current: 0, max: 20 };
+    E.wounds = blessuresDeBase(20, 0);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { E };
   }

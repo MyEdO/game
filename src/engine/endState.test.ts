@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { endState } from './conditions';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
+import { blessuresDeBase } from './characteristics';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -19,7 +20,7 @@ describe('endState — état de fin lisible (#237)', () => {
     expect(endState(mk())).toBe(null);
   });
   it("héros à 0 PB CONSCIENT = null (À Terre, PAS un état de fin)", () => {
-    expect(endState(mk({ wounds: { current: 0, max: 12 } }))).toBe(null);
+    expect(endState(mk({ wounds: blessuresDeBase(12, 0) }))).toBe(null);
   });
   it('mort = « mort » (prioritaire sur tout le reste)', () => {
     expect(endState(mk({ dead: true }))).toBe('mort');
@@ -47,10 +48,10 @@ describe('endState — état de fin lisible (#237)', () => {
     afterEach(() => resetRule('combat-aa-blessures'));
     it("'aa' : Mort Subite à 0 Blessure (AA 07 l.65) = « hors-combat »", () => {
       setRule('combat-aa-blessures', 'aa');
-      expect(endState(mk({ kind: 'enemy', wounds: { current: 0, max: 12 } }))).toBe('hors-combat');
+      expect(endState(mk({ kind: 'enemy', wounds: blessuresDeBase(12, 0) }))).toBe('hors-combat');
     });
     it("'ldb' : à 0 exact, pas de dépassement (LDB 18 l.46) = null", () => {
-      expect(endState(mk({ kind: 'enemy', wounds: { current: 0, max: 12 } }))).toBe(null);
+      expect(endState(mk({ kind: 'enemy', wounds: blessuresDeBase(12, 0) }))).toBe(null);
     });
   });
   it('coque coulée (État naufrage, MDG 13 l.674) = « hors-combat » ; coque à 0 PB = null (MDG 13 l.656)', () => {

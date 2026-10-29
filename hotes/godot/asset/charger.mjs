@@ -24,5 +24,6 @@ export async function chargerAssets(exportsSupplementaires = []) {
   return importer(entree.id, entree.greffons)
 }
 
-/** L’évaluateur d’assets (`evaluateur/evaluer.ts`), hors du graphe de l’hôte : il ne lit ni le catalogue ni le noyau. */
-export const chargerEvaluateur = () => importer(fileURLToPath(new URL('./evaluateur/evaluer.ts', import.meta.url)), [])
+/** Le module `module` de l’évaluateur d’assets (`evaluateur/`, par défaut `evaluer.ts`), hors du graphe de l’hôte : il
+ *  ne lit ni le catalogue ni le noyau. */
+export const chargerEvaluateur = (module = 'evaluer.ts') => importer(fileURLToPath(new URL(`./evaluateur/${module}`, import.meta.url)), [])

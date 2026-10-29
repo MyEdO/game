@@ -19,7 +19,7 @@ import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { emptyArmour, buildWeapon, deciderApparencesDesArmes, hydratePoste, loadWeapon } from '../../engine/items';
-import { maxWounds, bonus, blessuresReconciliees } from '../../engine/characteristics';
+import { maxWounds, bonus, blessuresReconciliees, blessuresDeBase } from '../../engine/characteristics';
 import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
 import { appliquerAcquisitions } from '../../engine/talentEffects';
@@ -319,7 +319,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     ...(optTraits.length ? { liveTraits: optTraits } : {}), // charMods/Mouvement des facultatifs appliqués en direct
     ...(creature.appearance?.species ? { species: creature.appearance.species } : {}), // espèce du record (P2) → le rig la lit ; le reste de l'apparence par défaut est lu par enemyRigProfile via findCreatureById(creatureId)
     characteristics: chars,
-    wounds: { current: wounds, max: wounds, base: wounds },
+    wounds: blessuresDeBase(wounds),
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -378,7 +378,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
     kind: 'enemy',
     ...(traits.length ? { liveTraits: [...traits] } : {}), // statbloc d'éditeur : tous les traits en direct
     characteristics: chars,
-    wounds: { current: wounds, max: wounds, base: wounds },
+    wounds: blessuresDeBase(wounds),
     advantage: 0,
     conditions: [],
     weapons: [],

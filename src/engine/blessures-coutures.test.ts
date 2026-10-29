@@ -7,6 +7,7 @@ import { resetData } from '../data/overrides';
 import { combattantDeTest } from './combattantDeTest.testkit';
 import { PORTEURS_HORS_TALENT } from './porteursDePassifs.testkit';
 import { desDuTest } from './dice.testkit';
+import { blessuresDeBase, blessuresReconciliees } from './characteristics';
 
 /**
  * Le maximum des Blessures suit ses porteurs (LDB 05 l.1001, LDB 48 l.23) aux coutures du moteur : fin
@@ -17,7 +18,7 @@ import { desDuTest } from './dice.testkit';
 const PLUS_3: OpPassive[] = [{ op: 'attrMod', attr: 'wounds', mod: 3 }];
 
 /** Profil à 30 partout : B = 3 + 2×3 + 3 = 12 ; blessé de 2. */
-const blesse = (): Combatant => combattantDeTest({ kind: 'hero', wounds: { current: 10, max: 12, base: 12 } });
+const blesse = (): Combatant => combattantDeTest({ kind: 'hero', wounds: blessuresDeBase(12, 10) });
 
 const effet = (over: Partial<ActiveEffect>): ActiveEffect => ({ label: 'Effet de test', bonus: 0, duration: { scale: 'permanent' }, ...over });
 
@@ -88,5 +89,31 @@ describe('`recalerLaBaseDesBlessures` (Augmentation, Talent acquis — LDB 05 l.
     c.characteristics.endurance = 40;
     recalerLaBaseDesBlessures(c);
     expect(c.wounds).toEqual({ base: 14, max: 17, current: 15 });
+  });
+});
+
+describe('`blessuresReconciliees` : rien de neuf quand le maximum calculé est le courant (`Object.is`)', () => {
+  it('un maximum NaN (profil incomplet) se rend tel quel, sans être masqué : la réconciliation ne se rejoue pas', () => {
+    const c = combattantDeTest({ characteristics: { endurance: Number.NaN } });
+    expect(c.wounds.max).toBeNaN();
+    expect(blessuresReconciliees(c)).toBe(c.wounds);
+  });
+});
+
+describe('le maximum ne s’écrit que par ses fabriques (#1463)', () => {
+  it('un nombre posé à la main n’est pas un maximum : ni au littéral, ni à l’affectation', () => {
+    const c = blesse();
+    // @ts-expect-error — un maximum se forge par `blessuresDeBase` ou `blessuresReconciliees`
+    const forge: Combatant['wounds'] = { ...c.wounds, max: 99 };
+    // @ts-expect-error — `max` est en lecture seule
+    c.wounds.max = 99;
+    expect([forge.max, c.wounds.max]).toEqual([99, 99]);
+  });
+
+  it('`blessuresDeBase` pose la base que le maximum suit : un porteur s’y ajoute à la couture', () => {
+    const c = combattantDeTest({ wounds: blessuresDeBase(99, 90) });
+    expect(c.wounds).toEqual({ current: 90, max: 99, base: 99 });
+    applyActiveEffect(c, effet({ attrMods: { wounds: 3 } }));
+    expect(c.wounds).toEqual({ current: 93, max: 102, base: 99 });
   });
 });

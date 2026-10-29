@@ -16,6 +16,7 @@ import { setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { findSpellById } from '../data';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const RULE = 'magic-vdm-incantation';
 
@@ -36,7 +37,7 @@ function setup() {
   enemy.pos = { x: 12, y: 10 };
   enemy.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
   enemy.characteristics.endurance = 20;
-  enemy.wounds = { current: 40, max: 40 };
+  enemy.wounds = blessuresDeBase(40);
   useGame.setState({ battle: { ...b, turn: b.order.indexOf(heroC.id), action: 'cast', selectedSpellId: 'carreau', acted: false } });
   useGame.getState().battleClickEntity(enemy.id);
   // Jet FIGÉ (DR 10 pour NI 4 → surplus 6, budget VDM = 6 pas) — exactement ce que produit

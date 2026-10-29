@@ -19,8 +19,9 @@ import { mdToText } from './Prose';
 import type { PendingRoll } from './RollLine';
 import { soutienMod, partyAssisted, supportSplit } from '../engine/skills';
 import { useGame } from '../state/store';
-import type { Combatant } from '../engine/types';
 import { ligneDeRegle } from '../engine/reglesChiffrees';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const mount = (node: React.ReactElement) => {
   const container = document.createElement('div');
@@ -108,9 +109,9 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
   //    de résolveur id→nom. La résolution est REMONTÉE au rendu : aucun producteur n'en fournit.
   it('les NOMS viennent du store, et aucun id brut ne fuit à l’écran', () => {
     const party = [
-      { id: 'pregen-101', label: 'Perdita' },
-      { id: 'pregen-102', label: 'Valentyn' },
-    ] as Combatant[];
+      combattantDeTest({ id: 'pregen-101', label: 'Perdita' }),
+      combattantDeTest({ id: 'pregen-102', label: 'Valentyn' }),
+    ];
     useGame.setState({ party, battle: null });
     // `soutienMod` est le producteur RÉEL, appelé comme tout site l'appelle : un seul argument.
     const mod = soutienMod({ count: 2, bonus: 20, ids: ['pregen-101', 'pregen-102'] })!;
@@ -124,7 +125,7 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
   //    sur la ligne) est vrai sans que l'information soit LISIBLE nulle part — il faut donc prouver
   //    l'autre bout : l'infobulle de la chip, atteignable au survol ET au focus clavier, les NOMME.
   it('l’infobulle de la chip Soutien NOMME les soutiens (survol)', () => {
-    useGame.setState({ party: [{ id: 'pregen-101', label: 'Perdita' }, { id: 'pregen-102', label: 'Valentyn' }] as Combatant[], battle: null });
+    useGame.setState({ party: [combattantDeTest({ id: 'pregen-101', label: 'Perdita' }), combattantDeTest({ id: 'pregen-102', label: 'Valentyn' })], battle: null });
     const mod = soutienMod({ count: 2, bonus: 20, ids: ['pregen-101', 'pregen-102'] })!;
     ({ container, root } = mount(shell([mod])));
     const chip = container.querySelector('.rm-mod.codex-ref') as HTMLElement;
@@ -135,7 +136,7 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
   });
 
   it('la même information s’atteint au CLAVIER (focus), pas seulement à la souris', () => {
-    useGame.setState({ party: [{ id: 'pregen-101', label: 'Perdita' }] as Combatant[], battle: null });
+    useGame.setState({ party: [combattantDeTest({ id: 'pregen-101', label: 'Perdita' })], battle: null });
     const mod = soutienMod({ count: 1, bonus: 10, ids: ['pregen-101'] })!;
     ({ container, root } = mount(shell([mod])));
     const chip = container.querySelector('.rm-mod.codex-ref') as HTMLElement;
@@ -148,9 +149,9 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
   //    « +20 Soutien » sans jamais pouvoir dire qui.
   it('chaîne RÉELLE partyAssisted → supportSplit → chip : la provenance arrive peuplée', () => {
     const party = [
-      { id: 'pregen-101', label: 'Perdita', kind: 'hero', characteristics: { force: 40 }, skills: [], conditions: [], wounds: { current: 10, max: 10 } },
-      { id: 'pregen-102', label: 'Valentyn', kind: 'hero', characteristics: { force: 30 }, skills: [], conditions: [], wounds: { current: 10, max: 10 } },
-    ] as unknown as Combatant[];
+      combattantDeTest({ id: 'pregen-101', label: 'Perdita', kind: 'hero', characteristics: { force: 40 }, wounds: blessuresDeBase(10) }),
+      combattantDeTest({ id: 'pregen-102', label: 'Valentyn', kind: 'hero', characteristics: { force: 30 }, wounds: blessuresDeBase(10) }),
+    ];
     useGame.setState({ party, battle: null });
     const assisted = partyAssisted(party, undefined, 'force')!;
     const { base, mods } = supportSplit(assisted.value, assisted.support);

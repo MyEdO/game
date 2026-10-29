@@ -57,7 +57,7 @@ import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
  *  `label` écrit au call-site — minté en fixture, le littéral satisfait le type et le cast tombe. */
 export const GEL_AS_CASCADE_STEP: Readonly<Record<string, number>> = {
   'src/state/act-gate-possession.test.ts': 2,
-  'src/state/bargain-soutien-departage.test.ts': 2,
+  'src/noyau/bargain-soutien-departage.hors-store.test.ts': 2,
   'src/noyau/cascade-bande-possession.hors-store.test.ts': 1,
   'src/noyau/cascade-batch-socle.hors-store.test.ts': 1,
   'src/noyau/cascade-quantite-second.hors-store.test.ts': 6,
@@ -65,8 +65,8 @@ export const GEL_AS_CASCADE_STEP: Readonly<Record<string, number>> = {
   'src/state/combat-tables-choix-porte.test.ts': 1,
   'src/noyau/departage-etats-non-fondus.hors-store.test.ts': 3,
   'src/state/miscast-step.test.ts': 1,
-  'src/state/rest-flow.test.ts': 1,
-  'src/state/zone-cross-test-gate.test.ts': 1,
+  'src/noyau/rest-flow.hors-store.test.ts': 1,
+  'src/noyau/zone-cross-test-gate.hors-store.test.ts': 1,
   'src/ui/CascadeTableMode.test.tsx': 1,
   'src/ui/VoyageScreen.test.tsx': 1,
   'src/ui/cascade-rolled-phase.test.tsx': 1,

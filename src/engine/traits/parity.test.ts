@@ -75,7 +75,7 @@ const COUVERT_AILLEURS = new Map<string, string>([
   // Désespoir (VDM 09 l.280) : mécanique AUTHORÉE en `effects`, comme Venin/Constricteur — le
   // déclencheur d'HORLOGE `onWake` est dispatché par `fireClockTriggers` (noyau/clockHooks, bus-owned),
   // cadencé par `runDailyUpkeep` le jour d'une nuit JOUÉE.
-  ['Désespoir', 'État Exténué au réveil pendant une semaine — `effects` AUTHORÉ (onWake → op condition extenue, fireClockTriggers/clockHooks) ; la borne d’une semaine est la durée d’horloge du Trait accordé (`grantTrait.durationHours` du sort Aperçu de la mort, purgée par purgeClockEffects), cf. `state/clock-triggers.test.ts`'],
+  ['Désespoir', 'État Exténué au réveil pendant une semaine — `effects` AUTHORÉ (onWake → op condition extenue, fireClockTriggers/clockHooks) ; la borne d’une semaine est la durée d’horloge du Trait accordé (`grantTrait.durationHours` du sort Aperçu de la mort, purgée par purgeClockEffects), cf. `noyau/clock-triggers.hors-store.test.ts`'],
   // Dressé (Magie) : trait MARQUEUR sans effet propre — lu par le gate `startleCause` de Nerveux
   // (Condition Flow `has dresse-magie` → exemption de l'effarouchement magique, LDB 85 l.110, données).
   ['Dressé (Magie)', 'marqueur lu par le gate `startleCause` de Nerveux (exemption magie, données)'],

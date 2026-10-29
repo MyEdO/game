@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyMutation, gainCorruption, mutationNatureTableId, mutationTableIdFor } from './corruptionFlow';
 import { bonus, effectiveChar } from '../engine/characteristics';
@@ -61,12 +61,6 @@ function cheminAvant(hero: Combatant, seed: number) {
 describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
   beforeEach(() => {
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [] });
-  });
-  afterEach(() => {
-    // Hygiène de sortie : ce fichier laisse des séquences OUVERTES au milieu de leurs tirages (fenêtre
-    // de pose). Le banc (`ouvrirLeBanc`, `beforeEach`) part d'un état neuf à chaque test, mais on ne
-    // lègue pas un slot occupé à un lecteur d'état qui tournerait entre deux tests.
-    banc.setState({ pendingCascade: null, suspendedCascades: [] });
   });
 
   it('SENTINELLE : le fichier démarre option « Dés fixés » ÉTEINTE (aucune fuite d’un autre fichier)', () => {

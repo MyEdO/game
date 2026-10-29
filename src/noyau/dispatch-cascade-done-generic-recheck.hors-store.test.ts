@@ -5,6 +5,8 @@ import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from './cascade.testkit';
 import { cleDeFixture } from './noyau.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -25,10 +27,10 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const get = () => banc.getState();
 
 const ambusher = (): Combatant =>
-  ({ id: 'e', kind: 'enemy', name: 'Bandit',
+  combattantDeTest({ id: 'e', kind: 'enemy', label: 'Bandit',
     characteristics: { agilite: 40, perception: 30, endurance: 30, initiative: 30 } as never,
-    wounds: { current: 0, max: 10 }, dead: true, conditions: [], skills: [], items: [], weapons: [],
-    movement: 4, advantage: 0, traits: [] } as unknown as Combatant);
+    wounds: blessuresDeBase(10, 0), dead: true, conditions: [], skills: [], items: [], weapons: [],
+    movement: 4, advantage: 0, traits: [] });
 
 describe('dispatchCascadeDone — re-check TOUT-PURPOSE de checkBattleOver (#345, fix structurel)', () => {
   beforeEach(() => { banc.setState({ scene: null, party: [], battle: null, pendingVictory: null, pendingCascade: null }); });

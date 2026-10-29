@@ -5,6 +5,7 @@ import { castSpell, resolveRoundBoundary, counterspellCandidates, routeCountersp
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /** Dissipation / Contre-sort (LDB 46 l.156) : Test opposé de Langue (Magick) contre une
  *  incantation — IA (ennemi → héros) et action joueur (héros → ennemi), un seul par Round. */
@@ -92,7 +93,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
   it('IA : le Sort ennemi SUSPEND le tour ; résoudre la réaction rend la main', () => {
     useGame.getState().seedRng(3);
     const { H, E } = setup();
-    H.wounds = { ...H.wounds, max: 99, current: 99 }; // survit au Carreau : le sujet est la suspension
+    H.wounds = blessuresDeBase(99); // survit au Carreau : le sujet est la suspension
     useGame.setState({
       battle: { ...useGame.getState().battle!, order: [H.id, E.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingRoundStart: null, 

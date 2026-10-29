@@ -8,6 +8,7 @@ import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * #1029 / #1031 / #1040 — Contre-sort (`LDB 46 l.156`) :
@@ -47,7 +48,7 @@ function setup() {
     e.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 15 }];
     e.spells = ['carreau'];
   }
-  heroes.forEach((h, i) => { h.pos = { x: 10, y: 10 + i }; h.wounds = { ...h.wounds, max: 99, current: 99 }; });
+  heroes.forEach((h, i) => { h.pos = { x: 10, y: 10 + i }; h.wounds = blessuresDeBase(99); });
   E.pos = { x: 12, y: 10 };
   if (E2) E2.pos = { x: 12, y: 11 };
   useGame.setState({ battle: { ...b }, pendingCast: null, pendingCounterspell: null, pendingCascade: null });

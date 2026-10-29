@@ -1,6 +1,7 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -12,7 +13,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 function setPendingTest(over: Partial<any> = {}) {
   banc.setState({
-    party: [{ id: 'h1', name: 'Héros', resilience: 2 } as any],
+    party: [combattantDeTest({ id: 'h1', label: 'Héros', resilience: 2 })],
     pendingTest: {
       actorId: 'h1', actorName: 'Héros', label: 'Test', skillValue: 40, difficulty: 'intermediaire',
       requireSL: 0, target: 40, roll: null, success: false, sl: 0,
@@ -58,7 +59,7 @@ describe('testForceSuccess — Résilience AVANT le jet', () => {
 
   it('sans Résilience : no-op', () => {
     setPendingTest();
-    banc.setState({ party: [{ id: 'h1', name: 'Héros', resilience: 0 } as any] });
+    banc.setState({ party: [combattantDeTest({ id: 'h1', label: 'Héros', resilience: 0 })] });
     banc.getState().testForceSuccess();
     expect(banc.getState().pendingTest!.success).toBe(false);
   });
@@ -67,7 +68,7 @@ describe('testForceSuccess — Résilience AVANT le jet', () => {
 describe('Résilience pré-jet — autres modales (synthèse de succès)', () => {
   it('soin : avant le jet → réussite garantie (01), 1 Résilience dépensée', () => {
     banc.setState({
-      party: [{ id: 'h1', name: 'Soigneur', resilience: 1 } as any],
+      party: [combattantDeTest({ id: 'h1', label: 'Soigneur', resilience: 1 })],
       battle: null,
       pendingHeal: { healerId: 'h1', healerName: 'Soigneur', targetId: 'h1', targetName: 'Soigneur', mode: 'wounds', intBonus: 3, sl: 0, success: false, roll: null, target: 50 } as any,
     });

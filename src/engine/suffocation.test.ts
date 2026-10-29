@@ -9,6 +9,7 @@ import { findSpellById } from '../data';
 import { spellOps } from './flowCore';
 import { setRule, resetRule } from './policy';
 import { desDuTest } from './dice.testkit';
+import { blessuresDeBase } from './characteristics';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */
 const opsOf = (id: string) => spellOps(findSpellById(id)?.effects, 'target');
@@ -32,14 +33,14 @@ describe('suffocationTick — Noyade et Suffocation (LDB 18 l.346)', () => {
     expect(c.wounds.current).toBe(1);
   });
   it('à 0 PB : Inconscient immédiat + compte à rebours de BE Rounds', () => {
-    const c = mk({ wounds: { current: 1, max: 12 } });
+    const c = mk({ wounds: blessuresDeBase(12, 1) });
     suffocationTick(c);
     expect(c.wounds.current).toBe(0);
     expect(hasCondition(c, 'inconscient')).toBe(true);
     expect(c.suffocationCountdown).toBe(3); // BE(30) = 3
   });
   it('après BE Rounds à 0 PB : condition de mort (canal mort-lente — Destin inclus)', () => {
-    const c = mk({ wounds: { current: 1, max: 12 } });
+    const c = mk({ wounds: blessuresDeBase(12, 1) });
     suffocationTick(c); // → 0 PB, Inconscient, compteur 3
     suffocationTick(c); // 2
     suffocationTick(c); // 1
@@ -48,7 +49,7 @@ describe('suffocationTick — Noyade et Suffocation (LDB 18 l.346)', () => {
     expect(inDeathCondition(c)).toBe(true);
   });
   it('BE 0 : la mort suit l’Inconscient sans Round de grâce (LDB 18 l.346, #1817)', () => {
-    const c = mk({ wounds: { current: 1, max: 12 }, characteristics: { ...mk().characteristics, endurance: 9 } });
+    const c = mk({ wounds: blessuresDeBase(12, 1), characteristics: { ...mk().characteristics, endurance: 9 } });
     suffocationTick(c);
     expect(hasCondition(c, 'inconscient')).toBe(true);
     expect(c.suffocationCountdown).toBe(0);
@@ -61,7 +62,7 @@ describe('suffocationTick — Noyade et Suffocation (LDB 18 l.346)', () => {
     expect(c.wounds.current).toBe(2);
   });
   it('la suffocation cesse (effet expiré) : le compte à rebours est annulé', () => {
-    const c = mk({ wounds: { current: 1, max: 12 } });
+    const c = mk({ wounds: blessuresDeBase(12, 1) });
     suffocationTick(c);
     expect(c.suffocationCountdown).toBe(3);
     c.activeEffects = []; // le sort expire — l'air revient

@@ -156,7 +156,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
   // silencieux. Testé sur une VRAIE bataille dans le describe « Affamé — Test de trigger routé » ci-dessous.
 
   it('TRAIT Vampirique : Morsure infligeant N PB → l’attaquant draine N PB (Vol de vie, gaté par attackKind)', () => {
-    const vampire = mk({ id: 'vp', traits: [{ id: 'vampirique' }], wounds: { current: 10, max: 30 } });
+    const vampire = mk({ id: 'vp', traits: [{ id: 'vampirique' }], wounds: blessuresDeBase(30, 10) });
     const prey = mk({ id: 'pr' });
     // onHit d'une Morsure ayant infligé 6 PB → lifeSteal 1/1 sur l'attaquant (ctx.caster).
     fireTriggers(noBattle(), vampire, 'onHit', { rng: desDuTest, victim: prey, attackKind: 'morsure', woundsDealt: 6 });
@@ -164,7 +164,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
   });
 
   it('TRAIT Vampirique : un coup d’ARME (≠ Morsure) ne draine PAS (Condition attackKind)', () => {
-    const vampire = mk({ id: 'vp', traits: [{ id: 'vampirique' }], wounds: { current: 10, max: 30 } });
+    const vampire = mk({ id: 'vp', traits: [{ id: 'vampirique' }], wounds: blessuresDeBase(30, 10) });
     const prey = mk({ id: 'pr' });
     fireTriggers(noBattle(), vampire, 'onHit', { rng: desDuTest, victim: prey, attackKind: 'arme', woundsDealt: 6 });
     expect(vampire.wounds.current).toBe(10); // attackKind ≠ 'morsure' → branche then non prise
@@ -204,14 +204,14 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
   });
 
   it('op rollThreshold : UN d10 → soin = la valeur du dé via Formula {rolled}', () => {
-    const c = mk({ wounds: { current: 0, max: 20 } });
+    const c = mk({ wounds: blessuresDeBase(20, 0) });
     applyOps(c, [{ op: 'rollThreshold', sides: 10, thresholds: [{ atLeast: 1, ops: [{ op: 'heal', amount: { rolled: true } }] }] }], { rng: makeRNG(3) });
     expect(c.wounds.current).toBeGreaterThanOrEqual(1); // a soigné le dé (1..10)
     expect(c.wounds.current).toBeLessThanOrEqual(10);
   });
 
   it('TRAIT Régénération : onRoundStart, PB>0 → régénère la valeur du dé (if « état de soi » + rollThreshold)', () => {
-    const troll = mk({ traits: [{ id: 'regeneration' }], wounds: { current: 5, max: 30 } });
+    const troll = mk({ traits: [{ id: 'regeneration' }], wounds: blessuresDeBase(30, 5) });
     fireTriggers(noBattle(), troll, 'onRoundStart', { rng: makeRNG(2) });
     expect(troll.wounds.current).toBeGreaterThan(5); // branche PB>0 → heal {rolled}
   });
@@ -229,7 +229,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
       }],
     };
     const attacker = mk({ id: 'a' });
-    const victim = mk({ id: 'v', wounds: { current: 15, max: 15 } });
+    const victim = mk({ id: 'v', wounds: blessuresDeBase(15) });
     runPureFlowLines(victim, attacker, flow, { rng: makeRNG(3), caster: attacker });
     expect(victim.wounds.current).toBeLessThan(15); // 1d10 Dégâts appliqués (ignore BE/PA par défaut)
     expect(empetre(victim)?.value).toBe(1);
@@ -253,10 +253,10 @@ describe('Aire source-agnostique — un TRAIT pose `on:{near}` → GameOps à TO
 
   it('applique les GameOps à TOUS les combattants du rayon (exclut le centre/porteur), pas au combattant hors rayon', () => {
     const attacker = mk({ id: 'atk', pos: { x: 0, y: 0 } });
-    const victim = mk({ id: 'vic', pos: { x: 6, y: 6 }, wounds: { current: 20, max: 20 } });    // le CENTRE (exclu)
-    const nearA = mk({ id: 'nA', pos: { x: 7, y: 6 }, wounds: { current: 20, max: 20 } });        // 1 case du centre → dans le rayon
-    const nearB = mk({ id: 'nB', pos: { x: 6, y: 8 }, wounds: { current: 20, max: 20 } });        // 2 cases → dans le rayon
-    const far = mk({ id: 'far', pos: { x: 6, y: 12 }, wounds: { current: 20, max: 20 } });        // 6 cases → hors rayon
+    const victim = mk({ id: 'vic', pos: { x: 6, y: 6 }, wounds: blessuresDeBase(20) });    // le CENTRE (exclu)
+    const nearA = mk({ id: 'nA', pos: { x: 7, y: 6 }, wounds: blessuresDeBase(20) });        // 1 case du centre → dans le rayon
+    const nearB = mk({ id: 'nB', pos: { x: 6, y: 8 }, wounds: blessuresDeBase(20) });        // 2 cases → dans le rayon
+    const far = mk({ id: 'far', pos: { x: 6, y: 12 }, wounds: blessuresDeBase(20) });        // 6 cases → hors rayon
     const get = () => ({ battle: { combatants: [attacker, victim, nearA, nearB, far] } }) as never;
 
     const lines = applyTriggeredEffects(get, attacker, [burstEffect], 'onHit', { victim, rng: makeRNG(1) });
@@ -271,7 +271,7 @@ describe('Aire source-agnostique — un TRAIT pose `on:{near}` → GameOps à TO
   it('un combattant HORS DE COMBAT dans le rayon n’est pas touché (pas d’éclaboussure sur un cadavre)', () => {
     const attacker = mk({ id: 'atk', pos: { x: 0, y: 0 } });
     const victim = mk({ id: 'vic', pos: { x: 6, y: 6 } });
-    const dead = mk({ id: 'dd', pos: { x: 7, y: 6 }, wounds: { current: 0, max: 20 }, conditions: [{ id: 'inconscient', value: 1 }] });
+    const dead = mk({ id: 'dd', pos: { x: 7, y: 6 }, wounds: blessuresDeBase(20, 0), conditions: [{ id: 'inconscient', value: 1 }] });
     const get = () => ({ battle: { combatants: [attacker, victim, dead] } }) as never;
 
     applyTriggeredEffects(get, attacker, [burstEffect], 'onHit', { victim, rng: makeRNG(1) });
@@ -467,6 +467,7 @@ import type { AttackResult } from '../engine/combat';
 import { resetCadence } from '../engine/cadence';
 import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ pendingCascade: null, battle: null, pendingLogQueue: [] }); });

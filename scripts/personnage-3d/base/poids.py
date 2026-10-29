@@ -14,6 +14,7 @@ import numpy
 from mathutils.kdtree import KDTree
 
 from animation import assign_action
+from formes import aretes_des_triangles
 from pistes import aller_a, sacs
 from seuils import INFLUENCES_MAX, TOLERANCE_JUMEAUX_POSITION_M
 
@@ -135,10 +136,7 @@ def lisser(peau, noms, matrices):
     sommets = peau.data.vertices
     x, w = peau_lineaire(peau, noms)
     jumeau = jumeaux(x)
-    peau.data.calc_loop_triangles()
-    triangles = jumeau[numpy.array([t.vertices[:] for t in peau.data.loop_triangles])]
-    aretes = numpy.unique(numpy.sort(triangles[:, [0, 1, 1, 2, 2, 0]].reshape(-1, 2), axis=1), axis=0)
-    aretes = aretes[aretes[:, 0] != aretes[:, 1]]
+    aretes = aretes_des_triangles(peau, jumeau)
     longueurs = numpy.linalg.norm(x[aretes[:, 0], :3] - x[aretes[:, 1], :3], axis=1)
     voisins = [([], []) for _ in sommets]
     for (a, b), l in zip(aretes, longueurs):

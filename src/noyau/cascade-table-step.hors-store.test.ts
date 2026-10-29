@@ -16,6 +16,7 @@ import { type MutationTable } from '../data/mutations';
 import type { CascadeStep } from './pendings';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -266,7 +267,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     // n'a QUE l'autorisation de siège à vérifier (`intentAllowedFor`) — re-juger son état local ferait
     // tomber en silence un geste légitime (le mode d'échec verbatim de `opSetForcedRoll`).
     resetDesFixes(); // option éteinte CHEZ L'HÔTE
-    const hero = { id: 'h1', name: 'Aldo', label: 'Aldo', kind: 'hero' } as never;
+    const hero = combattantDeTest({ id: 'h1', label: 'Aldo', kind: 'hero' });
     banc.setState({
       party: [hero],
       net: { mode: 'host', mySeat: 0, roomCode: 'ABCD', seatNames: {}, presence: {}, ownership: { h1: 1 }, gmSeat: null } as never,

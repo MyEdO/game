@@ -40,8 +40,6 @@ function setup(pb: number, resolve: number, inst: Partial<ConditionInstance> = {
 const vivant = (id: string): Combatant => banc.getState().battle!.combatants.find((c) => c.id === id)!;
 
 describe('Détermination — « Retirez un État » relève d’À Terre à 0 Blessure (LDB 17 l.61)', () => {
-  beforeEach(() => { banc.setState({ battle: null }); });
-
   it('la donnée déclare le soin de la dépense', () => {
     expect(findConditionById('a-terre')!.resolveHeals, 'sans ce champ, la règle l.61 n’a plus de porteur').toBe(1);
   });

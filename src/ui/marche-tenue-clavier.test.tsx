@@ -14,6 +14,8 @@ import { emptyScene } from '../noyau/monde/scene';
 import { STEP_MS } from '../geometry/walk';
 import { resetStageWalk } from '../state/stageWalk';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 function Harness() {
   useGameKeyboard();
@@ -127,7 +129,7 @@ describe('touche TENUE — l’auto-repeat de l’OS ne commet pas de pas', () =
   it('PIVOT du regard (POV) : cent répétitions de l’OS ne font QU’UN quart de tour', () => {
     useGame.setState({
       povActive: true,
-      party: [{ id: 'lead', label: 'L', dead: false, wounds: { current: 10, max: 10 }, conditions: [] }],
+      party: [combattantDeTest({ id: 'lead', label: 'L', dead: false, wounds: blessuresDeBase(10) })],
       facing: poserCapDuGroupe({}, 'S'),
     } as never);
     const cap = () => capDuGroupe(useGame.getState());

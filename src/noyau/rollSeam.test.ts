@@ -11,6 +11,8 @@ import type { Combatant } from '../engine/types';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import { tableTotale } from '../lib/tableTotale';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * SEAM DE JET UNIQUE — Ronde 0 (#275 substrat). Couvre les 3 surfaces (M/V/I) que `openRoll` DÉRIVE
@@ -38,22 +40,22 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   });
 
   const hero = (over: Partial<Combatant> = {}): Combatant =>
-    ({
+    combattantDeTest({
       id: 'H', label: 'Héros', kind: 'hero',
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
       skills: [{ id: 'resistance', characteristic: 'endurance', advances: 20 }],
       conditions: [], talents: [], fortune: 1, resilience: 1,
       ...over,
-    }) as unknown as Combatant;
+    });
 
   const enemy = (over: Partial<Combatant> = {}): Combatant =>
-    ({
+    combattantDeTest({
       id: 'E', label: 'Ennemi', kind: 'enemy',
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
       skills: [{ id: 'perception', characteristic: 'initiative', advances: 20 }],
-      conditions: [], talents: [], wounds: { current: 10, max: 10 },
+      conditions: [], talents: [], wounds: blessuresDeBase(10),
       ...over,
-    }) as unknown as Combatant;
+    });
 
   /** Un dé de MONDE (`monoStep`, porteur `monde`) ouvert par la porte des séquences. */
   const ouvreDeMonde = () => openSequence(useGame.getState, useGame.setState, {
@@ -130,7 +132,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   });
 
   it('batch, voyage COMMANDÉE + kind de ROUTINE → I (immédiat, `runCascadeImmediate`)', () => {
-    const crew: Combatant = { id: 'timonier1', label: 'Timonier', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, skills: [{ id: 'navigation-fluviale', characteristic: 'intelligence', advances: 30 }], conditions: [], talents: [] } as unknown as Combatant;
+    const crew: Combatant = combattantDeTest({ id: 'timonier1', label: 'Timonier', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, skills: [{ id: 'navigation-fluviale', characteristic: 'intelligence', advances: 30 }], conditions: [], talents: [] });
     useGame.setState({ party: [crew], travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'sea', hoursPerDay: 8, km: 0, kmDone: 0, interrupted: false, orders: { cadence: 'commande' } } as never });
     const req: RollRequest = {
       side: { participants: [{ id: 'timonier1', essential: true, base: 30, target: 30, result: null }] },
@@ -145,7 +147,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   });
 
   it('batch, cadence jour-par-jour, sans MJ → M (multi surfacé, étape À PARTICIPANTS non résolue — #275 Décision 4 cran 2)', () => {
-    const crew: Combatant = { id: 'timonier1', label: 'Timonier', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, skills: [{ id: 'navigation-fluviale', characteristic: 'intelligence', advances: 30 }], conditions: [], talents: [] } as unknown as Combatant;
+    const crew: Combatant = combattantDeTest({ id: 'timonier1', label: 'Timonier', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, skills: [{ id: 'navigation-fluviale', characteristic: 'intelligence', advances: 30 }], conditions: [], talents: [] });
     useGame.setState({ party: [crew] });
     const req: RollRequest = {
       side: { participants: [{ id: 'timonier1', essential: true, base: 30, target: 30, result: null }] },

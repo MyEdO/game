@@ -5,6 +5,7 @@ import { makeRNG } from './dice';
 import type { RNG } from './dice';
 import type { Combatant } from './types';
 import { deFixe, desDuTest } from './dice.testkit';
+import { blessuresDeBase } from './characteristics';
 
 const C = (over: Partial<Combatant>): Combatant =>
   ({ id: 'c', name: 'C', kind: 'hero', conditions: [], skills: [], characteristics: { endurance: 90 }, wounds: { current: 20, max: 20 }, advantage: 3, armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over } as unknown as Combatant);
@@ -35,7 +36,7 @@ describe('Finitions d\'États (LDB 16)', () => {
   });
 
   it('Empoisonné : endOfRound NE touche plus le poison — dégâts ET Test de Résistance migrés en DONNÉES (l.66-72)', () => {
-    const c = C({ conditions: [{ id: 'empoisonne', value: 1 }], wounds: { current: 20, max: 20 } });
+    const c = C({ conditions: [{ id: 'empoisonne', value: 1 }], wounds: blessuresDeBase(20) });
     endOfRound(c, makeRNG(1)); // ni dégâts, ni Test de poison : tout est `effects: onRoundEnd` (etats.json), résolu par le dispatcher
     expect(hasCondition(c, 'empoisonne')).toBe(true); // endOfRound ne retire aucun pion de poison
     expect(c.wounds.current).toBe(20);                // ni dégât périodique (cf. state/round-upkeep-cascade.test pour la voie data-driven)
@@ -51,7 +52,7 @@ describe('Finitions d\'États (LDB 16)', () => {
   });
 
   it('Hémorragique : coagulation (double) du dernier État → 1 Exténué (l.109)', () => {
-    const c = C({ wounds: { current: 0, max: 20 }, conditions: [{ id: 'hemorragique', value: 1 }, { id: 'inconscient', value: 1 }] }); // porteur éligible : LDB 16 l.105
+    const c = C({ wounds: blessuresDeBase(20, 0), conditions: [{ id: 'hemorragique', value: 1 }, { id: 'inconscient', value: 1 }] }); // porteur éligible : LDB 16 l.105
     const dbl: RNG = deFixe(11); // jet 11 = double → coagule
     const out = bleedDeathRoll(c, dbl);
     expect(out.died).toBe(false);

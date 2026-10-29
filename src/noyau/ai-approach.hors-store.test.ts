@@ -85,7 +85,7 @@ describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () 
 });
 
 describe('Course ennemie — le journal du tour (LDB 15 l.41)', () => {
-  afterEach(() => { vi.restoreAllMocks(); banc.setState({ battle: null, actorMove: null } as never); });
+  afterEach(() => { vi.restoreAllMocks(); });
 
   it('contient EXACTEMENT la ligne du Test de `course` puis la Course, à la forme de celle du héros (`cs.run`, cases parcourues)', () => {
     const enemy = C('enemy', 'e', 2, { label: 'Gobelin' } as Partial<Combatant>);

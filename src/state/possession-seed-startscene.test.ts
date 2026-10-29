@@ -12,6 +12,7 @@ import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import type { Get, Set } from '../noyau/flowTypes';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 /** Harnais MINIMAL (get/set) — même patron que `possessionsFlow.test.ts`. */
 function makeHarness(party: Combatant[], possessions: Possession[] = []): { get: Get; set: Set } {
@@ -44,7 +45,7 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
   });
 
   it("héros sans carrière (party fixture nue) → aucun crash, aucune possession semée", () => {
-    const lead = { id: 'lead', label: 'L', xp: 0 } as unknown as ReturnType<typeof createHero>;
+    const lead = combattantDeTest({ id: 'lead', label: 'L', xp: 0 });
     useGame.getState().setParty([lead]);
     const sc = emptyScene('scene-test', 5, 5);
     sc.id = 'test-seed-sans-carriere';
@@ -70,7 +71,7 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
   });
 
   it("anti-double-semis : héros ayant DÉJÀ une possession au registre n'est pas re-semé", () => {
-    const hero = { id: 'h1', career: 'contrebandier', careerLevel: 2 } as unknown as Combatant;
+    const hero = combattantDeTest({ id: 'h1', career: 'contrebandier', careerLevel: 2 });
     const existing: Possession = {
       uid: 'pos-1', ownerId: 'h1', nature: 'vehicule', vehicleId: 'chariot-leger', location: { kind: 'avec-le-groupe' }, items: [],
     };

@@ -11,7 +11,7 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
     'catalogue des placeables de décor — le DOCUMENT est de l’art (volume, libellé, empreinte, et la solidité physique de l’objet : aucune table ne chiffre qu’un tonneau bloque le passage). Trois de ses CHAMPS sont des règles et ne sont pas couverts par cette exemption : `light` (éclairage, LDB 74 l.43/56/58), `cover` et `opaque` (couvert, LDB 14 l.72/81/86) — les entrées qui en portent un exigent `source` OU `maison` À L’ENTRÉE, par `affinerEntree` de `schemas/defs/props.ts`, et chacune porte son `maison`',
   raceAppearance: 'configuration de rendu — apparences par race pour le rig, art maison',
   gabarits: 'configuration de rendu — carrures du rig (facteurs du squelette de référence), art maison',
-  'garde-robe': 'configuration de rendu — emplacements, pièces et ensembles d’habit des éléments 3D, et les emblèmes posés sur leurs surfaces, art maison',
+  'garde-robe': 'configuration de rendu — clés des éléments 3D portés sur le corps (têtes, coiffures, emplacements, pièces et ensembles d’habit), et les emblèmes posés sur leurs surfaces, art maison',
   materials:
     'configuration de rendu — LES matières du monde (décor volumique, toiture, relief : couleur, réponse à la lumière, recettes de détail de surface) ; aucun folio n’imprime une teinte de surface',
   apparences:

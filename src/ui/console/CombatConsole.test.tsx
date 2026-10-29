@@ -39,6 +39,7 @@ import { hpColor, ENEMY_TINT } from '../../gameIso/teamColors';
 import { srgbToLinear } from '../../gameIso/shade';
 import { testDeRegle } from '../../engine/reglesChiffrees';
 import { withActingSeat } from '../../noyau/netOwnership';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -312,7 +313,7 @@ describe('CombatConsole — arche', () => {
   it('rend les Blessures en barre nommée sous le corps, une seule fois', () => {
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
-    h.wounds = { current: 9, max: 9 };
+    h.wounds = blessuresDeBase(9);
     monter(h);
     const arch = host.querySelector('.cc-arch')!;
     const barres = arch.querySelectorAll('.life-bar');
@@ -335,7 +336,7 @@ describe('CombatConsole — arche', () => {
     h.conditions = [];
     const e = foe('e1', 9, 9);
     e.conditions = [{ id: 'hemorragique', value: 2 }] as ConditionInstance[];
-    e.wounds = { current: 7, max: 12 };
+    e.wounds = blessuresDeBase(12, 7);
 
     monter(h, { foes: [e] });
     expect(host.querySelector('.combat-console')!.getAttribute('data-forme')).toBe('complete');
@@ -1289,7 +1290,7 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
 
   it('(c) ACCÈS RAPIDE : consommables GROUPÉS ×N + Soigner, cases restantes dessinées VIDES', () => {
     const h = deuxSets();
-    h.wounds = { current: 5, max: 12 }; // blessé → cible soignable (moteur `healableTargets`)
+    h.wounds = blessuresDeBase(12, 5); // blessé → cible soignable (moteur `healableTargets`)
     h.skills = [...(h.skills ?? []), { id: 'guerison', advances: 10 } as never];
     h.items = [...h.items!, objet('potion-de-guerison', 'i-po1'), objet('potion-de-guerison', 'i-po2')];
     monter(h);
@@ -1320,7 +1321,7 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
   it('(c-bis) l’adresse d’un consommable SURVIT à la consommation d’une instance', () => {
     const avecPotions = (uids: string[]) => {
       const h = deuxSets();
-      h.wounds = { current: 5, max: 12 };
+      h.wounds = blessuresDeBase(12, 5);
       h.skills = [...(h.skills ?? []), { id: 'guerison', advances: 10 } as never];
       h.items = [...h.items!, ...uids.map((u) => objet('potion-de-guerison', u))];
       // Le joueur a posé SA potion au 3ᵉ rang de l'accès rapide.

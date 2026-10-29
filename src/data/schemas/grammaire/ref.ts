@@ -88,6 +88,8 @@ export const TYPES = {
   classe: { espace: 'classes.json', catalogue: 'classes de carrière' },
   // GABARIT du rig (#2972) : `raceAppearance.json › gabarit` résout AU PARSE.
   gabarit: { espace: 'gabarits.json', catalogue: 'gabarits' },
+  // RACE DE RENDU (#3113) : `garde-robe.json › race` d'une tête résout AU PARSE.
+  raceAppearance: { espace: 'raceAppearance.json', catalogue: 'races de rendu' },
   // GARDE-ROBE des éléments 3D (#3114) : un type, trois sous-listes discriminées par `kind`
   // (`idDe('gardeRobe', 'piece')`, patron `material`).
   gardeRobe: { espace: 'garde-robe.json', catalogue: 'garde-robe' },

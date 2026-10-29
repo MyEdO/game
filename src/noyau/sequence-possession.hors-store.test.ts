@@ -15,7 +15,7 @@
  * En SOLO les deux prédicats coïncident (`ownsLocal` vrai pour tous) : ces régressions y sont
  * INVISIBLES — d'où le harnais à deux sièges (#1262 B7).
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
 import {
@@ -24,7 +24,6 @@ import {
 } from './combatFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from './battleRng';
-import { resetDesFixes } from '../engine/fixedDie';
 import { surfaceOf } from './rollSeam';
 import { modalOwnerOf } from './modalArbiter';
 import { humanControlled, pilotedByHuman } from './netOwnership';
@@ -74,11 +73,7 @@ function setupCoop(opts: { heros?: number; invites?: number[]; vivants?: number 
 
 beforeEach(() => {
   seedBattleRng(4);
-  resetDesFixes();
   banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], pendingLogQueue: [] } as never);
-});
-afterEach(() => {
-  banc.setState({ net: NET0, battle: null, pendingCascade: null, suspendedCascades: [] } as never);
 });
 
 describe('#1262 lot 5c — la BANDE se compose sur la SURFACE, pas sur l’écran de l’hôte', () => {

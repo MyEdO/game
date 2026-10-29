@@ -5,6 +5,7 @@ import { CHAR_SIZE_PX } from './PortraitTile';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { blessuresDeBase } from '../engine/characteristics';
 
 function fixtures() {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
@@ -66,7 +67,7 @@ describe('InitiativeStrip', () => {
   // de groupe et à l'arche de la console.
   it('n’imprime ni Blessures, ni États, ni nom dans une entrée', () => {
     const { h, foe } = fixtures();
-    h.wounds = { current: 7, max: 11 };
+    h.wounds = blessuresDeBase(11, 7);
     h.conditions = [{ id: 'assourdi', value: 1 }];
     const html = renderToStaticMarkup(
       <InitiativeStrip order={['e1', 'h1']} turn={1} round={2} combatants={[h, foe]} over={false}

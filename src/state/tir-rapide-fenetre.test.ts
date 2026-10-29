@@ -8,6 +8,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { t } from '../i18n';
 import type { Combatant, Weapon } from '../engine/types';
 import { draineCascade, poseSurDeNonTombe } from '../noyau/cascade.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * TIR RAPIDE, BOUCLE REPRENABLE (#997, #1765) — `LDB 11 l.97-103`. Chaque tir d'interruption passe par la
@@ -27,7 +28,7 @@ function finDeRound(gmSeat?: number) {
   const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant => {
     const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
     c.id = id; c.label = id; c.kind = kind; c.pos = pos; c.fortune = 0;
-    c.wounds = { ...c.wounds, current: 200, max: 200 };
+    c.wounds = blessuresDeBase(200);
     return c;
   };
   const H1 = mk('h1', 'hero', { x: 0, y: 0 });
