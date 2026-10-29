@@ -4,7 +4,7 @@
  *
  * RÉUTILISE la machinerie d'effets existante plutôt qu'un sous-système dédié : le remplacement de
  * Caractéristique = un `charMod` DIFFÉRENTIEL (la cible atteint la valeur de la créature ; les PB
- * sont recalculés par `refreshWounds` au passage, et le bonus est RETIRÉ à l'expiration → on
+ * sont recalés par `blessuresReconciliees` au passage, et le bonus est RETIRÉ à l'expiration → on
  * reprend sa vraie forme tout seul) ; chaque Trait = un `grantTrait` (retiré à l'expiration aussi).
  * Tout est donc auto-restitué à la fin du Sort par `endOfRound` / la purge d'horloge — aucun
  * handler de restauration custom. La perte de la parole/incantation, le +1 Trait facultatif par

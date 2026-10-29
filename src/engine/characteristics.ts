@@ -162,7 +162,7 @@ export function effectiveMaxWounds(c: Combatant): number {
   const rawFM = c.characteristics['force-mentale'] + (traitCharMods(c.liveTraits)['force-mentale'] ?? 0) + talentCharModSum(c, 'force-mentale');
   const raw = woundsForSize(bonus(rawF), bonus(rawE), woundsUseForce ? bonus(rawF) : bonus(rawFM), size);
   // Modif. de Blessures PLATS d'effets actifs (op `attrMod{wounds}` exécutée — Bonnet de fou « +4
-  // Blessures », LDB 71 l.20) : sommés au delta, repris/rendus par `refreshWounds` (pose + expiration).
+  // Blessures », LDB 71 l.20) : sommés au delta, repris/rendus par `blessuresReconciliees` (pose + expiration).
   const flat = (c.activeEffects ?? []).reduce((s, e) => s + (e.attrMods?.wounds ?? 0), 0);
   // `attrMod{wounds}` PASSIFS des porteurs hors talents (mutation, objet, Trait, État…) : ceux des talents
   // sont dans `wounds.base` (`extraWounds`), comme leurs `charMod` dans `raw` (#3060).
@@ -173,15 +173,15 @@ export function effectiveMaxWounds(c: Combatant): number {
 }
 
 /**
- * Recale `wounds.max` sur `effectiveMaxWounds` et ajuste `wounds.current` du même delta : on GAGNE des
- * Points de Blessure quand un buff F/E/FM monte le max, on en PERD à l'expiration (clamp ≥ 0). Appelé
- * à chaque changement d'`activeEffects` (application d'un buff, dissipation en fin de Round). Idempotent.
+ * Réconciliation des Blessures (LDB 05 l.1001, LDB 48 l.23) : `wounds.max` recalé sur `effectiveMaxWounds`,
+ * `wounds.current` déplacé du même delta, plancher 0 (LDB 48 l.27). PURE : rend l'objet `wounds` reçu quand rien ne
+ * bouge, sinon un neuf. Un porteur sans `base` reçoit au premier recalage le `max` qu'il portait, ce qui
+ * rend la réconciliation IDEMPOTENTE. Coutures : fin d'`applyOps`, `applyActiveEffect`,
+ * `removeActiveEffects`.
  */
-export function refreshWounds(c: Combatant): void {
-  const newMax = effectiveMaxWounds(c);
-  const delta = newMax - c.wounds.max;
-  if (delta === 0) return;
-  c.wounds.max = newMax;
-  if (delta > 0) c.wounds.current += delta;
-  else c.wounds.current = Math.max(0, c.wounds.current + delta);
+export function blessuresReconciliees(c: Combatant): Combatant['wounds'] {
+  const max = effectiveMaxWounds(c);
+  const delta = max - c.wounds.max;
+  if (delta === 0) return c.wounds;
+  return { ...c.wounds, base: c.wounds.base ?? c.wounds.max, max, current: Math.max(0, c.wounds.current + delta) };
 }

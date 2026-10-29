@@ -7227,9 +7227,8 @@ export function advanceTurn(get: Get, set: SetFn) {
       };
       // TOUTE la séquence de franchissement de Round est déléguée aux hooks `roundBoundary`
       // (noyau/combat/roundHooks), ordonnés par `order` : end-of-round 10 → poison-resist 15 →
-      // refresh-wounds 20 → triggers 25 → Instable 30 → Bestial 40 → Perturbant 50 → Surnombre 55 →
+      // triggers 25 → Instable 30 → Bestial 40 → Perturbant 50 → Surnombre 55 →
       // Détermination 70/72 → broken-recovery 74 → tail 76-79.5 → règles optionnelles (se-fatiguer 80).
-      // (Mâchoires d'acier n'est plus un hook de Round : c'est un effet `onGainCondition` data-driven.)
       // advanceTurn orchestre seulement le CADRE (Round, ordre, révélation) ; le CONTENU vit en hooks.
       // (Frénésie : l'Arme libre est un grant de DONNÉE plafonné par freeAttacksThisTurn, remis à zéro au tour.)
       // Unique porte (#316) : le site MÉTIER émet via le bus ; les boucles internes `fireTriggers`

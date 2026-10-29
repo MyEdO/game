@@ -90,7 +90,10 @@ Quand la Spécialisation est « Au choix », le joueur la sélectionne librement
 la description, ou en crée une avec l'accord du MJ. La liste d'exemples d'une Compétence n'est pas
 fermée : « Savoir (au choix) peut devenir Savoir (Géographie), Savoir (Folklore), Savoir (Magie) ou
 tout autre exemple similaire » (LDB 08 l.140), trois Spécialisations absentes de LDB 09 l.495.
-L'accord du MJ se modélise par une règle optionnelle à arbitrer (#1460).
+L'accord du MJ se modélise PAR ENTRÉE (marqueur `specsOpen`, #1621) : une entrée ouverte admet une
+Spécialisation créée qui ne reproduit pas le libellé d'une entrée de son catalogue, une entrée fermée
+son seul catalogue (`refusDeSpec`, lecture recommandée et révisable de #3081 ; arbitrage ouvert sous
+#2999). Même lecture pour un Talent « (au choix) », que la même remarque du LDB couvre.
 
 > « Chaque Compétence est alors appelée une Spécialisation. Quand une Spécialisation est mentionnée
 > dans les règles, elle est indiquée entre parenthèses. »

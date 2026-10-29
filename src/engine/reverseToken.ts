@@ -22,6 +22,7 @@ import { refCouvre } from '../data/schemas/grammaire/ref';
 import { reverseRoll } from './combat';
 import { evaluateTest } from './tests';
 import { talentReverseFailed } from './combatFeatures/dispatch';
+import { removeActiveEffects } from './conditions';
 
 /** Un jeton d'inversion couvre-t-il le Test `{skill, spec}` ? `skill` absent sur le jeton = tout Test
  *  (« Observer une cible », l.218) ; sinon match STRUCTURÉ par id (comme `talentReverseFailed`). */
@@ -40,10 +41,9 @@ export function hasReverseToken(c: Combatant, q: { skill?: string; spec?: string
 /** Consomme le PREMIER jeton d'inversion de `c` couvrant `{skill, spec}`, le retire de `c.activeEffects`
  *  et renvoie `true` — `false` si aucun jeton ne correspond (rien de consommé, 0 excédent = 0 effet). */
 export function consumeReverseToken(c: Combatant, q: { skill?: string; spec?: string }): boolean {
-  const effects = c.activeEffects ?? [];
-  const idx = effects.findIndex((e) => e.reverseToken && tokenMatches(e.reverseToken, q));
-  if (idx < 0) return false;
-  c.activeEffects = [...effects.slice(0, idx), ...effects.slice(idx + 1)];
+  const jeton = (c.activeEffects ?? []).find((e) => e.reverseToken && tokenMatches(e.reverseToken, q));
+  if (!jeton) return false;
+  removeActiveEffects(c, (e) => e === jeton);
   return true;
 }
 

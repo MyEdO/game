@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { fireTriggers } from '../noyau/triggeredEffects';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 /**
  * Instable (LDB 85 l.177) — MIGRÉ en DONNÉES (trait `instable` effects onRoundEnd) : « Chaque fois qu'elle
@@ -9,12 +10,12 @@ import { desDuTest } from '../engine/dice.testkit';
  * à la différence ; si elle a déjà atteint 0 PB elle meurt. » La valeur RELATIONNELLE (`engagedAdvantageGap`)
  * est calculée par le dispatcher sur la `battle` ; le flux est `if gap>0 → wounds {gap} ; if PB<=0 → banish`.
  */
-const mk = (over: Partial<Combatant> = {}): Combatant => ({
-  id: 'u', name: 'Zombie', kind: 'enemy', characteristics: { endurance: 30 }, skills: [], talents: [], traits: [],
-  conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: { corps: 4 }, // PA 4 : doit être IGNORÉ (perte directe)
-  wounds: { current: 8, max: 8, base: 8 }, advantage: 0, engagedWith: [],
+const mk = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
+  id: 'u', label: 'Zombie', kind: 'enemy',
+  armour: { corps: 4 } as Combatant['armour'], // PA 4 : doit être IGNORÉ (perte directe)
+  wounds: { current: 8, max: 8, base: 8 }, engagedWith: [],
   ...over,
-}) as unknown as Combatant;
+});
 
 const battle = (cs: Combatant[]) => (() => ({ battle: { combatants: cs } })) as never;
 const roundEnd = (get: never, c: Combatant) => fireTriggers(get, c, 'onRoundEnd', { rng: desDuTest });

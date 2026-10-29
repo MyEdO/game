@@ -8,7 +8,7 @@ import { libelleDeValeur, nommerChamps } from './meta';
 import { z } from 'zod';
 import { countSpecSchema, difficultySchema, formuleSansTirageSchema, maisonSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
-import { idDe, marqueurDeLaForme, porteLeMarqueur, refusDeSpec } from './ref';
+import { idDe, idsDe, marqueurDeLaForme, messageDeRefusDeSpec, porteLeMarqueur, refMorte, refusDeSpec } from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
 import { cibleDeLArg, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 
@@ -175,12 +175,22 @@ export const traitInstanceSchema = poseDeTrait('catalogue');
 export const traitPoseDeSceneSchema = poseDeTrait('scene');
 
 /** `TalentRef` (`src/data/index.ts`) — référence + niveau facultatif (« Maîtrise du combat 2 »).
- *  Porte UNIQUE de la forme `{id, spec?, times?}` : `creatures` et les profils embarqués de scène en
- *  dépendent.
+ *  Porte UNIQUE de la forme `{id, spec?, times?}` : `creatures`, le statbloc de scène et le profil de
+ *  PNJ embarqué en dépendent. Sa spécialisation est jugée par `refusDeSpec` ; la sentinelle y passe
+ *  (pas de régime `choix`, #1463 L3), et un Talent sans catalogue porte un texte d'instance (#1621).
  *  Les trois clés sont ÉCRITES, jamais épandues d'un autre schéma : le mesureur de redéclarations lit
  *  les littéraux par AST et ne résout pas un spread — la forme épandue lui présenterait la signature
  *  `times` seule, qu'il attribuerait à ce schéma sur tout littéral à clé `times` unique. */
-export const talentRefSchema = nommerChamps(z.strictObject({ id: z.string(), spec: z.string().optional(), times: z.number().optional() }), { id: { label: "identifiant" }, spec: { label: "spécialisation" }, times: { label: "multiplicateur" } });
+export const talentRefSchema = nommerChamps(z.strictObject({ id: z.string(), spec: z.string().optional(), times: z.number().optional() }).superRefine((r, ctx) => {
+  if (r.spec === undefined) return;
+  if (!idsDe('talent').has(r.id)) {
+    ctx.addIssue({ code: 'custom', path: ['id'], message: refMorte('talent', r.id) });
+    return;
+  }
+  const refus = refusDeSpec('talent', r.id, r.spec);
+  if (refus === null || refus === 'sentinelle' || refus === 'nonSpecialisable') return;
+  ctx.addIssue({ code: 'custom', path: ['spec'], message: messageDeRefusDeSpec('talent', r.id, r.spec, refus, false) });
+}), { id: { label: "identifiant" }, spec: { label: "spécialisation" }, times: { label: "multiplicateur" } });
 
 /** Référence par id portant une MAGNITUDE, et rien d'autre — forme CANONIQUE de la « référence
  *  indicée » du dépôt (`scripts/guards/lib/structuresStock.mjs`, signature `id,value` : Traits de

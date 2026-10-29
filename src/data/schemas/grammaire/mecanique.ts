@@ -19,7 +19,7 @@ import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
 import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, messageDeTermeDeJet, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
-import { catalogueSpecs, idDe, marquerOpAtteinte, ref, refs, refOuSpec, specDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
+import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
@@ -240,8 +240,7 @@ const DECLARATIONS_D_OPS = {
     if (arg !== undefined) {
       ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : sa Cible est posée (« trait.arg ») ou tirée (« cible »), jamais les deux.` });
     }
-    const catalogue = new Set(catalogueSpecs('trait', id));
-    const absents = GROUPES_TIRABLES[o.cible.table.id]().filter((g) => !catalogue.has(g));
+    const absents = GROUPES_TIRABLES[o.cible.table.id]().filter((g) => !specAuCatalogue('trait', id, g));
     if (absents.length) {
       ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${o.cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
     }

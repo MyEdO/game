@@ -5,7 +5,7 @@ import { document } from '../grammaire/document';
 import { executeesDe } from '../grammaire/mecanique';
 import { enumNomme, plageSchema } from '../grammaire/valeurs';
 
-/** Les 5 issues du Tableau d'Ivresse (lues par `drunkStaggers`/`soberUp`). */
+/** Les 5 issues du Tableau d'Ivresse (lues par `drunkStaggers`/`soberUpDissipate`). */
 export const drunkennessOutcomeSchema = enumNomme({
   bravoure: 'Bravoure du Marienburgher',
   ami: 'Meilleur ami',

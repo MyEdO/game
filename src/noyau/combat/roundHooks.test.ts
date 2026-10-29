@@ -13,7 +13,7 @@ const combatant = (over: Partial<Combatant>): Combatant =>
     skills: [], talents: [], conditions: [], activeEffects: [], liveTraits: [],
     wounds: { current: 10, max: 10, base: 10 }, advantage: 0,
     ...over,
-    characteristics: { ...CHARS, ...over.characteristics }, // profil complet : `refresh-wounds` (order 20) recalcule les Blessures
+    characteristics: { ...CHARS, ...over.characteristics }, // profil complet : le retrait d'un effet (`removeActiveEffects`) réconcilie les Blessures
   }) as unknown as Combatant;
 
 const ctx = (combatants: Combatant[]): CombatHookCtx => {

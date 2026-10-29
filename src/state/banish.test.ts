@@ -5,6 +5,7 @@ import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
 import { desDuTest } from '../engine/dice.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 /**
  * Démoniaque — bannissement « à la mort » (LDB 85 l.98 : « son âme retourne dans les Royaumes du Chaos,
@@ -15,12 +16,11 @@ import { desDuTest } from '../engine/dice.testkit';
  * n'est tiré qu'UNE fois (garde `slainNotified`, posée par `notifySlain`).
  */
 
-const mk = (over: Partial<Combatant> = {}): Combatant => ({
-  id: 'd', name: 'Démon', kind: 'enemy', characteristics: { endurance: 40 }, skills: [], talents: [], traits: [],
-  conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: { corps: 0 },
-  wounds: { current: 0, max: 12, base: 12 }, advantage: 0,
+const mk = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
+  id: 'd', label: 'Démon', kind: 'enemy', characteristics: { endurance: 40 },
+  wounds: { current: 0, max: 12, base: 12 },
   ...over,
-}) as unknown as Combatant;
+});
 
 const get = ((c: Combatant) => () => ({ battle: { combatants: [c] } })) as never;
 const slain = (c: Combatant) => fireTriggers((get as (c: Combatant) => unknown)(c) as never, c, 'onSlain', {} as never);
