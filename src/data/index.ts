@@ -2951,14 +2951,14 @@ export const gabarits = gabaritsJson as GabaritDef[];
 export const findGabaritById = indexParId('gabarits', gabarits);
 /** Garde-robe des éléments 3D (`garde-robe.json`, #3114, #3113) : têtes, coiffures, emplacements, pièces, ensembles. */
 export const gardeRobe = gardeRobeJson as GardeRobeEntree[];
-/** Lecteur d'une sorte de la garde-robe par id ; une ligne d'une autre sorte n'en est pas une. */
-const parSorte = <K extends GardeRobeEntree['kind']>(kind: K) => {
+/** Lecteur d'une nature de la garde-robe par id ; une ligne d'une autre nature n'en est pas une. */
+const parNature = <K extends GardeRobeEntree['kind']>(kind: K) => {
   const idx = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === kind ? e.id : undefined));
   return (id: string | null | undefined) => idx(id) as Extract<GardeRobeEntree, { kind: K }> | undefined;
 };
-export const findPieceById = parSorte('piece');
-export const findTeteById = parSorte('tete');
-export const findCoiffureById = parSorte('coiffure');
+export const findPieceById = parNature('piece');
+export const findTeteById = parNature('tete');
+export const findCoiffureById = parNature('coiffure');
 export const locations = locationsJson as LocationData[];
 const lieuParId = indexParId('locations', locations);
 /** Résout un Lieu par son `id` STABLE (cible de `LocationData.parent`). Le libellé ne sert qu'à l'affichage. */

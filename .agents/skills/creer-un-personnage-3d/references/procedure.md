@@ -87,8 +87,8 @@ Lire la table exécutable des catégories avant d'écrire le manifeste :
 
 Un champ de clé qui a sa ligne dans `RESOLUTIONS` (`ecartsDeCleDElement`,
 `src/noyau/apparence/cleDElement.ts`) est résolu à l'import contre le fichier que nomme la colonne : absent, l'import le refuse `cle-inconnue` ; une pièce
-d'une autre catégorie que l'élément, `piece-hors-categorie`. Exemples : `{ "tete": "humain" }` (tete,
-l'id de la race de rendu), `{ "coiffure": "crane-rase" }` (pilosite), `{ "piece": "pourpoint" }`
+d'une autre catégorie que l'élément, `piece-hors-categorie`. Exemples : `{ "tete": "humain" }` (tete),
+`{ "coiffure": "crane-rase" }` (pilosite), `{ "piece": "pourpoint" }`
 (vetement), `{ "piece": "plastron" }` (armure), `{ "piece": "baudrier" }` (accessoire),
 `{ "apparence": "epee" }` (rigide).
 
@@ -96,8 +96,8 @@ Choisir les ids sémantiques dans la donnée du jeu, jamais dans un libellé. Re
 les variantes du concept avant d'en créer un. Une clé de tête ou de coiffure n'a pas de sexe ; une variation de
 couleur n'ajoute aucun élément. Une tête, une coiffure ou une pièce absente de la garde-robe s'y
 ajoute d'abord (skill `ajouter-une-donnee`) : l'import refuse son élément tant qu'elle manque. Une
-tête a pour id sa race de rendu (`humain`, `nain`, `halfling`, `haut-elfe`, `elfe-sylvain`) ; une
-tête monstrueuse attend #3123. Un seul élément par
+tête existe par espèce jouable de `src/data/species.json` et nomme sa race de rendu dans son champ
+`race` ; une tête monstrueuse attend #3123 (têtes monstrueuses en donnée). Un seul élément par
 (base, clé) ; un nom local dérivé tel que `humanoide--rigide--epee` distingue les catégories,
 et pour un corps il inclut partie et forme. Le manifeste ne porte pas d'id arbitraire.
 

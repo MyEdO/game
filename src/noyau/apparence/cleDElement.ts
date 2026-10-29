@@ -15,16 +15,22 @@ interface EcartDeCle {
 
 type Resolution = (id: string, categorie: string) => Omit<EcartDeCle, 'champ'> | undefined;
 
+/** La résolution d'un champ dont l'id doit seulement exister : `find` le trouve, sinon `cle-inconnue`. */
+const existe =
+  (find: (id: string) => unknown, quoi: string): Resolution =>
+  (id) =>
+    find(id) ? undefined : { code: 'cle-inconnue', detail: `${id} n’est aucune ${quoi}` };
+
 /** La résolution de chaque champ de clé résolu. */
 const RESOLUTIONS: Readonly<Record<string, Resolution>> = {
-  tete: (id) => (findTeteById(id) ? undefined : { code: 'cle-inconnue', detail: `${id} n’est aucune tête de \`garde-robe.json\`` }),
-  coiffure: (id) => (findCoiffureById(id) ? undefined : { code: 'cle-inconnue', detail: `${id} n’est aucune coiffure de \`garde-robe.json\`` }),
+  tete: existe(findTeteById, 'tête de `garde-robe.json`'),
+  coiffure: existe(findCoiffureById, 'coiffure de `garde-robe.json`'),
   piece: (id, categorie) => {
     const piece = findPieceById(id);
     if (!piece) return { code: 'cle-inconnue', detail: `${id} n’est aucune pièce de \`garde-robe.json\`` };
     return piece.categorie === categorie ? undefined : { code: 'piece-hors-categorie', detail: `${id} est une pièce \`${piece.categorie}\`, pas \`${categorie}\`` };
   },
-  apparence: (id) => (findApparenceById(id) ? undefined : { code: 'cle-inconnue', detail: `${id} n’est aucune apparence de \`apparences.json\`` }),
+  apparence: existe(findApparenceById, 'apparence de `apparences.json`'),
 };
 
 /** Les écarts de la clé `cle` d'un élément de catégorie `categorie` à la donnée du jeu. */

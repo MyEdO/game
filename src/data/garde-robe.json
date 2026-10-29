@@ -254,102 +254,69 @@
     "id": "humain",
     "type": "garde-robe",
     "label": "Tête humaine",
-    "kind": "tete"
-  },
-  {
-    "id": "nain",
-    "type": "garde-robe",
-    "label": "Tête naine",
-    "kind": "tete"
+    "kind": "tete",
+    "race": {
+      "id": "humain"
+    }
   },
   {
     "id": "halfling",
     "type": "garde-robe",
     "label": "Tête halfling",
-    "kind": "tete"
+    "kind": "tete",
+    "race": {
+      "id": "halfling"
+    }
+  },
+  {
+    "id": "nain",
+    "type": "garde-robe",
+    "label": "Tête naine",
+    "kind": "tete",
+    "race": {
+      "id": "nain"
+    }
+  },
+  {
+    "id": "gnome",
+    "type": "garde-robe",
+    "label": "Tête gnome",
+    "kind": "tete",
+    "race": {
+      "id": "gnome"
+    }
+  },
+  {
+    "id": "ogre",
+    "type": "garde-robe",
+    "label": "Tête ogre",
+    "kind": "tete",
+    "race": {
+      "id": "ogre"
+    }
   },
   {
     "id": "haut-elfe",
     "type": "garde-robe",
     "label": "Tête de haut-elfe",
-    "kind": "tete"
+    "kind": "tete",
+    "race": {
+      "id": "haut-elfe"
+    }
   },
   {
     "id": "elfe-sylvain",
     "type": "garde-robe",
     "label": "Tête d’elfe sylvain",
-    "kind": "tete"
-  },
-  {
-    "id": "carre-court-bob-a-la-machoire",
-    "type": "garde-robe",
-    "label": "Carré court (bob) à la mâchoire",
-    "kind": "coiffure"
-  },
-  {
-    "id": "cheveux-boucles-volumineux-mi-longs",
-    "type": "garde-robe",
-    "label": "Cheveux bouclés volumineux mi-longs",
-    "kind": "coiffure"
-  },
-  {
-    "id": "cheveux-courts-soignes-raie-sur-le-cote",
-    "type": "garde-robe",
-    "label": "Cheveux courts soignés, raie sur le côté",
-    "kind": "coiffure"
-  },
-  {
-    "id": "cheveux-mi-longs-en-arriere-legerement-ondules",
-    "type": "garde-robe",
-    "label": "Cheveux mi-longs en arrière, légèrement ondulés",
-    "kind": "coiffure"
-  },
-  {
-    "id": "chignon-haut-cheveux-tires-en-arriere",
-    "type": "garde-robe",
-    "label": "Chignon haut, cheveux tirés en arrière",
-    "kind": "coiffure"
-  },
-  {
-    "id": "coupe-au-bol-medievale-frange-droite",
-    "type": "garde-robe",
-    "label": "Coupe au bol médiévale, frange droite",
-    "kind": "coiffure"
-  },
-  {
-    "id": "crane-degarni-calvitie-naissante-cheveux-courts-sur-les-cotes",
-    "type": "garde-robe",
-    "label": "Crâne dégarni / calvitie naissante, cheveux courts sur les côtés",
-    "kind": "coiffure"
+    "kind": "tete",
+    "race": {
+      "id": "elfe-sylvain"
+    }
   },
   {
     "id": "crane-rase",
     "type": "garde-robe",
     "label": "Crâne rasé",
-    "kind": "coiffure"
-  },
-  {
-    "id": "deux-tresses-longues-encadrant-le-visage",
-    "type": "garde-robe",
-    "label": "Deux tresses longues encadrant le visage",
-    "kind": "coiffure"
-  },
-  {
-    "id": "longs-cheveux-laches-ondules-tombant-sur-les-epaules",
-    "type": "garde-robe",
-    "label": "Longs cheveux lâchés ondulés tombant sur les épaules",
-    "kind": "coiffure"
-  },
-  {
-    "id": "queue-de-cheval-basse-cheveux-tires-en-arriere",
-    "type": "garde-robe",
-    "label": "Queue de cheval basse, cheveux tirés en arrière",
-    "kind": "coiffure"
-  },
-  {
-    "id": "queue-de-cheval-haute",
-    "type": "garde-robe",
-    "label": "Queue de cheval haute",
     "kind": "coiffure"
   }
 ]
