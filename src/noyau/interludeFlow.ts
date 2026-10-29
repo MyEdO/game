@@ -1,10 +1,10 @@
 /**
  * « Entre deux aventures » (LDB 22-23 — Jalon 5) : flux d'interlude.
  *
- * Séquence RAW (ch.22 l.12) : Événement d100 par héros → Activités (« un maximum d'une Activité
- * par semaine, et […] un maximum de trois Activités au total », ch.23 l.6) → « Argent à
- * gaspiller » (ch.23 l.14 : tout l'argent non sécurisé disparaît ; les Revenus sont remis
- * « seulement une fois que vous avez disposé de l'argent de votre dernière aventure », l.179).
+ * Séquence RAW (LDB 22 l.5) : Événement d100 par héros → Activités (« un maximum d'une Activité
+ * par semaine, et […] un maximum de trois Activités au total », LDB 23 l.5) → « Argent à
+ * gaspiller » (LDB 23 l.13 : tout l'argent non sécurisé disparaît ; les Revenus sont remis
+ * « seulement une fois que vous avez disposé de l'argent de votre dernière aventure », l.191).
  *
  * Arbitrages jeu-sans-MJ (spec 2026-06-11) : les bourses étant PERSONNELLES (#531), les pertes
  * d'argent d'événements (`moneyPct`) s'appliquent UNE fois sur le total du groupe (le pire tirage,
@@ -25,6 +25,8 @@ import { bourseOf } from '../engine/bourse';
 import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, recomputeLoadout, buildWeapon, autoStowNewItem } from '../engine/items';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
+import { refuseSi } from './verrousDeFiche';
+import { refusDActivite, refusDeRetrait, refusDuTirage } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, massBattleBegin, battlePrepEntries } from './massBattleFlow';
 import {
@@ -88,14 +90,11 @@ export interface InterludeHeroState {
   /** Devoir elfique APPLIQUÉ (règle optionnelle `interlude-elf-duty` active + elfe + ≥3 semaines) —
    *  source UNIQUE de la conséquence : l'UI rend ce drapeau, elle ne re-dérive jamais la règle. */
   elfDuty?: boolean;
-  /** A entrepris Revenus — maintient les Niveaux 3-4 (« Avec le pouvoir », ch.23 l.30). */
+  /** A entrepris Revenus — maintient les Niveaux 3-4 (« Avec le pouvoir », LDB 23 l.33). */
   didRevenus?: boolean;
-  /** Gains de Revenus, crédités APRÈS le gaspillage (ch.23 l.179) — en sous de cuivre. */
+  /** Gains de Revenus, crédités APRÈS le gaspillage (LDB 23 l.191) — en sous de cuivre. */
   revenueBrass: number;
-   /** `InterludeState.perHero` est reconstruit à neuf à chaque ouverture d'interlude (`startInterlude`) :
-   *  aucun état de progression LONGUE (Artisanat/Rituel en cours) n'y vit — celle-ci est portée par
-   *  `Combatant.craft`/`Combatant.ritual` (`engine/types.ts`), qui survit à la clôture. */
-  /** « +10 pour chaque tentative ratée » d'Apprentissage particulier (ch.23 l.63), par talent. */
+  /** « +10 pour chaque tentative ratée » d'Apprentissage particulier (LDB 23 l.72), par talent. */
   learnFails?: Record<string, number>;
   /** Issues d'Activité DIFFÉRÉES à la clôture (États « le premier jour de votre prochaine aventure »,
    *  ACE 12 l.15) — appliquées par `interludeEnd` APRÈS le repos de clôture (un État posé
@@ -114,11 +113,14 @@ export interface InterludeState {
   weeks: number;
   /** `'tirage'` (#942 L7) : les dés d'Événement restent à poser (séquence `purpose:'interlude'`) — les
    *  Activités n'ouvrent qu'au dénouement du dernier dé. */
-  phase: 'tirage' | 'activities' | 'closing';
+  phase: 'tirage' | 'activities';
+  /** Reconstruit à neuf à chaque ouverture d'interlude (`startInterlude`) : aucun état de progression
+   *  LONGUE (Artisanat/Rituel en cours) n'y vit — celle-ci est portée par `Combatant.craft`/`Combatant.ritual`
+   *  (`engine/types.ts`), qui survit à la clôture. */
   perHero: Record<string, InterludeHeroState>;
 }
 
-/** Dépôt bancaire (Opérations bancaires, ch.23 l.154-165 ; `mecenat` = variante d'ACE 12 l.45-49,
+/** Dépôt bancaire (Opérations bancaires, LDB 23 l.164-176 ; `mecenat` = variante d'ACE 12 l.45-49,
  *  retrait résolu par un Test d'Évaluation Intermédiaire) — survit aux interludes et aventures. */
 export interface BankDeposit {
   heroId: string;
@@ -187,7 +189,7 @@ export function startInterlude(get: Get, set: Set, weeks = 1): void {
   // 218/234 — statusMod de Réputation, jetons d'inversion) : cet interlude EST la borne de fin.
   // (Journalise ses propres lignes — pas de double comptage dans `lines`.)
   purgeAdventureEffects(get, set);
-  // Passer commande (ch.23 l.170) : « L'objet sera achevé après votre prochaine aventure » —
+  // Passer commande (LDB 23 l.182) : « L'objet sera achevé après votre prochaine aventure » —
   // les commandes du cycle précédent sont livrées à l'ouverture de CET interlude.
   for (const o of get().pendingOrders ?? []) {
     const hero = party.find((h) => h.id === o.heroId);
@@ -199,7 +201,7 @@ export function startInterlude(get: Get, set: Set, weeks = 1): void {
       lines.push(msg('if.orderDelivered', { name: hero.label, label: trappingLabelOf(o.trappingId) }));
     }
   }
-  const baseLeft = Math.min(3, w); // « 1/semaine, max 3 » (ch.23 l.6)
+  const baseLeft = Math.min(3, w); // « 1/semaine, max 3 » (LDB 23 l.5)
   const perHero: Record<string, InterludeHeroState> = {};
   for (const h of party) perHero[h.id] = { left: baseLeft, granted: baseLeft, revenueBrass: 0 };
   set({ interlude: { weeks: w, phase: 'tirage', perHero }, bank: get().bank ?? [], pendingOrders: [], screen: 'interlude' });
@@ -245,7 +247,7 @@ function finishInterludeEvent(get: Get, set: Set, hero: Combatant, roll: number)
 }
 
 /** DÉNOUEMENT de GROUPE, une fois TOUS les dés tombés : le `moneyPct` de la période est ponctionné,
- *  puis les Activités ouvrent (`phase`, garde `refusedBeforeDraw`). Commun aux deux chemins (dernier
+ *  puis les Activités ouvrent (`phase`, verdict `refusDuTirage`). Commun aux deux chemins (dernier
  *  maillon : après tous les dénouements par héros).
  *
  *  ARBITRAGE PROVISOIRE → #991 : les `moneyPct` de la donnée n'ont PAS tous la même PORTÉE au RAW —
@@ -272,7 +274,7 @@ function finishInterludeDraw(get: Get, set: Set): string[] {
 const eventLabelOf = (st: InterludeHeroState): string =>
   st.eventRoll == null ? msg('if.eventGeneric') : interludeEventFor(st.eventRoll).label;
 
-// ── Activités (ch.23) — flux de jet par modale (fabrique rollFlow) ────────────────────────────
+// ── Activités (LDB 23) — flux de jet par modale (fabrique rollFlow) ────────────────────────────
 
 /** Grandeurs d'un Test OPPOSÉ d'Activité — Scène « Tenez votre position » (ADE II 8 l.161-163) —
  *  POSÉES D'UN BLOC à l'ouverture : `enemyValue` = cible du jet ennemi (bonus cumulatif de tenue
@@ -314,7 +316,7 @@ export interface PendingActivityFields extends PendingBase {
   /** DR bonus consommé par la malepierre CE Round (`FocusResult.malepierreConsumed`) — écrit à la
    *  résolution (`consumeMalepierre`), comme le chemin de combat (`combatFlow.ts` `applyCast`). */
   malepierreConsumed?: number;
-  /** Apprentissage particulier (ch.23 l.58-63) : `id` STABLE du talent visé + coûts (débités MÊME sur échec). */
+  /** Apprentissage particulier (LDB 23 l.66-72) : `id` STABLE du talent visé + coûts (débités MÊME sur échec). */
   talent?: string;
   xpCost?: number;
   tutorBrass?: number;
@@ -408,34 +410,18 @@ export function consumeActivity(get: Get, set: Set, heroId: string): void {
   set({ interlude: { ...itl } });
 }
 
-/** Les Événements de la période sont-ils encore à tirer (phase `'tirage'`, #942 L7) ? LDB 22 l.5 —
- *  SOURCE UNIQUE lue par le MOTEUR (garde ci-dessous) et par l'écran (rappel visuel) : le champ
- *  `InterludeState.phase` n'est pas un décor d'UI, il verrouille l'engagement d'une Activité. */
-export function interludeDrawPending(s: Jeu): boolean {
-  return s.interlude?.phase === 'tirage';
-}
-
-/** GARDE d'engagement d'une Activité pendant le tirage (LDB 22 l.5) — refus JOURNALISÉ (jamais un
- *  abandon muet), posé à CHAQUE porte d'entrée d'Activité : le bouton de l'écran n'est qu'un rappel,
- *  c'est ici que la règle tient (coop, devtools, raccourcis compris). Vrai = la demande est refusée. */
-function refusedBeforeDraw(get: Get, who: string): boolean {
-  if (!interludeDrawPending(get())) return false;
-  get().log(t('if.drawPending', { name: who }));
-  return true;
-}
-
-/** Engage un Artisanat (ch.23 l.66) : exige une Compétence Métier (≥1 avance) ; les matériaux
- *  coûtent ¼ du prix listé, payés AVANT (« devront être achetées avant le début de l'Activité »). */
 /** Libellé d'affichage d'un trapping de catalogue par id (repli sur l'id). */
 const trappingLabelOf = (id: string): string => findTrappingById(id)?.label ?? id;
 /** Libellé d'affichage d'une qualité runtime (id → label, ex. « solide » → « Solide »). */
 const craftQualLabel = (id: string): string => qualityRefLabel({ id });
 
+/** Engage un Artisanat : Compétence Métier, matériaux payés avant l'Activité ; l'engagement n'en consomme
+ *  aucune, seul le tirage le refuse (`refusDuTirage`). LDB 23 l.76 */
 export function craftStart(get: Get, set: Set, heroId: string, trappingId: string, atouts: string[], defauts: string[]): void {
+  if (refuseSi(get, set, (s) => refusDuTirage(s, heroId))) return;
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   if (!st || !h) return;
-  if (refusedBeforeDraw(get, h.label)) return;
   if (h.craft) {
     get().log(msg('if.craftBusy', { name: h.label, label: trappingLabelOf(h.craft.trappingId) }));
     return;
@@ -557,8 +543,8 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   const def = activityById(activityId);
-  if (!st || !h || st.left <= 0 || !def?.contexts.includes('interlude') || def.blocked) return;
-  if (refusedBeforeDraw(get, h.label)) return;
+  if (refuseSi(get, set, (s) => refusDActivite(s, heroId))) return;
+  if (!st || !h || !def?.contexts.includes('interlude') || def.blocked) return;
   if (!activityAvailableAt(def, currentPlaceId(get()))) {
     get().log(msg('if.placeOnly', { label: def.label }));
     return;
@@ -584,7 +570,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     skillValue = testValue(h, skill);
     skillLabel = refLabel('skills', { id: skill });
   } else if (def.resolver === 'craftExtended') {
-    // Artisanat (ch.23 l.74-92) : Test ÉTENDU de Métier, DR cumulé par Activité — l'ouvrage doit avoir
+    // Artisanat (LDB 23 l.74-102) : Test ÉTENDU de Métier, DR cumulé par Activité — l'ouvrage doit avoir
     // été engagé (`craftStart` : matériaux ¼ prix + `h.craft`). La Difficulté et la cible de DR
     // viennent de l'ouvrage en cours.
     if (!h.craft) return;
@@ -603,7 +589,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // eslint-disable-next-line murs/conteneur -- La cible est `Partial<PendingActivityFields>` (le pending d'activité), PAS une étape de cascade : ce `label` n'est pas le champ marqué #1318.
     Object.assign(extra, r.extra, { label: stepDetail(dataLabel(def.label), dataLabel(r.extra.label)) });
   } else if (def.resolver === 'learnTalent') {
-    // Apprentissage particulier (ch.23 l.66-72) : Talent HORS carrière. Test « Difficile (-20) en
+    // Apprentissage particulier (LDB 23 l.66-72) : Talent HORS carrière. Test « Difficile (-20) en
     // utilisant la Caractéristique ou la Compétence la plus pertinente » (sans MJ : la Caractéristique
     // du Maxi du Talent, sinon Int) « +10 pour chaque tentative ratée ». Prix du tuteur : « 2D10
     // pistoles d'argent par 100PX » ; PX + argent gatés AVANT (dépensés MÊME sur échec, cf. resolver).
@@ -790,7 +776,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       return { lines, patch: { didRevenus: true, revenueBrass: st.revenueBrass + brass } };
     }
     case 'craftExtended': {
-      // Artisanat = Test ÉTENDU de Métier (ch.23 l.78-92) : « les DR obtenus à chaque Round sont
+      // Artisanat = Test ÉTENDU de Métier (LDB 23 l.78, l.102) : « les DR obtenus à chaque Round sont
       // additionnés jusqu'à atteindre une valeur cible » (LDB 12 l.174), 1 lancer par Activité —
       // qui progresse (ou régresse) MÊME sur échec. À l'achèvement, l'objet est créé avec ses
       // Atouts/Défauts choisis. Le travail inachevé est conservé (l.102) via `h.craft` (Combatant —
@@ -844,7 +830,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       };
     }
     case 'learnTalent': {
-      // Apprentissage particulier (ch.23 l.66-72) : « Sur un succès, vous avez appris le Talent. Sinon,
+      // Apprentissage particulier (LDB 23 l.66-72) : « Sur un succès, vous avez appris le Talent. Sinon,
       // vous avez échoué […] et gagnez un modificateur de +10 pour chaque tentative ratée » ; « dépensant
       // en vain des PX et de l'argent » → argent du tuteur ET PX consommés MÊME sur échec.
       const talentId = pa.talent;
@@ -1036,9 +1022,9 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
         ],
       };
     }
-    // Résolveurs d'interlude SANS branche ici : leur issue est produite en amont (`entrainement` et
-    // `mecenat` ont un volet dédié d'`InterludeScreen` ; `knowledgeResearch` est gaté à l'ouverture,
-    // son issue vient de ses bandes `outcomes`). Cas ÉNUMÉRÉS, jamais un `default` qui avale.
+    // Résolveurs d'interlude SANS branche ici : leur issue est produite en amont (`entrainement` par
+    // `entrainementStart`, `mecenat` par `bankDeposit`/`bankWithdraw` ; `knowledgeResearch` est gaté à
+    // l'ouverture, son issue vient de ses bandes `outcomes`). Cas ÉNUMÉRÉS, jamais un `default` qui avale.
     case 'entrainement':
     case 'mecenat':
     case 'knowledgeResearch':
@@ -1068,14 +1054,14 @@ function falseQualities(item: { kind: string; qualities: QualityInstance[]; subT
   return out;
 }
 
-/** Passer commande (ch.23 l.167-172) : marchandise chiffrée hors du stock ordinaire (`orderBlockOf`,
+/** Passer commande (LDB 23 l.178-184) : marchandise chiffrée hors du stock ordinaire (`orderBlockOf`,
  *  porte d'entrée PARTAGÉE avec `orderCatalog`) payée MAINTENANT, « achevé après votre prochaine
  *  aventure » (livré à l'ouverture du prochain interlude). 1 objet par Activité. */
 export function orderItem(get: Get, set: Set, heroId: string, trappingId: string): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
-  if (!st || !h || st.left <= 0) return;
-  if (refusedBeforeDraw(get, h.label)) return;
+  if (refuseSi(get, set, (s) => refusDActivite(s, heroId))) return;
+  if (!st || !h) return;
   const t = findTrappingById(trappingId);
   if (!t) {
     get().log(msg('if.trappingUnknown', { id: trappingId }));
@@ -1102,7 +1088,7 @@ export function orderItem(get: Get, set: Set, heroId: string, trappingId: string
   set({ interlude: { ...itl } });
   get().log(msg('if.orderPlaced', { name: h.label, label: t.label, cost: formatMoney(fromBrass(price)) }));
 }
-/** Entraînement (ch.23 l.130-136) : « vous entraîner dans une Compétence ou une Caractéristique en
+/** Entraînement (LDB 23 l.132-136) : « vous entraîner dans une Compétence ou une Caractéristique en
  *  dehors de votre Carrière » — PAS de Test (achat direct comme Passer commande/Banque). Coût en PX
  *  NORMAL (hors carrière, déjà doublé par `advanceCost`/`buyCharAdvance`/`buySkillAdvance`, LDB 07 l.91)
  *  + tuteur 1D10 sc (doublé pour une Compétence Avancée, l.135). `opt` recalculée ICI depuis les
@@ -1112,8 +1098,8 @@ export function orderItem(get: Get, set: Set, heroId: string, trappingId: string
 export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'skill' | 'characteristic', id: string, spec?: string): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
-  if (!st || !h || st.left <= 0) return;
-  if (refusedBeforeDraw(get, h.label)) return;
+  if (refuseSi(get, set, (s) => refusDActivite(s, heroId))) return;
+  if (!st || !h) return;
   const opt = entrainementOptions(h).find((o) => o.kind === kind && o.id === id && memeSpecialisation(o.spec, spec));
   if (!opt) {
     get().log(t('if.entrainementUnknown', { name: h.label }));
@@ -1172,14 +1158,10 @@ export function confirmActivity(get: Get, set: Set): void {
   // Activité d'interlude → elle DÉCRÉMENTE `interlude.perHero[id].left` comme toute Activité. Les Scènes
   // de Round (`battle === 'round'`) sont HORS budget downtime (illimitées par Round) — jamais décomptées.
   if (pa.battle) {
-    // Budget partagé (l.65) : une préparation (`'prep'`) EST une Activité d'interlude → refuser en AMONT
-    // si le héros n'a plus de créneau (comme le chemin interlude via `st.left <= 0` plus bas), sinon l'issue
-    // s'appliquerait « gratuitement » (`consumeActivity` no-op à 0). Les Scènes de Round (`'round'`) hors budget.
-    if (pa.battle === 'prep' && (get().interlude?.perHero[pa.heroId]?.left ?? 0) <= 0) {
-      set({ pendingActivity: null });
-      return;
-    }
+    // Budget partagé (l.65) : une préparation (`'prep'`) EST une Activité d'interlude, refusée en AMONT
+    // par `refusDActivite` comme le chemin interlude plus bas. Les Scènes de Round (`'round'`) hors budget.
     set({ pendingActivity: null });
+    if (pa.battle === 'prep' && refuseSi(get, set, (s) => refusDActivite(s, pa.heroId))) return;
     confirmBattleActivity(get, set, pa);
     if (pa.battle === 'prep') {
       consumeActivity(get, set, pa.heroId);
@@ -1196,7 +1178,8 @@ export function confirmActivity(get: Get, set: Set): void {
   const h = get().party.find((x) => x.id === pa.heroId);
   const def = activityById(pa.activityId);
   set({ pendingActivity: null });
-  if (!itl || !st || !h || st.left <= 0 || !def) return;
+  if (refuseSi(get, set, (s) => refusDActivite(s, pa.heroId))) return;
+  if (!itl || !st || !h || !def) return;
   const lines: string[] = [];
   const closeOps: GameOp[] = [];
   let patch: Partial<InterludeHeroState> = {};
@@ -1265,14 +1248,14 @@ export function confirmActivity(get: Get, set: Set): void {
   if (worldSteps.length) startCascade(get, set, { title: def.label, icon: def.icon, purpose: 'interlude', steps: worldSteps });
 }
 
-/** Opérations bancaires (ch.23 l.154-165) — dépôt (1 Activité). Invest : Statut Or/Argent.
+/** Opérations bancaires (LDB 23 l.164-170) — dépôt (1 Activité). Invest : Statut Or/Argent.
  *  `mecenat` (ACE 12 l.49) : variante d'Opération bancaire — « au moins 5 CO » (minInvest de
  *  la donnée), gate géographique de l'Activité ; le retrait se résout par un Test d'Évaluation. */
 export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, rate?: number): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
-  if (!st || !h || st.left <= 0) return;
-  if (refusedBeforeDraw(get, h.label)) return;
+  if (refuseSi(get, set, (s) => refusDActivite(s, heroId))) return;
+  if (!st || !h) return;
   if (kind === 'invest' && heroStatus(h).tier === 'bronze') {
     get().log(msg('if.bankTierKo', { name: h.label }));
     return;
@@ -1315,12 +1298,12 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' |
   for (const l of lines) get().log(l);
 }
 
-/** Retrait (invest : coûte 1 Activité, « Retirer des fonds nécessite une autre Activité » l.157 ;
- *  planque : libre, l.159). Le d100 est journalisé (résolution directe — pas un Test de compétence). */
+/** Retrait d'un dépôt, refusé par `refusDeRetrait` (investissement : une Activité, LDB 23 l.168 ; planque :
+ *  aucune, l.170). Le d100 est journalisé (résolution directe — pas un Test de compétence). */
 export function bankWithdraw(get: Get, set: Set, index: number): void {
+  if (refuseSi(get, set, (s) => refusDeRetrait(s, index))) return;
   const dep = (get().bank ?? [])[index];
   if (!dep) return;
-  if (refusedBeforeDraw(get, libelleOuAbsence(get().party.find((x) => x.id === dep.heroId), 'heros', dep.heroId))) return;
   if (dep.kind === 'mecenat') {
     // Retrait de Mécénat (ACE 12 l.49) = 1 Activité résolue par un Test d'Évaluation Intermédiaire :
     // la modale d'Activité applique la bande (payoutPct) et consomme l'Activité à la validation.
@@ -1330,10 +1313,7 @@ export function bankWithdraw(get: Get, set: Set, index: number): void {
   }
   if (dep.kind === 'invest') {
     const st = heroState(get(), dep.heroId);
-    if (!st || st.left <= 0) {
-      get().log(msg('if.withdrawNeedsActivity'));
-      return;
-    }
+    if (!st) return;
     const itl = get().interlude!;
     itl.perHero[dep.heroId] = { ...st, left: st.left - 1 };
     set({ interlude: { ...itl } });
@@ -1371,7 +1351,7 @@ function bankWithdrawInner(get: Get, set: Set, index: number, crashCheckOnly: bo
   })];
 }
 
-/** Clôture : « Avec le pouvoir » (Niveaux 3-4 sans Revenus → −1 Niveau, ch.23 l.30), Argent à
+/** Clôture : « Avec le pouvoir » (Niveaux 3-4 sans Revenus → −1 Niveau, LDB 23 l.33), Argent à
  *  gaspiller (l.14), crédit des Revenus (l.179), puis le temps passe (repos standard). */
 export function interludeEnd(get: Get, set: Set): void {
   const itl = get().interlude;

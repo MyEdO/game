@@ -613,6 +613,12 @@ export const fr = {
   'interlude.title': 'Entre deux aventures',
   'interlude.events.hint': 'Pendant que le groupe souffle, la vie suit son cours — chacun tire un Événement (d100).',
   'interlude.events.next': 'Passer aux Activités →',
+  'interlude.events.pending': '{n} dé{s} d’Événement à poser ({names}) avant d’entreprendre la moindre Activité.',
+  'interlude.events.groupPending': 'Le dénouement des Événements de la période reste à valider avant d’entreprendre la moindre Activité.',
+  'interlude.drivenElsewhere': 'Ce héros est mené par un autre joueur.',
+  'interlude.drivenBy': 'Mené par {owner}.',
+  'interlude.otherPlayer': 'un autre joueur',
+  'interlude.depositForeign': 'Dépôt d’un héros mené par un autre joueur.',
   'interlude.close.warning': "À la clôture, l'or non déposé sera dilapidé.",
   'interlude.close.warning.title': "« Tout l'argent non sécurisé disparaît » (Argent à gaspiller) : seuls les dépôts bancaires et les Revenus survivent à la clôture.",
   'interlude.close.guest': "L'hôte clôt l'interlude pour tout le monde.",
@@ -1334,6 +1340,7 @@ export const fr = {
   // Recette navigateur (DEV, __wfrp) — messages de couture, hors narration de partie.
   'dev.creatorNotMounted': "✗ créateur non monté — ouvrir l'écran de création de personnage (__wfrp.screen('creator') ou équivalent)",
   'if.drawPending': '{name} ne peut rien entreprendre tant que les Événements de la période ne sont pas tirés.',
+  'if.noActivityLeft': '{name} n’a plus d’Activité d’interlude.',
   'if.entrainementUnknown': '{name} : rien à entraîner ici — Compétence/Caractéristique de carrière, ou inconnue.',
   'if.entrainementXpKo': '{name} : PX insuffisants ({cost} requis pour {label}).',
   'if.entrainementTutorKo': 'Le tuteur demande {cost} — la bourse ne suit pas.',
@@ -1417,7 +1424,6 @@ export const fr = {
   // ACE 12 l.49
   'if.bankMecenat': "{name} sponsorise un dramaturge prometteur : {money} (retrait par Test d'Évaluation Intermédiaire).",
   'if.bankStash': '{name} planque {money} (retrait libre — découverte sur ≤ 10).',
-  'if.withdrawNeedsActivity': 'Retirer un investissement exige une Activité.',
   'if.bankLost': '{name} — {roll} ≤ {threshold} : {what} — {money} perdus !',
   'if.bankFailBank': 'la banque a fait faillite',
   'if.bankFailStash': 'la planque a été découverte',

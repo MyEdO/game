@@ -281,7 +281,7 @@ Test **Dressage Accessible (+20)**. Succès → ajouter 1 Compétence à un anim
 
 ### Entraînement
 
-**Source :** LDB 23 l.133-153.
+**Source :** LDB 23 l.133-136.
 
 S'entraîner dans une Compétence ou Caractéristique **en dehors de la Carrière**, avec tuteur.
 
