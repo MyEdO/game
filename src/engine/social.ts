@@ -18,17 +18,17 @@
  *    modificateurs à ceux qui sont de Standing différent au sein d'un même Échelon ») : ±10 entre
  *    deux personnes du MÊME Échelon selon leur Standing.
  *
- * Module FEUILLE pur : réutilise `Status`/`parseStatus` de `creation.ts` (PAS de re-parsing) et
+ * Module FEUILLE pur : réutilise `Status`/`statutDeDonnee` de `money.ts` (PAS de re-parsing) et
  * `rule` de `policy.ts` ; le RNG du jet de réaction est INJECTÉ (`opts.rng`) pour rester testable.
  */
-import { Status, parseStatus } from './creation';
+import { libelleDEchelon, statutDeDonnee, type Status } from './money';
 import { rule } from './policy';
 import type { Combatant } from './types';
 import { findCareerById, levelsForCareer } from '../data';
 import { t } from '../i18n';
 
 /** Rang numérique d'un Échelon (Bronze < Argent < Or) pour la comparaison RAW. */
-const TIER_RANK: Record<Status['tier'], number> = { Bronze: 0, Argent: 1, Or: 2 };
+const TIER_RANK: Record<Status['tier'], number> = { bronze: 0, argent: 1, or: 2 };
 
 /** Statut DÉRIVÉ d'une carrière + niveau (`CareerLevelData.status`, ex. « Argent 2 ») — couche PURE,
  *  découplée de `Combatant` (id de carrière + niveau bruts) pour servir aussi la Condition PARTY-level
@@ -37,7 +37,7 @@ const TIER_RANK: Record<Status['tier'], number> = { Bronze: 0, Argent: 1, Or: 2 
 export function statusOf(career: string | undefined, careerLevel: number | undefined): Status {
   const levels = levelsForCareer(career ?? '');
   const lvl = findCareerById(career ?? '') ? levels[Math.max(0, (careerLevel ?? 1) - 1)] : undefined;
-  return parseStatus(lvl?.status ?? 'Bronze 1');
+  return lvl ? statutDeDonnee(lvl.status) : { tier: 'bronze', standing: 1 };
 }
 
 /** Statut d'un Combatant DÉRIVÉ de sa carrière + niveau — voir `statusOf`. */
@@ -49,7 +49,7 @@ export function actorStatus(c: Combatant): Status {
  *  via `TIER_RANK` puis, à Échelon égal, le Standing — utilisé par la Condition PARTY-level `status`
  *  (#711, `flowCore.ts`), SOURCE UNIQUE de comparaison de palier (partagée avec `statusCharmMod`). */
 export function statusMeets(actual: Status, atLeast: string): boolean {
-  const need = parseStatus(atLeast);
+  const need = statutDeDonnee(atLeast);
   const da = TIER_RANK[actual.tier], dn = TIER_RANK[need.tier];
   if (da !== dn) return da > dn;
   return actual.standing >= need.standing;
@@ -88,7 +88,7 @@ export function statusCharmMod(
     // (c) Mendicité (LDB 08 l.63) : Bronze → Argent « juste au-dessus » → +10 au lieu de −10.
     if (
       rule('social-begging-bonus') && opts?.begging &&
-      actor.tier === 'Bronze' && target.tier === 'Argent'
+      actor.tier === 'bronze' && target.tier === 'argent'
     ) {
       mod = 10;
     }
@@ -121,9 +121,9 @@ export function statusCharmLabel(
   if (!mod) return undefined;
   const sign = mod > 0 ? '+' : '−';
   const cmp = mod > 0 ? '>' : '<'; // le comparateur SUIT le sens du mod (cohérent même en mendicité)
-  const beg = rule('social-begging-bonus') && opts?.begging && actor.tier === 'Bronze' && target.tier === 'Argent';
+  const beg = rule('social-begging-bonus') && opts?.begging && actor.tier === 'bronze' && target.tier === 'argent';
   const side = actor.tier === target.tier && !beg
-    ? `${actor.tier} ${actor.standing}${cmp}${target.standing}` // intra-Échelon : compare le Standing
-    : `${actor.tier}${cmp}${target.tier}`;
+    ? `${libelleDEchelon(actor.tier)} ${actor.standing}${cmp}${target.standing}` // intra-Échelon : compare le Standing
+    : `${libelleDEchelon(actor.tier)}${cmp}${libelleDEchelon(target.tier)}`;
   return t('social.statusMod', { beg: beg ? t('social.fragBegging') : '', side, sign, mod: Math.abs(mod) });
 }

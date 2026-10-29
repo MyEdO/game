@@ -31,7 +31,7 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { PovControls } from './PovControls';
 import { campaignStart } from '../engine/clock';
 import type { Combatant } from '../engine/types';
-import { cascadeDeTest } from '../state/cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { tacheSuivante } from './focus.testkit';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { applyAttackResult, applyOpposedCritical, attackEnv } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';

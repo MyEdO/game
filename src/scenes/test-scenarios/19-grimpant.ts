@@ -45,7 +45,8 @@ export const scenario: TestScenario = {
   icon: 'scenario/bestiary',
   title: 'Grimpant — l’araignée escalade',
   tests:
-    "Trait Grimpant (LDB 85 l.160-162) : une créature grimpe une arête `WallSeg.climb` SANS Test et à " +
+    // LDB 85 l.160-162
+    "Trait Grimpant : une créature grimpe une arête `WallSeg.climb` SANS Test et à " +
     "vitesse pleine — pathing (`reachable`/`pathTo`, `MoveEnv.traverse`) et IA (`chooseEnemyAction`) " +
     "exploitent l'arête automatiquement ; le groupe (hors du Talent Grimpeur) reste bloqué en bas.",
   partyNote: 'Chasseur solo, posté sur le plateau (hors d’atteinte au sol).',

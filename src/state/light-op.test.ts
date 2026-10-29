@@ -18,6 +18,7 @@ import { emptyScene, sceneMetresPerTile } from '../noyau/monde/scene';
 import { builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 const pos = { x: 3, y: 3 };
 /** Échelle TERRESTRE : celle d'une scène qui ne déclare rien — le défaut du monde (`LDB 15 l.12`). */
@@ -27,7 +28,7 @@ const MPT_TERRE = sceneMetresPerTile(emptyScene('scene-test', 1, 1));
 const MPT_MER = sceneMetresPerTile(
   paquetDuJeu(builtinCampaigns.find((c) => c.id === 'loup-et-saumure')!).scenes.find((s) => s.id === 'ls-abordage-cogue')!,
 );
-const target = (): Combatant => ({ id: 't', name: 'Cible', activeEffects: [] }) as unknown as Combatant;
+const target = (): Combatant => combattantDeTest({ id: 't', label: 'Cible' });
 
 describe('op light — OBJET passif gaté sur le port', () => {
   it('lanterne PORTÉE (equipped) → émet une LightSource (rayon du passive)', () => {

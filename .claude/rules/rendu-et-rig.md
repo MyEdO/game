@@ -11,6 +11,7 @@ paths:
 
 # Rendu du monde et rig
 
+- **Ce rendu web et le rig SVG sont abandonnés, remplacés par l'hôte Godot** (#2794, #3009 ; utilisateur, 2026-10-25 : « changement de moteur de jeu par GODOT. Ca veut dire l'abandonner du svg et l'interface actuel », et 2026-10-29 : « la partie web va etre abandonné et remplacé par godot »). Ils ne reçoivent que ce qui garde le jeu web jouable jusqu'à la bascule. On n'y ajoute rien, on n'en migre rien, et aucun travail 3D ou Godot n'en tire un id, une forme ou un modèle. Ils se suppriment à la bascule.
 - Ce qui bouge à la cadence de l'image passe par un module vivant et le battement unique, jamais par l'état React, qui ne commite qu'aux frontières discrètes, en ABSOLU. `src/state/stagePan.ts` `src/state/stageYaw.ts` `src/gameIso/stage/stageFrames.ts`
 - Un module vivant se remet à zéro aux frontières : entrée de scène, recentrage, `afterEach` des tests (`resetStagePan`, `resetStageYaw`).
 - La caméra se calcule une fois par frame et tous ses consommateurs la lisent dans cette frame : aucune `transition` CSS sur un transform de caméra, l'easing se fait à la source.

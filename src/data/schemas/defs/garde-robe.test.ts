@@ -66,7 +66,7 @@ describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensemble
   });
 
   it('une pièce sans catégorie est refusée', () => {
-    expect(refus(avec('casque', { categorie: undefined }))).toMatch(/kind « piece » EXIGE la clé « categorie » \(casque\)/);
+    expect(refus(avec('casque', { categorie: undefined }))).toMatch(/« casque » \(kind « piece »\) exige « categorie »/);
   });
 
   it('une tête qui nomme sa race et une coiffure sans charge parsent', () => {

@@ -3,7 +3,7 @@ import { useGame } from '../store';
 import type { BattleState } from '../../noyau/etat';
 import { applyAttackResult } from '../../noyau/combatFlow';
 import { seedBattleRng, battleRng } from '../../noyau/battleRng';
-import { draineEtLit } from '../cascade.testkit';
+import { draineEtLit } from '../../noyau/cascade.testkit';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
 import { emptyScene } from '../../noyau/monde/scene';

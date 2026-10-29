@@ -31,7 +31,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from '../noyau/shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { applierDe, runCascadeImmediate } from '../noyau/cascade';
-import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe } from './cascade.testkit';
+import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe } from '../noyau/cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel } from '../data';
 import { resultLine, buildBand, rollLine } from '../noyau/rollSeam';

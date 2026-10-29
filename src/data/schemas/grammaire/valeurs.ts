@@ -9,6 +9,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import type { FormuleSansTirage } from '../../../engine/ops';
 import { z } from 'zod';
+import { parseStatus } from '../../../engine/money';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
 import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
@@ -79,6 +80,17 @@ export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Me
  *  `arcane-phenomena.json` et l'op `rollTable` (`grammaire/mecanique.ts`). */
 export const deDeTableSchema = enumNomme({ d10: '1d10', d100: '1d100' });
 export type DeDeTable = z.infer<typeof deDeTableSchema>;
+
+/** Maniement d'une arme : l'axe d'ANIMATION (prise physique), distinct du Groupe de règles — UNE déclaration
+ *  pour les racines de `apparences.json` (`defs/apparences.ts`) et les Groupes d'arme de `weaponGroups.json`
+ *  (`defs/weaponGroups.ts`), lus par `maniementDe` (`src/noyau/animation.ts`). #3076 */
+export const maniementSchema = enumNomme({
+  lame1m: 'Lame à une main', escrime: 'Escrime', lourde2m: 'Arme lourde à deux mains', hampe: 'Hampe',
+  lance_cav: 'Lance de cavalerie', fleau: 'Fléau', parade: 'Parade', poings: 'Poings',
+  arc: 'Arc', arbalete: 'Arbalète', arme_feu: 'Arme à feu', fronde: 'Fronde', jet: 'Jet',
+  entraves: 'Entraves', explosif: 'Explosif', cornes: 'Cornes',
+});
+export type Maniement = z.infer<typeof maniementSchema>;
 
 /**
  * Registre d'où DÉRIVE le pool de spécialisations d'une def (`SpecsSource`, `src/data/index.ts` ;
@@ -165,6 +177,8 @@ export const dir8Schema = enumNomme({
  * `trappings`).
  */
 export const availabilitySchema = z.enum(AVAILABILITIES);
+/** Libellé de Statut (« Argent 2 ») : lisible par `parseStatus`, que `statutDeDonnee` garantit ensuite. LDB 08 l.9 */
+export const statutSchema = z.string().refine((s) => parseStatus(s) !== null, 'Statut illisible : « Bronze N », « Argent N » ou « Or N » attendu.');
 
 /**
  * Rareté d'une pièce de créature récoltée (`HarvestRarity`, `src/data/index.ts`) = les paliers de

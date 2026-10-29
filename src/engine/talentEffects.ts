@@ -27,7 +27,7 @@
  * par l'espèce. Les autres talents (combat, social…) sont hors périmètre.
  */
 import { Combatant, CHAR_KEYS, CharKey, TalentInstance } from './types';
-import { maxWounds } from './characteristics';
+import { maxWounds, blessuresReconciliees } from './characteristics';
 import { findTalentById, findTraitById, blessingsOf } from '../data';
 import { wildcardSpecs, inCareerStatus, type CareerSlot, type InCareerStatus } from './careerSlots';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
@@ -40,7 +40,8 @@ import { memeSpecialisation } from '../data/schemas/grammaire/ref';
  * de mutations/traumas/sorts/maladies. Utilisé par les lecteurs BRUTS hors-combat
  * (affichage de fiche, calcul PX, Blessures max initiales) qui ont besoin du « vrai départ »
  * incluant les +5 de talent (désormais passifs, plus cuits dans `characteristics`).
- * On ne peut PAS importer `passiveCharSum`/`characteristics` ici (cycle) → lecture LOCALE.
+ * Lecture LOCALE des seuls passifs de talents : `passiveCharSum` (trauma.ts) somme les `charMod` additifs
+ * de tous les porteurs.
  */
 export function baseWithTalents(c: Combatant, key: CharKey): number {
   let val = c.characteristics[key] ?? 0;
@@ -69,7 +70,7 @@ export function talentCharBonusById(talentId: string): CharKey | null {
  * Le +5 Caractéristique et le +1 Mouvement sont des PASSIFS CONTINUS de `passive: OpPassive[]` (charMod/moveMod),
  * lus par le collecteur `passiveMods`.
  * Les effets dérivés (Blessures, Chance, Détermination) sont des helpers recalculés par
- * l'appelant (heroMaxWounds / fortuneMax / resolveMax).
+ * l'appelant (recalerLaBaseDesBlessures / fortuneMax / resolveMax).
  */
 export function applyTalentAcquisition(hero: Combatant, talentId: string, spec?: string): void {
   // Béni (Culte) — LDB 10/41 : « reçoit les SIX Bénédictions de son culte » → octroi AUTOMATIQUE
@@ -105,6 +106,12 @@ export function heroMaxWounds(hero: Combatant): number {
     'force-mentale': baseWithTalents(hero, 'force-mentale'),
   };
   return maxWounds(chars, hero.size ?? 'moyenne') + extraWounds(hero);
+}
+
+/** Augmentation de Caractéristique ou Talent acquis (LDB 05 l.1001) : `wounds.base` reprend
+ *  `heroMaxWounds`, puis `blessuresReconciliees`. Mute le héros. */
+export function recalerLaBaseDesBlessures(hero: Combatant): void {
+  hero.wounds = blessuresReconciliees({ ...hero, wounds: { ...hero.wounds, base: heroMaxWounds(hero) } });
 }
 
 /** Σ des `attrMods{attr}` d'effets ACTIFS (op `attrMod` exécutée — buff temporaire, ext. consommables) —

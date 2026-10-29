@@ -172,7 +172,7 @@ const CHEMIN_SOURCE = String.raw`Source\/[^"\`]+\.md`;
  *  la seule graphie qu'un stock JSON emploie. */
 const CHEMIN_SOURCE_SIMPLE = String.raw`Source\/[^'"\`]+\.md`;
 /** Nom de fichier NU, extension de code ou de donnée : la clé `'criticals.json'` du registre
- *  `AUTO_RESOLUS` (src/state/flowtest-derived-stake.test.ts) est une entrée de stock au même titre
+ *  `AUTO_RESOLUS` (src/noyau/flowtest-derived-stake.hors-store.test.ts) est une entrée de stock au même titre
  *  qu'un chemin — l'exiger complet laisserait passer le cas FONDATEUR de cette porte. */
 const NOM_NU = String.raw`[\w.-]+\.(?:ts|tsx|mjs|mts|json|md|css)`;
 /** Le suffixe toléré DANS la chaîne d'un jeton : `:ligne`/`:symbole`, et balise commentée

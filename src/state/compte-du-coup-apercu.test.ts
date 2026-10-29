@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { battleRng } from '../noyau/battleRng';
 import { applyAttackResult, attackWeaponOf, victimeDuCoup, resolveCastChain } from '../noyau/combatFlow';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { toucheSauvee, hitModifiers } from '../noyau/combat/hitModifiers';
 import { createHero } from '../engine/character';
 import { rederivePassiveAttack, issueAuJet, compteDuCoup, woundsAtCritLocation, apresDeviations, resolveStrayRangedHit, coupAApplique, ligneDuCoup, hitLocationByShape, reverseRoll, type AttackResult } from '../engine/combat';

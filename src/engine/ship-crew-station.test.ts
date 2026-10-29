@@ -26,6 +26,7 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritKey, type ShipCritSet } fro
 import { shipStations } from '../data';
 import { hullNavalTraits } from './navalTraits';
 import type { Combatant } from './types';
+import { combattantDeTest } from './combattantDeTest.testkit';
 
 /** Marin minimal — `applyOps` (BE 3, PA 0) et `exposedCrew` (vivant, PB > 0) ont ce qu'il leur faut. */
 const marin = (id: string, over: Partial<Combatant> = {}): Combatant =>
@@ -37,7 +38,7 @@ const marin = (id: string, over: Partial<Combatant> = {}): Combatant =>
   }) as unknown as Combatant;
 
 /** Coque d'un véhicule RÉEL — ses Traits navals décident des stations ouvertes (`requiresTrait`). */
-const coque = (vehicleId: string): Combatant => ({ id: 'hull', creatureId: vehicleId } as unknown as Combatant);
+const coque = (vehicleId: string): Combatant => combattantDeTest({ id: 'hull', creatureId: vehicleId });
 
 /** La rangée RÉELLE, tirée par le producteur avec un dé FORCÉ sur son `min` — jamais un littéral. */
 const rangee = (jeu: ShipCritSet, loc: ShipCritKey, min: number) => rollShipCritical(loc, makeRNG(1), min, jeu);

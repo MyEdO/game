@@ -539,8 +539,7 @@ describe('garde-fou commentaires — excuses non tracées (#136, AGENTS.md règl
   });
 
   it('réserve de RÉVISION = excuse : une lecture se prouve par sa réf nue (#1463)', () => {
-    // VERBATIM de sites au commit ea6f10e50e : `src/state/combat/venin.test.ts:93`, `src/ui/opposedFrozen.ts:10`,
-    // `src/scenes/opera/floorplan.ts:206`.
+    // #1463 : verbatim de trois sites à ea6f10e50e.
     expect(untaggedExcuseMatch('  // #3060 : lecture révisable (recommandation), Difficulté la plus dure des poisons cumulés ; un Venin sans')).not.toBeNull();
     expect(untaggedExcuseMatch(" * que le répondant n'a pas lancé ; les deux se révèlent à son jet. Confort de jeu RÉVISABLE —")).not.toBeNull();
     expect(untaggedExcuseMatch('  // salle) — la colonne de partage est un choix d’authoring MAISON, révisable, faute de frontière au plan. Même')).not.toBeNull();

@@ -10,7 +10,7 @@ import { type BuiltCascadeStep } from '../stepBrand';
 import { battleRng } from '../battleRng';
 import { rollTest } from '../../engine/tests';
 import { testValue } from '../../engine/skills';
-import { bonus, effectiveChar, refreshWounds } from '../../engine/characteristics';
+import { bonus, effectiveChar } from '../../engine/characteristics';
 import { addCondition, isOutOfAction, COND, tickDeath, bleedDeathRoll, poserInconscientDeSaignement, stacks, endOfRound, pendingPlusExtensions, resolvePlusExtension } from '../../engine/conditions';
 import { suffocationTick } from '../../engine/suffocation';
 import { tickTraumaEscalation } from '../../engine/trauma';
@@ -265,16 +265,6 @@ export const TABLES = {
           }
         }
       },
-    },
-    // Résistance à l'Empoisonné (`LDB 16 l.70-72`) : effet `onRoundEnd` à nœud `test` en DONNÉES
-    // (`etats.json` — retire 1+DR pions sur succès, puis Exténué quand vidé), résolu par le DISPATCHER
-    // UNIQUE : ennemi/auto inline, héros manuel → étape de cascade collectée ci-dessous ; hors combat,
-    // inline générique (`outOfCombatUpkeep`).
-    {
-      id: 'refresh-wounds', // dissipation d'un buff F/E/FM → recale les Blessures (LDB 85)
-      phase: 'onRoundEnd',
-      order: 20,
-      run: ({ battle }) => { for (const c of battle.combatants) refreshWounds(c); },
     },
     {
       // Vents Tourbillonnants (LDB 46 l.179-190, #491) : « à chaque Round dans des zones de turbulences

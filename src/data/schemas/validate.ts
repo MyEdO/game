@@ -16,7 +16,7 @@ import { SCHEMA_DEFS } from './_registry.generated';
 import { SCHEMA_DEFS_SCENES } from './_registry-scenes.generated';
 import type { SchemaDef } from './types';
 import { defDe, descendre, enfantsDe, ouverts, pasDeDonnee } from './grammaire/descente';
-import { atteindre, collectionDe, noeudsDeLElement } from './grammaire/collection-cle';
+import { atteindre, champDeCharge, collectionDe, noeudsDeLElement } from './grammaire/collection-cle';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
 import { valeursDe, metaDesChamps, nomDeNoeud, type MetaChamp } from './grammaire/meta';
 import { proseNonMaterialisee, versDisque } from './grammaire/prose';
@@ -215,12 +215,12 @@ export interface ChargeDiscriminee {
   readonly toutes: readonly string[];
 }
 
-/** Champ DISCRIMINANT d'un document et sa CHARGE par valeur : les paramètres `discriminant` et
- *  `chargeParDiscriminant` de l'`espace` de la marque de sa racine (`grammaire/collection-cle.ts`),
- *  `undefined` sans eux. */
+/** Champ DISCRIMINANT d'un document et sa CHARGE par valeur : `champDeCharge` et `chargeParDiscriminant`
+ *  de l'`espace` de la marque de sa racine (`grammaire/collection-cle.ts`), `undefined` sans eux. */
 function partitionDeCharge(def: SchemaDef | undefined): { champ: string; table: Readonly<Record<string, readonly string[]>> } | undefined {
   const espace = def && collectionDe(def.schema)?.espace;
-  return typeof espace?.discriminant === 'string' && espace.chargeParDiscriminant ? { champ: espace.discriminant, table: espace.chargeParDiscriminant } : undefined;
+  const champ = espace && champDeCharge(espace);
+  return champ !== undefined && espace?.chargeParDiscriminant ? { champ, table: espace.chargeParDiscriminant } : undefined;
 }
 
 /**

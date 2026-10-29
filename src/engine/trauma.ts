@@ -27,7 +27,8 @@ import { drunkCharPenalties } from './drunkenness';
 import { hasActiveFlag } from './activeFlags';
 import { wornSocialMods, qualityWearMods } from './wearPenalty';
 import type { GameOp, OpPassive, PairedSense, PassiveKind, PassiveMod } from './ops';
-import { resolveFormula } from './ops';
+import { resolveFormula, applyActiveEffect } from './ops';
+import { removeActiveEffects } from './conditions';
 import { valeurSansTirage, type LectureDeCarac } from './formule';
 import traumasJson from '../data/traumas.json';
 import { indexParId, memoParVersion } from '../data/versionDataset';
@@ -900,10 +901,8 @@ const PASSIVE_CANCELLERS: Record<PassiveKind, ('determination' | 'painless' | 'p
  *  Le `label` est celui que le JOURNAL doit lire à la dissipation — l'appelant le nomme. */
 export const DETERMINATION_CANCELLER_ID = 'determination-crit';
 export function poseDeterminationCanceller(c: Combatant, duration: Duration, label: string): void {
-  c.activeEffects = [
-    ...(c.activeEffects ?? []).filter((e) => e.effectId !== DETERMINATION_CANCELLER_ID),
-    { label, effectId: DETERMINATION_CANCELLER_ID, bonus: 0, duration, ignoreCritMods: true },
-  ];
+  removeActiveEffects(c, (e) => e.effectId === DETERMINATION_CANCELLER_ID);
+  applyActiveEffect(c, { label, effectId: DETERMINATION_CANCELLER_ID, bonus: 0, duration, ignoreCritMods: true });
 }
 
 /** Le `kind` est-il ADDITIF (sommé dans la BASE : mutation/qualité, corps/équipement permanent) plutôt que

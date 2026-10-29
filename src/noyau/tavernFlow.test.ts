@@ -1,11 +1,11 @@
 /**
  * Jeux de taverne (NADJ 16) — câblage store : une partie est une SÉQUENCE (socle `sequenceCore`,
  * #1279) dont chaque manche s'ouvre en fenêtre ; elle se joue de bout en bout via `drain()` (patron
- * `port-sell-cargo.test.ts`). DEUX MONTAGES : héros contre HÉROS → BANDE (une rangée par camp, chaque
+ * `port-sell-cargo.hors-store.test.ts`). DEUX MONTAGES : héros contre HÉROS → BANDE (une rangée par camp, chaque
  * siège joue son jet) ; héros contre la SALLE → mono à jet adverse FIGÉ dans `meta.opposed.aT` (#579),
  * dont la ré-opposition sous influence (Chance « +1 DR ») est vérifiée contre `resolveOpposed`.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from '../state/store';
 import { makePregens } from '../data/pregens';
 import { toBrass } from '../engine/money';
@@ -53,7 +53,9 @@ function twoHeroes(): [Combatant, Combatant] {
 beforeEach(() => {
   useGame.setState({ battle: null, party: [], journal: [], tavernGames: null, pendingCascade: null });
   seedBattleRng(3);
+  setRule('tavern-games', true); // la table s'ouvre sous l'option (`refusDOuvrirLaTaverne`)
 });
+afterEach(() => resetRule('tavern-games'));
 
 describe('playTavernGame', () => {
   it('HÉROS contre HÉROS : la manche s’ouvre en BANDE (une rangée par camp), jamais mono + jet figé', () => {

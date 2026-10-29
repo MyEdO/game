@@ -4,7 +4,7 @@ import { useGame } from './store';
 import { buildRiverPlan, descenteJouee, buildRiverDayCascade, runRiverDays, hasBatelier, applyEchouage } from '../noyau/riverVoyageFlow';
 import { buildApi } from './devtools';
 import { applierDe } from '../noyau/cascade';
-import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest, draineCascade } from './cascade.testkit';
+import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest, draineCascade } from '../noyau/cascade.testkit';
 import { composeRollLabel } from '../noyau/rollSeam';
 import { t } from '../i18n';
 import { byId, refLabel, resolveStake, voyageStakeRef, VOYAGE_STAKES, regles } from '../data';

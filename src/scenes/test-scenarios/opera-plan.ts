@@ -22,7 +22,8 @@ export const scenario: TestScenario = {
   icon: 'scenario/opera',
   title: 'Opéra — plan meublé (Staatsoper)',
   tests:
-    'Rendu en jeu du mobilier du plan NADJ 8 : volumiques d\'intérieur (comptoirs, tables, étagères, bancs, ' +
+    // NADJ 8
+    'Rendu en jeu du mobilier du plan : volumiques d\'intérieur (comptoirs, tables, étagères, bancs, ' +
     'sièges du parterre, décors de scène) et billboards restants, posés pièce par pièce sur la géométrie ' +
     'fidèle du Staatsoper (rez + étage). Exploration libre, aucune rencontre.',
   partyNote: 'Explorez librement : coulisses, scène, parterre, foyer, puis la galerie des loges par les rampes d\'angle. Aucune rencontre ne démarre.',

@@ -45,8 +45,9 @@ const LIBELLES_DE_CATEGORIE = {
 export type CategorieDePiece = keyof typeof LIBELLES_DE_CATEGORIE;
 
 /**
- * Clés de CHARGE par `kind` — la déclaration dont le refine tire ses DEUX verdicts (requis manquant,
- * clé étrangère). `requises` ⊆ `cles` ; ce qui n'est pas requis est optionnel dans ce `kind`.
+ * Clés de CHARGE par `kind` — la déclaration dont `refusDeCharge` (`grammaire/collection-cle.ts`) tire
+ * ses DEUX verdicts (requis manquant, clé étrangère). `requises` ⊆ `cles` ; ce qui n'est pas requis est
+ * optionnel dans ce `kind`.
  */
 const CHARGE_PAR_KIND = {
   tete: { cles: ['race'], requises: ['race'] },
@@ -56,16 +57,15 @@ const CHARGE_PAR_KIND = {
   ensemble: { cles: ['habille', 'pieces'], requises: ['habille', 'pieces'] },
 } as const satisfies Record<keyof typeof LIBELLES_DE_KIND, { cles: readonly string[]; requises: readonly string[] }>;
 
-/**
- * CHARGE par valeur du DISCRIMINANT, telle que la lit l'atelier (`espace.chargeParDiscriminant`),
- * dérivée de la table ci-dessus — le refine et l'atelier lisent la MÊME déclaration.
- */
+/** CHARGE par valeur du DISCRIMINANT (`espace.chargeParDiscriminant`), dérivée de la table ci-dessus. */
 const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
   Object.entries(CHARGE_PAR_KIND).map(([kind, charge]) => [kind, charge.cles as readonly string[]]),
 );
 
-/** Toutes les clés de charge du document, dérivées de la table ci-dessus. */
-const CLES_DE_CHARGE = new Set(Object.values(CHARGE_PAR_KIND).flatMap((k) => k.cles as readonly string[]));
+/** Clés EXIGÉES par valeur du discriminant (`espace.requisesParDiscriminant`), dérivées de la table ci-dessus. */
+const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
+  Object.entries(CHARGE_PAR_KIND).map(([kind, charge]) => [kind, charge.requises as readonly string[]]),
+);
 
 /** Ce qu'un ensemble habille : un objet ou une apparence. */
 const habilleSchema = refTypee(enumNomme({ trapping: 'Objet', apparence: 'Apparence' }));
@@ -100,19 +100,10 @@ const doc = document(
     edit: { none: 'vocabulaire d’art (têtes, coiffures, pièces portées), édité au fichier `src/data/garde-robe.json` — aucun écran ne l’écrit', dataset: 'gardeRobe' },
   },
   {
-    espace: { discriminant: 'kind', chargeParDiscriminant },
+    espace: { discriminant: 'kind', chargeParDiscriminant, requisesParDiscriminant },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const e = v as Record<string, unknown> & { id: string; kind: keyof typeof CHARGE_PAR_KIND };
-        const charge = CHARGE_PAR_KIND[e.kind];
-        if (!charge) return;
-        const admises = new Set<string>(charge.cles);
-        for (const cle of charge.requises as readonly string[])
-          if (e[cle] === undefined)
-            ctx.addIssue({ code: 'custom', path: [cle], message: `garde-robe : le kind « ${e.kind} » EXIGE la clé « ${cle} » (${e.id}).` });
-        for (const cle of Object.keys(e))
-          if (CLES_DE_CHARGE.has(cle) && !admises.has(cle) && e[cle] !== undefined)
-            ctx.addIssue({ code: 'custom', path: [cle], message: `garde-robe : la clé « ${cle} » n’appartient pas au kind « ${e.kind} » (${e.id}).` });
         if (e.kind === 'piece') {
           if ((e.categorie === 'accessoire') !== (e.emplacement !== undefined))
             ctx.addIssue({

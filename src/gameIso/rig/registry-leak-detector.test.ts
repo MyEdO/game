@@ -10,9 +10,11 @@
  * Toute mutation faite ici est reprise en `finally` : sinon l'`afterEach` global échouerait ICI.
  */
 import { VIEWS } from './facing';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { creatures } from '../../data';
 import { creatureToCombatant } from '../../noyau/monde/spawn';
+import { actorDrawInputs } from '../backends/webgl/sceneMeshes';
+import { artDeMatiere } from './parts/equipment';
 import { enemyRigProfile } from './enemyProfile';
 import { combatantAppearance, combatantOverlays } from './parts/combatantVisuals';
 import { resolveRig } from './composeRig';
@@ -20,9 +22,10 @@ import { bonesToSvg } from './renderBones';
 import { ARMOUR } from './parts/armour';
 import { HAIRSTYLE_DEFS } from './parts/hairstyles';
 import { rigArtRegistrySignatures } from '../../test-setup';
+import { poserPaliersDArmure, restaurerPaliersDArmure } from '../../data/paliersDArmure.testkit';
 
 
-type Case = { name: string; render: () => string };
+type Case = { name: string; plaque: boolean; render: () => string };
 
 /** Les cas du golden de combat (`golden/creature-combat-render-golden.test.ts`), montés par le MÊME
  *  chemin de prod : spawn → `enemyRigProfile` → visuels d'état → SVG. */
@@ -32,9 +35,11 @@ const combatRenderCases = (): Case[] => {
     const c = creatureToCombatant(cr, `g-${cr.label}`, { x: 0, y: 0 });
     const prof = enemyRigProfile(c);
     if (!prof) continue; // non-bipède → chemin plan, hors périmètre du golden de combat
+    const plaque = prof.equip.armour.some((p) => artDeMatiere(p.matiere) === 'plaque');
     for (const view of VIEWS)
       out.push({
         name: `${cr.label} / ${view}`,
+        plaque,
         render: () => bonesToSvg(
           resolveRig(combatantAppearance(prof.appearance, c), prof.equip, {}, prof.tenue, view, combatantOverlays(c)),
         ),
@@ -44,9 +49,13 @@ const combatRenderCases = (): Case[] => {
 };
 
 describe('détecteur de fuite des registres d’art du rig', () => {
-  it('une amputation de ARMOUR.plaque.{pied,main,cou} fait diverger 18 rendus de combat, et la remise les restaure', () => {
+  beforeEach(() => poserPaliersDArmure());
+  afterEach(() => restaurerPaliersDArmure());
+
+  it('une amputation de ARMOUR.plaque.{pied,main,cou} fait diverger des rendus de combat de porteurs de plaque, et la remise les restaure', () => {
     const cases = combatRenderCases();
-    expect(cases.length).toBe(339);
+    const bipedes = creatures.filter((cr) => actorDrawInputs(creatureToCombatant(cr, `g-${cr.label}`, { x: 0, y: 0 })).rig);
+    expect(cases.map((c) => c.name), 'les cas du golden de combat, chaque bipède dans chaque vue').toEqual(bipedes.flatMap((cr) => VIEWS.map((v) => `${cr.label} / ${v}`)));
     const before = cases.map((c) => c.render());
 
     const P = ARMOUR.plaque as Record<string, unknown>;
@@ -60,7 +69,9 @@ describe('détecteur de fuite des registres d’art du rig', () => {
       Object.assign(P, saved);
     }
 
-    expect(cases.filter((_, i) => during[i] !== before[i]).length).toBe(18);
+    const divergents = cases.filter((_, i) => during[i] !== before[i]);
+    expect(divergents.length, 'PRÉMISSE : la mutation casse des rendus').toBeGreaterThan(0);
+    expect(divergents.filter((c) => !c.plaque).map((c) => c.name), 'seuls les porteurs de plaque divergent').toEqual([]);
     expect(cases.map((c) => c.render())).toEqual(before); // remise → rendus identiques à l'origine
   });
 

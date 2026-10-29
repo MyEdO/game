@@ -42,7 +42,11 @@ export const COUCHES = Object.freeze({
   i18n: { importe: [], survit: true },
   engine: { importe: ['data', ...FEUILLES], survit: true },
   data: { importe: ['engine', ...FEUILLES], survit: true },
-  noyau: { importe: ['engine', 'data', ...FEUILLES], survit: true },
+  noyau: {
+    importe: ['engine', 'data', ...FEUILLES],
+    survit: true,
+    outillage: { 'src/noyau/noeudsDeTest.testkit.ts': ['scripts/guards/lib/lister.mjs'] },
+  },
   hote: DROITS_D_HOTE,
   hoteTexte: DROITS_DES_HOTES,
   hotes: {

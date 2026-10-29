@@ -247,6 +247,7 @@ export const TABLES = {
         defaultChoice: 'action',
       });
       return {
+        // LDB 71
         consequences: freeCons([t('turn.actGateFail', { name: hero.label })]),
         ...(choix ? { insert: [choix] } : {}),
       };

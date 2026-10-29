@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { createHero } from '../engine/character';
 import { makeRNG, roll } from '../engine/dice';
 import { toBrass, fromBrass, priceToMoney, PA_PER_CO } from '../engine/money';

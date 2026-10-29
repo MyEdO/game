@@ -22,7 +22,7 @@ import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
 import { partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue, actorHasSkill } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
-import { parseStatus } from '../engine/creation';
+import { statutDeDonnee } from '../engine/money';
 import { easeDifficulty } from '../engine/tests';
 import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
@@ -43,7 +43,7 @@ import { activeSeaPrecipitation, openPortAt, vesselManann, setVesselHull } from 
 import { applyManannFactor, addManann, findManannFactor } from '../engine/seaVoyage';
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
-import { tavernNpcOffers } from './tavernFlow';
+import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
 import { openRest, placesOfKind, sceneLieu } from './restFlow';
 import { traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
 import { DAY_PHASES, minutesUntilNext, scheduleAt } from '../engine/clock';
@@ -805,7 +805,7 @@ export function openSkillTest(
   // Modulateurs sociaux PAR ACTEUR (un Test social vs un interlocuteur) : malus psy Animosité/Préjugé
   // (LDB 21) + mod de Statut Échelon/Standing (LDB 08). Le Statut compare l'acteur à la cible `vsStatus`.
   const isSocial = isSocialTest(spec.skill?.id, spec.characteristic);
-  const tgtStatus = isSocial && spec.vsStatus ? parseStatus(spec.vsStatus) : undefined;
+  const tgtStatus = isSocial && spec.vsStatus ? statutDeDonnee(spec.vsStatus) : undefined;
   const psychMod = spec.vsGroups?.length && isSocial ? (c: Combatant) => socialPsychMod(c, spec.vsGroups!) : undefined;
   // 1d10 « réaction au Statut » (option, LDB 08 l.40/59) tiré UNE fois par Test (RNG seedé) — appliqué à
   // tous les candidats de façon cohérente (la réaction de l'interlocuteur ne dépend pas du héros choisi).
@@ -2019,7 +2019,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     // une partie (`SceneEntity.tavernGame`) : la table s'ouvre alors sur SON offre. Aucun PNJ n'est
     // nommé ici — tout proposeur en hérite, et une ouverture hors dialogue reste générique.
     apply: (_e, env) => {
-      if (!rule('tavern-games')) return;
+      if (refusDOuvrirLaTaverne(env.get())) return;
       const parle = env.get().dialogue?.speakerId;
       const propose = parle && tavernNpcOffers(env.get().scene, presetDuNarratif(env.get().campaignNarratif)).some((o) => o.id === parle);
       env.get().openTavernGames(propose ? parle : undefined);

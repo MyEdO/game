@@ -9,7 +9,7 @@ import {
 } from './trappingChoices';
 import { adresseDeCreation } from './adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
-import { trappingRefLabel, fabricationAtouts, trappings, type TrappingRef } from '../data/index';
+import { trappingRefLabel, fabricationAtouts, qualities, trappings, type QualityData, type TrappingRef } from '../data/index';
 import { setDataset } from '../data/overrides';
 
 const dot = adresseDeCreation.dotation;
@@ -105,8 +105,21 @@ describe('resolveTrappingChoices — les choix par adresse', () => {
     expect(trappingRefLabel({ id: 'fleuret', qualities: [{ id: 'solide' }] })).toBe('Fleuret (Solide)');
   });
 
-  it('fabricationAtouts() est DÉRIVÉ de qualities.json (atout/objet), pas une liste codée', () => {
-    expect(fabricationAtouts()).toEqual(['leger', 'pratique', 'raffine', 'solide']);
+  it('fabricationAtouts() est DÉRIVÉ de qualities.json (atout/objet, hors magie), pas une liste codée', () => {
+    const modele = qualities.find((q) => q.polarite === 'atout' && q.subType === 'objet')!;
+    const fixture = (id: string, patch: Partial<QualityData> = {}): QualityData => ({ ...modele, id, label: id, capabilities: undefined, ...patch });
+    const initiales = qualities.slice();
+    try {
+      setDataset('qualities', [
+        fixture('atout-objet-de-fixture'),
+        fixture('atout-magique-de-fixture', { capabilities: { magic: true } }),
+        fixture('defaut-objet-de-fixture', { polarite: 'defaut' }),
+        fixture('atout-d-arme-de-fixture', { subType: 'arme' }),
+      ]);
+      expect(fabricationAtouts()).toEqual(['atout-objet-de-fixture']);
+    } finally {
+      setDataset('qualities', initiales);
+    }
   });
 });
 

@@ -302,6 +302,9 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   interludeOrder: { parUI: true },
   interludeBank: { parUI: true },
   interludeWithdraw: { parUI: true },
+  interludeEntrainement: { parUI: true },
+  favorSettle: { parUI: true },
+  massBattleActivity: { parUI: true },
   // Tir rapide (#1050) : le badge de la frise ARME la visée ; le tir lui-même part du clic-token.
   armPreempt: { parUI: true },
   cascadeResist: { parUI: true },

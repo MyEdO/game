@@ -7,7 +7,7 @@ import { hasCondition } from '../engine/conditions';
 import { isWalkable, tileCollapsed, structureIsDown, type Scene } from '../noyau/monde/scene';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { testScene } from '../scenes/test-fixture';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 
 /**
  * Effondrement de PASSERELLE (Lot B) : abattre une STRUCTURE de sol (herse) fait s'effondrer la passerelle

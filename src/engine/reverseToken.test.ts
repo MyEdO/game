@@ -8,8 +8,9 @@ import { consumeReverseToken } from './reverseToken';
 import { applyOps } from './ops';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
+import { combattantDeTest } from './combattantDeTest.testkit';
 
-const mk = (): Combatant => ({ id: 'c', name: 'X', activeEffects: [] }) as unknown as Combatant;
+const mk = (): Combatant => combattantDeTest({ label: 'X' });
 
 describe('consumeReverseToken (LDB 23 l.209/218)', () => {
   it('0 excédent : sans jeton, rien à consommer', () => {

@@ -30,8 +30,8 @@ import { tickCampaignVesselWeek } from './shipCrew';
 import { dayIndex } from '../engine/clock';
 import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal } from '../engine/provisions';
 import { testValue } from '../engine/skills';
-import { effectiveChar, bonus, refreshWounds } from '../engine/characteristics';
-import { loseWounds, syncDerivedConditions } from '../engine/conditions';
+import { effectiveChar, bonus } from '../engine/characteristics';
+import { loseWounds, removeActiveEffects, syncDerivedConditions } from '../engine/conditions';
 import { type CharKey, type Difficulty, type UpkeepDeferTest, type NightTestKind } from '../engine/types';
 import { rollStep } from './rollSeam';
 import type { ModLine } from '../engine/combat';
@@ -39,12 +39,6 @@ import { dailyDiseaseUpkeep } from '../engine/rest';
 import { conditionLabel } from '../data';
 import { t } from '../i18n';
 import { rule } from '../engine/policy';
-import { dropExpiredGrantedTraits } from '../engine/grantedTraits';
-import { dropExpiredGrantedResources } from '../engine/grantedResources';
-import { dropExpiredGrantedWeapons } from '../engine/conjuredWeapons';
-import { dropExpiredGrantedMutations } from '../engine/corruption';
-import { recomputeLoadout } from '../engine/items';
-import { restoreSuppressedPsych } from '../engine/psychology';
 import { tickTraumaRecovery } from '../engine/trauma';
 import { applyOps } from '../engine/ops';
 import { fireClockTriggers } from './clockHooks';
@@ -68,20 +62,10 @@ export function purgeClockEffects(get: Get, set: Set): string[] {
       for (const p of exp) expiredLog.push(t('upkeep.fades', { name: h.label, what: p.label }));
       h.castPenalties = h.castPenalties!.filter((p) => !(p.untilTime != null && p.untilTime <= now));
     }
-    const fx = (h.activeEffects ?? []).filter((e) => e.duration.scale === 'clock' && e.duration.until <= now);
-    if (fx.length) {
-      for (const e of fx) expiredLog.push(t('upkeep.fades', { name: h.label, what: e.label }));
-      h.activeEffects = h.activeEffects!.filter((e) => !(e.duration.scale === 'clock' && e.duration.until <= now));
-      dropExpiredGrantedTraits(h, fx); // traits accordés (op grantTrait) retirés avec leur effet
-      dropExpiredGrantedResources(h, fx); // Chance/Destin accordés (gainResource) non dépensés
-      dropExpiredGrantedWeapons(h, fx); // armes invoquées/naturelles accordées : loadout recomposé
-      const mutDropped = dropExpiredGrantedMutations(h, fx); // mutation TEMPORISÉE (op rollMutation) détachée
-      if (mutDropped) recomputeLoadout(h); // armes/PA naturels de mutation retirés → loadout recomposé
-      restoreSuppressedPsych(h, fx); // Traits psy suspendus (Baume, LDB 42) restitués
-      // Blessures max dérivées : un buff F/E/FM ou un `attrMod{wounds}` (Bonnet de fou) expiré, OU une
-      // mutation détachée (charMod E/F/FM) recale max + courants.
-      if (mutDropped || fx.some((e) => e.attrMods?.wounds || e.char === 'force' || e.char === 'endurance' || e.char === 'force-mentale')) refreshWounds(h);
-    }
+    const porte: string[] = []; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
+    const fx = removeActiveEffects(h, (e) => e.duration.scale === 'clock' && e.duration.until <= now, undefined, porte);
+    for (const e of fx) expiredLog.push(t('upkeep.fades', { name: h.label, what: e.label }));
+    expiredLog.push(...porte);
     // États à durée d'HORLOGE (op `condition.durationHours` — Belladone : sommeil « 1d10+4 heures ») :
     // dissipés à l'échéance, même canal de purge que les effets actifs (LDB 72 l.18).
     const conds = (h.conditions ?? []).filter((x) => x.untilTime != null && x.untilTime <= now);
@@ -116,10 +100,10 @@ export function purgeSurAvanceDHorloge(get: Get, set: Set): void {
 export function purgeAdventureEffects(get: Get, set: Set): string[] {
   const expiredLog: string[] = [];
   for (const h of get().party) {
-    const fx = (h.activeEffects ?? []).filter((e) => e.duration.scale === 'adventure');
-    if (!fx.length) continue;
+    const porte: string[] = [];
+    const fx = removeActiveEffects(h, (e) => e.duration.scale === 'adventure', undefined, porte);
     for (const e of fx) expiredLog.push(t('upkeep.fadesAdventure', { name: h.label, what: e.label }));
-    h.activeEffects = (h.activeEffects ?? []).filter((e) => e.duration.scale !== 'adventure');
+    expiredLog.push(...porte);
   }
   if (expiredLog.length) { set({ party: [...get().party] }); get().log(expiredLog); }
   return expiredLog;

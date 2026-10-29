@@ -22,7 +22,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  * `evaluateTest(1, …)` dormait aussi dans `shipManeuver.forceCrewRole` ET dans la Détermination d'une
  * étape de cascade — d'où le scan LARGE (le recodage ne vit pas que dans rollFlowSpecs.ts).
  *
- * Portée (comme `roll-modal-invariant.test.ts`) : scan statique, aveugle à une obfuscation par variable.
+ * Portée (comme `roll-modal-invariant.hors-store.test.ts`) : scan statique, aveugle à une obfuscation par variable.
  */
 const REGISTRE_DES_FLUX = resolve(__dirname, './noyau/rollFlowSpecs.ts');
 

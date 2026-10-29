@@ -18,7 +18,7 @@ import { CascadeBody } from './CascadeModal';
 import { dieStep } from '../noyau/rollSeam';
 import { fixtureText } from '../i18n/fixtureText';
 import type { CascadeStep } from '../noyau/pendings';
-import { cascadeDeTest } from '../state/cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 
 beforeAll(() => {

@@ -4,26 +4,31 @@
  * `user-direction-fusion-json-par-type`).
  *
  * Une entrée SANS `forme` est une RACINE : une forme, et sa propre apparence par défaut — « une seule
- * apparence par défaut par forme » tient par construction. Une racine ne porte que `id` et `label` :
- * aucun fait de règle (type, Groupe, bouclier : `categorie`, `subType`, `shield` de `trappings.json`).
- * Une entrée AVEC `forme` est une VARIANTE de cette racine, avec ses étiquettes de naissance.
+ * apparence par défaut par forme » tient par construction. Une racine porte `id`, `label` et, pour une
+ * forme d'arme, son `maniement` : aucun fait de règle (type, Groupe, bouclier : `categorie`, `subType`,
+ * `shield` de `trappings.json`). Une entrée AVEC `forme` est une VARIANTE de cette racine, avec ses
+ * étiquettes de naissance ; ses `qualites` sont des Qualités d'ASPECT (`aspect`, `qualities.json`).
  *
  * Le marqueur `forme` (paramètre `espace.marqueurs`) ouvre la sous-liste des variantes : les RACINES
  * sont l'espace privé de ce marqueur, `RACINE_D_APPARENCE` (`grammaire/sousListes.ts`), que visent
  * `forme` ici et `shape`/`formChoices` de `trappings.json`.
  */
 import { document } from '../grammaire/document';
-import { ref, refs } from '../grammaire/ref';
+import { porteLeMarqueur, ref, refs } from '../grammaire/ref';
 import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
+import { maniementSchema, type Maniement } from '../grammaire/valeurs';
 
 export const file = 'apparences.json';
 export const famille = 'entite';
 
-/** LDB 60 l.24,52 */
-const QUALITES_DE_NAISSANCE = ['raffine', 'laid'] as const;
-
 /** Clés d'une VARIANTE : une racine n'en porte aucune. */
 const CLES_DE_VARIANTE = ['especes', 'classes', 'qualites'] as const;
+
+/** Clés d'une RACINE : une variante suit celles de sa forme. */
+const CLES_DE_RACINE = ['maniement'] as const;
+
+/** Une Qualité d'ASPECT, seule à faire naître une variante (`aspect`, `defs/qualities.ts`). */
+const estDAspect = porteLeMarqueur('quality', 'aspect');
 
 const doc = document(
   'apparences',
@@ -33,12 +38,14 @@ const doc = document(
     especes: refs('species').optional(),
     classes: refs('classe').optional(),
     qualites: refs('quality').optional(),
+    maniement: maniementSchema.optional(),
   },
   {
     forme: { label: 'Forme', hint: 'Racine dont cette entrée est une variante — absente, l’entrée EST une forme et son apparence par défaut' },
     especes: { label: 'Espèces', hint: 'Espèces dont un objet de cette forme naît avec cette apparence' },
     classes: { label: 'Classes de carrière', hint: 'Classes de carrière dont un objet de cette forme naît avec cette apparence' },
-    qualites: { label: 'Qualités', hint: 'Qualité d’objet (Raffiné, Laid) qui fait naître l’objet avec cette apparence' },
+    qualites: { label: 'Qualités', hint: 'Qualité d’aspect qui fait naître l’objet avec cette apparence' },
+    maniement: { label: 'Maniement', hint: 'Animation d’une arme de cette forme — absent, celle de son Groupe' },
   },
   {
     codex: {
@@ -63,12 +70,20 @@ const doc = document(
                 path: [cle],
                 message: `apparences : « ${e.id} » est une racine (sans \`forme\`) — l’étiquette « ${cle} » n’appartient qu’à une variante.`,
               });
+        if (e.forme !== undefined)
+          for (const cle of CLES_DE_RACINE)
+            if (e[cle] !== undefined)
+              ctx.addIssue({
+                code: 'custom',
+                path: [cle],
+                message: `apparences : « ${e.id} » est une variante — « ${cle} » n’appartient qu’à sa racine.`,
+              });
         for (const q of e.qualites ?? [])
-          if (!(QUALITES_DE_NAISSANCE as readonly string[]).includes(q))
+          if (!estDAspect(q))
             ctx.addIssue({
               code: 'custom',
               path: ['qualites'],
-              message: `apparences : « ${q} » (${e.id}) n’est pas une qualité de naissance — admises : ${QUALITES_DE_NAISSANCE.join(', ')}.`,
+              message: `apparences : « ${q} » (${e.id}) n’est pas une Qualité d’aspect (\`aspect\`, \`qualities.json\`).`,
             });
       }),
   },
@@ -88,4 +103,5 @@ export interface ApparenceData {
   especes?: string[];
   classes?: string[];
   qualites?: string[];
+  maniement?: Maniement;
 }

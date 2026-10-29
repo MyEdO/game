@@ -125,7 +125,7 @@
     "css": "src/ui/styles/roll-shell.css",
     "concept": "coquille de jet mono/multi (Lancer→Chance→Pacte→Résilience→Appliquer) ; posée dans `Modal` ou `EmbeddedShell`, ou rendue à part (`useRollShell` : titre, corps, gestes) pour l'hôte qui l'englobe dans SA boîte",
     "perimetre": "toute modale de jet, mono (N=1) et multi (N contributeurs)",
-    "verrou": "roll-modal-invariant.test.ts"
+    "verrou": "roll-modal-invariant.hors-store.test.ts"
   },
   {
     "id": "rollRow",
@@ -162,7 +162,7 @@
     "fichier": "src/engine/tests.ts",
     "concept": "issue d'un Test que son porteur ne peut pas tenter (LDB 09 l.30 ; #2588 Q1) : ÉCHEC, DR 0, sans dé, refus nommé sur la ligne ; `estJete` sépare un dé tombé de cette issue, `jete` (`src/engine/tests.testkit.ts`) l'exige en test",
     "perimetre": "`rollStep` (`refus`), rangées d'équipage (`crewRoleValue`, `rollCrewRole`, `openCrewTestPending`), barre sans barreur (`rollShipManeuver`, voyage fluvial), rangée témoin de `buildParticipantRows`",
-    "verrou": "sea-voyage-flow.test.ts, ship-maneuver.test.ts, peut-tenter.test.ts"
+    "verrou": "sea-voyage-flow.test.ts, ship-maneuver.hors-store.test.ts, peut-tenter.test.ts"
   },
   {
     "id": "optionChooser",
@@ -2085,7 +2085,7 @@
     "type": "primitives.manifest",
     "label": "equipementDessine/equipementDEntite/armesDEntite/EquipCtx/equipDe/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
     "fichier": "src/noyau/equipementDessine.ts",
-    "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent à la naissance par `deciderApparencesDesArmes` puis `choisirApparenceDObjet` sur les armes réelles sans instance ; le dessin lit leur forme et leur apparence déjà décidées ; les constructions d’entité et décisions d’auteur reçoivent un TrappingResolver obligatoire, injecté par l’hôte ; le dessin d’un porteur déjà né consomme ses propriétés copiées sans résolveur ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule ; l'art d'une matière se résout côté rig (`ART_DE_MATIERE`, `src/gameIso/rig/parts/equipment.ts`)",
+    "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent à la naissance par `deciderApparencesDesArmes` puis `choisirApparenceDObjet` sur les armes réelles sans instance ; le dessin lit leur forme et leur apparence déjà décidées ; les constructions d’entité et décisions d’auteur reçoivent un TrappingResolver obligatoire, injecté par l’hôte ; le dessin d’un porteur déjà né consomme ses propriétés copiées sans résolveur ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule ; l'art d'une matière se résout côté rig sur l'`art` de son Groupe d'armure (`artDeMatiere`, `src/gameIso/rig/parts/equipment.ts`)",
     "perimetre": "tout producteur d'équipement dessiné (`equipementDessine`, `equipementDEntite`, `enemyRigProfile`, `entityRigProfile`, `rigDuCombattant`, galeries), tout lecteur du rig ou d'un hôte 3D (forme, maniement, clips, pièces)",
     "verrou": "src/noyau/equipementDessine.test.ts, src/hote/projection.hors-store.test.ts, src/noyau/armure-portee-guard.test.ts, src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
   },

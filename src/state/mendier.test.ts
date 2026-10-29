@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs';
 import { dossierDesProjetsLivres, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { basename, join } from 'node:path';
 import { useGame } from './store';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { createHero } from '../engine/character';
 import { adresseDeCreation } from '../engine/adresseDeCreation';
 import { makeRNG } from '../engine/dice';

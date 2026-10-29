@@ -3,8 +3,8 @@ import { runPureFlowLines } from '../noyau/combat/flowEval';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { flowEffects, spellOps } from '../engine/flowCore';
 import { spells } from '../data';
-import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 /**
  * PREUVE DE COMPLÉTUDE — « peut-on créer TOUS les sorts via le système Flow/EffectOp ? ».
@@ -33,7 +33,7 @@ describe('Complétude : tout sort porte ses effets dans un Flow exécutable (Spe
   });
 
   it('runPureFlowLines EXÉCUTE réellement les ops d’un sort sur la cible (wounds + condition)', () => {
-    const target = { id: 't', name: 'Cible', kind: 'enemy', dead: false, wounds: { current: 20, max: 20 }, advantage: 0, conditions: [], armour: { corps: 0 } } as unknown as Combatant;
+    const target = combattantDeTest({ id: 't', label: 'Cible', kind: 'enemy', dead: false, wounds: { current: 20, max: 20 } });
     // un « sort » minimal : 6 Blessures + En flammes — exprimé en Flow EffectOp.
     const flow: Flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 6 }, { op: 'condition', id: 'en-flammes' }] } }] };
     const lines = runPureFlowLines(target, undefined, flow, { rng: desDuTest, label: 'Test' });

@@ -18,7 +18,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { sequenceAbandonOf } from '../noyau/sequenceCore';
 import { snapshotSave } from '../noyau/persistance/save';
 import { creditBourse } from '../noyau/bourseFlow';
-import { avanceEtapeCascade } from '../state/cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import type { Combatant } from '../engine/types';
 
 beforeAll(() => {

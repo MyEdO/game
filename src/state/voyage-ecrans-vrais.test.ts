@@ -18,7 +18,7 @@ import { t } from '../i18n';
 import { activeDayWeather, activeExposureSeverity } from '../noyau/combatFlow';
 import { tableStepDef } from '../noyau/cascade';
 import { voyageDayCards } from '../ui/VoyageScreen';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { creditBourse } from '../noyau/bourseFlow';
 import { sceneLieu } from '../noyau/restFlow';
 import { PERIPETIES } from '../data/peripeties';

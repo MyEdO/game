@@ -15,7 +15,7 @@ import { cleActionJouee } from '../noyau/monde/usable';
 import { ouvrirDialogue } from '../noyau/dialogue';
 import { runCombatFlow, bandeTriggeredTest } from '../noyau/combat/triggeredTest';
 import { seedBattleRng } from '../noyau/battleRng';
-import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
+import { avanceEtapeCascade, draineCascade } from '../noyau/cascade.testkit';
 import { stepInteraction, suspendActiveCascade, runCascadeImmediate, pushStep, startCascade, resolveRemainingCascade } from '../noyau/cascade';
 import { checkPartyWiped } from '../noyau/partyWipe';
 import { canFixDie } from '../noyau/netOwnership';

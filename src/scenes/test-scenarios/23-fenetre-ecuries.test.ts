@@ -7,7 +7,7 @@ import { portesDeLaPiece } from '../../noyau/monde/decouvertePorteSecrete';
 import { roomFocusAt } from '../../noyau/monde/rooms';
 import { reachableCells } from '../../noyau/mapQC';
 import { useGame } from '../../state/store';
-import { avanceEtapeCascade } from '../../state/cascade.testkit';
+import { avanceEtapeCascade } from '../../noyau/cascade.testkit';
 import { scenario } from './23-fenetre-ecuries';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 

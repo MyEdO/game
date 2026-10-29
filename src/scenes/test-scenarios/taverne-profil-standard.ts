@@ -25,7 +25,8 @@ function construireScene(): Scene {
     heroStart: [2, 3],
     startMessage:
       { texte: 'Un habitué de la salle, coude sur la table, vous toise. Parlez-lui : il propose un bras de fer, ' +
-      'et il joue de sa fiche — le profil standard Humain (LDB 77).' },
+      // LDB 77
+      'et il joue de sa fiche — le profil standard Humain.' },
     entities: [
       {
         id: 'habitue-bras-de-fer',
@@ -65,8 +66,10 @@ export const scenario: TestScenario = {
   icon: 'scenario/market',
   title: 'Taverne — un PNJ à profil standard',
   tests:
-    'Un PNJ typé par le profil standard de son espèce (LDB 77) propose un jeu de taverne depuis son dialogue ' +
-    '(Effet openTavernGames, option `tavern-games` pré-activée, NADJ 16) : la table s’ouvre sur son offre et ' +
+    // LDB 77
+    'Un PNJ typé par le profil standard de son espèce propose un jeu de taverne depuis son dialogue ' +
+    // NADJ 16
+    '(Effet openTavernGames, option `tavern-games` pré-activée) : la table s’ouvre sur son offre et ' +
     'l’opposant joue sa fiche.',
   partyNote: 'Soldat · Chasseur',
   rules: { 'tavern-games': true },

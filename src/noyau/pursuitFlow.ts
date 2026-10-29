@@ -287,9 +287,10 @@ function choixFuyards(get: Get, p: PursuitPayload, pris: PursuitPris): BuiltCasc
     icon: 'travel/foot',
     label: t('step.pursuitRattrapes'),
     actorId: porteur.id,
+    // LDB 15 l.94
     options: [
-      { key: 'sacrifier', label: t('opt.abandonner', { who: pris.laggard.label }), detail: 'Le plus lent est laissé derrière pour ralentir les poursuivants — la fuite continue (LDB 15 l.94).' },
-      { key: 'affronter', label: t('opt.affronter'), detail: 'Le groupe fait face aux poursuivants (LDB 15 l.94).' },
+      { key: 'sacrifier', label: t('opt.abandonner', { who: pris.laggard.label }), detail: t('opt.abandonnerDetail') },
+      { key: 'affronter', label: t('opt.affronter'), detail: t('opt.affronterDetail') },
     ],
   });
 }
@@ -305,9 +306,10 @@ function choixPoursuivants(get: Get, p: PursuitPayload, pris: PursuitPris): Buil
     icon: 'travel/foot',
     label: stepDetail(t('step.abandonne', { who: pris.laggard.label }), t('step.quiSarrete')),
     actorId: camp[0].id,
+    // LDB 15 l.94
     options: [
-      ...camp.map((h) => ({ key: `arreter:${h.id}`, label: t('opt.sarrete', { who: h.label }), detail: 'Les autres continuent la poursuite (LDB 15 l.94).' })),
-      { key: 'ignorer', label: t('opt.ignorer', { who: pris.laggard.label }), detail: 'Le retardataire n\'est pas une cible prioritaire — tous continuent (LDB 15 l.94).' },
+      ...camp.map((h) => ({ key: `arreter:${h.id}`, label: t('opt.sarrete', { who: h.label }), detail: t('opt.sarreteDetail') })),
+      { key: 'ignorer', label: t('opt.ignorer', { who: pris.laggard.label }), detail: t('opt.ignorerDetail') },
     ],
   });
 }
@@ -408,9 +410,11 @@ function pursuitClose(ctx: { get: Get; seq: PursuitSequence; done: MancheClose; 
   if (fuyardsSontLeGroupe(p)) return { go: 'continue', payload: { ...apres, phase: 'choix-fuyards' }, log };
   // Camp PNJ : sa POLITIQUE tranche (a), puis on enchaîne sur (b)/(c).
   if (npcSacrificeChoice(p.policy, laggard, camps.fleeing) === 'affronter') {
+    // LDB 15 l.94
     log.push(t('pursuit.stand', { who: laggard.label }));
     return { go: 'end', outcome: 'caught', payload: apres, log };
   }
+  // LDB 15 l.94
   log.push(t('pursuit.sacrifice', { who: laggard.label }));
   return decisionPoursuivants(seq, { ...apres, phase: 'choix-poursuivants' }, log);
 }
@@ -422,9 +426,11 @@ function decisionPoursuivants(seq: PursuitSequence, p: PursuitPayload, log: stri
   if (!fuyardsSontLeGroupe(p)) return { go: 'continue', payload: p, log }; // le GROUPE poursuit : il choisit
   const choix = npcPursuerChoice(p.policy, pris.laggard, pris.pursuers);
   if (choix.go === 'ignorer') {
+    // LDB 15 l.94
     log.push(t('pursuit.ignored', { who: pris.laggard.label }));
     return recalcul(seq, p, undefined, log);
   }
+  // LDB 15 l.94
   log.push(t('pursuit.stops', { who: choix.who.label, laggard: pris.laggard.label }));
   return recalcul(seq, p, choix.who.id, log);
 }
@@ -438,19 +444,23 @@ function closeDecision(seq: PursuitSequence, done: MancheClose): SequenceVerdict
   const log: string[] = [];
   if (p.phase === 'choix-fuyards') {
     if (chosen !== 'sacrifier') {
+      // LDB 15 l.94
       log.push(t('pursuit.partyStand'));
       return { go: 'end', outcome: 'caught', payload: p, log };
     }
+    // LDB 15 l.94
     log.push(t('pursuit.partySacrifice', { who: pris.laggard.label }));
     return decisionPoursuivants(seq, { ...p, phase: 'choix-poursuivants' }, log);
   }
   // (b)/(c) tranchées par le groupe poursuivant.
   if (chosen === 'ignorer' || !chosen) {
+    // LDB 15 l.94
     log.push(t('pursuit.partyIgnores', { who: pris.laggard.label }));
     return recalcul(seq, p, undefined, log);
   }
   const whoId = chosen.slice('arreter:'.length);
   const who = pris.pursuers.find((r) => r.id === whoId);
+  // LDB 15 l.94
   log.push(t('pursuit.heroStops', { who: who?.label ?? whoId, laggard: pris.laggard.label }));
   return recalcul(seq, p, whoId, log);
 }
@@ -467,6 +477,7 @@ function recalcul(seq: PursuitSequence, p: PursuitPayload, arreteId: string | un
   const fleeing = pris.fleeing.filter((r) => r.id !== pris.laggard.id);
   const delta = deltaOf(seq, { fleeing, pursuers: pris.pursuers });
   const distance = pris.distanceAvant + delta;
+  // LDB 15 l.100-102
   log.push(t('pursuit.recompute', {
     who: pris.laggard.label, delta: `${delta >= 0 ? '+' : ''}${delta}`, distance, evasion: p.escapeAt,
   }));
@@ -489,6 +500,7 @@ function estHeros(p: PursuitPayload, r: PursuitRunner): boolean {
 function pursuitSettle(get: Get, _set: Set, seq: PursuitSequence, outcome: string): void {
   const p = seq.payload;
   if (outcome === 'escaped') {
+    // LDB 15 l.94
     get().log(t(p.partyRole === 'fleeing' ? 'pursuit.escaped' : 'pursuit.preyEscaped'));
     return;
   }
@@ -501,6 +513,7 @@ function pursuitSettle(get: Get, _set: Set, seq: PursuitSequence, outcome: strin
     return;
   }
   // 'caught' (Distance ≤ 0, l.94) : rattrapage → combat si une rencontre est fournie, sinon récit.
+  // LDB 15 l.94
   get().log(t(p.partyRole === 'fleeing' ? 'pursuit.caught' : 'pursuit.caughtPrey'));
   if (p.encounter) get().startCombat(p.encounter);
 }

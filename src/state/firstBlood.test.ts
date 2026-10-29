@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { applyAttackResult, checkBattleOver, firedAttackBlock, resolveAttack, doAttack } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -12,7 +12,7 @@ import type { Weapon } from '../engine/types';
  * DUEL JUDICIAIRE (#471, NADJ 06 l.175-192) — deux mécaniques indépendantes de `EncounterDef` :
  * `victoryCondition: { type: 'firstBlood' }` (premier sang, PAR-COUP, l.175-177) et `banRanged`
  * (restriction d'armes à distance, dérogeable, l.181). Patron calqué sur `woundsThreshold` (#215,
- * `victoryCondition.test.ts`) et le harnais `applyAttackResult` direct de `at-terre.test.ts`.
+ * `victoryCondition.test.ts`) et le harnais `applyAttackResult` direct de `at-terre.hors-store.test.ts`.
  */
 
 /** Résout la cascade de fin de combat (Tests influençables) — no-op si aucune. */

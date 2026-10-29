@@ -8,7 +8,7 @@
  * `meta`, et surtout LES MÊMES FONCTIONS — chaque route appelle l'unique foyer de sa conséquence
  * (`applyOps` ancré à la maladie, `applyDiseaseGangrene`, `applyDiseaseEnd` qui porte la guérison ET la
  * réconciliation des États portés par un passif). Le kit ne peut donc pas dériver de l'applier réel : il n'y a
- * qu'un exemplaire de chaque geste, et `maladie-porte-valeur.test.ts` le mesure (cure kit === nuit).
+ * qu'un exemplaire de chaque geste, et `maladie-porte-valeur.hors-store.test.ts` le mesure (cure kit === nuit).
  */
 import type { Combatant, UpkeepDeferTest } from './types';
 import type { RNG } from './dice';
