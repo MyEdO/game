@@ -1464,7 +1464,7 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
     // l'appelant d'un applier de cascade EST une séquence qui continue, et depuis que les étapes
     // poussées s'INSÈRENT derrière l'étape courante (`cascade.poseDansLaSequence`), cette suite-là
     // passe APRÈS le dé par construction — plus rien à déclarer au site. Le contrat qui le mord :
-    // `chute-a-la-porte.test.ts` (xi).
+    // `chute-a-la-porte.hors-store.test.ts` (xi).
     const sf = ast({ rel: 'x.ts', text: 'function f() { jouerFlowEntier(runFlow(g, s, x)); autreChose(); }' })!;
     const perdus: string[] = [];
     const walk = (n: ts.Node): void => {

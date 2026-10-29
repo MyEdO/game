@@ -86,7 +86,7 @@ export const TABLES = {
       if (!peril) return {};
       // ÉVITÉ : le dé garde sa ligne (rangée surfacée, ou trace de journal quand aucune fenêtre ne s'ouvre)
       // et la conséquence DIT l'issue. Un péril qui ne survient pas se LIT — le verrou est au test
-      // (`de-monde-surface.test.ts`, delta de journal nominatif), pas dans ce commentaire.
+      // (`de-monde-surface.hors-store.test.ts`, delta de journal nominatif), pas dans ce commentaire.
       if (!step.result.success) return { consequences: freeCons([{ text: t('tf.perilAvoided', { label: peril.label }), tone: 'info' }]) };
       const lignes: string[] = [t('tf.perilAuthor', { label: peril.label })];
       if (perilInterrupts(peril.effects)) {

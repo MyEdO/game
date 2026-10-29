@@ -43,7 +43,7 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
     expect(st.battle!.action).toBeNull(); // mode-CASE refermé après commit (comme le clic-souris)
   });
 
-  it('« Annuler dépl. » défait une poussée commise au CLAVIER (chemin clic déjà couvert par push-cancel-move.test.ts)', async () => {
+  it('« Annuler dépl. » défait une poussée commise au CLAVIER (chemin clic déjà couvert par push-cancel-move.hors-store.test.ts)', async () => {
     const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
     const { party, scene } = scenario.construire();
     useGame.setState({ party });
