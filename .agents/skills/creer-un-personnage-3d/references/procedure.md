@@ -54,23 +54,29 @@ manifeste refusé par `validerManifesteDeBase` fait échouer la construction.
 
 Lire la table exécutable des catégories avant d'écrire le manifeste :
 
-| Catégorie | Champs exacts de clé | Liaison | Couleur |
-|---|---|---|---|
-| corps | partie, forme | squelette | palette |
-| tete | tete | squelette | palette |
-| pilosite | coiffure | squelette | palette |
-| vetement | piece | squelette | palette |
-| armure | piece | squelette | teinte |
-| accessoire | piece | rigide ou surface | teinte |
-| rigide | apparence | rigide | teinte |
-| trait | trait | squelette | palette |
-| decor | prop | rigide | teinte |
-| vehicule | definition | rigide | teinte |
+| Catégorie | Champs exacts de clé | Résolution à l'import | Liaison | Couleur |
+|---|---|---|---|---|
+| corps | partie, forme | non résolu à l'import | squelette | palette |
+| tete | tete | non résolu à l'import | squelette | palette |
+| pilosite | coiffure | non résolu à l'import | squelette | palette |
+| vetement | piece | pièce `vetement` de `src/data/garde-robe.json` | squelette | palette |
+| armure | piece | pièce `armure` de `src/data/garde-robe.json` | squelette | teinte |
+| accessoire | piece | pièce `accessoire` de `src/data/garde-robe.json` | rigide ou surface | teinte |
+| rigide | apparence | `src/data/apparences.json` | rigide | teinte |
+| trait | trait | non résolu à l'import | squelette | palette |
+| decor | prop | non résolu à l'import ; design : `src/data/props.json` | rigide | teinte |
+| vehicule | definition | non résolu à l'import ; design : défs rig de plan `engin` (`src/gameIso/rig/creatures/defs/`) | rigide | teinte |
+
+Un champ de clé qui a sa ligne dans `RESOLUTIONS` (`ecartsDeCleDElement`,
+`src/noyau/apparence/cleDElement.ts`) est résolu à l'import contre le fichier que nomme la colonne : absent, l'import le refuse `cle-inconnue` ; une pièce
+d'une autre catégorie que l'élément, `piece-hors-categorie`. Exemples : `{ "piece": "pourpoint" }`
+(vetement), `{ "piece": "plastron" }` (armure), `{ "piece": "baudrier" }` (accessoire),
+`{ "apparence": "epee" }` (rigide).
 
 Choisir les ids sémantiques dans la donnée du jeu, jamais dans un libellé. Rechercher l'id et
 les variantes du concept avant d'en créer un. Une clé de tête n'a pas de sexe ; une variation de
-couleur n'ajoute aucun élément. Pour une pièce non encore définie, son id et son ensemble sont
-une dépendance de donnée du lot T : ne pas déclarer sa résolution acquise. Un seul élément par
+couleur n'ajoute aucun élément. Une pièce absente de la garde-robe s'y ajoute d'abord
+(skill `ajouter-une-donnee`) : l'import refuse son élément tant qu'elle manque. Un seul élément par
 (base, clé) ; un nom local dérivé tel que `humanoide--rigide--epee` distingue les catégories,
 et pour un corps il inclut partie et forme. Le manifeste ne porte pas d'id arbitraire.
 
@@ -242,8 +248,8 @@ Pour les autres catégories, appliquer la table et les champs de la section 2. L
 doivent correspondre à ceux de l'export ; la validation de forme ne le prouve pas. Ne pas ajouter
 provenance, captures, chemin du GLB ou décision utilisateur dans ce JSON fermé : fichier séparé.
 
-La CLI canonique appelle validerElement avec les octets du GLB pour vérifier forme, références
-à la base, empreinte SHA-256 et taille. Fournir manifeste d'élément, manifeste complet de base,
+La CLI canonique appelle validerElement avec les octets du GLB pour vérifier forme, ids de clé
+contre la donnée du jeu, références à la base, empreinte SHA-256 et taille. Fournir manifeste d'élément, manifeste complet de base,
 puis GLB d'élément, depuis la racine du dépôt :
 
 ```sh
@@ -271,7 +277,7 @@ avec le seul cas neutre.
 
 ## 7. Deux validations distinctes
 
-**Technique** : validerElement vérifie forme, références à la base et empreinte/taille du GLB
+**Technique** : validerElement vérifie forme, ids de clé contre la donnée, références à la base et empreinte/taille du GLB
 d'élément. La CLI expose ce verdict ; l'évaluateur vérifie le manifeste de base contre son GLB.
 Les mesures Node disponibles se lisent dans les appels de gardes de son implémentation.
 Elles comprennent poids, enroulement, budget assemblé, pistes, échelle des rigides, pieds, appuis

@@ -623,6 +623,12 @@
         },
         {
           "files": [
+            "garde-robe.json"
+          ],
+          "desc": "LA garde-robe des éléments 3D — un document, le `kind` (`emplacement` · `piece` · `ensemble`) porté par l'entrée ; un ensemble habille UN objet ou UNE apparence de la liste ordonnée de ses pièces"
+        },
+        {
+          "files": [
             "terrains.json"
           ],
           "desc": "LES terrains de la grille — un document où la RÈGLE (`walkable`, `priority`, `opaque`, `built`) et le RENDU (`swatch`, `stops`, `detail`, `overlayProp`, `solidHeightM`) vivent dans la MÊME entrée ; lu par la façade `src/noyau/monde/terrain`"

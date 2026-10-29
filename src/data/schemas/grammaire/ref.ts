@@ -88,6 +88,9 @@ export const TYPES = {
   classe: { espace: 'classes.json', catalogue: 'classes de carrière' },
   // GABARIT du rig (#2972) : `raceAppearance.json › gabarit` résout AU PARSE.
   gabarit: { espace: 'gabarits.json', catalogue: 'gabarits' },
+  // GARDE-ROBE des éléments 3D (#3114) : un type, trois sous-listes discriminées par `kind`
+  // (`idDe('gardeRobe', 'piece')`, patron `material`).
+  gardeRobe: { espace: 'garde-robe.json', catalogue: 'garde-robe' },
   // EDOC 12 l.217, l.241 ; LDB 85 l.120, l.164
   groupe: { espace: 'groups.json', catalogue: 'groupes' },
   // EDOC 13 l.237 ; LDB 85 l.322

@@ -311,7 +311,7 @@ describe('import et chargement au schéma 3', () => {
   });
   it('la catégorie ne distingue pas deux éléments de même clé de pièce', () => {
     const d = avecBase();
-    const piece = { ...elementSchema3(), categorie: 'accessoire', cle: { piece: 'plaque' }, couche: 'tenue' };
+    const piece = { ...elementSchema3(), categorie: 'accessoire', cle: { piece: 'baudrier' }, couche: 'tenue' };
     expect(importer(d, piece).ok).toBe(true);
     const r = importer(d, { ...piece, categorie: 'armure', liaison: { mode: 'squelette' }, couche: 'armure', couvre: [] }, GLB_D_ELEMENT, 'armure');
     expect(r.ok).toBe(false);
