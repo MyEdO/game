@@ -34,21 +34,37 @@ node scripts/personnage-3d/environnement.mjs
 ```
 
 La commande de construction de base existe, mais relève de L1, pas de l'auteur d'un élément.
-Elle utilise les fichiers UAL1, UAL2 et UBC acquis avec leurs licences :
+Elle utilise les fichiers UAL1, UAL2 et UBC acquis avec leurs licences, et nomme le texte de licence
+de chaque pack, lu dans le pack (`License.txt` à la racine de `Universal Animation Library[Standard]`,
+`License_Standard.txt` à la racine de `Universal Base Characters[Standard]`) :
 
 ```sh
-node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py --ual1 /atelier/sources/UAL1_Standard.glb --ual2 /atelier/sources/UAL2_Standard.glb --corps /atelier/sources/Superhero_Male_FullBody.gltf --sortie /atelier/base/humanoide.glb
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py --ual1 "/atelier/sources/Universal Animation Library[Standard]/…/UAL1_Standard.glb" --licence-ual1 "/atelier/sources/Universal Animation Library[Standard]/License.txt" --ual2 "/atelier/sources/Universal Animation Library 2[Standard]/…/UAL2_Standard.glb" --licence-ual2 "/atelier/sources/Universal Animation Library 2[Standard]/License.txt" --corps "/atelier/sources/Universal Base Characters[Standard]/…/Superhero_Male_FullBody.gltf" --licence-corps "/atelier/sources/Universal Base Characters[Standard]/License_Standard.txt" --sortie /atelier/base/humanoide.glb
 ```
 
 Les chemins `/atelier/…` des exemples désignent les fichiers locaux de production à choisir ;
 ils ne sont pas fournis par le dépôt. Vérifier unités, axes, échelle et pose de liaison de la base,
-sans les modifier dans l'élément. La construction exige `node` dans le `PATH` : après l'export,
-elle passe sa part du manifeste à `scripts/personnage-3d/base/manifeste.mjs`, qui écrit le
-manifeste complet `/atelier/base/humanoide.manifeste.json`. Il y ajoute la déclaration du corps
-(`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence, clips de marche),
-les bornes de `st` tirées de `src/data/gabarits.json` et des surcharges de `raceAppearance.json`,
-la vitesse au sol de chaque clip de marche mesurée par l'évaluateur, et l'empreinte du GLB. Le
-manifeste refusé par `validerManifesteDeBase` fait échouer la construction.
+sans les modifier dans l'élément. La construction exige `node` dans le `PATH` : avant Blender,
+`scripts/personnage-3d/base/manifeste.mjs --verifier` refuse une sortie dans un arbre du dépôt (liens
+et jonctions résolus), un dossier de sortie qui porte un autre fichier que le GLB, `manifest.json` et
+les `LICENSE-<pack>.txt` qu'elle écrit, et un texte de licence `--licence-<pack>` absent, hors des
+dossiers ancêtres de sa source, sans ligne `License:` ou dont la ligne manque à
+`hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
+déclaration du corps (`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence,
+clips de marche), les bornes de `st` tirées de `src/data/gabarits.json` et des surcharges de
+`raceAppearance.json`, la vitesse au sol de chaque clip de marche mesurée par l'évaluateur, et
+l'empreinte du GLB. Le manifeste refusé par `validerManifesteDeBase` fait échouer la construction.
+Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
+`manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
+`animation_sources`, `hors_release`) et `LICENSE-ual1.txt`, `LICENSE-ual2.txt`, `LICENSE-corps.txt`,
+copies des textes de licence des packs. Il s'importe tel quel, sans publication (section 6) :
+
+```sh
+node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier
+```
+
+L'élément se valide et s'évalue ensuite contre `/atelier/modeles/humanoide.manifeste.json` et
+`/atelier/modeles/humanoide.glb`, déposés par cet import.
 
 ## 2. Choisir catégorie, clé et contrat artistique
 
@@ -247,7 +263,7 @@ La CLI canonique appelle validerElement avec les octets du GLB pour vérifier fo
 puis GLB d'élément, depuis la racine du dépôt :
 
 ```sh
-npm run godot:valider -- /atelier/humanoide--rigide--epee.element.json /atelier/base/humanoide.manifeste.json /atelier/humanoide--rigide--epee.glb
+npm run godot:valider -- /atelier/humanoide--rigide--epee.element.json /atelier/modeles/humanoide.manifeste.json /atelier/humanoide--rigide--epee.glb
 ```
 
 Sorties : 0 si la validation passe ; 1 si refus ou erreur de lecture ; 2 si usage incorrect.
@@ -258,9 +274,9 @@ Cette validation ne remplace pas l'évaluation géométrique du GLB.
 celui d'élément. Le dossier du rapport doit déjà exister :
 
 ```sh
-npm run godot:evaluer -- /atelier/humanoide--rigide--epee.glb --base /atelier/base/humanoide.glb --manifeste /atelier/base/humanoide.manifeste.json --json /atelier/mesures/neutre.json
-npm run godot:evaluer -- /atelier/humanoide--rigide--epee.glb --base /atelier/base/humanoide.glb --manifeste /atelier/base/humanoide.manifeste.json --facteurs sl=1,legs=1,arms=1,head=1,st=1 --json /atelier/mesures/gabarit.json
-npm run godot:evaluer -- /atelier/humanoide--rigide--epee.glb --base /atelier/base/humanoide.glb --manifeste /atelier/base/humanoide.manifeste.json --silhouettes feminin=1,corpulence=1,carrure_moins=0,carrure_plus=1 --json /atelier/mesures/silhouettes.json
+npm run godot:evaluer -- /atelier/humanoide--rigide--epee.glb --base /atelier/modeles/humanoide.glb --manifeste /atelier/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
+npm run godot:evaluer -- /atelier/humanoide--rigide--epee.glb --base /atelier/modeles/humanoide.glb --manifeste /atelier/modeles/humanoide.manifeste.json --facteurs sl=1,legs=1,arms=1,head=1,st=1 --json /atelier/mesures/gabarit.json
+npm run godot:evaluer -- /atelier/humanoide--rigide--epee.glb --base /atelier/modeles/humanoide.glb --manifeste /atelier/modeles/humanoide.manifeste.json --silhouettes feminin=1,corpulence=1,carrure_moins=0,carrure_plus=1 --json /atelier/mesures/silhouettes.json
 ```
 
 La deuxième ligne montre la syntaxe des facteurs ; les remplacer par chaque ligne de
@@ -384,6 +400,9 @@ Un succès sort en 0, dépose `<id>.manifeste.json`, `<id>.provenance.json`, les
 schéma 3, `<id>.glb` local. `--sans-publier` conserve ces dépôts locaux sans appeler la Release.
 Sans ce drapeau, le GLB et l'éventuel `.blend` sont versés sous leur empreinte dans la Release
 `modeles-3d` avant les écritures locales. La destination par défaut est `hotes/godot/projet/modeles`.
+Une production dont `manifest.json` porte `hors_release` (une raison non vide, ainsi la base
+construite de packs Quaternius) est refusée `[hors-release]` sans `--sans-publier`. Un élément dont la
+base déposée est hors Release en hérite : même refus, et sa provenance porte `hors_release` (`base <id> : <raison>`).
 
 Ce contrôle d'import ne prouve pas le montage L4 ni les mesures géométriques de l'évaluateur.
 La validation des clés par le noyau et le rapport de couverture appartiennent à L3b, après T3.

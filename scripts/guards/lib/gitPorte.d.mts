@@ -55,6 +55,11 @@ export function depotDe(
 ): Depot;
 /** La racine de l'arbre de travail, `null` hors d'un arbre. */
 export function racineDe(depot: Depot): string | null;
+/** Les worktrees du dépôt, le principal en tête ; `null` si git ne les rend pas. */
+export function worktreesDe(depot: Depot): {
+  chemin: string; head: string | null; branche: string | null; principal: boolean; nu: boolean;
+  verrouille: boolean; verrouillePour: string | null; prunable: string | null;
+}[] | null;
 /** La configuration brute (`config --null --list`) ; toute indisponibilité lève. */
 export function configurationDe(depot: Depot, opts?: { environnement?: NodeJS.ProcessEnv }): string;
 /** La valeur de l'attribut `nom` sur `chemin` (`check-attr`), `null` si git ne répond pas. */

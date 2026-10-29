@@ -4,13 +4,15 @@
  * licencié (`components.<id>.asset.license_basis`) ou un texte `LICENSE*.txt`, devient, sous un id de
  * modèle, un GLB et sa source versés dans la Release des modèles sous leur empreinte (`release.ts`), puis le manifeste
  * réduit et validé (`manifeste.ts`), la provenance et les licences, déposés dans le dossier des modèles du projet Godot.
- * Les licences se comparent par leur identifiant SPDX (`licences.json`). Tout se juge avant la première publication : un
- * dossier refusé ne publie ni n'écrit rien.
+ * Les licences se comparent par leur identifiant SPDX (`licences.json`). Un modèle hors Release (`CLE_HORS_RELEASE`,
+ * `dossierDeProduction.ts`) : une production qui s'y déclare, ou un élément dont la base déposée l'est (#2948,
+ * arbitrages n°14 et n°19) ; il ne s'importe que sans publication, et sa provenance en reporte la raison. Tout se juge
+ * avant la première publication : un dossier refusé ne publie ni n'écrit rien.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
+import { chargerLicences, CLE_HORS_RELEASE, FICHIER_DE_LICENCE, licenceDeclaree, MANIFESTE_DE_PRODUCTION } from './dossierDeProduction.ts';
 import { sha256 } from './empreinte.ts';
 import { lireGlb, GlbIllisible } from './glb.ts';
 import { estObjet } from '../../../src/hote/formes';
@@ -21,35 +23,7 @@ import {
   type AssetAPublier, type LicenceDeComposant, type LicenceDePack, type Provenance,
 } from './release.ts';
 
-/** Le seul nom fixe d'un dossier de production : son manifeste, qui nomme le reste. */
-export const MANIFESTE_DE_PRODUCTION = 'manifest.json';
-
 const ID_DE_MODELE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
-
-/** La table des licences : chaque texte qu'une production déclare (en-tête d'un fichier source, page d'un pack, ligne
- *  `License:` d'un `LICENSE*.txt`), vers son identifiant SPDX (https://spdx.org/licenses/). */
-export const TABLE_DES_LICENCES = fileURLToPath(new URL('./licences.json', import.meta.url));
-
-export class TableDesLicencesInvalide extends Error {
-  constructor(chemin: string, raison: string) {
-    super(`table des licences invalide (${chemin}) : ${raison}`);
-    this.name = 'TableDesLicencesInvalide';
-  }
-}
-
-/** La table des licences de `chemin`, validée : un objet JSON de chaînes vers des chaînes. */
-export function chargerLicences(chemin: string = TABLE_DES_LICENCES): ReadonlyMap<string, string> {
-  let brut: unknown;
-  try {
-    brut = JSON.parse(readFileSync(chemin, 'utf8'));
-  } catch (e) {
-    throw new TableDesLicencesInvalide(chemin, e instanceof Error ? e.message : String(e));
-  }
-  if (!estObjet(brut)) throw new TableDesLicencesInvalide(chemin, 'un objet attendu');
-  const horsForme = Object.entries(brut).filter(([, v]) => typeof v !== 'string').map(([k]) => `« ${k} »`);
-  if (horsForme.length) throw new TableDesLicencesInvalide(chemin, `identifiant non textuel pour ${horsForme.join(', ')}`);
-  return new Map(Object.entries(brut as Record<string, string>));
-}
 
 const IDENTIFIANT_SPDX = chargerLicences();
 
@@ -103,11 +77,9 @@ function sourcesDAnimation(manifeste: Brut): { fichier: string; sha256: string }
     estObjet(s) && typeof s.path === 'string' && typeof s.sha256 === 'string' ? [{ fichier: nomDeFichier(s.path), sha256: s.sha256 }] : []);
 }
 
-const FICHIER_DE_LICENCE = /^LICENSE.*\.txt$/;
 /** Le nom sous lequel se dépose le texte de licence `octets` d'identifiant SPDX `spdx` : deux textes distincts d'une
  *  même licence (deux packs CC0) ne se disputent pas un nom. */
 const nomDeLicence = (spdx: string, octets: Uint8Array): string => `LICENSE-${spdx}-${sha256(octets).slice(0, 16)}.txt`;
-const LIGNE_LICENSE = /^\s*License:\s*(.+?)\s*$/m;
 
 const lireJson = (chemin: string): unknown => JSON.parse(readFileSync(chemin, 'utf8'));
 const enJson = (v: unknown): string => `${JSON.stringify(v, null, 2)}\n`;
@@ -132,6 +104,8 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : JSON illisible (${(e as Error).message})`] };
   }
   if (!estObjet(brut)) return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : objet JSON attendu`] };
+  const horsReleaseDeclare = brut[CLE_HORS_RELEASE];
+  if (horsReleaseDeclare !== undefined && !(typeof horsReleaseDeclare === 'string' && horsReleaseDeclare.trim())) return { ok: false, refus: [`[hors-release] ${MANIFESTE_DE_PRODUCTION} : ${CLE_HORS_RELEASE}, raison non vide attendue`] };
   const { model, model_sha256: declaree } = brut;
   const entrees = readdirSync(dossier, { withFileTypes: true });
   if (typeof model !== 'string' || !entrees.some((e) => e.isFile() && e.name === model)) return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : model « ${String(model)} », fichier du dossier de production attendu`] };
@@ -149,22 +123,23 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   const contenu = entrees.filter((e) => e.isFile()).map((e) => e.name).sort();
   const sources = contenu.filter((f) => f.endsWith('.blend'));
   if (sources.length > 1) return { ok: false, refus: [`plusieurs sources .blend (${sources.join(', ')}) : une seule attendue`] };
-  const licences: { fichier: string; octets: Buffer }[] = [];
-  const licencesDePack: LicenceDePack[] = [];
+  const licences = new Map<string, Buffer>();
+  const licencesDePack = new Map<string, LicenceDePack>();
   for (const source of contenu.filter((f) => FICHIER_DE_LICENCE.test(f))) {
     const octetsDeLicence = readFileSync(join(dossier, source));
-    const licence = LIGNE_LICENSE.exec(octetsDeLicence.toString('utf8'))?.[1];
+    const licence = licenceDeclaree(octetsDeLicence.toString('utf8'));
     if (!licence) return { ok: false, refus: [`${source} : aucune ligne « License: »`] };
     const spdx = IDENTIFIANT_SPDX.get(licence);
     if (!spdx) return { ok: false, refus: licencesInconnues([licence], source) };
     const fichier = nomDeLicence(spdx, octetsDeLicence);
-    licences.push({ fichier, octets: octetsDeLicence });
-    licencesDePack.push({ fichier, licence });
+    licences.set(fichier, octetsDeLicence);
+    licencesDePack.set(fichier, { fichier, licence });
   }
 
   const fichiers = fichiersDuModele(id);
   const candidat = Object.prototype.hasOwnProperty.call(brut, 'manifeste') ? brut.manifeste : { ...brut, model: fichiers.glb };
   const bases = new Map<string, BaseLivree>();
+  let horsReleaseDeLaBase: string | undefined;
   if (estSchema3(candidat)) {
     const lus = manifestesDesModeles(destination);
     const index = indexerModeles([...lus.entrees, { id, brut: candidat }]);
@@ -181,8 +156,11 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
       const epingle = epingles.modeles.find(m => m.id === entree.id);
       if (!epingle || sha256(octetsDeBase) !== epingle.empreinte) return { ok: false, refus: [`[provenance-de-base-differente] ${base} : ${entree.id}`] };
       bases.set(base, { brut: entree.brut, octets: octetsDeBase });
+      if (epingle.hors_release !== undefined) horsReleaseDeLaBase = `base ${entree.id} : ${epingle.hors_release}`;
     }
   }
+  const horsRelease = typeof horsReleaseDeclare === 'string' ? horsReleaseDeclare : horsReleaseDeLaBase;
+  if (publier && horsRelease !== undefined) return { ok: false, refus: [`[hors-release] ${horsRelease} : import sans publication seulement (--sans-publier)`] };
   const verdict = validerModele(candidat, octets, bases);
   if (!verdict.ok) return verdict;
 
@@ -192,8 +170,9 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     ...(sources[0] ? { source_sha256: sha256(readFileSync(join(dossier, sources[0]))) } : {}),
     importe_le: date,
     licences: licencesDe(brut),
-    licences_de_pack: licencesDePack,
+    licences_de_pack: [...licencesDePack.values()],
     animation_sources: sourcesDAnimation(brut),
+    ...(horsRelease !== undefined ? { hors_release: horsRelease } : {}),
   };
   const fuites = cheminsAbsolus(provenance, 'provenance');
   if (fuites.length) return { ok: false, refus: fuites.map(ligneDErreur) };
@@ -212,7 +191,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   }
   ecrireTexteAtomique(join(destination, fichiers.manifeste), enJson(verdict.manifeste));
   ecrireTexteAtomique(join(destination, fichiers.provenance), enJson(provenance));
-  for (const { fichier, octets } of licences) ecrireTexteAtomique(join(destination, fichier), octets);
-  const ecrits = [...glbEcrits, ...[fichiers.manifeste, fichiers.provenance, ...licences.map((l) => l.fichier)].map((f) => join(destination, f))];
+  for (const [fichier, octets] of licences) ecrireTexteAtomique(join(destination, fichier), octets);
+  const ecrits = [...glbEcrits, ...[fichiers.manifeste, fichiers.provenance, ...licences.keys()].map((f) => join(destination, f))];
   return { ok: true, ecrits, publies, manifeste: verdict.manifeste, provenance };
 }

@@ -7,11 +7,12 @@ interpolation LINEAR. Au repos, le sommet le plus bas des peaux est posé au sol
 poids sont lissés là où un clip étire la peau (`poids.py`), puis chaque clip est posé au sol et la marche plantée
 (`sol.py`) ; un clip sans sol (pelvis source sous le sol) se retire. La part du manifeste de base que pose la construction
 (os, chaînes, zones, emplacements, prises, silhouettes, table du gabarit, pieds, os à position animée) passe, après
-l'export, à `manifeste.mjs`, qui écrit le manifeste complet à côté du GLB, dans `<sortie>.manifeste.json`, avec la
-déclaration du corps `humanoide.json`.
+l'export, à `manifeste.mjs`, qui complète le manifeste avec la déclaration du corps `humanoide.json` et écrit le dossier
+de production du GLB (`production.ts`) ; il juge déclaration, sortie hors dépôt et textes de licence nommés des packs avant Blender.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py \\
-        --ual1 <UAL1_Standard.glb> --ual2 <UAL2_Standard.glb> --corps <Superhero_Male_FullBody.gltf> --sortie <humanoide.glb>
+        --ual1 <UAL1_Standard.glb> --ual2 <UAL2_Standard.glb> --corps <Superhero_Male_FullBody.gltf> \\
+        --licence-ual1 <License.txt> --licence-ual2 <License.txt> --licence-corps <License_Standard.txt> --sortie <humanoide.glb>
 """
 import argparse
 import json
@@ -153,17 +154,21 @@ def silhouettes(peaux):
     return noms
 
 
-def completer(sortie, construit):
-    """Écrit le manifeste complet de `sortie` par `manifeste.mjs`, à qui passe la part `construit`."""
+def manifeste_mjs(args, *options, entree=None):
+    """Lance `manifeste.mjs` sur la sortie et les packs sources de `args` : `--verifier` juge déclaration, sortie et
+    licences avant la construction ; sans lui, la part `entree` complète le dossier de production."""
     node = shutil.which('node')
     if not node:
         raise RuntimeError('node introuvable : le manifeste de base se complète par manifeste.mjs')
-    subprocess.run([node, str(ICI / 'manifeste.mjs'), str(DECLARATION), str(sortie)],
-                   input=json.dumps(construit, ensure_ascii=False), text=True, encoding='utf-8', check=True)
+    sources = [a for s in ('ual1', 'ual2', 'corps') for o in (s, f'licence_{s}')
+               for a in (f'--{o.replace("_", "-")}', str(getattr(args, o)))]
+    subprocess.run([node, str(ICI / 'manifeste.mjs'), str(DECLARATION), str(args.sortie), *sources, *options],
+                   input=entree, text=True, encoding='utf-8', check=True)
 
 
 def construire(args):
     import bpy
+    manifeste_mjs(args, '--verifier')
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.scene.render.fps = IMAGES_PAR_SECONDE
     rig1, figurants1, clips = importer(bpy, args.ual1)
@@ -205,7 +210,7 @@ def construire(args):
     print('CLIPS', len(clips), 'OS', len(manifeste['os']), 'ZONES', len(manifeste['zones']),
           'EMPLACEMENTS', len(manifeste['emplacements']), 'SILHOUETTES', len(formes),
           'POSITION', manifeste['osAPositionAnimee'], flush=True)
-    completer(args.sortie, manifeste)
+    manifeste_mjs(args, entree=json.dumps(manifeste, ensure_ascii=False))
     print('HUMANOIDE_OK', args.sortie, flush=True)
 
 
@@ -214,6 +219,9 @@ def main():
     parser.add_argument('--ual1', type=Path, required=True, help='UAL1_Standard.glb : squelette de référence et clips')
     parser.add_argument('--ual2', type=Path, required=True, help='UAL2_Standard.glb : clips sur le même squelette')
     parser.add_argument('--corps', type=Path, required=True, help="corps UBC (.gltf/.glb) skinné aux os d'UAL")
+    for pack in ('ual1', 'ual2', 'corps'):
+        parser.add_argument(f'--licence-{pack}', type=Path, required=True,
+                            help=f'texte de licence du pack de --{pack}, dans un dossier ancêtre de la source')
     parser.add_argument('--sortie', type=Path, required=True, help='humanoide.glb produit')
     parser.add_argument('--os', type=int, default=65, help="nombre d'os du squelette UAL")
     construire(parser.parse_args())
