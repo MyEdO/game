@@ -30,6 +30,7 @@
 // ne le sait pas » (#2460, invariant).
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
+import { jsonCanonique } from '../../src/lib/jsonCanonique.mjs'
 
 /** Taille maximale (caractères) d'un digest injecté au contexte. Valeur maison. */
 export const PLAFOND_INJECTION = 8000
@@ -331,17 +332,10 @@ const probleme = (erreur) => {
   return p ? `${p.path.length ? `${p.path.join('.')} : ` : ''}${p.message}` : String(erreur)
 }
 
-/** Le JSON CANONIQUE d'une valeur : clés triées à chaque niveau. PURE. */
-const canonique = (v) => (Array.isArray(v)
-  ? `[${v.map(canonique).join(',')}]`
-  : v !== null && typeof v === 'object'
-    ? `{${Object.keys(v).sort().filter((k) => v[k] !== undefined).map((k) => `${JSON.stringify(k)}:${canonique(v[k])}`).join(',')}}`
-    : JSON.stringify(v))
-
 /** L'empreinte d'un suivi : sha256 de son document canonique, `empreinte` exclue. PURE. */
 const empreinteDe = (suivi) => {
   const { empreinte: _ignoree, ...corps } = suivi
-  return createHash('sha256').update(canonique(corps)).digest('hex')
+  return createHash('sha256').update(jsonCanonique(corps)).digest('hex')
 }
 
 /** Le suivi SCELLÉ à `maintenant` : `ecritLe` et `empreinte` posés. PURE. */

@@ -4,12 +4,10 @@
  * Les exclusions de pièces ont une source, `incompatibilities` : chaque groupe porte des composants dont un seul se
  * montre à la fois.
  */
+import { estObjet } from '../../../src/hote/formes';
 import type { ContenuGlb } from './glb.ts';
 import { lireMontage, ecartsDeMontage, type ManifesteMontable } from './montage';
 import { findApparenceById, ROLES_D_ANIMATION, type RoleDAnimation } from '../../../src/noyau/index.ts';
-import { estObjet } from '../../../src/hote/formes';
-
-export { estObjet };
 
 export const VERSION_DU_SCHEMA = 2;
 

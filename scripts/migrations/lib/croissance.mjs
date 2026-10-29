@@ -85,9 +85,7 @@ export function reconnaisseurDeRef(racine) {
  * @type {Record<string, string>}
  */
 export const SANS_CROISSANCE = {
-  'src/data/structures.json': 'chaque structure doit avoir son folio — 2026-08-27-l1b-1a-structures-folio.mjs:85',
   'src/data/careerLevels.json': 'l’id est DÉRIVÉ (carrière + rang) : un clone collisionne — 2026-08-27-l1b-2a-careerlevels-id.mjs:63',
-  'src/data/names.json': 'les clés font EXACTEMENT les 7 RaceKey — 2026-08-27-l1b-5a-names-details-racekey.mjs:112',
   'src/data/raceAppearance.json': '`label` et `id` sont liés par le slug — 2026-08-27-l1b-5b-raceappearance-slug-label.mjs:86',
   'src/data/props.json': 'chaque décor doit avoir sa def d’art `src/gameIso/catalog/decor/defs/<id>.ts` — 2026-08-28-l1b-10a-props-labels.mjs:28',
   'src/data/raw.manifest.json': 'chaque entrée désigne un topic ou une fiche EXISTANTE de `docs/raw/` — 2026-08-28-l1b-10b-rawmanifest-label.mjs:23',

@@ -3,7 +3,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { difficultySchema, stakeFormSchema } from '../grammaire/valeurs';
-import { gameOpSchema, triggeredEffectSchema } from '../grammaire/mecanique';
+import { passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'psychology.json';
@@ -13,7 +13,7 @@ const doc = document(
   'psychology',
   famille,
   {
-    passive: z.array(gameOpSchema).optional(),
+    passive: passifsDe().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
     gating: nommerChamps(z
       .strictObject({

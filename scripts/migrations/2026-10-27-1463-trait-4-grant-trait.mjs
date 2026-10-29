@@ -8,18 +8,20 @@
  *     (EDOC 12 l.217, l.241). Les autres clés (`indicePerSL`, `onlyGroups`, durées) restent sur l'op.
  *  2. `removeTrait` : `traitId` → `trait: { id }`. `domeWard` : `traitId` et `indice` → le Trait octroyé
  *     `trait: { id, value }` (LDB 47 l.410).
- *  3. ARGUMENTS IMPRIMÉS : un `arg` que le registre du Trait ne résout pas prend la forme de `IMPRIMES`,
- *     chacun cité à sa ligne.
- *  4. `groups.json` : chaque Cible du Tableau des Obsessions absente du registre y entre (`OBSESSIONS`), à
- *     son libellé imprimé et au folio du Tableau (`obsessions.json`).
- *  5. `obsessions.json` : chaque rangée désigne son Groupe par son `id` ; son libellé quitte la rangée (le
- *     Groupe le porte).
+ *  3. ARGUMENTS IMPRIMÉS : le Trait posé EXACTEMENT à une forme d'avant de `IMPRIMES` (son `arg` imprimé
+ *     que le registre du Trait ne résout pas) prend sa forme d'après, chacun cité à sa ligne.
+ *  4. `groups.json` : la Cible d'une rangée du Tableau des Obsessions à migrer, absente du registre, y entre
+ *     (`OBSESSIONS`), à son libellé imprimé et au folio du Tableau (`obsessions.json`).
+ *  5. `obsessions.json` : la rangée EXACTEMENT à sa forme d'avant `{ id: avant, min: rang, max: rang, label }`
+ *     désigne son Groupe par son `id` ; son libellé quitte la rangée (le Groupe le porte).
  *
  * ENTRÉES : écrites — les fichiers de `RACINES`, `src/data/groups.json`, `src/data/obsessions.json`.
+ * FORME D'AVANT SEULE (`lib/formeDAvant.mjs`) : une rangée absente, déjà migrée ou révisée après la
+ * migration est laissée telle quelle, et ne fait entrer aucun Groupe.
  * FAIL-FAST — avant toute écriture, sortie 1 : un fichier hors de son formatage ; une op qui porte à la fois
  * une clé à plat et `trait` ; un `argFrom` autre que `obsessions` ; une clé inconnue sur un `grantTrait`, un
- * `removeTrait` ou un `domeWard` ; un Indice de `domeWard` qui porte un terme de jet ; un Groupe de `OBSESSIONS` présent sous un autre libellé ; une rangée du Tableau introuvable
- * ou qui porte un libellé différent de celui de `OBSESSIONS`.
+ * `removeTrait` ou un `domeWard` ; un Indice de `domeWard` qui porte un terme de jet ; pour une rangée à
+ * migrer, son Groupe absent du registre quand il n'est pas `neuf`, ou présent sous un autre libellé.
  * IDEMPOTENT : rejouée sur l'état final, aucun geste n'est à faire et rien ne s'écrit.
  * FORMATAGE PRÉSERVÉ, constaté avant l'écriture : un dataset est EXACTEMENT `JSON.stringify(doc, null, 2)`
  * (sans saut de ligne final), un projet de campagne `JSON.stringify(doc, null, 1) + '\n'`.
@@ -27,7 +29,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isDeepStrictEqual as egal } from 'node:util';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { remplacerLaFormeDAvant } from './lib/formeDAvant.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const serializeProjet = (value) => `${JSON.stringify(value, null, 1)}\n`;
@@ -56,37 +60,37 @@ const A_PLAT = { traitId: 'id', arg: 'arg', indice: 'value', range: 'range' };
 const CLES_DE_L_OP = new Set(['op', 'trait', 'cible', 'indicePerSL', 'onlyGroups', 'durationRounds', 'durationMinutes', 'durationHours']);
 const CIBLE_OBSESSIONS = { pick: 1, table: { id: 'obsessions' } };
 
-/** Trait (`id`) dont l'`arg` imprimé → la forme résolue (`arg` absent : le Trait est posé sans argument). */
+/** Trait posé à son `arg` imprimé → la forme résolue (`arg` absent : le Trait est posé sans argument). */
 const IMPRIMES = [
   // EDOC 13 l.236 ; LDB 85 l.316-331
-  { id: 'souffle', avant: 'Feu', apres: { arg: 'feu' } },
+  { avant: { id: 'souffle', arg: 'Feu', value: 9 }, apres: { id: 'souffle', value: 9, arg: 'feu' } },
   // EDOC 13 l.239 ; #3040
-  { id: 'maladie', avant: 'Pourriture de Nurgle', apres: {} },
+  { avant: { id: 'maladie', arg: 'Pourriture de Nurgle' }, apres: { id: 'maladie' } },
 ];
 
 /** Folio du Tableau des Obsessions (`obsessions.json`). */
 const SOURCE_EDOC = { book: 'ennemi-dans-l-ombre-compagnon', page: 69 };
-/** Rangées du Tableau des Obsessions (EDOC 12 l.170) : `avant` = id de la rangée, `id` = son Groupe ; `neuf` pour un Groupe absent du registre. */
+/** Rangées du Tableau des Obsessions (EDOC 12 l.170) : `avant` = id de la rangée, `rang` = son résultat, `id` = son Groupe ; `neuf` pour un Groupe absent du registre. */
 const OBSESSIONS = [
-  { avant: 'objets-inanimes', id: 'objets-inanimes', label: 'Objets inanimés', neuf: true },
-  { avant: 'pauvrete', id: 'pauvrete', label: 'Pauvreté', neuf: true },
-  { avant: 'feu', id: 'feu', label: 'Feu', neuf: true },
-  { avant: 'figures-symboles-de-guerre', id: 'figures-symboles-de-guerre', label: 'Figures/Symboles de guerre', neuf: true },
-  { avant: 'figures-symboles-d-autorite', id: 'figures-symboles-d-autorite', label: 'Figures/Symboles d\'autorité', neuf: true },
-  { avant: 'figures-symboles-religieux', id: 'figures-symboles-religieux', label: 'Figures/Symboles religieux', neuf: true },
-  { avant: 'monstres', id: 'monstres', label: 'Monstres', neuf: true },
-  { avant: 'mutants', id: 'mutants', label: 'Mutants', neuf: true },
-  { avant: 'halflings', id: 'halfling', label: 'Halflings' },
-  { avant: 'humains', id: 'humain', label: 'Humains' },
-  { avant: 'nains', id: 'nain', label: 'Nains' },
-  { avant: 'elfes', id: 'elfe', label: 'Elfes' },
-  { avant: 'animaux-sauvages', id: 'animaux-sauvages', label: 'Animaux sauvages', neuf: true },
-  { avant: 'animaux-domestiques', id: 'animaux-domestiques', label: 'Animaux domestiques', neuf: true },
-  { avant: 'magie', id: 'magie', label: 'Magie', neuf: true },
-  { avant: 'maladie', id: 'maladie', label: 'Maladie', neuf: true },
-  { avant: 'eau', id: 'eau', label: 'Eau', neuf: true },
-  { avant: 'richesse', id: 'richesse', label: 'Richesse', neuf: true },
-  { avant: 'bonheur', id: 'bonheur', label: 'Bonheur', neuf: true },
+  { avant: 'objets-inanimes', rang: 2, id: 'objets-inanimes', label: 'Objets inanimés', neuf: true },
+  { avant: 'pauvrete', rang: 3, id: 'pauvrete', label: 'Pauvreté', neuf: true },
+  { avant: 'feu', rang: 4, id: 'feu', label: 'Feu', neuf: true },
+  { avant: 'figures-symboles-de-guerre', rang: 5, id: 'figures-symboles-de-guerre', label: 'Figures/Symboles de guerre', neuf: true },
+  { avant: 'figures-symboles-d-autorite', rang: 6, id: 'figures-symboles-d-autorite', label: 'Figures/Symboles d\'autorité', neuf: true },
+  { avant: 'figures-symboles-religieux', rang: 7, id: 'figures-symboles-religieux', label: 'Figures/Symboles religieux', neuf: true },
+  { avant: 'monstres', rang: 8, id: 'monstres', label: 'Monstres', neuf: true },
+  { avant: 'mutants', rang: 9, id: 'mutants', label: 'Mutants', neuf: true },
+  { avant: 'halflings', rang: 10, id: 'halfling', label: 'Halflings' },
+  { avant: 'humains', rang: 11, id: 'humain', label: 'Humains' },
+  { avant: 'nains', rang: 12, id: 'nain', label: 'Nains' },
+  { avant: 'elfes', rang: 13, id: 'elfe', label: 'Elfes' },
+  { avant: 'animaux-sauvages', rang: 14, id: 'animaux-sauvages', label: 'Animaux sauvages', neuf: true },
+  { avant: 'animaux-domestiques', rang: 15, id: 'animaux-domestiques', label: 'Animaux domestiques', neuf: true },
+  { avant: 'magie', rang: 16, id: 'magie', label: 'Magie', neuf: true },
+  { avant: 'maladie', rang: 17, id: 'maladie', label: 'Maladie', neuf: true },
+  { avant: 'eau', rang: 18, id: 'eau', label: 'Eau', neuf: true },
+  { avant: 'richesse', rang: 19, id: 'richesse', label: 'Richesse', neuf: true },
+  { avant: 'bonheur', rang: 20, id: 'bonheur', label: 'Bonheur', neuf: true },
 ];
 
 const lire = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -104,10 +108,8 @@ let gestes = 0;
 function traitPose(o) {
   const trait = {};
   for (const [plat, cle] of Object.entries(A_PLAT)) if (o[plat] !== undefined) trait[cle] = o[plat];
-  const imprime = IMPRIMES.find((x) => x.id === trait.id && x.avant === trait.arg);
-  if (!imprime) return trait;
-  const { arg: _arg, ...reste } = trait;
-  return { ...reste, ...imprime.apres };
+  const imprime = IMPRIMES.find((x) => egal(trait, x.avant));
+  return imprime ? structuredClone(imprime.apres) : trait;
 }
 
 /** Un terme de jet (`dice`, `rolled`, `sl`) à une profondeur quelconque d'une formule. */
@@ -156,8 +158,12 @@ function parcourir(noeud, rel) {
 }
 for (const rel of Object.keys(RACINES)) parcourir(docs.get(rel).doc, rel);
 
+const rangees = docs.get(OBSESSIONS_JSON).doc.entries;
+const rangeeDAvant = ({ avant, rang, label }) => ({ id: avant, min: rang, max: rang, label });
+const aMigrer = OBSESSIONS.filter((o) => rangees.some((r) => egal(r, rangeeDAvant(o))));
+
 const groupes = docs.get(GROUPS).doc;
-for (const { id, label, neuf } of OBSESSIONS) {
+for (const { id, label, neuf } of aMigrer) {
   if (!neuf) {
     if (!groupes.some((g) => g.id === id)) fautes.push(`${GROUPS} : Groupe « ${id} » introuvable`);
     continue;
@@ -171,19 +177,7 @@ for (const { id, label, neuf } of OBSESSIONS) {
   gestes++;
 }
 
-const rangees = docs.get(OBSESSIONS_JSON).doc.entries;
-for (const { avant, id, label } of OBSESSIONS) {
-  const i = rangees.findIndex((r) => r.id === avant || r.id === id);
-  if (i < 0) {
-    fautes.push(`${OBSESSIONS_JSON} : rangée « ${avant} » introuvable`);
-    continue;
-  }
-  const r = rangees[i];
-  if (r.label !== undefined && r.label !== label) fautes.push(`${OBSESSIONS_JSON} : « ${r.id} » porte le libellé « ${r.label} », attendu « ${label} »`);
-  if (r.id === id && r.label === undefined) continue;
-  rangees[i] = { id, min: r.min, max: r.max };
-  gestes++;
-}
+for (const o of aMigrer) gestes += remplacerLaFormeDAvant(rangees, rangeeDAvant(o), [{ id: o.id, min: o.rang, max: o.rang }]);
 
 if (fautes.length) {
   console.error(`ARRÊT — rien n'est écrit :\n${fautes.join('\n')}`);

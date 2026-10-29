@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /** LDB 14 l.159-169 ; LDB 14 l.161. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { gameOpSchema } from '../grammaire/mecanique';
+import { executeesDe } from '../grammaire/mecanique';
 
 export const file = 'grapple.json';
 export const famille = 'config';
@@ -11,11 +11,11 @@ const doc = document(
   'grapple',
   famille,
   {
-    init: z.array(gameOpSchema),
+    init: executeesDe(),
     win: nommerChamps(z.strictObject({
-      damage: z.array(gameOpSchema),
-      entangle: z.array(gameOpSchema),
-      free: z.array(gameOpSchema),
+      damage: executeesDe(),
+      entangle: executeesDe(),
+      free: executeesDe(),
     }), {
       damage: { label: 'dégâts' },
       entangle: { label: 'entraver' },

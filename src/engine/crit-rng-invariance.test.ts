@@ -1,4 +1,4 @@
-import { tableTotale } from '../lib/tableTotale';
+import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
 import { resolveCritique } from './critical';
@@ -43,17 +43,6 @@ const cible = (): Combatant =>
     wounds: { current: 10, max: 10 }, conditions: [], skills: [], traumas: [], critEntriesSuffered: [], bodyShape: 'humanoide',
   }) as unknown as Combatant;
 
-/** Stringify STABLE (clés triées récursivement) — l'ORDRE des tableaux, lui, reste significatif :
- *  c'est justement lui qui porte la séquence d'ops et de séquelles. */
-function stable(v: unknown): unknown {
-  if (Array.isArray(v)) return v.map(stable);
-  if (v && typeof v === 'object') {
-    const o = v as Record<string, unknown>;
-    return tableTotale(Object.keys(o).sort(), (k) => stable(o[k]));
-  }
-  return v;
-}
-
 const REFERENCE = reference as unknown as Record<string, unknown>;
 const DEPASSEMENT: Record<JeuDeCritique, number> = { ldb: 2, aa: 8 };
 const LOCS: readonly HitLocation[] = LOCALISATIONS_DE_COUP;
@@ -82,8 +71,8 @@ describe('invariance du RNG des Blessures critiques — référence figée AVANT
           const cle = `${jeu}|${seed}|${loc}|${overkill}`;
           const { naturel, ...resolu } = resolveCritique(jeu, cible(), loc, makeRNG(seed), { overkill });
           if (overkill === 0 && naturel !== resolu.roll) divergences.push(`${cle} : naturel ${naturel} ≠ roll ${resolu.roll} sans modificateur`);
-          const obtenu = JSON.stringify(stable(resolu));
-          const attendu = JSON.stringify(stable(REFERENCE[cle]));
+          const obtenu = jsonCanonique(resolu);
+          const attendu = jsonCanonique(REFERENCE[cle]);
           if (obtenu !== attendu) divergences.push(`${cle}\n    attendu : ${attendu}\n    obtenu  : ${obtenu}`);
         }
       }

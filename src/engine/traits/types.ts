@@ -5,7 +5,7 @@
  * octroyées) vit dans `traits.json` :
  *  - capacités booléennes/à seuil (Endurant, Démoniaque, Bestial, Nuée, Stupide…) → `TraitData.capabilities`,
  *    lues PAR ID par les helpers de `dispatch.ts` (traitCapability/wardSaves/…) ;
- *  - modificateurs de Caractéristiques/Mouvement (Élite +20 CC…, Brutal −1 M) → `TraitData.passive: GameOp[]`,
+ *  - modificateurs de Caractéristiques/Mouvement (Élite +20 CC…, Brutal −1 M) → `TraitData.passive: OpPassive[]`,
  *    lus par le collecteur passif ;
  *  - effets déclenchés / manœuvres → `TraitData.effects` / `TraitData.grantsManeuvers`.
  * Le `TraitDef` du registre porte donc seulement le libellé d'AFFICHAGE.

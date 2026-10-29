@@ -33,11 +33,10 @@
  */
 import { strict as assert } from 'node:assert'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 import { echapperRegex } from '../../../src/lib/regex.ts'
-import { ANTIDATE, efface, joue } from './joue.mjs'
+import { ANTIDATE, depot, efface, joue, lireArbre } from './joue.mjs'
 import { DATEES, MIGRATIONS, RACINE } from '../../test/lib/bancIdempotence.mjs'
 
 /** Le texte d'une migration — les dérivations ci-dessous s'y font par regex. */
@@ -56,17 +55,11 @@ const LUS = ['scripts/guards/lib', 'src/gameIso/catalog/decor/defs'];
  * REND `{ racine, cible, avant }` — `avant` étant le texte posé, référence de la comparaison.
  */
 function depotJetable(fichier, transforme) {
-  const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-idem-'));
-  fs.mkdirSync(path.join(racine, 'src/data'), { recursive: true });
-  fs.mkdirSync(path.join(racine, 'scripts/migrations'), { recursive: true });
-  for (const rel of LUS) fs.cpSync(path.join(RACINE, rel), path.join(racine, rel), { recursive: true });
-  for (const f of fs.readdirSync(path.join(RACINE, 'src/data')))
-    if (f.endsWith('.json')) fs.copyFileSync(path.join(RACINE, 'src/data', f), path.join(racine, 'src/data', f));
-
-  const cible = path.join(racine, 'src/data', fichier);
-  const avant = `${JSON.stringify(transforme(JSON.parse(fs.readFileSync(cible, 'utf8'))), null, 2)}`;
-  fs.writeFileSync(cible, avant, 'utf8');
-  return { racine, cible, avant };
+  const rel = `src/data/${fichier}`;
+  const avant = `${JSON.stringify(transforme(JSON.parse(lireArbre(rel))), null, 2)}`;
+  const jsons = fs.readdirSync(path.join(RACINE, 'src/data')).filter((f) => f.endsWith('.json')).map((f) => `src/data/${f}`);
+  const { racine } = depot({ [rel]: avant }, [...LUS, ...jsons]);
+  return { racine, cible: path.join(racine, rel), avant };
 }
 
 // --- 2. FAIL-FAST « `id` HORS TÊTE » -------------------------------------------------------------

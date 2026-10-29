@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { effectiveMaxWounds } from './characteristics';
 import { extraWounds, fortuneMax, resolveMax } from './talentEffects';
-import type { GameOp } from './ops';
+import type { OpPassive } from './ops';
 import type { Combatant } from './types';
 import { datasetArray, resetData, setDataset } from '../data/overrides';
 
@@ -27,7 +27,7 @@ const ajouter = (cle: 'traits' | 'etats' | 'psychologies' | 'symptoms' | 'talent
   setDataset(cle, [...datasetArray(cle), { id: ID, label: 'Porteur de test', ...entree }] as never);
 
 /** Chaque porteur du collecteur hors talents : il pose `passive` sur le combattant. */
-const PORTEURS: [string, (c: Combatant, passive: GameOp[]) => void][] = [
+const PORTEURS: [string, (c: Combatant, passive: OpPassive[]) => void][] = [
   ['mutation', (c, passive) => { c.mutations = [{ id: ID, label: 'Mutation de test', passive } as never]; }],
   ['objet porté', (c, passive) => { c.items = [{ uid: 'o1', trappingId: ID, label: 'Objet de test', equipped: true, passive } as never]; }],
   ['séquelle', (c, passive) => { c.traumas = [{ label: 'Séquelle de test', location: 'corps', ops: passive } as never]; }],
@@ -61,7 +61,7 @@ describe('attrMod de Blessures passif — tout porteur hors talent compte au del
 });
 
 describe('attrMod de Chance et de Détermination passif — tout porteur, talents compris', () => {
-  it.each([...PORTEURS, ['talent', (c: Combatant, passive: GameOp[]) => { ajouter('talents', { passive }); c.talents = [{ talentId: ID, times: 1 }]; }] as const])(
+  it.each([...PORTEURS, ['talent', (c: Combatant, passive: OpPassive[]) => { ajouter('talents', { passive }); c.talents = [{ talentId: ID, times: 1 }]; }] as const])(
     '%s : +1 Chance, +2 Détermination',
     (_, poser) => {
       const c = { ...heros(), fate: 2, resilience: 1 } as Combatant;

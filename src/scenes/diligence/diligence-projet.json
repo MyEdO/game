@@ -165,7 +165,8 @@
      ],
      "trappings": [
       {
-       "text": "tromblon (habituellement sous le comptoir)"
+       "id": "tromblon",
+       "spec": "habituellement sous le comptoir"
       },
       {
        "text": "auberge La Diligence"
@@ -1583,7 +1584,7 @@
        "id": "arbalete"
       },
       {
-       "text": "épée"
+       "id": "arme-simple"
       },
       {
        "text": "anneau (valant 3 CO)"
@@ -1712,10 +1713,16 @@
        "id": "chemise-de-mailles"
       },
       {
-       "text": "épée"
+       "id": "arme-simple"
       },
       {
-       "text": "pistolet (avec munitions pour 10 tirs)"
+       "id": "pistolet"
+      },
+      {
+       "id": "balle-et-poudre",
+       "count": {
+        "fixed": 10
+       }
       },
       {
        "text": "cheval avec selle et harnais"
@@ -1842,10 +1849,16 @@
      ],
      "trappings": [
       {
-       "text": "arbalète (avec 10 carreaux)"
+       "id": "arbalete"
       },
       {
-       "text": "épée"
+       "id": "carreau",
+       "count": {
+        "fixed": 10
+       }
+      },
+      {
+       "id": "arme-simple"
       },
       {
        "id": "veste-de-cuir"
@@ -2064,10 +2077,17 @@
        "id": "vetements"
       },
       {
-       "text": "arbalète avec 10 carreaux"
+       "id": "arbalete"
       },
       {
-       "text": "gourdin"
+       "id": "carreau",
+       "count": {
+        "fixed": 10
+       }
+      },
+      {
+       "id": "arme-simple",
+       "spec": "gourdin"
       },
       {
        "id": "veste-de-cuir"
@@ -2216,7 +2236,13 @@
      ],
      "trappings": [
       {
-       "text": "arbalète avec 10 carreaux"
+       "id": "arbalete"
+      },
+      {
+       "id": "carreau",
+       "count": {
+        "fixed": 10
+       }
       },
       {
        "id": "dague"
@@ -2403,7 +2429,7 @@
        "id": "dague"
       },
       {
-       "text": "épée"
+       "id": "arme-simple"
       },
       {
        "text": "escadron de 5 patrouilleurs routiers"
@@ -2415,7 +2441,13 @@
        "id": "cape"
       },
       {
-       "text": "pistolet avec 10 balles"
+       "id": "pistolet"
+      },
+      {
+       "id": "balle-et-poudre",
+       "count": {
+        "fixed": 10
+       }
       },
       {
        "id": "veste-de-cuir"
@@ -2601,7 +2633,13 @@
      ],
      "trappings": [
       {
-       "text": "arbalète avec 10 carreaux"
+       "id": "arbalete"
+      },
+      {
+       "id": "carreau",
+       "count": {
+        "fixed": 10
+       }
       },
       {
        "id": "bouclier"
@@ -2622,13 +2660,19 @@
        "id": "dague"
       },
       {
-       "text": "épée"
+       "id": "arme-simple"
       },
       {
        "text": "insigne de son rang"
       },
       {
-       "text": "pistolet avec 10 balles"
+       "id": "pistolet"
+      },
+      {
+       "id": "balle-et-poudre",
+       "count": {
+        "fixed": 10
+       }
       },
       {
        "text": "unité de 8-12 (ou jusqu'à 16-24) patrouilleurs routiers"

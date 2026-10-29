@@ -5,8 +5,8 @@
  */
 import type { AnimationClip, Mesh, Object3D, Skeleton, SkinnedMesh } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { estObjet } from '../../../../src/hote/formes';
 import { ecrireGlb, lireConteneur, type DocumentGltf } from '../glb.ts';
-import { estObjet } from '../../../../src/hote/formes.ts';
 
 export interface SceneChargee {
   readonly scene: Object3D;

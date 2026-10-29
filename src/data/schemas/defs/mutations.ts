@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { entityAppearanceSchema, mutationKindSchema } from '../grammaire/valeurs';
-import { mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
+import { mecaniqueDe, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 
 export const file = 'mutations.json';
 export const famille = 'entite';
@@ -18,7 +18,7 @@ const doc = document(
   famille,
   {
     kind: mutationKindSchema,
-    passive: z.array(mecaniqueDe({ 'charMod.min': 'admis' }).gameOp).optional(),
+    passive: passifsDe(mecaniqueDe({ 'charMod.min': 'admis' }).gameOp).optional(),
     effects: z.array(triggeredEffectSchema).optional(),
     note: z.string().optional(),
     nonVisual: z.boolean().optional(),

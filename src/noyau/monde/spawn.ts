@@ -24,7 +24,8 @@ import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
 import { appliquerAcquisitions } from '../../engine/talentEffects';
 import { parsePsychTraits } from '../../engine/psychology';
-import { traitCharMods, traitBonusWoundsBE, mutationsAtSpawn, markMutationsAtSpawn, isSwarm } from '../../engine/traits/dispatch';
+import { traitCharMods, traitBonusWoundsBE, traitPassiveMods, mutationsAtSpawn, markMutationsAtSpawn, isSwarm } from '../../engine/traits/dispatch';
+import { sommeAttrMods } from '../../engine/trauma';
 import { rollMutation, mutationById } from '../../data/mutations';
 import { makeRNG, type RNG } from '../../engine/dice';
 import { attachMutation, type Mutation } from '../../engine/corruption';
@@ -137,7 +138,7 @@ function attacherMutationsDeSpawn(c: Combatant, traits: TraitList | undefined, a
   const mutations = spawnMutations(traits, rng);
   for (const m of mutations) attachMutation(c, m, rng);
   c.weapons = armes(c.traits ?? []);
-  if (mutations.length) refreshWounds(c);
+  refreshWounds(c);
 }
 
 /** Compétences d'un statbloc au FORMAT LIVRE (« Langue (Magick) 63 », « Focalisation 65 ») : la
@@ -353,6 +354,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   const skills = skillsFromBook(sb.skills, chars, `spec:${id}`);
   const talents = talentsFromBook(sb.talents);
   const rolled = !!extras?.charsRolled || !!sb.randomChars;
+  const bExplicite = !rolled && typeof sb.char.B === 'number' ? sb.char.B : undefined;
   chars = profilDeLIndividu(chars, id, extras?.charsRolled, sb.randomChars);
   // Traits à modificateurs de PROFIL (Élite, Coriace, Brutal, Rapide… — LDB 85) : un statbloc d'ÉDITEUR
   // part d'un profil standard et AJOUTE les Traits (LDB 77) → tous appliqués en DIRECT via `liveTraits`
@@ -363,10 +365,10 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   // Blessures sur le profil INCLUANT les traits (Coriace +E…) ; `characteristics` ne garde que la base saisie.
   const charsEff = withTraitChars(chars, designes);
   const traits = traitsDeLIndividu(poses, { id, indice: indiceSurLeProfil((k) => charsEff[k]) }, { appris: extras?.learnedTraits }); // Middenheim 04 l.29
-  let wounds = typeof sb.char.B === 'number' && !rolled ? (sb.char.B as number) : maxWounds(charsEff, size, traits);
+  let wounds = bExplicite ?? maxWounds(charsEff, size, traits);
   // Endurant (LDB 85 l.130) : +Bonus d'Endurance Blessures (sur la formule — un B explicite du
   // statbloc est réputé final, comme au bestiaire).
-  if ((typeof sb.char.B !== 'number' || rolled) && traitBonusWoundsBE(traits)) wounds += Math.floor(charsEff.endurance / 10);
+  if (bExplicite === undefined && traitBonusWoundsBE(traits)) wounds += Math.floor(charsEff.endurance / 10);
   const swarm = isSwarm(traits);
   if (swarm) ({ chars, wounds } = applySwarmBuild(chars, wounds)); // Nuée : ×5 PB + 10 CC (LDB 85 l.253)
   const movement = typeof sb.char.M === 'number' ? (sb.char.M as number) : 4; // traits → liveTraits (effectiveMovement)
@@ -395,6 +397,9 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
     movement,
     pos,
   };
+  // B explicite réputé final, ses Traits compris (LDB 77 l.91-95 ; #1463) : leurs `attrMod` de Blessures,
+  // que `effectiveMaxWounds` compte au delta, sont retirés de la base.
+  if (bExplicite !== undefined) combattant.wounds.base = wounds - sommeAttrMods(traitPassiveMods(combattant.liveTraits), 'wounds', combattant);
   // Armes : depuis les Traits si fournis (« Arme (Épée) +7 », « À distance (Arbalète) +9 (60) »),
   // sinon une arme générique au dégât indiqué.
   attacherMutationsDeSpawn(combattant, traits, (t) => (t.length ? weaponsFromTraits(t) : [buildWeapon({ label: 'Arme', damage: { literal: sb.weaponDamage ?? '+BF' } })])); // uid universel

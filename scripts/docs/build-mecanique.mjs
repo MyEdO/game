@@ -278,7 +278,7 @@ Toute mécanique — trait de créature, talent, atout d'arme/armure, mutation, 
 
 ${table(
     [
-      { c: '`passive: GameOp[]`', porte: 'modificateur CONTINU, sans déclencheur', lu: PASSIF },
+      { c: '`passive: OpPassive[]`', porte: 'modificateur CONTINU, sans déclencheur', lu: PASSIF },
       { c: '`effects: TriggeredEffect[]`', porte: 'effet sur ÉVÉNEMENT (à la touche, en fin de Round…)', lu: DECLENCHE },
       { c: '`capabilities`', porte: 'drapeau IRRÉDUCTIBLE que le moteur INTERROGE (aucune valeur numérique ni formule)', lu: CAPACITE },
     ],

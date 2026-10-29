@@ -41,6 +41,9 @@
  * ENTRÉES : `src/data/props.json`, `src/data/trappings.json`, `src/data/spells.json`,
  * `src/data/tables.json` (les seules données lues et écrites).
  *
+ * FORME D'AVANT SEULE : une phrase de provenance n'est réécrite que tant qu'elle dit son étalon en
+ * CASES ; une entrée absente, sans `maison`, ou dont la phrase a été révisée depuis, est laissée telle
+ * quelle.
  * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : un fichier déjà entièrement migré est reconnu ; rejoué sur
  * l'état final, le script n'écrit rien et sort 0.
  * FAIL-FAST : cardinal inattendu (recettes, primitives, valeurs du plan, ancres, sources, ops),
@@ -53,6 +56,7 @@ import { tableTotale } from '../../src/lib/tableTotale.ts';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const chemin = (f) => path.join(ROOT, 'src/data', f);
@@ -97,7 +101,7 @@ function lire(f) {
   const brut = fs.readFileSync(chemin(f), 'utf8');
   const doc = JSON.parse(brut);
   if (!Array.isArray(doc)) ecarts.push(`${f} : racine non-TABLEAU`);
-  else if (JSON.stringify(doc, null, 2) !== brut)
+  else if (serializeDataset(doc) !== brut)
     ecarts.push(`${f} : FORME NON CANONIQUE (pas \`JSON.stringify(doc, null, 2)\`)`);
   return { brut, doc };
 }
@@ -129,6 +133,9 @@ function pointEnMetres(p, quoi) {
 
 const dejaPoint = (p) => p && typeof p === 'object' && 'xM' in p;
 
+/** Une phrase de provenance à la forme d'avant : son étalon dit en CASES. */
+const enCases = (maison) => typeof maison === 'string' && /cases\)|cases contre/.test(maison);
+
 // ————————————————————————————————— PORTE DE LECTURE —————————————————————————————————
 const props = lire('props.json');
 const datasetsOps = tableTotale(DATASETS_OPS, (f) => lire(f));
@@ -152,13 +159,6 @@ const datasetsOps = tableTotale(DATASETS_OPS, (f) => lire(f));
   for (const [quoi, total, faits] of partages)
     if (faits !== 0 && faits !== total) ecarts.push(`MÉLANGE de graphies — ${quoi} : ${faits} migrée(s) sur ${total}`);
 
-  for (const [id, phrase] of Object.entries(PROVENANCES)) {
-    const e = props.doc.find((x) => x && x.id === id);
-    if (!e) ecarts.push(`${id} : entrée introuvable (provenance)`);
-    else if (typeof e.maison !== 'string' || !e.maison) ecarts.push(`${id} : \`maison\` absente — ce script n'en invente aucune`);
-    else if (e.maison !== phrase && !/cases\)|cases contre/.test(e.maison))
-      ecarts.push(`${id} : phrase de provenance INCONNUE — ni l'ancienne (en cases) ni la nouvelle (en mètres)`);
-  }
   for (const f of DATASETS_OPS) {
     const ops = opsLight(datasetsOps[f].doc);
     const faits = ops.filter((o) => 'radiusM' in o).length;
@@ -178,7 +178,7 @@ if (ecarts.length) {
 let primitivesConverties = 0;
 let ancresConverties = 0;
 let sourcesConverties = 0;
-let provenancesReecrites = 0;
+const provenancesReecrites = new Set();
 
 /** Une primitive, ses cotes du plan multipliées et ses clés renommées ; l'ordre des clés est gardé. */
 function primitiveEnMetres(p, id) {
@@ -219,9 +219,9 @@ const apresProps = props.doc.map((e) => {
         }
         sortie.light = lumiere;
       }
-    } else if (k === 'maison' && PROVENANCES[e.id]) {
+    } else if (k === 'maison' && PROVENANCES[e.id] && enCases(v)) {
       // La phrase de provenance dit son étalon dans l'unité de la DONNÉE : elle suit le champ.
-      if (v !== PROVENANCES[e.id]) provenancesReecrites++;
+      provenancesReecrites.add(e.id);
       sortie.maison = PROVENANCES[e.id];
     } else sortie[k] = v;
   }
@@ -246,13 +246,13 @@ function opsEnMetres(noeud) {
 // qui les suit. Aucune à faire = rien à écrire, quel que soit l'ordre des clés ou le formatage des
 // fichiers. `opsEnMetres` compte en rendant : ses sorties se calculent AVANT la porte.
 const sortiesOps = tableTotale(DATASETS_OPS, (f) => JSON.stringify(opsEnMetres(datasetsOps[f].doc), null, 2));
-if (primitivesConverties + ancresConverties + sourcesConverties + provenancesReecrites + opsConverties === 0) {
+if (primitivesConverties + ancresConverties + sourcesConverties + provenancesReecrites.size + opsConverties === 0) {
   console.log('src/data : no-op (0 conversion — recettes, places et sources déjà en mètres)');
   process.exit(0);
 }
 
 const ecrits = [];
-const sortieProps = JSON.stringify(apresProps, null, 2);
+const sortieProps = serializeDataset(apresProps);
 if (sortieProps !== props.brut) { fs.writeFileSync(chemin('props.json'), sortieProps, 'utf8'); ecrits.push('props.json'); }
 
 for (const f of DATASETS_OPS) {
@@ -295,8 +295,7 @@ for (const f of DATASETS_OPS) {
       if (s.anchor.xM / FACTEUR !== t.anchor.x || s.anchor.yM / FACTEUR !== t.anchor.y)
         echecs.push(`POST ${d.id}/${s.id} : ×${FACTEUR} n’est pas exact sur l’ancre`);
     }
-    if (PROVENANCES[d.id] && d.maison !== PROVENANCES[d.id]) echecs.push(`POST ${d.id} : provenance non réécrite en mètres`);
-    if (typeof d.maison === 'string' && /cases\)|cases contre/.test(d.maison)) echecs.push(`POST ${d.id} : la provenance parle encore en CASES`);
+    if (provenancesReecrites.has(d.id) && d.maison !== PROVENANCES[d.id]) echecs.push(`POST ${d.id} : provenance non réécrite en mètres`);
     if (d.light && 'radiusTiles' in d.light) echecs.push(`POST ${d.id} : \`radiusTiles\` survit dans \`light\``);
     if (d.light && a.light && 'radiusTiles' in a.light && d.light.radiusM / FACTEUR !== a.light.radiusTiles)
       echecs.push(`POST ${d.id} : rayon ${d.light.radiusM} m ≠ ${a.light.radiusTiles} × ${FACTEUR}`);
@@ -311,7 +310,7 @@ for (const f of DATASETS_OPS) {
         echecs.push(`POST ${f}[${i}] : rayon ${opsApres[i].radiusM} m ≠ ${opsAvant[i].radiusTiles} × ${FACTEUR}`);
     }
   }
-  rapport.push(`${ecrits.join(', ')} : ${primitivesConverties} primitive(s) et ${ancresConverties} ancre(s) de place en mètres (×${FACTEUR} sur le plan, hauteurs renommées) ; ${sourcesConverties} source(s) de \`props.json\` et ${opsConverties} op(s) \`light\` en mètres ; ${provenancesReecrites} phrase(s) de provenance réécrite(s)`);
+  rapport.push(`${ecrits.join(', ')} : ${primitivesConverties} primitive(s) et ${ancresConverties} ancre(s) de place en mètres (×${FACTEUR} sur le plan, hauteurs renommées) ; ${sourcesConverties} source(s) de \`props.json\` et ${opsConverties} op(s) \`light\` en mètres ; ${provenancesReecrites.size} phrase(s) de provenance réécrite(s)`);
 }
 
 if (echecs.length) {

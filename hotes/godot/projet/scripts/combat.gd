@@ -18,13 +18,8 @@ func _ready() -> void:
 	_plateau.case_cliquee.connect(_cliquer)
 	_interface.offre_choisie.connect(func(offre: String) -> void: _jouer({offre = offre}))
 	_fenetre.geste.connect(_jouer)
-	_pont.refus.connect(func(erreur: Dictionary) -> void: _interface.afficher_refus(erreur.message))
-	_pont.panne.connect(_interface.afficher_panne)
-	if not _pont.est_web:
-		_interface.afficher_panne("Cet hôte joue dans une page : son pont est `wfrp-pont.js` (export Web).")
+	if not await _pont.rejoindre(_interface.afficher_refus, _interface.afficher_panne):
 		return
-	if not _pont.est_pret():
-		await _pont.pret
 	var entree := {scenario = _pont.parametre("scenario")}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
@@ -53,27 +48,11 @@ func _suivre(reponse: Dictionary) -> void:
 	_publier_l_ecran.call_deferred()
 
 
-## Ce que l'écran porte, une fois la vue mise en page : chaque bouton actif qu'aucun défilement ne cache (son texte,
-## son centre) et le point de chaque case du plateau.
+## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`) et le point de
+## chaque case du plateau.
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
-	var boutons := []
-	for racine in [_interface, _fenetre]:
-		for bouton in racine.find_children("*", "BaseButton", true, false):
-			var centre: Vector2 = bouton.get_global_rect().get_center()
-			if bouton.is_visible_in_tree() and not bouton.disabled and _a_l_ecran(bouton, centre):
-				boutons.append({texte = bouton.text, x = centre.x, y = centre.y})
-	_pont.publier_l_ecran({boutons = boutons, cases = _plateau.points()})
-
-
-## Si `point` de `controle` se voit à travers chaque défilement qui le contient.
-func _a_l_ecran(controle: Control, point: Vector2) -> bool:
-	var parent := controle.get_parent()
-	while parent != null:
-		if parent is ScrollContainer and not (parent as ScrollContainer).get_global_rect().has_point(point):
-			return false
-		parent = parent.get_parent()
-	return true
+	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface, _fenetre]), cases = _plateau.points()})
 
 
 ## Un clic sur `case` : le clic du champ qui désigne son occupant s'il en a un, celui qui désigne la case sinon.

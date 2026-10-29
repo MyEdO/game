@@ -15,8 +15,11 @@
  *
  * ENTRÉES : écrites — `src/data/traits.json`, `src/data/creatures.json`, `src/data/mutations.json`,
  * `src/scenes/diligence/diligence-projet.json` ; aucun autre fichier n'est lu.
- * FAIL-FAST — avant toute écriture, sortie 1 : un `arg` de Corruption qui ne nomme aucun Degré (son
- * registre est fermé) ; un fichier hors de son formatage ; une entrée de `traits.json` absente.
+ * FORME D'AVANT SEULE (`lib/formeDAvant.mjs`) : une entrée de `traits.json` n'est déclarée que si les clés
+ * de son geste sont EXACTEMENT à leur forme d'avant (`avant`) ; absente, déjà déclarée ou révisée après la
+ * migration, elle est laissée telle quelle.
+ * Un `arg` qui ne nomme aucun palier imprimé (déjà un id, ou révisé depuis) est laissé tel quel.
+ * FAIL-FAST — avant toute écriture, sortie 1 : un fichier hors de son formatage.
  * IDEMPOTENT : rejouée sur l'état final, aucun geste n'est à faire et rien ne s'écrit.
  * FORMATAGE PRÉSERVÉ, constaté avant l'écriture : un dataset est EXACTEMENT `JSON.stringify(doc, null, 2)`
  * (sans saut de ligne final), le projet de campagne `JSON.stringify(doc, null, 1) + '\n'`.
@@ -24,10 +27,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
+import { porteLaTranche } from './lib/formeDAvant.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-/** Reflet de `src/data/serialize.ts#serializeDataset` (pas d'import TS depuis un script .mjs). */
-const serializeDataset = (value) => JSON.stringify(value, null, 2);
 const serializeProjet = (value) => `${JSON.stringify(value, null, 1)}\n`;
 
 /** Chaque fichier, avec son formatage. */
@@ -53,15 +56,12 @@ const PALIERS = {
     Impossible: 'impossible',
   },
 };
-/** Trait dont le registre est FERMÉ : un `arg` qui n'y nomme rien est une faute. */
-const FERME = new Set(['corruption']);
-
-/** Déclarations de `traits.json` : champs retirés, champs posés après `label`. */
+/** Déclarations de `traits.json` : forme d'avant des clés du geste, champs retirés, champs posés après `label`. */
 const DECLARATIONS = {
-  corruption: { retirer: ['indice'], poser: { specsSource: 'exposureLevels' } },
-  venin: { retirer: ['indice'], poser: { specsSource: 'difficulties', specsOpen: true } },
-  morsure: { retirer: [], poser: { specsOpen: true } },
-  armure: { retirer: [], poser: { specsOpen: true } },
+  corruption: { avant: { indice: { label: 'Degré' }, specsSource: undefined }, retirer: ['indice'], poser: { specsSource: 'exposureLevels' } },
+  venin: { avant: { indice: { label: 'Difficulté' }, specsSource: undefined, specsOpen: undefined }, retirer: ['indice'], poser: { specsSource: 'difficulties', specsOpen: true } },
+  morsure: { avant: { specsOpen: undefined }, retirer: [], poser: { specsOpen: true } },
+  armure: { avant: { specsOpen: undefined }, retirer: [], poser: { specsOpen: true } },
 };
 
 const fautes = [];
@@ -88,34 +88,24 @@ const traits = docs.get('src/data/traits.json').doc;
 let gestes = 0;
 for (const [id, decl] of Object.entries(DECLARATIONS)) {
   const i = traits.findIndex((t) => t.id === id);
-  if (i < 0) {
-    fautes.push(`traits.json : « ${id} » absent`);
-    continue;
-  }
-  const e = traits[i];
-  const aFaire = decl.retirer.some((k) => k in e) || Object.entries(decl.poser).some(([k, v]) => e[k] !== v);
-  if (aFaire) {
-    traits[i] = declarer(e, decl);
-    gestes++;
-  }
+  if (i < 0 || !porteLaTranche(traits[i], decl.avant)) continue;
+  traits[i] = declarer(traits[i], decl);
+  gestes++;
 }
 
 /** Convertit en place l'`arg` de chaque Trait `corruption`/`venin` posé ou octroyé sous `noeud`. */
-function convertir(noeud, rel) {
-  if (Array.isArray(noeud)) return noeud.forEach((n) => convertir(n, rel));
+function convertir(noeud) {
+  if (Array.isArray(noeud)) return noeud.forEach(convertir);
   if (!noeud || typeof noeud !== 'object') return;
   const id = noeud.op === 'grantTrait' ? noeud.traitId : noeud.id;
   const paliers = Object.prototype.hasOwnProperty.call(PALIERS, id) ? PALIERS[id] : undefined;
-  if (paliers && typeof noeud.arg === 'string') {
-    const ids = new Set(Object.values(paliers));
-    if (Object.prototype.hasOwnProperty.call(paliers, noeud.arg)) {
-      noeud.arg = paliers[noeud.arg];
-      gestes++;
-    } else if (!ids.has(noeud.arg) && FERME.has(id)) fautes.push(`${rel} : ${id} « ${noeud.arg} » ne nomme aucun palier de son registre`);
+  if (paliers && typeof noeud.arg === 'string' && Object.prototype.hasOwnProperty.call(paliers, noeud.arg)) {
+    noeud.arg = paliers[noeud.arg];
+    gestes++;
   }
-  for (const v of Object.values(noeud)) convertir(v, rel);
+  for (const v of Object.values(noeud)) convertir(v);
 }
-for (const rel of ['src/data/creatures.json', 'src/data/mutations.json', 'src/scenes/diligence/diligence-projet.json']) convertir(docs.get(rel).doc, rel);
+for (const rel of ['src/data/creatures.json', 'src/data/mutations.json', 'src/scenes/diligence/diligence-projet.json']) convertir(docs.get(rel).doc);
 
 if (fautes.length) {
   console.error(`ARRÊT — rien n'est écrit :\n${fautes.join('\n')}`);

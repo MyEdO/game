@@ -1105,11 +1105,11 @@ export interface TalentData {
    *  féroce `onHit`, Frappe réactive `onCharged`…), appliqués par `noyau/triggeredEffects` exactement comme
    *  les traits. Type-only (le moteur reste pur). Édité au Codex par `TriggeredEffectsField`. */
   effects?: TriggeredEffect[];
-  /** Modificateurs PASSIFS continus (Coup puissant, Dur à cuire…) en `GameOp[]` — MÊME vocabulaire que les
+  /** Modificateurs PASSIFS continus (Coup puissant, Dur à cuire…) en `OpPassive[]` — MÊME vocabulaire que les
    *  sorts/traits, lus par le collecteur passif (`talentPassiveMods` → `passiveMods`, kind `intrinseque`,
    *  répété par niveau). Édité au Codex par `GameOpEditor`. L'octroi d'attaque gratuite (Frénésie) vit ici :
    *  `grantFreeAttack{when:'available'}`, lu par `availableAttacks`. */
-  passive?: import('../engine/ops').GameOp[];
+  passive?: import('../engine/ops').OpPassive[];
   /** Capacités de combat/jeu (LDB 10) en DONNÉE : sac de flags lu par `featuresOf`/`dispatch` (Coup
    *  puissant `meleeDamageBonus`, Riposte, Tueur, castingKind…). Remplace les `combatFeatures/defs/*.ts`. */
   combat?: import('../engine/combatFeatures/types').CombatFeature;
@@ -1329,10 +1329,10 @@ export interface TrappingData {
    *  `weatherProtection` (Cape/Manteau), `isShelter` (Tente), `isRations` (Ration), `isGrimoire`
    *  (Grimoire), `preventForcedDrop` (Gantelet verrouillé). Édité au Compendium. */
   capabilities?: ItemCapabilities;
-  /** Modificateurs PASSIFS continus de l'objet (GameOp[], MÊME vocabulaire que traits/qualités/sorts) —
+  /** Modificateurs PASSIFS continus de l'objet (OpPassive[], MÊME vocabulaire que traits/qualités/sorts) —
    *  appliqués tant que l'objet est PORTÉ ou TENU (collecteur `passiveMods`). Ex. Bésicles → `skillMod`
    *  +20 Langue/Perception (LDB 67). */
-  passive?: import('../engine/ops').GameOp[];
+  passive?: import('../engine/ops').OpPassive[];
   /** Tarif d'un SERVICE (LDB 66 l.12-14), pas un objet possédable : marqueur de la sous-liste
    *  `INSTANCIABLE_PAR_ID` (`schemas/grammaire/sousListes.ts`), hors de `trappingsInstanciables` ;
    *  reste la source de PRIX de son consommateur (référencée par id) et visible au Codex/Compendium. */
@@ -1449,7 +1449,7 @@ export interface CreatureData {
 }
 /** Base PARTAGÉE d'un STATUT porté pilotant des effets en DONNÉES — soit un État (LDB 16, `EtatData`), soit
  *  un état psychologique (LDB 21, `PsychologyData`). Porte le vocabulaire commun : modificateurs PASSIFS
- *  (`passive: GameOp[]`, MÊME éditeur `GameOpEditor` que traits/atouts) ET effets DÉCLENCHÉS
+ *  (`passive: OpPassive[]`, MÊME éditeur `GameOpEditor` que traits/atouts) ET effets DÉCLENCHÉS
  *  (`effects: TriggeredEffect[]`). Folding UNIQUE : `passiveMods` (passifs) + `fireStatusEffects` (déclenchés)
  *  itèrent indifféremment États et états psy → zéro duplication de schéma ni de collecteur. */
 export interface StatusData {
@@ -1464,9 +1464,9 @@ export interface StatusData {
    *  `grammaire/prose.ts`). */
   descRef?: DescRef;
   source: SourceRef;
-  /** Modificateurs PASSIFS continus (pénalité de Test, `incomingAttackMod`, `sbBonus`…) en `GameOp[]`, lus
+  /** Modificateurs PASSIFS continus (pénalité de Test, `incomingAttackMod`, `sbBonus`…) en `OpPassive[]`, lus
    *  par `passiveMods` (kind `etat` : pool non-cumul, le pire seul, LDB 16 l.13). MÊME éditeur GameOpEditor. */
-  passive?: import('../engine/ops').GameOp[];
+  passive?: import('../engine/ops').OpPassive[];
   /** Effets DÉCLENCHÉS (dégâts par round → `onRoundEnd` ; sortie de Frénésie → `onTurnStart`…) en
    *  `TriggeredEffect[]`, diffusés par `fireStatusEffects` — le même cœur `applyTriggeredEffects`. */
   effects?: TriggeredEffect[];
@@ -1886,11 +1886,11 @@ export interface TraitData {
    *  `maneuvers`. Un trait d'attaque naturelle octroie sa/ses manœuvre(s) ; `engine/creatureAttacks`
    *  les résout par id (`findManeuverById`). Le trait Souffle en octroie plusieurs (un par Type). */
   grantsManeuvers?: RefDesignee[];
-  /** Modificateurs de PROFIL PASSIFS (Élite +20 CC/CT/FM, Brutal −1 M…) en `GameOp[]` — le MÊME vocabulaire
+  /** Modificateurs de PROFIL PASSIFS (Élite +20 CC/CT/FM, Brutal −1 M…) en `OpPassive[]` — le MÊME vocabulaire
    *  d'ops que les sorts et `Trauma.ops`, CONTINUS (sans wrapper Flow/déclencheur, ≠ `effects`) : édités par
    *  `GameOpEditor` (le composant de liste d'ops existant), lus par le collecteur passif (`traitPassiveMods`
    *  → liveTraits) qui leur AFFECTE le `kind` `intrinseque` (comme la séquelle dérive le sien). */
-  passive?: import('../engine/ops').GameOp[];
+  passive?: import('../engine/ops').OpPassive[];
   /** Apparence COSMÉTIQUE déclarée en DONNÉE (calques du catalogue via `features` + `colors` + `eyes`) —
    *  fusionnée sur le rig quand le trait est présent (cf. `combatantVisuals`). Même fragment éditable
    *  (`AppearanceField`) que les créatures/mutations. */
@@ -1902,7 +1902,7 @@ export interface TraitData {
    *  X » — LDB 85 : Dressé (Dompté) ignore Bestial). Mécanisme GÉNÉRIQUE de suppression, lu par
    *  `traitCapability` : une capacité supprimée par n'importe quel trait porté répond false. */
   suppressesCapabilities?: (keyof TraitCapabilities)[];
-  /** AURA de combat : projette des `passive` GameOp[] sur les combattants À PORTÉE (Perturbant : −20 aux
+  /** AURA de combat : projette des `passive` OpPassive[] sur les combattants À PORTÉE (Perturbant : −20 aux
    *  Tests à `rangeChar` mètres, LDB 85 l.262 ; `affects` = quel camp est touché ; l'émetteur ne se touche
    *  jamais).
    *  Recalculée chaque Round par le hook GÉNÉRIQUE `recompute-auras`, accumulée dans `Combatant.auraMods`
@@ -1912,7 +1912,7 @@ export interface TraitData {
   aura?: {
     rangeChar: CharKey;
     affects?: 'enemies' | 'allies' | 'all';
-    passive: import('../engine/ops').GameOp[];
+    passive: import('../engine/ops').OpPassive[];
   };
   /** Trait STANDARD (LDB 76 l.28-31 : « ajoutés à la liste Facultative de TOUTES les créatures ») —
    *  proposé par le picker de Traits facultatifs sur n'importe quel bestiaire. Édité au Codex. */
@@ -1980,9 +1980,9 @@ export interface QualityData {
   alsoIn?: SecondaryRef[];
   effects?: TriggeredEffect[];
   /** Modificateurs PASSIFS continus (objet Laid : −10 aux Tests de Soc ; PASSIFS d'arme : weaponRollMod/
-   *  weaponDamageMod/armourPierce/critOnRoll) en `GameOp[]` — MÊME vocab/éditeur (`GameOpEditor`) que les
+   *  weaponDamageMod/armourPierce/critOnRoll) en `OpPassive[]` — MÊME vocab/éditeur (`GameOpEditor`) que les
    *  traits et les sorts ; lus par `engine/qualities/dispatch` (par id) et le collecteur passif. */
-  passive?: import('../engine/ops').GameOp[];
+  passive?: import('../engine/ops').OpPassive[];
   /** Drapeaux/marqueurs de CAPACITÉ irréductibles (résolution combat, artisanat) — lus PAR ID par
    *  `engine/qualities/dispatch`. Édité au Codex. */
   capabilities?: QualityCapabilities;
@@ -2013,8 +2013,8 @@ export interface SymptomData {
   label: string;
   desc: string;
   source?: SourceRef;
-  passive?: import('../engine/ops').GameOp[];
-  passiveBySeverity?: { moderee?: import('../engine/ops').GameOp[]; grave?: import('../engine/ops').GameOp[] };
+  passive?: import('../engine/ops').OpPassive[];
+  passiveBySeverity?: { moderee?: import('../engine/ops').OpPassive[]; grave?: import('../engine/ops').OpPassive[] };
   /** Effets DÉCLENCHÉS du symptôme (MÊME `TriggeredEffect` que Traits/Atouts/États) — dispatchés par
    *  `fireTriggers` quand le porteur est actif (Crampes abdominales : `onOwnTestFailed` → Sonné/FM/
    *  Inconscient par paliers de `slThreshold`, MSRC 16 l.152-158). Source du dispatcher via
@@ -2039,7 +2039,7 @@ export interface SymptomData {
   /** Passifs conditionnés à la VISIBILITÉ de la lésion (Vers du Reik : « si l'ampoule se trouve à un endroit
    *  visible… −10 Sociabilité », MSRC 16 l.140) — appliqués SEULEMENT si la localisation tirée à l'entrée en
    *  phase active (`Disease.blisterLocation`) ∈ `visibleLocations`. Jet de Localisation canonique (`hitLocation`). */
-  visiblePassive?: import('../engine/ops').GameOp[];
+  visiblePassive?: import('../engine/ops').OpPassive[];
   /** Localisations comptées comme VISIBLES (arbitrage `maison` : tête/bras visibles, corps/jambes couverts) —
    *  gate de `visiblePassive`. Éditable au Codex. */
   visibleLocations?: import('../engine/types').HitLocation[];
@@ -2591,7 +2591,7 @@ export const teintesJeu: Record<import('./schemas/defs/teintesJeu').TeinteId, st
 /** Traits & Améliorations de navire (MDG 12) — catalogue app-owned éditable au Codex. La DONNÉE (`desc`
  *  verbatim + effet) vit ici ; `engine/navalTraits.ts` ne fait que la LIRE (aucune valeur codée en dur).
  *  `kind` distingue Trait (construction) et Amélioration (ajout/retrait) ; `ranked` = prend un Indice
- *  (« Renforcé 2 », « Peu maniable 1 »). L'EFFET mécanique passe par la langue UNIQUE `GameOp[]` (`passive`,
+ *  (« Renforcé 2 », « Peu maniable 1 »). L'EFFET mécanique passe par la langue UNIQUE des ops (`passive: OpPassive[]`,
  *  MÊME vocabulaire/éditeur que traits & mutations) — `ap` (Blindage → PA de coque), `moveMod` (Lissage → M),
  *  `skillDRBonus` (Peu maniable → DR des Tests de Voile/Ramer). Restent en CHAMP DE DOMAINE les sous-systèmes
  *  navire hors vocabulaire combattant : `ram` (Bélier → collision proue/frontale) et `deckCover` (Sabord →
@@ -2634,9 +2634,9 @@ export interface NavalTraitData {
   install?: NavalInstall;
   /** Prend un Indice (le libellé authoré peut être « Renforcé 2 ») — l'effet `passive` est répété par niveau. */
   ranked?: boolean;
-  /** Effet mécanique en `GameOp[]` (langue unique) — lu par `navalPassiveOps` puis filtré par effet
+  /** Effet mécanique en `OpPassive[]` (langue unique) — lu par `navalPassiveOps` puis filtré par effet
    *  (`ap`/`moveMod`/`skillDRBonus`), répété ×Indice si `ranked`. MÊME éditeur `GameOpEditor` que les traits. */
-  passive?: import('../engine/ops').GameOp[];
+  passive?: import('../engine/ops').OpPassive[];
   /** Bélier (MDG 12 l.221) : bonus de COLLISION (géométrie proue/frontale) — sous-système navire hors
    *  vocabulaire combattant (≠ `ap` qui mitige TOUT) → injecté dans `resolveCollision` via `belierRam`. */
   ram?: { ic: number; ap: number };

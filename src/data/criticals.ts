@@ -1,6 +1,6 @@
 import type { HitLocation, Difficulty } from '../engine/types';
 import type { FlowTestNode } from '../engine/flowCore';
-import type { Formula, GameOp } from '../engine/ops';
+import type { Formula, GameOp, OpPassive } from '../engine/ops';
 import type { SourceRef } from './schemas/grammaire/valeurs';
 import type { DocumentARangees } from './schemas/grammaire/document';
 import criticalsJson from './criticals.json';
@@ -110,7 +110,7 @@ export interface CritEscalation {
    *  (charMod −10 / `moveScale` jambe, durée 1d10 jours) est posé à la cible. Instancié par
    *  `stampCriticalEscalation` (nouvelle séquelle, pas une plaie chirurgicale) ; joué à l'Infirmerie (acte
    *  « Guérison », `medicFlow`). */
-  medicalAidGate?: { label: string; disable: GameOp[]; restoreDR: number; recoveryPenalty: GameOp[] };
+  medicalAidGate?: { label: string; disable: OpPassive[]; restoreDR: number; recoveryPenalty: GameOp[] };
   /** « Réouverture » (LDB 18 l.101/118/143/145/148/175 ; AA 07 l.119/147/149/152/175) : tant que la plaie n'a
    *  pas été recousue par Chirurgie, chaque nouveau Dégât à la MÊME Localisation octroie `amount` État
    *  Hémorragique. `stampCriticalEscalation` pose une séquelle chirurgicale (`Trauma.bleedOnReinjury`,

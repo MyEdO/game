@@ -16,13 +16,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 import { estOpDeTalentAncienne, graphieOpsDeTalentDeep } from '../../src/data/graphieOpsDeTalent.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA = path.join(ROOT, 'src/data');
-/** Reflet de `src/data/serialize.ts#serializeDataset` (pas d'import TS applicatif depuis un script .mjs). */
-const serializeDataset = (value) => JSON.stringify(value, null, 2);
-
 const echecs = [];
 const ecritures = [];
 let ops = 0;

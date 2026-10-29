@@ -90,7 +90,7 @@ describe('Venin — la touche qui blesse pose Empoisonné à la Difficulté du V
     expect(empoisonne(proie)).toBeUndefined();
   });
 
-  // #3060 : lecture révisable (recommandation), Difficulté la plus dure des poisons cumulés ; un Venin sans
+  // (#3060 ; LDB 16 l.70) Difficulté la plus dure des poisons cumulés ; un Venin sans
   // Difficulté vaut le défaut du Test de l'État (`etats.json › empoisonne`, `LDB 85 l.425`).
   it.each([
     ['difficile', 'facile', 'difficile'],

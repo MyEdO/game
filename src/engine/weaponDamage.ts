@@ -6,7 +6,7 @@
 import { Weapon, WeaponEnchant, ArmourBypass, WeaponRangeSpec, AmmoRangeMod } from './types';
 import { findTrappingById, qualityInstance, type TrappingData } from '../data';
 import type { TriggeredEffect } from './flowCore';
-import type { GameOp } from './ops';
+import type { OpPassive } from './ops';
 import { isAtoutQuality, isUnbreakable, qualityIndice, resolveQualities } from './qualities/dispatch';
 import { longerThanShort } from './engagement';
 
@@ -78,7 +78,7 @@ export function applyEnchants(w: Weapon, enchants: WeaponEnchant[]): Weapon {
   const out: Weapon = { ...w, qualities: [...(w.qualities ?? [])] };
   let dmgPlus = 0;
   const onHit: TriggeredEffect[] = [...(w.onHitEffects ?? [])];
-  const passive: GameOp[] = [...(w.passive ?? [])];
+  const passive: OpPassive[] = [...(w.passive ?? [])];
   const removed = new Set(w.removedQualities ?? []);
   for (const e of live) {
     for (const id of e.addQualities ?? []) if (!out.qualities.some((x) => x.id === id)) out.qualities.push({ id }); // addQualities = ids (valueless)

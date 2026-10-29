@@ -15,10 +15,11 @@ import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAto
 import { chargerLicences, CLE_HORS_RELEASE, FICHIER_DE_LICENCE, licenceDeclaree, MANIFESTE_DE_PRODUCTION } from './dossierDeProduction.ts';
 import { sha256 } from './empreinte.ts';
 import { lireGlb, GlbIllisible } from './glb.ts';
-import { cheminsAbsolus, estObjet, ligneDErreur, type Brut } from './manifeste.ts';
-import { estBase, estSchema3, indexerModeles, validerModele, type BaseLivree, type ManifesteDeModele } from './modeles.ts';
+import { estObjet } from '../../../src/hote/formes';
+import { cheminsAbsolus, ligneDErreur, type Brut } from './manifeste.ts';
+import { estBase, estSchema3, fichiersDuModele, indexerModeles, validerModele, type BaseLivree, type ManifesteDeModele } from './modeles.ts';
 import {
-  DOSSIER_DES_MODELES, fichiersDuModele, nomDAsset, manifestesDesModeles, modelesEpingles,
+  DOSSIER_DES_MODELES, nomDAsset, manifestesDesModeles, modelesEpingles,
   type AssetAPublier, type LicenceDeComposant, type LicenceDePack, type Provenance,
 } from './release.ts';
 

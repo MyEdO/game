@@ -17,13 +17,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA_DIR = path.join(ROOT, 'src/data');
 const J = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
-
-/** Reflet de `src/data/serialize.ts#serializeDataset` (pas d'import TS depuis ce script .mjs). */
-const serializeDataset = (value) => JSON.stringify(value, null, 2);
 
 /** Compétences GROUPÉES par Groupe d'armes (LDB 62 l.138) — `specsSource` weaponGroupsMelee/Ranged. */
 const GROUPED_COMBAT_SKILLS = new Set(['corps-a-corps', 'projectiles']);
