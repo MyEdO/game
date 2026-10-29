@@ -540,7 +540,7 @@ describe('Traits conférés par une attaque, Difficulté portée par l’État',
     applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte: 'difficile' }], { rng: makeRNG(1) });
     expect(cible.conditions.find((x) => x.id === 'empoisonne')?.difficulte).toBe('difficile');
   });
-  // #3060 : lecture révisable (recommandation), Difficulté la plus dure des poisons cumulés (LDB 16 l.70-76).
+  // (#3060 ; LDB 16 l.70) Difficulté la plus dure des poisons cumulés.
   it('des poisons de Difficultés différentes laissent à l’État la plus dure, dans les deux ordres', () => {
     for (const ordre of [['facile', 'difficile'], ['difficile', 'facile']] as const) {
       const cible = mk({ id: 'ci' });

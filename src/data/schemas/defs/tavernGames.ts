@@ -3,7 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, difficultySchema, enumNomme, maisonSchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
-import { facilitationSchema, gameOpSchema, jetSchema } from '../grammaire/mecanique';
+import { executeesDe, facilitationSchema, jetSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 import { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../../../engine/sequenceVocab';
 
@@ -88,8 +88,8 @@ const doc = document(
     /** Effets PAR MANCHE en `GameOp[]` (Bras de fer l.34 : +1 Avantage au vainqueur du tour,
      *  +1 Exténué tous les (Bonus d'Endurance) tours) — `SequenceParams.rounds`. */
     roundOps: nommerChamps(z.strictObject({
-      winner: z.array(gameOpSchema).optional(),
-      attrition: z.array(gameOpSchema).optional(),
+      winner: executeesDe().optional(),
+      attrition: executeesDe().optional(),
       attritionEvery: z.union([z.number(), nommerChamps(z.strictObject({ charBonus: charKeySchema }), { charBonus: { label: 'Bonus de Caractéristique' } })]).optional(),
     }), {
       winner: { label: 'Vainqueur' },
@@ -181,7 +181,7 @@ const doc = document(
       }), { skill: { label: 'Compétence' }, char: { label: 'Caractéristique' } }),
       failEvery: z.number().optional(),
       eraseEvery: z.number().optional(),
-      ops: z.array(gameOpSchema).optional(),
+      ops: executeesDe().optional(),
       markLoser: z.boolean().optional(),
       /** Id d'État (`etats.json`) dont l'apparition arrête la partie (l.88 « rouler sous la table »). */
       stopCondition: z.string().optional(),
@@ -207,7 +207,7 @@ const doc = document(
       difficulty: difficultySchema,
       label: z.string().optional(),
       points: z.number().optional(),
-      ops: z.array(gameOpSchema).optional(),
+      ops: executeesDe().optional(),
       sobrietyPoints: z.number().optional(),
       /** RÉCIT de la sanction (gabarits `{who}`/`{points}`/`{s}`/`{mien}`… interpolés par le socle) —
        *  sans eux, un second jeu à lanceurs raconterait la pinte du premier. */

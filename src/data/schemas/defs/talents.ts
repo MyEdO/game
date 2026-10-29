@@ -3,7 +3,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { charKeySchema, combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema, termeBonusDe } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { conditionSchema, mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
+import { conditionSchema, mecaniqueDe, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'talents.json';
@@ -79,7 +79,7 @@ const doc = document(
     rand: z.number().nullable(),
     effects: z.array(triggeredEffectSchema).optional(),
     /** Désignateur : `careerSkillAdditions` (`engine/talentEffects.ts`), la spec du Talent porteur. */
-    passive: z.array(mecaniqueDe({ 'grantCareerSkill.skill': 'specOuChoixFacultatifs' }).gameOp).optional(),
+    passive: passifsDe(mecaniqueDe({ 'grantCareerSkill.skill': 'specOuChoixFacultatifs' }).gameOp).optional(),
     combat: combatFeatureSchema.optional(),
     // Contenu de RÉFÉRENCE (PNJ/campagne, RAW cité par entrée) : hors graphe d'obtenabilité (#326).
     codexOnly: z.literal(true).optional(),

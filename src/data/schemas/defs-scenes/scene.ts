@@ -21,7 +21,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
-import { conditionSchema, flowTestSchema, gameOpSchema } from '../grammaire/mecanique';
+import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { refIndiceSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
@@ -653,8 +653,8 @@ export const sceneEffectZoneSchema = nommerChamps(z.strictObject({
   tiles: z.array(ptSchema).optional(),
   blocksLoS: z.boolean().optional(),
   /** Payload `GameOp[]` — vocabulaire UNIQUE partagé avec les zones de Sort (`applyOps`). */
-  onCross: z.array(gameOpSchema).optional(),
-  perRound: z.array(gameOpSchema).optional(),
+  onCross: executeesDe().optional(),
+  perRound: executeesDe().optional(),
   crossTest: flowTestSchema.optional(),
   /** BARRIÈRE : `blockGroups` vide/absent = bloque tout le monde ; sinon ids de Groupes. */
   barrier: nommerChamps(z.strictObject({ blockGroups: refs('groupe').optional() }), { blockGroups: { label: "groupes bloqués" , texte: { regime: "technique"} } }).optional(),

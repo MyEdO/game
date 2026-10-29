@@ -26,7 +26,7 @@ import { hungerCharPenalties, thirstCharPenalties } from './provisions';
 import { drunkCharPenalties } from './drunkenness';
 import { hasActiveFlag } from './activeFlags';
 import { wornSocialMods, qualityWearMods } from './wearPenalty';
-import type { GameOp, PairedSense, PassiveKind, PassiveMod } from './ops';
+import type { GameOp, OpPassive, PairedSense, PassiveKind, PassiveMod } from './ops';
 import { resolveFormula } from './ops';
 import { valeurSansTirage, type LectureDeCarac } from './formule';
 import traumasJson from '../data/traumas.json';
@@ -58,7 +58,7 @@ export interface TraumaCumul {
   portee: 'localisation' | 'porteur';
   /** Ops appliquées PAR PALIER de `taille` unités : leur amplitude (`mod`) est multipliée par le
    *  nombre de paliers atteints (`floor(total / taille)`). */
-  parPalier?: { taille: number; ops: GameOp[] };
+  parPalier?: { taille: number; ops: OpPassive[] };
   /** Seuil au-delà duquel la séquelle `versTraumaId` s'applique — `remplace` (LDB 18 l.251) retire les
    *  occurrences comptées, `ajoute` (l.273/277) les conserve. */
   escalade?: { atLeast: number; versTraumaId: string; mode: 'remplace' | 'ajoute' };
@@ -83,7 +83,7 @@ export interface TraumaRig {
 }
 
 /**
- * Fiche de Traumatisme (registre `traumas.json`, app-owned) : mécanique = `ops` (GameOp[]), `desc` =
+ * Fiche de Traumatisme (registre `traumas.json`, app-owned) : mécanique = `ops` (OpPassive[]), `desc` =
  * texte canon LDB 18 VERBATIM (DISPLAY-ONLY, jamais parsé). Couvre déchirures/fractures par localisation
  * et toutes les séquelles permanentes d'amputation (+ Cécité/Surdité agrégées). `kind`/`severity` portés
  * pour la convalescence à étapes ; `prosthesis` = annulateurs (LDB 73).
@@ -93,7 +93,7 @@ export interface TraumaFiche {
   type: 'traumas';
   label: string;
   desc: string;
-  ops?: GameOp[];
+  ops?: OpPassive[];
   kind?: TraumaKind;
   severity?: TraumaSeverity;
   prosthesis?: { trappingId: string; cancels: 'all' | 'movement' }[];
@@ -135,7 +135,7 @@ export function findTraumaFiche(id: string | undefined): TraumaFiche | undefined
 }
 
 /** Ops PASSIVES d'une séquelle (lecteur UNIQUE de `t.ops` — vocab GameOp partagé). */
-function traumaOps(t: Trauma): GameOp[] {
+function traumaOps(t: Trauma): OpPassive[] {
   return t.ops ?? [];
 }
 /** Filtre typé d'une liste d'ops par type d'op (narrowing — `.char`/`.skill`/`.hands` accessibles). */
@@ -168,7 +168,7 @@ export function dechirureFractureFicheId(kind: TraumaKind, severity: TraumaSever
 
 /** Amplitude d'une op de palier multipliée par le nombre de paliers atteints (`mod` : `charMod`,
  *  `skillMod`, `moveMod`…). Une op sans amplitude chiffrée est émise TELLE QUELLE dès le 1ᵉʳ palier. */
-function scalePalierOp(o: GameOp, paliers: number): GameOp {
+function scalePalierOp(o: OpPassive, paliers: number): OpPassive {
   if (o.op === 'testMod') return { ...o, amount: o.amount * paliers };
   return 'mod' in o && typeof o.mod === 'number' ? { ...o, mod: o.mod * paliers } : { ...o };
 }
@@ -176,7 +176,7 @@ function scalePalierOp(o: GameOp, paliers: number): GameOp {
 /** Ops d'une séquelle pour `count` unités perdues : ops de base + `cumul.parPalier` mises à l'échelle du
  *  nombre de paliers (`floor(count / taille)`, LDB 18 l.247 « pour chaque paire », l.281 « pour chaque
  *  orteil »). SOURCE UNIQUE lue par `traumaById`, `permanentAmputations` et `consolidateAmputations`. */
-export function traumaCumulOps(f: TraumaFiche, count: number): GameOp[] {
+export function traumaCumulOps(f: TraumaFiche, count: number): OpPassive[] {
   const base = f.ops ?? [];
   const p = f.cumul?.parPalier;
   const paliers = p ? Math.floor(count / Math.max(1, p.taille)) : 0;
@@ -945,7 +945,7 @@ function modSurvives(c: Combatant, kind: PassiveKind, t?: Trauma): boolean {
  */
 /** Multiplie la magnitude d'une op d'État par le nombre de pions (perStack — Exténué −10/pion). Seul
  *  `testMod` (la pénalité par pion) est concerné aujourd'hui ; les autres ops d'État ne sont pas perStack. */
-function scaleEtatOp(op: GameOp, mult: number): GameOp {
+function scaleEtatOp(op: OpPassive, mult: number): OpPassive {
   if (mult === 1 || op.op !== 'testMod') return op;
   return { ...op, amount: op.amount * mult };
 }
@@ -996,7 +996,7 @@ export function passiveMods(c: Combatant, talents = true): PassiveMod[] {
   if (c.drunk && !hasActiveFlag(c, 'drunkIgnore')) {
     for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of drunkCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, kind: 'ivresse', label: tr('tra.kindIvresse'), src: { category: 'skills', id: 'resistance-a-l-alcool' } });
   }
-  // États (LDB 16) : leur `passive: GameOp[]` (pénalité de Test → `testMod`, bonus à l'attaquant →
+  // États (LDB 16) : leur `passive: OpPassive[]` (pénalité de Test → `testMod`, bonus à l'attaquant →
   // `incomingAttackMod`, échelle de Mouvement…) émis kind `etat` (pool NON-CUMUL, le pire seul, LDB 16 l.13).
   // La magnitude d'un `testMod` est multipliée par les pions quand l'entrée porte `perStack` (LDB 16 l.11) ;
   // le gate de combat `ignoreStatePenalties` est appliqué au point de LECTURE (combatTestPenalty).
@@ -1010,7 +1010,7 @@ export function passiveMods(c: Combatant, talents = true): PassiveMod[] {
   // MÊME pool `etat` que les États — MÊME folding générique, zéro chemin parallèle. Inerte sans `passive`.
   for (const p of c.psychState ?? [])
     for (const op of findPsychologyById(p.type)?.passive ?? []) out.push({ op, kind: 'etat', src: { category: 'psychologies', id: p.type } });
-  // Mutations de Corruption (LDB 19) : modifs PERMANENTES du corps → leur `passive: GameOp[]` (vocab unifié,
+  // Mutations de Corruption (LDB 19) : modifs PERMANENTES du corps → leur `passive: OpPassive[]` (vocab unifié,
   // `mutations.json`) émis tel quel en kind `intrinseque`, COMME les traits. (L'armure naturelle apAll/
   // apLocations est lue à part par recomputeLoadout.) Lu inline (la donnée `c.mutations` est sur le Combatant).
   // `src` = LA mutation émettrice : c'est elle qui NOMME la chip du jet (« −20 Visage inversé ») et
@@ -1022,7 +1022,7 @@ export function passiveMods(c: Combatant, talents = true): PassiveMod[] {
   // −Soc aux Tests sociaux (testMod char-qualifié) ; port d'armure → −N% par compétence (skillMod, intrinsèque).
   out.push(...wornSocialMods(c)); // une entrée PAR qualité émettrice (`src` = la qualité : « −10 Laid »)
   out.push(...qualityWearMods(c));
-  // Objets PORTÉS (equipped) ou TENUS (arme du loadout actif `c.weapons`) : leur `passive: GameOp[]`
+  // Objets PORTÉS (equipped) ou TENUS (arme du loadout actif `c.weapons`) : leur `passive: OpPassive[]`
   // (skillMod des Bésicles…) émis kind 'intrinseque' — comme les mutations. Les objets RANGÉS (inside) ne
   // comptent pas (ni equipped ni tenus). Lu par `passiveSkillSum` → `testValue`.
   for (const it of c.items ?? []) {
@@ -1035,7 +1035,7 @@ export function passiveMods(c: Combatant, talents = true): PassiveMod[] {
   // TELS QUELS. Les traits INHÉRENTS d'un profil bestiaire FINAL ne sont PAS dans `liveTraits` (déjà cuits dans
   // `characteristics`/`movement`) → zéro double-compte. Les consommateurs (passiveCharSum/passiveMoveMod) somment.
   if (c.liveTraits?.length) out.push(...traitPassiveMods(c.liveTraits));
-  // Talents POSSÉDÉS (LDB 10) : leur `passive: GameOp[]` (Coup puissant, Dur à cuire… ou Frénésie →
+  // Talents POSSÉDÉS (LDB 10) : leur `passive: OpPassive[]` (Coup puissant, Dur à cuire… ou Frénésie →
   // grantFreeAttack) émis kind `intrinseque`, par niveau — comme les traits. Disjoint → zéro double-compte.
   if (talents) out.push(...talentPassiveMods(c));
   for (const e of c.activeEffects ?? []) {

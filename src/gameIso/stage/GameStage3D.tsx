@@ -296,11 +296,11 @@ export type StageFrame =
    * Regard PREMIÈRE PERSONNE : la case du groupe, son cap, et le milieu (dont dépend la portée).
    * `cid` = le sujet dont le GLISSEMENT de marche déplace l'œil (`anim.glide`) : la caméra suit la
    * position CONTINUE du meneur, comme la caméra volumique affine suit `anim.cam()`. ARBITRAGE
-   * D'INGÉNIERIE (#1176, révisable au goût final) : le pas-à-pas du POV SVG était une forme
+   * D'INGÉNIERIE (#1176) : le pas-à-pas du POV SVG était une forme
    * du PEINTRE (une projection recalculée par pas), pas une intention de jeu — `makeCamera` accepte
    * une position continue, et les billboards du monde glissent déjà.
    * Le LACET, lui, reste SEC : `facing` est un `Dir8`, donc l'œil pivote de 45° d'un coup là où la
-   * position, elle, glisse. Statu quo du POV SVG — même arbitrage d'ingénierie, révisable au goût.
+   * position, elle, glisse. Statu quo du POV SVG — même arbitrage d'ingénierie.
    */
   | {
       mode: 'pov';

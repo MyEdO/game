@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { suiteAvecPas } from '../grammaire/cle-d-espace';
 import { difficultySchema, enumNomme, hitLocationSchema, maisonSchema, plageOuverteSchema, sourceRefSchema, formulaSchema } from '../grammaire/valeurs';
-import { gameOpSchema, flowSchema, noeudTest } from '../grammaire/mecanique';
+import { executeesDe, flowSchema, noeudTest, passifsDe } from '../grammaire/mecanique';
 
 
 export const critTableSchema = enumNomme({ tete: 'Tête', bras: 'Bras', corps: 'Corps', jambe: 'Jambe' });
@@ -26,9 +26,9 @@ export const critEscalationSchema = nommerChamps(z.strictObject({
   medicalAidGate: nommerChamps(z
     .strictObject({
       label: z.string(),
-      disable: z.array(gameOpSchema),
+      disable: passifsDe(),
       restoreDR: z.number(),
-      recoveryPenalty: z.array(gameOpSchema),
+      recoveryPenalty: executeesDe(),
     }), {
     label: { label: 'libellé' },
     disable: { label: 'désactivation' },
@@ -42,7 +42,7 @@ export const critEscalationSchema = nommerChamps(z.strictObject({
   onRepeat: nommerChamps(z
     .strictObject({
       traumas: z.array(z.string()).optional(),
-      ops: z.array(gameOpSchema).optional(),
+      ops: executeesDe().optional(),
     }), { traumas: { label: 'séquelles' }, ops: { label: 'opérations' } })
     .optional(),
   // LDB 18 l.74.
@@ -93,7 +93,7 @@ const critEntrySchema = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
-  ops: z.array(gameOpSchema).optional(),
+  ops: executeesDe().optional(),
   test: noeudCritique.optional(),
   lethal: z.boolean().optional(),
   amputation: amputationSchema.optional(),

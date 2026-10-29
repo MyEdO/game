@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { gameOpSchema } from '../grammaire/mecanique';
+import { executeesDe } from '../grammaire/mecanique';
 
 export const file = 'sea-shanties.json';
 export const famille = 'entite';
@@ -15,8 +15,8 @@ const doc = document(
   'sea-shanties',
   famille,
   {
-    crewOps: z.array(gameOpSchema).optional(),
-    captainOps: z.array(gameOpSchema).optional(),
+    crewOps: executeesDe().optional(),
+    captainOps: executeesDe().optional(),
     note: z.string().optional(),
   },
   {

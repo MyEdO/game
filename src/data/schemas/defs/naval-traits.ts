@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /** MDG 12 ; MSRC 12 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { gameOpSchema } from '../grammaire/mecanique';
+import { passifsDe } from '../grammaire/mecanique';
 import { maisonSchema } from '../grammaire/valeurs';
 
 export const file = 'naval-traits.json';
@@ -35,7 +35,7 @@ const doc = document(
     kind: z.enum(['trait', 'amelioration']),
     install: navalInstallSchema.optional(),
     ranked: z.boolean().optional(),
-    passive: z.array(gameOpSchema).optional(),
+    passive: passifsDe().optional(),
     /** MDG 12 l.221 */
     ram: nommerChamps(z.strictObject({ ic: z.number(), ap: z.number() }), { ic: { label: 'Indice de Critique' }, ap: { label: 'Points d’Armure' } }).optional(),
     /** Couvert de pont GRADUÉ (`DeckCoverClass`) : `totale` (Sabord/Murs blindés) ou `moyenne` (Plat-bord). */

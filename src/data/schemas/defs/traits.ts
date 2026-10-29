@@ -5,7 +5,7 @@ import { entityAppearanceSchema, charKeySchema, mutationKindSchema, specsSourceS
 import { idDe, ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
-import { gameOpSchema, mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
+import { mecaniqueDe, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 
 export const file = 'traits.json';
 export const famille = 'entite';
@@ -149,7 +149,7 @@ const doc = document(
     effects: z.array(triggeredEffectSchema).optional(),
     grantsManeuvers: z.array(ref('maneuver')).optional(),
     /** Désignateur : `careerTalentAdditions` (`engine/talentEffects.ts`), déplié à l'avancement (`noyau/monde/advancement.ts`). */
-    passive: z.array(mecaniqueDe({ 'grantCareerTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
+    passive: passifsDe(mecaniqueDe({ 'grantCareerTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
     appearance: entityAppearanceSchema.optional(),
     capabilities: traitCapabilitiesSchema.optional(),
     suppressesCapabilities: z.array(z.string()).optional(),
@@ -157,7 +157,7 @@ const doc = document(
       .strictObject({
         rangeChar: charKeySchema,
         affects: z.enum(['enemies', 'allies', 'all']).optional(),
-        passive: z.array(gameOpSchema),
+        passive: passifsDe(),
       }), {
       rangeChar: { label: 'Caractéristique de portée' },
       affects: { label: 'Cibles affectées' },

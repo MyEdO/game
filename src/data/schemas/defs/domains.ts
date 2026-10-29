@@ -3,7 +3,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { charKeySchema, enumNomme, sourceRefSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { flowTestSchema, gameOpSchema, triggeredEffectSchema } from '../grammaire/mecanique';
+import { executeesDe, flowTestSchema, triggeredEffectSchema } from '../grammaire/mecanique';
 import { idDe, refOuSpec } from '../grammaire/ref';
 
 export const file = 'domains.json';
@@ -62,7 +62,7 @@ const doc = document(
 
     missile: nommerChamps(z.strictObject({ bypass: missileBypassSchema, bonusFromBypass: z.boolean().optional() }), { bypass: { label: 'armure ignorée' }, bonusFromBypass: { label: 'bonus tiré de l’armure ignorée' } }).optional(),
     /** Ops appliquées AU LANCEUR après une incantation réussie. */
-    casterOps: z.array(gameOpSchema).optional(),
+    casterOps: executeesDe().optional(),
 
     castBonus: nommerChamps(z.strictObject({ perCondition: z.string(), radiusStat: charKeySchema, bonus: z.number() }), {
       perCondition: { label: 'par État' },

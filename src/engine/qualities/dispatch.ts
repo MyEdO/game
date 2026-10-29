@@ -5,14 +5,14 @@
  * mutation. Accepte tout porteur de `qualities` (Weapon ou ItemInstance).
  *
  * La MÉCANIQUE de chaque qualité vit dans `qualities.json`, lue PAR ID —
- * `passive: GameOp[]` (weaponRollMod/weaponDamageMod/armourPierce/critOnRoll/testMod) pour les
+ * `passive: OpPassive[]` (weaponRollMod/weaponDamageMod/armourPierce/critOnRoll/testMod) pour les
  * modificateurs, `capabilities` pour les drapeaux irréductibles.
  */
 import type { Weapon, QualityInstance, ArmourBypass } from '../types';
 import type { QualityId } from './ids';
 import type { QualityDef } from './types';
 import { findQualityById, findWeaponGroupById, qualityInstance, type QualityCapabilities, type QualityData } from '../../data';
-import type { GameOp } from '../ops';
+import type { GameOp, OpPassive } from '../ops';
 
 /** Tout porteur de qualités (Weapon ou ItemInstance) — seul `qualities` est requis ; `weaponGroup`/
  *  `subType` (`weaponGroup ?? subType` = Groupe d'objet) donnent accès aux qualités de FAMILLE.
@@ -22,7 +22,7 @@ import type { GameOp } from '../ops';
  *  VDM 05 *Défaut*) — retirées APRÈS la fusion de famille ; `passive` : ops passives conférées par cette
  *  même altération, lues au MÊME point que le `passive` d'un Atout de registre (`weaponPassiveOps`). */
 export type QualityCarrier = { qualities: QualityInstance[]; weaponGroup?: string | null; subType?: string | null; noFamilyQualities?: boolean;
-  removedQualities?: string[]; removedTypes?: ('atout' | 'defaut')[]; passive?: GameOp[] };
+  removedQualities?: string[]; removedTypes?: ('atout' | 'defaut')[]; passive?: OpPassive[] };
 
 /** Une qualité résolue présente sur un objet : sa définition de registre (libellé), son id STABLE, sa
  *  donnée mécanique (`qualities.json` → passive/capabilities/effects) et son Indice éventuel. */

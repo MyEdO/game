@@ -2,7 +2,7 @@
  * MARQUAGE « dé fixé » du JOURNAL — pendant de la mention portée par la rangée de la modale.
  *
  * Le jet saisi est marqué PARTOUT — rangée ET journal (transparence du dé fixé, #939 ; décision
- * d'affichage révisable). La rangée le porte via `RollRow.fixedMark` ; le journal, lui, n'a qu'UN seul puits (`log` du
+ * d'affichage). La rangée le porte via `RollRow.fixedMark` ; le journal, lui, n'a qu'UN seul puits (`log` du
  * store) : c'est donc là que la mention s'ajoute, et nulle part ailleurs. Chaque flux compose sa ligne
  * autrement (`res.log` du moteur, `describeX`, `logLines` d'applicateur) — marquer chez eux serait
  * trente copies, et la trentième manquerait.

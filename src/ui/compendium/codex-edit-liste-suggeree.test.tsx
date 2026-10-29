@@ -47,7 +47,7 @@ const CRITIQUE_DE_BANC = {
 
 /** Traumatisme NOMMÉ du banc, écrit à la main : seuls `id` et `label` portent le contrat. */
 const traumaDeBanc = (id: string, label: string) => ({
-  id, type: 'traumas', label, ops: [], desc: 'Description de banc.', source: { book: 'livre-de-base', page: 1 },
+  id, type: 'traumas' as const, label, ops: [], desc: 'Description de banc.', source: { book: 'livre-de-base', page: 1 },
 });
 
 describe('CodexEdit — liste de références à saisie suggérée', () => {

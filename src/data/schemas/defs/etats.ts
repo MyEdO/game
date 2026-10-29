@@ -9,7 +9,7 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { difficultySchema, stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { conditionSchema, gameOpSchema, jetSchema, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
+import { conditionSchema, jetSchema, passifsDe, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
 
 export const file = 'etats.json';
 export const famille = 'entite';
@@ -58,7 +58,7 @@ const doc = document(
   'etats',
   famille,
   {
-    passive: z.array(gameOpSchema).optional(),
+    passive: passifsDe().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
     gating: gatingSchema.optional(),
     severity: z.number().optional(),

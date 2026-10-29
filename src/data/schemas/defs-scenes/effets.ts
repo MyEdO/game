@@ -18,7 +18,7 @@ import { validerApparenceDonnee } from '../grammaire/valeurs';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
 import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
-import { conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
+import { conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, noeudTest } from '../grammaire/mecanique';
 import { idDe, ref, refOuSpec } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
@@ -369,7 +369,7 @@ export const zoneBlastSchema = nommerChamps(z.strictObject({
   type: z.literal('zoneBlast'),
   center: nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } }),
   radius: z.number(),
-  ops: z.array(gameOpSchema),
+  ops: executeesDe(),
 }), { type: { label: "type"  }, center: { label: "centre" }, radius: { label: "rayon" }, ops: { label: "opérations" } });
 
 /** LDB 15 l.80-84 */

@@ -5,7 +5,7 @@ import { metaDesChamps } from '../../data/schemas/grammaire/meta';
 import { PORTEURS_DE_CAPACITES } from './porteursDeCapacites.testkit';
 
 // La fiche du Codex ne rend pas en lecture les libellés de saisie du schéma de capacités : choix
-// d'interface révisable, la saisie (CodexEdit) les porte.
+// d'interface : la saisie (CodexEdit) les porte.
 type Porteur = { id: string; capabilities?: object };
 
 describe('Codex — les libellés de saisie des capacités restent hors de la fiche', () => {

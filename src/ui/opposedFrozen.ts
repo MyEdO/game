@@ -7,8 +7,7 @@ import type { RollRowData } from './RollShell';
  * règle, aucune valeur touchée (le jet figé garde ses chiffres exacts, seul son AFFICHAGE est masqué).
  *
  * Masqué jusqu'au jet de réponse (#990) : le jet figé du premier participant s'affiche masqué tant
- * que le répondant n'a pas lancé ; les deux se révèlent à son jet. Confort de jeu RÉVISABLE —
- * candidat à devenir une option (patron de la cadence).
+ * que le répondant n'a pas lancé ; les deux se révèlent à son jet. Confort de jeu.
  *
  * SOURCE UNIQUE du CALENDRIER de découverte, pour tous les sites à jet figé (défense réactive,
  * incantation opposée, étape de cascade `meta.opposed`, Au Contact, Distraire, Empoignade,

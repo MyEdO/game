@@ -13,7 +13,7 @@ import { marquerProduit } from './interne/produits';
 import { isMenaceId, menaceIds } from '../../../engine/menace';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
 import type { StakeRef } from '../../index';
-import { messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine/ops';
+import { messageRecurrenceHorloge, SELF_REF, type GameOp, type OpPassive } from '../../../engine/ops';
 import { etatConnu } from '../../../engine/conditions';
 import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
@@ -23,6 +23,16 @@ import { catalogueSpecs, idDe, marquerOpAtteinte, ref, refs, refOuSpec, specDe, 
 import { DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { estCibleType } from '../../../engine/psych/ciblage';
+
+/** Régime d'une liste d'ops, posé par sa fabrique (`passifsDe`, `executeesDe`) et lu par IDENTITÉ : une
+ *  liste construite à la main n'en a aucun. */
+export type RegimeDeListe = 'passive' | 'executee';
+const REGIMES_DES_LISTES = new WeakMap<object, RegimeDeListe>();
+
+/** Le régime d'une liste d'ops, `undefined` hors de `passifsDe` et `executeesDe`. */
+export function regimeDeListe(noeud: unknown): RegimeDeListe | undefined {
+  return typeof noeud === 'object' && noeud !== null ? REGIMES_DES_LISTES.get(noeud) : undefined;
+}
 
 /** Catégorie d'armure ignorée d'un `ArmourBypass` (`engine/armourBypass.bypassedAP`) ; `nonMetal` : LDB 62 l.270. */
 export const armourBypassCategorieSchema = enumNomme({
@@ -159,13 +169,13 @@ const DECLARATIONS_D_OPS = {
     disease: idDe('maladie'),
     symptomId: idDe('symptome'),
     severity: symptomSeveritySchema,
-    otherwise: z.array(z.lazy(() => gameOpSchema)).optional(),
+    otherwise: executeesDe(z.lazy(() => gameOpSchema)).optional(),
   }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, symptomId: { label: "symptôme" , texte: { regime: "technique"} }, severity: { label: "gravité"  }, otherwise: { label: "sinon" } }),
   attenuateSymptom: nommerChamps(z.strictObject({
     op: z.literal('attenuateSymptom'),
     disease: idDe('maladie'),
     symptomId: idDe('symptome'),
-    otherwise: z.array(z.lazy(() => gameOpSchema)).optional(),
+    otherwise: executeesDe(z.lazy(() => gameOpSchema)).optional(),
   }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, symptomId: { label: "symptôme" , texte: { regime: "technique"} }, otherwise: { label: "sinon" } }),
   grantSymptom: nommerChamps(z.strictObject({
     op: z.literal('grantSymptom'),
@@ -349,7 +359,7 @@ const DECLARATIONS_D_OPS = {
   transform: nommerChamps(z.strictObject({
     op: z.literal('transform'),
     tag: z.string(),
-    ops: z.array(z.lazy(() => gameOpSchema)),
+    ops: executeesDe(z.lazy(() => gameOpSchema)),
     morphRef: idDe('creature').optional(),
   }), { op: { label: "opération"  }, tag: { label: "marque" , texte: { regime: "technique"} }, ops: { label: "opérations" }, morphRef: { label: "forme transformée" , texte: { regime: "technique"} } }),
   /** Table INLINE (`rows`) OU RÉFÉRENCÉE (`tableId`), exclusives (`engine/ops.ts`, union `rollTable`). */
@@ -360,7 +370,7 @@ const DECLARATIONS_D_OPS = {
       mod: z.number().optional(),
       addNegativeSL: z.boolean().optional(),
       extraRollsPerStep: z.number().optional(),
-      rows: z.array(nommerChamps(z.strictObject({ min: z.number(), max: z.number(), ops: z.array(z.lazy(() => gameOpSchema)) }), { min: { label: "minimum" }, max: { label: "maximum" }, ops: { label: "opérations" } })),
+      rows: z.array(nommerChamps(z.strictObject({ min: z.number(), max: z.number(), ops: executeesDe(z.lazy(() => gameOpSchema)) }), { min: { label: "minimum" }, max: { label: "maximum" }, ops: { label: "opérations" } })),
     }), { op: { label: "opération"  }, die: { label: "dé de tirage"  }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, rows: { label: "rangées" } }),
     nommerChamps(z.strictObject({
       op: z.literal('rollTable'),
@@ -405,7 +415,7 @@ const DECLARATIONS_D_OPS = {
     mode: porteeDAssautSchema,
     amount: z.number(),
   }), { op: { label: "opération" }, mode: { label: "portée de l’assaut" }, amount: { label: "quantité" } }),
-  perRound: nommerChamps(z.strictObject({ op: z.literal('perRound'), ops: z.array(z.lazy(() => gameOpSchema)) }), { op: { label: "opération"  }, ops: { label: "opérations" } }),
+  perRound: nommerChamps(z.strictObject({ op: z.literal('perRound'), ops: executeesDe(z.lazy(() => gameOpSchema)) }), { op: { label: "opération"  }, ops: { label: "opérations" } }),
   delayed: nommerChamps(z.strictObject({
     op: z.literal('delayed'),
     afterMinutes: formulaSchema.optional(),
@@ -415,7 +425,7 @@ const DECLARATIONS_D_OPS = {
     forMinutes: formulaSchema.optional(),
     forHours: formulaSchema.optional(),
     forDays: formulaSchema.optional(),
-    ops: z.array(z.lazy(() => gameOpSchema)),
+    ops: executeesDe(z.lazy(() => gameOpSchema)),
   }), { op: { label: "opération"  }, afterMinutes: { label: "délai en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, afterHours: { label: "délai en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, afterDays: { label: "délai en jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, afterDuration: { label: "après la durée" }, forMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, forHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, forDays: { label: "durée en jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, ops: { label: "opérations" } }),
   zone: nommerChamps(z.strictObject({
     op: z.literal('zone'),
@@ -424,8 +434,8 @@ const DECLARATIONS_D_OPS = {
     lengthMeters: formulaSchema.optional(),
     lengthPerSL: nommerChamps(z.strictObject({ every: z.number(), metersFormula: formulaSchema }), { every: { label: "intervalle" }, metersFormula: { label: "distance" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }).optional(),
     blocksLoS: z.boolean().optional(),
-    onCross: z.array(z.lazy(() => gameOpSchema)).optional(),
-    perRound: z.array(z.lazy(() => gameOpSchema)).optional(),
+    onCross: executeesDe(z.lazy(() => gameOpSchema)).optional(),
+    perRound: executeesDe(z.lazy(() => gameOpSchema)).optional(),
     crossTest: z.lazy(() => flowTestSchema).optional(),
     barrier: z.boolean().optional(),
     gate: z.literal('profane').optional(),
@@ -442,7 +452,7 @@ const DECLARATIONS_D_OPS = {
     removeQualities: z.array(z.string()).optional(),
     removeType: z.enum(['atout', 'defaut']).optional(),
     suppressEnchants: z.boolean().optional(),
-    passive: z.array(z.lazy(() => gameOpSchema)).optional(),
+    passive: passifsDe(z.lazy(() => gameOpSchema)).optional(),
     onHitEffects: z.array(z.lazy(() => triggeredEffectSchema)).optional(),
   }), { op: { label: "opération"  }, addQualities: { label: "qualités ajoutées" , texte: { regime: "technique"} }, damageBonus: { label: "bonus de dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, bypass: { label: "armure ignorée"  }, requiresWeapon: { label: "formes requises", texte: { regime: "technique" } }, removeQualities: { label: "qualités retirées" , texte: { regime: "technique"} }, removeType: { label: "type retiré"  }, suppressEnchants: { label: "supprimer les enchantements" }, passive: { label: "passifs" }, onHitEffects: { label: "à la touche" } }),
   /** scripts/guards/lib/gameOpRefFk.mjs */
@@ -464,7 +474,7 @@ const DECLARATIONS_D_OPS = {
   rollThreshold: nommerChamps(z.strictObject({
     op: z.literal('rollThreshold'),
     sides: z.number(),
-    thresholds: z.array(nommerChamps(z.strictObject({ atLeast: z.number(), ops: z.array(z.lazy(() => gameOpSchema)) }), { atLeast: { label: "minimum" }, ops: { label: "opérations" } })),
+    thresholds: z.array(nommerChamps(z.strictObject({ atLeast: z.number(), ops: executeesDe(z.lazy(() => gameOpSchema)) }), { atLeast: { label: "minimum" }, ops: { label: "opérations" } })),
   }), { op: { label: "opération"  }, sides: { label: "faces" }, thresholds: { label: "seuils" } }),
 };
 
@@ -1104,7 +1114,7 @@ function construire(regimes: Regimes) {
 
   const effectOp = marquerProduit(nommerChamps(z.strictObject({
     type: z.literal('ops'),
-    ops: z.array(gameOp),
+    ops: executeesDe(gameOp),
     on: z.enum(['party', 'hero', 'caster', 'target']).optional(),
     heroId: z.string().optional(),
     untilTime: z.number().optional(),
@@ -1152,7 +1162,7 @@ function construire(regimes: Regimes) {
     desc: z.string(),
     stageOutcome: stageOutcomeSchema.optional(),
     vehicleWounds: z.string().nullable().optional(),
-    occupantOps: z.array(gameOp).optional(),
+    occupantOps: executeesDe(gameOp).optional(),
     /** Suite MÉCANIQUE d'un Incident de MONTE (`incidents-monture.json`, EDOC 07 l.157-174), miroir de
      *  `MountIncidentEffects` (`src/engine/travelTables.ts`) : elle est DÉCLARÉE par l'entrée, jamais
      *  déduite de son id. Une entrée sans `mount` ne laisse aucune séquelle. */
@@ -1193,7 +1203,7 @@ function construire(regimes: Regimes) {
     .strictObject({
       crewTarget: crewTargetSchema,
       test: noeudTest(flow, { difficulteRequise: true, echecSeulServi: true }).optional(),
-      ops: z.array(gameOp).optional(),
+      ops: executeesDe(gameOp).optional(),
     })
     .superRefine((v, ctx) => {
       if (!v.test === !v.ops) {
@@ -1210,7 +1220,7 @@ function construire(regimes: Regimes) {
     ...plageSchema.shape,
     id: z.string(),
     label: z.string(),
-    ops: z.array(gameOp).optional(),
+    ops: executeesDe(gameOp).optional(),
     shrapnel: z.number().optional(),
     hullCrits: z.string().optional(),
     crewHit: shipCrewHit.optional(),
@@ -1259,6 +1269,34 @@ export function famillesConstruites(): readonly FamilleMecanique[] {
 const FERMEE = mecaniqueDe({});
 export const OP_DEFS: Readonly<Record<string, z.ZodType<unknown>>> = FERMEE.opDefs;
 export const gameOpSchema: z.ZodType<GameOp> = FERMEE.gameOp;
+
+/** Liste passive d'un porteur, lue par un collecteur de passifs (`passiveMods`, `weaponPassiveOps`, `navalPassiveOps`,
+ *  passifs de maladie) : le marquage `auTotal` d'un `attrMod` de Blessures ne vit que sur le canal exécuté (`applyOps`,
+ *  #3060), il est donc refusé ici. */
+export function passifsDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodType<OpPassive[]> {
+  const liste = z.array(op).superRefine((ops, ctx) => {
+    ops.forEach((o, i) => {
+      if (o.op === 'attrMod' && o.attr === 'wounds' && o.auTotal) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [i, 'auTotal'],
+          message: '« auTotal » n’agit que sur une liste d’opérations EXÉCUTÉE (consommable, manœuvre, sort) : '
+            + 'une liste passive ne marque pas ses modificateurs de Caractéristique. Retirer « auTotal ».',
+        });
+      }
+    });
+  });
+  REGIMES_DES_LISTES.set(liste, 'passive');
+  return liste as z.ZodType<OpPassive[]>;
+}
+
+/** Liste d'ops EXÉCUTÉE (`applyOps`, ou un interprète restreint : `applyStarOps`, `applyOnFailInline`) : `auTotal` y
+ *  marque, sous `applyOps`, les modificateurs de Caractéristique qu'elle porte (#3060). */
+export function executeesDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodArray<z.ZodType<GameOp>> {
+  const liste = z.array(op);
+  REGIMES_DES_LISTES.set(liste, 'executee');
+  return liste;
+}
 export const effectOpSchema = FERMEE.effectOp;
 export const flowSchema: z.ZodType<Flow<EffectOp>> = FERMEE.flow;
 export const triggeredEffectSchema: z.ZodType<TriggeredEffect<EffectOp>> = FERMEE.triggeredEffect;

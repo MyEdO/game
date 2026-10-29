@@ -3,13 +3,13 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { formulaSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { gameOpSchema } from '../grammaire/mecanique';
+import { passifsDe } from '../grammaire/mecanique';
 
 /** LDB 18 l.247/251/273/277/281 */
 const cumulSchema = nommerChamps(z.strictObject({
   portee: z.enum(['localisation', 'porteur']),
   unite: formulaSchema.optional(),
-  parPalier: nommerChamps(z.strictObject({ taille: z.number(), ops: z.array(gameOpSchema) }), { taille: { label: 'Taille' }, ops: { label: 'Opérations' } }).optional(),
+  parPalier: nommerChamps(z.strictObject({ taille: z.number(), ops: passifsDe() }), { taille: { label: 'Taille' }, ops: { label: 'Opérations' } }).optional(),
   escalade: nommerChamps(z
     .strictObject({ atLeast: z.number(), versTraumaId: z.string(), mode: z.enum(['remplace', 'ajoute']) }), {
     atLeast: { label: 'Minimum' },
@@ -50,7 +50,7 @@ const doc = document(
   'traumas',
   famille,
   {
-    ops: z.array(gameOpSchema).optional(),
+    ops: passifsDe().optional(),
     kind: z.enum(['dechirure', 'fracture']).optional(),
     severity: z.enum(['mineur', 'majeur']).optional(),
     prosthesis: z

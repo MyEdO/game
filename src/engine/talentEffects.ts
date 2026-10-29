@@ -1,6 +1,6 @@
 /**
  * Effets des Talents qui influencent la création / les attributs — PILOTÉS PAR LES DONNÉES :
- * chaque talent de talents.json porte `passive: GameOp[]` (charMod/moveMod/attrMod/grantCareerSkill/
+ * chaque talent de talents.json porte `passive: OpPassive[]` (charMod/moveMod/attrMod/grantCareerSkill/
  * grantCareerTalent…), posés par l'extraction des livres ; un supplément qui ajoute un talent étiqueté
  * pareil est couvert sans code. Plus AUCUN champ bespoke (`addCharacteristic`/`addSkill`/`addTalent`
  * ont été éliminés au profit du vocabulaire `GameOp` unifié).
@@ -66,8 +66,8 @@ export function talentCharBonusById(talentId: string): CharKey | null {
 /**
  * Applique l'effet d'acquisition d'un Talent (création OU achat PX) — mute le héros. Référence
  * STRUCTURÉE : `talentId` STABLE + `spec` concret (cult de « Béni » : « Sigmar »…).
- * Le +5 Caractéristique et le +1 Mouvement sont désormais des PASSIFS CONTINUS dans `passive: GameOp[]`
- * (charMod/moveMod), lus par le collecteur `passiveMods` — plus cuits dans `characteristics`/`movement`.
+ * Le +5 Caractéristique et le +1 Mouvement sont des PASSIFS CONTINUS de `passive: OpPassive[]` (charMod/moveMod),
+ * lus par le collecteur `passiveMods`.
  * Les effets dérivés (Blessures, Chance, Détermination) sont des helpers recalculés par
  * l'appelant (heroMaxWounds / fortuneMax / resolveMax).
  */
@@ -271,7 +271,7 @@ export function effectiveTalents(c: Combatant): TalentInstance[] {
 }
 
 /** Modificateurs PASSIFS continus des talents POSSÉDÉS (`TalentData.passive` : Coup puissant, Dur à cuire…,
- *  ou Frénésie → `grantFreeAttack`) en `GameOp[]`, émis kind `intrinseque` et RÉPÉTÉS par niveau (`t.times`).
+ *  ou Frénésie → `grantFreeAttack`) en `OpPassive[]`, émis kind `intrinseque` et RÉPÉTÉS par niveau (`t.times`).
  *  Lus par le collecteur `passiveMods` (trauma) EXACTEMENT comme `traitPassiveMods` pour les traits — le
  *  talent (instance = id seul) est résolu par `findTalentById`. Disjoint des traits → zéro double-comptage. */
 export function talentPassiveMods(c: Combatant): PassiveMod[] {

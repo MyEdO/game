@@ -33,6 +33,7 @@ import {
 // même que celle lue par le moteur → l'édition Codex (splice en place) reste visible en jeu.
 import type { RefDesignee } from './schemas/grammaire/ref';
 import type { CharKey } from '../engine/types';
+import type { TraumaFiche } from '../engine/trauma';
 import { versDisque } from './schemas/grammaire/prose';
 import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
@@ -56,7 +57,6 @@ import { CLES_DE_DATASET, type CleDeDataset } from './schemas/_cles-de-dataset.g
 import { bumperDataset, memoParVersion } from './versionDataset';
 import { critiqueEntries, type CritEntry } from './criticals';
 import { SHIP_CRITICAL_TABLES, RIVER_CRIT_SET } from './shipCriticals';
-import type { GameOp } from '../engine/ops';
 import type { SourceRef } from './schemas/grammaire/valeurs';
 import traumasRawJson from './traumas.json';
 // #422 : famille RÈGLES LDB — Coût des Augmentations (07), % de Disponibilité (59), Accidents de
@@ -111,15 +111,7 @@ function miscastEntries(tableId: string): MiscastRowEntry[] {
   return doc.entries;
 }
 
-/** Fiche de Traumatisme (`traumas.json`, #157) — MÊME schéma que `engine/trauma.ts::TraumaFiche`
- *  (module-privé là-bas, redéclaré ici a minima pour le seam d'édition ; `traumaFicheById` reste la
- *  SOURCE de vérité runtime, ce type ne sert qu'au dataset éditable). */
-export interface TraumaFicheEntry {
-  id: string; label: string; desc: string; ops?: GameOp[];
-  kind?: 'dechirure' | 'fracture'; severity?: 'mineur' | 'majeur';
-  prosthesis?: { trappingId: string; cancels: 'all' | 'movement' }[];
-}
-const traumas = traumasRawJson as TraumaFicheEntry[];
+const traumas = traumasRawJson as TraumaFiche[];
 
 /** Entrée de table de Blessures Critiques par Localisation (LDB 18 « Traumatisme » ET AA « approche
  *  alternative ») — MÊME schéma pour les DEUX jeux depuis leur fusion (#1657). ALIAS de `CritEntry`

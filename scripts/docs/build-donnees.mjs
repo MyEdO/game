@@ -277,7 +277,7 @@ function rendu() {
   out += `  (\`**gras**\`, \`*ital*\`, listes \`-\`), jamais en HTML, jamais reformulé (règle stricte 5 ; garde\n`
   out += `  \`src/data/no-html-in-prose.test.ts\`).\n`
   out += `- **Formes de champ** = copiées des entrées voisines (\`damage:{plusBF,flat}\`, \`qualities:[{id}]\`,\n`
-  out += `  \`passive: GameOp[]\`…). Toute logique est keyée par **id stable** ; le \`label\` est de l'affichage.\n`
+  out += `  \`passive: OpPassive[]\`…). Toute logique est keyée par **id stable** ; le \`label\` est de l'affichage.\n`
   out += `- **Forme du fichier** : la plupart sont des tableaux plats d'entrées \`{id,label,…}\`, mais certains sont des\n`
   out += `  **objets à sous-catalogues** (\`mass-battle.json\`, \`sea-*.json\`, \`criticals.json\`…) ou des **tables d100\n`
   out += `  par fourchette** — lire la structure existante avant d'ajouter (cf. §A).\n`
