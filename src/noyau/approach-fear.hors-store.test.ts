@@ -17,7 +17,7 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import { refLabel } from '../data';
 
 import type { Combatant } from '../engine/types';
-import { resetCadence, setCadence } from '../engine/cadence';
+import { setCadence } from '../engine/cadence';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -117,16 +117,12 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
 
   it('héros AUTO craint + Test `source-se-rapproche` raté → résolu INLINE (1 Brisé, aucune cascade)', () => {
     setCadence('auto');
-    try {
-      seedBattleRng(1);
-      const h = hero({ characteristics: { 'force-mentale': 1 } as Combatant['characteristics'] });
-      run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
-      expect(banc.getState().pendingCascade).toBeNull(); // auto → pas d’étape influençable
-      const got = banc.getState().battle!.combatants.find((x) => x.id === h.id)!;
-      expect(stacks(got, COND.brise)).toBe(1);
-    } finally {
-      resetCadence();
-    }
+    seedBattleRng(1);
+    const h = hero({ characteristics: { 'force-mentale': 1 } as Combatant['characteristics'] });
+    run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
+    expect(banc.getState().pendingCascade).toBeNull(); // auto → pas d’étape influençable
+    const got = banc.getState().battle!.combatants.find((x) => x.id === h.id)!;
+    expect(stacks(got, COND.brise)).toBe(1);
   });
 
   it('ne s’est PAS rapproché (s’éloigne) → aucun Test', () => {

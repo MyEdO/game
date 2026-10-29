@@ -33,12 +33,13 @@ node scripts/personnage-3d/environnement.mjs
 ```
 
 La commande de construction de base existe, mais relève de L1, pas de l'auteur d'un élément.
-Elle utilise les fichiers UAL1, UAL2 et UBC acquis avec leurs licences, et nomme le texte de licence
+Elle utilise les fichiers UAL1, UAL2 et UBC (corps masculin et féminin) acquis avec leurs licences, le dossier `data`
+de MPFB (donneur de la silhouette `corpulence`), et nomme le texte de licence
 de chaque pack, lu dans le pack (`License.txt` à la racine de `Universal Animation Library[Standard]`,
 `License_Standard.txt` à la racine de `Universal Base Characters[Standard]`) :
 
 ```sh
-node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py --ual1 "/atelier/sources/Universal Animation Library[Standard]/…/UAL1_Standard.glb" --licence-ual1 "/atelier/sources/Universal Animation Library[Standard]/License.txt" --ual2 "/atelier/sources/Universal Animation Library 2[Standard]/…/UAL2_Standard.glb" --licence-ual2 "/atelier/sources/Universal Animation Library 2[Standard]/License.txt" --corps "/atelier/sources/Universal Base Characters[Standard]/…/Superhero_Male_FullBody.gltf" --licence-corps "/atelier/sources/Universal Base Characters[Standard]/License_Standard.txt" --sortie /atelier/base/humanoide.glb
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py --ual1 "/atelier/sources/Universal Animation Library[Standard]/…/UAL1_Standard.glb" --licence-ual1 "/atelier/sources/Universal Animation Library[Standard]/License.txt" --ual2 "/atelier/sources/Universal Animation Library 2[Standard]/…/UAL2_Standard.glb" --licence-ual2 "/atelier/sources/Universal Animation Library 2[Standard]/License.txt" --corps "/atelier/sources/Universal Base Characters[Standard]/…/Superhero_Male_FullBody.gltf" --licence-corps "/atelier/sources/Universal Base Characters[Standard]/License_Standard.txt" --corps-feminin "/atelier/sources/Universal Base Characters[Standard]/…/Superhero_Female_FullBody.gltf" --licence-corps-feminin "/atelier/sources/Universal Base Characters[Standard]/License_Standard.txt" --mpfb /atelier/sources/mpfb/data --sortie /atelier/base/humanoide.glb
 ```
 
 Les chemins `/atelier/…` des exemples désignent les fichiers locaux de production à choisir ;
@@ -50,13 +51,12 @@ les `LICENSE-<pack>.txt` qu'elle écrit, et un texte de licence `--licence-<pack
 dossiers ancêtres de sa source, sans ligne `License:` ou dont la ligne manque à
 `hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
 déclaration du corps (`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence,
-clips de marche), les bornes de `st` tirées de `src/data/gabarits.json` et des surcharges de
-`raceAppearance.json`, la vitesse au sol de chaque clip de marche mesurée par l'évaluateur, et
+clips de marche), la vitesse au sol de chaque clip de marche mesurée par l'évaluateur, et
 l'empreinte du GLB. Le manifeste refusé par `validerManifesteDeBase` fait échouer la construction.
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
 `packs_sources`, `hors_release`) et `LICENSE-ual1.txt`, `LICENSE-ual2.txt`, `LICENSE-corps.txt`,
-copies des textes de licence des packs ; `packs_sources.<pack>` porte le chemin, l'empreinte et la
+`LICENSE-corps-feminin.txt`, copies des textes de licence des packs ; `packs_sources.<pack>` porte le chemin, l'empreinte et la
 copie de licence (`licence`) de chaque pack, que la provenance garde par pack sous le nom du texte
 déposé. Il s'importe tel quel, sans publication (section 6) :
 
@@ -74,8 +74,8 @@ Lire la table exécutable des catégories avant d'écrire le manifeste :
 | Catégorie | Champs exacts de clé | Résolution à l'import | Liaison | Couleur |
 |---|---|---|---|---|
 | corps | partie, forme | non résolu à l'import | squelette | palette |
-| tete | tete | non résolu à l'import | squelette | palette |
-| pilosite | coiffure | non résolu à l'import | squelette | palette |
+| tete | tete | tête de `src/data/garde-robe.json` | squelette | palette |
+| pilosite | coiffure | coiffure de `src/data/garde-robe.json` | squelette | palette |
 | vetement | piece | pièce `vetement` de `src/data/garde-robe.json` | squelette | palette |
 | armure | piece | pièce `armure` de `src/data/garde-robe.json` | squelette | teinte |
 | accessoire | piece | pièce `accessoire` de `src/data/garde-robe.json` | rigide ou surface | teinte |
@@ -86,14 +86,17 @@ Lire la table exécutable des catégories avant d'écrire le manifeste :
 
 Un champ de clé qui a sa ligne dans `RESOLUTIONS` (`ecartsDeCleDElement`,
 `src/noyau/apparence/cleDElement.ts`) est résolu à l'import contre le fichier que nomme la colonne : absent, l'import le refuse `cle-inconnue` ; une pièce
-d'une autre catégorie que l'élément, `piece-hors-categorie`. Exemples : `{ "piece": "pourpoint" }`
+d'une autre catégorie que l'élément, `piece-hors-categorie`. Exemples : `{ "tete": "humain" }` (tete),
+`{ "coiffure": "crane-rase" }` (pilosite), `{ "piece": "pourpoint" }`
 (vetement), `{ "piece": "plastron" }` (armure), `{ "piece": "baudrier" }` (accessoire),
 `{ "apparence": "epee" }` (rigide).
 
 Choisir les ids sémantiques dans la donnée du jeu, jamais dans un libellé. Rechercher l'id et
-les variantes du concept avant d'en créer un. Une clé de tête n'a pas de sexe ; une variation de
-couleur n'ajoute aucun élément. Une pièce absente de la garde-robe s'y ajoute d'abord
-(skill `ajouter-une-donnee`) : l'import refuse son élément tant qu'elle manque. Un seul élément par
+les variantes du concept avant d'en créer un. Une clé de tête ou de coiffure n'a pas de sexe ; une variation de
+couleur n'ajoute aucun élément. Une tête, une coiffure ou une pièce absente de la garde-robe s'y
+ajoute d'abord (skill `ajouter-une-donnee`) : l'import refuse son élément tant qu'elle manque. Une
+tête existe par espèce jouable de `src/data/species.json` et nomme sa race de rendu dans son champ
+`race` ; une tête monstrueuse attend #3123 (têtes monstrueuses en donnée). Un seul élément par
 (base, clé) ; un nom local dérivé tel que `humanoide--rigide--epee` distingue les catégories,
 et pour un corps il inclut partie et forme. Le manifeste ne porte pas d'id arbitraire.
 
@@ -162,7 +165,7 @@ surfaces réelles, sans coordonnées d'un ancien personnage. Emprunter les poids
 repos, puis ceux des chaînes requises ; transférer les silhouettes. Vérifier d'abord que les
 helpers nécessaires existent : ne pas confondre une extension prévue du kit avec une API livrée.
 
-Pour un personnage complet, trois agents à fichiers/sorties disjoints : tête et pilosité ;
+Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
 budget et fichiers possédés. Aucun agent ne modifie le kit partagé ni les voisins ; une adaptation
 nécessaire revient à l'orchestrateur. Sérialiser les builds lourds, chacun borné à **moins de 270 s**.
@@ -360,7 +363,7 @@ Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur liv
 | Besoin | Source à sonder | Lot si absent |
 |---|---|---|
 | base hachée et porte complète, chaînes/silhouettes et matrice | constructeur humanoïde, manifeste livré, rapports et revue | L1 |
-| garde-robe, pièces et ensembles résolvant la clé | données du jeu et identité publiée par le noyau | T |
+| garde-robe (têtes, coiffures, pièces, ensembles) résolvant la clé | données du jeu et identité publiée par le noyau | T |
 | constructeur par données, découverte AST et extensions du kit | kit personnage-3d, point d'entrée de construction | chaîne L1/L2, méthode L5 |
 | couverture, liaison et autres gardes complètes | appels de gardes de l'évaluateur Node | L1 |
 | import contrôlé schéma 3, unicité, rapport de couverture | importeur d'assets et ses tests | L3 |

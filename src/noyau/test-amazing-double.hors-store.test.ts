@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { FLOWS } from './rollFlowSpecs';
 import { amazingTestLabel } from './flowOutcomes';
-import { rule, setRule, resetRule } from '../engine/policy';
+import { rule, setRule } from '../engine/policy';
 import { isDoubleRoll } from '../engine/tests';
 import type { PendingTest } from './pendings';
 import type { Combatant } from '../engine/types';
@@ -66,7 +66,6 @@ describe('test-critiques-doubles — la règle pilote l’affichage du badge', (
     const pt = basePending({ roll: 22, success: true, isDouble: true });
     const amazing = rule('test-critiques-doubles') ? amazingTestLabel(pt) : null;
     expect(amazing).toEqual({ success: true, text: 'Succès Stupéfiant' });
-    resetRule('test-critiques-doubles');
   });
 });
 

@@ -13,7 +13,7 @@
  * qu'aucun humain ne tient (qui bloquait la cascade), et la bande que personne ne tient.
  */
 import { tableTotale } from '../lib/tableTotale';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
 import { makePregens } from '../data/pregens';
@@ -60,9 +60,6 @@ function traversee(cadence: 'commande' | 'jour-par-jour', mode: 'sea' | 'river' 
 beforeEach(() => {
   set({ battle: null, party: makePregens().slice(0, 3), pendingCascade: null, suspendedCascades: [], travelPlan: null, journal: [] } as never);
   set({ net: { ...NET0, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } } as never);
-});
-afterEach(() => {
-  set({ net: NET0, pendingCascade: null, suspendedCascades: [], travelPlan: null } as never);
 });
 
 describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kind', () => {

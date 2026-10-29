@@ -1,13 +1,50 @@
 """Rendus de contrôle d'un personnage : studio Cycles (vues trois-quarts, portrait, échelles, isométrique) et studio
-Workbench de QA. Le GLB source n'est jamais modifié.
+Workbench de QA. Le GLB source n'est jamais modifié. `--silhouettes` pose, avant le rendu, les shape keys nommées sur
+tout mesh qui les porte, à la syntaxe de `npm run godot:evaluer -- --silhouettes` (`hotes/godot/asset/evaluer.mjs`) ;
+un nom qu'aucun mesh ne porte arrête le rendu.
 
-    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <fichier.glb> --output <dossier vide> [--isometric-only]
+    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <fichier.glb> --output <dossier vide> [--isometric-only] [--silhouettes feminin=1,corpulence=0.5]
 """
 import argparse
 import hashlib
 import json
+import math
 import time
 from pathlib import Path
+
+
+def lire_silhouettes(texte):
+    """Les poids de `--silhouettes`, `nom=poids[,nom=poids]` : {nom: poids}."""
+    poids = {}
+    for paire in texte.split(','):
+        nom, egal, valeur = paire.partition('=')
+        try:
+            nombre = float(valeur)
+        except ValueError:
+            nombre = math.nan
+        if not nom or nom.strip() != nom or not egal or '=' in valeur or not math.isfinite(nombre):
+            raise argparse.ArgumentTypeError(f'« {paire} » ; attendu nom=<nombre>[,nom=<nombre>]')
+        poids[nom] = nombre
+    return poids
+
+
+def poser_les_silhouettes(bpy, poids):
+    """Pose chaque shape key de `poids` à son poids sur tout mesh de la scène qui la porte ; un nom qu'aucun mesh ne
+    porte arrête le rendu."""
+    poses = {nom: [] for nom in poids}
+    for obj in bpy.context.scene.objects:
+        cles = obj.data.shape_keys if obj.type == 'MESH' else None
+        for nom, valeur in poids.items():
+            cle = cles.key_blocks.get(nom) if cles else None
+            if cle is None:
+                continue
+            cle.slider_min, cle.slider_max = min(cle.slider_min, valeur), max(cle.slider_max, valeur)
+            cle.value = valeur
+            poses[nom].append(obj.name)
+    absentes = sorted(nom for nom, objets in poses.items() if not objets)
+    if absentes:
+        raise ValueError(f'--silhouettes : {absentes} portée(s) par aucun mesh')
+    return poses
 
 
 def qa_studio(bpy):
@@ -37,6 +74,8 @@ def main():
     parser.add_argument('--input', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--isometric-only', action='store_true', help='Render only 45-degree overhead views at 512, 40, 64 and 128 pixels high')
+    parser.add_argument('--silhouettes', type=lire_silhouettes, default={},
+                        help='nom=poids[,nom=poids] : shape keys posées sur tout mesh qui les porte avant le rendu')
     args = parser.parse_args()
     source = Path(args.input).resolve(strict=True)
     output = Path(args.output).resolve()
@@ -51,6 +90,7 @@ def main():
     start = time.monotonic()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(source))
+    silhouettes = poser_les_silhouettes(bpy, args.silhouettes)
     actors = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH' and any(mod.type == 'ARMATURE' for mod in obj.modifiers)]
     if not actors:
         raise ValueError('No skinned character meshes found')
@@ -74,7 +114,7 @@ def main():
                         value = socket.default_value
                         inputs.append({'input': key, 'value': list(value) if hasattr(value, '__len__') else value, 'links': [{'node': link.from_node.name, 'socket': link.from_socket.name} for link in socket.links]})
         materials.append({'name': material.name, 'surface_render_method': material.surface_render_method, 'images': images, 'inputs': inputs})
-    report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in actors], 'materials': materials, 'render_engine': 'CYCLES', 'samples': 16}
+    report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in actors], 'materials': materials, 'silhouettes': {nom: {'poids': args.silhouettes[nom], 'meshes': objets} for nom, objets in silhouettes.items()}, 'render_engine': 'CYCLES', 'samples': 16}
     scene = bpy.context.scene
     scene.render.engine = 'CYCLES'
     scene.cycles.device = 'CPU'

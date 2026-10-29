@@ -19,7 +19,7 @@ import { emptyScene, Scene } from './monde/scene';
 import { buildEncounter } from './monde/encounterAuthoring';
 import type { MapRouteTrace, WorldMap } from './worldMap';
 import { campaignStart } from '../engine/clock';
-import { setRule, resetRule } from '../engine/policy';
+import { setRule } from '../engine/policy';
 import { buildWeatherResistanceSteps, buildStageSteps } from './travelPostes';
 import { seasonOfMonth, weatherFromRoll, type Season } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
@@ -450,7 +450,6 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
     expect(cartoPart.label).toBe(refLabel('skills', { id: 'metier', spec: 'cartographe' }));
     expect(outPart.mods?.filter((m) => m.ref?.category === 'weatherConditions').map((m) => m.value)).toEqual([-20]); // Plein air -20 (l.106)
     expect(lignesDe(cartoPart.mods, { category: 'weatherConditions', id: 'pluie-diluvienne' }).map((m) => m.value)).toEqual([-10]); // EDOC 8 l.82, carac Dex
-    resetRule('travel-etapes');
   });
 
   /** #1153 L2bis (sonde du juge B3) : la rangée batch monte sa ligne par le MONTEUR — un `mods` posé
@@ -471,7 +470,6 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
       // …et les chips météo sont bien LÀ (le résidu nul ne vient pas d'une ligne vidée de ses mods).
       expect(part.mods?.length ?? 0).toBeGreaterThan(0);
     }
-    resetRule('travel-etapes');
   });
 });
 

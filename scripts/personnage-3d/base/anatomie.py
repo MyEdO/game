@@ -74,6 +74,10 @@ déplaçant l'os enfant (`hotes/godot/asset/evaluateur/gabarit.ts`) ; `Head` n'a
 PIEDS = ('foot_l', 'foot_r')
 """Les os des pieds, dont l'évaluateur mesure les appuis."""
 
+YEUX, SOURCILS = 'Eyes', 'Eyebrows'
+"""Les peaux secondaires d'Universal Base Characters, par nom de nœud glTF : les yeux et les sourcils."""
+PEAUX_SECONDAIRES = (YEUX, SOURCILS)
+
 AXES_DU_PERSONNAGE = Matrix(((1, 0, 0), (0, 0, -1), (0, 1, 0)))
 """Les axes glTF du personnage (+X, +Y, +Z en colonnes) dans le repère Blender."""
 
@@ -89,7 +93,7 @@ def zone_de_l_os(nom):
 
 def yeux(objets):
     """Le centre des deux yeux, au repos, dans le repère Blender."""
-    sommets = [v.co for v in objets['Eyes'].data.vertices]
+    sommets = [v.co for v in objets[YEUX].data.vertices]
     return sum(sommets, Vector()) / len(sommets)
 
 
@@ -145,8 +149,8 @@ def scinder(objet, zones):
 def poser_zones(rig, objets, corps, centre_des_yeux):
     """Remplace les peaux `objets` (par nom) par un mesh par zone, et les rend."""
     meshes = scinder(corps, zones_des_faces(corps, centre_des_yeux, rig))
-    meshes += scinder(objets['Eyes'], ['oeil_g' if f.center.x > 0 else 'oeil_d' for f in objets['Eyes'].data.polygons])
-    meshes += scinder(objets['Eyebrows'], ['visage'] * len(objets['Eyebrows'].data.polygons))
+    meshes += scinder(objets[YEUX], ['oeil_g' if f.center.x > 0 else 'oeil_d' for f in objets[YEUX].data.polygons])
+    meshes += scinder(objets[SOURCILS], ['visage'] * len(objets[SOURCILS].data.polygons))
     absentes = [z for z in ZONES if not any(m['zone'] == z for m in meshes)]
     if absentes:
         raise RuntimeError(f'zones sans face : {", ".join(absentes)}')
@@ -242,7 +246,7 @@ def poser(rig, peaux):
         if o.matrix_world != Matrix.Identity(4):
             raise RuntimeError(f'{o.name} : transformation non identité, les repères supposent le repère du rig')
     centre = yeux(objets)
-    corps = next(o for o in peaux if o.name not in ('Eyes', 'Eyebrows'))
+    corps = next(o for o in peaux if o.name not in PEAUX_SECONDAIRES)
     emplacements = poser_emplacements(rig, corps, centre)
     prises = poser_prises(rig)
     poser_zones(rig, objets, corps, centre)

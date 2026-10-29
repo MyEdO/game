@@ -36,8 +36,6 @@ const ctxDe = (def?: ActionDef): ActionCtx => {
 };
 
 describe('remède d’État — un État VERROUILLÉ refuse le Test, et le dit', () => {
-  beforeEach(() => { banc.setState({ battle: null }); });
-
   it('En flammes verrouillé par un acte de soin : la case est fermée ET le dispatcher n’ouvre rien', () => {
     const { H } = setup();
     H.conditions = [{ id: 'en-flammes', value: 1, unlockBy: 'medicalAid' }] as ConditionInstance[];

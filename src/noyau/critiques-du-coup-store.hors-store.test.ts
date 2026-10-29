@@ -5,7 +5,7 @@ import { applyAttackResult, applyCast, applyOpposedCritical, resolveAttack, type
 import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { rederivePassiveAttack, issueAuJet, coupAApplique, causeDuCoupCritique, type AttackResult } from '../engine/combat';
-import { setRule, resetRule } from '../engine/policy';
+import { setRule } from '../engine/policy';
 import { evaluateMissile, type CastResult, type MissileResult } from '../engine/magic';
 import { bus, EVT } from './bus';
 import { type SpellData, findSpellById } from '../data';
@@ -291,13 +291,11 @@ describe('Bâclée : la casse suit le Coup Critique, dévié, subi ou ignoré (L
 
   it("'aa' : mêmes Blessures, une seule Blessure critique (AA 07 l.42 ; #1595 c.6228496170 Q1)", () => {
     setRule('combat-aa-blessures', 'aa');
-    try {
-      const w = nu({ chanceux: true });
-      const { res, cible } = coup({ roll: 44, current: w - 1, chanceux: true, ...subi, pieces: [piece(['bacle'], 2)] });
-      expect(res.woundsLost).toBe(w);
-      expect(res.critiques).toBe(1);
-      expect(casse(cible, 'p1')).toBe(true);
-    } finally { resetRule('combat-aa-blessures'); }
+    const w = nu({ chanceux: true });
+    const { res, cible } = coup({ roll: 44, current: w - 1, chanceux: true, ...subi, pieces: [piece(['bacle'], 2)] });
+    expect(res.woundsLost).toBe(w);
+    expect(res.critiques).toBe(1);
+    expect(casse(cible, 'p1')).toBe(true);
   });
 
   it('une Bâclée hors de la Localisation relancée reste entière (LDB 60 l.50 ; LDB 18 l.53)', () => {

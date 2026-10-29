@@ -404,7 +404,7 @@ export function playTavernGame(
   // LES SIÈGES À FICHE : le challenger, son vis-à-vis, et les héros d'un jeu d'équipe.
   const specials = Object.fromEntries(
     [challenger, opponentActor, ...(game.team ? equipiers(get) : [])]
-      .map((a) => [a.id, specialsApplicables(game, a)] as const)
+      .map((a) => [a.id, structuredClone(specialsApplicables(game, a))] as const) // #2097
       .filter(([, liste]) => liste.length > 0),
   );
 

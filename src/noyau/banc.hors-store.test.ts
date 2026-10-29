@@ -33,6 +33,28 @@ describe('banc du noyau : ouverture et fermeture', () => {
     expect(banc.getState().startScene).toBe(banc.actions.startScene);
   });
 
+  it('une écriture faite PENDANT un updater survit à son patch, comme sous zustand', () => {
+    const banc = ouvrirLeBanc({ etat: { screen: 'party', flags: {} } });
+    const vus: [string, string][] = [];
+    banc.subscribe((etat, prev) => vus.push([prev.screen, etat.screen]));
+    banc.setState((s) => {
+      banc.setState({ screen: 'test' });
+      return { flags: { ...s.flags, vu: true } };
+    });
+    expect([banc.getState().screen, banc.getState().flags, vus]).toEqual(['test', { vu: true }, [['party', 'test'], ['test', 'test']]]);
+  });
+
+  it('un updater qui rend l’état REÇU après une écriture imbriquée la recouvre, comme sous zustand', () => {
+    const banc = ouvrirLeBanc({ etat: { screen: 'party' } });
+    const vus: [string, string][] = [];
+    banc.subscribe((etat, prev) => vus.push([prev.screen, etat.screen]));
+    banc.setState((s) => {
+      banc.setState({ screen: 'test' });
+      return s;
+    });
+    expect([banc.getState().screen, vus]).toEqual(['party', [['party', 'test'], ['test', 'party']]]);
+  });
+
   it('une fixture de tables posée après l’ouverture est restaurée avant la fermeture', () => {
     const banc = ouvrirLeBanc();
     avecLesTables({});
