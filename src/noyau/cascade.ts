@@ -1335,10 +1335,12 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // Une BANDE émet PAR RANGÉE PERDANTE (`batchOwnTestFailedLines`) : le trigger est dû au Test, pas à la
   // forme de la fenêtre — SOURCE UNIQUE ici pour les deux formes, jamais un second site par applier.
   const interaction = stepInteraction(step);
+  // L'acteur se relit par son id après l'applier : l'écriture a pu le remplacer (`noyau/transitionDuJeu.ts`).
+  const acteur = step.actorId ? actorIn(get(), step.actorId) : undefined;
   const ownTestFailedLines = interaction === 'batch'
     ? batchOwnTestFailedLines(get, step)
-    : ((interaction === 'jet' && step.result && !step.result.success && !(estJete(step.result) && step.result.statuQuo) && hero && !step.meta?.noOwnTestFailed)
-      ? emettreOwnTestFailed(get, hero, step.result.sl) : []);
+    : ((interaction === 'jet' && step.result && !step.result.success && !(estJete(step.result) && step.result.statuQuo) && acteur && !step.meta?.noOwnTestFailed)
+      ? emettreOwnTestFailed(get, acteur, step.result.sl) : []);
   journaliser(get, set, ownTestFailedLines, 'info', { actorId: step.actorId });
   // L'étape VALIDÉE garde sa conséquence (`outcome`) pour rester LISIBLE dans la pile à l'écran. Une
   // étape d'AFFICHAGE porte son contenu d'avance (`outcome` pré-rempli) avec un applier muet → on le

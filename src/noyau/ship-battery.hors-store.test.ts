@@ -15,6 +15,8 @@ import { jouerLesTirsDeBordee } from './combatFlow';
 import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
 import { t } from '../i18n';
 import { deFixe, desEnSuite } from '../engine/dice.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -24,18 +26,18 @@ const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competenc
 
 /** Combattant d'équipage minimal (carac d'instance = Dex → valeur prévisible). Calqué sur crew-roles.test.ts. */
 const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advances: number; spec?: string }[] = []): Combatant =>
-  ({
+  combattantDeTest({
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, ...chars },
     skills: skills.map((s) => ({ ...s, characteristic: 'dexterite' }) as SkillInstance),
-    kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [], talents: [],
-  }) as unknown as Combatant;
+    kind: 'hero', wounds: blessuresDeBase(10), conditions: [], talents: [],
+  });
 const seq = (values: number[]): RNG => desEnSuite(values);
 
 const poste = (side: FireArc, uid: string): ShipPoste => ({ item: { uid, name: `Canon ${side}` } as never, side });
 const hull = (postes: ShipPoste[]): Combatant =>
-  ({ id: 'hull', label: 'Galère', pos: { x: 5, y: 5 }, postes, conditions: [], weapons: [] }) as unknown as Combatant;
+  combattantDeTest({ id: 'hull', label: 'Galère', pos: { x: 5, y: 5 }, postes, conditions: [], weapons: [] });
 const target = (x: number, y: number): Combatant =>
-  ({ id: 'cible', label: 'Cible', pos: { x, y }, conditions: [], weapons: [] }) as unknown as Combatant;
+  combattantDeTest({ id: 'cible', label: 'Cible', pos: { x, y }, conditions: [], weapons: [] });
 const artilleur = () => mk({ dexterite: 80 }, [{ id: 'projectiles', advances: 0, spec: 'poudre-noire' }]); // valeur 80
 
 /**
@@ -74,19 +76,19 @@ describe('resolveBattery — lâcher une bordée (DR partagé, MDG 14)', () => {
 
 // ── Flux JOUABLE (noyau) : Test d'équipage MULTI des Artilleurs → volée sur la coque (jumeau de la manœuvre). ──
 const gunnerPJ = (): Combatant =>
-  ({ id: 'gunner', label: 'Artilleur', kind: 'hero',
+  combattantDeTest({ id: 'gunner', label: 'Artilleur', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], fortune: 2, resilience: 1,
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], fortune: 2, resilience: 1,
     skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 30 }], talents: [], weapons: [],
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } }) as unknown as Combatant;
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } });
 const battPoste = (): ShipPoste =>
   ({ side: 'tribord', item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: ['gunner'] }) as unknown as ShipPoste;
 const firingShip = (): Combatant =>
-  ({ id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 }, wounds: { current: 60, max: 60 }, conditions: [], weapons: [] }) as unknown as Combatant;
+  combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 }, wounds: blessuresDeBase(60), conditions: [], weapons: [] });
 const enemyHull = (pos = { x: 9, y: 5 }): Combatant =>
-  ({ id: 'target', label: 'Caraque', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos,
+  combattantDeTest({ id: 'target', label: 'Caraque', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos,
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 40, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
-    wounds: { current: 90, max: 90, base: 90 }, advantage: 0, conditions: [], weapons: [], armour: { corps: 0 }, skills: [], talents: [], crewIds: [] }) as unknown as Combatant;
+    wounds: blessuresDeBase(90), advantage: 0, conditions: [], weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], crewIds: [] });
 
 /**
  * PORTÉE D'UNE BORDÉE — les BANDES du socle (`LDB 62 l.198-206` : Bout portant ÷10, Courte ÷2, Moyenne,
@@ -174,9 +176,9 @@ const navScene = () =>
     layers: [{ z: 0, tiles: new Array(400).fill('eau') }], entities: [], dialogues: [], triggers: [], encounters: [] });
 /** Marin exposé de la coque cible (pour être balayé par l'aire). */
 const sailor = (id: string): Combatant =>
-  ({ id, name: id, kind: 'enemy', pos: { x: 9, y: 5 }, wounds: { current: 6, max: 6 }, advantage: 0,
+  combattantDeTest({ id, label: id, kind: 'enemy', pos: { x: 9, y: 5 }, wounds: blessuresDeBase(6), advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 0, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] }) as unknown as Combatant;
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] });
 /** Coque cible AVEC équipage exposé. */
 const crewedHull = (crewIds: string[]): Combatant => ({ ...enemyHull(), crewIds } as Combatant);
 /** Pièce avec qualités/enchant custom (Atout d'aire + effet onHit générique). */
@@ -234,8 +236,8 @@ describe('bordée à munition à AIRE — balaie l’équipage exposé du navire
 
 describe('rollCrewRole — cumul de rôles (Manque de bras, MDG 14 l.53)', () => {
   const cap = (): Combatant =>
-    ({ id: 'cap', label: 'Cap', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-      kind: 'hero', wounds: { current: 10, max: 10 }, skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 30 }], conditions: [], talents: [] }) as unknown as Combatant;
+    combattantDeTest({ id: 'cap', label: 'Cap', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
+      kind: 'hero', wounds: blessuresDeBase(10), skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 30 }], conditions: [], talents: [] });
 
   it('cumul → +2 crans de Difficulté : cible PLUS DURE (−20) qu\'un jet normal, même dé', () => {
     const normal = jete(rollCrewRole(cap(), 'capitaine', NAVIGATION, makeRNG(5))!.result);

@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { isOutOfAction, usesSuddenDeath, applyZeroWounds, tickDeath, hasCondition, inDeathCondition } from './conditions';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
+import { blessuresDeBase } from './characteristics';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -16,11 +17,11 @@ const mk = (over: Partial<Combatant> = {}): Combatant =>
 
 describe('Modèle de mort (LDB 18-Traumatisme)', () => {
   it("héros à 0 PB n'est PAS hors de combat (À Terre, agit encore)", () => {
-    expect(isOutOfAction(mk({ wounds: { current: 0, max: 12 } }))).toBe(false);
+    expect(isOutOfAction(mk({ wounds: blessuresDeBase(12, 0) }))).toBe(false);
   });
   describe('figurant à 0 PB exact : la Mort Subite suit le déclencheur du mode', () => {
     afterEach(() => resetRule('combat-aa-blessures'));
-    const e = () => mk({ kind: 'enemy', wounds: { current: 0, max: 12 } });
+    const e = () => mk({ kind: 'enemy', wounds: blessuresDeBase(12, 0) });
     it("'ldb' : à 0 exact, ni dépassement ni sortie (LDB 18 l.46) — À Terre, horloge de LDB 18 l.15", () => {
       const f = e();
       expect(usesSuddenDeath(f)).toBe(true);
@@ -68,19 +69,19 @@ describe('Modèle de mort (LDB 18-Traumatisme)', () => {
     expect(isOutOfAction(mk({ dead: true }))).toBe(true);
   });
   it('applyZeroWounds : à 0 PB → À Terre', () => {
-    const h = mk({ wounds: { current: 0, max: 12 } });
+    const h = mk({ wounds: blessuresDeBase(12, 0) });
     applyZeroWounds(h);
     expect(hasCondition(h, 'a-terre')).toBe(true);
   });
   it('tickDeath : à 0 PB, Inconscient après BE rounds', () => {
-    const h = mk({ wounds: { current: 0, max: 12 }, roundsAtZero: 3 }); // BE=3 ; 3→4 > 3
+    const h = mk({ wounds: blessuresDeBase(12, 0), roundsAtZero: 3 }); // BE=3 ; 3→4 > 3
     tickDeath(h);
     expect(hasCondition(h, 'inconscient')).toBe(true);
   });
   it('tickDeath : mode AA, à 0 PB, Inconscient après BE Rounds (LDB 18 l.15 ; #1595 c.6219559935)', () => {
     setRule('combat-aa-blessures', 'aa');
     try {
-      const h = mk({ wounds: { current: 0, max: 12 }, roundsAtZero: 3 }); // BE=3 ; 3→4 > 3
+      const h = mk({ wounds: blessuresDeBase(12, 0), roundsAtZero: 3 }); // BE=3 ; 3→4 > 3
       tickDeath(h);
       expect(hasCondition(h, 'inconscient')).toBe(true);
     } finally { resetRule('combat-aa-blessures'); }
@@ -88,20 +89,20 @@ describe('Modèle de mort (LDB 18-Traumatisme)', () => {
   it('tickDeath : mode AA, contrôle sous le seuil — à 0 PB depuis BE Rounds, encore conscient', () => {
     setRule('combat-aa-blessures', 'aa');
     try {
-      const h = mk({ wounds: { current: 0, max: 12 }, roundsAtZero: 2 }); // BE=3 ; 2→3, pas > 3
+      const h = mk({ wounds: blessuresDeBase(12, 0), roundsAtZero: 2 }); // BE=3 ; 2→3, pas > 3
       tickDeath(h);
       expect(hasCondition(h, 'inconscient')).toBe(false);
       expect(h.roundsAtZero).toBe(3);
     } finally { resetRule('combat-aa-blessures'); }
   });
   it('tickDeath : à 0 PB Inconscient + critiques > BE → condition de mort remplie (finalisée par le store)', () => {
-    const h = mk({ wounds: { current: 0, max: 12 }, conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 }); // BE=3
+    const h = mk({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 }); // BE=3
     tickDeath(h);
     expect(h.dead ?? false).toBe(false); // tickDeath ne tue plus
     expect(inDeathCondition(h)).toBe(true); // mais la condition est remplie
   });
   it('tickDeath : un combattant guéri (PB>0) remet roundsAtZero à 0', () => {
-    const h = mk({ wounds: { current: 5, max: 12 }, roundsAtZero: 2 });
+    const h = mk({ wounds: blessuresDeBase(12, 5), roundsAtZero: 2 });
     tickDeath(h);
     expect(h.roundsAtZero).toBe(0);
   });
@@ -136,7 +137,7 @@ describe("OBJET INERTE (affût d'artillerie) — immune à la cascade de Blessur
 
 describe('Destin — états dérivés', () => {
   const dying = (over: Partial<Combatant> = {}): Combatant =>
-    mk({ wounds: { current: 0, max: 12 }, conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, ...over }); // BE=3
+    mk({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, ...over }); // BE=3
   it('outOfRencontre = hors de combat (mais pas mort)', () => {
     const h = mk({ outOfRencontre: true });
     expect(isOutOfAction(h)).toBe(true);
@@ -144,12 +145,12 @@ describe('Destin — états dérivés', () => {
   });
   it('inDeathCondition : Inconscient + 0 PB + critiques > BE', () => {
     expect(inDeathCondition(dying())).toBe(true);
-    expect(inDeathCondition(mk({ wounds: { current: 5, max: 12 } }))).toBe(false); // pas à 0
+    expect(inDeathCondition(mk({ wounds: blessuresDeBase(12, 5) }))).toBe(false); // pas à 0
     expect(inDeathCondition(dying({ dead: true }))).toBe(false); // déjà mort
     expect(inDeathCondition(dying({ outOfRencontre: true }))).toBe(false); // déjà éjecté
   });
   it('tickDeath ne finalise plus la mort (seulement 0 PB→Inconscient)', () => {
-    const h = mk({ wounds: { current: 0, max: 12 }, conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 });
+    const h = mk({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 });
     tickDeath(h);
     expect(h.dead ?? false).toBe(false); // la finalisation est désormais portée par le store
   });

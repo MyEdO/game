@@ -9,6 +9,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -41,8 +42,8 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
 describe('Frénésie IA — cible la plus proche (chooseEnemyAction, pur, LDB 21 l.33)', () => {
   it('frenzied : vise le plus PROCHE en Ligne de Vue (pas le plus faible distant)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: 'frenesie' }], movement: 4 });
-    const near = mk('near', 'hero', { x: 5, y: 6 }, { wounds: { current: 10, max: 10 } }); // proche, costaud
-    const far = mk('far', 'hero', { x: 5, y: 9 }, { wounds: { current: 2, max: 10 } }); // faible, atteignable MAIS plus loin
+    const near = mk('near', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10) }); // proche, costaud
+    const far = mk('far', 'hero', { x: 5, y: 9 }, { wounds: blessuresDeBase(10, 2) }); // faible, atteignable MAIS plus loin
     const action = chooseEnemyAction(input(e, [near, far]));
     const tid = (action as { targetId?: string; thenTargetId?: string }).targetId ?? (action as { thenTargetId?: string }).thenTargetId;
     expect(tid).toBe('near');
@@ -50,8 +51,8 @@ describe('Frénésie IA — cible la plus proche (chooseEnemyAction, pur, LDB 21
 
   it('non frenzied : conserve le ciblage du plus faible (régression)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 });
-    const near = mk('near', 'hero', { x: 5, y: 6 }, { wounds: { current: 10, max: 10 } });
-    const far = mk('far', 'hero', { x: 5, y: 7 }, { wounds: { current: 2, max: 10 } }); // faible, atteignable
+    const near = mk('near', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10) });
+    const far = mk('far', 'hero', { x: 5, y: 7 }, { wounds: blessuresDeBase(10, 2) }); // faible, atteignable
     const action = chooseEnemyAction(input(e, [near, far]));
     const tid = (action as { targetId?: string; thenTargetId?: string }).targetId ?? (action as { thenTargetId?: string }).thenTargetId;
     expect(tid).toBe('far');

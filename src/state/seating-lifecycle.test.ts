@@ -13,13 +13,15 @@ import { TIME_COST } from '../engine/timeCost';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
 const ABORD_NORD = { x: 5, y: 4 };
 
 const hero = (id: string): Combatant =>
-  ({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: { current: 12, max: 12 }, conditions: [], movement: 4 }) as unknown as Combatant;
+  combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
 const place = (rang: number): SeatOccupant => ({ kind: 'party', rang });
 const poseDe = (rang: number) => seatPoseOf(useGame.getState().scene!, place(rang));
@@ -139,7 +141,7 @@ describe('mort / indisponibilité d’un occupant', () => {
     expect(seatPoseOf(useGame.getState().scene!, occupant)).not.toBeNull();
 
     // Le badaud est enrôlé au combat en cours et tombe : `notifySlain` acte la mise hors de combat.
-    const mort = { id: 'badaud', label: 'Badaud', kind: 'enemy', wounds: { current: 0, max: 8 }, conditions: [], dead: true } as unknown as Combatant;
+    const mort = combattantDeTest({ id: 'badaud', label: 'Badaud', kind: 'enemy', wounds: blessuresDeBase(8, 0), conditions: [], dead: true });
     useGame.setState({ battle: { combatants: [mort], log: [], order: ['badaud'], turn: 0, round: 1 } as never });
     notifySlain(useGame.getState, useGame.setState, mort);
     expect(seatPoseOf(useGame.getState().scene!, occupant)).toBeNull();

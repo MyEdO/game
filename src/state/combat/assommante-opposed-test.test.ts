@@ -12,6 +12,7 @@ import { testValue, skillBaseValue } from '../../engine/skills';
 import { testScene } from '../../scenes/test-fixture';
 import type { Weapon } from '../../engine/types';
 import { resetCadence } from '../../engine/cadence';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 /**
  * Assommante (LDB 62 l.235) en nœud Flow `test` OPPOSÉ (Lot 4c) : « Si vous touchez la Tête avec une
@@ -52,8 +53,8 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     const wielder = enemies[0]; // le porteur de l'arme Assommante (attaquant)
     const prey = enemies[1];    // une victime ENNEMIE (cas b)
     enemies.slice(2).forEach((e) => (e.dead = true));
-    H.wounds.max = 200; H.wounds.current = 200;
-    prey.wounds.max = 200; prey.wounds.current = 200;
+    H.wounds = blessuresDeBase(200);
+    prey.wounds = blessuresDeBase(200);
     useGame.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, wielder, prey };
   }

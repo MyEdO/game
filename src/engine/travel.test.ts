@@ -7,6 +7,7 @@ import {
   vehicleTravel, TRAVEL_DEFAULTS, distanceUnit, routeDistanceLabel,
 } from './travel';
 import { toBrass } from './money';
+import { blessuresDeBase } from './characteristics';
 
 const chars = (E = 30): Characteristics => ({
   'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: E, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30,
@@ -18,7 +19,7 @@ function hero(opts: { id?: string; movement?: number; enc?: number; endurance?: 
   return {
     id: opts.id ?? 'c', label: opts.id ?? 'Test', kind: 'hero',
     characteristics: chars(opts.endurance),
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     items, skills: [], talents: [], movement: opts.movement ?? 4, dead: opts.dead,
   };

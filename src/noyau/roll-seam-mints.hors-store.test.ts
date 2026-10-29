@@ -29,16 +29,17 @@ import type { Combatant, Weapon } from '../engine/types';
 import { combatStakeRef, type StakeRef } from '../data';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (id: string): Combatant =>
-  ({
+  combattantDeTest({
     id, label: `Héros ${id}`, kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     skills: [], conditions: [], talents: [], fortune: 2, resilience: 3,
-  }) as unknown as Combatant;
+  });
 
 const TABLE = 'test-mints-table';
 /** `kind` de sonde qui déclare un PLI post-dé (table `plis`). */

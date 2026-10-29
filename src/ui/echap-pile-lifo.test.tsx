@@ -21,6 +21,7 @@ import { MediaSelect } from './MediaSelect';
 import { CodexRef } from './compendium/CodexRef';
 import { padButton } from './useGamepad';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
 
@@ -37,7 +38,7 @@ const Clavier = () => { useGameKeyboard(); return null; };
 function ecranDeJeu() {
   useGame.setState({
     screen: 'campaign', mode: 'battle', gameMenuOpen: false, dialogue: null,
-    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [{ id: 'chef', kind: 'hero', pos: { x: 1, y: 1 } }], movementUsed: 0, preview: null },
+    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'hero', pos: { x: 1, y: 1 } })], movementUsed: 0, preview: null },
     net: { mode: 'local', mySeat: 0 }, combatCursor: null, preemptAiming: null, localIntent: null,
   } as never);
 }

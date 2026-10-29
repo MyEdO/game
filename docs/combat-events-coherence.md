@@ -129,5 +129,29 @@ incrémentant `target.criticalWounds` (`noyau/combatFlow.ts`), **sans mourir** t
 - **À pin par repro déterministe** (`__wfrp.scenario`/`fight` seedé + `__wfrp.battle()`/`log()` round par
   round) avant tout correctif — ne pas deviner la ligne.
 
+### 4c. Le maximum des Blessures suit ses porteurs, à toute écriture (#1463)
+
+Le maximum des Blessures se recalcule quand ce qui le porte change (`LDB 05 l.1001`, `LDB 48 l.23`) et
+le courant suit le même delta, plancher 0 (`LDB 48 l.27`). Une seule primitive, pure et idempotente,
+`blessuresReconciliees` (`engine/characteristics.ts`), à trois étages :
+- **moteur** : fin d'`applyOps`, `applyActiveEffect`, `removeActiveEffects` ;
+- **constructeur** : le spawn d'un porteur né mutant (`noyau/monde/spawn.ts`), lu hors de l'état
+  (`summonValue`, fiches de PNJ) ;
+- **état** : `transitionDuJeu` (`noyau/transitionDuJeu.ts`), observée par le store web et par le
+  propriétaire du noyau après chaque écriture : tout champ de premier niveau remplacé voit chacun de ses
+  combattants réconcilié, aux chemins de `CHEMINS_DES_COMBATTANTS` (`noyau/combattantsDeLEtat.generated.ts`,
+  dérivé du type `EtatDeJeu` par `scripts/gen-combattants-de-l-etat.mjs`). Un flux qui mute un acteur en
+  place et le notifie (`touchActors`) n'a rien à recalculer.
+
+Un combattant dont le maximum bouge est **copié** (copie sur écriture, le long de son chemin) : une
+référence prise avant un `set` désigne l'ancien objet, et une écriture faite à travers elle n'atteint plus
+l'état. Après tout `set`, un acteur se **relit par son id** (`actorIn`, `ecrireActeur`). Le maximum lui-même
+est une marque de type, `MaximumDesBlessures` (`engine/types.ts`), forgée par `blessuresDeBase` (la base
+posée, que le maximum suit) et `blessuresReconciliees`. Sont refusés : le nombre posé à la main (littéral,
+spread sans cast) et l'affectation (`readonly`), au type ; le cast qui nomme la marque
+(`as MaximumDesBlessures`, `<MaximumDesBlessures>`, alias), au lint (`murs/marques`, `oxlint.config.mjs`).
+Ne sont PAS murés, limites assumées au site de la marque : `Object.assign(c.wounds, { max })`, et le cast
+par type indexé (`as Combatant['wounds']`, `as Combatant['wounds']['max']`).
+
 ## 5. Liens
 - Voir aussi : `docs/systeme-passifs.md`, `docs/ajouter-une-mecanique.md`.

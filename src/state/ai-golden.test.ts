@@ -14,6 +14,7 @@ import { chebyshev } from '../engine/grid';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
 import { ciblePsy } from '../engine/psych/ciblage';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
@@ -93,7 +94,7 @@ describe('GOLDEN parité Lot 2 — gardes RAW/psychologie (forcées, hors scorin
 
   it('Bestial blessé <50% (non Territorial/Frénétique/Engagé) → fuit (move)', () => {
     const e = mk('e', 'enemy', { x: 8, y: 8 }, {
-      traits: [{ id: 'bestial' } as never], wounds: { current: 3, max: 10 }, movement: 3,
+      traits: [{ id: 'bestial' } as never], wounds: blessuresDeBase(10, 3), movement: 3,
     });
     const h = mk('h', 'hero', { x: 8, y: 5 });
     const a = chooseEnemyAction(input(e, [h]));
@@ -102,16 +103,16 @@ describe('GOLDEN parité Lot 2 — gardes RAW/psychologie (forcées, hors scorin
 
   it('Frénésie → vise le plus PROCHE (LDB 21 l.33), pas le plus faible', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: 'frenesie' }], movement: 4 });
-    const near = mk('near', 'hero', { x: 5, y: 6 }, { wounds: { current: 10, max: 10 } }); // proche, costaud
-    const weakFar = mk('weakFar', 'hero', { x: 5, y: 11 }, { wounds: { current: 1, max: 10 } }); // faible, loin
+    const near = mk('near', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10) }); // proche, costaud
+    const weakFar = mk('weakFar', 'hero', { x: 5, y: 11 }, { wounds: blessuresDeBase(10, 1) }); // faible, loin
     const a = chooseEnemyAction(input(e, [near, weakFar]));
     expect(tidOf(a)).toBe('near');
   });
 
   it('Animosité/Haine active → filtre le vivier sur le groupe haï', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { psychState: [{ type: 'haine', cible: ciblePsy.groupe('elfe'), active: true }] });
-    const hated = mk('hated', 'hero', { x: 5, y: 6 }, { wounds: { current: 10, max: 10 }, groups: ['elfe'] });
-    const weak = mk('weak', 'hero', { x: 5, y: 4 }, { wounds: { current: 1, max: 10 }, groups: ['humain'] });
+    const hated = mk('hated', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10), groups: ['elfe'] });
+    const weak = mk('weak', 'hero', { x: 5, y: 4 }, { wounds: blessuresDeBase(10, 1), groups: ['humain'] });
     expect(tidOf(chooseEnemyAction(input(e, [hated, weak])))).toBe('hated');
   });
 
@@ -166,8 +167,8 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
 
   it('tireur retenu au contact (arme distance + mêlée) → frappe l’adversaire au contact', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [RANGED, MELEE] });
-    const adj = mk('adj', 'hero', { x: 5, y: 6 }, { wounds: { current: 8, max: 10 } });
-    const far = mk('far', 'hero', { x: 1, y: 1 }, { wounds: { current: 2, max: 10 } });
+    const adj = mk('adj', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10, 8) });
+    const far = mk('far', 'hero', { x: 1, y: 1 }, { wounds: blessuresDeBase(10, 2) });
     const a = chooseEnemyAction(input(e, [adj, far]));
     expect(a).toEqual({ kind: 'melee', targetId: 'adj' });
   });
@@ -222,14 +223,14 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
 
   it('anti-acharnement : cible au sol (À Terre) délaissée pour une cible debout (mêlée)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { movement: 4 });
-    const downed = mk('downed', 'hero', { x: 5, y: 6 }, { wounds: { current: 1, max: 10 }, conditions: [{ id: 'a-terre', value: 1 }] });
-    const standing = mk('standing', 'hero', { x: 6, y: 5 }, { wounds: { current: 9, max: 10 } });
+    const downed = mk('downed', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10, 1), conditions: [{ id: 'a-terre', value: 1 }] });
+    const standing = mk('standing', 'hero', { x: 6, y: 5 }, { wounds: blessuresDeBase(10, 9) });
     expect(tidOf(chooseEnemyAction(input(e, [downed, standing])))).toBe('standing');
   });
 
   it('anti-acharnement : seule cible neutralisée → on l’achève (dernier recours)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 });
-    const downed = mk('downed', 'hero', { x: 5, y: 6 }, { wounds: { current: 1, max: 10 }, conditions: [{ id: 'inconscient', value: 1 }] });
+    const downed = mk('downed', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10, 1), conditions: [{ id: 'inconscient', value: 1 }] });
     expect(chooseEnemyAction(input(e, [downed]))).toEqual({ kind: 'melee', targetId: 'downed' });
   });
 

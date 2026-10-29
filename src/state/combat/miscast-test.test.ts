@@ -9,6 +9,7 @@ import { hasCondition } from '../../engine/conditions';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 import { resetCadence } from '../../engine/cadence';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 /**
  * Lot 4d — les Tests imbriqués des tables d'Imparfaites/Colère (« Résistance Accessible ou Sonné »,
@@ -43,8 +44,8 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
     const b = useGame.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    H.wounds.max = 200; H.wounds.current = 200;
-    E.wounds.max = 200; E.wounds.current = 200;
+    H.wounds = blessuresDeBase(200);
+    E.wounds = blessuresDeBase(200);
     useGame.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, E };
   }

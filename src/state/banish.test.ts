@@ -6,6 +6,7 @@ import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
 import { desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * Démoniaque — bannissement « à la mort » (LDB 85 l.98 : « son âme retourne dans les Royaumes du Chaos,
@@ -18,7 +19,7 @@ import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
   id: 'd', label: 'Démon', kind: 'enemy', characteristics: { endurance: 40 },
-  wounds: { current: 0, max: 12, base: 12 },
+  wounds: blessuresDeBase(12, 0),
   ...over,
 });
 

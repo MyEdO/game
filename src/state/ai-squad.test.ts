@@ -14,6 +14,7 @@ import { outnumberMod } from '../engine/combat';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 import { ligneDeRegle } from '../engine/reglesChiffrees';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
@@ -104,7 +105,7 @@ describe('Lot 4 — squad OPTIONNEL : parité Lot 3', () => {
       const dangerous = mk('dangerous', 'hero', { x: 10, y: 13 }, {
         weapons: [{ label: 'Hache lourde', type: 'melee', damage: { plusBF: true, flat: 10 }, qualities: [] }],
       });
-      const soft = mk('soft', 'hero', { x: 10, y: 16 }, { wounds: { current: 8, max: 12 } });
+      const soft = mk('soft', 'hero', { x: 10, y: 16 }, { wounds: blessuresDeBase(12, 8) });
       return input(e, [dangerous, soft], extra);
     };
     const withoutField = chooseEnemyAction(mkInput({}));

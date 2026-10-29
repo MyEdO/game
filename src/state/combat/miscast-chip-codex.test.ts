@@ -8,6 +8,7 @@ import { summarizeEffects, chipCodex } from '../../gameIso/effectIcons';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 import { resetCadence } from '../../engine/cadence';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 /**
  * ANCRAGE DE RÈGLE d'un contrecoup — chemin RÉEL (`applyMiscast` → `finishMiscast` → `runCombatFlow`,
@@ -36,7 +37,7 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
     vi.clearAllTimers();
     const b = useGame.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
-    H.wounds.max = 200; H.wounds.current = 200;
+    H.wounds = blessuresDeBase(200);
     useGame.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H };
   }

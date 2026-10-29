@@ -5,6 +5,7 @@ import { rollSansPilote } from '../noyau/rollSeam';
 import { makeRNG } from '../engine/dice';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 /**
  * Porte de repli SANS-PILOTE du seam (#918 phase 2a) — l'invariant « un jet inline n'est permis QUE si
@@ -15,12 +16,12 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
   const rng = () => makeRNG(1234);
 
   const mk = (over: Partial<Combatant>): Combatant =>
-    ({
+    combattantDeTest({
       id: 'X', label: 'Sujet', kind: 'hero',
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
       skills: [], conditions: [], talents: [],
       ...over,
-    }) as unknown as Combatant;
+    });
 
   beforeEach(() => {
     resetCadence();

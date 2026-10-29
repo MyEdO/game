@@ -22,6 +22,7 @@ import { desDuTest } from '../engine/dice.testkit';
 import { opPsy } from '../engine/psych/opsPsy';
 import { ciblePsy } from '../engine/psych/ciblage';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -46,7 +47,7 @@ function phobique(label = 'H') {
   return h;
 }
 
-const C = (o: Partial<Combatant>): Combatant => combattantDeTest({ id: 'x', kind: 'hero', label: 'x', groups: [], psychState: [], wounds: { current: 10, max: 10 }, ...o });
+const C = (o: Partial<Combatant>): Combatant => combattantDeTest({ id: 'x', kind: 'hero', label: 'x', groups: [], psychState: [], wounds: blessuresDeBase(10), ...o });
 
 beforeEach(() => {
   banc.setState({ battle: null, pendingCascade: null, scene: null, party: [] });

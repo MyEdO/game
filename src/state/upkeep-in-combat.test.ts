@@ -8,6 +8,8 @@ import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import { monoStep } from '../noyau/rollSeam';
 import { nightStakeRef } from '../data';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * #253 — DEUX chemins d'entretien qui NE roulaient plus en silence.
@@ -46,8 +48,8 @@ describe('#253.2 — combat franchissant minuit : les Tests d\'entretien se mett
   beforeEach(() => useGame.setState({ battle: null, pendingCascade: null, deferredUpkeepQueue: [], pendingVictory: null }));
 
   const deadEnemy = (): Combatant =>
-    ({ id: 'e', kind: 'enemy', name: 'Bandit', characteristics: { endurance: 30 } as never,
-      wounds: { current: 0, max: 10 }, dead: true, conditions: [], skills: [], items: [], weapons: [], movement: 4, advantage: 0 } as unknown as Combatant);
+    combattantDeTest({ id: 'e', kind: 'enemy', label: 'Bandit', characteristics: { endurance: 30 } as never,
+      wounds: blessuresDeBase(10, 0), dead: true, conditions: [], skills: [], items: [], weapons: [], movement: 4, advantage: 0 });
 
   it('un franchissement de jour PENDANT un combat FILE un Test de dessoûlage (deferredUpkeepQueue), sans le rouler', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 2 });

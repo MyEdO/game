@@ -15,6 +15,7 @@ import { DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine
 import { rule } from '../engine/policy';
 import { lignesDe, renvoieA } from '../engine/modLine.testkit';
 import { RULE_REF } from '../engine/ruleRefs';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -248,7 +249,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     // Sans Empoisonné : cet État rend le repos INSTABLE (LDB 16 l.105) — aucun Test de récupération.
     // Un Exténué (LDB 16 l.90), lui, laisse dormir ET pèse −10 sur le Test : c'est ce que #1685 rendait
     // la porte compte (`LDB 16 l.125`), et c'est ce que ce test mesure (#1685).
-    const blesse = campeur({ id: 'ble', label: 'Blessé', wounds: { current: 4, max: 12 }, conditions: [{ id: 'extenue', value: 1 }] as never });
+    const blesse = campeur({ id: 'ble', label: 'Blessé', wounds: blessuresDeBase(12, 4), conditions: [{ id: 'extenue', value: 1 }] as never });
     fresh([blesse]);
     const { steps } = buildNightCascade(get, set, restPending([blesse], 'auberge'), { fedDaily: true });
     const st = jetDe(steps.find((s) => s.kind === 'recovery')!);
@@ -337,7 +338,7 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
       skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] as never,
       conditions: [{ id: 'empoisonne', value: 1 }] as never,
     });
-    const blesse = hero({ id: 'al', label: 'Blessé', wounds: { current: 4, max: 12 } });
+    const blesse = hero({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 4) });
     fresh([doc, blesse]);
     get().openMedic({ patientId: 'al' });
     get().medicAct('wounds');

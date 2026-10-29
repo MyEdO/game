@@ -34,6 +34,8 @@ import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import type { InterruptionDePeril } from '../noyau/tablesPosees';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import { desDuTest } from '../engine/dice.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * #1508 T2 — LA CHUTE PASSE PAR LA PORTE. Les deux dés d'une chute du gréement (hauteur `2d10 m`,
@@ -50,15 +52,15 @@ import { desDuTest } from '../engine/dice.testkit';
 
 /** Marin minimal — BE 3, PA 0, assez de PB pour encaisser 3×20 m. */
 const marin = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
-    id, name: id, label: id, kind: 'npc',
+  combattantDeTest({
+    id, label: id, kind: 'npc',
     characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 42, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
     skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
-    armour: { corps: 0 }, wounds: { current: 200, max: 200, base: 200 }, advantage: 0, ...over,
-  }) as unknown as Combatant;
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, wounds: blessuresDeBase(200), advantage: 0, ...over,
+  });
 
 /** Le patrouilleur : 25 m → Taille MOYENNE (MDG 12 l.126) ; le nid-de-pie est une Amélioration d'instance. */
-const coque = (): Combatant => ({ id: 'hull', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', upgrades: [{ id: 'nid-de-pie' }] } as unknown as Combatant);
+const coque = (): Combatant => combattantDeTest({ id: 'hull', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', upgrades: [{ id: 'nid-de-pie' }] });
 
 /** Les ops de la branche d'ÉCHEC de « Mât brisé » (d10 = 10), telles qu'AUTHORÉES. */
 const opsDeChute = (): GameOp[] => {

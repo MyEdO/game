@@ -9,6 +9,7 @@ import { setCadence, resetCadence } from '../engine/cadence';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
 import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * #997, #1765 — combats COMPLETS avec Tir rapide (`LDB 11 l.97-103`) dans les deux camps, sous trois
@@ -25,7 +26,7 @@ function monte(opts: { heroAi: boolean; fate?: number; wounds?: number }) {
   const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant => {
     const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
     c.id = id; c.label = id; c.kind = kind; c.pos = pos; c.fortune = 0; c.fate = kind === 'hero' ? (opts.fate ?? 0) : 0;
-    c.wounds = { ...c.wounds, current: opts.wounds ?? 6, max: opts.wounds ?? 6 };
+    c.wounds = blessuresDeBase(opts.wounds ?? 6);
     if (kind === 'hero' && opts.heroAi) c.aiControlled = true;
     c.weapons = [ARC()];
     return c;

@@ -13,6 +13,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
@@ -210,7 +211,7 @@ describe('combat-helpless-mode — cible Inconsciente (LDB 16 l.113)', () => {
   it('mort-auto + mêlée : applyAttackResult TUE une cible SANS Destin (dead via chemin normal)', () => {
     setRule('combat-helpless-mode', 'mort-auto');
     const atk = hero({ id: 'h1', pos: { x: 0, y: 0 } });
-    const victim = enemy({ id: 'e1', pos: { x: 1, y: 0 }, wounds: { current: 20, max: 20 }, conditions: [{ id: 'inconscient', value: 1 }] });
+    const victim = enemy({ id: 'e1', pos: { x: 1, y: 0 }, wounds: blessuresDeBase(20), conditions: [{ id: 'inconscient', value: 1 }] });
     setBattle([atk, victim]);
     const res: AttackResult = {
       hit: true, attackerRoll: 10, netSL: 5, location: 'tete', damage: 12, woundsLost: 5,
@@ -227,7 +228,7 @@ describe('combat-helpless-mode — cible Inconsciente (LDB 16 l.113)', () => {
   it('mort-auto + mêlée : un HÉROS à Destin déclenche le sauvetage (pendingFateSave), pas une mort sèche', () => {
     setRule('combat-helpless-mode', 'mort-auto');
     const atk = enemy({ id: 'e1', pos: { x: 0, y: 0 } });
-    const victim = hero({ id: 'h1', pos: { x: 1, y: 0 }, fate: 2, wounds: { current: 12, max: 12 }, conditions: [{ id: 'inconscient', value: 1 }] });
+    const victim = hero({ id: 'h1', pos: { x: 1, y: 0 }, fate: 2, wounds: blessuresDeBase(12), conditions: [{ id: 'inconscient', value: 1 }] });
     setBattle([atk, victim]);
     const res: AttackResult = {
       hit: true, attackerRoll: 10, netSL: 5, location: 'tete', damage: 12, woundsLost: 5,

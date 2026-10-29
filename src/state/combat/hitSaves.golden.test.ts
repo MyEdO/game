@@ -8,6 +8,7 @@ import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
 import { emptyScene } from '../../noyau/monde/scene';
 import { OPS_DIFFEREES } from '../../noyau/combatEffects';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 /**
  * GOLDEN des SAUVEGARDES POST-TOUCHE (filet anti-régression Phase 2) : `applyAttackResult` applique,
@@ -71,7 +72,7 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
     seedBattleRng(2); // graine où le 1d10 de sauvegarde ≥ 8 (le coup est ignoré)
     const atk = hero({ id: 'h1', pos: { x: 0, y: 0 } });
     // Cible Démoniaque (Indice 8) : 1d10 ≥ 8 → coup ignoré, même Critique (LDB 85 l.98).
-    const demon = enemy({ id: 'e1', pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }], wounds: { current: 20, max: 20 } });
+    const demon = enemy({ id: 'e1', pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }], wounds: blessuresDeBase(20) });
     setBattle([atk, demon]);
     const before = useGame.getState().battle!.combatants.find((c) => c.id === 'e1')!.wounds.current;
     const suspended = applyAttackResult(useGame.getState, useGame.setState, atk, demon, atk.weapons?.[0] ?? ({ label: 'Griffes', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as Weapon), meleeHit());
@@ -104,7 +105,7 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
     seedBattleRng(1); // graine où le 1d10 du Dôme ≥ 6 (le tir est dévié)
     // Porteur du Dôme (rayon 4 m → 2 cases) ; cible adjacente DEDANS ; tireur HORS de la zone.
     const warden = hero({ id: 'w', label: 'Mage', pos: { x: 5, y: 5 }, activeEffects: [{ domeWard: { radiusMeters: 4, ward: { id: 'protection', value: 6 } } }] as unknown as Combatant['activeEffects'] });
-    const target = hero({ id: 'h1', label: 'Couvert', pos: { x: 6, y: 5 }, wounds: { current: 15, max: 15 } });
+    const target = hero({ id: 'h1', label: 'Couvert', pos: { x: 6, y: 5 }, wounds: blessuresDeBase(15) });
     const shooter = enemy({ id: 'e1', label: 'Tireur', pos: { x: 20, y: 5 } });
     const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as Weapon;
     setBattle([warden, target, shooter]);

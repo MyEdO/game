@@ -236,8 +236,8 @@ export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG): Mutatio
  *  loadout — disparaissent avec elle) et RÉVERSE les grants STRUCTURELS posés à l'attache (Trait, Trait psy,
  *  Talent). Sert la mutation TEMPORISÉE de l'op `rollMutation` (Allure démoniaque « pour toute la durée du
  *  Sort », EDOC 13 l.276-277) ; le chemin CORRUPTION (corruptionFlow → `attachMutation` direct, sans effet
- *  actif porteur) reste PERMANENT, jamais détaché. Le loadout/PB dérivés se recalculent chez l'appelant
- *  (comme pour `attachMutation`). Mute `c`. */
+ *  actif porteur) reste PERMANENT, jamais détaché. Le loadout dérivé se recalcule chez l'appelant
+ *  (comme pour `attachMutation`), les PB à la couture qui suit (`blessuresReconciliees`). Mute `c`. */
 export function detachMutation(c: Combatant, m: Mutation): void {
   const list = c.mutations ?? [];
   let i = -1;
@@ -268,7 +268,7 @@ export function detachMutation(c: Combatant, m: Mutation): void {
 
 /** Détache les mutations portées par les ActiveEffect EXPIRÉS (op `rollMutation` temporisée) — MIROIR de
  *  `dropExpiredGrantedTraits`, appelé aux MÊMES coutures d'expiration (fin de Round / horloge / dissipation).
- *  Renvoie `true` si au moins une mutation a été détachée (→ l'appelant recalcule loadout/PB dérivés). */
+ *  Renvoie `true` si au moins une mutation a été détachée (→ l'appelant recalcule le loadout dérivé). */
 export function dropExpiredGrantedMutations(c: Combatant, expired: { grantedMutation?: Mutation }[]): boolean {
   let dropped = false;
   for (const e of expired) if (e.grantedMutation) { detachMutation(c, e.grantedMutation); dropped = true; }

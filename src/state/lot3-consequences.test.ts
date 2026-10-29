@@ -3,9 +3,10 @@ import { applyEffects } from '../noyau/combatEffects';
 import { hasCondition } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const hero = (id: string, current: number): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'hero', dead: false, wounds: { current, max: 20 } });
+  combattantDeTest({ id, label: id, kind: 'hero', dead: false, wounds: blessuresDeBase(20, current) });
 
 function fakeStore(party: Combatant[]) {
   let s: any = { battle: undefined, party, flags: {}, journal: [], log: () => {} };

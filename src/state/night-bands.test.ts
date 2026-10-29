@@ -38,6 +38,8 @@ import { nightStakeRef } from '../data';
 import { cascadeDeTest } from '../noyau/cascade.testkit';
 import type { GenreDEtape } from '../noyau/tablesPosees';
 import { deFixe } from '../engine/dice.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const get = useGame.getState;
 const set = useGame.setState;
@@ -348,8 +350,8 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
     const manuel = h('manuel', { hunger: { days: 2, tests: 0, failures: 0 } });
     const temoin = h('temoin', { hunger: { days: 2, tests: 0, failures: 0 } });
     addCondition(temoin, 'inconscient', 1); // hors d'action → jamais un jet à influencer
-    const ennemi = { id: 'e', kind: 'enemy', label: 'Bandit', characteristics: { endurance: 30 } as never,
-      wounds: { current: 0, max: 10 }, dead: true, conditions: [], skills: [], items: [], weapons: [], movement: 4, advantage: 0 } as unknown as Combatant;
+    const ennemi = combattantDeTest({ id: 'e', kind: 'enemy', label: 'Bandit', characteristics: { endurance: 30 } as never,
+      wounds: blessuresDeBase(10, 0), dead: true, conditions: [], skills: [], items: [], weapons: [], movement: 4, advantage: 0 });
     const queue = nightBands([
       nuit({ id: 'faim-manuel-0', kind: 'faim', hero: 'manuel', label: 'Faim', base: 40, target: 40, meta: { day: 1 } }),
       nuit({ id: 'faim-temoin-1', kind: 'faim', hero: 'temoin', label: 'Faim', base: 35, target: 35, meta: { day: 1 } }),
@@ -376,8 +378,8 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
    *  file étant VIDÉE dans le même geste, l'étape — et sa conséquence — disparaîtraient en silence. */
   it('SONDE A : une étape NON bandable de la file survit (chemin d’origine), jamais dissoute par la scission', () => {
     const manuel = h('manuel');
-    const ennemi = { id: 'e', kind: 'enemy', label: 'Bandit', characteristics: { endurance: 30 } as never,
-      wounds: { current: 0, max: 10 }, dead: true, conditions: [], skills: [], items: [], weapons: [], movement: 4, advantage: 0 } as unknown as Combatant;
+    const ennemi = combattantDeTest({ id: 'e', kind: 'enemy', label: 'Bandit', characteristics: { endurance: 30 } as never,
+      wounds: blessuresDeBase(10, 0), dead: true, conditions: [], skills: [], items: [], weapons: [], movement: 4, advantage: 0 });
     // `combatEndDisease` n'est PAS un `NightTestKind` → `nightBands` la laisse passer INTACTE.
     const etrangere = nuit({
       id: 'combatEndDisease-manuel-x', kind: 'combatEndDisease', hero: 'manuel', label: 'Résistance',

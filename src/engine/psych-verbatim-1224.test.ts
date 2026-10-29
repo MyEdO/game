@@ -21,6 +21,7 @@ import { findPsychologyById } from '../data';
 import type { Combatant } from './types';
 import { opPsy } from './psych/opsPsy';
 import { ciblePsy } from './psych/ciblage';
+import { blessuresDeBase } from './characteristics';
 
 const C = (o: Partial<Combatant>): Combatant => o as unknown as Combatant;
 
@@ -75,7 +76,7 @@ describe('#1224 écart 1 — Phobie : l’objet du Trait CAUSE la Peur (LDB 21 l
 
 describe('#1224 écarts 2 & 3 — immunités par CANAL (LDB 21 l.41 / l.75)', () => {
   /** L'aimé, présent aux côtés du porteur : « tant que vous défendez les êtres aimés » (l.75). */
-  const aime = C({ id: 'a', kind: 'hero', groups: ['humain'], wounds: { current: 10, max: 10 }, conditions: [] });
+  const aime = C({ id: 'a', kind: 'hero', groups: ['humain'], wounds: blessuresDeBase(10), conditions: [] });
 
   it('Haine : le canal Peur du groupe haï — jamais la Terreur, jamais un autre groupe', () => {
     expect(findPsychologyById('haine')?.immuneToFromTarget).toEqual(['peur']);

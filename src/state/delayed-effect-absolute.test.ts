@@ -5,6 +5,7 @@ import { flowFromEffects } from '../noyau/monde/flow';
 import { createHero } from '../engine/character';
 import { scheduleAt, dayIndex, toDate, fromDate, MINUTES_PER_DAY, minutesUntilNext } from '../engine/clock';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * #668 — extension de `delayedEffect`/`setObjective` au JOUR/DATE ABSOLU (`ScheduleSpec`,
@@ -42,7 +43,7 @@ describe('delayedEffect — échéance en JOURS via le store réel', () => {
 
   function lonePartyAt(wounds: number) {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-    h.wounds = { current: wounds, max: wounds };
+    h.wounds = blessuresDeBase(wounds);
     useGame.setState({ party: [h] });
     return h;
   }

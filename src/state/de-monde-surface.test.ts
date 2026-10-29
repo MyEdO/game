@@ -37,6 +37,8 @@ import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import type { GenreDEtape, GenreDeCascade } from '../noyau/tablesPosees';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import { deFixe } from '../engine/dice.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * LE DÉ DE MONDE SOUS CONTRÔLE DU SIÈGE ENVIRONNEMENT (#1426).
@@ -179,7 +181,7 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
 
 /** Un ennemi minimal EN FILE — de quoi juger qui le TIENT, rien de plus. */
 const ennemiDeSonde = (): Combatant =>
-  ({ id: 'e-sonde', kind: 'enemy', name: 'Sonde', pos: { x: 0, y: 0 }, conditions: [], skills: [], wounds: { current: 5, max: 5 } } as unknown as Combatant);
+  combattantDeTest({ id: 'e-sonde', kind: 'enemy', label: 'Sonde', pos: { x: 0, y: 0 }, conditions: [], skills: [], wounds: blessuresDeBase(5) });
 const enFile = (cs: Combatant[]) => ({ combatants: cs, order: cs.map((c) => c.id), turn: 0, round: 1, log: [], over: null } as never);
 
 /**

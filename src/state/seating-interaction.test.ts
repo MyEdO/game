@@ -13,6 +13,8 @@ import { interactionHalos } from '../gameIso/builders/interactHalos';
 import type { BillboardPropEl } from '../gameIso/builders/types';
 import type { Combatant } from '../engine/types';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 
 const TABLE = 'table-ronde-4-tabourets';
@@ -22,7 +24,7 @@ const ABORD_NORD = { x: 5, y: 4 };
 const MENEUR: SeatOccupant = { kind: 'party', rang: 1 };
 
 const hero = (id = 'h'): Combatant =>
-  ({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: { current: 12, max: 12 }, conditions: [], movement: 4 }) as unknown as Combatant;
+  combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
 function scèneDeTaverne(): Scene {
   const s = emptyScene('scene-test', 12, 12);

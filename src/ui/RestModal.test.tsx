@@ -13,6 +13,7 @@ import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
 import type { Combatant } from '../engine/types';
 import type { TravelPlan, TravelRecapDay } from '../noyau/travelFlow';
+import { blessuresDeBase } from '../engine/characteristics';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -22,7 +23,7 @@ afterEach(() => { act(() => root?.unmount()); root = null; });
 const hero = {
   id: 'h', label: 'Hilda', kind: 'hero',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
-  wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [],
+  wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [], movement: 4,
 } as Combatant;
 

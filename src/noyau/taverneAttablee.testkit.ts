@@ -5,10 +5,9 @@
 import { etatInitialDuJeu, type EtatDeJeu } from './etat';
 import { emptyScene, type Scene } from './monde/scene';
 import { assignSeat } from './monde/seating';
-import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
-const hero = (id: string): Combatant =>
-  ({ id, label: id.toUpperCase(), kind: 'hero', wounds: { current: 12, max: 12 }, conditions: [], movement: 4 }) as unknown as Combatant;
+const hero = (id: string) => combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero' });
 
 export const ALDO = hero('aldo');
 export const BRUNA = hero('bruna');

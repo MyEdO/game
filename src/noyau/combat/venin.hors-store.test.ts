@@ -7,6 +7,7 @@ import { seedBattleRng } from '../battleRng';
 import { stacks } from '../../engine/conditions';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -34,7 +35,7 @@ describe('Venin — la touche qui blesse pose Empoisonné à la Difficulté du V
     const serpent = enemies[0];
     const proie = enemies[1];
     enemies.slice(2).forEach((e) => (e.dead = true));
-    for (const c of [H, proie]) { c.wounds.max = 200; c.wounds.current = 200; c.conditions = []; }
+    for (const c of [H, proie]) { c.wounds = blessuresDeBase(200); c.conditions = []; }
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, serpent, proie };
   }

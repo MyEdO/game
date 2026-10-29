@@ -13,7 +13,7 @@
  */
 import { tableTotale } from '../../lib/tableTotale';
 import { Combatant, Weapon, ArmourPoints, CHAR_KEYS } from '../../engine/types';
-import { bonus, effectiveChar } from '../../engine/characteristics';
+import { bonus, effectiveChar, blessuresDeBase } from '../../engine/characteristics';
 import { combatValue, attackModifiers, combineMods, woundsFromHit, type ModLine } from '../../engine/combat';
 import { effectiveWeaponDamage } from '../../engine/weaponDamage';
 import { missileDamage } from '../../engine/magic';
@@ -92,7 +92,7 @@ export function isNeutralized(h: Combatant): boolean {
 const GENERIC_DUMMY: Combatant = {
   id: '__ai-dummy__', label: 'cible', kind: 'enemy',
   characteristics: tableTotale(CHAR_KEYS, () => 30),
-  wounds: { current: 12, max: 12, base: 12 },
+  wounds: blessuresDeBase(12),
   advantage: 0, conditions: [], weapons: [], armour: {} as ArmourPoints,
   skills: [], talents: [], movement: 4,
 };
