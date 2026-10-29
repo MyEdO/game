@@ -83,7 +83,7 @@ export type DeDeTable = z.infer<typeof deDeTableSchema>;
 /**
  * Registre d'où DÉRIVE le pool de spécialisations d'une def (`SpecsSource`, `src/data/index.ts` ;
  * catalogue `SPEC_SOURCES`) — UNE déclaration pour les trois defs qui portent ce champ
- * (`skills`/`talents`/`traits`), qui en tenaient chacune une copie. La couverture est TOTALE (16/16 de
+ * (`skills`/`talents`/`traits`), qui en tenaient chacune une copie. La couverture est TOTALE (toutes les clés de
  * `SPEC_SOURCES`, verrouillée par `grammaire/enums-nommes-grammaire.test.ts`) : elle ne peut pas être
  * partielle, les options SONT les clés de la table. `weaponsMelee`/`weaponsRanged` portent le
  * libellé de la catégorie de catalogue que leur `pool()` FILTRE (`trappings.categorie`,
@@ -98,7 +98,7 @@ export const specsSourceSchema = enumNomme({
   cultMiracles: 'Miracles (dieux)',
   cultChaos: 'Magie du Chaos (dieux)',
   seaShanties: 'Chansons de marin',
-  groups: 'Groupes (créatures/factions)',
+  ciblesPsy: 'Cibles psychologiques (Groupes, personnes)',
   diseases: 'Maladies',
   sizes: 'Tailles',
   mutations: 'Mutations',
@@ -116,6 +116,11 @@ export const specsSourceSchema = enumNomme({
  * les charges des ops `aggravateSymptom`/`grantSymptom` (`grammaire/mecanique.ts`).
  */
 export const symptomSeveritySchema = enumNomme({ moderee: 'Modérée', grave: 'Grave' });
+
+/** Variante de Cible qu'un type de psychologie CIBLÉ admet (`psychology.json`, `cibles`) : un Groupe (LDB 21
+ *  l.19), un individu (LDB 21 l.75 ; EDOC 11 l.648). Son libellé nomme la variante dans les refus. #3045 */
+export const varianteDeCibleSchema = enumNomme({ groupe: 'un Groupe', individu: 'une personne' });
+export type VarianteDeCible = z.infer<typeof varianteDeCibleSchema>;
 
 /**
  * Alignement d'une source de Corruption (`ChaosAlign`, `src/engine/corruption.ts`) — UNE déclaration

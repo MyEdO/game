@@ -10,7 +10,7 @@ import { CodexRef } from './compendium/CodexRef';
 import { byId, findTalentById, findTraitById, skillInstanceLabel, talentConcrete, qualityRefLabel, refLabel, advancementLabel, type AdvancementRef } from '../data';
 import { t } from '../i18n';
 import { refKey } from '../engine/careerSlots';
-import { formatTrait } from '../engine/traits/dispatch';
+import { traitLisible } from '../engine/traits/dispatch';
 import type { SkillInstance, TalentInstance, QualityInstance } from '../engine/types';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
 
@@ -142,10 +142,10 @@ export function QualityChips({ qualities }: { qualities: QualityInstance[] }) {
 }
 
 /** Chip d'un Trait STRUCTURÉ (`TraitInstance`, LDB 85) — porté par une créature OU un Trait RACIAL
- *  d'espèce (#572, ex. Ogre) — libellé fidèle via `formatTrait`. */
+ *  d'espèce (#572, ex. Ogre) — libellé joueur via `traitLisible`. */
 export function TraitChip({ trait }: { trait: TraitPose }) {
   return (
-    <EntityRef category="traits" id={trait.id} label={findTraitById(trait.id)?.label ?? trait.id} show={formatTrait(trait)} />
+    <EntityRef category="traits" id={trait.id} label={findTraitById(trait.id)?.label ?? trait.id} show={traitLisible(trait)} />
   );
 }
 

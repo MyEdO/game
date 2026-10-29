@@ -13,6 +13,7 @@ import { termeRecopie, type VocabulaireDuTag } from './dialogueLibelle';
 import { type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, racinesDeFlow } from '../engine/flowCore';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { byId, stakeSpeaks, matieresDe } from '../data';
+import { individusNommes } from '../engine/psych/ciblage';
 import { versionDesDatasets } from '../data/versionDataset';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { validerReferencesDObjetsDansCampagne } from '../data/schemas/defs-scenes/narratif';
@@ -211,6 +212,12 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // Dialogues qu'un OUVREUR de la scène cite : la capacité « parler » d'une entité (`dialogueId`),
     // et tout effet dont le handler déclare `ouvreDialogue` (le runtime cherche dans la scène COURANTE).
     const dialoguesOuverts = new Set(s.entities.flatMap((e) => (e.dialogueId ? [e.dialogueId] : [])));
+    // Cible d'individu : un personnage de CETTE scène (EDOC 11 l.648 ; #3045).
+    const individuAbsent = (id: string) => !refCtx.entityIds.has(id);
+    for (const e of s.entities) for (const id of individusNommes(e).filter(individuAbsent))
+      add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → Cible psy « ${id} » : aucun personnage de la scène ne porte cet id.`);
+    for (const id of individusNommes({ ...s, entities: [] }).filter(individuAbsent))
+      add('error', 'scene', undefined, `Cible psy « ${id} » : aucun personnage de la scène ne porte cet id.`);
     const checkEffect = (eff: Effect, refId: string, scope: Warning['scope']) => {
       const handler = EFFECT_HANDLERS[eff.type] as EffectHandler;
       if (handler.refs) for (const issue of handler.refs(eff, refCtx)) add(issue.level, scope, refId, issue.message);

@@ -48,6 +48,7 @@ import { Icon } from './Icon';
 import { EffectChips } from './EffectChips';
 import { combatantFlags } from '../gameIso/effectIcons';
 import { sheetAlarms, alarmsFingerprint } from './sheetAlarms';
+import { nomDIndividu } from '../noyau/monde/sceneNpc';
 import { EtatPanel, zoneAnchor, zoneAfflictions } from './EtatPanel';
 import { FigTile, type ZoneBadgeSpec } from './FigTile';
 import { LifeBar } from './LifeBar';
@@ -125,7 +126,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
   // cf. `CampaignView.tsx`/`PartyScreen.tsx` qui ne posent pas de `key`).
   useEffect(() => {
     if (!hero) return;
-    const alarms = sheetAlarms(hero);
+    const alarms = sheetAlarms(hero, nomDIndividu(useGame.getState()));
     if (alarms.length > 0 && alarmsFingerprint(alarms) !== useGame.getState().sheetAlarmsSeen[hero.id]) setSheetTab('etat');
   }, []);
 
@@ -133,7 +134,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
   // manuelle) — les prochaines ouvertures sans alarme nouvelle laissent le dernier onglet consulté.
   useEffect(() => {
     if (!hero || tab !== 'etat') return;
-    const fp = alarmsFingerprint(sheetAlarms(hero));
+    const fp = alarmsFingerprint(sheetAlarms(hero, nomDIndividu(useGame.getState())));
     if (useGame.getState().sheetAlarmsSeen[hero.id] !== fp) setSheetAlarmsSeen(hero.id, fp);
   }, [tab, hero?.id, setSheetAlarmsSeen]); // `hero` change lu via getState() (pas de re-render en boucle sur son objet muté)
 

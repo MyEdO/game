@@ -43,8 +43,8 @@ const elire = (s: HTMLSelectElement, v: string) => {
 };
 
 const devenant = psychologies.find((p) => !!p.becomes);
-const ciblee = psychologies.find((p) => p.targeted);
-const nonCiblee = psychologies.find((p) => !p.targeted && !p.becomes);
+const ciblee = psychologies.find((p) => p.cibles);
+const nonCiblee = psychologies.find((p) => !p.cibles && !p.becomes);
 const groupe = groups[0];
 
 describe('préconditions de forme', () => {

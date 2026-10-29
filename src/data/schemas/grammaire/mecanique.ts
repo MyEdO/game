@@ -22,7 +22,7 @@ import { traitInstanceSchema } from './reference';
 import { catalogueSpecs, idDe, marquerOpAtteinte, ref, refs, refOuSpec, specDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
-import { estCibleType } from '../../../engine/psych/ciblage';
+import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
 
 /** Régime d'une liste d'ops, posé par sa fabrique (`passifsDe`, `executeesDe`) et lu par IDENTITÉ : une
  *  liste construite à la main n'en a aucun. */
@@ -124,10 +124,14 @@ const estNoeudZod = (v: unknown): v is z.ZodType => typeof v === 'object' && v !
 /** Prose du retrait du jeu (`banish`) : LDB 85 l.98, l.199. */
 export const banishNarrationSchema = enumNomme({ chaos: 'banni aux Royaumes du Chaos', unravel: 'se délite' }, { chaos: 'LDB 85 l.98', unravel: 'LDB 85 l.199' });
 
-/** Une Cible n'est portée que par un type CIBLÉ (`psychology.json`, `targeted`). LDB 21 l.17-19 */
+/** Une Cible n'est portée que par un type CIBLÉ, et celle d'une op est un Groupe que ce type admet
+ *  (`psychology.json`, `cibles`). LDB 21 l.17-19, l.75 ; #3045 */
 function refuserLaCibleHorsCiblage(type: string, cible: unknown, ctx: z.RefinementCtx): void {
-  if (cible !== undefined && !estCibleType(type)) {
+  if (cible === undefined) return;
+  if (!estCibleType(type)) {
     ctx.addIssue({ code: 'custom', path: ['cible'], message: `« ${type} » ne vise aucune Cible : « cible » est refusée.` });
+  } else if (!varianteAdmise(type, 'groupe')) {
+    ctx.addIssue({ code: 'custom', path: ['cible'], message: `« ${type} » ne vise pas un Groupe : voir ses « cibles » (psychology.json).` });
   }
 }
 

@@ -8,8 +8,8 @@ import { ciblePsy } from './ciblage';
 import { groups, psychologies } from '../../data';
 import { gameOpSchema } from '../../data/schemas/grammaire/mecanique';
 
-const ciblee = psychologies.find((p) => p.targeted);
-const nonCiblee = psychologies.find((p) => !p.targeted && !p.becomes);
+const ciblee = psychologies.find((p) => p.cibles);
+const nonCiblee = psychologies.find((p) => !p.cibles && !p.becomes);
 const groupe = groups[0];
 
 describe('opPsy — références emboîtées', () => {

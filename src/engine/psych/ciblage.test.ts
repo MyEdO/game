@@ -3,11 +3,14 @@
  * (#1463, #3045). Entrées de donnée choisies par leur forme, jamais par leur nom.
  */
 import { describe, it, expect } from 'vitest';
-import { ciblePsy, cibleDArgument, cibleDuPorteur, ciblePsyLue, estCibleType, identiteDeCiblage, libelleDeCible, refDeCible, selonCible, type CiblePsy } from './ciblage';
-import { groupLabel, groups, psychologies } from '../../data';
+import { ciblePsy, cibleDeRef, cibleDuPorteur, ciblePsyLue, estCibleType, identiteDeCiblage, libelleDeCible, refDeCible, selonCible, varianteAdmise, varianteDe, type CiblePsy } from './ciblage';
+import { dataLabel, groupLabel, groups, psychologies } from '../../data';
 import { t } from '../../i18n';
 
 const groupe = groups[0];
+/** Un id de combattant quelconque : la forme d'un `Combatant.id`, jamais un id du dépôt. */
+const individu = 'combattant-1';
+const lecture = { groupe: (id: string) => `g:${id}`, individu: (id: string) => `i:${id}` };
 
 describe('ciblePsy — la seule fabrique', () => {
   it('précondition : le registre des Groupes a une entrée', () => {
@@ -16,13 +19,26 @@ describe('ciblePsy — la seule fabrique', () => {
 
   it('un id de Groupe donne la Cible de ce Groupe', () => {
     const cible = ciblePsy.groupe(groupe.id);
-    expect(selonCible(cible, { groupe: (id) => id })).toBe(groupe.id);
+    expect(selonCible(cible, lecture)).toBe(`g:${groupe.id}`);
+  });
+
+  it('un id de combattant donne la Cible de cet individu, distincte du Groupe de même id', () => {
+    const cible = ciblePsy.individu(individu);
+    expect(selonCible(cible, lecture)).toBe(`i:${individu}`);
+    expect(ciblePsy.individu(groupe.id) === ciblePsy.groupe(groupe.id)).toBe(false);
+    expect(varianteDe(cible)).toBe('individu');
+    expect(varianteDe(ciblePsy.groupe(groupe.id))).toBe('groupe');
   });
 
   it('lève sur un id hors du motif, dont un `@` en tête : erreur de programmation', () => {
     expect(() => ciblePsy.groupe(`@${groupe.id}`)).toThrow(/n'est pas un id de Groupe/);
     expect(() => ciblePsy.groupe(groupe.label)).toThrow(/n'est pas un id de Groupe/);
     expect(() => ciblePsy.groupe('')).toThrow(/n'est pas un id de Groupe/);
+  });
+
+  it('lève sur un id d’individu vide ou déjà préfixé', () => {
+    expect(() => ciblePsy.individu('')).toThrow(/n'est pas un id de combattant/);
+    expect(() => ciblePsy.individu(`@${individu}`)).toThrow(/n'est pas un id de combattant/);
   });
 });
 
@@ -33,25 +49,50 @@ describe('cibleDuPorteur — la Cible que désigne un porteur', () => {
   });
 });
 
-describe('cibleDArgument — la Cible que nomme un argument', () => {
-  it('un id de Groupe connu donne sa Cible ; un libellé, un id hors registre ou un `@id` n’en donnent aucune', () => {
-    expect(cibleDArgument(groupe.id)).toBe(ciblePsy.groupe(groupe.id));
-    expect(cibleDArgument(groupe.label)).toBeUndefined();
-    expect(cibleDArgument('groupe-hors-registre')).toBeUndefined();
-    expect(cibleDArgument(`@${groupe.id}`)).toBeUndefined();
+describe('ciblePsyLue — la Cible qu’écrit une chaîne de donnée', () => {
+  it('un id de Groupe connu donne sa Cible ; `@id` donne l’individu', () => {
+    expect(ciblePsyLue(groupe.id)).toBe(ciblePsy.groupe(groupe.id));
+    expect(ciblePsyLue(`@${individu}`)).toBe(ciblePsy.individu(individu));
+  });
+
+  it('un libellé, un id hors registre, un `@` seul ou doublé n’en donnent aucune', () => {
+    expect(ciblePsyLue(groupe.label)).toBeUndefined();
+    expect(ciblePsyLue('groupe-hors-registre')).toBeUndefined();
+    expect(ciblePsyLue('@')).toBeUndefined();
+    expect(ciblePsyLue(`@@${individu}`)).toBeUndefined();
+    expect(ciblePsyLue('')).toBeUndefined();
   });
 });
 
-describe('ciblePsyLue / refDeCible — la seule couture entre la donnée et le moteur', () => {
-  it('la référence de donnée d’un Groupe donne sa Cible, et réciproquement', () => {
-    const cible = ciblePsy.groupe(groupe.id);
-    expect(ciblePsyLue({ id: groupe.id })).toBe(cible);
-    expect(refDeCible(cible)).toEqual({ id: groupe.id });
-    expect(ciblePsyLue(refDeCible(cible))).toBe(cible);
+describe('cibleDeRef / refDeCible — la seule couture entre la référence d’op et le moteur', () => {
+  it('la référence d’un Groupe ou d’un individu donne sa Cible, et réciproquement', () => {
+    for (const cible of [ciblePsy.groupe(groupe.id), ciblePsy.individu(individu)]) {
+      expect(cibleDeRef(refDeCible(cible))).toBe(cible);
+    }
+    expect(refDeCible(ciblePsy.groupe(groupe.id))).toEqual({ id: groupe.id });
+    expect(refDeCible(ciblePsy.individu(individu))).toEqual({ personnage: individu });
   });
 
   it('lève sur une référence hors du motif des Groupes', () => {
-    expect(() => ciblePsyLue({ id: groupe.label })).toThrow(/n'est pas un id de Groupe/);
+    expect(() => cibleDeRef({ id: groupe.label })).toThrow(/n'est pas un id de Groupe/);
+  });
+});
+
+describe('varianteAdmise — les variantes que `psychology.json` déclare (`cibles`)', () => {
+  const ciblees = psychologies.filter((p) => p.cibles);
+
+  it('les variantes d’une entrée ciblée sont exactement les admises', () => {
+    expect(ciblees.length).toBeGreaterThan(0);
+    for (const p of ciblees) {
+      expect(varianteAdmise(p.id, 'groupe')).toBe(!!p.cibles?.includes('groupe'));
+      expect(varianteAdmise(p.id, 'individu')).toBe(!!p.cibles?.includes('individu'));
+    }
+  });
+
+  it('une entrée non ciblée n’admet aucune Cible', () => {
+    const autre = psychologies.find((p) => !p.cibles);
+    expect(autre).toBeDefined();
+    expect(varianteAdmise(autre!.id, 'groupe')).toBe(false);
   });
 });
 
@@ -79,12 +120,24 @@ describe('libelleDeCible — le libellé joueur d’une Cible', () => {
   it('une Cible de Groupe s’affiche par le libellé du Groupe, jamais par son id', () => {
     expect(libelleDeCible(ciblePsy.groupe(groupe.id))).toBe(groupLabel(groupe.id));
   });
+
+  it('une Cible d’individu s’affiche par le nom que fournit l’appelant, jamais par son id', () => {
+    const nom = 'Un nom de personne';
+    expect(libelleDeCible(ciblePsy.individu(individu), (id) => (id === individu ? nom : undefined))).toBe(dataLabel(nom));
+  });
+
+  it('sans nom connu, une Cible d’individu s’affiche par le texte générique', () => {
+    const generique = t('cible.personneDeLaScene');
+    expect(libelleDeCible(ciblePsy.individu(individu))).toBe(generique);
+    expect(libelleDeCible(ciblePsy.individu(individu), () => undefined)).toBe(generique);
+    expect(generique).not.toContain(individu);
+  });
 });
 
 describe('estCibleType — dérivé de `psychology.json`', () => {
-  it('vrai pour toute entrée `targeted`, faux pour les autres', () => {
-    const ciblees = psychologies.filter((p) => p.targeted);
-    const autres = psychologies.filter((p) => !p.targeted);
+  it('vrai pour toute entrée à `cibles`, faux pour les autres', () => {
+    const ciblees = psychologies.filter((p) => p.cibles);
+    const autres = psychologies.filter((p) => !p.cibles);
     expect(ciblees.length).toBeGreaterThan(0);
     expect(autres.length).toBeGreaterThan(0);
     expect(ciblees.every((p) => estCibleType(p.id))).toBe(true);

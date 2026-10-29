@@ -21,7 +21,7 @@ import {
   conditionLabel, psychologyLabel, diseaseLabel, symptomLabel, creatureLabel,
   refLabel, findTrappingById, findEffectTableById, mutationTables, findPsychologyById,
 } from '../../data';
-import { ciblePsyLue, libelleDeCible } from '../../engine/psych/ciblage';
+import { cibleDeRef, libelleDeCible } from '../../engine/psych/ciblage';
 import { traitOctroye } from '../../engine/psych/opsPsy';
 
 const textRow = (o: GameOp): CodexRow => ({ t: 'text', text: humanizeOp(o) });
@@ -113,7 +113,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       // modificateur social « contenu » déclaré par l'entrée (`containedSocialMod`).
       const mod = o.active === false ? findPsychologyById(o.type.id)?.containedSocialMod : undefined;
       const badge = [
-        (o.cible ? libelleDeCible(ciblePsyLue(o.cible)) : undefined) ?? (o.indice != null ? humanizeFormula(o.indice) : undefined),
+        (o.cible ? libelleDeCible(cibleDeRef(o.cible)) : undefined) ?? (o.indice != null ? humanizeFormula(o.indice) : undefined),
         mod != null ? `${mod < 0 ? '−' : '+'}${Math.abs(mod)} Sociabilité` : undefined,
       ].filter((s): s is string => !!s).join(' · ') || undefined;
       return { t: 'ref', category: 'psychologies', id: o.type.id, label, show: label, badge };
