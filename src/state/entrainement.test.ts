@@ -141,7 +141,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     expect(st(heroId).left).toBe(leftBefore);
   });
 
-  it('consomme le budget d’Activités comme les autres (left −1) ; no-op à 0', () => {
+  it('consomme le budget d’Activités comme les autres (left −1) ; refusé, et dit, à 0', () => {
     const heroId = setup();
     hero().xp = 2000;
     const opt = pickSkill(false);
@@ -151,5 +151,6 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     useGame.getState().interludeEntrainement(heroId, 'skill', opt.id, opt.spec);
     expect(hero().skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec))).toBeUndefined();
     expect(st(heroId).left).toBe(0);
+    expect(useGame.getState().journal.slice(-1)[0]).toBe('H n’a plus d’Activité d’interlude.');
   });
 });

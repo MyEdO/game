@@ -39,7 +39,8 @@ import { peutTenter, refusNePeutTenter } from '../engine/skills';
 import type { PlayerText } from '../i18n/playerText';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
-import { payFromGroup, payWithAllocation, soloPayer, distributeCredit, totalDesBourses, refuseLeGesteDeGroupe } from './bourseFlow';
+import { payFromGroup, payWithAllocation, soloPayer, distributeCredit, totalDesBourses, refusDeGesteSurLeGroupe } from './bourseFlow';
+import { refuseSi } from './verrousDeFiche';
 import { encLibreNominale } from './portFlow';
 import { bourseOf } from '../engine/bourse';
 import { OPPORTUNITE, opportunityTradePct } from '../engine/seaVoyage';
@@ -197,7 +198,7 @@ function buildSeaActivitiesCascade(get: Get, set: Set, picks: Record<string, Sea
 export function seaActivitiesConfirm(get: Get, set: Set, picks: Record<string, SeaActivityPick | null>): void {
   const pending = get().pendingSeaActivities;
   if (!pending) return;
-  if (refuseLeGesteDeGroupe(get, set)) return;
+  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const { steps, oppHeroIds } = buildSeaActivitiesCascade(get, set, picks);
   set({ pendingSeaActivities: { ...pending, picks, opportunityQueue: oppHeroIds } });
   if (!steps.length) { continueSeaActivitiesAfterCascade(get, set); return; }

@@ -31,7 +31,8 @@ import { resolveOpposed, bumpSL, estJete, type TestResult } from '../engine/test
 import { bargainPct } from '../engine/bargain';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney, priceToMoney } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, distributeCredit, refusDeGesteSurLeGroupe, refuseLeGesteDeGroupe, totalDesBourses } from './bourseFlow';
+import { partyMoneyTotal, payFromGroup, distributeCredit, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
+import { refuseSi } from './verrousDeFiche';
 import { remiseMaximaleDeMarchandage } from './merchantFlow';
 import { refuserGeste } from './refusVisible';
 import { findVehicleById, findCrewRoleById, crewRoles, combatStakeRef, refLabel, type CrewRoleData } from '../data';
@@ -345,7 +346,7 @@ const PORT_SELL_GOSSIP_KIND = 'port-sell-gossip';
  *  Retire le lot vendu de la cale, crédite la bourse. CASCADE (Ragot → acheteur → Marchandage) —
  *  chaque étape routée par la policy M/V/I (cf. docstring d'en-tête). */
 export function portSellCargo(get: Get, set: Set, cargoIndex: number): void {
-  if (refuseLeGesteDeGroupe(get, set)) return;
+  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const st = get().port;
   const vessel = get().vessel;
   if (!st || !vessel) return;

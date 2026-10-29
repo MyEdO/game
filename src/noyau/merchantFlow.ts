@@ -22,7 +22,7 @@ import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilit
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type StatusTier, type Money } from '../engine/money';
-import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeGesteSurLeGroupe, refuseLeGesteDeGroupe } from './bourseFlow';
+import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -695,7 +695,7 @@ export function devisDeTroc(m: MerchantState, party: Combatant[], opts: DemandeD
  *  trapping `giveTrappingId` (SANS argent) contre `getCount` exemplaires du stock `getStockId`. Les refus
  *  (`refusDeGesteSurLeGroupe`, puis celui du devis) tombent avant toute écriture. */
 export function barterExchange(get: Get, set: Set, opts: DemandeDeTroc): void {
-  if (refuseLeGesteDeGroupe(get, set)) return;
+  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const m = get().merchant; if (!m) return;
   const v = devisDeTroc(m, get().party, opts);
   if (v.refus !== null) { refuserGeste(get, set, v.refus); return; }
@@ -781,7 +781,7 @@ export function devisDeVente(m: MerchantState, party: Combatant[]): { lignes: Li
 /** Conclut la vente du panier (parité achat/`payCart`) : crédite le devis `devisDeVente`, retire les
  *  objets de leurs porteurs, honore la négociation de vente. */
 export function confirmSell(get: Get, set: Set): void {
-  if (refuseLeGesteDeGroupe(get, set)) return;
+  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const m = get().merchant; if (!m) return;
   const devis = devisDeVente(m, get().party);
   for (const l of devis.lignes) if (l.refus) get().log(t('trade.sellRefused', { reason: l.refus }));

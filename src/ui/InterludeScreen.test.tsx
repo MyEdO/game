@@ -429,3 +429,39 @@ describe('InterludeScreen — préparation de bataille : « Entreprendre » suit
     expect(html).toContain('rm-roll pending');
   });
 });
+
+describe('InterludeScreen — l’entrée d’Activité lit le verdict du noyau (`refusDActivite`, #3059 S1)', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  /** La balise du bouton d'entrée `key` FERMÉE (liée à sa raison), ou `undefined`. */
+  const entreeFermee = (html: string, key: string) => html.match(new RegExp(`<button[^>]*aria-describedby="interlude-act-${key}-reason"[^>]*>`))?.[0];
+  /** La raison accessible de l'entrée `key`, ou `undefined` si elle est ouverte. */
+  const raisonDe = (html: string, key: string) => mdToPlain(html.match(new RegExp(`id="interlude-act-${key}-reason">([^<]*)</p>`))?.[1] ?? '') || undefined;
+
+  it('sans Activité restante : les entrées qui en consomment disent la raison du noyau, l’engagement d’Artisanat reste ouvert', () => {
+    const seam = buildSeam(1);
+    const hero = seam.party[0]; // Vétéran
+    for (let i = 0; i < 3 && useGame.getState().interlude!.perHero[hero.id].left > 0; i++) useGame.getState().interludeBank(hero.id, 'stash', 10);
+    const s = useGame.getState();
+    expect(s.interlude!.perHero[hero.id].left, 'témoin : plus aucune Activité').toBe(0);
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities' }} />);
+    for (const key of ['revenus', 'learn', 'order', 'bank', 'identify', 'entrainement']) {
+      expect(raisonDe(html, key), key).toBe('Vétéran n’a plus d’Activité d’interlude.');
+    }
+    expect(raisonDe(html, 'craft'), 'engager un Artisanat ne consomme pas d’Activité').toBeUndefined();
+    expect(entreeFermee(html, 'revenus')).toContain('aria-disabled="true"');
+    // Retirer une planque ne consomme pas d'Activité (`refusDeRetrait`) : le bouton reste ouvert.
+    expect(s.bank[0]?.kind, 'témoin : une planque est déposée').toBe('stash');
+    expect(html).toMatch(/<button(?![^>]*aria-disabled)[^>]*aria-label="Retirer le dépôt de Vétéran"/);
+    expect(html).not.toContain('id="interlude-bank-withdraw-0-reason"');
+  });
+
+  it('pendant le tirage : toutes les entrées, engagement d’Artisanat compris, disent le tirage en attente', () => {
+    const seam = buildSeam();
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: { ...seam.interlude, phase: 'tirage' }, phase: 'activities' }} />);
+    for (const key of ['revenus', 'craft', 'bank']) {
+      expect(raisonDe(html, key), key).toBe('Vétéran ne peut rien entreprendre tant que les Événements de la période ne sont pas tirés.');
+    }
+  });
+});
