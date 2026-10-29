@@ -89,7 +89,6 @@ describe('la Détermination ne lève AUCUNE pénalité de MALADIE (LDB 17 l.59-6
 });
 
 describe('Actions Détermination — immunité psy & ignore-crit (store)', () => {
-  beforeEach(() => banc.setState({ battle: null }));
   function withHero() {
     const hero = C({ id: 'h', kind: 'hero', label: 'H', resolve: 2, conditions: [], wounds: blessuresDeBase(10) });
     banc.setState({ battle: { combatants: [hero], order: ['h'], turn: 0, round: 2, over: false, log: [], acted: false } as never });

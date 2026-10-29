@@ -29,8 +29,6 @@ const auTourDe = (id: string): void => {
 };
 
 describe('Rage → Haine (LDB 85 l.281-283, branche « minimum 1 »)', () => {
-  beforeEach(() => { banc.setState({ battle: null }); });
-
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });

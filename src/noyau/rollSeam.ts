@@ -516,7 +516,7 @@ export function temoinSiSansJet<R extends { result?: object | null; refus?: unkn
  *
  * DETTE OUVERTE, mesurable : l'unicité des ids dans une séquence n'est tenue par AUCUN type ni aucune
  * garde générale — la classe #1277 n'est fermée que pour la clé de regroupement des bandes de NUIT
- * (`nightBands.ts`, deux espaces de noms séparés, mesuré par `night-bands.test.ts`). Toute autre
+ * (`nightBands.ts`, deux espaces de noms séparés, mesuré par `night-bands.hors-store.test.ts`). Toute autre
  * fabrique qui dérive un id de cette clé reste libre de produire une collision.
  */
 export function bandStepId<T extends { readonly rows: readonly BatchParticipant[] }>(

@@ -26,7 +26,7 @@ const mk = (id: string, x: number, y: number, z = 0, h = 0): Combatant =>
   }) as unknown as Combatant;
 
 /** Scène 2 étages (10×10) : rez `z:0` au sol (h=0), couche `z:1` un ÉTAGE au-dessus (h=4 m partout,
- *  `METRES_PER_LEVEL`) — même patron que `combat-z-sight.test.ts`/`combatManeuvers-zblind.test.ts`. */
+ *  `METRES_PER_LEVEL`) — même patron que `combat-z-sight.test.ts`/`combatManeuvers-zblind.hors-store.test.ts`. */
 function twoFloorScene(entities: SceneEntity[] = [], effectZones: SceneEffectZone[] = []): Scene {
   const n = 10 * 10;
   return {
