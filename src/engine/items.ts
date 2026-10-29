@@ -9,6 +9,7 @@ import { bonus, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
 import { applyEnchants, damageWeapon, isImprovised } from './weaponDamage';
 import { armourMaterialOf } from './armourBypass';
+import { groupeAPoudre } from './weaponGroup';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP, userLePADeMutation } from './corruption';
@@ -1197,14 +1198,11 @@ export function buildInventory(refs: TrappingRef[], contexte?: ContexteDeNaissan
   return items;
 }
 
-/** Famille de munitions canonique. Les armes à **Poudre noire** ET d'**Ingénierie** partagent les
- *  mêmes munitions (« Poudre noire et ingénierie ») — le LDB les regroupe sous « Armes à Poudre
- *  noire et d'Ingénierie » (62-Les armes l.150, l.174-175). Les autres familles (Arc/Arbalète/
- *  Fronde) correspondent à l'identique. Sans cette normalisation, une arme à feu (subType « Poudre
- *  noire ») ne trouverait jamais sa munition (subType « Poudre noire et ingénierie »). */
+/** Famille de munitions canonique. Les Groupes À POUDRE (`groupeAPoudre`) partagent les mêmes munitions
+ *  (LDB 62 l.99 ; LDB 62 l.129-131). Les autres familles (Arc/Arbalète/Fronde) correspondent à l'identique. */
 export function ammoFamily(subType?: string): string {
-  const s = subType ?? ''; // `subType` = id de Groupe (poudre-noire / ingenierie / arc / arbalete / fronde…)
-  if (s === 'poudre-noire' || s === 'ingenierie' || s === 'poudre-noire-et-ingenierie') return 'poudre-ingenierie';
+  const s = subType ?? ''; // `subType` = id de Groupe
+  if (groupeAPoudre(s)) return 'poudre-ingenierie';
   // Artillerie (AA/MDG) : les armes de siège (canon/baliste/mortier/pierrier) tirent les munitions de
   // siège (boulets, carreaux, bombes, mitraille). Sans cette normalisation, une arme de siège
   // (`armes-de-siege`) ne trouverait jamais sa munition (`munition-de-siege`).

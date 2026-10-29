@@ -48,11 +48,11 @@ describe('ecartsDeStock — l’écart dans les DEUX sens, la clé libre, le sto
   it('observé et stock peuvent avoir des FORMES différentes — la clé les réconcilie', () => {
     const ecarts = ecartsDeStock({
       observe: [{ cle: 'x|alias|skill', ligne: 9 }],
-      stock: [{ cle: 'x|alias|skill' }, { cle: 'y|extend|refSchema' }],
+      stock: [{ cle: 'x|alias|skill' }, { cle: 'y|extend|porteSchema' }],
       cle: (e) => e.cle,
     });
     expect(ecarts.neuves).toEqual([]);
-    expect(ecarts.perimees).toEqual(['y|extend|refSchema']);
+    expect(ecarts.perimees).toEqual(['y|extend|porteSchema']);
   });
 });
 

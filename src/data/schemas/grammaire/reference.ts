@@ -174,17 +174,11 @@ export const traitInstanceSchema = poseDeTrait('catalogue');
  *  l.648), dont `validateScene` juge l'existence. #3045 */
 export const traitPoseDeSceneSchema = poseDeTrait('scene');
 
-/**
- * `Ref` (`src/data/index.ts`) — réf structurée par id + spec optionnelle (talent/sort/manœuvre/dieu
- * ciblé). Dupliqué à l'identique dans `careerLevels`/`classes`/`creatures`/`gods`/`species`/`traits`.
- */
-export const refSchema = nommerChamps(z.strictObject({ id: z.string(), spec: z.string().optional() }), { id: { label: "identifiant" }, spec: { label: "spécialisation" } });
-
 /** `TalentRef` (`src/data/index.ts`) — référence + niveau facultatif (« Maîtrise du combat 2 »).
  *  Porte UNIQUE de la forme `{id, spec?, times?}` : `creatures` et les profils embarqués de scène en
  *  dépendent.
- *  Les trois clés sont ÉCRITES, jamais `...refSchema.shape` : le mesureur de redéclarations lit les
- *  littéraux par AST et ne résout pas un spread — la forme épandue lui présenterait la signature
+ *  Les trois clés sont ÉCRITES, jamais épandues d'un autre schéma : le mesureur de redéclarations lit
+ *  les littéraux par AST et ne résout pas un spread — la forme épandue lui présenterait la signature
  *  `times` seule, qu'il attribuerait à ce schéma sur tout littéral à clé `times` unique. */
 export const talentRefSchema = nommerChamps(z.strictObject({ id: z.string(), spec: z.string().optional(), times: z.number().optional() }), { id: { label: "identifiant" }, spec: { label: "spécialisation" }, times: { label: "multiplicateur" } });
 
@@ -192,7 +186,7 @@ export const talentRefSchema = nommerChamps(z.strictObject({ id: z.string(), spe
  *  indicée » du dépôt (`scripts/guards/lib/structuresStock.mjs`, signature `id,value` : Traits de
  *  créature, Atouts de `trappings.json`, Améliorations de navire). UNE graphie pour ce concept : les
  *  schémas qui l'expriment la RÉFÉRENCENT, ils ne la re-tapent pas (volet `redeclaration` de
- *  `src/data/grammaire-guard.test.ts`). Elle ne dérive PAS de `refSchema` : ce qu'une magnitude qualifie
+ *  `src/data/grammaire-guard.test.ts`). Elle ne porte PAS de `spec` : ce qu'une magnitude qualifie
  *  n'est pas une SPÉCIALISATION. */
 export const refIndiceSchema = nommerChamps(z.strictObject({ id: z.string(), value: z.number().optional() }), { id: { label: "identifiant" }, value: { label: "valeur" } });
 

@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { classifyEnemy, enemyRigProfile, entityRigProfile } from './enemyProfile';
 import { combatantOverlays } from './parts/combatantVisuals';
 import { creatures, DEFAULT_RACE_ID, findTrappingById, SPEC_SOURCES } from '../../data';
 import { setDataset } from '../../data/overrides';
+import { poserPaliersDArmure, restaurerPaliersDArmure } from '../../data/paliersDArmure.testkit';
 import { mutationById } from '../../data/mutations';
 import { raceById } from './races';
 import { bipedDef } from './creatures';
@@ -19,7 +20,7 @@ import { COIFFURE_HORS_POOL } from './parts/cosmetic';
 import { resetDiagOnce, withDiagSubject } from './devDiag';
 import { resolveRig } from './composeRig';
 import { bonesToSvg } from './renderBones';
-import type { Combatant, Weapon, ItemInstance, ArmourPoints } from '../../engine/types';
+import type { Combatant, Weapon, ItemInstance, ArmourPoints, HitLocation } from '../../engine/types';
 
 const noArmour: ArmourPoints = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 
@@ -160,22 +161,20 @@ describe('enemyRigProfile', () => {
   });
 
   it('Moritz Valgeir (bestiaire, OPTÉ armurePortee) — art d’armure PLEIN, zones dérivées comprises (gantelets/soleret/gorgerin)', () => {
-    // `moritz-valgeir` porte `appearance.armurePortee: true` (#774) ; PA 8 au combattant → matériau
-    // inféré `plaque` (PA≥4) : l'armure synthétisée rend son art SUR TOUTES les zones, dérivées comprises (#736).
+    // `moritz-valgeir` : `appearance.armurePortee` (#774). Zones dérivées : #736.
     const c = mkEnemy('Moritz Valgeir', {
       creatureId: 'moritz-valgeir',
       armour: { ...noArmour, corps: 8, tete: 8, brasG: 8, brasD: 8, jambeG: 8, jambeD: 8 },
     });
     const p = enemyRigProfile(c)!;
-    expect(p.equip.armour.some((i) => (i.locs ?? []).includes('corps'))).toBe(true);
-    expect(p.equip.armour.some((i) => (i.locs ?? []).includes('tete'))).toBe(true);
-    const bras = p.equip.armour.find((i) => (i.locs ?? []).includes('brasG'));
-    const jambes = p.equip.armour.find((i) => (i.locs ?? []).includes('jambeG'));
-    expect(bras).toBeTruthy();
-    expect(jambes).toBeTruthy();
-    // Zones DÉRIVÉES (main←bras, pied←jambes) : art PLEIN, pas de repli Nu.
-    expect(armourPart(bras!, 'main')).not.toBeNull();
-    expect(armourPart(jambes!, 'pied')).not.toBeNull();
+    const piece = (loc: HitLocation) => p.equip.armour.find((i) => (i.locs ?? []).includes(loc));
+    const [corps, tete, bras, jambes] = (['corps', 'tete', 'brasG', 'jambeG'] as const).map(piece);
+    expect(corps && tete && bras && jambes, 'chaque Localisation à PA porte une pièce synthétisée').toBeTruthy();
+    // Matière posée (pièce de plate de la donnée), hors palier de PA ; zones dérivées main←bras, pied←jambes, cou←corps.
+    const { matiere } = pieceDeDessin({ ...itemFromTrappingById('plastron')!, uid: 'plastron' });
+    expect(armourPart({ ...bras!, matiere }, 'main')).not.toBeNull();
+    expect(armourPart({ ...jambes!, matiere }, 'pied')).not.toBeNull();
+    expect(armourPart({ ...corps!, matiere }, 'cou')).not.toBeNull();
   });
 
   it('parité #181/#182 EN COMBAT : entité à statbloc SANS record honore SON armurePortee (override d’authoring), pas seulement en explo', () => {
@@ -275,17 +274,15 @@ describe('entityRigProfile (entité de scène, ambiance hors combat)', () => {
     // Sans statbloc, l'équipement par défaut ne vient du record QUE si l'entité est ENRÔLÉE (membre d'une
     // rencontre) — parité avec le spawn `creatureToCombatant`. Non enrôlée = ambiance = mains libres,
     // même si le record porte un trait « Arme »/« Armure » (un villageois ne dégaine pas pour décorer).
-    // Cible : un id de créature rig dont le record produit une arme une fois enrôlé (découvert au runtime).
-    const target = creatures.find((c) => {
-      if (classifyEnemy(c.id) !== 'rig') return false;
-      const enrolled = entityRigProfile(findTrappingById, c.id, 1, { enrolled: true });
-      return !!enrolled && enrolled.equip.weapons.length > 0;
-    });
-    expect(target, 'au moins une créature rig armée par son record').toBeTruthy();
-    const id = target!.id;
-    expect(entityRigProfile(findTrappingById, id, 1, { enrolled: true })!.equip.weapons.length).toBeGreaterThan(0); // enrôlée → kit
-    expect(entityRigProfile(findTrappingById, id, 1)!.equip.weapons).toEqual([]); // ambiance (défaut non enrôlée) → mains libres
-    expect(entityRigProfile(findTrappingById, id, 1)!.equip.armour).toEqual([]);
+    // Cibles : TOUTES les créatures rig que leur record arme une fois enrôlées. L'armure d'une ambiance ne se
+    // dessine que déclarée portée par le record (`armurePortee`, #774).
+    const cibles = creatures.filter((c) => classifyEnemy(c.id) === 'rig' && (entityRigProfile(findTrappingById, c.id, 1, { enrolled: true })?.equip.weapons.length ?? 0) > 0);
+    expect(cibles.length, 'au moins une créature rig armée par son record').toBeGreaterThan(0);
+    for (const c of cibles) {
+      const ambiance = entityRigProfile(findTrappingById, c.id, 1)!; // défaut non enrôlée
+      expect(ambiance.equip.weapons, `${c.id} : ambiance → mains libres`).toEqual([]);
+      if (!c.appearance?.armurePortee) expect(ambiance.equip.armour, `${c.id} : armure non déclarée portée`).toEqual([]);
+    }
   });
 });
 
@@ -350,6 +347,9 @@ describe('spawnEnemy — une coiffure seule traverse jusqu’au rendu du combatt
 });
 
 describe('#2097 C4 — équipement PORTÉ : une production (`equipementDessine`), parité combat ↔ explo', () => {
+  beforeEach(() => poserPaliersDArmure());
+  afterEach(() => restaurerPaliersDArmure());
+
   it('cape d’ennemi portée : dessinée, comme celle d’un héros', () => {
     const cape = { ...itemFromTrappingById('cape')!, uid: 'c', equipped: true };
     expect(enemyRigProfile(mkEnemy('Bandit', { items: [cape] }))!.equip.cape).toBe(true);
@@ -364,7 +364,7 @@ describe('#2097 C4 — équipement PORTÉ : une production (`equipementDessine`)
 
   it('armure synthétisée : pièces triées par matériau, chaque zone couverte par UNE pièce (ordre sans effet de dessin)', () => {
     const p = enemyRigProfile(mkEnemy('Soldat', { armour: { ...noArmour, corps: 1, tete: 5 }, appearanceOverride: { armurePortee: true } as never }))!;
-    expect(p.equip.armour.map((a) => [a.locs, a.matiere]), 'matière par palier de PA, plate avant cuir (#2948)').toEqual([[['tete'], 'plate'], [['corps'], 'cuir-souple']]);
+    expect(p.equip.armour.map((a) => [a.locs, a.matiere]), 'matière par palier de PA, plaque avant cuir (#2948)').toEqual([[['tete'], 'plaque-de-fixture'], [['corps'], 'cuir-de-fixture']]);
     const zones = p.equip.armour.flatMap((a) => a.locs ?? []);
     expect(zones.length, 'PRÉMISSE : des pièces sont synthétisées').toBeGreaterThan(0);
     expect(new Set(zones).size).toBe(zones.length);

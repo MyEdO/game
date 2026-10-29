@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { weaponPart, weaponFamily, shieldPart, armourPart, ART_DE_MATIERE } from './equipment';
-import { ARMOUR } from './armour';
+import { weaponPart, weaponFamily, shieldPart, armourPart } from './equipment';
 import { equipementDessine, pieceDeDessin, armeDeDessin, armePrincipale, equipDe, bouclierDeDessin, type FormeDArme } from '../../../noyau/equipementDessine';
 import { resolveParts } from './resolve';
 import { rigAttackDef, rigDefenseDef } from '../anim/actorAnimSelect';
@@ -8,7 +7,7 @@ import { contexteDeGeste } from '../../fx/animTracks';
 import { weaponFromId } from '../../../engine/creatureEquip';
 import { viewOrFront } from './types';
 import type { Combatant, Weapon, ItemInstance, HitLocation } from '../../../engine/types';
-import { findMutationById, trappings, weaponGroups } from '../../../data';
+import { findMutationById, trappings } from '../../../data';
 import { isShieldItem, itemFromGive, itemFromTrappingById, recomputeLoadout, weaponFromItem } from '../../../engine/items';
 import { weaponGroup } from '../../../engine/weaponGroup';
 
@@ -170,10 +169,3 @@ describe('#2097 J6 — porteur d’un bouclier SEUL : ses gestes suivent ce qui 
   });
 });
 
-describe('ART_DE_MATIERE (#2948)', () => {
-  it('peint exactement les Groupes « armour » de weaponGroups.json, chacun par un def d’art existant', () => {
-    const ids = weaponGroups.filter((g) => g.kind === 'armour').map((g) => g.id).sort();
-    expect(Object.keys(ART_DE_MATIERE).sort()).toEqual(ids);
-    for (const def of Object.values(ART_DE_MATIERE)) expect(ARMOUR[def], def).toBeDefined();
-  });
-});

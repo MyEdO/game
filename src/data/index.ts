@@ -6,7 +6,7 @@
 import type { EntityAppearance, RigSpeciesId } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
-import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle } from './schemas/grammaire/valeurs';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
@@ -1345,24 +1345,50 @@ export interface TrappingData {
 /** Groupe d'objet (taxonomie `subType` id-ifiée) : Groupe d'ARME (Base, Escrime, Deux-mains, Armes
  *  d'hast…), famille de MUNITION (Arc, Arbalète, Poudre noire…), type d'ARMURE (Plate, Mailles, Cuir
  *  souple/bouilli) ou catégorie d'INVENTAIRE (Outils, Possessions diverses…). `id` = cible de
- *  `Trapping/Weapon/ItemInstance.subType` (réf, ≠ libellé) ; `kind` = métadonnée d'affichage. */
-export interface WeaponGroupData {
+ *  `Trapping/Weapon/ItemInstance.subType` (réf, ≠ libellé). Union discriminée par `kind`, chaque cas sa
+ *  CHARGE (`defs/weaponGroups.ts`). */
+export type WeaponGroupData = GroupeDArme | GroupeDeMunition | GroupeDArmure | GroupeDInventaire;
+interface GroupeDObjet {
   id: string;
   type: 'weaponGroups';
   label: string;
-  kind: 'weapon' | 'ammo' | 'armour' | 'inventory';
-  /** Matériau d'une armure (groupes `kind:'armour'`) — source TYPÉE des exemptions de Magie des Arcanes
-   *  (LDB 46 l.150-152 ; `chaos` = armure du Chaos, exemptée pour le Sorcier du Chaos, VDM 02 l.169).
-   *  Remplace la devinette par regex sur le nom. */
-  material?: 'metal' | 'leather' | 'chaos';
-  /** Sous-ensemble de COMBAT d'un Groupe d'arme (`kind:'weapon'`/`'ammo'`) : `melee` = Spé de Corps à corps,
-   *  `ranged` = Spé de Projectiles. SOURCE des pools `weaponGroupsMelee`/`weaponGroupsRanged` (SPEC_SOURCES)
-   *  — fin des `specs[]` maintenues à la main sur `corps-a-corps`/`projectiles`. */
-  combat?: 'melee' | 'ranged';
   /** Qualités COMMUNES à toute la famille (mêmes ids que `TrappingData.qualities`) — mergées avec les
    *  qualités propres de l'arme par `resolveQualities` (`engine/qualities/dispatch.ts`), qui l'emportent
    *  en cas de conflit. Ex. Escrime → Rapide+Empaleuse (LDB 62 l.137). */
   qualities?: QualityRef[];
+}
+export interface GroupeDArme extends GroupeDObjet {
+  kind: 'weapon';
+  /** `melee` = Spé de Corps à corps, `ranged` = Spé de Projectiles : SOURCE des pools
+   *  `weaponGroupsMelee`/`weaponGroupsRanged` (SPEC_SOURCES) ; absent sur les Groupes de siège. */
+  combat?: 'melee' | 'ranged';
+  /** Forme dessinée d'une arme du Groupe sans forme propre (`null` : rien en main). */
+  forme: { id: string } | null;
+  maniement: Maniement;
+  poudre?: true;
+}
+export interface GroupeDeMunition extends GroupeDObjet {
+  kind: 'ammo';
+  poudre?: true;
+}
+/** Id d'un Groupe d'armure : la sous-liste `armour` (`IdsParEspace`), type d'armure d'une pièce. */
+export type GroupeDArmureId = IdsParEspace['weaponGroups.json?kind=armour'];
+export interface GroupeDArmure extends GroupeDObjet {
+  id: GroupeDArmureId;
+  kind: 'armour';
+  /** Matériau — source TYPÉE des exemptions de Magie des Arcanes (LDB 46 l.150-152 ; `chaos` = armure du
+   *  Chaos, exemptée pour le Sorcier du Chaos, VDM 02 l.169). */
+  material: 'metal' | 'leather' | 'chaos';
+  /** Rang de couche affichée, unique parmi les Groupes d'armure. */
+  couche: number;
+  /** Def d'art (`src/gameIso/rig/parts/armour/defs/`) qui peint la matière. */
+  art: string;
+  /** PA à partir desquels une armure de statbloc portée se dessine dans cette matière, unique ; `null` :
+   *  aucune (#2948). */
+  palierPA: number | null;
+}
+export interface GroupeDInventaire extends GroupeDObjet {
+  kind: 'inventory';
 }
 /** Groupe d'APPARTENANCE (WFRP4, Traits psy ciblés — LDB 21) : identité CANONIQUE i18n-safe.
  *  `id` STABLE (jamais traduit) ; `label` = rendu FR localisable. Registre SSOT (`groups.json`),
@@ -1994,6 +2020,8 @@ export interface QualityData {
    *  la valeur quand le livre en pose une (`AA 08 l.87` « Taillade (XA) » ; `LDB 62 l.66` « Recharge 1 »
    *  n'en a pas). Lue par `qualityRefLabel`. */
   indice?: { label: string; unite?: string };
+  /** Qualité d'ASPECT (LDB 60 l.24 ; LDB 60 l.52) : une apparence d'objet peut naître d'elle (`defs/apparences.ts`). */
+  aspect?: true;
 }
 /** Capacités IRRÉDUCTIBLES d'un symptôme de maladie — drapeaux lus par la machinerie de cycle
  *  (`engine/disease`), pour les comportements non exprimables en GameOp continu. */
@@ -3281,6 +3309,14 @@ const groupeObjetParId = indexParId('weaponGroups', weaponGroups);
 /** Résout un Groupe d'objet par son `id` STABLE (= `subType` d'un trapping/Weapon/ItemInstance). */
 export function findWeaponGroupById(id: string | null | undefined): WeaponGroupData | undefined {
   return groupeObjetParId(id);
+}
+/** Groupes d'armure du registre (`kind:'armour'`). */
+export const groupesDArmure = (): GroupeDArmure[] => weaponGroups.filter((g): g is GroupeDArmure => g.kind === 'armour');
+/** Groupe d'armure d'un id typé ; un id absent du registre vivant (Groupe retiré à l'atelier) lève. */
+export function groupeDArmure(id: GroupeDArmureId): GroupeDArmure {
+  const groupe = findWeaponGroupById(id);
+  if (groupe?.kind !== 'armour') throw new Error(`groupeDArmure : « ${id} » n’est aucun Groupe d’armure de weaponGroups.json.`);
+  return groupe;
 }
 /** Libellé d'affichage d'un Groupe d'objet par son id (repli sur l'id). SOURCE UNIQUE du nom de Groupe. */
 export function weaponGroupLabel(id: string | null | undefined): PlayerText {
