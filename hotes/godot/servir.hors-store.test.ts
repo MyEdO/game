@@ -18,9 +18,9 @@ const web = join(racine, 'web');
 const modeles = join(racine, 'modeles');
 const sansCategorie: Record<string, unknown> = { ...elementSchema3('humanoide'), cle: { apparence: 'hache' } };
 delete sansCategorie.categorie;
-/** Un rigide tenu : sa tête pend à l'os `root` d'un skin, son manche à la racine. */
+/** Un rigide tenu : sa tête et son manche pendent à l'os `root` d'un skin. */
 const GLB_TENU = ecrireGlb({
-  asset: { version: '2.0' }, nodes: [{ name: 'root', children: [1] }, { name: 'tete', mesh: 0 }, { name: 'manche', mesh: 0 }],
+  asset: { version: '2.0' }, nodes: [{ name: 'root', children: [1, 2] }, { name: 'tete', mesh: 0 }, { name: 'manche', mesh: 0 }],
   skins: [{ joints: [0] }], meshes: [{ primitives: [{ material: 0 }] }], materials: [{ name: 'metal' }],
 }, null);
 const masse = { ...elementSchema3('humanoide'), cle: { apparence: 'masse' }, glb: { sha256: sha256(GLB_TENU), octets: GLB_TENU.byteLength } };
@@ -67,7 +67,7 @@ describe('servir', () => {
 
   it('le listage rend, de chaque manifeste validé, les os qui portent ses meshes rigides', async () => {
     const { osDesRigides } = await (await fetch(`${await demarrer()}modeles/`)).json();
-    expect(osDesRigides).toEqual({ humanoide: [], epee: [], masse: ['root'] });
+    expect(osDesRigides).toEqual({ humanoide: [], epee: ['root'], masse: ['root'] });
   });
 
   it('un fichier du dossier est servi en no-store', async () => {

@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT } from './schema3.testkit.ts';
+import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, glbDElement } from './schema3.testkit.ts';
 import { CATEGORIES_D_ELEMENT, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
 import { sha256 } from './empreinte.ts';
 
@@ -16,8 +16,9 @@ const BASE: BaseDUnElement = {
   silhouettes: ['feminin', 'corpulence', 'carrure_moins', 'carrure_plus'],
 };
 
-const OCTETS = new Uint8Array([0x67, 0x6c, 0x54, 0x46]);
-const GLB = { sha256: sha256(OCTETS), octets: OCTETS.byteLength };
+const OCTETS = glbDElement('hand_r');
+const empreinte = (octets: Uint8Array) => ({ sha256: sha256(octets), octets: octets.byteLength });
+const GLB = empreinte(OCTETS);
 const PALETTE = [{ nom: 'tissu', palette: 'vet1' }];
 const TEINTE = [{ nom: 'plaque', teinte: true }];
 
@@ -39,9 +40,9 @@ const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
   vehicule: { categorie: 'vehicule', cle: { definition: 'carrosse' }, liaison: { mode: 'rigide' }, surfaces: TEINTE },
 };
 
-const manifeste = (categorie: CategorieDElement, surcharge: Record<string, unknown> = {}) => ({ schema: 3, base: 'humanoide', ...VALIDES[categorie], glb: GLB, ...surcharge });
-const codes = (brut: unknown) => {
-  const v = validerElement(brut, BASE, OCTETS);
+const manifeste = (categorie: CategorieDElement, surcharge: Record<string, unknown> = {}, octets = OCTETS) => ({ schema: 3, base: 'humanoide', ...VALIDES[categorie], glb: empreinte(octets), ...surcharge });
+const codes = (brut: unknown, octets = OCTETS) => {
+  const v = validerElement(brut, BASE, octets);
   return v.ok ? [] : v.ecarts.map((e) => e.code);
 };
 
@@ -52,8 +53,8 @@ describe('validerElement : un manifeste valide par catégorie', () => {
   });
 });
 
-/** Un refus par code : le manifeste fautif et le seul code attendu. */
-const REFUS: [CodeDEcartDElement, string, unknown][] = [
+/** Un refus par code : le manifeste fautif, ses octets s'ils diffèrent d'`OCTETS`, et le seul code attendu. */
+const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['forme', 'le manifeste n’est pas un objet', []],
   ['forme', '`couvre` requis manquant', manifeste('vetement', { couvre: undefined })],
   ['forme', 'liaison sans `mode`', manifeste('rigide', { liaison: 'rigide' })],
@@ -83,6 +84,10 @@ const REFUS: [CodeDEcartDElement, string, unknown][] = [
   ['surface-hors-categorie', 'teinte sur un vêtement', manifeste('vetement', { surfaces: TEINTE })],
   ['surface-hors-categorie', 'palette sur un rigide', manifeste('rigide', { surfaces: PALETTE })],
   ['palette-inconnue', 'clé de palette inconnue', manifeste('trait', { surfaces: [{ nom: 'peau', palette: 'or' }] })],
+  ['rigide-sans-mesh', 'rigide sans mesh', manifeste('rigide', {}, GLB_DE_BASE), GLB_DE_BASE],
+  ['rigide-sur-os-absent', 'rigide pendu à un os inconnu de la base', manifeste('rigide', {}, glbDElement('main_gauche')), glbDElement('main_gauche')],
+  ['rigide-a-la-racine', 'rigide à la racine', manifeste('rigide', {}, glbDElement(null)), glbDElement(null)],
+  ['rigide-a-la-racine', 'accessoire rigide à la racine', manifeste('accessoire', { liaison: { mode: 'rigide' } }, glbDElement(null)), glbDElement(null)],
 ];
 
 describe('validerElement : chaque refus nommé', () => {
@@ -91,10 +96,24 @@ describe('validerElement : chaque refus nommé', () => {
       forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'base-differente': true,
       'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true,
       'silhouette-absente': true, 'surface-hors-categorie': true, 'palette-inconnue': true, 'glb-different': true,
+      'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true,
     };
     expect(new Set(REFUS.map(([code]) => code))).toEqual(new Set(Object.keys(attendus)));
   });
-  it.each(REFUS)('%s : %s', (code, _cas, brut) => expect(codes(brut)).toEqual([code]));
+  it.each(REFUS)('%s : %s', (code, _cas, brut, octets) => expect(codes(brut, octets)).toEqual([code]));
+});
+
+describe('validerElement : un mesh rigide se monte sous un os de la base', () => {
+  it('un rigide pendu à un os inconnu de la base est refusé, le mesh et l’os nommés', () => {
+    const octets = glbDElement('main_gauche');
+    expect(validerElement(manifeste('rigide', {}, octets), BASE, octets)).toEqual({
+      ok: false, ecarts: [{ code: 'rigide-sur-os-absent', ou: 'liaison.mode', detail: 'lame pend à main_gauche, qui n’est pas un os de la base `humanoide`' }],
+    });
+  });
+  it.each(['decor', 'vehicule'] as const)('un `%s` garde son mesh à la racine', (categorie) => {
+    const octets = glbDElement(null);
+    expect(validerElement(manifeste(categorie, {}, octets), BASE, octets).ok).toBe(true);
+  });
 });
 
 describe('CLI godot:valider : base validée avant l’élément', () => {

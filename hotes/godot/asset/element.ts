@@ -2,12 +2,13 @@
  * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine pour une base, et sa validation
  * contre le manifeste de cette base (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme de
  * `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements` et `silhouettes`, et le choix
- * palette ou teinte des surfaces (`REGLES_DES_CATEGORIES`).
+ * palette ou teinte des surfaces, et si un mesh rigide peut rester à la racine de la scène (`REGLES_DES_CATEGORIES`).
  */
 import { estObjet } from '../../../src/hote/formes';
 import { SLOTS } from '../../../src/noyau/index.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 import { sha256 } from './empreinte.ts';
+import { lireGlb } from './glb.ts';
 import type { ManifesteDeBase } from './manifesteDeBase.ts';
 
 export const VERSION_DU_SCHEMA_D_ELEMENT = 3;
@@ -32,10 +33,12 @@ interface RegleDeCategorie {
   readonly emplacements: boolean;
   readonly silhouettes: boolean;
   readonly couleur: 'palette' | 'teinte';
+  /** Un mesh rigide de l'élément peut rester à la racine de la scène (non tenu). */
+  readonly racine: boolean;
 }
 
-const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true } as const;
-const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, couleur: 'teinte' } as const;
+const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, racine: false } as const;
+const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, couleur: 'teinte', racine: false } as const;
 
 /** Les règles de chaque catégorie, seule source du type `ManifesteDElement` et de `validerElement`. */
 export const REGLES_DES_CATEGORIES = {
@@ -47,8 +50,8 @@ export const REGLES_DES_CATEGORIES = {
   accessoire: { ...SKINNE, cle: ['piece'], liaisons: ['rigide', 'surface'], couvre: 'optionnel', couleur: 'teinte' },
   rigide: { ...RIGIDE, cle: ['apparence'] },
   trait: { ...SKINNE, cle: ['trait'], couleur: 'palette' },
-  decor: { ...RIGIDE, cle: ['prop'] },
-  vehicule: { ...RIGIDE, cle: ['definition'] },
+  decor: { ...RIGIDE, cle: ['prop'], racine: true },
+  vehicule: { ...RIGIDE, cle: ['definition'], racine: true },
 } as const satisfies Record<string, RegleDeCategorie>;
 
 type Regles = typeof REGLES_DES_CATEGORIES;
@@ -100,7 +103,10 @@ export type CodeDEcartDElement =
   | 'silhouette-absente'
   | 'surface-hors-categorie'
   | 'palette-inconnue'
-  | 'glb-different';
+  | 'glb-different'
+  | 'rigide-sans-mesh'
+  | 'rigide-sur-os-absent'
+  | 'rigide-a-la-racine';
 
 export interface EcartDElement {
   readonly code: CodeDEcartDElement;
@@ -151,6 +157,15 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
     const mode = estObjet(brut.liaison) && Object.keys(brut.liaison).length === 1 ? brut.liaison.mode : undefined;
     if (typeof mode !== 'string') refus('forme', 'liaison', '`{ mode }` seul attendu');
     else if (!regle.liaisons.includes(mode as ModeDeLiaison)) refus('liaison-hors-categorie', 'liaison.mode', `${mode} : ${liste(regle.liaisons)} attendue pour un élément \`${categorie}\``);
+    else if (mode === 'rigide') {
+      const glb = lireGlb(octets);
+      if (!glb.rigides.size) refus('rigide-sans-mesh', 'liaison.mode', 'le GLB ne porte aucun mesh rigide');
+      for (const mesh of glb.rigides) {
+        const os = glb.parentDesRigides.get(mesh);
+        if (os === undefined && !regle.racine) refus('rigide-a-la-racine', 'liaison.mode', `${mesh} ne pend à aucun os : un élément \`${categorie}\` ne reste pas à la racine de la scène`);
+        else if (os !== undefined && !base.os.includes(os)) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os}, qui n’est pas un os de la base \`${base.base}\``);
+      }
+    }
   }
 
   if (regle.couches && brut.couche !== undefined) {

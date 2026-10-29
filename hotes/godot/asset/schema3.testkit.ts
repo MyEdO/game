@@ -4,7 +4,12 @@ import { ecrireGlb } from './glb.ts';
 import { sha256 } from './empreinte.ts';
 
 export const GLB_DE_BASE = ecrireGlb({ asset: { version: '2.0' }, nodes: [{ name: 'root' }], skins: [{ joints: [0] }], animations: [{ name: 'walk' }] }, null);
-export const GLB_D_ELEMENT = ecrireGlb({ asset: { version: '2.0' }, nodes: [{ name: 'lame', mesh: 0 }], meshes: [{ primitives: [{ material: 0 }] }], materials: [{ name: 'metal' }] }, null);
+/** Le GLB d'un élément rigide : le mesh `lame` pend à l'articulation `os` d'un skin, ou reste à la racine (`null`). */
+export const glbDElement = (os: string | null) => ecrireGlb({
+  asset: { version: '2.0' }, nodes: os === null ? [{ name: 'lame', mesh: 0 }] : [{ name: os, children: [1] }, { name: 'lame', mesh: 0 }],
+  ...(os === null ? {} : { skins: [{ joints: [0] }] }), meshes: [{ primitives: [{ material: 0 }] }], materials: [{ name: 'metal' }],
+}, null);
+export const GLB_D_ELEMENT = glbDElement('root');
 const empreinte = (octets: Uint8Array) => ({ sha256: sha256(octets), octets: octets.byteLength });
 const attache = { os: 'root', position: [0, 0, 0], rotation: [0, 0, 0] };
 export const baseSchema3 = (base = 'humanoide') => ({
