@@ -162,23 +162,60 @@ def ajouter_feminin_et_carrure(squelette, corps, squelette_feminin, corps_femini
 
 class AnneauIndetectable(RuntimeError):
     """Le corps n'a aucun anneau articulaire (`anneauxArticulaires`) : ni centre ni épaisseur à tenir, pendant de
-    l'écart `anneau-indetectable` de la garde des silhouettes. Ses sous-classes nomment chaque autre anneau qui ne se
-    tient pas."""
+    l'écart `anneau-indetectable` de la garde des silhouettes. Ses sous-classes nomment chaque autre cas où la
+    correction (`correction`) ne tient pas les anneaux."""
     RAISON = 'aucun anneau articulaire, ni centre ni épaisseur à tenir'
 
     def __init__(self, sujet):
         super().__init__(f'anneau-indetectable : {sujet} : {self.RAISON}')
 
 
-class AnneauSansNoeudLibre(AnneauIndetectable):
-    """Tout sommet du corps est fixe (`fondu` nul) : aucun nœud ne porte le centre ni l'épaisseur d'un anneau."""
-    RAISON = 'aucun nœud libre, ni centre ni épaisseur à tenir'
+class ContraintesLiees(AnneauIndetectable):
+    """Les contraintes retenues par `correction` ne sont pas de rang plein (`liees`) : son complément de Schur est
+    singulier. Le sujet nomme chaque contrainte d'une combinaison nulle : deux anneaux dont la part libre est le même
+    nœud, une épaisseur portée par les seuls nœuds des sommes d'un anneau, l'épaisseur visée d'un anneau le plus épais
+    tout fixe."""
+    RAISON = 'contraintes liées, centre ou épaisseur indéterminés'
 
 
-class EpaisseurFigee(AnneauIndetectable):
-    """Une clé vise un rapport de carrure, mais chaque sommet de l'anneau le plus épais est fixe (`fondu` nul) : son
-    rayon ne se porte pas à la borne de `st`."""
-    RAISON = "chaque sommet de l'anneau le plus épais est fixe, son rayon ne se porte pas à la borne de st"
+class ComposanteSansAppui(AnneauIndetectable):
+    """Une composante connexe de nœuds libres n'a aucune arête vers un nœud fixe (`sans_appui`) : le laplacien des
+    nœuds libres, que `correction` résout, est singulier."""
+    RAISON = "composante de nœuds libres sans arête vers un nœud fixe, laplacien singulier"
+
+
+def liees(contraintes, etiquettes):
+    """Les étiquettes (`etiquettes`, une par ligne) des lignes de `contraintes` qui portent une combinaison nulle, vide
+    si la matrice est de rang plein. Le rang est celui de `numpy.linalg.matrix_rank` à son seuil par défaut (valeurs
+    singulières sous S.max() × max(M, N) × eps) ; les combinaisons sont les vecteurs singuliers à gauche au-delà du
+    rang, unitaires, une ligne y entrant dès que son coefficient dépasse max(M, N) × eps."""
+    k = len(contraintes)
+    if k == 0:
+        return []
+    rang = numpy.linalg.matrix_rank(contraintes)
+    if rang == k:
+        return []
+    nulles = numpy.linalg.svd(contraintes, full_matrices=k > contraintes.shape[1])[0][:, rang:]
+    seuil = max(contraintes.shape) * numpy.finfo(contraintes.dtype).eps
+    return list(dict.fromkeys(e for e, poids in zip(etiquettes, numpy.abs(nulles).max(axis=1)) if poids > seuil))
+
+
+def sans_appui(m, internes, appuyes):
+    """Les composantes connexes des nœuds libres `0..m-1`, par les arêtes `internes` (couples de tableaux de rangs,
+    origine et extrémité, dans chaque sens), qui ne contiennent aucun nœud de `appuyes` : un tableau de rangs par
+    composante."""
+    composante = numpy.arange(m)
+    while True:
+        avant = composante.copy()
+        for de, vers in internes:
+            numpy.minimum.at(composante, de, composante[vers])
+        composante = composante[composante]
+        if (composante == avant).all():
+            break
+    appuyee = numpy.zeros(m, dtype=bool)
+    appuyee[composante[appuyes]] = True
+    racines = numpy.flatnonzero((composante == numpy.arange(m)) & ~appuyee)
+    return [numpy.flatnonzero(composante == r) for r in racines]
 
 
 def anneaux(squelette, corps, x, w, noms):
@@ -206,29 +243,33 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     d nul sur chaque nœud qui porte un sommet `fixe`, Σ d nulle sur les sommets de chaque anneau de `anneaux_du_corps`
     (`anneaux`) et, si `rapport` n'est pas `None`, moyenne de d·u sur l'anneau le plus épais égale à (rapport − 1) × son
     rayon, u la direction radiale de chaque sommet depuis la droite de son centre et de son axe. Rend aussi le nombre
-    de nœuds libres, de contraintes, et la durée de la résolution de `champs` en secondes. Un corps sans nœud libre
-    lève `AnneauSansNoeudLibre` ; un rapport visé sur un anneau le plus épais tout fixe, `EpaisseurFigee`."""
+    de nœuds libres, de contraintes, et la durée de la résolution de `champs` en secondes. Une composante de nœuds
+    libres sans arête vers un nœud fixe lève `ComposanteSansAppui` ; des contraintes retenues liées (`liees`),
+    `ContraintesLiees`."""
     reps, noeud = numpy.unique(noeud_de, return_inverse=True)
     n = len(reps)
     fixes = numpy.zeros(n, dtype=bool)
     numpy.logical_or.at(fixes, noeud, fixe)
     libres = numpy.flatnonzero(~fixes)
     m = len(libres)
-    if m == 0:
-        raise AnneauSansNoeudLibre(f'{len(x)} sommets')
     rang = numpy.full(n, -1)
     rang[libres] = numpy.arange(m)
     bouts = numpy.searchsorted(reps, aretes)
     laplacien = numpy.zeros((m, m))
-    bord = []
+    bord, internes = [], []
     for de, vers in ((bouts[:, 0], bouts[:, 1]), (bouts[:, 1], bouts[:, 0])):
         p, q = rang[de], rang[vers]
         numpy.add.at(laplacien, (p[p >= 0], p[p >= 0]), 1.0)
         interne = (p >= 0) & (q >= 0)
         numpy.add.at(laplacien, (p[interne], q[interne]), -1.0)
+        internes.append((p[interne], q[interne]))
         bord.append((p[(p >= 0) & (q < 0)], vers[(p >= 0) & (q < 0)]))
+    isolees = sans_appui(m, internes, numpy.concatenate([p for p, _ in bord]))
+    if isolees:
+        raise ComposanteSansAppui(', '.join(f'{len(c)} nœud(s) libre(s) du sommet {reps[libres[c[0]]]}'
+                                            for c in isolees))
     liste, sommets = anneaux_du_corps['anneaux'], []
-    lignes = []
+    lignes, etiquettes = [], []
     for anneau in liste:
         s = numpy.array([v['indice'] for v in anneau['sommets']], dtype=int)
         sommets.append(s)
@@ -238,6 +279,7 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
                 ligne = numpy.zeros((3, m))
                 ligne[c] = compte
                 lignes.append(ligne.ravel())
+                etiquettes.append(f"{anneau['os']} centre")
     epais = liste[anneaux_du_corps['lePlusEpais']]
     s = sommets[anneaux_du_corps['lePlusEpais']]
     axe, centre = numpy.array(epais['axe']), numpy.array(epais['centre'])
@@ -248,12 +290,15 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     for c in range(3):
         numpy.add.at(epaisseur[c], noeud[s], radial[:, c])
     contraintes = numpy.array([*lignes, epaisseur[:, libres].ravel()])
+    etiquettes.append(f"{epais['os']} épaisseur")
 
     def corriger(champs):
         debut = time.perf_counter()
         vises = {rapport is not None for _, rapport in champs}
-        if True in vises and fixes[noeud[s]].all():
-            raise EpaisseurFigee(epais['os'])
+        portees = len(contraintes) if True in vises else len(contraintes) - 1
+        dependantes = liees(contraintes[:portees], etiquettes[:portees])
+        if dependantes:
+            raise ContraintesLiees(', '.join(dependantes))
         valeurs = [aux_noeuds(champ, noeud) for champ, _ in champs]
         seconds = numpy.zeros((m, len(valeurs), 3))
         for (p, f) in bord:
@@ -261,9 +306,9 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
                 numpy.add.at(seconds[:, k], p, -valeur[f])
         k_contraintes = len(contraintes)
         resolu = numpy.linalg.solve(laplacien, numpy.concatenate(
-            [contraintes.reshape(k_contraintes, 3, m).transpose(2, 0, 1).reshape(m, -1),
-             seconds.reshape(m, -1)], axis=1))
-        z = resolu[:, :k_contraintes * 3].reshape(m, k_contraintes, 3).transpose(1, 2, 0).reshape(k_contraintes, -1)
+            [contraintes.reshape(k_contraintes, 3, m).transpose(2, 0, 1).reshape(m, 3 * k_contraintes),
+             seconds.reshape(m, 3 * len(valeurs))], axis=1))
+        z = resolu[:, :k_contraintes * 3].reshape(m, k_contraintes, 3).transpose(1, 2, 0).reshape(k_contraintes, 3 * m)
         libres_seuls = resolu[:, k_contraintes * 3:].reshape(m, len(valeurs), 3)
         retenues = {vise: (contraintes, z) if vise else (contraintes[:-1], z[:-1]) for vise in vises}
         schurs = {vise: numpy.linalg.inv(c @ zz.T) for vise, (c, zz) in retenues.items()}

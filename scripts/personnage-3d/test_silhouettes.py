@@ -8,7 +8,7 @@ import numpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from silhouettes import AnneauIndetectable, AnneauSansNoeudLibre, EpaisseurFigee, correction  # noqa: E402
+from silhouettes import AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, correction  # noqa: E402
 
 SECTEURS, NIVEAUX = 12, 14
 NIVEAUX_DES_ANNEAUX = (2, 4, 6, 9, 11)
@@ -37,13 +37,17 @@ def cylindre():
     return x, noeud, aretes[aretes[:, 0] != aretes[:, 1]]
 
 
-def anneau(x, niveau):
-    """L'anneau du cercle `niveau`, à la forme de `silhouettes.anneaux`."""
-    s = list(range(niveau * (SECTEURS + 1), (niveau + 1) * (SECTEURS + 1)))
+def sommets_du_niveau(niveau):
+    return list(range(niveau * (SECTEURS + 1), (niveau + 1) * (SECTEURS + 1)))
+
+
+def anneau(x, niveau, sommets=None, os=None):
+    """L'anneau des sommets `sommets` (par défaut le cercle `niveau`), à la forme de `silhouettes.anneaux`."""
+    s = sommets_du_niveau(niveau) if sommets is None else sommets
     centre, axe = x[s].mean(axis=0), numpy.array([0.0, 0.0, 1.0])
     radial = x[s] - centre
     radial -= (radial @ axe)[:, None] * axe
-    return {'os': f'niveau_{niveau}', 'sommets': [{'mesh': 'Corps', 'indice': i} for i in s],
+    return {'os': os or f'niveau_{niveau}', 'sommets': [{'mesh': 'Corps', 'indice': i} for i in s],
             'centre': centre.tolist(), 'rayon': float(numpy.linalg.norm(radial, axis=1).mean()), 'axe': axe.tolist()}
 
 
@@ -54,8 +58,10 @@ def anneaux(x, niveaux, le_plus_epais=None):
 
 
 def kkt(x, aretes, noeud, fixe, lus, d0, rapport):
-    """Le même problème que `correction`, posé sommet par sommet et résolu par son système KKT entier."""
+    """Le même problème que `correction`, posé sommet par sommet et résolu par son système KKT entier, sa source la
+    moyenne de `d0` sur les sommets de chaque nœud."""
     nv = len(x)
+    d0 = numpy.array([d0[noeud == noeud[v]].mean(axis=0) for v in range(nv)])
     taille = 3 * nv
     differences = []
     for i, j in aretes:
@@ -121,35 +127,68 @@ class Correction(unittest.TestCase):
         d0[self.fixe] = 0
         return d0[self.noeud]
 
-    def assert_comme_kkt(self, lus, champs):
-        corriges, sonde = correction(self.x, self.aretes, self.noeud, self.fixe, lus)(champs)
+    def assert_comme_kkt(self, lus, champs, fixe=None):
+        fixe = self.fixe if fixe is None else fixe
+        corriges, sonde = correction(self.x, self.aretes, self.noeud, fixe, lus)(champs)
         self.assertEqual(set(sonde), {'noeuds_libres', 'contraintes', 'resolution_s'})
         for (d0, rapport), d in zip(champs, corriges):
-            ecart = numpy.abs(d - kkt(self.x, self.aretes, self.noeud, self.fixe, lus, d0, rapport)).max()
+            ecart = numpy.abs(d - kkt(self.x, self.aretes, self.noeud, fixe, lus, d0, rapport)).max()
             self.assertLess(ecart, TOLERANCE, f'rapport {rapport}')
+
+    def assert_liees(self, fixe, lus, champs, attendues):
+        with self.assertRaises(ContraintesLiees) as leve:
+            correction(self.x, self.aretes, self.noeud, fixe, lus)(champs)
+        self.assertIsInstance(leve.exception, AnneauIndetectable)
+        self.assertEqual(str(leve.exception).split(' : ')[1], ', '.join(attendues))
 
     def test_egale_la_resolution_kkt_directe(self):
         self.assert_comme_kkt(anneaux(self.x, NIVEAUX_DES_ANNEAUX),
                               [(self.cle(), None), (self.cle(), 0.72), (self.cle(), 1.7)])
 
     def test_moyenne_aux_noeuds_une_source_non_nulle_aux_fixes_et_discordante_entre_jumeaux(self):
-        self.assert_comme_kkt(anneaux(self.x, NIVEAUX_DES_ANNEAUX), [(self.lisse(), 1.7)])
+        d0 = self.lisse() + 0.01 * self.rng.standard_normal(self.x.shape)
+        jumeaux = numpy.flatnonzero(self.noeud != numpy.arange(len(self.x)))
+        self.assertGreater(numpy.abs(d0[jumeaux] - d0[self.noeud[jumeaux]]).min(), 0.0)
+        self.assertGreater(numpy.abs(d0[self.fixe]).min(), 0.0)
+        self.assert_comme_kkt(anneaux(self.x, NIVEAUX_DES_ANNEAUX), [(d0, 1.7)])
 
     def test_un_anneau_le_plus_epais_tout_fixe_se_tient_sans_rapport_vise(self):
         self.assert_comme_kkt(anneaux(self.x, (0, *NIVEAUX_DES_ANNEAUX), le_plus_epais=0), [(self.cle(), None)])
 
-    def test_un_rapport_vise_sur_un_anneau_le_plus_epais_tout_fixe_leve_epaisseur_figee(self):
-        lus = anneaux(self.x, (0, *NIVEAUX_DES_ANNEAUX), le_plus_epais=0)
-        with self.assertRaises(EpaisseurFigee) as leve:
-            correction(self.x, self.aretes, self.noeud, self.fixe, lus)([(self.cle(), None), (self.cle(), 1.7)])
-        self.assertIsInstance(leve.exception, AnneauIndetectable)
-        self.assertIn('niveau_0', str(leve.exception))
+    def test_un_rapport_vise_sur_un_anneau_le_plus_epais_tout_fixe_leve_contraintes_liees(self):
+        self.assert_liees(self.fixe, anneaux(self.x, (0, *NIVEAUX_DES_ANNEAUX), le_plus_epais=0),
+                          [(self.cle(), None), (self.cle(), 1.7)], ['niveau_0 épaisseur'])
 
-    def test_un_corps_sans_noeud_libre_leve_anneau_sans_noeud_libre(self):
-        with self.assertRaises(AnneauSansNoeudLibre) as leve:
-            correction(self.x, self.aretes, self.noeud, numpy.ones(len(self.x), dtype=bool),
+    def test_un_corps_sans_noeud_libre_rend_un_champ_nul_et_ne_porte_aucune_epaisseur(self):
+        tout = numpy.ones(len(self.x), dtype=bool)
+        lus = anneaux(self.x, NIVEAUX_DES_ANNEAUX, le_plus_epais=2)
+        self.assert_comme_kkt(lus, [(self.cle(), None)], fixe=tout)
+        self.assert_liees(tout, lus, [(self.cle(), 1.7)], ['niveau_6 épaisseur'])
+
+    def test_une_epaisseur_sur_le_seul_noeud_libre_de_l_anneau_le_plus_epais_leve_contraintes_liees(self):
+        fixe = self.fixe.copy()
+        s = sommets_du_niveau(6)
+        fixe[s] = True
+        fixe[s[3]] = False
+        lus = anneaux(self.x, (4, 6, 9), le_plus_epais=1)
+        self.assert_comme_kkt(lus, [(self.cle(), None)], fixe=fixe)
+        self.assert_liees(fixe, lus, [(self.cle(), 1.7)], ['niveau_6 centre', 'niveau_6 épaisseur'])
+
+    def test_deux_anneaux_dont_la_part_libre_est_le_meme_noeud_levent_contraintes_liees(self):
+        fixe = self.fixe.copy()
+        s = sommets_du_niveau(6)
+        fixe[s] = True
+        fixe[[s[0], s[-1]]] = False
+        lus = {'anneaux': [anneau(self.x, 9), anneau(self.x, 6, s[0:3], 'A'), anneau(self.x, 6, [s[-1], *s[3:5]], 'B')],
+               'lePlusEpais': 0}
+        self.assert_liees(fixe, lus, [(self.cle(), None)], ['A centre', 'B centre'])
+
+    def test_une_composante_libre_sans_arete_vers_un_noeud_fixe_leve_composante_sans_appui(self):
+        with self.assertRaises(ComposanteSansAppui) as leve:
+            correction(self.x, self.aretes, self.noeud, numpy.zeros(len(self.x), dtype=bool),
                        anneaux(self.x, NIVEAUX_DES_ANNEAUX))
         self.assertIsInstance(leve.exception, AnneauIndetectable)
+        self.assertIn(f'{NIVEAUX * SECTEURS} nœud(s) libre(s) du sommet 0', str(leve.exception))
 
 
 if __name__ == '__main__':
