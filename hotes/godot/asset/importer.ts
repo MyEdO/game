@@ -4,13 +4,15 @@
  * licencié (`components.<id>.asset.license_basis`) ou un texte `LICENSE*.txt`, devient, sous un id de
  * modèle, un GLB et sa source versés dans la Release des modèles sous leur empreinte (`release.ts`), puis le manifeste
  * réduit et validé (`manifeste.ts`), la provenance et les licences, déposés dans le dossier des modèles du projet Godot.
- * Les licences se comparent par leur identifiant SPDX (`licences.json`). Tout se juge avant la première publication : un
+ * Les licences se comparent par leur identifiant SPDX (`licences.json`). Une production qui se déclare hors Release
+ * (`CLE_HORS_RELEASE`, `dossierDeProduction.ts`) ne s'importe que sans publication. Tout se juge avant la première publication : un
  * dossier refusé ne publie ni n'écrit rien.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
+import { CLE_HORS_RELEASE, FICHIER_DE_LICENCE, MANIFESTE_DE_PRODUCTION } from './dossierDeProduction.ts';
 import { sha256 } from './empreinte.ts';
 import { lireGlb, GlbIllisible } from './glb.ts';
 import { cheminsAbsolus, estObjet, ligneDErreur, type Brut } from './manifeste.ts';
@@ -19,9 +21,6 @@ import {
   DOSSIER_DES_MODELES, fichiersDuModele, nomDAsset, manifestesDesModeles, modelesEpingles,
   type AssetAPublier, type LicenceDeComposant, type LicenceDePack, type Provenance,
 } from './release.ts';
-
-/** Le seul nom fixe d'un dossier de production : son manifeste, qui nomme le reste. */
-export const MANIFESTE_DE_PRODUCTION = 'manifest.json';
 
 const ID_DE_MODELE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
@@ -102,7 +101,6 @@ function sourcesDAnimation(manifeste: Brut): { fichier: string; sha256: string }
     estObjet(s) && typeof s.path === 'string' && typeof s.sha256 === 'string' ? [{ fichier: nomDeFichier(s.path), sha256: s.sha256 }] : []);
 }
 
-const FICHIER_DE_LICENCE = /^LICENSE.*\.txt$/;
 /** Le nom sous lequel se dépose le texte de licence `octets` d'identifiant SPDX `spdx` : deux textes distincts d'une
  *  même licence (deux packs CC0) ne se disputent pas un nom. */
 const nomDeLicence = (spdx: string, octets: Uint8Array): string => `LICENSE-${spdx}-${sha256(octets).slice(0, 16)}.txt`;
@@ -131,6 +129,9 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : JSON illisible (${(e as Error).message})`] };
   }
   if (!estObjet(brut)) return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : objet JSON attendu`] };
+  const horsRelease = brut[CLE_HORS_RELEASE];
+  if (horsRelease !== undefined && !(typeof horsRelease === 'string' && horsRelease.trim())) return { ok: false, refus: [`[hors-release] ${MANIFESTE_DE_PRODUCTION} : ${CLE_HORS_RELEASE}, raison non vide attendue`] };
+  if (publier && horsRelease !== undefined) return { ok: false, refus: [`[hors-release] ${horsRelease} : import sans publication seulement (--sans-publier)`] };
   const { model, model_sha256: declaree } = brut;
   const entrees = readdirSync(dossier, { withFileTypes: true });
   if (typeof model !== 'string' || !entrees.some((e) => e.isFile() && e.name === model)) return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : model « ${String(model)} », fichier du dossier de production attendu`] };

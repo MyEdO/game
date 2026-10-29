@@ -5,7 +5,9 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { sha256 } from './empreinte.ts';
 import { ecrireGlb, GlbIllisible, lireGlb } from './glb.ts';
-import { chargerLicences, importerPersonnage, MANIFESTE_DE_PRODUCTION, TableDesLicencesInvalide } from './importer.ts';
+import { MANIFESTE_DE_PRODUCTION } from './dossierDeProduction.ts';
+import { chargerLicences, importerPersonnage, TableDesLicencesInvalide } from './importer.ts';
+import { ecrireProduction, HORS_RELEASE_DE_BASE, ProductionRefusee, type SourcesDeBase } from '../../../scripts/personnage-3d/base/production.ts';
 import { cheminsAbsolus, validerManifeste, type CodeDErreur } from './manifeste.ts';
 import { ATTACHES } from './montage';
 import { tableTotale } from '../../../src/lib/tableTotale';
@@ -713,5 +715,77 @@ describe('les modèles commités', () => {
     const { modeles, erreurs } = modelesEpingles(DOSSIER_DES_MODELES);
     expect(erreurs).toEqual([]);
     expect(modeles.length).toBeGreaterThan(0);
+  });
+});
+
+describe('dossier de production d’une base (#3106)', () => {
+  /** Le texte de licence des packs Quaternius UAL1, UAL2 et UBC, à l'octet près (CRLF, espace final). */
+  const LICENCE_QUATERNIUS = '-----------------------------\r\nLicense:\r\nCC0 1.0 Universal (CC0 1.0) \r\nPublic Domain Dedication\r\n';
+  /** Un pack : son texte de licence `licence` à la racine, le fichier source `fichier` deux dossiers plus bas. */
+  const pack = (fichier: string, licence = 'License.txt'): string => {
+    const racine = temporaire();
+    if (licence) writeFileSync(join(racine, licence), LICENCE_QUATERNIUS);
+    mkdirSync(join(racine, 'Godot', 'sous'), { recursive: true });
+    writeFileSync(join(racine, 'Godot', 'sous', fichier), `octets de ${fichier}`);
+    return join(racine, 'Godot', 'sous', fichier);
+  };
+  const packs = (): SourcesDeBase => ({ ual1: pack('UAL1_Standard.glb'), ual2: pack('UAL2_Standard.glb'), corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt') });
+  /** Le GLB de base exporté dans un dossier de sortie neuf, puis son dossier de production écrit. */
+  const construite = (sources = packs()): string => {
+    const glb = join(temporaire(), 'humanoide.glb');
+    writeFileSync(glb, GLB_DE_BASE);
+    ecrireProduction({ glb, manifeste: baseSchema3(), sources });
+    return glb;
+  };
+
+  it('s’importe sans geste à la main, sans publication, licences des packs copiées à l’octet', () => {
+    const sources = packs();
+    const glb = construite(sources);
+    const dossier = join(glb, '..');
+    const manifest = JSON.parse(readFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), 'utf8'));
+    expect(manifest).toEqual({
+      model: 'humanoide.glb', model_sha256: sha256(GLB_DE_BASE), manifeste: baseSchema3(),
+      animation_sources: {
+        ual1: { path: sources.ual1, sha256: sha256(readFileSync(sources.ual1)) },
+        ual2: { path: sources.ual2, sha256: sha256(readFileSync(sources.ual2)) },
+      },
+      hors_release: HORS_RELEASE_DE_BASE,
+    });
+    for (const s of ['ual1', 'ual2', 'corps'] as const) expect(readFileSync(join(dossier, `LICENSE-${s}.txt`), 'utf8')).toBe(LICENCE_QUATERNIUS);
+    const destination = temporaire();
+    const r = importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: null });
+    expect(r.ok ? r.provenance.licences_de_pack.map((l) => l.licence) : r.refus).toEqual(Array(3).fill('CC0 1.0 Universal (CC0 1.0)'));
+    expect(JSON.parse(readFileSync(join(destination, 'humanoide.manifeste.json'), 'utf8'))).toEqual(baseSchema3());
+  });
+
+  it.each<[string, (m: Record<string, unknown>) => void, string]>([
+    ['se déclare hors Release', () => {}, `[hors-release] ${HORS_RELEASE_DE_BASE} : import sans publication seulement (--sans-publier)`],
+    ['porte une raison hors Release vide', (m) => { m.hors_release = ' '; }, '[hors-release] manifest.json : hors_release, raison non vide attendue'],
+  ])('refuse à la publication une production qui %s, sans rien publier ni écrire', (_, muter, refus) => {
+    const dossier = join(construite(), '..');
+    const manifest = JSON.parse(readFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), 'utf8'));
+    muter(manifest);
+    writeFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), JSON.stringify(manifest));
+    const destination = join(temporaire(), 'modeles');
+    const verses: AssetAPublier[] = [];
+    const r = importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: (a) => { verses.push(...a); return []; } });
+    expect(r).toEqual({ ok: false, refus: [refus] });
+    expect([verses, existsSync(destination)]).toEqual([[], false]);
+  });
+
+  it.each<[string, () => { glb: string; sources: SourcesDeBase }, RegExp]>([
+    ['une sortie dans l’arbre du dépôt', () => ({ glb: join(process.cwd(), 'production-3106-sonde', 'humanoide.glb'), sources: packs() }), /^\[sortie-dans-le-depot\] /],
+    ['un pack sans texte de licence', () => ({ glb: join(temporaire(), 'humanoide.glb'), sources: { ...packs(), ual2: pack('UAL2_Standard.glb', '') } }), /^\[licence-introuvable\] .*UAL2_Standard\.glb/],
+    ['un pack à deux textes de licence', () => {
+      const corps = pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt');
+      writeFileSync(join(corps, '..', '..', '..', 'LICENSE.txt'), LICENCE_QUATERNIUS);
+      return { glb: join(temporaire(), 'humanoide.glb'), sources: { ...packs(), corps } };
+    }, /^\[licence-ambigue\] .*Superhero_Male_FullBody\.gltf/],
+  ])('refuse %s sans rien écrire', (_, cas, motif) => {
+    const { glb, sources } = cas();
+    const avant = existsSync(join(glb, '..')) ? listerDossier(join(glb, '..')) : null;
+    expect(() => ecrireProduction({ glb, manifeste: baseSchema3(), sources })).toThrow(ProductionRefusee);
+    expect(() => ecrireProduction({ glb, manifeste: baseSchema3(), sources })).toThrow(motif);
+    expect(existsSync(join(glb, '..')) ? listerDossier(join(glb, '..')) : null).toEqual(avant);
   });
 });

@@ -1,18 +1,23 @@
-// LE MANIFESTE COMPLET D'UNE BASE (#2972, `ManifesteDeBase` de `hotes/godot/asset/manifesteDeBase.ts`), écrit à côté
-// de son GLB exporté, `<base>.manifeste.json`. Chaque champ a une source :
+// LE MANIFESTE COMPLET D'UNE BASE (#2972, `ManifesteDeBase` de `hotes/godot/asset/manifesteDeBase.ts`), écrit sous
+// `manifeste` dans le dossier de production de son GLB exporté (`production.ts`, #3106). Chaque champ a une source :
 // - construit par la construction Blender (`humanoide.py`), lu en JSON sur l'entrée standard : `os`, `chaines`,
 //   `zones`, `emplacements`, `prises`, `silhouettes`, `gabarit` sans `st`, `appuis.pieds`, `osAPositionAnimee` ;
 // - déclaré par le corps (`<declaration.json>`) : `base`, `porteur`, et les clips de marche ;
 // - tiré de la donnée : `gabarit.st`, les extrêmes de `st` des gabarits et des surcharges de race ;
 // - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitessesAuSol`, une par clip de marche ;
 // - pris au GLB : `glb.sha256` et `glb.octets`.
-//   node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> < <construit.json>
-import { readFileSync, writeFileSync } from 'node:fs'
+// `--verifier` juge la déclaration, le dossier de sortie et les licences des packs sans rien lire ni écrire d'autre :
+// la construction le joue avant Blender.
+//   node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --ual1 <f> --ual2 <f> --corps <f> [--verifier] < <construit.json>
+import { readFileSync } from 'node:fs'
 import { text } from 'node:stream/consumers'
+import { parseArgs } from 'node:util'
 import { chargerEvaluateur } from '../../../hotes/godot/asset/charger.mjs'
 import { sha256 } from '../../../hotes/godot/asset/empreinte.ts'
 import { validerManifesteDeBase, VERSION_DU_SCHEMA_DE_BASE } from '../../../hotes/godot/asset/manifesteDeBase.ts'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
+import { lireDeclaration } from './declaration.mjs'
+import { ecrireProduction, verifierProduction } from './production.ts'
 
 const lireDonnee = (nom) => JSON.parse(readFileSync(new URL(`../../../src/data/${nom}`, import.meta.url), 'utf8'))
 
@@ -27,16 +32,6 @@ function bornesDeSt() {
     ...lireDonnee('raceAppearance.json').flatMap((r) => (r.gabaritOverride?.st === undefined ? [] : [r.gabaritOverride.st])),
   ]
   return { min: Math.min(...valeurs), max: Math.max(...valeurs) }
-}
-
-/** La déclaration du corps, refusée si une race ou un gabarit du porteur n'existe pas dans la donnée. */
-function lireDeclaration(chemin) {
-  const declaration = JSON.parse(readFileSync(chemin, 'utf8'))
-  const { porteur, clipsDeMarche } = declaration
-  if (!Array.isArray(clipsDeMarche) || !clipsDeMarche.length) throw new Error(`${chemin} : clipsDeMarche, liste non vide attendue`)
-  if (!lireDonnee('raceAppearance.json').some((r) => r.id === porteur?.race)) throw new Error(`${chemin} : porteur.race ${porteur?.race} absente de raceAppearance.json`)
-  if (!lireDonnee('gabarits.json').some((g) => g.id === porteur?.gabarit)) throw new Error(`${chemin} : porteur.gabarit ${porteur?.gabarit} absent de gabarits.json`)
-  return declaration
 }
 
 /** Les vitesses au sol des `clips`, mesurées par l'évaluateur sur `octets` avec le manifeste `manifeste`. */
@@ -54,12 +49,19 @@ async function mesurerVitesses(octets, manifeste, clips) {
 }
 
 async function main() {
-  const [cheminDeclaration, cheminGlb, ...reste] = process.argv.slice(2)
-  if (!cheminDeclaration || !cheminGlb?.endsWith('.glb') || reste.length) {
-    console.error('usage : node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> < <construit.json>')
+  const options = { ual1: { type: 'string' }, ual2: { type: 'string' }, corps: { type: 'string' }, verifier: { type: 'boolean' } }
+  const { positionals: [cheminDeclaration, cheminGlb, ...reste], values: { ual1, ual2, corps, verifier } } = parseArgs({ allowPositionals: true, options })
+  if (!cheminDeclaration || !cheminGlb?.endsWith('.glb') || reste.length || !ual1 || !ual2 || !corps) {
+    console.error('usage : node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --ual1 <f> --ual2 <f> --corps <f> [--verifier] < <construit.json>')
     process.exit(2)
   }
-  const { base, porteur, clipsDeMarche } = lireDeclaration(cheminDeclaration)
+  const sources = { ual1, ual2, corps }
+  const { base, porteur, clipsDeMarche } = await lireDeclaration(cheminDeclaration)
+  const { dossier } = verifierProduction({ glb: cheminGlb, sources })
+  if (verifier) {
+    console.log(`PRODUCTION ${dossier} : déclaration, sortie et licences des packs acceptées`)
+    return
+  }
   const construit = JSON.parse(await text(process.stdin))
   const octets = readFileSync(cheminGlb)
   const manifeste = (vitessesAuSol) => ({
@@ -72,9 +74,8 @@ async function main() {
   const complet = manifeste(await mesurerVitesses(octets, manifeste(tableTotale(clipsDeMarche, () => VITESSE_DE_SONDE)), clipsDeMarche))
   const verdict = validerManifesteDeBase(complet, octets)
   if (!verdict.ok) throw new Error(`manifeste refusé :\n${verdict.ecarts.map((e) => `  [${e.code}] ${e.ou} : ${e.detail}`).join('\n')}`)
-  const sortie = cheminGlb.replace(/\.glb$/, '.manifeste.json')
-  writeFileSync(sortie, `${JSON.stringify(complet, null, 2)}\n`)
-  console.log(`MANIFESTE ${sortie} ${octets.byteLength} octets ${complet.glb.sha256}`)
+  const ecrits = ecrireProduction({ glb: cheminGlb, manifeste: complet, sources })
+  console.log(`PRODUCTION ${dossier} ${octets.byteLength} octets ${complet.glb.sha256} : ${ecrits.join(', ')}`)
 }
 
 main().catch((erreur) => {
