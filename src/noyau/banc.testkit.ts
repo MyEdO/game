@@ -2,7 +2,7 @@
  * LE BANC DU NOYAU (#3058) : un test de règle pilote le noyau sans le store web, sur le propriétaire du jeu que compose
  * aussi la partie (`ouvrirLeProprietaire`, `proprietaireDuJeu.ts`). Le banc n'ajoute que ce que lit un test : l'état,
  * l'écriture et l'abonnement de zustand, les actions du noyau, et l'horloge virtuelle du noyau (`horlogeVirtuelle`)
- * par les trois gestes des minuteurs factices de Vitest et leur abandon, sans `setTimeout`. Il ne se joue que dans la suite du noyau (`*.hors-store.test.ts`).
+ * par les quatre gestes des minuteurs factices de Vitest et leur abandon, sans `setTimeout`. Il ne se joue que dans la suite du noyau (`*.hors-store.test.ts`).
  *
  * Sa fermeture s'enregistre par `onTestFinished` à son OUVERTURE : les `onTestFinished` jouent en ordre inverse, et la
  * restauration d'`avecLesTables` (`noyau.testkit.ts`), posée après, joue avant elle (`branchement.ts`).
@@ -37,6 +37,8 @@ export interface Banc {
   reprendreLesEnAttente: () => number;
   /** Reprend toute la prochaine échéance, ex æquo compris (`vi.advanceTimersToNextTimer`). */
   jusquALaProchaine: () => number;
+  /** Reprend tout, ceux que chaque reprise programme compris, jusqu'à ce qu'aucun n'attende (`vi.runAllTimers`). */
+  reprendreTout: () => number;
   /** Abandonne tous les jetons en attente, sans les reprendre (≈ `vi.clearAllTimers`). */
   abandonner: () => void;
   /** Le nombre de jetons en attente. */
@@ -93,6 +95,7 @@ function poserLeBanc({ etat, ...entrees }: EntreesDuBanc): BancPose {
     avancer: horloge.avancer,
     reprendreLesEnAttente: horloge.reprendreLesEnAttente,
     jusquALaProchaine: horloge.jusquALaProchaine,
+    reprendreTout: horloge.vider,
     abandonner: () => {
       proprietaire.abandonner();
       horloge.abandonner();

@@ -63,12 +63,6 @@
     },
     {
       "famille": "URL",
-      "fichier": "src/state/posture-tir.test.ts",
-      "ref": "readFileSync : URL new URL(rel, import.meta.url)",
-      "occurrence": 1
-    },
-    {
-      "famille": "URL",
       "fichier": "src/state/sieges-requis.test.ts",
       "ref": "readFileSync : URL new URL(rel, import.meta.url)",
       "occurrence": 1

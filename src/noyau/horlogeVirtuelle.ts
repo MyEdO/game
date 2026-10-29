@@ -1,7 +1,7 @@
 /**
  * L'HORLOGE VIRTUELLE d'un hôte sans minuteur (#2928, #3058) : elle rejoue, dans l'ordre de leurs échéances, les jetons
  * numérotés que programme la plateforme du noyau (`plateforme.ts`), sans `setTimeout`. Un hôte (`src/hote/partie.ts`)
- * la vide après chaque geste ; un banc de test (`banc.testkit.ts`) l'avance par ses trois gestes.
+ * la vide après chaque geste ; un banc de test (`banc.testkit.ts`) l'avance par ses quatre gestes.
  */
 
 /** Un jeton programmé, numéroté : un jeton du noyau est une identité d'objet (`partie.ts`), qui ne traverse pas JSON. */
@@ -15,9 +15,9 @@ const PLAFOND_DE_REPRISES = 100_000;
 
 /** L'horloge virtuelle sur `reprendre`, qui rejoue le jeton d'un numéro et rend ceux que sa reprise programme ;
  *  `premiers` sont armés à l'instant zéro. Chaque geste reprend par échéance puis par numéro (l'ordre d'arrivée), rend
- *  son nombre de reprises, et lève au-delà de `PLAFOND_DE_REPRISES`. `vider` est la reprise d'un hôte ; les trois autres
- *  gestes sont ceux des minuteurs factices de Vitest 5.0.3 (`tick`, `runToLast`, `next` puis `tick(0)` de son
- *  `FakeTimers`), dont un délai nul armé pendant le geste échoit une milliseconde plus tard. */
+ *  son nombre de reprises, et lève au-delà de `PLAFOND_DE_REPRISES`. `vider` est la reprise d'un hôte, et le `runAll`
+ *  du banc ; les trois autres gestes sont ceux des minuteurs factices de Vitest 5.0.3 (`tick`, `runToLast`, `next` puis
+ *  `tick(0)` de son `FakeTimers`), dont un délai nul armé pendant le geste échoit une milliseconde plus tard. */
 export function horlogeVirtuelle(reprendre: (id: number) => readonly Programme[], premiers: readonly Programme[] = []) {
   let file: { id: number; echeance: number }[] = [];
   let maintenant = 0;

@@ -357,7 +357,7 @@
     "fichier": "src/noyau/combatFlow.ts",
     "concept": "attaque gratuite déclenchée, kind-agnostique",
     "perimetre": "toute source de Frappe réactive/Assaut féroce/Trait/État",
-    "verrou": "creatureFreeAttacks.test.ts"
+    "verrou": "creatureFreeAttacks.hors-store.test.ts"
   },
   {
     "id": "shipDamage",
@@ -885,7 +885,7 @@
     "fichier": "src/engine/combat.ts",
     "concept": "arme et NOM d’une attaque gratuite de créature : label, Compétence et dégâts de sa manœuvre (`attaqueNaturelle`), lus par la modale d’attaque, la modale de défense et le réticule",
     "perimetre": "toute attaque gratuite jouée ou affichée",
-    "verrou": "src/state/gratuite-nom-unique.test.ts"
+    "verrou": "src/noyau/gratuite-nom-unique.hors-store.test.ts"
   },
   {
     "id": "gameOpChips",

@@ -62,7 +62,7 @@ describe('#316 — triggers orphelins câblés au bus (émission + déclenchemen
   it('onCharged (point 4) : un effet NON-attaque-gratuite se déclenche ET grantFreeAttack reste INERTE (pas de double frappe)', () => {
     // Flow MIXTE : pose Empêtré (non-free) + grantFreeAttack (free). Via le bus (voie PURE), seul le
     // non-free s'applique ; grantFreeAttack est inerte → pas d'attaque gratuite comptée (la vraie frappe
-    // ne part QUE de resolveFreeAttacks, cf. talent-free-attack.test.ts).
+    // ne part QUE de resolveFreeAttacks, cf. talent-free-attack.hors-store.test.ts).
     const c = withSyntheticTrait('synth-oncharged-mixed', [{
       trigger: 'onCharged', on: 'self',
       flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [

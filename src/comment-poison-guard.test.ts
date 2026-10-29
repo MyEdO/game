@@ -66,7 +66,7 @@ const GARDE = {
       'NATURE révolue (« n’est plus du code ») y entre, à 1 site mesuré.',
     'Le SITE quitté n’est mesuré que devant l’adverbe de PROXIMITÉ : l’adverbe de DISTANCE reste HORS de la ' +
       'famille tombale — 5 sites mesurés le 2026-09-05 (`src/noyau/partyFlow.ts:767`, `src/noyau/combat/triggeredTest.ts:375`, ' +
-      '`src/state/poste-ammo.test.ts:159`, `src/gameIso/stage/entree-en-scene-demontage.test.tsx:12`, ' +
+      '`src/noyau/poste-ammo.hors-store.test.ts:162`, `src/gameIso/stage/entree-en-scene-demontage.test.tsx:12`, ' +
       '`src/gameIso/backends/webgl/cacheBorne.ts:149`), tous une absence À L’EXÉCUTION, aucun une tombale.',
     'Le DÉPART au passé composé n’est mesuré que collé à un artefact BACK-TICKÉ : sans lui, la forme reste HORS de la ' +
       'famille tombale — 13 commentaires mesurés le 2026-09-22 dans `src/**`+`scripts/**` après purge, dont aucun ne ' +

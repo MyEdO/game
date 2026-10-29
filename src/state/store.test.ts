@@ -957,7 +957,7 @@ describe('Boucle de jeu (store)', () => {
   });
 
   it('attackCancel après le JET d’une Charge est sans effet (charge engagée, LDB 15 l.35)', () => {
-    // Avant le jet, une charge s'annule (misclic — cf. charge-undo.test.ts) ; une fois le dé lancé
+    // Avant le jet, une charge s'annule (misclic — cf. charge-undo.hors-store.test.ts) ; une fois le dé lancé
     // (`result` posé), elle est ENGAGÉE : plus d'annulation.
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     useGame.setState({ party: [hero] });

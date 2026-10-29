@@ -198,7 +198,7 @@ function rendu() {
   const GARDES = [
     'src/state/rollFlowWiring.test.ts',
     DRIFT,
-    'src/state/maneuver-defense-cascade.test.ts',
+    'src/noyau/maneuver-defense-cascade.hors-store.test.ts',
     'src/state/jet-owner-vs-spec.test.ts',
     'src/ui/active-modal.test.ts',
   ].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))
