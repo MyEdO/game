@@ -4,16 +4,19 @@ corps UBC par liaison de surface (Surface Deform).
 Donneur : `3dobjs/base.obj` (corps seul, groupe `body`) chargé des cibles `macrodetails` d'un homme jeune très musclé
 (`targetservice.py` `calculate_target_stack_from_macro_info_dict`) ; la clé est la différence entre l'état poids max et
 l'état poids moyen, à genre, âge et muscle fixés. Pose commune : celle du donneur. Le donneur est mis à l'échelle et
-recalé sur le tronc du squelette par moindres carrés ; chaque os des membres du corps UBC prend, par son armature, la
-position, la direction et la longueur des articulations MakeHuman (groupes `joint-*` de `base.obj`). Le corps posé se
-lie au donneur, le donneur reçoit le delta, et le déplacement lié revient au repos par l'inverse du skin linéaire de
-chaque sommet ; le lissage de la clé et ses extrémités invariantes sont ceux de toutes les silhouettes
-(`silhouettes.finir_les_silhouettes`).
+recalé sur le tronc du squelette au repos par moindres carrés ; chaque os des membres du corps UBC prend, par son
+armature, la position, la direction et la longueur des articulations MakeHuman (groupes `joint-*` de `base.obj`). Le
+corps se pose par le skin linéaire aux poids de l'export (`poids.peau_lineaire`), se lie au donneur, le donneur reçoit
+le delta, et le déplacement lié revient au repos par l'inverse de ce même skin, sommet par sommet ; le lissage de la clé
+et ses extrémités invariantes sont ceux de toutes les silhouettes (`silhouettes.finir_les_silhouettes`).
 """
 import gzip
 from pathlib import Path
 
 import numpy as np
+
+from formes import poser_la_cle
+from poids import deformer, peau_lineaire, repos as inverses_du_repos
 
 SOMMETS_DU_CORPS = 13380
 """Sommets du corps de `base.obj`, avant les helpers."""
@@ -164,30 +167,25 @@ def poser_comme_le_donneur(bpy, squelette, joints):
     return heritage
 
 
-def rendre_l_heritage(bpy, squelette, heritage):
-    """Remet `squelette` au repos et son `inherit_scale` d'origine."""
+def au_repos(bpy, squelette):
+    """Remet chaque os de `squelette` au repos : un clip joué avant laisse sa dernière pose aux os."""
     for pb in squelette.pose.bones:
         pb.matrix_basis.identity()
-    for b in squelette.data.bones:
-        b.inherit_scale = heritage[b.name]
     bpy.context.view_layer.update()
 
 
-def matrices_du_skin(squelette, corps):
-    """Matrice 3x3 linéaire, par sommet, qui porte un déplacement local de `corps` au repos vers le monde posé : le
-    mélange normalisé des matrices de déformation des os, comme le modificateur Armature."""
-    monde = np.array(squelette.matrix_world)
-    vers_armature = np.array(squelette.matrix_world.inverted() @ corps.matrix_world)
-    deformations = {pb.name: np.array(pb.matrix @ pb.bone.matrix_local.inverted())
-                    for pb in squelette.pose.bones if pb.bone.use_deform}
-    noms = {g.index: g.name for g in corps.vertex_groups if g.name in deformations}
-    matrices = np.zeros((len(corps.data.vertices), 3, 3))
-    for v in corps.data.vertices:
-        poids = [(noms[g.group], g.weight) for g in v.groups if g.group in noms and g.weight > 0]
-        total = sum(p for _, p in poids)
-        skin = sum((p / total) * deformations[n] for n, p in poids) if total > 0 else np.eye(4)
-        matrices[v.index] = (monde @ skin @ vers_armature)[:3, :3]
-    return matrices
+def rendre_l_heritage(bpy, squelette, heritage):
+    """Remet `squelette` au repos et son `inherit_scale` d'origine."""
+    for b in squelette.data.bones:
+        b.inherit_scale = heritage[b.name]
+    au_repos(bpy, squelette)
+
+
+def peau_de_la_pose(squelette):
+    """Par os de `squelette`, dans l'ordre de `squelette.data.bones`, sa matrice de peau à la pose courante, repère
+    monde : (os, 4, 4)."""
+    poses = np.array([squelette.matrix_world @ squelette.pose.bones[b.name].matrix for b in squelette.data.bones])
+    return poses @ inverses_du_repos(squelette).astype(np.float64)
 
 
 def coordonnees(bpy, objet):
@@ -212,26 +210,30 @@ def objet_maillage(bpy, nom, sommets, faces):
 
 
 def distances_de_liaison(posees, reference, faces):
-    """Distance de chaque sommet posé à la surface du donneur de référence : `(distances, points, normales)`."""
+    """Distance de chaque sommet posé à la surface du donneur de référence."""
     from mathutils import Vector
     from mathutils.bvhtree import BVHTree
     arbre = BVHTree.FromPolygons([tuple(p) for p in reference], faces)
-    proches = [arbre.find_nearest(Vector(p)) for p in posees]
-    return (np.array([d for *_, d in proches]), np.array([tuple(loc) for loc, *_ in proches]),
-            np.array([tuple(n) for _, n, *_ in proches]))
+    return np.array([arbre.find_nearest(Vector(p))[3] for p in posees])
 
 
 def ajouter_corpulence(squelette, corps, mpfb: Path) -> None:
-    """Pose sur `corps` (skinné à `squelette`, au repos) la shape key `corpulence` : le delta de poids max de
+    """Pose sur `corps` (skinné à `squelette`, remis au repos) la shape key `corpulence` : le delta de poids max de
     MakeHuman, lié par Surface Deform dans la pose du donneur, ramené au repos par l'inverse du skin."""
     import bpy
+    noms = [b.name for b in squelette.data.bones]
+    x, w = peau_lineaire(corps, noms)
+    x, w = x.astype(np.float64), w.astype(np.float64)
+    au_repos(bpy, squelette)
     reference, poids_max, faces, joints = donneur(mpfb)
     echelle, translation = recalage(joints, tetes(squelette))
     reference, poids_max = reference * echelle + translation, poids_max * echelle + translation
     joints = {nom: p * echelle + translation for nom, p in joints.items()}
     heritage = poser_comme_le_donneur(bpy, squelette, joints)
-    posees = coordonnees(bpy, corps)
-    distances, *_ = distances_de_liaison(posees, reference, faces)
+    peau = peau_de_la_pose(squelette)
+    rendre_l_heritage(bpy, squelette, heritage)
+    posees = deformer(w, x, peau[None])[0]
+    distances = distances_de_liaison(posees, reference, faces)
     pire = int(distances.argmax())
     print('CORPULENCE recalage', round(echelle, 6), 'liaison (m) médiane', round(float(np.median(distances)), 4),
           'p99', round(float(np.percentile(distances, 99)), 4), 'max', round(float(distances[pire]), 4), 'sommet', pire,
@@ -249,25 +251,19 @@ def ajouter_corpulence(squelette, corps, mpfb: Path) -> None:
     cible.data.vertices.foreach_set('co', poids_max.ravel())
     cible.data.update()
     deplacement = coordonnees(bpy, liee) - posees
-
-    repos = np.linalg.solve(matrices_du_skin(squelette, corps), deplacement[..., None])[..., 0]
-    if corps.data.shape_keys is None:
-        corps.shape_key_add(name='Basis', from_mix=False)
-    cle = corps.shape_key_add(name=NOM, from_mix=False)
-    base = np.empty(len(corps.data.vertices) * 3)
-    corps.data.shape_keys.reference_key.data.foreach_get('co', base)
-    cle.data.foreach_set('co', (base.reshape(-1, 3) + repos).ravel())
-    cle.value = 1.0
-    ecart = float(np.abs(coordonnees(bpy, corps) - posees - deplacement).max())
-    cle.value = 0.0
-    if ecart > ECART_MAX:
-        raise RuntimeError(f'corpulence : clé posée à {ecart:.2e} m du déplacement lié (> {ECART_MAX})')
-
     for objet in (liee, cible):
         maillage = objet.data
         bpy.data.objects.remove(objet, do_unlink=True)
         bpy.data.meshes.remove(maillage)
-    rendre_l_heritage(bpy, squelette, heritage)
+
+    skin = np.einsum('sb,bij->sij', w, peau[:, :3, :3])
+    repos = np.linalg.solve(skin, deplacement[..., None])[..., 0]
+    porte = x.copy()
+    porte[:, :3] += repos
+    ecart = float(np.abs(deformer(w, porte, peau[None])[0] - posees - deplacement).max())
+    if ecart > ECART_MAX:
+        raise RuntimeError(f'corpulence : clé posée à {ecart:.2e} m du déplacement lié (> {ECART_MAX})')
+    poser_la_cle(corps, NOM, repos @ np.array(corps.matrix_world.inverted().to_3x3()).T)
     amplitude = np.linalg.norm(repos, axis=1)
     print('CORPULENCE clé posée : amplitude max', round(float(amplitude.max()), 4), 'm, moyenne',
           round(float(amplitude.mean()), 4), 'm, écart du skin', f'{ecart:.1e}', flush=True)
