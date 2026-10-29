@@ -22,7 +22,7 @@ const GARDE = {
   perimetre: '`src/` de production (`listProdFiles`, tests exclus)',
   exemption:
     'Au SITE, par FORME : (1) le corps d’un prédicat de `src/noyau/monde/scene.ts` à UN paramètre (lecture ' +
-    'statique du segment, sans état runtime) que `src/state/porte-secrete.test.ts` importe, donc éprouve ; ' +
+    'statique du segment, sans état runtime) que `src/noyau/porte-secrete.hors-store.test.ts` importe, donc éprouve ; ' +
     '(2) la déclaration qui DÉCLARE le champ (`wallSegSchema.superRefine`, `auDeclarant`). Aucune table ' +
     'de fichiers ni de receveurs.',
   angleMort: [
@@ -35,7 +35,7 @@ const GARDE = {
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const SCENE = 'src/noyau/monde/scene.ts';
-const TEST_DES_PREDICATS = 'src/state/porte-secrete.test.ts';
+const TEST_DES_PREDICATS = 'src/noyau/porte-secrete.hors-store.test.ts';
 
 /** Arbre syntaxique d'un fichier du dépôt (`ast`, dialecte TS). */
 function arbre(rel: string): TS.SourceFile {

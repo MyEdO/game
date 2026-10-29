@@ -1,5 +1,5 @@
 /**
- * LA SAUVEGARDE « 1d10 ≥ Indice » PASSE PAR LA PORTE (#1508 T3b) — jumeau de `chute-a-la-porte.test.ts`.
+ * LA SAUVEGARDE « 1d10 ≥ Indice » PASSE PAR LA PORTE (#1508 T3b) — jumeau de `chute-a-la-porte.hors-store.test.ts`.
  *
  * `LDB 85 l.98` (Démoniaque) : « Lancez 1d10 après chaque coup reçu, si la créature obtient le nombre de
  * l'*Indice* ou plus, le coup est ignoré, même s'il s'agit d'un critique. » ; `LDB 85 l.278` (Protection) ;

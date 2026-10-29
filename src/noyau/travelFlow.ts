@@ -687,7 +687,7 @@ function currentSeason(get: Get): Season {
  * La saison choisit la TABLE ; elle n'est
  * donc JAMAIS un modificateur de dé — conséquence directe : `mod` vaut 0 sur ces tables, et aucune
  * rangée n'est rendue inatteignable par un décalage (`naturalRollForTableRow` rend un naturel pour
- * chacune de ses lignes, cf. `de-monde-surface.test.ts`).
+ * chacune de ses lignes, cf. `de-monde-surface.hors-store.test.ts`).
  */
 const STAGE_WEATHER_KIND = 'stageWeather';
 const STAGE_WEATHER_STEP_ID = 'stage-weather';
