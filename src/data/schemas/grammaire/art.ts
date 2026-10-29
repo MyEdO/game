@@ -5,7 +5,7 @@
  * ces prédicats (sens permis) : UNE computation du domaine, pour le schéma comme pour `resolveRender`.
  */
 import { idsDe } from './ref';
-import { ESPECES_DE_CREATURE, FORMES_DE_NUEE, SEXE_DE_COIFFURE } from '../_art.generated';
+import { ARTS_D_ARMURE, ESPECES_DE_CREATURE, FORMES_DE_NUEE, SEXE_DE_COIFFURE } from '../_art.generated';
 
 /** Espèces DESSINÉES : celles dont le code déclare le corps — defs de créature et formes de nuée. */
 const ESPECES_DESSINEES: ReadonlySet<string> = new Set([...ESPECES_DE_CREATURE, ...FORMES_DE_NUEE]);
@@ -43,4 +43,9 @@ export function estFormeDeNuee(id: string): boolean {
 /** Sexe d'une coiffure dessinée (`hairstyles/defs`), `undefined` pour un id inconnu. */
 export function sexeDeCoiffure(id: string): (typeof SEXE_DE_COIFFURE)[string] | undefined {
   return Object.prototype.hasOwnProperty.call(SEXE_DE_COIFFURE, id) ? SEXE_DE_COIFFURE[id] : undefined;
+}
+
+/** L'id `id` nomme-t-il un def d'art d'armure (`src/gameIso/rig/parts/armour/defs/`) ? */
+export function estArtDArmure(id: string): boolean {
+  return ARTS_D_ARMURE.includes(id);
 }

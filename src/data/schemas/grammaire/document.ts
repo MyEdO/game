@@ -18,7 +18,7 @@ import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesCha
 import { exigeSource } from './sans-livre';
 import { marquerProduit } from './interne/produits';
 import { champsProse, refineAdapteDe, refineProse, type PorteurDeProse } from './prose';
-import { marquerCollection, marqueDeListe, marqueDeRecord, type EspaceDeNoms } from './collection-cle';
+import { marquerCollection, marqueDeListe, marqueDeRecord, refusDeCharge, type EspaceDeNoms } from './collection-cle';
 
 /** Les 3 EMBALLAGES de fichier d'un document : liste d'entrées, entrée seule, record clé → valeur.
  *  La CHARGE d'un document (ses rangées, `options.rangee`) est orthogonale à son emballage. */
@@ -572,7 +572,15 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   const avecProse = avecProvenance.superRefine(
     refineProse({ type, exigeProse: exiges.includes('desc'), porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
-  const affine = affinerEntree ? affinerEntree(avecProse) : avecProse;
+  // CHARGE par discriminant (`espace.chargeParDiscriminant`) : bornée au parse de l'entrée d'une liste,
+  // au même stade que la provenance et la prose. Un record porte sa charge par CLÉ, jamais par cas.
+  if (famille === 'record' && espace.chargeParDiscriminant)
+    throw new Error(`document('${type}') : \`chargeParDiscriminant\` partitionne les ENTRÉES d’une liste — un record porte sa charge par clé.`);
+  const refusCharge = refusDeCharge(type, espace, clesEntree);
+  const avecCharge = refusCharge
+    ? (avecProse.superRefine((v, ctx) => refusCharge(v as Record<string, unknown>, ctx)) as z.ZodObject<z.ZodRawShape>)
+    : avecProse;
+  const affine = affinerEntree ? affinerEntree(avecCharge) : avecCharge;
   nommerChamps(affine as z.ZodObject<z.ZodRawShape>, { ...noms, ...metaDesChamps(affine) });
   const entreeScellee: z.ZodType<unknown> = affine.pipe(z.transform((v) => v));
 

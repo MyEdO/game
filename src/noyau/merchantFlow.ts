@@ -1127,6 +1127,7 @@ export const TABLES = {
       return {
         consequences: freeCons([stepDetail(
           actor ? dataLabel(actor.label) : t('eff.party'),
+          // LDB 59 l.50
           estJete(step.result) ? t(gossipDay ? 'mf.searchOk' : 'mf.searchKo') : t('mf.searchSansJet'),
         )]),
       };

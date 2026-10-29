@@ -233,7 +233,7 @@ import {
 } from '../engine/travelStages';
 import { weatherExposure, type ExposureSeverity } from '../engine/exposure';
 import type { TravelRecapDay } from './travelFlow';
-import { weaponGroupKey } from '../engine/weaponGroup';
+import { groupeAPoudre, weaponGroup } from '../engine/weaponGroup';
 import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, tileKey, tileFromKey, Pt, climbTraverseFor } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import { adversairesDe, chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './monde/ai';
@@ -673,12 +673,6 @@ export function windsOfMagicAtCombatStart(get: Get, set: SetFn): void {
   rerollWindsOfMagic(get, set);
 }
 
-/** Une arme tire-t-elle à la POUDRE noire (poudre exposée inutilisable sous la pluie diluvienne, EDOC 8 l.82) ? */
-function isBlackPowderWeapon(w: Weapon): boolean {
-  const k = weaponGroupKey(w);
-  return k === 'poudre' || k === 'ingenierie';
-}
-
 /**
  * Le combat VU AVEC l'attaquant à la position qu'il OCCUPERA au moment de frapper.
  *
@@ -736,7 +730,7 @@ export function attackEnv(
     // (l.127) — MÊME contexte de « conditions du jour » que les Activités de l'Étape.
     if (dayW) {
       if (weatherRangedUseless(dayW)) return { env, blocked: true, inMelee: false, crowd: [], cm: null, sc };
-      if (weatherPowderUseless(dayW) && isBlackPowderWeapon(weapon)) return { env, blocked: true, inMelee: false, crowd: [], cm: null, sc };
+      if (weatherPowderUseless(dayW) && groupeAPoudre(weaponGroup(weapon))) return { env, blocked: true, inMelee: false, crowd: [], cm: null, sc };
       const rm = weatherRangedMod(dayW);
       if (rm) env.push({ label: tr('tp.modWeather', { weather: weatherCondition(dayW).label }), value: rm, famille: 'circonstance', ref: weatherRef(dayW) });
     }
@@ -3455,7 +3449,7 @@ export function choixPiegeLame(pbt: PendingBladeTrap, defenseur: Combatant, atta
  *  ABANDONNÉE — aucun producteur ne la remet en file ; la file de frappes du tour est #1858. */
 function refuserLaDefense(attacker: Combatant, target: Combatant): boolean {
   const msg = `[combat] défense déjà ouverte : ${attacker.label} déclare une frappe sur ${target.label} `
-    + 'avant que la précédente soit résolue — la frappe est refusée (LDB 85 l.41-43).';
+    + 'avant que la précédente soit résolue — la frappe est refusée.';
   console.error(msg);
   if (import.meta.env?.DEV) throw new Error(msg);
   return true;
@@ -4548,6 +4542,7 @@ export function useSpellComponent(caster: Combatant, spellId: string, lines: str
   const next = [...owned];
   next.splice(i, 1); // retire UNE occurrence (consommée par l'incantation)
   caster.componentSpells = next;
+  // LDB 46 l.111
   lines.push(tr('cf.componentConsumed', { name: caster.label }));
   return true;
 }

@@ -1,7 +1,7 @@
 /**
  * #2948 — ce que le SCHÉMA de `apparences.json` tient au parse : une entrée sans `forme` est une racine
- * (`id` + `label`, aucune étiquette), une entrée avec `forme` est une variante d'une RACINE, et ses
- * étiquettes de naissance sont des ids existants.
+ * (`id` + `label` + `maniement` éventuel, aucune étiquette), une entrée avec `forme` est une variante d'une
+ * RACINE, et ses étiquettes de naissance sont des ids existants — ses qualités, des Qualités d'aspect (#3076).
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { schema } from './apparences';
@@ -11,7 +11,7 @@ import { poserRegimeVivant } from '../grammaire/idsVivants';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 
 type Entree = { id: string; type: string; label: string; [k: string]: unknown };
-const VARIANTE: Entree = { id: 'epee-raffinee', type: 'apparences', label: 'Épée raffinée', forme: { id: 'epee' }, especes: ['humains-reiklander'], classes: ['courtisans'], qualites: ['raffine'] };
+const VARIANTE: Entree = { id: 'variante-de-fixture', type: 'apparences', label: 'Variante de fixture', forme: { id: 'epee' }, especes: ['humains-reiklander'], classes: ['courtisans'], qualites: ['raffine'] };
 const avec = (...entrees: Entree[]): Entree[] => [...(structuredClone(apparencesJson) as Entree[]), ...entrees];
 const refus = (doc: unknown): string => {
   const r = schema.safeParse(doc);
@@ -55,7 +55,7 @@ describe('apparences.json — racines et variantes (#2948)', () => {
   });
 
   it('une variante d’une VARIANTE est refusée : `forme` vise une racine', () => {
-    // Régime vivant : la variante `epee-raffinee` existe et porte le marqueur `forme`.
+    // Régime vivant : la variante de fixture existe et porte le marqueur `forme`.
     poserRegimeVivant((cle) =>
       cle === 'apparences.json'
         ? new Set([...IDS_PAR_ESPACE['apparences.json'], VARIANTE.id])
@@ -63,8 +63,8 @@ describe('apparences.json — racines et variantes (#2948)', () => {
           ? new Set([VARIANTE.id])
           : undefined,
     );
-    const petite = { id: 'epee-raffinee-courte', type: 'apparences', label: 'Épée raffinée courte', forme: { id: VARIANTE.id } };
-    expect(refus(avec(VARIANTE, petite))).toMatch(/« epee-raffinee » porte le marqueur « forme »/);
+    const petite = { id: 'variante-de-variante-de-fixture', type: 'apparences', label: 'Variante de variante de fixture', forme: { id: VARIANTE.id } };
+    expect(refus(avec(VARIANTE, petite))).toMatch(/« variante-de-fixture » porte le marqueur « forme »/);
   });
 
   it('une racine qui porte une étiquette de naissance est refusée, nommément', () => {
@@ -76,8 +76,23 @@ describe('apparences.json — racines et variantes (#2948)', () => {
   it.each([
     ['espèce', { especes: ['espece-inexistante'] }, /« espece-inexistante » est absent du catalogue des espèces/],
     ['classe', { classes: ['classe-inexistante'] }, /« classe-inexistante » est absent du catalogue des classes de carrière/],
-    ['qualité hors naissance', { qualites: ['rapide'] }, /« rapide » \(epee-raffinee\) n’est pas une qualité de naissance/],
+    ['qualité sans aspect', { qualites: ['rapide'] }, /« rapide » \(variante-de-fixture\) n’est pas une Qualité d’aspect/],
   ])('une étiquette de %s invalide est refusée', (_cas, etiquette, motif) => {
     expect(refus(avec({ ...VARIANTE, ...etiquette }))).toMatch(motif);
+  });
+
+  it('une variante qui porte un maniement est refusée : il appartient à sa racine (#3076)', () => {
+    expect(refus(avec({ ...VARIANTE, maniement: 'escrime' }))).toMatch(/« variante-de-fixture » est une variante — « maniement » n’appartient qu’à sa racine/);
+  });
+
+  it('une Qualité AJOUTÉE à la donnée avec le marqueur `aspect` fait naître une variante (#3076)', () => {
+    poserRegimeVivant((cle) =>
+      cle === 'qualities.json'
+        ? new Set([...IDS_PAR_ESPACE['qualities.json'], 'qualite-d-aspect-de-fixture'])
+        : cle === 'qualities.json?aspect'
+          ? new Set([...IDS_PAR_ESPACE['qualities.json?aspect'], 'qualite-d-aspect-de-fixture'])
+          : undefined,
+    );
+    expect(schema.safeParse(avec({ ...VARIANTE, qualites: ['qualite-d-aspect-de-fixture'] })).success).toBe(true);
   });
 });

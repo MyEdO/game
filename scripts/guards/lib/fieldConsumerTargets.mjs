@@ -23,7 +23,6 @@ export const TARGETS = [
   { schema: valeurs.secondarySourceRefSchema, type: 'SecondaryRef', home: 'src/data/schemas/grammaire/valeurs.ts' },
   { schema: valeurs.detailRecipeSchema, type: 'DetailRecipe', home: 'src/data/materials.types.ts' },
   { schema: valeurs.diceSpecSchema, type: 'DiceSpec', home: 'src/engine/dice.ts' },
-  { schema: reference.refSchema, type: 'RefDesignee', home: 'src/data/schemas/grammaire/ref.ts' },
   { schema: reference.qualityRefSchema, type: 'QualityRef', home: 'src/data/index.ts' },
   { schema: valeurs.castingNumberModSchema, type: 'CastingNumberMod', home: 'src/engine/castingNumber.ts' },
   { schema: valeurs.countSpecSchema, type: 'CountSpec', home: 'src/data/index.ts' },

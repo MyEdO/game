@@ -7,7 +7,7 @@ export type { ArmourSet, ArmourDef } from './types';
 /**
  * Table des armures DÉRIVÉE des fichiers `defs/`.
  * Ajouter/éditer une armure = déposer un fichier dans `defs/` (puis `npm run gen` hors dev).
- * Clé = `id` du def ('cuir' | 'maille' | 'plaque'), atteint par la matière d'une pièce (`ART_DE_MATIERE`, `equipment.ts`).
+ * Clé = `id` du def, atteint par la matière d'une pièce (`art` de son Groupe, `weaponGroups.json` ; `artDeMatiere`, `equipment.ts`).
  */
 export const ARMOUR: Record<string, ArmourSet> = Object.fromEntries(
   ARMOUR_DEFS.map((d) => [d.id, d.set]),

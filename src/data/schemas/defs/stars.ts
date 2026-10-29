@@ -75,7 +75,7 @@ const doc = document(
           if (sans.length) {
             ctx.addIssue({
               code: 'custom',
-              path: ['sub'],
+              path: [],
               message: `stars.json : le groupe de variantes du seuil ${rand} mêle des entrées AVEC et SANS sous-tirage (${sans.join(', ')}) — le résolveur ne retient que celles qui en portent un, les autres deviennent inatteignables.`,
             });
             continue;
@@ -83,7 +83,7 @@ const doc = document(
           if (groupe.length < 2) {
             ctx.addIssue({
               code: 'custom',
-              path: ['sub'],
+              path: [],
               message: `stars.json : le seuil ${rand} porte un sous-tirage sur une entrée SEULE — un 1d10 interne départage des variantes, il n'en départage aucune ici.`,
             });
             continue;
@@ -97,7 +97,7 @@ const doc = document(
           if (ecarts.length) {
             ctx.addIssue({
               code: 'custom',
-              path: ['sub'],
+              path: [],
               message: `stars.json : les variantes du seuil ${rand} ne couvrent pas le 1d10 de 1 à 10 d'un seul tenant — ${ecarts.join(' ; ')}.`,
             });
           }

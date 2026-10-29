@@ -442,6 +442,7 @@ export function spoilVesselCargoOnLeak(get: Get, set: Set): string[] {
   const r = spoilCargoByEnc(vessel.cargo, enc);
   if (!r.removed) return [];
   set({ vessel: { ...vessel, cargo: r.lots } });
+  // MSRC 7 l.101 / MDG
   return [t('sv.leakSpoils', { enc: r.removed })];
 }
 
@@ -936,6 +937,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   // (crise/embuscade/entretien…) continue quand même (miroir Encalminé/Affaler ci-dessous).
   const strandedSea = get().travelPlan!.sea!;
   if (strandedSea.stranded) {
+    // MDG 13 l.473
     tell(get, set, [t('sv.stranded', { hazard: strandedSea.stranded.label })]);
     patchSea(get, set, { milesToday: 0 });
     const st = buildStrandedOrEntangledStep(get, 'intermediaire', 'sea-degagement', { penalite: seaStrandingPenalty(get) });
@@ -1043,6 +1045,7 @@ function pushDayEntries(get: Get, set: Set, resolved: CascadeStep[]): void {
   for (const s of resolved) {
     if (!s.participants || !s.result) continue;
     const total = s.result.sl;
+    // MDG 14 l.13
     tell(get, set, [t('sv.crewTestSummary', { label: String(s.label), dr: total >= 0 ? `+${total}` : total, issue: crewTestSuccess(total) ? t('sv.success') : t('sv.failure') })]);
   }
 }
@@ -1743,6 +1746,7 @@ export function openSeaHalt(get: Get, set: Set, travelDay: TravelRecapDay): void
  *  (`'sea-ouragan-affaler'`, jamais routine, extraDR −2) — MÊME conséquence RAW, deux déclencheurs. */
 function affalerConsequence(get: Get, set: Set, step: CascadeStep): Consequence[] {
   if (!step.result) return [];
+  // MDG 13 l.292
   if (step.result.success) { const j = [t('sv.sailsStruckInTime')]; noteSeaLine(get, set, j); return freeCons(j); }
   const rng = battleRng();
   const crit = rollShipCritical(AFFALER_RULES.failCritLocation as ShipCritKey, rng);
@@ -1775,9 +1779,11 @@ function resolveSeaCrisisRound(get: Get, set: Set, total: number): string[] {
     const outcome = pursuitOutcome(distance, c.escapeAt);
     if (outcome === 'escaped') {
       patchSea(get, set, { crisis: undefined, boarding: undefined });
+      // MDG 13 l.362
       j.push(t('sv.chaseEscaped'));
     } else if (outcome === 'caught') {
       patchSea(get, set, { crisis: undefined });
+      // MDG 13 l.420
       j.push(t('sv.chaseCaught'));
       startChaseBoarding(get, set);
     } else {
@@ -1795,6 +1801,7 @@ function resolveSeaCrisisRound(get: Get, set: Set, total: number): string[] {
   const j = [t('sv.whirlpoolGrind', { label: w.label, dmg, progress, need: c.need })];
   if (progress >= c.need) {
     patchSea(get, set, { crisis: undefined });
+    // MDG 13 l.528
     j.push(t('sv.whirlpoolEscaped'));
   } else patchSea(get, set, { crisis: { ...c, progress } });
   noteSeaLine(get, set, j);
@@ -2019,6 +2026,7 @@ function startSeaPursuit(get: Get, set: Set, info: { label: string; desc: string
   patchSea(get, set, {
     crisis: { kind: 'poursuite', label: info.label, distance: Math.floor(escapeAt / 2), escapeAt, foeM, foeSkill: 50, desc: info.desc },
   });
+  // MDG 13 l.362-370
   tell(get, set, [t('sv.fleeChase', { start: Math.floor(escapeAt / 2), escapeAt })]);
 }
 
@@ -2064,6 +2072,7 @@ function openPirateHail(get: Get, set: Set, event: SeaEventDef): void {
     id: 'sea-pirate-hail', kind: 'sea-pirate-hail', actorId: seaDecider(get), label: dataLabel(event.label),
     defaultChoice: 'fuir', meta: { crisisLabel: event.label, crisisDesc: event.desc } satisfies CrisePirate,
     options: [
+      // MDG 13 l.362-370
       { key: 'fuir', label: t('opt.fuir'), detail: t('sv.detailFuir') },
       { key: 'combattre', label: t('opt.combattre'), detail: t('sv.detailCombattre') },
       { key: 'soumettre', label: t('opt.soumettre'), detail: t('sv.detailSoumettre', { pct: pillage }) },
@@ -2236,6 +2245,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
       const eff = effectiveSeaM(get);
       const dmg = Math.max(0, hazard.ic + (eff.m ?? 1) - Math.floor(effectiveChar(ship, 'endurance') / 10));
       damageVesselHull(get, set, ship, dmg);
+      // MDG 13 l.446/475-499
       tell(get, set, [t('sv.collision', { dmg, hazard: hazard.label, ic: hazard.ic })]);
       tell(get, set, spoilVesselCargoOnLeak(get, set)); // avarie de coque → voie d'eau (lot D #327)
       // La DONNÉE du péril ouvre l'issue, jamais son id : `entangleChancePct` (l.485) côté empêtrement,
@@ -2268,6 +2278,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
       } else if (hazard.strandChancePct != null && strandingOccurs(hazard, deMonde(rng))) {
         // Échouage (l.471-473/497/499) : la pénalité se dérive au jet (`seaStrandingPenalty`).
         patchSea(get, set, { stranded: { hazardId: hazard.id, label: hazard.label } });
+        // MDG 13 l.473
         tell(get, set, [t('sv.strandedOn', { hazard: hazard.label })]);
       }
       break;
@@ -2276,6 +2287,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
     case 'vortex': {
       const w = findWhirlpool(event.kind === 'maelstrom' ? 'maelstrom' : 'puissant-vortex')!;
       patchSea(get, set, { crisis: { kind: 'tourbillon', label: event.label, whirlpoolId: w.id, need: w.evasion.totalDR, progress: 0 } });
+      // MDG 13 l.528
       tell(get, set, [t('sv.whirlpoolEvasion', { label: w.label, dr: w.evasion.totalDR })]);
       break;
     }
@@ -2808,6 +2820,7 @@ export const TABLES = {
       const dmg = overspeedDamage(Number(step.meta?.overspeedDamage ?? 0), step.result.sl);
       const hull = get().travelPlan?.vehicle;
       const j = hull ? damageVesselHull(get, set, hull, dmg) : [];
+      // MDG 13 l.142
       const line = [t('sv.hullTakes', { label: String(step.label), n: dmg }), ...j];
       noteSeaLine(get, set, line);
       return { consequences: freeCons(line) };
@@ -2863,6 +2876,7 @@ export const TABLES = {
       const best = partyAssisted(get().party, 'orientation');
       const dr = success && best ? Math.max(1, lighthouseOrientationDR(best.actor, false), savoirOceansBonus(best.actor)) : 0;
       patchSea(get, set, { lighthouseDR: dr });
+      // MDG 13 l.335
       const j = [success ? t('sv.lighthouseSeen', { dr }) : t('sv.lighthouseMissed')];
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
@@ -2934,6 +2948,7 @@ export const TABLES = {
       const sea = get().travelPlan?.sea;
       if (!sea?.stranded) return;
       const label = sea.stranded.label;
+      // MDG 13 l.473
       const j = step.result.success
         ? [t('sv.freedFromStrand', { hazard: label })]
         : [t('sv.stillStranded', { hazard: label })];
@@ -2978,6 +2993,7 @@ export const TABLES = {
         const hull = get().travelPlan!.vehicle!;
         const healed = Math.min(hull.wounds.max - hull.wounds.current, rollDice(1, 10, rng));
         healVesselHull(get, set, hull, healed);
+        // MDG 14 l.122
         j = [t('sv.juryRepairs', { n: healed, dr: `${adj >= 0 ? '+' : ''}${adj}` })];
       } else j = [t('sv.juryRepairsKo', { dr: adj })];
       noteSeaLine(get, set, j);
