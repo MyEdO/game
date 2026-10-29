@@ -28,7 +28,7 @@ Les trois premières catégories sont celles du module commun (`CategorieDErreur
 | `vue` | aucune | `{ vue }` |
 | `jouer` | un geste : `{ offre, ctx? }` (une offre du registre et son contexte) ou `{ type, args?, siege? }` (un verbe de la partie, ses arguments, le siège qui le joue) | une `Suite` |
 | `reprendre` | `{ jeton }` : le numéro d'un jeton programmé | une `Suite` : la reprise du jeton |
-| `modeles` | `{ manifestes, osDesRigides }` : un objet id de modèle → manifeste et un objet id de modèle → liste d'os, ceux du listage servi (`GET modeles/`, section « Atelier 3D ») | `{ bases, glb, refus }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), sans partie |
+| `modeles` | `{ manifestes, osDesRigides }` : un objet id de modèle → manifeste et un objet id de modèle → liste d'os, ceux du listage servi (`GET modeles/`, section « Atelier 3D ») | `{ bases, glb, refus, blasons, emblemes }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), sans partie |
 | `erreursGlobales` | aucune | `{ erreurs: { message, source }[] }` : les événements `error` et `unhandledrejection` de la page depuis le dernier relevé, puis vidés ; `source` vaut `fichier:ligne`, `unhandledrejection` ou `null` |
 
 `demarrer` ouvre la partie une seule fois par page : un second appel se refuse, et recommencer, c'est recharger la page. Un `demarrer` refusé n'ouvre rien.
@@ -108,6 +108,8 @@ type ModelesDeLAtelier = {
   bases: { id: string; empreinte: string; points: PointDAccroche[] }[];
   glb: Record<string, string>;
   refus: string[];
+  blasons: Record<string, string[]>;
+  emblemes: { id: string; label: string; svg: string }[];
 };
 type PointDAccroche = { id: string; genre: 'emplacement' | 'prise'; attache: { os: string; position: [number, number, number]; rotation: [number, number, number] }; elements: string[] };
 ```
@@ -115,8 +117,14 @@ type PointDAccroche = { id: string; genre: 'emplacement' | 'prise'; attache: { o
 - `bases` : les bases de l'index (base, clé) → élément (`indexerModeles`, `asset/modeles.ts`). Les `points` d'une base listent ses `emplacements`, puis ses `prises`. À chaque point vont les ids des éléments de cette base liés en `liaison.mode === 'rigide'` dont `osDesRigides` contient `attache.os` du point (`.claude/skills/creer-un-personnage-3d/references/procedure.md`, rigide tenu ; `asset/evaluateur/evaluer.ts`, `monter` ; `asset/montage.ts`, `attache-incompatible`). Un rigide dont aucun mesh ne pend à un os (décor, véhicule, mesh à la racine) n'a aucun point, comme un élément lié au `squelette` ou en `surface`. `empreinte` vaut `glb.sha256` de la base.
 - `glb` : le fichier, sous `modeles/`, de chaque base et de chaque élément d'un point (`fichiersDuModele(id).glb`).
 - `refus` : ceux de l'index (`[base-absente]`, `[cle-en-doublon]`, `[base-en-doublon]`, `[forme]`). Un manifeste qui n'est pas du schéma 3 est ignoré.
+- `blasons` : pour chaque élément d'un point, et pour eux seuls, les `nom` de ses `surfaces` qui portent `blason: true` (`asset/element.ts`), dans l'ordre du manifeste ; liste vide pour un élément sans surface à blason. Le `nom` d'une surface est celui d'un matériau du GLB (`surface-absente`), dont chaque primitive porte `TEXCOORD_0` (`uv-absente`).
+- `emblemes` : les entrées `kind: 'embleme'` de la garde-robe (`src/data/garde-robe.json`, `gardeRobe` de la surface du noyau), chacune réduite à `id`, `label` et `svg`. `svg` est un document SVG complet, couleurs comprises, à `viewBox` carré (refusé au parse sinon, `schemas/defs/garde-robe.ts`). Le pont étant un bundle qui gèle `src/data`, l'emblème atteint Godot par cette réponse, sans fichier servi.
 
 Au montage d'un élément à un point, Godot fait passer chaque mesh du GLB sous un os sous l'os de la base de même nom, à sa position locale, comme l'évaluateur (`asset/evaluateur/evaluer.ts`, `monter`).
+
+Un élément monté dont `blasons` n'est pas vide offre, sous la ligne de son point, une rangée « emblème » : « vide » puis un bouton par entrée d'`emblemes` (son `label`), bascules d'un même groupe, chacune de `cle` `"<point>/embleme/<id>"` (`"<point>/embleme/vide"` pour « vide »). Choisir un emblème le pose sur chaque surface d'un mesh monté dont le matériau actif porte (par `resource_name`) un nom de `blasons[element]` : `MontageDEquipement.materiau_local` (`projet/scripts/montage_equipement.gd`, le duplicata que `_teinter` pose aussi) en fait un matériau propre à la pièce, dont la couche *detail* reçoit l'emblème (`detail_enabled`, `detail_albedo`, `detail_uv_layer` UV1, `detail_blend_mode` mix) ; ni le mesh ni le matériau partagé ne changent. Avant chaque pose, chaque surface du mesh rend son override : « vide » laisse les surfaces au matériau du GLB. Le SVG se rastérise par `Image.load_svg_from_string` à 512 px de large (échelle 512 / largeur intrinsèque), mipmaps générées ; un SVG illisible ou un id absent d'`emblemes` ajoute `embleme-illisible : <id> (<erreur>)` ou `embleme-absent : <id>` aux `erreurs` publiées et ne pose rien. Le carré UV [0,1]² de la surface porteuse est le cadre de l'emblème (`.claude/skills/creer-un-personnage-3d/references/procedure.md`).
+
+Démonter un point (ou y monter un autre élément) efface son emblème et sa rangée. « Recharger » remonte les éléments montés que leurs points listent encore sous l'emblème qu'ils portaient, s'il est toujours offert (« vide » sinon) ; changer de base n'en garde aucun.
 
 ## Écran publié
 
@@ -126,6 +134,6 @@ Chaque vue mise en page, Godot pose `globalThis.wfrpEcran`. Chaque publication r
 
 - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
 - Au combat : `{ boutons: { texte, x, y }[], cases: Record<"x,y", [x, y]> }`, plus le point de l'écran de chaque case du plateau.
-- À l'atelier : `{ boutons: { texte, x, y, cle? }[], atelier: { base: string|null, empreinte: string|null, clip: string|null, instant: number|null, lecture: boolean, vitesse: number, montes: Record<point, element>, aides: { os: boolean, emplacements: boolean, prises: boolean }, erreurs: string[] } }`. `cle` est optionnelle : un bouton d'emplacement la porte, `"<point>/<element>"` ou `"<point>/vide"`, parce que son texte (« vide », un id d'élément) se répète d'une ligne à l'autre.
+- À l'atelier : `{ boutons: { texte, x, y, cle? }[], atelier: { base: string|null, empreinte: string|null, clip: string|null, instant: number|null, lecture: boolean, vitesse: number, montes: Record<point, element>, emblemes: Record<point, emblemeId>, aides: { os: boolean, emplacements: boolean, prises: boolean }, erreurs: string[] } }`. `cle` est optionnelle : un bouton d'emplacement la porte, `"<point>/<element>"` ou `"<point>/vide"`, et un bouton d'emblème `"<point>/embleme/<id>"` ou `"<point>/embleme/vide"`, parce que son texte (« vide », un id d'élément, un libellé d'emblème) se répète d'une ligne à l'autre. `emblemes` ne porte que les points montés dont un emblème est posé : un point sous « vide » ou démonté en est absent.
 
 Les recettes de `hotes/godot/recette.mjs` partent du menu et ne jouent aucun geste par le pont. Le tour complet clique « Combat », puis y lit où cliquer ; il observe la partie par `vue`. L'atelier (`--parcours atelier`) clique « Atelier », lit ses boutons et son état dans `wfrpEcran`, et sert un dossier de modèles neuf que la recette remplit par `importer.mjs --sans-publier`.

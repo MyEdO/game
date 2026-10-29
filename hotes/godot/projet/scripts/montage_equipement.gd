@@ -137,14 +137,22 @@ func _teinter(piece: MeshInstance3D, matieres: Array, palette: Variant) -> bool:
 	for liaison in matieres:
 		if liaison.piece != str(piece.name) or not palette.has(liaison.cle):
 			continue
-		var surface := int(liaison.surface)
-		var original := piece.get_active_material(surface) as BaseMaterial3D
-		if original == null:
+		var local := materiau_local(piece, int(liaison.surface))
+		if local == null:
 			return false
-		var local := original.duplicate() as BaseMaterial3D
 		local.albedo_color = Color(str(palette[liaison.cle]))
-		piece.set_surface_override_material(surface, local)
 	return true
+
+
+## Le duplicata du matériau actif de la surface `surface` de `piece`, posé en matériau de surface propre à `piece` ;
+## `null` si ce matériau n'est pas un `BaseMaterial3D`.
+static func materiau_local(piece: MeshInstance3D, surface: int) -> BaseMaterial3D:
+	var original := piece.get_active_material(surface) as BaseMaterial3D
+	if original == null:
+		return null
+	var local := original.duplicate() as BaseMaterial3D
+	piece.set_surface_override_material(surface, local)
+	return local
 
 
 func _abandonner(pieces: Array[Node3D], raison: String) -> void:

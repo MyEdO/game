@@ -1,8 +1,8 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde et retour, le centre du plateau, le quart de tour de la
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
-## voisine d'un instant, le diamètre d'une sphère. Seul script où l'arithmétique et la mesure sont permises
-## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au plus
-## un vecteur, sans état.
+## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue. Seul script où
+## l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des
+## fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
 class_name MiseEnPage
 extends RefCounted
 
@@ -46,6 +46,11 @@ static func distance_zoomee(distance: float, sens: float, minimum: float, maximu
 ## Un délai du pont (millisecondes) en secondes de minuteur.
 static func secondes(ms: float) -> float:
 	return ms / MS_PAR_SECONDE
+
+
+## L'échelle qui porte une image de `largeur` pixels à `largeur_voulue` ; 1 pour une image vide.
+static func echelle_d_image(largeur_voulue: float, largeur: int) -> float:
+	return 1.0 if largeur == 0 else largeur_voulue / largeur
 
 
 ## Le pas d'image d'un clip de `duree` secondes, sa piste suivante de `cles` clés réparties sur le clip retenue si son pas

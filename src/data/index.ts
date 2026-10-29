@@ -2977,7 +2977,7 @@ export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 /** Carrures du rig (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */
 export const gabarits = gabaritsJson as GabaritDef[];
 export const findGabaritById = indexParId('gabarits', gabarits);
-/** Garde-robe des éléments 3D (`garde-robe.json`, #3114) : emplacements, pièces, ensembles. */
+/** Garde-robe des éléments 3D (`garde-robe.json`, #3114) : emplacements, pièces, ensembles, emblèmes. */
 export const gardeRobe = gardeRobeJson as GardeRobeEntree[];
 /** Résout une PIÈCE (`kind: 'piece'`) par son id ; une autre ligne de la garde-robe n'en est pas une. */
 const pieceParId = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'piece' ? e.id : undefined));

@@ -625,7 +625,7 @@
           "files": [
             "garde-robe.json"
           ],
-          "desc": "LA garde-robe des éléments 3D — un document, le `kind` (`emplacement` · `piece` · `ensemble`) porté par l'entrée ; un ensemble habille UN objet ou UNE apparence de la liste ordonnée de ses pièces"
+          "desc": "LA garde-robe des éléments 3D — un document, le `kind` (`emplacement` · `piece` · `ensemble` · `embleme`) porté par l'entrée ; un ensemble habille UN objet ou UNE apparence de la liste ordonnée de ses pièces ; un emblème est un dessin SVG posé au montage sur les surfaces `blason` d'un élément"
         },
         {
           "files": [

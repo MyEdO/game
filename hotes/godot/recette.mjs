@@ -12,10 +12,12 @@
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie, ses points sans élément ; `--element` importé puis « Recharger » : l'élément listé aux
 //   seuls points dont l'os porte sa lame (`osDesRigides` du listage), les autres disant « aucun élément » ; les aides,
-//   l'élément monté puis démonté (« vide ») ; un clip joué, mis en pause, avancé et reculé d'une image (au clic puis à
-//   l'Entrée), sa vitesse réglée ; puis `--reexport` importé à la place de la base (`importer.mjs --remplacer`), l'élément
-//   qui la référence revalidé contre elle et laissé en place, « Recharger » sans relancer la page : l'empreinte publiée
-//   devient celle du manifeste réimporté, l'état (clip, instant, pause, vitesse, montés, aides) est gardé.
+//   l'élément monté puis démonté (« vide ») ; si une surface de `--element` porte `blason: true` (#3111), deux emblèmes
+//   posés tour à tour à la prise `main`, puis « vide », l'emblème effacé au démontage et reposé avant « Recharger » ; un
+//   clip joué, mis en pause, avancé et reculé d'une image (au clic puis à l'Entrée), sa vitesse réglée ; puis
+//   `--reexport` importé à la place de la base (`importer.mjs --remplacer`), l'élément qui la référence revalidé contre
+//   elle et laissé en place, « Recharger » sans relancer la page : l'empreinte publiée devient celle du manifeste
+//   réimporté, l'état (clip, instant, pause, vitesse, montés, emblèmes, aides) est gardé.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
@@ -231,6 +233,33 @@ async function cliquerAmene(quoi, sens, ou) {
   await cliquerBouton(quoi)
 }
 
+/** L'emblème `id` choisi au clic à la prise `main` (« vide » pour aucun), l'état publié qui le porte attendu. */
+async function choisirLEmbleme(id) {
+  await cliquerAmene({ cle: `main/embleme/${id}` }, 1)
+  await attendreLAtelier(id === 'vide' ? '!("main" in a.emblemes)' : `a.emblemes.main === ${JSON.stringify(id)}`)
+}
+/** À la prise `main`, dont l'élément monté porte une surface à blason : la rangée des emblèmes relevée, le premier puis le
+ *  second posés et capturés, puis « vide » ; le premier reposé. Les ids des emblèmes offerts, triés. */
+async function poserLesEmblemes() {
+  const prefixe = 'main/embleme/'
+  await attendreLAtelier(`b.some((x) => x.cle === ${JSON.stringify(`${prefixe}vide`)})`)
+  assert.deepEqual((await atelier()).emblemes, {}, 'monté sans emblème')
+  const offerts = (await clesDuPanneau()).main.filter((c) => c.startsWith(prefixe) && c !== `${prefixe}vide`).map((c) => c.slice(prefixe.length))
+  assert.ok(offerts.length >= 2, `deux emblèmes offerts au moins : ${offerts.join(', ')}`)
+  const [a, b] = offerts
+  await choisirLEmbleme(a)
+  noter(`emblème « ${a} » posé à la prise « main »`)
+  await capturer('3111-1-embleme-a')
+  await choisirLEmbleme(b)
+  assert.deepEqual((await atelier()).emblemes, { main: b }, 'le second emblème remplace le premier')
+  noter(`emblème « ${b} » posé à sa place`)
+  await capturer('3111-2-embleme-b')
+  await choisirLEmbleme('vide')
+  noter('emblème « vide » : la surface rendue à son matériau')
+  await choisirLEmbleme(a)
+  return offerts
+}
+
 async function parcoursAtelier() {
   const [p0, element, p1] = [production(o.base), production(o.element), production(o.reexport)]
   const base = p0.manifeste.base
@@ -265,11 +294,17 @@ async function parcoursAtelier() {
   await attendreLAtelier(`a.montes.main === ${JSON.stringify(elementId)}`)
   noter(`« ${elementId} » monté à la prise « main »`)
   await capturer('3086-a1-2-element-monte')
-  await cliquerBouton({ cle: 'main/vide' })
+  const emblemes = element.manifeste.surfaces.some((s) => s.blason === true) ? await poserLesEmblemes() : []
+  await cliquerAmene({ cle: 'main/vide' }, -1)
   await attendreLAtelier('!("main" in a.montes)')
-  noter('« vide » : la prise « main » démontée')
+  assert.deepEqual((await atelier()).emblemes, {}, 'démonter efface l’emblème')
+  noter('« vide » : la prise « main » démontée, sans emblème')
   await cliquerBouton(monter)
   await attendreLAtelier(`a.montes.main === ${JSON.stringify(elementId)}`)
+  if (emblemes.length) {
+    await choisirLEmbleme(emblemes[0])
+    noter(`« ${emblemes[0]} » reposé avant « Recharger »`)
+  }
 
   const premier = await amener('A_TPose', 1)
   await cliquerAmene(o.clip, 1, { x: premier.x, y: premier.y })
@@ -309,9 +344,9 @@ async function parcoursAtelier() {
   const apres = await atelier()
   assert.equal(await evaluate(session, 'globalThis.recetteSansRelance === true'), true, 'la page n’a pas été relancée')
   assert.ok(Math.abs(apres.instant - avant.instant) < 1e-6, `l’instant gardé : ${avant.instant} → ${apres.instant}`)
-  const etat = ({ base: b, clip, lecture, vitesse, montes, aides, erreurs }) => ({ b, clip, lecture, vitesse, montes, aides, erreurs })
-  assert.deepEqual(etat(apres), etat(avant), 'clip, pause, vitesse, montés, aides gardés')
-  noter(`« Recharger » sans relance : empreinte ${avant.empreinte.slice(0, 12)} → ${apres.empreinte.slice(0, 12)} ; ${apres.clip} à ${apres.instant} s en pause, ×${apres.vitesse}, montés ${JSON.stringify(apres.montes)}, aides ${JSON.stringify(apres.aides)}`)
+  const etat = ({ base: b, clip, lecture, vitesse, montes, emblemes: e, aides, erreurs }) => ({ b, clip, lecture, vitesse, montes, e, aides, erreurs })
+  assert.deepEqual(etat(apres), etat(avant), 'clip, pause, vitesse, montés, emblèmes, aides gardés')
+  noter(`« Recharger » sans relance : empreinte ${avant.empreinte.slice(0, 12)} → ${apres.empreinte.slice(0, 12)} ; ${apres.clip} à ${apres.instant} s en pause, ×${apres.vitesse}, montés ${JSON.stringify(apres.montes)}, emblèmes ${JSON.stringify(apres.emblemes)}, aides ${JSON.stringify(apres.aides)}`)
   await capturer('3086-a1-4-reexport-recharge')
 }
 

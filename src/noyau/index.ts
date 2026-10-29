@@ -17,7 +17,7 @@ export type { Cadence } from '../engine/cadence';
 export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/policy';
 export { actionGate, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
-export { findApparenceById, findTeinteById } from '../data/index';
+export { findApparenceById, findTeinteById, gardeRobe } from '../data/index';
 export { ecartsDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
 export { SLOTS } from '../data/palette.types';
 export { mouvementDuTour } from './mount';

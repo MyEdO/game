@@ -8,10 +8,13 @@
  * - `ensemble` : ce qu'`habille` (référence typée `{ id, type }` : un objet ou une apparence)
  *   revêt, la liste ordonnée de ses `pieces`. Son `id` vaut `<type>-<id>` : l'unicité des ids tient
  *   « un même `habille` ne figure qu'une fois ».
+ * - `embleme` (#3111) : un dessin posé au montage sur les surfaces `blason` d'un élément (`hotes/godot/pont/CONTRAT.md`,
+ *   « Atelier 3D ») ; `svg` est un document SVG complet, couleurs comprises, à `viewBox` carré.
  *
  * Les références internes (`emplacement` `{ id }`, `pieces`) résolvent au parse contre les sous-listes
  * discriminées de l'espace `garde-robe.json` (`ref`/`refs` à `sousListe`).
  */
+import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { ref, refs, refTypee, type RefTypee } from '../grammaire/ref';
 import { enumNomme } from '../grammaire/valeurs';
@@ -25,6 +28,7 @@ const LIBELLES_DE_KIND = {
   emplacement: 'Emplacement',
   piece: 'Pièce',
   ensemble: 'Ensemble',
+  embleme: 'Emblème',
 } as const;
 
 /** Catégories d'une pièce. */
@@ -46,6 +50,7 @@ const CHARGE_PAR_KIND = {
   emplacement: { cles: [], requises: [] },
   piece: { cles: ['categorie', 'emplacement'], requises: ['categorie'] },
   ensemble: { cles: ['habille', 'pieces'], requises: ['habille', 'pieces'] },
+  embleme: { cles: ['svg'], requises: ['svg'] },
 } as const satisfies Record<keyof typeof LIBELLES_DE_KIND, { cles: readonly string[]; requises: readonly string[] }>;
 
 /** CHARGE par valeur du DISCRIMINANT (`espace.chargeParDiscriminant`), dérivée de la table ci-dessus. */
@@ -57,6 +62,17 @@ const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = Objec
 const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
   Object.entries(CHARGE_PAR_KIND).map(([kind, charge]) => [kind, charge.requises as readonly string[]]),
 );
+
+/** Le refus d'un `svg` d'emblème qui n'est pas un document `<svg …>…</svg>` à `viewBox` carré, `null` sinon. */
+function refusDeSvg(svg: string): string | null {
+  const ouverture = /^<svg\b[^>]*>/.exec(svg.trim());
+  if (!ouverture || !svg.trim().endsWith('</svg>')) return 'n’est pas un document « <svg …>…</svg> »';
+  const viewBox = /\sviewBox="([^"]*)"/.exec(ouverture[0]);
+  if (!viewBox) return 'n’a pas de viewBox, carré attendu';
+  const [, , largeur, hauteur, ...reste] = viewBox[1].trim().split(/[\s,]+/).map(Number);
+  if (reste.length || !(largeur > 0) || largeur !== hauteur) return `porte le viewBox « ${viewBox[1]} », carré attendu`;
+  return null;
+}
 
 /** Ce qu'un ensemble habille : un objet ou une apparence. */
 const habilleSchema = refTypee(enumNomme({ trapping: 'Objet', apparence: 'Apparence' }));
@@ -70,13 +86,15 @@ const doc = document(
     emplacement: ref('gardeRobe', undefined, 'emplacement').optional(),
     habille: habilleSchema.optional(),
     pieces: refs('gardeRobe', { min: 1, sousListe: 'piece' }).optional(),
+    svg: z.string().optional(),
   },
   {
-    kind: { label: 'Nature', hint: 'Emplacement d’accessoire, pièce d’habit ou ensemble — les clés admises en dépendent' },
+    kind: { label: 'Nature', hint: 'Emplacement d’accessoire, pièce d’habit, ensemble ou emblème — les clés admises en dépendent' },
     categorie: { label: 'Catégorie', hint: 'Vêtement, armure ou accessoire' },
     emplacement: { label: 'Emplacement', hint: 'Point d’accroche d’une pièce d’accessoire' },
     habille: { label: 'Habille', hint: 'L’objet ou l’apparence que l’ensemble revêt' },
     pieces: { label: 'Pièces', hint: 'Pièces de l’ensemble, dans l’ordre' },
+    svg: { label: 'Dessin', hint: 'Document SVG de l’emblème, à viewBox carré, fond transparent' },
   },
   {
     codex: {
@@ -103,6 +121,10 @@ const doc = document(
                   ? `garde-robe : la pièce d’accessoire « ${e.id} » EXIGE son emplacement.`
                   : `garde-robe : la pièce « ${e.id} » n’est pas un accessoire — elle ne porte aucun emplacement.`,
             });
+        }
+        if (e.kind === 'embleme' && typeof e.svg === 'string') {
+          const refus = refusDeSvg(e.svg);
+          if (refus) ctx.addIssue({ code: 'custom', path: ['svg'], message: `garde-robe : l’emblème « ${e.id} » ${refus}.` });
         }
         if (e.kind === 'ensemble') {
           const habille = e.habille as RefTypee | undefined;
@@ -142,4 +164,14 @@ export interface PieceDef {
 export type GardeRobeEntree =
   | { id: string; type: 'garde-robe'; kind: 'emplacement'; label: string }
   | PieceDef
-  | { id: string; type: 'garde-robe'; kind: 'ensemble'; label: string; habille: RefTypee<'trapping' | 'apparence'>; pieces: PieceId[] };
+  | { id: string; type: 'garde-robe'; kind: 'ensemble'; label: string; habille: RefTypee<'trapping' | 'apparence'>; pieces: PieceId[] }
+  | EmblemeDef;
+
+/** VUE TS d'une ligne `embleme`. */
+export interface EmblemeDef {
+  id: string;
+  type: 'garde-robe';
+  kind: 'embleme';
+  label: string;
+  svg: string;
+}

@@ -67,6 +67,20 @@ describe('garde-robe.json — emplacements, pièces, ensembles (#3114)', () => {
     expect(refus(avec('casque', { categorie: undefined }))).toMatch(/« casque » \(kind « piece »\) exige « categorie »/);
   });
 
+  it('un emblème sans dessin est refusé, comme un dessin sur une autre ligne', () => {
+    expect(refus(avec('taureau-rouge', { svg: undefined }))).toMatch(/« taureau-rouge » \(kind « embleme »\) exige « svg »/);
+    refus(avec('casque', { svg: '<svg viewBox="0 0 8 8"></svg>' }));
+  });
+
+  it('un dessin d’emblème qui n’est pas un document SVG est refusé', () => {
+    expect(refus(avec('taureau-rouge', { svg: '<g fill="#b01c1c"></g>' }))).toMatch(/l’emblème « taureau-rouge » n’est pas un document « <svg …>…<\/svg> »/);
+  });
+
+  it('un dessin d’emblème à viewBox non carré, ou sans viewBox, est refusé', () => {
+    expect(refus(avec('taureau-rouge', { svg: '<svg viewBox="0 0 256 128"></svg>' }))).toMatch(/l’emblème « taureau-rouge » porte le viewBox « 0 0 256 128 », carré attendu/);
+    expect(refus(avec('taureau-rouge', { svg: '<svg width="256" height="256"></svg>' }))).toMatch(/l’emblème « taureau-rouge » n’a pas de viewBox, carré attendu/);
+  });
+
   it('`findPieceById` résout toute pièce sur elle-même et aucune autre ligne', () => {
     for (const e of gardeRobeJson as Entree[]) {
       if (e.kind === 'piece') expect(findPieceById(e.id), e.id).toBe(e);
