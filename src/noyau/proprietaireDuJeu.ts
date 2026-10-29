@@ -49,8 +49,9 @@ export function ouvrirLeProprietaire(
   const abonnes = new Set<(etat: Jeu, prev: Jeu) => void>();
   const get: Get = () => etat;
   const ecrire = (partiel: Ecrit): void => {
+    const patch = typeof partiel === 'function' ? partiel(etat) : partiel;
+    // Le patch de l'updater se fusionne sur l'état courant, lu après lui (zustand).
     const prev = etat;
-    const patch = typeof partiel === 'function' ? partiel(prev) : partiel;
     if (Object.is(patch, prev)) return;
     etat = { ...prev, ...patch };
     for (const fn of abonnes) fn(etat, prev);
