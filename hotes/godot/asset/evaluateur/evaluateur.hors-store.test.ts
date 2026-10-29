@@ -234,10 +234,12 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 /** Un GLB fabriqué (chunks JSON et BIN) : un triangle `Corps` (zone `torse`, shape key `feminin`) skinné sur l'os `racine`,
  *  avec au choix une texture d'image, un jeu d'influence `JOINTS_1`, un os `pelvis` enfant de `racine`, et des clips de
- *  translation de `racine`, ou de `pelvis` s'il est là ; en marche, deux triangles de pied et leur cycle appui/vol. */
+ *  translation de `racine`, ou de `pelvis` s'il est là ; en marche, deux triangles de pied et leur cycle appui/vol ; en
+ *  anneau, `ANNEAU` (six sommets mi-`racine` mi-`pelvis`, puis un triangle de pied sur `racine`) et ses shape keys, par
+ *  nom, en déplacements à plat de ses neuf sommets. */
 interface MarcheFabriquee { racine?: number; decolle?: number; lateral?: number; bloque?: boolean; vitesseDroite?: number; nom?: string; sens?: number; vitesse?: number }
 
-function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[] } = {}): Uint8Array {
+function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]> } = {}): Uint8Array {
   const morceaux: Uint8Array[] = [];
   const vues: object[] = [];
   const accesseurs: object[] = [];
@@ -266,8 +268,21 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: b
     attributes.JOINTS_0 = accesseur(Uint16Array.from([1, 1, 1, 2, 2, 2].flatMap((i) => [i, 0, 0, 0])), 'VEC4');
     attributes.WEIGHTS_0 = accesseur(Float32Array.from(Array.from({ length: 6 }, () => [1, 0, 0, 0]).flat()), 'VEC4');
   }
+  const targets: Record<string, number>[] = [];
+  if (options.anneau) {
+    const n = ANNEAU.length / 3;
+    attributes.POSITION = accesseur(Float32Array.from(ANNEAU), 'VEC3', { min: [-0.3, 0, -0.1], max: [0.1, 0.5, 0.2] });
+    attributes.NORMAL = accesseur(Float32Array.from(Array.from({ length: n }, () => [0, -1, 0]).flat()), 'VEC3');
+    attributes.JOINTS_0 = accesseur(Uint16Array.from(Array.from({ length: n }, (_, i) => [0, i < 6 ? 1 : 0, 0, 0]).flat()), 'VEC4');
+    attributes.WEIGHTS_0 = accesseur(Float32Array.from(Array.from({ length: n }, (_, i) => (i < 6 ? [0.5, 0.5, 0, 0] : [1, 0, 0, 0])).flat()), 'VEC4');
+    for (const deltas of Object.values(options.anneau)) {
+      const d = Float32Array.from(deltas);
+      const borne = (f: (a: number, b: number) => number) => [0, 1, 2].map((c) => d.filter((_, i) => i % 3 === c).reduce(f));
+      targets.push({ POSITION: accesseur(d, 'VEC3', { min: borne(Math.min), max: borne(Math.max) }) });
+    }
+  }
   const identite = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-  const joints = options.marche ? [1, 2, 3] : options.pelvis ? [1, 2] : [1];
+  const joints = options.marche ? [1, 2, 3] : options.pelvis || options.anneau ? [1, 2] : [1];
   const inverseBindMatrices = accesseur(Float32Array.from(joints.flatMap(() => identite)), 'MAT4');
   const animations = Object.entries(options.clips ?? {}).map(([name, [de, a]]) => ({
     name,
@@ -292,8 +307,8 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: b
     asset: { version: '2.0' },
     scene: 0,
     scenes: [{ nodes: [0, 1] }],
-    nodes: [{ name: 'Corps', mesh: 0, skin: 0, extras: { zone: 'torse' } }, { name: 'racine', ...(options.marche ? { children: [2, 3] } : options.pelvis ? { children: [2] } : {}) }, ...(options.marche ? [{ name: 'piedG' }, { name: 'piedD' }] : options.pelvis ? [{ name: 'pelvis' }] : [])],
-    meshes: [{ primitives: [{ attributes, material: 0 }], extras: { targetNames: ['feminin'] } }],
+    nodes: [{ name: 'Corps', mesh: 0, skin: 0, extras: { zone: 'torse' } }, { name: 'racine', ...(options.marche ? { children: [2, 3] } : options.pelvis || options.anneau ? { children: [2] } : {}) }, ...(options.marche ? [{ name: 'piedG' }, { name: 'piedD' }] : options.pelvis || options.anneau ? [{ name: 'pelvis' }] : [])],
+    meshes: [{ primitives: [{ attributes, material: 0, ...(targets.length ? { targets } : {}) }], extras: { targetNames: options.anneau ? Object.keys(options.anneau) : ['feminin'] } }],
     materials: [{ name: 'peau', pbrMetallicRoughness: options.image ? { baseColorTexture: { index: 0 } } : {} }],
     skins: [{ joints, inverseBindMatrices }],
     ...(animations.length ? { animations } : {}),
@@ -303,6 +318,17 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: b
     buffers: [{ byteLength: decalage }],
   }, bin);
 }
+
+/** Les neuf sommets de l'anneau fabriqué : six sur un cercle de rayon 0,1 m à 0,5 m de haut, puis un triangle au sol. */
+const ANNEAU = [
+  ...Array.from({ length: 6 }, (_, k) => [0.1 * Math.cos(k * Math.PI / 3), 0.5, 0.1 * Math.sin(k * Math.PI / 3)]).flat(),
+  -0.3, 0, 0, -0.1, 0, 0, -0.2, 0, 0.2,
+];
+/** Les déplacements d'une shape key de l'anneau : `f` appliquée à chaque sommet du cercle, `sol` à chaque sommet du triangle. */
+const formeDeLAnneau = (f: (x: number, y: number, z: number) => readonly number[], sol: readonly number[] = [0, 0, 0]) =>
+  Array.from({ length: ANNEAU.length / 3 }, (_, i) => (i < 6 ? f(ANNEAU[i * 3], ANNEAU[i * 3 + 1], ANNEAU[i * 3 + 2]) : sol)).flat();
+/** L'homothétie de rapport `k` du cercle autour de l'axe Y : sa carrure exacte. */
+const homothetie = (k: number) => formeDeLAnneau((x, _y, z) => [(k - 1) * x, 0, (k - 1) * z]);
 
 const ATTACHE = { os: 'racine', position: [0, 0, 0], rotation: [0, 0, 0] };
 
@@ -492,5 +518,57 @@ describe('appuis des clips walk', () => {
     expect(f.mesures.clips.map((c) => [c.nom, c.appuis?.vitesseDeclaree, c.appuis?.vitesseAuSol])).toEqual([
       ['Allure_lente', 2, expect.closeTo(2, 6)], ['Allure_rapide', 4, expect.closeTo(4, 6)], ['Walk_Loop', undefined, undefined],
     ]);
+  });
+});
+
+describe('gardeSilhouettes', () => {
+  const JUSTES = { feminin: homothetie(1.1), [CARRURE_MOINS]: homothetie(TABLE.st.min), [CARRURE_PLUS]: homothetie(TABLE.st.max) };
+  const evaluerAnneau = async (formes: Record<string, readonly number[]>, entree: Partial<Parameters<typeof evaluer>[0]> = {}) => {
+    const base = glbFabrique({ anneau: formes, clips: { Repos: [0, 0] } });
+    return evaluer({ base, manifeste: { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: Object.keys(formes) }, pas: 0.5, ...entree });
+  };
+  const ecarts = (f: Awaited<ReturnType<typeof evaluer>>) => f.ecarts.filter((e) => e.garde === 'silhouettes');
+
+  it('VERT : silhouette homothétique, carrure exacte ; épaisseur, extrêmes et linéarité mesurés', async () => {
+    const f = await evaluerAnneau(JUSTES);
+    expect(f.ecarts.filter((e) => e.garde === 'manifeste')).toEqual([]);
+    expect(ecarts(f)).toEqual([]);
+    const m = f.mesures.silhouettes;
+    expect(m?.anneaux).toBe(1);
+    expect(m?.silhouettes.map((s) => [s.nom, s.centrePire?.os])).toEqual([['feminin', 'pelvis'], ['st=0.8', 'pelvis'], ['st=1.2', 'pelvis']]);
+    expect(m?.carrure?.os).toBe('pelvis');
+    expect(m?.carrure?.rayonDeRepos).toBeCloseTo(0.1, 6);
+    expect(m?.carrure?.points.map((p) => p.st)).toEqual([0.8, 0.9, 1, 1.1, 1.2]);
+    for (const p of m?.carrure?.points ?? []) expect(p.rapport).toBeCloseTo(p.st, 6);
+    expect(m?.carrure?.ecartAuSegment).toBeLessThan(1e-6);
+  });
+
+  it('ROUGE : une clé qui décale l’anneau', async () => {
+    const decale = await evaluerAnneau({ ...JUSTES, feminin: formeDeLAnneau(() => [0.05, 0, 0]) });
+    expect(ecarts(decale).map((e) => [e.code, e.valeur])).toEqual([['centre-deplace', expect.closeTo(0.5, 5)]]);
+  });
+
+  it('ROUGE : une clé nulle', async () => {
+    const nulle = await evaluerAnneau({ ...JUSTES, feminin: formeDeLAnneau(() => [0, 0, 0]) });
+    expect(ecarts(nulle).map((e) => e.code)).toEqual(['silhouette-inerte']);
+  });
+
+  it('ROUGE : une carrure qui n’atteint pas `st`', async () => {
+    const courte = await evaluerAnneau({ ...JUSTES, [CARRURE_PLUS]: homothetie(1.1) });
+    expect(ecarts(courte).map((e) => [e.code, e.valeur])).toEqual([['epaisseur-hors-st', expect.closeTo(0.1, 5)]]);
+    expect(courte.mesures.silhouettes?.carrure?.ecartAuSegment).toBeCloseTo(0.05, 5);
+  });
+
+  it('ROUGE : un corps sans anneau articulaire ne se déclare pas mesuré', async () => {
+    const base = glbFabrique({ clips: { Repos: [0, 0] } });
+    const f = await evaluer({ base, manifeste: manifesteDe(base), pas: 0.5 });
+    expect(ecarts(f).map((e) => e.code)).toContain('anneau-indetectable');
+  });
+
+  it('restaure les silhouettes demandées avant l’échantillonnage des clips', async () => {
+    const formes = { ...JUSTES, feminin: formeDeLAnneau((x, _y, z) => [0.1 * x, 0, 0.1 * z], [0, -0.05, 0]) };
+    const plusBasDuRepos = async (entree: Partial<Parameters<typeof evaluer>[0]>) => (await evaluerAnneau(formes, entree)).mesures.clips[0].plusBas.min;
+    expect(await plusBasDuRepos({})).toBeCloseTo(0, 6);
+    expect(await plusBasDuRepos({ silhouettes: { feminin: 1 } })).toBeCloseTo(-0.05, 6);
   });
 });

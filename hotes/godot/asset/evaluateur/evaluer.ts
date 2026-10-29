@@ -1,8 +1,10 @@
 /**
  * L'ÉVALUATEUR D'UNE BASE ET DE SES ÉLÉMENTS (#2972) : charge les GLB (`chargerScene`), monte les éléments sur le
- * squelette de la base, valide le manifeste de base, pose gabarit et silhouettes, échantillonne les clips, puis appelle
- * chaque garde de `gardes/`. Le corps est l'ensemble des meshes de zone de la base (`extras.zone`) ; une base sans zone
- * est un corps d'un seul tenant : ses meshes skinnés.
+ * squelette de la base, valide le manifeste de base, pose gabarit et silhouettes, mesure au repos les shape keys de la
+ * base (`gardes/silhouettes.ts`), échantillonne les clips, puis appelle chaque garde de `gardes/` : `poids`,
+ * `enroulement`, `budget`, `pistesDEchelle`, `echelleDuRigide`, `silhouettes`, `appuis`, `piedsAuSol`, `etirement`.
+ * Le corps est l'ensemble des meshes de zone de la base (`extras.zone`) ; une base sans zone est un corps d'un seul
+ * tenant : ses meshes skinnés.
  */
 import { Skeleton, type Bone, type Object3D, type SkinnedMesh } from 'three';
 import { lireGlb } from '../glb.ts';
@@ -19,6 +21,7 @@ import { aretesDe, gardeEtirement, mesurerEtirement, piresAretes, type MesureDEt
 import { gardePiedsAuSol, plusBas, type NiveauDuCorps } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids } from './gardes/poids.ts';
+import { mesurerSilhouettes, type MesuresDesSilhouettes } from './gardes/silhouettes.ts';
 
 export interface EntreeDEvaluation {
   readonly base: Uint8Array;
@@ -56,6 +59,8 @@ export interface FicheDeMesures {
     readonly corps: readonly string[];
     readonly clips: readonly MesuresDuClip[];
     readonly etirement: Readonly<Record<string, readonly RapportDArete[]>>;
+    /** Les shape keys de la base mesurées au repos ; `null` sans manifeste de base valide. */
+    readonly silhouettes: MesuresDesSilhouettes | null;
   };
 }
 
@@ -131,6 +136,11 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste ? [manifeste.prises.main.os, manifeste.prises.off.os] : []))),
   );
 
+  const silhouettes = manifeste
+    ? mesurerSilhouettes({ scene: base.scene, corps: base.skinnes.filter((m) => nomsDuCorps.includes(m.name)), silhouettes: manifeste.silhouettes, st: manifeste.gabarit.st })
+    : null;
+  if (silhouettes) ecarts.push(...silhouettes.ecarts);
+
   const repos = poseDeRepos(base.scene, meshes);
   const aretes = new Map(meshes.map((m) => [m.name, aretesDe(m)]));
   const niveaux: NiveauDuCorps[] = [];
@@ -161,6 +171,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
         return { nom: c.name, duree: c.duration, echantillons: h.length, plusBas: { min: Math.min(...h), max: Math.max(...h) }, ...(mesure ? { appuis: mesure } : {}) };
       }),
       etirement: piresAretes(etirements),
+      silhouettes: silhouettes?.mesures ?? null,
     },
   };
 }
