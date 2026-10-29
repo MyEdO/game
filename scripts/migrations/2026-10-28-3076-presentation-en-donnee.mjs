@@ -10,13 +10,12 @@
  *  2. `apparences.json` : une racine de forme d'arme reçoit son `maniement`.
  *  3. `qualities.json` : Raffiné et Laid reçoivent le marqueur `aspect` (LDB 60 l.24 ; LDB 60 l.52).
  *
- * ENTRÉES : écrites — `src/data/weaponGroups.json`, `src/data/apparences.json`, `src/data/qualities.json` ;
- * lu — `src/gameIso/rig/parts/armour/defs/` (ids des defs d'art d'armure).
+ * ENTRÉES : écrites — `src/data/weaponGroups.json`, `src/data/apparences.json`, `src/data/qualities.json`.
  * FORME D'AVANT SEULE : une entrée reçoit ses champs quand elle n'en porte AUCUN ; une entrée qui en porte déjà
  * un (révisée après la migration), ou absente, est laissée telle quelle.
- * FAIL-FAST — avant toute écriture, sortie 1 : un fichier hors de son formatage ; une `forme` qui n'est pas une
- * racine de `apparences.json` ; un `art` qu'aucun def d'art d'armure ne déclare ; une entrée d'un `kind` autre
- * que celui du geste.
+ * FAIL-FAST — avant toute écriture, sortie 1, sur une entrée à poser : un fichier hors de son formatage ; une
+ * `forme` qui n'est pas une racine de `apparences.json` ; un `maniement` posé sur une variante ; une entrée
+ * d'un `kind` autre que celui du geste. L'`art` d'un Groupe d'armure est jugé au parse (`estArtDArmure`).
  * IDEMPOTENT : rejouée sur l'état final, aucun geste n'est à faire et rien ne s'écrit.
  * FORMATAGE PRÉSERVÉ : un dataset est EXACTEMENT `JSON.stringify(doc, null, 2)` (sans saut de ligne final) ; les
  * champs posés s'insèrent avant `source`.
@@ -32,7 +31,6 @@ const F = {
   apparences: 'src/data/apparences.json',
   qualites: 'src/data/qualities.json',
 };
-const DEFS_D_ARMURE = 'src/gameIso/rig/parts/armour/defs';
 
 const ARMURES = {
   'cuir-souple': { couche: 0, art: 'cuir' },
@@ -91,11 +89,6 @@ for (const rel of Object.values(F)) {
   docs.set(rel, { doc, avant: texte });
 }
 const doc = (rel) => docs.get(rel).doc;
-const artsDArmure = new Set(
-  fs.readdirSync(path.join(ROOT, DEFS_D_ARMURE))
-    .filter((f) => f.endsWith('.ts'))
-    .flatMap((f) => [...fs.readFileSync(path.join(ROOT, DEFS_D_ARMURE, f), 'utf8').matchAll(/^\s*id:\s*'([^']+)'/gm)].map((m) => m[1])),
-);
 const racines = new Set(doc(F.apparences).filter((a) => a.forme === undefined).map((a) => a.id));
 
 /** L'entrée `e` augmentée des `champs`, insérés avant `source` (ou en fin d'entrée). */
@@ -109,31 +102,30 @@ function avecChamps(e, champs) {
 }
 
 let gestes = 0;
-/** Pose `champs` sur l'entrée `id` de `rel` qui n'en porte aucun ; `kind` attendu s'il est donné. */
-function poser(rel, id, champs, kind) {
+/** Pose `champs` sur l'entrée `id` de `rel` qui n'en porte aucun ; `kind` attendu s'il est donné, `faute` jugée
+ *  sur l'entrée posée seule. */
+function poser(rel, id, champs, kind, faute = () => undefined) {
   const liste = doc(rel);
   const i = liste.findIndex((e) => e.id === id);
   if (i < 0 || Object.keys(champs).some((k) => k in liste[i])) return;
   if (kind !== undefined && liste[i].kind !== kind) fautes.push(`${rel} : « ${id} » est « ${liste[i].kind} », pas « ${kind} »`);
+  const f = faute(liste[i]);
+  if (f) fautes.push(f);
   liste[i] = avecChamps(liste[i], champs);
   gestes++;
 }
 
 // 1. weaponGroups.json
-for (const [id, champs] of Object.entries(ARMURES)) {
-  if (!artsDArmure.has(champs.art)) fautes.push(`${DEFS_D_ARMURE} : aucun def d'art « ${champs.art} »`);
-  poser(F.groupes, id, champs, 'armour');
-}
+for (const [id, champs] of Object.entries(ARMURES)) poser(F.groupes, id, champs, 'armour');
 for (const [id, champs] of Object.entries(ARMES)) {
-  if (champs.forme && !racines.has(champs.forme.id)) fautes.push(`${F.apparences} : « ${champs.forme.id} » n'est pas une racine`);
-  poser(F.groupes, id, champs, 'weapon');
+  poser(F.groupes, id, champs, 'weapon', () =>
+    champs.forme && !racines.has(champs.forme.id) ? `${F.apparences} : « ${champs.forme.id} » n'est pas une racine` : undefined);
 }
 for (const [id, palierPA] of Object.entries(PALIERS_PA)) poser(F.groupes, id, { palierPA }, 'armour');
 for (const [id, kind] of Object.entries(GROUPES_A_POUDRE)) poser(F.groupes, id, { poudre: true }, kind);
 // 2. apparences.json
 for (const [id, maniement] of Object.entries(MANIEMENT_DES_RACINES)) {
-  if (!racines.has(id)) fautes.push(`${F.apparences} : « ${id} » n'est pas une racine`);
-  poser(F.apparences, id, { maniement });
+  poser(F.apparences, id, { maniement }, undefined, () => (racines.has(id) ? undefined : `${F.apparences} : « ${id} » n'est pas une racine`));
 }
 // 3. qualities.json
 for (const id of QUALITES_D_ASPECT) poser(F.qualites, id, { aspect: true });
