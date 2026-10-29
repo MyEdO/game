@@ -2,6 +2,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ecrireGlb } from './glb.ts';
 import { sha256 } from './empreinte.ts';
+import { MANIFESTE_DE_PRODUCTION } from './dossierDeProduction.ts';
+import { estBase } from './modeles.ts';
 
 export const GLB_DE_BASE = ecrireGlb({ asset: { version: '2.0' }, nodes: [{ name: 'root' }], skins: [{ joints: [0] }], animations: [{ name: 'walk' }] }, null);
 /** Le GLB d'un élément rigide : le mesh `lame` pend à l'articulation `os` d'un skin, ou reste à la racine (`null`). */
@@ -26,11 +28,14 @@ export const elementSchema3 = (base = 'humanoide') => ({
 /** Le texte de licence de pack que `productionSchema3` dépose : une production importable établit sa licence. */
 export const LICENCE_DE_PRODUCTION = 'LICENSE-Pack.txt';
 
+/** Le dossier de production de `manifeste` dans `dossier`, et pour une base le pack source qu'elle déclare, qui porte
+ *  `LICENCE_DE_PRODUCTION` (`ecrireProduction`). */
 export function productionSchema3(dossier: string, manifeste: unknown, octets: Uint8Array): string {
   mkdirSync(dossier, { recursive: true });
   writeFileSync(join(dossier, 'asset.glb'), octets);
   writeFileSync(join(dossier, LICENCE_DE_PRODUCTION), 'Pack\nLicense: CC0\n');
-  writeFileSync(join(dossier, 'manifest.json'), JSON.stringify({ model: 'asset.glb', model_sha256: sha256(octets), manifeste }));
+  const packs = estBase(manifeste) ? { packs_sources: { corps: { path: 'corps.gltf', sha256: sha256(octets), licence: LICENCE_DE_PRODUCTION } } } : {};
+  writeFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), JSON.stringify({ model: 'asset.glb', model_sha256: sha256(octets), manifeste, ...packs }));
   return dossier;
 }
 

@@ -22,7 +22,7 @@ import {
   type BaseLivree, type EntreeDeModele, type ManifesteDeModele,
 } from './modeles.ts';
 import {
-  DOSSIER_DES_MODELES, nomDAsset, manifestesDesModeles, modelesEpingles,
+  DOSSIER_DES_MODELES, EMPREINTE, nomDAsset, manifestesDesModeles, modelesEpingles,
   type AssetAPublier, type LicenceDeComposant, type LicenceDePack, type ModeleEpingle, type PackSource, type Provenance,
 } from './release.ts';
 
@@ -73,26 +73,36 @@ function refusDeLicence({ licences, licences_de_pack }: Pick<Provenance, 'licenc
 
 const nomDeFichier = (chemin: string): string => chemin.split(/[\\/]/).pop() ?? '';
 
-/** `packs_sources.<pack>.{path, sha256, licence?}`, le chemin réduit au nom de fichier et `licence`, texte `LICENSE*.txt`
+/** `packs_sources.<pack>.{path, sha256, licence}`, le chemin réduit au nom de fichier et `licence`, texte `LICENSE*.txt`
  *  du dossier de production, au nom de son dépôt dans `deposes` ; ou les refus : `[pack-source-mal-forme]` d'une entrée
- *  sans `path` ou `sha256`, `[licence-de-pack-absente]` d'un pack dont la licence ne nomme aucun texte du dossier,
- *  `[packs-sources-absents]` quand `exige` (une base) et qu'aucun pack n'est déclaré. */
+ *  sans `path`, sans `licence` ou dont `sha256` n'est pas un SHA-256 (`EMPREINTE`), `[licence-de-pack-absente]` d'un pack
+ *  dont la licence ne nomme aucun texte du dossier, `[packs-sources-absents]` quand `exige` (une base) et qu'aucun pack
+ *  n'est déclaré. */
 function packsSources(manifeste: Brut, deposes: ReadonlyMap<string, string>, exige: boolean): { readonly packs: PackSource[] } | { readonly refus: string[] } {
   if (manifeste.packs_sources !== undefined && !estObjet(manifeste.packs_sources)) return { refus: ['[pack-source-mal-forme] packs_sources : objet attendu'] };
   const sources = estObjet(manifeste.packs_sources) ? manifeste.packs_sources : {};
   const refus: string[] = [];
   const packs = Object.entries(sources).flatMap(([pack, s]): PackSource[] => {
-    if (!estObjet(s) || typeof s.path !== 'string' || typeof s.sha256 !== 'string') {
-      refus.push(`[pack-source-mal-forme] ${pack} : path et sha256, chaînes attendues`);
+    if (!estObjet(s)) {
+      refus.push(`[pack-source-mal-forme] ${pack} : objet attendu`);
       return [];
     }
-    if (s.licence === undefined) return [{ pack, fichier: nomDeFichier(s.path), sha256: s.sha256 }];
-    const licence = typeof s.licence === 'string' ? deposes.get(s.licence) : undefined;
-    if (licence === undefined) {
-      refus.push(`[licence-de-pack-absente] ${pack} : ${String(s.licence)}`);
+    const { path, sha256: empreinte, licence } = s;
+    const formes = [
+      ...(typeof path === 'string' ? [] : ['path, chaîne attendue']),
+      ...(typeof empreinte === 'string' && EMPREINTE.test(empreinte) ? [] : [`sha256 « ${String(empreinte)} » n'est pas un SHA-256`]),
+      ...(typeof licence === 'string' ? [] : ['licence, nom d\'un texte LICENSE*.txt du dossier attendu']),
+    ];
+    if (formes.length || typeof path !== 'string' || typeof empreinte !== 'string' || typeof licence !== 'string') {
+      refus.push(...formes.map((f) => `[pack-source-mal-forme] ${pack} : ${f}`));
       return [];
     }
-    return [{ pack, fichier: nomDeFichier(s.path), sha256: s.sha256, licence }];
+    const depose = deposes.get(licence);
+    if (depose === undefined) {
+      refus.push(`[licence-de-pack-absente] ${pack} : ${licence}`);
+      return [];
+    }
+    return [{ pack, fichier: nomDeFichier(path), sha256: empreinte, licence: depose }];
   });
   if (exige && !refus.length && !packs.length) refus.push(`[packs-sources-absents] ${MANIFESTE_DE_PRODUCTION} : packs_sources, au moins un pack attendu pour une base`);
   return refus.length ? { refus } : { packs };

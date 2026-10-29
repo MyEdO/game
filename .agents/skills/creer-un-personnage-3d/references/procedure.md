@@ -395,6 +395,12 @@ La validation cherche le GLB voisin du manifeste de base (`humanoide.manifeste.j
 `humanoide.glb` ; `base.json` → `base.glb`). Pour un autre nom, ajouter
 `--glb-base /atelier/base/corps.glb`. La base et son GLB sont validés avant l'élément.
 
+Une base réexportée remplace la base déposée sans retirer ses éléments :
+`node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier --remplacer`.
+Chaque élément qui la référence se revalide contre elle ; un seul refusé (`[remplacement-casse]`,
+ou `[base-absente]` si le nom de base change) et rien n'est écrit. Sans `--remplacer`, l'import
+refuse `[id-deja-present]`.
+
 L'import retrouve la base par son champ `base` dans les `*.manifeste.json` de la destination,
 indépendamment du nom de fichier. Il exige son GLB local et sa provenance épinglée :
 `base-absente`, `glb-de-base-absent` ou `provenance-de-base-differente` nomment un manque ou un

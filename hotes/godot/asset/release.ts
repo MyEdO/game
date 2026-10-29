@@ -78,7 +78,7 @@ export interface PackSource {
   readonly fichier: string;
   readonly sha256: string;
   /** Le texte de licence déposé qu'il porte (`LicenceDePack.fichier`), partagé ou non avec d'autres packs. */
-  readonly licence?: string;
+  readonly licence: string;
 }
 
 /** La provenance commitée d'un modèle (`fichiersDuModele(id).provenance`). */
@@ -95,7 +95,8 @@ export interface Provenance {
   readonly hors_release?: string;
 }
 
-const EMPREINTE = /^[0-9a-f]{64}$/;
+/** Une empreinte SHA-256 en hexadécimal minuscule. */
+export const EMPREINTE = /^[0-9a-f]{64}$/;
 
 /** Les ids des fichiers de `fichiers` qui portent le nom `nom` de `fichiersDuModele`. */
 const idsPar = (fichiers: readonly string[], nom: 'manifeste' | 'provenance'): Set<string> => {
