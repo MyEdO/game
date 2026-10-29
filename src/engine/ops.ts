@@ -675,7 +675,7 @@ export type GameOp =
        *  registre (`weaponRollMod`/`weaponDamageMod`/`armourPierce`/`critOnRoll`), lu au MÊME point
        *  (`weaponPassiveOps`, engine/qualities/dispatch). VDM 05 Défaut : « −1 DR à tous les Tests pour
        *  attaquer avec elle » ⇒ `[{op:'weaponRollMod', phase:'attack', drMod:-1}]`. */
-      passive?: GameOp[];
+      passive?: OpPassive[];
       /** Effets DÉCLENCHÉS « à la touche » de l'arme enchantée — forme UNIFIÉE (`TriggeredEffect`,
        *  comme les Atouts d'arme et les Traits) : Marteau ardent → En flammes/À Terre ; Épée de
        *  justice → Test du Groupe « Criminel » → Inconscient ; Morsure de l'hiver → Test (hors
@@ -1179,6 +1179,9 @@ export type GameOp =
   /** Narration de campagne : texte Markdown et provenance locale. #2001. */
   | { op: 'narrative'; text: string; source?: SourceRef; adapteDe?: SourceRef };
 
+/** Op d'une liste lue par le collecteur `passiveMods` : sans `auTotal` (#3060). */
+export type OpPassive = Exclude<GameOp, { op: 'attrMod'; attr: 'wounds' }> | { op: 'attrMod'; attr: 'wounds'; mod: FormuleSansTirage; auTotal?: never };
+
 /** Profil d'ANNULATION d'un effet PASSIF (système unifié) — le « flag de typage » qui dit CE QUI le neutralise.
  *  Porté par chaque `PassiveMod` ; une table `kind → annulateurs` (engine/trauma) applique le gating. */
 export type PassiveKind =
@@ -1205,7 +1208,7 @@ const ATTR_KEY = { wounds: 'op.attrWounds', fortune: 'op.attrFortune', resolve: 
  *  moment où il pousse. Elle sert l'AFFICHAGE nommé d'une composante (chip « −30 Brisé » et son
  *  renvoi Codex, `combatTestPenaltyParts`) ; le calcul ne la lit jamais. */
 export interface PassiveMod {
-  op: GameOp;
+  op: OpPassive;
   kind?: PassiveKind;
   /** Entité ÉMETTRICE en ids stables — c'est elle qui NOMME la composante d'un détail de jet et lui
    *  donne son renvoi Codex (`passivePartLine`). À poser à l'ÉMISSION, jamais devinée au rendu. */

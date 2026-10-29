@@ -242,7 +242,7 @@ function foyerDe(prop: PropData | undefined, pos: Pt, facing: Dir8 | undefined, 
 export function combatantLights(c: {
   id?: string;
   pos?: Pt;
-  items?: { uid?: string; trappingId?: string; equipped?: boolean; passive?: import('../../engine/ops').GameOp[] }[];
+  items?: { uid?: string; trappingId?: string; equipped?: boolean; passive?: import('../../engine/ops').OpPassive[] }[];
   weapons?: { uid?: string }[];
   activeEffects?: { light?: { radiusM: number; tone?: string } }[];
 }, mpt: number): LightSource[] {

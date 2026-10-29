@@ -6,7 +6,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { gameOpSchema } from '../grammaire/mecanique';
+import { executeesDe } from '../grammaire/mecanique';
 import { deDeTableSchema, ecartsDeCouverture, plageOuverteSchema, type DeDeTable } from '../grammaire/valeurs';
 import { facesDuDe } from '../../../engine/tables';
 
@@ -22,7 +22,7 @@ const doc = document(
       nommerChamps(z.strictObject({
         ...plageOuverteSchema.shape,
         label: z.string().optional(),
-        ops: z.array(gameOpSchema),
+        ops: executeesDe(),
       }), { ...metaDesChamps(plageOuverteSchema, { exigees: true }), label: { label: 'Libellé' }, ops: { label: 'Opérations' } }),
     ),
   },

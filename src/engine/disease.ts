@@ -38,7 +38,7 @@ const HUMANOID_LOC = (locJson as { personnage: { shapes: Record<string, { min: n
 const rollBlisterLocation = (rng: RNG): HitLocation => findTableEntry(HUMANOID_LOC, roll(1, 100, rng)).loc;
 import { rollTest } from './tests';
 import { maladies, diseaseLabel, findSymptomById, symptomLabel, conditionLabel, SYMPTOM_SEVERITIES, memoParVersion, type SymptomCapabilities } from '../data';
-import type { GameOp, PassiveMod } from './ops';
+import type { GameOp, OpPassive, PassiveMod } from './ops';
 import type { PsychTrait } from './psychology';
 import { traitOctroye } from './psych/opsPsy';
 import { t, type MsgKey } from '../i18n';
@@ -111,7 +111,7 @@ export interface DiseaseDef {
    *  Tests de Résistance permettant de résister aux maladies » pour chaque période complète de 30 jours
    *  d'infection, MSRC 16 l.138). Un op `diseaseTestMod` y est RAMPÉ par tranche de 30 jours écoulés depuis
    *  la contraction (`activeDiseaseTestMod`), puis DÉCROÎT de 1/jour après la fin (résidu). Éditable au Codex. */
-  infectionPassive?: GameOp[];
+  infectionPassive?: OpPassive[];
   /** Un porteur ACTIF qui boit à un tonneau d'eau risque de le rendre contagieux pour quiconque y boit
    *  ensuite (MDG 14 l.209). Drapeau DÉCLARATIF lu par `buildBarrelSteps` (`noyau/seaVoyageFlow`). */
   contaminatesWaterBarrel?: boolean;
@@ -213,10 +213,10 @@ export function contractDisease(
  *  déclarer que ce qu'il change : l.170 n'ajoute qu'un État, les −10 de base tiennent sans être recopiés.
  *  `severity` explicite = la sévérité EFFECTIVE (atténuation l.159) ; défaut = celle de l'instance.
  *  Lus par `passiveMods` (pénalités) et `syncDerivedConditions` (États portés). */
-export function symptomPassive(inst: DiseaseSymptom, severity: 'moderee' | 'grave' | undefined = inst.severity): GameOp[] {
+export function symptomPassive(inst: DiseaseSymptom, severity: 'moderee' | 'grave' | undefined = inst.severity): OpPassive[] {
   const s = findSymptomById(inst.symptomId);
   if (!s) return [];
-  const out: GameOp[] = [...(s.passive ?? [])];
+  const out: OpPassive[] = [...(s.passive ?? [])];
   if (!severity) return out;
   for (const palier of SYMPTOM_SEVERITIES) {
     for (const op of s.passiveBySeverity?.[palier] ?? []) {

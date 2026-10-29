@@ -392,13 +392,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/engine/talentEffects.ts",
-    motif: "désormais",
-    ancre: "Le +5 Caractéristique et le +1 Mouvement sont désormais des PASSIFS CONTINUS dans `passive: GameOp[]`",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/engine/traits/parity.test.ts",
     motif: "désormais",
     ancre: "Parité des Traits de créature (LDB 85). Le registre `TRAITS` est désormais DÉRIVÉ 1:1 de la donnée",

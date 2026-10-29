@@ -9,7 +9,7 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { availabilitySchema, enumNomme, formulaSchema, moneySchema, reachSchema, sizeCategorySchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
-import { gameOpSchema, flowSchema, triggeredEffectSchema } from '../grammaire/mecanique';
+import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 /** Les Atouts d'un objet passent par la vue COMMUNE `qualityRefSchema` : `quality` n'est PAS un type
  *  de `TYPES` (`grammaire/ref.ts`) — aucune fabrique FK ne le vise, et son ouverture est ancrée
  *  #1615/#1621. La population (438 références, dont 5 à Indice `{id:'taillade', value:1|2}`) est
@@ -197,7 +197,7 @@ const doc = document(
     price: z.union([moneySchema, z.literal('ND'), z.null()]),
     derivedWeapon: weaponSchema.optional(),
     capabilities: itemCapabilitiesSchema.optional(),
-    passive: z.array(gameOpSchema).optional(),
+    passive: passifsDe().optional(),
     /** LDB 66 l.12-14 */
     service: z.boolean().optional(),
   },

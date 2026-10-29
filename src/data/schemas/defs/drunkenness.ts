@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** LDB 09 l.475-481. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { gameOpSchema } from '../grammaire/mecanique';
+import { executeesDe } from '../grammaire/mecanique';
 import { enumNomme, plageSchema } from '../grammaire/valeurs';
 
 /** Les 5 issues du Tableau d'Ivresse (lues par `drunkStaggers`/`soberUp`). */
@@ -24,7 +24,7 @@ const drunkEntrySchema = nommerChamps(z.strictObject({
   label: z.string(),
   outcome: drunkennessOutcomeSchema,
   desc: z.string(),
-  ops: z.array(gameOpSchema).optional(),
+  ops: executeesDe().optional(),
 }), {
   ...metaDesChamps(plageSchema, { exigees: true }),
   id: { label: 'identifiant' },

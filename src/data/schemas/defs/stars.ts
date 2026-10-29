@@ -7,7 +7,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { mecaniqueDe } from '../grammaire/mecanique';
+import { executeesDe, mecaniqueDe } from '../grammaire/mecanique';
 import { ecartsDeCouverture, plageSchema } from '../grammaire/valeurs';
 
 export const file = 'stars.json';
@@ -28,7 +28,7 @@ const doc = document(
      *  clé porte le nom du CONCEPT qu'elle contient (`ops`, comme `drunkenness`/`traumas`/les
      *  Critiques), et la langue unique `applyOps`/`GameOpEditor` la lit sans exception d'atelier.
      *  Désignateur : `createHero` (`engine/character.ts`), via `applyStarOps` (`engine/creation.ts`). */
-    ops: z.array(mecaniqueDe({ 'grantTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
+    ops: executeesDe(mecaniqueDe({ 'grantTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
     /** Étoile du Sorcier (ADE II 3 l.63) : fourchette du 1d10 interne, forme PARTAGÉE `{min, max}` que
      *  `findTableEntry` (`src/engine/tables.ts`) lit — le sous-tirage se résout par le lookup commun,
      *  sans adaptateur au call-site. Absente sur un signe simple. */

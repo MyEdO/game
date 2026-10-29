@@ -1,7 +1,7 @@
 /**
  * Migration #3060 (lot Trait, #1463) — les Blessures de profil « au total » : un « +N Blessures » imprimé à
  * côté d'un changement de Caractéristique est le changement TOTAL des Blessures max que produit la source
- * (lecture révisable consignée sur #3060).
+ * (Middenheim 04 l.27, LDB 71 l.20 ; #3060).
  *
  * GESTES :
  *  1. `trappings.json › bonnet-de-fou` : son `attrMod` de Blessures +4 devient `auTotal` (LDB 71 l.20).

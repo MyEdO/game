@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /** LDB 20. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { flowSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
+import { flowSchema, noeudTest, passifsDe } from '../grammaire/mecanique';
 import { idDe } from '../grammaire/ref';
 import { diceSpecSchema, symptomSeveritySchema } from '../grammaire/valeurs';
 
@@ -37,7 +37,7 @@ const doc = document(
     /** LDB 20 l.127-129. */
     immuneAfterCure: z.boolean().optional(),
     /** MSRC 16 l.138. */
-    infectionPassive: z.array(gameOpSchema).optional(),
+    infectionPassive: passifsDe().optional(),
     /** MDG 14 l.209. */
     contaminatesWaterBarrel: z.boolean().optional(),
     /** EDOC 08 l.104-108. */
