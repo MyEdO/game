@@ -81,6 +81,12 @@ for (const c of clips) {
     for (const p of c.appuis.pieds) console.log(`  ${p.pied} : ${p.vitesseAuSol ?? 'indétectable'} m/s ; appui ${p.duree} s (${p.intervalles} intervalles) ; contact max ${p.contactMax ?? '—'} m ; glissement max ${p.glissementMax ?? '—'} m`)
   }
 }
+if (fiche.mesures.silhouettes) {
+  const { anneaux, silhouettes, carrure } = fiche.mesures.silhouettes
+  console.log(`silhouettes : ${anneaux} anneau(x) articulaire(s)`)
+  for (const s of silhouettes) console.log(`  ${s.nom} : déplacement max ${s.deplacementMax.toFixed(4)} m ; centre ${s.centrePire ? `${s.centrePire.os} à ${s.centrePire.rapport.toFixed(4)} du rayon` : '—'}`)
+  if (carrure) console.log(`  carrure (${carrure.os}, rayon ${carrure.rayonDeRepos.toFixed(4)} m) : ${carrure.points.map((p) => `st=${p.st} → ${p.rapport.toFixed(4)}`).join(', ')} ; écart relatif à st ${carrure.ecartASt.toFixed(4)}, au segment ${carrure.ecartAuSegment.toFixed(4)}`)
+}
 for (const e of fiche.ecarts) console.log(ligneDEcart(e))
 const parGarde = fiche.ecarts.reduce((n, e) => ({ ...n, [e.garde]: (n[e.garde] ?? 0) + 1 }), {})
 console.log(`${fiche.ecarts.length} écart(s)${fiche.ecarts.length ? ` : ${Object.entries(parGarde).map(([g, n]) => `${g} ${n}`).join(', ')}` : ''}`)

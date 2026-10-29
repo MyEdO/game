@@ -895,7 +895,7 @@ describe('dossier de production d’une base (#3106)', () => {
   const LICENCE_QUATERNIUS = '-----------------------------\r\nLicense:\r\nCC0 1.0 Universal (CC0 1.0) \r\nPublic Domain Dedication\r\n';
   /** Un texte de licence du pack de corps, distinct de `LICENCE_QUATERNIUS` : chaque pack se relie à SON dépôt. */
   const LICENCE_DU_CORPS = 'Ultimate Base Characters\r\nLicense:\r\nCC0 1.0 Universal (CC0 1.0) \r\n';
-  const PACKS = ['ual1', 'ual2', 'corps'] as const;
+  const PACKS = ['ual1', 'ual2', 'corps', 'corps-feminin'] as const;
   /** Un pack : son texte de licence `licence`, de contenu `texte`, à la racine, le fichier source `fichier` deux dossiers plus bas. */
   const pack = (fichier: string, licence = 'License.txt', texte = LICENCE_QUATERNIUS) => {
     const racine = temporaire();
@@ -906,7 +906,8 @@ describe('dossier de production d’une base (#3106)', () => {
   };
   /** Les sources d'une base et le texte de licence nommé pour chacune, le pack de `remplace` substitué. */
   const packs = (remplace: Partial<Record<(typeof PACKS)[number], ReturnType<typeof pack>>> = {}): { sources: SourcesDeBase; licences: SourcesDeBase } => {
-    const p = { ual1: pack('UAL1_Standard.glb'), ual2: pack('UAL2_Standard.glb'), corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt', LICENCE_DU_CORPS), ...remplace };
+    const p = { ual1: pack('UAL1_Standard.glb'), ual2: pack('UAL2_Standard.glb'), corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt', LICENCE_DU_CORPS),
+      'corps-feminin': pack('Superhero_Female_FullBody.gltf', 'License_Standard.txt', LICENCE_DU_CORPS), ...remplace };
     return { sources: tableTotale(PACKS, (s) => p[s].source), licences: tableTotale(PACKS, (s) => p[s].licence) };
   };
   /** Le GLB de base exporté dans un dossier de sortie neuf, puis son dossier de production écrit. */
@@ -929,7 +930,7 @@ describe('dossier de production d’une base (#3106)', () => {
       packs_sources: tableTotale(PACKS, (s) => ({ path: sources[s], sha256: sha256(readFileSync(sources[s])), licence: `LICENSE-${s}.txt` })),
       hors_release: HORS_RELEASE_DE_BASE,
     });
-    expect(PACKS.map((s) => readFileSync(join(dossier, `LICENSE-${s}.txt`), 'utf8'))).toEqual([LICENCE_QUATERNIUS, LICENCE_QUATERNIUS, LICENCE_DU_CORPS]);
+    expect(PACKS.map((s) => readFileSync(join(dossier, `LICENSE-${s}.txt`), 'utf8'))).toEqual([LICENCE_QUATERNIUS, LICENCE_QUATERNIUS, LICENCE_DU_CORPS, LICENCE_DU_CORPS]);
     const destination = temporaire();
     const r = importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: null });
     expect(r.ok ? [r.provenance.licences_de_pack.map((l) => l.fichier).sort(), r.provenance.hors_release] : r.refus)
@@ -938,6 +939,7 @@ describe('dossier de production d’une base (#3106)', () => {
       { pack: 'ual1', fichier: 'UAL1_Standard.glb', sha256: sha256(readFileSync(sources.ual1)), licence: nomCC0(LICENCE_QUATERNIUS) },
       { pack: 'ual2', fichier: 'UAL2_Standard.glb', sha256: sha256(readFileSync(sources.ual2)), licence: nomCC0(LICENCE_QUATERNIUS) },
       { pack: 'corps', fichier: 'Superhero_Male_FullBody.gltf', sha256: sha256(readFileSync(sources.corps)), licence: nomCC0(LICENCE_DU_CORPS) },
+      { pack: 'corps-feminin', fichier: 'Superhero_Female_FullBody.gltf', sha256: sha256(readFileSync(sources['corps-feminin'])), licence: nomCC0(LICENCE_DU_CORPS) },
     ]);
     expect(JSON.parse(readFileSync(join(destination, 'humanoide.manifeste.json'), 'utf8'))).toEqual(baseSchema3());
   });

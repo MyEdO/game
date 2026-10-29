@@ -34,12 +34,13 @@ node scripts/personnage-3d/environnement.mjs
 ```
 
 La commande de construction de base existe, mais relève de L1, pas de l'auteur d'un élément.
-Elle utilise les fichiers UAL1, UAL2 et UBC acquis avec leurs licences, et nomme le texte de licence
+Elle utilise les fichiers UAL1, UAL2 et UBC (corps masculin et féminin) acquis avec leurs licences, le dossier `data`
+de MPFB (donneur de la silhouette `corpulence`), et nomme le texte de licence
 de chaque pack, lu dans le pack (`License.txt` à la racine de `Universal Animation Library[Standard]`,
 `License_Standard.txt` à la racine de `Universal Base Characters[Standard]`) :
 
 ```sh
-node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py --ual1 "/atelier/sources/Universal Animation Library[Standard]/…/UAL1_Standard.glb" --licence-ual1 "/atelier/sources/Universal Animation Library[Standard]/License.txt" --ual2 "/atelier/sources/Universal Animation Library 2[Standard]/…/UAL2_Standard.glb" --licence-ual2 "/atelier/sources/Universal Animation Library 2[Standard]/License.txt" --corps "/atelier/sources/Universal Base Characters[Standard]/…/Superhero_Male_FullBody.gltf" --licence-corps "/atelier/sources/Universal Base Characters[Standard]/License_Standard.txt" --sortie /atelier/base/humanoide.glb
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py --ual1 "/atelier/sources/Universal Animation Library[Standard]/…/UAL1_Standard.glb" --licence-ual1 "/atelier/sources/Universal Animation Library[Standard]/License.txt" --ual2 "/atelier/sources/Universal Animation Library 2[Standard]/…/UAL2_Standard.glb" --licence-ual2 "/atelier/sources/Universal Animation Library 2[Standard]/License.txt" --corps "/atelier/sources/Universal Base Characters[Standard]/…/Superhero_Male_FullBody.gltf" --licence-corps "/atelier/sources/Universal Base Characters[Standard]/License_Standard.txt" --corps-feminin "/atelier/sources/Universal Base Characters[Standard]/…/Superhero_Female_FullBody.gltf" --licence-corps-feminin "/atelier/sources/Universal Base Characters[Standard]/License_Standard.txt" --mpfb /atelier/sources/mpfb/data --sortie /atelier/base/humanoide.glb
 ```
 
 Les chemins `/atelier/…` des exemples désignent les fichiers locaux de production à choisir ;
@@ -51,13 +52,12 @@ les `LICENSE-<pack>.txt` qu'elle écrit, et un texte de licence `--licence-<pack
 dossiers ancêtres de sa source, sans ligne `License:` ou dont la ligne manque à
 `hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
 déclaration du corps (`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence,
-clips de marche), les bornes de `st` tirées de `src/data/gabarits.json` et des surcharges de
-`raceAppearance.json`, la vitesse au sol de chaque clip de marche mesurée par l'évaluateur, et
+clips de marche), la vitesse au sol de chaque clip de marche mesurée par l'évaluateur, et
 l'empreinte du GLB. Le manifeste refusé par `validerManifesteDeBase` fait échouer la construction.
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
 `packs_sources`, `hors_release`) et `LICENSE-ual1.txt`, `LICENSE-ual2.txt`, `LICENSE-corps.txt`,
-copies des textes de licence des packs ; `packs_sources.<pack>` porte le chemin, l'empreinte et la
+`LICENSE-corps-feminin.txt`, copies des textes de licence des packs ; `packs_sources.<pack>` porte le chemin, l'empreinte et la
 copie de licence (`licence`) de chaque pack, que la provenance garde par pack sous le nom du texte
 déposé. Il s'importe tel quel, sans publication (section 6) :
 
