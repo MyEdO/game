@@ -19,8 +19,6 @@ corps `humanoide.json`.
 """
 import argparse
 import json
-import shutil
-import subprocess
 import sys
 from pathlib import Path
 
@@ -35,6 +33,7 @@ from animation import assign_action, clear_animation, meshes_for  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 from seuils import IMAGES_PAR_SECONDE  # noqa: E402
 from pistes import sacs  # noqa: E402
+from script_node import lancer  # noqa: E402
 from corpulence import ajouter_corpulence  # noqa: E402
 from poids import lisser_les_poids  # noqa: E402
 from silhouettes import ajouter_feminin_et_carrure, bornes_de_st, corps_et_secondaires, finir_les_silhouettes  # noqa: E402
@@ -162,11 +161,8 @@ def silhouettes(peaux):
 
 def completer(sortie, construit):
     """Écrit le manifeste complet de `sortie` par `manifeste.mjs`, à qui passe la part `construit`."""
-    node = shutil.which('node')
-    if not node:
-        raise RuntimeError('node introuvable : le manifeste de base se complète par manifeste.mjs')
-    subprocess.run([node, str(ICI / 'manifeste.mjs'), str(DECLARATION), str(sortie)],
-                   input=json.dumps(construit, ensure_ascii=False), text=True, encoding='utf-8', check=True)
+    print(lancer(ICI / 'manifeste.mjs', [DECLARATION, sortie], json.dumps(construit, ensure_ascii=False)), end='',
+          flush=True)
 
 
 def construire(args):
@@ -205,7 +201,7 @@ def construire(args):
     for objet in [squelette_f, *objets_f]:
         bpy.data.objects.remove(objet, do_unlink=True)
     ajouter_corpulence(squelette, corps, args.mpfb)
-    finir_les_silhouettes(squelette, corps, secondaires)
+    finir_les_silhouettes(squelette, corps, secondaires, bornes)
     poser_les_clips_au_sol(squelette, peaux, clips, sources, PIEDS, gabarit(squelette)['racine'], PELVIS,
                            json.loads(DECLARATION.read_text(encoding='utf-8'))['clipsDeMarche'])
     formes = silhouettes(peaux)

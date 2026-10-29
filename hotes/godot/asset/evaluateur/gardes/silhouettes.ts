@@ -10,7 +10,7 @@
  */
 import { Vector3, type Matrix4, type Mesh, type Object3D, type SkinnedMesh } from 'three';
 import type { Ecart } from '../ecart.ts';
-import { poseDeRepos } from '../echantillonnage.ts';
+import { poseDeRepos, type Pose } from '../echantillonnage.ts';
 import { CARRURE_MOINS, CARRURE_PLUS, poidsDeCarrure } from '../gabarit.ts';
 import type { TableDeGabarit } from '../../manifesteDeBase.ts';
 import { SOL_TOLERANCE_M } from './piedsAuSol.ts';
@@ -41,9 +41,14 @@ export interface Anneau {
 
 /** L'état d'un anneau dans une pose : `centre` = centroïde de ses sommets, `rayon` = leur distance moyenne à la droite
  *  qui passe par `centre` dans la direction de l'os de l'anneau. */
-interface Section {
+export interface Section {
   readonly centre: Point;
   readonly rayon: number;
+}
+
+/** La section d'un anneau au repos, et l'axe de son os au repos, direction de la droite de son rayon dans toute pose. */
+export interface SectionDeRepos extends Section {
+  readonly axe: Point;
 }
 
 export interface MesureDeSilhouette {
@@ -130,6 +135,17 @@ function section(anneau: Anneau, positions: ReadonlyMap<string, Float32Array>, a
   return { centre, rayon: points.reduce((s, p) => s + aLaDroite(p), 0) / points.length };
 }
 
+/** La section de repos de chaque anneau de `anneaux` dans la pose `repos`, axe de son os compris. */
+export const sectionsDeRepos = (anneaux: readonly Anneau[], repos: Pose): SectionDeRepos[] =>
+  anneaux.map((a) => {
+    const axe = axeDeLOs(repos.os, a.os);
+    return { ...section(a, repos.positions, axe), axe };
+  });
+
+/** L'indice de l'anneau le plus épais (plus grand rayon) parmi `sections`, celui dont la carrure mesure l'épaisseur. */
+export const anneauLePlusEpais = (sections: readonly Section[]): number =>
+  sections.reduce((p, s, i) => (s.rayon > sections[p].rayon ? i : p), 0);
+
 function deplacementMax(de: ReadonlyMap<string, Float32Array>, a: ReadonlyMap<string, Float32Array>): number {
   let max = 0;
   for (const [mesh, p] of de) {
@@ -179,13 +195,13 @@ export function mesurerSilhouettes({ scene, corps, silhouettes, st }: SujetDeSil
   };
   try {
     const repos = poser({});
-    const axes = anneaux.map((a) => axeDeLOs(repos.os, a.os));
-    const sections = (positions: ReadonlyMap<string, Float32Array>) => anneaux.map((a, i) => section(a, positions, axes[i]));
+    const deRepos = sectionsDeRepos(anneaux, repos);
+    const sections = (positions: ReadonlyMap<string, Float32Array>) => anneaux.map((a, i) => section(a, positions, deRepos[i].axe));
     const mesurer = (poids: Readonly<Record<string, number>>) => {
       const { positions } = poser(poids);
       return { positions, sections: sections(positions) };
     };
-    const reference = { positions: repos.positions, sections: sections(repos.positions) };
+    const reference = { positions: repos.positions, sections: deRepos };
     const aCarrure = silhouettes.includes(CARRURE_MOINS) && silhouettes.includes(CARRURE_PLUS);
     const etats = [
       ...silhouettes.filter((s) => s !== CARRURE_MOINS && s !== CARRURE_PLUS).map((nom) => ({ nom, poids: { [nom]: 1 } })),
@@ -207,7 +223,7 @@ export function mesurerSilhouettes({ scene, corps, silhouettes, st }: SujetDeSil
     });
     let carrure: MesuresDeCarrure | null = null;
     if (aCarrure && anneaux.length) {
-      const epais = reference.sections.reduce((p, s, i) => (s.rayon > reference.sections[p].rayon ? i : p), 0);
+      const epais = anneauLePlusEpais(reference.sections);
       const rayonDeRepos = reference.sections[epais].rayon;
       const points = pointsDeCarrure(st).map((s) => ({ st: s, rapport: mesurer(poidsDeCarrure(s, st)).sections[epais].rayon / rayonDeRepos }));
       const [premier, dernier] = [points[0], points[points.length - 1]];

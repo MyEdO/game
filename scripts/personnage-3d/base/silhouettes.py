@@ -13,34 +13,36 @@
   entier tant qu'aucun poids d'extrémité ne le porte, ne bouge plus dès que sa part de poids d'extrémité atteint
   `MAJORITE_DU_POIDS` (la surface d'un pied, `sol.poser_les_clips_au_sol`), et entre les deux en proportion
   (`fondu`). Les clés `LISSEES` sont lissées jusqu'à `ETIREMENT_VISE` au repos (`formes.lisser`), fondu compris.
-- Retrait lisse de translation (`retrait_des_translations`), sur chaque clé, après le lissage et le fondu : la clé perd
-  la combinaison de bases articulaires qui annule, par articulation, sa moyenne pondérée par `w_b·w_p` (os b, son
-  parent p). Les sommets jumeaux prennent le décalage moyen de leur groupe ; puis chaque clé passe aux peaux
-  secondaires par liaison de surface (`formes.transferer_les_cles`).
+- Correction des clés par les anneaux articulaires (`correction`, #3101 issuecomment-6489583109), sur chaque clé,
+  après le lissage et le fondu : la clé la plus proche de sa source, en énergie d'arêtes, qui garde le centre de
+  chaque anneau de la garde des silhouettes, et, pour la carrure, porte le rayon de l'anneau le plus épais à la borne
+  de `st`. Les anneaux sont ceux de la garde, calculés sur le maillage de la construction par `anneaux.mjs`
+  (`anneaux`). Les sommets jumeaux prennent le même décalage ; puis chaque clé passe aux peaux secondaires par liaison
+  de surface (`formes.transferer_les_cles`).
 
 Les poids sont ceux de l'export glTF (`poids.peau_lineaire`).
 """
 import json
+import time
 from pathlib import Path
 
 import numpy
 
 from anatomie import PEAUX_SECONDAIRES, PIEDS, POING, ZONE_DE_L_OS
 from corpulence import NOM as CORPULENCE
-from formes import (aretes_des_triangles, aux_noeuds, decalages, lier, lisser, noms_des_cles, pas_laplacien, positions,
-                    poser_la_cle, rapports, transferer_les_cles, transporter, voisins)
+from formes import (aretes_des_triangles, decalages, lier, lisser, noms_des_cles, positions, poser_la_cle, rapports,
+                    transferer_les_cles, transporter, voisins)
 from poids import ETIREMENT_VISE, PASSES_MAX, deformer, jumeaux, peau_lineaire
-from seuils import MAJORITE_DU_POIDS
+from script_node import lancer
+from seuils import INFLUENCES_MAX, MAJORITE_DU_POIDS
 
-DONNEES = Path(__file__).resolve().parents[3] / 'src' / 'data'
+ICI = Path(__file__).resolve().parent
+DONNEES = ICI.parents[2] / 'src' / 'data'
 FEMININ = 'feminin'
 CARRURE_MOINS = 'carrure_moins'
 CARRURE_PLUS = 'carrure_plus'
 LISSEES = (FEMININ, CORPULENCE)
-"""Les clés lissées : celles d'un donneur, projeté ou lié ; la carrure est exacte par construction."""
-DIFFUSION = PASSES_MAX
-"""Pas laplaciens (`formes.pas_laplacien`) qui diffusent les bases du retrait de translation : le plus long lissage
-qu'une clé peut recevoir (`formes.lisser`, `PASSES_MAX`)."""
+"""Les clés lissées : celles d'un donneur, projeté ou lié."""
 
 
 def bornes_de_st():
@@ -153,30 +155,119 @@ def ajouter_feminin_et_carrure(squelette, corps, squelette_feminin, corps_femini
         poser_la_cle(corps, nom, vers_le_mesh(corps, carrure(squelette, corps, rapport)))
 
 
-def retrait_des_translations(squelette, w, noms, libre, noeud, aretes):
-    """Le retrait lisse de translation des articulations, pour les sommets de poids `w` sur les os `noms` : la
-    fonction qui ôte d'un champ de décalages (sommets, 3) la combinaison de bases qui annule, à chaque articulation
-    (os b et son parent p portés ensemble), la moyenne du champ pondérée par `w_b·w_p`. La base d'une articulation est
-    `w_b·w_p` diffusé par `DIFFUSION` pas laplaciens sur les nœuds `noeud` et leurs arêtes `aretes`, rapportée à son
-    maximum et multipliée par `libre` (`fondu`) : nulle sur les extrémités ; les coefficients sont ceux des moindres
-    carrés."""
-    index = {n: i for i, n in enumerate(noms)}
-    w = w.astype(numpy.float64)
-    melanges = numpy.array([w[:, i] * w[:, index[b.parent.name]] for i, b in
-                            ((index[b.name], b) for b in squelette.data.bones) if b.parent]).T
-    melanges = melanges[:, melanges.sum(axis=0) > 0]
-    bases = aux_noeuds(melanges, noeud)
-    for _ in range(DIFFUSION):
-        bases = pas_laplacien(bases, aretes)
-    bases = bases[noeud] / bases.max(axis=0) * libre[:, None]
-    moyennes = melanges / melanges.sum(axis=0)
-    coefficients = numpy.linalg.pinv(moyennes.T @ bases) @ moyennes.T
-    return lambda champ: champ - bases @ (coefficients @ champ)
+class AnneauIndetectable(RuntimeError):
+    """Le corps n'a aucun anneau articulaire (`anneauxArticulaires`) : ni centre ni épaisseur à tenir, pendant de
+    l'écart `anneau-indetectable` de la garde des silhouettes."""
+
+    def __init__(self, corps):
+        super().__init__(f'anneau-indetectable : aucun anneau articulaire dans {corps}, ni centre ni épaisseur à tenir')
 
 
-def finir_les_silhouettes(squelette, corps, secondaires):
-    """Applique à chaque clé de `corps` le lissage des clés `LISSEES`, les extrémités invariantes, le retrait lisse de
-    translation et l'égalité des jumeaux, puis la transfère aux peaux `secondaires` ; rend les noms des clés."""
+def anneaux(squelette, corps, x, w, noms):
+    """Les anneaux articulaires de `corps` (sommets `x`, repère monde, poids `w` sur les os `noms`), par `anneaux.mjs` :
+    `anneaux` (os, sommets, centre, rayon, axe de chaque anneau au repos) et `lePlusEpais`, son indice. Un corps sans
+    anneau lève `AnneauIndetectable`."""
+    rang = numpy.argsort(-w, axis=1, kind='stable')[:, :INFLUENCES_MAX]
+    vidage = {
+        'os': [{'nom': b.name, 'parent': b.parent.name if b.parent else None,
+                'matrice': numpy.array(squelette.matrix_world @ b.matrix_local).T.ravel().tolist()}
+               for b in (squelette.data.bones[n] for n in noms)],
+        'corps': [{'nom': corps.name, 'positions': x[:, :3].ravel().tolist(), 'indices': rang.ravel().tolist(),
+                   'poids': numpy.take_along_axis(w, rang, axis=1).ravel().tolist()}],
+    }
+    lus = json.loads(lancer(ICI / 'anneaux.mjs', [], json.dumps(vidage)))
+    if lus['lePlusEpais'] is None:
+        raise AnneauIndetectable(corps.name)
+    return lus
+
+
+def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
+    """La correction des clés du corps de sommets `x` (repère monde) : la fonction qui rend, pour chaque couple
+    (source d0, rapport) d'une liste, le champ de décalages d = argmin Σ_arêtes |(d − d0)_i − (d − d0)_j|² sur les
+    arêtes `aretes` (`formes.aretes_des_triangles`), sous : une seule valeur par nœud (`noeud_de`, `poids.jumeaux`),
+    d nul sur chaque nœud qui porte un sommet `fixe`, Σ d nulle sur les sommets de chaque anneau de `anneaux_du_corps`
+    (`anneaux`) et, si `rapport` n'est pas `None`, moyenne de d·u sur l'anneau le plus épais égale à (rapport − 1) × son
+    rayon, u la direction radiale de chaque sommet depuis la droite de son centre et de son axe. Rend aussi le nombre
+    de nœuds libres, de contraintes, et la durée de la factorisation en secondes."""
+    reps, noeud = numpy.unique(noeud_de, return_inverse=True)
+    n = len(reps)
+    fixes = numpy.zeros(n, dtype=bool)
+    numpy.logical_or.at(fixes, noeud, fixe)
+    libres = numpy.flatnonzero(~fixes)
+    m = len(libres)
+    rang = numpy.full(n, -1)
+    rang[libres] = numpy.arange(m)
+    bouts = numpy.searchsorted(reps, aretes)
+    laplacien = numpy.zeros((m, m))
+    bord = []
+    for de, vers in ((bouts[:, 0], bouts[:, 1]), (bouts[:, 1], bouts[:, 0])):
+        p, q = rang[de], rang[vers]
+        numpy.add.at(laplacien, (p[p >= 0], p[p >= 0]), 1.0)
+        interne = (p >= 0) & (q >= 0)
+        numpy.add.at(laplacien, (p[interne], q[interne]), -1.0)
+        bord.append((p[(p >= 0) & (q < 0)], vers[(p >= 0) & (q < 0)]))
+    liste, sommets = anneaux_du_corps['anneaux'], []
+    lignes = []
+    for anneau in liste:
+        s = numpy.array([v['indice'] for v in anneau['sommets']], dtype=int)
+        sommets.append(s)
+        compte = numpy.bincount(noeud[s], minlength=n)[libres].astype(float)
+        if compte.any():
+            for c in range(3):
+                ligne = numpy.zeros((3, m))
+                ligne[c] = compte
+                lignes.append(ligne.ravel())
+    epais = liste[anneaux_du_corps['lePlusEpais']]
+    s = sommets[anneaux_du_corps['lePlusEpais']]
+    axe, centre = numpy.array(epais['axe']), numpy.array(epais['centre'])
+    radial = x[s] - centre
+    radial -= (radial @ axe)[:, None] * axe
+    radial /= numpy.linalg.norm(radial, axis=1, keepdims=True) * len(s)
+    epaisseur = numpy.zeros((3, n))
+    for c in range(3):
+        numpy.add.at(epaisseur[c], noeud[s], radial[:, c])
+    contraintes = numpy.array([*lignes, epaisseur[:, libres].ravel()])
+
+    def corriger(champs):
+        debut = time.perf_counter()
+        sources = []
+        for champ, _ in champs:
+            valeur = numpy.zeros((n, 3))
+            numpy.add.at(valeur, noeud, champ)
+            sources.append(valeur / numpy.bincount(noeud, minlength=n)[:, None])
+        seconds = numpy.zeros((m, len(sources), 3))
+        for (p, f) in bord:
+            for k, valeur in enumerate(sources):
+                numpy.add.at(seconds[:, k], p, -valeur[f])
+        k_contraintes = len(contraintes)
+        resolu = numpy.linalg.solve(laplacien, numpy.concatenate(
+            [contraintes.reshape(k_contraintes, 3, m).transpose(2, 0, 1).reshape(m, -1),
+             seconds.reshape(m, -1)], axis=1))
+        z = resolu[:, :k_contraintes * 3].reshape(m, k_contraintes, 3).transpose(1, 2, 0).reshape(k_contraintes, -1)
+        libres_seuls = resolu[:, k_contraintes * 3:].reshape(m, len(sources), 3)
+        schurs = {False: numpy.linalg.inv(contraintes[:-1] @ z[:-1].T), True: numpy.linalg.inv(contraintes @ z.T)}
+        duree = time.perf_counter() - debut
+        resultats = []
+        for k, ((_, rapport), valeur) in enumerate(zip(champs, sources)):
+            vise = rapport is not None
+            c, zz = (contraintes, z) if vise else (contraintes[:-1], z[:-1])
+            cible = numpy.zeros(len(c))
+            if vise:
+                cible[-1] = (rapport - 1.0) * epais['rayon']
+            d = valeur[libres].T.ravel() + libres_seuls[:, k].T.ravel()
+            d -= zz.T @ (schurs[vise] @ (c @ d - cible))
+            plein = numpy.zeros((n, 3))
+            plein[libres] = d.reshape(3, m).T
+            resultats.append(plein[noeud])
+        return resultats, {'noeuds_libres': m, 'contraintes': k_contraintes, 'factorisation_s': round(duree, 3)}
+
+    return corriger
+
+
+def finir_les_silhouettes(squelette, corps, secondaires, bornes):
+    """Applique à chaque clé de `corps` le lissage des clés `LISSEES`, les extrémités invariantes et la correction par
+    les anneaux articulaires (`correction`, rayon de la carrure aux bornes de `st` `bornes`), puis la transfère aux
+    peaux `secondaires` ; rend les noms des clés."""
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
     libre = fondu(w, noms, extremites(squelette))
@@ -184,7 +275,9 @@ def finir_les_silhouettes(squelette, corps, secondaires):
     repos = positions(corps.data)
     aretes = aretes_des_triangles(corps, groupe)
     cles = noms_des_cles(corps)
-    retirer = retrait_des_translations(squelette, w, noms, libre, groupe, aretes)
+    vers_le_monde = numpy.array(corps.matrix_world.to_3x3()).T
+    rapports_de_st = {CARRURE_MOINS: bornes['min'], CARRURE_PLUS: bornes['max']}
+    sources = []
     for nom in cles:
         if nom in LISSEES:
             brut = rapports(repos, decalages(corps, nom) * libre[:, None], aretes)
@@ -195,15 +288,21 @@ def finir_les_silhouettes(squelette, corps, secondaires):
                   '; arêtes < 0,1', int((brut < 0.1).sum()), '->', int((r < 0.1).sum()), flush=True)
         else:
             d = decalages(corps, nom) * libre[:, None]
-        avant = numpy.linalg.norm(d, axis=1).max()
-        d = aux_noeuds(retirer(d), groupe)[groupe]
+        sources.append((d @ vers_le_monde, rapports_de_st.get(nom)))
+    lus = anneaux(squelette, corps, x, w, noms)
+    print('ANNEAUX', len(lus['anneaux']), '; le plus épais', lus['anneaux'][lus['lePlusEpais']]['os'],
+          round(lus['anneaux'][lus['lePlusEpais']]['rayon'], 4), 'm ;',
+          ' '.join(f"{a['os']}:{len(a['sommets'])}" for a in lus['anneaux']), flush=True)
+    corriges, sonde = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)(sources)
+    print('SILHOUETTES correction', sonde, flush=True)
+    for nom, (source, _), d in zip(cles, sources, corriges):
+        d = vers_le_mesh(corps, d)
         r = rapports(repos, d, aretes)
         poser_la_cle(corps, nom, d)
-        print('SILHOUETTE', nom, 'retrait de translation : amplitude', round(float(avant), 4), '->',
+        print('SILHOUETTE', nom, 'correction : amplitude', round(float(numpy.linalg.norm(source, axis=1).max()), 4), '->',
               round(float(numpy.linalg.norm(d, axis=1).max()), 4), 'm ; rapports au repos', round(float(r.min()), 4),
-              round(float(r.max()), 3), flush=True)
-        print('SILHOUETTE', nom, 'amplitude', round(float(numpy.linalg.norm(d, axis=1).max()), 4), 'm',
-              'extrémités', round(float(numpy.linalg.norm(d[libre == 0], axis=1).max(initial=0)), 6), 'm', flush=True)
+              round(float(r.max()), 3), '; extrémités', round(float(numpy.linalg.norm(d[libre == 0], axis=1).max(initial=0)), 6),
+              'm', flush=True)
     print('SILHOUETTES sommets invariants', int((libre == 0).sum()), 'en fondu', int(((libre > 0) & (libre < 1)).sum()),
           'sur', len(libre), flush=True)
     for peau in secondaires:

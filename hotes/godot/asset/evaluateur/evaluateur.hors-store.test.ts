@@ -1,4 +1,5 @@
 // L'évaluateur d'une base 3D et de ses éléments (#2972) : chargement sans DOM, manifeste de base, gabarit, échantillonnage, gardes.
+import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
   AnimationClip, Bone, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
@@ -19,7 +20,7 @@ import { aretesDe, ETIREMENT_MAX, ETIREMENT_MIN, gardeEtirement, mesurerEtiremen
 import { gardePiedsAuSol, plusBas, SOL_TOLERANCE_M } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids, INFLUENCES_MAX } from './gardes/poids.ts';
-import { mesurerSilhouettes, TOLERANCE_EPAISSEUR } from './gardes/silhouettes.ts';
+import { anneauLePlusEpais, anneauxArticulaires, mesurerSilhouettes, sectionsDeRepos, TOLERANCE_EPAISSEUR } from './gardes/silhouettes.ts';
 
 const TABLE = { legs: ['racine'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 } };
 
@@ -602,6 +603,51 @@ describe('gardeSilhouettes', () => {
     expect(mesures.carrure?.rayonDeRepos).toBeCloseTo(0.1, 6);
     expect(mesures.carrure?.points.map((q) => q.st)).toEqual([0.72, 0.86, 1, 1.35, 1.7]);
     for (const q of mesures.carrure?.points ?? []) expect(q.rapport).toBeCloseTo(q.st, 6);
+  });
+
+  /** Deux anneaux sur une chaîne `racine` → `haut` → `bout` : un cercle de rayon 0,1 m en x = 0,5 m, mi-`racine`
+   *  mi-`haut`, puis un cercle de rayon 0,15 m en x = 0,8 m, 0,6 `haut` et 0,4 `bout`. `racine` tourné sur Z, `haut`
+   *  sur X : les matrices monde des os ne sont pas symétriques. */
+  function deuxAnneaux() {
+    const cercle = (x: number, r: number) => Array.from({ length: 8 }, (_, k) => [x, r * Math.cos(k * Math.PI / 4), r * Math.sin(k * Math.PI / 4)]).flat();
+    const geometrie = new BufferGeometry();
+    geometrie.setAttribute('position', new Float32BufferAttribute([...cercle(0.5, 0.1), ...cercle(0.8, 0.15)], 3));
+    geometrie.setAttribute('skinIndex', new Uint16BufferAttribute([...Array(8).fill([0, 1, 0, 0]), ...Array(8).fill([2, 1, 0, 0])].flat(), 4));
+    geometrie.setAttribute('skinWeight', new Float32BufferAttribute([...Array(8).fill([0.5, 0.5, 0, 0]), ...Array(8).fill([0.4, 0.6, 0, 0])].flat(), 4));
+    const [racine, haut, bout] = ['racine', 'haut', 'bout'].map((name) => Object.assign(new Bone(), { name }));
+    racine.rotation.z = -Math.PI / 2;
+    haut.position.y = 0.5;
+    haut.rotation.x = 0.4;
+    bout.position.y = 0.3;
+    racine.add(haut);
+    haut.add(bout);
+    const mesh = Object.assign(new SkinnedMesh(geometrie, new MeshBasicMaterial()), { name: 'Corps' });
+    const scene = new Group();
+    scene.add(mesh);
+    mesh.add(racine);
+    scene.updateMatrixWorld(true);
+    mesh.bind(new Skeleton([racine, haut, bout]));
+    return { scene, mesh };
+  }
+
+  it('anneaux.mjs rend, sur le vidage d’un corps (matrices par colonnes, influences), les anneaux, sections de repos et anneau le plus épais de la garde', () => {
+    const { scene, mesh } = deuxAnneaux();
+    const repos = poseDeRepos(scene, [mesh]);
+    const vidage = {
+      os: mesh.skeleton.bones.map((b) => ({ nom: b.name, parent: b.parent instanceof Bone ? b.parent.name : null, matrice: b.matrixWorld.toArray() })),
+      corps: [{
+        nom: mesh.name, positions: Array.from(repos.positions.get(mesh.name) ?? []),
+        indices: Array.from(mesh.geometry.attributes.skinIndex.array), poids: Array.from(mesh.geometry.attributes.skinWeight.array),
+      }],
+    };
+    const r = spawnSync(process.execPath, ['scripts/personnage-3d/base/anneaux.mjs'], { input: JSON.stringify(vidage), encoding: 'utf8', timeout: 60000 });
+    expect(r.stderr).toBe('');
+    expect(r.status).toBe(0);
+    const anneaux = anneauxArticulaires([mesh]);
+    const sections = sectionsDeRepos(anneaux, repos);
+    expect(anneaux.map((a) => a.os)).toEqual(['haut', 'bout']);
+    expect(anneauLePlusEpais(sections)).toBe(1);
+    expect(JSON.parse(r.stdout)).toEqual({ anneaux: anneaux.map((a, i) => ({ ...a, ...sections[i] })), lePlusEpais: anneauLePlusEpais(sections) });
   });
 
   it('l’épaisseur suit st en écart relatif : 1,5 % de 1,7 passe, 2,5 % non', () => {
