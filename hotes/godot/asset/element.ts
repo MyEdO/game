@@ -3,7 +3,8 @@
  * contre le manifeste de cette base (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme de
  * `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements` et `silhouettes`, et le choix
  * palette ou teinte des surfaces, et si un mesh rigide peut rester à la racine de la scène (`REGLES_DES_CATEGORIES`) ;
- * une clé bien formée se résout contre la donnée du jeu (`ecartsDeCleDElement`, surface du noyau).
+ * une clé bien formée se résout contre la donnée du jeu (`ecartsDeCleDElement`, surface du noyau). Chaque surface nomme
+ * un matériau du GLB ; une surface `blason: true` reçoit au montage l'emblème choisi (#3111) et porte l'UV `TEXCOORD_0`.
  */
 import { estObjet } from '../../../src/hote/formes';
 import { ecartsDeCleDElement, SLOTS, type CodeDEcartDeCle } from '../../../src/noyau/index.ts';
@@ -64,9 +65,9 @@ type Rien = Record<never, never>;
 type Liste = readonly string[];
 
 type Selon<P, Requis, Optionnel> = P extends 'requis' ? Requis : P extends 'optionnel' ? Optionnel : Rien;
-type SurfaceDe<C extends CategorieDElement> = Regles[C]['couleur'] extends 'palette'
-  ? { readonly nom: string; readonly palette: Slot }
-  : { readonly nom: string; readonly teinte: true };
+type SurfaceDe<C extends CategorieDElement> = { readonly nom: string; readonly blason?: true } & (Regles[C]['couleur'] extends 'palette'
+  ? { readonly palette: Slot }
+  : { readonly teinte: true });
 
 type ChampsDe<C extends CategorieDElement> = (Regles[C]['couches'] extends readonly Couche[] ? { readonly couche: Regles[C]['couches'][number] } : Rien)
   & Selon<Regles[C]['couvre'], { readonly couvre: Liste }, { readonly couvre?: Liste }>
@@ -105,6 +106,8 @@ export type CodeDEcartDElement =
   | 'silhouette-absente'
   | 'surface-hors-categorie'
   | 'palette-inconnue'
+  | 'surface-absente'
+  | 'uv-absente'
   | 'glb-different'
   | 'rigide-sans-mesh'
   | 'rigide-sur-os-absent'
@@ -196,11 +199,16 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
     if (!Array.isArray(brut.surfaces)) refus('forme', 'surfaces', 'liste attendue');
     else {
       const noms = new Set<string>();
+      const materiaux = new Set([...glb.materiauxParPiece.values()].flat());
       brut.surfaces.forEach((s: unknown, i) => {
         const ou = `surfaces.${i}`;
-        if (!estObjet(s) || typeof s.nom !== 'string' || s.nom === '' || Object.keys(s).length !== 2) return refus('forme', ou, '`{ nom, palette }` ou `{ nom, teinte: true }` attendu');
+        const couleur = estObjet(s) ? Object.keys(s).length - (s.blason === undefined ? 0 : 1) : 0;
+        if (!estObjet(s) || typeof s.nom !== 'string' || s.nom === '' || couleur !== 2) return refus('forme', ou, '`{ nom, palette }` ou `{ nom, teinte: true }` attendu, `blason: true` en option');
+        if (s.blason !== undefined && s.blason !== true) refus('forme', `${ou}.blason`, `${String(s.blason)} : \`true\` ou absent attendu`);
         if (noms.has(s.nom)) refus('forme', `${ou}.nom`, `${s.nom} nommée deux fois`);
         noms.add(s.nom);
+        if (!materiaux.has(s.nom)) refus('surface-absente', `${ou}.nom`, `${s.nom} n’est le nom d’aucun matériau du GLB`);
+        else if (s.blason === true && glb.materiauxSansUv.has(s.nom)) refus('uv-absente', `${ou}.blason`, `une primitive du matériau ${s.nom} n’a pas d’attribut \`TEXCOORD_0\` où poser l’emblème`);
         if (regle.couleur === 'teinte') {
           if (s.teinte !== true) refus('surface-hors-categorie', ou, `un élément \`${categorie}\` prend la teinte de l’objet : \`teinte: true\` attendu`);
         } else if (s.palette === undefined) refus('surface-hors-categorie', ou, `un élément \`${categorie}\` prend la palette du combattant : \`palette\` attendue`);

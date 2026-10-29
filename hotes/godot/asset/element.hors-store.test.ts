@@ -17,7 +17,10 @@ const BASE: BaseDUnElement = {
   silhouettes: ['feminin', 'corpulence', 'carrure_moins', 'carrure_plus'],
 };
 
-const OCTETS = glbDElement('hand_r');
+/** Les matériaux du GLB de test, un par surface que nomment les manifestes de ce fichier. */
+const MATERIAUX = ['tissu', 'cuir', 'plaque', 'poil', 'peau'];
+const glbAvec = (os: string | null, sansUv: readonly string[] = []) => glbDElement(os, MATERIAUX, sansUv);
+const OCTETS = glbAvec('hand_r');
 const empreinte = (octets: Uint8Array) => ({ sha256: sha256(octets), octets: octets.byteLength });
 const GLB = empreinte(OCTETS);
 const PALETTE = [{ nom: 'tissu', palette: 'vet1' }];
@@ -55,6 +58,10 @@ describe('validerElement : un manifeste valide par catégorie', () => {
   it.each(CATEGORIES_D_ELEMENT)('%s', (categorie) => {
     expect(verdict(manifeste(categorie))).toEqual({ ok: true, manifeste: manifeste(categorie) });
   });
+  it('une surface porte un blason en option', () => {
+    const blason = manifeste('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] });
+    expect(verdict(blason)).toEqual({ ok: true, manifeste: blason });
+  });
 });
 
 /** Un refus par code : le manifeste fautif, ses octets s'ils diffèrent d'`OCTETS`, et le seul code attendu. */
@@ -91,10 +98,14 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['surface-hors-categorie', 'teinte sur un vêtement', manifeste('vetement', { surfaces: TEINTE })],
   ['surface-hors-categorie', 'palette sur un rigide', manifeste('rigide', { surfaces: PALETTE })],
   ['palette-inconnue', 'clé de palette inconnue', manifeste('trait', { surfaces: [{ nom: 'peau', palette: 'or' }] })],
-  ['rigide-sans-mesh', 'rigide sans mesh', ...surGlb('rigide', {}, GLB_DE_BASE)],
-  ['rigide-sur-os-absent', 'rigide pendu à un os inconnu de la base', ...surGlb('rigide', {}, glbDElement('main_gauche'))],
-  ['rigide-a-la-racine', 'rigide à la racine', ...surGlb('rigide', {}, glbDElement(null))],
-  ['rigide-a-la-racine', 'accessoire rigide à la racine', ...surGlb('accessoire', { liaison: { mode: 'rigide' } }, glbDElement(null))],
+  ['forme', 'blason autre que `true`', manifeste('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: false }] })],
+  ['forme', 'blason sans couleur', manifeste('armure', { surfaces: [{ nom: 'plaque', blason: true }] })],
+  ['surface-absente', 'surface qu’aucun matériau du GLB ne nomme', manifeste('rigide', { surfaces: [{ nom: 'bois', teinte: true }] })],
+  ['uv-absente', 'blason sur une surface sans `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] }, glbAvec('hand_r', ['plaque']))],
+  ['rigide-sans-mesh', 'rigide sans mesh', ...surGlb('rigide', { surfaces: [] }, GLB_DE_BASE)],
+  ['rigide-sur-os-absent', 'rigide pendu à un os inconnu de la base', ...surGlb('rigide', {}, glbAvec('main_gauche'))],
+  ['rigide-a-la-racine', 'rigide à la racine', ...surGlb('rigide', {}, glbAvec(null))],
+  ['rigide-a-la-racine', 'accessoire rigide à la racine', ...surGlb('accessoire', { liaison: { mode: 'rigide' } }, glbAvec(null))],
 ];
 
 describe('validerElement : chaque refus nommé', () => {
@@ -102,7 +113,7 @@ describe('validerElement : chaque refus nommé', () => {
     const attendus: Record<CodeDEcartDElement, true> = {
       forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'cle-inconnue': true, 'piece-hors-categorie': true, 'base-differente': true,
       'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true,
-      'silhouette-absente': true, 'surface-hors-categorie': true, 'palette-inconnue': true, 'glb-different': true,
+      'silhouette-absente': true, 'surface-hors-categorie': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
       'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true,
     };
     expect(new Set(REFUS.map(([code]) => code))).toEqual(new Set(Object.keys(attendus)));
@@ -112,17 +123,17 @@ describe('validerElement : chaque refus nommé', () => {
 
 describe('validerElement : un mesh rigide se monte sous un os de la base', () => {
   it('un rigide pendu à un os inconnu de la base est refusé, le mesh et l’os nommés', () => {
-    expect(verdict(...surGlb('rigide', {}, glbDElement('main_gauche')))).toEqual({
+    expect(verdict(...surGlb('rigide', {}, glbAvec('main_gauche')))).toEqual({
       ok: false, ecarts: [{ code: 'rigide-sur-os-absent', ou: 'liaison.mode', detail: 'lame pend à main_gauche, qui n’est pas un os de la base `humanoide`' }],
     });
   });
   it('un rigide à la racine est refusé, le mesh nommé', () => {
-    expect(verdict(...surGlb('rigide', {}, glbDElement(null)))).toEqual({
+    expect(verdict(...surGlb('rigide', {}, glbAvec(null)))).toEqual({
       ok: false, ecarts: [{ code: 'rigide-a-la-racine', ou: 'liaison.mode', detail: 'lame ne pend directement à aucune articulation d’un skin : un élément `rigide` ne reste pas à la racine de la scène' }],
     });
   });
   it.each(['decor', 'vehicule'] as const)('un `%s` garde son mesh à la racine', (categorie) => {
-    expect(verdict(...surGlb(categorie, {}, glbDElement(null))).ok).toBe(true);
+    expect(verdict(...surGlb(categorie, {}, glbAvec(null))).ok).toBe(true);
   });
 });
 

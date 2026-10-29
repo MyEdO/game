@@ -6,10 +6,13 @@ import { MANIFESTE_DE_PRODUCTION } from './dossierDeProduction.ts';
 import { estBase } from './modeles.ts';
 
 export const GLB_DE_BASE = ecrireGlb({ asset: { version: '2.0' }, nodes: [{ name: 'root' }], skins: [{ joints: [0] }], animations: [{ name: 'walk' }] }, null);
-/** Le GLB d'un élément rigide : le mesh `lame` pend à l'articulation `os` d'un skin, ou reste à la racine (`null`). */
-export const glbDElement = (os: string | null) => ecrireGlb({
+/** Le GLB d'un élément rigide : le mesh `lame` pend à l'articulation `os` d'un skin, ou reste à la racine (`null`) ; une
+ *  primitive par matériau de `materiaux`, chacune dépliée en `TEXCOORD_0` sauf celles des matériaux de `sansUv`. */
+export const glbDElement = (os: string | null, materiaux: readonly string[] = ['metal'], sansUv: readonly string[] = []) => ecrireGlb({
   asset: { version: '2.0' }, nodes: os === null ? [{ name: 'lame', mesh: 0 }] : [{ name: os, children: [1] }, { name: 'lame', mesh: 0 }],
-  ...(os === null ? {} : { skins: [{ joints: [0] }] }), meshes: [{ primitives: [{ material: 0 }] }], materials: [{ name: 'metal' }],
+  ...(os === null ? {} : { skins: [{ joints: [0] }] }),
+  meshes: [{ primitives: materiaux.map((nom, i) => ({ material: i, ...(sansUv.includes(nom) ? {} : { attributes: { TEXCOORD_0: 0 } }) })) }],
+  materials: materiaux.map(name => ({ name })),
 }, null);
 export const GLB_D_ELEMENT = glbDElement('root');
 const empreinte = (octets: Uint8Array) => ({ sha256: sha256(octets), octets: octets.byteLength });
