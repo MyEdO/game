@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makeRNG } from '../engine/dice';
 import { startCascade, rollTableStep, runCascadeImmediate, stepInteraction, stepReady, tableStepDef, tableStepIds, tableStepDie, naturalRollForTableRow } from '../noyau/cascade';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier } from '../noyau/cascade.testkit';
 import { STRUCTURE_CRIT_TABLE } from '../noyau/combatFlow';
 import { tableDesCritiquesDeStructure } from '../engine/structureCritical';
 import { stripBookMarker, hasBookMarker } from '../data/bookMarker';

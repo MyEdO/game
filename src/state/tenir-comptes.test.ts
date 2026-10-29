@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { acheterAuPanier } from './marchand.testkit';
+import { acheterAuPanier } from '../noyau/marchand.testkit';
 import { emptyScene } from '../noyau/monde/scene';
 import { statutLePlusHaut } from '../engine/statut.testkit';
 import { toBrass } from '../engine/money';
@@ -35,7 +35,7 @@ describe('Tenir les comptes (LDB 59 l.9-11)', () => {
     useGame.getState().openMerchant('pnj');
     const line = useGame.getState().merchant!.stock.find((l) => l.qty > 0)!;
     const before = toBrass(partyMoneyTotal(useGame.getState));
-    acheterAuPanier(line.id);
+    acheterAuPanier(useGame.getState, line.id);
     const st = useGame.getState();
     expect(st.party[0].items!.some((i) => i.trappingId === line.id)).toBe(true); // objet reçu
     expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(before); // aucune pièce comptée (dans les moyens du Statut)
@@ -48,7 +48,7 @@ describe('Tenir les comptes (LDB 59 l.9-11)', () => {
     useGame.getState().openMerchant('pnj');
     const line = useGame.getState().merchant!.stock.find((l) => l.qty > 0)!;
     const before = toBrass(partyMoneyTotal(useGame.getState));
-    acheterAuPanier(line.id);
+    acheterAuPanier(useGame.getState, line.id);
     expect(toBrass(partyMoneyTotal(useGame.getState))).toBeLessThan(before); // débité
   });
 });

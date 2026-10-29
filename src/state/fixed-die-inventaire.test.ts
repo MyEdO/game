@@ -8,7 +8,7 @@ import type { FlowKey } from '../noyau/flowVerbs';
 import type { Combatant } from '../engine/types';
 import type { ShipManeuverParticipant } from '../noyau/pendings';
 import { propulsionDuNavire } from '../engine/shipBuild';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 

@@ -22,7 +22,7 @@ type NetMode = 'local' | 'host' | 'guest';
 import { CombatConsole } from './console/CombatConsole';
 import { ActiveModal } from './ActiveModal';
 import { CampaignView } from './CampaignView';
-import { cascadeDeTest } from '../state/cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 
 beforeAll(() => {

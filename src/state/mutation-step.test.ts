@@ -15,7 +15,7 @@ import { species } from '../data';
 import { createHero } from '../engine/character';
 import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { canFixDie } from '../noyau/netOwnership';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import { desEnSuite } from '../engine/dice.testkit';

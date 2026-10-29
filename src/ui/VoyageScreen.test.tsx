@@ -10,7 +10,7 @@ import { moraleBand } from '../engine/crewMorale';
 import { voyageStepPending } from '../noyau/modalArbiter';
 import type { PendingCascade, CascadeStep } from '../noyau/pendings';
 import type { PendingRest } from '../noyau/restFlow';
-import { cascadeDeTest } from '../state/cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { desDuTest } from '../engine/dice.testkit';
 
 const cascadeStep = (kind: string): CascadeStep => ({ id: kind, kind, result: null } as CascadeStep);

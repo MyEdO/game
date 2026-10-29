@@ -28,7 +28,7 @@ import { projectsLoad } from './projectLibrary';
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
 import { brancherBasesSimulees } from '../web/indexedDb.testkit';
 import { parseProject } from '../noyau/worldMap';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { t } from '../i18n';
 import { OPTIONAL_RULES } from '../engine/policy';
 import { collectionDuDataset } from '../data/overrides';

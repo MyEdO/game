@@ -31,7 +31,7 @@ import { intentAllowedFor, seatInfluences } from '../noyau/netOwnership';
 import { modalOwnerOf } from '../noyau/modalArbiter';
 import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 import type { GameState } from './store';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { PENDING_BY_JET, type HostJet } from '../noyau/slotsDeJet';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from '../noyau/noyau.testkit';

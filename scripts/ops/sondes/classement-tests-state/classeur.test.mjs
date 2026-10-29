@@ -8,7 +8,7 @@ import { analyserTexte } from '../../../guards/lib/dialecte.mjs'
 import { VIRTUAL_ROOT, libererSessions, virtualProgram } from '../../../guards/lib/tsProgram.mjs'
 import {
   STORE, TYPES_DE_L_ADAPTATEUR, TYPE_DE_L_ETAT, arcsDuTest, cheminsCites, classer, clesDesTypes, clesDuStore,
-  estHorsStore, estTest, lireUnTest, proceduresDeLHote, signauxDuTest,
+  estHorsStore, estTest, lireUnTest, nomsNusCites, proceduresDeLHote, signauxDuTest,
 } from './classeur.mjs'
 
 const STORE_FICTIF = {
@@ -49,7 +49,7 @@ test('clesDesTypes : un type absent du fichier lève', () => {
 const RACINE = '/depot'
 const ARBRE = new Set([
   STORE, 'src/state/stagePan.ts', 'src/state/combat.testkit.ts', 'src/engine/tests.ts',
-  'src/hote/sauvegardes.ts', 'src/hote/roster.ts',
+  'src/hote/sauvegardes.ts', 'src/hote/roster.ts', 'src/ui/VoyageScreen.tsx', 'src/noyau/travelFlow.ts',
 ].map((c) => `${RACINE}/${c}`))
 const lire = (rel, lignes) => {
   const { sourceFile, diagnostics } = analyserTexte({ rel, text: lignes.join('\n') })
@@ -60,7 +60,10 @@ const CONTEXTE = {
   adaptateur: new Set(['zoom', 'setZoom', 'camRot']),
   jeu: new Set(['party', 'screen', 'startBattle']),
   horsStore: new Map([['src/hote/sauvegardes.ts#lireLaSauvegarde', ['src/hote/sauvegardes.hors-store.test.ts']]]),
+  chargeLeStore: () => null,
 }
+/** Le contexte d'un arbre où l'écran de voyage (`src/ui/VoyageScreen.tsx`) charge le store à l'exécution. */
+const AVEC_ECRAN = { ...CONTEXTE, chargeLeStore: (cible) => (cible === 'src/ui/VoyageScreen.tsx' ? STORE : null) }
 
 test('noyau : le store importé, seules des clés du jeu lues', () => {
   const t = lire('src/state/combat.test.ts', [
@@ -73,7 +76,7 @@ test('noyau : le store importé, seules des clés du jeu lues', () => {
 
 test('noyau : un banc de src/state porte le store, il n\'est pas un module web', () => {
   const t = lire('src/state/flux.test.ts', ["import { ouvrir } from './combat.testkit'", 'ouvrir().party'])
-  assert.deepEqual(classer(t, CONTEXTE), { classe: 'noyau', base: 'noyau', clesAdaptateur: [], clesJeu: 1, modulesWeb: [], doublons: [] })
+  assert.deepEqual(classer(t, CONTEXTE), { classe: 'noyau', base: 'noyau', clesAdaptateur: [], clesJeu: 1, modulesWeb: [], transits: [], doublons: [] })
 })
 
 test('web : une clé de l\'adaptateur lue, aucune du jeu', () => {
@@ -101,6 +104,25 @@ test('moteur : aucun arc d\'exécution vers src/state — un import de type seul
     'const s = {} as GameState; s.zoom; s.party; rollTest()',
   ])
   assert.equal(classer(t, CONTEXTE).classe, 'moteur')
+})
+
+test('mixte : le témoin voyage-ecrans-vrais — store et clés du jeu, plus un écran de src/ui qui charge le store en transit', () => {
+  const t = lire('src/state/voyage-ecrans-vrais.test.ts', [
+    "import { useGame } from './store'",
+    "import { voyageDayCards } from '../ui/VoyageScreen'",
+    'useGame.getState().party; voyageDayCards()',
+  ])
+  const c = classer(t, AVEC_ECRAN)
+  assert.equal(c.classe, 'mixte')
+  assert.deepEqual(c.transits, ['src/ui/VoyageScreen.tsx → src/state/store.ts'])
+  assert.equal(classer(t, CONTEXTE).classe, 'noyau')
+})
+
+test('web : sans arc direct vers src/state, un module qui charge le store en transit n\'est pas du moteur ; un arc qui n\'y mène pas, si', () => {
+  const ecran = lire('src/state/forme.test.ts', ["import { voyageDayCards } from '../ui/VoyageScreen'", 'voyageDayCards()'])
+  assert.equal(classer(ecran, AVEC_ECRAN).classe, 'web')
+  const regle = lire('src/state/regle.test.ts', ["import { maxHoursPerDay } from '../noyau/travelFlow'", 'maxHoursPerDay()'])
+  assert.equal(classer(regle, AVEC_ECRAN).classe, 'moteur')
 })
 
 test('doublon : une procédure de src/hote qu\'un test hors store importe déjà ; base gardée', () => {
@@ -137,4 +159,10 @@ test('estTest, estHorsStore : une suite, et une suite hors store du noyau ou de 
 test('cheminsCites : chemins de tests de src/state, sans doublon, triés ; un module non test n\'en est pas un', () => {
   const texte = "'src/state/b.test.ts', \"src/state/combat/a.test.tsx\" src/state/b.test.ts src/state/store.ts src/ui/x.test.ts"
   assert.deepEqual(cheminsCites(texte), ['src/state/b.test.ts', 'src/state/combat/a.test.tsx'])
+})
+
+test('nomsNusCites : un nom de base de test cité sans dossier ; ni dans un chemin, ni accolé à un mot, ni prolongé', () => {
+  const noms = new Set(['travel.test.ts', 'ship-maneuver.test.ts', 'a.test.ts'])
+  const texte = '(`travel.test.ts`, "ship-maneuver.test.ts") src/state/travel.test.ts x-travel.test.ts a.test.ts.snap autre.test.ts'
+  assert.deepEqual(nomsNusCites(texte, noms), ['ship-maneuver.test.ts', 'travel.test.ts'])
 })

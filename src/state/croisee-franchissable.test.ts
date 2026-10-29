@@ -4,7 +4,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { placeCombatant } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { phaseDeChute } from '../noyau/fallMove';
 import { aretesUtilisables } from '../noyau/aretes';
 import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';

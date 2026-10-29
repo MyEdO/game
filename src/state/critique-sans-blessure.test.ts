@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { applyAttackResult, jouerLesTirsDeBordee } from '../noyau/combatFlow';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { resolveVolley } from '../engine/volley';
 import { rederivePassiveAttack } from '../engine/combat';
 import { createHero } from '../engine/character';

@@ -11,7 +11,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 import { findSpellById } from '../data';
 import { hasCondition, COND } from '../engine/conditions';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { makeRNG } from '../engine/dice';
 
 /**

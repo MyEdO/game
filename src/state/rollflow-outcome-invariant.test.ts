@@ -5,7 +5,7 @@ import { FLOW_HANDLERS } from '../noyau/rollFlowSpecs';
 import { FLOW_VERBS } from '../noyau/flowVerbs';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { t } from '../i18n';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from '../noyau/noyau.testkit';

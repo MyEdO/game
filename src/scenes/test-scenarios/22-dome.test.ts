@@ -5,7 +5,7 @@ import { applyAttackResult, runEnemyAI, applyCast } from '../../noyau/combatFlow
 import { findSpellById } from '../../data';
 import type { CastResult } from '../../engine/magic';
 import { seedBattleRng } from '../../noyau/battleRng';
-import { draineEtLit } from '../../state/cascade.testkit';
+import { draineEtLit } from '../../noyau/cascade.testkit';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
 import { OPS_DIFFEREES } from '../../noyau/combatEffects';

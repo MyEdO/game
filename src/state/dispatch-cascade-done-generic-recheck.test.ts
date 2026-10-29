@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 
 /**

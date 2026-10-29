@@ -5,7 +5,7 @@ import { applyEffects } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
 import { placeCombatant } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { t } from '../i18n';
 
 /**

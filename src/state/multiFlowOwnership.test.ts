@@ -13,7 +13,7 @@ import { FLOW_VERBS, participantOwnedIntents, flowActionName } from '../noyau/fl
 import { intentAllowedFor, ROUTES } from '../noyau/netOwnership';
 import { COMBAT_INTENTS } from '../noyau/intentionsDeSiege';
 import type { GameState } from './store';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 

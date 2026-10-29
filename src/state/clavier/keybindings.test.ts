@@ -11,7 +11,7 @@ import { KEYBINDINGS, bindingParId, formatCombo, modsDeLaTouche, modsMatch, type
 import { modalHolds, pickActiveModalKey } from '../../noyau/modalArbiter';
 import type { GameState } from '../store';
 import { spawnEnemy } from '../../noyau/monde/spawn';
-import { cascadeDeTest } from '../cascade.testkit';
+import { cascadeDeTest } from '../../noyau/cascade.testkit';
 import { cleDeFixture } from '../../noyau/noyau.testkit';
 
 const binding = (id: string) => bindingParId(id)!;

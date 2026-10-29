@@ -7,7 +7,7 @@
 // dérive. Chacun des deux vaut directement, ou par l'appel d'un HELPER — fonction locale nommée dont
 // aucune itération ne lit ni ne joue directement, au statut lu sur son seul corps. Une fonction à UNE
 // étape n'est pas un pilote ; la boucle qui l'appelle en est un. Un appel au kit
-// (`src/state/cascade.testkit.ts`), nommé ou par espace de noms, n'est jamais un verbe. Corps GÉNÉRÉ
+// (`src/noyau/cascade.testkit.ts`), nommé ou par espace de noms, n'est jamais un verbe. Corps GÉNÉRÉ
 // par `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/piloteCascadeAudit.ts` (politique
 // `DECROISSANT`) depuis `sitesPiloteCascade()` — la MESURE, ses limites et ses exemptions au site vivent
 // dans `piloteCascadeAudit.ts`, partagée avec la garde.
@@ -23,23 +23,25 @@
 
 /** @type {import('./stock.mjs').EntreeDeSite[]} */
 export const PILOTE_CASCADE_RATCHET = [
+  { fichier: 'src/noyau/land-market-flow.hors-store.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
+  { fichier: 'src/noyau/land-market-flow.hors-store.test.ts', ref: 'fn:sellAtB', occurrence: 1 },
+  { fichier: 'src/noyau/land-market.hors-store.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
+  { fichier: 'src/noyau/port-sell-cargo.hors-store.test.ts', ref: 'fn:drain', occurrence: 1 },
   { fichier: 'src/noyau/shipwreck.test.ts', ref: 'fn:drainSwimCascade', occurrence: 1 },
   { fichier: 'src/noyau/tavernFlow.test.ts', ref: 'fn:drain', occurrence: 1 },
   { fichier: 'src/noyau/tavernFlow.test.ts', ref: 'it:+1 État Exténué tous les (Bonus d’Endurance) tours sans vainqueur (l.34)', occurrence: 1 },
   { fichier: 'src/noyau/tavernFlow.test.ts', ref: 'it:la manche qui EMPORTE la partie n’inflige pas l’Exténué, même au rang du Bonus d’Endurance (l.34)', occurrence: 1 },
+  { fichier: 'src/noyau/travel.hors-store.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
+  { fichier: 'src/noyau/voyage-cadence.hors-store.test.ts', ref: 'it:chaque contributeur porte sa paire Compétence + son rôle en ID (provenance)', occurrence: 1 },
   { fichier: 'src/scenes/test-scenarios/15-commerce-fluvial.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
   { fichier: 'src/scenes/test-scenarios/duel-naval.test.ts', ref: 'fn:settleCascade', occurrence: 1 },
   { fichier: 'src/state/combat-entity-reconcile.test.ts', ref: 'fn:drainCombatEndCascade', occurrence: 1 },
   { fichier: 'src/state/disease-contraction.test.ts', ref: 'fn:resolveCombatEnd', occurrence: 1 },
   { fichier: 'src/state/firstBlood.test.ts', ref: 'fn:drainCombatEndCascade', occurrence: 1 },
   { fichier: 'src/state/inn-flow.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
-  { fichier: 'src/state/land-market-flow.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
-  { fichier: 'src/state/land-market-flow.test.ts', ref: 'fn:sellAtB', occurrence: 1 },
-  { fichier: 'src/state/land-market.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
   { fichier: 'src/state/maladie-porte-valeur.test.ts', ref: 'it:B2 — le HARNAIS de test et la NUIT réelle appliquent la MÊME guérison (Exténué collant compris)', occurrence: 1 },
   { fichier: 'src/state/miscast-step.test.ts', ref: 'fn:joueEnRetenant', occurrence: 1 },
   { fichier: 'src/state/night-bands.test.ts', ref: 'it:deux jours de Dessoûlage → deux bandes de gueule de bois aux ids DISTINCTS', occurrence: 1 },
-  { fichier: 'src/state/port-sell-cargo.test.ts', ref: 'fn:drain', occurrence: 1 },
   { fichier: 'src/state/rest-flow.test.ts', ref: 'fn:walkCascade', occurrence: 1 },
   { fichier: 'src/state/rest-flow.test.ts', ref: 'fn:walkCascadeAbriFails', occurrence: 1 },
   { fichier: 'src/state/rest-flow.test.ts', ref: 'fn:walkNightChain', occurrence: 1 },
@@ -55,8 +57,6 @@ export const PILOTE_CASCADE_RATCHET = [
   { fichier: 'src/state/tavern-middenball.test.ts', ref: 'it:la partie dure SIX tours (deux mi-temps de trois) et se dénoue sur le compte des buts', occurrence: 1 },
   { fichier: 'src/state/tavern-regime-rapide.test.ts', ref: 'fn:drain', occurrence: 1 },
   { fichier: 'src/state/tavern-torchon.test.ts', ref: 'it:GRAINE RÉELLE (aucun DR posé) : la partie entière se déroule et se dénoue', occurrence: 1 },
-  { fichier: 'src/state/travel.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
   { fichier: 'src/state/victoryCondition.test.ts', ref: 'fn:drainCombatEndCascade', occurrence: 1 },
-  { fichier: 'src/state/voyage-cadence.test.ts', ref: 'it:chaque contributeur porte sa paire Compétence + son rôle en ID (provenance)', occurrence: 1 },
   { fichier: 'src/ui/SequencePanel.test.tsx', ref: 'it:Middenball : le tableau de marque porte le score PAR ÉQUIPE (buts) et la somme du tour', occurrence: 1 },
 ]

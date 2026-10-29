@@ -11,7 +11,7 @@ import type { CascadeStep } from '../noyau/pendings';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
-import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
+import { avanceEtapeCascade, cascadeDeTest } from '../noyau/cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 

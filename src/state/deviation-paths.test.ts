@@ -22,7 +22,7 @@ import type { AttackResult } from '../engine/combat';
 import { emptyScene } from '../noyau/monde/scene';
 import { stepInteraction } from '../noyau/cascade';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { t as tr } from '../i18n';
 import { avecLesTables } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';

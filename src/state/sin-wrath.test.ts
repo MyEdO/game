@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from '../noyau/combatEffects';
-import { avanceEtapeCascade, draineEtLit } from './cascade.testkit';
+import { avanceEtapeCascade, draineEtLit } from '../noyau/cascade.testkit';
 import { pregenParty, PREGEN } from '../data/pregens';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';

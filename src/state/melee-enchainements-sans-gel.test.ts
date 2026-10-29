@@ -12,7 +12,7 @@ import { targetingHolder } from '../noyau/targetingHolder';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import { chebyshev } from '../engine/grid';
 import type { Combatant, Weapon } from '../engine/types';
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
-import { inexplique } from './cascade.testkit';
+import { inexplique } from '../noyau/cascade.testkit';
 import { rollLine, assertSeparabilite, SEPARABILITE, type RollLineCombat } from '../noyau/rollSeam';
 import { openCombatEndCascade, openContractionCascade, openAttackCascade } from '../noyau/combatFlow';
 import { resolveActGates } from '../noyau/combat/turnHooks';

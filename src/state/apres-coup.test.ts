@@ -22,7 +22,7 @@ import { resolveMelee, freeAttackWeapon, type AttackResult } from '../engine/com
 import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { makeRNG } from '../engine/dice';
 import type { Combatant, Weapon } from '../engine/types';
-import { avanceEtapeCascade, draineCascade, poseSurDeNonTombe } from './cascade.testkit';
+import { avanceEtapeCascade, draineCascade, poseSurDeNonTombe } from '../noyau/cascade.testkit';
 
 const g = useGame.getState;
 const CH = { 'capacite-de-combat': 45, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };

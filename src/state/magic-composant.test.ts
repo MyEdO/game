@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import { applyMiscast, useSpellComponent } from '../noyau/combatFlow';
 import { setRule, resetRule } from '../engine/policy';
 import { createHero } from '../engine/character';

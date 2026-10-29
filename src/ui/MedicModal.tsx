@@ -168,7 +168,7 @@ export function MedicModal() {
                 />
               )}
               {/* EXCEPTION nommée au site unique `RollRow.extendedDr` (arbitrage user 2026-07-11, verrou
-                  `travel-carto.test.ts`) : cet état d'OPÉRATION ARMÉE est visible AVANT/ENTRE les passes,
+                  `travel-carto.hors-store.test.ts`) : cet état d'OPÉRATION ARMÉE est visible AVANT/ENTRE les passes,
                   hors de toute rangée de jet (`useSurgeryJetProps` n'a pas de rangée tant qu'aucune passe n'est
                   ouverte) — ce n'est pas la barre d'UN jet mais le cumul PERSISTANT de l'opération. */}
               <DrBar cum={sg.cumDR} target={sg.targetDR} />

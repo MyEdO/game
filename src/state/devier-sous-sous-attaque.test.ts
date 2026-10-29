@@ -3,7 +3,7 @@ import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { applyHullCriticalToTarget, jouerLesTirsDeBordee } from '../noyau/combatFlow';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { emptyScene } from '../noyau/monde/scene';
 import { toucheAuJetPose, type AttackResult, type RollBreakdown } from '../engine/combat';

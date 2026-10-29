@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { combatAdvanceBlocked } from './combatGate';
 import type { ArbiterState } from './modalArbiter';
-import { cascadeDeTest } from '../state/cascade.testkit';
+import { cascadeDeTest } from './cascade.testkit';
 
 /**
  * Garde unique de reprise (A1) — strictement ISO aux 4 gardes historiques. Les `opts` reflètent

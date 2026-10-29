@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import { emptyScene } from '../noyau/monde/scene';
 import { initialFields } from '../noyau/stateFields';
 import { setRule, resetRule } from '../engine/policy';

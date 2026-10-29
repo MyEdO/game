@@ -6,7 +6,7 @@ import { reverseRoll, rollMeleeDefender, type AttackResult } from '../engine/com
 import { isOutOfAction } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from '../noyau/battleRng';
-import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
+import { avanceEtapeCascade, draineCascade } from '../noyau/cascade.testkit';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 

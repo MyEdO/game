@@ -18,7 +18,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
 import { buildScene } from '../noyau/mapSpec';
 import { createHero, skillCharacteristicById } from '../engine/character';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import type { WorldMap } from '../noyau/worldMap';
 import type { Combatant } from '../engine/types';

@@ -30,7 +30,7 @@ import type { FlowTest } from '../engine/flowCore';
 import type { Get } from '../noyau/flowTypes';
 import type { CascadeStep } from '../noyau/pendings';
 import { battleRng } from '../noyau/battleRng';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { sceneLieu } from '../noyau/restFlow';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 
