@@ -17,7 +17,7 @@ import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './r
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
-import { estEspeceDessinee, messageDEspeceInconnue, sexeDeCoiffure } from './art';
+import { estEspeceDessinee, messageDEspeceInconnue, sexesDeCoiffure } from './art';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
 import { marquerProduit } from './interne/produits';
@@ -808,15 +808,12 @@ export const countSpecSchema = z.union([
 export const sexeSchema = enumNomme({ M: 'Masculin', F: 'Féminin' });
 export type Sexe = z.infer<typeof sexeSchema>;
 
-/** Faute de la coiffure imposée `hairstyle` au regard du `sex` posé dans le MÊME objet, `null` sinon. Le
- *  sexe se nomme par son libellé (`libelleDeValeur(sexeSchema, …)`). */
+/** Faute de la coiffure imposée `hairstyle` au regard du `sex` posé dans le MÊME objet : aucun art pour ce
+ *  sexe (`sexesDeCoiffure`) ; `null` sinon, sans sexe posé, et pour un id inconnu (nommé par `ref`). */
 function fauteDeCoiffure(hairstyle: string, sex: Sexe | undefined): string | null {
-  const sexe = sexeDeCoiffure(hairstyle);
-  if (!sexe) return `coiffure « ${hairstyle} » inconnue : absente du catalogue des coiffures.`;
-  const libelle = libelleDeValeur(sexeSchema, sexe);
-  if (!sex) return `coiffure « ${hairstyle} » (sexe : ${libelle}) imposée sans sexe posé — poser le sexe ${libelle}, ou retirer la coiffure.`;
-  if (sex !== sexe) return `coiffure « ${hairstyle} » (sexe : ${libelle}) imposée sur le sexe ${libelleDeValeur(sexeSchema, sex)}.`;
-  return null;
+  const sexes = sexesDeCoiffure(hairstyle);
+  if (!sex || !sexes || sexes.includes(sex)) return null;
+  return `coiffure « ${hairstyle} » sans art pour le sexe ${libelleDeValeur(sexeSchema, sex)}.`;
 }
 
 /** #2948 */
@@ -833,6 +830,9 @@ export function validerApparenceDonnee(v: { op?: string; trappingId?: string; ap
 const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>> = z.record(idDe('trapping', undefined, { ouverte: true }), ref('apparence')).superRefine((v, ctx) => {
   for (const [trappingId, apparence] of Object.entries(v)) validerApparenceDObjet(trappingId, apparence.id, ctx, [trappingId, 'id']);
 });
+
+/** Coiffure IMPOSÉE — ligne `coiffure` de `garde-robe.json` (#637, #3113), patron `apparencesDObjetsSchema`. */
+const coiffureImposeeSchema: z.ZodType<{ id: string }> = ref('gardeRobe', undefined, 'coiffure');
 
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, `traits`, `mutations`, la scène (`SceneEntity.appearance`) et le narratif. */
@@ -867,13 +867,12 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
    *  absent : les PA restent mécaniques PURS, aucun art d'armure synthétisé (nu de l'espèce/naturel). */
   armurePortee: z.boolean().optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
-  /** Coiffure IMPOSÉE — id stable d'une coiffure du rig (`gameIso/rig/parts/hairstyles/defs`, #637). */
-  hairstyle: z.string().optional(),
+  hairstyle: coiffureImposeeSchema.optional(),
   eyes: nommerChamps(z.strictObject({ G: z.string().optional(), D: z.string().optional() }), { G: { label: "gauche" }, D: { label: "droit" } }).optional(),
   features: z.array(z.string()).optional(),
 }).superRefine((a, ctx) => {
-  const faute = a.hairstyle === undefined ? null : fauteDeCoiffure(a.hairstyle, a.sex);
-  if (faute) ctx.addIssue({ code: 'custom', path: ['hairstyle'], message: faute });
+  const faute = a.hairstyle === undefined ? null : fauteDeCoiffure(a.hairstyle.id, a.sex);
+  if (faute) ctx.addIssue({ code: 'custom', path: ['hairstyle', 'id'], message: faute });
 }), { seed: { label: "graine" }, monster: { label: "créature" }, colors: { label: "couleurs" }, parts: { label: "parties" }, sex: { label: "sexe" }, build: { label: "corpulence" }, species: { label: "espèce" }, tenue: { label: "tenue" }, harnais: { label: "harnais" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } }, hairstyle: { label: "coiffure" }, eyes: { label: "yeux" }, features: { label: "détails" } });
 
 /** `HitLocation` (`src/engine/types.ts`) — 6 zones de touche (dé inversé, LDB). Resserré depuis

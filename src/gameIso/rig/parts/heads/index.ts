@@ -1,9 +1,13 @@
 import { HEAD_DEFS } from './_registry.generated';
 import type { HeadDef } from './types';
+import type { Sexe } from '../../../../data/schemas/grammaire/valeurs';
+import { baseSpeciesOf } from '../../skeletons';
 export type { HeadDef } from './types';
+export { HEAD_DEFS };
 
-/** Têtes (visage + coiffure défaut + crâne d'espèce optionnel) par clé 'Race:Sexe' — dérivées des
- *  seuls fichiers `defs/`. */
-export const HEADS_BY_KEY: Record<string, Pick<HeadDef, 'visage' | 'cheveux' | 'crane'>> = Object.fromEntries(
-  HEAD_DEFS.map((d) => [d.key, { visage: d.visage, cheveux: d.cheveux, crane: d.crane }]),
-);
+/** Tête dessinée d'une espèce×sexe : la def dont `tete` vaut `baseSpeciesOf(species)`, `undefined` pour
+ *  une espèce sans tête (visage de repli de `cosmetic.ts`). */
+export function teteDEspece(species: string, sex: Sexe): HeadDef | undefined {
+  const tete = baseSpeciesOf(species);
+  return HEAD_DEFS.find((d) => d.tete === tete && d.sex === sex);
+}

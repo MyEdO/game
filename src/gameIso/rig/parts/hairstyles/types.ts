@@ -1,8 +1,9 @@
 import type { Sexe } from '../../../../data/schemas/grammaire/valeurs';
 import type { ViewSet } from '../types';
+import type { CoiffureId, TeteId } from '../../../../data/schemas/defs/garde-robe';
 
 /**
- * Art PAR-VUE d'une chevelure (coiffure du pool OU coiffure par défaut d'une tête) :
+ * Art PAR-VUE d'une coiffure :
  * les 3 vues `{front, profile, back}` + DEUX composantes optionnelles PAR vue :
  * - `behind` : masse ARRIÈRE qui épouse le crâne, peinte DERRIÈRE la part de visage
  *   (layer −2 — même sémantique que `RigOverlay.behind`) ;
@@ -16,10 +17,10 @@ import type { ViewSet } from '../types';
 export type HairArt = ViewSet & { behind?: Partial<ViewSet>; drop?: Partial<ViewSet> };
 
 /**
- * Une COIFFURE = un fichier `defs/<nom>-<Sexe>.ts`. Pool PARTAGÉ par sexe (toutes espèces), art en
- * jetons @cheveux/@cheveuxO/@cheveuxH. Porte ses vues (cf. `HairArt`) : le profil/dos vit AVEC la
- * coiffure. `order` = position dans le pool (sélection seed-déterministe). `label` = description
- * d'authoring, non consommée par la résolution (choix par sexe+ordre, jamais par nom). Ajouter une
- * coiffure = déposer un fichier.
+ * Une COIFFURE = un fichier `defs/<coiffure>-<Sexe>.ts` : l'art d'une ligne `coiffure` de
+ * `garde-robe.json` pour un sexe, en jetons @cheveux/@cheveuxO/@cheveuxH, vues comprises (cf. `HairArt`).
+ * `tete` absent = pool partagé de toutes les espèces ; posé = pool de cette seule tête, placé avant le
+ * partagé. `order` = rang dans son pool (tirage par la graine). Le libellé vit en donnée
+ * (`findCoiffureById`).
  */
-export type HairstyleDef = { id: string; label: string; sex: Sexe; order: number } & HairArt;
+export type HairstyleDef = { coiffure: CoiffureId; sex: Sexe; order: number; tete?: TeteId } & HairArt;

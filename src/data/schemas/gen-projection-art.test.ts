@@ -19,7 +19,7 @@ describe('projection d’un registre de defs', () => {
     return dir;
   };
 
-  it('ids en guillemets simples ET doubles, triés ; avec `champ`, la valeur par id', () => {
+  it('ids en guillemets simples ET doubles, triés ; avec `champ`, les valeurs par id', () => {
     const dir = dossier('guillemets', {
       'B.ts': "export const def = {\n  label: 'B',\n  id: \"bete\",\n  sex: 'F',\n};\n",
       'A.ts': "export const def = {\n  id: 'arbre',\n  sex: \"M\",\n};\n",
@@ -39,8 +39,22 @@ describe('projection d’un registre de defs', () => {
   });
 
   it('une coiffure sans `sex` ÉCHOUE en se nommant', () => {
-    const dir = dossier('sans-sexe', { 'Chauve.ts': "export const hairstyle = {\n  id: 'chauve',\n};\n" });
-    expect(() => projeterDefs(dir, { nom: 'SEXE_DE_COIFFURE', champ: 'sex' })).toThrow(/Chauve\.ts : 0 champ\(s\) « sex »/);
+    const dir = dossier('sans-sexe', { 'Chauve.ts': "export const hairstyle = {\n  coiffure: 'chauve',\n};\n" });
+    expect(() => projeterDefs(dir, { nom: 'SEXES_DE_COIFFURE', cle: 'coiffure', champ: 'sex' })).toThrow(/Chauve\.ts : 0 champ\(s\) « sex »/);
+  });
+
+  it('avec `cle`, les valeurs des defs de même clé se groupent, triées', () => {
+    const dir = dossier('groupe', {
+      'tresse-M.ts': "  coiffure: 'tresse',\n  sex: 'M',\n",
+      'tresse-F.ts': "  coiffure: 'tresse',\n  sex: 'F',\n",
+      'rase-M.ts': "  coiffure: 'rase',\n  sex: 'M',\n",
+    });
+    expect(projeterDefs(dir, { nom: 'X', cle: 'coiffure', champ: 'sex' })).toEqual([['rase', 'M'], ['tresse', 'F', 'M']]);
+  });
+
+  it('un couple clé × valeur porté par deux defs ÉCHOUE en le nommant', () => {
+    const dir = dossier('couple', { 'A.ts': "  coiffure: 'meme',\n  sex: 'F',\n", 'B.ts': "  coiffure: 'meme',\n  sex: 'F',\n" });
+    expect(() => projeterDefs(dir, { nom: 'X', cle: 'coiffure', champ: 'sex' })).toThrow(/coiffure « meme » × sex « F » porté par deux defs/);
   });
 
   it('un id porté par deux defs ÉCHOUE en nommant l’id', () => {

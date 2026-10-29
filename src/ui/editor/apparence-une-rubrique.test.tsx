@@ -148,9 +148,9 @@ describe('rubrique Apparence — un titre par panneau, les réglages de la briqu
 describe('ReglagesApparence — la coiffure retombe quand le sexe change', () => {
   it('coiffure M puis sexe F : la valeur émise n’a plus de coiffure', () => {
     const onChange = vi.fn();
-    const coiffureM = hairstylesForSex('M')[0].id;
+    const coiffureM = hairstylesForSex('M')[0].coiffure;
     const { container } = monterRacine(
-      <ReglagesApparence appearance={{ sex: 'M', hairstyle: coiffureM } satisfies EntityAppearance} onChange={onChange} reglages={['sex', 'hairstyle']} />,
+      <ReglagesApparence appearance={{ sex: 'M', hairstyle: { id: coiffureM } } satisfies EntityAppearance} onChange={onChange} reglages={['sex', 'hairstyle']} />,
     );
     const sexe = reglage(container, 'Sexe')!.querySelector('select')!;
     act(() => {

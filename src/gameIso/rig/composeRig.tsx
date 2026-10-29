@@ -156,7 +156,7 @@ export function rigComposition(
   // l'apparence) et injectée en override `cheveux` — prime sur parts.cheveux/seed. Hors du pool, la
   // chevelure d'ERREUR (`COIFFURE_HORS_POOL`, #223) remplace la part. Sinon, override d'index / tirage
   // sexe+ordre inchangés.
-  const coiffure = appearance.hairstyle != null ? hairIndexById(appearance.species, appearance.sex, appearance.hairstyle) : undefined;
+  const coiffure = appearance.hairstyle != null ? hairIndexById(appearance.species, appearance.sex, appearance.hairstyle.id) : undefined;
   const partOverrides = coiffure !== undefined ? { ...appearance.parts, cheveux: coiffure } : (appearance.parts ?? {});
   // Nu du PIED (#736) : `perso.extremites` (créature non-canonique repliée sur une race
   // partagée, ex. Géant/Liche → Humain) prime sur le défaut de la RACE — même résolution que le

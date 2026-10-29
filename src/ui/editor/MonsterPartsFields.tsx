@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 import { MONSTER_HEAD_OPTIONS, MONSTER_ARM_OPTIONS, MONSTER_LEG_OPTIONS } from '../../gameIso/rig/parts/monstrous';
 import { EYE_OPTIONS } from '../../gameIso/rig/parts/eyes';
 import { ColorPalettePickers, MONSTER_COLOR_SLOTS } from '../ColorPalettePickers';
-import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
+import { coiffuresProposees } from '../../gameIso/rig/parts/hairstyles';
 import { apparenceSuivante, type ApparenceEditee } from '../../gameIso/rig/parts/cosmetic';
 import { tenueOptions } from '../../gameIso/rig/parts/career';
 import { harnaisOptions } from '../../gameIso/rig/quadruped/harnais';
@@ -15,7 +15,7 @@ import { elementsOf } from '../../gameIso/rig/parts/elements';
 import { defById } from '../../gameIso/rig/creatures';
 import { libelleDeFormeDeNuee } from '../../gameIso/rig/swarm/forms';
 import { raceById } from '../../gameIso/rig/races';
-import { armesChoisissables, findTrappingById, findSpeciesById, speciesSingular, DEFAULT_RACE_ID } from '../../data';
+import { armesChoisissables, findCoiffureById, findTrappingById, findSpeciesById, speciesSingular, DEFAULT_RACE_ID } from '../../data';
 import { domaineDEspeces } from '../../data/schemas/grammaire/art';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
@@ -99,6 +99,7 @@ export function ReglagesApparence<T extends ApparenceEditee>({
   const { species, sex, build, hairstyle, seed } = appearance;
   const groupes = groupesDEspece(nuee);
   const horsDomaine = species != null && !groupes.some((g) => g.ids.includes(species));
+  const coiffures = coiffuresProposees(species, sex);
   return (
     <>
       {reglages.includes('species') && (
@@ -133,15 +134,13 @@ export function ReglagesApparence<T extends ApparenceEditee>({
       {reglages.includes('hairstyle') && (
         <label className="reglage-apparence">
           Coiffure
-          <select value={hairstyle ?? ''} onChange={(e) => poser({ hairstyle: e.target.value || undefined })}>
+          <select value={hairstyle?.id ?? ''} onChange={(e) => {
+            const id = coiffures.find((c) => c === e.target.value);
+            poser({ hairstyle: id ? { id } : undefined });
+          }}>
             <option value="">Défaut (espèce)</option>
-            {sex
-              ? hairstylesForSex(sex).map((h) => <option key={h.id} value={h.id}>{h.label}</option>)
-              : sexeSchema.options.map((s) => (
-                <optgroup key={s} label={`Sexe : ${libelleDeValeur(sexeSchema, s)}`}>
-                  {hairstylesForSex(s).map((h) => <option key={h.id} value={h.id}>{h.label}</option>)}
-                </optgroup>
-              ))}
+            {hairstyle != null && !coiffures.some((c) => c === hairstyle.id) && <option value={hairstyle.id}>{findCoiffureById(hairstyle.id)?.label ?? hairstyle.id}</option>}
+            {coiffures.map((id) => <option key={id} value={id}>{findCoiffureById(id)?.label ?? id}</option>)}
           </select>
         </label>
       )}

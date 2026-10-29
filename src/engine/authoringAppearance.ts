@@ -82,9 +82,9 @@ export interface EntityAppearance {
   armurePortee?: boolean;
   /** Apparence des objets sans instance : id de trapping → référence au catalogue des apparences. */
   apparencesObjets?: Record<string, { id: string }>;
-  /** Coiffure IMPOSÉE — id STABLE d'une coiffure (`hairstyles/defs`, jamais un index ni un libellé, #637).
-   *  Vide = tirage sexe+ordre dérivé du seed. Hors du pool espèce×sexe : chevelure d'erreur visible au rendu. */
-  hairstyle?: string;
+  /** Coiffure IMPOSÉE — référence à une ligne `coiffure` de `garde-robe.json` (#637, #3113). Vide = tirage
+   *  par la graine. Sans art pour l'espèce×sexe : chevelure d'erreur visible au rendu. */
+  hairstyle?: { id: string };
   /** Yeux personnalisés (clés du catalogue `EYE_OPTIONS` : chat/caprin/reptilien/noir/rouge/
    *  verre) — remplacés EN PLACE sur l'orbite du visage. Vide = yeux normaux. */
   eyes?: { G?: string; D?: string };
@@ -103,7 +103,7 @@ export interface Appearance {
   faceFlip?: boolean;                              // visage retourné tête en bas (mutation Visage inversé)
   eyes?: { G?: string; D?: string };               // remplacement d'œil EN PLACE (art centré, cf. parts/eyes.ts)
   parts?: Partial<Record<Slot, number>>;           // overrides éditeur (index dans le pool par slot)
-  hairstyle?: string;                              // coiffure IMPOSÉE par id stable (hairstyles/defs) — prime sur parts.cheveux/seed ; sinon tirage sexe+ordre
+  hairstyle?: { id: string };                      // coiffure IMPOSÉE (garde-robe.json, kind coiffure) — prime sur parts.cheveux/seed ; sinon tirage par la graine
   monster?: MonsterParts;                          // parts monstrueux par slot (mutant modulaire)
   features?: string[];                             // CLÉS du catalogue d'éléments (parts/elements.ts) — traits ADDITIFS (queue, cornes, crocs…)
   colors?: Palette;                                // personnalisation couleur (peau/cheveux/vêtements)

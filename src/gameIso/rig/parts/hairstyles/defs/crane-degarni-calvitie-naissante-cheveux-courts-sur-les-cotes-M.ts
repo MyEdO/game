@@ -1,8 +1,7 @@
 import type { HairstyleDef } from '../types';
 
 export const hairstyle: HairstyleDef = {
-  label: "crâne dégarni / calvitie naissante, cheveux courts sur les côtés",
-  id: "crane-degarni-calvitie-naissante-cheveux-courts-sur-les-cotes-m",
+  coiffure: "crane-degarni-calvitie-naissante-cheveux-courts-sur-les-cotes",
   sex: 'M',
   order: 2,
   front: `<g stroke="@cheveuxO" stroke-width="0.45" stroke-linejoin="round"><path d="M-9.5 4.4 Q-9.7 1.4 -9.1 -0.9 Q-8.6 -2.4 -7.6 -3.2 Q-7.9 -0.4 -7.7 2.4 Q-7.5 5.4 -7.1 7.4 Q-7.4 8.9 -8.2 9.7 L-8.8 7.9 Q-9.2 8.9 -9.9 8.9 Q-9.7 6.4 -9.5 4.4 Z" fill="@cheveux"/><path d="M9.5 4.4 Q9.7 1.4 9.1 -0.9 Q8.6 -2.4 7.6 -3.2 Q7.9 -0.4 7.7 2.4 Q7.5 5.4 7.1 7.4 Q7.4 8.9 8.2 9.7 L8.8 7.9 Q9.2 8.9 9.9 8.9 Q9.7 6.4 9.5 4.4 Z" fill="@cheveux"/><path d="M-9.1 -0.9 Q-8.6 -2.4 -7.6 -3.2 Q-7.7 -1.7 -7.7 -0.2 Q-8.4 -0.4 -9.1 -0.9 Z" fill="@cheveuxH" opacity="0.6" stroke="none"/><path d="M9.5 4.4 Q9.7 1.4 9.1 -0.9 Q9.2 1.4 9.1 3.4 Q9.1 6.4 9.9 8.9 Q9.7 6.4 9.5 4.4 Z" fill="@cheveuxO" opacity="0.55" stroke="none"/><g stroke="@cheveuxO" stroke-width="0.45" fill="none" opacity="0.65"><path d="M-8.9 0.4 Q-9.1 3.4 -8.9 6.4"/><path d="M-8.2 -1.4 Q-8.4 2.4 -8.1 6.2"/><path d="M8.9 0.4 Q9.1 3.4 8.9 6.4"/><path d="M8.2 -1.4 Q8.4 2.4 8.1 6.2"/></g><g fill="@cheveuxO" stroke="none" opacity="0.4"><circle cx="-3.4" cy="-6.4" r="0.3"/><circle cx="-1.2" cy="-7.2" r="0.3"/><circle cx="1.2" cy="-7.2" r="0.3"/><circle cx="3.4" cy="-6.4" r="0.3"/><circle cx="0" cy="-6.6" r="0.25"/><circle cx="-5.4" cy="-4.9" r="0.28"/><circle cx="5.4" cy="-4.9" r="0.28"/><circle cx="-6.9" cy="-2.9" r="0.26"/><circle cx="6.9" cy="-2.9" r="0.26"/></g></g>`,

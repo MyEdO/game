@@ -5,7 +5,7 @@
  * ces prédicats (sens permis) : UNE computation du domaine, pour le schéma comme pour `resolveRender`.
  */
 import { idsDe } from './ref';
-import { ESPECES_DE_CREATURE, FORMES_DE_NUEE, SEXE_DE_COIFFURE } from '../_art.generated';
+import { ESPECES_DE_CREATURE, FORMES_DE_NUEE, SEXES_DE_COIFFURE } from '../_art.generated';
 
 /** Espèces DESSINÉES : celles dont le code déclare le corps — defs de créature et formes de nuée. */
 const ESPECES_DESSINEES: ReadonlySet<string> = new Set([...ESPECES_DE_CREATURE, ...FORMES_DE_NUEE]);
@@ -40,7 +40,7 @@ export function estFormeDeNuee(id: string): boolean {
   return FORMES.has(id);
 }
 
-/** Sexe d'une coiffure dessinée (`hairstyles/defs`), `undefined` pour un id inconnu. */
-export function sexeDeCoiffure(id: string): (typeof SEXE_DE_COIFFURE)[string] | undefined {
-  return Object.prototype.hasOwnProperty.call(SEXE_DE_COIFFURE, id) ? SEXE_DE_COIFFURE[id] : undefined;
+/** Sexes pour lesquels la coiffure `id` est dessinée (`hairstyles/defs`), `undefined` sans aucun art. */
+export function sexesDeCoiffure(id: string): (typeof SEXES_DE_COIFFURE)[string] | undefined {
+  return Object.prototype.hasOwnProperty.call(SEXES_DE_COIFFURE, id) ? SEXES_DE_COIFFURE[id] : undefined;
 }

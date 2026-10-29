@@ -39,11 +39,10 @@ describe('validateScene', () => {
       return msgs(validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'pnj' && x.level === 'error'));
     };
     expect(avec({ species: 'zorglub' })).toEqual(["entité « pnj » › apparence › espèce : espèce « zorglub » inconnue : ni espèce jouable, ni espèce dessinée — le personnage s'affiche en silhouette d'erreur."]);
-    expect(avec({ hairstyle: 'zzz', sex: 'M' })).toEqual(['entité « pnj » › apparence › coiffure : coiffure « zzz » inconnue : absente du catalogue des coiffures.']);
-    expect(avec({ hairstyle: 'queue-de-cheval-haute-f' })).toEqual(['entité « pnj » › apparence › coiffure : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) imposée sans sexe posé — poser le sexe Féminin, ou retirer la coiffure.']);
-    expect(avec({ hairstyle: 'queue-de-cheval-haute-f', sex: 'M' })).toEqual(['entité « pnj » › apparence › coiffure : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) imposée sur le sexe Masculin.']);
-    // Domaine admis : espèce jouable, def de créature, forme de nuée ; coiffure au sexe posé.
-    for (const ok of [{ species: 'humains-reiklander' }, { species: 'amibe' }, { species: 'rats' }, { hairstyle: 'queue-de-cheval-haute-f', sex: 'F' }])
+    expect(avec({ hairstyle: { id: 'queue-de-cheval-haute' }, sex: 'M' })).toEqual(['entité « pnj » › apparence › coiffure › identifiant : coiffure « queue-de-cheval-haute » sans art pour le sexe Masculin.']);
+    expect(avec({ hairstyle: { id: 'zzz' }, sex: 'M' })).toHaveLength(1);
+    // Domaine admis : espèce jouable, def de créature, forme de nuée ; coiffure dessinée pour le sexe posé, ou sans sexe posé.
+    for (const ok of [{ species: 'humains-reiklander' }, { species: 'amibe' }, { species: 'rats' }, { hairstyle: { id: 'queue-de-cheval-haute' }, sex: 'F' }, { hairstyle: { id: 'queue-de-cheval-haute' } }, { hairstyle: { id: 'cheveux-boucles-volumineux-mi-longs' }, sex: 'M' }])
       expect(avec(ok), JSON.stringify(ok)).toEqual([]);
   });
 

@@ -1,8 +1,7 @@
 import type { HairstyleDef } from '../types';
 
 export const hairstyle: HairstyleDef = {
-  label: "queue de cheval basse, cheveux tirés en arrière",
-  id: "queue-de-cheval-basse-cheveux-tires-en-arriere-m",
+  coiffure: "queue-de-cheval-basse-cheveux-tires-en-arriere",
   sex: 'M',
   order: 3,
   front: `<g stroke="@cheveuxO" stroke-width="0.45" stroke-linejoin="round"><path d="M-9.4 6.9 Q-10.4 -9 0 -9.6 Q10.4 -9 9.4 6.9 Q8.6 3.2 6.9 1.9 Q4.2 0 0 -0.2 Q-4.2 0 -6.9 1.9 Q-8.6 3.2 -9.4 6.9 Z" fill="@cheveux" stroke="none"/><path d="M-9.5 5.4 Q-10.7 -4.2 -7.4 -7.9 Q-4.2 -10.6 0 -10.6 Q4.2 -10.6 7.4 -7.9 Q10.7 -4.2 9.5 5.4 Q9 1.4 7.2 -0.6 Q4.4 -2.9 0 -2.9 Q-4.4 -2.9 -7.2 -0.6 Q-9 1.4 -9.5 5.4 Z" fill="@cheveux"/><path d="M-7.2 -0.6 Q-4.4 -2.9 0 -2.9 Q4.4 -2.9 7.2 -0.6 Q4.2 -1.4 0 -1.4 Q-4.2 -1.4 -7.2 -0.6 Z" fill="@cheveuxO" opacity="0.55" stroke="none"/><path d="M-9.5 4.4 Q-9.9 6.7 -9.2 8.7 Q-8.4 6.9 -8.6 4.7 Z" fill="@cheveux"/><path d="M9.5 4.4 Q9.9 6.7 9.2 8.7 Q8.4 6.9 8.6 4.7 Z" fill="@cheveux"/><g stroke="@cheveuxO" stroke-width="0.5" fill="none" opacity="0.7"><path d="M-5.4 -1.9 Q-3.2 -4.9 -1.4 -8.9"/><path d="M-2.4 -2.6 Q-1.2 -5.9 -0.4 -9.9"/><path d="M2.4 -2.6 Q1.2 -5.9 0.4 -9.9"/><path d="M5.4 -1.9 Q3.2 -4.9 1.4 -8.9"/></g><g stroke="@cheveuxH" stroke-width="0.5" fill="none" opacity="0.6"><path d="M-3.9 -2.2 Q-2.4 -5.4 -0.9 -9.4"/><path d="M3.9 -2.2 Q2.4 -5.4 0.9 -9.4"/><path d="M-6.9 -1.4 Q-4.9 -3.9 -2.9 -7.7"/></g><path d="M-6.4 -7.4 Q-2.9 -9.7 1.4 -9.4 Q-2.2 -8.4 -4.9 -6 Q-5.9 -6.6 -6.4 -7.4 Z" fill="@cheveuxH" opacity="0.5" stroke="none"/></g>`,

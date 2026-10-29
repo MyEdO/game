@@ -27,7 +27,7 @@ import { equipDe } from '../../src/noyau/equipementDessine';
 
 
 // ── Archétype humain FIXE (le corps ne varie pas — seule la tenue et la vue changent). ──
-const APP: Appearance = { species: 'Humain', sex: 'M', build: 0.55, seed: 4, hairstyle: 'crane-rase-m' } as Appearance;
+const APP: Appearance = { species: 'Humain', sex: 'M', build: 0.55, seed: 4, hairstyle: { id: 'crane-rase' } } as Appearance;
 const EQUIP = equipDe([], []);
 
 const RENDER_W = 240; // viewBox 120×150 → 240×300 px : assez fin pour le contour, rapide.

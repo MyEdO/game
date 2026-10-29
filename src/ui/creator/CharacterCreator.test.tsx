@@ -619,18 +619,18 @@ function basculerSexe(container: HTMLElement): void {
 
 describe('créateur — la coiffure choisie à l’écran Détails survit (#1897)', () => {
   it('(a) une coiffure choisie à l’écran Détails se retrouve sur le héros créé', () => {
-    const coiffureM = hairstylesForSex('M')[0].id;
+    const coiffureM = hairstylesForSex('M')[0].coiffure;
     const { container, dernier } = monterDetails(ready());
     choisirCoiffure(container, coiffureM);
-    expect(buildHero(dernier()).appearance?.hairstyle).toBe(coiffureM);
+    expect(buildHero(dernier()).appearance?.hairstyle).toEqual({ id: coiffureM });
   });
 
   it('(b) coiffure F choisie, puis bascule du sexe à la bande Identité : la coiffure tombe', () => {
-    const coiffureF = hairstylesForSex('F')[0].id;
+    const coiffureF = hairstylesForSex('F')[0].coiffure;
     const depart = ready();
     const { container, dernier } = monterDetails({ ...depart, apparence: { ...depart.apparence, sex: 'F' } });
     choisirCoiffure(container, coiffureF);
-    expect(dernier().apparence.hairstyle).toBe(coiffureF);
+    expect(dernier().apparence.hairstyle).toEqual({ id: coiffureF });
     basculerSexe(container);
     expect(dernier().apparence.sex).toBe('M');
     expect(buildHero(dernier()).appearance?.hairstyle).toBeUndefined();

@@ -296,17 +296,17 @@ describe('coiffure du record, sexe de l’entité — la coiffure retombe', () =
     const rendu = (p: NonNullable<ReturnType<typeof entityRigProfile>>) => bonesToSvg(resolveRig(p.appearance, p.equip, {}, p.tenue, 'front', []));
     const attendu = rendu(entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M' })!);
     setDataset('creatures', creatures.map((c) => (c.id === 'humain'
-      ? { ...c, appearance: { ...c.appearance!, sex: 'F' as const, hairstyle: 'queue-de-cheval-haute-f' } }
+      ? { ...c, appearance: { ...c.appearance!, sex: 'F' as const, hairstyle: { id: 'queue-de-cheval-haute' } } }
       : c)));
     try {
-      expect(entityRigProfile(findTrappingById, 'humain', 1)!.appearance).toMatchObject({ sex: 'F', hairstyle: 'queue-de-cheval-haute-f' });
+      expect(entityRigProfile(findTrappingById, 'humain', 1)!.appearance).toMatchObject({ sex: 'F', hairstyle: { id: 'queue-de-cheval-haute' } });
       const p = entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M' })!;
       expect(p.appearance.sex).toBe('M');
       expect(p.appearance.hairstyle).toBeUndefined();
       expect(rendu(p)).not.toContain(COIFFURE_HORS_POOL);
       expect(rendu(p)).toBe(attendu);
       // La contradiction posée par UNE couche reste une faute de donnée VISIBLE (le schéma la nomme).
-      expect(rendu(entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M', hairstyle: 'queue-de-cheval-haute-f' })!)).toContain(COIFFURE_HORS_POOL);
+      expect(rendu(entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M', hairstyle: { id: 'queue-de-cheval-haute' } })!)).toContain(COIFFURE_HORS_POOL);
     } finally {
       setDataset('creatures', avant);
     }
@@ -314,14 +314,14 @@ describe('coiffure du record, sexe de l’entité — la coiffure retombe', () =
   it('le retrait se DIT : un avertissement console nomme le sujet, la coiffure retirée et le sexe posé au-dessus', () => {
     const avant = [...creatures];
     setDataset('creatures', creatures.map((c) => (c.id === 'humain'
-      ? { ...c, appearance: { ...c.appearance!, sex: 'F' as const, hairstyle: 'queue-de-cheval-haute-f' } }
+      ? { ...c, appearance: { ...c.appearance!, sex: 'F' as const, hairstyle: { id: 'queue-de-cheval-haute' } } }
       : c)));
     resetDiagOnce();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       withDiagSubject('scene-x/pnj-1', () => entityRigProfile(findTrappingById, 'humain', 1, { sex: 'M' }));
       expect(warn.mock.calls.map((c) => String(c[0]))).toEqual([
-        "[rig] « scene-x/pnj-1 » : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) retirée au rendu — une couche d'apparence plus haute pose le sexe Masculin.",
+        "[rig] « scene-x/pnj-1 » : coiffure « queue-de-cheval-haute » (sexes : Féminin) retirée au rendu — une couche d'apparence plus haute pose le sexe Masculin.",
       ]);
       warn.mockClear();
       withDiagSubject('scene-x/pnj-2', () => entityRigProfile(findTrappingById, 'humain', 1));
@@ -340,10 +340,10 @@ describe('spawnEnemy — une coiffure seule traverse jusqu’au rendu du combatt
   it('coiffure imposée seule : le profil de combat la porte et le rig change', () => {
     const sansCoiffure = spawnEnemy({ ref: 'mutant' }, 'pnj-coiffe', { x: 0, y: 0 });
     const avant = enemyRigProfile(sansCoiffure)!;
-    const coiffure = hairstylesForSex(avant.appearance.sex)[1].id;
-    const coiffe = spawnEnemy({ ref: 'mutant' }, 'pnj-coiffe', { x: 0, y: 0 }, { appearance: { hairstyle: coiffure } });
+    const coiffure = hairstylesForSex(avant.appearance.sex)[1].coiffure;
+    const coiffe = spawnEnemy({ ref: 'mutant' }, 'pnj-coiffe', { x: 0, y: 0 }, { appearance: { hairstyle: { id: coiffure } } });
     const apres = enemyRigProfile(coiffe)!;
-    expect(apres.appearance.hairstyle).toBe(coiffure);
+    expect(apres.appearance.hairstyle).toEqual({ id: coiffure });
     const rendu = (p: typeof apres) => bonesToSvg(resolveRig(p.appearance, p.equip, {}, p.tenue, 'front', []));
     expect(rendu(apres)).not.toBe(rendu(avant));
   });

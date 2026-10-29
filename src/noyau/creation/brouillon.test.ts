@@ -42,7 +42,7 @@ import {
 import { CHAR_KEYS } from '../../engine/types';
 import { rigSpeciesId, trappingRefLabel } from '../../data';
 import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './brouillon';
-import { SEXE_DE_COIFFURE } from '../../data/schemas/_art.generated';
+import { SEXES_DE_COIFFURE } from '../../data/schemas/_art.generated';
 import { garanti } from '../../lib/garanti';
 import { speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
@@ -414,9 +414,9 @@ describe('validation des étapes', () => {
 
 describe('buildHero — bout en bout', () => {
   it('l’apparence du brouillon passe au héros d’un seul tenant, et (c) draftFromHero la restitue, coiffure comprise', () => {
-    const coiffureF = garanti(Object.keys(SEXE_DE_COIFFURE).find((id) => SEXE_DE_COIFFURE[id] === 'F'), 'F', 'coiffure du sexe');
+    const coiffureF = garanti(Object.keys(SEXES_DE_COIFFURE).find((id) => SEXES_DE_COIFFURE[id].includes('F')), 'F', 'coiffure du sexe');
     const d = readyDraft();
-    const apparence = { sex: 'F' as const, build: 0.3, seed: 42, hairstyle: coiffureF, colors: { cheveux: '#aa3300' } };
+    const apparence = { sex: 'F' as const, build: 0.3, seed: 42, hairstyle: { id: coiffureF }, colors: { cheveux: '#aa3300' } };
     const hero = buildHero({ ...d, apparence }, 'h-apparence');
     expect(hero.appearance).toEqual({ ...apparence, species: rigSpeciesId(d.speciesId) });
     expect(draftFromHero(hero, 7).apparence).toEqual(apparence);

@@ -186,35 +186,38 @@ export function unionDesIds(dir, files, field) {
 }
 
 /**
- * Projection d'un registre de defs : `[id]` par def, ou `[id, valeur de champ]` avec `projection.champ`.
- * FAIL-FAST nominatif : un id porté par deux defs lève.
+ * Projection d'un registre de defs : `[clé]` par def, ou, avec `projection.champ`, `[clé, ...valeurs]`
+ * qui groupe (trié) la valeur de chaque def de même clé. Clé = le champ `projection.cle` (défaut `id`).
+ * FAIL-FAST nominatif : une clé portée par deux defs (sans `champ`), ou un couple clé × valeur, lève.
  * @param {string} dir dossier des defs
- * @param {{ nom:string, champ?:string }} projection
+ * @param {{ nom:string, cle?:string, champ?:string }} projection
  * @returns {string[][]}
  */
 export function projeterDefs(dir, projection) {
-  const lignes = modulesDeDefs(dir).map((f) => {
+  const cle = projection.cle ?? 'id';
+  const parCle = new Map();
+  for (const f of modulesDeDefs(dir)) {
     const src = readFileSync(join(dir, f), 'utf8');
-    const [id] = champsLitteraux(src, 'id', join(dir, f), 'un');
-    return projection.champ ? [id, ...champsLitteraux(src, projection.champ, join(dir, f), 'un')] : [id];
-  });
-  const vus = new Set();
-  for (const [id] of lignes) {
-    if (vus.has(id)) throw new Error(`gen-registry: ${dir} : id « ${id} » porté par deux defs — ${projection.nom} ne peut pas se projeter.`);
-    vus.add(id);
+    const [id] = champsLitteraux(src, cle, join(dir, f), 'un');
+    const valeur = projection.champ ? champsLitteraux(src, projection.champ, join(dir, f), 'un')[0] : undefined;
+    const valeurs = parCle.get(id);
+    if (valeurs && (valeur === undefined || valeurs.includes(valeur)))
+      throw new Error(`gen-registry: ${dir} : ${cle} « ${id} »${valeur === undefined ? '' : ` × ${projection.champ} « ${valeur} »`} porté par deux defs — ${projection.nom} ne peut pas se projeter.`);
+    parCle.set(id, valeur === undefined ? [] : [...(valeurs ?? []), valeur].sort());
   }
-  return lignes.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  return [...parCle].map(([id, v]) => [id, ...v]).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
 /** Le module des projections (`projection` des `REGISTRIES`) rendu, et le compte de chaque bloc. */
 function renduDesProjections(registres = REGISTRIES) {
   const blocs = registres.filter((r) => r.projection).map((r) => {
     const lignes = projeterDefs(r.dir, r.projection);
-    const tete = `/** Projection GÉNÉRÉE de \`${r.dir}\`${r.projection.champ ? ` : id → \`${r.projection.champ}\`` : ' : ids'} (${lignes.length}). */\n`;
+    const cle = r.projection.cle ?? 'id';
+    const tete = `/** Projection GÉNÉRÉE de \`${r.dir}\` : \`${cle}\`${r.projection.champ ? ` → valeurs de \`${r.projection.champ}\`` : ''} (${lignes.length}). */\n`;
     if (!r.projection.champ)
       return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: readonly string[] = [\n${lignes.map(([id]) => `  ${litteralJs(id)},\n`).join('')}];\n` };
-    const valeurs = [...new Set(lignes.map(([, v]) => v))].sort().map((v) => litteralJs(v)).join(' | ');
-    return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: Readonly<Record<string, ${valeurs}>> = {\n${lignes.map(([id, v]) => `  ${litteralJs(id)}: ${litteralJs(v)},\n`).join('')}};\n` };
+    const valeurs = [...new Set(lignes.flatMap(([, ...v]) => v))].sort().map((v) => litteralJs(v)).join(' | ');
+    return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: Readonly<Record<string, readonly (${valeurs})[]>> = {\n${lignes.map(([id, ...v]) => `  ${litteralJs(id)}: [${v.map((x) => litteralJs(x)).join(', ')}],\n`).join('')}};\n` };
   });
   const body =
     `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +

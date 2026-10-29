@@ -75,21 +75,25 @@ describe('genericPart', () => {
 
 /** Patron `propRefPatch` (`ui/editor/propDefaults.ts`) : un geste d'édition ne crée pas la faute. */
 describe('apparenceSuivante — l’unique mutation d’une apparence depuis un écran', () => {
-  const coiffureM = hairstylesForSex('M')[0].id;
-  const coiffureF = hairstylesForSex('F')[0].id;
+  const coiffureM = hairstylesForSex('M')[0].coiffure;
+  const coiffureF = hairstylesForSex('F')[0].coiffure;
 
   it('coiffure M puis sexe F : la coiffure retombe, le reste est gardé', () => {
-    const a: EntityAppearance = { sex: 'M', hairstyle: coiffureM, build: 0.4 };
+    const a: EntityAppearance = { sex: 'M', hairstyle: { id: coiffureM }, build: 0.4 };
     expect(apparenceSuivante(a, { sex: 'F' })).toEqual({ sex: 'F', build: 0.4 });
   });
 
   it('coiffure F choisie sur une apparence M : la coiffure ET son sexe sont posés', () => {
     const a: EntityAppearance = { sex: 'M', build: 0.4 };
-    expect(apparenceSuivante(a, { hairstyle: coiffureF })).toEqual({ sex: 'F', build: 0.4, hairstyle: coiffureF });
+    expect(apparenceSuivante(a, { hairstyle: { id: coiffureF } })).toEqual({ sex: 'F', build: 0.4, hairstyle: { id: coiffureF } });
+  });
+
+  it('coiffure dessinée pour les deux sexes, sans sexe posé : aucun sexe n’est posé', () => {
+    expect(apparenceSuivante<EntityAppearance>({ build: 0.4 }, { hairstyle: { id: 'cheveux-boucles-volumineux-mi-longs' } })).toEqual({ build: 0.4, hairstyle: { id: 'cheveux-boucles-volumineux-mi-longs' } });
   });
 
   it('aucune coiffure : la clé est retirée, le sexe reste', () => {
-    const a: EntityAppearance = { sex: 'M', hairstyle: coiffureM };
+    const a: EntityAppearance = { sex: 'M', hairstyle: { id: coiffureM } };
     expect(apparenceSuivante(a, { hairstyle: undefined })).toStrictEqual({ sex: 'M' });
   });
 

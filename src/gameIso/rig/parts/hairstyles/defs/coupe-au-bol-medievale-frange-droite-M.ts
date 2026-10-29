@@ -1,8 +1,7 @@
 import type { HairstyleDef } from '../types';
 
 export const hairstyle: HairstyleDef = {
-  label: "coupe au bol médiévale, frange droite",
-  id: "coupe-au-bol-medievale-frange-droite-m",
+  coiffure: "coupe-au-bol-medievale-frange-droite",
   sex: 'M',
   order: 5,
   front: `<g stroke="@cheveuxO" stroke-width="0.45" stroke-linejoin="round"><path d="M-9.4 6.9 Q-10.4 -9 0 -9.6 Q10.4 -9 9.4 6.9 Q8.6 3.2 6.9 1.9 Q4.2 0 0 -0.2 Q-4.2 0 -6.9 1.9 Q-8.6 3.2 -9.4 6.9 Z" fill="@cheveux" stroke="none"/><path d="M-9.9 6.4 Q-11.2 -4.4 -7.4 -8.2 Q-3.9 -10.9 0 -10.9 Q3.9 -10.9 7.4 -8.2 Q11.2 -4.4 9.9 6.4 Q9.7 8.6 8.4 9.7 L7.4 8.2 Q7.2 9.7 5.9 10.2 Q6.4 7.4 6.6 4.9 Q6.7 3.4 6.4 2.4 L4.7 2.2 Q3.4 1.5 2.2 2.2 Q0.9 1.5 -0.4 2.2 Q-1.7 1.5 -2.9 2.2 Q-4.2 1.5 -5.4 2.2 L-6.4 2.4 Q-6.7 3.4 -6.6 4.9 Q-6.4 7.4 -5.9 10.2 Q-7.2 9.7 -7.4 8.2 L-8.4 9.7 Q-9.7 8.6 -9.9 6.4 Z" fill="@cheveux"/><path d="M-6.4 2.4 L-5.4 2.2 Q-4.2 1.5 -2.9 2.2 Q-1.7 1.5 -0.4 2.2 Q0.9 1.5 2.2 2.2 Q3.4 1.5 4.7 2.2 L6.4 2.4 Q6.6 3.2 6.5 4.2 Q3.4 3.2 0 3.2 Q-3.4 3.2 -6.5 4.2 Q-6.6 3.2 -6.4 2.4 Z" fill="@cheveuxO" opacity="0.5" stroke="none"/><path d="M9.9 6.4 Q9.7 8.6 8.4 9.7 L7.9 8.9 Q8.7 7.4 8.7 5.4 Q8.7 1.4 8.2 -1.6 Q9.4 1.4 9.9 6.4 Z" fill="@cheveuxO" opacity="0.55" stroke="none"/><g stroke="@cheveuxO" stroke-width="0.5" fill="none" opacity="0.65"><path d="M-1.6 -10.4 Q-2.4 -4.4 -2.7 1.6"/><path d="M1.6 -10.4 Q2.4 -4.4 2.7 1.6"/><path d="M-4.6 -9.4 Q-5.7 -3.9 -6.1 2.6"/><path d="M4.6 -9.4 Q5.7 -3.9 6.1 2.6"/><path d="M-7.6 -6.9 Q-8.9 -1.9 -9.1 4.4"/><path d="M7.6 -6.9 Q8.9 -1.9 9.1 4.4"/></g><g stroke="@cheveuxH" stroke-width="0.5" fill="none" opacity="0.6"><path d="M-3.1 -9.9 Q-4 -4.4 -4.4 2"/><path d="M-6.1 -8.2 Q-7.4 -2.9 -7.7 3.9"/><path d="M0 -10.7 Q0 -4.4 0 1.6"/></g><path d="M-7.9 -6.4 Q-4.4 -9.7 0.4 -9.9 Q-3.4 -8.7 -6.2 -5.4 Q-7.2 -5.9 -7.9 -6.4 Z" fill="@cheveuxH" opacity="0.5" stroke="none"/></g>`,

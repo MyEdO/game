@@ -165,7 +165,7 @@ export const REGISTRIES = [
     typeFrom: './types',
   },
   {
-    // Têtes (visage + coiffure défaut par Race:Sexe, art en jetons) : 1 tête = 1 fichier defs/.
+    // Têtes (visage et crâne d'une ligne `tete` de garde-robe.json, par sexe, art en jetons) : 1 tête × sexe = 1 fichier defs/.
     dir: 'src/gameIso/rig/parts/heads/defs',
     out: 'src/gameIso/rig/parts/heads/_registry.generated.ts',
     exportName: 'head',
@@ -174,14 +174,14 @@ export const REGISTRIES = [
     typeFrom: './types',
   },
   {
-    // Coiffures (pool partagé par sexe, 3 vues) : 1 coiffure = 1 fichier defs/.
+    // Coiffures (art d'une ligne `coiffure` de garde-robe.json, par sexe, 3 vues) : 1 coiffure × sexe = 1 fichier defs/.
     dir: 'src/gameIso/rig/parts/hairstyles/defs',
     out: 'src/gameIso/rig/parts/hairstyles/_registry.generated.ts',
     exportName: 'hairstyle',
     arrayName: 'HAIRSTYLE_DEFS',
     type: 'HairstyleDef',
     typeFrom: './types',
-    projection: { nom: 'SEXE_DE_COIFFURE', champ: 'sex' },
+    projection: { nom: 'SEXES_DE_COIFFURE', cle: 'coiffure', champ: 'sex' },
   },
   {
     // Formes de nuée (silhouette d'1 constituant + palette) : 1 forme = 1 fichier defs/.

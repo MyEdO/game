@@ -109,7 +109,7 @@ const PRISTINE_STATE = JSON.stringify(useGame.getInitialState());
 /**
  * Modules d'art des parts du rig, énumérés STRUCTURELLEMENT (`import.meta.glob` eager) : une famille
  * de parts déposée demain sous `parts/<famille>/` est couverte d'office, sans toucher ce fichier.
- * On prend `index.ts` (tables dérivées : `ARMOUR`, `TENUE_BY_ID`, `HEADS`…) ET `_registry.generated.ts`
+ * On prend `index.ts` (tables dérivées : `ARMOUR`, `TENUE_BY_ID`, `HEAD_DEFS`…) ET `_registry.generated.ts`
  * (listes de defs : `HAIRSTYLE_DEFS`, `WEAPON_DEFS`… — `shields`/`weapons` n'ont pas d'`index.ts`).
  */
 const RIG_PART_MODULES = import.meta.glob<Record<string, unknown>>(
@@ -145,7 +145,7 @@ const artWeight = (v: unknown, depth = 0): number => {
  * - substitution de poids cumulé EXACTEMENT identique ;
  * - exports FONCTION, non pesables : `appendageArt`/`appendageFeature` (appendages), `feat`/
  *   `featureMorpho`/`elementsOf` (elements), `swapEye`/`applyEyes`/`eyesArtFromKeys` (eyes),
- *   `hairstylesForSex` (hairstyles) — aucun ne détient d'art, tous lisent une table pesée ici ;
+ *   `hairstylesForSex`/`coiffuresDuPool`/`coiffuresProposees` (hairstyles), `teteDEspece` (heads) — aucun ne détient d'art, tous lisent une table pesée ici ;
  * - un `Map`/`Set` pèserait 0 (aucun à ce jour parmi les exports de `parts/*`) ;
  * - les registres d'art hors `parts/` : `rig/creatures/`, `rig/plans/`, `gameIso/catalog/`.
  */

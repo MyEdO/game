@@ -22,7 +22,7 @@ import { baseSpeciesOf } from './skeletons';
 import { teintesTirees } from './parts/tirageIndividuel';
 import { diagOnce, diagSubject } from './devDiag';
 import { coiffureRetombee } from './parts/cosmetic';
-import { sexeDeCoiffure } from '../../data/schemas/grammaire/art';
+import { sexesDeCoiffure } from '../../data/schemas/grammaire/art';
 import { sexeSchema, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
@@ -111,8 +111,9 @@ function sousAuteur<T extends object>(tire: T | undefined, auteur: T | undefined
  *  sans coiffure est le geste d'édition du sexe (`coiffureRetombee`) sur la coiffure des couches du
  *  dessous, dont l'id retiré est rendu en `retombee` ; une couche qui pose sa coiffure la garde, même
  *  contre son propre sexe (faute de donnée, nommée par le schéma, vue au rendu). PURE. */
-function sexeEtCoiffure(couches: readonly (Pick<Appearance, 'hairstyle'> & { sex?: Sexe } | undefined)[]): { sex?: Sexe; hairstyle?: string; retombee?: string } {
-  return couches.reduce<{ sex?: Sexe; hairstyle?: string; retombee?: string }>((bas, haut) => {
+type CoiffureImposee = { id: string };
+function sexeEtCoiffure(couches: readonly (Pick<Appearance, 'hairstyle'> & { sex?: Sexe } | undefined)[]): { sex?: Sexe; hairstyle?: CoiffureImposee; retombee?: CoiffureImposee } {
+  return couches.reduce<{ sex?: Sexe; hairstyle?: CoiffureImposee; retombee?: CoiffureImposee }>((bas, haut) => {
     if (!haut) return bas;
     if (haut.hairstyle != null) return { sex: haut.sex ?? bas.sex, hairstyle: haut.hairstyle };
     if (haut.sex == null) return bas;
@@ -123,12 +124,12 @@ function sexeEtCoiffure(couches: readonly (Pick<Appearance, 'hairstyle'> & { sex
 
 /** Diagnostic d'une coiffure d'auteur RETIRÉE au rendu par `sexeEtCoiffure` — même canal que la coiffure
  *  hors du pool (`hairIndexById`) : console du DEV, une fois par sujet. */
-function direCoiffureRetombee(retombee: string, sex: Sexe): void {
+function direCoiffureRetombee({ id }: CoiffureImposee, sex: Sexe): void {
   // `?.` : le rig est importé par les scripts tsx (galeries QC), où `import.meta.env` n'existe pas.
   if (!import.meta.env?.DEV) return;
   const sujet = diagSubject();
-  const sexe = sexeDeCoiffure(retombee);
-  diagOnce(`rig:coiffure-retombee:${sujet}:${retombee}:${sex}`, () => console.warn(`[rig] « ${sujet || '(sans réf)'} » : coiffure « ${retombee} »${sexe ? ` (sexe : ${libelleDeValeur(sexeSchema, sexe)})` : ''} retirée au rendu — une couche d'apparence plus haute pose le sexe ${libelleDeValeur(sexeSchema, sex)}.`));
+  const sexes = sexesDeCoiffure(id);
+  diagOnce(`rig:coiffure-retombee:${sujet}:${id}:${sex}`, () => console.warn(`[rig] « ${sujet || '(sans réf)'} » : coiffure « ${id} »${sexes ? ` (sexes : ${sexes.map((s) => libelleDeValeur(sexeSchema, s)).join(', ')})` : ''} retirée au rendu — une couche d'apparence plus haute pose le sexe ${libelleDeValeur(sexeSchema, sex)}.`));
 }
 
 /** Carrure par défaut dérivée du seed (0.35..0.75) — formule UNIQUE. */

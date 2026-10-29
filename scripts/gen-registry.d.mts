@@ -14,4 +14,4 @@ export function MESSAGES_DE(out: string): { staleMsg: string; rerunMsg: string }
 export function lireExports(src: string, noms: readonly string[], def: string): Record<string, string | true | undefined>;
 export function lireDefs(dir: string, noms: readonly string[]): ({ module: string } & Record<string, string | true | undefined>)[];
 /** Projection d'un registre de defs (option `projection`) : `[id]` ou `[id, valeur de champ]`, triés — lève par def fautif. */
-export function projeterDefs(dir: string, projection: { nom: string; champ?: string }): string[][];
+export function projeterDefs(dir: string, projection: { nom: string; cle?: string; champ?: string }): string[][];

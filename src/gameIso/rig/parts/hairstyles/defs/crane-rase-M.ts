@@ -1,8 +1,7 @@
 import type { HairstyleDef } from '../types';
 
 export const hairstyle: HairstyleDef = {
-  label: "crâne rasé",
-  id: "crane-rase-m",
+  coiffure: "crane-rase",
   sex: 'M',
   order: 6,
   front: `<path d="M-9.4 6 Q-10.2 -8.5 0 -9.2 Q10.2 -8.5 9.4 6 Q9 -1 6 -2.6 Q0 -4.2 -6 -2.6 Q-9 -1 -9.4 6 Z" fill="@cheveuxO" opacity="0.3"/><path d="M-9.2 5.4 Q-9.4 1 -8 -3 Q-5 -7 0 -7.6 Q5 -7 8 -3 Q9.4 1 9.2 5.4 Q8 1 6 -0.6 Q0 -2.4 -6 -0.6 Q-8 1 -9.2 5.4 Z" fill="@cheveuxO" opacity="0.22"/><path d="M-8.4 -2.4 Q-5.4 -6.4 -0.9 -7.2" stroke="@cheveuxO" stroke-width="0.4" fill="none" opacity="0.35"/><path d="M-9.2 4.4 Q-9.4 6.9 -8.7 8.9 Q-8.2 6.9 -8.4 4.7 Z" fill="@cheveuxO" opacity="0.35"/><path d="M9.2 4.4 Q9.4 6.9 8.7 8.9 Q8.2 6.9 8.4 4.7 Z" fill="@cheveuxO" opacity="0.35"/><g fill="@cheveuxO" opacity="0.5"><circle cx="-5" cy="-3" r="0.32"/><circle cx="-2" cy="-5" r="0.32"/><circle cx="2" cy="-4.5" r="0.32"/><circle cx="5" cy="-3" r="0.32"/><circle cx="0" cy="-6.2" r="0.3"/><circle cx="-6.5" cy="0.5" r="0.3"/><circle cx="6.5" cy="0.5" r="0.3"/><circle cx="-3.6" cy="-3.9" r="0.26"/><circle cx="3.6" cy="-3.9" r="0.26"/><circle cx="-0.6" cy="-4.4" r="0.26"/><circle cx="1.2" cy="-5.7" r="0.26"/><circle cx="-7.4" cy="-1.2" r="0.26"/><circle cx="7.4" cy="-1.2" r="0.26"/></g>`,

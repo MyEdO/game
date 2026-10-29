@@ -1,8 +1,7 @@
 import type { HairstyleDef } from '../types';
 
 export const hairstyle: HairstyleDef = {
-  label: "cheveux mi-longs en arrière, légèrement ondulés",
-  id: "cheveux-mi-longs-en-arriere-legerement-ondules-m",
+  coiffure: "cheveux-mi-longs-en-arriere-legerement-ondules",
   sex: 'M',
   order: 1,
   front: `<g stroke="@cheveuxO" stroke-width="0.45" stroke-linejoin="round"><path d="M-9.4 6.9 Q-10.4 -9 0 -9.6 Q10.4 -9 9.4 6.9 Q8.6 3.2 6.9 1.9 Q4.2 0 0 -0.2 Q-4.2 0 -6.9 1.9 Q-8.6 3.2 -9.4 6.9 Z" fill="@cheveux" stroke="none"/><path d="M-9.9 5.5 Q-11.3 -4.6 -7.7 -8.6 Q-4.2 -11.4 0 -11.4 Q4.2 -11.4 7.7 -8.6 Q11.3 -4.6 9.9 5.5 Q10.7 8.8 10.3 11.8 Q9.9 14.4 8.7 16.2 L7.9 13.2 Q7.6 15.4 6.5 16.6 Q6.1 13 6.6 9.6 Q7.1 5.8 7.3 2.4 Q7 -0.6 4.4 -1.7 Q2.3 -2.7 0 -2.7 Q-2.3 -2.7 -4.4 -1.7 Q-7 -0.6 -7.3 2.4 Q-7.1 5.8 -6.6 9.6 Q-6.1 13 -6.5 16.6 Q-7.6 15.4 -7.9 13.2 L-8.7 16.2 Q-9.9 14.4 -10.3 11.8 Q-10.7 8.8 -9.9 5.5 Z" fill="@cheveux"/><path d="M-4.4 -1.7 Q-2.3 -2.7 0 -2.7 Q2.3 -2.7 4.4 -1.7 Q2.3 -1 0 -1 Q-2.3 -1 -4.4 -1.7 Z" fill="@cheveuxO" opacity="0.55" stroke="none"/><path d="M7.3 2.4 Q7.9 7 7.4 11.6 Q8.4 7.4 9.9 5.5 Q10.5 9.2 10 12.6 Q9.5 9.6 8.7 8.4 Q8.9 12 8.3 15.2 Q7.8 11.4 7.3 8.6 Z" fill="@cheveuxO" opacity="0.5" stroke="none"/><path d="M-7.3 2.4 Q-7.9 7 -7.4 11.6 Q-8.4 7.4 -9.9 5.5 Q-10.5 9.2 -10 12.6 Q-9.5 9.6 -8.7 8.4 Q-8.9 12 -8.3 15.2 Q-7.8 11.4 -7.3 8.6 Z" fill="@cheveuxO" opacity="0.5" stroke="none"/><g stroke="@cheveuxO" stroke-width="0.5" fill="none" opacity="0.7"><path d="M-1.9 -3.1 Q-4.9 -6 -7.9 -6.3"/><path d="M1.9 -3.1 Q4.9 -6 7.9 -6.3"/><path d="M-3.7 -2.3 Q-6.6 -4 -9.1 -3.2"/><path d="M3.7 -2.3 Q6.6 -4 9.1 -3.2"/></g><g stroke="@cheveuxH" stroke-width="0.5" fill="none" opacity="0.6"><path d="M-0.7 -3.3 Q-2.3 -7.2 -4.9 -9.2"/><path d="M0.9 -3.4 Q2.7 -7.4 5.3 -9.2"/></g><path d="M-5.9 -8.9 Q-2.2 -10.9 1.8 -10.7 Q-1.6 -9.5 -4.1 -7.3 Q-5.2 -8 -5.9 -8.9 Z" fill="@cheveuxH" opacity="0.5" stroke="none"/></g>`,
