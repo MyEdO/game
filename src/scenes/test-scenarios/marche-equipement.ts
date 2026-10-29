@@ -133,9 +133,11 @@ export const scenario: TestScenario = {
     'Acheter/Vendre + Marchander (Test opposé −10/−20/−30 %) + Évaluer (révèle la qualité cachée) + Réparer (10 %/PA) ; ' +
     'trois archétypes (armurier direct + herboriste via dialogue, Effet openMerchant + maquignon direct, montures/' +
     'véhicules) ; écran d’EMPLACEMENTS (couches ' +
-    'd’armure LDB 63 souple/Flexible/rigide avec échange auto, cape cosmétique, 2 sets d’armes) ; Troc (onglet du ' +
+    // LDB 63
+    'd’armure souple/Flexible/rigide avec échange auto, cape cosmétique, 2 sets d’armes) ; Troc (onglet du ' +
     'panneau marchand : ratio de Disponibilité, échange objet↔objet sans argent) ; Aubergiste → jeux de taverne ' +
-    '(Effet openTavernGames, option `tavern-games` pré-activée, NADJ 16).',
+    // NADJ 16
+    '(Effet openTavernGames, option `tavern-games` pré-activée).',
   partyNote: 'Négociant (épée non identifiée + maille endommagée + dague) + Maître d’armes (sac garni)',
   // Jeux de taverne pré-activés (NADJ 16) — modifiable au panneau Règles maison, comme le Voyage par Étapes.
   rules: { 'tavern-games': true },

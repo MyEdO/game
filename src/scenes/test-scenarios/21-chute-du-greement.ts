@@ -103,7 +103,8 @@ export const scenario: TestScenario = {
   icon: 'scenario/naval',
   title: 'Chute du gréement (dés à la porte)',
   tests:
-    'La CHUTE passe par la porte des jets (#1508, MDG 13 l.684-688 + LDB 15 l.80) : un Critique « Gréement » '
+    // MDG 13 l.684-688 ; LDB 15 l.80
+    'La CHUTE passe par la porte des jets (#1508) : un Critique « Gréement » '
     + 'impose l’Athlétisme aux matelots de la mâture ; qui rate voit s’ouvrir « Hauteur de chute (2d10) » puis '
     + '« Dégâts de chute (1d10) » — deux étapes affichées, lançables et POSABLES sous « Dés fixés ». Depuis le '
     + 'NID-DE-PIE, la hauteur est un entier (25 m) : une seule étape. Coque MOYENNE portant l’Amélioration '

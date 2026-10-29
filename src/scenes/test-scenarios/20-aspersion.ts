@@ -35,7 +35,8 @@ function construireScene(): Scene {
   const scene = arena({ id: 'test-aspersion', label: 'Aspersion — créature marine hors de l’eau', heroStart: HERO_START });
   scene.startMessage =
     { texte: "Une anguille mâcheprise s'est échouée sur la berge, loin de l'eau, ALLIÉE égarée du groupe : hors " +
-    "de son terrain, elle suffoque (Trait Créature marine, MDG 16 l.19). Le Soldat porte une outre à " +
+    // MDG 16 l.19
+    "de son terrain, elle suffoque (Trait Créature marine). Le Soldat porte une outre à " +
     "eau — l'Action « Asperger d'eau » l'immunise pour le Round où elle est posée ; sans elle, l'anguille " +
     "perd 1 Blessure par Round." };
   setEncounters(scene, [
@@ -55,7 +56,8 @@ export const scenario: TestScenario = {
   icon: 'scenario/bestiary',
   title: 'Aspersion — créature marine hors de l’eau (#497)',
   tests:
-    "Action « Asperger d'eau » (MDG 16 l.19, #497) : une Créature marine ALLIÉE (anguille mâcheprise, " +
+    // MDG 16 l.19
+    "Action « Asperger d'eau » (#497) : une Créature marine ALLIÉE (anguille mâcheprise, " +
     "`side:'ally'` → `kind:'hero'`) échouée sur la terre (`offTerrain`, aucune tuile d'eau, adjacente " +
     "AU SPAWN) suffoque Round après Round (`suffocationTick`, #477) sauf si le Soldat, outre à eau en " +
     "poche (`hasWaterContainer`), l'asperge (`battleWater` pose `wateredThisRound`, aucun jet, consomme " +

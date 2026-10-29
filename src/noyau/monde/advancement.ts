@@ -141,6 +141,7 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
   const refusPx = (cost: number): string | null => refus ?? refusDePx(hero, cost);
   /** Refus d'une Augmentation : combat, puis mentor, puis PX — l'ordre de l'achat. */
   const refusDAugmentation = (inCareer: boolean, what: string, cost: number): string | null =>
+    // LDB 07 l.89
     refus ?? (mentorRequis(s, inCareer) ? t('pf.charNeedsMentor', { name: hero.label, what }) : refusPx(cost));
   /** Refus d'acquérir un Talent : combat, puis Maxi et Domaine (`refusDAcquerirLeTalent`), puis PX. */
   const refusDeTalent = (id: string, spec: string | undefined, cost: number): string | null =>

@@ -289,7 +289,7 @@ const V8C1: Site[] = [
   },
   {
     site: 'merchantFlow.ts:369 — recherche active (sujet + détail par `stepDetail`)',
-    avant: `${HEROS3} — recherche active : une journée aux marchés porte ses fruits (Disponibilité +10 %, LDB 59 l.50).`,
+    avant: `${HEROS3} — recherche active : une journée aux marchés porte ses fruits (Disponibilité +10 %).`,
     apres: stepDetail(dataLabel(HEROS3), t('mf.searchOk')),
   },
 ];
@@ -412,7 +412,7 @@ const V8C2: Site[] = [
     // accent) — elle vient désormais de la donnée (`riverForceLabel`), qui dit « Modéré ».
     // CORRIGÉ (#1595) : la direction se nomme « vent relatif », le terme de l'écran de la mer.
     site: 'riverVoyageFlow.ts:293 — vent du jour (force lue à la DONNÉE + direction en 2ᵉ clé)',
-    avant: `Vent du jour : ${'Modéré'} ; vent relatif : ${'vent contraire'} (MSRC 7 l.21).`,
+    avant: `Vent du jour : ${'Modéré'} ; vent relatif : ${'vent contraire'}.`,
     apres: t('rv.windOfDay', { force: riverForceLabel('modere'), dir: t('rv.windContraire') }),
   },
   {
@@ -508,7 +508,7 @@ const V8C3: Site[] = [
   },
   {
     site: 'seaVoyageFlow.ts:789 — Encalminé (suite optionnelle : dérive chiffrée)',
-    avant: `Encalminé — le bateau ne peut pas se déplacer grâce à ses voiles (MDG 13 l.296).${` Le courant l'entraîne (${3} milles).`}`,
+    avant: `Encalminé — le bateau ne peut pas se déplacer grâce à ses voiles.${` Le courant l'entraîne (${3} milles).`}`,
     apres: t('sv.becalmedLine', { suite: t('sv.fragDrift', { drift: 3 }) }),
   },
   {
@@ -523,7 +523,7 @@ const V8C3: Site[] = [
   },
   {
     site: 'seaVoyageFlow.ts:866 — résumé DR d’un Test d’équipage (signe + issue en 2ᵉ clé)',
-    avant: `${'Rude épreuve'} : DR ${`+${2}`} → ${'succès'} (MDG 14 l.13).`,
+    avant: `${'Rude épreuve'} : DR ${`+${2}`} → ${'succès'}.`,
     apres: t('sv.crewTestSummary', { label: 'Rude épreuve', dr: `+${2}`, issue: t('sv.success') }),
   },
 ];
@@ -627,7 +627,7 @@ const V8C4: Site[] = [
   },
   {
     site: 'seaActivities.ts:276 — Planque de Cartographie (≤ typographique, monnaie formatée)',
-    avant: `${HEROS3} — Planque (MDG 15 l.292) : ${'12 CO'} cachés sur la carte — retrait libre, découverte sur ≤ 50.`,
+    avant: `${HEROS3} — Planque : ${'12 CO'} cachés sur la carte — retrait libre, découverte sur ≤ 50.`,
     apres: t('sact.stash', { name: HEROS3, money: '12 CO' }),
   },
   {
@@ -766,13 +766,13 @@ const V8C5: Site[] = [
   },
   {
     site: 'shipwreck.ts:84 — la coque coule corps et biens (MDG 13 l.674)',
-    avant: `${'La Mouette'} sombre corps et biens (MDG 13 l.674).`,
+    avant: `${'La Mouette'} sombre corps et biens.`,
     apres: t('wreck.sinks', { ship: 'La Mouette' }),
   },
   {
     // La Compétence (Natation) vient de `skills.json`, la difficulté de la policy : le gabarit ne bake ni l'une ni l'autre.
     site: 'shipwreck.ts:208 — issue de Natation d’un naufragé (applier de cascade)',
-    avant: `${HEROS5} — Natation (${'Complexe (−10)'}) : ${'emporté par les flots (noyé, LDB 18 l.344)'}.`,
+    avant: `${HEROS5} — Natation (${'Complexe (−10)'}) : ${'emporté par les flots (noyé)'}.`,
     apres: t('wreck.applierLine', {
       name: HEROS5,
       test: t('step.sujetPrecision', { sujet: refLabel('skills', { id: 'natation' }), precision: DIFFICULTY_LABELS.complexe }),

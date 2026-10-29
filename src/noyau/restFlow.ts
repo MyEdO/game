@@ -783,6 +783,7 @@ export const TABLES = {
       const insert = band ? nextExposureWave(get, band, ctx.steps.map((s) => (s.id === step.id ? { ...s, chosen: step.chosen } : s))) : [];
       if (step.chosen === 'jeter') {
         const name = dropHeaviestPossession(hero);
+        // LDB 18 l.332
         return { consequences: freeCons([t('rf.dropped', { name: hero.label, what: name ?? t('rf.fragHeaviest') })]), insert };
       }
       return { consequences: freeCons(applyExposureFailure(hero, Number(step.meta?.failNumber ?? 1), battleRng(), 'chaleur').log), insert };
