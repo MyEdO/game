@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { FakeTransport } from './transport.testkit';
 import { HostSession, GuestSession } from './session';
 import { ouvrirLeBanc, type Banc } from '../../noyau/banc.testkit';
-import { draineCascade } from '../../state/cascade.testkit';
+import { draineCascade } from '../../noyau/cascade.testkit';
 import { appliquerLIntentionDUnSiege } from '../../noyau/intentionsDeSiege';
 import { battleActivityById, peutTenterAction } from '../../noyau/massBattleFlow';
 import { createHero } from '../../engine/character';
