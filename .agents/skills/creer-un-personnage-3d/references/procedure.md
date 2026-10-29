@@ -12,7 +12,7 @@ Procédure du skill `creer-un-personnage-3d`. Contrat d'élément :
 ## 1. Reconnaître la référence et vérifier la base
 
 Ouvrir réellement l'illustration ; décrire ce qui est visible. Si elle manque ou reste illisible,
-obtenir la référence avant de prétendre la reproduire. Illustration, planches, captures et fiches
+obtenir la référence avant de prétendre la reproduire. Illustration, contrat, captures et fiches
 de mesures restent hors dépôt. Garder provenance et licences des donneurs.
 
 Un élément est construit pour **une base identifiée**, avec son GLB, son manifeste complet haché
@@ -23,7 +23,7 @@ Une autre forme de corps reçoit sa propre base ; un élément ne greffe pas un 
 
 Avant de commencer, vérifier la porte sur tous les clips, les 13 gabarits, les six surcharges de
 race et les extrêmes de silhouettes : mesure Node, témoin de jupe animé dans Godot, juge neuf,
-puis revue utilisateur. Sans cette preuve, préparer contrat et planches ; la construction
+puis revue utilisateur. Sans cette preuve, préparer le contrat ; la construction
 compatible et sa validation restent **bloquées par L1**, jamais déduites d'un export réussi.
 
 Le lanceur du kit installe/vérifie son environnement CPython épinglé (version et hashes dans
@@ -105,11 +105,13 @@ NON VÉRIFIÉS tant que leurs gardes et le montage ne sont pas livrés.
 lisibles à taille de jeu ; éléments indépendants et dépendances ; interfaces risquées avec leur
 support, leur contact/dégagement, souplesse et poses ; grandes surfaces ; tri CONSERVER /
 SIMPLIFIER / OMETTRE. Distinguer volume, motif peint et ombre. Tracer les hypothèses du dos.
-
-Dessiner une planche SVG simplifiée **par pièce**, face/profil/dos, avant construction. Réutiliser
-les vues du rig SVG si elles existent et suffisent. La planche guide la forme ; le modèle se
-compare aussi à l'illustration directrice. Un grand revers et un foulard sont des formes ;
+Le modèle se compare à l'illustration directrice. Un grand revers et un foulard sont des formes ;
 coutures et usure restent du détail. Palette mate limitée, ombrage flat/smooth intentionnel.
+
+Un blason (emblème d'unité, de province ou de culte) n'appartient pas à l'élément : la pièce garde
+un champ neutre (écu uni, lame nue, insigne vierge) et le contrat nomme chaque surface qui le
+porte. #3111 (« Schéma 3 : blason posé au montage sur les surfaces déclarées d'un élément, jamais
+peint ») en fait une déclaration du manifeste.
 
 ## 3. Bloquer l'ensemble, construire par dépendances
 
@@ -199,7 +201,7 @@ Lire au besoin la référence diagnostics du skill.
 Exporter en interpolation LINEAR et garder les pistes cuites de la base. Graines déterministes
 tirées des codes de caractères de l'identité, jamais du hash Python variable entre processus.
 Reconstruire un échantillon et comparer les octets ; une signature égale ne remplace pas cette preuve.
-Couleur de base en niveaux de gris ; surfaces reliées à palette ou teinte, sans couleur cuite ni
+Couleur de base en niveaux de gris ; surfaces reliées à palette ou teinte, sans couleur cuite, blason ni
 illustration en texture. La cuisson de géométrie vers texture peut utiliser le kit.
 
 Réutiliser une vue seulement si export et pose sont identiques. Après deux échecs du même défaut,
@@ -306,8 +308,7 @@ puis restaurer le réglage de revue. Changer la lumière ne corrige pas la forme
 
 Pour chaque signe identitaire : vignette recadrée identiquement source/GLB, poses et clips utiles,
 un **juge neuf rend un verdict OK/KO par signe**, avec preuve. Gros plans mains et jupes aux images clés ;
-lineup face, trois-quarts et dos, taille de jeu et gros plan, à côté de l'illustration et du SVG
-existant lorsqu'il existe. Recette au visionneur par contrôles réels, deux faces et transitions,
+lineup face, trois-quarts et dos, taille de jeu et gros plan, à côté de l'illustration. Recette au visionneur par contrôles réels, deux faces et transitions,
 retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON VÉRIFIÉ.
 
 Présenter ensuite les preuves à l'utilisateur ; consigner sa réponse **verbatim et datée** dans la
@@ -318,7 +319,7 @@ Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'
 
 Livrer fichier de données, constructeur local et source éditable, GLB unique de l'élément,
 manifeste schéma 3, provenance/licences et rapport lié aux empreintes exactes. Garder hors dépôt
-illustration, planches, captures et fiches de mesures ; ne pas réattribuer d'anciennes preuves à
+illustration, contrat, captures et fiches de mesures ; ne pas réattribuer d'anciennes preuves à
 un nouvel export. Les voisins restent identiques, signatures à l'appui.
 
 Un élément est entériné après technique complète, porte artistique par signe et revue utilisateur
