@@ -1,6 +1,6 @@
 // LES ANNEAUX ARTICULAIRES DU CORPS EN CONSTRUCTION (#2972, #3101) : `anneauxArticulaires` et `sectionsDeRepos` de la
 // garde (`hotes/godot/asset/evaluateur/gardes/silhouettes.ts`) appelés sur le maillage que la construction Blender
-// (`silhouettes.py`) lit sur l'entrée standard, en JSON :
+// (`silhouettes.py`) lui passe sur l'entrée standard, en JSON :
 // - `os` : par os, `nom`, `parent` (nom, ou null) et `matrice`, sa matrice monde de repos (16 nombres, par colonnes) ;
 // - `corps` : par corps, `nom`, `positions` (x, y, z monde de repos à plat), `indices` et `poids`
 //   (`INFLUENCES_MAX` influences par sommet, `gardes/poids.ts`, à plat).

@@ -30,8 +30,8 @@ import numpy
 
 from anatomie import PEAUX_SECONDAIRES, PIEDS, POING, ZONE_DE_L_OS
 from corpulence import NOM as CORPULENCE
-from formes import (aretes_des_triangles, decalages, lier, lisser, noms_des_cles, positions, poser_la_cle, rapports,
-                    transferer_les_cles, transporter, voisins)
+from formes import (aretes_des_triangles, aux_noeuds, decalages, lier, lisser, noms_des_cles, positions, poser_la_cle,
+                    rapports, transferer_les_cles, transporter, voisins)
 from poids import ETIREMENT_VISE, PASSES_MAX, deformer, jumeaux, peau_lineaire
 from script_node import lancer
 from seuils import INFLUENCES_MAX, MAJORITE_DU_POIDS
@@ -145,22 +145,40 @@ def vers_le_mesh(objet, decalage):
     return decalage @ numpy.array(objet.matrix_world.inverted().to_3x3()).T
 
 
+def rapports_de_carrure(bornes):
+    """Par clé de carrure, son rapport : `carrure_moins` la borne min de `st` (`bornes`), `carrure_plus` la max."""
+    return {CARRURE_MOINS: bornes['min'], CARRURE_PLUS: bornes['max']}
+
+
 def ajouter_feminin_et_carrure(squelette, corps, squelette_feminin, corps_feminin, bornes):
     """Pose sur `corps` les clés `feminin` (depuis `corps_feminin` skinné à `squelette_feminin`), `carrure_moins` et
     `carrure_plus` (bornes de `st` `bornes`), décalages bruts, avant `finir_les_silhouettes`."""
     decalage, sonde = feminin(squelette, corps, squelette_feminin, corps_feminin)
     print('FEMININ projection', sonde, flush=True)
     poser_la_cle(corps, FEMININ, vers_le_mesh(corps, decalage))
-    for nom, rapport in ((CARRURE_MOINS, bornes['min']), (CARRURE_PLUS, bornes['max'])):
+    for nom, rapport in rapports_de_carrure(bornes).items():
         poser_la_cle(corps, nom, vers_le_mesh(corps, carrure(squelette, corps, rapport)))
 
 
 class AnneauIndetectable(RuntimeError):
     """Le corps n'a aucun anneau articulaire (`anneauxArticulaires`) : ni centre ni épaisseur à tenir, pendant de
-    l'écart `anneau-indetectable` de la garde des silhouettes."""
+    l'écart `anneau-indetectable` de la garde des silhouettes. Ses sous-classes nomment chaque autre anneau qui ne se
+    tient pas."""
+    RAISON = 'aucun anneau articulaire, ni centre ni épaisseur à tenir'
 
-    def __init__(self, corps):
-        super().__init__(f'anneau-indetectable : aucun anneau articulaire dans {corps}, ni centre ni épaisseur à tenir')
+    def __init__(self, sujet):
+        super().__init__(f'anneau-indetectable : {sujet} : {self.RAISON}')
+
+
+class AnneauSansNoeudLibre(AnneauIndetectable):
+    """Tout sommet du corps est fixe (`fondu` nul) : aucun nœud ne porte le centre ni l'épaisseur d'un anneau."""
+    RAISON = 'aucun nœud libre, ni centre ni épaisseur à tenir'
+
+
+class EpaisseurFigee(AnneauIndetectable):
+    """Une clé vise un rapport de carrure, mais chaque sommet de l'anneau le plus épais est fixe (`fondu` nul) : son
+    rayon ne se porte pas à la borne de `st`."""
+    RAISON = "chaque sommet de l'anneau le plus épais est fixe, son rayon ne se porte pas à la borne de st"
 
 
 def anneaux(squelette, corps, x, w, noms):
@@ -183,18 +201,21 @@ def anneaux(squelette, corps, x, w, noms):
 
 def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     """La correction des clés du corps de sommets `x` (repère monde) : la fonction qui rend, pour chaque couple
-    (source d0, rapport) d'une liste, le champ de décalages d = argmin Σ_arêtes |(d − d0)_i − (d − d0)_j|² sur les
+    (champ d0, rapport) de `champs`, le champ de décalages d = argmin Σ_arêtes |(d − d0)_i − (d − d0)_j|² sur les
     arêtes `aretes` (`formes.aretes_des_triangles`), sous : une seule valeur par nœud (`noeud_de`, `poids.jumeaux`),
     d nul sur chaque nœud qui porte un sommet `fixe`, Σ d nulle sur les sommets de chaque anneau de `anneaux_du_corps`
     (`anneaux`) et, si `rapport` n'est pas `None`, moyenne de d·u sur l'anneau le plus épais égale à (rapport − 1) × son
     rayon, u la direction radiale de chaque sommet depuis la droite de son centre et de son axe. Rend aussi le nombre
-    de nœuds libres, de contraintes, et la durée de la factorisation en secondes."""
+    de nœuds libres, de contraintes, et la durée de la résolution de `champs` en secondes. Un corps sans nœud libre
+    lève `AnneauSansNoeudLibre` ; un rapport visé sur un anneau le plus épais tout fixe, `EpaisseurFigee`."""
     reps, noeud = numpy.unique(noeud_de, return_inverse=True)
     n = len(reps)
     fixes = numpy.zeros(n, dtype=bool)
     numpy.logical_or.at(fixes, noeud, fixe)
     libres = numpy.flatnonzero(~fixes)
     m = len(libres)
+    if m == 0:
+        raise AnneauSansNoeudLibre(f'{len(x)} sommets')
     rang = numpy.full(n, -1)
     rang[libres] = numpy.arange(m)
     bouts = numpy.searchsorted(reps, aretes)
@@ -230,27 +251,26 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
 
     def corriger(champs):
         debut = time.perf_counter()
-        sources = []
-        for champ, _ in champs:
-            valeur = numpy.zeros((n, 3))
-            numpy.add.at(valeur, noeud, champ)
-            sources.append(valeur / numpy.bincount(noeud, minlength=n)[:, None])
-        seconds = numpy.zeros((m, len(sources), 3))
+        vises = {rapport is not None for _, rapport in champs}
+        if True in vises and fixes[noeud[s]].all():
+            raise EpaisseurFigee(epais['os'])
+        valeurs = [aux_noeuds(champ, noeud) for champ, _ in champs]
+        seconds = numpy.zeros((m, len(valeurs), 3))
         for (p, f) in bord:
-            for k, valeur in enumerate(sources):
+            for k, valeur in enumerate(valeurs):
                 numpy.add.at(seconds[:, k], p, -valeur[f])
         k_contraintes = len(contraintes)
         resolu = numpy.linalg.solve(laplacien, numpy.concatenate(
             [contraintes.reshape(k_contraintes, 3, m).transpose(2, 0, 1).reshape(m, -1),
              seconds.reshape(m, -1)], axis=1))
         z = resolu[:, :k_contraintes * 3].reshape(m, k_contraintes, 3).transpose(1, 2, 0).reshape(k_contraintes, -1)
-        libres_seuls = resolu[:, k_contraintes * 3:].reshape(m, len(sources), 3)
-        schurs = {False: numpy.linalg.inv(contraintes[:-1] @ z[:-1].T), True: numpy.linalg.inv(contraintes @ z.T)}
-        duree = time.perf_counter() - debut
+        libres_seuls = resolu[:, k_contraintes * 3:].reshape(m, len(valeurs), 3)
+        retenues = {vise: (contraintes, z) if vise else (contraintes[:-1], z[:-1]) for vise in vises}
+        schurs = {vise: numpy.linalg.inv(c @ zz.T) for vise, (c, zz) in retenues.items()}
         resultats = []
-        for k, ((_, rapport), valeur) in enumerate(zip(champs, sources)):
+        for k, ((_, rapport), valeur) in enumerate(zip(champs, valeurs)):
             vise = rapport is not None
-            c, zz = (contraintes, z) if vise else (contraintes[:-1], z[:-1])
+            c, zz = retenues[vise]
             cible = numpy.zeros(len(c))
             if vise:
                 cible[-1] = (rapport - 1.0) * epais['rayon']
@@ -259,7 +279,8 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
             plein = numpy.zeros((n, 3))
             plein[libres] = d.reshape(3, m).T
             resultats.append(plein[noeud])
-        return resultats, {'noeuds_libres': m, 'contraintes': k_contraintes, 'factorisation_s': round(duree, 3)}
+        duree = time.perf_counter() - debut
+        return resultats, {'noeuds_libres': m, 'contraintes': k_contraintes, 'resolution_s': round(duree, 3)}
 
     return corriger
 
@@ -276,8 +297,8 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
     aretes = aretes_des_triangles(corps, groupe)
     cles = noms_des_cles(corps)
     vers_le_monde = numpy.array(corps.matrix_world.to_3x3()).T
-    rapports_de_st = {CARRURE_MOINS: bornes['min'], CARRURE_PLUS: bornes['max']}
-    sources = []
+    rapports_de_st = rapports_de_carrure(bornes)
+    champs = []
     for nom in cles:
         if nom in LISSEES:
             brut = rapports(repos, decalages(corps, nom) * libre[:, None], aretes)
@@ -288,18 +309,18 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
                   '; arêtes < 0,1', int((brut < 0.1).sum()), '->', int((r < 0.1).sum()), flush=True)
         else:
             d = decalages(corps, nom) * libre[:, None]
-        sources.append((d @ vers_le_monde, rapports_de_st.get(nom)))
+        champs.append((d @ vers_le_monde, rapports_de_st.get(nom)))
     lus = anneaux(squelette, corps, x, w, noms)
     print('ANNEAUX', len(lus['anneaux']), '; le plus épais', lus['anneaux'][lus['lePlusEpais']]['os'],
           round(lus['anneaux'][lus['lePlusEpais']]['rayon'], 4), 'm ;',
           ' '.join(f"{a['os']}:{len(a['sommets'])}" for a in lus['anneaux']), flush=True)
-    corriges, sonde = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)(sources)
+    corriges, sonde = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)(champs)
     print('SILHOUETTES correction', sonde, flush=True)
-    for nom, (source, _), d in zip(cles, sources, corriges):
+    for nom, (champ, _), d in zip(cles, champs, corriges):
         d = vers_le_mesh(corps, d)
         r = rapports(repos, d, aretes)
         poser_la_cle(corps, nom, d)
-        print('SILHOUETTE', nom, 'correction : amplitude', round(float(numpy.linalg.norm(source, axis=1).max()), 4), '->',
+        print('SILHOUETTE', nom, 'correction : amplitude', round(float(numpy.linalg.norm(champ, axis=1).max()), 4), '->',
               round(float(numpy.linalg.norm(d, axis=1).max()), 4), 'm ; rapports au repos', round(float(r.min()), 4),
               round(float(r.max()), 3), '; extrémités', round(float(numpy.linalg.norm(d[libre == 0], axis=1).max(initial=0)), 6),
               'm', flush=True)
