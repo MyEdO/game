@@ -151,36 +151,30 @@ export type PieceId = IdsParEspace['garde-robe.json?kind=piece'];
 /** Id d'un emplacement : la sous-liste `kind=emplacement` de l'espace `garde-robe.json` (`npm run gen`). */
 export type EmplacementId = IdsParEspace['garde-robe.json?kind=emplacement'];
 
-/** VUE TS d'une ligne `piece` — le nœud rendu par la fabrique est SCELLÉ (`z.infer` y vaut `unknown`). */
-export interface PieceDef {
-  id: PieceId;
+/** VUE TS du tronc commun d'une ligne de sorte `K`. */
+interface LigneDeSorte<K extends string, Id extends string> {
+  id: Id;
   type: 'garde-robe';
-  kind: 'piece';
+  kind: K;
   label: string;
+}
+
+/** VUE TS d'une ligne `piece` — le nœud rendu par la fabrique est SCELLÉ (`z.infer` y vaut `unknown`). */
+export interface PieceDef extends LigneDeSorte<'piece', PieceId> {
   categorie: CategorieDePiece;
   emplacement?: { id: EmplacementId };
 }
 
 /** VUE TS d'une ligne `tete`. */
-export interface TeteDef {
-  id: TeteId;
-  type: 'garde-robe';
-  kind: 'tete';
-  label: string;
-}
+export type TeteDef = LigneDeSorte<'tete', TeteId>;
 
 /** VUE TS d'une ligne `coiffure`. */
-export interface CoiffureDef {
-  id: CoiffureId;
-  type: 'garde-robe';
-  kind: 'coiffure';
-  label: string;
-}
+export type CoiffureDef = LigneDeSorte<'coiffure', CoiffureId>;
 
 /** VUE TS d'une ligne de la garde-robe. */
 export type GardeRobeEntree =
   | TeteDef
   | CoiffureDef
-  | { id: string; type: 'garde-robe'; kind: 'emplacement'; label: string }
+  | LigneDeSorte<'emplacement', string>
   | PieceDef
-  | { id: string; type: 'garde-robe'; kind: 'ensemble'; label: string; habille: RefTypee<'trapping' | 'apparence'>; pieces: PieceId[] };
+  | (LigneDeSorte<'ensemble', string> & { habille: RefTypee<'trapping' | 'apparence'>; pieces: PieceId[] });

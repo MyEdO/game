@@ -108,7 +108,7 @@ import raceAppearanceJson from './raceAppearance.json';
 import gabaritsJson from './gabarits.json';
 import type { GabaritDef, GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 import gardeRobeJson from './garde-robe.json';
-import type { CoiffureDef, GardeRobeEntree, PieceDef, TeteDef } from './schemas/defs/garde-robe';
+import type { GardeRobeEntree } from './schemas/defs/garde-robe';
 import godsJson from './gods.json';
 import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
@@ -2951,15 +2951,14 @@ export const gabarits = gabaritsJson as GabaritDef[];
 export const findGabaritById = indexParId('gabarits', gabarits);
 /** Garde-robe des éléments 3D (`garde-robe.json`, #3114, #3113) : têtes, coiffures, emplacements, pièces, ensembles. */
 export const gardeRobe = gardeRobeJson as GardeRobeEntree[];
-/** Résout une PIÈCE (`kind: 'piece'`) par son id ; une autre ligne de la garde-robe n'en est pas une. */
-const pieceParId = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'piece' ? e.id : undefined));
-export const findPieceById = (id: string | null | undefined): PieceDef | undefined => pieceParId(id) as PieceDef | undefined;
-/** Résout une TÊTE (`kind: 'tete'`) par son id ; une autre ligne de la garde-robe n'en est pas une. */
-const teteParId = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'tete' ? e.id : undefined));
-export const findTeteById = (id: string | null | undefined): TeteDef | undefined => teteParId(id) as TeteDef | undefined;
-/** Résout une COIFFURE (`kind: 'coiffure'`) par son id ; une autre ligne de la garde-robe n'en est pas une. */
-const coiffureParId = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'coiffure' ? e.id : undefined));
-export const findCoiffureById = (id: string | null | undefined): CoiffureDef | undefined => coiffureParId(id) as CoiffureDef | undefined;
+/** Lecteur d'une sorte de la garde-robe par id ; une ligne d'une autre sorte n'en est pas une. */
+const parSorte = <K extends GardeRobeEntree['kind']>(kind: K) => {
+  const idx = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === kind ? e.id : undefined));
+  return (id: string | null | undefined) => idx(id) as Extract<GardeRobeEntree, { kind: K }> | undefined;
+};
+export const findPieceById = parSorte('piece');
+export const findTeteById = parSorte('tete');
+export const findCoiffureById = parSorte('coiffure');
 export const locations = locationsJson as LocationData[];
 const lieuParId = indexParId('locations', locations);
 /** Résout un Lieu par son `id` STABLE (cible de `LocationData.parent`). Le libellé ne sert qu'à l'affichage. */
