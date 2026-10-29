@@ -742,14 +742,14 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/crit-test-porte.test.ts",
+    fichier: "src/noyau/crit-test-porte.hors-store.test.ts",
     motif: "désormais",
     ancre: "Il naît désormais comme une ÉTAPE, et c'est le socle (`resolveFlowTest`) qui décide de sa surface.",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/crit-test-porte.test.ts",
+    fichier: "src/noyau/crit-test-porte.hors-store.test.ts",
     motif: "désormais",
     ancre: "ignorait les États du jeteur — donc sans Chance, sans Pacte, sans Résilience. Ils naissent désormais",
     lot: "L7 désormais",

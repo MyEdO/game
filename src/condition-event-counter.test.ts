@@ -23,9 +23,9 @@ const REMAINING: Record<string, number> = {
   'src/noyau/combatPlacement.ts': 1,
   'src/ui/StateRecoveryModal.tsx': 1,
   // Tests qui FABRIQUENT un événement `condition` — ils tomberont avec leurs sites de production.
-  'src/state/combat/aa-bleed-unconscious.test.ts': 1,
-  'src/state/combat/bleed-death-aa.test.ts': 1,
-  'src/state/combat/bleed-death.test.ts': 1,
+  'src/noyau/combat/aa-bleed-unconscious.hors-store.test.ts': 1,
+  'src/noyau/combat/bleed-death-aa.hors-store.test.ts': 1,
+  'src/noyau/combat/bleed-death.hors-store.test.ts': 1,
   'src/ui/RecapLine.test.tsx': 1,
   'src/gameIso/combatNarration.test.ts': 1,
 };

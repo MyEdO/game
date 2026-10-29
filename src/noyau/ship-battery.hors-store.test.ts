@@ -72,7 +72,7 @@ describe('resolveBattery — lâcher une bordée (DR partagé, MDG 14)', () => {
   });
 });
 
-// ── Flux JOUABLE (store) : Test d'équipage MULTI des Artilleurs → volée sur la coque (jumeau de la manœuvre). ──
+// ── Flux JOUABLE (noyau) : Test d'équipage MULTI des Artilleurs → volée sur la coque (jumeau de la manœuvre). ──
 const gunnerPJ = (): Combatant =>
   ({ id: 'gunner', label: 'Artilleur', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },

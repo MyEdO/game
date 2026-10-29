@@ -73,7 +73,7 @@ const stepAt = (i: number) => steps()[i];
 const poser = (id: string, roll: number) => useGame.getState().cascadeTableSetForcedRoll(id, roll);
 const suivant = () => useGame.getState().cascadeNext();
 
-/** RNG scripté (dés imposés dans l'ordre) — même utilitaire que `state/mutation-step.test.ts`. */
+/** RNG scripté (dés imposés dans l'ordre) — même utilitaire que `noyau/mutation-step.hors-store.test.ts`. */
 function scripted(values: number[]) {
   return desEnSuite(values, { ensuite: 1 });
 }

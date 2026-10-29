@@ -4,18 +4,10 @@
  */
 import { vi } from 'vitest';
 import { useGame } from './store';
-import { auContact, heroDuDuel } from '../noyau/combatDeTest.testkit';
+import { heroFaceAUnEnnemi as ouvrirLeDuel } from '../noyau/combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 
 export function heroFaceAUnEnnemi(): { H: Combatant; E: Combatant } {
-  const g = useGame.getState;
-  useGame.setState({ party: [heroDuDuel()] });
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
-  g().confirmRoundStart();
-  vi.clearAllTimers();
-  const { H, E, patch } = auContact(g());
-  useGame.setState(patch);
-  return { H, E };
+  return ouvrirLeDuel({ getState: useGame.getState, setState: (patch) => useGame.setState(patch), abandonner: () => vi.clearAllTimers() }, testScene());
 }

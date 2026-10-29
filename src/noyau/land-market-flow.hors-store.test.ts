@@ -19,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * COMMERCE TERRESTRE/FLUVIAL — rumeur CROSS-LIEU (MSRC 13 l.180) : la rumeur entendue au marché désigne
- * un AUTRE Lieu où le bien se vend au double. Board persistant `store.tradeRumours`, appliqué à la vente
+ * un AUTRE Lieu où le bien se vend au double. Board persistant `tradeRumours` (état du jeu), appliqué à la vente
  * au Lieu désigné (#99).
  */
 const get = () => banc.getState();
