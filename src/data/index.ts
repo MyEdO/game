@@ -928,7 +928,7 @@ export interface CareerLevelData {
  *  `specsSource` n'a PAS de `specs[]` (le pool DÉRIVE du registre partagé, cf. `specPoolOf`).
  *  `pool: false` — l'entrée est VALIDE (résolution, `testValue`, bonus de règle) mais n'est pas
  *  PROPOSÉE d'office par le créateur/l'avancement (`LDB 09 l.40`) ; les écrans de RÉFÉRENCE
- *  l'impriment (`specCatalogOf`). Absente = dans le pool. VALIDITÉ ⊇ POOL, cf. `specResolves`. */
+ *  l'impriment (`specCatalogOf`). Absente = dans le pool. CATALOGUE ⊇ POOL (`specAuCatalogue`, `grammaire/ref.ts`). */
 export type SpecEntry = { id: string; label: string; source?: SourceRef; alsoIn?: SecondaryRef[]; pool?: false };
 /** id d'une entrée `specs[]`. */
 export function specEntryId(e: SpecEntry): string {
@@ -3528,18 +3528,17 @@ function libelleDeSource(decl: SourceDeSpecs): (id: string) => string {
   };
 }
 /** UNE source de spéc, lue sur sa déclaration (`SOURCES_DE_SPECS`) : `pool()` = ids CHOISISSABLES par un
- *  joueur ; `resolves()` = l'id appartient-il à l'UNIVERS de la source (⊇ pool) ; `label()` = affichage.
- *  `admetEntree()` juge une entrée résolue par le filtre déclaré de l'univers, campagne comprise.
- *  Le pool borne le CHOIX joueur ; l'univers borne la VALIDITÉ des données (le Triton, MDG 16 l.283). */
+ *  joueur ; `label()` = affichage. `admetEntree()` juge une entrée résolue par le filtre déclaré de
+ *  l'univers, campagne comprise. Le pool borne le CHOIX joueur ; l'univers (⊇ pool) est le catalogue de
+ *  l'entrée qui la déclare (`catalogueSpecs`, `grammaire/ref.ts`), le Triton compris (MDG 16 l.283). */
 export const SPEC_SOURCES = tableTotale(
   Object.keys(SOURCES_DE_SPECS) as SpecsSource[],
-  (src): { pool(): string[]; label(id: string): string; resolves(id: string): boolean; admetEntree(entree: { readonly id: string }): boolean } => {
+  (src): { pool(): string[]; label(id: string): string; admetEntree(entree: { readonly id: string }): boolean } => {
     const decl: SourceDeSpecs = SOURCES_DE_SPECS[src];
     const { filtre } = lireCleDEspace(decl.univers);
     return {
       pool: () => [...(lireLEspace(decl.pool ?? decl.univers) ?? [])],
       label: libelleDeSource(decl),
-      resolves: (id: string) => lireLEspace(decl.univers)?.has(id) ?? false,
       admetEntree: (entree) => filtre ? retenuParFiltre(filtre, entree as Readonly<Record<string, unknown>>) : (lireLEspace(decl.univers)?.has(entree.id) ?? false),
     };
   },
@@ -3553,7 +3552,7 @@ export function specIdByLabel(label: string, source: SpecsSource): string | unde
 /** POOL d'une def (Compétence/Talent) — ce qu'un choix joueur PROPOSE d'office (`LDB 09 l.40`) :
  *  pool DÉRIVÉ du registre partagé si `specsSource` (SSOT `SPEC_SOURCES`), sinon les entrées `specs[]`
  *  inline SANS `pool: false`. Consommé par `wildcardSpecs` (créateur), l'avancement et l'Entraînement.
- *  Ne JAMAIS l'utiliser pour juger de la VALIDITÉ d'une spec (cf. `specResolves`). */
+ *  Ne JAMAIS l'utiliser pour juger de la VALIDITÉ d'une spec (`refusDeSpec`, `grammaire/ref.ts`). */
 export function specPoolOf(def: { specsSource?: SpecsSource; specs?: SpecEntry[] }): string[] {
   return def.specsSource
     ? SPEC_SOURCES[def.specsSource].pool()
@@ -3561,23 +3560,10 @@ export function specPoolOf(def: { specsSource?: SpecsSource; specs?: SpecEntry[]
 }
 /** CATALOGUE ÉNUMÉRABLE d'une def : toutes les entrées `specs[]` (y compris `pool: false`), sinon le
  *  pool du registre partagé. C'est la liste qu'un écran de RÉFÉRENCE imprime (Codex/éditeur) et la
- *  base des round-trips libellé→id. `specsSource` résout AU-DELÀ de cet énumérable (registre entier,
- *  cf. `specResolves`) : ce qui est énumérable ⊆ ce qui est valide. */
+ *  base des round-trips libellé→id. Le catalogue d'une `specsSource` va AU-DELÀ de cet énumérable
+ *  (univers entier, `specAuCatalogue`, `grammaire/ref.ts`) : ce qui est énumérable ⊆ ce qui est désigné. */
 export function specCatalogOf(def: { specsSource?: SpecsSource; specs?: SpecEntry[] }): string[] {
   return def.specsSource ? SPEC_SOURCES[def.specsSource].pool() : (def.specs ?? []).map(specEntryId);
-}
-/** VALIDITÉ d'une spéc pour une def : l'id existe au catalogue inline (pool ou non) OU dans le REGISTRE
- *  d'une `specsSource` (⊇ son pool joueur — un statbloc RAW porte une spéc réelle non choisissable).
- *  Porte de la RÉSOLUTION (`testValue` par id, bonus de règle) et des gardes. */
-export function specResolves(def: { specsSource?: SpecsSource; specs?: SpecEntry[] }, specId: string): boolean {
-  return def.specsSource
-    ? SPEC_SOURCES[def.specsSource].resolves(specId)
-    : (def.specs ?? []).some((e) => specEntryId(e) === specId);
-}
-/** La def PORTE-t-elle un catalogue de spécs (`specs[]` non vide ou `specsSource`) ? Sans catalogue, la
- *  spéc d'un Talent est un texte d'instance (#1621). */
-export function porteCatalogueDeSpecs(def: { specsSource?: SpecsSource; specs?: SpecEntry[] } | undefined): boolean {
-  return !!def?.specsSource || (Array.isArray(def?.specs) && def.specs.length > 0);
 }
 /** Libellé d'affichage d'une spéc (`RefDesignee.spec`) : si la def désigne une `specsSource`, résout via le
  *  catalogue `SPEC_SOURCES` (registre partagé d'ids : Groupe d'arme → libellé, Vent, Lore, dieu, chanson) ;

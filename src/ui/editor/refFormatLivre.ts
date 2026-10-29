@@ -12,8 +12,9 @@
  * (« Savoir (Zorglub) » persiste « Zorglub »), faute d'id à désigner. Doctrine « toute LOGIQUE est
  * keyée par id STABLE » (AGENTS.md).
  */
-import { byId, caracDuSigle, findSkill, findTalent, findTalentById, findTraitById, specCatalogOf, specIdByLabel, specLabel, specResolves, traitIdByLabel, emplacementsDesPiecesDuCatalogue, type SkillRef, type TalentRef, type TraitData } from '../../data';
+import { byId, caracDuSigle, findSkill, findTalent, findTalentById, findTraitById, specCatalogOf, specIdByLabel, specLabel, traitIdByLabel, emplacementsDesPiecesDuCatalogue, type SkillRef, type TalentRef, type TraitData } from '../../data';
 import { ARG_JOKER, traitAdmet } from '../../data/schemas/grammaire/reference';
+import { specAuCatalogue } from '../../data/schemas/grammaire/ref';
 import { slugId } from '../../data/slug';
 import { parseStatEntry } from '../../engine/statEntry';
 import { classerParenthese } from '../../engine/classementDeTrait';
@@ -37,7 +38,7 @@ function branchesOu(arg: string): string[] {
 
 /**
  * Libellé FR d'une spécialisation → son `id`. Deux étages, car ce qui est ÉNUMÉRABLE (`specCatalogOf`)
- * est un SOUS-ENSEMBLE de ce qui est VALIDE (`specResolves`) quand la def désigne une `specsSource` :
+ * est un SOUS-ENSEMBLE de ce qui est DÉSIGNÉ (`specAuCatalogue`) quand la def désigne une `specsSource` :
  * (1) l'entrée du catalogue dont le libellé est ce texte ; (2) sinon le slug du texte, s'il RÉSOUT au
  * registre partagé — un statbloc RAW porte des spécs réelles hors du pool joueur (Focalisation
  * « Magie des mers de Triton »). Verbatim en dernier ressort : domaine OUVERT, spéc libre saisie par
@@ -49,7 +50,7 @@ function specIdOf(ds: 'skills' | 'talents', refId: string, label: string): strin
   const auCatalogue = specCatalogOf(def).find((id) => specLabel(ds, refId, id) === label);
   if (auCatalogue) return auCatalogue;
   const candidat = slugId(label);
-  return specResolves(def, candidat) ? candidat : label;
+  return specAuCatalogue(ds === 'skills' ? 'skill' : 'talent', refId, candidat) ? candidat : label;
 }
 
 /** Parse une saisie « Compétence (Spéc) Valeur » → `SkillRef` (forme unique `{id, spec?|choix?, value}`).

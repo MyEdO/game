@@ -20,7 +20,7 @@ import { listeCle } from '../grammaire/collection-cle';
 import { champAdapteDe, proseNommee, refineAdapteDe, META_ADAPTE_DE } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
 import { apparenceDObjetSchema } from '../defs/trappings';
-import { findCreatureById, findTrappingById, byId, findTalentById, specResolves, porteCatalogueDeSpecs, trappingDesObjetsPuisDuCatalogue } from '../../index';
+import { findCreatureById, findTrappingById, trappingDesObjetsPuisDuCatalogue } from '../../index';
 import { messageDApparenceDObjet, type TrappingResolver } from '../../apparencesObjets';
 import type { CreatureData, TrappingData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
@@ -220,8 +220,8 @@ export function validerReferencesDObjetsDansCampagne(objets: readonly TrappingDa
  * Sémantique du bloc narratif — unicité des ids INTER-registres (l'unicité DANS un registre est la
  * clé de sa liste, `listeCle`) et anti-collision avec la règle globale, pour chaque registre de
  * `REGISTRES_NARRATIFS` ; `indice.affaireId` croisé, stades non vides, stade à prose OU document
- * (`documentId` croisé), preset à `base` OU `profil` complet, et spécialisations RÉSOLUES au catalogue
- * global (`specResolves`). Attachée à `narratifSchema`, elle porte donc le chemin complet (`narratif.indices.3.affaireId`) quand le projet la compose.
+ * (`documentId` croisé) et preset à `base` OU `profil` complet ; les spécialisations du profil sont
+ * jugées par les fabriques de `profil.skills` et `profil.talents` (`refusDeSpec`). Attachée à `narratifSchema`, elle porte donc le chemin complet (`narratif.indices.3.affaireId`) quand le projet la compose.
  */
 function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx): void {
   validerReferencesDObjetsDansCampagne(nb.objets, ctx);
@@ -263,36 +263,6 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
       if (!p.profil.char || typeof p.profil.char !== 'object') faute(['presetsPnj', i, 'profil', 'char'], '« char » absent d’un profil sans base.');
       if (!Array.isArray(p.profil.traits)) faute(['presetsPnj', i, 'profil', 'traits'], '« traits » absent d’un profil sans base.');
     }
-    /** Référence PAR ID jusque dans la spécialisation (`specResolves`, #1342 L3). La sentinelle
-     *  « au choix » reste admise : elle désigne un EMPLACEMENT, pas une spécialisation. Elle ne
-     *  peut plus arriver côté COMPÉTENCE : la réf à spécialisation la refuse au parse, quel que soit le
-     *  régime du porteur (`ref.ts#SENTINELLE_DE_SPEC`) ; elle arrive ENCORE côté TALENT, où
-     *  `talentRefSchema` (`grammaire/reference.ts`) n'a pas de régime `choix` — 12 sentinelles
-     *  mesurées dans `creatures.json`, dont ces profils embarqués sont le patch partiel. Concept
-     *  loté L3 (#1463) : ce volet tombe quand le talent gagne son régime `choix`.
-     *  Talent sans catalogue (`porteCatalogueDeSpecs`) : texte d'instance, même régime que
-     *  `creatures.json` (#1621, `src/data/refs-migrated.test.ts`). */
-    const specValide = (
-      champ: 'skills' | 'talents',
-      kind: { indefini: string; defini: string; texteDInstance: boolean },
-      find: (id: string) => Parameters<typeof specResolves>[0] | undefined,
-      refs: { id: string; spec?: string }[],
-    ): void => {
-      refs.forEach((r, j) => {
-        if (typeof r.spec !== 'string' || /au choix/i.test(r.spec)) return;
-        const def = find(r.id);
-        if (!def) {
-          faute(['presetsPnj', i, 'profil', champ, j, 'id'], `${kind.indefini} inconnu(e) « ${r.id} ».`);
-          return;
-        }
-        if (kind.texteDInstance && !porteCatalogueDeSpecs(def)) return;
-        if (!specResolves(def, r.spec)) {
-          faute(['presetsPnj', i, 'profil', champ, j, 'spec'], `spécialisation inconnue « ${r.spec} » pour ${kind.defini} « ${r.id} ».`);
-        }
-      });
-    };
-    specValide('skills', { indefini: 'une Compétence', defini: 'la Compétence', texteDInstance: false }, (id) => byId('skill', id), p.profil?.skills ?? []);
-    specValide('talents', { indefini: 'un Talent', defini: 'le Talent', texteDInstance: true }, findTalentById, p.profil?.talents ?? []);
   });
 }
 

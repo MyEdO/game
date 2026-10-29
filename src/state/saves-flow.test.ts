@@ -17,7 +17,8 @@ import { lireLaSauvegarde, retirerLaSauvegarde, listerLesSauvegardes, ecrireLaSa
 import { chargerLaSave, lireSave, snapshotSave, exporterLaSauvegarde, type SaveGame } from '../noyau/persistance/save';
 import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 import { rule, setRule, loadRuleOverrides, OPTIONAL_RULES } from '../engine/policy';
-import { talents, careerLevels, specResolves, combatStakeRef, conditionIds } from '../data/index';
+import { talents, careerLevels, combatStakeRef, conditionIds } from '../data/index';
+import { specAuCatalogue } from '../data/schemas/grammaire/ref';
 import { applierDe } from '../noyau/cascade';
 import { talentSlots, slotCovers } from '../engine/careerSlots';
 import { createHero } from '../engine/character';
@@ -285,8 +286,8 @@ describe('forme persistée — ce que le chargement lit', () => {
 
   it('la spéc en LIBELLÉ ne couvre pas son emplacement (#1548)', () => {
     const sv = talents.find((t) => t.id === 'savoir-vivre')!;
-    expect(specResolves(sv, 'Érudit'), 'valeur PERSISTÉE par un héros de 33').toBe(false);
-    expect(specResolves(sv, 'erudits')).toBe(true);
+    expect(specAuCatalogue('talent', sv.id, 'Érudit'), 'valeur PERSISTÉE par un héros de 33').toBe(false);
+    expect(specAuCatalogue('talent', sv.id, 'erudits')).toBe(true);
     const slots = talentSlots(careerLevels.filter((l) => l.career === 'apothicaire'), 1);
     const slot = slots.find((s) => s.options.some((o) => o.optionId === 'savoir-vivre'))!;
     expect(slotCovers(slot, 'savoir-vivre', 'Érudit')).toBe(false);
