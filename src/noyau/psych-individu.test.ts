@@ -22,6 +22,7 @@ import { adversairesDe, chooseEnemyAction, type EnemyTurnInput } from './monde/a
 import { aiApproachPlan } from './combatFlow';
 import { makeRNG } from '../engine/dice';
 import { CHAR_KEYS } from '../engine/types';
+import { tableTotale } from '../lib/tableTotale';
 import { emptyScene, type Scene } from './monde/scene';
 import { ficheDEntite, nomDIndividu } from './monde/sceneNpc';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
@@ -29,6 +30,9 @@ import { validateScene } from './validateScene';
 import type { Combatant, Weapon } from '../engine/types';
 import { SCHEMA_DEFS } from '../data/schemas/_registry.generated';
 import { readFileSync } from 'node:fs';
+
+/** Le texte brut des documents du catalogue, par chemin relatif (`../data/<file>`). */
+const TEXTES_DU_CATALOGUE = import.meta.glob<string>('../data/*.json', { eager: true, query: '?raw', import: 'default' });
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const mk = (id: string, kind: 'hero' | 'enemy', o: Partial<Combatant> = {}): Combatant => ({
@@ -184,7 +188,9 @@ describe('l’op psy de donnée : sa Cible est un Groupe, dans tout document', (
 
   it('un document du catalogue refuse la Cible d’individu de ses ops', () => {
     const lus = SCHEMA_DEFS.flatMap((d) => {
-      const donnee: unknown = JSON.parse(readFileSync(new URL(`../data/${d.file}`, import.meta.url), 'utf8'));
+      const texte = TEXTES_DU_CATALOGUE[`../data/${d.file}`];
+      expect(texte, `${d.file} hors du catalogue`).toBeDefined();
+      const donnee: unknown = JSON.parse(texte);
       return opPsyACible(donnee) ? [{ d, donnee, taille: JSON.stringify(donnee).length }] : [];
     }).sort((a, b) => a.taille - b.taille);
     expect(lus.length, 'aucun document du catalogue ne porte d’op psy à Cible').toBeGreaterThan(0);
@@ -249,7 +255,7 @@ describe('le vivier de l’IA : la pulsion vise l’individu, de tout `kind`', (
   });
 
   it('`aiApproachPlan` juge la Charge au contact de la cible de pulsion, non du premier héros', () => {
-    const characteristics = Object.fromEntries(CHAR_KEYS.map((k) => [k, 30])) as Combatant['characteristics'];
+    const characteristics = tableTotale(CHAR_KEYS, () => 30);
     const loin = emptyScene('s', 40, 40);
     const e = mk('e', 'enemy', { characteristics, pos: { x: 5, y: 5 }, psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('allie'), active: true }] });
     const allie = mk('allie', 'enemy', { characteristics, pos: { x: 5, y: 12 } });
