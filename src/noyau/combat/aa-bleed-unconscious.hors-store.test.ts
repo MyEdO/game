@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { runCombatHooks, type CombatHookCtx } from '../combatHooks';
 import { createHero } from '../../engine/character';
@@ -6,7 +6,7 @@ import { seedBattleRng } from '../battleRng';
 import { ev } from '../combatLog';
 import { addCondition, hasCondition, COND } from '../../engine/conditions';
 import { bonus, effectiveChar } from '../../engine/characteristics';
-import { setRule, resetRule } from '../../engine/policy';
+import { setRule } from '../../engine/policy';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 
@@ -21,9 +21,6 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)', () => {
   beforeEach(() => {
     banc.setState({ pendingCascade: null, pendingFateSave: null, battle: null });
-  });
-  afterEach(() => {
-    resetRule('combat-aa-blessures');
   });
 
   function setup() {

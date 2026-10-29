@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applierDe } from './cascade';
 import { draineCascade } from './cascade.testkit';
-import { seedBattleRng } from './battleRng';
 import { makePregens } from '../data/pregens';
 import { emptyScene } from './monde/scene';
 import { bandeTriggeredTest } from './combat/triggeredTest';
@@ -67,8 +66,6 @@ function aBord(party: Combatant[], coque: Combatant): void {
 }
 
 describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coque', () => {
-  beforeEach(() => seedBattleRng(1));
-
   it('(i) la bande PORTE l’id de la coque, et la Taille s’en déduit (MDG 12 l.122-129)', () => {
     const coque = coqueMoyenne();
     const [gabier, vigie] = makePregens().slice(0, 2);

@@ -16,7 +16,7 @@ import { CADENCE_DEFAULT } from '../engine/cadence';
 import { DES_FIXES_DEFAULT } from '../engine/fixedDie';
 import { etatInitialDuJeu, type EtatDeJeu, type Jeu } from './etat';
 import { horlogeVirtuelle } from './horlogeVirtuelle';
-import { ouvrirLeProprietaire, type Ecrit, type ProprietaireDuJeu } from './proprietaireDuJeu';
+import { ouvrirLeProprietaire, type Ecrit } from './proprietaireDuJeu';
 import type { EntreesDeLaPartie } from './partie';
 import type { Jeton } from './plateforme';
 
@@ -44,7 +44,27 @@ export interface Banc {
 }
 
 /** Ouvre un banc pour le test COURANT (dans le test ou son `beforeEach`), fermé à sa fin. */
-export function ouvrirLeBanc({ etat, ...entrees }: EntreesDuBanc = {}): Banc {
+export function ouvrirLeBanc(entrees: EntreesDuBanc = {}): Banc {
+  let pose: BancPose | null = null;
+  // Enregistrée AVANT la pose : hors d'un test, `onTestFinished` lève et rien n'est posé.
+  onTestFinished(() => pose?.fermer());
+  pose = poserLeBanc(entrees);
+  return pose.banc;
+}
+
+/** Joue `corps` sur un banc ouvert HORS d'un test (à la collecte d'un `describe`), fermé à son retour, levée comprise. */
+export function surUnBancHorsTest<T>(corps: (banc: Banc) => T): T {
+  const pose = poserLeBanc({});
+  try {
+    return corps(pose.banc);
+  } finally {
+    pose.fermer();
+  }
+}
+
+interface BancPose { banc: Banc; fermer: () => void }
+
+function poserLeBanc({ etat, ...entrees }: EntreesDuBanc): BancPose {
   let suivant = 0;
   const jetons = new Map<number, Jeton>();
   const horloge = horlogeVirtuelle((id) => {
@@ -53,9 +73,6 @@ export function ouvrirLeBanc({ etat, ...entrees }: EntreesDuBanc = {}): Banc {
     proprietaire.reprendre(jeton);
     return [];
   });
-  let ouvert: ProprietaireDuJeu | null = null;
-  // Enregistrée AVANT la pose : hors d'un test, `onTestFinished` lève et rien n'est posé.
-  onTestFinished(() => ouvert?.fermer());
   const proprietaire = ouvrirLeProprietaire({ ...etatInitialDuJeu(), ...etat }, {
     graine: 1,
     reglesMaison: {},
@@ -68,8 +85,7 @@ export function ouvrirLeBanc({ etat, ...entrees }: EntreesDuBanc = {}): Banc {
     jetons.set(id, jeton);
     horloge.armer([{ id, delai }]);
   });
-  ouvert = proprietaire;
-  return {
+  const banc: Banc = {
     getState: proprietaire.get,
     setState: proprietaire.set,
     subscribe: proprietaire.abonner,
@@ -84,4 +100,5 @@ export function ouvrirLeBanc({ etat, ...entrees }: EntreesDuBanc = {}): Banc {
     },
     enAttente: horloge.enAttente,
   };
+  return { banc, fermer: proprietaire.fermer };
 }

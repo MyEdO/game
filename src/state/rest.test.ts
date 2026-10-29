@@ -78,7 +78,7 @@ describe('restRecovery — repos d’une nuit (LDB 16 l.92 / 18 l.380 / 21 l.95)
   });
 
   // (Convalescence des traumas : décomptée par l'ENTRETIEN quotidien — #T3, jours calendaires —
-  //  testée sur le chemin store « restParty » ci-dessous et dans upkeep-cascade.test.ts.)
+  //  testée sur le chemin store « restParty » ci-dessous et dans upkeep-cascade.hors-store.test.ts.)
 
   it('un mort ne se repose pas', () => {
     const c = hero({ dead: true, conditions: [{ id: 'extenue', value: 1 }] });

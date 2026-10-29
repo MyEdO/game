@@ -42,7 +42,6 @@ function run(heroes: Combatant[], m: Combatant, fromPos: { x: number; y: number 
 const bande = () => banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredBatchTest')!;
 
 beforeEach(() => {
-  resetCadence();
   banc.setState({ battle: null, pendingCascade: null, pendingLogQueue: [] });
 });
 

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant } from '../engine/types';
-import { seedBattleRng } from './battleRng';
 import { applyOps } from '../engine/ops';
 import { findConditionById } from '../data';
 import { desDuTest } from '../engine/dice.testkit';
@@ -38,8 +37,6 @@ function setBattle(combatants: Combatant[], activeId: string) {
 }
 
 describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
-  beforeEach(() => { seedBattleRng(1); });
-
   it('En flammes : se rouler (Athlétisme) → retire 1 + DR pions, consomme l’Action', () => {
     const h = hero({ id: 'h', conditions: [{ id: 'en-flammes', value: 2 }] });
     setBattle([h], 'h');

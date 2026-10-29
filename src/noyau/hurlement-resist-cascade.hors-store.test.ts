@@ -5,22 +5,20 @@
  * gratuite IA → `aiCreatureFreeAttacks`) : (1) ouvre l'étape influençable (Brisé DIFFÉRÉ), (2) SUSPEND
  * le tour, (3) reprend proprement à la fermeture (pas de double, pas d'orphelin).
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { aiCreatureFreeAttacks } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
 import type { Combatant } from '../engine/types';
-import { resetCadence } from '../engine/cadence';
 import { cascadeDeTest, draineCascade } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('Hurlement fantomatique — Test de Résistance influençable (héros manuel)', () => {
-  beforeEach(() => { resetCadence(); banc.setState({ battle: null, pendingCascade: null }); });
-  afterEach(() => { resetCadence(); });
+  beforeEach(() => { banc.setState({ battle: null, pendingCascade: null }); });
 
   function setup() {
     const H1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 });

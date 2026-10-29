@@ -1,9 +1,9 @@
 import { t } from '../i18n';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng, battleRng } from './battleRng';
-import { setRule, resetRule } from '../engine/policy';
+import { setRule } from '../engine/policy';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import type { PortProfile } from '../engine/seaVoyage';
 import { applierDe } from './cascade';
@@ -70,7 +70,6 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
   // Bandes automatiques du d100 (LDB 12 l.28, 01-05 auto-succès / 96-00 auto-échec) OFF pour ces tests :
   // les cibles construites (0 ou ≥ 100) doivent trancher SEULES, sans les 10 % de rolls « forcés ».
   beforeEach(() => setRule('test-auto-bands', 'off'));
-  afterEach(() => resetRule('test-auto-bands'));
 
   it('port producteur (Ragot requis), groupe VIDE → refus IMMÉDIAT (aucun candidat au Ragot), aucun jet', () => {
     setup({ taille: 4, richesse: 4, production: ['bois'] }, []);
@@ -181,7 +180,6 @@ function setupBuy(party: Combatant[], offerEnc = 20, basePrice = 10): void {
 
 describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (#266)', () => {
   beforeEach(() => setRule('test-auto-bands', 'off'));
-  afterEach(() => resetRule('test-auto-bands'));
 
   it('groupe VIDE / sans bourse → refusé AVANT tout jet : la bourse ne couvre pas le prix plancher (MDG 15 l.335)', () => {
     // Sans marchandeur, le plancher est le prix plein : 10 Enc × 10 CO. Aucune bourse → refus du devis.
@@ -249,7 +247,6 @@ const ligneDe = (kind: string, step: CascadeStep, actor: Combatant): string => {
 
 describe('Marchandage portuaire et Négociateur (MDG 15 l.335/385 → LDB 59 l.43, LDB 10 l.818 ; arbitrage #2547)', () => {
   beforeEach(() => setRule('test-auto-bands', 'off'));
-  afterEach(() => resetRule('test-auto-bands'));
 
   it('achat : PJ Négociateur gagnant de 6 DR ou plus → remise de 30 %', () => {
     const hero = makePregens()[0];

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { resolveShoreLeaveDesertion } from './shipCrew';
@@ -8,7 +8,7 @@ import { makeRNG } from '../engine/dice';
 import { toBrass, type Money } from '../engine/money';
 
 import { makePregens } from '../data/pregens';
-import { resetCadence, setCadence } from '../engine/cadence';
+import { setCadence } from '../engine/cadence';
 import { fixtureText } from '../i18n/fixtureText';
 
 let banc: Banc;
@@ -53,7 +53,6 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
   // En cadence auto (Rapide/Auto), la paie se résout SEULE (régulière par défaut) — comportement #216
   // inchangé ; en cadence manuelle un équipage salarié convoque désormais le Conseil de bord (#229, ci-dessous).
   beforeEach(() => setCadence('rapide'));
-  afterEach(() => resetCadence());
 
   it('bourse suffisante → solde prélevée + facteur paie-reguliere (+1d10), aucune dette', () => {
     banc.setState({

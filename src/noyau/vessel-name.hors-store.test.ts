@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { buildSeaPlan } from './seaVoyageFlow';
 import { createHero } from '../engine/character';
-import { seedBattleRng } from './battleRng';
 import { findVehicleById } from '../data';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene } from './monde/scene';
 import type { CampaignVessel } from './etat';
@@ -17,7 +16,7 @@ const vessel = (over: Partial<CampaignVessel> = {}): CampaignVessel => ({
 });
 
 describe('#230 — voyageShip (coque de trajet maritime) porte le nom d’instance', () => {
-  beforeEach(() => { seedBattleRng(1); banc.setState({ gameTime: 0 }); });
+  beforeEach(() => { banc.setState({ gameTime: 0 }); });
 
   it('la coque de trajet reprend le nom d’instance quand il est posé', () => {
     banc.setState({ vessel: vessel({ label: 'Le Cormoran' }) });
@@ -34,8 +33,6 @@ describe('#230 — voyageShip (coque de trajet maritime) porte le nom d’instan
 });
 
 describe('#230 — réconciliation combat : le nom d’instance ne touche QUE la coque de campagne', () => {
-  beforeEach(() => { seedBattleRng(1); });
-
   const scene = (): Scene => ({
     type: 'scene', id: 's', label: 'Bataille navale', dimensions: { w: 8, h: 8 }, reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
     layers: [{ z: 0, tiles: new Array(64).fill('eau') }],

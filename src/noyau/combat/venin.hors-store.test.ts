@@ -6,7 +6,6 @@ import { makeRNG } from '../../engine/dice';
 import { seedBattleRng } from '../battleRng';
 import { stacks } from '../../engine/conditions';
 import { testScene } from '../../scenes/test-fixture';
-import { resetCadence } from '../../engine/cadence';
 import type { Combatant } from '../../engine/types';
 
 let banc: Banc;
@@ -19,7 +18,6 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 describe('Venin — la touche qui blesse pose Empoisonné à la Difficulté du Venin', () => {
   beforeEach(() => {
-    resetCadence();
     banc.setState({ pendingCascade: null, battle: null, pendingLogQueue: [] });
   });
 

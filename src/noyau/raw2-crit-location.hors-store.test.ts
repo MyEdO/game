@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { applyCriticalToTarget } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { locationLabel, type Combatant } from '../engine/types';
 import { createHero } from '../engine/character';
-import { resetRule, setRule } from '../engine/policy';
+import { setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 
 let banc: Banc;
@@ -51,9 +51,6 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
   beforeEach(() => {
     setRule('combat-aa-blessures', 'aa');
     banc.setState({ battle: null, pendingAttack: null });
-  });
-  afterEach(() => {
-    resetRule('combat-aa-blessures');
   });
 
   /** Le héros attaque une cible à `current` Blessures, `paBrasG` PA au Bras gauche et `autresPA` ailleurs, `chanceux` ou sous Mort subite ; la graine fait rater son jet. */
