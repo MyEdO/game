@@ -1,21 +1,22 @@
 // Le contrat d'asset d'un personnage 3D modulaire (#2948) : lecture du GLB, validation du manifeste, import, Release.
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { sha256 } from './empreinte.ts';
 import { ecrireGlb, GlbIllisible, lireGlb } from './glb.ts';
-import { MANIFESTE_DE_PRODUCTION } from './dossierDeProduction.ts';
-import { chargerLicences, importerPersonnage, TableDesLicencesInvalide } from './importer.ts';
+import { chargerLicences, MANIFESTE_DE_PRODUCTION, TableDesLicencesInvalide } from './dossierDeProduction.ts';
+import { importerPersonnage } from './importer.ts';
 import { ecrireProduction, HORS_RELEASE_DE_BASE, ProductionRefusee, type SourcesDeBase } from '../../../scripts/personnage-3d/base/production.ts';
 import { cheminsAbsolus, validerManifeste, type CodeDErreur } from './manifeste.ts';
 import { ATTACHES } from './montage';
 import { tableTotale } from '../../../src/lib/tableTotale';
+import { depotDe, INDEX, listerImage } from '../../../scripts/guards/lib/gitPorte.mjs';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, LICENCE_DE_PRODUCTION, productionSchema3, deposerSchema3 } from './schema3.testkit.ts';
 import {
   DOSSIER_DES_MODELES, fichiersDuModele, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
-  TAG, urlDAsset, type AssetAPublier, type Gh,
+  suivisHorsRelease, TAG, urlDAsset, type AssetAPublier, type Gh,
 } from './release.ts';
 
 /** Un GLB minimal : en-tête glTF 2 et chunk JSON portant `nodes` et `animations`. */
@@ -516,6 +517,22 @@ describe('importerPersonnage', () => {
     }
   });
 
+  it('dépose une seule fois deux textes identiques de deux packs', () => {
+    const destination = temporaire();
+    const dossier = dossierDeProduction();
+    const texte = 'Pack\nLicense: CC0\n';
+    for (const nom of ['LICENSE-UAL1.txt', 'LICENSE-UAL2.txt']) writeFileSync(join(dossier, nom), texte);
+    const r = importerPersonnage({ dossier, id: 'Essai', destination, date: '2026-10-29', publier: null });
+    expect(r.ok && [r.provenance.licences_de_pack, r.ecrits.filter((e) => e.endsWith(nomCC0(texte)))]).toEqual([[{ fichier: nomCC0(texte), licence: 'CC0' }], [join(destination, nomCC0(texte))]]);
+  });
+
+  it('reporte dans la provenance déposée la raison d’une production hors Release', () => {
+    const destination = temporaire();
+    const dossier = dossierDeProduction((m) => Object.assign(m, { hors_release: 'essai sur le poste' }));
+    const r = importerPersonnage({ dossier, id: 'Essai', destination, date: '2026-10-29', publier: null });
+    expect(r.ok && JSON.parse(readFileSync(join(destination, fichiersDuModele('Essai').provenance), 'utf8')).hors_release).toBe('essai sur le poste');
+  });
+
   it('n’écrit rien quand la publication lève', () => {
     const destination = join(temporaire(), 'modeles');
     const publier = () => { throw new Error('gh release upload : code 1'); };
@@ -573,7 +590,11 @@ describe('chargerLicences', () => {
 
 describe('modelesEpingles', () => {
   it('épingle chaque modèle par sa provenance', () => {
-    expect(modelesEpingles(dossierDeModeles())).toEqual({ modeles: [{ id: 'Essai', model: 'Essai.glb', empreinte: EMPREINTE }], erreurs: [] });
+    expect(modelesEpingles(dossierDeModeles())).toEqual({ modeles: [{ id: 'Essai', model: 'Essai.glb', empreinte: EMPREINTE, licences: [] }], erreurs: [] });
+  });
+  it('lit les textes de licence et la raison hors Release de la provenance', () => {
+    const d = dossierDeModeles({ model: 'Essai.glb', model_sha256: EMPREINTE, licences_de_pack: [{ fichier: 'LICENSE-CC0-1.0-a.txt', licence: 'CC0' }], hors_release: 'essai' });
+    expect(modelesEpingles(d).modeles).toEqual([{ id: 'Essai', model: 'Essai.glb', empreinte: EMPREINTE, licences: ['LICENSE-CC0-1.0-a.txt'], hors_release: 'essai' }]);
   });
   it.each<[string, (d: string) => void, RegExp]>([
     ['un manifeste sans provenance', (d) => rmSync(join(d, 'Essai.provenance.json')), /provenance Essai\.provenance\.json absente/],
@@ -608,6 +629,14 @@ describe('recupererModeles', () => {
     m.montage.attaches.main.os = 'os-absent';
     writeFileSync(chemin, JSON.stringify(m));
     await expect(recupererModeles({ dossier, cache: temporaire(), telecharger: serveur({ [url]: GLB }).telecharger, journal: muet })).rejects.toThrow(/\[os-absent\]/);
+  });
+  it('ne réclame jamais à la Release un modèle hors Release : le GLB du poste sert, son absence lève', async () => {
+    const dossier = dossierDeModeles({ model: 'Essai.glb', model_sha256: EMPREINTE, hors_release: 'essai sur le poste' });
+    const { demandes, telecharger } = serveur({ [url]: GLB });
+    await expect(recupererModeles({ dossier, cache: temporaire(), telecharger, journal: muet })).rejects.toThrow(`[hors-release] Essai.glb (${EMPREINTE}) : essai sur le poste`);
+    writeFileSync(join(dossier, 'Essai.glb'), GLB);
+    await recupererModeles({ dossier, cache: temporaire(), telecharger, journal: muet });
+    expect(demandes).toEqual([]);
   });
   it('lève ModeleIntrouvable quand la Release répond 404 sur l’empreinte', async () => {
     await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(ModeleIntrouvable);
@@ -716,32 +745,55 @@ describe('les modèles commités', () => {
     expect(erreurs).toEqual([]);
     expect(modeles.length).toBeGreaterThan(0);
   });
+  it('ne suivent aucun fichier hors Release', () => {
+    const suivis = listerImage(depotDe(DOSSIER_DES_MODELES), INDEX, '.');
+    expect(suivisHorsRelease(modelesEpingles(DOSSIER_DES_MODELES).modeles, suivis)).toEqual([]);
+  });
+});
+
+describe('suivisHorsRelease', () => {
+  const publie = { id: 'Knight', model: 'Knight.glb', empreinte: EMPREINTE, licences: ['LICENSE-CC0-1.0-commune.txt'] };
+  const local = { id: 'humanoide', model: 'humanoide.glb', empreinte: EMPREINTE, licences: ['LICENSE-CC0-1.0-commune.txt', 'LICENSE-CC0-1.0-ual.txt'], hors_release: 'essai sur le poste' };
+  it('rend les fichiers suivis d’un modèle hors Release et les licences qu’aucun modèle publié ne nomme', () => {
+    const suivis = ['Knight.glb.import', 'Knight.manifeste.json', 'Knight.provenance.json', 'LICENSE-CC0-1.0-commune.txt', 'LICENSE-CC0-1.0-ual.txt', 'humanoide.glb.import', 'humanoide.manifeste.json', 'humanoide.provenance.json', 'humanoide_bis.manifeste.json'];
+    expect(suivisHorsRelease([publie, local], suivis)).toEqual(['LICENSE-CC0-1.0-ual.txt', 'humanoide.glb.import', 'humanoide.manifeste.json', 'humanoide.provenance.json']);
+  });
+  it('laisse les fichiers des seuls modèles publiés', () => {
+    expect(suivisHorsRelease([publie, local], ['Knight.manifeste.json', 'Knight.provenance.json', 'LICENSE-CC0-1.0-commune.txt'])).toEqual([]);
+  });
 });
 
 describe('dossier de production d’une base (#3106)', () => {
   /** Le texte de licence des packs Quaternius UAL1, UAL2 et UBC, à l'octet près (CRLF, espace final). */
   const LICENCE_QUATERNIUS = '-----------------------------\r\nLicense:\r\nCC0 1.0 Universal (CC0 1.0) \r\nPublic Domain Dedication\r\n';
-  /** Un pack : son texte de licence `licence` à la racine, le fichier source `fichier` deux dossiers plus bas. */
-  const pack = (fichier: string, licence = 'License.txt'): string => {
+  const PACKS = ['ual1', 'ual2', 'corps'] as const;
+  /** Un pack : son texte de licence `licence`, de contenu `texte`, à la racine, le fichier source `fichier` deux dossiers plus bas. */
+  const pack = (fichier: string, licence = 'License.txt', texte = LICENCE_QUATERNIUS) => {
     const racine = temporaire();
-    if (licence) writeFileSync(join(racine, licence), LICENCE_QUATERNIUS);
+    writeFileSync(join(racine, licence), texte);
     mkdirSync(join(racine, 'Godot', 'sous'), { recursive: true });
     writeFileSync(join(racine, 'Godot', 'sous', fichier), `octets de ${fichier}`);
-    return join(racine, 'Godot', 'sous', fichier);
+    return { source: join(racine, 'Godot', 'sous', fichier), licence: join(racine, licence) };
   };
-  const packs = (): SourcesDeBase => ({ ual1: pack('UAL1_Standard.glb'), ual2: pack('UAL2_Standard.glb'), corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt') });
+  /** Les sources d'une base et le texte de licence nommé pour chacune, le pack de `remplace` substitué. */
+  const packs = (remplace: Partial<Record<(typeof PACKS)[number], ReturnType<typeof pack>>> = {}): { sources: SourcesDeBase; licences: SourcesDeBase } => {
+    const p = { ual1: pack('UAL1_Standard.glb'), ual2: pack('UAL2_Standard.glb'), corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt'), ...remplace };
+    return { sources: tableTotale(PACKS, (s) => p[s].source), licences: tableTotale(PACKS, (s) => p[s].licence) };
+  };
   /** Le GLB de base exporté dans un dossier de sortie neuf, puis son dossier de production écrit. */
-  const construite = (sources = packs()): string => {
+  const construite = (p = packs()): string => {
     const glb = join(temporaire(), 'humanoide.glb');
     writeFileSync(glb, GLB_DE_BASE);
-    ecrireProduction({ glb, manifeste: baseSchema3(), sources });
+    ecrireProduction({ glb, manifeste: baseSchema3(), ...p });
     return glb;
   };
 
   it('s’importe sans geste à la main, sans publication, licences des packs copiées à l’octet', () => {
-    const sources = packs();
-    const glb = construite(sources);
+    const p = packs();
+    const { sources } = p;
+    const glb = construite(p);
     const dossier = join(glb, '..');
+    ecrireProduction({ glb, manifeste: baseSchema3(), ...p });
     const manifest = JSON.parse(readFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), 'utf8'));
     expect(manifest).toEqual({
       model: 'humanoide.glb', model_sha256: sha256(GLB_DE_BASE), manifeste: baseSchema3(),
@@ -754,7 +806,7 @@ describe('dossier de production d’une base (#3106)', () => {
     for (const s of ['ual1', 'ual2', 'corps'] as const) expect(readFileSync(join(dossier, `LICENSE-${s}.txt`), 'utf8')).toBe(LICENCE_QUATERNIUS);
     const destination = temporaire();
     const r = importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: null });
-    expect(r.ok ? r.provenance.licences_de_pack.map((l) => l.licence) : r.refus).toEqual(Array(3).fill('CC0 1.0 Universal (CC0 1.0)'));
+    expect(r.ok ? [r.provenance.licences_de_pack.map((l) => l.licence), r.provenance.hors_release] : r.refus).toEqual([['CC0 1.0 Universal (CC0 1.0)'], HORS_RELEASE_DE_BASE]);
     expect(JSON.parse(readFileSync(join(destination, 'humanoide.manifeste.json'), 'utf8'))).toEqual(baseSchema3());
   });
 
@@ -773,19 +825,31 @@ describe('dossier de production d’une base (#3106)', () => {
     expect([verses, existsSync(destination)]).toEqual([[], false]);
   });
 
-  it.each<[string, () => { glb: string; sources: SourcesDeBase }, RegExp]>([
-    ['une sortie dans l’arbre du dépôt', () => ({ glb: join(process.cwd(), 'production-3106-sonde', 'humanoide.glb'), sources: packs() }), /^\[sortie-dans-le-depot\] /],
-    ['un pack sans texte de licence', () => ({ glb: join(temporaire(), 'humanoide.glb'), sources: { ...packs(), ual2: pack('UAL2_Standard.glb', '') } }), /^\[licence-introuvable\] .*UAL2_Standard\.glb/],
-    ['un pack à deux textes de licence', () => {
-      const corps = pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt');
-      writeFileSync(join(corps, '..', '..', '..', 'LICENSE.txt'), LICENCE_QUATERNIUS);
-      return { glb: join(temporaire(), 'humanoide.glb'), sources: { ...packs(), corps } };
-    }, /^\[licence-ambigue\] .*Superhero_Male_FullBody\.gltf/],
-  ])('refuse %s sans rien écrire', (_, cas, motif) => {
-    const { glb, sources } = cas();
+  /** Une sortie neuve hors dépôt dont le dossier porte déjà le fichier `etranger`. */
+  const sortieAvec = (etranger: string): string => {
+    const dossier = temporaire();
+    writeFileSync(join(dossier, etranger), 'reste');
+    return join(dossier, 'humanoide.glb');
+  };
+  const sortie = () => join(temporaire(), 'humanoide.glb');
+  it.each<[string, () => Promise<{ glb: string; sources: SourcesDeBase; licences: SourcesDeBase }>, RegExp]>([
+    ['une sortie dans l’arbre du dépôt', async () => ({ glb: join(process.cwd(), 'production-3106-sonde', 'humanoide.glb'), ...packs() }), /^\[sortie-dans-le-depot\] /],
+    ['une sortie dans l’arbre du dépôt par une jonction', async () => {
+      const lien = join(temporaire(), 'lien');
+      symlinkSync(process.cwd(), lien, 'junction');
+      return { glb: join(lien, 'production-3106-sonde', 'humanoide.glb'), ...packs() };
+    }, /^\[sortie-dans-le-depot\] /],
+    ['une sortie qui porte un texte de licence périmé', async () => ({ glb: sortieAvec('LICENSE-x.txt'), ...packs() }), /^\[sortie-etrangere\] .* : LICENSE-x\.txt ; /],
+    ['une sortie qui porte une source .blend', async () => ({ glb: sortieAvec('humanoide.blend'), ...packs() }), /^\[sortie-etrangere\] .* : humanoide\.blend ; /],
+    ['un texte de licence absent', async () => ({ glb: sortie(), ...packs({ ual2: { ...pack('UAL2_Standard.glb'), licence: join(temporaire(), 'License.txt') } }) }), /^\[licence-absente\] .*License\.txt : texte de licence introuvable$/],
+    ['un texte de licence hors des dossiers ancêtres de sa source', async () => ({ glb: sortie(), ...packs({ ual1: { ...pack('UAL1_Standard.glb'), licence: pack('Autre.glb').licence } }) }), /^\[licence-hors-du-pack\] .*License\.txt : hors des dossiers ancêtres de .*UAL1_Standard\.glb$/],
+    ['un texte de licence sans ligne License:', async () => ({ glb: sortie(), ...packs({ corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt', 'Public Domain Dedication\r\n') }) }), /^\[licence-sans-ligne\] .*License_Standard\.txt : aucune ligne « License: »$/],
+    ['un texte de licence hors de la table des licences', async () => ({ glb: sortie(), ...packs({ ual2: pack('UAL2_Standard.glb', 'License.txt', 'License: MIT\n') }) }), /^\[licence-inconnue\] .*License\.txt : « MIT » absente de la table des licences$/],
+  ])('refuse %s sans rien écrire', async (_, cas, motif) => {
+    const { glb, ...p } = await cas();
     const avant = existsSync(join(glb, '..')) ? listerDossier(join(glb, '..')) : null;
-    expect(() => ecrireProduction({ glb, manifeste: baseSchema3(), sources })).toThrow(ProductionRefusee);
-    expect(() => ecrireProduction({ glb, manifeste: baseSchema3(), sources })).toThrow(motif);
+    expect(() => ecrireProduction({ glb, manifeste: baseSchema3(), ...p })).toThrow(ProductionRefusee);
+    expect(() => ecrireProduction({ glb, manifeste: baseSchema3(), ...p })).toThrow(motif);
     expect(existsSync(join(glb, '..')) ? listerDossier(join(glb, '..')) : null).toEqual(avant);
   });
 });

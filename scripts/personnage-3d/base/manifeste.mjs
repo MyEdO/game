@@ -6,9 +6,9 @@
 // - tiré de la donnée : `gabarit.st`, les extrêmes de `st` des gabarits et des surcharges de race ;
 // - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitessesAuSol`, une par clip de marche ;
 // - pris au GLB : `glb.sha256` et `glb.octets`.
-// `--verifier` juge la déclaration, le dossier de sortie et les licences des packs sans rien lire ni écrire d'autre :
-// la construction le joue avant Blender.
-//   node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --ual1 <f> --ual2 <f> --corps <f> [--verifier] < <construit.json>
+// `--licence-<pack>` nomme le texte de licence de chaque pack, lu dans le pack. `--verifier` juge la déclaration, le
+// dossier de sortie et les textes de licence sans rien lire ni écrire d'autre : la construction le joue avant Blender.
+//   node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --ual1 <f> --ual2 <f> --corps <f> --licence-ual1 <f> --licence-ual2 <f> --licence-corps <f> [--verifier] < <construit.json>
 import { readFileSync } from 'node:fs'
 import { text } from 'node:stream/consumers'
 import { parseArgs } from 'node:util'
@@ -49,17 +49,19 @@ async function mesurerVitesses(octets, manifeste, clips) {
 }
 
 async function main() {
-  const options = { ual1: { type: 'string' }, ual2: { type: 'string' }, corps: { type: 'string' }, verifier: { type: 'boolean' } }
-  const { positionals: [cheminDeclaration, cheminGlb, ...reste], values: { ual1, ual2, corps, verifier } } = parseArgs({ allowPositionals: true, options })
-  if (!cheminDeclaration || !cheminGlb?.endsWith('.glb') || reste.length || !ual1 || !ual2 || !corps) {
-    console.error('usage : node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --ual1 <f> --ual2 <f> --corps <f> [--verifier] < <construit.json>')
+  const packs = ['ual1', 'ual2', 'corps']
+  const options = { ...Object.fromEntries(packs.flatMap((p) => [[p, { type: 'string' }], [`licence-${p}`, { type: 'string' }]])), verifier: { type: 'boolean' } }
+  const { positionals: [cheminDeclaration, cheminGlb, ...reste], values } = parseArgs({ allowPositionals: true, options })
+  if (!cheminDeclaration || !cheminGlb?.endsWith('.glb') || reste.length || packs.some((p) => !values[p] || !values[`licence-${p}`])) {
+    console.error('usage : node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --ual1 <f> --ual2 <f> --corps <f> --licence-ual1 <f> --licence-ual2 <f> --licence-corps <f> [--verifier] < <construit.json>')
     process.exit(2)
   }
-  const sources = { ual1, ual2, corps }
+  const sources = tableTotale(packs, (p) => values[p])
+  const licences = tableTotale(packs, (p) => values[`licence-${p}`])
   const { base, porteur, clipsDeMarche } = await lireDeclaration(cheminDeclaration)
-  const { dossier } = verifierProduction({ glb: cheminGlb, sources })
-  if (verifier) {
-    console.log(`PRODUCTION ${dossier} : déclaration, sortie et licences des packs acceptées`)
+  const { dossier } = verifierProduction({ glb: cheminGlb, sources, licences })
+  if (values.verifier) {
+    console.log(`PRODUCTION ${dossier} : déclaration, sortie et textes de licence des packs acceptés`)
     return
   }
   const construit = JSON.parse(await text(process.stdin))
@@ -74,7 +76,7 @@ async function main() {
   const complet = manifeste(await mesurerVitesses(octets, manifeste(tableTotale(clipsDeMarche, () => VITESSE_DE_SONDE)), clipsDeMarche))
   const verdict = validerManifesteDeBase(complet, octets)
   if (!verdict.ok) throw new Error(`manifeste refusé :\n${verdict.ecarts.map((e) => `  [${e.code}] ${e.ou} : ${e.detail}`).join('\n')}`)
-  const ecrits = ecrireProduction({ glb: cheminGlb, manifeste: complet, sources })
+  const ecrits = ecrireProduction({ glb: cheminGlb, manifeste: complet, sources, licences })
   console.log(`PRODUCTION ${dossier} ${octets.byteLength} octets ${complet.glb.sha256} : ${ecrits.join(', ')}`)
 }
 

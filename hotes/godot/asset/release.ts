@@ -3,7 +3,9 @@
  * et sa source `.blend` ne vivent pas dans git, mais comme fichiers de la Release `TAG` du dépôt, nommés par leur
  * SHA-256. Le dépôt commite, par modèle, le manifeste (`<id>.manifeste.json`) et la provenance (`<id>.provenance.json`),
  * qui porte l'empreinte. `recupererModeles` tire de la Release le GLB qui manque dans le cache, le vérifie et le dépose
- * sous le nom que le projet Godot attend ; `publierAssets` y verse ceux qui n'y sont pas.
+ * sous le nom que le projet Godot attend ; `publierAssets` y verse ceux qui n'y sont pas. Un modèle dont la provenance
+ * porte `hors_release` (`CLE_HORS_RELEASE`) vit sur le poste seulement : ni dans la Release, ni suivi par git
+ * (`suivisHorsRelease`).
  */
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
@@ -11,6 +13,7 @@ import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
+import { CLE_HORS_RELEASE, FICHIER_DE_LICENCE } from './dossierDeProduction.ts';
 import { sha256 } from './empreinte.ts';
 import { estObjet } from './manifeste.ts';
 import { estBase, estSchema3, indexerModeles, validerModele, type BaseLivree, type EntreeDeModele } from './modeles.ts';
@@ -81,6 +84,8 @@ export interface Provenance {
   readonly licences: Readonly<Record<string, LicenceDeComposant>>;
   readonly licences_de_pack: readonly LicenceDePack[];
   readonly animation_sources: readonly { readonly fichier: string; readonly sha256: string }[];
+  /** La raison verbatim d'une production hors Release (`CLE_HORS_RELEASE`) : le modèle vit sur le poste seulement. */
+  readonly hors_release?: string;
 }
 
 const EMPREINTE = /^[0-9a-f]{64}$/;
@@ -100,11 +105,14 @@ function lireJsonNomme(chemin: string, nom: string): { readonly valeur: unknown 
   }
 }
 
-/** Un modèle que sa provenance épingle : le nom de son GLB dans le projet, son empreinte. */
+/** Un modèle que sa provenance épingle : le nom de son GLB dans le projet, son empreinte, les textes de licence
+ *  qu'elle nomme (`licences_de_pack[].fichier`) et, hors Release, sa raison. */
 export interface ModeleEpingle {
   readonly id: string;
   readonly model: string;
   readonly empreinte: string;
+  readonly licences: readonly string[];
+  readonly hors_release?: string;
 }
 
 export function manifestesDesModeles(dossier: string): { entrees: EntreeDeModele[]; erreurs: string[] } {
@@ -144,9 +152,22 @@ export function modelesEpingles(dossier: string): { readonly modeles: readonly M
     const p = estObjet(lu.valeur) ? lu.valeur : {};
     if (p.model !== f.glb) erreurs.push(`${f.provenance} : model « ${String(p.model)} », ${f.glb} attendu`);
     else if (typeof p.model_sha256 !== 'string' || !EMPREINTE.test(p.model_sha256)) erreurs.push(`${f.provenance} : model_sha256 « ${String(p.model_sha256)} » n'est pas un SHA-256`);
-    else modeles.push({ id, model: f.glb, empreinte: p.model_sha256 });
+    else {
+      const licences = (Array.isArray(p.licences_de_pack) ? p.licences_de_pack : []).flatMap((l) => (estObjet(l) && typeof l.fichier === 'string' ? [l.fichier] : []));
+      const horsRelease = p[CLE_HORS_RELEASE];
+      modeles.push({ id, model: f.glb, empreinte: p.model_sha256, licences, ...(typeof horsRelease === 'string' ? { hors_release: horsRelease } : {}) });
+    }
   }
   return { modeles, erreurs };
+}
+
+/** Les fichiers de `suivis` (noms suivis par git dans le dossier des modèles) qui n'ont pas à l'être : ceux d'un modèle
+ *  de `modeles` hors Release (`<id>.*`), et tout texte de licence qu'aucun modèle publié ne nomme. */
+export function suivisHorsRelease(modeles: readonly ModeleEpingle[], suivis: readonly string[]): string[] {
+  const publies = modeles.filter((m) => m.hors_release === undefined);
+  const licencesPubliees = new Set(publies.flatMap((m) => m.licences));
+  const prefixes = modeles.filter((m) => m.hors_release !== undefined).map((m) => `${m.id}.`);
+  return suivis.filter((f) => prefixes.some((p) => f.startsWith(p)) || (FICHIER_DE_LICENCE.test(f) && !licencesPubliees.has(f)));
 }
 
 /** Un modèle absent de la Release : elle répond 404 sur son empreinte. */
@@ -205,6 +226,7 @@ export async function recupererModeles({ dossier, cache = CACHE_DES_MODELES, tel
     const enCache = join(cache, nomDAsset(modele.empreinte, 'glb'));
     const dansLeProjet = join(dossier, modele.model);
     const duProjet = sommeDuFichier(dansLeProjet) === modele.empreinte;
+    if (modele.hors_release !== undefined && !duProjet) throw new Error(`[hors-release] ${modele.model} (${modele.empreinte}) : ${modele.hors_release} ; absent de la Release, GLB du poste attendu (reconstruire puis réimporter)`);
     await enCacheOuTire(enCache, modele.empreinte, modele.model, async () => (duProjet ? readFileSync(dansLeProjet) : tirerDeLaRelease(modele, telecharger, journal)));
     if (!duProjet) ecrireTexteAtomique(dansLeProjet, readFileSync(enCache));
     octetsParId.set(modele.id, readFileSync(dansLeProjet));

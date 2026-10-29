@@ -28,6 +28,10 @@ describe('lireDeclaration', () => {
     await assert.rejects(lireDeclaration(declarationAvec('taille', { taille: 'grande' })), /porteur\.taille grande, la donnée donne moyenne à la race humain/)
   })
 
+  it('refuse une race dont la donnée ne détermine pas la Taille, en nommant champ, déclaré et race', async () => {
+    await assert.rejects(lireDeclaration(declarationAvec('sans-espece', { race: 'orc' })), /porteur\.taille moyenne, Taille de la race orc indéterminée dans la donnée \(aucune espèce\)/)
+  })
+
   it('refuse une échelle d’art que la donnée ne donne pas à la race, en nommant champ, déclaré et donnée', async () => {
     await assert.rejects(lireDeclaration(declarationAvec('echelle', { echelleDArt: 1.2 })), /porteur\.echelleDArt 1\.2, la donnée donne 1 à la race humain/)
   })
