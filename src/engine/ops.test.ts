@@ -753,7 +753,7 @@ describe("op:'rollTable' — tirage sur table par fourchette (findTableEntry, so
 });
 
 describe("op:'charDamage' — perte PERMANENTE de Caractéristique (jamais sous 0)", () => {
-  it('décrémente la BASE (pas un effet actif temporisé) et suit les PB max via refreshWounds', () => {
+  it('décrémente la BASE (pas un effet actif temporisé)', () => {
     const c = hero({ characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 45, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 38, sociabilite: 30 } });
     applyOps(c, [{ op: 'charDamage', char: 'sociabilite', amount: 5 }], { rng: makeRNG(1) });
     expect(c.characteristics.sociabilite).toBe(25);

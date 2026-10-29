@@ -16,6 +16,7 @@ import {
 import { effectivePsychTraits, isFrenzyCapable } from './psychology';
 import type { GameOp } from './ops';
 import { ciblePsy } from './psych/ciblage';
+import { combattantDeTest } from './combattantDeTest.testkit';
 
 /** RNG scripté : renvoie les valeurs dans l'ordre (déjà dans les bornes attendues). */
 function seq(values: number[]): RNG {
@@ -27,11 +28,9 @@ function seq(values: number[]): RNG {
  *  INJECTENT l'issue (`applique`) — le moteur ne roule plus aucun de ces jets (#1657 B3-3). */
 const ignore: UpkeepDeferTest = () => {};
 
-/** Porteur de sonde — `conditions`/`skills` présents comme sur un vrai Combatant : la guérison
- *  réconcilie les États PORTÉS par les passifs des symptômes (`syncDerivedConditions`), elle LIT
- *  donc les États. */
-const sick = (over: Partial<Combatant> = {}): Combatant =>
-  ({ label: 'Malade', diseases: [], conditions: [], skills: [], ...over }) as Combatant;
+/** Porteur de sonde — un combattant valide : la guérison réconcilie les États PORTÉS par les passifs
+ *  des symptômes (`syncDerivedConditions`), elle LIT donc les États. */
+const sick = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({ label: 'Malade', diseases: [], ...over });
 
 describe('disease — cycle de vie (LDB 20, sourcé)', () => {
   it('contractDisease(Infection Mineure) : incubation/durée figées, symptômes sourcés', () => {
@@ -303,14 +302,12 @@ import { testStatePenalty, combatTestPenalty } from './conditions';
 import { passiveGlobalTestMod, passiveMods } from './trauma';
 import { applyOps } from './ops';
 
-const fullSick = (over: Partial<Combatant> = {}): Combatant =>
-  ({
-    id: 'p', label: 'Cobaye', kind: 'hero',
-    characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 35 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [], items: [],
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, weapons: [], diseases: [],
-    ...over,
-  }) as Combatant;
+const fullSick = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
+  id: 'p', label: 'Cobaye', kind: 'hero',
+  characteristics: { endurance: 40, agilite: 40, sociabilite: 35 },
+  wounds: { current: 12, max: 12 }, items: [], diseases: [],
+  ...over,
+});
 
 const activeDisease = (symptomId: string, extra: Partial<import('./disease').Disease> = {}) => ({
   id: `dz-${symptomId}`, phase: 'active' as const, symptoms: [{ symptomId }],

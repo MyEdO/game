@@ -19,7 +19,7 @@ import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { emptyArmour, buildWeapon, deciderApparencesDesArmes, hydratePoste, loadWeapon } from '../../engine/items';
-import { maxWounds, bonus, refreshWounds } from '../../engine/characteristics';
+import { maxWounds, bonus, blessuresReconciliees } from '../../engine/characteristics';
 import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
 import { appliquerAcquisitions } from '../../engine/talentEffects';
@@ -132,13 +132,13 @@ function spawnMutations(traits: TraitList | undefined, rng: RNG): Mutation[] {
 /** Le porteur NÉ avec ses mutations les porte comme celui qui les a GAGNÉES en jeu : chaque instance est
  *  attachée par `attachMutation` (`engine/corruption.ts`), graine STABLE dérivée de l'id (déterministe,
  *  rejouable). Les armes se re-dérivent ensuite de `c.traits` par la dérivation `armes` du constructeur, et
- *  les Blessures se recalent (`refreshWounds` : un porteur neuf reste à son maximum). LDB 85 l.245 ; #1853. */
+ *  les Blessures se recalent (`blessuresReconciliees` : un porteur neuf reste à son maximum). LDB 85 l.245 ; #1853. */
 function attacherMutationsDeSpawn(c: Combatant, traits: TraitList | undefined, armes: (traits: TraitList) => Weapon[]): void {
   const rng = makeRNG(hashSeed(`mut:${c.id}`));
   const mutations = spawnMutations(traits, rng);
   for (const m of mutations) attachMutation(c, m, rng);
   c.weapons = armes(c.traits ?? []);
-  refreshWounds(c);
+  c.wounds = blessuresReconciliees(c);
 }
 
 /** Compétences d'un statbloc au FORMAT LIVRE (« Langue (Magick) 63 », « Focalisation 65 ») : la

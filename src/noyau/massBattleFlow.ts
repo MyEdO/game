@@ -87,8 +87,8 @@ function armyWithMightDelta(a: MassBattleArmy, delta: number): MassBattleArmy {
 }
 
 /** Clone une armée en ajustant sa Puissance de DÉPART (`wounds.max`) du delta — Sabotage/Rassembler des
- *  forces (l.96/106 : renfort/affaiblissement AVANT la bataille). La Puissance courante suit le même delta
- *  (patron `refreshWounds`), bornée [0, nouveau max]. Pur. */
+ *  forces (l.96/106 : renfort/affaiblissement AVANT la bataille). La Puissance courante suit le même delta,
+ *  bornée [0, nouveau max]. Pur. */
 function armyWithStartMightDelta(a: MassBattleArmy, delta: number): MassBattleArmy {
   if (delta === 0) return a;
   const combatant = cloneArmyCombatant(a.combatant);

@@ -17,13 +17,13 @@ import type { PlayerText } from '../i18n/playerText';
 import { ciblePsyLue, estCibleType, identiteDeCiblage, selonCible, varianteDe, type CiblePsy } from './psych/ciblage';
 import { opPsy } from './psych/opsPsy';
 import { SizeCategory, sizeGap } from './size';
-import { isOutOfAction } from './conditions';
+import { isOutOfAction, removeActiveEffects } from './conditions';
 import { groupMatch, groupesDe, groupesPercus, type PorteurDeGroupes } from './groups';
 import { campOf, relationBetween } from './relations';
 import { bellicosePsychImmune, traitCapability } from './traits/dispatch';
 import { featuresOf } from './combatFeatures/dispatch';
 import { diseasePsychTraits } from './disease';
-import type { GameOp } from './ops';
+import { applyActiveEffect, type GameOp } from './ops';
 import type { Flow } from './flowCore';
 
 export type PsychType =
@@ -412,15 +412,15 @@ export function coldBloodedAdjust(
   return e.success ? { roll: e.roll, target: e.target, success: e.success, sl: e.sl } : t;
 }
 
+const EFFET_IMMUNITE_PSY = 'determination-psych';
+
 /** Détermination (LDB 17 l.59) : immunité à la Psychologie jusqu'à la fin du prochain Round. Portée par un
  *  `ActiveEffect` à durée 2 Rounds (système de Durée unifié : décrémenté/expiré au passage de Round). */
 export function spendResolveForPsychImmunity(c: Combatant): string | null {
   if ((c.resolve ?? 0) <= 0) return null;
   c.resolve = (c.resolve ?? 0) - 1;
-  c.activeEffects = [
-    ...(c.activeEffects ?? []).filter((e) => e.effectId !== 'determination-psych'),
-    { label: 'Détermination (immunité psy)', effectId: 'determination-psych', bonus: 0, duration: { scale: 'rounds', left: 2 }, psychImmune: true },
-  ];
+  removeActiveEffects(c, (e) => e.effectId === EFFET_IMMUNITE_PSY);
+  applyActiveEffect(c, { label: 'Détermination (immunité psy)', effectId: EFFET_IMMUNITE_PSY, bonus: 0, duration: { scale: 'rounds', left: 2 }, psychImmune: true });
   return t('psy.determinationImmune', { name: c.label });
 }
 

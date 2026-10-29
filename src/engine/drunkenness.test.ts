@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
 import { makeRNG } from './dice';
-import { applyAlcoholTest, drunkPenalty, drunkCharPenalties, isDrunk, alcoholFailures, soberUp, drunkStaggers, DRUNK_CARACS } from './drunkenness';
+import { applyAlcoholTest, drunkPenalty, drunkCharPenalties, isDrunk, alcoholFailures, soberUpDissipate, soberUpHangover, drunkStaggers, DRUNK_CARACS } from './drunkenness';
 import { effectiveChar } from './characteristics';
-import { hasCondition, addClockCondition } from './conditions';
+import { hasCondition } from './conditions';
 import { applyOps } from './ops';
 import { deFixe, desDuTest } from './dice.testkit';
 import { ciblePsy } from './psych/ciblage';
 
 /** Joue la MÉCANIQUE d'un résultat d'Ivresse (`drunkOps`) — reproduit `case 'intoxicate'` d'`applyOps`
- *  (`effectId:'ivresse'` marque les ActiveEffect posés, retirés en bloc par `soberUp`). */
+ *  (`effectId:'ivresse'` marque les ActiveEffect posés, retirés en bloc par `soberUpDissipate`). */
 const applyDrunkOps = (c: Combatant, ops: import('./ops').GameOp[] | undefined) => applyOps(c, ops ?? [], { rng: desDuTest, effectId: 'ivresse' });
 
 function hero(E = 30): Combatant {
@@ -90,20 +90,19 @@ describe('Ivresse — Résistance à l’alcool (LDB 09 l.471-487)', () => {
     expect(c.psychTraits?.some((p) => p.type === 'animosite' && p.cible === ciblePsy.groupe('tout'))).toBe(true);
   });
 
-  it('soberUp : lève l’ivresse, retire les ActiveEffect d’ivresse (par `effectId`), renvoie la gueule de bois (Exténué horloge)', () => {
+  it('soberUpDissipate puis soberUpHangover : lève l’ivresse, retire les ActiveEffect d’ivresse (par `effectId`), pose la gueule de bois (Exténué horloge, LDB 09 l.485)', () => {
     const c = hero(20);
     applyAlcoholTest(c, false, 2, d10fixed(1)); // Bravoure (+20 Calme)
     const r = applyAlcoholTest(c, false, 2, d10fixed(1));
     applyDrunkOps(c, r.drunkOps);
     expect(isDrunk(c)).toBe(true);
     const now = 1000;
-    const { hangover } = soberUp(c, now, 2, 1); // DR dissipation 2, DR gueule de bois 1
+    soberUpDissipate(c, 2);
+    soberUpHangover(c, now, 1);
     expect(isDrunk(c)).toBe(false);
     expect(drunkPenalty(c)).toBe(0);
     expect(c.activeEffects?.some((e) => e.effectId === 'ivresse')).toBe(false); // Bravoure retirée
-    expect(hangover).toEqual({ id: 'extenue', value: 1, until: now + (5 - 1) * 60 }); // 4 h
-    // L'appelant pose la gueule de bois :
-    addClockCondition(c, hangover!.id, hangover!.value, hangover!.until);
     expect(hasCondition(c, 'extenue')).toBe(true);
+    expect(c.conditions.find((x) => x.id === 'extenue')).toMatchObject({ value: 1, untilTime: now + (5 - 1) * 60 }); // 4 h
   });
 });

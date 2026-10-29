@@ -166,7 +166,7 @@ describe("#253 — AVANCE D'HORLOGE (advanceTime) : bilan en cascade influençab
     useGame.getState().cascadeBatchReroll('A');
     expect(useGame.getState().party.find((h) => h.id === 'A')!.fortune).toBe((fortuneBefore ?? 0) - 1);
 
-    // Dessoûlage appliqué 1× à la validation (soberUp lève l'état, quelle que soit l'issue du DR).
+    // Dessoûlage appliqué 1× à la validation (`soberUpDissipate` lève l'état, quelle que soit l'issue du DR).
     useGame.getState().cascadeNext();
     expect(useGame.getState().party.find((h) => h.id === 'A')!.drunk).toBeUndefined();
   });

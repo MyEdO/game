@@ -4,6 +4,7 @@ import { hasCondition } from '../engine/conditions';
 import { applyStopBleed } from '../engine/healing';
 import type { Combatant } from '../engine/types';
 import { deFixe } from '../engine/dice.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 /**
  * COMPTEUR de TOURS DE BOUCLE : l'entretien est SILENCIEUX pour un porteur sans péril (ni journal, ni
@@ -26,16 +27,14 @@ function espionneEffets(c: Combatant, effets: unknown[]): { lectures: number } {
 const fixed = deFixe;
 
 function mk(opts: { current?: number; conditions?: { id: string; value: number }[]; fate?: number; advantage?: number }): Combatant {
-  return {
-    name: 'X', kind: 'hero',
+  return combattantDeTest({
+    label: 'X', kind: 'hero',
     wounds: { current: opts.current ?? 10, max: 10 },
     advantage: opts.advantage ?? 0,
     conditions: opts.conditions ?? [],
     skills: [], // requis par le Test de Résistance d'Empoisonné, désormais résolu INLINE hors combat (RAW l.66-72)
-    armour: { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 },
-    characteristics: { endurance: 30 } as Combatant['characteristics'],
     fate: opts.fate ?? 0,
-  } as unknown as Combatant;
+  });
 }
 
 describe('outOfCombatUpkeep — États qui tickent HORS COMBAT (couture A, LDB 13 l.49-50)', () => {

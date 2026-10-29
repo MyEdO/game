@@ -28,6 +28,7 @@ import { CHAR_LABELS, type Combatant, type CharKey, type Difficulty, type ItemIn
 import type { RNG } from './dice';
 import { rollTest } from './tests';
 import { addCondition, hasCondition, loseWounds } from './conditions';
+import { applyActiveEffect } from './ops';
 import { hasCapability, itemCapability } from './capabilities';
 import { t } from '../i18n';
 import { rule } from './policy';
@@ -163,7 +164,7 @@ export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, k
   const effectId = kind === 'froid' ? 'exposition-froid' : 'exposition-chaleur';
   if (failures <= 2) {
     for (const k of (failures === 1 ? FIRST_FAIL : SECOND_FAIL)[kind]) {
-      c.activeEffects = [...(c.activeEffects ?? []), { label, effectId, char: k, bonus: -10, duration: { scale: 'permanent' }, expiresOnRespite: true }];
+      applyActiveEffect(c, { label, effectId, char: k, bonus: -10, duration: { scale: 'permanent' }, expiresOnRespite: true });
     }
     if (kind === 'chaleur') addCondition(c, 'extenue'); // « vous gagnez un État Exténué » (1ᵉʳ ET 2ᵉ échec, l.330)
     log.push(kind === 'froid'
