@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { MANIEMENTS, maniementDe, estManiementADistance, type Maniement } from './animation';
+import { maniementDe, estManiementADistance } from './animation';
+import { maniementSchema, type Maniement } from '../data/schemas/grammaire/valeurs';
 import { WEAPON_FORMS } from '../gameIso/rig/parts/weaponForms';
 import { findTrappingById } from '../data';
 import { buildWeapon, itemFromTrappingById, weaponFromItem } from '../engine/items';
@@ -48,7 +49,7 @@ describe('maniementDe — dérivé de la FORME, pas du Groupe de règles', () =>
   });
 
   it('toute forme cataloguée résout vers UNE classe connue (aucune forme orpheline)', () => {
-    const KNOWN = MANIEMENTS.filter((m) => m !== 'cornes');
+    const KNOWN = maniementSchema.options.filter((m) => m !== 'cornes');
     for (const f of WEAPON_FORMS) {
       const h = maniementDe(byShape(f.slug, f.type));
       expect(KNOWN, f.slug).toContain(h);

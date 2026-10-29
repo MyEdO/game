@@ -64,7 +64,7 @@ describe('garde-robe.json — emplacements, pièces, ensembles (#3114)', () => {
   });
 
   it('une pièce sans catégorie est refusée', () => {
-    expect(refus(avec('casque', { categorie: undefined }))).toMatch(/kind « piece » EXIGE la clé « categorie » \(casque\)/);
+    expect(refus(avec('casque', { categorie: undefined }))).toMatch(/« casque » \(kind « piece »\) exige « categorie »/);
   });
 
   it('`findPieceById` résout toute pièce sur elle-même et aucune autre ligne', () => {

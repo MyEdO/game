@@ -1,4 +1,4 @@
-import { findTeinteById } from '../../../data';
+import { findTeinteById, findWeaponGroupById, groupeDArmure, groupesDArmure } from '../../../data';
 import type { ItemInstance, HitLocation } from '../../../engine/types';
 import type { BouclierDeDessin, FormeDArme, MatiereDArmure, PieceDeDessin } from '../../../noyau/equipementDessine';
 import type { Slot } from '../../../engine/authoringAppearance';
@@ -6,7 +6,6 @@ import type { PartArt } from './types';
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
-import { weaponGroupKey } from '../../../engine/weaponGroup';
 import { racineDesCandidats } from '../../../engine/items';
 import { buildTokenMap, tableDObjet, applyTokenMapArt } from '../palette';
 
@@ -14,29 +13,22 @@ import { buildTokenMap, tableDObjet, applyTokenMapArt } from '../palette';
  *  `epee` (forme générique, repli du Groupe `base` + défaut final) est une def du registre comme les autres. */
 const ART_BY_SLUG = new Set(WEAPON_DEFS.map((d) => d.slug));
 
-/** Forme par défaut d'un Groupe canonique (REPLI quand l'arme n'a pas de forme résolue : armes
- *  génériques de statbloc / hors catalogue). Le Groupe (WFRP4) n'encode pas la forme — c'est un
- *  simple défaut visuel par famille, pas un routage de libellé. */
-const ART_BY_GROUP: Record<string, string> = {
-  base: 'epee', escrime: 'rapiere', deuxmains: 'epee_batarde',
-  cavalerie: 'lance_cavalerie', hast: 'lance', fleau: 'fleau', parade: 'main_gauche', bagarre: '',
-  arc: 'arc', arbalete: 'arbalete', poudre: 'pistolet', ingenierie: 'pistolet_rep',
-  fronde: 'fronde', lancer: 'javelot', entraves: 'fouet', explosifs: 'bombe',
-};
-
-/** #2967 */
+/** #2967 — repli d'une arme sans forme dessinée : la `forme` de son Groupe (`weaponGroups.json`, `null` : rien en
+ *  main) ; une arme sans Groupe suit son type. */
 export function weaponFamily(w: FormeDArme): string {
   if (w.natural) return ''; // attaque naturelle (corps) : la part du rig fait foi, rien en main
   const forme = racineDesCandidats(w.candidats);
   if (forme && ART_BY_SLUG.has(forme)) return forme;
-  return ART_BY_GROUP[weaponGroupKey(w)] ?? (w.type === 'ranged' ? 'arc' : 'epee');
+  const groupe = findWeaponGroupById(w.subType);
+  if (groupe?.kind === 'weapon') return groupe.forme?.id ?? '';
+  return w.type === 'ranged' ? 'arc' : 'epee';
 }
 
 /**
  * Parts d'arme (repère local de l'os `arme`, manche à l'origine).
  * ART DES FORMES = registre auto-chargé `weapons/defs/` (1 arme = 1 fichier ; les réécritures
- * lisibilité de l'audit aveugle sont déjà bakées dans chaque def). `epee` (forme générique, repli
- * du Groupe `base` via `ART_BY_GROUP` + défaut final de `weaponPart`) est une def comme les autres.
+ * lisibilité de l'audit aveugle sont déjà bakées dans chaque def). Repli : la `forme` du Groupe
+ * (`weaponGroups.json`), puis `epee`, défaut final de `weaponPart` et def comme les autres.
  */
 // Art des formes RÉSOLU par la table d'OBJET du def (`tableDObjet`) : les clés porteur restent en
 // jeton pour la passe du porteur. Relevé sur `PartArt` : préserve un art ORIENTÉ verbatim.
@@ -67,11 +59,10 @@ export function shieldPart(x: BouclierDeDessin): PartArt {
   return applyTokenMapArt(d.art, TABLE_BOUCLIER);
 }
 
-/** Def d'art (`armour/defs/`) qui peint chaque matière d'armure. */
-export const ART_DE_MATIERE: Record<MatiereDArmure, string> = { 'cuir-souple': 'cuir', 'cuir-bouilli': 'cuir', mailles: 'maille', plate: 'plaque', 'armure-du-chaos': 'plaque' };
+/** Def d'art (`armour/defs/`) qui peint une matière d'armure : l'`art` de son Groupe. */
+export const artDeMatiere = (matiere: MatiereDArmure): string => groupeDArmure(matiere).art;
 /** Une matière que le def `defId` peint (galeries, audits d'art), `undefined` pour un def qu'aucune matière n'atteint. */
-export const matiereDuDef = (defId: string): MatiereDArmure | undefined =>
-  (Object.keys(ART_DE_MATIERE) as MatiereDArmure[]).find((m) => ART_DE_MATIERE[m] === defId);
+export const matiereDuDef = (defId: string): MatiereDArmure | undefined => groupesDArmure().find((g) => g.art === defId)?.id;
 
 /** Slot de corps couvert par cet item (via ses locs WFRP4) — false si pas ce slot.
  *  `pied`/`main`/`cou` : couverture DÉRIVÉE des HitLocation existantes (pied←jambes, main←bras,
@@ -90,7 +81,7 @@ function coversSlot(item: Pick<ItemInstance, 'locs'>, slot: Slot): boolean {
 
 export function armourPart(item: PieceDeDessin, slot: Slot): PartArt | null {
   if (!coversSlot(item, slot)) return null;
-  const mat = ART_DE_MATIERE[item.matiere];
+  const mat = artDeMatiere(item.matiere);
   // Art dessiné par le workflow (matériau × emplacement) en priorité, COULEUR résolue contre la
   // palette du matériau (défaut sans perte) + la teinte de l'objet.
   const art = ARMOUR[mat]?.[slot as 'tete' | 'torse' | 'bras' | 'jambes' | 'pied' | 'main' | 'cou'];

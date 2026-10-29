@@ -119,6 +119,7 @@ const NOMMES = [
   // par `DIFFICULTY_LABELS` ; `couvertDifficultySchema` en est le sous-univers de couvert (AA 10 l.28-51).
   'tresFacile|facile|accessible|intermediaire|complexe|difficile|tresDifficile|presqueImpossible|impossible',
   'intermediaire|complexe|difficile|tresDifficile',
+  'lame1m|escrime|lourde2m|hampe|lance_cav|fleau|parade|poings|arc|arbalete|arme_feu|fronde|jet|entraves|explosif|cornes',
   // `teneurSchema` (#1825 lot E) : ce que contiennent les chapitres d'un livre non couverts par une
   // fiche de l'Atlas — absente = livre de règles (`defs/books.ts`).
   'scenario|mixte',

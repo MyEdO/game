@@ -2,7 +2,7 @@
  * #1686 — ce que le SCHÉMA de `materials.json` tient au parse, sur le document RÉEL.
  *
  * Deux contrats, tous deux à mutation :
- *  - la DISJONCTION par domaine (`affinerEntree`) : chaque domaine EXIGE ses clés requises et REFUSE
+ *  - la DISJONCTION par domaine (`refusDeCharge`) : chaque domaine EXIGE ses clés requises et REFUSE
  *    les clés d'un autre domaine, nommément — c'est ce qui remplace les trois schémas fusionnés ;
  *  - `couverture` n'a qu'UNE graphie : le champ vaut `true`, ou il est ABSENT. `z.boolean()` laissait
  *    entrer `couverture: false`, deuxième façon d'écrire « ne couvre pas » que rien ne distinguerait
@@ -36,13 +36,13 @@ describe('materials.json — un document, trois domaines, une disjonction gardé
   it('une clé ÉTRANGÈRE à son domaine est refusée, en nommant le domaine et la clé', () => {
     const doc = clone();
     uneDe(doc, 'prop').N = '#a04836';
-    expect(refus(doc).join(' ')).toMatch(/la clé « N » n’appartient pas au domaine « prop »/);
+    expect(refus(doc).join(' ')).toMatch(/« N » n’appartient qu’au\(x\) cas domain « roof » — refusée sur « .+ » \(domain « prop »\)/);
   });
 
   it('une clé REQUISE par le domaine est exigée, en nommant le domaine et la clé', () => {
     const doc = clone();
     delete uneDe(doc, 'relief').face;
-    expect(refus(doc).join(' ')).toMatch(/le domaine « relief » EXIGE la clé « face »/);
+    expect(refus(doc).join(' ')).toMatch(/\(domain « relief »\) exige « face »/);
   });
 
   it('un `domain` HORS périmètre est refusé (les cinq domaines de `MaterialRef` ne sont pas tous ici)', () => {

@@ -17,7 +17,7 @@
  * n'attestent d'aucune intention d'artiste. Ils ont vocation à être REMPLACÉS à mesure que #559 vide
  * son stock de slots front-only (167 mesurés) — un churn de ces snapshots y est ATTENDU, pas suspect.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { creatures } from '../../../data';
 import { entityRigProfile } from '../enemyProfile';
 import { resolveRig } from '../composeRig';
@@ -25,6 +25,7 @@ import { bonesToSvg } from '../renderBones';
 import { planById, resolveById, planOptsForRecord } from '../bodyPlan';
 import { VIEWS, type View } from '../facing';
 import { findTrappingById } from '../../../data';
+import { poserPaliersDArmure, restaurerPaliersDArmure } from '../../../data/paliersDArmure.testkit';
 const SEED = 7;
 
 function renderSvg(id: string, view: View): string {
@@ -39,6 +40,8 @@ function renderSvg(id: string, view: View): string {
 }
 
 describe('golden — rendu SVG du bestiaire entier (anti-régression de-POC apparence)', () => {
+  beforeAll(() => poserPaliersDArmure());
+  afterAll(() => restaurerPaliersDArmure());
   for (const c of creatures)
     for (const view of VIEWS)
       it(`${c.label} / ${view}`, () => {

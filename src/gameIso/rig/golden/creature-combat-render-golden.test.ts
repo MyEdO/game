@@ -20,21 +20,24 @@
  * (167 mesurés) — un churn de ces snapshots y est ATTENDU, pas suspect.
  */
 import { VIEWS } from '../facing';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { creatures } from '../../../data';
 import { creatureToCombatant } from '../../../noyau/monde/spawn';
 import { actorDrawInputs } from '../../backends/webgl/sceneMeshes';
 import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';
+import { poserPaliersDArmure, restaurerPaliersDArmure } from '../../../data/paliersDArmure.testkit';
 
 
 describe('golden — rendu COMBAT (spawn→enemyRigProfile→visuels d’état) du bestiaire bipède', () => {
+  beforeAll(() => poserPaliersDArmure());
+  afterAll(() => restaurerPaliersDArmure());
   for (const cr of creatures) {
     const c = creatureToCombatant(cr, `g-${cr.label}`, { x: 0, y: 0 });
-    const rig = actorDrawInputs(c).rig;
-    if (!rig) continue; // non-bipède → chemin plan (couvert par creature-render-golden)
+    if (!actorDrawInputs(c).rig) continue; // non-bipède → chemin plan (couvert par creature-render-golden)
     for (const view of VIEWS)
       it(`${cr.label} / ${view}`, () => {
+        const rig = actorDrawInputs(c).rig!;
         expect(bonesToSvg(resolveRig(rig.appearance, rig.equip, {}, rig.tenue, view, rig.overlays))).toMatchSnapshot();
       });
   }
