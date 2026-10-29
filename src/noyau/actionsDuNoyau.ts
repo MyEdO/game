@@ -111,7 +111,7 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Passe de la phase pré-bataille (Discours/Planification) aux Rounds de bataille. */
   massBattleBegin: () => void;
   /** Ouvre le Test d'une Activité de bataille pré-combat (l.79-106). */
-  massBattleActivity: (activityId: string) => void;
+  massBattleActivity: (activityId: string, heroId: IdDeHeros) => void;
   /** Choisit une Scène cinématique du Round (Test de Compétence ou combat tactique). */
   massBattleScene: (sceneId: string) => void;
   /** Affecte la LISTE des PJ postés à une action du Round (Scène MULTI-PJ résolue en Soutien, ou Activité

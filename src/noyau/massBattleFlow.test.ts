@@ -5,7 +5,7 @@ import { d100 } from '../engine/dice';
 import { evaluateTest } from '../engine/tests';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { pregenParty, PREGEN } from '../data/pregens';
-import { massBattleTrackHit, armyMight, armyStartMight, type MassBattleState } from './massBattleFlow';
+import { massBattleTrackHit, armyMight, armyStartMight, battleActivityById, peutTenterAction, type MassBattleState } from './massBattleFlow';
 import type { MassBattleSpec } from '../engine/massBattle';
 import type { PendingActivity } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
@@ -50,6 +50,15 @@ function resolveBattleTest(over: { roll: number; success: boolean; sl: number } 
 }
 
 const mbState = (): MassBattleState => useGame.getState().massBattle!;
+
+/** Le premier héros du groupe qui peut tenter la préparation `id` (`peutTenterAction`), à défaut le premier. */
+const meneurCapable = (id: string): string => {
+  const def = battleActivityById(id)!;
+  const party = useGame.getState().party;
+  return (party.find((h) => peutTenterAction(h, def)) ?? party[0]).id;
+};
+/** Ouvre la préparation `id` MENÉE par `heroId`, par défaut `meneurCapable(id)`. */
+const prep = (id: string, heroId = meneurCapable(id)) => useGame.getState().massBattleActivity(id, heroId);
 const pending = () => useGame.getState().pendingActivity;
 
 describe('startMassBattle / état', () => {
@@ -80,7 +89,7 @@ describe('startMassBattle / état', () => {
 
   it('TOUS les jets passent par le canal unifié `pendingActivity` (plus de `pendingBattleTest`)', () => {
     start();
-    useGame.getState().massBattleActivity('inspire');
+    prep('inspire');
     const pa = pending()!;
     expect(pa.battle).toBe('prep');   // marqueur de bataille sur la PendingActivity
     expect(pa.kind).toBe('catalog');  // même canal que les Activités d'interlude
@@ -106,7 +115,7 @@ describe('Situation par Round (l.114-116) — sous-ensemble, pas tout le catalog
 describe('Discours inspirant (l.71)', () => {
   it('un succès accorde +10 au Test de Puissance du premier Round', () => {
     start();
-    useGame.getState().massBattleActivity('inspire');
+    prep('inspire');
     expect(pending()?.activityId).toBe('inspire');
     resolveBattleTest({ roll: 20, success: true, sl: 2 });
     expect(mbState().firstRoundBonus).toBe(10);
@@ -115,7 +124,7 @@ describe('Discours inspirant (l.71)', () => {
 
   it('un échec ne donne aucun bonus', () => {
     start();
-    useGame.getState().massBattleActivity('inspire');
+    prep('inspire');
     resolveBattleTest({ roll: 95, success: false, sl: -3 });
     expect(mbState().firstRoundBonus).toBe(0);
     expect(mbState().activitiesDone).toContain('inspire');
@@ -125,11 +134,11 @@ describe('Discours inspirant (l.71)', () => {
     // Armée alliée devant de +30 → Test plus FACILE ; derrière de −30 → plus DUR. Le Discours n'a pas de
     // porte à lui : c'est l'entrée qui déclare `difficultyFrom`, lue à l'ouverture comme au pré-jet.
     start({ allyMight: 70, enemyMight: 40 });
-    useGame.getState().massBattleActivity('inspire');
+    prep('inspire');
     expect(pending()?.difficulty).toBe('facile');
 
     start({ allyMight: 30, enemyMight: 60 });
-    useGame.getState().massBattleActivity('inspire');
+    prep('inspire');
     expect(pending()?.difficulty).toBe('tresDifficile');
   });
 });
@@ -137,7 +146,7 @@ describe('Discours inspirant (l.71)', () => {
 describe('Activités de bataille pré-combat (l.79-106)', () => {
   it('Planification réussie : +10 permanent aux Tests de Puissance ; débloque l\'Infiltration', () => {
     start({}, partyWithWarLore());
-    useGame.getState().massBattleActivity('planification');
+    prep('planification');
     expect(pending()?.activityId).toBe('planification');
     resolveBattleTest({ roll: 10, success: true, sl: 3 });
     const mb = mbState();
@@ -148,7 +157,7 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
 
   it('Planification Stupéfiante (DR ≥ 6) : +20 (l.89)', () => {
     start({}, partyWithWarLore());
-    useGame.getState().massBattleActivity('planification');
+    prep('planification');
     resolveBattleTest({ roll: 3, success: true, sl: 6 });
     expect(mbState().allyMod).toBe(20);
   });
@@ -156,14 +165,14 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
   it('Sabotage requiert le Repérage ; réduit la Puissance ennemie de départ (l.104-106)', () => {
     start();
     // Sans Repérage : refusé.
-    useGame.getState().massBattleActivity('sabotage');
+    prep('sabotage');
     expect(pending()).toBeNull();
     // Repérage réussi → `scouted` (Test combiné : full).
-    useGame.getState().massBattleActivity('reperage');
+    prep('reperage');
     resolveBattleTest({ roll: 10, success: true, sl: 2, success2: true, sl2: 2, combinedLevel: 'full' });
     expect(mbState().scouted).toBe(true);
     // Sabotage maintenant possible : −5 sur la Puissance de DÉPART (wounds.max) ET la courante.
-    useGame.getState().massBattleActivity('sabotage');
+    prep('sabotage');
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
     expect(armyStartMight(mbState().enemy)).toBe(50); // 55 − 5
     expect(armyMight(mbState().enemy)).toBe(50);
@@ -171,7 +180,7 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
 
   it('Rassembler des forces (l.96) : Stupéfiant → +10 de Puissance de DÉPART (le plafond suit)', () => {
     start({ allyMight: 50 });
-    useGame.getState().massBattleActivity('rassembler-des-forces');
+    prep('rassembler-des-forces');
     resolveBattleTest({ roll: 3, success: true, sl: 6 });
     expect(armyStartMight(mbState().ally)).toBe(60);
     expect(armyMight(mbState().ally)).toBe(60);
@@ -180,50 +189,49 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
   it('budget UNIQUE : sans interlude ouvert, AUCUNE préparation possible (Round 1 direct)', () => {
     start({}, partyWithWarLore(), { interludeLeft: 0 });
     expect(useGame.getState().interlude).toBeNull();
-    useGame.getState().massBattleActivity('inspire');
+    prep('inspire');
     expect(pending()).toBeNull();
-    useGame.getState().massBattleActivity('planification');
+    prep('planification');
     expect(pending()).toBeNull();
   });
 });
 
-describe('Personne qui puisse tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : refus NOMMÉ, jamais un remplaçant', () => {
+describe('Meneur qui ne peut pas tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : refus NOMMÉ, jamais un remplaçant', () => {
   const lastLine = () => useGame.getState().journal.slice(-1)[0];
   /** Met un héros hors d'action par la couture des États (LDB 16 l.113). */
   const ko = (h: Combatant): Combatant => { const c = structuredClone(h); addCondition(c, 'inconscient'); return c; };
 
-  it('Planification (soutenable) sans Savoir (Guerre) dans le groupe : refus nommé, budget intact', () => {
+  it('Planification (soutenable) : le meneur sans Savoir (Guerre) est refusé, budget intact', () => {
     start(); // soldat + chasseur, aucun n'a d'Augmentation en Savoir (Guerre)
     const [a, b] = useGame.getState().party;
-    useGame.getState().massBattleActivity('planification');
+    prep('planification', a.id);
     expect(pending()).toBeNull();
-    expect(lastLine()).toBe('Personne dans le groupe ne peut tenter « Planification ».');
+    expect(lastLine()).toBe(`Aucun Personnage désigné (${a.label}) ne peut tenter « Planification ».`);
     expect([leftOf(a.id), leftOf(b.id)]).toEqual([3, 3]);
   });
 
-  it('Planification : le héros DÉSIGNÉ sans Savoir (Guerre) n’est pas remplacé par celui qui l’a', () => {
+  it('Planification : le meneur sans Savoir (Guerre) n’est pas remplacé par celui qui l’a', () => {
     const [soldat, chasseur] = pregenParty(PREGEN.soldat, PREGEN.chasseur);
     start({}, [partyWithWarLore([soldat])[0], chasseur]);
-    useGame.getState().setMassBattleHero('planification', [chasseur.id]);
-    useGame.getState().massBattleActivity('planification');
+    prep('planification', chasseur.id);
     expect(pending()).toBeNull();
     expect(lastLine()).toBe(`Aucun Personnage désigné (${chasseur.label}) ne peut tenter « Planification ».`);
   });
 
-  it('Activité SOLO : le héros désigné Inconscient n’est pas remplacé (Discours inspirant)', () => {
+  it('Activité SOLO : le meneur Inconscient n’est pas remplacé (Discours inspirant)', () => {
     const [soldat, chasseur] = pregenParty(PREGEN.soldat, PREGEN.chasseur);
     start({}, [ko(soldat), chasseur]);
-    useGame.getState().setMassBattleHero('inspire', [soldat.id]);
-    useGame.getState().massBattleActivity('inspire');
+    prep('inspire', soldat.id);
     expect(pending()).toBeNull();
     expect(lastLine()).toBe(`Aucun Personnage désigné (${soldat.label}) ne peut tenter « Discours inspirant ».`);
   });
 
-  it('Activité COMBINÉE : personne en état de la tenter → refus nommé (Repérage)', () => {
-    start({}, pregenParty(PREGEN.soldat, PREGEN.chasseur).map(ko));
-    useGame.getState().massBattleActivity('reperage');
+  it('Activité COMBINÉE : le meneur hors d’état de la tenter → refus nommé (Repérage)', () => {
+    const [soldat, chasseur] = pregenParty(PREGEN.soldat, PREGEN.chasseur).map(ko);
+    start({}, [soldat, chasseur]);
+    prep('reperage', soldat.id);
     expect(pending()).toBeNull();
-    expect(lastLine()).toBe('Personne dans le groupe ne peut tenter « Repérage ».');
+    expect(lastLine()).toBe(`Aucun Personnage désigné (${soldat.label}) ne peut tenter « Repérage ».`);
   });
 
   it('Scène de Round : personne en état de la tenter → refus nommé (Motivation)', () => {
@@ -238,7 +246,7 @@ describe('Personne qui puisse tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : refus
 describe('Test combiné d\'Activité (l.75/102) — un jet vs deux compétences', () => {
   it('Repérage combiné : full réussit → +10 au bonus de Planification, scouted', () => {
     start();
-    useGame.getState().massBattleActivity('reperage');
+    prep('reperage');
     const pa = pending()!;
     expect(pa.activityId).toBe('reperage');
     expect(pa.target2).toBeGreaterThan(0); // seconde cible = Test combiné
@@ -249,9 +257,9 @@ describe('Test combiné d\'Activité (l.75/102) — un jet vs deux compétences'
 
   it('Infiltration combinée : partial (une seule) NE réussit PAS l\'Activité', () => {
     start({}, partyWithWarLore());
-    useGame.getState().massBattleActivity('planification');
+    prep('planification');
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
-    useGame.getState().massBattleActivity('infiltration');
+    prep('infiltration');
     const pa = pending()!;
     expect(pa.activityId).toBe('infiltration');
     expect(pa.target2).toBeGreaterThan(0);
@@ -664,14 +672,13 @@ describe('Affectation explicite d\'un PJ à une action (poste ≠ auto « meille
     expect(pending()!.heroId).not.toBe(acted);
   });
 
-  it('(d) poster un PJ à une Activité combinée → CE PJ résout SOLO', () => {
+  it('(d) une Activité combinée est menée par le héros NOMMÉ, seul, quel que soit le poste', () => {
     start();
-    const { suggested, other } = otherThanSuggested('reperage', () => useGame.getState().massBattleActivity('reperage'));
-    expect(other).not.toBe(suggested);
-    useGame.getState().setMassBattleHero('reperage', [other]);
-    useGame.getState().massBattleActivity('reperage');
+    const [a, b] = useGame.getState().party.map((h) => h.id);
+    useGame.getState().setMassBattleHero('reperage', [a]);
+    prep('reperage', b);
     const pa = pending()!;
-    expect(pa.heroId).toBe(other);
+    expect(pa.heroId).toBe(b);
     expect(pa.target2).toBeGreaterThan(0); // Test combiné
     expect(pa.support).toBeUndefined();
   });
@@ -689,12 +696,13 @@ describe('Affectation explicite d\'un PJ à une action (poste ≠ auto « meille
 });
 
 describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test »)', () => {
-  it('deux PJ postés → SOUTIEN (heroIds=2, support.count ≥ 1)', () => {
+  it('le meneur NOMMÉ + un PJ posté → SOUTIEN (heroIds=2, support.count ≥ 1)', () => {
     start({}, partyWithWarLore());
     const [a, b] = useGame.getState().party.map((h) => h.id);
     useGame.getState().setMassBattleHero('planification', [a, b]);
-    useGame.getState().massBattleActivity('planification');
+    prep('planification', b);
     const pa = pending()!;
+    expect(pa.heroId).toBe(b);
     expect(pa.heroIds).toEqual(expect.arrayContaining([a, b]));
     expect(pa.heroIds).toHaveLength(2);
     expect(pa.support!.count).toBeGreaterThanOrEqual(1);
@@ -702,11 +710,10 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
     expect(pa.target2).toBeUndefined(); // Test simple (pas combiné)
   });
 
-  it('un seul PJ posté → meneur SEUL', () => {
+  it('aucun autre PJ posté → meneur SEUL', () => {
     start({}, partyWithWarLore());
     const [a] = useGame.getState().party.map((h) => h.id);
-    useGame.getState().setMassBattleHero('planification', [a]);
-    useGame.getState().massBattleActivity('planification');
+    prep('planification', a);
     const pa = pending()!;
     expect(pa.heroId).toBe(a);
     expect(pa.heroIds).toEqual([a]);
@@ -717,11 +724,12 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
     start();
     const [a, b] = useGame.getState().party.map((h) => h.id);
     useGame.getState().setMassBattleHero('reperage', [a, b]);
-    useGame.getState().massBattleActivity('reperage');
+    const meneur = meneurCapable('reperage');
+    prep('reperage', meneur);
     const pa = pending()!;
     expect(pa.activityId).toBe('reperage');
     expect(pa.support).toBeUndefined();
-    expect(pa.heroId).toBe(a);
+    expect(pa.heroId).toBe(meneur);
   });
 
   // #257 — RAW muet (LDB 12 l.189 « apporter son soutien » / ADE II 8 l.81) : le coût d'Activité de
@@ -731,11 +739,10 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
     start({}, partyWithWarLore());
     const [a, b] = useGame.getState().party.map((h) => h.id);
     useGame.getState().setMassBattleHero('planification', [a, b]);
-    useGame.getState().massBattleActivity('planification');
-    const leader = pending()!.heroId; // meneur soutenu = meilleure compétence (pas forcément a)
+    prep('planification', b);
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
-    expect(leftOf(a) + leftOf(b)).toBe(5); // un SEUL créneau consommé (3+3 → 5)
-    expect(leftOf(leader)).toBe(2); // le meneur, lui, a bien payé
+    expect(leftOf(a)).toBe(3); // l'assistant : gratuit
+    expect(leftOf(b)).toBe(2); // le meneur nommé, lui, a bien payé
   });
 
   it('flag activé : chaque assistant doté d’un créneau en dépense un', () => {
@@ -744,7 +751,7 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
       start({}, partyWithWarLore());
       const [a, b] = useGame.getState().party.map((h) => h.id);
       useGame.getState().setMassBattleHero('planification', [a, b]);
-      useGame.getState().massBattleActivity('planification');
+      prep('planification', a);
       resolveBattleTest({ roll: 10, success: true, sl: 2 });
       expect(leftOf(a)).toBe(2); // meneur : −1
       expect(leftOf(b)).toBe(2); // assistant : −1 aussi
@@ -798,9 +805,8 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
   it('une préparation de bataille DÉCRÉMENTE `interlude.perHero.left` (budget UNIQUE)', () => {
     start({}, partyWithWarLore());
     const hero = useGame.getState().party[0].id;
-    useGame.getState().setMassBattleHero('planification', [hero]);
     expect(leftOf(hero)).toBe(3);
-    useGame.getState().massBattleActivity('planification');
+    prep('planification', hero);
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
     expect(leftOf(hero)).toBe(2); // une Activité de préparation = une Activité d'interlude
   });
@@ -813,12 +819,12 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
     expect(leftOf(hero)).toBe(3);
 
     // Activité #1 : préparation de bataille (Planification) → left 3→2.
-    useGame.getState().massBattleActivity('planification');
+    prep('planification');
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
     expect(leftOf(hero)).toBe(2);
 
     // Activité #2 : préparation de bataille (Repérage) → left 2→1, débloque le Sabotage.
-    useGame.getState().massBattleActivity('reperage');
+    prep('reperage');
     resolveBattleTest({ roll: 10, success: true, sl: 2, success2: true, sl2: 2, combinedLevel: 'full' });
     expect(leftOf(hero)).toBe(1);
     expect(mbState().scouted).toBe(true);
@@ -832,7 +838,7 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
     expect(leftOf(hero)).toBe(0);
 
     // 4ᵉ Activité : budget épuisé → la préparation de bataille (Sabotage) est REFUSÉE (l.65).
-    useGame.getState().massBattleActivity('sabotage');
+    prep('sabotage');
     expect(pending()).toBeNull();
     // …et une Activité d'interlude normale l'est aussi (source de budget UNIQUE), refus dit.
     useGame.getState().interludeActivity(hero, 'revenus');
@@ -944,7 +950,7 @@ describe('Aléa & fermeture', () => {
 
   it('endMassBattle REFUSE de clore sous un Test de bataille en cours, en le nommant (#1906)', () => {
     start();
-    useGame.getState().massBattleActivity('inspire');
+    prep('inspire');
     const pa = pending()!;
     useGame.getState().endMassBattle();
     expect(useGame.getState().massBattle, 'le Test lit la bataille jusqu’à son issue').not.toBeNull();
@@ -962,7 +968,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
 
   it('(i) Test combiné PARTIEL : la Chance est OFFERTE (`failed` regarde le NIVEAU, pas skill-1)', () => {
     start();
-    useGame.getState().massBattleActivity('reperage');
+    prep('reperage');
     const pa0 = pending()!;
     expect(pa0.target2).toBeGreaterThan(0); // vrai Test combiné
     // skill-1 réussie, skill-2 ratée → `partial` = ÉCHEC GLOBAL RAW (LDB 12 l.202-206).
@@ -975,7 +981,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
 
   it('(i-bis) Test combiné PARTIEL : la Résilience le RATTRAPE en `full` (garde forcé = activityWon)', () => {
     start();
-    useGame.getState().massBattleActivity('reperage');
+    prep('reperage');
     const pa0 = pending()!;
     useGame.setState({ pendingActivity: { ...pa0, roll: 40, success: true, sl: 1, success2: false, sl2: -1, combinedLevel: 'partial' } });
     grant({ resilience: 1 });
@@ -987,7 +993,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
 
   it('(i-ter) Test combiné FULL : la Résilience ne dépense RIEN (déjà gagné)', () => {
     start();
-    useGame.getState().massBattleActivity('reperage');
+    prep('reperage');
     const pa0 = pending()!;
     useGame.setState({ pendingActivity: { ...pa0, roll: 10, success: true, sl: 2, success2: true, sl2: 2, combinedLevel: 'full' } });
     grant({ resilience: 1 });
