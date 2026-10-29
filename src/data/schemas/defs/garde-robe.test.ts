@@ -1,8 +1,8 @@
 /**
  * #3114, #3113 — ce que le SCHÉMA de `garde-robe.json` tient au parse : une pièce d'accessoire nomme son
  * emplacement et elle seule, un ensemble habille UNE chose sous l'id qui la nomme, toute référence
- * interne (emplacement, pièces) résout dans sa sous-liste, une tête nomme sa race de rendu, une coiffure
- * ne porte aucune clé de charge, et les têtes sont celles des espèces jouables.
+ * interne (emplacement, pièces) résout dans sa sous-liste, une tête nomme sa race de rendu sous l'id de
+ * cette race, une coiffure ne porte aucune clé de charge, et les têtes sont celles des espèces jouables.
  */
 import { describe, expect, it } from 'vitest';
 import { schema } from './garde-robe';
@@ -71,7 +71,7 @@ describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensemble
 
   it('une tête qui nomme sa race et une coiffure sans charge parsent', () => {
     const doc = [
-      { id: 'tete-test', type: 'garde-robe', label: 'Tête de test', kind: 'tete', race: { id: 'humain' } },
+      { id: 'humain', type: 'garde-robe', label: 'Tête de test', kind: 'tete', race: { id: 'humain' } },
       { id: 'coiffure-test', type: 'garde-robe', label: 'Coiffure de test', kind: 'coiffure' },
     ];
     const r = schema.safeParse(doc);
@@ -79,7 +79,11 @@ describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensemble
   });
 
   it('une tête sans race est refusée', () => {
-    expect(refus(avec('humain', { race: undefined }))).toMatch(/kind « tete » EXIGE la clé « race » \(humain\)/);
+    expect(refus(avec('humain', { race: undefined }))).toMatch(/« humain » \(kind « tete »\) exige « race »/);
+  });
+
+  it('une tête dont l’id n’est pas sa race est refusée', () => {
+    expect(refus(avec('nain', { race: { id: 'orc' } }))).toMatch(/la tête « nain » doit s’appeler « orc », l’id de sa race/);
   });
 
   it('une race de tête absente de `raceAppearance.json` est refusée', () => {
@@ -92,8 +96,8 @@ describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensemble
   });
 
   it('une clé de charge sur une tête ou une coiffure est refusée', () => {
-    expect(refus(avec('humain', { categorie: 'vetement' }))).toMatch(/la clé « categorie » n’appartient pas au kind « tete » \(humain\)/);
-    expect(refus(avec('crane-rase', { emplacement: { id: 'tete' } }))).toMatch(/la clé « emplacement » n’appartient pas au kind « coiffure » \(crane-rase\)/);
+    expect(refus(avec('humain', { categorie: 'vetement' }))).toMatch(/« categorie » n’appartient qu’au\(x\) cas kind « piece » — refusée sur « humain » \(kind « tete »\)/);
+    expect(refus(avec('crane-rase', { emplacement: { id: 'tete' } }))).toMatch(/« emplacement » n’appartient qu’au\(x\) cas kind « piece » — refusée sur « crane-rase » \(kind « coiffure »\)/);
   });
 
   it.each([

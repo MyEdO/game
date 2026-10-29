@@ -4,7 +4,7 @@
  * `user-direction-fusion-json-par-type`), patron `defs/materials.ts`.
  *
  * - `tete` : la tête d'une espèce jouable (`species.json`), qui nomme sa `race` de rendu
- *   (`raceAppearance.json`, #3113) ; têtes monstrueuses : #3123.
+ *   (`raceAppearance.json`, #3113) et dont l'`id` vaut celui de sa `race` ; têtes monstrueuses : #3123.
  * - `coiffure` : une coiffure, non sexuée (#3113).
  * - `emplacement` : un point d'accroche d'accessoire.
  * - `piece` : une pièce d'habit (`categorie`) ; une pièce d'`accessoire` nomme son `emplacement`,
@@ -114,6 +114,11 @@ const doc = document(
                   ? `garde-robe : la pièce d’accessoire « ${e.id} » EXIGE son emplacement.`
                   : `garde-robe : la pièce « ${e.id} » n’est pas un accessoire — elle ne porte aucun emplacement.`,
             });
+        }
+        if (e.kind === 'tete') {
+          const race = e.race as { id: string } | undefined;
+          if (race !== undefined && e.id !== race.id)
+            ctx.addIssue({ code: 'custom', path: ['id'], message: `garde-robe : la tête « ${e.id} » doit s’appeler « ${race.id} », l’id de sa race.` });
         }
         if (e.kind === 'ensemble') {
           const habille = e.habille as RefTypee | undefined;
