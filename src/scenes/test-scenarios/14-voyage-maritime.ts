@@ -126,7 +126,8 @@ export const scenario: TestScenario = {
   icon: 'scenario/port',
   title: 'Voyage maritime',
   tests:
-    'Traversée en mer JOUABLE (MDG 13/15) : route MARITIME (milles) entre 2 ports, appareillage sur le navire ' +
+    // MDG 13 ; MDG 15
+    'Traversée en mer JOUABLE : route MARITIME (milles) entre 2 ports, appareillage sur le navire ' +
     'de campagne (cogue), journée = météo/vent + Tests d’équipage de Progression & d’Orientation (modales), phare ' +
     'à l’atterrage (Perception), entretien de coque le soir (part endommagée), haltes de nuit, puis ACCOSTAGE au ' +
     'Grand Port (écran Port : réparer/caréner/commerce). Équipage = les PJ, chacun à son rôle (Capitaine/Timonier/' +

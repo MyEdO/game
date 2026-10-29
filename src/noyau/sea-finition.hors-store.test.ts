@@ -218,7 +218,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     expect(dep!.brass).toBe(50 * PA_PER_CO);
     expect(dep!.rate).toBe(50); // seuil de découverte MDG (au lieu de 10, ch.23 l.170)
     expect(toBrass(bourseOf(get().party[0]))).toBe(before - 50 * PA_PER_CO);
-    expect(get().journal.join('\n')).toMatch(/Planque.*MDG 15 l\.292/);
+    expect(get().journal.join('\n')).toMatch(/Planque : 50 CO cachés sur la carte/);
   });
 
   it('Cartographie sans mise de Planque (stashGold absent) → aucun dépôt créé', async () => {

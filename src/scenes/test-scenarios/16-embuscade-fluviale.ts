@@ -68,7 +68,8 @@ export const scenario: TestScenario = {
   icon: 'scenario/naval',
   title: 'Embuscade fluviale',
   tests:
-    'Combat de bateau FLUVIAL (MSRC 7) distinct de la mer par ses DONNÉES : coques `barge-fluviale`/' +
+    // MSRC 7
+    'Combat de bateau FLUVIAL distinct de la mer par ses DONNÉES : coques `barge-fluviale`/' +
     '`barque-fluviale` portant `locationTable:navire-fluvial` + `criticalTable:river-criticals` → un Coup ' +
     'Critique tire la Localisation MSRC (Gréement/Rames/Gouvernail/Coque/Superstructure) et ses effets ' +
     '(États Dérive / Gouvernail brisé / Voie d’eau, Éclats +5, Test d’Initiative « sur le pont ») via le MÊME ' +
