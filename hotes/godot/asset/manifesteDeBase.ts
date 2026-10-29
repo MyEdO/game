@@ -3,7 +3,7 @@
  * emplacements, ses prises, ses shape keys, la table du gabarit, son porteur de référence, ses appuis et ses os à
  * position animée, validés contre le GLB livré (`lireGlb`, `glb.ts`).
  */
-import { estObjet } from '../../../src/hote/formes';
+import { estObjet } from '../../../src/hote/formes.ts';
 import { sha256 } from './empreinte.ts';
 import { lireGlb } from './glb.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';

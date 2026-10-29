@@ -1,4 +1,5 @@
 // Le contrat d'asset d'un personnage 3D modulaire (#2948) : lecture du GLB, validation du manifeste, import, Release.
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -18,7 +19,7 @@ import {
   DOSSIER_DES_MODELES, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   suivisHorsRelease, TAG, urlDAsset, type AssetAPublier, type Gh,
 } from './release.ts';
-import { fichiersDuModele } from './modeles';
+import { estBase, fichiersDuModele } from './modeles';
 
 /** Un GLB minimal : en-tête glTF 2 et chunk JSON portant `nodes` et `animations`. */
 function glb(noeuds: readonly string[], animations: readonly string[], options: { skinned?: readonly string[]; joints?: readonly string[] } = {}): Uint8Array {
@@ -270,9 +271,19 @@ afterEach(() => dossiers.splice(0).forEach((d) => rmSync(d, { recursive: true, f
 
 const EMPREINTE = sha256(GLB);
 
+/** `productionSchema3`, et pour une base le pack source que sa production déclare (`ecrireProduction`). */
+const productionDe = (dossier: string, manifeste: unknown, octets: Uint8Array): string => {
+  productionSchema3(dossier, manifeste, octets);
+  const chemin = join(dossier, MANIFESTE_DE_PRODUCTION);
+  if (estBase(manifeste)) writeFileSync(chemin, JSON.stringify({ ...JSON.parse(readFileSync(chemin, 'utf8')), packs_sources: { corps: { path: 'corps.gltf', sha256: sha256(octets) } } }));
+  return dossier;
+};
+/** Chaque fichier du dossier `d` et ses octets. */
+const photo = (d: string) => listerDossier(d).map((f) => [f, readFileSync(join(d, f)).toString('base64')]);
+
 describe('import et chargement au schéma 3', () => {
   const importer = (destination: string, manifeste: unknown, octets = GLB_D_ELEMENT, id = 'element', publier: ((assets: readonly AssetAPublier[]) => readonly string[]) | null = null) =>
-    importerPersonnage({ dossier: productionSchema3(temporaire(), manifeste, octets), id, destination, date: '2026-10-28', publier });
+    importerPersonnage({ dossier: productionDe(temporaire(), manifeste, octets), id, destination, date: '2026-10-28', publier });
   const avecBase = () => {
     const dossier = temporaire();
     deposerSchema3(dossier, 'corps-reference', baseSchema3(), GLB_DE_BASE);
@@ -310,7 +321,7 @@ describe('import et chargement au schéma 3', () => {
   });
   it('un élément dont la base déposée est hors Release en hérite : publication refusée, provenance marquée, fichiers non suivis, GLB du poste exigé', async () => {
     const destination = temporaire();
-    const base = productionSchema3(temporaire(), baseSchema3(), GLB_DE_BASE);
+    const base = productionDe(temporaire(), baseSchema3(), GLB_DE_BASE);
     const manifest = JSON.parse(readFileSync(join(base, MANIFESTE_DE_PRODUCTION), 'utf8'));
     writeFileSync(join(base, MANIFESTE_DE_PRODUCTION), JSON.stringify({ ...manifest, hors_release: 'essai sur le poste' }));
     expect(importerPersonnage({ dossier: base, id: 'humanoide', destination, date: '2026-10-29', publier: null }).ok).toBe(true);
@@ -362,6 +373,81 @@ describe('import et chargement au schéma 3', () => {
     if (code === 'cle-en-doublon') deposerSchema3(d, 'b', elementSchema3(), GLB_D_ELEMENT);
     if (code === 'base-en-doublon') deposerSchema3(d, 'b', baseSchema3(), GLB_DE_BASE);
     await expect(recupererModeles({ dossier: d, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(`[${code}]`);
+  });
+
+  /** Une base réexportée : le GLB `octets`, et son manifeste, celui de `baseSchema3(nom)` aux os de `os` renommés `root`. */
+  const reexport = (os = 'root', nom = 'humanoide') => {
+    const octets = ecrireGlb({ asset: { version: '2.0', generator: 'réexport' }, nodes: [{ name: os }], skins: [{ joints: [0] }], animations: [{ name: 'walk' }] }, null);
+    const manifeste = { ...JSON.parse(JSON.stringify(baseSchema3(nom)).split('"root"').join(JSON.stringify(os))), glb: { sha256: sha256(octets), octets: octets.byteLength } };
+    return { octets, dossier: productionDe(temporaire(), manifeste, octets) };
+  };
+  /** Une destination où la base `humanoide` est importée, puis l'élément `epee` qui la référence. */
+  const baseEtElement = () => {
+    const destination = temporaire();
+    expect([importer(destination, baseSchema3(), GLB_DE_BASE, 'humanoide').ok, importer(destination, elementSchema3(), GLB_D_ELEMENT, 'epee').ok]).toEqual([true, true]);
+    return destination;
+  };
+  const reimporter = (dossier: string, destination: string, remplacer?: boolean) =>
+    importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: null, remplacer });
+
+  it('remplace par --remplacer une base qui a un élément : l’élément reste, la provenance de base est la neuve ; sans, [id-deja-present]', async () => {
+    const destination = baseEtElement();
+    const { octets, dossier } = reexport();
+    const epee = photo(destination).filter(([f]) => f.startsWith('epee.'));
+    const sans = reimporter(dossier, destination);
+    expect(sans.ok ? sans : sans.refus).toContain('[id-deja-present] humanoide : --remplacer remplace le modèle importé');
+    const r = reimporter(dossier, destination, true);
+    expect(r.ok ? [r.provenance.model_sha256, r.retires] : r.refus).toEqual([sha256(octets), []]);
+    expect(JSON.parse(readFileSync(join(destination, 'humanoide.provenance.json'), 'utf8')).model_sha256).toBe(sha256(octets));
+    expect(photo(destination).filter(([f]) => f.startsWith('epee.'))).toEqual(epee);
+    const charges = await recupererModeles({ dossier: destination, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet });
+    expect(charges.map((m) => [m.id, m.empreinte])).toEqual([['epee', sha256(GLB_D_ELEMENT)], ['humanoide', sha256(octets)]]);
+  });
+  it.each([
+    ['dont l’os que l’élément porte disparaît', () => reexport('hanche'), /^\[remplacement-casse\] epee : \[/],
+    ['qui change le nom de la base', () => reexport('root', 'autre'), /^\[base-absente\] epee : humanoide$/],
+    ['qui passe hors Release sous un élément publié', () => {
+      const r = reexport();
+      const chemin = join(r.dossier, MANIFESTE_DE_PRODUCTION);
+      writeFileSync(chemin, JSON.stringify({ ...JSON.parse(readFileSync(chemin, 'utf8')), hors_release: 'essai sur le poste' }));
+      return r;
+    }, /^\[remplacement-casse\] epee : hors Release de la base « aucun », remplacé par « essai sur le poste »$/],
+  ])('refuse en bloc, destination inchangée à l’octet, une base réexportée %s', (_, nouvelle, motif) => {
+    const destination = baseEtElement();
+    const avant = photo(destination);
+    const r = reimporter(nouvelle().dossier, destination, true);
+    expect(r.ok ? r : r.refus.join('\n')).toMatch(motif);
+    expect(photo(destination)).toEqual(avant);
+  });
+  it('retire au remplacement le texte de licence que la provenance remplacée était seule à nommer', () => {
+    const destination = temporaire();
+    expect(importer(destination, baseSchema3(), GLB_DE_BASE, 'humanoide').ok).toBe(true);
+    const { dossier } = reexport();
+    const texte = 'Pack réexporté\nLicense: CC0\n';
+    writeFileSync(join(dossier, LICENCE_DE_PRODUCTION), texte);
+    const r = reimporter(dossier, destination, true);
+    expect(r.ok ? r.retires : r.refus).toEqual([join(destination, nomCC0('Pack\nLicense: CC0\n'))]);
+    expect(listerDossier(destination).filter((f) => f.startsWith('LICENSE'))).toEqual([nomCC0(texte)]);
+  });
+  it.each<[string, (m: Record<string, unknown>) => void, string]>([
+    ['sans packs_sources', (m) => { delete m.packs_sources; }, '[packs-sources-absents] manifest.json : packs_sources, au moins un pack attendu pour une base'],
+    ['dont un pack n’a pas d’empreinte', (m) => { m.packs_sources = { corps: { path: 'corps.gltf' } }; }, '[pack-source-mal-forme] corps : path et sha256, chaînes attendues'],
+    ['dont packs_sources n’est pas un objet', (m) => { m.packs_sources = []; }, '[pack-source-mal-forme] packs_sources : objet attendu'],
+  ])('refuse une base %s', (_, muter, refus) => {
+    const dossier = productionDe(temporaire(), baseSchema3(), GLB_DE_BASE);
+    const manifest = JSON.parse(readFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), 'utf8'));
+    muter(manifest);
+    writeFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), JSON.stringify(manifest));
+    const destination = join(temporaire(), 'modeles');
+    expect(importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: null })).toEqual({ ok: false, refus: [refus] });
+    expect(existsSync(destination)).toBe(false);
+  });
+});
+
+describe('les modules que node charge sans Vite', () => {
+  it('résolvent chacun leurs imports : manifeste.mjs rend son usage', () => {
+    const r = spawnSync(process.execPath, ['scripts/personnage-3d/base/manifeste.mjs'], { encoding: 'utf8' });
+    expect([r.status, `${r.stdout}${r.stderr}`.split('\n')[0]]).toEqual([2, expect.stringMatching(/^usage : node scripts\/personnage-3d\/base\/manifeste\.mjs /)]);
   });
 });
 
@@ -472,7 +558,7 @@ describe('importerPersonnage', () => {
       delete (m.components.corps as { asset?: unknown }).asset;
     }), /^\[licence-absente\] /],
     ['une production schéma 3 sans composant licencié ni texte de licence', () => {
-      const d = productionSchema3(temporaire(), baseSchema3(), GLB_DE_BASE);
+      const d = productionDe(temporaire(), baseSchema3(), GLB_DE_BASE);
       rmSync(join(d, LICENCE_DE_PRODUCTION));
       return d;
     }, /^\[licence-absente\] /],

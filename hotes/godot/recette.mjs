@@ -13,10 +13,9 @@
 //   `modeles/` ; la base choisie, ses points sans élément ; `--element` importé puis « Recharger » : l'élément listé aux
 //   seuls points dont l'os porte sa lame (`osDesRigides` du listage), les autres disant « aucun élément » ; les aides,
 //   l'élément monté puis démonté (« vide ») ; un clip joué, mis en pause, avancé et reculé d'une image (au clic puis à
-//   l'Entrée), sa vitesse réglée ; puis les fichiers de la base et de l'élément qui la référence supprimés (l'import refuse un id
-//   présent, et un élément dont la base manque), `--reexport` importé à la place de la base puis l'élément réimporté,
-//   « Recharger » sans relancer la page : l'empreinte publiée devient celle du manifeste réimporté, l'état
-//   (clip, instant, pause, vitesse, montés, aides) est gardé.
+//   l'Entrée), sa vitesse réglée ; puis `--reexport` importé à la place de la base (`importer.mjs --remplacer`), l'élément
+//   qui la référence revalidé contre elle et laissé en place, « Recharger » sans relancer la page : l'empreinte publiée
+//   devient celle du manifeste réimporté, l'état (clip, instant, pause, vitesse, montés, aides) est gardé.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
@@ -25,7 +24,7 @@
 //     --base <production> --element <production> --reexport <production> [--clip Sword_Attack]
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
@@ -183,9 +182,10 @@ const atelier = async () => (await ecran()).atelier
 const attendreLAtelier = (condition, timeoutMs = 60000) =>
   waitFor(session, `(() => { const a = globalThis.wfrpEcran?.atelier, b = globalThis.wfrpEcran?.boutons; return !!a && !!(${condition}) })()`, { timeoutMs })
 
-/** La production `dossier` importée sous l'id `id` dans `--modeles`, sans rien publier ; le refus de l'import lève, collé. */
-function importer(dossier, id) {
-  const r = spawnSync(process.execPath, [IMPORTER, dossier, id, '--destination', o.modeles, '--sans-publier'], { encoding: 'utf8' })
+/** La production `dossier` importée sous l'id `id` dans `--modeles`, sans rien publier, avec les `options` d'`importer.mjs` ;
+ *  le refus de l'import lève, collé. */
+function importer(dossier, id, options = []) {
+  const r = spawnSync(process.execPath, [IMPORTER, dossier, id, '--destination', o.modeles, '--sans-publier', ...options], { encoding: 'utf8' })
   if (r.status !== 0) throw new Error(`import de ${dossier} sous ${id} refusé (code ${r.status}) :\n${r.stderr}${r.stdout}`)
   noter(`import de ${id} : ${r.stdout.split('\n')[1].replaceAll(o.modeles, '')}`)
 }
@@ -301,10 +301,8 @@ async function parcoursAtelier() {
   noter(`×0.5, lecture puis pause : ${avant.instant} s`)
   await capturer('3086-a1-3-clip-en-pause')
 
-  for (const id of [base, elementId]) for (const fichier of [`${id}.glb`, `${id}.manifeste.json`, `${id}.provenance.json`]) rmSync(join(o.modeles, fichier))
-  noter(`fichiers de « ${base} » et de « ${elementId} », qui la référence, supprimés : l’import refuse un id déjà présent ([id-deja-present]) et un élément dont la base manque ([base-absente])`)
-  importer(o.reexport, base)
-  importer(o.element, elementId)
+  importer(o.reexport, base, ['--remplacer'])
+  noter(`« ${base} » remplacée par sa réexportation (--remplacer) : « ${elementId} », qui la référence, revalidé contre elle et laissé en place`)
   await evaluate(session, '(globalThis.recetteSansRelance = true)')
   await cliquerAmene('Recharger', -1)
   await attendreLAtelier(`a.empreinte === ${JSON.stringify(p1.model_sha256)} && a.montes.main === ${JSON.stringify(elementId)} && a.clip !== null`, 120000)
