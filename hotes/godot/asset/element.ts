@@ -8,7 +8,7 @@ import { estObjet } from '../../../src/hote/formes';
 import { SLOTS } from '../../../src/noyau/index.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 import { sha256 } from './empreinte.ts';
-import { lireGlb } from './glb.ts';
+import type { ContenuGlb } from './glb.ts';
 import type { ManifesteDeBase } from './manifesteDeBase.ts';
 
 export const VERSION_DU_SCHEMA_D_ELEMENT = 3;
@@ -121,8 +121,8 @@ const estCategorie = (v: unknown): v is CategorieDElement => typeof v === 'strin
 const estSlot = (v: unknown): v is Slot => (SLOTS as readonly unknown[]).includes(v);
 const liste = (l: readonly string[]) => l.map((e) => `\`${e}\``).join(', ');
 
-/** Le manifeste `brut` réduit au schéma 3 et validé contre la base qu'il nomme. */
-export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint8Array): VerdictDElement {
+/** Le manifeste `brut` réduit au schéma 3 et validé contre la base qu'il nomme et le GLB `octets`, lu en `glb` (`lireGlb`). */
+export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint8Array, glb: ContenuGlb): VerdictDElement {
   const ecarts: EcartDElement[] = [];
   const refus = (code: CodeDEcartDElement, ou: string, detail: string) => ecarts.push({ code, ou, detail });
   if (!estObjet(brut)) return { ok: false, ecarts: [{ code: 'forme', ou: '', detail: 'le manifeste n’est pas un objet' }] };
@@ -158,11 +158,10 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
     if (typeof mode !== 'string') refus('forme', 'liaison', '`{ mode }` seul attendu');
     else if (!regle.liaisons.includes(mode as ModeDeLiaison)) refus('liaison-hors-categorie', 'liaison.mode', `${mode} : ${liste(regle.liaisons)} attendue pour un élément \`${categorie}\``);
     else if (mode === 'rigide') {
-      const glb = lireGlb(octets);
       if (!glb.rigides.size) refus('rigide-sans-mesh', 'liaison.mode', 'le GLB ne porte aucun mesh rigide');
       for (const mesh of glb.rigides) {
         const os = glb.parentDesRigides.get(mesh);
-        if (os === undefined && !regle.racine) refus('rigide-a-la-racine', 'liaison.mode', `${mesh} ne pend à aucun os : un élément \`${categorie}\` ne reste pas à la racine de la scène`);
+        if (os === undefined && !regle.racine) refus('rigide-a-la-racine', 'liaison.mode', `${mesh} ne pend directement à aucune articulation d’un skin : un élément \`${categorie}\` ne reste pas à la racine de la scène`);
         else if (os !== undefined && !base.os.includes(os)) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os}, qui n’est pas un os de la base \`${base.base}\``);
       }
     }

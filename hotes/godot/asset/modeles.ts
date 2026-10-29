@@ -68,8 +68,7 @@ export function validerModele(brut: unknown, octets: Uint8Array, bases: Readonly
     if (!base) return { ok: false, refus: [`[base-absente] ${String(brut.base)}`] };
     const vBase = validerManifesteDeBase(base.brut, base.octets);
     if (!vBase.ok) return { ok: false, refus: vBase.ecarts.map(e => `[${e.code}] base ${e.ou} : ${e.detail}`) };
-    lireGlb(octets);
-    const v = validerElement(brut, vBase.manifeste, octets);
+    const v = validerElement(brut, vBase.manifeste, octets, lireGlb(octets));
     return v.ok ? v : { ok: false, refus: v.ecarts.map(e => `[${e.code}] ${e.ou} : ${e.detail}`) };
   } catch (e) {
     return { ok: false, refus: [`[glb-illisible] ${e instanceof Error ? e.message : String(e)}`] };

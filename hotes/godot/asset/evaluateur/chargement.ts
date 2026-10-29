@@ -18,6 +18,8 @@ export interface SceneChargee {
   readonly clips: readonly AnimationClip[];
   /** Par nom de nœud, ses `extras` glTF (`userData`), pour les nœuds qui en portent. */
   readonly userData: ReadonlyMap<string, Readonly<Record<string, unknown>>>;
+  /** Les objets qui portent un nœud glTF (`GLTFParser.associations`) : un `Mesh`, ou le `Group` des primitives d'un mesh. */
+  readonly noeuds: ReadonlySet<Object3D>;
 }
 
 const LISTES_D_IMAGE = ['images', 'textures', 'samplers'];
@@ -51,5 +53,6 @@ export async function chargerScene(octets: Uint8Array): Promise<SceneChargee> {
     if (Object.keys(n.userData).length) userData.set(n.name, n.userData);
   });
   const skinnes = meshes.filter((m): m is SkinnedMesh => (m as SkinnedMesh).isSkinnedMesh === true);
-  return { scene: gltf.scene, meshes, skinnes, squelette: skinnes[0]?.skeleton ?? null, clips: gltf.animations, userData };
+  const noeuds = new Set([...gltf.parser.associations].flatMap(([o, r]) => (r.nodes === undefined ? [] : [o as Object3D])));
+  return { scene: gltf.scene, meshes, skinnes, squelette: skinnes[0]?.skeleton ?? null, clips: gltf.animations, userData, noeuds };
 }

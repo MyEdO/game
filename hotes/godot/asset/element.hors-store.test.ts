@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, glbDElement } from './schema3.testkit.ts';
 import { CATEGORIES_D_ELEMENT, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
 import { sha256 } from './empreinte.ts';
+import { lireGlb } from './glb.ts';
 
 const BASE: BaseDUnElement = {
   base: 'humanoide',
@@ -41,15 +42,18 @@ const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
 };
 
 const manifeste = (categorie: CategorieDElement, surcharge: Record<string, unknown> = {}, octets = OCTETS) => ({ schema: 3, base: 'humanoide', ...VALIDES[categorie], glb: empreinte(octets), ...surcharge });
+const verdict = (brut: unknown, octets = OCTETS) => validerElement(brut, BASE, octets, lireGlb(octets));
+/** Le manifeste de `categorie` pour le GLB `octets`, suivi de ces octets. */
+const surGlb = (categorie: CategorieDElement, surcharge: Record<string, unknown>, octets: Uint8Array) => [manifeste(categorie, surcharge, octets), octets] as const;
 const codes = (brut: unknown, octets = OCTETS) => {
-  const v = validerElement(brut, BASE, octets);
+  const v = verdict(brut, octets);
   return v.ok ? [] : v.ecarts.map((e) => e.code);
 };
 
 describe('validerElement : un manifeste valide par catégorie', () => {
   it('la table couvre toutes les catégories', () => expect(Object.keys(VALIDES).sort()).toEqual([...CATEGORIES_D_ELEMENT].sort()));
   it.each(CATEGORIES_D_ELEMENT)('%s', (categorie) => {
-    expect(validerElement(manifeste(categorie), BASE, OCTETS)).toEqual({ ok: true, manifeste: manifeste(categorie) });
+    expect(verdict(manifeste(categorie))).toEqual({ ok: true, manifeste: manifeste(categorie) });
   });
 });
 
@@ -84,10 +88,10 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['surface-hors-categorie', 'teinte sur un vêtement', manifeste('vetement', { surfaces: TEINTE })],
   ['surface-hors-categorie', 'palette sur un rigide', manifeste('rigide', { surfaces: PALETTE })],
   ['palette-inconnue', 'clé de palette inconnue', manifeste('trait', { surfaces: [{ nom: 'peau', palette: 'or' }] })],
-  ['rigide-sans-mesh', 'rigide sans mesh', manifeste('rigide', {}, GLB_DE_BASE), GLB_DE_BASE],
-  ['rigide-sur-os-absent', 'rigide pendu à un os inconnu de la base', manifeste('rigide', {}, glbDElement('main_gauche')), glbDElement('main_gauche')],
-  ['rigide-a-la-racine', 'rigide à la racine', manifeste('rigide', {}, glbDElement(null)), glbDElement(null)],
-  ['rigide-a-la-racine', 'accessoire rigide à la racine', manifeste('accessoire', { liaison: { mode: 'rigide' } }, glbDElement(null)), glbDElement(null)],
+  ['rigide-sans-mesh', 'rigide sans mesh', ...surGlb('rigide', {}, GLB_DE_BASE)],
+  ['rigide-sur-os-absent', 'rigide pendu à un os inconnu de la base', ...surGlb('rigide', {}, glbDElement('main_gauche'))],
+  ['rigide-a-la-racine', 'rigide à la racine', ...surGlb('rigide', {}, glbDElement(null))],
+  ['rigide-a-la-racine', 'accessoire rigide à la racine', ...surGlb('accessoire', { liaison: { mode: 'rigide' } }, glbDElement(null))],
 ];
 
 describe('validerElement : chaque refus nommé', () => {
@@ -105,14 +109,17 @@ describe('validerElement : chaque refus nommé', () => {
 
 describe('validerElement : un mesh rigide se monte sous un os de la base', () => {
   it('un rigide pendu à un os inconnu de la base est refusé, le mesh et l’os nommés', () => {
-    const octets = glbDElement('main_gauche');
-    expect(validerElement(manifeste('rigide', {}, octets), BASE, octets)).toEqual({
+    expect(verdict(...surGlb('rigide', {}, glbDElement('main_gauche')))).toEqual({
       ok: false, ecarts: [{ code: 'rigide-sur-os-absent', ou: 'liaison.mode', detail: 'lame pend à main_gauche, qui n’est pas un os de la base `humanoide`' }],
     });
   });
+  it('un rigide à la racine est refusé, le mesh nommé', () => {
+    expect(verdict(...surGlb('rigide', {}, glbDElement(null)))).toEqual({
+      ok: false, ecarts: [{ code: 'rigide-a-la-racine', ou: 'liaison.mode', detail: 'lame ne pend directement à aucune articulation d’un skin : un élément `rigide` ne reste pas à la racine de la scène' }],
+    });
+  });
   it.each(['decor', 'vehicule'] as const)('un `%s` garde son mesh à la racine', (categorie) => {
-    const octets = glbDElement(null);
-    expect(validerElement(manifeste(categorie, {}, octets), BASE, octets).ok).toBe(true);
+    expect(verdict(...surGlb(categorie, {}, glbDElement(null))).ok).toBe(true);
   });
 });
 
