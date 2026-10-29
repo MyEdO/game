@@ -281,36 +281,6 @@
     "kind": "tete"
   },
   {
-    "id": "chevelure-humain",
-    "type": "garde-robe",
-    "label": "Chevelure humaine",
-    "kind": "coiffure"
-  },
-  {
-    "id": "chevelure-nain",
-    "type": "garde-robe",
-    "label": "Chevelure naine",
-    "kind": "coiffure"
-  },
-  {
-    "id": "chevelure-halfling",
-    "type": "garde-robe",
-    "label": "Chevelure halfling",
-    "kind": "coiffure"
-  },
-  {
-    "id": "chevelure-haut-elfe",
-    "type": "garde-robe",
-    "label": "Chevelure de haut-elfe",
-    "kind": "coiffure"
-  },
-  {
-    "id": "chevelure-elfe-sylvain",
-    "type": "garde-robe",
-    "label": "Chevelure d’elfe sylvain",
-    "kind": "coiffure"
-  },
-  {
     "id": "carre-court-bob-a-la-machoire",
     "type": "garde-robe",
     "label": "Carré court (bob) à la mâchoire",
