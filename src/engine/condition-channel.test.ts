@@ -24,6 +24,7 @@ import { contractDisease, tickDisease } from './disease';
 import { MINUTES_PER_DAY } from './clock';
 import type { RNG } from './dice';
 import { desDuTest, desEnSuite } from './dice.testkit';
+import { blessuresDeBase } from './characteristics';
 
 const seq = (values: number[]): RNG => desEnSuite(values);
 
@@ -98,7 +99,7 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
   // Un État VERROUILLÉ (LDB 18) ne part pas : l'op ne peut ni l'annoncer au journal ni notifier une
   // perte qui n'a pas eu lieu — le canal suit le RETRAIT EFFECTIF, mesuré aux pions.
   it("op 'removeCondition' sur un État VERROUILLÉ : ni ligne, ni perte", () => {
-    const c = hero({ wounds: { current: 0, max: 12 } });
+    const c = hero({ wounds: blessuresDeBase(12, 0) });
     addCondition(c, COND.aTerre, 1); // verrou de TYPE : 0 Blessure (LDB 18 l.15)
     const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.aTerre }], { rng: desDuTest, onCondition: emit }));
     expect(hasCondition(c, COND.aTerre), 'la sonde ne mesurerait rien si le verrou ne tenait pas').toBe(true);

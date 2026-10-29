@@ -15,6 +15,7 @@ import { resolveRecoverTest } from '../../noyau/combat/recover';
 import { rollBatchParticipant } from '../../noyau/cascade';
 import { EMPTY_FLOW, type FlowTest } from '../../engine/flowCore';
 import type { Combatant, Weapon } from '../../engine/types';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 /**
  * DÉPARTAGE À DR ÉGAL du canal `triggeredTest` (#1153 L3) — `LDB 12 l.160` : « Si les deux participants
@@ -137,8 +138,8 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
     const wielder = enemies[0];
     const prey = enemies[1];
     enemies.slice(2).forEach((e) => (e.dead = true));
-    H.wounds.max = 200; H.wounds.current = 200;
-    prey.wounds.max = 200; prey.wounds.current = 200;
+    H.wounds = blessuresDeBase(200);
+    prey.wounds = blessuresDeBase(200);
     useGame.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, wielder, prey };
   }

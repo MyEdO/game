@@ -9,6 +9,7 @@ import { findConditionById, type SpellData } from '../data';
 import { etatIdsConnus } from '../engine/conditions';
 import { t } from '../i18n';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
@@ -39,11 +40,11 @@ describe('opValue — DÉGÂTS (wounds), espérance mitigée correcte', () => {
 
 describe('opValue — SOIN plafonné aux PB manquants', () => {
   it('heal 6 sur un allié qui n’a perdu que 3 PB → 3 (jamais du soin gâché)', () => {
-    const ally = combatant({ wounds: { current: 9, max: 12, base: 12 } });
+    const ally = combatant({ wounds: blessuresDeBase(12, 9) });
     expect(opValue(op({ op: 'heal', amount: 6 }), combatant(), ally, ctxOf())).toBe(3);
   });
   it('heal 6 sur un allié à 2/12 → 6 (le soin entier est récupérable)', () => {
-    const ally = combatant({ wounds: { current: 2, max: 12, base: 12 } });
+    const ally = combatant({ wounds: blessuresDeBase(12, 2) });
     expect(opValue(op({ op: 'heal', amount: 6 }), combatant(), ally, ctxOf())).toBe(6);
   });
 });

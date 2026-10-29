@@ -4,6 +4,8 @@ import { emptyScene } from './monde/scene';
 import { itemFromTrappingById } from '../engine/items';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { BattleState } from './etat';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -20,19 +22,19 @@ const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 40, endu
 const mkPoste = (crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById('belier-ade2')!, crewIds });
 
 const mkHull = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
-  ({ id: 'hull', label: 'Bélier', kind: 'enemy', pos, conditions: [], weapons: [],
-    inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste] }) as unknown as Combatant;
+  combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'enemy', pos, conditions: [], weapons: [],
+    inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] });
 
 const mkChef = (id: string, poste: ShipPoste, pos = { x: 5, y: 6 }): Combatant =>
-  ({ id, label: id, kind: 'hero', characteristics: CHARS, wounds: { current: 12, max: 12 }, advantage: 0,
+  combattantDeTest({ id, label: id, kind: 'hero', characteristics: CHARS, wounds: blessuresDeBase(12), advantage: 0,
     conditions: [], skills: [], talents: [], weapons: [],
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos, loaded: true,
-    mannedPoste: poste }) as unknown as Combatant;
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos,
+    mannedPoste: poste });
 
 const mkServant = (id: string, pos: { x: number; y: number }): Combatant =>
-  ({ id, label: id, kind: 'npc', characteristics: CHARS, wounds: { current: 8, max: 8 }, advantage: 0,
+  combattantDeTest({ id, label: id, kind: 'npc', characteristics: CHARS, wounds: blessuresDeBase(8), advantage: 0,
     conditions: [], skills: [], talents: [], weapons: [],
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos }) as unknown as Combatant;
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos });
 
 function pushSetup() {
   const poste = mkPoste(['chef', 's1', 's2']); // 3 servants ≥ moitié de l'Équipe requise (6/2 = 3)

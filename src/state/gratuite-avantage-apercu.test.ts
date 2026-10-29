@@ -9,6 +9,7 @@ import { hoverTargeting } from '../noyau/targeting';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const g = () => useGame.getState();
 
@@ -26,7 +27,7 @@ function engage(): { H: Combatant; E: Combatant } {
   const E = enemies[0];
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 11, y: 10 };
-  E.wounds = { current: 300, max: 300, base: 300 };
+  E.wounds = blessuresDeBase(300);
   H.size = 'enorme';
   H.advantage = 3;
   useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed: 0, acted: false } });

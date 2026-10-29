@@ -8,6 +8,7 @@ import { ev } from '../combatLog';
 import { addCondition, hasCondition, loseWounds, stacks, COND } from '../../engine/conditions';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -37,7 +38,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
     enemies.slice(1).forEach((e) => (e.dead = true)); // une seule source vivante → RNG déterministe
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 20, y: 20 };
-    E.wounds = { current: 20, max: 20 }; // marge : les dégâts d'Hémorragie ne le tuent pas avant le jet
+    E.wounds = blessuresDeBase(20); // marge : les dégâts d'Hémorragie ne le tuent pas avant le jet
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, E };
   }
@@ -72,7 +73,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
   it('porteur CONSCIENT qui garde des PB après le saignement : aucun jet, aucune mort (jet ≤ 10×pions ignoré)', () => {
     const { E } = setup();
     seedBattleRng(7);
-    E.wounds = { current: 5, max: 20 };
+    E.wounds = blessuresDeBase(20, 5);
     addCondition(E, COND.hemorragique, 3);
     endRound();
     const e = banc.getState().battle!.combatants.find((x) => x.id === E.id)!;
@@ -83,7 +84,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
   it('porteur de 2 Hémorragique amené à 0 PAR LE SAIGNEMENT : Inconscient, puis jet de mort le même Round', () => {
     const { E } = setup();
     seedBattleRng(7); // 1ᵉʳ d100 ≤ 20 → mort
-    E.wounds = { current: 2, max: 20 };
+    E.wounds = blessuresDeBase(20, 2);
     addCondition(E, COND.hemorragique, 2);
     endRound();
     const e = banc.getState().battle!.combatants.find((x) => x.id === E.id)!;

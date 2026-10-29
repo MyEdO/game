@@ -4,6 +4,7 @@ import type { Combatant } from '../engine/types';
 import { applyOps } from '../engine/ops';
 import { findConditionById } from '../data';
 import { desDuTest } from '../engine/dice.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -159,7 +160,7 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
 
   it('Filet BARBELÉ (Zoo Impérial p.29) : Dégâts ignorant l’armure à CHAQUE tentative — RÉUSSIE', () => {
     // Endurance quasi nulle (BE 0) : isole le seul comportement testé (ignore l'ARMURE, PAS l'Endurance).
-    const h = hero({ id: 'h', wounds: { current: 12, max: 12 },
+    const h = hero({ id: 'h', wounds: blessuresDeBase(12),
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 80, endurance: 1, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as any,
       armour: { tete: 5, brasG: 5, brasD: 5, corps: 5, jambeG: 5, jambeD: 5 },
       conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 }] });
@@ -174,7 +175,7 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
   });
 
   it('Filet BARBELÉ (Zoo Impérial p.29) : Dégâts ignorant l’armure à CHAQUE tentative — RATÉE', () => {
-    const h = hero({ id: 'h', wounds: { current: 12, max: 12 },
+    const h = hero({ id: 'h', wounds: blessuresDeBase(12),
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 80, endurance: 1, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as any,
       armour: { tete: 5, brasG: 5, brasD: 5, corps: 5, jambeG: 5, jambeD: 5 },
       conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 }] });

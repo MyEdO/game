@@ -17,6 +17,7 @@ import { useGame } from '../state/store';
 import { elireBinding } from '../state/clavier/keybindings';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { ResilienceButton } from './ResilienceButton';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 /** L'élection du clavier (`elireBinding`), la même que `useGameKeyboard.ts::onKey`. */
 const dispatchBinding = (code: string, s: ReturnType<typeof useGame.getState>, controlFocused: boolean) =>
@@ -26,7 +27,7 @@ const dispatchBinding = (code: string, s: ReturnType<typeof useGame.getState>, c
  *  `push-keyboard-commit.test.ts` : c'est le contexte où la course avait lieu. */
 const combatState = () => ({
   ...useGame.getState(), mode: 'battle',
-  battle: { over: null, action: null, order: ['chef'], turn: 0, combatants: [{ id: 'chef', kind: 'hero' }], movementUsed: 0 },
+  battle: { over: null, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'hero' })], movementUsed: 0 },
   combatCursor: null, net: { mode: 'local', mySeat: 0 }, dialogue: null,
 }) as never;
 

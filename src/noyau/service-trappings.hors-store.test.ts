@@ -11,6 +11,8 @@ import { dansLaSousListe } from '../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
 import { schema as merchantsSchema } from '../data/schemas/defs/merchants';
 import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -18,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const horsDeLaVue = () => trappings.filter((t) => !dansLaSousListe(INSTANCIABLE_PAR_ID, t)).map((t) => t.id);
 
 const hero = (): Combatant =>
-  ({ id: 'h', name: 'H', items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} }) as unknown as Combatant;
+  combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
 
 const sceneWithTaverniere = () => {
   const sc = emptyScene('scene-test', 4, 4);

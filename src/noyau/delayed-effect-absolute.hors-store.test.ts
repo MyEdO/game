@@ -5,6 +5,7 @@ import { flowFromEffects } from './monde/flow';
 import { createHero } from '../engine/character';
 import { scheduleAt, dayIndex, toDate, fromDate, MINUTES_PER_DAY, minutesUntilNext } from '../engine/clock';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -45,7 +46,7 @@ describe('delayedEffect — échéance en JOURS via le store réel', () => {
 
   function lonePartyAt(wounds: number) {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-    h.wounds = { current: wounds, max: wounds };
+    h.wounds = blessuresDeBase(wounds);
     banc.setState({ party: [h] });
     return h;
   }

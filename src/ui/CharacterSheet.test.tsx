@@ -14,6 +14,7 @@ import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { refusDeSoins } from '../noyau/medicFlow';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /** Héros « Agitateur » niveau 1 (« Pamphlétaire ») avec 1000 PX, Charme (in-carrière) + Esquive (hors). */
 const hero = (): Combatant =>
@@ -293,7 +294,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
 
     // Soin (mutation directe du party courant) : la fiche relit `useGame`, la jauge doit suivre.
     act(() => {
-      useGame.setState((s) => ({ party: s.party.map((c) => (c.id === blesse.id ? { ...c, wounds: { current: 9, max: 12 } } : c)) }));
+      useGame.setState((s) => ({ party: s.party.map((c) => (c.id === blesse.id ? { ...c, wounds: blessuresDeBase(12, 9) } : c)) }));
     });
     vie = container.querySelector('.sheet-aside .life-bar');
     expect(vie?.querySelector('.life-bar__value')?.textContent).toBe('9/12');

@@ -17,6 +17,7 @@ import { setRule } from '../engine/policy';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import { draineCascade } from './cascade.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -283,7 +284,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
 
 describe('nourriture en voyage (LDB 18 l.337-343)', () => {
   it('sans rations, un long voyage affame le groupe (compteur de faim) et bloque la récup nocturne', () => {
-    setup(map({ km: 72 }), [hero({ items: [], wounds: { current: 5, max: 12 } })]); // 3 jours pleins à M4
+    setup(map({ km: 72 }), [hero({ items: [], wounds: blessuresDeBase(12, 5) })]); // 3 jours pleins à M4
     banc.getState().startTravel('r1', 'pied');
     // Chaque nuit : halte (modale de Repos) → dormir (cascade) → reprendre la route au matin.
     for (let n = 0; n < 6 && banc.getState().pendingRest; n++) {

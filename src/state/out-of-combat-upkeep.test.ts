@@ -5,6 +5,7 @@ import { applyStopBleed } from '../engine/healing';
 import type { Combatant } from '../engine/types';
 import { deFixe } from '../engine/dice.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /**
  * COMPTEUR de TOURS DE BOUCLE : l'entretien est SILENCIEUX pour un porteur sans péril (ni journal, ni
@@ -29,7 +30,7 @@ const fixed = deFixe;
 function mk(opts: { current?: number; conditions?: { id: string; value: number }[]; fate?: number; advantage?: number }): Combatant {
   return combattantDeTest({
     label: 'X', kind: 'hero',
-    wounds: { current: opts.current ?? 10, max: 10 },
+    wounds: blessuresDeBase(10, opts.current ?? 10),
     advantage: opts.advantage ?? 0,
     conditions: opts.conditions ?? [],
     skills: [], // requis par le Test de Résistance d'Empoisonné, désormais résolu INLINE hors combat (RAW l.66-72)

@@ -13,13 +13,14 @@ import type { BattleState } from '../noyau/etat';
 import { ev, type CombatEvent } from '../noyau/combatLog';
 import { REFUS_MS } from '../noyau/refusVisible';
 import { CombatBanner } from './CombatBanner';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 const com = (id: string, label: string, kind: 'hero' | 'enemy') =>
-  ({ id, name: label, label, kind, conditions: [], traumas: [], engagedWith: [], advantage: 0 });
+  combattantDeTest({ id, label, kind, traumas: [], engagedWith: [] });
 
 const GUNNAR = com('gunnar', 'Gunnar', 'hero');
 const RAT = com('rat', 'Rat géant', 'enemy');

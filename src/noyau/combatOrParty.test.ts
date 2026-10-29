@@ -6,8 +6,9 @@ import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from './monde/spawn';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
-const c = (id: string): Combatant => ({ id, name: id } as unknown as Combatant);
+const c = (id: string): Combatant => combattantDeTest({ id, label: id });
 const state = (over: Partial<Jeu>): Jeu => ({ party: [], battle: null, ...over } as unknown as Jeu);
 
 /** Arène d'herbe minimale (combatantClickActs dérive l'affordance d'attaque → besoin d'une scène). */
@@ -79,7 +80,7 @@ describe('combatOrParty — base des actions joueur combat ⇄ hors combat', () 
 
     it('COQUE ennemie (#240) : le verdict du clic ne dépend pas de la fiche ouverte', () => {
       combat();
-      const hull = { id: 'hull1', name: 'Le Serpent de Sel', kind: 'npc', bodyShape: 'vehicule' } as unknown as Combatant;
+      const hull = combattantDeTest({ id: 'hull1', label: 'Le Serpent de Sel', kind: 'npc', bodyShape: 'vehicule' });
       useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [...useGame.getState().battle!.combatants, hull] } });
       const avant = combatantClickActs(useGame.getState, hull);
       useGame.setState({ inspectId: hull.id });

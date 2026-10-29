@@ -5,6 +5,7 @@ import { fearSourceFor } from '../engine/psychology';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -73,7 +74,7 @@ describe('Psychologie IA (Peur/Terreur au début du tour)', () => {
     E.traits = [...(E.traits ?? []), { id: 'belliqueux' }];
     E.advantage = 2;
     const rival = banc.getState().battle!.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
-    rival.dead = false; rival.wounds = { current: 10, max: 10 }; rival.advantage = 0; rival.pos = { x: 12, y: 10 };
+    rival.dead = false; rival.wounds = blessuresDeBase(10); rival.advantage = 0; rival.pos = { x: 12, y: 10 };
     E.engagedWith = [rival.id]; rival.engagedWith = [E.id]; // camarades qui en viennent aux mains
     banc.setState({ battle: { ...banc.getState().battle! } });
     resolvePsychAI(banc.getState, banc.setState, E);

@@ -34,6 +34,7 @@ import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { tacheSuivante } from './focus.testkit';
 import { cleDeFixture } from '../noyau/noyau.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -512,7 +513,7 @@ describe('conversation PNJ — une surface de la pile qui suspend le jeu', () =>
     for (const [code, key] of [['KeyC', 'c'], ['KeyF', 'f'], ['KeyQ', 'q'], ['KeyE', 'e'], ['KeyV', 'v'], ['ArrowUp', 'ArrowUp'], ['ArrowLeft', 'ArrowLeft']]) touche(code, key);
     expect(pris(), 'aucun raccourci du registre n’est parti').toEqual([]);
     expect(useGame.getState().viewMode, 'la vue n’a pas basculé').toBe(s0.viewMode);
-    act(() => useGame.setState({ mode: 'battle', inspectId: null, hovered: 'h1', battle: { over: null, order: ['h1'], turn: 0, combatants: [{ id: 'h1', kind: 'hero' }] } as never }));
+    act(() => useGame.setState({ mode: 'battle', inspectId: null, hovered: 'h1', battle: { over: null, order: ['h1'], turn: 0, combatants: [combattantDeTest({ id: 'h1', kind: 'hero' })] } as never }));
     expect(KEYBINDINGS.find((k) => k.id === 'inspecter')!.when(useGame.getState()), 'hors pile, I partirait en combat').toBe(true);
     touche('KeyI', 'i');
     expect(pris(), 'en plein combat, I se tait aussi').toEqual([]);

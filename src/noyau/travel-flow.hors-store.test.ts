@@ -31,6 +31,7 @@ import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engi
 import { lignesDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
 import { ligneAllureForcee } from '../engine/vehicle';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -238,7 +239,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
 
   it('Péripétie seed 3 : « Voyage reposant », soigne toutes les Blessures (routé par applyHealWounds, #473)', () => {
     seedBattleRng(3);
-    const h = hero({ wounds: { current: 5, max: 12 } });
+    const h = hero({ wounds: blessuresDeBase(12, 5) });
     setup(map({ km: 12, perilDie: 8 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -250,7 +251,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
 
   it('Péripétie seed 3 : « Voyage reposant », munition logée plafonne le soin (LDB 62 l.250)', () => {
     seedBattleRng(3);
-    const h = hero({ wounds: { current: 5, max: 12 }, conditions: [{ id: 'munition-logee', value: 1 }] });
+    const h = hero({ wounds: blessuresDeBase(12, 5), conditions: [{ id: 'munition-logee', value: 1 }] });
     setup(map({ km: 12, perilDie: 8 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -262,7 +263,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Rencontre seed 7 : Succès Impressionnant → « fullRecovery », soigne toutes les Blessures (routé par applyHealWounds, #473)', () => {
     setRule('travel-etapes', true);
     seedBattleRng(7);
-    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: { current: 5, max: 12 } });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: blessuresDeBase(12, 5) });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -274,7 +275,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Rencontre seed 7 : « fullRecovery » avec munition logée → soin plafonné (LDB 62 l.250)', () => {
     setRule('travel-etapes', true);
     seedBattleRng(7);
-    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: { current: 5, max: 12 }, conditions: [{ id: 'munition-logee', value: 1 }] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: blessuresDeBase(12, 5), conditions: [{ id: 'munition-logee', value: 1 }] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();

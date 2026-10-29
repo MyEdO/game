@@ -13,6 +13,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Possession } from '../engine/possession';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { blessuresDeBase } from '../engine/characteristics';
 
 describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en pièce, #618)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null, pendingCast: null, possessions: [] }); });
@@ -39,7 +40,7 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
     useGame.setState({ possessions: [mule('pos-1')] });
     const combatant: Combatant = {
       ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'npc',
-      wounds: { current: 3, max: 8 }, dead: false,
+      wounds: blessuresDeBase(8, 3), dead: false,
     };
     useGame.setState({ battle: { ...battle, combatants: [...battle.combatants, combatant] } });
     finalizeBattle(useGame.getState, useGame.setState);
@@ -52,7 +53,7 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
     useGame.setState({ possessions: [mule('pos-1')] });
     const combatant: Combatant = {
       ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'npc',
-      wounds: { current: 0, max: 8 }, dead: true,
+      wounds: blessuresDeBase(8, 0), dead: true,
     };
     useGame.setState({ battle: { ...battle, combatants: [...battle.combatants, combatant] } });
     finalizeBattle(useGame.getState, useGame.setState);
@@ -66,7 +67,7 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
     useGame.setState({ possessions: [mule('pos-1')] });
     const combatant: Combatant = {
       ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'npc',
-      wounds: { current: 8, max: 8 }, dead: false,
+      wounds: blessuresDeBase(8), dead: false,
     };
     useGame.setState({ battle: { ...battle, combatants: [...battle.combatants, combatant] } });
     finalizeBattle(useGame.getState, useGame.setState);

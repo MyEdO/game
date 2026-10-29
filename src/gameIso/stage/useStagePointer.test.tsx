@@ -30,6 +30,7 @@ import { useStagePointer, type StagePointer } from './useStagePointer';
 import { setSpritePicker } from './spritePicker';
 import { SENSIBILITE_DRAG_DEG_PX, getStageYaw, poserYaw, resetStageYaw } from '../../state/stageYaw';
 import { getStagePan, resetStagePan } from '../../state/stagePan';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -97,7 +98,7 @@ function heroSauteur(): Combatant {
       'force-mentale': 30,
       sociabilite: 30,
     },
-    wounds: { current: 10, max: 10 },
+    wounds: blessuresDeBase(10),
     advantage: 0,
     conditions: [],
     weapons: [],

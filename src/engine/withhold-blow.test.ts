@@ -7,6 +7,7 @@ import type { Combatant, Weapon } from './types';
 import type { TriggeredEffect } from './flowCore';
 import { makeRNG } from './dice';
 import { deFixe } from './dice.testkit';
+import { blessuresDeBase } from './characteristics';
 
 /**
  * « Retenir vos coups » — LDB 18 l.30 en 'ldb' ; Aux Armes (`Source/WH - V4 - Aux Armes/07 - MISES A JOUR DE L'ETAT HEMORRAGIQUE.md` l.59-61) :
@@ -58,8 +59,8 @@ const enAA = () => { beforeEach(() => setRule('combat-aa-blessures', 'aa')); aft
 describe('Retenir ses coups — Critique supprimé sauf mise à 0 (AA 07 l.59-61)', () => {
   enAA();
   it('double (Critique normalement) sur cible PAS à 0 → critical false, Blessures normales infligées', () => {
-    const normal = resolveMeleePassive(att(), mk({ wounds: { current: 12, max: 12 } }), empaleuseSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, false);
-    const withheld = resolveMeleePassive(att(), mk({ wounds: { current: 12, max: 12 } }), empaleuseSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true);
+    const normal = resolveMeleePassive(att(), mk({ wounds: blessuresDeBase(12) }), empaleuseSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, false);
+    const withheld = resolveMeleePassive(att(), mk({ wounds: blessuresDeBase(12) }), empaleuseSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true);
     expect(normal.critical).toBe(true); // non-régression : le double reste un Critique sans Retenir
     expect(withheld.critical).toBe(false); // Retenir : pas de Critique (cible pas à 0)
     expect(withheld.defenderDefeated).toBe(false);
@@ -68,7 +69,7 @@ describe('Retenir ses coups — Critique supprimé sauf mise à 0 (AA 07 l.59-61
   });
 
   it('même coup mais la cible tombe à 0 → le Coup Critique du double reste ignoré, celui de la mise à 0 demeure (#1595 c.6226467544)', () => {
-    const lowHP = mk({ wounds: { current: 4, max: 12 }, kind: 'hero' }); // 4 PB ; le coup (≈7) la met à 0 ; AA 07 l.67 : hors Mort subite
+    const lowHP = mk({ wounds: blessuresDeBase(12, 4), kind: 'hero' }); // 4 PB ; le coup (≈7) la met à 0 ; AA 07 l.67 : hors Mort subite
     const withheld = resolveMeleePassive(att(), lowHP, empaleuseSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true);
     expect(withheld.defenderDefeated).toBe(true);
     expect(withheld.critical).toBe(false);
@@ -79,7 +80,7 @@ describe('Retenir ses coups — Critique supprimé sauf mise à 0 (AA 07 l.59-61
 
 describe('Retenir ses coups sur une cible déjà à 0 : la Localisation relancée garde le profil retenu (AA 07 l.59, l.61 ; #1595 c.6227274650 Q2)', () => {
   enAA();
-  const aZero = (over: Partial<Combatant> = {}) => mk({ wounds: { current: 0, max: 12 }, kind: 'hero', ...over });
+  const aZero = (over: Partial<Combatant> = {}) => mk({ wounds: blessuresDeBase(12, 0), kind: 'hero', ...over });
   const atk = evaluateTest(35, 60);
 
   it('Estoc Perforante contre PA 2 : la Localisation relancée ne compte pas Perforante', () => {

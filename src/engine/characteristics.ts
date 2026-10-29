@@ -1,7 +1,7 @@
 /**
  * Calculs dérivés des Caractéristiques — Livre de base, chapitre Personnage.
  */
-import { CharKey, Characteristics, Combatant, effectRef, type ActiveEffect } from './types';
+import { CharKey, Characteristics, Combatant, effectRef, type ActiveEffect, type MaximumDesBlessures } from './types';
 import { isPrayerFamily } from './combatFeatures/types';
 import type { CodexTarget } from './ruleRefs';
 import { traumaCharPenaltiesLabeled, passiveCharSum, passiveMods, sommeAttrMods } from './trauma';
@@ -177,11 +177,22 @@ export function effectiveMaxWounds(c: Combatant): number {
  * `wounds.current` déplacé du même delta, plancher 0 (LDB 48 l.27). PURE : rend l'objet `wounds` reçu quand rien ne
  * bouge, sinon un neuf. Un porteur sans `base` reçoit au premier recalage le `max` qu'il portait, ce qui
  * rend la réconciliation IDEMPOTENTE. Coutures : fin d'`applyOps`, `applyActiveEffect`,
- * `removeActiveEffects`.
+ * `removeActiveEffects`, spawn d'un porteur né mutant (`noyau/monde/spawn.ts`), et toute écriture de l'état
+ * (`noyau/transitionDuJeu.ts`).
  */
 export function blessuresReconciliees(c: Combatant): Combatant['wounds'] {
   const max = effectiveMaxWounds(c);
+  if (Object.is(max, c.wounds.max)) return c.wounds;
   const delta = max - c.wounds.max;
-  if (delta === 0) return c.wounds;
-  return { ...c.wounds, base: c.wounds.base ?? c.wounds.max, max, current: Math.max(0, c.wounds.current + delta) };
+  return { ...c.wounds, base: c.wounds.base ?? c.wounds.max, max: maximumDe(max), current: Math.max(0, c.wounds.current + delta) };
 }
+
+/** Les Blessures d'un porteur à vide : `base`, `current` restantes. Le maximum vaut `base` jusqu'à la
+ *  couture suivante, qui y ajoute ses porteurs (`blessuresReconciliees`). */
+export function blessuresDeBase(base: number, current: number = base): Combatant['wounds'] {
+  return { current, max: maximumDe(base), base };
+}
+
+const maximumDe = (n: number): MaximumDesBlessures =>
+  // eslint-disable-next-line murs/marques -- #1463 : l'unique cast de ce module — forger la marque EST le corps de métier de `blessuresDeBase` et `blessuresReconciliees`.
+  n as MaximumDesBlessures;

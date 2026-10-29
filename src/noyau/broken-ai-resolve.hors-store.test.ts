@@ -6,6 +6,7 @@ import { spawnEnemy } from './monde/spawn';
 import { pregen, PREGEN } from '../data/pregens';
 import { stacks } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -71,7 +72,7 @@ describe('IA Brisé — dispatch : la dépense retire l\'État puis une vraie ac
     e.engagedWith = ['h'];
     e.movement = 4;
     const h = pregen(PREGEN.sorcier);
-    h.id = 'h'; h.pos = { x: 6, y: 5 }; h.wounds = { ...h.wounds, max: 30, current: 30 }; // adjacent → mêlée après déverrouillage
+    h.id = 'h'; h.pos = { x: 6, y: 5 }; h.wounds = blessuresDeBase(30); // adjacent → mêlée après déverrouillage
     const battle = {
       combatants: [e, h], order: ['e', 'h'], baseOrder: ['e', 'h'], turn: 0, round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,

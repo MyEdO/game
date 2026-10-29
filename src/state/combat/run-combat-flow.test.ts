@@ -9,6 +9,7 @@ import { testScene } from '../../scenes/test-fixture';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../../engine/types';
 import { resetCadence, setCadence } from '../../engine/cadence';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 /**
  * runCombatFlow — exécuteur à PILE d'un Flow EN COMBAT, cadence-aware, qui porte la CONTINUATION `after`.
@@ -65,8 +66,8 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 20, y: 20 };
     // Beaucoup de PB pour que les pertes du Flow ne mettent personne hors de combat (pas d'À Terre à 0).
-    H.wounds = { current: 200, max: 200, base: 200 };
-    E.wounds = { current: 200, max: 200, base: 200 };
+    H.wounds = blessuresDeBase(200);
+    E.wounds = blessuresDeBase(200);
     useGame.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, E };
   }

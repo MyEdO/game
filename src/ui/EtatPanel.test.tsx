@@ -10,6 +10,7 @@ import { EtatPanel, zoneAfflictions } from './EtatPanel';
 import { traumaById, consolidateAmputations, traumaCharPenalties } from '../engine/trauma';
 import { useGame } from '../state/store';
 import { ETAT_ANCHOR_CRITIQUES, ETAT_ANCHOR_MALADIES, ETAT_ANCHOR_MUTATIONS, ETAT_ANCHOR_TRAUMAS, ETAT_ANCHOR_PSYCHOLOGIE, ETAT_ANCHOR_ENCOMBREMENT } from './sheetAlarms';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 /** Héros minimal, patron `sheetAlarms.test.ts`/`CharacterSheet.test.tsx` (mkHero). */
 const mkHero = (mut?: (c: Combatant) => void): Combatant => {
@@ -357,11 +358,11 @@ describe('EtatPanel — la Cible d’individu d’une affliction psy (EDOC 11 l.
   const visant = (id: string) => mkHero((c) => { c.psychState = [{ type: type.id, cible: ciblePsy.individu(id), active: true } as never]; });
 
   it('nomme l’individu visé et suit son nom, jamais son id', () => {
-    useGame.setState({ battle: { combatants: [{ id: 'kirstin', label: 'Dame Kirstin' }] } as never });
+    useGame.setState({ battle: { combatants: [combattantDeTest({ id: 'kirstin', label: 'Dame Kirstin' })] } as never });
     const el = rendre(visant('kirstin'));
     expect(el.textContent).toContain('(Dame Kirstin)');
     expect(el.textContent).not.toContain('@kirstin');
-    act(() => useGame.setState({ battle: { combatants: [{ id: 'kirstin', label: 'Kirstin la Rouge' }] } as never }));
+    act(() => useGame.setState({ battle: { combatants: [combattantDeTest({ id: 'kirstin', label: 'Kirstin la Rouge' })] } as never }));
     expect(el.textContent).toContain('(Kirstin la Rouge)');
   });
 

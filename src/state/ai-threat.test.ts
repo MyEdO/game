@@ -17,6 +17,7 @@ import { chebyshev } from '../engine/grid';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
 import type { Dir8 } from '../geometry/dir8';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
@@ -49,12 +50,12 @@ describe('Lot 3 — ciblage par MENACE (targetThreat) ≠ PV le plus bas', () =>
     const e = mk('e', 'enemy', { x: 10, y: 10 }, { weapons: [RANGED], movement: 4 });
     // dangerous : PB pleins MAIS lourdement armé (épée +BF+10) et proche → menace forte.
     const dangerous = mk('dangerous', 'hero', { x: 10, y: 13 }, {
-      wounds: { current: 12, max: 12 },
+      wounds: blessuresDeBase(12),
       weapons: [{ label: 'Hache lourde', type: 'melee', damage: { plusBF: true, flat: 10 }, qualities: [] }],
     });
     // soft : PB plus bas MAIS désarmé (mains nues) et plus loin, et PAS finissable en un tir (8 PB > 7
     // dégâts attendus → pas de killSecure) → menace faible malgré la fragilité légèrement supérieure.
-    const soft = mk('soft', 'hero', { x: 10, y: 16 }, { wounds: { current: 8, max: 12 }, weapons: [FISTS] });
+    const soft = mk('soft', 'hero', { x: 10, y: 16 }, { wounds: blessuresDeBase(12, 8), weapons: [FISTS] });
     const a = chooseEnemyAction(input(e, [dangerous, soft]));
     expect(a.kind).toBe('shoot');
     expect(tidOf(a)).toBe('dangerous'); // la MENACE l'emporte sur le simple « PV le plus bas »
@@ -63,8 +64,8 @@ describe('Lot 3 — ciblage par MENACE (targetThreat) ≠ PV le plus bas', () =>
   it('à menace comparable, la cible plus fragile (PB bas) est préférée (fragilité dans targetThreat)', () => {
     const e = mk('e', 'enemy', { x: 10, y: 10 }, { weapons: [RANGED] });
     // Deux héros identiques (même arme/menace) mais l'un entamé : on sécurise l'élimination du plus fragile.
-    const hurt = mk('hurt', 'hero', { x: 10, y: 13 }, { wounds: { current: 3, max: 12 }, weapons: [MELEE] });
-    const fresh = mk('fresh', 'hero', { x: 10, y: 14 }, { wounds: { current: 12, max: 12 }, weapons: [MELEE] });
+    const hurt = mk('hurt', 'hero', { x: 10, y: 13 }, { wounds: blessuresDeBase(12, 3), weapons: [MELEE] });
+    const fresh = mk('fresh', 'hero', { x: 10, y: 14 }, { wounds: blessuresDeBase(12), weapons: [MELEE] });
     const a = chooseEnemyAction(input(e, [fresh, hurt]));
     expect(tidOf(a)).toBe('hurt');
   });
@@ -74,10 +75,10 @@ describe('Lot 3 — killSecure : achève une cible à portée', () => {
   it('à dégâts attendus ≥ PB restants, l’IA frappe la cible ACHEVABLE plutôt qu’une cible plus menaçante mais non finissable', () => {
     const e = mk('e', 'enemy', { x: 10, y: 10 }, { weapons: [MELEE], characteristics: { ...CHARS, force: 45 } });
     // finissable : 2 PB, au contact → un coup d'épée (+BF+4) le tue (killSecure).
-    const finishable = mk('finishable', 'hero', { x: 10, y: 11 }, { wounds: { current: 2, max: 12 }, weapons: [FISTS] });
+    const finishable = mk('finishable', 'hero', { x: 10, y: 11 }, { wounds: blessuresDeBase(12, 2), weapons: [FISTS] });
     // tank : pleine vie + grosse menace, au contact aussi — mais pas finissable ce tour.
     const tank = mk('tank', 'hero', { x: 11, y: 10 }, {
-      wounds: { current: 12, max: 12 }, armour: { ...ARMOUR, corps: 4 },
+      wounds: blessuresDeBase(12), armour: { ...ARMOUR, corps: 4 },
       weapons: [{ label: 'Hache', type: 'melee', damage: { plusBF: true, flat: 8 }, qualities: [] }],
     });
     const a = chooseEnemyAction(input(e, [finishable, tank]));
@@ -89,8 +90,8 @@ describe('Lot 3 — killSecure : achève une cible à portée', () => {
 describe('Lot 3 — overkill : ignore la cible neutralisée', () => {
   it('cible au sol (À Terre, finissable) délaissée pour une cible debout, même moins fragile', () => {
     const e = mk('e', 'enemy', { x: 10, y: 10 }, { weapons: [MELEE] });
-    const downed = mk('downed', 'hero', { x: 10, y: 11 }, { wounds: { current: 1, max: 12 }, conditions: [{ id: 'a-terre', value: 1 }] });
-    const standing = mk('standing', 'hero', { x: 11, y: 10 }, { wounds: { current: 10, max: 12 } });
+    const downed = mk('downed', 'hero', { x: 10, y: 11 }, { wounds: blessuresDeBase(12, 1), conditions: [{ id: 'a-terre', value: 1 }] });
+    const standing = mk('standing', 'hero', { x: 11, y: 10 }, { wounds: blessuresDeBase(12, 10) });
     expect(tidOf(chooseEnemyAction(input(e, [downed, standing])))).toBe('standing');
   });
 });

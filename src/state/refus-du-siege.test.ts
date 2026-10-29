@@ -11,6 +11,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const NET0 = useGame.getState().net;
 
@@ -29,7 +30,7 @@ function cb(p: Partial<Combatant>): Combatant {
 function poser(netMode: 'host' | 'local'): void {
   seedBattleRng(1);
   const doc = cb({ id: 'doc', pos: { x: 5, y: 5 } });
-  const al = cb({ id: 'al', label: 'Blessé', wounds: { current: 3, max: 12 }, pos: { x: 6, y: 5 } });
+  const al = cb({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 3), pos: { x: 6, y: 5 } });
   const order = ['doc', 'al'];
   useGame.setState({
     mode: 'battle', scene: testScene(), party: [doc, al],
