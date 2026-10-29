@@ -118,7 +118,7 @@ Lancer **1d100** par Personnage. Certains événements n'affectent que le Person
 | 89–91 | **Suspect** | Tous renoncent à 1 Activité (profil bas). Voleurs : aucun *Revenus* jusqu'à la prochaine aventure. |
 | 92–94 | **Rien À Signaler** | Début d'aventure avec un appétit pour le risque. |
 | 95–97 | **Considération Inattendue** | Récompense d'un PNJ aidé par le passé. Peut être un objet ou une bourse (disponible à la prochaine aventure). |
-| 98–00 | **Mercenaires Particuliers** | Entraînement/Apprentissage particulier : −20 % des coûts. *Entraînement au Combat* : +20 % à tout Test adapté. |
+| 98–00 | **Mercenaires Particuliers** | Entraînement/Apprentissage particulier, Compétences et Talents **martiaux** : −20 % des coûts (LDB 22 l.135). *Entraînement au Combat* : +20 % à tout Test adapté. |
 
 **Implémente :** [État calculé](../implemente.generated.md#4eactivitestableau-des-evenements-d100)
 

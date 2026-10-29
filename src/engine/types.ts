@@ -819,7 +819,7 @@ export interface ActiveEffect {
   /** PA temporisés à une Localisation précise (op `ap` avec `loc`) — lus par effectiveArmourAt. */
   apAt?: Partial<Record<HitLocation, number>>;
   /** Modificateur TEMPORAIRE de Standing (op `statusMod` — LDB 23 l.228-234 « Réputation » : +1/+2/−1
-   *  « pour la prochaine aventure »). Composé par `heroStatus` (interludeFlow.ts). `duration` porte
+   *  « pour la prochaine aventure »). Composé par `actorStatus` (engine/social.ts). `duration` porte
    *  presque toujours `{scale:'adventure'}` (purgé à l'interlude SUIVANT). */
   statusMod?: number;
   /** Jeton d'INVERSION de Test CONSOMMABLE « pour votre prochaine aventure » (op `grantReverseToken` —

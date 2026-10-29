@@ -79,9 +79,11 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     forceRoll(97, false, -2);
     expect(hero().sinPoints).toBe(1); // l'échec n'expie rien
     expect(hasCondition(hero(), 'extenue')).toBe(false); // rien MAINTENANT (serait dissipé au repos)
-    expect(st().closeOps).toEqual([{ op: 'condition', id: 'extenue' }]);
+    expect(st().closeOps).toEqual([{ ops: [{ op: 'condition', id: 'extenue' }], ctx: { label: 'Pénitence', source: { kind: 'activity', id: 'penitence' }, sl: -2 } }]);
+    const avant = useGame.getState().journal.length;
     useGame.getState().interludeEnd();
     expect(hasCondition(hero(), 'extenue')).toBe(true); // posé après les nuits de clôture
+    expect(useGame.getState().journal.slice(avant)).toContain('A reçoit 1 État Exténué.');
   });
 
   it('Pénitence — Maladresse : Colère des dieux « à la place » (table LDB 40, −1 Péché expié), pas d’Exténué', () => {

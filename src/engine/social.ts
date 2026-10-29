@@ -23,26 +23,53 @@
  */
 import { libelleDEchelon, statutDeDonnee, type Status } from './money';
 import { rule } from './policy';
-import type { Combatant } from './types';
 import { findCareerById, levelsForCareer } from '../data';
 import { t } from '../i18n';
 
 /** Rang numérique d'un Échelon (Bronze < Argent < Or) pour la comparaison RAW. */
 const TIER_RANK: Record<Status['tier'], number> = { bronze: 0, argent: 1, or: 2 };
 
-/** Statut DÉRIVÉ d'une carrière + niveau (`CareerLevelData.status`, ex. « Argent 2 ») — couche PURE,
- *  découplée de `Combatant` (id de carrière + niveau bruts) pour servir aussi la Condition PARTY-level
- *  `status` (#711, `flowCore.ts`) sans dépendre du type complet. Repli « Bronze 1 » si la carrière/le
- *  niveau est introuvable (personnage anonyme = Bronze, LDB 08 l.115). */
-export function statusOf(career: string | undefined, careerLevel: number | undefined): Status {
-  const levels = levelsForCareer(career ?? '');
-  const lvl = findCareerById(career ?? '') ? levels[Math.max(0, (careerLevel ?? 1) - 1)] : undefined;
-  return lvl ? statutDeDonnee(lvl.status) : { tier: 'bronze', standing: 1 };
+/** Ce que lisent les Statuts d'un personnage : carrière, niveau, effets actifs (forme structurelle, que la
+ *  Condition PARTY-level `status` de `flowCore.ts` partage avec `Combatant`). */
+export interface PorteurDeStatut {
+  career?: string;
+  careerLevel?: number;
+  activeEffects?: readonly { statusMod?: number }[];
 }
 
-/** Statut d'un Combatant DÉRIVÉ de sa carrière + niveau — voir `statusOf`. */
-export function actorStatus(c: Combatant): Status {
-  return statusOf(c.career, c.careerLevel);
+/** Statut d'un personnage dont la carrière ou le niveau est introuvable dans la donnée. */
+const STATUT_SANS_CARRIERE: Status = { tier: 'bronze', standing: 1 };
+
+/** Statut de CARRIÈRE (`CareerLevelData.status` du niveau atteint), brique d'`actorStatus`. LDB 08 l.9 */
+export function statutDeCarriere(c: PorteurDeStatut): Status {
+  const levels = levelsForCareer(c.career ?? '');
+  const lvl = findCareerById(c.career ?? '') ? levels[Math.max(0, (c.careerLevel ?? 1) - 1)] : undefined;
+  return lvl ? statutDeDonnee(lvl.status) : STATUT_SANS_CARRIERE;
+}
+
+/** Échelons du plus bas au plus haut. LDB 08 l.9 */
+const ECHELONS: readonly Status['tier'][] = ['bronze', 'argent', 'or'];
+
+/** Le Statut `statut` décalé de `delta` Points de Standing ; vers le haut, sans changement d'Échelon.
+ *  LDB 08 l.9, l.101 */
+export function decalerLeStatut(statut: Status, delta: number): Status {
+  if (delta >= 0) return { tier: statut.tier, standing: statut.standing + delta };
+  let { tier, standing } = statut;
+  for (let i = 0; i > delta && standing > 0; i--) {
+    standing -= 1;
+    const rang = ECHELONS.indexOf(tier);
+    if (standing === 0 && rang > 0) {
+      tier = ECHELONS[rang - 1];
+      standing = 5;
+    }
+  }
+  return { tier, standing };
+}
+
+/** Statut EFFECTIF : le Statut de carrière décalé de la SOMME des `statusMod` actifs. SEUL lecteur du
+ *  Statut d'un personnage. LDB 08 l.101, LDB 23 l.234 */
+export function actorStatus(c: PorteurDeStatut): Status {
+  return decalerLeStatut(statutDeCarriere(c), (c.activeEffects ?? []).reduce((s, e) => s + (e.statusMod ?? 0), 0));
 }
 
 /** Le Statut `actual` atteint-il AU MOINS `atLeast` (« Argent 2 », `parseStatus`) ? Compare l'Échelon

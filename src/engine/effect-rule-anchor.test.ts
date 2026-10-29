@@ -145,7 +145,6 @@ const BASELINE: string[] = [
   'noyau/combatEffects.ts | e.ops | { rng: battleRng() }', // ops d'un Souffle de zone (effet de scène)
   'noyau/combatFlow.ts | crit.ops | { rng: battleRng(), now: get().gameTime, location: loc, surLigne }', // ops d'une Blessure critique en combat
   'noyau/combatFlow.ts | outcome.ops | { rng: battleRng() }', // ops de l'issue d'une manœuvre
-  'noyau/interludeFlow.ts | ops | { rng: battleRng(), now: get().gameTime }', // issues DIFFÉRÉES à la clôture d'un interlude
   'noyau/medicFlow.ts | penalty | { rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }', // pénalité posée par un soin raté
   'noyau/seaVoyageFlow.ts | p.scaldOps | { rng: battleRng(), now: get().gameTime }', // brûlure de vapeur (scaldOps) d'une pièce de machine
   "noyau/seaVoyageFlow.ts | [{ op: 'grantTalent', talent: { id: 'chanceux' } }] | { label: event.label, rng, defaultUntilTime: until }", // Talent Chanceux octroyé par un événement de bord

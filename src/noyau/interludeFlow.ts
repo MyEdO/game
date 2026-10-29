@@ -19,27 +19,30 @@ import { INTERLUDE_EVENTS, interludeEventFor, type InterludeEventFx } from '../d
 import { startCascade } from './cascade';
 import { freeCons, rollLine } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
-import { fromBrass, toBrass, toMoney, formatMoney, priceToMoney, canAfford, PA_PER_SC, type Status } from '../engine/money';
-import { actorStatus } from '../engine/social';
-import { partyMoneyTotal, payWithAllocation, payFromGroup, soloPayer, creditBourse, debitBourse } from './bourseFlow';
+import { fromBrass, toBrass, formatMoney, priceToMoney, PA_PER_SC } from '../engine/money';
+import { partyMoneyTotal, payWithAllocation, payFromGroup, soloPayer, creditBourse, debitBourse, refusDeBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, recomputeLoadout, buildWeapon, autoStowNewItem } from '../engine/items';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
 import { refuseSi } from './verrousDeFiche';
-import { eventLabelOf, heroClass, refusDActivite, refusDeRetrait, refusDeRevenus, refusDuTirage } from './verdictsDInterlude';
+import { refuserGeste } from './refusVisible';
+import {
+  eventLabelOf, heroClass, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDApprentissage, refusDArtisanat,
+  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDeRevenus,
+} from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, massBattleBegin, battlePrepEntries } from './massBattleFlow';
 import {
-  craftTarget, craftSpecOf, orderBlockOf, metierOf, statusIncome, statusIncomeMax, bankWithdrawOutcome, bankPayout, apprenticeshipTutorCost,
-  entrainementOptions, entrainementTutorCost,
+  craftTarget, craftSpecOf, metierOf, statusIncome, statusIncomeMax, bankWithdrawOutcome, bankPayout, apprenticeshipTutorCost,
+  entrainementTutorCost,
   ACTIVITIES, activitiesFor, activityById, matchOutcomes, activityAvailableAt, activityTestMod, classGatedDifficulty,
   RESOLVER_OWNER,
   type ActivityDef, type ActivityResolver, type ResolverOf,
 } from '../engine/activities';
-import { outOfTradeReason } from '../engine/disponibilite';
 import { buildActivityWorldRollSteps } from './activityWorldRolls';
-import { applyOps, type GameOp } from '../engine/ops';
+import { actorStatus } from '../engine/social';
+import { applyOps, gelerOpsCtx, type GameOp, type OpsCtxGele } from '../engine/ops';
 import { isFumble } from '../engine/oups';
 import { combatValue } from '../engine/combat';
 import { spellCost, ritualReduction } from '../engine/grimoire';
@@ -54,8 +57,7 @@ import { groupsFor } from '../engine/groups';
 import { effectiveEntry } from '../engine/variants';
 import type { ChaosAlign, ExposureLevel } from '../engine/corruption';
 import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
-import { buyTalent as engineBuyTalent, talentCost, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
-import { talentAcquisitions } from '../engine/careerSlots';
+import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax, recalerLaBaseDesBlessures } from '../engine/talentEffects';
 import { levelsForCareer, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill, libelleOuAbsence } from '../data';
@@ -98,9 +100,9 @@ export interface InterludeHeroState {
   /** « +10 pour chaque tentative ratée » d'Apprentissage particulier (LDB 23 l.72), par talent. */
   learnFails?: Record<string, number>;
   /** Issues d'Activité DIFFÉRÉES à la clôture (États « le premier jour de votre prochaine aventure »,
-   *  ACE 12 l.15) — appliquées par `interludeEnd` APRÈS le repos de clôture (un État posé
-   *  avant serait dissipé par la récupération des nuits écoulées). */
-  closeOps?: GameOp[];
+   *  ACE 12 l.15 ; Standing de Réputation, LDB 23 l.234) — appliquées par `interludeEnd` APRÈS le repos de
+   *  clôture (un État posé avant serait dissipé par la récupération des nuits écoulées). */
+  closeOps?: LotDeCloture[];
   /** Semer la dissension (LDB 23 l.236-248) : le Test de Ragot (1ʳᵉ des DEUX Activités requises) a
    *  identifié les personnalités influentes du coin — débloque la 2ᵉ Activité (Test de Charme) DANS
    *  CET interlude. Consommé (remis à `false`) à l'issue de la 2ᵉ Activité, succès ou échec. */
@@ -108,6 +110,13 @@ export interface InterludeHeroState {
   /** Faveurs (LDB 23 l.139-151, #509) déjà créditées d'une Activité CET interlude — trace la
    *  « consécutivité » (`Favor.progress`) pour `resetInterruptedFavorProgress` (noyau/favorFlow). */
   favorProgress?: string[];
+}
+
+/** Un lot d'issues différées à la clôture, et le contexte gelé de l'Activité qui l'a produit (libellé,
+ *  source, DR) : la clôture l'applique sous ce contexte. */
+export interface LotDeCloture {
+  ops: GameOp[];
+  ctx: OpsCtxGele;
 }
 
 export interface InterludeState {
@@ -361,15 +370,6 @@ export interface PendingActivityFields extends PendingBase {
   chosenSkillSpec?: string;
 }
 
-/** Statut « Échelon Standing » d'un héros (CareerLevelData.status, ex. « Argent 2 »), + modificateur
- *  TEMPORAIRE « pour la prochaine aventure » (LDB 23 l.228-234 « Réputation » : op `statusMod`,
- *  `ActiveEffect.duration.scale === 'adventure'`) — plancher 1 (jamais sous Bronze 1). */
-export function heroStatus(h: Combatant): Status {
-  const st = actorStatus(h);
-  const tempMod = (h.activeEffects ?? []).reduce((s, e) => s + (e.statusMod ?? 0), 0);
-  return { tier: st.tier, standing: Math.max(1, st.standing + tempMod) };
-}
-
 /** Compétence de carrière « qui permet de Gagner de l'argent » (LDB 08 l.110 : celle en italique
  *  du premier Niveau — l'italique n'est pas dans les données : on prend la première compétence du
  *  Niveau 1 que le héros POSSÈDE, sinon la première listée. Approximation documentée). */
@@ -403,37 +403,17 @@ const trappingLabelOf = (id: string): string => findTrappingById(id)?.label ?? i
 const craftQualLabel = (id: string): string => qualityRefLabel({ id });
 
 /** Engage un Artisanat : Compétence Métier, matériaux payés avant l'Activité ; l'engagement n'en consomme
- *  aucune, seul le tirage le refuse (`refusDuTirage`). LDB 23 l.76 */
+ *  aucune (verdict `refusDArtisanat`). LDB 23 l.76 */
 export function craftStart(get: Get, set: Set, heroId: string, trappingId: string, atouts: string[], defauts: string[]): void {
-  if (refuseSi(get, set, (s) => refusDuTirage(s, heroId))) return;
+  if (refuseSi(get, set, (s) => refusDArtisanat(s, heroId, trappingId))) return;
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
-  if (!st || !h) return;
-  if (h.craft) {
-    get().log(msg('if.craftBusy', { name: h.label, label: trappingLabelOf(h.craft.trappingId) }));
-    return;
-  }
-  const metier = metierOf(h);
-  if (!metier) {
-    get().log(msg('if.craftNoSkill', { name: h.label }));
-    return;
-  }
+  const metier = h && metierOf(h);
   const t = findTrappingById(trappingId);
-  if (!t) {
-    get().log(msg('if.trappingUnknown', { id: trappingId }));
-    return;
-  }
   // Gamme/Disponibilité/matériaux : dérivation PARTAGÉE avec le catalogue UI (craftSpecOf).
-  const spec = craftSpecOf(t);
-  if (!spec) {
-    get().log(msg('trade.craftRefused', { reason: outOfTradeReason(t.label) }));
-    return;
-  }
+  const spec = t && craftSpecOf(t);
+  if (!st || !h || !metier || !t || !spec) return;
   const { tier, avail, materialsBrass: materials } = spec;
-  if (!canAfford(bourseOf(h), fromBrass(materials))) {
-    get().log(msg('if.craftMaterialsKo', { cost: formatMoney(fromBrass(materials)), name: h.label }));
-    return;
-  }
   const target = craftTarget(tier, avail, atouts.length, defauts.length);
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(materials)), recipient: heroId, purpose: 'artisanat' });
   // `payWithAllocation` remplace l'entrée `party` du héros débité (nouvelle référence) — re-résoudre
@@ -570,22 +550,14 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // eslint-disable-next-line murs/conteneur -- La cible est `Partial<PendingActivityFields>` (le pending d'activité), PAS une étape de cascade : ce `label` n'est pas le champ marqué #1318.
     Object.assign(extra, r.extra, { label: stepDetail(dataLabel(def.label), dataLabel(r.extra.label)) });
   } else if (def.resolver === 'learnTalent') {
-    // Apprentissage particulier (LDB 23 l.66-72) : Talent HORS carrière. Test « Difficile (-20) en
-    // utilisant la Caractéristique ou la Compétence la plus pertinente » (sans MJ : la Caractéristique
-    // du Maxi du Talent, sinon Int) « +10 pour chaque tentative ratée ». Prix du tuteur : « 2D10
-    // pistoles d'argent par 100PX » ; PX + argent gatés AVANT (dépensés MÊME sur échec, cf. resolver).
-    const t = opts.talentId ? findTalentById(opts.talentId) : undefined;
-    if (!t) { get().log(msg('if.talentUnknown', { id: opts.talentId ?? '' })); return; }
-    const xpCost = talentCost(talentAcquisitions(h, t.id));
-    if ((h.xp ?? 0) < xpCost) {
-      get().log(msg('if.entrainementXpKo', { name: h.label, cost: xpCost, label: refLabel('talents', { id: t.id }) }));
-      return;
-    }
+    // Apprentissage particulier : verdict `refusDApprentissage`, puis tuteur tiré et jugé. LDB 23 l.66-72
+    if (refuseSi(get, set, (s) => refusDApprentissage(s, heroId, opts.talentId ?? ''))) return;
+    const t = findTalentById(opts.talentId ?? '');
+    const xpCost = optionDApprentissage(h, opts.talentId ?? '')?.xpCost;
+    if (!t || xpCost == null) return;
     const tutorBrass = toBrass(apprenticeshipTutorCost(xpCost, battleRng()));
-    if (!canAfford(bourseOf(h), fromBrass(tutorBrass))) {
-      get().log(msg('if.entrainementTutorKo', { cost: formatMoney(fromBrass(tutorBrass)) }));
-      return;
-    }
+    const tuteurHorsBourse = refusDeBourse(h, fromBrass(tutorBrass), 'if.tuteurKo');
+    if (tuteurHorsBourse) { refuserGeste(get, set, tuteurHorsBourse); return; }
     const tMax = effectiveEntry(t).max; // entrée EFFECTIVE (engine/variants.ts) — une variante réglée republie le Maxi
     const ck: CharKey = tMax && typeof tMax !== 'number' ? tMax.bonusOf : 'intelligence'; // Maxi « Bonus de X » → carac
     const fails = st.learnFails?.[t.id] ?? 0; // clé = id stable du Talent
@@ -659,12 +631,10 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     const skill = incomeSkillOf(h);
     skillValue = testValue(h, skill);
     skillLabel = refLabel('skills', { id: skill });
-    const { tier, standing } = heroStatus(h);
+    const { tier, standing } = actorStatus(h);
     const cost = toBrass(statusIncomeMax(tier, standing));
-    if (!canAfford(bourseOf(h), fromBrass(cost))) {
-      get().log(msg('if.reputationPurseKo', { name: h.label, cost: formatMoney(fromBrass(cost)) }));
-      return;
-    }
+    const coutHorsBourse = refusDeBourse(h, fromBrass(cost), 'if.reputationPurseKo');
+    if (coutHorsBourse) { refuserGeste(get, set, coutHorsBourse); return; }
     extra.costBrass = cost;
     extra.label = stepDetail(dataLabel(def.label), dataLabel(formatMoney(fromBrass(cost))));
   } else {
@@ -723,7 +693,7 @@ function mecenatPayout(get: Get, set: Set, h: Combatant, depositIndex: number, p
 /** Issue d'un résolveur d'Activité : les lignes de journal + un `patch` de l'état d'interlude du
  *  héros (deltas NON exprimables en `GameOp` : DR du Test étendu, crédit différé des Revenus,
  *  compteur d'acharnement — fusionnés dans l'écriture finale de `confirmActivity`). */
-interface ResolverResult { lines: string[]; patch?: Partial<InterludeHeroState> }
+interface ResolverResult { lines: string[]; patch?: Partial<InterludeHeroState>; closeOps?: GameOp[] }
 
 /** Ce résolveur appartient-il à la famille INTERLUDE (`RESOLVER_OWNER`) ? */
 const ownedByInterlude = (r: ActivityResolver): r is ResolverOf<'interlude'> => RESOLVER_OWNER[r] === 'interlude';
@@ -745,7 +715,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // fois que vous avez disposé de l'argent de votre dernière aventure ») → `revenueBrass`, jamais
       // `money`. Revenus maintient aussi le Statut des Niveaux 3-4 (l.193 → `didRevenus`).
       const outcome = pa.success ? 'success' : isAstoundingFailure(pa.success, pa.sl) ? 'astoundingFail' : 'fail';
-      const { tier, standing } = heroStatus(h);
+      const { tier, standing } = actorStatus(h);
       let brass = toBrass(statusIncome(tier, standing, battleRng(), outcome));
       const lines: string[] = [];
       // Événements : ±% sur les Revenus (Fausse monnaie −20, Profits +50 pour une Classe…, LDB 22).
@@ -834,8 +804,10 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
           appris.resolve = (appris.resolve ?? 0) + (resolveMax(appris) - resolveBefore); // Obstiné
           return appris;
         });
+        // Achat jugé avant la confirmation (`refusDeConfirmerLActivite`) : sans Talent acquis, rien n'est débité.
+        if (!r.ok) return { lines: [] };
         payTutor();
-        return r.ok ? { lines: [msg('if.learnTalentOk', { name: h.label, label: talentLabel, cost: r.cost, tutor: formatMoney(fromBrass(pa.tutorBrass ?? 0)) })] } : { lines: [] };
+        return { lines: [msg('if.learnTalentOk', { name: h.label, label: talentLabel, cost: r.cost, tutor: formatMoney(fromBrass(pa.tutorBrass ?? 0)) })] };
       }
       depenserPx(get, set, h.id, (lu) => ({ ...lu, xp: Math.max(0, (lu.xp ?? 0) - (pa.xpCost ?? 0)) })); // PX perdus en vain (échec)
       const learnFails = { ...(st.learnFails ?? {}) };
@@ -949,16 +921,14 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       return { lines: [msg('if.punchausenOk', { name: h.label, money: formatMoney(gain) }), ...tokenLines] };
     }
     case 'reputation': {
-      // Réputation (LDB 23 l.228-234) : coût dépensé DANS TOUS LES CAS ; +1 Standing sur succès (+2 sur
-      // Succès Stupéfiant, DR ≥ 6), −1 sur Échec Stupéfiant (DR ≤ −6) — op `statusMod` existant,
-      // durée `{scale:'adventure'}` déjà portée par l'op (purgée à l'interlude suivant).
+      // Réputation : le `statusMod` vaut « pour la prochaine aventure », il se pose à la clôture
+      // (`closeOps`, appliqués par `interludeEnd`). LDB 23 l.228-234
       const lines: string[] = [msg('if.reputationSpend', { name: h.label, money: formatMoney(fromBrass(pa.costBrass ?? 0)) })];
       const delta = isAstoundingSuccess(pa.success, pa.sl) ? 2 : pa.success ? 1 : isAstoundingFailure(pa.success, pa.sl) ? -1 : 0;
-      if (delta !== 0) lines.push(...applyOps(h, [{ op: 'statusMod', amount: delta }], { rng: battleRng(), label: pa.label, source: activitySource(pa) }));
-      else lines.push(msg('if.reputationWasted', { name: h.label }));
-      // Coût débité APRÈS le `statusMod` — l'allocation clone `h` et capte la modification de Statut.
       payWithAllocation(get, set, { debits: soloPayer(h.id, fromBrass(pa.costBrass ?? 0)), recipient: h.id, purpose: 'reputation' });
-      return { lines };
+      if (delta === 0) return { lines: [...lines, msg('if.reputationWasted', { name: h.label })] };
+      lines.push(msg('if.reputationAPoser', { name: h.label, delta: `${delta > 0 ? '+' : ''}${delta}` }));
+      return { lines, closeOps: [{ op: 'statusMod', amount: delta }] };
     }
     case 'dissensionScout': {
       // Semer la dissension (LDB 23 l.236-248), 1ʳᵉ des DEUX Activités requises : Ragot Accessible
@@ -1041,27 +1011,10 @@ function falseQualities(item: { kind: string; qualities: QualityInstance[]; subT
 export function orderItem(get: Get, set: Set, heroId: string, trappingId: string): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
-  if (refuseSi(get, set, (s) => refusDActivite(s, heroId))) return;
-  if (!st || !h) return;
+  if (refuseSi(get, set, (s) => refusDeCommande(s, heroId, trappingId))) return;
   const t = findTrappingById(trappingId);
-  if (!t) {
-    get().log(msg('if.trappingUnknown', { id: trappingId }));
-    return;
-  }
-  const block = orderBlockOf(t);
-  if (block === 'sans-prix') {
-    get().log(msg('trade.orderRefused', { reason: outOfTradeReason(t.label) }));
-    return;
-  }
-  if (block === 'stock-ordinaire') {
-    get().log(msg('if.orderInShops', { label: t.label, availability: String(t.availability) }));
-    return;
-  }
+  if (!st || !h || !t) return;
   const price = toBrass(priceToMoney(t.price));
-  if (!canAfford(bourseOf(h), fromBrass(price))) {
-    get().log(msg('if.orderTooExpensive', { cost: formatMoney(fromBrass(price)) }));
-    return;
-  }
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(price)), recipient: heroId, purpose: 'commande' });
   set({ pendingOrders: [...(get().pendingOrders ?? []), { heroId, trappingId: t.id }] });
   const itl = get().interlude!;
@@ -1073,28 +1026,18 @@ export function orderItem(get: Get, set: Set, heroId: string, trappingId: string
  *  dehors de votre Carrière » — PAS de Test (achat direct comme Passer commande/Banque). Coût en PX
  *  NORMAL (hors carrière, déjà doublé par `advanceCost`/`buyCharAdvance`/`buySkillAdvance`, LDB 07 l.91)
  *  + tuteur 1D10 sc (doublé pour une Compétence Avancée, l.135). `opt` recalculée ICI depuis les
- *  données du héros (`entrainementOptions`) — jamais fait confiance à un id client non revérifié.
+ *  données du héros (`optionDEntrainement`) — jamais fait confiance à un id client non revérifié.
  *  Une Compétence de Base hors carrière encore inconnue est ACQUISE à 0 Augmentation puis augmentée
  *  (même geste que `buySkillAdvance`, LDB 09 l.42). */
 export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'skill' | 'characteristic', id: string, spec?: string): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
-  if (refuseSi(get, set, (s) => refusDActivite(s, heroId))) return;
-  if (!st || !h) return;
-  const opt = entrainementOptions(h).find((o) => o.kind === kind && o.id === id && memeSpecialisation(o.spec, spec));
-  if (!opt) {
-    get().log(t('if.entrainementUnknown', { name: h.label }));
-    return;
-  }
-  if ((h.xp ?? 0) < opt.xpCost) {
-    get().log(t('if.entrainementXpKo', { name: h.label, cost: opt.xpCost, label: opt.label }));
-    return;
-  }
+  if (refuseSi(get, set, (s) => refusDEntrainement(s, heroId, kind, id, spec))) return;
+  const opt = h && optionDEntrainement(h, kind, id, spec);
+  if (!st || !h || !opt) return;
   const tutor = toBrass(entrainementTutorCost(opt.advanced, battleRng()));
-  if (!canAfford(bourseOf(h), fromBrass(tutor))) {
-    get().log(t('if.entrainementTutorKo', { cost: formatMoney(fromBrass(tutor)) }));
-    return;
-  }
+  const tuteurHorsBourse = refusDeBourse(h, fromBrass(tutor), 'if.tuteurKo');
+  if (tuteurHorsBourse) { refuserGeste(get, set, tuteurHorsBourse); return; }
   let r: ReturnType<typeof engineBuyCharAdvance> = { ok: false, cost: 0 };
   const accepte = depenserPx(get, set, heroId, (lu) => {
     const entraine = structuredClone(lu);
@@ -1159,11 +1102,12 @@ export function confirmActivity(get: Get, set: Set): void {
   const h = get().party.find((x) => x.id === pa.heroId);
   const def = activityById(pa.activityId);
   set({ pendingActivity: null });
-  if (refuseSi(get, set, (s) => refusDActivite(s, pa.heroId))) return;
+  if (refuseSi(get, set, (s) => refusDeConfirmerLActivite(s, pa))) return;
   if (!itl || !st || !h || !def) return;
   const lines: string[] = [];
   const closeOps: GameOp[] = [];
   let patch: Partial<InterludeHeroState> = {};
+  const source: EffectSource = { kind: 'activity', id: def.id };
   // Maladresse d'Activité (LDB 12 : double raté) — porte les bandes `on:'fumble'` (Pénitence :
   // Colère des dieux « à la place », ACE 12 l.15).
   const fumble = isFumble(pa.roll, pa.success);
@@ -1172,6 +1116,7 @@ export function confirmActivity(get: Get, set: Set): void {
   if (def.resolver && !def.outcomes?.length && !def.onSuccess?.length) {
     const r = runActivityResolver(get, set, def.resolver, pa, h, st);
     lines.push(...r.lines);
+    closeOps.push(...(r.closeOps ?? []));
     if (r.patch) patch = { ...patch, ...r.patch };
   } else {
     // Défs à TABLE d'issues (bandes de DR) ou binaires (`onSuccess`, ex. Convalescence) — même chemin.
@@ -1189,7 +1134,7 @@ export function confirmActivity(get: Get, set: Set): void {
       closeOps.push(...(band.ops ?? []).filter((o) => o.op === 'condition'));
       if (immediate.length) {
         lines.push(...applyOps(h, immediate, {
-          rng: battleRng(), label: def.label, now: get().gameTime, source: { kind: 'activity', id: def.id }, sl: pa.sl,
+          rng: battleRng(), label: def.label, now: get().gameTime, source, sl: pa.sl,
           onCorruption: (n: number, align?: ChaosAlign) => gainCorruption(get, set, h, n, align),
           onCorruptionExposure: (level: ExposureLevel, nature?: NatureDInfluence) => {
             // LA PORTE du slot (#1282) : un Test de Corruption déjà affiché ne se fait plus écraser — celui-ci prend rang.
@@ -1202,6 +1147,7 @@ export function confirmActivity(get: Get, set: Set): void {
       if (band.resolver) {
         const r = runActivityResolver(get, set, band.resolver, pa, h, st);
         lines.push(...r.lines);
+        closeOps.push(...(r.closeOps ?? []));
         if (r.patch) patch = { ...patch, ...r.patch };
       }
     }
@@ -1217,7 +1163,7 @@ export function confirmActivity(get: Get, set: Set): void {
   itl.perHero[pa.heroId] = {
     ...st,
     left: st.left - 1,
-    ...(closeOps.length ? { closeOps: [...(st.closeOps ?? []), ...closeOps] } : {}),
+    ...(closeOps.length ? { closeOps: [...(st.closeOps ?? []), { ops: closeOps, ctx: gelerOpsCtx({ rng: battleRng(), label: def.label, source, sl: pa.sl }) }] } : {}),
     ...patch,
   };
   set({ interlude: { ...itl }, party: [...get().party] });
@@ -1235,33 +1181,11 @@ export function confirmActivity(get: Get, set: Set): void {
 export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, rate?: number): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
-  if (refuseSi(get, set, (s) => refusDActivite(s, heroId))) return;
+  if (refuseSi(get, set, (s) => devisDeDepot(s, heroId, kind, amountBrass).refus)) return;
   if (!st || !h) return;
-  if (kind === 'invest' && heroStatus(h).tier === 'bronze') {
-    get().log(msg('if.bankTierKo', { name: h.label }));
-    return;
-  }
-  if (kind === 'mecenat') {
-    const def = ACTIVITIES.find((a) => a.resolver === 'mecenat');
-    if (!def || !activityAvailableAt(def, currentPlaceId(get()))) return;
-    const min = toBrass(toMoney(def.minInvest ?? {}));
-    if (Math.floor(amountBrass) < min) {
-      get().log(msg('if.mecenatMin', { min: formatMoney(fromBrass(min)) }));
-      return;
-    }
-  }
-  const amount = Math.max(1, Math.floor(amountBrass));
-  if (!canAfford(bourseOf(h), fromBrass(amount))) {
-    get().log(msg('if.depositPurseKo', { name: h.label }));
-    return;
-  }
-  let deposited = amount;
+  const { debite: amount, depose: deposited } = devisDeDepot(get(), heroId, kind, amountBrass);
   const lines: string[] = [];
-  // Fausse monnaie (LDB 22) : « perdront 20 % de l'argent placé ».
-  if (st.fx?.bankPct) {
-    deposited = Math.max(0, Math.floor((deposited * (100 + st.fx.bankPct)) / 100));
-    lines.push(msg('if.eventBankPct', { pct: st.fx.bankPct, event: eventLabelOf(st) }));
-  }
+  if (st.fx?.bankPct) lines.push(msg('if.eventBankPct', { pct: st.fx.bankPct, event: eventLabelOf(st) }));
   const r = kind === 'invest' ? Math.max(1, Math.min(10, rate ?? d10(battleRng()))) : 0;
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(amount)), recipient: heroId, purpose: 'dépôt-banque' });
   set({ bank: [...(get().bank ?? []), { heroId, kind, brass: deposited, rate: r }] });
@@ -1342,8 +1266,8 @@ export function interludeEnd(get: Get, set: Set): void {
   // l'ID (pas la référence) : l'Argent à gaspiller ré-instancie les bourses (clone), le héros est
   // re-résolu au moment de l'application.
   const deferred = get().party
-    .map((h) => ({ id: h.id, dead: h.dead, ops: itl.perHero[h.id]?.closeOps ?? [] }))
-    .filter((x) => x.ops.length > 0 && !x.dead);
+    .map((h) => ({ id: h.id, dead: h.dead, lots: itl.perHero[h.id]?.closeOps ?? [] }))
+    .filter((x) => x.lots.length > 0 && !x.dead);
   const lines: string[] = [];
   for (const h of get().party) {
     const st = itl.perHero[h.id];
@@ -1382,9 +1306,10 @@ export function interludeEnd(get: Get, set: Set): void {
   // posées APRÈS le repos de clôture — un État posé avant serait dissipé par la récupération.
   if (deferred.length) {
     const after: string[] = [];
-    for (const { id, ops } of deferred) {
+    for (const { id, lots } of deferred) {
       const h = get().party.find((x) => x.id === id);
-      if (h) after.push(...applyOps(h, ops, { rng: battleRng(), now: get().gameTime }));
+      if (!h) continue;
+      for (const lot of lots) after.push(...applyOps(h, lot.ops, { ...lot.ctx, rng: battleRng(), now: get().gameTime }));
     }
     set({ party: [...get().party] });
     for (const l of after) get().log(l);

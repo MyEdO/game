@@ -201,7 +201,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     hero().careerLevel = 1;
     useGame.getState().interludeBank(hero().id, 'invest', 120);
     expect(useGame.getState().bank).toHaveLength(0);
-    expect(useGame.getState().journal.join('\n')).toMatch(/échelons Or et Argent/);
+    expect(useGame.getState().journal.join('\n')).toMatch(/investir en banque exige le Statut Argent ou Or/);
     const before = toBrass(partyMoneyTotal(useGame.getState));
     useGame.getState().interludeBank(hero().id, 'stash', 120);
     expect(useGame.getState().bank).toHaveLength(1);
