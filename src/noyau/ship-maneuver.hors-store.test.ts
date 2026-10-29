@@ -13,7 +13,7 @@ import { crewTestSuccess, crewRoleValue } from '../engine/crewMorale';
 import { refusNePeutTenter, refusPersonneNePeutTenter } from '../engine/skills';
 import { findCrewRoleById } from '../data';
 import { t } from '../i18n';
-import { setRule, resetRule } from '../engine/policy';
+import { setRule } from '../engine/policy';
 import type { Combatant, NavalTraitRef, ShipPoste } from '../engine/types';
 
 let banc: Banc;
@@ -492,12 +492,8 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     expect(deriveManeuverFromCrew(shipC, crewTotal, 'maritime').success).toBe(crewTestSuccess(0)); // le socle, jamais un seuil local
     expect(deriveManeuverFromCrew(shipC, crewTotal, 'maritime').success).toBe(false); // défaut RAW : 0 = échec
     setRule('crew-test-zero-success', true);
-    try {
-      expect(deriveManeuverFromCrew(shipC, crewTotal, 'maritime').success).toBe(true); // Succès Minime → le navire vire
-      expect(deriveManeuverFromCrew(shipC, crewTotal - 1, 'maritime').success).toBe(false); // −1 reste un échec
-    } finally {
-      resetRule('crew-test-zero-success');
-    }
+    expect(deriveManeuverFromCrew(shipC, crewTotal, 'maritime').success).toBe(true); // Succès Minime → le navire vire
+    expect(deriveManeuverFromCrew(shipC, crewTotal - 1, 'maritime').success).toBe(false); // −1 reste un échec
   });
 });
 

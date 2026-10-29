@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
 import { openSequence, displayStep, monoStep } from './rollSeam';
 import { startCascade, advanceCascade, resumeSuspendedCascade } from './cascade';
 import { seedBattleRng } from './battleRng';
-import { setCadence, resetCadence } from '../engine/cadence';
+import { setCadence } from '../engine/cadence';
 import { makePregens } from '../data/pregens';
 import { voyageStakeRef } from '../data';
 import { fixtureText } from '../i18n/fixtureText';
@@ -65,13 +65,9 @@ function sequenceDe(premierKind: GenreDeCascade): BuiltCascadeStep[] {
 beforeEach(() => {
   apples = 0;
   seedBattleRng(7);
-  resetCadence();
   const party = makePregens().slice(0, 1).map((h) => ({ ...h, aiControlled: true }));
   set({ party, battle: null, pendingCascade: null, suspendedCascades: [], journal: [] } as never);
   set({ net: { ...NET0, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } } as never);
-});
-afterEach(() => {
-  set({ net: NET0, battle: null, pendingCascade: null, suspendedCascades: [] } as never);
 });
 
 describe('#1479 — `openSequence` ne rend JAMAIS un préfixe pour une séquence résolue', () => {

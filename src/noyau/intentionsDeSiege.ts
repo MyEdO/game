@@ -264,7 +264,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // n'est pas une décision (rien à trancher), la clôture applique la même séance. Un ready-check de
   // table serait un autre ticket. Le refus est EFFECTIF, pas seulement classé : les actions sont
   // inertes chez l'invité (`noyau/chapitreRecap.ts`, garde `s.net.mode === 'guest'`, contrat
-  // `chapitre-recap.test.ts` « les trois gestes du cadre sont INERTES ») et les boutons portent leur
+  // `chapitre-recap.hors-store.test.ts` « les trois gestes du cadre sont INERTES ») et les boutons portent leur
   // raison (`GatedAction`, contrats de `CampaignOpeningScreen.test.tsx`/`ChapterRecapScreen.test.tsx`).
   acquitterOuverture: 'hôte', cloreChapitre: 'hôte', ajournerChapterRecap: 'hôte',
   chooseDialogue: 'hôte', designerHerosChoisir: 'hôte',

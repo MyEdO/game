@@ -30,7 +30,7 @@ import { syncDerivedConditions, derivedStacks, stacks, addCondition, raisonRefus
 import { passiveMods, poseDeterminationCanceller } from '../engine/trauma';
 import { purgeClockEffects } from './upkeep';
 import { determinationWindowId } from './combatSlice';
-import { rule, setRule, resetRule } from '../engine/policy';
+import { rule, setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import type { RNG } from '../engine/dice';
 import { desDuTest, desEnSuite } from '../engine/dice.testkit';
@@ -272,11 +272,7 @@ describe('la fenêtre de Détermination est celle que l’op PORTEUSE déclare (
   it('la règle maison PARAMÈTRE la fenêtre : à 7, la fenêtre dure 7 minutes', () => {
     const h = malade();
     setRule('maladie-conscience-determination-minutes', 7);
-    try {
-      expect(fenetreDetermination(h, 'inconscient', 10_000, desDuTest)).toEqual({ scale: 'clock', until: 10_007 });
-    } finally {
-      resetRule('maladie-conscience-determination-minutes');
-    }
+    expect(fenetreDetermination(h, 'inconscient', 10_000, desDuTest)).toEqual({ scale: 'clock', until: 10_007 });
   });
 
   /** Aucune op porteuse ne déclare de fenêtre → le DÉFAUT de LDB 16 l.117 (un Round), jamais un refus. */

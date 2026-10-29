@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyAttackResult, resolveCritSeverity, critSeverityDecl, critSeverityInSeam, CRIT_TABLE_IDS, STRUCTURE_CRIT_TABLE } from './combatFlow';
-import { setRule, resetRule } from '../engine/policy';
+import { setRule } from '../engine/policy';
 import { stepInteraction, rollTableStep, tableStepDef } from './cascade';
 import { draineCascade } from './cascade.testkit';
 import { seedBattleRng, battleRng } from './battleRng';
@@ -240,22 +240,18 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     const { H, E } = startFight();
     setDesFixes(true);
     setRule('combat-aa-blessures', 'aa');
-    try {
-      // Le prédicat de seam est celui de la bifurcation moteur : AA seul hors Sauvagerie.
-      expect(critSeverityInSeam(false)).toBe(false);
-      expect(critSeverityInSeam(true)).toBe(true); // Sauvagerie → tables LDB (l'Atout ne coexiste pas avec AA)
-      // Défense en profondeur : fabriquer une déclaration LDB sous AA promettrait une ligne que
-      // le résolveur AA n'appliquerait pas → levée, jamais un dé posé silencieusement ignoré.
-      expect(() => critSeverityDecl(H, 'corps', 0, false)).toThrow(/combat-aa-blessures/);
-      const suspended = applyAttackResult(banc.getState, banc.setState, E, H, hache, critHit('corps'));
-      expect(suspended, 'fenêtre LDB ouverte sous la variante AA').toBeUndefined();
-      expect(banc.getState().pendingCascade!.participants.some((s) => s.table?.tableId === CRIT_TABLE_IDS.corps && s.kind === 'deviation')).toBe(false);
-      // Le Critique appliqué vient bien des tables AA (id absent des tables LDB de la localisation).
-      const victime = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
-      expect(critiqueTable('ldb', 'corps').some((e) => e.id === lastCrit(victime))).toBe(false);
-    } finally {
-      resetRule('combat-aa-blessures');
-    }
+    // Le prédicat de seam est celui de la bifurcation moteur : AA seul hors Sauvagerie.
+    expect(critSeverityInSeam(false)).toBe(false);
+    expect(critSeverityInSeam(true)).toBe(true); // Sauvagerie → tables LDB (l'Atout ne coexiste pas avec AA)
+    // Défense en profondeur : fabriquer une déclaration LDB sous AA promettrait une ligne que
+    // le résolveur AA n'appliquerait pas → levée, jamais un dé posé silencieusement ignoré.
+    expect(() => critSeverityDecl(H, 'corps', 0, false)).toThrow(/combat-aa-blessures/);
+    const suspended = applyAttackResult(banc.getState, banc.setState, E, H, hache, critHit('corps'));
+    expect(suspended, 'fenêtre LDB ouverte sous la variante AA').toBeUndefined();
+    expect(banc.getState().pendingCascade!.participants.some((s) => s.table?.tableId === CRIT_TABLE_IDS.corps && s.kind === 'deviation')).toBe(false);
+    // Le Critique appliqué vient bien des tables AA (id absent des tables LDB de la localisation).
+    const victime = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
+    expect(critiqueTable('ldb', 'corps').some((e) => e.id === lastCrit(victime))).toBe(false);
   });
 
   it('SAUVAGERIE, dé tiré : DEUX lancers consommés à l’étape, le dé retenu est celui qui s’affiche', () => {

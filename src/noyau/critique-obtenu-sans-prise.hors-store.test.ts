@@ -2,7 +2,7 @@
  * Le Critique OBTENU au jet reste un fait du jet ; l'effet nul passe par `sansPrise` (#1595 c.6229550544).
  * LDB 13 l.183 ; LDB 62 l.248 ; LDB 85 l.98 ; LDB 85 l.134 ; LDB 14 l.159.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { applyAttackResult } from './combatFlow';
@@ -59,7 +59,6 @@ const vivant = (id: string): Combatant => banc.getState().battle!.combatants.fin
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [], pendingCast: null, pendingCascade: null });
 });
-afterEach(() => { banc.setState({ battle: null, pendingCascade: null }); });
 
 describe('Critique obtenu, touche sans prise', () => {
   it('Éthéré, arme non magique, double : Critique obtenu, sansPrise « ethere », aucun Critique compté', () => {
