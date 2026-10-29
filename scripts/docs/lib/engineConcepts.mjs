@@ -16,6 +16,7 @@
 //     (motif obsolète, cf. la même règle sur `CONCEPTS` de `build-vocabulaire.mjs`).
 export const FILE_CONCEPTS = new Map([
   ['src/engine/activeFlags.ts', "Drapeaux d'effet actif : consommation, relance gratuite"],
+  ['src/engine/activiteMer.testkit.ts', 'Activités : harnais de test (Activité de mer sans résolveur, posée au catalogue par le seam)'],
   ['src/engine/activities.ts', 'Activités hors combat : contexte, issues, bandes de résultat'],
   ['src/engine/advancement.ts', 'Avancement de personnage : Points d\'Expérience, changement de Carrière'],
   ['src/engine/advantage.ts', 'Avantage de combat'],
