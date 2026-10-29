@@ -1,4 +1,5 @@
 // Le contrat d'asset d'un personnage 3D modulaire (#2948) : lecture du GLB, validation du manifeste, import, Release.
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -13,7 +14,7 @@ import { ATTACHES } from './montage';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { depotDe, INDEX, listerImage } from '../../../scripts/guards/lib/gitPorte.mjs';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
-import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, LICENCE_DE_PRODUCTION, productionSchema3, deposerSchema3 } from './schema3.testkit.ts';
+import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, LICENCE_DE_PRODUCTION, productionSchema3, deposerSchema3, TEXTE_DE_LICENCE_DE_PRODUCTION } from './schema3.testkit.ts';
 import {
   DOSSIER_DES_MODELES, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   suivisHorsRelease, TAG, urlDAsset, type AssetAPublier, type Gh,
@@ -26,6 +27,9 @@ function glb(noeuds: readonly string[], animations: readonly string[], options: 
 }
 
 const GLB = glb(['corps', 'tete_a', 'casque', 'bouclier', 'epee'], ['Idle', 'Death_A']);
+
+/** L'empreinte du pack source que `production()` déclare. */
+const EMPREINTE_DE_PACK = sha256(Buffer.from('UAL1_Standard.glb'));
 
 /** Un manifeste de production valide contre `GLB`, avec des clés que la réduction écarte. */
 const production = () => ({
@@ -55,8 +59,10 @@ const production = () => ({
   defaults: ['corps', 'casque'],
   presets: { garde: { label_fr: 'Garde', components: ['corps', 'bouclier'] } },
   clips: { idle: 'Idle', death: 'Death_A' },
-  animation_sources: { 1: { path: '/home/x/anims/UAL1_Standard.glb', sha256: 'abc', bones: 65 } },
+  packs_sources: { ual1: { path: '/home/x/anims/UAL1_Standard.glb', sha256: EMPREINTE_DE_PACK, licence: LICENCE_DE_PRODUCTION } },
 });
+/** Le nom de dépôt d'un texte de licence CC0 de contenu `texte` (`nomDeLicence`, `importer.ts`). */
+const nomCC0 = (texte: string) => `LICENSE-CC0-1.0-${sha256(Buffer.from(texte)).slice(0, 16)}.txt`;
 
 /** `production()` sans tête interchangeable : aucune `head_options`, aucune pièce de tête. */
 const sansTete = () => {
@@ -267,6 +273,9 @@ afterEach(() => dossiers.splice(0).forEach((d) => rmSync(d, { recursive: true, f
 
 const EMPREINTE = sha256(GLB);
 
+/** Chaque fichier du dossier `d` et ses octets. */
+const photo = (d: string) => listerDossier(d).map((f) => [f, readFileSync(join(d, f)).toString('base64')]);
+
 describe('import et chargement au schéma 3', () => {
   const importer = (destination: string, manifeste: unknown, octets = GLB_D_ELEMENT, id = 'element', publier: ((assets: readonly AssetAPublier[]) => readonly string[]) | null = null) =>
     importerPersonnage({ dossier: productionSchema3(temporaire(), manifeste, octets), id, destination, date: '2026-10-28', publier });
@@ -360,6 +369,88 @@ describe('import et chargement au schéma 3', () => {
     if (code === 'base-en-doublon') deposerSchema3(d, 'b', baseSchema3(), GLB_DE_BASE);
     await expect(recupererModeles({ dossier: d, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(`[${code}]`);
   });
+
+  /** Une base réexportée : le GLB `octets`, et son manifeste, celui de `baseSchema3(nom)` aux os de `os` renommés `root`. */
+  const reexport = (os = 'root', nom = 'humanoide') => {
+    const octets = ecrireGlb({ asset: { version: '2.0', generator: 'réexport' }, nodes: [{ name: os }], skins: [{ joints: [0] }], animations: [{ name: 'walk' }] }, null);
+    const manifeste = { ...JSON.parse(JSON.stringify(baseSchema3(nom)).split('"root"').join(JSON.stringify(os))), glb: { sha256: sha256(octets), octets: octets.byteLength } };
+    return { octets, dossier: productionSchema3(temporaire(), manifeste, octets) };
+  };
+  /** Une destination où la base `humanoide` est importée, puis l'élément `epee` qui la référence. */
+  const baseEtElement = () => {
+    const destination = temporaire();
+    expect([importer(destination, baseSchema3(), GLB_DE_BASE, 'humanoide').ok, importer(destination, elementSchema3(), GLB_D_ELEMENT, 'epee').ok]).toEqual([true, true]);
+    return destination;
+  };
+  const reimporter = (dossier: string, destination: string, remplacer?: boolean) =>
+    importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: null, remplacer });
+
+  it('remplace par --remplacer une base qui a un élément : l’élément reste, la provenance de base est la neuve ; sans, [id-deja-present]', async () => {
+    const destination = baseEtElement();
+    const { octets, dossier } = reexport();
+    const epee = photo(destination).filter(([f]) => f.startsWith('epee.'));
+    const sans = reimporter(dossier, destination);
+    expect(sans.ok ? sans : sans.refus).toContain('[id-deja-present] humanoide : --remplacer remplace le modèle importé');
+    const r = reimporter(dossier, destination, true);
+    expect(r.ok ? [r.provenance.model_sha256, r.retires] : r.refus).toEqual([sha256(octets), []]);
+    expect(JSON.parse(readFileSync(join(destination, 'humanoide.provenance.json'), 'utf8')).model_sha256).toBe(sha256(octets));
+    expect(photo(destination).filter(([f]) => f.startsWith('epee.'))).toEqual(epee);
+    const charges = await recupererModeles({ dossier: destination, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet });
+    expect(charges.map((m) => [m.id, m.empreinte])).toEqual([['epee', sha256(GLB_D_ELEMENT)], ['humanoide', sha256(octets)]]);
+  });
+  it.each([
+    ['dont l’os que l’élément porte disparaît', () => reexport('hanche'), /^\[remplacement-casse\] epee : \[/],
+    ['qui change le nom de la base', () => reexport('root', 'autre'), /^\[base-absente\] epee : humanoide$/],
+    ['qui passe hors Release sous un élément publié', () => {
+      const r = reexport();
+      const chemin = join(r.dossier, MANIFESTE_DE_PRODUCTION);
+      writeFileSync(chemin, JSON.stringify({ ...JSON.parse(readFileSync(chemin, 'utf8')), hors_release: 'essai sur le poste' }));
+      return r;
+    }, /^\[remplacement-casse\] epee : hors Release de la base « aucun », remplacé par « essai sur le poste »$/],
+  ])('refuse en bloc, destination inchangée à l’octet, une base réexportée %s', (_, nouvelle, motif) => {
+    const destination = baseEtElement();
+    const avant = photo(destination);
+    const r = reimporter(nouvelle().dossier, destination, true);
+    expect(r.ok ? r : r.refus.join('\n')).toMatch(motif);
+    expect(photo(destination)).toEqual(avant);
+  });
+  it('retire au remplacement le texte de licence que la provenance remplacée était seule à nommer', () => {
+    const destination = temporaire();
+    expect(importer(destination, baseSchema3(), GLB_DE_BASE, 'humanoide').ok).toBe(true);
+    const { dossier } = reexport();
+    const texte = 'Pack réexporté\nLicense: CC0\n';
+    writeFileSync(join(dossier, LICENCE_DE_PRODUCTION), texte);
+    const r = reimporter(dossier, destination, true);
+    expect(r.ok ? r.retires : r.refus).toEqual([join(destination, nomCC0(TEXTE_DE_LICENCE_DE_PRODUCTION))]);
+    expect(listerDossier(destination).filter((f) => f.startsWith('LICENSE'))).toEqual([nomCC0(texte)]);
+  });
+  it.each<[string, (m: Record<string, unknown>) => void, string]>([
+    ['à la forme d’avant #3118, animation_sources sans packs_sources', (m) => {
+      m.animation_sources = { ual1: { path: 'UAL1_Standard.glb', sha256: EMPREINTE_DE_PACK } };
+      delete m.packs_sources;
+    }, '[packs-sources-absents] manifest.json : packs_sources, au moins un pack attendu pour une base'],
+    ['dont un pack n’a pas d’empreinte', (m) => { m.packs_sources = { corps: { path: 'corps.gltf', licence: LICENCE_DE_PRODUCTION } }; }, '[pack-source-mal-forme] corps : sha256 « undefined » n\'est pas un SHA-256'],
+    ['dont l’empreinte d’un pack n’est pas un SHA-256', (m) => { m.packs_sources = { corps: { path: 'corps.gltf', sha256: 'abc', licence: LICENCE_DE_PRODUCTION } }; }, '[pack-source-mal-forme] corps : sha256 « abc » n\'est pas un SHA-256'],
+    ['dont un pack ne nomme aucun texte de licence', (m) => { m.packs_sources = { corps: { path: 'corps.gltf', sha256: EMPREINTE_DE_PACK } }; }, '[pack-source-mal-forme] corps : licence, nom d\'un texte LICENSE*.txt du dossier attendu'],
+    ['dont un pack n’est pas un objet', (m) => { m.packs_sources = { corps: 'x' }; }, '[pack-source-mal-forme] corps : objet attendu'],
+    ['dont un pack n’a pas de path', (m) => { m.packs_sources = { corps: { sha256: EMPREINTE_DE_PACK, licence: LICENCE_DE_PRODUCTION } }; }, '[pack-source-mal-forme] corps : path, chaîne attendue'],
+    ['dont packs_sources n’est pas un objet', (m) => { m.packs_sources = []; }, '[pack-source-mal-forme] packs_sources : objet attendu'],
+  ])('refuse une base %s', (_, muter, refus) => {
+    const dossier = productionSchema3(temporaire(), baseSchema3(), GLB_DE_BASE);
+    const manifest = JSON.parse(readFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), 'utf8'));
+    muter(manifest);
+    writeFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), JSON.stringify(manifest));
+    const destination = join(temporaire(), 'modeles');
+    expect(importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: null })).toEqual({ ok: false, refus: [refus] });
+    expect(existsSync(destination)).toBe(false);
+  });
+});
+
+describe('les modules que node charge sans Vite', () => {
+  it('résolvent chacun leurs imports : manifeste.mjs rend son usage', () => {
+    const r = spawnSync(process.execPath, ['scripts/personnage-3d/base/manifeste.mjs'], { encoding: 'utf8' });
+    expect([r.status, `${r.stdout}${r.stderr}`.split('\n')[0]]).toEqual([2, expect.stringMatching(/^usage : node scripts\/personnage-3d\/base\/manifeste\.mjs /)]);
+  });
 });
 
 describe('importerPersonnage', () => {
@@ -374,12 +465,10 @@ describe('importerPersonnage', () => {
     const m = { ...production(), model_sha256: empreinte ?? EMPREINTE };
     muter(m);
     writeFileSync(join(d, m.model), GLB);
+    writeFileSync(join(d, LICENCE_DE_PRODUCTION), TEXTE_DE_LICENCE_DE_PRODUCTION);
     writeFileSync(join(d, MANIFESTE_DE_PRODUCTION), JSON.stringify(m));
     return d;
   };
-
-  /** Le nom sous lequel se dépose le texte de licence CC0 `texte`. */
-  const nomCC0 = (texte: string) => `LICENSE-CC0-1.0-${sha256(Buffer.from(texte)).slice(0, 16)}.txt`;
 
   it('publie le GLB sous son empreinte, puis dépose le manifeste réduit et la provenance sans chemin', () => {
     const destination = temporaire();
@@ -398,8 +487,8 @@ describe('importerPersonnage', () => {
       model_sha256: EMPREINTE,
       importe_le: '2026-10-23',
       licences: { corps: { base: 'explicit asset header', en_tete: ['CC0'], annoncees: ['CC0 (official asset-pack page)'] } },
-      licences_de_pack: [],
-      animation_sources: [{ fichier: 'UAL1_Standard.glb', sha256: 'abc' }],
+      licences_de_pack: [{ fichier: nomCC0(TEXTE_DE_LICENCE_DE_PRODUCTION), licence: 'CC0' }],
+      packs_sources: [{ pack: 'ual1', fichier: 'UAL1_Standard.glb', sha256: EMPREINTE_DE_PACK, licence: nomCC0(TEXTE_DE_LICENCE_DE_PRODUCTION) }],
     });
   });
 
@@ -447,6 +536,13 @@ describe('importerPersonnage', () => {
     expect([f.manifeste, f.provenance].map((nom) => existsSync(join(destination, nom)))).toEqual([false, false]);
   });
 
+  it('refuse --remplacer sur une production schéma 2, sans rien écrire', () => {
+    const destination = join(temporaire(), 'modeles');
+    const r = importerPersonnage({ dossier: dossierDeProduction(), id: 'Essai', destination, date: '2026-10-29', publier: null, remplacer: true });
+    expect(r).toEqual({ ok: false, refus: ['[remplacer-hors-schema-3] Essai : --remplacer ne remplace qu\'un modèle schéma 3'] });
+    expect(existsSync(destination)).toBe(false);
+  });
+
   it('ne publie rien sans publication (--sans-publier)', () => {
     const r = importerPersonnage({ dossier: dossierDeProduction(), id: 'Essai', destination: temporaire(), date: '2026-10-23', publier: null });
     expect(r.ok && r.publies).toEqual([]);
@@ -454,6 +550,12 @@ describe('importerPersonnage', () => {
 
   it.each<[string, () => string, RegExp | string]>([
     ['un manifeste d’un autre GLB', () => dossierDeProduction(() => {}, '0'.repeat(64)), /^empreinte SHA-256 du GLB [0-9a-f]{64}, manifest\.json déclare 0{64}$/],
+    ['un GLB illisible', () => {
+      const illisible = Buffer.from('pas un glb');
+      const d = dossierDeProduction(() => {}, sha256(illisible));
+      writeFileSync(join(d, 'animated.glb'), illisible);
+      return d;
+    }, /^\[glb-illisible\] GLB illisible : 10 octets, en-tête incomplet$/],
     ['un manifeste sans empreinte', () => dossierDeProduction((m) => { delete (m as { model_sha256?: string }).model_sha256; }), /, manifest\.json déclare undefined$/],
     ['un chemin absolu laissé', () => dossierDeProduction((m) => { m.components.bouclier.label_fr = '/home/x/bouclier'; }), /chemin-absolu/],
     ['une licence d’en-tête que le pack n’annonce pas', () => dossierDeProduction((m) => {
@@ -468,14 +570,19 @@ describe('importerPersonnage', () => {
       writeFileSync(join(d, 'LICENSE-Pack.txt'), 'Pack\nLicense: MIT\n');
       return d;
     }, /^\[licence-inconnue\] LICENSE-Pack\.txt : « MIT »$/],
-    ['une production sans composant licencié ni texte de licence', () => dossierDeProduction((m) => {
-      delete (m.components.corps as { asset?: unknown }).asset;
-    }), /^\[licence-absente\] /],
-    ['une production schéma 3 sans composant licencié ni texte de licence', () => {
-      const d = productionSchema3(temporaire(), baseSchema3(), GLB_DE_BASE);
+    ['une production sans composant licencié, ni pack source, ni texte de licence', () => {
+      const d = dossierDeProduction((m) => {
+        delete (m.components.corps as { asset?: unknown }).asset;
+        delete (m as { packs_sources?: unknown }).packs_sources;
+      });
       rmSync(join(d, LICENCE_DE_PRODUCTION));
       return d;
     }, /^\[licence-absente\] /],
+    ['une base schéma 3 dont le texte de licence du pack manque', () => {
+      const d = productionSchema3(temporaire(), baseSchema3(), GLB_DE_BASE);
+      rmSync(join(d, LICENCE_DE_PRODUCTION));
+      return d;
+    }, /^\[licence-de-pack-absente\] corps : LICENSE-Pack\.txt$/],
     ['un manifeste absent', () => {
       const d = dossierDeProduction();
       rmSync(join(d, MANIFESTE_DE_PRODUCTION));
@@ -786,6 +893,8 @@ describe('suivisHorsRelease', () => {
 describe('dossier de production d’une base (#3106)', () => {
   /** Le texte de licence des packs Quaternius UAL1, UAL2 et UBC, à l'octet près (CRLF, espace final). */
   const LICENCE_QUATERNIUS = '-----------------------------\r\nLicense:\r\nCC0 1.0 Universal (CC0 1.0) \r\nPublic Domain Dedication\r\n';
+  /** Un texte de licence du pack de corps, distinct de `LICENCE_QUATERNIUS` : chaque pack se relie à SON dépôt. */
+  const LICENCE_DU_CORPS = 'Ultimate Base Characters\r\nLicense:\r\nCC0 1.0 Universal (CC0 1.0) \r\n';
   const PACKS = ['ual1', 'ual2', 'corps'] as const;
   /** Un pack : son texte de licence `licence`, de contenu `texte`, à la racine, le fichier source `fichier` deux dossiers plus bas. */
   const pack = (fichier: string, licence = 'License.txt', texte = LICENCE_QUATERNIUS) => {
@@ -797,7 +906,7 @@ describe('dossier de production d’une base (#3106)', () => {
   };
   /** Les sources d'une base et le texte de licence nommé pour chacune, le pack de `remplace` substitué. */
   const packs = (remplace: Partial<Record<(typeof PACKS)[number], ReturnType<typeof pack>>> = {}): { sources: SourcesDeBase; licences: SourcesDeBase } => {
-    const p = { ual1: pack('UAL1_Standard.glb'), ual2: pack('UAL2_Standard.glb'), corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt'), ...remplace };
+    const p = { ual1: pack('UAL1_Standard.glb'), ual2: pack('UAL2_Standard.glb'), corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt', LICENCE_DU_CORPS), ...remplace };
     return { sources: tableTotale(PACKS, (s) => p[s].source), licences: tableTotale(PACKS, (s) => p[s].licence) };
   };
   /** Le GLB de base exporté dans un dossier de sortie neuf, puis son dossier de production écrit. */
@@ -817,22 +926,26 @@ describe('dossier de production d’une base (#3106)', () => {
     const manifest = JSON.parse(readFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), 'utf8'));
     expect(manifest).toEqual({
       model: 'humanoide.glb', model_sha256: sha256(GLB_DE_BASE), manifeste: baseSchema3(),
-      animation_sources: {
-        ual1: { path: sources.ual1, sha256: sha256(readFileSync(sources.ual1)) },
-        ual2: { path: sources.ual2, sha256: sha256(readFileSync(sources.ual2)) },
-      },
+      packs_sources: tableTotale(PACKS, (s) => ({ path: sources[s], sha256: sha256(readFileSync(sources[s])), licence: `LICENSE-${s}.txt` })),
       hors_release: HORS_RELEASE_DE_BASE,
     });
-    for (const s of ['ual1', 'ual2', 'corps'] as const) expect(readFileSync(join(dossier, `LICENSE-${s}.txt`), 'utf8')).toBe(LICENCE_QUATERNIUS);
+    expect(PACKS.map((s) => readFileSync(join(dossier, `LICENSE-${s}.txt`), 'utf8'))).toEqual([LICENCE_QUATERNIUS, LICENCE_QUATERNIUS, LICENCE_DU_CORPS]);
     const destination = temporaire();
     const r = importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: null });
-    expect(r.ok ? [r.provenance.licences_de_pack.map((l) => l.licence), r.provenance.hors_release] : r.refus).toEqual([['CC0 1.0 Universal (CC0 1.0)'], HORS_RELEASE_DE_BASE]);
+    expect(r.ok ? [r.provenance.licences_de_pack.map((l) => l.fichier).sort(), r.provenance.hors_release] : r.refus)
+      .toEqual([[nomCC0(LICENCE_QUATERNIUS), nomCC0(LICENCE_DU_CORPS)].sort(), HORS_RELEASE_DE_BASE]);
+    expect(r.ok ? r.provenance.packs_sources : r.refus).toEqual([
+      { pack: 'ual1', fichier: 'UAL1_Standard.glb', sha256: sha256(readFileSync(sources.ual1)), licence: nomCC0(LICENCE_QUATERNIUS) },
+      { pack: 'ual2', fichier: 'UAL2_Standard.glb', sha256: sha256(readFileSync(sources.ual2)), licence: nomCC0(LICENCE_QUATERNIUS) },
+      { pack: 'corps', fichier: 'Superhero_Male_FullBody.gltf', sha256: sha256(readFileSync(sources.corps)), licence: nomCC0(LICENCE_DU_CORPS) },
+    ]);
     expect(JSON.parse(readFileSync(join(destination, 'humanoide.manifeste.json'), 'utf8'))).toEqual(baseSchema3());
   });
 
   it.each<[string, (m: Record<string, unknown>) => void, string]>([
     ['se déclare hors Release', () => {}, `[hors-release] ${HORS_RELEASE_DE_BASE} : import sans publication seulement (--sans-publier)`],
     ['porte une raison hors Release vide', (m) => { m.hors_release = ' '; }, '[hors-release] manifest.json : hors_release, raison non vide attendue'],
+    ['nomme pour un pack un texte de licence absent du dossier', (m) => { (m.packs_sources as Record<string, Record<string, unknown>>).corps.licence = 'LICENSE-ubc.txt'; }, '[licence-de-pack-absente] corps : LICENSE-ubc.txt'],
   ])('refuse à la publication une production qui %s, sans rien publier ni écrire', (_, muter, refus) => {
     const dossier = join(construite(), '..');
     const manifest = JSON.parse(readFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), 'utf8'));

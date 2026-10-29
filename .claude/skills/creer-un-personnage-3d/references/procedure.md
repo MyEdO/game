@@ -55,8 +55,10 @@ clips de marche), les bornes de `st` tirées de `src/data/gabarits.json` et des 
 l'empreinte du GLB. Le manifeste refusé par `validerManifesteDeBase` fait échouer la construction.
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
-`animation_sources`, `hors_release`) et `LICENSE-ual1.txt`, `LICENSE-ual2.txt`, `LICENSE-corps.txt`,
-copies des textes de licence des packs. Il s'importe tel quel, sans publication (section 6) :
+`packs_sources`, `hors_release`) et `LICENSE-ual1.txt`, `LICENSE-ual2.txt`, `LICENSE-corps.txt`,
+copies des textes de licence des packs ; `packs_sources.<pack>` porte le chemin, l'empreinte et la
+copie de licence (`licence`) de chaque pack, que la provenance garde par pack sous le nom du texte
+déposé. Il s'importe tel quel, sans publication (section 6) :
 
 ```sh
 node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier
@@ -207,8 +209,10 @@ Lire au besoin la référence diagnostics du skill.
 2. Construire grands volumes et raccords, puis articuler ; préserver les voisins.
 3. Exporter **seulement cet élément** en GLB avec ses matériaux, morphs et liaison compatibles.
    L'armature nécessaire au skin peut être exportée, sans dupliquer les meshes du corps ni les
-   clips de base ; les animations viennent de la base. Un rigide tenu conserve la hiérarchie
-   vers l'os de prise nécessaire au montage par l'évaluateur. Réimporter le GLB réellement livré.
+   clips de base ; les animations viennent de la base. Un rigide tenu pend à un os de la
+   base : l'import refuse un élément rigide sans mesh, un mesh sur un os absent de la base, ou à la
+   racine hors `decor`/`vehicule` (`hotes/godot/asset/element.ts` `REGLES_DES_CATEGORIES`).
+   Réimporter le GLB réellement livré.
 4. Écrire le manifeste schéma 3, valider sa forme contre la base, vérifier son empreinte et
    évaluer le GLB monté sur cette base (commandes ci-dessous).
 5. Comparer source ↔ GLB sous même caméra/pose/lumière, à taille du jeu et en gros plans exposant
@@ -378,7 +382,12 @@ et ses `LICENSE*.txt` (ligne `License:` obligatoire). Pour une base ou un élém
 
 Remplacer `manifeste` par le manifeste COMPLET de base ou d'élément. Les métadonnées de licences
 des composants restent dans `components.<id>.asset` de l'enveloppe (`license_basis`,
-`explicit_header`, `packs[].announced_license`), les sources d'animation dans `animation_sources`.
+`explicit_header`, `packs[].announced_license`), les packs sources (clips, corps) dans
+`packs_sources.<pack>` (`path`, `sha256`, `licence` : le nom d'un `LICENSE*.txt` du dossier).
+L'import refuse `[pack-source-mal-forme]` un `packs_sources` ou une entrée qui n'est pas un objet, un `path` ou une
+`licence` qui n'est pas une chaîne, un `sha256` qui n'est pas un SHA-256 hexadécimal minuscule ;
+`[licence-de-pack-absente]` une `licence` qui ne nomme aucun texte `LICENSE*.txt` du dossier ;
+`[packs-sources-absents]` une base qui ne déclare aucun pack.
 Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé. Une production sans
 composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 
@@ -393,6 +402,12 @@ npm run godot:valider -- /atelier/epee/element.json /atelier/modeles/humanoide.m
 La validation cherche le GLB voisin du manifeste de base (`humanoide.manifeste.json` →
 `humanoide.glb` ; `base.json` → `base.glb`). Pour un autre nom, ajouter
 `--glb-base /atelier/base/corps.glb`. La base et son GLB sont validés avant l'élément.
+
+Une base réexportée remplace la base déposée sans retirer ses éléments :
+`node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier --remplacer`.
+Chaque élément qui la référence se revalide contre elle ; un seul refusé (`[remplacement-casse]`,
+ou `[base-absente]` si le nom de base change) et rien n'est écrit. Sans `--remplacer`, l'import
+refuse `[id-deja-present]`.
 
 L'import retrouve la base par son champ `base` dans les `*.manifeste.json` de la destination,
 indépendamment du nom de fichier. Il exige son GLB local et sa provenance épinglée :

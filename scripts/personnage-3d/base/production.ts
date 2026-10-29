@@ -3,7 +3,7 @@
  * (`hotes/godot/asset/importer.ts`, `dossierDeProduction.ts`). Chaque fichier a une source :
  * - le GLB, exporté par la construction (`humanoide.py`) ;
  * - `manifest.json` : `model` et `model_sha256` pris au GLB, `manifeste` le manifeste complet (`manifeste.mjs`),
- *   `animation_sources` le chemin et l'empreinte de chaque pack de clips, `hors_release` la raison qui tient la base
+ *   `packs_sources` le chemin, l'empreinte et la copie du texte de licence de chaque pack, `hors_release` la raison qui tient la base
  *   hors Release (#2948, arbitrages n°14 et n°19) ;
  * - `LICENSE-<source>.txt` : la copie octet pour octet du texte de licence que la construction nomme pour chaque pack
  *   source, pris dans un dossier ancêtre de la source.
@@ -24,8 +24,6 @@ type Source = keyof SourcesDeBase;
 /** Le texte de licence nommé pour chaque pack de `SourcesDeBase`. */
 type LicencesDeBase = SourcesDeBase;
 const SOURCES: readonly Source[] = ['ual1', 'ual2', 'corps'];
-/** Les packs qui fournissent les clips de la base. */
-const SOURCES_D_ANIMATION: readonly Source[] = ['ual1', 'ual2'];
 
 /** La raison qui tient une base de packs Quaternius hors Release : #2948, arbitrages n°14 et n°19. */
 export const HORS_RELEASE_DE_BASE = "base d'essai construite de packs Quaternius (UAL, UBC), jamais en Release (#2948, arbitrages n°14 et n°19)";
@@ -103,7 +101,7 @@ export function ecrireProduction({ glb, manifeste, sources, licences }: { glb: s
     model: basename(glb),
     model_sha256: sha256(readFileSync(glb)),
     manifeste,
-    animation_sources: tableTotale(SOURCES_D_ANIMATION, (s) => ({ path: resolve(sources[s]), sha256: sha256(readFileSync(sources[s])) })),
+    packs_sources: tableTotale(SOURCES, (s) => ({ path: resolve(sources[s]), sha256: sha256(readFileSync(sources[s])), licence: copieDeLicence(s) })),
     [CLE_HORS_RELEASE]: HORS_RELEASE_DE_BASE,
   };
   const manifest = join(dossier, MANIFESTE_DE_PRODUCTION);
