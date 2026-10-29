@@ -167,6 +167,10 @@ const NOMMES = [
   'porteuse|voisine|les-deux',
   // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
   'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
+  // `defs/garde-robe.ts` (#3114) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.
+  'emplacement|piece|ensemble',
+  'vetement|armure|accessoire',
+  'trapping|apparence',
 ].sort();
 
 /**
