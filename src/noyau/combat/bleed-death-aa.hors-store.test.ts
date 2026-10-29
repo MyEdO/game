@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { runCombatHooks, type CombatHookCtx } from '../combatHooks';
 import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../battleRng';
 import { ev } from '../combatLog';
 import { addCondition, stacks, COND } from '../../engine/conditions';
-import { setRule, resetRule } from '../../engine/policy';
+import { setRule } from '../../engine/policy';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 
@@ -20,9 +20,6 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('#38 (d) — gate AA du jet de mort par Hémorragique (AA 07 l.7)', () => {
   beforeEach(() => {
     banc.setState({ pendingCascade: null, pendingFateSave: null, battle: null });
-  });
-  afterEach(() => {
-    resetRule('combat-aa-blessures');
   });
 
   function setup() {

@@ -33,7 +33,7 @@ const g = useGame.getState;
 const etapes = () => g().pendingCascade?.participants ?? [];
 const bandes = (k: string) => etapes().filter((s) => s.kind === k);
 
-/** Combat RÉEL à deux sièges (calque `sequence-possession.test.ts`) : le siège 1 possède les héros
+/** Combat RÉEL à deux sièges (calque `sequence-possession.hors-store.test.ts`) : le siège 1 possède les héros
  *  d'indice `invites`, l'hôte (siège 0) garde les autres. Tous les ennemis sauf le premier sont morts. */
 function setupCoop(opts: { heros?: number; invites?: number[] } = {}): { H: Combatant[]; E: Combatant[] } {
   const n = opts.heros ?? 1;

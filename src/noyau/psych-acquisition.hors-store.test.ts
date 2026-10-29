@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { seedBattleRng } from './battleRng';
@@ -47,7 +47,6 @@ function setBattle(combatants: Combatant[], fateSave: ReturnType<typeof banc.get
 
 describe('#62 — Animosité & Haine sur dépense de Destin (fateSurvive / fateNegate)', () => {
   beforeEach(() => { setRule('psych-acquisition-optional', true); });
-  afterEach(() => resetRule('psych-acquisition-optional'));
 
   it('règle ON + Calme ÉCHOUE → Animosité envers la Cible ; un 2ᵉ échec même Cible → Haine (remplace)', () => {
     const h = hero();
@@ -96,7 +95,6 @@ describe('#62 — Animosité & Haine sur dépense de Destin (fateSurvive / fateN
 
 describe('ADE II (VO) 09 l.14 — la Cible est le Groupe de l’adversaire (finalizeHeroDeath → fateSurvive)', () => {
   beforeEach(() => { setRule('psych-acquisition-optional', true); });
-  afterEach(() => resetRule('psych-acquisition-optional'));
 
   /** Un héros frôle la mort sous les coups de `foe`, dépense son Destin et rate son Calme. */
   const traitsApres = (foe: Combatant) => {
@@ -120,7 +118,6 @@ describe('ADE II (VO) 09 l.14 — la Cible est le Groupe de l’adversaire (fina
 
 describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `combatPsych`, Terreur ratée)', () => {
   beforeEach(() => { setRule('psych-acquisition-optional', true); });
-  afterEach(() => resetRule('psych-acquisition-optional'));
 
   /** Le héros (FM 30 → BFM 3, déjà 2 Brisé de Terreur) rate son Calme de 1 DR face à `foe` (Terreur 1 → 2 Brisé). */
   const terreurRatee = (foe: Combatant) => {
@@ -150,7 +147,6 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `combatPsych`, Te
 
 describe('#62 — Trauma sur Ambition anéantie (Effet d’auteur `ambitionLost`)', () => {
   beforeEach(() => { banc.setState({ battle: null, mode: 'exploration', journal: [] }); });
-  afterEach(() => resetRule('psych-acquisition-optional'));
 
   it('règle ON + Calme Accessible (+20) ÉCHOUE → Trauma posé sur le héros visé', () => {
     setRule('psych-acquisition-optional', true);

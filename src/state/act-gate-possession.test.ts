@@ -8,7 +8,7 @@
  *
  * `surfaceOf` (`rollSeam`) est SEAT-AGNOSTIQUE : le porteur d'un autre siège surface aussi.
  * En SOLO les deux prédicats coïncident (`ownsLocal` vrai pour tous) — d'où le harnais à deux
- * sièges de `roll-seam-socle.test.ts` (#1262 B7) : sans lui la régression est invisible.
+ * sièges de `roll-seam-socle.hors-store.test.ts` (#1262 B7) : sans lui la régression est invisible.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';

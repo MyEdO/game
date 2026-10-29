@@ -7,7 +7,7 @@
  *
  * Le moteur et l'état transportent la DONNÉE (`difficulty` + `difficultyCombined`, `engine/combat.ts`
  * `DifficultyShown`) ; ce module la met en mots par `t()`, et il est la seule maison du mot hors du catalogue
- * i18n (garde `state/roll-line-combat.test.ts`).
+ * i18n (garde `noyau/roll-line-combat.hors-store.test.ts`).
  */
 import { avecSigne, DIFFICULTY_LABELS, type Difficulty } from '../engine/types';
 import type { DifficultyShown, ModLine } from '../engine/combat';

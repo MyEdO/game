@@ -1,5 +1,5 @@
 import { fixtureText } from '../i18n/fixtureText';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import {
@@ -9,7 +9,7 @@ import { applyLandCargoRaid } from './carriers';
 import { spoilVesselCargoOnLeak } from './seaVoyageFlow';
 import { startCascade } from './cascade';
 import { seedBattleRng } from './battleRng';
-import { rule, setRule, resetRule } from '../engine/policy';
+import { rule, setRule } from '../engine/policy';
 import type { CascadeStep } from './pendings';
 import type { Possession } from '../engine/possession';
 import { vehicleCombatant } from '../engine/vehicle';
@@ -64,8 +64,6 @@ describe('Risque cargaison — tronc PUR (#327 lot D)', () => {
 });
 
 describe('Vol terrestre GRADUÉ par l’issue (#327 A5.1) — applyLandCargoRaid', () => {
-  afterEach(() => { resetRule('landRobberyFleePct'); resetRule('landRobberyLossPct'); });
-
   const slice = (lots: CargoLot[]) => {
     const h = cartHero();
     return { party: [h], vessel: null, worldMap: null, scene: null, possessions: [cartPossession(h.id, lots)] } as never;

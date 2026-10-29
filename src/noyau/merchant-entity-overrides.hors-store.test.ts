@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { toBrass, priceToMoney } from '../engine/money';
@@ -31,7 +31,6 @@ const sceneWith = (merchant: Record<string, unknown>) => {
 
 describe('#93 — marketRule : override par-entité prime sur le global', () => {
   beforeEach(reset);
-  afterEach(() => { resetRule('market-mode'); resetRule('market-guild'); resetRule('market-tenir-comptes'); });
 
   it('marketMode : override "sans-marchandage" prime alors que le global reste "complet"', () => {
     banc.setState({ party: [hero()], scene: sceneWith({ marketMode: 'sans-marchandage' }) });

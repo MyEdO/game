@@ -16,7 +16,7 @@
  * LOT 3 y ajoute les POSTES d'Étape (voyage terrestre, `travelPostes`) : la bande des Activités et la
  * bande de Résistance de traversée naissaient de littéraux SANS possession — même fenêtre hôte-seul.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { etatInitialDuJeu } from './etat';
@@ -36,7 +36,7 @@ import { WORLD_STEP_OWNER } from './pendings';
 import { surfaceOf } from './rollSeam';
 import { partyAssisted } from '../engine/skills';
 import { buildScene } from './mapSpec';
-import { setRule, resetRule } from '../engine/policy';
+import { setRule } from '../engine/policy';
 import { setCadence, resetCadence, cadenceAuto } from '../engine/cadence';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { WorldMap, MapRouteTrace } from './worldMap';
@@ -238,8 +238,6 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
 // ── ROUTE ────────────────────────────────────────────────────────────────────────────────────────
 
 describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d’un INVITÉ', () => {
-  afterEach(() => resetRule('travel-allures'));
-
   it('conducteur d’un autre siège : la journée devient influençable au lieu de se rouler en silence', () => {
     setRule('travel-allures', true);
     seedBattleRng(1);

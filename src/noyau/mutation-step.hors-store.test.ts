@@ -13,10 +13,10 @@ import {
 } from '../data/mutations';
 import { species } from '../data';
 import { createHero } from '../engine/character';
-import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
+import { setDesFixes, desFixes } from '../engine/fixedDie';
 import { canFixDie } from './netOwnership';
 import { draineCascade } from './cascade.testkit';
-import { setRule, resetRule } from '../engine/policy';
+import { setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import { desEnSuite } from '../engine/dice.testkit';
 
@@ -60,11 +60,9 @@ function cheminAvant(hero: Combatant, seed: number) {
 
 describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
   beforeEach(() => {
-    resetDesFixes();
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [] });
   });
   afterEach(() => {
-    resetDesFixes(); resetRule('corruption-tables-edoc');
     // Hygiène de sortie : ce fichier laisse des séquences OUVERTES au milieu de leurs tirages (fenêtre
     // de pose). Le banc (`ouvrirLeBanc`, `beforeEach`) part d'un état neuf à chaque test, mais on ne
     // lègue pas un slot occupé à un lecteur d'état qui tournerait entre deux tests.

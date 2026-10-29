@@ -97,8 +97,6 @@ function greementEnPeril(): readonly BuiltCascadeStep[] | undefined {
 }
 
 describe('#1657 B3-2 — le coup à l’équipage naît comme UNE BANDE, une rangée par siège', () => {
-  beforeEach(() => seedBattleRng(1));
-
   it('(i) 3 personnes TENUES sur le pont → UNE bande de 3 rangées, possédée par le groupe, enjeu à SA rangée', () => {
     const party = equipage();
     fleuve(party);

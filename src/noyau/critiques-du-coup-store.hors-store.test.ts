@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { battleRng, seedBattleRng } from './battleRng';
 import { applyAttackResult, applyCast, applyOpposedCritical, resolveAttack, type CastCritChoice } from './combatFlow';
@@ -95,8 +95,6 @@ const casse = (c: Combatant, uid: string) => (portee(c, uid).damageTaken ?? 0) >
 const journal = () => banc.getState().battle!.log.map((l) => l.text);
 
 describe('le store joue le compte des Blessures critiques du coup', () => {
-  afterEach(() => { resetRule('combat-aa-blessures'); });
-
   it("'ldb' : Coup Critique ET dépassement — deux Blessures critiques, à la même Localisation (LDB 18 l.17, l.53)", () => {
     const { res, cible } = coupQuiDepasse(true);
     expect(cible.criticalWounds).toBe(2);
@@ -341,7 +339,6 @@ describe('Bâclée : la casse suit le Coup Critique, dévié, subi ou ignoré (L
 
 describe("'aa' : le Critique du passage à 0 est un Coup Critique (AA 07 l.25, l.36 ; #1595 c.6226467544)", () => {
   beforeEach(() => { setRule('combat-aa-blessures', 'aa'); });
-  afterEach(() => { resetRule('combat-aa-blessures'); });
 
   const inoffensive = { label: 'Bâton', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'inoffensive' }] } as unknown as Weapon;
   const estoc = { ...epee, label: 'Estoc', qualities: [{ id: 'perforante' }] } as Weapon;
@@ -389,8 +386,6 @@ describe("'aa' : le Critique du passage à 0 est un Coup Critique (AA 07 l.25, l
 });
 
 describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 63 l.78 ; LDB 60 l.50 ; LDB 14 l.3 ; #1595 c.6228496170 Q3, Q4a)", () => {
-  afterEach(() => { resetRule('combat-critical-deflect'); });
-
   const bacle = piece(['bacle'], 1);
   const impenetrable = (locs: readonly string[] = LOCS) => ({ ...piece(['impenetrable'], 1, locs), uid: 'p2' }) as ItemInstance;
 
@@ -519,7 +514,6 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
 
 describe("'aa' : l'Incantation critique d'un Projectile sur une cible debout (LDB 46 l.30 ; AA 07 l.36, l.67 ; #1595 c.6219992594)", () => {
   beforeEach(() => { setRule('combat-aa-blessures', 'aa'); });
-  afterEach(() => { resetRule('combat-aa-blessures'); });
 
   /** Le Projectile en Incantation critique sur la cible debout à 20 PB, PA 0, `choix` = l'effet choisi (absent : celui par défaut). */
   function projectileDebout(chanceux: boolean, choix: 'critique' | undefined) {
@@ -559,8 +553,6 @@ describe("'aa' : l'Incantation critique d'un Projectile sur une cible debout (LD
 });
 
 describe("Projectile magique : l'animation de la touche porte son compte de Blessures critiques (LDB 46 l.30 ; LDB 18 l.17)", () => {
-  afterEach(() => { resetRule('combat-aa-blessures'); });
-
   interface Emission { phase: 'applyCast' | 'drain'; to: string; critiques?: number; woundsLost?: number; cwAuMoment: number }
   /** Les `ANIM_ATTACK` de sort, chacune avec la phase où elle tombe et les Blessures critiques de sa cible à cet instant. */
   function ecoute() {
@@ -661,8 +653,6 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
 });
 
 describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les déviées (LDB 63 l.30, l.32)', () => {
-  afterEach(() => { resetRule('combat-aa-blessures'); });
-
   /** Le coup joué par le noyau, avec les `critiques` de ses `ANIM_ATTACK` de mêlée. */
   function emisDuCoup(o: Coup) {
     const emis: (number | undefined)[] = [];
@@ -720,8 +710,6 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
 });
 
 describe('la ligne de touche du journal dit le coup APPLIQUÉ (LDB 18 l.53, l.55 ; LDB 63 l.30, l.32)', () => {
-  afterEach(() => { resetRule('combat-aa-blessures'); });
-
   /** Le coup joué, la touche FINALE émise à l'application, et la ligne de touche du journal. */
   function joue(opts: Coup) {
     const emis: AttackResult[] = [];
@@ -897,8 +885,6 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
 });
 
 describe('la ligne de touche qualifie la Localisation relancée, au jet comme au journal (LDB 18 l.53, l.55 ; AA 07 l.25, l.32)', () => {
-  afterEach(() => { resetRule('combat-aa-blessures'); });
-
   const rapiere = { ...epee, label: 'Rapière', qualities: [{ id: 'empaleuse' }] } as Weapon;
   const relancee = (c: Combatant, lieu: Parameters<typeof locationLabel>[0]) => `(${tr('touche.nouvelleLocalisation', { lieu: locationLabel(lieu, c.bodyShape) })})`;
   const ligneDuJournal = () => journal().find((l) => l.startsWith('H touche')) ?? '';

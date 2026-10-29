@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyAttackResult, resolveCritSeverity, critSeverityDecl, critSeverityInSeam, CRIT_TABLE_IDS, STRUCTURE_CRIT_TABLE } from './combatFlow';
 import { setRule, resetRule } from '../engine/policy';
@@ -11,7 +11,7 @@ import { bonus, effectiveChar } from '../engine/characteristics';
 import { critiqueTable, critTableKeyFor } from '../data/criticals';
 import { findTableEntry } from '../engine/tables';
 import { createHero } from '../engine/character';
-import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
+import { setDesFixes, desFixes } from '../engine/fixedDie';
 import { testScene } from '../scenes/test-fixture';
 import { snapshotSave } from './persistance/save';
 import { instantaneDeLaCoop } from './coop';
@@ -63,13 +63,11 @@ const critHit = (loc: HitLocation, woundsLost = 2): AttackResult => ({
 });
 
 describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () => {
-  beforeEach(() => { resetDesFixes(); banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [] }); });
-  afterEach(() => { resetDesFixes(); });
+  beforeEach(() => { banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [] }); });
 
   it('SENTINELLE : le fichier démarre option « Dés fixés » ÉTEINTE (aucune fuite d’un autre fichier)', () => {
-    // Singleton de module partagé sous `isolate:false` : une option laissée allumée ailleurs ouvrirait
-    // ICI des fenêtres de pose, suspendrait les attaques et ferait disparaître les Blessures. Le socle
-    // (`src/test-setup.ts`) la remet à zéro à chaque test — l'ordre d'exécution ne décide de rien.
+    // Allumée, l'option ouvrirait ICI des fenêtres de pose, suspendrait les attaques et ferait disparaître
+    // les Blessures. L'ouverture du banc la pose (`ouvrirLeProprietaire`) à chaque test.
     expect(desFixes()).toBe(false);
   });
 

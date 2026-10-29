@@ -226,7 +226,7 @@ describe('#3045 — le lint mure les ROUTES DE FORGE de la Cible d’un Trait ps
 });
 
 /**
- * LES `@ts-expect-error` DU MURAGE SONT-ILS TUEURS ? (#1262 B4) — `roll-seam-mints.test.ts` atteste
+ * LES `@ts-expect-error` DU MURAGE SONT-ILS TUEURS ? (#1262 B4) — `roll-seam-mints.hors-store.test.ts` atteste
  * que `pushCombatStep` refuse un littéral, par des directives `@ts-expect-error`. Une directive ne
  * vaut que si l'erreur attendue EXISTE : sous l'ancienne signature (`CascadeStep`), elle devient
  * INUTILISÉE et `tsc` rougit (TS2578) — c'est ce qui rend le test tueur plutôt que décoratif.

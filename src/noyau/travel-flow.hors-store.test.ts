@@ -8,7 +8,7 @@
  */
 import { refLabel, resolveStake, weather } from '../data';
 import { itemFromTrappingById } from '../engine/items';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
@@ -77,9 +77,6 @@ function runToEnd(maxSteps = 60): void {
     if (!get().travelPlan) return;
   }
 }
-
-beforeEach(() => { seedBattleRng(1); });
-afterEach(() => { resetRule('travel-etapes'); resetRule('travel-attraper-froid'); });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // (b) INFLUENCE : les jets du JOUR terrestre sont des étapes influençables d'une cascade travelDay.
@@ -339,8 +336,6 @@ describe('enchaînement JOUR → halte de nuit → reprise → arrivée', () => 
 // pas N modales) ; sinon → chemin synchrone historique (`forcedPaceDay`, inchangé).
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
-  afterEach(() => resetRule('travel-allures'));
-
   function forcedRoute(km: number): WorldMap {
     return { id: 'c', label: 'c', places: [
       { id: 'pa', label: 'A', pos: { x: 0, y: 0 }, scene: 'lieu-a-scene' },
@@ -532,8 +527,6 @@ describe('Péripétie terrestre — base NUE + Soutien NOMMÉ, cible invariante 
  * NOMMÉE une seule fois.
  */
 describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seule grandeur', () => {
-  afterEach(() => resetRule('travel-allures'));
-
   function attelage(): { lead: Combatant; aide: Combatant } {
     const lead = hero({ id: 'lead', label: 'Lead', skills: [{ id: 'conduite-d-attelage', advances: 40 } as never] });
     const aide = hero({ id: 'aide', label: 'Aide', skills: [{ id: 'conduite-d-attelage', advances: 5 } as never] });

@@ -304,7 +304,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
    * pose son enjeu À LA DÉCLARATION). Les étapes À TABLE et MONO, le TYPE les tient (`TableSpec.stake`,
    * `MonoSpec.stake` requis, #1262 V2 L6 et L6d) ; l'enjeu posé à la construction DESCEND à la ligne
    * jouée (`stakeAtTableRow`, `noyau/cascade.ts`), et les relais de `combat/triggeredTest.ts` reçoivent
-   * l'enjeu DÉRIVÉ de l'entité porteuse (`flowtest-derived-stake.test.ts`). CE QUE CE SCAN GARDE (le
+   * l'enjeu DÉRIVÉ de l'entité porteuse (`flowtest-derived-stake.hors-store.test.ts`). CE QUE CE SCAN GARDE (le
    * type ne l'attrape pas) : les étapes montées À LA MAIN, hors mint — un littéral
    * `{ kind, actorId, target, … }` que rien n'oblige à passer par `monoStep`.
    */

@@ -23,7 +23,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { emptyScene } from './monde/scene';
-import { seedBattleRng, battleRng } from './battleRng';
+import { battleRng } from './battleRng';
 import { contractDisease, tickDisease } from '../engine/disease';
 import { porteEntretien, applique } from '../engine/upkeepPorte.testkit';
 import { testValue, skillBaseValue } from '../engine/skills';
@@ -73,7 +73,6 @@ function rangee(step: CascadeStep, id: string): { base?: number; target?: number
 }
 
 beforeEach(() => {
-  seedBattleRng(1);
   banc.setState({ party: [hero()], battle: null, pendingRest: null, pendingCascade: null, scene: emptyScene('scene-test', 10, 10) });
   creditBourse(banc.getState, banc.setState, 'h1', { gold: 5, silver: 0, brass: 0 });
 });

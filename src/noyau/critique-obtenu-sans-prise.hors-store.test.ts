@@ -7,7 +7,6 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { applyAttackResult } from './combatFlow';
 import { draineCascade } from './cascade.testkit';
-import { seedBattleRng } from './battleRng';
 import { bus, EVT } from './bus';
 import { emptyScene } from './monde/scene';
 import { rederivePassiveAttack, type AttackResult } from '../engine/combat';
@@ -58,7 +57,6 @@ function frappe(h: Combatant, cible: Combatant, res: AttackResult, grapple = fal
 const vivant = (id: string): Combatant => banc.getState().battle!.combatants.find((c) => c.id === id)!;
 
 beforeEach(() => {
-  seedBattleRng(1);
   banc.setState({ battle: null, party: [], journal: [], pendingCast: null, pendingCascade: null });
 });
 afterEach(() => { banc.setState({ battle: null, pendingCascade: null }); });

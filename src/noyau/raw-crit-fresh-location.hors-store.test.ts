@@ -1,10 +1,9 @@
-import { describe, it, beforeEach, expect, afterEach } from 'vitest';
+import { describe, it, beforeEach, expect } from 'vitest';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { applyOpposedCritical } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { seedBattleRng } from './battleRng';
-import { resetRule } from '../engine/policy';
 import { hitLocationByShape, reverseRoll } from '../engine/combat';
 import type { Combatant } from '../engine/types';
 import type { SpellData } from '../data';
@@ -77,8 +76,6 @@ describe('#80 Critique de défense opposée — Localisation = 1d100 frais, déc
 });
 
 describe('#43.2 Critique de défense opposée — HÉROS blindé : étape de déviation (LDB 63 l.30)', () => {
-  afterEach(() => resetRule('combat-critical-deflect'));
-
   it('héros victime AVEC armure → pousse une étape `self` (choix Dévier/Subir), Critique différé', () => {
     seedBattleRng(7);
     const h = mkTarget({ tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 }); // id 'T', kind 'hero'

@@ -5,7 +5,6 @@ import { runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import { spawnEnemy } from './monde/spawn';
 import { pregen, PREGEN } from '../data/pregens';
 import { stacks } from '../engine/conditions';
-import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
 
 let banc: Banc;
@@ -62,7 +61,7 @@ describe('IA Brisé — dépense PROACTIVE de Détermination (LDB 17 l.57-61), d
 });
 
 describe('IA Brisé — dispatch : la dépense retire l\'État puis une vraie action suit le MÊME tour', () => {
-  beforeEach(() => { clearAiTurnLog(); banc.setState({ battle: null, party: [] }); seedBattleRng(1); });
+  beforeEach(() => { clearAiTurnLog(); banc.setState({ battle: null, party: [] }); });
 
   it('ennemi Brisé+Détermination, Engagé → spendResolveCondition retire le Brisé (−1 Détermination), action réelle dispatchée', () => {
     const e = spawnEnemy({ ref: 'humain' }, 'e', { x: 5, y: 5 });

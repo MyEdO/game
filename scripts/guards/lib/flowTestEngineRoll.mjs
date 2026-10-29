@@ -52,7 +52,7 @@ import { analyserCorpus } from './dialecte.mjs';
 // grandit) : c'est de faire MOURIR la forme propriétaire — ce que B3-1b a fait, le type `Amputation`
 // cessant de décrire un jet au profit du nœud `test` canonique. L'angle mort reste ENTIER pour toute
 // forme propriétaire NEUVE : la garde ne peut pas voir un jet qui refuse le vocabulaire commun, et
-// c'est le contrat de forme (`flowtest-derived-stake.test.ts`, `docs/registre-jets.md`) qui l'attrape.
+// c'est le contrat de forme (`flowtest-derived-stake.hors-store.test.ts`, `docs/registre-jets.md`) qui l'attrape.
 //
 // ANGLES MORTS assumés (faux négatifs préférés au bruit — doctrine des gardes du dépôt) :
 //  - type ALIASÉ à l'import (`import type { FlowTestNode as N }`) : la comparaison est textuelle sur
