@@ -5,6 +5,10 @@
     "label": "Armes d'hast",
     "kind": "weapon",
     "combat": "melee",
+    "forme": {
+      "id": "lance"
+    },
+    "maniement": "hampe",
     "source": {
       "book": "livre-de-base",
       "page": 296,
@@ -17,6 +21,8 @@
     "label": "Bagarre",
     "kind": "weapon",
     "combat": "melee",
+    "forme": null,
+    "maniement": "poings",
     "source": {
       "book": "livre-de-base",
       "page": 296,
@@ -29,6 +35,10 @@
     "label": "Base",
     "kind": "weapon",
     "combat": "melee",
+    "forme": {
+      "id": "epee"
+    },
+    "maniement": "lame1m",
     "source": {
       "book": "livre-de-base",
       "page": 296,
@@ -41,6 +51,10 @@
     "label": "Cavalerie",
     "kind": "weapon",
     "combat": "melee",
+    "forme": {
+      "id": "lance_cavalerie"
+    },
+    "maniement": "lance_cav",
     "source": {
       "book": "livre-de-base",
       "page": 296,
@@ -53,6 +67,10 @@
     "label": "Deux-mains",
     "kind": "weapon",
     "combat": "melee",
+    "forme": {
+      "id": "epee_batarde"
+    },
+    "maniement": "lourde2m",
     "source": {
       "book": "livre-de-base",
       "page": 296,
@@ -73,6 +91,10 @@
         "id": "empaleuse"
       }
     ],
+    "forme": {
+      "id": "rapiere"
+    },
+    "maniement": "escrime",
     "source": {
       "book": "livre-de-base",
       "page": 296,
@@ -93,6 +115,10 @@
         "id": "a-enroulement"
       }
     ],
+    "forme": {
+      "id": "fleau"
+    },
+    "maniement": "fleau",
     "source": {
       "book": "livre-de-base",
       "page": 296,
@@ -110,6 +136,10 @@
         "id": "defensive"
       }
     ],
+    "forme": {
+      "id": "main_gauche"
+    },
+    "maniement": "parade",
     "source": {
       "book": "livre-de-base",
       "page": 296,
@@ -122,6 +152,10 @@
     "label": "Arbalète",
     "kind": "weapon",
     "combat": "ranged",
+    "forme": {
+      "id": "arbalete"
+    },
+    "maniement": "arbalete",
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -134,6 +168,10 @@
     "label": "Arc",
     "kind": "weapon",
     "combat": "ranged",
+    "forme": {
+      "id": "arc"
+    },
+    "maniement": "arc",
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -146,6 +184,10 @@
     "label": "Entraves",
     "kind": "weapon",
     "combat": "ranged",
+    "forme": {
+      "id": "fouet"
+    },
+    "maniement": "entraves",
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -158,6 +200,10 @@
     "label": "Explosifs",
     "kind": "weapon",
     "combat": "ranged",
+    "forme": {
+      "id": "bombe"
+    },
+    "maniement": "explosif",
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -170,6 +216,10 @@
     "label": "Fronde",
     "kind": "weapon",
     "combat": "ranged",
+    "forme": {
+      "id": "fronde"
+    },
+    "maniement": "fronde",
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -182,6 +232,10 @@
     "label": "Lancer",
     "kind": "weapon",
     "combat": "ranged",
+    "forme": {
+      "id": "javelot"
+    },
+    "maniement": "jet",
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -194,6 +248,11 @@
     "label": "Ingénierie",
     "kind": "weapon",
     "combat": "ranged",
+    "forme": {
+      "id": "pistolet_rep"
+    },
+    "maniement": "arme_feu",
+    "poudre": true,
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -206,6 +265,11 @@
     "label": "Poudre noire",
     "kind": "weapon",
     "combat": "ranged",
+    "forme": {
+      "id": "pistolet"
+    },
+    "maniement": "arme_feu",
+    "poudre": true,
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -218,6 +282,8 @@
     "label": "Catapulte",
     "kind": "weapon",
     "combat": "ranged",
+    "forme": null,
+    "maniement": "poings",
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -229,6 +295,7 @@
     "type": "weaponGroups",
     "label": "Poudre noire et ingénierie",
     "kind": "ammo",
+    "poudre": true,
     "source": {
       "book": "livre-de-base",
       "page": 296,
@@ -241,6 +308,9 @@
     "label": "Cuir souple",
     "kind": "armour",
     "material": "leather",
+    "couche": 0,
+    "art": "cuir",
+    "palierPA": 0,
     "source": {
       "book": "livre-de-base",
       "page": 300
@@ -252,6 +322,9 @@
     "label": "Cuir bouilli",
     "kind": "armour",
     "material": "leather",
+    "couche": 1,
+    "art": "cuir",
+    "palierPA": null,
     "source": {
       "book": "livre-de-base",
       "page": 300
@@ -263,6 +336,9 @@
     "label": "Mailles",
     "kind": "armour",
     "material": "metal",
+    "couche": 2,
+    "art": "maille",
+    "palierPA": 2,
     "source": {
       "book": "livre-de-base",
       "page": 300
@@ -274,6 +350,9 @@
     "label": "Plate",
     "kind": "armour",
     "material": "metal",
+    "couche": 3,
+    "art": "plaque",
+    "palierPA": 4,
     "source": {
       "book": "livre-de-base",
       "page": 300
@@ -285,6 +364,9 @@
     "label": "Armure du Chaos",
     "kind": "armour",
     "material": "chaos",
+    "couche": 4,
+    "art": "plaque",
+    "palierPA": null,
     "source": {
       "book": "vents-de-la-magie",
       "page": 22,
@@ -417,6 +499,8 @@
     "type": "weaponGroups",
     "label": "Armes de siège",
     "kind": "weapon",
+    "forme": null,
+    "maniement": "poings",
     "source": {
       "book": "aux-armes",
       "page": 122,
@@ -428,6 +512,8 @@
     "type": "weaponGroups",
     "label": "Munitions",
     "kind": "weapon",
+    "forme": null,
+    "maniement": "poings",
     "source": {
       "book": "livre-de-base",
       "page": 296,
@@ -439,6 +525,8 @@
     "type": "weaponGroups",
     "label": "Munitions de siège",
     "kind": "weapon",
+    "forme": null,
+    "maniement": "poings",
     "source": {
       "book": "aux-armes",
       "page": 124,
@@ -451,6 +539,8 @@
     "label": "Machine de guerre",
     "kind": "weapon",
     "combat": "ranged",
+    "forme": null,
+    "maniement": "poings",
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 88,

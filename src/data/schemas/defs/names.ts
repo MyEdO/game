@@ -46,7 +46,7 @@ const doc = document(
         if (mesures.join(',') !== attendus.join(',')) {
           ctx.addIssue({
             code: 'custom',
-            path: ['id'],
+            path: [],
             message: `names.json : les ids du dataset (${mesures.join(', ')}) ne sont pas exactement les races jouables (${attendus.join(', ')}) — une banque par \`RaceKey\`, ni plus ni moins.`,
           });
         }
