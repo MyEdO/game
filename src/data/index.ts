@@ -3125,6 +3125,11 @@ export function speciesSize(sp: SpeciesData): import('../engine/size').SizeCateg
   const ids = sp.talents.filter((t): t is RefDesignee => 'id' in t && t.choix == null).map((t) => t.id);
   return sizeFromTalents(ids, tailleDuTalent) ?? 'moyenne';
 }
+/** Tailles DISTINCTES (`speciesSize`) des espèces d'une race de rig, jointes par `species.refChar`
+ *  (`names-species-keyspaces.test.ts`) : une seule est la Taille de la race ; aucune ou plusieurs, elle est indéterminée. */
+export function taillesDeLaRace(race: string): import('../engine/size').SizeCategory[] {
+  return [...new Set(species.filter((sp) => sp.refChar === race).map(speciesSize))];
+}
 /** Race de rig par DÉFAUT, déclarée en donnée (`speciesRace.json` `default`). */
 export const DEFAULT_RACE_ID: string = (speciesRaceJson as { default: string }).default;
 /** id d'espèce RIG (clé `appearance.species`) d'un id d'espèce RULES : l'id passe tel quel (un id
