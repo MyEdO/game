@@ -506,7 +506,7 @@ describe('PIÉTINEMENT et TIR DÉVIÉ : la ligne s’explique aussi (#1153 L4)',
 });
 
 /* Le CÂBLAGE des re-dérivations du produit (la Chance passe-t-elle vraiment la composition figée ?)
-   se mesure à l'EXÉCUTION, sur le chemin réel du flux : `preview-attack.test.ts`. Un scan de source
+   se mesure à l'EXÉCUTION, sur le chemin réel du flux : `preview-attack.hors-store.test.ts`. Un scan de source
    dirait « transport présent » d'un argument nommé `compo` qui vaudrait `undefined`. */
 
 describe('Re-dérivation passive = résolution passive au même dé (LDB 85 l.362, LDB 62 l.323, LDB 17 l.68)', () => {

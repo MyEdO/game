@@ -372,12 +372,12 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
   beforeEach(() => setRule('combat-critical-deflect', true)); // la fenêtre de Déviation existe (règle optionnelle)
   afterEach(() => resetRule('combat-critical-deflect'));
 
-  /** Les étapes de DÉVIATION de la séquence (même lecture que `deviation-paths.test.ts:53`). */
+  /** Les étapes de DÉVIATION de la séquence (même lecture que `deviation-paths.hors-store.test.ts:67`). */
   const etapesDeviation = (): CascadeStep[] =>
     (useGame.getState().pendingCascade?.participants ?? []).filter((x) => x.kind === 'deviation');
 
   it('la suite du coup traverse la sauvegarde PUIS la DÉVIATION — l’Avantage différé n’est pas crédité à la reprise', () => {
-    // Montage repris de `deviation-paths.test.ts:314-326` (« héros blindé subissant un dépassement →
+    // Montage repris de `deviation-paths.hors-store.test.ts:375-387` (« héros blindé subissant un dépassement →
     // SUSPEND ») : héros TENU (ni `aiControlled`, ni siège distant), armure DÉVIABLE à la localisation,
     // `res` FORGÉ passé DIRECTEMENT à `applyAttackResult` — ce qui court-circuite `maybeOpenDefense`.
     // S'y ajoute la Protection (6+) du porteur : la SAUVEGARDE s'ouvre d'abord, la DÉVIATION ensuite, sur
@@ -408,7 +408,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     expect(dev[0].kind).toBe('deviation');
     expect(dev[0].critSeverity?.suite, 'la charge de la 2ᵉ fenêtre porte la suite du coup').toEqual({ deferAttackerAdvantage: true });
 
-    // 3) Le joueur joue la fenêtre : d100 de sévérité DANS l'étape (patron `deviation-paths.test.ts:294`),
+    // 3) Le joueur joue la fenêtre : d100 de sévérité DANS l'étape (patron `deviation-paths.hors-store.test.ts:356`),
     //    puis « Dévier » — et la reprise finale honore toujours la suite.
     useGame.getState().cascadeTableRoll(dev[0].id);
     const apres = etapesDeviation()[0];

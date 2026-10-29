@@ -129,8 +129,8 @@ export interface ExemptionPilote { fichier: string; motif: RegExp; raison: strin
 
 const RAISON_GESTE_TESTE = 'la boucle porte sur des GRAINES ; le verbe joué est le geste que le titre teste, le confier au kit détruirait le test';
 export const EXEMPTIONS: readonly ExemptionPilote[] = [
-  { fichier: 'src/state/defense-hote-prete.test.ts', motif: /^it:un « Suivant » de trop sur l’étape de défense ne la franchit pas : sa fenêtre reste élue$/, raison: `${RAISON_GESTE_TESTE} (\`cascadeNext\`)` },
-  { fichier: 'src/state/defense-hote-prete.test.ts', motif: /^it:« Tout lancer » des Tests de la Déstabilisante s’arrête sur la défense du maillon$/, raison: `${RAISON_GESTE_TESTE} (\`cascadeResolveAll\`)` },
+  { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:un « Suivant » de trop sur l’étape de défense ne la franchit pas : sa fenêtre reste élue$/, raison: `${RAISON_GESTE_TESTE} (\`cascadeNext\`)` },
+  { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:« Tout lancer » des Tests de la Déstabilisante s’arrête sur la défense du maillon$/, raison: `${RAISON_GESTE_TESTE} (\`cascadeResolveAll\`)` },
   { fichier: 'src/state/combat/opposed-base-explicite.test.ts', motif: /^it:HÉROS MANUEL : nue haute \+ États lourds — le défenseur l’emporte au départage que ses CIBLES perdraient$/, raison: `${RAISON_GESTE_TESTE} (\`cascadeRoll\`)` },
 ];
 

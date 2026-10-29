@@ -697,7 +697,7 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
    * qui la marque `refus` — la cause s'affiche alors au survol/focus/tap (arbitrage 2026-08-24, jamais
    * inline), et le bouton reste atteignable au clavier (`aria-disabled`, jamais `disabled`).
    * Le PA sacrifiable, lui, est déjà la porte du producteur : sans lui, l'étape n'offre AUCUNE voie
-   * (`deviation-armour.test.ts` — « rien à sacrifier → aucune voie de Déviation »).
+   * (`deviation-armour.hors-store.test.ts` — « rien à sacrifier → aucune voie de Déviation »).
    */
   it('les voies sont rendues SANS branche par clé : « Dévier » est active, et une voie à `refus` porte sa cause', () => {
     openCritique();
