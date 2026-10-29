@@ -7,7 +7,7 @@ import { toViewSet, splitBrasSvg, avantBrasBase, dominantCloth } from './derive'
 import { cosmeticPart } from './cosmetic';
 import { genericPart } from './generic';
 import { tenueFor } from './career';
-import { ART_DE_MATIERE, armourPart, weaponPart, shieldPart } from './equipment';
+import { artDeMatiere, armourPart, weaponPart, shieldPart } from './equipment';
 import { armePrincipale, type EquipCtx } from '../../../noyau/equipementDessine';
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { CLAWFOOT, PLAINFOOT, HAND, MAIN_GRIFFUE, NECK } from './bodies/extremites';
@@ -67,7 +67,7 @@ function resolveUpperLimb(
   let matterResolve: ((svg: string) => string) | null = null;   // recoloriage palette de l'armure gagnante
   let brasEstPleineLongueur: boolean;
   if (armItem) {
-    const mat = ART_DE_MATIERE[armItem.matiere];
+    const mat = artDeMatiere(armItem.matiere);
     matterArt = ARMOUR[mat]?.bras ?? '';                         // jetons @metal/@cuir… intacts
     const map = tableDObjet([ARMOUR_PALETTES[mat] ?? {}], findTeinteById(armItem.teinte)?.palette);
     matterResolve = (svg) => applyTokenMap(svg, map);

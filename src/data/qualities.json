@@ -1037,6 +1037,7 @@
     "polarite": "atout",
     "subType": "objet",
     "desc": "Travail soigné : signe de statut social (cumulable).",
+    "aspect": true,
     "source": {
       "book": "livre-de-base",
       "page": 292
@@ -1076,6 +1077,7 @@
     "polarite": "defaut",
     "subType": "objet",
     "desc": "Sans esthétique : jusqu'à -10 aux Tests de Sociabilité associés.",
+    "aspect": true,
     "source": {
       "book": "livre-de-base",
       "page": 292

@@ -71,7 +71,7 @@ const doc = document(
         if (ecarts.length) {
           ctx.addIssue({
             code: 'custom',
-            path: ['min'],
+            path: [],
             message: `advancementCosts.json : les bandes ne couvrent pas les Augmentations déjà achetées d'un seul tenant depuis 0 — ${ecarts.join(' ; ')}. La table est lue par \`findTableEntry\` (\`src/engine/tables.ts\`), qui REPLIE sur la dernière bande : un trou ferait payer 520 PX (« 71 et + », LDB 07 l.70) au lieu du coût de la bande manquante.`,
           });
         }

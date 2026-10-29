@@ -9,6 +9,7 @@ import { findTalentById, findTraitById } from '../../data';
 import { canStrikeFirst } from '../qualities/dispatch';
 import { effectiveEntry } from '../variants';
 import { weaponLoaded } from '../weaponLoad';
+import { groupeAPoudre, weaponGroup } from '../weaponGroup';
 import type { CombatFeature, CombatFeatureCtx, CastingKind } from './types';
 import { refCouvre } from '../../data/schemas/grammaire/ref';
 
@@ -162,8 +163,7 @@ export function hasSurpriseSave(c: Combatant): boolean {
 
 /** Rechargement rapide (toutes armes) / Artilleur (Poudre noire) : +DR au Test de rechargement. LDB 10. */
 export function reloadDRBonus(c: Combatant, weapon: Weapon | undefined): number {
-  const g = weapon?.subType ?? ''; // id de Groupe (poudre-noire / ingenierie / poudre-noire-et-ingenierie)
-  const blackpowder = g === 'poudre-noire' || g === 'ingenierie' || g === 'poudre-noire-et-ingenierie';
+  const blackpowder = groupeAPoudre(weaponGroup(weapon));
   return levelSum(c, (d) => d.reloadDR === 'all' || (d.reloadDR === 'blackpowder' && blackpowder));
 }
 

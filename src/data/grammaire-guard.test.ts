@@ -146,10 +146,10 @@ const ALIAS = ['skillId', 'talentId', 'trappingId', 'traitId', 'skill', 'ref', '
 describe('liaison lexicale des extensions de grammaire', () => {
   const regles = { signatures: [], alias: [] };
   it.each([
-    ["import { refSchema } from '../grammaire/reference';", 'refSchema', true],
-    ["import { refSchema as porte } from '../grammaire/reference';", 'porte', true],
-    ["import type { refSchema as porte } from '../grammaire/reference';", 'porte', true],
-    ["import { type refSchema as porte } from '../grammaire/reference';", 'porte', true],
+    ["import { porteSchema } from '../grammaire/reference';", 'porteSchema', true],
+    ["import { porteSchema as porte } from '../grammaire/reference';", 'porte', true],
+    ["import type { porteSchema as porte } from '../grammaire/reference';", 'porte', true],
+    ["import { type porteSchema as porte } from '../grammaire/reference';", 'porte', true],
     ["import { default as porte } from '../grammaire/reference';", 'porte', true],
     ["import porte from '../grammaire/reference';", 'porte', false],
     ["import * as porte from '../grammaire/reference';", 'porte', false],
@@ -161,7 +161,7 @@ describe('liaison lexicale des extensions de grammaire', () => {
 
   it('les paramètres et blocs homonymes ne sont pas des occurrences importées', () => {
     const text = [
-      "import { refSchema as porte } from '../grammaire/reference';",
+      "import { porteSchema as porte } from '../grammaire/reference';",
       'const vrai = porte.extend({});',
       'function masque(porte) { return porte.extend({}); }',
       '{ const porte = local; const autre = porte.extend({}); }',
@@ -177,7 +177,7 @@ describe('liaison lexicale des extensions de grammaire', () => {
     try {
       const fichiers = ['premiere', 'seconde'].map(nom => ({
         rel: `src/data/schemas/defs/${nom}.ts`,
-        text: "import { refSchema as porte } from '../grammaire/reference';\nconst vrai = porte.extend({});\nfunction masque(porte) { return porte.extend({}); }",
+        text: "import { porteSchema as porte } from '../grammaire/reference';\nconst vrai = porte.extend({});\nfunction masque(porte) { return porte.extend({}); }",
       }));
       const vues: string[] = [];
       for (const { fichier, sourceFile, checker } of analyserCorpus(fichiers)) {
@@ -375,10 +375,10 @@ describe('la garde elle-même — jouée sur un fichier-jouet (preuve de câblag
   it('une redéclaration de `{id, spec}`, une graphie `skillId` et un `.extend` de porte SORTENT', () => {
     const jouet = [
       "import { z } from 'zod';",
-      "import { refSchema } from '../grammaire/reference';",
+      "import { porteSchema } from '../grammaire/reference';",
       'export const aSchema = z.strictObject({ id: z.string(), spec: z.string().optional() });',
       'export const bSchema = z.strictObject({ skillId: z.string(), niveau: z.number() });',
-      'export const cSchema = refSchema.extend({ value: z.number() });',
+      'export const cSchema = porteSchema.extend({ value: z.number() });',
     ].join('\n');
     const motifs = scan('src/data/schemas/defs/jouet.ts', jouet, regles).map((t) => `${t.symbole}|${t.motif}`);
     expect(motifs).toContain('aSchema|redeclaration');

@@ -3,14 +3,14 @@
  * (`subType`), jamais une lecture de libellé ni un palier de PA ; seule l'armure de statbloc synthétisée,
  * dessinée déclarée portée, reçoit la matière de son palier de PA.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { equipementDessine, equipementDEntite } from './index';
-import { armeDeDessin, bouclierDeDessin, pieceDeDessin, RANG_DE_MATIERE, armesDEntite } from './equipementDessine';
+import { armeDeDessin, bouclierDeDessin, pieceDeDessin, armesDEntite } from './equipementDessine';
 import { deciderApparencesDesArmes, emptyArmour, itemFromGive, loadoutSetActive, loadoutSetSlot, recomputeLoadout, weaponFromItem } from '../engine/items';
 import { spawnEnemy } from './monde/spawn';
 import { creatures, findCreatureById } from '../data';
 import { setDataset } from '../data/overrides';
-import weaponGroups from '../data/weaponGroups.json';
+import { poserPaliersDArmure, restaurerPaliersDArmure } from '../data/paliersDArmure.testkit';
 import type { Combatant, HitLocation, ItemInstance } from '../engine/types';
 import type { TraitList } from '../engine/statEntry';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
@@ -200,6 +200,9 @@ describe('equipementDessine — candidats publiés (#2948)', () => {
 });
 
 describe('equipementDessine — matière par id (#2948)', () => {
+  beforeEach(() => poserPaliersDArmure());
+  afterEach(() => restaurerPaliersDArmure());
+
   it('« Plastron de cuir » porté se dessine en cuir bouilli, l’id de son trapping', () => {
     expect(matieres(porteur({ items: [porte('plastron-de-cuir')] }))).toEqual([[['corps'], 'cuir-bouilli']]);
   });
@@ -224,7 +227,7 @@ describe('equipementDessine — matière par id (#2948)', () => {
     const armour = { ...emptyArmour(0), tete: 4, corps: 2, brasG: 1, brasD: 1 };
     expect(equipementDessine(porteur({ armour })).armour).toEqual([]);
     expect(equipementDessine(porteur({ armour, appearanceOverride: { armurePortee: true } })).armour.map((p) => [p.locs, p.matiere])).toEqual([
-      [['tete'], 'plate'], [['corps'], 'mailles'], [['brasG', 'brasD'], 'cuir-souple'],
+      [['tete'], 'plaque-de-fixture'], [['corps'], 'maille-de-fixture'], [['brasG', 'brasD'], 'cuir-de-fixture'],
     ]);
   });
 
@@ -246,12 +249,7 @@ describe('equipementDessine — matière par id (#2948)', () => {
     expect(equipementDEntite(findTrappingById, 'orc').armour).toEqual(equipementDessine(orc).armour);
     expect(equipementDEntite(findTrappingById, 'orc', { armurePortee: false }).armour).toEqual([]);
     expect(equipementDEntite(findTrappingById, undefined, { armour: 2 }).armour).toEqual([]);
-    expect(equipementDEntite(findTrappingById, undefined, { armour: 2, armurePortee: true }).armour.map((p) => p.matiere)).toEqual(['mailles', 'mailles', 'mailles', 'mailles']);
-  });
-
-  it('les matières rangées sont exactement les Groupes « armour » de weaponGroups.json', () => {
-    const ids = weaponGroups.filter((g) => g.kind === 'armour').map((g) => g.id).sort();
-    expect(Object.keys(RANG_DE_MATIERE).sort()).toEqual(ids);
+    expect(equipementDEntite(findTrappingById, undefined, { armour: 2, armurePortee: true }).armour.map((p) => p.matiere)).toEqual(['maille-de-fixture', 'maille-de-fixture', 'maille-de-fixture', 'maille-de-fixture']);
   });
 });
 

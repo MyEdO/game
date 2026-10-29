@@ -1,5 +1,5 @@
 /**
- * `oups.json` — UNE forme d'entrée, la disjonction portée par un refine ⟺ (#1467 L1b V-UNION).
+ * `oups.json` — UNE forme d'entrée, la disjonction portée par la charge par `kind` (#1467 L1b V-UNION).
  *
  * Le RAW donne deux objets de nature différente sous le même toit (LDB 14, folio 160) : les 7 bandes
  * du Tableau des Oups ! (l.21-30), qui sont des fourchettes d100, et l'Incident de Tir (l.32-34), qui
@@ -34,20 +34,22 @@ describe('oups.json — une entrée est une BANDE d100 ou l’Incident de Tir, j
     expect(schema.safeParse([BANDE, MISFIRE]).success).toBe(true);
   });
 
-  it('C1 — `misfire` AVEC une bande : refusé, en disant qu’il est hors table', () => {
-    expect(refus([{ ...MISFIRE, min: 1, max: 20 }])).toContain('HORS table');
+  it('C1 — `misfire` AVEC une bande : refusé, en nommant la borne hors de son cas', () => {
+    expect(refus([{ ...MISFIRE, min: 1, max: 20 }])).toMatch(/« min » n’appartient qu’au\(x\) cas kind « .*selfWound.* » — refusée sur « misfire » \(kind « misfire »\)/);
   });
 
   it('C2 — bande SANS `min` ni `max` : refusée, en nommant le `kind` fautif', () => {
-    expect(refus([sans(sans(BANDE, 'min'), 'max')])).toContain('min ET max sont exigés (kind « selfWound »)');
+    const message = refus([sans(sans(BANDE, 'min'), 'max')]);
+    expect(message).toContain('« bande » (kind « selfWound ») exige « min »');
+    expect(message).toContain('« bande » (kind « selfWound ») exige « max »');
   });
 
   it('C3 — bande avec `min` SEUL : refusée (la borne haute manque)', () => {
-    expect(refus([sans(BANDE, 'max')])).toContain('min ET max sont exigés');
+    expect(refus([sans(BANDE, 'max')])).toContain('exige « max »');
   });
 
   it('C4 — `misfire` avec `min` SEUL : refusé (une seule borne suffit à le mettre dans la table)', () => {
-    expect(refus([{ ...MISFIRE, min: 1 }])).toContain('HORS table');
+    expect(refus([{ ...MISFIRE, min: 1 }])).toContain('« min » n’appartient qu’au(x) cas kind');
   });
 
   it('un `kind` hors catalogue est refusé — le moteur ne sait jouer que les 8 déclarés', () => {

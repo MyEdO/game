@@ -10,7 +10,7 @@ import type { TraitInstance } from '../engine/statEntry';
 import { porteurDuProfil, traitsDeLIndividu } from './monde/spawn';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
 import type { EntityAppearance } from '../engine/authoringAppearance';
-import { findCreatureById } from '../data';
+import { findCreatureById, groupeDArmure, groupesDArmure, type GroupeDArmureId } from '../data';
 import { idsDeLaSousListe } from '../data/schemas/grammaire/ref';
 import type { SceneEntity } from './monde/scene';
 
@@ -22,7 +22,7 @@ const CLES_PIECE = ['locs', 'teinte'] as const;
 
 /** Matière d'une pièce d'armure : id du type d'armure (`subType`, sous-liste `armour` des Groupes,
  *  `weaponGroups.json?kind=armour`). */
-export type MatiereDArmure = 'cuir-souple' | 'cuir-bouilli' | 'mailles' | 'plate' | 'armure-du-chaos';
+export type MatiereDArmure = GroupeDArmureId;
 
 /** Ce que le dessin lit d'une arme : ses clés et ses candidats résolus, dont la dernière entrée est la racine. */
 export type FormeDArme = Pick<Weapon, (typeof CLES_ARME)[number]> & { candidats: readonly string[] };
@@ -43,15 +43,20 @@ export interface EquipCtx {
   cape?: boolean;
 }
 
-/** Rang d'affichage des matières : la couche du DESSUS s'affiche (plate sur mailles sur cuir). */
-export const RANG_DE_MATIERE: Record<MatiereDArmure, number> = { 'armure-du-chaos': 4, plate: 3, mailles: 2, 'cuir-bouilli': 1, 'cuir-souple': 0 };
-
 /** Lu à la même sous-liste que le schéma de `trappings.json` (`idDe('weaponGroup', 'armour')`). */
 const estMatiere = (id: string | undefined): id is MatiereDArmure => id !== undefined && idsDeLaSousListe('weaponGroup', 'armour').includes(id);
 
-/** Matière de l'armure de statbloc SYNTHÉTISÉE (`synthArmour`), par palier de PA — présentation maison
- *  (#2948). */
-const matiereDePalier = (pa: number): MatiereDArmure => (pa >= 4 ? 'plate' : pa >= 2 ? 'mailles' : 'cuir-souple');
+/** Rang de couche d'une matière (`couche` de son Groupe d'armure) — la couche du DESSUS s'affiche. */
+const coucheDe = (matiere: MatiereDArmure): number => groupeDArmure(matiere).couche;
+
+/** Matière de l'armure de statbloc SYNTHÉTISÉE (`synthArmour`) : le Groupe d'armure au plus haut `palierPA`
+ *  atteint par `pa` — le schéma de `weaponGroups.json` exige un palier 0 (#2948). */
+function matiereDePalier(pa: number): MatiereDArmure {
+  const atteints = groupesDArmure().flatMap((g) => (g.palierPA !== null && g.palierPA <= pa ? [{ id: g.id, palier: g.palierPA }] : []));
+  const haut = atteints.sort((a, b) => b.palier - a.palier)[0];
+  if (!haut) throw new Error(`matiereDePalier : aucun Groupe d'armure au palierPA ≤ ${pa}.`);
+  return haut.id;
+}
 
 /** Copie DÉTACHÉE des seules clés listées : aucune référence vivante ne survit à la projection. */
 function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[]): Pick<T, K> {
@@ -84,7 +89,7 @@ export function equipDe(weapons: Weapon[], armour: ItemInstance[], autres: { ran
   const { rangees = [], cape, ...maniement } = autres;
   // Pièces TRIÉES par matière décroissante : par slot, le rendu prend la 1re pièce qui le couvre → un
   // héros en cuir + mailles montre les mailles, la plate par-dessus tout.
-  const pieces = armour.map(pieceDeDessin).sort((a, b) => RANG_DE_MATIERE[b.matiere] - RANG_DE_MATIERE[a.matiere]);
+  const pieces = armour.map(pieceDeDessin).sort((a, b) => coucheDe(b.matiere) - coucheDe(a.matiere));
   const dessiner = (w: Weapon) => objetDArme(w, maniement);
   const libres = new Set<'main' | 'off'>(['main', 'off']);
   const dessins: { position: number; arme: ArmeDeDessin }[] = [];

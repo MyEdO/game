@@ -14,7 +14,8 @@
  */
 import type { Pose } from '../poses';
 import type { Clip, ClipStep } from './clips';
-import { maniementDe, estManiementADistance, type Maniement } from '../../../noyau/animation';
+import { maniementDe, estManiementADistance } from '../../../noyau/animation';
+import type { Maniement } from '../../../data/schemas/grammaire/valeurs';
 import type { ArmeDeDessin, BouclierDeDessin, FormeDArme } from '../../../noyau/equipementDessine';
 
 const REST: Pose = {};

@@ -63,7 +63,7 @@ describe('terrains — rôles à porteur UNIQUE et glyphe d’authoring UNIQUE, 
         delete exige(dataset.find((t) => t.id === porteur.id), `« ${porteur.id} » a disparu de la copie`)[role];
       });
       expect(messages.length, `le rôle « ${role} » orphelin n’a levé AUCUN refus.`).toBe(1);
-      expect(messages[0], 'le refus ne cite pas le rôle fautif en chemin.').toContain(`@${role}`);
+      expect(messages[0], 'le refus d’une propriété de la COLLECTION vise le document entier.').toMatch(/^custom @ : /);
       expect(messages[0], 'le refus ne NOMME pas le rôle.').toContain(`rôle « ${role} »`);
       expect(messages[0], 'le refus ne dit pas le COMPTE mesuré.').toContain('0 mesurée(s)');
     });
@@ -88,7 +88,7 @@ describe('terrains — rôles à porteur UNIQUE et glyphe d’authoring UNIQUE, 
       exige(dataset.find((t) => t.id === autreId), `« ${autreId} » a disparu de la copie`).ascii = porteur.ascii;
     });
     expect(messages.length, 'un glyphe doublé n’a levé AUCUN refus.').toBe(1);
-    expect(messages[0], 'le refus ne cite pas `ascii` en chemin.').toContain('@ascii');
+    expect(messages[0], 'le refus d’une propriété de la COLLECTION vise le document entier.').toMatch(/^custom @ : /);
     expect(messages[0], 'le refus ne NOMME pas le glyphe fautif.').toContain(`glyphe « ${porteur.ascii} »`);
     expect(messages[0], 'le refus ne NOMME pas les entrées en collision.').toContain(porteur.id);
     expect(messages[0]).toContain(autreId);
@@ -101,7 +101,7 @@ describe('terrains — rôles à porteur UNIQUE et glyphe d’authoring UNIQUE, 
       exige(dataset.find((t) => t.id === cible.id), `« ${cible.id} » a disparu de la copie`).ascii = reserve;
     });
     expect(messages.length, 'un glyphe RÉSERVÉ n’a levé AUCUN refus.').toBe(1);
-    expect(messages[0], 'le refus ne cite pas `ascii` en chemin.').toContain('@ascii');
+    expect(messages[0], 'le refus ne vise pas le champ `ascii` de l’entrée fautive.').toContain(`@${charger().findIndex((t) => t.id === cible.id)}.ascii :`);
     expect(messages[0], 'le refus ne NOMME pas le glyphe fautif.').toContain(`glyphe « ${reserve} »`);
     expect(messages[0], 'le refus ne NOMME pas le terrain fautif.').toContain(cible.id);
     expect(messages[0], 'le refus ne dit pas que le glyphe est réservé par la grammaire.').toContain('RÉSERVÉ');
