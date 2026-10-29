@@ -4,7 +4,7 @@ import { scenario } from '../scenes/test-scenarios/entrainement';
 import { maybeOpenDefense } from '../noyau/combatFlow';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import { seedBattleRng } from '../noyau/battleRng';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { combatAdvanceBlocked } from '../noyau/combatGate';

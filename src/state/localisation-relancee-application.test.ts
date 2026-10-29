@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { applyAttackResult } from '../noyau/combatFlow';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { createHero } from '../engine/character';
 import { rederivePassiveAttack, hitLocationByShape } from '../engine/combat';
 import { critLocationRoll, critTableRows, critTableKeyFor } from '../engine/critical';

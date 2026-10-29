@@ -10,7 +10,7 @@ import { setPreference, resetPreference } from './preferences';
 import { rowForcedDie } from '../ui/forcedDieRow';
 import { bestForcedRoll, evaluateTest } from '../engine/tests';
 import { startCascade } from '../noyau/cascade';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier } from '../noyau/cascade.testkit';
 import { freeCons } from '../noyau/rollSeam';
 import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { testDeRegle } from '../engine/reglesChiffrees';
-import { draineCascade, cascadeDeTest } from './cascade.testkit';
+import { draineCascade, cascadeDeTest } from '../noyau/cascade.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { fleeReachable } from '../noyau/monde/path';

@@ -5,7 +5,7 @@ import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { makeRNG, d100 } from '../engine/dice';
 import { createHero } from '../engine/character';
 import { stepInteraction, tableStepDef } from '../noyau/cascade';
-import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
+import { avanceEtapeCascade, draineCascade } from '../noyau/cascade.testkit';
 import { canFixDie } from '../noyau/netOwnership';
 import {
   rollMiscast, miscastTableId, miscastRowAt, miscastTableRows, MISCAST_TABLES, type MiscastSeverity,

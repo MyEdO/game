@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { useGame } from './store';
 import { buildApi } from './devtools';
 import { openAttackCascade } from '../noyau/combatFlow';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import { resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 

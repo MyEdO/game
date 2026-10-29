@@ -7,7 +7,7 @@ import { partyMoneyTotal } from '../../noyau/bourseFlow';
 import { findSpellById } from '../../data';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile } from '../../engine/magic';
 import { spellEffectOps } from '../../engine/flowCore';
-import { avanceEtapeCascade, draineCascade } from '../../state/cascade.testkit';
+import { avanceEtapeCascade, draineCascade } from '../../noyau/cascade.testkit';
 
 const scen = testScenarios.find((s) => s.id === 'voyage-maritime')!;
 const scenConstruit = scen.construire();

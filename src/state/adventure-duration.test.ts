@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useGame } from './store';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { heroStatus } from '../noyau/interludeFlow';
 import { applyOps } from '../engine/ops';
 import { createHero } from '../engine/character';

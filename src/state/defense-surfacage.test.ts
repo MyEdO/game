@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { type PendingAttack } from '../noyau/pendings';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import { maybeOpenDefense, resolveAttack, openAttackCascade, defenderFumbled } from '../noyau/combatFlow';
 import { defenseSurfaced, aiDriven, intentAllowedFor, ownsLocal } from '../noyau/netOwnership';
 import { modalOwnerOf } from '../noyau/modalArbiter';

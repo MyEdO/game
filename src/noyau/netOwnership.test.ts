@@ -8,7 +8,7 @@ import { modalOwnerOf } from './modalArbiter';
 import { fermerLeSiege, seatOwns } from './sieges';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { Jeu } from './etat';
-import { cascadeDeTest } from '../state/cascade.testkit';
+import { cascadeDeTest } from './cascade.testkit';
 
 const base = (over: Partial<Jeu>): Jeu =>
   ({

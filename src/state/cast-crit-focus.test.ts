@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { draineEtLit, avanceEtapeCascade } from './cascade.testkit';
+import { draineEtLit, avanceEtapeCascade } from '../noyau/cascade.testkit';
 import { applyCast, checkFocusInterruption, openCastCascade } from '../noyau/combatFlow';
 import { pregen, PREGEN } from '../data/pregens';
 import { createHero } from '../engine/character';

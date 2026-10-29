@@ -7,7 +7,7 @@ import { buildNightCascade, deferredUpkeepSteps, type PendingRest } from '../noy
 import { runDailyUpkeep, type DeferredUpkeepTest } from '../noyau/upkeep';
 import { dayIndex } from '../engine/clock';
 import { bestActivitySkill } from '../noyau/interludeFlow';
-import { inexplique, soutienDe, jetDe } from './cascade.testkit';
+import { inexplique, soutienDe, jetDe } from '../noyau/cascade.testkit';
 import { skillBaseValue, testValue, partyAssisted } from '../engine/skills';
 import { applierDe } from '../noyau/cascade';
 import { clampTarget } from '../engine/tests';

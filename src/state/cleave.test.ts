@@ -8,7 +8,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { BattleState } from '../noyau/etat';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 
 // ---------------------------------------------------------------------------
 // Frappe Mortelle — balayage (LDB 14 - _GoBack.md l.9-12 + 85 l.299)

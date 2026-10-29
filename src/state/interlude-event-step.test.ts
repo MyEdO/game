@@ -22,7 +22,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { canFixDie } from '../noyau/netOwnership';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import type { Combatant } from '../engine/types';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
 

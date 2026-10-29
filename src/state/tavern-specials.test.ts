@@ -10,7 +10,7 @@ import { datasetArray, setDataset } from '../data/overrides';
 import { DIFFICULTY_LABELS, type Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import type { TavernPayload } from '../noyau/tavernFlow';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 
 const get = useGame.getState.bind(useGame);
 

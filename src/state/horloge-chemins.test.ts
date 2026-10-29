@@ -17,7 +17,7 @@ import { creditBourse } from '../noyau/bourseFlow';
 import { buildScene } from '../noyau/mapSpec';
 import { fixtureText } from '../i18n/fixtureText';
 import { campaignStart } from '../engine/clock';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 
 const get = useGame.getState;
 const set = useGame.setState;

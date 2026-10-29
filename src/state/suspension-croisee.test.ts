@@ -5,7 +5,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { placeCombatant } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import { planFranchissement, defautDeSuspension, phaseDeChute } from '../noyau/fallMove';
 import { scenePlanDefects } from '../noyau/planDefects';
 import { buildScene } from '../noyau/mapSpec';

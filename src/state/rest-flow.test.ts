@@ -27,7 +27,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import { resetCadence, setCadence } from '../engine/cadence';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 
 const ration = (uid: string): ItemInstance => ({ ...itemFromTrappingById('ration')!, uid, enc: 0 });
 

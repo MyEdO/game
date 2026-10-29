@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { categoryByKey } from './registry';
 import { activityById } from '../../engine/activities';
-import { avecActivite } from '../../state/activiteMer.testkit';
+import { avecActivite } from '../../engine/activiteMer.testkit';
 import { refLabel } from '../../data';
 
 const ficheDePratiquer = () => categoryByKey('activities')!.items.find((i) => i.id === 'pratiquer-competence')!;

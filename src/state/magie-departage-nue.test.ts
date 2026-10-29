@@ -16,7 +16,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import type { Combatant } from '../engine/types';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import type { CascadeStep, CascadeTestStep } from '../noyau/pendings';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 

@@ -10,7 +10,7 @@ import type { RNG } from '../engine/dice';
 import { skillBaseValue, testValue, soutienDetail } from '../engine/skills';
 import { skillCharacteristicById } from '../engine/character';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
-import { inexplique, soutienDe } from './cascade.testkit';
+import { inexplique, soutienDe } from '../noyau/cascade.testkit';
 import { resolveStake } from '../data';
 import { deMin } from '../engine/dice.testkit';
 

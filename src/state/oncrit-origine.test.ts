@@ -10,7 +10,7 @@ import { itemFromTrappingById, weaponFromItem } from '../engine/items';
 import type { Combatant, Weapon } from '../engine/types';
 import { applyAttackResult } from '../noyau/combatFlow';
 import type { AttackResult } from '../engine/combat';
-import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
+import { avanceEtapeCascade, draineCascade } from '../noyau/cascade.testkit';
 
 /** Un arc qui porte Taillade (toute Blessure critique) et Empaleuse (le seul Coup Critique). */
 function arcTailladeEmpaleuse(): Weapon {

@@ -868,7 +868,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/port-sell-cargo.test.ts",
+    fichier: "src/noyau/port-sell-cargo.hors-store.test.ts",
     motif: "désormais",
     ancre: "Marchandage est désormais une CASCADE (`openRoll` par étape, enchaînée via `chainStep`,",
     lot: "L7 désormais",
@@ -891,7 +891,7 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/state/rest-lodging-price-source.test.ts",
     motif: "désormais",
-    ancre: "`src/state/merchants/service-trappings.test.ts`). Convergence #343 : `restCost` RÉSOUT désormais ces",
+    ancre: "`src/noyau/service-trappings.hors-store.test.ts`). Convergence #343 : `restCost` RÉSOUT désormais ces",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
@@ -931,14 +931,14 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/sea-finition.test.ts",
+    fichier: "src/noyau/sea-finition.hors-store.test.ts",
     motif: "désormais",
     ancre: "désormais UNE cascade `purpose:'travelDay'` (#275 Ronde 2 cran 3) : chaque étape est soit MONO",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/sea-finition.test.ts",
+    fichier: "src/noyau/sea-finition.hors-store.test.ts",
     motif: "désormais",
     ancre: "// Seam de jet (#273 Étape 2) : Cartographie est désormais une étape de CASCADE influençable —",
     lot: "L7 désormais",
@@ -973,14 +973,14 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/ship-crew-hit-porte.test.ts",
+    fichier: "src/noyau/ship-crew-hit-porte.hors-store.test.ts",
     motif: "désormais",
     ancre: "`applyCrewHit`, avec le RNG du combat, marin par marin. Il naît désormais comme UNE BANDE — une",
     lot: "L7 désormais",
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/ship-maneuver.test.ts",
+    fichier: "src/noyau/ship-maneuver.hors-store.test.ts",
     motif: "désormais",
     ancre: "(openCrewTestPending ET shipManeuverParams, consommé par deriveManeuverFromCrew) — site canonique désormais",
     lot: "L7 désormais",
@@ -1029,7 +1029,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/travel-carto.test.ts",
+    fichier: "src/noyau/travel-carto.hors-store.test.ts",
     motif: "désormais",
     ancre: "Voyage — poste « Établir des cartes » (EDOC 8 l.161) : Test ÉTENDU inter-Étapes, désormais UNE RANGÉE",
     lot: "L7 désormais",
@@ -1050,7 +1050,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/vessel-morale.test.ts",
+    fichier: "src/noyau/vessel-morale.hors-store.test.ts",
     motif: "désormais",
     ancre: "inchangé ; en cadence manuelle un équipage salarié convoque désormais le Conseil de bord (#229, ci-dessous).",
     lot: "L7 désormais",

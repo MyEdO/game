@@ -7,7 +7,7 @@ import { testScene } from '../scenes/test-fixture';
 import { areGrappling, setGrapple } from '../engine/grapple';
 import type { Combatant } from '../engine/types';
 import { resetCadence, setCadence } from '../engine/cadence';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 
 // Attaques GRATUITES de créature (Taille & traits) : Morsure / Attaque caudale / Piétinement,
 // chacune 1 Avantage, OPPOSÉE (cible Surprise ici → résolution instantanée), gratuite (LDB 85).

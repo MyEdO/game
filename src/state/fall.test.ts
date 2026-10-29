@@ -9,7 +9,7 @@ import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { validateScene } from '../noyau/validateScene';
 import { flowFromEffects } from '../noyau/monde/flow';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { t } from '../i18n';
 
 /**

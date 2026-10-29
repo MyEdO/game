@@ -10,7 +10,7 @@ import type { Scene } from '../noyau/monde/scene';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { parseSceneDeProjet } from '../noyau/worldMap';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';

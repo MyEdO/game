@@ -20,7 +20,7 @@ import { findSpellById } from '../data/index';
 const RULE = 'magic-vdm-incantation';
 
 /** Sorcier quasi certain de réussir son Test d'Incantation (DR élevé) — isole le doublement du bruit
- *  du d100, comme les autres câblages de ce fichier (`sea-magic-state.test.ts`). */
+ *  du d100, comme les autres câblages de ce fichier (`sea-magic-state.hors-store.test.ts`). */
 function sorcier(): Combatant {
   const w = pregen(PREGEN.sorcier);
   w.characteristics = { ...w.characteristics, intelligence: 95 };

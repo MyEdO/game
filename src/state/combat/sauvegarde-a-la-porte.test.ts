@@ -33,7 +33,7 @@ import type { CascadeStep } from '../../noyau/pendings';
 import { CHAR_KEYS, type Combatant, type Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
 import { OPS_DIFFEREES } from '../../noyau/combatEffects';
-import { avanceEtapeCascade, cascadeDeTest } from '../cascade.testkit';
+import { avanceEtapeCascade, cascadeDeTest } from '../../noyau/cascade.testkit';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 

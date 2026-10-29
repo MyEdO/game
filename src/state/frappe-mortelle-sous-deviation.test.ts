@@ -13,7 +13,7 @@ import { resetCadence } from '../engine/cadence';
 import { isOutOfAction } from '../engine/conditions';
 import { setRule, resetRule } from '../engine/policy';
 import { bus, EVT } from '../noyau/bus';
-import { draineCascade, type ChoisitCle } from './cascade.testkit';
+import { draineCascade, type ChoisitCle } from '../noyau/cascade.testkit';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
 
 const LIEUX = LOCALISATIONS_DE_COUP;

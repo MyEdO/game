@@ -7,7 +7,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
 import { t } from '../i18n';
 import type { Combatant, Weapon } from '../engine/types';
-import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
+import { draineCascade, poseSurDeNonTombe } from '../noyau/cascade.testkit';
 
 /**
  * TIR RAPIDE, BOUCLE REPRENABLE (#997, #1765) — `LDB 11 l.97-103`. Chaque tir d'interruption passe par la

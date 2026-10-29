@@ -17,7 +17,7 @@ import type { BattleState } from '../../noyau/etat';
 import { applyCast } from '../../noyau/combatFlow';
 import { evaluateMissile, type CastResult } from '../../engine/magic';
 import { seedBattleRng } from '../../noyau/battleRng';
-import { draineCascade } from '../cascade.testkit';
+import { draineCascade } from '../../noyau/cascade.testkit';
 import { emptyScene } from '../../noyau/monde/scene';
 import { findSpellById } from '../../data';
 import type { Combatant } from '../../engine/types';

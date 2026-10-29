@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { applyAttackResult, resolveCritSeverity, critSeverityDecl, critSeverityInSeam, CRIT_TABLE_IDS, STRUCTURE_CRIT_TABLE } from '../noyau/combatFlow';
 import { setRule, resetRule } from '../engine/policy';
 import { stepInteraction, rollTableStep, tableStepDef } from '../noyau/cascade';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { makeRNG, d100 } from '../engine/dice';
 import { resolveCritique, critTableRows } from '../engine/critical';

@@ -14,7 +14,7 @@ import { useGame } from '../state/store';
 import { refusNePeutTenter } from '../engine/skills';
 import { TravelRolesPanel } from './TravelRolesPanel';
 import { activityById } from '../engine/activities';
-import { avecActivite } from '../state/activiteMer.testkit';
+import { avecActivite } from '../engine/activiteMer.testkit';
 import { refLabel } from '../data';
 import type { Combatant } from '../engine/types';
 

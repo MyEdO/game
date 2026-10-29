@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { applyAttackResult } from '../noyau/combatFlow';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { seedBattleRng } from '../noyau/battleRng';
 import { bus, EVT } from '../noyau/bus';
 import { emptyScene } from '../noyau/monde/scene';

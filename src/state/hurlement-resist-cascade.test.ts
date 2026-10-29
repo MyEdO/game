@@ -13,7 +13,7 @@ import { testScene } from '../scenes/test-fixture';
 
 import type { Combatant } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
-import { cascadeDeTest, draineCascade } from './cascade.testkit';
+import { cascadeDeTest, draineCascade } from '../noyau/cascade.testkit';
 
 describe('Hurlement fantomatique — Test de Résistance influençable (héros manuel)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); useGame.setState({ battle: null, pendingCascade: null }); });

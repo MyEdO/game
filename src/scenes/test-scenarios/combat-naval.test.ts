@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { useGame } from '../../state/store';
-import { draineCascade } from '../../state/cascade.testkit';
+import { draineCascade } from '../../noyau/cascade.testkit';
 import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
 import { ficheDEntite } from '../../noyau/monde/sceneNpc';

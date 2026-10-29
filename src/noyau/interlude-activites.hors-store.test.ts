@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { draineCascade } from '../state/cascade.testkit';
+import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
