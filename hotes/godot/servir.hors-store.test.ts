@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { baseSchema3, deposerSchema3, elementSchema3, GLB_D_ELEMENT, GLB_DE_BASE } from './asset/schema3.testkit.ts';
-import { sha256 } from './asset/empreinte.ts';
+import { empreinte } from './asset/empreinte.ts';
 import { ecrireGlb } from './asset/glb.ts';
 import { servir } from './servir.mjs';
 
@@ -23,7 +23,7 @@ const GLB_TENU = ecrireGlb({
   asset: { version: '2.0' }, nodes: [{ name: 'root', children: [1, 2] }, { name: 'tete', mesh: 0 }, { name: 'manche', mesh: 0 }],
   skins: [{ joints: [0] }], meshes: [{ primitives: [{ material: 0 }] }], materials: [{ name: 'metal' }],
 }, null);
-const masse = { ...elementSchema3('humanoide'), cle: { apparence: 'masse' }, glb: { sha256: sha256(GLB_TENU), octets: GLB_TENU.byteLength } };
+const masse = { ...elementSchema3('humanoide'), cle: { apparence: 'masse' }, glb: empreinte(GLB_TENU) };
 
 let serveurs: { url: string; fermer: () => void }[] = [];
 const demarrer = async (dossier = modeles) => {

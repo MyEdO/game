@@ -63,14 +63,38 @@ const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = Obj
   Object.entries(CHARGE_PAR_KIND).map(([kind, charge]) => [kind, charge.requises as readonly string[]]),
 );
 
-/** Le refus d'un `svg` d'emblème qui n'est pas un document `<svg …>…</svg>` à `viewBox` carré, `null` sinon. */
+/** Ce qui peut précéder la racine d'un document SVG : prologue XML, commentaire, doctype (sous-ensemble interne compris). */
+const PROLOGUE_SVG = /^(?:\s+|<\?xml\b[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE\b[^>[]*(?:\[[\s\S]*?\])?\s*>)*/;
+
+/** La valeur de l'attribut `nom` de la balise ouvrante `ouverture`, entre guillemets ou apostrophes, `null` s'il manque. */
+const attribut = (ouverture: string, nom: string): string | null => {
+  const trouve = new RegExp(`\\s${nom}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`).exec(ouverture);
+  return trouve ? (trouve[1] ?? trouve[2]) : null;
+};
+
+/** Une longueur SVG lue en nombre et unité, `px` valant l'absence d'unité ; `null` si elle n'en est pas une. */
+const longueur = (valeur: string): string | null => {
+  const lue = /^\s*([+]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*(px|pt|pc|mm|cm|in|em|ex|%)?\s*$/i.exec(valeur);
+  return lue && Number(lue[1]) > 0 ? `${Number(lue[1])}${(lue[2] ?? 'px').toLowerCase()}` : null;
+};
+
+/** Le refus d'un `svg` d'emblème qui n'est pas un document `<svg …>…</svg>` à `viewBox` carré, ou dont la taille
+ *  intrinsèque n'est pas carrée, `null` sinon : `width` et `height`, chacun remplacé à défaut par le côté du `viewBox`,
+ *  la taille que l'hôte Godot rastérise (`hotes/godot/pont/CONTRAT.md`, « Atelier 3D »). */
 function refusDeSvg(svg: string): string | null {
-  const ouverture = /^<svg\b[^>]*>/.exec(svg.trim());
-  if (!ouverture || !svg.trim().endsWith('</svg>')) return 'n’est pas un document « <svg …>…</svg> »';
-  const viewBox = /\sviewBox="([^"]*)"/.exec(ouverture[0]);
-  if (!viewBox) return 'n’a pas de viewBox, carré attendu';
-  const [, , largeur, hauteur, ...reste] = viewBox[1].trim().split(/[\s,]+/).map(Number);
-  if (reste.length || !(largeur > 0) || largeur !== hauteur) return `porte le viewBox « ${viewBox[1]} », carré attendu`;
+  const corps = svg.replace(PROLOGUE_SVG, '').trimEnd();
+  const ouverture = /^<svg\b(?:[^>"']|"[^"]*"|'[^']*')*>/.exec(corps);
+  if (!ouverture || !corps.endsWith('</svg>')) return 'n’est pas un document « <svg …>…</svg> »';
+  const valeur = attribut(ouverture[0], 'viewBox');
+  if (valeur === null) return 'n’a pas de viewBox, carré attendu';
+  const nombres = valeur.trim().split(/[\s,]+/).map(Number);
+  if (nombres.length !== 4 || !nombres.every(Number.isFinite)) return `porte le viewBox « ${valeur} », quatre nombres attendus`;
+  const [, , largeur, hauteur] = nombres;
+  if (!(largeur > 0) || largeur !== hauteur) return `porte le viewBox « ${valeur} », carré attendu`;
+  const cote = String(largeur);
+  const [w, h] = [attribut(ouverture[0], 'width') ?? cote, attribut(ouverture[0], 'height') ?? cote];
+  const [lw, lh] = [longueur(w), longueur(h)];
+  if (lw === null || lw !== lh) return `a pour taille intrinsèque « ${w} × ${h} » (width et height, côté du viewBox à défaut), carrée attendue`;
   return null;
 }
 

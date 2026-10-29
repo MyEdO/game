@@ -1,7 +1,8 @@
 /**
- * #3114 — ce que le SCHÉMA de `garde-robe.json` tient au parse : une pièce d'accessoire nomme son
- * emplacement et elle seule, un ensemble habille UNE chose sous l'id qui la nomme, et toute référence
- * interne (emplacement, pièces) résout dans sa sous-liste.
+ * #3114, #3111 — ce que le SCHÉMA de `garde-robe.json` tient au parse : une pièce d'accessoire nomme son
+ * emplacement et elle seule, un ensemble habille UNE chose sous l'id qui la nomme, toute référence
+ * interne (emplacement, pièces) résout dans sa sous-liste, et un emblème porte un document SVG complet
+ * à `viewBox` carré.
  */
 import { describe, expect, it } from 'vitest';
 import { schema } from './garde-robe';
@@ -20,7 +21,7 @@ const refus = (doc: unknown): string => {
   return r.success ? '' : r.error.issues.map((i) => i.message).join(' ');
 };
 
-describe('garde-robe.json — emplacements, pièces, ensembles (#3114)', () => {
+describe('garde-robe.json — emplacements, pièces, ensembles, emblèmes (#3114, #3111)', () => {
   it('le document réel parse', () => {
     const r = schema.safeParse(gardeRobeJson);
     expect(r.success, r.success ? '' : r.error.issues.map((i) => `${i.path.join('.')} : ${i.message}`).join('\n')).toBe(true);
@@ -79,6 +80,45 @@ describe('garde-robe.json — emplacements, pièces, ensembles (#3114)', () => {
   it('un dessin d’emblème à viewBox non carré, ou sans viewBox, est refusé', () => {
     expect(refus(avec('taureau-rouge', { svg: '<svg viewBox="0 0 256 128"></svg>' }))).toMatch(/l’emblème « taureau-rouge » porte le viewBox « 0 0 256 128 », carré attendu/);
     expect(refus(avec('taureau-rouge', { svg: '<svg width="256" height="256"></svg>' }))).toMatch(/l’emblème « taureau-rouge » n’a pas de viewBox, carré attendu/);
+  });
+
+  it('un dessin d’emblème à prologue XML, commentaire ou doctype en tête, ou à viewBox entre apostrophes, est accepté', () => {
+    for (const svg of [
+      '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"></svg>\n',
+      '<!-- Créé avec Inkscape -->\n<svg viewBox="0 0 8 8"></svg>',
+      '<?xml version="1.0"?>\n<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n<svg viewBox="0 0 8 8"></svg>',
+      "<svg viewBox='0 0 8 8'></svg>",
+      '<svg viewBox = "0,0,8,8"></svg>',
+    ]) {
+      const r = schema.safeParse(avec('taureau-rouge', { svg }));
+      expect(r.success, `${svg} : ${r.success ? '' : r.error.issues.map((i) => i.message).join(' ')}`).toBe(true);
+    }
+  });
+
+  it('un dessin d’emblème dont width et height, côté du viewBox à défaut, ne font pas un carré est refusé', () => {
+    for (const [attributs, taille] of [
+      ['width="300" height="100"', '300 × 100'],
+      ['width="300"', '300 × 256'],
+      ["height='10cm'", '256 × 10cm'],
+      ['width="100" height="100mm"', '100 × 100mm'],
+      ['width="auto" height="auto"', 'auto × auto'],
+    ]) {
+      expect(refus(avec('taureau-rouge', { svg: `<svg viewBox="0 0 256 256" ${attributs}></svg>` }))).toContain(
+        `l’emblème « taureau-rouge » a pour taille intrinsèque « ${taille} » (width et height, côté du viewBox à défaut), carrée attendue`,
+      );
+    }
+  });
+
+  it('un dessin d’emblème à width et height carrés, unités comprises, est accepté', () => {
+    for (const attributs of ['width="64" height="64"', 'width="512px" height="512"', "width='10cm' height=' 10cm '", 'width="256"', 'height="256px"']) {
+      const svg = `<svg viewBox="0 0 256 256" ${attributs}></svg>`;
+      const r = schema.safeParse(avec('taureau-rouge', { svg }));
+      expect(r.success, `${svg} : ${r.success ? '' : r.error.issues.map((i) => i.message).join(' ')}`).toBe(true);
+    }
+  });
+
+  it('un dessin d’emblème au viewBox qui n’a pas quatre nombres est refusé pour cette raison', () => {
+    expect(refus(avec('taureau-rouge', { svg: "<svg viewBox='0 0 8'></svg>" }))).toMatch(/l’emblème « taureau-rouge » porte le viewBox « 0 0 8 », quatre nombres attendus/);
   });
 
   it('`findPieceById` résout toute pièce sur elle-même et aucune autre ligne', () => {

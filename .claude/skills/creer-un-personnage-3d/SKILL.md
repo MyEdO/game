@@ -26,9 +26,9 @@ corps/vêtements/armure ; rigides/accessoires. Borne de chaque build : moins de 
 Après deux échecs du même défaut, changer de méthode avant une troisième retouche.
 
 Interdits : générateur image → 3D, retopologie automatique, illustration projetée en texture,
-coque moulée pour un vêtement de silhouette, couleur cuite, blason modelé ou peint, mouvement des
+coque moulée pour un vêtement de silhouette, couleur cuite, emblème modelé ou peint, mouvement des
 chaînes recalculé par l'hôte. Une couleur appartient à la palette ou à la teinte, jamais à une
-variante de géométrie ; un blason se pose au montage sur une surface neutre, déclarée
+variante de géométrie ; un emblème se pose au montage sur une surface `blason`, neutre, déclarée
 `blason: true` au manifeste et dépliée sur le carré UV (#3111). Le rig SVG
 (`src/gameIso/rig/`) est abandonné (#2794) : il ne fournit à un élément ni id, ni forme, ni modèle.
 

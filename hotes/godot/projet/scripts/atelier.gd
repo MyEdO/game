@@ -45,7 +45,7 @@ var _vitesse := 1.0
 ## Le clip que « Recharger » rejoue, à son instant, en lecture ou en pause.
 var _reprise: Dictionary = {}
 var _montes: Dictionary = {}
-## Par point monté dont l'élément porte une surface à blason, l'emblème posé (#3111).
+## Par point monté dont l'élément porte une surface `blason`, l'emblème posé (#3111).
 var _emblemes: Dictionary = {}
 var _supports: Dictionary = {}
 ## Par point, sa ligne au panneau ; et la ligne de ses emblèmes, s'il en offre.
@@ -268,7 +268,7 @@ func _choisir(point: Dictionary, element: String, embleme: String = VIDE) -> voi
 ## `element` monté au point `point` une fois son GLB chargé, si `demande` reste la demande retenue de ce point : chaque
 ## mesh rigide pendu à un os du GLB, à sa transformation locale, sous l'os de même nom de la base
 ## (`hotes/godot/asset/evaluateur/evaluer.ts` `monter`) ; rien de monté s'il n'en a aucun ou si l'un de ses os manque.
-## Monté, il offre ses emblèmes s'il porte une surface à blason, `embleme` posé.
+## Monté, il offre ses emblèmes s'il porte une surface `blason`, `embleme` posé.
 func _monter(point: Dictionary, element: String, embleme: String, demande: RefCounted) -> void:
 	var squelette := _squelette
 	if squelette == null:
@@ -306,7 +306,7 @@ func _monter(point: Dictionary, element: String, embleme: String, demande: RefCo
 	_ligne_des_emblemes(point.id, element, embleme)
 
 
-## Sous la ligne du point `point_id`, si `element` qui y est monté porte une surface à blason (`blasons` de la réponse de
+## Sous la ligne du point `point_id`, si `element` qui y est monté porte une surface `blason` (`blasons` de la réponse de
 ## `modeles`) : « vide » et un bouton par emblème, bascules d'un même groupe, `embleme` posé s'il est offert.
 func _ligne_des_emblemes(point_id: String, element: String, embleme: String) -> void:
 	if _modeles.blasons.get(element, []).is_empty():
@@ -331,10 +331,12 @@ func _ligne_des_emblemes(point_id: String, element: String, embleme: String) -> 
 
 ## L'emblème `embleme` posé sur l'élément monté au point `point_id` : sur chaque surface dont le matériau porte un nom de
 ## ses `blasons`, un matériau propre (`MontageDEquipement.materiau_local`) dont la couche de détail, en UV1 et en
-## mélange, est l'emblème ; « vide » rend à chaque surface le matériau du GLB.
+## mélange, est l'emblème ; « vide » rend à chaque surface le matériau du GLB. Aucune surface posée, l'emblème ne l'est pas.
 func _choisir_l_embleme(point_id: String, embleme: String) -> void:
-	var noms: Array = _modeles.blasons[_montes[point_id]]
+	var element: String = _montes[point_id]
+	var noms: Array = _modeles.blasons[element]
 	var texture: ImageTexture = _texture_de_l_embleme(embleme) if embleme != VIDE else null
+	var posees: Array[int] = []
 	for support in _supports[point_id]:
 		for enfant in support.get_children():
 			var piece := enfant as MeshInstance3D
@@ -352,32 +354,31 @@ func _choisir_l_embleme(point_id: String, embleme: String) -> void:
 				local.detail_albedo = texture
 				local.detail_uv_layer = BaseMaterial3D.DETAIL_UV_1
 				local.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MIX
-	var pose := VIDE if texture == null else embleme
+				posees.append(surface)
+	if texture != null and posees.is_empty():
+		_erreurs.append("blason-sans-surface : %s" % element)
+	var pose := VIDE if posees.is_empty() else embleme
 	if pose == VIDE:
 		_emblemes.erase(point_id)
 	else:
 		_emblemes[point_id] = pose
 	_marquer(_boutons_des_emblemes[point_id], pose)
-	_publier()
+	_montrer_l_etat()
 
 
-## Le SVG de l'emblème `id` (`emblemes` de la réponse de `modeles`) rastérisé à `LARGEUR_D_EMBLEME` pixels de large, ses
-## mipmaps générées ; `null` (et une erreur) s'il ne se lit pas.
+## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de
+## large, ses mipmaps générées ; `null` (et une erreur) s'il ne se lit pas.
 func _texture_de_l_embleme(id: String) -> ImageTexture:
-	for embleme in _modeles.emblemes:
-		if embleme.id != id:
-			continue
-		var image := Image.new()
-		var code := image.load_svg_from_string(embleme.svg)
-		if code == OK:
-			code = image.load_svg_from_string(embleme.svg, MiseEnPage.echelle_d_image(LARGEUR_D_EMBLEME, image.get_width()))
-		if code != OK or image.is_empty():
-			_erreurs.append("embleme-illisible : %s (%s)" % [id, error_string(code)])
-			return null
-		image.generate_mipmaps()
-		return ImageTexture.create_from_image(image)
-	_erreurs.append("embleme-absent : %s" % id)
-	return null
+	var svg: String = _modeles.emblemes.filter(func(offert: Dictionary) -> bool: return offert.id == id)[0].svg
+	var image := Image.new()
+	var code := image.load_svg_from_string(svg)
+	if code == OK:
+		code = image.load_svg_from_string(svg, MiseEnPage.echelle_d_image(LARGEUR_D_EMBLEME, image.get_width()))
+	if code != OK or image.is_empty():
+		_erreurs.append("embleme-illisible : %s (%s)" % [id, error_string(code)])
+		return null
+	image.generate_mipmaps()
+	return ImageTexture.create_from_image(image)
 
 
 ## Les meshes rigides de `scene` pendus à un os : l'import glTF pose chacun sous un `BoneAttachment3D` de son os.

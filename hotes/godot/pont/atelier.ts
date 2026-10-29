@@ -11,7 +11,7 @@ import type { Attache } from '../asset/attache';
 import type { ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import { fichiersDuModele, indexerModeles } from '../asset/modeles';
-import { gardeRobe } from '../../../src/noyau/index';
+import { gardeRobe, type EmblemeDef } from '../../../src/noyau/index';
 
 /** Un point d'accroche d'une base : un emplacement ou une prise, son repère, et les ids des éléments qui s'y montent. */
 export interface PointDAccroche {
@@ -39,14 +39,10 @@ export interface ModelesDeLAtelier {
 }
 
 /** Un emblème offert au montage : son id, son libellé et son dessin. */
-interface EmblemeDeLAtelier {
-  id: string;
-  label: string;
-  svg: string;
-}
+type EmblemeDeLAtelier = Pick<EmblemeDef, 'id' | 'label' | 'svg'>;
 
 /** Les modèles de `manifestes` (id de modèle → manifeste du listage servi, validé) : les bases et leurs points
- *  d'accroche, les surfaces à blason de chaque élément d'un point, les emblèmes de la garde-robe et les refus de l'index.
+ *  d'accroche, les surfaces `blason` de chaque élément d'un point, les emblèmes de la garde-robe et les refus de l'index.
  *  Un élément lié en `rigide` se monte aux points de sa base dont l'os est l'un de ses `osDesRigides` (id de modèle → os
  *  qui portent ses meshes rigides, du listage servi). */
 export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigides: Readonly<Record<string, readonly string[]>>): ModelesDeLAtelier {

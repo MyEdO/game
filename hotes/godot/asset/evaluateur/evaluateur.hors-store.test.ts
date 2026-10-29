@@ -5,8 +5,8 @@ import {
   Uint16BufferAttribute, VectorKeyframeTrack,
 } from 'three';
 import { tableTotale } from '../../../../src/lib/tableTotale';
-import { sha256 } from '../empreinte.ts';
 import { ecrireGlb, lireGlb } from '../glb.ts';
+import { empreinte } from '../empreinte.ts';
 import { chargerScene } from './chargement.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer, monter } from './evaluer.ts';
@@ -313,7 +313,7 @@ const manifesteDe = (octets: Uint8Array, os = ['racine']) => ({
   porteur: { race: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
   appuis: { pieds: ['racine'], vitessesAuSol: tableTotale([...lireGlb(octets).animations], () => 1.4) },
   osAPositionAnimee: os.filter((o) => o !== 'racine'),
-  glb: { sha256: sha256(octets), octets: octets.byteLength },
+  glb: empreinte(octets),
 });
 
 describe('chargerScene et lireGlb', () => {

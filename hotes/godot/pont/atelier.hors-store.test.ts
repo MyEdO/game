@@ -7,26 +7,24 @@
  * ignoré.
  */
 import { describe, expect, it } from 'vitest';
-import { sha256 } from '../asset/empreinte.ts';
 import { baseSchema3, elementSchema3, glbDElement } from '../asset/schema3.testkit.ts';
+import { empreinte } from '../asset/empreinte.ts';
 import { gardeRobe } from '../../../src/noyau/index';
 import { modelesDeLAtelier } from './atelier';
-
-const glb = (octets: Uint8Array) => ({ sha256: sha256(octets), octets: octets.byteLength });
 
 const dos = { os: 'spine', position: [0, 0.1, 0], rotation: [0, 0, 0] };
 const humanoide = { ...baseSchema3('humanoide'), emplacements: { dos } };
 const epee = elementSchema3('humanoide');
 const chemise = {
   schema: 3, base: 'humanoide', categorie: 'vetement', cle: { piece: 'chemise' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: ['torse'],
-  surfaces: [{ nom: 'tissu', palette: 'tissu' }], glb: glb(glbDElement('root', ['tissu'])),
+  surfaces: [{ nom: 'tissu', palette: 'tissu' }], glb: empreinte(glbDElement('root', ['tissu'])),
 };
 const broche = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'baudrier' }, liaison: { mode: 'surface' }, couvre: [] };
 const bouclier = {
   ...elementSchema3('humanoide'), cle: { apparence: 'bouclier_blason' },
-  surfaces: [{ nom: 'metal', teinte: true }, { nom: 'champ', teinte: true, blason: true }], glb: glb(glbDElement('spine', ['metal', 'champ'])),
+  surfaces: [{ nom: 'metal', teinte: true }, { nom: 'champ', teinte: true, blason: true }], glb: empreinte(glbDElement('spine', ['metal', 'champ'])),
 };
-const lanterne = { ...elementSchema3('humanoide'), cle: { apparence: 'targe' }, surfaces: [{ nom: 'verre', teinte: true, blason: true }], glb: glb(glbDElement(null, ['verre'])) };
+const lanterne = { ...elementSchema3('humanoide'), cle: { apparence: 'targe' }, surfaces: [{ nom: 'verre', teinte: true, blason: true }], glb: empreinte(glbDElement(null, ['verre'])) };
 const orpheline = { ...elementSchema3('nain'), cle: { apparence: 'hache' } };
 const schema2 = { schema_version: 2, model: 'Lame.glb' };
 
@@ -53,7 +51,7 @@ describe('modelesDeLAtelier', () => {
     expect(modeles.glb).toEqual({ humanoide: 'humanoide.glb', bouclier: 'bouclier.glb', epee: 'epee.glb' });
   });
 
-  it('chaque élément d’un point, et lui seul, donne les noms de ses surfaces à blason, liste vide sans blason', () => {
+  it('chaque élément d’un point, et lui seul, donne les noms de ses surfaces `blason`, liste vide sans surface `blason`', () => {
     expect(modeles.blasons).toEqual({ bouclier: ['champ'], epee: [] });
   });
 

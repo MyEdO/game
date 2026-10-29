@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs'
 import { text } from 'node:stream/consumers'
 import { parseArgs } from 'node:util'
 import { chargerEvaluateur } from '../../../hotes/godot/asset/charger.mjs'
-import { sha256 } from '../../../hotes/godot/asset/empreinte.ts'
+import { empreinte } from '../../../hotes/godot/asset/empreinte.ts'
 import { validerManifesteDeBase, VERSION_DU_SCHEMA_DE_BASE } from '../../../hotes/godot/asset/manifesteDeBase.ts'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { lireDeclaration } from './declaration.mjs'
@@ -71,7 +71,7 @@ async function main() {
     gabarit: { ...construit.gabarit, st: bornesDeSt() },
     porteur,
     appuis: { ...construit.appuis, vitessesAuSol },
-    glb: { sha256: sha256(octets), octets: octets.byteLength },
+    glb: empreinte(octets),
   })
   const complet = manifeste(await mesurerVitesses(octets, manifeste(tableTotale(clipsDeMarche, () => VITESSE_DE_SONDE)), clipsDeMarche))
   const verdict = validerManifesteDeBase(complet, octets)

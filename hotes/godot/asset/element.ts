@@ -199,7 +199,6 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
     if (!Array.isArray(brut.surfaces)) refus('forme', 'surfaces', 'liste attendue');
     else {
       const noms = new Set<string>();
-      const materiaux = new Set([...glb.materiauxParPiece.values()].flat());
       brut.surfaces.forEach((s: unknown, i) => {
         const ou = `surfaces.${i}`;
         const couleur = estObjet(s) ? Object.keys(s).length - (s.blason === undefined ? 0 : 1) : 0;
@@ -207,7 +206,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
         if (s.blason !== undefined && s.blason !== true) refus('forme', `${ou}.blason`, `${String(s.blason)} : \`true\` ou absent attendu`);
         if (noms.has(s.nom)) refus('forme', `${ou}.nom`, `${s.nom} nommée deux fois`);
         noms.add(s.nom);
-        if (!materiaux.has(s.nom)) refus('surface-absente', `${ou}.nom`, `${s.nom} n’est le nom d’aucun matériau du GLB`);
+        if (!glb.materiaux.has(s.nom)) refus('surface-absente', `${ou}.nom`, `${s.nom} n’est le nom d’aucun matériau du GLB`);
         else if (s.blason === true && glb.materiauxSansUv.has(s.nom)) refus('uv-absente', `${ou}.blason`, `une primitive du matériau ${s.nom} n’a pas d’attribut \`TEXCOORD_0\` où poser l’emblème`);
         if (regle.couleur === 'teinte') {
           if (s.teinte !== true) refus('surface-hors-categorie', ou, `un élément \`${categorie}\` prend la teinte de l’objet : \`teinte: true\` attendu`);

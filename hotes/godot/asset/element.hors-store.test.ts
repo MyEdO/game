@@ -5,8 +5,8 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, glbDElement } from './schema3.testkit.ts';
+import { empreinte } from './empreinte.ts';
 import { CATEGORIES_D_ELEMENT, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
-import { sha256 } from './empreinte.ts';
 import { lireGlb } from './glb.ts';
 
 const BASE: BaseDUnElement = {
@@ -21,7 +21,6 @@ const BASE: BaseDUnElement = {
 const MATERIAUX = ['tissu', 'cuir', 'plaque', 'poil', 'peau'];
 const glbAvec = (os: string | null, sansUv: readonly string[] = []) => glbDElement(os, MATERIAUX, sansUv);
 const OCTETS = glbAvec('hand_r');
-const empreinte = (octets: Uint8Array) => ({ sha256: sha256(octets), octets: octets.byteLength });
 const GLB = empreinte(OCTETS);
 const PALETTE = [{ nom: 'tissu', palette: 'vet1' }];
 const TEINTE = [{ nom: 'plaque', teinte: true }];
@@ -61,6 +60,22 @@ describe('validerElement : un manifeste valide par catégorie', () => {
   it('une surface porte un blason en option', () => {
     const blason = manifeste('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] });
     expect(verdict(blason)).toEqual({ ok: true, manifeste: blason });
+  });
+  it('une surface à palette porte un blason en option', () => {
+    const blason = manifeste('vetement', { surfaces: [{ nom: 'tissu', palette: 'vet1', blason: true }] });
+    expect(verdict(blason)).toEqual({ ok: true, manifeste: blason });
+  });
+});
+
+describe('validerElement : les surfaces se lisent sur tout nœud à mesh, nommé ou non', () => {
+  const plaque = glbDElement('hand_r', ['tissu'], [], { anonyme: [{ materiau: 'plaque', uv: true }] });
+  it('un matériau porté par un nœud sans nom est une surface du GLB', () => {
+    const blason = manifeste('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] }, plaque);
+    expect(verdict(blason, plaque)).toEqual({ ok: true, manifeste: blason });
+  });
+  it('une primitive sans `TEXCOORD_0` sous un nœud sans nom refuse l’emblème', () => {
+    const octets = glbDElement('hand_r', MATERIAUX, [], { anonyme: [{ materiau: 'plaque', uv: false }] });
+    expect(codes(...surGlb('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] }, octets))).toEqual(['uv-absente']);
   });
 });
 
@@ -102,6 +117,7 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['forme', 'blason sans couleur', manifeste('armure', { surfaces: [{ nom: 'plaque', blason: true }] })],
   ['surface-absente', 'surface qu’aucun matériau du GLB ne nomme', manifeste('rigide', { surfaces: [{ nom: 'bois', teinte: true }] })],
   ['uv-absente', 'blason sur une surface sans `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] }, glbAvec('hand_r', ['plaque']))],
+  ['uv-absente', 'blason sur une surface dont une primitive sur deux a `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] }, glbDElement('hand_r', MATERIAUX, [], { mixtes: ['plaque'] }))],
   ['rigide-sans-mesh', 'rigide sans mesh', ...surGlb('rigide', { surfaces: [] }, GLB_DE_BASE)],
   ['rigide-sur-os-absent', 'rigide pendu à un os inconnu de la base', ...surGlb('rigide', {}, glbAvec('main_gauche'))],
   ['rigide-a-la-racine', 'rigide à la racine', ...surGlb('rigide', {}, glbAvec(null))],

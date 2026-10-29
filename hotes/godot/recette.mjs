@@ -13,7 +13,8 @@
 //   `modeles/` ; la base choisie, ses points sans élément ; `--element` importé puis « Recharger » : l'élément listé aux
 //   seuls points dont l'os porte sa lame (`osDesRigides` du listage), les autres disant « aucun élément » ; les aides,
 //   l'élément monté puis démonté (« vide ») ; si une surface de `--element` porte `blason: true` (#3111), deux emblèmes
-//   posés tour à tour à la prise `main`, puis « vide », l'emblème effacé au démontage et reposé avant « Recharger » ; un
+//   posés tour à tour à la prise `main`, chacun sans erreur publiée, puis « vide », l'emblème effacé au démontage et
+//   reposé avant « Recharger » (sans surface `blason`, une ligne du journal dit la preuve non jouée) ; un
 //   clip joué, mis en pause, avancé et reculé d'une image (au clic puis à l'Entrée), sa vitesse réglée ; puis
 //   `--reexport` importé à la place de la base (`importer.mjs --remplacer`), l'élément qui la référence revalidé contre
 //   elle et laissé en place, « Recharger » sans relancer la page : l'empreinte publiée devient celle du manifeste
@@ -32,7 +33,7 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { servir } from './servir.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { clic, consoleGuard, evaluate, geste, launchSession, molette, realKey, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
+import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, realKey, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
@@ -192,28 +193,39 @@ function importer(dossier, id, options = []) {
   noter(`import de ${id} : ${r.stdout.split('\n')[1].replaceAll(o.modeles, '')}`)
 }
 
+/** Le `deltaY` d'un cran de molette de Chrome sous Windows. Le panneau en défile moins que la hauteur de sa fenêtre :
+ *  aucun bouton ne passe entre deux écrans publiés (#3111). */
+const CRAN_DE_MOLETTE = 100
+/** Un cran de molette au point `ou`, vers le bas (`sens` 1) ou le haut (-1), puis l'écran que son défilement publie
+ *  attendu ; `false` si rien ne se publie en `FIN_DE_COURSE_MS`, le panneau au bout de sa course. */
+const FIN_DE_COURSE_MS = 3000
+async function cran(sens, ou) {
+  await marquer()
+  await molette(session, { surface: 'canvas', x: ou.x, y: ou.y }, sens * CRAN_DE_MOLETTE)
+  return waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.vu', { timeoutMs: FIN_DE_COURSE_MS }).then(
+    () => true,
+    (e) => {
+      if (e.code === ATTENTE_ECHUE) return false
+      throw e
+    },
+  )
+}
 /** Le bouton `quoi` amené à l'écran par la molette tournée au point `ou`, vers le bas (`sens` 1) ou le haut (-1). */
 async function amener(quoi, sens, ou = PANNEAU) {
-  for (let cran = 0; cran < CRANS; cran++) {
+  for (let n = 0; n < CRANS; n++) {
     const b = trouver((await ecran()).boutons, quoi)
     if (b) return b
-    await molette(session, { surface: 'canvas', x: ou.x, y: ou.y }, sens * 360)
-    await sleep(300)
+    if (!(await cran(sens, ou))) break
   }
-  throw new Error(`bouton ${JSON.stringify(quoi)} hors de l'écran après ${CRANS} crans de molette`)
+  const { boutons } = await ecran()
+  throw new Error(`bouton ${JSON.stringify(quoi)} hors de l'écran, panneau tourné ${sens > 0 ? 'vers le bas' : 'vers le haut'} ; boutons : ${boutons.map((x) => x.cle ?? x.texte).join(' | ')}`)
 }
-/** Le panneau tourné à la molette au point `PANNEAU` dans le sens `sens` jusqu'à ce que l'écran publié ne change plus ;
- *  `relever` reçoit chaque écran publié. */
+/** Le panneau tourné à la molette au point `PANNEAU` dans le sens `sens` jusqu'au bout de sa course ; `relever` reçoit
+ *  chaque écran publié. */
 async function tournerJusquAuBout(sens, relever = () => {}) {
-  let avant = null
-  for (let cran = 0; cran < CRANS; cran++) {
-    const { boutons } = await ecran()
-    relever(boutons)
-    const maintenant = JSON.stringify(boutons)
-    if (maintenant === avant) return
-    avant = maintenant
-    await molette(session, { surface: 'canvas', x: PANNEAU.x, y: PANNEAU.y }, sens * 360)
-    await sleep(300)
+  for (let n = 0; n < CRANS; n++) {
+    relever((await ecran()).boutons)
+    if (!(await cran(sens, PANNEAU))) return
   }
   throw new Error(`panneau encore en mouvement après ${CRANS} crans de molette`)
 }
@@ -233,12 +245,14 @@ async function cliquerAmene(quoi, sens, ou) {
   await cliquerBouton(quoi)
 }
 
-/** L'emblème `id` choisi au clic à la prise `main` (« vide » pour aucun), l'état publié qui le porte attendu. */
+/** L'emblème `id` choisi au clic à la prise `main` (« vide » pour aucun), l'état publié qui le porte, ou une erreur,
+ *  attendu ; aucune erreur publiée. */
 async function choisirLEmbleme(id) {
   await cliquerAmene({ cle: `main/embleme/${id}` }, 1)
-  await attendreLAtelier(id === 'vide' ? '!("main" in a.emblemes)' : `a.emblemes.main === ${JSON.stringify(id)}`)
+  await attendreLAtelier(`a.erreurs.length > 0 || ${id === 'vide' ? '!("main" in a.emblemes)' : `a.emblemes.main === ${JSON.stringify(id)}`}`)
+  assert.deepEqual((await atelier()).erreurs, [], `l’emblème « ${id} » posé sans erreur`)
 }
-/** À la prise `main`, dont l'élément monté porte une surface à blason : la rangée des emblèmes relevée, le premier puis le
+/** À la prise `main`, dont l'élément monté porte une surface `blason` : la rangée des emblèmes relevée, le premier puis le
  *  second posés et capturés, puis « vide » ; le premier reposé. Les ids des emblèmes offerts, triés. */
 async function poserLesEmblemes() {
   const prefixe = 'main/embleme/'
@@ -294,7 +308,9 @@ async function parcoursAtelier() {
   await attendreLAtelier(`a.montes.main === ${JSON.stringify(elementId)}`)
   noter(`« ${elementId} » monté à la prise « main »`)
   await capturer('3086-a1-2-element-monte')
-  const emblemes = element.manifeste.surfaces.some((s) => s.blason === true) ? await poserLesEmblemes() : []
+  const blason = element.manifeste.surfaces.some((s) => s.blason === true)
+  if (!blason) noter(`« ${elementId} » sans surface \`blason\` : preuve des emblèmes non jouée`)
+  const emblemes = blason ? await poserLesEmblemes() : []
   await cliquerAmene({ cle: 'main/vide' }, -1)
   await attendreLAtelier('!("main" in a.montes)')
   assert.deepEqual((await atelier()).emblemes, {}, 'démonter efface l’emblème')
