@@ -12,9 +12,9 @@ import { rollTest, evaluateTest, extendedTestStep, jetPose, type JetPose } from 
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
 import { testValue } from './skills';
-import { findGroupById, findPsychologyById, psychologyLabel, refLabel, talents } from '../data';
+import { findPsychologyById, psychologyLabel, refLabel, talents } from '../data';
 import type { PlayerText } from '../i18n/playerText';
-import { cibleDArgument, estCibleType, identiteDeCiblage, selonCible, type CiblePsy } from './psych/ciblage';
+import { ciblePsyLue, estCibleType, identiteDeCiblage, selonCible, varianteDe, type CiblePsy } from './psych/ciblage';
 import { opPsy } from './psych/opsPsy';
 import { SizeCategory, sizeGap } from './size';
 import { isOutOfAction } from './conditions';
@@ -79,13 +79,13 @@ export interface PsychAffliction {
  *  par les modales psy (combat + rencontre) et la narration. */
 export const cibleLabel = (type: string): { icon: string; label: string } | undefined => {
   const p = findPsychologyById(type);
-  return p?.targeted ? { icon: p.icon ?? '', label: p.label } : undefined;
+  return p?.cibles ? { icon: p.icon ?? '', label: p.label } : undefined;
 };
 
-/** Ce qui peut déclencher, ou subir, un Trait psy ciblé : un combattant, ou l'interlocuteur d'un Test social
- *  décrit par ses Groupes (`FlowTest.vsGroups`). */
+/** Ce qui peut déclencher, ou subir, un Trait psy ciblé : un combattant (ses Groupes, et son id s'il en a un), ou
+ *  l'interlocuteur d'un Test social décrit par ses Groupes (`FlowTest.vsGroups`). */
 export type SourcePsy =
-  | { genre: 'combattant'; c: PorteurDeGroupes }
+  | { genre: 'combattant'; c: PorteurDeGroupes & { readonly id?: string } }
   | { genre: 'interlocuteur'; groups: readonly string[] };
 
 /** Ce qu'un lecteur regarde de la source : ce qu'elle EST (`groupesDe`), ou ce que l'observateur en
@@ -94,11 +94,13 @@ type Lecture = 'appartenance' | 'percu';
 
 /** La Cible `cible` vise-t-elle la source `s`, selon la `lecture` du lecteur ? Seul prédicat de ciblage
  *  d'un Trait psy ; les jokers se résolvent par `groupMatch`. Un interlocuteur n'a que les Groupes que
- *  le Test lui décrit : perçu et appartenance s'y confondent. #3045 */
+ *  le Test lui décrit : perçu et appartenance s'y confondent. Un individu ne vise que le combattant de
+ *  son id, quelle que soit la lecture ; un interlocuteur n'a pas d'id. #3045 */
 export function vise(cible: CiblePsy, s: SourcePsy, lecture: Lecture): boolean {
-  const groupes = s.genre === 'interlocuteur' ? s.groups
-    : lecture === 'appartenance' ? groupesDe(s.c) : groupesPercus(s.c);
-  return selonCible(cible, { groupe: (id) => groupMatch(id, groupes) });
+  return selonCible(cible, {
+    groupe: (id) => groupMatch(id, s.genre === 'interlocuteur' ? s.groups : lecture === 'appartenance' ? groupesDe(s.c) : groupesPercus(s.c)),
+    individu: (id) => s.genre === 'combattant' && s.c.id === id,
+  });
 }
 
 /** Sujet à la Peur. LDB 21 l.25 */
@@ -223,6 +225,20 @@ export function refreshDefendedPsych(c: Combatant, present: Combatant[]): boolea
   return changed;
 }
 
+/** Les Cibles des afflictions ACTIVES de `porteur` à pulsion d'attaque (`attackDR.vs: 'group'` : Animosité,
+ *  Haine), que son vivier d'attaque vise en priorité. LDB 21 l.21, l.41 ; #3045 */
+export function ciblesAPulsion(porteur: Pick<Combatant, 'psychState'>): CiblePsy[] {
+  return (porteur.psychState ?? []).flatMap((p) => (p.active && p.cible !== undefined && findPsychologyById(p.type)?.attackDR?.vs === 'group' ? [p.cible] : []));
+}
+
+/** Les combattants en action, de TOUT `kind`, que vise en appartenance une Cible à pulsion de `porteur`
+ *  (`ciblesAPulsion`) : son vivier d'attaque s'étend à eux, alliés compris. LDB 21 l.21, l.41 ; #3045 */
+export function ciblesDePulsion(porteur: Combatant, combattants: readonly Combatant[]): Combatant[] {
+  const cibles = ciblesAPulsion(porteur);
+  if (!cibles.length) return [];
+  return combattants.filter((c) => c.id !== porteur.id && !c.dead && !isOutOfAction(c) && cibles.some((cb) => vise(cb, { genre: 'combattant', c }, 'appartenance')));
+}
+
 /** `refreshDefendedPsych` pour TOUT un roster (chacun mesuré contre l'ensemble) — forme appelée par les
  *  détenteurs du roster : ouverture de Round, purge de mort/hors-combat, ouverture de rencontre. */
 export function refreshAllDefendedPsych(all: Combatant[]): boolean {
@@ -315,8 +331,8 @@ export function sansPeurVs(self: Combatant, foe: PorteurDeGroupes): boolean {
   return featuresOf(self).some(({ def, ctx }) => {
     if (!def.fearImmune) return false;
     if (ctx.spec == null) return true;
-    const cible = cibleDArgument(ctx.spec);
-    return cible !== undefined && vise(cible, { genre: 'combattant', c: foe }, 'percu');
+    const cible = ciblePsyLue(ctx.spec);
+    return cible !== undefined && varianteDe(cible) === 'groupe' && vise(cible, { genre: 'combattant', c: foe }, 'percu');
   });
 }
 
@@ -706,8 +722,9 @@ type PorteurDeCiblesPsy = {
   activeEffects?: readonly { suppressedPsych?: readonly { cible?: unknown }[] }[];
 };
 
-/** La Cible de `p` est une chaîne hors de `groups.json` (la chaîne vide comprise) ; une Cible absente n'est pas jugée. */
-const cibleInconnue = (p: { cible?: unknown } | null | undefined): boolean => typeof p?.cible === 'string' && !findGroupById(p.cible);
+/** La Cible de `p` est une chaîne qu'aucune Cible ne lit (`ciblePsyLue` : ni Groupe de `groups.json` ni
+ *  individu, la chaîne vide comprise) ; une Cible absente n'est pas jugée. */
+const cibleInconnue = (p: { cible?: unknown } | null | undefined): boolean => typeof p?.cible === 'string' && ciblePsyLue(p.cible) === undefined;
 
 /** `v` s'il est une liste, `[]` sinon : un champ persisté se lit sans être présumé. */
 const liste = <T,>(v: readonly T[] | undefined): readonly T[] => (Array.isArray(v) ? v : []);
@@ -716,7 +733,7 @@ const liste = <T,>(v: readonly T[] | undefined): readonly T[] => (Array.isArray(
 const traitsPsyPortes = (c: PorteurDeCiblesPsy | null | undefined) =>
   [...liste(c?.psychTraits), ...liste(c?.psychState), ...liste(c?.activeEffects).flatMap((e) => liste(e?.suppressedPsych))];
 
-/** Les Cibles hors `groups.json` que nomment les Traits psy de combattants PERSISTÉS (sauvegarde, roster, export
+/** Les Cibles inconnues (`cibleInconnue`) que nomment les Traits psy de combattants PERSISTÉS (sauvegarde, roster, export
  *  de héros), lus tels qu'ils arrivent du stockage : `[]` = rien à nommer (#1463 LD.1, LDB 21 l.17-21). Une Cible
  *  vide se retire sans se nommer. */
 export function ciblesPsyInconnues(porteurs: unknown): string[] {
@@ -724,7 +741,7 @@ export function ciblesPsyInconnues(porteurs: unknown): string[] {
   return porteurs.flatMap((c: PorteurDeCiblesPsy | null) => traitsPsyPortes(c).filter(cibleInconnue).map((p) => p!.cible as string).filter((id) => id !== ''));
 }
 
-/** `p` sans ses Traits psy (Traits, Traits suspendus d'un effet, afflictions) à Cible hors `groups.json`, retirés
+/** `p` sans ses Traits psy (Traits, Traits suspendus d'un effet, afflictions) à Cible inconnue, retirés
  *  ENTIERS (LDB 21 l.17-21), lu tel qu'il arrive du stockage ; `p` lui-même s'il n'en porte aucun. */
 export function sansCiblesPsyInconnues<P extends PorteurDeCiblesPsy>(p: P): P {
   if (!traitsPsyPortes(p).some(cibleInconnue)) return p;

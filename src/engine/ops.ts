@@ -48,7 +48,7 @@ import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
 import { suppressPsychTraits, type PsychType } from './psychology';
-import { ciblePsyLue, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
+import { cibleDeRef, estCibleType, identiteDeCiblage, type RefDeCible } from './psych/ciblage';
 import { traitOctroye } from './psych/opsPsy';
 import { norm } from '../lib/normalize';
 import { ConjureForm, conjureFormOptions, equipConjuredWeapon, specDArmeInvoquee } from './conjuredWeapons';
@@ -78,7 +78,7 @@ import {
   type ReachValue,
   type ConditionEmit,
 } from './types';
-import { formatTrait, formatWardSave } from './traits/dispatch';
+import { formatWardSave, traitLisible } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
 import type { ChaosAlign, ExposureLevel } from './corruption';
@@ -1952,7 +1952,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // MÊME source met à jour SON entrée au lieu d'en empiler une seconde.
         const list = [...(target.psychState ?? [])];
         const type = o.type.id as PsychType;
-        const cible = o.cible === undefined ? undefined : ciblePsyLue(o.cible);
+        const cible = o.cible === undefined ? undefined : cibleDeRef(o.cible);
         const identite = identiteDeCiblage(type, cible);
         const at = list.findIndex((p) => (cible !== undefined ? identiteDeCiblage(p.type, p.cible) === identite : p.type === type && p.sourceId === o.sourceId));
         const precedente: Partial<(typeof list)[number]> = at >= 0 ? list[at] : {};
@@ -2165,7 +2165,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
             duration: { ...duree },
             grantedTrait: inst,
           });
-          lines.push(t('op.grantTrait', { name: target.label, trait: formatTrait(inst), src: nomDeSource(ctx) }));
+          lines.push(t('op.grantTrait', { name: target.label, trait: traitLisible(inst), src: nomDeSource(ctx) }));
         }
         break;
       }
@@ -2173,7 +2173,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const gone = removeGrantedTraitsFrom(target, o.trait.id, source);
         if (!gone.length) break; // rien d'accordé par cette source — rien à dire
         if (target.activeEffects?.length) target.activeEffects = target.activeEffects.filter((e) => !gone.some((g) => e.grantedTrait && sameInstance(e.grantedTrait, g)));
-        lines.push(t('op.removeTrait', { name: target.label, trait: formatTrait(gone[0]) }));
+        lines.push(t('op.removeTrait', { name: target.label, trait: traitLisible(gone[0]) }));
         break;
       }
       case 'augmentWeapon': {

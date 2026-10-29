@@ -70,6 +70,7 @@ const LISTES_DE_REFERENCES: Readonly<Record<string, string>> = {
   '.scenes[].effectZones[].onCross[]^testMod.exceptSkills[]': 'références de Compétences (skills.json)',
   '.scenes[].triggers[].when.of[]': 'conditions composées : `id` d’un objet/talent désigné',
   '.scenes[].entities[].statblock.traits[]': 'références de Traits (`traits.json`)',
+  '.scenes[].entities[].statblock.traits[].confere[]': 'références de Traits conférés (`traits.json`)',
   '.scenes[].entities[].statblock.skills[]': 'références de Compétences (`skills.json`)',
   '.scenes[].entities[].statblock.talents[]': 'références de Talents (`talents.json`)',
   '.scenes[].entities[].upgrades[]': 'références d’Améliorations navales (`naval-traits.json`)',

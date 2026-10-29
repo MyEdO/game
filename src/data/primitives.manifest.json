@@ -2227,11 +2227,11 @@
   {
     "id": "vise",
     "type": "primitives.manifest",
-    "label": "vise/SourcePsy",
+    "label": "vise/SourcePsy/ciblesAPulsion/ciblesDePulsion",
     "fichier": "src/engine/psychology.ts",
-    "concept": "seul prédicat de ciblage par Groupe d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch`",
+    "concept": "seul prédicat de ciblage d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch` pour un Groupe, l’id du combattant pour un individu ; `ciblesAPulsion` (Cibles des afflictions actives à pulsion d’attaque) et `ciblesDePulsion` (combattants de tout `kind` qu’elles visent) forment le vivier de l’IA",
     "perimetre": "+DR contre le groupe, immunités causées par le groupe, êtres aimés à défendre, vivier de l’IA, déclencheurs de Traits ciblés et de Phobie, présence au re-test, malus social, Sans Peur (Ennemi)",
-    "verrou": "src/engine/psych-vise.test.ts"
+    "verrou": "src/engine/psych-vise.test.ts, src/noyau/psych-individu.test.ts"
   },
   {
     "id": "sousPeur",
@@ -2245,11 +2245,11 @@
   {
     "id": "ciblePsy",
     "type": "primitives.manifest",
-    "label": "CiblePsy/ciblePsy/selonCible/cibleDuPorteur/cibleDArgument/MOTIF_D_ID_DE_GROUPE/identiteDeCiblage/libelleDeCible/estCibleType/RefDeCible/ciblePsyLue/refDeCible",
+    "label": "CiblePsy/ciblePsy/selonCible/cibleDuPorteur/ciblePsyLue/cibleDeLArg/individuDe/individusNommes/MOTIF_D_ID_DE_GROUPE/identiteDeCiblage/libelleDeCible/libelleDePsy/NomDIndividu/estCibleType/RefDeCible/cibleDeRef/refDeCible/varianteDe/varianteAdmise",
     "fichier": "src/engine/psych/ciblage.ts",
-    "concept": "Cible d’un Trait psy (#1463, #3045) : un Groupe par son id, chaîne marquée (`string & NonAffichable`) frappée par la seule fabrique `ciblePsy` (motif des ids de Groupe `MOTIF_D_ID_DE_GROUPE`, partagé avec le schéma des Groupes), lu par le seul `selonCible`, tiré d’un porteur par `cibleDuPorteur`, nommé par un argument (`arg` de Trait, spécialisation de Talent) par `cibleDArgument`, comparé par `identiteDeCiblage` (type et Cible), affiché par `libelleDeCible` ; `estCibleType` dit si un type de psychologie porte une Cible ; `ciblePsyLue` est la seule couture de la référence de donnée `{ id }` (`RefDeCible`) vers la Cible, `refDeCible` sa réciproque",
+    "concept": "Cible d’un Trait psy (#1463, #3045) : un Groupe par son id, ou un individu par son id de combattant (`@id`), chaîne marquée (`string & NonAffichable`) frappée par la seule fabrique `ciblePsy` (`groupe` au motif des ids de Groupe `MOTIF_D_ID_DE_GROUPE`, partagé avec le schéma des Groupes ; `individu` sur un id non vide sans `@`), lue par le seul `selonCible`, tirée d’un porteur par `cibleDuPorteur`, lue d’une chaîne de donnée (spécialisation, Cible persistée) par `ciblePsyLue`, de l’`arg` d’un Trait posé par le seul `cibleDeLArg` (source `ciblesPsy`), comparée par `identiteDeCiblage` (type et Cible), affichée par `libelleDeCible` (l’individu par le `NomDIndividu` de l’appelant, dans l’UI `useNomDIndividu`) et, avec son type, par `libelleDePsy` (« Haine (Nains) ») ; un Trait posé s’affiche par `traitLisible` (`engine/traits/dispatch.ts`), `formatTrait` restant la forme d’aller-retour de l’éditeur ; `individuDe` rend l’id d’un individu visé, `individusNommes` les individus qu’une donnée nomme à toute profondeur, que refuse une péripétie de route (`refuserLesIndividus`) et que `validateScene` juge dans une scène (l’individu ne se pose en donnée que par l’`arg` d’un Trait de statbloc de scène) ; `estCibleType` dit si un type de psychologie porte une Cible, `varianteAdmise` si une variante (`varianteDe` d’une Cible) est de celles que déclare `psychology.json` (`cibles`) ; `cibleDeRef` est la seule couture de la référence d’op (`RefDeCible` : `{ id }` d’un Groupe, seule forme de la donnée, ou `{ personnage }`, l’individu d’une op que pose le moteur) vers la Cible, `refDeCible` sa réciproque",
     "perimetre": "psychologie (état, ops, bandes, IA, affichage), Cible des ops psy, éditeurs des ops psy",
-    "verrou": "src/engine/psych/ciblage.test.ts ; murs/marques (src/noyau/built-brand-lint.test.ts)"
+    "verrou": "src/engine/psych/ciblage.test.ts, src/noyau/psych-individu.test.ts ; murs/marques (src/noyau/built-brand-lint.test.ts)"
   },
   {
     "id": "opPsy",

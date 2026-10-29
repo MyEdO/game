@@ -707,11 +707,13 @@ function typeDePsychologie(v: unknown): { ref: { id: string }; perdue: { cible?:
   return { ref: { id }, perdue: estCibleType(id) ? {} : { cible: undefined } };
 }
 
-/** Cible d'un Trait psy, élue au registre des Groupes : sa référence de donnée (`refDeCible`). */
+/** Cible d'un Trait psy, élue au registre des Groupes, seule Cible d'une op de donnée : sa référence
+ *  (`refDeCible`). L'individu se pose par l'`arg` d'un Trait de statbloc de scène. #3045 */
 function CibleField({ value, onChange }: { value: RefDeCible | undefined; onChange: (cible: RefDeCible | undefined) => void }) {
+  const groupe = value && 'id' in value ? value.id : '';
   return (
     <RefField cfg={{ ds: 'groups', single: true }} fieldKey="Cible" nullable
-      value={value?.id ?? ''} onChange={(v) => onChange(typeof v === 'string' && v ? refDeCible(ciblePsy.groupe(v)) : undefined)} />
+      value={groupe} onChange={(v) => onChange(typeof v === 'string' && v ? refDeCible(ciblePsy.groupe(v)) : undefined)} />
   );
 }
 

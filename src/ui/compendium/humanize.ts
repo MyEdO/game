@@ -21,10 +21,10 @@ import { INDICE_TEMPLATE, type ActorRef, type CompareOp, type CompareSubject } f
 import { estCausePersistante, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
 import { CHAR_LABELS, HIT_LOCATION_LABELS, type CharKey, type ArmourBypass } from '../../engine/types';
-import { formatTrait, formatWardSave, traitLabelById } from '../../engine/traits/dispatch';
+import { formatWardSave, traitLabelById, traitLisible } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
 import { traumaLabelOf } from '../../engine/trauma';
-import { ciblePsyLue, libelleDeCible } from '../../engine/psych/ciblage';
+import { cibleDeRef, libelleDePsy } from '../../engine/psych/ciblage';
 import { traitOctroye } from '../../engine/psych/opsPsy';
 import { formatMoney } from '../../engine/money';
 import { rule, ruleDef } from '../../engine/policy';
@@ -63,7 +63,7 @@ export function humanizeFormula(f: Formula): string {
   return formuleEnMots(f, null);
 }
 
-/** Le Trait OCTROYÉ (`grantTrait`) lisible : `formatTrait` de sa pose, un Indice formulé rendu par `formule`
+/** Le Trait OCTROYÉ (`grantTrait`) lisible : `traitLisible` de sa pose, un Indice formulé rendu par `formule`
  *  (omis sans elle), une Cible tirée par la table qui la tire. SEUL rendu d'un octroi : Codex, résumé
  *  d'éditeur, puces. */
 export function traitOctroyeLisible(o: Extract<GameOp, { op: 'grantTrait' }>, formule?: (f: FormuleSansTirage) => string): string {
@@ -71,7 +71,7 @@ export function traitOctroyeLisible(o: Extract<GameOp, { op: 'grantTrait' }>, fo
   const nombre = typeof value === 'number';
   const indice = value === undefined || nombre || !formule ? '' : ` ${formule(value)}`;
   const cible = o.cible ? ` (Cible tirée sur ${libelleDeValeur(tablesDeCiblesSchema, o.cible.table.id)}${o.cible.pick > 1 ? `, ${o.cible.pick} fois` : ''})` : '';
-  return `${formatTrait(nombre ? { ...pose, value } : pose)}${indice}${cible}`;
+  return `${traitLisible(nombre ? { ...pose, value } : pose)}${indice}${cible}`;
 }
 
 /** « de » + une formule humanisée, AVEC la contraction française : `de le` → `du`, `de les` → `des`
@@ -415,7 +415,7 @@ export function humanizeOp(o: GameOp): string {
     }
     case 'removeCondition': return `perd ${o.id ? `l'État ${stateItal(o.id)}` : 'un État au choix'}${o.valuePerSL ? ` (${humanizePerSL(o.valuePerSL)})` : ''}`;
     case 'endPsych': return `n'est plus sous l'effet de ${psychologyLabel(o.type.id)}`;
-    case 'beginPsych': return `tombe sous ${psychologyLabel(o.type.id)}${o.cible ? ` (${libelleDeCible(ciblePsyLue(o.cible))})` : ''}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}`;
+    case 'beginPsych': return `tombe sous ${libelleDePsy(o.type.id, o.cible && cibleDeRef(o.cible))}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}`;
     case 'charMod': return `${[`${o.mod >= 0 ? 'gagne' : 'subit'} ${o.mod >= 0 ? '+' : ''}${o.mod} en ${CHAR_LABELS[o.char]}`, plancher(o)].filter(Boolean).join(', ')}${pendant(o)}`;
     case 'ap': return `gagne +${humanizeFormula(o.amount)} PA${o.loc ? ` (${HIT_LOCATION_LABELS[o.loc]})` : ' à toutes les Localisations'}`;
     case 'corruption': return `gagne ${o.amount >= 0 ? '+' : ''}${o.amount} point(s) de Corruption`;
@@ -435,10 +435,10 @@ export function humanizeOp(o: GameOp): string {
     case 'statusMod': return `${typeof o.amount === 'number' && o.amount < 0 ? 'perd' : 'gagne'} ${humanizeFormula(o.amount)} Standing pour la prochaine aventure`;
     case 'grantReverseToken': return `peut inverser ${o.skill ? refLabel('skills', o.skill) : 'un Test concernant sa cible'} une fois pendant sa prochaine aventure`;
     case 'grantTrait': return `gagne le Trait ${traitOctroyeLisible(o, humanizeFormula)}${pendant(o)}`;
-    case 'removeTrait': return `perd le Trait ${formatTrait(o.trait)}`;
+    case 'removeTrait': return `perd le Trait ${traitLisible(o.trait)}`;
     case 'grantPsychTrait': {
       const { type, cible } = traitOctroye(o);
-      return `gagne l'état psychologique ${psychologyLabel(type)}${cible !== undefined ? ` (${libelleDeCible(cible)})` : ''}`;
+      return `gagne l'état psychologique ${libelleDePsy(type, cible)}`;
     }
     case 'removePsychTrait': return `perd ${o.psychType ? `l'état psychologique ${psychologyLabel(o.psychType.id)}` : 'un état psychologique au choix'}`;
     case 'grantTalent': return `gagne le Talent ${refLabel('talents', o.talent)}`;

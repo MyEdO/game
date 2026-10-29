@@ -6,7 +6,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  * `scene ⇄ effets` n'ait pas lieu — la scène porte des Flows, les effets portent des cases).
  */
 import { z } from 'zod';
-import { talentRefSchema, traitInstanceSchema } from '../grammaire/reference';
+import { talentRefSchema, traitPoseDeSceneSchema } from '../grammaire/reference';
 import { refOuSpec, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
@@ -60,7 +60,7 @@ export const customStatblockSchema = nommerChamps(z.strictObject({
   char: charStatsSchema,
   weaponDamage: z.string().optional(),
   armour: z.number().optional(),
-  traits: z.array(traitInstanceSchema).optional(),
+  traits: z.array(traitPoseDeSceneSchema).optional(),
   size: sizeCategorySchema.optional(),
   groups: groupesDuStatblocSchema.optional(),
   spells: sortsConnusSchema.optional(),
