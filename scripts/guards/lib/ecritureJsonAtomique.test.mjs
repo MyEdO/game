@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ecrireJsonAtomique, ecrireTexteAtomique, lireTextePublie, publierJsonSiAbsent } from './ecritureJsonAtomique.mjs'
 import { listerDossier } from './lister.mjs'
-import { BACKOFFS_MS } from './spawnResilient.mjs'
+import { PALIERS_RENOMMAGE_MS } from './renommageResilient.mjs'
 
 test('ecrireJsonAtomique : la cible porte la valeur, son dossier se crée, aucun temporaire ne reste', (t) => {
   const racine = mkdtempSync(join(tmpdir(), 'ecriture-json-'))
@@ -63,7 +63,7 @@ test('#2491 écriture JSON : le retry du renommage consomme l’attente injecté
   } }
   if (process.platform === 'win32') {
     ecrireJsonAtomique(cible, { a: 1 }, options)
-    assert.deepEqual(attentes, [BACKOFFS_MS[0]])
+    assert.deepEqual(attentes, [PALIERS_RENOMMAGE_MS[0]])
     assert.deepEqual(JSON.parse(readFileSync(cible, 'utf8')), { a: 1 })
     assert.deepEqual(listerDossier(racine), ['occupee.json'])
   } else {

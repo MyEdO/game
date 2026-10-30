@@ -8,15 +8,21 @@ import { prendreVerrou } from '../test/verrou.mjs'
 import { depotDe, arbrePrincipal, brancheDe, shaDe } from '../guards/lib/gitPorte.mjs'
 import { citerArgv } from '../guards/lib/lancerDetache.mjs'
 import { BORNE_RAISON } from '../guards/lib/ticketsGh.mjs'
-import { preflightSessionStart, contexteRecu, validerRecuSessionStart, PreuveSessionStart } from './session-start.mjs'
+import { preflightSessionStart, contexteRecu, validerRecuSessionStart, PreuveSessionStart, ANNEXES_SESSION_START } from './session-start.mjs'
 import { ecrireJsonAtomique as sauver } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
-import { lancerPontCodex, envoyerCodex, veillerCodex } from './session-codex.mjs'
+import { FICHIER_TENU, renommerResilient } from '../guards/lib/renommageResilient.mjs'
+import { lancerPontCodex, envoyerCodex, veillerCodex, ANNEXES_CODEX } from './session-codex.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
 export const PRODUCTEUR = 'ops:session'
 const terminaux = new Set(['fermee', 'echec-reservation', 'echec-controle'])
 const erreur = (categorie, message, options) => new Error(`${prefixeDeRefus(categorie)} ${message}`, options)
+const ANNEXES = Object.freeze({ stop: 'stop', bootstrap: 'bootstrap', ...ANNEXES_SESSION_START, contexte: 'hook-context', terminal: 'terminal-close', journalHote: 'jobhost.log', journal: 'stderr', rapport: 'rapport', ...ANNEXES_CODEX })
+export const annexeDe = (dossier, id, cle) => join(dossier, `${id}.${ANNEXES[cle]}`)
+const EXTENSION_CARTE = '.json'
+/** Le nom de fichier de la carte `id` dans le registre. PURE. */
+const nomDeCarte = (id) => `${id}${EXTENSION_CARTE}`
 const Identite = z.object({ pid: z.number().int().positive(), creation: z.string().min(1) }).passthrough()
 const CarteSession = z.object({
   sessionId: z.uuid(), producteur: z.literal(PRODUCTEUR), ticket: z.number().int().positive(), nom: z.string().min(1),
@@ -137,31 +143,33 @@ export function validerRapport(rapport, carte) {
 
 export function creerSessions({ dossier, horloge = Date.now, processus = mesurerProcessus, inventaire = inventorierProcessus, dormir = sommeil, lanceur, envoyer = envoyerCodex, veiller = veillerCodex }) {
   fs.mkdirSync(dossier, { recursive: true })
-  const chemin = (id) => { if (!/^[\w-]+$/.test(id)) throw erreur('validation', 'IDENTITÉ INVALIDE'); return join(dossier, `${id}.json`) }
-  const stop = (id) => join(dossier, `${id}.stop`)
-  const bootstrap = (id) => join(dossier, `${id}.bootstrap`)
-  const recu = (id) => join(dossier, `${id}.sessionstart`)
+  const fichierDe = (id) => { if (!/^[\w-]+$/.test(id)) throw erreur('validation', 'IDENTITÉ INVALIDE'); return nomDeCarte(id) }
+  const chemin = (id) => join(dossier, fichierDe(id))
+  const annexe = (id, cle) => annexeDe(dossier, id, cle)
+  const stop = (id) => annexe(id, 'stop'), bootstrap = (id) => annexe(id, 'bootstrap'), recu = (id) => annexe(id, 'recu')
   const validerCarte = (brut, fichier) => {
     if (!brut || typeof brut !== 'object' || Array.isArray(brut) || typeof brut.producteur !== 'string' || !brut.producteur) throw erreur('panne', `CARTE INVALIDE : ${fichier}`)
     if (brut.producteur !== PRODUCTEUR) return brut
     const vu = CarteSession.safeParse(brut)
-    if (!vu.success || `${brut.sessionId}.json` !== fichier) throw erreur('panne', `CARTE INVALIDE : ${fichier}${vu.success ? ' — identité/fichier divergent' : ` — ${vu.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ')}`}`)
+    if (!vu.success || nomDeCarte(brut.sessionId) !== fichier) throw erreur('panne', `CARTE INVALIDE : ${fichier}${vu.success ? ' — identité/fichier divergent' : ` — ${vu.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ')}`}`)
     return vu.data
   }
   const collection = () => {
     const cartes = [], anomalies = []
-    for (const fichier of fs.readdirSync(dossier).filter((n) => n.endsWith('.json'))) {
-      try { cartes.push(validerCarte(lireJSON(join(dossier, fichier)), fichier)) }
+    for (const fichier of fs.readdirSync(dossier).filter((n) => n.endsWith(EXTENSION_CARTE))) {
+      try { cartes.push(validerCarte(brutDe(fichier), fichier)) }
       catch (e) { anomalies.push({ fichier, raison: e.message }) }
     }
     return { cartes, anomalies }
   }
-  const lire = (id) => {
-    const fichier = `${id}.json`
-    let brut
-    try { brut = lireJSON(chemin(id)) } catch (e) { throw erreur(e.code === 'ENOENT' ? 'métier' : 'panne', `CARTE ${e.code === 'ENOENT' ? 'ABSENTE' : 'INVALIDE'} : ${fichier}`, { cause: e }) }
-    return validerCarte(brut, fichier)
+  const brutDe = (fichier) => {
+    try { return lireJSON(join(dossier, fichier)) } catch (e) {
+      if (e.code === 'ENOENT') throw erreur('métier', `CARTE ABSENTE : ${fichier}`, { cause: e })
+      if (FICHIER_TENU.has(e.code)) throw erreur('transitoire', `CARTE TENUE : ${fichier}`, { cause: e })
+      throw erreur('panne', `CARTE INVALIDE : ${fichier}`, { cause: e })
+    }
   }
+  const lire = (id) => { const fichier = fichierDe(id); return validerCarte(brutDe(fichier), fichier) }
   const maintenant = () => new Date(horloge()).toISOString()
   const sansControleur = (c) => !c.controleur && !c.jobHost && !c.agentProcessus
   const capacite = (c, jeton) => {
@@ -182,7 +190,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   const libererReservation = (c, etat, raison) => {
     c.etat = etat; delete c.empreinteNonce; delete c.codeEnveloppe
     fs.rmSync(bootstrap(c.sessionId), { force: true })
-    fs.rmSync(join(dossier, `${c.sessionId}.hook-context`), { force: true })
+    fs.rmSync(annexe(c.sessionId, 'contexte'), { force: true })
     fs.rmSync(recu(c.sessionId), { force: true })
     const date = maintenant()
     if (raison) signalerEchec(c, raison)
@@ -190,67 +198,71 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     if (etat === 'fermee') c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date, type: 'clôture' })
   }
   const sousVerrou = (geste) => {
-    const prise = prendreVerrou({ chemin: join(dossier, 'registre.lock'), libelle: 'sessions', commande: 'ops:session', cwd: dossier, attente: { echeanceMs: 5000, pasMs: 20 } })
+    const prise = prendreVerrou({ chemin: join(dossier, 'registre.lock'), libelle: 'sessions', commande: 'ops:session', cwd: dossier, attente: { echeanceMs: 5000, pasMs: 20, parTenant: true, plafondMs: 15_000 } })
     if (prise.etat !== 'pris') throw erreur('transitoire', prise.message)
     try { return geste() } finally { prise.liberer() }
   }
-  const ecrireCarte = (carte) => sousVerrou(() => { validerCarte(carte, `${carte.sessionId}.json`); if (fs.existsSync(chemin(carte.sessionId))) { const precedente = lire(carte.sessionId); if (precedente.producteur !== PRODUCTEUR || carte.producteur !== PRODUCTEUR) throw erreur('permission', 'CARTE ÉTRANGÈRE'); } sauver(chemin(carte.sessionId), carte); return carte })
-  const muter = (id, fn) => sousVerrou(() => { const carte = lire(id); if (carte.producteur !== PRODUCTEUR) throw erreur('permission', 'CARTE ÉTRANGÈRE'); fn(carte); validerCarte(carte, `${id}.json`); sauver(chemin(id), carte); return carte })
+  const ecrireCarte = (carte) => sousVerrou(() => { validerCarte(carte, nomDeCarte(carte.sessionId)); if (fs.existsSync(chemin(carte.sessionId))) { const precedente = lire(carte.sessionId); if (precedente.producteur !== PRODUCTEUR || carte.producteur !== PRODUCTEUR) throw erreur('permission', 'CARTE ÉTRANGÈRE'); } sauver(chemin(carte.sessionId), carte); return carte })
+  const muter = (id, fn) => sousVerrou(() => { const carte = lire(id); if (carte.producteur !== PRODUCTEUR) throw erreur('permission', 'CARTE ÉTRANGÈRE'); fn(carte); validerCarte(carte, fichierDe(id)); sauver(chemin(id), carte); return carte })
   const constater = () => { const liste = inventaire(); return { inventaire: liste, processus: new Map(liste.map((p) => [p.pid, p])) } }
   const memesIdentites = (a, b) => !!a && !!b && ['controleur', 'jobHost', 'agentProcessus'].every((cle) => (!a[cle] && !b[cle]) || identique(a[cle], b[cle]))
   const observationCourante = (carte, vue) => memesIdentites(carte, vue.observees.get(carte.sessionId))
   const encorePresent = (carte, vue) => [carte.controleur, carte.jobHost, carte.agentProcessus].some((id) => id && identique(vue.processus.get(id.pid), id))
   const terminalFerme = (carte) => {
     try {
-      const fichier = join(dossier, `${carte.sessionId}.terminal-close`)
+      const fichier = annexe(carte.sessionId, 'terminal')
       if (fs.statSync(fichier).size > 2048) return false
       const signal = z.object({ sessionId: z.uuid(), jobHost: Identite }).strict().parse(lireJSON(fichier))
       return signal.sessionId === carte.sessionId && identique(signal.jobHost, carte.jobHost)
     } catch { return false }
   }
-  const conserverDiagnosticTerminal = (carte, { purger = false } = {}) => {
+  const conserverDiagnosticTerminal = (carte) => {
     if (terminalFerme(carte)) signalerEchec(carte, 'terminal fermé', 'terminal')
     try {
-      const diagnostic = coupeAuMot(fs.readFileSync(join(dossier, `${carte.sessionId}.jobhost.log`), 'utf8').trim(), BORNE_RAISON)
+      const diagnostic = coupeAuMot(fs.readFileSync(annexe(carte.sessionId, 'journalHote'), 'utf8').trim(), BORNE_RAISON)
       if (diagnostic) { carte.diagnosticJobHost = diagnostic; signalerEchec(carte, diagnostic) }
     } catch (e) { if (e.code !== 'ENOENT') throw e }
     if (carte.raison && carte.issueSortie) carte.issueSortie = 'echec'
-    if (purger) {
-      sauver(chemin(carte.sessionId), carte)
-      for (const suffixe of ['terminal-close', 'jobhost.log']) fs.rmSync(join(dossier, `${carte.sessionId}.${suffixe}`), { force: true })
-    }
+  }
+  const DIAGNOSTICS_TERMINAUX = ['terminal', 'journalHote']
+  const transitions = {
+    expiration: { purger: false, appliquer: (c) => libererReservation(c, 'echec-reservation', 'RÉSERVATION EXPIRÉE') },
+    cloture: { purger: true, appliquer: (c) => {
+      conserverDiagnosticTerminal(c)
+      c.etat = 'fermee'; c.fermeeLe = maintenant(); c.codeEnveloppe = 0
+      c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.fermeeLe, type: 'clôture' })
+    } },
+    perte: { purger: true, appliquer: (c) => { conserverDiagnosticTerminal(c); c.etat = 'echec-controle'; signalerEchec(c, 'contrôle perdu, sortie inconnue', 'generique'); c.issueSortie = 'echec'; delete c.codeEnveloppe } },
+    diagnostic: { purger: true, appliquer: (c) => conserverDiagnosticTerminal(c) },
+  }
+  const transitionDue = (c, vue) => {
+    if (c.producteur !== PRODUCTEUR) return null
+    if (c.etat === 'reservee' && horloge() > c.reserveJusqua) return 'expiration'
+    if (!observationCourante(c, vue) || encorePresent(c, vue)) return null
+    if (c.etat === 'nettoyage') return 'cloture'
+    if (['vivante', 'arret-demande'].includes(c.etat)) return 'perte'
+    if (terminaux.has(c.etat) && c.jobHost && DIAGNOSTICS_TERMINAUX.some((cle) => fs.existsSync(annexe(c.sessionId, cle)))) return 'diagnostic'
+    return null
   }
   const reconcilier = () => {
     const initiales = collection()
     const vue = { ...constater(), observees: new Map(initiales.cartes.map((c) => [c.sessionId, c])) }
-    return sousVerrou(() => {
-      const ensemble = collection()
-      for (const c of ensemble.cartes) {
-        if (c.producteur !== PRODUCTEUR) continue
-        if (c.etat === 'reservee' && horloge() > c.reserveJusqua) {
-          libererReservation(c, 'echec-reservation', 'RÉSERVATION EXPIRÉE')
-          sauver(chemin(c.sessionId), c)
-        } else if (observationCourante(c, vue) && c.etat === 'nettoyage' && !encorePresent(c, vue)) {
-          conserverDiagnosticTerminal(c, { purger: true })
-          c.etat = 'fermee'; c.fermeeLe = maintenant(); c.codeEnveloppe = 0
-          c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.fermeeLe, type: 'clôture' })
-          sauver(chemin(c.sessionId), c)
-        } else if (observationCourante(c, vue) && ['vivante', 'arret-demande'].includes(c.etat) && !encorePresent(c, vue)) {
-          conserverDiagnosticTerminal(c, { purger: true })
-          c.etat = 'echec-controle'; signalerEchec(c, 'contrôle perdu, sortie inconnue', 'generique'); c.issueSortie = 'echec'; delete c.codeEnveloppe
-          sauver(chemin(c.sessionId), c)
-        } else if (observationCourante(c, vue) && terminaux.has(c.etat) && c.jobHost && !encorePresent(c, vue) && ['terminal-close', 'jobhost.log'].some((suffixe) => fs.existsSync(join(dossier, `${c.sessionId}.${suffixe}`)))) {
-          conserverDiagnosticTerminal(c, { purger: true })
-        }
-      }
-      return { ...ensemble, ...vue }
-    })
+    const candidates = initiales.cartes.filter((c) => transitionDue(c, vue))
+    if (candidates.length) sousVerrou(() => { for (const { sessionId } of candidates) {
+      let c
+      try { c = lire(sessionId) } catch { continue }
+      const transition = transitionDue(c, vue)
+      if (!transition) continue
+      transitions[transition].appliquer(c); sauver(chemin(sessionId), c)
+      if (transitions[transition].purger) for (const cle of DIAGNOSTICS_TERMINAUX) fs.rmSync(annexe(sessionId, cle), { force: true })
+    } })
+    return { ...collection(), ...vue }
   }
   const choisir = (cible, { attente = false, vue = reconcilier() } = {}) => {
     const exact = vue.cartes.find((c) => c.sessionId === cible)
     if (exact) return exact
-    const anomalie = vue.anomalies.find((a) => a.fichier === `${cible}.json`)
-    if (anomalie) throw erreur('panne', anomalie.raison)
+    const anomalie = vue.anomalies.find((a) => a.fichier === nomDeCarte(cible))
+    if (anomalie) throw new Error(anomalie.raison)
     const pid = /^\d+$/.test(String(cible)) ? Number(cible) : null
     const matches = vue.cartes.filter((c) => String(c.ticket) === String(cible) || c.nom === cible || (pid !== null && [c.controleur, c.agentProcessus].some((id) => id?.pid === pid && identique(vue.processus.get(pid), id))))
     if (!matches.length) throw erreur('métier', 'NON INSCRIT : aucune session correspondante')
@@ -325,10 +337,10 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
         if (collection().cartes.some((c) => c.producteur === PRODUCTEUR && !terminaux.has(c.etat) && (c.ticket === p.ticket || c.nom === p.nom))) throw erreur('métier', 'COLLISION : ticket ou nom déjà réservé')
         const sessionId = randomUUID(), jeton = randomBytes(32).toString('hex'), nonce = randomBytes(32).toString('hex'), nonceHook = randomBytes(32).toString('hex')
         const carte = { ...p, sessionId, producteur: PRODUCTEUR, lanceur: lanceur ? lanceur() : vue.processus.get(process.pid), date: maintenant(), reserveJusqua: horloge() + 60_000, demarrageJusqua: horloge() + (p.hooks?.delaiMs ?? 60_000), empreinteNonceHook: empreinte(nonceHook), empreinteJeton: empreinte(jeton), empreinteNonce: empreinte(nonce), etat: 'reservee', evenements: [{ ticket: p.ticket, nom: p.nom, sessionId, date: maintenant(), type: 'lancement' }] }
-        validerCarte(carte, `${sessionId}.json`)
+        validerCarte(carte, fichierDe(sessionId))
         sauver(chemin(sessionId), carte)
         sauver(bootstrap(sessionId), { nonce })
-        sauver(join(dossier, `${sessionId}.hook-context`), contexteRecu(carte, dossier, nonceHook))
+        sauver(annexe(sessionId, 'contexte'), contexteRecu(carte, dossier, nonceHook))
         return { carte, jeton, nonce }
       })
     },
@@ -400,6 +412,27 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       })
       const inscrits = toutes.flatMap((c) => [c.controleur, c.agentProcessus]).filter(Boolean)
       return { cartes: toutes, anomalies: vue.anomalies, nonInscrits: vue.inventaire.filter((p) => /codex/i.test(p.nom ?? '') && !inscrits.some((id) => identique(p, id))).map((p) => ({ ...p, etatMesure: 'NON INSCRIT', stoppable: false })), evenements: toutes.flatMap((c) => c.evenements ?? []) }
+    },
+    archiver() {
+      const vue = constater(), archive = join(dossier, 'archive'), archivees = [], conservees = []
+      const candidates = collection().anomalies
+      if (candidates.length) sousVerrou(() => { for (const { fichier } of candidates) {
+        let raison, brut = null
+        try { brut = brutDe(fichier); validerCarte(brut, fichier); continue } catch (e) {
+          if (e.message.startsWith(prefixeDeRefus('métier'))) continue
+          if (e.message.startsWith(prefixeDeRefus('transitoire'))) { conservees.push({ fichier, raison: e.message }); continue }
+          raison = e.message
+        }
+        if (brut && typeof brut === 'object' && encorePresent(brut, vue)) { conservees.push({ fichier, raison }); continue }
+        const base = fichier.slice(0, -EXTENSION_CARTE.length)
+        const noms = [...Object.values(ANNEXES).map((suffixe) => `${base}.${suffixe}`), fichier].filter((nom) => fs.existsSync(join(dossier, nom)))
+        const occupe = noms.find((nom) => fs.existsSync(join(archive, nom)))
+        if (occupe) { conservees.push({ fichier, raison: erreur('métier', `ARCHIVE OCCUPÉE : archive/${occupe}`).message }); continue }
+        fs.mkdirSync(archive, { recursive: true })
+        try { for (const nom of noms) { renommerResilient(join(dossier, nom), join(archive, nom)); archivees.push(nom) } }
+        catch (e) { conservees.push({ fichier, raison: erreur(FICHIER_TENU.has(e.code) ? 'transitoire' : 'panne', `ARCHIVAGE INTERROMPU : ${fichier} — ${e.code ?? e.message}`, { cause: e }).message }) }
+      } })
+      return { archivees, conservees }
     },
     async attendre(cible, { timeoutMs = 60_000, depuis = 0, processusSeulement = false } = {}) {
       const vue = reconcilier()
@@ -493,12 +526,12 @@ export function contexteSessions(worktree) {
 }
 
 export async function piloterAgent({ sessions, dossier, carte, consigne, lancer, pont = lancerPontCodex, preflight = preflightSessionStart, retirer = (fichier) => fs.rmSync(fichier, { force: true }) }) {
-  const id = carte.sessionId, rapport = join(dossier, `${id}.rapport`), journal = join(dossier, `${id}.stderr`)
+  const id = carte.sessionId, rapport = annexeDe(dossier, id, 'rapport'), journal = annexeDe(dossier, id, 'journal'), contexteHook = annexeDe(dossier, id, 'contexte')
   let agent
   try {
     const actuel = await preflight(carte.worktree, carte.agent)
     if (actuel.empreinteCanon !== carte.hooks?.empreinteCanon || actuel.empreinteCredo !== carte.hooks?.empreinteCredo) throw erreur('permission', 'HOOKS : EMPREINTE CHANGÉE AVANT SPAWN')
-    const contexte = lireJSON(join(dossier, `${id}.hook-context`))
+    const contexte = lireJSON(contexteHook)
     const plan = planAgent(carte, { natif: carte.executable, consigne: consigneAgent(carte, consigne), rapport, schema: SCHEMA_RAPPORT, politique: lirePolitique() })
     return await sessions.superviser(id, {
       lancer: () => {
@@ -514,7 +547,7 @@ export async function piloterAgent({ sessions, dossier, carte, consigne, lancer,
     })
   } finally {
     if (agent) await agent.cause()
-    for (const fichier of [rapport, join(dossier, `${id}.hook-context`), join(dossier, `${id}.sessionstart`)]) { try { retirer(fichier) } catch (e) { process.stderr.write(`[session] ${prefixeDeRefus('transitoire')} PURGE IMPOSSIBLE : ${fichier} — ${e.code ?? e.message}\n`) } }
+    for (const fichier of [rapport, contexteHook, annexeDe(dossier, id, 'recu')]) { try { retirer(fichier) } catch (e) { process.stderr.write(`[session] ${prefixeDeRefus('transitoire')} PURGE IMPOSSIBLE : ${fichier} — ${e.code ?? e.message}\n`) } }
   }
 }
 

@@ -13,6 +13,7 @@ import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
 export const VERSION_PROTOCOLE_CODEX = '0.164.0'
 export const MAX_MESSAGE_CODEX = 64 * 1024
+export const ANNEXES_CODEX = Object.freeze({ journalCodex: 'codex.jsonl', stderrCodex: 'codex.stderr.log', socketCodex: 'codex.sock' })
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const refus = (categorie, message, native) => Object.assign(new Error(`${prefixeDeRefus(categorie)} ${message}`), { native })
 const empreinte = (s) => createHash('sha256').update(s).digest('hex')
@@ -139,11 +140,11 @@ function identite(sessionId) {
 }
 function adresse(dossier, sessionId) {
   identite(sessionId)
-  return process.platform === 'win32' ? `\\\\.\\pipe\\wfrp-codex-${sessionId}` : join(dossier, `${sessionId}.codex.sock`)
+  return process.platform === 'win32' ? `\\\\.\\pipe\\wfrp-codex-${sessionId}` : join(dossier, `${sessionId}.${ANNEXES_CODEX.socketCodex}`)
 }
 function chemins(dossier, sessionId) {
   identite(sessionId)
-  return { journal: join(dossier, `${sessionId}.codex.jsonl`), stderr: join(dossier, `${sessionId}.codex.stderr.log`) }
+  return { journal: join(dossier, `${sessionId}.${ANNEXES_CODEX.journalCodex}`), stderr: join(dossier, `${sessionId}.${ANNEXES_CODEX.stderrCodex}`) }
 }
 export function projeterJournalCodex(journal, echo = process.stdout, diagnostic = () => {}) {
   const bloc = Buffer.alloc(16 * 1024), limiteLecture = 256 * 1024
