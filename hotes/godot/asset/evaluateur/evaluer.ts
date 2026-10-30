@@ -17,11 +17,11 @@ import { gardeBudget, PLAFOND_ASSEMBLE, trianglesDe } from './gardes/budget.ts';
 import { mesurerAppuis, poserPieds, surfacesDesPieds, type AppuisDuClip, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
-import { aretesDe, gardeEtirement, mesurerEtirement, piresAretes, type MesureDEtirement, type RapportDArete } from './gardes/etirement.ts';
+import { aretesDe, gardeEtirement, gardeEtirementAuRepos, mesurerEtirement, piresAretes, type MesureDEtirement, type RapportDArete } from './gardes/etirement.ts';
 import { gardePiedsAuSol, plusBas, type NiveauDuCorps } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids } from './gardes/poids.ts';
-import { mesurerSilhouettes, type MesuresDesSilhouettes } from './gardes/silhouettes.ts';
+import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from './gardes/silhouettes.ts';
 
 export interface EntreeDEvaluation {
   readonly base: Uint8Array;
@@ -146,15 +146,17 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     : null;
   if (silhouettes) ecarts.push(...silhouettes.ecarts);
 
+  const sansCles = sousLesFormes(base.scene, (poserSeules) => poserSeules({}, meshes));
   const repos = poseDeRepos(base.scene, meshes);
   const aretes = new Map(meshes.map((m) => [m.name, aretesDe(m)]));
+  ecarts.push(...gardeEtirementAuRepos(aretes, sansCles, repos));
   const niveaux: NiveauDuCorps[] = [];
   const etirements: MesureDEtirement[] = [];
   const surfaces = manifeste ? surfacesDesPieds(base.skinnes.filter((m) => nomsDuCorps.includes(m.name)), manifeste.appuis.pieds) : [];
   const posesDesPieds: PoseDuPied[] = [];
   for (const e of echantillonner(base.scene, meshes, clips, pas)) {
     niveaux.push({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, nomsDuCorps) });
-    etirements.push(mesurerEtirement(aretes, repos, e));
+    etirements.push(mesurerEtirement(aretes, sansCles, e));
     if (manifeste && Object.prototype.hasOwnProperty.call(manifeste.appuis.vitessesAuSol, e.clip)) posesDesPieds.push(...poserPieds(e, surfaces, manifeste.gabarit.racine));
   }
   const appuis = mesurerAppuis(posesDesPieds, manifeste?.appuis.vitessesAuSol ?? {});

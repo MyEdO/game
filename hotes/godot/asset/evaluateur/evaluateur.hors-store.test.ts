@@ -16,7 +16,7 @@ import { validerManifesteDeBase, type CodeDEcartDeBase } from '../manifesteDeBas
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
-import { aretesDe, ETIREMENT_MAX, ETIREMENT_MIN, gardeEtirement, mesurerEtirement } from './gardes/etirement.ts';
+import { aretesDe, ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, gardeEtirement, mesurerEtirement } from './gardes/etirement.ts';
 import { gardePiedsAuSol, plusBas, SOL_TOLERANCE_M } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids, INFLUENCES_MAX } from './gardes/poids.ts';
@@ -182,8 +182,8 @@ describe('gardeEtirement', () => {
   });
 
   it('ROUGE : un os qui étire, un os qui écrase', () => {
-    expect(mesurer(clip('Gonfle', 'haut.scale', [1, 1, 1], [10, 10, 10])).map((e) => [e.code, e.seuil])).toEqual([['arete-etiree', ETIREMENT_MAX]]);
-    expect(mesurer(clip('Ecrase', 'haut.scale', [1, 1, 1], [0.001, 0.001, 0.001])).map((e) => [e.code, e.seuil])).toEqual([['arete-ecrasee', ETIREMENT_MIN]]);
+    expect(mesurer(clip('Gonfle', 'haut.scale', [1, 1, 1], [10, 10, 10])).map((e) => [e.code, e.seuil])).toEqual([['arete-etiree', ETIREMENT_EN_CLIP[1]]]);
+    expect(mesurer(clip('Ecrase', 'haut.scale', [1, 1, 1], [0.001, 0.001, 0.001])).map((e) => [e.code, e.seuil])).toEqual([['arete-ecrasee', ETIREMENT_EN_CLIP[0]]]);
   });
 });
 
@@ -238,10 +238,11 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
  *  avec au choix une texture d'image, un jeu d'influence `JOINTS_1`, un os `pelvis` enfant de `racine`, et des clips de
  *  translation de `racine`, ou de `pelvis` s'il est là ; en marche, deux triangles de pied et leur cycle appui/vol ; en
  *  anneau, `ANNEAU` (six sommets mi-`racine` mi-`pelvis`, puis un triangle de pied sur `racine`) et ses shape keys, par
- *  nom, en déplacements à plat de ses neuf sommets. */
+ *  nom, en déplacements à plat de ses neuf sommets ; en bande, le triangle `Corps` au sommet (0, 1, 0) skinné sur `pelvis`
+ *  et ses shape keys, par nom, en déplacements à plat de ses trois sommets. */
 interface MarcheFabriquee { racine?: number; decolle?: number; lateral?: number; bloque?: boolean; vitesseDroite?: number; nom?: string; sens?: number; vitesse?: number }
 
-function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]> } = {}): Uint8Array {
+function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]> } = {}): Uint8Array {
   const morceaux: Uint8Array[] = [];
   const vues: object[] = [];
   const accesseurs: object[] = [];
@@ -271,20 +272,28 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: b
     attributes.WEIGHTS_0 = accesseur(Float32Array.from(Array.from({ length: 6 }, () => [1, 0, 0, 0]).flat()), 'VEC4');
   }
   const targets: Record<string, number>[] = [];
+  const cles = (formes: Record<string, readonly number[]>) => {
+    for (const deltas of Object.values(formes)) {
+      const d = Float32Array.from(deltas);
+      const borne = (f: (a: number, b: number) => number) => [0, 1, 2].map((c) => d.filter((_, i) => i % 3 === c).reduce(f));
+      targets.push({ POSITION: accesseur(d, 'VEC3', { min: borne(Math.min), max: borne(Math.max) }) });
+    }
+  };
+  if (options.bande) {
+    attributes.JOINTS_0 = accesseur(Uint16Array.from([0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]), 'VEC4');
+    cles(options.bande);
+  }
   if (options.anneau) {
     const n = ANNEAU.length / 3;
     attributes.POSITION = accesseur(Float32Array.from(ANNEAU), 'VEC3', { min: [-0.3, 0, -0.1], max: [0.1, 0.5, 0.2] });
     attributes.NORMAL = accesseur(Float32Array.from(Array.from({ length: n }, () => [0, -1, 0]).flat()), 'VEC3');
     attributes.JOINTS_0 = accesseur(Uint16Array.from(Array.from({ length: n }, (_, i) => [0, i < 6 ? 1 : 0, 0, 0]).flat()), 'VEC4');
     attributes.WEIGHTS_0 = accesseur(Float32Array.from(Array.from({ length: n }, (_, i) => (i < 6 ? [0.5, 0.5, 0, 0] : [1, 0, 0, 0])).flat()), 'VEC4');
-    for (const deltas of Object.values(options.anneau)) {
-      const d = Float32Array.from(deltas);
-      const borne = (f: (a: number, b: number) => number) => [0, 1, 2].map((c) => d.filter((_, i) => i % 3 === c).reduce(f));
-      targets.push({ POSITION: accesseur(d, 'VEC3', { min: borne(Math.min), max: borne(Math.max) }) });
-    }
+    cles(options.anneau);
   }
+  const formes = options.anneau ?? options.bande;
   const identite = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-  const joints = options.marche ? [1, 2, 3] : options.pelvis || options.anneau ? [1, 2] : [1];
+  const joints = options.marche ? [1, 2, 3] : options.pelvis || options.anneau || options.bande ? [1, 2] : [1];
   const inverseBindMatrices = accesseur(Float32Array.from(joints.flatMap(() => identite)), 'MAT4');
   const animations = Object.entries(options.clips ?? {}).map(([name, [de, a]]) => ({
     name,
@@ -309,8 +318,8 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: b
     asset: { version: '2.0' },
     scene: 0,
     scenes: [{ nodes: [0, 1] }],
-    nodes: [{ name: 'Corps', mesh: 0, skin: 0, extras: { zone: 'torse' } }, { name: 'racine', ...(options.marche ? { children: [2, 3] } : options.pelvis || options.anneau ? { children: [2] } : {}) }, ...(options.marche ? [{ name: 'piedG' }, { name: 'piedD' }] : options.pelvis || options.anneau ? [{ name: 'pelvis' }] : [])],
-    meshes: [{ primitives: [{ attributes, material: 0, ...(targets.length ? { targets } : {}) }], extras: { targetNames: options.anneau ? Object.keys(options.anneau) : ['feminin'] } }],
+    nodes: [{ name: 'Corps', mesh: 0, skin: 0, extras: { zone: 'torse' } }, { name: 'racine', ...(options.marche ? { children: [2, 3] } : options.pelvis || formes ? { children: [2] } : {}) }, ...(options.marche ? [{ name: 'piedG' }, { name: 'piedD' }] : options.pelvis || formes ? [{ name: 'pelvis' }] : [])],
+    meshes: [{ primitives: [{ attributes, material: 0, ...(targets.length ? { targets } : {}) }], extras: { targetNames: formes ? Object.keys(formes) : ['feminin'] } }],
     materials: [{ name: 'peau', pbrMetallicRoughness: options.image ? { baseColorTexture: { index: 0 } } : {} }],
     skins: [{ joints, inverseBindMatrices }],
     ...(animations.length ? { animations } : {}),
@@ -454,6 +463,38 @@ describe('evaluer', () => {
     expect((await evaluer({ base, silhouettes: { feminin: 1 }, pas: 0.5 })).ecarts).toEqual([]);
     await expect(evaluer({ base, silhouettes: { feminin: 1, masculin: 1 }, pas: 0.5 })).rejects.toThrow(/\[silhouette-absente\] masculin /);
     await expect(evaluer({ base, manifeste: manifesteDe(base), facteurs: { st: 1.1 }, pas: 0.5 })).rejects.toThrow(/\[carrure-absente\] st=1\.1 .*carrure_plus/);
+  });
+});
+
+describe('evaluer : étirement contre la longueur de repos sous gabarit, shape keys à 0', () => {
+  /** Le déplacement du seul sommet (0, 1, 0) de la bande, en shape key. */
+  const auSommet = (dy: number) => [0, 0, 0, 0, 0, 0, 0, dy, 0];
+  const etirement = async (entree: Omit<Parameters<typeof evaluer>[0], 'pas'>) =>
+    (await evaluer({ ...entree, pas: 0.5 })).ecarts.filter((e) => e.garde === 'etirement').map((e) => [e.code, e.clip, e.seuil]);
+
+  it('ROUGE : un repos posé effondré, signalé une fois par mesh quel que soit le nombre de clips', async () => {
+    const base = glbFabrique({ bande: { effondree: auSommet(-0.95) }, clips: { Repos: [0, 0], Immobile: [0, 0] } });
+    expect(await etirement({ base, silhouettes: { effondree: 1 } })).toEqual([['arete-repos-effondree', undefined, ETIREMENT_AU_REPOS[0]]]);
+  });
+
+  it('ROUGE : un repos posé enflé', async () => {
+    const base = glbFabrique({ bande: { enflee: auSommet(4) }, clips: { Repos: [0, 0] } });
+    expect(await etirement({ base, silhouettes: { enflee: 1 } })).toEqual([['arete-repos-enflee', undefined, ETIREMENT_AU_REPOS[1]], ['arete-etiree', 'Repos', ETIREMENT_EN_CLIP[1]]]);
+  });
+
+  it('ROUGE : un clip qui étire, un clip qui écrase, contre la longueur de repos', async () => {
+    const base = glbFabrique({ bande: { inerte: auSommet(0) }, clips: { Tire: [0, 4], Ecrase: [0, -0.995] } });
+    expect(await etirement({ base })).toEqual([['arete-etiree', 'Tire', ETIREMENT_EN_CLIP[1]], ['arete-ecrasee', 'Ecrase', ETIREMENT_EN_CLIP[0]]]);
+  });
+
+  it('VERT : `sl` sans shape key ne rapporte aucun écart', async () => {
+    const base = glbFabrique({ clips: { Repos: [0, 0] } });
+    expect(await etirement({ base, manifeste: manifesteDe(base), facteurs: { sl: 5 } })).toEqual([]);
+  });
+
+  it('VERT : une shape key qui raccourcit le repos, un clip qui ne double pas la longueur de repos sans clé', async () => {
+    const base = glbFabrique({ bande: { hanche: auSommet(-0.7) }, clips: { Hanche: [0, 1.7] } });
+    expect(await etirement({ base, silhouettes: { hanche: 1 } })).toEqual([]);
   });
 });
 

@@ -176,6 +176,24 @@ function poserSeules(meshes: readonly Mesh[], poids: Readonly<Record<string, num
   }
 }
 
+/** Pose sur `scene` les seules shape keys `poids`, toutes les autres à 0, et rend la pose de repos de `meshes`. */
+export type PoserSeules = (poids: Readonly<Record<string, number>>, meshes: readonly Mesh[]) => Pose;
+
+/** Rend `mesurer(poser)` ; l'état des shape keys de `scene` trouvé à l'entrée est restauré à la sortie. */
+export function sousLesFormes<T>(scene: Object3D, mesurer: (poser: PoserSeules) => T): T {
+  const formes = meshesAFormes(scene);
+  const entree = formes.map((m) => [...(m.morphTargetInfluences as number[])]);
+  try {
+    return mesurer((poids, meshes) => {
+      poserSeules(formes, poids);
+      return poseDeRepos(scene, meshes);
+    });
+  } finally {
+    formes.forEach((m, i) => { (m.morphTargetInfluences as number[]).splice(0, entree[i].length, ...entree[i]); });
+    scene.updateMatrixWorld(true);
+  }
+}
+
 export interface SujetDeSilhouettes {
   readonly scene: Object3D;
   readonly corps: readonly SkinnedMesh[];
@@ -186,14 +204,9 @@ export interface SujetDeSilhouettes {
 
 export function mesurerSilhouettes({ scene, corps, silhouettes, st }: SujetDeSilhouettes): { mesures: MesuresDesSilhouettes; ecarts: Ecart[] } {
   const anneaux = anneauxArticulaires(corps);
-  const formes = meshesAFormes(scene);
-  const entree = formes.map((m) => [...(m.morphTargetInfluences as number[])]);
   const ecarts: Ecart[] = [];
-  const poser = (poids: Readonly<Record<string, number>>) => {
-    poserSeules(formes, poids);
-    return poseDeRepos(scene, corps);
-  };
-  try {
+  return sousLesFormes(scene, (poserSur) => {
+    const poser = (poids: Readonly<Record<string, number>>) => poserSur(poids, corps);
     const repos = poser({});
     const deRepos = sectionsDeRepos(anneaux, repos);
     const sections = (positions: ReadonlyMap<string, Float32Array>) => anneaux.map((a, i) => section(a, positions, deRepos[i].axe));
@@ -235,8 +248,5 @@ export function mesurerSilhouettes({ scene, corps, silhouettes, st }: SujetDeSil
       if (ecartASt > TOLERANCE_EPAISSEUR) ecarts.push({ garde: GARDE, code: 'epaisseur-hors-st', valeur: ecartASt, seuil: TOLERANCE_EPAISSEUR, detail: `st=${pire.st} : écart relatif à st ; épaisseur de l’anneau de ${carrure.os} à ${pire.rapport} fois celle du repos` });
     }
     return { mesures: { anneaux: anneaux.length, silhouettes: mesures, carrure }, ecarts };
-  } finally {
-    formes.forEach((m, i) => { (m.morphTargetInfluences as number[]).splice(0, entree[i].length, ...entree[i]); });
-    scene.updateMatrixWorld(true);
-  }
+  });
 }
