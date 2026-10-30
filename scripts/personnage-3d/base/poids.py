@@ -4,13 +4,15 @@ longueur de l'arête qui les relie, jusqu'à ce qu'aucune arête n'en sorte. L'�
 poids de ses sommets rapporté à sa longueur : la pondération reporte le saut de poids des micro-arêtes sur les arêtes
 longues, où il étire peu.
 
-L'étirement d'une arête est le rapport de sa longueur déformée à sa longueur au repos sans shape key, aux clés de chaque
+L'étirement d'une arête est le rapport de sa longueur déformée à sa longueur au repos sans shape key, aux instants de chaque
 clip passé (`instants`), en skinning linéaire sur `INFLUENCES_MAX` os normalisés, à chaque état de la peau : le neutre, et
 chaque shape key à 1, ses sommets déplacés de leur décalage avant le skinning. C'est le modèle de l'export glTF et des
 gardes de `hotes/godot/asset/evaluateur/gardes/etirement.ts`. Une arête hors bornes dans un seul état entre dans la région
 lissée. Les arêtes sont celles des triangles, diagonales comprises. Les jumeaux (sommets confondus au repos, plus proches
 que `TOLERANCE_JUMEAUX_POSITION_M`) se lissent comme un seul sommet.
 """
+import math
+
 import bpy
 import numpy
 from mathutils.kdtree import KDTree
@@ -18,7 +20,7 @@ from mathutils.kdtree import KDTree
 from animation import assign_action
 from formes import aretes_des_triangles
 from pistes import aller_a, sacs
-from seuils import ETIREMENT_EN_CLIP, INFLUENCES_MAX, TOLERANCE_JUMEAUX_POSITION_M
+from seuils import ETIREMENT_EN_CLIP, IMAGES_PAR_SECONDE, INFLUENCES_MAX, TOLERANCE_JUMEAUX_POSITION_M
 
 STAGNATION = 1e-3
 """Variation de poids d'une passe sous laquelle le lissage tient son point fixe : la région lissée gagne alors un anneau
@@ -32,10 +34,20 @@ CLES_CONFONDUES = 1e-4
 
 
 def instants(action):
-    """Les instants de `action`, en images : l'union des clés de toutes ses courbes, triée. Entre deux instants
+    """Les instants de `action`, en images : l'union des multiples de `pas` compris entre sa première et sa dernière clé,
+    `pas` valant 1/`IMAGES_PAR_SECONDE` s à la cadence de la scène, et des clés de toutes ses courbes, triée, deux
+    instants plus proches que `CLES_CONFONDUES` n'en faisant qu'un ; aucun pour une action sans clé. Une action dont la
+    première clé est 0 a les instants de l'évaluateur (`echantillonnage.ts` `instants`). Entre deux instants
     consécutifs, aucune courbe n'a de clé."""
-    cles = sorted({float(k.co[0]) for sac in sacs(action) for c in sac.fcurves for k in c.keyframe_points})
-    return [t for i, t in enumerate(cles) if i == 0 or t - cles[i - 1] > CLES_CONFONDUES]
+    cles = [float(k.co[0]) for sac in sacs(action) for c in sac.fcurves for k in c.keyframe_points]
+    if not cles:
+        return []
+    rendu = bpy.context.scene.render
+    pas = rendu.fps / (rendu.fps_base * IMAGES_PAR_SECONDE)
+    debut, fin = math.ceil(min(cles) / pas - 1e-9), math.floor(max(cles) / pas + 1e-9)
+    grille = [k * pas for k in range(debut, fin + 1)]
+    tous = sorted(grille + cles)
+    return [t for i, t in enumerate(tous) if i == 0 or t - tous[i - 1] > CLES_CONFONDUES]
 
 
 def poses(rig, action, temps=None):
@@ -120,20 +132,20 @@ def etats(x, decalages):
 
 
 def extremes(w, x, decalages, aretes, longueurs, matrices):
-    """Par arête de `aretes`, ses rapports minimal et maximal sur les échantillons `matrices` et sur tous les `etats` de
-    la peau : sa longueur déformée, sommets (`w`, `x` + décalage de l'état), rapportée à `longueurs`, celles du repos
-    sans clé."""
+    """Par état de la peau (`etats` : ligne 0 le neutre, ligne 1 + k la clé k de `decalages`) et par arête de `aretes`,
+    ses rapports minimal et maximal sur les échantillons `matrices` : sa longueur déformée, sommets (`w`, `x` + décalage
+    de l'état), rapportée à `longueurs`, celles du repos sans clé. Rend (bas, haut), chacun (1 + clés, arêtes)."""
     sommets, locales = numpy.unique(aretes, return_inverse=True)
     locales = locales.reshape(aretes.shape)
     positions = etats(x[sommets], decalages[:, sommets])
-    bas = numpy.full(len(aretes), numpy.inf, dtype=numpy.float32)
-    haut = numpy.zeros(len(aretes), dtype=numpy.float32)
+    bas = numpy.full((len(positions), len(aretes)), numpy.inf, dtype=numpy.float32)
+    haut = numpy.zeros((len(positions), len(aretes)), dtype=numpy.float32)
     for melange in melanges_par_lots(w[sommets], matrices):
-        for xs in positions:
+        for e, xs in enumerate(positions):
             p = numpy.einsum('snij,sj->nsi', melange, xs)
             rapport = numpy.linalg.norm(p[:, locales[:, 0]] - p[:, locales[:, 1]], axis=2) / longueurs
-            bas = numpy.minimum(bas, rapport.min(axis=0))
-            haut = numpy.maximum(haut, rapport.max(axis=0))
+            bas[e] = numpy.minimum(bas[e], rapport.min(axis=0))
+            haut[e] = numpy.maximum(haut[e], rapport.max(axis=0))
     return bas, haut
 
 
@@ -163,7 +175,7 @@ def lisser_les_sommets(nom, x, w, decalages, jumeau, aretes, matrices):
     retouches, anneaux = set(), 0
     for passe in range(PASSES_MAX + 1):
         bas, haut = extremes(w, x, d, aretes[actives], longueurs[actives], matrices)
-        hors = (bas < ETIREMENT_EN_CLIP[0]) | (haut > ETIREMENT_EN_CLIP[1])
+        hors = ((bas < ETIREMENT_EN_CLIP[0]) | (haut > ETIREMENT_EN_CLIP[1])).any(axis=0)
         print('POIDS', nom, 'passe', passe, 'arêtes', int(hors.sum()), 'rapports', round(float(bas.min()), 4),
               round(float(haut.max()), 3), 'anneaux', anneaux, 'états', 1 + len(d), flush=True)
         if not hors.any():

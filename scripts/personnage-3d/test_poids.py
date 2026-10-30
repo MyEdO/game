@@ -1,16 +1,18 @@
 """poids.lisser_les_sommets sur une chaîne synthétique de deux os : l'étirement se mesure à chaque état de la peau (neutre,
 puis chaque shape key à 1), rapporté à la longueur au repos sans clé, et le rendu nomme exactement les sommets retouchés,
-jumeaux compris."""
+jumeaux compris. poids.extremes rend ses rapports par état ; poids.instants, sur une action de bpy, la grille de
+l'évaluateur unie aux clés."""
 import sys
 import unittest
 from pathlib import Path
 
+import bpy
 import numpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from poids import lisser_les_sommets  # noqa: E402
-from seuils import ETIREMENT_EN_CLIP  # noqa: E402
+from poids import extremes, instants, lisser_les_sommets  # noqa: E402
+from seuils import ETIREMENT_EN_CLIP, IMAGES_PAR_SECONDE  # noqa: E402
 
 SOMMETS = 10
 PREMIER_DU_SECOND_OS = 5
@@ -88,6 +90,52 @@ class LissageParEtat(unittest.TestCase):
         changes = numpy.flatnonzero(numpy.abs(lisses - w).max(axis=1) > 0)
         self.assertEqual(changes.tolist(), [PREMIER_DU_SECOND_OS - 1, PREMIER_DU_SECOND_OS])
         numpy.testing.assert_allclose(lisses[changes], 0.5)
+
+
+class RapportsParEtat(unittest.TestCase):
+    def test_la_cle_seule_hors_bornes_sort_a_sa_ligne_et_laisse_le_neutre_dedans(self):
+        x, w, _, aretes, matrices = chaine(2.0)
+        d = numpy.array(list(ecartement().values()), dtype=numpy.float32)
+        longueurs = numpy.linalg.norm(x[aretes[:, 0], :3] - x[aretes[:, 1], :3], axis=1)
+        bas, haut = extremes(w, x, d, aretes, longueurs, matrices)
+        self.assertEqual((bas.shape, haut.shape), ((2, len(aretes)), (2, len(aretes))))
+        frontiere = PREMIER_DU_SECOND_OS - 1
+        self.assertLessEqual(haut[0].max(), ETIREMENT_EN_CLIP[1], 'neutre : rapport 3 à la frontière des os')
+        self.assertAlmostEqual(float(haut[0, frontiere]), 3.0, places=5)
+        self.assertGreater(haut[1, frontiere], ETIREMENT_EN_CLIP[1], 'clé à 1 : rapport 4 à la frontière des os')
+        self.assertAlmostEqual(float(haut[1, frontiere]), 4.0, places=5)
+
+
+def action_cles(images):
+    """Une action de bpy dont la seule courbe a ses clés aux `images`."""
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    objet = bpy.data.objects.new('Porteur', None)
+    bpy.context.scene.collection.objects.link(objet)
+    for image in images:
+        objet.location.x = image
+        objet.keyframe_insert('location', index=0, frame=image)
+    return objet.animation_data.action
+
+
+class InstantsDeLEvaluateur(unittest.TestCase):
+    def test_une_action_qui_commence_a_0_a_la_grille_de_l_evaluateur_unie_aux_cles(self):
+        action = action_cles([0.0, 2.00005, 3.25])
+        bpy.context.scene.render.fps = IMAGES_PAR_SECONDE
+        numpy.testing.assert_allclose(instants(action), [0.0, 1.0, 2.0, 3.0, 3.25])
+
+    def test_la_grille_ne_sort_pas_de_l_etendue_de_l_action(self):
+        action = action_cles([1.5, 4.25])
+        bpy.context.scene.render.fps = IMAGES_PAR_SECONDE
+        numpy.testing.assert_allclose(instants(action), [1.5, 2.0, 3.0, 4.0, 4.25])
+
+    def test_le_pas_suit_la_cadence_de_la_scene(self):
+        action = action_cles([1.5, 4.25])
+        bpy.context.scene.render.fps = 2 * IMAGES_PAR_SECONDE
+        numpy.testing.assert_allclose(instants(action), [1.5, 2.0, 4.0, 4.25])
+
+    def test_une_action_sans_cle_n_a_aucun_instant(self):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        self.assertEqual(instants(bpy.data.actions.new('Vide')), [])
 
 
 if __name__ == '__main__':
