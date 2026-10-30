@@ -54,7 +54,7 @@ const talentTestSchema = nommerChamps(z.strictObject({
  * `effectiveEntry` (`src/engine/variants.ts`), preuve par consommateur :
  *  - `desc`/`source` → Codex `src/ui/compendium/registry.ts`
  *  - `test` → `talentTestSLBonus` (`src/engine/magic.ts`)
- *  - `max` → `talentMaxById` (`src/engine/careerSlots.ts`), Apprentissage (`src/ui/InterludeScreen.tsx:722`)
+ *  - `max` → `talentMaxById` (`src/engine/careerSlots.ts`), Apprentissage (`LearnPane`, `src/ui/InterludeScreen.tsx`)
  *  - `combat` → `featuresOf` (`src/engine/combatFeatures/dispatch.ts`), `castingKindOf` (l.17)
  * `passive`/`effects` en sont ABSENTS : `talentEffects.ts`/`characteristics.ts`/`combatManeuvers.ts`
  * les lisent sur l'entrée BRUTE — les y admettre ferait diverger le Codex du moteur.

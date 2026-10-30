@@ -43,6 +43,7 @@ import {
   type ClashResult, type BattleOutcome, type HoldState, type BattleHold, type MassBattleSpec,
 } from '../engine/massBattle';
 import { t } from '../i18n';
+import { rule } from '../engine/policy';
 import { refusDActivite } from './verdictsDInterlude';
 import { refuseSi } from './verrousDeFiche';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
@@ -425,6 +426,26 @@ export function battlePrepEntries(mb: MassBattleState): BattlePrepEntry[] {
   });
 }
 
+/** Refus d'entreprendre la préparation `def` mené par `hero` : déjà réalisée (l.67), prérequis manquant
+ *  (`battlePrepEntries`, l.73/104), puis un meneur qui ne peut pas tenter le Test (`peutTenterAction`).
+ *  Verdict UNIQUE d'`openMassBattleActivity` et du volet ; l'Activité restante se juge à part
+ *  (`refusDActivite`). ADE II 8 l.65-67, LDB 09 l.30 */
+export function refusDePrepaDeBataille(mb: MassBattleState, hero: Combatant, def: ActivityDef): string | null {
+  const entry = battlePrepEntries(mb).find((e) => e.def.id === def.id);
+  if (entry?.done) return t('mbf.prepDone');
+  return entry?.blocked ?? (peutTenterAction(hero, def) ? null : refusTenterAction([hero], def));
+}
+
+/** Le Soutien d'une préparation coûte-t-il un créneau d'Activité à chaque assistant ? Décision UNIQUE de
+ *  la confirmation et de la note du volet. #257 */
+export const soutienCouteUneActivite = (): boolean => rule('interlude-assist-costs-activity') === true;
+
+/** La note de Soutien d'une préparation SOUTENABLE (`def.assisted`), ou `null`. LDB 12 l.187-200 */
+export function noteDeSoutien(def: ActivityDef): string | null {
+  if (!def.assisted) return null;
+  return t(soutienCouteUneActivite() ? 'mbf.soutienPayant' : 'mbf.soutienGratuit');
+}
+
 /** Résout l'AFFECTATION explicite d'une action (`assignment[actionId]`) en la LISTE des PJ effectivement
  *  DISPONIBLES : membres du groupe, vivants, non encore engagés ce Round (`actedHeroes`). Tableau vide si
  *  aucun poste valable — l'appelant retombe sur la SUGGESTION. Pur : lit l'état, ne mute rien. */
@@ -487,14 +508,9 @@ function resolveAssistedTeam(
 export function openMassBattleActivity(get: Get, set: Set, activityId: string, heroId: string): void {
   const mb = get().massBattle;
   const def = battleActivityById(activityId);
-  if (!mb || mb.phase !== 'prep' || !def) return;
-  if (mb.activitiesDone.includes(activityId)) return; // anti-répétition (l.67)
-  const flags = prepFlags(mb);
-  if (!(def.requires ?? []).every((f) => flags.has(f))) return;
-  if (refuseSi(get, set, (s) => refusDActivite(s, heroId))) return;
   const hero = get().party.find((h) => h.id === heroId);
-  if (!hero) return;
-  if (refuseSi(get, set, () => (peutTenterAction(hero, def) ? null : refusTenterAction([hero], def)))) return;
+  if (!mb || mb.phase !== 'prep' || !def || !hero) return;
+  if (refuseSi(get, set, (s) => refusDePrepaDeBataille(mb, hero, def) ?? refusDActivite(s, heroId))) return;
   // Le Test dépense le RÉSERVOIR de modificateur que l'entrée déclare (Planification ⇐ Repérage/
   // Infiltration, `testModFrom: planningBonus`, l.75/100), et sa Difficulté peut être DÉRIVÉE de
   // l'écart d'armées (Discours inspirant, `difficultyFrom`, l.71).

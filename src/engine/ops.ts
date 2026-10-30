@@ -15,8 +15,9 @@
  */
 import { RNG, roll, type DiceSpec, rollDice } from './dice';
 import { bonus, effectiveChar, blessuresReconciliees } from './characteristics';
-import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions, removeActiveEffects } from './conditions';
-import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
+import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
+import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
+import { MINUTES_PER_DAY } from './clock';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch, groupesDe } from './groups';
 import { facesDuDe, findTableEntry } from './tables';
@@ -28,7 +29,7 @@ import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/sc
 import type { NatureDInfluence, SourceRef } from '../data/schemas/grammaire/valeurs';
 import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
-import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, sameInstance } from './grantedTraits';
+import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, sameInstance, traitsAccordesPar } from './grantedTraits';
 import { caracDuCombattant, evaluer, slBonus, valeurSansTirage } from './formule';
 import { traitsOctroyes } from './traitOctroye';
 import { rollMutation } from '../data/mutations';
@@ -36,7 +37,7 @@ import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption'
 import { findEffectTableById } from '../data/effectTables';
 import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
-import { cureDiseases, blessDiseaseDuration } from './rest';
+import { cureDiseases, blessDiseaseDuration, maladieABenir, aucuneMaladieABenir } from './rest';
 import { applyAlcoholTest, EFFET_D_IVRESSE } from './drunkenness';
 import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, traumaFicheById, estPlaieAmputation, amputationWoundDesc } from './trauma';
 import { applyHealWounds, soinMagiqueOperant } from './healing';
@@ -622,10 +623,10 @@ export type GameOp =
   /** Trait PSYCHOLOGIQUE conféré (Colère impie → Frénésie). PASSIF (mutation/trait) : posé dans
    *  `c.psychTraits` à l'attache. `psychType.id` = `PsychType` (frenesie, peur…). */
   | { op: 'grantPsychTrait'; psychType: { id: string }; cible?: RefDeCible }
-  /** Retire UN Trait psychologique porté (`c.psychTraits` — la DONNÉE persistée, ≠ `endPsych` qui
-   *  retire une affliction de combat `psychState`). `psychType` absent = un Trait AU CHOIX (le 1ᵉʳ
-   *  porté). Convalescence « Les choses s'arrangent » (ADE II Annexe I) : éliminer un Trait psy indésirable. */
-  | { op: 'removePsychTrait'; psychType?: { id: string } }
+  /** Retire UN Trait psychologique de `c.psychTraits` (≠ `endPsych`, affliction de combat `psychState`) :
+   *  `psychType` absent = le premier porté ; `psychType` seul = le premier de ce type ; `cible` = l'instance
+   *  de ce type visant cette Cible (`identiteDeCiblage`). ADE II 09 l.33 */
+  | { op: 'removePsychTrait'; psychType?: { id: string }; cible?: RefDeCible }
   /** Talent OCTROYÉ, TEMPORAIRE porté par l'`ActiveEffect` (`grantedTalent`) ou STRUCTUREL dans
    *  `c.talents` quand l'octroi n'a pas d'échéance (Marques Arcaniques, VDM 02 l.238). La DURÉE vient du
    *  contexte, ce n'est pas une propriété de l'op : `durationFromCtx` retombe sur `{ scale: 'permanent' }`
@@ -1705,6 +1706,65 @@ export function demandesDeDes(ops: readonly GameOp[], target: Combatant, ctx: Op
     .map((d) => ({ cle: cleDeDe(rang, d.champ), spec: d.spec, libelle: d.libelle, ...(d.unite ? { unite: d.unite } : {}) })));
 }
 
+/** Rang dans `c.psychTraits` du Trait que retire `o` : l'instance visée (type et Cible), sinon le premier Trait
+ *  du type nommé, sinon le premier porté ; −1 si aucun. */
+function rangDuTraitARetirer(c: Combatant, o: Extract<GameOp, { op: 'removePsychTrait' }>): number {
+  const traits = c.psychTraits ?? [];
+  if (!o.psychType) return traits.length ? 0 : -1;
+  const type = o.psychType.id;
+  if (o.cible === undefined) return traits.findIndex((p) => p.type === type);
+  const visee = identiteDeCiblage(type, cibleDeRef(o.cible));
+  return traits.findIndex((p) => identiteDeCiblage(p.type, p.cible) === visee);
+}
+
+/** Le contexte où se juge une op de retrait : DR et source de l'application ; `avantLeJet` juge l'op avant le
+ *  Test qui l'échelonne, un compte qui croît avec le DR restant alors possible. */
+export type ContexteDeRetrait = Pick<OpsCtx, 'sl' | 'source'> & { avantLeJet?: boolean };
+
+/** Un compte `base` + échelle de DR est-il positif sous `ctx` ? */
+function comptePositif(base: number, perSL: PerSL | undefined, ctx: ContexteDeRetrait): boolean {
+  return base + slBonus(ctx.sl, perSL) > 0 || (!!ctx.avantLeJet && !!perSL && perSL.amount > 0 && !perSL.onFailure);
+}
+
+/** La raison pour laquelle l'op de RETRAIT `o` n'a rien à ôter à `c` sous `ctx` (État, Trait accordé, état ou
+ *  Trait psychologique, maladie, Blessure critique, Péché), ou `null` : l'op changerait la fiche. Prédicat
+ *  UNIQUE : `applyOps` saute sans un mot l'op sans objet, les verdicts des gestes délibérés disent sa raison. */
+export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}): string | null {
+  switch (o.op) {
+    case 'removeCondition': {
+      const id = o.id ?? c.conditions[0]?.id;
+      if (!id) return t('op.noCondToRemove', { name: c.label });
+      return pionsRetirables(c, id) > 0 ? null : t('op.noCondPionToRemove', { name: c.label, cond: conditionLabel(id) });
+    }
+    case 'removeTrait':
+      return traitsAccordesPar(c, o.trait.id, ctx.source).length ? null : t('op.noTraitToRemove', { name: c.label, trait: refLabel('traits', o.trait) });
+    case 'endPsych':
+      return c.psychState?.some((p) => p.type === o.type.id) ? null : t('op.noPsychToEnd', { name: c.label, psych: psychologyLabel(o.type.id) });
+    case 'removePsychTrait': return rangDuTraitARetirer(c, o) < 0 ? t('op.noPsychToRemove', { name: c.label }) : null;
+    case 'sinMod': return o.amount === 0 || (o.amount < 0 && !(c.sinPoints ?? 0)) ? t('op.noSinToRemove', { name: c.label }) : null;
+    case 'cureDisease':
+      return c.diseases?.length && comptePositif(o.count ?? 1, o.countPerSL, ctx) ? null : t('op.noDiseaseToCure', { name: c.label });
+    case 'cureCriticalWound':
+      return (c.traumas ?? []).some((tr) => tr.kind != null) && comptePositif(o.count ?? 1, o.countPerSL, ctx) ? null : t('op.noCritToCure', { name: c.label });
+    case 'reduceDiseaseDays': {
+      const opts = { disease: o.disease, once: o.oncePerDisease };
+      const dz = maladieABenir(c, opts);
+      if (!dz) return aucuneMaladieABenir(c, opts);
+      const raccourcit = dz.minutesLeft > MINUTES_PER_DAY && (!!o.dice || comptePositif(o.days ?? 1, o.daysPerSL, ctx));
+      return o.oncePerDisease || raccourcit ? null : t('rest.diseaseUnchanged', { name: c.label, disease: diseaseLabel(dz.id) });
+    }
+    default: return null;
+  }
+}
+
+/** La raison pour laquelle les ops de RÉUSSITE `ops` d'un geste délibéré (Activité, consommable) n'auraient
+ *  rien à changer à `c` : chacune est `opSansObjet`, et la première dit pourquoi ; `null` sinon. */
+export function reussiteSansObjet(c: Combatant, ops: readonly GameOp[], ctx: ContexteDeRetrait = {}): string | null {
+  if (!ops.length) return null;
+  const raisons = ops.map((o) => opSansObjet(c, o, ctx));
+  return raisons.every((r) => r != null) ? raisons[0] : null;
+}
+
 /**
  * Exécute une liste d'ops sur `target`. Les `charMod` consécutifs d'une même
  * source sont appliqués individuellement mais journalisés en UNE ligne (format
@@ -1765,6 +1825,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
   for (const [iOp, o] of ops.entries()) {
     if (o.op !== 'charMod') flushCharMods();
     debuts.push(lines.length);
+    if (opSansObjet(target, o, ctx)) continue;
     switch (o.op) {
       case 'wounds': {
         if (!groupGate(o.onlyGroups)) break;
@@ -1852,9 +1913,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           const duree = durationFromCtx(ctx);
           if (duree.scale === 'permanent') {
             // « Porté » sans source DATÉE n'a aucun sens : le pion serait PERMANENT, anonyme et hors de
-            // portée de la Détermination. REFUS journalisé, aucun effet posé — même régime que le refus
-            // journalisé de `removeCondition` sans État à retirer (`op.noCondToRemove`, ci-dessous) :
-            // une donnée fautive se VOIT au journal, elle ne tue pas l'incantation en cours.
+            // portée de la Détermination. REFUS journalisé, aucun effet posé : une donnée fautive se VOIT au
+            // journal, elle ne tue pas l'incantation en cours.
             lines.push(messagePorteSansDuree(o.id));
             break;
           }
@@ -1916,33 +1976,23 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'removeCondition': {
-        const id = o.id ?? target.conditions[0]?.id;
-        if (id) {
-          // `all` : retire TOUT l'État (Potion de vitalité « tout État Exténué ») ; sinon `value` pions (défaut 1).
-          const v = o.all
-            ? (target.conditions.find((x) => x.id === id)?.value ?? 1)
-            : Math.max(1, formuleDuCtx(o.value ?? 1, ref, ctx) + slBonus(ctx.sl, o.valuePerSL));
-          // Le retrait peut être INERTE (État verrouillé, LDB 18 ; pion porté par un fait vivant) : la
-          // ligne et la notification suivent le retrait EFFECTIF, mesuré aux pions.
-          const avant = target.conditions.find((x) => x.id === id)?.value ?? 0;
-          removeCondition(target, id, v);
-          const retires = avant - (target.conditions.find((x) => x.id === id)?.value ?? 0);
-          if (retires > 0) {
-            lines.push(t('op.removeCond', { name: target.label, what: o.all ? t('op.condAll') : t('op.condSome', { n: retires }), cond: conditionLabel(id) }));
-            ctx.onCondition?.({ stateId: id, change: 'loss', targetId: target.id });
-          }
-        } else {
-          lines.push(t('op.noCondToRemove', { name: target.label }));
-        }
+        const id = (o.id ?? target.conditions[0]?.id)!; // `opSansObjet` : un État retirable est porté
+        // `all` : retire TOUT l'État (Potion de vitalité « tout État Exténué ») ; sinon `value` pions (défaut 1).
+        const v = o.all
+          ? (target.conditions.find((x) => x.id === id)?.value ?? 1)
+          : Math.max(1, formuleDuCtx(o.value ?? 1, ref, ctx) + slBonus(ctx.sl, o.valuePerSL));
+        const avant = target.conditions.find((x) => x.id === id)?.value ?? 0;
+        removeCondition(target, id, v);
+        const retires = avant - (target.conditions.find((x) => x.id === id)?.value ?? 0);
+        lines.push(t('op.removeCond', { name: target.label, what: o.all ? t('op.condAll') : t('op.condSome', { n: retires }), cond: conditionLabel(id) }));
+        ctx.onCondition?.({ stateId: id, change: 'loss', targetId: target.id });
         break;
       }
       case 'endPsych': {
         // Retrait d'un état psychologique porté (collection `psychState`, ≠ `conditions`). GÉNÉRIQUE.
         const type = o.type.id;
-        if (target.psychState?.some((p) => p.type === type)) {
-          target.psychState = target.psychState.filter((p) => p.type !== type);
-          lines.push(t('op.endPsych', { name: target.label, psych: psychologyLabel(type) }));
-        }
+        target.psychState = (target.psychState ?? []).filter((p) => p.type !== type);
+        lines.push(t('op.endPsych', { name: target.label, psych: psychologyLabel(type) }));
         break;
       }
       case 'beginPsych': {
@@ -1987,14 +2037,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Convalescence « Les choses s'arrangent » (ADE II Annexe I) : retire UN Trait psy de `c.psychTraits`
         // (≠ `endPsych`, qui apaise une affliction de combat `psychState`). Sans `psychType` = le 1ᵉʳ porté.
         const traits = [...(target.psychTraits ?? [])];
-        const idx = o.psychType ? traits.findIndex((p) => p.type === o.psychType!.id) : (traits.length ? 0 : -1);
-        if (idx >= 0) {
-          const [removed] = traits.splice(idx, 1);
-          target.psychTraits = traits;
-          lines.push(t('op.removePsychTrait', { name: target.label, psych: psychologyLabel(removed.type) }));
-        } else {
-          lines.push(t('op.noPsychToRemove', { name: target.label }));
-        }
+        const [removed] = traits.splice(rangDuTraitARetirer(target, o), 1);
+        target.psychTraits = traits;
+        lines.push(t('op.removePsychTrait', { name: target.label, psych: psychologyLabel(removed.type) }));
         break;
       }
       case 'charMod': {
@@ -2170,7 +2215,6 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'removeTrait': {
         const gone = removeGrantedTraitsFrom(target, o.trait.id, source);
-        if (!gone.length) break; // rien d'accordé par cette source — rien à dire
         if (target.activeEffects?.length) target.activeEffects = target.activeEffects.filter((e) => !gone.some((g) => e.grantedTrait && sameInstance(e.grantedTrait, g)));
         lines.push(t('op.removeTrait', { name: target.label, trait: traitLisible(gone[0]) }));
         break;
@@ -2223,8 +2267,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'cureDisease': {
         const n = Math.max(0, (o.count ?? 1) + slBonus(ctx.sl, o.countPerSL));
-        const cured = cureDiseases(target, n);
-        lines.push(...(cured.length ? cured : [t('op.noDiseaseToCure', { name: target.label })]));
+        lines.push(...cureDiseases(target, n));
         break;
       }
       case 'reduceDiseaseDays': {
@@ -2232,7 +2275,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // `oncePerDisease` = verrou « une fois par maladie » (Bénédiction de Convalescence, LDB 41) ;
         // `daysPerSL` = échelle sur le DR du Test précédent (Gesundheit, MSRC 04 l.184-186).
         const days = (o.dice ? rollDice(o.dice, rng) : (o.days ?? 1)) + slBonus(ctx.sl, o.daysPerSL);
-        lines.push(...blessDiseaseDuration(target, days, { disease: o.disease, once: o.oncePerDisease }));
+        lines.push(...blessDiseaseDuration(target, maladieABenir(target, { disease: o.disease, once: o.oncePerDisease })!, days, o.oncePerDisease));
         break;
       }
       case 'preventInfection': {
@@ -2268,8 +2311,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'cureCriticalWound': {
         const n = Math.max(0, (o.count ?? 1) + slBonus(ctx.sl, o.countPerSL));
-        const cured = cureCriticalWounds(target, n);
-        lines.push(...(cured.length ? cured : [t('op.noCritToCure', { name: target.label })]));
+        lines.push(...cureCriticalWounds(target, n));
         break;
       }
       case 'amputer': {

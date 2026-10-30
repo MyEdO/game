@@ -13,7 +13,7 @@ import { t } from '../i18n';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { nextEntityId } from '../lib/entityId';
 import { refusDeRompreUneFaveur, refuseSi } from './verrousDeFiche';
-import { refusDActivite } from './verdictsDInterlude';
+import { refusDAcquitterUneFaveur } from './verdictsDInterlude';
 
 /** Crée une Faveur — primitive de création UNIQUE (contrepartie d'Activité/événement du Tableau,
  *  ou Effet d'éditeur `grantFavor`). */
@@ -26,17 +26,15 @@ export function grantFavor(get: Get, set: Set, heroId: string, level: FavorLevel
 }
 
 /** « Acquitter une Faveur » (l.147/149) : consomme UNE Activité d'interlude du héros, avance
- *  `progress` — Faveur retirée dès le seuil du Niveau atteint. Importante : jamais acquittable
- *  par Activité (l.151) — no-op défensif (l'UI ne propose pas ce chemin). */
+ *  `progress` — Faveur retirée dès le seuil du Niveau atteint. Verdict `refusDAcquitterUneFaveur`. l.151 */
 export function settleFavorActivity(get: Get, set: Set, heroId: string, favorId: string): void {
-  if (refuseSi(get, set, (s) => refusDActivite(s, heroId))) return;
+  if (refuseSi(get, set, (s) => refusDAcquitterUneFaveur(s, heroId, favorId))) return;
   const itl = get().interlude;
   const st = itl?.perHero[heroId];
   const h = get().party.find((x) => x.id === heroId);
   const favor = (get().favors ?? []).find((f) => f.id === favorId && f.heroId === heroId);
-  if (!itl || !st || !h || !favor) return;
-  const required = favorRequiredActivities(favor.level);
-  if (required == null) return;
+  const required = favor && favorRequiredActivities(favor.level);
+  if (!itl || !st || !h || !favor || required == null) return;
   const progress = favor.progress + 1;
   const done = progress >= required;
   set({

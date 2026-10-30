@@ -132,5 +132,23 @@
     "type": "raw.manifest",
     "label": "Tableau des Événements (d100)",
     "bloque": "Mercenaires particuliers (LDB 22 l.135) : −20 % des coûts d'Entraînement et d'Apprentissage particulier pour les Compétences et Talents martiaux, +20 % aux Tests adaptés d'Entraînement au Combat — aucune classification « martial » des Compétences et Talents dans la donnée"
+  },
+  {
+    "id": "4e/activites#dressage",
+    "type": "raw.manifest",
+    "label": "Dressage",
+    "bloque": "Dressage (LDB 23 l.130) : la réussite ajoute une Compétence à un animal du héros — aucun animal possédé par un héros n'existe en donnée ni en entité de jeu : l'Activité se joue et se consomme, la Compétence apprise n'a aucun porteur"
+  },
+  {
+    "id": "4e/activites#activites-de-guerrier-aa-annexe-ii",
+    "type": "raw.manifest",
+    "label": "Activités de Guerrier — AA Annexe II",
+    "bloque": "Tir parfait de Fanmaris (AA 12 l.9), Défense de Leitdorf (AA 12 l.28-30) et Méthode Alcatani (AA 12 l.41-43) : leur bénéfice « pour la prochaine aventure » n'est pas appliqué — aucune manœuvre de combat déclarée une fois par aventure (Tir parfait, attaque opposée de Leitdorf) ni octroi temporaire de rangs de Coude-à-coude à d'autres Personnages ; l'Activité se joue et se consomme sans effet"
+  },
+  {
+    "id": "4e/activites#nouvelle-activite-convalescence-ade-ii-annexe-i",
+    "type": "raw.manifest",
+    "label": "Nouvelle Activité : Convalescence — ADE II Annexe I",
+    "bloque": "Échec de Convalescence (ADE II 09 l.33) : aucun effet appliqué — `FLOWS.cascade` et `FLOWS.cascadeBatch` ne déclarent pas `reverse`, et `reverse.skillOf` ne nomme que la Compétence ; un jeton d'inversion ne peut pas viser le Test de Calme qui résiste à un Trait psychologique (`CascadeStep.combatPsych`, `CascadeStep.encounterPsych`)"
   }
 ]

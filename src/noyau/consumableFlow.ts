@@ -30,6 +30,7 @@ import { ev } from './combatLog';
 import type { Get, Set as SetFn } from './flowTypes';
 import { bus, EVT } from './bus';
 import { t } from '../i18n';
+import { reussiteSansObjet, type GameOp } from '../engine/ops';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { refusDInventaire, refuseSi } from './verrousDeFiche';
 
@@ -105,6 +106,32 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
   }
 }
 
+/** Les ops que le Flow d'un consommable pose à son buveur quand tout réussit (Tests réussis, toutes les
+ *  branches `if` et `choice`), ou `null` si une feuille n'est pas une op : son effet ne se lit pas en ops. */
+function opsDeReussiteDuFlow(f: Flow): GameOp[] | null {
+  const de = (fs: (Flow | undefined)[]): GameOp[] | null => {
+    const parts = fs.filter((x): x is Flow => !!x).map(opsDeReussiteDuFlow);
+    return parts.some((p) => p == null) ? null : parts.flatMap((p) => p!);
+  };
+  switch (f.kind) {
+    case 'do': return f.effect.type === 'ops' ? f.effect.ops : null;
+    case 'seq': return de(f.steps);
+    case 'if': return de([f.then, f.else]);
+    case 'test': return de([f.success]);
+    case 'choice': return de([f.yes, f.no]);
+  }
+}
+
+/** Refus de consommer `item` quand son effet réussi n'aurait rien à changer à `hero` (`reussiteSansObjet`,
+ *  jugée avant le Test au boire) : l'objet n'est pas perdu pour rien. Verdict UNIQUE de `usePartyItem` et
+ *  de `battleUseItem`, avant toute consommation. */
+export function refusDeConsommer(hero: Combatant, item: ItemInstance): string | null {
+  const ops = item.consumable ? opsDeReussiteDuFlow(item.consumable) : null;
+  const source: EffectSource | undefined = item.trappingId ? { kind: 'trapping', id: item.trappingId } : undefined;
+  const raison = ops ? reussiteSansObjet(hero, ops, { avantLeJet: true, ...(source ? { source } : {}) }) : null;
+  return raison ? t('cs.consommableSansObjet', { raison, item: item.label }) : null;
+}
+
 /** Exécute le Flow d'un consommable sur son buveur (durée résolue + bake, puis la voie du contexte). */
 export function runConsumable(get: Get, set: SetFn, hero: Combatant, item: ItemInstance): void {
   if (!item.consumable) return;
@@ -135,6 +162,7 @@ export function usePartyItem(get: Get, set: SetFn, heroId: string, uid: string):
   const it = hero?.items?.find((i) => i.uid === uid);
   if (!hero || !it) return;
   if (!isConsumable(it)) return;
+  if (refuseSi(get, set, () => refusDeConsommer(hero, it))) return;
   hero.items = (hero.items ?? []).filter((i) => i.uid !== uid); // consommé AVANT l'effet (dose unique)
   set({ party: [...party] });
   get().log(`${hero.label} utilise : ${it.label}.`);

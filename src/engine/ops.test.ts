@@ -276,13 +276,13 @@ describe('applyOps — opérations unitaires', () => {
     expect(c.conditions.find((x) => x.id === 'hemorragique')?.value).toBe(5);
   });
 
-  it('removeCondition sans nom : retire le 1er État porté ; sans État → journal explicite', () => {
+  it('removeCondition sans nom : retire le 1er État porté ; sans État, sans objet : ni effet ni ligne', () => {
     const c = hero({ conditions: [{ id: 'extenue', value: 2 }] });
     const lines = applyOps(c, [{ op: 'removeCondition' }], { rng: desDuTest });
     expect(c.conditions.find((x) => x.id === 'extenue')?.value).toBe(1);
     expect(lines[0]).toMatch(/retire 1 État Exténué/);
     const sain = hero();
-    expect(applyOps(sain, [{ op: 'removeCondition' }], { rng: desDuTest })[0]).toMatch(/aucun État à retirer/);
+    expect(applyOps(sain, [{ op: 'removeCondition' }], { rng: desDuTest })).toEqual([]);
   });
 
   it('charMod : durée du contexte (sort), agrégé en UNE ligne de journal', () => {
@@ -636,9 +636,9 @@ describe("op:'sinMod' — Points de Péché ± (LDB 40 l.36 ; ACE Annexe I « P�
     expect(c.sinPoints).toBe(2);
     applyOps(c, [{ op: 'sinMod', amount: -5 }], { rng: desDuTest }); // « enlevez … » ne descend jamais sous 0
     expect(c.sinPoints).toBe(0);
-    const lines = applyOps(c, [{ op: 'sinMod', amount: -1 }], { rng: desDuTest }); // à 0 : inerte (delta 0)
+    const lines = applyOps(c, [{ op: 'sinMod', amount: -1 }], { rng: desDuTest }); // à 0 : sans objet
     expect(c.sinPoints).toBe(0);
-    expect(lines).toHaveLength(1);
+    expect(lines).toEqual([]);
   });
 });
 

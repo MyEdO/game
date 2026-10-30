@@ -1617,10 +1617,10 @@
     "outcomes": [
       {
         "on": "success",
-        "note": "En cas de réussite, ajoutez une Compétence à votre animal, choisie parmi les Traits de créature Dressé (voir page 339) — non appliqué : aucun registre d'animal/compagnon possédé par un héros n'existe dans le moteur (mesure #508)."
+        "note": "En cas de réussite, ajoutez une Compétence à votre animal, choisie parmi les Traits de créature Dressé (voir page 339)."
       }
     ],
-    "stake": "Réussite : l'animal entraîné gagne une Compétence du Trait Dressé — non appliqué, le moteur ne tient aucun registre d'animal possédé.",
+    "stake": "Réussite : ton animal apprend une Compétence, choisie parmi les Traits Dressé.",
     "stakeForm": "descripteur"
   },
   {
@@ -1893,10 +1893,10 @@
     "outcomes": [
       {
         "on": "success",
-        "note": "En cas de Succès, une fois au cours de la prochaine aventure, vous pouvez utiliser le bénéfice suivant : après avoir passé un Round de combat à viser votre adversaire, vous pouvez déclarer que vous accomplissez un Tir parfait — non modélisé : le bénéfice (bande de DR cumulative appliquée à une attaque déclarée, aucun jeton de manœuvre de combat multi-effets consommable n'existe dans le moteur) est mesuré, non fabriqué (#510)."
+        "note": "En cas de Succès, une fois au cours de la prochaine aventure, vous pouvez utiliser le bénéfice suivant : après avoir passé un Round de combat à viser votre adversaire, vous pouvez déclarer que vous accomplissez un Tir parfait."
       }
     ],
-    "stake": "Réussite : le bénéfice de Tir parfait pour la prochaine aventure — non appliqué, aucun jeton de manœuvre de combat ne le porte au moteur.",
+    "stake": "Réussite : une fois pendant la prochaine aventure, un Tir parfait après un Round de visée.",
     "stakeForm": "descripteur"
   },
   {
@@ -1928,10 +1928,10 @@
     "outcomes": [
       {
         "on": "success",
-        "note": "En cas de Succès, une fois au cours de la prochaine aventure, vous pouvez employer la Défense de Leitdorf : Test opposé de Corps à Corps à -10, l'adversaire privé de Talents/Augmentations — non modélisé : aucune manœuvre de combat déclarée de ce type (Test opposé spécial, coûts asymétriques des deux côtés) n'existe dans le moteur ; mesuré, non fabriqué (#510)."
+        "note": "En cas de Succès, une fois au cours de la prochaine aventure, vous pouvez faire appel au bénéfice suivant : après un ou plusieurs Rounds lors desquels vous êtes Engagé contre un adversaire, vous pouvez déclarer que vous employez la Défense de Leitdorf."
       }
     ],
-    "stake": "Réussite : la Défense de Leitdorf pour la prochaine aventure — non appliquée, aucune manœuvre de Test opposé de ce genre n'existe au moteur.",
+    "stake": "Réussite : une fois pendant la prochaine aventure, la Défense de Leitdorf contre un adversaire engagé.",
     "stakeForm": "descripteur"
   },
   {
@@ -1963,10 +1963,10 @@
     "outcomes": [
       {
         "on": "success",
-        "note": "Pour chaque DR obtenu, vous pouvez donner à un Personnage un rang temporaire de Coude-à-coude pour la prochaine aventure (plafonné au rang de l'instructeur, multiplié par Exaltant) — non modélisé : le Talent Coude-à-coude n'a aucune mécanique de rang implémentée dans le moteur (aucune couture d'octroi temporaire multi-cibles) ; mesuré, non fabriqué (#510)."
+        "note": "Pour chaque DR que vous obtenez sur ce Test, vous pouvez donner à un Personnage un seul rang dans le Talent Coude-à-coude (page 135 de **WFJDR**) pendant toute la durée de la prochaine aventure."
       }
     ],
-    "stake": "Réussite : un rang temporaire de Coude-à-coude par DR à distribuer — non appliqué, le Talent n'a aucune mécanique de rang au moteur.",
+    "stake": "Réussite : un rang de Coude-à-coude par DR, à donner pour la prochaine aventure.",
     "stakeForm": "descripteur"
   },
   {
@@ -2051,7 +2051,7 @@
     "maison": "Le passage ne fixe ni Compétence ni Difficulté PROPRES à l'Activité : chaque Activité est un Round de Focalisation (`VDM 02 l.129-141`, `resolveFocus`, `engine/magic.ts`) cumulant du DR jusqu'au NI réduit de moitié (`VDM 02 l.777`, `openRitualFocus`, `noyau/interludeFlow.ts`) ; Difficulté Intermédiaire non fixée par le RAW, alignée sur `resolveFocus` en combat. Composants/Conditions/Sacrifices/Conséquences (`SpellData['ritual']`) sont en PROSE non structurée — non consommés/appliqués (#879 volet 1). Les 3 Rituels au NI FORMULE (`cn: null`) ne sont pas engageables ici (#879 volet 2).",
     "blocked": {
       "ticket": "#879",
-      "raison": "Le moteur de Round de Focalisation existe (`resolveFocus`, `ritualFocus`), mais rien ne l'expose au joueur : aucun sélecteur ne permet de choisir quel Rituel focaliser (l'écran ne peuple `spellOptions` que pour `memorizeDiscount`, `ui/InterludeScreen.tsx`), les effets du Rituel achevé (`SpellData['ritual']`, Composants/Conditions/Sacrifices/Conséquences) ne sont pas appliqués à l'achèvement, et la progression (`InterludeHeroState.ritual`) n'est pas persistée d'un interlude à l'autre."
+      "raison": "Le moteur de Round de Focalisation existe (`resolveFocus`, `ritualFocus`), mais rien ne l'expose au joueur : aucun sélecteur ne permet de choisir quel Rituel focaliser (les cibles d'Activité n'offrent un sort qu'à la Recherche universitaire), les effets du Rituel achevé (`SpellData['ritual']`, Composants/Conditions/Sacrifices/Conséquences) ne sont pas appliqués à l'achèvement, et la progression (`InterludeHeroState.ritual`) n'est pas persistée d'un interlude à l'autre."
     }
   },
   {
