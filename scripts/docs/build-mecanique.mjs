@@ -242,7 +242,7 @@ function rendu() {
     'src/data/defs-migrated.test.ts',
     'src/data/data-wellformed.test.ts',
     'src/engine/trauma.test.ts',
-    'src/state/triggered-effects.test.ts',
+    'src/noyau/triggered-effects.hors-store.test.ts',
     'src/combat-hardcode-guard.test.ts',
   ].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))
   const GARDES_MESUREES = GARDES.map((p) => ({ p, quoi: intituleGarde(p) }))

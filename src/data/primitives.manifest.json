@@ -348,7 +348,7 @@
     "fichier": "src/noyau/triggeredEffects.ts",
     "concept": "dispatcher UNIQUE d'effet déclenché (donnée)",
     "perimetre": "Trait/Talent/Atout/État pour un Trigger",
-    "verrou": "triggered-effects.test.ts (dispatcher unique)"
+    "verrou": "triggered-effects.hors-store.test.ts (dispatcher unique)"
   },
   {
     "id": "resolveFreeAttacks",
@@ -1520,7 +1520,7 @@
     "fichier": "src/noyau/combatFlow.ts",
     "concept": "un COUP = application + après-coup, une écriture : l'après-coup est une liste ordonnée de temps (`APRES_COUP` : Maladresses, réaction, suite) ; ce qu'un site fera APRÈS son coup est déclaré en DONNÉE à l'entrée, et une fenêtre ouverte emporte le TEMPS où reprendre — y compris quand une fenêtre de défense s'interpose",
     "perimetre": "toute frappe qui peut être suspendue : balayage, gratuites de créature et de talent, attaque pilotée, sauvegarde, Déviation, Maladresse, casse d'arme",
-    "verrou": "src/state/apres-coup.test.ts"
+    "verrou": "src/noyau/apres-coup.hors-store.test.ts"
   },
   {
     "id": "indexedDb",

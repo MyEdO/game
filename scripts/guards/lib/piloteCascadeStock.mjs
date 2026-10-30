@@ -50,13 +50,10 @@ export const PILOTE_CASCADE_RATCHET = [
   { fichier: 'src/noyau/voyage-cadence.hors-store.test.ts', ref: 'it:chaque contributeur porte sa paire Compétence + son rôle en ID (provenance)', occurrence: 1 },
   { fichier: 'src/scenes/test-scenarios/15-commerce-fluvial.test.ts', ref: 'fn:drainCascade', occurrence: 1 },
   { fichier: 'src/scenes/test-scenarios/duel-naval.test.ts', ref: 'fn:settleCascade', occurrence: 1 },
-  { fichier: 'src/state/combat-entity-reconcile.test.ts', ref: 'fn:drainCombatEndCascade', occurrence: 1 },
-  { fichier: 'src/state/firstBlood.test.ts', ref: 'fn:drainCombatEndCascade', occurrence: 1 },
   { fichier: 'src/state/miscast-step.test.ts', ref: 'fn:joueEnRetenant', occurrence: 1 },
   { fichier: 'src/state/sea-voyage-flow.test.ts', ref: 'it:la Vigie SOURDE n’est PAS pénalisée au Test de Perception du phare (sense "vue" posé par kind "phare")', occurrence: 1 },
   { fichier: 'src/state/sea-voyage-flow.test.ts', ref: 'it:un équipage qui chante : base nue, chip de la chanson, cible fondue — aucun résidu', occurrence: 1 },
   { fichier: 'src/state/sea-voyage-flow.test.ts', ref: 'it:voie « Navigation » : une base SOUTENUE qui franchit le plafond NOMME son écrêtage', occurrence: 1 },
   { fichier: 'src/state/sea-voyage-flow.test.ts', ref: 'it:« Navigation » retenue → un Test MONO de Voile/Ramer, et la journée continue pareil', occurrence: 1 },
-  { fichier: 'src/state/victoryCondition.test.ts', ref: 'fn:drainCombatEndCascade', occurrence: 1 },
   { fichier: 'src/ui/SequencePanel.test.tsx', ref: 'it:Middenball : le tableau de marque porte le score PAR ÉQUIPE (buts) et la somme du tour', occurrence: 1 },
 ]
