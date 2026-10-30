@@ -1,5 +1,5 @@
 """Lissage des poids de la base humanoïde (#2972, lot B3) : là où un clip étire ou écrase une arête de la peau hors de
-`ETIREMENT_VISE`, les poids de ses deux sommets prennent la moyenne de leurs voisins pondérée par l'inverse du carré de la
+`ETIREMENT_EN_CLIP`, les poids de ses deux sommets prennent la moyenne de leurs voisins pondérée par l'inverse du carré de la
 longueur de l'arête qui les relie, jusqu'à ce qu'aucune arête n'en sorte. L'étirement d'une arête croît comme l'écart de
 poids de ses sommets rapporté à sa longueur : la pondération reporte le saut de poids des micro-arêtes sur les arêtes
 longues, où il étire peu.
@@ -16,14 +16,11 @@ from mathutils.kdtree import KDTree
 from animation import assign_action
 from formes import aretes_des_triangles
 from pistes import aller_a, sacs
-from seuils import INFLUENCES_MAX, TOLERANCE_JUMEAUX_POSITION_M
+from seuils import ETIREMENT_EN_CLIP, INFLUENCES_MAX, TOLERANCE_JUMEAUX_POSITION_M
 
-ETIREMENT_VISE = (0.014, 3.51)
-"""Rapports extrêmes visés, déformé / repos : le pire mesuré sur la référence `UAL1_Standard.glb`, 43 clips au pas de
-1/12 s, 2026-10-24, aux plis des phalanges."""
 STAGNATION = 1e-3
 """Variation de poids d'une passe sous laquelle le lissage tient son point fixe : la région lissée gagne alors un anneau
-de voisins autour des arêtes hors de `ETIREMENT_VISE`."""
+de voisins autour des arêtes hors de `ETIREMENT_EN_CLIP`."""
 PASSES_MAX = 200
 """Passes de lissage au-delà desquelles la construction s'arrête."""
 LOT = 64
@@ -131,7 +128,7 @@ def jumeaux(x):
 
 
 def lisser(peau, noms, matrices):
-    """Lisse les poids de `peau` jusqu'à ce que ses arêtes restent dans `ETIREMENT_VISE` ; rend le nombre de sommets
+    """Lisse les poids de `peau` jusqu'à ce que ses arêtes restent dans `ETIREMENT_EN_CLIP` ; rend le nombre de sommets
     retouchés."""
     sommets = peau.data.vertices
     x, w = peau_lineaire(peau, noms)
@@ -147,13 +144,13 @@ def lisser(peau, noms, matrices):
     retouches, anneaux = set(), 0
     for passe in range(PASSES_MAX + 1):
         bas, haut = extremes(w, x, aretes[actives], longueurs[actives], matrices)
-        hors = (bas < ETIREMENT_VISE[0]) | (haut > ETIREMENT_VISE[1])
+        hors = (bas < ETIREMENT_EN_CLIP[0]) | (haut > ETIREMENT_EN_CLIP[1])
         print('POIDS', peau.name, 'passe', passe, 'arêtes', int(hors.sum()), 'rapports', round(float(bas.min()), 4),
               round(float(haut.max()), 3), 'anneaux', anneaux, flush=True)
         if not hors.any():
             break
         if passe == PASSES_MAX:
-            raise RuntimeError(f'{peau.name} : {int(hors.sum())} arête(s) hors de {ETIREMENT_VISE} après {PASSES_MAX} passes')
+            raise RuntimeError(f'{peau.name} : {int(hors.sum())} arête(s) hors de {ETIREMENT_EN_CLIP} après {PASSES_MAX} passes')
         region = set(aretes[actives[hors]].ravel().tolist())
         for _ in range(anneaux):
             region.update(n for s in list(region) for n in voisins[s][0])
