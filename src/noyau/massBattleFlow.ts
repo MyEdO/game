@@ -30,7 +30,7 @@ import { applyOps } from '../engine/ops';
 import { bonus, effectiveChar, blessuresDeBase } from '../engine/characteristics';
 import { dataLabel, testSkillLabel } from '../data';
 import { clampTarget } from '../engine/tests';
-import { rollLine } from './rollSeam';
+import { rollLine, type RollLineParts } from './rollSeam';
 import {
   activityById, activitiesFor, activityModLines, matchBattleOutcomes, battleOutcomeAmount,
   type ActivityDef, type BattleResolution, type BattleOutcome as BattleOutcomeDelta,
@@ -44,7 +44,7 @@ import {
 } from '../engine/massBattle';
 import { t } from '../i18n';
 import { rule } from '../engine/policy';
-import { refusDActivite } from './verdictsDInterlude';
+import { refusDActivite, type EtatDInterlude } from './verdictsDInterlude';
 import { refuseSi } from './verrousDeFiche';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 
@@ -328,28 +328,38 @@ function describeThreats(threats: string[]): string | null {
 
 // ── Construction de la modale de jet (canal UNIQUE : PendingActivity + flux `activity`) ────────────
 
-/** Fabrique une `PendingActivity` de bataille (préparation ou Scène) et l'ouvre. Le flux `activity`
- *  (RollShell) résout ensuite le jet (combiné/opposé compris) ; `confirmBattleActivity` applique l'issue. */
-function openBattlePending(_get: Get, set: Set, o: {
+/** Ouverture d'un Test de bataille (préparation ou Scène) : le meneur, sa valeur et ce qui pèse sur la cible. */
+interface OuvertureDeBataille {
   actor: Combatant; battle: 'prep' | 'round'; def: ActivityDef;
   skillValue: number; skillId?: string; spec?: string; char?: CharKey; difficulty: Difficulty;
   label?: string; mod?: number; modLabel?: string;
   combined?: { skillId?: string; spec?: string; value: number };
   opposition?: ActivityOppositionOn;
   heroIds?: string[]; support?: SupportDetail;
-}): void {
+}
+
+/** Un Test de bataille monté : sa `PendingActivity`, que le flux `activity` (RollShell) résout (combiné/opposé
+ *  compris) et dont `confirmBattleActivity` applique l'issue, et les LIGNES de jet que `rollLine` en a montées
+ *  (seconde compétence d'un Test combiné comprise), que le volet rend. */
+export interface TestDeBataille { pending: PendingActivity; ligne: RollLineParts; ligne2?: RollLineParts }
+
+/** Monte le Test de bataille de `o`. PUR. */
+function pendingDeBataille(o: OuvertureDeBataille): TestDeBataille {
   const skillLabel = testSkillLabel({ skill: o.skillId, spec: o.spec, char: o.char }) ?? t('mbf.testFallback');
   // Cibles montées par le monteur canonique (`rollLine`, #1153) : le modificateur de SITUATION (Menace
   // ADE II 8 l.219 / Planification l.75) pèse SUR LA CIBLE (il n'est pas dans la valeur) et se nomme.
   const surLaCible = activityModLines(o.mod, o.modLabel);
-  const target = rollLine({
+  const ligne = rollLine({
     actor: o.actor,
     ...(o.skillId || o.char ? { test: { skill: o.skillId, char: o.char, spec: o.spec } } : {}),
     valeur: o.skillValue, soutien: o.support, difficulty: o.difficulty, surLaCible,
-  }).target;
-  const combined = o.combined
-    ? { skill2: testSkillLabel({ skill: o.combined.skillId, spec: o.combined.spec, char: o.char ?? 'intelligence' }), skillValue2: o.combined.value,
-      target2: rollLine({ actor: o.actor, test: { skill: o.combined.skillId, char: o.char, spec: o.combined.spec }, valeur: o.combined.value, difficulty: o.difficulty, surLaCible }).target }
+  });
+  const ligne2 = o.combined
+    ? rollLine({ actor: o.actor, test: { skill: o.combined.skillId, char: o.char, spec: o.combined.spec }, valeur: o.combined.value, difficulty: o.difficulty, surLaCible })
+    : undefined;
+  const target = ligne.target;
+  const combined = o.combined && ligne2
+    ? { skill2: testSkillLabel({ skill: o.combined.skillId, spec: o.combined.spec, char: o.char ?? 'intelligence' }), skillValue2: o.combined.value, target2: ligne2.target }
     : {};
   const pa: PendingActivityFields = {
     heroId: o.actor.id, kind: 'catalog', activityId: o.def.id, battle: o.battle,
@@ -360,13 +370,17 @@ function openBattlePending(_get: Get, set: Set, o: {
     ...(o.heroIds ? { heroIds: o.heroIds } : {}),
     ...combined,
   };
-  set({ pendingActivity: o.opposition ? { ...pa, ...o.opposition } : pa });
+  return { pending: o.opposition ? { ...pa, ...o.opposition } : pa, ligne, ...(ligne2 ? { ligne2 } : {}) };
+}
+
+/** Ouvre la modale d'un Test de bataille (canal UNIQUE : PendingActivity + flux `activity`). */
+function openBattlePending(set: Set, o: OuvertureDeBataille): void {
+  set({ pendingActivity: pendingDeBataille(o).pending });
 }
 
 /** Héros éligibles au SOUTIEN d'une Activité de préparation : vivants ET que `refusDActivite` laisse agir (budget
  *  UNIQUE d'interlude, LDB 23 l.5 / ADE II 8 l.65). Sans interlude ouvert, personne. */
-function budgetedParty(get: Get): Combatant[] {
-  const s = get();
+function budgetedParty(s: EtatDInterlude): Combatant[] {
   return s.party.filter((h) => !h.dead && refusDActivite(s, h.id) === null);
 }
 
@@ -501,53 +515,46 @@ function resolveAssistedTeam(
   return { team, picked };
 }
 
-/** Ouvre le Test d'une Activité de bataille pré-combat (Planification/Infiltration/… l.79-106), MENÉE par `heroId`.
- *  Le meneur sans Activité restante ou qui ne peut pas tenter le Test est refusé, jamais remplacé. Un Test COMBINÉ
- *  (Infiltration/Repérage, `def.combined`) confronte UN jet aux DEUX compétences du meneur ; une Activité SOUTENABLE
- *  (`def.assisted`, Planification l.81) reçoit le Soutien des PJ postés. ADE II 8 l.65, LDB 09 l.30 */
+/** PRÉ-JET d'une Activité de bataille pré-combat (Planification/Infiltration/… l.79-106) MENÉE par `hero` : le
+ *  Test que son geste pose et dont son volet rend les lignes (`TestDeBataille`). Un Test COMBINÉ (Infiltration/Repérage, `def.combined`)
+ *  confronte UN jet aux DEUX compétences du meneur ; une Activité SOUTENABLE (`def.assisted`, Planification l.81)
+ *  reçoit le Soutien des PJ postés qui gardent une Activité. `null` = le meneur ne peut tenter aucun Test.
+ *  ADE II 8 l.65, LDB 09 l.30, LDB 12 l.187-206. PUR. */
+export function preJetDePreparation(s: EtatDInterlude, mb: MassBattleState, hero: Combatant, def: ActivityDef): TestDeBataille | null {
+  // Le Test dépense le RÉSERVOIR de modificateur que l'entrée déclare (Planification ⇐ Repérage/
+  // Infiltration, `testModFrom: planningBonus`, l.75/100), et sa Difficulté peut être DÉRIVÉE de
+  // l'écart d'armées (Discours inspirant, `difficultyFrom`, l.71).
+  const mod = def.testModFrom ? battleTestModPool(mb, def.testModFrom) : 0;
+  const commun = { battle: 'prep' as const, def, char: def.char, difficulty: battleActivityDifficulty(def, mb), mod, modLabel: mod ? t('mbf.modPrep') : undefined };
+  if (def.combined && def.skills && def.skills.length >= 2) {
+    const [sk1, sk2] = def.skills;
+    const picked = bestForCombined([hero], sk1, sk2, def.char);
+    return picked
+      ? pendingDeBataille({ ...commun, actor: picked.actor, skillValue: picked.value1, skillId: sk1.id, spec: sk1.spec, combined: { skillId: sk2.id, spec: sk2.spec, value: picked.value2 } })
+      : null;
+  }
+  if (def.assisted) {
+    const team = [hero, ...assignedHeroesFor(mb, budgetedParty(s), def.id).filter((h) => h.id !== hero.id)];
+    const picked = bestAssistedOption(team, def.skills, def.char, hero);
+    return picked
+      ? pendingDeBataille({ ...commun, actor: picked.actor, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec, heroIds: team.map((h) => h.id), support: picked.support })
+      : null;
+  }
+  // Activité SOLO (RAW l.75/102/106 « un Personnage », sans aide).
+  const picked = bestForSkills([hero], def.skills, def.char);
+  return picked ? pendingDeBataille({ ...commun, actor: picked.actor, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec }) : null;
+}
+
+/** Ouvre le Test d'une Activité de bataille pré-combat MENÉE par `heroId` (`preJetDePreparation`). Le meneur sans
+ *  Activité restante ou qui ne peut pas tenter le Test est refusé, jamais remplacé. ADE II 8 l.65, LDB 09 l.30 */
 export function openMassBattleActivity(get: Get, set: Set, activityId: string, heroId: string): void {
   const mb = get().massBattle;
   const def = battleActivityById(activityId);
   const hero = get().party.find((h) => h.id === heroId);
   if (!mb || mb.phase !== 'prep' || !def || !hero) return;
   if (refuseSi(get, set, (s) => refusDePrepaDeBataille(mb, hero, def) ?? refusDActivite(s, heroId))) return;
-  // Le Test dépense le RÉSERVOIR de modificateur que l'entrée déclare (Planification ⇐ Repérage/
-  // Infiltration, `testModFrom: planningBonus`, l.75/100), et sa Difficulté peut être DÉRIVÉE de
-  // l'écart d'armées (Discours inspirant, `difficultyFrom`, l.71).
-  const mod = def.testModFrom ? battleTestModPool(mb, def.testModFrom) : 0;
-  const modLabel = mod ? t('mbf.modPrep') : undefined;
-  const difficulty = battleActivityDifficulty(def, mb);
-  if (def.combined && def.skills && def.skills.length >= 2) {
-    const [sk1, sk2] = def.skills;
-    const picked = bestForCombined([hero], sk1, sk2, def.char);
-    if (!picked) return;
-    openBattlePending(get, set, {
-      actor: picked.actor, battle: 'prep', def, skillValue: picked.value1, skillId: def.skills[0].id, spec: def.skills[0].spec, char: def.char,
-      difficulty, mod, modLabel,
-      combined: { skillId: def.skills[1].id, spec: def.skills[1].spec, value: picked.value2 },
-    });
-    return;
-  }
-  if (def.assisted) {
-    // Activité SOUTENABLE (Planification l.81) : le meneur, soutenu par les PJ POSTÉS qui gardent une Activité.
-    // Valeur SOUTENUE (`bestAssistedOption`, LDB 12).
-    const team = [hero, ...assignedHeroesFor(mb, budgetedParty(get), activityId).filter((h) => h.id !== heroId)];
-    const picked = bestAssistedOption(team, def.skills, def.char, hero);
-    if (!picked) return;
-    openBattlePending(get, set, {
-      actor: picked.actor, battle: 'prep', def, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec, char: def.char,
-      difficulty, mod, modLabel,
-      heroIds: team.map((h) => h.id), support: picked.support,
-    });
-    return;
-  }
-  // Activité SOLO (RAW l.75/102/106 « un Personnage », sans aide).
-  const picked = bestForSkills([hero], def.skills, def.char);
-  if (!picked) return;
-  openBattlePending(get, set, {
-    actor: picked.actor, battle: 'prep', def, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec, char: def.char,
-    difficulty, mod, modLabel,
-  });
+  const pa = preJetDePreparation(get(), mb, hero, def);
+  if (pa) set({ pendingActivity: pa.pending });
 }
 
 // ── Scènes cinématiques (l.116-225) ──────────────────────────────────────────────────────────────
@@ -568,7 +575,7 @@ export function openMassBattleScene(get: Get, set: Set, sceneId: string): void {
   if (!at) return;
   const { team, picked } = at;
   const mod = massBattleThreatPenalty(mb); // Intrus l.219 : −20 aux Tests des autres Scènes.
-  openBattlePending(get, set, {
+  openBattlePending(set, {
     actor: picked.actor, battle: 'round', def: scene, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec, char: scene.char,
     difficulty: scene.difficulty ?? 'intermediaire', mod, modLabel: mod ? t('mbf.modThreat') : undefined,
     heroIds: team.map((h) => h.id), support: picked.support,
@@ -604,7 +611,7 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
     enemyBase: armyMight(mb.enemy),
     ...(skillBase != null ? { skillBase } : {}),
   };
-  openBattlePending(get, set, {
+  openBattlePending(set, {
     actor: picked.actor, battle: 'round', def: scene, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec, char: scene.char,
     difficulty: scene.difficulty ?? 'intermediaire', mod, modLabel: mod ? t('mbf.modThreat') : undefined,
     opposition, heroIds: team.map((h) => h.id), support: picked.support,
@@ -622,7 +629,7 @@ export function openMassBattleRally(get: Get, set: Set): void {
   if (!def) return;
   const hero = get().party.find((h) => !h.dead && !mb.ralliedHeroes.includes(h.id) && h.wounds.current < h.wounds.max);
   if (!hero) { get().log(t('mbf.rallyNobody')); return; }
-  openBattlePending(get, set, {
+  openBattlePending(set, {
     actor: hero, battle: 'round', def, skillValue: testValue(hero, 'resistance'), skillId: 'resistance',
     difficulty: 'intermediaire', label: t('mbf.rallyLabel'), heroIds: [hero.id],
   });

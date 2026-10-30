@@ -150,5 +150,11 @@
     "type": "raw.manifest",
     "label": "Nouvelle Activité : Convalescence — ADE II Annexe I",
     "bloque": "Échec de Convalescence (ADE II 09 l.33) : aucun effet appliqué — `FLOWS.cascade` et `FLOWS.cascadeBatch` ne déclarent pas `reverse`, et `reverse.skillOf` ne nomme que la Compétence ; un jeton d'inversion ne peut pas viser le Test de Calme qui résiste à un Trait psychologique (`CascadeStep.combatPsych`, `CascadeStep.encounterPsych`)"
+  },
+  {
+    "id": "4e/activites#revenus",
+    "type": "raw.manifest",
+    "label": "Revenus",
+    "bloque": "`careers.json` ne porte pas la Compétence en italique du Niveau 1 (LDB 07 l.82, LDB 08 l.110) : `incomeSkillOf` prend la première Compétence du Niveau 1 que le héros possède"
   }
 ]

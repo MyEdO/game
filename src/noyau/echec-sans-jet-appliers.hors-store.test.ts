@@ -60,20 +60,20 @@ const ragotSansJet = (kind: GenreDEtape, hero: Combatant, label: PlayerText, met
 describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec sans jet (EDOC 8 l.131-133)', () => {
   it('travelActivitySpec : sans Métier (Cartographe), Art (Dessin), compétence de base groupée, est retenue (LDB 09 l.64)', () => {
     const spec = travelActivitySpec(heros(), activityById('etablir-cartes')!)!;
-    expect(spec.used).toEqual({ id: 'art', spec: 'dessin' });
+    expect(spec.test).toEqual({ skill: { id: 'art', spec: 'dessin' } });
     expect(spec.refus).toBeUndefined();
   });
 
   it('travelActivitySpec : avec Métier (Cartographe), c’est lui qui est retenu', () => {
     const spec = travelActivitySpec(heros({ skills: [{ id: 'metier', spec: 'cartographe', advances: 10 }] as Combatant['skills'] }), activityById('etablir-cartes')!)!;
-    expect(spec.used).toEqual({ id: 'metier', spec: 'cartographe' });
+    expect(spec.test).toEqual({ skill: { id: 'metier', spec: 'cartographe' } });
     expect(spec.refus).toBeUndefined();
   });
 
   it('travelActivitySpec : un héros Inconscient (LDB 16 l.113) ne peut tenter aucune compétence du poste — refus nommé', () => {
     const h = heros(INCONSCIENT);
     const spec = travelActivitySpec(h, activityById('rester-aux-aguets')!)!;
-    expect(spec.used).toEqual({ id: 'perception' });
+    expect(spec.test).toEqual({ skill: { id: 'perception' } });
     expect(spec.refus).toBe(refusNePeutTenter(h, { skill: 'perception' }));
   });
 

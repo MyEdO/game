@@ -30,6 +30,8 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     vi.useFakeTimers();
     vi.clearAllTimers();
     const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    // Prière et Recherche sont avancées : le héros les a apprises pour tenter Pénitence et l'étude (LDB 09 l.30).
+    a.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 }, { id: 'recherche', characteristic: 'intelligence', advances: 5 });
     useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, pendingCorruption: null, journal: [] });
     useGame.getState().startScene(testScene());
     vi.clearAllTimers();

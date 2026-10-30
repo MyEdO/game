@@ -27,65 +27,10 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * Le test échoue dans les DEUX sens : un site de plus, ou un site de moins sans abaisser le plafond.
  */
 /**
- * Compte de sites par fichier, mesuré au 2026-07-26 sur `SCAN_DIRS` (élargi ce jour-là à `src/gameIso`,
- * `src/data` et `scripts`, et à l'identité nommée `ref`/`xxxRef`). Chaque entrée est un site à TRAITER
- * (attribut déclaré sur l'entrée) ou à réfuter par une correction de la mécanique — jamais à conserver
- * telle quelle.
- *
- * RE-MESURE 2026-08-16 (#1318 V6) : 39 → 60. Deux corrections du DÉTECTEUR ont démasqué des sites
- * qui existaient déjà (aucune régression de code, aucun site corrigé dans ce lot) :
- *  - le trou `for…of` (la variable de boucle, déclarée GÉNÉRIQUE, était aussitôt redéclarée VALEUR
- *    par la re-visite de l'initialiseur : AUCUNE boucle n'était vue) ;
- *  - l'identité `book` ajoutée à `ID_NAME_RX` (`source.book`, sigle de livre).
- * Les entrées neuves portent leur motif NOMINATIF ci-dessous : stock avoué, à faire DÉCROÎTRE.
- * Descente mesurée depuis : 60 → 58 (`bc54767e`), puis 58 → 54 (2026-08-17)
- * — `creation.ts` et `CharacterCreator.tsx` (gate d'espèce passé au champ
- * `SpeciesData.gatedByRule`), `combat.ts` et `brouillon.ts` (tables `Record<union fermée, …>`), puis
- * 54 → 50 (2026-08-17) — `groups.ts` sort de la liste : l'appartenance à un
- * Groupe est DÉCLARÉE en donnée (`grantGroups` d'espèce/carrière/classe/culte/créature,
- * `matchesAll`/`exceptGroups` du Groupe joker), puis 50 → 46 (2026-08-17) —
- * `persistence.ts` et `exposure.ts` sortent de la liste (persistance d'État déclarée par
- * `EtatData.persistsAfterCombat`, dissipation au répit par `ActiveEffect.expiresOnRespite`) et
- * `seaVoyageFlow.ts` passe de 2 à 1 (`DiseaseDef.contaminatesWaterBarrel`), puis 46 → 37 (2026-08-17)
- * — `creatureEquip.ts`, `polymorph.ts`, `items.ts`, `conjuredWeapons.ts`, `skills.ts` et
- * `careerSlots.ts` sortent de la liste : Trait exclu d'un octroi en masse
- * (`TraitData.nonTransferable`), Mains nues / Arme improvisée (`TrappingData.unarmed`/`improvised`),
- * Domaine arcanique octroyé (`TalentData.grantsArcaneDomain`) et caractéristique alternative sous règle
- * (`SkillData.altChar`) sont DÉCLARÉS sur l'entrée ; l'armement de créature et « une Compétence de
- * Corps à corps » se lisent, eux, sur le `specsSource` que l'entrée déclarait DÉJÀ (aucun champ neuf
- * à tenir synchrone : `weaponFromTrait` passe cette source telle quelle à son résolveur de catalogue),
- * puis 37 → 27 (2026-08-17) — la couche ACTIVITÉS/UI : `mountTravel.ts`, `massBattleFlow.ts`,
- * `seaVoyageFlow.ts`, `CityHubScreen.tsx`, `CouncilModal.tsx`, `CrewTestModal.tsx` et `InterludeScreen.tsx`
- * sortent de la liste, `combatFlow.ts` passe de 2 à 1. Ce que l'entrée DÉCLARE : la séquelle
- * d'un Incident de monte (`mount.riderTest`/`ridingPenalty`/`forcedAllure`/`preventsMount`/
- * `notHealedByCare`), le réservoir de modificateur qu'un Test dépense (`testModFrom`) et la difficulté
- * DÉRIVÉE d'un écart d'armées (`difficultyFrom`), le Test d'équipage qui coûte du Moral sur DR négatif
- * (`moraleOnNegativeDR`) et celui qui DIRIGE le navire (`steering`), le choix de paie mis en avant
- * (`recommendedPay`), l'écran vers lequel un service PORTE (`opensScreen`), et la catégorie Codex de
- * chaque table de Maladresse (`codexCategory`, `miscast.json` déclarant ses tables), puis
- * 27 → 20 (2026-08-17) — l'OUTILLAGE `scripts/` : les deux compilateurs de campagne
- * déclarent l'offre de couchage à l'AUTHORING (`scene({ rest })` → `MapSpec.rest`, les deux tables
- * `REST_OFFERS[s.id]` supprimées), `obtainabilityGraph` lit la famille de Sort qu'un Talent ouvre sur
- * son entrée (`combat.castingKind`), `gen-toise-gallery` passe par la primitive `sizeFromTraits`, la
- * planche `_qc-decor-sheet` prend sa liste de mise en avant EN ARGUMENT (`--new=id1,id2`) et
- * `reconcile.mjs` lit le CŒUR d'un livre au registre (`coeurDe`, champ `coeur` de `books.json`), puis
- * 20 → 9 (2026-08-17) — le cluster AMPUTATION/comptage : `critical.ts`, `trauma.ts`,
- * `injuries.ts` et `CharacterSheet.tsx` sortent de la liste. Ce que l'entrée DÉCLARE : la règle
- * de COMPTAGE d'une séquelle cumulative (`TraumaFiche.cumul` — portée, unité, effet par palier, seuil
- * d'escalade `remplace`/`ajoute`), son routage d'APPARENCE sur le rig (`TraumaFiche.rig`), les PALIERS
- * d'entraînement d'une prothèse (`TrappingData.prosthesisTraining`) et les deux escalades de Blessure
- * critique, chacune en AXE paramétré (`escalation.perRound`/`apresDelai` : séquelle visée + cadence/délai),
- * puis 9 → 6 (2026-08-17) — DEUX formes SAINES de plus dans le scanner, chacune avec sa
- * contre-épreuve (aucun site de code assaini par déclaration ici, sauf le masque du harnais de volume) :
- * le VOCABULAIRE `GameOp` (`op.ref === 'self'` — mot réservé, `OP_VOCABULARY` ; `combatFlow.ts` sort de
- * la liste) et les ids de GÉOMÉTRIE d'union fermée (`VOCABULARY_TYPES` = `BoneId` ; `skeletons.ts` sort,
- * `mesure-volume.mts` aussi une fois son masque de tronc écrit comme ses deux masques voisins,
- * `TORSO_BONES: BoneId[]`).
- *
- * RE-MESURE 2026-10-13 (#1765) : 6 → 7. Correction du DÉTECTEUR : la table littérale écrite en `Map`
- * (`new Map([[…]])`, `new Map(Object.entries(TABLE))`, `isLiteralMap`) indexée par `.get(<identité>)`
- * est la forme `id-record` — elle échappait au scan. `etatConnu` (`engine/conditions.ts`) quitte la
- * sienne pour l'index par id (`indexParId`) de ses entrées.
+ * Compte de sites par fichier sur `SCAN_DIRS` (`src/gameIso`, `src/data` et `scripts` compris, identité
+ * nommée `ref`/`xxxRef`/`book` comprise, boucles `for…of` et tables littérales en `Map` indexées par
+ * `.get(<identité>)` comprises). Chaque entrée est un site à TRAITER (attribut déclaré sur l'entrée) ou
+ * à réfuter par une correction de la mécanique — jamais à conserver telle quelle.
  */
 const KNOWN: Record<string, number> = {
   // GEL NOMINATIF — chaque entrée porte sa CONDITION DE SORTIE ; aucune n'est une exception permanente.
@@ -117,40 +62,10 @@ const CEILING = Object.values(KNOWN).reduce((s, n) => s + n, 0);
  * Deux sens, comme le plafond principal : une hausse est nominative (un branchement brut de plus),
  * une baisse non répercutée est « périmée » (le compte doit descendre dans ce fichier). Ce compte NE
  * DOIT JAMAIS MONTER, et chaque lot d'assainissement doit le faire DESCENDRE.
- * Mesure du 2026-08-17 (#1318), par NŒUD (deux comparaisons sur une même ligne pèsent 2) :
- * 169 au moment de la pose du cliquet, 165 (marqueurs de cargaison passés en donnée —
- * `registry.ts` et `PortView.tsx` sortent de la liste), 163 (gate d'espèce en champ
- * déclaré : `creation.ts` sort de la liste, `CharacterCreator.tsx` passe de 8 à 7), 160
- * (appartenance de Groupe déclarée en donnée : `groups.ts` sort de la liste), 158
- * (politique de dissipation déclarée sur l'effet : `exposure.ts` sort de la liste), 146
- * (Trait intransférable, Mains nues / Arme improvisée, Domaine arcanique octroyé et
- * caractéristique alternative déclarés sur l'entrée ; armement de créature et « Compétence de Corps à
- * corps » lus sur le `specsSource` déjà déclaré : `creatureEquip.ts`, `polymorph.ts`, `items.ts`,
- * `conjuredWeapons.ts`, `skills.ts` et `combat.ts` sortent de la liste, `careerSlots.ts` passe de 2 à 1
- * et `CharacterCreator.tsx` de 7 à 6), 136 (couche activités/UI : `mountTravel.ts`,
- * `massBattleFlow.ts`, `CityHubScreen.tsx`, `CouncilModal.tsx` et `CrewTestModal.tsx` sortent de la liste,
- * `seaVoyageFlow.ts` passe de 6 à 4, `combatSlice.ts` de 3 à 2 et `InterludeScreen.tsx` de 3 à 2),
- * 131 (outillage : `obtainabilityGraph.ts`, `gen-toise-gallery.mts` et
- * `reconcile.mjs` sortent de la liste — famille de Sort lue sur le Talent, Taille lue par
- * `sizeFromTraits`, cœur d'un livre lu au registre `books.json`), 112 (cluster
- * amputation/comptage : `CharacterSheet.tsx` et `partyFlow.ts` sortent de la liste — paliers de prothèse
- * déclarés au catalogue —, `critical.ts` passe de 5 à 1, `trauma.ts` de 10 à 4 et `injuries.ts` de 5 à 2 ;
- * la prose annonçait 113, la SOMME de la table valait 112 — écart de prose corrigé,
- * mesure re-faite), puis 110 (mot de VOCABULAIRE `'self'` hors champ des DEUX
- * détecteurs : `combatFlow.ts` passe de 4 à 3 ; masque de tronc du harnais de volume écrit en collection
- * `BoneId[]` : `mesure-volume.mts` sort de la liste), puis 109
- * (anneau ami en donnée : le MODE de ciblage déclare son anneau de candidats sur son entrée — `tmode.anneauCandidats`, plus de
- * `tmode.id === 'heal'` : `highlightLayer.tsx` sort de la liste), puis 108 (#1479 : la
- * conséquence d'une collision en mer lit la DONNÉE qui ouvre l'issue — `entangleChancePct`, symétrique
- * de `strandChancePct` — au lieu de l'id du péril : `seaVoyageFlow.ts` passe de 4 à 3), puis 107
- * (#2588 : la possession de Guérison se lit par `possesses`, `hasHealSkill` supprimé : `healing.ts` sort
- * de la liste).
+ * La mesure se fait par NŒUD : deux comparaisons sur une même ligne pèsent 2.
  *
- * MONTÉE DE COUVERTURE (L2 #1548), la seule qui fasse MONTER ce plafond sans qu'un site soit né : la
- * mesure brute résout les CONSTANTES DE MODULE (`const X = 'lit'` → `=== X`). Quatre sites
- * PRÉEXISTANTS redeviennent visibles — `healing.ts` (1, dont le littéral venait d'être factorisé en
- * `HEAL_SKILL` : la comparaison n'avait pas bougé), `commandTeam.ts` (1) et `CarnetScreen.tsx` (2),
- * jusque-là comptés 0 par le seul effet de leur écriture. Aucun d'eux n'est un branchement nouveau.
+ * COUVERTURE : la mesure brute résout les CONSTANTES DE MODULE (`const X = 'lit'` → `=== X`) — la
+ * factorisation d'un littéral en constante n'assainit pas un site et ne le masque pas.
  */
 const RAW_KNOWN: Record<string, number> = {
   'scripts/gen-bestiary-gallery.mts': 1,
@@ -202,11 +117,12 @@ const RAW_KNOWN: Record<string, number> = {
   // est un lookup par id stable d'une Qualité au registre — même patron que `healing`/`careerSlots`.
   'src/noyau/monde/commandTeam.ts': 1,
   'src/state/devtools.ts': 1,
-  'src/noyau/interludeFlow.ts': 3,
+  'src/noyau/interludeFlow.ts': 1,
   'src/noyau/mount.ts': 1,
   'src/noyau/seaVoyageFlow.ts': 3,
   'src/noyau/travelFlow.ts': 6,
   'src/noyau/travelPostes.ts': 2,
+  'src/noyau/verdictsDInterlude.ts': 1,
   'src/noyau/monde/vision.ts': 1,
   // Le site de `ui/ownership.ts` est la comparaison au sentinel `'*'` de l'arbitre de modales (owner =
   //  tous les sièges) dans la porte de possession `spectatorSeatOfModal` : un mot du VOCABULAIRE du
@@ -217,7 +133,6 @@ const RAW_KNOWN: Record<string, number> = {
   // (`'__pinned__'`) est une SENTINELLE de sélection d'écran (la rangée « Épinglés », qui n'est pas une
   // affaire), jamais l'identité d'une entrée de registre — famille du `''` d'`OP_VOCABULARY`.
   'src/ui/CarnetScreen.tsx': 2,
-  'src/ui/InterludeScreen.tsx': 1,
   'src/ui/MedicModal.tsx': 2,
   'src/ui/MerchantPanel.tsx': 1,
   'src/ui/PartyScreen.tsx': 2,

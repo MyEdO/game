@@ -4,7 +4,7 @@
  */
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { Combatant, CharKey, Difficulty } from './types';
-import { byId, psychologies, refLabel } from '../data';
+import { byId, psychologies, refLabel, testSkillLabel } from '../data';
 import { t, deElide } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { itemCapability } from './capabilities';
@@ -99,6 +99,12 @@ export type TestDesigne = { readonly skill: RefDesignee } | { readonly char: Cha
 /** Le `testValue` d'un Test désigné (Compétence et spécialité, ou Caractéristique) : la valeur jetée. */
 export function valeurDuTest(c: Combatant, test: TestDesigne): number {
   return 'skill' in test ? testValue(c, test.skill.id, undefined, test.skill.spec) : testValue(c, undefined, test.char);
+}
+
+/** Les ids À PLAT d'un Test désigné (`{ skill, spec }` ou `{ char }`) : la forme que nomment une ligne de
+ *  jet (`rollLine`), un libellé de Test (`testSkillLabel`) et un pending. */
+export function idsDuTest(test: TestDesigne): { skill: string; spec?: string; char?: never } | { char: CharKey; skill?: never; spec?: never } {
+  return 'skill' in test ? { skill: test.skill.id, ...(test.skill.spec ? { spec: test.skill.spec } : {}) } : { char: test.char };
 }
 
 /** `valeurDuTest` DÉCOMPOSÉE pour sa ligne de jet (`testValueSplit`) : base nue et composantes nommées
@@ -206,12 +212,10 @@ export function peutTenter(c: Combatant, skill?: string, spec?: string): boolean
   return !isOutOfAction(c) && (!skill || possesses(c, skill, spec));
 }
 
-/** Ce que nomme un refus : le Test d'une Compétence (spécialisation comprise), ou une action. */
-type QuoiRefuse = { skill: string; spec?: string } | { action: string };
+/** Ce que nomme un refus : le Test d'une Compétence (spécialisation comprise) ou d'une Caractéristique, ou une action. */
+type QuoiRefuse = { skill: string; spec?: string } | { char: CharKey } | { action: string };
 function quoiRefuse(quoi: QuoiRefuse): PlayerText {
-  return 'skill' in quoi
-    ? t('refus.quoiTest', { de: deElide(refLabel('skills', { id: quoi.skill, ...(quoi.spec ? { spec: quoi.spec } : {}) })) })
-    : t('refus.quoiAction', { action: quoi.action });
+  return 'action' in quoi ? t('refus.quoiAction', { action: quoi.action }) : t('refus.quoiTest', { de: deElide(testSkillLabel(quoi)) });
 }
 
 /** Refus NOMMÉ du Test (par Compétence) ou de l'action que personne dans le groupe ne peut tenter

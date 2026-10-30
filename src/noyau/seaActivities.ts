@@ -35,7 +35,7 @@
  */
 import { activityById, activitiesFor, travelActivitySpec, type ActivityDef } from '../engine/activities';
 import { appliquerIssueActivite } from './activityIssue';
-import { peutTenter, refusNePeutTenter } from '../engine/skills';
+import { idsDuTest, peutTenter, refusNePeutTenter } from '../engine/skills';
 import type { PlayerText } from '../i18n/playerText';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
@@ -165,14 +165,14 @@ export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: Ac
     noteSeaLine(get, set, resultLines(consequences).map((l) => l.text));
     return undefined;
   }
-  const difficulty = def.difficulty ?? 'intermediaire';
-  const test: RollRequest['test'] = { skill: spec.used.id, spec: spec.used.spec };
+  const difficulty = spec.difficulty;
+  const test: RollRequest['test'] = idsDuTest(spec.test);
   return monoStep({
     id: `sea-activity-generic-${hero.id}`, kind: 'sea-activity-generic', actor: hero,
     label: composeRollLabel(hero, def.label, test), difficulty, rollLabel: def.label,
     // Idem : l'enjeu descend à l'Activité jouée, quelle qu'elle soit (fail-closed si elle n'en a pas).
     stake: activityStakeRef(def.id),
-    ligne: { test, refus: spec.refus },
+    ligne: { test, surLaCible: spec.mods, refus: spec.refus },
     meta: { activityId: def.id },
   });
 }

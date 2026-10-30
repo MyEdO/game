@@ -32,13 +32,14 @@ const ARMURE_INHABITUELLE = { uid: 'armure-1', trappingId: 'armure-etrange', lab
 const COUTEAU_DE_HARALD = { uid: 'arme-1', trappingId: 'couteau-de-harald', label: 'Couteau de Harald', kind: 'melee', qualities: [], enc: 0, equipped: false, requiresMastery: true } as unknown as ItemInstance;
 const AMULETTE = { uid: 'art-1', label: 'Amulette étrange', kind: 'trapping', qualities: [], enc: 0, equipped: false, identified: false } as unknown as ItemInstance;
 
-interface Fiche { items?: ItemInstance[]; psychTraits?: PsychTrait[]; magie?: { talent: string; spec: string; sorts: string[] } }
+interface Fiche { items?: ItemInstance[]; psychTraits?: PsychTrait[]; magie?: { talent: string; spec: string; sorts: string[] }; competences?: Combatant['skills'] }
 
 /** Un banc au lieu `lieu` (Altdorf par défaut), dés d'Événement posés, dont le Vétéran porte `fiche` et doit `favors`. */
 function auLieu(fiche: Fiche = {}, favors: (heroId: string) => Favor[] = () => [], lieu = 'altdorf'): { banc: Banc; heroId: string } {
   const h = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 }), { gold: 20, silver: 0, brass: 0 });
   h.items = [...(h.items ?? []), ...(fiche.items ?? [])];
   if (fiche.psychTraits) h.psychTraits = fiche.psychTraits;
+  h.skills.push(...(fiche.competences ?? []));
   if (fiche.magie) {
     h.talents.push({ talentId: fiche.magie.talent, spec: fiche.magie.spec, times: 1 } as never);
     h.spells = fiche.magie.sorts;
@@ -141,7 +142,7 @@ describe('Catalogue — cible absente ou hors de sa liste', () => {
 
 describe('Catalogue — réussite sans objet', () => {
   it('Pénitence sans Point de Péché : refusée et dite', () => {
-    const { banc, heroId } = auLieu();
+    const { banc, heroId } = auLieu({ competences: [{ id: 'priere', characteristic: 'sociabilite', advances: 5 }] as Combatant['skills'] });
     expect(refuse(banc, () => banc.actions.interludeActivity(heroId, 'penitence')))
       .toEqual(['Vétéran n’a aucun Point de Péché à expier. Pénitence ne lui apporterait rien en cas de réussite.']);
   });
