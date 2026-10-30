@@ -13,13 +13,18 @@ import { fromBrass, toBrass } from '../engine/money';
 import { partyMoneyTotal, distributeCredit, debitBourse } from '../noyau/bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { testScene } from '../scenes/test-fixture';
-import { interludeCatalog, bestActivitySkill } from '../noyau/interludeFlow';
-import { refusDeRevenus } from '../noyau/verdictsDInterlude';
+import { interludeCatalog } from '../noyau/interludeFlow';
+import { refusDeRevenus, refusDOuvertureDActivite } from '../noyau/verdictsDInterlude';
 import { setRule, resetRule } from '../engine/policy';
 import { interludeEventFor } from '../data/interludeEvents';
 import { InterludeScreen, type InterludeSeam } from './InterludeScreen';
 import { ciblePsy } from '../engine/psych/ciblage';
-import { ACTIVITIES, craftCatalog, entrainementOptions, orderCatalog } from '../engine/activities';
+import { ACTIVITIES, activityById, craftCatalog, craftSpecOf, entrainementOptions, learnableTalents, metierOf, orderCatalog } from '../engine/activities';
+import careers from '../data/careers.json';
+import { findTrappingById } from '../data';
+import type { Combatant } from '../engine/types';
+import { avecActivite } from '../engine/activiteMer.testkit';
+import { testValue } from '../engine/skills';
 
 /** Texte NU d'un rendu statique : balises retirées, entités HTML de React décodées — pour confronter
  *  un texte de DONNÉE (apostrophes comprises) au markup rendu. */
@@ -38,12 +43,12 @@ const entreeFermee = (html: string, key: string) => html.match(new RegExp(`<butt
 /** La raison accessible de l'entrée `key`, ou `undefined` si elle est ouverte. */
 const raisonDe = (html: string, key: string) => raisonDId(html, `interlude-act-${key}-reason`);
 
-function buildSeam(weeks = 3): InterludeSeam {
+function buildSeam(weeks = 3, groupe?: Combatant[]): InterludeSeam {
   const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
   a.xp = 300;
   const b = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 });
   if (!b.skills.some((s) => s.id === 'metier')) b.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 10 });
-  useGame.setState({ party: [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
+  useGame.setState({ party: groupe ?? [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
   useGame.getState().startScene(testScene());
   vi.clearAllTimers();
   useGame.setState({ screen: 'interlude' });
@@ -158,9 +163,9 @@ describe('InterludeScreen — refonte LOT 6', () => {
    * Recette 2026-09-06, trouvaille n°3 — MENSONGE D'AFFORDANCE : le pré-jet du catalogue annonçait la
    * cible NUE, sans les `testMods` de situation que le flux applique ensuite (`openCatalogActivity`,
    * `noyau/interludeFlow.ts`) — le joueur engageait son Activité sur un chiffre faux. Les DEUX surfaces
-   * composent désormais les mêmes sources : `activityTestMod` → `activityModLines`.
+   * lisent le même pré-jet (`preJetDActivite`, `noyau/verdictsDInterlude.ts`).
    *
-   * MUTATION : retirer `modsSituation` du `testPending` d'`InterludeScreen.tsx` — le libellé
+   * MUTATION : retirer `pj.mods` du `testPending` de `prejetDuVolet` (`InterludeScreen.tsx`) — le libellé
    * « Discours » disparaît du markup et la cible remonte à la valeur nue : les deux `expect` tombent.
    */
   it('pré-jet du catalogue = la CIBLE RÉELLE : les `testMods` de situation y sont (Mendier, LDB 09 l.97)', () => {
@@ -168,8 +173,7 @@ describe('InterludeScreen — refonte LOT 6', () => {
     useGame.setState({ worldMap: null });
     const catalog = interludeCatalog(useGame.getState());
     const hero = seam.party[0];
-    const def = ACTIVITIES.find((a) => a.id === 'mendier')!;
-    const base = bestActivitySkill(hero, def)!.value;
+    const base = testValue(hero, 'charme'); // Mendier : Test de Charme (LDB 09 l.97)
     const voir = () => renderToStaticMarkup(
       <InterludeScreen seam={{ ...seam, phase: 'activities', catalog, openPane: { heroId: hero.id, pane: 'mendier' } }} />,
     );
@@ -642,6 +646,8 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
 
   it('Pénitence sans Péché : la bannière dit le refus du geste', () => {
     const seam = buildSeam();
+    // La Pénitence se tente (LDB 09 l.30) : le Vétéran a appris la Prière.
+    useGame.setState((s) => ({ party: s.party.map((h, i) => (i === 0 ? { ...h, skills: [...h.skills, { id: 'priere', characteristic: 'sociabilite' as const, advances: 5 }] } : h)) }));
     const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'penitence')} />);
     const raison = 'Vétéran n’a aucun Point de Péché à expier. Pénitence ne lui apporterait rien en cas de réussite.';
     expect(raisonDId(html, 'pane-catalog-penitence-blocked')).toBe(raison);
@@ -736,5 +742,77 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
     expect(raisonDId(html, 'pane-prep-inspire-blocked')).toBe(raison);
     fermeeEtLiee(html, 'pane-prep-inspire');
     expect(raisonDuGeste(() => useGame.getState().massBattleActivity('inspire', heroId))).toEqual([raison]);
+  });
+});
+
+
+/** Le texte du pré-jet du volet ouvert, ses lignes de modificateur comprises, jusqu'à son action. */
+const ligneDePreJet = (html: string) => mdToPlain(html.slice(html.indexOf('rm-roll pending'))).split('Entreprendre')[0];
+
+describe('InterludeScreen — chaque volet affiche le pré-jet du noyau (#3059 S6)', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  it('Planification soutenue : Savoir (Guerre) 46, Soutien +10, cible 56 — celle du jet posé (LDB 12 l.187-200)', () => {
+    const seam = buildSeam();
+    const party = seam.party.map((h, i) => ({ ...h, skills: [...h.skills.filter((s) => s.id !== 'savoir'), { id: 'savoir', spec: 'guerre', characteristic: 'intelligence' as const, advances: i === 0 ? 10 : 5 }] }));
+    useGame.setState({ party });
+    useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    useGame.getState().setMassBattleHero('planification', party.map((h) => h.id));
+    const s = useGame.getState();
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, party, phase: 'activities', catalog: interludeCatalog(s), massBattle: s.massBattle, openPane: { heroId: party[0].id, pane: 'planification' } }} />);
+    expect(ligneDePreJet(html)).toContain('46 +10 = 56');
+    expect(ligneDePreJet(html)).toContain('Soutien');
+    useGame.getState().massBattleActivity('planification', party[0].id);
+    expect(useGame.getState().pendingActivity!.target).toBe(56);
+  });
+
+  it('Apprentissage d’un Exténué : la ligne nomme l’État : Sociabilité nue 36, Exténué −10, cible 6 (LDB 16 l.90)', () => {
+    const seam = buildSeam();
+    const party = [{ ...seam.party[0], conditions: [{ id: 'extenue' as const, value: 1 }] }, seam.party[1]];
+    useGame.setState({ party });
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, party, phase: 'activities', openPane: { heroId: party[0].id, pane: 'learn', choix: 'chanceux' } }} />);
+    expect(ligneDePreJet(html)).toContain('36 −30 = 6');
+    expect(ligneDePreJet(html)).toContain('−10 Exténué');
+    useGame.getState().interludeActivity(party[0].id, 'learn', { talentId: 'chanceux' });
+    expect(useGame.getState().pendingActivity!.skillValue).toBe(26);
+  });
+
+  it('Revenus éditée avec un modificateur de situation : le volet dédié le nomme et l’applique (LDB 09 l.97)', () => {
+    const revenus = { ...activityById('revenus')!, testMods: [{ mod: -10, label: 'Mauvaise saison' }] };
+    avecActivite(revenus, () => {
+      const seam = buildSeam();
+      const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, phase: 'activities', openPane: { heroId: seam.party[0].id, pane: 'revenus' } }} />);
+      expect(ligneDePreJet(html)).toContain('Mauvaise saison');
+      expect(ligneDePreJet(html)).toContain('= 52');
+    });
+  });
+});
+
+describe('InterludeScreen — la porte de chaque volet dédié est celle du geste (`refusDOuvertureDActivite`, #3059 S6)', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  const CARRIERES = (careers as { id: string }[]).map((c) => c.id);
+  /** Variantes : 0 valide, 1 Inconscient (LDB 16 l.113 : il ne peut tenter aucun Test). */
+  it.each(CARRIERES.flatMap((c) => [0, 1].map((n) => [c, n] as const)))('%s, variante %s : Revenus, ouvrage en cours, Apprentissage', (careerId, n) => {
+    const h = createHero({ speciesId: 'humains-reiklander', careerId, label: careerId, seed: 3000 + CARRIERES.indexOf(careerId) });
+    h.xp = 2000;
+    if (n === 1) h.conditions = [{ id: 'inconscient', value: 1 }];
+    const seam = buildSeam(3, [h]);
+    const voir = (pane: string, choix?: string) => {
+      const s = useGame.getState();
+      return renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: s.interlude!, party: s.party, phase: 'activities', openPane: { heroId: h.id, pane, ...(choix ? { choix } : {}) } }} />);
+    };
+    const geste = (id: string, cibles = {}) => refusDOuvertureDActivite(useGame.getState(), h.id, activityById(id)!, cibles) ?? undefined;
+    // L'entrée de la liste se lit volet FERMÉ : une entrée ouverte reste refermable, sans raison.
+    expect(raisonDe(voir('bank'), 'revenus'), 'Revenus').toBe(geste('revenus'));
+    const talent = learnableTalents(useGame.getState().party[0])[0];
+    if (talent) expect(raisonDId(voir('learn', talent.id), 'pane-learn-blocked'), 'Apprentissage').toBe(geste('learn', { talentId: talent.id }));
+    const ouvrage = craftCatalog().find((o) => { const t = findTrappingById(o.id); return t && craftSpecOf(t); });
+    if (n === 0 && metierOf(useGame.getState().party[0]) && ouvrage) {
+      useGame.getState().interludeCraftStart(h.id, ouvrage.id, [], []);
+      if (useGame.getState().party[0].craft) expect(raisonDe(voir('bank'), 'craft'), 'ouvrage en cours').toBe(geste('craft'));
+    }
   });
 });

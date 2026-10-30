@@ -1378,6 +1378,7 @@ export const fr = {
   'if.entrainementUnknown': '{name} : rien à entraîner ici — Compétence/Caractéristique de carrière, ou inconnue.',
   'if.tuteurMinKo': '{name} : la bourse ne couvre même pas le tuteur le moins cher ({cost}).',
   'if.tuteurKo': '{name} : le tuteur demande {cost}, la bourse ne suit pas.',
+  'if.acharnement': 'Acharnement',
   'if.talentNonApprenable': '{name} ne peut pas apprendre {label} par Apprentissage particulier (Talent de carrière, au Maxi, ou à spécialisation).',
   'if.entrainementDone': '{name} s’entraîne hors carrière : {label} (−{cost} PX + {tutor} de tuteur).',
   'if.entrainementRefused': '{name} : {label} — {reason}.',

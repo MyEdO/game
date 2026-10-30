@@ -218,6 +218,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
   it('Exposition d’une Activité d’interlude : le même Test de `influences-corruptrices`', () => {
     const hero = heros();
     hero.items = [...(hero.items ?? []), { uid: 'art1', name: 'Amulette étrange', kind: 'trapping', qualities: [], enc: 0, equipped: false, identified: false } as never];
+    hero.skills.push({ id: 'recherche', characteristic: 'intelligence', advances: 5 }); // le Test de Recherche se tente (LDB 09 l.30)
     useGame.setState({ party: [hero], interlude: null, bank: [], pendingOrders: [], pendingActivity: null });
     g().startScene(testScene());
     vi.clearAllTimers();

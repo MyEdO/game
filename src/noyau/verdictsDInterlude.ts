@@ -3,12 +3,18 @@
  * `noyau/favorFlow.ts`) et l'écran d'interlude les lisent, sans que l'un importe l'autre.
  * Le geste applique le verdict en tête (`refuseSi`) ; l'écran le lit sans le recalculer.
  */
-import { findCareerById, findTalentById, findTrappingById, libelleOuAbsence, refLabel } from '../data';
+import { advancementBaseId, findCareerById, findSpellById, findTalentById, findTrappingById, levelsForCareer, libelleOuAbsence, refLabel } from '../data';
 import { interludeEventFor } from '../data/interludeEvents';
 import { t, type MsgKey } from '../i18n';
 import type { IdDObjet } from './designations';
-import { possesses } from '../engine/skills';
-import type { Combatant, ItemInstance } from '../engine/types';
+import { idsDuTest, possesses, type TestDesigne } from '../engine/skills';
+import { rollLine, type RollLineParts } from './rollSeam';
+import { buildWeapon } from '../engine/items';
+import { combatValue, weaponSkillId, type ModLine } from '../engine/combat';
+import { castingValue, focusSkillFor } from '../engine/magic';
+import { RULE_REF } from '../engine/ruleRefs';
+import { effectiveEntry } from '../engine/variants';
+import type { CharKey, Combatant, Difficulty, ItemInstance } from '../engine/types';
 import { favorRequiredActivities } from '../engine/favor';
 import { learnableSpells } from '../engine/grimoire';
 import { reussiteSansObjet, type GameOp } from '../engine/ops';
@@ -17,8 +23,8 @@ import { MOTIF_D_ID_DE_GROUPE, cibleDeRef, identiteDeCiblage, refDeCible, type R
 import { actorStatus } from '../engine/social';
 import { fromBrass, toBrass, toMoney, priceToMoney, formatMoney } from '../engine/money';
 import {
-  ACTIVITIES, RESOLVER_OWNER, activityAvailableAt, craftSpecOf, entrainementOptions, learnableTalents, metierOf, orderBlockOf, statusIncomeMax,
-  type ActivityDef, type EntrainementOption, type LearnOption, type ResolverOf,
+  ACTIVITIES, RESOLVER_OWNER, activityAvailableAt, craftSpecOf, entrainementOptions, learnableTalents, metierOf, orderBlockOf, statusIncomeMax, travelActivitySpec,
+  type ActivityDef, type EntrainementOption, type LearnOption, type ResolverOf, type TravelActivitySpec, type VoieDActivite,
 } from '../engine/activities';
 import { outOfTradeReason } from '../engine/disponibilite';
 import { memeSpecialisation, refCouvre } from '../data/schemas/grammaire/ref';
@@ -61,8 +67,8 @@ export function refusDActivite(s: EtatDInterlude, heroId: string): string | null
 
 /** Refus de retirer le dépôt `index` : la planque n'attend que le tirage, l'investissement consomme une
  *  Activité de son dépositaire, le Mécénat s'ouvre comme son Activité (`refusDOuvertureDActivite` : lieu
- *  compris). Verdict UNIQUE de `bankWithdraw` et de l'écran ; `null` pour un dépôt absent, que le geste
- *  ignore. LDB 23 l.168-170, ACE 12 l.47-49 */
+ *  et Test d'Évaluation tentable compris). Verdict UNIQUE de `bankWithdraw` et de l'écran ; `null` pour un
+ *  dépôt absent, que le geste ignore. LDB 23 l.168-170, ACE 12 l.47-49 ; LDB 09 l.30 */
 export function refusDeRetrait(s: EtatDeDepot, index: number): string | null {
   const dep = (s.bank ?? [])[index];
   if (!dep) return null;
@@ -351,9 +357,9 @@ function ouvertureDe(def: ActivityDef): 'voie' | 'derivee' | 'horsCatalogue' {
 
 /** Refus d'ouvrir l'Activité `def` du catalogue : celui de son Activité (Revenus et Apprentissage ont le
  *  leur), Activité fermée, hors catalogue ou sans compétence, hors de ce lieu, préalable de la Dissension,
- *  cible (`ciblesDActivite`), puis une réussite sans objet. Verdict UNIQUE d'`openCatalogActivity`, du
- *  retrait de Mécénat et des volets : une Activité que le verdict ouvre, le geste l'ouvre. LDB 23 l.5, ACE 12,
- *  ADE II 4, ADE II 09 l.33 */
+ *  cible (`ciblesDActivite`), aucune voie que le héros puisse tenter (`preJetDActivite`), puis une réussite
+ *  sans objet. Verdict UNIQUE d'`openCatalogActivity`, du retrait de Mécénat et des volets : une Activité que
+ *  le verdict ouvre, le geste l'ouvre. LDB 09 l.30, LDB 23 l.5, ACE 12, ADE II 4, ADE II 09 l.33 */
 export function refusDOuvertureDActivite(s: EtatDeDepot, heroId: string, def: ActivityDef, opts: CiblesChoisies = {}): string | null {
   const refus = def.resolver === 'income' ? refusDeRevenus(s, heroId)
     : def.resolver === 'learnTalent' ? refusDApprentissage(s, heroId, opts.talentId ?? '')
@@ -367,7 +373,7 @@ export function refusDOuvertureDActivite(s: EtatDeDepot, heroId: string, def: Ac
   if (ouverture === 'voie' && !def.skills?.length) return t('if.activiteSansCompetence', { label: def.label });
   if (!activityAvailableAt(def, currentPlaceId(s))) return t('if.placeOnly', { label: def.label });
   if (def.resolver === 'dissensionEmeute' && !s.interlude?.perHero[heroId]?.dissensionReady) return t('if.dissensionNotReady', { name: h.label });
-  return refusDeCibleDActivite(s, h, def, opts) ?? refusDeReussiteSansObjet(h, def, opts);
+  return refusDeCibleDActivite(s, h, def, opts) ?? preJetDActivite(s, heroId, def, opts)?.refus ?? refusDeReussiteSansObjet(h, def, opts);
 }
 
 /** L'état que lit le verdict d'une Faveur : celui de l'interlude, et les Faveurs dues. */
@@ -402,3 +408,93 @@ export function refusDeConfirmerLActivite(s: EtatDInterlude, pa: ConfirmationDAc
     ?? (pa.costBrass ? refusDeBourse(h, fromBrass(pa.costBrass), 'if.reputationPurseKo') : null);
 }
 
+/** Compétence de Carrière qui sert à Gagner de l'argent (dette `4e/activites#revenus`). LDB 07 l.82, LDB 08 l.110 */
+export function incomeSkillOf(h: Combatant): string {
+  const lvl1 = levelsForCareer(h.career ?? '')[0];
+  const ids = (lvl1?.skills ?? []).map(advancementBaseId).filter((x): x is string => !!x); // AdvancementRef → skillId
+  const owned = ids.find((id) => possesses(h, id));
+  return owned ?? ids[0] ?? 'athletisme';
+}
+
+/** Pré-jet d'une Activité d'interlude : la spec de Test de `travelActivitySpec`. */
+export type PreJetDActivite = Extract<TravelActivitySpec, { test: TestDesigne }> & { ligne: RollLineParts };
+
+/** Ce que le pré-jet lit au-delà des cibles : l'ouvrage d'Artisanat visé, engagé (`h.craft`) ou à engager. */
+export interface ContexteDePreJet { ouvrage?: { difficulty: Difficulty } }
+
+/** Voies du Test d'Activité que son résolveur DÉRIVE du héros (`OUVERTURE` `derivee`), et les
+ *  modificateurs qu'il pose ; `{}` = les voies déclarées par la donnée ; `undefined` = la cible ou la
+ *  compétence que l'ouverture lit manque. LDB 08 l.110, LDB 23 l.66-102, LDB 23 l.220-234, ACE 12 l.21,
+ *  ADE II 4 l.41, VDM 02 l.129-141 */
+function voiesDuTest(
+  h: Combatant, def: ActivityDef, cibles: CiblesChoisies, fails: Record<string, number>, ctx: ContexteDePreJet,
+): { voies?: VoieDActivite[]; mods?: ModLine[] } | undefined {
+  switch (def.resolver) {
+    case 'income':
+    case 'reputation':
+      return { voies: [{ test: { skill: { id: incomeSkillOf(h) } } }] };
+    case 'craftExtended': {
+      const ouvrage = ctx.ouvrage ?? h.craft;
+      const metier = metierOf(h);
+      return ouvrage ? { voies: [{ test: { skill: { id: 'metier', ...(metier?.spec ? { spec: metier.spec } : {}) } }, difficulty: ouvrage.difficulty }] } : undefined;
+    }
+    case 'learnTalent': {
+      const talent = findTalentById(cibles.talentId ?? '');
+      if (!talent) return undefined;
+      const tMax = effectiveEntry(talent).max;
+      const char: CharKey = tMax && typeof tMax !== 'number' ? tMax.bonusOf : 'intelligence';
+      const tentatives = fails[talent.id] ?? 0;
+      return {
+        voies: [{ test: { char } }],
+        mods: tentatives ? [{ label: t('if.acharnement'), value: 10 * tentatives, famille: 'jet', ref: RULE_REF['apprentissage-particulier'] }] : [],
+      };
+    }
+    case 'masterWeapon': {
+      const item = ciblesDActivite(h, def).armes.find((i) => i.uid === cibles.itemUid);
+      if (!item) return undefined;
+      // L'arme synthétique n'a pas d'uid retrouvable : le gate de maîtrise est inerte pour ce Test.
+      const kind = item.kind === 'ranged' ? ('ranged' as const) : ('melee' as const);
+      const valeur = combatValue(h, kind, buildWeapon({ label: item.label, type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType }));
+      return { voies: [{ test: { skill: { id: weaponSkillId(kind) } }, valeur }] };
+    }
+    case 'identify': {
+      const savoir = savoirDeLaMagie(h);
+      return savoir ? { voies: [{ test: { skill: { id: savoir.id, ...(savoir.spec ? { spec: savoir.spec } : {}) } } }] } : undefined;
+    }
+    case 'knowledgeResearch': {
+      const savoirs = h.skills.filter((k) => k.id === 'savoir' && (k.advances ?? 0) > 0);
+      return {
+        voies: savoirs.length
+          ? savoirs.map((k) => ({ test: { skill: { id: k.id, ...(k.spec ? { spec: k.spec } : {}) } } }))
+          : [{ test: { char: 'intelligence' }, difficulty: 'complexe' }],
+      };
+    }
+    case 'ritualFocus': {
+      const sp = findSpellById(cibles.spellId ?? h.ritual?.spellId ?? '');
+      const sk = sp ? focusSkillFor(h, sp) : undefined;
+      return sk ? { voies: [{ test: { skill: { id: 'focalisation', ...(sk.spec ? { spec: sk.spec } : {}) } }, valeur: castingValue(h, 'focalisation', sk.spec) }] } : undefined;
+    }
+    default:
+      return {};
+  }
+}
+
+/** PRÉ-JET d'une Activité d'interlude : la voie, sa valeur, sa Difficulté et ses modificateurs, par la
+ *  spec UNIQUE des Activités (`travelActivitySpec`), et sa LIGNE de jet montée par `rollLine` (base nue,
+ *  composantes nommées, cible). Le geste (`openCatalogActivity`) en pose son pending, le volet en rend la
+ *  ligne. `undefined` = rien à jeter (Activité sans Test, cible absente). */
+export function preJetDActivite(
+  s: EtatDInterlude, heroId: string, def: ActivityDef, cibles: CiblesChoisies = {}, ctx: ContexteDePreJet = {},
+): PreJetDActivite | undefined {
+  const h = herosDe(s, heroId);
+  const derivees = h ? voiesDuTest(h, def, cibles, s.interlude?.perHero[heroId]?.learnFails ?? {}, ctx) : undefined;
+  const spec = h && derivees ? travelActivitySpec(h, def, derivees) : null;
+  if (!h || !spec || spec.target === null) return undefined;
+  // Une valeur POSÉE par la voie (arme visée, Focalisation) ne se décompose pas en Niveau de Compétence.
+  const valeurPosee = (derivees?.voies ?? []).some((v) => v.valeur != null);
+  const ligne = rollLine({
+    actor: h, test: idsDuTest(spec.test), valeur: spec.value, difficulty: spec.difficulty, surLaCible: spec.mods,
+    ...(valeurPosee ? { valeurEtrangere: true } : {}),
+  });
+  return { ...spec, ligne };
+}
