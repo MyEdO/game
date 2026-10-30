@@ -40,6 +40,7 @@ import { ecrireJsonAtomique, lireTextePublie } from '../guards/lib/ecritureJsonA
 import { dossierDesMesures, mesuresDe } from './mesures.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { GATES_D_AUDIT, estTestNode, gateDe } from '../gates/testsParGate.mjs'
+import { ECRIT_LU } from '../gates/toutes.mjs'
 import { CONCURRENCE_SANS_PROFIL, lancerNodeMesure, profilsDuLancement } from './memoire.mjs'
 import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
@@ -93,20 +94,14 @@ const MODELE_DU_MUR = 'parents-sequentiels-servis'
 /** Le mémo des surcoûts de lancement appris, sous `dossierDesMesures` : `{ [famille]: ms }`, sous `MODELE_DU_MUR`. */
 export const SURCOUTS = nomDuMemo('surcouts', MODELE_DU_MUR)
 
-/** Les gates de `ci.yml` que `test:perimetre` DÉLÈGUE à la CI sans les jouer (#3145), avec les préfixes de chemin qui les
- *  désignent et la raison mesurée ; chaque préfixe est sous le `lit` de sa gate (`ECRIT_LU`, scripts/gates/toutes.test.mjs). */
-export const GATES_DELEGUEES = Object.freeze({
-  'personnage-3d:tests': Object.freeze({
-    prefixes: Object.freeze(['scripts/personnage-3d/', 'hotes/godot/projet/modeles/']),
-    raison: 'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation), ' +
-      'plus le GLB que dépose `godot:sonde` : à venv chaud, 31 s de mur sur le poste, mesuré le 2026-10-29',
-  }),
-})
+/** `fichier` est sous le chemin `lu` d'un `lit` d'`ECRIT_LU` : le dossier entier s'il finit par `/`, le fichier sinon. */
+const sousLeChemin = (fichier, lu) => (lu.endsWith('/') ? fichier.startsWith(lu) : fichier === lu)
 
-/** Les gates DÉLÉGUÉES (`GATES_DELEGUEES`) qu'un des fichiers `touches` désigne, chacune avec son premier touché. PURE. */
-export const gatesDelegueesDe = (touches, delegues = GATES_DELEGUEES) => Object.entries(delegues).flatMap(([gate, { prefixes, raison }]) => {
-  const touche = touches.find((t) => prefixes.some((p) => t.startsWith(p)))
-  return touche ? [{ gate, touche, raison }] : []
+/** Les lignes de journal des gates DÉLÉGUÉES à la CI (`delegueeAuPerimetre` d'`ECRIT_LU`, #3145) qu'un des fichiers
+ *  `touches` désigne par leur `lit`, chacune avec son premier touché. PURE. */
+export const lignesDeDelegation = (touches, ecritLu = ECRIT_LU) => Object.entries(ecritLu).flatMap(([gate, { lit, delegueeAuPerimetre }]) => {
+  const touche = delegueeAuPerimetre && touches.find((t) => lit.some((lu) => sousLeChemin(t, lu)))
+  return touche ? [`→ CI gate ${gate} : déléguée (${delegueeAuPerimetre}), désignée par ${touche}`] : []
 })
 
 /** Les arguments de reporter d'un lancement Vitest, rapport de durées sous `sortie` (`dureesVitest.mjs`). */
@@ -605,8 +600,7 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
   journal(`budget ${budget} s de mur (touché hors budget) : ${plan.lances.length} lancé(s), mur estimé ${texteDuMur(plan.murMs, plan)}, dont ${secondes(plan.murBudgeteMs)} au budget ; → CI ${plan.aLaCI.length}`)
   for (const t of plan.aLaCI.filter((t) => GATES_D_AUDIT.includes(gateDe(t))))
     journal(`→ CI ${t} : audit du dépôt réel, gate ${gateDe(t)} (${texteDuLien(retenus.get(t))})`)
-  for (const { gate, touche, raison } of gatesDelegueesDe(touches))
-    journal(`→ CI gate ${gate} : déléguée (${raison}), désignée par ${touche}`)
+  for (const ligne of lignesDeDelegation(touches)) journal(ligne)
   journal(`lint : ${aLinter(touches, post).length} fichier(s) touché(s)${options.liste ? ' (non joué sous --liste)' : ''}`)
   const noyau = suiteDuNoyauALancer(touches, post)
   journal(`suite du noyau : ${noyau.length ? `entière (un fichier de src/ touché), ${noyau.length} fichier(s)` : 'aucun fichier de src/ touché'}${noyau.length ? ` : ${noyau.join(', ')}` : ''}${options.liste && noyau.length ? ' (non joué sous --liste)' : ''}`)

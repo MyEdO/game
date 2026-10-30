@@ -10,4 +10,7 @@ ICI = Path(__file__).resolve().parent
 
 if __name__ == '__main__':
     suite = unittest.defaultTestLoader.discover(str(ICI), pattern='test_*.py', top_level_dir=str(ICI))
-    sys.exit(0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1)
+    resultat = unittest.TextTestRunner(verbosity=2).run(suite)
+    if resultat.testsRun == 0:
+        print(f'[personnage-3d] aucun test collecté sous {ICI} (test_*.py)', file=sys.stderr)
+    sys.exit(0 if resultat.testsRun and resultat.wasSuccessful() else 1)

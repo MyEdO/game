@@ -12,7 +12,7 @@ import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
 import { VITEST_DE_PARTIE } from './vitestDePartie.testkit.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { sitesDuDepot } from '../guards/lib/gitHorsHote.mjs'
-import { GATES_DELEGUEES, REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, gatesDelegueesDe, argumentsDuNoyau, suiteDuNoyauALancer, executerLancements, principal, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, derivationBornee, ecrireLesMesures, entreeDuCli, estimationsDe, facteursCi, lintDesTouches, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, surcoutObserve, texteDeLEchec, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
+import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, lignesDeDelegation, argumentsDuNoyau, suiteDuNoyauALancer, executerLancements, principal, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, derivationBornee, ecrireLesMesures, entreeDuCli, estimationsDe, facteursCi, lintDesTouches, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, surcoutObserve, texteDeLEchec, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
 import { exportsTouches, signalDe, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
 import { memosDe } from '../guards/lib/memosDAnalyse.mjs'
 import { lireArguments } from './argumentsPerimetre.mjs'
@@ -893,11 +893,16 @@ test('ligneDeRelance : chaque rouge SANS fichier nommé est nommé, à côté de
     + ' — rouge sans fichier nommé : vitest : 1 lancement(s) rouge(s) sans fichier en échec rapporté')
 })
 
-test('gates déléguées (#3145) : un fichier sous un préfixe de `GATES_DELEGUEES` nomme sa gate, avec son premier touché', () => {
-  const delegues = { 'gate:a': { prefixes: ['outils/a/', 'actifs/'], raison: 'coûteuse' }, 'gate:b': { prefixes: ['outils/b/'], raison: 'autre' } }
-  assert.deepEqual(gatesDelegueesDe(['src/x.ts', 'actifs/m.glb', 'outils/a/t.py'], delegues), [{ gate: 'gate:a', touche: 'actifs/m.glb', raison: 'coûteuse' }])
-  assert.deepEqual(gatesDelegueesDe(['outils/ab.py', 'outils/b'], delegues), [], 'un préfixe est un dossier entier, jamais un début de nom')
-  assert.deepEqual(gatesDelegueesDe(['scripts/personnage-3d/tests.py']).map(({ gate }) => gate), Object.keys(GATES_DELEGUEES))
+test('gates déléguées (#3145) : un fichier sous le `lit` d’une gate marquée `delegueeAuPerimetre` la nomme au journal, avec son premier touché', () => {
+  const ecritLu = { 'gate:a': { lit: ['outils/a/', 'actifs/m.json'], delegueeAuPerimetre: 'coûteuse' }, 'gate:b': { lit: ['outils/b/'] } }
+  assert.deepEqual(lignesDeDelegation(['src/x.ts', 'actifs/m.json', 'outils/a/t.py', 'outils/b/u.py'], ecritLu),
+    ['→ CI gate gate:a : déléguée (coûteuse), désignée par actifs/m.json'], 'une gate sans marque ne se délègue pas')
+  assert.deepEqual(lignesDeDelegation(['outils/ab.py', 'actifs/m.json.bak'], ecritLu), [], 'un dossier du `lit` est un dossier entier, un fichier un nom exact')
+  const reelles = lignesDeDelegation(['hotes/godot/asset/evaluateur/gardes/seuils.json'])
+  assert.equal(reelles.length, 1, reelles.join(' | '))
+  assert.match(reelles[0],
+    /^→ CI gate personnage-3d:tests : déléguée \(.+\), désignée par hotes\/godot\/asset\/evaluateur\/gardes\/seuils\.json$/,
+    'le `lit` d’`ECRIT_LU` désigne la gate déléguée')
 })
 
 test('suite du noyau (#2817, #2928) : un fichier d’une racine des zones touché la lance ENTIÈRE par `test:noyau`, et un rouge se relance sur elle', () => {

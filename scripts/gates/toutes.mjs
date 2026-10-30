@@ -83,6 +83,9 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  * run — interdit à toute autre lane de le lire ; `ecritFerme` = un chemin que la gate PEUT écrire,
  * avec la PORTE qui ferme le cas, nommée au chemin (jamais à la gate). Aucune écriture n'est
  * effacée de la table pour faire passer une lane : elle change de champ, en disant pourquoi.
+ *
+ * `delegueeAuPerimetre` (optionnel) : la raison MESURÉE pour laquelle `test:perimetre` ne joue pas cette gate et la
+ * laisse à la CI ; tout fichier touché sous son `lit` la nomme au journal (`lignesDeDelegation`, scripts/test/perimetre.mjs).
  */
 const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide (rmdirSync) et relierFichierGit (writeFileSync exclusif) ne s'appellent que depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables ; etatDuDemiRetire n'écrit que sous mkdtempSync d'os.tmpdir(), effacé par rmSync en finally. "
 
@@ -442,7 +445,9 @@ export const ECRIT_LU = {
         '`~/.cache/wfrp-modeles-3d/` (hors de l’arbre), seulement s’il y manque ou n’a pas la somme de sa provenance commitée, ' +
         'par temporaire exclusif puis renommage (`ecrireTexteAtomique`) : un lecteur concurrent voit l’absent, l’ancien ou ' +
         'le GLB de somme épinglée, jamais un fichier partiel ; `/modeles/*.glb` est gitignoré (hotes/godot/projet/.gitignore) ' +
-        'et aucune autre gate ne lit de GLB : le lint lit des modules, la suite du noyau n’en lit que les provenances',
+        'et sa seule autre gate lectrice, `personnage-3d:tests` (`ModeleCommite`, #3145), suit `godot:sonde` dans le job ' +
+        '`types` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
+        'qu’après l’écriture ; le lint lit des modules, la suite du noyau n’en lit que les provenances',
     },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
     raison:
@@ -462,12 +467,17 @@ export const ECRIT_LU = {
         'le bytecode que CPython écrit à l’import des modules de la chaîne 3D, ignoré par `__pycache__/` (.gitignore) : ' +
         'absent des listes que les gates tirent de git (`listerImage`, `git ls-files`) et du step « Arbre inchangé »',
     },
-    lit: ['scripts/personnage-3d/', 'hotes/godot/projet/modeles/', 'package.json'],
+    lit: ['scripts/personnage-3d/', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json'],
     raison:
       '`tests.py` (#3145) dans le venv épinglé d’`environnement.mjs`, qui vit hors de l’arbre ' +
       '(`~/.cache/wfrp-personnage-3d/`) ; les tests écrivent leurs GLB sous `tempfile.TemporaryDirectory()`. LIT ' +
-      'scripts/personnage-3d/ (lanceur, exigences, modules et tests) et, sous hotes/godot/projet/modeles/, le manifeste ' +
-      'et le GLB de la Release (`ModeleCommite`), que dépose `godot:sonde`, joué avant elle dans le job et la lane `types`',
+      'package.json (le script npm), scripts/personnage-3d/ (`environnement.mjs` et son `requirements.txt`, `tests.py`, ' +
+      'les `test_*.py` et les modules qu’ils importent, base/ compris), `seuils.json` de l’évaluateur (lu à l’import de ' +
+      '`seuils.py`) et, sous hotes/godot/projet/modeles/, le manifeste et le GLB de la Release (`ModeleCommite`), que ' +
+      'dépose `godot:sonde`, joué avant elle dans le job et la lane `types`',
+    delegueeAuPerimetre:
+      'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation), ' +
+      'plus le GLB que dépose `godot:sonde` : à venv chaud, 31 s de mur sur le poste, mesuré le 2026-10-29',
   },
   lint: {
     ecrit: [],

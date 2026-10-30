@@ -482,6 +482,10 @@ const ATTENDU = {
     // #2603 : `purgerPerimes.mjs`, atteint par `perimetre.mjs` → `memosDAnalyse.mjs`, ne purge que le dossier de mémos
     // de son appelant (`node_modules/.cache/perimetre`, ou un `mkdtempSync` d'os.tmpdir() des bancs).
     'scripts/guards/lib/purgerPerimes.mjs',
+    // +1 le 2026-10-30 (#3145) : `perimetre.mjs` importe la table `ECRIT_LU` de `toutes.mjs` (`lignesDeDelegation`) ;
+    // ses écritures (`mkdirSync`, `writeFileSync` sous `node_modules/.cache/gates/`) ne partent que de `principal`,
+    // derrière sa porte `import.meta.main`, qu'aucun banc de la gate n'appelle — l'arbre n'est jamais écrit.
+    'scripts/gates/toutes.mjs',
     // +2 le 2026-10-07 (#2400) : `perimetre.mjs` importe `selectionDesGenerateurs` et `ancetresDe` de
     // `scripts/git-hooks/docs-rebuild.mjs`, qui atteint `build-all.mjs` et `journal.mjs` ; leurs écritures vivent
     // derrière `reconstruireApresGit`, `genererCode` et les `main` sous `import.meta.main`, que le banc n'appelle
@@ -847,6 +851,8 @@ const ATTENDU = {
     "scripts/docs/build-all.mjs",
     "scripts/docs/lib/ecriture-derives.mjs",
     "scripts/docs/lib/fraicheur-docs.mjs",
+    // #3145 : `perimetre.mjs` → `toutes.mjs` (table `ECRIT_LU`), écritures sous la seule porte `import.meta.main`.
+    "scripts/gates/toutes.mjs",
     "scripts/git-hooks/journal.mjs",
     "scripts/guards/lib/ecritureJsonAtomique.mjs",
     "scripts/guards/lib/lintStage.mjs",
