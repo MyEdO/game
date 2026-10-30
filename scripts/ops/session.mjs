@@ -3,7 +3,8 @@ import { join, resolve, isAbsolute, basename, extname, dirname } from 'node:path
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { spawnSync } from 'node:child_process'
-import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneControleur, lirePolitique } from './session-runtime.mjs'
+import { setTimeout as pause } from 'node:timers/promises'
+import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneControleur, lirePolitique, annexeDe } from './session-runtime.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { verifierVersionCodex } from './session-version.mjs'
 import { verifierProtocoleCodex } from './session-codex.mjs'
@@ -29,10 +30,10 @@ export function optionsSession(argv) {
   const [action, ...argumentsAction] = argv
   const cible = argumentsAction[0] && !argumentsAction[0].startsWith('--') ? argumentsAction.shift() : undefined
   const options = { action, cible }
-  if (!['lancer', 'lister', 'fermer', 'attendre', 'envoyer', 'etat', 'outils'].includes(action)) refuser('usage : ops:session lancer <consigne> [--ticket <n>] [--agent claude|codex] | lister [--json] | fermer <ticket|nom|PID|UUID> | envoyer <cible> --message <texte> | etat <cible> --json | attendre <cible> [--depuis <seq>] [--timeout-ms <n>] [--suivre] | outils --json')
+  if (!['lancer', 'lister', 'archiver', 'fermer', 'attendre', 'envoyer', 'etat', 'outils'].includes(action)) refuser('usage : ops:session lancer <consigne> [--ticket <n>] [--agent claude|codex] | lister [--json] | archiver [--json] | fermer <ticket|nom|PID|UUID> | envoyer <cible> --message <texte> | etat <cible> --json | attendre <cible> [--depuis <seq>] [--timeout-ms <n>] [--suivre] | outils --json')
   const permises = {
     lancer: new Set(['--ticket', '--nom', '--agent', '--consigne', '--worktree', '--executable', '--profil-wt', '--json']),
-    lister: new Set(['--json']), fermer: new Set(['--json', '--timeout-ms']), attendre: new Set(['--json', '--timeout-ms', '--depuis', '--suivre']),
+    lister: new Set(['--json']), archiver: new Set(['--json']), fermer: new Set(['--json', '--timeout-ms']), attendre: new Set(['--json', '--timeout-ms', '--depuis', '--suivre']),
     envoyer: new Set(['--json', '--message', '--request-id', '--timeout-ms']), etat: new Set(['--json']), outils: new Set(['--json']),
   }[action]
   const args = argumentsAction
@@ -51,8 +52,8 @@ export function optionsSession(argv) {
   if (options.requestId !== undefined && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(options.requestId)) refuser('REQUEST ID INVALIDE : UUID requis')
   if (action === 'envoyer' && (!options.message?.trim() || options.message.length > 65_536)) refuser('MESSAGE INVALIDE : texte non vide, 65536 caractères maximum')
   if (action === 'lancer') return normaliserLancement(options)
-  if (!['lister', 'outils'].includes(action) && !cible) refuser('CIBLE ABSENTE')
-  if (['lister', 'outils'].includes(action) && cible) refuser('OPTION REFUSÉE : cible de liste')
+  if (!['lister', 'archiver', 'outils'].includes(action) && !cible) refuser('CIBLE ABSENTE')
+  if (['lister', 'archiver', 'outils'].includes(action) && cible) refuser('OPTION REFUSÉE : cible de liste')
   return options
 }
 
@@ -121,9 +122,9 @@ export function verifierContratAgent(agent, executable, { executer = spawnSync, 
   if (manquants.length) refuser(`CONTRAT CLI INCOMPATIBLE : ${manquants.join(', ')}`)
 }
 
-export function argsTerminal({ profil, nom, worktree, script, node, commande, sessionId, dossier }) {
-  const payload = Buffer.from(JSON.stringify({ script, node, commande, worktree, sessionId, dossier }), 'utf8').toString('base64')
-  const expression = `$p=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}'))|ConvertFrom-Json; & $p.script -Node $p.node -CommandLine $p.commande -Worktree $p.worktree -SessionId $p.sessionId -Dossier $p.dossier; if ($null -ne $LASTEXITCODE) { exit $LASTEXITCODE }`
+export function argsTerminal({ profil, nom, worktree, script, node, commande, sessionId, terminal, journalHote }) {
+  const payload = Buffer.from(JSON.stringify({ script, node, commande, worktree, sessionId, terminal, journalHote }), 'utf8').toString('base64')
+  const expression = `$p=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}'))|ConvertFrom-Json; & $p.script -Node $p.node -CommandLine $p.commande -Worktree $p.worktree -SessionId $p.sessionId -Terminal $p.terminal -JournalHote $p.journalHote; if ($null -ne $LASTEXITCODE) { exit $LASTEXITCODE }`
   const optionWT = (valeur) => valeur.replaceAll(';', '\\;')
   return ['-w', '0', 'new-tab', '--profile', optionWT(profil), '--title', optionWT(nom), '--suppressApplicationTitle', '--startingDirectory', optionWT(worktree), 'powershell.exe', '-NoLogo', '-NoProfile', '-EncodedCommand', Buffer.from(expression, 'utf16le').toString('base64')]
 }
@@ -158,7 +159,7 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
     throw e
   }
   const commande = ligneControleur({ script: join(ops, 'session-runtime.mjs'), dossier, id: r.carte.sessionId })
-  const args = argsTerminal({ profil: profil.nom, nom: options.nom, script: join(ops, 'session-process.ps1'), node: process.execPath, commande, worktree: c.worktree, sessionId: r.carte.sessionId, dossier })
+  const args = argsTerminal({ profil: profil.nom, nom: options.nom, script: join(ops, 'session-process.ps1'), node: process.execPath, commande, worktree: c.worktree, sessionId: r.carte.sessionId, terminal: annexeDe(dossier, r.carte.sessionId, 'terminal'), journalHote: annexeDe(dossier, r.carte.sessionId, 'journalHote') })
   let vu
   try { vu = lancerWT('wt.exe', args, { cwd: c.worktree, shell: false, encoding: 'utf8', windowsHide: true, timeout: 15_000, env: envAgent(env) }) }
   catch (error) { vu = { error } }
@@ -236,22 +237,30 @@ export function outilsSession() {
   }
 }
 
-export async function attendreSuivi(sessions, cible, options, { parentVivant, lireParent = () => process.ppid, horloge = Date.now, identite = IDENTITE_MESUREE } = {}) {
+export async function attendreSuivi(sessions, cible, options, { parentVivant, lireParent = () => process.ppid, horloge = Date.now, identite = IDENTITE_MESUREE, dormir = pause } = {}) {
   if (options.timeoutMs === 0) refuser('SUIVI : timeout strictement positif requis')
   if (!parentVivant) {
     const pidParent = lireParent(), instantParent = horloge()
     parentVivant = () => estPidVivantDepuis(pidParent, instantParent, identite)
   }
-  let depuis = options.depuis
+  let depuis = options.depuis, serie = null
   do {
     if (!parentVivant()) return { etat: 'indeterminee', raison: 'PARENT DISPARU' }
-    let resultat
-    try { resultat = await sessions.attendre(cible, { ...options, depuis }) }
-    catch (e) { if (e.code !== 'BORNE_IPC_CODEX') throw e }
-    if (resultat && resultat.type !== 'aucune' && resultat.etat !== 'indeterminee') return resultat
-    depuis = resultat?.curseur ?? resultat?.seq ?? depuis
-    const carte = sessions.etat(cible)
-    if (['fermee', 'echec-reservation', 'echec-controle'].includes(carte.etat)) return sessions.attendre(cible, { timeoutMs: 0, depuis })
+    try {
+      let resultat
+      try { resultat = await sessions.attendre(cible, { ...options, depuis }) }
+      catch (e) { if (e.code !== 'BORNE_IPC_CODEX') throw e }
+      if (resultat && resultat.type !== 'aucune' && resultat.etat !== 'indeterminee') return resultat
+      depuis = resultat?.curseur ?? resultat?.seq ?? depuis
+      const carte = sessions.etat(cible)
+      if (['fermee', 'echec-reservation', 'echec-controle'].includes(carte.etat)) return await sessions.attendre(cible, { timeoutMs: 0, depuis })
+      serie = null
+    } catch (e) {
+      if (!refusSession(e).retentable) throw e
+      serie ??= horloge()
+      if (horloge() - serie > options.timeoutMs) throw e
+      await dormir(250)
+    }
   } while (true)
 }
 
@@ -263,6 +272,7 @@ export async function commandeSession(argv, { stdout = process.stdout, stdin = p
   else {
     const c = contexte(cwd), sessions = sessionsDe(join(c.gitCommun, 'sessions'))
     if (options.action === 'lister') resultat = sessions.lister()
+    else if (options.action === 'archiver') resultat = sessions.archiver()
     else if (options.action === 'etat') resultat = sessions.etat(options.cible)
     else if (options.action === 'envoyer') resultat = await sessions.envoyer(options.cible, await jetonDe(env, stdin), { message: options.message, requestId: options.requestId, timeoutMs: Number(options.timeoutMs ?? 30_000) })
     else if (options.action === 'fermer') resultat = await sessions.fermer(options.cible, await jetonDe(env, stdin), { timeoutMs: Number(options.timeoutMs ?? 30_000) })

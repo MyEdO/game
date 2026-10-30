@@ -3,7 +3,8 @@ param(
   [Parameter(Mandatory=$true)][string]$CommandLine,
   [Parameter(Mandatory=$true)][string]$Worktree,
   [Parameter(Mandatory=$true)][guid]$SessionId,
-  [Parameter(Mandatory=$true)][string]$Dossier,
+  [Parameter(Mandatory=$true)][string]$Terminal,
+  [Parameter(Mandatory=$true)][string]$JournalHote,
   [int]$TimeoutMs = 0
 )
 $ErrorActionPreference = 'Stop'
@@ -40,13 +41,13 @@ public static class SessionTerminal {
   $creation = (Get-CimInstance Win32_Process -Filter "ProcessId=$PID").CreationDate.ToUniversalTime().ToString('o')
   if (-not $creation) { throw 'Identité JobHost indisponible' }
   $signal = @{sessionId=$SessionId.ToString();jobHost=@{pid=$PID;creation=$creation}} | ConvertTo-Json -Compress
-  [SessionTerminal]::Install((Join-Path $Dossier ($SessionId.ToString() + '.terminal-close')), $signal)
+  [SessionTerminal]::Install($Terminal, $signal)
   Add-Type -Path (Join-Path $PSScriptRoot '../guards/lib/processusJob.cs')
   [SessionJob]::Run($Node, $CommandLine, $Worktree, $TimeoutMs)
 } catch {
   $diagnostic = '[session JobHost] ' + $_.Exception.Message
   [Console]::Error.WriteLine($diagnostic)
-  try { [System.IO.File]::WriteAllText((Join-Path $Dossier ($SessionId.ToString() + '.jobhost.log')), $diagnostic) } catch { }
+  try { [System.IO.File]::WriteAllText($JournalHote, $diagnostic) } catch { }
   exit 1
 }
 exit 0

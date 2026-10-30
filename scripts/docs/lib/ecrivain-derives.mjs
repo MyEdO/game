@@ -10,7 +10,7 @@ import { readFileSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { gitDirDe } from '../../hooks/barriere-outil.mjs'
 import { ecrireTexteAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
-import { BACKOFFS_MS } from '../../guards/lib/spawnResilient.mjs'
+import { PALIERS_RENOMMAGE_MS } from '../../guards/lib/renommageResilient.mjs'
 import { prendreVerrou } from '../../test/verrou.mjs'
 
 /** Variable d'env d'une passe : l'époque `attendue`. */
@@ -20,12 +20,12 @@ export const ENV_EPOQUE = 'WFRP_EPOQUE_DERIVES'
  *  sous-processus. */
 export const ENV_TENU = 'WFRP_ECRIVAIN_TENU'
 
-/** La marge d'`ATTENTE_DU_HOOK` au-delà des paliers de `renommerResilient` (`BACKOFFS_MS`). Valeur maison. */
+/** La marge d'`ATTENTE_DU_HOOK` au-delà des paliers de `renommerResilient` (`PALIERS_RENOMMAGE_MS`). Valeur maison. */
 export const MARGE_DU_HOOK_MS = 3_000
 
 /** L'attente du verrou par un écrivain qui préempte : couvre une écriture de la passe sous verrou, paliers de
  *  `renommerResilient` compris. */
-export const ATTENTE_DU_HOOK = Object.freeze({ echeanceMs: BACKOFFS_MS.reduce((somme, ms) => somme + ms, 0) + MARGE_DU_HOOK_MS, pasMs: 20 })
+export const ATTENTE_DU_HOOK = Object.freeze({ echeanceMs: PALIERS_RENOMMAGE_MS.reduce((somme, ms) => somme + ms, 0) + MARGE_DU_HOOK_MS, pasMs: 20 })
 
 /** L'attente du verrou par une écriture de la passe : le post-hook le tient le temps de ses cibles de code
  *  et de ses `npm ci`. Valeur maison. */
