@@ -328,27 +328,30 @@ async function parcoursAtelier() {
   await cliquerAmene('Pause', 1)
   a = await atelier()
   assert.deepEqual([a.clip, a.lecture], [o.clip, false], 'la pause arrête le clip')
-  const enPause = a.instant
+  const { instant: enPause, duree } = a
+  const ecart = (depart, arrivee) => (((arrivee - depart) % duree) + duree) % duree
   await cliquerBouton('Image suivante')
   const suivante = (await atelier()).instant
   await marquer()
   await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
   await nouvelEcran()
   const encore = (await atelier()).instant
-  assert.ok(suivante > enPause && encore > suivante, `chaque image suivante avance l’instant : ${enPause} → ${suivante} → ${encore}`)
+  const image = ecart(suivante, encore)
+  assert.ok(ecart(enPause, suivante) > 0 && ecart(enPause, suivante) < duree / 2 && image > 0 && image < duree / 2, `chaque image suivante avance l’instant sur le clip bouclé de ${duree} s : ${enPause} → ${suivante} → ${encore}`)
   await cliquerBouton('Image précédente')
   a = await atelier()
-  assert.ok(Math.abs(a.instant - suivante) < 1e-6, `l’image précédente revient d’une image : ${encore} → ${a.instant}`)
-  noter(`pause à ${enPause} s ; image suivante (clic) ${suivante}, (Entrée) ${encore}, précédente ${a.instant} : une image ${(encore - suivante).toFixed(4)} s`)
+  const precedente = a.instant
+  assert.ok(Math.min(ecart(suivante, precedente), ecart(precedente, suivante)) < 1e-6, `l’image précédente revient d’une image : ${encore} → ${precedente}`)
+  noter(`pause à ${enPause} s sur ${duree} s ; image suivante (clic) ${suivante}, (Entrée) ${encore}, précédente ${precedente} : une image ${image.toFixed(4)} s`)
   await cliquerBouton('×0.5')
   a = await atelier()
-  assert.deepEqual([a.vitesse, a.lecture, a.instant], [0.5, false, suivante], 'la vitesse se règle, la pause tient l’instant')
+  assert.deepEqual([a.vitesse, a.lecture, a.instant], [0.5, false, precedente], 'la vitesse se règle, la pause tient l’instant')
   await cliquerBouton('Lecture')
   assert.equal((await atelier()).lecture, true, 'la lecture reprend')
   await sleep(500)
   await cliquerBouton('Pause')
   const avant = await atelier()
-  assert.ok(avant.instant !== suivante && avant.lecture === false, `la lecture a avancé le clip : ${suivante} → ${avant.instant}`)
+  assert.ok(avant.instant !== precedente && avant.lecture === false, `la lecture a avancé le clip : ${precedente} → ${avant.instant}`)
   noter(`×0.5, lecture puis pause : ${avant.instant} s`)
   await capturer('3086-a1-3-clip-en-pause')
 

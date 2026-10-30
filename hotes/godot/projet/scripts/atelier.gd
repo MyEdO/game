@@ -567,6 +567,7 @@ func _publier_l_ecran() -> void:
 			empreinte = _base.get("empreinte"),
 			clip = clip,
 			instant = _lecteur.current_animation_position if clip != null else null,
+			duree = _lecteur.current_animation_length if clip != null else null,
 			lecture = _lecteur.is_playing() if clip != null else false,
 			vitesse = _vitesse,
 			montes = _montes,

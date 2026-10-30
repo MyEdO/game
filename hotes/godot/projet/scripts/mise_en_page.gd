@@ -62,11 +62,12 @@ static func pas_d_image(pas: float, duree: float, cles: int) -> float:
 	return pas_de_la_piste if pas == 0.0 or pas_de_la_piste < pas else pas
 
 
-## L'instant de l'image de la grille de `pas` strictement voisine de `instant` dans le sens `sens` (1 ou -1), borné à
-## [0, `duree`] ; `instant` lui-même, borné, sans pas.
+## L'instant de l'image de la grille de `pas` strictement voisine de `instant` dans le sens `sens` (1 ou -1), sur le clip
+## bouclé de `duree` secondes : la suivante de la dernière image est la première, la précédente de la première est la
+## dernière ; `instant` lui-même, borné à [0, `duree`], sans pas.
 static func image_voisine(instant: float, pas: float, sens: float, duree: float) -> float:
 	if pas == 0.0:
 		return clampf(instant, 0.0, duree)
 	var image := instant / pas
 	var voisine := floorf(image + TOLERANCE_D_IMAGE) + 1.0 if sens > 0.0 else ceilf(image - TOLERANCE_D_IMAGE) - 1.0
-	return clampf(voisine * pas, 0.0, duree)
+	return fposmod(voisine * pas, duree)
