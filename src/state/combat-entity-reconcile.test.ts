@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
+import { draineCascade } from '../noyau/cascade.testkit';
 import { checkBattleOver } from '../noyau/combatFlow';
 import { removeEntities } from '../noyau/combatPlacement';
 import { seatPoseOf, seatSlotsOf } from '../noyau/monde/seating';
@@ -27,21 +28,6 @@ function startFixtureCombat() {
 function enrolledEntityIds(): string[] {
   const enc = useGame.getState().scene!.encounters.find((e) => e.id === 'enc-mutants')!;
   return (enc.members ?? []).map((m) => m.entityId);
-}
-
-/** Résout la cascade de fin de combat (Tests de maladie et `influences-corruptrices`, influençables) — lance
- *  chaque étape puis valide, jusqu'à fermeture (`finishCombatEnd` → écran de victoire). No-op si aucune. */
-function drainCombatEndCascade(): void {
-  for (let guard = 0; guard < 30; guard++) {
-    const p = useGame.getState().pendingCascade;
-    if (!p?.combatEndBoundary) break;
-    const cur = p.participants[p.cursor];
-    // Les jets de bilan de combat sont des BANDES (#1117 L4) : on lance chaque RANGÉE ; une étape MONO
-    // (upkeep différé non bandable) garde son lancer d'étape.
-    if (cur?.participants) { for (const row of cur.participants) if (!row.result) useGame.getState().cascadeBatchRoll(row.id); }
-    else if (cur?.target != null && !cur.result) useGame.getState().cascadeRoll(cur.id);
-    useGame.getState().cascadeNext();
-  }
 }
 
 describe('Identité unifiée SceneEntity ↔ Combatant (fix embuscade)', () => {
@@ -93,7 +79,7 @@ describe('Identité unifiée SceneEntity ↔ Combatant (fix embuscade)', () => {
     checkBattleOver(useGame.getState, useGame.setState);
     // Les mutants portent le Trait Corruption (Mineure) → cascade de fin de combat (Test `influences-corruptrices`
     // INFLUENÇABLE) AVANT l'écran de victoire. On la résout pour atteindre la victoire (+ réconciliation).
-    drainCombatEndCascade();
+    draineCascade(useGame.getState);
 
     expect(useGame.getState().battle!.over).toBe('victory');
     const remaining = new Set(useGame.getState().scene!.entities.map((e) => e.id));
@@ -132,7 +118,7 @@ describe('checkBattleOver — un engin INERTE ne compte ni pour la victoire ni p
     b.combatants.push(mkInertEngine('empl-enemy', 'enemy'));            // l'affût ennemi reste (immune, jamais tué)
     useGame.setState({ battle: { ...b } });
     checkBattleOver(useGame.getState, useGame.setState);
-    drainCombatEndCascade();
+    draineCascade(useGame.getState);
     expect(useGame.getState().battle!.over).toBe('victory'); // l'engin inerte ne maintient PAS enemiesAlive
   });
 
