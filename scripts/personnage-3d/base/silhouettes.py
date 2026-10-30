@@ -23,7 +23,8 @@
   aux peaux secondaires par liaison de surface (`formes.transferer_les_cles`).
 - Finition en clip (#3101 issuecomment-6535025119) : `finir_les_silhouettes` rend `refinir(matrices)`, qui reprend
   les clés courantes par `alterner` en région locale, bornes au repos et sous les matrices de peau des clips
-  (`poids.extremes`), sur la préparation de `finir_les_silhouettes`.
+  (`en_clip`, mesure incrémentale de `poids.extremes`), et `mesurer(matrices)`, sur la préparation de
+  `finir_les_silhouettes`.
 
 Les poids sont ceux de l'export glTF (`poids.peau_lineaire`).
 """
@@ -382,14 +383,41 @@ def alterner(bruts, repos, groupe, aretes, libre, corriger, vers_le_monde, hors,
                                  for nom, n in restantes.items()))
 
 
+def en_clip(w, x, aretes, longueurs, matrices, vers_le_monde):
+    """La mesure `(nom, d) -> masque` des arêtes `aretes` de la clé `nom`, champ `d` au repère du mesh (`vers_le_monde`,
+    matrice 3×3 à droite), hors de `ETIREMENT_EN_CLIP` dans l'état de la clé sous les matrices de peau `matrices`
+    (`poids.extremes`, sommets `x`, poids `w`, longueurs au repos `longueurs`). Le rapport d'une arête ne dépend que de
+    ses deux extrémités : par clé, la mesure garde le dernier champ et ses (bas, haut), et ne remesure que les arêtes
+    dont une extrémité a changé."""
+    vus = {}
+
+    def mesurer(nom, d):
+        if nom in vus:
+            champ, bas, haut = vus[nom]
+            touchees = (d != champ).any(axis=1)[aretes].any(axis=1)
+        else:
+            bas, haut = numpy.empty(len(aretes), dtype=numpy.float32), numpy.empty(len(aretes), dtype=numpy.float32)
+            touchees = numpy.ones(len(aretes), dtype=bool)
+        if touchees.any():
+            b, h = extremes(w, x, (d @ vers_le_monde)[None], aretes[touchees], longueurs[touchees], matrices)
+            bas[touchees], haut[touchees] = b[1], h[1]
+        vus[nom] = (d.copy(), bas, haut)
+        return hors_de(bas, ETIREMENT_EN_CLIP) | hors_de(haut, ETIREMENT_EN_CLIP)
+
+    return mesurer
+
+
 def finir_les_silhouettes(squelette, corps, secondaires, bornes):
     """Applique à chaque clé de `corps` le lissage en région pleine jusqu'à `ETIREMENT_DES_CLES` au repos, les
     extrémités invariantes et la correction par les anneaux articulaires (`alterner`, `correction`, rayon de la carrure
     aux bornes de `st` `bornes`), puis la transfère aux peaux `secondaires`. Seules les clés que portent `corps` à
     l'appel servent de source. Rend `refinir(matrices)` : sur les clés courantes de `corps`, `alterner` en région locale
-    contre `ETIREMENT_DES_CLES` au repos et `ETIREMENT_EN_CLIP` sous les matrices de peau `matrices` (`poids.extremes`,
-    l'état de la seule clé), avec la préparation de cet appel (poids, fondu, anneaux, `correction`) ; pose les clés,
-    les transfère aux `secondaires`, et rend le nombre de sommets dont une clé a changé."""
+    contre `ETIREMENT_DES_CLES` au repos et `ETIREMENT_EN_CLIP` sous les matrices de peau `matrices` (`en_clip`),
+    avec la préparation de cet appel (poids, fondu, anneaux, `correction`) ; pose les clés, les transfère aux
+    `secondaires`, et rend le nombre de sommets dont une clé a changé. Rend aussi `mesurer(matrices)`, en une passe de
+    `poids.extremes` sur toutes les clés courantes de `corps` : le masque des arêtes du neutre hors de
+    `ETIREMENT_EN_CLIP` sous `matrices`, et par clé celui de ses arêtes hors, dans son état sous `matrices` ou au repos
+    hors de `ETIREMENT_DES_CLES`."""
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
     libre = fondu(w, noms, extremites(squelette))
@@ -426,10 +454,18 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
     longueurs = numpy.linalg.norm(x[aretes[:, 0], :3] - x[aretes[:, 1], :3], axis=1)
     sans_fondu = (libre > 0).astype(numpy.float64)
 
+    def mesurer(matrices):
+        courants = {nom: decalages(corps, nom) for nom in noms_des_cles(corps)}
+        monde = numpy.array([d @ vers_le_monde for d in courants.values()]).reshape(len(courants), len(x), 3)
+        bas, haut = extremes(w, x, monde, aretes, longueurs, matrices)
+        hors = hors_de(bas, ETIREMENT_EN_CLIP) | hors_de(haut, ETIREMENT_EN_CLIP)
+        return hors[0], {nom: au_repos(nom, d) | hors[1 + k] for k, (nom, d) in enumerate(courants.items())}
+
     def refinir(matrices):
+        dans_le_clip = en_clip(w, x, aretes, longueurs, matrices, vers_le_monde)
+
         def hors(nom, d):
-            bas, haut = extremes(w, x, (d @ vers_le_monde)[None], aretes, longueurs, matrices)
-            return au_repos(nom, d) | (bas[1] < ETIREMENT_EN_CLIP[0]) | (haut[1] > ETIREMENT_EN_CLIP[1])
+            return au_repos(nom, d) | dans_le_clip(nom, d)
 
         courants = {nom: (decalages(corps, nom), rapports_de_st.get(nom)) for nom in noms_des_cles(corps)}
         refinis = alterner(courants, repos, groupe, aretes, sans_fondu, corriger, vers_le_monde, hors, 'locale')
@@ -442,4 +478,4 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
         print('SILHOUETTES refinies : sommets changés', int(change.sum()), flush=True)
         return int(change.sum())
 
-    return refinir
+    return refinir, mesurer

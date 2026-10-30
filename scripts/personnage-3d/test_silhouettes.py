@@ -1,8 +1,7 @@
 """silhouettes.correction sur un cylindre synthétique, contre une résolution KKT directe du même problème, et ses
 erreurs nommées ; silhouettes.alterner, lissage et correction jusqu'aux bornes d'étirement ; formes.lisser, région
-pleine et locale."""
+pleine et locale ; silhouettes.en_clip, mesure incrémentale égale à la mesure entière."""
 import contextlib
-import hashlib
 import io
 import sys
 import unittest
@@ -12,10 +11,11 @@ import numpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from formes import lisser, rapports  # noqa: E402
+import silhouettes  # noqa: E402
+from formes import aux_noeuds, lisser, pas_laplacien, rapports  # noqa: E402
 from poids import PASSES_MAX  # noqa: E402
 from silhouettes import (AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, alterner, correction,  # noqa: E402
-                         hors_de)
+                         en_clip, hors_de)
 
 SECTEURS, NIVEAUX = 12, 14
 NIVEAUX_DES_ANNEAUX = (2, 4, 6, 9, 11)
@@ -313,15 +313,73 @@ class Lissage(unittest.TestCase):
                 self.lisser(self.bosse, region, facteur, lambda _: marque)
             self.assertRegex(str(leve.exception), r'^1 arête\(s\) hors bornes aux deux extrémités tenues')
 
-    def test_le_pas_plein_rend_le_champ_d_avant_la_region_bit_a_bit(self):
-        """Le champ et les passes de `lisser` à `d4be88ba5` (bornes `BORNES`, sans région) sur ce cas."""
+    def test_le_pas_plein_est_le_pas_laplacien_itere_aux_noeuds_puis_le_facteur(self):
         z = self.x[:, 2]
         libre = numpy.clip((numpy.minimum(z, HAUTEUR - z) - 0.05) / 0.2, 0.0, 1.0)
         champ = 0.03 * numpy.random.default_rng(3101).standard_normal(self.x.shape)
         resultat, passes = self.lisser(champ, 'pleine', libre)
-        self.assertEqual(passes, 4)
-        self.assertEqual(hashlib.sha256(resultat.tobytes()).hexdigest(),
-                         'df1d62c862377606bf6bbe0b1afe53578b24d024e7a6351802bae485f3cc8381')
+        self.assertGreater(passes, 1)
+        valeur = aux_noeuds(champ, self.noeud)
+        for _ in range(passes):
+            valeur = pas_laplacien(valeur, self.aretes)
+        self.assertTrue(numpy.array_equal(resultat, valeur[self.noeud] * libre[:, None]))
+
+
+class EnClip(unittest.TestCase):
+    """silhouettes.en_clip sur le cylindre, deux os (bas et haut du tronc) et trois échantillons de peau : une bosse
+    tangente de 0,5 m sur un nœud sort ses arêtes de `ETIREMENT_EN_CLIP`."""
+    BOSSES = (7 * (SECTEURS + 1) + 3, 4 * (SECTEURS + 1) + 8)
+
+    def setUp(self):
+        x, self.noeud, self.aretes = cylindre()
+        self.x = numpy.concatenate([x, numpy.ones((len(x), 1))], axis=1).astype(numpy.float32)
+        haut = numpy.clip((x[:, 2] - 0.4) / 0.5, 0.0, 1.0)
+        self.w = numpy.stack([1.0 - haut, haut], axis=1).astype(numpy.float32)
+        self.longueurs = numpy.linalg.norm(x[self.aretes[:, 0]] - x[self.aretes[:, 1]], axis=1)
+        angle = 0.6
+        plie = numpy.eye(4)
+        plie[:3, :3] = [[1, 0, 0], [0, numpy.cos(angle), -numpy.sin(angle)], [0, numpy.sin(angle), numpy.cos(angle)]]
+        decale = numpy.eye(4)
+        decale[:3, 3] = [0.02, 0.0, 0.01]
+        self.matrices = numpy.array([[numpy.eye(4), numpy.eye(4)], [numpy.eye(4), plie], [decale, plie]],
+                                    dtype=numpy.float32)
+        self.mesurees = []
+        extremes = silhouettes.extremes
+
+        def compter(w, x, decalages, aretes, longueurs, matrices):
+            self.mesurees.append(len(aretes))
+            return extremes(w, x, decalages, aretes, longueurs, matrices)
+
+        silhouettes.extremes = compter
+        self.addCleanup(setattr, silhouettes, 'extremes', extremes)
+
+    def mesure(self):
+        return en_clip(self.w, self.x, self.aretes, self.longueurs, self.matrices, numpy.eye(3))
+
+    def bosse(self, sommet):
+        champ = numpy.zeros((len(self.x), 3))
+        champ[self.noeud == self.noeud[sommet]] = [0.0, 0.5, 0.0]
+        return champ
+
+    def test_ne_remesure_que_les_aretes_touchees_et_egale_la_mesure_entiere(self):
+        incrementale = self.mesure()
+        champs = [self.bosse(self.BOSSES[0]), self.bosse(self.BOSSES[1]), self.bosse(self.BOSSES[1])]
+        for champ in champs:
+            masque = incrementale('k', champ)
+            self.assertTrue(masque.any())
+            self.assertTrue(numpy.array_equal(masque, self.mesure()('k', champ)))
+        self.assertEqual(self.mesurees[0], len(self.aretes))
+        bougees = (champs[0] != champs[1]).any(axis=1)[self.aretes].any(axis=1)
+        self.assertEqual(self.mesurees[2], int(bougees.sum()))
+        self.assertLess(self.mesurees[2], len(self.aretes))
+        self.assertEqual(len(self.mesurees), 5)
+
+    def test_chaque_cle_garde_sa_mesure(self):
+        incrementale = self.mesure()
+        incrementale('a', self.bosse(self.BOSSES[0]))
+        masque = incrementale('b', self.bosse(self.BOSSES[1]))
+        self.assertEqual(self.mesurees[1], len(self.aretes))
+        self.assertTrue(numpy.array_equal(masque, self.mesure()('b', self.bosse(self.BOSSES[1]))))
 
 
 if __name__ == '__main__':

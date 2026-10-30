@@ -4,21 +4,17 @@ clips UAL1 + UAL2, les emplacements et les prises (`anatomie.py`), les silhouett
 Le corps UBC porte les 65 os d'UAL1, mêmes noms et même hiérarchie, sur son propre repos : ce repos est gardé, et chaque
 clip s'y joue relatif au repos (les clés Blender de l'import glTF). Pistes de position retirées hors `root` et `pelvis`,
 interpolation LINEAR ; un clip sans sol (pelvis source sous le sol) se retire. Au repos, le sommet le plus bas des peaux
-est posé au sol de la racine (`poser_au_sol`), et les poids sont lissés au neutre contre les clips d'avant sol
-(`poids.py`) : construction réelle du 2026-10-30, le lissage multi-états des poids bruts contre les clips posés laisse
-10 arêtes hors de `ETIREMENT_EN_CLIP` après `PASSES_MAX` passes.
+est posé au sol de la racine (`poser_au_sol`).
 
-Puis un point fixe des poids (`point_fixe_des_poids`, plan de #3101, issuecomment-6516726181), au plus `TOURS_DE_POIDS`
-tours, chacun depuis le squelette au repos et les clips d'avant sol (`sol.figer`, `sol.restaurer`) :
-- sur les poids, ceux de l'export, se posent les silhouettes du corps (`silhouettes.py`), recalculées des donneurs : le
-  corps F d'UBC, aux mêmes os, donne la clé `feminin` ; la carrure se pose aux bornes de `st` de la donnée, publiées
-  dans `gabarit.st` ; MakeHuman (données de MPFB) donne `corpulence` (`corpulence.py`) ; chaque clé finie passe aux
-  peaux secondaires ;
+Puis, plan de #3101 (issuecomment-6535025119), depuis les clips d'avant sol (`sol.figer`, `sol.restaurer`) :
+- les poids sont lissés au neutre contre les clips d'avant sol (`poids.py`) ;
+- sur ces poids se posent les silhouettes du corps (`silhouettes.py`), recalculées des donneurs : le corps F d'UBC, aux
+  mêmes os, donne la clé `feminin` ; la carrure se pose aux bornes de `st` de la donnée, publiées dans `gabarit.st` ;
+  MakeHuman (données de MPFB) donne `corpulence` (`corpulence.py`) ; chaque clé finie passe aux peaux secondaires ;
 - chaque clip est posé au sol et la marche plantée (`sol.py`) ;
 - les poids sont lissés là où un clip posé étire la peau, au neutre comme à chaque clé à 1 (`poids.py`) ; un sommet
-  retouché d'une surface de pied arrête la construction (`sol.garder_les_poids_des_pieds`).
-Le point fixe est atteint au tour qui ne retouche aucun sommet ; chaque tour imprime son `EMPREINTE` (poids lus, clés
-finies, clips posés).
+  retouché d'une surface de pied arrête la construction (`sol.garder_les_poids_des_pieds`). Les poids sont figés ;
+- les silhouettes se recalculent des donneurs sur ces poids, puis se tiennent au sol (`tenue_au_sol.tenir_au_sol`).
 
 La part du manifeste de base que pose la construction (os, chaînes, zones, emplacements, prises, silhouettes, table du
 gabarit, pieds, os à position animée) passe, après l'export, à `manifeste.mjs`, qui complète le manifeste avec la
@@ -32,7 +28,6 @@ déclaration, sortie hors dépôt et textes de licence nommés des packs avant B
         --mpfb <dossier data de MPFB> --licence-mpfb <LICENSE.ASSETS.md> --sortie <humanoide.glb>
 """
 import argparse
-import hashlib
 import json
 import sys
 from pathlib import Path
@@ -50,10 +45,11 @@ from seuils import IMAGES_PAR_SECONDE  # noqa: E402
 from pistes import sacs  # noqa: E402
 from script_node import lancer  # noqa: E402
 from corpulence import ajouter_corpulence  # noqa: E402
-from poids import lisser_les_poids, peau_lineaire  # noqa: E402
+from poids import lisser_les_poids, matrices_de_peau, peau_lineaire  # noqa: E402
 from silhouettes import ajouter_feminin_et_carrure, bornes_de_st, corps_et_secondaires, finir_les_silhouettes  # noqa: E402
 from sol import (bas_des_sources, deplacements, figer, garder_les_poids_des_pieds, poser_les_clips_au_sol,  # noqa: E402
                  restaurer, retirer_sans_sol, surfaces_des_pieds)
+from tenue_au_sol import tenir_au_sol  # noqa: E402
 
 PELVIS = 'pelvis'
 OS_A_POSITION = ('root', PELVIS)
@@ -62,8 +58,6 @@ PACKS = ('ual1', 'ual2', 'corps', 'corps_feminin', 'mpfb')
 """Les packs sources tracés au dossier de production, chacun avec son texte de licence (`production.ts`)."""
 TOLERANCE_DOUBLON = 1e-5
 """Écart maximal entre les clés de deux clips homonymes pour les tenir pour le même clip."""
-TOURS_DE_POIDS = 4
-"""Tours au plus du point fixe des poids (`point_fixe_des_poids`) : valeur d'ingénierie #3101."""
 
 
 def importer(bpy, chemin):
@@ -179,51 +173,6 @@ def silhouettes(peaux):
     return noms
 
 
-def empreinte(tableaux):
-    """Les 12 premiers chiffres du SHA-1 des noms et des octets de `tableaux` (nom -> tableau numpy), dans leur ordre."""
-    h = hashlib.sha1()
-    for nom, tableau in tableaux.items():
-        h.update(repr(nom).encode())
-        h.update(tableau.tobytes())
-    return h.hexdigest()[:12]
-
-
-def point_fixe_des_poids(bpy, squelette, peaux, clips, poser_les_silhouettes, poser_au_sol_des_clips):
-    """Repose, au plus `TOURS_DE_POIDS` tours, depuis le squelette au repos et les clips tels qu'à l'appel : les
-    silhouettes (`poser_les_silhouettes`), le sol des clips (`poser_au_sol_des_clips`), puis le lissage des poids contre
-    les clips posés, au neutre et à chaque clé à 1 (`lisser_les_poids`). S'arrête au tour qui ne retouche aucun sommet ;
-    un sommet retouché d'une surface de pied, avant ou après le lissage, arrête la construction
-    (`garder_les_poids_des_pieds`) ; rend le nombre de tours."""
-    noms = [b.name for b in squelette.data.bones]
-    figee = {a.name: figer(a) for a in clips}
-
-    def surfaces():
-        return {p.name: surfaces_des_pieds(squelette, peau_lineaire(p, noms)[1], PIEDS) for p in peaux}
-
-    for tour in range(1, TOURS_DE_POIDS + 1):
-        clear_animation(squelette)
-        bpy.context.view_layer.update()
-        for action in clips:
-            restaurer(action, figee[action.name])
-        poids = empreinte({p.name: peau_lineaire(p, noms)[1] for p in peaux})
-        poser_les_silhouettes()
-        poser_au_sol_des_clips()
-        print('EMPREINTE tour', tour, 'poids', poids,
-              'clés', empreinte({(p.name, n): d for p in peaux for n, d in deplacements(p).items()}),
-              'clips', empreinte({(a.name, k): v for a in clips for k, v in figer(a).items()}), flush=True)
-        avant = surfaces()
-        retouches = lisser_les_poids(squelette, peaux, clips, {p.name: deplacements(p) for p in peaux})
-        apres = surfaces()
-        for peau in peaux:
-            garder_les_poids_des_pieds(peau.name, retouches[peau.name],
-                                       {pied: avant[peau.name][pied] | apres[peau.name][pied] for pied in PIEDS})
-        print('POINT_FIXE tour', tour, ':', sum(map(len, retouches.values())), 'sommet(s) retouché(s) ;',
-              ' '.join(f'{nom}:{len(s)}' for nom, s in retouches.items()), flush=True)
-        if not any(retouches.values()):
-            return tour
-    raise RuntimeError(f'poids : aucun point fixe en {TOURS_DE_POIDS} tours, le dernier retouche encore des sommets')
-
-
 def manifeste_mjs(args, *options, entree=None):
     """Lance `manifeste.mjs` sur la sortie et les packs sources de `args` : `--verifier` juge déclaration, sortie et
     licences avant la construction ; sans lui, la part `entree` complète le dossier de production."""
@@ -257,6 +206,7 @@ def construire(args):
     clips = retirer_sans_sol(fusionner(bpy, clips, clips2), sources, PELVIS)
     for action in clips:
         preparer(action)
+    figee = {a.name: figer(a) for a in clips}
     poser_au_sol(bpy, squelette, peaux)
     lisser_les_poids(squelette, peaux, clips, {p.name: {} for p in peaux})
     corps, secondaires = corps_et_secondaires(peaux)
@@ -264,18 +214,45 @@ def construire(args):
     bornes = bornes_de_st()
     racine = gabarit(squelette)['racine']
     marches = json.loads(DECLARATION.read_text(encoding='utf-8'))['clipsDeMarche']
+    noms = [b.name for b in squelette.data.bones]
 
     def poser_les_silhouettes():
+        clear_animation(squelette)
+        bpy.context.view_layer.update()
+        for action in clips:
+            restaurer(action, figee[action.name])
         ajouter_feminin_et_carrure(squelette, corps, squelette_f, corps_f, bornes)
         ajouter_corpulence(squelette, corps, args.mpfb)
-        finir_les_silhouettes(squelette, corps, secondaires, bornes)
+        return finir_les_silhouettes(squelette, corps, secondaires, bornes)
 
-    tours = point_fixe_des_poids(bpy, squelette, peaux, clips, poser_les_silhouettes,
-                                 lambda: poser_les_clips_au_sol(squelette, peaux, clips, sources, PIEDS, racine, PELVIS,
-                                                                marches))
-    print('POINT_FIXE atteint en', tours, 'tour(s)', flush=True)
+    def poser_les_clips():
+        for action in clips:
+            restaurer(action, figee[action.name])
+        poser_les_clips_au_sol(squelette, peaux, clips, sources, PIEDS, racine, PELVIS, marches)
+
+    def surfaces():
+        return {p.name: surfaces_des_pieds(squelette, peau_lineaire(p, noms)[1], PIEDS) for p in peaux}
+
+    poser_les_silhouettes()
+    poser_les_clips()
+    avant = surfaces()
+    retouches = lisser_les_poids(squelette, peaux, clips, {p.name: deplacements(p) for p in peaux})
+    apres = surfaces()
+    for peau in peaux:
+        garder_les_poids_des_pieds(peau.name, retouches[peau.name],
+                                   {pied: avant[peau.name][pied] | apres[peau.name][pied] for pied in PIEDS})
+    print('POIDS figés :', sum(map(len, retouches.values())), 'sommet(s) retouché(s) contre les clips posés ;',
+          ' '.join(f'{nom}:{len(s)}' for nom, s in retouches.items()), flush=True)
+    refinir, mesurer = poser_les_silhouettes()
     for objet in [squelette_f, *objets_f]:
         bpy.data.objects.remove(objet, do_unlink=True)
+
+    def poser_au_sol_des_clips():
+        poser_les_clips()
+        return matrices_de_peau(squelette, clips)[1]
+
+    tours = tenir_au_sol(poser_au_sol_des_clips, mesurer, refinir)
+    print('SOL tenu en', tours, 'tour(s)', flush=True)
     formes = silhouettes(peaux)
     manifeste = poser(squelette, peaux)
     manifeste['gabarit']['st'] = bornes
