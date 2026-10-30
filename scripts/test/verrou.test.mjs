@@ -534,6 +534,15 @@ test('#2603 — échéance PAR TENANT : elle repart de zéro quand la générati
   assert.deepEqual(relais.sommeils, [10_000, 10_000, 10_000, 10_000, 10_000], '20 s au premier tenant, puis 30 s au second')
 })
 
+test('#3138 — plafond : une rotation de tenants sous `parTenant` est refusée à `plafondMs`, quel que soit le tenant', () => {
+  const fs = fsFactice(tenu(1000, 'g0'))
+  const rotation = tempsFactice(Object.fromEntries(Array.from({ length: 50 }, (_, i) => [i + 1, () => fs.fichiers.set(VERROU, tenu(1001 + i, `g${i + 1}`))])))
+  const vu = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs, estVivant: () => true, attente: { echeanceMs: 30_000, pasMs: 10_000, parTenant: true, plafondMs: 45_000 }, dormir: rotation.dormir, horloge: rotation.horloge })
+  assert.equal(vu.etat, 'refus')
+  assert.equal(rotation.ms, 45_000, `attente totale ${rotation.ms} ms`)
+  assert.ok(rotation.sommeils.length < 50, 'la rotation n’a pas épuisé ses tenants')
+})
+
 // ── concurrence réelle (#2279 N0) ─────────────────────────────────────────────────────────────
 
 /** Un preneur : `PRISES` sections critiques sous le verrou, au plus 20 000 tentatives ; rend ses prises. */

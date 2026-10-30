@@ -423,7 +423,7 @@ beforeEach(() => {
   // (#405) et « Dés fixés » ci-dessus.
   // GRAINE FIXE (#1788) : un harnais à l'horloge rend TOUS les tests à la fois irreproductibles — un
   // rouge ne se rejoue pas, et un vert ne prouve que le tirage du jour. Un test qui dépend de la
-  // graine le dit en la posant lui-même (patron `state/dual-wield.test.ts:32`) ; les autres n'ont
+  // graine le dit en la posant lui-même (patron `noyau/dual-wield.hors-store.test.ts:37`) ; les autres n'ont
   // besoin que d'un point de départ IDENTIQUE d'un test à l'autre, et c'est ce que cette ligne pose.
   seedBattleRng(1);
   resetOwnTestFailedGuard(); // drapeau de re-entrance onOwnTestFailed (auto-reset par try/finally ; filet doctrinal)

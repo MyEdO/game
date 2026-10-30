@@ -13,6 +13,7 @@ import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import type { Combatant, Weapon } from '../../../engine/types';
 import { findTrappingById } from '../../../data';
 import { itemFromTrappingById, weaponFromItem } from '../../../engine/items';
+import { blessuresDeBase } from '../../../engine/characteristics';
 
 const scene = emptyScene('scene-test', 6, 6);
 const mpt = sceneMetresPerTile(scene);
@@ -53,7 +54,7 @@ describe('Signature de dessin d’un acteur — la clé de mémo ET l’identit�
     });
 
   it('un champ SANS effet visuel ne périme rien (la signature n’est pas un compteur)', () => {
-    const compta = héros({ advantage: 3, wounds: { current: 12, max: 12 } });
+    const compta = héros({ advantage: 3, wounds: blessuresDeBase(12) });
     expect(svgDe(compta)).toBe(svgDe(base));
     expect(sujet(compta).scaleK).toBe(sujet(base).scaleK);
     expect(actorPoseKey(pose(compta))).toBe(actorPoseKey(pose(base)));

@@ -20,6 +20,7 @@ import { stacks } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { SizeCategory } from '../engine/size';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /** Combattant minimal — F 45 → Bonus de Force 4 (la « monnaie » de l'Absorption). */
 const mk = (over: Partial<Combatant> = {}): Combatant => ({
@@ -32,7 +33,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant => ({
 
 /** Créature Absorption — Grande (4), BF 4, Avantage `adv`. */
 const beast = (adv: number, over: Partial<Combatant> = {}): Combatant =>
-  mk({ id: 'beast', label: 'Engloutisseur', kind: 'enemy', traits: [{ id: 'absorption' }], size: 'grande' as SizeCategory, advantage: adv, pos: { x: 5, y: 5 }, wounds: { current: 10, max: 30 }, ...over });
+  mk({ id: 'beast', label: 'Engloutisseur', kind: 'enemy', traits: [{ id: 'absorption' }], size: 'grande' as SizeCategory, advantage: adv, pos: { x: 5, y: 5 }, wounds: blessuresDeBase(30, 10), ...over });
 
 /** Proie engagée avec la bête (héros) — Taille `size`, Avantage `adv`. */
 const prey = (id: string, size: SizeCategory, adv = 0, over: Partial<Combatant> = {}): Combatant =>
@@ -71,10 +72,10 @@ describe('Absorption (EDO 11 l.222) — engloutissement de fin de Round, data-dr
 
   it('(b) digestion de fin de Round : la victime absorbée perd le BF (PA & BE ignorés), la créature « guérit » d’autant', () => {
     // Victime DÉJÀ absorbée (empoignée) avec PA et BE élevés → la perte ignore les deux.
-    const b = beast(0, { wounds: { current: 10, max: 30 }, grapplingWith: ['v'] });
+    const b = beast(0, { wounds: blessuresDeBase(30, 10), grapplingWith: ['v'] });
     const v = prey('v', 'moyenne', 0, {
       grapplingWith: ['beast'], conditions: [{ id: 'empetre', value: 4 }, { id: 'digere', value: 1 }],
-      wounds: { current: 20, max: 20 }, armour: { tete: 5, brasG: 5, brasD: 5, corps: 5, jambeG: 5, jambeD: 5 },
+      wounds: blessuresDeBase(20), armour: { tete: 5, brasG: 5, brasD: 5, corps: 5, jambeG: 5, jambeD: 5 },
       characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 35, endurance: 55, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 }, // BE 5
     });
     fireTriggers(get(b, v), b, 'onRoundEnd', { rng: makeRNG(1) });
@@ -83,10 +84,10 @@ describe('Absorption (EDO 11 l.222) — engloutissement de fin de Round, data-dr
   });
 
   it('(b) digestion qui TUE (PB restants < BF) : la créature ne guérit que les Blessures RÉELLEMENT perdues, pas le BF entier (RAW « le même nombre »)', () => {
-    const b = beast(0, { wounds: { current: 10, max: 30 }, grapplingWith: ['v'] });
+    const b = beast(0, { wounds: blessuresDeBase(30, 10), grapplingWith: ['v'] });
     const v = prey('v', 'moyenne', 0, {
       grapplingWith: ['beast'], conditions: [{ id: 'empetre', value: 4 }, { id: 'digere', value: 1 }],
-      wounds: { current: 2, max: 20 }, // 2 PB restants < BF 4
+      wounds: blessuresDeBase(20, 2), // 2 PB restants < BF 4
     });
     fireTriggers(get(b, v), b, 'onRoundEnd', { rng: makeRNG(1) });
     expect(v.wounds.current).toBe(0);  // 2 − min(BF 4, 2) = 0
@@ -96,7 +97,7 @@ describe('Absorption (EDO 11 l.222) — engloutissement de fin de Round, data-dr
   it('(c) redirection : une attaque infligeant N PB à la créature inflige N PB à la victime absorbée', () => {
     const b = beast(0, { grapplingWith: ['v'] });
     const v = prey('v', 'moyenne', 0, {
-      grapplingWith: ['beast'], wounds: { current: 20, max: 20 },
+      grapplingWith: ['beast'], wounds: blessuresDeBase(20),
       armour: { tete: 4, brasG: 4, brasD: 4, corps: 4, jambeG: 4, jambeD: 4 },
       characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 35, endurance: 55, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 },
     });
@@ -121,7 +122,7 @@ describe('Absorption (EDO 11 l.222) — engloutissement de fin de Round, data-dr
 
   it('(e) mort de la victime absorbée → le lien d’absorption est levé (clearEngagementOf, voie de mort du combat)', () => {
     const b = beast(0, { grapplingWith: ['v'] });
-    const v = prey('v', 'moyenne', 0, { grapplingWith: ['beast'], conditions: [{ id: 'inconscient', value: 1 }], wounds: { current: 0, max: 20 } });
+    const v = prey('v', 'moyenne', 0, { grapplingWith: ['beast'], conditions: [{ id: 'inconscient', value: 1 }], wounds: blessuresDeBase(20, 0) });
     expect(areGrappling(b, v)).toBe(true);
     clearEngagementOf([b, v], v.id); // la victime tombe hors de combat → le combat purge ses liens
     expect(areGrappling(b, v)).toBe(false);

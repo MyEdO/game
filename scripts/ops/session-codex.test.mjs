@@ -584,17 +584,20 @@ test('borne transportée : suivi se réarme au raccord IPC puis reçoit la trans
   const sessions = { attendre: (_cible, options) => veillerCodex({ dossier, sessionId, ...options }), etat: () => ({ etat: 'occupe' }) }
   assert.deepEqual(await attendreSuivi(sessions, sessionId, { depuis: 0, timeoutMs: 1000 }), fin)
   assert.equal(appels, 2)
-  for (const reponse of [
-    { erreur: borne.erreur },
-    { erreur: prefixeDeRefus('permission') + ' refus', code: 'BORNE_IPC_CODEX' },
-    { erreur: prefixeDeRefus('métier') + ' refus' },
-    { erreur: borne.erreur, code: 'AUTRE' },
-    { ...borne, native: 'permission' },
-    null,
+  let instant = 0, avant = appels
+  reponses = Array.from({ length: 20 }, () => ({ erreur: borne.erreur }))
+  await assert.rejects(attendreSuivi(sessions, sessionId, { depuis: 0, timeoutMs: 1000 }, { parentVivant: () => true, horloge: () => instant, dormir: async () => { instant += 400 } }), (e) => e.message.startsWith(prefixeDeRefus('transitoire')) && e.code !== 'BORNE_IPC_CODEX')
+  assert.ok(appels > avant + 1, `${appels - avant} essai(s) avant le relevé`)
+  for (const [reponse, categorie] of [
+    [{ erreur: prefixeDeRefus('permission') + ' refus', code: 'BORNE_IPC_CODEX' }, 'panne'],
+    [{ erreur: prefixeDeRefus('métier') + ' refus' }, 'métier'],
+    [{ erreur: borne.erreur, code: 'AUTRE' }, 'panne'],
+    [{ ...borne, native: 'permission' }, 'panne'],
+    [null, 'panne'],
   ]) {
     reponses = [reponse]
-    const avant = appels
-    await assert.rejects(attendreSuivi(sessions, sessionId, { depuis: 0, timeoutMs: 1000 }), (e) => e.code !== 'BORNE_IPC_CODEX')
+    avant = appels
+    await assert.rejects(attendreSuivi(sessions, sessionId, { depuis: 0, timeoutMs: 1000 }, { parentVivant: () => true, dormir: async () => assert.fail('aucune pause') }), (e) => e.message.startsWith(prefixeDeRefus(categorie)) && e.code !== 'BORNE_IPC_CODEX')
     assert.equal(appels, avant + 1)
   }
 })

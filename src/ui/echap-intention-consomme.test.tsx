@@ -16,6 +16,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 function Harness() {
   useGameKeyboard();
@@ -30,7 +31,7 @@ let conteneur: HTMLDivElement | null = null;
 function armer(localIntent: { actionId: string } | null) {
   useGame.setState({
     screen: 'campaign', mode: 'battle', gameMenuOpen: false, dialogue: null,
-    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [{ id: 'chef', kind: 'hero', pos: { x: 1, y: 1 } }], movementUsed: 0, preview: null },
+    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'hero', pos: { x: 1, y: 1 } })], movementUsed: 0, preview: null },
     net: { mode: 'local', mySeat: 0 }, combatCursor: null, preemptAiming: null, localIntent,
   } as never);
 }

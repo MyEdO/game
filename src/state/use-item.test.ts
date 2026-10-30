@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { blessuresDeBase } from '../engine/characteristics';
 
 function item(over: Partial<ItemInstance>): ItemInstance {
   return { uid: 'i1', label: 'X', kind: 'misc', qualities: [], enc: 0, equipped: false, ...over } as ItemInstance;
@@ -35,7 +36,7 @@ describe('usePartyItem — consommables hors combat (fiche)', () => {
   });
 
   it('potion de guérison : soigne du Bonus d’Endurance et se consomme', () => {
-    const h = hero({ wounds: { current: 6, max: 12 }, items: [POTION] });
+    const h = hero({ wounds: blessuresDeBase(12, 6), items: [POTION] });
     useGame.setState({ party: [h] });
     useGame.getState().usePartyItem('h1', 'p1');
     const p = useGame.getState().party.find((c) => c.id === 'h1')!;

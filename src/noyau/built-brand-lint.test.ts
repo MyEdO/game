@@ -225,6 +225,56 @@ describe('#3045 — le lint mure les ROUTES DE FORGE de la Cible d’un Trait ps
   });
 });
 
+/** LA MARQUE DU MAXIMUM DES BLESSURES (`MaximumDesBlessures`, #1463) — sous le même verrou : ses fabriques sont
+ *  `blessuresDeBase` et `blessuresReconciliees` (`engine/characteristics.ts`), dont l'unique cast porte son
+ *  exemption AU SITE. Ses TROIS LIMITES ASSUMÉES (JSDoc de la marque, `engine/types.ts`) sont ici en témoin. */
+/** Forme de `wounds` (`engine/types.ts`) : chaque directive doit être CONSOMMÉE, chaque limite compiler. */
+const SONDE_MAXIMUM = `
+declare const MAXIMUM_DES_BLESSURES: unique symbol;
+type MaximumDesBlessures = number & { readonly [MAXIMUM_DES_BLESSURES]: true };
+type Combatant = { wounds: { current: number; readonly max: MaximumDesBlessures; base?: number } };
+declare const c: Combatant;
+// @ts-expect-error — spread sans cast : un nombre n'est pas un maximum
+export const w: Combatant['wounds'] = { ...c.wounds, max: 5 };
+// @ts-expect-error — affectation : \`max\` est en lecture seule
+c.wounds.max = 5;
+Object.assign(c.wounds, { max: 5 });
+c.wounds = { ...c.wounds, max: 5 } as Combatant['wounds'];
+export const m = 5 as Combatant['wounds']['max'];
+`;
+const ENTETE_MAXIMUM = "import type { MaximumDesBlessures } from '../engine/types';\ndeclare const o: number;\n";
+
+describe('#1463 — le lint mure les ROUTES DE FORGE du maximum des Blessures', () => {
+  it.each([
+    ['`x as MaximumDesBlessures`', 'export const a = o as MaximumDesBlessures;'],
+    ['`<MaximumDesBlessures>x`', 'export const a = <MaximumDesBlessures>o;'],
+    ['`type A = MaximumDesBlessures`', 'type AliasMax = MaximumDesBlessures;\nexport const a: AliasMax | undefined = undefined;'],
+  ])('%s est refusé', async (_forme, code) => {
+    expect(await messagesDeVerrou(`${ENTETE_MAXIMUM}${code}\n`)).toHaveLength(1);
+  });
+
+  it.each([
+    ['R1 `Object.assign(c.wounds, { max })`', 'Object.assign(c.wounds, { max: 5 });'],
+    ['R2 `{ ...c.wounds, max } as Combatant[\'wounds\']`', "c.wounds = { ...c.wounds, max: 5 } as Combatant['wounds'];"],
+    ['R3 `as Combatant[\'wounds\'][\'max\']`', "export const m = 5 as Combatant['wounds']['max'];"],
+  ])('LIMITE ASSUMÉE — %s passe le lint : le sélecteur filtre par NOM', async (_forme, code) => {
+    const entete = "import type { Combatant } from '../engine/types';\ndeclare const c: Combatant;\n";
+    expect(await messagesDeVerrou(`${entete}${code}\n`)).toHaveLength(0);
+  });
+
+  it('au type : le spread sans cast et l’affectation sont refusés ; R1, R2, R3 passent (LIMITES ASSUMÉES)', () => {
+    expect(codesDeDiagnostic(SONDE_MAXIMUM)).toEqual([]);
+  });
+
+  it('la fabrique `characteristics.ts` lint propre, et un SECOND cast y est refusé : l’exemption est au site', async () => {
+    const [res] = await eslint.lintFiles(['src/engine/characteristics.ts']);
+    expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
+    const reel = readFileSync('src/engine/characteristics.ts', 'utf8');
+    const [cast] = await eslint.lintText(`${reel}\nexport const forge = (n: number) => n as MaximumDesBlessures;\n`, { filePath: 'src/engine/characteristics.ts' });
+    expect(selectionnerMessages(cast, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un SECOND cast dans la fabrique doit rougir').toHaveLength(1);
+  });
+});
+
 /**
  * LES `@ts-expect-error` DU MURAGE SONT-ILS TUEURS ? (#1262 B4) — `roll-seam-mints.hors-store.test.ts` atteste
  * que `pushCombatStep` refuse un littéral, par des directives `@ts-expect-error`. Une directive ne

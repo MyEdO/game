@@ -5,10 +5,11 @@ import { slugId } from '../data/slug';
 import type { Combatant } from '../engine/types';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const mk = (): Combatant => combattantDeTest({
   id: 'x', label: 'X', kind: 'enemy', characteristics: { endurance: 40 }, armour: { corps: 5 } as Combatant['armour'],
-  wounds: { current: 10, max: 10, base: 10 },
+  wounds: blessuresDeBase(10),
 });
 
 describe('Empoisonné — dégâts par-round en DONNÉES (effects: onRoundEnd → wounds {stacks:self})', () => {

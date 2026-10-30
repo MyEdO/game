@@ -18,8 +18,9 @@ import { useGame } from '../state/store';
 import type { GameState } from '../state/store';
 import { ownsLocalNet, useOwns, type NetView } from './ownership';
 import { intentAllowedFor, ownsLocal, ownsGroupDecision } from '../noyau/netOwnership';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
-const HEROS = [{ id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero' }] as unknown as GameState['party'];
+const HEROS = [combattantDeTest({ id: 'h1', kind: 'hero' }), combattantDeTest({ id: 'h2', kind: 'hero' })];
 
 /** État réseau minimal : `h1` non attribué (⇒ hôte, siège 0), `h2` au siège 1. */
 const net = (over: Partial<GameState['net']>): GameState['net'] =>

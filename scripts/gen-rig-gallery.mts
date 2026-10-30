@@ -72,10 +72,11 @@ for (const car of TENUES_QC) {
 import { enemyRigProfile, entityRigProfile } from '../src/gameIso/rig/enemyProfile';
 import { AMBIENT_CLIPS } from '../src/gameIso/rig/anim/ambientClips';
 import type { Combatant } from '../src/engine/types';
+import { blessuresDeBase } from '../src/engine/characteristics';
 function enemyCell(name: string, view: View = 'front') {
   const c = {
     id: `gal-${name}`, label: name, kind: 'enemy',
-    characteristics: {} as Combatant['characteristics'], wounds: { current: 10, max: 10 },
+    characteristics: {} as Combatant['characteristics'], wounds: blessuresDeBase(10),
     advantage: 0, conditions: [],
     weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
     armour: { tete: 2, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 },

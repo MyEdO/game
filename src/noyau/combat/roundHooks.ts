@@ -3,7 +3,7 @@
  * (`TABLES`, lue par `combatHooks`) : la séquence de fin de Round vit ICI, chaque effet
  * étant un hook ordonné par `order` (l'ordre RAW est encodé par les valeurs). Les helpers sont appelés
  * dans les closures `run()` (au RUNTIME, quand `runCombatHooks` se déclenche) → pas de souci de cycle à
- * l'import. Le golden `roundBoundary.golden.test.ts` fige l'ordre + les tirages RNG byte-pour-byte.
+ * l'import. Le golden `roundBoundary.golden.hors-store.test.ts` fige l'ordre + les tirages RNG byte-pour-byte.
  */
 import { freeCons, rollSansPilote, surfaceOf, monoStep, choiceStep, pushMono, pousseSi, type RollRequest } from '../rollSeam';
 import { type BuiltCascadeStep } from '../stepBrand';

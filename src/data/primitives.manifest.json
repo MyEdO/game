@@ -348,7 +348,7 @@
     "fichier": "src/noyau/triggeredEffects.ts",
     "concept": "dispatcher UNIQUE d'effet déclenché (donnée)",
     "perimetre": "Trait/Talent/Atout/État pour un Trigger",
-    "verrou": "triggered-effects.test.ts (dispatcher unique)"
+    "verrou": "triggered-effects.hors-store.test.ts (dispatcher unique)"
   },
   {
     "id": "resolveFreeAttacks",
@@ -357,7 +357,7 @@
     "fichier": "src/noyau/combatFlow.ts",
     "concept": "attaque gratuite déclenchée, kind-agnostique",
     "perimetre": "toute source de Frappe réactive/Assaut féroce/Trait/État",
-    "verrou": "creatureFreeAttacks.test.ts"
+    "verrou": "creatureFreeAttacks.hors-store.test.ts"
   },
   {
     "id": "shipDamage",
@@ -885,7 +885,7 @@
     "fichier": "src/engine/combat.ts",
     "concept": "arme et NOM d’une attaque gratuite de créature : label, Compétence et dégâts de sa manœuvre (`attaqueNaturelle`), lus par la modale d’attaque, la modale de défense et le réticule",
     "perimetre": "toute attaque gratuite jouée ou affichée",
-    "verrou": "src/state/gratuite-nom-unique.test.ts"
+    "verrou": "src/noyau/gratuite-nom-unique.hors-store.test.ts"
   },
   {
     "id": "gameOpChips",
@@ -1520,7 +1520,7 @@
     "fichier": "src/noyau/combatFlow.ts",
     "concept": "un COUP = application + après-coup, une écriture : l'après-coup est une liste ordonnée de temps (`APRES_COUP` : Maladresses, réaction, suite) ; ce qu'un site fera APRÈS son coup est déclaré en DONNÉE à l'entrée, et une fenêtre ouverte emporte le TEMPS où reprendre — y compris quand une fenêtre de défense s'interpose",
     "perimetre": "toute frappe qui peut être suspendue : balayage, gratuites de créature et de talent, attaque pilotée, sauvegarde, Déviation, Maladresse, casse d'arme",
-    "verrou": "src/state/apres-coup.test.ts"
+    "verrou": "src/noyau/apres-coup.hors-store.test.ts"
   },
   {
     "id": "indexedDb",
@@ -2250,6 +2250,15 @@
     "concept": "Cible d’un Trait psy (#1463, #3045) : un Groupe par son id, ou un individu par son id de combattant (`@id`), chaîne marquée (`string & NonAffichable`) frappée par la seule fabrique `ciblePsy` (`groupe` au motif des ids de Groupe `MOTIF_D_ID_DE_GROUPE`, partagé avec le schéma des Groupes ; `individu` sur un id non vide sans `@`), lue par le seul `selonCible`, tirée d’un porteur par `cibleDuPorteur`, lue d’une chaîne de donnée (spécialisation, Cible persistée) par `ciblePsyLue`, de l’`arg` d’un Trait posé par le seul `cibleDeLArg` (source `ciblesPsy`), comparée par `identiteDeCiblage` (type et Cible), affichée par `libelleDeCible` (l’individu par le `NomDIndividu` de l’appelant, dans l’UI `useNomDIndividu`) et, avec son type, par `libelleDePsy` (« Haine (Nains) ») ; un Trait posé s’affiche par `traitLisible` (`engine/traits/dispatch.ts`), `formatTrait` restant la forme d’aller-retour de l’éditeur ; `individuDe` rend l’id d’un individu visé, `individusNommes` les individus qu’une donnée nomme à toute profondeur, que refuse une péripétie de route (`refuserLesIndividus`) et que `validateScene` juge dans une scène (l’individu ne se pose en donnée que par l’`arg` d’un Trait de statbloc de scène) ; `estCibleType` dit si un type de psychologie porte une Cible, `varianteAdmise` si une variante (`varianteDe` d’une Cible) est de celles que déclare `psychology.json` (`cibles`) ; `cibleDeRef` est la seule couture de la référence d’op (`RefDeCible` : `{ id }` d’un Groupe, seule forme de la donnée, ou `{ personnage }`, l’individu d’une op que pose le moteur) vers la Cible, `refDeCible` sa réciproque",
     "perimetre": "psychologie (état, ops, bandes, IA, affichage), Cible des ops psy, éditeurs des ops psy",
     "verrou": "src/engine/psych/ciblage.test.ts, src/noyau/psych-individu.test.ts ; murs/marques (src/noyau/built-brand-lint.test.ts)"
+  },
+  {
+    "id": "maximumDesBlessures",
+    "type": "primitives.manifest",
+    "label": "MaximumDesBlessures/blessuresDeBase/blessuresReconciliees",
+    "fichier": "src/engine/characteristics.ts",
+    "concept": "Blessures d’un porteur (#1463) : le maximum est une marque de type (`MaximumDesBlessures`, `engine/types.ts`, en lecture seule) que forgent seules `blessuresDeBase` (Blessures à vide : la base posée, que le maximum suit) et `blessuresReconciliees` (le maximum recalé sur ses porteurs, le courant au même delta) ; refusés : le nombre posé à la main (littéral, spread sans cast) et l’affectation (`readonly`) au type, le cast qui nomme la marque au lint (`murs/marques`) ; non murés, limites assumées au site de la marque : `Object.assign(c.wounds, { max })` et le cast par type indexé (`as Combatant['wounds']`, `as Combatant['wounds']['max']`)",
+    "perimetre": "constructeurs de combattants, coutures du moteur, transition de l’état (`noyau/transitionDuJeu.ts`), fixtures de test",
+    "verrou": "src/engine/blessures-coutures.test.ts ; murs/marques (src/noyau/built-brand-lint.test.ts)"
   },
   {
     "id": "opPsy",

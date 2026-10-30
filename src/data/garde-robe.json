@@ -318,5 +318,19 @@
     "type": "garde-robe",
     "label": "Crâne rasé",
     "kind": "coiffure"
+  },
+  {
+    "id": "taureau-rouge",
+    "type": "garde-robe",
+    "label": "Tête de taureau rouge",
+    "kind": "embleme",
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><g fill=\"#b01c1c\" fill-rule=\"evenodd\"><path d=\"M76 84 C30 80 12 46 26 14 C34 48 54 62 92 68 Z\"/><path d=\"M180 84 C226 80 244 46 230 14 C222 48 202 62 164 68 Z\"/><path d=\"M74 98 L28 108 L70 126 Z\"/><path d=\"M182 98 L228 108 L186 126 Z\"/><path d=\"M70 72 C100 58 156 58 186 72 L178 146 C174 190 158 222 128 230 C98 222 82 190 78 146 Z M96 116 a12 9 0 1 0 24 0 a12 9 0 1 0 -24 0 Z M136 116 a12 9 0 1 0 24 0 a12 9 0 1 0 -24 0 Z M108 200 a7 9 0 1 0 14 0 a7 9 0 1 0 -14 0 Z M134 200 a7 9 0 1 0 14 0 a7 9 0 1 0 -14 0 Z\"/></g></svg>"
+  },
+  {
+    "id": "tete-de-mort-rouge",
+    "type": "garde-robe",
+    "label": "Tête de mort rouge",
+    "kind": "embleme",
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 256 256\"><g fill=\"#b01c1c\" fill-rule=\"evenodd\"><path d=\"M128 20 C68 20 36 62 36 112 C36 146 54 168 78 176 L78 206 L178 206 L178 176 C202 168 220 146 220 112 C220 62 188 20 128 20 Z M70 114 C70 90 114 90 114 116 C114 140 70 140 70 114 Z M142 116 C142 90 186 90 186 114 C186 140 142 140 142 116 Z M128 140 L114 168 L142 168 Z M100 184 h8 v16 h-8 Z M124 184 h8 v16 h-8 Z M148 184 h8 v16 h-8 Z\"/><path d=\"M82 212 H174 V224 C174 234 160 240 128 240 C96 240 82 234 82 224 Z M104 212 h6 v14 h-6 Z M125 212 h6 v14 h-6 Z M146 212 h6 v14 h-6 Z\"/></g></svg>"
   }
 ]

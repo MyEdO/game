@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { collectLabelEntityResolvers } from './scripts/guards/lib/labelLogic.mjs';
 import { RACINES_DES_ZONES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe } from './scripts/guards/lib/couches.mjs';
 
-const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation|CiblePsy)$/';
-const MSG_FORGE = 'Marque d’origine (#1262/#1318/#3045) : forger un `Built*`/`PlayerText`/`AdresseDeCreation`/`CiblePsy` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`), par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`), ou par la fabrique de Cible (`ciblePsy`).';
+const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation|CiblePsy|MaximumDesBlessures)$/';
+const MSG_FORGE = 'Marque d’origine (#1262/#1318/#3045/#1463) : forger un `Built*`/`PlayerText`/`AdresseDeCreation`/`CiblePsy`/`MaximumDesBlessures` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`), par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`), par la fabrique de Cible (`ciblePsy`), ou par celles des Blessures (`blessuresDeBase`, `blessuresReconciliees`).';
 
 const VERROU_MARQUES = [{
   selector: `TSAsExpression TSTypeReference > Identifier[name=${MARQUES}]`,
@@ -24,7 +24,7 @@ const VERROU_MARQUES = [{
     `TSTypeAliasDeclaration > TSUnionType > TSArrayType > TSTypeReference > Identifier[name=${MARQUES}]`,
     `TSTypeAliasDeclaration > TSUnionType > TSTypeOperator > TSArrayType > TSTypeReference > Identifier[name=${MARQUES}]`,
   ].join(', '),
-  message: 'Marque d’origine (#1262/#1318/#3045) : aliaser un `Built*`/`PlayerText`/`CiblePsy` rouvre la route de forge par cast (le verrou filtre par NOM). Nommer la marque au site, ou passer par un minteur.',
+  message: 'Marque d’origine (#1262/#1318/#3045/#1463) : aliaser un `Built*`/`PlayerText`/`CiblePsy`/`MaximumDesBlessures` rouvre la route de forge par cast (le verrou filtre par NOM). Nommer la marque au site, ou passer par un minteur.',
 }, {
 
   selector: [
@@ -152,7 +152,7 @@ export const REGLES_ORDRE_TOTAL = { ...REGLES_MARCHE, ...REGLES_LOCALE };
 const GLOBS_GENERATEURS = [
   'scripts/docs/**', 'scripts/raw/**', 'scripts/guards/lib/**',
 
-  'scripts/gen-registry.mjs', 'scripts/gen-sorts-doc.mts', 'scripts/gen-formats.mjs', 'scripts/gen-verbes.mjs',
+  'scripts/gen-registry.mjs', 'scripts/gen-sorts-doc.mts', 'scripts/gen-formats.mjs', 'scripts/gen-verbes.mjs', 'scripts/gen-combattants-de-l-etat.mjs',
   'scripts/data/check-progression-schemas.mjs',
 
   'scripts/test/partition.mjs',

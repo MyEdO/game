@@ -46,6 +46,7 @@ import { traitsDuPorteur } from './statEntry';
 import { indiceSurLeProfil } from './formule';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { sequence } from './sequences';
+import { blessuresDeBase } from './characteristics';
 
 /** Caractéristique d'une Compétence (skills.json) par `id` STABLE — LDB 09 : valeur de Test =
  *  Caractéristique + avances. (≠ re-lookup par libellé — multilangue-safe.) */
@@ -432,7 +433,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     groups: groupsFor({ speciesId: sp.id }), // Groupes déclarés par l'espèce ; carrière, classe, culte et Traits lus en direct (`groupesDe`). LDB 21
     size,
     characteristics: chars,
-    wounds: { current: 0, max: 0, base: 0 }, // posé après les effets de talents (Dur à cuire)
+    wounds: blessuresDeBase(0), // posé après les effets de talents (Dur à cuire)
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -460,7 +461,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   // à cuire, Chance, Détermination).
   appliquerAcquisitions(hero);
   const wmax = heroMaxWounds(hero);
-  hero.wounds = { current: wmax, max: wmax, base: wmax };
+  hero.wounds = blessuresDeBase(wmax);
   hero.fortune = fortuneMax(hero);
   hero.resolve = resolveMax(hero);
 

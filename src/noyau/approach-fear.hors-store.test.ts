@@ -18,15 +18,17 @@ import { refLabel } from '../data';
 
 import type { Combatant } from '../engine/types';
 import { setCadence } from '../engine/cadence';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (over: Partial<Combatant>): Combatant =>
-  ({ id: 'h', kind: 'hero', name: 'H', pos: { x: 5, y: 5 }, conditions: [], characteristics: { 'force-mentale': 50 }, skills: [], wounds: { current: 10, max: 10 },
-     psychState: [{ type: 'peur', sourceId: 'e', indice: 2, calmeDR: 0 }], ...over } as unknown as Combatant);
+  combattantDeTest({ id: 'h', kind: 'hero', label: 'H', pos: { x: 5, y: 5 }, conditions: [], characteristics: { 'force-mentale': 50 }, skills: [], wounds: blessuresDeBase(10),
+     psychState: [{ type: 'peur', sourceId: 'e', indice: 2, calmeDR: 0 }], ...over });
 const mover = (over: Partial<Combatant>): Combatant =>
-  ({ id: 'e', kind: 'enemy', name: 'Spectre', pos: { x: 6, y: 5 }, conditions: [], wounds: { current: 10, max: 10 }, ...over } as unknown as Combatant);
+  combattantDeTest({ id: 'e', kind: 'enemy', label: 'Spectre', pos: { x: 6, y: 5 }, conditions: [], wounds: blessuresDeBase(10), ...over });
 
 /** Pose un combat minimal (héros craintifs + source de Peur), puis appelle le déclencheur. `fromPos` =
  *  la position de la source AVANT son déplacement (l'« approche » se mesure contre elle). */

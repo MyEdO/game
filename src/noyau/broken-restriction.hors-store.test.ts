@@ -4,7 +4,8 @@ import { computeMoveReach } from './combatFlow';
 import { chooseEnemyAction } from './monde/ai';
 import { hasCondition } from '../engine/conditions';
 import { chebyshev } from '../engine/grid';
-import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -13,8 +14,8 @@ const scene = () =>
   ({ id: 's', label: '', dimensions: { w: 12, h: 12 }, layers: [{ z: 0, tiles: Array(144).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [], flags: {} } as never);
 
 function setup(broken: boolean, enemyPos = { x: 9, y: 5 }) {
-  const hero = { id: 'h', kind: 'hero', name: 'H', pos: { x: 5, y: 5 }, movement: 4, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }], conditions: broken ? [{ id: 'brise', value: 1 }] : [], characteristics: { 'force-mentale': 40 }, skills: [], wounds: { current: 10, max: 10 }, advantage: 0, engagedWith: [], psychState: [] } as unknown as Combatant;
-  const enemy = { id: 'e', kind: 'enemy', name: 'E', pos: enemyPos, conditions: [], wounds: { current: 10, max: 10 } } as unknown as Combatant;
+  const hero = combattantDeTest({ id: 'h', kind: 'hero', label: 'H', pos: { x: 5, y: 5 }, movement: 4, weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }], conditions: broken ? [{ id: 'brise', value: 1 }] : [], characteristics: { 'force-mentale': 40 }, skills: [], wounds: blessuresDeBase(10), advantage: 0, engagedWith: [], psychState: [] });
+  const enemy = combattantDeTest({ id: 'e', kind: 'enemy', label: 'E', pos: enemyPos, conditions: [], wounds: blessuresDeBase(10) });
   banc.setState({ battle: { combatants: [hero, enemy], order: ['h', 'e'], baseOrder: ['h', 'e'], turn: 0, action: null, movementUsed: 0, acted: false, reachable: new Map(), over: false, round: 1, log: [] } as never, scene: scene() });
   return { hero, enemy };
 }
@@ -61,8 +62,8 @@ describe('Brisé — restriction d\'action (LDB 16 l.52)', () => {
   });
 
   it('IA : un ennemi Brisé non Engagé FUIT (move s\'éloignant des héros)', () => {
-    const enemy = { id: 'e', kind: 'enemy', name: 'E', pos: { x: 5, y: 5 }, movement: 4, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }], conditions: [{ id: 'brise', value: 1 }], wounds: { current: 10, max: 10 }, engagedWith: [] } as unknown as Combatant;
-    const h = { id: 'h', kind: 'hero', name: 'H', pos: { x: 6, y: 5 }, wounds: { current: 10, max: 10 } } as unknown as Combatant;
+    const enemy = combattantDeTest({ id: 'e', kind: 'enemy', label: 'E', pos: { x: 5, y: 5 }, movement: 4, weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }], conditions: [{ id: 'brise', value: 1 }], wounds: blessuresDeBase(10), engagedWith: [] });
+    const h = combattantDeTest({ id: 'h', kind: 'hero', label: 'H', pos: { x: 6, y: 5 }, wounds: blessuresDeBase(10) });
     const action = chooseEnemyAction({ enemy, heroes: [h], scene: scene(), blocked: new Set(['6,5']), movement: 4 } as never);
     expect(action.kind).toBe('move');
     const to = (action as { to: { x: number; y: number } }).to;

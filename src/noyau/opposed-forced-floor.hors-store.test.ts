@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -17,7 +17,7 @@ const TR = (roll: number, target: number, sl: number, success = true) => ({ roll
 
 /** Marchandage forcé par Résilience, dé CHOISI 41 sur cible 45 → DR NATUREL 0 : seul le plancher parle. */
 function bargainForcedSL(merchantSL: number): number {
-  const hero = { id: 'H', label: 'H', name: 'H', kind: 'hero', resilience: 5, fortune: 0, characteristics: {}, skills: [], talents: [], weapons: [], items: [], conditions: [] } as unknown as Combatant;
+  const hero = combattantDeTest({ id: 'H', label: 'H', kind: 'hero', resilience: 5, fortune: 0, characteristics: {}, skills: [], talents: [], weapons: [], items: [], conditions: [] });
   banc.setState({
     party: [hero],
     pendingBargain: {
@@ -47,7 +47,7 @@ describe('#1000 — plancher de la garantie (LDB 17 l.68) : jamais en dessous de
 describe('Victoire IMPOSÉE : le critère de départage la NOMME (`decidedBy: force`)', () => {
   /** Même sonde, mais on lit le CRITÈRE porté par l'issue au lieu du DR. */
   function bargainForcedDecidedBy(merchantSL: number, chooseDie: boolean): string {
-    const hero = { id: 'H', label: 'H', name: 'H', kind: 'hero', resilience: 5, fortune: 0, characteristics: {}, skills: [], talents: [], weapons: [], items: [], conditions: [] } as unknown as Combatant;
+    const hero = combattantDeTest({ id: 'H', label: 'H', kind: 'hero', resilience: 5, fortune: 0, characteristics: {}, skills: [], talents: [], weapons: [], items: [], conditions: [] });
     banc.setState({
       party: [hero],
       pendingBargain: {

@@ -356,3 +356,6 @@ export const SORTIE_FORMATS = 'src/noyau/persistance/formats.generated.ts'
 
 /** La cible de `scripts/gen-verbes.mjs` : les paramètres des verbes de la partie, que les hôtes du noyau lisent. */
 export const SORTIE_VERBES = 'src/hote/verbes.generated.ts'
+
+/** La cible de `scripts/gen-combattants-de-l-etat.mjs` : les chemins des combattants de l'état, que `transitionDuJeu` lit. */
+export const SORTIE_COMBATTANTS_DE_L_ETAT = 'src/noyau/combattantsDeLEtat.generated.ts'

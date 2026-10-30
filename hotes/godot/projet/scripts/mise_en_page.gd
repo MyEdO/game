@@ -1,8 +1,8 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde et retour, le centre du plateau, le quart de tour de la
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
-## voisine d'un instant, le diamètre d'une sphère. Seul script où l'arithmétique et la mesure sont permises
-## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au plus
-## un vecteur, sans état.
+## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue. Seul script où
+## l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des
+## fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
 class_name MiseEnPage
 extends RefCounted
 
@@ -48,6 +48,11 @@ static func secondes(ms: float) -> float:
 	return ms / MS_PAR_SECONDE
 
 
+## L'échelle qui porte une image de `largeur` pixels à `largeur_voulue` ; 1 pour une image vide.
+static func echelle_d_image(largeur_voulue: float, largeur: int) -> float:
+	return 1.0 if largeur == 0 else largeur_voulue / largeur
+
+
 ## Le pas d'image d'un clip de `duree` secondes, sa piste suivante de `cles` clés réparties sur le clip retenue si son pas
 ## est plus fin que `pas` (0 : aucune piste retenue encore).
 static func pas_d_image(pas: float, duree: float, cles: int) -> float:
@@ -57,11 +62,12 @@ static func pas_d_image(pas: float, duree: float, cles: int) -> float:
 	return pas_de_la_piste if pas == 0.0 or pas_de_la_piste < pas else pas
 
 
-## L'instant de l'image de la grille de `pas` strictement voisine de `instant` dans le sens `sens` (1 ou -1), borné à
-## [0, `duree`] ; `instant` lui-même, borné, sans pas.
+## L'instant de l'image de la grille de `pas` strictement voisine de `instant` dans le sens `sens` (1 ou -1), sur le clip
+## bouclé de `duree` secondes : la suivante de la dernière image est la première, la précédente de la première est la
+## dernière ; `instant` lui-même, borné à [0, `duree`], sans pas.
 static func image_voisine(instant: float, pas: float, sens: float, duree: float) -> float:
 	if pas == 0.0:
 		return clampf(instant, 0.0, duree)
 	var image := instant / pas
 	var voisine := floorf(image + TOLERANCE_D_IMAGE) + 1.0 if sens > 0.0 else ceilf(image - TOLERANCE_D_IMAGE) - 1.0
-	return clampf(voisine * pas, 0.0, duree)
+	return fposmod(voisine * pas, duree)

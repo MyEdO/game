@@ -1,0 +1,746 @@
+/**
+ * LA SAUVEGARDE « 1d10 ≥ Indice » PASSE PAR LA PORTE (#1508 T3b) — jumeau de `chute-a-la-porte.hors-store.test.ts`.
+ *
+ * `LDB 85 l.98` (Démoniaque) : « Lancez 1d10 après chaque coup reçu, si la créature obtient le nombre de
+ * l'*Indice* ou plus, le coup est ignoré, même s'il s'agit d'un critique. » ; `LDB 85 l.278` (Protection) ;
+ * `LDB 47 l.410` (le Dôme OCTROIE Protection (6+) contre les attaques magiques ou à distance du dehors).
+ *
+ * Ce que ces contrats tiennent :
+ *  - le dé NAÎT NON RÉSOLU en étape de cascade, AVANT toute mutation de la cible (le coup est SUSPENDU) ;
+ *  - l'étape PORTE son seuil, donc la fenêtre peut MONTRER contre quoi le dé tombe ;
+ *  - le dé POSÉ décide : ≥ Indice → « le coup est ignoré » (aucune Blessure, aucun Critique) ; < Indice →
+ *    le coup s'applique normalement ;
+ *  - deux Traits = deux dés, le second n'existant QUE si le premier a raté (grappe dépendante) ;
+ *  - AUCUNE scission par kind de porteur : un démon touché par un héros reçoit la MÊME étape ;
+ *  - le Projectile magique suspend PAR CIBLE, sans rien rouler en silence ;
+ *  - un dé déclaré ARRÊTE la chaîne des modifiers : aucun modifier d'ordre supérieur (Martyr LDB 43
+ *    l.107, Perturbante LDB 62 l.272-274) ne mute quoi que ce soit avant le dé, ni deux fois ;
+ *  - ce que l'appelant allait faire APRÈS le coup (maillon de balayage, Action d'une frappe gratuite)
+ *    est parqué sur SON étape, par IDENTITÉ, et rendu à la reprise.
+ */
+import { tableTotale } from '../../lib/tableTotale';
+import { t as tr } from '../../i18n';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import type { BattleState } from '../etat';
+import { aiCreatureFreeAttacks, applyAttackResult, applyCast, autoCleave, accorderLAttaqueGratuite, resolveDeviation } from '../combatFlow';
+import { evaluateMissile, type CastResult } from '../../engine/magic';
+import { seedBattleRng } from '../battleRng';
+import { setRule } from '../../engine/policy';
+import { emptyScene } from '../monde/scene';
+import { stepInteraction } from '../cascade';
+import type { CascadeStep } from '../pendings';
+import { CHAR_KEYS, type Combatant, type Weapon } from '../../engine/types';
+import type { AttackResult } from '../../engine/combat';
+import { OPS_DIFFEREES } from '../combatEffects';
+import { avanceEtapeCascade, cascadeDeTest } from '../cascade.testkit';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
+const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
+
+const mk = (kind: Combatant['kind'], id: string, over: Partial<Combatant> = {}): Combatant =>
+  ({
+    id, label: id, kind, characteristics: { ...CHARS },
+    wounds: { current: 30, max: 30 }, advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
+    weapons: [], items: [], skills: [], talents: [], traits: [], movement: 4, bodyShape: 'humanoide',
+    pos: { x: 0, y: 0 }, fate: 0, engagedWith: [], size: 'moyenne',
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
+    ...over,
+  } as unknown as Combatant);
+
+function setBattle(combatants: Combatant[]): void {
+  const battle = {
+    combatants, order: combatants.map((c) => c.id), baseOrder: combatants.map((c) => c.id),
+    turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
+    movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
+  } as unknown as BattleState;
+  banc.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [] });
+}
+
+const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as unknown as Weapon;
+const touche = (): AttackResult => ({
+  hit: true, attackerRoll: 30, netSL: 3, location: 'corps', damage: 6, woundsLost: 4,
+  critical: false, advantageTo: null, defenderDefeated: false, log: 'touche.',
+});
+
+/** Aura de Dôme portée par `gardien`, d'Indice `indice` (la DONNÉE du sort, op `domeWard`). */
+const dome = (indice: number): Combatant['activeEffects'] =>
+  ([{ label: 'Dôme', bonus: 0, domeWard: { radiusMeters: 4, ward: { id: 'protection', value: indice } } }] as unknown as Combatant['activeEffects']);
+
+/** L'étape COURANTE de la séquence en vol (celle que la fenêtre servirait). */
+const etapeCourante = (): CascadeStep | undefined => {
+  const p = banc.getState().pendingCascade;
+  return p?.participants[p.cursor];
+};
+
+/** Les étapes de sauvegarde NON RÉSOLUES de la séquence. */
+const sauvegardesOuvertes = (): CascadeStep[] =>
+  (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'sauvegarde' && !s.de?.result);
+
+/** Ce que le joueur a LU : une séquence peut se CLORE en cours de route, donc les lignes se captent au
+ *  fil de l'eau (même geste que `cascade.testkit › draineEtLit`), jamais à la fin sur un slot vidé. */
+let lues: string[] = [];
+function capter(): void {
+  for (const s of banc.getState().pendingCascade?.participants ?? []) {
+    for (const l of s.outcome ?? []) if (!lues.includes(l.text)) lues.push(l.text);
+  }
+}
+
+/** POSE un dé sur l'étape courante et la valide — le geste du joueur, jamais un appel moteur. */
+function poser(valeur: number): void {
+  const st = etapeCourante()!;
+  expect(st, 'aucune étape à jouer').toBeDefined();
+  banc.getState().cascadeDieSetForcedRoll(st.id, valeur);
+  banc.getState().cascadeNext();
+  capter();
+}
+
+/** SUIT l'Action : marquages (`acted` false→true), restitutions (true→false), et l'état au PREMIER instant où
+ *  une étape de sauvegarde de `porteurId` attend son dé — observé même quand le dé part d'office. */
+function suitLAction(porteurId: string): { vu: { marquages: number; restitutions: number; avantLeDe: { pb: number; marquages: number; restitutions: number } | null }; unsub: () => void } {
+  const vu = { marquages: 0, restitutions: 0, avantLeDe: null as { pb: number; marquages: number; restitutions: number } | null };
+  const unsub = banc.subscribe((s, p) => {
+    if (p.battle?.acted === false && s.battle?.acted === true) vu.marquages++;
+    if (p.battle?.acted === true && s.battle?.acted === false) vu.restitutions++;
+    const enAttente = s.pendingCascade?.participants.some((x) => x.kind === 'sauvegarde' && x.actorId === porteurId && x.de?.result == null);
+    const pb = s.battle?.combatants.find((c) => c.id === porteurId)?.wounds.current;
+    if (enAttente && !vu.avantLeDe && pb !== undefined) vu.avantLeDe = { pb, marquages: vu.marquages, restitutions: vu.restitutions };
+  });
+  return { vu, unsub };
+}
+
+/** Les lignes que le joueur a lues sur les étapes de la séquence (captes + état courant + journal). */
+const lignesLues = (): string[] => {
+  capter();
+  return [...lues, ...banc.getState().journal, ...(banc.getState().battle?.log ?? []).map((l) => l.text)];
+};
+
+beforeEach(() => { lues = []; });
+
+describe('coup physique — le dé naît à la porte, AVANT toute mutation', () => {
+  const monteDome = (): { gardien: Combatant; cible: Combatant; archer: Combatant } => {
+    const gardien = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
+    const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 } });
+    const archer = mk('enemy', 'archer', { pos: { x: 20, y: 5 } });
+    setBattle([gardien, cible, archer]);
+    return { gardien, cible, archer };
+  };
+
+  it('un TIR du dehors SUSPEND le coup : étape de dé NON résolue, portant son seuil, et rien n’a bougé', () => {
+    const { cible, archer } = monteDome();
+    const suspendu = applyAttackResult(banc.getState, banc.setState, archer, cible, arc, touche());
+    expect(suspendu, 'la résolution est suspendue tant que le dé n’est pas tombé').toBe(OPS_DIFFEREES);
+    const st = etapeCourante()!;
+    expect(st.kind).toBe('sauvegarde');
+    expect(stepInteraction(st), 'le dé reste à jeter').toBe('de');
+    expect(st.de?.spec, 'un 1d10, celui du RAW').toEqual({ n: 1, sides: 10 });
+    expect(st.de?.seuil, 'l’étape PORTE son seuil — la fenêtre peut le montrer').toEqual({ indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true });
+    expect(st.actorId, 'le porteur du dé est la cible').toBe(cible.id);
+    expect(cible.wounds.current, 'aucune Blessure avant le dé').toBe(30);
+    expect((banc.getState().pendingCascade?.participants ?? []).some((s) => s.kind === 'deviation'), 'aucune fenêtre de Critique avant la sauvegarde').toBe(false);
+  });
+
+  it('dé POSÉ à 6 (= Indice) : « le coup est ignoré » — aucune Blessure, et la ligne le dit', () => {
+    const { cible, archer } = monteDome();
+    applyAttackResult(banc.getState, banc.setState, archer, cible, arc, touche());
+    poser(6);
+    expect(cible.wounds.current, 'LDB 85 l.278 : « supérieur ou égal » sauve').toBe(30);
+    expect(lignesLues().some((l) => /ignore le coup — sauvegarde 1d10 : 6 ≥ Protection \(6\+\) du Dôme\./.test(l)), lignesLues().join(' | ')).toBe(true);
+  });
+
+  it('dé POSÉ à 5 (< Indice) : le coup s’applique, et la RATÉE s’écrit aussi', () => {
+    const { cible, archer } = monteDome();
+    applyAttackResult(banc.getState, banc.setState, archer, cible, arc, touche());
+    poser(5);
+    expect(cible.wounds.current, 'la sauvegarde a manqué : les Blessures tombent').toBeLessThan(30);
+    expect(lignesLues().some((l) => /n’ignore pas le coup — sauvegarde 1d10 : 5 < Protection \(6\+\) du Dôme\./.test(l)), lignesLues().join(' | ')).toBe(true);
+  });
+
+  it('GRAPPE : le 2ᵉ dé n’existe QUE si le 1ᵉʳ a raté, et les deux lignes s’écrivent', () => {
+    const gardien = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
+    const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
+    const archer = mk('enemy', 'archer', { pos: { x: 20, y: 5 } });
+    setBattle([gardien, cible, archer]);
+    applyAttackResult(banc.getState, banc.setState, archer, cible, arc, touche());
+    expect(sauvegardesOuvertes().length, 'un seul dé ouvert à la fois : aucune grappe mintée d’avance').toBe(1);
+    poser(3); // Démoniaque (8+) raté → le Trait du Dôme reste à jouer
+    expect(sauvegardesOuvertes().length, 'le dé suivant ne s’ouvre qu’APRÈS l’échec du précédent').toBe(1);
+    expect(cible.wounds.current, 'toujours aucune mutation : la grappe n’est pas finie').toBe(30);
+    poser(9); // Protection (6+) du Dôme → sauvé
+    expect(cible.wounds.current, 'le second Trait a sauvé : le coup est ignoré').toBe(30);
+    const lues = lignesLues();
+    const rate = lues.findIndex((l) => /n’ignore pas le coup — sauvegarde 1d10 : 3 < Démoniaque \(8\+\)\./.test(l));
+    const sauve = lues.findIndex((l) => /ignore le coup — sauvegarde 1d10 : 9 ≥ Protection \(6\+\) du Dôme\./.test(l));
+    expect(rate, `la ratée du Trait propre manque : ${lues.join(' | ')}`).toBeGreaterThanOrEqual(0);
+    expect(sauve, `la réussie du Dôme manque : ${lues.join(' | ')}`).toBeGreaterThanOrEqual(0);
+    expect(rate, 'les dés se lisent dans l’ordre où ils sont tombés').toBeLessThan(sauve);
+  });
+
+  it('UN SEUL dé quand la sauvegarde a déjà été décidée : la fenêtre de Critique ne la rejoue pas', () => {
+    // Le coup repasse par le registre à chaque ré-entrée (Déviation Critique) : sans la décision portée
+    // par la touche, un second dé s'ouvrirait — et le porteur sauverait deux fois du même coup.
+    const { cible, archer } = monteDome();
+    applyAttackResult(banc.getState, banc.setState, archer, cible, arc, { ...touche(), woundsLost: 40, damage: 40 });
+    poser(1); // raté : le coup s'applique, dépassement → fenêtre de Critique
+    expect(sauvegardesOuvertes().length, 'aucune 2ᵉ sauvegarde pour le même coup').toBe(0);
+  });
+});
+
+describe('aucune scission par KIND de porteur (canon : la porte pousse pour tous)', () => {
+  it('un démon frappé par un héros reçoit la MÊME étape, à son nom', () => {
+    const hero = mk('hero', 'hardi', { pos: { x: 0, y: 0 } });
+    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
+    setBattle([hero, demon]);
+    const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
+    const suspendu = applyAttackResult(banc.getState, banc.setState, hero, demon, epee, touche());
+    expect(suspendu, 'le coup est suspendu pour un porteur ENNEMI aussi').toBe(OPS_DIFFEREES);
+    const st = etapeCourante()!;
+    expect(st.kind).toBe('sauvegarde');
+    expect(st.actorId, 'le dé appartient au démon').toBe(demon.id);
+    expect(st.de?.seuil).toEqual({ indice: 8, source: { kind: 'trait', id: 'demoniaque' }, dome: false });
+    expect(demon.wounds.current, 'rien n’est appliqué avant son dé').toBe(30);
+    poser(8);
+    expect(demon.wounds.current, '1d10 ≥ 8 : le coup est ignoré (LDB 85 l.98)').toBe(30);
+  });
+});
+
+describe('Projectile magique — une étape PAR CIBLE, rien roulé en silence', () => {
+  /** Projectile arcane MINIMAL (non curé → aucun Flow) : Dégâts 8 + DR + BFM. */
+  const missileSpell = (): never =>
+    ({ id: 'dard-test', label: 'Dard', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: 1, duration: null, desc: '', source: { book: 'LDB', page: 0 }, missile: true, damage: 8 }) as never;
+
+  it('un Dard sur la protégée ouvre SA sauvegarde avant toute Blessure, et le dé posé décide', () => {
+    const gardien = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
+    const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 } });
+    const mage = mk('enemy', 'mage', { pos: { x: 20, y: 5 } });
+    setBattle([gardien, cible, mage]);
+    const spell = missileSpell();
+    const cast: CastResult = { cast: true, roll: 44, target: 60, sl: 4, isCritical: false, isFumble: false, log: '' };
+    applyCast(banc.getState, banc.setState, mage, cible, spell, evaluateMissile(mage, cible, spell, cast), true, false, undefined, undefined);
+    const st = etapeCourante()!;
+    expect(st.kind, 'la touche magique EST un coup reçu (LDB 85 l.98)').toBe('sauvegarde');
+    expect(st.de?.seuil).toEqual({ indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true });
+    expect(cible.wounds.current, 'aucune Blessure avant le dé').toBe(30);
+    poser(6);
+    expect(cible.wounds.current, 'le Dôme a sauvé : le Projectile est ignoré').toBe(30);
+  });
+});
+
+describe('un dé déclaré ARRÊTE la chaîne des modifiers', () => {
+  /** Cible sous Dôme, GARDÉE par un prêtre (Martyr, LDB 43 l.107) : ce modifier d'ordre 40 MUTE l'état
+   *  (`loseWounds` sur le prêtre) ; il ne tourne qu'une fois, après le dé de la sauvegarde (ordre 10). */
+  const monteMartyr = (): { pretre: Combatant; cible: Combatant; archer: Combatant } => {
+    const gardien = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
+    const pretre = mk('hero', 'pretre', { pos: { x: 4, y: 5 } });
+    const cible = mk('hero', 'couvert', {
+      pos: { x: 6, y: 5 },
+      activeEffects: ([{ label: 'Martyr', bonus: 0, martyrGuard: 'pretre' }] as unknown as Combatant['activeEffects']),
+    });
+    const archer = mk('enemy', 'archer', { pos: { x: 20, y: 5 } });
+    setBattle([gardien, pretre, cible, archer]);
+    return { pretre, cible, archer };
+  };
+
+  it('MARTYR (ordre 40) ne prend RIEN avant le dé, et ne le prend QU’UNE fois', () => {
+    const { pretre, cible, archer } = monteMartyr();
+    applyAttackResult(banc.getState, banc.setState, archer, cible, arc, touche());
+    expect(pretre.wounds.current, 'la chaîne s’arrête sur la déclaration du dé : le prêtre n’a encore rien encaissé').toBe(30);
+    poser(1); // sauvegarde RATÉE : le coup s’applique, et le Martyr joue — une seule fois
+    expect(pretre.wounds.current, 'le Martyr encaisse UNE fois (il en prenait deux : avant le dé, puis à la ré-entrée)').toBe(29);
+    expect(cible.wounds.current, 'la cible ne perd rien : le prêtre a pris le coup à sa place').toBe(30);
+  });
+
+  it('MARTYR ne joue pas du tout quand la sauvegarde RÉUSSIT : il n’y a plus de Blessure à encaisser', () => {
+    const { pretre, cible, archer } = monteMartyr();
+    applyAttackResult(banc.getState, banc.setState, archer, cible, arc, touche());
+    poser(6);
+    expect(pretre.wounds.current, 'le coup est ignoré (LDB 85 l.278) : rien à encaisser pour personne').toBe(30);
+    expect(cible.wounds.current).toBe(30);
+  });
+
+  it('PERTURBANTE (ordre 50) ne consomme pas son mode ni ne repousse avant le dé', () => {
+    const gardien = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(6) });
+    const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
+    // Arme forgée pour le contrat, portant la qualité du CATALOGUE par son id (`src/data/qualities.json`
+    // id `perturbante`, portée en donnée par le groupe d'armes `fleau`) — jamais un drapeau ad hoc.
+    const baton = { label: 'Bâton', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [{ id: 'perturbante' }] } as unknown as Weapon;
+    const brute = mk('enemy', 'brute', { pos: { x: 7, y: 5 }, weapons: [baton], pushbackMode: true } as never);
+    setBattle([gardien, cible, brute]);
+    applyAttackResult(banc.getState, banc.setState, brute, cible, baton, touche());
+    expect(brute.pushbackMode, 'le mode Repousser n’est pas consommé tant que la touche n’est pas connue').toBe(true);
+    expect(cible.pos, 'personne n’a reculé avant le dé').toEqual({ x: 6, y: 5 });
+    poser(8); // Démoniaque (8+) : le coup est ignoré — la chaîne rejoue ENTIÈREMENT, une seule fois
+    expect(cible.wounds.current).toBe(30);
+    expect(brute.pushbackMode, 'la chaîne rejouée à la reprise consomme le mode UNE fois').toBe(false);
+  });
+});
+
+describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON étape (identité, pas position)', () => {
+  it('BALAYAGE : 2ᵉ et 3ᵉ cibles sauvegardantes — les trois sont frappées, dans l’ordre', () => {
+    // Pendant une application, la poussée entre dans la FENÊTRE d’insertion, pas dans `participants`
+    // (`cascade.ts:961-968`) : un parquage « dernière du tableau » muterait l’étape DÉJÀ résolue et
+    // perdrait la chaîne en silence.
+    const demon = { id: 'demoniaque', value: 8 };
+    const fort = { ...CHARS, 'capacite-de-combat': 90 };
+    const faible = tableTotale(CHAR_KEYS, () => 1); // aucune défense possible : le contrat porte sur la CHAÎNE, pas sur le jet
+    const griffe = { label: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
+    const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: fort, size: 'enorme', weapons: [griffe] } as never);
+    const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: faible, aiControlled: true } as never);
+    const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: faible, aiControlled: true, traits: [demon] } as never);
+    const h3 = mk('hero', 'h3', { pos: { x: 6, y: 5 }, characteristics: faible, aiControlled: true, traits: [demon] } as never);
+    const h4 = mk('hero', 'h4', { pos: { x: 5, y: 4 }, characteristics: faible, aiControlled: true, traits: [demon] } as never);
+    setBattle([ogre, h1, h2, h3, h4]);
+    seedBattleRng(4); // graine où les deux enchaînements TOUCHENT (le contrat porte sur la chaîne, pas sur le jet)
+    // Le balayage part de la touche sur h1 (`res.cleave`, LDB 85 l.362) : h2 puis h3 enchaînent.
+    autoCleave(banc.getState, banc.setState, ogre, h1, { ...touche(), cleave: true } as AttackResult);
+    // Les porteurs sont AUTO (aucun siège humain ne les tient) : leurs dés se résolvent d'office, et la
+    // séquence s'avance comme le ferait le pilote. Ce que le contrat mesure est la CHAÎNE, pas le jet.
+    const vus: string[] = [];
+    for (let garde = 0; garde < 12 && banc.getState().pendingCascade; garde++) {
+      const casc = banc.getState().pendingCascade!;
+      const st = casc.participants[casc.cursor];
+      if (!st) break;
+      for (const x of casc.participants) if (x.kind === 'sauvegarde' && x.actorId && !vus.includes(x.actorId)) vus.push(x.actorId);
+      avanceEtapeCascade(banc.getState);
+      capter();
+    }
+    const lignes = lignesLues();
+    const vu = `sauvegardes : ${vus.join(', ')} — PB h2=${h2.wounds.current} h3=${h3.wounds.current} h4=${h4.wounds.current} — ${lignes.join(' | ')}`;
+    const rang = (id: string): number => lignes.findIndex((l) => new RegExp(`${id}.*sauvegarde 1d10`).test(l));
+    expect(rang('h2'), `h2 a joué SA sauvegarde — ${vu}`).toBeGreaterThanOrEqual(0);
+    expect(rang('h3'), `h3 aussi — ${vu}`).toBeGreaterThanOrEqual(0);
+    // h4 est le maillon PARQUÉ DEPUIS UN APPLIER : sa poussée vit dans la fenêtre d'insertion, pas dans
+    // `participants` — c'est LUI que perdait un parquage « dernière du tableau ».
+    expect(rang('h4'), `h4 aussi : le maillon parqué pendant une application n’est pas perdu — ${vu}`).toBeGreaterThanOrEqual(0);
+    expect(rang('h2'), 'les dés se lisent dans l’ordre du balayage').toBeLessThan(rang('h3'));
+    expect(rang('h3'), 'les dés se lisent dans l’ordre du balayage').toBeLessThan(rang('h4'));
+    expect(h2.wounds.current, `h2 a bien été frappé — ${vu}`).toBeLessThan(30);
+    expect(h3.wounds.current, `h3 a bien été frappé — ${vu}`).toBeLessThan(30);
+  });
+
+  it('ATTAQUE GRATUITE : l’Action n’est pas consommée quand la cible a une sauvegarde', () => {
+    const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
+    // Frappeur sûr de sa touche / démon sans défense : le contrat porte sur l'Action, pas sur le jet.
+    const frappeur = mk('hero', 'frappeur', { pos: { x: 0, y: 0 }, weapons: [epee], characteristics: { ...CHARS, 'capacite-de-combat': 90 } } as never);
+    const nul = tableTotale(CHAR_KEYS, () => 1);
+    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul, traits: [{ id: 'demoniaque', value: 8 }] } as never);
+    setBattle([frappeur, demon]);
+    const { vu, unsub } = suitLAction(demon.id);
+    try {
+      accorderLAttaqueGratuite(banc.getState, banc.setState, frappeur,
+        { op: 'grantFreeAttack' } as never, { targetId: demon.id, cap: 1, key: 'frappe-reactive' });
+      const st = etapeCourante();
+      expect(st?.kind, 'la frappe gratuite a bien ouvert la sauvegarde du démon').toBe('sauvegarde');
+      expect({ pb: demon.wounds.current, marquages: vu.marquages, restitutions: vu.restitutions }, 'avant le dé : ni Blessure, ni Action marquée, ni Action rendue').toEqual({ pb: 30, marquages: 0, restitutions: 0 });
+      expect(banc.getState().battle!.acted, 'avant le dé : l’Action d’avant').toBe(false);
+      poser(1); // sauvegarde RATÉE : le coup porte, et la RÉ-ENTRÉE rejoue `markActed`
+      expect(demon.wounds.current, 'la frappe a bien été appliquée à la reprise').toBeLessThan(30);
+      expect(vu.marquages, 'le coup marque l’Action UNE fois, à la reprise').toBe(1);
+      expect(vu.restitutions, 'la queue rend l’Action UNE fois, à la reprise').toBe(1);
+      expect(banc.getState().battle!.acted, 'une frappe GRATUITE ne consomme pas l’Action, même suspendue par une sauvegarde').toBe(false);
+    } finally {
+      unsub();
+    }
+  });
+});
+
+describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegarde PUIS Déviation)', () => {
+  // La Déviation Critique (LDB 63 l.30) rouvre une fenêtre APRÈS la sauvegarde : ce que l’appelant fera
+  // après le coup doit traverser les DEUX, sans quoi la dernière reprise joue un coup amputé de sa suite.
+  const nul = (): typeof CHARS => tableTotale(CHAR_KEYS, () => 1);
+  const blindee = { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 };
+
+  /** Joue la séquence jusqu'au bout comme le pilote : les porteurs sont AUTO, leurs dés se résolvent
+   *  d'office ; choix au défaut. Renvoie les `kind` d'étapes traversés. */
+  const derouler = (): string[] => {
+    const vus: string[] = [];
+    for (let garde = 0; garde < 12 && banc.getState().pendingCascade; garde++) {
+      const casc = banc.getState().pendingCascade!;
+      const st = casc.participants[casc.cursor];
+      if (!st) break;
+      vus.push(st.kind);
+      avanceEtapeCascade(banc.getState);
+      capter();
+    }
+    return vus;
+  };
+
+  beforeEach(() => setRule('combat-critical-deflect', true)); // la fenêtre de Déviation existe (règle optionnelle)
+
+  /** Les étapes de DÉVIATION de la séquence (même lecture que `deviation-paths.hors-store.test.ts:67`). */
+  const etapesDeviation = (): CascadeStep[] =>
+    (banc.getState().pendingCascade?.participants ?? []).filter((x) => x.kind === 'deviation');
+
+  it('la suite du coup traverse la sauvegarde PUIS la DÉVIATION — l’Avantage différé n’est pas crédité à la reprise', () => {
+    // Montage repris de `deviation-paths.hors-store.test.ts:375-387` (« héros blindé subissant un dépassement →
+    // SUSPEND ») : héros TENU (ni `aiControlled`, ni siège distant), armure DÉVIABLE à la localisation,
+    // `res` FORGÉ passé DIRECTEMENT à `applyAttackResult` — ce qui court-circuite `maybeOpenDefense`.
+    // S'y ajoute la Protection (6+) du porteur : la SAUVEGARDE s'ouvre d'abord, la DÉVIATION ensuite, sur
+    // le MÊME coup. La suite sous contrat est l'Avantage DIFFÉRÉ du Maniement de deux armes (LDB 10
+    // l.767-773) : c'est la seule dont l'effet se MESURE après les deux fenêtres (`ApplicationDuCoup.sousAttaque`).
+    const gourdin = { label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as unknown as Weapon;
+    const brute = mk('enemy', 'brute', { pos: { x: 1, y: 0 }, weapons: [gourdin] });
+    const porteur = mk('hero', 'porteur', {
+      pos: { x: 0, y: 0 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 },
+      wounds: { current: 3, max: 15 }, traits: [{ id: 'protection', value: 6 }],
+    } as never);
+    setBattle([brute, porteur]);
+    // Dépassement (LDB 18 l.53) : `woundsLost` (8) > PB courants (3), `critical: false`.
+    const depassement = { ...touche(), damage: 12, woundsLost: 8, location: 'corps', advantageTo: 'attacker' } as AttackResult;
+
+    // 1) La SAUVEGARDE s'ouvre la première, avant toute mutation.
+    const suspendu = applyAttackResult(banc.getState, banc.setState, brute, porteur, gourdin, depassement,
+      { suite: { deferAttackerAdvantage: true } });
+    expect(suspendu, 'la sauvegarde suspend AVANT toute mutation').toBe(OPS_DIFFEREES);
+    expect(etapeCourante()!.kind).toBe('sauvegarde');
+    expect(etapesDeviation(), 'aucune fenêtre de Critique avant le dé').toHaveLength(0);
+
+    // 2) Dé POSÉ sous l'Indice → la sauvegarde ÉCHOUE → ré-entrée → le dépassement ouvre la DÉVIATION,
+    //    et SA charge porte la suite du coup.
+    poser(5);
+    const dev = etapesDeviation();
+    expect(dev, 'UNE fenêtre de Déviation, ouverte APRÈS la sauvegarde').toHaveLength(1);
+    expect(dev[0].kind).toBe('deviation');
+    expect(dev[0].critSeverity?.suite, 'la charge de la 2ᵉ fenêtre porte la suite du coup').toEqual({ deferAttackerAdvantage: true });
+
+    // 3) Le joueur joue la fenêtre : d100 de sévérité DANS l'étape (patron `deviation-paths.hors-store.test.ts:356`),
+    //    puis « Dévier » — et la reprise finale honore toujours la suite.
+    banc.getState().cascadeTableRoll(dev[0].id);
+    const apres = etapesDeviation()[0];
+    expect(apres.deviation?.mode === 'melee' ? apres.deviation.suite : undefined, 'le PLI post-dé reconduit la suite dans la `PendingDeviation`').toEqual({ deferAttackerAdvantage: true });
+    resolveDeviation(banc.getState, banc.setState, apres.deviation!, true);
+    expect(brute.advantage, 'Avantage DIFFÉRÉ (LDB 10 l.767-773) : la reprise d’après-Déviation ne le crédite pas').toBe(0);
+    expect(etapesDeviation(), 'une seule fenêtre de Critique pour ce coup').toHaveLength(1);
+  });
+
+  it('BALAYAGE : un maillon qui part en DÉVIATION (sans sauvegarde) ne casse ni ne rejoue la chaîne', () => {
+    const griffe = { label: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
+    const demon = { id: 'demoniaque', value: 8 };
+    const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: { ...CHARS, 'capacite-de-combat': 90 }, size: 'enorme', weapons: [griffe] } as never);
+    const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), aiControlled: true } as never);
+    const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true, traits: [demon] } as never);
+    // h3 n'a AUCUNE sauvegarde : son maillon suspend par la DÉVIATION (1 PB → dépassement, armure déviable).
+    const h3 = mk('hero', 'h3', { pos: { x: 6, y: 5 }, characteristics: nul(), aiControlled: true, wounds: { current: 1, max: 30 }, armour: blindee } as never);
+    const h4 = mk('hero', 'h4', { pos: { x: 5, y: 4 }, characteristics: nul(), aiControlled: true, traits: [demon] } as never);
+    setBattle([ogre, h1, h2, h3, h4]);
+    autoCleave(banc.getState, banc.setState, ogre, h1, { ...touche(), cleave: true } as AttackResult);
+    derouler();
+    const coups = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((t) => /^ogre touche/.test(t));
+    const vu = coups.join(' | ');
+    // TROIS enchaînements (h2, h3, h4) et pas un de plus : une suite rejouée en aurait ajouté.
+    expect(coups.length, `un coup par maillon, aucun rejoué — ${vu}`).toBe(3);
+    expect(coups.filter((t) => /h4/.test(t)).length, `h4 est frappé UNE fois, à travers la Déviation de h3 — ${vu}`).toBe(1);
+  });
+});
+
+describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfirm`/`defenseConfirm`', () => {
+  // Ce que ces quatre contrats tiennent : ce qui DÉPEND de l'issue du coup ne se joue plus au retour de
+  // l'appel (le dé n'est pas tombé) mais à la REPRISE, une fois — la suite voyage avec le coup.
+  const epee = { uid: 'm', label: 'Épée', type: 'melee', hand: 'main', hands: 1, damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
+  const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'off', hands: 1, damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
+  const griffe = { label: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
+  const demoniaque = [{ id: 'demoniaque', value: 8 }] as never;
+  const nul = (): typeof CHARS => tableTotale(CHAR_KEYS, () => 1);
+
+  /** La fenêtre de défense telle que `openDefenseCascade` la pose : son étape au curseur de la séquence de combat. */
+  const fenetreDeDefense = (defenseur: Combatant) =>
+    cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: defenseur.id }], { title: 'Défense', purpose: 'combat' });
+
+  /** La sauvegarde du porteur est l'étape COURANTE, et rien n'a encore bougé. */
+  const sauvegardeEnCours = (porteur: Combatant): CascadeStep => {
+    const st = etapeCourante();
+    expect(st?.kind, `l’étape courante devrait être la sauvegarde de ${porteur.id}`).toBe('sauvegarde');
+    expect(st!.actorId).toBe(porteur.id);
+    expect(porteur.wounds.current, 'aucune mutation avant le dé').toBe(30);
+    return st!;
+  };
+
+  it('(i) FRAPPE MORTELLE : l’enchaînement n’est armé qu’APRÈS le dé — il doit VOIR la mort', () => {
+    setRule('combat-frappe-mortelle', true);
+    const heros = mk('hero', 'hardi', { pos: { x: 0, y: 0 }, weapons: [epee] } as never);
+    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque } as never);
+    const sbire = mk('enemy', 'sbire', { pos: { x: 2, y: 0 }, characteristics: nul() } as never);
+    setBattle([heros, demon, sbire]);
+    // Un coup qui TUE (40 PB perdus sur 30) : la Frappe Mortelle (LDB 14 l.9) n'enchaîne qu'en tuant.
+    banc.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', result: { ...touche(), damage: 40, woundsLost: 40 } } as never });
+    banc.getState().attackConfirm();
+    sauvegardeEnCours(demon);
+    expect(banc.getState().pendingCleave, 'le balayage ne s’arme pas sur une mort qui n’a pas encore eu lieu').toBeNull();
+    poser(5); // sauvegarde RATÉE (< 8) : le coup porte, le démon tombe
+    expect(demon.wounds.current, 'le coup a porté à la reprise').toBe(0);
+    expect(banc.getState().pendingCleave, 'la Frappe Mortelle est offerte à la reprise, sur la mort RÉELLE').not.toBeNull();
+    expect(banc.getState().pendingCleave!.attackerId).toBe(heros.id);
+  });
+
+  it('(ii) MANŒUVRE GRATUITE : l’Action est rendue, et l’État n’est posé que si le coup n’est pas ignoré', () => {
+    // Attaque caudale (LDB 85 l.47) : la manœuvre POSE À Terre sur une cible plus petite, en DONNÉE.
+    const monte = (): { heros: Combatant; demon: Combatant } => {
+      const heros = mk('hero', 'colosse', { pos: { x: 0, y: 0 }, weapons: [epee], size: 'enorme', traits: [{ id: 'attaque-caudale', value: 9 }] } as never);
+      const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), size: 'moyenne', traits: demoniaque } as never);
+      setBattle([heros, demon]);
+      banc.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', freeKind: 'caudale', result: touche() } as never });
+      banc.getState().attackConfirm();
+      return { heros, demon };
+    };
+    const aTerre = (c: Combatant): unknown => c.conditions.find((x) => x.id === 'a-terre');
+
+    const sauve = monte();
+    sauvegardeEnCours(sauve.demon);
+    poser(8); // ≥ 8 : « le coup est ignoré » (LDB 85 l.98)
+    expect(banc.getState().battle!.acted, 'une manœuvre GRATUITE ne consomme pas l’Action').toBe(false);
+    expect(aTerre(sauve.demon), 'un coup IGNORÉ ne pose pas l’État de la manœuvre').toBeUndefined();
+
+    lues = [];
+    const rate = monte();
+    sauvegardeEnCours(rate.demon);
+    poser(5); // < 8 : le coup porte
+    expect(banc.getState().battle!.acted, 'gratuite : l’Action est rendue par la reprise').toBe(false);
+    expect(aTerre(rate.demon), 'le coup a porté : l’État de la manœuvre est posé').toBeDefined();
+  });
+
+  it('(iii) MANIEMENT DE DEUX ARMES : la 2ᵉ frappe s’ouvre à la reprise, avec la valeur du Critique', () => {
+    const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */ } as never);
+    setBattle([heros, demon]);
+    const critique = { ...touche(), critical: true, critLocation: 'corps', attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
+    banc.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', dualMode: true, result: critique } as never });
+    banc.getState().attackConfirm();
+    sauvegardeEnCours(demon);
+    expect(banc.getState().pendingDualStrike, 'aucune 2ᵉ frappe tant que le dé n’est pas tombé').toBeNull();
+    poser(5); // < 8 : le coup porte, le Critique s'applique, SON étape est appendue
+    const ds = banc.getState().pendingDualStrike;
+    expect(ds, 'la 2ᵉ frappe s’ouvre à la reprise').not.toBeNull();
+    expect(ds!.offWeaponUid, 'la main secondaire est celle du héros').toBe('o');
+    const crit = [...(banc.getState().pendingCascade?.participants ?? [])].reverse().find((s) => s.kind === 'critical');
+    expect(crit, 'le Critique a bien appendu SON étape à la reprise').toBeDefined();
+    expect(ds!.jet, "'ldb' : le d100 nu du Coup Critique est le dé de la table (LDB 10 l.773 ; LDB 18 l.53)").toBe(crit!.reveal?.dice);
+    expect(banc.getState().pendingCascade, 'la cascade reste OUVERTE : la 2ᵉ frappe s’y rendra').not.toBeNull();
+  });
+
+  it('(iii bis) MANIEMENT DE DEUX ARMES : la valeur est celle du Coup Critique, pas du Critique de dépassement (LDB 10 l.767-773 ; #1595 C7)', () => {
+    const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */, wounds: { current: 2, max: 30 } } as never);
+    const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773 : un adversaire reste disponible
+    setBattle([heros, demon, voisin]);
+    const critique = { ...touche(), critical: true, critLocation: 'corps', attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
+    banc.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', dualMode: true, result: critique } as never });
+    banc.getState().attackConfirm();
+    expect(etapeCourante()?.kind).toBe('sauvegarde');
+    poser(5); // < 8 : le coup porte — Coup Critique PUIS dépassement (LDB 18 l.17)
+    const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+    expect(crits.map((s) => s.reveal?.origine), 'les deux Blessures critiques, dans leur ordre').toEqual(['coup-critique', 'depassement']);
+    expect(crits.map((s) => s.reveal?.title)).toEqual([tr('step.coupCritique'), tr('step.blessureCritique')]);
+    expect(banc.getState().pendingDualStrike!.jet, "'ldb' : le d100 nu du Coup Critique (LDB 18 l.53)").toBe(crits[0].reveal?.dice);
+    expect(banc.getState().pendingDualStrike!.jet, 'jamais le d100 du dépassement').not.toBe(crits[1].reveal?.dice);
+  });
+
+  /** La 1ʳᵉ frappe d'un Maniement de deux armes, en `aa`, sur une cible à `current` Blessures, jusqu'à l'ouverture de la 2ᵉ. */
+  function secondeMainEnAA(critique: boolean, current: number, cibleOver: Partial<Combatant> = {}) {
+    setRule('combat-aa-blessures', 'aa');
+    const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const cible = mk('enemy', 'cible', { pos: { x: 1, y: 0 }, characteristics: nul(), talents: [{ talentId: 'chanceux', times: 1 }] /* AA 07 l.67 : hors Mort subite */, wounds: { current, max: 30 }, ...cibleOver } as never);
+    const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
+    setBattle([heros, cible, voisin]);
+    const premiere = {
+      ...touche(), critical: critique, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 },
+      ...(critique || current === 0 ? { critLocation: 'corps' } : {}), // LDB 18 l.53, l.55 ; AA 07 l.25
+    } as AttackResult;
+    banc.setState({ pendingAttack: { attackerId: heros.id, targetId: cible.id, location: 'corps', dualMode: true, result: premiere } as never });
+    banc.getState().attackConfirm();
+    const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+    return { crits, jet: banc.getState().pendingDualStrike?.jet };
+  }
+
+  it("(iii ter) 'aa', Coup Critique qui fait aussi passer à 0 : la 2ᵉ frappe lit le d100 NU, pas le jet décalé (LDB 10 l.773 ; AA 07 l.36, l.42)", () => {
+    const { crits, jet } = secondeMainEnAA(true, 2);
+    expect(crits.map((s) => s.reveal?.origine), 'une seule Blessure critique (AA 07 l.42)').toEqual(['coup-critique']);
+    const dice = crits[0].reveal!.dice!;
+    expect(jet).toBeDefined();
+    expect(dice - jet!, 'le +10 par Blessure au-delà de 0 est hors de la valeur').toBeGreaterThan(0);
+    expect((dice - jet!) % 10).toBe(0);
+  });
+
+  it("(iii ter bis) 'aa', Coup Critique sur un dormeur réveillé : la 2ᵉ frappe lit le d100 du Critique appliqué (LDB 10 l.773 ; LDB 47 l.277)", () => {
+    const dormeur = { conditions: [{ id: 'inconscient', value: 1, roundsLeft: 3 }] } as unknown as Partial<Combatant>;
+    const { crits, jet } = secondeMainEnAA(true, 30, dormeur);
+    expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
+    expect(jet).toBe(crits[0].reveal!.dice);
+  });
+
+  for (const [branche, current] of [['cible déjà à 0', 0], ['passage à 0', 2]] as const) {
+    it(`(iii quater) 'aa', ${branche}, sans double : aucun Critique au jet, la 2ᵉ frappe vaut le jet inversé (LDB 10 l.773 ; LDB 13 l.183 ; #1595 c.6229354257)`, () => {
+      const { crits, jet } = secondeMainEnAA(false, current);
+      expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
+      expect(jet, '30 inversé').toBe(3);
+    });
+  }
+
+  it('(iv) `defenseConfirm` : le maillon de balayage PARQUÉ reprend après le dé, sans balayage neuf', () => {
+    const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: { ...CHARS, 'capacite-de-combat': 90 }, size: 'enorme', weapons: [griffe] } as never);
+    const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), traits: [{ id: 'protection', value: 6 }] } as never);
+    const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true } as never);
+    setBattle([ogre, h1, h2]);
+    seedBattleRng(4);
+    banc.setState({
+      pendingDefense: { attackerId: ogre.id, defenderId: h1.id, weapon: griffe, mode: 'parade', result: touche(), suite: { mode: 'machine', coup: { enchainement: { mode: 'chaine', hitIds: [h1.id], n: 0, bcc: 2, fm: false } } } } as never,
+      pendingCascade: fenetreDeDefense(h1),
+    });
+    banc.getState().defenseConfirm();
+    sauvegardeEnCours(h1);
+    expect(h2.wounds.current, 'le maillon suivant attend le dé du maillon courant').toBe(30);
+    poser(5); // < 6 : le coup porte sur h1, puis la chaîne PARQUÉE reprend
+    expect(h1.wounds.current, 'la sauvegarde a manqué : h1 encaisse').toBeLessThan(30);
+    const coups = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((x) => /^ogre touche/.test(x));
+    expect(coups.filter((x) => /h2/.test(x)).length, `la chaîne parquée reprend sur h2 — ${coups.join(' | ')}`).toBe(1);
+  });
+
+  it('(v) L’ENCHAÎNEMENT SE DÉCLARE : une frappe du Maniement de deux armes n’ouvre AUCUN balayage, même conduite par l’IA', () => {
+    // Un héros conduit par l'IA (`aiControlled`) passe la garde `aiDriven` d'`autoCleave` ; sa frappe de
+    // main directrice pose `res.cleave` (plus grand, LDB 85 l.362). C'est le SITE D'ORIGINE qui tranche :
+    // `attackConfirm` n'a jamais balayé sur cette branche — la queue partagée ne doit pas le faire à sa place.
+    const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague], size: 'enorme', aiControlled: true } as never);
+    const e1 = mk('enemy', 'e1', { pos: { x: 1, y: 0 }, characteristics: nul() } as never);
+    const e2 = mk('enemy', 'e2', { pos: { x: 0, y: 1 }, characteristics: nul() } as never);
+    setBattle([heros, e1, e2]);
+    const coup = { ...touche(), cleave: true, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
+    banc.setState({ pendingAttack: { attackerId: heros.id, targetId: e1.id, location: 'corps', dualMode: true, result: coup } as never });
+    banc.getState().attackConfirm();
+    expect(banc.getState().pendingDualStrike, 'la 2ᵉ frappe s’ouvre bien (la suite est jouée)').not.toBeNull();
+    expect(banc.getState().pendingCleave, 'aucun balayage interactif n’est armé').toBeNull();
+    const vu = (banc.getState().battle?.log ?? []).map((l) => l.text);
+    expect(vu.filter((x) => /e2/.test(x)), `e2 n’est pas touchée : ce coup ne déclare AUCUN enchaînement — ${vu.join(' | ')}`).toHaveLength(0);
+    expect(e2.wounds.current, 'la 2ᵉ cible adjacente est intacte').toBe(30);
+  });
+
+  it('(vi) MANŒUVRE GRATUITE d’une créature de Taille (IA, non suspendue) : effets posés, Action rendue, et le balayage de la machine suit', () => {
+    // LDB 85 l.362 : « Toutes les frappes réussies activent la règle optionnelle Frappe Mortelle » — la
+    // queue non suspendue d'une manœuvre gratuite est la MÊME écriture que celle de la reprise,
+    // enchaînement compris (la queue inline de `applyFreeAttack` n'en jouait, elle, que la moitié).
+    const monte = (voisine: boolean): { ogre: Combatant; h1: Combatant; h2: Combatant } => {
+      const ogre = mk('enemy', 'ogre', {
+        pos: { x: 5, y: 5 }, size: 'enorme', characteristics: { ...CHARS, 'capacite-de-combat': 90 },
+        weapons: [griffe], advantage: 3, traits: [{ id: 'attaque-caudale', value: 9 }], pendingFreeAttacks: ['caudale'],
+      } as never);
+      const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), aiControlled: true } as never);
+      const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true } as never);
+      setBattle(voisine ? [ogre, h1, h2] : [ogre, h1]);
+      seedBattleRng(4);
+      aiCreatureFreeAttacks(banc.getState, banc.setState, ogre);
+      return { ogre, h1, h2 };
+    };
+
+    // (a) SEULE cible : rien à balayer — l'Action gratuite est rendue et les effets de la manœuvre posés.
+    const seul = monte(false);
+    const vuA = (banc.getState().battle?.log ?? []).map((l) => l.text).join(' | ');
+    expect(banc.getState().battle!.acted, 'une manœuvre GRATUITE ne consomme pas l’Action').toBe(false);
+    expect(seul.h1.wounds.current, `la manœuvre a porté — ${vuA}`).toBeLessThan(30);
+    expect(seul.h1.conditions.find((c) => c.id === 'a-terre'), 'Attaque caudale (LDB 85 l.47) : À Terre sur une cible plus petite').toBeDefined();
+
+    // (b) Une 2ᵉ cible adjacente : le balayage de la machine suit le coup, comme après tout coup de l'IA.
+    const avecVoisine = monte(true);
+    const vuB = (banc.getState().battle?.log ?? []).map((l) => l.text).join(' | ');
+    expect(avecVoisine.h2.wounds.current, `le balayage de la machine suit la manœuvre — ${vuB}`).toBeLessThan(30);
+  });
+
+  it('(vii) La MALADRESSE du défenseur est due même sur un maillon de balayage repris (LDB 14 l.19)', () => {
+    const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: { ...CHARS, 'capacite-de-combat': 90 }, size: 'enorme', weapons: [griffe] } as never);
+    const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), weapons: [epee], traits: [{ id: 'protection', value: 6 }] } as never);
+    const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true } as never);
+    setBattle([ogre, h1, h2]);
+    seedBattleRng(4);
+    // Parade RATÉE sur un DOUBLE (66) : « tout Test de combat qui est un échec et dont le résultat du jet
+    // est un double est une Maladresse » (LDB 14 l.19) — due que ce coup soit un maillon de chaîne ou non.
+    const rate = { ...touche(), defenderDetail: { roll: 66, target: 20, success: false, sl: -4 } } as AttackResult;
+    banc.setState({
+      pendingDefense: { attackerId: ogre.id, defenderId: h1.id, weapon: griffe, mode: 'parade', result: rate, suite: { mode: 'machine', coup: { enchainement: { mode: 'chaine', hitIds: [h1.id], n: 0, bcc: 2, fm: false } } } } as never,
+      pendingCascade: fenetreDeDefense(h1),
+    });
+    banc.getState().defenseConfirm();
+    sauvegardeEnCours(h1);
+    poser(5); // < 6 : le coup porte sur h1 → Maladresse DUE, puis la chaîne parquée reprend
+    const etapes = banc.getState().pendingCascade?.participants ?? [];
+    expect(etapes.filter((s) => s.kind === 'fumbleJet' && s.actorId === h1.id),
+      `la Maladresse de h1 est poussée — étapes vues : ${etapes.map((s) => s.kind).join(', ')}`).toHaveLength(1);
+    // La chaîne est la SUITE du coup : elle vient APRÈS la Maladresse du défenseur (`APRES_COUP`).
+    banc.getState().fumbleRoll();
+    banc.getState().fumbleConfirm();
+    const coups = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((x) => /^ogre touche/.test(x));
+    expect(coups.filter((x) => /h2/.test(x)).length, `la chaîne reprend tout de même sur h2 — ${coups.join(' | ')}`).toBe(1);
+  });
+
+  // Frénésie (LDB 21 l.33) qui balaie (LDB 85 l.362) ; le maillon frappe un démon (LDB 85 l.98) : la
+  // restitution (LDB 85 l.43) traverse l'étape de sauvegarde.
+  const maillonSurDemon = (): Combatant => {
+    const heros = mk('hero', 'furieux', { pos: { x: 0, y: 0 }, weapons: [epee], psychState: [{ type: 'frenesie' }] } as never);
+    const e1 = mk('enemy', 'e1', { pos: { x: 1, y: 0 }, characteristics: nul() } as never);
+    const demon = mk('enemy', 'demon', { pos: { x: 0, y: 1 }, characteristics: nul(), traits: demoniaque } as never);
+    setBattle([heros, e1, demon]);
+    banc.setState({ pendingCleave: null, pendingDualStrike: null, pendingDefense: null });
+    banc.setState({ pendingAttack: { attackerId: heros.id, targetId: e1.id, location: 'corps', result: { ...touche(), cleave: true } } as never });
+    banc.getState().attackConfirm();
+    expect(banc.getState().pendingCleave?.restitution, 'la chaîne de la gratuite emporte sa restitution').toEqual({ prevActed: false });
+    banc.getState().cleaveAttack(demon.id);
+    const pa = banc.getState().pendingAttack!;
+    banc.setState({ pendingAttack: { ...pa, result: touche() } as never });
+    banc.getState().attackConfirm();
+    return demon;
+  };
+
+  it('(ix) MAILLON d’un héros suspendu sur une sauvegarde : l’Action de la gratuite est rendue à la fermeture', () => {
+    // Le siège MJ tient le démon : son dé de sauvegarde est un geste de siège, jamais posé d'office
+    // (`cascade.tirageSansSiege`) quand le curseur du maillon arrive dessus.
+    const net = banc.getState().net;
+    banc.setState({ net: { ...net, gmSeat: 0 } });
+    const demon = maillonSurDemon();
+    sauvegardeEnCours(demon);
+    poser(5); // < 8 : le coup porte, puis la suite du maillon se joue
+    expect(demon.wounds.current, 'le maillon a porté à la reprise').toBeLessThan(30);
+    expect(banc.getState().pendingCleave, 'plus aucune cible : la chaîne est close').toBeNull();
+    expect(banc.getState().battle!.acted, 'gratuite : l’Action d’avant, maillon suspendu compris').toBe(false);
+  });
+
+  it('(ix) MAILLON d’un héros, SANS siège MJ : le dé de sauvegarde part d’office, et l’Action de la gratuite est rendue', () => {
+    expect(banc.getState().net.gmSeat, 'aucun siège MJ ne tient le démon').toBeUndefined();
+    const { vu, unsub } = suitLAction('demon');
+    try {
+      const demon = maillonSurDemon();
+      expect(vu.avantLeDe, 'avant le dé tiré d’office : le maillon n’a pas porté, l’Action n’est pas rendue').toEqual({ pb: 30, marquages: 1, restitutions: 0 });
+      expect(banc.getState().pendingCascade, 'le dé est tiré d’office : aucune étape ne reste à jouer').toBeNull();
+      expect(lignesLues().some((l) => /^demon — Sauvegarde : dé \d+/.test(l)), lignesLues().join(' | ')).toBe(true);
+      expect(demon.wounds.current, 'graine 1 : le dé (7) manque le 8+, le maillon porte').toBeLessThan(30);
+      expect(banc.getState().pendingCleave, 'plus aucune cible : la chaîne est close').toBeNull();
+      expect(vu.restitutions, 'la queue rend l’Action UNE fois, après le dé').toBe(1);
+      expect(banc.getState().battle!.acted, 'gratuite : l’Action d’avant, maillon suspendu compris').toBe(false);
+    } finally {
+      unsub();
+    }
+  });
+
+  it('(viii) TIR RAPIDE d’INTERRUPTION sur un porteur de sauvegarde : la cascade-hôte n’est pas détruite, et le tour n’avance pas', () => {
+    const arcTireur = { uid: 'a', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [], loaded: true } as unknown as Weapon;
+    const tireur = mk('hero', 'tireur', { pos: { x: 0, y: 0 }, weapons: [arcTireur], talents: [{ talentId: 'tir-rapide', times: 1 }] } as never);
+    // Indice 10 : la sauvegarde ne passe qu'à 10 — le dé, POSÉ D'OFFICE (aucun siège ne tient le démon
+    // pendant la pause de début de Round), rate, et la reprise applique le coup.
+    const demon = mk('enemy', 'demon', { pos: { x: 3, y: 0 }, characteristics: nul(), traits: [{ id: 'protection', value: 10 }] } as never);
+    setBattle([tireur, demon]);
+    seedBattleRng(2);
+    // Pause de début de Round : le tireur n'est PAS actif (l'interruption est hors de l'ordre, LDB 11 l.97-103).
+    banc.setState({ pendingRoundStart: { round: 2, promoted: null } as never });
+    banc.getState().preemptRangedShot(tireur.id, demon.id);
+    const pa = banc.getState().pendingAttack;
+    expect(pa?.interrupt, 'le tir d’interruption a bien ouvert sa cascade-hôte').toBe(true);
+    banc.setState({ pendingAttack: { ...pa!, result: touche() } as never });
+    const tourAvant = banc.getState().battle!.turn;
+    banc.getState().attackConfirm();
+    // Le coup a été SUSPENDU par la sauvegarde poussée DANS la cascade-hôte : refermer celle-ci d'office
+    // l'aurait emportée avec le coup — le tir n'aurait JAMAIS été appliqué.
+    expect(demon.wounds.current, 'le tir d’interruption s’applique, à travers sa sauvegarde').toBeLessThan(30);
+    expect(tireur.loseNextAction, 'le PRIX du tir est dû quelle que soit l’issue').toBe(true);
+    expect(tireur.loseNextMovement, 'le PRIX du tir est dû quelle que soit l’issue').toBe(true);
+    expect(banc.getState().pendingCascade, 'la cascade se referme par ses propres étapes, une fois épuisées').toBeNull();
+    expect(banc.getState().pendingRoundStart, 'toujours à la pause de début de Round').not.toBeNull();
+    expect(banc.getState().battle!.turn, 'aucun tour avancé').toBe(tourAvant);
+  });
+});

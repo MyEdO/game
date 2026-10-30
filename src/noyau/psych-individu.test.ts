@@ -30,6 +30,7 @@ import { validateScene } from './validateScene';
 import type { Combatant, Weapon } from '../engine/types';
 import { SCHEMA_DEFS } from '../data/schemas/_registry.generated';
 import { readFileSync } from 'node:fs';
+import { blessuresDeBase } from '../engine/characteristics';
 
 /** Le texte brut des documents du catalogue, par chemin relatif (`../data/<file>`). */
 const TEXTES_DU_CATALOGUE = import.meta.glob<string>('../data/*.json', { eager: true, query: '?raw', import: 'default' });
@@ -242,7 +243,7 @@ describe('le vivier de l’IA : la pulsion vise l’individu, de tout `kind`', (
 
   it('un PNJ s’en prend au combattant de son propre `kind` que vise sa pulsion', () => {
     const e = mk('e', 'enemy', { pos: { x: 5, y: 5 }, psychState: [{ type: pulsion!.id as PsychType, cible: ciblePsy.individu('allie'), active: true }] });
-    const heros = mk('h', 'hero', { pos: { x: 5, y: 4 }, wounds: { current: 1, max: 10 } });
+    const heros = mk('h', 'hero', { pos: { x: 5, y: 4 }, wounds: blessuresDeBase(10, 1) });
     const allie = mk('allie', 'enemy', { pos: { x: 5, y: 6 } });
     const action = chooseEnemyAction(input(e, [heros], { ciblesDePulsion: [allie] }));
     const cible = (action as { targetId?: string; thenTargetId?: string }).targetId ?? (action as { thenTargetId?: string }).thenTargetId;

@@ -7,6 +7,8 @@ import { shipSaboteurDR } from './shipCrew';
 import { maneuverCrewTotal } from './shipManeuver';
 import type { Combatant, SkillInstance } from '../engine/types';
 import { propulsionDuNavire } from '../engine/shipBuild';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -24,14 +26,14 @@ const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competenc
  */
 const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const cook = (): Combatant =>
-  ({ id: 'cook', name: 'Coq', kind: 'hero',
+  combattantDeTest({ id: 'cook', label: 'Coq', kind: 'hero',
     characteristics: { ...chars, dexterite: 45 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], fortune: 2, resilience: 1,
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], fortune: 2, resilience: 1,
     skills: [{ id: 'metier', spec: 'cuisinier', characteristic: 'dexterite', advances: 20 } as SkillInstance], talents: [], weapons: [],
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } }) as unknown as Combatant;
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } });
 const vesselShip = (over: Partial<Combatant> = {}): Combatant =>
-  ({ id: 'ship', name: 'Cogue', kind: 'npc', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['cook'],
-    pos: { x: 5, y: 5 }, conditions: [], weapons: [], ...over }) as unknown as Combatant;
+  combattantDeTest({ id: 'ship', label: 'Cogue', kind: 'npc', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['cook'],
+    pos: { x: 5, y: 5 }, conditions: [], weapons: [], ...over });
 
 function openRudeEpreuve(shipOver: Partial<Combatant> = {}) {
   seedBattleRng(7);

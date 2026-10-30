@@ -1,12 +1,15 @@
 /**
  * LES MODÈLES DE L'ATELIER 3D (#3086, `CONTRAT.md`, section « Atelier 3D ») : `modelesDeLAtelier` rend chaque base avec
  * ses points d'accroche, emplacements puis prises, à chaque point les éléments rigides de cette base dont un mesh pend à
- * l'os du point (`osDesRigides`), et le fichier GLB de chaque base et de chaque élément d'un point ; un rigide sans os,
+ * l'os du point (`osDesRigides`), le fichier GLB de chaque base et de chaque élément d'un point, et pour ces seuls éléments
+ * les noms de leurs surfaces `blason` ; les emblèmes sont la sous-liste `embleme` de la garde-robe ; un rigide sans os,
  * un élément lié au squelette ou en surface n'a aucun point, les refus de l'index sont rendus, un manifeste schéma 2 est
  * ignoré.
  */
 import { describe, expect, it } from 'vitest';
-import { baseSchema3, elementSchema3 } from '../asset/schema3.testkit.ts';
+import { baseSchema3, elementSchema3, glbDElement } from '../asset/schema3.testkit.ts';
+import { empreinte } from '../asset/empreinte.ts';
+import { gardeRobe } from '../../../src/noyau/index';
 import { modelesDeLAtelier } from './atelier';
 
 const dos = { os: 'spine', position: [0, 0.1, 0], rotation: [0, 0, 0] };
@@ -14,11 +17,14 @@ const humanoide = { ...baseSchema3('humanoide'), emplacements: { dos } };
 const epee = elementSchema3('humanoide');
 const chemise = {
   schema: 3, base: 'humanoide', categorie: 'vetement', cle: { piece: 'chemise' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: ['torse'],
-  surfaces: [{ nom: 'tissu', palette: 'tissu' }], glb: epee.glb,
+  surfaces: [{ nom: 'tissu', palette: 'tissu' }], glb: empreinte(glbDElement('root', ['tissu'])),
 };
 const broche = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'baudrier' }, liaison: { mode: 'surface' }, couvre: [] };
-const bouclier = { ...elementSchema3('humanoide'), cle: { apparence: 'bouclier_blason' } };
-const lanterne = { ...elementSchema3('humanoide'), cle: { apparence: 'targe' } };
+const bouclier = {
+  ...elementSchema3('humanoide'), cle: { apparence: 'bouclier_blason' },
+  surfaces: [{ nom: 'metal', teinte: true }, { nom: 'champ', teinte: true, blason: true }], glb: empreinte(glbDElement('spine', ['metal', 'champ'])),
+};
+const lanterne = { ...elementSchema3('humanoide'), cle: { apparence: 'targe' }, surfaces: [{ nom: 'verre', teinte: true, blason: true }], glb: empreinte(glbDElement(null, ['verre'])) };
 const orpheline = { ...elementSchema3('nain'), cle: { apparence: 'hache' } };
 const schema2 = { schema_version: 2, model: 'Lame.glb' };
 
@@ -45,11 +51,24 @@ describe('modelesDeLAtelier', () => {
     expect(modeles.glb).toEqual({ humanoide: 'humanoide.glb', bouclier: 'bouclier.glb', epee: 'epee.glb' });
   });
 
+  it('chaque élément d’un point, et lui seul, donne les noms de ses surfaces `blason`, liste vide sans surface `blason`', () => {
+    expect(modeles.blasons).toEqual({ bouclier: ['champ'], epee: [] });
+  });
+
+  it('les emblèmes sont la sous-liste `embleme` de la garde-robe, chacun réduit à son id, son libellé et son dessin', () => {
+    expect(modeles.emblemes.map(({ id }) => id)).toEqual(['taureau-rouge', 'tete-de-mort-rouge']);
+    for (const embleme of modeles.emblemes) {
+      const entree = gardeRobe.find(({ id }) => id === embleme.id);
+      expect(entree?.kind, embleme.id).toBe('embleme');
+      if (entree?.kind === 'embleme') expect(embleme, embleme.id).toStrictEqual({ id: entree.id, label: entree.label, svg: entree.svg });
+    }
+  });
+
   it('les refus de l’index sont rendus', () => {
     expect(modeles.refus).toEqual(['[base-absente] orpheline : nain']);
   });
 
   it('un manifeste schéma 2 est ignoré', () => {
-    expect(modelesDeLAtelier({ schema2 }, {})).toEqual({ bases: [], glb: {}, refus: [] });
+    expect(modelesDeLAtelier({ schema2 }, {})).toEqual({ bases: [], glb: {}, refus: [], blasons: {}, emblemes: modeles.emblemes });
   });
 });

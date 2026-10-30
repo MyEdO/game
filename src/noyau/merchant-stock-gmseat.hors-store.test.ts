@@ -7,12 +7,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { emptyScene } from './monde/scene';
 import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (): Combatant =>
-  ({ id: 'h', name: 'H', items: [], characteristics: {}, wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
+  combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: {}, wounds: blessuresDeBase(10), conditions: [], weapons: [] });
 
 const merchantScene = () => {
   const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';

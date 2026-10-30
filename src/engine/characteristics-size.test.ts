@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { maxWounds, effectiveMaxWounds, blessuresReconciliees } from './characteristics';
+import { maxWounds, effectiveMaxWounds, blessuresReconciliees, blessuresDeBase } from './characteristics';
 import { Characteristics, Combatant } from './types';
 
 describe('maxWounds par catégorie de Taille (LDB 85 l.332-352)', () => {
@@ -34,14 +34,14 @@ describe('effectiveMaxWounds — base + delta des buffs F/E/FM × Taille', () =>
     expect(effectiveMaxWounds(base())).toBe(12);
   });
   it('surcharge préservée à vide : base 20 (≠ formule) reste 20', () => {
-    expect(effectiveMaxWounds(base({ wounds: { current: 20, max: 20, base: 20 } }))).toBe(20);
+    expect(effectiveMaxWounds(base({ wounds: blessuresDeBase(20) }))).toBe(20);
   });
   it('buff +10 Endurance → +2 Blessures (Moyenne)', () => {
     const c = base({ activeEffects: [{ label: 'Soin', char: 'endurance', bonus: 10, duration: { scale: 'rounds', left: 3 } }] });
     expect(effectiveMaxWounds(c)).toBe(14); // base 12 + (BE 4 vs 3 → +2)
   });
   it('buff +10 E sur un Énorme → +2×4 = +8 (delta ×Taille)', () => {
-    const c = base({ size: 'enorme', wounds: { current: 48, max: 48, base: 48 }, activeEffects: [{ label: 'Soin', char: 'endurance', bonus: 10, duration: { scale: 'rounds', left: 3 } }] });
+    const c = base({ size: 'enorme', wounds: blessuresDeBase(48), activeEffects: [{ label: 'Soin', char: 'endurance', bonus: 10, duration: { scale: 'rounds', left: 3 } }] });
     expect(effectiveMaxWounds(c)).toBe(56); // 48 + (woundsForSize(...,enorme) delta = +8)
   });
 });
@@ -78,7 +78,7 @@ describe('blessuresReconciliees — recale max + ajuste current (buff/expiration
   const BUFF_E = [{ label: 'Soin', char: 'endurance' as const, bonus: 10, duration: { scale: 'rounds' as const, left: 3 } }];
 
   it('un buff +E monte max ET current ; l’expiration les redescend (plancher 0)', () => {
-    const c = porteur({ current: 10, max: 12, base: 12 }, BUFF_E);
+    const c = porteur(blessuresDeBase(12, 10), BUFF_E);
     c.wounds = blessuresReconciliees(c);
     expect(c.wounds).toMatchObject({ max: 14, current: 12 }); // +2 (BE 4 vs 3)
     c.activeEffects = [];
@@ -93,9 +93,9 @@ describe('blessuresReconciliees — recale max + ajuste current (buff/expiration
   });
 
   it('pure : rien ne bouge → le même objet ; le porteur reçu n’est pas muté', () => {
-    const c = porteur({ current: 10, max: 12, base: 12 }, []);
+    const c = porteur(blessuresDeBase(12, 10), []);
     expect(blessuresReconciliees(c)).toBe(c.wounds);
-    const buffe = porteur({ current: 10, max: 12, base: 12 }, BUFF_E);
+    const buffe = porteur(blessuresDeBase(12, 10), BUFF_E);
     const avant = buffe.wounds;
     blessuresReconciliees(buffe);
     expect(buffe.wounds).toBe(avant);
@@ -103,7 +103,8 @@ describe('blessuresReconciliees — recale max + ajuste current (buff/expiration
   });
 
   it('idempotente, porteur sans `base` compris : il reçoit le `max` qu’il portait', () => {
-    const c = porteur({ current: 10, max: 12 }, BUFF_E);
+    const { base: _base, ...sansBase } = blessuresDeBase(12, 10);
+    const c = porteur(sansBase, BUFF_E);
     c.wounds = blessuresReconciliees(c);
     expect(c.wounds).toEqual({ current: 12, max: 14, base: 12 });
     expect(blessuresReconciliees(c)).toBe(c.wounds);

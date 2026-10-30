@@ -17,17 +17,18 @@ import { setCadence } from '../engine/cadence';
 import type { CascadeStep } from './pendings';
 import type { Combatant } from '../engine/types';
 import { cleDeFixture } from './noyau.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  combattantDeTest({
     id, label: `Héros ${id}`, kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     skills: [], conditions: [], talents: [], fortune: 2, resilience: 3,
     ...over,
-  }) as unknown as Combatant;
+  });
 
 /** HÔTE au siège 0 ; `H1` appartient au siège 1 (invité), `H2` au siège 0. */
 function deuxSieges(party: Combatant[]): void {

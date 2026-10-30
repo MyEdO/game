@@ -14,6 +14,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
 import { chebyshev } from '../engine/grid';
+import { blessuresDeBase } from '../engine/characteristics';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
@@ -93,7 +94,7 @@ describe('pickDoctrine — classification par signaux DATA (pas de nom en dur)',
   });
 
   it('Caractéristiques ABSENTES (combattant de test minimal) → standard (aucun signal chiffrable)', () => {
-    const bare = { id: 'b', label: 'b', kind: 'enemy', pos: { x: 0, y: 0 }, wounds: { current: 10, max: 10 }, weapons: [MELEE], characteristics: {} as never, conditions: [], advantage: 0, armour: {} as never, skills: [], talents: [], movement: 4 } as Combatant;
+    const bare = { id: 'b', label: 'b', kind: 'enemy', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(10), weapons: [MELEE], characteristics: {} as never, conditions: [], advantage: 0, armour: {} as never, skills: [], talents: [], movement: 4 } as Combatant;
     expect(pickDoctrine(bare, [])).toBe('standard');
   });
 
@@ -208,7 +209,7 @@ describe('Doctrines — comportements distincts vs standard', () => {
     // fallback `recover empetre` (se libérer, LDB 16 l.66). (Fix L6 — point B.)
     const rab = mk('rab', 'enemy', { x: 5, y: 5 }, {
       groups: ['criminel'], weapons: [MELEE], movement: 0,
-      wounds: { current: 2, max: 12 }, // < 1/3
+      wounds: blessuresDeBase(12, 2), // < 1/3
       conditions: [{ id: 'empetre', value: 1, sourceId: 'h' } as never],
     });
     const h = mk('h', 'hero', { x: 11, y: 11 }); // loin (pas au contact) → aucune mêlée jouable
@@ -219,7 +220,7 @@ describe('Doctrines — comportements distincts vs standard', () => {
   it('EMBUSCADE ≠ MEUTE : l’embusqué a l’initiative et NE recule JAMAIS (pas de retreatBelow), là où la racaille fuirait', () => {
     // Même fixture très entamée et NON Engagée : la racaille (retreatBelow 1/3) FUIT ; l’embuscade (aucun
     // macro de repli, override-only) reste à l’attaque. Prouve un comportement DISTINCT (≠ identité nominale).
-    const lowHP = { current: 2, max: 12 };
+    const lowHP = blessuresDeBase(12, 2);
     const rab = mk('rab', 'enemy', { x: 5, y: 5 }, { groups: ['criminel'], weapons: [MELEE], wounds: { ...lowHP }, movement: 5 });
     const amb = mk('amb', 'enemy', { x: 5, y: 5 }, { weapons: [MELEE], wounds: { ...lowHP }, movement: 5, aiDoctrine: 'embuscade' });
     const h = mk('h', 'hero', { x: 5, y: 9 }); // à portée d’approche, pas au contact

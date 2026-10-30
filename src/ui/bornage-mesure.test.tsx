@@ -20,6 +20,7 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import { valeurDuTest } from '../engine/skills';
 import { cibleBrute, cibleDuTest, clampTarget, forcedTR } from '../engine/tests';
 import { combattantDeModale } from './combattantDeModale.testkit';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { poserFicheDeTest, restaurerFiche } from '../state/ficheDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { PendingBargain } from '../noyau/pendings';
@@ -191,7 +192,7 @@ describe('pré-ligne d’un Test opposé : la cible annoncée est celle que le d
 
 describe('bornage mesuré au constructeur — routes sans modale montée', () => {
   it('Marchandage forcé AVANT le jet : la cible du joueur est bornée et mesurée', () => {
-    const hero = { id: 'H', label: 'H', name: 'H', kind: 'hero', resilience: 5, fortune: 0, characteristics: {}, skills: [], talents: [], weapons: [], items: [], conditions: [] } as unknown as Combatant;
+    const hero = combattantDeTest({ id: 'H', label: 'H', kind: 'hero', resilience: 5, fortune: 0, items: [] });
     useGame.setState({ party: [hero], pendingBargain: { playerId: 'H', merchantId: 'm', playerSkill: 125, merchantRoll: { roll: 20, target: 50, sl: 3, success: true, isDouble: false }, roll: null } } as never);
     g().bargainForceSuccess();
     porteLaMesure(g().pendingBargain!.roll, cibleDuTest(125));

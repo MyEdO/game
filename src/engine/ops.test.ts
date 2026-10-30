@@ -11,7 +11,7 @@ import { hasTraitKey } from './traits/dispatch';
 import { woundsFromHit } from './combat';
 import type { Weapon } from './types';
 import { recomputeLoadout, isUnarmed, itemFromTrappingById, itemFromGive, loadoutSetSlot } from './items';
-import { effectiveChar } from './characteristics';
+import { effectiveChar, blessuresDeBase } from './characteristics';
 import { spellOps } from './flowCore';
 import { findSpellById } from '../data';
 import { deFixe, desDuTest, desEnSuite } from './dice.testkit';
@@ -137,7 +137,7 @@ describe("op:'wounds' mode COUP D'ARME (S1) — délègue à woundsFromHit (qual
     ({ label: 'Épée', type: 'melee', damage: { flat: 4, plusBF: true }, qualities, reach: 'Moyenne' }) as unknown as Weapon;
 
   it("weaponHit:true + ctx.weapon → Blessures == woundsFromHit (mêmes BE + PA à la localisation)", () => {
-    const c = hero({ wounds: { current: 30, max: 30 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
+    const c = hero({ wounds: blessuresDeBase(30), armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
     const w = sword();
     const expected = woundsFromHit(w, c, 'corps', 12, 0, 1, undefined); // 12 − BE(4) − PA(3) = 5
     const before = c.wounds.current;
@@ -147,7 +147,7 @@ describe("op:'wounds' mode COUP D'ARME (S1) — délègue à woundsFromHit (qual
   });
 
   it("respecte la LOCALISATION du contexte (PA d'une autre localisation)", () => {
-    const c = hero({ wounds: { current: 30, max: 30 }, armour: { tete: 5, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
+    const c = hero({ wounds: blessuresDeBase(30), armour: { tete: 5, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
     const w = sword();
     const before = c.wounds.current;
     applyOps(c, [{ op: 'wounds', amount: 12, weaponHit: true }], { rng: desDuTest, weapon: w, location: 'tete' }); // 12 − 4 − 5 = 3
@@ -155,7 +155,7 @@ describe("op:'wounds' mode COUP D'ARME (S1) — délègue à woundsFromHit (qual
   });
 
   it("réutilise les QUALITÉS de l'arme (Perforante) via woundsFromHit — équivalence par construction", () => {
-    const c = hero({ wounds: { current: 30, max: 30 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 } });
+    const c = hero({ wounds: blessuresDeBase(30), armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 } });
     const w = sword([{ id: 'perforante' }]);
     const before = c.wounds.current;
     applyOps(c, [{ op: 'wounds', amount: 12, weaponHit: true }], { rng: desDuTest, weapon: w, location: 'corps' });
@@ -163,14 +163,14 @@ describe("op:'wounds' mode COUP D'ARME (S1) — délègue à woundsFromHit (qual
   });
 
   it("weaponHit SANS ctx.weapon → repli en mode Formula (défaut : ignore BE+PA)", () => {
-    const c = hero({ wounds: { current: 30, max: 30 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
+    const c = hero({ wounds: blessuresDeBase(30), armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
     const before = c.wounds.current;
     applyOps(c, [{ op: 'wounds', amount: 12, weaponHit: true }], { rng: desDuTest }); // pas d'arme → Formula : 12 brut
     expect(before - c.wounds.current).toBe(12);
   });
 
   it("mode Formula INCHANGÉ (sans weaponHit) : ignore BE+PA par défaut, déduit si flags", () => {
-    const c = hero({ wounds: { current: 30, max: 30 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
+    const c = hero({ wounds: blessuresDeBase(30), armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
     const b1 = c.wounds.current;
     applyOps(c, [{ op: 'wounds', amount: 10 }], { rng: desDuTest }); // défaut : 10 brut
     expect(b1 - c.wounds.current).toBe(10);
@@ -182,7 +182,7 @@ describe("op:'wounds' mode COUP D'ARME (S1) — délègue à woundsFromHit (qual
 
 describe('applyOps — opérations unitaires', () => {
   it('wounds : perte directe centralisée (Avantage purgé, À Terre à 0 PB)', () => {
-    const c = hero({ advantage: 2, wounds: { current: 3, max: 12 } });
+    const c = hero({ advantage: 2, wounds: blessuresDeBase(12, 3) });
     const lines = applyOps(c, [{ op: 'wounds', amount: 5 }], { rng: desDuTest });
     expect(c.wounds.current).toBe(0);
     expect(c.advantage).toBe(0);
@@ -192,37 +192,37 @@ describe('applyOps — opérations unitaires', () => {
 
   it('wounds extraAP : PA situationnels du coup déduits AVEC les PA de Localisation (poupe/Bélier de collision)', () => {
     // E 45 → BE 4 ; armour.corps 0. Sans extraAP : 10 − 4 = 6 PB perdus ; avec extraAP 2 : 10 − 4 − 2 = 4.
-    const a = hero({ wounds: { current: 12, max: 12 } });
+    const a = hero({ wounds: blessuresDeBase(12) });
     applyOps(a, [{ op: 'wounds', amount: 10, ignoreTB: false, ignoreAP: false }], { rng: desDuTest });
     expect(a.wounds.current).toBe(12 - 6);
-    const b = hero({ wounds: { current: 12, max: 12 } });
+    const b = hero({ wounds: blessuresDeBase(12) });
     applyOps(b, [{ op: 'wounds', amount: 10, ignoreTB: false, ignoreAP: false, extraAP: 2 }], { rng: desDuTest });
     expect(b.wounds.current).toBe(12 - 4); // 2 PB de moins perdus — la mitigation reste DANS l'op
   });
 
   it('heal : plafonné au max de Blessures', () => {
-    const c = hero({ wounds: { current: 10, max: 12 } });
+    const c = hero({ wounds: blessuresDeBase(12, 10) });
     applyOps(c, [{ op: 'heal', amount: 5 }], { rng: desDuTest });
     expect(c.wounds.current).toBe(12);
   });
 
   it('heal : munition Empaleuse logée bloque le soin (LDB 62 l.250, plafonné SOURCE UNIQUE `applyHealWounds`)', () => {
-    const c = hero({ wounds: { current: 8, max: 12 }, conditions: [{ id: 'munition-logee', value: 1 }] });
+    const c = hero({ wounds: blessuresDeBase(12, 8), conditions: [{ id: 'munition-logee', value: 1 }] });
     const lines = applyOps(c, [{ op: 'heal', amount: 5 }], { rng: desDuTest });
     expect(c.wounds.current).toBe(11); // 12 − 1 munition logée, pas 13→12
     expect(lines.join(' ')).toMatch(/regagne 3 Blessure/); // libellé porte le montant EFFECTIF (post-plafond), pas les 5 demandés
   });
 
   it('healCaster : munition Empaleuse logée sur le LANCEUR bloque son propre soin', () => {
-    const caster = hero({ id: 'c', wounds: { current: 8, max: 12 }, conditions: [{ id: 'munition-logee', value: 1 }] });
-    const target = hero({ id: 't', wounds: { current: 10, max: 12 } });
+    const caster = hero({ id: 'c', wounds: blessuresDeBase(12, 8), conditions: [{ id: 'munition-logee', value: 1 }] });
+    const target = hero({ id: 't', wounds: blessuresDeBase(12, 10) });
     applyOps(target, [{ op: 'healCaster', amount: 5 }], { rng: desDuTest, caster });
     expect(caster.wounds.current).toBe(11);
     expect(target.wounds.current).toBe(10); // le lanceur est soigné, pas la cible
   });
 
   it('lifeSteal : munition Empaleuse logée sur le drainEUR bloque le PV rendu par le vol de vie', () => {
-    const drainer = hero({ id: 'd', wounds: { current: 8, max: 12 }, conditions: [{ id: 'munition-logee', value: 1 }] });
+    const drainer = hero({ id: 'd', wounds: blessuresDeBase(12, 8), conditions: [{ id: 'munition-logee', value: 1 }] });
     const victim = hero({ id: 'v' });
     const lines = applyOps(victim, [{ op: 'lifeSteal', num: 1, den: 1 }], { rng: desDuTest, caster: drainer, woundsDealt: 6 });
     expect(drainer.wounds.current).toBe(11); // 8+6=14 → plafonné à 12−1=11
@@ -230,7 +230,7 @@ describe('applyOps — opérations unitaires', () => {
   });
 
   it('lifeSteal : sans munition logée, le montant rendu reste inchangé (non-régression)', () => {
-    const drainer = hero({ id: 'd', wounds: { current: 2, max: 12 } });
+    const drainer = hero({ id: 'd', wounds: blessuresDeBase(12, 2) });
     const victim = hero({ id: 'v' });
     applyOps(victim, [{ op: 'lifeSteal', num: 1, den: 2 }], { rng: desDuTest, caster: drainer, woundsDealt: 6 });
     expect(drainer.wounds.current).toBe(5); // floor(6/2)=3 rendus, plafond sans effet
@@ -388,7 +388,7 @@ describe('applyOps — opérations unitaires', () => {
 
   // (Un Test imbriqué est un nœud Flow `{kind:'test'}` résolu cadence-aware (héros manuel = jet
   //  influençable, ennemi = inline). Sa résolution + branches + gates sont couvertes par
-  //  `state/combat/run-combat-flow.test.ts` et `noyau/combat/flowEval.test.ts`.)
+  //  `noyau/combat/run-combat-flow.hors-store.test.ts` et `noyau/combat/flowEval.test.ts`.)
 
   // #153 — Aux Armes « −10 Agilité pendant 1d10 jours » (corps « Bleus aux côtes ») : durée d'HORLOGE
   // intrinsèque au charMod (même patron que `condition.durationHours`), résolue depuis `ctx.now`.
@@ -542,7 +542,7 @@ describe('applyOps — opérations unitaires', () => {
     });
 
     it('avec Destin (LDB 17 l.29-37 : « éviter une mort certaine ») : 1 Point sacrifié, la cible survit', () => {
-      const c = hero({ fate: 1, wounds: { current: 0, max: 12 } });
+      const c = hero({ fate: 1, wounds: blessuresDeBase(12, 0) });
       applyOps(c, [{ op: 'kill' }], { rng: desDuTest });
       expect(c.dead).toBeFalsy();
       expect(c.fate).toBe(0);
@@ -591,7 +591,7 @@ describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveCh
   });
 
   it('buff de F/E/FM recale les Blessures max (LDB 85)', () => {
-    const c = hero({ wounds: { current: 10, max: 12, base: 12 } });
+    const c = hero({ wounds: blessuresDeBase(12, 10) });
     applyActiveEffect(c, { label: 'Vigueur', char: 'endurance', bonus: 10, duration: { scale: 'rounds', left: 6 } });
     expect(c.wounds.max).toBeGreaterThan(12); // E 45→55 : BE 4→5 → +2 PB (2×BE)
   });

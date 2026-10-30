@@ -28,6 +28,7 @@ import type { Combatant, ItemInstance } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import { setCadence } from '../engine/cadence';
 import { cascadeDeTest } from './cascade.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -224,7 +225,7 @@ describe('régression T-bourse (#531, buildNightCascade) — gages débités CET
   beforeEach(() => setCadence('rapide')); // cadence auto : la paie se résout seule (pas de Conseil de bord)
 
   it('la dissipation d’Exténué (mutation eager, sans jet) du héros DÉBITÉ pour les gages est PERSISTÉE', () => {
-    const solo = hero({ id: 'h1', label: 'Hilda', wounds: { current: 12, max: 12 }, items: [ration('r1')] }); // PB plein → needsRecoveryRoll=false
+    const solo = hero({ id: 'h1', label: 'Hilda', wounds: blessuresDeBase(12), items: [ration('r1')] }); // PB plein → needsRecoveryRoll=false
     addCondition(solo, 'extenue', 1);
     banc.setState({
       party: [solo], battle: null, pendingRest: null, scene: emptyScene('scene-test', 10, 10),

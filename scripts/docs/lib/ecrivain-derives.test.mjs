@@ -9,7 +9,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
-import { attendreSync, BACKOFFS_MS } from '../../guards/lib/spawnResilient.mjs'
+import { attendreSync } from '../../guards/lib/spawnResilient.mjs'
+import { PALIERS_RENOMMAGE_MS } from '../../guards/lib/renommageResilient.mjs'
 import { gitDirDe } from '../../hooks/barriere-outil.mjs'
 import { reconstruireApresGit } from '../../git-hooks/docs-rebuild.mjs'
 import { executer, GENERATORS } from '../build-all.mjs'
@@ -311,7 +312,7 @@ test('#2603 — tout générateur de GENERATORS écrit ses cibles et ses blocs i
   assert.deepEqual(directs, [])
 })
 
-test('#2603 — ATTENTE_DU_HOOK couvre les paliers de BACKOFFS_MS et sa marge, dans la borne de 10 s', () => {
-  assert.equal(ATTENTE_DU_HOOK.echeanceMs, BACKOFFS_MS.reduce((s, ms) => s + ms, 0) + MARGE_DU_HOOK_MS)
+test('#2603 — ATTENTE_DU_HOOK couvre les paliers de PALIERS_RENOMMAGE_MS et sa marge, dans la borne de 10 s', () => {
+  assert.equal(ATTENTE_DU_HOOK.echeanceMs, PALIERS_RENOMMAGE_MS.reduce((s, ms) => s + ms, 0) + MARGE_DU_HOOK_MS)
   assert.ok(ATTENTE_DU_HOOK.echeanceMs <= 10_000, 'attente du hook dans sa borne de 10 s (#2603)')
 })

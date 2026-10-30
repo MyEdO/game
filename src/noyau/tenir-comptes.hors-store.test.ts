@@ -12,13 +12,15 @@ import { toBrass } from '../engine/money';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const richHero = (): Combatant => {
   const { career, careerLevel } = statutLePlusHaut();
-  return { id: 'h', name: 'H', career, careerLevel, items: [], skills: [], talents: [], characteristics: {}, wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant;
+  return combattantDeTest({ id: 'h', label: 'H', career, careerLevel, items: [], skills: [], talents: [], characteristics: {}, wounds: blessuresDeBase(10), conditions: [], weapons: [] });
 };
 
 const merchantScene = () => {

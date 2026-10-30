@@ -27,7 +27,7 @@ import { testValue, skillBaseValue, bestForSkills, bestForCombined, bestAssisted
 import { isStructure } from '../engine/structures';
 import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';
-import { bonus, effectiveChar } from '../engine/characteristics';
+import { bonus, effectiveChar, blessuresDeBase } from '../engine/characteristics';
 import { dataLabel, testSkillLabel } from '../data';
 import { clampTarget } from '../engine/tests';
 import { rollLine } from './rollSeam';
@@ -94,12 +94,9 @@ function armyWithMightDelta(a: MassBattleArmy, delta: number): MassBattleArmy {
  *  bornée [0, nouveau max]. Pur. */
 function armyWithStartMightDelta(a: MassBattleArmy, delta: number): MassBattleArmy {
   if (delta === 0) return a;
-  const combatant = cloneArmyCombatant(a.combatant);
-  const newMax = clampMight(combatant.wounds.max + delta);
-  combatant.wounds.max = newMax;
-  if (combatant.wounds.base != null) combatant.wounds.base = newMax;
-  combatant.wounds.current = Math.max(0, Math.min(newMax, combatant.wounds.current + delta));
-  return { ...a, combatant };
+  const { wounds } = a.combatant;
+  const newMax = clampMight(wounds.max + delta);
+  return { ...a, combatant: { ...a.combatant, wounds: blessuresDeBase(newMax, Math.max(0, Math.min(newMax, wounds.current + delta))) } };
 }
 
 /** Clone profond (suffisant) du Combattant-armée pour muter les Blessures hors de l'état Zustand. */

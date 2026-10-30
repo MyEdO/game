@@ -18,6 +18,8 @@ const DEBUT_D_EMPREINTE := 12
 const DELAI_DE_REQUETE_S := 10.0
 ## Le plus grand bloc que HTTPRequest lit par image : un GLB de base se reçoit en quelques images, pas en une par 64 Kio.
 const BLOC_DE_TELECHARGEMENT := 16777216
+## La largeur en pixels à laquelle le SVG d'un emblème se rastérise (#3111).
+const LARGEUR_D_EMBLEME := 512.0
 
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 @onready var _support_du_modele: Node3D = $Modele
@@ -43,12 +45,18 @@ var _vitesse := 1.0
 ## Le clip que « Recharger » rejoue, à son instant, en lecture ou en pause.
 var _reprise: Dictionary = {}
 var _montes: Dictionary = {}
+## Par point monté dont l'élément porte une surface `blason`, l'emblème posé (#3111).
+var _emblemes: Dictionary = {}
 var _supports: Dictionary = {}
+## Par point, sa ligne au panneau ; et la ligne de ses emblèmes, s'il en offre.
+var _lignes: Dictionary = {}
+var _lignes_des_emblemes: Dictionary = {}
 ## Par point, la demande de montage retenue : le montage en vol d'une autre demande est jeté.
 var _demandes: Dictionary = {}
 var _boutons_des_bases: Dictionary = {}
 var _boutons_des_clips: Dictionary = {}
 var _boutons_des_points: Dictionary = {}
+var _boutons_des_emblemes: Dictionary = {}
 var _aides := {os = false, emplacements = false, prises = false}
 var _reperes := {os = [], emplacements = [], prises = []}
 var _erreurs: Array[String] = []
@@ -66,7 +74,7 @@ func _ready() -> void:
 		_cases_des_aides[aide].toggled.connect(_montrer_l_aide.bind(aide))
 	%Defilement.get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier())
 	if await _pont.rejoindre(_signaler, _signaler):
-		await _charger({})
+		await _charger({}, {})
 
 
 func _process(_delta: float) -> void:
@@ -74,8 +82,8 @@ func _process(_delta: float) -> void:
 
 
 ## Le listage du serveur, puis l'index du pont, puis la base retenue (la demandée si elle reste listée, la première sinon),
-## qui remonte les éléments `montes` que ses points listent encore.
-func _charger(montes: Dictionary) -> void:
+## qui remonte les éléments `montes` que ses points listent encore, sous leurs `emblemes`.
+func _charger(montes: Dictionary, emblemes: Dictionary) -> void:
 	var chargement := RefCounted.new()
 	_chargement = chargement
 	_erreurs.clear()
@@ -100,7 +108,7 @@ func _charger(montes: Dictionary) -> void:
 		if retenue == null or base.id == _base_demandee:
 			retenue = base
 	_base_demandee = null if retenue == null else retenue.id
-	await _poser(retenue, montes, chargement)
+	await _poser(retenue, montes, emblemes, chargement)
 
 
 ## La base `id` demandée : le dernier clic gagne, contre la base posée comme contre celle en chargement.
@@ -115,19 +123,19 @@ func _choisir_la_base(id: String) -> void:
 			_reprise = {}
 			var chargement := RefCounted.new()
 			_chargement = chargement
-			await _poser(base, {}, chargement)
+			await _poser(base, {}, {}, chargement)
 
 
 func _recharger() -> void:
 	_reprise = {}
 	if _a_un_clip():
 		_reprise = {clip = _lecteur.assigned_animation, instant = _lecteur.current_animation_position, lecture = _lecteur.is_playing()}
-	await _charger(_montes.duplicate())
+	await _charger(_montes.duplicate(), _emblemes.duplicate())
 
 
 ## La base `base` (aucune si `null`) posée dans la scène depuis son GLB, si `chargement` reste le chargement retenu : ses
-## points, ses aides, ses clips, et les éléments `montes` que ses points listent encore.
-func _poser(base: Variant, montes: Dictionary, chargement: RefCounted) -> void:
+## points, ses aides, ses clips, et les éléments `montes` que ses points listent encore, sous leurs `emblemes`.
+func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement: RefCounted) -> void:
 	var scene: Node3D = null
 	if base != null:
 		scene = await _scene_du_glb(base.id)
@@ -150,7 +158,7 @@ func _poser(base: Variant, montes: Dictionary, chargement: RefCounted) -> void:
 		_ligne_du_point(point)
 		_poser_l_aide_du_point(point)
 		if montes.get(point.id) in point.elements:
-			_choisir(point, montes[point.id])
+			_choisir(point, montes[point.id], emblemes.get(point.id, VIDE))
 	_poser_les_clips()
 	for aide in _aides:
 		_montrer_l_aide(_aides[aide], aide)
@@ -172,8 +180,12 @@ func _remettre_a_zero() -> void:
 	_reperes = {os = [], emplacements = [], prises = []}
 	_supports.clear()
 	_montes.clear()
+	_emblemes.clear()
 	_demandes.clear()
+	_lignes.clear()
+	_lignes_des_emblemes.clear()
 	_boutons_des_points = {}
+	_boutons_des_emblemes = {}
 	_boutons_des_clips = {}
 
 
@@ -196,6 +208,7 @@ func _ligne_du_point(point: Dictionary) -> void:
 	titre.text = point.id
 	ligne.add_child(titre)
 	_points.add_child(ligne)
+	_lignes[point.id] = ligne
 	if point.elements.is_empty():
 		var aucun := Label.new()
 		aucun.text = "aucun élément"
@@ -230,8 +243,9 @@ func _marquer(boutons: Dictionary, retenu: Variant) -> void:
 		boutons[cle].set_pressed_no_signal(cle == retenu)
 
 
-## La demande du joueur au point `point` : l'élément monté démonté, puis `element` monté s'il n'est pas « vide ».
-func _choisir(point: Dictionary, element: String) -> void:
+## La demande du joueur au point `point` : l'élément monté démonté avec son emblème, puis `element` monté sous
+## l'emblème `embleme` s'il n'est pas « vide ».
+func _choisir(point: Dictionary, element: String, embleme: String = VIDE) -> void:
 	var demande := RefCounted.new()
 	_demandes[point.id] = demande
 	if _supports.has(point.id):
@@ -239,16 +253,23 @@ func _choisir(point: Dictionary, element: String) -> void:
 			support.get_parent().free()
 		_supports.erase(point.id)
 		_montes.erase(point.id)
+	_emblemes.erase(point.id)
+	if _lignes_des_emblemes.has(point.id):
+		_points.remove_child(_lignes_des_emblemes[point.id])
+		_lignes_des_emblemes[point.id].queue_free()
+		_lignes_des_emblemes.erase(point.id)
+		_boutons_des_emblemes.erase(point.id)
 	_marquer(_boutons_des_points[point.id], VIDE)
 	if element != VIDE:
-		await _monter(point, element, demande)
+		await _monter(point, element, embleme, demande)
 	_publier()
 
 
 ## `element` monté au point `point` une fois son GLB chargé, si `demande` reste la demande retenue de ce point : chaque
 ## mesh rigide pendu à un os du GLB, à sa transformation locale, sous l'os de même nom de la base
 ## (`hotes/godot/asset/evaluateur/evaluer.ts` `monter`) ; rien de monté s'il n'en a aucun ou si l'un de ses os manque.
-func _monter(point: Dictionary, element: String, demande: RefCounted) -> void:
+## Monté, il offre ses emblèmes s'il porte une surface `blason`, `embleme` posé.
+func _monter(point: Dictionary, element: String, embleme: String, demande: RefCounted) -> void:
 	var squelette := _squelette
 	if squelette == null:
 		return
@@ -282,6 +303,82 @@ func _monter(point: Dictionary, element: String, demande: RefCounted) -> void:
 	_supports[point.id] = supports
 	_montes[point.id] = element
 	_marquer(_boutons_des_points[point.id], element)
+	_ligne_des_emblemes(point.id, element, embleme)
+
+
+## Sous la ligne du point `point_id`, si `element` qui y est monté porte une surface `blason` (`blasons` de la réponse de
+## `modeles`) : « vide » et un bouton par emblème, bascules d'un même groupe, `embleme` posé s'il est offert.
+func _ligne_des_emblemes(point_id: String, element: String, embleme: String) -> void:
+	if _modeles.blasons.get(element, []).is_empty():
+		return
+	var ligne := HFlowContainer.new()
+	var titre := Label.new()
+	titre.text = "emblème"
+	ligne.add_child(titre)
+	_lignes[point_id].add_sibling(ligne)
+	_lignes_des_emblemes[point_id] = ligne
+	var groupe := ButtonGroup.new()
+	var boutons := {}
+	var choix: Array = [{id = VIDE, label = VIDE}]
+	choix.append_array(_modeles.emblemes)
+	for offert in choix:
+		var bouton := _bascule(offert.label, groupe, ligne, _choisir_l_embleme.bind(point_id, offert.id))
+		bouton.set_meta("cle", "%s/embleme/%s" % [point_id, offert.id])
+		boutons[offert.id] = bouton
+	_boutons_des_emblemes[point_id] = boutons
+	_choisir_l_embleme(point_id, embleme if boutons.has(embleme) else VIDE)
+
+
+## L'emblème `embleme` posé sur l'élément monté au point `point_id` : sur chaque surface dont le matériau porte un nom de
+## ses `blasons`, un matériau propre (`MontageDEquipement.materiau_local`) dont la couche de détail, en UV1 et en
+## mélange, est l'emblème ; « vide » rend à chaque surface le matériau du GLB. Aucune surface posée, l'emblème ne l'est pas.
+func _choisir_l_embleme(point_id: String, embleme: String) -> void:
+	var element: String = _montes[point_id]
+	var noms: Array = _modeles.blasons[element]
+	var texture: ImageTexture = _texture_de_l_embleme(embleme) if embleme != VIDE else null
+	var posees: Array[int] = []
+	for support in _supports[point_id]:
+		for enfant in support.get_children():
+			var piece := enfant as MeshInstance3D
+			if piece == null:
+				continue
+			for surface in piece.mesh.get_surface_count():
+				piece.set_surface_override_material(surface, null)
+				var materiau := piece.get_active_material(surface)
+				if texture == null or materiau == null or not (materiau.resource_name in noms):
+					continue
+				var local := MontageDEquipement.materiau_local(piece, surface)
+				if local == null:
+					continue
+				local.detail_enabled = true
+				local.detail_albedo = texture
+				local.detail_uv_layer = BaseMaterial3D.DETAIL_UV_1
+				local.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+				posees.append(surface)
+	if texture != null and posees.is_empty():
+		_erreurs.append("blason-sans-surface : %s" % element)
+	var pose := VIDE if posees.is_empty() else embleme
+	if pose == VIDE:
+		_emblemes.erase(point_id)
+	else:
+		_emblemes[point_id] = pose
+	_marquer(_boutons_des_emblemes[point_id], pose)
+	_montrer_l_etat()
+
+
+## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de
+## large, ses mipmaps générées ; `null` (et une erreur) s'il ne se lit pas.
+func _texture_de_l_embleme(id: String) -> ImageTexture:
+	var svg: String = _modeles.emblemes.filter(func(offert: Dictionary) -> bool: return offert.id == id)[0].svg
+	var image := Image.new()
+	var code := image.load_svg_from_string(svg)
+	if code == OK:
+		code = image.load_svg_from_string(svg, MiseEnPage.echelle_d_image(LARGEUR_D_EMBLEME, image.get_width()))
+	if code != OK or image.is_empty():
+		_erreurs.append("embleme-illisible : %s (%s)" % [id, error_string(code)])
+		return null
+	image.generate_mipmaps()
+	return ImageTexture.create_from_image(image)
 
 
 ## Les meshes rigides de `scene` pendus à un os : l'import glTF pose chacun sous un `BoneAttachment3D` de son os.
@@ -470,9 +567,11 @@ func _publier_l_ecran() -> void:
 			empreinte = _base.get("empreinte"),
 			clip = clip,
 			instant = _lecteur.current_animation_position if clip != null else null,
+			duree = _lecteur.current_animation_length if clip != null else null,
 			lecture = _lecteur.is_playing() if clip != null else false,
 			vitesse = _vitesse,
 			montes = _montes,
+			emblemes = _emblemes,
 			aides = _aides,
 			erreurs = _erreurs,
 		},

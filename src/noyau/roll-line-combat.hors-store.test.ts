@@ -8,7 +8,7 @@ import { forceCrewRole } from './shipManeuver';
 import { combatBaseValue, combatValue, combatValueMods, combineMods, type ModLine } from '../engine/combat';
 import { combatTestPenalty, testStatePenalty, testStatePenaltyParts } from '../engine/conditions';
 import { testValue, testValueParts, skillBaseValue, rawCombatTestBase } from '../engine/skills';
-import { effectiveChar } from '../engine/characteristics';
+import { effectiveChar, blessuresDeBase } from '../engine/characteristics';
 import { crewRoleValue } from '../engine/crewMorale';
 import { clampTarget, exactDifficultyFromModifier } from '../engine/tests';
 import { rule, setRule } from '../engine/policy';
@@ -128,7 +128,7 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
       id: 'doc', label: 'Doc', conditions: ETAT,
       skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] as never,
     });
-    const blesse = hero({ id: 'bl', label: 'Blessé', wounds: { current: 3, max: 12 }, conditions: [{ id: 'hemorragique', value: 2 }] as never, pos: { x: 2, y: 1 } });
+    const blesse = hero({ id: 'bl', label: 'Blessé', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }] as never, pos: { x: 2, y: 1 } });
     setBattle([doc, blesse], 'doc');
 
     const v = testValue(doc, 'guerison');

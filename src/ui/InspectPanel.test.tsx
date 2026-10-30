@@ -9,6 +9,7 @@ import { InspectPanel } from './InspectPanel';
 import { createHero } from '../engine/character';
 import { creatureToCombatant } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 /** L'inspection rend le statbloc COMPLET via le composant partagé du Codex (CodexSections) +
  *  une tête vivante (nom, PB, psychologie, États). On vérifie la présence des données clés. */
@@ -77,7 +78,7 @@ describe('InspectPanel — la Cible d’individu d’un Trait psy (EDOC 11 l.648
   };
 
   it('le statbloc nomme l’individu visé, jamais son id', () => {
-    useGame.setState({ battle: { combatants: [{ id: 'kirstin', label: 'Dame Kirstin' }] } as never });
+    useGame.setState({ battle: { combatants: [combattantDeTest({ id: 'kirstin', label: 'Dame Kirstin' })] } as never });
     const texte = inspecter('@kirstin');
     expect(texte).toContain(`${trait.label} (Dame Kirstin)`);
     expect(texte).not.toContain('@kirstin');

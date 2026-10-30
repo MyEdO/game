@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PartyDock } from './PartyDock';
 import { createHero } from '../engine/character';
+import { blessuresDeBase } from '../engine/characteristics';
 
 describe('PartyDock', () => {
   const h1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
@@ -12,7 +13,7 @@ describe('PartyDock', () => {
   h1.id = 'h1'; h2.id = 'h2';
 
   it('conserve Blessures et États sans porter l’ordre des tours', () => {
-    h1.wounds = { current: 11, max: 11 };
+    h1.wounds = blessuresDeBase(11);
     h1.conditions = [{ id: 'assourdi', value: 1 }];
     const html = renderToStaticMarkup(<PartyDock heroes={[h1, h2]} onOpen={() => {}} />);
     expect(html).toContain('party-dock');

@@ -4,6 +4,7 @@ import { emptyScene } from './scene';
 import { manhattan } from './path';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { SpellData } from '../../data';
+import { blessuresDeBase } from '../../engine/characteristics';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
@@ -63,8 +64,8 @@ describe("IA d'ennemi (chooseEnemyAction, pure)", () => {
 
   it('Engagé : arme à distance EN PREMIER mais arme de mêlée + adversaire au contact → frappe en mêlée, ne tire pas (LDB Armes l.297-298)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [RANGED, MELEE] }); // arbalète d'abord, puis épée
-    const adj = mk('adj', 'hero', { x: 5, y: 6 }, { wounds: { current: 8, max: 10 } }); // au contact
-    const far = mk('far', 'hero', { x: 1, y: 1 }, { wounds: { current: 2, max: 10 } }); // plus faible MAIS distant
+    const adj = mk('adj', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10, 8) }); // au contact
+    const far = mk('far', 'hero', { x: 1, y: 1 }, { wounds: blessuresDeBase(10, 2) }); // plus faible MAIS distant
     const action = chooseEnemyAction(input(e, [adj, far]));
     expect(action.kind).toBe('melee');
     expect((action as { targetId: string }).targetId).toBe('adj'); // l'adversaire au contact, pas le faible distant
@@ -72,7 +73,7 @@ describe("IA d'ennemi (chooseEnemyAction, pure)", () => {
 
   it('arme à distance, AUCUN adversaire au contact → tir sur le plus faible (comportement préservé)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [RANGED] });
-    const far = mk('far', 'hero', { x: 1, y: 1 }, { wounds: { current: 2, max: 10 } });
+    const far = mk('far', 'hero', { x: 1, y: 1 }, { wounds: blessuresDeBase(10, 2) });
     expect(chooseEnemyAction(input(e, [far])).kind).toBe('shoot');
   });
 
@@ -125,8 +126,8 @@ describe("IA d'ennemi (chooseEnemyAction, pure)", () => {
 
   it('vise le héros le plus FAIBLE quand plusieurs sont frappables (sécurise l’élimination)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { movement: 4 });
-    const strong = mk('strong', 'hero', { x: 6, y: 5 }, { wounds: { current: 10, max: 10 } }); // adjacent
-    const weak = mk('weak', 'hero', { x: 5, y: 2 }, { wounds: { current: 2, max: 10 } }); // à 3 cases mais atteignable
+    const strong = mk('strong', 'hero', { x: 6, y: 5 }, { wounds: blessuresDeBase(10) }); // adjacent
+    const weak = mk('weak', 'hero', { x: 5, y: 2 }, { wounds: blessuresDeBase(10, 2) }); // à 3 cases mais atteignable
     const a = chooseEnemyAction(input(e, [strong, weak]));
     expect(a.kind).toBe('move'); // délaisse le costaud adjacent pour fondre sur le blessé
     if (a.kind === 'move') {
@@ -137,15 +138,15 @@ describe("IA d'ennemi (chooseEnemyAction, pure)", () => {
 
   it('ne court PAS après un blessé hors d’atteinte : frappe la cible accessible', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { movement: 1 });
-    const strong = mk('strong', 'hero', { x: 5, y: 6 }, { wounds: { current: 10, max: 10 } }); // adjacent
-    const weak = mk('weak', 'hero', { x: 5, y: 9 }, { wounds: { current: 1, max: 10 } }); // hors d’atteinte ce tour
+    const strong = mk('strong', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10) }); // adjacent
+    const weak = mk('weak', 'hero', { x: 5, y: 9 }, { wounds: blessuresDeBase(10, 1) }); // hors d’atteinte ce tour
     expect(chooseEnemyAction(input(e, [strong, weak]))).toEqual({ kind: 'melee', targetId: 'strong' });
   });
 
   it('anti-acharnement : une cible À TERRE est délaissée pour une cible valide debout (mêlée)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { movement: 4 });
-    const downed = mk('downed', 'hero', { x: 5, y: 6 }, { wounds: { current: 1, max: 10 }, conditions: [{ id: 'a-terre', value: 1 }] }); // adjacent + très bas mais À TERRE
-    const standing = mk('standing', 'hero', { x: 6, y: 5 }, { wounds: { current: 9, max: 10 } }); // adjacent, debout
+    const downed = mk('downed', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10, 1), conditions: [{ id: 'a-terre', value: 1 }] }); // adjacent + très bas mais À TERRE
+    const standing = mk('standing', 'hero', { x: 6, y: 5 }, { wounds: blessuresDeBase(10, 9) }); // adjacent, debout
     const a = chooseEnemyAction(input(e, [downed, standing]));
     expect(a.kind).toBe('melee');
     expect((a as { targetId: string }).targetId).toBe('standing'); // ignore le « par terre »
@@ -153,14 +154,14 @@ describe("IA d'ennemi (chooseEnemyAction, pure)", () => {
 
   it('anti-acharnement : une cible à 0 PB encore présente n’est pas préférée à une cible debout (tir)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [RANGED] });
-    const dying = mk('dying', 'hero', { x: 5, y: 7 }, { wounds: { current: 0, max: 10 } }); // 0 PB encore là
-    const standing = mk('standing', 'hero', { x: 5, y: 8 }, { wounds: { current: 4, max: 10 } });
+    const dying = mk('dying', 'hero', { x: 5, y: 7 }, { wounds: blessuresDeBase(10, 0) }); // 0 PB encore là
+    const standing = mk('standing', 'hero', { x: 5, y: 8 }, { wounds: blessuresDeBase(10, 4) });
     expect(chooseEnemyAction(input(e, [dying, standing]))).toEqual({ kind: 'shoot', targetId: 'standing' });
   });
 
   it('anti-acharnement : si la SEULE cible est neutralisée, on l’achève (dernier recours)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 });
-    const downed = mk('downed', 'hero', { x: 5, y: 6 }, { wounds: { current: 1, max: 10 }, conditions: [{ id: 'inconscient', value: 1 }] });
+    const downed = mk('downed', 'hero', { x: 5, y: 6 }, { wounds: blessuresDeBase(10, 1), conditions: [{ id: 'inconscient', value: 1 }] });
     expect(chooseEnemyAction(input(e, [downed]))).toEqual({ kind: 'melee', targetId: 'downed' });
   });
 
@@ -176,7 +177,7 @@ describe('IA — vision réciproque (perceived)', () => {
   it('ne cible PAS un héros hors de sa perception, même proche et faible (mêlée)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 });
     const seen = mk('seen', 'hero', { x: 7, y: 5 });
-    const unseen = mk('unseen', 'hero', { x: 6, y: 5 }, { wounds: { current: 1, max: 10 } }); // adjacent + faible
+    const unseen = mk('unseen', 'hero', { x: 6, y: 5 }, { wounds: blessuresDeBase(10, 1) }); // adjacent + faible
     const action = chooseEnemyAction(input(e, [seen, unseen], { perceived: new Set(['7,5,0']) }));
     const tid = (action as { targetId?: string; thenTargetId?: string }).targetId ?? (action as { thenTargetId?: string }).thenTargetId;
     expect(tid).toBe('seen'); // l'invisible (pourtant adjacent/faible) est ignoré

@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { sha256 } from './empreinte.ts';
+import { empreinte, sha256 } from './empreinte.ts';
 import { ecrireGlb, GlbIllisible, lireGlb } from './glb.ts';
 import { chargerLicences, MANIFESTE_DE_PRODUCTION, TableDesLicencesInvalide } from './dossierDeProduction.ts';
 import { importerPersonnage } from './importer.ts';
@@ -373,7 +373,7 @@ describe('import et chargement au schéma 3', () => {
   /** Une base réexportée : le GLB `octets`, et son manifeste, celui de `baseSchema3(nom)` aux os de `os` renommés `root`. */
   const reexport = (os = 'root', nom = 'humanoide') => {
     const octets = ecrireGlb({ asset: { version: '2.0', generator: 'réexport' }, nodes: [{ name: os }], skins: [{ joints: [0] }], animations: [{ name: 'walk' }] }, null);
-    const manifeste = { ...JSON.parse(JSON.stringify(baseSchema3(nom)).split('"root"').join(JSON.stringify(os))), glb: { sha256: sha256(octets), octets: octets.byteLength } };
+    const manifeste = { ...JSON.parse(JSON.stringify(baseSchema3(nom)).split('"root"').join(JSON.stringify(os))), glb: empreinte(octets) };
     return { octets, dossier: productionSchema3(temporaire(), manifeste, octets) };
   };
   /** Une destination où la base `humanoide` est importée, puis l'élément `epee` qui la référence. */
@@ -460,9 +460,9 @@ describe('importerPersonnage', () => {
     return { verses, publier: (assets: readonly AssetAPublier[]) => { verses.push([...assets]); return assets.map((a) => a.nom); } };
   };
 
-  const dossierDeProduction = (muter: (m: ReturnType<typeof production>) => void = () => {}, empreinte?: string) => {
+  const dossierDeProduction = (muter: (m: ReturnType<typeof production>) => void = () => {}, declaree?: string) => {
     const d = temporaire();
-    const m = { ...production(), model_sha256: empreinte ?? EMPREINTE };
+    const m = { ...production(), model_sha256: declaree ?? EMPREINTE };
     muter(m);
     writeFileSync(join(d, m.model), GLB);
     writeFileSync(join(d, LICENCE_DE_PRODUCTION), TEXTE_DE_LICENCE_DE_PRODUCTION);

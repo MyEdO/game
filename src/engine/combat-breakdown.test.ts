@@ -9,6 +9,7 @@ import { ligneDeRegle, refDeRegle } from './reglesChiffrees';
 import { ligneDe } from './modLine.testkit';
 import { RULE_REF } from './ruleRefs';
 import { refLabel } from '../data';
+import { blessuresDeBase } from './characteristics';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -206,7 +207,7 @@ describe('Taille — Dégâts ×N + Atouts conférés (LDB 85 l.360-361)', () =>
 describe('resolveStrayRangedHit — tir dévié sur un allié (LDB 14 l.116)', () => {
   it('touche automatiquement la victime depuis le jet d’origine (sans relancer)', () => {
     const att = mk({ label: 'Tireur' });
-    const ally = mk({ label: 'Allié', wounds: { current: 10, max: 10 } });
+    const ally = mk({ label: 'Allié', wounds: blessuresDeBase(10) });
     const res = resolveStrayRangedHit(att, ally, bow, 30, 55, { rng: makeRNG(1595) }); // roll 30 ≤ cible 55 → touche
     expect(res.hit).toBe(true);
     expect(res.woundsLost).toBeGreaterThan(0); // dégâts recalculés sur l'allié
@@ -505,7 +506,7 @@ describe('PIÉTINEMENT et TIR DÉVIÉ : la ligne s’explique aussi (#1153 L4)',
 });
 
 /* Le CÂBLAGE des re-dérivations du produit (la Chance passe-t-elle vraiment la composition figée ?)
-   se mesure à l'EXÉCUTION, sur le chemin réel du flux : `preview-attack.test.ts`. Un scan de source
+   se mesure à l'EXÉCUTION, sur le chemin réel du flux : `preview-attack.hors-store.test.ts`. Un scan de source
    dirait « transport présent » d'un argument nommé `compo` qui vaudrait `undefined`. */
 
 describe('Re-dérivation passive = résolution passive au même dé (LDB 85 l.362, LDB 62 l.323, LDB 17 l.68)', () => {

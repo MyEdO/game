@@ -12,10 +12,13 @@
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie, ses points sans élément ; `--element` importé puis « Recharger » : l'élément listé aux
 //   seuls points dont l'os porte sa lame (`osDesRigides` du listage), les autres disant « aucun élément » ; les aides,
-//   l'élément monté puis démonté (« vide ») ; un clip joué, mis en pause, avancé et reculé d'une image (au clic puis à
-//   l'Entrée), sa vitesse réglée ; puis `--reexport` importé à la place de la base (`importer.mjs --remplacer`), l'élément
-//   qui la référence revalidé contre elle et laissé en place, « Recharger » sans relancer la page : l'empreinte publiée
-//   devient celle du manifeste réimporté, l'état (clip, instant, pause, vitesse, montés, aides) est gardé.
+//   l'élément monté puis démonté (« vide ») ; si une surface de `--element` porte `blason: true` (#3111), deux emblèmes
+//   posés tour à tour à la prise `main`, chacun sans erreur publiée, puis « vide », l'emblème effacé au démontage et
+//   reposé avant « Recharger » (sans surface `blason`, une ligne du journal dit la preuve non jouée) ; un
+//   clip joué, mis en pause, avancé et reculé d'une image (au clic puis à l'Entrée), sa vitesse réglée ; puis
+//   `--reexport` importé à la place de la base (`importer.mjs --remplacer`), l'élément qui la référence revalidé contre
+//   elle et laissé en place, « Recharger » sans relancer la page : l'empreinte publiée devient celle du manifeste
+//   réimporté, l'état (clip, instant, pause, vitesse, montés, emblèmes, aides) est gardé.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
@@ -30,7 +33,7 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { servir } from './servir.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { clic, consoleGuard, evaluate, geste, launchSession, molette, realKey, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
+import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, realKey, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
@@ -190,28 +193,39 @@ function importer(dossier, id, options = []) {
   noter(`import de ${id} : ${r.stdout.split('\n')[1].replaceAll(o.modeles, '')}`)
 }
 
+/** Le `deltaY` d'un cran de molette de Chrome sous Windows. Le panneau en défile moins que la hauteur de sa fenêtre :
+ *  aucun bouton ne passe entre deux écrans publiés (#3111). */
+const CRAN_DE_MOLETTE = 100
+/** Un cran de molette au point `ou`, vers le bas (`sens` 1) ou le haut (-1), puis l'écran que son défilement publie
+ *  attendu ; `false` si rien ne se publie en `FIN_DE_COURSE_MS`, le panneau au bout de sa course. */
+const FIN_DE_COURSE_MS = 3000
+async function cran(sens, ou) {
+  await marquer()
+  await molette(session, { surface: 'canvas', x: ou.x, y: ou.y }, sens * CRAN_DE_MOLETTE)
+  return waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.vu', { timeoutMs: FIN_DE_COURSE_MS }).then(
+    () => true,
+    (e) => {
+      if (e.code === ATTENTE_ECHUE) return false
+      throw e
+    },
+  )
+}
 /** Le bouton `quoi` amené à l'écran par la molette tournée au point `ou`, vers le bas (`sens` 1) ou le haut (-1). */
 async function amener(quoi, sens, ou = PANNEAU) {
-  for (let cran = 0; cran < CRANS; cran++) {
+  for (let n = 0; n < CRANS; n++) {
     const b = trouver((await ecran()).boutons, quoi)
     if (b) return b
-    await molette(session, { surface: 'canvas', x: ou.x, y: ou.y }, sens * 360)
-    await sleep(300)
+    if (!(await cran(sens, ou))) break
   }
-  throw new Error(`bouton ${JSON.stringify(quoi)} hors de l'écran après ${CRANS} crans de molette`)
+  const { boutons } = await ecran()
+  throw new Error(`bouton ${JSON.stringify(quoi)} hors de l'écran, panneau tourné ${sens > 0 ? 'vers le bas' : 'vers le haut'} ; boutons : ${boutons.map((x) => x.cle ?? x.texte).join(' | ')}`)
 }
-/** Le panneau tourné à la molette au point `PANNEAU` dans le sens `sens` jusqu'à ce que l'écran publié ne change plus ;
- *  `relever` reçoit chaque écran publié. */
+/** Le panneau tourné à la molette au point `PANNEAU` dans le sens `sens` jusqu'au bout de sa course ; `relever` reçoit
+ *  chaque écran publié. */
 async function tournerJusquAuBout(sens, relever = () => {}) {
-  let avant = null
-  for (let cran = 0; cran < CRANS; cran++) {
-    const { boutons } = await ecran()
-    relever(boutons)
-    const maintenant = JSON.stringify(boutons)
-    if (maintenant === avant) return
-    avant = maintenant
-    await molette(session, { surface: 'canvas', x: PANNEAU.x, y: PANNEAU.y }, sens * 360)
-    await sleep(300)
+  for (let n = 0; n < CRANS; n++) {
+    relever((await ecran()).boutons)
+    if (!(await cran(sens, PANNEAU))) return
   }
   throw new Error(`panneau encore en mouvement après ${CRANS} crans de molette`)
 }
@@ -229,6 +243,35 @@ async function clesDuPanneau() {
 async function cliquerAmene(quoi, sens, ou) {
   await amener(quoi, sens, ou)
   await cliquerBouton(quoi)
+}
+
+/** L'emblème `id` choisi au clic à la prise `main` (« vide » pour aucun), l'état publié qui le porte, ou une erreur,
+ *  attendu ; aucune erreur publiée. */
+async function choisirLEmbleme(id) {
+  await cliquerAmene({ cle: `main/embleme/${id}` }, 1)
+  await attendreLAtelier(`a.erreurs.length > 0 || ${id === 'vide' ? '!("main" in a.emblemes)' : `a.emblemes.main === ${JSON.stringify(id)}`}`)
+  assert.deepEqual((await atelier()).erreurs, [], `l’emblème « ${id} » posé sans erreur`)
+}
+/** À la prise `main`, dont l'élément monté porte une surface `blason` : la rangée des emblèmes relevée, le premier puis le
+ *  second posés et capturés, puis « vide » ; le premier reposé. Les ids des emblèmes offerts, triés. */
+async function poserLesEmblemes() {
+  const prefixe = 'main/embleme/'
+  await attendreLAtelier(`b.some((x) => x.cle === ${JSON.stringify(`${prefixe}vide`)})`)
+  assert.deepEqual((await atelier()).emblemes, {}, 'monté sans emblème')
+  const offerts = (await clesDuPanneau()).main.filter((c) => c.startsWith(prefixe) && c !== `${prefixe}vide`).map((c) => c.slice(prefixe.length))
+  assert.ok(offerts.length >= 2, `deux emblèmes offerts au moins : ${offerts.join(', ')}`)
+  const [a, b] = offerts
+  await choisirLEmbleme(a)
+  noter(`emblème « ${a} » posé à la prise « main »`)
+  await capturer('3111-1-embleme-a')
+  await choisirLEmbleme(b)
+  assert.deepEqual((await atelier()).emblemes, { main: b }, 'le second emblème remplace le premier')
+  noter(`emblème « ${b} » posé à sa place`)
+  await capturer('3111-2-embleme-b')
+  await choisirLEmbleme('vide')
+  noter('emblème « vide » : la surface rendue à son matériau')
+  await choisirLEmbleme(a)
+  return offerts
 }
 
 async function parcoursAtelier() {
@@ -265,11 +308,19 @@ async function parcoursAtelier() {
   await attendreLAtelier(`a.montes.main === ${JSON.stringify(elementId)}`)
   noter(`« ${elementId} » monté à la prise « main »`)
   await capturer('3086-a1-2-element-monte')
-  await cliquerBouton({ cle: 'main/vide' })
+  const blason = element.manifeste.surfaces.some((s) => s.blason === true)
+  if (!blason) noter(`« ${elementId} » sans surface \`blason\` : preuve des emblèmes non jouée`)
+  const emblemes = blason ? await poserLesEmblemes() : []
+  await cliquerAmene({ cle: 'main/vide' }, -1)
   await attendreLAtelier('!("main" in a.montes)')
-  noter('« vide » : la prise « main » démontée')
+  assert.deepEqual((await atelier()).emblemes, {}, 'démonter efface l’emblème')
+  noter('« vide » : la prise « main » démontée, sans emblème')
   await cliquerBouton(monter)
   await attendreLAtelier(`a.montes.main === ${JSON.stringify(elementId)}`)
+  if (emblemes.length) {
+    await choisirLEmbleme(emblemes[0])
+    noter(`« ${emblemes[0]} » reposé avant « Recharger »`)
+  }
 
   const premier = await amener('A_TPose', 1)
   await cliquerAmene(o.clip, 1, { x: premier.x, y: premier.y })
@@ -277,27 +328,30 @@ async function parcoursAtelier() {
   await cliquerAmene('Pause', 1)
   a = await atelier()
   assert.deepEqual([a.clip, a.lecture], [o.clip, false], 'la pause arrête le clip')
-  const enPause = a.instant
+  const { instant: enPause, duree } = a
+  const ecart = (depart, arrivee) => (((arrivee - depart) % duree) + duree) % duree
   await cliquerBouton('Image suivante')
   const suivante = (await atelier()).instant
   await marquer()
   await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
   await nouvelEcran()
   const encore = (await atelier()).instant
-  assert.ok(suivante > enPause && encore > suivante, `chaque image suivante avance l’instant : ${enPause} → ${suivante} → ${encore}`)
+  const image = ecart(suivante, encore)
+  assert.ok(ecart(enPause, suivante) > 0 && ecart(enPause, suivante) < duree / 2 && image > 0 && image < duree / 2, `chaque image suivante avance l’instant sur le clip bouclé de ${duree} s : ${enPause} → ${suivante} → ${encore}`)
   await cliquerBouton('Image précédente')
   a = await atelier()
-  assert.ok(Math.abs(a.instant - suivante) < 1e-6, `l’image précédente revient d’une image : ${encore} → ${a.instant}`)
-  noter(`pause à ${enPause} s ; image suivante (clic) ${suivante}, (Entrée) ${encore}, précédente ${a.instant} : une image ${(encore - suivante).toFixed(4)} s`)
+  const precedente = a.instant
+  assert.ok(Math.min(ecart(suivante, precedente), ecart(precedente, suivante)) < 1e-6, `l’image précédente revient d’une image : ${encore} → ${precedente}`)
+  noter(`pause à ${enPause} s sur ${duree} s ; image suivante (clic) ${suivante}, (Entrée) ${encore}, précédente ${precedente} : une image ${image.toFixed(4)} s`)
   await cliquerBouton('×0.5')
   a = await atelier()
-  assert.deepEqual([a.vitesse, a.lecture, a.instant], [0.5, false, suivante], 'la vitesse se règle, la pause tient l’instant')
+  assert.deepEqual([a.vitesse, a.lecture, a.instant], [0.5, false, precedente], 'la vitesse se règle, la pause tient l’instant')
   await cliquerBouton('Lecture')
   assert.equal((await atelier()).lecture, true, 'la lecture reprend')
   await sleep(500)
   await cliquerBouton('Pause')
   const avant = await atelier()
-  assert.ok(avant.instant !== suivante && avant.lecture === false, `la lecture a avancé le clip : ${suivante} → ${avant.instant}`)
+  assert.ok(avant.instant !== precedente && avant.lecture === false, `la lecture a avancé le clip : ${precedente} → ${avant.instant}`)
   noter(`×0.5, lecture puis pause : ${avant.instant} s`)
   await capturer('3086-a1-3-clip-en-pause')
 
@@ -309,9 +363,9 @@ async function parcoursAtelier() {
   const apres = await atelier()
   assert.equal(await evaluate(session, 'globalThis.recetteSansRelance === true'), true, 'la page n’a pas été relancée')
   assert.ok(Math.abs(apres.instant - avant.instant) < 1e-6, `l’instant gardé : ${avant.instant} → ${apres.instant}`)
-  const etat = ({ base: b, clip, lecture, vitesse, montes, aides, erreurs }) => ({ b, clip, lecture, vitesse, montes, aides, erreurs })
-  assert.deepEqual(etat(apres), etat(avant), 'clip, pause, vitesse, montés, aides gardés')
-  noter(`« Recharger » sans relance : empreinte ${avant.empreinte.slice(0, 12)} → ${apres.empreinte.slice(0, 12)} ; ${apres.clip} à ${apres.instant} s en pause, ×${apres.vitesse}, montés ${JSON.stringify(apres.montes)}, aides ${JSON.stringify(apres.aides)}`)
+  const etat = ({ base: b, clip, lecture, vitesse, montes, emblemes: e, aides, erreurs }) => ({ b, clip, lecture, vitesse, montes, e, aides, erreurs })
+  assert.deepEqual(etat(apres), etat(avant), 'clip, pause, vitesse, montés, emblèmes, aides gardés')
+  noter(`« Recharger » sans relance : empreinte ${avant.empreinte.slice(0, 12)} → ${apres.empreinte.slice(0, 12)} ; ${apres.clip} à ${apres.instant} s en pause, ×${apres.vitesse}, montés ${JSON.stringify(apres.montes)}, emblèmes ${JSON.stringify(apres.emblemes)}, aides ${JSON.stringify(apres.aides)}`)
   await capturer('3086-a1-4-reexport-recharge')
 }
 

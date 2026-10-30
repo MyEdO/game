@@ -21,6 +21,7 @@ import { draineCascade } from './cascade.testkit';
 import { itemFromTrappingById } from '../engine/items';
 import { decorHorsCombat, noeudsDeTest, porteDeMaladie, rendreMalade, nuitDuMalade, type Noeud } from './noeudsDeTest.testkit';
 import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import type { GameOp, OpsCtx } from '../engine/ops';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../engine/flowCore';
@@ -32,7 +33,7 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 /** Coque de service : les ops de chute d'un Critique de navire dimensionnent leur hauteur dessus. */
-const coque = (): Combatant => ({ id: 'coque', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille' } as unknown as Combatant);
+const coque = (): Combatant => combattantDeTest({ id: 'coque', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille' });
 
 function decor(): Combatant {
   seedBattleRng(1874);

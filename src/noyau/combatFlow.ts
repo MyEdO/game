@@ -4232,7 +4232,7 @@ export function applyWail(get: Get, set: SetFn, attacker: Combatant): boolean {
   // ouvre une cascade influençable pour un héros MANUEL → SUSPEND (checkBattleOver déféré à sa fermeture).
   const suspended = resolveManeuver(get, set, attacker, a.def, a.indice, null, attacker.advantage);
   if (!suspended) checkBattleOver(get, set);
-  return true; // « a agi » (creatureFreeAttacks.test le vérifie en cadence auto) ; la suspension est lue via `maneuverCascadePending`
+  return true; // « a agi » (creatureFreeAttacks.hors-store.test le vérifie en cadence auto) ; la suspension est lue via `maneuverCascadePending`
 }
 
 /** Regard pétrifiant (IA) : jet CT puis résolution ; l'IA dépense TOUT (min 1), +1 DR/Av (LDB 85 l.290).

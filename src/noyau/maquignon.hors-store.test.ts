@@ -5,6 +5,8 @@ import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { setRule } from '../engine/policy';
 import { toBrass } from '../engine/money';
 import type { Combatant } from '../engine/types';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase } from '../engine/characteristics';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -17,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * joueur choisit le héros propriétaire, la possession n'est créée qu'à `confirmDistribution`.
  */
 const hero = (id: string, name: string): Combatant =>
-  ({ id, name, items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
+  combattantDeTest({ id, label: name, items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
 
 const maquignonScene = () => {
   const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';

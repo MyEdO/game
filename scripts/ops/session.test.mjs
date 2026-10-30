@@ -9,12 +9,14 @@ import { join } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { spawnSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { syncBuiltinESMExports } from 'node:module'
 import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, lirePolitique, contratCodex, consigneAgent, lancerAgent, lireRapportDe, validateurDeSchema, piloterAgent } from './session-runtime.mjs'
 import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal, outilsSession, refusSession, attendreSuivi } from './session.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { aplatirHooks } from '../agents/compat-core.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
+import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { verifierVersionCodex } from './session-version.mjs'
 import { projeter, surfaceDe } from '../hooks/repartition.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
@@ -45,8 +47,161 @@ test('veille suivie : bornes et aucune réarment avec curseur ; pannes et parent
     const panne = Object.assign(new Error('Borne IPC Codex atteinte'), { code })
     await assert.rejects(attendreSuivi({ attendre: async () => { throw panne } }, 'cible', { timeoutMs: 10 }, { parentVivant: () => true }), (e) => e === panne)
   }
+  const transitoire = () => new Error(`${prefixeDeRefus('transitoire')} [verrou] sessions : tenu`)
+  let essais = 0, instant = 0
+  const pause = async () => { instant += 4 }, reprise = [transitoire(), transitoire(), fin]
+  assert.equal(await attendreSuivi({ attendre: async () => { essais++; const r = reprise.shift(); if (r instanceof Error) throw r; return r } }, 'cible', { timeoutMs: 10 }, { parentVivant: () => true, horloge: () => instant, dormir: pause }), fin)
+  assert.ok(essais > 1 && reprise.length === 0, 'les refus transitoires sont retentés jusqu’à la transition')
+  for (const refus of [new Error(`${prefixeDeRefus('panne')} CARTE INVALIDE`), new Error(`${prefixeDeRefus('métier')} NON INSCRIT`)]) {
+    essais = 0
+    await assert.rejects(attendreSuivi({ attendre: async () => { essais++; throw refus } }, 'cible', { timeoutMs: 10 }, { parentVivant: () => true, dormir: async () => assert.fail('aucune pause') }), (e) => e === refus)
+    assert.equal(essais, 1)
+  }
+  for (const [nom, panneDe] of [['attendre', (s) => { s.attendre = async () => { throw (s.dernier = transitoire()) } }], ['etat', (s) => { s.etat = () => { throw (s.dernier = transitoire()) } }]]) {
+    const sessions = { essais: 0, attendre: async () => ({ type: 'aucune', etat: 'indeterminee' }), etat: () => ({ etat: 'vivante' }) }
+    panneDe(sessions)
+    const attendre = sessions.attendre
+    sessions.attendre = async (...args) => { sessions.essais++; return attendre(...args) }
+    instant = 0
+    await assert.rejects(attendreSuivi(sessions, 'cible', { timeoutMs: 10 }, { parentVivant: () => true, horloge: () => instant, dormir: pause }), (e) => e === sessions.dernier, nom)
+    assert.ok(sessions.essais > 1 && instant > 10, `${nom} : relevé après plus d’un essai, une fois la borne passée`)
+  }
+  let tours = 0
+  assert.deepEqual(await attendreSuivi({ attendre: async () => { throw transitoire() } }, 'cible', { timeoutMs: 1_000_000 }, { parentVivant: () => ++tours < 3, horloge: () => instant, dormir: pause }), { etat: 'indeterminee', raison: 'PARENT DISPARU' })
   assert.equal((await attendreSuivi({}, 'cible', { timeoutMs: 10 }, { parentVivant: () => false })).raison, 'PARENT DISPARU')
   assert.equal(optionsSession(['attendre', 'cible', '--suivre']).suivre, true)
+})
+
+/** Un AUTRE processus prend `registre.lock` de `dossier` et le rend après `ms` ; résolu une fois le verrou pris (#3138). */
+async function tenirRegistre(t, dossier, ms) {
+  const verrou = new URL('../test/verrou.mjs', import.meta.url).href
+  const code = `import { prendreVerrou } from ${JSON.stringify(verrou)}; const p = prendreVerrou({ chemin: ${JSON.stringify(join(dossier, 'registre.lock'))}, libelle: 'banc', commande: 'banc', cwd: ${JSON.stringify(dossier)} }); process.stdout.write(p.etat + '\\n'); setTimeout(() => { p.liberer(); process.exit(0) }, ${ms})`
+  const enfant = spawn(process.execPath, ['--input-type=module', '-e', code], { stdio: ['ignore', 'pipe', 'inherit'] })
+  const fin = new Promise((ok) => enfant.once('exit', ok))
+  t.after(async () => { enfant.kill(); await fin })
+  const etat = await new Promise((ok, non) => { enfant.once('error', non); enfant.stdout.once('data', (d) => ok(String(d).trim())) })
+  assert.equal(etat, 'pris')
+}
+
+test('#3138 : une veille --suivre survit au verrou du registre tenu plus de 5 s par un autre processus', { timeout: 60_000 }, async (t) => {
+  const b = banc(t), r = b.reserver(), id = r.carte.sessionId
+  b.avance(61_000)
+  await tenirRegistre(t, b.dossier, 6_000)
+  const debut = Date.now()
+  const refus = []
+  const sessions = new Proxy(b.sessions, { get: (cible, cle) => cle !== 'attendre' ? cible[cle] : async (...args) => { try { return await cible.attendre(...args) } catch (e) { refus.push(e.message); throw e } } })
+  const resultat = await attendreSuivi(sessions, id, { timeoutMs: 30_000, depuis: 0 }, { parentVivant: () => true })
+  assert.equal(resultat.etat, 'echec-reservation')
+  assert.equal(resultat.carte.raison, 'RÉSERVATION EXPIRÉE')
+  assert.ok(refus.length >= 1 && refus.every((m) => m.startsWith(prefixeDeRefus('transitoire'))), JSON.stringify(refus))
+  assert.ok(Date.now() - debut >= 5_000, `verrou tenu ${Date.now() - debut} ms`)
+})
+
+test('#3138 : sans transition due, lister ne prend pas le verrou du registre', { timeout: 30_000 }, async (t) => {
+  const b = banc(t), r = b.reserver()
+  await tenirRegistre(t, b.dossier, 20_000)
+  const debut = Date.now(), liste = b.sessions.lister()
+  assert.ok(Date.now() - debut < 2_000, `lister a attendu ${Date.now() - debut} ms`)
+  assert.equal(liste.cartes.find((c) => c.sessionId === r.carte.sessionId).etat, 'reservee')
+})
+
+test('#3138 : archiver déplace les cartes invalides mortes et leurs annexes, conserve celles dont une identité vit', async (t) => {
+  const b = banc(t), r = b.reserver(), valide = readFileSync(join(b.dossier, `${r.carte.sessionId}.json`), 'utf8')
+  writeFileSync(join(b.dossier, 'morte.json'), JSON.stringify({ producteur: 'ops:session', sessionId: 'morte', etat: 'vivante', controleur: identite(77), jobHost: { pid: 10, creation: 'recyclee' } }))
+  for (const annexe of ['morte.stderr', 'morte.jobhost.log']) writeFileSync(join(b.dossier, annexe), 'x')
+  writeFileSync(join(b.dossier, 'tenue.json'), JSON.stringify({ producteur: 'ops:session', sessionId: 'tenue', etat: 'vivante', jobHost: identite(30) }))
+  writeFileSync(join(b.dossier, 'casse.json'), 'pas du json')
+  writeFileSync(join(b.dossier, 'abc.json'), JSON.stringify({ producteur: 'ops:session', sessionId: 'abc' }))
+  const voisins = { 'abc.x.json': JSON.stringify({ producteur: 'presence', sessionId: 'abc.x' }), 'abc.x.rapport': 'r', 'morte.inconnu': 'hors registre' }
+  for (const [nom, contenu] of Object.entries(voisins)) writeFileSync(join(b.dossier, nom), contenu)
+  let sortie = ''
+  assert.equal(await commandeSession(['archiver'], { cwd: b.dossier, stdout: { write: (texte) => { sortie += texte } }, contexte: () => ({ gitCommun: b.dossier }), sessionsDe: () => b.sessions }), 0)
+  const rendu = JSON.parse(sortie)
+  assert.deepEqual(rendu.archivees.sort(), ['abc.json', 'casse.json', 'morte.jobhost.log', 'morte.json', 'morte.stderr'])
+  for (const [nom, contenu] of Object.entries(voisins)) assert.equal(readFileSync(join(b.dossier, nom), 'utf8'), contenu, `${nom} n’appartient pas à une carte archivée`)
+  assert.deepEqual(rendu.conservees.map((c) => c.fichier), ['tenue.json'])
+  assert.ok(rendu.conservees[0].raison.startsWith(`${prefixeDeRefus('panne')} CARTE INVALIDE : tenue.json`))
+  for (const fichier of rendu.archivees) { assert.ok(existsSync(join(b.dossier, 'archive', fichier))); assert.ok(!existsSync(join(b.dossier, fichier))) }
+  const liste = b.sessions.lister()
+  assert.deepEqual(liste.anomalies.map((a) => a.fichier), ['tenue.json'])
+  assert.equal(readFileSync(join(b.dossier, `${r.carte.sessionId}.json`), 'utf8'), valide)
+  assert.throws(() => optionsSession(['archiver', 'cible']), /OPTION REFUSÉE/)
+})
+
+test('#3138 : archiver conserve une carte dont la lecture est refusée EBUSY sous verrou, refus transitoire', async (t) => {
+  const b = banc(t), r = b.reserver(), fichier = `${r.carte.sessionId}.json`, carte = join(b.dossier, fichier)
+  const saine = readFileSync(carte, 'utf8'), lireVrai = fs.readFileSync
+  t.mock.method(fs, 'readFileSync', (chemin, ...reste) => {
+    if (chemin === carte) throw Object.assign(new Error(`EBUSY: resource busy or locked, open '${carte}'`), { code: 'EBUSY' })
+    return lireVrai(chemin, ...reste)
+  })
+  const rendu = b.sessions.archiver()
+  t.mock.restoreAll()
+  assert.deepEqual(rendu.archivees, [])
+  assert.deepEqual(rendu.conservees.map((c) => c.fichier), [fichier])
+  assert.ok(rendu.conservees[0].raison.startsWith(`${prefixeDeRefus('transitoire')} CARTE TENUE : ${fichier}`), rendu.conservees[0].raison)
+  assert.equal(readFileSync(carte, 'utf8'), saine)
+  assert.equal(existsSync(join(b.dossier, 'archive', fichier)), false)
+})
+
+/** Une carte invalide morte `morte.json` et ses annexes `morte.stderr`, `morte.jobhost.log` dans le registre de `b`. */
+function carteMorte(b) {
+  writeFileSync(join(b.dossier, 'morte.json'), JSON.stringify({ producteur: 'ops:session', sessionId: 'morte', etat: 'vivante', controleur: identite(77) }))
+  for (const annexe of ['morte.stderr', 'morte.jobhost.log']) writeFileSync(join(b.dossier, annexe), annexe)
+  return ['morte.jobhost.log', 'morte.json', 'morte.stderr']
+}
+
+/** `fs.renameSync` remplacé par `faux` pour tout importeur de `node:fs`, restauré à la fin de `t`. */
+function renommageSimule(t, faux) {
+  const vrai = fs.renameSync
+  t.mock.method(fs, 'renameSync', (source, cible) => faux(source, cible, vrai))
+  syncBuiltinESMExports()
+  t.after(() => { t.mock.restoreAll(); syncBuiltinESMExports() })
+}
+
+test('#3138 : archiver rejoue le déplacement d’une carte refusé EBUSY une fois, et l’archive entière', async (t) => {
+  const b = banc(t), noms = carteMorte(b)
+  let refus = 0
+  renommageSimule(t, (source, cible, vrai) => {
+    if (source === join(b.dossier, 'morte.json') && !refus++) throw Object.assign(new Error('EBUSY: resource busy or locked, rename'), { code: 'EBUSY' })
+    return vrai(source, cible)
+  })
+  const rendu = b.sessions.archiver()
+  assert.equal(refus, 2)
+  assert.deepEqual(rendu.archivees.sort(), noms)
+  assert.deepEqual(rendu.conservees, [])
+  for (const nom of noms) { assert.ok(existsSync(join(b.dossier, 'archive', nom)), nom); assert.ok(!existsSync(join(b.dossier, nom)), nom) }
+})
+
+test('#3138 : un déplacement d’annexe refusé laisse la carte au registre, jamais une annexe orpheline, et l’archivage suivant solde', async (t) => {
+  const b = banc(t), noms = carteMorte(b)
+  let panne = true
+  renommageSimule(t, (source, cible, vrai) => {
+    if (panne && source === join(b.dossier, 'morte.stderr')) throw Object.assign(new Error('EIO: i/o error, rename'), { code: 'EIO' })
+    return vrai(source, cible)
+  })
+  const rendu = b.sessions.archiver()
+  assert.ok(existsSync(join(b.dossier, 'morte.json')), 'la carte reste au registre tant qu’une annexe y reste')
+  assert.ok(existsSync(join(b.dossier, 'morte.stderr')))
+  assert.ok(!rendu.archivees.includes('morte.json'), rendu.archivees.join(', '))
+  assert.deepEqual(rendu.conservees.map((c) => c.fichier), ['morte.json'])
+  assert.ok(rendu.conservees[0].raison.startsWith(`${prefixeDeRefus('panne')} ARCHIVAGE INTERROMPU : morte.json`), rendu.conservees[0].raison)
+  panne = false
+  const suite = b.sessions.archiver()
+  assert.deepEqual([...rendu.archivees, ...suite.archivees].sort(), noms)
+  for (const nom of noms) { assert.ok(existsSync(join(b.dossier, 'archive', nom)), nom); assert.ok(!existsSync(join(b.dossier, nom)), nom) }
+})
+
+test('#3138 : archiver refuse d’écraser une entrée déjà sous archive/ et conserve la carte entière', async (t) => {
+  const b = banc(t), noms = carteMorte(b)
+  mkdirSync(join(b.dossier, 'archive'))
+  writeFileSync(join(b.dossier, 'archive', 'morte.stderr'), 'ancienne')
+  const rendu = b.sessions.archiver()
+  assert.deepEqual(rendu.archivees, [])
+  assert.deepEqual(rendu.conservees.map((c) => c.fichier), ['morte.json'])
+  assert.ok(rendu.conservees[0].raison.startsWith(`${prefixeDeRefus('métier')} ARCHIVE OCCUPÉE : archive/morte.stderr`), rendu.conservees[0].raison)
+  assert.equal(readFileSync(join(b.dossier, 'archive', 'morte.stderr'), 'utf8'), 'ancienne')
+  for (const nom of noms) assert.ok(existsSync(join(b.dossier, nom)), nom)
 })
 
 test('suivi : parent et instant capturés une fois malgré le réarmement', async () => {
@@ -417,16 +572,16 @@ test('contrôleur refuse une empreinte modifiée juste avant spawn et purge son 
 
 test('argsTerminal transporte valeurs arbitraires dans PowerShell réel sans interpolation', { skip: process.platform !== 'win32' }, (t) => {
   const b = banc(t), capture = join(b.dossier, "capture ; ' ‘ ’ “ ”.ps1"), sortie = join(b.dossier, 'capture.json')
-  writeFileSync(capture, 'param($Node,$CommandLine,$Worktree,$SessionId,$Dossier)\n@{Node=$Node;CommandLine=$CommandLine;Worktree=$Worktree;SessionId=$SessionId;Dossier=$Dossier}|ConvertTo-Json -Compress|Set-Content -LiteralPath $Worktree -Encoding UTF8')
+  writeFileSync(capture, 'param($Node,$CommandLine,$Worktree,$SessionId,$Terminal,$JournalHote)\n@{Node=$Node;CommandLine=$CommandLine;Worktree=$Worktree;SessionId=$SessionId;Terminal=$Terminal;JournalHote=$JournalHote}|ConvertTo-Json -Compress|Set-Content -LiteralPath $Worktree -Encoding UTF8')
   const node = join(b.dossier, 'Node espace ; "quote"', 'node.exe'), commande = JSON.stringify(join(b.dossier, 'script ; apostrophe\' ‘ ’ “ ”', 'x'))
-  const sessionId = '35d913d0-8f84-4abb-b52b-970d27e1ebd1'
-  const args = argsTerminal({ profil: 'profil ; spécial', nom: 'nom ; spécial', script: capture, node, commande, worktree: sortie, sessionId, dossier: b.dossier })
+  const sessionId = '35d913d0-8f84-4abb-b52b-970d27e1ebd1', terminal = join(b.dossier, "terminal ; ' ‘ ’ “ ”"), journalHote = join(b.dossier, 'journal ; "quote"')
+  const args = argsTerminal({ profil: 'profil ; spécial', nom: 'nom ; spécial', script: capture, node, commande, worktree: sortie, sessionId, terminal, journalHote })
   assert.equal(args[4], 'profil \\; spécial'); assert.equal(args[6], 'nom \\; spécial')
   assert.ok(args.includes('-EncodedCommand')); assert.ok(!args.includes('-File'))
   const debut = args.indexOf('powershell.exe')
   const vu = spawnSync(args[debut], args.slice(debut + 1), { encoding: 'utf8', windowsHide: true, timeout: 10_000 })
   assert.equal(vu.status, 0, vu.stderr); assert.equal(vu.error, undefined)
-  assert.deepEqual(JSON.parse(readFileSync(sortie, 'utf8').replace(/^\uFEFF/, '')), { Node: node, CommandLine: commande, Worktree: sortie, SessionId: sessionId, Dossier: b.dossier })
+  assert.deepEqual(JSON.parse(readFileSync(sortie, 'utf8').replace(/^\uFEFF/, '')), { Node: node, CommandLine: commande, Worktree: sortie, SessionId: sessionId, Terminal: terminal, JournalHote: journalHote })
 })
 
 test('fermeture concurrente idempotente et fin naturelle refuse arrêt', (t) => {
@@ -612,7 +767,7 @@ test('JobHost réel borné : child neutre sort42, descendant nettoyé, host sort
   writeFileSync(fixture, `import {spawn} from 'node:child_process'; import fs from 'node:fs'; const enfant=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'inherit',shell:false}); fs.writeFileSync(${JSON.stringify(pids)},JSON.stringify({parent:process.pid,enfant:enfant.pid})); setTimeout(()=>process.exit(42),300);`)
   const commande = ligneControleur({ script: fixture, dossier: b.dossier, id: 'neutre' })
   const host = fileURLToPath(new URL('./session-process.ps1', import.meta.url))
-  const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', process.execPath, '-CommandLine', commande, '-Worktree', b.dossier, '-SessionId', '35d913d0-8f84-4abb-b52b-970d27e1ebd1', '-Dossier', b.dossier, '-TimeoutMs', '10000'], { cwd: b.dossier, encoding: 'utf8', windowsHide: true, timeout: 20_000, env: envAgent(process.env) })
+  const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', process.execPath, '-CommandLine', commande, '-Worktree', b.dossier, '-SessionId', '35d913d0-8f84-4abb-b52b-970d27e1ebd1', '-Terminal', join(b.dossier, 'signal-terminal.json'), '-JournalHote', join(b.dossier, 'journal-hote.log'), '-TimeoutMs', '10000'], { cwd: b.dossier, encoding: 'utf8', windowsHide: true, timeout: 20_000, env: envAgent(process.env) })
   assert.equal(vu.error, undefined, vu.error?.message)
   assert.equal(vu.status, 0, vu.stderr)
   assert.equal(vu.stderr, '', vu.stderr)
@@ -628,11 +783,11 @@ test('JobHost erreurs contrôlées : image absente et timeout du child neutre re
   const host = fileURLToPath(new URL('./session-process.ps1', import.meta.url))
   for (const node of [join(b.dossier, 'absent.exe'), process.execPath]) {
     const commande = ligneControleur({ node, script: fixture, dossier: b.dossier, id: 'neutre' })
-    const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', node, '-CommandLine', commande, '-Worktree', b.dossier, '-SessionId', '35d913d0-8f84-4abb-b52b-970d27e1ebd1', '-Dossier', b.dossier, '-TimeoutMs', '3000'], { encoding: 'utf8', windowsHide: true, timeout: 15_000, env: envAgent(process.env) })
+    const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', node, '-CommandLine', commande, '-Worktree', b.dossier, '-SessionId', '35d913d0-8f84-4abb-b52b-970d27e1ebd1', '-Terminal', join(b.dossier, 'signal-terminal.json'), '-JournalHote', join(b.dossier, 'journal-hote.log'), '-TimeoutMs', '3000'], { encoding: 'utf8', windowsHide: true, timeout: 15_000, env: envAgent(process.env) })
     assert.equal(vu.error, undefined)
     assert.equal(vu.status, 1)
     assert.match(vu.stderr, /session JobHost/)
-    const diagnostic = readFileSync(join(b.dossier, '35d913d0-8f84-4abb-b52b-970d27e1ebd1.jobhost.log'), 'utf8')
+    const diagnostic = readFileSync(join(b.dossier, 'journal-hote.log'), 'utf8')
     const code = node === process.execPath ? 'ETIMEDOUT' : 'ECLOTURE'
     assert.ok(diagnostic.includes(code)); assert.ok(vu.stderr.includes(code)); assert.ok(diagnostic.length <= 4096)
     if (node === process.execPath) { const ids = JSON.parse(readFileSync(pids, 'utf8')); assert.equal(mesurerProcessus(ids.pid), null); console.log(`JOBHOST erreur preuve : host=1, child=${ids.pid} absent après timeout`) }
@@ -643,7 +798,7 @@ test('JobHost crash : fermeture du handle host tue la descendance kernel sans ar
   const b = banc(t), fixture = join(b.dossier, 'crash-host.mjs'), pids = join(b.dossier, 'pids.json')
   writeFileSync(fixture, `import fs from 'node:fs'; import {spawn} from 'node:child_process'; const enfant=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'inherit',shell:false}); fs.writeFileSync(${JSON.stringify(pids)},JSON.stringify({parent:process.pid,enfant:enfant.pid})); setInterval(()=>{},1000);`)
   const commande = ligneControleur({ script: fixture, dossier: b.dossier, id: 'neutre' }), host = fileURLToPath(new URL('./session-process.ps1', import.meta.url))
-  const child = spawn('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', process.execPath, '-CommandLine', commande, '-Worktree', b.dossier, '-SessionId', '35d913d0-8f84-4abb-b52b-970d27e1ebd1', '-Dossier', b.dossier, '-TimeoutMs', '10000'], { encoding: 'utf8', stdio: 'ignore', windowsHide: true, env: envAgent(process.env) })
+  const child = spawn('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', process.execPath, '-CommandLine', commande, '-Worktree', b.dossier, '-SessionId', '35d913d0-8f84-4abb-b52b-970d27e1ebd1', '-Terminal', join(b.dossier, 'signal-terminal.json'), '-JournalHote', join(b.dossier, 'journal-hote.log'), '-TimeoutMs', '10000'], { encoding: 'utf8', stdio: 'ignore', windowsHide: true, env: envAgent(process.env) })
   const fin = new Promise((ok, non) => { child.once('error', non); child.once('exit', ok) })
   t.after(() => child.kill())
   let ids
@@ -968,6 +1123,7 @@ test('correction 6 : cartes null/tableau/propres invalides signalées, voisine v
   assert.ok(liste.cartes.some((c) => c.sessionId === r.carte.sessionId))
   assert.ok(liste.cartes.some((c) => c.sessionId === 'voisine'))
   for (const id of Object.keys(invalides)) assert.throws(() => b.sessions.muter(id, () => {}), /CARTE INVALIDE/)
+  for (const id of Object.keys(invalides)) assert.throws(() => b.sessions.etat(id), (e) => e.message.startsWith(`${prefixeDeRefus('panne')} CARTE INVALIDE : ${id}.json`) && e.message.split(prefixeDeRefus('panne')).length === 2)
   assert.equal(readFileSync(join(b.dossier, 'voisine.json'), 'utf8'), avant)
   let sortie = ''
   assert.equal(await commandeSession(['lister'], { cwd: b.dossier, stdout: { write: (texte) => { sortie += texte } }, contexte: () => ({ gitCommun: b.dossier }), sessionsDe: () => b.sessions }), 0)

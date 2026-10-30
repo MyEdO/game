@@ -8,6 +8,7 @@ import { hooksAttendus, aplatirHooks, SURFACE_CLAUDE, SURFACE_CODEX } from '../a
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { lireStdinBorne, DELAI_STDIN_MS } from '../guards/lib/stdinBorne.mjs'
 
+export const ANNEXES_SESSION_START = Object.freeze({ recu: 'sessionstart' })
 export const hashSessionStart = (value) => createHash('sha256').update(value).digest('hex')
 export const canoniserWorktree = (path) => {
   const real = fs.realpathSync.native(resolve(path))
@@ -38,7 +39,7 @@ export async function preflightSessionStart(worktree, agent) {
   return { empreinteCanon: hashSessionStart(JSON.stringify({ attendus, contenus })), ...(agent === 'codex' ? { empreinteCredo: hashSessionStart(credo) } : {}), delaiMs: (plats.filter((h) => h.phase === 'SessionStart').reduce((total, h) => total + h.timeout, 0) + 10) * 1000 }
 }
 
-export const contexteRecu = (carte, dossier, nonce) => Contexte.parse({ sessionId: carte.sessionId, nonce, worktree: canoniserWorktree(carte.worktree), surface: carte.agent, empreinteCanon: carte.hooks.empreinteCanon, ...(carte.hooks.empreinteCredo ? { empreinteCredo: carte.hooks.empreinteCredo } : {}), debut: carte.date, chemin: join(dossier, `${carte.sessionId}.sessionstart`) })
+export const contexteRecu = (carte, dossier, nonce) => Contexte.parse({ sessionId: carte.sessionId, nonce, worktree: canoniserWorktree(carte.worktree), surface: carte.agent, empreinteCanon: carte.hooks.empreinteCanon, ...(carte.hooks.empreinteCredo ? { empreinteCredo: carte.hooks.empreinteCredo } : {}), debut: carte.date, chemin: join(dossier, `${carte.sessionId}.${ANNEXES_SESSION_START.recu}`) })
 
 export function produireRecuSessionStart({ surface, entree, env = process.env, worktree = process.cwd(), credo }) {
   if (!env.WFRP_SESSION_START) return null
