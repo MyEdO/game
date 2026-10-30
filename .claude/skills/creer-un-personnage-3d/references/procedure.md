@@ -134,10 +134,20 @@ SIMPLIFIER / OMETTRE. Distinguer volume, motif peint et ombre. Tracer les hypoth
 Le modèle se compare à l'illustration directrice. Un grand revers et un foulard sont des formes ;
 coutures et usure restent du détail. Palette mate limitée, ombrage flat/smooth intentionnel.
 
-Un blason (emblème d'unité, de province ou de culte) n'appartient pas à l'élément : la pièce garde
-un champ neutre (écu uni, lame nue, insigne vierge) et le contrat nomme chaque surface qui le
-porte. #3111 (« Schéma 3 : blason posé au montage sur les surfaces déclarées d'un élément, jamais
-peint ») en fait une déclaration du manifeste.
+Un emblème (d'unité, de province ou de culte) n'appartient pas à l'élément : la pièce garde un champ
+neutre (écu uni, lame nue, insigne vierge), dont la couleur reste palette ou teinte, et le manifeste
+déclare `blason: true` sur chaque surface qui reçoit l'emblème, dite surface `blason` ; l'emblème
+est choisi au montage (#3111). Un insigne d'uniforme est la pièce `insigne` (accessoire) à surface
+`blason` ; un signe peint sur une armure (tassette, brassard) est un emblème, reçu par une surface
+`blason` de la pièce.
+
+Le matériau d'une surface `blason` ne couvre que la face porteuse : toute face de ce matériau reçoit
+l'emblème. Son îlot UV de `TEXCOORD_0` remplit le carré [0,1]², à l'échelle uniforme, sans miroir,
+rien hors du carré ; l'emblème, un SVG à `viewBox` carré (`refusDeSvg`,
+`src/data/schemas/defs/garde-robe.ts`), occupe ce carré entier. L'export glTF retourne v et Godot le
+lit sans retournement ; u n'est pas retourné. Contrôler avant l'export dans la vue 3D de Blender, une
+image asymétrique appliquée au matériau, la surface vue côté normale extérieure : l'image s'y lit à
+l'endroit, sans miroir ni rotation.
 
 ## 3. Bloquer l'ensemble, construire par dépendances
 
@@ -229,8 +239,9 @@ Lire au besoin la référence diagnostics du skill.
 Exporter en interpolation LINEAR et garder les pistes cuites de la base. Graines déterministes
 tirées des codes de caractères de l'identité, jamais du hash Python variable entre processus.
 Reconstruire un échantillon et comparer les octets ; une signature égale ne remplace pas cette preuve.
-Couleur de base en niveaux de gris ; surfaces reliées à palette ou teinte, sans couleur cuite, blason ni
-illustration en texture. La cuisson de géométrie vers texture peut utiliser le kit.
+Couleur de base en niveaux de gris ; surfaces reliées à palette ou teinte, sans couleur cuite ni
+illustration en texture ; aucun emblème n'est cuit, il se pose au montage sur une surface `blason`
+(section 2). La cuisson de géométrie vers texture peut utiliser le kit.
 
 Réutiliser une vue seulement si export et pose sont identiques. Après deux échecs du même défaut,
 changer de construction, provenance ou méthode de mesure avant une troisième retouche ; lire le
@@ -261,17 +272,19 @@ réellement définie ; remplacer empreinte et octets par ceux du GLB final) :
   "categorie": "rigide",
   "cle": { "apparence": "epee" },
   "liaison": { "mode": "rigide" },
-  "surfaces": [{ "nom": "metal", "teinte": true }],
+  "surfaces": [{ "nom": "metal", "teinte": true }, { "nom": "plat", "teinte": true, "blason": true }],
   "glb": { "sha256": "REMPLACER_PAR_64_CARACTERES_HEXADECIMAUX", "octets": 1 }
 }
 ```
 
-Pour les autres catégories, appliquer la table et les champs de la section 2. Les noms de surfaces
-doivent correspondre à ceux de l'export ; la validation de forme ne le prouve pas. Ne pas ajouter
+Pour les autres catégories, appliquer la table et les champs de la section 2. Chaque nom de surface
+est le nom d'un matériau de l'export ; `blason`, s'il est présent, vaut `true`. Ne pas ajouter
 provenance, captures, chemin du GLB ou décision utilisateur dans ce JSON fermé : fichier séparé.
 
 La CLI canonique appelle validerElement avec les octets du GLB pour vérifier forme, ids de clé
-contre la donnée du jeu, références à la base, empreinte SHA-256 et taille. Fournir manifeste d'élément, manifeste complet de base,
+contre la donnée du jeu, références à la base, noms de surfaces contre les matériaux du GLB
+(`surface-absente`), `TEXCOORD_0` sur chaque primitive d'une surface `blason` (`uv-absente`),
+empreinte SHA-256 et taille. Fournir manifeste d'élément, manifeste complet de base,
 puis GLB d'élément, depuis la racine du dépôt :
 
 ```sh
