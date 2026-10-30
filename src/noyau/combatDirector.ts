@@ -28,8 +28,9 @@ export function beatHold(get: Get, base: keyof typeof TEMPO): number {
 }
 
 /**
- * Le beat « APPROCHE puis AGIS » — source UNIQUE du séquencement « rejoindre la cible avant de résoudre »,
- * partagé par le clic d'attaque du HÉROS (combatSlice) ET l'IA (combatFlow).
+ * Le beat « APPROCHE puis AGIS » — source UNIQUE de la durée « rejoindre la cible avant de résoudre » (`approachMs`) :
+ * le clic d'attaque du HÉROS l'attend par `afterApproach` (`targetingModes.ts`), l'IA en tient sa frappe ou sa fin de
+ * tour différée (`combatFlow.armerLaSuite`).
  */
 
 /** Durée (ms) du glissé d'approche : durée réelle de marche (`walkMs`) + un beat lisible (`afterMove`).
@@ -39,7 +40,7 @@ export function approachMs(get: Get, path: Pt[] | null | undefined): number {
 }
 
 /** Exécute `resolve()` APRÈS le glissé d'approche (cf. `approachMs`), ou immédiatement si pas de déplacement.
- *  On VOIT le combattant rejoindre la cible AVANT la résolution (modale joueur / frappe IA). */
+ *  On VOIT le héros rejoindre la cible AVANT la résolution (modale du joueur). */
 export function afterApproach(get: Get, path: Pt[] | null | undefined, resolve: () => void): void {
   const ms = approachMs(get, path);
   if (ms > 0) programmer(resolve, ms);

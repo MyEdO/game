@@ -48,6 +48,23 @@ export interface ShootingStance {
 }
 /** Champ de posture armable — l'id porté par le registre des actions (`ActionDef.stance`). */
 export type ShootingStanceKey = keyof ShootingStance;
+/** Un geste qu'un tour d'IA décidé a différé (#3058). */
+export type GesteDeSuite =
+  | { kind: 'frappe'; cibleId: string }
+  | { kind: 'avancer' }
+  | { kind: 'sort'; spellId: string; cibleId: string }
+  | { kind: 'zone'; spellId: string; centre: Pt }
+  | { kind: 'deplacer'; vers: Pt; chemin: Pt[] | null; thenTargetId: string; couru: boolean; etaitEngage: boolean; distAvant: number; depuis: Pt; mouvementAvant: number };
+
+/** Le tour d'IA d'une clé : `armements` compte ses armements, `suite.n` nomme celui qui est en attente, `parquee` dit
+ *  qu'il a échu sur une main tenue. */
+export interface TourIA {
+  cle: string;
+  armements: number;
+  suite?: { geste: GesteDeSuite; n: number };
+  parquee?: true;
+}
+
 export interface BattleState {
   combatants: Combatant[];
   order: string[];
@@ -84,13 +101,11 @@ export interface BattleState {
    *  Mouvement (pas de « Mouvement → Action → Mouvement », règle maison). Cf. `canMove`. */
   movedPreAction: boolean;
   acted: boolean;
-  /** JETON DE TOUR D'IA (#1852) — « round:turn:id » du dernier tour d'IA JOUÉ. `maybeRunEnemyTurn` est
-   *  rappelé par tout ce qui relance le combat (changement de cadence `resumeCadence`, reprise après
-   *  une fenêtre, scrutation de recette) : sans jeton, chaque rappel armait un `runEnemyAI` de plus sur
-   *  le MÊME combattant, qui jouait deux fois son tour. Le jeton vit sur le TIR, pas sur la
-   *  planification — un beat redondant arrive et n'a rien à jouer. Porté par `battle` (et non par un
-   *  module) : il naît et meurt avec le combat, sans fuite d'une partie à l'autre. */
-  aiTurnPlayed?: string;
+  /** Le TOUR D'IA de la clé `round:turn:id` (#1852, #3058) : sa décision prise (`runEnemyAI`) et le geste qu'elle
+   *  a différé. Une clé différente de celle du tour courant = un enregistrement périmé. `runEnemyAI` le pose à la
+   *  décision, `armerLaSuite` est le seul armeur de sa suite, `jouerLaSuite` sa seule garde, `maybeRunEnemyTurn` son
+   *  seul point de reprise (`combatFlow.ts`). Porté par `battle` : il naît et meurt avec le combat. */
+  tourIA?: TourIA;
   /** Le set d'armes a-t-il déjà été changé ce Tour ? Plafond MAISON 1×/tour (dégainer = Action gratuite,
    *  cadence laissée au MJ, LDB 13 l.106). Reset au tour. */
   loadoutSwapped?: boolean;
