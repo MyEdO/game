@@ -10,8 +10,8 @@ import { EventEmitter } from 'node:events'
 import { spawnSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { syncBuiltinESMExports } from 'node:module'
-import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, lirePolitique, contratCodex, consigneAgent, lancerAgent, lireRapportDe, validateurDeSchema, piloterAgent } from './session-runtime.mjs'
-import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal, outilsSession, refusSession, attendreSuivi } from './session.mjs'
+import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, lirePolitique, contratCodex, consigneAgent, lancerAgent, lireRapportDe, validateurDeSchema, piloterAgent, controleur, rejouer, refusSession } from './session-runtime.mjs'
+import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal, outilsSession, attendreSuivi } from './session.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { aplatirHooks } from '../agents/compat-core.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
@@ -24,6 +24,8 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 const racineScripts = fileURLToPath(new URL('../../', import.meta.url))
 const hooksBanc = { claude: await preflightSessionStart(racineScripts, 'claude'), codex: await preflightSessionStart(racineScripts, 'codex') }
 const identite = (pid) => ({ pid, creation: `date-${pid}` })
+/** Une horloge factice que chaque `dormir(ms)` avance de `ms` : les bornes de rejeu (#3150) passent sans attente réelle. */
+const horlogeFactice = () => { let instant = 0; return { horloge: () => instant, dormir: async (ms) => { instant += ms } } }
 
 test('veille IPC réelle : borne identifiée et raccord sans transition perdue', async (t) => {
   const b = banc(t), r = b.reserver({ agent: 'codex' }), id = r.carte.sessionId
@@ -332,6 +334,24 @@ test('Codex : cible canonique, envoi authentifié, veille native sans sondage et
   assert.throws(() => b.sessions.projectionCodex(r.carte.sessionId, { rapport: { sessionId: r.carte.sessionId, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' } }), /REÇU SESSIONSTART ABSENT/)
 })
 
+test('envoyer : une session Claude vivante est refusée pour son agent, pas pour son état (#3138)', async (t) => {
+  const appels = []
+  const b = banc(t, { envoyer: async (p) => { appels.push(p); return { ok: true } } })
+  const r = b.reserver(); b.revendiquer(r)
+  assert.equal(b.sessions.lister().cartes[0].etat, 'vivante')
+  await assert.rejects(b.sessions.envoyer(r.carte.sessionId, r.jeton, { message: 'corriger' }), (e) => e.message.startsWith(prefixeDeRefus('validation')) && /NON CODEX/.test(e.message) && /claude/.test(e.message))
+  assert.equal(appels.length, 0)
+})
+
+test('envoyer : une session Codex non vivante est refusée pour son état (#3138)', async (t) => {
+  const appels = []
+  const b = banc(t, { envoyer: async (p) => { appels.push(p); return { ok: true } } })
+  const r = b.reserver({ agent: 'codex' })
+  assert.notEqual(b.sessions.lister().cartes[0].etat, 'vivante')
+  await assert.rejects(b.sessions.envoyer(r.carte.sessionId, r.jeton, { message: 'corriger' }), (e) => e.message.startsWith(prefixeDeRefus('métier')) && /NON VIVANTE/.test(e.message))
+  assert.equal(appels.length, 0)
+})
+
 test('CLI : envoi sans requestId génère une identité réutilisable à la couture canonique', async (t) => {
   const appels = []
   const b = banc(t, { envoyer: async (p) => {
@@ -418,7 +438,7 @@ test('préflights Codex : chaque exécuteur reçoit le même environnement netto
   assert.equal(env.WFRP_SESSION_JETON, 'parent')
 })
 
-function banc(t, { auSommeil = () => {}, envoyer, veiller } = {}) {
+function banc(t, { auSommeil = () => {}, envoyer, veiller, processus = (mesure, pid) => mesure(pid), inventaire = (mesure) => mesure() } = {}) {
   const dossier = mkdtempSync(join(process.env.WFRP_SESSION_TEST_FIXTURES ?? tmpdir(), 'sessions-'))
   t.after(() => rmSync(dossier, { recursive: true, force: true }))
   const fixtures = join(dossier, 'fixtures'); mkdirSync(fixtures)
@@ -436,7 +456,7 @@ function banc(t, { auSommeil = () => {}, envoyer, veiller } = {}) {
   for (const fichier of Object.values(fichiers)) writeFileSync(fichier, '')
   let maintenant = 1000
   const vivants = new Map([[10, identite(10)], [20, identite(20)], [30, identite(30)]])
-  const sessions = creerSessions({ dossier, horloge: () => maintenant, processus: (pid) => vivants.get(pid) ?? null, inventaire: () => [...vivants.values(), { ...identite(99), nom: 'codex.exe' }], dormir: async () => { maintenant += 50; auSommeil(sessions, vivants) }, lanceur: () => identite(99), envoyer, veiller })
+  const sessions = creerSessions({ dossier, horloge: () => maintenant, processus: (pid) => processus((p) => vivants.get(p) ?? null, pid), inventaire: () => inventaire(() => [...vivants.values(), { ...identite(99), nom: 'codex.exe' }]), dormir: async () => { maintenant += 50; await auSommeil(sessions, vivants) }, lanceur: () => identite(99), envoyer, veiller })
   const claim = sessions.revendiquer
   sessions.revendiquer = (...args) => {
     const carte = claim(...args)
@@ -492,8 +512,9 @@ test('réservation bornée, nonce distinct, double revendication et collisions',
   assert.throws(() => b.reserver(), /COLLISION/)
   assert.throws(() => b.reserver({ ticket: 2 }), /COLLISION/)
   assert.throws(() => b.sessions.revendiquer(r.carte.sessionId, 'faux', {}), /REVENDICATION/)
-  b.revendiquer(r)
-  assert.throws(() => b.revendiquer(r), /REVENDICATION/)
+  const revendiquee = b.revendiquer(r)
+  assert.deepEqual(b.revendiquer(r), revendiquee, 'la même identité de contrôle revendique sans effet')
+  assert.throws(() => b.sessions.revendiquer(r.carte.sessionId, r.nonce, { controleur: identite(20), jobHost: identite(30) }), /REVENDICATION REFUSÉE/)
   const tardif = b.reserver({ ticket: 3, nom: 'tardif' })
   b.avance(61_000)
   assert.throws(() => b.revendiquer(tardif), /RÉSERVATION EXPIRÉE/)
@@ -881,8 +902,8 @@ test('supervision Codex : spawn échoué, arrêt via handle, sortie non nulle ; 
       periodeMs: 1,
     })
     if (cas === 'arret') b.sessions.demanderArret('banc', r.jeton)
-    else if (cas === 'error-event') queueMicrotask(() => child.emit('error', new Error('spawn async refusé')))
-    else if (cas !== 'spawn') { b.vivants.delete(20); queueMicrotask(() => child.emit('exit', cas === 'nonzero' ? 9 : 0, null)) }
+    else if (cas === 'error-event') setImmediate(() => child.emit('error', new Error('spawn async refusé')))
+    else if (cas !== 'spawn') { b.vivants.delete(20); setImmediate(() => child.emit('exit', cas === 'nonzero' ? 9 : 0, null)) }
     const fin = await promesse
     assert.equal(fin.codeEnveloppe, 0)
     assert.equal(kills, cas === 'arret' ? 1 : 0)
@@ -899,7 +920,7 @@ test('supervision Codex : rapport absent ou JSON illisible sur sortie 0 nommés,
     const chemin = join(b.dossier, `${r.carte.sessionId}.rapport`), child = new EventEmitter(); child.pid = 20; child.kill = () => true
     if (cas.contenu !== null) writeFileSync(chemin, cas.contenu)
     const promesse = b.sessions.superviser(r.carte.sessionId, { lancer: () => child, lireRapport: () => lireRapportDe(chemin), periodeMs: 1 })
-    b.vivants.delete(20); queueMicrotask(() => child.emit('exit', 0, null))
+    b.vivants.delete(20); setImmediate(() => child.emit('exit', 0, null))
     const fin = await promesse
     assert.equal(fin.codeAgent, 0); assert.equal(fin.issueSortie, 'echec'); assert.match(fin.raison, new RegExp(cas.attendu)); assert.equal(fin.rapport, undefined)
   }
@@ -920,7 +941,7 @@ test('supervision extrait la cause native sans reçu et garde le défaut du reç
       lireRapport: () => { lectures++; return sortie === 'rapport-invalide' ? { ...rapport, inconnu: true } : rapport },
       periodeMs: 1,
     })
-    b.vivants.delete(20); queueMicrotask(() => child.emit('exit', sortie === 'nonzero' ? 9 : 0, null))
+    b.vivants.delete(20); setImmediate(() => child.emit('exit', sortie === 'nonzero' ? 9 : 0, null))
     const fin = await promesse
     const defautRecu = panne === 'absent' ? 'REÇU SESSIONSTART ABSENT' : 'REÇU SESSIONSTART NONCE INCORRECT'
     assert.equal(fin.raison, sortie === 'nonzero' ? 'AGENT SORTI EN 9 : cause secondaire de sortie' : defautRecu, `${panne}/${sortie}`)
@@ -936,7 +957,7 @@ test('supervision avec reçu natif valide conserve preuve et rapport normaux', a
   const child = new EventEmitter(); child.pid = 20; child.kill = () => true
   const rapport = { sessionId: r.carte.sessionId, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
   const promesse = b.sessions.superviser(r.carte.sessionId, { lancer: () => child, lireRapport: () => rapport, periodeMs: 1 })
-  b.vivants.delete(20); queueMicrotask(() => child.emit('exit', 0, null))
+  b.vivants.delete(20); setImmediate(() => child.emit('exit', 0, null))
   const fin = await promesse
   assert.equal(fin.raison, undefined); assert.equal(fin.issueSortie, 'sortie'); assert.deepEqual(fin.rapport, rapport)
   assert.equal(fin.recuSessionStart.nativeSessionId, 'native-banc')
@@ -1308,7 +1329,7 @@ test('lanceur mesure transitoire : réservation libérée, claim tardif refusé 
   await assert.rejects(lancerSession({ ticket: 2461, nom: 'banc', agent: 'claude', consigne }, {
     contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }),
     terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, preflight: async () => hooksBanc.claude,
-    sessionsDe: () => ({ ...b.sessions, reserver: (p) => { r = b.sessions.reserver(p); return r }, attenteDemarrage: async () => { throw panne } }), lancerWT: () => ({ status: 0 }),
+    sessionsDe: () => ({ ...b.sessions, reserver: (p) => { r = b.sessions.reserver(p); return r }, attenteDemarrage: async () => { throw panne } }), lancerWT: () => ({ status: 0 }), ...horlogeFactice(),
   }), (e) => e === panne && refusSession(e).categorie === 'transitoire' && !e.reprise)
   assert.equal(b.sessions.lire(r.carte.sessionId).etat, 'echec-reservation')
   assert.equal(existsSync(join(b.dossier, `${r.carte.sessionId}.bootstrap`)), false)
@@ -1341,7 +1362,7 @@ test('lanceur nettoyage incomplet : rend la capacité de reprise après délai s
   await assert.rejects(lancerSession({ ticket: 2461, agent: 'claude', consigne }, {
     contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }),
     terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, preflight: async () => hooksBanc.claude,
-    sessionsDe: () => ({ ...b.sessions, reserver: (p) => { r = b.sessions.reserver(p); return r }, attenteDemarrage: async () => { throw new Error('[transitoire · retentable] ETIMEDOUT') }, echecDemarrage: async () => ({ etat: 'arret-demande' }) }), lancerWT: () => ({ status: 0 }),
+    sessionsDe: () => ({ ...b.sessions, reserver: (p) => { r = b.sessions.reserver(p); return r }, attenteDemarrage: async () => { throw new Error('[transitoire · retentable] ETIMEDOUT') }, echecDemarrage: async () => ({ etat: 'arret-demande' }) }), lancerWT: () => ({ status: 0 }), ...horlogeFactice(),
   }), (e) => {
     assert.equal(e.reprise.sessionId, r.carte.sessionId); assert.equal(e.reprise.jeton, r.jeton)
     assert.equal(e.reprise.transport, 'stdin'); assert.match(e.reprise.raison, /NETTOYAGE EN ATTENTE/)
@@ -1388,17 +1409,17 @@ test('échec démarrage revendiqué : mesure retentée, arrêt propre ; panne pe
   for (const persiste of [false, true]) {
     const b = banc(t)
     const consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
-    let r, mesures = 0, indisponible = false
+    let r, mesures = 0, indisponible = false, instant = 1000
     const panne = new Error('[transitoire · retentable] MESURE WINDOWS INDISPONIBLE : ETIMEDOUT')
-    const sessions = creerSessions({ dossier: b.dossier, horloge: () => 1000, lanceur: () => identite(99), inventaire: () => {
+    const sessions = creerSessions({ dossier: b.dossier, horloge: () => instant, lanceur: () => identite(99), inventaire: () => {
       if (indisponible && (++mesures <= 2 || persiste)) throw panne
       return [...b.vivants.values()]
-    }, dormir: async () => { if (sessions.lire(r.carte.sessionId).etat === 'arret-demande') { sessions.sortie(r.carte.sessionId, { codeAgent: null, arret: true }); b.vivants.clear() } } })
+    }, dormir: async (ms) => { instant += ms; if (sessions.lire(r.carte.sessionId).etat === 'arret-demande') { sessions.sortie(r.carte.sessionId, { codeAgent: null, arret: true }); b.vivants.clear() } } })
     await assert.rejects(lancerSession({ ticket: 2461, nom: 'banc', agent: 'claude', consigne }, {
       contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }),
       terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, preflight: async () => hooksBanc.claude,
       sessionsDe: () => ({ ...sessions, reserver: (p) => { r = sessions.reserver(p); return r }, attenteDemarrage: async () => { indisponible = true; throw panne } }),
-      lancerWT: () => { sessions.revendiquer(r.carte.sessionId, r.nonce, { controleur: identite(10), jobHost: identite(30) }); return { status: 0 } },
+      lancerWT: () => { sessions.revendiquer(r.carte.sessionId, r.nonce, { controleur: identite(10), jobHost: identite(30) }); return { status: 0 } }, ...horlogeFactice(),
     }), (e) => {
       assert.equal(refusSession(e).categorie, persiste ? 'métier' : 'transitoire')
       assert.equal(persiste ? e.cause : e, panne)
@@ -1409,4 +1430,399 @@ test('échec démarrage revendiqué : mesure retentée, arrêt propre ; panne pe
     assert.equal(sessions.lire(r.carte.sessionId).etat, persiste ? 'vivante' : 'fermee')
     assert.ok(mesures >= 3)
   }
+})
+
+const refusTransitoire = (raison) => new Error(`${prefixeDeRefus('transitoire')} ${raison}`)
+
+/** Les lectures de `chemin` refusées par `codes` (un code errno par lecture, dans l'ordre) après `passe` lectures rendues, puis rendues au vrai `fs`. */
+function lecturesRefusees(t, chemin, codes, { passe = 0 } = {}) {
+  const vrai = fs.readFileSync, file = [...codes]
+  let aRendre = passe
+  t.mock.method(fs, 'readFileSync', (p, ...reste) => {
+    if (p === chemin && file.length && aRendre-- <= 0) { const code = file.shift(); throw Object.assign(new Error(`${code}: simulé, open '${p}'`), { code }) }
+    return vrai(p, ...reste)
+  })
+  t.after(() => t.mock.restoreAll())
+  return file
+}
+
+test('#3150 rejouer : un refus retentable se rejoue sous sa borne, un refus non retentable ou la borne passée le relève', async () => {
+  let instant = 0, essais = 0
+  const temps = { horloge: () => instant, dormir: async (ms) => { instant += ms } }
+  assert.equal(await rejouer(() => { if (++essais < 4) throw refusTransitoire('tenu'); return 'fait' }, { borneMs: 1000, pasMs: 100, ...temps }), 'fait')
+  assert.equal(essais, 4)
+  const panne = new Error(`${prefixeDeRefus('panne')} CARTE INVALIDE`)
+  essais = 0
+  await assert.rejects(rejouer(() => { essais++; throw panne }, { borneMs: 1000, ...temps, dormir: async () => assert.fail('aucune pause') }), (e) => e === panne)
+  assert.equal(essais, 1)
+  instant = 0; essais = 0
+  await assert.rejects(rejouer(() => { essais++; throw refusTransitoire('tenu') }, { borneMs: 250, pasMs: 100, ...temps }), /tenu/)
+  assert.ok(instant > 250 && essais === 4, `relevé à ${instant} ms après ${essais} essais`)
+})
+
+test('#3150 superviser, veille d’arrêt : une carte tenue se relit, le fils vit ; une carte illisible l’arrête', async (t) => {
+  for (const [code, tue] of [['EBUSY', false], ['EIO', true]]) {
+    await t.test(code, async (t) => {
+      const b = banc(t), r = b.reserver(); b.revendiquer(r)
+      const id = r.carte.sessionId, child = new EventEmitter(); child.pid = 20
+      let kills = 0
+      child.kill = () => { kills++; queueMicrotask(() => child.emit('exit', null, 'SIGTERM')); return true }
+      const promesse = b.sessions.superviser(id, { lancer: () => child, lireRapport: () => assert.fail('rapport lu'), periodeMs: 1 })
+      await new Promise((ok) => setTimeout(ok, 20))
+      writeFileSync(join(b.dossier, `${id}.stop`), JSON.stringify({ sessionId: id, demandeId: 'demande-perimee' }))
+      const restantes = lecturesRefusees(t, join(b.dossier, `${id}.json`), tue ? [code] : [code, code])
+      await new Promise((ok) => setTimeout(ok, 50))
+      t.mock.restoreAll()
+      assert.equal(restantes.length, 0, 'la veille a lu la carte')
+      assert.equal(kills, tue ? 1 : 0)
+      if (!tue) { assert.equal(b.sessions.lire(id).etat, 'vivante'); b.vivants.delete(20); child.emit('exit', 0, null) }
+      const fin = await promesse
+      assert.equal(fin.arret, tue)
+    })
+  }
+})
+
+test('#3150 superviser, lecture du rapport : une lecture transitoire se rejoue jusqu’au rapport ; un rapport invalide termine', async (t) => {
+  for (const cas of ['transitoire', 'invalide']) {
+    const b = banc(t), r = b.reserver({ agent: 'codex' }); b.revendiquer(r)
+    const child = new EventEmitter(); child.pid = 20; child.kill = () => true
+    const rapport = { sessionId: r.carte.sessionId, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
+    let lectures = 0
+    const lireRapport = () => {
+      lectures++
+      if (cas === 'invalide') throw new Error(`${prefixeDeRefus('panne')} RAPPORT INVALIDE`)
+      if (lectures < 3) throw refusTransitoire('LECTURE RAPPORT : EBUSY')
+      return rapport
+    }
+    const promesse = b.sessions.superviser(r.carte.sessionId, { lancer: () => child, lireRapport, periodeMs: 1 })
+    b.vivants.delete(20); setImmediate(() => child.emit('exit', 0, null))
+    const fin = await promesse
+    if (cas === 'transitoire') { assert.equal(lectures, 3); assert.equal(fin.issueSortie, 'sortie'); assert.deepEqual(fin.rapport, rapport) }
+    else { assert.equal(lectures, 1); assert.equal(fin.issueSortie, 'echec'); assert.match(fin.raison, /RAPPORT INVALIDE/) }
+  }
+})
+
+test('#3150 superviser, gestes du registre : une mesure transitoire se rejoue sans tuer l’agent ; une panne de mesure sort en SPAWN/SUPERVISION', async (t) => {
+  for (const cas of ['transitoire', 'panne']) {
+    let mesures = 0
+    const b = banc(t, { processus: (mesure, pid) => {
+      if (pid === 20 && ++mesures < 3) throw cas === 'transitoire' ? refusTransitoire('MESURE WINDOWS INDISPONIBLE : ETIMEDOUT') : new Error(`${prefixeDeRefus('panne')} MESURE WINDOWS INCOHÉRENTE`)
+      return mesure(pid)
+    } })
+    const r = b.reserver(); b.revendiquer(r)
+    const child = new EventEmitter(); child.pid = 20; child.exitCode = null
+    let kills = 0
+    child.kill = () => { kills++; b.vivants.delete(20); queueMicrotask(() => child.emit('exit', null, 'SIGTERM')); return true }
+    const promesse = b.sessions.superviser(r.carte.sessionId, { lancer: () => child, lireRapport: () => assert.fail('rapport lu'), periodeMs: 1 })
+    if (cas === 'transitoire') {
+      await new Promise((ok) => setTimeout(ok, 20))
+      assert.deepEqual(b.sessions.lire(r.carte.sessionId).agentProcessus, identite(20))
+      b.vivants.delete(20); child.emit('exit', 0, null)
+    }
+    const fin = await promesse
+    assert.equal(kills, cas === 'transitoire' ? 0 : 1)
+    if (cas === 'transitoire') { assert.equal(mesures, 3); assert.equal(fin.issueSortie, 'sortie'); assert.equal(fin.raison, undefined) }
+    else { assert.equal(mesures, 1); assert.match(fin.raison, /^SPAWN\/SUPERVISION : .*MESURE WINDOWS INCOHÉRENTE/) }
+  }
+})
+
+test('#3150 contrôleur : revendication et carte tenues se rejouent jusqu’au pilotage ; une carte illisible sort la session', async (t) => {
+  for (const [code, pilote] of [['EBUSY', true], ['EIO', false]]) {
+    await t.test(code, async (t) => {
+      const b = banc(t), r = b.reserver(); b.revendiquer(r)
+      const id = r.carte.sessionId
+      writeFileSync(join(b.dossier, 'consigne.md'), 'faire')
+      let revendications = 0, pilotages = 0
+      const sessions = { ...b.sessions, revendiquer: () => { if (++revendications < 2) throw refusTransitoire('[verrou] sessions : tenu') } }
+      const restantes = lecturesRefusees(t, join(b.dossier, `${id}.json`), [code])
+      const rendu = await controleur({ dossier: b.dossier, id, hostPid: 30, sessions, piloter: async ({ carte }) => { pilotages++; return { pilote: carte.sessionId } }, ...horlogeFactice() })
+      t.mock.restoreAll()
+      assert.equal(restantes.length, 0)
+      assert.equal(revendications, 2)
+      assert.equal(pilotages, pilote ? 1 : 0)
+      if (pilote) { assert.deepEqual(rendu, { pilote: id }); assert.equal(b.sessions.lire(id).etat, 'vivante') }
+      else { assert.equal(rendu.etat, 'nettoyage'); assert.match(rendu.raison, /CARTE INVALIDE/) }
+    })
+  }
+})
+
+test('#3150 lanceur : une attente de démarrage transitoire se rejoue jusqu’à la session vivante ; une panne abandonne', async (t) => {
+  for (const cas of ['transitoire', 'panne']) {
+    const b = banc(t), consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
+    let attentes = 0
+    const panne = new Error(`${prefixeDeRefus('panne')} CARTE INVALIDE`)
+    const lancement = lancerSession({ ticket: 2461, nom: 'banc', agent: 'claude', consigne }, {
+      contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }),
+      terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, preflight: async () => hooksBanc.claude, ...horlogeFactice(),
+      sessionsDe: () => ({ ...b.sessions, attenteDemarrage: async (id, jeton) => {
+        if (++attentes < 3) throw cas === 'transitoire' ? refusTransitoire('[verrou] sessions : tenu') : panne
+        return b.sessions.attenteDemarrage(id, jeton)
+      } }),
+      lancerWT: () => { if (cas === 'transitoire') b.sessions.revendiquer(b.sessions.lister().cartes.find((c) => c.nom === 'banc').sessionId, undefined, { controleur: identite(10), jobHost: identite(30) }); return { status: 0 } },
+    })
+    if (cas === 'transitoire') { assert.equal((await lancement).etat, 'vivante'); assert.equal(attentes, 3) }
+    else { await assert.rejects(lancement, (e) => e === panne); assert.equal(attentes, 1) }
+  }
+})
+
+test('#3150 échec de démarrage : l’arrêt se rejoue au-delà de trois mesures transitoires ; une panne de mesure termine au premier essai', async (t) => {
+  for (const cas of ['transitoire', 'panne']) {
+    let actif = false, refus = 0
+    const reservation = {}
+    const panne = cas === 'transitoire' ? refusTransitoire('MESURE WINDOWS INDISPONIBLE : ETIMEDOUT') : new Error(`${prefixeDeRefus('panne')} MESURE WINDOWS INCOHÉRENTE`)
+    const b = banc(t, {
+      inventaire: (mesure) => { if (actif && refus < 5) { refus++; throw panne } return mesure() },
+      auSommeil: (sessions, vivants) => { if (sessions.lire(reservation.id).etat === 'arret-demande') { sessions.sortie(reservation.id, { codeAgent: null, arret: true }); vivants.clear() } },
+    })
+    const r = b.reserver(); b.revendiquer(r)
+    const id = reservation.id = r.carte.sessionId
+    actif = true
+    const echec = b.sessions.echecDemarrage(id, r.jeton, 'REÇU SESSIONSTART ABSENT')
+    if (cas === 'transitoire') { assert.equal((await echec).etat, 'fermee'); assert.equal(refus, 5) }
+    else { await assert.rejects(echec, (e) => e === panne); assert.equal(refus, 1) }
+  }
+})
+
+test('#3150 superviser, veille d’arrêt : une demande d’arrêt tenue EBUSY se relit, le fils vit ; une demande illisible l’arrête', async (t) => {
+  for (const [code, tue] of [['EBUSY', false], ['EIO', true]]) {
+    await t.test(code, async (t) => {
+      const b = banc(t), r = b.reserver(); b.revendiquer(r)
+      const id = r.carte.sessionId, child = new EventEmitter(); child.pid = 20
+      let kills = 0
+      child.kill = () => { kills++; queueMicrotask(() => child.emit('exit', null, 'SIGTERM')); return true }
+      const promesse = b.sessions.superviser(id, { lancer: () => child, lireRapport: () => assert.fail('rapport lu'), periodeMs: 1 })
+      await new Promise((ok) => setTimeout(ok, 20))
+      const stop = join(b.dossier, `${id}.stop`)
+      writeFileSync(stop, JSON.stringify({ sessionId: id, demandeId: 'demande-perimee' }))
+      const restantes = lecturesRefusees(t, stop, [code])
+      await new Promise((ok) => setTimeout(ok, 50))
+      t.mock.restoreAll()
+      assert.equal(restantes.length, 0, 'la veille a lu la demande d’arrêt')
+      assert.equal(kills, tue ? 1 : 0)
+      if (!tue) { assert.equal(b.sessions.lire(id).etat, 'vivante'); b.vivants.delete(20); child.emit('exit', 0, null) }
+      const fin = await promesse
+      assert.equal(fin.arret, tue)
+    })
+  }
+})
+
+test('#3150 superviser, reçu SessionStart : un reçu tenu EBUSY se relit et se constate ; un reçu illisible termine en ILLISIBLE', async (t) => {
+  for (const [code, constate] of [['EBUSY', true], ['EIO', false]]) {
+    await t.test(code, async (t) => {
+      const b = banc(t), r = b.reserver({ agent: 'codex' }); b.revendiquer(r)
+      const id = r.carte.sessionId, child = new EventEmitter(); child.pid = 20; child.kill = () => true
+      const { chemin } = JSON.parse(readFileSync(join(b.dossier, `${id}.hook-context`), 'utf8'))
+      const rapport = { sessionId: id, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
+      const restantes = lecturesRefusees(t, chemin, [code])
+      const promesse = b.sessions.superviser(id, { lancer: () => child, lireRapport: () => rapport, periodeMs: 1 })
+      b.vivants.delete(20); setImmediate(() => child.emit('exit', 0, null))
+      const fin = await promesse
+      assert.equal(restantes.length, 0, 'le reçu a été lu')
+      if (constate) { assert.equal(fin.raison, undefined); assert.equal(fin.issueSortie, 'sortie'); assert.equal(fin.recuSessionStart.nativeSessionId, 'native-banc') }
+      else { assert.equal(fin.issueSortie, 'echec'); assert.match(fin.raison, /^REÇU SESSIONSTART ILLISIBLE : EIO/); assert.equal(fin.recuSessionStart, undefined) }
+    })
+  }
+})
+
+test('#3150 superviser : une erreur du fils pendant un rejeu du registre est prise en charge et rend une sortie', async (t) => {
+  let mesures = 0
+  const b = banc(t, { auSommeil: () => new Promise((ok) => setImmediate(ok)), processus: (mesure, pid) => {
+    if (pid === 20 && ++mesures < 3) throw refusTransitoire('MESURE WINDOWS INDISPONIBLE : ETIMEDOUT')
+    return mesure(pid)
+  } })
+  const r = b.reserver(); b.revendiquer(r)
+  const nonGeres = [], ecoute = (raison) => nonGeres.push(raison?.message)
+  process.on('unhandledRejection', ecoute)
+  t.after(() => process.off('unhandledRejection', ecoute))
+  const child = new EventEmitter(); child.pid = 20; child.exitCode = null; child.kill = () => true
+  const fin = await b.sessions.superviser(r.carte.sessionId, { lancer: () => { setImmediate(() => child.emit('error', new Error('FILS EN ERREUR'))); return child }, lireRapport: () => assert.fail('rapport lu'), periodeMs: 1 })
+  await new Promise((ok) => setImmediate(ok))
+  assert.deepEqual(nonGeres, [])
+  assert.equal(mesures, 3)
+  assert.equal(fin.etat, 'nettoyage'); assert.match(fin.raison, /^SPAWN\/SUPERVISION : FILS EN ERREUR/)
+})
+
+test('#3150 contrôleur : une revendication écrite dont le retrait du bootstrap est refusé EPERM se rejoue jusqu’au pilotage', async (t) => {
+  const b = banc(t), r = b.reserver(), id = r.carte.sessionId
+  b.vivants.set(process.pid, identite(process.pid))
+  writeFileSync(join(b.dossier, 'consigne.md'), 'faire')
+  const bootstrap = join(b.dossier, `${id}.bootstrap`), vrai = fs.rmSync
+  let retraits = 0, pilotages = 0
+  t.mock.method(fs, 'rmSync', (p, ...reste) => { if (p === bootstrap && !retraits++) throw Object.assign(new Error(`EPERM: simulé, unlink '${p}'`), { code: 'EPERM' }); return vrai(p, ...reste) })
+  t.after(() => t.mock.restoreAll())
+  const rendu = await controleur({ dossier: b.dossier, id, hostPid: 30, sessions: b.sessions, piloter: async ({ carte }) => { pilotages++; return { pilote: carte.sessionId } }, ...horlogeFactice() })
+  t.mock.restoreAll()
+  assert.deepEqual(rendu, { pilote: id }); assert.equal(pilotages, 1); assert.equal(retraits, 2)
+  const carte = b.sessions.lire(id)
+  assert.equal(carte.etat, 'vivante'); assert.deepEqual(carte.controleur, identite(process.pid)); assert.deepEqual(carte.jobHost, identite(30))
+  assert.equal(existsSync(bootstrap), false)
+})
+
+test('#3150 superviser, lecture initiale : une carte tenue se relit avant le lancement', async (t) => {
+  const b = banc(t), r = b.reserver(); b.revendiquer(r)
+  const id = r.carte.sessionId, child = new EventEmitter(); child.pid = 20; child.kill = () => true
+  let lancements = 0
+  const restantes = lecturesRefusees(t, join(b.dossier, `${id}.json`), ['EBUSY'])
+  const fin = await b.sessions.superviser(id, { lancer: () => { lancements++; b.vivants.delete(20); setImmediate(() => child.emit('exit', 0, null)); return child }, lireRapport: () => assert.fail('rapport lu'), periodeMs: 1 })
+  assert.equal(restantes.length, 0); assert.equal(lancements, 1)
+  assert.equal(fin.issueSortie, 'sortie'); assert.equal(fin.raison, undefined)
+})
+
+test('#3150 superviser, inscription de l’agent : une carte tenue se relit sans tuer l’agent', async (t) => {
+  let restantes
+  const b = banc(t, { processus: (mesure, pid) => { if (pid === 20 && !restantes) restantes = lecturesRefusees(t, join(b.dossier, `${id}.json`), ['EBUSY']); return mesure(pid) } })
+  const r = b.reserver(); b.revendiquer(r); const id = r.carte.sessionId
+  const child = new EventEmitter(); child.pid = 20; child.exitCode = null
+  let kills = 0
+  child.kill = () => { kills++; queueMicrotask(() => child.emit('exit', null, 'SIGTERM')); return true }
+  const promesse = b.sessions.superviser(id, { lancer: () => child, lireRapport: () => assert.fail('rapport lu'), periodeMs: 1 })
+  await new Promise((ok) => setTimeout(ok, 20))
+  assert.equal(restantes.length, 0)
+  assert.deepEqual(b.sessions.lire(id).agentProcessus, identite(20))
+  b.vivants.delete(20); child.emit('exit', 0, null)
+  const fin = await promesse
+  assert.equal(kills, 0); assert.equal(fin.issueSortie, 'sortie'); assert.equal(fin.raison, undefined)
+})
+
+test('#3150 superviser, pointeur de diagnostic : posé avant la mesure de l’agent ; une carte tenue se relit, une panne de mesure le conserve', async (t) => {
+  for (const cas of ['tenue', 'panne']) {
+    let restantes
+    const b = banc(t, { processus: (mesure, pid) => { if (pid === 20 && cas === 'panne') throw new Error(`${prefixeDeRefus('panne')} MESURE WINDOWS INCOHÉRENTE`); return mesure(pid) } })
+    const r = b.reserver(); b.revendiquer(r)
+    const id = r.carte.sessionId, journal = join(b.dossier, 'journal-agent.log')
+    const child = new EventEmitter(); child.pid = 20; child.exitCode = null
+    child.kill = () => { b.vivants.delete(20); queueMicrotask(() => child.emit('exit', null, 'SIGTERM')); return true }
+    const fin = await b.sessions.superviser(id, {
+      lancer: () => {
+        if (cas === 'tenue') { restantes = lecturesRefusees(t, join(b.dossier, `${id}.json`), ['EBUSY']); b.vivants.delete(20); setImmediate(() => child.emit('exit', 0, null)) }
+        return child
+      },
+      apresLancement: () => b.sessions.muter(id, (c) => { c.journalDiagnostic = journal }),
+      lireRapport: () => assert.fail('rapport lu'), periodeMs: 1,
+    })
+    t.mock.restoreAll()
+    assert.equal(fin.journalDiagnostic, journal, cas)
+    if (cas === 'tenue') { assert.equal(restantes.length, 0); assert.equal(fin.issueSortie, 'sortie'); assert.equal(fin.raison, undefined) }
+    else assert.match(fin.raison, /^SPAWN\/SUPERVISION : .*MESURE WINDOWS INCOHÉRENTE/)
+  }
+})
+
+test('#3150 superviser, sortie : une carte tenue à l’écriture de la sortie se relit, sans basculer en SPAWN/SUPERVISION', async (t) => {
+  const b = banc(t), r = b.reserver({ agent: 'codex' }); b.revendiquer(r)
+  const id = r.carte.sessionId, child = new EventEmitter(); child.pid = 20; child.kill = () => true
+  const rapport = { sessionId: id, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
+  let restantes
+  const promesse = b.sessions.superviser(id, { lancer: () => child, lireRapport: () => { restantes = lecturesRefusees(t, join(b.dossier, `${id}.json`), ['EBUSY']); return rapport }, periodeMs: 1 })
+  b.vivants.delete(20); setImmediate(() => child.emit('exit', 0, null))
+  const fin = await promesse
+  assert.equal(restantes.length, 0)
+  assert.equal(fin.issueSortie, 'sortie'); assert.equal(fin.raison, undefined); assert.deepEqual(fin.rapport, rapport)
+})
+
+test('#3138 superviser, clôture : chaque lecture de la carte après la fin de l’agent, tenue une fois EBUSY, se relit et rend la sortie de référence', async (t) => {
+  const scenarios = {
+    'rapport Codex': { agent: 'codex', code: 0 },
+    'cause de sortie sans reçu': { agent: 'codex', code: 9, sansRecu: true, cause: 'cause secondaire de sortie' },
+    'lancement refusé': { agent: 'claude', lancementRefuse: true },
+  }
+  const champs = ({ etat, issueSortie, raison, raisonOrigine, observations, arret, codeAgent }) => ({ etat, issueSortie, raison, raisonOrigine, observations, arret, codeAgent })
+  for (const [nom, s] of Object.entries(scenarios)) {
+    await t.test(nom, async (t) => {
+      const jouer = async (passe) => {
+        const b = banc(t), r = b.reserver({ agent: s.agent }); b.revendiquer(r)
+        const id = r.carte.sessionId, child = new EventEmitter(); child.pid = 20; child.kill = () => true
+        if (s.sansRecu) rmSync(join(b.dossier, `${id}.sessionstart`))
+        const rapport = { sessionId: id, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
+        let restantes = []
+        const armer = () => { if (passe !== undefined) restantes = lecturesRefusees(t, join(b.dossier, `${id}.json`), ['EBUSY'], { passe }) }
+        const promesse = b.sessions.superviser(id, {
+          lancer: () => { if (s.lancementRefuse) { armer(); throw new Error('spawn refusé') } return child },
+          causeSortie: s.cause && (async () => s.cause), lireRapport: () => rapport, periodeMs: 1,
+        })
+        if (!s.lancementRefuse) { b.vivants.delete(20); setImmediate(() => { armer(); child.emit('exit', s.code, null) }) }
+        const fin = await promesse
+        t.mock.restoreAll()
+        return { vu: { ...champs(fin), rapport: JSON.stringify(fin.rapport) === JSON.stringify(rapport) }, refusee: passe !== undefined && restantes.length === 0 }
+      }
+      const reference = (await jouer()).vu
+      let relues = 0
+      for (let passe = 0; passe < 20; passe++) {
+        const { vu, refusee } = await jouer(passe)
+        if (!refusee) break
+        assert.deepEqual(vu, reference, `${nom} : lecture ${passe + 1} refusée`)
+        relues++
+      }
+      assert.ok(relues > 0 && relues < 20, `${nom} : ${relues} lectures refusées`)
+    })
+  }
+})
+
+test('#3150 contrôleur, sortie : une carte tenue à la sortie d’un pilotage en panne se relit', async (t) => {
+  const b = banc(t), r = b.reserver(); b.revendiquer(r)
+  const id = r.carte.sessionId
+  writeFileSync(join(b.dossier, 'consigne.md'), 'faire')
+  let restantes
+  const rendu = await controleur({ dossier: b.dossier, id, hostPid: 30, sessions: { ...b.sessions, revendiquer: () => {} }, piloter: async () => {
+    restantes = lecturesRefusees(t, join(b.dossier, `${id}.json`), ['EBUSY'])
+    throw new Error(`${prefixeDeRefus('panne')} PILOTAGE ROMPU`)
+  }, ...horlogeFactice() })
+  assert.equal(restantes.length, 0)
+  assert.equal(rendu.etat, 'nettoyage'); assert.match(rendu.raison, /PILOTAGE ROMPU/)
+})
+
+test('#3150 contrôleur : une consigne tenue se relit jusqu’au pilotage', async (t) => {
+  const b = banc(t), r = b.reserver(); b.revendiquer(r)
+  const id = r.carte.sessionId, consigne = join(b.dossier, 'consigne.md')
+  writeFileSync(consigne, 'faire')
+  const restantes = lecturesRefusees(t, consigne, ['EBUSY'])
+  const recues = []
+  const rendu = await controleur({ dossier: b.dossier, id, hostPid: 30, sessions: { ...b.sessions, revendiquer: () => {} }, piloter: async (p) => { recues.push(p.consigne); return 'pilote' }, ...horlogeFactice() })
+  assert.equal(restantes.length, 0); assert.equal(rendu, 'pilote'); assert.deepEqual(recues, ['faire'])
+})
+
+test('#3150 pilotage : un contexte de hook tenu se relit avant le spawn ; une purge tenue se rejoue, une purge en panne se signale panne', async (t) => {
+  const b = banc(t), r = b.reserver({ agent: 'codex', executable: b.fichiers.codex }), id = r.carte.sessionId
+  b.revendiquer(r)
+  const rapport = join(b.dossier, `${id}.rapport`), recu = join(b.dossier, `${id}.sessionstart`)
+  const restantes = lecturesRefusees(t, join(b.dossier, `${id}.hook-context`), ['EBUSY'])
+  const ecrits = []
+  t.mock.method(process.stderr, 'write', (morceau) => { ecrits.push(String(morceau)); return true })
+  let ponts = 0, purgesTenues = 0
+  const retirer = (fichier) => {
+    if (fichier === rapport && ++purgesTenues <= 2) throw Object.assign(new Error('EBUSY: simulé'), { code: 'EBUSY' })
+    if (fichier === recu) throw Object.assign(new Error('EIO: simulé'), { code: 'EIO' })
+    rmSync(fichier, { force: true })
+  }
+  try {
+    await piloterAgent({ sessions: b.sessions, dossier: b.dossier, carte: b.sessions.lire(id), consigne: 'faire', retirer, ...horlogeFactice(), pont: () => {
+      ponts++
+      const child = new EventEmitter(); child.pid = 20; child.kill = () => true
+      b.vivants.delete(20); setImmediate(() => child.emit('exit', 0, null))
+      return { child, cause: async () => '', journalDiagnostic: join(b.dossier, 'trace.log') }
+    } })
+  } finally { t.mock.restoreAll() }
+  assert.equal(restantes.length, 0); assert.equal(ponts, 1)
+  assert.equal(purgesTenues, 3)
+  assert.deepEqual(ecrits.filter((e) => e.includes('PURGE IMPOSSIBLE')), [`[session] ${prefixeDeRefus('panne')} PURGE IMPOSSIBLE : ${recu} — EIO\n`])
+})
+
+test('#3150 diagnostic terminal : un témoin de fermeture tenu EBUSY reporte la transition sans purger, la suivante le constate', (t) => {
+  const b = banc(t), r = b.reserver(); b.revendiquer(r)
+  const id = r.carte.sessionId, signal = join(b.dossier, `${id}.terminal-close`)
+  writeFileSync(signal, JSON.stringify({ sessionId: id, jobHost: identite(30) }))
+  b.vivants.clear()
+  const restantes = lecturesRefusees(t, signal, ['EBUSY'])
+  assert.equal(b.sessions.lister().cartes[0].etat, 'vivante')
+  assert.equal(restantes.length, 0); assert.equal(existsSync(signal), true)
+  const c = b.sessions.lister().cartes[0]
+  assert.equal(c.etat, 'echec-controle'); assert.equal(c.raison, 'terminal fermé'); assert.equal(existsSync(signal), false)
+})
+
+test('#3150 lireRapportDe : une lecture tenue est transitoire, une lecture en panne est une panne, une absence est RAPPORT ABSENT', (t) => {
+  const b = banc(t), chemin = join(b.dossier, 'rapport.json')
+  writeFileSync(chemin, '{}')
+  lecturesRefusees(t, chemin, ['EBUSY', 'EIO'])
+  assert.throws(() => lireRapportDe(chemin), (e) => refusSession(e).categorie === 'transitoire' && /LECTURE RAPPORT : EBUSY/.test(e.message))
+  assert.throws(() => lireRapportDe(chemin), (e) => refusSession(e).categorie === 'panne' && /LECTURE RAPPORT : EIO/.test(e.message))
+  assert.throws(() => lireRapportDe(join(b.dossier, 'absent.json')), (e) => refusSession(e).categorie === 'panne' && /RAPPORT ABSENT/.test(e.message))
 })
