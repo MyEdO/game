@@ -96,8 +96,8 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     useGame.getState().cascadeNext();
     expect(useGame.getState().pendingRoundStart).toEqual({ round: 2 });
     useGame.getState().confirmRoundStart();
-    for (let i = 0; i < 20 && !useGame.getState().battle!.aiTurnPlayed; i++) vi.runOnlyPendingTimers();
-    const b = useGame.getState().battle!;
-    expect(b.aiTurnPlayed, 'le jeton de tour de l’IA en tête est posé : elle a joué').toBe(`2:0:${b.order[0]}`);
+    const cle = () => `2:0:${useGame.getState().battle!.order[0]}`;
+    for (let i = 0; i < 20 && useGame.getState().battle!.tourIA?.cle !== cle(); i++) vi.runOnlyPendingTimers();
+    expect(useGame.getState().battle!.tourIA?.cle, 'le tour de l’IA en tête est décidé : elle a joué').toBe(cle());
   });
 });
