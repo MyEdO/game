@@ -3,7 +3,7 @@
  * (`indexerModeles`) des manifestes que le listage servi a validés contre leur GLB (`verdictsDesModeles`), mis en données
  * que Godot dessine sans les relire : chaque base avec ses points d'accroche (ses emplacements, puis ses prises), à chaque
  * point les éléments rigides construits pour elle dont un mesh pend à l'os du point (`osDesRigides` du listage,
- * `asset/glb.ts` `parentDesRigides`, `asset/evaluateur/evaluer.ts` `monter`), et le fichier GLB de chacun
+ * `asset/glb.ts` `meshes`, `asset/evaluateur/evaluer.ts` `monter`), et le fichier GLB de chacun
  * (`fichiersDuModele`) ; pour chacun de ces éléments, les surfaces qui portent un emblème (`blason: true`), et les emblèmes
  * de la garde-robe (#3111), qu'on y pose au montage.
  */

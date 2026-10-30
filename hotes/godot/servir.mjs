@@ -38,7 +38,7 @@ function envoyer(res, chemin, entetes = {}) {
 }
 
 /** Le listage de `dossier` : les manifestes que `verdictsDesModeles` accepte contre leur GLB, de chacun les os qui portent
- *  ses meshes rigides (`parentDesRigides` de `lireGlb`), et les erreurs (manifeste illisible, GLB illisible, refus,
+ *  ses meshes rigides (`os` des `meshes` sans skin de `lireGlb`), et les erreurs (manifeste illisible, GLB illisible, refus,
  *  dossier illisible). */
 function listage(dossier) {
   try {
@@ -58,7 +58,7 @@ function listage(dossier) {
     for (const { id, brut, verdict } of verdictsDesModeles(lus.entrees, octets)) {
       if (verdict.ok) {
         manifestes[id] = brut
-        osDesRigides[id] = [...new Set(lireGlb(octets.get(id)).parentDesRigides.values())]
+        osDesRigides[id] = [...new Set(lireGlb(octets.get(id)).meshes.flatMap(m => (m.skinne || m.os === null ? [] : [m.os])))]
       } else erreurs.push(`${fichiersDuModele(id).manifeste} : ${verdict.refus.join(' ; ')}`)
     }
     return { manifestes, osDesRigides, erreurs }

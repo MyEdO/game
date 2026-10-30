@@ -165,12 +165,11 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
     if (typeof mode !== 'string') refus('forme', 'liaison', '`{ mode }` seul attendu');
     else if (!regle.liaisons.includes(mode as ModeDeLiaison)) refus('liaison-hors-categorie', 'liaison.mode', `${mode} : ${liste(regle.liaisons)} attendue pour un élément \`${categorie}\``);
     else if (mode === 'rigide') {
-      if (!glb.rigides.size) refus('rigide-sans-mesh', 'liaison.mode', 'le GLB ne porte aucun mesh rigide');
-      for (const mesh of glb.skinnes) refus('rigide-skinne', 'liaison.mode', `${mesh} porte un skin : un élément en liaison \`rigide\` ne monte que des meshes sans skin`);
-      for (const mesh of glb.rigides) {
-        const os = glb.parentDesRigides.get(mesh);
-        if (os === undefined && !regle.racine) refus('rigide-a-la-racine', 'liaison.mode', `${mesh} ne pend directement à aucune articulation d’un skin : un élément \`${categorie}\` ne reste pas à la racine de la scène`);
-        else if (os !== undefined && !base.os.includes(os)) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os}, qui n’est pas un os de la base \`${base.base}\``);
+      if (glb.meshes.every((m) => m.skinne)) refus('rigide-sans-mesh', 'liaison.mode', 'le GLB ne porte aucun mesh rigide');
+      for (const { libelle: mesh, skinne, os } of glb.meshes) {
+        if (skinne) refus('rigide-skinne', 'liaison.mode', `${mesh} porte un skin : un élément en liaison \`rigide\` ne monte que des meshes sans skin`);
+        else if (os === null && !regle.racine) refus('rigide-a-la-racine', 'liaison.mode', `${mesh} ne pend directement à aucune articulation d’un skin : un élément \`${categorie}\` ne reste pas à la racine de la scène`);
+        else if (os !== null && !base.os.includes(os)) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os}, qui n’est pas un os de la base \`${base.base}\``);
       }
     }
   }

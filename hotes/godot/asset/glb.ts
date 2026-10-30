@@ -10,12 +10,8 @@ export interface ContenuGlb {
   readonly noeuds: ReadonlySet<string>;
   readonly animations: ReadonlySet<string>;
   readonly os: ReadonlySet<string>;
-  /** Les nœuds à mesh sans skin, nommés ou non, chacun par son libellé (`libelleDuNoeud`). */
-  readonly rigides: ReadonlySet<string>;
-  /** Par nœud de `rigides` pendu directement à une articulation d’un skin, le libellé de cette articulation. */
-  readonly parentDesRigides: ReadonlyMap<string, string>;
-  /** Les nœuds à mesh skinnés, nommés ou non, chacun par son libellé. */
-  readonly skinnes: ReadonlySet<string>;
+  /** Les nœuds à mesh, nommés ou non, un par nœud dans l'ordre des nœuds. */
+  readonly meshes: readonly MeshDuGlb[];
   readonly materiauxParPiece: ReadonlyMap<string, readonly (string | null)[]>;
   /** Les noms des matériaux des primitives de tout nœud à mesh, nommé ou non. */
   readonly materiaux: ReadonlySet<string>;
@@ -29,6 +25,17 @@ export interface ContenuGlb {
   readonly zones: ReadonlyMap<string, readonly string[]>;
   /** Les noms de shape keys des meshes (`extras.targetNames`). */
   readonly formes: ReadonlySet<string>;
+}
+
+/** Un nœud à mesh du GLB. */
+export interface MeshDuGlb {
+  /** Son nom, `null` s'il n'en porte pas. */
+  readonly nom: string | null;
+  /** Son nom, ou `noeud <i>` s'il n'en porte pas : pour les messages seulement. */
+  readonly libelle: string;
+  readonly skinne: boolean;
+  /** Le libellé de l'articulation d'un skin à laquelle il pend directement, `null` s'il ne pend à aucune. */
+  readonly os: string | null;
 }
 
 /** Un conteneur qui n'est pas un glTF binaire 2 lisible. */
@@ -123,9 +130,7 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
   const noeuds = json.nodes ?? [];
   const articulations = new Set((json.skins ?? []).flatMap(s => s.joints));
   const parents = new Map(noeuds.flatMap((n, i) => (n.children ?? []).map(enfant => [enfant, i] as const)));
-  const rigides = new Set<string>();
-  const parentDesRigides = new Map<string, string>();
-  const skinnes = new Set<string>();
+  const meshes: MeshDuGlb[] = [];
   const materiauxParPiece = new Map<string, readonly (string | null)[]>();
   const materiaux = new Set<string>();
   const materiauxSansUv = new Set<string>();
@@ -148,16 +153,14 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
       if (typeof n.extras?.zone === 'string') zones.set(n.extras.zone, [...(zones.get(n.extras.zone) ?? []), n.name]);
     }
     if (n.mesh === undefined) return;
-    const libelle = libelleDuNoeud(n, i);
-    if (n.skin !== undefined) skinnes.add(libelle);
-    else {
-      rigides.add(libelle);
-      if (parent !== undefined && articulations.has(parent)) parentDesRigides.set(libelle, libelleDuNoeud(noeuds[parent], parent));
-    }
+    meshes.push({
+      nom: typeof n.name === 'string' ? n.name : null, libelle: libelleDuNoeud(n, i), skinne: n.skin !== undefined,
+      os: parent !== undefined && articulations.has(parent) ? libelleDuNoeud(noeuds[parent], parent) : null,
+    });
   });
   const formes = new Set((json.meshes ?? []).flatMap(m => (Array.isArray(m.extras?.targetNames) ? m.extras.targetNames : []).filter((t): t is string => typeof t === 'string')));
   return {
-    rigides, parentDesRigides, skinnes, materiauxParPiece, materiaux, materiauxSansUv, influencesEtendues, zones, formes,
+    meshes, materiauxParPiece, materiaux, materiauxSansUv, influencesEtendues, zones, formes,
     images: json.images?.length ?? 0,
     noeuds: nomsDe(noeuds), animations: nomsDe(json.animations),
     os: nomsDe((json.skins ?? []).flatMap(s => s.joints.map(i => noeuds[i]).filter(n => n !== undefined))),

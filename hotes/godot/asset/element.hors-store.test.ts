@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, glbDElement } from './schema3.testkit.ts';
 import { empreinte } from './empreinte.ts';
 import { CATEGORIES_D_ELEMENT, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
-import { lireGlb } from './glb.ts';
+import { ecrireGlb, lireGlb } from './glb.ts';
 
 const BASE: BaseDUnElement = {
   base: 'humanoide',
@@ -47,6 +47,15 @@ const manifeste = (categorie: CategorieDElement, surcharge: Record<string, unkno
 const verdict = (brut: unknown, octets = OCTETS) => validerElement(brut, BASE, octets, lireGlb(octets));
 /** Le manifeste de `categorie` pour le GLB `octets`, suivi de ces octets. */
 const surGlb = (categorie: CategorieDElement, surcharge: Record<string, unknown>, octets: Uint8Array) => [manifeste(categorie, surcharge, octets), octets] as const;
+/** Le GLB dont le nœud 1 pend à l'articulation `hand_r` (nœud 0) et le nœud 2 reste à la racine, chacun à mesh `plaque`. */
+const glbADeuxMeshes = (pendu: Record<string, unknown>, racine: Record<string, unknown>) => ecrireGlb({
+  asset: { version: '2.0' }, nodes: [{ name: 'hand_r', children: [1] }, { ...pendu, mesh: 0 }, { ...racine, mesh: 1 }], skins: [{ joints: [0] }],
+  meshes: [0, 1].map(() => ({ primitives: [{ material: 0, attributes: { TEXCOORD_0: 0 } }] })), materials: [{ name: 'plaque' }],
+}, null);
+/** Deux nœuds nommés `lame`, le second à la racine. */
+const LAME_EN_DOUBLE = glbADeuxMeshes({ name: 'lame' }, { name: 'lame' });
+/** Un nœud nommé `noeud 2` pendu, le nœud 2 sans nom à la racine. */
+const NOM_DU_LIBELLE = glbADeuxMeshes({ name: 'noeud 2' }, {});
 const codes = (brut: unknown, octets = OCTETS) => {
   const v = verdict(brut, octets);
   return v.ok ? [] : v.ecarts.map((e) => e.code);
@@ -125,6 +134,8 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['rigide-a-la-racine', 'rigide à la racine', ...surGlb('rigide', {}, glbAvec(null))],
   ['rigide-a-la-racine', 'accessoire rigide à la racine', ...surGlb('accessoire', { liaison: { mode: 'rigide' } }, glbAvec(null))],
   ['rigide-a-la-racine', 'mesh sans nom à la racine d’un rigide', ...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { anonyme: [{ materiau: 'plaque', uv: true }] }))],
+  ['rigide-a-la-racine', 'mesh à la racine au nom d’un mesh pendu', ...surGlb('rigide', {}, LAME_EN_DOUBLE)],
+  ['rigide-a-la-racine', 'mesh sans nom à la racine dont le libellé nomme un mesh pendu', ...surGlb('rigide', {}, NOM_DU_LIBELLE)],
   ['rigide-skinne', 'mesh skinné dans un rigide', ...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { anonyme: [{ materiau: 'plaque', uv: true }], skinne: true }))],
 ];
 
