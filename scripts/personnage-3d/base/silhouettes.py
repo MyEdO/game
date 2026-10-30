@@ -12,13 +12,14 @@
 - Extrémités invariantes : les pieds, les mains des prises et la tête (`extremites`) ; un sommet garde son décalage en
   entier tant qu'aucun poids d'extrémité ne le porte, ne bouge plus dès que sa part de poids d'extrémité atteint
   `MAJORITE_DU_POIDS` (la surface d'un pied, `sol.poser_les_clips_au_sol`), et entre les deux en proportion
-  (`fondu`). Les clés `LISSEES` sont lissées jusqu'à `ETIREMENT_AU_REPOS` au repos (`formes.lisser`), fondu compris.
+  (`fondu`). Chaque clé est lissée jusqu'à `ETIREMENT_AU_REPOS` au repos (`formes.lisser`), fondu compris.
 - Correction des clés par les anneaux articulaires (`correction`, #3101 issuecomment-6489583109), sur chaque clé,
   après le lissage et le fondu : la clé la plus proche de sa source, en énergie d'arêtes, qui garde le centre de
   chaque anneau de la garde des silhouettes, et, pour la carrure, porte le rayon de l'anneau le plus épais à la borne
   de `st`. Les anneaux sont ceux de la garde, calculés sur le maillage de la construction par `anneaux.mjs`
-  (`anneaux`). Les sommets jumeaux prennent le même décalage ; puis chaque clé passe aux peaux secondaires par liaison
-  de surface (`formes.transferer_les_cles`).
+  (`anneaux`). Une clé corrigée dont une arête sort de `ETIREMENT_AU_REPOS` est relissée, sans fondu neuf, puis
+  recorrigée, au plus `TOURS_DE_CORRECTION` tours (`alterner`). Les sommets jumeaux prennent le même décalage ; puis
+  chaque clé passe aux peaux secondaires par liaison de surface (`formes.transferer_les_cles`).
 
 Les poids sont ceux de l'export glTF (`poids.peau_lineaire`).
 """
@@ -29,7 +30,6 @@ from pathlib import Path
 import numpy
 
 from anatomie import PEAUX_SECONDAIRES, PIEDS, POING, ZONE_DE_L_OS
-from corpulence import NOM as CORPULENCE
 from formes import (aretes_des_triangles, aux_noeuds, decalages, lier, lisser, noms_des_cles, positions, poser_la_cle,
                     rapports, transferer_les_cles, transporter, voisins)
 from poids import PASSES_MAX, deformer, jumeaux, peau_lineaire
@@ -41,8 +41,9 @@ DONNEES = ICI.parents[2] / 'src' / 'data'
 FEMININ = 'feminin'
 CARRURE_MOINS = 'carrure_moins'
 CARRURE_PLUS = 'carrure_plus'
-LISSEES = (FEMININ, CORPULENCE)
-"""Les clés lissées : celles d'un donneur, projeté ou lié."""
+TOURS_DE_CORRECTION = 5
+"""Tours de lissage puis correction (`alterner`) au-delà desquels la construction s'arrête : valeur d'ingénierie
+#3101."""
 
 
 def bornes_de_st():
@@ -330,10 +331,47 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     return corriger
 
 
+def alterner(bruts, repos, groupe, aretes, libre, corriger, vers_le_monde, bornes, tours_max=TOURS_DE_CORRECTION):
+    """Les clés `bruts` (nom -> (champ brut au repère du mesh, rapport de `correction` ou `None`)) des sommets au repos
+    `repos`, chacune lissée (`formes.lisser`, nœuds `groupe`, arêtes `aretes`) jusqu'à `bornes` sous le fondu `libre`
+    puis corrigée par `corriger` (`correction`, repère monde : `vers_le_monde`, matrice 3×3 à droite). Tant qu'une arête
+    d'une clé corrigée sort de `bornes` (`formes.rapports`), le champ corrigé est relissé, de facteur `libre > 0` (le
+    fondu déjà appliqué ne se réapplique pas), puis recorrigé ; au-delà de `tours_max` tours, la construction s'arrête.
+    Rend, par nom, le champ corrigé dans le repère du mesh."""
+    inverse = numpy.linalg.inv(vers_le_monde)
+    champs = {nom: champ for nom, (champ, _) in bruts.items()}
+    facteurs = dict.fromkeys(bruts, libre)
+    finis = {}
+    for tour in range(1, tours_max + 1):
+        lisses = {}
+        for nom, champ in champs.items():
+            lisses[nom], passes = lisser(champ, repos, groupe, aretes, facteurs[nom], bornes, PASSES_MAX)
+            print('SILHOUETTE', nom, 'tour', tour, 'lissage', passes, 'passe(s)', flush=True)
+        corriges, sonde = corriger([(d @ vers_le_monde, bruts[nom][1]) for nom, d in lisses.items()])
+        print('SILHOUETTES correction tour', tour, sonde, flush=True)
+        hors_de_r = {}
+        for nom, d in zip(lisses, corriges):
+            d = d @ inverse
+            r = rapports(repos, d, aretes)
+            hors = int(((r < bornes[0]) | (r > bornes[1])).sum())
+            print('SILHOUETTE', nom, 'tour', tour, 'rapports au repos', round(float(r.min()), 4), round(float(r.max()), 3),
+                  '; arêtes hors de', bornes, hors, flush=True)
+            if hors:
+                hors_de_r[nom] = hors
+                champs[nom], facteurs[nom] = d, (libre > 0).astype(numpy.float64)
+            else:
+                finis[nom] = d
+                del champs[nom]
+        if not champs:
+            return {nom: finis[nom] for nom in bruts}
+    raise RuntimeError(', '.join(f'{nom} : {n} arête(s) hors de {bornes} après {tours_max} tours de correction'
+                                 for nom, n in hors_de_r.items()))
+
+
 def finir_les_silhouettes(squelette, corps, secondaires, bornes):
-    """Applique à chaque clé de `corps` le lissage des clés `LISSEES`, les extrémités invariantes et la correction par
-    les anneaux articulaires (`correction`, rayon de la carrure aux bornes de `st` `bornes`), puis la transfère aux
-    peaux `secondaires` ; rend les noms des clés."""
+    """Applique à chaque clé de `corps` le lissage, les extrémités invariantes et la correction par les anneaux
+    articulaires (`alterner`, `correction`, rayon de la carrure aux bornes de `st` `bornes`), puis la transfère aux
+    peaux `secondaires` ; rend les noms des clés. Seules les clés que portent `corps` à l'appel servent de source."""
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
     libre = fondu(w, noms, extremites(squelette))
@@ -341,34 +379,24 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
     repos = positions(corps.data)
     aretes = aretes_des_triangles(corps, groupe)
     cles = noms_des_cles(corps)
-    vers_le_monde = numpy.array(corps.matrix_world.to_3x3()).T
     rapports_de_st = rapports_de_carrure(bornes)
-    champs = []
-    for nom in cles:
-        if nom in LISSEES:
-            brut = rapports(repos, decalages(corps, nom) * libre[:, None], aretes)
-            d, passes = lisser(decalages(corps, nom), repos, groupe, aretes, libre, ETIREMENT_AU_REPOS, PASSES_MAX)
-            r = rapports(repos, d, aretes)
-            print('SILHOUETTE', nom, 'lissage', passes, 'passe(s) ; rapports au repos', round(float(brut.min()), 4),
-                  round(float(brut.max()), 3), '->', round(float(r.min()), 4), round(float(r.max()), 3),
-                  '; arêtes < 0,1', int((brut < 0.1).sum()), '->', int((r < 0.1).sum()), flush=True)
-        else:
-            d = decalages(corps, nom) * libre[:, None]
-        champs.append((d @ vers_le_monde, rapports_de_st.get(nom)))
+    bruts = {nom: (decalages(corps, nom), rapports_de_st.get(nom)) for nom in cles}
+    for nom, (brut, _) in bruts.items():
+        r = rapports(repos, brut * libre[:, None], aretes)
+        print('SILHOUETTE', nom, 'brute sous le fondu : rapports au repos', round(float(r.min()), 4),
+              round(float(r.max()), 3), flush=True)
     lus = anneaux(squelette, corps, x, w, noms)
     print('ANNEAUX', len(lus['anneaux']), '; le plus épais', lus['anneaux'][lus['lePlusEpais']]['os'],
           round(lus['anneaux'][lus['lePlusEpais']]['rayon'], 4), 'm ;',
           ' '.join(f"{a['os']}:{len(a['sommets'])}" for a in lus['anneaux']), flush=True)
-    corriges, sonde = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)(champs)
-    print('SILHOUETTES correction', sonde, flush=True)
-    for nom, (champ, _), d in zip(cles, champs, corriges):
-        d = vers_le_mesh(corps, d)
-        r = rapports(repos, d, aretes)
+    corriger = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)
+    finis = alterner(bruts, repos, groupe, aretes, libre, corriger, numpy.array(corps.matrix_world.to_3x3()).T,
+                     ETIREMENT_AU_REPOS)
+    for nom, d in finis.items():
         poser_la_cle(corps, nom, d)
-        print('SILHOUETTE', nom, 'correction : amplitude', round(float(numpy.linalg.norm(champ, axis=1).max()), 4), '->',
-              round(float(numpy.linalg.norm(d, axis=1).max()), 4), 'm ; rapports au repos', round(float(r.min()), 4),
-              round(float(r.max()), 3), '; extrémités', round(float(numpy.linalg.norm(d[libre == 0], axis=1).max(initial=0)), 6),
-              'm', flush=True)
+        print('SILHOUETTE', nom, 'amplitude', round(float(numpy.linalg.norm(bruts[nom][0], axis=1).max()), 4), '->',
+              round(float(numpy.linalg.norm(d, axis=1).max()), 4), 'm ; extrémités',
+              round(float(numpy.linalg.norm(d[libre == 0], axis=1).max(initial=0)), 6), 'm', flush=True)
     print('SILHOUETTES sommets invariants', int((libre == 0).sum()), 'en fondu', int(((libre > 0) & (libre < 1)).sum()),
           'sur', len(libre), flush=True)
     for peau in secondaires:

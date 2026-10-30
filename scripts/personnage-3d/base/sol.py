@@ -156,6 +156,26 @@ def bas_des_sources(rig, peaux, clips, pelvis):
     return sources
 
 
+def surfaces_des_pieds(rig, w, pieds):
+    """Par pied de `pieds`, la surface du pied : le masque des sommets de poids `w` (sur les os de `rig`, dans leur
+    ordre) dont la part liée au pied et à ses descendants atteint `MAJORITE_DU_POIDS`, comme `surfacesDesPieds` de
+    `hotes/godot/asset/evaluateur/gardes/appuis.ts`."""
+    indice = {b.name: i for i, b in enumerate(rig.data.bones)}
+    return {pied: w[:, [indice[pied], *(indice[b.name] for b in rig.data.bones[pied].children_recursive)]].sum(axis=1)
+            >= MAJORITE_DU_POIDS for pied in pieds}
+
+
+def garder_les_poids_des_pieds(peau, retouches, surfaces):
+    """Arrête la construction si un sommet de `retouches`, les indices que le lissage des poids a retouchés sur la peau
+    `peau` (nom), tombe dans une surface de pied de `surfaces` (`surfaces_des_pieds`) : G8 du plan de #3101
+    (issuecomment-6516726181)."""
+    for pied, surface in surfaces.items():
+        dedans = sorted(s for s in retouches if surface[s])
+        if dedans:
+            raise RuntimeError(f'{peau} : {len(dedans)} sommet(s) de la surface de {pied} retouché(s) par le lissage des '
+                               f'poids, dont {dedans[:8]}')
+
+
 def garder_les_pieds(cles, d, surfaces):
     """Arrête la construction si une shape key de `cles` (déplacements `d`, `empiler`) déplace un sommet d'une surface
     de pied de `surfaces` de plus de `TOLERANCE_JUMEAUX_POSITION_M`, l'écart sous lequel deux positions de repos sont un
@@ -577,15 +597,12 @@ def descente_a_portee(hanches, tetes, decalages, allonge):
 
 def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, racine, pelvis, marches):
     """Pose au sol chaque clip de `clips` joué sur les peaux `peaux` du rig, contre `sources` (`bas_des_sources`) ;
-    plante les pieds `pieds` des clips de `marches`. La surface d'un pied est l'ensemble des sommets dont la part du poids
-    liée au pied et à ses descendants atteint `MAJORITE_DU_POIDS`, comme `surfacesDesPieds` de
-    `hotes/godot/asset/evaluateur/gardes/appuis.ts`. Le corps se tient au sol au pire coin des shape keys des peaux
-    (`bas`), dont aucune ne déplace un pied (`garder_les_pieds`)."""
+    plante les pieds `pieds` des clips de `marches`, sur leurs surfaces (`surfaces_des_pieds`). Le corps se tient au sol au
+    pire coin des shape keys des peaux (`bas`), dont aucune ne déplace un pied (`garder_les_pieds`)."""
     noms = [b.name for b in rig.data.bones]
     indice = {nom: i for i, nom in enumerate(noms)}
     x, w, cles_de_forme, d = empiler(peaux, noms)
-    surfaces = {pied: w[:, [indice[pied], *(indice[b.name] for b in rig.data.bones[pied].children_recursive)]].sum(axis=1)
-                >= MAJORITE_DU_POIDS for pied in pieds}
+    surfaces = surfaces_des_pieds(rig, w, pieds)
     garder_les_pieds(cles_de_forme, d, surfaces)
     hors_pieds = ~numpy.logical_or.reduce(list(surfaces.values()))
     hanche = {pied: jambe(rig, pied)[0] for pied in pieds}

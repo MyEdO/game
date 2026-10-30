@@ -1,5 +1,7 @@
 """silhouettes.correction sur un cylindre synthétique, contre une résolution KKT directe du même problème, et ses
-erreurs nommées."""
+erreurs nommées ; silhouettes.alterner, lissage et correction jusqu'aux bornes d'étirement."""
+import contextlib
+import io
 import sys
 import unittest
 from pathlib import Path
@@ -8,11 +10,14 @@ import numpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from silhouettes import AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, correction  # noqa: E402
+from formes import lisser, rapports  # noqa: E402
+from poids import PASSES_MAX  # noqa: E402
+from silhouettes import AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, alterner, correction  # noqa: E402
 
 SECTEURS, NIVEAUX = 12, 14
 NIVEAUX_DES_ANNEAUX = (2, 4, 6, 9, 11)
 TOLERANCE = 1e-10
+HAUTEUR = 0.1 * (NIVEAUX - 1)
 
 
 def cylindre():
@@ -113,8 +118,7 @@ def kkt(x, aretes, noeud, fixe, lus, d0, rapport):
 class Correction(unittest.TestCase):
     def setUp(self):
         self.x, self.noeud, self.aretes = cylindre()
-        hauteur = 0.1 * (NIVEAUX - 1)
-        self.fixe = (self.x[:, 2] < 0.05) | (self.x[:, 2] > hauteur - 0.05)
+        self.fixe = (self.x[:, 2] < 0.05) | (self.x[:, 2] > HAUTEUR - 0.05)
         self.rng = numpy.random.default_rng(3101)
 
     def lisse(self):
@@ -189,6 +193,69 @@ class Correction(unittest.TestCase):
                        anneaux(self.x, NIVEAUX_DES_ANNEAUX))
         self.assertIsInstance(leve.exception, AnneauIndetectable)
         self.assertIn(f'{NIVEAUX * SECTEURS} nœud(s) libre(s) du sommet 0', str(leve.exception))
+
+
+class Alternance(unittest.TestCase):
+    """Un cylindre aux cercles des bouts invariants et aux deux cercles suivants en fondu ; une clé sans rapport qui
+    translate tout le tronc : la correction, qui garde le centre de chaque anneau, la ramène en cisaillant les arêtes
+    d'entre anneaux."""
+    BORNES = (0.5, 2.0)
+
+    def setUp(self):
+        self.x, self.noeud, self.aretes = cylindre()
+        z = self.x[:, 2]
+        self.libre = numpy.clip((numpy.minimum(z, HAUTEUR - z) - 0.05) / 0.2, 0.0, 1.0)
+        self.en_fondu = (self.libre > 0) & (self.libre < 1)
+        self.vus = []
+        corriger = correction(self.x, self.aretes, self.noeud, self.libre == 0, anneaux(self.x, NIVEAUX_DES_ANNEAUX))
+
+        def corriger_et_noter(champs):
+            corriges, sonde = corriger(champs)
+            self.vus.append(([d for d, _ in champs], corriges))
+            return corriges, sonde
+
+        self.corriger = corriger_et_noter
+
+    def translation(self):
+        brut = numpy.zeros_like(self.x)
+        brut[:, 0] = 0.1
+        brut[:, 1] = 0.1 * numpy.sin(5 * self.x[:, 2])
+        return brut
+
+    def alterner(self, bruts, bornes=BORNES):
+        with contextlib.redirect_stdout(io.StringIO()):
+            return alterner(bruts, self.x, self.noeud, self.aretes, self.libre, self.corriger, numpy.eye(3), bornes)
+
+    def hors(self, champ, bornes=BORNES):
+        r = rapports(self.x, champ, self.aretes)
+        return int(((r < bornes[0]) | (r > bornes[1])).sum())
+
+    def test_une_cle_que_la_correction_sort_des_bornes_y_rentre(self):
+        fini = self.alterner({'k': (self.translation(), None)})['k']
+        (premier,), (corrige,) = self.vus[0]
+        self.assertEqual(self.hors(premier), 0)
+        self.assertGreater(self.hors(corrige), 0)
+        self.assertEqual(self.hors(fini), 0)
+        self.assertEqual(numpy.abs(fini[self.libre == 0]).max(), 0.0)
+
+    def test_le_fondu_ne_se_reapplique_pas_au_tour_suivant(self):
+        self.alterner({'k': (self.translation(), None)})
+        self.assertGreaterEqual(len(self.vus), 2)
+        (_,), (corrige,) = self.vus[0]
+        (second,), _ = self.vus[1]
+        sans_fondu, _ = lisser(corrige, self.x, self.noeud, self.aretes, (self.libre > 0).astype(float), self.BORNES,
+                               PASSES_MAX)
+        refondu, _ = lisser(corrige, self.x, self.noeud, self.aretes, self.libre, self.BORNES, PASSES_MAX)
+        self.assertGreater(numpy.abs(refondu - sans_fondu)[self.en_fondu].max(), 1e-3)
+        self.assertLess(numpy.abs(second - sans_fondu)[self.en_fondu].max(), TOLERANCE)
+
+    def test_une_alternance_qui_ne_converge_pas_leve(self):
+        """Une carrure de rapport 1,7 porte le cercle de l'anneau le plus épais à 1,7 fois son rayon, au-delà de 1,6."""
+        radial = self.x * [1.0, 1.0, 0.0]
+        with self.assertRaises(RuntimeError) as leve:
+            self.alterner({'k': (0.21 * radial, 1.7)}, bornes=(0.6, 1.6))
+        self.assertRegex(str(leve.exception),
+                         r'^k : [1-9]\d* arête\(s\) hors de \(0\.6, 1\.6\) après 5 tours de correction$')
 
 
 if __name__ == '__main__':
