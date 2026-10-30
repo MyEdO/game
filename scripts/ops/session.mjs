@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { spawnSync } from 'node:child_process'
 import { setTimeout as pause } from 'node:timers/promises'
-import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneControleur, lirePolitique, annexeDe } from './session-runtime.mjs'
+import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneControleur, lirePolitique, annexeDe, refusSession, rejouer, BORNES_DE_REJEU, DELAI_FERMETURE_MS } from './session-runtime.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { verifierVersionCodex } from './session-version.mjs'
 import { verifierProtocoleCodex } from './session-codex.mjs'
@@ -14,13 +14,6 @@ import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 
 const script = fileURLToPath(import.meta.url), ops = fileURLToPath(new URL('.', import.meta.url))
 const refuser = (raison, categorie = 'validation') => { throw new Error(`${prefixeDeRefus(categorie)} ${raison}`) }
-
-export function refusSession(erreur) {
-  const message = erreur instanceof Error ? erreur.message : String(erreur)
-  const categorie = Object.keys(CATEGORIES_DE_REFUS).find((c) => message.startsWith(prefixeDeRefus(c))) ?? 'panne'
-  const prefixe = prefixeDeRefus(categorie)
-  return { prefixe, categorie, retentable: CATEGORIES_DE_REFUS[categorie], raison: message.startsWith(prefixe) ? message.slice(prefixe.length).trim() : message, ...(erreur?.reprise ? { reprise: erreur.reprise } : {}) }
-}
 
 /** `true` si ces arguments ATTENDENT une session (`attendre`) : la garde `commande-piege` la refuse en fond (#2603). PURE.
  *  @param {string[]} argv */
@@ -129,7 +122,7 @@ export function argsTerminal({ profil, nom, worktree, script, node, commande, se
   return ['-w', '0', 'new-tab', '--profile', optionWT(profil), '--title', optionWT(nom), '--suppressApplicationTitle', '--startingDirectory', optionWT(worktree), 'powershell.exe', '-NoLogo', '-NoProfile', '-EncodedCommand', Buffer.from(expression, 'utf16le').toString('base64')]
 }
 
-export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, contrat = verifierContratAgent, version = verifierVersionCodex, protocole = verifierProtocoleCodex, executer = spawnSync, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env, preflight = preflightSessionStart } = {}) {
+export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, contrat = verifierContratAgent, version = verifierVersionCodex, protocole = verifierProtocoleCodex, executer = spawnSync, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env, preflight = preflightSessionStart, horloge = Date.now, dormir = pause } = {}) {
   const options = normaliserLancement(entree, cwd)
   if (options.worktree && !fs.existsSync(options.worktree)) refuser(`WORKTREE ABSENT : ${options.worktree}`)
   const c = contexte(options.worktree ?? cwd)
@@ -165,7 +158,7 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
   catch (error) { vu = { error } }
   if (vu.error || vu.status !== 0) return abandonner(new Error(`${prefixeDeRefus('transitoire')} WT SPAWN ÉCHOUÉ : ${vu.error?.message ?? vu.stderr ?? vu.status}`))
   let carte
-  try { carte = await sessions.attenteDemarrage(r.carte.sessionId, r.jeton) }
+  try { carte = await rejouer(() => sessions.attenteDemarrage(r.carte.sessionId, r.jeton), { borneMs: BORNES_DE_REJEU.demarrage, horloge, dormir }) }
   catch (e) { return abandonner(e) }
   if (!carte.recuSessionStart || !carte.revendiqueLe || !['vivante', 'nettoyage', 'fermee'].includes(carte.etat) || carte.issueSortie === 'echec' || (carte.etat !== 'vivante' && carte.issueSortie !== 'sortie')) {
     const refus = refusSession(carte.raison ?? 'REÇU NATIF OU REVENDICATION ABSENT')
@@ -243,10 +236,10 @@ export async function attendreSuivi(sessions, cible, options, { parentVivant, li
     const pidParent = lireParent(), instantParent = horloge()
     parentVivant = () => estPidVivantDepuis(pidParent, instantParent, identite)
   }
-  let depuis = options.depuis, serie = null
+  let depuis = options.depuis
   do {
-    if (!parentVivant()) return { etat: 'indeterminee', raison: 'PARENT DISPARU' }
-    try {
+    const fin = await rejouer(async () => {
+      if (!parentVivant()) return { etat: 'indeterminee', raison: 'PARENT DISPARU' }
       let resultat
       try { resultat = await sessions.attendre(cible, { ...options, depuis }) }
       catch (e) { if (e.code !== 'BORNE_IPC_CODEX') throw e }
@@ -254,13 +247,9 @@ export async function attendreSuivi(sessions, cible, options, { parentVivant, li
       depuis = resultat?.curseur ?? resultat?.seq ?? depuis
       const carte = sessions.etat(cible)
       if (['fermee', 'echec-reservation', 'echec-controle'].includes(carte.etat)) return await sessions.attendre(cible, { timeoutMs: 0, depuis })
-      serie = null
-    } catch (e) {
-      if (!refusSession(e).retentable) throw e
-      serie ??= horloge()
-      if (horloge() - serie > options.timeoutMs) throw e
-      await dormir(250)
-    }
+      return null
+    }, { borneMs: options.timeoutMs, horloge, dormir })
+    if (fin) return fin
   } while (true)
 }
 
@@ -275,7 +264,7 @@ export async function commandeSession(argv, { stdout = process.stdout, stdin = p
     else if (options.action === 'archiver') resultat = sessions.archiver()
     else if (options.action === 'etat') resultat = sessions.etat(options.cible)
     else if (options.action === 'envoyer') resultat = await sessions.envoyer(options.cible, await jetonDe(env, stdin), { message: options.message, requestId: options.requestId, timeoutMs: Number(options.timeoutMs ?? 30_000) })
-    else if (options.action === 'fermer') resultat = await sessions.fermer(options.cible, await jetonDe(env, stdin), { timeoutMs: Number(options.timeoutMs ?? 30_000) })
+    else if (options.action === 'fermer') resultat = await sessions.fermer(options.cible, await jetonDe(env, stdin), { timeoutMs: Number(options.timeoutMs ?? DELAI_FERMETURE_MS) })
     else resultat = await (options.suivre ? attendreSuivi : (s, cible, attente) => s.attendre(cible, attente))(sessions, options.cible, { timeoutMs: Number(options.timeoutMs ?? 60_000), depuis: Number(options.depuis ?? 0) })
   }
   const code = resultat.etat === 'indeterminee' ? 3 : resultat.etat === 'echec-reservation' || resultat.carte?.issueSortie === 'echec' ? 1 : 0

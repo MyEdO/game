@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs'
 import { stripTypeScriptTypes } from 'node:module'
 
 const hooks = new URL('../../.claude/skills/harnais/hooks/', import.meta.url)
-const { outilsSession, refusSession } = await import('./session.mjs')
+const { outilsSession } = await import('./session.mjs')
+const { refusSession } = await import('./session-runtime.mjs')
 const definitions = outilsSession()
 const refus = (raison) => ({ exitCode: 1, stdout: JSON.stringify({ refus: refusSession(new Error(raison)) }), stderr: '' })
 const json = (value) => ({ exitCode: 0, stdout: JSON.stringify(value), stderr: '' })

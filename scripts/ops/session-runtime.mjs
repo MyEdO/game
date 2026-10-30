@@ -10,7 +10,7 @@ import { citerArgv } from '../guards/lib/lancerDetache.mjs'
 import { BORNE_RAISON } from '../guards/lib/ticketsGh.mjs'
 import { preflightSessionStart, contexteRecu, validerRecuSessionStart, PreuveSessionStart, ANNEXES_SESSION_START } from './session-start.mjs'
 import { ecrireJsonAtomique as sauver } from '../guards/lib/ecritureJsonAtomique.mjs'
-import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
+import { prefixeDeRefus, CATEGORIES_DE_REFUS } from '../guards/lib/categorieDeRefus.mjs'
 import { FICHIER_TENU, renommerResilient } from '../guards/lib/renommageResilient.mjs'
 import { lancerPontCodex, envoyerCodex, veillerCodex, ANNEXES_CODEX } from './session-codex.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
@@ -52,6 +52,42 @@ const empreinte = (secret) => createHash('sha256').update(secret).digest('hex')
 const identique = (a, b) => !!a && !!b && a.pid === b.pid && a.creation === b.creation
 const sommeil = (ms) => new Promise((r) => setTimeout(r, ms))
 const lireJSON = (chemin) => JSON.parse(fs.readFileSync(chemin, 'utf8'))
+
+/** Le refus porté par `erreur` : catégorie lue à son préfixe, `transitoire` pour une erreur fs d'un fichier tenu
+ *  (`FICHIER_TENU`), `panne` sinon ; `retentable` de cette catégorie, raison sans préfixe. Seul juge du « retentable » du
+ *  cycle de session (#3150). PURE. */
+export function refusSession(erreur) {
+  const message = erreur instanceof Error ? erreur.message : String(erreur)
+  const categorie = Object.keys(CATEGORIES_DE_REFUS).find((c) => message.startsWith(prefixeDeRefus(c))) ?? (FICHIER_TENU.has(erreur?.code) ? 'transitoire' : 'panne')
+  const prefixe = prefixeDeRefus(categorie)
+  return { prefixe, categorie, retentable: CATEGORIES_DE_REFUS[categorie], raison: message.startsWith(prefixe) ? message.slice(prefixe.length).trim() : message, ...(erreur?.reprise ? { reprise: erreur.reprise } : {}) }
+}
+
+/** Le délai (ms) par défaut de `fermer` avant `ACK TIMEOUT`. Valeur maison. */
+export const DELAI_FERMETURE_MS = 30_000
+/** La fenêtre (ms) d'une réservation (`reserveJusqua`). Valeur maison. */
+const FENETRE_RESERVATION_MS = 60_000
+/** Le plafond (ms) d'attente du verrou du registre (`sousVerrou`). Valeur maison. */
+const PLAFOND_VERROU_REGISTRE_MS = 15_000
+
+/** La borne de rejeu d'un refus retentable, par site du cycle de session (#3150) : `supervision` couvre quatre plafonds du
+ *  verrou du registre. */
+export const BORNES_DE_REJEU = Object.freeze({ supervision: 4 * PLAFOND_VERROU_REGISTRE_MS, arret: DELAI_FERMETURE_MS, demarrage: FENETRE_RESERVATION_MS })
+
+/** Le résultat de `geste`, rejoué tous les `pasMs` tant qu'il lève un refus `retentable` (`refusSession`) et que la série
+ *  de refus ne dépasse pas `borneMs` (#3150). Un refus non retentable, ou retentable au-delà de la borne, est relevé tel quel. */
+export async function rejouer(geste, { borneMs, horloge = Date.now, dormir = sommeil, pasMs = 250 }) {
+  let serie = null
+  do {
+    try { return await geste() }
+    catch (e) {
+      if (!refusSession(e).retentable) throw e
+      serie ??= horloge()
+      if (horloge() - serie > borneMs) throw e
+      await dormir(pasMs)
+    }
+  } while (true)
+}
 
 export function envAgent(env) {
   return Object.fromEntries(Object.entries(env).filter(([cle]) => !/^(?:WFRP_SESSION_JETON|WFRP_SESSION_REVENDICATION|CLAUDE_CODE_CHILD_SESSION|CLAUDE_PROJECT_DIR)$/i.test(cle)))
@@ -131,7 +167,7 @@ const rapportConforme = validateurDeSchema(JSON.parse(fs.readFileSync(SCHEMA_RAP
 
 export function lireRapportDe(chemin) {
   let texte
-  try { texte = fs.readFileSync(chemin, 'utf8') } catch (e) { if (e.code === 'ENOENT') throw erreur('panne', 'RAPPORT ABSENT', { cause: e }); throw erreur('transitoire', `LECTURE RAPPORT : ${e.message}`, { cause: e }) }
+  try { texte = fs.readFileSync(chemin, 'utf8') } catch (e) { if (e.code === 'ENOENT') throw erreur('panne', 'RAPPORT ABSENT', { cause: e }); throw erreur(refusSession(e).categorie, `LECTURE RAPPORT : ${e.message}`, { cause: e }) }
   try { return JSON.parse(texte) } catch (e) { throw erreur('panne', 'RAPPORT INVALIDE', { cause: e }) }
 }
 
@@ -165,7 +201,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   const brutDe = (fichier) => {
     try { return lireJSON(join(dossier, fichier)) } catch (e) {
       if (e.code === 'ENOENT') throw erreur('métier', `CARTE ABSENTE : ${fichier}`, { cause: e })
-      if (FICHIER_TENU.has(e.code)) throw erreur('transitoire', `CARTE TENUE : ${fichier}`, { cause: e })
+      if (refusSession(e).retentable) throw erreur('transitoire', `CARTE TENUE : ${fichier}`, { cause: e })
       throw erreur('panne', `CARTE INVALIDE : ${fichier}`, { cause: e })
     }
   }
@@ -176,13 +212,14 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     if (!jeton) throw erreur('permission', 'JETON ABSENT')
     if (typeof jeton !== 'string' || !timingSafeEqual(Buffer.from(c.empreinteJeton, 'hex'), Buffer.from(empreinte(jeton), 'hex'))) throw erreur('permission', 'JETON INCORRECT')
   }
+  const observer = (c, observation) => { c.observations ??= []; if (!c.observations.includes(observation)) c.observations.push(observation) }
   const signalerEchec = (c, raison, origine = 'diagnostic') => {
     if (origine === 'terminal' && c.raisonOrigine === 'generique') {
-      c.observations ??= []; if (!c.observations.includes(c.raison)) c.observations.push(c.raison)
+      observer(c, c.raison)
       c.raison = raison; c.raisonOrigine = origine
       c.observations = c.observations.filter((observation) => observation !== raison)
     }
-    if (c.raison && raison !== c.raison) { c.observations ??= []; if (!c.observations.includes(raison)) c.observations.push(raison) }
+    if (c.raison && raison !== c.raison) observer(c, raison)
     if (!c.raison) { c.raison = raison; c.raisonOrigine = origine }
     c.echecLe ??= maintenant()
     if (!c.evenements.some((e) => e.type === 'échec')) c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.echecLe, type: 'échec' })
@@ -198,7 +235,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     if (etat === 'fermee') c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date, type: 'clôture' })
   }
   const sousVerrou = (geste) => {
-    const prise = prendreVerrou({ chemin: join(dossier, 'registre.lock'), libelle: 'sessions', commande: 'ops:session', cwd: dossier, attente: { echeanceMs: 5000, pasMs: 20, parTenant: true, plafondMs: 15_000 } })
+    const prise = prendreVerrou({ chemin: join(dossier, 'registre.lock'), libelle: 'sessions', commande: 'ops:session', cwd: dossier, attente: { echeanceMs: 5000, pasMs: 20, parTenant: true, plafondMs: PLAFOND_VERROU_REGISTRE_MS } })
     if (prise.etat !== 'pris') throw erreur('transitoire', prise.message)
     try { return geste() } finally { prise.liberer() }
   }
@@ -214,7 +251,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       if (fs.statSync(fichier).size > 2048) return false
       const signal = z.object({ sessionId: z.uuid(), jobHost: Identite }).strict().parse(lireJSON(fichier))
       return signal.sessionId === carte.sessionId && identique(signal.jobHost, carte.jobHost)
-    } catch { return false }
+    } catch (e) { if (refusSession(e).retentable) throw e; return false }
   }
   const conserverDiagnosticTerminal = (carte) => {
     if (terminalFerme(carte)) signalerEchec(carte, 'terminal fermé', 'terminal')
@@ -253,7 +290,8 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       try { c = lire(sessionId) } catch { continue }
       const transition = transitionDue(c, vue)
       if (!transition) continue
-      transitions[transition].appliquer(c); sauver(chemin(sessionId), c)
+      try { transitions[transition].appliquer(c) } catch (e) { if (refusSession(e).retentable) continue; throw e }
+      sauver(chemin(sessionId), c)
       if (transitions[transition].purger) for (const cle of DIAGNOSTICS_TERMINAUX) fs.rmSync(annexe(sessionId, cle), { force: true })
     } })
     return { ...collection(), ...vue }
@@ -282,16 +320,18 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   const sortie = (id, fin) => muter(id, (c) => { if (c.etat === 'fermee' || c.etat === 'nettoyage') throw erreur('métier', 'DÉJÀ SORTIE'); conserverDiagnosticTerminal(c); if (fin.raison) signalerEchec(c, fin.raison, fin.raisonOrigine); const { raison, raisonOrigine } = c; Object.assign(c, fin, { rapport: fin.rapport ?? c.rapport, raison, raisonOrigine, etat: 'nettoyage', issueSortie: raison || (fin.codeAgent !== 0 && !fin.arret) ? 'echec' : 'sortie', sortieLe: maintenant() }); delete c.codeEnveloppe })
   const revendiquer = (id, nonce, ids) => {
     const vue = constater()
+    const mesuree = (donnee, pid) => { const vu = donnee ?? vue.processus.get(pid); return vu?.creation && identique(vue.processus.get(vu.pid), vu) ? vu : null }
+    const mesures = { controleur: mesuree(ids.controleur, ids.controleurPid), jobHost: mesuree(ids.jobHost, ids.jobHostPid) }
     return sousVerrou(() => {
       const c = lire(id)
       if (c.producteur !== PRODUCTEUR) throw erreur('permission', 'CARTE ÉTRANGÈRE')
+      if (c.etat === 'vivante' && identique(c.controleur, mesures.controleur) && identique(c.jobHost, mesures.jobHost)) { fs.rmSync(bootstrap(id), { force: true }); return c }
       if (c.etat === 'echec-reservation' || (c.etat === 'reservee' && horloge() > c.reserveJusqua)) throw erreur('métier', 'RÉSERVATION EXPIRÉE')
       if (c.etat !== 'reservee') throw erreur('permission', 'REVENDICATION REFUSÉE')
       const revendication = nonce ?? lireJSON(bootstrap(id)).nonce
-      if (c.etat !== 'reservee' || c.empreinteNonce !== empreinte(revendication ?? '')) throw erreur('permission', 'REVENDICATION REFUSÉE')
-      ids = { controleur: ids.controleur ?? vue.processus.get(ids.controleurPid), jobHost: ids.jobHost ?? vue.processus.get(ids.jobHostPid) }
-      if (!ids.controleur?.creation || !ids.jobHost?.creation || !identique(vue.processus.get(ids.controleur.pid), ids.controleur) || !identique(vue.processus.get(ids.jobHost.pid), ids.jobHost)) throw erreur('permission', 'REVENDICATION : IDENTITÉ NON MESURÉE')
-      Object.assign(c, ids, { etat: 'vivante', revendiqueLe: maintenant() }); delete c.empreinteNonce
+      if (c.empreinteNonce !== empreinte(revendication ?? '')) throw erreur('permission', 'REVENDICATION REFUSÉE')
+      if (!mesures.controleur || !mesures.jobHost) throw erreur('permission', 'REVENDICATION : IDENTITÉ NON MESURÉE')
+      Object.assign(c, mesures, { etat: 'vivante', revendiqueLe: maintenant() }); delete c.empreinteNonce
       sauver(chemin(id), c)
       fs.rmSync(bootstrap(id), { force: true })
       return c
@@ -302,7 +342,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     if (c.recuSessionStart) return { ok: true }
     let validation
     try { validation = validerRecuSessionStart(lireJSON(recu(id)), c) }
-    catch (e) { return { ok: false, raison: e.code === 'ENOENT' ? 'REÇU SESSIONSTART ABSENT' : `REÇU SESSIONSTART ILLISIBLE : ${e.message}` } }
+    catch (e) { if (refusSession(e).retentable) throw e; return { ok: false, raison: e.code === 'ENOENT' ? 'REÇU SESSIONSTART ABSENT' : `REÇU SESSIONSTART ILLISIBLE : ${e.message}` } }
     if (validation.ok) muter(id, (carte) => { const { nonce: _nonce, ...preuve } = validation.recu; carte.recuSessionStart = preuve })
     return validation
   }
@@ -337,7 +377,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       return sousVerrou(() => {
         if (collection().cartes.some((c) => c.producteur === PRODUCTEUR && !terminaux.has(c.etat) && (c.ticket === p.ticket || c.nom === p.nom))) throw erreur('métier', 'COLLISION : ticket ou nom déjà réservé')
         const sessionId = randomUUID(), jeton = randomBytes(32).toString('hex'), nonce = randomBytes(32).toString('hex'), nonceHook = randomBytes(32).toString('hex')
-        const carte = { ...p, sessionId, producteur: PRODUCTEUR, lanceur: lanceur ? lanceur() : vue.processus.get(process.pid), date: maintenant(), reserveJusqua: horloge() + 60_000, demarrageJusqua: horloge() + (p.hooks?.delaiMs ?? 60_000), empreinteNonceHook: empreinte(nonceHook), empreinteJeton: empreinte(jeton), empreinteNonce: empreinte(nonce), etat: 'reservee', evenements: [{ ticket: p.ticket, nom: p.nom, sessionId, date: maintenant(), type: 'lancement' }] }
+        const carte = { ...p, sessionId, producteur: PRODUCTEUR, lanceur: lanceur ? lanceur() : vue.processus.get(process.pid), date: maintenant(), reserveJusqua: horloge() + FENETRE_RESERVATION_MS, demarrageJusqua: horloge() + (p.hooks?.delaiMs ?? 60_000), empreinteNonceHook: empreinte(nonceHook), empreinteJeton: empreinte(jeton), empreinteNonce: empreinte(nonce), etat: 'reservee', evenements: [{ ticket: p.ticket, nom: p.nom, sessionId, date: maintenant(), type: 'lancement' }] }
         validerCarte(carte, fichierDe(sessionId))
         sauver(chemin(sessionId), carte)
         sauver(bootstrap(sessionId), { nonce })
@@ -368,22 +408,18 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     },
     sortie,
     async echecDemarrage(id, jeton, raison) {
-      const c = muter(id, (carte) => {
+      const demarrage = (geste, pasMs = 100) => rejouer(geste, { borneMs: BORNES_DE_REJEU.demarrage, horloge, dormir, pasMs })
+      const c = await demarrage(() => muter(id, (carte) => {
         capacite(carte, jeton)
         if (sansControleur(carte) && ['reservee', 'echec-reservation'].includes(carte.etat)) {
           libererReservation(carte, 'echec-reservation', raison)
         } else { signalerEchec(carte, raison); if (['nettoyage', 'fermee'].includes(carte.etat)) carte.issueSortie = 'echec' }
-      })
+      }))
       if (sansControleur(c)) return c
-      for (let tentative = 0; ; tentative++) {
-        try {
-          if (['nettoyage', 'fermee', 'echec-controle'].includes(lire(id).etat)) return (await api.attendre(id, { timeoutMs: 30_000, processusSeulement: true })).carte
-          return (await api.fermer(id, jeton)).carte ?? lire(id)
-        } catch (e) {
-          if (!e.message.startsWith(prefixeDeRefus('transitoire')) || tentative === 2) throw e
-          await dormir(100)
-        }
-      }
+      return demarrage(async () => {
+        if (['nettoyage', 'fermee', 'echec-controle'].includes(lire(id).etat)) return (await api.attendre(id, { timeoutMs: 30_000, processusSeulement: true })).carte
+        return (await api.fermer(id, jeton)).carte ?? lire(id)
+      })
     },
     async attenteDemarrage(id, jeton) {
       const limite = lire(id).demarrageJusqua
@@ -420,8 +456,9 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       if (candidates.length) sousVerrou(() => { for (const { fichier } of candidates) {
         let raison, brut = null
         try { brut = brutDe(fichier); validerCarte(brut, fichier); continue } catch (e) {
-          if (e.message.startsWith(prefixeDeRefus('métier'))) continue
-          if (e.message.startsWith(prefixeDeRefus('transitoire'))) { conservees.push({ fichier, raison: e.message }); continue }
+          const refus = refusSession(e)
+          if (refus.categorie === 'métier') continue
+          if (refus.retentable) { conservees.push({ fichier, raison: e.message }); continue }
           raison = e.message
         }
         if (brut && typeof brut === 'object' && encorePresent(brut, vue)) { conservees.push({ fichier, raison }); continue }
@@ -431,7 +468,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
         if (occupe) { conservees.push({ fichier, raison: erreur('métier', `ARCHIVE OCCUPÉE : archive/${occupe}`).message }); continue }
         fs.mkdirSync(archive, { recursive: true })
         try { for (const nom of noms) { renommerResilient(join(dossier, nom), join(archive, nom)); archivees.push(nom) } }
-        catch (e) { conservees.push({ fichier, raison: erreur(FICHIER_TENU.has(e.code) ? 'transitoire' : 'panne', `ARCHIVAGE INTERROMPU : ${fichier} — ${e.code ?? e.message}`, { cause: e }).message }) }
+        catch (e) { conservees.push({ fichier, raison: erreur(refusSession(e).categorie, `ARCHIVAGE INTERROMPU : ${fichier} — ${e.code ?? e.message}`, { cause: e }).message }) }
       } })
       return { archivees, conservees }
     },
@@ -448,7 +485,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
         reconcilier()
       } while (true)
     },
-    async fermer(cible, jeton, { timeoutMs = 30_000 } = {}) {
+    async fermer(cible, jeton, { timeoutMs = DELAI_FERMETURE_MS } = {}) {
       const demande = api.demanderArret(cible, jeton), debut = horloge()
       if (demande.etat === 'fermee' && sansControleur(demande)) return { etat: 'fermee', carte: demande }
       do {
@@ -461,43 +498,56 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
         await dormir(100)
       } while (true)
     },
-    async superviser(id, { lancer, lireRapport, causeSortie, periodeMs = 500 }) {
-      let child, timer, fini, arret = false
+    async superviser(id, { lancer, apresLancement, lireRapport, causeSortie, periodeMs = 500 }) {
+      let child, timer, fini, veille, arret = false, termine = false
+      const registre = (geste) => rejouer(geste, { borneMs: BORNES_DE_REJEU.supervision, horloge, dormir })
+      const arretDemande = () => {
+        if (termine) return false
+        let demande
+        try { demande = lireJSON(stop(id)) } catch (e) { if (e.code === 'ENOENT') return false; throw e }
+        return demande.sessionId === id && demande.demandeId === lire(id).demandeId
+      }
       try {
-        const initiale = lire(id)
+        const initiale = await registre(() => lire(id))
         child = lancer(initiale)
         fini = new Promise((ok, non) => { child.once('error', non); child.once('exit', (codeAgent, signal) => ok({ codeAgent, signal })) })
-        const identite = processus(child.pid)
-        if (identite) api.agentDemarre(id, identite)
+        fini.catch(() => {})
+        if (apresLancement) await registre(apresLancement)
+        const identite = await registre(() => processus(child.pid))
+        if (identite) await registre(() => api.agentDemarre(id, identite))
         timer = setInterval(() => {
-          if (arret) return
-          try { const demande = lireJSON(stop(id)); if (demande.sessionId === id && demande.demandeId === lire(id).demandeId) { arret = true; child.kill() } }
-          catch (e) { if (e.code !== 'ENOENT') { arret = true; child.kill() } }
+          if (arret || veille) return
+          veille = rejouer(arretDemande, { borneMs: BORNES_DE_REJEU.arret, horloge, dormir, pasMs: periodeMs })
+            .then((demandee) => demandee, () => !termine)
+            .then((tuer) => { if (tuer) { arret = true; child.kill() } })
+            .finally(() => { veille = undefined })
         }, periodeMs)
         const fin = await fini
+        termine = true
         let rapport, raison, raisonOrigine
-        const recuNatif = constaterRecu(id)
+        const recuNatif = await registre(() => constaterRecu(id))
         if (!recuNatif.ok) raison = recuNatif.raison
-        if (lire(id).etat === 'arret-demande') arret = true
+        if ((await registre(() => lire(id))).etat === 'arret-demande') arret = true
         if (causeSortie && fin.codeAgent !== 0 && !arret) {
           const cause = await causeSortie()
           if (cause || recuNatif.ok) {
-            if (!recuNatif.ok) muter(id, (c) => { c.observations ??= []; c.observations.push(recuNatif.raison) })
+            if (!recuNatif.ok) await registre(() => muter(id, (c) => observer(c, recuNatif.raison)))
             raison = `AGENT SORTI EN ${fin.codeAgent ?? fin.signal}${cause ? ` : ${cause}` : ''}`
             raisonOrigine = cause ? 'diagnostic' : 'generique'
           }
         }
-        if (recuNatif.ok && initiale.agent === 'codex' && fin.codeAgent === 0 && !arret && !lire(id).codex) {
-          try { const lu = lireRapport(), validation = validerRapport(lu, initiale); if (validation.ok) rapport = lu; else raison = validation.raison }
+        if (recuNatif.ok && initiale.agent === 'codex' && fin.codeAgent === 0 && !arret && !(await registre(() => lire(id))).codex) {
+          try { const lu = await registre(lireRapport), validation = validerRapport(lu, initiale); if (validation.ok) rapport = lu; else raison = validation.raison }
           catch (e) { raison = e.message }
         }
-        return { ...sortie(id, { ...fin, arret, rapport, raison, raisonOrigine }), codeEnveloppe: 0 }
+        return { ...await registre(() => sortie(id, { ...fin, arret, rapport, raison, raisonOrigine })), codeEnveloppe: 0 }
       } catch (e) {
+        termine = true
         if (child && child.exitCode === null && !arret) child.kill()
         if (fini) { try { await fini } catch {} }
         const cause = causeSortie && child ? await causeSortie() : ''
-        return { ...sortie(id, { codeAgent: null, raison: `SPAWN/SUPERVISION : ${cause || e.message}` }), codeEnveloppe: 0 }
-      } finally { if (timer) clearInterval(timer); fs.rmSync(stop(id), { force: true }) }
+        return { ...await registre(() => sortie(id, { codeAgent: null, raison: `SPAWN/SUPERVISION : ${cause || e.message}` })), codeEnveloppe: 0 }
+      } finally { if (timer) clearInterval(timer); await veille; fs.rmSync(stop(id), { force: true }) }
     },
   }
   return api
@@ -526,13 +576,14 @@ export function contexteSessions(worktree) {
   return { racine: principal.valeur, gitCommun: join(principal.valeur, '.git'), worktree: resolve(worktree), branche: brancheDe(depot), head: shaDe(depot, 'HEAD') }
 }
 
-export async function piloterAgent({ sessions, dossier, carte, consigne, lancer, pont = lancerPontCodex, preflight = preflightSessionStart, retirer = (fichier) => fs.rmSync(fichier, { force: true }) }) {
+export async function piloterAgent({ sessions, dossier, carte, consigne, lancer, pont = lancerPontCodex, preflight = preflightSessionStart, retirer = (fichier) => fs.rmSync(fichier, { force: true }), horloge = Date.now, dormir = sommeil }) {
   const id = carte.sessionId, rapport = annexeDe(dossier, id, 'rapport'), journal = annexeDe(dossier, id, 'journal'), contexteHook = annexeDe(dossier, id, 'contexte')
+  const sous = (geste) => rejouer(geste, { borneMs: BORNES_DE_REJEU.supervision, horloge, dormir })
   let agent
   try {
     const actuel = await preflight(carte.worktree, carte.agent)
     if (actuel.empreinteCanon !== carte.hooks?.empreinteCanon || actuel.empreinteCredo !== carte.hooks?.empreinteCredo) throw erreur('permission', 'HOOKS : EMPREINTE CHANGÉE AVANT SPAWN')
-    const contexte = lireJSON(contexteHook)
+    const contexte = await sous(() => lireJSON(contexteHook))
     const plan = planAgent(carte, { natif: carte.executable, consigne: consigneAgent(carte, consigne), rapport, schema: SCHEMA_RAPPORT, politique: lirePolitique() })
     return await sessions.superviser(id, {
       lancer: () => {
@@ -540,26 +591,27 @@ export async function piloterAgent({ sessions, dossier, carte, consigne, lancer,
         agent = carte.agent === 'codex'
           ? pont({ plan, carte, dossier, consigne: consigneAgent(carte, consigne), schema: SCHEMA_RAPPORT, env, lancer, notifier: (projection) => sessions.projectionCodex(id, projection) })
           : lancerAgent(plan, carte, { journal, lancer, env })
-        sessions.muter(id, (c) => { c.journalDiagnostic = carte.agent === 'codex' ? agent.journalDiagnostic : journal })
         return agent.child
       },
+      apresLancement: () => sessions.muter(id, (c) => { c.journalDiagnostic = carte.agent === 'codex' ? agent.journalDiagnostic : journal }),
       causeSortie: () => agent.cause(),
       lireRapport: () => lireRapportDe(rapport),
     })
   } finally {
     if (agent) await agent.cause()
-    for (const fichier of [rapport, contexteHook, annexeDe(dossier, id, 'recu')]) { try { retirer(fichier) } catch (e) { process.stderr.write(`[session] ${prefixeDeRefus('transitoire')} PURGE IMPOSSIBLE : ${fichier} — ${e.code ?? e.message}\n`) } }
+    for (const fichier of [rapport, contexteHook, annexeDe(dossier, id, 'recu')]) { try { await sous(() => retirer(fichier)) } catch (e) { process.stderr.write(`[session] ${refusSession(e).prefixe} PURGE IMPOSSIBLE : ${fichier} — ${e.code ?? e.message}\n`) } }
   }
 }
 
-export async function controleur({ dossier, id, hostPid = Number(process.env.WFRP_SESSION_JOBHOST) }) {
-  const sessions = creerSessions({ dossier })
-  sessions.revendiquer(id, undefined, { controleurPid: process.pid, jobHostPid: hostPid })
+export async function controleur({ dossier, id, hostPid = Number(process.env.WFRP_SESSION_JOBHOST), sessions = creerSessions({ dossier }), piloter = piloterAgent, horloge = Date.now, dormir = sommeil }) {
+  const sous = (borneMs, geste) => rejouer(geste, { borneMs, horloge, dormir })
+  await sous(BORNES_DE_REJEU.demarrage, () => sessions.revendiquer(id, undefined, { controleurPid: process.pid, jobHostPid: hostPid }))
   delete process.env.WFRP_SESSION_REVENDICATION
   try {
-    const carte = sessions.lire(id)
-    return await piloterAgent({ sessions, dossier, carte, consigne: fs.readFileSync(carte.consigne, 'utf8') })
-  } catch (e) { return sessions.sortie(id, { codeAgent: null, raison: e.message }) }
+    const carte = await sous(BORNES_DE_REJEU.supervision, () => sessions.lire(id))
+    const consigne = await sous(BORNES_DE_REJEU.supervision, () => fs.readFileSync(carte.consigne, 'utf8'))
+    return await piloter({ sessions, dossier, carte, consigne, horloge, dormir })
+  } catch (e) { return sous(BORNES_DE_REJEU.supervision, () => sessions.sortie(id, { codeAgent: null, raison: e.message })) }
 }
 
 if (import.meta.main) {
