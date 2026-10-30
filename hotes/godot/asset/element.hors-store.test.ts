@@ -124,6 +124,8 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['rigide-sur-os-absent', 'rigide pendu à un os inconnu de la base', ...surGlb('rigide', {}, glbAvec('main_gauche'))],
   ['rigide-a-la-racine', 'rigide à la racine', ...surGlb('rigide', {}, glbAvec(null))],
   ['rigide-a-la-racine', 'accessoire rigide à la racine', ...surGlb('accessoire', { liaison: { mode: 'rigide' } }, glbAvec(null))],
+  ['rigide-a-la-racine', 'mesh sans nom à la racine d’un rigide', ...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { anonyme: [{ materiau: 'plaque', uv: true }] }))],
+  ['rigide-skinne', 'mesh skinné dans un rigide', ...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { anonyme: [{ materiau: 'plaque', uv: true }], skinne: true }))],
 ];
 
 describe('validerElement : chaque refus nommé', () => {
@@ -132,7 +134,7 @@ describe('validerElement : chaque refus nommé', () => {
       forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'cle-inconnue': true, 'piece-hors-categorie': true, 'base-differente': true,
       'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true,
       'silhouette-absente': true, 'surface-hors-categorie': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
-      'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true,
+      'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true, 'rigide-skinne': true,
     };
     expect(new Set(REFUS.map(([code]) => code))).toEqual(new Set(Object.keys(attendus)));
   });
@@ -148,6 +150,11 @@ describe('validerElement : un mesh rigide se monte sous un os de la base', () =>
   it('un rigide à la racine est refusé, le mesh nommé', () => {
     expect(verdict(...surGlb('rigide', {}, glbAvec(null)))).toEqual({
       ok: false, ecarts: [{ code: 'rigide-a-la-racine', ou: 'liaison.mode', detail: 'lame ne pend directement à aucune articulation d’un skin : un élément `rigide` ne reste pas à la racine de la scène' }],
+    });
+  });
+  it('un mesh sans nom se nomme par son index', () => {
+    expect(verdict(...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { anonyme: [{ materiau: 'plaque', uv: true }], skinne: true })))).toEqual({
+      ok: false, ecarts: [{ code: 'rigide-skinne', ou: 'liaison.mode', detail: 'noeud 2 porte un skin : un élément en liaison `rigide` ne monte que des meshes sans skin' }],
     });
   });
   it.each(['decor', 'vehicule'] as const)('un `%s` garde son mesh à la racine', (categorie) => {

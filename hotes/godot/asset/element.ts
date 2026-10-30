@@ -111,7 +111,8 @@ export type CodeDEcartDElement =
   | 'glb-different'
   | 'rigide-sans-mesh'
   | 'rigide-sur-os-absent'
-  | 'rigide-a-la-racine';
+  | 'rigide-a-la-racine'
+  | 'rigide-skinne';
 
 export interface EcartDElement {
   readonly code: CodeDEcartDElement;
@@ -165,6 +166,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
     else if (!regle.liaisons.includes(mode as ModeDeLiaison)) refus('liaison-hors-categorie', 'liaison.mode', `${mode} : ${liste(regle.liaisons)} attendue pour un élément \`${categorie}\``);
     else if (mode === 'rigide') {
       if (!glb.rigides.size) refus('rigide-sans-mesh', 'liaison.mode', 'le GLB ne porte aucun mesh rigide');
+      for (const mesh of glb.skinnes) refus('rigide-skinne', 'liaison.mode', `${mesh} porte un skin : un élément en liaison \`rigide\` ne monte que des meshes sans skin`);
       for (const mesh of glb.rigides) {
         const os = glb.parentDesRigides.get(mesh);
         if (os === undefined && !regle.racine) refus('rigide-a-la-racine', 'liaison.mode', `${mesh} ne pend directement à aucune articulation d’un skin : un élément \`${categorie}\` ne reste pas à la racine de la scène`);
