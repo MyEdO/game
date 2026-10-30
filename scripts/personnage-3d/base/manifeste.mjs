@@ -8,7 +8,8 @@
 // - pris au GLB : `glb.sha256` et `glb.octets`.
 // `--licence-<pack>` nomme le texte de licence de chaque pack, lu dans le pack. `--verifier` juge la déclaration, le
 // dossier de sortie et les textes de licence sans rien lire ni écrire d'autre : la construction le joue avant Blender.
-//   node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --ual1 <f> --ual2 <f> --corps <f> --corps-feminin <f> --licence-ual1 <f> --licence-ual2 <f> --licence-corps <f> --licence-corps-feminin <f> [--verifier] < <construit.json>
+//   node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --<pack> <source> --licence-<pack> <f>… [--verifier] < <construit.json>
+// où <pack> parcourt `SOURCES` (`production.ts`).
 import { readFileSync } from 'node:fs'
 import { text } from 'node:stream/consumers'
 import { parseArgs } from 'node:util'
@@ -42,7 +43,7 @@ async function main() {
   const options = { ...Object.fromEntries(packs.flatMap((p) => [[p, { type: 'string' }], [`licence-${p}`, { type: 'string' }]])), verifier: { type: 'boolean' } }
   const { positionals: [cheminDeclaration, cheminGlb, ...reste], values } = parseArgs({ allowPositionals: true, options })
   if (!cheminDeclaration || !cheminGlb?.endsWith('.glb') || reste.length || packs.some((p) => !values[p] || !values[`licence-${p}`])) {
-    console.error('usage : node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --ual1 <f> --ual2 <f> --corps <f> --corps-feminin <f> --licence-ual1 <f> --licence-ual2 <f> --licence-corps <f> --licence-corps-feminin <f> [--verifier] < <construit.json>')
+    console.error(`usage : node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> ${packs.map((p) => `--${p} <source> --licence-${p} <f>`).join(' ')} [--verifier] < <construit.json>`)
     process.exit(2)
   }
   const sources = tableTotale(packs, (p) => values[p])

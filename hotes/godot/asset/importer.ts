@@ -72,7 +72,7 @@ function refusDeLicence({ licences, licences_de_pack }: Pick<Provenance, 'licenc
 
 const nomDeFichier = (chemin: string): string => chemin.split(/[\\/]/).pop() ?? '';
 
-/** `packs_sources.<pack>.{path, sha256, licence}`, le chemin réduit au nom de fichier et `licence`, texte `LICENSE*.txt`
+/** `packs_sources.<pack>.{path, sha256, licence}`, le chemin réduit au nom de son fichier ou dossier et `licence`, texte `LICENSE*.txt`
  *  du dossier de production, au nom de son dépôt dans `deposes` ; ou les refus : `[pack-source-mal-forme]` d'une entrée
  *  qui n'est pas un objet, sans `path` ou sans `licence` en chaîne, ou dont `sha256` n'est pas un SHA-256 (`EMPREINTE`), `[licence-de-pack-absente]` d'un pack
  *  dont la licence ne nomme aucun texte du dossier, `[packs-sources-absents]` quand `exige` (une base) et qu'aucun pack
@@ -187,7 +187,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   for (const source of contenu.filter((f) => FICHIER_DE_LICENCE.test(f))) {
     const octetsDeLicence = readFileSync(join(dossier, source));
     const licence = licenceDeclaree(octetsDeLicence.toString('utf8'));
-    if (!licence) return { ok: false, refus: [`${source} : aucune ligne « License: »`] };
+    if (!licence) return { ok: false, refus: [`${source} : texte vide, ni ligne « License: » ni titre`] };
     const spdx = IDENTIFIANT_SPDX.get(licence);
     if (!spdx) return { ok: false, refus: licencesInconnues([licence], source) };
     const fichier = nomDeLicence(spdx, octetsDeLicence);
