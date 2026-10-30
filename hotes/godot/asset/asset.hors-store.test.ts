@@ -606,11 +606,16 @@ describe('importerPersonnage', () => {
       writeFileSync(join(d, 'b.blend'), 'b');
       return d;
     }, /plusieurs sources \.blend/],
-    ['une licence de pack sans ligne License:', () => {
+    ['une licence de pack ni à ligne License: ni à titre connu', () => {
       const d = dossierDeProduction();
-      writeFileSync(join(d, 'LICENSE-Pack.txt'), 'Pack sans licence déclarée');
+      writeFileSync(join(d, 'LICENSE-Pack.txt'), '# Pack sans licence déclarée\n\nTexte.\n');
       return d;
-    }, /aucune ligne « License: »/],
+    }, /^\[licence-inconnue\] LICENSE-Pack\.txt : « Pack sans licence déclarée »$/],
+    ['une licence de pack vide', () => {
+      const d = dossierDeProduction();
+      writeFileSync(join(d, 'LICENSE-Pack.txt'), '\n  \n');
+      return d;
+    }, /^LICENSE-Pack\.txt : texte vide, ni ligne « License: » ni titre$/],
   ])('refuse %s sans rien publier ni écrire', (_, dossier, motif) => {
     const destination = join(temporaire(), 'modeles');
     const { verses, publier } = publication();
@@ -895,7 +900,10 @@ describe('dossier de production d’une base (#3106)', () => {
   const LICENCE_QUATERNIUS = '-----------------------------\r\nLicense:\r\nCC0 1.0 Universal (CC0 1.0) \r\nPublic Domain Dedication\r\n';
   /** Un texte de licence du pack de corps, distinct de `LICENCE_QUATERNIUS` : chaque pack se relie à SON dépôt. */
   const LICENCE_DU_CORPS = 'Ultimate Base Characters\r\nLicense:\r\nCC0 1.0 Universal (CC0 1.0) \r\n';
-  const PACKS = ['ual1', 'ual2', 'corps', 'corps-feminin'] as const;
+  /** Le texte de licence des données MPFB : sans ligne `License:`, sa licence est son titre (LICENSE.ASSETS.md de
+   *  makehumancommunity/mpfb2, début). */
+  const LICENCE_MPFB = '# Creative Commons CC0 1.0 Universal\n\nCREATIVE COMMONS CORPORATION IS NOT A LAW FIRM AND DOES NOT PROVIDE LEGAL SERVICES.\n';
+  const PACKS = ['ual1', 'ual2', 'corps', 'corps-feminin', 'mpfb'] as const;
   /** Un pack : son texte de licence `licence`, de contenu `texte`, à la racine, le fichier source `fichier` deux dossiers plus bas. */
   const pack = (fichier: string, licence = 'License.txt', texte = LICENCE_QUATERNIUS) => {
     const racine = temporaire();
@@ -904,10 +912,25 @@ describe('dossier de production d’une base (#3106)', () => {
     writeFileSync(join(racine, 'Godot', 'sous', fichier), `octets de ${fichier}`);
     return { source: join(racine, 'Godot', 'sous', fichier), licence: join(racine, licence) };
   };
+  /** Les fichiers du dossier `data` du pack MPFB, par chemin relatif POSIX : `version.txt`, à la racine, se lit avant
+   *  les sous-dossiers mais se trie après eux. */
+  const DONNEES_MPFB = { '3dobjs/base.obj': 'octets de base.obj', 'targets/macrodetails/universal.target.gz': 'octets de la cible', 'version.txt': 'octets de version' };
+  /** Le pack MPFB : son texte de licence à la racine, sa source le dossier `mpfb/data` qui porte `DONNEES_MPFB`. */
+  const packDeDonnees = () => {
+    const racine = temporaire();
+    writeFileSync(join(racine, 'LICENSE.ASSETS.md'), LICENCE_MPFB);
+    for (const [fichier, octets] of Object.entries(DONNEES_MPFB)) {
+      mkdirSync(join(racine, 'mpfb', 'data', fichier, '..'), { recursive: true });
+      writeFileSync(join(racine, 'mpfb', 'data', fichier), octets);
+    }
+    return { source: join(racine, 'mpfb', 'data'), licence: join(racine, 'LICENSE.ASSETS.md') };
+  };
+  /** L'empreinte d'un dossier qui porte `DONNEES_MPFB` : celle de la liste triée « chemin relatif POSIX, SHA-256 ». */
+  const EMPREINTE_MPFB = sha256(Buffer.from(Object.entries(DONNEES_MPFB).map(([f, o]) => `${f} ${sha256(Buffer.from(o))}\n`).sort().join('')));
   /** Les sources d'une base et le texte de licence nommé pour chacune, le pack de `remplace` substitué. */
   const packs = (remplace: Partial<Record<(typeof PACKS)[number], ReturnType<typeof pack>>> = {}): { sources: SourcesDeBase; licences: SourcesDeBase } => {
     const p = { ual1: pack('UAL1_Standard.glb'), ual2: pack('UAL2_Standard.glb'), corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt', LICENCE_DU_CORPS),
-      'corps-feminin': pack('Superhero_Female_FullBody.gltf', 'License_Standard.txt', LICENCE_DU_CORPS), ...remplace };
+      'corps-feminin': pack('Superhero_Female_FullBody.gltf', 'License_Standard.txt', LICENCE_DU_CORPS), mpfb: packDeDonnees(), ...remplace };
     return { sources: tableTotale(PACKS, (s) => p[s].source), licences: tableTotale(PACKS, (s) => p[s].licence) };
   };
   /** Le GLB de base exporté dans un dossier de sortie neuf, puis son dossier de production écrit. */
@@ -927,19 +950,20 @@ describe('dossier de production d’une base (#3106)', () => {
     const manifest = JSON.parse(readFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), 'utf8'));
     expect(manifest).toEqual({
       model: 'humanoide.glb', model_sha256: sha256(GLB_DE_BASE), manifeste: baseSchema3(),
-      packs_sources: tableTotale(PACKS, (s) => ({ path: sources[s], sha256: sha256(readFileSync(sources[s])), licence: `LICENSE-${s}.txt` })),
+      packs_sources: tableTotale(PACKS, (s) => ({ path: sources[s], sha256: s === 'mpfb' ? EMPREINTE_MPFB : sha256(readFileSync(sources[s])), licence: `LICENSE-${s}.txt` })),
       hors_release: HORS_RELEASE_DE_BASE,
     });
-    expect(PACKS.map((s) => readFileSync(join(dossier, `LICENSE-${s}.txt`), 'utf8'))).toEqual([LICENCE_QUATERNIUS, LICENCE_QUATERNIUS, LICENCE_DU_CORPS, LICENCE_DU_CORPS]);
+    expect(PACKS.map((s) => readFileSync(join(dossier, `LICENSE-${s}.txt`), 'utf8'))).toEqual([LICENCE_QUATERNIUS, LICENCE_QUATERNIUS, LICENCE_DU_CORPS, LICENCE_DU_CORPS, LICENCE_MPFB]);
     const destination = temporaire();
     const r = importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: null });
     expect(r.ok ? [r.provenance.licences_de_pack.map((l) => l.fichier).sort(), r.provenance.hors_release] : r.refus)
-      .toEqual([[nomCC0(LICENCE_QUATERNIUS), nomCC0(LICENCE_DU_CORPS)].sort(), HORS_RELEASE_DE_BASE]);
+      .toEqual([[nomCC0(LICENCE_QUATERNIUS), nomCC0(LICENCE_DU_CORPS), nomCC0(LICENCE_MPFB)].sort(), HORS_RELEASE_DE_BASE]);
     expect(r.ok ? r.provenance.packs_sources : r.refus).toEqual([
       { pack: 'ual1', fichier: 'UAL1_Standard.glb', sha256: sha256(readFileSync(sources.ual1)), licence: nomCC0(LICENCE_QUATERNIUS) },
       { pack: 'ual2', fichier: 'UAL2_Standard.glb', sha256: sha256(readFileSync(sources.ual2)), licence: nomCC0(LICENCE_QUATERNIUS) },
       { pack: 'corps', fichier: 'Superhero_Male_FullBody.gltf', sha256: sha256(readFileSync(sources.corps)), licence: nomCC0(LICENCE_DU_CORPS) },
       { pack: 'corps-feminin', fichier: 'Superhero_Female_FullBody.gltf', sha256: sha256(readFileSync(sources['corps-feminin'])), licence: nomCC0(LICENCE_DU_CORPS) },
+      { pack: 'mpfb', fichier: 'data', sha256: EMPREINTE_MPFB, licence: nomCC0(LICENCE_MPFB) },
     ]);
     expect(JSON.parse(readFileSync(join(destination, 'humanoide.manifeste.json'), 'utf8'))).toEqual(baseSchema3());
   });
@@ -977,10 +1001,26 @@ describe('dossier de production d’une base (#3106)', () => {
     }, /^\[sortie-dans-le-depot\] /],
     ['une sortie qui porte un texte de licence périmé', async () => ({ glb: sortieAvec('LICENSE-x.txt'), ...packs() }), /^\[sortie-etrangere\] .* : LICENSE-x\.txt ; /],
     ['une sortie qui porte une source .blend', async () => ({ glb: sortieAvec('humanoide.blend'), ...packs() }), /^\[sortie-etrangere\] .* : humanoide\.blend ; /],
-    ['une source absente', async () => ({ glb: sortie(), ...packs({ corps: { ...pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt'), source: join(temporaire(), 'Superhero_Male_FullBody.gltf') } }) }), /^\[source-absente\] --corps .*Superhero_Male_FullBody\.gltf$/],
+    ['une source absente', async () => ({ glb: sortie(), ...packs({ corps: { ...pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt'), source: join(temporaire(), 'Superhero_Male_FullBody.gltf') } }) }), /^\[source-absente\] --corps .*Superhero_Male_FullBody\.gltf : fichier attendu$/],
+    ['une source de pack-fichier donnée en dossier', async () => {
+      const ual1 = pack('UAL1_Standard.glb');
+      return { glb: sortie(), ...packs({ ual1: { ...ual1, source: join(ual1.source, '..') } }) };
+    }, /^\[source-absente\] --ual1 .*sous : fichier attendu$/],
+    ['une source --mpfb donnée en fichier', async () => ({ glb: sortie(), ...packs({ mpfb: pack('base.obj') }) }), /^\[source-absente\] --mpfb .*base\.obj : dossier non vide attendu$/],
+    ['une source --mpfb vide', async () => {
+      const mpfb = packDeDonnees();
+      const vide = join(mpfb.source, '..', 'vide');
+      mkdirSync(join(vide, 'sous'), { recursive: true });
+      return { glb: sortie(), ...packs({ mpfb: { ...mpfb, source: vide } }) };
+    }, /^\[source-absente\] --mpfb .*vide : dossier non vide attendu$/],
     ['un texte de licence absent', async () => ({ glb: sortie(), ...packs({ ual2: { ...pack('UAL2_Standard.glb'), licence: join(temporaire(), 'License.txt') } }) }), /^\[licence-absente\] .*License\.txt : texte de licence introuvable$/],
     ['un texte de licence hors des dossiers ancêtres de sa source', async () => ({ glb: sortie(), ...packs({ ual1: { ...pack('UAL1_Standard.glb'), licence: pack('Autre.glb').licence } }) }), /^\[licence-hors-des-ancetres\].*License\.txt : hors des dossiers ancêtres de .*UAL1_Standard\.glb$/],
-    ['un texte de licence sans ligne License:', async () => ({ glb: sortie(), ...packs({ corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt', 'Public Domain Dedication\r\n') }) }), /^\[licence-sans-ligne\] .*License_Standard\.txt : aucune ligne « License: »$/],
+    ['une construction --mpfb sans texte de licence nommé', async () => {
+      const { sources, licences: { mpfb: _, ...licences } } = packs();
+      return { glb: sortie(), sources, licences: licences as SourcesDeBase };
+    }, /^\[licence-non-nommee\] --licence-mpfb$/],
+    ['un texte de licence vide', async () => ({ glb: sortie(), ...packs({ corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt', '\r\n \r\n') }) }), /^\[licence-sans-ligne\] .*License_Standard\.txt : texte vide, ni ligne « License: » ni titre$/],
+    ['un texte de licence ni à ligne License: ni à titre connu', async () => ({ glb: sortie(), ...packs({ corps: pack('Superhero_Male_FullBody.gltf', 'License_Standard.txt', 'Public Domain Dedication\r\n') }) }), /^\[licence-inconnue\] .*License_Standard\.txt : « Public Domain Dedication » absente de la table des licences$/],
     ['un texte de licence hors de la table des licences', async () => ({ glb: sortie(), ...packs({ ual2: pack('UAL2_Standard.glb', 'License.txt', 'License: MIT\n') }) }), /^\[licence-inconnue\] .*License\.txt : « MIT » absente de la table des licences$/],
   ])('refuse %s sans rien écrire', async (_, cas, motif) => {
     const { glb, ...p } = await cas();

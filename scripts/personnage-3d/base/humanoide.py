@@ -18,7 +18,7 @@ Blender.
         --ual1 <UAL1_Standard.glb> --ual2 <UAL2_Standard.glb> --corps <Superhero_Male_FullBody.gltf> \\
         --corps-feminin <Superhero_Female_FullBody.gltf> --licence-ual1 <License.txt> --licence-ual2 <License.txt> \\
         --licence-corps <License_Standard.txt> --licence-corps-feminin <License_Standard.txt> \\
-        --mpfb <dossier data de MPFB> --sortie <humanoide.glb>
+        --mpfb <dossier data de MPFB> --licence-mpfb <LICENSE.ASSETS.md> --sortie <humanoide.glb>
 """
 import argparse
 import json
@@ -45,7 +45,7 @@ from sol import bas_des_sources, poser_les_clips_au_sol, retirer_sans_sol  # noq
 PELVIS = 'pelvis'
 OS_A_POSITION = ('root', PELVIS)
 """Os dont la piste de position reste : la racine et le pelvis."""
-PACKS = ('ual1', 'ual2', 'corps', 'corps_feminin')
+PACKS = ('ual1', 'ual2', 'corps', 'corps_feminin', 'mpfb')
 """Les packs sources tracés au dossier de production, chacun avec son texte de licence (`production.ts`)."""
 TOLERANCE_DOUBLON = 1e-5
 """Écart maximal entre les clés de deux clips homonymes pour les tenir pour le même clip."""
