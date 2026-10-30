@@ -12,14 +12,18 @@
 - Extrémités invariantes : les pieds, les mains des prises et la tête (`extremites`) ; un sommet garde son décalage en
   entier tant qu'aucun poids d'extrémité ne le porte, ne bouge plus dès que sa part de poids d'extrémité atteint
   `MAJORITE_DU_POIDS` (la surface d'un pied, `sol.poser_les_clips_au_sol`), et entre les deux en proportion
-  (`fondu`). Chaque clé est lissée jusqu'à `ETIREMENT_AU_REPOS` au repos (`formes.lisser`), fondu compris.
+  (`fondu`). Chaque clé est lissée jusqu'à `ETIREMENT_DES_CLES` au repos (`formes.lisser`, région pleine), fondu
+  compris.
 - Correction des clés par les anneaux articulaires (`correction`, #3101 issuecomment-6489583109), sur chaque clé,
   après le lissage et le fondu : la clé la plus proche de sa source, en énergie d'arêtes, qui garde le centre de
   chaque anneau de la garde des silhouettes, et, pour la carrure, porte le rayon de l'anneau le plus épais à la borne
   de `st`. Les anneaux sont ceux de la garde, calculés sur le maillage de la construction par `anneaux.mjs`
-  (`anneaux`). Une clé corrigée dont une arête sort de `ETIREMENT_AU_REPOS` est relissée, sans fondu neuf, puis
-  recorrigée, au plus `TOURS_DE_CORRECTION` tours (`alterner`). Les sommets jumeaux prennent le même décalage ; puis
-  chaque clé passe aux peaux secondaires par liaison de surface (`formes.transferer_les_cles`).
+  (`anneaux`). Une clé corrigée dont une arête sort de ses bornes est relissée, sans fondu neuf, puis recorrigée, au
+  plus `TOURS_DE_CORRECTION` tours (`alterner`). Les sommets jumeaux prennent le même décalage ; puis chaque clé passe
+  aux peaux secondaires par liaison de surface (`formes.transferer_les_cles`).
+- Finition en clip (#3101 issuecomment-6535025119) : `finir_les_silhouettes` rend `refinir(matrices)`, qui reprend
+  les clés courantes par `alterner` en région locale, bornes au repos et sous les matrices de peau des clips
+  (`poids.extremes`), sur la préparation de `finir_les_silhouettes`.
 
 Les poids sont ceux de l'export glTF (`poids.peau_lineaire`).
 """
@@ -32,9 +36,9 @@ import numpy
 from anatomie import PEAUX_SECONDAIRES, PIEDS, POING, ZONE_DE_L_OS
 from formes import (aretes_des_triangles, aux_noeuds, decalages, lier, lisser, noms_des_cles, positions, poser_la_cle,
                     rapports, transferer_les_cles, transporter, voisins)
-from poids import PASSES_MAX, deformer, jumeaux, peau_lineaire
+from poids import PASSES_MAX, deformer, extremes, jumeaux, peau_lineaire
 from script_node import lancer
-from seuils import ETIREMENT_AU_REPOS, INFLUENCES_MAX, MAJORITE_DU_POIDS
+from seuils import ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, INFLUENCES_MAX, MAJORITE_DU_POIDS
 
 ICI = Path(__file__).resolve().parent
 DONNEES = ICI.parents[2] / 'src' / 'data'
@@ -44,6 +48,9 @@ CARRURE_PLUS = 'carrure_plus'
 TOURS_DE_CORRECTION = 5
 """Tours de lissage puis correction (`alterner`) au-delà desquels la construction s'arrête : valeur d'ingénierie
 #3101."""
+ETIREMENT_DES_CLES = (max(ETIREMENT_AU_REPOS[0], ETIREMENT_EN_CLIP[0]), min(ETIREMENT_AU_REPOS[1], ETIREMENT_EN_CLIP[1]))
+"""Bornes de l'étirement d'une clé au repos : l'intersection de `ETIREMENT_AU_REPOS` et `ETIREMENT_EN_CLIP`, plafond
+de la T-pose (#3101)."""
 
 
 def bornes_de_st():
@@ -331,13 +338,19 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     return corriger
 
 
-def alterner(bruts, repos, groupe, aretes, libre, corriger, vers_le_monde, bornes, tours_max=TOURS_DE_CORRECTION):
+def hors_de(r, bornes):
+    """Par rapport de `r`, s'il sort de l'intervalle `bornes` (bas, haut)."""
+    return (r < bornes[0]) | (r > bornes[1])
+
+
+def alterner(bruts, repos, groupe, aretes, libre, corriger, vers_le_monde, hors, region, tours_max=TOURS_DE_CORRECTION):
     """Les clés `bruts` (nom -> (champ brut au repère du mesh, rapport de `correction` ou `None`)) des sommets au repos
-    `repos`, chacune lissée (`formes.lisser`, nœuds `groupe`, arêtes `aretes`) jusqu'à `bornes` sous le fondu `libre`
-    puis corrigée par `corriger` (`correction`, repère monde : `vers_le_monde`, matrice 3×3 à droite). Tant qu'une arête
-    d'une clé corrigée sort de `bornes` (`formes.rapports`), le champ corrigé est relissé, de facteur `libre > 0` (le
-    fondu déjà appliqué ne se réapplique pas), puis recorrigé ; au-delà de `tours_max` tours, la construction s'arrête.
-    Rend, par nom, le champ corrigé dans le repère du mesh."""
+    `repos`, chacune lissée (`formes.lisser`, nœuds `groupe`, arêtes `aretes`, région `region`) jusqu'à ce que
+    `hors(nom, champ)` (masque des arêtes hors bornes de la clé `nom`) ne marque plus rien, sous le fondu `libre`, puis
+    corrigée par `corriger` (`correction`, repère monde : `vers_le_monde`, matrice 3×3 à droite). Tant que `hors` marque
+    une arête d'une clé corrigée, le champ corrigé est relissé, de facteur `libre > 0` (le fondu déjà appliqué ne se
+    réapplique pas), puis recorrigé ; au-delà de `tours_max` tours, la construction s'arrête. Rend, par nom, le champ
+    corrigé dans le repère du mesh."""
     inverse = numpy.linalg.inv(vers_le_monde)
     champs = {nom: champ for nom, (champ, _) in bruts.items()}
     facteurs = dict.fromkeys(bruts, libre)
@@ -345,33 +358,38 @@ def alterner(bruts, repos, groupe, aretes, libre, corriger, vers_le_monde, borne
     for tour in range(1, tours_max + 1):
         lisses = {}
         for nom, champ in champs.items():
-            lisses[nom], passes = lisser(champ, repos, groupe, aretes, facteurs[nom], bornes, PASSES_MAX)
-            print('SILHOUETTE', nom, 'tour', tour, 'lissage', passes, 'passe(s)', flush=True)
+            lisses[nom], passes = lisser(champ, repos, groupe, aretes, facteurs[nom], lambda d, nom=nom: hors(nom, d),
+                                         PASSES_MAX, region)
+            print('SILHOUETTE', nom, 'tour', tour, 'lissage', region, passes, 'passe(s)', flush=True)
         corriges, sonde = corriger([(d @ vers_le_monde, bruts[nom][1]) for nom, d in lisses.items()])
         print('SILHOUETTES correction tour', tour, sonde, flush=True)
-        hors_de_r = {}
+        restantes = {}
         for nom, d in zip(lisses, corriges):
             d = d @ inverse
             r = rapports(repos, d, aretes)
-            hors = int(((r < bornes[0]) | (r > bornes[1])).sum())
+            n = int(hors(nom, d).sum())
             print('SILHOUETTE', nom, 'tour', tour, 'rapports au repos', round(float(r.min()), 4), round(float(r.max()), 3),
-                  '; arêtes hors de', bornes, hors, flush=True)
-            if hors:
-                hors_de_r[nom] = hors
+                  '; arêtes hors bornes', n, flush=True)
+            if n:
+                restantes[nom] = n
                 champs[nom], facteurs[nom] = d, (libre > 0).astype(numpy.float64)
             else:
                 finis[nom] = d
                 del champs[nom]
         if not champs:
             return {nom: finis[nom] for nom in bruts}
-    raise RuntimeError(', '.join(f'{nom} : {n} arête(s) hors de {bornes} après {tours_max} tours de correction'
-                                 for nom, n in hors_de_r.items()))
+    raise RuntimeError(', '.join(f'{nom} : {n} arête(s) hors bornes après {tours_max} tours de correction'
+                                 for nom, n in restantes.items()))
 
 
 def finir_les_silhouettes(squelette, corps, secondaires, bornes):
-    """Applique à chaque clé de `corps` le lissage, les extrémités invariantes et la correction par les anneaux
-    articulaires (`alterner`, `correction`, rayon de la carrure aux bornes de `st` `bornes`), puis la transfère aux
-    peaux `secondaires` ; rend les noms des clés. Seules les clés que portent `corps` à l'appel servent de source."""
+    """Applique à chaque clé de `corps` le lissage en région pleine jusqu'à `ETIREMENT_DES_CLES` au repos, les
+    extrémités invariantes et la correction par les anneaux articulaires (`alterner`, `correction`, rayon de la carrure
+    aux bornes de `st` `bornes`), puis la transfère aux peaux `secondaires`. Seules les clés que portent `corps` à
+    l'appel servent de source. Rend `refinir(matrices)` : sur les clés courantes de `corps`, `alterner` en région locale
+    contre `ETIREMENT_DES_CLES` au repos et `ETIREMENT_EN_CLIP` sous les matrices de peau `matrices` (`poids.extremes`,
+    l'état de la seule clé), avec la préparation de cet appel (poids, fondu, anneaux, `correction`) ; pose les clés,
+    les transfère aux `secondaires`, et rend le nombre de sommets dont une clé a changé."""
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
     libre = fondu(w, noms, extremites(squelette))
@@ -390,8 +408,12 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
           round(lus['anneaux'][lus['lePlusEpais']]['rayon'], 4), 'm ;',
           ' '.join(f"{a['os']}:{len(a['sommets'])}" for a in lus['anneaux']), flush=True)
     corriger = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)
-    finis = alterner(bruts, repos, groupe, aretes, libre, corriger, numpy.array(corps.matrix_world.to_3x3()).T,
-                     ETIREMENT_AU_REPOS)
+    vers_le_monde = numpy.array(corps.matrix_world.to_3x3()).T
+
+    def au_repos(_, d):
+        return hors_de(rapports(repos, d, aretes), ETIREMENT_DES_CLES)
+
+    finis = alterner(bruts, repos, groupe, aretes, libre, corriger, vers_le_monde, au_repos, 'pleine')
     for nom, d in finis.items():
         poser_la_cle(corps, nom, d)
         print('SILHOUETTE', nom, 'amplitude', round(float(numpy.linalg.norm(bruts[nom][0], axis=1).max()), 4), '->',
@@ -401,4 +423,23 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
           'sur', len(libre), flush=True)
     for peau in secondaires:
         transferer_les_cles(corps, peau, cles)
-    return cles
+    longueurs = numpy.linalg.norm(x[aretes[:, 0], :3] - x[aretes[:, 1], :3], axis=1)
+    sans_fondu = (libre > 0).astype(numpy.float64)
+
+    def refinir(matrices):
+        def hors(nom, d):
+            bas, haut = extremes(w, x, (d @ vers_le_monde)[None], aretes, longueurs, matrices)
+            return au_repos(nom, d) | (bas[1] < ETIREMENT_EN_CLIP[0]) | (haut[1] > ETIREMENT_EN_CLIP[1])
+
+        courants = {nom: (decalages(corps, nom), rapports_de_st.get(nom)) for nom in noms_des_cles(corps)}
+        refinis = alterner(courants, repos, groupe, aretes, sans_fondu, corriger, vers_le_monde, hors, 'locale')
+        change = numpy.zeros(len(repos), dtype=bool)
+        for nom, d in refinis.items():
+            change |= ((repos + d).astype(numpy.float32) != positions(corps.data, nom)).any(axis=1)
+            poser_la_cle(corps, nom, d)
+        for peau in secondaires:
+            transferer_les_cles(corps, peau, list(refinis))
+        print('SILHOUETTES refinies : sommets changés', int(change.sum()), flush=True)
+        return int(change.sum())
+
+    return refinir

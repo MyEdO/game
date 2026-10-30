@@ -1,6 +1,8 @@
 """silhouettes.correction sur un cylindre synthétique, contre une résolution KKT directe du même problème, et ses
-erreurs nommées ; silhouettes.alterner, lissage et correction jusqu'aux bornes d'étirement."""
+erreurs nommées ; silhouettes.alterner, lissage et correction jusqu'aux bornes d'étirement ; formes.lisser, région
+pleine et locale."""
 import contextlib
+import hashlib
 import io
 import sys
 import unittest
@@ -12,7 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from formes import lisser, rapports  # noqa: E402
 from poids import PASSES_MAX  # noqa: E402
-from silhouettes import AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, alterner, correction  # noqa: E402
+from silhouettes import (AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, alterner, correction,  # noqa: E402
+                         hors_de)
 
 SECTEURS, NIVEAUX = 12, 14
 NIVEAUX_DES_ANNEAUX = (2, 4, 6, 9, 11)
@@ -224,11 +227,14 @@ class Alternance(unittest.TestCase):
 
     def alterner(self, bruts, bornes=BORNES):
         with contextlib.redirect_stdout(io.StringIO()):
-            return alterner(bruts, self.x, self.noeud, self.aretes, self.libre, self.corriger, numpy.eye(3), bornes)
+            return alterner(bruts, self.x, self.noeud, self.aretes, self.libre, self.corriger, numpy.eye(3),
+                            lambda _, d: self.masque(d, bornes), 'pleine')
+
+    def masque(self, champ, bornes=BORNES):
+        return hors_de(rapports(self.x, champ, self.aretes), bornes)
 
     def hors(self, champ, bornes=BORNES):
-        r = rapports(self.x, champ, self.aretes)
-        return int(((r < bornes[0]) | (r > bornes[1])).sum())
+        return int(self.masque(champ, bornes).sum())
 
     def test_une_cle_que_la_correction_sort_des_bornes_y_rentre(self):
         fini = self.alterner({'k': (self.translation(), None)})['k']
@@ -243,9 +249,9 @@ class Alternance(unittest.TestCase):
         self.assertGreaterEqual(len(self.vus), 2)
         (_,), (corrige,) = self.vus[0]
         (second,), _ = self.vus[1]
-        sans_fondu, _ = lisser(corrige, self.x, self.noeud, self.aretes, (self.libre > 0).astype(float), self.BORNES,
-                               PASSES_MAX)
-        refondu, _ = lisser(corrige, self.x, self.noeud, self.aretes, self.libre, self.BORNES, PASSES_MAX)
+        sans_fondu, _ = lisser(corrige, self.x, self.noeud, self.aretes, (self.libre > 0).astype(float), self.masque,
+                               PASSES_MAX, 'pleine')
+        refondu, _ = lisser(corrige, self.x, self.noeud, self.aretes, self.libre, self.masque, PASSES_MAX, 'pleine')
         self.assertGreater(numpy.abs(refondu - sans_fondu)[self.en_fondu].max(), 1e-3)
         self.assertLess(numpy.abs(second - sans_fondu)[self.en_fondu].max(), TOLERANCE)
 
@@ -255,7 +261,67 @@ class Alternance(unittest.TestCase):
         with self.assertRaises(RuntimeError) as leve:
             self.alterner({'k': (0.21 * radial, 1.7)}, bornes=(0.6, 1.6))
         self.assertRegex(str(leve.exception),
-                         r'^k : [1-9]\d* arête\(s\) hors de \(0\.6, 1\.6\) après 5 tours de correction$')
+                         r'^k : [1-9]\d* arête\(s\) hors bornes après 5 tours de correction$')
+
+
+class Lissage(unittest.TestCase):
+    """formes.lisser sur le cylindre : une bosse tangente sur un seul nœud du niveau 7 sort ses arêtes de `BORNES`."""
+    BORNES = (0.7, 1.4)
+    BOSSE = 7 * (SECTEURS + 1)
+
+    def setUp(self):
+        self.x, self.noeud, self.aretes = cylindre()
+        self.facteur = numpy.ones(len(self.x))
+        self.bosse = numpy.zeros_like(self.x)
+        self.bosse[self.BOSSE] = [0.0, 0.15, 0.0]
+        self.vus = []
+
+    def hors(self, champ):
+        masque = hors_de(rapports(self.x, champ, self.aretes), self.BORNES)
+        self.vus.append(masque)
+        return masque
+
+    def lisser(self, champ, region, facteur=None, hors=None):
+        return lisser(champ, self.x, self.noeud, self.aretes, self.facteur if facteur is None else facteur,
+                      hors or self.hors, PASSES_MAX, region)
+
+    def test_le_pas_local_ne_change_que_la_region_et_converge(self):
+        local, _ = self.lisser(self.bosse, 'locale')
+        self.assertFalse(hors_de(rapports(self.x, local, self.aretes), self.BORNES).any())
+        plein, _ = self.lisser(self.bosse, 'pleine')
+        touches_en_local = numpy.abs(local).max(axis=1) > 0
+        touches_en_plein = numpy.abs(plein).max(axis=1) > 0
+        self.assertTrue((touches_en_plein & ~touches_en_local).any())
+        self.assertFalse((touches_en_local & ~touches_en_plein).any())
+
+    def test_la_convergence_voit_une_arete_hors_de_la_region_de_depart(self):
+        local, _ = self.lisser(self.bosse, 'locale')
+        depart = numpy.zeros(len(self.x), dtype=bool)
+        depart[self.aretes[self.vus[0]].ravel()] = True
+        dehors = [m & ~depart[self.aretes].all(axis=1) for m in self.vus[1:]]
+        self.assertTrue(any(m.any() for m in dehors))
+        self.assertFalse(hors_de(rapports(self.x, local, self.aretes), self.BORNES).any())
+
+    def test_une_arete_hors_bornes_aux_deux_extremites_tenues_leve(self):
+        facteur = numpy.ones(len(self.x))
+        tenue = self.aretes[0]
+        facteur[numpy.isin(self.noeud, tenue)] = 0.0
+        marque = numpy.zeros(len(self.aretes), dtype=bool)
+        marque[0] = True
+        for region in ('pleine', 'locale'):
+            with self.assertRaises(RuntimeError) as leve:
+                self.lisser(self.bosse, region, facteur, lambda _: marque)
+            self.assertRegex(str(leve.exception), r'^1 arête\(s\) hors bornes aux deux extrémités tenues')
+
+    def test_le_pas_plein_rend_le_champ_d_avant_la_region_bit_a_bit(self):
+        """Le champ et les passes de `lisser` à `d4be88ba5` (bornes `BORNES`, sans région) sur ce cas."""
+        z = self.x[:, 2]
+        libre = numpy.clip((numpy.minimum(z, HAUTEUR - z) - 0.05) / 0.2, 0.0, 1.0)
+        champ = 0.03 * numpy.random.default_rng(3101).standard_normal(self.x.shape)
+        resultat, passes = self.lisser(champ, 'pleine', libre)
+        self.assertEqual(passes, 4)
+        self.assertEqual(hashlib.sha256(resultat.tobytes()).hexdigest(),
+                         'df1d62c862377606bf6bbe0b1afe53578b24d024e7a6351802bae485f3cc8381')
 
 
 if __name__ == '__main__':
