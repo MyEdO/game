@@ -332,6 +332,24 @@ test('Codex : cible canonique, envoi authentifié, veille native sans sondage et
   assert.throws(() => b.sessions.projectionCodex(r.carte.sessionId, { rapport: { sessionId: r.carte.sessionId, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' } }), /REÇU SESSIONSTART ABSENT/)
 })
 
+test('envoyer : une session Claude vivante est refusée pour son agent, pas pour son état (#3138)', async (t) => {
+  const appels = []
+  const b = banc(t, { envoyer: async (p) => { appels.push(p); return { ok: true } } })
+  const r = b.reserver(); b.revendiquer(r)
+  assert.equal(b.sessions.lister().cartes[0].etat, 'vivante')
+  await assert.rejects(b.sessions.envoyer(r.carte.sessionId, r.jeton, { message: 'corriger' }), (e) => e.message.startsWith(prefixeDeRefus('validation')) && /NON CODEX/.test(e.message) && /claude/.test(e.message))
+  assert.equal(appels.length, 0)
+})
+
+test('envoyer : une session Codex non vivante est refusée pour son état (#3138)', async (t) => {
+  const appels = []
+  const b = banc(t, { envoyer: async (p) => { appels.push(p); return { ok: true } } })
+  const r = b.reserver({ agent: 'codex' })
+  assert.notEqual(b.sessions.lister().cartes[0].etat, 'vivante')
+  await assert.rejects(b.sessions.envoyer(r.carte.sessionId, r.jeton, { message: 'corriger' }), (e) => e.message.startsWith(prefixeDeRefus('métier')) && /NON VIVANTE/.test(e.message))
+  assert.equal(appels.length, 0)
+})
+
 test('CLI : envoi sans requestId génère une identité réutilisable à la couture canonique', async (t) => {
   const appels = []
   const b = banc(t, { envoyer: async (p) => {

@@ -317,7 +317,8 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       const carte = choisir(cible, { attente: true })
       if (carte.producteur !== PRODUCTEUR) throw new Error(`${prefixeDeRefus('permission')} CARTE ÉTRANGÈRE`)
       capacite(carte, jeton)
-      if (carte.agent !== 'codex' || carte.etat !== 'vivante') throw new Error(`${prefixeDeRefus('métier')} SESSION CODEX NON VIVANTE`)
+      if (carte.agent !== 'codex') throw erreur('validation', `SESSION NON CODEX : agent ${carte.agent}`)
+      if (carte.etat !== 'vivante') throw erreur('métier', 'SESSION CODEX NON VIVANTE')
       controle(carte)
       return { ...await envoyer({ dossier, sessionId: carte.sessionId, jeton, message, requestId, timeoutMs }), requestId }
     },
