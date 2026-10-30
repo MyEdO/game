@@ -136,10 +136,10 @@ const doc = document(
       exempt: {
         kind: 'vocabulaire-app-interne',
         raison:
-          'garde-robe des éléments 3D, clés des têtes, coiffures et pièces portées (art, pas règle) — aucune catégorie du Codex ne l’expose, aucun écran ne l’écrit : elle s’édite au fichier `src/data/garde-robe.json`',
+          'garde-robe des éléments 3D, clés des têtes, coiffures, pièces portées et emblèmes (art, pas règle) — aucune catégorie du Codex ne l’expose, aucun écran ne l’écrit : elle s’édite au fichier `src/data/garde-robe.json`',
       },
     },
-    edit: { none: 'vocabulaire d’art (têtes, coiffures, pièces portées), édité au fichier `src/data/garde-robe.json` — aucun écran ne l’écrit', dataset: 'gardeRobe' },
+    edit: { none: 'vocabulaire d’art (têtes, coiffures, pièces portées, emblèmes), édité au fichier `src/data/garde-robe.json` — aucun écran ne l’écrit', dataset: 'gardeRobe' },
   },
   {
     espace: { discriminant: 'kind', chargeParDiscriminant, requisesParDiscriminant },

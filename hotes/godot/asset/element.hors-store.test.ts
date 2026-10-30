@@ -57,11 +57,11 @@ describe('validerElement : un manifeste valide par catégorie', () => {
   it.each(CATEGORIES_D_ELEMENT)('%s', (categorie) => {
     expect(verdict(manifeste(categorie))).toEqual({ ok: true, manifeste: manifeste(categorie) });
   });
-  it('une surface porte un blason en option', () => {
+  it('une surface déclare `blason: true` en option', () => {
     const blason = manifeste('armure', { surfaces: [{ nom: 'plaque', teinte: true, blason: true }] });
     expect(verdict(blason)).toEqual({ ok: true, manifeste: blason });
   });
-  it('une surface à palette porte un blason en option', () => {
+  it('une surface à palette déclare `blason: true` en option', () => {
     const blason = manifeste('vetement', { surfaces: [{ nom: 'tissu', palette: 'vet1', blason: true }] });
     expect(verdict(blason)).toEqual({ ok: true, manifeste: blason });
   });

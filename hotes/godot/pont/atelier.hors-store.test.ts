@@ -56,9 +56,12 @@ describe('modelesDeLAtelier', () => {
   });
 
   it('les emblèmes sont la sous-liste `embleme` de la garde-robe, chacun réduit à son id, son libellé et son dessin', () => {
-    const attendus = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
-    expect(attendus.length, 'la garde-robe porte des emblèmes').toBeGreaterThan(0);
-    expect(modeles.emblemes).toEqual(attendus);
+    expect(modeles.emblemes.map(({ id }) => id)).toEqual(['taureau-rouge', 'tete-de-mort-rouge']);
+    for (const embleme of modeles.emblemes) {
+      const entree = gardeRobe.find(({ id }) => id === embleme.id);
+      expect(entree?.kind, embleme.id).toBe('embleme');
+      if (entree?.kind === 'embleme') expect(embleme, embleme.id).toStrictEqual({ id: entree.id, label: entree.label, svg: entree.svg });
+    }
   });
 
   it('les refus de l’index sont rendus', () => {
