@@ -322,14 +322,19 @@ export function hasSurgeryLockedCondition(c: Combatant): boolean {
  * Le VERROU (LDB 18) ne protège que des retraits NATIFS : un pion part avec sa source, verrouillé ou
  * non (#1695) — sinon il survivrait au fait qui le porte.
  */
-function retireEtat(c: Combatant, name: string, value: number, parSaSource: boolean): void {
+/** Pions de l'État `name` qu'un retrait peut ôter à `c` : aucun si l'État est absent ou verrouillé (LDB 18),
+ *  hors pions qu'un canal passif porte ; tous par sa source (`parSaSource`). */
+export function pionsRetirables(c: Combatant, name: string, parSaSource = false): number {
   etatExige(name);
   const existing = c.conditions.find((x) => x.id === name);
-  if (!existing) return;
-  if (!parSaSource && isConditionLocked(existing, c)) return; // verrou de Critique (LDB 18) : ne part pas tant que sa Condition n'est pas remplie
-  const plancher = parSaSource ? 0 : existing.derivedFrom?.stacks ?? 0;
-  const n = Math.min(value, Math.max(0, existing.value - plancher));
-  if (n <= 0) return;
+  if (!existing || (!parSaSource && isConditionLocked(existing, c))) return 0;
+  return Math.max(0, existing.value - (parSaSource ? 0 : existing.derivedFrom?.stacks ?? 0));
+}
+
+function retireEtat(c: Combatant, name: string, value: number, parSaSource: boolean): void {
+  const existing = c.conditions.find((x) => x.id === name);
+  const n = Math.min(value, pionsRetirables(c, name, parSaSource));
+  if (!existing || n <= 0) return;
   existing.value -= n;
   if (existing.value <= 0) c.conditions = c.conditions.filter((x) => x.id !== name);
   // Main ensanglantée (AA 07 l.117) : le Test de Dextérité par Action tient « tant que vous êtes sous

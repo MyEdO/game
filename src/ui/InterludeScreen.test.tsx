@@ -18,6 +18,7 @@ import { refusDeRevenus } from '../noyau/verdictsDInterlude';
 import { setRule, resetRule } from '../engine/policy';
 import { interludeEventFor } from '../data/interludeEvents';
 import { InterludeScreen, type InterludeSeam } from './InterludeScreen';
+import { ciblePsy } from '../engine/psych/ciblage';
 import { ACTIVITIES, craftCatalog, entrainementOptions, orderCatalog } from '../engine/activities';
 
 /** Texte NU d'un rendu statique : balises retirées, entités HTML de React décodées — pour confronter
@@ -618,5 +619,122 @@ describe('InterludeScreen — abordabilité (#3059 S4) : chaque volet payant lit
     useGame.getState().interludeBank(forgeron.id, 'stash', 120);
     expect(useGame.getState().bank.slice(avant).map((d) => d.brass), 'le geste dépose ce que le volet annonce').toEqual([96]);
     expect(bourseAvant - bourse(), 'la bourse paie le montant saisi').toBe(120);
+  });
+});
+
+describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles et le refus du geste', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  /** Le seam relu sur le store, à Altdorf, le volet `pane` du Vétéran ouvert. */
+  const aAltdorf = (seam: InterludeSeam, pane: string, extra: Partial<InterludeSeam> = {}): InterludeSeam => {
+    useGame.setState({ worldMap: { id: 'w', label: 'W', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: testScene().id }], routes: [] } });
+    const s = useGame.getState();
+    return { ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities', catalog: interludeCatalog(s), lieu: { scene: s.scene, worldMap: s.worldMap }, massBattle: s.massBattle, openPane: { heroId: s.party[0].id, pane }, ...extra };
+  };
+  const raisonDuGeste = (geste: () => void): string[] => {
+    const avant = useGame.getState().journal.length;
+    geste();
+    return useGame.getState().journal.slice(avant);
+  };
+  const fermeeEtLiee = (html: string, paneId: string) =>
+    expect(html.match(/<button[^>]*>/g)?.some((b) => b.includes('aria-disabled="true"') && b.includes(`aria-describedby="${paneId}-blocked"`)), paneId).toBe(true);
+
+  it('Pénitence sans Péché : la bannière dit le refus du geste', () => {
+    const seam = buildSeam();
+    const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'penitence')} />);
+    const raison = 'Vétéran n’a aucun Point de Péché à expier. Pénitence ne lui apporterait rien en cas de réussite.';
+    expect(raisonDId(html, 'pane-catalog-penitence-blocked')).toBe(raison);
+    fermeeEtLiee(html, 'pane-catalog-penitence');
+    expect(raisonDuGeste(() => useGame.getState().interludeActivity(seam.party[0].id, 'penitence'))).toEqual([raison]);
+  });
+
+  it('Tester des objets magiques sans objet : même raison au volet et au geste', () => {
+    const seam = buildSeam();
+    const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'tester-objets-magiques')} />);
+    const raison = 'Aucun objet non identifié dans le sac de Vétéran.';
+    expect(raisonDId(html, 'pane-catalog-tester-objets-magiques-blocked')).toBe(raison);
+    fermeeEtLiee(html, 'pane-catalog-tester-objets-magiques');
+    expect(raisonDuGeste(() => useGame.getState().interludeActivity(seam.party[0].id, 'tester-objets-magiques'))).toEqual([raison]);
+  });
+
+  it('Convalescence : la liste du volet porte chaque INSTANCE de Trait psychologique du héros, l’action est offerte', () => {
+    const seam = buildSeam();
+    const h = useGame.getState().party[0];
+    h.psychTraits = [{ type: 'frenesie' }, { type: 'haine', cible: ciblePsy.groupe('nain') }, { type: 'haine', cible: ciblePsy.groupe('elfe') }];
+    useGame.setState({ party: [...useGame.getState().party] });
+    const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'convalescence')} />);
+    const liste = html.match(/<select[^>]*aria-label="Trait psychologique à éliminer"[^>]*>(.*?)<\/select>/)?.[1] ?? '';
+    expect([...liste.matchAll(/<option value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map((m) => [m[1], m[2]])).toEqual([['frenesie', 'Frénésie'], ['haine|nain', 'Haine (Nain)'], ['haine|elfe', 'Haine (Elfe)']]);
+    const bouton = html.match(/<button[^>]*aria-label="Entreprendre Convalescence"[^>]*>/)?.[0];
+    expect(bouton, 'l’action est offerte').toMatch(/^<button(?![^>]*aria-disabled)/);
+  });
+
+  it('retrait de Mécénat hors d’Altdorf : le bouton et le geste disent le même refus', () => {
+    const seam = buildSeam();
+    const heroId = seam.party[0].id;
+    aAltdorf(seam, 'bank');
+    useGame.getState().interludeBank(heroId, 'mecenat', 1200);
+    expect(useGame.getState().bank.map((d) => d.kind), 'témoin : dépôt de Mécénat à Altdorf').toEqual(['mecenat']);
+    useGame.setState({ worldMap: { id: 'w', label: 'W', places: [{ id: 'ubersreik', label: 'Ubersreik', pos: { x: 0, y: 0 }, scene: testScene().id }], routes: [] } });
+    const s = useGame.getState();
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities', lieu: { scene: s.scene, worldMap: s.worldMap } }} />);
+    const raison = 'Mécénat n\'est praticable qu\'en un lieu précis — pas ici.';
+    expect(raisonDId(html, 'interlude-bank-withdraw-0-reason')).toBe(raison);
+    expect(raisonDuGeste(() => useGame.getState().interludeWithdraw(0))).toEqual([raison]);
+  });
+
+  it('arme inhabituelle : la liste du volet ne porte que les armes à maîtriser', () => {
+    const seam = buildSeam();
+    const h = useGame.getState().party[0];
+    h.items = [...(h.items ?? []),
+      { uid: 'arme-1', trappingId: 'couteau-de-harald', label: 'Couteau de Harald', kind: 'melee', qualities: [], enc: 0, equipped: false, requiresMastery: true } as never,
+      { uid: 'armure-1', trappingId: 'armure-etrange', label: 'Armure étrange', kind: 'armour', qualities: [], enc: 0, equipped: false, requiresMastery: true } as never];
+    useGame.setState({ party: [...useGame.getState().party] });
+    const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'entrainement-arme-inhabituelle')} />);
+    const liste = html.match(/<select[^>]*aria-label="Arme à maîtriser"[^>]*>(.*?)<\/select>/)?.[1] ?? '';
+    expect([...liste.matchAll(/<option value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map((m) => [m[1], m[2]])).toEqual([['arme-1', 'Couteau de Harald']]);
+    const bouton = html.match(/<button[^>]*aria-label="Entreprendre Entraînement avec une arme inhabituelle"[^>]*>/)?.[0];
+    expect(bouton, 'l’action est offerte sur l’arme').toMatch(/^<button(?![^>]*aria-disabled)/);
+  });
+
+  it('Faveur Importante : la bannière dit le refus du geste, sans citation de livre', () => {
+    const seam = buildSeam();
+    const heroId = seam.party[0].id;
+    const favors = [{ id: 'favor-1', heroId, level: 'importante' as const, owedTo: 'Un comte', desc: 'Un service', progress: 0 }];
+    useGame.setState({ favors });
+    const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'favor-settle', { favors })} />);
+    const raison = 'Une Faveur Importante ne s’acquitte pas par des Activités : elle se joue en aventure.';
+    expect(raisonDId(html, 'pane-favor-blocked')).toBe(raison);
+    fermeeEtLiee(html, 'pane-favor');
+    expect(raisonDuGeste(() => useGame.getState().favorSettle(heroId, 'favor-1'))).toEqual([raison]);
+  });
+
+  it('Soutien d’une préparation : la note est la décision du noyau (`interlude-assist-costs-activity`)', () => {
+    const note = (cout: boolean) => {
+      setRule('interlude-assist-costs-activity', cout);
+      try {
+        const seam = buildSeam();
+        useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+        return mdToPlain(renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'planification')} />));
+      } finally { resetRule('interlude-assist-costs-activity'); }
+    };
+    expect(note(false)).toContain('Les autres PJ peuvent prêter leur Soutien, gratuitement.');
+    expect(note(true)).toContain('Les autres PJ peuvent prêter leur Soutien — chacun y dépense un créneau.');
+  });
+
+  it('préparation déjà faite : la bannière dit le refus du geste', () => {
+    const seam = buildSeam();
+    const heroId = seam.party[0].id;
+    useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    useGame.getState().massBattleActivity('inspire', heroId);
+    useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 20, success: true, sl: 2 } });
+    useGame.getState().activityConfirm();
+    expect(useGame.getState().massBattle?.activitiesDone, 'témoin : le Discours est fait').toContain('inspire');
+    const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'inspire')} />);
+    const raison = 'Déjà réalisée cette bataille (Activité non répétable).';
+    expect(raisonDId(html, 'pane-prep-inspire-blocked')).toBe(raison);
+    fermeeEtLiee(html, 'pane-prep-inspire');
+    expect(raisonDuGeste(() => useGame.getState().massBattleActivity('inspire', heroId))).toEqual([raison]);
   });
 });

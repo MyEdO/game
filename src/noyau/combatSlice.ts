@@ -68,7 +68,7 @@ import { canPushback, reloadDRTarget } from '../engine/qualities/dispatch';
 import { talentFearIndice, reloadDRBonus, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
 import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
-import { battleConsumeItem, runConsumable } from './consumableFlow';
+import { battleConsumeItem, refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
 import { HEAL_SKILL, availableHealModes, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, healDifficulty, applyHealWounds, type HealMode } from '../engine/healing';
@@ -3020,6 +3020,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const it = (active.items ?? []).find((i) => i.uid === uid);
       if (!it) return;
       if (!isConsumable(it)) return;
+      if (refuseSi(get, set, () => refusDeConsommer(active, it))) return;
       // Le Flow du consommable passe par la voie de combat cadence-aware (un Test « au boire » devient
       // une étape de cascade influençable) — consommation + coût d'Action dans `battleConsumeItem`.
       battleConsumeItem(get, set, active, it);

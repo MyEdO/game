@@ -113,10 +113,10 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
     expect(ok.seen).toEqual([{ stateId: COND.aTerre, change: 'loss', targetId: 'h' }]);
   });
 
-  it("removeCondition SANS État à retirer : la ligne sort, le canal reste MUET (rien à nommer)", () => {
+  it("removeCondition SANS État à retirer : sans objet, ni ligne ni notification", () => {
     const c = hero();
     const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition' }], { rng: desDuTest, onCondition: emit }));
-    expect(lines).toHaveLength(1);
+    expect(lines).toEqual([]);
     expect(seen).toEqual([]);
   });
 

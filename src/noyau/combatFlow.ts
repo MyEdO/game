@@ -135,9 +135,9 @@ import {
 } from '../engine/magic';
 import { type OvercastAxis, type OvercastSource, type OvercastSpell, overcastSourceOf, overcastDurationParts, overcastAxesFor, extraTargetCapacity, zoneDiameterMultiplier } from '../engine/overcast';
 import type { SpellRange } from '../engine/spellRange';
-import { evalCondition, spellFlowFor, spellOps, flowHasFreeAttack, flattenFlow, EMPTY_FLOW, type FlowTest, type EffectTrigger } from '../engine/flowCore';
+import { certainFlowOps, evalCondition, spellFlowFor, spellOps, flowHasFreeAttack, flattenFlow, EMPTY_FLOW, type FlowTest, type EffectTrigger } from '../engine/flowCore';
 import { combatConditionCtx } from './combat/flowEval';
-import { applyOps, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
+import { applyOps, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
 import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -5662,8 +5662,11 @@ export type CastCritChoice = 'critique' | 'puissance' | 'ineluctable';
 function runCastFlow(get: Get, set: SetFn, target: Combatant, caster: Combatant, flow: Flow, opsCtx: OpsCtx): string[] {
   const source = opsCtx.source ?? (opsCtx.sourceSpellId ? { kind: 'spell' as const, id: opsCtx.sourceSpellId } : undefined);
   const withSpell: OpsCtx = { ...opsCtx, ...(source ? { source } : {}) };
+  // Le lancer est un geste délibéré : un effet certain sans objet sur cette cible se DIT, `applyOps` le tait.
+  const certaines = certainFlowOps(flow);
+  const sansObjet = certaines ? reussiteSansObjet(target, certaines, withSpell) : null;
   runCombatFlow({ mode: 'combat', get, set, target, caster, label: withSpell.label ?? caster.label, opsCtx: withSpell }, flow);
-  return drainPendingLog(get, set).map((e) => e.text);
+  return [...(sansObjet ? [sansObjet] : []), ...drainPendingLog(get, set).map((e) => e.text)];
 }
 
 /** L'ÉTAT DE FENÊTRE d'une touche de Projectile (#1508) — ce que l'appelant doit savoir pour décider

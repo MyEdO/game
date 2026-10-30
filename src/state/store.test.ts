@@ -2039,6 +2039,18 @@ describe('Utiliser un consommable en combat (store)', () => {
     expect(b.acted).toBe(true);
   });
 
+  it('Potion de vitalité sans Exténué : refusée et dite avant de boire, objet et Action gardés', () => {
+    const h = combatHero({
+      items: [potion('p4', 'Potion de vitalité', { kind: 'do', effect: { type: 'ops', ops: [{ op: 'removeCondition', id: 'extenue', all: true }] } })],
+    });
+    useGame.setState({ mode: 'battle', battle: mkBattle(h), refus: null });
+    useGame.getState().battleUseItem('p4');
+    const b = useGame.getState().battle!;
+    expect(useGame.getState().refus?.texte).toBe(`${h.label} n’a aucun pion Exténué qui puisse être retiré. Potion de vitalité ne lui apporterait rien : l’objet est gardé.`);
+    expect(b.combatants[0].items!.find((i) => i.uid === 'p4'), 'pas consommée').toBeTruthy();
+    expect(b.acted, 'l’Action reste').toBe(false);
+  });
+
   it('Action déjà consommée : aucune utilisation (objet conservé)', () => {
     const h = combatHero({
       wounds: { current: 5, max: 12 },

@@ -9,20 +9,20 @@ import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { incomeSkillOf, interludeCatalog, bestActivitySkill, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
 import {
-  blocageDeRevenus, desEnAttente, devisDeDepot, interludeDrawPending, refusDActivite, refusDApprentissage, refusDArtisanat, refusDeCommande,
-  refusDEntrainement, refusDeRetrait, refusDeRevenus, refusDuTirage, type DevisDeDepot, type EtatDeDepot, type EtatDInterlude, type GenreDeDepot,
+  blocageDeRevenus, ciblesDActivite, desEnAttente, devisDeDepot, interludeDrawPending, refusDAcquitterUneFaveur, refusDActivite, refusDApprentissage,
+  refusDArtisanat, refusDeCommande, refusDEntrainement, refusDeRetrait, refusDeRevenus, refusDOuvertureDActivite, refusDuTirage, savoirDeLaMagie,
+  type DevisDeDepot, type EtatDeDepot, type EtatDeFaveur, type EtatDInterlude, type GenreDeDepot,
 } from '../noyau/verdictsDInterlude';
 import { totalDesBourses } from '../noyau/bourseFlow';
 import { refusDOuvrirLaTaverne } from '../noyau/tavernFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
-import { armyMight, battleActivityDifficulty, battlePrepEntries, peutTenterAction, refusTenterAction, type MassBattleState } from '../noyau/massBattleFlow';
+import { armyMight, battleActivityDifficulty, noteDeSoutien, refusDePrepaDeBataille, type MassBattleState } from '../noyau/massBattleFlow';
 import {
   craftCatalog, craftTarget, learnableTalents, orderCatalog, metierOf, bankPayout, entrainementOptions, entrainementTutorRange,
-  classGatedDifficulty, activityTestMod, activityModLines,
+  activityById, classGatedDifficulty, activityTestMod, activityModLines,
   type ActivityDef, type ActivityResolver, type CraftOption, type LearnOption, type EntrainementOption,
 } from '../engine/activities';
-import { nomDeSource, type GameOp } from '../engine/ops';
-import { learnableSpells } from '../engine/grimoire';
+import { nomDeSource } from '../engine/ops';
 import { DIFFICULTY_LABELS, CHAR_LABELS, type CharKey, type Difficulty } from '../engine/types';
 import { describeQuality } from '../engine/qualities/describe';
 import { effectiveChar } from '../engine/characteristics';
@@ -38,6 +38,7 @@ import type { Combatant, ConditionId } from '../engine/types';
 import { rule } from '../engine/policy';
 import { effectiveEntry } from '../engine/variants';
 import { ownsLocalNet } from './ownership';
+import { libelleDePsy } from '../engine/psych/ciblage';
 import { ActiveModal } from './ActiveModal';
 import { TavernGameModal } from './TavernGameModal';
 import { Modal } from './Modal';
@@ -121,6 +122,8 @@ export interface InterludeSeam {
    *  en jeu, dérivé du store (`interludeCatalog`) ; en SSR, fourni par le seam (le store SSR sert
    *  l'état initial, comme les autres lectures). */
   catalog?: ActivityDef[];
+  /** Le lieu courant (scène, carte du monde) que lisent les verdicts d'Activité — en SSR, fourni par le seam. */
+  lieu?: Pick<EtatDeDepot, 'scene' | 'worldMap'>;
   net?: InterludeNet;
   /** Bataille de masse en attente de préparation (ADE II 8) — bandeau d'info + Activités de prépa
    *  dans les volets par-héros. `null`/absent = pas de bataille pendante. */
@@ -159,8 +162,10 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   const net: InterludeNet = seam?.net ?? storeNet;
   // Catalogue d'Activités data-driven (`activities.json`) : contexte 'interlude' + gate `where`
   // résolu contre le LIEU courant (place de la carte du monde ↔ scène courante).
-  const worldMap = useGame((s) => s.worldMap);
-  const scene = useGame((s) => s.scene);
+  const storeWorldMap = useGame((s) => s.worldMap);
+  const storeScene = useGame((s) => s.scene);
+  const worldMap = seam?.lieu ? seam.lieu.worldMap : storeWorldMap;
+  const scene = seam?.lieu ? seam.lieu.scene : storeScene;
   const storeMassBattle = useGame((s) => s.massBattle);
   const massBattle = seam?.massBattle ?? storeMassBattle;
   // Le catalogue inclut les Activités de PRÉPARATION de bataille quand une bataille est en attente de prépa
@@ -183,7 +188,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   const ownsHero = (id: string) => ownsLocalNet(net, id);
   const ownerName = (id: string) => nomDuSiege(net, net.ownership[id] ?? 0);
   const isGuest = net.mode === 'guest';
-  const etat: EtatDeDepot = { interlude, party, bank, scene, worldMap };
+  const etat: EtatDeDepot & EtatDeFaveur = { interlude, party, bank, scene, worldMap, favors };
   return (
     <div className="interlude-shell tx-ink">
       <div className="interlude-column">
@@ -442,11 +447,6 @@ function EventsIntro({ heroes, etat, onDone }: { heroes: Combatant[]; etat: Etat
   );
 }
 
-/** Toutes les ops d'issue d'une Activité (binaire `onSuccess` + bandes `outcomes`) — pour les gates
- *  d'affordance DATA-DRIVEN (ex. « expie du Péché » ⇒ inutile à 0 Péché). */
-const activityOps = (def: ActivityDef): GameOp[] =>
-  [...(def.onSuccess ?? []), ...(def.outcomes ?? []).flatMap((b) => b.ops ?? [])];
-
 /** ENJEU (Z3b, #1117 L3) posé sur la ligne de pré-jet d'un volet d'Activité : la RÉFÉRENCE de donnée
  *  (`ActivityDef.stake`, éditable au Codex) via la porte unique — jamais un texte écrit ici. Une
  *  Activité sans enjeu authoré (donc sans Test) traverse inchangée : pas de zone muette. */
@@ -473,7 +473,7 @@ const PANE_ICON = {
 
 function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDrive, ownerName, pane, onPane, choix }: {
   /** L'état que lisent les verdicts d'interlude (`noyau/verdictsDInterlude.ts`). */
-  etat: EtatDeDepot;
+  etat: EtatDeDepot & EtatDeFaveur;
   hero: Combatant; st: InterludeHeroState;
   /** Faveurs dues par CE héros (LDB 23, #509) — gate l'affordance « Acquitter une Faveur ». */
   favors: Favor[];
@@ -506,10 +506,6 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
   const refusDe = (key: string): string | undefined => (key === 'craft' && !hero.craft ? refusEngagement : key === 'revenus' ? refusRevenus : refusAct);
   // Chaque volet payant lit SON verdict d'abordabilité (`noyau/verdictsDInterlude.ts`) sur la bourse
   // PERSONNELLE du héros (#531) ; `mene` reste la seule raison propre à l'écran (possession coop).
-  // État (bloqué/déjà fait) des Activités de PRÉPARATION de bataille par id — source UNIQUE `battlePrepEntries`.
-  const prepState = massBattle?.phase === 'prep'
-    ? new Map(battlePrepEntries(massBattle).map((e) => [e.def.id, e]))
-    : null;
   // Volet du catalogue GÉNÉRIQUE : les 4 activités socle (Revenus/Artisanat/Apprentissage/
   // Identification) ont leur volet dédié ci-dessous — CatalogPane ne sert que les AUTRES.
   const def = pane ? catalog.find((d) => d.id === pane && !hasCoreResolver(d.resolver)) : undefined;
@@ -526,12 +522,12 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
     : pane === 'learn' ? <LearnPane hero={hero} etat={etat} mene={mene} choix={choix} fails={st.learnFails} desc={coreDesc('learn')} porteur={corePorteur('learn')} />
     : pane === 'order' ? <OrderPane hero={hero} etat={etat} mene={mene} choix={choix} />
     : pane === 'bank' ? <BankPane hero={hero} etat={etat} mene={mene} money={bourseOf(hero)} mecenat={mecenat} />
-    : pane === 'identify' ? <IdentifyPane hero={hero} refus={refusAct} desc={coreDesc('identify')} porteur={corePorteur('identify')} />
+    : pane === 'identify' ? <IdentifyPane hero={hero} etat={etat} mene={mene} desc={coreDesc('identify')} porteur={corePorteur('identify')} />
     : pane === 'entrainement' ? <EntrainementPane hero={hero} etat={etat} mene={mene} choix={choix} desc={coreDesc('entrainement')} porteur={corePorteur('entrainement')} />
-    : pane === 'favor-settle' && favors.length ? <FavorSettlePane hero={hero} refus={refusAct} favors={favors} />
+    : pane === 'favor-settle' && favors.length ? <FavorSettlePane hero={hero} etat={etat} mene={mene} favors={favors} />
     : def ? (def.contexts.includes('bataille')
-        ? <BattlePrepPane hero={hero} def={def} refus={refusAct} entry={prepState?.get(def.id)} />
-        : <CatalogPane hero={hero} def={def} refus={refusAct} />)
+        ? <BattlePrepPane hero={hero} def={def} refus={refusAct} massBattle={massBattle} />
+        : <CatalogPane hero={hero} def={def} etat={etat} mene={mene} />)
     : <p className="interlude-detail interlude-master-empty">{t('interlude.choisir.activite')}</p>;
   return (
     <section className={`interlude-hero panel${pane ? ' active' : ''}`}>
@@ -894,20 +890,16 @@ function EntrainementPane({ hero, etat, mene, choix, desc, porteur }: { hero: Co
   );
 }
 
-/** « Acquitter une Faveur » (LDB 23 l.147/149, #509) : consacre l'Activité à la progression d'une
- *  Faveur en cours — sans jet. Mineure : 1 Activité ; Majeure : 2+ CONSÉCUTIVES (RAW l.149 ; la
- *  rupture par CHOIX SEUL est maison — arbitrage utilisateur 2026-08-03 [entériné 2026-08-03],
- *  verbatim au ticket #1040, cf. `resetInterruptedFavorProgress`, noyau/favorFlow) ; Importante :
- *  jamais par Activité (l.151, mention verbatim affichée). */
-function FavorSettlePane({ hero, refus, favors }: { hero: Combatant; refus?: string; favors: Favor[] }) {
+/** « Acquitter une Faveur » : consacre l'Activité à la progression d'une Faveur en cours, sans jet ; le
+ *  volet lit le verdict `refusDAcquitterUneFaveur`. Rupture de la chaîne : `resetInterruptedFavorProgress`
+ *  (noyau/favorFlow, #1040 [entériné 2026-08-03]). LDB 23 l.147-151, #509 */
+function FavorSettlePane({ hero, etat, mene, favors }: { hero: Combatant; etat: EtatDeFaveur; mene?: string; favors: Favor[] }) {
   const settle = useGame((s) => s.favorSettle);
   const [id, setId] = useState(favors[0]?.id ?? '');
   const sel = favors.find((f) => f.id === id) ?? favors[0];
   const required = sel ? favorRequiredActivities(sel.level) : null;
-  const settleable = sel != null && required != null;
-  const banniereFaveur = sel && required == null
-    ? <>Une Faveur Importante « ne peut pas être acquittée par le biais d’Activités : elle est jouée comme une aventure complète ».</>
-    : undefined;
+  const verdict = (sel ? refusDAcquitterUneFaveur(etat, hero.id, sel.id) : refusDActivite(etat, hero.id)) ?? undefined;
+  const banniereFaveur = mene ? undefined : verdict;
   return (
     <ActivityPane
       id="pane-favor"
@@ -921,9 +913,9 @@ function FavorSettlePane({ hero, refus, favors }: { hero: Combatant; refus?: str
         <GatedAction
           id="interlude-favor-settle"
           label="Entreprendre"
-          enabled={!refus && settleable}
-          {...refusDuVolet('pane-favor', banniereFaveur, refus ?? 'Cette Faveur ne s’acquitte pas par une Activité.')}
-          onClick={() => sel && settleable && settle(hero.id, sel.id)}
+          enabled={!mene && !verdict && !!sel}
+          {...refusDuVolet('pane-favor', banniereFaveur, mene)}
+          onClick={() => sel && settle(hero.id, sel.id)}
           btnClassName="small"
         />
       }
@@ -1050,16 +1042,15 @@ function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat:
 
 /** Identifier un artefact (ADE II 4) : choisir un objet NON identifié du sac — une semaine
  *  d'étude par tentative, Test de Savoir (Magie) Intermédiaire (+0). */
-function IdentifyPane({ hero, refus, desc, porteur }: { hero: Combatant; refus?: string; desc?: string; porteur?: Porteur }) {
+function IdentifyPane({ hero, etat, mene, desc, porteur }: { hero: Combatant; etat: EtatDeDepot; mene?: string; desc?: string; porteur?: Porteur }) {
   const activity = useGame((s) => s.interludeActivity);
-  const items = (hero.items ?? []).filter((i) => i.identified === false);
-  const [uid, setUid] = useState(items[0]?.uid ?? '');
-  const savoir = hero.skills.find((k) => k.id === 'savoir' && (k.spec ?? '') === 'magie' && k.advances >= 1);
-  const blocked = !items.length
-    ? `Aucun objet non identifié dans le sac de ${hero.label}.`
-    : !savoir
-      ? `${hero.label} ne possède pas Savoir (Magie) — la longue étude d'un artefact est la voie des sorciers.`
-      : null;
+  const def = activityById('identify')!;
+  const items = ciblesDActivite(hero, def).artefacts;
+  const [choisi, setUid] = useState('');
+  const uid = choisi || items[0]?.uid || '';
+  const savoir = savoirDeLaMagie(hero);
+  const verdict = refusDOuvertureDActivite(etat, hero.id, def, { itemUid: uid }) ?? undefined;
+  const blocked = mene ? undefined : verdict;
   return (
     <ActivityPane
       id="pane-identify"
@@ -1076,9 +1067,9 @@ function IdentifyPane({ hero, refus, desc, porteur }: { hero: Combatant; refus?:
         <GatedAction
           id="interlude-identify-go"
           label="Entreprendre"
-          enabled={!refus && !blocked && !!uid}
-          {...refusDuVolet('pane-identify', blocked, refus ?? 'Aucun objet non identifié dans le sac.')}
-          onClick={() => uid && activity(hero.id, 'identify', { itemUid: uid })}
+          enabled={!mene && !verdict}
+          {...refusDuVolet('pane-identify', blocked, mene)}
+          onClick={() => activity(hero.id, def.id, { itemUid: uid })}
           btnClassName="small"
         />
       }
@@ -1098,34 +1089,20 @@ function IdentifyPane({ hero, refus, desc, porteur }: { hero: Combatant; refus?:
 
 /** Volet d'une Activité du CATALOGUE data-driven : description VERBATIM (`<Prose>`), pré-jet dérivé
  *  de la DONNÉE (compétences « au choix » → la meilleure ; `masterWeapon` → celle de l'arme visée),
- *  cible éventuelle selon le résolveur, et gates d'affordance dérivés des ops. */
-function CatalogPane({ hero, def, refus }: { hero: Combatant; def: ActivityDef; refus?: string }) {
+ *  cibles et refus lus au noyau (`ciblesDActivite`, `refusDOuvertureDActivite`). */
+function CatalogPane({ hero, def, etat, mene }: { hero: Combatant; def: ActivityDef; etat: EtatDeDepot; mene?: string }) {
   const start = useGame((s) => s.interludeActivity);
   const [targetUid, setTargetUid] = useState('');
   const [spellId, setSpellId] = useState('');
-  const ops = activityOps(def);
-  // Cibles par résolveur (data-driven : PAR résolveur, jamais par id d'activité).
-  const weapons = def.resolver === 'masterWeapon'
-    ? (hero.items ?? []).filter((i) => (i.kind === 'melee' || i.kind === 'ranged') && i.requiresMastery
-        && i.trappingId && !(hero.masteredWeapons ?? []).includes(i.trappingId))
-    : [];
-  const artefacts = def.resolver === 'identifyByResearch'
-    ? (hero.items ?? []).filter((i) => i.identified === false)
-    : [];
-  const spellOptions = useMemo(
-    () => (def.resolver === 'memorizeDiscount' ? learnableSpells(hero).filter((x) => x.cost > 0) : []),
-    [def.resolver, hero],
-  );
-  // Gates d'affordance dérivés des ops de la donnée — jamais un cas par id.
-  const blocked =
-    def.resolver === 'masterWeapon' && !weapons.length ? 'Aucune arme inhabituelle à maîtriser dans le sac.'
-    : def.resolver === 'identifyByResearch' && !artefacts.length ? `Aucun objet non identifié dans le sac de ${hero.label}.`
-    : def.resolver === 'memorizeDiscount' && !spellOptions.length ? 'Aucun sort à mémoriser (Talent de lanceur et sort payant requis).'
-    : ops.some((o) => o.op === 'sinMod' && o.amount < 0) && !(hero.sinPoints ?? 0) ? `${hero.label} n'a aucun Point de Péché à expier.`
-    : ops.some((o) => o.op === 'removePsychTrait') && !(hero.psychTraits?.length) ? `${hero.label} n'a aucun Trait psychologique à soigner.`
-    : null;
+  const [traitChoisi, setTraitPsy] = useState('');
+  const { armes: weapons, artefacts, sorts: spellOptions, traitsPsy } = ciblesDActivite(hero, def);
   const uid = targetUid || weapons[0]?.uid || artefacts[0]?.uid || '';
   const spell = spellId || spellOptions[0]?.spell.id || '';
+  const traitPsy = traitChoisi || traitsPsy[0]?.cle || '';
+  const traitVise = traitsPsy.find((x) => x.cle === traitPsy)?.vise;
+  const cible = { ...(uid ? { itemUid: uid } : {}), ...(spell ? { spellId: spell } : {}), ...(traitVise ? { traitPsy: traitVise } : {}) };
+  const verdict = refusDOuvertureDActivite(etat, hero.id, def, cible) ?? undefined;
+  const blocked = mene ? undefined : verdict;
   // Gate de Classe appliquée EN CATALOGUE — même dérivation que `openCatalogActivity`
   // (`src/noyau/interludeFlow.ts`) : source unique `classGatedDifficulty`.
   const diff = classGatedDifficulty(def, hero);
@@ -1173,9 +1150,9 @@ function CatalogPane({ hero, def, refus }: { hero: Combatant; def: ActivityDef; 
           id={`interlude-catalog-${def.id}`}
           label="Entreprendre"
           ariaLabel={`Entreprendre ${def.label}`}
-          enabled={!refus && !blocked}
-          {...refusDuVolet(`pane-catalog-${def.id}`, blocked, refus)}
-          onClick={() => start(hero.id, def.id, { ...(uid ? { itemUid: uid } : {}), ...(spell ? { spellId: spell } : {}) })}
+          enabled={!mene && !verdict}
+          {...refusDuVolet(`pane-catalog-${def.id}`, blocked, mene)}
+          onClick={() => start(hero.id, def.id, cible)}
           btnClassName="small"
         />
       }
@@ -1188,6 +1165,11 @@ function CatalogPane({ hero, def, refus }: { hero: Combatant; def: ActivityDef; 
       {artefacts.length > 0 && (
         <select className="interlude-select" value={uid} onChange={(e) => setTargetUid(e.target.value)} aria-label="Objet magique à tester">
           {artefacts.map((i) => <option key={i.uid} value={i.uid}>{i.label}{i.magicKnown ? ' ★' : ''}</option>)}
+        </select>
+      )}
+      {traitsPsy.length > 0 && (
+        <select className="interlude-select" value={traitPsy} onChange={(e) => setTraitPsy(e.target.value)} aria-label="Trait psychologique à éliminer">
+          {traitsPsy.map((x) => <option key={x.cle} value={x.cle}>{libelleDePsy(x.trait.type, x.trait.cible)}</option>)}
         </select>
       )}
       {spellOptions.length > 0 && (
@@ -1204,13 +1186,12 @@ function CatalogPane({ hero, def, refus }: { hero: Combatant; def: ActivityDef; 
  *  canal UNIQUE de bataille (`massBattleActivity`) — l'issue porte sur l'ARMÉE,
  *  le budget d'Activité consommé est celui, UNIQUE, de l'interlude. Le pré-jet montre la compétence du héros ;
  *  la résolution RAW (Soutien/Test combiné/prérequis) reste dans `openMassBattleActivity`. */
-function BattlePrepPane({ hero, def, refus, entry }: {
+function BattlePrepPane({ hero, def, refus, massBattle: mb }: {
   hero: Combatant; def: ActivityDef; refus?: string;
-  /** État de l'Activité de prépa (bloquée par prérequis / déjà réalisée) — cf. `battlePrepEntries`. */
-  entry?: { done: boolean; blocked: string | null };
+  /** La bataille en attente de préparation : son verdict `refusDePrepaDeBataille`. */
+  massBattle: MassBattleState | null;
 }) {
   const battleActivity = useGame((s) => s.massBattleActivity);
-  const mb = useGame((s) => s.massBattle);
   // Difficulté : celle que l'entrée DÉCLARE — dérivée de l'écart d'armées quand elle porte
   // `difficultyFrom` (Discours, l.71), sinon fixe. MÊME source que l'ouverture du jet.
   const diff: Difficulty = mb ? battleActivityDifficulty(def, mb) : def.difficulty ?? 'intermediaire';
@@ -1230,9 +1211,8 @@ function BattlePrepPane({ hero, def, refus, entry }: {
     ));
     prejet = withStake(testPending(<>{chips}</>, best.v, undefined, diff), def.id);
   }
-  const done = entry?.done ?? false;
-  const blocked = done ? 'Déjà réalisée cette bataille (Activité non répétable).'
-    : entry?.blocked ?? (peutTenterAction(hero, def) ? null : refusTenterAction([hero], def));
+  const blocked = mb ? refusDePrepaDeBataille(mb, hero, def) : null;
+  const soutien = noteDeSoutien(def);
   const undertake = () => battleActivity(def.id, hero.id);
   return (
     <ActivityPane
@@ -1243,18 +1223,14 @@ function BattlePrepPane({ hero, def, refus, entry }: {
       porteur={{ type: 'activities', id: def.id, chemin: 'desc' }}
       blocked={blocked}
       prejet={prejet}
-      note={<>1 Activité d'interlude — l'issue porte sur l'armée.{def.assisted
-        ? rule('interlude-assist-costs-activity')
-          ? ' Les autres PJ peuvent prêter leur Soutien — chacun y dépense un créneau.'
-          : ' Les autres PJ peuvent prêter leur Soutien, gratuitement.'
-        : ''}</>}
+      note={<>1 Activité d'interlude — l'issue porte sur l'armée.{soutien ? ` ${soutien}` : ''}</>}
       actions={
         <GatedAction
           id={`interlude-prep-${def.id}`}
           label="Entreprendre"
           ariaLabel={`Entreprendre ${def.label}`}
-          enabled={!refus && !done && !blocked}
-          {...refusDuVolet(`pane-prep-${def.id}`, blocked, refus ?? (done ? 'Cette préparation est déjà faite.' : undefined))}
+          enabled={!refus && !blocked}
+          {...refusDuVolet(`pane-prep-${def.id}`, blocked, refus)}
           onClick={undertake}
           btnClassName="small"
         />
@@ -1264,7 +1240,7 @@ function BattlePrepPane({ hero, def, refus, entry }: {
 }
 
 function BankList({ etat, canDrive }: {
-  etat: EtatDInterlude;
+  etat: EtatDeDepot;
   canDrive: (heroId: string) => boolean;
 }) {
   const withdraw = useGame((s) => s.interludeWithdraw);

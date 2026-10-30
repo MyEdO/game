@@ -31,7 +31,7 @@ import { rollTest } from './tests';
 import { effectiveChar, bonus } from './characteristics';
 import { testValue } from './skills';
 import { removeCondition, reprendreConnaissance, stacks, hasCondition, nightmareCheck, syncDerivedConditions, derivedStacks } from './conditions';
-import { tickDisease, diseaseBlesseCount, applyDiseasePersist, diseaseDefs } from './disease';
+import { tickDisease, diseaseBlesseCount, applyDiseasePersist, diseaseDefs, type Disease } from './disease';
 import { MINUTES_PER_DAY } from './clock';
 import { isStarving, isThirsty, isDeprived } from './provisions';
 import { applyHealWounds } from './healing';
@@ -102,22 +102,33 @@ export function cureDiseases(c: Combatant, n: number): string[] {
   return log;
 }
 
-/**
- * Raccourcit la durée d'une maladie ACTIVE de `days` jour(s) (min 1 jour restant). Mute `c`.
- *  - `opts.disease` : SCOPE par id (Gesundheit → une `blessure-purulente` seulement, MSRC 4 l.186 ;
- *    Rouille mouchetée → `verole-du-tanneur`, MSRC 4 l.241) ; absent = la première maladie active.
- *  - `opts.once` : verrou « une fois par maladie » (Bénédiction de Convalescence, LDB 41 : « ne peut
- *    être tentée qu'une fois par maladie et par personne ») — les herbes (1 dose/jour) se reprennent.
- */
-export function blessDiseaseDuration(c: Combatant, days = 1, opts: { disease?: string; once?: boolean } = {}): string[] {
-  const dz = (c.diseases ?? []).find((d) => d.phase === 'active'
+/** Le filtre d'un raccourcissement de maladie : `disease` en scope l'id, `once` exclut une maladie déjà bénie. */
+export interface OptionsDeBenediction { disease?: string; once?: boolean }
+
+/** La maladie ACTIVE que raccourcirait `blessDiseaseDuration`, ou `undefined`. */
+export function maladieABenir(c: Combatant, opts: OptionsDeBenediction = {}): Disease | undefined {
+  return (c.diseases ?? []).find((d) => d.phase === 'active'
     && (!opts.disease || d.id === opts.disease)
     && (!opts.once || !d.convalescenceBlessed));
-  if (!dz) return [t('rest.noDiseaseToBless', { name: c.label, ciblee: opts.disease ? t('rest.fragTargeted') : '', benie: opts.once ? t('rest.fragAlreadyBlessed') : '' })];
-  if (opts.once) dz.convalescenceBlessed = true;
-  dz.minutesLeft = Math.max(MINUTES_PER_DAY, dz.minutesLeft - days * MINUTES_PER_DAY); // −`days` jour(s), min 1 jour restant
+}
+
+/** La raison dite quand aucune maladie n'est à raccourcir. */
+export const aucuneMaladieABenir = (c: Combatant, opts: OptionsDeBenediction): string =>
+  t('rest.noDiseaseToBless', { name: c.label, ciblee: opts.disease ? t('rest.fragTargeted') : '', benie: opts.once ? t('rest.fragAlreadyBlessed') : '' });
+
+/**
+ * Raccourcit la maladie ACTIVE `dz` de `c` (`maladieABenir`) de `days` jour(s), jamais sous 1 jour restant ni
+ * au-delà de sa durée : un raccourcissement n'allonge jamais une maladie. `once` marque le verrou « une fois
+ * par maladie » (Bénédiction de Convalescence, LDB 41). Mute `c`. MSRC 4 l.186, l.241
+ */
+export function blessDiseaseDuration(c: Combatant, dz: Disease, days: number, once?: boolean): string[] {
+  if (once) dz.convalescenceBlessed = true;
+  const avant = dz.minutesLeft;
+  dz.minutesLeft = Math.min(avant, Math.max(MINUTES_PER_DAY, avant - Math.max(0, days) * MINUTES_PER_DAY));
+  if (dz.minutesLeft === avant) return [t('rest.diseaseUnchanged', { name: c.label, disease: diseaseLabel(dz.id) })];
+  const jours = Math.max(1, Math.round((avant - dz.minutesLeft) / MINUTES_PER_DAY));
   const resteJ = Math.round(dz.minutesLeft / MINUTES_PER_DAY);
-  return [t('rest.diseaseShortened', { name: c.label, disease: diseaseLabel(dz.id), days, s: days > 1 ? 's' : '', left: resteJ })];
+  return [t('rest.diseaseShortened', { name: c.label, disease: diseaseLabel(dz.id), days: jours, s: jours > 1 ? 's' : '', left: resteJ })];
 }
 
 /** Jet d'une nuit (bilan structuré de la modale de Repos) : récupération ou cauchemars. */
