@@ -7,7 +7,7 @@
  *
  * DÉPENDANCE D'ORDRE RAW (commentée à l'origine dans `runEnemyAI`, encodée ici par `order`) : fin de
  * Frénésie (10) → Rage (20) → tentative de Frénésie IA (30) AVANT la psychologie (40) — la Frénésie
- * rend immunisé au test psy, donc elle doit être résolue d'abord. Le golden `turnStart.golden.test.ts`
+ * rend immunisé au test psy, donc elle doit être résolue d'abord. Le golden `turnStart.golden.hors-store.test.ts`
  * fige l'ordre + les tirages RNG byte-pour-byte.
  *
  * Ces hooks ne tournent que pour l'ENNEMI actif (`runEnemyAI` est enemy-only) ; les fonctions ont en

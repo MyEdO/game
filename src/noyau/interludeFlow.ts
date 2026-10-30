@@ -28,11 +28,11 @@ import { purgeAdventureEffects } from './upkeep';
 import { refuseSi } from './verrousDeFiche';
 import { refuserGeste } from './refusVisible';
 import {
-  eventLabelOf, heroClass, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDApprentissage, refusDArtisanat,
-  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDeRevenus,
+  ciblesDActivite, eventLabelOf, heroClass, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDArtisanat,
+  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, savoirDeLaMagie, opsCiblees, type CiblesChoisies, type TraitPsyVise,
 } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
-import { confirmBattleActivity, massBattleBegin, battlePrepEntries } from './massBattleFlow';
+import { confirmBattleActivity, massBattleBegin, battlePrepEntries, soutienCouteUneActivite } from './massBattleFlow';
 import {
   craftTarget, craftSpecOf, metierOf, statusIncome, statusIncomeMax, bankWithdrawOutcome, bankPayout, apprenticeshipTutorCost,
   entrainementTutorCost,
@@ -42,10 +42,10 @@ import {
 } from '../engine/activities';
 import { buildActivityWorldRollSteps } from './activityWorldRolls';
 import { actorStatus } from '../engine/social';
-import { applyOps, gelerOpsCtx, type GameOp, type OpsCtxGele } from '../engine/ops';
+import { applyOps, gelerOpsCtx, reussiteSansObjet, type GameOp, type OpsCtxGele } from '../engine/ops';
 import { isFumble } from '../engine/oups';
 import { combatValue } from '../engine/combat';
-import { spellCost, ritualReduction } from '../engine/grimoire';
+import { ritualReduction } from '../engine/grimoire';
 import { focusSkillFor, castingValue, consumeMalepierre } from '../engine/magic';
 import { gainCorruption, poseCorruptionPending, expositionPending } from './corruptionFlow';
 import { fireOwnTestFailed } from './triggeredEffects';
@@ -333,6 +333,9 @@ export interface PendingActivityFields extends PendingBase {
   spellId?: string;
   /** Retrait de Mécénat (ACE 12 l.49) : index du dépôt `bank` soldé par le Test d'Évaluation. */
   depositIndex?: number;
+  /** Convalescence (ADE II 09 l.33) : clé d'INSTANCE (`identiteDeCiblage`) du Trait psychologique « de votre
+   *  choix » à éliminer. */
+  traitPsy?: TraitPsyVise;
   // ── Activité/Scène de BATAILLE de masse (ADE II 8 — contextes 'bataille'/'bataille-round') ──
   /** Activité de bataille : l'issue (delta de Puissance / modificateur de Test) porte sur l'ARMÉE, pas
    *  sur le héros — routée par `confirmActivity` vers le résolveur de bataille. `prep` = Activité de
@@ -499,6 +502,12 @@ export function openRitualFocus(
   };
 }
 
+/** Une Activité que `refusDOuvertureDActivite` a ouverte porte sa cible et sa compétence : leur absence ici
+ *  est une faute du verdict, jamais un refus à taire. */
+function ouverteSansCible(def: ActivityDef): never {
+  throw new Error(`Activité « ${def.id} » ouverte par refusDOuvertureDActivite sans la cible ou la compétence que son ouverture lit.`);
+}
+
 /** Ouvre la modale d'une Activité du CATALOGUE (TOUTES les Activités à jet d'interlude passent ici).
  *  Le Test et ses paramètres viennent de la DONNÉE, dérivés PAR résolveur : compétences « au choix »
  *  → la MEILLEURE de l'acteur ; `masterWeapon` IMPOSE la compétence d'après l'arme visée (« selon la
@@ -506,20 +515,14 @@ export function openRitualFocus(
  *  Métier (+ DR du Test étendu en cours) ; `learnTalent` la Caractéristique/Compétence du Talent
  *  (+10 par tentative ratée) ; `identify` Savoir (Magie). Cibles éventuelles : objet (`itemUid`),
  *  sort (`spellId` — achat immédiat), dépôt (`depositIndex`), Talent (`talentId`). */
-export function openCatalogActivity(get: Get, set: Set, heroId: string, activityId: string, opts: { itemUid?: string; spellId?: string; depositIndex?: number; talentId?: string } = {}): void {
+export function openCatalogActivity(get: Get, set: Set, heroId: string, activityId: string, optsRecues?: CiblesChoisies | null): void {
+  const opts: CiblesChoisies = optsRecues ?? {}; // un intent forgé peut porter `null`
+  const def = activityById(activityId);
+  if (!def) { refuserGeste(get, set, t('if.activiteInconnue', { id: activityId })); return; }
+  if (refuseSi(get, set, (s) => refusDOuvertureDActivite(s, heroId, def, opts))) return;
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
-  const def = activityById(activityId);
-  if (refuseSi(get, set, (s) => (def?.resolver === 'income' ? refusDeRevenus : refusDActivite)(s, heroId))) return;
-  if (!st || !h || !def?.contexts.includes('interlude') || def.blocked) return;
-  if (!activityAvailableAt(def, currentPlaceId(get()))) {
-    get().log(msg('if.placeOnly', { label: def.label }));
-    return;
-  }
-  if (def.resolver === 'dissensionEmeute' && !st.dissensionReady) {
-    get().log(msg('if.dissensionNotReady', { name: h.label }));
-    return;
-  }
+  if (!st || !h) return ouverteSansCible(def);
   let skillLabel: string;
   let skillValue: number;
   // Champs de pending dérivés par résolveur (Test étendu, Talent, item…) — annexés à la fin.
@@ -534,7 +537,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // Artisanat (LDB 23 l.74-102) : Test ÉTENDU de Métier, DR cumulé par Activité — l'ouvrage doit avoir
     // été engagé (`craftStart` : matériaux ¼ prix + `h.craft`). La Difficulté et la cible de DR
     // viennent de l'ouvrage en cours.
-    if (!h.craft) return;
+    if (!h.craft) return ouverteSansCible(def);
     const metier = h.skills.find((k) => k.id === 'metier');
     skillValue = testValue(h, 'metier', undefined, metier?.spec);
     skillLabel = metier ? skillInstanceLabel(metier) : refLabel('skills', { id: 'metier' });
@@ -550,11 +553,10 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // eslint-disable-next-line murs/conteneur -- La cible est `Partial<PendingActivityFields>` (le pending d'activité), PAS une étape de cascade : ce `label` n'est pas le champ marqué #1318.
     Object.assign(extra, r.extra, { label: stepDetail(dataLabel(def.label), dataLabel(r.extra.label)) });
   } else if (def.resolver === 'learnTalent') {
-    // Apprentissage particulier : verdict `refusDApprentissage`, puis tuteur tiré et jugé. LDB 23 l.66-72
-    if (refuseSi(get, set, (s) => refusDApprentissage(s, heroId, opts.talentId ?? ''))) return;
+    // Apprentissage particulier : tuteur tiré, puis jugé. LDB 23 l.66-72
     const t = findTalentById(opts.talentId ?? '');
     const xpCost = optionDApprentissage(h, opts.talentId ?? '')?.xpCost;
-    if (!t || xpCost == null) return;
+    if (!t || xpCost == null) return ouverteSansCible(def);
     const tutorBrass = toBrass(apprenticeshipTutorCost(xpCost, battleRng()));
     const tuteurHorsBourse = refusDeBourse(h, fromBrass(tutorBrass), 'if.tuteurKo');
     if (tuteurHorsBourse) { refuserGeste(get, set, tuteurHorsBourse); return; }
@@ -568,8 +570,8 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     extra.tutorBrass = tutorBrass;
     extra.label = stepDetail(dataLabel(def.label), dataLabel(refLabel('talents', { id: t.id })));
   } else if (def.resolver === 'masterWeapon') {
-    const item = (h.items ?? []).find((i) => i.uid === opts.itemUid);
-    if (!item?.requiresMastery || !item.trappingId || (h.masteredWeapons ?? []).includes(item.trappingId)) return;
+    const item = ciblesDActivite(h, def).armes.find((i) => i.uid === opts.itemUid);
+    if (!item) return ouverteSansCible(def);
     // Compétence IMPOSÉE par l'arme visée : valeur de combat RAW avec cette arme (combatValue —
     // Spé du Groupe si possédée). L'arme synthétique n'a pas d'uid retrouvable → le gate de
     // maîtrise est inerte pour le TEST d'entraînement (c'est l'arme qui est inhabituelle, pas la Spé).
@@ -579,13 +581,9 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
   } else if (def.resolver === 'identify') {
     // Identifier un artefact (ADE II 4 l.41) : « Pour d'autres sorciers » (sans le Talent Détection
     // d'artefact) → Test de Savoir (Magie) Intermédiaire (+0). Savoir est AVANCÉE : il faut l'avoir.
-    const item = (h.items ?? []).find((i) => i.uid === opts.itemUid);
-    if (!item || item.identified !== false) return; // rien à identifier
-    const savoir = h.skills.find((k) => k.id === 'savoir' && (k.spec ?? '') === 'magie' && k.advances >= 1);
-    if (!savoir) {
-      get().log(msg('if.noSavoirMagie', { name: h.label }));
-      return;
-    }
+    const item = ciblesDActivite(h, def).artefacts.find((i) => i.uid === opts.itemUid);
+    const savoir = savoirDeLaMagie(h);
+    if (!item || !savoir) return ouverteSansCible(def);
     skillValue = testValue(h, savoir.id, undefined, savoir.spec);
     skillLabel = skillInstanceLabel(savoir);
     extra.label = stepDetail(dataLabel(def.label), dataLabel(item.label));
@@ -593,8 +591,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // Entraînement au Combat (LDB 23 l.205-209) : « une Compétence de Corps à corps ou Projectiles »
     // au choix du joueur — approximée par `bestActivitySkill` (convention partagée avec la branche
     // « au choix » ci-dessous et Punchausen) ; le jeton d'inversion octroyé SCOPE cette Compétence.
-    const best = bestActivitySkill(h, def);
-    if (!best) return;
+    const best = bestActivitySkill(h, def) ?? ouverteSansCible(def);
     skillValue = best.value;
     skillLabel = refLabel('skills', { id: best.ref.id });
     extra.chosenSkill = best.ref.id;
@@ -603,8 +600,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // Fabuleuse Vente du comte de Punchausen (AA 12 l.45-49) : « Test de Charme Complexe (−10) OU
     // Divertissement (Narration) Intermédiaire (+0) » — Difficulté PROPRE à chaque voie
     // (`skills[].difficulty`) ; `bestActivitySkill` retient la CIBLE effective la plus favorable.
-    const best = bestActivitySkill(h, def);
-    if (!best) return;
+    const best = bestActivitySkill(h, def) ?? ouverteSansCible(def);
     skillValue = best.value;
     skillLabel = refLabel('skills', { id: best.ref.id, spec: best.ref.spec });
     extra.difficulty = best.difficulty;
@@ -633,27 +629,14 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     skillLabel = refLabel('skills', { id: skill });
     const { tier, standing } = actorStatus(h);
     const cost = toBrass(statusIncomeMax(tier, standing));
-    const coutHorsBourse = refusDeBourse(h, fromBrass(cost), 'if.reputationPurseKo');
-    if (coutHorsBourse) { refuserGeste(get, set, coutHorsBourse); return; }
     extra.costBrass = cost;
     extra.label = stepDetail(dataLabel(def.label), dataLabel(formatMoney(fromBrass(cost))));
   } else {
     // « Au choix » parmi les compétences déclarées : `bestActivitySkill` (convention partagée avec
     // combatTraining/Punchausen ci-dessus).
-    const best = bestActivitySkill(h, def);
-    if (!best) return;
+    const best = bestActivitySkill(h, def) ?? ouverteSansCible(def);
     skillValue = best.value;
     skillLabel = refLabel('skills', { id: best.ref.id });
-  }
-  if (def.resolver === 'memorizeDiscount') {
-    // Achat IMMÉDIAT obligatoire (ACE 12 l.55) : le sort est choisi AVANT le jet — la remise
-    // s'appliquera à CET achat seul, à la validation.
-    const sp = opts.spellId ? findSpellById(opts.spellId) : undefined;
-    if (!sp || !((spellCost(h, sp) ?? 0) > 0)) return;
-  }
-  if (def.resolver === 'mecenat') {
-    const dep = (get().bank ?? [])[opts.depositIndex ?? -1];
-    if (dep?.kind !== 'mecenat' || dep.heroId !== heroId) return;
   }
   // Gate de Classe GÉNÉRIQUE (LDB 23 l.197 / AA 12 l.5) — appliquée EN DERNIER, sur la Difficulté
   // effectivement retenue (celle du résolveur si elle en a dérivé une, sinon celle de la donnée).
@@ -671,6 +654,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
       ...(opts.itemUid ? { itemUid: opts.itemUid } : {}),
       ...(opts.spellId ? { spellId: opts.spellId } : {}),
       ...(opts.depositIndex != null ? { depositIndex: opts.depositIndex } : {}),
+      ...(opts.traitPsy ? { traitPsy: opts.traitPsy } : {}),
       ...extra,
       difficulty: gatedDifficulty,
     },
@@ -1089,9 +1073,8 @@ export function confirmActivity(get: Get, set: Set): void {
     confirmBattleActivity(get, set, pa);
     if (pa.battle === 'prep') {
       consumeActivity(get, set, pa.heroId);
-      // #257 (flag `interlude-assist-costs-activity`, LDB 23 l.5 / ADE II 8 l.65/l.81) : les
-      // assistants d'une Entreprise SOUTENUE dépensent aussi un créneau. `consumeActivity` no-op à 0.
-      if (rule('interlude-assist-costs-activity')) {
+      // #257, LDB 23 l.5, ADE II 8 l.65/l.81 ; `consumeActivity` no-op à 0.
+      if (soutienCouteUneActivite()) {
         for (const hid of pa.heroIds ?? []) if (hid !== pa.heroId) consumeActivity(get, set, hid);
       }
     }
@@ -1120,12 +1103,16 @@ export function confirmActivity(get: Get, set: Set): void {
     if (r.patch) patch = { ...patch, ...r.patch };
   } else {
     // Défs à TABLE d'issues (bandes de DR) ou binaires (`onSuccess`, ex. Convalescence) — même chemin.
-    const bands = def.outcomes?.length
+    const bands = (def.outcomes?.length
       ? matchOutcomes(def, { success: pa.success, sl: pa.sl, fumble })
-      : pa.success && def.onSuccess?.length ? [{ ops: def.onSuccess }] : [];
+      : pa.success && def.onSuccess?.length ? [{ ops: def.onSuccess }] : [])
+      .map((b) => (b.ops ? { ...b, ops: opsCiblees(b.ops, pa) } : b));
     if (fumble && def.outcomes?.some((b) => b.on === 'fumble')) lines.push(msg('if.fumble', { name: h.label, roll: String(pa.roll) }));
     for (const band of bands) {
       if (band.note) lines.push(band.note); // résultat VERBATIM de la table source
+      // L'Activité est un geste délibéré : une issue sans objet pour le héros se DIT, `applyOps` la tait.
+      const sansObjet = reussiteSansObjet(h, band.ops ?? [], { sl: pa.sl, source });
+      if (sansObjet) lines.push(sansObjet);
       // Les ÉTATS d'issue tombent à la CLÔTURE de l'interlude (règle de CLASSE du contexte : les
       // semaines ne s'écoulent qu'à la fermeture, et le repos de clôture dissiperait un État posé
       // maintenant — « vous subissez 1 État Exténué le premier jour de votre prochaine aventure »,

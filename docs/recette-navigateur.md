@@ -1161,7 +1161,7 @@ côté de « Lancer » ; la ligne de journal porte alors « (dé fixé) ». A11y
 Rejeu MOTEUR (headless) de ces trois gestes : `src/scenes/test-scenarios/22-dome.test.ts` — l'aura est
 posée par le VRAI lancer (`applyCast`), le tireur TIRE dès son premier tour, le TIR ouvre son étape de
 sauvegarde (suspension AVANT toute Blessure), la MÊLÉE n'en ouvre aucune. Les contrats du socle sont
-ailleurs : la porte qui suspend et rend la main (`src/state/combat/sauvegarde-a-la-porte.test.ts`,
+ailleurs : la porte qui suspend et rend la main (`src/noyau/combat/sauvegarde-a-la-porte.hors-store.test.ts`,
 `pousserSauvegarde`), la lecture en seuil du dé (`src/noyau/cascade-seuil.hors-store.test.ts`, `lireEnSeuil`).
 
 Hors combat, la fiche (**Magie & Foi**) garde ses boutons « Lancer » / « Focaliser » ; **pendant** un

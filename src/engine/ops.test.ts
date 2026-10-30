@@ -276,13 +276,13 @@ describe('applyOps — opérations unitaires', () => {
     expect(c.conditions.find((x) => x.id === 'hemorragique')?.value).toBe(5);
   });
 
-  it('removeCondition sans nom : retire le 1er État porté ; sans État → journal explicite', () => {
+  it('removeCondition sans nom : retire le 1er État porté ; sans État, sans objet : ni effet ni ligne', () => {
     const c = hero({ conditions: [{ id: 'extenue', value: 2 }] });
     const lines = applyOps(c, [{ op: 'removeCondition' }], { rng: desDuTest });
     expect(c.conditions.find((x) => x.id === 'extenue')?.value).toBe(1);
     expect(lines[0]).toMatch(/retire 1 État Exténué/);
     const sain = hero();
-    expect(applyOps(sain, [{ op: 'removeCondition' }], { rng: desDuTest })[0]).toMatch(/aucun État à retirer/);
+    expect(applyOps(sain, [{ op: 'removeCondition' }], { rng: desDuTest })).toEqual([]);
   });
 
   it('charMod : durée du contexte (sort), agrégé en UNE ligne de journal', () => {
@@ -388,7 +388,7 @@ describe('applyOps — opérations unitaires', () => {
 
   // (Un Test imbriqué est un nœud Flow `{kind:'test'}` résolu cadence-aware (héros manuel = jet
   //  influençable, ennemi = inline). Sa résolution + branches + gates sont couvertes par
-  //  `state/combat/run-combat-flow.test.ts` et `noyau/combat/flowEval.test.ts`.)
+  //  `noyau/combat/run-combat-flow.hors-store.test.ts` et `noyau/combat/flowEval.test.ts`.)
 
   // #153 — Aux Armes « −10 Agilité pendant 1d10 jours » (corps « Bleus aux côtes ») : durée d'HORLOGE
   // intrinsèque au charMod (même patron que `condition.durationHours`), résolue depuis `ctx.now`.
@@ -636,9 +636,9 @@ describe("op:'sinMod' — Points de Péché ± (LDB 40 l.36 ; ACE Annexe I « P�
     expect(c.sinPoints).toBe(2);
     applyOps(c, [{ op: 'sinMod', amount: -5 }], { rng: desDuTest }); // « enlevez … » ne descend jamais sous 0
     expect(c.sinPoints).toBe(0);
-    const lines = applyOps(c, [{ op: 'sinMod', amount: -1 }], { rng: desDuTest }); // à 0 : inerte (delta 0)
+    const lines = applyOps(c, [{ op: 'sinMod', amount: -1 }], { rng: desDuTest }); // à 0 : sans objet
     expect(c.sinPoints).toBe(0);
-    expect(lines).toHaveLength(1);
+    expect(lines).toEqual([]);
   });
 });
 

@@ -16,7 +16,7 @@
  * `res` final. Aucun modifier ne SUSPEND (pas de `pushCombatStep`/pending) : autoKill et l'offre de
  * Déviation Critique restent INLINE dans `applyAttackResult`, APRÈS cette chaîne.
  *
- * ORDRE (encodé par `order`, figé par `hitSaves.golden.test`) :
+ * ORDRE (encodé par `order`, figé par `hitSaves.golden.hors-store.test`) :
  *   5 Réveil d'un dormeur → 8 Bouclier anti-flèches (le projectile est détruit AVANT d'être un coup
  *   reçu) → 10 sauvegarde « 1d10 ≥ Indice » (traits propres + Trait octroyé par un Dôme) → 40 Martyr
  *   → 50 Perturbante.

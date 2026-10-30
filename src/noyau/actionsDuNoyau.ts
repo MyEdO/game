@@ -27,6 +27,7 @@ import type {
   IdDEntiteDeScene, IdDEtapeDeCascade, IdDeTireurRapide,
 } from './designations';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
+import type { CiblesChoisies } from './verdictsDInterlude';
 import type { EtatDeJeu, PaquetALancer, PendingInteract, ShootingStanceKey } from './etat';
 
 /** Les actions de JEU (#2817 D5) : tout hôte les porte ; aucune action d'interface. */
@@ -139,8 +140,8 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Activité du CATALOGUE data-driven (`activities.json`, contexte 'interlude' + gate `where`) — LE
    *  CHEMIN UNIQUE de toutes les Activités à jet : Revenus, Artisanat, Apprentissage (`talentId`),
    *  Identification (`itemUid`), Convalescence (ADE II), Activités d'Altdorf (ACE Annexe I). Cibles
-   *  éventuelles selon le résolveur : objet / sort / dépôt / Talent. */
-  interludeActivity: (heroId: IdDeHeros, activityId: string, opts?: { itemUid?: IdDObjet; spellId?: string; depositIndex?: number; talentId?: string }) => void;
+   *  éventuelles : `CiblesChoisies`. */
+  interludeActivity: (heroId: IdDeHeros, activityId: string, opts?: CiblesChoisies) => void;
   /** Composition d'équipe : ajoute un héros dans un emplacement du siège qui décide (`decidingSeat`) / retire un
    *  héros (propriétaire seul). */
   partyAddHero: (hero: Combatant, wealth?: import('../engine/money').Money) => void;

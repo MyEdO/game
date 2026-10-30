@@ -202,7 +202,7 @@ const RAW_KNOWN: Record<string, number> = {
   // est un lookup par id stable d'une Qualité au registre — même patron que `healing`/`careerSlots`.
   'src/noyau/monde/commandTeam.ts': 1,
   'src/state/devtools.ts': 1,
-  'src/noyau/interludeFlow.ts': 4,
+  'src/noyau/interludeFlow.ts': 3,
   'src/noyau/mount.ts': 1,
   'src/noyau/seaVoyageFlow.ts': 3,
   'src/noyau/travelFlow.ts': 6,
@@ -217,7 +217,7 @@ const RAW_KNOWN: Record<string, number> = {
   // (`'__pinned__'`) est une SENTINELLE de sélection d'écran (la rangée « Épinglés », qui n'est pas une
   // affaire), jamais l'identité d'une entrée de registre — famille du `''` d'`OP_VOCABULARY`.
   'src/ui/CarnetScreen.tsx': 2,
-  'src/ui/InterludeScreen.tsx': 2,
+  'src/ui/InterludeScreen.tsx': 1,
   'src/ui/MedicModal.tsx': 2,
   'src/ui/MerchantPanel.tsx': 1,
   'src/ui/PartyScreen.tsx': 2,
