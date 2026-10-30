@@ -2,8 +2,9 @@
  * GARDE DE L'ÉTIREMENT DES ARÊTES (#2972, #3101) : la longueur d'une arête se rapporte à l_b, sa longueur de repos sous
  * les facteurs d'os du gabarit, toutes les shape keys à 0. Au repos posé (gabarit et silhouettes), l_k/l_b reste dans
  * `ETIREMENT_AU_REPOS`, une fois par mesh ; à chaque (clip, t), l_c/l_b, longueur à l'échantillon, reste dans
- * `ETIREMENT_EN_CLIP`. Les cinq pires arêtes de chaque clip, en l_c/l_b, se rendent en mesure. Hors de ces bornes, une
- * arête suit un os qui n'est pas le sien. Seuils partagés avec la construction (`scripts/personnage-3d/seuils.py`) :
+ * `ETIREMENT_EN_CLIP`. Les cinq pires arêtes de chaque clip, en l_c/l_b, se rendent en mesure. Hors de
+ * `ETIREMENT_AU_REPOS`, une shape key effondre ou enfle le repos ; hors de `ETIREMENT_EN_CLIP`, une arête suit un os qui
+ * n'est pas le sien. Seuils partagés avec la construction (`scripts/personnage-3d/seuils.py`) :
  * `seuils.json`.
  */
 import type { Mesh } from 'three';
