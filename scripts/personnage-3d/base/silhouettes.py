@@ -12,7 +12,7 @@
 - Extrémités invariantes : les pieds, les mains des prises et la tête (`extremites`) ; un sommet garde son décalage en
   entier tant qu'aucun poids d'extrémité ne le porte, ne bouge plus dès que sa part de poids d'extrémité atteint
   `MAJORITE_DU_POIDS` (la surface d'un pied, `sol.poser_les_clips_au_sol`), et entre les deux en proportion
-  (`fondu`). Les clés `LISSEES` sont lissées jusqu'à `ETIREMENT_VISE` au repos (`formes.lisser`), fondu compris.
+  (`fondu`). Les clés `LISSEES` sont lissées jusqu'à `ETIREMENT_AU_REPOS` au repos (`formes.lisser`), fondu compris.
 - Correction des clés par les anneaux articulaires (`correction`, #3101 issuecomment-6489583109), sur chaque clé,
   après le lissage et le fondu : la clé la plus proche de sa source, en énergie d'arêtes, qui garde le centre de
   chaque anneau de la garde des silhouettes, et, pour la carrure, porte le rayon de l'anneau le plus épais à la borne
@@ -32,9 +32,9 @@ from anatomie import PEAUX_SECONDAIRES, PIEDS, POING, ZONE_DE_L_OS
 from corpulence import NOM as CORPULENCE
 from formes import (aretes_des_triangles, aux_noeuds, decalages, lier, lisser, noms_des_cles, positions, poser_la_cle,
                     rapports, transferer_les_cles, transporter, voisins)
-from poids import ETIREMENT_VISE, PASSES_MAX, deformer, jumeaux, peau_lineaire
+from poids import PASSES_MAX, deformer, jumeaux, peau_lineaire
 from script_node import lancer
-from seuils import INFLUENCES_MAX, MAJORITE_DU_POIDS
+from seuils import ETIREMENT_AU_REPOS, INFLUENCES_MAX, MAJORITE_DU_POIDS
 
 ICI = Path(__file__).resolve().parent
 DONNEES = ICI.parents[2] / 'src' / 'data'
@@ -347,7 +347,7 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
     for nom in cles:
         if nom in LISSEES:
             brut = rapports(repos, decalages(corps, nom) * libre[:, None], aretes)
-            d, passes = lisser(decalages(corps, nom), repos, groupe, aretes, libre, ETIREMENT_VISE, PASSES_MAX)
+            d, passes = lisser(decalages(corps, nom), repos, groupe, aretes, libre, ETIREMENT_AU_REPOS, PASSES_MAX)
             r = rapports(repos, d, aretes)
             print('SILHOUETTE', nom, 'lissage', passes, 'passe(s) ; rapports au repos', round(float(brut.min()), 4),
                   round(float(brut.max()), 3), '->', round(float(r.min()), 4), round(float(r.max()), 3),

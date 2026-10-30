@@ -8,14 +8,14 @@ import { estObjet } from '../../../src/hote/formes.ts';
 /** Le seul nom fixe d'un dossier de production : son manifeste, qui nomme le reste. */
 export const MANIFESTE_DE_PRODUCTION = 'manifest.json';
 
-/** Les textes de licence d'un dossier de production, chacun portant une ligne `License:`. */
+/** Les textes de licence d'un dossier de production, chacun déclarant sa licence (`licenceDeclaree`). */
 export const FICHIER_DE_LICENCE = /^LICENSE.*\.txt$/;
 
 /** Le champ de `manifest.json` par lequel une production se déclare hors Release : sa valeur, la raison, non vide. */
 export const CLE_HORS_RELEASE = 'hors_release';
 
 /** La table des licences : chaque texte qu'une production déclare (en-tête d'un fichier source, page d'un pack, ligne
- *  `License:` d'un `LICENSE*.txt`), vers son identifiant SPDX (https://spdx.org/licenses/). */
+ *  `License:` ou titre d'un `LICENSE*.txt`), vers son identifiant SPDX (https://spdx.org/licenses/). */
 export const TABLE_DES_LICENCES = fileURLToPath(new URL('./licences.json', import.meta.url));
 
 export class TableDesLicencesInvalide extends Error {
@@ -41,5 +41,9 @@ export function chargerLicences(chemin: string = TABLE_DES_LICENCES): ReadonlyMa
 
 const LIGNE_LICENSE = /^\s*License:\s*(.+?)\s*$/m;
 
-/** La licence que déclare la ligne `License:` du texte de licence `texte`, ou `undefined` sans cette ligne. */
-export const licenceDeclaree = (texte: string): string | undefined => LIGNE_LICENSE.exec(texte)?.[1];
+/** Le titre du texte `texte` : sa première ligne non vide, sans ses `#` de titre Markdown ni ses blancs. */
+const titre = (texte: string): string | undefined => texte.split('\n').map((l) => l.replace(/^\s*#*/, '').trim()).find((l) => l);
+
+/** La licence que déclare le texte de licence `texte` : sa ligne `License:`, sinon son titre ; `undefined` pour un
+ *  texte vide. */
+export const licenceDeclaree = (texte: string): string | undefined => LIGNE_LICENSE.exec(texte)?.[1] ?? titre(texte);

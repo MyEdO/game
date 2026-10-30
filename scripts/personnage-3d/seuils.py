@@ -2,7 +2,8 @@
 `hotes/godot/asset/evaluateur/gardes/seuils.json`, que lisent ce module et l'évaluateur. Leur sens se documente au
 symbole homonyme de l'évaluateur : `IMAGES_PAR_SECONDE` (`echantillonnage.ts`) ; `INFLUENCES_MAX`,
 `POIDS_NEGLIGEABLE`, `TOLERANCE_SOMME_POIDS`, `TOLERANCE_JUMEAUX_POSITION_M` (`gardes/poids.ts`) ; `SOL_TOLERANCE_M`
-(`gardes/piedsAuSol.ts`) ; `TOLERANCE_ECHELLE` (`gardes/pistesDEchelle.ts`) ; `MAJORITE_DU_POIDS` (`gardes/appuis.ts`).
+(`gardes/piedsAuSol.ts`) ; `TOLERANCE_ECHELLE` (`gardes/pistesDEchelle.ts`) ; `MAJORITE_DU_POIDS` (`gardes/appuis.ts`) ;
+`ETIREMENT_EN_CLIP`, `ETIREMENT_AU_REPOS` (`gardes/etirement.ts`), intervalles (bas, haut).
 """
 import json
 from pathlib import Path
@@ -18,3 +19,5 @@ TOLERANCE_JUMEAUX_POSITION_M = _SEUILS['TOLERANCE_JUMEAUX_POSITION_M']
 SOL_TOLERANCE_M = _SEUILS['SOL_TOLERANCE_M']
 TOLERANCE_ECHELLE = _SEUILS['TOLERANCE_ECHELLE']
 MAJORITE_DU_POIDS = _SEUILS['MAJORITE_DU_POIDS']
+ETIREMENT_EN_CLIP = tuple(_SEUILS['ETIREMENT_EN_CLIP'])
+ETIREMENT_AU_REPOS = tuple(_SEUILS['ETIREMENT_AU_REPOS'])

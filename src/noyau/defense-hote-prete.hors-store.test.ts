@@ -42,7 +42,7 @@ function setup(seed: number) {
   ours.weapons = ours.weapons.map((w: Weapon, i: number) => (i === 0 ? { ...w, qualities: [...(w.qualities ?? []), destab] } : w));
   ours.advantage = 3;
   const order = [...b.order, ours.id];
-  banc.setState({ battle: { ...b, combatants: [...b.combatants, ours], order, turn: order.indexOf(ours.id), acted: false, movementUsed: 0, movedPreAction: false, action: null, aiTurnPlayed: undefined } });
+  banc.setState({ battle: { ...b, combatants: [...b.combatants, ours], order, turn: order.indexOf(ours.id), acted: false, movementUsed: 0, movedPreAction: false, action: null, tourIA: undefined } });
   return { tireur, ours: g().battle!.combatants.find((c) => c.id === 'spawn-ours')! };
 }
 
