@@ -3361,4 +3361,7 @@ export const fr = {
   'crea.regleMagieMineure': 'Magie mineure',
   'crea.talentsTranches': 'Talents tranchés — {liste} réglés.',
   'liste.et': '{debut} et {fin}',
+  // Rapport d'une composition (`porteeDeComposition`, `noyau/apparence/composition.ts`) : un objet ni tenu ni rangé.
+  'compo.objetSansApparence': 'objet « {objet} » : aucune apparence ni forme',
+  'compo.objetSansPoint': 'objet « {objet} » : ni prise, ni ensemble, ni rangement',
 } as const;

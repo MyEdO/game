@@ -4,6 +4,7 @@
  * `AnimationMixer` ; et la même mesure sur la pose de repos, gabarit et silhouettes appliqués.
  */
 import { AnimationMixer, LoopOnce, Vector3, type AnimationClip, type Bone, type Matrix4, type Mesh, type Object3D } from 'three';
+import { reposerGabarit, type GabaritPose } from './gabarit.ts';
 import seuils from './gardes/seuils.json';
 
 /** Cadence des clips que la chaîne produit et échantillonne. Partagée avec la construction
@@ -59,8 +60,11 @@ export function instants(clip: AnimationClip, pas: number): number[] {
   return [...grille, ...cles].sort((a, b) => a - b).filter((t, i, liste) => i === 0 || t - liste[i - 1] > INSTANTS_CONFONDUS);
 }
 
-/** Chaque (clip, t) de `clips` joué sur `scene` aux `instants` du clip au pas `pas`, pour `meshes`. La pose de repos est rendue à la fin de chaque clip. */
-export function* echantillonner(scene: Object3D, meshes: readonly Mesh[], clips: readonly AnimationClip[], pas = PAS_PAR_DEFAUT): Generator<Echantillon> {
+/** Chaque (clip, t) de `clips` joué sur `scene` aux `instants` du clip au pas `pas`, pour `meshes`, `gabarit` reposé sur
+ *  chaque instant joué (`reposerGabarit`). La pose de repos est rendue à la fin de chaque clip. */
+export function* echantillonner(
+  scene: Object3D, meshes: readonly Mesh[], clips: readonly AnimationClip[], pas = PAS_PAR_DEFAUT, gabarit: GabaritPose | null = null,
+): Generator<Echantillon> {
   for (const clip of clips) {
     const mixer = new AnimationMixer(scene);
     const action = mixer.clipAction(clip);
@@ -69,7 +73,8 @@ export function* echantillonner(scene: Object3D, meshes: readonly Mesh[], clips:
     action.play();
     try {
       for (const t of instants(clip, pas)) {
-        mixer.setTime(t);
+        if (gabarit) reposerGabarit(gabarit, () => mixer.setTime(t));
+        else mixer.setTime(t);
         yield { clip: clip.name, t, ...poseCourante(scene, meshes) };
       }
     } finally {

@@ -78,7 +78,7 @@ static func boutons_a_l_ecran(racines: Array) -> Array:
 	for racine in racines:
 		for bouton in racine.find_children("*", "BaseButton", true, false):
 			var centre: Vector2 = bouton.get_global_rect().get_center()
-			if bouton.is_visible_in_tree() and not bouton.disabled and _a_l_ecran(bouton, centre):
+			if bouton.is_visible_in_tree() and not bouton.disabled and a_l_ecran(bouton, centre):
 				var publie := {texte = bouton.text, x = centre.x, y = centre.y}
 				if bouton.has_meta("cle"):
 					publie.cle = bouton.get_meta("cle")
@@ -87,7 +87,7 @@ static func boutons_a_l_ecran(racines: Array) -> Array:
 
 
 ## Si `point` de `controle` se voit à travers chaque défilement qui le contient.
-static func _a_l_ecran(controle: Control, point: Vector2) -> bool:
+static func a_l_ecran(controle: Control, point: Vector2) -> bool:
 	var parent := controle.get_parent()
 	while parent != null:
 		if parent is ScrollContainer and not (parent as ScrollContainer).get_global_rect().has_point(point):

@@ -16,11 +16,14 @@
 //   `mesure` : tout appel d'une fonction de mesure (`MESURES` : valeur absolue, bornes, arrondis, distances, normes…).
 // `calcul`, `ordre` et `mesure` sont permis dans le seul module de mise en page (`estMiseEnPage`), reconnu par sa
 // STRUCTURE et jamais par son nom : au niveau du script, rien que `class_name`, `extends`, des `const` et des
-// `static func` typées, chacune rendant un réel ou un vecteur et prenant des entiers, des réels et au plus un vecteur ;
-// `derive-du-noyau.hors-store.test.ts` en exige un seul.
+// `static func` typées, chacune rendant un réel ou un vecteur et prenant des entiers, des réels, au plus un vecteur et au
+// plus une base (`Basis`) ; `derive-du-noyau.hors-store.test.ts` en exige un seul.
 // ANGLES MORTS, que la recette et le juge voient et que la garde ne voit pas : une seconde position passée au module de
-// mise en page en scalaires (`ecart(a, bx, by)`), et la géométrie des rectangles (`Rect2i.grow`, `has_point`), que
-// l'écran emploie aussi pour savoir ce qu'un défilement cache.
+// mise en page en scalaires (`ecart(a, bx, by)`), la géométrie des rectangles (`Rect2i.grow`, `has_point`), que
+// l'écran emploie aussi pour savoir ce qu'un défilement cache, et le calcul que portent les méthodes des types
+// géométriques (`Basis.inverse`, `Transform3D.translated` et `translated_local`, `Vector3.normalized` et `rotated`,
+// `Basis.looking_at`, `Node3D.to_global`, `Basis.get_scale`) : l'hôte en pose ses nœuds et ses os, et le module de mise
+// en page, sur un vecteur et une base, ne rend ni transformation ni base (#3086).
 
 import { lexemesGdscript } from './gdscript.mjs'
 
@@ -41,14 +44,14 @@ const DE_CHAINE = new Set(['+', '%', '+=', '%='])
 const ORDRE = new Set(['<', '>', '<=', '>='])
 const JETON = /("""[^"]*"""|'''[^']*'''|"[^"\n]*"|'[^'\n]*')|(0x[\da-fA-F_]+|0b[01_]+|\d[\d_]*(?:\.[\d_]*)?(?:[eE][+-]?\d+)?|\.\d[\d_]*(?:[eE][+-]?\d+)?)|([A-Za-z_]\w*)|(\*\*=|<<=|>>=|\*\*|<<|>>|<=|>=|==|!=|->|:=|\+=|-=|\*=|\/=|%=|&=|\|=|\^=|&&|\|\||[-+*/%<>=!&|^~(){}[\],.:;@$])/g
 const RETOUR = String.raw`(?:float|Vector2i?|Vector3i?)`
-const PARAMETRE = /^\s*\w+\s*:\s*(int|float|Vector2i?|Vector3i?)\s*$/
+const PARAMETRE = /^\s*\w+\s*:\s*(int|float|Vector2i?|Vector3i?|Basis)\s*$/
 const FONCTION = new RegExp(String.raw`^static func \w+\(([^)]*)\)\s*->\s*${RETOUR}\s*:\s*$`)
 const NIVEAU_DU_SCRIPT = /^(?:class_name \w+|extends \w+|const \w+\s*(?::\s*\w+\s*)?:?=.*)\s*$/
 
 /**
  * Le script est-il le module de mise en page : au niveau du script, rien que `class_name`, `extends`, des `const` et des
- * `static func` typées (un réel ou un vecteur rendu ; des entiers, des réels et au plus un vecteur en paramètres), dont
- * une au moins ?
+ * `static func` typées (un réel ou un vecteur rendu ; des entiers, des réels, au plus un vecteur et au plus une base en
+ * paramètres), dont une au moins ?
  * @param {string} src
  * @returns {boolean}
  */
@@ -59,7 +62,7 @@ export function estMiseEnPage(src) {
     const f = FONCTION.exec(ligne)
     if (f) {
       const types = f[1].trim() ? f[1].split(',').map((p) => PARAMETRE.exec(p)?.[1]) : []
-      if (types.some((t) => !t) || types.filter((t) => t.startsWith('Vector')).length > 1) return false
+      if (types.some((t) => !t) || types.filter((t) => t.startsWith('Vector')).length > 1 || types.filter((t) => t === 'Basis').length > 1) return false
       fonctions++
     } else if (!NIVEAU_DU_SCRIPT.test(ligne)) return false
   }

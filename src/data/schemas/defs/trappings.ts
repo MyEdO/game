@@ -161,6 +161,8 @@ const doc = document(
      *  `ammoFamilyLabel`). */
     defaultAmmo: z.string().optional(),
     ...apparenceDObjetSchema.shape,
+    /** #3086 D6(c), #3116 */
+    rangement: ref('gardeRobe', undefined, 'emplacement').optional(),
     requiresMastery: z.boolean().optional(),
     /** LDB 73 l.19/23 */
     prosthesisTraining: z
@@ -203,6 +205,7 @@ const doc = document(
   },
   {
     hands: { label: 'Mains requises', hint: '1 ou 2 mains pour manier l’objet' },
+    rangement: { label: 'Rangement', hint: 'Emplacement du corps où l’objet porté se range hors des mains' },
     packSize: { label: 'Taille du lot', hint: 'Nombre d’unités vendues ensemble (munitions groupées)' },
     categorie: {
       label: 'Catégorie',

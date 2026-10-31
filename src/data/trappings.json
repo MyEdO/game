@@ -34,6 +34,9 @@
     },
     "shape": {
       "id": "baton"
+    },
+    "rangement": {
+      "id": "epaule_d"
     }
   },
   {
@@ -75,6 +78,9 @@
     "shape": {
       "id": "hallebarde"
     },
+    "rangement": {
+      "id": "epaule_d"
+    },
     "bladed": true
   },
   {
@@ -109,6 +115,9 @@
     },
     "shape": {
       "id": "lance"
+    },
+    "rangement": {
+      "id": "epaule_d"
     }
   },
   {
@@ -143,6 +152,9 @@
     },
     "shape": {
       "id": "pique"
+    },
+    "rangement": {
+      "id": "epaule_d"
     }
   },
   {
@@ -266,7 +278,10 @@
       "masse",
       "marteau_guerre",
       "demi_lance"
-    ]
+    ],
+    "rangement": {
+      "id": "ceinture_g"
+    }
   },
   {
     "id": "bouclier",
@@ -307,6 +322,9 @@
     },
     "shape": {
       "id": "rond"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -348,6 +366,9 @@
     },
     "shape": {
       "id": "grand"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -389,6 +410,9 @@
     },
     "shape": {
       "id": "targe"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -423,6 +447,9 @@
     "shape": {
       "id": "couteau"
     },
+    "rangement": {
+      "id": "ceinture_avant"
+    },
     "bladed": true
   },
   {
@@ -452,6 +479,9 @@
     },
     "shape": {
       "id": "dague"
+    },
+    "rangement": {
+      "id": "ceinture_avant"
     },
     "bladed": true
   },
@@ -495,6 +525,9 @@
     ],
     "shape": {
       "id": "cimeterre"
+    },
+    "rangement": {
+      "id": "ceinture_g"
     },
     "bladed": true
   },
@@ -544,6 +577,9 @@
     "shape": {
       "id": "dague_ballock"
     },
+    "rangement": {
+      "id": "ceinture_avant"
+    },
     "bladed": true
   },
   {
@@ -581,6 +617,9 @@
     },
     "shape": {
       "id": "massue"
+    },
+    "rangement": {
+      "id": "ceinture_g"
     }
   },
   {
@@ -618,6 +657,9 @@
     },
     "shape": {
       "id": "pique_armes"
+    },
+    "rangement": {
+      "id": "ceinture_g"
     }
   },
   {
@@ -656,6 +698,9 @@
     "shape": {
       "id": "lance_cavalerie"
     },
+    "rangement": {
+      "id": "epaule_d"
+    },
     "capabilities": {
       "improvisedWithoutCharge": true
     }
@@ -692,6 +737,9 @@
     },
     "shape": {
       "id": "bec_de_corbin"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -729,6 +777,9 @@
     },
     "shape": {
       "id": "epee_batarde"
+    },
+    "rangement": {
+      "id": "dos"
     },
     "bladed": true
   },
@@ -771,6 +822,9 @@
     "shape": {
       "id": "grande_hache"
     },
+    "rangement": {
+      "id": "dos"
+    },
     "bladed": true
   },
   {
@@ -811,6 +865,9 @@
     },
     "shape": {
       "id": "marteau_guerre"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -851,6 +908,9 @@
     },
     "shape": {
       "id": "pioche_2m"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -889,6 +949,9 @@
     "shape": {
       "id": "zweihander"
     },
+    "rangement": {
+      "id": "dos"
+    },
     "bladed": true
   },
   {
@@ -926,6 +989,9 @@
     "shape": {
       "id": "fleuret"
     },
+    "rangement": {
+      "id": "ceinture_g"
+    },
     "bladed": true
   },
   {
@@ -956,6 +1022,9 @@
     "shape": {
       "id": "rapiere"
     },
+    "rangement": {
+      "id": "ceinture_g"
+    },
     "bladed": true
   },
   {
@@ -985,6 +1054,9 @@
     },
     "shape": {
       "id": "fleau"
+    },
+    "rangement": {
+      "id": "ceinture_g"
     }
   },
   {
@@ -1018,6 +1090,9 @@
     },
     "shape": {
       "id": "fleau_grain"
+    },
+    "rangement": {
+      "id": "ceinture_g"
     }
   },
   {
@@ -1055,6 +1130,9 @@
     },
     "shape": {
       "id": "fleau_armes"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -1089,6 +1167,9 @@
     "shape": {
       "id": "brise_epee"
     },
+    "rangement": {
+      "id": "ceinture_d"
+    },
     "bladed": true
   },
   {
@@ -1118,6 +1199,9 @@
     },
     "shape": {
       "id": "main_gauche"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     },
     "bladed": true
   },
@@ -1156,6 +1240,9 @@
     "shape": {
       "id": "arbalete"
     },
+    "rangement": {
+      "id": "dos"
+    },
     "organicProjectile": true
   },
   {
@@ -1190,6 +1277,9 @@
     },
     "shape": {
       "id": "arbalete_poing"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     },
     "organicProjectile": true
   },
@@ -1231,6 +1321,9 @@
     "shape": {
       "id": "arbalete_lourde"
     },
+    "rangement": {
+      "id": "dos"
+    },
     "organicProjectile": true
   },
   {
@@ -1263,6 +1356,9 @@
     "shape": {
       "id": "arc"
     },
+    "rangement": {
+      "id": "dos"
+    },
     "organicProjectile": true
   },
   {
@@ -1294,6 +1390,9 @@
     },
     "shape": {
       "id": "arc_court"
+    },
+    "rangement": {
+      "id": "dos"
     },
     "organicProjectile": true
   },
@@ -1334,6 +1433,9 @@
     "shape": {
       "id": "arc_elfique"
     },
+    "rangement": {
+      "id": "dos"
+    },
     "organicProjectile": true
   },
   {
@@ -1370,6 +1472,9 @@
     "shape": {
       "id": "arc_long"
     },
+    "rangement": {
+      "id": "dos"
+    },
     "organicProjectile": true
   },
   {
@@ -1405,6 +1510,9 @@
     },
     "shape": {
       "id": "fouet"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -1439,6 +1547,9 @@
     },
     "shape": {
       "id": "lasso"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -1470,6 +1581,9 @@
     },
     "shape": {
       "id": "filet_leste"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -1513,6 +1627,9 @@
     },
     "shape": {
       "id": "bombe"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -1553,6 +1670,9 @@
     },
     "shape": {
       "id": "bombe_incendiaire"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -1583,6 +1703,9 @@
     },
     "shape": {
       "id": "fronde"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -1614,6 +1737,9 @@
     },
     "shape": {
       "id": "fustibale"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -1651,6 +1777,9 @@
     },
     "shape": {
       "id": "bolas"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -1683,6 +1812,9 @@
     },
     "shape": {
       "id": "couteau_lancer"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -1719,6 +1851,9 @@
     },
     "shape": {
       "id": "flechette"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -1755,6 +1890,9 @@
     },
     "shape": {
       "id": "hache_lancer"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -1791,6 +1929,9 @@
     },
     "shape": {
       "id": "javelot"
+    },
+    "rangement": {
+      "id": "dos"
     },
     "organicProjectile": true
   },
@@ -1870,6 +2011,9 @@
     },
     "shape": {
       "id": "arquebus_rep"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -1921,6 +2065,9 @@
     },
     "shape": {
       "id": "pistolet_rep"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -1966,6 +2113,9 @@
     },
     "shape": {
       "id": "arquebuse"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -2014,6 +2164,9 @@
     },
     "shape": {
       "id": "hochland"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -2058,6 +2211,9 @@
     },
     "shape": {
       "id": "pistolet"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -2107,6 +2263,9 @@
     },
     "shape": {
       "id": "tromblon"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -8289,6 +8448,9 @@
     },
     "shape": {
       "id": "pavois"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -8344,6 +8506,9 @@
     ],
     "shape": {
       "id": "filet_leste"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -8930,6 +9095,9 @@
     "shape": {
       "id": "demi_lance"
     },
+    "rangement": {
+      "id": "epaule_d"
+    },
     "capabilities": {
       "improvisedWithoutCharge": true
     }
@@ -8968,6 +9136,9 @@
     "shape": {
       "id": "sabre"
     },
+    "rangement": {
+      "id": "ceinture_g"
+    },
     "bladed": true
   },
   {
@@ -9002,6 +9173,9 @@
     },
     "shape": {
       "id": "epee_cour"
+    },
+    "rangement": {
+      "id": "ceinture_g"
     },
     "bladed": true
   },
@@ -9233,6 +9407,9 @@
     ],
     "shape": {
       "id": "cape"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -9271,6 +9448,9 @@
     },
     "shape": {
       "id": "ahlspiess"
+    },
+    "rangement": {
+      "id": "epaule_d"
     }
   },
   {
@@ -9309,6 +9489,9 @@
     },
     "shape": {
       "id": "attrape_coquin"
+    },
+    "rangement": {
+      "id": "epaule_d"
     }
   },
   {
@@ -9361,6 +9544,9 @@
     "shape": {
       "id": "hache_armes"
     },
+    "rangement": {
+      "id": "epaule_d"
+    },
     "bladed": true
   },
   {
@@ -9411,6 +9597,9 @@
     "shape": {
       "id": "pertuisane"
     },
+    "rangement": {
+      "id": "epaule_d"
+    },
     "bladed": true
   },
   {
@@ -9460,6 +9649,9 @@
     "shape": {
       "id": "serpe_guerre"
     },
+    "rangement": {
+      "id": "epaule_d"
+    },
     "bladed": true
   },
   {
@@ -9502,6 +9694,9 @@
     },
     "shape": {
       "id": "zweihander_flamberge"
+    },
+    "rangement": {
+      "id": "dos"
     },
     "bladed": true
   },
@@ -9724,6 +9919,9 @@
     },
     "shape": {
       "id": "arquebuse_double"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -9764,6 +9962,9 @@
     },
     "shape": {
       "id": "arquebuse_meche"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -9807,6 +10008,9 @@
     },
     "shape": {
       "id": "hache_arquebuse"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -9850,6 +10054,9 @@
     },
     "shape": {
       "id": "hallebarde_arquebuse"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -9893,6 +10100,9 @@
     },
     "shape": {
       "id": "haquebute"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -9936,6 +10146,9 @@
     },
     "shape": {
       "id": "pistolet_griffon"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -9980,6 +10193,9 @@
     },
     "shape": {
       "id": "tromblon_meche"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -10022,6 +10238,9 @@
     },
     "shape": {
       "id": "canne_pistolet"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -10065,6 +10284,9 @@
     },
     "shape": {
       "id": "mortier_main"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -10111,6 +10333,9 @@
     },
     "shape": {
       "id": "poivriere"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -10415,6 +10640,9 @@
     "enc": 3,
     "shape": {
       "id": "jezail"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -10467,6 +10695,9 @@
     "enc": 4,
     "shape": {
       "id": "canon_ratling"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -10521,6 +10752,9 @@
     "enc": 0,
     "shape": {
       "id": "pistolet_malepierre"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {
@@ -11012,6 +11246,9 @@
     "shape": {
       "id": "dague_funeste"
     },
+    "rangement": {
+      "id": "ceinture_avant"
+    },
     "bladed": true
   },
   {
@@ -11081,6 +11318,9 @@
     "shape": {
       "id": "lame_bois_cerf"
     },
+    "rangement": {
+      "id": "ceinture_g"
+    },
     "bladed": true
   },
   {
@@ -11130,6 +11370,9 @@
     "enc": 0,
     "shape": {
       "id": "surin_aigle"
+    },
+    "rangement": {
+      "id": "ceinture_avant"
     },
     "bladed": true
   },
@@ -11274,6 +11517,9 @@
     "enc": 3,
     "shape": {
       "id": "broyeur_os"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -11308,6 +11554,9 @@
     "enc": 1,
     "shape": {
       "id": "silence"
+    },
+    "rangement": {
+      "id": "ceinture_g"
     },
     "bladed": true
   },
@@ -11351,6 +11600,9 @@
     "enc": 1,
     "shape": {
       "id": "rond"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -11723,6 +11975,9 @@
     },
     "shape": {
       "id": "massue"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -11765,6 +12020,9 @@
     },
     "shape": {
       "id": "gantelet_pointes"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -11801,6 +12059,9 @@
     },
     "shape": {
       "id": "massue"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -11846,6 +12107,9 @@
     "shape": {
       "id": "arbalete_lourde"
     },
+    "rangement": {
+      "id": "dos"
+    },
     "organicProjectile": true
   },
   {
@@ -11884,6 +12148,9 @@
     },
     "shape": {
       "id": "filet_leste"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -11922,6 +12189,9 @@
     },
     "shape": {
       "id": "javelot"
+    },
+    "rangement": {
+      "id": "dos"
     },
     "organicProjectile": true
   },
@@ -11964,6 +12234,9 @@
     },
     "shape": {
       "id": "tromblon"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -12004,6 +12277,9 @@
     },
     "shape": {
       "id": "pistolet"
+    },
+    "rangement": {
+      "id": "dos"
     }
   },
   {
@@ -13109,6 +13385,9 @@
     },
     "shape": {
       "id": "baton"
+    },
+    "rangement": {
+      "id": "epaule_d"
     }
   },
   {
@@ -14007,6 +14286,9 @@
     "shape": {
       "id": "arc"
     },
+    "rangement": {
+      "id": "dos"
+    },
     "organicProjectile": true
   },
   {
@@ -14102,6 +14384,9 @@
     },
     "shape": {
       "id": "dague"
+    },
+    "rangement": {
+      "id": "ceinture_avant"
     },
     "bladed": true,
     "onHitEffects": [
@@ -14307,6 +14592,9 @@
     },
     "shape": {
       "id": "marteau_guerre"
+    },
+    "rangement": {
+      "id": "ceinture_g"
     }
   },
   {
@@ -14337,6 +14625,9 @@
     },
     "shape": {
       "id": "epee"
+    },
+    "rangement": {
+      "id": "ceinture_g"
     },
     "bladed": true
   },
@@ -14388,6 +14679,9 @@
     },
     "shape": {
       "id": "fleau"
+    },
+    "rangement": {
+      "id": "ceinture_g"
     }
   },
   {
@@ -14418,6 +14712,9 @@
     },
     "shape": {
       "id": "hache_armes"
+    },
+    "rangement": {
+      "id": "ceinture_g"
     },
     "bladed": true
   },
@@ -14500,6 +14797,9 @@
     },
     "shape": {
       "id": "pistolet"
+    },
+    "rangement": {
+      "id": "ceinture_d"
     }
   },
   {

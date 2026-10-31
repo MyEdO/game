@@ -38,7 +38,7 @@ import { auPlusProcheAncetre, coDescendre, descendre } from '../../../src/data/s
 import { documentDeLEntreePartielle } from '../../../src/data/schemas/grammaire/document';
 import { sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
 import type { SchemaDef } from '../../../src/data/schemas/types';
-import { TYPES, espaceDe, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
+import { TYPES, declarationDeRefTypee, espaceDe, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
 import * as ts from 'typescript/unstable/ast';
 import {
   CLES_DE_SPECIALISATION,
@@ -497,6 +497,24 @@ export function entreesPartiellesEmbarquees(
 }
 
 /**
+ * Le TYPE que nomme chaque valeur de `type` d'une référence TYPÉE déclarée par un schéma des defs (`branches` de
+ * `declarationDeRefTypee`, `grammaire/ref.ts`) : une valeur hors `TYPES` y nomme le type de sa sous-liste. Une valeur qui
+ * nommerait deux types LÈVE.
+ */
+export function typesDesRefsTypees(defs: readonly { readonly file: string; readonly schema: unknown }[]): Map<string, TypeEntite> {
+  const types = new Map<string, TypeEntite>();
+  for (const d of defs)
+    descendre([d.schema], ({ noeud }) => {
+      for (const [valeur, { type }] of Object.entries(declarationDeRefTypee(noeud)?.branches ?? {})) {
+        const deja = types.get(valeur);
+        if (deja !== undefined && deja !== type) throw new Error(`${d.file} — la valeur de type « ${valeur} » nomme deux types : ${deja}, ${type}.`);
+        types.set(valeur, type);
+      }
+    });
+  return types;
+}
+
+/**
  * Clés de niveau 1 PORTÉES par la donnée de chaque document, keyées par nom : celles de ses entrées de
  * racine (`clesNiveau1`) et celles de ses entrées partielles embarquées (`entreesPartiellesEmbarquees`).
  */
@@ -550,6 +568,8 @@ export function scannerDonnees(
   );
   /** Objets qui sont une entrée PARTIELLE d'un document D → leur fiche : mesurés comme entrées de D. */
   const reperes = entreesPartiellesEmbarquees(brutParNom, defs) as ReadonlyMap<Obj, EntreePartielleEmbarquee>;
+  /** Le type que nomme chaque valeur de `type` d'une référence typée déclarée (`typesDesRefsTypees`). */
+  const typesNommes = typesDesRefsTypees(defs);
   const partiellesParNom = new Map<string, Obj[]>();
   for (const [o, { document: nom }] of reperes) partiellesParNom.set(nom, [...(partiellesParNom.get(nom) ?? []), o]);
 
@@ -649,12 +669,15 @@ export function scannerDonnees(
     !(typeof porteur.op === 'string' && choixDesOps.get(porteur.op)?.get(k)?.has(v));
 
   /** L'espace que NOMME le `type` d'une référence TYPÉE (`{ id, type }`, `refTypee` de
-   *  `grammaire/ref.ts`), quand l'`id` `v` y est indexé — `undefined` sinon. Un id présent dans
+   *  `grammaire/ref.ts`) — un type de `TYPES`, ou la sous-liste qu'une référence déclarée nomme
+   *  (`typesNommes`) —, quand l'`id` `v` y est indexé — `undefined` sinon. Un id présent dans
    *  plusieurs espaces n'y est donc jamais ambigu. */
   const espaceNomme = (o: Obj, k: string, v: string): string | undefined => {
-    const type = o.type;
-    if (k !== 'id' || typeof type !== 'string' || !Object.prototype.hasOwnProperty.call(TYPES, type)) return undefined;
-    const espace = espaceDe(type as TypeEntite);
+    const valeur = o.type;
+    if (k !== 'id' || typeof valeur !== 'string') return undefined;
+    const type = typesNommes.get(valeur) ?? (Object.prototype.hasOwnProperty.call(TYPES, valeur) ? (valeur as TypeEntite) : undefined);
+    if (type === undefined) return undefined;
+    const espace = espaceDe(type);
     return index.get(v)?.has(espace) ? espace : undefined;
   };
   /** Datasets vers lesquels la valeur `v` de la clé `k` de `o` résout : l'espace NOMMÉ d'une référence

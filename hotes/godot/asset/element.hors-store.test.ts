@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, glbDElement } from './schema3.testkit.ts';
 import { empreinte } from './empreinte.ts';
-import { CATEGORIES_D_ELEMENT, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
+import { CATEGORIES_D_ELEMENT, emplacementsNonOfferts, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
 import { ecrireGlb, lireGlb } from './glb.ts';
 
 const BASE: BaseDUnElement = {
@@ -35,7 +35,10 @@ const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
     emplacements: { ceinture_avant: { os: 'spine_01', position: [0, 0.04, 0.13], rotation: [0, 0, 0] } }, silhouettes: ['feminin', 'corpulence'],
     surfaces: [{ nom: 'tissu', palette: 'vet1' }, { nom: 'cuir', palette: 'cuir' }],
   },
-  armure: { categorie: 'armure', cle: { piece: 'plastron' }, liaison: { mode: 'squelette' }, couche: 'armure', couvre: ['torse'], silhouettes: ['feminin'], surfaces: TEINTE },
+  armure: {
+    categorie: 'armure', cle: { piece: 'plastron' }, liaison: { mode: 'squelette' }, couche: 'armure', couvre: ['torse'],
+    emplacements: { poitrine: { os: 'spine_01', position: [0, 0.12, 0.14], rotation: [0, 0, 0] } }, silhouettes: ['feminin'], surfaces: TEINTE,
+  },
   accessoire: { categorie: 'accessoire', cle: { piece: 'baudrier' }, liaison: { mode: 'surface' }, couche: 'tenue', surfaces: TEINTE },
   rigide: { categorie: 'rigide', cle: { apparence: 'epee' }, liaison: { mode: 'rigide' }, surfaces: TEINTE },
   trait: { categorie: 'trait', cle: { trait: 'verrues' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: ['torse'], surfaces: [{ nom: 'peau', palette: 'peau' }] },
@@ -102,7 +105,7 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['categorie-inconnue', 'catégorie `arme`', manifeste('rigide', { categorie: 'arme' })],
   ['champ-hors-categorie', 'un id choisi', manifeste('rigide', { id: 'epee-01' })],
   ['champ-hors-categorie', '`couvre` sur un rigide', manifeste('rigide', { couvre: ['torse'] })],
-  ['champ-hors-categorie', '`emplacements` sur une armure', manifeste('armure', { emplacements: {} })],
+  ['champ-hors-categorie', '`emplacements` sur un accessoire', manifeste('accessoire', { emplacements: {} })],
   ['cle-mal-formee', 'clé d’une autre catégorie', manifeste('rigide', { cle: { piece: 'epee' } })],
   ['cle-mal-formee', 'clé de corps sans `forme`', manifeste('corps', { cle: { partie: 'jambes' } })],
   ['cle-mal-formee', 'clé à champ en trop', manifeste('rigide', { cle: { apparence: 'epee', piece: 'epee' } })],
@@ -119,7 +122,8 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['couche-hors-categorie', 'armure hors de la couche `armure`', manifeste('armure', { couche: 'tenue' })],
   ['zone-inconnue', '`couvre` hors des zones de la base', manifeste('vetement', { couvre: ['torse', 'queue'] })],
   ['chaine-absente', 'chaîne que la base ne porte pas', manifeste('vetement', { chaines: ['cape'] })],
-  ['emplacement-sur-os-absent', 'emplacement sur un os inconnu', manifeste('vetement', { emplacements: { plumet: { os: 'chapeau', position: [0, 0, 0], rotation: [0, 0, 0] } } })],
+  ['emplacement-sur-os-absent', 'emplacement sur un os inconnu', manifeste('vetement', { emplacements: { cimier: { os: 'chapeau', position: [0, 0, 0], rotation: [0, 0, 0] } } })],
+  ['emplacement-inconnu', 'emplacement absent de la garde-robe', manifeste('armure', { emplacements: { nombril: { os: 'spine_01', position: [0, 0, 0], rotation: [0, 0, 0] } } })],
   ['silhouette-absente', 'shape key que la base ne porte pas', manifeste('tete', { silhouettes: ['visage_inverse'] })],
   ['surface-hors-categorie', 'teinte sur un vêtement', manifeste('vetement', { surfaces: TEINTE })],
   ['surface-hors-categorie', 'palette sur un rigide', manifeste('rigide', { surfaces: PALETTE })],
@@ -143,13 +147,28 @@ describe('validerElement : chaque refus nommé', () => {
   it('chaque code a son cas', () => {
     const attendus: Record<CodeDEcartDElement, true> = {
       forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'cle-inconnue': true, 'piece-hors-categorie': true, 'base-differente': true,
-      'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true,
+      'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true, 'emplacement-inconnu': true,
       'silhouette-absente': true, 'surface-hors-categorie': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
       'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true, 'rigide-skinne': true,
     };
     expect(new Set(REFUS.map(([code]) => code))).toEqual(new Set(Object.keys(attendus)));
   });
   it.each(REFUS)('%s : %s', (code, _cas, brut, octets) => expect(codes(brut, octets)).toEqual([code]));
+});
+
+describe('emplacementsNonOfferts : un accessoire se pose sur un emplacement de sa base ou d’une pièce de cette base', () => {
+  const REPERE = { os: 'spine_01', position: [0, 0, 0], rotation: [0, 0, 0] };
+  const bases = new Map([['humanoide', { emplacements: { epaule_d: REPERE } }]]);
+  const plumet = { id: 'plumet', brut: manifeste('accessoire', { cle: { piece: 'plumet' } }) };
+  const casque = (emplacements: Record<string, unknown>) => ({ id: 'casque', brut: manifeste('armure', { cle: { piece: 'casque' }, emplacements }) });
+  it('l’emplacement offert par la base suffit', () => expect(emplacementsNonOfferts(bases, [{ id: 'baudrier', brut: manifeste('accessoire') }])).toEqual([]));
+  it('l’emplacement offert par une armure de la même base suffit', () => expect(emplacementsNonOfferts(bases, [casque({ cimier: REPERE }), plumet])).toEqual([]));
+  it('un emplacement que ni la base ni aucune pièce n’offre sort au rapport', () => {
+    expect(emplacementsNonOfferts(bases, [casque({}), plumet])).toEqual([{ id: 'plumet', ligne: '[emplacement-non-offert] plumet : plumet se pose sur cimier, que ni la base `humanoide` ni aucune de ses pièces n’offre' }]);
+  });
+  it('une pièce d’une autre base n’offre rien', () => {
+    expect(emplacementsNonOfferts(bases, [{ id: 'casque', brut: { ...casque({ cimier: REPERE }).brut, base: 'quadrupede' } }, plumet])).toHaveLength(1);
+  });
 });
 
 describe('validerElement : un mesh rigide se monte sous un os de la base', () => {

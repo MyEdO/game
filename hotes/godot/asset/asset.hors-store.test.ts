@@ -293,6 +293,14 @@ describe('import et chargement au schéma 3', () => {
     expect(verses).toEqual([nomDAsset(sha256(GLB_D_ELEMENT), 'glb')]);
     expect(JSON.parse(readFileSync(join(destination, 'epee.manifeste.json'), 'utf8'))).toEqual(elementSchema3());
   });
+  it('un import réussi rend le rapport de l’index, sans blocage : un accessoire dont aucune pièce de la base n’offre l’emplacement', () => {
+    const destination = temporaire();
+    expect(importer(destination, baseSchema3(), GLB_DE_BASE, 'corps-reference')).toMatchObject({ ok: true, rapport: [] });
+    const plumet = { ...elementSchema3(), categorie: 'accessoire', cle: { piece: 'plumet' }, couche: 'tenue' };
+    expect(importer(destination, plumet, GLB_D_ELEMENT, 'plumet')).toMatchObject({
+      ok: true, rapport: ['[emplacement-non-offert] plumet : plumet se pose sur cimier, que ni la base `humanoide` ni aucune de ses pièces n’offre'],
+    });
+  });
   it.each([
     ['base-absente', () => temporaire(), () => elementSchema3()],
     ['forme', avecBase, () => ({ ...elementSchema3(), surfaces: undefined })],
@@ -340,12 +348,20 @@ describe('import et chargement au schéma 3', () => {
     if (!r.ok) expect(r.refus.join('\n')).toContain('[cle-en-doublon]');
   });
   it('la catégorie ne distingue pas deux éléments de même clé de pièce', () => {
-    const d = avecBase();
+    const d = temporaire();
+    deposerSchema3(d, 'corps-reference', { ...baseSchema3(), emplacements: { epaule_d: { os: 'root', position: [0, 0, 0], rotation: [0, 0, 0] } } }, GLB_DE_BASE);
     const piece = { ...elementSchema3(), categorie: 'accessoire', cle: { piece: 'baudrier' }, couche: 'tenue' };
     expect(importer(d, piece).ok).toBe(true);
     const r = importer(d, { ...piece, categorie: 'armure', liaison: { mode: 'squelette' }, couche: 'armure', couvre: [] }, GLB_D_ELEMENT, 'armure');
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.refus.join('\n')).toContain('[cle-en-doublon]');
+  });
+  it('un accessoire dont aucune pièce de la base n’offre l’emplacement s’importe, et ne bloque ni l’import suivant ni la Release', () => {
+    const d = avecBase();
+    const plumet = { ...elementSchema3(), categorie: 'accessoire', cle: { piece: 'plumet' }, couche: 'tenue' };
+    expect(importer(d, plumet, GLB_D_ELEMENT, 'plumet').ok).toBe(true);
+    expect(importer(d, elementSchema3(), GLB_D_ELEMENT, 'epee').ok).toBe(true);
+    expect(modelesEpingles(d).erreurs).toEqual([]);
   });
   it('une base au repos dans le même dossier ne rend pas son GLB requis pour un élément d’une autre base', () => {
     const d = avecBase();

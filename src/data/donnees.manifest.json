@@ -625,7 +625,13 @@
           "files": [
             "garde-robe.json"
           ],
-          "desc": "LA garde-robe des éléments 3D, clés des éléments portés sur le corps — un document, le `kind` (`tete` · `coiffure` · `emplacement` · `piece` · `ensemble` · `embleme`) porté par l'entrée ; une tête par espèce jouable nomme sa `race` de rendu (`raceAppearance.json`) ; un ensemble habille UN objet ou UNE apparence de la liste ordonnée de ses pièces ; un emblème est un dessin SVG posé au montage sur les surfaces `blason` d'un élément"
+          "desc": "LA garde-robe des éléments 3D, clés des éléments portés sur le corps — un document, le `kind` (`tete` · `coiffure` · `tenue` · `emplacement` · `piece` · `ensemble` · `embleme`) porté par l'entrée ; une tête par espèce jouable nomme sa `race` de rendu (`raceAppearance.json`) ; un ensemble habille UN objet, UNE apparence ou UNE tenue de la liste ordonnée de ses pièces ; un emblème est un dessin SVG posé au montage sur les surfaces `blason` d'un élément"
+        },
+        {
+          "files": [
+            "presets-de-personnage.json"
+          ],
+          "desc": "LES presets de personnage entier — par entrée, la provenance (`source` : folio de l'illustration, `note` : image et décisions d'adaptation), les sept axes (race de rendu, gabarit, sexe, corpulence, puis la tête, la coiffure et la tenue de la garde-robe), `pieces` (les pièces ajoutées à l'ensemble de la tenue), `objets` (les objets portés hors des mains), `prises` (l'objet tenu par chaque main) et `apparencesObjets` (l'apparence d'un objet porté ou tenu) ; rien n'est porté deux fois ; des ids du jeu seulement, l'hôte résout l'élément 3D"
         },
         {
           "files": [

@@ -11,7 +11,9 @@ import { lireGlb } from '../glb.ts';
 import { chargerScene, type SceneChargee } from './chargement.ts';
 import type { Ecart } from './ecart.ts';
 import { echantillonner, PAS_PAR_DEFAUT, poseDeRepos } from './echantillonnage.ts';
-import { appliquerGabarit, CARRURE_MOINS, CARRURE_PLUS, FACTEURS_NEUTRES, poserSilhouettes, type Facteurs } from './gabarit.ts';
+import type { GabaritResolu } from '../../../../src/noyau/index.ts';
+import { appliquerGabarit, poserSilhouettes } from './gabarit.ts';
+import { CARRURE_MOINS, CARRURE_PLUS, FACTEURS_NEUTRES } from '../gabarit.ts';
 import { validerManifesteDeBase, type ManifesteDeBase } from '../manifesteDeBase.ts';
 import { gardeBudget, PLAFOND_ASSEMBLE, trianglesDe } from './gardes/budget.ts';
 import { mesurerAppuis, poserPieds, surfacesDesPieds, type AppuisDuClip, type PoseDuPied } from './gardes/appuis.ts';
@@ -30,7 +32,7 @@ export interface EntreeDEvaluation {
    *  racine a une position animée. */
   readonly manifeste?: unknown;
   /** Les facteurs de gabarit donnés, les autres à 1 (`FACTEURS_NEUTRES`). */
-  readonly facteurs?: Partial<Facteurs>;
+  readonly facteurs?: Partial<GabaritResolu>;
   /** Les shape keys posées, par nom ; chacune doit être une forme du GLB de base. */
   readonly silhouettes?: Readonly<Record<string, number>>;
   /** Les clips échantillonnés, par nom ; tous sans liste. */
@@ -64,7 +66,7 @@ export interface FicheDeMesures {
   };
 }
 
-const estNeutre = (f: Facteurs): boolean => Object.values(f).every((v) => v === 1);
+const estNeutre = (f: GabaritResolu): boolean => Object.values(f).every((v) => v === 1);
 
 /** Monte `element` sur la base : un mesh skinné se lie aux os de la base de même nom, un rigide sous un os passe sous
  *  l'os de la base de même nom, à la même position locale. Le rigide est le nœud glTF de la primitive (`SceneChargee.noeuds`). */
@@ -96,7 +98,7 @@ const zoneDe = (m: Object3D): unknown => m.userData.zone ?? (m.parent && !(m.par
 const racineDu = (base: SceneChargee): string => base.squelette?.bones.find((b) => !(b.parent as Bone | null)?.isBone)?.name ?? '';
 
 export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures> {
-  const facteurs: Facteurs = { ...FACTEURS_NEUTRES, ...entree.facteurs };
+  const facteurs: GabaritResolu = { ...FACTEURS_NEUTRES, ...entree.facteurs };
   const pas = entree.pas ?? PAS_PAR_DEFAUT;
   const ecarts: Ecart[] = [];
   let manifeste: ManifesteDeBase | null = null;
@@ -121,7 +123,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const meshes = [base, ...elements].flatMap((s) => s.meshes);
   const skinnes = meshes.filter((m): m is SkinnedMesh => (m as SkinnedMesh).isSkinnedMesh === true);
 
-  if (manifeste) appliquerGabarit(base.scene, facteurs, manifeste.gabarit);
+  const gabarit = manifeste ? appliquerGabarit(base.scene, facteurs, manifeste) : null;
   if (entree.silhouettes) poserSilhouettes(base.scene, entree.silhouettes);
   base.scene.updateMatrixWorld(true);
 
@@ -152,7 +154,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const etirements: MesureDEtirement[] = [];
   const surfaces = manifeste ? surfacesDesPieds(base.skinnes.filter((m) => nomsDuCorps.includes(m.name)), manifeste.appuis.pieds) : [];
   const posesDesPieds: PoseDuPied[] = [];
-  for (const e of echantillonner(base.scene, meshes, clips, pas)) {
+  for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit)) {
     niveaux.push({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, nomsDuCorps) });
     etirements.push(mesurerEtirement(aretes, repos, e));
     if (manifeste && Object.prototype.hasOwnProperty.call(manifeste.appuis.vitessesAuSol, e.clip)) posesDesPieds.push(...poserPieds(e, surfaces, manifeste.gabarit.racine));

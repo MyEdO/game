@@ -1,0 +1,37 @@
+[
+  {
+    "id": "soldat",
+    "type": "presets-de-personnage",
+    "label": "Soldat",
+    "source": {
+      "book": "livre-de-base",
+      "page": 74,
+      "note": "Illustration LDB page076_img2492 : page 76 du PDF, folio imprimé 74 (`data-folio=\"74\"`, « 08 - Statut.md » l.1328). Carrière Soldat (`soldat-2`), dont les possessions donnent l’arme au choix, `heaume` et `plastron` (LDB 08 l.1366) ; l’arme est la `hallebarde` de l’illustration. La hallebarde est tenue `main`, car une arme à deux mains reste un seul objet attaché à sa main directrice (`hotes/godot/pont/CONTRAT.md`), alors que l’illustration la fait tenir par la main gauche, `off` : conflit relevé par le contrat de l’illustration (point ouvert « Main qui tient la hallebarde »). Le casque est l’objet `heaume` de la carrière, et non `heaume-ouvert`, alors que l’illustration montre un casque ouvert à joues : conflit relevé par le contrat de l’illustration (point ouvert « Casque `heaume` ou `heaume-ouvert` »). Le plastron est l’objet `plastron` de `soldat-2`. L’écu porté au dos est omis, car choisir un bouclier change l’objet de règle et la carrière n’en donne pas. Épaulières, brassards et tassettes sont omis, car aucun objet de la carrière ne les porte (conflit image ↔ règle). La tenue est `uniforme-de-soldat`, et les pièces ajoutées sont les accessoires de la garde-robe que son ensemble ne porte pas : `ruban`, `insigne`, `baudrier` et le `plumet` de l’illustration. Le `plumet` se pose sur l’emplacement `cimier`, qu’aucun élément de casque n’offre encore : c’est un manque d’élément. La bourse est omise, car la garde-robe n’en a aucune pièce : c’est un manque de donnée. La coiffure est omise, car la seule de la garde-robe, `crane-rase`, contredit les cheveux longs brun foncé de l’illustration. Le sexe est féminin, lecture du contrat (« traits lus féminins »). La corpulence est absente : le corps neutre. Aucune couleur n’est posée, bien que le contrat donne le teint et les cheveux, car la forme du preset ne porte aucune teinte : la teinte d’un objet attend #2966."
+    },
+    "race": {
+      "id": "humain"
+    },
+    "sex": "F",
+    "tete": {
+      "id": "humain"
+    },
+    "tenue": {
+      "id": "uniforme-de-soldat"
+    },
+    "pieces": [
+      "ruban",
+      "insigne",
+      "baudrier",
+      "plumet"
+    ],
+    "objets": [
+      "heaume",
+      "plastron"
+    ],
+    "prises": {
+      "main": {
+        "id": "hallebarde"
+      }
+    }
+  }
+]

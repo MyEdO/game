@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // L'IMPORT D'UN PERSONNAGE 3D MODULAIRE (#2948) : la commande de `importerPersonnage` (`asset/importer.ts`). Elle verse
 // le GLB et sa source dans la Release des modèles (`asset/release.ts`, par `gh`), sauf `--sans-publier`, puis dit les
-// fichiers écrits ; ou chaque refus, et sort alors en 1 sans rien publier ni écrire.
+// fichiers écrits et le rapport de l'index (`indexerModeles`), qui ne bloque rien ; ou chaque refus, et sort alors en 1
+// sans rien publier ni écrire.
 import { resolve } from 'node:path'
 import { chargerAssets } from './asset/charger.mjs'
 
@@ -49,6 +50,7 @@ if (resultat.ok) {
   console.log(`Publié dans la Release ${TAG} : ${resultat.publies.join(', ') || (args.publier ? 'rien, tout y était' : 'rien (--sans-publier)')}`)
   console.log(`Importé : ${resultat.ecrits.join(', ')}`)
   if (resultat.retires.length) console.log(`Retiré : ${resultat.retires.join(', ')}`)
+  if (resultat.rapport.length) console.warn(`Rapport, sans blocage :\n${resultat.rapport.map((r) => `  ${r}`).join('\n')}`)
   console.log(JSON.stringify(resultat.provenance, null, 2))
 } else {
   console.error(`Import refusé, rien n'est publié ni écrit :\n${resultat.refus.map((r) => `  ${r}`).join('\n')}`)

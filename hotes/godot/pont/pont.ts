@@ -4,7 +4,7 @@
  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
  * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend.
  */
-import { CLICS_DU_CHAMP, fenetreDAttaque, fenetreDeDefense, plateauDeLaScene, type FenetreDAttaque, type FenetreDeDefense, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DU_CHAMP, cataloguesDeComposition, fenetreDAttaque, fenetreDeDefense, lireComposition, plateauDeLaScene, presetDeComposition, type Composition, type FenetreDAttaque, type FenetreDeDefense, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -12,7 +12,8 @@ import { estObjet } from '../../../src/hote/formes';
 import { modelesDesCombattants, type CouvertureDesModeles } from './equipement';
 import { fenetreADessiner, type FenetreADessiner } from '../../../src/hote/gestes';
 import { panneauDuCombat, type PanneauDuCombat } from '../../../src/hote/ecran';
-import { modelesDeLAtelier } from './atelier';
+import { modelesDeLAtelier, type ModelesDeLAtelier } from './atelier';
+import { composerSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
@@ -60,6 +61,14 @@ const SANS_BORNE: BornesDeLaProjection = { autres: Infinity, offres: Infinity, c
 /** Les clés de l'entrée d'un geste : celles d'une offre, ou celles d'un verbe (`Geste`). */
 const clesDuGeste = (e: Record<string, unknown>): readonly string[] => ('offre' in e ? ['offre', 'ctx'] : ['type', 'args', 'siege']);
 
+/** La composition `brut` de `methode`, lue par le noyau (`lireComposition`) ; refusée en `validation`, chaque faute à son
+ *  chemin. */
+function compositionDe(methode: string, brut: unknown): Composition {
+  const lu = lireComposition(brut);
+  if (lu.ok) return lu.composition;
+  throw new ErreurDeGeste('validation', `${methode} : composition, ${lu.fautes.map(({ chemin, message }) => `${chemin.join('.') || '(racine)'} : ${message}`).join(' ; ')}`);
+}
+
 /** L'entrée d'une méthode : l'objet JSON de `json` (aucune entrée, ou `null` : `{}`), dont chaque clé est l'une de ses
  *  `cles`. */
 function entreeDe(methode: string, json: string | null | undefined, cles: readonly string[] | ((e: Record<string, unknown>) => readonly string[])): Record<string, unknown> {
@@ -82,6 +91,8 @@ function entreeDe(methode: string, json: string | null | undefined, cles: readon
 export function creerPont() {
   let ouverte: (PartieOuverte & { pas: number; lignes: number }) | null = null;
   const erreurs: ErreurGlobale[] = [];
+  /** Les manifestes et les modèles du dernier `modeles`, que `composer` lit. */
+  let atelier: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
 
   const demarree = () => {
     if (!ouverte) throw new ErreurDeGeste('validation', 'aucune partie : demarrer d’abord');
@@ -142,7 +153,28 @@ export function creerPont() {
       const e = entreeDe('modeles', json, ['manifestes', 'osDesRigides']);
       valider(estObjet(e.manifestes), 'modeles : manifestes, un objet id de modèle → manifeste');
       valider(estObjet(e.osDesRigides) && Object.values(e.osDesRigides).every(estListeDeChaines), 'modeles : osDesRigides, un objet id de modèle → os de ses meshes rigides');
-      return modelesDeLAtelier(e.manifestes as Record<string, unknown>, e.osDesRigides as Record<string, string[]>);
+      const manifestes = e.manifestes as Record<string, unknown>;
+      atelier = { manifestes, modeles: modelesDeLAtelier(manifestes, e.osDesRigides as Record<string, string[]>) };
+      return atelier.modeles;
+    },
+    composer(json) {
+      const e = entreeDe('composer', json, ['base', 'composition']);
+      valider(atelier !== null, 'composer : aucun modèle, appeler modeles d’abord');
+      const base = atelier!.modeles.bases.find((b) => b.id === e.base);
+      valider(base !== undefined, `composer : base, l’id d’une base servie par modeles (${atelier!.modeles.bases.map((b) => b.id).join(', ') || 'aucune'})`);
+      return composerSurLaBase(base!, atelier!.manifestes, compositionDe('composer', e.composition));
+    },
+    catalogues(json) {
+      entreeDe('catalogues', json, []);
+      return cataloguesDeComposition();
+    },
+    presetDeComposition(json) {
+      const e = entreeDe('presetDeComposition', json, ['composition', 'preset']);
+      const composition = compositionDe('presetDeComposition', e.composition);
+      valider(e.preset === undefined || typeof e.preset === 'string', 'presetDeComposition : preset, l’id d’un preset de catalogues');
+      const rendu = presetDeComposition(composition, e.preset as string | undefined);
+      if (!rendu.ok) throw new ErreurDeGeste('validation', `presetDeComposition : preset, l’id d’un preset de catalogues (${rendu.presets.join(', ')})`);
+      return rendu;
     },
     erreursGlobales(json) {
       entreeDe('erreursGlobales', json, []);
