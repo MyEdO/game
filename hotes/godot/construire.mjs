@@ -36,13 +36,14 @@ const PROJET = join(RACINE, 'hotes', 'godot', 'projet')
 const PONT = 'wfrp-pont.js'
 const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier>
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
+  --recette-skin-bind  la recette headless d’isolation des binds par instance, sur une copie importée
   --sonde             les GLB tirés de la Release des modèles, puis le projet importé, puis chaque script contrôlé, par l'éditeur Godot épinglé
   --export            le bundle et l'export Web du projet, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
   --sortie <dossier>  le dossier où les écrire (sans lui, --pont-seul n'écrit rien)
   GODOT=<binaire>     un éditeur Godot de la version épinglée, à la place du téléchargement (le modèle d'export n'en dépend pas)`
 
 /** Les modes : l'option qui choisit chacun. */
-const MODES = { '--pont-seul': 'pont', '--sonde': 'sonde', '--export': 'export' }
+const MODES = { '--pont-seul': 'pont', '--sonde': 'sonde', '--export': 'export', '--recette-skin-bind': 'skin-bind' }
 
 /** Les options de la ligne de commande, ou l'erreur qui les refuse. */
 function lireOptions(argv) {
@@ -55,6 +56,7 @@ function lireOptions(argv) {
   }
   if (!options.mode) return { erreur: `un mode attendu : ${Object.keys(MODES).join(', ')}` }
   if (options.mode === 'export' && !options.sortie) return { erreur: '--export attend --sortie <dossier>' }
+  if (options.mode === 'skin-bind' && options.sortie) return { erreur: '--recette-skin-bind n’écrit rien : --sortie hors de propos' }
   if (options.mode === 'sonde' && options.sortie) return { erreur: '--sonde n’écrit rien : --sortie hors de propos' }
   return { options }
 }
@@ -267,8 +269,13 @@ function scriptsDe(dossier, sous = dossier) {
 }
 
 /** Godot sur le projet `projet` : rend les lignes d'erreur de sa sortie, ou celle qui dit son code de sortie. */
-function godot(binaire, projet, args) {
+function godot(binaire, projet, args, afficher = false) {
   const r = spawnSync(binaire, ['--headless', '--path', projet, ...args], { encoding: 'utf8', timeout: 600_000, maxBuffer: 64 * 1024 * 1024 })
+  if (afficher) {
+    process.stdout.write(r.stdout ?? '')
+    process.stderr.write(r.stderr ?? '')
+    console.log(`[godot] code de sortie : ${r.status}`)
+  }
   const lignes = stripVTControlCharacters(`${r.stdout ?? ''}\n${r.stderr ?? ''}`).split('\n')
   const erreurs = lignes.filter((l) => /^(SCRIPT )?ERROR\b/.test(l.trim()))
   if (r.error) erreurs.push(`godot ${args.join(' ')} : ${r.error.message}`)
@@ -277,11 +284,11 @@ function godot(binaire, projet, args) {
 }
 
 /** Joue `faire(copie)` sur une copie du projet, importée par `binaire`, sous le dossier temporaire ; rend ses erreurs. */
-function surUneCopie(binaire, faire) {
+function surUneCopie(binaire, faire, afficher = false) {
   const copie = mkdtempSync(join(tmpdir(), 'wfrp-godot-'))
   try {
     cpSync(PROJET, copie, { recursive: true, filter: (source) => !source.split(sep).includes('.godot') })
-    const importees = godot(binaire, copie, ['--import'])
+    const importees = godot(binaire, copie, ['--import'], afficher)
     return importees.length ? importees : faire(copie)
   } finally {
     rmSync(copie, { recursive: true, force: true })
@@ -342,6 +349,11 @@ async function principal() {
     return 2
   }
   if (options.mode === 'pont') return pont(options.sortie)
+  if (options.mode === 'skin-bind') {
+    const binaire = await editeur()
+    console.log(`[godot] version : ${versionDe(binaire)}`)
+    return verdict(surUneCopie(binaire, (copie) => godot(binaire, copie, ['--script', 'res://recettes/skin-bind.gd'], true), true))
+  }
   if (options.mode === 'sonde') {
     await recupererModeles({ dossier: DOSSIER_DES_MODELES })
     return verdict(sonder(await editeur()))
