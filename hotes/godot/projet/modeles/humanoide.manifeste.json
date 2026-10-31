@@ -338,6 +338,20 @@
     "corpulence"
   ],
   "gabarit": {
+    "bornes": {
+      "legs": {
+        "min": 0.62,
+        "max": 1.12
+      },
+      "arms": {
+        "min": 1,
+        "max": 1.6
+      },
+      "head": {
+        "min": 1,
+        "max": 1.9
+      }
+    },
     "legs": [
       "thigh_l",
       "calf_l",
