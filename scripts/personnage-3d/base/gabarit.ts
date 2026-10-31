@@ -48,23 +48,29 @@ export function preparerGabarit(corps: CorpsDuGabarit) {
     if (!ws.length || ws.some(([os, w]) => !Number.isInteger(os) || os < 0 || os >= squelette.bones.length || !Number.isFinite(w) || w < 0)
       || Math.abs(ws.reduce((s, [, w]) => s + w, 0) - 1) > 1e-6) throw new Error('gabarit : poids invalides');
   }
-  const generiques = matricesDuGabarit(squelette, table, REFERENCE_DES_ANCRES);
+  for (const b of squelette.bones) b.updateWorldMatrix(true, false);
+  const peau = squelette.bones.map((b, i) => b.matrixWorld.clone().multiply(squelette.boneInverses[i]));
+  const inversesDesPeaux = peau.map((m) => m.clone().invert());
+  const relatives = (facteurs: GabaritResolu) => matricesDuGabarit(squelette, table, facteurs)
+    .map((m, i) => m.multiply(inversesDesPeaux[i]));
+  const generiques = relatives(REFERENCE_DES_ANCRES);
   const ancres = poids.map((ws) => {
     const portes = ws.filter(([, w]) => w > 0).map(([os]) => generiques[os]);
     return portes.every((m) => m.elements.every((x, c) => Math.abs(x - portes[0].elements[c]) < 1e-9));
   });
   const laplacien = preparerLaplacien(ancres, aretes);
-  const peau = squelette.bones.map((b, i) => b.matrixWorld.clone().multiply(squelette.boneInverses[i]));
-  const peauInverse = poids.map((ws) => combiner(peau, ws).invert());
+  const peaux = poids.map((ws) => combiner(peau, ws));
+  const peauInverse = peaux.map((m) => m.clone().invert());
 
   const resoudre = (facteurs: GabaritResolu, repos: readonly Vector3[] = positions): Vector3[] => {
     if (repos.length !== positions.length) throw new Error('gabarit : repos de taille incorrecte');
-    const k = matricesDuGabarit(squelette, table, facteurs);
+    const q = repos.map((p, i) => p.clone().applyMatrix4(peaux[i]));
+    const k = relatives(facteurs);
     const a = poids.map((ws) => combiner(k, ws));
-    const fixes = repos.map((p, i) => p.clone().applyMatrix4(a[i]));
+    const fixes = q.map((p, i) => p.clone().applyMatrix4(a[i]));
     const seconds = laplacien.libres.map(() => [0, 0, 0]);
     for (const [i, j] of aretes) {
-      const d = repos[i].clone().sub(repos[j]);
+      const d = q[i].clone().sub(q[j]);
       const e = lineaire(a[i], d).add(lineaire(a[j], d)).multiplyScalar(0.5);
       for (const [sommet, signe] of [[i, 1], [j, -1]]) {
         const r = laplacien.rang[sommet];

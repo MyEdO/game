@@ -11,7 +11,7 @@ import { empreinte } from '../empreinte.ts';
 import { chargerScene } from './chargement.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer, monter } from './evaluer.ts';
-import { appliquerGabarit, bindsAuGabarit, poserEnfantsDuGabarit, poserSilhouettes } from './gabarit.ts';
+import { appliquerGabarit, bindsAuGabarit, poserEnfantsDuGabarit, poserSilhouettes, reposerGabarit } from './gabarit.ts';
 import {
   CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FACTEURS_NEUTRES, FEMININ, marcheDeLaBase, nomDeCleDuGabarit, poidsDeCarrure, poidsDeSilhouettes, poidsDuGabarit, poseDuGabarit,
 } from '../gabarit.ts';
@@ -308,6 +308,17 @@ describe('gabarit', () => {
         Math.abs(valeur - (apres.get(nom)?.elements[i] ?? Infinity)))));
       expect.soft(ecart, sortie).toBeLessThan(1e-9);
     }
+  });
+
+  it('refuse de reposer un gabarit sans pied avant de jouer ou de modifier la pose', () => {
+    const { scene } = jambes();
+    const gabarit = appliquerGabarit(scene, FACTEURS_NEUTRES, GABARIT_DES_JAMBES);
+    const avant = poseDeRepos(scene, []).os;
+    let joue = false;
+    expect(() => reposerGabarit({ ...gabarit, pieds: [] }, () => { joue = true; }))
+      .toThrow('reposerGabarit : pieds vides, au moins un pied attendu');
+    expect(joue).toBe(false);
+    expect(poseDeRepos(scene, []).os).toEqual(avant);
   });
 
   it('`st` pose une seule shape key de carrure, bornée à 1', () => {
@@ -625,6 +636,18 @@ describe('validerManifesteDeBase', () => {
     const m = valide();
     const verdict = validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, bornes } }, octets);
     expect(verdict).toEqual({ ok: false, ecarts: [{ code: 'forme', ou, detail }] });
+  });
+
+  it.each([
+    { min: 0.7, max: Infinity }, { min: -Infinity, max: 1.3 },
+    { min: Number.NaN, max: 1.3 }, { min: 0.7, max: Number.NaN },
+    { min: -Infinity, max: Infinity },
+  ])('refuse une plage non finie avec un seul écart (%j)', (plage) => {
+    const m = valide();
+    const bornes = { ...TABLE.bornes, legs: plage };
+    expect(validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, bornes } }, octets)).toEqual({
+      ok: false, ecarts: [{ code: 'forme', ou: 'gabarit.bornes.legs', detail: 'min et max : nombres finis attendus' }],
+    });
   });
 
   it.each([

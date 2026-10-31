@@ -147,9 +147,11 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
       forme(ou, 'objet attendu');
       return { min: 1, max: 1 };
     }
-    const min = nombre(plage.min, `${ou}.min`);
-    const max = nombre(plage.max, `${ou}.max`);
-    if (typeof plage.min === 'number' && typeof plage.max === 'number') {
+    const min = typeof plage.min === 'number' ? plage.min : 0;
+    const max = typeof plage.max === 'number' ? plage.max : 0;
+    if (typeof plage.min !== 'number' || !Number.isFinite(min) || typeof plage.max !== 'number' || !Number.isFinite(max)) {
+      forme(ou, 'min et max : nombres finis attendus');
+    } else {
       const faute = fauteDeBornesDuGabarit({ min, max });
       if (faute) forme(ou, faute);
     }

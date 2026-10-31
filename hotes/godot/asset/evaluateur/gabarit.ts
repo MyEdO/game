@@ -93,6 +93,7 @@ export function bindsAuGabarit(squelette: Skeleton, pose: Pick<PoseDuGabarit, 'e
  *  pose jouée (`hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base »). */
 export function reposerGabarit(gabarit: GabaritPose, jouer: () => void): void {
   const { scene, racine, pieds } = gabarit;
+  if (!pieds.length) throw new Error('reposerGabarit : pieds vides, au moins un pied attendu');
   racine.scale.copy(gabarit.nonModifiee.echelle);
   racine.position.copy(gabarit.nonModifiee.position);
   gabarit.enfants.forEach(([enfant], i) => enfant.position.copy(gabarit.nonModifiee.enfants[i]));

@@ -115,11 +115,27 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
     expect(() => h5.cuire('legs', 'plus', { nom: 'tronquee', deltas: [] })).toThrow(/tronquee.*deltas de taille incorrecte/);
   });
 
-  it.each([false, true])('additionne les clés cuites et croisées comme H5 direct, bind affine commun décalé %s, à 1e-5 m', (bindDecale) => {
+  it.each(['repos', 'affine commun', 'propre à chaque os'] as const)('additionne les clés cuites et croisées comme H5 direct, bind %s, à 1e-5 m', (bind) => {
     const c = jouet();
-    const peau = bindDecale ? new Matrix4().makeRotationZ(0.37).setPosition(0.14, -0.08, 0.03) : new Matrix4();
-    if (bindDecale) c.squelette.boneInverses = c.squelette.bones.map((b) => b.matrixWorld.clone().invert().multiply(peau));
+    if (bind === 'affine commun') {
+      const peau = new Matrix4().makeRotationZ(0.37).setPosition(0.14, -0.08, 0.03);
+      c.squelette.boneInverses = c.squelette.bones.map((b) => b.matrixWorld.clone().invert().multiply(peau));
+    } else if (bind === 'propre à chaque os') {
+      c.squelette.boneInverses = c.squelette.bones.map((b, i) =>
+        b.matrixWorld.clone().multiply(new Matrix4().makeRotationZ(0.1 * i).setPosition(0.01 * i, 0, 0)).invert());
+    }
+    const peauxDesOs = c.squelette.bones.map((b, i) => b.matrixWorld.clone().multiply(c.squelette.boneInverses[i]));
+    const peaux = c.poids.map((ws) => {
+      const p = new Matrix4();
+      p.elements.fill(0);
+      for (const [os, w] of ws) for (let j = 0; j < 16; j++) p.elements[j] += peauxDesOs[os].elements[j] * w;
+      return p;
+    });
     const h5 = preparerGabarit(c);
+    const neutre = h5.resoudre(FACTEURS_NEUTRES);
+    const ecartNeutre = Math.max(...neutre.map((p, i) => p.distanceTo(c.positions[i].clone().applyMatrix4(peaux[i]))));
+    console.info('H5 max |neutre - peau de repos| m', bind, ecartNeutre);
+    expect(ecartNeutre, bind).toBeLessThanOrEqual(1e-5);
     const cles = CLES_DU_GABARIT.flatMap((cle) => (['moins', 'plus'] as const).flatMap((sens) =>
       BORNES[cle][sens === 'moins' ? 'min' : 'max'] === 1 ? [] : [
         h5.cuire(cle, sens), ...c.silhouettes.map((s) => h5.cuire(cle, sens, s)),
@@ -133,11 +149,12 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
       { legs: 0.66, arms: 1.3, head: 1.9 }, { legs: 0.7, arms: 1.6, head: 1.4 },
       { legs: 1, arms: 1.6, head: 1 }, { legs: 1, arms: 1, head: 1.9 },
       { legs: 1, arms: 1, head: 1 }, { legs: 1.6, arms: 1.8, head: 2.1 },
+      { legs: 1.2, arms: 1, head: 1 }, { legs: 1, arms: 1.3, head: 1 }, { legs: 0.8, arms: 1, head: 1 },
     ];
     for (const etat of etats) {
       const facteurs = { ...FACTEURS_NEUTRES, ...etat };
       const poids = poidsDuGabarit(facteurs, BORNES, poidsSilhouettes);
-      const additionnes = repos.map((p, i) => cles.reduce((v, cle) => v.addScaledVector(cle.deltas[i], poids[cle.nom]), p.clone()).applyMatrix4(peau));
+      const additionnes = repos.map((p, i) => cles.reduce((v, cle) => v.addScaledVector(cle.deltas[i], poids[cle.nom]), p.clone()).applyMatrix4(peaux[i]));
       const direct = h5.resoudre(facteurs, repos);
       const max = Math.max(...additionnes.map((p, i) => p.distanceTo(direct[i])));
       console.info('H5 max |cles - direct| m', JSON.stringify(etat), max);

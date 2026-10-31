@@ -16,6 +16,11 @@ const CATALOGUE_DES_EXTREMES = {
 const trouver = (id: (typeof gabarits)[number]['id']) => CATALOGUE_DES_EXTREMES.gabarits.find((g) => g.id === id);
 
 describe('domaine de la composition 3D (#3104)', () => {
+  it('refuse un catalogue sans race en nommant le domaine', () => {
+    expect(() => domaineDuGabarit({ ...CATALOGUE_DES_EXTREMES, races: [] }))
+      .toThrow('domaineDuGabarit : catalogue sans race');
+  });
+
   it('enveloppe exactement les gabarits et les races, dont les extrêmes sont nommés', () => {
     const bornes = domaineDuGabarit(CATALOGUE_DES_EXTREMES);
     expect(bornes).toEqual({ legs: { min: 0.4, max: 1.9 }, arms: { min: 0.5, max: 2.2 }, head: { min: 0.5, max: 2 } });

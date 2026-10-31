@@ -9,6 +9,7 @@ export function domaineDuGabarit(catalogue: {
   readonly gabarits: readonly (typeof gabarits)[number][];
   readonly races: readonly RaceDuGabarit[];
 } = { gabarits, races: raceAppearance }): BornesDuGabarit {
+  if (!catalogue.races.length) throw new Error('domaineDuGabarit : catalogue sans race');
   const trouver = (id: (typeof gabarits)[number]['id']) => catalogue.gabarits.find((g) => g.id === id);
   const facteurs = catalogue.races.flatMap((race) => [undefined, ...catalogue.gabarits.map((g) => g.id)]
     .map((gabarit) => facteursDeComposition(gabarit, race, trouver)));
