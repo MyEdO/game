@@ -196,7 +196,7 @@ class ContraintesLiees(AnneauIndetectable):
 
 
 class ComposanteSansAppui(AnneauIndetectable):
-    """Une composante connexe de nœuds libres n'a aucune arête vers un nœud fixe (`sans_appui`) : le laplacien des
+    """Une composante connexe de nœuds libres n'a aucune arête vers un nœud fixe (`preparerLaplacien`, `construction/laplacien.ts`) : le laplacien des
     nœuds libres, que `correction` résout, est singulier."""
     RAISON = "composante de nœuds libres sans arête vers un nœud fixe, laplacien singulier"
 
@@ -215,24 +215,6 @@ def liees(contraintes, etiquettes):
     nulles = numpy.linalg.svd(contraintes, full_matrices=k > contraintes.shape[1])[0][:, rang:]
     seuil = max(contraintes.shape) * numpy.finfo(contraintes.dtype).eps
     return list(dict.fromkeys(e for e, poids in zip(etiquettes, numpy.abs(nulles).max(axis=1)) if poids > seuil))
-
-
-def sans_appui(m, internes, appuyes):
-    """Les composantes connexes des nœuds libres `0..m-1`, par les arêtes `internes` (couples de tableaux de rangs,
-    origine et extrémité, dans chaque sens), qui ne contiennent aucun nœud de `appuyes` : un tableau de rangs par
-    composante."""
-    composante = numpy.arange(m)
-    while True:
-        avant = composante.copy()
-        for de, vers in internes:
-            numpy.minimum.at(composante, de, composante[vers])
-        composante = composante[composante]
-        if (composante == avant).all():
-            break
-    appuyee = numpy.zeros(m, dtype=bool)
-    appuyee[composante[appuyes]] = True
-    racines = numpy.flatnonzero((composante == numpy.arange(m)) & ~appuyee)
-    return [numpy.flatnonzero(composante == r) for r in racines]
 
 
 def anneaux(squelette, corps, x, w, noms):
@@ -267,21 +249,13 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     n = len(reps)
     fixes = numpy.zeros(n, dtype=bool)
     numpy.logical_or.at(fixes, noeud, fixe)
-    libres = numpy.flatnonzero(~fixes)
-    m = len(libres)
-    rang = numpy.full(n, -1)
-    rang[libres] = numpy.arange(m)
     bouts = numpy.searchsorted(reps, aretes)
-    laplacien = numpy.zeros((m, m))
-    bord, internes = [], []
-    for de, vers in ((bouts[:, 0], bouts[:, 1]), (bouts[:, 1], bouts[:, 0])):
-        p, q = rang[de], rang[vers]
-        numpy.add.at(laplacien, (p[p >= 0], p[p >= 0]), 1.0)
-        interne = (p >= 0) & (q >= 0)
-        numpy.add.at(laplacien, (p[interne], q[interne]), -1.0)
-        internes.append((p[interne], q[interne]))
-        bord.append((p[(p >= 0) & (q < 0)], vers[(p >= 0) & (q < 0)]))
-    isolees = sans_appui(m, internes, numpy.concatenate([p for p, _ in bord]))
+    graphe = {'fixes': fixes.tolist(), 'aretes': bouts.tolist()}
+    laplacien = json.loads(lancer(ICI / 'laplacien.mjs', [], json.dumps(graphe)))
+    libres = numpy.array(laplacien['libres'], dtype=int)
+    m = len(libres)
+    bord = laplacien['bord']
+    isolees = laplacien['isolees']
     if isolees:
         raise ComposanteSansAppui(', '.join(f'{len(c)} nœud(s) libre(s) du sommet {reps[libres[c[0]]]}'
                                             for c in isolees))
@@ -318,13 +292,15 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
             raise ContraintesLiees(', '.join(dependantes))
         valeurs = [aux_noeuds(champ, noeud) for champ, _ in champs]
         seconds = numpy.zeros((m, len(valeurs), 3))
-        for (p, f) in bord:
+        for p, f in bord:
             for k, valeur in enumerate(valeurs):
-                numpy.add.at(seconds[:, k], p, -valeur[f])
+                seconds[p, k] -= valeur[f]
         k_contraintes = len(contraintes)
-        resolu = numpy.linalg.solve(laplacien, numpy.concatenate(
+        seconds = numpy.concatenate(
             [contraintes.reshape(k_contraintes, 3, m).transpose(2, 0, 1).reshape(m, 3 * k_contraintes),
-             seconds.reshape(m, 3 * len(valeurs))], axis=1))
+             seconds.reshape(m, 3 * len(valeurs))], axis=1)
+        resolu = numpy.array(json.loads(lancer(ICI / 'laplacien.mjs', [],
+                                               json.dumps({**graphe, 'seconds': seconds.tolist()})))).reshape(seconds.shape)
         z = resolu[:, :k_contraintes * 3].reshape(m, k_contraintes, 3).transpose(1, 2, 0).reshape(k_contraintes, 3 * m)
         libres_seuls = resolu[:, k_contraintes * 3:].reshape(m, len(valeurs), 3)
         retenues = {vise: (contraintes, z) if vise else (contraintes[:-1], z[:-1]) for vise in vises}

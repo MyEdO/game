@@ -6,7 +6,7 @@
  */
 import type { GabaritResolu, Sexe } from '../../../src/noyau/index.ts';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence.ts';
-import { CLES_DU_GABARIT, PREFIXE_DES_CLES_DU_GABARIT, type ManifesteDeBase, type TableDeGabarit } from './manifesteDeBase.ts';
+import { CLES_DU_GABARIT, PREFIXE_DES_CLES_DU_GABARIT, type BornesDuGabarit, type ManifesteDeBase, type TableDeGabarit } from './manifesteDeBase.ts';
 
 export const FACTEURS_NEUTRES: GabaritResolu = Object.freeze({ sl: 1, legs: 1, arms: 1, head: 1, st: 1 });
 
@@ -19,7 +19,7 @@ const borne = (x: number): number => Math.min(1, Math.max(0, x));
 
 export type CleDuGabarit = typeof CLES_DU_GABARIT[number];
 export type SensDuGabarit = 'moins' | 'plus';
-export type BornesDuGabarit = Readonly<Record<CleDuGabarit, TableDeGabarit['st']>>;
+export type { BornesDuGabarit } from './manifesteDeBase.ts';
 
 export const nomDeCleDuGabarit = (cle: CleDuGabarit, sens: SensDuGabarit, silhouette?: string): string =>
   `${PREFIXE_DES_CLES_DU_GABARIT}${cle}_${sens}${silhouette === undefined ? '' : `_${silhouette}`}`;
@@ -29,9 +29,10 @@ export function poidsDuGabarit(facteurs: GabaritResolu, bornes: BornesDuGabarit,
   const poids: Record<string, number> = {};
   for (const cle of CLES_DU_GABARIT) {
     const { min, max } = bornes[cle];
-    if (!(Number.isFinite(min) && Number.isFinite(max) && min < 1 && max > 1)) throw new Error(`gabarit.${cle} : min < 1 < max attendu`);
+    if (!(Number.isFinite(min) && Number.isFinite(max) && min > 0 && min <= 1 && max >= 1)) throw new Error(`gabarit.${cle} : 0 < min <= 1 <= max attendu`);
     for (const sens of ['moins', 'plus'] as const) {
-      const p = Math.max(0, (facteurs[cle] - 1) / ((sens === 'moins' ? min : max) - 1));
+      const extremite = sens === 'moins' ? min : max;
+      const p = extremite === 1 ? 0 : Math.max(0, (facteurs[cle] - 1) / (extremite - 1));
       poids[nomDeCleDuGabarit(cle, sens)] = p;
       for (const [silhouette, w] of Object.entries(silhouettes)) poids[nomDeCleDuGabarit(cle, sens, silhouette)] = w * p;
     }

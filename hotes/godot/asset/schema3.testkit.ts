@@ -31,7 +31,7 @@ export const GLB_D_ELEMENT = glbDElement('root');
 const attache = { os: 'root', position: [0, 0, 0], rotation: [0, 0, 0] };
 export const baseSchema3 = (base = 'humanoide') => ({
   schema: 3, base, os: ['root'], chaines: {}, zones: [], emplacements: {}, prises: { main: attache, off: attache }, silhouettes: [],
-  gabarit: { legs: [], arms: [], head: [], racine: 'root', st: { min: 0.8, max: 1.2 } },
+  gabarit: { legs: [], arms: [], head: [], racine: 'root', st: { min: 0.8, max: 1.2 }, bornes: { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } } },
   porteur: { race: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
   appuis: { pieds: ['root'], vitessesAuSol: { walk: 1 } }, osAPositionAnimee: [], glb: empreinte(GLB_DE_BASE),
 });

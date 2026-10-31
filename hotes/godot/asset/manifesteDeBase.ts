@@ -13,7 +13,10 @@ export const VERSION_DU_SCHEMA_DE_BASE = 3;
 export const CLES_DU_GABARIT = ['legs', 'arms', 'head'] as const;
 export const PREFIXE_DES_CLES_DU_GABARIT = 'gabarit_';
 
+export type BornesDuGabarit = Readonly<Record<typeof CLES_DU_GABARIT[number], { readonly min: number; readonly max: number }>>;
+
 export interface TableDeGabarit {
+  readonly bornes: BornesDuGabarit;
   readonly legs: readonly string[];
   readonly arms: readonly string[];
   readonly head: readonly string[];
@@ -128,7 +131,16 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   for (const nom of silhouettes) if (nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT)) forme('silhouettes', `${nom} est une clé de gabarit, pas une silhouette`);
   const g = objet(brut.gabarit, 'gabarit');
   const st = objet(g.st, 'gabarit.st');
+  const b = objet(g.bornes, 'gabarit.bornes');
+  const bornes = Object.fromEntries(CLES_DU_GABARIT.map((cle) => {
+    const plage = objet(b[cle], `gabarit.bornes.${cle}`);
+    const min = nombre(plage.min, `gabarit.bornes.${cle}.min`);
+    const max = nombre(plage.max, `gabarit.bornes.${cle}.max`);
+    if (!(min > 0 && min <= 1 && max >= 1)) forme(`gabarit.bornes.${cle}`, `bornes ${min} et ${max} : 0 < min <= 1 <= max attendu`);
+    return [cle, { min, max }];
+  })) as unknown as BornesDuGabarit;
   const gabarit: TableDeGabarit = {
+    bornes,
     legs: liste(g.legs, 'gabarit.legs'), arms: liste(g.arms, 'gabarit.arms'), head: liste(g.head, 'gabarit.head'),
     racine: chaine(g.racine, 'gabarit.racine'),
     st: { min: nombre(st.min, 'gabarit.st.min'), max: nombre(st.max, 'gabarit.st.max') },

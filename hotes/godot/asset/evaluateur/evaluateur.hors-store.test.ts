@@ -1,10 +1,15 @@
 // L'évaluateur d'une base 3D et de ses éléments (#2972) : chargement sans DOM, manifeste de base, gabarit, échantillonnage, gardes.
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   AnimationClip, Bone, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
   Matrix4, QuaternionKeyframeTrack, Uint16BufferAttribute, Vector3, VectorKeyframeTrack,
 } from 'three';
+import { domaineDuGabarit, multiplicateursDeJambes } from '../construction/domaineDuGabarit.ts';
 import { tableTotale } from '../../../../src/lib/tableTotale';
 import { ecrireGlb, lireGlb } from '../glb.ts';
 import { empreinte } from '../empreinte.ts';
@@ -25,7 +30,7 @@ import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids, INFLUENCES_MAX } from './gardes/poids.ts';
 import { anneauLePlusEpais, anneauxArticulaires, mesurerSilhouettes, sectionsDeRepos, sousLesFormes, TOLERANCE_EPAISSEUR } from './gardes/silhouettes.ts';
 
-const TABLE = { legs: ['racine'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 } };
+const TABLE: TableDeGabarit = { legs: ['racine'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 }, bornes: { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } } };
 /** Le gabarit et les appuis d'un manifeste de base, pieds `pieds`. */
 const gabaritEtAppuis = (gabarit: TableDeGabarit, pieds: readonly string[] = ['racine']) => ({ gabarit, appuis: { pieds, vitessesAuSol: {} } });
 
@@ -354,7 +359,7 @@ describe('gabarit', () => {
       }
       expect(Object.values(poids).every((p) => p >= 0)).toBe(true);
     }
-    expect(() => poidsDuGabarit(FACTEURS_NEUTRES, { ...bornes, head: { min: 1, max: 2 } }, silhouettes)).toThrow('gabarit.head');
+    expect(() => poidsDuGabarit(FACTEURS_NEUTRES, { ...bornes, head: { min: 1.1, max: 2 } }, silhouettes)).toThrow('gabarit.head');
   });
 
   it('`poserEnfantsDuGabarit` multiplie le Y local seul', () => {
@@ -585,6 +590,48 @@ describe('validerManifesteDeBase', () => {
     const verdict = validerManifesteDeBase(brut, octets);
     return verdict.ok ? [] : verdict.ecarts.map((e) => e.code);
   };
+
+  it('lit les multiplicateurs déclarés sans exécuter les éléments et refuse un legs non littéral', () => {
+    const dossier = mkdtempSync(join(tmpdir(), 'wfrp-domaine-gabarit-'));
+    try {
+      const entree = join(dossier, 'jouet.ts');
+      const url = pathToFileURL(`${dossier}/`);
+      writeFileSync(entree, "throw new Error('ne doit pas être exécuté'); export const element = { legs: 0.75 };");
+      expect(multiplicateursDeJambes(url)).toEqual([0.75]);
+      for (const declaration of ['legs: 0.5 + 0.25', 'legs']) {
+        writeFileSync(entree, `export const element = { ${declaration} };`);
+        expect(() => multiplicateursDeJambes(url)).toThrow(/jouet\.ts : element\.legs doit être un nombre littéral/);
+      }
+    } finally {
+      rmSync(dossier, { recursive: true, force: true });
+    }
+  });
+
+  it('accepte les bornes cuites issues du domaine déclaré, y compris un demi-domaine neutre', () => {
+    const m = valide();
+    const bornes = domaineDuGabarit();
+    expect(multiplicateursDeJambes().every((f) => f > 0 && Number.isFinite(f))).toBe(true);
+    expect(validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, bornes } }, octets).ok).toBe(true);
+    const poids = poidsDuGabarit({ ...FACTEURS_NEUTRES, arms: 1.2, head: 1.4 }, { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } }, { feminin: 0.5 });
+    expect(poids.gabarit_arms_moins).toBe(0);
+    expect(poids.gabarit_head_moins).toBe(0);
+    expect(poids.gabarit_arms_moins_feminin).toBe(0);
+    expect(Object.values(poids).every(Number.isFinite)).toBe(true);
+  });
+
+  it.each([
+    undefined, {},
+    { legs: { min: 0, max: 1.3 }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
+    { legs: { min: 1.1, max: 1.3 }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
+    { legs: { min: 0.7, max: 0.9 }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
+    { legs: { min: 0.7, max: Infinity }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
+    { legs: { min: '0.7', max: 1.3 }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
+  ])('refuse des bornes de gabarit absentes ou invalides (%j)', (bornes) => {
+    const m = valide();
+    const verdict = validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, bornes } }, octets);
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) expect(verdict.ecarts.some((e) => e.ou.startsWith('gabarit.bornes'))).toBe(true);
+  });
 
   it('accepte le manifeste qui décrit le GLB', () => {
     expect(validerManifesteDeBase(valide(), octets).ok).toBe(true);

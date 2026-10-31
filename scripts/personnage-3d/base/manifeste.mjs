@@ -5,6 +5,7 @@
 //   `osAPositionAnimee` ;
 // - déclaré par le corps (`<declaration.json>`) : `base`, `porteur`, et les clips de marche ;
 // - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitessesAuSol`, une par clip de marche ;
+// - lu au domaine déclaré (`domaineDuGabarit`) : `gabarit.bornes` ;
 // - pris au GLB : `glb.sha256` et `glb.octets`.
 // `--licence-<pack>` nomme le texte de licence de chaque pack, lu dans le pack. `--verifier` juge la déclaration, le
 // dossier de sortie et les textes de licence sans rien lire ni écrire d'autre : la construction le joue avant Blender.
@@ -13,7 +14,7 @@
 import { readFileSync } from 'node:fs'
 import { text } from 'node:stream/consumers'
 import { parseArgs } from 'node:util'
-import { chargerEvaluateur } from '../../../hotes/godot/asset/charger.mjs'
+import { chargerAssets, chargerEvaluateur } from '../../../hotes/godot/asset/charger.mjs'
 import { empreinte } from '../../../hotes/godot/asset/empreinte.ts'
 import { validerManifesteDeBase, VERSION_DU_SCHEMA_DE_BASE } from '../../../hotes/godot/asset/manifesteDeBase.ts'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
@@ -55,9 +56,12 @@ async function main() {
     return
   }
   const construit = JSON.parse(await text(process.stdin))
+  const { domaineDuGabarit } = await chargerAssets(["export { domaineDuGabarit } from '/hotes/godot/asset/construction/domaineDuGabarit.ts';"])
+  const bornes = domaineDuGabarit()
   const octets = readFileSync(cheminGlb)
   const manifeste = (vitessesAuSol) => ({
     schema: VERSION_DU_SCHEMA_DE_BASE, base, ...construit,
+    gabarit: { ...construit.gabarit, bornes },
     porteur,
     appuis: { ...construit.appuis, vitessesAuSol },
     glb: empreinte(octets),
