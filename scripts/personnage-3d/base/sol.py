@@ -63,7 +63,7 @@ import bpy
 import numpy
 from mathutils import Matrix, Quaternion, Vector
 
-from anatomie import AXES_DU_PERSONNAGE, gabarit
+from anatomie import AXES_DU_PERSONNAGE
 from animation import assign_action
 from pistes import aller_a, sacs
 from poids import LOT, cadence, deformer, instants, peau_lineaire, poses, repos
@@ -435,11 +435,10 @@ def flexion(u, v, axe, distance):
     return min((math.remainder(phase + ecart, math.tau), math.remainder(phase - ecart, math.tau)), key=abs)
 
 
-def jambe(rig, pied):
+def jambe(rig, pied, segments):
     """La hanche et le genou de la jambe de `pied` : son grand-parent et son parent, tous deux segments de jambe du
-    gabarit (`anatomie.gabarit`), sans quoi la construction s'arrête : `tendre` pivote la jambe à la tête de l'un et la
+    gabarit reçus dans `segments`, sans quoi la construction s'arrête : `tendre` pivote la jambe à la tête de l'un et la
     fléchit à celle de l'autre."""
-    segments = gabarit(rig)['legs']
     genou = rig.data.bones[pied].parent
     hanche = genou.parent if genou else None
     if hanche is None or genou.name not in segments or hanche.name not in segments:
@@ -486,13 +485,13 @@ def tendre(rig, chaine, cible):
         raise RuntimeError(f'{pied} : IK à {(os_pied.head - cible).length:.6f} m de sa cible')
 
 
-def tendre_les_jambes(rig, action, decalages):
+def tendre_les_jambes(rig, action, decalages, segments):
     """Déplace la tête de chaque pied de `decalages[pied][k]`, repère monde, à chaque instant k de `action`, par
     `tendre` ; réécrit les rotations de hanche, genou et pied des jambes touchées."""
     scene = bpy.context.scene
     assign_action(rig, action)
     vers_armature = rig.matrix_world.inverted().to_3x3()
-    chaines = {pied: (*jambe(rig, pied), pied) for pied in decalages}
+    chaines = {pied: (*jambe(rig, pied, segments), pied) for pied in decalages}
     for nom in (n for chaine in chaines.values() for n in chaine):
         if rig.pose.bones[nom].rotation_mode != 'QUATERNION':
             raise RuntimeError(f'{nom} : rotation {rig.pose.bones[nom].rotation_mode}, QUATERNION attendue')
@@ -598,17 +597,18 @@ def descente_a_portee(hanches, tetes, decalages, allonge):
     return descente
 
 
-def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, racine, pelvis, marches):
+def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, table, pelvis, marches):
     """Pose au sol chaque clip de `clips` joué sur les peaux `peaux` du rig, contre `sources` (`bas_des_sources`) ;
     plante les pieds `pieds` des clips de `marches`, sur leurs surfaces (`surfaces_des_pieds`). Le corps se tient au sol au
     pire coin des shape keys des peaux (`bas`), dont aucune ne déplace un pied (`garder_les_pieds`)."""
+    racine, segments = table['racine'], table['legs']
     noms = [b.name for b in rig.data.bones]
     indice = {nom: i for i, nom in enumerate(noms)}
     x, w, cles_de_forme, d = empiler(peaux, noms)
     surfaces = surfaces_des_pieds(rig, w, pieds)
     garder_les_pieds(cles_de_forme, d, surfaces)
     hors_pieds = ~numpy.logical_or.reduce(list(surfaces.values()))
-    hanche = {pied: jambe(rig, pied)[0] for pied in pieds}
+    hanche = {pied: jambe(rig, pied, segments)[0] for pied in pieds}
     inverses = repos(rig)
     geo = geometrie(rig, w, x, d)
     avant = numpy.array(AXES_DU_PERSONNAGE.col[2])[:2]
@@ -649,7 +649,7 @@ def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, racine, pelvis, ma
             decaler_le_pelvis(rig, action, pelvis, montees)
             decalages = {pied: d for pied, d in decalages.items() if d.any()}
             if decalages:
-                tendre_les_jambes(rig, action, decalages)
+                tendre_les_jambes(rig, action, decalages, segments)
             fleche, garantis, hauteurs = plus_bas_garanti(rig, action, w, x, d, inverses, geo)
             garder_les_instants(action, temps, hauteurs)
             coupes = numpy.flatnonzero(garantis < -SOL_TOLERANCE_M)

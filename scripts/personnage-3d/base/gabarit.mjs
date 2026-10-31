@@ -3,13 +3,12 @@ import { Bone, Matrix4, Skeleton, Vector3 } from 'three'
 import { chargerAssets } from '../../../hotes/godot/asset/charger.mjs'
 
 const entree = JSON.parse(await text(process.stdin))
-const { preparerGabarit, domaineDuGabarit, FACTEURS_NEUTRES, poidsDuGabarit, poidsDeSilhouettes, CLES_DU_GABARIT, BUILD_NEUTRE, tableTotale } = await chargerAssets([
+const { preparerGabarit, domaineDuGabarit, FACTEURS_NEUTRES, FEMININ, CORPULENCE, CARRURE_MOINS, CARRURE_PLUS, poidsDuGabarit, poidsDeSilhouettes, sensCuitsDuGabarit, CLES_DU_GABARIT, BUILD_NEUTRE } = await chargerAssets([
   "export { preparerGabarit } from '/scripts/personnage-3d/base/gabarit.ts';",
   "export { domaineDuGabarit } from '/scripts/personnage-3d/base/domaineDuGabarit.ts';",
-  "export { FACTEURS_NEUTRES, poidsDuGabarit, poidsDeSilhouettes } from '/hotes/godot/asset/gabarit.ts';",
+  "export { FACTEURS_NEUTRES, FEMININ, CORPULENCE, CARRURE_MOINS, CARRURE_PLUS, poidsDuGabarit, poidsDeSilhouettes, sensCuitsDuGabarit } from '/hotes/godot/asset/gabarit.ts';",
   "export { CLES_DU_GABARIT } from '/hotes/godot/asset/manifesteDeBase.ts';",
   "export { BUILD_NEUTRE } from '/src/lib/corpulence.ts';",
-  "export { tableTotale } from '/src/lib/tableTotale.ts';",
 ])
 if (entree.operation === 'bornes') {
   process.stdout.write(JSON.stringify(domaineDuGabarit()))
@@ -28,36 +27,40 @@ if (entree.operation === 'bornes') {
   const solveur = preparerGabarit({ positions, aretes: corps.aretes, poids: corps.poids, squelette, table })
   const silhouettes = corps.silhouettes.map((s) => ({ nom: s.nom, deltas: s.deltas.map((p) => new Vector3(...p)) }))
   const sorties = []
-  const bornes = []
-  for (const cle of CLES_DU_GABARIT) for (const sens of ['moins', 'plus']) {
-    const f = table.bornes[cle][sens === 'moins' ? 'min' : 'max']
-    if (f === 1) continue
-    bornes.push({ nom: `${cle}_${sens}`, cle, f })
+  const sensCuits = sensCuitsDuGabarit(table.bornes)
+  for (const { cle, sens } of sensCuits) {
     for (const silhouette of [undefined, ...silhouettes]) {
       const cuit = solveur.cuire(cle, sens, silhouette)
       sorties.push({ nom: cuit.nom, deltas: cuit.deltas.map((p) => p.toArray()) })
     }
   }
-  const neutre = { sex: 'M', build: BUILD_NEUTRE, st: 1 }
+  const neutre = { sex: 'M', build: BUILD_NEUTRE, st: FACTEURS_NEUTRES.st }
   const choix = [
     { nom: 'neutre', ...neutre },
-    { nom: 'feminin', ...neutre, sex: 'F' },
-    { nom: 'corpulence', ...neutre, build: 1 },
-    { nom: 'carrure_moins', ...neutre, st: table.st.min },
-    { nom: 'carrure_plus', ...neutre, st: table.st.max },
+    { nom: FEMININ, ...neutre, sex: 'F' },
+    { nom: CORPULENCE, ...neutre, build: 1 },
+    { nom: CARRURE_MOINS, ...neutre, st: table.st.min },
+    { nom: CARRURE_PLUS, ...neutre, st: table.st.max },
   ].filter((s) => s.nom === 'neutre' || silhouettes.some((c) => c.nom === s.nom))
   const etats = []
-  for (const b of bornes) {
-    for (const s of choix) etats.push({ nom: `${b.nom}__${s.nom}`, facteurs: { ...FACTEURS_NEUTRES, [b.cle]: b.f }, silhouette: s })
-    etats.push({ nom: `${b.nom}__milieu`, facteurs: { ...FACTEURS_NEUTRES, [b.cle]: (1 + b.f) / 2 }, silhouette: neutre })
+  for (const b of sensCuits) {
+    const nom = `${b.cle}_${b.sens}`
+    for (const s of choix) etats.push({ nom: `${nom}__${s.nom}`, pointCuisson: s.nom === 'neutre', facteurs: { ...FACTEURS_NEUTRES, [b.cle]: b.extremite }, silhouette: s })
+    etats.push({ nom: `${nom}__milieu`, pointCuisson: false, facteurs: { ...FACTEURS_NEUTRES, [b.cle]: (FACTEURS_NEUTRES[b.cle] + b.extremite) / 2 }, silhouette: neutre })
   }
-  etats.push({ nom: 'combinaison', facteurs: { ...FACTEURS_NEUTRES, ...tableTotale(CLES_DU_GABARIT, (k) => (1 + table.bornes[k].max) / 2) }, silhouette: { sex: 'F', build: 0.8, st: (1 + table.st.max) / 2 } })
+  const combinaisons = CLES_DU_GABARIT.reduce((etats, cle) => etats.flatMap((etat) =>
+    sensCuits.filter((b) => b.cle === cle).map((b) => ({
+      nom: `${etat.nom}_${cle}_${b.sens}`,
+      facteurs: { ...etat.facteurs, [cle]: (FACTEURS_NEUTRES[cle] + b.extremite) / 2 },
+    }))), [{ nom: 'combinaison', facteurs: FACTEURS_NEUTRES }])
+  for (const combinaison of combinaisons) etats.push({ ...combinaison, pointCuisson: false,
+    silhouette: { sex: 'F', build: (BUILD_NEUTRE + 1) / 2, st: (FACTEURS_NEUTRES.st + table.st.max) / 2 } })
   const mesures = etats.map((etat) => {
     const tous = poidsDeSilhouettes(etat.silhouette, table)
     const poidsSilhouettes = Object.fromEntries(silhouettes.map((s) => [s.nom, tous[s.nom]]))
-    const poids = { ...poidsSilhouettes, ...poidsDuGabarit(etat.facteurs, table.bornes, poidsSilhouettes) }
+    const poidsGabarit = poidsDuGabarit(etat.facteurs, table.bornes, poidsSilhouettes)
     const repos = positions.map((p, i) => silhouettes.reduce((somme, s) => somme.addScaledVector(s.deltas[i], poidsSilhouettes[s.nom]), p.clone()))
-    return { nom: etat.nom, facteurs: etat.facteurs, poids, positions: solveur.resoudre(etat.facteurs, repos).map((p) => p.toArray()) }
+    return { nom: etat.nom, pointCuisson: etat.pointCuisson, facteurs: etat.facteurs, poidsSilhouettes, poidsGabarit, positions: solveur.resoudre(etat.facteurs, repos).map((p) => p.toArray()) }
   })
-  process.stdout.write(JSON.stringify({ cles: sorties, etats: mesures, ancres: solveur.ancres.filter(Boolean).length }))
+  process.stdout.write(JSON.stringify({ cles: sorties, etats: mesures, sensCuits: sensCuits.length, ancres: solveur.ancres.filter(Boolean).length }))
 }

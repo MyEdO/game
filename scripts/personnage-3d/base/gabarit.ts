@@ -1,6 +1,6 @@
 import { Matrix4, Vector3, type Skeleton } from 'three';
 import type { GabaritResolu } from '../../../src/noyau/index.ts';
-import { FACTEURS_NEUTRES, nomDeCleDuGabarit, poseDuGabarit, type CleDuGabarit, type SensDuGabarit } from '../../../hotes/godot/asset/gabarit.ts';
+import { FACTEURS_NEUTRES, nomDeCleDuGabarit, poseDuGabarit, sensCuitsDuGabarit, type CleDuGabarit, type SensDuGabarit } from '../../../hotes/godot/asset/gabarit.ts';
 import type { TableDeGabarit } from '../../../hotes/godot/asset/manifesteDeBase.ts';
 import { bindsAuGabarit } from '../../../hotes/godot/asset/evaluateur/gabarit.ts';
 import { preparerLaplacien, resoudreLaplacien, type Arete } from './laplacien.ts';
@@ -79,20 +79,22 @@ export function preparerGabarit(corps: CorpsDuGabarit) {
     }
     for (const [r, sommet] of laplacien.bord) { seconds[r][0] += fixes[sommet].x; seconds[r][1] += fixes[sommet].y; seconds[r][2] += fixes[sommet].z; }
     const solution = resoudreLaplacien(laplacien, seconds);
-    return fixes.map((p, i) => ancres[i] ? p : new Vector3(...solution[laplacien.rang[i]] as [number, number, number]));
+    return fixes.map((p, i) => (ancres[i] ? p : new Vector3(...solution[laplacien.rang[i]] as [number, number, number])).applyMatrix4(peauInverse[i]));
   };
 
+  const sensCuits = sensCuitsDuGabarit(table.bornes);
   const neutres = new Map<string, readonly Vector3[]>();
   const cuire = (cle: CleDuGabarit, sens: SensDuGabarit, silhouette?: { readonly nom: string; readonly deltas: readonly Vector3[] }) => {
-    const facteur = sens === 'moins' ? table.bornes[cle].min : table.bornes[cle].max;
-    if (facteur === 1) throw new Error(`gabarit.${cle} : sens ${sens} sans clé, borne ${facteur}`);
+    const cuit = sensCuits.find((s) => s.cle === cle && s.sens === sens);
+    if (!cuit) throw new Error(`gabarit.${cle} : sens ${sens} sans clé, borne 1`);
+    const facteur = cuit.extremite;
     if (silhouette && silhouette.deltas.length !== positions.length) throw new Error(`gabarit : silhouette ${silhouette.nom}, deltas de taille incorrecte`);
     const facteurs = { ...FACTEURS_NEUTRES, [cle]: facteur };
     const nom = nomDeCleDuGabarit(cle, sens);
     let neutre = neutres.get(nom);
-    if (!neutre) { neutre = resoudre(facteurs).map((p, i) => p.applyMatrix4(peauInverse[i])); neutres.set(nom, neutre); }
+    if (!neutre) { neutre = resoudre(facteurs); neutres.set(nom, neutre); }
     const forme = silhouette ? positions.map((p, i) => p.clone().add(silhouette.deltas[i])) : positions;
-    const resolu = silhouette ? resoudre(facteurs, forme).map((p, i) => p.applyMatrix4(peauInverse[i])) : neutre;
+    const resolu = silhouette ? resoudre(facteurs, forme) : neutre;
     const deltas = resolu.map((p, i) => silhouette ? p.clone().sub(neutre[i]).sub(silhouette.deltas[i]) : p.clone().sub(positions[i]));
     return { nom: nomDeCleDuGabarit(cle, sens, silhouette?.nom), deltas };
   };

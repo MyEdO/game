@@ -7,14 +7,15 @@
  * tenant : ses meshes skinnés.
  */
 import { Skeleton, type Bone, type Object3D, type SkinnedMesh } from 'three';
+import { tableTotale } from '../../../../src/lib/tableTotale.ts';
 import { lireGlb } from '../glb.ts';
 import { chargerScene, type SceneChargee } from './chargement.ts';
 import type { Ecart } from './ecart.ts';
 import { echantillonner, PAS_PAR_DEFAUT, poseDeRepos } from './echantillonnage.ts';
 import type { GabaritResolu } from '../../../../src/noyau/index.ts';
 import { appliquerGabarit, poserSilhouettes } from './gabarit.ts';
-import { CARRURE_MOINS, CARRURE_PLUS, FACTEURS_NEUTRES } from '../gabarit.ts';
-import { validerManifesteDeBase, type ManifesteDeBase } from '../manifesteDeBase.ts';
+import { CARRURE_MOINS, CARRURE_PLUS, FACTEURS_NEUTRES, poidsDeCarrure, poidsDuGabarit } from '../gabarit.ts';
+import { PREFIXE_DES_CLES_DU_GABARIT, validerManifesteDeBase, type ManifesteDeBase } from '../manifesteDeBase.ts';
 import { gardeBudget, PLAFOND_ASSEMBLE, trianglesDe } from './gardes/budget.ts';
 import { mesurerAppuis, poserPieds, surfacesDesPieds, type AppuisDuClip, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
@@ -111,11 +112,23 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
 
   const contenus = [entree.base, ...(entree.elements ?? [])].map(lireGlb);
   const formes = contenus[0].formes;
-  const nomsDesSilhouettes = manifeste?.silhouettes ?? [...formes];
-  const absentes = Object.keys(entree.silhouettes ?? {}).filter((nom) => !formes.has(nom));
-  if (absentes.length) throw new Error(`évaluation : [silhouette-absente] ${absentes.join(', ')} : shape key(s) absente(s) de la base ; shape keys : ${[...formes].join(', ') || 'aucune'}`);
+  const formesDeSilhouette = [...formes].filter((nom) => !nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT));
+  const nomsDesSilhouettes = manifeste?.silhouettes ?? formesDeSilhouette;
+  const absentes = Object.keys(entree.silhouettes ?? {}).filter((nom) => !nomsDesSilhouettes.includes(nom));
+  if (absentes.length) throw new Error(`évaluation : [silhouette-absente] ${absentes.join(', ')} : nom(s) absent(s) des silhouettes déclarées ; silhouettes : ${nomsDesSilhouettes.join(', ') || 'aucune'}`);
   const carrure = facteurs.st < 1 ? CARRURE_MOINS : facteurs.st > 1 ? CARRURE_PLUS : null;
-  if (carrure && !formes.has(carrure)) throw new Error(`évaluation : [carrure-absente] st=${facteurs.st} : la base ne porte pas la shape key ${carrure}`);
+  if (carrure && !nomsDesSilhouettes.includes(carrure)) throw new Error(`évaluation : [carrure-absente] st=${facteurs.st} : ${carrure} est absente des silhouettes déclarées de la base`);
+  const aZero = tableTotale(nomsDesSilhouettes, () => 0);
+  const poidsDesFormes = (silhouettes: Readonly<Record<string, number>>) => ({
+    ...silhouettes,
+    ...(manifeste ? poidsDuGabarit(facteurs, manifeste.gabarit.bornes, silhouettes) : {}),
+  });
+  const carrures = manifeste ? Object.fromEntries(Object.entries(poidsDeCarrure(facteurs.st, manifeste.gabarit.st)).filter(([nom]) => nomsDesSilhouettes.includes(nom))) : {};
+  const poids = poidsDesFormes({ ...aZero, ...carrures, ...entree.silhouettes });
+  if (manifeste && !estNeutre(facteurs)) {
+    const manquantes = Object.keys(poids).filter((nom) => nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT) && !formes.has(nom));
+    if (manquantes.length) throw new Error(`évaluation : [gabarit-absent] shape key(s) absente(s) de la base : ${manquantes.join(', ')}`);
+  }
   const base = await chargerScene(entree.base);
   const elements = await Promise.all((entree.elements ?? []).map(chargerScene));
   const corps = base.meshes.filter((m) => typeof zoneDe(m) === 'string');
@@ -125,7 +138,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const skinnes = meshes.filter((m): m is SkinnedMesh => (m as SkinnedMesh).isSkinnedMesh === true);
 
   const gabarit = manifeste ? appliquerGabarit(base.scene, facteurs, manifeste) : null;
-  if (entree.silhouettes) poserSilhouettes(base.scene, entree.silhouettes);
+  poserSilhouettes(base.scene, poids);
   base.scene.updateMatrixWorld(true);
 
   const inconnus = (entree.clips ?? []).filter((nom) => !base.clips.some((c) => c.name === nom));
@@ -144,10 +157,10 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste ? [manifeste.prises.main.os, manifeste.prises.off.os] : []))),
   );
 
-  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: base.skinnes.filter((m) => nomsDuCorps.includes(m.name)), silhouettes: nomsDesSilhouettes, st: manifeste?.gabarit.st });
+  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: base.skinnes.filter((m) => nomsDuCorps.includes(m.name)), silhouettes: nomsDesSilhouettes, st: manifeste?.gabarit.st, poidsDesFormes });
   ecarts.push(...silhouettes.ecarts);
 
-  const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes));
+  const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
   const repos = poseDeRepos(base.scene, meshes);
   const aretes = new Map(meshes.map((m) => [m.name, aretesDe(m)]));
   ecarts.push(...gardeEtirementAuRepos(aretes, sansCles, repos));

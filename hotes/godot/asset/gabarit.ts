@@ -25,21 +25,31 @@ export const nomDeCleDuGabarit = (cle: CleDuGabarit, sens: SensDuGabarit, silhou
   `${PREFIXE_DES_CLES_DU_GABARIT}${cle}_${sens}${silhouette === undefined ? '' : `_${silhouette}`}`;
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
-export function poidsDuGabarit(facteurs: GabaritResolu, bornes: BornesDuGabarit, silhouettes: Readonly<Record<string, number>>): Record<string, number> {
-  const poids: Record<string, number> = {};
-  for (const cle of CLES_DU_GABARIT) {
-    const { min, max } = bornes[cle];
+export function sensCuitsDuGabarit(bornes: BornesDuGabarit): readonly { readonly cle: CleDuGabarit; readonly sens: SensDuGabarit; readonly extremite: number }[] {
+  return CLES_DU_GABARIT.flatMap((cle) => {
     const faute = fauteDeBornesDuGabarit(bornes[cle]);
     if (faute) throw new Error(`gabarit.${cle} : ${faute}`);
+    return (['moins', 'plus'] as const).flatMap((sens) => {
+      const extremite = bornes[cle][sens === 'moins' ? 'min' : 'max'];
+      return extremite === 1 ? [] : [{ cle, sens, extremite }];
+    });
+  });
+}
+
+/** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
+export function poidsDuGabarit(facteurs: GabaritResolu, bornes: BornesDuGabarit, silhouettes: Readonly<Record<string, number>>): Record<string, number> {
+  const poids: Record<string, number> = {};
+  const sensCuits = sensCuitsDuGabarit(bornes);
+  for (const cle of CLES_DU_GABARIT) {
+    const { min, max } = bornes[cle];
     const facteur = facteurs[cle];
-    if ((facteur < 1 && min === 1) || (facteur > 1 && max === 1)) throw new Error(`gabarit.${cle} : facteur ${facteur} refusé pour les bornes [${min}, ${max}]`);
-    for (const sens of ['moins', 'plus'] as const) {
-      const extremite = sens === 'moins' ? min : max;
-      if (extremite === 1) continue;
-      const p = Math.max(0, (facteur - 1) / (extremite - 1));
-      poids[nomDeCleDuGabarit(cle, sens)] = p;
-      for (const [silhouette, w] of Object.entries(silhouettes)) poids[nomDeCleDuGabarit(cle, sens, silhouette)] = w * p;
-    }
+    const sens = facteur < 1 ? 'moins' : facteur > 1 ? 'plus' : null;
+    if (sens && !sensCuits.some((cuit) => cuit.cle === cle && cuit.sens === sens)) throw new Error(`gabarit.${cle} : facteur ${facteur} refusé pour les bornes [${min}, ${max}]`);
+  }
+  for (const { cle, sens, extremite } of sensCuits) {
+    const p = Math.max(0, (facteurs[cle] - 1) / (extremite - 1));
+    poids[nomDeCleDuGabarit(cle, sens)] = p;
+    for (const [silhouette, w] of Object.entries(silhouettes)) poids[nomDeCleDuGabarit(cle, sens, silhouette)] = w * p;
   }
   return poids;
 }
