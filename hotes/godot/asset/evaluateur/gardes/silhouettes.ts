@@ -1,6 +1,6 @@
 /**
  * GARDE DES SILHOUETTES DE LA BASE (#2972, #3101 issuecomment-6483618640, décision 7) : au repos, gabarit de
- * l'évaluation appliqué, sur les meshes du corps. Référence : silhouettes à 0, autres formes à leur influence d'entrée.
+ * l'évaluation appliqué, sur les meshes du corps. Référence : silhouettes à 0, formes dérivées recalculées, formes indépendantes à leur influence d'entrée.
  * Avec `st` et les deux formes de carrure, chaque silhouette hors carrure est prise à 1, seule ; la carrure par
  * `poidsDeCarrure` aux `st` de `pointsDeCarrure`. Sinon, chaque silhouette est prise seule à 1, même nommée carrure,
  * et la mesure de carrure vaut `null`. Sous chaque
@@ -11,12 +11,14 @@
  * shape keys trouvé à l'entrée est restauré à la sortie.
  */
 import { Vector3, type Matrix4, type Mesh, type Object3D, type SkinnedMesh } from 'three';
+import { tableTotale } from '../../../../../src/lib/tableTotale.ts';
 import type { Ecart } from '../ecart.ts';
 import { poseDeRepos, type Pose } from '../echantillonnage.ts';
 import { CARRURE_MOINS, CARRURE_PLUS, poidsDeCarrure } from '../../gabarit.ts';
 import type { TableDeGabarit } from '../../manifesteDeBase.ts';
 import { SOL_TOLERANCE_M } from './piedsAuSol.ts';
 import { POIDS_NEGLIGEABLE } from './poids.ts';
+import { poserSilhouettes } from '../gabarit.ts';
 
 /** Le déplacement admis du centre d'un anneau, en fraction de son rayon de repos. Un dixième : l'os, que les shape
  *  keys ne déplacent pas, reste dans le dixième central de la section de la peau qui plie autour de lui ; un centre qui
@@ -167,29 +169,24 @@ const meshesAFormes = (scene: Object3D): Mesh[] => {
 };
 
 /** Pose les silhouettes de la liste à `poids`, ou à 0 si leur poids est absent ; refuse tout poids hors de la liste. */
-function poserSeules(meshes: readonly Mesh[], silhouettes: readonly string[], poids: Readonly<Record<string, number>>): void {
+function poserSeules(scene: Object3D, silhouettes: readonly string[], poids: Readonly<Record<string, number>>, poidsDesFormes: PoidsDesFormes): void {
   for (const nom of Object.keys(poids)) {
     if (!silhouettes.includes(nom)) throw new Error(`silhouettes : poids demandé hors silhouettes : ${nom}`);
   }
-  for (const m of meshes) {
-    const influences = m.morphTargetInfluences as number[];
-    for (const nom of silhouettes) {
-      const i = m.morphTargetDictionary?.[nom];
-      if (i !== undefined) influences[i] = poids[nom] ?? 0;
-    }
-  }
+  poserSilhouettes(scene, poidsDesFormes(tableTotale(silhouettes, (nom) => poids[nom] ?? 0)));
 }
 
-/** Pose les silhouettes de la liste et rend la pose de repos de `meshes` ; les autres formes gardent leur influence. */
+/** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
 export type PoserSeules = (poids: Readonly<Record<string, number>>, meshes: readonly Mesh[]) => Pose;
+export type PoidsDesFormes = (silhouettes: Readonly<Record<string, number>>) => Readonly<Record<string, number>>;
 
 /** Rend `mesurer(poser)` ; l'état des shape keys de `scene` trouvé à l'entrée est restauré à la sortie. */
-export function sousLesFormes<T>(scene: Object3D, silhouettes: readonly string[], mesurer: (poser: PoserSeules) => T): T {
+export function sousLesFormes<T>(scene: Object3D, silhouettes: readonly string[], mesurer: (poser: PoserSeules) => T, poidsDesFormes: PoidsDesFormes = (poids) => poids): T {
   const formes = meshesAFormes(scene);
   const entree = formes.map((m) => [...(m.morphTargetInfluences as number[])]);
   try {
     return mesurer((poids, meshes) => {
-      poserSeules(formes, silhouettes, poids);
+      poserSeules(scene, silhouettes, poids, poidsDesFormes);
       return poseDeRepos(scene, meshes);
     });
   } finally {
@@ -204,9 +201,10 @@ export interface SujetDeSilhouettes {
   /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
   readonly silhouettes: readonly string[];
   readonly st?: TableDeGabarit['st'];
+  readonly poidsDesFormes?: PoidsDesFormes;
 }
 
-export function mesurerSilhouettes({ scene, corps, silhouettes, st }: SujetDeSilhouettes): { mesures: MesuresDesSilhouettes; ecarts: Ecart[] } {
+export function mesurerSilhouettes({ scene, corps, silhouettes, st, poidsDesFormes }: SujetDeSilhouettes): { mesures: MesuresDesSilhouettes; ecarts: Ecart[] } {
   const anneaux = anneauxArticulaires(corps);
   const ecarts: Ecart[] = [];
   return sousLesFormes(scene, silhouettes, (poserSur) => {
@@ -252,5 +250,5 @@ export function mesurerSilhouettes({ scene, corps, silhouettes, st }: SujetDeSil
       if (ecartASt > TOLERANCE_EPAISSEUR) ecarts.push({ garde: GARDE, code: 'epaisseur-hors-st', valeur: ecartASt, seuil: TOLERANCE_EPAISSEUR, detail: `st=${pire.st} : écart relatif à st ; épaisseur de l’anneau de ${carrure.os} à ${pire.rapport} fois celle du repos` });
     }
     return { mesures: { anneaux: anneaux.length, silhouettes: mesures, carrure }, ecarts };
-  });
+  }, poidsDesFormes);
 }

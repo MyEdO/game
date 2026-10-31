@@ -1,12 +1,12 @@
 /**
- * LE GABARIT D'UNE BASE POSÉ SUR UNE SCÈNE three (#2972, #3086) : `appliquerGabarit` pose `poseDuGabarit` et la carrure
+ * LE GABARIT D'UNE BASE POSÉ SUR UNE SCÈNE three (#2972, #3086) : `appliquerGabarit` pose `poseDuGabarit`
  * (`hotes/godot/asset/gabarit.ts`) sur une scène fraîchement chargée (`chargerScene`). L'axe d'un os est son +Y local,
  * convention des os glTF exportés de Blender.
  */
-import { Vector3, type Bone, type Matrix4, type Mesh, type Object3D, type Skeleton } from 'three';
+import { Vector3, type Bone, type Matrix4, type Mesh, type Object3D, type Skeleton, type SkinnedMesh } from 'three';
 import type { GabaritResolu } from '../../../../src/noyau/index.ts';
 import type { ManifesteDeBase } from '../manifesteDeBase.ts';
-import { poidsDeCarrure, poseDuGabarit, type PoseDuGabarit } from '../gabarit.ts';
+import { poseDuGabarit, type PoseDuGabarit } from '../gabarit.ts';
 
 const os = (scene: Object3D, nom: string): Bone => {
   const b = scene.getObjectByName(nom);
@@ -58,16 +58,16 @@ export function enfantsDuGabarit(pose: Pick<PoseDuGabarit, 'enfantsDe'>, trouver
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
 export function bindsAuGabarit(squelette: Skeleton, pose: Pick<PoseDuGabarit, 'enfantsDe'>): Matrix4[] {
-  const enfants = enfantsDuGabarit(pose, (nom) => {
-    const b = squelette.bones.find((b) => b.name === nom);
-    if (!b) throw new Error(`gabarit : ${nom} n’est pas un os du squelette`);
-    return b;
-  });
   const racines = new Set(squelette.bones.map((b): Object3D => {
     let racine: Object3D = b;
     while (racine.parent) racine = racine.parent;
     return racine;
   }));
+  const enfants = enfantsDuGabarit(pose, (nom) => {
+    const b = [...racines].map((racine) => racine.getObjectByName(nom)).find((n) => (n as Bone | undefined)?.isBone) as Bone | undefined;
+    if (!b) throw new Error(`gabarit : ${nom} n’est pas un os du squelette`);
+    return b;
+  });
   const matrices = new Map<Object3D, { locale: Matrix4; monde: Matrix4; aMettreAJour: boolean }>();
   for (const racine of racines) racine.traverse((n) => matrices.set(n, { locale: n.matrix.clone(), monde: n.matrixWorld.clone(), aMettreAJour: n.matrixWorldNeedsUpdate }));
   const positions = enfants.map(([enfant]) => enfant.position.clone());
@@ -107,12 +107,14 @@ export function reposerGabarit(gabarit: GabaritPose, jouer: () => void): void {
   scene.updateMatrixWorld(true);
 }
 
-/** Applique `facteurs` à la pose de repos de `scene` selon le manifeste de base : `poseDuGabarit` par `reposerGabarit`,
- *  puis la carrure. Rend le gabarit posé. */
+/** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
 export function appliquerGabarit(scene: Object3D, facteurs: GabaritResolu, manifeste: Pick<ManifesteDeBase, 'gabarit' | 'appuis'>): GabaritPose {
   const pose = poseDuGabarit(manifeste, facteurs);
   const racine = os(scene, pose.racine.os);
   const enfants = enfantsDuGabarit(pose, (nom) => os(scene, nom));
+  const squelettes = new Set<Skeleton>();
+  scene.traverse((n) => { if ((n as SkinnedMesh).isSkinnedMesh) squelettes.add((n as SkinnedMesh).skeleton); });
+  for (const squelette of squelettes) squelette.boneInverses = bindsAuGabarit(squelette, pose);
   const gabarit: GabaritPose = {
     scene,
     racine,
@@ -122,7 +124,6 @@ export function appliquerGabarit(scene: Object3D, facteurs: GabaritResolu, manif
     nonModifiee: { echelle: racine.scale.clone(), position: racine.position.clone(), enfants: enfants.map(([enfant]) => enfant.position.clone()) },
   };
   reposerGabarit(gabarit, () => {});
-  poserSilhouettes(scene, poidsDeCarrure(facteurs.st, manifeste.gabarit.st));
   scene.updateMatrixWorld(true);
   return gabarit;
 }

@@ -212,14 +212,14 @@ describe('gardeEchelleDuRigide', () => {
 });
 
 describe('gabarit', () => {
-  it('les jambes allongent l’os enfant, `sl` met la racine à l’échelle', () => {
+  it('les binds compensent le déplacement des enfants, `sl` met la peau à l’échelle', () => {
     const hauteur = (facteurs: typeof FACTEURS_NEUTRES) => {
       const { scene, mesh } = cylindre();
       appliquerGabarit(scene, facteurs, gabaritEtAppuis(TABLE));
       return Math.max(...(poseDeRepos(scene, [mesh]).positions.get('Corps') ?? []).filter((_, i) => i % 3 === 1));
     };
     expect(hauteur(FACTEURS_NEUTRES)).toBeCloseTo(1, 5);
-    expect(hauteur({ ...FACTEURS_NEUTRES, legs: 2 })).toBeCloseTo(1.5, 5);
+    expect(hauteur({ ...FACTEURS_NEUTRES, legs: 2 })).toBeCloseTo(1, 5);
     expect(hauteur({ ...FACTEURS_NEUTRES, sl: 2 })).toBeCloseTo(2, 5);
   });
 
@@ -426,6 +426,29 @@ describe('gabarit', () => {
     expect(ecart).toBeLessThan(1e-6);
   });
 
+  it('compense les binds d’un skin partiel dont le parent déformé est présent dans la hiérarchie', () => {
+    const { scene, mesh, racine, haut } = cylindre();
+    const element = mesh.clone();
+    element.name = 'ElementPartiel';
+    element.geometry = mesh.geometry.clone();
+    const indices = element.geometry.attributes.skinIndex;
+    const poids = element.geometry.attributes.skinWeight;
+    for (let i = 0; i < indices.count; i++) { indices.setXYZW(i, 0, 0, 0, 0); poids.setXYZW(i, 1, 0, 0, 0); }
+    scene.add(element);
+    element.bind(new Skeleton([haut], [mesh.skeleton.boneInverses[1].clone()]), mesh.bindMatrix);
+    const pose = poseDuGabarit(gabaritEtAppuis(TABLE), { ...FACTEURS_NEUTRES, legs: 1.4 });
+    const binds = bindsAuGabarit(element.skeleton, pose);
+    expect(binds[0].elements[13]).toBeCloseTo(-0.7, 9);
+    expect(element.skeleton.bones).toEqual([haut]);
+    expect(haut.parent).toBe(racine);
+    const avant = poseDeRepos(scene, [element]).positions.get(element.name);
+    appliquerGabarit(scene, { ...FACTEURS_NEUTRES, legs: 1.4 }, gabaritEtAppuis(TABLE));
+    expect(element.skeleton.boneInverses).toEqual(binds);
+    const apres = poseDeRepos(scene, [element]).positions.get(element.name);
+    expect(apres).toBeDefined();
+    apres?.forEach((v, i) => expect(v).toBeCloseTo(avant?.[i] ?? Infinity, 6));
+  });
+
   it('`poidsDeSilhouettes` : la carrure de `st`, `feminin` du sexe, `corpulence` nulle jusqu’au build neutre puis linéaire jusqu’à 1', () => {
     expect(poidsDeSilhouettes({ sex: 'F', build: 0.75, st: 0.9 }, TABLE)).toEqual({
       [CARRURE_MOINS]: expect.closeTo(0.5, 9), [CARRURE_PLUS]: 0, [FEMININ]: 1, [CORPULENCE]: expect.closeTo(0.5, 9),
@@ -455,7 +478,7 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
  *  et ses shape keys, par nom, en déplacements à plat de ses trois sommets. */
 interface MarcheFabriquee { racine?: number; decolle?: number; lateral?: number; bloque?: boolean; vitesseDroite?: number; nom?: string; sens?: number; vitesse?: number }
 
-function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]> } = {}): Uint8Array {
+function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]> } = {}): Uint8Array {
   const morceaux: Uint8Array[] = [];
   const vues: object[] = [];
   const accesseurs: object[] = [];
@@ -531,7 +554,7 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: b
     asset: { version: '2.0' },
     scene: 0,
     scenes: [{ nodes: [0, 1] }],
-    nodes: [{ name: 'Corps', mesh: 0, skin: 0, extras: { zone: 'torse' } }, { name: 'racine', ...(options.marche ? { children: [2, 3] } : options.pelvis || formes ? { children: [2] } : {}) }, ...(options.marche ? [{ name: 'piedG' }, { name: 'piedD' }] : options.pelvis || formes ? [{ name: 'pelvis' }] : [])],
+    nodes: [{ name: options.nom ?? 'Corps', mesh: 0, skin: 0, extras: { zone: 'torse' } }, { name: 'racine', ...(options.marche ? { children: [2, 3] } : options.pelvis || formes ? { children: [2] } : {}) }, ...(options.marche ? [{ name: 'piedG' }, { name: 'piedD' }] : options.pelvis || formes ? [{ name: 'pelvis' }] : [])],
     meshes: [{ primitives: [{ attributes, material: 0, ...(targets.length ? { targets } : {}) }], extras: { targetNames: formes ? Object.keys(formes) : ['feminin'] } }],
     materials: [{ name: 'peau', pbrMetallicRoughness: options.image ? { baseColorTexture: { index: 0 } } : {} }],
     skins: [{ joints, inverseBindMatrices }],
@@ -566,6 +589,12 @@ const manifesteDe = (octets: Uint8Array, os = ['racine']) => ({
   appuis: { pieds: ['racine'], vitessesAuSol: tableTotale([...lireGlb(octets).animations], () => 1.4) },
   osAPositionAnimee: os.filter((o) => o !== 'racine'),
   glb: empreinte(octets),
+});
+
+const formesAvecGabarit = (silhouettes: Record<string, readonly number[]>, deltas: Record<string, readonly number[]> = {}) => ({
+  ...tableTotale(Object.keys(poidsDuGabarit(FACTEURS_NEUTRES, TABLE.bornes, tableTotale(Object.keys(silhouettes), () => 0))), () => new Array<number>(Object.values(silhouettes)[0].length).fill(0)),
+  ...silhouettes,
+  ...deltas,
 });
 
 describe('chargerScene et lireGlb', () => {
@@ -789,6 +818,47 @@ describe('evaluer', () => {
   });
 });
 
+describe('evaluer : clés cuites du gabarit', () => {
+  const deplacement = (y: number) => [0, y, 0, 0, y, 0, 0, y, 0];
+  const propre = nomDeCleDuGabarit('arms', 'plus');
+  const croisee = nomDeCleDuGabarit('arms', 'plus', FEMININ);
+
+  it('pose les poids propres et croisés feminin + arms sur la base et les éléments qui les portent', async () => {
+    const formes = formesAvecGabarit({ feminin: deplacement(-0.01) }, { [propre]: deplacement(-0.1), [croisee]: deplacement(-0.2) });
+    const base = glbFabrique({ bande: formes, clips: { Repos: [0, 0] } });
+    const manifeste = manifesteDe(base, ['racine', 'pelvis']);
+    const f = await evaluer({ base, manifeste, facteurs: { arms: 1.25 }, silhouettes: { feminin: 0.4 }, pas: 0.5 });
+    expect(f.mesures.clips[0].plusBas.min).toBeCloseTo(-0.094, 6);
+    expect(f.mesures.silhouettes.silhouettes[0].deplacementMax).toBeCloseTo(0.11, 6);
+    const element = glbFabrique({ nom: 'Element', bande: { [croisee]: [0, 0, 0, 0, 0, 0, 0, 40, 0] } });
+    const avecElement = await evaluer({ base, manifeste, elements: [element], facteurs: { arms: 1.25 }, silhouettes: { feminin: 0.4 }, pas: 0.5 });
+    expect(avecElement.ecarts.find((e) => e.mesh === 'Element' && e.code === 'arete-repos-enflee')?.valeur).toBeCloseTo(9, 6);
+  });
+
+  it('calcule la référence d’étirement avec les clés propres et les croisées nulles', async () => {
+    const sommet = (y: number) => [0, 0, 0, 0, 0, 0, 0, y, 0];
+    const base = glbFabrique({ bande: formesAvecGabarit({ feminin: sommet(0.2) }, { [propre]: sommet(1), [croisee]: sommet(8) }), clips: { Repos: [0, 0] } });
+    const f = await evaluer({ base, manifeste: manifesteDe(base, ['racine', 'pelvis']), facteurs: { arms: 1.5 }, silhouettes: { feminin: 1 }, pas: 0.5 });
+    expect(f.ecarts.find((e) => e.code === 'arete-repos-enflee')?.valeur).toBeCloseTo(5.1, 6);
+  });
+
+  it.each([propre, nomDeCleDuGabarit('legs', 'moins', FEMININ)])('refuse la clé absente %s, même à poids nul', async (absente) => {
+    const formes = formesAvecGabarit({ feminin: deplacement(0) });
+    delete formes[absente];
+    const base = glbFabrique({ bande: formes, clips: { Repos: [0, 0] } });
+    await expect(evaluer({ base, manifeste: manifesteDe(base, ['racine', 'pelvis']), facteurs: { arms: 1.25 }, pas: 0.5 })).rejects.toThrow(new RegExp('\\[gabarit-absent\\].*' + absente));
+  });
+
+  it('les poids explicites de carrure priment sur st avant le calcul des croisées', async () => {
+    const silhouettes = { feminin: deplacement(0), [CARRURE_MOINS]: deplacement(0), [CARRURE_PLUS]: deplacement(-0.1) };
+    const croiseeDeCarrure = nomDeCleDuGabarit('arms', 'plus', CARRURE_PLUS);
+    const base = glbFabrique({ bande: formesAvecGabarit(silhouettes, { [croiseeDeCarrure]: deplacement(-0.4) }), clips: { Repos: [0, 0] } });
+    const manifeste = { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: Object.keys(silhouettes) };
+    const f = await evaluer({ base, manifeste, facteurs: { arms: 1.25, st: 1.2 }, silhouettes: { [CARRURE_PLUS]: 0.3 }, pas: 0.5 });
+    expect(f.mesures.clips[0].plusBas.min).toBeCloseTo(-0.09, 6);
+  });
+});
+
 describe('evaluer : étirement contre la longueur de repos sous gabarit, silhouettes à 0', () => {
   /** Le déplacement du seul sommet (0, 1, 0) de la bande, en shape key. */
   const auSommet = (dy: number) => [0, 0, 0, 0, 0, 0, 0, dy, 0];
@@ -810,15 +880,20 @@ describe('evaluer : étirement contre la longueur de repos sous gabarit, silhoue
     expect(await etirement({ base })).toEqual([['arete-etiree', 'Tire', ETIREMENT_EN_CLIP[1]], ['arete-ecrasee', 'Ecrase', ETIREMENT_EN_CLIP[0]]]);
   });
 
-  it('conserve une forme hors des silhouettes du manifeste dans la référence d’étirement', async () => {
-    const nom = nomDeCleDuGabarit('legs', 'moins');
-    const base = glbFabrique({ bande: { inerte: auSommet(0), [nom]: auSommet(4) }, clips: { Repos: [0, 0] } });
+  it('refuse une forme indépendante comme silhouette, même avec ses clés croisées présentes', async () => {
+    const nom = 'autre_forme';
+    const base = glbFabrique({ bande: formesAvecGabarit({ inerte: auSommet(0), [nom]: auSommet(4) }), clips: { Repos: [0, 0] } });
     const manifeste = { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: ['inerte'] };
-    expect(await etirement({ base, manifeste, silhouettes: { [nom]: 1 } })).toEqual([]);
+    await expect(etirement({ base, manifeste, facteurs: { arms: 1.25 }, silhouettes: { [nom]: 1 } })).rejects.toThrow('[silhouette-absente] autre_forme : nom(s) absent(s) des silhouettes déclarées');
   });
 
-  it('VERT : `sl` sans shape key ne rapporte aucun écart', async () => {
-    const base = glbFabrique({ clips: { Repos: [0, 0] } });
+  it('refuse la carrure physique non déclarée comme silhouette', async () => {
+    const base = glbFabrique({ bande: formesAvecGabarit({ feminin: auSommet(0), [CARRURE_PLUS]: auSommet(1) }), clips: { Repos: [0, 0] } });
+    await expect(etirement({ base, manifeste: manifesteDe(base, ['racine', 'pelvis']), facteurs: { st: 1.1 } })).rejects.toThrow('[carrure-absente] st=1.1 : carrure_plus est absente des silhouettes déclarées');
+  });
+
+  it('VERT : `sl` seul garde les clés du gabarit nulles et ne rapporte aucun écart', async () => {
+    const base = glbFabrique({ bande: formesAvecGabarit({ feminin: auSommet(0) }), clips: { Repos: [0, 0] } });
     expect(await etirement({ base, manifeste: manifesteDe(base), facteurs: { sl: 5 } })).toEqual([]);
   });
 
@@ -934,7 +1009,7 @@ describe('gardeSilhouettes', () => {
     const formes = { ...JUSTES, [nomDeCleDuGabarit('legs', 'moins')]: homothetie(1.3) };
     const base = glbFabrique({ anneau: formes, clips: { Repos: [0, 0] } });
     const f = await evaluer({ base, manifeste, pas: 0.5 });
-    expect(f.mesures.silhouettes.silhouettes.map((s) => [s.nom, s.poids])).toEqual(Object.keys(formes).map((nom) => [nom, { [nom]: 1 }]));
+    expect(f.mesures.silhouettes.silhouettes.map((s) => [s.nom, s.poids])).toEqual(Object.keys(JUSTES).map((nom) => [nom, { [nom]: 1 }]));
     expect(f.mesures.silhouettes.carrure).toBeNull();
   });
 
