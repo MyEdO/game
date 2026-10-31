@@ -73,7 +73,11 @@ SEGMENTS_DU_GABARIT = {
     'arms': ('upperarm_l', 'lowerarm_l', 'upperarm_r', 'lowerarm_r'),
     'head': ('Head',),
 }
-"""Par facteur de gabarit, les noms complets des os UAL, dans l'ordre du manifeste."""
+"""Par facteur de gabarit, les noms complets des os parents UAL dont l'hôte multiplie le Y des enfants,
+dans l'ordre du manifeste.
+
+hotes/godot/pont/CONTRAT.md § Gabarit d'une base l.146
+"""
 PIEDS = ('foot_l', 'foot_r')
 """Les os des pieds, dont l'évaluateur mesure les appuis."""
 

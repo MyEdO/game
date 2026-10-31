@@ -7,19 +7,14 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from anatomie import gabarit  # noqa: E402
-
-
-class Bones(dict):
-    """Les os sont itérables et accessibles par leur nom, comme `rig.data.bones`."""
-    def __iter__(self):
-        return iter(self.values())
+from faux_rig import Bones  # noqa: E402
 
 
 def squelette():
     racine = SimpleNamespace(name='root', parent=None)
     noms = ('thigh_l', 'calf_l', 'thigh_r', 'calf_r',
             'upperarm_l', 'lowerarm_l', 'upperarm_r', 'lowerarm_r', 'Head', 'foot_l', 'foot_r')
-    os = Bones({'root': racine, **{nom: SimpleNamespace(name=nom, parent=racine) for nom in noms}})
+    os = Bones([racine, *(SimpleNamespace(name=nom, parent=racine) for nom in noms)])
     return SimpleNamespace(data=SimpleNamespace(bones=os))
 
 
