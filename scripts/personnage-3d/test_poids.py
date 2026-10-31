@@ -1,16 +1,19 @@
 """poids.lisser_les_sommets sur une chaîne synthétique de deux os : l'étirement se mesure à chaque état de la peau (neutre,
 puis chaque shape key à 1), rapporté à la longueur au repos sans clé, et le rendu nomme exactement les sommets retouchés,
-jumeaux compris. poids.extremes rend ses rapports par état ; poids.instants, sur une action de bpy, la grille de
-l'évaluateur unie aux clés."""
+jumeaux compris ; sa région s'élargit par formes.region_locale. poids.extremes rend ses rapports par état ;
+poids.instants, sur une action de bpy, la grille de l'évaluateur unie aux clés."""
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import bpy
 import numpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
+import poids  # noqa: E402
+from formes import region_locale  # noqa: E402
 from poids import extremes, instants, lisser_les_sommets  # noqa: E402
 from seuils import ETIREMENT_EN_CLIP, IMAGES_PAR_SECONDE  # noqa: E402
 
@@ -18,6 +21,12 @@ SOMMETS = 10
 PREMIER_DU_SECOND_OS = 5
 JUMEAU = SOMMETS
 """Indice du sommet confondu avec `PREMIER_DU_SECOND_OS`, ajouté en fin de chaîne."""
+ABSCISSES_A_ECART = [0, 1, 2, 3, 5, 6, 7, 8]
+"""Une chaîne dont l'arête du milieu mesure 2 m, les autres 1 m."""
+POIDS_DE_L_OS_1_A_ECART = [0.0, 0.09393223, 0.18433428, 0.29395363, 0.7060464, 0.8156657, 0.9060678, 1.0]
+"""Les poids sur l'os 1 de `chaine_a_ecart(12.0)` lissée, région élargie par `par_les_voisins`."""
+PASSES_A_ECART = 27
+"""Les passes de lissage de `chaine_a_ecart(12.0)` où une arête sort des bornes, région élargie par `par_les_voisins`."""
 
 
 def chaine(translation):
@@ -92,6 +101,50 @@ class LissageParEtat(unittest.TestCase):
         numpy.testing.assert_allclose(lisses[changes], 0.5)
 
 
+def chaine_a_ecart(translation):
+    """La chaîne `ABSCISSES_A_ECART`, sommets avant l'arête longue sur l'os 0, les autres sur l'os 1 ; échantillons de
+    `chaine`. Lissés seuls, les deux sommets de l'arête longue tendent vers un point fixe où elle reste hors bornes."""
+    x = numpy.array([(float(i), 0.0, 0.0, 1.0) for i in ABSCISSES_A_ECART], dtype=numpy.float32)
+    milieu = len(ABSCISSES_A_ECART) // 2
+    w = numpy.array([(1.0, 0.0) if i < milieu else (0.0, 1.0) for i in range(len(x))], dtype=numpy.float32)
+    aretes = numpy.array([(i, i + 1) for i in range(len(x) - 1)])
+    tire = numpy.eye(4, dtype=numpy.float32)
+    tire[0, 3] = translation
+    matrices = numpy.array([[numpy.eye(4), numpy.eye(4)], [numpy.eye(4), tire]], dtype=numpy.float32)
+    return x, w, numpy.arange(len(x)), aretes, matrices
+
+
+def par_les_voisins(aretes, masque, anneaux, n):
+    """La région de `formes.region_locale` calculée par ensembles de voisins : les extrémités des arêtes `aretes` que
+    marque `masque`, puis `anneaux` fois les voisins de la région ; (nœuds,) booléen."""
+    voisins = [set() for _ in range(n)]
+    for a, b in aretes:
+        voisins[a].add(b)
+        voisins[b].add(a)
+    region = set(aretes[masque].ravel().tolist())
+    for _ in range(anneaux):
+        region.update(v for s in list(region) for v in voisins[s])
+    dans = numpy.zeros(n, dtype=bool)
+    dans[sorted(region)] = True
+    return dans
+
+
+class RegionElargie(unittest.TestCase):
+    def test_la_region_gagne_ses_anneaux_par_formes_comme_par_les_voisins(self):
+        x, w, jumeau, aretes, matrices = chaine_a_ecart(12.0)
+        with mock.patch.object(poids, 'region_locale', wraps=region_locale) as espion:
+            lisses, retouches = lisser_les_sommets('ecart', x, w, {}, jumeau, aretes, matrices)
+        self.assertEqual(max(appel.args[2] for appel in espion.call_args_list), 2, 'la région gagne deux anneaux')
+        self.assertEqual(len(espion.call_args_list), PASSES_A_ECART)
+        self.assertEqual(retouches.tolist(), [1, 2, 3, 4, 5, 6])
+        numpy.testing.assert_allclose(lisses[:, 1], POIDS_DE_L_OS_1_A_ECART, atol=1e-7)
+        self.assertTrue(dans_les_bornes(lisses, x, {}, aretes)(matrices))
+        with mock.patch.object(poids, 'region_locale', par_les_voisins):
+            attendus, attendues = lisser_les_sommets('ecart', x, w, {}, jumeau, aretes, matrices)
+        numpy.testing.assert_array_equal(lisses, attendus)
+        numpy.testing.assert_array_equal(retouches, attendues)
+
+
 class RapportsParEtat(unittest.TestCase):
     def test_la_cle_seule_hors_bornes_sort_a_sa_ligne_et_laisse_le_neutre_dedans(self):
         x, w, _, aretes, matrices = chaine(2.0)
@@ -118,10 +171,16 @@ def action_cles(images):
 
 
 class InstantsDeLEvaluateur(unittest.TestCase):
-    def test_une_action_qui_commence_a_0_a_la_grille_de_l_evaluateur_unie_aux_cles(self):
+    def test_une_action_qui_commence_a_0_a_les_instants_de_l_evaluateur_en_images(self):
         action = action_cles([0.0, 2.00005, 3.25])
         bpy.context.scene.render.fps = IMAGES_PAR_SECONDE
-        numpy.testing.assert_allclose(instants(action), [0.0, 1.0, 2.0, 3.0, 3.25])
+        numpy.testing.assert_allclose(instants(action), [0.0, 1.0, 2.0, 2.00005, 3.0, 3.25])
+
+    def test_la_cadence_de_la_scene_divise_fps_par_fps_base(self):
+        action = action_cles([0.0, 2.00005, 3.25])
+        bpy.context.scene.render.fps = 4 * IMAGES_PAR_SECONDE
+        bpy.context.scene.render.fps_base = 4.0
+        numpy.testing.assert_allclose(instants(action), [0.0, 1.0, 2.0, 2.00005, 3.0, 3.25])
 
     def test_la_grille_ne_sort_pas_de_l_etendue_de_l_action(self):
         action = action_cles([1.5, 4.25])

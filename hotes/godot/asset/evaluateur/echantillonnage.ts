@@ -48,8 +48,9 @@ function poseCourante(scene: Object3D, meshes: readonly Mesh[]): Pose {
 /** La pose de repos de `scene` (gabarit et silhouettes déjà posés) pour `meshes`. */
 export const poseDeRepos = (scene: Object3D, meshes: readonly Mesh[]): Pose => poseCourante(scene, meshes);
 
-/** Deux instants plus proches que cet écart, en secondes, sont un seul instant (clés glTF en float32). */
-const INSTANTS_CONFONDUS = 1e-6;
+/** Deux instants plus proches que cet écart, en secondes, sont un seul instant (clés glTF en float32). Partagé avec la
+ *  construction (`scripts/personnage-3d/seuils.py`) : `gardes/seuils.json`. */
+const INSTANTS_CONFONDUS: number = seuils.INSTANTS_CONFONDUS;
 
 /** Les instants d'échantillonnage de `clip` : l'union de la grille 0, `pas`, 2 `pas`… jusqu'à sa durée et des instants
  *  de toutes les clés de ses pistes, triés, sans doublon. */

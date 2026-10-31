@@ -18,36 +18,39 @@ import numpy
 from mathutils.kdtree import KDTree
 
 from animation import assign_action
-from formes import aretes_des_triangles
+from formes import aretes_des_triangles, region_locale
 from pistes import aller_a, sacs
-from seuils import ETIREMENT_EN_CLIP, IMAGES_PAR_SECONDE, INFLUENCES_MAX, TOLERANCE_JUMEAUX_POSITION_M
+from seuils import (ETIREMENT_EN_CLIP, IMAGES_PAR_SECONDE, INFLUENCES_MAX, INSTANTS_CONFONDUS,
+                    TOLERANCE_JUMEAUX_POSITION_M)
 
 STAGNATION = 1e-3
 """Variation de poids d'une passe sous laquelle le lissage tient son point fixe : la région lissée gagne alors un anneau
-de voisins autour des arêtes hors de `ETIREMENT_EN_CLIP`."""
+de voisins autour des arêtes hors de `ETIREMENT_EN_CLIP` (`formes.region_locale`)."""
 PASSES_MAX = 200
 """Passes de lissage au-delà desquelles la construction s'arrête."""
 LOT = 64
 """Échantillons déformés ensemble."""
 CLES_CONFONDUES = 1e-4
-"""Deux clés plus proches que cet écart, en images, sont un seul instant."""
+"""Deux temps de clé plus proches que cet écart, en images, sont confondus (`sol`)."""
 
 
 def instants(action):
-    """Les instants de `action`, en images : l'union des multiples de `pas` compris entre sa première et sa dernière clé,
-    `pas` valant 1/`IMAGES_PAR_SECONDE` s à la cadence de la scène, et des clés de toutes ses courbes, triée, deux
-    instants plus proches que `CLES_CONFONDUES` n'en faisant qu'un ; aucun pour une action sans clé. Une action dont la
-    première clé est 0 a les instants de l'évaluateur (`echantillonnage.ts` `instants`). Entre deux instants
-    consécutifs, aucune courbe n'a de clé."""
+    """Les instants de `action`, en images à la cadence de la scène : l'union des multiples de `pas` compris entre sa
+    première et sa dernière clé, `pas` valant 1/`IMAGES_PAR_SECONDE` s, et des clés de toutes ses courbes, triée, un
+    élément qui suit le précédent de `INSTANTS_CONFONDUS` s au plus n'en faisant qu'un avec lui ; aucun pour une action
+    sans clé. Une action dont la première clé est 0 a les instants de l'évaluateur (`echantillonnage.ts` `instants`),
+    en images. Une clé qui n'est pas un instant suit de `INSTANTS_CONFONDUS` s au plus l'élément qui la précède dans le
+    tri."""
     cles = [float(k.co[0]) for sac in sacs(action) for c in sac.fcurves for k in c.keyframe_points]
     if not cles:
         return []
     rendu = bpy.context.scene.render
-    pas = rendu.fps / (rendu.fps_base * IMAGES_PAR_SECONDE)
+    images = rendu.fps / rendu.fps_base
+    pas = images / IMAGES_PAR_SECONDE
     debut, fin = math.ceil(min(cles) / pas - 1e-9), math.floor(max(cles) / pas + 1e-9)
     grille = [k * pas for k in range(debut, fin + 1)]
     tous = sorted(grille + cles)
-    return [t for i, t in enumerate(tous) if i == 0 or t - tous[i - 1] > CLES_CONFONDUES]
+    return [t for i, t in enumerate(tous) if i == 0 or t - tous[i - 1] > INSTANTS_CONFONDUS * images]
 
 
 def poses(rig, action, temps=None):
@@ -103,11 +106,16 @@ def melanges_par_lots(w, matrices):
         yield (w @ lot.transpose(1, 0, 2, 3).reshape(lot.shape[1], n * 16)).reshape(len(w), n, 4, 4)[:, :, :3, :]
 
 
+def appliquer(melange, x):
+    """Les sommets `x` (homogènes) sous leurs matrices mélangées `melange` (`melanges_par_lots`) : (lot, sommets, 3)."""
+    return numpy.einsum('snij,sj->nsi', melange, x)
+
+
 def deformer_par_lots(w, x, matrices):
     """Par lot de `LOT` échantillons de `matrices` de peau, les positions monde des sommets (`w`, `x`) : (lot,
     sommets, 3)."""
     for melange in melanges_par_lots(w, matrices):
-        yield numpy.einsum('snij,sj->nsi', melange, x)
+        yield appliquer(melange, x)
 
 
 def deformer(w, x, matrices):
@@ -142,7 +150,7 @@ def extremes(w, x, decalages, aretes, longueurs, matrices):
     haut = numpy.zeros((len(positions), len(aretes)), dtype=numpy.float32)
     for melange in melanges_par_lots(w[sommets], matrices):
         for e, xs in enumerate(positions):
-            p = numpy.einsum('snij,sj->nsi', melange, xs)
+            p = appliquer(melange, xs)
             rapport = numpy.linalg.norm(p[:, locales[:, 0]] - p[:, locales[:, 1]], axis=2) / longueurs
             bas[e] = numpy.minimum(bas[e], rapport.min(axis=0))
             haut[e] = numpy.maximum(haut[e], rapport.max(axis=0))
@@ -182,10 +190,9 @@ def lisser_les_sommets(nom, x, w, decalages, jumeau, aretes, matrices):
             break
         if passe == PASSES_MAX:
             raise RuntimeError(f'{nom} : {int(hors.sum())} arête(s) hors de {ETIREMENT_EN_CLIP} après {PASSES_MAX} passes')
-        region = set(aretes[actives[hors]].ravel().tolist())
-        for _ in range(anneaux):
-            region.update(n for s in list(region) for n in voisins[s][0])
-        region = numpy.array(sorted(region))
+        marquees = numpy.zeros(len(aretes), dtype=bool)
+        marquees[actives[hors]] = True
+        region = numpy.flatnonzero(region_locale(aretes, marquees, anneaux, len(x)))
         lisses = limiter(numpy.array([numpy.array(voisins[s][1]) @ w[voisins[s][0]] for s in region]))
         if numpy.abs(lisses - w[region]).max() < STAGNATION:
             anneaux += 1
