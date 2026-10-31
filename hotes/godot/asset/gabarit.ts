@@ -17,21 +17,49 @@ export const CORPULENCE = 'corpulence';
 
 const borne = (x: number): number => Math.min(1, Math.max(0, x));
 
-/** La pose du gabarit : l'échelle uniforme de l'os racine, par os listé de la table le facteur de la position +Y
- *  locale de chacun de ses os enfants (le produit des facteurs si l'os est listé sous plusieurs clés), et les os des
- *  pieds (`appuis.pieds`) que la translation de la racine ramène au sol (`hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base »). */
+export const CLES_DU_GABARIT = ['legs', 'arms', 'head'] as const;
+export type CleDuGabarit = typeof CLES_DU_GABARIT[number];
+export type SensDuGabarit = 'moins' | 'plus';
+export type BornesDuGabarit = Readonly<Record<CleDuGabarit, TableDeGabarit['st']>>;
+
+export const nomDeCleDuGabarit = (cle: CleDuGabarit, sens: SensDuGabarit, silhouette?: string): string =>
+  `gabarit_${cle}_${sens}${silhouette === undefined ? '' : `_${silhouette}`}`;
+
+/** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
+export function poidsDuGabarit(facteurs: GabaritResolu, bornes: BornesDuGabarit, silhouettes: Readonly<Record<string, number>>): Record<string, number> {
+  const poids: Record<string, number> = {};
+  for (const cle of CLES_DU_GABARIT) {
+    const { min, max } = bornes[cle];
+    if (!(Number.isFinite(min) && Number.isFinite(max) && min < 1 && max > 1)) throw new Error(`gabarit.${cle} : min < 1 < max attendu`);
+    for (const sens of ['moins', 'plus'] as const) {
+      const actif = sens === 'moins' ? facteurs[cle] < 1 : facteurs[cle] > 1;
+      const p = actif ? Math.max(0, (facteurs[cle] - 1) / ((sens === 'moins' ? min : max) - 1)) : 0;
+      poids[nomDeCleDuGabarit(cle, sens)] = p;
+      for (const [silhouette, w] of Object.entries(silhouettes)) poids[nomDeCleDuGabarit(cle, sens, silhouette)] = w * p;
+    }
+  }
+  return poids;
+}
+
+/** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
 export interface PoseDuGabarit {
   readonly racine: { readonly os: string; readonly echelle: number };
   readonly enfantsDe: Readonly<Record<string, number>>;
+  readonly echellesDesOs: Readonly<Record<string, readonly [number, number, number]>>;
   readonly pieds: readonly string[];
 }
 
 export function poseDuGabarit({ gabarit, appuis }: Pick<ManifesteDeBase, 'gabarit' | 'appuis'>, facteurs: GabaritResolu): PoseDuGabarit {
   const enfantsDe: Record<string, number> = {};
-  for (const cle of ['legs', 'arms', 'head'] as const) {
-    for (const nom of gabarit[cle]) enfantsDe[nom] = (enfantsDe[nom] ?? 1) * facteurs[cle];
+  const echellesDesOs: Record<string, readonly [number, number, number]> = {};
+  for (const cle of CLES_DU_GABARIT) {
+    for (const nom of gabarit[cle]) {
+      const facteur = facteurs[cle];
+      enfantsDe[nom] = facteur;
+      echellesDesOs[nom] = cle === 'head' ? [facteur, facteur, facteur] : [1, facteur, 1];
+    }
   }
-  return { racine: { os: gabarit.racine, echelle: facteurs.sl }, enfantsDe, pieds: appuis.pieds };
+  return { racine: { os: gabarit.racine, echelle: facteurs.sl }, enfantsDe, echellesDesOs, pieds: appuis.pieds };
 }
 
 /** Les poids des shape keys de carrure pour `st` : `carrure_moins` sur [min ; 1], `carrure_plus` sur [1 ; max], jamais les deux. */

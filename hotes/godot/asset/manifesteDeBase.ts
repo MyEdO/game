@@ -130,6 +130,14 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
     st: { min: nombre(st.min, 'gabarit.st.min'), max: nombre(st.max, 'gabarit.st.max') },
   };
   if (estObjet(brut.gabarit) && estObjet(g.st) && !(gabarit.st.min < 1 && gabarit.st.max > 1)) forme('gabarit.st', `bornes ${gabarit.st.min} et ${gabarit.st.max} : min < 1 < max attendu`);
+  const clesParOs = new Map<string, string>();
+  for (const cle of ['legs', 'arms', 'head'] as const) {
+    for (const nom of gabarit[cle]) {
+      const precedente = clesParOs.get(nom);
+      if (precedente !== undefined && precedente !== cle) forme(`gabarit.${cle}`, `${nom} figure sous ${precedente} et ${cle}`);
+      clesParOs.set(nom, cle);
+    }
+  }
   const p = objet(brut.porteur, 'porteur');
   const porteur: PorteurDeReference = { race: id(p.race, 'porteur.race'), gabarit: id(p.gabarit, 'porteur.gabarit'), taille: id(p.taille, 'porteur.taille'), echelleDArt: positif(p.echelleDArt, 'porteur.echelleDArt') };
   const a = objet(brut.appuis, 'appuis');
