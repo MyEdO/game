@@ -1,5 +1,6 @@
 extends SceneTree
 
+const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
 var _fautes: Array[String] = []
 
@@ -20,7 +21,10 @@ func _recetter() -> void:
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	var skin := Skin.new()
 	skin.add_bind(0, Transform3D.IDENTITY)
-	skin.add_bind(1, Transform3D(Basis.IDENTITY, Vector3.DOWN))
+	skin.add_named_bind("enfant", Transform3D(Basis.IDENTITY, Vector3.DOWN))
+	skin.set_bind_bone(1, 0)
+	_verifier(skin.get_bind_name(0).is_empty() and skin.get_bind_bone(0) == 0, "bind 0 par indice")
+	_verifier(skin.get_bind_name(1) == &"enfant" and skin.get_bind_bone(1) == 0, "bind 1 nommé enfant, indice contradictoire racine")
 	var a := _instance("A", mesh, skin)
 	var b := _instance("B", mesh, skin)
 	var avant_a := _positions(a)
@@ -99,7 +103,9 @@ func _positions(instance: MeshInstance3D) -> PackedVector3Array:
 		for j in 4:
 			var index := i * 4 + j
 			var bind := bones[index]
-			var pose := squelette.get_bone_global_pose(skin.get_bind_bone(bind))
+			var nom := skin.get_bind_name(bind)
+			var os := squelette.find_bone(nom) if not nom.is_empty() else skin.get_bind_bone(bind)
+			var pose := squelette.get_bone_global_pose(os)
 			position += (pose * skin.get_bind_pose(bind) * positions[i]) * weights[index]
 		resultat.append(position)
 	return resultat
