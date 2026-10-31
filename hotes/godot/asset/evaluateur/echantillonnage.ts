@@ -85,7 +85,8 @@ export function* echantillonner(
     } finally {
       action.stop();
       mixer.uncacheRoot(scene);
-      scene.updateMatrixWorld(true);
+      if (gabarit) reposerGabarit(gabarit, () => {});
+      else scene.updateMatrixWorld(true);
     }
   }
 }
