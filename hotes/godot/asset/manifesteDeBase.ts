@@ -10,6 +10,8 @@ import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 
 export const VERSION_DU_SCHEMA_DE_BASE = 3;
 
+export const CLES_DU_GABARIT = ['legs', 'arms', 'head'] as const;
+
 export interface TableDeGabarit {
   readonly legs: readonly string[];
   readonly arms: readonly string[];
@@ -131,7 +133,7 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   };
   if (estObjet(brut.gabarit) && estObjet(g.st) && !(gabarit.st.min < 1 && gabarit.st.max > 1)) forme('gabarit.st', `bornes ${gabarit.st.min} et ${gabarit.st.max} : min < 1 < max attendu`);
   const clesParOs = new Map<string, string>();
-  for (const cle of ['legs', 'arms', 'head'] as const) {
+  for (const cle of CLES_DU_GABARIT) {
     for (const nom of gabarit[cle]) {
       const precedente = clesParOs.get(nom);
       if (precedente !== undefined && precedente !== cle) forme(`gabarit.${cle}`, `${nom} figure sous ${precedente} et ${cle}`);
@@ -167,7 +169,7 @@ export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): Verdi
   m.os.forEach((o, i) => { if (!contenu.os.has(o)) refus('os-inconnu', `os.${i}`, `${o} n’est pas un os du GLB`); });
   const osNommes: [string, string][] = [
     ['gabarit.racine', m.gabarit.racine],
-    ...(['legs', 'arms', 'head'] as const).flatMap((cle) => m.gabarit[cle].map((o, i): [string, string] => [`gabarit.${cle}.${i}`, o])),
+    ...CLES_DU_GABARIT.flatMap((cle) => m.gabarit[cle].map((o, i): [string, string] => [`gabarit.${cle}.${i}`, o])),
     ...m.appuis.pieds.map((o, i): [string, string] => [`appuis.pieds.${i}`, o]),
     ...m.osAPositionAnimee.map((o, i): [string, string] => [`osAPositionAnimee.${i}`, o]),
   ];

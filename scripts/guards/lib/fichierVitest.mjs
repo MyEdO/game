@@ -72,9 +72,12 @@ export const SUFFIXE_KIT = String.raw`\.testkit` + MOTIF_D_EXTENSION;
  *  une suite, pas un kit. */
 export const EST_KIT_DE_TEST = new RegExp(`${SUFFIXE_KIT}$`);
 
+/** Les recettes de preuve natives, rangées sous `recettes/`, sont des instruments GDScript. */
+const RECETTE_DE_PREUVE = /(?:^|\/)recettes\/.+\.gd$/;
+
 /**
- * Ce chemin (ou ce nom de fichier) désigne-t-il un KIT de test — ni joué, ni de la production ?
+ * Ce chemin désigne-t-il un kit de test ou une recette de preuve native, hors production ?
  * @param {string} rel chemin POSIX depuis la racine, ou nom nu.
  * @returns {boolean}
  */
-export const estKitDeTest = (rel) => EST_KIT_DE_TEST.test(rel);
+export const estKitDeTest = (rel) => EST_KIT_DE_TEST.test(rel) || RECETTE_DE_PREUVE.test(rel);

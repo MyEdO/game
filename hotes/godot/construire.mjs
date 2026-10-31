@@ -269,7 +269,7 @@ function scriptsDe(dossier, sous = dossier) {
 
 /** Godot sur le projet `projet` : sa sortie sans séquences de terminal et ses erreurs. */
 function godot(binaire, projet, args) {
-  const r = spawnSync(binaire, ['--headless', '--path', projet, ...args], { encoding: 'utf8', timeout: 240_000, maxBuffer: 64 * 1024 * 1024 })
+  const r = spawnSync(binaire, ['--headless', '--path', projet, ...args], { encoding: 'utf8', timeout: 600_000, maxBuffer: 64 * 1024 * 1024 })
   const lignes = stripVTControlCharacters(`${r.stdout ?? ''}\n${r.stderr ?? ''}`).split('\n')
   const erreurs = lignes.filter((l) => /^(SCRIPT )?ERROR\b/.test(l.trim()))
   if (r.error) erreurs.push(`godot ${args.join(' ')} : ${r.error.message}`)

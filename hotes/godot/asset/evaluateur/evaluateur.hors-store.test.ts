@@ -596,6 +596,23 @@ describe('validerManifesteDeBase', () => {
     expect(validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, [a]: ['racine'] } }, octets).ok).toBe(true);
   });
 
+  it('refuse un os sous les trois clés en nommant les deux conflits successifs', () => {
+    const m = valide();
+    const gabarit = { ...m.gabarit, legs: ['racine'], arms: ['racine'], head: ['racine'] };
+    expect(validerManifesteDeBase({ ...m, gabarit }, octets)).toEqual({
+      ok: false, ecarts: [
+        { code: 'forme', ou: 'gabarit.arms', detail: 'racine figure sous legs et arms' },
+        { code: 'forme', ou: 'gabarit.head', detail: 'racine figure sous arms et head' },
+      ],
+    });
+  });
+
+  it.each(['legs', 'arms', 'head'] as const)('accepte un doublon sous la seule clé %s', (cle) => {
+    const m = valide();
+    const gabarit = { ...m.gabarit, [cle]: ['racine', 'racine'] };
+    expect(validerManifesteDeBase({ ...m, gabarit }, octets)).toEqual({ ok: true, manifeste: { ...m, gabarit } });
+  });
+
   it.each<[CodeDEcartDeBase, (m: ReturnType<typeof valide>) => unknown]>([
     ['forme', (m) => ({ ...m, base: 3 })],
     ['version-inconnue', (m) => ({ ...m, schema: 2 })],
