@@ -285,6 +285,30 @@ describe('gabarit', () => {
     }
   });
 
+  it('après un clip de rotation seule, toute la pose de repos au gabarit est rendue à la fin et à l’abandon', () => {
+    const pli = Math.PI / 3;
+    const clip = new AnimationClip('Plie', 1, [
+      new QuaternionKeyframeTrack('genouG.quaternion', [0, 1], [0, 0, 0, 1, Math.sin(pli / 2), 0, 0, Math.cos(pli / 2)]),
+    ]);
+    for (const sortie of ['consommation complète', 'abandon par return()']) {
+      const { scene } = jambes();
+      const gabarit = appliquerGabarit(scene, { ...FACTEURS_NEUTRES, sl: 0.7, legs: 1.3 }, GABARIT_DES_JAMBES);
+      const repos = poseDeRepos(scene, []).os;
+      const echantillons = echantillonner(scene, [], [clip], 0.25, gabarit);
+      if (sortie === 'consommation complète') expect([...echantillons]).toHaveLength(5);
+      else {
+        echantillons.next();
+        echantillons.next();
+        echantillons.return(undefined);
+      }
+      const apres = poseDeRepos(scene, []).os;
+      expect([...apres.keys()], sortie).toEqual([...repos.keys()]);
+      const ecart = Math.max(...[...repos].flatMap(([nom, matrice]) => matrice.elements.map((valeur, i) =>
+        Math.abs(valeur - (apres.get(nom)?.elements[i] ?? Infinity)))));
+      expect.soft(ecart, sortie).toBeLessThan(1e-9);
+    }
+  });
+
   it('`st` pose une seule shape key de carrure, bornée à 1', () => {
     expect(poidsDeCarrure(0.9, TABLE.st)).toEqual({ [CARRURE_MOINS]: expect.closeTo(0.5, 9), [CARRURE_PLUS]: 0 });
     expect(poidsDeCarrure(1.5, TABLE.st)).toEqual({ [CARRURE_MOINS]: 0, [CARRURE_PLUS]: 1 });
