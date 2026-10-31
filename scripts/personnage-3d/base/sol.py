@@ -66,9 +66,12 @@ from mathutils import Matrix, Quaternion, Vector
 from anatomie import AXES_DU_PERSONNAGE, gabarit
 from animation import assign_action
 from pistes import aller_a, sacs
-from poids import CLES_CONFONDUES, LOT, deformer, instants, peau_lineaire, poses, repos
+from poids import LOT, cadence, deformer, instants, peau_lineaire, poses, repos
 from seuils import MAJORITE_DU_POIDS, SOL_TOLERANCE_M, TOLERANCE_ECHELLE, TOLERANCE_JUMEAUX_POSITION_M
 
+CLES_CONFONDUES = 1e-4
+"""Deux temps de clé Blender plus proches que cet écart, en images, sont confondus : l'arrondi float32 d'une image
+jusqu'à ~300 (`.claude/soldes/3098.md:20`)."""
 ATTEINTE_M = 1e-5
 """Écart admis entre la tête du pied posée par l'IK (`tendre`) et sa cible, le bruit float32 des matrices de pose de
 Blender : sonde du 2026-10-28, `tendre` à chaque clé des 86 clips UAL sur le corps UBC, cible 1 cm au-dessus de la tête
@@ -633,7 +636,7 @@ def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, racine, pelvis, ma
                 q[:, :, 2] += montees[:, None]
             tetes = {pied: p[:, indice[pied], :3, 3] + montees[:, None] * HAUT for pied in pieds}
             if action.name in marches:
-                secondes = temps * scene.render.fps_base / scene.render.fps
+                secondes = temps / cadence()
                 appuis_ = appuis(tetes, p[:, indice[racine], :3, 3], positions, secondes, avant)
                 if not passes:
                     consigne = consigne_de_plantation(appuis_, avant)

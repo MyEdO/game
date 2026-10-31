@@ -30,27 +30,35 @@ PASSES_MAX = 200
 """Passes de lissage au-delà desquelles la construction s'arrête."""
 LOT = 64
 """Échantillons déformés ensemble."""
-CLES_CONFONDUES = 1e-4
-"""Deux temps de clé plus proches que cet écart, en images, sont confondus (`sol`)."""
+
+
+def cadence():
+    """Les images par seconde de la scène."""
+    rendu = bpy.context.scene.render
+    return rendu.fps / rendu.fps_base
+
+
+def instants_confondus():
+    """`INSTANTS_CONFONDUS`, en images à la cadence de la scène (`cadence`)."""
+    return INSTANTS_CONFONDUS * cadence()
 
 
 def instants(action):
     """Les instants de `action`, en images à la cadence de la scène : l'union des multiples de `pas` compris entre sa
     première et sa dernière clé, `pas` valant 1/`IMAGES_PAR_SECONDE` s, et des clés de toutes ses courbes, triée, un
-    élément qui suit le précédent de `INSTANTS_CONFONDUS` s au plus n'en faisant qu'un avec lui ; aucun pour une action
-    sans clé. Une action dont la première clé est 0 a les instants de l'évaluateur (`echantillonnage.ts` `instants`),
-    en images. Une clé qui n'est pas un instant suit de `INSTANTS_CONFONDUS` s au plus l'élément qui la précède dans le
-    tri."""
+    élément qui suit le précédent de `instants_confondus` images au plus n'en faisant qu'un avec lui ; aucun pour une
+    action sans clé. Une action dont la première clé est 0 a les instants de l'évaluateur (`echantillonnage.ts`
+    `instants`), en images. Une clé qui n'est pas un instant suit de `instants_confondus` images au plus l'élément qui
+    la précède dans le tri."""
     cles = [float(k.co[0]) for sac in sacs(action) for c in sac.fcurves for k in c.keyframe_points]
     if not cles:
         return []
-    rendu = bpy.context.scene.render
-    images = rendu.fps / rendu.fps_base
-    pas = images / IMAGES_PAR_SECONDE
+    pas = cadence() / IMAGES_PAR_SECONDE
     debut, fin = math.ceil(min(cles) / pas - 1e-9), math.floor(max(cles) / pas + 1e-9)
     grille = [k * pas for k in range(debut, fin + 1)]
     tous = sorted(grille + cles)
-    return [t for i, t in enumerate(tous) if i == 0 or t - tous[i - 1] > INSTANTS_CONFONDUS * images]
+    confondus = instants_confondus()
+    return [t for i, t in enumerate(tous) if i == 0 or t - tous[i - 1] > confondus]
 
 
 def poses(rig, action, temps=None):
