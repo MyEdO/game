@@ -116,6 +116,8 @@ export function mesurerAppuis(poses: readonly PoseDuPied[], vitessesDeclarees: R
 
 export type TranslationDeReference = (a: PoseDuPied, b: PoseDuPied, direction: readonly [number, number], vitesseDeclaree: number) => readonly [number, number];
 
+export const translationDuMonde: TranslationDeReference = (a, b) => [b.racine[0] - a.racine[0], b.racine[2] - a.racine[2]];
+
 export function mesurerAppuisAvecTranslation(poses: readonly PoseDuPied[], vitessesDeclarees: Readonly<Record<string, number>>, translation: TranslationDeReference): { mesures: AppuisDuClip[]; ecarts: Ecart[] } {
   const mesures: AppuisDuClip[] = [], ecarts: Ecart[] = [];
   for (const [clip, vitesseDeclaree] of Object.entries(vitessesDeclarees)) {

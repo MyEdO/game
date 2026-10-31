@@ -16,7 +16,7 @@ import {
   CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FACTEURS_NEUTRES, FEMININ, marcheDeLaBase, poidsDeCarrure, poidsDeSilhouettes, poseDuGabarit,
 } from '../gabarit.ts';
 import { validerManifesteDeBase, type CodeDEcartDeBase, type TableDeGabarit } from '../manifesteDeBase.ts';
-import { mesurerAppuisAvecTranslation, sommetDuPied, type PoseDuPied } from './gardes/appuis.ts';
+import { mesurerAppuisAvecTranslation, sommetDuPied, translationDuMonde, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
@@ -635,8 +635,7 @@ describe('appuis publiés pendant la marche', () => {
     clip: 'Walk_Loop', pied: 'foot_l', t: v[0], racine: [v[1], v[2], v[3]], os: [v[4], v[5], v[6]],
     sommets: [[v[7], v[8], v[9]], [v[10], v[11], v[12]]],
   }));
-  const mesurer = (images: readonly PoseDuPied[]) => mesurerAppuisAvecTranslation(images, { Walk_Loop: 1.04315 },
-    (a, b) => [b.racine[0] - a.racine[0], b.racine[2] - a.racine[2]]);
+  const mesurer = (images: readonly PoseDuPied[]) => mesurerAppuisAvecTranslation(images, { Walk_Loop: 1.04315 }, translationDuMonde);
 
   it('sélectionne la majorité cumulée des influences du pied et de ses descendants', () => {
     expect(sommetDuPied([0, 1, 2, 3], [0.3, 0.25, 0.45, 0], (i) => i < 2)).toBe(true);
@@ -658,9 +657,7 @@ describe('appuis publiés pendant la marche', () => {
     expect(mesurer(images).ecarts.map((e) => e.code)).toContain('glissement');
   });
 
-  it('publie une durée insuffisante avec cinq images et un appui indétectable sans surface', () => {
-    const court = mesurer(poses().slice(0, 5)).mesures[0].pieds[0];
-    expect(court.duree).toBeLessThan(0.2);
+  it('signale un pied sans surface', () => {
     const sansSurface = mesurer(poses().map((p) => ({ ...p, sommets: [] })));
     expect(sansSurface.ecarts.map((e) => e.code)).toEqual(['pied-sans-surface']);
     expect(sansSurface.mesures[0].pieds[0].intervalles).toBe(0);

@@ -462,6 +462,7 @@ func _monter(emplacement: Dictionary, element: String, embleme: String, demande:
 		noeuds.append(_poser_la_piece(pieces[rang], os_des_pieces[rang], squelette, id))
 	scene.free()
 	_pieces[id] = pieces
+	_pieds_a_relever = true
 	_noeuds[id] = noeuds
 	_montes[id] = element
 	_marquer(emplacement.boutons, element)
@@ -870,6 +871,7 @@ func _composer_la_courante() -> void:
 			_choisir(_emplacements[id], cible)
 	_poser_le_gabarit()
 	_poser_des_morphes(anciens.keys(), 0.0)
+	_pieds_a_relever = true
 	_poser_les_morphes()
 	_montrer_la_composition()
 
@@ -903,7 +905,6 @@ func _cadrer() -> void:
 ## Les poids `morphes` de la composition composée posés par nom de shape key sur chaque mesh de la base et de chaque
 ## élément monté qui porte la clé (#3086, D4) ; un mesh sans la clé n'en reçoit rien.
 func _poser_les_morphes() -> void:
-	_pieds_a_relever = true
 	if _modele == null:
 		return
 	var morphes: Dictionary = _composee.get("morphes", {})
