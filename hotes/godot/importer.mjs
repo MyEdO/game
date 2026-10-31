@@ -13,7 +13,7 @@ const USAGE = `Usage : node hotes/godot/importer.mjs <dossier de production> <id
   <id de modèle>           le nom des fichiers déposés : <id>.manifeste.json, <id>.provenance.json, les LICENSE-*.txt ;
                            schéma 3 : <id>.glb écrit aussi ; schéma 2 : <id>.glb tiré de la Release à la construction (construire.mjs)
   --destination <dossier>  où les déposer (défaut : ${DOSSIER_DES_MODELES})
-  --sans-publier           ne verse rien dans la Release ${TAG} (tests, sondes, et toute production dont manifest.json porte hors_release)
+  --sans-publier           ne verse rien dans la Release ${TAG} (tests, sondes, éléments d’essai déclarés hors_release)
   --remplacer              remplace le modèle schéma 3 déjà importé sous <id> ; une base, si chaque élément qui la référence
                            passe contre elle, sinon rien n'est écrit`
 
