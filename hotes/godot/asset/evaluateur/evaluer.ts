@@ -61,8 +61,8 @@ export interface FicheDeMesures {
     readonly corps: readonly string[];
     readonly clips: readonly MesuresDuClip[];
     readonly etirement: Readonly<Record<string, readonly RapportDArete[]>>;
-    /** Les shape keys de la base mesurées au repos ; `null` sans manifeste de base valide. */
-    readonly silhouettes: MesuresDesSilhouettes | null;
+    /** Les silhouettes résolues de la base mesurées au repos. */
+    readonly silhouettes: MesuresDesSilhouettes;
   };
 }
 
@@ -111,6 +111,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
 
   const contenus = [entree.base, ...(entree.elements ?? [])].map(lireGlb);
   const formes = contenus[0].formes;
+  const nomsDesSilhouettes = manifeste?.silhouettes ?? [...formes];
   const absentes = Object.keys(entree.silhouettes ?? {}).filter((nom) => !formes.has(nom));
   if (absentes.length) throw new Error(`évaluation : [silhouette-absente] ${absentes.join(', ')} : shape key(s) absente(s) de la base ; shape keys : ${[...formes].join(', ') || 'aucune'}`);
   const carrure = facteurs.st < 1 ? CARRURE_MOINS : facteurs.st > 1 ? CARRURE_PLUS : null;
@@ -143,12 +144,10 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste ? [manifeste.prises.main.os, manifeste.prises.off.os] : []))),
   );
 
-  const silhouettes = manifeste
-    ? mesurerSilhouettes({ scene: base.scene, corps: base.skinnes.filter((m) => nomsDuCorps.includes(m.name)), silhouettes: manifeste.silhouettes, st: manifeste.gabarit.st })
-    : null;
-  if (silhouettes) ecarts.push(...silhouettes.ecarts);
+  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: base.skinnes.filter((m) => nomsDuCorps.includes(m.name)), silhouettes: nomsDesSilhouettes, st: manifeste?.gabarit.st });
+  ecarts.push(...silhouettes.ecarts);
 
-  const sansCles = sousLesFormes(base.scene, (poserSeules) => poserSeules({}, meshes));
+  const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes));
   const repos = poseDeRepos(base.scene, meshes);
   const aretes = new Map(meshes.map((m) => [m.name, aretesDe(m)]));
   ecarts.push(...gardeEtirementAuRepos(aretes, sansCles, repos));
@@ -180,7 +179,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
         return { nom: c.name, duree: c.duration, echantillons: h.length, plusBas: { min: Math.min(...h), max: Math.max(...h) }, ...(mesure ? { appuis: mesure } : {}) };
       }),
       etirement: piresAretes(etirements),
-      silhouettes: silhouettes?.mesures ?? null,
+      silhouettes: silhouettes.mesures,
     },
   };
 }

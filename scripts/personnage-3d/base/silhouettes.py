@@ -1,4 +1,4 @@
-"""Silhouettes de la base humanoïde (#2972, L1d #3101) : les shape keys du corps et de ses peaux secondaires.
+"""Silhouettes de la base humanoïde (#2972, L1d #3101) : les shape keys de la table `SILHOUETTES`, sur le corps et ses peaux secondaires.
 
 - `feminin` : le corps F d'Universal Base Characters, posé par son skin sur le repos du squelette H (chaque os F amené
   sur l'os H homonyme, tête et queue confondues), puis chaque sommet du corps H projeté sur cette surface ; le décalage
@@ -35,6 +35,7 @@ from pathlib import Path
 import numpy
 
 from anatomie import PEAUX_SECONDAIRES, PIEDS, POING, ZONE_DE_L_OS
+from corpulence import NOM as CORPULENCE
 from formes import (aretes_des_triangles, aux_noeuds, decalages, lier, lisser, noms_des_cles, positions, poser_la_cle,
                     rapports, transferer_les_cles, transporter, voisins)
 from poids import PASSES_MAX, deformer, extremes, jumeaux, peau_lineaire
@@ -47,6 +48,7 @@ DONNEES = ICI.parents[2] / 'src' / 'data'
 FEMININ = 'feminin'
 CARRURE_MOINS = 'carrure_moins'
 CARRURE_PLUS = 'carrure_plus'
+SILHOUETTES = (FEMININ, CARRURE_MOINS, CARRURE_PLUS, CORPULENCE)
 TOURS_DE_CORRECTION = 5
 """Tours de lissage puis correction (`alterner`) au-delà desquels la construction s'arrête : valeur d'ingénierie
 #3101."""
@@ -194,7 +196,7 @@ class ContraintesLiees(AnneauIndetectable):
 
 
 class ComposanteSansAppui(AnneauIndetectable):
-    """Une composante connexe de nœuds libres n'a aucune arête vers un nœud fixe (`sans_appui`) : le laplacien des
+    """Une composante connexe de nœuds libres n'a aucune arête vers un nœud fixe (`preparerLaplacien`, `scripts/personnage-3d/base/laplacien.ts`) : le laplacien des
     nœuds libres, que `correction` résout, est singulier."""
     RAISON = "composante de nœuds libres sans arête vers un nœud fixe, laplacien singulier"
 
@@ -213,24 +215,6 @@ def liees(contraintes, etiquettes):
     nulles = numpy.linalg.svd(contraintes, full_matrices=k > contraintes.shape[1])[0][:, rang:]
     seuil = max(contraintes.shape) * numpy.finfo(contraintes.dtype).eps
     return list(dict.fromkeys(e for e, poids in zip(etiquettes, numpy.abs(nulles).max(axis=1)) if poids > seuil))
-
-
-def sans_appui(m, internes, appuyes):
-    """Les composantes connexes des nœuds libres `0..m-1`, par les arêtes `internes` (couples de tableaux de rangs,
-    origine et extrémité, dans chaque sens), qui ne contiennent aucun nœud de `appuyes` : un tableau de rangs par
-    composante."""
-    composante = numpy.arange(m)
-    while True:
-        avant = composante.copy()
-        for de, vers in internes:
-            numpy.minimum.at(composante, de, composante[vers])
-        composante = composante[composante]
-        if (composante == avant).all():
-            break
-    appuyee = numpy.zeros(m, dtype=bool)
-    appuyee[composante[appuyes]] = True
-    racines = numpy.flatnonzero((composante == numpy.arange(m)) & ~appuyee)
-    return [numpy.flatnonzero(composante == r) for r in racines]
 
 
 def anneaux(squelette, corps, x, w, noms):
@@ -265,21 +249,13 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     n = len(reps)
     fixes = numpy.zeros(n, dtype=bool)
     numpy.logical_or.at(fixes, noeud, fixe)
-    libres = numpy.flatnonzero(~fixes)
-    m = len(libres)
-    rang = numpy.full(n, -1)
-    rang[libres] = numpy.arange(m)
     bouts = numpy.searchsorted(reps, aretes)
-    laplacien = numpy.zeros((m, m))
-    bord, internes = [], []
-    for de, vers in ((bouts[:, 0], bouts[:, 1]), (bouts[:, 1], bouts[:, 0])):
-        p, q = rang[de], rang[vers]
-        numpy.add.at(laplacien, (p[p >= 0], p[p >= 0]), 1.0)
-        interne = (p >= 0) & (q >= 0)
-        numpy.add.at(laplacien, (p[interne], q[interne]), -1.0)
-        internes.append((p[interne], q[interne]))
-        bord.append((p[(p >= 0) & (q < 0)], vers[(p >= 0) & (q < 0)]))
-    isolees = sans_appui(m, internes, numpy.concatenate([p for p, _ in bord]))
+    graphe = {'fixes': fixes.tolist(), 'aretes': bouts.tolist()}
+    laplacien = json.loads(lancer(ICI / 'laplacien.mjs', [], json.dumps(graphe)))
+    libres = numpy.array(laplacien['libres'], dtype=int)
+    m = len(libres)
+    bord = laplacien['bord']
+    isolees = laplacien['isolees']
     if isolees:
         raise ComposanteSansAppui(', '.join(f'{len(c)} nœud(s) libre(s) du sommet {reps[libres[c[0]]]}'
                                             for c in isolees))
@@ -316,13 +292,15 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
             raise ContraintesLiees(', '.join(dependantes))
         valeurs = [aux_noeuds(champ, noeud) for champ, _ in champs]
         seconds = numpy.zeros((m, len(valeurs), 3))
-        for (p, f) in bord:
+        for p, f in bord:
             for k, valeur in enumerate(valeurs):
-                numpy.add.at(seconds[:, k], p, -valeur[f])
+                seconds[p, k] -= valeur[f]
         k_contraintes = len(contraintes)
-        resolu = numpy.linalg.solve(laplacien, numpy.concatenate(
+        seconds = numpy.concatenate(
             [contraintes.reshape(k_contraintes, 3, m).transpose(2, 0, 1).reshape(m, 3 * k_contraintes),
-             seconds.reshape(m, 3 * len(valeurs))], axis=1))
+             seconds.reshape(m, 3 * len(valeurs))], axis=1)
+        resolu = numpy.array(json.loads(lancer(ICI / 'laplacien.mjs', [],
+                                               json.dumps({'laplacien': laplacien, 'seconds': seconds.tolist()})))).reshape(seconds.shape)
         z = resolu[:, :k_contraintes * 3].reshape(m, k_contraintes, 3).transpose(1, 2, 0).reshape(k_contraintes, 3 * m)
         libres_seuls = resolu[:, k_contraintes * 3:].reshape(m, len(valeurs), 3)
         retenues = {vise: (contraintes, z) if vise else (contraintes[:-1], z[:-1]) for vise in vises}
@@ -423,14 +401,15 @@ def en_clip(w, x, aretes, longueurs, matrices, vers_le_monde):
 
 
 def finir_les_silhouettes(squelette, corps, secondaires, bornes):
-    """Applique à chaque clé de `corps` le lissage en région pleine jusqu'à `ETIREMENT_DES_CLES` au repos, les
+    """Applique aux silhouettes de `corps` le lissage en région pleine jusqu'à `ETIREMENT_DES_CLES` au repos, les
     extrémités invariantes et la correction par les anneaux articulaires (`alterner`, `correction`, rayon de la carrure
-    aux bornes de `st` `bornes`), puis la transfère aux peaux `secondaires`. Seules les clés que portent `corps` à
-    l'appel servent de source. Rend `refinir(matrices)` : sur les clés courantes de `corps`, `alterner` en région locale
+    aux bornes de `st` `bornes`), puis les transfère aux peaux `secondaires`. Les silhouettes présentes à
+    l'appel servent de source. Rend `refinir(matrices)` : sur leurs décalages courants, `alterner` en région locale
     contre `ETIREMENT_DES_CLES` au repos et `ETIREMENT_EN_CLIP` sous les matrices de peau `matrices` (`en_clip`),
     avec la préparation de cet appel (poids, fondu, anneaux, `correction`) ; pose les clés, les transfère aux
-    `secondaires`, et rend le nombre de sommets dont une clé a changé. Rend aussi `mesurer(matrices)`, en une passe de
-    `poids.extremes` sur toutes les clés courantes de `corps` : le masque des arêtes du neutre hors de
+    `secondaires`, et rend le nombre de sommets dont une clé a changé. Les clés traitées sont les entrées de
+    `SILHOUETTES` présentes sur `corps`. Rend aussi `mesurer(matrices)`, en une passe de
+    `poids.extremes` sur ces silhouettes de `corps` : le masque des arêtes du neutre hors de
     `ETIREMENT_EN_CLIP` sous `matrices`, et par clé celui de ses arêtes hors, dans son état sous `matrices` ou au repos
     hors de `ETIREMENT_DES_CLES`."""
     noms = [b.name for b in squelette.data.bones]
@@ -439,7 +418,7 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
     libre = fondu(w, noms, extremites(squelette), groupe)
     repos = positions(corps.data)
     aretes = aretes_des_triangles(corps, groupe)
-    cles = noms_des_cles(corps)
+    cles = [nom for nom in SILHOUETTES if nom in noms_des_cles(corps)]
     rapports_de_st = rapports_de_carrure(bornes)
     bruts = {nom: (decalages(corps, nom), rapports_de_st.get(nom)) for nom in cles}
     for nom, (brut, _) in bruts.items():
@@ -470,7 +449,7 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
     sans_fondu = (libre > 0).astype(numpy.float64)
 
     def mesurer(matrices):
-        courants = {nom: decalages(corps, nom) for nom in noms_des_cles(corps)}
+        courants = {nom: decalages(corps, nom) for nom in cles}
         bas, haut = extremes_au_monde(w, x, list(courants.values()), aretes, longueurs, matrices, vers_le_monde)
         hors = hors_de(bas, ETIREMENT_EN_CLIP) | hors_de(haut, ETIREMENT_EN_CLIP)
         return hors[0], {nom: au_repos(nom, d) | hors[1 + k] for k, (nom, d) in enumerate(courants.items())}
@@ -481,7 +460,7 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
         def hors(nom, d):
             return au_repos(nom, d) | dans_le_clip(nom, d)
 
-        courants = {nom: (decalages(corps, nom), rapports_de_st.get(nom)) for nom in noms_des_cles(corps)}
+        courants = {nom: (decalages(corps, nom), rapports_de_st.get(nom)) for nom in cles}
         refinis = alterner(courants, repos, groupe, aretes, sans_fondu, corriger, vers_le_monde, hors, 'locale')
         change = numpy.zeros(len(repos), dtype=bool)
         for nom, d in refinis.items():

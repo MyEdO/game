@@ -1,6 +1,6 @@
 /**
  * GARDE DE L'ÉTIREMENT DES ARÊTES (#2972, #3101) : la longueur d'une arête se rapporte à l_b, sa longueur de repos sous
- * les facteurs d'os du gabarit, toutes les shape keys à 0. Au repos posé (gabarit et silhouettes), l_k/l_b reste dans
+ * les facteurs d'os du gabarit, silhouettes à 0, autres formes à leur influence d'entrée. Au repos posé (gabarit et silhouettes), l_k/l_b reste dans
  * `ETIREMENT_AU_REPOS`, une fois par mesh ; à chaque (clip, t), l_c/l_b, longueur à l'échantillon, reste dans
  * `ETIREMENT_EN_CLIP`. Les cinq pires arêtes de chaque clip, en l_c/l_b, se rendent en mesure. Hors de
  * `ETIREMENT_AU_REPOS`, une shape key effondre ou enfle le repos ; hors de `ETIREMENT_EN_CLIP`, une arête suit un os qui
@@ -130,7 +130,7 @@ function decompte(bornes: Intervalle, codes: Codes) {
   };
 }
 
-/** L'étirement de l'échantillon `e` contre la pose `base` (gabarit, shape keys à 0), sur les arêtes `aretes` (par mesh). */
+/** L'étirement de l'échantillon `e` contre la pose `base` (gabarit, silhouettes à 0, autres formes à leur influence d’entrée), sur les arêtes `aretes` (par mesh). */
 export function mesurerEtirement(aretes: ReadonlyMap<string, Uint32Array>, base: Pose, e: Echantillon): MesureDEtirement {
   const hors = decompte(ETIREMENT_EN_CLIP, CODES_EN_CLIP);
   let candidates: RapportDArete[] = [];
@@ -167,11 +167,11 @@ export function gardeEtirement(mesures: readonly MesureDEtirement[]): Ecart[] {
   const [bas, haut] = ETIREMENT_EN_CLIP;
   return [...parCle.values()].map((s) => ({
     garde: 'etirement', code: s.code, mesh: s.mesh, clip: s.clip, t: s.t, valeur: s.pire, seuil: s.seuil,
-    detail: `jusqu’à ${s.aretes} arête(s) en l_c/l_b (longueur à l’échantillon / longueur de repos, shape keys à 0) hors de [${bas} ; ${haut}], à ${s.instants} instant(s)`,
+    detail: `jusqu’à ${s.aretes} arête(s) en l_c/l_b (longueur à l’échantillon / longueur de repos, silhouettes à 0, autres formes à leur influence d’entrée) hors de [${bas} ; ${haut}], à ${s.instants} instant(s)`,
   }));
 }
 
-/** Les écarts au repos posé `repos` contre la pose `base` (gabarit, shape keys à 0) : par mesh et borne, le pire rapport
+/** Les écarts au repos posé `repos` contre la pose `base` (gabarit, silhouettes à 0, autres formes à leur influence d’entrée) : par mesh et borne, le pire rapport
  *  l_k/l_b hors de `ETIREMENT_AU_REPOS`. */
 export function gardeEtirementAuRepos(aretes: ReadonlyMap<string, Uint32Array>, base: Pose, repos: Pose): Ecart[] {
   const hors = decompte(ETIREMENT_AU_REPOS, CODES_AU_REPOS);
@@ -179,6 +179,6 @@ export function gardeEtirementAuRepos(aretes: ReadonlyMap<string, Uint32Array>, 
   const [bas, haut] = ETIREMENT_AU_REPOS;
   return hors.horsBornes().map((h) => ({
     garde: 'etirement', code: h.code, mesh: h.mesh, valeur: h.pire, seuil: h.seuil,
-    detail: `${h.nombre} arête(s) en l_k/l_b (longueur de repos posée / longueur de repos, shape keys à 0) hors de [${bas} ; ${haut}]`,
+    detail: `${h.nombre} arête(s) en l_k/l_b (longueur de repos posée / longueur de repos, silhouettes à 0, autres formes à leur influence d’entrée) hors de [${bas} ; ${haut}]`,
   }));
 }
