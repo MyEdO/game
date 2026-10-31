@@ -76,7 +76,7 @@ SEGMENTS_DU_GABARIT = {
 """Par facteur de gabarit, les noms complets des os parents UAL dont l'hôte multiplie le Y des enfants,
 dans l'ordre du manifeste.
 
-hotes/godot/pont/CONTRAT.md § Gabarit d'une base l.146
+hotes/godot/pont/CONTRAT.md, « Gabarit d'une base »
 """
 PIEDS = ('foot_l', 'foot_r')
 """Les os des pieds, dont l'évaluateur mesure les appuis."""
