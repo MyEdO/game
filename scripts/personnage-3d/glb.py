@@ -34,25 +34,37 @@ def lire_glb(path):
 
 def lire_accesseur(document, binary, index):
     """Valeurs d'un accesseur en tableau numpy float64 (count, composantes), normalisation glTF appliquée ; un
-    accesseur sans bufferView vaut zéro. Refuse un accesseur creux (sparse) ou hors du chunk BIN."""
+    accesseur sans bufferView vaut zéro. Refuse un accesseur hors du chunk BIN."""
     import numpy as np
     accessor = document['accessors'][index]
-    if 'sparse' in accessor:
-        raise ValueError(f'Sparse accessor not supported: {index}')
     width = COMPOSANTES[accessor['type']]
     dtype = np.dtype(TYPES_DE_COMPOSANTE[accessor['componentType']])
     count = accessor['count']
-    if 'bufferView' not in accessor:
-        return np.zeros((count, width))
-    view = document['bufferViews'][accessor['bufferView']]
-    if view.get('buffer', 0) != 0:
-        raise ValueError(f'Accessor outside the GLB BIN chunk: {index}')
-    stride = view.get('byteStride') or width * dtype.itemsize
-    offset = view.get('byteOffset', 0) + accessor.get('byteOffset', 0)
-    if count and offset + (count - 1) * stride + width * dtype.itemsize > len(binary):
-        raise ValueError(f'Accessor overruns the BIN chunk: {index}')
-    values = np.ndarray((count, width), dtype, buffer=binary, offset=offset,
-                        strides=(stride, dtype.itemsize)).astype(np.float64)
+    def lire(view_index, byte_offset, nombre, largeur, type_valeur):
+        view = document['bufferViews'][view_index]
+        if view.get('buffer', 0) != 0:
+            raise ValueError(f'Accessor outside the GLB BIN chunk: {index}')
+        stride = view.get('byteStride') or largeur * type_valeur.itemsize
+        offset = view.get('byteOffset', 0) + byte_offset
+        fin = byte_offset + ((nombre - 1) * stride + largeur * type_valeur.itemsize if nombre else 0)
+        if byte_offset < 0 or fin > view['byteLength'] or offset + max(0, fin - byte_offset) > len(binary):
+            raise ValueError(f'Accessor overruns the BIN chunk: {index}')
+        return np.ndarray((nombre, largeur), type_valeur, buffer=binary, offset=offset,
+                          strides=(stride, type_valeur.itemsize)).astype(np.float64)
+
+    values = (lire(accessor['bufferView'], accessor.get('byteOffset', 0), count, width, dtype)
+              if 'bufferView' in accessor else np.zeros((count, width)))
+    if 'sparse' in accessor:
+        sparse = accessor['sparse']
+        indices = sparse['indices']
+        if indices['componentType'] not in (5121, 5123, 5125) or not 0 <= sparse['count'] <= count:
+            raise ValueError(f'Invalid sparse accessor: {index}')
+        ids = lire(indices['bufferView'], indices.get('byteOffset', 0), sparse['count'], 1,
+                   np.dtype(TYPES_DE_COMPOSANTE[indices['componentType']])).ravel().astype(np.int64)
+        if (ids >= count).any() or (np.diff(ids) <= 0).any():
+            raise ValueError(f'Invalid sparse indices: {index}')
+        data = sparse['values']
+        values[ids] = lire(data['bufferView'], data.get('byteOffset', 0), sparse['count'], width, dtype)
     if accessor.get('normalized') and dtype.kind in 'iu':
         values = np.maximum(values / np.iinfo(dtype).max, -1.)
     return values

@@ -50,7 +50,7 @@ from silhouettes import SILHOUETTES, ajouter_feminin_et_carrure, bornes_de_st, c
 from sol import (bas_des_sources, deplacements, figer, garder_les_poids_des_pieds, poser_les_clips_au_sol,  # noqa: E402
                  restaurer, retirer_sans_sol, surfaces_des_pieds)
 from tenue_au_sol import tenir_au_sol  # noqa: E402
-from cuisson_gabarit import bornes_du_gabarit, cuire_gabarit, preparer_reference, sauver_reference  # noqa: E402
+from cuisson_gabarit import bornes_du_gabarit, cuire_gabarit, preparer_reference  # noqa: E402
 from porte_gabarit import verifier_gabarit  # noqa: E402
 
 PELVIS = 'pelvis'
@@ -214,7 +214,7 @@ def construire(args):
     corps, secondaires = corps_et_secondaires(peaux)
     corps_f, _ = corps_et_secondaires(meshes_for(bpy, squelette_f))
     bornes = bornes_de_st()
-    racine = gabarit(squelette)['racine']
+    table = {**gabarit(squelette), 'st': bornes, 'bornes': bornes_du_gabarit()}
     marches = json.loads(DECLARATION.read_text(encoding='utf-8'))['clipsDeMarche']
     noms = [b.name for b in squelette.data.bones]
 
@@ -230,7 +230,7 @@ def construire(args):
     def poser_les_clips():
         for action in clips:
             restaurer(action, figee[action.name])
-        poser_les_clips_au_sol(squelette, peaux, clips, sources, PIEDS, racine, PELVIS, marches)
+        poser_les_clips_au_sol(squelette, peaux, clips, sources, PIEDS, table, PELVIS, marches)
 
     def surfaces():
         return {p.name: surfaces_des_pieds(squelette, peau_lineaire(p, noms)[1], PIEDS) for p in peaux}
@@ -257,7 +257,6 @@ def construire(args):
     print('SOL tenu en', tours, 'tour(s)', flush=True)
     clear_animation(squelette)
     bpy.context.view_layer.update()
-    table = {**gabarit(squelette), 'st': bornes, 'bornes': bornes_du_gabarit()}
     print('GABARIT_ANATOMIE_OK table disjointe ; head sans enfants', flush=True)
     print('GABARIT_BORNES', json.dumps(table['bornes']), flush=True)
     references = cuire_gabarit(squelette, peaux, table)
@@ -269,8 +268,6 @@ def construire(args):
     clear_animation(squelette)
     bpy.context.view_layer.update()
     reference = preparer_reference(meshes_for(bpy, squelette), references)
-    if args.preuve_gabarit:
-        sauver_reference(args.preuve_gabarit, reference)
     for image in bpy.data.images:
         if image.has_data:
             image.pack()
@@ -279,7 +276,7 @@ def construire(args):
     bpy.ops.export_scene.gltf(filepath=str(args.sortie), export_format='GLB', export_animations=True,
                               export_animation_mode='ACTIONS', export_force_sampling=False,
                               export_optimize_animation_size=False, export_extras=True,
-                              export_morph_normal=True, export_attributes=True, export_try_sparse_sk=False)
+                              export_morph_normal=True)
     verifier_gabarit(args.sortie, reference)
     print('CLIPS', len(clips), 'OS', len(manifeste['os']), 'ZONES', len(manifeste['zones']),
           'EMPLACEMENTS', len(manifeste['emplacements']), 'SILHOUETTES', formes, 'ST', bornes,
@@ -303,7 +300,6 @@ def main():
                         help='dossier `data` de MPFB (3dobjs, targets) : donneur de la clé `corpulence`')
     parser.add_argument('--sortie', type=Path, required=True, help='humanoide.glb produit')
     parser.add_argument('--os', type=int, default=65, help="nombre d'os du squelette UAL")
-    parser.add_argument('--preuve-gabarit', type=Path, help='archive des oracles H5 directs, hors dossier de production')
     construire(parser.parse_args())
 
 

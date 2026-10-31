@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from anatomie import SEGMENTS_DU_GABARIT, gabarit  # noqa: E402
 from faux_rig import Bones  # noqa: E402
+from sol import jambe  # noqa: E402
 
 
 def squelette():
@@ -48,6 +49,16 @@ class Gabarit(unittest.TestCase):
                 del rig.data.bones[nom]
                 with self.assertRaisesRegex(RuntimeError, nom):
                     gabarit(rig)
+
+    def test_la_jambe_se_resout_depuis_les_segments_recus(self):
+        hanche = SimpleNamespace(name='hanche', parent=None)
+        genou = SimpleNamespace(name='genou', parent=hanche)
+        pied = SimpleNamespace(name='pied', parent=genou)
+        rig = SimpleNamespace(data=SimpleNamespace(bones=Bones([hanche, genou, pied])))
+        self.assertEqual(jambe(rig, 'pied', ['hanche', 'genou']), ('hanche', 'genou'))
+        for segments in (['hanche'], ['genou'], []):
+            with self.subTest(segments=segments), self.assertRaisesRegex(RuntimeError, 'pied.*segments de jambe'):
+                jambe(rig, 'pied', segments)
 
 
 if __name__ == '__main__':

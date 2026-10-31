@@ -235,7 +235,7 @@ def poser_prises(rig):
 
 def gabarit(rig):
     """La part construite du gabarit reçue par `manifeste.mjs` : la racine, seul os sans parent, et les os de
-    `SEGMENTS_DU_GABARIT`. `humanoide.construire` complète `st` et `bornes` par le pont `gabarit.mjs`."""
+    `SEGMENTS_DU_GABARIT`. `humanoide.construire` ajoute `st` de `bornes_de_st` et `bornes` de `gabarit.mjs`."""
     racines = [b.name for b in rig.data.bones if b.parent is None]
     if len(racines) != 1:
         raise RuntimeError(f'racines {racines} : une seule attendue')
@@ -258,7 +258,7 @@ def gabarit(rig):
 
 def poser(rig, peaux):
     """Pose emplacements, prises et zones de la base sur les peaux `peaux` du rig, clips déjà préparés ; rend leur part
-    du manifeste de base, table du gabarit et pieds compris."""
+    du manifeste de base et les pieds."""
     objets = {o.name: o for o in peaux}
     for o in peaux:
         if o.matrix_world != Matrix.Identity(4):
@@ -268,5 +268,5 @@ def poser(rig, peaux):
     emplacements = poser_emplacements(rig, corps, centre)
     prises = poser_prises(rig)
     poser_zones(rig, objets, corps, centre)
-    return {'zones': list(ZONES), 'emplacements': emplacements, 'prises': prises, 'gabarit': gabarit(rig),
+    return {'zones': list(ZONES), 'emplacements': emplacements, 'prises': prises,
             'appuis': {'pieds': list(PIEDS)}}
