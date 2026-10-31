@@ -19,8 +19,13 @@ import { BUILD_NEUTRE } from '../../lib/corpulence';
 import { t } from '../../i18n';
 import { tableTotale } from '../../lib/tableTotale';
 import type { ChampDeCleResolu } from './cleDElement';
-import { gabaritResolu, type GabaritResolu } from './gabarit';
+import { gabaritResolu, type GabaritResolu, type RaceDuGabarit, type TrouverGabarit } from './gabarit';
 import { emplacementDePiece, piecesDEnsemble } from './gardeRobe';
+
+/** `hotes/godot/pont/CONTRAT.md`, « Composition d'un personnage ». */
+export function facteursDeComposition(gabarit: GabaritId | undefined, race: RaceDuGabarit, trouver?: TrouverGabarit): GabaritResolu {
+  return gabaritResolu({ gabarit, race, legsMult: 1 }, trouver);
+}
 
 /** Une composition : les champs d'un preset, sans son enveloppe (`CLES_ENVELOPPE`). */
 export type Composition = Omit<PresetDePersonnage, CleEnveloppe>;
@@ -110,7 +115,7 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
     }
     liste.push({ cle: { champ: 'apparence', id: apparence }, label: findApparenceById(apparence)?.label ?? apparence, point, par: par(habille) });
   }
-  return { portees: liste, rapport, facteurs: gabaritResolu({ gabarit: composition.gabarit?.id as GabaritId | undefined, race, legsMult: 1 }) };
+  return { portees: liste, rapport, facteurs: facteursDeComposition(composition.gabarit?.id as GabaritId | undefined, race) };
 }
 
 /** Un choix d'un catalogue : l'id stocké, le libellé affiché. */

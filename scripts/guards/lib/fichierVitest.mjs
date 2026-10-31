@@ -18,7 +18,8 @@
 //
 // TROISIÈME FORME, le KIT de test (`*.testkit.*`) : un module que seul l'OUTILLAGE de test importe —
 // suites, setup (`src/test-setup.ts`), fixtures (`scripts/test/fixtures/`). Il n'est pas joué (ni suite
-// ni banc), mais il n'est pas de la production : `estKitDeTest`, en UN exemplaire.
+// ni banc), mais il n'est pas de la production. `estKitDeTest` couvre ce kit et les recettes de preuve
+// GDScript sous `recettes/` (`RECETTE_DE_PREUVE`), instruments natifs hors production.
 //
 // La FORME du cliquet, jamais une liste de fichiers : le banc N+1 est couvert sans qu'on y revienne.
 

@@ -50,9 +50,11 @@ export function poserEnfantsDuGabarit(enfants: GabaritPose['enfants']): void {
   for (const [enfant, facteur] of enfants) enfant.position.y *= facteur;
 }
 
-const enfantsDuGabarit = (pose: Pick<PoseDuGabarit, 'enfantsDe'>, trouver: (nom: string) => Bone): GabaritPose['enfants'] =>
-  Object.entries(pose.enfantsDe).flatMap(([nom, facteur]) =>
+/** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
+export function enfantsDuGabarit(pose: Pick<PoseDuGabarit, 'enfantsDe'>, trouver: (nom: string) => Bone): GabaritPose['enfants'] {
+  return Object.entries(pose.enfantsDe).flatMap(([nom, facteur]) =>
     trouver(nom).children.filter((enfant): enfant is Bone => (enfant as Bone).isBone === true).map((enfant) => [enfant, facteur] as const));
+}
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
 export function bindsAuGabarit(squelette: Skeleton, pose: Pick<PoseDuGabarit, 'enfantsDe'>): Matrix4[] {
