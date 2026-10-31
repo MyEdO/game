@@ -1,7 +1,7 @@
 /**
  * GARDE DES SILHOUETTES DE LA BASE (#2972, #3101 issuecomment-6483618640, décision 7) : au repos, gabarit de
- * l'évaluation appliqué, sur les meshes du corps. Référence : aucune shape key posée. Chaque silhouette du manifeste
- * hors carrure est prise à 1, seule ; la carrure par `poidsDeCarrure` aux `st` de `pointsDeCarrure`. Sous chaque
+ * l'évaluation appliqué, sur les meshes du corps. Référence : silhouettes à 0, autres formes à leur influence d'entrée.
+ * Chaque silhouette hors carrure est prise à 1, seule ; la carrure par `poidsDeCarrure` aux `st` de `pointsDeCarrure`. Sous chaque
  * silhouette et la carrure à une borne de `st`, le centre de chaque anneau articulaire (`anneauxArticulaires`) reste à
  * moins de `FRACTION_DU_RAYON` × son rayon de repos, et au moins un sommet du corps bouge de plus de
  * `DEPLACEMENT_INERTE_M`. L'épaisseur (rayon de l'anneau le plus épais au repos) suit `st` à `TOLERANCE_EPAISSEUR`
@@ -164,28 +164,30 @@ const meshesAFormes = (scene: Object3D): Mesh[] => {
   return liste;
 };
 
-/** Pose sur `scene` les seules shape keys `poids`, toutes les autres à 0. */
-function poserSeules(meshes: readonly Mesh[], poids: Readonly<Record<string, number>>): void {
+/** Pose les silhouettes du manifeste à `poids`, ou à 0 si leur poids est absent. */
+function poserSeules(meshes: readonly Mesh[], silhouettes: readonly string[], poids: Readonly<Record<string, number>>): void {
+  for (const nom of Object.keys(poids)) {
+    if (!silhouettes.includes(nom)) throw new Error(`silhouettes : poids demandé hors silhouettes : ${nom}`);
+  }
   for (const m of meshes) {
     const influences = m.morphTargetInfluences as number[];
-    influences.fill(0);
-    for (const [nom, p] of Object.entries(poids)) {
+    for (const nom of silhouettes) {
       const i = m.morphTargetDictionary?.[nom];
-      if (i !== undefined) influences[i] = p;
+      if (i !== undefined) influences[i] = poids[nom] ?? 0;
     }
   }
 }
 
-/** Pose sur `scene` les seules shape keys `poids`, toutes les autres à 0, et rend la pose de repos de `meshes`. */
+/** Pose les silhouettes du manifeste et rend la pose de repos de `meshes` ; les autres formes gardent leur influence. */
 export type PoserSeules = (poids: Readonly<Record<string, number>>, meshes: readonly Mesh[]) => Pose;
 
 /** Rend `mesurer(poser)` ; l'état des shape keys de `scene` trouvé à l'entrée est restauré à la sortie. */
-export function sousLesFormes<T>(scene: Object3D, mesurer: (poser: PoserSeules) => T): T {
+export function sousLesFormes<T>(scene: Object3D, silhouettes: readonly string[], mesurer: (poser: PoserSeules) => T): T {
   const formes = meshesAFormes(scene);
   const entree = formes.map((m) => [...(m.morphTargetInfluences as number[])]);
   try {
     return mesurer((poids, meshes) => {
-      poserSeules(formes, poids);
+      poserSeules(formes, silhouettes, poids);
       return poseDeRepos(scene, meshes);
     });
   } finally {
@@ -197,15 +199,15 @@ export function sousLesFormes<T>(scene: Object3D, mesurer: (poser: PoserSeules) 
 export interface SujetDeSilhouettes {
   readonly scene: Object3D;
   readonly corps: readonly SkinnedMesh[];
-  /** Les shape keys de la base (`manifeste.silhouettes`). */
+  /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
   readonly silhouettes: readonly string[];
-  readonly st: TableDeGabarit['st'];
+  readonly st?: TableDeGabarit['st'];
 }
 
 export function mesurerSilhouettes({ scene, corps, silhouettes, st }: SujetDeSilhouettes): { mesures: MesuresDesSilhouettes; ecarts: Ecart[] } {
   const anneaux = anneauxArticulaires(corps);
   const ecarts: Ecart[] = [];
-  return sousLesFormes(scene, (poserSur) => {
+  return sousLesFormes(scene, silhouettes, (poserSur) => {
     const poser = (poids: Readonly<Record<string, number>>) => poserSur(poids, corps);
     const repos = poser({});
     const deRepos = sectionsDeRepos(anneaux, repos);
@@ -215,10 +217,10 @@ export function mesurerSilhouettes({ scene, corps, silhouettes, st }: SujetDeSil
       return { positions, sections: sections(positions) };
     };
     const reference = { positions: repos.positions, sections: deRepos };
-    const aCarrure = silhouettes.includes(CARRURE_MOINS) && silhouettes.includes(CARRURE_PLUS);
+    const aCarrure = st && silhouettes.includes(CARRURE_MOINS) && silhouettes.includes(CARRURE_PLUS);
     const etats = [
-      ...silhouettes.filter((s) => s !== CARRURE_MOINS && s !== CARRURE_PLUS).map((nom) => ({ nom, poids: { [nom]: 1 } })),
-      ...(aCarrure ? [st.min, st.max].map((s) => ({ nom: `st=${s}`, poids: poidsDeCarrure(s, st) })) : []),
+      ...silhouettes.filter((s) => !aCarrure || (s !== CARRURE_MOINS && s !== CARRURE_PLUS)).map((nom) => ({ nom, poids: { [nom]: 1 } })),
+      ...(aCarrure && st ? [st.min, st.max].map((s) => ({ nom: `st=${s}`, poids: poidsDeCarrure(s, st) })) : []),
     ];
     if (etats.length && !anneaux.length) ecarts.push({ garde: GARDE, code: 'anneau-indetectable', valeur: 0, seuil: SOMMETS_MIN_DE_L_ANNEAU, detail: 'aucun anneau articulaire dans le corps : ni centre ni épaisseur mesurables' });
     const mesures = etats.map(({ nom, poids }): MesureDeSilhouette => {
@@ -235,7 +237,7 @@ export function mesurerSilhouettes({ scene, corps, silhouettes, st }: SujetDeSil
       return { nom, poids, deplacementMax: deplacement, centrePire: anneaux.length ? { os: anneaux[pire].os, rapport: rapports[pire] } : null };
     });
     let carrure: MesuresDeCarrure | null = null;
-    if (aCarrure && anneaux.length) {
+    if (aCarrure && st && anneaux.length) {
       const epais = anneauLePlusEpais(reference.sections);
       const rayonDeRepos = reference.sections[epais].rayon;
       const points = pointsDeCarrure(st).map((s) => ({ st: s, rapport: mesurer(poidsDeCarrure(s, st)).sections[epais].rayon / rayonDeRepos }));

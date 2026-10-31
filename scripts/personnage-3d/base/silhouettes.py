@@ -1,4 +1,4 @@
-"""Silhouettes de la base humanoïde (#2972, L1d #3101) : les shape keys du corps et de ses peaux secondaires.
+"""Silhouettes de la base humanoïde (#2972, L1d #3101) : les shape keys de la table `SILHOUETTES`, sur le corps et ses peaux secondaires.
 
 - `feminin` : le corps F d'Universal Base Characters, posé par son skin sur le repos du squelette H (chaque os F amené
   sur l'os H homonyme, tête et queue confondues), puis chaque sommet du corps H projeté sur cette surface ; le décalage
@@ -35,6 +35,7 @@ from pathlib import Path
 import numpy
 
 from anatomie import PEAUX_SECONDAIRES, PIEDS, POING, ZONE_DE_L_OS
+from corpulence import NOM as CORPULENCE
 from formes import (aretes_des_triangles, aux_noeuds, decalages, lier, lisser, noms_des_cles, positions, poser_la_cle,
                     rapports, transferer_les_cles, transporter, voisins)
 from poids import PASSES_MAX, deformer, extremes, jumeaux, peau_lineaire
@@ -47,6 +48,7 @@ DONNEES = ICI.parents[2] / 'src' / 'data'
 FEMININ = 'feminin'
 CARRURE_MOINS = 'carrure_moins'
 CARRURE_PLUS = 'carrure_plus'
+SILHOUETTES = (FEMININ, CARRURE_MOINS, CARRURE_PLUS, CORPULENCE)
 TOURS_DE_CORRECTION = 5
 """Tours de lissage puis correction (`alterner`) au-delà desquels la construction s'arrête : valeur d'ingénierie
 #3101."""
@@ -423,14 +425,15 @@ def en_clip(w, x, aretes, longueurs, matrices, vers_le_monde):
 
 
 def finir_les_silhouettes(squelette, corps, secondaires, bornes):
-    """Applique à chaque clé de `corps` le lissage en région pleine jusqu'à `ETIREMENT_DES_CLES` au repos, les
+    """Applique aux silhouettes de `corps` le lissage en région pleine jusqu'à `ETIREMENT_DES_CLES` au repos, les
     extrémités invariantes et la correction par les anneaux articulaires (`alterner`, `correction`, rayon de la carrure
-    aux bornes de `st` `bornes`), puis la transfère aux peaux `secondaires`. Seules les clés que portent `corps` à
-    l'appel servent de source. Rend `refinir(matrices)` : sur les clés courantes de `corps`, `alterner` en région locale
+    aux bornes de `st` `bornes`), puis les transfère aux peaux `secondaires`. Les silhouettes présentes à
+    l'appel servent de source. Rend `refinir(matrices)` : sur leurs décalages courants, `alterner` en région locale
     contre `ETIREMENT_DES_CLES` au repos et `ETIREMENT_EN_CLIP` sous les matrices de peau `matrices` (`en_clip`),
     avec la préparation de cet appel (poids, fondu, anneaux, `correction`) ; pose les clés, les transfère aux
-    `secondaires`, et rend le nombre de sommets dont une clé a changé. Rend aussi `mesurer(matrices)`, en une passe de
-    `poids.extremes` sur toutes les clés courantes de `corps` : le masque des arêtes du neutre hors de
+    `secondaires`, et rend le nombre de sommets dont une clé a changé. Les clés traitées sont les entrées de
+    `SILHOUETTES` présentes sur `corps`. Rend aussi `mesurer(matrices)`, en une passe de
+    `poids.extremes` sur ces silhouettes de `corps` : le masque des arêtes du neutre hors de
     `ETIREMENT_EN_CLIP` sous `matrices`, et par clé celui de ses arêtes hors, dans son état sous `matrices` ou au repos
     hors de `ETIREMENT_DES_CLES`."""
     noms = [b.name for b in squelette.data.bones]
@@ -439,7 +442,7 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
     libre = fondu(w, noms, extremites(squelette), groupe)
     repos = positions(corps.data)
     aretes = aretes_des_triangles(corps, groupe)
-    cles = noms_des_cles(corps)
+    cles = [nom for nom in SILHOUETTES if nom in noms_des_cles(corps)]
     rapports_de_st = rapports_de_carrure(bornes)
     bruts = {nom: (decalages(corps, nom), rapports_de_st.get(nom)) for nom in cles}
     for nom, (brut, _) in bruts.items():
@@ -470,7 +473,7 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
     sans_fondu = (libre > 0).astype(numpy.float64)
 
     def mesurer(matrices):
-        courants = {nom: decalages(corps, nom) for nom in noms_des_cles(corps)}
+        courants = {nom: decalages(corps, nom) for nom in cles}
         bas, haut = extremes_au_monde(w, x, list(courants.values()), aretes, longueurs, matrices, vers_le_monde)
         hors = hors_de(bas, ETIREMENT_EN_CLIP) | hors_de(haut, ETIREMENT_EN_CLIP)
         return hors[0], {nom: au_repos(nom, d) | hors[1 + k] for k, (nom, d) in enumerate(courants.items())}
@@ -481,7 +484,7 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
         def hors(nom, d):
             return au_repos(nom, d) | dans_le_clip(nom, d)
 
-        courants = {nom: (decalages(corps, nom), rapports_de_st.get(nom)) for nom in noms_des_cles(corps)}
+        courants = {nom: (decalages(corps, nom), rapports_de_st.get(nom)) for nom in cles}
         refinis = alterner(courants, repos, groupe, aretes, sans_fondu, corriger, vers_le_monde, hors, 'locale')
         change = numpy.zeros(len(repos), dtype=bool)
         for nom, d in refinis.items():

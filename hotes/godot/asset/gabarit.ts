@@ -6,7 +6,7 @@
  */
 import type { GabaritResolu, Sexe } from '../../../src/noyau/index.ts';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence.ts';
-import { CLES_DU_GABARIT, type ManifesteDeBase, type TableDeGabarit } from './manifesteDeBase.ts';
+import { CLES_DU_GABARIT, PREFIXE_DES_CLES_DU_GABARIT, type ManifesteDeBase, type TableDeGabarit } from './manifesteDeBase.ts';
 
 export const FACTEURS_NEUTRES: GabaritResolu = Object.freeze({ sl: 1, legs: 1, arms: 1, head: 1, st: 1 });
 
@@ -22,7 +22,7 @@ export type SensDuGabarit = 'moins' | 'plus';
 export type BornesDuGabarit = Readonly<Record<CleDuGabarit, TableDeGabarit['st']>>;
 
 export const nomDeCleDuGabarit = (cle: CleDuGabarit, sens: SensDuGabarit, silhouette?: string): string =>
-  `gabarit_${cle}_${sens}${silhouette === undefined ? '' : `_${silhouette}`}`;
+  `${PREFIXE_DES_CLES_DU_GABARIT}${cle}_${sens}${silhouette === undefined ? '' : `_${silhouette}`}`;
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
 export function poidsDuGabarit(facteurs: GabaritResolu, bornes: BornesDuGabarit, silhouettes: Readonly<Record<string, number>>): Record<string, number> {

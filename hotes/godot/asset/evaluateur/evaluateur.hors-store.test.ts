@@ -24,7 +24,7 @@ import { aretesDe, ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, gardeEtirement, mesure
 import { gardePiedsAuSol, plusBas, SOL_TOLERANCE_M } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids, INFLUENCES_MAX } from './gardes/poids.ts';
-import { anneauLePlusEpais, anneauxArticulaires, mesurerSilhouettes, sectionsDeRepos, TOLERANCE_EPAISSEUR } from './gardes/silhouettes.ts';
+import { anneauLePlusEpais, anneauxArticulaires, mesurerSilhouettes, sectionsDeRepos, sousLesFormes, TOLERANCE_EPAISSEUR } from './gardes/silhouettes.ts';
 
 const TABLE = { legs: ['racine'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 } };
 /** Le gabarit et les appuis d'un manifeste de base, pieds `pieds`. */
@@ -588,6 +588,16 @@ describe('validerManifesteDeBase', () => {
     expect(validerManifesteDeBase(valide(), octets).ok).toBe(true);
   });
 
+  it.each([undefined, FEMININ])('refuse une clé de gabarit comme silhouette (%s), même présente dans le GLB', (silhouette) => {
+    const nom = nomDeCleDuGabarit('legs', 'moins', silhouette);
+    const base = glbFabrique({ bande: { [FEMININ]: new Array<number>(9).fill(0), [nom]: new Array<number>(9).fill(0) }, clips: { Repos: [0, 0] } });
+    const manifeste = { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: [FEMININ, nom] };
+    expect(validerManifesteDeBase(manifeste, base)).toEqual({
+      ok: false, ecarts: [{ code: 'forme', ou: 'silhouettes', detail: `${nom} est une clé de gabarit, pas une silhouette` }],
+    });
+    expect(validerManifesteDeBase({ ...manifeste, silhouettes: [FEMININ] }, base).ok).toBe(true);
+  });
+
   it.each([['legs', 'arms'], ['legs', 'head'], ['arms', 'head']] as const)('refuse un os sous %s et %s en nommant les deux clés', (a, b) => {
     const m = valide();
     const gabarit = { ...m.gabarit, [a]: ['racine'], [b]: ['racine'] };
@@ -660,9 +670,9 @@ describe('validerManifesteDeBase', () => {
 });
 
 describe('evaluer', () => {
-  it('VERT : une base au sol, sans écart, et sa fiche de mesures', async () => {
+  it('mesure une base au sol, sa silhouette inerte et son absence d’anneau', async () => {
     const fiche = await evaluer({ base: glbFabrique({ image: true, clips: { Repos: [0, 0] } }), pas: 0.5 });
-    expect(fiche.ecarts).toEqual([]);
+    expect(fiche.ecarts.map((e) => [e.garde, e.code])).toEqual([['silhouettes', 'anneau-indetectable'], ['silhouettes', 'silhouette-inerte']]);
     expect(fiche.mesures).toMatchObject({ triangles: { total: 1, parMesh: { Corps: 1 } }, sommets: 3, os: 1, images: 1, corps: ['Corps'] });
     expect(fiche.mesures.clips).toEqual([{ nom: 'Repos', duree: 1, echantillons: 3, plusBas: { min: 0, max: 0 } }]);
   });
@@ -688,13 +698,13 @@ describe('evaluer', () => {
 
   it('refuse une silhouette ou une carrure que la base ne porte pas', async () => {
     const base = glbFabrique({ clips: { Repos: [0, 0] } });
-    expect((await evaluer({ base, silhouettes: { feminin: 1 }, pas: 0.5 })).ecarts).toEqual([]);
+    expect((await evaluer({ base, silhouettes: { feminin: 1 }, pas: 0.5 })).mesures.silhouettes.silhouettes.map((s) => s.nom)).toEqual(['feminin']);
     await expect(evaluer({ base, silhouettes: { feminin: 1, masculin: 1 }, pas: 0.5 })).rejects.toThrow(/\[silhouette-absente\] masculin /);
     await expect(evaluer({ base, manifeste: manifesteDe(base), facteurs: { st: 1.1 }, pas: 0.5 })).rejects.toThrow(/\[carrure-absente\] st=1\.1 .*carrure_plus/);
   });
 });
 
-describe('evaluer : étirement contre la longueur de repos sous gabarit, shape keys à 0', () => {
+describe('evaluer : étirement contre la longueur de repos sous gabarit, silhouettes à 0', () => {
   /** Le déplacement du seul sommet (0, 1, 0) de la bande, en shape key. */
   const auSommet = (dy: number) => [0, 0, 0, 0, 0, 0, 0, dy, 0];
   const etirement = async (entree: Omit<Parameters<typeof evaluer>[0], 'pas'>) =>
@@ -713,6 +723,13 @@ describe('evaluer : étirement contre la longueur de repos sous gabarit, shape k
   it('ROUGE : un clip qui étire, un clip qui écrase, contre la longueur de repos', async () => {
     const base = glbFabrique({ bande: { inerte: auSommet(0) }, clips: { Tire: [0, 4], Ecrase: [0, -0.995] } });
     expect(await etirement({ base })).toEqual([['arete-etiree', 'Tire', ETIREMENT_EN_CLIP[1]], ['arete-ecrasee', 'Ecrase', ETIREMENT_EN_CLIP[0]]]);
+  });
+
+  it('conserve une forme hors des silhouettes du manifeste dans la référence d’étirement', async () => {
+    const nom = nomDeCleDuGabarit('legs', 'moins');
+    const base = glbFabrique({ bande: { inerte: auSommet(0), [nom]: auSommet(4) }, clips: { Repos: [0, 0] } });
+    const manifeste = { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: ['inerte'] };
+    expect(await etirement({ base, manifeste, silhouettes: { [nom]: 1 } })).toEqual([]);
   });
 
   it('VERT : `sl` sans shape key ne rapporte aucun écart', async () => {
@@ -838,12 +855,49 @@ describe('appuis des clips walk', () => {
 });
 
 describe('gardeSilhouettes', () => {
+  it('conserve les formes hors silhouettes dans la pose mesurée et restaure toute influence à la sortie', () => {
+    const { scene, mesh } = cylindre();
+    const nom = nomDeCleDuGabarit('legs', 'moins');
+    mesh.geometry.morphTargetsRelative = true;
+    mesh.geometry.morphAttributes.position = [FEMININ, nom].map((nom, i) => {
+      const forme = new Float32BufferAttribute(Array.from({ length: mesh.geometry.attributes.position.count }, () => [i ? 2 : 0, 0, 0]).flat(), 3);
+      forme.name = nom;
+      return forme;
+    });
+    mesh.updateMorphTargets();
+    mesh.morphTargetInfluences?.splice(0, 2, 0.7, 0.5);
+    const x = mesh.geometry.attributes.position.getX(0);
+    for (const interrompre of [false, true]) {
+      const mesurer = () => sousLesFormes(scene, [FEMININ], (poser) => {
+        const repos = poser({}, [mesh]);
+        expect(mesh.morphTargetInfluences).toEqual([0, 0.5]);
+        expect(repos.positions.get(mesh.name)?.[0]).toBeCloseTo(x + 1, 6);
+        expect(() => poser({ [FEMININ]: 1, [nom]: 0 }, [mesh])).toThrow(nom);
+        expect(mesh.morphTargetInfluences).toEqual([0, 0.5]);
+        poser({ [FEMININ]: 1 }, [mesh]);
+        expect(mesh.morphTargetInfluences).toEqual([1, 0.5]);
+        if (interrompre) throw new Error('mesure interrompue');
+      });
+      if (interrompre) expect(mesurer).toThrow('mesure interrompue');
+      else mesurer();
+      expect(mesh.morphTargetInfluences).toEqual([0.7, 0.5]);
+    }
+  });
+
   const JUSTES = { feminin: homothetie(1.1), [CARRURE_MOINS]: homothetie(TABLE.st.min), [CARRURE_PLUS]: homothetie(TABLE.st.max) };
   const evaluerAnneau = async (formes: Record<string, readonly number[]>, entree: Partial<Parameters<typeof evaluer>[0]> = {}) => {
     const base = glbFabrique({ anneau: formes, clips: { Repos: [0, 0] } });
     return evaluer({ base, manifeste: { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: Object.keys(formes) }, pas: 0.5, ...entree });
   };
   const ecarts = (f: Awaited<ReturnType<typeof evaluer>>) => f.ecarts.filter((e) => e.garde === 'silhouettes');
+
+  it.each([undefined, { schema: 2 }])('mesure toutes les formes du GLB sans manifeste valide (%j)', async (manifeste) => {
+    const formes = { ...JUSTES, [nomDeCleDuGabarit('legs', 'moins')]: homothetie(1.3) };
+    const base = glbFabrique({ anneau: formes, clips: { Repos: [0, 0] } });
+    const f = await evaluer({ base, manifeste, pas: 0.5 });
+    expect(f.mesures.silhouettes.silhouettes.map((s) => [s.nom, s.poids])).toEqual(Object.keys(formes).map((nom) => [nom, { [nom]: 1 }]));
+    expect(f.mesures.silhouettes.carrure).toBeNull();
+  });
 
   it('VERT : silhouette homothétique, carrure exacte ; épaisseur, extrêmes et linéarité mesurés', async () => {
     const f = await evaluerAnneau(JUSTES);
@@ -872,7 +926,7 @@ describe('gardeSilhouettes', () => {
   it('ROUGE : une carrure qui n’atteint pas `st`', async () => {
     const courte = await evaluerAnneau({ ...JUSTES, [CARRURE_PLUS]: homothetie(1.1) });
     expect(ecarts(courte).map((e) => [e.code, e.valeur])).toEqual([['epaisseur-hors-st', expect.closeTo(0.1 / 1.2, 5)]]);
-    expect(courte.mesures.silhouettes?.carrure?.ecartAuSegment).toBeCloseTo(0.05, 5);
+    expect(courte.mesures.silhouettes.carrure?.ecartAuSegment).toBeCloseTo(0.05, 5);
   });
 
   it('ROUGE : un corps sans anneau articulaire ne se déclare pas mesuré', async () => {
