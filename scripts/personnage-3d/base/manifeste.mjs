@@ -56,7 +56,7 @@ async function main() {
     return
   }
   const construit = JSON.parse(await text(process.stdin))
-  const { domaineDuGabarit } = await chargerAssets(["export { domaineDuGabarit } from '/hotes/godot/asset/construction/domaineDuGabarit.ts';"])
+  const { domaineDuGabarit } = await chargerAssets(["export { domaineDuGabarit } from '/scripts/personnage-3d/base/domaineDuGabarit.ts';"])
   const bornes = domaineDuGabarit()
   const octets = readFileSync(cheminGlb)
   const manifeste = (vitessesAuSol) => ({

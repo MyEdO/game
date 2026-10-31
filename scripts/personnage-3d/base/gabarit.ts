@@ -1,8 +1,8 @@
 import { Matrix4, Vector3, type Skeleton } from 'three';
-import type { GabaritResolu } from '../../../../src/noyau/index.ts';
-import { FACTEURS_NEUTRES, nomDeCleDuGabarit, poseDuGabarit, type BornesDuGabarit, type CleDuGabarit, type SensDuGabarit } from '../gabarit.ts';
-import type { TableDeGabarit } from '../manifesteDeBase.ts';
-import { bindsAuGabarit } from '../evaluateur/gabarit.ts';
+import type { GabaritResolu } from '../../../src/noyau/index.ts';
+import { FACTEURS_NEUTRES, nomDeCleDuGabarit, poseDuGabarit, type BornesDuGabarit, type CleDuGabarit, type SensDuGabarit } from '../../../hotes/godot/asset/gabarit.ts';
+import type { TableDeGabarit } from '../../../hotes/godot/asset/manifesteDeBase.ts';
+import { bindsAuGabarit } from '../../../hotes/godot/asset/squeletteDuGabarit.ts';
 import { preparerLaplacien, resoudreLaplacien, type Arete } from './laplacien.ts';
 
 export const REFERENCE_DES_ANCRES = Object.freeze({ ...FACTEURS_NEUTRES, legs: 1.37, arms: 1.23, head: 1.51 });

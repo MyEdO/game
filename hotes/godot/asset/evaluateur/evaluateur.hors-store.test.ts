@@ -9,14 +9,15 @@ import {
   AnimationClip, Bone, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
   Matrix4, QuaternionKeyframeTrack, Uint16BufferAttribute, Vector3, VectorKeyframeTrack,
 } from 'three';
-import { domaineDuGabarit, multiplicateursDeJambes } from '../construction/domaineDuGabarit.ts';
+import { domaineDuGabarit, multiplicateursDeJambes } from '../../../../scripts/personnage-3d/base/domaineDuGabarit.ts';
 import { tableTotale } from '../../../../src/lib/tableTotale';
 import { ecrireGlb, lireGlb } from '../glb.ts';
 import { empreinte } from '../empreinte.ts';
 import { chargerScene } from './chargement.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer, monter } from './evaluer.ts';
-import { appliquerGabarit, bindsAuGabarit, poserEnfantsDuGabarit, poserSilhouettes } from './gabarit.ts';
+import { appliquerGabarit, poserSilhouettes } from './gabarit.ts';
+import { bindsAuGabarit, poserEnfantsDuGabarit } from '../squeletteDuGabarit.ts';
 import {
   CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FACTEURS_NEUTRES, FEMININ, marcheDeLaBase, nomDeCleDuGabarit, poidsDeCarrure, poidsDeSilhouettes, poidsDuGabarit, poseDuGabarit,
 } from '../gabarit.ts';

@@ -196,7 +196,7 @@ class ContraintesLiees(AnneauIndetectable):
 
 
 class ComposanteSansAppui(AnneauIndetectable):
-    """Une composante connexe de nœuds libres n'a aucune arête vers un nœud fixe (`preparerLaplacien`, `construction/laplacien.ts`) : le laplacien des
+    """Une composante connexe de nœuds libres n'a aucune arête vers un nœud fixe (`preparerLaplacien`, `scripts/personnage-3d/base/laplacien.ts`) : le laplacien des
     nœuds libres, que `correction` résout, est singulier."""
     RAISON = "composante de nœuds libres sans arête vers un nœud fixe, laplacien singulier"
 

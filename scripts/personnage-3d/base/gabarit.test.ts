@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Bone, Euler, Skeleton, Vector3 } from 'three';
-import { FACTEURS_NEUTRES, poidsDuGabarit, type BornesDuGabarit } from '../gabarit.ts';
-import { CLES_DU_GABARIT, type TableDeGabarit } from '../manifesteDeBase.ts';
+import { FACTEURS_NEUTRES, poidsDuGabarit, type BornesDuGabarit } from '../../../hotes/godot/asset/gabarit.ts';
+import { CLES_DU_GABARIT, type TableDeGabarit } from '../../../hotes/godot/asset/manifesteDeBase.ts';
 import { matricesDuGabarit, preparerGabarit, REFERENCE_DES_ANCRES, type PoidsDuSommet } from './gabarit.ts';
 import { preparerLaplacien, resoudreLaplacien, type Arete } from './laplacien.ts';
 

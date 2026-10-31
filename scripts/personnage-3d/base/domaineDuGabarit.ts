@@ -1,15 +1,15 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type * as Ts from 'typescript/unstable/ast';
-import { analyserCorpus, typescript } from '../../../../scripts/guards/lib/dialecte.mjs';
-import gabarits from '../../../../src/data/gabarits.json';
-import races from '../../../../src/data/raceAppearance.json';
-import { gabaritResolu } from '../../../../src/noyau/apparence/gabarit.ts';
-import type { GabaritId } from '../../../../src/data';
-import { CLES_DU_GABARIT, type BornesDuGabarit } from '../manifesteDeBase.ts';
+import { analyserCorpus, typescript } from '../../guards/lib/dialecte.mjs';
+import gabarits from '../../../src/data/gabarits.json';
+import races from '../../../src/data/raceAppearance.json';
+import { gabaritResolu } from '../../../src/noyau/apparence/gabarit.ts';
+import type { GabaritId } from '../../../src/data';
+import { CLES_DU_GABARIT, type BornesDuGabarit } from '../../../hotes/godot/asset/manifesteDeBase.ts';
 
 /** `src/gameIso/rig/parts/elements/index.ts`, `featureMorpho`. */
-export function multiplicateursDeJambes(dossier = new URL('../../../../src/gameIso/rig/parts/elements/defs/', import.meta.url)): number[] {
+export function multiplicateursDeJambes(dossier = new URL('../../../src/gameIso/rig/parts/elements/defs/', import.meta.url)): number[] {
   const ts: typeof Ts = typescript();
   const fichiers = readdirSync(dossier).filter((nom) => nom.endsWith('.ts')).map((nom) => {
     const chemin = new URL(nom, dossier);
