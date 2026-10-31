@@ -52,10 +52,14 @@ export const poseDeRepos = (scene: Object3D, meshes: readonly Mesh[]): Pose => p
  *  construction (`scripts/personnage-3d/seuils.py`) : `gardes/seuils.json`. */
 const INSTANTS_CONFONDUS: number = seuils.INSTANTS_CONFONDUS;
 
+/** Marge, en multiples du pas, sous laquelle une borne de clip tombe sur un point de la grille (arrondi flottant de
+ *  `durée / pas`). Partagée avec la construction (`scripts/personnage-3d/seuils.py`) : `gardes/seuils.json`. */
+const MARGE_DE_GRILLE: number = seuils.MARGE_DE_GRILLE;
+
 /** Les instants d'échantillonnage de `clip` : l'union de la grille 0, `pas`, 2 `pas`… jusqu'à sa durée et des instants
  *  de toutes les clés de ses pistes, triés, sans doublon. */
 export function instants(clip: AnimationClip, pas: number): number[] {
-  const grille = Array.from({ length: Math.floor(clip.duration / pas + 1e-9) + 1 }, (_, k) => k * pas);
+  const grille = Array.from({ length: Math.floor(clip.duration / pas + MARGE_DE_GRILLE) + 1 }, (_, k) => k * pas);
   const cles = clip.tracks.flatMap((piste) => Array.from(piste.times)).filter((t) => t >= 0 && t <= clip.duration);
   return [...grille, ...cles].sort((a, b) => a - b).filter((t, i, liste) => i === 0 || t - liste[i - 1] > INSTANTS_CONFONDUS);
 }

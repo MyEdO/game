@@ -187,6 +187,11 @@ class InstantsDeLEvaluateur(unittest.TestCase):
         bpy.context.scene.render.fps = IMAGES_PAR_SECONDE
         numpy.testing.assert_allclose(instants(action), [0.0, 1.0, 2.0, 3.0, 3.25])
 
+    def test_instants_confondus_suit_la_cadence_de_la_scene(self):
+        action = action_cles([0.0, 2.00003, 3.25])
+        bpy.context.scene.render.fps = 2 * IMAGES_PAR_SECONDE
+        numpy.testing.assert_allclose(instants(action), [0.0, 2.0, 3.25])
+
     def test_la_grille_ne_sort_pas_de_l_etendue_de_l_action(self):
         action = action_cles([1.5, 4.25])
         bpy.context.scene.render.fps = IMAGES_PAR_SECONDE

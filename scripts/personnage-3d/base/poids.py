@@ -21,7 +21,7 @@ from animation import assign_action
 from formes import aretes_des_triangles, region_locale
 from pistes import aller_a, sacs
 from seuils import (ETIREMENT_EN_CLIP, IMAGES_PAR_SECONDE, INFLUENCES_MAX, INSTANTS_CONFONDUS,
-                    TOLERANCE_JUMEAUX_POSITION_M)
+                    MARGE_DE_GRILLE, TOLERANCE_JUMEAUX_POSITION_M)
 
 STAGNATION = 1e-3
 """Variation de poids d'une passe sous laquelle le lissage tient son point fixe : la région lissée gagne alors un anneau
@@ -54,7 +54,7 @@ def instants(action):
     if not cles:
         return []
     pas = cadence() / IMAGES_PAR_SECONDE
-    debut, fin = math.ceil(min(cles) / pas - 1e-9), math.floor(max(cles) / pas + 1e-9)
+    debut, fin = math.ceil(min(cles) / pas - MARGE_DE_GRILLE), math.floor(max(cles) / pas + MARGE_DE_GRILLE)
     grille = [k * pas for k in range(debut, fin + 1)]
     tous = sorted(grille + cles)
     confondus = instants_confondus()

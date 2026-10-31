@@ -611,7 +611,6 @@ def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, racine, pelvis, ma
     hanche = {pied: jambe(rig, pied)[0] for pied in pieds}
     inverses = repos(rig)
     geo = geometrie(rig, w, x, d)
-    scene = bpy.context.scene
     avant = numpy.array(AXES_DU_PERSONNAGE.col[2])[:2]
     avant /= numpy.linalg.norm(avant)
     inconnues = set(marches) - {a.name for a in clips}
