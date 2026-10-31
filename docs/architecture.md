@@ -603,9 +603,12 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             vue et rend chaque geste en intention, sans règle, l'arithmétique de la mise en page dans
                             le seul `hotes/godot/projet/scripts/mise_en_page.gd` (gardes `src/hote/derive-du-noyau.hors-store.test.ts`,
                             `scripts/guards/lib/gdscriptSansRegle.mjs`) ;
-                            jetons armés en minuteurs. `construire.mjs --sonde` l'importe et contrôle chaque script
-                            avec l'éditeur épinglé (`npm run godot:sonde`, étape de la CI) ; `--export --sortie`
-                            produit l'export Web, que `recette.mjs` joue au navigateur : un tour complet, ou l'atelier.
+                            jetons armés en minuteurs. `construire.mjs --sonde` importe une copie du projet, contrôle
+                            chaque script puis exécute les recettes sous `recettes/` déclarant au premier niveau
+                            `const RECETTE_AUTONOME := true`, sans argument externe ; `equipement.gd`, qui attend une
+                            vue JSON, ne porte pas cette déclaration. L'éditeur est épinglé (`npm run godot:sonde`,
+                            étape scripts et recettes autonomes de la CI). `--export --sortie <dossier>` produit
+                            l'export Web, que `recette.mjs` joue au navigateur : un tour complet, ou l'atelier.
 src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du noyau (store Zustand), sélectionne
                             pour l'affichage et persiste (saves, roster, bibliothèque, préférences), sans
                             décider d'aucun effet de jeu (§ Couches).

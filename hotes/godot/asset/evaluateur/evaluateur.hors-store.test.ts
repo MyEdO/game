@@ -11,9 +11,9 @@ import { empreinte } from '../empreinte.ts';
 import { chargerScene } from './chargement.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer, monter } from './evaluer.ts';
-import { appliquerGabarit, poserSilhouettes } from './gabarit.ts';
+import { appliquerGabarit, bindsAuGabarit, poserEnfantsDuGabarit, poserSilhouettes } from './gabarit.ts';
 import {
-  CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FACTEURS_NEUTRES, FEMININ, marcheDeLaBase, poidsDeCarrure, poidsDeSilhouettes, poseDuGabarit,
+  CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FACTEURS_NEUTRES, FEMININ, marcheDeLaBase, nomDeCleDuGabarit, poidsDeCarrure, poidsDeSilhouettes, poidsDuGabarit, poseDuGabarit,
 } from '../gabarit.ts';
 import { validerManifesteDeBase, type CodeDEcartDeBase, type TableDeGabarit } from '../manifesteDeBase.ts';
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
@@ -321,13 +321,98 @@ describe('gabarit', () => {
     expect(mesh.morphTargetInfluences?.[0]).toBeCloseTo(0.5, 9);
   });
 
-  it('`poseDuGabarit` : l’échelle de la racine vaut `sl`, chaque os listé porte le facteur de sa clé, cumulé sous deux clés, les pieds sont `appuis.pieds`', () => {
-    const table = { ...TABLE, legs: ['cuisse', 'bassin'], arms: ['bras', 'bassin'], head: ['cou'] };
+  it('`poseDuGabarit` : chaque os porte son facteur et son échelle locale, la racine porte `sl`, les pieds sont `appuis.pieds`', () => {
+    const table = { ...TABLE, legs: ['cuisse', 'bassin'], arms: ['bras'], head: ['cou'] };
     expect(poseDuGabarit(gabaritEtAppuis(table, ['piedG', 'piedD']), { sl: 0.74, st: 1.25, legs: 0.62, arms: 1.3, head: 0.9 })).toEqual({
       racine: { os: 'racine', echelle: 0.74 },
-      enfantsDe: { cuisse: 0.62, bassin: expect.closeTo(0.62 * 1.3, 9), bras: 1.3, cou: 0.9 },
+      enfantsDe: { cuisse: 0.62, bassin: 0.62, bras: 1.3, cou: 0.9 },
+      echellesDesOs: { cuisse: [1, 0.62, 1], bassin: [1, 0.62, 1], bras: [1, 1.3, 1], cou: [0.9, 0.9, 0.9] },
       pieds: ['piedG', 'piedD'],
     });
+  });
+
+  it('`poidsDuGabarit` : noms uniques, neutre nul, demi-domaines asymétriques, extrapolation et produits des silhouettes', () => {
+    const bornes = { legs: { min: 0.4, max: 1.8 }, arms: { min: 0.6, max: 1.6 }, head: { min: 0.5, max: 1.9 } };
+    const silhouettes = poidsDeSilhouettes({ sex: 'F', build: 0.75, st: 0.9 }, TABLE);
+    const neutre = poidsDuGabarit(FACTEURS_NEUTRES, bornes, silhouettes);
+    const noms = ['legs', 'arms', 'head'].flatMap((cle) => ['moins', 'plus'].flatMap((sens) =>
+      [`gabarit_${cle}_${sens}`, ...Object.keys(silhouettes).map((s) => `gabarit_${cle}_${sens}_${s}`)]));
+    expect(Object.keys(neutre)).toEqual(noms);
+    expect(Object.values(neutre)).toEqual(noms.map(() => 0));
+    expect(nomDeCleDuGabarit('head', 'plus', 'carrure_moins')).toBe('gabarit_head_plus_carrure_moins');
+    for (const [facteurs, valeurs] of [
+      [{ ...FACTEURS_NEUTRES, legs: 0.7, arms: 1.3, head: 1.45 }, [0.5, 0, 0, 0.5, 0, 0.5]],
+      [{ ...FACTEURS_NEUTRES, legs: 1.8, arms: 0.6, head: 0.5 }, [0, 1, 1, 0, 1, 0]],
+      [{ ...FACTEURS_NEUTRES, legs: 2.6, arms: 0.2, head: 2.8 }, [0, 2, 2, 0, 0, 2]],
+    ] as const) {
+      const poids = poidsDuGabarit(facteurs, bornes, silhouettes);
+      let i = 0;
+      for (const cle of ['legs', 'arms', 'head'] as const) for (const sens of ['moins', 'plus'] as const) {
+        const attendu = valeurs[i++];
+        expect(poids[nomDeCleDuGabarit(cle, sens)]).toBeCloseTo(attendu, 12);
+        for (const [s, w] of Object.entries(silhouettes)) expect(poids[nomDeCleDuGabarit(cle, sens, s)]).toBeCloseTo(w * attendu, 12);
+      }
+      expect(Object.values(poids).every((p) => p >= 0)).toBe(true);
+    }
+    expect(() => poidsDuGabarit(FACTEURS_NEUTRES, { ...bornes, head: { min: 1, max: 2 } }, silhouettes)).toThrow('gabarit.head');
+  });
+
+  it('`poserEnfantsDuGabarit` multiplie le Y local seul', () => {
+    const enfant = new Bone();
+    enfant.position.set(2, 3, 4);
+    enfant.rotation.set(0.2, 0.3, 0.4);
+    enfant.scale.set(1.1, 1.2, 1.3);
+    const rotation = enfant.quaternion.clone();
+    const echelle = enfant.scale.clone();
+    poserEnfantsDuGabarit([[enfant, 0.62]]);
+    expect(enfant.position.toArray()).toEqual([2, 3 * 0.62, 4]);
+    expect(enfant.quaternion.toArray()).toEqual(rotation.toArray());
+    expect(enfant.scale).toEqual(echelle);
+  });
+
+  it.each([false, true])('`bindsAuGabarit` : peau conservée hors sl/R2, binds non repos=%s, scène et binds originaux rendus', (bindNonRepos) => {
+    const { scene, mesh, racine, haut } = cylindre();
+    const bout = Object.assign(new Bone(), { name: 'bout' });
+    haut.add(bout);
+    bout.position.set(0.08, 0.3, -0.1);
+    haut.rotation.set(0.3, -0.2, 0.4);
+    racine.rotation.set(0.1, 0.5, -0.2);
+    scene.position.set(3, 0.4, -2);
+    scene.rotation.set(0.2, 0.7, -0.1);
+    const autre = Object.assign(new Bone(), { name: 'autre' });
+    racine.add(autre);
+    autre.position.set(-0.2, 0.4, 0.1);
+    scene.updateMatrixWorld(true);
+    const squelette = new Skeleton([racine, haut, bout, autre]);
+    if (bindNonRepos) squelette.boneInverses.forEach((m, i) => m.premultiply(new Matrix4().makeRotationX(0.07 * (i + 1))));
+    mesh.bind(squelette, mesh.matrixWorld);
+    const indices = mesh.geometry.attributes.skinIndex;
+    for (let i = 0; i < indices.count; i++) if (i % 3 === 0) { indices.setX(i, 2); indices.setY(i, 3); }
+    const references = Array.from({ length: indices.count }, (_, i) => mesh.getVertexPosition(i, new Vector3()).applyMatrix4(mesh.matrixWorld));
+    const inverseOriginal = squelette.boneInverses.map((m) => m.clone());
+    const etat = squelette.bones.map((b) => ({ position: b.position.clone(), locale: b.matrix.clone(), monde: b.matrixWorld.clone() }));
+    const pose = poseDuGabarit(gabaritEtAppuis({ ...TABLE, legs: ['haut'], arms: ['racine'] }), { ...FACTEURS_NEUTRES, sl: 0.8, legs: 0.62, arms: 1.6 });
+    const binds = bindsAuGabarit(squelette, pose);
+    expect(binds).toHaveLength(squelette.bones.length);
+    squelette.bones.forEach((b, i) => {
+      expect(b.position).toEqual(etat[i].position);
+      expect(b.matrix).toEqual(etat[i].locale);
+      expect(b.matrixWorld).toEqual(etat[i].monde);
+      expect(squelette.boneInverses[i]).toEqual(inverseOriginal[i]);
+    });
+    binds[0].elements.forEach((n, i) => expect(n).toBeCloseTo(inverseOriginal[0].elements[i], 12));
+    haut.position.y *= 1.6;
+    autre.position.y *= 1.6;
+    bout.position.y *= 0.62;
+    scene.updateMatrixWorld(true);
+    const mondeSansSl = racine.matrixWorld.clone();
+    squelette.boneInverses = binds;
+    racine.scale.multiplyScalar(0.8);
+    racine.position.y += 0.05;
+    scene.updateMatrixWorld(true);
+    const similitude = racine.matrixWorld.clone().multiply(mondeSansSl.invert());
+    const ecart = Math.max(...references.map((v, i) => mesh.getVertexPosition(i, new Vector3()).applyMatrix4(mesh.matrixWorld).distanceTo(v.clone().applyMatrix4(similitude))));
+    expect(ecart).toBeLessThan(1e-6);
   });
 
   it('`poidsDeSilhouettes` : la carrure de `st`, `feminin` du sexe, `corpulence` nulle jusqu’au build neutre puis linéaire jusqu’à 1', () => {
@@ -500,6 +585,32 @@ describe('validerManifesteDeBase', () => {
 
   it('accepte le manifeste qui décrit le GLB', () => {
     expect(validerManifesteDeBase(valide(), octets).ok).toBe(true);
+  });
+
+  it.each([['legs', 'arms'], ['legs', 'head'], ['arms', 'head']] as const)('refuse un os sous %s et %s en nommant les deux clés', (a, b) => {
+    const m = valide();
+    const gabarit = { ...m.gabarit, [a]: ['racine'], [b]: ['racine'] };
+    expect(validerManifesteDeBase({ ...m, gabarit }, octets)).toEqual({
+      ok: false, ecarts: [{ code: 'forme', ou: `gabarit.${b}`, detail: `racine figure sous ${a} et ${b}` }],
+    });
+    expect(validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, [a]: ['racine'] } }, octets).ok).toBe(true);
+  });
+
+  it('refuse un os sous les trois clés en nommant les deux conflits successifs', () => {
+    const m = valide();
+    const gabarit = { ...m.gabarit, legs: ['racine'], arms: ['racine'], head: ['racine'] };
+    expect(validerManifesteDeBase({ ...m, gabarit }, octets)).toEqual({
+      ok: false, ecarts: [
+        { code: 'forme', ou: 'gabarit.arms', detail: 'racine figure sous legs et arms' },
+        { code: 'forme', ou: 'gabarit.head', detail: 'racine figure sous arms et head' },
+      ],
+    });
+  });
+
+  it.each(['legs', 'arms', 'head'] as const)('accepte un doublon sous la seule clé %s', (cle) => {
+    const m = valide();
+    const gabarit = { ...m.gabarit, [cle]: ['racine', 'racine'] };
+    expect(validerManifesteDeBase({ ...m, gabarit }, octets)).toEqual({ ok: true, manifeste: { ...m, gabarit } });
   });
 
   it.each<[CodeDEcartDeBase, (m: ReturnType<typeof valide>) => unknown]>([

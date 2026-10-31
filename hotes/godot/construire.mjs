@@ -8,7 +8,8 @@
 // sortie est 1 ; `--sortie <dossier>` l'y écrit, sans quoi rien ne s'écrit. La CI le joue (`npm run pont:godot`), pour
 // qu'un changement du moteur qui casse le bundle de navigateur, à sa construction comme à son évaluation, ne passe pas
 // vert. `--sonde` importe le projet (`hotes/godot/projet/`) par l'éditeur épinglé (`EDITEUR`), puis contrôle chaque
-// script (`--check-only`) ; la CI la joue (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
+// script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/` ; la CI
+// la joue (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
 // puis l'export Web du projet (`export_presets.cfg`), que `recette.mjs` joue au navigateur, sur le modèle d'export que
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
@@ -36,7 +37,7 @@ const PROJET = join(RACINE, 'hotes', 'godot', 'projet')
 const PONT = 'wfrp-pont.js'
 const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier>
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
-  --sonde             les GLB tirés de la Release des modèles, puis le projet importé, puis chaque script contrôlé, par l'éditeur Godot épinglé
+  --sonde             les GLB tirés de la Release, le projet importé, chaque script contrôlé et les recettes autonomes exécutées par l'éditeur Godot épinglé
   --export            le bundle et l'export Web du projet, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
   --sortie <dossier>  le dossier où les écrire (sans lui, --pont-seul n'écrit rien)
   GODOT=<binaire>     un éditeur Godot de la version épinglée, à la place du téléchargement (le modèle d'export n'en dépend pas)`
@@ -266,14 +267,14 @@ function scriptsDe(dossier, sous = dossier) {
   })
 }
 
-/** Godot sur le projet `projet` : rend les lignes d'erreur de sa sortie, ou celle qui dit son code de sortie. */
+/** Godot sur le projet `projet` : sa sortie sans séquences de terminal et ses erreurs. */
 function godot(binaire, projet, args) {
   const r = spawnSync(binaire, ['--headless', '--path', projet, ...args], { encoding: 'utf8', timeout: 600_000, maxBuffer: 64 * 1024 * 1024 })
   const lignes = stripVTControlCharacters(`${r.stdout ?? ''}\n${r.stderr ?? ''}`).split('\n')
   const erreurs = lignes.filter((l) => /^(SCRIPT )?ERROR\b/.test(l.trim()))
   if (r.error) erreurs.push(`godot ${args.join(' ')} : ${r.error.message}`)
   else if (r.status !== 0) erreurs.push(`godot ${args.join(' ')} : code de sortie ${r.status}`)
-  return erreurs
+  return { erreurs, lignes }
 }
 
 /** Joue `faire(copie)` sur une copie du projet, importée par `binaire`, sous le dossier temporaire ; rend ses erreurs. */
@@ -281,20 +282,30 @@ function surUneCopie(binaire, faire) {
   const copie = mkdtempSync(join(tmpdir(), 'wfrp-godot-'))
   try {
     cpSync(PROJET, copie, { recursive: true, filter: (source) => !source.split(sep).includes('.godot') })
-    const importees = godot(binaire, copie, ['--import'])
-    return importees.length ? importees : faire(copie)
+    const { erreurs } = godot(binaire, copie, ['--import'])
+    return erreurs.length ? erreurs : faire(copie)
   } finally {
     rmSync(copie, { recursive: true, force: true })
   }
 }
 
-/** La sonde : le projet importé, puis chaque script contrôlé. */
+/** La sonde : chaque script contrôlé et chaque recette déclarée autonome exécutée dans le projet importé. */
 function sonder(binaire) {
   return surUneCopie(binaire, (copie) => {
     const scripts = scriptsDe(copie)
     if (!scripts.length) return [`aucun script sous ${PROJET}`]
-    const erreurs = scripts.flatMap((script) => godot(binaire, copie, ['--check-only', '--script', script]))
-    if (!erreurs.length) console.log(`[godot] ${VERSION_IMPRIMEE} : projet importé, ${scripts.length} scripts contrôlés (${scripts.join(', ')})`)
+    const erreurs = scripts.flatMap((script) => godot(binaire, copie, ['--check-only', '--script', script]).erreurs)
+    if (erreurs.length) return erreurs
+    console.log(`[godot] ${VERSION_IMPRIMEE} : projet importé, ${scripts.length} scripts contrôlés (${scripts.join(', ')})`)
+    const recettes = scripts.filter((script) => script.startsWith('res://recettes/') &&
+      /^const RECETTE_AUTONOME := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
+    for (const recette of recettes) {
+      console.log(`[godot] recette autonome : ${recette}`)
+      const resultat = godot(binaire, copie, ['--script', recette])
+      console.log(resultat.lignes.join('\n'))
+      erreurs.push(...resultat.erreurs)
+    }
+    if (!erreurs.length) console.log(`[godot] ${recettes.length} recette(s) autonome(s) exécutée(s)`)
     return erreurs
   })
 }
@@ -307,7 +318,7 @@ function exporter(binaire, sortie, modele) {
     const release = /^custom_template\/release=.*$/m
     if (!release.test(cfg)) return [`${PRESETS} : custom_template/release absent`]
     writeFileSync(presets, cfg.replace(release, `custom_template/release=${JSON.stringify(modele.split(sep).join('/'))}`))
-    return godot(binaire, copie, ['--export-release', 'Web', join(sortie, 'index.html')])
+    return godot(binaire, copie, ['--export-release', 'Web', join(sortie, 'index.html')]).erreurs
   })
 }
 

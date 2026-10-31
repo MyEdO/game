@@ -451,7 +451,8 @@ export const ECRIT_LU = {
     },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
     raison:
-      '`godot --headless --import` puis `--check-only` de chaque script (hotes/godot/construire.mjs, #2928, plan M-f) sur ' +
+      '`godot --headless --import`, `--check-only` de chaque script puis exécution des recettes sous `recettes/` ' +
+      'déclarant `const RECETTE_AUTONOME := true` (hotes/godot/construire.mjs, #2928, plan M-f), sur ' +
       'une COPIE du projet sous `os.tmpdir()`, que la sonde efface : l’import n’écrit pas `hotes/godot/projet/.godot/` ; ' +
       'le binaire épinglé vit hors de l’arbre (`~/.cache/wfrp-godot/`, ou `GODOT`) ; LIT hotes/ (le projet et son ' +
       'constructeur), scripts/ (`listerDossier`, l’entrée d’hôte et le greffon de prose), les zones du noyau chargées ' +

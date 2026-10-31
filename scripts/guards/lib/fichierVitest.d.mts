@@ -38,5 +38,5 @@ export const SUFFIXE_KIT: string;
 /** Un KIT de test en FIN de nom : ni une suite (`x.testkit.test.ts`), ni sa déclaration (`.testkit.d.mts`). */
 export const EST_KIT_DE_TEST: RegExp;
 
-/** Ce chemin désigne-t-il un KIT de test — ni joué, ni de la PRODUCTION ? */
+/** Ce chemin désigne-t-il un kit de test ou une recette de preuve native, hors production ? */
 export function estKitDeTest(rel: string): boolean;

@@ -12,14 +12,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from seuils import MAJORITE_DU_POIDS  # noqa: E402
 from sol import garder_les_poids_des_pieds, surfaces_des_pieds  # noqa: E402
+from faux_rig import Bones  # noqa: E402
 
 PIED = 'foot_l'
-
-
-class Bones(list):
-    """Les os d'un rig, itérables dans leur ordre et lus par nom, comme `rig.data.bones`."""
-    def __getitem__(self, cle):
-        return next(b for b in self if b.name == cle) if isinstance(cle, str) else super().__getitem__(cle)
 
 
 def squelette():

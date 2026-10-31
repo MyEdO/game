@@ -68,9 +68,16 @@ POING = {'main': ('r', 'Sword_Idle', 8), 'off': ('l', 'Idle_Shield_Loop', 44)}
 """Par prise : le côté de la main, le clip et l'image où le poing fermé tient sa poignée."""
 DOIGTS_DU_POING = ('index', 'middle', 'ring', 'pinky')
 
-SEGMENTS_DU_GABARIT = {'legs': ('thigh', 'calf'), 'arms': ('upperarm', 'lowerarm'), 'head': ()}
-"""Par facteur de gabarit, les préfixes des os UAL, latéralisés `_l` puis `_r`, dont le facteur allonge le segment en
-déplaçant l'os enfant (`hotes/godot/asset/evaluateur/gabarit.ts`) ; `Head` n'a aucun os enfant."""
+SEGMENTS_DU_GABARIT = {
+    'legs': ('thigh_l', 'calf_l', 'thigh_r', 'calf_r'),
+    'arms': ('upperarm_l', 'lowerarm_l', 'upperarm_r', 'lowerarm_r'),
+    'head': ('Head',),
+}
+"""Par facteur de gabarit, les noms complets des os parents UAL dont l'hôte multiplie le Y des enfants,
+dans l'ordre du manifeste.
+
+hotes/godot/pont/CONTRAT.md, « Gabarit d'une base »
+"""
 PIEDS = ('foot_l', 'foot_r')
 """Les os des pieds, dont l'évaluateur mesure les appuis."""
 
@@ -231,7 +238,7 @@ def gabarit(rig):
     racines = [b.name for b in rig.data.bones if b.parent is None]
     if len(racines) != 1:
         raise RuntimeError(f'racines {racines} : une seule attendue')
-    table = {cle: [f'{p}_{c}' for c in 'lr' for p in prefixes] for cle, prefixes in SEGMENTS_DU_GABARIT.items()}
+    table = {cle: list(os) for cle, os in SEGMENTS_DU_GABARIT.items()}
     absents = [o for os in [*table.values(), PIEDS] for o in os if o not in rig.data.bones]
     if absents:
         raise RuntimeError(f'os de gabarit ou de pied absents : {", ".join(absents)}')
