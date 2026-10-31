@@ -8,7 +8,7 @@ import { empreinte, sha256 } from './empreinte.ts';
 import { ecrireGlb, GlbIllisible, lireGlb } from './glb.ts';
 import { chargerLicences, MANIFESTE_DE_PRODUCTION, TableDesLicencesInvalide } from './dossierDeProduction.ts';
 import { importerPersonnage } from './importer.ts';
-import { ecrireProduction, HORS_RELEASE_DE_BASE, ProductionRefusee, type SourcesDeBase } from '../../../scripts/personnage-3d/base/production.ts';
+import { ecrireProduction, ProductionRefusee, type SourcesDeBase } from '../../../scripts/personnage-3d/base/production.ts';
 import { cheminsAbsolus, validerManifeste, type CodeDErreur } from './manifeste.ts';
 import { ATTACHES } from './montage';
 import { tableTotale } from '../../../src/lib/tableTotale';
@@ -284,14 +284,29 @@ describe('import et chargement des modèles modulaires', () => {
     deposerModeleDeTest(dossier, 'corps-reference', baseDeTest(), GLB_DE_BASE);
     return dossier;
   };
-  it('importe la base puis son élément, sans ajouter les métadonnées de production au manifeste', () => {
+  it('publie l’élément avec le GLB de sa base importée sans publier, sous leurs empreintes', () => {
     const destination = temporaire();
     expect(importer(destination, baseDeTest(), GLB_DE_BASE, 'corps-reference').ok).toBe(true);
-    const verses: string[] = [];
-    const r = importer(destination, elementSchema3(), GLB_D_ELEMENT, 'epee', assets => { verses.push(...assets.map(a => a.nom)); return verses; });
+    const verses: AssetAPublier[] = [];
+    const r = importer(destination, elementSchema3(), GLB_D_ELEMENT, 'epee', assets => { verses.push(...assets); return assets.map(a => a.nom); });
     expect(r.ok).toBe(true);
-    expect(verses).toEqual([nomDAsset(sha256(GLB_D_ELEMENT), 'glb')]);
+    expect(verses.map(a => [a.nom, sha256(readFileSync(a.chemin))])).toEqual([
+      [nomDAsset(sha256(GLB_D_ELEMENT), 'glb'), sha256(GLB_D_ELEMENT)],
+      [nomDAsset(sha256(GLB_DE_BASE), 'glb'), sha256(GLB_DE_BASE)],
+    ]);
     expect(JSON.parse(readFileSync(join(destination, 'epee.manifeste.json'), 'utf8'))).toEqual(elementSchema3());
+  });
+  it.each([false, true])('refuse une base épinglée hors Release à la lecture, publication %s', publier => {
+    const destination = temporaire();
+    expect(importer(destination, baseDeTest(), GLB_DE_BASE, 'humanoide').ok).toBe(true);
+    const chemin = join(destination, 'humanoide.provenance.json');
+    writeFileSync(chemin, JSON.stringify({ ...JSON.parse(readFileSync(chemin, 'utf8')), hors_release: 'base d’essai sur le poste' }));
+    const avant = photo(destination);
+    const verses: AssetAPublier[] = [];
+    const r = importer(destination, elementSchema3(), GLB_D_ELEMENT, 'epee', publier ? assets => { verses.push(...assets); return assets.map(a => a.nom); } : null);
+    expect(r).toEqual({ ok: false, refus: ['[base-hors-release] humanoide : une base ne peut pas être hors Release'] });
+    expect(verses).toEqual([]);
+    expect(photo(destination)).toEqual(avant);
   });
   it('un import réussi rend le rapport de l’index, sans blocage : un accessoire dont aucune pièce de la base n’offre l’emplacement', () => {
     const destination = temporaire();
@@ -322,21 +337,24 @@ describe('import et chargement des modèles modulaires', () => {
     expect(verses).toEqual([]);
     expect(listerDossier(destination).map(f => [f, readFileSync(join(destination, f)).toString('base64')])).toEqual(avant);
   });
-  it('un élément dont la base déposée est hors Release en hérite : publication refusée, provenance marquée, fichiers non suivis, GLB du poste exigé', async () => {
+  it('seule la déclaration propre de l’élément le tient hors Release, sa base reste publiée', async () => {
     const destination = temporaire();
     const base = productionDeTest(temporaire(), baseDeTest(), GLB_DE_BASE);
-    const manifest = JSON.parse(readFileSync(join(base, MANIFESTE_DE_PRODUCTION), 'utf8'));
-    writeFileSync(join(base, MANIFESTE_DE_PRODUCTION), JSON.stringify({ ...manifest, hors_release: 'essai sur le poste' }));
-    expect(importerPersonnage({ dossier: base, id: 'humanoide', destination, date: '2026-10-29', publier: null }).ok).toBe(true);
-    const avant = listerDossier(destination);
     const verses: AssetAPublier[] = [];
-    expect(importer(destination, elementSchema3(), GLB_D_ELEMENT, 'epee', (a) => { verses.push(...a); return []; }))
-      .toEqual({ ok: false, refus: ['[hors-release] base humanoide : essai sur le poste : import sans publication seulement (--sans-publier)'] });
-    expect([verses, listerDossier(destination)]).toEqual([[], avant]);
-    const r = importer(destination, elementSchema3(), GLB_D_ELEMENT, 'epee');
-    expect(r.ok && r.provenance.hors_release).toBe('base humanoide : essai sur le poste');
+    expect(importerPersonnage({ dossier: base, id: 'humanoide', destination, date: '2026-10-29', publier: a => { verses.push(...a); return a.map(x => x.nom); } }).ok).toBe(true);
+    expect(verses.map(a => a.nom)).toEqual([nomDAsset(sha256(GLB_DE_BASE), 'glb')]);
+    const production = productionDeTest(temporaire(), elementSchema3(), GLB_D_ELEMENT);
+    const chemin = join(production, MANIFESTE_DE_PRODUCTION);
+    writeFileSync(chemin, JSON.stringify({ ...JSON.parse(readFileSync(chemin, 'utf8')), hors_release: 'essai sur le poste' }));
+    const avant = listerDossier(destination);
+    const importerEssai = (publier: ((assets: readonly AssetAPublier[]) => readonly string[]) | null) => importerPersonnage({ dossier: production, id: 'epee', destination, date: '2026-10-31', publier });
+    expect(importerEssai(a => { verses.push(...a); return []; }))
+      .toEqual({ ok: false, refus: ['[hors-release] essai sur le poste : import sans publication seulement (--sans-publier)'] });
+    expect([verses.length, listerDossier(destination)]).toEqual([1, avant]);
+    const r = importerEssai(null);
+    expect(r.ok && r.provenance.hors_release).toBe('essai sur le poste');
     const suivis = ['epee.manifeste.json', 'epee.provenance.json', 'humanoide.manifeste.json'];
-    expect(suivisHorsRelease(modelesEpingles(destination).modeles, suivis)).toEqual(suivis);
+    expect(suivisHorsRelease(modelesEpingles(destination).modeles, suivis)).toEqual(['epee.manifeste.json', 'epee.provenance.json']);
     rmSync(join(destination, 'epee.glb'));
     await expect(recupererModeles({ dossier: destination, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow('[hors-release] epee.glb');
   });
@@ -422,7 +440,7 @@ describe('import et chargement des modèles modulaires', () => {
       const chemin = join(r.dossier, MANIFESTE_DE_PRODUCTION);
       writeFileSync(chemin, JSON.stringify({ ...JSON.parse(readFileSync(chemin, 'utf8')), hors_release: 'essai sur le poste' }));
       return r;
-    }, /^\[remplacement-casse\] epee : hors Release de la base « aucun », remplacé par « essai sur le poste »$/],
+    }, /^\[base-hors-release\] manifest.json : une base ne peut pas être hors Release$/],
   ])('refuse en bloc, destination inchangée à l’octet, une base réexportée %s', (_, nouvelle, motif) => {
     const destination = baseEtElement();
     const avant = photo(destination);
@@ -897,14 +915,20 @@ describe('les modèles commités', () => {
     const suivis = listerImage(depotDe(DOSSIER_DES_MODELES), INDEX, '.');
     expect(suivisHorsRelease(modelesEpingles(DOSSIER_DES_MODELES).modeles, suivis)).toEqual([]);
   });
+  it('gardent chaque texte de licence à l’octet de l’empreinte que son nom porte (.gitattributes)', () => {
+    const licences = listerImage(depotDe(DOSSIER_DES_MODELES), INDEX, '.').filter((f) => /^LICENSE-.*\.txt$/.test(f));
+    expect(licences.length).toBeGreaterThan(0);
+    const divergentes = licences.filter((f) => !f.endsWith(`-${sha256(readFileSync(join(DOSSIER_DES_MODELES, f))).slice(0, 16)}.txt`));
+    expect(divergentes).toEqual([]);
+  });
 });
 
 describe('suivisHorsRelease', () => {
   const publie = { id: 'Knight', model: 'Knight.glb', empreinte: EMPREINTE, licences: ['LICENSE-CC0-1.0-commune.txt'] };
-  const local = { id: 'humanoide', model: 'humanoide.glb', empreinte: EMPREINTE, licences: ['LICENSE-CC0-1.0-commune.txt', 'LICENSE-CC0-1.0-ual.txt'], hors_release: 'essai sur le poste' };
+  const local = { id: 'epee-essai', model: 'epee-essai.glb', empreinte: EMPREINTE, licences: ['LICENSE-CC0-1.0-commune.txt', 'LICENSE-CC0-1.0-essai.txt'], hors_release: 'essai sur le poste' };
   it('rend les fichiers suivis d’un modèle hors Release et les licences qu’aucun modèle publié ne nomme', () => {
-    const suivis = ['Knight.glb.import', 'Knight.manifeste.json', 'Knight.provenance.json', 'LICENSE-CC0-1.0-commune.txt', 'LICENSE-CC0-1.0-ual.txt', 'humanoide.glb.import', 'humanoide.manifeste.json', 'humanoide.provenance.json', 'humanoide_bis.manifeste.json'];
-    expect(suivisHorsRelease([publie, local], suivis)).toEqual(['LICENSE-CC0-1.0-ual.txt', 'humanoide.glb.import', 'humanoide.manifeste.json', 'humanoide.provenance.json']);
+    const suivis = ['Knight.glb.import', 'Knight.manifeste.json', 'Knight.provenance.json', 'LICENSE-CC0-1.0-commune.txt', 'LICENSE-CC0-1.0-essai.txt', 'epee-essai.glb.import', 'epee-essai.manifeste.json', 'epee-essai.provenance.json', 'epee-essai_bis.manifeste.json'];
+    expect(suivisHorsRelease([publie, local], suivis)).toEqual(['LICENSE-CC0-1.0-essai.txt', 'epee-essai.glb.import', 'epee-essai.manifeste.json', 'epee-essai.provenance.json']);
   });
   it('laisse les fichiers des seuls modèles publiés', () => {
     expect(suivisHorsRelease([publie, local], ['Knight.manifeste.json', 'Knight.provenance.json', 'LICENSE-CC0-1.0-commune.txt'])).toEqual([]);
@@ -957,23 +981,25 @@ describe('dossier de production d’une base (#3106)', () => {
     return glb;
   };
 
-  it('s’importe sans geste à la main, sans publication, licences des packs copiées à l’octet', () => {
+  it('s’importe avec publication sans geste à la main, licences des packs copiées à l’octet', () => {
     const p = packs();
     const { sources } = p;
     const glb = construite(p);
     const dossier = join(glb, '..');
     ecrireProduction({ glb, manifeste: baseDeTest(), ...p });
     const manifest = JSON.parse(readFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), 'utf8'));
+    expect(PACKS.map((s) => readFileSync(join(dossier, `LICENSE-${s}.txt`), 'utf8'))).toEqual([LICENCE_QUATERNIUS, LICENCE_QUATERNIUS, LICENCE_DU_CORPS, LICENCE_DU_CORPS, LICENCE_MPFB]);
+    const destination = temporaire();
+    const verses: AssetAPublier[] = [];
+    const r = importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: a => { verses.push(...a); return a.map(x => x.nom); } });
+    expect(r.ok ? r.publies : r.refus).toEqual([nomDAsset(sha256(GLB_DE_BASE), 'glb')]);
+    expect(verses).toEqual([{ chemin: glb, nom: nomDAsset(sha256(GLB_DE_BASE), 'glb') }]);
     expect(manifest).toEqual({
       model: 'humanoide.glb', model_sha256: sha256(GLB_DE_BASE), manifeste: baseDeTest(),
       packs_sources: tableTotale(PACKS, (s) => ({ path: sources[s], sha256: s === 'mpfb' ? EMPREINTE_MPFB : sha256(readFileSync(sources[s])), licence: `LICENSE-${s}.txt` })),
-      hors_release: HORS_RELEASE_DE_BASE,
     });
-    expect(PACKS.map((s) => readFileSync(join(dossier, `LICENSE-${s}.txt`), 'utf8'))).toEqual([LICENCE_QUATERNIUS, LICENCE_QUATERNIUS, LICENCE_DU_CORPS, LICENCE_DU_CORPS, LICENCE_MPFB]);
-    const destination = temporaire();
-    const r = importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: null });
-    expect(r.ok ? [r.provenance.licences_de_pack.map((l) => l.fichier).sort(), r.provenance.hors_release] : r.refus)
-      .toEqual([[nomCC0(LICENCE_QUATERNIUS), nomCC0(LICENCE_DU_CORPS), nomCC0(LICENCE_MPFB)].sort(), HORS_RELEASE_DE_BASE]);
+    expect(r.ok ? r.provenance.licences_de_pack.map((l) => l.fichier).sort() : r.refus)
+      .toEqual([nomCC0(LICENCE_QUATERNIUS), nomCC0(LICENCE_DU_CORPS), nomCC0(LICENCE_MPFB)].sort());
     expect(r.ok ? r.provenance.packs_sources : r.refus).toEqual([
       { pack: 'ual1', fichier: 'UAL1_Standard.glb', sha256: sha256(readFileSync(sources.ual1)), licence: nomCC0(LICENCE_QUATERNIUS) },
       { pack: 'ual2', fichier: 'UAL2_Standard.glb', sha256: sha256(readFileSync(sources.ual2)), licence: nomCC0(LICENCE_QUATERNIUS) },
@@ -985,19 +1011,22 @@ describe('dossier de production d’une base (#3106)', () => {
   });
 
   it.each<[string, (m: Record<string, unknown>) => void, string]>([
-    ['se déclare hors Release', () => {}, `[hors-release] ${HORS_RELEASE_DE_BASE} : import sans publication seulement (--sans-publier)`],
-    ['porte une raison hors Release vide', (m) => { m.hors_release = ' '; }, '[hors-release] manifest.json : hors_release, raison non vide attendue'],
+    ['se déclare hors Release', (m) => { m.hors_release = 'essai sur le poste'; }, '[base-hors-release] manifest.json : une base ne peut pas être hors Release'],
+    ['porte une raison hors Release vide', (m) => { m.hors_release = ' '; }, '[base-hors-release] manifest.json : une base ne peut pas être hors Release'],
+    ['porte un marqueur hors Release nul', (m) => { m.hors_release = null; }, '[base-hors-release] manifest.json : une base ne peut pas être hors Release'],
     ['nomme pour un pack un texte de licence absent du dossier', (m) => { (m.packs_sources as Record<string, Record<string, unknown>>).corps.licence = 'LICENSE-ubc.txt'; }, '[licence-de-pack-absente] corps : LICENSE-ubc.txt'],
-  ])('refuse à la publication une production qui %s, sans rien publier ni écrire', (_, muter, refus) => {
+  ])('refuse avec et sans publication une production qui %s, sans rien publier ni écrire', (_, muter, refus) => {
     const dossier = join(construite(), '..');
     const manifest = JSON.parse(readFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), 'utf8'));
     muter(manifest);
     writeFileSync(join(dossier, MANIFESTE_DE_PRODUCTION), JSON.stringify(manifest));
-    const destination = join(temporaire(), 'modeles');
-    const verses: AssetAPublier[] = [];
-    const r = importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: (a) => { verses.push(...a); return []; } });
-    expect(r).toEqual({ ok: false, refus: [refus] });
-    expect([verses, existsSync(destination)]).toEqual([[], false]);
+    for (const publication of [true, false]) {
+      const destination = join(temporaire(), 'modeles');
+      const verses: AssetAPublier[] = [];
+      const r = importerPersonnage({ dossier, id: 'humanoide', destination, date: '2026-10-29', publier: publication ? (a) => { verses.push(...a); return []; } : null });
+      expect(r).toEqual({ ok: false, refus: [refus] });
+      expect([verses, existsSync(destination)]).toEqual([[], false]);
+    }
   });
 
   /** Une sortie neuve hors dépôt dont le dossier porte déjà le fichier `etranger`. */

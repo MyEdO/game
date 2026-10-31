@@ -1,0 +1,52 @@
+{
+  "model": "humanoide.glb",
+  "model_sha256": "af7b7f3b78856901e7a7618e324a6397ab75cf077769248c6f17e935f6ea09d1",
+  "importe_le": "2026-10-31",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    }
+  ],
+  "packs_sources": [
+    {
+      "pack": "ual1",
+      "fichier": "UAL1_Standard.glb",
+      "sha256": "69591853d817488edaa8fd9bf8fc1d821eaeaf789f8627b3cd23b41c4ed67997",
+      "licence": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt"
+    },
+    {
+      "pack": "ual2",
+      "fichier": "UAL2_Standard.glb",
+      "sha256": "8cee20ab1bc55130092447e810e26df22dd2803eccc54f52137a7d54d7ab88a8",
+      "licence": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt"
+    },
+    {
+      "pack": "corps",
+      "fichier": "Superhero_Male_FullBody.gltf",
+      "sha256": "e7fcea214ecf8855afbf910b50de6f9c7d1decfb71ca28bad8a4481452dafeb4",
+      "licence": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt"
+    },
+    {
+      "pack": "corps-feminin",
+      "fichier": "Superhero_Female_FullBody.gltf",
+      "sha256": "adedf28000a0716f689b009a70314506fc62f827498f77ba852acb5610f3f3f4",
+      "licence": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt"
+    },
+    {
+      "pack": "mpfb",
+      "fichier": "data",
+      "sha256": "8c14e7eb4fb23b1068bfa3d3e415c5d683fdafcd20640493fa59bbe8082f4526",
+      "licence": "LICENSE-CC0-1.0-f6089cba01cb570a.txt"
+    }
+  ]
+}

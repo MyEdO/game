@@ -1,0 +1,398 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "os": [
+    "root",
+    "pelvis",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "neck_01",
+    "Head",
+    "clavicle_l",
+    "upperarm_l",
+    "lowerarm_l",
+    "hand_l",
+    "index_01_l",
+    "index_02_l",
+    "index_03_l",
+    "index_04_leaf_l",
+    "middle_01_l",
+    "middle_02_l",
+    "middle_03_l",
+    "middle_04_leaf_l",
+    "pinky_01_l",
+    "pinky_02_l",
+    "pinky_03_l",
+    "pinky_04_leaf_l",
+    "ring_01_l",
+    "ring_02_l",
+    "ring_03_l",
+    "ring_04_leaf_l",
+    "thumb_01_l",
+    "thumb_02_l",
+    "thumb_03_l",
+    "thumb_04_leaf_l",
+    "clavicle_r",
+    "upperarm_r",
+    "lowerarm_r",
+    "hand_r",
+    "index_01_r",
+    "index_02_r",
+    "index_03_r",
+    "index_04_leaf_r",
+    "middle_01_r",
+    "middle_02_r",
+    "middle_03_r",
+    "middle_04_leaf_r",
+    "pinky_01_r",
+    "pinky_02_r",
+    "pinky_03_r",
+    "pinky_04_leaf_r",
+    "ring_01_r",
+    "ring_02_r",
+    "ring_03_r",
+    "ring_04_leaf_r",
+    "thumb_01_r",
+    "thumb_02_r",
+    "thumb_03_r",
+    "thumb_04_leaf_r",
+    "thigh_l",
+    "calf_l",
+    "foot_l",
+    "ball_l",
+    "ball_leaf_l",
+    "thigh_r",
+    "calf_r",
+    "foot_r",
+    "ball_r",
+    "ball_leaf_r"
+  ],
+  "chaines": {},
+  "zones": [
+    "tete",
+    "visage",
+    "nez",
+    "oeil_g",
+    "oeil_d",
+    "cou",
+    "torse",
+    "hanches",
+    "bras_haut_g",
+    "bras_haut_d",
+    "avant_bras_g",
+    "avant_bras_d",
+    "main_g",
+    "main_d",
+    "cuisse_g",
+    "cuisse_d",
+    "genou_g",
+    "genou_d",
+    "mollet_g",
+    "mollet_d",
+    "pied_g",
+    "pied_d"
+  ],
+  "emplacements": {
+    "tete": {
+      "os": "Head",
+      "position": [
+        0,
+        0.209487,
+        -0.006071
+      ],
+      "rotation": [
+        -0.02897,
+        0,
+        0
+      ]
+    },
+    "visage": {
+      "os": "Head",
+      "position": [
+        0,
+        0.101794,
+        0.106489
+      ],
+      "rotation": [
+        -0.02897,
+        0,
+        0
+      ]
+    },
+    "cou": {
+      "os": "neck_01",
+      "position": [
+        0,
+        0.056659,
+        0.050333
+      ],
+      "rotation": [
+        -0.293884,
+        0,
+        0
+      ]
+    },
+    "epaule_g": {
+      "os": "upperarm_l",
+      "position": [
+        -0.07434,
+        0.037667,
+        0.000006
+      ],
+      "rotation": [
+        0.030269,
+        0.000082,
+        1.570793
+      ]
+    },
+    "epaule_d": {
+      "os": "upperarm_r",
+      "position": [
+        0.074341,
+        0.037667,
+        0.000006
+      ],
+      "rotation": [
+        0.03027,
+        -0.000082,
+        -1.570793
+      ]
+    },
+    "dos": {
+      "os": "spine_03",
+      "position": [
+        0,
+        0.124658,
+        -0.131011
+      ],
+      "rotation": [
+        0.226485,
+        0,
+        0
+      ]
+    },
+    "ceinture_g": {
+      "os": "pelvis",
+      "position": [
+        0.152543,
+        0.116632,
+        0
+      ],
+      "rotation": [
+        -0.285699,
+        0,
+        0
+      ]
+    },
+    "ceinture_d": {
+      "os": "pelvis",
+      "position": [
+        -0.152543,
+        0.116632,
+        0
+      ],
+      "rotation": [
+        -0.285699,
+        0,
+        0
+      ]
+    },
+    "ceinture_avant": {
+      "os": "pelvis",
+      "position": [
+        0,
+        0.148296,
+        0.107796
+      ],
+      "rotation": [
+        -0.285699,
+        0,
+        0
+      ]
+    },
+    "ceinture_arriere": {
+      "os": "pelvis",
+      "position": [
+        0,
+        0.08704,
+        -0.100744
+      ],
+      "rotation": [
+        -0.285699,
+        0,
+        0
+      ]
+    },
+    "cuisse_g": {
+      "os": "thigh_l",
+      "position": [
+        0.076905,
+        0.15008,
+        0
+      ],
+      "rotation": [
+        3.141358,
+        0,
+        0
+      ]
+    },
+    "cuisse_d": {
+      "os": "thigh_r",
+      "position": [
+        -0.076905,
+        0.15008,
+        0
+      ],
+      "rotation": [
+        3.141358,
+        0,
+        0
+      ]
+    },
+    "genou_g": {
+      "os": "calf_l",
+      "position": [
+        0,
+        -0.00713,
+        -0.063237
+      ],
+      "rotation": [
+        3.029322,
+        0,
+        0
+      ]
+    },
+    "genou_d": {
+      "os": "calf_r",
+      "position": [
+        0,
+        -0.00713,
+        -0.063237
+      ],
+      "rotation": [
+        3.029322,
+        0,
+        0
+      ]
+    },
+    "poignet_g": {
+      "os": "lowerarm_l",
+      "position": [
+        0,
+        0.243594,
+        0
+      ],
+      "rotation": [
+        -0.031205,
+        -0.000001,
+        1.570796
+      ]
+    },
+    "poignet_d": {
+      "os": "lowerarm_r",
+      "position": [
+        0,
+        0.243594,
+        0
+      ],
+      "rotation": [
+        -0.031204,
+        0.000001,
+        -1.570796
+      ]
+    }
+  },
+  "prises": {
+    "main": {
+      "os": "hand_r",
+      "position": [
+        -0.020996,
+        0.089714,
+        0.002723
+      ],
+      "rotation": [
+        1.324906,
+        -3.097065,
+        -0.031716
+      ]
+    },
+    "off": {
+      "os": "hand_l",
+      "position": [
+        0.020996,
+        0.089714,
+        0.002723
+      ],
+      "rotation": [
+        1.324905,
+        3.097065,
+        0.031716
+      ]
+    }
+  },
+  "silhouettes": [
+    "feminin",
+    "carrure_moins",
+    "carrure_plus",
+    "corpulence"
+  ],
+  "gabarit": {
+    "bornes": {
+      "legs": {
+        "min": 0.62,
+        "max": 1.12
+      },
+      "arms": {
+        "min": 1,
+        "max": 1.6
+      },
+      "head": {
+        "min": 1,
+        "max": 1.9
+      }
+    },
+    "legs": [
+      "thigh_l",
+      "calf_l",
+      "thigh_r",
+      "calf_r"
+    ],
+    "arms": [
+      "upperarm_l",
+      "lowerarm_l",
+      "upperarm_r",
+      "lowerarm_r"
+    ],
+    "head": [
+      "Head"
+    ],
+    "racine": "root",
+    "st": {
+      "min": 0.72,
+      "max": 1.7
+    }
+  },
+  "porteur": {
+    "race": "humain",
+    "gabarit": "moyen",
+    "taille": "moyenne",
+    "echelleDArt": 1
+  },
+  "appuis": {
+    "pieds": [
+      "foot_l",
+      "foot_r"
+    ],
+    "vitessesAuSol": {
+      "Walk_Loop": 1.0431636981874783
+    }
+  },
+  "osAPositionAnimee": [
+    "pelvis"
+  ],
+  "glb": {
+    "sha256": "af7b7f3b78856901e7a7618e324a6397ab75cf077769248c6f17e935f6ea09d1",
+    "octets": 37659096
+  }
+}

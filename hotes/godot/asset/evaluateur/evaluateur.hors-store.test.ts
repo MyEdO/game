@@ -16,6 +16,7 @@ import {
   CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FACTEURS_NEUTRES, FEMININ, marcheDeLaBase, nomDeCleDuGabarit, poidsDeCarrure, poidsDeSilhouettes, poidsDuGabarit, poseDuGabarit, sensCuitsDuGabarit,
 } from '../gabarit.ts';
 import { validerManifesteDeBase, type CodeDEcartDeBase, type TableDeGabarit } from '../manifesteDeBase.ts';
+import { mesurerAppuis, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
@@ -1053,6 +1054,51 @@ describe('evaluer : étirement contre la longueur de repos sous gabarit, silhoue
   it('VERT : une shape key qui raccourcit le repos, un clip qui ne double pas la longueur de repos sans clé', async () => {
     const base = glbFabrique({ bande: { hanche: auSommet(-0.7) }, clips: { Hanche: [0, 1.7] } });
     expect(await etirement({ base, silhouettes: { hanche: 1 } })).toEqual([]);
+  });
+});
+
+// Capture Godot de Walk_Loop au corps neutre, pied gauche (#3086).
+const CAPTURE_MARCHE_GAUCHE = [
+  [0.0707085, 0, 0, -0.11246191, -0.11284936, 0.09574059, -0.26655561, -0.12011719, 0.00010814, -0.25937098, -0.09849565, 0.0435616, -0.43306649],
+  [0.10256667, 0, 0, -0.14569519, -0.11304501, 0.09497812, -0.27678993, -0.12012406, 0.00045212, -0.25902572, -0.09876552, 0.02206329, -0.43532777],
+  [0.13737517, 0, 0, -0.18200615, -0.11321594, 0.09360695, -0.2855407, -0.12014006, 0.00078346, -0.25938869, -0.0989795, 0.00369915, -0.43510276],
+  [0.16904183, 0, 0, -0.21503967, -0.1132801, 0.09594563, -0.28921235, -0.1201072, 0.00381556, -0.26036453, -0.09904663, -0.0001147, -0.43489996],
+  [0.20098628, 0, 0, -0.24836296, -0.11330403, 0.09605509, -0.28905168, -0.12004607, 0.00380718, -0.2605024, -0.09905297, 0.00000163, -0.43474269],
+  [0.23709739, 0, 0, -0.28603277, -0.11332093, 0.0959456, -0.28897357, -0.11994945, 0.0038756, -0.2599414, -0.09903658, -0.00009974, -0.43466729],
+  [0.26886822, 0, 0, -0.31917495, -0.11336192, 0.09606364, -0.2888993, -0.11989119, 0.00406108, -0.2596719, -0.09904499, -0.00005632, -0.43455142],
+  [0.30404183, 0, 0, -0.35586679, -0.11348814, 0.0975756, -0.28964216, -0.11982051, 0.00579298, -0.25963464, -0.0990366, -0.00008873, -0.43444914],
+  [0.33564167, 0, 0, -0.3888306, -0.11375353, 0.10092899, -0.29140389, -0.11979483, 0.00968969, -0.25964186, -0.09904699, -0.00002052, -0.43434024],
+  [0.36705833, 0, 0, -0.42160332, -0.11416374, 0.10565892, -0.29415828, -0.1198386, 0.01539009, -0.25961536, -0.09905694, 0.00001853, -0.43423784],
+  [0.40024167, 0, 0, -0.45621896, -0.11476545, 0.11169714, -0.29807839, -0.12001293, 0.0230553, -0.2594837, -0.09905757, 0.00001921, -0.43413609],
+  [0.4345, 0, 0, -0.491956, -0.11557055, 0.11850277, -0.30303222, -0.12038515, 0.03218829, -0.25946522, -0.09905209, -0.00000624, -0.43402526],
+] as const;
+
+describe('mesurerAppuis sur les poses de marche', () => {
+  const poses = (): PoseDuPied[] => CAPTURE_MARCHE_GAUCHE.map((v) => ({
+    clip: 'Walk_Loop', pied: 'foot_l', t: v[0], racine: [v[1], v[2], v[3]], os: [v[4], v[5], v[6]],
+    sommets: [[v[7], v[8], v[9]], [v[10], v[11], v[12]]],
+  }));
+  const mesurer = (images: readonly PoseDuPied[]) => mesurerAppuis(images, { Walk_Loop: 1.04315 });
+
+  it.each([1, 2])('mesure la capture avec une image sur %s, sans contact ni dérive au-delà de 5 mm', (cadence) => {
+    const r = mesurer(poses().filter((_, n) => n % cadence === 0));
+    expect(r.ecarts).toEqual([]);
+    const pied = r.mesures[0].pieds[0];
+    expect(pied.intervalles).toBeGreaterThanOrEqual(4);
+    expect(pied.duree).toBeGreaterThanOrEqual(0.2);
+    expect(pied.contactMax).toBeLessThanOrEqual(SOL_TOLERANCE_M);
+    expect(pied.glissementMax).toBeLessThanOrEqual(SOL_TOLERANCE_M);
+  });
+
+  it.each([0.001, 0.0025, 0.005, 0.01])('refuse la dérive injectée de %s m/image dans les sommets', (pente) => {
+    const images = poses().map((p, n): PoseDuPied => ({ ...p, sommets: p.sommets.map((v) => [v[0] + pente * n, v[1], v[2]]) }));
+    expect(mesurer(images).ecarts.map((e) => e.code)).toContain('glissement');
+  });
+
+  it('signale un pied sans surface', () => {
+    const sansSurface = mesurer(poses().map((p) => ({ ...p, sommets: [] })));
+    expect(sansSurface.ecarts.map((e) => e.code)).toEqual(['pied-sans-surface']);
+    expect(sansSurface.mesures[0].pieds[0].intervalles).toBe(0);
   });
 });
 
