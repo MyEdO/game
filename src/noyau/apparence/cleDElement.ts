@@ -22,7 +22,7 @@ const existe =
     find(id) ? undefined : { code: 'cle-inconnue', detail: `${id} n’est aucune ${quoi}` };
 
 /** La résolution de chaque champ de clé résolu. */
-const RESOLUTIONS: Readonly<Record<string, Resolution>> = {
+const RESOLUTIONS = {
   tete: existe(findTeteById, 'tête de `garde-robe.json`'),
   coiffure: existe(findCoiffureById, 'coiffure de `garde-robe.json`'),
   piece: (id, categorie) => {
@@ -31,12 +31,15 @@ const RESOLUTIONS: Readonly<Record<string, Resolution>> = {
     return piece.categorie === categorie ? undefined : { code: 'piece-hors-categorie', detail: `${id} est une pièce \`${piece.categorie}\`, pas \`${categorie}\`` };
   },
   apparence: existe(findApparenceById, 'apparence de `apparences.json`'),
-};
+} as const satisfies Readonly<Record<string, Resolution>>;
+
+/** Un champ de clé résolu (`RESOLUTIONS`). */
+export type ChampDeCleResolu = keyof typeof RESOLUTIONS;
 
 /** Les écarts de la clé `cle` d'un élément de catégorie `categorie` à la donnée du jeu. */
 export function ecartsDeCleDElement(categorie: string, cle: Readonly<Record<string, string>>): EcartDeCle[] {
   return Object.entries(cle).flatMap(([champ, id]) => {
-    const resolution = Object.prototype.hasOwnProperty.call(RESOLUTIONS, champ) ? RESOLUTIONS[champ] : undefined;
+    const resolution = Object.prototype.hasOwnProperty.call(RESOLUTIONS, champ) ? RESOLUTIONS[champ as ChampDeCleResolu] : undefined;
     const ecart = resolution?.(id, categorie);
     return ecart ? [{ ...ecart, champ }] : [];
   });

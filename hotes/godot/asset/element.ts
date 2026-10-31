@@ -5,9 +5,12 @@
  * palette ou teinte des surfaces, et si un mesh rigide peut rester à la racine de la scène (`REGLES_DES_CATEGORIES`) ;
  * une clé bien formée se résout contre la donnée du jeu (`ecartsDeCleDElement`, surface du noyau). Chaque surface nomme
  * un matériau du GLB ; une surface `blason: true` reçoit au montage l'emblème choisi (#3111) et porte l'UV `TEXCOORD_0`.
+ * Un vêtement ou une armure offre des `emplacements`, ids de la garde-robe (`estEmplacement`, #3116) ; un accessoire
+ * dont l'emplacement n'est offert ni par sa base ni par une pièce de cette base est rapporté, ni refusé ni servi
+ * (`emplacementsNonOfferts`, `indexerModeles`).
  */
 import { estObjet } from '../../../src/hote/formes';
-import { ecartsDeCleDElement, SLOTS, type CodeDEcartDeCle } from '../../../src/noyau/index.ts';
+import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, SLOTS, type CodeDEcartDeCle } from '../../../src/noyau/index.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
@@ -48,7 +51,7 @@ export const REGLES_DES_CATEGORIES = {
   tete: { ...SKINNE, cle: ['tete'], couleur: 'palette' },
   pilosite: { ...SKINNE, cle: ['coiffure'], couleur: 'palette' },
   vetement: { ...SKINNE, cle: ['piece'], emplacements: true, couleur: 'palette' },
-  armure: { ...SKINNE, cle: ['piece'], couches: ['armure'], couleur: 'teinte' },
+  armure: { ...SKINNE, cle: ['piece'], couches: ['armure'], emplacements: true, couleur: 'teinte' },
   accessoire: { ...SKINNE, cle: ['piece'], liaisons: ['rigide', 'surface'], couvre: 'optionnel', couleur: 'teinte' },
   rigide: { ...RIGIDE, cle: ['apparence'] },
   trait: { ...SKINNE, cle: ['trait'], couleur: 'palette' },
@@ -103,6 +106,7 @@ export type CodeDEcartDElement =
   | 'zone-inconnue'
   | 'chaine-absente'
   | 'emplacement-sur-os-absent'
+  | 'emplacement-inconnu'
   | 'silhouette-absente'
   | 'surface-hors-categorie'
   | 'palette-inconnue'
@@ -193,6 +197,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
     else for (const [id, e] of Object.entries(brut.emplacements)) {
       if (!(estObjet(e) && typeof e.os === 'string' && estTriplet(e.position) && estTriplet(e.rotation) && Object.keys(e).length === 3)) refus('forme', `emplacements.${id}`, '`os` chaîne, `position` et `rotation` triplets de nombres attendus');
       else if (!base.os.includes(e.os)) refus('emplacement-sur-os-absent', `emplacements.${id}.os`, `${e.os} n’est pas un os de la base \`${base.base}\``);
+      if (!estEmplacement(id)) refus('emplacement-inconnu', `emplacements.${id}`, `${id} n’est aucun emplacement de \`garde-robe.json\``);
     }
   }
 
@@ -228,4 +233,23 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
   }
 
   return ecarts.length ? { ok: false, ecarts } : { ok: true, manifeste: brut as unknown as ManifesteDElement };
+}
+
+/** Par id, la ligne de rapport `[emplacement-non-offert]` des éléments `accessoire` de `elements` dont l'emplacement (celui de leur pièce,
+ *  `emplacementDePiece`) n'est offert ni par les `emplacements` de leur base dans `bases` ni par ceux d'un élément de
+ *  la même base dont la catégorie offre des emplacements. */
+export function emplacementsNonOfferts(bases: ReadonlyMap<string, unknown>, elements: readonly { readonly id: string; readonly brut: unknown }[]): { readonly id: string; readonly ligne: string }[] {
+  const offerts = new Map<string, Set<string>>();
+  const offrir = (base: unknown, emplacements: unknown) => {
+    if (typeof base !== 'string' || !estObjet(emplacements)) return;
+    offerts.set(base, new Set([...(offerts.get(base) ?? []), ...Object.keys(emplacements)]));
+  };
+  for (const [base, brut] of bases) if (estObjet(brut)) offrir(base, brut.emplacements);
+  for (const { brut } of elements) if (estObjet(brut) && estCategorie(brut.categorie) && REGLES_DES_CATEGORIES[brut.categorie].emplacements) offrir(brut.base, brut.emplacements);
+  return elements.flatMap(({ id, brut }) => {
+    if (!estObjet(brut) || brut.categorie !== 'accessoire' || !estObjet(brut.cle) || typeof brut.cle.piece !== 'string') return [];
+    const emplacement = emplacementDePiece(brut.cle.piece);
+    if (emplacement === undefined || offerts.get(String(brut.base))?.has(emplacement)) return [];
+    return [{ id, ligne: `[emplacement-non-offert] ${id} : ${brut.cle.piece} se pose sur ${emplacement}, que ni la base \`${String(brut.base)}\` ni aucune de ses pièces n’offre` }];
+  });
 }

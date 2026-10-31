@@ -108,8 +108,10 @@ Les catégories corps, tête, pilosité, vêtement, armure, accessoire et trait 
 peau < dessous < tenue < armure < manteau. L'armure impose armure. Les trois autres catégories
 n'ont ni couche ni couverture. `couvre` est requis pour les éléments skinnés, optionnel pour un
 accessoire ; ses ids viennent des zones de la base. Une couverture déclarée reste à mesurer.
-Seul un vêtement peut ajouter/déplacer des emplacements ; chaînes et silhouettes optionnelles
-doivent exister dans la base. La liaison de manifeste ne contient que son mode.
+Seuls un vêtement et une armure peuvent ajouter/déplacer des emplacements, ids d'emplacement de
+`src/data/garde-robe.json` (`emplacement-inconnu` sinon) ; un accessoire dont l'emplacement n'est
+offert ni par sa base ni par une pièce de cette base va au rapport de l'index (`emplacement-non-offert`,
+`hotes/godot/asset/modeles.ts`) : il s'importe et se publie, mais l'atelier ne le sert à aucun point. Chaînes et silhouettes optionnelles doivent exister dans la base. La liaison de manifeste ne contient que son mode.
 
 Une tête porte aussi la shape key visage_inverse pour le faceFlip résolu. Vérifier sa présence
 dans le GLB ; ne la déclarer parmi les silhouettes qu'avec une base qui la connaît. Si la base

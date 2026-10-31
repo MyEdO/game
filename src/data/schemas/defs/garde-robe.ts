@@ -1,17 +1,17 @@
 /**
  * Schéma de `garde-robe.json` — LA garde-robe des éléments 3D (#2972 v4, #3114, #3113) : les clés des
- * éléments portés sur le corps (têtes, coiffures, pièces), collection à discriminant `kind`, la NATURE d'une ligne (doctrine
+ * éléments portés sur le corps (têtes, coiffures, tenues, pièces), collection à discriminant `kind`, la NATURE d'une ligne (doctrine
  * `user-direction-fusion-json-par-type`), patron `defs/materials.ts`.
  *
  * - `tete` : la tête d'une espèce jouable (`species.json`), qui nomme sa `race` de rendu
  *   (`raceAppearance.json`, #3113) et dont l'`id` vaut celui de sa `race` ; têtes monstrueuses : #3123.
  * - `coiffure` : une coiffure, non sexuée (#3113).
+ * - `tenue` : une tenue portée sur le corps, que revêt l'ensemble qui l'habille (#3116).
  * - `emplacement` : un point d'accroche d'accessoire.
  * - `piece` : une pièce d'habit (`categorie`) ; une pièce d'`accessoire` nomme son `emplacement`,
  *   toute autre n'en porte aucun.
- * - `ensemble` : ce qu'`habille` (référence typée `{ id, type }` : un objet ou une apparence)
- *   revêt, la liste ordonnée de ses `pieces`. Son `id` vaut `<type>-<id>` : l'unicité des ids tient
- *   « un même `habille` ne figure qu'une fois ».
+ * - `ensemble` : ce qu'`habille` (référence typée `{ id, type }` : un objet, une apparence ou une tenue de
+ *   cette garde-robe) revêt, la liste ordonnée de ses `pieces` ; un même `habille` ne figure qu'une fois.
  * - `embleme` (#3111) : un dessin posé au montage sur les surfaces `blason` d'un élément (`hotes/godot/pont/CONTRAT.md`,
  *   « Atelier 3D ») ; `svg` est un document SVG complet, couleurs comprises, à `viewBox` carré.
  *
@@ -32,6 +32,7 @@ export const famille = 'entite';
 const LIBELLES_DE_KIND = {
   tete: 'Tête',
   coiffure: 'Coiffure',
+  tenue: 'Tenue',
   emplacement: 'Emplacement',
   piece: 'Pièce',
   ensemble: 'Ensemble',
@@ -56,6 +57,7 @@ export type CategorieDePiece = keyof typeof LIBELLES_DE_CATEGORIE;
 const CHARGE_PAR_KIND = {
   tete: { cles: ['race'], requises: ['race'] },
   coiffure: { cles: [], requises: [] },
+  tenue: { cles: [], requises: [] },
   emplacement: { cles: [], requises: [] },
   piece: { cles: ['categorie', 'emplacement'], requises: ['categorie'] },
   ensemble: { cles: ['habille', 'pieces'], requises: ['habille', 'pieces'] },
@@ -107,8 +109,13 @@ function refusDeSvg(svg: string): string | null {
   return null;
 }
 
-/** Ce qu'un ensemble habille : un objet ou une apparence. */
-const habilleSchema = refTypee(enumNomme({ trapping: 'Objet', apparence: 'Apparence' }));
+/** Ce qu'un ensemble habille : un objet, une apparence, ou une tenue de la sous-liste `tenue` de cette garde-robe (#3116). */
+const habilleSchema = refTypee(enumNomme({ trapping: 'Objet', apparence: 'Apparence', tenue: 'Tenue' }), { tenue: { type: 'gardeRobe', sousListe: 'tenue' } });
+
+/** Clé d'unicité d'un `habille` : le couple `{ type, id }` (garde de doublon, index `findEnsembleParHabille` de `src/data/index.ts`). */
+export function cleDHabille(h: HabilleDEnsemble): string {
+  return JSON.stringify([h.type, h.id]);
+}
 
 const doc = document(
   'garde-robe',
@@ -123,11 +130,11 @@ const doc = document(
     svg: z.string().optional(),
   },
   {
-    kind: { label: 'Nature', hint: 'Tête, coiffure, emplacement d’accessoire, pièce d’habit, ensemble ou emblème — les clés admises en dépendent' },
+    kind: { label: 'Nature', hint: 'Tête, coiffure, tenue, emplacement d’accessoire, pièce d’habit, ensemble ou emblème — les clés admises en dépendent' },
     race: { label: 'Race de rendu', hint: 'Apparence d’espèce que la tête habille' },
     categorie: { label: 'Catégorie', hint: 'Vêtement, armure ou accessoire' },
     emplacement: { label: 'Emplacement', hint: 'Point d’accroche d’une pièce d’accessoire' },
-    habille: { label: 'Habille', hint: 'L’objet ou l’apparence que l’ensemble revêt' },
+    habille: { label: 'Habille', hint: 'L’objet, l’apparence ou la tenue que l’ensemble revêt' },
     pieces: { label: 'Pièces', hint: 'Pièces de l’ensemble, dans l’ordre' },
     svg: { label: 'Dessin', hint: 'Document SVG de l’emblème, à viewBox carré, fond transparent' },
   },
@@ -136,10 +143,10 @@ const doc = document(
       exempt: {
         kind: 'vocabulaire-app-interne',
         raison:
-          'garde-robe des éléments 3D, clés des têtes, coiffures, pièces portées et emblèmes (art, pas règle) — aucune catégorie du Codex ne l’expose, aucun écran ne l’écrit : elle s’édite au fichier `src/data/garde-robe.json`',
+          'garde-robe des éléments 3D, clés des têtes, coiffures, tenues, pièces portées et emblèmes (art, pas règle) — aucune catégorie du Codex ne l’expose, aucun écran ne l’écrit : elle s’édite au fichier `src/data/garde-robe.json`',
       },
     },
-    edit: { none: 'vocabulaire d’art (têtes, coiffures, pièces portées, emblèmes), édité au fichier `src/data/garde-robe.json` — aucun écran ne l’écrit', dataset: 'gardeRobe' },
+    edit: { none: 'vocabulaire d’art (têtes, coiffures, tenues, pièces portées, emblèmes), édité au fichier `src/data/garde-robe.json` — aucun écran ne l’écrit', dataset: 'gardeRobe' },
   },
   {
     espace: { discriminant: 'kind', chargeParDiscriminant, requisesParDiscriminant },
@@ -167,14 +174,22 @@ const doc = document(
           if (refus) ctx.addIssue({ code: 'custom', path: ['svg'], message: `garde-robe : l’emblème « ${e.id} » ${refus}.` });
         }
         if (e.kind === 'ensemble') {
-          const habille = e.habille as RefTypee | undefined;
-          if (habille !== undefined && e.id !== `${habille.type}-${habille.id}`)
-            ctx.addIssue({ code: 'custom', path: ['id'], message: `garde-robe : l’ensemble « ${e.id} » doit s’appeler « ${habille.type}-${habille.id} ».` });
           const pieces = (e.pieces ?? []) as readonly string[];
           const doublons = pieces.filter((p, i) => pieces.indexOf(p) !== i);
           if (doublons.length)
             ctx.addIssue({ code: 'custom', path: ['pieces'], message: `garde-robe : l’ensemble « ${e.id} » répète ${doublons.join(', ')}.` });
         }
+      }),
+    affinerDataset: (dataset) =>
+      dataset.superRefine((v, ctx) => {
+        const vus = new Map<string, string>();
+        (v as readonly { id: string; kind: string; habille?: HabilleDEnsemble }[]).forEach((e, i) => {
+          if (e.kind !== 'ensemble' || e.habille === undefined) return;
+          const cle = cleDHabille(e.habille);
+          const premier = vus.get(cle);
+          if (premier === undefined) vus.set(cle, e.id);
+          else ctx.addIssue({ code: 'custom', path: [i, 'habille'], message: `garde-robe : les ensembles « ${premier} » et « ${e.id} » habillent tous deux { id: « ${e.habille.id} », type: « ${e.habille.type} » }.` });
+        });
       }),
   },
 );
@@ -189,6 +204,9 @@ export type TeteId = IdsParEspace['garde-robe.json?kind=tete'];
 
 /** Id d'une coiffure : la sous-liste `kind=coiffure` de l'espace `garde-robe.json` (`npm run gen`). */
 export type CoiffureId = IdsParEspace['garde-robe.json?kind=coiffure'];
+
+/** Id d'une tenue : la sous-liste `kind=tenue` de l'espace `garde-robe.json` (`npm run gen`). */
+export type TenueId = IdsParEspace['garde-robe.json?kind=tenue'];
 
 /** Id d'une pièce : la sous-liste `kind=piece` de l'espace `garde-robe.json` (`npm run gen`). */
 export type PieceId = IdsParEspace['garde-robe.json?kind=piece'];
@@ -218,6 +236,18 @@ export interface TeteDef extends LigneDeNature<'tete', TeteId> {
 /** VUE TS d'une ligne `coiffure`. */
 export type CoiffureDef = LigneDeNature<'coiffure', CoiffureId>;
 
+/** VUE TS d'une ligne `tenue`. */
+export type TenueDeGardeRobe = LigneDeNature<'tenue', TenueId>;
+
+/** Ce qu'un ensemble habille : un objet, une apparence ou une tenue. */
+export type HabilleDEnsemble = RefTypee<'trapping' | 'apparence'> | { readonly id: TenueId; readonly type: 'tenue' };
+
+/** VUE TS d'une ligne `ensemble`. */
+export interface EnsembleDef extends LigneDeNature<'ensemble', string> {
+  habille: HabilleDEnsemble;
+  pieces: PieceId[];
+}
+
 /** VUE TS d'une ligne `embleme`. */
 export interface EmblemeDef extends LigneDeNature<'embleme', string> {
   svg: string;
@@ -227,7 +257,8 @@ export interface EmblemeDef extends LigneDeNature<'embleme', string> {
 export type GardeRobeEntree =
   | TeteDef
   | CoiffureDef
+  | TenueDeGardeRobe
   | LigneDeNature<'emplacement', string>
   | PieceDef
-  | (LigneDeNature<'ensemble', string> & { habille: RefTypee<'trapping' | 'apparence'>; pieces: PieceId[] })
+  | EnsembleDef
   | EmblemeDef;

@@ -1,4 +1,4 @@
-import { validerElement, type ManifesteDElement } from './element.ts';
+import { emplacementsNonOfferts, validerElement, type ManifesteDElement } from './element.ts';
 import { lireGlb } from './glb.ts';
 import { estObjet } from '../../../src/hote/formes';
 import { cheminsAbsolus, ligneDErreur, validerManifeste } from './manifeste.ts';
@@ -18,8 +18,9 @@ export const estSchema3 = (m: unknown): m is Record<string, unknown> => estObjet
 export const estBase = (m: unknown): boolean => estSchema3(m) && Object.prototype.hasOwnProperty.call(m, 'os');
 const identite = (base: unknown, cle: Record<string, unknown>): string => JSON.stringify([base, Object.entries(cle).sort(([a], [b]) => a.localeCompare(b))]);
 
-/** L'index (base, clé) → élément et les bases, indépendants du nom de fichier et de l'ordre des champs de clé. */
-export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: ReadonlyMap<string, EntreeDeModele>; elements: ReadonlyMap<string, EntreeDeModele>; refus: string[] } {
+/** L'index (base, clé) → élément et les bases, indépendants du nom de fichier et de l'ordre des champs de clé. `refus`
+ *  bloque l'import et la Release ; `rapport` ne bloque rien, et son élément sort de `elements` (`emplacementsNonOfferts`). */
+export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: ReadonlyMap<string, EntreeDeModele>; elements: ReadonlyMap<string, EntreeDeModele>; refus: string[]; rapport: string[] } {
   const bases = new Map<string, EntreeDeModele>();
   const cles = new Map<string, EntreeDeModele>();
   const refus: string[] = [];
@@ -39,7 +40,10 @@ export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: Rea
     }
   }
   for (const { id, brut: m } of entrees) if (estSchema3(m) && !estBase(m) && typeof m.base === 'string' && !bases.has(m.base)) refus.push(`[base-absente] ${id} : ${m.base}`);
-  return { bases, elements: cles, refus };
+  const nonOfferts = emplacementsNonOfferts(new Map([...bases].map(([base, e]) => [base, e.brut])), [...cles.values()]);
+  const rapportes = new Set(nonOfferts.map(({ id }) => id));
+  const elements = new Map([...cles].filter(([, e]) => !rapportes.has(e.id)));
+  return { bases, elements, refus, rapport: nonOfferts.map(({ ligne }) => ligne) };
 }
 
 /** Le verdict (`validerModele`) de chaque entrée dont `octets` porte le GLB, les bases d'abord : un élément se valide

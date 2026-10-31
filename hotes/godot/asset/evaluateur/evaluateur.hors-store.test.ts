@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
   AnimationClip, Bone, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
-  Uint16BufferAttribute, VectorKeyframeTrack,
+  Matrix4, QuaternionKeyframeTrack, Uint16BufferAttribute, Vector3, VectorKeyframeTrack,
 } from 'three';
 import { tableTotale } from '../../../../src/lib/tableTotale';
 import { ecrireGlb, lireGlb } from '../glb.ts';
@@ -11,8 +11,11 @@ import { empreinte } from '../empreinte.ts';
 import { chargerScene } from './chargement.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer, monter } from './evaluer.ts';
-import { appliquerGabarit, CARRURE_MOINS, CARRURE_PLUS, FACTEURS_NEUTRES, poidsDeCarrure, poserSilhouettes } from './gabarit.ts';
-import { validerManifesteDeBase, type CodeDEcartDeBase } from '../manifesteDeBase.ts';
+import { appliquerGabarit, poserSilhouettes } from './gabarit.ts';
+import {
+  CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FACTEURS_NEUTRES, FEMININ, marcheDeLaBase, poidsDeCarrure, poidsDeSilhouettes, poseDuGabarit,
+} from '../gabarit.ts';
+import { validerManifesteDeBase, type CodeDEcartDeBase, type TableDeGabarit } from '../manifesteDeBase.ts';
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
@@ -23,6 +26,8 @@ import { gardePoids, INFLUENCES_MAX } from './gardes/poids.ts';
 import { anneauLePlusEpais, anneauxArticulaires, mesurerSilhouettes, sectionsDeRepos, TOLERANCE_EPAISSEUR } from './gardes/silhouettes.ts';
 
 const TABLE = { legs: ['racine'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 } };
+/** Le gabarit et les appuis d'un manifeste de base, pieds `pieds`. */
+const gabaritEtAppuis = (gabarit: TableDeGabarit, pieds: readonly string[] = ['racine']) => ({ gabarit, appuis: { pieds, vitessesAuSol: {} } });
 
 /** Un cylindre ouvert de 1 m posé au sol, skinné sur `racine` (pied) et `haut` (à 0,5 m), poids linéaires en hauteur. */
 function cylindre() {
@@ -210,12 +215,74 @@ describe('gabarit', () => {
   it('les jambes allongent l’os enfant, `sl` met la racine à l’échelle', () => {
     const hauteur = (facteurs: typeof FACTEURS_NEUTRES) => {
       const { scene, mesh } = cylindre();
-      appliquerGabarit(scene, facteurs, TABLE);
+      appliquerGabarit(scene, facteurs, gabaritEtAppuis(TABLE));
       return Math.max(...(poseDeRepos(scene, [mesh]).positions.get('Corps') ?? []).filter((_, i) => i % 3 === 1));
     };
     expect(hauteur(FACTEURS_NEUTRES)).toBeCloseTo(1, 5);
     expect(hauteur({ ...FACTEURS_NEUTRES, legs: 2 })).toBeCloseTo(1.5, 5);
     expect(hauteur({ ...FACTEURS_NEUTRES, sl: 2 })).toBeCloseTo(2, 5);
+  });
+
+  /** Sous une armature à l'échelle 2 et décalée de 0,1 m : racine, hanche à 0,5 m tournée vers le bas, sous elle le genou
+   *  gauche à 0,25 m et son pied à 0,25 m sous lui, le pied droit à 0,45 m. */
+  const jambes = () => {
+    const armature = new Group();
+    armature.scale.setScalar(2);
+    armature.position.y = 0.1;
+    const racine = Object.assign(new Bone(), { name: 'racine' });
+    const hanche = Object.assign(new Bone(), { name: 'hanche' });
+    hanche.position.y = 0.5;
+    hanche.rotation.z = Math.PI;
+    const genouG = Object.assign(new Bone(), { name: 'genouG' });
+    genouG.position.y = 0.25;
+    const piedG = Object.assign(new Bone(), { name: 'piedG' });
+    piedG.position.y = 0.25;
+    genouG.add(piedG);
+    const piedD = Object.assign(new Bone(), { name: 'piedD' });
+    piedD.position.y = 0.45;
+    hanche.add(genouG, piedD);
+    racine.add(hanche);
+    armature.add(racine);
+    return { scene: new Group().add(armature), racine };
+  };
+  const GABARIT_DES_JAMBES = gabaritEtAppuis({ ...TABLE, legs: ['hanche', 'genouG'] }, ['piedG', 'piedD']);
+
+  it('la racine translatée garde au neutre la hauteur monde du pied le plus bas, jambes courtes ou longues', () => {
+    const piedLePlusBas = (facteurs: typeof FACTEURS_NEUTRES) => {
+      const { scene } = jambes();
+      appliquerGabarit(scene, facteurs, GABARIT_DES_JAMBES);
+      return Math.min(...['piedG', 'piedD'].map((nom) => scene.getObjectByName(nom)?.getWorldPosition(new Vector3()).y ?? NaN));
+    };
+    const neutre = piedLePlusBas(FACTEURS_NEUTRES);
+    expect(neutre).toBeCloseTo(0.1, 9);
+    for (const legs of [0.7, 1.3]) expect(Math.abs(piedLePlusBas({ ...FACTEURS_NEUTRES, legs }) - neutre)).toBeLessThan(1e-6);
+    expect(Math.abs(piedLePlusBas({ ...FACTEURS_NEUTRES, sl: 1.2, legs: 0.7 }) - neutre)).toBeLessThan(1e-6);
+  });
+
+  it('pendant un clip qui plie le genou et anime la racine, le pied le plus bas reste à chaque instant à sa hauteur sans gabarit, l’échelle de la racine composée', () => {
+    const pli = Math.PI / 3;
+    const marche = new AnimationClip('Marche', 1, [
+      new VectorKeyframeTrack('racine.position', [0, 1], [0, 0, 0, 0.3, -0.05, 0]),
+      new VectorKeyframeTrack('racine.scale', [0, 1], [1, 1, 1, 1.1, 1.1, 1.1]),
+      new QuaternionKeyframeTrack('genouG.quaternion', [0, 1], [0, 0, 0, 1, 0, 0, Math.sin(pli / 2), Math.cos(pli / 2)]),
+    ]);
+    const piedsParInstant = (scene: Group, gabarit: Parameters<typeof echantillonner>[4]) => {
+      const pieds: [number, number][] = [];
+      for (const e of echantillonner(scene, [], [marche], 0.25, gabarit)) {
+        if (gabarit) expect(gabarit.racine.scale.toArray()).toEqual([0, 1, 2].map(() => expect.closeTo((1 + 0.1 * e.t) * gabarit.echelle, 6)));
+        pieds.push([e.t, Math.min(...['piedG', 'piedD'].map((nom) => new Vector3().setFromMatrixPosition(e.os.get(nom) ?? new Matrix4()).y))]);
+      }
+      return pieds;
+    };
+    const sansGabarit = piedsParInstant(jambes().scene, null);
+    expect(sansGabarit.map(([t]) => t)).toEqual([0, 0.25, 0.5, 0.75, 1]);
+    expect(new Set(sansGabarit.map(([, y]) => y.toFixed(6))).size).toBeGreaterThan(2);
+    for (const facteurs of [{ ...FACTEURS_NEUTRES, legs: 0.7 }, { ...FACTEURS_NEUTRES, sl: 0.7, legs: 0.7 }, { ...FACTEURS_NEUTRES, legs: 1.3 }]) {
+      const { scene } = jambes();
+      const avecGabarit = piedsParInstant(scene, appliquerGabarit(scene, facteurs, GABARIT_DES_JAMBES));
+      expect(avecGabarit.map(([t]) => t)).toEqual(sansGabarit.map(([t]) => t));
+      avecGabarit.forEach(([t, y], i) => expect(Math.abs(y - sansGabarit[i][1]), `t=${t}`).toBeLessThan(1e-6));
+    }
   });
 
   it('`st` pose une seule shape key de carrure, bornée à 1', () => {
@@ -228,6 +295,31 @@ describe('gabarit', () => {
     mesh.updateMorphTargets();
     poserSilhouettes(mesh, poidsDeCarrure(1.1, TABLE.st));
     expect(mesh.morphTargetInfluences?.[0]).toBeCloseTo(0.5, 9);
+  });
+
+  it('`poseDuGabarit` : l’échelle de la racine vaut `sl`, chaque os listé porte le facteur de sa clé, cumulé sous deux clés, les pieds sont `appuis.pieds`', () => {
+    const table = { ...TABLE, legs: ['cuisse', 'bassin'], arms: ['bras', 'bassin'], head: ['cou'] };
+    expect(poseDuGabarit(gabaritEtAppuis(table, ['piedG', 'piedD']), { sl: 0.74, st: 1.25, legs: 0.62, arms: 1.3, head: 0.9 })).toEqual({
+      racine: { os: 'racine', echelle: 0.74 },
+      enfantsDe: { cuisse: 0.62, bassin: expect.closeTo(0.62 * 1.3, 9), bras: 1.3, cou: 0.9 },
+      pieds: ['piedG', 'piedD'],
+    });
+  });
+
+  it('`poidsDeSilhouettes` : la carrure de `st`, `feminin` du sexe, `corpulence` nulle jusqu’au build neutre puis linéaire jusqu’à 1', () => {
+    expect(poidsDeSilhouettes({ sex: 'F', build: 0.75, st: 0.9 }, TABLE)).toEqual({
+      [CARRURE_MOINS]: expect.closeTo(0.5, 9), [CARRURE_PLUS]: 0, [FEMININ]: 1, [CORPULENCE]: expect.closeTo(0.5, 9),
+    });
+    expect(poidsDeSilhouettes({ sex: 'M', build: 0.2, st: 1 }, TABLE)).toEqual({ [CARRURE_MOINS]: 0, [CARRURE_PLUS]: 0, [FEMININ]: 0, [CORPULENCE]: 0 });
+    expect(poidsDeSilhouettes({ sex: 'M', build: 1, st: 1 }, TABLE)[CORPULENCE]).toBe(1);
+  });
+
+  it('`marcheDeLaBase` : l’unique clé de `vitessesAuSol` et sa vitesse ; refus nommé sinon', () => {
+    expect(marcheDeLaBase({ appuis: { pieds: [], vitessesAuSol: { Walk_Loop: 2 } } })).toEqual({ ok: true, clip: 'Walk_Loop', vitesse: 2 });
+    expect(marcheDeLaBase({ appuis: { pieds: [], vitessesAuSol: { Walk_Loop: 1, Run_Loop: 3 } } }))
+      .toEqual({ ok: false, code: 'marche-ambigue', detail: '2 clip(s) dans appuis.vitessesAuSol (Walk_Loop, Run_Loop), un seul attendu' });
+    expect(marcheDeLaBase({ appuis: { pieds: [], vitessesAuSol: {} } }))
+      .toEqual({ ok: false, code: 'marche-ambigue', detail: '0 clip(s) dans appuis.vitessesAuSol (aucun), un seul attendu' });
   });
 });
 

@@ -30,7 +30,7 @@ const ID_DE_MODELE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 const IDENTIFIANT_SPDX = chargerLicences();
 
 export type ResultatDImport =
-  | { readonly ok: true; readonly ecrits: readonly string[]; readonly retires: readonly string[]; readonly publies: readonly string[]; readonly manifeste: ManifesteDeModele; readonly provenance: Provenance }
+  | { readonly ok: true; readonly ecrits: readonly string[]; readonly retires: readonly string[]; readonly publies: readonly string[]; readonly rapport: readonly string[]; readonly manifeste: ManifesteDeModele; readonly provenance: Provenance }
   | { readonly ok: false; readonly refus: readonly string[] };
 
 const chaines = (v: unknown): string[] => (Array.isArray(v) ? v.filter((e): e is string => typeof e === 'string') : []);
@@ -149,7 +149,8 @@ const enJson = (v: unknown): string => `${JSON.stringify(v, null, 2)}\n`;
  *  (`--sans-publier`, tests et sondes). `remplacer` (`--remplacer`) remplace un modèle schéma 3 déjà importé sous
  *  `id` : une base ne se remplace que si chaque élément qui la référence passe contre elle (`refusDeRemplacement`), et
  *  les textes de licence que l'ancienne provenance était seule à nommer se retirent (`retires`) ; sur une production
- *  schéma 2, il se refuse (`[remplacer-hors-schema-3]`). */
+ *  schéma 2, il se refuse (`[remplacer-hors-schema-3]`). Un import réussi rend le `rapport` de l'index (`indexerModeles`)
+ *  des modèles déposés et du candidat, qui ne bloque rien. */
 export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODELES, date, publier, remplacer = false }: {
   dossier: string;
   id: string;
@@ -205,10 +206,12 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   let horsReleaseDeLaBase: string | undefined;
   let remplacement: Omit<Parameters<typeof refusDeRemplacement>[0], 'horsRelease'> | null = null;
   let licencesRemplacees: readonly string[] = [];
+  let rapport: readonly string[] = [];
   if (estSchema3(candidat)) {
     const lus = manifestesDesModeles(destination);
     const conserves = remplacer ? lus.entrees.filter((e) => e.id !== id) : lus.entrees;
     const index = indexerModeles([...conserves, { id, brut: candidat }]);
+    rapport = index.rapport;
     const refus = [...lus.erreurs, ...index.refus];
     if (!remplacer && existsSync(join(destination, fichiers.manifeste))) refus.push(`[id-deja-present] ${id} : --remplacer remplace le modèle importé`);
     const epingles = existsSync(destination) ? modelesEpingles(destination) : { modeles: [], erreurs: [] };
@@ -268,5 +271,5 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   const retires = licencesRemplacees.filter((l) => !licences.has(l)).map((l) => join(destination, l));
   for (const chemin of retires) rmSync(chemin, { force: true });
   const ecrits = [...glbEcrits, ...[fichiers.manifeste, fichiers.provenance, ...licences.keys()].map((f) => join(destination, f))];
-  return { ok: true, ecrits, retires, publies, manifeste: verdict.manifeste, provenance };
+  return { ok: true, ecrits, retires, publies, rapport, manifeste: verdict.manifeste, provenance };
 }
