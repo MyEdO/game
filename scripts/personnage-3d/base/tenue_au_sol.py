@@ -7,6 +7,13 @@ TOURS_DE_SOL = 4
 """Tours au plus de `tenir_au_sol` : valeur d'ingénierie #3101."""
 
 
+class ToursSansTour(ValueError):
+    """Une boucle bornée en tours (`tenir_au_sol`, `silhouettes.alterner`) reçoit moins d'un tour."""
+
+    def __init__(self, tours_max):
+        super().__init__(f'tours-sans-tour : tours_max {tours_max}, au moins 1')
+
+
 class NeutreHorsDuClip(RuntimeError):
     """Sous les clips posés, des arêtes du neutre de la peau sortent de `ETIREMENT_EN_CLIP` : aucune clé ne les change,
     seuls les poids le peuvent."""
@@ -21,7 +28,9 @@ def tenir_au_sol(poser_au_sol, mesurer, refinir, tours_max=TOURS_DE_SOL):
     `mesurer(matrices)` rend le masque des arêtes du neutre hors bornes et, par clé, celui de ses arêtes hors bornes. Un
     neutre hors bornes lève `NeutreHorsDuClip` ; aucune clé hors bornes rend le tour, sans `refinir` ; sinon
     `refinir(matrices)` reprend les clés et rend le nombre de sommets changés. Au-delà de `tours_max`, la construction
-    s'arrête."""
+    s'arrête. Un `tours_max` sous 1 lève `ToursSansTour`."""
+    if tours_max < 1:
+        raise ToursSansTour(tours_max)
     for tour in range(1, tours_max + 1):
         matrices = poser_au_sol()
         neutre, cles = mesurer(matrices)

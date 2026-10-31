@@ -1,26 +1,39 @@
 """silhouettes.correction sur un cylindre synthétique, contre une résolution KKT directe du même problème, et ses
-erreurs nommées ; silhouettes.alterner, lissage et correction jusqu'aux bornes d'étirement ; formes.lisser, région
-pleine et locale ; silhouettes.en_clip, mesure incrémentale égale à la mesure entière."""
+erreurs nommées ; silhouettes.alterner, lissage et correction jusqu'aux bornes d'étirement, du repère du mesh au
+repère monde et retour ; formes.lisser, région pleine et locale, élargie à la stagnation ; silhouettes.en_clip, mesure
+incrémentale égale à la mesure entière, au repère monde ; silhouettes.fondu, une part par nœud."""
 import contextlib
 import io
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import numpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
+import formes  # noqa: E402
 import silhouettes  # noqa: E402
-from formes import aux_noeuds, lisser, pas_laplacien, rapports  # noqa: E402
+from formes import aux_noeuds, lisser, pas_laplacien, rapports, region_locale  # noqa: E402
 from poids import PASSES_MAX  # noqa: E402
+from seuils import MAJORITE_DU_POIDS  # noqa: E402
 from silhouettes import (AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, alterner, correction,  # noqa: E402
-                         en_clip, hors_de)
+                         en_clip, fondu, hors_de)
+from tenue_au_sol import ToursSansTour  # noqa: E402
 
 SECTEURS, NIVEAUX = 12, 14
 NIVEAUX_DES_ANNEAUX = (2, 4, 6, 9, 11)
 TOLERANCE = 1e-10
 HAUTEUR = 0.1 * (NIVEAUX - 1)
+
+
+def rotation():
+    """Une matrice 3×3 de rotation hors de l'axe du cylindre, à droite d'un champ : repère du mesh vers repère monde."""
+    a, b = 0.7, 0.4
+    autour_de_x = numpy.array([[1, 0, 0], [0, numpy.cos(a), -numpy.sin(a)], [0, numpy.sin(a), numpy.cos(a)]])
+    autour_de_z = numpy.array([[numpy.cos(b), -numpy.sin(b), 0], [numpy.sin(b), numpy.cos(b), 0], [0, 0, 1]])
+    return autour_de_x @ autour_de_z
 
 
 def cylindre():
@@ -225,10 +238,14 @@ class Alternance(unittest.TestCase):
         brut[:, 1] = 0.1 * numpy.sin(5 * self.x[:, 2])
         return brut
 
-    def alterner(self, bruts, bornes=BORNES):
+    def alterner(self, bruts, bornes=BORNES, vers_le_monde=None, **options):
+        """`alterner` sur les clés `bruts` au repère du mesh, repos `self.x` porté dans ce repère par l'inverse de
+        `vers_le_monde` (par défaut l'identité)."""
+        vers_le_monde = numpy.eye(3) if vers_le_monde is None else vers_le_monde
+        repos = self.x @ numpy.linalg.inv(vers_le_monde)
         with contextlib.redirect_stdout(io.StringIO()):
-            return alterner(bruts, self.x, self.noeud, self.aretes, self.libre, self.corriger, numpy.eye(3),
-                            lambda _, d: self.masque(d, bornes), 'pleine')
+            return alterner(bruts, repos, self.noeud, self.aretes, self.libre, self.corriger, vers_le_monde,
+                            lambda _, d: hors_de(rapports(repos, d, self.aretes), bornes), 'pleine', **options)
 
     def masque(self, champ, bornes=BORNES):
         return hors_de(rapports(self.x, champ, self.aretes), bornes)
@@ -262,6 +279,26 @@ class Alternance(unittest.TestCase):
             self.alterner({'k': (0.21 * radial, 1.7)}, bornes=(0.6, 1.6))
         self.assertRegex(str(leve.exception),
                          r'^k : [1-9]\d* arête\(s\) hors bornes après 5 tours de correction$')
+
+    def test_moins_d_un_tour_leve_l_erreur_nommee_sans_corriger(self):
+        with self.assertRaises(ToursSansTour) as leve:
+            self.alterner({'k': (self.translation(), None)}, tours_max=0)
+        self.assertEqual(str(leve.exception), 'tours-sans-tour : tours_max 0, au moins 1')
+        self.assertEqual(self.vus, [])
+
+    def test_la_correction_se_fait_au_repere_monde_et_le_champ_revient_au_repere_du_mesh(self):
+        """Les mêmes clés, au repère monde sous l'identité, et au repère d'un mesh tourné : le champ rendu au repère du
+        mesh, porté au monde, est celui du monde ; la carrure vise un rayon, mesuré au monde."""
+        radial = self.x * [1.0, 1.0, 0.0]
+        au_monde = {'t': (self.translation(), None), 'c': (0.1 * radial, 1.2)}
+        attendus = self.alterner(au_monde)
+        vers_le_monde = rotation()
+        vers_le_mesh = numpy.linalg.inv(vers_le_monde)
+        rendus = self.alterner({nom: (d @ vers_le_mesh, r) for nom, (d, r) in au_monde.items()},
+                               vers_le_monde=vers_le_monde)
+        for nom, attendu in attendus.items():
+            self.assertGreater(numpy.abs(attendu @ vers_le_mesh - attendu).max(), 1e-2, nom)
+            self.assertLess(numpy.abs(rendus[nom] @ vers_le_monde - attendu).max(), 1e-9, nom)
 
 
 class Lissage(unittest.TestCase):
@@ -312,6 +349,33 @@ class Lissage(unittest.TestCase):
             with self.assertRaises(RuntimeError) as leve:
                 self.lisser(self.bosse, region, facteur, lambda _: marque)
             self.assertRegex(str(leve.exception), r'^1 arête\(s\) hors bornes aux deux extrémités tenues')
+
+    def test_le_pas_local_s_elargit_quand_sa_region_stagne(self):
+        """Un plateau, niveaux 4 à 9, translaté de 0,2 m : la région autour de ses bords, tenue par les nœuds qu'elle ne
+        touche pas, stagne avec des arêtes encore hors de (0,7, 1,2) ; elle s'élargit puis converge. Sans élargissement,
+        `passes_max` passes ne suffisent pas."""
+        bornes = (0.7, 1.2)
+        niveau = numpy.round(self.x[:, 2] / 0.1)
+        plateau = numpy.zeros_like(self.x)
+        plateau[(niveau >= 4) & (niveau <= 9), 0] = 0.2
+        vus = []
+
+        def hors(champ):
+            vus.append(champ)
+            return hors_de(rapports(self.x, champ, self.aretes), bornes)
+
+        local, _ = self.lisser(plateau, 'locale', hors=hors)
+        self.assertFalse(hors_de(rapports(self.x, local, self.aretes), bornes).any())
+        hors_region = []
+        for avant, apres in zip(vus, vus[1:]):
+            marquees = hors_de(rapports(self.x, avant, self.aretes), bornes)
+            region = region_locale(self.aretes, marquees, 0, self.noeud.max() + 1)[self.noeud]
+            hors_region.append(bool(((apres != avant).any(axis=1) & ~region).any()))
+        self.assertEqual(hors_region[:2], [False, False])
+        self.assertTrue(any(hors_region))
+        with mock.patch.object(formes, 'STAGNATION_M', -1.0), self.assertRaises(RuntimeError) as leve:
+            self.lisser(plateau, 'locale', hors=hors)
+        self.assertRegex(str(leve.exception), rf'^[1-9]\d* arête\(s\) hors bornes après {PASSES_MAX} passes de lissage$')
 
     def test_le_pas_plein_est_le_pas_laplacien_itere_aux_noeuds_puis_le_facteur(self):
         z = self.x[:, 2]
@@ -374,12 +438,32 @@ class EnClip(unittest.TestCase):
         self.assertLess(self.mesurees[2], len(self.aretes))
         self.assertEqual(len(self.mesurees), 5)
 
+    def test_mesure_le_champ_du_mesh_porte_au_repere_monde(self):
+        vers_le_monde = rotation()
+        champ = numpy.zeros((len(self.x), 3))
+        champ[self.x[:, 2] > 0.65, 2] = 0.3
+        tourne = en_clip(self.w, self.x, self.aretes, self.longueurs, self.matrices, vers_le_monde)('k', champ)
+        self.assertTrue(tourne.any())
+        self.assertTrue(numpy.array_equal(tourne, self.mesure()('k', champ @ vers_le_monde)))
+        self.assertFalse(numpy.array_equal(tourne, self.mesure()('k', champ)))
+
     def test_chaque_cle_garde_sa_mesure(self):
         incrementale = self.mesure()
         incrementale('a', self.bosse(self.BOSSES[0]))
         masque = incrementale('b', self.bosse(self.BOSSES[1]))
         self.assertEqual(self.mesurees[1], len(self.aretes))
         self.assertTrue(numpy.array_equal(masque, self.mesure()('b', self.bosse(self.BOSSES[1]))))
+
+
+class Fondu(unittest.TestCase):
+    """silhouettes.fondu sur trois sommets, dont deux jumeaux aux poids de pied discordants."""
+
+    def test_un_noeud_garde_la_plus_petite_part_de_ses_sommets(self):
+        noms = ['pied', 'tibia']
+        demi = 0.5 * MAJORITE_DU_POIDS
+        w = numpy.array([[0.0, 1.0], [MAJORITE_DU_POIDS, 1.0 - MAJORITE_DU_POIDS], [demi, 1.0 - demi]])
+        libre = fondu(w, noms, {'pied'}, numpy.array([0, 0, 2]))
+        self.assertTrue(numpy.allclose(libre, [0.0, 0.0, 0.5]))
 
 
 if __name__ == '__main__':

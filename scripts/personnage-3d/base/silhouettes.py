@@ -40,6 +40,7 @@ from formes import (aretes_des_triangles, aux_noeuds, decalages, lier, lisser, n
 from poids import PASSES_MAX, deformer, extremes, jumeaux, peau_lineaire
 from script_node import lancer
 from seuils import ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, INFLUENCES_MAX, MAJORITE_DU_POIDS
+from tenue_au_sol import ToursSansTour
 
 ICI = Path(__file__).resolve().parent
 DONNEES = ICI.parents[2] / 'src' / 'data'
@@ -84,11 +85,16 @@ def extremites(rig):
     return descendants(rig, (*PIEDS, *(f'hand_{cote}' for cote, _, _ in POING.values()), *tete))
 
 
-def fondu(w, noms, extremes):
+def fondu(w, noms, extremes, groupe):
     """Par sommet de poids `w` sur les os `noms`, la part de son décalage qu'il garde : 1 sans poids d'extrémité
-    (`extremes`), 0 dès que sa part de poids d'extrémité atteint `MAJORITE_DU_POIDS`, linéaire entre les deux."""
+    (`extremes`), 0 dès que sa part de poids d'extrémité atteint `MAJORITE_DU_POIDS`, linéaire entre les deux. Les
+    sommets d'un même nœud (`groupe`, `poids.jumeaux`) gardent la plus petite part du nœud : un nœud est tenu dès
+    qu'un de ses sommets l'est."""
     part = w[:, [i for i, n in enumerate(noms) if n in extremes]].sum(axis=1)
-    return numpy.clip(1.0 - part / MAJORITE_DU_POIDS, 0.0, 1.0)
+    sommet = numpy.clip(1.0 - part / MAJORITE_DU_POIDS, 0.0, 1.0)
+    noeud = numpy.ones(groupe.max() + 1)
+    numpy.minimum.at(noeud, groupe, sommet)
+    return noeud[groupe]
 
 
 def ramener(rig, rig_source, noms):
@@ -351,7 +357,9 @@ def alterner(bruts, repos, groupe, aretes, libre, corriger, vers_le_monde, hors,
     corrigée par `corriger` (`correction`, repère monde : `vers_le_monde`, matrice 3×3 à droite). Tant que `hors` marque
     une arête d'une clé corrigée, le champ corrigé est relissé, de facteur `libre > 0` (le fondu déjà appliqué ne se
     réapplique pas), puis recorrigé ; au-delà de `tours_max` tours, la construction s'arrête. Rend, par nom, le champ
-    corrigé dans le repère du mesh."""
+    corrigé dans le repère du mesh. Un `tours_max` sous 1 lève `ToursSansTour`."""
+    if tours_max < 1:
+        raise ToursSansTour(tours_max)
     inverse = numpy.linalg.inv(vers_le_monde)
     champs = {nom: champ for nom, (champ, _) in bruts.items()}
     facteurs = dict.fromkeys(bruts, libre)
@@ -383,6 +391,13 @@ def alterner(bruts, repos, groupe, aretes, libre, corriger, vers_le_monde, hors,
                                  for nom, n in restantes.items()))
 
 
+def extremes_au_monde(w, x, champs, aretes, longueurs, matrices, vers_le_monde):
+    """`poids.extremes` des champs `champs` (liste de (sommets, 3)) au repère du mesh (`vers_le_monde`, matrice 3×3 à
+    droite), portés au repère monde de `x`."""
+    monde = numpy.array([d @ vers_le_monde for d in champs]).reshape(len(champs), len(x), 3)
+    return extremes(w, x, monde, aretes, longueurs, matrices)
+
+
 def en_clip(w, x, aretes, longueurs, matrices, vers_le_monde):
     """La mesure `(nom, d) -> masque` des arêtes `aretes` de la clé `nom`, champ `d` au repère du mesh (`vers_le_monde`,
     matrice 3×3 à droite), hors de `ETIREMENT_EN_CLIP` dans l'état de la clé sous les matrices de peau `matrices`
@@ -399,7 +414,7 @@ def en_clip(w, x, aretes, longueurs, matrices, vers_le_monde):
             bas, haut = numpy.empty(len(aretes), dtype=numpy.float32), numpy.empty(len(aretes), dtype=numpy.float32)
             touchees = numpy.ones(len(aretes), dtype=bool)
         if touchees.any():
-            b, h = extremes(w, x, (d @ vers_le_monde)[None], aretes[touchees], longueurs[touchees], matrices)
+            b, h = extremes_au_monde(w, x, [d], aretes[touchees], longueurs[touchees], matrices, vers_le_monde)
             bas[touchees], haut[touchees] = b[1], h[1]
         vus[nom] = (d.copy(), bas, haut)
         return hors_de(bas, ETIREMENT_EN_CLIP) | hors_de(haut, ETIREMENT_EN_CLIP)
@@ -420,8 +435,8 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
     hors de `ETIREMENT_DES_CLES`."""
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
-    libre = fondu(w, noms, extremites(squelette))
     groupe = jumeaux(x)
+    libre = fondu(w, noms, extremites(squelette), groupe)
     repos = positions(corps.data)
     aretes = aretes_des_triangles(corps, groupe)
     cles = noms_des_cles(corps)
@@ -456,8 +471,7 @@ def finir_les_silhouettes(squelette, corps, secondaires, bornes):
 
     def mesurer(matrices):
         courants = {nom: decalages(corps, nom) for nom in noms_des_cles(corps)}
-        monde = numpy.array([d @ vers_le_monde for d in courants.values()]).reshape(len(courants), len(x), 3)
-        bas, haut = extremes(w, x, monde, aretes, longueurs, matrices)
+        bas, haut = extremes_au_monde(w, x, list(courants.values()), aretes, longueurs, matrices, vers_le_monde)
         hors = hors_de(bas, ETIREMENT_EN_CLIP) | hors_de(haut, ETIREMENT_EN_CLIP)
         return hors[0], {nom: au_repos(nom, d) | hors[1 + k] for k, (nom, d) in enumerate(courants.items())}
 

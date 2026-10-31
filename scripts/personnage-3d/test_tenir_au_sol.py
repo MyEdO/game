@@ -1,6 +1,6 @@
 """tenue_au_sol.tenir_au_sol sur des doublures du sol, de la mesure et de la finition : sortie sans finition quand tout
-est dans les bornes, finition puis sortie au tour suivant, erreur nommée d'un neutre hors bornes, arrêt au-delà des
-tours."""
+est dans les bornes, finition puis sortie au tour suivant, erreur nommée d'un neutre hors bornes, clés dans les bornes
+ou non, au tour où il sort, arrêt au-delà des tours, erreur nommée de moins d'un tour."""
 import contextlib
 import io
 import sys
@@ -11,7 +11,7 @@ import numpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from tenue_au_sol import NeutreHorsDuClip, tenir_au_sol  # noqa: E402
+from tenue_au_sol import NeutreHorsDuClip, ToursSansTour, tenir_au_sol  # noqa: E402
 
 ARETES = 6
 
@@ -73,6 +73,24 @@ class TenirAuSol(unittest.TestCase):
                          'posés')
         self.assertEqual(d.refinies, [])
 
+    def test_un_neutre_hors_bornes_sous_des_cles_dans_les_bornes_leve_sans_refinir(self):
+        d = Doublures([(masque(3), DANS_LES_BORNES[1])])
+        with self.assertRaises(NeutreHorsDuClip) as leve:
+            d.tenir()
+        self.assertEqual(str(leve.exception),
+                         'neutre-hors-du-clip : tour 1 : 1 arête(s) du neutre hors de ETIREMENT_EN_CLIP sous les clips '
+                         'posés')
+        self.assertEqual(d.refinies, [])
+
+    def test_un_neutre_qui_sort_au_tour_2_leve_en_nommant_le_tour_2(self):
+        d = Doublures([CLE_HORS, (masque(3), DANS_LES_BORNES[1])])
+        with self.assertRaises(NeutreHorsDuClip) as leve:
+            d.tenir()
+        self.assertEqual(str(leve.exception),
+                         'neutre-hors-du-clip : tour 2 : 1 arête(s) du neutre hors de ETIREMENT_EN_CLIP sous les clips '
+                         'posés')
+        self.assertEqual(d.refinies, [1])
+
     def test_leve_au_dela_de_tours_max(self):
         d = Doublures([CLE_HORS] * 3)
         with self.assertRaises(RuntimeError) as leve:
@@ -80,6 +98,13 @@ class TenirAuSol(unittest.TestCase):
         self.assertNotIsInstance(leve.exception, NeutreHorsDuClip)
         self.assertEqual(str(leve.exception), 'sol : corpulence:2 arête(s) hors bornes après 3 tours de sol')
         self.assertEqual(d.refinies, [1, 2, 3])
+
+    def test_moins_d_un_tour_leve_l_erreur_nommee_sans_poser(self):
+        d = Doublures([DANS_LES_BORNES])
+        with self.assertRaises(ToursSansTour) as leve:
+            d.tenir(tours_max=0)
+        self.assertEqual(str(leve.exception), 'tours-sans-tour : tours_max 0, au moins 1')
+        self.assertEqual(d.poses, 0)
 
 
 if __name__ == '__main__':
