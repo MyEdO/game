@@ -358,6 +358,8 @@ const ATTENDU = {
     // #2528
     'scripts/ops/session-codex.mjs',
     'scripts/ops/session-codex.test.mjs',
+    'scripts/ops/session-version.mjs',
+    'scripts/ops/session-version.test.mjs',
     // #2528
     'scripts/ops/session-train.test.mjs',
     // #2603
