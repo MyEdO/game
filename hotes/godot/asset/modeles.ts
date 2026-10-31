@@ -1,8 +1,8 @@
-import { emplacementsNonOfferts, validerElement, type ManifesteDElement } from './element.ts';
+import { emplacementsNonOfferts, validerElement, VERSION_DU_SCHEMA_D_ELEMENT, type ManifesteDElement } from './element.ts';
 import { lireGlb } from './glb.ts';
 import { estObjet } from '../../../src/hote/formes';
 import { cheminsAbsolus, ligneDErreur, validerManifeste } from './manifeste.ts';
-import { validerManifesteDeBase, type ManifesteDeBase } from './manifesteDeBase.ts';
+import { validerManifesteDeBase, VERSION_DU_SCHEMA_DE_BASE, type ManifesteDeBase } from './manifesteDeBase.ts';
 import type { ManifesteMontable } from './montage';
 
 export type ManifesteDeModele = ManifesteMontable | ManifesteDeBase | ManifesteDElement;
@@ -13,9 +13,9 @@ export type VerdictDeModele = { readonly ok: true; readonly manifeste: Manifeste
 /** Les fichiers du modèle `id` dans le projet : le GLB (tiré de la Release, ignoré de git), le manifeste et la provenance (commités). */
 export const fichiersDuModele = (id: string) => ({ glb: `${id}.glb`, manifeste: `${id}.manifeste.json`, provenance: `${id}.provenance.json` });
 
-export const estSchema3 = (m: unknown): m is Record<string, unknown> => estObjet(m) && m.schema === 3;
+export const estModeleModulaire = (m: unknown): m is Record<string, unknown> => estObjet(m) && m.schema === (Object.prototype.hasOwnProperty.call(m, 'os') ? VERSION_DU_SCHEMA_DE_BASE : VERSION_DU_SCHEMA_D_ELEMENT);
 /** Une base porte son squelette (`ManifesteDeBase.os`), champ qu'aucune catégorie d'élément n'admet (`element.ts`). */
-export const estBase = (m: unknown): boolean => estSchema3(m) && Object.prototype.hasOwnProperty.call(m, 'os');
+export const estBase = (m: unknown): boolean => estModeleModulaire(m) && Object.prototype.hasOwnProperty.call(m, 'os');
 const identite = (base: unknown, cle: Record<string, unknown>): string => JSON.stringify([base, Object.entries(cle).sort(([a], [b]) => a.localeCompare(b))]);
 
 /** L'index (base, clé) → élément et les bases, indépendants du nom de fichier et de l'ordre des champs de clé. `refus`
@@ -26,7 +26,7 @@ export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: Rea
   const refus: string[] = [];
   for (const entree of entrees) {
     const m = entree.brut;
-    if (!estSchema3(m)) continue;
+    if (!estModeleModulaire(m)) continue;
     if (typeof m.base !== 'string' || !m.base) { refus.push(`[forme] ${entree.id}.base : identité non vide attendue`); continue; }
     if (estBase(m)) {
       const precedente = bases.get(m.base);
@@ -39,7 +39,7 @@ export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: Rea
       else cles.set(cle, entree);
     }
   }
-  for (const { id, brut: m } of entrees) if (estSchema3(m) && !estBase(m) && typeof m.base === 'string' && !bases.has(m.base)) refus.push(`[base-absente] ${id} : ${m.base}`);
+  for (const { id, brut: m } of entrees) if (estModeleModulaire(m) && !estBase(m) && typeof m.base === 'string' && !bases.has(m.base)) refus.push(`[base-absente] ${id} : ${m.base}`);
   const nonOfferts = emplacementsNonOfferts(new Map([...bases].map(([base, e]) => [base, e.brut])), [...cles.values()]);
   const rapportes = new Set(nonOfferts.map(({ id }) => id));
   const elements = new Map([...cles].filter(([, e]) => !rapportes.has(e.id)));
@@ -55,10 +55,10 @@ export function verdictsDesModeles(entrees: readonly EntreeDeModele[], octets: R
   return livrees.sort((a, b) => Number(estBase(b.brut)) - Number(estBase(a.brut))).map(({ id, brut, octets: o }) => ({ id, brut, verdict: validerModele(brut, o, bases) }));
 }
 
-/** Un validateur par contrat : personnage schéma 2, base schéma 3, élément schéma 3 contre sa base validée. */
+/** Un validateur par contrat : personnage schéma 2, base schéma 4, élément schéma 3 contre sa base validée. */
 export function validerModele(brut: unknown, octets: Uint8Array, bases: ReadonlyMap<string, BaseLivree> = new Map()): VerdictDeModele {
   try {
-    if (!estSchema3(brut)) {
+    if (!estModeleModulaire(brut)) {
       const v = validerManifeste(brut, lireGlb(octets));
       return v.ok ? v : { ok: false, refus: v.erreurs.map(ligneDErreur) };
     }

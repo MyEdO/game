@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { baseSchema3, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, glbDElement } from './schema3.testkit.ts';
+import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, glbDElement } from './modeles.testkit.ts';
 import { empreinte } from './empreinte.ts';
 import { CATEGORIES_D_ELEMENT, emplacementsNonOfferts, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
 import { ecrireGlb, lireGlb } from './glb.ts';
@@ -207,7 +207,7 @@ describe('CLI godot:valider : base validée avant l’élément', () => {
   it.each(['valide', 'vetement', 'tete', 'pilosite', 'os-inconnu', 'glb-different', 'base-absente', 'forme', 'chemin-absolu', 'cle-inconnue', 'cle-inconnue-tete'] as const)('%s', cas => {
     const d = mkdtempSync(join(tmpdir(), 'element-cli-'));
     dossiers.push(d);
-    const base = baseSchema3();
+    const base = baseDeTest();
     if (cas === 'os-inconnu') base.os = ['absent'];
     if (cas === 'glb-different') base.glb.sha256 = 'a'.repeat(64);
     writeFileSync(join(d, 'base.manifeste.json'), JSON.stringify(base));

@@ -13,7 +13,7 @@ import { chargerScene, type SceneChargee } from './chargement.ts';
 import type { Ecart } from './ecart.ts';
 import { echantillonner, PAS_PAR_DEFAUT, poseDeRepos } from './echantillonnage.ts';
 import type { GabaritResolu } from '../../../../src/noyau/index.ts';
-import { appliquerGabarit, poserSilhouettes } from './gabarit.ts';
+import { appliquerGabarit, poserFormes } from './gabarit.ts';
 import { CARRURE_MOINS, CARRURE_PLUS, FACTEURS_NEUTRES, poidsDeCarrure, poidsDuGabarit } from '../gabarit.ts';
 import { PREFIXE_DES_CLES_DU_GABARIT, validerManifesteDeBase, type ManifesteDeBase } from '../manifesteDeBase.ts';
 import { gardeBudget, PLAFOND_ASSEMBLE, trianglesDe } from './gardes/budget.ts';
@@ -25,6 +25,7 @@ import { gardePiedsAuSol, plusBas, type NiveauDuCorps } from './gardes/piedsAuSo
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids } from './gardes/poids.ts';
 import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from './gardes/silhouettes.ts';
+import { meshesDuCorps } from './corps.ts';
 
 export interface EntreeDEvaluation {
   readonly base: Uint8Array;
@@ -34,7 +35,7 @@ export interface EntreeDEvaluation {
   readonly manifeste?: unknown;
   /** Les facteurs de gabarit donnés, les autres à 1 (`FACTEURS_NEUTRES`). */
   readonly facteurs?: Partial<GabaritResolu>;
-  /** Les shape keys posées, par nom ; chacune doit être une forme du GLB de base. */
+  /** Les poids explicites des silhouettes déclarées au manifeste valide, sinon des formes du GLB de base hors clés `gabarit_*` ; ils priment sur la carrure calculée et un nom hors de cette liste est refusé par `silhouette-absente`. */
   readonly silhouettes?: Readonly<Record<string, number>>;
   /** Les clips échantillonnés, par nom ; tous sans liste. */
   readonly clips?: readonly string[];
@@ -94,9 +95,12 @@ export function monter(base: SceneChargee, element: SceneChargee): void {
   }
 }
 
-const zoneDe = (m: Object3D): unknown => m.userData.zone ?? (m.parent && !(m.parent as Bone).isBone ? m.parent.userData.zone : undefined);
-
 const racineDu = (base: SceneChargee): string => base.squelette?.bones.find((b) => !(b.parent as Bone | null)?.isBone)?.name ?? '';
+
+export const poidsDesFormesDe = (manifeste: ManifesteDeBase | null, facteurs: GabaritResolu) => (silhouettes: Readonly<Record<string, number>>): Readonly<Record<string, number>> => ({
+  ...silhouettes,
+  ...(manifeste ? poidsDuGabarit(facteurs, manifeste.gabarit.bornes, silhouettes) : {}),
+});
 
 export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures> {
   const facteurs: GabaritResolu = { ...FACTEURS_NEUTRES, ...entree.facteurs };
@@ -119,10 +123,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const carrure = facteurs.st < 1 ? CARRURE_MOINS : facteurs.st > 1 ? CARRURE_PLUS : null;
   if (carrure && !nomsDesSilhouettes.includes(carrure)) throw new Error(`évaluation : [carrure-absente] st=${facteurs.st} : ${carrure} est absente des silhouettes déclarées de la base`);
   const aZero = tableTotale(nomsDesSilhouettes, () => 0);
-  const poidsDesFormes = (silhouettes: Readonly<Record<string, number>>) => ({
-    ...silhouettes,
-    ...(manifeste ? poidsDuGabarit(facteurs, manifeste.gabarit.bornes, silhouettes) : {}),
-  });
+  const poidsDesFormes = poidsDesFormesDe(manifeste, facteurs);
   const carrures = manifeste ? Object.fromEntries(Object.entries(poidsDeCarrure(facteurs.st, manifeste.gabarit.st)).filter(([nom]) => nomsDesSilhouettes.includes(nom))) : {};
   const poids = poidsDesFormes({ ...aZero, ...carrures, ...entree.silhouettes });
   if (manifeste && !estNeutre(facteurs)) {
@@ -131,14 +132,13 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   }
   const base = await chargerScene(entree.base);
   const elements = await Promise.all((entree.elements ?? []).map(chargerScene));
-  const corps = base.meshes.filter((m) => typeof zoneDe(m) === 'string');
-  const nomsDuCorps = (corps.length ? corps : base.skinnes).map((m) => m.name);
+  const nomsDuCorps = meshesDuCorps(base).map((m) => m.name);
   for (const e of elements) monter(base, e);
   const meshes = [base, ...elements].flatMap((s) => s.meshes);
   const skinnes = meshes.filter((m): m is SkinnedMesh => (m as SkinnedMesh).isSkinnedMesh === true);
 
-  const gabarit = manifeste ? appliquerGabarit(base.scene, facteurs, manifeste) : null;
-  poserSilhouettes(base.scene, poids);
+  poserFormes(base.scene, poids);
+  const gabarit = manifeste ? appliquerGabarit(base.scene, facteurs, manifeste, base.squelette ?? undefined) : null;
   base.scene.updateMatrixWorld(true);
 
   const inconnus = (entree.clips ?? []).filter((nom) => !base.clips.some((c) => c.name === nom));

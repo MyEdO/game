@@ -29,25 +29,25 @@ export const glbDElement = (
 };
 export const GLB_D_ELEMENT = glbDElement('root');
 const attache = { os: 'root', position: [0, 0, 0], rotation: [0, 0, 0] };
-export const baseSchema3 = (base = 'humanoide') => ({
-  schema: 3, base, os: ['root'], chaines: {}, zones: [], emplacements: {}, prises: { main: attache, off: attache }, silhouettes: [],
+export const baseDeTest = (base = 'humanoide') => ({
+  schema: 4, base, os: ['root'], chaines: {}, zones: [], emplacements: {}, prises: { main: attache, off: attache }, silhouettes: [],
   gabarit: { legs: [], arms: [], head: [], racine: 'root', st: { min: 0.8, max: 1.2 }, bornes: { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } } },
   porteur: { race: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
-  appuis: { pieds: ['root'], vitessesAuSol: { walk: 1 } }, osAPositionAnimee: [], glb: empreinte(GLB_DE_BASE),
+  appuis: { pieds: ['root'], plusBas: [{ position: [0, 0, 0], os: [{ nom: 'root', poids: 1 }], deltas: {} }], vitessesAuSol: { walk: 1 } }, osAPositionAnimee: [], glb: empreinte(GLB_DE_BASE),
 });
 export const elementSchema3 = (base = 'humanoide') => ({
   schema: 3, base, categorie: 'rigide', cle: { apparence: 'epee' }, liaison: { mode: 'rigide' },
   surfaces: [{ nom: 'metal', teinte: true }], glb: empreinte(GLB_D_ELEMENT),
 });
 
-/** Le texte de licence de pack que `productionSchema3` dépose : une production importable établit sa licence. */
+/** Le texte de licence de pack que `productionDeTest` dépose : une production importable établit sa licence. */
 export const LICENCE_DE_PRODUCTION = 'LICENSE-Pack.txt';
 /** Le contenu de `LICENCE_DE_PRODUCTION`. */
 export const TEXTE_DE_LICENCE_DE_PRODUCTION = 'Pack\nLicense: CC0\n';
 
 /** Le dossier de production de `manifeste` dans `dossier`, et pour une base le pack source qu'elle déclare, qui porte
  *  `LICENCE_DE_PRODUCTION` (`ecrireProduction`). */
-export function productionSchema3(dossier: string, manifeste: unknown, octets: Uint8Array): string {
+export function productionDeTest(dossier: string, manifeste: unknown, octets: Uint8Array): string {
   mkdirSync(dossier, { recursive: true });
   writeFileSync(join(dossier, 'asset.glb'), octets);
   writeFileSync(join(dossier, LICENCE_DE_PRODUCTION), TEXTE_DE_LICENCE_DE_PRODUCTION);
@@ -56,7 +56,7 @@ export function productionSchema3(dossier: string, manifeste: unknown, octets: U
   return dossier;
 }
 
-export function deposerSchema3(dossier: string, id: string, manifeste: unknown, octets: Uint8Array): void {
+export function deposerModeleDeTest(dossier: string, id: string, manifeste: unknown, octets: Uint8Array): void {
   mkdirSync(dossier, { recursive: true });
   writeFileSync(join(dossier, `${id}.manifeste.json`), JSON.stringify(manifeste));
   writeFileSync(join(dossier, `${id}.provenance.json`), JSON.stringify({ model: `${id}.glb`, model_sha256: sha256(octets) }));

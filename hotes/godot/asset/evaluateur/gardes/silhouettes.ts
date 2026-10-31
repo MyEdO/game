@@ -18,7 +18,7 @@ import { CARRURE_MOINS, CARRURE_PLUS, poidsDeCarrure } from '../../gabarit.ts';
 import type { TableDeGabarit } from '../../manifesteDeBase.ts';
 import { SOL_TOLERANCE_M } from './piedsAuSol.ts';
 import { POIDS_NEGLIGEABLE } from './poids.ts';
-import { poserSilhouettes } from '../gabarit.ts';
+import { poserFormes } from '../gabarit.ts';
 
 /** Le déplacement admis du centre d'un anneau, en fraction de son rayon de repos. Un dixième : l'os, que les shape
  *  keys ne déplacent pas, reste dans le dixième central de la section de la peau qui plie autour de lui ; un centre qui
@@ -173,7 +173,7 @@ function poserSeules(scene: Object3D, silhouettes: readonly string[], poids: Rea
   for (const nom of Object.keys(poids)) {
     if (!silhouettes.includes(nom)) throw new Error(`silhouettes : poids demandé hors silhouettes : ${nom}`);
   }
-  poserSilhouettes(scene, poidsDesFormes(tableTotale(silhouettes, (nom) => poids[nom] ?? 0)));
+  poserFormes(scene, poidsDesFormes(tableTotale(silhouettes, (nom) => poids[nom] ?? 0)));
 }
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
@@ -181,7 +181,7 @@ export type PoserSeules = (poids: Readonly<Record<string, number>>, meshes: read
 export type PoidsDesFormes = (silhouettes: Readonly<Record<string, number>>) => Readonly<Record<string, number>>;
 
 /** Rend `mesurer(poser)` ; l'état des shape keys de `scene` trouvé à l'entrée est restauré à la sortie. */
-export function sousLesFormes<T>(scene: Object3D, silhouettes: readonly string[], mesurer: (poser: PoserSeules) => T, poidsDesFormes: PoidsDesFormes = (poids) => poids): T {
+export function sousLesFormes<T>(scene: Object3D, silhouettes: readonly string[], mesurer: (poser: PoserSeules) => T, poidsDesFormes: PoidsDesFormes): T {
   const formes = meshesAFormes(scene);
   const entree = formes.map((m) => [...(m.morphTargetInfluences as number[])]);
   try {
@@ -201,7 +201,7 @@ export interface SujetDeSilhouettes {
   /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
   readonly silhouettes: readonly string[];
   readonly st?: TableDeGabarit['st'];
-  readonly poidsDesFormes?: PoidsDesFormes;
+  readonly poidsDesFormes: PoidsDesFormes;
 }
 
 export function mesurerSilhouettes({ scene, corps, silhouettes, st, poidsDesFormes }: SujetDeSilhouettes): { mesures: MesuresDesSilhouettes; ecarts: Ecart[] } {
