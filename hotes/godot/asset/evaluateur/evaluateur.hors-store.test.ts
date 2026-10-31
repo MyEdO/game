@@ -23,7 +23,7 @@ import { aretesDe, ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, gardeEtirement, mesure
 import { gardePiedsAuSol, plusBas, SOL_TOLERANCE_M } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids, INFLUENCES_MAX } from './gardes/poids.ts';
-import { anneauLePlusEpais, anneauxArticulaires, mesurerSilhouettes, sectionsDeRepos, TOLERANCE_EPAISSEUR } from './gardes/silhouettes.ts';
+import { anneauLePlusEpais, anneauxArticulaires, mesurerSilhouettes, sectionsDeRepos, sousLesFormes, TOLERANCE_EPAISSEUR } from './gardes/silhouettes.ts';
 
 const TABLE = { legs: ['racine'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 } };
 /** Le gabarit et les appuis d'un manifeste de base, pieds `pieds`. */
@@ -587,6 +587,16 @@ describe('validerManifesteDeBase', () => {
     expect(validerManifesteDeBase(valide(), octets).ok).toBe(true);
   });
 
+  it.each([undefined, FEMININ])('refuse une clé de gabarit comme silhouette (%s), même présente dans le GLB', (silhouette) => {
+    const nom = nomDeCleDuGabarit('legs', 'moins', silhouette);
+    const base = glbFabrique({ bande: { [FEMININ]: new Array<number>(9).fill(0), [nom]: new Array<number>(9).fill(0) }, clips: { Repos: [0, 0] } });
+    const manifeste = { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: [FEMININ, nom] };
+    expect(validerManifesteDeBase(manifeste, base)).toEqual({
+      ok: false, ecarts: [{ code: 'forme', ou: 'silhouettes', detail: `${nom} est une clé de gabarit, pas une silhouette` }],
+    });
+    expect(validerManifesteDeBase({ ...manifeste, silhouettes: [FEMININ] }, base).ok).toBe(true);
+  });
+
   it.each([['legs', 'arms'], ['legs', 'head'], ['arms', 'head']] as const)('refuse un os sous %s et %s en nommant les deux clés', (a, b) => {
     const m = valide();
     const gabarit = { ...m.gabarit, [a]: ['racine'], [b]: ['racine'] };
@@ -693,11 +703,11 @@ describe('evaluer', () => {
   });
 });
 
-describe('evaluer : étirement contre la longueur de repos sous gabarit, shape keys à 0', () => {
+describe('evaluer : étirement contre la longueur de repos sous gabarit, silhouettes à 0', () => {
   /** Le déplacement du seul sommet (0, 1, 0) de la bande, en shape key. */
   const auSommet = (dy: number) => [0, 0, 0, 0, 0, 0, 0, dy, 0];
   const etirement = async (entree: Omit<Parameters<typeof evaluer>[0], 'pas'>) =>
-    (await evaluer({ ...entree, pas: 0.5 })).ecarts.filter((e) => e.garde === 'etirement').map((e) => [e.code, e.clip, e.seuil]);
+    (await evaluer({ manifeste: { ...manifesteDe(entree.base, ['racine', 'pelvis']), silhouettes: [...lireGlb(entree.base).formes] }, ...entree, pas: 0.5 })).ecarts.filter((e) => e.garde === 'etirement').map((e) => [e.code, e.clip, e.seuil]);
 
   it('ROUGE : un repos posé effondré, signalé une fois par mesh quel que soit le nombre de clips', async () => {
     const base = glbFabrique({ bande: { effondree: auSommet(-0.95) }, clips: { Repos: [0, 0], Immobile: [0, 0] } });
@@ -792,6 +802,33 @@ describe('appuis des clips walk', () => {
 });
 
 describe('gardeSilhouettes', () => {
+  it('conserve les formes hors silhouettes dans la pose mesurée et restaure toute influence à la sortie', () => {
+    const { scene, mesh } = cylindre();
+    const nom = nomDeCleDuGabarit('legs', 'moins');
+    mesh.geometry.morphTargetsRelative = true;
+    mesh.geometry.morphAttributes.position = [FEMININ, nom].map((nom, i) => {
+      const forme = new Float32BufferAttribute(Array.from({ length: mesh.geometry.attributes.position.count }, () => [i ? 2 : 0, 0, 0]).flat(), 3);
+      forme.name = nom;
+      return forme;
+    });
+    mesh.updateMorphTargets();
+    mesh.morphTargetInfluences?.splice(0, 2, 0.7, 0.5);
+    const x = mesh.geometry.attributes.position.getX(0);
+    for (const interrompre of [false, true]) {
+      const mesurer = () => sousLesFormes(scene, [FEMININ], (poser) => {
+        const repos = poser({}, [mesh]);
+        expect(mesh.morphTargetInfluences).toEqual([0, 0.5]);
+        expect(repos.positions.get(mesh.name)?.[0]).toBeCloseTo(x + 1, 6);
+        poser({ [FEMININ]: 1, [nom]: 0 }, [mesh]);
+        expect(mesh.morphTargetInfluences).toEqual([1, 0.5]);
+        if (interrompre) throw new Error('mesure interrompue');
+      });
+      if (interrompre) expect(mesurer).toThrow('mesure interrompue');
+      else mesurer();
+      expect(mesh.morphTargetInfluences).toEqual([0.7, 0.5]);
+    }
+  });
+
   const JUSTES = { feminin: homothetie(1.1), [CARRURE_MOINS]: homothetie(TABLE.st.min), [CARRURE_PLUS]: homothetie(TABLE.st.max) };
   const evaluerAnneau = async (formes: Record<string, readonly number[]>, entree: Partial<Parameters<typeof evaluer>[0]> = {}) => {
     const base = glbFabrique({ anneau: formes, clips: { Repos: [0, 0] } });

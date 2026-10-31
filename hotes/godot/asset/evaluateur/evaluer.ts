@@ -148,7 +148,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     : null;
   if (silhouettes) ecarts.push(...silhouettes.ecarts);
 
-  const sansCles = sousLesFormes(base.scene, (poserSeules) => poserSeules({}, meshes));
+  const sansCles = sousLesFormes(base.scene, manifeste?.silhouettes ?? [], (poserSeules) => poserSeules({}, meshes));
   const repos = poseDeRepos(base.scene, meshes);
   const aretes = new Map(meshes.map((m) => [m.name, aretesDe(m)]));
   ecarts.push(...gardeEtirementAuRepos(aretes, sansCles, repos));

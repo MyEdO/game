@@ -1,7 +1,8 @@
 """Rendus de contrôle d'un personnage : studio Cycles (vues trois-quarts, portrait, échelles, isométrique) et studio
-Workbench de QA. Le GLB source n'est jamais modifié. `--silhouettes` pose, avant le rendu, les shape keys nommées sur
-tout mesh qui les porte, à la syntaxe de `npm run godot:evaluer -- --silhouettes` (`hotes/godot/asset/evaluer.mjs`) ;
-un nom qu'aucun mesh ne porte arrête le rendu.
+Workbench de QA. Le GLB source n'est jamais modifié. `--silhouettes` prend uniquement les silhouettes de la table
+`SILHOUETTES` de la construction (`base/silhouettes.py`) et les pose, avant le rendu, sur tout mesh qui les porte,
+à la syntaxe de `npm run godot:evaluer -- --silhouettes` (`hotes/godot/asset/evaluer.mjs`) ; un nom qu'aucun mesh
+ne porte arrête le rendu.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <fichier.glb> --output <dossier vide> [--isometric-only] [--silhouettes feminin=1,corpulence=0.5]
 """
@@ -9,12 +10,16 @@ import argparse
 import hashlib
 import json
 import math
+import sys
 import time
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 
 def lire_silhouettes(texte):
     """Les poids de `--silhouettes`, `nom=poids[,nom=poids]` : {nom: poids}."""
+    from silhouettes import SILHOUETTES
     poids = {}
     for paire in texte.split(','):
         nom, egal, valeur = paire.partition('=')
@@ -24,6 +29,8 @@ def lire_silhouettes(texte):
             nombre = math.nan
         if not nom or nom.strip() != nom or not egal or '=' in valeur or not math.isfinite(nombre):
             raise argparse.ArgumentTypeError(f'« {paire} » ; attendu nom=<nombre>[,nom=<nombre>]')
+        if nom not in SILHOUETTES:
+            raise argparse.ArgumentTypeError(f'--silhouettes : « {nom} » n’est pas une silhouette de la construction')
         poids[nom] = nombre
     return poids
 

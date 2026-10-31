@@ -11,6 +11,7 @@ import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 export const VERSION_DU_SCHEMA_DE_BASE = 3;
 
 export const CLES_DU_GABARIT = ['legs', 'arms', 'head'] as const;
+export const PREFIXE_DES_CLES_DU_GABARIT = 'gabarit_';
 
 export interface TableDeGabarit {
   readonly legs: readonly string[];
@@ -124,6 +125,7 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
     else prises[cle] = attache(prisesBrutes[cle], `prises.${cle}`) ?? undefined;
   }
   const silhouettes = liste(brut.silhouettes, 'silhouettes');
+  for (const nom of silhouettes) if (nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT)) forme('silhouettes', `${nom} est une clé de gabarit, pas une silhouette`);
   const g = objet(brut.gabarit, 'gabarit');
   const st = objet(g.st, 'gabarit.st');
   const gabarit: TableDeGabarit = {

@@ -164,28 +164,27 @@ const meshesAFormes = (scene: Object3D): Mesh[] => {
   return liste;
 };
 
-/** Pose sur `scene` les seules shape keys `poids`, toutes les autres à 0. */
-function poserSeules(meshes: readonly Mesh[], poids: Readonly<Record<string, number>>): void {
+/** Pose les silhouettes du manifeste à `poids`, ou à 0 si leur poids est absent. */
+function poserSeules(meshes: readonly Mesh[], silhouettes: readonly string[], poids: Readonly<Record<string, number>>): void {
   for (const m of meshes) {
     const influences = m.morphTargetInfluences as number[];
-    influences.fill(0);
-    for (const [nom, p] of Object.entries(poids)) {
+    for (const nom of silhouettes) {
       const i = m.morphTargetDictionary?.[nom];
-      if (i !== undefined) influences[i] = p;
+      if (i !== undefined) influences[i] = poids[nom] ?? 0;
     }
   }
 }
 
-/** Pose sur `scene` les seules shape keys `poids`, toutes les autres à 0, et rend la pose de repos de `meshes`. */
+/** Pose les silhouettes du manifeste et rend la pose de repos de `meshes` ; les autres formes gardent leur influence. */
 export type PoserSeules = (poids: Readonly<Record<string, number>>, meshes: readonly Mesh[]) => Pose;
 
 /** Rend `mesurer(poser)` ; l'état des shape keys de `scene` trouvé à l'entrée est restauré à la sortie. */
-export function sousLesFormes<T>(scene: Object3D, mesurer: (poser: PoserSeules) => T): T {
+export function sousLesFormes<T>(scene: Object3D, silhouettes: readonly string[], mesurer: (poser: PoserSeules) => T): T {
   const formes = meshesAFormes(scene);
   const entree = formes.map((m) => [...(m.morphTargetInfluences as number[])]);
   try {
     return mesurer((poids, meshes) => {
-      poserSeules(formes, poids);
+      poserSeules(formes, silhouettes, poids);
       return poseDeRepos(scene, meshes);
     });
   } finally {
@@ -197,7 +196,7 @@ export function sousLesFormes<T>(scene: Object3D, mesurer: (poser: PoserSeules) 
 export interface SujetDeSilhouettes {
   readonly scene: Object3D;
   readonly corps: readonly SkinnedMesh[];
-  /** Les shape keys de la base (`manifeste.silhouettes`). */
+  /** Les silhouettes de la construction (`manifeste.silhouettes`). */
   readonly silhouettes: readonly string[];
   readonly st: TableDeGabarit['st'];
 }
@@ -205,7 +204,7 @@ export interface SujetDeSilhouettes {
 export function mesurerSilhouettes({ scene, corps, silhouettes, st }: SujetDeSilhouettes): { mesures: MesuresDesSilhouettes; ecarts: Ecart[] } {
   const anneaux = anneauxArticulaires(corps);
   const ecarts: Ecart[] = [];
-  return sousLesFormes(scene, (poserSur) => {
+  return sousLesFormes(scene, silhouettes, (poserSur) => {
     const poser = (poids: Readonly<Record<string, number>>) => poserSur(poids, corps);
     const repos = poser({});
     const deRepos = sectionsDeRepos(anneaux, repos);

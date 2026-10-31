@@ -46,7 +46,7 @@ from pistes import sacs  # noqa: E402
 from script_node import lancer  # noqa: E402
 from corpulence import ajouter_corpulence  # noqa: E402
 from poids import lisser_les_poids, matrices_de_peau, peau_lineaire  # noqa: E402
-from silhouettes import ajouter_feminin_et_carrure, bornes_de_st, corps_et_secondaires, finir_les_silhouettes  # noqa: E402
+from silhouettes import SILHOUETTES, ajouter_feminin_et_carrure, bornes_de_st, corps_et_secondaires, finir_les_silhouettes  # noqa: E402
 from sol import (bas_des_sources, deplacements, figer, garder_les_poids_des_pieds, poser_les_clips_au_sol,  # noqa: E402
                  restaurer, retirer_sans_sol, surfaces_des_pieds)
 from tenue_au_sol import tenir_au_sol  # noqa: E402
@@ -163,12 +163,12 @@ def os_a_position_animee(rig, clips, racine):
 
 
 def silhouettes(peaux):
-    """Les shape keys des peaux, hors leur clé de référence, dans l'ordre de première rencontre."""
+    """Les silhouettes de la construction présentes sur les peaux, dans l'ordre de première rencontre."""
     noms = []
     for peau in peaux:
         cles_de_forme = peau.data.shape_keys
         for cle in cles_de_forme.key_blocks if cles_de_forme else ():
-            if cle != cles_de_forme.reference_key and cle.name not in noms:
+            if cle != cles_de_forme.reference_key and cle.name in SILHOUETTES and cle.name not in noms:
                 noms.append(cle.name)
     return noms
 
