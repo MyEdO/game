@@ -23,15 +23,12 @@ import { document, type EnveloppeDocument } from '../grammaire/document';
 import { nommerChamps } from '../grammaire/meta';
 import { ref, refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
-import { apparencesDObjetsSchema, enumNomme, sexeSchema } from '../grammaire/valeurs';
+import { apparencesDObjetsSchema, mainSchema, sexeSchema } from '../grammaire/valeurs';
 import { findEnsembleParHabille } from '../../index';
 import type { HabilleDEnsemble, TenueId } from './garde-robe';
 
 export const file = 'presets-de-personnage.json';
 export const famille = 'entite';
-
-/** La main qui tient un objet (`hotes/godot/pont/CONTRAT.md`, « montage.attaches »). */
-const priseSchema = enumNomme({ main: 'Main directrice', off: 'Main secondaire' });
 
 const champs = {
   race: ref('raceAppearance'),
@@ -43,7 +40,7 @@ const champs = {
   tenue: ref('gardeRobe', undefined, 'tenue').optional(),
   pieces: refs('gardeRobe', { sousListe: 'piece' }).optional(),
   objets: refs('trapping', { sousListe: INSTANCIABLE_PAR_ID }).optional(),
-  prises: z.partialRecord(priseSchema, ref('trapping', undefined, INSTANCIABLE_PAR_ID)).optional(),
+  prises: z.partialRecord(mainSchema, ref('trapping', undefined, INSTANCIABLE_PAR_ID)).optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
 };
 

@@ -22,7 +22,7 @@ export type { EmblemeDef } from '../data/schemas/defs/garde-robe';
 export { ecartsDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
 export { emplacementDePiece, estEmplacement } from './apparence/gardeRobe';
 export type { GabaritResolu } from './apparence/gabarit';
-export { cataloguesDeComposition, lireComposition, porteeDeComposition, presetDeComposition, type Axe, type Composition, type Portee } from './apparence/composition';
+export { cataloguesDeComposition, lireComposition, porteeDeComposition, presetDeComposition, type Composition, type Portee } from './apparence/composition';
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../data/palette.types';
 export { mouvementDuTour } from './mount';

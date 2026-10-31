@@ -17,7 +17,7 @@ import { messageRecurrenceHorloge, SELF_REF, type GameOp, type OpPassive } from 
 import { etatConnu } from '../../../engine/conditions';
 import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
-import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema } from './valeurs';
+import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
@@ -399,7 +399,7 @@ const DECLARATIONS_D_OPS = {
     sense: senseSchema.optional(),
     diseases: refs('maladie').optional(),
     exceptSkills: z.array(ref('skill')).optional(),
-    weaponHand: z.enum(['main', 'off']).optional(),
+    weaponHand: mainSchema.optional(),
   }), { op: { label: "opération"  }, amount: { label: "quantité" }, char: { label: "caractéristiques"  }, movementOnly: { label: "Mouvement uniquement" }, sense: { label: "sens"  }, diseases: { label: "maladies" , texte: { regime: "technique"} }, exceptSkills: { label: "Compétences exclues" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, weaponHand: { label: "main de l’arme"  } }),
   incomingAttackMod: nommerChamps(z.strictObject({
     op: z.literal('incomingAttackMod'),

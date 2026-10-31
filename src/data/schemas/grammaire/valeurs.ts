@@ -822,6 +822,10 @@ export const countSpecSchema = z.union([
 export const sexeSchema = enumNomme({ M: 'Masculin', F: 'Féminin' });
 export type Sexe = z.infer<typeof sexeSchema>;
 
+/** La main d'un objet tenu ou d'une arme, UNE déclaration : `defs/presets-de-personnage.ts` (`prises`) et
+ *  `grammaire/mecanique.ts` (`weaponHand`). */
+export const mainSchema = enumNomme({ main: 'Main directrice', off: 'Main secondaire' });
+
 /** Faute de la coiffure imposée `hairstyle` au regard du `sex` posé dans le MÊME objet, `null` sinon. Le
  *  sexe se nomme par son libellé (`libelleDeValeur(sexeSchema, …)`). */
 function fauteDeCoiffure(hairstyle: string, sex: Sexe | undefined): string | null {
