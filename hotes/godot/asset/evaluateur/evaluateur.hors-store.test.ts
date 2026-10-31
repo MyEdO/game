@@ -26,7 +26,7 @@ import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids, INFLUENCES_MAX } from './gardes/poids.ts';
 import { anneauLePlusEpais, anneauxArticulaires, mesurerSilhouettes, sectionsDeRepos, sousLesFormes, TOLERANCE_EPAISSEUR } from './gardes/silhouettes.ts';
 
-const TABLE = { legs: ['racine'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 } };
+const TABLE: TableDeGabarit = { legs: ['racine'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 }, bornes: { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } } };
 /** Le gabarit et les appuis d'un manifeste de base, pieds `pieds`. */
 const gabaritEtAppuis = (gabarit: TableDeGabarit, pieds: readonly string[] = ['racine']) => ({ gabarit, appuis: { pieds, vitessesAuSol: {} } });
 
@@ -355,7 +355,7 @@ describe('gabarit', () => {
       }
       expect(Object.values(poids).every((p) => p >= 0)).toBe(true);
     }
-    expect(() => poidsDuGabarit(FACTEURS_NEUTRES, { ...bornes, head: { min: 1, max: 2 } }, silhouettes)).toThrow('gabarit.head');
+    expect(() => poidsDuGabarit(FACTEURS_NEUTRES, { ...bornes, head: { min: 1.1, max: 2 } }, silhouettes)).toThrow('gabarit.head');
   });
 
   it('`poserEnfantsDuGabarit` multiplie le Y local seul', () => {
@@ -438,13 +438,14 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 /** Un GLB fabriqué (chunks JSON et BIN) : un triangle `Corps` (zone `torse`, shape key `feminin`) skinné sur l'os `racine`,
  *  avec au choix une texture d'image, un jeu d'influence `JOINTS_1`, un os `pelvis` enfant de `racine`, et des clips de
- *  translation de `racine`, ou de `pelvis` s'il est là ; en marche, deux triangles de pied et leur cycle appui/vol ; en
+ *  translation de `pelvis` s'il est là, sinon de `racine`, ou explicitement de `racine` par `cibleDuClip` ; en marche,
+ *  deux triangles de pied et leur cycle appui/vol ; en
  *  anneau, `ANNEAU` (six sommets mi-`racine` mi-`pelvis`, puis un triangle de pied sur `racine`) et ses shape keys, par
  *  nom, en déplacements à plat de ses neuf sommets ; en bande, le triangle `Corps` au sommet (0, 1, 0) skinné sur `pelvis`
  *  et ses shape keys, par nom, en déplacements à plat de ses trois sommets. */
 interface MarcheFabriquee { racine?: number; decolle?: number; lateral?: number; bloque?: boolean; vitesseDroite?: number; nom?: string; sens?: number; vitesse?: number }
 
-function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]> } = {}): Uint8Array {
+function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]> } = {}): Uint8Array {
   const morceaux: Uint8Array[] = [];
   const vues: object[] = [];
   const accesseurs: object[] = [];
@@ -499,7 +500,7 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: b
   const inverseBindMatrices = accesseur(Float32Array.from(joints.flatMap(() => identite)), 'MAT4');
   const animations = Object.entries(options.clips ?? {}).map(([name, [de, a]]) => ({
     name,
-    channels: [{ sampler: 0, target: { node: joints[joints.length - 1], path: 'translation' } }],
+    channels: [{ sampler: 0, target: { node: options.cibleDuClip === 'racine' ? joints[0] : joints[joints.length - 1], path: 'translation' } }],
     samplers: [{ input: accesseur(Float32Array.from([0, 1]), 'SCALAR', { min: [0], max: [1] }), output: accesseur(Float32Array.from([0, de, 0, 0, a, 0]), 'VEC3'), interpolation: 'LINEAR' }],
   }));
   for (const m of options.marche ? [options.marche, ...(options.autresMarches ?? [])] : []) {
@@ -543,6 +544,8 @@ const formeDeLAnneau = (f: (x: number, y: number, z: number) => readonly number[
 /** L'homothétie de rapport `k` du cercle autour de l'axe Y : sa carrure exacte. */
 const homothetie = (k: number) => formeDeLAnneau((x, _y, z) => [(k - 1) * x, 0, (k - 1) * z]);
 
+const JUSTES = { feminin: homothetie(1.1), [CARRURE_MOINS]: homothetie(TABLE.st.min), [CARRURE_PLUS]: homothetie(TABLE.st.max) };
+
 const ATTACHE = { os: 'racine', position: [0, 0, 0], rotation: [0, 0, 0] };
 
 /** Le manifeste qui décrit le GLB `octets` de `glbFabrique`, d'os `os`. */
@@ -583,6 +586,62 @@ describe('validerManifesteDeBase', () => {
     const verdict = validerManifesteDeBase(brut, octets);
     return verdict.ok ? [] : verdict.ecarts.map((e) => e.code);
   };
+
+  it('accepte une enveloppe avec un demi-domaine neutre', () => {
+    const m = valide();
+    const bornes = { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } };
+    expect(validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, bornes } }, octets).ok).toBe(true);
+  });
+
+  it('omet exactement les sens non cuits, y compris leurs clés croisées', () => {
+    const poids = poidsDuGabarit({ ...FACTEURS_NEUTRES, arms: 1.2, head: 1.4 }, { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } }, { feminin: 0.5 });
+    expect(Object.keys(poids)).toEqual([
+      'gabarit_legs_moins', 'gabarit_legs_moins_feminin', 'gabarit_legs_plus', 'gabarit_legs_plus_feminin',
+      'gabarit_arms_plus', 'gabarit_arms_plus_feminin', 'gabarit_head_plus', 'gabarit_head_plus_feminin',
+    ]);
+    expect(Object.values(poids).every(Number.isFinite)).toBe(true);
+  });
+
+  it.each([
+    ['arms', 0.9, { min: 1, max: 1.5 }],
+    ['head', 0.8, { min: 1, max: 2 }],
+    ['legs', 1.1, { min: 0.7, max: 1 }],
+  ] as const)('refuse %s=%s du côté sans clé', (cle, facteur, plage) => {
+    const bornes = { ...TABLE.bornes, [cle]: plage };
+    expect(() => poidsDuGabarit({ ...FACTEURS_NEUTRES, [cle]: facteur }, bornes, {}))
+      .toThrow(`gabarit.${cle} : facteur ${facteur} refusé pour les bornes [${plage.min}, ${plage.max}]`);
+  });
+
+  it('extrapole un sens cuit sans plafonner son poids', () => {
+    const poids = poidsDuGabarit({ ...FACTEURS_NEUTRES, arms: 2.5 }, { ...TABLE.bornes, arms: { min: 1, max: 1.5 } }, { feminin: 0.5 });
+    expect(poids.gabarit_arms_plus).toBe(3);
+    expect(poids.gabarit_arms_plus_feminin).toBe(1.5);
+  });
+
+  it.each([
+    [{ legs: TABLE.bornes.legs, arms: TABLE.bornes.arms }, 'gabarit.bornes.head', 'objet attendu'],
+    [{ ...TABLE.bornes, st: { min: 0.5, max: 2 } }, 'gabarit.bornes.st', 'champ inconnu'],
+  ])('refuse une clé absente ou supplémentaire une seule fois (%j)', (bornes, ou, detail) => {
+    const m = valide();
+    const verdict = validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, bornes } }, octets);
+    expect(verdict).toEqual({ ok: false, ecarts: [{ code: 'forme', ou, detail }] });
+  });
+
+  it.each([
+    undefined, {},
+    { legs: { min: 0, max: 1.3 }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
+    { legs: { min: 1.1, max: 1.3 }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
+    { legs: { min: 0.7, max: 0.9 }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
+    { legs: { min: 0.7, max: Infinity }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
+    { legs: { min: '0.7', max: 1.3 }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
+    { ...TABLE.bornes, arms: { min: 1.2, max: 1.5 } },
+    { ...TABLE.bornes, head: { min: 0.7, max: 0.9 } },
+  ])('refuse des bornes de gabarit absentes ou invalides (%j)', (bornes) => {
+    const m = valide();
+    const verdict = validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, bornes } }, octets);
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) expect(verdict.ecarts.some((e) => e.ou.startsWith('gabarit.bornes'))).toBe(true);
+  });
 
   it('accepte le manifeste qui décrit le GLB', () => {
     expect(validerManifesteDeBase(valide(), octets).ok).toBe(true);
@@ -670,10 +729,14 @@ describe('validerManifesteDeBase', () => {
 });
 
 describe('evaluer', () => {
-  it('mesure une base au sol, sa silhouette inerte et son absence d’anneau', async () => {
-    const fiche = await evaluer({ base: glbFabrique({ image: true, clips: { Repos: [0, 0] } }), pas: 0.5 });
-    expect(fiche.ecarts.map((e) => [e.garde, e.code])).toEqual([['silhouettes', 'anneau-indetectable'], ['silhouettes', 'silhouette-inerte']]);
-    expect(fiche.mesures).toMatchObject({ triangles: { total: 1, parMesh: { Corps: 1 } }, sommets: 3, os: 1, images: 1, corps: ['Corps'] });
+  it('mesure une base au sol sans aucun écart, silhouettes comprises', async () => {
+    const base = glbFabrique({ image: true, anneau: JUSTES, clips: { Repos: [0, 0] }, cibleDuClip: 'racine' });
+    const fiche = await evaluer({ base, pas: 0.5 });
+    expect(fiche.ecarts).toEqual([]);
+    expect(fiche.mesures).toMatchObject({ triangles: { total: 3, parMesh: { Corps: 3 } }, sommets: 9, os: 2, images: 1, corps: ['Corps'] });
+    expect(fiche.mesures.silhouettes.anneaux).toBe(1);
+    expect(fiche.mesures.silhouettes.silhouettes.map((s) => s.nom)).toEqual(Object.keys(JUSTES));
+    expect(fiche.mesures.silhouettes.carrure).toBeNull();
     expect(fiche.mesures.clips).toEqual([{ nom: 'Repos', duree: 1, echantillons: 3, plusBas: { min: 0, max: 0 } }]);
   });
 
@@ -884,7 +947,6 @@ describe('gardeSilhouettes', () => {
     }
   });
 
-  const JUSTES = { feminin: homothetie(1.1), [CARRURE_MOINS]: homothetie(TABLE.st.min), [CARRURE_PLUS]: homothetie(TABLE.st.max) };
   const evaluerAnneau = async (formes: Record<string, readonly number[]>, entree: Partial<Parameters<typeof evaluer>[0]> = {}) => {
     const base = glbFabrique({ anneau: formes, clips: { Repos: [0, 0] } });
     return evaluer({ base, manifeste: { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: Object.keys(formes) }, pas: 0.5, ...entree });

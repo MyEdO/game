@@ -234,7 +234,9 @@ def poser_prises(rig):
 
 
 def gabarit(rig):
-    """La table du gabarit, sans les bornes de `st` : la racine, seul os sans parent, et les os de `SEGMENTS_DU_GABARIT`."""
+    """La part construite du gabarit reçue par `manifeste.mjs` : la racine, seul os sans parent, et les os de
+    `SEGMENTS_DU_GABARIT`. `humanoide.construire` complète `st` ; `manifeste.mjs` ajoute `bornes` depuis
+    `domaineDuGabarit`."""
     racines = [b.name for b in rig.data.bones if b.parent is None]
     if len(racines) != 1:
         raise RuntimeError(f'racines {racines} : une seule attendue')
@@ -242,6 +244,16 @@ def gabarit(rig):
     absents = [o for os in [*table.values(), PIEDS] for o in os if o not in rig.data.bones]
     if absents:
         raise RuntimeError(f'os de gabarit ou de pied absents : {", ".join(absents)}')
+    cles_des_os = {}
+    for cle, noms in table.items():
+        for nom in noms:
+            if nom in cles_des_os and cles_des_os[nom] != cle:
+                raise RuntimeError(f'os « {nom} » sous deux clés de gabarit : {cles_des_os[nom]}, {cle}')
+            cles_des_os[nom] = cle
+    for nom in table['head']:
+        enfants = [b.name for b in rig.data.bones if b.parent == rig.data.bones[nom]]
+        if enfants:
+            raise RuntimeError(f'os de head « {nom} » avec enfants : {", ".join(enfants)}')
     return {**table, 'racine': racines[0]}
 
 
