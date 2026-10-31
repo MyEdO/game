@@ -437,13 +437,14 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 /** Un GLB fabriqué (chunks JSON et BIN) : un triangle `Corps` (zone `torse`, shape key `feminin`) skinné sur l'os `racine`,
  *  avec au choix une texture d'image, un jeu d'influence `JOINTS_1`, un os `pelvis` enfant de `racine`, et des clips de
- *  translation de `racine`, ou de `pelvis` s'il est là ; en marche, deux triangles de pied et leur cycle appui/vol ; en
+ *  translation de `pelvis` s'il est là, sinon de `racine`, ou explicitement de `racine` par `cibleDuClip` ; en marche,
+ *  deux triangles de pied et leur cycle appui/vol ; en
  *  anneau, `ANNEAU` (six sommets mi-`racine` mi-`pelvis`, puis un triangle de pied sur `racine`) et ses shape keys, par
  *  nom, en déplacements à plat de ses neuf sommets ; en bande, le triangle `Corps` au sommet (0, 1, 0) skinné sur `pelvis`
  *  et ses shape keys, par nom, en déplacements à plat de ses trois sommets. */
 interface MarcheFabriquee { racine?: number; decolle?: number; lateral?: number; bloque?: boolean; vitesseDroite?: number; nom?: string; sens?: number; vitesse?: number }
 
-function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]> } = {}): Uint8Array {
+function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]> } = {}): Uint8Array {
   const morceaux: Uint8Array[] = [];
   const vues: object[] = [];
   const accesseurs: object[] = [];
@@ -498,7 +499,7 @@ function glbFabrique(options: { image?: boolean; jeuEtendu?: boolean; pelvis?: b
   const inverseBindMatrices = accesseur(Float32Array.from(joints.flatMap(() => identite)), 'MAT4');
   const animations = Object.entries(options.clips ?? {}).map(([name, [de, a]]) => ({
     name,
-    channels: [{ sampler: 0, target: { node: joints[joints.length - 1], path: 'translation' } }],
+    channels: [{ sampler: 0, target: { node: options.cibleDuClip === 'racine' ? joints[0] : joints[joints.length - 1], path: 'translation' } }],
     samplers: [{ input: accesseur(Float32Array.from([0, 1]), 'SCALAR', { min: [0], max: [1] }), output: accesseur(Float32Array.from([0, de, 0, 0, a, 0]), 'VEC3'), interpolation: 'LINEAR' }],
   }));
   for (const m of options.marche ? [options.marche, ...(options.autresMarches ?? [])] : []) {
@@ -541,6 +542,8 @@ const formeDeLAnneau = (f: (x: number, y: number, z: number) => readonly number[
   Array.from({ length: ANNEAU.length / 3 }, (_, i) => (i < 6 ? f(ANNEAU[i * 3], ANNEAU[i * 3 + 1], ANNEAU[i * 3 + 2]) : sol)).flat();
 /** L'homothétie de rapport `k` du cercle autour de l'axe Y : sa carrure exacte. */
 const homothetie = (k: number) => formeDeLAnneau((x, _y, z) => [(k - 1) * x, 0, (k - 1) * z]);
+
+const JUSTES = { feminin: homothetie(1.1), [CARRURE_MOINS]: homothetie(TABLE.st.min), [CARRURE_PLUS]: homothetie(TABLE.st.max) };
 
 const ATTACHE = { os: 'racine', position: [0, 0, 0], rotation: [0, 0, 0] };
 
@@ -669,10 +672,14 @@ describe('validerManifesteDeBase', () => {
 });
 
 describe('evaluer', () => {
-  it('mesure une base au sol, sa silhouette inerte et son absence d’anneau', async () => {
-    const fiche = await evaluer({ base: glbFabrique({ image: true, clips: { Repos: [0, 0] } }), pas: 0.5 });
-    expect(fiche.ecarts.map((e) => [e.garde, e.code])).toEqual([['silhouettes', 'anneau-indetectable'], ['silhouettes', 'silhouette-inerte']]);
-    expect(fiche.mesures).toMatchObject({ triangles: { total: 1, parMesh: { Corps: 1 } }, sommets: 3, os: 1, images: 1, corps: ['Corps'] });
+  it('mesure une base au sol sans aucun écart, silhouettes comprises', async () => {
+    const base = glbFabrique({ image: true, anneau: JUSTES, clips: { Repos: [0, 0] }, cibleDuClip: 'racine' });
+    const fiche = await evaluer({ base, pas: 0.5 });
+    expect(fiche.ecarts).toEqual([]);
+    expect(fiche.mesures).toMatchObject({ triangles: { total: 3, parMesh: { Corps: 3 } }, sommets: 9, os: 2, images: 1, corps: ['Corps'] });
+    expect(fiche.mesures.silhouettes.anneaux).toBe(1);
+    expect(fiche.mesures.silhouettes.silhouettes.map((s) => s.nom)).toEqual(Object.keys(JUSTES));
+    expect(fiche.mesures.silhouettes.carrure).toBeNull();
     expect(fiche.mesures.clips).toEqual([{ nom: 'Repos', duree: 1, echantillons: 3, plusBas: { min: 0, max: 0 } }]);
   });
 
@@ -838,7 +845,6 @@ describe('gardeSilhouettes', () => {
     }
   });
 
-  const JUSTES = { feminin: homothetie(1.1), [CARRURE_MOINS]: homothetie(TABLE.st.min), [CARRURE_PLUS]: homothetie(TABLE.st.max) };
   const evaluerAnneau = async (formes: Record<string, readonly number[]>, entree: Partial<Parameters<typeof evaluer>[0]> = {}) => {
     const base = glbFabrique({ anneau: formes, clips: { Repos: [0, 0] } });
     return evaluer({ base, manifeste: { ...manifesteDe(base, ['racine', 'pelvis']), silhouettes: Object.keys(formes) }, pas: 0.5, ...entree });
