@@ -1,4 +1,4 @@
-"""Silhouettes de la base humanoïde (#2972, L1d #3101) : les shape keys du corps et de ses peaux secondaires.
+"""Silhouettes de la base humanoïde (#2972, L1d #3101) : les shape keys de la table `SILHOUETTES`, sur le corps et ses peaux secondaires.
 
 - `feminin` : le corps F d'Universal Base Characters, posé par son skin sur le repos du squelette H (chaque os F amené
   sur l'os H homonyme, tête et queue confondues), puis chaque sommet du corps H projeté sur cette surface ; le décalage

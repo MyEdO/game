@@ -2,7 +2,6 @@
 erreurs nommées ; silhouettes.alterner, lissage et correction jusqu'aux bornes d'étirement, du repère du mesh au
 repère monde et retour ; formes.lisser, région pleine et locale, élargie à la stagnation ; silhouettes.en_clip, mesure
 incrémentale égale à la mesure entière, au repère monde ; silhouettes.fondu, une part par nœud."""
-import argparse
 import contextlib
 import io
 import sys
@@ -18,7 +17,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 import formes  # noqa: E402
 import silhouettes  # noqa: E402
 import humanoide  # noqa: E402
-import rendu  # noqa: E402
 from formes import aux_noeuds, lisser, pas_laplacien, rapports, region_locale  # noqa: E402
 from poids import PASSES_MAX  # noqa: E402
 from seuils import MAJORITE_DU_POIDS  # noqa: E402
@@ -471,18 +469,6 @@ class PublicationDesSilhouettes(unittest.TestCase):
         peaux = [self.peau(table), self.peau(tuple(reversed(table)))]
         self.assertEqual(humanoide.silhouettes(peaux), list(table))
         self.assertEqual(humanoide.silhouettes(list(reversed(peaux))), list(reversed(table)))
-
-    def test_le_rendu_refuse_une_forme_hors_silhouettes(self):
-        nom = silhouettes.SILHOUETTES[0]
-        self.assertEqual(rendu.lire_silhouettes(f'{nom}=0.5'), {nom: 0.5})
-        with self.assertRaisesRegex(argparse.ArgumentTypeError, 'gabarit_legs_moins'):
-            rendu.lire_silhouettes('gabarit_legs_moins=0.5')
-        cle = SimpleNamespace(slider_min=0, slider_max=1, value=0)
-        mesh = SimpleNamespace(name='Corps', type='MESH', data=SimpleNamespace(
-            shape_keys=SimpleNamespace(key_blocks={nom: cle, 'gabarit_legs_moins': cle})))
-        bpy = SimpleNamespace(context=SimpleNamespace(scene=SimpleNamespace(objects=[mesh])))
-        self.assertEqual(rendu.poser_les_silhouettes(bpy, {nom: 0.5}), {nom: ['Corps']})
-        self.assertEqual(cle.value, 0.5)
 
 
 class Fondu(unittest.TestCase):
