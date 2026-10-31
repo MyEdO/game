@@ -50,6 +50,10 @@ var _base_demandee: Variant = null
 var _chargement: RefCounted = null
 var _modele: Node3D = null
 var _squelette: Skeleton3D = null
+var _pose_des_os: Dictionary = {}
+var _pieds_a_relever := true
+var _liaisons_des_pieds: Dictionary = {}
+var _meshes_des_pieds: Array = []
 var _lecteur: AnimationPlayer = null
 var _pas := 0.0
 var _vitesse := 1.0
@@ -127,6 +131,8 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_instant.text = "%.3f s" % _lecteur.current_animation_position if _a_un_clip() else ""
+	if _a_un_clip() and _lecteur.is_playing():
+		_publier()
 
 
 ## Le listage du serveur, puis l'index du pont, puis la base retenue (la demandée si elle reste listée, la première sinon),
@@ -234,6 +240,10 @@ func _remettre_a_zero() -> void:
 		_modele.queue_free()
 	_modele = null
 	_squelette = null
+	_pose_des_os = {}
+	_pieds_a_relever = true
+	_liaisons_des_pieds = {}
+	_meshes_des_pieds = []
 	_lecteur = null
 	_gabarit = null
 	_pas = 0.0
@@ -256,6 +266,8 @@ func _poser_le_modele(scene: Node3D) -> void:
 	_modele = scene
 	_support_du_modele.add_child(scene)
 	_squelette = MontageDEquipement.squelette_de(scene)
+	if _squelette != null:
+		_squelette.skeleton_updated.connect(_memoriser_la_pose)
 	for candidat in scene.find_children("*", "AnimationPlayer", true, false):
 		_lecteur = candidat as AnimationPlayer
 		break
@@ -390,6 +402,7 @@ func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) 
 		noeud.free()
 	_noeuds.erase(id)
 	_pieces.erase(id)
+	_pieds_a_relever = true
 	_montes.erase(id)
 	_emblemes.erase(id)
 	if _lignes_des_emblemes.has(id):
@@ -890,6 +903,7 @@ func _cadrer() -> void:
 ## Les poids `morphes` de la composition composée posés par nom de shape key sur chaque mesh de la base et de chaque
 ## élément monté qui porte la clé (#3086, D4) ; un mesh sans la clé n'en reçoit rien.
 func _poser_les_morphes() -> void:
+	_pieds_a_relever = true
 	if _modele == null:
 		return
 	var morphes: Dictionary = _composee.get("morphes", {})
@@ -1012,24 +1026,35 @@ func _publier_l_ecran() -> void:
 				preset = _preset,
 				montes = _composee.get("montes", []),
 				manquants = _composee.get("manquants", []),
+				morphes = _composee.get("morphes", {}),
 				refus = null if _refus_de_composition.is_empty() else _refus_de_composition,
-				copie = %Verdict.text,
+				copie = %Entree.text,
 			},
 			gabarit = {} if _gabarit == null else _gabarit.mesures(),
 			cadre = _marche.echelle(),
 			os = _positions_des_os(),
 			peaux = _peaux(),
+			morphes = _morphes_des_meshes(),
+			pieds = _sommets_des_pieds(),
 		},
 	})
 
 
-## Par nom d'os de la base, sa position monde sur la pose courante ; vide sans squelette.
+## Godot 4.7, Skeleton3D::_notification, NOTIFICATION_UPDATE_SKELETON, skeleton_updated.
+func _memoriser_la_pose() -> void:
+	var pose := {}
+	for os in _squelette.get_bone_count():
+		pose[_squelette.get_bone_name(os)] = _squelette.get_bone_global_pose(os).origin
+	_pose_des_os = pose
+
+
+## CONTRAT.md, « Écran publié ».
 func _positions_des_os() -> Dictionary:
 	var positions := {}
 	if _squelette == null:
 		return positions
-	for os in _squelette.get_bone_count():
-		positions[_squelette.get_bone_name(os)] = _en_liste(_squelette.to_global(_squelette.get_bone_global_pose(os).origin))
+	for os in _pose_des_os:
+		positions[os] = _en_liste(_squelette.to_global(_pose_des_os[os]))
 	return positions
 
 
@@ -1050,6 +1075,114 @@ func _peaux() -> Dictionary:
 		if porteuse != null:
 			peaux[id] = {centre = _en_liste(porteuse.to_global((boite as AABB).get_center())), taille = _en_liste((boite as AABB).size)}
 	return peaux
+
+
+## CONTRAT.md, « Écran publié ».
+func _morphes_des_meshes() -> Dictionary:
+	var morphes := {corps = {}, montes = {}}
+	if _modele == null:
+		return morphes
+	var emplacements: Dictionary = {}
+	for id in _pieces:
+		morphes.montes[id] = {}
+		for piece: MeshInstance3D in _pieces[id]:
+			emplacements[piece] = id
+	for noeud in _modele.find_children("*", "MeshInstance3D", true, false):
+		var mesh := noeud as MeshInstance3D
+		if mesh.mesh == null or mesh.mesh.get_blend_shape_count() == 0:
+			continue
+		var poids := {}
+		for rang in mesh.mesh.get_blend_shape_count():
+			poids[String(mesh.mesh.get_blend_shape_name(rang))] = mesh.get_blend_shape_value(rang)
+		var chemin := String(_modele.get_path_to(mesh))
+		if emplacements.has(mesh):
+			morphes.montes[emplacements[mesh]][chemin] = poids
+		else:
+			morphes.corps[chemin] = poids
+	return morphes
+
+
+## CONTRAT.md, « Écran publié ».
+func _preparer_les_pieds() -> void:
+	_pieds_a_relever = false
+	_liaisons_des_pieds = {}
+	_meshes_des_pieds = []
+	if _modele == null or _squelette == null:
+		return
+	var descendants_des_pieds := {}
+	for nom in _composee.get("gabarit", {}).get("pieds", []):
+		var pied := _squelette.find_bone(nom)
+		if pied == -1:
+			continue
+		var descendants: Array[int] = [pied]
+		var restants: Array[int] = [pied]
+		while not restants.is_empty():
+			for enfant in _squelette.get_bone_children(restants.pop_back()):
+				descendants.append(enfant)
+				restants.append(enfant)
+		descendants_des_pieds[nom] = descendants
+		_liaisons_des_pieds[nom] = {}
+	for noeud in _modele.find_children("*", "MeshInstance3D", true, false):
+		var mesh := noeud as MeshInstance3D
+		if mesh.skin == null or mesh.mesh == null:
+			continue
+		var chemin := String(_modele.get_path_to(mesh))
+		var des_pieds: Array[bool] = []
+		des_pieds.resize(mesh.skin.get_bind_count())
+		for nom in descendants_des_pieds:
+			var liaisons: Array[bool] = []
+			for lien in mesh.skin.get_bind_count():
+				var nom_de_l_os := mesh.skin.get_bind_name(lien)
+				var rang := _squelette.find_bone(nom_de_l_os) if not nom_de_l_os.is_empty() else mesh.skin.get_bind_bone(lien)
+				var appartient: bool = descendants_des_pieds[nom].has(rang)
+				liaisons.append(appartient)
+				if appartient:
+					des_pieds[lien] = true
+			_liaisons_des_pieds[nom][chemin] = liaisons
+		var surfaces: Array = []
+		for surface in mesh.mesh.get_surface_count():
+			var source := mesh.mesh.surface_get_arrays(surface)
+			var os := Array(source[Mesh.ARRAY_BONES])
+			var poids := Array(source[Mesh.ARRAY_WEIGHTS])
+			os.reverse()
+			poids.reverse()
+			var influences := 8 if mesh.mesh.surface_get_format(surface) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS else 4
+			var sommets: Array = []
+			var positions: PackedVector3Array = source[Mesh.ARRAY_VERTEX]
+			for rang in positions.size():
+				var liens: Array = []
+				var valeurs: Array = []
+				var appartient := false
+				for _influence in influences:
+					var lien: int = os.pop_back()
+					var valeur: float = poids.pop_back()
+					liens.append(lien)
+					valeurs.append(valeur)
+					if valeur != 0.0 and des_pieds[lien]:
+						appartient = true
+				if appartient:
+					sommets.append({rang = rang, os = liens, poids = valeurs})
+			if not sommets.is_empty():
+				surfaces.append({rang = surface, cle = "%s/%d" % [chemin, surface], sommets = sommets})
+		if not surfaces.is_empty():
+			_meshes_des_pieds.append({mesh = mesh, chemin = chemin, surfaces = surfaces})
+
+
+## CONTRAT.md, « Écran publié ».
+func _sommets_des_pieds() -> Dictionary:
+	if _pieds_a_relever:
+		_preparer_les_pieds()
+	var pieds := {surfaces = {}, liaisons = _liaisons_des_pieds}
+	for retenu in _meshes_des_pieds:
+		var mesh: MeshInstance3D = retenu.mesh
+		var posee := mesh.bake_mesh_from_current_skeleton_pose()
+		for surface in retenu.surfaces:
+			var positions: PackedVector3Array = posee.surface_get_arrays(surface.rang)[Mesh.ARRAY_VERTEX]
+			var sommets: Array = []
+			for sommet in surface.sommets:
+				sommets.append({rang = sommet.rang, position = _en_liste(mesh.to_global(positions[sommet.rang])), os = sommet.os, poids = sommet.poids})
+			pieds.surfaces[surface.cle] = {mesh = retenu.chemin, sommets = sommets}
+	return pieds
 
 
 func _en_liste(vecteur: Vector3) -> Array[float]:

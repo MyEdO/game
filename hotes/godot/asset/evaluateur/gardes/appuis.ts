@@ -36,6 +36,10 @@ export interface AppuisDuClip {
   readonly pieds: readonly MesureDAppui[];
 }
 
+export function sommetDuPied(indices: readonly number[], poids: readonly number[], appartient: (indice: number) => boolean): boolean {
+  return indices.reduce((somme, indice, k) => somme + (appartient(indice) ? poids[k] : 0), 0) >= MAJORITE_DU_POIDS;
+}
+
 /** Les sommets dont la majorité du poids appartient au pied ou à ses descendants. */
 export function surfacesDesPieds(meshes: readonly SkinnedMesh[], pieds: readonly string[]): SurfaceDuPied[] {
   return pieds.map((pied) => ({ pied, sommets: meshes.flatMap((m) => {
@@ -44,9 +48,9 @@ export function surfacesDesPieds(meshes: readonly SkinnedMesh[], pieds: readonly
     const indices = m.geometry.attributes.skinIndex;
     const poids = m.geometry.attributes.skinWeight;
     return Array.from({ length: indices.count }, (_, indice) => {
-      let somme = 0;
-      for (let k = 0; k < indices.itemSize; k++) if (joints.has(indices.getComponent(indice, k))) somme += poids.getComponent(indice, k);
-      return somme >= MAJORITE_DU_POIDS ? [{ mesh: m.name, indice }] : [];
+      const os = Array.from({ length: indices.itemSize }, (_, k) => indices.getComponent(indice, k));
+      const valeurs = Array.from({ length: poids.itemSize }, (_, k) => poids.getComponent(indice, k));
+      return sommetDuPied(os, valeurs, (joint) => joints.has(joint)) ? [{ mesh: m.name, indice }] : [];
     }).flat();
   }) }));
 }
@@ -105,6 +109,14 @@ function directionDe(listes: readonly (readonly PoseDuPied[])[]): readonly [numb
  * autorise une dérive de deux fois cette distance sur la durée d'appui mesurée (erreur aux deux bornes).
  */
 export function mesurerAppuis(poses: readonly PoseDuPied[], vitessesDeclarees: Readonly<Record<string, number>>): { mesures: AppuisDuClip[]; ecarts: Ecart[] } {
+  return mesurerAppuisAvecTranslation(poses, vitessesDeclarees, (a, b, direction, vitesse) => [
+    direction[0] * vitesse * (b.t - a.t), direction[1] * vitesse * (b.t - a.t),
+  ]);
+}
+
+export type TranslationDeReference = (a: PoseDuPied, b: PoseDuPied, direction: readonly [number, number], vitesseDeclaree: number) => readonly [number, number];
+
+export function mesurerAppuisAvecTranslation(poses: readonly PoseDuPied[], vitessesDeclarees: Readonly<Record<string, number>>, translation: TranslationDeReference): { mesures: AppuisDuClip[]; ecarts: Ecart[] } {
   const mesures: AppuisDuClip[] = [], ecarts: Ecart[] = [];
   for (const [clip, vitesseDeclaree] of Object.entries(vitessesDeclarees)) {
     const duClip = poses.filter((p) => p.clip === clip);
@@ -128,8 +140,9 @@ export function mesurerAppuis(poses: readonly PoseDuPied[], vitessesDeclarees: R
         distance -= dx * direction[0] + dz * direction[1];
         duree += dt; intervalles++;
         const contact = Math.max(Math.abs(Math.min(...a.sommets.map((p) => p[1]))), Math.abs(Math.min(...b.sommets.map((p) => p[1]))));
-        deriveX += dx + direction[0] * vitesseDeclaree * dt;
-        deriveZ += dz + direction[1] * vitesseDeclaree * dt;
+        const reference = translation(a, b, direction, vitesseDeclaree);
+        deriveX += dx + reference[0];
+        deriveZ += dz + reference[1];
         const glissement = Math.hypot(deriveX, deriveZ);
         if (contact > contactMax) { contactMax = contact; tContact = b.t; }
         if (glissement > glissementMax) { glissementMax = glissement; tGlissement = b.t; }
