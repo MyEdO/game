@@ -3,11 +3,10 @@
  * (`hotes/godot/asset/gabarit.ts`) sur une scène fraîchement chargée (`chargerScene`). L'axe d'un os est son +Y local,
  * convention des os glTF exportés de Blender.
  */
-import { Vector3, type Bone, type Mesh, type Object3D } from 'three';
+import { Vector3, type Bone, type Matrix4, type Mesh, type Object3D, type Skeleton } from 'three';
 import type { GabaritResolu } from '../../../../src/noyau/index.ts';
 import type { ManifesteDeBase } from '../manifesteDeBase.ts';
-import { poidsDeCarrure, poseDuGabarit } from '../gabarit.ts';
-import { enfantsDuGabarit, poserEnfantsDuGabarit } from '../squeletteDuGabarit.ts';
+import { poidsDeCarrure, poseDuGabarit, type PoseDuGabarit } from '../gabarit.ts';
 
 const os = (scene: Object3D, nom: string): Bone => {
   const b = scene.getObjectByName(nom);
@@ -39,11 +38,53 @@ export interface GabaritPose {
   readonly racine: Bone;
   readonly echelle: number;
   /** Chaque os enfant d'un os de `enfantsDe` (`poseDuGabarit`), avec son facteur. */
-  readonly enfants: readonly (readonly [Object3D, number])[];
+  readonly enfants: readonly (readonly [Bone, number])[];
   /** Les os `pieds` de `poseDuGabarit`. */
   readonly pieds: readonly Bone[];
   /** La pose sans gabarit des os qu'il touche : l'échelle et la position de la racine, la position de chaque enfant. */
   readonly nonModifiee: { readonly echelle: Vector3; readonly position: Vector3; readonly enfants: readonly Vector3[] };
+}
+
+/** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
+export function poserEnfantsDuGabarit(enfants: GabaritPose['enfants']): void {
+  for (const [enfant, facteur] of enfants) enfant.position.y *= facteur;
+}
+
+/** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
+export function enfantsDuGabarit(pose: Pick<PoseDuGabarit, 'enfantsDe'>, trouver: (nom: string) => Bone): GabaritPose['enfants'] {
+  return Object.entries(pose.enfantsDe).flatMap(([nom, facteur]) =>
+    trouver(nom).children.filter((enfant): enfant is Bone => (enfant as Bone).isBone === true).map((enfant) => [enfant, facteur] as const));
+}
+
+/** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
+export function bindsAuGabarit(squelette: Skeleton, pose: Pick<PoseDuGabarit, 'enfantsDe'>): Matrix4[] {
+  const enfants = enfantsDuGabarit(pose, (nom) => {
+    const b = squelette.bones.find((b) => b.name === nom);
+    if (!b) throw new Error(`gabarit : ${nom} n’est pas un os du squelette`);
+    return b;
+  });
+  const racines = new Set(squelette.bones.map((b): Object3D => {
+    let racine: Object3D = b;
+    while (racine.parent) racine = racine.parent;
+    return racine;
+  }));
+  const matrices = new Map<Object3D, { locale: Matrix4; monde: Matrix4; aMettreAJour: boolean }>();
+  for (const racine of racines) racine.traverse((n) => matrices.set(n, { locale: n.matrix.clone(), monde: n.matrixWorld.clone(), aMettreAJour: n.matrixWorldNeedsUpdate }));
+  const positions = enfants.map(([enfant]) => enfant.position.clone());
+  try {
+    for (const racine of racines) racine.updateMatrixWorld(true);
+    const repos = squelette.bones.map((b) => b.matrixWorld.clone());
+    poserEnfantsDuGabarit(enfants);
+    for (const racine of racines) racine.updateMatrixWorld(true);
+    return squelette.bones.map((b, i) => b.matrixWorld.clone().invert().multiply(repos[i]).multiply(squelette.boneInverses[i]));
+  } finally {
+    enfants.forEach(([enfant], i) => enfant.position.copy(positions[i]));
+    for (const [n, matrice] of matrices) {
+      n.matrix.copy(matrice.locale);
+      n.matrixWorld.copy(matrice.monde);
+      n.matrixWorldNeedsUpdate = matrice.aMettreAJour;
+    }
+  }
 }
 
 /** `jouer` (un clip qui réécrit la pose) sur la pose sans gabarit, puis `gabarit` composé avec la pose jouée, comme

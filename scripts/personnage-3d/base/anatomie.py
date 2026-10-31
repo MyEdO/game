@@ -234,7 +234,9 @@ def poser_prises(rig):
 
 
 def gabarit(rig):
-    """La table du gabarit, sans les bornes de `st` : la racine, seul os sans parent, et les os de `SEGMENTS_DU_GABARIT`."""
+    """La part construite du gabarit reçue par `manifeste.mjs` : la racine, seul os sans parent, et les os de
+    `SEGMENTS_DU_GABARIT`. `humanoide.construire` complète `st` ; `manifeste.mjs` ajoute `bornes` depuis
+    `domaineDuGabarit`."""
     racines = [b.name for b in rig.data.bones if b.parent is None]
     if len(racines) != 1:
         raise RuntimeError(f'racines {racines} : une seule attendue')

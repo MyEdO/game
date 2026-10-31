@@ -4,6 +4,7 @@ repère monde et retour ; formes.lisser, région pleine et locale, élargie à l
 incrémentale égale à la mesure entière, au repère monde ; silhouettes.fondu, une part par nœud."""
 import contextlib
 import io
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -162,6 +163,20 @@ class Correction(unittest.TestCase):
             correction(self.x, self.aretes, self.noeud, fixe, lus)(champs)
         self.assertIsInstance(leve.exception, AnneauIndetectable)
         self.assertEqual(str(leve.exception).split(' : ')[1], ', '.join(attendues))
+
+    def test_reutilise_le_laplacien_prepare_pour_chaque_resolution(self):
+        with mock.patch.object(silhouettes, 'lancer', wraps=silhouettes.lancer) as lancer:
+            corriger = correction(self.x, self.aretes, self.noeud, self.fixe, anneaux(self.x, NIVEAUX_DES_ANNEAUX))
+            for rapport in (None, 1.7):
+                (champ,), _ = corriger([(self.cle(), rapport)])
+                self.assertEqual(champ.shape, self.x.shape)
+                self.assertTrue(numpy.isfinite(champ).all())
+        preparation, *resolutions = [json.loads(appel.args[2]) for appel in lancer.call_args_list]
+        self.assertEqual(set(preparation), {'fixes', 'aretes'})
+        self.assertEqual(len(resolutions), 2)
+        for resolution in resolutions:
+            self.assertEqual(set(resolution), {'laplacien', 'seconds'})
+        self.assertEqual(resolutions[0]['laplacien'], resolutions[1]['laplacien'])
 
     def test_egale_la_resolution_kkt_directe(self):
         self.assert_comme_kkt(anneaux(self.x, NIVEAUX_DES_ANNEAUX),

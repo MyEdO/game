@@ -300,7 +300,7 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
             [contraintes.reshape(k_contraintes, 3, m).transpose(2, 0, 1).reshape(m, 3 * k_contraintes),
              seconds.reshape(m, 3 * len(valeurs))], axis=1)
         resolu = numpy.array(json.loads(lancer(ICI / 'laplacien.mjs', [],
-                                               json.dumps({**graphe, 'seconds': seconds.tolist()})))).reshape(seconds.shape)
+                                               json.dumps({'laplacien': laplacien, 'seconds': seconds.tolist()})))).reshape(seconds.shape)
         z = resolu[:, :k_contraintes * 3].reshape(m, k_contraintes, 3).transpose(1, 2, 0).reshape(k_contraintes, 3 * m)
         libres_seuls = resolu[:, k_contraintes * 3:].reshape(m, len(valeurs), 3)
         retenues = {vise: (contraintes, z) if vise else (contraintes[:-1], z[:-1]) for vise in vises}

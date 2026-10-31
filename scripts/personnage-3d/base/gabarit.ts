@@ -1,8 +1,8 @@
 import { Matrix4, Vector3, type Skeleton } from 'three';
 import type { GabaritResolu } from '../../../src/noyau/index.ts';
-import { FACTEURS_NEUTRES, nomDeCleDuGabarit, poseDuGabarit, type BornesDuGabarit, type CleDuGabarit, type SensDuGabarit } from '../../../hotes/godot/asset/gabarit.ts';
+import { FACTEURS_NEUTRES, nomDeCleDuGabarit, poseDuGabarit, type CleDuGabarit, type SensDuGabarit } from '../../../hotes/godot/asset/gabarit.ts';
 import type { TableDeGabarit } from '../../../hotes/godot/asset/manifesteDeBase.ts';
-import { bindsAuGabarit } from '../../../hotes/godot/asset/squeletteDuGabarit.ts';
+import { bindsAuGabarit } from '../../../hotes/godot/asset/evaluateur/gabarit.ts';
 import { preparerLaplacien, resoudreLaplacien, type Arete } from './laplacien.ts';
 
 export const REFERENCE_DES_ANCRES = Object.freeze({ ...FACTEURS_NEUTRES, legs: 1.37, arms: 1.23, head: 1.51 });
@@ -17,14 +17,14 @@ export interface CorpsDuGabarit {
 
 /** #3104 issuecomment-6543352958, issuecomment-6543516831. */
 export function matricesDuGabarit(squelette: Skeleton, table: TableDeGabarit, facteurs: GabaritResolu): Matrix4[] {
-  const pose = poseDuGabarit({ gabarit: table, appuis: { pieds: [], vitessesAuSol: {} } }, facteurs);
+  const pose = poseDuGabarit({ gabarit: table }, facteurs);
   for (const b of squelette.bones) b.updateWorldMatrix(true, false);
   const repos = squelette.bones.map((b) => b.matrixWorld.clone());
   const binds = bindsAuGabarit(squelette, pose);
   return repos.map((b, i) => {
     const s = pose.echellesDesOs[squelette.bones[i].name] ?? [1, 1, 1];
     return b.clone().multiply(squelette.boneInverses[i]).multiply(binds[i].clone().invert())
-      .multiply(new Matrix4().makeScale(...s)).multiply(b.clone().invert());
+      .multiply(new Matrix4().makeScale(...s)).multiply(squelette.boneInverses[i]);
   });
 }
 
@@ -54,6 +54,8 @@ export function preparerGabarit(corps: CorpsDuGabarit) {
     return portes.every((m) => m.elements.every((x, c) => Math.abs(x - portes[0].elements[c]) < 1e-9));
   });
   const laplacien = preparerLaplacien(ancres, aretes);
+  const peau = squelette.bones.map((b, i) => b.matrixWorld.clone().multiply(squelette.boneInverses[i]));
+  const peauInverse = poids.map((ws) => combiner(peau, ws).invert());
 
   const resoudre = (facteurs: GabaritResolu, repos: readonly Vector3[] = positions): Vector3[] => {
     if (repos.length !== positions.length) throw new Error('gabarit : repos de taille incorrecte');
@@ -74,12 +76,17 @@ export function preparerGabarit(corps: CorpsDuGabarit) {
     return fixes.map((p, i) => ancres[i] ? p : new Vector3(...solution[laplacien.rang[i]] as [number, number, number]));
   };
 
-  const cuire = (cle: CleDuGabarit, sens: SensDuGabarit, bornes: BornesDuGabarit, silhouette?: { readonly nom: string; readonly deltas: readonly Vector3[] }) => {
-    const facteur = sens === 'moins' ? bornes[cle].min : bornes[cle].max;
+  const neutres = new Map<string, readonly Vector3[]>();
+  const cuire = (cle: CleDuGabarit, sens: SensDuGabarit, silhouette?: { readonly nom: string; readonly deltas: readonly Vector3[] }) => {
+    const facteur = sens === 'moins' ? table.bornes[cle].min : table.bornes[cle].max;
+    if (facteur === 1) throw new Error(`gabarit.${cle} : sens ${sens} sans clé, borne ${facteur}`);
+    if (silhouette && silhouette.deltas.length !== positions.length) throw new Error(`gabarit : silhouette ${silhouette.nom}, deltas de taille incorrecte`);
     const facteurs = { ...FACTEURS_NEUTRES, [cle]: facteur };
-    const neutre = resoudre(facteurs);
+    const nom = nomDeCleDuGabarit(cle, sens);
+    let neutre = neutres.get(nom);
+    if (!neutre) { neutre = resoudre(facteurs).map((p, i) => p.applyMatrix4(peauInverse[i])); neutres.set(nom, neutre); }
     const forme = silhouette ? positions.map((p, i) => p.clone().add(silhouette.deltas[i])) : positions;
-    const resolu = silhouette ? resoudre(facteurs, forme) : neutre;
+    const resolu = silhouette ? resoudre(facteurs, forme).map((p, i) => p.applyMatrix4(peauInverse[i])) : neutre;
     const deltas = resolu.map((p, i) => silhouette ? p.clone().sub(neutre[i]).sub(silhouette.deltas[i]) : p.clone().sub(positions[i]));
     return { nom: nomDeCleDuGabarit(cle, sens, silhouette?.nom), deltas };
   };

@@ -1,23 +1,17 @@
 // L'évaluateur d'une base 3D et de ses éléments (#2972) : chargement sans DOM, manifeste de base, gabarit, échantillonnage, gardes.
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   AnimationClip, Bone, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
   Matrix4, QuaternionKeyframeTrack, Uint16BufferAttribute, Vector3, VectorKeyframeTrack,
 } from 'three';
-import { domaineDuGabarit, multiplicateursDeJambes } from '../../../../scripts/personnage-3d/base/domaineDuGabarit.ts';
 import { tableTotale } from '../../../../src/lib/tableTotale';
 import { ecrireGlb, lireGlb } from '../glb.ts';
 import { empreinte } from '../empreinte.ts';
 import { chargerScene } from './chargement.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer, monter } from './evaluer.ts';
-import { appliquerGabarit, poserSilhouettes } from './gabarit.ts';
-import { bindsAuGabarit, poserEnfantsDuGabarit } from '../squeletteDuGabarit.ts';
+import { appliquerGabarit, bindsAuGabarit, poserEnfantsDuGabarit, poserSilhouettes } from './gabarit.ts';
 import {
   CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FACTEURS_NEUTRES, FEMININ, marcheDeLaBase, nomDeCleDuGabarit, poidsDeCarrure, poidsDeSilhouettes, poidsDuGabarit, poseDuGabarit,
 } from '../gabarit.ts';
@@ -592,32 +586,44 @@ describe('validerManifesteDeBase', () => {
     return verdict.ok ? [] : verdict.ecarts.map((e) => e.code);
   };
 
-  it('lit les multiplicateurs déclarés sans exécuter les éléments et refuse un legs non littéral', () => {
-    const dossier = mkdtempSync(join(tmpdir(), 'wfrp-domaine-gabarit-'));
-    try {
-      const entree = join(dossier, 'jouet.ts');
-      const url = pathToFileURL(`${dossier}/`);
-      writeFileSync(entree, "throw new Error('ne doit pas être exécuté'); export const element = { legs: 0.75 };");
-      expect(multiplicateursDeJambes(url)).toEqual([0.75]);
-      for (const declaration of ['legs: 0.5 + 0.25', 'legs']) {
-        writeFileSync(entree, `export const element = { ${declaration} };`);
-        expect(() => multiplicateursDeJambes(url)).toThrow(/jouet\.ts : element\.legs doit être un nombre littéral/);
-      }
-    } finally {
-      rmSync(dossier, { recursive: true, force: true });
-    }
+  it('accepte une enveloppe avec un demi-domaine neutre', () => {
+    const m = valide();
+    const bornes = { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } };
+    expect(validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, bornes } }, octets).ok).toBe(true);
   });
 
-  it('accepte les bornes cuites issues du domaine déclaré, y compris un demi-domaine neutre', () => {
-    const m = valide();
-    const bornes = domaineDuGabarit();
-    expect(multiplicateursDeJambes().every((f) => f > 0 && Number.isFinite(f))).toBe(true);
-    expect(validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, bornes } }, octets).ok).toBe(true);
+  it('omet exactement les sens non cuits, y compris leurs clés croisées', () => {
     const poids = poidsDuGabarit({ ...FACTEURS_NEUTRES, arms: 1.2, head: 1.4 }, { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } }, { feminin: 0.5 });
-    expect(poids.gabarit_arms_moins).toBe(0);
-    expect(poids.gabarit_head_moins).toBe(0);
-    expect(poids.gabarit_arms_moins_feminin).toBe(0);
+    expect(Object.keys(poids)).toEqual([
+      'gabarit_legs_moins', 'gabarit_legs_moins_feminin', 'gabarit_legs_plus', 'gabarit_legs_plus_feminin',
+      'gabarit_arms_plus', 'gabarit_arms_plus_feminin', 'gabarit_head_plus', 'gabarit_head_plus_feminin',
+    ]);
     expect(Object.values(poids).every(Number.isFinite)).toBe(true);
+  });
+
+  it.each([
+    ['arms', 0.9, { min: 1, max: 1.5 }],
+    ['head', 0.8, { min: 1, max: 2 }],
+    ['legs', 1.1, { min: 0.7, max: 1 }],
+  ] as const)('refuse %s=%s du côté sans clé', (cle, facteur, plage) => {
+    const bornes = { ...TABLE.bornes, [cle]: plage };
+    expect(() => poidsDuGabarit({ ...FACTEURS_NEUTRES, [cle]: facteur }, bornes, {}))
+      .toThrow(`gabarit.${cle} : facteur ${facteur} refusé pour les bornes [${plage.min}, ${plage.max}]`);
+  });
+
+  it('extrapole un sens cuit sans plafonner son poids', () => {
+    const poids = poidsDuGabarit({ ...FACTEURS_NEUTRES, arms: 2.5 }, { ...TABLE.bornes, arms: { min: 1, max: 1.5 } }, { feminin: 0.5 });
+    expect(poids.gabarit_arms_plus).toBe(3);
+    expect(poids.gabarit_arms_plus_feminin).toBe(1.5);
+  });
+
+  it.each([
+    [{ legs: TABLE.bornes.legs, arms: TABLE.bornes.arms }, 'gabarit.bornes.head', 'objet attendu'],
+    [{ ...TABLE.bornes, st: { min: 0.5, max: 2 } }, 'gabarit.bornes.st', 'champ inconnu'],
+  ])('refuse une clé absente ou supplémentaire une seule fois (%j)', (bornes, ou, detail) => {
+    const m = valide();
+    const verdict = validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, bornes } }, octets);
+    expect(verdict).toEqual({ ok: false, ecarts: [{ code: 'forme', ou, detail }] });
   });
 
   it.each([
@@ -627,6 +633,8 @@ describe('validerManifesteDeBase', () => {
     { legs: { min: 0.7, max: 0.9 }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
     { legs: { min: 0.7, max: Infinity }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
     { legs: { min: '0.7', max: 1.3 }, arms: TABLE.bornes.arms, head: TABLE.bornes.head },
+    { ...TABLE.bornes, arms: { min: 1.2, max: 1.5 } },
+    { ...TABLE.bornes, head: { min: 0.7, max: 0.9 } },
   ])('refuse des bornes de gabarit absentes ou invalides (%j)', (bornes) => {
     const m = valide();
     const verdict = validerManifesteDeBase({ ...m, gabarit: { ...m.gabarit, bornes } }, octets);

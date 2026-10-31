@@ -4,6 +4,7 @@
  * position animée, validés contre le GLB livré (`lireGlb`, `glb.ts`).
  */
 import { estObjet } from '../../../src/hote/formes.ts';
+import { tableTotale } from '../../../src/lib/tableTotale.ts';
 import { sha256 } from './empreinte.ts';
 import { lireGlb } from './glb.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
@@ -14,6 +15,12 @@ export const CLES_DU_GABARIT = ['legs', 'arms', 'head'] as const;
 export const PREFIXE_DES_CLES_DU_GABARIT = 'gabarit_';
 
 export type BornesDuGabarit = Readonly<Record<typeof CLES_DU_GABARIT[number], { readonly min: number; readonly max: number }>>;
+
+export function fauteDeBornesDuGabarit({ min, max }: BornesDuGabarit[typeof CLES_DU_GABARIT[number]]): string | undefined {
+  return Number.isFinite(min) && Number.isFinite(max) && min > 0 && min <= 1 && max >= 1
+    ? undefined
+    : `bornes ${min} et ${max} : 0 < min <= 1 <= max attendu`;
+}
 
 export interface TableDeGabarit {
   readonly bornes: BornesDuGabarit;
@@ -132,13 +139,22 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   const g = objet(brut.gabarit, 'gabarit');
   const st = objet(g.st, 'gabarit.st');
   const b = objet(g.bornes, 'gabarit.bornes');
-  const bornes = Object.fromEntries(CLES_DU_GABARIT.map((cle) => {
-    const plage = objet(b[cle], `gabarit.bornes.${cle}`);
-    const min = nombre(plage.min, `gabarit.bornes.${cle}.min`);
-    const max = nombre(plage.max, `gabarit.bornes.${cle}.max`);
-    if (!(min > 0 && min <= 1 && max >= 1)) forme(`gabarit.bornes.${cle}`, `bornes ${min} et ${max} : 0 < min <= 1 <= max attendu`);
-    return [cle, { min, max }];
-  })) as unknown as BornesDuGabarit;
+  for (const cle of Object.keys(b)) if (!(CLES_DU_GABARIT as readonly string[]).includes(cle)) forme(`gabarit.bornes.${cle}`, 'champ inconnu');
+  const bornes = tableTotale(CLES_DU_GABARIT, (cle) => {
+    const ou = `gabarit.bornes.${cle}`;
+    const plage = b[cle];
+    if (!estObjet(plage)) {
+      forme(ou, 'objet attendu');
+      return { min: 1, max: 1 };
+    }
+    const min = nombre(plage.min, `${ou}.min`);
+    const max = nombre(plage.max, `${ou}.max`);
+    if (typeof plage.min === 'number' && typeof plage.max === 'number') {
+      const faute = fauteDeBornesDuGabarit({ min, max });
+      if (faute) forme(ou, faute);
+    }
+    return { min, max };
+  });
   const gabarit: TableDeGabarit = {
     bornes,
     legs: liste(g.legs, 'gabarit.legs'), arms: liste(g.arms, 'gabarit.arms'), head: liste(g.head, 'gabarit.head'),
