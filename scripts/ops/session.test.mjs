@@ -10,6 +10,7 @@ import { EventEmitter } from 'node:events'
 import { spawnSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { syncBuiltinESMExports } from 'node:module'
+import { setTimeout as delai } from 'node:timers/promises'
 import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, lirePolitique, contratCodex, consigneAgent, lancerAgent, lireRapportDe, validateurDeSchema, piloterAgent, controleur, rejouer, refusSession } from './session-runtime.mjs'
 import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal, outilsSession, attendreSuivi } from './session.mjs'
 import { preflightSessionStart } from './session-start.mjs'
@@ -17,11 +18,12 @@ import { aplatirHooks } from '../agents/compat-core.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
-import { verifierVersionCodex } from './session-version.mjs'
+import { choisirCodex } from './session-version.mjs'
 import { projeter, surfaceDe } from '../hooks/repartition.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 const racineScripts = fileURLToPath(new URL('../../', import.meta.url))
+const CODEX_GLOBAL = { choisir: (globale) => ({ executable: globale(), version: null }), miseAJour: () => {} }
 const hooksBanc = { claude: await preflightSessionStart(racineScripts, 'claude'), codex: await preflightSessionStart(racineScripts, 'codex') }
 const identite = (pid) => ({ pid, creation: `date-${pid}` })
 /** Une horloge factice que chaque `dormir(ms)` avance de `ms` : les bornes de rejeu (#3150) passent sans attente réelle. */
@@ -394,13 +396,23 @@ test('CLI : envoi reçoit la capacité stdin ; outils expose le contrat et refus
   for (const argv of [['etat', id, '--message', 'x'], ['envoyer', id, '--message', ' '], ['attendre', id, '--depuis', '-1'], ['envoyer', id, '--message', 'x', '--request-id', 'thread-libre']]) assert.throws(() => optionsSession(argv), /\[validation · non retentable\]/)
 })
 
-test('lanceur Codex : version et protocole contrôlés avant réservation et fenêtre', async (t) => {
+test('lanceur Codex : version complète choisie, mise à jour planifiée sans attente avant contrat, aucune sur un exécutable explicite', async (t) => {
   const b = banc(t), consigne = join(b.dossier, '2528.md'); writeFileSync(consigne, 'faire')
-  for (const faute of ['version', 'protocole']) {
-    const appels = []
-    await assert.rejects(lancerSession({ ticket: 2528, agent: 'codex', consigne }, { contexte: () => ({ worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }), natif: () => b.fichiers.codex, version: async (exe) => { assert.equal(exe, b.fichiers.codex); appels.push('version'); if (faute === 'version') throw new Error('version refusée') }, protocole: ({ executable }) => { assert.equal(executable, b.fichiers.codex); appels.push('protocole'); throw new Error('protocole refusé') }, sessionsDe: () => assert.fail('réservation atteinte'), terminal: () => assert.fail('fenêtre atteinte') }), /refus/)
-    assert.deepEqual(appels, faute === 'version' ? ['version'] : ['version', 'protocole'])
-  }
+  const appels = [], versionnee = join(b.dossier, 'versions', '0.167.0', 'codex.exe')
+  const contexte = () => ({ worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) })
+  const lancement = lancerSession({ ticket: 2528, agent: 'codex', consigne }, {
+    contexte, natif: () => b.fichiers.codex,
+    choisir: (globale) => { appels.push(`choisir ${globale()}`); return { executable: versionnee, version: '0.167.0' } },
+    miseAJour: (meilleure) => { appels.push(`miseAJour ${meilleure}`); return new Promise(() => {}) },
+    contrat: (_, exe) => { appels.push(`contrat ${exe}`); throw new Error('contrat atteint') },
+  })
+  await assert.rejects(Promise.race([lancement, delai(2000, undefined, { ref: false }).then(() => { throw new Error('lancement suspendu à la mise à jour') })]), /contrat atteint/)
+  assert.deepEqual(appels, [`choisir ${b.fichiers.codex}`, 'miseAJour 0.167.0', `contrat ${versionnee}`])
+  await assert.rejects(lancerSession({ ticket: 2528, agent: 'codex', consigne, executable: b.fichiers.codex }, { contexte, natif: (_, explicite) => explicite, choisir: () => assert.fail('choix d’un exécutable explicite'), miseAJour: () => assert.fail('mise à jour d’un exécutable explicite'), contrat: (_, exe) => { appels.push(`contrat ${exe}`); throw new Error('contrat atteint') } }), /contrat atteint/)
+  assert.equal(appels.at(-1), `contrat ${b.fichiers.codex}`)
+  const amorces = []
+  await assert.rejects(lancerSession({ ticket: 2528, agent: 'codex', consigne }, { contexte, natif: () => { throw new Error('AGENT NATIF ABSENT : codex.exe') }, choisir: (globale, executerChoix) => choisirCodex({ globale, executer: executerChoix, dossier: join(b.dossier, 'aucune') }), miseAJour: (meilleure) => amorces.push(meilleure), contrat: () => assert.fail('contrat sans version Codex'), sessionsDe: () => assert.fail('réservation sans version Codex') }), /AGENT NATIF ABSENT : codex.exe ; aucune version Codex en cache : mise à jour planifiée en tâche détachée/)
+  assert.deepEqual(amorces, [null])
 })
 
 test('environnement agent : contrôle parent sans casse, projection Codex et configuration préservée', () => {
@@ -426,15 +438,14 @@ test('préflights Codex : chaque exécuteur reçoit le même environnement netto
     assert.equal(exe, b.fichiers.codex)
     assert.deepEqual(options.env, propre)
     appels.push(args.join(' '))
-    return { status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.164.0' : args[0] === '--help' ? 'app-server --dangerously-bypass-hook-trust --config' : '--listen' }
+    return { status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.166.0' : args[0] === '--help' ? 'app-server --dangerously-bypass-hook-trust --config' : '--listen' }
   }
   await assert.rejects(lancerSession({ ticket: 2528, agent: 'codex', consigne }, {
     contexte: () => ({ worktree: b.dossier, branche: 'b', head: 'a'.repeat(40) }), natif: () => b.fichiers.codex, env, executer,
-    version: (exe, options = {}) => verifierVersionCodex(exe, { ...options, executer: options.executer ?? executer, fetcher: async () => ({ ok: true, json: async () => ({ version: '0.164.0' }) }) }),
-    protocole: ({ executable, executer: commande = executer }) => { commande(executable, ['--version'], {}); commande(executable, ['app-server', 'generate-json-schema'], {}) },
+    choisir: (globale, executerChoix) => choisirCodex({ globale, executer: executerChoix, dossier: join(b.dossier, 'versions') }), miseAJour: (meilleure) => appels.push(`miseAJour ${meilleure}`),
     preflight: async () => hooksBanc.codex, terminal: () => { throw new Error('préflights terminés') },
   }), /préflights terminés/)
-  assert.deepEqual(appels, ['--version', '--version', 'app-server generate-json-schema', '--version', '--help', 'app-server --help'])
+  assert.deepEqual(appels, ['--version', 'miseAJour 0.166.0', '--help', 'app-server --help'])
   assert.equal(env.WFRP_SESSION_JETON, 'parent')
 })
 
@@ -653,7 +664,7 @@ test('lanceur injecté : Codex sans fichier de profil, capacité une fois, boots
   let ouvert = 0, argv, env
   const gestes = {
     contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }),
-    terminal: () => ({ nom: 'PS', closeOnExit: 'graceful' }), natif: () => b.fichiers.codex, contrat: () => true, version: async () => true, protocole: () => true,
+    terminal: () => ({ nom: 'PS', closeOnExit: 'graceful' }), natif: () => b.fichiers.codex, contrat: () => true, ...CODEX_GLOBAL,
     sessionsDe: () => b.sessions, env: { WFRP_SESSION_JETON: 'ancien', GH_TOKEN: 'feint', GITHUB_TOKEN: 'feint' },
     lancerWT: (exe, args, opts) => { ouvert++; argv = args; env = opts.env; assert.equal(exe, 'wt.exe'); const c = b.sessions.lister().cartes.find((c) => c.nom === 'banc'); b.sessions.revendiquer(c.sessionId, undefined, { controleur: identite(10), jobHost: identite(30) }); return { status: 0 } },
   }
@@ -1078,7 +1089,7 @@ test('correction 2 : lancer consigne relative, Claude défaut depuis main, Codex
   let wt = 0
   const gestes = {
     cwd: b.dossier, contexte: (worktree) => ({ racine: b.dossier, gitCommun: b.dossier, worktree, branche: 'main', head: 'a'.repeat(40) }),
-    terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, version: async () => true, protocole: () => true,
+    terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, ...CODEX_GLOBAL,
     sessionsDe: () => b.sessions, lancerWT: () => { wt++; const c = b.sessions.lister().cartes.find((c) => c.etat === 'reservee'); b.sessions.revendiquer(c.sessionId, undefined, { controleur: identite(10), jobHost: identite(30) }); return { status: 0 } }, env: {},
   }
   const r = await lancerSession(options, gestes), c = b.sessions.lire(r.sessionId)
@@ -1154,23 +1165,22 @@ test('correction 6 : cartes null/tableau/propres invalides signalées, voisine v
 test('correction 7 : existence exe insuffisante, contrat CLI injecté requis avant réserve/WT', async (t) => {
   const b = banc(t), consigne = join(b.dossier, '2461.md'); writeFileSync(consigne, 'faire')
   let wt = 0, contrats = 0
-  const gestes = { cwd: b.dossier, contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }), terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.codex, version: async () => true, protocole: () => true, sessionsDe: () => b.sessions, lancerWT: () => { wt++; return { status: 0 } }, env: {}, contrat: () => { contrats++; throw new Error('CONTRAT CLI INCOMPATIBLE') } }
+  const gestes = { cwd: b.dossier, contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }), terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.codex, ...CODEX_GLOBAL, sessionsDe: () => b.sessions, lancerWT: () => { wt++; return { status: 0 } }, env: {}, contrat: () => { contrats++; throw new Error('CONTRAT CLI INCOMPATIBLE') } }
   await assert.rejects(lancerSession({ ticket: 2461, consigne, nom: 'banc', agent: 'codex', worktree: b.dossier }, gestes), /CONTRAT CLI INCOMPATIBLE/)
   assert.equal(contrats, 1); assert.equal(wt, 0); assert.equal(b.sessions.lister().cartes.length, 0)
   const requis = ['--dangerously-bypass-hook-trust', '--config', '--listen']
-  const executer = (omis) => (exe, args, options) => { assert.equal(exe, b.fichiers.codex); assert.equal(options.shell, false); assert.ok(options.timeout <= 10000); return { status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.164.0' : args[0] === '--help' ? `Commands: app-server\n${requis.filter((x) => x !== '--listen' && x !== omis).join('\n')}` : omis === '--listen' ? '' : '--listen' } }
+  const executer = (omis) => (exe, args, options) => { assert.equal(exe, b.fichiers.codex); assert.equal(options.shell, false); assert.ok(options.timeout <= 10000); return { status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.166.0' : args[0] === '--help' ? `Commands: app-server\n${requis.filter((x) => x !== '--listen' && x !== omis).join('\n')}` : omis === '--listen' ? '' : '--listen' } }
   verifierContratAgent('codex', b.fichiers.codex, { executer: executer(), env: {} })
   for (const omis of requis) assert.throws(() => verifierContratAgent('codex', b.fichiers.codex, { executer: executer(omis), env: {} }), new RegExp(`CONTRAT CLI INCOMPATIBLE : ${omis}`))
-  assert.throws(() => verifierContratAgent('codex', b.fichiers.codex, { executer: (exe, args) => ({ status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.164.0' : args[0] === '--help' ? `Commands: review\n${requis.join('\n')}` : requis.join('\n') }), env: {} }), /CONTRAT CLI INCOMPATIBLE : app-server/)
+  assert.throws(() => verifierContratAgent('codex', b.fichiers.codex, { executer: (exe, args) => ({ status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.166.0' : args[0] === '--help' ? `Commands: review\n${requis.join('\n')}` : requis.join('\n') }), env: {} }), /CONTRAT CLI INCOMPATIBLE : app-server/)
 })
 
 test('contrat CLI : timeout de mesure retentable, incompatibilité et exécutable absent non retentables', () => {
   const reponses = {
-    '--version': 'codex-cli 0.164.0',
     '--help': 'app-server --dangerously-bypass-hook-trust --config',
     'app-server --help': '--listen',
   }
-  for (const commande of ['--version', 'app-server --help']) {
+  for (const commande of ['--help', 'app-server --help']) {
     const message = `spawnSync codex.exe ETIMEDOUT (${commande})`
     assert.throws(() => verifierContratAgent('codex', 'codex.exe', {
       env: {},
@@ -1188,14 +1198,13 @@ test('contrat CLI : timeout de mesure retentable, incompatibilité et exécutabl
   for (const vu of [
     { error: Object.assign(new Error('spawnSync codex.exe ENOENT'), { code: 'ENOENT' }), status: null },
     { status: 1, stderr: 'option refusée' },
-    { status: 0, stdout: 'version inconnue' },
   ]) {
     assert.throws(() => verifierContratAgent('codex', 'codex.exe', { env: {}, executer: () => vu }), (e) => {
       const refus = refusSession(e)
       assert.equal(refus.categorie, 'validation')
       assert.equal(refus.retentable, false)
       assert.match(refus.raison, /^CONTRAT CLI INCOMPATIBLE : /)
-      assert.ok(refus.raison.includes(vu.error?.message ?? vu.stderr ?? 'version codex non reconnue'))
+      assert.ok(refus.raison.includes(vu.error?.message ?? vu.stderr))
       return true
     })
   }
