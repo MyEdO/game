@@ -16,7 +16,7 @@ import {
   CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FACTEURS_NEUTRES, FEMININ, marcheDeLaBase, poidsDeCarrure, poidsDeSilhouettes, poseDuGabarit,
 } from '../gabarit.ts';
 import { validerManifesteDeBase, type CodeDEcartDeBase, type TableDeGabarit } from '../manifesteDeBase.ts';
-import { mesurerAppuisAvecTranslation, sommetDuPied, translationDuMonde, type PoseDuPied } from './gardes/appuis.ts';
+import { mesurerAppuis, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
@@ -615,6 +615,7 @@ describe('evaluer : étirement contre la longueur de repos sous gabarit, shape k
   });
 });
 
+// Capture Godot de Walk_Loop au corps neutre, pied gauche (#3086).
 const CAPTURE_MARCHE_GAUCHE = [
   [0.0707085, 0, 0, -0.11246191, -0.11284936, 0.09574059, -0.26655561, -0.12011719, 0.00010814, -0.25937098, -0.09849565, 0.0435616, -0.43306649],
   [0.10256667, 0, 0, -0.14569519, -0.11304501, 0.09497812, -0.27678993, -0.12012406, 0.00045212, -0.25902572, -0.09876552, 0.02206329, -0.43532777],
@@ -630,17 +631,12 @@ const CAPTURE_MARCHE_GAUCHE = [
   [0.4345, 0, 0, -0.491956, -0.11557055, 0.11850277, -0.30303222, -0.12038515, 0.03218829, -0.25946522, -0.09905209, -0.00000624, -0.43402526],
 ] as const;
 
-describe('appuis publiés pendant la marche', () => {
+describe('mesurerAppuis sur les poses de marche', () => {
   const poses = (): PoseDuPied[] => CAPTURE_MARCHE_GAUCHE.map((v) => ({
     clip: 'Walk_Loop', pied: 'foot_l', t: v[0], racine: [v[1], v[2], v[3]], os: [v[4], v[5], v[6]],
     sommets: [[v[7], v[8], v[9]], [v[10], v[11], v[12]]],
   }));
-  const mesurer = (images: readonly PoseDuPied[]) => mesurerAppuisAvecTranslation(images, { Walk_Loop: 1.04315 }, translationDuMonde);
-
-  it('sélectionne la majorité cumulée des influences du pied et de ses descendants', () => {
-    expect(sommetDuPied([0, 1, 2, 3], [0.3, 0.25, 0.45, 0], (i) => i < 2)).toBe(true);
-    expect(sommetDuPied([0, 1, 2, 3], [0.3, 0.19, 0.51, 0], (i) => i < 2)).toBe(false);
-  });
+  const mesurer = (images: readonly PoseDuPied[]) => mesurerAppuis(images, { Walk_Loop: 1.04315 });
 
   it.each([1, 2])('mesure la capture avec une image sur %s, sans contact ni dérive au-delà de 5 mm', (cadence) => {
     const r = mesurer(poses().filter((_, n) => n % cadence === 0));
@@ -652,7 +648,7 @@ describe('appuis publiés pendant la marche', () => {
     expect(pied.glissementMax).toBeLessThanOrEqual(SOL_TOLERANCE_M);
   });
 
-  it.each([0.001, 0.0025, 0.005, 0.01])('refuse la dérive injectée de %s m/image dans les sommets publiés', (pente) => {
+  it.each([0.001, 0.0025, 0.005, 0.01])('refuse la dérive injectée de %s m/image dans les sommets', (pente) => {
     const images = poses().map((p, n): PoseDuPied => ({ ...p, sommets: p.sommets.map((v) => [v[0] + pente * n, v[1], v[2]]) }));
     expect(mesurer(images).ecarts.map((e) => e.code)).toContain('glissement');
   });

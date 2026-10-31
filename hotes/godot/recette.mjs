@@ -20,7 +20,7 @@
 //   elle et laissé en place, « Recharger » sans relancer la page : l'empreinte publiée devient celle du manifeste
 //   réimporté, l'état (clip, instant, pause, vitesse, montés, emblèmes, aides) est gardé.
 // - `composition` : Soldat, manquants et copie validée côté Node ; pièce skinnée montée et démontée, courtaud,
-//   corpulence aux bornes, marche au clavier au corps neutre et contact des pieds dans le monde, puis repos.
+//   corpulence aux bornes, marche au clavier au corps neutre et couplage de la racine au temps du clip, puis repos.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
@@ -40,8 +40,6 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
 
 import { chargerAssets } from './asset/charger.mjs'
-
-const seuilsDAppui = JSON.parse(readFileSync(new URL('./asset/evaluateur/gardes/seuils.json', import.meta.url), 'utf8'))
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
@@ -402,24 +400,12 @@ async function choisirAxe(catalogues, champ, id) {
 }
 
 const OS_DU_TORSE = ['spine_01', 'spine_02', 'spine_03', 'clavicle_l', 'clavicle_r']
-// Un déplacement de 20 cm distingue la marche d'une oscillation sur place.
-const DEPLACEMENT_MINIMAL_M = 0.2
-// Quatre intervalles évitent une mesure d'appui limitée à une transition.
-const INTERVALLES_D_APPUI_MINIMAUX = 4
-// Deux dixièmes de seconde couvrent une phase d'appui mesurable.
-const DUREE_D_APPUI_MINIMALE_S = 0.2
 // Quatre poses distinctes vérifient le gabarit pendant le clip courtaud.
 const POSES_COURTAUDES_DISTINCTES_MINIMALES = 4
-// Dix poses distinctes couvrent plusieurs phases de marche.
-const POSES_DE_MARCHE_DISTINCTES_MINIMALES = 10
 // Huit images donnent plusieurs observations du gabarit courtaud.
 const IMAGES_COURTAUDES = 8
 // Trois secondes laissent publier les huit images du clip courtaud.
 const DELAI_COURTAUD_MS = 3000
-// Soixante images échantillonnent les contacts des deux pieds.
-const IMAGES_DE_MARCHE = 60
-// Six secondes couvrent la marche ralentie et ses appuis.
-const DELAI_MARCHE_MS = 6000
 
 function verifierLaPeau(a, ligne) {
   const peau = a.peaux[`ligne/${ligne}`]
@@ -446,36 +432,58 @@ function verifierLaPeau(a, ligne) {
   assert.deepEqual(a.erreurs, [], 'pose sans erreur')
 }
 
-/** CONTRAT.md, « Écran publié ». */
-function sommetsDuPied(a, pied, sommetDuPied) {
-  assert.ok(a.pieds?.liaisons[pied], `liaisons du pied publiées : ${pied}`)
-  const points = {}
-  for (const [surfaceId, surface] of Object.entries(a.pieds.surfaces)) {
-    const liaisons = a.pieds.liaisons[pied][surface.mesh]
-    for (const { rang, position, os, poids } of surface.sommets) {
-      if (sommetDuPied(os, poids, (indice) => !!liaisons[indice])) points[`${surfaceId}/${rang}`] = position
-    }
+async function verifierLeCouplage(images, racine, manifeste, assets, reposLocal, reposMonde) {
+  assert.ok(images.length > 1, 'plusieurs publications de marche')
+  const premier = images[0], dernier = images.at(-1), clip = premier.clip
+  proche(premier.vitesse, 2, 1e-6, 'fenêtre de couplage au cran ×2')
+  const vitesse = manifeste.appuis.vitessesAuSol[clip]
+  assert.ok(Number.isFinite(vitesse) && vitesse > 0, 'vitesse au sol déclarée pour le clip joué')
+  const fiche = await assets.evaluer({ base: readFileSync(join(o.base, production(o.base).model)), manifeste, clips: [clip] })
+  const appuis = fiche.mesures.clips[0].appuis
+  assert.ok(appuis?.pieds.length && appuis.pieds.every((p) => p.duree > 0), 'durées d’appui mesurées sur la base')
+  const dureeDAppui = Math.max(...appuis.pieds.map((p) => p.duree))
+  const glissementMax = Math.max(...appuis.pieds.map((p) => p.glissementMax))
+  // glissement total ≤ glissementMax + écart de vitesse × durée ; tolérance = (SOL_TOLERANCE_M − glissementMax) / durée maximale.
+  const tolerance = (assets.SOL_TOLERANCE_M - glissementMax) / dureeDAppui
+  assert.ok(tolerance > 0, 'budget de glissement disponible pour le couplage')
+  const lateral = (os) => {
+    const a = os.clavicle_l, b = os.clavicle_r, norme = horizontal(a, b)
+    assert.ok(norme > 0, 'repère latéral au repos pour le lacet de la racine')
+    return [(b[0] - a[0]) / norme, (b[2] - a[2]) / norme]
   }
-  assert.ok(Object.keys(points).length, `surface du pied mesurée : ${pied}`)
-  return points
-}
-
-function verifierLesAppuis(images, pieds, racine, vitessesDeclarees, { sommetDuPied, mesurerAppuisAvecTranslation, translationDuMonde }) {
-  assert.ok(horizontal(images[0].os[racine], images.at(-1).os[racine]) > DEPLACEMENT_MINIMAL_M, 'le corps avance dans le monde')
-  let t = 0
-  const poses = images.flatMap((image, n) => {
-    if (n) t += (image.instant - images[n - 1].instant + image.duree) % image.duree
-    return pieds.map((pied) => ({ clip: image.clip, t, pied, racine: image.os[racine], os: image.os[pied],
-      sommets: Object.values(sommetsDuPied(image, pied, sommetDuPied)),
-    }))
-  })
-  const resultat = mesurerAppuisAvecTranslation(poses, vitessesDeclarees, translationDuMonde)
-  assert.equal(resultat.mesures.length, 1, 'clip de marche mesuré')
-  for (const mesure of resultat.mesures[0].pieds) {
-    noter(`appui ${mesure.pied} : ${JSON.stringify(mesure)} ; tolérance ${seuilsDAppui.SOL_TOLERANCE_M} m`)
-    assert.ok(mesure.intervalles >= INTERVALLES_D_APPUI_MINIMAUX && mesure.duree >= DUREE_D_APPUI_MINIMALE_S, `appuis effectivement échantillonnés pour ${mesure.pied}`)
+  const local = lateral(reposLocal), monde = lateral(reposMonde)
+  const cos = local[0] * monde[0] + local[1] * monde[1]
+  const sin = local[0] * monde[1] - local[1] * monde[0]
+  const direction = [cos * appuis.direction[0] - sin * appuis.direction[1], sin * appuis.direction[0] + cos * appuis.direction[1]]
+  const attendue = vitesse
+  const intervalles = []
+  let tempsDeClip = 0
+  for (let i = 1; i < images.length; i++) {
+    const a = images[i - 1], b = images[i]
+    assert.equal(b.clip, clip, 'même clip pendant la fenêtre de couplage')
+    assert.equal(b.duree, premier.duree, 'longueur de clip constante')
+    proche(b.vitesse, premier.vitesse, 1e-6, 'cran de vitesse constant')
+    proche(b.gabarit.image.echelle, premier.gabarit.image.echelle, 1e-6, 'échelle constante')
+    const dt = (b.instant - a.instant + b.duree) % b.duree
+    assert.ok(dt > 0, 'intervalle de temps de clip positif')
+    const dx = b.os[racine][0] - a.os[racine][0], dz = b.os[racine][2] - a.os[racine][2]
+    const distance = Math.hypot(dx, dz)
+    const mesuree = distance / dt
+    intervalles.push({ mesuree, rapport: mesuree / attendue, cosinusSigne: (dx * direction[0] + dz * direction[1]) / distance })
+    tempsDeClip += dt
   }
-  assert.deepEqual(resultat.ecarts, [], 'contact, vitesse et glissement des appuis dans le monde')
+  assert.ok(tempsDeClip >= premier.duree * 8, 'fenêtre de couplage de huit cycles de marche')
+  const mesuree = horizontal(premier.os[racine], dernier.os[racine]) / tempsDeClip
+  const rapportMaximal = Math.max(...intervalles.map((p) => p.rapport))
+  const rapportBudgetMaximal = Math.max(...intervalles.map((p) => Math.abs(p.mesuree - attendue) / tolerance))
+  const cosinusSigne = Math.min(...intervalles.map((p) => p.cosinusSigne))
+  const imagesParSeconde = (images.length - 1) * 1000 / (dernier.observeeA - premier.observeeA)
+  const mesure = { clip, cran: premier.vitesse, mesuree, rapportMaximal, rapportBudgetMaximal, attendue, tolerance, cosinusSigne, direction, glissementMax, dureeDAppui, tempsDeClip, cycles: tempsDeClip / premier.duree, images: images.length, imagesParSeconde }
+  noter('couplage racine/clip : ' + JSON.stringify(mesure))
+  writeFileSync(join(o.captures, 'couplage.json'), JSON.stringify(mesure, null, 2))
+  proche(mesuree, attendue, tolerance, 'couplage racine/clip en m/s de temps de clip')
+  assert.ok(rapportBudgetMaximal <= 1, `couplage par intervalle : rapport maximal au budget de glissement ${rapportBudgetMaximal}`)
+  assert.ok(cosinusSigne >= 1 - 1e-4, `sens de marche porté par le lacet de la racine : cosinus signé ${cosinusSigne}`)
 }
 
 function verifierLeMorphe(a, nom, attendu, emplacement = null) {
@@ -504,7 +512,8 @@ async function parcoursComposition() {
   const assets = await chargerAssets([
     "export { schema as schemaDesPresets } from '/src/data/schemas/defs/presets-de-personnage.ts';",
     "export { validateDocument } from '/src/data/schemas/validate.ts';",
-    "export { sommetDuPied, mesurerAppuisAvecTranslation, translationDuMonde } from '/hotes/godot/asset/evaluateur/gardes/appuis.ts';",
+    "export { evaluer } from '/hotes/godot/asset/evaluateur/evaluer.ts';",
+    "export { SOL_TOLERANCE_M } from '/hotes/godot/asset/evaluateur/gardes/piedsAuSol.ts';",
   ])
   const { schemaDesPresets, validateDocument } = assets
   const p = production(o.base)
@@ -626,23 +635,35 @@ async function parcoursComposition() {
 
   await choisirAxe(catalogues, 'gabarit', null)
   await cliquerAmene({ cle: 'axe/build/neutre' }, 1)
-  // Témoin d’appuis : base sans shape keys, comme l’évaluateur par défaut (asset/gabarit.ts, poidsDeSilhouettes).
   await choisirAxe(catalogues, 'sex', 'M')
   await cliquerBouton('Montage')
-  await cliquerAmene('×0.25', 1)
-  proche((await atelier()).vitesse, 0.25, 1e-4, 'lecture ralentie pour échantillonner chaque phase de marche')
+  await cliquerAmene('×2', 1)
+  proche((await atelier()).vitesse, 2, 1e-4, 'marche au cran ×2')
+  // #3104 — vérification du couplage limitée au corps neutre.
   const repos = await atelier()
   proche(repos.cadre, 1, 1e-4, 'marche au corps neutre')
   const poidsNeutres = Object.values(repos.composition.morphes)
-  assert.ok(poidsNeutres.length > 0 && poidsNeutres.every((poids) => poids === 0), 'témoin d’appuis : tous les poids de silhouette sont nuls')
+  assert.ok(poidsNeutres.length > 0 && poidsNeutres.every((poids) => poids === 0), 'couplage : tous les poids de silhouette sont nuls')
   verifierLeMorphe(repos, 'feminin', 0)
-  const pieds = p.manifeste.appuis.pieds
   const racine = p.manifeste.gabarit.racine
   const images = []
   try {
     await realKeyDown(session, touche)
     await attendreLAtelier('a.lecture === true')
-    images.push(...await observerLesImages(IMAGES_DE_MARCHE, DELAI_MARCHE_MS))
+    images.push(...JSON.parse(await evaluate(session, `(async () => {
+      const images = [], debut = performance.now(); let precedent, temps = 0;
+      while (performance.now() - debut < 14000) {
+        await new Promise(requestAnimationFrame);
+        const e = globalThis.wfrpEcran;
+        if (e === precedent || !e?.atelier?.lecture) continue;
+        precedent = e;
+        const a = e.atelier;
+        if (images.length) temps += (a.instant - images.at(-1).instant + a.duree) % a.duree;
+        images.push({ ...a, observeeA: performance.now() });
+        if (temps >= a.duree * 8) break;
+      }
+      return JSON.stringify(images);
+    })()`)))
     writeFileSync(join(o.captures, 'marche.json'), JSON.stringify(images))
     await capturer('3086-r1-4-marche')
   } finally {
@@ -665,9 +686,8 @@ async function parcoursComposition() {
   for (const [nom, position] of Object.entries(poseAvant)) for (let k = 0; k < 3; k++) {
     proche(poseApres[nom][k], position[k], 1e-4, `retour au repos : ${nom}, axe ${k}, relativement à la racine et au lacet du torse`)
   }
-  assert.ok(new Set(images.map((x) => x.instant)).size >= POSES_DE_MARCHE_DISTINCTES_MINIMALES, 'plusieurs images de marche distinctes')
   noter(`marche : ${images.length} poses, instants ${JSON.stringify(images.map((x) => x.instant))}`)
-  verifierLesAppuis(images, pieds, racine, p.manifeste.appuis.vitessesAuSol, assets)
+  await verifierLeCouplage(images, racine, p.manifeste, assets, reposDeLaBase.os, arret.os)
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
