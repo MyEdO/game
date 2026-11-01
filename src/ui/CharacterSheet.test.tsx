@@ -367,7 +367,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(html).toContain('Fausse jambe — récupérer le dernier Point de Mouvement perdu');
   });
 
-  it('badges de zone `FigTile.zoneBadges` : PA d’armure en Possessions (seules les zones COUVERTES, ton `sang` si l’armure portée est entamée)', () => {
+  it('badges de zone `FigZoneBadges` composés par `CharacterSheet` : PA d’armure en Possessions (seules les zones COUVERTES, ton `sang` si l’armure portée est entamée)', () => {
     const h = {
       ...hero(),
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 },

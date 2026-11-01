@@ -92,7 +92,7 @@
 .lore-text b {
   color: var(--gold);
 }
-/* En-tête du détail : grande figurine + titre + description (TabbedEntry, Codex). */
+/* En-tête du détail : titre + description (TabbedEntry, Codex). */
 .main-head {
   display: flex;
   gap: 16px;
@@ -981,8 +981,8 @@
   padding: 0;
 }
 
-/* -- Grille de cartes de RACE (7 familles, `.chip` de base surchargée en grande carte-figurine) --
-   quatre colonnes à 1600px large (gabarit de la maquette ratifiée), rétrécit avec le conteneur. */
+/* -- Grille de cartes de RACE --
+   `auto-fill` adapte le nombre de colonnes de 180 à 213px à la largeur du conteneur. */
 .creator-pick-count {
   font-variant-caps: small-caps;
   letter-spacing: 1.2px;
@@ -999,19 +999,13 @@
 .creator-pick-filters .creator-pick-count {
   margin: 0 0 0 auto;
 }
-/* Grille de cartes de race — les cartes elles-mêmes sont `FigTile` (cadre UNIQUE, styles
-   `frames.css`, prop `fig="big"`). La grille ne borne PAS sa largeur : c'est la HAUTEUR FIXE de la
-   boîte-figurine (`.fig-tile.big`, patron `.fam-grid.big` de la planche — `repeat(4,1fr)` sans
-   plafond) qui tient la tuile, à toute largeur d'écran. Seul modificateur DOMAINE : `.rolled`
+/* Grille de cartes de race — les cartes sont `FigTile` (`frames.css`, prop `fig="big"`).
+   Seul modificateur DOMAINE : `.rolled`
    (liseré de borne du tirage COURANT, #393 P3 — distinct du `.sel` doré posé par `FigTile`
    lui-même) — classe ADDITIVE (`FigTile.className`), jamais un second cadre. */
 .creator-race-grid {
   display: grid;
-  /* La tuile garde la TAILLE de la planche à toute largeur de zone : une zone plus large donne PLUS
-     DE COLONNES, jamais des tuiles ballonnées (`repeat(4, 1fr)` donnait 381px de large sur une zone
-     de 1540 — la boîte-figurine restant à 172px, la figurine flottait : « les modeles sont encore
-     plus petit qu'avant », user 2026-07-15). La colonne est donc BORNÉE à la mesure de la planche
-     (213px), et `auto-fill` en pose autant que la zone en porte : ~940 → 4 (la planche), ~1540 → 6. */
+  /* Colonnes bornées à 213px ; `auto-fill` en pose autant que la zone en porte. */
   grid-template-columns: repeat(auto-fill, minmax(180px, 213px));
   justify-content: start;
   /* Les rangées se dimensionnent par leur CONTENU. Sans ceci, `align-content` vaut `normal` (≈

@@ -56,7 +56,7 @@ export function annotationsDeCaracteristiques(
  * créateur (`creator/CreatorSummary.tsx`) et le détail candidat de l'écran d'équipe
  * (`PartyScreen.tsx`, `CandidateDetailPane`) — constat utilisateur fondateur : « La fiche vivante ce
  * n'est pas une primitive ? » (2026-07-15). Rubriques (ordre du détail candidat, source la plus
- * riche) : bande d'en-tête (figurine+identité+statut+rose, `header` désactivable) → Caractéristiques
+ * riche) : bande d'en-tête (identité+statut+rose, `header` désactivable) → Caractéristiques
  * pleine largeur → dérivées 2 colonnes → Forces (axes qualifiés) → Compétences → Talents →
  * Sorts/Miracles → Possessions. Scroll interne natif (`overflow-y:auto`+`min-height:0`) VERROUILLÉ
  * ici — pas à chaque appelant.
@@ -76,7 +76,7 @@ export function HeroSheet({
   hero: Combatant;
   /** Axes ACTIFS de la campagne (rose + Forces) — `coreAxisIds` par défaut. */
   axisIds?: string[];
-  /** Bande d'en-tête figurine+identité+statut+rose — `false` quand l'appelant porte déjà sa propre
+  /** Bande d'en-tête identité+statut+rose — `false` quand l'appelant porte déjà sa propre
    *  alcôve (fiche vivante du créateur, alcôve grande à part). */
   header?: boolean;
   /** Bourse — chip dans la bande d'en-tête (ignoré si `header={false}`). */

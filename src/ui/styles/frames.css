@@ -1,6 +1,6 @@
 /* ══════════════════ Tuile UNIQUE (FigTile, #430/#431) ══════════════════
-   SOURCE UNIQUE — et SEULE — définition de la tuile (races, carrières, candidats du lobby, présence de
-   la fiche). Valeurs du patron `.fam-tile` de la planche ratifiée, en tokens. Une COLONNE : nom, puis
+   SOURCE UNIQUE — et SEULE — définition de la tuile (`GroupedPickGrid`, créateur, ouverture de
+   campagne et galerie). Valeurs du patron `.fam-tile` de la planche ratifiée, en tokens. Une COLONNE : nom, puis
    compte ; variante par PROP `fig`, jamais une classe par écran. */
 /* RANGÉE de tuiles (`FigRow`, #717) — grille UNIFORME : colonnes égales (jamais dimensionnées par le
    libellé le plus long), 2 colonnes sous le breakpoint canon 700. `auto-fit` : une compagnie plus
@@ -91,13 +91,6 @@
   min-height: 0;
 }
 .fig-tile.big .fig-tile-sub { font-size: 12px; }
-/* Variante de présence statique plein format. */
-.fig-tile.hero {
-  padding: 10px 8px 8px;
-  gap: 0;
-  cursor: default;
-}
-.fig-tile.hero:hover { border-color: var(--atelier-wood-etch); }
 /* Badges de zone (#492 lot « corps-index », arbitrage 2026-07-17) — l'INDEX de la fiche : un badge
    NOMMÉ par Localisation, en liste (`Row`, layout.css) ; le TON en attribut `data-tone` (jamais une
    classe par ton). */

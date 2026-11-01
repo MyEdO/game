@@ -15,7 +15,7 @@
 import { buildScene } from '../../src/noyau/mapSpec.ts';
 import { documentDeProjet } from '../../src/noyau/worldMap.ts';
 import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
-import { findCreatureById, byId, findSpellById, findTraitById, findTrappingById, findVehicleById, species as SPECIES_CATALOG } from '../../src/data/index.ts';
+import { findCreatureById, byId, findSpellById, findTraitById, findTrappingById, findVehicleById, siegeEngines, species as SPECIES_CATALOG } from '../../src/data/index.ts';
 import { fauteDEspece, messageDeTenueInconnue, tenueFermeeSchema } from '../../src/data/schemas/grammaire/valeurs.ts';
 
 // ── VALIDATION id-only, à l'AUTHORING ───────────────────────────────────────────────────────
@@ -228,11 +228,10 @@ let posteSeq = 0;
 /** Poste d'artillerie MONTÉ (#222) : émet la forme AUTHORÉE de référence `{ trappingId, uid, side, crewIds }`
  *  — la base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée, elle est HYDRATÉE au spawn depuis
  *  `trappingId` (`hydratePoste`, `src/engine/items.ts`). VALIDE `trappingId` : doit être une pièce POSABLE
- *  (trapping à art d'affût `siegeRig`, cf. `siegeEngines`/`findVehicleById` du naval) — sinon throw. `crewIds`
+ *  du sous-type `armes-de-siege`, sélectionné par `siegeEngines` — sinon throw. `crewIds`
  *  vide par défaut : aucun id de héros n'est connu à l'authoring, le poste est servable en jeu (`serveAtPoste`). */
 export function poste(trappingId, side, crewIds = []) {
-  const t = findTrappingById(trappingId);
-  if (!t?.siegeRig) throw new Error(`campagne : poste « ${trappingId} » — attendu un trappingId de pièce POSABLE (art d'affût siegeRig ; Compendium → Objets, armes de siège).`);
+  if (!siegeEngines().some((t) => t.id === trappingId)) throw new Error(`campagne : poste « ${trappingId} » — attendu un trappingId du sous-type armes-de-siege (Compendium → Objets, armes de siège).`);
   return { trappingId, uid: `poste-${++posteSeq}`, side, crewIds };
 }
 

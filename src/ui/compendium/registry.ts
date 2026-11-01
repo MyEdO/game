@@ -1452,8 +1452,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'siegeEngines', label: 'Engins de siège', group: 'Équipement',
-    // Engins de siège = Possessions portant `siegeRig` (les mêmes que la Palette de l'éditeur,
-    // `siegeEngines`). Miroir de « Possessions » pour les faits d'arme (Portée/Dégâts) + Atouts (l'Indice « Arme d'équipe N » = équipage requis).
+    // Trappings du sous-type `armes-de-siege`, sélectionnés par `siegeEngines` comme dans la palette.
     build: () => siegeEngines().map((t) => depuisEnveloppe(t, {
       sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType) || undefined),
       meta: facts(

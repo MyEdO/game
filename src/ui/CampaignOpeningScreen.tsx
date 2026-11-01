@@ -13,7 +13,7 @@ import { porteurDeProjet } from './porteurDeProjet';
 /**
  * OUVERTURE CÉRÉMONIELLE d'un chapitre (#717) — le rideau qui se lève AVANT tout HUD : le titre de
  * la campagne, le pitch VERBATIM de la source (donnée `narratif.ouverture`, rendu par `<Prose>` :
- * jamais du texte en dur ici) scellé de cire, la compagnie en figurines RÉELLES, et un seul geste.
+ * jamais du texte en dur ici) scellé de cire, la compagnie en tuiles d’identité, et un seul geste.
  *
  * L'écran ne DÉCIDE de rien : « Prendre la route » borne le chapitre (`acquitterOuverture`) et rend
  * la scène. L'ambiance vient de la DONNÉE, « veillée » à défaut.

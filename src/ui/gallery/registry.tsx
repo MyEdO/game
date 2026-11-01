@@ -63,7 +63,7 @@ import { LifeBar } from '../LifeBar';
 import { MetalStatus } from '../MetalStatus';
 import { WaxSeal, SealedPlaque } from '../WaxSeal';
 import { CareerPath } from '../CareerPath';
-import { FigTile, type ZoneBadgeSpec } from '../FigTile';
+import { FigTile, FigZoneBadges, type ZoneBadgeSpec } from '../FigTile';
 import { PlaqueRow, PlaqueGrid } from '../PlaqueRow';
 import { DieFace } from '../DiceRoll';
 import { CHAR_KEYS, CHAR_LABELS, type ConditionId } from '../../engine/types';
@@ -585,8 +585,7 @@ function GroupedPickGridDemo() {
   return <GroupedPickGrid sections={sectionsDEspeces()} selectedId={sel} onSelect={setSel} label="Choix d'espèce" />;
 }
 
-/** Cadre-figurine unique (#430/#431) — patron `.fam-tile` de la planche : rivets d'or, boîte-figurine
- *  à hauteur FIXE sur sa lueur de sol, nom et compte DESSOUS. Les trois états de la tuile `compact`
+/** Tuile d'identité à rivets d'or (#430/#431) : nom et sous-titre. Les trois états de la tuile `compact`
  *  (repos, élue au liseré doré, scellée) + la variante `big` (grille de race, prop `fig`) — aucun
  *  cadre imbriqué, aucune ambiance : la tuile porte sa propre matière. */
 function FigTileDemo() {
@@ -627,21 +626,24 @@ function FigTileDemo() {
           tabIndex={0}
         />
       </div>
-      <div style={{ width: 180 }}>
-        <FigTile
-          fig="hero"
-          zoneBadges={FIG_ZONE_BADGES_PA}
-        />
-        <p className="hint">Colonne-index (#492) : PA d'armure</p>
-      </div>
-      <div style={{ width: 180 }}>
-        <FigTile
-          fig="hero"
-          zoneBadges={FIG_ZONE_BADGES_CRIT}
-        />
-        <p className="hint">Colonne-index (#492) : critiques/séquelles</p>
-      </div>
     </Row>
+  );
+}
+
+/** Badges de Localisation (#492) : la primitive `FigZoneBadges` seule, aux deux langages que la
+ *  fiche lui fournit — PA d'armure (badges statiques) et critiques/séquelles (badges-boutons). */
+function FigZoneBadgesDemo() {
+  return (
+    <Stack>
+      <div>
+        <FigZoneBadges badges={FIG_ZONE_BADGES_PA} />
+        <p className="hint">PA d'armure : six Localisations, `or` chargée, `sang` entamée, `dim` vide (masquée)</p>
+      </div>
+      <div>
+        <FigZoneBadges badges={FIG_ZONE_BADGES_CRIT} />
+        <p className="hint">Critiques/séquelles : zones touchées seules, `sang` critique, `warn` séquelle, clic = bouton</p>
+      </div>
+    </Stack>
   );
 }
 
@@ -752,7 +754,7 @@ function HeroSheetDemo() {
   if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
   return (
     <Stack>
-      <p className="hint">`header` (bande figurine+identité+rose) : composé tel quel par le détail candidat de l'écran d'équipe.</p>
+      <p className="hint">`header` (bande identité+rose) : composé tel quel par le détail candidat de l'écran d'équipe.</p>
       <HeroSheet hero={herosExemple()} />
       <p className="hint">`header={false}` : composé par la fiche vivante du créateur (alcôve propre à l'appelant).</p>
       <HeroSheet hero={herosExemple()} header={false} />
@@ -1933,6 +1935,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'waxseal-sealedplaque', label: 'WaxSeal / SealedPlaque', file: 'src/ui/WaxSeal.tsx', category: 'Atelier du scribe', render: WaxSealDemo },
   { id: 'careerpath', label: 'CareerPath', file: 'src/ui/CareerPath.tsx', category: 'Atelier du scribe', render: () => <CareerPath levels={niveauxDeLaCarriereExemple()} currentLevel={2} /> },
   { id: 'figtile', label: 'FigTile', file: 'src/ui/FigTile.tsx', category: 'Atelier du scribe', render: FigTileDemo },
+  { id: 'figzonebadges', label: 'FigZoneBadges', file: 'src/ui/FigTile.tsx', category: 'Atelier du scribe', render: FigZoneBadgesDemo },
   { id: 'plaquerow-plaquegrid', label: 'PlaqueRow / PlaqueGrid', file: 'src/ui/PlaqueRow.tsx', category: 'Atelier du scribe', render: PlaqueRowDemo },
   { id: 'groupedpickgrid', label: 'GroupedPickGrid', file: 'src/ui/GroupedPickGrid.tsx', category: 'Atelier du scribe', render: GroupedPickGridDemo },
   { id: 'detailframe', label: 'DetailFrame', file: 'src/ui/DetailFrame.tsx', category: 'Atelier du scribe', render: DetailFrameDemo },

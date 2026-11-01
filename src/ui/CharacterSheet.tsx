@@ -256,7 +256,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
         </>
       ) : tab === 'competences' ? (
         // Onglet Compétences & Talents : compose la primitive `HeroSheet` (`header={false}` —
-        // figurine/identité restent dans l'aside de la fiche, patron CreatorSummary.tsx) plutôt
+        // identité reste dans l'aside de la fiche, patron CreatorSummary.tsx) plutôt
         // que de réassembler son patron à la main (arbitrage 2026-07-17). Table à VALEURS (deux colonnes,
         // `skillInstanceLabel` codex-lié) — les Talents restent en chips dans les deux variantes.
         <HeroSheet

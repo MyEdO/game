@@ -275,9 +275,9 @@ describe('machine de guerre (Qualité `equipe` — ADE II 8 l.233) : jamais en l
     expect(c.weapons.map((w) => w.label)).toEqual(['Mains nues']); // repli seul, aucune arme de siège tenue
   });
 
-  it('belier-ade2 : art d’affût `belier` (PAS l’affût de baliste recyclé) + empreinte 2 (#210, ADE II 8 l.239/258)', () => {
+  it('belier-ade2 : sous-type armes-de-siege et empreinte 2 (#210, ADE II 8 l.239/258)', () => {
     const t = trappings.find((x) => x.id === 'belier-ade2')!;
-    expect(t.siegeRig).toBe('belier');
+    expect(t.subType).toBe('armes-de-siege');
     expect(t.siegeFootprint).toBe(2);
   });
 

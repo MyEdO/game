@@ -255,7 +255,7 @@
 
 /* ── Onglet « État » (tableau de bord, arbitrage user 2026-07-17) : en-tête de CAPACITÉ toujours
    visible (bande `ReservesSeuilsBand`), Effets actifs en CHIPS compactes, afflictions lourdes
-   en `PlaqueRow` conditionnelles. Le résumé par Localisation vit dans le CORPS de la colonne (`FigTile.zoneBadges`,
+   en `PlaqueRow` conditionnelles. Le résumé par Localisation vit dans le CORPS de la colonne (`FigZoneBadges`,
    `CharacterSheet.tsx`), pas ici.
 
    Effets actifs COMPACTS : rangée de chips codex-liées (`.chip` + `CodexRef`, `EtatPanel.tsx`) qui
@@ -306,8 +306,7 @@
 }
 /* Grammaire de carte par FAMILLE (pt.5, #492 + addendum LOT L pt.4, verdict user sur la planche
    chevet) : attribut `data-tone` posé sur la bande de section (`Section`, `EtatPanel.tsx`) — jamais
-   une classe par ton (patron déjà tenu par l'ancienne silhouette organisatrice, `data-tone` de
-   `NotchGauge`). Sang = critiques/états, ambre = séquelles/maladies, violet = corruption/mutations.
+   une classe par ton (`data-tone` de `NotchGauge`). Sang = critiques/états, ambre = séquelles/maladies, violet = corruption/mutations.
    `PlaqueRow` n'expose pas de prop dédiée (hors périmètre du lot) : ciblée en DESCENDANT, la plaque
    garde son propre rayon de bordure (`border-radius`, plaque-row.css).
    (a)/(b) Liseré ÉPAIS + fond de carte TEINTÉ par famille — user 2026-07-17, verbatim : « En plus

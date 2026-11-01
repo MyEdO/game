@@ -886,7 +886,7 @@ describe('appearance(.Override).species — TOUTE la donnée authorée des deux 
 // ── SWEEP DE RÉFÉRENCES DE SCÈNE (#223) — chaque `SceneEntity` d'un
 // projet/scénario ne porte que des IDS STABLES (doctrine « labels interdits ») qui RÉSOLVENT au
 // chargement, sinon repli silencieux/bruyant :
-//  - `personnage`.ref → créature ∪ véhicule (coque) ∪ engin de siège (trapping siegeRig), les 3 familles
+//  - `personnage`.ref → créature ∪ véhicule (coque) ∪ engin de siège (trapping du sous-type armes-de-siege), les 3 familles
 //    légitimes du spawn (`spawnEnemy`) ; `undefined` (statbloc/générique) toléré.
 //  - `weapon` → `trappingId` EXACT du catalogue d'armes (`findTrappingById`).
 //  - `appearance.tenue` → carrière ∪ classe ∪ 'nu' (`tenueFermeeSchema`, #3116).

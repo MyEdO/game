@@ -226,13 +226,13 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     // `siegeEngines`/`oupsTable` sont des accesseurs RÉELS du dépôt (`memoParVersion`) : le
     // vocabulaire les connaît parce qu'il les LIT sous `src/`, pas parce qu'ils sont nommés ici.
     expect([...accesseursVivants()]).toContain('siegeEngines');
-    const vueRefigee = `import { siegeEngines } from '../data';\nconst ENGINS = siegeEngines().filter((t) => t.siegeRig);\n`;
+    const vueRefigee = `import { siegeEngines } from '../data';\nconst ENGINS = siegeEngines().filter((t) => t.siegeFootprint);\n`;
     expect(indexFiges('copie.ts', vueRefigee, parBinding)).toHaveLength(1);
     const indexRefige = `import { oupsTable } from '../data/oups';\nconst PAR_ID = new Map(oupsTable().map((o) => [o.id, o]));\n`;
     expect(indexFiges('copie.ts', indexRefige, parBinding)).toHaveLength(1);
     const captureNue = `import { siegeEngines } from '../data';\nconst ENGINS = siegeEngines();\n`;
     expect(indexFiges('copie.ts', captureNue, parBinding)).toHaveLength(1);
-    const dansUnCorps = `import { siegeEngines } from '../data';\nexport const f = () => siegeEngines().filter((t) => t.siegeRig);\n`;
+    const dansUnCorps = `import { siegeEngines } from '../data';\nexport const f = () => siegeEngines().filter((t) => t.siegeFootprint);\n`;
     expect(indexFiges('copie.ts', dansUnCorps, parBinding)).toEqual([]);
   });
 

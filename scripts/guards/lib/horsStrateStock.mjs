@@ -321,7 +321,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#skills', ref: '[].tool', occurrence: 1 },
   { fichier: 'src/data#species', ref: '[].fate', occurrence: 1 },
   { fichier: 'src/data#species', ref: '[].skills[]|{random}', occurrence: 1 },
-  { fichier: 'src/data#speciesRace', ref: '.rules[]', occurrence: 1 },
   { fichier: 'src/data#spells', ref: '[].duration|kind=clock', occurrence: 1 },
   { fichier: 'src/data#spells', ref: '[].duration|kind=instant', occurrence: 1 },
   { fichier: 'src/data#spells', ref: '[].duration|kind=rounds', occurrence: 1 },

@@ -13,7 +13,7 @@ import { parseStatus } from '../../../engine/money';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
 import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
-import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
+import { SLOTS } from '../../palette.types';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
@@ -653,11 +653,6 @@ export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexa
  *  d'apparence et d'espèce, palette des matières d'objet. */
 export const surchargePaletteSchema = z.partialRecord(z.enum(SLOTS), couleurHexSchema);
 
-/** Palette d'ESPÈCE persistée (`raceAppearance.palette`/`paletteF`) : clés dans `GAMMES_PORTEUR`,
- *  valeurs `couleurHexSchema` (#1903). */
-export const paletteDEspeceSchema = z.partialRecord(z.enum(GAMMES_PORTEUR), couleurHexSchema);
-
-
 /** `ReachValue` (`src/engine/types.ts`) : les SEPT longueurs de l'axe d'Allonge (LDB 62 l.156-164) ou
  *  « Variable » (Arme improvisée, l.31). Vocabulaire FERMÉ, validé au CHARGEMENT (fail-fast) : hors de
  *  cette liste, `reachIdOf` ne rendrait aucun rang et toute règle d'Allonge se tairait en silence. */
@@ -814,8 +809,8 @@ export const countSpecSchema = z.union([
   nommerChamps(z.strictObject({ roll: diceSpecSchema }), { roll: { label: "jet" } }),
 ]);
 
-/** Sexe d'une apparence — UNE déclaration pour les trois nœuds qui le portent : `entityAppearanceSchema`
- *  (ci-dessous), `defs/pregens.ts` et `defs/raceAppearance.ts`. Chaque affichage lit le libellé par
+/** Sexe d'une apparence — UNE déclaration pour `entityAppearanceSchema` et `defs/pregens.ts`.
+ *  Chaque affichage lit le libellé par
  *  `libelleDeValeur(sexeSchema, v)`. */
 export const sexeSchema = enumNomme({ M: 'Masculin', F: 'Féminin' });
 export type Sexe = z.infer<typeof sexeSchema>;

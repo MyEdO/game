@@ -2482,8 +2482,6 @@ export const STYLE_INLINE_RATCHET = [
   { fichier: 'src/ui/gallery/registry.tsx', ref: 'div :: width', occurrence: 3 },
   { fichier: 'src/ui/gallery/registry.tsx', ref: 'div :: width', occurrence: 4 },
   { fichier: 'src/ui/gallery/registry.tsx', ref: 'div :: width', occurrence: 5 },
-  { fichier: 'src/ui/gallery/registry.tsx', ref: 'div :: width', occurrence: 6 },
-  { fichier: 'src/ui/gallery/registry.tsx', ref: 'div :: width', occurrence: 7 },
   { fichier: 'src/ui/gallery/registry.tsx', ref: 'div.panel :: padding', occurrence: 1 },
   { fichier: 'src/ui/gallery/registry.tsx', ref: 'div.panel :: padding', occurrence: 2 },
   { fichier: 'src/ui/gallery/registry.tsx', ref: 'div.panel :: padding', occurrence: 3 },

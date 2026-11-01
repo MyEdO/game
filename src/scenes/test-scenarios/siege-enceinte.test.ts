@@ -215,16 +215,14 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     const b = useGame.getState().battle!;
     const canonnier = b.combatants.find((c) => c.id === 'brg-canon')!; // mercenaire qui SERT le canon assaillant
     expect(canonnier.weapons.some((w) => w.type === 'ranged')).toBe(true); // pièce servie au spawn (poste de l'affût)
-    // L'ARTILLERIE assaillante est un AFFÛT inerte rendu comme un ENGIN : espèce DÉRIVÉE de la ref (canon-petit),
-    // servi par le mercenaire → neutralisé en tuant l'équipage, pas en frappant l'affût.
     const affutEnt = emplWithCrew('brg-canon'); // l'emplacement dont l'équipage est le mercenaire-canonnier
     const affut = b.combatants.find((c) => c.id === affutEnt.id)!;
     expect(affut.inert).toBe(true);
     expect(affut.bodyShape).toBe('engin');
-    expect(affut.species).toBe('canon-petit'); // espèce de l'engin dérivée de la ref
+    expect(affut.species).toBeUndefined();
     expect(b.order).not.toContain(affutEnt.id); // affût inerte → aucun tour propre
     expect(affutEnt.ref).toBe('canon-petit');
-    expect(affutEnt.appearance).toBeUndefined(); // l'apparence d'engin se dérive de `ref`, rien n'est stocké
+    expect(affutEnt.appearance).toBeUndefined();
     const input = buildAiInput(canonnier, useGame.getState);
     expect(input.structures?.some((st) => st.creatureId === 'porte-de-ville')).toBe(true); // la porte est une cible
     const action = chooseEnemyAction(input);
@@ -358,12 +356,10 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   });
 
   /**
-   * CHEMIN DE RENDU du chemin `bind: { emplacement }` — jusqu'à la DÉCISION de dessiner (#1567). Les
-   * gardes du tour de garde parlaient juste (species/bodyShape sains) mais AUCUN jeton ne sortait :
-   * depuis la cour (`activeZ` 0, le tour d'un héros), la garnison du chemin de ronde était coupée par
-   * la loi d'étage — le sol de z1 coiffe la MASSE PLEINE du rempart (`capsSolid`), le monde le peint
-   * d'en bas, mais le builder de jetons ne connaissait que le surplomb sur pilotis (`isOverhang`).
-   * La sonde mesure la MÊME vue que l'écran : brouillard réel + `activeZ` du combattant actif.
+   * Décision de dessiner la garnison du chemin de ronde vue depuis la cour (#1567) : la loi d'étage
+   * laisse sortir le jeton d'une case dont le sol de z1 coiffe la MASSE PLEINE du rempart
+   * (`capsSolid`), cas distinct du surplomb sur pilotis (`isOverhang`). La vue mesurée est celle de
+   * l'écran : brouillard réel et `activeZ` du combattant actif.
    */
   it('RENDU : depuis la cour, la garnison du chemin de ronde (défenseurs ET pièces servies) sort en jetons', () => {
     useGame.setState({ party: scenario.construire().party });

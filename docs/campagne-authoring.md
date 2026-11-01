@@ -119,7 +119,7 @@ surplus depuis le catalogue. Des champs locaux surchargent le catalogue port par
 `poste(trappingId, side, crewIds?)` de la lib émet la forme de RÉFÉRENCE `{ trappingId, uid, side,
 crewIds }`. La base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée : elle est HYDRATÉE au spawn
 depuis `trappingId` par `hydratePoste()` (`src/engine/items.ts`). `trappingId` doit désigner une pièce
-POSABLE (trapping à art d'affût `siegeRig`) sinon `throw`. `crewIds` vide = poste servable en jeu par un
+POSABLE (trapping de sous-type `armes-de-siege`, `siegeEngines()`) sinon `throw`. `crewIds` vide = poste servable en jeu par un
 héros adjacent (`serveAtPoste()`, `src/noyau/monde/shipPostes.ts`) — aucun id de héros n'est connu à l'authoring.
 Garde-fou : les projets ne portent AUCUN poste en forme ancienne (base copiée), cf. la garde #222 de
 `src/data/refs-migrated.test.ts`.

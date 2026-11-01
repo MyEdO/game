@@ -104,8 +104,8 @@ describe('lib.mjs — creatureId : créature ∪ véhicule (coque terse #218)', 
 });
 
 // #222 — `poste()` émet la forme AUTHORÉE de référence `{ trappingId, uid, side, crewIds }` et valide
-// que `trappingId` désigne une pièce POSABLE (art d'affût `siegeRig`).
-describe('lib.mjs — poste() : forme référence #222, trappingId à art d’affût', () => {
+// que `trappingId` désigne un trapping du sous-type `armes-de-siege`.
+describe('lib.mjs — poste() : forme référence #222, trappingId du sous-type armes-de-siege', () => {
   it('une pièce d’artillerie valide → { trappingId, uid, side, crewIds }, base NON matérialisée', () => {
     const p = poste('canon-moyen', 'tribord');
     expect(p.trappingId).toBe('canon-moyen');
@@ -120,8 +120,8 @@ describe('lib.mjs — poste() : forme référence #222, trappingId à art d’af
     expect(poste('pierrier', 'proue', ['bob']).crewIds).toEqual(['bob']);
   });
 
-  it('un trappingId SANS art d’affût (arme ordinaire) → throw', () => {
-    expect(() => poste('arc', 'tribord')).toThrow(/poste/i);
+  it('un trappingId hors du sous-type armes-de-siege → refus nommé', () => {
+    expect(() => poste('arc', 'tribord')).toThrow(/sous-type armes-de-siege/i);
   });
 
   it('un trappingId inconnu → throw', () => {

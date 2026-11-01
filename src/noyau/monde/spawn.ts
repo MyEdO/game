@@ -427,15 +427,11 @@ function ficheDeRef(ref: string, id: string, pos: { x: number; y: number; z?: nu
     c.kind = 'enemy';
     c.pos = { ...pos };
   } else {
-    // Engin de siège (AA 10 l.175-193) : affût INERTE non-destructible (RAW : pas de Blessures), servi par son
-    // équipage. Neutralisé en tuant l'équipage, pas en le détruisant. Son espèce de rendu est DÉRIVÉE de la
-    // `ref` (l'art d'affût `siegeRig` du trapping) → plus aucun `appearance.species` forcé à l'authoring.
-    // Dernière branche du faisceau : `refEntiteResolue` a déjà écarté créature et coque au-dessus.
+    // AA 10 l.175-193
     const t = findTrappingById(ref)!;
     c = inanimateCombatant({ id, label: t.label, refId: ref, bodyShape: 'engin', inert: true, footprint: t.siegeFootprint });
     c.kind = 'enemy';
     c.pos = { ...pos };
-    c.species = t.siegeRig; // espèce DÉRIVÉE de la ref, en combat comme en exploration
   }
   return c;
 }

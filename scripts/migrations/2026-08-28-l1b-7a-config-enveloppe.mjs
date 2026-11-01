@@ -54,7 +54,7 @@ const IDENTITES = {
   'sea-weather.json': { id: 'sea-weather', type: 'sea-weather', label: 'Météo de la Mer des Griffes' },
   'ship-construction.json': { id: 'ship-construction', type: 'ship-construction', label: 'Construction navale' },
   'sizes.json': { id: 'sizes', type: 'sizes', label: 'Barèmes par Taille' },
-  'speciesRace.json': { id: 'species-race', type: 'speciesRace', label: 'Correspondance espèce → race de rig' },
+  'speciesRace.json': { id: 'species-race', type: 'speciesRace', label: 'Race d’apparence par défaut' },
   // id ET label EXISTANTS, gardés tels quels : le label est le titre du chapitre Source (MSRC 16).
   'water-exposure.json': { id: 'maladies-hydriques', type: 'water-exposure', label: "Maladies transmises par l'eau" },
   'weather.json': { id: 'weather', type: 'weather', label: 'Météo de voyage' },

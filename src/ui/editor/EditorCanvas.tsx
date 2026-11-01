@@ -272,9 +272,8 @@ export function EditorCanvas({
   const modeMonde = effectiveLowerLayerMode(lowerLayerMode, lowerLayerOpacity);
   const zHiddenMonde = (z: number) => layerHidden(z, currentLayer, modeMonde);
 
-  // CE SVG NE PEINT PLUS LA SCÈNE (#1176, P3-4) : le canevas volumique la peint DESSOUS (sols, murs,
-  // toits de matière, décor, corps des jetons). Il reste monté, et reçoit tout : les 14 familles de
-  // surcouches d'authoring et TOUS les événements pointeur. Le picking est purement GÉOMÉTRIQUE
+  // Le canevas volumique peint les sols, murs, toits et décors sous ce SVG, qui reçoit les
+  // surcouches d'authoring et tous les événements pointeur. Le picking est purement GÉOMÉTRIQUE
   // (`localXY` → `screenToTileAtZ`), et cet écran n'inscrit AUCUN picker de sprite (`spritePicking={false}`).
 
   // ZONES : chemins bâtis 1× par (emprise, caméra) — le tableau `effectZones` est remplacé à chaque

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * Ouverture cérémonielle (#717) — contrats POSITIFS du rendu : le pitch passe par `<Prose>` (donnée
- * VERBATIM, jamais du texte en dur), la compagnie est une rangée de tuiles-figurines STATIQUES (pas
+ * VERBATIM, jamais du texte en dur), la compagnie est une rangée de tuiles d’identité STATIQUES (pas
  * un picker), l'ambiance par défaut est la veillée, et « Prendre la route » borne le chapitre.
  *
  * Rendu CLIENT (`createRoot`) et non `renderToStaticMarkup` : en SSR, zustand sert l'état INITIAL
@@ -66,7 +66,7 @@ describe('CampaignOpeningScreen (#717)', () => {
     expect(container.querySelector('.parchment-seal')).toBeNull(); // ni médaillon d100
   });
 
-  it('rend UNE tuile-figurine par héros, en STATIQUE (aucune sémantique de picker)', async () => {
+  it('rend UNE tuile d’identité par héros, en STATIQUE (aucune sémantique de picker)', async () => {
     await mount();
     const tuiles = container.querySelectorAll('.fig-row .fig-tile');
     expect(tuiles).toHaveLength(2);

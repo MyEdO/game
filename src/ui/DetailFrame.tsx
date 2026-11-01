@@ -13,8 +13,7 @@ export function DetailFrame({ topper, label, sub, meta, sections, prose, porteur
   /** Rangée d'en-tête AVANT le nom (ex. chips de variante/lignée) — le cadre en devient le seul
    *  porteur visuel, plus de bloc sibling posé à côté (#393 P3, correction structurelle Race). */
   topper?: ReactNode;
-  /** Absent = pas de bande nom/sous-titre par défaut — le `topper` porte alors l'identité en entier
-   *  (bande figurine+identité+rose, #417 correction de cap 2026-07-14). */
+  /** Absent = pas de bande nom/sous-titre par défaut ; `HeroSheet` peut porter son en-tête dans `sections`. */
   label?: ReactNode;
   /** Tagline SOURCÉE affichée à côté du nom (ex. « Livre de base p. 25 ») — jamais de flavor inventé,
    *  toujours dérivée d'un `source.book`/`source.page` de donnée (#393 P4). */
@@ -44,7 +43,7 @@ export function DetailFrame({ topper, label, sub, meta, sections, prose, porteur
 
 /**
  * BANDE D'IDENTITÉ du cadre de détail : nom + tagline sourcée + rangée de chips méta. Sous-composant
- * de la MÊME primitive, pour que les vues qui portent leur propre alcôve (`HeroSheet` : figurine à
+ * de la MÊME primitive, pour que les vues qui portent leur propre alcôve (`HeroSheet` : identité à
  * gauche, rose à droite) composent l'identité au lieu d'en recopier le markup — `band={false}` rend
  * nom et tagline SANS la rangée `.detail-frame-head` (l'alcôve de l'appelant fait déjà la colonne).
  */

@@ -65,7 +65,7 @@
 @import './styles/creator-shell.css'; /* coquille « Atelier du scribe » du créateur (.dirC planche) : le SOL de l'écran */
 @import './styles/creator.css'; /* cadre Modal partagé + assistant de création + apparence */
 @import './styles/creator-step.css'; /* ossature 2 zones du créateur (CreatorStepFrame, #393) : slots + dés dorés planche — APRÈS creator.css : prime sur la gemme par défaut */
-@import './styles/frames.css'; /* cadre-figurine UNIQUE (FigTile, #430/#431) : SEULE définition de .fig-tile* — le doublon de creator.css est purgé */
+@import './styles/frames.css'; /* Tuiles d'identité FigTile : définition de .fig-tile*. */
 @import './styles/plaque-row.css'; /* rangée-plaque à rivets d'or (PlaqueRow, #393) — matière .c-plate/.ck-cell de la planche FINALE */
 @import './styles/band.css'; /* bande titrée (Band, #492 Lot 1c) — extraite du créateur, partagée avec le registre État de la fiche */
 @import './styles/reglages-apparence.css'; /* réglages d'apparence (ReglagesApparence) : libellé + contrôle bridé à sa piste */

@@ -117,7 +117,7 @@
   --atelier-brass-hover: #8a6c2f; /* bordure laiton survolée (tuile, plaque) */
   --atelier-plaque-hi: #4a2c18; /* haut du dégradé « plaque élue » */
   --atelier-plaque-lo: #2c1810; /* bas du dégradé « plaque élue » */
-  --atelier-alcove-hi: #140e08; /* haut du fond d'alcôve/scène (la figurine sous la lampe) */
+  --atelier-alcove-hi: #140e08; /* haut du fond d'alcôve/scène */
   --atelier-alcove-lo: #080503; /* bas du fond d'alcôve/scène — le noir où la scène s'éteint */
   --atelier-prose: #e7d9bc; /* texte de la prose sombre à scroll interne */
   --atelier-wax-fold: #7c1810; /* pli du sceau de cire */

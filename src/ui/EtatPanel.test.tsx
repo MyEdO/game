@@ -56,10 +56,9 @@ describe('EtatPanel', () => {
       expect(html, `ancre manquante : ${anchor}`).toContain(`id="${anchor}"`);
     }
     // Chaque affliction LOURDE = une seule PlaqueRow : 6 (critiques/traumas/maladies/mutations/
-    // psychologie/surcharge). Les États actifs sont désormais des CHIPS compactes (0 PlaqueRow), et la
+    // psychologie/surcharge). Les États actifs sont des CHIPS compactes (0 PlaqueRow), et la
     // Corruption vit dans la bande « Réserves & seuils ».
-    // La bande de zones (`ZoneBand`, pt.4) est MORTE (lot « corps-index », #492) : plus de plaques
-    // résumées ici, le résumé par Localisation vit dans `FigTile.zoneBadges` (`CharacterSheet.tsx`).
+    // `FigZoneBadges`, composé par `CharacterSheet.tsx`, porte le résumé par Localisation.
     const rowCount = (html.match(/plaque-row/g) || []).length;
     expect(rowCount).toBe(6);
     // Chip codex-liée par État actif + nom codex-lié de chaque PlaqueRow → au moins 6 refs Codex.
@@ -154,9 +153,9 @@ describe('EtatPanel', () => {
     expect(iCorr).toBeLessThan(iMent); // pile droite
   });
 
-  it('rangée de zones (pt.4) MORTE dans le registre (lot « corps-index », #492) — seules les ancres de la PREMIÈRE rangée concernée subsistent', () => {
+  it('ancres de zone du registre : une cible sur la PREMIÈRE rangée concernée par Localisation', () => {
     const html = renderToStaticMarkup(<EtatPanel hero={afflictedHero()} />);
-    // Le résumé par zone vit dans `FigTile.zoneBadges` : le registre ne rend ni `PlaqueGrid` ni compte
+    // `FigZoneBadges`, composé par `CharacterSheet.tsx`, porte le résumé par zone ; le registre ne rend ni `PlaqueGrid` ni compte
     // agrégé ("1 critique"/"1 séquelle").
     expect(html).not.toContain('plaque-grid');
     expect(html).not.toContain('1 critique');
@@ -284,7 +283,7 @@ describe('EtatPanel', () => {
   });
 
   /** #1318 E4/C-γ — le cumul des séquelles ne doit pas ÉVAPORER la Localisation : `zoneAfflictions`
-   *  alimente les badges de zone de la colonne (`FigTile.zoneBadges`), un badge PAR membre touché. */
+   *  alimente `FigZoneBadges`, composé par `CharacterSheet.tsx` : un badge PAR membre touché. */
   it('orteils perdus aux DEUX jambes : les deux zones restent badgées après consolidation (LDB 18 l.281)', () => {
     const hero = mkHero((c) => {
       c.traumas = [traumaById('orteil-ampute', undefined, 'jambeG'), traumaById('orteil-ampute', undefined, 'jambeD')];

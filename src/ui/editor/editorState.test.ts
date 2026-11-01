@@ -441,19 +441,19 @@ describe('editorState — pose', () => {
 });
 
 describe('editorState — emplacement de siège (postes authorés à l’éditeur)', () => {
-  it('siegeEngines() = engins posables non vide, tous avec art d’affût `siegeRig` (baliste présente)', () => {
+  it('siegeEngines() sélectionne les engins posables du sous-type armes-de-siege (baliste présente)', () => {
     expect(siegeEngines().length).toBeGreaterThan(0);
-    expect(siegeEngines().every((t) => !!t.siegeRig)).toBe(true); // posable ⇔ a un art d'affût
+    expect(siegeEngines().every((t) => t.subType === 'armes-de-siege')).toBe(true);
     expect(siegeEngines().some((t) => t.id === 'baliste')).toBe(true);
   });
 
-  it('placeEmplacement : pose un personnage COMPLET (ref source + poste équipage vide, apparence DÉRIVÉE)', () => {
+  it('placeEmplacement : pose un personnage avec référence et poste à équipage vide', () => {
     const out = placeEmplacement(emptyScene('scene-test', 10, 10), 'baliste', { x: 3, y: 3 })!;
     const ent = out.scene.entities.find((e) => e.id === out.id)!;
     expect(ent.kind).toBe('personnage'); // seul kind enrôlable → spawn en Combattant
     expect(ent.label).toBe('Baliste');
     expect(ent.ref).toBe('baliste'); // SOURCE de l'engin → spawn construit l'affût inerte
-    expect(ent.appearance).toBeUndefined(); // PLUS d'espèce forcée : l'espèce de l'affût se dérive de `ref`
+    expect(ent.appearance).toBeUndefined();
     expect(ent.postes).toHaveLength(1);
     expect(ent.postes![0].trappingId).toBe('baliste'); // #222 — réf catalogue authorée (base hydratée au spawn), plus d'`item` matérialisé
     expect(ent.postes![0].crewIds).toEqual([]); // pas d'équipage tant que non assigné
@@ -461,7 +461,7 @@ describe('editorState — emplacement de siège (postes authorés à l’éditeu
     expect(ent.statblock).toBeUndefined(); // affût INERTE : pas de profil à PV (RAW-pur), spawn s'en charge
   });
 
-  it('placeEmplacement : trapping sans art d’affût (siegeRig) → null (pas d’entité fantôme)', () => {
+  it('placeEmplacement : trapping hors du sous-type armes-de-siege → null', () => {
     expect(placeEmplacement(emptyScene('scene-test', 10, 10), 'dague', { x: 1, y: 1 })).toBeNull(); // arme normale, pas un engin
     expect(placeEmplacement(emptyScene('scene-test', 10, 10), 'engin-inexistant', { x: 1, y: 1 })).toBeNull(); // id inconnu
   });
@@ -491,7 +491,7 @@ describe('editorState — emplacement de siège (postes authorés à l’éditeu
     expect('side' in s.entities[0].postes![0]).toBe(false); // retirée
   });
 
-  it('setPosteEngine : change l’engin (trappingId + libellé + ref), apparence DÉRIVÉE de la ref, équipage conservé', () => {
+  it('setPosteEngine : change l’engin (trappingId + libellé + ref), équipage conservé', () => {
     let s = placeEmplacement(emptyScene('scene-test', 10, 10), 'baliste', { x: 3, y: 3 })!.scene;
     const id = s.entities[0].id;
     s = setPosteCrew(s, id, ['g1']);
@@ -501,9 +501,9 @@ describe('editorState — emplacement de siège (postes authorés à l’éditeu
     expect('item' in s.entities[0].postes![0]).toBe(false); // base HYDRATÉE au spawn, pas matérialisée à l'authoring
     expect(s.entities[0].label).toBe(mortier.label);
     expect(s.entities[0].ref).toBe('mortier'); // ref restampée → spawn construit le BON affût
-    expect(s.entities[0].appearance).toBeUndefined(); // jamais d'`appearance.species` restampé : l'espèce dérive de `ref`
+    expect(s.entities[0].appearance).toBeUndefined();
     expect(s.entities[0].postes![0].crewIds).toEqual(['g1']); // équipage inchangé
-    expect(setPosteEngine(s, id, 'dague')).toBe(s); // trapping sans siegeRig → no-op
+    expect(setPosteEngine(s, id, 'dague')).toBe(s); // sous-type hors armes-de-siege
     expect(setPosteEngine(s, id, 'engin-inexistant')).toBe(s); // engin inconnu → no-op
   });
 

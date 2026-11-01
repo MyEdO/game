@@ -20,7 +20,7 @@ const GARDE = {
     'non ignorés, hors supprimés du disque), `retoursDuRig` pour les formes et `sitesDeModule` pour les imports littéraux.',
   perimetre:
     'Tout le dépôt, casse ignorée : `src/gameIso/rig/`, `scripts/rig/`, les skills `creer-une-creature` ' +
-    '(`DOSSIERS_DU_RIG`), galeries hors icônes, familles de noms QC du rig, composants Rig*.tsx et imports gameIso/rig/.',
+    '(`DOSSIERS_DU_RIG`), galeries hors galerie d’icônes UI, familles de noms QC du rig, composants Rig*.tsx et imports gameIso/rig/.',
   ticket: '#3160',
   angleMort: [
     'Un rig recréé sous un AUTRE chemin passe : l’interdit vit dans `.claude/rules/rendu-du-monde.md`.',
@@ -49,6 +49,10 @@ describe('le rig SVG ne revient pas', () => {
       'scripts/gen-rig-gallery.mts',
       'scripts/gen-x-gallery.mts',
       'public/inconnu-gallery.html',
+      'public/item-icon-gallery.html',
+      'scripts/gen-item-icon-gallery.mts',
+      'public/creature-icon-gallery.html',
+      'scripts/gen-creature-icon-gallery.mts',
       'scripts/qc/render-creature.mts',
       'scripts/qc/nouveau-rig-check.mts',
       'scripts/qc/silhouette-inconnue.mts',

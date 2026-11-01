@@ -8,7 +8,7 @@ import type { HitLocation } from '../engine/types';
  *  `or` (chargé), `warn` (à surveiller, séquelle seule), `sang` (critique/entamé), `dim` (vide/inerte). */
 export type ZoneBadgeTone = 'or' | 'warn' | 'sang' | 'dim';
 
-/** Badge PAR Localisation de `FigTile` : l'appelant fournit la donnée par zone, la primitive la liste. */
+/** Badge PAR Localisation de `FigZoneBadges` : l'appelant fournit la donnée par zone, la primitive la liste. */
 export interface ZoneBadgeSpec {
   loc: HitLocation;
   /** Nom de la zone, affiché devant sa valeur. */
@@ -19,19 +19,9 @@ export interface ZoneBadgeSpec {
   onClick?: () => void;
 }
 
-/** Variantes de la tuile (`frames.css`) : rangées compactes, grandes grilles et présence statique. */
-export type FigTileSize = 'compact' | 'big' | 'hero';
+/** Variantes de la tuile (`frames.css`) : rangées compactes et grandes grilles. */
+export type FigTileSize = 'compact' | 'big';
 
-/**
- * FigTile — LA tuile UNIQUE (#430/#431), partagée races / carrières / candidats du lobby :
- * cadre unique à rivets d'or, nom puis compte, état sélectionné = liseré
- * doré, sceau optionnel (`sealed`, patron `SealedPlaque`). Styles : `frames.css` (SEULE définition).
- *
- * `onClick` ABSENT ⇒ rendu STATIQUE (`<div>`, aucune sémantique de bouton/option/roving-tabindex).
- *
- * `zoneBadges` (#492) : un badge PAR Localisation, nommé — l'appelant (Possessions : PA d'armure ;
- * État : critiques/séquelles) fournit la donnée.
- */
 /**
  * FigRow — la RANGÉE de tuiles (#717) : grille uniforme (colonnes de largeur FIXE, jamais
  * dimensionnées par le libellé le plus long), 2 colonnes sous 700px. Vit AVEC la primitive (même
@@ -62,7 +52,15 @@ export function FigZoneBadges({ badges }: { badges: ZoneBadgeSpec[] }) {
   );
 }
 
-export function FigTile({ label, sub, selected, sealed, fig = 'compact', onClick, tabIndex = -1, className, zoneBadges }: {
+/**
+ * FigTile — LA tuile UNIQUE (#430/#431), composée par `GroupedPickGrid`, le créateur,
+ * l'ouverture de campagne et la galerie :
+ * cadre unique à rivets d'or, nom puis compte, état sélectionné = liseré
+ * doré, sceau optionnel (`sealed`, patron `SealedPlaque`). Styles : `frames.css` (SEULE définition).
+ *
+ * `onClick` ABSENT ⇒ rendu STATIQUE (`<div>`, aucune sémantique de bouton/option/roving-tabindex).
+ */
+export function FigTile({ label, sub, selected, sealed, fig = 'compact', onClick, tabIndex = -1, className }: {
   label?: string;
   sub?: string;
   selected?: boolean;
@@ -72,21 +70,18 @@ export function FigTile({ label, sub, selected, sealed, fig = 'compact', onClick
   sealed?: boolean;
   /** Variante — `compact` par défaut. */
   fig?: FigTileSize;
-  /** Absent = tuile STATIQUE (présence, aucune sémantique de picker). */
+  /** Absent = tuile STATIQUE d'affichage (la compagnie de l'ouverture de campagne), aucune
+   *  sémantique de picker. */
   onClick?: () => void;
   /** Roving tabindex (posé par `GroupedPickGrid`) — 0 pour la tuile active du groupe, -1 sinon. */
   tabIndex?: number;
   /** Modificateur d'appelant (ex. liseré de borne « tirée », `.rolled`) — jamais un second cadre,
    *  une classe ADDITIVE sur l'enceinte UNIQUE. */
   className?: string;
-  /** Badges par Localisation (index de la fiche, #492) — PA d'armure ou critiques/séquelles selon
-   *  ce que l'appelant fournit. */
-  zoneBadges?: ZoneBadgeSpec[];
 }) {
   const cls = ['fig-tile', selected && 'sel', fig !== 'compact' && fig, className].filter(Boolean).join(' ');
   const body = (
     <>
-      <FigZoneBadges badges={zoneBadges ?? []} />
       {sealed && <WaxSeal size={40} className="fig-tile-seal" />}
       {label && <span className="fig-tile-name">{label}</span>}
       {sub && <span className="fig-tile-sub">{sub}</span>}

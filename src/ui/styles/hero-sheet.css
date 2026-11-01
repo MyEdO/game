@@ -1,5 +1,5 @@
 /* HeroSheet — corps de fiche héros (consécration #417 suite, `HeroSheet.tsx`) : bande d'en-tête
-   (figurine+identité+statut+rose) + dérivées 2 colonnes + rubriques (Forces/Compétences/Talents/
+   (identité+statut+rose) + dérivées 2 colonnes + rubriques (Forces/Compétences/Talents/
    Sorts/Possessions) + scroll interne natif — SOURCE UNIQUE partagée par la fiche vivante du
    créateur (`creator/CreatorSummary.tsx`) et le détail candidat de l'écran d'équipe (`PartyScreen.tsx`). */
 .hero-sheet {

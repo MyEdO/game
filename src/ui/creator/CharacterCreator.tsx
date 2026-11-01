@@ -429,7 +429,7 @@ function LoreText({ md, porteur }: { md: string | null | undefined; porteur?: Po
 // ════ 1) Race (LDB 04 l.87-101) — charte « Atelier du scribe » (#393 P2, correction structurelle
 //      du verdict utilisateur 2026-07-14) : ossature `CreatorStepFrame` (bande d'action = recherche
 //      + encrier ; choix ~60 % / desc ~40 %) — choix = 7 GRANDES CARTES DE RACE (une par `SpeciesData.family`,
-//      figurine généreuse + « N lignées ») ⇄ détail = la LIGNÉE choisie (chips-pills en tête du
+//      nom + « N lignées ») ⇄ détail = la LIGNÉE choisie (chips-pills en tête du
 //      panneau, une par variante de la famille — Reiklander/Middenheim/…) puis `DetailFrame` de la
 //      lignée élue. Le brouillon reste keyé sur `speciesId` (id de LIGNÉE, ex. `humains-reiklander`)
 //      — seule la PRÉSENTATION du choix se restructure en race→lignée, jamais la mécanique
@@ -2216,7 +2216,7 @@ function topSkillTests(hero: Combatant, max = 3): { skillId: string; spec?: stri
 // ════ 8) Présentation (#393 P5, arbitrage README maquettes — renommage « Récapitulatif » →
 //      « Présentation » : le personnage se PRÉSENTE) — étalon = la planche ratifiée : mise
 //      en scène finale DÉDIÉE (plus le gabarit 3 zones rail/détail/fiche partagé) — TROIS colonnes :
-//      registre (Profil/dérivées/Identité/Motivation/Évolution) ⇄ grande figurine + nom ⇄ Compétences/
+//      registre (Profil/dérivées/Identité/Motivation/Évolution) ⇄ nom ⇄ Compétences/
 //      Talents/Possessions/« Les jets qui le définissent ». Aucune mécanique nouvelle — pure mise en
 //      page du héros déjà construit (`previewHero`).
 export function PresentationScreen({ d }: StepProps): ReactNode {

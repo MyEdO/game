@@ -980,13 +980,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/ui/EtatPanel.test.tsx",
-    motif: "désormais",
-    ancre: "psychologie/surcharge). Les États actifs sont désormais des CHIPS compactes (0 PlaqueRow), et la",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/ui/RollShell.test.tsx",
     motif: "désormais",
     ancre: "(Le préfixe 🎲 est désormais l'icône <Icon id=\"nav/dice\"> — on vérifie le libellé texte.)",

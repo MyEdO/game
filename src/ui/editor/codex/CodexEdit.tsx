@@ -908,7 +908,7 @@ function AppearanceField({ value, onChange, traits }: { traits?: readonly TraitP
         <ReglagesApparence appearance={a} onChange={onChange} reglages={['species', 'sex']} />
         <label className="dr">
           <input type="checkbox" checked={!!a.armurePortee} onChange={(e) => onChange(apparenceSuivante(a, { armurePortee: e.target.checked || undefined }))} />
-          {' '}Armure du profil visible sur la figurine
+          {' '}Porter l’armure du profil
         </label>
       </div>
       <ApparencesObjetsField appearance={a} onChange={onChange} weapons={armesDEntite(findTrappingById, undefined, { traits })} />

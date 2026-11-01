@@ -1214,9 +1214,6 @@ export interface TrappingData {
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
    *  lu par `firedAttackBlock` (`belowMinRangeBand`). Absent = pas de minimale. */
   minRangeBand?: import('../engine/types').RangeBandId;
-  /** Engin de siège POSABLE : clé d'art de l'affût posé en emplacement, lue par `siegeEngines` et
-   *  `scripts/campagne/lib.mjs`. Absent ⇒ l'arme n'est pas posable comme emplacement. */
-  siegeRig?: string;
   /** `id` de munition REPRÉSENTATIVE (`TrappingData.id`, `categorie:'ammunition'`) d'une arme de siège — les
    *  familles `armes-de-siege`/`munition-de-siege` (`ammoFamily`) regroupent des munitions non-interchangeables
    *  (carreau de baliste ≠ boulet de canon ≠ bombe de mortier ≠ balles de pierrier, MDG 12 l.410-424) ; le
@@ -2074,7 +2071,7 @@ export interface DomainData {
   label: string;
   desc?: string;
   source?: SourceRef;
-  /** Raison d'un arbitrage maison de l'entrée (le Type de Souffle de `arcane`, LDB 47 l.509). */
+  /** Motif de la valeur maison de l'entrée. */
   maison?: string;
   /** Emplacements SECONDAIRES du même Domaine — republication à l'identique (doctrine « UNE entité,
    *  N livres ») : l'attribut du Domaine de la Lumière est reparu tel quel dans les Vents de Magie
@@ -2493,11 +2490,9 @@ export function mutationLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? (mutationParId(id)?.label ?? id) : '');
 }
 
-/** Engins de siège POSABLES = trappings portant un art d'affût (`siegeRig`). FOYER UNIQUE du filtre :
- *  l'invariant « posable ⇔ l'engin a un art d'affût » ne vit QU'ICI — partagé par l'outil emplacement de l'éditeur
- *  (Palette/Inspecteur/StatusBar) ET la catégorie Codex « Engins de siège », plus aucun
- *  `trappings.filter(siegeRig)` dupliqué ailleurs. */
-export const siegeEngines = memoParVersion('trappings', () => trappings.filter((t) => !!t.siegeRig));
+/** Engins de siège posables : trappings du sous-type `armes-de-siege`. Foyer du filtre partagé par
+ *  les emplacements, les références d'entité et la catégorie du Codex. */
+export const siegeEngines = memoParVersion('trappings', () => trappings.filter((t) => t.subType === 'armes-de-siege'));
 /** Trappings que le moteur INSTANCIE par leur id (`INSTANCIABLE_PAR_ID`, `dansLaSousListe`) : la vue que
  *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
  *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
@@ -3102,11 +3097,11 @@ export function profilsStandard(): string[] {
   return [...new Set(species.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
 }
 /** La réf d'un PERSONNAGE désigne-t-elle une fiche SPAWNABLE ? Créature du bestiaire, coque de véhicule
- *  (`vehicles.json` facette `hull`, MDG 13), affût d'engin de siège (`trappings.json` `siegeRig`, AA 10).
+ *  (`vehicles.json` facette `hull`, MDG 13), engin du sous-type `armes-de-siege` (`trappings.json`, AA 10).
  *  SOURCE UNIQUE de la famille (#1882) : la porte du schéma (`sceneEntitySchema`), `validateScene` et le
  *  spawn (`spawnEnemy`) la lisent ici. */
 export function refEntiteResolue(ref: string): boolean {
-  return !!(findCreatureById(ref) || findVehicleById(ref)?.hull || findTrappingById(ref)?.siegeRig);
+  return !!(findCreatureById(ref) || findVehicleById(ref)?.hull || siegeEngines().some((t) => t.id === ref));
 }
 /**
  * Ce qu'un pinceau ou un effet neuf porte AVANT tout choix d'auteur : le PREMIER élément OFFERT par son

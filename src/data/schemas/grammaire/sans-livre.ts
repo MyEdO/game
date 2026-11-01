@@ -63,7 +63,7 @@ export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {
   names:
     'listes de PRÉNOMS et noms d’authoring par race — aucune mécanique mesurable, aucune règle à sourcer',
   speciesRace:
-    'table de résolution race → défauts d’authoring (`default`/`rules`) — câblage d’application, pas une donnée RAW',
+    'race d’apparence par défaut de l’authoring — câblage d’application, pas une donnée RAW',
   pregens: 'pré-tirés d’app (compositions maison de fiches jouables) — contenu app-inventé, pas une règle RAW',
   merchants:
     'catalogue d’app (archétypes de marchand : taux de rachat, familles vendues, agglo par défaut) ; les VALEURS de règle vivent sourcées à leur foyer (`engine/disponibilite.ts`, `bargain.ts`), et les valeurs maison porteront leur champ `maison` par entrée',

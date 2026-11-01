@@ -6,10 +6,9 @@
  */
 
 import type { Sexe } from '../data/schemas/grammaire/valeurs';
-import type { GabaritId } from '../data/schemas/defs/gabarits';
 
-/** Vocabulaire (marque NOMINALE, #406) : id d'APPARENCE (slug d'espèce `species.json`, id de créature/race/
- *  véhicule/affût-de-siège) — jamais un `SpeciesData.label` (« Humains (Reiklander) »). UNE seule
+/** Vocabulaire (marque NOMINALE, #406) : id d'espèce jouable, de créature ou de race d'apparence
+ *  (`especeDApparenceSchema`) — jamais un `SpeciesData.label` (« Humains (Reiklander) »). UNE seule
  *  monnaie : un littéral `string` (dont un `.label`) n'est plus assignable à `Appearance.species`
  *  (échec STRUCTUREL). Producteur sanctionné : `especeDApparence` (pont règles→apparence,
  *  `src/data/index.ts`). */
@@ -36,9 +35,6 @@ export interface EntityAppearance {
 /** Descripteur d'apparence COSMÉTIQUE RÉSOLU (type pur ; l'engine ne le lit jamais). */
 export interface Appearance {
   species: EspeceDApparence;
-  gabarit?: GabaritId;                              // id de carrure résolu (sinon dérivé de l'espèce)
   sex: Sexe;
   build: number;                                   // 0..1
-  legs?: number;                                   // multiplicateur de longueur de jambes (mutation Court sur pattes)
-  faceFlip?: boolean;                              // visage retourné tête en bas (mutation Visage inversé)
 }

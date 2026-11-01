@@ -9,7 +9,7 @@ export const DOSSIERS_DU_RIG = Object.freeze([
 
 const DOSSIERS_CASSE = DOSSIERS_DU_RIG.map((d) => d.toLowerCase());
 const GALERIE = /^(?:scripts\/gen-[^/]+-gallery\.mts|public\/[^/]+-gallery\.html)$/;
-const GALERIE_D_ICONES = /(?:^|[-/])icon-gallery\.(?:mts|html)$/;
+const GALERIE_D_ICONES = /^(?:public\/icon-gallery\.html|scripts\/gen-icon-gallery\.mts)$/;
 const QC_DU_RIG = /^scripts\/qc\/(?:[^/]+\/)*(?:[^/]*-)?(?:rig|creature|silhouette|quad|bras|aveugle|mesure-volume)(?:[-.][^/]*)?$/;
 const CHEMIN_D_IMPORT_DU_RIG = /(?:^|\/)gameiso\/rig\//i;
 

@@ -103,7 +103,7 @@ export function CodexEntry({ item, instance, category, exergues }: { item: Codex
   const entree = category ? { type: category, id: item.id } : undefined;
   // ONGLETS data-driven : CHAQUE section de la fiche (statbloc, compétences, niveaux de carrière,
   // bénédictions…) devient un onglet → les onglets reflètent les données PROPRES de l'entité (une
-  // créature, un sort et une race n'exposent pas les mêmes). La CHARTE (figurine + onglets) est, elle,
+  // créature, un sort et une race n'exposent pas les mêmes). La CHARTE (identité + onglets) est, elle,
   // partagée avec le créateur via `TabbedEntry` — on ne se perd pas d'une fiche à l'autre.
   // `id` d'onglet STABLE = slug du titre (identité sémantique invariante d'une fiche à l'autre) : le
   // même onglet reste ouvert en feuilletant (« Caractéristiques »), par simple égalité d'id côté TabbedEntry.

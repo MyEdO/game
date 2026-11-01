@@ -1267,7 +1267,6 @@
         }
       }
     ],
-    "nonVisual": true,
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1397,7 +1396,6 @@
         }
       }
     ],
-    "nonVisual": true,
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1524,7 +1522,6 @@
         }
       }
     ],
-    "nonVisual": true,
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1580,7 +1577,6 @@
         }
       }
     ],
-    "nonVisual": true,
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1926,7 +1922,6 @@
       }
     ],
     "note": "Quand vous êtes en Frénésie, gagnez temporairement une autre mutation aléatoire — dette #459 (déclencheur d'entrée en Frénésie + mutation TEMPORISÉE).",
-    "nonVisual": true,
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67

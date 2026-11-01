@@ -12,7 +12,7 @@ import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { nextEntityId } from '../lib/entityId';
-import { findTrappingById, findCreatureById } from '../data';
+import { findCreatureById, siegeEngines } from '../data';
 import { siegeEmplacementEntity } from './monde/siegeEmplacement';
 import { stairFlightCells, interiorCells } from './planDefects';
 import { estAbsent, terrainAbsent } from './monde/terrain';
@@ -334,16 +334,12 @@ export function paintCrenellated(scene: Scene, p: Pt, structure: string | null, 
   return { ...scene, layers: scene.layers.map((l) => (l.z === layer.z ? { ...l, crenellated } : l)) };
 }
 
-/** Pose un EMPLACEMENT DE SIÈGE à p via le builder PARTAGÉ `siegeEmplacementEntity` (même source que les
- *  scénarios) : une SceneEntity-personnage portant `ref` (source de l'engin → la branche siège de
- *  `spawnEnemy` construit l'affût inerte) et un poste d'artillerie (`postes:[{ trappingId, crewIds:[] }]`).
- *  AUCUN `appearance.species` : l'espèce de l'engin est DÉRIVÉE de la `ref`.
- *  Au combat, `applyShipPostes` sert la pièce au chef (`crewIds[0]`). Posable ⇔ l'engin a un art d'affût
- *  (`siegeRig`) ; sinon → null (pas d'entité fantôme). */
+/** Pose à p un emplacement via `siegeEmplacementEntity` : sa référence et son poste désignent un
+ *  trapping du sous-type `armes-de-siege`. Les autres trappings et les ids inconnus rendent `null`. */
 export function placeEmplacement(scene: Scene, trappingId: string, p: Pt, z = 0, facing?: Dir8): { scene: Scene; id: string } | null {
   const id = nextEntityId('personnage', scene.entities.map((e) => e.id));
   const ent = siegeEmplacementEntity(id, trappingId, p, facing ? { facing } : {});
-  if (!ent) return null; // posable ⇔ a un art d'affût (`siegeRig`)
+  if (!ent) return null;
   return { scene: addEntity(scene, ent, z), id };
 }
 
@@ -369,13 +365,11 @@ export function setPosteSide(scene: Scene, entityId: string, side: FireArc | und
   });
 }
 
-/** Change l'engin du poste : nouvelle réf catalogue (`trappingId`) + libellé, ET restampe la `ref` sur
- *  l'entité — l'espèce de l'affût étant DÉRIVÉE de la `ref`, elle suit l'engin servi sans `appearance.species`.
- *  La base est HYDRATÉE au spawn (#222 — plus d'`ItemInstance` matérialisée ici). Équipage conservé. No-op si
- *  l'engin est inconnu ou sans art d'affût (`siegeRig`). */
+/** Change l'engin du poste : référence catalogue, libellé et `ref` de l'entité, équipage conservé.
+ *  Seul un trapping du sous-type `armes-de-siege`, sélectionné par `siegeEngines`, est accepté. */
 export function setPosteEngine(scene: Scene, entityId: string, trappingId: string): Scene {
-  const t = findTrappingById(trappingId);
-  if (!t?.siegeRig) return scene;
+  const t = siegeEngines().find((engin) => engin.id === trappingId);
+  if (!t) return scene;
   const ent = scene.entities.find((e) => e.id === entityId && e.postes?.length);
   if (!ent) return scene;
   return editEntity(scene, entityId, {

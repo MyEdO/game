@@ -108,7 +108,7 @@ describe('rubrique Apparence — un titre par panneau, les réglages de la briqu
     const racine = monterCodex();
     const rubrique = rubriqueApparence(racine, (t) => t.parentElement!);
     for (const r of REGLAGES_AUTEUR) expect(rubrique.contains(reglage(racine, r) ?? null), r).toBe(true);
-    expect(rubrique.textContent).toContain('Armure du profil visible sur la figurine');
+    expect(rubrique.textContent).toContain('Porter l’armure du profil');
   });
 });
 

@@ -25,7 +25,7 @@ function gabaritConnu(id: GabaritId, trouver: TrouverGabarit) {
 /**
  * Un `gabarit` explicite remplace la carrure ENTIÈRE : la surcharge de la race, réglée pour son gabarit
  * par défaut, ne s'y applique pas. Sinon, le gabarit de la race recouvert par sa surcharge. Le
- * multiplicateur de jambes (`Appearance.legs` × morpho des difformités) se compose en dernier.
+ * multiplicateur de jambes se compose en dernier (#3186).
  */
 export function gabaritResolu({ gabarit, race, legsMult }: {
   gabarit?: GabaritId;

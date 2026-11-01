@@ -1,6 +1,6 @@
 ---
 name: orchestrer-des-agents
-description: À utiliser pour écrire/modifier du code (même « petit »), dispatcher agent, workflow ou Codex, au retour d'agent, avant tout agent() sans modèle/effort, avant AskUserQuestion, répondre à l'utilisateur.
+description: À utiliser pour écrire/modifier du code (même « petit »), dispatcher agent ou workflow, au retour d'agent, avant tout agent() sans modèle/effort, avant AskUserQuestion, répondre à l'utilisateur.
 ---
 <!-- GENERATED: agents:sync; source=.claude/skills/orchestrer-des-agents/SKILL.md -->
 
@@ -19,9 +19,9 @@ l'annexe au moment de son déclencheur.
 |---|---|
 | Étape 7 : commit, push, fusion de `main`, `ops:publier`, suite en fond ; avant tout `checkout`/`restore`/`reset`/`stash` ; avant de lancer un outil `scripts/ops/` qu'un agent édite | `.agents/skills/orchestrer-des-agents/publication.md` |
 | Étape 8 : fermer un ticket ou une phase, annoncer une vague ; écrire un ticket sur un socle | `.agents/skills/orchestrer-des-agents/fermeture.md` |
-| Briefer une session Codex du pont, lire son rendu, committer son diff | `.agents/skills/orchestrer-des-agents/codex.md` |
+| Lancer, briefer, surveiller ou fermer une session Claude ou Codex ; lire son rendu, committer son diff | skill `orchestrer-des-sessions` |
 | Choisir le type, le modèle et l'effort d'un agent ou d'un `agent()` ; un codeur ou un workflow multi-agents | `.agents/skills/orchestrer-des-agents/calibrage.md` |
-| Agents rendus, composer le prochain lot, remonter ou non un sujet à l'utilisateur, défaut dans un autre chantier, plan approuvé à déclarer fini, frictions, validation utilisateur en attente, sessions, épique, métriques | `.agents/skills/orchestrer-des-agents/regime-de-vague.md` |
+| Agents rendus, composer le prochain lot, remonter ou non un sujet à l'utilisateur, défaut dans un autre chantier, plan approuvé à déclarer fini, frictions, validation utilisateur en attente, épique, métriques | `.agents/skills/orchestrer-des-agents/regime-de-vague.md` |
 | Question, `AskUserQuestion`, réponse ou retour de l'utilisateur, demande de permission d'outil qui l'atteint | `.agents/skills/orchestrer-des-agents/repondre-a-l-utilisateur.md` |
 
 ## Suivi
@@ -168,6 +168,14 @@ status` ; le brief de relance porte l'état VÉRIFIÉ et dit « si le livrable e
 
 **6. Vérification — par MOI, jamais sur la foi du rapport.** `npm run typecheck:fast` et `npm run
 test:perimetre` avant commit, revue du diff, UI → skill `recette-navigateur`.
+- **Effets à distance qu'un agent ne voit pas** : ses tests ciblés n'en disent rien, le brief exige la
+  preuve.
+  - Dataset ou champ retiré : rejouer chaque migration de `scripts/migrations/` qui le nomme (sortie 0,
+    aucune donnée réécrite), et le corpus `scripts/corpus/migrations/`.
+  - Artefact d'un générateur (`scripts/*/generate.mjs`) : modifier le générateur et le relancer, jamais
+    l'artefact ; `src/scenes/generateurs-byte-stables.test.ts`.
+  - Dataset `src/data/*.json` : canonicaliser par `serializeDataset`.
+  - Comportement changé : `git grep` les tests qui affirment l'ancien, hors de la liste du brief.
 - **Aucun créneau, file ni feu vert pour les gestes lourds** (fusion, `ops:chantier`, publication,
   `test:perimetre`) : chaque session les lance quand son travail l'exige (utilisateur, 2026-10-08 :
   « Vivement qu'on en finisse avec les demandes d'autorisation pour faire son travail », puis « Surtout

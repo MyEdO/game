@@ -21,7 +21,6 @@ const doc = document(
     passive: passifsDe(mecaniqueDe({ 'charMod.min': 'admis' }).gameOp).optional(),
     effects: z.array(triggeredEffectSchema).optional(),
     note: z.string().optional(),
-    nonVisual: z.boolean().optional(),
     /** id d'une autre entrée `mutations.json` (Tête bestiale EDOC → sous-table alignée, `rollMutation`). */
     subTable: z.string().optional(),
     appearance: entityAppearanceSchema.optional(),
@@ -34,7 +33,6 @@ const doc = document(
     passive: { label: 'Effets passifs' },
     effects: { label: 'Effets déclenchés' },
     note: { label: 'Note', hint: 'Note mécanique de l’entrée — ex. bonus de Perception' },
-    nonVisual: { label: 'Non visible', hint: 'La mutation n’affecte pas l’apparence' },
     subTable: { label: 'Sous-table de tirage', hint: 'Entrée dont la sous-table est tirée en cascade' },
     appearance: { label: 'Apparence' },
   },

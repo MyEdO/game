@@ -2078,8 +2078,8 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
     // responsives comprises) : une nappe de région rouvre un liseré à chaque écart.
     expect(CC_CSS).not.toMatch(/\.cc-bay-left,\s*\n?\s*\.cc-bay-right/);
     expect(CC_CSS, 'le rouge de la plaque de sortie doit avoir disparu').not.toMatch(/--cc-end-(hi|lo)\b/);
-    // SEULE EXCEPTION, et elle est le FRONTON : l'arche s'élève AU-DESSUS du liseré (la figurine
-    // dépasse), il lui faut donc sa matière là-haut — la MÊME que la bande, prolongement compris
+    // SEULE EXCEPTION, et elle est le FRONTON : l'arche s'élève AU-DESSUS du liseré,
+    // il lui faut donc sa matière là-haut — la MÊME que la bande, prolongement compris
     // (contrat P-3). Elle l'obtient en POSANT la même peau, jamais en la recopiant, et ne peint
     // aucun flanc (trois remises à zéro, qui laissent le liseré de la peau intact).
     const arche = ruleOf(CC_BASE, '.cc-arch');

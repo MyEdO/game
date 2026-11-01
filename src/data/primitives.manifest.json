@@ -939,7 +939,7 @@
     "fichier": "src/ui/RoseAxes.tsx",
     "css": "src/ui/styles/rose.css",
     "concept": "rose des forces : mini-radar gravé à N axes paramétrables",
-    "perimetre": "glyphe de figurine, médaillon, rendu plein",
+    "perimetre": "glyphe de carte, médaillon, rendu plein",
     "verrou": "axes calculés par axisScore et axesProfile (src/engine/axes.ts)"
   },
   {
@@ -975,8 +975,8 @@
     "label": "FigTile/FigZoneBadges",
     "fichier": "src/ui/FigTile.tsx",
     "css": "src/ui/styles/frames.css",
-    "concept": "tuile unique : nom et compte, sceau optionnel ; badges nommés par HitLocation composables dans la tuile ou seuls (l'appelant fournit la donnée par zone)",
-    "perimetre": "races, carrières, candidats ; badges de Localisation de la colonne aside de la fiche",
+    "concept": "tuile unique : nom et compte, sceau optionnel ; badges nommés par HitLocation composés par CharacterSheet (l'appelant fournit la donnée par zone)",
+    "perimetre": "GroupedPickGrid, créateur, ouverture de campagne et galerie ; badges de Localisation de la colonne aside de la fiche",
     "verrou": "seule définition des classes fig-tile (src/ui/styles/frames.css) ; réflexe avant tout cadre dans un cadre"
   },
   {
@@ -1079,7 +1079,7 @@
     "label": "HeroSheet",
     "fichier": "src/ui/HeroSheet.tsx",
     "css": "src/ui/styles/hero-sheet.css",
-    "concept": "corps de fiche héros : en-tête figurine, caractéristiques et dérivées, forces seuillées, chips codex",
+    "concept": "corps de fiche héros : en-tête d’identité, caractéristiques et dérivées, forces seuillées, chips codex",
     "perimetre": "résumé du créateur, écran de groupe",
     "verrou": "réflexe avant toute fiche de personnage recodée"
   },

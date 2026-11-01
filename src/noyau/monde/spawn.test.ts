@@ -332,12 +332,12 @@ describe('spawnEnemy — transport de l’apparence/carrière éditée vers le C
   });
 });
 
-describe('spawnEnemy — branche engin de siège (`ref` à `siegeRig`, #210)', () => {
+describe('spawnEnemy — engin du sous-type armes-de-siege (#210)', () => {
   const at = { x: 0, y: 0 };
 
-  it('belier-ade2 : espèce DÉRIVÉE = `belier` (art propre, plus le recyclage de baliste)', () => {
+  it('belier-ade2 : engin inerte, sans espèce dérivée de sa référence', () => {
     const c = spawnEnemy({ ref: 'belier-ade2' }, 'ram1', at);
-    expect(c.species).toBe('belier');
+    expect(c.species).toBeUndefined();
     expect(c.bodyShape).toBe('engin');
     expect(c.inert).toBe(true);
   });
@@ -349,7 +349,7 @@ describe('spawnEnemy — branche engin de siège (`ref` à `siegeRig`, #210)', (
 
   it('baliste (sans `siegeFootprint` en donnée) : empreinte ABSENTE — `footprintN` retombe à 1 (non-régression)', () => {
     const c = spawnEnemy({ ref: 'baliste' }, 'bal1', at);
-    expect(c.species).toBe('baliste');
+    expect(c.species).toBeUndefined();
     expect(c.footprint).toBeUndefined();
   });
 });
