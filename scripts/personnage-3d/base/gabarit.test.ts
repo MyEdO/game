@@ -1,44 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { Bone, Euler, Matrix4, Skeleton, Vector3 } from 'three';
-import { FACTEURS_NEUTRES, poidsDuGabarit, poseDuGabarit, sensCuitsDuGabarit, type BornesDuGabarit } from '../../../hotes/godot/asset/gabarit.ts';
+import { Bone, Matrix4, Skeleton, Vector3 } from 'three';
+import { FACTEURS_NEUTRES, poidsDuGabarit, poseDuGabarit, sensCuitsDuGabarit } from '../../../hotes/godot/asset/gabarit.ts';
 import type { TableDeGabarit } from '../../../hotes/godot/asset/manifesteDeBase.ts';
 import { enfantsDuGabarit, poserEnfantsDuGabarit } from '../../../hotes/godot/asset/evaluateur/gabarit.ts';
 import { matricesDuGabarit, preparerGabarit, REFERENCE_DES_ANCRES, type PoidsDuSommet } from './gabarit.ts';
-import { preparerLaplacien, resoudreLaplacien, type Arete } from './laplacien.ts';
+import { preparerLaplacien, resoudreLaplacien } from './laplacien.ts';
 
-const BORNES: BornesDuGabarit = { legs: { min: 0.4836, max: 1.456 }, arms: { min: 1, max: 1.6 }, head: { min: 1, max: 1.9 } };
-
-function jouet() {
-  let seed = 7;
-  const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-  const rnd = (a: number) => (rand() * 2 - 1) * a;
-  const mk = (name: string, parent?: Bone) => {
-    const b = new Bone(); b.name = name;
-    b.position.set(rnd(0.2), 0.1 + rand() * 0.4, rnd(0.2));
-    b.quaternion.setFromEuler(new Euler(rnd(1.5), rnd(1.5), rnd(1.5)));
-    parent?.add(b); return b;
-  };
-  const root = mk('root'), pelvis = mk('pelvis', root), thigh = mk('thigh', pelvis), calf = mk('calf', thigh), foot = mk('foot', calf);
-  const spine = mk('spine', pelvis), up = mk('upperarm', spine), low = mk('lowerarm', up), hand = mk('hand', low);
-  const neck = mk('neck', spine), head = mk('Head', neck);
-  const bones = [root, pelvis, thigh, calf, foot, spine, up, low, hand, neck, head];
-  root.updateMatrixWorld(true);
-  const squelette = new Skeleton(bones);
-  const positions: Vector3[] = [], poids: PoidsDuSommet[] = [];
-  for (let i = 0; i < 90; i++) {
-    const bi = 1 + Math.floor(rand() * (bones.length - 1)), b = bones[bi], pi = bones.indexOf(b.parent as Bone);
-    positions.push(b.getWorldPosition(new Vector3()).add(new Vector3(rnd(0.05), rnd(0.05), rnd(0.05))));
-    const w = i % 3 === 0 ? 1 : 0.3 + 0.6 * rand();
-    poids.push(w === 1 ? [[bi, 1]] : [[bi, w], [pi, 1 - w]]);
-  }
-  const edges = new Set<string>();
-  for (let i = 1; i < positions.length; i++) edges.add(`${i - 1},${i}`);
-  for (let t = 0; t < 180; t++) { const a = Math.floor(rand() * 90), b = Math.floor(rand() * 90); if (a !== b) edges.add(`${Math.min(a, b)},${Math.max(a, b)}`); }
-  const aretes = [...edges].map((s): Arete => { const [a, b] = s.split(',').map(Number); return [a, b]; });
-  const silhouettes = ['feminin', 'carrure_moins', 'carrure_plus', 'corpulence'].map((nom) => ({ nom, deltas: positions.map(() => new Vector3(rnd(0.03), rnd(0.03), rnd(0.03))) }));
-  const table: TableDeGabarit = { racine: 'root', legs: ['thigh', 'calf'], arms: ['upperarm', 'lowerarm'], head: ['Head'], st: { min: 0.8, max: 1.2 }, bornes: BORNES };
-  return { positions, aretes, poids, squelette, table, silhouettes };
-}
+import { BORNES, jouet } from './gabarit.testkit.ts';
 
 describe('H5 de construction, ancres fixes (#3104)', () => {
   it('énumère les extrémités cuites depuis les bornes', () => {
@@ -92,7 +60,7 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
     expect(ancres.filter(Boolean).length).toBeGreaterThan(0);
     expect(ancres.filter((a) => !a).length).toBeGreaterThan(0);
     expect(REFERENCE_DES_ANCRES).toEqual({ sl: 1, st: 1, legs: 1.37, arms: 1.23, head: 1.51 });
-    h5.resoudre({ ...FACTEURS_NEUTRES, legs: 0.62, arms: 1.6, head: 1.9 });
+    h5.resoudre({ ...FACTEURS_NEUTRES, legs: 0.62, arms: BORNES.arms.max, head: BORNES.head.max });
     h5.resoudre(FACTEURS_NEUTRES);
     expect(h5.ancres).toEqual(ancres);
     expect(c.squelette.bones.map((b) => [b.position.toArray(), b.matrixWorld.toArray()])).toEqual(avant);
@@ -110,7 +78,7 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
       m.elements.forEach((x, j) => expect(x).toBeCloseTo(attendu.elements[j], 12));
     }
     expect(Math.max(...neutre.flatMap((m) => m.elements.map((x, j) => Math.abs(x - (j % 5 === 0 ? 1 : 0)))))).toBeGreaterThan(0.1);
-    const facteurs = { ...FACTEURS_NEUTRES, legs: 0.62, arms: 1.6, head: 1.9 };
+    const facteurs = { ...FACTEURS_NEUTRES, legs: 0.62, arms: BORNES.arms.max, head: BORNES.head.max };
     const obtenu = matricesDuGabarit(c.squelette, c.table, facteurs);
     const pose = poseDuGabarit({ gabarit: c.table }, facteurs);
     const enfants = enfantsDuGabarit(pose, (nom) => c.squelette.bones.find((b) => b.name === nom)!);
@@ -159,12 +127,12 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
     const poidsSilhouettes = Object.fromEntries(c.silhouettes.map((s, i) => [s.nom, [0.4, 0.8, 1, 0.55][i]]));
     const repos = c.positions.map((p, i) => c.silhouettes.reduce((v, s) => v.addScaledVector(s.deltas[i], poidsSilhouettes[s.nom]), p.clone()));
     const etats = [
-      { legs: 0.62, arms: 1.6, head: 1.9 }, { legs: 1.3, arms: 1.4, head: 1.2 },
-      { legs: 0.4836, arms: 1, head: 1 }, { legs: 1.456, arms: 1.6, head: 1.9 },
-      { legs: 0.66, arms: 1.3, head: 1.9 }, { legs: 0.7, arms: 1.6, head: 1.4 },
-      { legs: 1, arms: 1.6, head: 1 }, { legs: 1, arms: 1, head: 1.9 },
-      { legs: 1, arms: 1, head: 1 }, { legs: 1.6, arms: 1.8, head: 2.1 },
-      { legs: 1.2, arms: 1, head: 1 }, { legs: 1, arms: 1.3, head: 1 }, { legs: 0.8, arms: 1, head: 1 },
+      { legs: 0.62, arms: BORNES.arms.max, head: BORNES.head.max }, { legs: 1.3, arms: 1.4, head: 1.2 },
+      { legs: BORNES.legs.min, arms: FACTEURS_NEUTRES.arms, head: FACTEURS_NEUTRES.head }, { legs: BORNES.legs.max, arms: BORNES.arms.max, head: BORNES.head.max },
+      { legs: 0.66, arms: 1.3, head: BORNES.head.max }, { legs: 0.7, arms: BORNES.arms.max, head: 1.4 },
+      { legs: FACTEURS_NEUTRES.legs, arms: BORNES.arms.max, head: FACTEURS_NEUTRES.head }, { legs: FACTEURS_NEUTRES.legs, arms: FACTEURS_NEUTRES.arms, head: BORNES.head.max },
+      { ...FACTEURS_NEUTRES }, { legs: 1.6, arms: 1.8, head: 2.1 },
+      { legs: 1.2, arms: FACTEURS_NEUTRES.arms, head: FACTEURS_NEUTRES.head }, { legs: FACTEURS_NEUTRES.legs, arms: 1.3, head: FACTEURS_NEUTRES.head }, { legs: 0.8, arms: FACTEURS_NEUTRES.arms, head: FACTEURS_NEUTRES.head },
     ];
     for (const etat of etats) {
       const facteurs = { ...FACTEURS_NEUTRES, ...etat };

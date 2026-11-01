@@ -8,13 +8,13 @@
  * refus de l'index sont rendus, une base à marche ambiguë est refusée seule, un manifeste schéma 2 est ignoré.
  */
 import { describe, expect, it } from 'vitest';
-import { baseSchema3, elementSchema3, glbDElement } from '../asset/schema3.testkit.ts';
+import { baseDeTest, elementSchema3, glbDElement } from '../asset/modeles.testkit.ts';
 import { empreinte } from '../asset/empreinte.ts';
 import { gardeRobe } from '../../../src/noyau/index';
 import { modelesDeLAtelier } from './atelier';
 
 const dos = { os: 'spine', position: [0, 0.1, 0], rotation: [0, 0, 0] };
-const humanoide = { ...baseSchema3('humanoide'), emplacements: { dos }, appuis: { pieds: ['root'], vitessesAuSol: { Walk_Loop: 1.25 } } };
+const humanoide = { ...baseDeTest('humanoide'), emplacements: { dos }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitessesAuSol: { Walk_Loop: 1.25 } } };
 const epee = elementSchema3('humanoide');
 const chemise = {
   schema: 3, base: 'humanoide', categorie: 'vetement', cle: { piece: 'chemise' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: ['torse'],
@@ -106,7 +106,7 @@ describe('modelesDeLAtelier', () => {
   });
 
   it('une base à marche ambiguë est refusée seule, sans son GLB ni ceux de ses éléments ; les autres bases restent servies', () => {
-    const elfe = { ...baseSchema3('elfe'), appuis: { pieds: ['root'], vitessesAuSol: { Walk_Loop: 1.25, Run_Loop: 3 } } };
+    const elfe = { ...baseDeTest('elfe'), appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitessesAuSol: { Walk_Loop: 1.25, Run_Loop: 3 } } };
     const dague = elementSchema3('elfe');
     const avecElfe = modelesDeLAtelier({ humanoide, epee, elfe, dague }, { humanoide: [], epee: ['root'], elfe: [], dague: ['root'] });
     expect(avecElfe.bases.map(({ id }) => id)).toEqual(['humanoide']);

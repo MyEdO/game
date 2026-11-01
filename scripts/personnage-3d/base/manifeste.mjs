@@ -20,6 +20,7 @@ import { validerManifesteDeBase, VERSION_DU_SCHEMA_DE_BASE } from '../../../hote
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { lireDeclaration } from './declaration.mjs'
 import { ecrireProduction, SOURCES, verifierProduction } from './production.ts'
+import { selectionnerEnConstruction } from './selectionAppuis.mjs'
 
 /** Vitesse posée sur chaque clip de marche le temps de la mesure : `mesurerAppuis` (`appuis.ts`) ne la lit que pour
  *  juger l'écart et le glissement, jamais pour mesurer la vitesse au sol. */
@@ -57,6 +58,8 @@ async function main() {
   }
   const construit = JSON.parse(await text(process.stdin))
   const octets = readFileSync(cheminGlb)
+  construit.appuis.plusBas = await selectionnerEnConstruction(cheminGlb, construit)
+  console.log(`APPUIS_FINAL candidats=${construit.appuis.plusBas.length} octets=${Buffer.byteLength(JSON.stringify(construit.appuis.plusBas))}`)
   const manifeste = (vitessesAuSol) => ({
     schema: VERSION_DU_SCHEMA_DE_BASE, base, ...construit,
     porteur,

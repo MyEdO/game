@@ -13,7 +13,7 @@ import type { VueDuPont } from './pont';
 import { CLICS_DU_CHAMP, plateauDeLaScene } from '../../../src/noyau/index';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
-import { baseSchema3, elementSchema3 } from '../asset/schema3.testkit.ts';
+import { baseDeTest, elementSchema3 } from '../asset/modeles.testkit.ts';
 
 /** La panne d'un lecteur de la vue, armée par le test de la catégorie `interne`. */
 const panne = vi.hoisted(() => ({ projeter: false }));
@@ -45,7 +45,7 @@ describe('le pont avant sa partie', () => {
   });
 
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
-    const manifestes = { humanoide: baseSchema3(), epee: elementSchema3() };
+    const manifestes = { humanoide: baseDeTest(), epee: elementSchema3() };
     expect(appel('modeles', { manifestes, osDesRigides: { humanoide: [], epee: ['root'] } })).toMatchObject({
       ok: true, bases: [{ id: 'humanoide', points: [{ id: 'main', elements: ['epee'] }, { id: 'off', elements: ['epee'] }] }], glb: { humanoide: 'humanoide.glb', epee: 'epee.glb' }, refus: [],
     });

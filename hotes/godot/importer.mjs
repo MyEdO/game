@@ -9,12 +9,12 @@ import { chargerAssets } from './asset/charger.mjs'
 const { importerPersonnage, DOSSIER_DES_MODELES, publierAssets, TAG } = await chargerAssets()
 
 const USAGE = `Usage : node hotes/godot/importer.mjs <dossier de production> <id de modèle> [--destination <dossier>] [--sans-publier] [--remplacer]
-  <dossier de production>  manifest.json : model, model_sha256, manifeste (base ou élément schéma 3) ; au plus un *.blend ; des LICENSE*.txt
+  <dossier de production>  manifest.json : model, model_sha256, manifeste (base schéma 4 ou élément schéma 3) ; au plus un *.blend ; des LICENSE*.txt
   <id de modèle>           le nom des fichiers déposés : <id>.manifeste.json, <id>.provenance.json, les LICENSE-*.txt ;
-                           schéma 3 : <id>.glb écrit aussi ; schéma 2 : <id>.glb tiré de la Release à la construction (construire.mjs)
+                           modèle modulaire : <id>.glb écrit aussi ; schéma 2 : <id>.glb tiré de la Release à la construction (construire.mjs)
   --destination <dossier>  où les déposer (défaut : ${DOSSIER_DES_MODELES})
   --sans-publier           ne verse rien dans la Release ${TAG} (tests, sondes, éléments d’essai déclarés hors_release)
-  --remplacer              remplace le modèle schéma 3 déjà importé sous <id> ; une base, si chaque élément qui la référence
+  --remplacer              remplace le modèle modulaire déjà importé sous <id> ; une base, si chaque élément qui la référence
                            passe contre elle, sinon rien n'est écrit`
 
 /** Les arguments de la ligne de commande, ou l'erreur qui les refuse. */

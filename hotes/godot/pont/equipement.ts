@@ -1,6 +1,6 @@
 import type { CombattantProjete } from '../../../src/hote/projection';
 import type { ManifesteMontable, Montage } from '../asset/montage';
-import { estSchema3 } from '../asset/modeles';
+import { estModeleModulaire } from '../asset/modeles';
 import { findTeinteById } from '../../../src/noyau/index';
 
 export interface ComposantDeModele {
@@ -28,7 +28,7 @@ export function indexDesApparences(manifestes: readonly ManifesteMontable[]): In
 }
 
 const manifestes = import.meta.glob<unknown>('../projet/modeles/*.manifeste.json', { eager: true, import: 'default' });
-export const INDEX_DES_APPARENCES = indexDesApparences(Object.keys(manifestes).sort().map(chemin => manifestes[chemin]).filter((m): m is ManifesteMontable => !estSchema3(m)));
+export const INDEX_DES_APPARENCES = indexDesApparences(Object.keys(manifestes).sort().map(chemin => manifestes[chemin]).filter((m): m is ManifesteMontable => !estModeleModulaire(m)));
 
 export interface ChoixDeModele {
   apparence: string;

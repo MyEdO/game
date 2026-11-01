@@ -17,7 +17,7 @@ import { EMPREINTE, sha256 } from './empreinte.ts';
 import { estObjet } from '../../../src/hote/formes.ts';
 import { cheminsAbsolus, ligneDErreur, type Brut } from './manifeste.ts';
 import {
-  estBase, estSchema3, fichiersDuModele, indexerModeles, validerModele, verdictsDesModeles,
+  estBase, estModeleModulaire, fichiersDuModele, indexerModeles, validerModele, verdictsDesModeles,
   type BaseLivree, type EntreeDeModele, type ManifesteDeModele,
 } from './modeles.ts';
 import {
@@ -118,7 +118,7 @@ function refusDeRemplacement({ destination, id, candidat, octets, entrees }: {
   octets: Uint8Array;
   entrees: readonly EntreeDeModele[];
 }): string[] {
-  const elements = entrees.filter((e) => e.id !== id && estSchema3(e.brut) && !estBase(e.brut) && e.brut.base === candidat.base);
+  const elements = entrees.filter((e) => e.id !== id && estModeleModulaire(e.brut) && !estBase(e.brut) && e.brut.base === candidat.base);
   const refus: string[] = [];
   const octetsParId = new Map<string, Uint8Array>([[id, octets]]);
   for (const { id: element } of elements) {
@@ -142,10 +142,10 @@ const enJson = (v: unknown): string => `${JSON.stringify(v, null, 2)}\n`;
 /** Importe le dossier de production `dossier` sous l'id `id` dans `destination`, daté `date` (AAAA-MM-JJ). `publier`
  *  verse le GLB, la source et, pour un élément, le GLB de sa base épinglée dans la Release (`publierAssets`) et rend
  *  les noms versés ; `null` ne publie rien
- *  (`--sans-publier`, tests et sondes). `remplacer` (`--remplacer`) remplace un modèle schéma 3 déjà importé sous
+ *  (`--sans-publier`, tests et sondes). `remplacer` (`--remplacer`) remplace un modèle modulaire déjà importé sous
  *  `id` : une base ne se remplace que si chaque élément qui la référence passe contre elle (`refusDeRemplacement`), et
  *  les textes de licence que l'ancienne provenance était seule à nommer se retirent (`retires`) ; sur une production
- *  schéma 2, il se refuse (`[remplacer-hors-schema-3]`). Un import réussi rend le `rapport` de l'index (`indexerModeles`)
+ *  schéma 2, il se refuse (`[remplacer-hors-modele-modulaire]`). Un import réussi rend le `rapport` de l'index (`indexerModeles`)
  *  des modèles déposés et du candidat, qui ne bloque rien. */
 export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODELES, date, publier, remplacer = false }: {
   dossier: string;
@@ -195,7 +195,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     licencesDePack.set(fichier, { fichier, licence });
     deposes.set(source, fichier);
   }
-  if (remplacer && !estSchema3(candidat)) return { ok: false, refus: [`[remplacer-hors-schema-3] ${id} : --remplacer ne remplace qu'un modèle schéma 3`] };
+  if (remplacer && !estModeleModulaire(candidat)) return { ok: false, refus: [`[remplacer-hors-modele-modulaire] ${id} : --remplacer ne remplace qu'un modèle modulaire`] };
   const packs = packsSources(brut, deposes, estBase(candidat));
   if ('refus' in packs) return { ok: false, refus: packs.refus };
 
@@ -204,7 +204,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   let remplacement: Parameters<typeof refusDeRemplacement>[0] | null = null;
   let licencesRemplacees: readonly string[] = [];
   let rapport: readonly string[] = [];
-  if (estSchema3(candidat)) {
+  if (estModeleModulaire(candidat)) {
     const lus = manifestesDesModeles(destination);
     const conserves = remplacer ? lus.entrees.filter((e) => e.id !== id) : lus.entrees;
     const index = indexerModeles([...conserves, { id, brut: candidat }]);
@@ -260,7 +260,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   ];
   const publies = publier ? publier(assets) : [];
   const glbEcrits: string[] = [];
-  if (estSchema3(candidat)) {
+  if (estModeleModulaire(candidat)) {
     ecrireTexteAtomique(join(destination, fichiers.glb), octets);
     glbEcrits.push(join(destination, fichiers.glb));
   }

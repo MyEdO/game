@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import type { ManifesteMontable } from '../asset/montage';
-import { estSchema3 } from '../asset/modeles';
+import { estModeleModulaire } from '../asset/modeles';
 import { INDEX_DES_APPARENCES, indexDesApparences, modelesDesCombattants, premierModele } from './equipement';
 import { suiteDe, table } from './pont.testkit';
 const manifesteDeLame: ManifesteMontable = {
@@ -145,7 +145,7 @@ describe('équipement publié au pont Godot (#2948 L3)', () => {
     expect(fichiers.length).toBeGreaterThan(0);
     for (const fichier of fichiers) {
       const brut: unknown = JSON.parse(readFileSync(new URL(fichier, dossier), 'utf8'));
-      if (estSchema3(brut)) continue;
+      if (estModeleModulaire(brut)) continue;
       const m = brut as ManifesteMontable;
       for (const [composant, c] of Object.entries(m.components)) {
         const pieces = Object.values(m.pieces).filter(p => p.component === composant).map(p => p.node);

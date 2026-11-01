@@ -6,7 +6,7 @@
  * reprise, et refuse en `validation` une composition absente ou fautive, au chemin de la faute, et un preset inconnu.
  */
 import { describe, expect, it } from 'vitest';
-import { baseSchema3, elementSchema3, glbDElement } from '../asset/schema3.testkit.ts';
+import { baseDeTest, elementSchema3, glbDElement } from '../asset/modeles.testkit.ts';
 import { empreinte } from '../asset/empreinte.ts';
 import { cataloguesDeComposition, lireComposition } from '../../../src/noyau/index';
 import { tableTotale } from '../../../src/lib/tableTotale';
@@ -15,7 +15,7 @@ import { modelesDeLAtelier } from './atelier';
 import { composerSurLaBase } from './composition';
 import { creerPont } from './pont';
 
-const humanoide = { ...baseSchema3('humanoide'), emplacements: { epaule_d: { os: 'root', position: [0, 0, 0], rotation: [0, 0, 0] } }, appuis: { pieds: ['root'], vitessesAuSol: { Walk_Loop: 1.25 } } };
+const humanoide = { ...baseDeTest('humanoide'), emplacements: { epaule_d: { os: 'root', position: [0, 0, 0], rotation: [0, 0, 0] } }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitessesAuSol: { Walk_Loop: 1.25 } } };
 const plastron = {
   schema: 3, base: 'humanoide', categorie: 'armure', cle: { piece: 'plastron' }, liaison: { mode: 'squelette' }, couche: 'armure', couvre: ['torse'],
   surfaces: [{ nom: 'acier', palette: 'metal' }], glb: empreinte(glbDElement('root', ['acier'])),
