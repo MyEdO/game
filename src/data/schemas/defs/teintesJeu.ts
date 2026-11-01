@@ -1,7 +1,7 @@
 /**
  * Schéma de `teintesJeu.json` — les TEINTES DE JEU du terrain : surbrillances tactiques (portées,
  * zones, bandes de tir, anneaux de cible, halos, télégraphes) ET identité d'unité (anneaux réservés,
- * couleurs d'équipe, couleurs par héros). Document de famille `record` : sa carte `id → #rrggbb`,
+ * couleurs d'équipe, quatre identités des héros du groupe). Document de famille `record` : sa carte `id → #rrggbb`,
  * groupée par PRÉFIXE d'id, vit sous `entries` (#1467 L1b V-FLIP-RECORD).
  *
  * QUI CONSOMME. Trois façades TS, et elles seules — aucun consommateur ne lit ce JSON en direct :
@@ -20,16 +20,17 @@
  * une clé hors `TEINTE_KEYS` est refusée au sceau (clés FERMÉES), et la parité des `TEINTE_KEYS` avec
  * les préfixes déclarés est mesurée par `src/gameIso/highlightTints.test.ts`.
  *
- * TROIS INVARIANTS, tenus par `refine` :
+ * QUATRE INVARIANTS, tenus par `refine` :
  *  (a) NON-COLLISION surbrillance ⇄ identité : un octet servi par une surbrillance transitoire
  *      (`zone-`/`bande-`/`signal-`/`or-`/`editeur-`) ne peut pas être celui d'une identité persistante
  *      (`anneau-`/`equipe-`/`identite-`) — sinon un tapis de portée peint la couleur d'un héros.
  *      Un partage VOULU (même signal, deux surfaces) s'inscrit NOMINATIVEMENT ci-dessous.
- *  (b) SÉPARATION des quatre `identite-heros-*` : `teamColors.ts` les veut « 4 couleurs FROIDES
- *      distinctes » — l'invariant en fait une distance mesurée, pas une intention en prose.
+ *  (b) SÉPARATION des quatre `identite-heros-*`, une par héros dans l'ordre du groupe :
+ *      leur distinction est une distance mesurée.
  *  (c) DISTANCE des paires SUPERPOSÉES (`PAIRES_SUPERPOSEES`) : deux teintes qui se touchent dans le
  *      même cadre (le tapis peint SOUS le pion) tiennent le même plancher que (b) — octets distincts
  *      ne suffit pas quand les deux couleurs se jouxtent à quelques pixels.
+ *  (d) L'anneau hors groupe se sépare des anneaux actif, ennemi et des quatre héros au même plancher.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -50,11 +51,11 @@ export const TEINTE_KEYS = [
   'signal-cible', 'signal-foule', 'signal-allie', 'signal-ennemi', 'signal-engagement', 'signal-menace', 'signal-invalide',
   // L'OR du joueur — trajet d'aperçu, réticule héros, halo d'interaction, contour du glyphe.
   'or-surbrillance', 'or-contour', 'or-halo',
-  // Anneaux RÉSERVÉS (jamais une équipe, jamais un héros).
-  'anneau-actif', 'anneau-ennemi',
+  // Anneaux de l'unité active, des ennemis et des unités hors groupe.
+  'anneau-actif', 'anneau-ennemi', 'anneau-hors-groupe',
   // Appartenance sémantique d'une case/d'un voile.
   'equipe-allie', 'equipe-ennemi', 'equipe-neutre',
-  // Identité par héros, cyclique.
+  // Identités des quatre héros du groupe, dans son ordre.
   'identite-heros-1', 'identite-heros-2', 'identite-heros-3', 'identite-heros-4',
   // Mode CALAGE de l'éditeur — aplat et arêtes du décor volumique contrasté sur la planche décalquée.
   'editeur-calage-aplat', 'editeur-calage-aretes',
@@ -68,7 +69,7 @@ export const GROUPES_SURBRILLANCE = ['zone-', 'bande-', 'signal-', 'or-', 'edite
 /** Préfixes des teintes PERSISTANTES (identité d'une unité à l'écran). */
 export const GROUPES_IDENTITE = ['anneau-', 'equipe-', 'identite-'] as const;
 
-/** Les quatre identités de héros, dans l'ordre cyclique de `HERO_RING`. */
+/** Les quatre identités des héros du groupe, dans l'ordre de `HERO_RING`. */
 export const IDENTITE_HEROS_KEYS = ['identite-heros-1', 'identite-heros-2', 'identite-heros-3', 'identite-heros-4'] as const;
 
 /**
@@ -79,9 +80,8 @@ export const IDENTITE_HEROS_KEYS = ['identite-heros-1', 'identite-heros-2', 'ide
  * DOCTRINE (une entrée = un SIGNAL, pas un octet). Deux consommateurs qui désignent le MÊME référent
  * sur des surfaces différentes lisent UNE entrée (`anneau-actif` : anneau d'unité, voile, halo de
  * case). Deux consommateurs sur des AXES différents gardent DEUX entrées même à octet égal, et le
- * partage se déclare ici : `anneau-ennemi` est le cran non-héros de l'axe d'IDENTITÉ PAR UNITÉ
- * (`ENEMY_RING`, frère des quatre `HERO_RING` : `builders/dynamicMarks.teamRingDecor`, et les
- * portraits `ui/console/CombatConsole`/`ui/CharFrame`/`ui/TeamPortrait`), `equipe-ennemi` est le cran ennemi de l'axe
+ * partage se déclare ici : `anneau-ennemi` est le cran ennemi de l'axe d'IDENTITÉ PAR UNITÉ
+ * (`ENEMY_RING`, frère des quatre `HERO_RING` : `builders/dynamicMarks.teamRingDecor`), `equipe-ennemi` est le cran ennemi de l'axe
  * d'APPARTENANCE (`ENEMY_TINT` : `teamColors.tileTint`/`veilTint`/`relationColor`, et
  * `topoMarkers.stationTint`, qui colore une STATION de la carte, jamais un anneau d'unité).
  */
@@ -94,7 +94,7 @@ export const PARTAGES_NOMMES: { a: TeinteId; b: TeinteId; signal: string }[] = [
   {
     a: 'anneau-ennemi',
     b: 'equipe-ennemi',
-    signal: "le rouge du camp adverse, porté par deux AXES distincts (l'anneau d'identité d'une unité non-héros ; l'appartenance d'une case, d'un voile, d'une station de la carte topo) — même camp, deux axes, donc deux entrées qu'un artiste peut désaccorder.",
+    signal: "le rouge du camp adverse, porté par deux AXES distincts (l'anneau d'identité d'une unité ennemie ; l'appartenance d'une case, d'un voile, d'une station de la carte topo) — même camp, deux axes, donc deux entrées qu'un artiste peut désaccorder.",
   },
 ];
 
@@ -178,6 +178,15 @@ const doc = document(
             ),
           {
             message: `teintesJeu : deux \`identite-heros-*\` sont à moins de ${SEUIL_IDENTITE_HEROS} de distance perceptuelle — les anneaux de deux héros se confondraient.`,
+          },
+        )
+        .refine(
+          (d) =>
+            (['anneau-actif', 'anneau-ennemi', ...IDENTITE_HEROS_KEYS] as const).every(
+              (id) => distanceTeinte((d as Carte).entries['anneau-hors-groupe'], (d as Carte).entries[id]) >= SEUIL_IDENTITE_HEROS,
+            ),
+          {
+            message: `teintesJeu : l'anneau hors groupe est à moins de ${SEUIL_IDENTITE_HEROS} de distance perceptuelle d'un anneau actif, ennemi ou héros.`,
           },
         )
         .refine(

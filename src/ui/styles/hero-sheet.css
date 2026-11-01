@@ -15,11 +15,8 @@
 .hero-sheet-head {
   gap: 12px;
 }
-.hero-sheet-fig {
-  flex: none;
-}
-/* L'identité ne se COMPRIME pas sous sa lisibilité : `flex-basis` plancher → quand figurine + identité
-   + rose ne tiennent plus sur la ligne, la rangée s'ENROULE (la rose passe dessous) au lieu d'écraser
+/* L'identité ne se COMPRIME pas sous sa lisibilité : `flex-basis` plancher → quand identité + rose ne
+   tiennent plus sur la ligne, la rangée s'ENROULE (la rose passe dessous) au lieu d'écraser
    le sous-titre en colonne de 79px sur 3 lignes, « Humain (Reikland… » venant mourir contre la rose
    (mesuré à 900px, le breakpoint canon d'empilement — invisible à 1600px, d'où la régression passée).
    `min-width:0` reste : le nom gothique long doit pouvoir se replier plutôt que déborder. */

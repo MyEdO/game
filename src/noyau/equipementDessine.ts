@@ -1,6 +1,6 @@
 /**
  * ÉQUIPEMENT DESSINÉ d'un porteur, sans art (#2097, #2948) : la PROJECTION de son état sur les clés que
- * tout dessinateur lit (rig SVG, hôte 3D), keyée par ids stables. L'art (formes, matériaux peints) vit
+ * tout dessinateur lit (hôte Godot `hotes/godot/pont/equipement.ts`), keyée par ids stables. L'art (formes, matériaux peints) vit
  * chez chaque dessinateur et consomme cette projection.
  */
 import type { ArmourPoints, Combatant, HitLocation, ItemInstance, Weapon } from '../engine/types';

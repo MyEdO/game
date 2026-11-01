@@ -34,7 +34,7 @@ function groupe(): Combatant[] {
  *
  * Une diligence éventrée en travers d'une route forestière ; ses passagers gisent, dépecés. Des MUTANTS de
  * morphologies variées (charognard quadrupède, homme-chien hurlant, tête-ogive, pattes-de-chèvre) se
- * repaissent des cadavres — composés par le rig (parts monstrueuses) et animés en CSS (feed/howl/wrap…).
+ * repaissent des cadavres (ambiances feed/howl/wrap…).
  * L'approche déclenche un DIALOGUE ; sa fin lance le COMBAT. Le décor (épave, corps, sang) reste visible.
  *
  * Terrain EXPLICITE case-à-case (légende {R:route, B:bois}) : grand-route est-ouest (rangées 6-7),
@@ -141,8 +141,8 @@ function construireScene(): Scene {
       },
     ],
     // VISIBLE (hidden par défaut = false) : les mutants qu'on voit se repaître SONT les combattants. L'entité
-    // enrôlée porte TOUT — rig 'mutant' + mutation visible + arme + anim d'ambiance + statbloc ch.2. Statblocs
-    // CUSTOM fidèles à L'ennemi dans l'Ombre ch.2 (stats VF vérifiées). `ref:'mutant'` = base rig en exploration.
+    // enrôlée porte TOUT — espèce 'mutant' + mutation visible + arme + anim d'ambiance + statbloc ch.2. Statblocs
+    // CUSTOM fidèles à L'ennemi dans l'Ombre ch.2 (stats VF vérifiées). `ref:'mutant'` = créature de base en exploration.
     encounters: [
       {
         id: 'enc-mutants',
@@ -155,7 +155,7 @@ function construireScene(): Scene {
           {
             // Chef : reste en retrait, tire à l'arbalète (À distance dans le Trait — le Trait dérive déjà
             // l'arme de RENDU via `weaponFromTrapping`, plus de `weapon:` d'authoring redondant, #145).
-            pos: { x: 17, y: 6 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'lezard' } }, anim: 'standing',
+            pos: { x: 17, y: 6 }, ref: 'mutant', appearance: { species: 'humains-reiklander' }, anim: 'standing',
             label: 'Knud Cratinx',
             statblock: { type: 'statblock',
               label: 'Knud Cratinx',
@@ -164,23 +164,23 @@ function construireScene(): Scene {
             },
           },
           {
-            pos: { x: 17, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'chien' } }, anim: 'howl',
+            pos: { x: 17, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander' }, anim: 'howl',
             label: 'Mikael',
             statblock: { type: 'statblock', label: 'Mikael', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 1 }, traits: [{ id: 'arme', value: 7, arg: 'massue' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'tete-bestiale-chien' }] },
           },
           {
-            pos: { x: 14, y: 8 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { jambes: 'chevre' } }, anim: 'feeding',
+            pos: { x: 14, y: 8 }, ref: 'mutant', appearance: { species: 'humains-reiklander' }, anim: 'feeding',
             label: 'Erik',
             statblock: { type: 'statblock', label: 'Erik', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 2 }, traits: [{ id: 'arme', value: 7, arg: 'couteau' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'pattes-chevre' }] },
           },
           {
-            pos: { x: 14, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'ogive' } }, anim: 'standing',
+            pos: { x: 14, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander' }, anim: 'standing',
             label: 'Johann',
             statblock: { type: 'statblock', label: 'Johann', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 4 }, traits: [{ id: 'arme', value: 7, arg: 'dague' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'tete-pointue' }] },
           },
           {
             // « Mutile l'attelage à la hache » → arme dans le Trait (type Grande hache, libellé catalogué → shape).
-            pos: { x: 12, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'minuscule' } }, anim: 'standing',
+            pos: { x: 12, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander' }, anim: 'standing',
             label: 'Terenz',
             statblock: { type: 'statblock', label: 'Terenz', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 3 }, traits: [{ id: 'arme', value: 7, arg: 'grande-hache' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'cretin' }] },
           },

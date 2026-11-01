@@ -12,7 +12,6 @@
      .listrow            rangée de liste : nom + méta (sous le nom si la place manque) + action
      .chip               badge/pastille (alias de .tag) ; .count = pastille numérique
      .btn-ghost / .rm-influence  bouton discret ; rangée « influencer le jet » (le cadre de modale : modal.css)
-     .charprev           aperçu « perso en pied » (CharacterPreview) : tailles + ambiances
      .icon               icône SVG maison (primitive <Icon> — src/ui/Icon.tsx, registre src/ui/icons/)
      .clamp              texte tronqué à N lignes (`--clamp`, défaut 3)
      .cart-step/.btn-step  stepper de quantité [−][centre][+] — primitive QtyStepper.tsx
@@ -653,54 +652,6 @@ button.chip:hover {
   }
 }
 
-/* ── APERÇU PERSONNAGE (CharacterPreview) — perso en pied, cadre 120×150 ──
-   Tailles par modificateur ; ambiances optionnelles. Les textures `.tx-parchment`/`.tx-ink`
-   vivent dans ornaments.css — ici seulement le cadre et la lumière. */
-.charprev {
-  position: relative;
-  display: inline-flex;
-  align-items: flex-end;
-  justify-content: center;
-  aspect-ratio: 120 / 150;
-  overflow: hidden;
-}
-.charprev-svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-.charprev-xs { height: 40px; }
-.charprev-sm { height: 72px; }
-.charprev-md { height: 120px; }
-.charprev-lg { height: 190px; }
-.charprev-fill {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: auto;
-}
-.charprev-amb-panel {
-  background: var(--panel2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-.charprev-amb-parchment { /* fond texturé par .tx-parchment (posée par le composant) */
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-.charprev-amb-spotlight { /* fond sombre .tx-ink + halo de lumière sur la figure */
-  border-radius: 10px;
-}
-.charprev-amb-spotlight::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  /* Centre du halo ≈ torse de la figure (#430 correctif : la figure `fill` remplit désormais le
-     cadre à ~88 % — tête proche du bord haut, pieds au sol — le halo suit, jamais un centre
-     géométrique du cadre qui retombait dans le vide au-dessus de la tête). */
-  background: radial-gradient(ellipse 62% 48% at 50% 42%, color-mix(in srgb, var(--gold2) 22%, transparent), transparent 72%);
-  pointer-events: none;
-}
-
 /* ── ICÔNE (primitive <Icon> — src/ui/Icon.tsx, registre src/ui/icons/) ── */
 .icon {
   display: inline-block;
@@ -774,7 +725,7 @@ button.chip:hover {
   gap: 14px;
   align-items: flex-start;
 }
-.dlg-portrait {
+.dlg-repere {
   flex: 0 0 auto;
   width: 64px;
   height: 64px;
@@ -788,7 +739,7 @@ button.chip:hover {
   justify-content: center;
   color: var(--gold2);
 }
-.dlg-portrait svg {
+.dlg-repere svg {
   width: 100%;
   height: 100%;
   display: block;

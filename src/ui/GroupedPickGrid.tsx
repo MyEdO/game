@@ -6,7 +6,6 @@ export interface PickGridItem {
   id: string;
   label: string;
   sub?: string;
-  preview: import('./CharacterPreview').CharacterPreviewProps;
 }
 export interface PickGridSection {
   id: string;
@@ -41,7 +40,6 @@ export function GroupedPickGrid({ sections, selectedId, sealedId, onSelect, labe
             return (
               <FigTile
                 key={it.id}
-                preview={it.preview}
                 label={it.label}
                 sub={it.sub}
                 selected={it.id === selectedId}

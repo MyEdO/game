@@ -1,29 +1,22 @@
 /**
- * Garde des LECTURES DE L'ART du rig hors de leur foyer (#1903) : jetons `@clé`, gammes, vues d'un art
- * orienté, références de dégradé. Sept CONSTRUCTIONS RÉSERVÉES (`canonUnique.mjs`), chacune déclarée
- * avec son foyer et filtrée par `sAppliqueA` (`sourceCorpus.mjs`), dans `LECTURES_DE_L_ART` :
- * `REGEX_DE_JETON`, `GAMME_EN_LIGNE`, `PROJECTION_DE_VUES`, `REGEX_DE_DEGRADE_DERIVE`,
- * `REGEX_DE_DEGRADE_FIXE`, `CANON_VIEWS`, `CANON_ROLES_DE_GAMME`. Les motifs se déclarent depuis les
- * canons qu'ils gardent (`CLES`, `SUFFIXE_DE_ROLE`, `ROLES_DE_GAMME`, `VIEWS`), jamais recopiés ici.
- * Lecture par l'AST (`ast`, `dialecte.mjs`) ; ce module et sa garde écrivent les constructions qu'ils
- * détectent, et sont dans le foyer de chacune (`MODULE`, `GARDE`).
+ * Garde des LECTURES DE L'ART hors de leur foyer (#1903) : vues d'un art orienté, références de dégradé
+ * fixe. Trois CONSTRUCTIONS RÉSERVÉES (`canonUnique.mjs`), chacune déclarée avec son foyer et filtrée par
+ * `sAppliqueA` (`sourceCorpus.mjs`), dans `LECTURES_DE_L_ART` : `PROJECTION_DE_VUES`,
+ * `REGEX_DE_DEGRADE_FIXE`, `CANON_VIEWS`. Les motifs de vues se déclarent depuis le canon qu'ils gardent
+ * (`VIEWS`), jamais recopiés ici. Lecture par l'AST (`ast`, `dialecte.mjs`) ; ce module et sa garde
+ * écrivent les constructions qu'ils détectent, et sont dans le foyer de chacune (`MODULE`, `GARDE`).
  *
  * Formes que `CANON_VIEWS` ne lit pas. Les clés d'objet : un art orienté EST une table keyée par vue,
  * typée par son format ; ses projections, dont chaque valeur se lit ou se calcule depuis la vue de sa
  * clé, relèvent de `PROJECTION_DE_VUES`. La case d'un `switch` : un rétrécissement que le compilateur
  * borne, comme `unions-canon.test.ts` l'arbitre pour l'arête de mur.
  *
- * Ce que cette garde ne voit pas. Une lecture de jeton sans regex (`includes('@')`, `toContain('@')`,
- * `split`, `indexOf`). Un suffixe concaténé depuis un identifiant qui n'est pas lié par `const` à un
- * conditionnel de suffixes (paramètre, variable, retour de fonction), ou rangé dans un tuple plus large
- * (`['O', 0.78, -1]`). Un tableau d'appels `gammeDe` dont les rôles ne sont pas des littéraux. Une
- * projection de vues sans test de `typeof` : la lecture directe d'un format TOTAL (`ViewSet`) n'en est
- * pas une, ni la re-projection locale d'un `ViewArt`, qui n'a pas de forme chaîne. Les sous-ensembles
- * de vues : listes de deux, et projections en clés d'objet de moins de trois vues (#2008). Les formes
- * que `CANON_VIEWS` ne lit pas. La lecture des DÉFINITIONS `id="dg-…"` dans un rendu résolu, dont seul
- * `deriverDegrades` écrit la forme. La lecture par SOUS-CHAÎNE d'un id de dégradé fixe sans classe après
- * `g_` (`/g_steel/`). La lecture DIRECTE d'une vue sur un art orienté en objet (`p.viewArt?.[view]`),
- * égale à `declaredView` sur un objet, qui n'est pas une projection. Une table keyée par vue remplie
+ * Ce que cette garde ne voit pas. Une projection de vues sans test de `typeof` : la lecture directe d'un
+ * format TOTAL (`Record<View, …>`) n'en est pas une, ni la re-projection locale d'un `ViewArt`, qui n'a
+ * pas de forme chaîne. Les sous-ensembles de vues : listes de deux, et projections en clés d'objet de
+ * moins de trois vues (#2008). Les formes que `CANON_VIEWS` ne lit pas. La lecture par SOUS-CHAÎNE d'un
+ * id de dégradé fixe sans classe après `g_` (`/g_steel/`). La lecture DIRECTE d'une vue sur un art
+ * orienté en objet (`art[view]`), qui n'est pas une projection. Une table keyée par vue remplie
  * par une boucle (`for (const v of VIEWS) o[v] = …`). Des appels frères, un par vue, hors des arguments
  * d'un appel, d'un tableau littéral et des instructions d'un bloc : en substitutions d'un gabarit
  * (`` `${f('front')}${f('profile')}${f('back')}` ``), en opérandes d'une concaténation, en enfants d'un
@@ -33,17 +26,13 @@
  */
 import * as ts from 'typescript/unstable/ast';
 import { recopieDeCanon, type ConstructionGardee } from './canonUnique.mjs';
-import { CLES } from '../../../src/gameIso/rig/clesDePalette';
-import { ROLES_DE_GAMME, SUFFIXE_DE_ROLE } from '../../../src/data/palette.types';
-import { VIEWS } from '../../../src/gameIso/rig/facing';
-import { echapperRegex } from '../../../src/lib/regex';
+import { VIEWS } from '../../../src/gameIso/facing';
 
-/** Ce module, dans le foyer de chaque construction. */
 export const MODULE = 'scripts/guards/lib/lecturesDeLArt.ts';
 /** La garde, dans le foyer de chaque construction. */
 export const GARDE = 'src/lectures-de-l-art-guard.test.ts';
 
-/** Les formes de liste que lisent `CANON_VIEWS` et `CANON_ROLES_DE_GAMME`. */
+/** Les formes de liste que lit `CANON_VIEWS`. */
 const FORMES_DES_LISTES = ['tableau', 'union de types', 'membres de type', 'chaîne de comparaisons'];
 
 /** Le motif d'une regex : le texte d'un littéral, ou celui du premier argument d'un `new RegExp(…)`
@@ -68,101 +57,6 @@ function regexReservee(nom: string, lit: RegExp, detail: string, indice: (texte:
   };
 }
 
-/** `@` suivi d'une classe ouverte sur une lettre, de `\w`, d'une substitution, ou d'un groupe ouvert
- *  sur l'un d'eux ou sur une clé de `CLES`. */
-const JETON = new RegExp(String.raw`@(\[a-zA-Z|\\w|\$\{|\((\?:)?(\[a-zA-Z|\\w|\$\{|(${CLES.map(echapperRegex).join('|')})\b))`);
-
-const REGEX_DE_JETON = {
-  ...regexReservee('REGEX_DE_JETON', JETON, 'regex de jeton (`TOKEN_RE`, `tokensOf`, `replaceTokens`, `palette.ts`)', (t) => t.includes('@')),
-  foyer: ['src/gameIso/rig/palette.ts', MODULE, GARDE],
-} satisfies ConstructionGardee;
-
-/** Les suffixes de rôle, lus dans la table. */
-const SUFFIXES: readonly string[] = Object.values(SUFFIXE_DE_ROLE);
-const estSuffixe = (s: string) => SUFFIXES.includes(s);
-const COMMENCE_PAR_UN_SUFFIXE = new RegExp(`^(${SUFFIXES.map(echapperRegex).join('|')})(?!\\w)`);
-
-/** Au moins deux suffixes DISTINCTS dans une alternance `(…|…)` ou une classe `[…]` du motif. */
-function suffixesEnAlternance(motif: string): boolean {
-  for (const [, corps] of motif.matchAll(/\((?:\?:)?([^()]*)\)/g)) {
-    const alternatives = corps.split('|');
-    if (alternatives.length > 1 && alternatives.every(estSuffixe) && new Set(alternatives).size >= 2) return true;
-  }
-  for (const [, corps] of motif.matchAll(/\[([^\]]*)\]/g)) {
-    const lettres = [...corps];
-    if (lettres.length > 1 && lettres.every(estSuffixe) && new Set(lettres).size >= 2) return true;
-  }
-  return false;
-}
-
-/** Les feuilles d'une expression conditionnelle (`a ? b : c`, imbriquée), parenthèses retirées. */
-function feuilles(e: ts.Expression): ts.Expression[] {
-  while (ts.isParenthesizedExpression(e)) e = e.expression;
-  return ts.isConditionalExpression(e) ? [...feuilles(e.whenTrue), ...feuilles(e.whenFalse)] : [e];
-}
-
-/** Vrai si `id` est lié par `const` à un conditionnel dont toutes les feuilles sont `''` ou des
- *  suffixes, au moins un suffixe. */
-function lieAUnConditionnelDeSuffixes(id: ts.Identifier, sf: ts.SourceFile): boolean {
-  let trouve = false;
-  const walk = (x: ts.Node) => {
-    if (trouve) return;
-    if (
-      ts.isVariableDeclaration(x) && ts.isIdentifier(x.name) && x.name.text === id.text && x.initializer
-      && ts.isVariableDeclarationList(x.parent) && (x.parent.flags & ts.NodeFlags.Const) !== 0
-    ) {
-      const fs = feuilles(x.initializer);
-      const lits = fs.map((f) => (ts.isStringLiteralLikeNode(f) ? f.text : null));
-      if (fs.length > 1 && lits.every((l) => l === '' || (l != null && estSuffixe(l))) && lits.some((l) => l != null && estSuffixe(l))) trouve = true;
-    }
-    x.forEachChild(walk);
-  };
-  walk(sf);
-  return trouve;
-}
-
-const estLitteral = (e: ts.Expression) => ts.isStringLiteralLikeNode(e) || ts.isNumericLiteral(e) || ts.isTemplateExpression(e);
-
-/** Rôle littéral d'un appel `gammeDe(…, '<rôle>')`, ou `null`. */
-function roleDeGammeDe(e: ts.Expression): string | null {
-  if (!ts.isCallExpression(e) || !ts.isIdentifier(e.expression) || e.expression.text !== 'gammeDe') return null;
-  const role = e.arguments[1];
-  return role && ts.isStringLiteralLikeNode(role) ? role.text : null;
-}
-
-const GAMME_EN_LIGNE = {
-  nom: 'GAMME_EN_LIGNE',
-  foyer: ['src/data/palette.types.ts', MODULE, GARDE],
-  reconnait: (n, sf) => {
-    if (ts.isTemplateExpression(n)) {
-      const enLigne = n.templateSpans.some((span, i) => {
-        const avant = i === 0 ? n.head.text : n.templateSpans[i - 1].literal.text;
-        const dernier = i === n.templateSpans.length - 1;
-        return (dernier && estSuffixe(span.literal.text)) || (avant.endsWith('@') && COMMENCE_PAR_UN_SUFFIXE.test(span.literal.text));
-      });
-      return enLigne ? 'suffixe de rôle écrit dans un gabarit (`gammeDe`)' : null;
-    }
-    if (ts.isArrayLiteralExpression(n)) {
-      const lits = n.elements.map((e) => (ts.isStringLiteralLikeNode(e) ? e.text : null));
-      if (lits.length > 1 && lits.every((l) => l === '' || (l != null && estSuffixe(l))) && new Set(lits.filter((l) => l)).size >= 2) {
-        return 'liste des suffixes de rôle (`gammes`, `ROLES_DE_GAMME`)';
-      }
-      const roles = n.elements.map(roleDeGammeDe);
-      if (roles.filter((r) => r != null).length >= 2 && new Set(roles.filter((r) => r != null)).size >= 2) {
-        return 'liste des rôles recopiée en appels `gammeDe` (`gammes`, `ROLES_DE_GAMME`)';
-      }
-      return null;
-    }
-    if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.PlusToken) {
-      const b = n.right;
-      if (ts.isStringLiteralLikeNode(b) && estSuffixe(b.text) && !estLitteral(n.left)) return 'suffixe de rôle concaténé (`gammeDe`)';
-      if (ts.isIdentifier(b) && lieAUnConditionnelDeSuffixes(b, sf)) return 'suffixe de rôle concaténé depuis un conditionnel (`gammeDe`)';
-      return null;
-    }
-    const motif = motifDeRegex(n, sf);
-    return motif != null && suffixesEnAlternance(motif) ? 'suffixes de rôle en alternance de regex (`baseDeGamme`)' : null;
-  },
-} satisfies ConstructionGardee;
 
 /** Texte d'un récepteur, chaînage optionnel et assertion non nulle retirés. */
 const recepteur = (e: ts.Expression, sf: ts.SourceFile) => e.getText(sf).replace(/\?\./g, '.').replace(/!/g, '');
@@ -281,7 +175,7 @@ export function projectionDeVues(vues: readonly string[]): Omit<ConstructionGard
           c.forEachChild(walk);
         };
         n.forEachChild(walk);
-        if (interne) return 'projection de vues sous `typeof` chaîne (`declaredView`, `mapViews`, `viewArt.ts`)';
+        if (interne) return 'projection de vues sous `typeof` chaîne (`nearestView`, `viewArt.ts`)';
       }
       if (ts.isBinaryExpression(n) && ts.isTypeOfExpression(n.left) && ts.isStringLiteralLikeNode(n.right)) {
         const op = n.operatorToken.kind;
@@ -290,17 +184,17 @@ export function projectionDeVues(vues: readonly string[]): Omit<ConstructionGard
           let haut: ts.Node = n;
           while (haut.parent && (ts.isBinaryExpression(haut.parent) || ts.isConditionalExpression(haut.parent) || ts.isParenthesizedExpression(haut.parent))) haut = haut.parent;
           const zone = haut.parent && ts.isIfStatement(haut.parent) ? haut.parent : haut;
-          if (litUneVueSur(zone, recepteur(n.left.expression, sf), sf, vues, false)) return 'projection de vues sous `typeof` objet (`declaredView`, `viewArt.ts`)';
+          if (litUneVueSur(zone, recepteur(n.left.expression, sf), sf, vues, false)) return 'projection de vues sous `typeof` objet (`nearestView`, `viewArt.ts`)';
         }
       }
       if (ts.isArrayLiteralExpression(n)) {
         const lues = n.elements.map((e) => vueLue(e, sf, vues)).filter((l): l is [string, string] => l != null);
         const parRecepteur = new Map<string, Set<string>>();
         for (const [x, v] of lues) parRecepteur.set(x, (parRecepteur.get(x) ?? new Set()).add(v));
-        if ([...parRecepteur.values()].some((vus) => vues.every((v) => vus.has(v)))) return 'vues d’un art listées en tableau (`viewEntries`, `viewArt.ts`)';
+        if ([...parRecepteur.values()].some((vus) => vues.every((v) => vus.has(v)))) return 'vues d’un art listées en tableau (`VIEWS`, `facing.ts`)';
         if (appelsFreres(n.elements, sf, vues)) return 'appels frères, un par vue (`VIEWS.map`)';
       }
-      if (ts.isObjectLiteralExpression(n) && projectionEnCles(n, sf, vues)) return 'projection de vues en clés d’objet (`tableTotale(VIEWS, …)`, `mapViews`)';
+      if (ts.isObjectLiteralExpression(n) && projectionEnCles(n, sf, vues)) return 'projection de vues en clés d’objet (`tableTotale(VIEWS, …)`, `viewArt.ts`)';
       if (ts.isCallExpression(n) && appelsFreres(n.arguments, sf, vues)) return 'appels frères, un par vue (`VIEWS.map`)';
       if (ts.isBlock(n) && appelsFreres(n.statements, sf, vues)) return 'appels frères, un par vue (`VIEWS.map`)';
       return null;
@@ -308,12 +202,7 @@ export function projectionDeVues(vues: readonly string[]): Omit<ConstructionGard
   };
 }
 
-const PROJECTION_DE_VUES = { ...projectionDeVues(VIEWS), foyer: ['src/gameIso/rig/viewArt.ts', MODULE, GARDE] } satisfies ConstructionGardee;
-
-const REGEX_DE_DEGRADE_DERIVE = {
-  ...regexReservee('REGEX_DE_DEGRADE_DERIVE', /url\\\(#dg-|\^dg-/, 'grammaire d’une référence `dg-` (`lireDegradeDerive`, `palette.ts`)', (t) => t.includes('dg-')),
-  foyer: ['src/gameIso/rig/palette.ts', MODULE, GARDE],
-} satisfies ConstructionGardee;
+const PROJECTION_DE_VUES = { ...projectionDeVues(VIEWS), foyer: ['src/gameIso/catalog/viewArt.ts', MODULE, GARDE] } satisfies ConstructionGardee;
 
 const REGEX_DE_DEGRADE_FIXE = {
   ...regexReservee('REGEX_DE_DEGRADE_FIXE', /g_(\\w|\[)/, 'préfixe de dégradé fixe (`FX_GRADIENT_IDS`, `fxGradients.ts`)', (t) => t.includes('g_')),
@@ -322,21 +211,12 @@ const REGEX_DE_DEGRADE_FIXE = {
 
 const CANON_VIEWS = {
   ...recopieDeCanon({ nom: 'VIEWS', membres: VIEWS, complet: true, formes: FORMES_DES_LISTES }),
-  foyer: ['src/gameIso/rig/facing.ts', MODULE, GARDE],
+  foyer: ['src/gameIso/facing.ts', MODULE, GARDE],
 } satisfies ConstructionGardee;
 
-const CANON_ROLES_DE_GAMME = {
-  ...recopieDeCanon({ nom: 'ROLES_DE_GAMME', membres: ROLES_DE_GAMME, complet: true, formes: FORMES_DES_LISTES }),
-  foyer: ['src/data/palette.types.ts', MODULE, GARDE],
-} satisfies ConstructionGardee;
-
-/** Les sept lectures de l'art, dans l'ordre de leurs motifs. */
+/** Les trois lectures de l'art, dans l'ordre de leurs motifs. */
 export const LECTURES_DE_L_ART: readonly ConstructionGardee[] = [
-  REGEX_DE_JETON,
-  GAMME_EN_LIGNE,
   PROJECTION_DE_VUES,
-  REGEX_DE_DEGRADE_DERIVE,
   REGEX_DE_DEGRADE_FIXE,
   CANON_VIEWS,
-  CANON_ROLES_DE_GAMME,
 ];

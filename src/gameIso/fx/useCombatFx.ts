@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../state/store';
 import { bus, EVT } from '../../noyau/bus';
-import { isSupportiveCast, spellFxForLabel } from '../rig/anim/spellClips';
+import { isSupportiveCast, spellFxForLabel } from './spellClips';
 import { conditionMeta } from '../effectIcons';
 import { conditionLabel } from '../../data';
 import type { Combatant } from '../../engine/types';
@@ -24,7 +24,7 @@ const aoeColor = (type?: string): string => {
 };
 
 // Flottants TYPÉS (R8) — chaque échange se lit d'un coup d'œil : touche/raté/parade/soin/mort, pas
-// seulement les Blessures. Déclenchés sur ANIM_IMPACT (timing du clip) + canal ANIM_FLOAT (soin/État).
+// seulement les Blessures. Déclenchés sur ANIM_IMPACT (`fx/impactClock`) + canal ANIM_FLOAT (soin/État).
 export type FloatKind = 'damage' | 'soak' | 'miss' | 'defend' | 'death' | 'heal' | 'condition';
 /** `icon` (id du registre src/ui/icons) : pictogramme optionnel rendu à gauche du texte (flottants d'État). */
 export type Float = { key: number; x: number; y: number; text: string; kind: FloatKind; crit?: boolean; icon?: IconId };

@@ -28,7 +28,8 @@ import { vehicleCombatant } from '../../engine/vehicle';
 import { actionGate, ACTION_CANDIDATES, REMEDES } from '../../noyau/actionRegistry';
 import { emptyScene } from '../../noyau/monde/scene';
 import { mdToText } from '../Prose';
-import { CombatConsole } from './CombatConsole';
+import { CombatConsole, ConsoleArch } from './CombatConsole';
+import * as relations from '../../engine/relations';
 import { TARGETING_MODES } from '../../noyau/targetingModes';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 import { BORNE_DU_CORPS } from '../compendium/CodexRef';
@@ -82,6 +83,19 @@ function monter(h: Combatant, opts: { foes?: Combatant[]; runBudget?: number; tu
   act(() => { root.render(<CombatConsole />); });
   return host.innerHTML;
 }
+
+it('l’arche respecte le camp résolu par campOf sans surcharge de son hôte', () => {
+  const camp = vi.spyOn(relations, 'campOf').mockReturnValue('neutral');
+  try {
+    act(() => root.render(<ConsoleArch active={foe('camp-resolu', 2, 2)} move={{ value: 4, max: 4 }} action={{ value: 1, max: 1 }} />));
+    const tuile = host.querySelector('.cc-arch .ptile')!;
+    expect(tuile).toBeTruthy();
+    expect(tuile.classList.contains('team-enemy')).toBe(false);
+    expect(tuile.classList.contains('team-ally')).toBe(false);
+  } finally {
+    camp.mockRestore();
+  }
+});
 
 beforeEach(() => {
   host = document.createElement('div');
@@ -321,10 +335,10 @@ describe('CombatConsole — arche', () => {
     expect(barres[0].parentElement).toBe(arch);
     expect(barres[0].querySelector('.life-bar__value')!.textContent).toBe('9 / 9 BLESSURES');
     expect(barres[0].querySelector('[role="meter"]')!.getAttribute('aria-valuenow')).toBe('9');
-    // La barre se pose APRÈS le corps (portrait + gouttières) et AVANT le nom gravé.
+    // La barre se pose après le corps ; l'identité appartient à la tuile.
     const ordre = [...arch.children];
     expect(ordre.indexOf(arch.querySelector('.cc-arch-body')!)).toBeLessThan(ordre.indexOf(barres[0]));
-    expect(ordre.indexOf(barres[0])).toBeLessThan(ordre.indexOf(arch.querySelector('.cc-arch-name')!));
+    expect(arch.querySelector('.cc-arch-body')!.contains(arch.querySelector('.ptile-name'))).toBe(true);
   });
 
   // Au tour d'un adversaire, la console change de FORME — elle ne rend plus de cases du tout
@@ -355,7 +369,7 @@ describe('CombatConsole — arche', () => {
     const arche = host.querySelector('.cc-arch')!;
     expect(host.querySelectorAll('.cc-arch').length).toBe(1);
     expect([...host.querySelector('.cc-dock')!.children], 'la bande porte autre chose que l’arche').toEqual([arche]);
-    expect(arche.querySelector('.cc-arch-name')!.textContent).toBe('Rat e1');
+    expect(arche.querySelector('.ptile-name')!.textContent).toBe('Rat e1');
     expect(arche.querySelector('.life-bar__value')!.textContent).toBe('7 / 12 BLESSURES');
     expect(parseColor((arche.querySelector('.life-bar__fill') as HTMLElement).style.getPropertyValue('--life-color'))).toEqual(parseColor(ENEMY_TINT));
     expect(arche.querySelectorAll('.pt-state').length).toBe(1);
@@ -677,28 +691,18 @@ describe('CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17
     expect(decl(boite, 'position')).toBe('relative');
   });
 
-  // C-1 : à 360 le portrait de l'arche n'avait PAS DE VISAGE — la BOÎTE rétrécit (style inline de la
-  // primitive repris à la main), le DESSIN restait à 72px et se cadrait « slice » sur son coin.
-  it('C-1 — toute boîte de portrait redimensionnée remet son dessin à l’échelle', () => {
-    // La composition compacte redimensionne bien la boîte — par la VARIABLE de portrait, une seule
-    // source pour les trois boîtes (tuile, face, dessin), au lieu de trois littéraux `!important`.
+  // C-1 : à 360 la BOÎTE de portrait rétrécit par la variable de portrait, une seule source pour
+  // la tuile et sa face, au lieu de littéraux `!important` repris à la main.
+  it('C-1 — toute boîte de portrait de l’arche suit la variable de portrait', () => {
     const at560 = mediaBlock(CC_CSS, '@media (max-width: 560px)');
     // La composition compacte RÉTRÉCIT le portrait : relation à la valeur de base.
     const portraitBase = evalLen(decl(ruleOf(CC_BASE, ':root'), '--cc-portrait')!, 360, 640);
     expect(evalLen(decl(ruleOf(at560, ':root'), '--cc-portrait')!, 360, 640)).toBeLessThan(portraitBase);
-    const boites = ruleOf(CC_BASE, '.cc-arch .ptile, .cc-arch .ptile-face, .cc-arch .rig-portrait');
-    expect(decl(boites, 'width')).toBe('var(--cc-portrait) !important');
-    const svg = ruleOf(CC_BASE, '.cc-arch .rig-portrait > svg');
-    expect(decl(svg, 'width')).toBe('100%');
-    expect(decl(svg, 'height')).toBe('100%');
+    expect(decl(ruleOf(CC_BASE, '.cc-arch'), '--ptile-context-px')).toBe('var(--cc-portrait)');
   });
 
-  // C-2 : anneau de camp + contour d'équipe concentriques = « cadre dans un cadre » (doctrine FigTile).
-  it('C-2 — UN SEUL anneau de camp sur le portrait de l’arche', () => {
-    const dessin = ruleOf(CC_BASE, '.cc-arch .ptile-face .rig-portrait');
-    expect(decl(dessin, 'border-width')).toBe('0');
-    expect(CC_CSS).not.toMatch(/\.cc-arch \.rig-portrait\s*\{[^}]*border-style/);
-    // … et c'est bien la tuile qui porte le camp, une seule fois, dans le DOM monté.
+  // C-2 : la tuile porte le camp, une seule fois (doctrine FigTile : jamais un cadre dans un cadre).
+  it('C-2 — UN SEUL marqueur de camp sur le portrait de l’arche', () => {
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     monter(h, { foes: [foe('e1', 9, 9)] });
@@ -1674,20 +1678,25 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
   });
 
   it('D-6 — l’icône de la case d’attaque suit l’ARME du set, jamais un glyphe d’épée en dur', () => {
-    monter(arbaletrier());
-    const arb = host.querySelector('[data-cell="g1-attaque"] .cc-ico')!.innerHTML;
     // L'art vient de la primitive d'objet (`ItemIcon`), pas du registre d'icônes générique.
+    monter(arbaletrier());
     expect(host.querySelector('[data-cell="g1-attaque"] .item-icon')).not.toBeNull();
 
-    const h = hero('h2', 'Gunnar');
-    h.conditions = [];
-    h.items = [objet('dague', 'i-dague')];
-    h.loadouts = [{ id: 'lo-melee', main: 'i-dague' }];
-    h.activeLoadoutId = 'lo-melee';
-    recomputeLoadout(h);
-    monter(h);
-    const dague = host.querySelector('[data-cell="g1-attaque"] .cc-ico')!.innerHTML;
-    expect(dague, 'deux armes différentes ne peuvent pas porter le MÊME dessin').not.toBe(arb);
+    /** Set à UNE pièce tenue au poing. */
+    const auPoing = (id: string) => {
+      const h = hero('h2', 'Gunnar');
+      h.conditions = [];
+      h.items = [objet(id, `i-${id}`)];
+      h.loadouts = [{ id: 'lo-un', main: `i-${id}` }];
+      h.activeLoadoutId = 'lo-un';
+      recomputeLoadout(h);
+      return h;
+    };
+    const dessin = () => host.querySelector('[data-cell="g1-attaque"] .cc-ico')!.innerHTML;
+    monter(auPoing('dague'));
+    const lame = dessin();
+    monter(auPoing('bouclier'));
+    expect(dessin(), 'une lame et un bouclier au poing sont deux CATÉGORIES : leur case ne peut porter le même dessin').not.toBe(lame);
   });
 });
 
@@ -2222,9 +2231,11 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
       expect(p / arche, `${vw}×${vh} : portrait ${p.toFixed(1)} / arche ${arche.toFixed(1)}`).toBeGreaterThanOrEqual(0.5);
       expect(p / arche, 'un portrait qui déborde l’arche mangerait gouttières, barre et nom').toBeLessThanOrEqual(0.75);
     }
-    // La règle qui l'applique reprend bien le style INLINE de la primitive (sinon rien ne bouge).
-    const appl = ruleOf(CC_BASE, '.cc-arch .ptile, .cc-arch .ptile-face, .cc-arch .rig-portrait');
-    expect(decl(appl, 'height')).toBe('var(--cc-portrait) !important');
+    const primitive = baseSection(readCss('portrait-tile.css'));
+    expect(decl(ruleOf(CC_BASE, '.cc-arch'), '--ptile-context-px')).toBe('var(--cc-portrait)');
+    expect(decl(ruleOf(primitive, '.ptile-wrap'), '--ptile-content-px')).toBe('var(--ptile-context-px, var(--ptile-px))');
+    expect(decl(ruleOf(primitive, '.ptile-face'), 'height')).toBe('var(--ptile-content-px)');
+    expect(decl(ruleOf(primitive, '.ptile'), 'height'), 'la tuile garde la hauteur de son contenu, nom compris').toBeNull();
     // Le rail des gouttières suit le portrait (il ne peut pas rester plus haut que lui).
     expect(decl(cc, '--cc-rail')!).toMatch(/var\(--cc-portrait\)/);
     // Le CHROME de l'arche (tout ce qui n'est pas le portrait) est une grandeur MESURÉE au
@@ -2569,7 +2580,7 @@ describe('CombatConsole — COOP : la console suit la POSSESSION, jamais le mode
     // reste : c'est elle qui dit QUI joue.
     const arche = host.querySelector('.cc-arch')!;
     expect(arche.querySelector('.ptile')!.classList.contains('team-enemy')).toBe(false);
-    expect(arche.querySelector('.cc-arch-name')!.textContent).toBe('Rolf');
+    expect(arche.querySelector('.ptile-name')!.textContent).toBe('Rolf');
     expect(host.querySelector('.spectator-chip'), 'la puce coop doit rester').not.toBeNull();
   });
 });
@@ -3709,7 +3720,7 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
     // Le bandeau de phase est bien là, mais l'identité de l'arche est CELLE DU JOUEUR : son
     // portrait, son nom — jamais l'adversaire qui ouvre l'initiative.
     expect(host.querySelector('.cc-phase'), 'la pause de Round garde son bandeau').toBeTruthy();
-    expect(host.querySelector('.cc-arch-name')?.textContent).toBe('Gunnar');
+    expect(host.querySelector('.ptile-name')?.textContent).toBe('Gunnar');
     expect(host.querySelector('.cc-arch .ptile')?.classList.contains('team-enemy'),
       'le cadre du joueur portait un ennemi').toBe(false);
   });
@@ -3744,7 +3755,7 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
     expect(host.querySelectorAll('.cc-cell').length, 'une case à l’ouverture').toBe(0);
     expect(host.querySelectorAll('.cc-sets').length).toBe(0);
     expect([...host.querySelector('.cc-dock')!.children].length, 'une région de plus que l’arche à l’ouverture').toBe(1);
-    expect(host.querySelector('.cc-arch-name')!.textContent).toBe('Gunnar');
+    expect(host.querySelector('.ptile-name')!.textContent).toBe('Gunnar');
     // Aucun second bandeau sur le parapet : le message ne se dédouble pas.
     expect(host.querySelectorAll('.cc-phase').length).toBe(1);
   });

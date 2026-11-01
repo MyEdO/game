@@ -220,9 +220,9 @@
     "poseurs": [
       "src/ui/StateChips.tsx"
     ],
-    "concept": "affichage d'un personnage (HUD/modale/picker)",
-    "perimetre": "toute vignette de personnage",
-    "verrou": "—"
+    "concept": "identité d'un combattant : repère de sol partagé, nom visible, jauge et États selon variante ; decoratif dans un contrôle déjà nommé",
+    "perimetre": "toute vignette de combattant (HUD, modale, picker, écrans) ; CharFrame résout la décoration dans la population courante",
+    "verrou": "src/ui/PortraitTile.test.tsx, src/ui/CharFrame.test.tsx"
   },
   {
     "id": "searchFilterField",
@@ -295,15 +295,6 @@
     "concept": "dépense de PX d'un héros : refus en combat, puis écriture par id",
     "perimetre": "tout achat de progression, rachat de prothèse, changement de Carrière (#2312)",
     "verrou": "couture-de-retour.test.ts"
-  },
-  {
-    "id": "corpsDeLActeur",
-    "type": "primitives.manifest",
-    "label": "estCorps/corpsDeLActeur",
-    "fichier": "src/gameIso/stage/corpsActeur.ts",
-    "concept": "corps d'acteur dans une image three rendue — quad de billboard, visible, dont l'identité décodée porte l'id (seul ou couple monté)",
-    "perimetre": "banc volumique (quads, corpsDessines), sonde de recette __wfrp.corps, tests de rétention de montage",
-    "verrou": "corps-sonde.test.tsx"
   },
   {
     "id": "meneurDuMonde",
@@ -478,15 +469,6 @@
     "verrou": "src/noyau/monde/identites.test.ts, src/ui/prose-paquet.test.tsx, src/ui/prose-sites.test.ts"
   },
   {
-    "id": "resolveRender",
-    "type": "primitives.manifest",
-    "label": "resolveRender/tokenBodyKind",
-    "fichier": "src/gameIso/rig/bodyPlan.ts",
-    "concept": "résolution rendu + dispatch backend",
-    "perimetre": "tout rendu iso/POV/portrait",
-    "verrou": "oxlint.config.mjs"
-  },
-  {
     "id": "masterDetail",
     "type": "primitives.manifest",
     "label": "MasterDetail",
@@ -500,7 +482,7 @@
     "type": "primitives.manifest",
     "label": "ItemIcon",
     "fichier": "src/ui/ItemIcon.tsx",
-    "concept": "icône d'OBJET (silhouette de rig arme/armure/bouclier, sinon glyphe de catégorie)",
+    "concept": "icône d'OBJET (glyphe de catégorie)",
     "perimetre": "sac, onglet Combat de la fiche, pickers MediaSelect, hotbar de combat",
     "verrou": "src/ui/no-emoji-affordance.test.ts"
   },
@@ -933,15 +915,6 @@
     "verrou": "—"
   },
   {
-    "id": "characterPreview",
-    "type": "primitives.manifest",
-    "label": "CharacterPreview",
-    "fichier": "src/ui/CharacterPreview.tsx",
-    "concept": "aperçu d’un personnage en pied hors combat, rig réel",
-    "perimetre": "roster, créateur, fiche, marchand",
-    "verrou": "—"
-  },
-  {
     "id": "gatedAction",
     "type": "primitives.manifest",
     "label": "GatedAction / classeBouton",
@@ -999,12 +972,12 @@
   {
     "id": "figTile",
     "type": "primitives.manifest",
-    "label": "FigTile",
+    "label": "FigTile/FigZoneBadges",
     "fichier": "src/ui/FigTile.tsx",
     "css": "src/ui/styles/frames.css",
-    "concept": "cadre-figurine unique : boîte à hauteur fixe, nom et compte dessous, sceau optionnel ; variante hero = présence plein format, prop zoneBadges donnant un badge par HitLocation ancré anatomiquement (l'appelant fournit la donnée par zone, jamais la position)",
-    "perimetre": "races, carrières, candidats, colonne aside de la fiche",
-    "verrou": "seule définition des classes fig-tile (src/ui/styles/frames.css) ; AUCUNE ambiance CharacterPreview exposée (la tuile porte SA matière) ; réflexe avant tout cadre dans un cadre"
+    "concept": "tuile unique : nom et compte, sceau optionnel ; badges nommés par HitLocation composables dans la tuile ou seuls (l'appelant fournit la donnée par zone)",
+    "perimetre": "races, carrières, candidats ; badges de Localisation de la colonne aside de la fiche",
+    "verrou": "seule définition des classes fig-tile (src/ui/styles/frames.css) ; réflexe avant tout cadre dans un cadre"
   },
   {
     "id": "groupesDeChoix",
@@ -1084,11 +1057,11 @@
   {
     "id": "reglagesApparence",
     "type": "primitives.manifest",
-    "label": "ReglagesApparence/MonsterPartsFields/ApparencesObjetsField",
-    "fichier": "src/ui/editor/MonsterPartsFields.tsx",
+    "label": "ReglagesApparence/ApparencesObjetsField/ArmeEquipeeField",
+    "fichier": "src/ui/editor/ReglagesApparence.tsx",
     "css": "src/ui/styles/reglages-apparence.css",
     "concept": "réglages d’une apparence, liste des réglages rendus en donnée, toute écriture par apparenceSuivante",
-    "perimetre": "rubrique Apparence de l’Inspecteur, du Narratif, du Codex et du créateur",
+    "perimetre": "rubrique Apparence de l’Inspecteur, du Narratif et du Codex",
     "verrou": "apparence-une-rubrique.test.tsx"
   },
   {
@@ -1098,7 +1071,7 @@
     "fichier": "src/ui/editor/ObjetDonneField.tsx",
     "concept": "écrivain partagé de l’objet donné et de son apparence ; résolution campagne puis catalogue, admission canonique, absence du défaut",
     "perimetre": "effets de scène et ops mécaniques giveTrapping",
-    "verrou": "src/ui/editor/MonsterPartsFields.test.tsx"
+    "verrou": "src/ui/editor/ReglagesApparence.test.tsx"
   },
   {
     "id": "heroSheet",
@@ -1277,16 +1250,6 @@
     "verrou": "src/ui/CombatStartSplash.test.tsx — le beat attend la cascade d’ouverture et dit le bon mot"
   },
   {
-    "id": "rigPortrait",
-    "type": "primitives.manifest",
-    "label": "RigPortrait",
-    "fichier": "src/ui/RigPortrait.tsx",
-    "css": "src/ui/styles/rig-portrait.css",
-    "concept": "visage d’un combattant vu de FACE, bordure = identité d’équipe (couleur + forme du trait, R9)",
-    "perimetre": "tuile de portrait, frise d’initiative, bande de groupe, console, fiche",
-    "verrou": "le corps et le cadrage viennent de `tokenBodyKind(…, \"top\")`, partagés avec le pion de la carte"
-  },
-  {
     "id": "fxChip",
     "type": "primitives.manifest",
     "label": "FxChip/EffectChips",
@@ -1384,7 +1347,7 @@
     "nature": "organisme",
     "concept": "panneau d’ÉQUIPEMENT : emplacements en cellules (localisation × couche) + cartes de set d’armes + récap en main",
     "perimetre": "onglet Possessions de la fiche de personnage",
-    "verrou": "aucun mannequin (mort, #492) — le rig grand format vit dans la colonne de la fiche"
+    "verrou": "aucun mannequin (mort, #492)"
   },
   {
     "id": "gameStage",
@@ -1398,8 +1361,7 @@
       "src/gameIso/SurcoucheIso.tsx",
       "src/gameIso/sceneAnims.ts",
       "src/gameIso/TokenChromeMarks.tsx",
-      "src/gameIso/catalog/decor/defs/",
-      "src/gameIso/rig/parts/weapons/defs/"
+      "src/gameIso/catalog/decor/defs/"
     ],
     "nature": "organisme",
     "concept": "les ANIMATIONS de ce qui vit sur le plateau : keyframes des FX, des gabarits, de la faune et de l’ambiance, et les teintes du chrome des jetons",
@@ -1604,103 +1566,22 @@
     "verrou": "regex.test.ts"
   },
   {
-    "id": "clesDePalette",
+    "id": "vuesDeLArtOriente",
     "type": "primitives.manifest",
-    "label": "CLES/communes/vocabulaire",
-    "fichier": "src/gameIso/rig/clesDePalette.ts",
-    "concept": "table UNIQUE des clés de palette du rig, trois parties : recoloriables (une par Slot, défaut + libellé), communes (défaut ou clé suivie), vocabulaire (sans défaut, ce que la clé peint ; résolue seulement là où une couche la déclare)",
-    "perimetre": "toute clé `@clé` peinte ou déclarée dans le rig ; une matière neuve = une ligne de vocabulaire",
-    "verrou": "types PaletteDeclaree/PaletteDeCouchePortee (clé hors table refusée), clesDePalette.test.ts, palette.test.ts"
-  },
-  {
-    "id": "paletteDeclaree",
-    "type": "primitives.manifest",
-    "label": "PaletteDeclaree/PaletteDeCouchePortee",
-    "fichier": "src/gameIso/rig/palette.ts",
-    "concept": "type d'une palette déclarée : record partiel des gammes de la table (base, ombre, lumière) ; la couche PORTÉE (tenue, arme, armure) type `?: never` les gammes de sorte porteur, suiveuses comprises. Limite : refuse un littéral et un objet typé, pas un Record<string, string> non littéral",
-    "perimetre": "toute palette de def du rig : créatures, compose*, nuées, navires, artkits, espèces (PaletteDeclaree) ; tenues, armes, armures (PaletteDeCouchePortee)",
-    "verrou": "compilation ; morsures @ts-expect-error de clesDePalette.test.ts"
-  },
-  {
-    "id": "paletteDEspeceSchema",
-    "type": "primitives.manifest",
-    "label": "paletteDEspeceSchema",
-    "fichier": "src/data/schemas/grammaire/valeurs.ts",
-    "concept": "schéma d'une palette d'espèce persistée : clés dans les gammes de PORTEUR (GAMMES_PORTEUR, palette.types.ts), valeurs #rrggbb ; structure seule",
-    "perimetre": "raceAppearance.palette/paletteF (Compendium, dev-validate, CI des données)",
-    "verrou": "surcharge-palette.test.ts"
-  },
-  {
-    "id": "declarationsInertes",
-    "type": "primitives.manifest",
-    "label": "declarationsInertes",
-    "fichier": "src/gameIso/rig/palette.ts",
-    "concept": "déclarations INERTES d'une couche : clés dont le retrait laisse buildTokenMap identique sous chaque entrée que le rig applique à la couche et chaque surcharge sonde, retirées jusqu'au point fixe (doublon de la couche défaut, rôle orphelin)",
-    "perimetre": "porte de la donnée de palette, mesure d'un retrait",
-    "verrou": "palettes-declarees.test.ts (A4), palette.test.ts"
-  },
-  {
-    "id": "coucheDEspece",
-    "type": "primitives.manifest",
-    "label": "coucheDEspece/TETES_A_PEAU",
-    "fichier": "src/gameIso/rig/parts/career.ts",
-    "concept": "couche d'ESPÈCE du rig : palette d'espèce plus la peau greffée par la tête quand l'espèce n'en déclare pas ; TETES_A_PEAU = domaine des têtes qui greffent",
-    "perimetre": "composeRig (empilage sous couchesDuRig), porte de la donnée de palette (entrées de la couche)",
-    "verrou": "composeRig-peau-tete.test.ts, palettes-declarees.test.ts"
-  },
-  {
-    "id": "jetonsDeLArt",
-    "type": "primitives.manifest",
-    "label": "TOKEN_RE/tokensOf/replaceTokens",
-    "fichier": "src/gameIso/rig/palette.ts",
-    "concept": "jeton `@clé` d'un art du rig : son motif, la lecture des jetons d'un art, leur substitution par un rappel",
-    "perimetre": "tout art du rig (parts, créatures, décor, armes) et ses outils de QC",
-    "verrou": "lectures-de-l-art-guard.test.ts (REGEX_DE_JETON)"
-  },
-  {
-    "id": "gammeDePalette",
-    "type": "primitives.manifest",
-    "label": "SUFFIXE_DE_ROLE/RoleDeGamme/ROLES_DE_GAMME/gammeDe/baseDeGamme/Gamme/gammes",
-    "fichier": "src/data/palette.types.ts",
-    "concept": "gamme d'une clé de palette : sa base et ses rôles (ombre, lumière) ; la clé d'un rôle, la base d'une clé de rôle, les gammes d'une liste de bases",
-    "perimetre": "toute clé de rôle lue ou écrite par le rig, la palette et la donnée d'espèce",
-    "verrou": "lectures-de-l-art-guard.test.ts (GAMME_EN_LIGNE, ROLES_DE_GAMME)"
-  },
-  {
-    "id": "vuesDuRig",
-    "type": "primitives.manifest",
-    "label": "VIEWS/VIEW_LABEL",
-    "fichier": "src/gameIso/rig/facing.ts",
-    "concept": "identifiant et ordre canonique des trois vues (`View` en dérive) ; libellé d'affichage d'une vue, lu par les planches QC",
-    "perimetre": "tout art orienté, toute table ou liste de vues, les colonnes des planches QC",
-    "verrou": "lectures-de-l-art-guard.test.ts (VIEWS), unions-canon.test.ts"
-  },
-  {
-    "id": "formatsDArtOriente",
-    "type": "primitives.manifest",
-    "label": "ViewSet/PartArt/ViewArt",
-    "fichier": "src/gameIso/rig/parts/types.ts",
-    "concept": "formats d'un art orienté, dérivés de `View` : table totale des vues (ViewSet), art d'un slot (PartArt), art d'un registre (ViewArt, viewArt.ts)",
-    "perimetre": "parts, appendices, décor orienté, calques monstrueux",
-    "verrou": "compilation ; lectures-de-l-art-guard.test.ts (VIEWS)"
+    "label": "VIEWS",
+    "fichier": "src/gameIso/facing.ts",
+    "concept": "identifiant et ordre canonique des trois vues (`View` en dérive)",
+    "perimetre": "tout art orienté, toute table ou liste de vues",
+    "verrou": "unions-canon.test.ts"
   },
   {
     "id": "lectureDUneVue",
     "type": "primitives.manifest",
-    "label": "declaredView/declaredViews/viewEntries/mapViews/foldView/nearestView",
-    "fichier": "src/gameIso/rig/viewArt.ts",
-    "concept": "lecture d'un art orienté : la vue déclarée, les vues déclarées, leurs entrées, la projection vue par vue, le repli dans un ordre (foldView) et le repli vers la vue la plus proche (nearestView)",
-    "perimetre": "tout lecteur d'un art orienté (rig, décor, QC)",
-    "verrou": "lectures-de-l-art-guard.test.ts (PROJECTION_DE_VUES), viewArt.test.ts"
-  },
-  {
-    "id": "viewOrFront",
-    "type": "primitives.manifest",
-    "label": "viewOrFront",
-    "fichier": "src/gameIso/rig/parts/types.ts",
-    "concept": "vue d'un PartArt, repliée sur sa face quand l'art ne la déclare pas (foldView, table FRONT_FALLBACK)",
-    "perimetre": "résolution des parts et des appendices",
-    "verrou": "viewArt.test.ts"
+    "label": "ViewArt/nearestView",
+    "fichier": "src/gameIso/catalog/viewArt.ts",
+    "concept": "lecture d'un art orienté : son format par vue (ViewArt) et le repli vers la vue la plus proche (nearestView)",
+    "perimetre": "tout lecteur d'un art orienté (décor)",
+    "verrou": "src/gameIso/catalog/viewArt.test.ts"
   },
   {
     "id": "tableTotale",
@@ -1712,31 +1593,13 @@
     "verrou": "lectures de canonUnique.mjs (CONSTRUCTION_DE_TABLE_TOTALE), tableTotale.test.ts"
   },
   {
-    "id": "isDrawnView",
-    "type": "primitives.manifest",
-    "label": "isDrawnView",
-    "fichier": "scripts/guards/lib/partViewAudit.ts",
-    "concept": "vue DESSINÉE d'une part : déclarée par son art, jamais dérivée",
-    "perimetre": "audit des vues des parts et son stock",
-    "verrou": "part-view-format.test.ts"
-  },
-  {
-    "id": "lireDegradeDerive",
-    "type": "primitives.manifest",
-    "label": "lireDegradeDerive",
-    "fichier": "src/gameIso/rig/palette.ts",
-    "concept": "lecture d'un dégradé DÉRIVÉ `url(#dg-…)` : sa forme et ses jetons",
-    "perimetre": "résolution de palette d'un art, audit du littéral == jeton",
-    "verrou": "lectures-de-l-art-guard.test.ts (REGEX_DE_DEGRADE_DERIVE)"
-  },
-  {
     "id": "fxGradientIds",
     "type": "primitives.manifest",
     "label": "FX_GRADIENT_IDS",
-    "fichier": "src/gameIso/rig/fxGradients.ts",
-    "concept": "registre des dégradés FIXES `g_…` du rig",
+    "fichier": "src/gameIso/fx/fxGradients.ts",
+    "concept": "registre des dégradés FIXES `g_…` des FX",
     "perimetre": "tout art qui peint un dégradé fixe",
-    "verrou": "lectures-de-l-art-guard.test.ts (REGEX_DE_DEGRADE_FIXE)"
+    "verrou": "—"
   },
   {
     "id": "cleDeSite",
@@ -1991,15 +1854,6 @@
     "verrou": "ts-program-fabrique-guard.test.ts, analyse-retention-guard.test.ts, scripts/guards/lib/tsProgram.test.mjs, scripts/guards/lib/dialecte.test.mjs"
   },
   {
-    "id": "lecturesDeLArt",
-    "type": "primitives.manifest",
-    "label": "LECTURES_DE_L_ART",
-    "fichier": "scripts/guards/lib/lecturesDeLArt.ts",
-    "concept": "garde des lectures de l'art du rig hors de leur foyer (jeton, gamme, projection de vues, dégradés, vues, rôles de gamme)",
-    "perimetre": "périmètre des gardes",
-    "verrou": "lectures-de-l-art-guard.test.ts"
-  },
-  {
     "id": "gardeCleDeSite",
     "type": "primitives.manifest",
     "label": "garde de la clé de site",
@@ -2011,9 +1865,9 @@
   {
     "id": "secondNomEtPerimetre",
     "type": "primitives.manifest",
-    "label": "estArtDuRig/PERIMETRE_DES_GARDES/corpusDesGardes/LEGACY_VOCAB_FAMILIES",
+    "label": "estOutillageDeQc/PERIMETRE_DES_GARDES/corpusDesGardes/LEGACY_VOCAB_FAMILIES",
     "fichier": "scripts/guards/lib/commentPoison.mjs",
-    "concept": "l'art du rig (estArtDuRig) ; les trois familles du second nom (de l'art, d'un concept de l'art, de la table totale) ; le périmètre des gardes et son corpus",
+    "concept": "l'outillage de QC (estOutillageDeQc), où les formes de l'art se lisent ; les trois familles du second nom (de l'art, d'un concept de l'art, de la table totale) ; le périmètre des gardes et son corpus",
     "perimetre": "garde-fou commentaires et toute garde qui lit le périmètre des gardes",
     "verrou": "comment-poison-guard.test.ts"
   },
@@ -2085,9 +1939,9 @@
     "type": "primitives.manifest",
     "label": "equipementDessine/equipementDEntite/armesDEntite/EquipCtx/equipDe/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
     "fichier": "src/noyau/equipementDessine.ts",
-    "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent à la naissance par `deciderApparencesDesArmes` puis `choisirApparenceDObjet` sur les armes réelles sans instance ; le dessin lit leur forme et leur apparence déjà décidées ; les constructions d’entité et décisions d’auteur reçoivent un TrappingResolver obligatoire, injecté par l’hôte ; le dessin d’un porteur déjà né consomme ses propriétés copiées sans résolveur ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule ; l'art d'une matière se résout côté rig sur l'`art` de son Groupe d'armure (`artDeMatiere`, `src/gameIso/rig/parts/equipment.ts`)",
-    "perimetre": "tout producteur d'équipement dessiné (`equipementDessine`, `equipementDEntite`, `enemyRigProfile`, `entityRigProfile`, `rigDuCombattant`, galeries), tout lecteur du rig ou d'un hôte 3D (forme, maniement, clips, pièces)",
-    "verrou": "src/noyau/equipementDessine.test.ts, src/hote/projection.hors-store.test.ts, src/noyau/armure-portee-guard.test.ts, src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
+    "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent à la naissance par `deciderApparencesDesArmes` puis `choisirApparenceDObjet` sur les armes réelles sans instance ; le dessin lit leur forme et leur apparence déjà décidées ; les constructions d’entité et décisions d’auteur reçoivent un TrappingResolver obligatoire, injecté par l’hôte ; le dessin d’un porteur déjà né consomme ses propriétés copiées sans résolveur ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule",
+    "perimetre": "tout producteur d'équipement dessiné (`equipementDessine`, `equipementDEntite`), tout lecteur d'un hôte 3D (forme, maniement, clips, pièces)",
+    "verrou": "src/noyau/equipementDessine.test.ts, src/hote/projection.hors-store.test.ts, src/noyau/armure-portee-guard.test.ts"
   },
   {
     "id": "formeResolue",
@@ -2095,7 +1949,7 @@
     "label": "apparencesCandidates/choisirApparenceDObjet/deciderApparencesDesArmes/racineDesCandidats/formeResolue/SourceDeForme",
     "fichier": "src/engine/items.ts",
     "concept": "forme racine mécanique `shape` copiée à la naissance ; `choisirApparenceDObjet` admet une décision explicite par `shape` et `formChoices` de la fiche résolue, puis écrit la même racine et l’apparence sur l’instance ; les CANDIDATS de l’objet porté lisent cette racine et la variante compatible, sans relire la fiche ; une arme naturelle ne publie aucun candidat ; `racineDesCandidats` lit la dernière entrée, que `formeResolue` rend (#2967)",
-    "perimetre": "tout lecteur d’une apparence ou de sa racine : rig (`armeDeDessin`, `bouclierDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `choisirApparenceDObjet`, outillage de recette (`__wfrp.battle`)",
+    "perimetre": "tout lecteur d’une apparence ou de sa racine : dessin (`armeDeDessin`, `bouclierDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `choisirApparenceDObjet`, outillage de recette (`__wfrp.battle`)",
     "verrou": "src/engine/apparences-candidates.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
   },
   {
@@ -2108,31 +1962,13 @@
     "verrou": "src/data/schemas/grammaire/apparences-objets.test.ts, src/engine/apparences-candidates.test.ts"
   },
   {
-    "id": "successionDesCorps",
-    "type": "primitives.manifest",
-    "label": "succession/occupantsDe",
-    "fichier": "src/gameIso/stage/successionDesCorps.ts",
-    "concept": "succession des corps des boards de billboard, par composante d'occupants, rejouée après chaque passe, montage ou rejet : la configuration précédente reste visible tant que sa composante attend (sortants en sursis), puis la composante succède — I1 à I5 ; `occupantsDe` (ids espacés)",
-    "perimetre": "passe de montage de `GameStage3D`, tout état par occupant d'un board",
-    "verrou": "src/gameIso/stage/successionDesCorps.test.ts, src/gameIso/stage/retention-de-montage.test.tsx"
-  },
-  {
-    "id": "useCompositionRig",
-    "type": "primitives.manifest",
-    "label": "useCompositionRig",
-    "fichier": "src/gameIso/rig/composeRig.tsx",
-    "concept": "composition de rig d'une surface React, retenue sur ses entrées et la version des catalogues (`useVersionDesDatasets`)",
-    "perimetre": "toute surface `.tsx` qui compose un rig (jeton, portrait, aperçus, créateur, Codex)",
-    "verrou": "src/gameIso/rig/composition-rig-garde.test.ts, src/gameIso/rig/composition-rig-version.test.tsx"
-  },
-  {
     "id": "useVersionDesDatasets",
     "type": "primitives.manifest",
     "label": "useVersionDesDatasets",
     "fichier": "src/ui/useVersionDesDatasets.ts",
     "concept": "version des catalogues pour un composant React : re-rend à chaque écriture au seam des datasets, dépendance des mémos qui dessinent depuis un catalogue",
     "perimetre": "tout composant `.tsx` qui dessine depuis un catalogue, et tout écran qui projette un catalogue (Codex)",
-    "verrou": "src/gameIso/rig/composition-rig-version.test.tsx"
+    "verrou": "src/ui/useVersionDesDatasets.test.tsx"
   },
   {
     "id": "processusBorne",

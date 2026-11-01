@@ -11,7 +11,7 @@ import { MondeDeCampagne } from './MondeDeCampagne';
 import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';
 import { ACTIVE_HALO_TINT, ENGAGE_TINT } from '../highlightTints';
-import { ENEMY_RING, HERO_RING, teamShape } from '../teamColors';
+import { ENEMY_RING, HERO_RING, OUT_OF_PARTY_RING, teamShape } from '../teamColors';
 import { COMBAT_TOKEN_BASE, PARTY_TOKEN_BASE, TETHER_DASH_PX, TETHER_GAP_PX, dashPattern, teamRingRadiusK } from '../builders/dynamicMarks';
 import { combatantTokenScale } from '../sizeScale';
 import { ringDashes } from './dynamicMarkPose';
@@ -320,7 +320,7 @@ describe('Marques dynamiques — ALLURE et EXCLUSIVITÉ (#1176 P3-0d)', () => {
     lots.forEach((lot, i) => {
       // et le chapelet compte ce que le pointillé de CETTE équipe demande : plein pour le héros,
       // pointillé « 5 3 » pour l'ennemi (R9 : la FORME encode l'équipe).
-      expect(lot.cordes).toBe(ringDashes(rM[i] / mpt, i === 0 ? null : dashPattern(teamShape(false)), 'iso').length);
+      expect(lot.cordes).toBe(ringDashes(rM[i] / mpt, i === 0 ? null : dashPattern(teamShape(true)), 'iso').length);
     });
     // Le héros (trait PLEIN) porte STRICTEMENT plus de cordes que l'ennemi (pointillé) : la forme se voit.
     expect(lots[0].cordes).toBeGreaterThan(lots[1].cordes);
@@ -332,9 +332,7 @@ describe('Marques dynamiques — ALLURE et EXCLUSIVITÉ (#1176 P3-0d)', () => {
     expect(anneaux([{ x: 6 * mpt, z: 6 * mpt, rM: rayonGroupe(mpt) }])[0].cordes).toBeGreaterThan(0);
   });
 
-  it('un MENEUR non-héros ne teinte pas le jeton de groupe en ennemi', () => {
-    // Le code de groupe s'en garde ailleurs (`noyau/partyFlow`), mais la DÉCORATION ne doit pas dépendre
-    // de cette hypothèse : le jeton de groupe dit « le groupe est ici », pas « à quelle équipe ».
+  it('un meneur npc porte l’anneau hors groupe en trait plein', () => {
     const escorte = [{ ...hero('h1', { x: 6, y: 6 }), kind: 'npc' } as unknown as Combatant];
     monter('exploration', { party: escorte });
     const mpt = sceneMetresPerTile(emptyScene('scene-test', 10, 10));
@@ -342,10 +340,10 @@ describe('Marques dynamiques — ALLURE et EXCLUSIVITÉ (#1176 P3-0d)', () => {
     const lot = anneaux([{ x: 6 * mpt, z: 6 * mpt, rM: rK * mpt }])[0];
     // trait PLEIN : un chapelet pointillé en compterait bien moins
     expect(lot.cordes).toBe(ringDashes(rK, null, 'iso').length);
-    expect(lot.cordes).toBeGreaterThan(ringDashes(rK, dashPattern(teamShape(false)), 'iso').length);
+    expect(lot.cordes).toBeGreaterThan(ringDashes(rK, dashPattern(teamShape(true)), 'iso').length);
     const teinte = new THREE.Color();
     poolsVolumiques().anneau.getColorAt(0, teinte);
-    expect(`#${teinte.getHexString()}`).toBe(HERO_RING[0].toLowerCase());
+    expect(`#${teinte.getHexString()}`).toBe(OUT_OF_PARTY_RING.toLowerCase());
   });
 
   it('un DIALOGUE ouvert coupe le repère du groupe', () => {

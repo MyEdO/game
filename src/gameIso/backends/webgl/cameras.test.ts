@@ -22,7 +22,6 @@ import { pxPerM } from './worldTris';
 import { ISO_PX_PER_M } from '../../iso';
 import { buildWorldGeometry, collectBillboards, contentBox, wholeSceneBillboardEls } from './sceneMeshes';
 import { anchorAndSize, billboardHeightM, BILLBOARD_BOX_ASPECT } from './billboardMath';
-import { findTrappingById } from '../../../data';
 
 /**
  * LE test du lot : la caméra three doit rendre le MÊME pixel que la projection SVG de production, à
@@ -263,7 +262,7 @@ describe('CADRAGE — la vue affine tient le CONTENU, sans toucher à la défini
   /** Boîte de CONTENU de la scène-témoin (bâti + sujets), à la convention de taille par défaut. */
   const contenu = (() => {
     const geoBox = buildWorldGeometry(scene, mpt, 'jeu', () => 1).boundingBox!;
-    const subs = collectBillboards(findTrappingById, scene, mpt, wholeSceneBillboardEls(scene));
+    const subs = collectBillboards(scene, mpt, wholeSceneBillboardEls(scene));
     return contentBox(scene, mpt, 'jeu', subs, (s) => anchorAndSize(billboardHeightM('jeu', s.kind) * s.scaleK, BILLBOARD_BOX_ASPECT), geoBox);
   })();
 

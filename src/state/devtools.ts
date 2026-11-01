@@ -42,27 +42,6 @@ export type GesteCarteAttendu =
   | ({ kind: (typeof KIND_DE_POSE)[PlacingZone['source']] } & Omit<PlacingZone, 'source'>)
   | { kind: 'cibles'; label: string; casterId: string; cibles: string[] };
 
-/** Une IMAGE RENDUE, que le rendu déclare juste après `renderer.render` (`gameIso/stage/GameStage3D`) :
- *  son canevas, son numéro (`canvas.dataset.rendus`) et la lecture de ses corps d'acteur
- *  (`gameIso/stage/corpsActeur.ts:corpsDeLActeur`). Forme ÉCRITE ici, conformité tenue côté rendu
- *  (`gameIso/stage/corps-sonde.test.tsx`) : la frontière `src/state ↛ src/gameIso` (#2198). */
-export type ImageRendue = { toile: object; rendus: number; corps(id: string): number };
-
-/** Un échantillon : le numéro de l'image rendue et le compte de corps de l'acteur à cette image. */
-export type EchantillonDeCorps = { image: number; corps: number };
-
-let derniereImage: ImageRendue | null = null;
-let echantillonnage: { id: string; toile: object | null; tampon: EchantillonDeCorps[] } | null = null;
-
-/** Le rendu déclare CHAQUE image rendue ; un échantillonnage armé la lit sur-le-champ, et ne retient
- *  que le canevas de sa première image (une seule numérotation `rendus`). */
-export function setImageRendue(image: ImageRendue): void {
-  derniereImage = image;
-  const e = echantillonnage;
-  if (!e) return;
-  e.toile ??= image.toile;
-  if (e.toile === image.toile) e.tampon.push({ image: image.rendus, corps: image.corps(e.id) });
-}
 import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageCampaignVessel } from '../noyau/seaVoyageFlow';
 import { seaBoardEventById } from '../engine/seaVoyage';
 import { beginShipwreck } from '../noyau/shipwreck';
@@ -259,9 +238,6 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           ({tile, cid, via:'sprite'|'decor'|'meuble'|'pas-etage'|'sol'|'aucune',
  *                           nature, geste:{entId?}} — `geste.entId` = l'entité qu'un clic traiterait)
  *                           — lecture seule, aucun clic
- *   __wfrp.corps(id)      → corps VISIBLES de l'acteur à la dernière image rendue (null avant la 1re)
- *   __wfrp.echantillonner('corps', id) puis __wfrp.echantillons() → une entrée {image, corps} PAR IMAGE
- *                           rendue, relue puis vidée (un rechargement Vite l'efface)
  *   __wfrp.talk('id')     → téléporte le groupe à côté de l'entité et l'interpelle (dialogue/marchand)
  *   __wfrp.goto('id')     → place le groupe sur la case de l'entité (déclenche portes/triggers au pas)
  *   __wfrp.screen('menu') → navigue vers un écran
@@ -869,25 +845,6 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      */
     pickTileAt: (px: { x: number; y: number }) => (sondeDePicking ? sondeDePicking(px) : null),
 
-    /** OBSERVATION : corps VISIBLES de l'acteur `id` à la dernière image rendue (`setImageRendue`).
-     *  `null` tant qu'aucune image n'est rendue. */
-    corps: (id: string) => (derniereImage ? derniereImage.corps(id) : null),
-
-    /** OBSERVATION : arme l'échantillonnage — une entrée PAR IMAGE RENDUE, numérotée par
-     *  `canvas.dataset.rendus`. Un rechargement Vite l'efface. */
-    echantillonner: (quoi: 'corps', id: string) => {
-      echantillonnage = { id, toile: null, tampon: [] };
-      return `✓ échantillonnage des ${quoi} de « ${id} » armé`;
-    },
-
-    /** OBSERVATION : relit puis vide le tampon de l'échantillonnage armé. */
-    echantillons: (): EchantillonDeCorps[] => {
-      if (!echantillonnage) return [];
-      const lus = echantillonnage.tampon;
-      echantillonnage.tampon = [];
-      return lus;
-    },
-
     /** ACCÈS DIRECT : ouvre le dialogue/marchand d'une entité (téléporte le groupe à côté puis interagit). */
     talk: (id: string) => {
       const ent = find(id);
@@ -1045,14 +1002,12 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  (voir un décor de façade ou de toiture depuis l'intérieur de l'empreinte) ; `roofCut(true)`
      *  rétablit le comportement de jeu. Bascule GLOBALE : la remettre à `true` avant de juger un flux
      *  de vue normal.
-     *  PORTÉE : le dégagement de PIÈCE seul. Le PERÇAGE local par occlusion (#1176 M3,
-     *  `gameIso/stage/percage.ts`) reste ACTIF — un disque reste percé dans la nappe autour de chaque
-     *  héros qu'elle cache à l'écran. */
+     *  PORTÉE : le dégagement de PIÈCE seul. */
     roofCut: (on = false) => {
       useGame.setState({ debugRoofCut: on });
       return on
         ? 'lève-toit ON'
-        : 'lève-toit OFF — toits, façades et décors de toit restent en place, hors le disque local de perçage autour de chaque héros';
+        : 'lève-toit OFF — toits, façades et décors de toit restent en place';
     },
 
     /** DEBUG carte (recette) : overlay d'annotation partagé sur IsoStage — coordonnées `x,y` (+`z{n}`)

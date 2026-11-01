@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { refCareerIdSchema } from '../grammaire/valeurs';
-import { refs } from '../grammaire/ref';
+import { idDe, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
 export const file = 'careers.json';
@@ -27,9 +27,9 @@ const doc = document(
     /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupesDe`), en plus de ceux de
      *  sa Classe. Absent = la carrière n'ouvre aucun Groupe d'appartenance. */
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
-    /** id d'une tenue spécifique (`TENUE_BY_ID`) réutilisée par cette carrière quand son rendu
+    /** id d'une tenue spécifique réutilisée par cette carrière quand son rendu
      *  reprend la tenue d'une autre carrière (variants MDG « (Côtier) », MDG 09 l.255/343/458). */
-    tenue: z.string().optional(),
+    tenue: idDe('career').optional(),
     /** Clé = `refCareerIdSchema` (id stable, #313) → borne haute d100 ; clé ABSENTE = carrière
      *  indisponible pour cette espèce (partiel : toutes les carrières ne portent pas les 11 colonnes). */
     rand: z.partialRecord(refCareerIdSchema, z.number().nullable()),

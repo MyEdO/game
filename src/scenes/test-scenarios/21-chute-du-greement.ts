@@ -3,7 +3,7 @@ import type { Combatant } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import { buildScene } from '../../noyau/mapSpec';
 import { renforcerCompetence, type TestScenario } from './_shared';
-import { rigSpeciesId } from '../../data';
+import { especeDApparence } from '../../data';
 
 /**
  * « Chute du gréement » — la CHUTE PASSE PAR LA PORTE DES DÉS (#1508 T2, MDG 13 l.684-688 + LDB 15 l.80).
@@ -35,14 +35,14 @@ function equipage(): Combatant[] {
   gabier.shipStation = 'greement';
   renforcerCompetence(gabier, 'athletisme', 5); // il tombe volontiers : c'est l'échec qu'on vient voir
   renforcerCompetence(gabier, 'voile', 45, 'cogue');
-  gabier.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.45 };
+  gabier.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M', build: 0.45 };
 
   const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Vigie Nissa', motivation: 'Test', seed: 1509, id: 'vigie' });
   vigie.shipRole = 'vigie';
   vigie.shipStation = 'nid-de-pie';
   renforcerCompetence(vigie, 'athletisme', 5);
   renforcerCompetence(vigie, 'perception', 50);
-  vigie.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.4 };
+  vigie.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F', build: 0.4 };
 
   return [gabier, vigie];
 }

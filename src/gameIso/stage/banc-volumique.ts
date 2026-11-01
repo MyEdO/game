@@ -18,12 +18,13 @@ import * as THREE from 'three';
 import type { Combatant } from '../../engine/types';
 import { armeDeTest } from '../../engine/objetsDeTest.testkit';
 import type { StageRenderer } from './GameStage3D';
-import { corpsDeLActeur, estCorps } from './corpsActeur';
-import { BUDGET_TRANCHE_MS_DEFAUT, clearAtlasCache, resetBakeQueue, setBudgetTrancheMs } from '../backends/webgl/atlasBake';
+import { ALPHA_TEST } from './boardPose';
+import { BUDGET_TRANCHE_MS_DEFAUT, resetBakeQueue, setBudgetTrancheMs } from '../backends/webgl/atlasBake';
 import { clearFaceBakes } from '../backends/webgl/faceBake';
 import { clearPeriodTextures } from '../backends/webgl/periodTexture';
 import { clearBillboardTextures } from '../backends/webgl/svgTexture';
 import { viderTexturesStatiques } from './texturesStatiques';
+import { props, refEstVolumique } from '../../data';
 import { resetStageFrames } from './stageFrames';
 
 // #2967
@@ -151,14 +152,13 @@ export function simulerRasterisation(mode: 'auto' | 'retenue' = 'auto'): Rasteri
 }
 
 /** Les CACHES et la FILE que la suite partage sous `isolate: false`, rendus à leur point de départ :
- *  la file cadencée du cuiseur et son budget de tranche, les caches d'atlas, de textures de billboard,
+ *  la file cadencée du cuiseur et son budget de tranche, les caches de textures de billboard,
  *  de gabarits de face et de périodes, et les frames captées. Aucun mock ni global n'y est touché —
  *  ceux d'un banc sont à lui, et se rendent à sa sortie. Le BATTEMENT du stage n'est pas ici : il ne
  *  se lave qu'en amont (`ardoiseAmont`). */
 function ardoiseNeuve(): void {
   resetBakeQueue();
   setBudgetTrancheMs(BUDGET_TRANCHE_MS_DEFAUT);
-  clearAtlasCache();
   clearBillboardTextures();
   clearFaceBakes();
   clearPeriodTextures();
@@ -186,7 +186,7 @@ function ardoiseAmont(): void {
  * ARDOISE NEUVE entre deux tests, et entre deux FICHIERS — à appeler UNE fois en tête d'un banc.
  *
  * La suite partage son graphe de modules par worker (`isolate: false`, `vite.config.ts`) : la file du
- * cuiseur et SON BUDGET DE TRANCHE, le stock d'atlas, les gabarits du monde cuit (colombage,
+ * cuiseur et SON BUDGET DE TRANCHE, les gabarits du monde cuit (colombage,
  * périodes), les textures de billboard et les textures statiques sont des SINGLETONS
  * que deux fichiers voisins se passent en l'état. Un fichier qui les laisse chargés fait démarrer le
  * suivant sur des tâches et des textures d'ailleurs — mesuré : un écran monté sans un seul quad.
@@ -267,7 +267,7 @@ export interface ImagesPilotees {
  * PÉRIMÈTRE : les bancs qui COMPTENT les images de l'ÉCRAN volumique. `stageFrames.test.ts` reste sur
  * son propre collecteur : il éprouve le module de battement seul, en environnement `node` et sans une
  * ligne de React — son battement ne peut pas passer par l'`act` d'ici, et le harnais volumique
- * (renderer, caches d'atlas, react-dom, three) n'a rien à faire dans son graphe.
+ * (renderer, caches de textures, react-dom, three) n'a rien à faire dans son graphe.
  */
 export function brancherImagesPilotees(): ImagesPilotees {
   const enVol: FrameRequestCallback[] = [];
@@ -318,20 +318,26 @@ export async function respirer(ms: number, battre?: () => void): Promise<void> {
   } while (Date.now() < fin);
 }
 
-/** Tous les quads de billboard de la dernière frame dessinée (`estCorps`). */
+/** Un quad de billboard : le matériau que `boardPose.billboardMaterial` monte, et lui seul. */
+function estQuad(o: THREE.Object3D): o is THREE.Mesh {
+  const m = o as THREE.Mesh;
+  return m.isMesh === true && !m.userData.emprunte && m.material instanceof THREE.MeshBasicMaterial && m.material.alphaTest === ALPHA_TEST && !!m.material.map;
+}
+
+/** Tous les quads de billboard de la dernière frame dessinée. */
 export function quads(): THREE.Mesh[] {
   const out: THREE.Mesh[] = [];
   scènes[scènes.length - 1]?.traverse((o) => {
-    if (estCorps(o)) out.push(o);
+    if (estQuad(o)) out.push(o);
   });
   return out;
 }
 
-/** Corps VISIBLES de l'acteur `id` à la dernière frame dessinée (`corpsDeLActeur`). */
-export function corpsDessines(id: string): THREE.Mesh[] {
-  const scène = scènes[scènes.length - 1];
-  return scène ? corpsDeLActeur(scène, id) : [];
-}
+/** Une ref de décor SERVIE EN BILLBOARD, DÉRIVÉE du catalogue (`refEstVolumique`) : un décor à recette
+ *  volumique se fond dans la géométrie cuite et ne pose aucun quad, un banc qui le sème mesurerait le
+ *  vide. Sans lumière : une source posée par le décor entrerait dans l'éclairage, que ces bancs ne
+ *  mesurent pas. */
+export const REF_DECOR_BILLBOARD = props.find((p) => !refEstVolumique(p.id) && !p.light)!.id;
 
 /**
  * PLAFOND d'attente de ces bancs, déclaré UNE fois (#1442) — la borne haute que les attentes au fait

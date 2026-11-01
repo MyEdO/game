@@ -195,7 +195,7 @@ export function newDraft(seed: number): CreatorDraft {
  * héros d'avant cette fonctionnalité). */
 export function draftFromHero(hero: Combatant, seed: number): CreatorDraft {
   const d = newDraft(seed);
-  // `Combatant.species` est l'id LDB (rules) ; `appearance.species` est un id de rig → on
+  // `Combatant.species` est l'id LDB (rules) ; `appearance.species` est un id d'APPARENCE → on
   // reconstruit le brouillon depuis l'id rules, pas depuis l'apparence.
   const speciesId = hero.species ?? d.speciesId;
   const withSp = withSpecies(d, speciesId);

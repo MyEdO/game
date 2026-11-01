@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { DIR8_ORDER, type Dir8 } from '../../geometry/dir8';
 import type { Rot } from '../../geometry/iso';
 import { billboardView } from '../backends/webgl/billboardMath';
-import type { View } from '../rig/facing';
+import type { View } from '../facing';
 import type { BillboardSubject } from '../backends/webgl/sceneMeshes';
 import { CRANS_ART, bbCameraDe, cleRegard, identiteAuCran, povArtRot, povYawDeg, regardsVoisins } from './regard';
 

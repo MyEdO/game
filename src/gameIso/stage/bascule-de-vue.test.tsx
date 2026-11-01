@@ -9,8 +9,8 @@
  *  2. le monde n'est PAS RECUIT — `data-bake` compte les cuissons payées depuis le montage ;
  *  3. les caches statiques ne sont pas PURGÉS — `viderTexturesStatiques` est keyé sur l'identité de la
  *     scène, et la scène ne change pas quand le regard change ;
- *  4. les quads SURVIVENT — la bascule ne change la population que du meneur (billboard de plateau,
- *     absent quand on regarde par ses yeux) : au plus UN quad perdu.
+ *  4. les quads SURVIVENT — la bascule ne change pas la population des billboards du décor : aucun
+ *     quad perdu.
  */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -37,6 +37,7 @@ import {
   brancherArdoise,
   canevas as canevasDe,
   quads,
+  REF_DECOR_BILLBOARD,
   simulerRasterisation,
   scènes,
   viderCaptures,
@@ -102,10 +103,6 @@ const cuissons = () => Number(canevas().dataset.bake ?? -1);
 const decorsBillboard = (sc: Scene): number =>
   sc.entities.filter((e) => e.kind === 'prop' && !refEstVolumique(e.ref)).length;
 
-/** Une ref de décor encore BILLBOARD, DÉRIVÉE du catalogue : la scène d'arène ci-dessous a besoin de
- *  SUJETS DE QUAD à apparier — un décor à recette n'en pose aucun, et le banc mesurerait le vide. */
-const REF_BILLBOARD = catalogueDeDecor.find((p) => !p.volume)!.id;
-
 beforeAll(() => {
   Object.defineProperty(HTMLCanvasElement.prototype, 'clientWidth', { configurable: true, get: () => TAILLE.w });
   Object.defineProperty(HTMLCanvasElement.prototype, 'clientHeight', { configurable: true, get: () => TAILLE.h });
@@ -123,7 +120,7 @@ afterEach(() => {
 const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
 
 /** Scène d'ARÈNE : douze décors semés autour du groupe — assez de sujets pour qu'un remontage se
- *  voie ; aucune toiture, donc aucun décor sous espace dégagé (la population ne varie que du meneur). */
+ *  voie ; aucune toiture, donc aucun décor sous espace dégagé (la population ne varie pas). */
 function scèneArène(): Scene {
   const base = emptyScene('scene-test', 14, 14);
   const props = Array.from({ length: 12 }, (_, i) => ({
@@ -131,7 +128,7 @@ function scèneArène(): Scene {
     kind: 'prop',
     pos: { x: 3 + (i % 6) * 1, y: 3 + Math.floor(i / 6) * 2 },
     z: 0,
-    ref: REF_BILLBOARD,
+    ref: REF_DECOR_BILLBOARD,
   })) as unknown as Scene['entities'];
   return { ...base, entities: props } as unknown as Scene;
 }
@@ -188,11 +185,10 @@ async function monterCampagne(): Promise<void> {
   document.body.appendChild(hôte);
   root = createRoot(hôte);
   await act(async () => { root!.render(<CampaignView />); });
-  // 12 décors + le jeton du groupe : attendre le compte PLEIN, sinon un quad en retard passerait pour
-  // un quad remonté.
-  await attendreQuads(13, PLAFOND_ATTENTE_MS);
-  expect(quads().length, 'PRÉMISSE : les 12 décors et le jeton du groupe doivent être montés — un quad en retard se lirait comme un quad remonté')
-    .toBeGreaterThanOrEqual(13);
+  // Les 12 décors : attendre le compte PLEIN, sinon un quad en retard passerait pour un quad remonté.
+  await attendreQuads(12, PLAFOND_ATTENTE_MS);
+  expect(quads().length, 'PRÉMISSE : les 12 décors doivent être montés — un quad en retard se lirait comme un quad remonté')
+    .toBeGreaterThanOrEqual(12);
 }
 
 /**
@@ -239,7 +235,7 @@ describe('Bascule de regard — le monde ne se démonte pas (#1385)', () => {
     ).toBeGreaterThanOrEqual(2);
   });
 
-  it('même canevas, même monde cuit, aucune purge de cache, au plus un quad perdu', async () => {
+  it('même canevas, même monde cuit, aucune purge de cache, aucun quad perdu', async () => {
     await monterCampagne();
     const canevasAvant = canevas();
     const bakeAvant = cuissons();
@@ -260,8 +256,8 @@ describe('Bascule de regard — le monde ne se démonte pas (#1385)', () => {
     const quadsAprès = quads();
     const survivants = quadsAprès.filter((m) => quadsAvant.includes(m)).length;
     expect(quadsAvant.length - survivants,
-      'la bascule ne retire QUE le billboard du meneur : tout le reste est apparié par identité')
-      .toBeLessThanOrEqual(1);
+      'la bascule ne retire aucun billboard : tout est apparié par identité')
+      .toBe(0);
   });
 
   it('le retour au plateau ne démonte pas davantage le monde', async () => {
@@ -281,7 +277,7 @@ describe('Bascule de regard — le monde ne se démonte pas (#1385)', () => {
     expect(cuissons(), 'l’aller-retour a recuit le monde').toBe(bakeAvant);
     expect(purge, 'l’aller-retour purge les caches statiques').not.toHaveBeenCalled();
     const survivants = quads().filter((m) => quadsPov.includes(m)).length;
-    expect(quadsPov.length - survivants, 'le retour au plateau perd des quads du décor').toBeLessThanOrEqual(1);
+    expect(quadsPov.length - survivants, 'le retour au plateau perd des quads du décor').toBe(0);
   });
 });
 
@@ -362,7 +358,7 @@ describe('Bascule de regard — la CUISSON du monde ne se rejoue jamais (#1385)'
 });
 
 describe('Bascule de regard — le décor de la scène réelle survit (#1385)', () => {
-  it('sur le hub, chaque bascule ne perd que le meneur — aller comme retour', async () => {
+  it('sur le hub, chaque bascule ne perd aucun quad — aller comme retour', async () => {
     await monterHub();
     let avant = quads();
     expect(avant.length, 'aucun board monté : rien à mesurer').toBeGreaterThan(0);
@@ -372,7 +368,7 @@ describe('Bascule de regard — le décor de la scène réelle survit (#1385)', 
       const survivants = après.filter((m) => avant.includes(m)).length;
       expect(avant.length - survivants,
         `bascule ${b + 1} : le décor de la scène réelle remonte au lieu d’être apparié par identité`)
-        .toBeLessThanOrEqual(1);
+        .toBe(0);
       avant = après;
     }
   });
@@ -390,52 +386,7 @@ describe('Bascule de regard — le décor de la scène réelle survit (#1385)', 
 
     const survivants = quads().filter((m) => avant.includes(m)).length;
     expect(avant.length - survivants,
-      'une bascule pendant le service de la file perd le décor déjà posé').toBeLessThanOrEqual(1);
-  });
-});
-
-// ————————————————————————————————————————————————
-// ON REGARDE PAR SES YEUX — le meneur ne porte aucun billboard en première personne
-// ————————————————————————————————————————————————
-
-describe('Bascule de regard — en POV, le meneur n’est PAS un sujet du monde (#1385)', () => {
-  it('aucun billboard pour le meneur à hauteur d’œil — et il revient sur le plateau', async () => {
-    // Les ACTEURS que le monde envoie à la passe de billboards — la population réelle, jeton de groupe
-    // compris (il y est POUSSÉ par `VolumetricWorld`, après les jetons du builder).
-    const sujets = vi.spyOn(sceneMeshes, 'actorBillboards');
-    await monterHub();
-    const meneurId = useGame.getState().party[0]!.id;
-    // La DERNIÈRE passe, jamais leur cumul : sous charge, un banc voisin peut faire re-rendre l'écran
-    // plusieurs fois, et un cumul mélangerait deux regards dans une même lecture.
-    const idsDe = () => {
-      const dernier = sujets.mock.calls[sujets.mock.calls.length - 1];
-      return dernier ? dernier[0].map((a) => a.c.id) : [];
-    };
-
-    // PRÉMISSE — sur le plateau, le meneur EST un sujet : sans lui, « il n'y est pas en POV » ne dirait
-    // rien (la sonde mesurerait une population vide).
-    expect(sujets.mock.calls.length, 'aucune passe d’acteurs au montage : la sonde ne mord pas').toBeGreaterThan(0);
-    const idsPlateau = idsDe();
-    expect(idsPlateau, 'le jeton de groupe n’est pas posté sur le plateau').toContain(meneurId);
-
-    sujets.mockClear();
-    await basculer();
-    // PRÉMISSE — l'écran REGARDE bien à hauteur d'œil au moment de la lecture.
-    expect(canevas().dataset.vue, 'le canevas ne rend pas en première personne : la sonde lit un autre regard').toBe('pov');
-
-    // Aucune passe rejouée à la bascule = population INCHANGÉE (la rétention n'a rien vu bouger) : la
-    // lecture honnête est alors celle du plateau, pas un ensemble vide qui rendrait le verdict gratuit.
-    const idsPov = sujets.mock.calls.length ? idsDe() : idsPlateau;
-    expect(idsPov,
-      'le meneur se voit LUI-MÊME à sa case : on regarde par ses yeux, il ne porte aucun billboard')
-      .not.toContain(meneurId);
-
-    // TÉMOIN — de retour sur le plateau, il redevient un sujet.
-    sujets.mockClear();
-    await basculer();
-    expect(canevas().dataset.vue, 'le canevas n’est pas revenu au plateau').toBe('plateau');
-    expect(sujets.mock.calls.length ? idsDe() : idsPov,
-      'le jeton de groupe n’est pas revenu sur le plateau').toContain(meneurId);
+      'une bascule pendant le service de la file perd le décor déjà posé').toBe(0);
   });
 });
 

@@ -161,7 +161,7 @@ const ARRAYS = {
   axes: allAxes,
   // Apparences d'objet (#2948) : catalogue d'art, édité au fichier.
   apparences,
-  // Carrures du rig (#2972) : vocabulaire d'art, édité au fichier.
+  // Carrures (#2972) : vocabulaire d'art, édité au fichier.
   gabarits,
   // Garde-robe des éléments 3D (#3114) : vocabulaire d'art, édité au fichier.
   gardeRobe,

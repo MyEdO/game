@@ -1,13 +1,11 @@
-import { nommerChamps } from '../grammaire/meta';
 /**
- * Schéma de `raceAppearance.json` — apparence de base d'une espèce de rig (Humain, Ogre, Skaven…),
+ * Schéma de `raceAppearance.json` — apparence de base d'une espèce (Humain, Ogre, Skaven…),
  * consommée comme `RaceAppearanceData[]` (`src/data/index.ts`). PAR RÉFÉRENCE : `featureKeys`
- * (catalogue d'éléments), id de gabarit (`gabarits.json`), ids de tête/jambes, libellé de tenue, couleurs — les SVG
- * restent des registres CODE résolus par `src/gameIso/rig/races/index.ts`.
+ * (catalogue d'éléments), id de gabarit (`gabarits.json`), ids de tête/jambes, libellé de tenue, couleurs.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { paletteDEspeceSchema, sexeSchema, surchargePaletteSchema } from '../grammaire/valeurs';
+import { entityAppearanceSchema, paletteDEspeceSchema, sexeSchema, surchargePaletteSchema } from '../grammaire/valeurs';
 import { SLOTS } from '../../palette.types';
 import { ref } from '../grammaire/ref';
 import { surchargeDeGabaritSchema } from './gabarits';
@@ -25,8 +23,6 @@ const doc = document(
     paletteF: paletteDEspeceSchema.optional(),
     head: z.string().optional(),
     legs: z.string().optional(),
-    armG: z.string().optional(),
-    armD: z.string().optional(),
     dropHeadgear: z.boolean().optional(),
     tirageIndividuel: z.partialRecord(z.enum(SLOTS), z.array(z.string()).min(1)).optional(),
     featureKeys: z.array(z.string()).optional(),
@@ -34,9 +30,9 @@ const doc = document(
     tenue: z.string().optional(),
     colors: surchargePaletteSchema.optional(),
     sex: sexeSchema.optional(),
-    parts: nommerChamps(z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }), { cheveux: { label: 'Cheveux' }, visage: { label: 'Visage' } }).optional(),
+    parts: entityAppearanceSchema.shape.parts,
     scale: z.number().optional(),
-    eyes: nommerChamps(z.strictObject({ G: z.string().optional(), D: z.string().optional() }), { G: { label: 'Gauche' }, D: { label: 'Droit' } }).optional(),
+    eyes: entityAppearanceSchema.shape.eyes,
     extremites: z.enum(['lisses', 'griffues']).optional(),
   },
   {
@@ -52,8 +48,6 @@ const doc = document(
     },
     head: { label: 'Tête monstrueuse', hint: 'Pièce de tête non humaine qui remplace le visage cosmétique' },
     legs: { label: 'Jambes monstrueuses', hint: 'Pièce de jambes qui remplace les deux cuisses (ex. sabots de chèvre)' },
-    armG: { label: 'Bras gauche monstrueux', hint: 'Pièce qui remplace l’épaule gauche' },
-    armD: { label: 'Bras droit monstrueux', hint: 'Pièce qui remplace l’épaule droite (ex. griffe)' },
     dropHeadgear: { label: 'Sans couvre-chef', hint: 'La race ne porte jamais le couvre-chef d’une tenue (ex. Vampire)' },
     tirageIndividuel: {
       label: 'Teintes tirées par individu',

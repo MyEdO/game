@@ -524,7 +524,7 @@ export const DETTES_DE_LIBELLE = {
   'src/scenes/test-scenarios/magie-hors-combat.ts#label-entity-resolver-call': 1,
   // #1632 — index du Codex par libellé (`codexLookup`) ; sort classé par libellé (`classifySpellByLabel`).
   'src/ui/compendium/registry.ts#label-keyed-index': 1,
-  'src/gameIso/rig/anim/spellClips.ts#label-entity-resolver-call': 1,
+  'src/gameIso/fx/spellClips.ts#label-entity-resolver-call': 1,
 };
 
 /** Volets SANS stock : aucune clé de `DETTES_DE_LIBELLE` ne peut les porter, quel que soit le
@@ -904,7 +904,7 @@ export function scanLabelAsIdArg(relPath, contenu, idParamFns) {
     // PARAMÈTRES ubiquitaires (le `set` de Zustand `(set, get) => ({...})`) que `collectDeclaredNames`
     // ne peut pas voir comme un SHADOWING (ce n'est pas une déclaration, c'est un paramètre de
     // closure) — une déclaration homonyme RÉELLE ailleurs dans le corpus (`const set = (id, x, z) =>
-    // …` d'un helper de rig, #142 LOT 6) collisionnerait sinon avec CHAQUE `set(...)` de tout le
+    // …` d'un helper, #142 LOT 6) collisionnerait sinon avec CHAQUE `set(...)` de tout le
     // store. Limite DOCUMENTÉE et mesurée : ces noms restent hors de portée, receveur ou pas.
     if (COLLECTION_METHOD_NAMES.has(fnName)) continue;
     const openIdx = m.index + m[0].length - 1;

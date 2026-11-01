@@ -34,7 +34,6 @@ const UTILISABLE: InteractHalo = {
   cell: { x: 3, y: 4, z: 0 },
   n: 1,
   scaleK: 1,
-  bodyTopFrac: 1,
   span: { w: 1, h: 1 },
   centre: { x: 3, y: 4 },
   echelle: { x: 1, y: 1 },

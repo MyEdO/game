@@ -34,9 +34,9 @@
  *           évanoui, ces ids ne collisionnent plus.
  *       • créature↔trait : une créature confère à ses combattants un trait de même id — ogre (PERMANENT).
  *       • décor↔véhicule : un DÉCOR (meuble, `props.json`) homonyme d'un VÉHICULE à coque (`vehicles.json`)
- *           — le rendu route par la NATURE de l'ENTITÉ (`SceneEntity.kind`, cf. `gameIso/tokenBodyKind.tsx`
- *           « Décor : routé par la NATURE… ») donc SANS DANGER, mais actée : chaise (chaise de meuble vs
- *           chaise à porteurs EDOC 07 l.192), charrette, barque.
+ *           — l'entité porte sa NATURE (`SceneEntity.kind`), qui dit dans quel catalogue lire sa réf, donc
+ *           SANS DANGER, mais actée : chaise (chaise de meuble vs chaise à porteurs EDOC 07 l.192),
+ *           charrette, barque.
  *       • décor↔trapping : un DÉCOR homonyme d'une POSSESSION ordinaire (le sac PORTE l'objet, la scène
  *           POSE le décor — deux entités, même mot) — rocher, tonneau, marmite, tente, bourse (la
  *           Bourse de sac, LDB folio 301, vs la bourse POSÉE au sol — #1680 ligne 14).

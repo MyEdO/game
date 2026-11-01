@@ -4,9 +4,9 @@ import type { JSX } from 'react';
  * BILLBOARDS EN PREMIÈRE PERSONNE (#1176) — l'art des quads suit enfin le regard de l'œil.
  * Trois faits, chacun réfutable seul :
  *
- *  1. la VUE d'une entité se prend au CAP Dir8 du meneur (branche `perspective` de `billboardView`),
- *     et à lui seul : un pivot change la planche de textures, une frame de marche ne la change PAS
- *     (le patron anti-recuisson qu'`artRot` documente pour la vue de plateau) ;
+ *  1. la VUE d'un décor se prend au CAP Dir8 du meneur (branche `perspective` de `billboardView`),
+ *     et à lui seul : un pivot redemande sa planche, une frame de marche ne la redemande PAS (le
+ *     patron anti-recuisson qu'`artRot` documente pour la vue de plateau) ;
  *  2. le CRAN d'art des PROPS se dérive du même cap (`povArtRot`) — l'atlas de décor n'existe qu'aux
  *     quarts de tour, et sans cette dérivation les props gardent le cran de la dernière vue affine ;
  *  3. la RELATION entre les deux regards est MESURÉE : au cap qu'un cran affine regarde, la branche
@@ -22,15 +22,14 @@ import { DIR8_ORDER, type Dir8 } from '../../geometry/dir8';
 import { createHero } from '../../engine/character';
 import type { Rot } from '../../geometry/iso';
 import type { BillboardPropEl } from '../builders/types';
-import type { ActorPose, SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
+import type { SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
 import { billboardView } from '../backends/webgl/billboardMath';
-import { project, type View } from '../rig/facing';
+import { project, type View } from '../facing';
 import { dir8Basis } from '../pov/camera';
 import * as svgTexture from '../backends/webgl/svgTexture';
 import { artRot, GameStage3D, setStageRendererFactory, type StageFrame } from './GameStage3D';
 import { BancRenderer, brancherArdoise } from './banc-volumique';
 import { povArtRot, povYawDeg } from './regard';
-import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -79,19 +78,18 @@ const TINT: TintAt = () => 1;
 const KEEP = () => true;
 const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
 
-/** Un acteur au cap SUD, et un décor orienté : l'un juge la vue d'entité, l'autre le cran d'atlas. */
-const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0, facing: 'S' }];
+/** Un décor orienté au cap SUD : sa clé de texture porte la vue et le cran d'atlas que l'écran choisit. */
 const TONNEAU: BillboardPropEl = {
   kind: 'prop', source: 'entity', key: 'prop:tonneau', entId: 'tonneau', span: { w: 1, h: 1 }, ref: 'tonneau', facing: 'S',
   cell: { x: 6, y: 4, z: 0 }, foot: { offX: 0, offY: 0, scale: 1 },
   states: { visible: true },
 };
-const ELS: SceneBillboardEls = { tokens: [], props: [TONNEAU] };
+const ELS: SceneBillboardEls = { props: [TONNEAU] };
 
 /** Les clés de texture DEMANDÉES par le montage — la seule trace lisible de ce que l'écran peint. */
 let clés: string[] = [];
 
-/** Découpe une clé (`identity|view|mirror|px`) — l'identité d'un acteur porte elle-même des `|`. */
+/** Découpe une clé (`identity|view|mirror|px`) — l'identité d'un décor porte elle-même des `|`. */
 function découper(clé: string): { identity: string; view: View; mirror: boolean } {
   const p = clé.split('|');
   return { identity: p.slice(0, -3).join('|'), view: p[p.length - 3] as View, mirror: p[p.length - 2] === 'm' };
@@ -120,14 +118,14 @@ const cadreAffine = (rot: Rot): StageFrame =>
 
 function écran(frame: StageFrame): JSX.Element {
   return (
-    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={frame}
       tintAt={TINT}
       keepEl={KEEP}
       els={ELS}
-      actors={ACTEURS}
+      actors={[]}
       gameTime={720}
       lightLevel={1}
       lights={[]}
@@ -161,22 +159,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('POV — la VUE d’une entité suit le cap du meneur (#1176 P3-1b)', () => {
-  it('les huit caps donnent la vue perspective de leur cap, et pas une planche unique', () => {
-    const vues = new Map<Dir8, { view: View; mirror: boolean }>();
-    for (const cap of DIR8_ORDER) {
-      clés = [];
-      monter(cap, { x: 4, y: 6 });
-      const acteur = clésDe('acteur:');
-      expect(acteur, `cap ${cap} : l’acteur doit être texturé`).toHaveLength(1);
-      expect({ view: acteur[0].view, mirror: acteur[0].mirror }, `cap ${cap}`).toEqual(vueDepuis(cap, 'S'));
-      vues.set(cap, { view: acteur[0].view, mirror: acteur[0].mirror });
-      démonter();
-    }
-    // Réfutation du cran FIGÉ : une vue prise au cran 0 rendrait la MÊME planche aux huit caps.
-    expect(new Set([...vues.values()].map((v) => `${v.view}${v.mirror}`)).size).toBeGreaterThan(1);
-  });
-
+describe('POV — le CRAN d’art du décor suit le cap du meneur (#1176 P3-1b)', () => {
   it('le CRAN d’art des props suit le même cap — les quatre crans sont atteints', () => {
     const crans = new Set<string>();
     for (const cap of DIR8_ORDER) {
@@ -199,9 +182,8 @@ describe('POV — la VUE d’une entité suit le cap du meneur (#1176 P3-1b)', (
 describe('POV — la planche ne se recuit qu’au PIVOT (patron anti-recuisson d’`artRot`)', () => {
   it('une frame de marche (l’œil glisse, le cap tient) ne redemande AUCUNE texture ; un pivot, si', async () => {
     monter('N', { x: 4, y: 6 });
-    // MONTAGE : l'acteur et le décor à leur vue de cap, plus la pré-chauffe du décor aux deux caps
-    // voisins (#1373) — quatre clés.
-    expect(clés.length, 'le montage doit avoir texturé acteur + décor, et réchauffé les deux caps voisins').toBe(4);
+    // MONTAGE : le décor à sa vue de cap, plus sa pré-chauffe aux deux caps voisins (#1373) — trois clés.
+    expect(clés.length, 'le montage doit avoir texturé le décor, et réchauffé les deux caps voisins').toBe(3);
     // Les quads n'entrent en scène qu'à la résolution de leur texture : sans ce tour de boucle, il n'y
     // aurait aucun board à REPOSER au pivot, et la mesure porterait sur le vide.
     await act(async () => {});
@@ -215,7 +197,7 @@ describe('POV — la planche ne se recuit qu’au PIVOT (patron anti-recuisson d
     expect(clés.length, 'cinq frames de marche : aucune texture redemandée').toBe(auMontage);
 
     // PIVOT : le cap change d'un cran de 45° — l'art du décor se redemande AU NOUVEAU CAP, par la
-    // REPOSE (#1373) et sans remontage. Un corps à flipbook, lui, choisit sa planche par image.
+    // REPOSE (#1373) et sans remontage.
     clés = [];
     await act(async () => { root!.render(écran(cadrePov('NE', { x: 4, y: 5 }))); });
     const vm = vueDepuis('NE', 'S');
@@ -262,15 +244,14 @@ describe('POV — la pré-chauffe porte sur les deux caps VOISINS', () => {
 });
 
 describe('PLATEAU — la vue affine garde son regard ORTHO (l’autre branche de `bbCam`)', () => {
-  it('au cran `r`, l’acteur prend `project(·, r)` et le décor le cran d’`artRot` — jamais un cap', () => {
+  it('au cran `r`, le décor prend `project(·, r)` et le cran d’`artRot` — jamais un cap', () => {
     for (const rot of CRANS) {
       clés = [];
       monterCadre(cadreAffine(rot));
-      const acteur = clésDe('acteur:');
-      expect(acteur, `cran ${rot} : l’acteur doit être texturé`).toHaveLength(1);
-      // Branche ORTHO de `billboardView` : la MÊME planche que la vue de plateau a toujours servie.
-      expect({ view: acteur[0].view, mirror: acteur[0].mirror }, `cran ${rot}`).toEqual(project('S', rot));
       const prop = clésDe('prop:');
+      expect(prop.length, `cran ${rot} : le décor doit être texturé`).toBeGreaterThan(0);
+      // Branche ORTHO de `billboardView` : la MÊME planche que la vue de plateau a toujours servie.
+      expect({ view: prop[0].view, mirror: prop[0].mirror }, `cran ${rot}`).toEqual(project('S', rot));
       expect(prop[0].identity, `cran ${rot}`).toBe(`prop:prop:tonneau|tonneau|${TONNEAU.facing}|${TONNEAU.foot.scale}|r${artRot({ ...SCENE.dimensions, rot, view: 'iso' })}`);
       démonter();
     }

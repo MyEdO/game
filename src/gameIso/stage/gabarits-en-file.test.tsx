@@ -38,7 +38,6 @@ import { BancRenderer, PLAFOND_ATTENTE_MS, PLAFOND_HORS_ATTEINTE_MS, attendreEnt
 import type { ActorPose, KeepEl, SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
 import type { BillboardPropEl } from '../builders/types';
 import { entreeEnScene } from '../../state/entreeEnScene';
-import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -53,7 +52,7 @@ const KEEP: KeepEl = () => true;
 const SANS_ACTEUR: ActorPose[] = [];
 /** AUCUN billboard : l'autre population du voile déclare un jeu VIDE, et ce qui tient l'écran voilé ne
  *  peut plus être qu'un gabarit du monde. */
-const SANS_BILLBOARD: SceneBillboardEls = { tokens: [], props: [] };
+const SANS_BILLBOARD: SceneBillboardEls = { props: [] };
 
 /** Un décor posé à une case — même patron que `entree-en-scene.test.tsx` : de quoi donner à la
  *  population des billboards une clé à faire attendre. */
@@ -97,7 +96,7 @@ const plafondNominal = AMBIANCE.entreeEnScene.plafondMs;
 
 function écran(strict: boolean, pos = GROUPE, els: SceneBillboardEls = SANS_BILLBOARD): JSX.Element {
   const stage = (
-    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={cadre(pos)}
@@ -256,7 +255,7 @@ describe('#1399 — le VOILE d’entrée en scène attend les gabarits du monde'
     // tomber le voile pendant les respirations, et sa tombée n'a qu'UNE cause possible — la texture
     // servie au décor proche.
     AMBIANCE.entreeEnScene.plafondMs = PLAFOND_HORS_ATTEINTE_MS;
-    monterSync(false, GROUPE, { tokens: [], props: [décor('près', GROUPE.x + 1)] });
+    monterSync(false, GROUPE, { props: [décor('près', GROUPE.x + 1)] });
 
     expect(avecMap(matériauxDuMonde()), 'PRÉMISSE : tous les gabarits doivent être posés dès le montage').toBe(images);
     expect(canevas().dataset.voile, 'le voile est tombé avant que les billboards aient parlé').toBe('1');

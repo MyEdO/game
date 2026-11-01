@@ -8,8 +8,8 @@ import type { Scene } from '../../noyau/monde/scene';
  * MÉTAMORPHOSE — un Enfant d'Ulric (lycanthrope, Middenheim p.116) commence en forme HUMAINE et adopte sa
  * forme HYBRIDE (à tête de loup) au combat, pour le prix de DEUX Actions (op `transform` : delta de profil
  * RAW + Traits hybrides + apparence, persistant et réversible). Deux Enfants d'Ulric humains attendent
- * dans la clairière : dès l'engagement, l'IA les fait se transformer (le buff de combat vaut le coût), et
- * le rig affiche la tête de loup. Vitrine du verbe « se transformer » (données + moteur + IA + rendu).
+ * dans la clairière : dès l'engagement, l'IA les fait se transformer (le buff de combat vaut le coût).
+ * Vitrine du verbe « se transformer » (données + moteur + IA).
  */
 const W = 18, H = 12;
 
@@ -57,7 +57,7 @@ export const scenario: TestScenario = {
   tests:
     "Verbe de transformation volontaire (op transform) : un Enfant d'Ulric humain adopte sa forme hybride " +
     "(delta de profil RAW + Traits + apparence tête-de-loup, persistant, réversible) au prix de deux Actions ; " +
-    "auto-transformation de l'IA (self-buff valorisé data-driven), rendu du rig hybride.",
+    "auto-transformation de l'IA (self-buff valorisé data-driven).",
   partyNote: 'Groupe standard (Soldat · Sorcière · Tueur nain · Répurgateur) face à deux lycanthropes.',
   construire: () => ({
     party: [pregen(PREGEN.soldat), pregen(PREGEN.sorcier), pregen(PREGEN.tueur), pregen(PREGEN.repurgateur)],

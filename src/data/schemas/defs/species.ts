@@ -48,10 +48,6 @@ const doc = document(
     profilStandard: ref('creature').optional(),
     /** LDB 19 l.78-81 */
     mutationBodyMax: z.number().optional(),
-    /** Habillage de l'APERÇU (créateur, carte de race #431) — id de carrière ICONIQUE et COMMUNE à
-     *  l'espèce (jamais un choix de RÈGLE, pur flavor de vitrine) : la tuile de famille montre un
-     *  personnage vêtu plutôt qu'une tunique nue. Absent = pas de tenue (repli existant). */
-    previewCareer: ref('career').optional(),
     /** Trait RACIAL de l'espèce (#572) — MÊME `TraitPose` que le bestiaire (Ogre `{id:'ogre'}`,
      *  encombrance/consommation ×2 ; la Taille est portée par le TALENT Massif/Petit, pas ici).
      *  Absent (26/27 observées) = aucun trait racial mécanique. */
@@ -81,10 +77,6 @@ const doc = document(
       hint: 'LDB 77 l.7 — fiche du bestiaire d’un PNJ ordinaire de l’espèce',
     },
     mutationBodyMax: { label: 'Seuil de mutation physique' },
-    previewCareer: {
-      label: 'Aperçu (carrière type)',
-      hint: 'Carrière emblématique servant l’aperçu de vitrine (pur habillage)',
-    },
     traits: { label: 'Traits raciaux' },
     arcaneDomainsBonusOf: { label: 'Bonus de Domaines arcaniques', hint: 'Relève le plafond de Domaines tenus' },
     gatedByRule: {

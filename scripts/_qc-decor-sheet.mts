@@ -4,7 +4,7 @@
  * coup d'œil les nouveaux assets. Sortie : public/qc-decor.html (servi par Vite : /qc-decor.html).
  * Lancer : npx tsx scripts/_qc-decor-sheet.mts [--new=id1,id2] (met en avant ces props et n'affiche qu'eux)
  */
-import { VIEWS } from '../src/gameIso/rig/facing';
+import { VIEWS } from '../src/gameIso/facing';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,7 +31,7 @@ const cells = ids.map((id) => {
   return `<figure class="${HIGHLIGHT.has(id) ? 'neuf' : ''}">${svgBox(svg)}<figcaption>${id}${HIGHLIGHT.has(id) ? ' ✦' : ''}</figcaption></figure>`;
 }).join('\n');
 
-// Props ORIENTÉS : trois vues brutes (face/profil/dos) côte à côte, comme head-views/tenue-views.
+// Props ORIENTÉS : trois vues brutes (face/profil/dos) côte à côte.
 // La machinerie (`propSvg`) sélectionne la vue + le miroir selon `dir`/`camRot` ; ici on rend l'art brut.
 const directional = all.filter((id) => PROPS[id].views);
 const dirRows = directional.map((id) => {

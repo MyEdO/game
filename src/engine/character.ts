@@ -32,7 +32,7 @@ import {
   tailleDuTalent,
   specPoolOf,
   talents as talentTable,
-  rigSpeciesId,
+  especeDApparence,
   type AdvancementRef,
 } from '../data';
 import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/ref';
@@ -289,7 +289,7 @@ export interface CreateHeroOptions extends ChoixDeCreation {
   xpBonus?: number;
   details?: HeroDetails;
   motivation?: string;
-  /** Apparence du héros sans son espèce de rendu, dérivée ici de `speciesId` (`rigSpeciesId`). Absente = aucune. */
+  /** Apparence du héros sans son espèce de rendu, dérivée ici de `speciesId` (`especeDApparence`). Absente = aucune. */
   apparence?: Omit<NonNullable<Combatant['appearance']>, 'species'>;
   id?: string;
 }
@@ -454,7 +454,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     xp: opts.xpBonus ?? 0,
     charAdvances,
     careerLevel: 1,
-    ...(opts.apparence ? { appearance: { ...opts.apparence, species: rigSpeciesId(opts.speciesId) } } : {}),
+    ...(opts.apparence ? { appearance: { ...opts.apparence, species: especeDApparence(opts.speciesId) } } : {}),
   };
 
   // Effets d'acquisition des Talents (`appliquerAcquisitions`), puis attributs dérivés (Blessures + Dur

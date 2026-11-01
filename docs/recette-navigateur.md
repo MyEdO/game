@@ -422,15 +422,8 @@ items avant tout événement et passe par le contrôle de cible de `geste`. Les 
 d'AddMenu restent des contrôles natifs : `clickButtonByText(session, '+ Op mécanique', { dans })`.
 Pour le Codex courant, `ouvrirFiche` fournit déjà le parcours complet.
 
-`champParLibelle` exclut les contrôles et leurs options du texte du label : « Espèce (rig) »
-retrouve le `select` enveloppé. `choisirCouleur(session, selecteur, '#aabbcc')` focalise la
-pastille par un CLIC RÉEL (`geste`, cible ouverte et atteignable), comme `selectOption`, puis
-utilise le setter natif avec `input` et `change` ; une cible qui n'est pas un `input[type=color]`
-lève avant tout événement, un clic qui ne donne pas le focus lève avant la pose. Mesuré dans le
-Chrome headless du kit (2026-10-12, #1925) : le clic rend `focus` puis `click`, aucun sélecteur
-ne bloque la page, le clic suivant est reçu. Dans le créateur, étape `details`,
-Peau se vise par `.appear-panel label.color-chip[title="Peau"] input[type="color"]` ;
-observer `__wfrpCreator.get().apparence.colors.peau` après le geste.
+`champParLibelle` exclut les contrôles et leurs options du texte du label : le seul texte d'un
+label retrouve le `select` qu'il enveloppe.
 
 `resoudreModales` résout une coquille RollShell seulement si la boîte supérieure appartient à
 un overlay portant `data-champ` et `data-plein`, avec cascade présente ET modale élue au store ; aucun de ces témoins ne suffit seul.
@@ -538,7 +531,7 @@ const valeur = await typeInField(session, '.codex-search', ' courte', { clear: f
 
 La saisie utilise `Input.insertText` et relit la valeur ; aucune boucle lettre par lettre nécessaire. Les chips à compteur se visent par préfixe demandé (`exact:false`) dans leur groupe ; plusieurs correspondances restent refusées. Les chemins Windows des recettes peuvent utiliser `/`.
 
-Pour le créateur, attendre le résultat voulu dans la page avec `waitFor(session, "window.__wfrpCreator.get().apparence.colors.peau === '#123456'", {timeoutMs:20000})`, en adaptant le prédicat à l’étape visée ; une attente client répétée n’est pas nécessaire. `gotoScreen` prouve le montage, pas la fin d’une opération du créateur.
+Pour le créateur, attendre le résultat voulu dans la page avec `waitFor(session, "window.__wfrpCreator.get().speciesId === 'nains'", {timeoutMs:20000})`, en adaptant le prédicat à l’étape visée ; une attente client répétée n’est pas nécessaire. `gotoScreen` prouve le montage, pas la fin d’une opération du créateur.
 
 Une capture avec ancre se mesure : relever `document.scrollingElement.scrollTop` et le `scrollTop` du conteneur interne avant/après, conserver `shot` avant puis `shot(...,{ancre:selecteur})` après, et observer le sujet ainsi que les deux offsets. Un saut de page ou un scroll interne ne se diagnostique pas sur la seule image. `neutraliser` reste opt-in et mute le focus.
 
@@ -683,8 +676,8 @@ qui rend effectivement les jetons, en conservant cette limite dans le rapport.
 
 Ordre de préférence STRICT pour exercer un flux :
 1. **Vrai input** : le contrôle **clavier** est développé (cf. `src/state/clavier/keybindings.ts` — navigation,
-   ciblage, actions ; + manette) → `browser_press_key` ; clics réels sur les éléments (`data-cid` sur
-   les tokens SVG, boutons des modales). C'est le SEUL pilotage qui valide ce que le joueur vit.
+   ciblage, actions ; + manette) → `browser_press_key` ; clics réels sur les éléments (boutons des
+   modales ; un jeton de la carte se vise par `tileScreenPos` puis un vrai clic aux coordonnées). C'est le SEUL pilotage qui valide ce que le joueur vit.
 2. **`__wfrp` pour le SETUP et l'OBSERVATION** : lancer un scénario (`scenario`), placer/donner le
    tour (`place`/`turn`), lire la vérité (`state`/`battle`/`aim`/`modal`/`log`).
 3. **Appel direct des fonctions du store** (`__wfrp.store.getState().xxx()`) : DERNIER recours, pour
@@ -748,7 +741,6 @@ Trouver le helper par ce qu'on veut FAIRE ; son détail est à sa rangée (table
 | viser une arête dans l'éditeur | `__wfrp.editorAreteScreenPos(x, y, z, dir)` |
 | ouvrir une fiche du Compendium | `ouvrirFiche(session, { groupe, categorie, entree })` |
 | viser une route de la carte du monde | `__wfrp.routes()` puis `clickRoute(id)` |
-| compter les corps d'un acteur à chaque image | `__wfrp.echantillonner('corps', id)` puis `echantillons()` |
 | ouvrir un document à l'éditeur, y préparer une entité | `__wfrp.editorOpen(id)` · `editorPatchEntity(id, patch)` |
 | lire le brouillon de l'éditeur | `__wfrp.editorEntities()` · `editorWorldMap()` |
 | poser un projet en bibliothèque | `__wfrp.projectMinimal()` puis `projectSave(entree)` |
@@ -777,8 +769,6 @@ Trouver le helper par ce qu'on veut FAIRE ; son détail est à sa rangée (table
 | `areteScreenPos(x, y, z, dir)` | centre ÉCRAN du trait de CHAQUE geste d'arête offert sur ce côté de case → `[{ x, y, libelle, capacite }]` (`libelle` = l'`aria-label` du trait, `capacite` = son `data-arete-cible`), du plus proche au plus éloigné de l'étage `z` — l'arête est ramenée à sa forme canonique (`canonEdge`) et projetée par la géométrie du peintre (`tileEdge`, `src/geometry/iso.ts`) sur la projection de `tileScreenPos`. C'est la visée d'un geste d'arête au clic réel (sauter par une fenêtre : le trait `[aria-label="Sauter en bas (4 m)"]`, friction #700) au lieu d'un balayage `pickTileAt` | lecture seule ; JEU seulement, aucune variante éditeur. Refus NOMMÉS (`✗`) : hors scène, stage non monté, aucune arête utilisable à cet endroit dans l'état courant (brouillard, contrôleur, étage actif). Cliquer par `cliquerSelecteur` sur l'`aria-label` rendu quand il est unique, sinon `geste` sur `{ surface: SURFACE_CARTE, x, y }` au point rendu ; position à relire après tout geste de caméra |
 | `gesteCarteAttendu()` | le geste que la CARTE attend, ou `null` : `{ kind: 'zone' \| 'siege', label, casterId, radius, rangeTiles }` (pose de zone d'un sort ou d'un pilonnage, rayon et portée en cases depuis l'ancre `casterId`) ou `{ kind: 'cibles', label, casterId, cibles }` (cibles supplémentaires d'une incantation, `cibles` = ids déjà retenus) — type `GesteCarteAttendu`, `src/state/devtools.ts` | lecture seule, lue aux prédicats du jeu (`placingZoneOf`, `pendingCast.pickingTargets`). La fenêtre est masquée pendant ce geste : `resoudreModales` LÈVE en le nommant (`GESTES_CARTE`), le geste se fait par `tileScreenPos` puis `geste` sur `SURFACE_CARTE` |
 | `pickTileAt({x,y})` | l'INVERSE de `tileScreenPos` : ce que le PICKING RÉEL résoudrait sous ce PIXEL D'ÉCRAN — `{tile:{x,y,z}|null, cid, via:'sprite'|'decor'|'meuble'|'pas-etage'|'sol'|'aucune', nature:'case'|'combattant'|'entite', geste:{entId?}}`, plus `entId` quand `nature` vaut `'entite'`. **`geste.entId` = l'entité qu'un CLIC à ce pixel traiterait vraiment** (dialogue, marchand, place à s'asseoir) : le verdict dit ce que le pixel FRAPPE, `geste` dit ce que le geste SERT — un PNJ ancré sur la case rend `nature:'case'` (aucun rayon ne nomme un personnage hors combat) et ouvre pourtant son dialogue. Les deux sortent de la fonction que le hook appelle (`stage/geste.ts:entiteDuGeste`), jamais d'une copie : `geste.entId` absent = le clic ne traite aucune entité. La CHAÎNE ENTIÈRE est PARTAGÉE par construction avec le geste (`stage/pickResolve.ts:resoudrePixel`, appelé par `stage/useStagePointer` comme par `stage/pickProbe`) : inversion du pixel (`stage/pickResolve.ts:pointStageSousPixel`) → rayon → meuble dessiné → pas inter-étages → case marchable → sol cross-couche ; la sonde n'a AUCUN étage propre, et la pose qu'elle inverse (projection, caméra du rendu, zoom) est celle que l'hôte a publiée (`stage/spritePicker.ts:CadreRendu`), jamais le store | lecture seule, ne clique RIEN. **L'outil du clic « qui ne fait rien »** : le `via` NOMME l'étage qui a tranché : `'decor'` = le rayon a touché un décor volumique, le clic part sur SA case d'ancrage ; `'meuble'` = aucun rayon ne l'a touché (plateau fin) mais c'est bien la case du meuble DESSINÉE sous le pixel ; `'pas-etage'` = un franchissement vertical voisin du groupe ; `via:'sprite'` avec un `cid` inattendu = un CORPS couvre la case visée (engin 2×2, créature haute) et le clic part sur l'ENTITÉ, pas sur le sol ; `tile:null` = aucune surface résolue à ce pixel (hors carte, ou étage sans surface). Vérifier AVANT de conclure à un bouton/overlay mort, et TOUJOURS relire après un geste de caméra. **Ne rend QUE la bbox de la CASE** : pour viser un CORPS dressé, voir « Cibler un sprite HAUT » (Pièges vécus) |
-| `corps(id)` | corps VISIBLES de l'acteur `id` — seul, ou dans un couple monté — à la DERNIÈRE image rendue : le rendu déclare chaque image après `renderer.render` (`setImageRendue`, `src/gameIso/stage/GameStage3D.tsx`), la lecture est `corpsDeLActeur` (`src/gameIso/stage/corpsActeur.ts`) | lecture seule ; `null` tant qu'aucune image n'est rendue. Une lecture ponctuelle tombe ENTRE deux images : pour un geste bref, échantillonner (rangée suivante) |
-| `echantillonner('corps', id)` / `echantillons()` | arme l'échantillonnage : une entrée `{ image, corps }` PAR IMAGE RENDUE, lue dans la page au moment où l'image est déclarée (`image` = `canvas.dataset.rendus`, numéro de l'image ; seul le canevas de la première image est retenu) ; `echantillons()` RELIT puis VIDE le tampon | lecture seule. Un rechargement Vite efface l'échantillonnage ; réarmer remet le tampon à vide ; sans armement, `echantillons()` rend `[]`. Mode d'emploi sous cette table |
 | `talk('id')` | téléporte le groupe à côté de l'entité + l'interpelle (dialogue/marchand) | rien si l'entité n'a ni dialogue ni marchand ; ⚠ un marchand-PNJ de scène n'a PAS de bande de décor (`ScreenShell` slot `backdrop`) — cette ambiance n'existe QUE par le chemin service-de-lieu (`openPlaceMerchant`, hub de ville) qui la porte en donnée. Ne pas conclure à une régression de décor en interpellant un PNJ |
 | `goto('id'\|{x,y,z?})` | place le groupe sur une case (déclenche portes/triggers au pas) | — |
 | `screen('menu'\|'party'\|…)` | navigue vers un écran | id validé contre `SCREENS` (`noyau/etat.ts`) — `throw` immédiat + liste des ids valides si invalide (#211 ; avant : routage silencieux, écran blanc, zéro erreur console). ⚠ `screen('interlude')` n'ARME PAS l'interlude : `InterludeScreen` rend `null` sans `state.interlude` (peuplé par `startInterlude`) → écran vide. Utiliser `interlude()` (ci-dessous), pas `screen('interlude')` |
@@ -794,31 +784,13 @@ Trouver le helper par ce qu'on veut FAIRE ; son détail est à sa rangée (table
 | `editorPatchEntity(entityId, patch)` | PRÉPARE l'état d'une entité de la scène OUVERTE à l'éditeur : patch PARTIEL, une clé à `undefined` vaut ABSENTE. Le TYPE ne se retire PAS : le patch passe la porte d'authoring (`noyau/sceneEdit.ts:editEntity`, #877/#1882), qui refuse la transition « un porteur du type avant, aucun après » (`TypeNonNomme`) — l'état fautif qu'une porte doit refuser se fabrique par un type INCONNU du catalogue : `editorPatchEntity('p0', { ref: 'decor-absent' })`. Même voie qu'`editorOpen` : le pont d'INTENTION `state/editeurBridge` (commande `patcherEntite`), jamais une remontée du fiber React de `.editor-inspector` | SETUP seulement — préparer l'état, jamais déclencher le flux mesuré (c'est « Fichier → Exporter JSON » ou « Importer JSON… » qu'on clique ensuite à la main). QUATRE refus NOMMÉS : rejet si l'éditeur ne se monte pas (3000 ms, le message porte le helper appelé), `✗ « id » introuvable` listant les ids de la scène, `✗` sur une clé d'IDENTITÉ (`id`, `kind`) qu'aucun patch ne touche, et `✗` sur un type retiré, qui nomme le porteur absent. Le patch passe par le seam d'assise unique (`noyau/sceneEdit.ts:editEntity`) : il est ANNULABLE (Ctrl+Z) et normalisé comme une édition d'auteur. ⚠ « ABSENTE » vaut au DOCUMENT : en mémoire la clé reste présente à `undefined` (`{ ...e, ...patch }`, `noyau/sceneEdit.ts:patchEntity`) — `'ref' in ent` rend encore `true`, c'est la sérialisation (`JSON.stringify`) qui la fait disparaître, et le schéma qui la lit comme manquante |
 | `projectMinimal(id?, label?)` | rend une entrée de BIBLIOTHÈQUE DE PROJETS (`SavedProject`) minimale et VALIDE — une scène vide (`emptyScene`) enveloppée par `documentDeProjet`, identité d'un projet d'auteur (`MAISON_PROJET_AUTHORE`) : elle passe `parseProject`. Rien n'est écrit | SETUP seulement : la recette la DÉFORME pour son cas (jamais un document recopié du schéma, où un champ oublié — `maison` — fait refuser PLUS TÔT que le refus mesuré), puis la pose par `projectSave` |
 | `projectSave(entree)` | POSE l'entrée en bibliothèque par la fonction du même nom (`projectSave`, `state/projectLibrary.ts`) : le cache de `projectsLoad` est mis à jour, AUCUN rechargement de page requis (`✓ projet « id » posé…`, `✗` portant le message de l'écriture en échec) | SETUP seulement. Aucune porte : une entrée déformée se pose telle quelle. Les écrans qui listent les projets (« Ouvrir » de l'éditeur, bibliothèque de campagnes) lisent le cache à leur OUVERTURE (`useState(() => projectsLoad())`) : poser AVANT de les ouvrir, sinon les fermer et rouvrir. Setup et geste tiennent dans UNE session (`restaurerStockage` à `session.close()`, § « Pièges vécus ») |
-| `roofCut(on=false)` | lève-toit ON/OFF — `roofCut(false)` débraye le dégagement de la pièce occupée : toits, façades et décors de toit RESTENT peints même quand le groupe entre dans l'empreinte, **hors le disque local de perçage autour de chaque héros** | bascule GLOBALE — remettre `roofCut(true)` avant de valider un flux de vue réel (symétrique de `fog`). Ne débraye QUE le dégagement de PIÈCE : le perçage par occlusion (#1176 M3, `src/gameIso/stage/percage.ts`) reste actif, donc un trou subsiste dans la nappe au-dessus d'un héros qu'elle cache |
+| `roofCut(on=false)` | lève-toit ON/OFF — `roofCut(false)` débraye le dégagement de la pièce occupée : toits, façades et décors de toit RESTENT peints même quand le groupe entre dans l'empreinte | bascule GLOBALE — remettre `roofCut(true)` avant de valider un flux de vue réel (symétrique de `fog`). Ne débraye QUE le dégagement de PIÈCE |
 | `labels(on?)` | overlay debug de coordonnées sur la carte | bascule ; zéro coût si OFF |
 | `visibleCount()` | `{visible, explored, total}` sur l'état VIVANT — cases VUES (`computeStateVisible`, la dérivation du rendu, composée telle quelle), cases EXPLORÉES de la scène courante, cases construites (dimensions × étages) | lecture seule ; chiffre une révélation (cloison qui laisse voir, lampe allumée) sans lire la carte au pixel. ⚠ `fog(false)` force `visible` = `total` (REVEAL_ALL) — remettre `fog(true)` avant de mesurer |
 | `walls(structure?)` | arêtes de `scene.walls` : sans argument, un DÉCOMPTE par `structure` (`Record<id, n>`, arêtes nues sous `(sans structure)`) ; avec un id de Structure, la liste `{x,y,z,side,structure,window,door,closed}` | lecture seule ; `closed` n'est rendu que pour une PORTE et vaut son état VIVANT (`doorIsOpen`, flags de scène), jamais le seul champ authoré |
 | `go('scene-id', entry?)` | saute vers une scène du projet | scène inconnue → message `✗`, scène inchangée |
 | `fight(encounterId?)` | sans argument : liste les rencontres de la scène ; avec id : lance le combat | le combat s'ouvre sur la pause de début de Round : « Commencer le combat » est le geste du JOUEUR qui suit — `ouvrirRound` (`lib.mjs`), ou `demarrer({ combat })` (`setup.mjs`) |
 | `store` | store Zustand brut (`getState`/`setState`) | **dernier recours** (doctrine ci-dessus, §3) — ⚠ **`setState` brut peut CORROMPRE l'état sans récupération** (pas de validation/dérivations liées, contrairement aux actions du store) : un état incohérent après un `setState` direct impose un RELOAD complet, pas un simple retour arrière. `store` = LECTURE (`getState()`) ; toute mutation passe par un helper `__wfrp` ou une vraie action du store (`getState().xxx()`), jamais `setState` à la main sur un flux qu'on valide |
-
-**Échantillonner CHAQUE image pendant un geste bref — mise en selle, descente (#2198)** : une capture ou
-une lecture `corps(id)` tombe ENTRE deux images (la descente de #2097, 417 ms, n'a jamais été filmée).
-L'échantillonnage lit DANS la page, à chaque image déclarée, sans dépendre du rythme du script ; le
-geste reste celui du JOUEUR (« Monter », action `mount` sur la pastille de la monture ; « Descendre »,
-action `dismount` — `src/data/actions.json`) :
-
-```js
-await appelerWfrp(session, 'echantillonner', 'corps', idCavalier);   // armé JUSTE avant le geste
-// … le geste réel (clic de « Monter »), puis la fin du geste lue à l'état :
-await waitFor(session, `!!window.__wfrp.store.getState().battle.combatants.find((c) => c.id === '${idCavalier}')?.mountId`);
-await sleep(1000);                                                  // l'animation s'achève, les images s'accumulent
-const images = await appelerWfrp(session, 'echantillons');           // [{ image, corps }], tampon vidé
-```
-
-Verdict : `images.every((e) => e.corps === 1)`, ET des numéros `image` CONTIGUS (un trou = des images non
-vues : canevas remonté, rechargement). Réarmer `echantillonner` avant la descente (attente sur
-`mountId` ABSENT) et juger chaque geste sur SON tampon — jamais un tampon commun aux deux gestes.
 
 ### Combat — lecture / ciblage
 
@@ -1471,11 +1443,10 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   `{invalid, reason:'noammo'}` = pièce sans munition : en acheter à l'arsenal/chandelier PUIS charger
   (la munition d'artillerie est un article séparé des vivres, cf. `giveTrapping`) ; l'affordance à
   l'écran nomme la munition attendue (« Pas de munitions (Boulet et poudre) »).
-- **Les tokens de combat SVG ne sont JAMAIS « stable » pour Playwright** : ils oscillent en
-  permanence (idle-bob des billboards) → `browser_click` attend une stabilité qui ne
-  vient pas et expire. Cibler par le **roster du HUD** (portraits/frise, éléments DOM stables) ou lire
-  `tileScreenPos({x,y,z?})` pour la case puis un VRAI clic souris aux coordonnées — jamais un
-  `browser_click` qui attend la fin de l'animation du token.
+- **Les jetons de combat ne sont pas des éléments DOM** : le monde se peint au canevas, aucun jeton
+  ne porte de `data-cid` (`src/gameIso/stage/GameStage3D.test.tsx`) → `browser_click` n'a rien à
+  viser. Cibler par le **roster du HUD** (portraits/frise, éléments DOM stables) ou lire
+  `tileScreenPos({x,y,z?})` pour la case puis un VRAI clic souris aux coordonnées.
 - **Roster du HUD : viser un DOUBLON de libellé par son ID, pas par son nom** — deux héros (ou deux
   marins d'équipage) peuvent porter le MÊME libellé à l'écran ; un sélecteur par texte en attrape un
   au hasard, et la capture « prouve » alors l'autre. Résoudre l'id d'abord (`__wfrp.battle()` liste
@@ -1604,7 +1575,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   coque/un servant PUIS re-choisir l'arme, ou l'inverse, donne le MÊME résultat avec ce helper de
   triche. Le mouvement RÉEL (clic-pour-se-déplacer, hors `place()`) remet lui `battle.action` à `null`
   (ex. `windowAcross`, `src/noyau/gesteDArete.ts`) — un réflexe distinct, à ne pas confondre avec la triche `place()`.
-- **Combat naval — cibler un membre d'équipage d'une coque composite** : les sous-tokens SVG
+- **Combat naval — cibler un membre d'équipage d'une coque composite** : les sous-jetons
   superposés d'un poste (chef + servants sur la même case) n'ont pas de bbox fiable au clic. Méthode
   fiable : le PORTRAIT du roster HUD (frise/dock, bas d'écran) route par `battleClickEntity` — MÊME
   ciblage que cliquer le pion sur la carte (`src/ui/CampaignView.tsx:142-166`, `onStripPortrait`/

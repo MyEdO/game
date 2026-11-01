@@ -12,7 +12,7 @@
  * LA RÈGLE (#1297) : « ce qui se voit se clique ». Le plus PROCHE touché tranche, et un DÉCOR qui gagne
  * rend `null` — le clic retombe sur la tuile, comme un sprite qui cache un corps le rend inatteignable.
  * Seule l'occultation par la géométrie CUITE du monde tombe : le jeton s'y peint à travers — son
- * ANNEAU (`dynamicMarkMeshes.buildSilhouetteTwin`) et son CORPS (`stage/boardPose.attachBodySilhouette`)
+ * ANNEAU (`dynamicMarkMeshes.buildSilhouetteTwin`)
  * — donc le pixel où on le lit rend son id.
  *
  * UN CHOIX ASSUMÉ (#1297) : AUCUNE BORNE DE DISTANCE — un jeton occulté par le monde reste cliquable

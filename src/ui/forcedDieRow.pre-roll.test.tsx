@@ -39,9 +39,6 @@ const C = (over: Partial<Combatant>): Combatant =>
 
 const ATT = C({ id: 'A', label: 'Att', resilience: 2 });
 const DEF = C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 } });
-/** Le MÊME combattant côté vue : le portrait de rangée compose un rig, dont l'arme de fixture (nom
- *  seul, hors registre) n'est pas résoluble — la vue n'en a pas besoin, le flux si. */
-const VIEW = { ...ATT, weapons: [] } as Combatant;
 
 /** Attaque NON LANCÉE (aucun résultat) : l'état exact d'une rangée pré-jet. */
 function setupPreRoll() {
@@ -128,8 +125,8 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     act(() => {
       root.render(
         <RollRow
-          actor={VIEW}
-          row={{ combatant: VIEW, pending: testPending('Corps à corps', 45) }}
+          actor={ATT}
+          row={{ combatant: ATT, pending: testPending('Corps à corps', 45) }}
           rolled={false}
           interactive
           forcedRoll={die.forcedRoll}
@@ -161,8 +158,8 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     act(() => {
       root.render(
         <RollRow
-          actor={VIEW}
-          row={{ combatant: VIEW, pending: testPending('Corps à corps', 45) }}
+          actor={ATT}
+          row={{ combatant: ATT, pending: testPending('Corps à corps', 45) }}
           rolled={false}
           interactive
           forcedRoll={die.forcedRoll}
@@ -197,8 +194,8 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     act(() => {
       root.render(
         <RollRow
-          actor={VIEW}
-          row={{ combatant: VIEW, pending: testPending('Corps à corps', 45) }}
+          actor={ATT}
+          row={{ combatant: ATT, pending: testPending('Corps à corps', 45) }}
           rolled={false}
           interactive
           forcedRoll={die.forcedRoll}
@@ -234,8 +231,8 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     act(() => {
       root.render(
         <RollRow
-          actor={VIEW}
-          row={{ combatant: VIEW, pending: testPending('Corps à corps', 45) }}
+          actor={ATT}
+          row={{ combatant: ATT, pending: testPending('Corps à corps', 45) }}
           rolled
           interactive
           forcedRoll={die.forcedRoll}
@@ -261,8 +258,8 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     act(() => {
       root.render(
         <RollRow
-          actor={VIEW}
-          row={{ combatant: VIEW, pending: testPending('Corps à corps', 45) }}
+          actor={ATT}
+          row={{ combatant: ATT, pending: testPending('Corps à corps', 45) }}
           rolled={false}
           interactive
           forcedRoll={die.forcedRoll}
@@ -284,8 +281,8 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     act(() => {
       root.render(
         <RollRow
-          actor={VIEW}
-          row={{ combatant: VIEW, pending: testPending('Corps à corps', 45) }}
+          actor={ATT}
+          row={{ combatant: ATT, pending: testPending('Corps à corps', 45) }}
           rolled
           interactive
           forcedRoll={die.forcedRoll}
@@ -313,8 +310,8 @@ describe('« Dé fixé » PRÉ-jet — le champ DANS une vraie modale', () => {
           }
         >
           <RollRow
-            actor={VIEW}
-            row={{ combatant: VIEW, pending: testPending('Corps à corps', 45) }}
+            actor={ATT}
+            row={{ combatant: ATT, pending: testPending('Corps à corps', 45) }}
             rolled={false}
             interactive
             forcedRoll={die.forcedRoll}
@@ -376,9 +373,9 @@ describe('« Fixer le dé » — un nom accessible PAR LIGNE (#1117)', () => {
     act(() => {
       root.render(
         <>
-          <RollRow actor={VIEW} row={{ combatant: VIEW, pending: testPending('Voile', 45) }} rolled={false} interactive
+          <RollRow actor={ATT} row={{ combatant: ATT, pending: testPending('Voile', 45) }} rolled={false} interactive
             forcedRoll={die.forcedRoll} fixedMark={die.fixedMark} rollFrisson={false} onRoll={() => {}} />
-          <RollRow actor={VIEW} row={{ combatant: VIEW, pending: testPending('Résistance', 45) }} rolled={false} interactive
+          <RollRow actor={ATT} row={{ combatant: ATT, pending: testPending('Résistance', 45) }} rolled={false} interactive
             forcedRoll={die.forcedRoll} fixedMark={die.fixedMark} rollFrisson={false} onRoll={() => {}} />
         </>,
       );
@@ -429,7 +426,7 @@ describe('« Fixer le dé » PRÉ-jet — taper PUIS cliquer « Lancer » (sans 
     );
     act(() => {
       root.render(
-        <RollRow actor={VIEW} row={{ combatant: VIEW, pending: testPending('Voile', 45) }} rolled={false} interactive
+        <RollRow actor={ATT} row={{ combatant: ATT, pending: testPending('Voile', 45) }} rolled={false} interactive
           forcedRoll={die.forcedRoll} fixedMark={die.fixedMark} rollFrisson={false}
           onRoll={() => { calls.push('roll'); resolveRoll(); }} rollLabel="Lancer" />,
       );
@@ -485,7 +482,7 @@ describe('« Dé fixé » POST-jet et refus hors domaine (#1117)', () => {
     const onSet = (r: number) => { calls.push(`set:${r}`); };
     act(() => {
       root.render(
-        <RollRow actor={{ ...VIEW, fortune: 2 }} row={{ combatant: VIEW, d: testBreakdown('Voile', 45, { roll: 88, target: 45, sl: -4, success: false }) }}
+        <RollRow actor={{ ...ATT, fortune: 2 }} row={{ combatant: ATT, d: testBreakdown('Voile', 45, { roll: 88, target: 45, sl: -4, success: false }) }}
           rolled interactive rollFrisson={false} fortune={2}
           forcedRoll={{ roll: null, target: 45, fixed: true, commitOnBlur: false, onSet }}
           onReroll={() => { calls.push('reroll'); }} />,
@@ -513,7 +510,7 @@ describe('« Dé fixé » POST-jet et refus hors domaine (#1117)', () => {
     const calls: string[] = [];
     act(() => {
       root.render(
-        <RollRow actor={{ ...VIEW, fortune: 0 }} row={{ combatant: VIEW, d: testBreakdown('Voile', 45, { roll: 88, target: 45, sl: -4, success: false }) }}
+        <RollRow actor={{ ...ATT, fortune: 0 }} row={{ combatant: ATT, d: testBreakdown('Voile', 45, { roll: 88, target: 45, sl: -4, success: false }) }}
           rolled interactive rollFrisson={false}
           forcedRoll={{ roll: null, target: 45, fixed: true, commitOnBlur: false, onSet: (r) => { calls.push(`set:${r}`); } }}
           onDarkPact={() => { calls.push('pacte'); }} />,
@@ -569,7 +566,7 @@ describe('CTA HISSÉ de la coquille (hôte réel d’une cascade) — le dé sai
           title="Journée de descente"
           rolled={false}
           rows={[buildRollRow(
-            { actor: VIEW, row: { combatant: VIEW, pending: testPending('Voile', 45) }, onRoll: () => { resolveRoll(); rolls.push(useGame.getState().pendingAttack!.result!.attackerRoll); } },
+            { actor: ATT, row: { combatant: ATT, pending: testPending('Voile', 45) }, onRoll: () => { resolveRoll(); rolls.push(useGame.getState().pendingAttack!.result!.attackerRoll); } },
             { key: 'r', interactive: true, rollFrisson: false },
           )]}
           actions={[]}
@@ -628,7 +625,7 @@ describe('CTA HISSÉ d’une étape SANS champ de dé — le brouillon de l’é
       root.render(
         <RollShell flowKey="attack" title="Attaque" rolled={false}
           rows={[buildRollRow(
-            { actor: VIEW, row: { combatant: VIEW, pending: testPending('Corps à corps', 45) }, onRoll: () => { resolveRoll(); } },
+            { actor: ATT, row: { combatant: ATT, pending: testPending('Corps à corps', 45) }, onRoll: () => { resolveRoll(); } },
             { key: 'r', interactive: true, rollFrisson: false },
           )]}
           actions={[]} onCancel={() => {}} />,
@@ -678,8 +675,8 @@ describe('« Tout lancer » d’une fenêtre MULTI — chaque rangée consomme S
     const rolls: string[] = [];
     const mkRow = (id: string, label: string) => buildRollRow(
       {
-        actor: { ...VIEW, id },
-        row: { combatant: { ...VIEW, id }, pending: testPending(label, 45) },
+        actor: { ...ATT, id },
+        row: { combatant: { ...ATT, id }, pending: testPending(label, 45) },
         onRoll: () => { rolls.push(`${id}:naturel`); },
       },
       {
@@ -738,7 +735,7 @@ describe('ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé
     const die = rowForcedDie(useGame.getState(), 'attack', { actor: ATT, rolled: false, interactive: true, onRoll: () => { resolveRoll(); } }, false);
     act(() => {
       root.render(
-        <RollRow actor={VIEW} row={{ combatant: VIEW, pending: testPending('Voile', 45) }} rolled={false} interactive
+        <RollRow actor={ATT} row={{ combatant: ATT, pending: testPending('Voile', 45) }} rolled={false} interactive
           forcedRoll={die.forcedRoll} fixedMark={die.fixedMark} rollFrisson={false} rollLabel="Lancer"
           onRoll={() => { resolveRoll(); }} />,
       );
@@ -759,7 +756,7 @@ describe('ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé
       root.render(
         <RollShell flowKey="attack" title="Journée de descente" rolled={false}
           rows={[buildRollRow(
-            { actor: VIEW, row: { combatant: VIEW, pending: testPending('Voile', 45) }, onRoll: () => { resolveRoll(); } },
+            { actor: ATT, row: { combatant: ATT, pending: testPending('Voile', 45) }, onRoll: () => { resolveRoll(); } },
             { key: 'r', interactive: true, rollFrisson: false },
           )]}
           actions={[]} onCancel={() => {}} />,
@@ -780,7 +777,7 @@ describe('ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé
     const rolls: string[] = [];
     const mkRow = (id: string, label: string) => buildRollRow(
       {
-        actor: { ...VIEW, id }, row: { combatant: { ...VIEW, id }, pending: testPending(label, 45) },
+        actor: { ...ATT, id }, row: { combatant: { ...ATT, id }, pending: testPending(label, 45) },
         onRoll: () => { rolls.push(`${id}:naturel`); },
       },
       {

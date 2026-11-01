@@ -109,7 +109,7 @@ export type PartRelief = (typeof PARTS_RELIEF)[number];
  * Domaines du catalogue des matières : sous-ensemble des domaines de `MaterialRef`, plus `objet`,
  * vérifié par `satisfies`. `terrain` et `structure` gardent leurs datasets propres
  * (`terrains.json` et `structureAppearance.json`).
- * `objet` vit hors du pivot de rendu du sol ; le rig lit sa palette par l’id `teinte`.
+ * `objet` vit hors du pivot de rendu du sol ; `hotes/godot/pont/equipement.ts` lit sa palette par l’id `teinte`.
  */
 export const DOMAINES_MATIERE = ['prop', 'roof', 'relief', 'objet'] as const satisfies readonly (MaterialRef['domain'] | 'objet')[];
 export type MaterialDomain = (typeof DOMAINES_MATIERE)[number];
@@ -204,7 +204,7 @@ export interface ReliefMaterialDef extends MatiereBase {
   shadeDark?: number;
 }
 
-/** Palette d’une teinte d’objet, résolue par son id au rendu du rig. */
+/** Palette d’une teinte d’objet, résolue par son id (`findTeinteById`). */
 export interface TeinteDObjet extends MatiereBase {
   domain: 'objet';
   palette: Partial<Record<Slot, string>>;

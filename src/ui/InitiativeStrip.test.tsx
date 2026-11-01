@@ -46,8 +46,7 @@ describe('InitiativeStrip', () => {
   });
 
   // La piste ARRONDIT sa hauteur au PAS d'entrée : ce pas est CONSTANT, l'entrée au trait comprise.
-  // La mise en évidence de l'unité au trait est donc un `transform` (portrait-tile.css) et non une
-  // boîte plus grande : la tuile garde le côté NOMINAL de sa taille. Que la colonne s'arrête bien
+  // Le liseré de l'unité au trait garde la boîte NOMINALE de sa taille. Que la colonne s'arrête bien
   // sur une entrée entière se mesure au navigateur (`hud-clickables.mjs`, verdict « l'entrée du pied
   // déborde la zone utile »).
   it('l’entrée AU TRAIT garde la boîte des autres (le pas ne bouge pas)', () => {
@@ -62,10 +61,10 @@ describe('InitiativeStrip', () => {
     expect(cotes[0]).toBe(String(CHAR_SIZE_PX.sm));
   });
 
-  // Spec HUD combat §1c-bis : une entrée de frise = vignette + liseré de camp (+ à la pause son
-  // score, sa pointe, sa pastille). Ni Blessures, ni nom imprimé, ni États — ils vivent au bandeau
-  // de groupe et à l'arche de la console.
-  it('n’imprime ni Blessures, ni États, ni nom dans une entrée', () => {
+  // Spec HUD combat §1c-bis : une entrée de frise = vignette + liseré de camp + nom (+ à la pause son
+  // score, sa pointe, sa pastille). La tuile ne peint aucun visage (#3160) : l'identité se LIT au nom
+  // imprimé. Ni Blessures ni États — ils vivent au bandeau de groupe et à l'arche de la console.
+  it('imprime le nom de chaque entrée, ni Blessures ni États', () => {
     const { h, foe } = fixtures();
     h.wounds = blessuresDeBase(11, 7);
     h.conditions = [{ id: 'assourdi', value: 1 }];
@@ -76,9 +75,20 @@ describe('InitiativeStrip', () => {
     expect(html).not.toContain('ptile-gauge');
     expect(html).not.toContain('7/11');
     expect(html).not.toContain('pt-state');
-    // Le nom reste en title/aria-label (a11y), jamais en texte imprimé.
-    expect(html).toContain('title="Gunnar"');
-    expect(html.replace(/<[^>]*>/g, ' ')).not.toContain('Gunnar');
+    // Le texte imprimé de la piste : le cartouche, puis UN nom par entrée dans l'ordre de passage
+    // (le chevron de l'acteur au trait devant sa tuile), puis le pied de frise.
+    expect(html.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean)).toEqual(['Round', '2', 'Brigand', '▼', 'Gunnar', 'Pause']);
+    expect([...html.matchAll(/<span class="[^"]*\bptile-name\b[^"]*">([^<]*)<\/span>/g)].map((nom) => nom[1])).toEqual([foe.label, h.label]);
+  });
+
+  it('un PNJ garde une carte sans fond de camp ennemi', () => {
+    const { h } = fixtures();
+    const npc = { ...h, id: 'pnj', label: 'Cheval', kind: 'npc' as const };
+    const html = renderToStaticMarkup(
+      <InitiativeStrip order={[npc.id]} turn={0} round={1} combatants={[npc]} over={false}
+        canFirstIds={[]} onActivate={noop} onPromote={noop} hand={HAND} />,
+    );
+    expect(html).toContain('class="ptile active   "');
   });
 
   it.each([

@@ -471,7 +471,11 @@ describe('groundAccents — contrat des NAPPES SEMÉES, sur TOUT le registre de 
   const nappes = nappesSemees();
 
   it('le registre offre un échantillon de nappes semées qui vaille une mesure', () => {
-    expect(nappes.length).toBeGreaterThan(20_000); // mesuré 28 739 faces sur 44 scènes
+    // Le cardinal du registre est VIVANT (une scène ajoutée ou retirée le déplace) : il va au message.
+    // La prémisse est structurelle — des nappes semées sur plus d'une scène, sans quoi les lois
+    // ci-dessous jugeraient une scène, pas le registre.
+    const scenesSemees = new Set(nappes.map((n) => n.id.slice(0, n.id.indexOf('/', n.id.indexOf('/') + 1))));
+    expect(scenesSemees.size, `${nappes.length} nappes semées sur ${scenesSemees.size} scène(s)`).toBeGreaterThan(1);
   });
 
   it("aucun accent ne déborde l'EMPRISE monde de sa case", () => {
@@ -509,11 +513,10 @@ describe('groundAccents — contrat des NAPPES SEMÉES, sur TOUT le registre de 
   it("la DENSITÉ de semis au m² reste sous le double de la pire mesure du registre", () => {
     // Un emballement de semis se mesure au MÈTRE CARRÉ, jamais en absolu ni par tuile : la recette
     // déclare un `perM2` (1,1 pour l'herbe, ≤ 0,6 pour les mouchetis) et une tuile vaut `mpt²` m².
-    // Mesures du 2026-08-10 sur les 44 scènes du registre : plafond 1,0000 accent/m² (galerie-modeles,
-    // 50 112 instances sur 12 528 tuiles de 2 m ; poursuite-terrestre ; voyage/*), 0,9646 au siège.
-    // Une borne PAR TUILE serait fausse — elle croît en `mpt²` : duel-naval sort à 25,0 accents/tuile
-    // pour 0,2500/m² (mpt = 10). Une borne ABSOLUE ne dirait rien non plus : galerie-modeles pèse
-    // 50 112 instances sans le moindre emballement, juste 6× plus de sol.
+    // Mesures du 2026-08-10 sur les scènes du registre : plafond 1,0000 accent/m² (poursuite-terrestre ;
+    // voyage/*), 0,9646 au siège. Une borne PAR TUILE serait fausse — elle croît en `mpt²` : duel-naval
+    // sort à 25,0 accents/tuile pour 0,2500/m² (mpt = 10). Une borne ABSOLUE ne dirait rien non plus :
+    // une grande carte pèse plus d'instances sans le moindre emballement, juste parce qu'elle a plus de sol.
     const parScene = new Map<string, { n: number; m2: number }>();
     for (const n of nappes) {
       const cle = n.id.slice(0, n.id.indexOf('/', n.id.indexOf('/') + 1));
@@ -522,7 +525,6 @@ describe('groundAccents — contrat des NAPPES SEMÉES, sur TOUT le registre de 
       e.m2 += n.mpt * n.mpt;
       parScene.set(cle, e);
     }
-    expect(parScene.size).toBeGreaterThan(30); // 44 scènes semées mesurées
     const debordent = [...parScene]
       .filter(([, e]) => e.n / e.m2 > DENSITE_MAX_M2)
       .map(([cle, e]) => `${cle} à ${(e.n / e.m2).toFixed(4)}/m²`);

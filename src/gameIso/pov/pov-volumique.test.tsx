@@ -20,7 +20,6 @@ import { hasSpritePicker } from '../stage/spritePicker';
 import { battreStageFrames } from '../stage/stageFrames';
 import { EYE_H, farTilesOf } from './camera';
 import { MondeDeCampagne } from '../stage/MondeDeCampagne';
-import { findTrappingById } from '../../data';
 
 /**
  * LE POV VOLUMIQUE (#1176, P3-1a) — la vue première personne montée sur le MÊME monde que le stage
@@ -194,13 +193,13 @@ describe('POV volumique — ce que la première personne ne porte PAS (#1176 P3-
     // quand le groupe entre sous un toit).
     const dims: Dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: 0, view: 'iso' };
     monter(
-      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+      <GameStage3D lecture="jeu"
         scene={scene}
         mpt={sceneMetresPerTile(scene)}
         frame={{ mode: 'plateau', dims, cam: { x: 0, y: 0 }, zoom: 1 }}
         tintAt={() => 1}
         keepEl={(el) => el.kind !== 'roof'}
-        els={{ tokens: [], props: [] }}
+        els={{ props: [] }}
         actors={[]}
         gameTime={720}
         lightLevel={null}
@@ -220,13 +219,13 @@ describe('POV volumique — ce que la première personne ne porte PAS (#1176 P3-
 
     const dims: Dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: 0, view: 'iso' };
     monter(
-      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+      <GameStage3D lecture="jeu"
         scene={scene}
         mpt={sceneMetresPerTile(scene)}
         frame={{ mode: 'plateau', dims, cam: { x: 0, y: 0 }, zoom: 1 }}
         tintAt={() => 1}
         keepEl={() => true}
-        els={{ tokens: [], props: [] }}
+        els={{ props: [] }}
         actors={[]}
         gameTime={720}
         lightLevel={null}

@@ -14,7 +14,6 @@ import {
   champParLibelle,
   clickItemByText,
   setAtelier,
-  choisirCouleur,
   freezeTimeout,
   unfreezeTimeout,
   clickButtonByText,
@@ -1172,47 +1171,10 @@ test('clic ambigu : refuse avant tout événement, portée explicite départage'
 })
 
 test('libellé de select enveloppé : options exclues, champ intact', async () => {
-  const { dom, session } = sessionSurDom('<label>Espèce (rig)<select><option>Humain</option><option>Nain</option></select></label>')
-  const sel = await champParLibelle(session, 'Espèce (rig)')
+  const { dom, session } = sessionSurDom('<label>Espèce (créateur)<select><option>Humain</option><option>Nain</option></select></label>')
+  const sel = await champParLibelle(session, 'Espèce (créateur)')
   assert.equal(dom.window.document.querySelector(sel).tagName, 'SELECT')
   assert.equal(dom.window.document.querySelectorAll('option').length, 2)
-})
-
-/** Pastille de couleur dont le clic réel (`mousePressed`) donne le focus, comme Chrome (mesuré #1925). */
-function pageCouleur(html = '<input id="c" type="color" value="#000000">') {
-  const p = pagePilotee(html)
-  p.dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, width: 20, height: 20 })
-  const rpc = socketDe(p.session).gerer
-  socketDe(p.session).gerer = async (m, params) => {
-    if (m === 'Input.dispatchMouseEvent' && params.type === 'mousePressed') p.etat.marque?.focus()
-    return rpc(m, params)
-  }
-  return p
-}
-
-test('couleur : focus par CLIC RÉEL, puis setter natif input/change', async () => {
-  const { doc, etat, session } = pageCouleur()
-  const evenements = []
-  for (const nom of ['focus', 'input', 'change']) doc.querySelector('input').addEventListener(nom, () => evenements.push(nom))
-  assert.equal(await choisirCouleur(session, '#c', '#AABBCC'), '#aabbcc')
-  assert.deepEqual(etat.emis, ['Input.dispatchMouseEvent:mouseMoved', 'Input.dispatchMouseEvent:mousePressed', 'Input.dispatchMouseEvent:mouseReleased'])
-  assert.deepEqual(evenements, ['focus', 'input', 'change'])
-  assert.equal(doc.activeElement.id, 'c')
-})
-
-test('couleur : un clic qui ne donne pas le focus LÈVE, aucune couleur posée', async () => {
-  const { doc, session } = pagePilotee('<input id="c" type="color" value="#000000">')
-  await assert.rejects(() => choisirCouleur(session, '#c', '#aabbcc'), /choisirCouleur « #c » : le champ n'a pas le focus après le clic \(focus sur body\) — aucune couleur posée/)
-  assert.equal(doc.querySelector('#c').value, '#000000')
-})
-
-test('couleur : couleur invalide, cible d’un autre type et pastille FERMÉE refusées avant tout événement', async () => {
-  const { doc, etat, session } = pageCouleur('<input id="c" type="color" value="#000000"><input id="t">')
-  await assert.rejects(() => choisirCouleur(session, '#c', 'red'), /couleur invalide/)
-  await assert.rejects(() => choisirCouleur(session, '#t', '#ffffff'), /input\[type=color\] attendu « #t », trouvé input#t — aucun événement émis/)
-  doc.querySelector('#c').disabled = true
-  await assert.rejects(() => choisirCouleur(session, '#c', '#ffffff'), /FERMÉ/)
-  assert.deepEqual(etat.emis, [])
 })
 
 test('dialogue supérieur : seule boîte marquée résolue, fiche et cérémonie inconnue préservées', async () => {
@@ -3134,7 +3096,6 @@ test('helpers de geste et de frappe : chacun transmet `delaiEntreeMs` à son ém
     ['deplierVers', () => rendreMuet(pageDefilante('<details><summary data-y="1500">Loin</summary><input id="champ"></details>')), (s) => deplierVers(s, '#champ', { pauseMs: 0, ...court })],
     ['deplierVers', () => rendreMuet(pageDefilante('<details><summary data-y="100">Près</summary><input id="champ"></details>')), (s) => deplierVers(s, '#champ', { pauseMs: 0, ...court })],
     ['selectOption', () => pageInputMuet(LISTE), (s) => selectOption(s, '#ch', 'Chapitre 20 — Le Bac', court)],
-    ['choisirCouleur', () => pageInputMuet('<input id="c" type="color">'), (s) => choisirCouleur(s, '#c', '#aabbcc', court)],
     ['ouvrirFiche', () => rendreMuet(pageCodex()), (s) => ouvrirFiche(s, { entree: 'Pourriture' }, court), 'clickButtonByText'],
     ['ouvrirFiche', codexMuetSurRangee, (s) => ouvrirFiche(s, { groupe: 'Règles', categorie: 'Maladies', entree: 'Pourriture' }, court)],
     ['cliquerAction', () => pageInputMuet('<div class="combat-console"><button data-action="tir">Tir</button></div>'), (s) => cliquerAction(s, 'tir', court)],
@@ -3171,11 +3132,6 @@ test('nom d’élément (`FN_NOMMER_ELEMENT`) : ambiguïté, focus manquant et s
   assert.deepEqual(m.flancs.map((f) => f.quoi), ['svg.voile.plein', 'svg.voile.plein'])
   assert.deepEqual(m.controles.map((c) => c.quoi), ['svg.cc-arch-name.ico'])
   assert.deepEqual(m.arche.enfants.map((e) => e.q), ['svg.cc-arch-name.ico'])
-  const pastille = pagePilotee('<svg class="pastille a"></svg>')
-  await assert.rejects(() => choisirCouleur(pastille.session, '.pastille', '#112233'), /choisirCouleur : input\[type=color\] attendu « \.pastille », trouvé svg\.pastille\.a — aucun événement émis/)
-  const couleur = pagePilotee('<input type="color" id="c"><button class="icone fermer"></button>')
-  couleur.doc.querySelector('button').focus()
-  await assert.rejects(() => choisirCouleur(couleur.session, '#c', '#112233'), /choisirCouleur « #c » : le champ n'a pas le focus après le clic \(focus sur button\.icone\.fermer\)/)
   const hauteur = new JSDOM('<div role="dialog" aria-label="Fiche"><div class="cadre-pied"><button class="btn-primary">OK</button></div><span class="planche-nom">Navire</span></div><svg class="voile plein"></svg>', { runScripts: 'outside-only' })
   hauteur.window.Element.prototype.getClientRects = () => [{}]
   hauteur.window.document.elementFromPoint = () => hauteur.window.document.querySelector('svg.voile')

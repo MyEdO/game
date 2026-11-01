@@ -37,8 +37,7 @@
    POSE. `portrait-tile.css` d'abord (la tuile), puis ce qui la SPÉCIALISE en contexte.
    `state-chips.css` AVANT `party-dock.css` : `--alv` et le `gap` de la colonne d'États s'y jouent à
    spécificité ÉGALE (0-2-0), c'est l'ordre qui donne 20px à la bande de groupe et 15 au rack. */
-@import './styles/rig-portrait.css'; /* visage d'un combattant (RigPortrait) ; `.ptile .ptile-face .rig-portrait` (portrait-tile.css) le spécialise dans sa tuile par la SPÉCIFICITÉ (0-3-0 contre 0-1-0) */
-@import './styles/portrait-tile.css'; /* tuile de portrait (PortraitTile) : carte d'équipe, visage, caret, pastille de fin */
+@import './styles/portrait-tile.css'; /* tuile de portrait (PortraitTile) : carte d'équipe, carré neutre, caret, pastille de fin */
 @import './styles/state-chips.css'; /* colonne d'États (StateChips) : alvéoles réservées, pastille actionnable, indice */
 @import './styles/initiative-strip.css'; /* frise d'initiative (InitiativeStrip) — APRÈS portrait-tile.css : `.is-tiles .ptile*` spécialise la vignette */
 @import './styles/party-dock.css'; /* bande de groupe (PartyDock) — APRÈS state-chips.css : `--alv` du bandeau (20px) contre celui du rack (15px), même spécificité */
@@ -69,7 +68,7 @@
 @import './styles/frames.css'; /* cadre-figurine UNIQUE (FigTile, #430/#431) : SEULE définition de .fig-tile* — le doublon de creator.css est purgé */
 @import './styles/plaque-row.css'; /* rangée-plaque à rivets d'or (PlaqueRow, #393) — matière .c-plate/.ck-cell de la planche FINALE */
 @import './styles/band.css'; /* bande titrée (Band, #492 Lot 1c) — extraite du créateur, partagée avec le registre État de la fiche */
-@import './styles/reglages-apparence.css'; /* réglages d'apparence (ReglagesApparence, MonsterPartsFields) : libellé + contrôle bridé à sa piste */
+@import './styles/reglages-apparence.css'; /* réglages d'apparence (ReglagesApparence) : libellé + contrôle bridé à sa piste */
 @import './styles/celestial-wheel.css'; /* astrolabe de laiton (CelestialWheel, #393) — matières du cadran, valeurs du svg « 4 — Signe astral » de la planche FINALE */
 @import './styles/creator-presentation.css'; /* mise en scène finale du créateur (PresentationScreen, #393) : registre ⇄ scène ⇄ rubriques, valeurs .fin-col/.fin-stage de la planche */
 @import './styles/coop-lobby.css'; /* salon coop (CoopLobby) : étirement des actions de l'hôte */

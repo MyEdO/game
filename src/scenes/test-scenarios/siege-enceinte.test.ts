@@ -221,7 +221,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     const affut = b.combatants.find((c) => c.id === affutEnt.id)!;
     expect(affut.inert).toBe(true);
     expect(affut.bodyShape).toBe('engin');
-    expect(affut.species).toBe('canon-petit'); // rig engin dérivé de la ref (plus d'appearance.species forcé)
+    expect(affut.species).toBe('canon-petit'); // espèce de l'engin dérivée de la ref
     expect(b.order).not.toContain(affutEnt.id); // affût inerte → aucun tour propre
     expect(affutEnt.ref).toBe('canon-petit');
     expect(affutEnt.appearance).toBeUndefined(); // l'apparence d'engin se dérive de `ref`, rien n'est stocké
@@ -377,7 +377,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     const actif = b.combatants.find((c) => c.id === b.order[b.turn])!;
     const activeZ = actif.pos?.z ?? 0;
     expect(activeZ).toBe(0); // le combat s'ouvre au sol : c'est de là qu'on regarde le rempart
-    const rendus = new Set(buildTokens(scene, vl.visible, b, { activeZ, viewZ: null, top: false }).map((t) => t.id));
+    const rendus = new Set(buildTokens(scene, vl.visible, b, { activeZ, viewZ: null, top: false }, st.party.map((h) => h.id)).map((t) => t.id));
     // Les 2 PIÈCES du rempart (emplacements posés par `bind: { emplacement }`) et leurs 2 servants.
     const piecesRempart = b.combatants.filter((c) => c.bodyShape === 'engin' && (c.pos?.z ?? 0) === 1);
     expect(piecesRempart.length).toBe(2);

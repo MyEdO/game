@@ -28,7 +28,7 @@ const halo = (id: string, extra: Partial<InteractHalo> = {}): InteractHalo => ({
   cell: { x: 3, y: 4, z: 0 },
   n: 1,
   scaleK: 1,
-  bodyTopFrac: 1,
+ 
   label: `Nom de ${id}`,
   span: { w: 1, h: 1 },
   centre: { x: 3, y: 4 },

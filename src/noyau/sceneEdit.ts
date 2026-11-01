@@ -337,7 +337,7 @@ export function paintCrenellated(scene: Scene, p: Pt, structure: string | null, 
 /** Pose un EMPLACEMENT DE SIÈGE à p via le builder PARTAGÉ `siegeEmplacementEntity` (même source que les
  *  scénarios) : une SceneEntity-personnage portant `ref` (source de l'engin → la branche siège de
  *  `spawnEnemy` construit l'affût inerte) et un poste d'artillerie (`postes:[{ trappingId, crewIds:[] }]`).
- *  AUCUN `appearance.species` : le rig d'engin est DÉRIVÉ de la `ref` au rendu (éditeur ↔ explo ↔ combat).
+ *  AUCUN `appearance.species` : l'espèce de l'engin est DÉRIVÉE de la `ref`.
  *  Au combat, `applyShipPostes` sert la pièce au chef (`crewIds[0]`). Posable ⇔ l'engin a un art d'affût
  *  (`siegeRig`) ; sinon → null (pas d'entité fantôme). */
 export function placeEmplacement(scene: Scene, trappingId: string, p: Pt, z = 0, facing?: Dir8): { scene: Scene; id: string } | null {
@@ -370,7 +370,7 @@ export function setPosteSide(scene: Scene, entityId: string, side: FireArc | und
 }
 
 /** Change l'engin du poste : nouvelle réf catalogue (`trappingId`) + libellé, ET restampe la `ref` sur
- *  l'entité — le rig d'affût étant DÉRIVÉ de la `ref`, le rendu suit l'engin servi sans `appearance.species`.
+ *  l'entité — l'espèce de l'affût étant DÉRIVÉE de la `ref`, elle suit l'engin servi sans `appearance.species`.
  *  La base est HYDRATÉE au spawn (#222 — plus d'`ItemInstance` matérialisée ici). Équipage conservé. No-op si
  *  l'engin est inconnu ou sans art d'affût (`siegeRig`). */
 export function setPosteEngine(scene: Scene, entityId: string, trappingId: string): Scene {

@@ -2197,7 +2197,7 @@
       "page": 321
     },
     "appearance": {
-      "species": "hippogriffe"
+      "species": "hyppogriffe"
     },
     "grantGroups": [
       "bete",
@@ -2616,7 +2616,7 @@
       "page": 323
     },
     "appearance": {
-      "species": "pieuvre"
+      "species": "pieuvre-des-tourbieres"
     },
     "grantGroups": [
       "bete",
@@ -2717,7 +2717,7 @@
       "page": 323
     },
     "appearance": {
-      "species": "squig"
+      "species": "squig-des-cavernes"
     },
     "grantGroups": [
       "bete",
@@ -3336,7 +3336,7 @@
       "page": 327
     },
     "appearance": {
-      "species": "varghulf"
+      "species": "chauve-souris-vampire-varghulf"
     },
     "grantGroups": [
       "mort-vivant"
@@ -3640,7 +3640,7 @@
       "page": 329
     },
     "appearance": {
-      "species": "spectre"
+      "species": "spectre-de-cairn"
     },
     "grantGroups": [
       "mort-vivant"
@@ -4615,7 +4615,7 @@
       "page": 335
     },
     "appearance": {
-      "species": "demonette",
+      "species": "demonette-de-slaanesh",
       "tenue": "demonette"
     },
     "grantGroups": [
@@ -6740,7 +6740,7 @@
       "page": 30
     },
     "appearance": {
-      "species": "squigs",
+      "species": "squig-des-cavernes",
       "colors": {
         "corps": "#5a2a7a"
       }
@@ -8830,7 +8830,7 @@
       "uses": "Une fois réduits en poudre, le bec et les serres arrêtent tout saignement"
     },
     "appearance": {
-      "species": "noctecorbes"
+      "species": "volee-de-noctecorbes"
     }
   },
   {
@@ -11971,7 +11971,7 @@
       "page": 117
     },
     "appearance": {
-      "species": "spectre"
+      "species": "spectre-middenheim"
     }
   },
   {
@@ -12829,7 +12829,7 @@
       "page": 159
     },
     "appearance": {
-      "species": "liche"
+      "species": "babrakkos"
     }
   },
   {
@@ -12986,7 +12986,7 @@
       "page": 67
     },
     "appearance": {
-      "species": "lutin"
+      "species": "grain-d-achillee"
     }
   },
   {

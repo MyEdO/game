@@ -8,7 +8,7 @@
  * Repère CAMÉRA : `fwd` (avant, vers l'écran) et `right` (tribord) sont des vecteurs SOL unitaires en
  * unités de GRILLE ; l'axe vertical monde `z` sert d'axe « haut » écran.
  */
-import type { View } from '../rig/facing';
+import type { View } from '../facing';
 import { WALL_H_M } from '../iso';
 import { mix, parseHex } from '../shade';
 import { heightAt, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';

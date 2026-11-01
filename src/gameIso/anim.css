@@ -132,8 +132,7 @@
 }
 .zde-ants { animation: zdeMarch 0.9s linear infinite; }
 
-/* Halo d'un décor magique ou d'une arme à feu (`.glow`, posé par les défs de `gameIso/catalog` et
-   `rig/parts/weapons`) : pulsation lente, jamais une animation par déf. */
+/* Halo d'un décor magique ou d'une arme à feu (`.glow`, posé par les défs de `gameIso/catalog`) : pulsation lente, jamais une animation par déf. */
 .iso-stage .glow {
   animation: isoglow 2.2s ease-in-out infinite;
   transform-box: fill-box;

@@ -12,8 +12,8 @@
 /** Boîte LOCALE d'un billboard (repère paper-doll ET prop : 120×150, pieds/base en (60,150)). */
 export const BB_W = 120;
 export const BB_H = 150;
-/** Hauteur métrique d'une PERSONNE debout (m) — la boîte 150 du rig. */
+/** Hauteur métrique d'une PERSONNE debout (m) — la boîte 150 d'un personnage. */
 export const ENT_H_M = 1.8;
 /** Hauteur métrique de la boîte d'un PROP (m) — même proportion prop/personnage que l'iso
- *  (échelles de boîte 0.55 prop vs 0.58 rig). */
+ *  (échelles de boîte 0.55 prop vs 0.58 personnage). */
 export const PROP_H_M = 1.7;

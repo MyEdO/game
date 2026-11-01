@@ -20,7 +20,6 @@ export const FUITES_COUCHE_PARTAGEE = [
   { fichier: 'src/ui/styles/base.css', ref: '.hero-present-aside', occurrence: 1 },
   { fichier: 'src/ui/styles/base.css', ref: '.hero-present-body', occurrence: 1 },
   { fichier: 'src/ui/styles/base.css', ref: '.hero-present-detail', occurrence: 1 },
-  { fichier: 'src/ui/styles/base.css', ref: '.hero-present-fig', occurrence: 1 },
   { fichier: 'src/ui/styles/base.css', ref: '.hero-present-sub', occurrence: 1 },
   { fichier: 'src/ui/styles/base.css', ref: '.lore-chip', occurrence: 1 },
   { fichier: 'src/ui/styles/base.css', ref: '.menu-link', occurrence: 1 },

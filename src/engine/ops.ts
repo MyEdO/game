@@ -824,8 +824,8 @@ export type GameOp =
       /** Id de matière du domaine objet. */
       teinte?: { id: string };
       /** Silhouette de RENDU : `id` de Possession (`TrappingData.id`) pour les conjures à forme FIXE
-       *  (Faux → `serpe-de-guerre`, Épée ardente → `arme-simple`) — résolu par id (`findTrappingById`,
-       *  `gameIso/rig/parts/equipment.ts`). `chooseForm` la prend du choix du lanceur. */
+       *  (Faux → `serpe-de-guerre`, Épée ardente → `arme-simple`) — résolu par id (`findTrappingById`).
+       *  `chooseForm` la prend du choix du lanceur. */
       form?: { id: string };
       /** Forme LIBRE (Arme aethyrique) : le lanceur choisit l'arme → `ctx.conjureForm` clone le profil
        *  (Groupe/allonge/mains) d'une arme RÉELLE de la base ; sinon stats fixes du Sort. */
@@ -962,7 +962,7 @@ export type GameOp =
   /** TRANSFORMATION durable & réversible (≠ `polymorph`, buff temporaire de sort) — Métamorphose de
    *  créature (Enfant d'Ulric humain↔hybride, Middenheim p.116) : applique un jeu de deltas AUTHORÉS
    *  (`ops` — charMod/moveMod/grantTrait… du tableau RAW VERBATIM) sous un LABEL déterministe (`tag`) et
-   *  une durée PERMANENTE (jamais auto-restituée), + override d'APPARENCE (`morphRef`, couche rig). Le
+   *  une durée PERMANENTE (jamais auto-restituée), + id de la forme (`morphRef`). Le
    *  `tag` groupe TOUS les effets posés → retrait ATOMIQUE par `endTransform`. Générique (toute forme
    *  alternative authorée : lycanthrope, phase de démon…), zéro nom d'entité en dur. */
   | { op: 'transform'; tag: string; ops: GameOp[]; morphRef?: string }
@@ -2792,8 +2792,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // qui détient get/set et le combattant. `applyOps` (moteur pur) les laisse INERTES.
         break;
       case 'polymorph':
-        // Métamorphose : développée en charMod différentiel + grantTrait (auto-restitués) — pure. + override
-        // d'APPARENCE le temps de l'effet (morphRef, rendu par la couche rig), restitué à l'expiration.
+        // Métamorphose : développée en charMod différentiel + grantTrait (auto-restitués) — pure. + id de
+        // la forme le temps de l'effet (morphRef, `liveMorphRef`), restitué à l'expiration.
         lines.push(...applyOps(target, polymorphOps(target, o.ref), imbrique()));
         applyActiveEffect(target, { label: nomDeSource(ctx, 'metamorphose'), morphRef: o.ref, bonus: 0, duration: durationFromCtx(ctx) });
         break;

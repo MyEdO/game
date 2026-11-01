@@ -146,7 +146,6 @@ function rendu() {
    *  sont ANCRÉS (un renommage casse ici, jamais dans le `.md`). */
   const ROUTAGE = [
     { quoi: 'un **sort**, une Prière, une Bénédiction, un Miracle', skill: 'ajouter-un-sort', data: ['src/data/spells.json'] },
-    { quoi: 'une **créature**, un PNJ, une race/tenue', skill: 'creer-une-creature', data: ['src/data/creatures.json', 'src/data/species.json'] },
     { quoi: "l'**effet mécanique** d'un trait/talent/qualité/mutation/maladie/atout", skill: 'ajouter-une-mecanique', data: ['src/data/traits.json', 'src/data/talents.json', 'src/data/qualities.json'] },
     { quoi: 'une **icône** d’affordance', skill: 'ajouter-une-icone', data: ['src/ui/icons/_registry.generated.ts'] },
     { quoi: 'un **livre source** entier', skill: 'ajouter-un-livre-source', data: ['src/data/books.json'] },
@@ -207,7 +206,7 @@ lecture de source par un agent).
 
 ## 0. D'abord : router vers le skill de domaine
 
-Si ton ajout tombe dans une de ces familles, **STOP** — le skill dédié couvre le rig / les canaux
+Si ton ajout tombe dans une de ces familles, **STOP** — le skill dédié couvre les canaux
 d'effet / la résolution que ce guide générique ne connaît pas.
 
 ${table(ROUTAGE_MESURE, ['Tu ajoutes…', 'Skill', 'Donnée', 'Ce que le skill dit de lui-même'], (r) => `| ${r.quoi} | \`${r.skill}\` | ${r.data.map((d) => `\`${d}\``).join(', ')} | ${r.desc} |`)}

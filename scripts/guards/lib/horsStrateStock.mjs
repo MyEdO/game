@@ -217,8 +217,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#qualities', ref: '[].capabilities', occurrence: 1 },
   { fichier: 'src/data#qualities', ref: '[].indice', occurrence: 1 },
   { fichier: 'src/data#qualities', ref: '[].passive[].*', occurrence: 1 },
-  { fichier: 'src/data#raceAppearance', ref: '[].eyes', occurrence: 1 },
-  { fichier: 'src/data#raceAppearance', ref: '[].parts', occurrence: 1 },
   { fichier: 'src/data#regles', ref: '[].rangees[]', occurrence: 1 },
   { fichier: 'src/data#regles', ref: '[].tests[]', occurrence: 1 },
   { fichier: 'src/data#reglesOptionnelles', ref: '[].action', occurrence: 1 },

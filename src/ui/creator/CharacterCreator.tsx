@@ -45,7 +45,6 @@ import {
   indexParId,
   memoParVersion,
   spells as allSpells,
-  rigSpeciesId,
   sourceRefLabel,
   skillInstanceLabel,
   speciesSize,
@@ -62,7 +61,7 @@ import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseD
 import { bandeAuDe } from '../../engine/tables';
 import { brancheChoisie, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
 import { idsDeLaSousListe, type RefDesignee } from '../../data/schemas/grammaire/ref';
-import { sexeSchema, type SourceRef, type Sexe } from '../../data/schemas/grammaire/valeurs';
+import { sexeSchema, type SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { CHAR_KEYS, CharKey, CHAR_LABELS, Characteristics, Combatant } from '../../engine/types';
 import { damageString, itemFromTrappingById, itemLabel } from '../../engine/items';
@@ -75,13 +74,11 @@ import { Coins } from '../Coins';
 import { graineDEntropie } from '../../web/entropie';
 import { makeRNG } from '../../engine/dice';
 import { generateName } from '../../engine/names';
-import { CharacterPreview } from '../CharacterPreview';
 import { Icon } from '../Icon';
 import { OptionChooser } from '../OptionChooser';
 import { MediaSelect, type MediaOption } from '../MediaSelect';
 import { ItemIcon } from '../ItemIcon';
 import { Tabs } from '../composites/Tabs';
-import { AppearancePanel } from '../AppearancePanel';
 import { BackgroundFields } from '../BackgroundFields';
 import { CodexRef } from '../compendium/CodexRef';
 import { SpecSelect } from '../compendium/refField/RefField';
@@ -91,10 +88,6 @@ import { EntityRef, EntityChoice, cleDAvancement, SkillChip, TalentChip } from '
 import { raceSkillSection, raceTalentSection, type CodexSection } from '../compendium/registry';
 import { CharStatsGrid } from '../CharStatsGrid';
 import { GameOpChips } from '../GameOpChips';
-import type { Appearance } from '../../engine/authoringAppearance';
-import { apparenceSuivante } from '../../gameIso/rig/parts/cosmetic';
-import { bodyHeight } from '../../gameIso/rig/composeRig';
-import { hash32 } from '../../data/hash';
 import { previewHero } from './CreatorSummary';
 import { CreatorStepFrame, StepHeader, Section, XpBadge, type StepZones } from './CreatorStepFrame';
 import { Band } from '../Band';
@@ -185,7 +178,6 @@ import { PARTY_MAX } from '../../noyau/monde/combatants';
 import { GatedAction } from '../GatedAction';
 import { Grid, Row } from '../Layout';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
-import { equipDe } from '../../noyau/equipementDessine';
 
 /** Métadonnées d'étape : libellé FR + ÉCRAN de plein rendu. Les HUIT pas passent par la MÊME porte —
  *  un pas pose ses propres hooks puis compose `CreatorStepFrame` (seule Présentation garde un
@@ -224,22 +216,6 @@ const skillCharKey = (id: string): CharKey | null => byId('skill', id)?.characte
 const memeRef = (a: RefDesignee | null | undefined, b: RefDesignee | null | undefined): boolean => !!a && !!b && refKey(a.id, a.spec) === refKey(b.id, b.spec);
 /** Chip d'un Talent désigné (id, spec) — `TalentChip` d'une acquisition. */
 const TalentRef = ({ talent }: { talent: RefDesignee }) => <TalentChip talent={{ talentId: talent.id, spec: talent.spec, times: 1 }} />;
-
-/** Apparence de PRÉ-SÉLECTION (rail/entête, avant tout réglage) d'une espèce par `id` rules —
- *  mêmes briques que le brouillon (`rigSpeciesId`), rendue par la primitive `CharacterPreview`.
- *  CACHE module-scope (entrées finies, objets immuables) : un objet STABLE par (espèce, sexe), sinon
- *  le `React.memo` de CharacterPreview ne prend jamais et les ~25 lignes du rail re-résolvent le rig
- *  à chaque rendu de l'étape. */
-const PICK_APPEARANCES = new Map<string, Appearance>();
-function pickAppearance(speciesId: string, sex: Sexe, variantId?: string): Appearance {
-  const key = `${speciesId}|${sex}|${variantId ?? ''}`;
-  let a = PICK_APPEARANCES.get(key);
-  if (!a) {
-    a = { species: rigSpeciesId(speciesId), sex, build: 0.5, seed: hash32(speciesId, sex, variantId ?? '') };
-    PICK_APPEARANCES.set(key, a);
-  }
-  return a;
-}
 
 export function CharacterCreator() {
   const party = useGame((s) => s.party);
@@ -479,20 +455,6 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
   families.sort((a, b) => Number(b.list.some((s) => socle.has(s.id))) - Number(a.list.some((s) => socle.has(s.id))));
   const totalRaces = families.reduce((n, f) => n + f.list.length, 0);
 
-  /** Apparence de la figurine qui REPRÉSENTE une famille sur sa carte : sa 1ʳᵉ lignée (la canonique
-   *  des données) — source UNIQUE du rendu de la tuile ET de la mesure de la toise ci-dessous. */
-  const famAppearance = (f: { list: SpeciesData[] }) => pickAppearance(f.list[0].id, d.apparence.sex, f.list[0].variant ?? f.list[0].id);
-  // TOISE COMMUNE de la grille de RACE (#431, verdict user 2026-07-15 verbatim : « ça ne permet pas
-  // de voir les différences de taille ») : une carte de race se compare aux AUTRES races — chaque
-  // figurine est donc cadrée à son échelle VRAIE contre la plus HAUTE des familles, au lieu d'être
-  // normée à sa propre tuile (où halfling et ogre paraissaient de même taille). La toise est une
-  // DONNÉE (hauteur du gabarit de rig, `bodyHeight`), jamais un cas par race. Mesurée sur TOUTES les
-  // familles, pas sur les seules visibles : la toise des races ne bouge pas quand la recherche filtre
-  // la grille. La normalisation PAR TUILE reste le défaut de `CharacterPreview` — c'est le bon
-  // cadrage aux tuiles de CARRIÈRE, qui comparent des figurines de la MÊME race (verdict user, même
-  // jour : « OK pour la carrière mais ici c'est un souci »).
-  const raceScaleRef = Math.max(...families.map((f) => bodyHeight(famAppearance(f))));
-
   // La recherche filtre les RACES (nom de famille) ET les LIGNÉES (variantes) — une lignée matchée
   // garde/surligne sa carte de race (le filtre agit au niveau famille, jamais en éclatant la grille).
   const visibleFamilies = filterByLabel(families, (f) => `${f.family} ${f.list.map((s) => s.variant ?? s.label).join(' ')}`, search);
@@ -566,28 +528,16 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
         onActivate={(idx) => selectFamily(visibleFamilies[idx].list)}
       >
         {visibleFamilies.map((f, idx) => {
-          const rep = f.list[0];
           const selected = sp?.family === f.family;
           const rolled = !selected && rolledFamilies.has(f.family);
           return (
             <FigTile
               key={f.family}
-              preview={{
-                appearance: famAppearance(f),
-                career: rep.previewCareer?.id,
-                // Cadrage par DÉFAUT de la primitive (0.88) : le cadrage large (0.75) était une
-                // réponse à la tuile PLEIN CHAMP, où la figurine était la tuile et où le visage
-                // touchait le bord (« ça écrase les visages », #431). La boîte-figurine du patron
-                // planche est DÉDIÉE (172px, légende DEHORS, padding de tuile au-dessus) : la tête
-                // ne touche plus rien, et 0.75 n'y laisserait qu'un quart de boîte d'air mort
-                // au-dessus de la plus grande figurine (planche : son ogre remplit la boîte).
-                scaleRef: raceScaleRef, // ÉCHELLE VRAIE : toise commune à la grille, pas à la tuile (#431)
-              }}
               label={f.family}
               sub={`${f.list.length} lignée${f.list.length > 1 ? 's' : ''}`}
               selected={selected}
               sealed={selected}
-              fig="big" // surface PRINCIPALE de l'étape : boîte-figurine pleine zone (patron `.fam-grid.big`)
+              fig="big" // surface PRINCIPALE de l'étape (patron `.fam-grid.big`)
               tabIndex={idx === activeFamilyIdx ? 0 : -1}
               className={rolled ? 'rolled' : undefined}
               onClick={() => selectFamily(f.list)}
@@ -676,10 +626,7 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
 
 // ════ 2) Carrière (LDB 05 l.204-318) — charte « Atelier du scribe » (#393 P2, MÊME ossature
 //      `CreatorStepFrame` que Race) : choix = TOUTES les classes en SECTIONS empilées
-//      (`GroupedPickGrid`, une tuile-figurine compacte par carrière — `FigTile`/`CharacterPreview`,
-//      ~6-7 par rangée, planche ratifiée du créateur (écran Carrière), corrigé 2026-07-14 : le brief
-//      « nominatif sans figurine » venait du croquis initial, la planche RATIFIÉE montre bien de
-//      petites figurines) ⇄ détail = la carrière élue (`DetailFrame` — `MetalStatus`+`CareerPath`,
+//      (`GroupedPickGrid`, une tuile compacte par carrière — `FigTile`, ~6-7 par rangée) ⇄ détail = la carrière élue (`DetailFrame` — `MetalStatus`+`CareerPath`,
 //      1ers consommateurs réels, #412). Mécanique INCHANGÉE (`withCareer`/`rollDraftCareer`,
 //      brouillon.ts) — présentation seule se restructure, patron encrier de Race (rangée toolbar,
 //      résultat vit dans l'encrier plutôt qu'un mur de boutons).
@@ -712,7 +659,7 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
           label: cl.label,
           items: accessible
             .filter((c) => c.class === cl.id)
-            .map((c: CareerData) => ({ id: c.id, label: c.label, preview: { appearance: pickAppearance(sp.id, d.apparence.sex, c.id), career: c.id } })),
+            .map((c: CareerData) => ({ id: c.id, label: c.label })),
         }))
     : [];
   const q = search.trim();
@@ -2163,8 +2110,8 @@ function IdentityNumberField({ label, value, onChange, onClear }: {
 //      puis zone de CHOIX ; fiche vivante à droite). L'état civil COMPOSE la rangée-plaque
 //      (`PlaqueGrid`/`PlaqueRow` : `.idf` de la planche = la plaque, colonne de libellé gravée +
 //      valeur à la plume sur trait pointillé), puis bande Motivation & Ambitions (`BackgroundFields`,
-//      primitive PARTAGÉE avec l'onglet Background de la fiche) et bande Apparence (`AppearancePanel`) ;
-//      le Sexe se règle à la seule bascule de l'état civil (`apparenceSuivante`). Tirage : `rolledDetails`.
+//      primitive PARTAGÉE avec l'onglet Background de la fiche) ; le Sexe se règle à la seule bascule
+//      de l'état civil. Tirage : `rolledDetails`.
 export function DetailsScreen({ d, setD }: StepProps): ReactNode {
   const sp = draftSpecies(d);
   const stepIdx = stepIds().indexOf('details');
@@ -2218,7 +2165,7 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
         <PlaqueRow
           label="Sexe"
           content={
-            <button type="button" className="btn small" onClick={() => setD({ ...d, apparence: apparenceSuivante(d.apparence, { sex: sexeSchema.options[(sexeSchema.options.indexOf(d.apparence.sex) + 1) % sexeSchema.options.length] }) })}>
+            <button type="button" className="btn small" onClick={() => setD({ ...d, apparence: { ...d.apparence, sex: sexeSchema.options[(sexeSchema.options.indexOf(d.apparence.sex) + 1) % sexeSchema.options.length] } })}>
               <Icon id="ui/branch" size="sm" /> {libelleDeValeur(sexeSchema, d.apparence.sex)}
             </button>
           }
@@ -2236,23 +2183,6 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
         />
       </Band>
 
-      <Band title={<>Apparence<small>la silhouette prend les teintes</small></>} right="tirées aux dés — retouche libre">
-        <AppearancePanel
-          species={rigSpeciesId(d.speciesId)}
-          value={d.apparence}
-          equip={equipDe([], [])}
-          career={d.careerId}
-          onChange={(apparence) => setD({ ...d, apparence })}
-        />
-      </Band>
-
-      {/* Note de PIED (planche `finale-mock8`, `.c-note` en clôture de zone) : la prose du mock décrit
-          SES teintes d'exemple (« la mèche châtain clair ») — la règle de préséance réserve la maquette
-          au STYLE, jamais aux données ; c'est donc le lien vivant figurine ⇄ registre qui est dit ici. */}
-      <p className="hint">
-        Teintes des yeux et des cheveux : la figurine de droite les porte aussitôt — le registre et la silhouette ne
-        divergent jamais. Rien n'est figé, tout se retouche jusqu'à l'engagement.
-      </p>
     </>
   );
 
@@ -2311,6 +2241,25 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
 
   return (
     <div className="creator-presentation-screen">
+      {/* La SCÈNE (`.fin-stage` de la planche) : la lampe puis le nom gravé. */}
+      <div className="presentation-stage">
+        <div className="presentation-lamp" />
+        <h2 className="presentation-name display-title">{hero.label}</h2>
+        {/* Race · NIVEAU (carrière) · statut MÉTALLISÉ — la planche nomme le niveau de départ
+            (« Pamphlétaire (Agitateur) ») là où l'écran ne portait que la carrière, et rend le statut
+            en métal (`.st-bronze`) là où il était en texte nu : `MetalStatus` est la primitive. */}
+        <p className="presentation-sub">
+          <CodexRef category="races" id={d.speciesId} label={speciesLabel}>{speciesLabel}</CodexRef>
+          {' · '}
+          {level?.label ? `${level.label} (${displayLabelForSex(d.apparence.sex, careerLabel, career?.labelF)})` : displayLabelForSex(d.apparence.sex, careerLabel, career?.labelF)}
+          {level?.status && <> · <MetalStatus status={level.status} size="chip" /></>}
+        </p>
+        <Row>
+          {sign && <span className="chip">Signe <CodexRef category="stars" id={sign.id} label={sign.label}>{sign.label}</CodexRef></span>}
+          <span className="chip">PX création <b>+{xpTotal(d)}</b></span>
+        </Row>
+      </div>
+
       <div className="presentation-col presentation-left">
         <Rubrique title="Profil">
           <CharStatsGrid size="sm" value={(k) => effectiveChar(hero, k)} />
@@ -2344,30 +2293,6 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
             </div>
           </Rubrique>
         )}
-      </div>
-
-      {/* La SCÈNE (`.fin-stage` de la planche) : la lampe, la figurine posée sous son halo, puis le nom
-          gravé. Aucune ambiance sur `CharacterPreview` — c'est la scène qui porte le halo et le cadre
-          (une ambiance de plus y peindrait une seconde boîte par-dessus l'alcôve). */}
-      <div className="presentation-stage">
-        <div className="presentation-lamp" />
-        <div className="presentation-fig">
-          <CharacterPreview hero={hero} view="front" size="fill" />
-        </div>
-        <h2 className="presentation-name display-title">{hero.label}</h2>
-        {/* Race · NIVEAU (carrière) · statut MÉTALLISÉ — la planche nomme le niveau de départ
-            (« Pamphlétaire (Agitateur) ») là où l'écran ne portait que la carrière, et rend le statut
-            en métal (`.st-bronze`) là où il était en texte nu : `MetalStatus` est la primitive. */}
-        <p className="presentation-sub">
-          <CodexRef category="races" id={d.speciesId} label={speciesLabel}>{speciesLabel}</CodexRef>
-          {' · '}
-          {level?.label ? `${level.label} (${displayLabelForSex(d.apparence.sex, careerLabel, career?.labelF)})` : displayLabelForSex(d.apparence.sex, careerLabel, career?.labelF)}
-          {level?.status && <> · <MetalStatus status={level.status} size="chip" /></>}
-        </p>
-        <Row>
-          {sign && <span className="chip">Signe <CodexRef category="stars" id={sign.id} label={sign.label}>{sign.label}</CodexRef></span>}
-          <span className="chip">PX création <b>+{xpTotal(d)}</b></span>
-        </Row>
       </div>
 
       <div className="presentation-col presentation-right">

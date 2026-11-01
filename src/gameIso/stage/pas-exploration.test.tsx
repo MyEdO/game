@@ -12,7 +12,7 @@ import type { JSX } from 'react';
  *     produisaient deux, donc deux fois toute la cascade ;
  *  3. la marche PEINT : le glissement du jeton tient le battement du stage, images à l'appui.
  *
- * La TEINTE elle-même (un corps sorti du champ s'assombrit sans remontage) se mesure sur l'écran nu
+ * La TEINTE elle-même (un décor sorti du champ s'assombrit sans remontage) se mesure sur l'écran nu
  * plus bas, où le champ de vision est une entrée du banc et non une conséquence de la scène.
  */
 import { act } from 'react';
@@ -27,13 +27,11 @@ import type { BillboardPropEl } from '../builders/types';
 import type { ActorPose, KeepEl, SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
 import * as sceneMeshes from '../backends/webgl/sceneMeshes';
 import * as visibilityTint from '../backends/webgl/visibilityTint';
-import * as actorAnimSelect from '../rig/anim/actorAnimSelect';
 import { gabaritTint } from '../../ui/editor/lowerLayerGabarit';
 import { staticTexturePins } from '../backends/webgl/svgTexture';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { GameStage3D, setStageRendererFactory, type StageFrame, type StageWalkAnim } from './GameStage3D';
-import { BancRenderer, brancherArdoise, quads, rendus as rendusDe, respirer, simulerRasterisation, viderCaptures } from './banc-volumique';
-import { findTrappingById } from '../../data';
+import { BancRenderer, REF_DECOR_BILLBOARD, brancherArdoise, quads, rendus as rendusDe, respirer, simulerRasterisation, viderCaptures } from './banc-volumique';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -71,11 +69,11 @@ const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat',
 function scèneArène(): Scene {
   const base = emptyScene('scene-test', 14, 14);
   const props = Array.from({ length: 12 }, (_, i) => ({
-    id: `tonneau-${i}`,
+    id: `decor-${i}`,
     kind: 'prop',
     pos: { x: 3 + (i % 6) * 1, y: 3 + Math.floor(i / 6) * 2 },
     z: 0,
-    ref: 'tonneau',
+    ref: REF_DECOR_BILLBOARD,
   })) as unknown as Scene['entities'];
   // Une CLOISON percée d'une porte en x = 7 : le groupe, posté au sud, ne voit du nord que le cône
   // qui passe par l'ouverture — et le pas qui s'en approche en DÉCOUVRE, ce qui est tout l'objet du
@@ -104,9 +102,8 @@ async function monterIso(): Promise<void> {
   document.body.appendChild(hôte);
   root = createRoot(hôte);
   await act(async () => { root!.render(<MondeDeCampagne />); });
-  // 12 décors + le jeton du groupe : attendre le compte PLEIN, sinon un quad en retard passerait pour
-  // un quad remonté.
-  for (let i = 0; i < 40 && quads().length < 13; i++) await respirer(20);
+  // 12 décors : attendre le compte PLEIN, sinon un quad en retard passerait pour un quad remonté.
+  for (let i = 0; i < 40 && quads().length < 12; i++) await respirer(20);
 }
 
 /** Un PAS clavier, tel que le jeu l'émet (`keybindings` → `stepPartyDir`). */
@@ -184,7 +181,7 @@ describe('Pas d’exploration — les quads SURVIVENT (#1396)', () => {
 
 const SCENE_NUE: Scene = emptyScene('scene-test', 12, 12);
 const MPT = sceneMetresPerTile(SCENE_NUE);
-const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0, facing: 'S' }];
+const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0 }];
 const KEEP: KeepEl = () => true;
 const CADRE: StageFrame = { mode: 'plateau', dims: { ...SCENE_NUE.dimensions, rot: 0, view: 'iso', yawDeg: 0 }, cam: { x: 6, y: 6 }, zoom: 1 };
 let battre: (() => void) | null = null;
@@ -200,7 +197,7 @@ const décor = (id: string, x: number): BillboardPropEl => ({
   states: { visible: true },
 });
 const DECORS: BillboardPropEl[] = [décor('a', 6), décor('b', 7), décor('c', 8)];
-const ELS: SceneBillboardEls = { tokens: [], props: DECORS };
+const ELS: SceneBillboardEls = { props: DECORS };
 
 /** TEINTE PLEINE partout, puis TEINTE SORTIE DU CHAMP pour la case du décor `b` (x = 7). */
 const PLEINE: TintAt = () => 1;
@@ -208,7 +205,7 @@ const SORTIE: TintAt = (x) => (x === 7 ? 0.35 : 1);
 
 function écran(tintAt: TintAt, actors: ActorPose[] = ACTEURS, els: SceneBillboardEls = ELS): JSX.Element {
   return (
-    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+    <GameStage3D lecture="jeu"
       scene={SCENE_NUE}
       mpt={MPT}
       frame={CADRE}
@@ -230,14 +227,14 @@ async function monterNu(): Promise<void> {
   document.body.appendChild(hôte);
   root = createRoot(hôte);
   await act(async () => { root!.render(écran(PLEINE)); });
-  for (let i = 0; i < 40 && quads().length < ELS.props.length + ACTEURS.length; i++) {
+  for (let i = 0; i < 40 && quads().length < ELS.props.length; i++) {
     await respirer(20);
     if (battre) act(() => battre!());
   }
 }
 
 describe('Champ de vision NEUF — la teinte se repose sans remonter un seul quad (#1396)', () => {
-  it('le quad d’un corps sorti du champ s’assombrit, et c’est le MÊME quad', async () => {
+  it('le quad d’un décor sorti du champ s’assombrit, et c’est le MÊME quad', async () => {
     await monterNu();
     const avant = quads();
     expect(avant.length, 'aucun board monté : rien à mesurer').toBeGreaterThan(0);
@@ -251,108 +248,35 @@ describe('Champ de vision NEUF — la teinte se repose sans remonter un seul qua
     expect(après.filter((m) => avant.includes(m)).length, 'les quads doivent être les MÊMES objets').toBe(avant.length);
     // …et la teinte est bien ARRIVÉE au matériau : un seul quad s'assombrit, celui de la case sortie.
     const assombris = après.filter((m, i) => (m.material as THREE.MeshBasicMaterial).color.r < couleurs[i].r - 1e-6);
-    expect(assombris.length, 'la teinte de visibilité n’atteint plus les corps').toBeGreaterThan(0);
+    expect(assombris.length, 'la teinte de visibilité n’atteint plus les billboards').toBeGreaterThan(0);
     const inchangés = après.filter((m, i) => (m.material as THREE.MeshBasicMaterial).color.equals(couleurs[i]));
     expect(inchangés.length, 'toute la planche s’assombrit : la teinte n’est pas prise à la CASE').toBeGreaterThan(0);
   });
 });
 
 /**
- * LE PAS D'UN ACTEUR, et le chemin de l'ÉDITEUR — l'écran monté EN DIRECT, sans hôte de jeu. Ce
+ * Le chemin de l'ÉDITEUR — l'écran monté EN DIRECT, sans hôte de jeu. Ce
  * montage-là est celui de `ui/editor/EditorCanvas` : ce qui n'est pas résolu ICI ne l'est pour
  * personne (un correctif posé chez un hôte ne vaut que pour lui).
  */
-describe('Écran nu — un pas d’acteur et un lot d’éléments neuf ne remontent RIEN (#1396)', () => {
-  it('un acteur qui change de case : le DÉCOR survit en entier, et l’acteur avec lui', async () => {
-    await monterNu();
-    const avant = quads();
-    expect(avant.length, 'aucun board monté : rien à mesurer').toBeGreaterThan(0);
-    const posAvant = avant.map((m) => m.position.clone());
-    const disposeMat = vi.spyOn(THREE.Material.prototype, 'dispose');
-    const ailleurs: ActorPose[] = [{ c: HÉROS, x: 5, y: 4, z: 0, facing: 'S' }];
-
-    await act(async () => {
-      root!.render(
-        <GameStage3D resolveTrapping={findTrappingById} lecture="jeu" scene={SCENE_NUE} mpt={MPT} frame={CADRE} tintAt={PLEINE} keepEl={KEEP} els={ELS}
-          actors={ailleurs} gameTime={720} lightLevel={1} lights={[]} anim={anim} />,
-      );
-    });
-
-    expect(disposeMat, 'un pas d’acteur libère le groupe entier : c’est LE gel signalé').not.toHaveBeenCalled();
-    const après = quads();
-    expect(après.filter((m) => avant.includes(m)).length, 'les quads doivent être les MÊMES objets').toBe(avant.length);
-    // …et l'acteur a bien SUIVI sa case : la repose de pose écrit l'ancre, la pose de frame la peint.
-    const déplacés = après.filter((m, i) => !m.position.equals(posAvant[i]));
-    expect(déplacés.length, 'aucun quad n’a suivi : l’acteur est resté à sa case de départ').toBe(1);
-  });
-
-  it('…et sa TEINTE est celle de la case d’ARRIVÉE, pas celle du départ', async () => {
-    // Champ où SEULE la case d'arrivée est sombre : un sujet dont la case reste celle du montage
-    // garderait sa couleur pleine — c'est exactement ce que la repose doit écrire.
-    const arrivéeSombre: TintAt = (x, y) => (x === 5 && y === 4 ? 0.3 : 1);
-    await monterNu();
-    await act(async () => { root!.render(écran(arrivéeSombre)); });
-    const avant = quads();
-    const couleurs = avant.map((m) => (m.material as THREE.MeshBasicMaterial).color.clone());
-    expect(avant.length, 'aucun board monté : rien à mesurer').toBeGreaterThan(0);
-
-    await act(async () => { root!.render(écran(arrivéeSombre, [{ c: HÉROS, x: 5, y: 4, z: 0, facing: 'S' }])); });
-
-    const assombris = quads().filter((m, i) => (m.material as THREE.MeshBasicMaterial).color.r < couleurs[i].r - 1e-6);
-    expect(assombris.length, 'la case du sujet n’a pas suivi : sa teinte reste celle du départ').toBe(1);
-  });
-
-  it('un acteur qui PIVOTE sur place ne remonte pas le groupe', async () => {
-    await monterNu();
-    const avant = quads();
-    const disposeMat = vi.spyOn(THREE.Material.prototype, 'dispose');
-
-    // MÊME case, autre cap : le pivot ne change que le REGARD porté sur le corps.
-    await act(async () => { root!.render(écran(PLEINE, [{ c: HÉROS, x: 4, y: 4, z: 0, facing: 'E' }])); });
-
-    expect(disposeMat, 'un pivot sur place remonte le groupe').not.toHaveBeenCalled();
-    expect(quads().filter((m) => avant.includes(m)).length, 'les quads doivent être les MÊMES objets').toBe(avant.length);
-    // Ce que le cap DEVIENT sur les sujets montés — donc l'art que la frame ira chercher — se mesure
-    // sur la couture elle-même (`reposerActeurs`, banc de `sceneMeshes`) : ici, l'art d'un corps à
-    // flipbook change aussi au fil des planches qui arrivent, et « la texture a changé » ne
-    // distinguerait pas les deux causes.
-  });
-
+describe('Écran nu — un lot d’éléments neuf ne remonte RIEN (#1396)', () => {
   it('un lot d’éléments NEUF au contenu IDENTIQUE (tick d’outil de l’éditeur) ne remonte aucun quad', async () => {
     await monterNu();
     const avant = quads();
     expect(avant.length, 'aucun board monté : rien à mesurer').toBeGreaterThan(0);
     const disposeMat = vi.spyOn(THREE.Material.prototype, 'dispose');
     // Le cas COURANT de l'éditeur : les builders rendent un tableau neuf à chaque tick d'outil.
-    const neuf: SceneBillboardEls = { tokens: [], props: DECORS.map((p) => ({ ...p, cell: { ...p.cell }, foot: { ...p.foot } })) };
+    const neuf: SceneBillboardEls = { props: DECORS.map((p) => ({ ...p, cell: { ...p.cell }, foot: { ...p.foot } })) };
 
     await act(async () => {
       root!.render(
-        <GameStage3D resolveTrapping={findTrappingById} lecture="jeu" scene={SCENE_NUE} mpt={MPT} frame={CADRE} tintAt={PLEINE} keepEl={KEEP} els={neuf}
+        <GameStage3D lecture="jeu" scene={SCENE_NUE} mpt={MPT} frame={CADRE} tintAt={PLEINE} keepEl={KEEP} els={neuf}
           actors={ACTEURS} gameTime={720} lightLevel={1} lights={[]} anim={anim} />,
       );
     });
 
     expect(disposeMat, 'un lot d’éléments neuf pour un décor identique remonte les quads').not.toHaveBeenCalled();
     expect(quads().filter((m) => avant.includes(m)).length, 'les quads doivent être les MÊMES objets').toBe(avant.length);
-  });
-});
-
-/**
- * UN CORPS ANIMÉ EST UN MOTIF (#1396) — sa planche se choisit PAR IMAGE (`choisirFrame`) : respiration
- * au repos, cycle de marche, effondrement d'un corps à terre, et la vue que le regard COURANT demande.
- * Sans battement tenu, ces trois-là n'avancent qu'aux commits React : idle par à-coups, chute figée en
- * l'air, et un quart de tour qui laisse le corps de dos.
- */
-describe('Corps animé — il tient le battement du stage (#1396)', () => {
-  it('un acteur au repos fait peindre des images sans qu’aucun commit ne survienne', async () => {
-    await monterNu();
-    const avant = rendus();
-
-    // Aucun rendu React ici : on laisse seulement passer le temps.
-    await respirer(60);
-
-    expect(rendus() - avant, 'aucune image hors commit : l’idle, la chute et la vue s’arrêtent').toBeGreaterThan(0);
   });
 });
 
@@ -370,7 +294,7 @@ describe('Montage par DIFFÉRENCE — un entrant ne remonte pas la scène (#1396
     expect(avant.length, 'aucun board monté : rien à mesurer').toBeGreaterThan(0);
     const uuids = avant.map((m) => m.uuid);
     const disposeMat = vi.spyOn(THREE.Material.prototype, 'dispose');
-    const sansB: SceneBillboardEls = { tokens: [], props: [ELS.props[0], ELS.props[2]] };
+    const sansB: SceneBillboardEls = { props: [ELS.props[0], ELS.props[2]] };
 
     await act(async () => { root!.render(écran(PLEINE, ACTEURS, sansB)); });
     await respirer(40);
@@ -378,8 +302,8 @@ describe('Montage par DIFFÉRENCE — un entrant ne remonte pas la scène (#1396
     const après = quads();
     expect(après.length, 'le sortant n’a pas été démonté').toBe(avant.length - 1);
     expect(après.every((m) => uuids.includes(m.uuid)), 'les survivants ont changé d’objet').toBe(true);
-    // Un seul corps libéré : son matériau (et celui de son jumeau/ombre s'il en a), jamais la planche.
-    expect(disposeMat.mock.calls.length, 'le groupe entier se libère pour UN sortant').toBeLessThanOrEqual(3);
+    // Un seul décor libéré : son matériau, jamais celui des survivants.
+    expect(disposeMat.mock.calls.length, 'le groupe entier se libère pour UN sortant').toBeLessThanOrEqual(1);
   });
 
   it('un sujet qui ENTRE : lui seul est monté, les autres gardent leur uuid', async () => {
@@ -387,7 +311,7 @@ describe('Montage par DIFFÉRENCE — un entrant ne remonte pas la scène (#1396
     const avant = quads();
     const uuids = avant.map((m) => m.uuid);
     const disposeMat = vi.spyOn(THREE.Material.prototype, 'dispose');
-    const avecD: SceneBillboardEls = { tokens: [], props: [...ELS.props, quatrième] };
+    const avecD: SceneBillboardEls = { props: [...ELS.props, quatrième] };
 
     await act(async () => { root!.render(écran(PLEINE, ACTEURS, avecD)); });
     for (let i = 0; i < 20 && quads().length <= avant.length; i++) {
@@ -412,7 +336,6 @@ describe('Épingles — jamais plus que ce qui est à l’écran (#1396)', () =>
   it('six passes de population alternée ne laissent aucune épingle orpheline', async () => {
     await monterNu();
     const alterné = (i: number): SceneBillboardEls => ({
-      tokens: [],
       props: i % 2 ? [ELS.props[0], décor(`x${i}`, 9 + i)] : [...ELS.props, décor(`y${i}`, 10 + i)],
     });
     // Les passes s'enchaînent SANS laisser la file servir : chaque sujet neuf est épinglé dès la
@@ -441,7 +364,7 @@ describe('Scène neuve — le montage repart de zéro (#1396)', () => {
 
     await act(async () => {
       root!.render(
-        <GameStage3D resolveTrapping={findTrappingById} lecture="jeu" scene={autreScène} mpt={MPT} frame={CADRE} tintAt={PLEINE} keepEl={KEEP} els={ELS}
+        <GameStage3D lecture="jeu" scene={autreScène} mpt={MPT} frame={CADRE} tintAt={PLEINE} keepEl={KEEP} els={ELS}
           actors={ACTEURS} gameTime={720} lightLevel={1} lights={[]} anim={anim} />,
       );
     });
@@ -451,40 +374,15 @@ describe('Scène neuve — le montage repart de zéro (#1396)', () => {
 });
 
 /**
- * LE CONTEXTE D'ANIMATION VIT (#1396) — un héros monté en EXPLORATION (inconnu du résolveur : `enrolé`
- * faux, aucun geste de combat cuit) entre en COMBAT. Le sujet monté ne doit pas rester gelé sur le
- * contexte de son montage : ses gestes de combat se cuisent au re-pointage, sans démonter son quad.
- */
-describe('Piste de flipbook — le contexte se rafraîchit sur un survivant (#1396)', () => {
-  it('un héros enrôlé APRÈS son montage voit ses gestes de combat cuits', async () => {
-    useGame.setState({ battle: null });
-    await monterNu();
-    const uuids = quads().map((m) => m.uuid);
-    const attaque = vi.spyOn(actorAnimSelect, 'rigAttackDef');
-    expect(attaque, 'prémisse : hors combat, aucun geste d’attaque ne se cuit').not.toHaveBeenCalled();
-
-    // ENRÔLEMENT : le résolveur de contexte lit la bataille du store (`combatantAnimCtx`).
-    useGame.setState({ battle: { combatants: [{ ...HÉROS, pos: { x: 4, y: 4 } }], order: [HÉROS.id], turn: 0 } as never });
-    // …et la population bouge, comme à l'ouverture d'un combat : c'est la passe de montage qui repointe.
-    await act(async () => { root!.render(écran(PLEINE, ACTEURS, { tokens: [], props: [...ELS.props, décor('e', 10)] })); });
-    await respirer(40);
-
-    expect(attaque, 'la piste est restée au contexte du montage : aucun geste de combat cuit').toHaveBeenCalled();
-    expect(uuids.every((u) => quads().some((m) => m.uuid === u)), 'le rafraîchissement a remonté les quads').toBe(true);
-    useGame.setState({ battle: null });
-  });
-});
-
-/**
  * CHEMIN DE L'ÉDITEUR (#1396) — `ui/editor/EditorCanvas` monte CE MÊME écran avec, pour champ de
- * teinte, le gabarit de couche basse (`lowerLayerGabarit.gabaritTint`) : les corps d'une couche qui
+ * teinte, le gabarit de couche basse (`lowerLayerGabarit.gabaritTint`) : les billboards d'une couche qui
  * n'est pas celle qu'on édite s'estompent, dosés par le curseur. Le canal ayant déménagé du sujet
  * cuit vers la passe de pose, il se mesure ICI, sur des quads montés.
  */
-describe('Gabarit de couche basse — il assombrit les CORPS de l’éditeur (#1396)', () => {
+describe('Gabarit de couche basse — il assombrit les billboards de l’éditeur (#1396)', () => {
   const gabarit = (opacite: number): TintAt => (_x, _y, z) => gabaritTint(z, 1, opacite);
 
-  it('le gabarit de couche basse assombrit les CORPS, et le curseur en dose la force', async () => {
+  it('le gabarit de couche basse assombrit les billboards, et le curseur en dose la force', async () => {
     await monterNu();
     await act(async () => { root!.render(écran(gabarit(0.9))); });
     const clairs = quads().map((m) => (m.material as THREE.MeshBasicMaterial).color.clone());
@@ -493,7 +391,7 @@ describe('Gabarit de couche basse — il assombrit les CORPS de l’éditeur (#1
     await act(async () => { root!.render(écran(gabarit(0.3))); });
 
     const sombres = quads().map((m) => (m.material as THREE.MeshBasicMaterial).color);
-    expect(sombres.every((c, i) => c.r < clairs[i].r - 1e-6), 'le curseur ne touche plus les corps').toBe(true);
+    expect(sombres.every((c, i) => c.r < clairs[i].r - 1e-6), 'le curseur ne touche plus les billboards').toBe(true);
     // …et la couche ACTIVE reste pleine : le gabarit ne touche que ce qui n'est pas édité.
     await act(async () => { root!.render(écran((_x, _y, z) => gabaritTint(z, 0, 0.3))); });
     expect(quads().every((m, i) => (m.material as THREE.MeshBasicMaterial).color.r > clairs[i].r - 1e-6)).toBe(true);

@@ -61,7 +61,7 @@ function tileAt2(scene: Scene | null, x: number, y: number, z: number): string {
 }
 
 /** Forme du corps d'un Combattant (Tableau de Localisation, LDB 76 l.15-29) : dérivée de l'ESPÈCE du record
- *  (donnée neutre `bodyShapeForSpecies`), plus du registre de rendu du rig (#187). Une Nuée retombe sur
+ *  (donnée neutre `bodyShapeForSpecies`). Une Nuée retombe sur
  *  la table par défaut. Une créature sans espèce, un statbloc (nom hors bestiaire) → humanoïde. */
 export function bodyShapeOf(id: string): BodyShape {
   const rec = findCreatureById(id);
@@ -314,10 +314,10 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   const combattant: Combatant = {
     id,
     label: creature.label,
-    creatureId: creature.id, // identité bestiaire STABLE → le rig la résout par id (plus par `name`)
+    creatureId: creature.id, // identité bestiaire STABLE, résolue par id (jamais par `name`)
     kind: 'enemy',
     ...(optTraits.length ? { liveTraits: optTraits } : {}), // charMods/Mouvement des facultatifs appliqués en direct
-    ...(creature.appearance?.species ? { species: creature.appearance.species } : {}), // espèce du record (P2) → le rig la lit ; le reste de l'apparence par défaut est lu par enemyRigProfile via findCreatureById(creatureId)
+    ...(creature.appearance?.species ? { species: creature.appearance.species } : {}), // espèce du record (P2)
     characteristics: chars,
     wounds: blessuresDeBase(wounds),
     advantage: 0,
@@ -435,7 +435,7 @@ function ficheDeRef(ref: string, id: string, pos: { x: number; y: number; z?: nu
     c = inanimateCombatant({ id, label: t.label, refId: ref, bodyShape: 'engin', inert: true, footprint: t.siegeFootprint });
     c.kind = 'enemy';
     c.pos = { ...pos };
-    c.species = t.siegeRig; // espèce DÉRIVÉE de la ref → rig engin au combat (parité avec l'explo/éditeur)
+    c.species = t.siegeRig; // espèce DÉRIVÉE de la ref, en combat comme en exploration
   }
   return c;
 }
@@ -463,19 +463,16 @@ export function spawnEnemy(
   }
 
   // COSMÉTIQUE — identité visuelle traversant explo↔combat à l'identique : tout override d'auteur
-  // (parts monstrueux, couleurs, coiffure, yeux, sexe/carrure, seed re-tiré) est porté BRUT par
-  // `Combatant.appearanceOverride` (donnée d'authoring), puis figé PARESSEUSEMENT au rendu par
-  // `enemyRigProfile` (#187 : ce figeage rig ne s'exécute plus dans `state`). Le seed reste DÉTERMINISTE
-  // par combattant (dérivé de l'id, `Combatant.id === SceneEntity.id`). Sans override → champ absent,
-  // rendu dérivé du nom inchangé.
+  // (`EntityAppearance`) est porté BRUT par
+  // `Combatant.appearanceOverride` (donnée d'authoring, #187). Le seed reste DÉTERMINISTE par combattant
+  // (dérivé de l'id, `Combatant.id === SceneEntity.id`). Sans override → champ absent.
   const a = opts?.appearance;
-  if (a?.species) c.species = a.species; // espèce/race d'auteur → rig en combat comme en exploration
+  if (a?.species) c.species = a.species; // espèce/race d'auteur, en combat comme en exploration
   if (a && Object.values(a).some((v) => v !== undefined)) c.appearanceOverride = a;
-  // Tenue éditée (libellé) → portée par le rig (via Combatant.career, qui sert de tenue) en
-  // combat comme en exploration.
+  // Tenue d'auteur (id) → `Combatant.career`, en combat comme en exploration.
   if (a?.tenue) c.career = a.tenue;
   // `opts.weapon` est l'arme d'AUTHORING (`trappingId` du catalogue — `SceneEntity.weapon`, doctrine
-  // ids-only, MÊME résolution que le rendu d'exploration `enemyRigProfile`/`weaponFromId`, #258) : la
+  // ids-only, résolue par `weaponFromId`, #258) : la
   // projection UNIQUE `weaponFromItem` en fait une arme de combat COMPLÈTE (Dégâts, Portée, Recharge,
   // Groupe, effets à la touche). Elle n'alimente le COMBAT que si les Traits n'ont PAS déjà produit une
   // arme explicite du MÊME type (melee/ranged) : les deux décriraient alors le MÊME armement, et celle

@@ -18,7 +18,7 @@
  * CHARGE COMMUNE = ∅ : aucune clé n'est partagée par les quatre domaines — `detail` l'est par
  * `roof` et `relief`, et par eux seuls. `color` (décor), `N`/`E`/`S`/`O` (pentes de toit),
  * `face` (relief) et `palette` (teinte d’objet) portent des charges distinctes
- * (`src/gameIso/backends/webgl/faceColors.ts`, `src/gameIso/rig/parts/equipment.ts`).
+ * (`src/gameIso/backends/webgl/faceColors.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

@@ -12,7 +12,7 @@ import type { Scene } from '../../noyau/monde/scene';
 /**
  * « Bestiaire, traits & états » : une ménagerie qui réunit les anciens tests Traits de créature,
  * Créatures personnalisées, États & contrôle et Visuels de mutation. Le groupe = les 4 pré-tirés MUTÉS
- * (vitrine des 19 mutations physiques sur le rig) + une Prêtresse de Shallya (purge/soin pour le volet
+ * (vitrine des 19 mutations physiques) + une Prêtresse de Shallya (purge/soin pour le volet
  * États). Le bestiaire couvre traits (Éthéré/Démoniaque/Régénération/Toile…), infligeurs d'états
  * (Toile→Empêtré, regard pétrifiant, débuffs), une Énorme (Piétinement) et des statblocs d'auteur.
  */

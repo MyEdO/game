@@ -14,7 +14,7 @@ import { CAP_GROUPE, capDuGroupe, meneurDuMonde, poserCapDuGroupe } from '../noy
 import { sceneLightSources } from '../noyau/visionState';
 import { partyTokenOf } from '../gameIso/builders/tokens';
 import { tokenChromes } from '../gameIso/builders/tokenChrome';
-import { actorPoseKey, partyActorPose } from '../gameIso/backends/webgl/sceneMeshes';
+import { combatantRingDecor } from '../gameIso/builders/dynamicMarks';
 import { bus, EVT } from '../noyau/bus';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
@@ -199,60 +199,48 @@ describe('changer de meneur ne change QUE le meneur — le cap n’est keyé par
 });
 
 /**
- * CÂBLAGE DU RENDU — les deux SEULS lecteurs qui dessinent le jeton de groupe : le quad du monde
- * volumique (`partyActorPose` → `ActorPose.facing`, servi par `VolumetricWorld`) et le disque de la vue
- * du dessus (la marque de `tokenChromes`, dont `TokenDisc` lit la `capKey`). Mesuré sur la CHAÎNE que
- * l'écran monte : gestes RÉELS du store → `partyTokenOf` → les deux consommateurs.
+ * CÂBLAGE DU RENDU — le SEUL lecteur qui dessine le cap du jeton de groupe : le disque de la vue du
+ * dessus (la marque de `tokenChromes`, dont `TokenDisc` lit la `capKey`). Mesuré sur la CHAÎNE que
+ * l'écran monte : gestes RÉELS du store → `partyTokenOf` → `tokenChromes`.
  */
 describe('le RENDU du jeton de groupe lit la clé de cap PUBLIÉE, pas l’id du meneur', () => {
   /** La chaîne de l'écran, depuis l'état courant. */
   const rendu = () => {
     const s = useGame.getState();
-    const jeton = partyTokenOf(s.scene!, meneurDuMonde(s), s.partyPos)!;
+    const jeton = partyTokenOf(s.scene!, meneurDuMonde(s), s.partyPos, s.party.map((h) => h.id))!;
     const marques = tokenChromes([], { ghostIds: new Set<string>(), hoveredId: null }, jeton);
     const marque = marques[marques.length - 1];
-    return { jeton, pose: partyActorPose(jeton, s.facing), marque, capLuParLeDisque: s.facing[marque.capKey] };
+    return { marque, capLuParLeDisque: s.facing[marque.capKey] };
   };
 
-  it('PIVOTS : le quad et le disque servent le cap du GROUPE', () => {
+  it('PIVOTS : le disque sert le cap du GROUPE', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
     useGame.getState().pivotParty(1);
     useGame.getState().pivotParty(1);
     const cap = capDuGroupe(useGame.getState());
-    const { pose, marque, capLuParLeDisque } = rendu();
-    expect(pose.facing, 'ActorPose.facing du quad').toBe(cap);
+    const { marque, capLuParLeDisque } = rendu();
     expect(marque.capKey, 'la marque du disque s’abonne à la clé de GROUPE').toBe(CAP_GROUPE);
     expect(capLuParLeDisque).toBe(cap);
     expect(marque.id, 'l’IDENTITÉ du jeton reste celle du meneur : bus, chrome et caméra la suivent').toBe('a');
   });
 
-  it('MARCHE : le pas oriente ce que le quad dessine', () => {
+  it('MARCHE : le pas oriente ce que le disque lit', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), { x: 2, y: 2 });
     poserLeGroupe(useGame.getState, useGame.setState, { x: 3, y: 2 });
-    expect(rendu().pose.facing, 'un pas vers l’est').toBe('E');
-    expect(rendu().capLuParLeDisque).toBe('E');
+    expect(rendu().capLuParLeDisque, 'un pas vers l’est').toBe('E');
   });
 
-  it('ASSISE : le cap de la PLACE prime sur celui de la marche (`capActeur`)', () => {
-    poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
-    useGame.getState().interactEntity(PROP);
-    const place = seatPoseOf(useGame.getState().scene!, MENEUR)!;
-    const { pose } = rendu();
-    expect(pose.seat?.facing, 'la place voyage avec la pose').toBe(place.facing);
-    expect(actorPoseKey(pose), 'la clé de mémo porte le cap SERVI : celui de la place').toContain(`:${place.facing}:`);
-  });
-
-  it('CHANGEMENT DE MENEUR : l’identité du corps change, le regard NON', () => {
+  it('CHANGEMENT DE MENEUR : l’identité du jeton change, le regard NON', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
     useGame.getState().pivotParty(1);
     const avant = rendu();
     useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'a' ? { ...h, wounds: { ...h.wounds, current: 0 } } : h)) }));
     const apres = rendu();
-    expect(apres.marque.id, 'le corps dessiné est le nouveau meneur').toBe('b');
-    expect(apres.pose.c.id).toBe('b');
-    expect(apres.pose.facing, 'le quad ne saute pas au sud').toBe(avant.pose.facing);
-    expect(apres.capLuParLeDisque).toBe(avant.capLuParLeDisque);
+    expect(apres.marque.id, 'le jeton est le nouveau meneur').toBe('b');
+    expect(apres.capLuParLeDisque, 'le disque ne saute pas au sud').toBe(avant.capLuParLeDisque);
     expect(apres.marque.capKey).toBe(CAP_GROUPE);
+    const population = useGame.getState().party;
+    expect(apres.marque.team).toEqual(combatantRingDecor(population[1], population.map((h) => h.id), population));
   });
 });
 

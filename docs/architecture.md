@@ -342,8 +342,8 @@ src/engine/                 Règles WFRP4, PUR + testé, sans hôte (mur `murs/s
                             lue avant le jet est une `FormuleSansTirage` évaluée sans RNG.
   types.ts                    Caractéristiques, Combatant, Weapon, ItemInstance, Difficulty…
   authoringAppearance.ts      types d'APPARENCE (`EntityAppearance` authorée, `Appearance` résolue,
-                              `RigSpeciesId`, `Slot`, `MonsterParts`, `Palette`) : portés par le
-                              Combatant, résolus par `gameIso/rig` (#187, #2884)
+                              `EspeceDApparence`) : portés par le
+                              Combatant (#187, #2884)
   tests.ts                    Tests & Degrés de Réussite (DR), tests opposés.
                               **INVARIANT — `base` = le Niveau de Compétence NU (Caractéristique +
                               Augmentations, LDB 09 l.17), PARTOUT.** Tout modificateur (Avantage,
@@ -530,7 +530,7 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             PNJ nommés (#671) : `resolvePresetCreature` résout un `presetId` de scène en créature mergée
                             (`mergeCreatureProfile`, base globale + surcharges du preset) + apparence embarquée ; câblée au
                             spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `monde/spawn.ts` reste sans
-                            import de cette couche) et au portrait de dialogue (`gameIso/tokenBodyKind.tsx`).
+                            import de cette couche).
   monde/spawn.ts            apparition des entités de scène et de rencontre (`spawnEnemy`)
   creation/                 BROUILLON DE CRÉATION de personnage (LDB 04/05), sans écran : `brouillon.ts` (état pur :
                             tirages figés, bonus PX, validation, `buildHero`), `defauts.ts` (`fillDraftDefaults`)
@@ -731,11 +731,7 @@ src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE thr
   iso.ts                    dérivés MÉTRIQUES de la projection (WALL_H_M, isoPxToM — besoin du monde,
                             via noyau/monde/relief) ; la projection elle-même (Dims, tileCenter, diamondPath,
                             screenToTile, stageSize…) vit dans `src/geometry/iso.ts` (#161)
-  sprites.ts                décor (props/villageois/terrain en relief) + defsGlobaux() (dégradés fixes) — PLUS de sprite créature
-  rig/                      gabarits corporels (bipède + quadrupède/ailé/serpentin/…) — rend TOUT le bestiaire
-                            AJOUTER une créature : suivre docs/creer-une-creature.md (registre defs/,
-                            corps nu ≠ tenue, illustration art-ref obligatoire, pièges codifiés)
-  tokenBodyKind.tsx         classifieur unique : rig humanoïde / gabarit animé / sprite décor
+  sprites.ts                defsGlobaux() : dégradés partagés (terrains, repli d'alarme, FX)
   SurcoucheIso.tsx          SURCOUCHE DE PLATEAU : l'arbre SVG posé SUR le canevas
                             (grille tactique `geometry/grid.gridLines`, murs au trait, portes/escaliers/
                             télégraphes, FxLayer, TokenChromeOverlay = pions et chrome, curseur, aperçu
@@ -891,16 +887,11 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   compétence interactifs (modal + branches), inventaire/argent/handouts (state party-level).
 - **Inventaire/équipement** : chaque héros a `items: ItemInstance[]` ; `weapons`/`armour`
   ACTIFS dérivés via `recomputeLoadout` (équiper change le combat). Fiche = `CharacterSheet.tsx`.
-- **Rendu des entités** : tout passe par `tokenBodyKind` → le **rig** (`src/gameIso/rig/`) : humanoïdes
-  bipèdes (carrière + arme + armure + mutations visibles) et créatures non-bipèdes via gabarit corporel
-  animé (quadrupède/ailé/serpentin/…). `sprites.ts` ne fournit plus que le décor (props).
-  Le sprite monolithique (`creatureSprites.json` + `enemySprite`/`creatureView`) a été retiré (juin 2026).
+- **Rendu des entités** : le jeu web ne dessine aucun personnage ni aucune créature ; leur rendu
+  revient à l'hôte Godot (`hotes/godot/`). Le décor (props) se dessine au catalogue `src/gameIso/catalog/decor/`.
 - **Objets ORIENTÉS** (navires, engins de siège, véhicules terrestres, props orientés) : un SEUL
-  contrat de vues `ViewArt` (`src/gameIso/rig/viewArt.ts`, `front?`/`profile?`/`back?`), sélectionné par
-  l'UNIQUE résolveur `project(dir, camRot)` (`rig/facing.ts`) + repli `nearestView` ; couverture de vues en
-  galerie QC (`oriented-objects.html`). Les véhicules à coque sont routés par `hull.propulsion`
-  (`bodyPlan.ts`) : mer/fleuve → gabarit `navire`, terrestre → gabarit `terrestre` (plus de repli
-  accidentel d'un attelage vers la coque de navire). Détail : `docs/rendu-pipeline.md` § « Objets orientés ».
+  contrat de vues `ViewArt` (`src/gameIso/catalog/viewArt.ts`, `front?`/`profile?`/`back?`), sélectionné par
+  l'UNIQUE résolveur `project(dir, camRot)` (`src/gameIso/facing.ts`) + repli `nearestView`.
 - **Éditeur v2** (juin 2026, interface refaite de 0) : iso WYSIWYG, rail d'outils + contenu
   contextuel (pose directe depuis les catalogues), inspecteur DOCKÉ (plus aucune modale d'édition),
   panneau Logique en bas (triggers/dialogues/rencontres/validation, master-détail, édition live →
@@ -917,7 +908,7 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   ont `passive: GameOp[]`, édité par le `<GameOpEditor>` EXISTANT (comme un sort — NE PAS réinventer de
   widget de liste d'ops). **Mutation découplée de sa table** : `mutations.json` (entités) ⊥
   `mutationTables.json` (plages d100 → réf mutation) → plusieurs tables (une par dieu du Chaos, Compagnon T1)
-  sans collision. L'APPARENCE d'une mutation (cornes/peau…) reste couche **rig** (≠ GameOp).
+  sans collision.
 
 ## Rigueur compilateur (tsconfig.json / server/tsconfig.json)
 
@@ -944,9 +935,8 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   même monde à hauteur d'œil). Aucun regard ne duplique la scène : ce qu'il choisit de MONTRER se lit
   dans le module pur `viewPolicy` (`src/gameIso/stage/viewPolicy.ts`), un verdict par ligne.
 - **Le rendu se sert du moteur, jamais l'inverse** : il consomme le moteur de règles pur
-  (`src/engine`), le store et le schéma de Scène. Art dessiné/calculé à la main (gabarits corporels
-  `rig/`, décor `sprites.ts`, matériaux en donnée), scènes détaillées et ANIMÉES (idle, marche,
-  attaque, mort) — pas de carrés de couleur générés par code.
+  (`src/engine`), le store et le schéma de Scène. Art dessiné/calculé à la main (décor `src/gameIso/catalog/decor/`,
+  matériaux en donnée) — pas de carrés de couleur générés par code.
 - **Toute apparence (couleur/matériau/géométrie SVG) vit dans un registre `defs/`**, consommée
   par TOUS les renderers — jamais codée en dur dans un renderer, jamais choisie par regex/label
   sur l'id (ban total du regex). Un même élément cuit par le monde volumique et peint par un peintre

@@ -17,8 +17,8 @@ import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
+import { SPECIES_BODY_SHAPE } from '../../../engine/bodyForm';
 import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
-import { estEspeceDessinee, messageDEspeceInconnue, sexeDeCoiffure } from './art';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
 import { marquerProduit } from './interne/produits';
@@ -647,18 +647,17 @@ export const sizeCategorySchema = enumNomme({
 });
 
 /** Couleur `#rrggbb` en minuscules, la SEULE graphie de couleur du dépôt : toute couleur persistée, dont
- *  chaque surcharge de palette du rig (`buildTokenMap`/`tableDObjet`, #1903). */
+ *  chaque surcharge de palette (#1903). */
 export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexadécimale « #rrggbb » attendue');
 
-/** SURCHARGE de palette persistée (`Palette`, `src/engine/authoringAppearance.ts`) : clés dans `SLOTS`, valeurs
- *  `couleurHexSchema` (#1903). `buildTokenMap` ne lit une surcharge que sur une base : une clé de rôle
- *  (`…O`/`…H`) n'est pas une clé de surcharge. `colors` d'apparence et d'espèce, palette des matières d'objet. */
+/** SURCHARGE de palette persistée : clés dans `SLOTS`, valeurs `couleurHexSchema` (#1903) — `colors`
+ *  d'apparence et d'espèce, palette des matières d'objet. */
 export const surchargePaletteSchema = z.partialRecord(z.enum(SLOTS), couleurHexSchema);
 
-/** Palette d'ESPÈCE persistée (`raceAppearance.palette`/`paletteF`, `PaletteDEspece`) : clés dans
- *  `GAMMES_PORTEUR` (base, ombre, lumière des clés `PORTEUR`), valeurs `couleurHexSchema` (#1903).
- *  Structure seule : une déclaration sans effet de rendu est jugée par la porte du rig. */
+/** Palette d'ESPÈCE persistée (`raceAppearance.palette`/`paletteF`) : clés dans `GAMMES_PORTEUR`,
+ *  valeurs `couleurHexSchema` (#1903). */
 export const paletteDEspeceSchema = z.partialRecord(z.enum(GAMMES_PORTEUR), couleurHexSchema);
+
 
 /** `ReachValue` (`src/engine/types.ts`) : les SEPT longueurs de l'axe d'Allonge (LDB 62 l.156-164) ou
  *  « Variable » (Arme improvisée, l.31). Vocabulaire FERMÉ, validé au CHARGEMENT (fail-fast) : hors de
@@ -822,17 +821,6 @@ export const countSpecSchema = z.union([
 export const sexeSchema = enumNomme({ M: 'Masculin', F: 'Féminin' });
 export type Sexe = z.infer<typeof sexeSchema>;
 
-/** Faute de la coiffure imposée `hairstyle` au regard du `sex` posé dans le MÊME objet, `null` sinon. Le
- *  sexe se nomme par son libellé (`libelleDeValeur(sexeSchema, …)`). */
-function fauteDeCoiffure(hairstyle: string, sex: Sexe | undefined): string | null {
-  const sexe = sexeDeCoiffure(hairstyle);
-  if (!sexe) return `coiffure « ${hairstyle} » inconnue : absente du catalogue des coiffures.`;
-  const libelle = libelleDeValeur(sexeSchema, sexe);
-  if (!sex) return `coiffure « ${hairstyle} » (sexe : ${libelle}) imposée sans sexe posé — poser le sexe ${libelle}, ou retirer la coiffure.`;
-  if (sex !== sexe) return `coiffure « ${hairstyle} » (sexe : ${libelle}) imposée sur le sexe ${libelleDeValeur(sexeSchema, sex)}.`;
-  return null;
-}
-
 /** #2948 */
 export function validerApparenceDObjet(trappingId: string | undefined, apparence: string, ctx: z.RefinementCtx, path: string[]): void {
   const message = messageDApparenceDObjet(trappingId, apparence);
@@ -848,8 +836,35 @@ const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>> = z.rec
   for (const [trappingId, apparence] of Object.entries(v)) validerApparenceDObjet(trappingId, apparence.id, ctx, [trappingId, 'id']);
 });
 
+/** Refus d'une espèce d'apparence hors de `especeDApparenceSchema`. */
+export function messageDEspeceInconnue(id: string): string {
+  return `espèce « ${id} » inconnue : ni espèce jouable, ni créature, ni race de rendu, ni forme de corps.`;
+}
+
+/** Espèce d'APPARENCE (`EntityAppearance.species`) : espèce jouable, créature, race de rendu, ou clé de
+ *  `SPECIES_BODY_SHAPE` (LDB 76 l.15-29). */
+export const especeDApparenceSchema = z.union(
+  [idDe('species'), idDe('creature'), idDe('raceAppearance'), z.enum(Object.keys(SPECIES_BODY_SHAPE) as [string, ...string[]])],
+  { error: (iss) => messageDEspeceInconnue(String(iss.input)) },
+);
+
+/** Faute de l'espèce d'apparence `id` (`especeDApparenceSchema`), `null` si elle est admise. */
+export function fauteDEspece(id: string): string | null {
+  return especeDApparenceSchema.safeParse(id).success ? null : messageDEspeceInconnue(id);
+}
+
+/** Tenue d'apparence qui se FERME sur la donnée : carrière, classe de carrière, ou `nu`. #3116 */
+export const tenueFermeeSchema = z.union([idDe('career'), idDe('classe'), z.literal('nu')], {
+  error: (iss) => messageDeTenueInconnue(String(iss.input)),
+});
+
+/** Refus d'une tenue hors de `tenueFermeeSchema`. */
+export function messageDeTenueInconnue(id: string): string {
+  return `tenue « ${id} » inconnue : ni carrière, ni classe de carrière, ni « nu ».`;
+}
+
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
- *  `creatures`, `traits`, `mutations`, la scène (`SceneEntity.appearance`) et le narratif. */
+ *  `creatures`, `mutations`, la scène (`SceneEntity.appearance`) et le narratif. */
 export const entityAppearanceSchema = nommerChamps(z.strictObject({
   seed: z.number().optional(),
   monster: nommerChamps(z
@@ -867,28 +882,18 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
   parts: nommerChamps(z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }), { cheveux: { label: "cheveux" }, visage: { label: "visage" } }).optional(),
   sex: sexeSchema.optional(),
   build: z.number().optional(),
-  /** Espèce du corps affiché — espèce jouable (`idDe('species')`) ou espèce dessinée (`grammaire/art.ts`). */
-  species: z
-    .union([idDe('species'), z.string().refine(estEspeceDessinee, { abort: true })], {
-      error: (iss) => messageDEspeceInconnue(String(iss.input)),
-    })
-    .optional(),
+  species: especeDApparenceSchema.optional(),
+  /** #3116 */
   tenue: z.string().optional(),
-  /** Set d'ÉQUIPEMENT quadrupède porté (id du registre `gameIso/rig/quadruped/harnais`, #1128) —
-   *  absent = bête nue. */
+  /** Set d'ÉQUIPEMENT quadrupède porté (#1128) — absent = bête nue. */
   harnais: z.string().optional(),
   /** Armure de statblock (PA par localisation, sans inventaire) VISIBLE/portée (#774) — défaut
    *  absent : les PA restent mécaniques PURS, aucun art d'armure synthétisé (nu de l'espèce/naturel). */
   armurePortee: z.boolean().optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
-  /** Coiffure IMPOSÉE — id stable d'une coiffure du rig (`gameIso/rig/parts/hairstyles/defs`, #637). */
-  hairstyle: z.string().optional(),
   eyes: nommerChamps(z.strictObject({ G: z.string().optional(), D: z.string().optional() }), { G: { label: "gauche" }, D: { label: "droit" } }).optional(),
   features: z.array(z.string()).optional(),
-}).superRefine((a, ctx) => {
-  const faute = a.hairstyle === undefined ? null : fauteDeCoiffure(a.hairstyle, a.sex);
-  if (faute) ctx.addIssue({ code: 'custom', path: ['hairstyle'], message: faute });
-}), { seed: { label: "graine" }, monster: { label: "créature" }, colors: { label: "couleurs" }, parts: { label: "parties" }, sex: { label: "sexe" }, build: { label: "corpulence" }, species: { label: "espèce" }, tenue: { label: "tenue" }, harnais: { label: "harnais" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } }, hairstyle: { label: "coiffure" }, eyes: { label: "yeux" }, features: { label: "détails" } });
+}), { seed: { label: "graine" }, monster: { label: "créature" }, colors: { label: "couleurs" }, parts: { label: "parties" }, sex: { label: "sexe" }, build: { label: "corpulence" }, species: { label: "espèce" }, tenue: { label: "tenue" }, harnais: { label: "harnais" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } }, eyes: { label: "yeux" }, features: { label: "détails" } });
 
 /** `HitLocation` (`src/engine/types.ts`) — 6 zones de touche (dé inversé, LDB). Resserré depuis
  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON

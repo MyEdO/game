@@ -48,21 +48,26 @@
 //     aucun trapping ne les porte, cf. `assommante`/`defensive` sur les armes de base.
 //     `noyau/interludeFlow.ts` (`falseQualities()`) les sélectionne par champ mais ne les exploite
 //     que par LABEL (rumeurs de Particularité fausses, ADE II) — MODE 2 les rejette.
-//   — `creatures` HORS bestiaires de livre : 7 PNJ `named` (`pol-dankels`, `isrogdal-lempresse`,
-//     `ugrik-legaree`, `nazzaalta-affabule`, `artur-piedmarteau`, `p-tarix-celui-qui-ecrit`,
-//     `xirat-p-celui-qui-lit`) — un personnage de scénario n'a de chemin que par la scène qui le
-//     pose ; et 10 entrées de bestiaire isolé (`hyppogriffe`/`demigriffon-adulte` absentes de
-//     `montures.json` donc jamais montables ; `chauve-souris-vampire-varghulf` absente de `groups.json` ;
-//     `brochet-du-stir-fluvial` doublon de libellé de `brochet-du-stir` (seul l'exemplaire ZI a un
-//     chemin) ; `sangsue-geante`/`sangsue-des-arbres`/`naiade` du « Bestiaire fluvial », qu'aucune
-//     rencontre fluviale ne tire ; `familier-de-combat`/`familier-de-pouvoir`/`familier-de-sorts`
-//     sans `appearance` et jamais citées par un Talent ou un sort).
-//   — `creatures` des TROIS bestiaires de livre entièrement curés, qu'aucune scène ne convoque :
-//     `middenheim` (#1637), `zoo-imperial` (#1638), et la faune `mer-des-griffes` hors des
-//     événements de mer (#1639). Elles sont ÉNUMÉRÉES comme les autres : une dette de plusieurs
-//     centaines qui se cache derrière trois lignes reste une dette de plusieurs centaines, et une
-//     créature NEUVE de ces livres serait orpheline gratuitement et invisiblement sous un prédicat
-//     de livre.
+//   — `creatures` HORS des trois bestiaires de livre (19 entrées) : 9 PNJ `named` (`pol-dankels`,
+//     `fr-hough-mournbreath`, `slenderthigh-whiptongue` du LDB ; `isrogdal-lempresse`,
+//     `ugrik-legaree`, `nazzaalta-affabule`, `artur-piedmarteau` d'ADE II ;
+//     `p-tarix-celui-qui-ecrit`, `xirat-p-celui-qui-lit` de VDM) — un personnage de scénario n'a de
+//     chemin que par la scène qui le pose ; et 10 entrées de bestiaire isolé (`demigriffon-adulte`
+//     absente de `montures.json` donc jamais montable ; `brochet-du-stir-fluvial` doublon de libellé
+//     de `brochet-du-stir` (seul l'exemplaire ZI a un chemin) ; `sangsue-geante`/`sangsue-des-arbres`/
+//     `naiade` du « Bestiaire fluvial », qu'aucune rencontre fluviale ne tire ;
+//     `familier-de-combat`/`familier-de-pouvoir`/`familier-de-sorts` sans `appearance` et jamais
+//     citées par un Talent ou un sort ; `jabberslythe` (LDB) et `furie-du-chaos` (EDOC), qu'aucune
+//     scène ni rencontre ne pose).
+//   — `creatures` des TROIS bestiaires de livre entièrement curés, qu'aucune scène ne convoque
+//     (85 entrées) : `middenheim` (32, #1637), `zoo-imperial` (39, #1638), et la faune
+//     `mer-des-griffes` hors des événements de mer (14, #1639). Elles sont ÉNUMÉRÉES comme les
+//     autres : une dette de plusieurs centaines qui se cache derrière trois lignes reste une dette de
+//     plusieurs centaines, et une créature NEUVE de ces livres serait orpheline gratuitement et
+//     invisiblement sous un prédicat de livre.
+//   — `vehicles:coracle`/`grande-barge`/`knarr`/`caravelle-tileenne` : fiches de navire
+//     qu'aucune scène, donnée ni code de prod ne convoque (le Maquignon ne vend que `!v.ship`) ;
+//     se soldent par une rencontre ou un achat naval qui les cite.
 
 export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/creatures.json', ref: 'agna-lottrisdottir', occurrence: 1 },
@@ -79,9 +84,9 @@ export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/creatures.json', ref: 'brochet-du-stir-fluvial', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'caledair-la-faux-de-feu', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'chamane-gobelin-des-forets', occurrence: 1 },
-  { fichier: 'src/data/creatures.json', ref: 'chauve-souris-vampire-varghulf', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'chef-de-meute-du-clan-moulder', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'chevalier-mort-vivant-revenant', occurrence: 1 },
+  { fichier: 'src/data/creatures.json', ref: 'choses-du-bois-mort', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'crabe-boxeur', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'cultiste-de-la-lune-imprevisible', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'demigriffon-adulte', occurrence: 1 },
@@ -92,7 +97,9 @@ export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/creatures.json', ref: 'familier-de-combat', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'familier-de-pouvoir', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'familier-de-sorts', occurrence: 1 },
+  { fichier: 'src/data/creatures.json', ref: 'fr-hough-mournbreath', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'frere-bengt', occurrence: 1 },
+  { fichier: 'src/data/creatures.json', ref: 'furie-du-chaos', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'gargantuan', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'gerdon-salzwed', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'gnawretch-skrray', occurrence: 1 },
@@ -106,8 +113,8 @@ export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/creatures.json', ref: 'helmut-beckenbauer', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'hugo-vallonvert', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'hydre-d-os', occurrence: 1 },
-  { fichier: 'src/data/creatures.json', ref: 'hyppogriffe', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'isrogdal-lempresse', occurrence: 1 },
+  { fichier: 'src/data/creatures.json', ref: 'jabberslythe', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'jacopo-schmidt', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'jetsam-la-gelee-intelligente', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'kat-sperber', occurrence: 1 },
@@ -118,6 +125,7 @@ export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/creatures.json', ref: 'le-fantasma', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'le-vieil-otto', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'le-vieux-dos-de-pus', occurrence: 1 },
+  { fichier: 'src/data/creatures.json', ref: 'leviathan', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'leviathan-noir', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'leviathan-phare', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'long-drong-silver', occurrence: 1 },
@@ -130,6 +138,7 @@ export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/creatures.json', ref: 'nazzaalta-affabule', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'nuee-de-squigs-des-cavernes', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'p-tarix-celui-qui-ecrit', occurrence: 1 },
+  { fichier: 'src/data/creatures.json', ref: 'peau-de-loup', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'pegase-noir', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'pol-dankels', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'prototype-du-clan-skryre', occurrence: 1 },
@@ -141,6 +150,8 @@ export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/creatures.json', ref: 'sangsue-des-abysses', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'sangsue-des-arbres', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'sangsue-geante', occurrence: 1 },
+  { fichier: 'src/data/creatures.json', ref: 'sirene', occurrence: 1 },
+  { fichier: 'src/data/creatures.json', ref: 'slenderthigh-whiptongue', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'sorciere-troll-des-rivieres', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'spectre-middenheim', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'stylet', occurrence: 1 },
@@ -148,6 +159,7 @@ export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/creatures.json', ref: 'technomage-du-clan-skryre', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'theresia-kleist', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'traudl-bauer', occurrence: 1 },
+  { fichier: 'src/data/creatures.json', ref: 'tregara', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'ugrik-legaree', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'ver-des-marais', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'volee-de-noctecorbes', occurrence: 1 },
@@ -175,4 +187,8 @@ export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/traits.json', ref: 'decerebre', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'marque-de-tzeentch', occurrence: 1 },
   { fichier: 'src/data/traits.json', ref: 'voleur-de-chair', occurrence: 1 },
+  { fichier: 'src/data/vehicles.json', ref: 'caravelle-tileenne', occurrence: 1 },
+  { fichier: 'src/data/vehicles.json', ref: 'coracle', occurrence: 1 },
+  { fichier: 'src/data/vehicles.json', ref: 'grande-barge', occurrence: 1 },
+  { fichier: 'src/data/vehicles.json', ref: 'knarr', occurrence: 1 },
 ]

@@ -32,7 +32,7 @@ function tuile(props: { onClick?: () => void; onInspect?: () => void; decoratif?
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
-  act(() => root!.render(<PortraitTile c={gunnar()} ring="#4f8fe0" {...props} />));
+  act(() => root!.render(<PortraitTile c={gunnar()} {...props} />));
   return host.querySelector<HTMLElement>('.ptile')!;
 }
 

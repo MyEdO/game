@@ -6,10 +6,12 @@ import { slotLiftM } from '../backends/webgl/highlightMeshes';
 import { SPECKLE_LIFT_M } from '../backends/webgl/groundAccents';
 import { pxPerM } from '../backends/webgl/worldTris';
 import { billboardHeightM } from '../backends/webgl/billboardMath';
-import { resetDiagOnce } from '../rig/devDiag';
+import { resetDiagOnce } from '../devDiag';
 import { CELL, projectStep, rotOffset, stepOf, type ProjKind } from '../../geometry/iso';
 import { affineCamera, projectToScreen } from '../backends/webgl/cameras';
 import { ENEMY_RING, HERO_RING } from '../teamColors';
+import type { EndState } from '../../engine/conditions';
+import { applyEndStateColor } from '../endStateAppearance';
 import {
   COMBAT_TOKEN_BASE,
   RING_A_PX,
@@ -201,6 +203,25 @@ describe('poseDynamicMarks — le lien d’engagement suit la glisse (#1176 P3-0
   });
 });
 
+describe('anneau — allure commune par état de fin', () => {
+  it.each<EndState>(['mort', 'inconscient', 'rendu', 'hors-combat'])('%s applique la loi jusque dans la couleur d’instance', (endState) => {
+    const p = pools();
+    const marks: DynamicMarks = { tethers: [], active: null, party: null, rings: [{ id: 'fini', cell: { x: 1, y: 1, z: 0 }, rK: 0.3, color: HERO_RING[0] }] };
+    poseDynamicMarks(p, marks, { mpt: MPT, glide: () => null, groundM: PLAT, kind: 'iso', chromeAt: () => ({ ghost: true, endState, highlight: null }) });
+    const obtenu = new THREE.Color();
+    p.anneau!.getColorAt(0, obtenu);
+    const attendu = applyEndStateColor(new THREE.Color(HERO_RING[0]), endState);
+    expect(obtenu.r).toBeCloseTo(attendu.r, 6);
+    expect(obtenu.g).toBeCloseTo(attendu.g, 6);
+    expect(obtenu.b).toBeCloseTo(attendu.b, 6);
+    const debout = new THREE.Color(HERO_RING[0]).convertLinearToSRGB();
+    obtenu.convertLinearToSRGB();
+    const ecartMax = Math.max(Math.abs(obtenu.r - debout.r), Math.abs(obtenu.g - debout.g), Math.abs(obtenu.b - debout.b));
+    expect(ecartMax).toBeGreaterThanOrEqual(endState === 'rendu' ? 0.1 : 0.15);
+    for (const mesh of Object.values(p)) { mesh.geometry.dispose(); (mesh.material as THREE.Material).dispose(); mesh.dispose(); }
+  });
+});
+
 describe('tetherDashCount — le pas du pointillé', () => {
   it('un segment plus court qu’un tiret en porte tout de même UN (cases voisines)', () => {
     expect(tetherDashCount(DASH_M / 2, DASH_M, GAP_M)).toBe(1);
@@ -225,7 +246,7 @@ describe('tetherDashCount — le pas du pointillé', () => {
  *  DESSUS il ceint le disque-portrait, que la surcouche peint à `discR(n)` px, à `CELL` px par case. */
 const RK = teamRingRadiusK(COMBAT_TOKEN_BASE);
 const RK_TOP = discR(1) / CELL;
-/** Le pointillé d'équipe (`teamShape(false)`), lu par la MÊME porte que la pose. */
+/** Le pointillé d'équipe (`teamShape(true)`), lu par la MÊME porte que la pose. */
 const MOTIF = dashPattern('5 3')!;
 /** Hauteurs de jeton JUGÉES (px écran) — les trois zooms du contrat d'art. */
 const JUGÉS = [40, 64, 128];

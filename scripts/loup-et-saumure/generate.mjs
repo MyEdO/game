@@ -88,9 +88,7 @@ const GUN_SKILLS = [{ id: 'projectiles', spec: 'poudre-noire', value: 55 }];
 /** Membre d'équipage exposé (MDG ch.14) SANS ref de bestiaire dédiée (aucune créature générique
  *  « marin »/« matelot » au catalogue, cf. journal) : CustomStatblock minimal justifié (règle stricte 7 —
  *  omission documentée, pas un « MJ décide »). `skills` (optionnel) : compétences navales du représentant.
- *  `appearance` : descripteur EXPLICITE du rig. Sans réf de bestiaire, une entité `personnage` n'a
- *  d'apparence à résoudre que par son Espèce — `entityRigProfileFor`
- *  (`src/gameIso/rig/enemyProfile.ts:270-274`) n'en dérive AUCUNE sans l'une des deux. */
+ *  `appearance` : descripteur d'apparence EXPLICITE de l'entité. */
 function marinDuGrimm(id, x, y, label, skills, appearance) {
   return {
     id, kind: 'personnage', pos: { x, y }, label,

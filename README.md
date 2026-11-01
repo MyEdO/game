@@ -19,10 +19,9 @@ règles de **Warhammer Fantasy Roleplay 4ᵉ édition**. On contrôle un groupe 
 - **Éditeur de niveau** : peinture de tuiles, placement d'entités, dialogues/triggers/combats.
   La scène de campagne est un document au même format → **entièrement ré-éditable dans l'éditeur**.
 - **Coop hotseat** : les héros jouent tour à tour, le joueur actif est mis en avant.
-- **Art sans asset binaire** : tout est authoré en SVG dans le code. Les rigs de personnages sont
-  composés part par part (`src/gameIso/rig/`), le décor est peint en billboards depuis
-  `src/gameIso/catalog/decor/` ; sol, murs, toits et les props volumiques sont bâtis en géométrie
-  par `src/gameIso/builders/`.
+- **Art sans asset binaire** : le décor est peint en billboards depuis `src/gameIso/catalog/decor/` ;
+  sol, murs, toits et les props volumiques sont bâtis en géométrie par `src/gameIso/builders/`. Le jeu
+  web n'affiche plus les personnages : leur rendu passe à l'hôte Godot (`hotes/godot/`).
 
 ## Pile technique
 
@@ -53,7 +52,7 @@ src/engine/             Règles WFRP4 (pur TS, testé)
 src/data/               Base app-owned (JSON commité, éditable dans le Compendium)
 src/state/              Schéma de Scène, store Zustand, flux de jet, IA, pathfinding
 src/gameIso/            Rendu du monde : builders/ (géométrie pure) montée par stage/ sur le backend
-                        three.js (backends/webgl/) ; rig/ et catalog/ portent l'art SVG ; plus
+                        three.js (backends/webgl/) ; catalog/ porte l'art SVG du décor ; plus
                         authoring/, detail/, fx/, pov/
 src/geometry/           Grille, projection isométrique, déplacement
 src/ui/                 Interface React (menus, créateur, HUD, éditeur, compendium)

@@ -3,7 +3,7 @@
  * (PNJ/créatures d'ambiance) et COMBATTANTS (branche combat, couples montés compris).
  * Porte l'IDENTITÉ et la position LOGIQUE + toutes les DÉCISIONS de scène (filtres d'étage/brouillard/
  * couverture, ordre d'anneau héros, surplomb) ; la position INTERPOLÉE de marche est PAR-FRAME et reste
- * au stage, comme le corps React (`tokenBodyKind`). PUR : aucune caméra — seule la bascule
+ * au stage. PUR : aucune caméra — seule la bascule
  * `top` (pions-portraits : cavalier et monture séparés) est une vérité de MODE DE VUE, pas de pose.
  */
 import type { Scene } from '../../noyau/monde/scene';
@@ -16,8 +16,10 @@ import { RANG_MENEUR, seatPoseOf, type SeatPose } from '../../noyau/monde/seatin
 import { CAP_GROUPE } from '../../noyau/monde/combatants';
 import type { Combatant } from '../../engine/types';
 import { isStructure } from '../../engine/structures';
+import { campOf } from '../../engine/relations';
 import { isOverhang, capsSolid } from './floors';
 import type { TokenEl } from './types';
+import { heroRingIndex } from './dynamicMarks';
 
 /**
  * JETON DE GROUPE hors combat — le meneur VISIBLE, sa position de RENDU, et la place qu'il occupe.
@@ -31,6 +33,7 @@ import type { TokenEl } from './types';
 export interface PartyToken {
   /** Le CORPS qui marche : c'est SON id que porte le bus des gestes, la pose du monde et la caméra. */
   leader: Combatant;
+  heroIndex: number;
   pos: { x: number; y: number; z?: number };
   seat?: SeatPose;
   /** CLÉ du cap dans `store.facing`, publiée ICI et consommée telle quelle par TOUT ce qui dessine ce
@@ -43,11 +46,13 @@ export function partyTokenOf(
   scene: Scene,
   leader: Combatant | undefined,
   partyPos: { x: number; y: number; z?: number },
+  partyIds: readonly string[],
 ): PartyToken | null {
   if (!leader) return null;
   const seat = seatPoseOf(scene, { kind: 'party', rang: RANG_MENEUR });
-  if (!seat) return { leader, pos: partyPos, capKey: CAP_GROUPE };
-  return { leader, pos: { x: seat.anchor.x, y: seat.anchor.y, ...(partyPos.z ? { z: partyPos.z } : {}) }, seat, capKey: CAP_GROUPE };
+  const heroIndex = heroRingIndex(leader, partyIds);
+  if (!seat) return { leader, heroIndex, pos: partyPos, capKey: CAP_GROUPE };
+  return { leader, heroIndex, pos: { x: seat.anchor.x, y: seat.anchor.y, ...(partyPos.z ? { z: partyPos.z } : {}) }, seat, capKey: CAP_GROUPE };
 }
 
 /** Vérité de JEU pilotant la sélection (PAS une caméra) : étage actif/isolé + mode de vue du dessus
@@ -89,7 +94,7 @@ function cutByView(scene: Scene, visible: ReadonlySet<string> | undefined, view:
  *  SOURCE UNIQUE des jetons du monde (#1176) : le monde volumique en fait des billboards
  *  (`sceneBillboards`) et la surcouche SVG leur chrome (`stage/TokenChromeOverlay`) — les filtres
  *  (embuscade, enrôlé, couverture, étage, hors-vue) ne se recopient pas, ils se CONSOMMENT. */
-export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefined, battle: BattleState | null, view: TokenView): TokenEl[] {
+export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefined, battle: BattleState | null, view: TokenView, partyIds: readonly string[]): TokenEl[] {
   const { top } = view;
   const out: TokenEl[] = [];
   const inBattle = !!battle;
@@ -125,10 +130,7 @@ export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefin
 
   if (!battle) return out;
 
-  // ── COMBATTANTS : mêmes filtres et même ORDRE D'ANNEAU héros que la branche combat historique. ────
-  let hi = 0; // ordinal d'anneau héros — consommé AUSSI par un cavalier non dessiné (couleur stable)
-  // L'ordinal réservé par un cavalier héros : c'est l'identité d'équipe que portera son COUPLE plus bas.
-  const riderHi = new Map<string, number>();
+  // L'identité suit l'ordre du groupe ; seuls les jetons sont filtrés par la vue.
   for (const c of battle.combatants) {
     if (!c.pos) continue;
     // MDG 14 l.39
@@ -136,22 +138,19 @@ export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefin
     // Structure de siège : AUCUN jeton de case — elle se rend sur son ARÊTE (hit-area `data-cid`).
     if (isStructure(c)) continue;
     const cz = c.pos.z ?? 0;
-    const isHero = c.kind === 'hero';
+    const isHero = campOf(c) === 'party';
     const { cut, overhang } = cutByView(scene, visible, view, c.pos, isHero);
     if (cut) continue;
     // Combat monté (iso) : cavalier rendu EN SELLE (couple composite ci-dessous) ; en vue du dessus,
     // cavalier et monture sont deux pions distincts.
-    if (!top && isRider(c)) {
-      if (isHero) riderHi.set(c.id, hi++);
-      continue;
-    }
+    if (!top && isRider(c)) continue;
     if (!top && isMount(c)) continue;
     out.push({
       kind: 'token',
       key: `cbt:${c.id}`,
       id: c.id,
       cell: { x: c.pos.x, y: c.pos.y, z: cz },
-      subject: { kind: 'combatant', c, ...(isHero ? { heroIndex: hi++ } : {}), overhang },
+      subject: { kind: 'combatant', c, ...(isHero ? { heroIndex: heroRingIndex(c, partyIds) } : {}), overhang },
       states: { visible: true },
     });
   }
@@ -169,13 +168,13 @@ export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefin
       if (isPassengerInBattle(mount, battle.combatants, isMerScene(scene))) continue;
       // Un couple est VIEWER dès que l'un des deux corps est un héros (le cheval d'un héros ne
       // disparaît pas parce que le record de la monture est d'un autre camp).
-      if (cutByView(scene, visible, view, mount.pos, mount.kind === 'hero' || rider.kind === 'hero').cut) continue;
+      if (cutByView(scene, visible, view, mount.pos, campOf(mount) === 'party' || campOf(rider) === 'party').cut) continue;
       out.push({
         kind: 'token',
         key: `mtd:${mount.id}`,
         id: mount.id,
         cell: { x: mount.pos.x, y: mount.pos.y, z: mount.pos.z ?? 0 },
-        subject: { kind: 'mounted', mount, rider, ...(riderHi.has(rider.id) ? { heroIndex: riderHi.get(rider.id) } : {}) },
+        subject: { kind: 'mounted', mount, rider, ...(campOf(rider) === 'party' ? { heroIndex: heroRingIndex(rider, partyIds) } : {}) },
         states: { visible: true },
       });
     }

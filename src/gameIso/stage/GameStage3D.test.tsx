@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { Profiler, StrictMode, act } from 'react';
+import { StrictMode, act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { useGame } from '../../state/store';
@@ -55,12 +55,11 @@ function poserEtat(): void {
   root = createRoot(container);
 }
 
-/** Monte le stage, et COMPTE les commits de son sous-arbre (`Profiler` : aucun rendu = aucun commit). */
-function monter(): { el: HTMLDivElement; commits: () => number } {
+/** Monte le stage sur la scène minimale. */
+function monter(): HTMLDivElement {
   poserEtat();
-  let n = 0;
-  act(() => root!.render(<Profiler id="stage" onRender={() => { n += 1; }}><MondeDeCampagne /></Profiler>));
-  return { el: container!, commits: () => n };
+  act(() => root!.render(<MondeDeCampagne />));
+  return container!;
 }
 
 /** Le montage RÉEL du jeu : `src/main.tsx` rend l'application sous `<React.StrictMode>`, et la voie
@@ -79,7 +78,7 @@ afterEach(() => {
 
 describe('Le monde de l’écran de jeu est VOLUMIQUE, et lui seul (#1176 C5a)', () => {
   it('le canevas est monté SOUS le SVG, qui ne porte plus la couche monde', () => {
-    const { el } = monter();
+    const el = monter();
     const canvas = el.querySelector('canvas.iso-stage');
     const svg = el.querySelector('svg.iso-stage');
     expect(canvas).not.toBeNull();
@@ -140,22 +139,3 @@ describe('Hit-test de sprite — la voie qui peint est celle qui répond (#1176 
   });
 });
 
-/**
- * L'ORIENTATION MONDE est lue par le monde volumique, qui la suit : toute écriture de cap
- * (`faceToward`, à chaque pas et à chaque attaque) reforge la table, et l'abonnement vit dans
- * `VolumetricWorld` — le sous-arbre du stage doit donc bien commiter quand elle change.
- *
- * L'orientation est posée sur un id qu'AUCUN jeton de la scène ne porte : un corps abonné à SA propre
- * orientation (`useRigAnim` : `s.facing?.[id]`) reste alors indifférent, et seul l'abonnement à la
- * TABLE ENTIÈRE peut produire un commit — c'est bien celui du monde que la sonde mesure.
- */
-const SONDE = '__sonde-orientation'; // aucun jeton ne porte cet id
-
-describe('Orientation monde — le monde volumique la suit (#1176)', () => {
-  it('une écriture de cap re-rend le stage (la table y est lue) — la sonde n’est pas inerte', () => {
-    const { commits } = monter();
-    const avant = commits();
-    act(() => { useGame.getState().faceToward(SONDE, { x: 1, y: 0 }, { x: 0, y: 0 }); }); // cap O
-    expect(commits()).toBeGreaterThan(avant);
-  });
-});

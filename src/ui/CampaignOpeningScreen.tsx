@@ -61,7 +61,7 @@ export function CampaignOpeningScreen() {
       <Band title={t('ouv.compagnie')}>
         <FigRow label={t('ouv.compagnie')}>
           {heroes.map((h) => (
-            <FigTile key={h.id} preview={{ hero: h }} label={h.label} sub={careerLabelFor(h)} />
+            <FigTile key={h.id} label={h.label} sub={careerLabelFor(h)} />
           ))}
         </FigRow>
       </Band>

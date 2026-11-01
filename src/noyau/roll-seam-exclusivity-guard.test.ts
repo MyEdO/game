@@ -14,7 +14,6 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { tableDesExports } from '../../scripts/guards/lib/canonUnique.mjs';
 import * as canon from '../../scripts/guards/lib/canonUnique.mjs';
 import * as programmes from '../../scripts/guards/lib/tsProgram.mjs';
-import { scanRegistryIdBranch } from '../../scripts/guards/lib/registryIdBranch.mjs';
 import { battleRngEngineLeakExcluded } from '../../scripts/guards/lib/battleRngEngineLeakWhitelist.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { detenteur } from '../detenteur.testkit';
@@ -86,21 +85,6 @@ describe('contexte d’import des parcours manuels', () => {
       expect(second).not.toBe(premier);
       expect(second.source).not.toBe(premier.source);
       expect(second.source.fileName).toBe(premier.source.fileName);
-    } finally {
-      contextes.mockRestore();
-      programmesCrees.mockRestore();
-    }
-  });
-
-  it('registre : le vocabulaire importé garde son origine sans construire de checker', () => {
-    const contextes = vi.spyOn(canon, 'contexteImports');
-    const programmesCrees = vi.spyOn(programmes, 'syntaxProgram');
-    const corps = "const ids: Os[] = ['head', 'torso']; function f(entry) { return ids.includes(entry.id); }";
-    try {
-      expect(scanRegistryIdBranch('src/probe.ts', "import type { BoneId as Os } from './gameIso/rig/bones';" + corps)).toEqual([]);
-      expect(scanRegistryIdBranch('src/probe.ts', "import type { BoneId as Os } from './engine/types';" + corps)).toHaveLength(1);
-      expect(contextes).toHaveBeenCalledTimes(2);
-      expect(programmesCrees).toHaveBeenCalledTimes(2);
     } finally {
       contextes.mockRestore();
       programmesCrees.mockRestore();

@@ -13,5 +13,3 @@ export function MESSAGES_DE(out: string): { staleMsg: string; rerunMsg: string }
 /** Exports de premier niveau d'un def, lus à leur forme canonique — lève sur toute autre forme. */
 export function lireExports(src: string, noms: readonly string[], def: string): Record<string, string | true | undefined>;
 export function lireDefs(dir: string, noms: readonly string[]): ({ module: string } & Record<string, string | true | undefined>)[];
-/** Projection d'un registre de defs (option `projection`) : `[id]` ou `[id, valeur de champ]`, triés — lève par def fautif. */
-export function projeterDefs(dir: string, projection: { nom: string; champ?: string }): string[][];

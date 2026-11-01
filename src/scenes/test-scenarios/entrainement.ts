@@ -8,7 +8,7 @@ import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { pregen, PREGEN } from '../../data/pregens';
 import type { TestScenario } from './_shared';
-import { rigSpeciesId } from '../../data';
+import { especeDApparence } from '../../data';
 import { t } from '../../i18n';
 
 /**
@@ -25,9 +25,8 @@ import { t } from '../../i18n';
  */
 
 /** Cible inerte : M 0 (ne bouge pas), beaucoup de Blessures (encaisse) → on observe le tir/ciblage.
- *  Son `appearance.species` (posé sur chaque exemplaire de la rencontre) est une donnée D'ATTENTE : le
- *  rendu d'un combattant n'offre aujourd'hui que rig/plan, aucun gabarit d'objet inanimé — arbitrage
- *  du vrai gabarit de mannequin : #1075. */
+ *  Son `appearance.species` (posé sur chaque exemplaire de la rencontre) est une donnée D'ATTENTE : aucun
+ *  gabarit d'objet inanimé ne la lit — arbitrage du vrai gabarit de mannequin : #1075. */
 const MANNEQUIN: CustomStatblock = { type: 'statblock',
   label: "Mannequin d'entraînement",
   char: { M: 0, 'capacite-de-combat': 5, 'capacite-de-tir': 0, force: 20, endurance: 35, initiative: 5, agilite: 5, dexterite: 5, intelligence: 5, 'force-mentale': 5, sociabilite: 5, B: 40 },
@@ -55,7 +54,7 @@ function tireur(): Combatant {
   recomputeLoadout(h);
   // Tir rapide (LDB 10) : interruption à distance pendant la pause de début de Round (badge de la frise d'Initiative).
   if (!h.talents.some((t) => t.talentId === 'tir-rapide')) acquerirTalent(h, { id: 'tir-rapide' });
-  h.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.5 };
+  h.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M', build: 0.5 };
   return h;
 }
 

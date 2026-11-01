@@ -190,12 +190,6 @@
     - var(--pd-gap) + 2 * var(--pd-edge)
   );
 }
-/* FICHE OUVERTE : la bande passe au-dessus du voile de la fiche (125, `sheet.css`). L'état est un
-   ATTRIBUT, jamais un `style=` (arbitrage user A2, 2026-09-18). Recouvrement de la fiche : #1829. */
-.stage > .party-dock[data-fiche] {
-  z-index: 126;
-}
-
 /* ══ Matrice responsive du HUD (design 2026-07-31 §12) ═══════════════════════════════════════════
    Breakpoints canon 900 / 700 / 560, plus `pointer: coarse` — dans CET ordre, une tranche chacun :
    la cascade se lit de haut en bas, une largeur plus étroite affine la précédente. 360px est une

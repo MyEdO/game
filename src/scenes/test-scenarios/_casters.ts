@@ -7,7 +7,7 @@
  * tous les Sorts des Domaines arcaniques) → l'IA refondue joue tout l'arsenal, pas un sous-ensemble.
  */
 import { pregenParty, PREGEN } from '../../data/pregens';
-import { spells, blessingsOf, miraclesOf, findSkill, findTalent, rigSpeciesId } from '../../data';
+import { spells, blessingsOf, miraclesOf, findSkill, findTalent, especeDApparence } from '../../data';
 import { slugId } from '../../data/slug';
 import { refCouvre, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import { acquerirTalent, splitLabel } from '../../engine/careerSlots';
@@ -76,7 +76,7 @@ export function makeSorceress(id: string, name: string, pos: { x: number; y: num
     ...spellsOf('Magie mineure'),
     ...spellsOf('Magie des Arcanes', [null, ...domains, 'Nécromancie']),
   ];
-  sorc.appearance = { species: rigSpeciesId('hauts-elfes'), sex: 'F', build: 0.38 };
+  sorc.appearance = { species: especeDApparence('hauts-elfes'), sex: 'F', build: 0.38 };
   sorc.species = 'hauts-elfes';
   sorc.pos = { ...pos };
   return sorc;

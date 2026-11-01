@@ -65,8 +65,7 @@ function creatureWeapon(it: ItemInstance, dmg: WeaponDamageSpec, range: number |
  * entre parenthèses (l'armement des monstres est dans les Traits) :
  *   « Arme +7 », « Arme (Épée) +7 », « Arme (Dague) +4 », « Arme (griffes) »,
  *   « À distance (Arbalète) +9 (60) », « À distance +8 (50) », « Morsure +9 ».
- * Le `name` = le TYPE quand il est manufacturé (→ le rig tient cette arme) ; sinon
- * une étiquette naturelle (→ weaponFamily renvoie '' = aucune arme dessinée).
+ * Le `name` = le TYPE quand il est manufacturé ; sinon une étiquette naturelle.
  */
 export function weaponFromTrait(t: TraitInstance, resolveTrapping: TrappingResolver = findTrappingById): Weapon | null {
   const w = armeDuTrait(t, resolveTrapping);
@@ -96,7 +95,7 @@ function armeDuTrait(t: TraitInstance, resolveTrapping: TrappingResolver): Weapo
     const it = catalogItem(t.arg, source, resolveTrapping);
     if (it) return creatureWeapon(it, dmg, t.range);
     // Arme manufacturée hors catalogue, ou descripteur naturel non flaggé : générique, mêlée par
-    // défaut — REND toujours une silhouette (`weaponFamily` retombe sur le Groupe, ex. « épée »).
+    // défaut.
     // `sizeless` (≠ `natural`, qui viderait les mains) : le trait « Arme +N » SANS objet identifié au
     // catalogue n'est jamais une POSSESSION dont la Taille pourrait ne pas convenir (ADE II 2
     // l.604-710 vise un objet manufacturé réel, ex. une massue-ogre) — sa taille effective EST celle
@@ -115,7 +114,7 @@ function armeDuTrait(t: TraitInstance, resolveTrapping: TrappingResolver): Weapo
 
 /** Armes EXPLICITES d'une créature (traits « Arme »/« À distance »/naturelles), SANS arme générique de
  *  repli. Pour le RENDU : une créature sans trait d'arme reste mains libres (un villageois ne tient rien) —
- *  le repli « Arme +BF » générique de `weaponsFromTraits` serait dessiné comme une épée (cf. weaponFamily). */
+ *  le repli « Arme +BF » générique de `weaponsFromTraits` n'y entre pas. */
 export function renderWeaponsFromTraits(traits: TraitList, resolveTrapping: TrappingResolver = findTrappingById): Weapon[] {
   const weapons: Weapon[] = [];
   for (const t of traits) {

@@ -2,7 +2,6 @@ import { describe, it, expect, assert } from 'vitest';
 import { testScenarios } from './index';
 import { validateScene } from '../../noyau/validateScene';
 import { ficheDEntite } from '../../noyau/monde/sceneNpc';
-import { enemyRigProfile } from '../../gameIso/rig/enemyProfile';
 import { refs } from '../../data/schemas/grammaire/ref';
 import { presetPnjById } from '../../state/campaignData';
 
@@ -34,7 +33,7 @@ describe('Batterie de scénarios de test', () => {
     expect(testScenarios.find((s) => s.id === 'embuscade')).toBeTruthy();
     expect(testScenarios.find((s) => s.id === 'magie')).toBeTruthy();
   });
-  it('résout une espèce de rig pour les cinq mutants de l’Embuscade', () => {
+  it('résout l’espèce des cinq mutants de l’Embuscade', () => {
     const embuscade = testScenarios.find((s) => s.id === 'embuscade')!.construire().scene;
     const encounter = embuscade.encounters.find((e) => e.id === 'enc-mutants')!;
     const entities = new Map(embuscade.entities.map((e) => [e.id, e]));
@@ -42,15 +41,15 @@ describe('Batterie de scénarios de test', () => {
     const species = encounter.members.map((member) => {
       const entity = entities.get(member.entityId)!;
       const combatant = ficheDEntite(entity, presetPnjById);
-      return [combatant.label, combatant.species, enemyRigProfile(combatant)?.appearance.species];
+      return [combatant.label, combatant.species];
     });
 
     expect(species).toEqual([
-      ['Knud Cratinx', 'humains-reiklander', 'humains-reiklander'],
-      ['Mikael', 'humains-reiklander', 'humains-reiklander'],
-      ['Erik', 'humains-reiklander', 'humains-reiklander'],
-      ['Johann', 'humains-reiklander', 'humains-reiklander'],
-      ['Terenz', 'humains-reiklander', 'humains-reiklander'],
+      ['Knud Cratinx', 'humains-reiklander'],
+      ['Mikael', 'humains-reiklander'],
+      ['Erik', 'humains-reiklander'],
+      ['Johann', 'humains-reiklander'],
+      ['Terenz', 'humains-reiklander'],
     ]);
   });
   // Chaque scénario doit rester une scène VALIDE (réfs, transitions, dialogues, ids) contre le

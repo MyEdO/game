@@ -493,7 +493,7 @@ describe('MondeDeCampagne — un étage peint montre son décor, les deux voies 
     act(() => root!.render(<MondeDeCampagne />));
     return {
       loi: loiSpy.mock.calls[loiSpy.mock.calls.length - 1][1],
-      billboards: bbSpy.mock.calls[bbSpy.mock.calls.length - 1][3].props,
+      billboards: bbSpy.mock.calls[bbSpy.mock.calls.length - 1][2].props,
     };
   }
 

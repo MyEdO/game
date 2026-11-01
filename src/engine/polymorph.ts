@@ -15,9 +15,8 @@ import type { GameOp } from './ops';
 import { findCreatureById, findTraitById } from '../data';
 import { baseWithTraits } from './characteristics';
 
-/** id de créature dont l'apparence rig doit être rendue actuellement (op `polymorph` en cours), sinon
- *  `undefined` (forme de base). Le DERNIER effet `morphRef` actif l'emporte. Lu par la couche rig
- *  (`combatantAppearance`) — restitué seul à l'expiration de l'effet (plus de `morphRef` → forme de base). */
+/** id de créature de la forme actuelle (op `polymorph` ou `transform` en cours), sinon `undefined`
+ *  (forme de base). Le DERNIER effet `morphRef` actif l'emporte ; restitué seul à l'expiration de l'effet. */
 export function liveMorphRef(c: Combatant): string | undefined {
   let ref: string | undefined;
   for (const e of c.activeEffects ?? []) if (e.morphRef) ref = e.morphRef;

@@ -1,8 +1,7 @@
 // Garde de cohérence des lignes citées par le CODE (suite #434/#487, prévention).
 // `check-refs.mjs` borne les réfs des DOCS (docs/raw) ; rien ne couvrait celles du CODE — vécu :
 // `LDB 60 l.92` cité dans un chapitre de 62 lignes. Ici : pour chaque réf `<ABRÉV> NN l.X[-Y|+n…]`
-// des CITANTS (`RACINES_CITANTES`, `lib/fichiersCitants.mjs`, hors node_modules, hors
-// `src/gameIso/rig/parts/tenues/defs/` comme le générateur `build-implemente`), résout le
+// des CITANTS (`RACINES_CITANTES`, `lib/fichiersCitants.mjs`, hors node_modules), résout le
 // fichier-chapitre (`chapterFile`, _lib.mjs)
 // et signale la réf dont la borne haute dépasse le nombre de lignes du chapitre, OU dont le chapitre
 // est introuvable. Regex de réfs RÉUTILISÉE (`refRe`/`span`/`bookOf`) — jamais réécrite.
@@ -29,7 +28,6 @@ import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 import { RACINES_CITANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
 
-export const EXCLUDE_SRC_PREFIX = 'src/gameIso/rig/parts/tenues/defs/' // art de couverture, pas une règle (cf. build-implemente)
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'dead-code-refs-stock.json')
 export const EMPTY_LINE_STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'empty-line-code-refs-stock.json')
 
@@ -58,8 +56,6 @@ function lineCount(path) {
   return chapterLinesOf(path).length
 }
 
-export const isExcludedSrc = (rel) => rel.startsWith(EXCLUDE_SRC_PREFIX)
-
 /** Parcourt `racines` (`RACINES_CITANTES` par défaut) et retourne les réfs mortes du code :
  *  `{ file, row, ref, abbr, nn, hi, kind, chapterLines?, chapterFile? }`.
  *  `kind` ∈ `out-of-bounds` (chapitre résolu, ligne hors borne) | `chapter-not-found` (chapitre absent). */
@@ -67,7 +63,6 @@ export function scanDeadCodeRefs(racines = RACINES_CITANTES) {
   const dead = []
   for (const f of fichiersCitants(racines)) {
     const rel = f.split('\\').join('/')
-    if (isExcludedSrc(rel)) continue
     const lines = readFileSync(f, 'utf8').split('\n')
     lines.forEach((ln, i) => {
       for (const { abbr, nn, hi } of refsInLine(ln)) {
@@ -95,7 +90,6 @@ export function scanEmptyLineCodeRefs(racines = RACINES_CITANTES) {
   const vides = []
   for (const f of fichiersCitants(racines)) {
     const rel = f.split('\\').join('/')
-    if (isExcludedSrc(rel)) continue
     const lines = readFileSync(f, 'utf8').split('\n')
     lines.forEach((ln, i) => {
       for (const { abbr, nn, lo, hi } of refsInLine(ln)) {

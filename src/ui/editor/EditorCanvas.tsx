@@ -32,11 +32,9 @@ import {
 } from './editorState';
 import { planFocusTiles, type PlanDefectAt } from '../../noyau/planDefects';
 import { GameStage3D } from '../../gameIso/stage/GameStage3D';
-import { buildTokens } from '../../gameIso/builders/tokens';
 import type { ActorPose, KeepEl, TintAt } from '../../gameIso/backends/webgl/sceneMeshes';
 import { calageActif } from '../../gameIso/backends/webgl/calageProps';
 import { mapLights, type LightSource } from '../../noyau/monde/vision';
-import type { TrappingResolver } from '../../engine/items';
 
 /** Jaune d'ACCENT de SÉLECTION de l'éditeur (arêtes/zones/toits/entités sélectionnés) — même teinte que
  *  l'anneau d'unité active en combat, mais concept distinct (édition, pas tour de jeu). */
@@ -176,7 +174,6 @@ function buildZoneDraws(zones: readonly SceneEffectZone[] | undefined, dims: Dim
 }
 
 export function EditorCanvas({
-  resolveTrapping,
   scene,
   view,
   setScene,
@@ -207,7 +204,6 @@ export function EditorCanvas({
   traceCalibStep,
   onTraceCalibClick,
 }: {
-  resolveTrapping: TrappingResolver;
   scene: Scene;
   view: ReturnType<typeof useEditorView>;
   setScene: (s: Scene) => void;
@@ -667,40 +663,20 @@ export function EditorCanvas({
   // deux matières différentes, cf. le seuil de bascule) ; sous le seuil, on n'y arrive plus et c'est
   // le dégagement qui prend la main, la couche disparaît au lieu de noircir.
   // Il porte les DEUX matières du monde d'un seul geste : les FACES (`applyVisibilityTint`) et les
-  // CORPS — `collectBillboards` pose `tint: tintAt(...)` sur chaque figurant et chaque décor. Un
-  // jeton de couche basse s'assombrit donc par le même canal que sa case, sans une ligne de plus.
+  // billboards du décor (`stage/boardPose.poseBoards`, teinte prise à la case du sujet).
   const tintAt = useMemo<TintAt>(
     () => (_x, _y, z) => gabaritTint(z, currentLayer, lowerLayerOpacity),
     [currentLayer, lowerLayerOpacity],
   );
   // ÉLÉMENTS à billboarder : c'est l'ÉDITEUR qui les fabrique, avec SES options de couche — le monde
-  // volumique n'a aucun second jeu de lois. Jetons d'entité BRUTS (leurs décorations d'auteur restent
-  // au SVG) et décor par le MÊME `buildProps` que le jeu.
+  // volumique n'a aucun second jeu de lois : le décor passe par le MÊME `buildProps` que le jeu.
   // Le builder n'émet AUCUNE loi d'étage (#1317) : c'est le PRÉDICAT UNIQUE du canevas qui tranche, ici
   // comme pour les 14 surcouches SVG et les deux autres canaux du monde volumique.
   const propEls3d = useMemo(
     () => buildProps(sceneMonde).filter((el) => !zHiddenMonde(el.cell.z)),
     [sceneMonde, currentLayer, modeMonde],
   );
-  // Les JETONS, eux, demandent encore au builder son cadrage de couche (`activeZ`/`viewZ` de
-  // `buildTokens`) avant le prédicat unique ; le décor ci-dessus a seulement le prédicat (#1317).
-  // Le prédicat reste indispensable ici : sans lui, un corps de couche basse restait sur le canevas
-  // alors que TOUTES ses décorations d'auteur avaient disparu du SVG — un jeton fantôme, inéditable.
-  // `ambush` : l'auteur voit le CORPS de ses embusqueurs (`hiddenUntilCombat`), que la loi de JEU
-  // coupe avant le combat ; le SVG continue de poser leur empreinte pointillée par-dessus.
-  const tokenEls3d = useMemo(
-    () => buildTokens(sceneMonde, undefined, null, {
-      activeZ: currentLayer,
-      viewZ: modeMonde === 'isolee' ? currentLayer : null,
-      top: viewMode === 'top',
-      ambush: true,
-    }).filter((el) => !zHiddenMonde(el.cell.z)),
-    [sceneMonde, currentLayer, viewMode, modeMonde],
-  );
-  // Pas de `chromeAt` ici : l'ALLURE d'un board se lit par `cid`, et un `cid` n'est posé QUE sur les
-  // acteurs de combat (`actorBillboards`) — l'éditeur n'en monte aucun. C'est le canal TEINTE qui
-  // assombrit ses corps de couche basse, ci-dessus, et il suffit.
-  const els3d = useMemo(() => ({ tokens: tokenEls3d, props: propEls3d }), [tokenEls3d, propEls3d]);
+  const els3d = useMemo(() => ({ props: propEls3d }), [propEls3d]);
   // ÉCHELLE RÉELLEMENT RENDUE : le SVG est à TAILLE DE CONTENU et la mise en page le rétrécit
   // (`.editor-iso { max-width: 100% }`), donc ce que l'auteur voit vaut `zoom × ce rétrécissement` —
   // c'est cette valeur, et pas le zoom du viewBox, que l'HUD doit annoncer (mesuré #1176 : 40,3 px de
@@ -759,7 +735,7 @@ export function EditorCanvas({
             (2304×1312 px mesurés sur La Diligence en iso), pas la seule fenêtre — le défilement reste
             NATIF, sans un écouteur de plus, et `setPixelRatio` n'est posé qu'au montage. Un cadrage
             à la fenêtre est une piste tickée, pas une promesse de ce lot. */}
-        <GameStage3D resolveTrapping={resolveTrapping}
+        <GameStage3D
           scene={sceneMonde}
           lecture="auteur"
           mpt={mpt}

@@ -36,10 +36,6 @@ Vérificateur adversarial : ta posture par défaut est de RÉFUTER.
   système »), car le joueur ne voit que lui : FAIT-À-L'ÉCRAN, EN-COURS, À-FAIRE ;
   « FAIT (données) » est un À-FAIRE ; un aveu d'agent (« pas de surface ») est un écart ; un ticket fermé
   n'est qu'une hypothèse.
-- **Mesure d'art : le harnais `npx tsx scripts/qc/mesure-volume.mts <tenueId>` est ton instrument,
-  jamais ton verdict.** `NON-REFUTE` n'est pas un « BON » — le BON exige d'avoir regardé le rendu ;
-  `NON MESURABLE` et `ECHEC palette inversée` s'instruisent ; n'écris jamais le tien, une divergence
-  est un grief à instruire.
 - Avant tout « aucune op/Condition/Flow/Trigger » ou « aucune couture ne fait X » :
   `docs/vocabulaire-mecanique.md`, `docs/index-moteur.md` — cite la ligne.
 - Verdict CONFIRMÉ / RÉFUTÉ / INCERTAIN avec sa preuve (`fichier:ligne`, Source verbatim, sortie

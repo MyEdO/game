@@ -3,9 +3,7 @@
 import type { CodexItem, CodexRow, CodexSection } from './registry';
 import { EntityRef, EntityChoice, PlainChip } from '../EntityChip';
 import { CodexRef } from './CodexRef';
-import { CreaturePreview } from './CreaturePreview';
 import { TabbedEntry, type EntryTab } from '../TabbedEntry';
-import { OrnateFrame } from '../Ornaments';
 import { Prose } from '../Prose';
 import type { Porteur } from '../liage';
 import { libelleDuChamp } from './editFields';
@@ -166,7 +164,6 @@ export function CodexEntry({ item, instance, category, exergues }: { item: Codex
       )}
       {/* PAS de `key={item.label}` : TabbedEntry conserve l'onglet actif (par nom) au changement de fiche. */}
       <TabbedEntry
-        figure={item.appearance ? <OrnateFrame className="codex-figure"><CreaturePreview label={item.previewRef ?? item.label} appearance={item.appearance} porteur={item.previewPorteur} /></OrnateFrame> : undefined}
         title={item.label}
         aside={item.source ? <SourceBadge source={item.source} /> : undefined}
         blurb={item.sub}

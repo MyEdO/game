@@ -82,7 +82,7 @@ test('un .tsx NEUF de src/gameIso est BLOQUÉ au même titre (32 .tsx mesurés, 
   assert.equal(r.decision, 'deny', 'src/gameIso relève du régime bloquant')
   assert.match(r.raison, /NON DÉCLARÉ/)
   assert.equal(estComposantUI('src/gameIso/stage/X.tsx'), true)
-  assert.equal(estComposantUI('src/gameIso/rig/composeRig.tsx'), true)
+  assert.equal(estComposantUI('src/gameIso/fx/FxLayer.tsx'), true)
   assert.equal(estComposantUI('src/gameIso/stage/X.test.tsx'), false)
   assert.equal(estComposantUI('src/gameIso/builders/mur.ts'), false)
 })

@@ -49,7 +49,7 @@ export function AssignRow({
   canPick?: boolean;
   /** Les portraits de cette case sont-ils RETIRABLES ? `false` = ils sont là par CONSTAT et non par
    *  affectation (le banc : ces personnes ne tiennent aucun poste, il n'y a rien à leur retirer) — ils
-   *  sont alors rendus DÉCORATIFS, sans geste ni promesse de geste. Une affordance qui ne change rien
+   *  sont alors rendus PASSIFS et nommés, sans geste ni promesse de geste. Une affordance qui ne change rien
    *  est morte : elle ne se rend pas. */
   retirable?: boolean;
   /** Nom accessible d'un portrait affecté (défaut : « X — retirer »). */
@@ -99,7 +99,7 @@ export function AssignRow({
           {retirable ? (
             <CharFrame c={h} variant="identity" size="xs" nom={nomRetirer?.(h) ?? `${h.label} — retirer`} onClick={() => onRemove(h.id)} />
           ) : (
-            <CharFrame c={h} variant="identity" size="xs" decoratif />
+            <CharFrame c={h} variant="identity" size="xs" />
           )}
           {precisionDe?.(h)}
         </Fragment>

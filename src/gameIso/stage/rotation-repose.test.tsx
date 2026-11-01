@@ -10,8 +10,7 @@ import type { JSX } from 'react';
  *     gel mesurés en recette) ;
  *  2. aucune rasterisation SYNCHRONE au franchissement — un cran jamais visité passe par la file
  *     cadencée du cuiseur, et le quad garde son art jusqu'à la relève ;
- *  3. après la relève, l'art montré est bien celui du NOUVEAU cran — décor (texture échangée en place)
- *     comme corps à flipbook (planche du cran choisie par l'image).
+ *  3. après la relève, l'art montré est bien celui du NOUVEAU cran (texture échangée en place).
  */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -20,21 +19,16 @@ import * as THREE from 'three';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import type { Dir8 } from '../../geometry/dir8';
 import { createHero } from '../../engine/character';
-import type { Rot } from '../../geometry/iso';
 import type { BillboardPropEl } from '../builders/types';
 import type { ActorPose, KeepEl, SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
-import { atlasLayout, billboardView } from '../backends/webgl/billboardMath';
+import { billboardView } from '../backends/webgl/billboardMath';
 import { dir8Basis } from '../pov/camera';
 import * as svgTexture from '../backends/webgl/svgTexture';
-import * as atlasBake from '../backends/webgl/atlasBake';
-import { PRIORITE_RECHAUFFAGE, PRIORITE_VUE_COURANTE, setBudgetTrancheMs, atlasBytesEstimés, bakeQueueLength, resetBakeQueue } from '../backends/webgl/atlasBake';
+import { PRIORITE_RECHAUFFAGE, PRIORITE_VUE_COURANTE, setBudgetTrancheMs, bakeQueueLength, resetBakeQueue } from '../backends/webgl/atlasBake';
 import { GameStage3D, setStageRendererFactory, type StageFrame, type StageWalkAnim } from './GameStage3D';
-import { BancRenderer, PLAFOND_ATTENTE_MS, attendreQue, brancherArdoise, quads, respirer as respirerBanc, scènes, simulerRasterisation, viderCaptures } from './banc-volumique';
+import { BancRenderer, PLAFOND_ATTENTE_MS, attendreQue, brancherArdoise, quads, scènes, simulerRasterisation, viderCaptures } from './banc-volumique';
 import { bbCameraDe, povArtRot } from './regard';
 import { poigneesEnAttente } from './texturesStatiques';
-import { atlasPxHeight } from './boardPose';
-import { pxPerM } from '../backends/webgl/worldTris';
-import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -48,7 +42,7 @@ const TAILLE = { w: 800, h: 600 };
 const SCENE: Scene = emptyScene('scene-test', 12, 12);
 const MPT = sceneMetresPerTile(SCENE);
 const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0, facing: 'S' }];
+const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0 }];
 /** Teinte et dégagement STABLES : le groupe de billboards se rebâtit sur l'IDENTITÉ de ses entrées —
  *  une lambda par rendu le remonterait à chaque image, et la mesure porterait sur le banc. */
 const TINT: TintAt = () => 1;
@@ -62,7 +56,7 @@ const décor = (id: string, x: number): BillboardPropEl => ({
   states: { visible: true },
 });
 
-const ELS: SceneBillboardEls = { tokens: [], props: [décor('a', 6), décor('b', 7), décor('c', 8)] };
+const ELS: SceneBillboardEls = { props: [décor('a', 6), décor('b', 7), décor('c', 8)] };
 
 /** Le cadre de plateau à un LACET donné — la forme que le lacet continu passe au stage (`dimsVue`). */
 const cadre = (yawDeg: number): StageFrame => ({
@@ -95,7 +89,7 @@ function écran(
   keepEl: KeepEl = KEEP,
 ): JSX.Element {
   return (
-    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={frame}
@@ -131,7 +125,7 @@ async function monter(
   document.body.appendChild(hôte);
   root = createRoot(hôte);
   await act(async () => { root!.render(vue(0, els, acteurs, animUtilisée)); });
-  await attendreMontage(els.props.length + els.tokens.length + acteurs.length);
+  await attendreMontage(els.props.length);
 }
 
 /** Montage en PREMIÈRE PERSONNE au cap `cap` — même banc, l'autre regard. */
@@ -145,7 +139,7 @@ async function monterPov(
   document.body.appendChild(hôte);
   root = createRoot(hôte);
   await act(async () => { root!.render(écran(cadrePov(cap), els, acteurs)); });
-  await attendreMontage(els.props.length + els.tokens.length + acteurs.length);
+  await attendreMontage(els.props.length);
 }
 
 /** Changement de CAP servi comme le jeu le sert : un rendu, puis la file servie jusqu'à ce que plus
@@ -159,9 +153,6 @@ async function allerAuCap(
   await act(async () => { root!.render(écran(cadrePov(cap), els, acteurs)); });
   await attendreFileVidée();
 }
-
-/** La file du cuiseur servie (une rasterisation par tranche) en battant la boucle d'image de CE banc. */
-const respirer = (ms: number): Promise<void> => respirerBanc(ms, () => battre?.());
 
 /** Le même patron d'attente que le harnais, la pompe d'images de CE banc branchée dessus (#1442) :
  *  toute attente de ce fichier SORT AU FAIT ACCOMPLI, jamais au bout d'une fenêtre de mur — la file
@@ -327,7 +318,6 @@ describe('Cran franchi — aucune rasterisation en rafale', () => {
  */
 describe('Cran franchi — la relève passe devant la pré-chauffe', () => {
   const DENSE: SceneBillboardEls = {
-    tokens: [],
     props: Array.from({ length: 20 }, (_, i) => décor(`d${i}`, 2 + (i % 10))),
   };
 
@@ -442,36 +432,6 @@ describe('Cran franchi — l’art est celui du NOUVEAU cran', () => {
     expect(clésCran1().length, 'aucune texture demandée au cran 1 : le décor est resté au cran 0').toBe(ELS.props.length);
     expect(toutesPosées(), 'une texture du cran 1 cuite mais jamais posée sur son quad').toBe(true);
   });
-
-  it('CORPS À FLIPBOOK : la planche jouée est celle de la vue du cran d’arrivée', async () => {
-    // Planches SERVIES SANS RASTERISATION (une cellule coûte ~10 ms de mur) : la GRILLE reste réelle.
-    vi.spyOn(atlasBake, 'bakeAtlas').mockImplementation(async (_draw, _box, n) => {
-      const layout = atlasLayout(24, 30, n);
-      return { texture: new THREE.CanvasTexture(document.createElement('canvas')), layout, bytes: layout.texW * layout.texH * 4 };
-    });
-    const clés: string[] = [];
-    const original = atlasBake.getCachedAtlas;
-    vi.spyOn(atlasBake, 'getCachedAtlas').mockImplementation((k: string) => { clés.push(k); return original(k); });
-
-    await monter();
-    const vueDe = (rot: Rot) => billboardView({ kind: 'ortho', yawDeg: rot * 90 }, 'S');
-    const marque = (rot: Rot) => `|${vueDe(rot).view}|${vueDe(rot).mirror ? 'm' : 'd'}|`;
-    // Le corps joue la planche de SON cran de montage : c'est ce fait qu'on attend avant de repartir,
-    // jamais 120 ms de mur.
-    await attendre(() => (clés[clés.length - 1] ?? '').includes(marque(0)));
-    // PRÉMISSE — sans elle, la mesure d'arrivée ne dirait rien : les deux crans doivent DIFFÉRER de vue.
-    expect(marque(0), 'crans indiscernables : cette garde ne mordrait pas').not.toBe(marque(1));
-    expect(clés.length, 'aucune planche réclamée : le corps ne joue pas').toBeGreaterThan(0);
-    expect(clés[clés.length - 1], 'PRÉMISSE : le corps doit jouer la vue de son cran de montage').toContain(marque(0));
-
-    clés.length = 0;
-    await act(async () => { root!.render(vue(100)); });
-    // La planche du cran d'arrivée est réchauffée au montage, mais la file la sert à SON tour — on bat
-    // la boucle d'image jusqu'à ce que le corps la JOUE : un fait, jamais une durée.
-    await attendre(() => (clés[clés.length - 1] ?? '').includes(marque(1)));
-    expect(clés.length, 'aucune planche réclamée : le corps ne joue plus').toBeGreaterThan(0);
-    expect(clés[clés.length - 1], 'le corps joue encore la planche du cran quitté').toContain(marque(1));
-  });
 });
 
 /**
@@ -525,7 +485,6 @@ describe('Cran franchi — les ACCENTS DE SOL survivent', () => {
  */
 describe('Cran franchi — N relèves, UNE image', () => {
   const DENSE: SceneBillboardEls = {
-    tokens: [],
     props: Array.from({ length: 20 }, (_, i) => décor(`c${i}`, 2 + (i % 10))),
   };
   /** Câblage de PRODUCTION (`VolumetricWorld`) : aucun pilote d'images — l'écran s'abonne lui-même au
@@ -575,7 +534,7 @@ const signatureDuCap = (cap: Dir8): string => {
 
 /** Décors seuls : chaque quad se compare alors à SON art d'avant, sans le corps à flipbook que la
  *  boucle d'image repeint par ailleurs. */
-const DÉCORS = { tokens: [], props: ELS.props } satisfies SceneBillboardEls;
+const DÉCORS = { props: ELS.props } satisfies SceneBillboardEls;
 
 /**
  * PREMIÈRE PERSONNE (#1373) — le REGARD, pas le cran. L'art d'un quad se prend au CAP Dir8 du meneur ;
@@ -667,7 +626,7 @@ describe('Cap changé — l’art est celui du NOUVEAU cap', () => {
     };
 
     // SUJETS NEUFS : le groupe se remonte (le seul chemin qui remonte encore), au cap N…
-    const NEUFS: SceneBillboardEls = { tokens: [], props: [décor('n1', 5), décor('n2', 6), décor('n3', 7)] };
+    const NEUFS: SceneBillboardEls = { props: [décor('n1', 5), décor('n2', 6), décor('n3', 7)] };
     await act(async () => { root!.render(écran(cadrePov('N'), NEUFS, SANS_ACTEUR)); });
     // Les rasterisations du montage passent par la file cadencée (#1372) : on attend qu'une image soit
     // EN VOL — le fait mesuré juste après — avant de changer de cap.
@@ -880,7 +839,7 @@ describe('Stock borné — ce qui est POSÉ est épinglé', () => {
     // SCÈNE VIDÉE de ses sujets : les quads se démontent SANS que rien ne se remonte derrière — c'est
     // le seul geste où une épingle oubliée reste seule au stock, et y cloue pour la session les
     // textures d'un écran qui n'existe plus (le vidage de scène, lui, masquerait la fuite).
-    const VIDE: SceneBillboardEls = { tokens: [], props: [] };
+    const VIDE: SceneBillboardEls = { props: [] };
     await act(async () => { root!.render(vue(0, VIDE, SANS_ACTEUR)); });
     // Le démontage des quads est le FAIT qui doit tomber les épingles : on l'attend, on ne le suppose
     // pas acquis au bout de 40 ms.
@@ -944,54 +903,6 @@ describe('Stock borné — ce qui est POSÉ est épinglé', () => {
     // évincée, donc le stock peut légitimement dépasser d'autant (invariant du cache borné).
     const marge = svgTexture.staticTexturePins().size * unitaire;
     expect(svgTexture.staticTextureStats().bytes).toBeLessThanOrEqual(budget + marge);
-  });
-
-  /**
-   * PLANCHE IMPOSSIBLE (#1374) : à très petit `mpt`, le palier de cuisson atteint son plafond et la
-   * CELLULE le dépasse (gouttière comprise) — `bakeAtlas` REJETTE alors sa promesse, et la demande
-   * différée l'avale SANS BRUIT (`GameStage3D.tsx:1209`, `.catch(() => undefined)`) : le corps garde
-   * la planche qu'il joue, et rien n'est écrit en console. L'ESTIMATION de poids, elle, court
-   * SYNCHRONEMENT au site d'appel : si elle levait, l'erreur ne serait plus celle d'une promesse
-   * traitée mais une EXCEPTION NON GÉRÉE (mesurée : `atlasLayout: cellule 1642×2052 au-delà du
-   * plafond de texture 2048`).
-   */
-  it('PALIER au plafond : la planche refusée ne fait AUCUNE exception non gérée', async () => {
-    const nonGérées: unknown[] = [];
-    const surErreur = (e: unknown): void => { nonGérées.push(e); };
-    process.on('uncaughtException', surErreur);
-    process.on('unhandledRejection', surErreur);
-    // console.warn muselé par précaution seulement : le chemin de refus mesuré ici est SILENCIEUX.
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    try {
-      viderCaptures();
-      hôte = document.createElement('div');
-      document.body.appendChild(hôte);
-      root = createRoot(hôte);
-      // `mpt` minuscule ⇒ pixels par mètre énormes ⇒ palier plafonné (`atlasPxHeight`), cellule > 2048.
-      await act(async () => {
-        root!.render(
-          <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
-            scene={SCENE} mpt={0.05} frame={cadre(0)} tintAt={TINT} keepEl={KEEP}
-            els={ELS} actors={ACTEURS} gameTime={720} lightLevel={1} lights={[]} anim={anim}
-          />,
-        );
-      });
-      // FAIT qui ferme la mesure : la file du cuiseur VIDÉE — tout ce que ce montage a mis en cuisson
-      // a couru, donc tout ce qui pouvait lever a levé. Une fenêtre de mur ne dirait, elle, que la
-      // vitesse de la machine. Les quelques tranches qui suivent ne sont pas une prémisse de vitesse :
-      // un rejet non géré ne remonte au process qu'au tour de boucle d'après.
-      await attendreFileVidée();
-      await respirer(60);
-    } finally {
-      process.off('uncaughtException', surErreur);
-      process.off('unhandledRejection', surErreur);
-      warn.mockRestore();
-    }
-
-    expect(nonGérées.map(String), 'l’estimation de poids a levé au site d’appel').toEqual([]);
-    // PRÉMISSE — le palier atteint bien le plafond à ce `mpt` : sans cela, la garde ne mordrait pas.
-    expect(atlasPxHeight(2.17, pxPerM(0.05), 2), 'palier non plafonné : le cas testé n’existe pas').toBe(2048);
-    expect(atlasBytesEstimés({ w: 120, h: 150 }, 8, 2048), 'une planche hors plafond doit peser zéro').toBe(0);
   });
 
   it('MONTAGE sous pression : aucun quad n’entre en scène sur une texture déjà libérée', async () => {

@@ -1,6 +1,6 @@
 /**
- * LE VOCABULAIRE D'ANIMATION (#2972) : les rôles qu'un corps joue et le maniement d'une arme. Le rig SVG (`src/gameIso/rig/anim/`) et l'hôte Godot
- * (`hotes/godot/asset/manifeste.ts`) lisent ce seul type.
+ * LE VOCABULAIRE D'ANIMATION (#2972) : les rôles qu'un corps joue et le maniement d'une arme. L'hôte Godot
+ * (`hotes/godot/asset/manifeste.ts`) lit ce seul type.
  *
  * Le MANIEMENT est l'axe d'animation (prise physique : une main, deux mains, lame, hampe, arc…), distinct du GROUPE
  * de règles (`src/engine/weaponGroup.ts`) : son vocabulaire est `maniementSchema` (`src/data/schemas/grammaire/valeurs.ts`) ;
@@ -12,15 +12,15 @@ import { racineDesCandidats } from '../engine/items';
 import { findApparenceById, findWeaponGroupById } from '../data';
 import type { Maniement } from '../data/schemas/grammaire/valeurs';
 
-/** Rôles de combat du rig : un clip chacun (`src/gameIso/rig/anim/clips.ts`). */
+/** Rôles de combat : un clip chacun. */
 export const ROLES_DE_COMBAT = Object.freeze(['melee', 'ranged', 'cast', 'dodge', 'parry', 'hit', 'walk', 'idle'] as const);
 export type RoleDeCombat = (typeof ROLES_DE_COMBAT)[number];
 
-/** Rôles ambiants en boucle (`src/gameIso/rig/anim/ambientClips.ts`). */
+/** Rôles ambiants en boucle. */
 export const ROLES_AMBIANTS = Object.freeze(['feeding', 'praying', 'cowering', 'standing', 'howling'] as const);
 export type RoleAmbiant = (typeof ROLES_AMBIANTS)[number];
 
-/** Styles d'incantation (`src/gameIso/rig/anim/spellClips.ts`). */
+/** Styles d'incantation. */
 export const STYLES_DE_SORT = Object.freeze(['bolt', 'blessing'] as const);
 export type StyleDeSort = (typeof STYLES_DE_SORT)[number];
 

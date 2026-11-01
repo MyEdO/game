@@ -9,7 +9,6 @@ import { castInfoIsPrayer } from '../engine/magic';
 import { coreAxisIds, findSpellById, byId, skillInstanceLabel } from '../data';
 import { Coins } from './Coins';
 import { Icon } from './Icon';
-import { CharacterPreview } from './CharacterPreview';
 import { CharStatsGrid } from './CharStatsGrid';
 import { DetailIdentity } from './DetailFrame';
 import { MetalStatus } from './MetalStatus';
@@ -122,7 +121,6 @@ export function HeroSheet({
     <div className={['hero-sheet', className].filter(Boolean).join(' ')}>
       {header && (
         <Row className="hero-sheet-head">
-          <CharacterPreview hero={hero} size="md" ambiance="panel" className="hero-sheet-fig" />
           <div className="hero-sheet-id">
             <DetailIdentity
               band={false}

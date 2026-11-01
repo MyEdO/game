@@ -1,6 +1,6 @@
 /**
- * LE GABARIT RÉSOLU d'un corps (#2972) : la carrure que le rig applique au squelette de référence.
- * Seule composition du gabarit — le rig SVG (`gameIso/rig/composeRig.tsx`) et tout hôte la lisent ici.
+ * LE GABARIT RÉSOLU d'un corps (#2972) : la carrure appliquée au squelette de référence.
+ * Seule composition du gabarit — tout hôte la lit ici.
  */
 import { findGabaritById, type GabaritId, type SurchargeDeGabarit } from '../../data';
 

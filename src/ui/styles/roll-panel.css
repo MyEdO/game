@@ -1,5 +1,5 @@
 /* ══════════════════ Panneau de jet unique (`RollPanel.tsx`) ══════════════════
-   Même géométrie avant et après le jet : portrait + ligne de jet + note de conséquence. L'accent du
+   Même géométrie avant et après le jet : ligne de jet + note de conséquence. L'accent du
    gagnant d'un Test opposé est posé ICI, sur la ligne qu'il enveloppe (`.rm-roll`, roll-line.css) —
    spécialisation contextuelle, la ligne garde sa matière. */
 .roll-panel {
@@ -12,11 +12,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-}
-.rr-port {
-  flex: 0 0 28px;
-  display: flex;
-  justify-content: center;
 }
 .rr-main {
   flex: 1;

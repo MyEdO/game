@@ -36,7 +36,6 @@ script au nom différent du doc est entre parenthèses.
 | Jouer le noyau sans navigateur | `docs/hote-texte.md` (`docs:hote-texte`) |
 | Passif, corruption | `docs/systeme-passifs.md` (`docs:passifs`) |
 | Triggers / événements de combat | `docs/combat-events-coherence.md` |
-| Ajouter une créature (rig) | `docs/creer-une-creature.md` |
 | Ajouter/curer une donnée | `docs/donnees.md`, `docs/ajouter-une-donnee.md` (`docs:ajouter-donnee`) |
 | Authoring de map | `docs/map-authoring.md` |
 | Créer/modifier une campagne | `docs/campagne-authoring.md`, skill `creer-une-campagne` |
@@ -52,7 +51,6 @@ script au nom différent du doc est entre parenthèses.
 | Forme d'un concept dans chaque dataset | `docs/structures-donnees.md` (`docs:structures`) |
 | Entrée de donnée orpheline ? | `docs/orphelines-donnees.md` (`docs:orphelines`) |
 | Absent à l'écran — gaté par une règle optionnelle ? | `docs/regles-optionnelles.md` |
-| Sprite/rig reconnaissable (QC) | `docs/qc-reconnaissabilite-sprites.md` |
 | Reprendre un chantier après pause | `docs/reprise-apres-pause.md` (`docs:reprise`) |
 | Sorts/miracles : état réel | `docs/sorts-implementation.md` (`docs:sorts`) |
 
@@ -132,7 +130,7 @@ src/noyau/    orchestration sans hôte (cascade, combatFlow, rollFlow…) ; mond
 src/hote/     commun aux hôtes du noyau (arguments, scénario, jetons, projection)
 hotes/godot/  hôte Godot : pont JSON vers le noyau (CONTRAT.md)
 src/state/    store Zustand, adaptateur web (saves, netFlow…)
-src/gameIso/  builders/ (géométrie PURE) → backends/webgl/ montés par stage/ ; authoring/, pov/, rig/, fx/
+src/gameIso/  builders/ (géométrie PURE) → backends/webgl/ montés par stage/ ; authoring/, pov/, fx/
 src/ui/       React (RollShell, OptionChooser, editor/, creator/, compendium/)
 src/data/     base APP-OWNED (JSON commité, rien à régénérer après un clone) + exceptions manuscrites sourcées
 src/scenes/   documents de scène + campagne Arène

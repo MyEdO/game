@@ -20,10 +20,13 @@ import { wedgePath } from '../topoMarkers';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { footprintN } from '../../noyau/monde/footprint';
 import { mountOf } from '../../noyau/mount';
+import { campOf } from '../../engine/relations';
 import type { Pt } from '../../noyau/monde/path';
 import type { BattleState } from '../../noyau/etat';
-import { combatantTokenScale } from '../sizeScale';
-import { ENEMY_RING, HERO_RING, teamShape } from '../teamColors';
+import { combatantTokenScale, entityTokenScale } from '../sizeScale';
+import { ENEMY_RING, HERO_RING, OUT_OF_PARTY_RING, teamShape } from '../teamColors';
+import { entitySize } from '../../noyau/monde/spawn';
+import { sizeFootprint } from '../../noyau/monde/footprint';
 import type { TokenEl } from './types';
 import type { PartyToken } from './tokens';
 
@@ -108,7 +111,7 @@ export const NO_DYNAMIC_MARKS: DynamicMarks = Object.freeze({ tethers: Object.fr
  * des jetons RÉELLEMENT postés. Ces deux-là sont EXIGÉS (une frame sans jeton passe `[]`, une frame en
  * combat passe `null` pour le meneur) : un défaut y rendrait des anneaux silencieusement absents.
  */
-export function dynamicMarks(battle: BattleState | null, party: Pt | null, tokens: readonly TokenEl[], partyToken: Pick<PartyToken, 'leader' | 'pos' | 'seat'> | null): DynamicMarks {
+export function dynamicMarks(battle: BattleState | null, party: Pt | null, tokens: readonly TokenEl[], partyToken: Pick<PartyToken, 'leader' | 'pos' | 'seat' | 'heroIndex'> | null): DynamicMarks {
   const tethers: EngageTether[] = [];
   let active: ActiveFootprint | null = null;
   if (battle) {
@@ -239,15 +242,27 @@ export const TEAM_RING_WIDTH_K = strokeWidthK(TEAM_RING_STROKE_PX);
 export const COMBAT_TOKEN_BASE = 0.62;
 export const PARTY_TOKEN_BASE = 0.6;
 
-/** Décoration d'ÉQUIPE d'un jeton : couleur d'anneau (identité de héros cyclique, rouge ennemi) et
+/** Identité d'un jeton : anneau de héros du groupe, ennemi ou hors groupe, et
  *  canal d'appartenance daltonien (`teamShape`, R9 : ennemi = anneau POINTILLÉ). Le rendu en tire un
  *  anneau plat au sol (`backends/webgl/dynamicMarkMeshes`, slot `anneau`). */
 export function teamRingDecor(c: Combatant, heroIndex?: number): { color: string; dash?: string } {
-  const isHero = c.kind === 'hero';
+  const camp = campOf(c);
+  const isEnemy = camp === 'hostile';
   return {
-    color: isHero ? HERO_RING[(heroIndex ?? 0) % HERO_RING.length] : ENEMY_RING,
-    dash: teamShape(isHero),
+    color: isEnemy ? ENEMY_RING : camp === 'party' && heroIndex != null ? HERO_RING[heroIndex] ?? OUT_OF_PARTY_RING : OUT_OF_PARTY_RING,
+    dash: teamShape(isEnemy),
   };
+}
+
+/** Rang d'identité dans le groupe, indépendant des filtres et de l'ordre du combat. */
+export function heroRingIndex(c: Pick<Combatant, 'id'>, partyIds: readonly string[]): number {
+  return partyIds.indexOf(c.id);
+}
+
+/** Décoration du groupe et du camp, partagée par le sol et les portraits. */
+export function combatantRingDecor(c: Combatant, partyIds: readonly string[], population: readonly Combatant[], montesDissocies = true): ReturnType<typeof teamRingDecor> {
+  const porteur = (!montesDissocies && c.riderId ? population.find((actor) => actor.id === c.riderId) : undefined) ?? c;
+  return teamRingDecor(porteur, heroRingIndex(porteur, partyIds));
 }
 
 /** Un motif `strokeDasharray` du gabarit, lu en pixels de projection (`'5 3'` → tiret 5, blanc 3).
@@ -258,32 +273,41 @@ export function dashPattern(dash: string | undefined): { dashPx: number; gapPx: 
   return Number.isFinite(d) && Number.isFinite(g) && d > 0 ? { dashPx: d, gapPx: g } : null;
 }
 
-/** Les anneaux d'équipe de la frame : UN par jeton de COMBATTANT posté, plus celui du meneur du groupe
- *  hors combat. La population est celle des ÉLÉMENTS DU BUILDER (`builders/tokens`) — donc exactement
- *  celle que le rendu dessine, filtres compris ; un couple MONTÉ n'en porte pas — le composite cavalier
- *  + monture est UN corps. */
-export function teamRings(tokens: readonly TokenEl[], partyToken: Pick<PartyToken, 'leader' | 'pos'> | null): TeamRing[] {
+/** Les anneaux d'équipe de la frame : UN par jeton de PERSONNAGE posté (combattant, couple monté,
+ *  figurant), plus celui du meneur du groupe hors combat — le repère neutre de tout corps du monde. La
+ *  population est celle des ÉLÉMENTS DU BUILDER (`builders/tokens`) — donc exactement celle que le rendu
+ *  pose, filtres compris. Un couple MONTÉ porte UN anneau, aux pieds de la monture et à la décoration
+ *  du CAVALIER ; un figurant porte l'identité hors groupe. */
+export function teamRings(tokens: readonly TokenEl[], partyToken: Pick<PartyToken, 'leader' | 'pos' | 'heroIndex'> | null): TeamRing[] {
   const out: TeamRing[] = [];
   for (const tk of tokens) {
     const s = tk.subject;
-    if (s.kind !== 'combatant') continue;
-    const n = footprintN(s.c);
-    const off = (n - 1) / 2; // ancre (coin NO) → centre du bloc : l'anneau est aux PIEDS
+    if (s.kind === 'figurant') {
+      const off = (sizeFootprint(entitySize(s.ent)) - 1) / 2;
+      out.push({
+        id: s.ent.id,
+        cell: s.seat ? { x: s.seat.anchor.x, y: s.seat.anchor.y, z: tk.cell.z } : { x: tk.cell.x + off, y: tk.cell.y + off, z: tk.cell.z },
+        rK: teamRingRadiusK(COMBAT_TOKEN_BASE * entityTokenScale(s.ent)),
+        color: OUT_OF_PARTY_RING,
+      });
+      continue;
+    }
+    const unit = s.kind === 'combatant' ? s.c : s.mount;
+    const off = (footprintN(unit) - 1) / 2; // ancre (coin NO) → centre du bloc : l'anneau est aux PIEDS
     out.push({
-      id: s.c.id,
+      id: unit.id,
       cell: { x: tk.cell.x + off, y: tk.cell.y + off, z: tk.cell.z },
-      rK: teamRingRadiusK(COMBAT_TOKEN_BASE * combatantTokenScale(s.c)),
-      ...teamRingDecor(s.c, s.heroIndex),
+      rK: teamRingRadiusK(COMBAT_TOKEN_BASE * combatantTokenScale(unit)),
+      ...teamRingDecor(s.kind === 'combatant' ? s.c : s.rider, s.heroIndex),
     });
   }
-  // Le jeton de GROUPE n'est pas un combattant posté : il porte l'anneau du MENEUR, plein et à la
-  // première couleur d'identité, quelle que soit la nature de ce meneur.
+  // Le jeton de groupe porte l’identité du meneur publiée par `partyTokenOf`.
   if (partyToken)
     out.push({
       id: partyToken.leader.id,
       cell: { x: partyToken.pos.x, y: partyToken.pos.y, z: partyToken.pos.z ?? 0 },
       rK: teamRingRadiusK(PARTY_TOKEN_BASE),
-      color: HERO_RING[0],
+      ...teamRingDecor(partyToken.leader, partyToken.heroIndex),
     });
   return out;
 }

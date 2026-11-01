@@ -2,8 +2,7 @@
  * Builder UNIQUE d'un EMPLACEMENT DE SIÈGE en `SceneEntity` — SOURCE DE VÉRITÉ PARTAGÉE par l'éditeur
  * (`placeEmplacement`) ET les scénarios (`siege-enceinte`). Un emplacement = une SceneEntity-personnage
  * qui PORTE un poste d'artillerie (`postes:[{ trappingId, crewIds }]`, base hydratée au spawn) et dont l'apparence est ENTIÈREMENT
- * DÉRIVÉE de sa `ref` (le trapping à art d'affût `siegeRig`) — JAMAIS d'`appearance.species` forcé :
- * `resolveRender` lit le rig d'engin depuis la ref (rendu IDENTIQUE éditeur ↔ exploration ↔ combat).
+ * DÉRIVÉE de sa `ref` (le trapping à art d'affût `siegeRig`) — JAMAIS d'`appearance.species` forcé.
  * L'affût INERTE non-destructible (RAW-pur, AA 10 l.175-193) vient de la branche siège de `spawnEnemy`
  * (déclenchée par la `ref`), pas d'un statblock à PV.
  *
@@ -27,7 +26,7 @@ export interface SiegeEmplacementOpts {
  * Construit la `SceneEntity` d'un emplacement de siège (id FOURNI par l'appelant — éditeur via
  * `nextEntityId`, scénario via id fixe). `null` si `trappingId` n'est pas un engin posable (pas d'art
  * d'affût `siegeRig` ou item introuvable) → pas d'entité fantôme. Aucun champ `appearance` : l'espèce
- * (rig d'engin) est dérivée de `ref` au rendu.
+ * de l'engin est dérivée de `ref`.
  */
 export function siegeEmplacementEntity(
   id: string,
@@ -44,7 +43,7 @@ export function siegeEmplacementEntity(
     kind: 'personnage', // seul kind enrôlable en rencontre → spawn en Combattant (affût servi)
     pos: { x: pos.x, y: pos.y },
     label: t.label,
-    ref: trappingId, // SOURCE de l'engin → branche siège de spawnEnemy (affût inerte) + rig DÉRIVÉ
+    ref: trappingId, // SOURCE de l'engin → branche siège de spawnEnemy (affût inerte)
     postes: [poste],
   };
   if (opts.facing) ent.facing = opts.facing;

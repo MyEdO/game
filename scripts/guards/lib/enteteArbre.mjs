@@ -2,8 +2,7 @@
 // sujet du dernier commit, et nombre de fichiers non committés. Une planche QC, une capture d'écran
 // ou un chiffre de volume rendus sans cette ligne ne se rattachent à aucun arbre : deux sessions
 // mesurent alors deux états différents en croyant se comparer.
-// Consommateurs : scripts/recette/intentions-portee.mjs, scripts/qc/mesure-volume.mts,
-// scripts/qc/capture-jeu.mjs — une seule implémentation, jamais une copie par script.
+// Consommateurs : scripts/recette/intentions-portee.mjs, scripts/qc/capture-jeu.mjs — une seule implémentation, jamais une copie par script.
 //
 // Le filigrane ne JETTE JAMAIS : il est imprimé juste avant les refus d'un hook, et une exception ici
 // emporterait les refus nommés avec elle. Git indisponible donne une ligne DÉGRADÉE qui le dit.

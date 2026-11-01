@@ -520,7 +520,7 @@ test('fichierNommePar : la clé d’une entrée est le fichier qu’elle nomme, 
   assert.equal(fichierNommePar(ENTREE_B), 'src/ui/CampaignView.test.tsx')
   assert.equal(fichierNommePar("  'criticals.json': 'raison',"), 'criticals.json')
   assert.equal(fichierNommePar('  "Source/Warhammer v4 - Livre de base/08 - Statut.md",'), 'Source/Warhammer v4 - Livre de base/08 - Statut.md')
-  assert.equal(fichierNommePar("  ['BoneId', 'src/gameIso/rig/bones'],"), 'src/gameIso/rig/bones', 'sans extension écrite, aucune n’est ajoutée (#2223)')
+  assert.equal(fichierNommePar("  ['View', 'src/gameIso/facing'],"), 'src/gameIso/facing', 'sans extension écrite, aucune n’est ajoutée (#2223)')
   assert.equal(fichierNommePar('  { "chapitre": "LDB 8" },'), '  { "chapitre": "LDB 8" },', 'sans fichier nommé, le texte entier est la clé')
 })
 
@@ -1019,13 +1019,8 @@ test('stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE ent
   // Une assertion PAR stock converti : sans elles, la mesure serait verte par VACUITÉ le jour où une
   // conversion se défait (le module sort du corpus sans un mot).
   for (const nom of [
-    'paletteLiteralStock.mjs',
-    'rigPartViewStock.mjs',
-    'rigViewStock.mjs',
     'entityOrphanStock.mjs',
     'tableConsumerStock.mjs',
-    'jambesGabaritStock.mjs',
-    'quadDecoStock.mjs',
     'folioLineAlignStock.mjs',
     'horsStrateStock.mjs',
     'spellNarratifStock.mjs',
@@ -1055,8 +1050,8 @@ test('stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE ent
 // (`'apothicaire:tete:back#0'`), et `net 1` dès que l'entrée porte son def. Le cas ANCRE ses hunks :
 // il affirme d'abord où `entreesNominatives` pose les entrées de chaque image.
 test('stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de plage (net 1, exemple nommant)', () => {
-  const f = 'scripts/guards/lib/paletteLiteralStock.mjs'
-  const entree = (occ) => `  { fichier: 'src/gameIso/rig/parts/tenues/defs/Bailli.ts', ref: 'bailli:torse:front', occurrence: ${occ} },`
+  const f = 'scripts/guards/lib/entityOrphanStock.mjs'
+  const entree = (occ) => `  { fichier: 'src/data/creatures.json', ref: 'bailli', occurrence: ${occ} },`
   const image = (...lignes) => [
     "/** @type {import('./stock.mjs').EntreeDeSite[]} */",
     'export const PALETTE_LITERAL_RATCHET = [', ...lignes, ']', '',
@@ -1319,7 +1314,7 @@ test('#2223 IDENTITÉ — dictionnaire : la clé renommée, la valeur égale, ne
 })
 
 test('#2223 IDENTITÉ — Map : l’extension ajoutée au fichier nommé ne fait rien naître (`VOCABULARY_TYPES`)', () => {
-  assert.deepEqual(croissanceReelle(carte("['BoneId', 'src/gameIso/rig/bones'],"), carte("['BoneId', 'src/gameIso/rig/bones.ts'],")), [])
+  assert.deepEqual(croissanceReelle(carte("['View', 'src/gameIso/facing'],"), carte("['View', 'src/gameIso/facing.ts'],")), [])
 })
 
 test('#2223 IDENTITÉ — repli MIXTE : image post lisible, pré-image `null`, une seule fonction d’identité', () => {
