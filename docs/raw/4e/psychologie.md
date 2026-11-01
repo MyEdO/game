@@ -224,7 +224,7 @@ La mécanique exacte (Test simple ou étendu, Indice à surmonter) varie selon l
 **Sources RAW** :
 - `LDB 21 l.43-50` — définition, succès/échec, comportement obligatoire, conditions de fin
 
-**Préjugé (Étrangers)**, lecture recommandée, révisable (#3045 ; utilisateur, 2026-10-27 15:10 : « les questions de régles c'est de la reco jusqu'au jour on décide de mettre le nez dedans ») : le Groupe relatif `etranger` (`VDM 05 l.142` ; `relatif: etrangersAuPorteur`) vise tout combattant hors du camp du porteur et que ne vise pas un de ses liens (Amour, Camaraderie : `triggerOn: threatened`, `LDB 21 l.75`, `l.81`) ; le « groupe » d'un PNJ est son camp. Un interlocuteur de Test social est étranger, sauf si ses Groupes sont visés par un de ces liens (Q15 A). Lecture contraire : les non-natifs de la région de la scène.
+**Préjugé (Étrangers)**, lecture recommandée, révisable (#3045) : le Groupe relatif `etranger` (`VDM 05 l.142` ; `relatif: etrangersAuPorteur`) vise tout combattant hors du camp du porteur et que ne vise pas un de ses liens (Amour, Camaraderie : `triggerOn: threatened`, `LDB 21 l.75`, `l.81`) ; le « groupe » d'un PNJ est son camp. Un interlocuteur de Test social est étranger, sauf si ses Groupes sont visés par un de ces liens (Q15 A). Lecture contraire : les non-natifs de la région de la scène.
 
 **Implémente :** [État calculé](../implemente.generated.md#4epsychologieprejuge-cible)
 
@@ -410,7 +410,7 @@ Deux options de dépense d'Avantages :
 - **Minimum 1 Avantage** : Avantages remplacés par *Haine* vs adversaires en mêlée.
 - **Minimum 3 Avantages** : entrée directe en *Frénésie*.
 
-**Cible de la Haine**, lecture recommandée, révisable (#3045 ; utilisateur, 2026-10-27 15:10 : « les questions de régles c'est de la reco jusqu'au jour on décide de mettre le nez dedans ») : une seule *Haine*, envers le Groupe relatif `adversaires-engages` (`groups.json`, `relatif: engagesAvecPorteur`) : tout combattant Engagé avec la créature tant que dure la *Haine*, sans filtre de camp (Q12 B). Pas de nouvelle dépense tant que cette *Haine* est active, ni sans adversaire Engagé. Lecture contraire, citable : les seuls individus Engagés au moment de la dépense.
+**Cible de la Haine**, lecture recommandée, révisable (#3045) : une seule *Haine*, envers le Groupe relatif `adversaires-engages` (`groups.json`, `relatif: engagesAvecPorteur`) : tout combattant Engagé avec la créature tant que dure la *Haine*, sans filtre de camp (Q12 B). Pas de nouvelle dépense tant que cette *Haine* est active, ni sans adversaire Engagé. Lecture contraire, citable : les seuls individus Engagés au moment de la dépense.
 
 **Sources RAW** : `LDB 85 l.282`
 

@@ -27,15 +27,13 @@ l'annexe au moment de son déclencheur.
 ## Suivi
 
 - **Le suivi de vague `.git/suivi/<N>.json` est, sur le poste, la SEULE source du plan et du prochain
-  geste**, un par épique (utilisateur, 2026-09-28 : « Il faut absoluelement faire un truc pour ce fichier
-  de suivis, c'est vital si on veux éviter la dérive »). Il se relit EN PREMIER à toute reprise : `npm run
+  geste**, un par épique (#2132). Il se relit EN PREMIER à toute reprise : `npm run
   ops:suivi -- <N>` (situation), `-- <N> --rendu` (suivi entier), `-- <N> --mesurer [--sans-fetch]` (mesure).
 - **Il vit dans le `.git` du POSTE, jamais versionné** : une épique ne se REPREND que sur le poste. Une
   session hors du poste (cloud) exécute le lot que nomme son ticket et consigne au TICKET, en commentaire
   daté, ce qu'elle décide ; à la reprise sur le poste, ces commentaires entrent au suivi par son outil
   (`--arbitrer`, `--ajouter-etape`, `--signaler`) avant tout autre geste.
-- **Il ne s'écrit que par son outil** (utilisateur, 2026-10-07, #2460 : « Ca aurait du etre un json
-  modifiable que via des outils adaptés, histoire d'éviter de faire n'importe quoi dessus, non ? ») :
+- **Il ne s'écrit que par son outil** (#2460) :
   `mcp__harnais__suivi` ou `npm run ops:suivi -- <N> --<geste> <args>…` (gestes de
   `scripts/ops/suiviDonnee.mjs`, arité fixe : un texte = UN argument), plusieurs gestes ou `--lot <json>`,
   TOUT OU RIEN, sous verrou ; `--creer <titre>` ouvre une vague. Un suivi édité à la main reste « écrit
@@ -73,11 +71,8 @@ attaqué par un juge AVANT le premier codeur ; deux passes sur la même classe =
   ops:synchroniser`, jamais `git pull` (#2187).
 - **Ticket de plus de ~2 semaines, ou repris d'une session fermée** : RE-MESURE en lecture seule sur
   l'arbre courant contre `docs/doctrines.md`, plus l'inventaire des analyses déjà faites ; commentaire
-  « RE-MESURE » au ticket (utilisateur, 2026-09-03 : « Le ticket est tres vieux, donc prends bien en
-  compte nos régles d'aujourd'hui et potentiellement ce qui est cité a pu énormement changer »). Un
-  arbitrage UI ancien est un CONTEXTE, jamais un veto (utilisateur, 2026-09-19 : « "Dock decision" date
-  d'il y a 2 mois et l'interface a tellement changé qu'il est devenu incompatible avec la fiche de
-  personnage ») ; un arbitrage de règle
+  « RE-MESURE » au ticket (#1463). Un
+  arbitrage UI ancien est un CONTEXTE, jamais un veto (#1829) ; un arbitrage de règle
   de jeu ne périme pas.
 - **Avant de prescrire le traitement d'une CLASSE** (texte joueur, références, surfaces, formes de
   données) ou d'ouvrir un ticket : `gh search issues "<mots>" -R MyEdO/game`, les épiques du domaine, et
@@ -86,8 +81,7 @@ attaqué par un juge AVANT le premier codeur ; deux passes sur la même classe =
 **2. Brief.** Périmètre de fichiers exact, primitives cibles nommées, réfs RAW nues,
 chemin ABSOLU du worktree, interdit de tout `git checkout/restore/reset/stash/add/commit`, « rendu
 final = données brutes », UN livrable, `npm run test:perimetre` au lieu d'une liste de tests (#2400).
-- **Un brief de codeur tient en ~45 min** (juge de diff : 30 min ; utilisateur, 2026-10-17 : « 1hr50, c
-  'est du codeur ca ») : découper en lots partitionnés par
+- **Un brief de codeur tient en ~45 min** (juge de diff : 30 min ; #2683) : découper en lots partitionnés par
   FICHIERS disjoints, lancés en parallèle. Au-delà d'1 h, le codeur rend l'item en cours et le reste se
   répartit ; jamais d'items ajoutés par `SendMessage` à un codeur en vol. La borne est un `Monitor` sur
   l'horloge + `TaskStop`, pas le budget écrit.
@@ -115,9 +109,7 @@ final = données brutes », UN livrable, `npm run test:perimetre` au lieu d'une 
   mutualisée ou ticketée, morts adjacents purgés) ; tout juge de cumul porte aussi la lentille de la
   LANGUE. Un lot qui touche un CHAMP embarque TOUTES ses conventions.
 - **Lot de structure = UN concept sur TOUS ses porteurs** (datasets, ops, tables, scènes, saves,
-  éditeur, Codex), jamais par dataset ni « données d'abord » (utilisateur, 2026-08-09 : « En tout cas je
-  n'aime pas le travail fait a moitié et les demi-migrations » ; 2026-08-14 : « murer le neuf c'est
-  valider du legacy qui vivra eternellement ») ; N sites à la même retouche → le lot est le
+  éditeur, Codex), jamais par dataset ni « données d'abord » (#1728) ; N sites à la même retouche → le lot est le
   SOCLE qui les rend déclaratifs. Fermeture : un motif qui ne compile plus, ou une garde rouge.
 - **Tout compromis de TRANSITION** (shim, branchement gardé) s'inscrit au REGISTRE DES FOSSILES du
   ticket-mère avec la phase qui le tue ; le cliquet de migration meurt avec la dernière démolition. Une
@@ -133,15 +125,12 @@ diff du codeur → commit sur la branche du worktree → push (CI) → juge de d
 **Au-delà de 10 fichiers modifiés, le juge de diff se DÉCOUPE** : une passe locale par lot de fichiers
 liés, puis une passe d'intégration sur leurs verdicts et les coutures entre lots ; une passe unique
 sur un grand diff dilue l'attention.
-- **Au 2e CORRIGER sur un même livrable, re-cadrer avant tout 3e juge** (utilisateur, 2026-10-15 : « Ca
-  devient concept tes numeros, j'ai l'impression que tu as lancé 256 juges différents quand je vois
-  jt18 et T3z6¹⁶ ») : grief DANS la classe gardée →
+- **Au 2e CORRIGER sur un même livrable, re-cadrer avant tout 3e juge** (#2683) : grief DANS la classe gardée →
   corrigé ; voisin → ticket hors périmètre ; le juge suivant reçoit la barre FIGÉE et l'interdit de
   l'élargir. Un « 0 occurrence » qui ne réimplémente pas la garde étendue ne prouve rien (#1765). Une
   ALERTE d'une règle prudente n'est pas un site perdu tant que ses appelants n'ont pas été relus
   (`.claude/soldes/1765.md:34`).
-- **Au plus 3 agents en vol** (utilisateur, 2026-10-17 : « En tout cas évite de lancer autant d'agent a la
-  fois s'il te plait ») : lots par FICHIERS disjoints, le reste en FILE, retouches comprises, chemin
+- **Au plus 3 agents en vol** (#2683) : lots par FICHIERS disjoints, le reste en FILE, retouches comprises, chemin
   critique d'abord, preuves différées en série. Type épinglé, modèle non forcé (`.agents/skills/orchestrer-des-agents/calibrage.md`).
 
 **4. Isolation.** Agent qui MUTE des fichiers pendant qu'une session // est active →
@@ -169,9 +158,7 @@ status` ; le brief de relance porte l'état VÉRIFIÉ et dit « si le livrable e
 **6. Vérification — par MOI, jamais sur la foi du rapport.** `npm run typecheck:fast` et `npm run
 test:perimetre` avant commit, revue du diff, UI → skill `recette-navigateur`.
 - **Aucun créneau, file ni feu vert pour les gestes lourds** (fusion, `ops:chantier`, publication,
-  `test:perimetre`) : chaque session les lance quand son travail l'exige (utilisateur, 2026-10-08 :
-  « Vivement qu'on en finisse avec les demandes d'autorisation pour faire son travail », puis « Surtout
-  qu'on en a jamais eu besoin, on a trop peu de session pour devoir bloquer les gestes lourds »). Une mesure
+  `test:perimetre`) : chaque session les lance quand son travail l'exige (#2683). Une mesure
   faussée par la charge se rejoue, la charge se note au ticket.
 - ⚠ **Les portes machine sont un PLANCHER** : « portes vertes » ne se dit jamais « vérifié ». **Tout lot
   qui ajoute une donnée ou une mécanique NOMME sa PORTE** (le geste joueur qui l'atteint) dans son DoD, et

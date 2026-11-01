@@ -207,7 +207,7 @@ function rendu() {
   out += `  aussi, et sa TAILLE est plafonnée par la garde (\`FOLIO_RATCHET_MAX\`) pour qu'« ajouter une ligne au stock »\n`
   out += `  ne soit jamais le chemin le plus court. \`node scripts/data/audit-folios.mjs --stock\` re-rend le stock et\n`
   out += `  REFUSE de l'agrandir : l'outil ne sait que solder.\n`
-  out += `- **\`alsoIn?: SecondaryRef[]\`** (#563, doctrine user 2026-07-17 : « jamais 2 talents différents ») —\n`
+  out += `- **\`alsoIn?: SecondaryRef[]\`** (#563) —\n`
   out += `  un même Talent/Trait/Qualité/objet **réimprimé** dans un AUTRE livre (ou un autre folio du même\n`
   out += `  livre) reste **UNE entrée** : l'ANCRE (\`source\`, scalaire, porte la \`desc\`, règle 5, STRUCTURELLE —\n`
   out += `  jamais un tableau positionnel) + \`alsoIn\` porte les emplacements SECONDAIRES, chacun une paire\n`

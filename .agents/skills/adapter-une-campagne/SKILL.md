@@ -37,25 +37,20 @@ https://github.com/MyEdO/game/issues/665#issuecomment-5849927764. Cette skill la
 Tirée des réponses de l'utilisateur au pilotage du 2026-09-26 (#665, issuecomment-5849927764), portées
 par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranche ne monte à aucune porte.
 
-- **Piliers de plaisir.** « le but principale c'est que le jeu soit plaisant et respecte au lieu l'esprit
-  du JDR et de la campagne, comme font toutes adaptations de JDR papier en jeu vidéo comme les Pathfinder »
-  (2026-09-26). La référence est le CRPG adapté d'un module papier : réactivité (chaque geste rend un
+- **Piliers de plaisir.** Le jeu doit être plaisant et respecter l’esprit du JDR et de la campagne (fiche `user-doctrine-adaptation-livre-vers-jeu-regime-propre`). La référence est le CRPG adapté d'un module papier : réactivité (chaque geste rend un
   retour visible), densité (chaque lieu offre quelque chose à faire ou à apprendre), et la réponse du
   genre quand le livre ne dit rien.
 - **Politique de média.** Chaque beat reçoit un média : scène jouée, dialogue, interlude, résumé, coupé. Le
-  découpage d'un acte se valide à sa porte : « Chaque séance groupe trois choses : jouer la tranche
-  livrée, valider le découpage de l'acte suivant, trancher les exceptions » (2026-09-26). Les textes
+  découpage d'un acte se valide à sa porte : la séance groupe le jeu de la tranche livrée, la validation du découpage de l’acte suivant et les exceptions (fiche `user-doctrine-cadence-portes-de-gout-une-par-acte`). Les textes
   suivent la règle 5 de campagne (fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`).
-- **Points au MJ.** « le livre laisse énormement de place au MJ et n'indique que quelque éléments
-  importants a l'histoire et le MJ fait le reste avec quelques indices/impératifs a suivre » (2026-09-26).
+- **Points au MJ.** Les éléments importants, indices et impératifs du livre cadrent le travail d’adaptation (fiche `user-doctrine-adaptation-libre-imperatifs-du-livre`).
   Trois familles :
   - les **impératifs** du livre (éléments importants, indices, « doivent absolument ») sont des
     INVARIANTS, cités au `Source/` et implémentés ;
   - une **règle de jeu** laissée au MJ reçoit un arbitrage EXPLICITE (AGENTS.md règle 7) : donnée maison
     éditable, ou choix du joueur, avec la cérémonie du credo (verbatim et date au ticket) ;
-  - le **reste narratif** se conçoit comme un MJ, en puisant dans les compagnons (« péages, les
-    PNJs/scénarios annexes et autres, mais pas que »), et chaque ajout est tagué `maison`.
-- **Budget d'art.** « aucune vague d'art sans demande » (méthode validée le 2026-09-26, étape 8). C'est un
+  - le **reste narratif** se conçoit comme un MJ, en puisant dans les compagnons (fiche `user-doctrine-adaptation-libre-imperatifs-du-livre`), et chaque ajout est tagué `maison`.
+- **Budget d'art.** Aucune vague d’art sans demande (#665). C'est un
   défaut : l'utilisateur le lève quand il le veut.
 
 ## Les étapes et leurs outils
@@ -154,7 +149,7 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
    de la table simulée se classe « offerte / refusée dans la fiction / porte fermée en silence (défaut) » ;
    sauvegarde-reprise aux frontières de beat ; coop ; retours en THÈMES.
 10. **Porte d'acte** (arbitrage 3) — l'utilisateur joue la tranche, valide le découpage de l'acte suivant,
-    tranche les exceptions ; son verdict se consigne verbatim avec sa date.
+    tranche les exceptions ; son verdict se consigne verbatim avec sa date au ticket de la tranche.
 
 ## Règles de lecture
 
@@ -184,7 +179,7 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
 - Gardes et recette PREUVE vertes, console à 0 erreur.
 - 0 porte fermée en silence ; 0 thème « m'aurait fait quitter ».
 - Durée et difficulté dans la cible.
-- Verdict de l'utilisateur consigné verbatim.
+- Verdict de l'utilisateur consigné verbatim avec sa date au ticket de la tranche.
 
 ## Tome terminé
 

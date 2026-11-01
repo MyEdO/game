@@ -71,6 +71,7 @@ export const NON_GENERATOR_CHECKS = [
   'scripts/docs/check-plans-anchors.mjs',
   'scripts/raw/check-atlas-counts.mjs',
   'scripts/data/check-progression-schemas.mjs',
+  'scripts/guards/lib/verbatimsUtilisateur.mjs',
 ]
 
 const moduleDeLib = (nom) => pathToFileURL(fileURLToPath(new URL(`lib/${nom}`, import.meta.url))).href

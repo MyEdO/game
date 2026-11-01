@@ -300,9 +300,9 @@ function rendu() {
   out += `Les trois familles ci-dessus ne voient que le **forgeage d'un Test** (\`rollTest\`/\`d100\`/\`TestOutcome.seal\`).\n`
   out += `Une magnitude (\`rollDice\`), une dispersion (\`d10\`), une expression authorée (\`rollExpr\`), le d100\n`
   out += `d'environnement (\`deMonde\`) et une désignation (\`rng.int\`) leur sont invisibles PAR CONSTRUCTION.\n`
-  out += `La doctrine utilisateur du 2026-09-04 ne laisse aucune classe de dé dehors — « Vu que tous les jets passé\n`
-  out += `par le même point d'entrée, il est inutile de se demander si le jeu est configuré pour » : ce qui suit est\n`
-  out += `donc une **dette à cible zéro** (#1508), pas un registre d'équilibre.\n\n`
+  out += `La doctrine ne laisse aucune classe de dé dehors : tout dé passe par le point d’entrée unique des jets\n`
+  out += `(\`user-arbitrage-de-de-monde-affiche-comme-un-critique\`, #1508). Ce qui suit est donc une\n`
+  out += `**dette à cible zéro**, pas un registre d'équilibre.\n\n`
   out += `Un SITE = un appel **où le dé tombe** : une primitive de \`engine/dice\` IMPORTÉE dans ce fichier, un\n`
   out += `\`.int(\` de RNG, ou un export de \`src/engine\` derrière lequel le dé tombe **sans franchir d'autre\n`
   out += `frontière exportée** (\`engineDiceRollers\` : corps de l'export, ou helper module-local qu'il appelle —\n`

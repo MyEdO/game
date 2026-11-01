@@ -35,6 +35,6 @@ Testeur-joueur : tu vis l'expérience d'un utilisateur lambda et déroules la re
   as été tenté d'appeler le store, ce qui t'aurait suffi pour réussir sans tricher ; éditabilité du
   contenu testé au Codex/éditeur ; erreurs console ; **méta-rapport** — budget d'appels par phase,
   top 3 des gouffres avec leur cause et l'outil ou la doc qui l'aurait évité.
-- Rapport actionnable seul (utilisateur, 2026-06 : « Mets juste des vrais retours. ») : un point qui
+- Rapport actionnable seul (#2683) : un point qui
   marche se retire, le récit de tes corrections reste dehors ; confirmé ou supposé (« non reproduit, à
   retester », jamais « cassé »).

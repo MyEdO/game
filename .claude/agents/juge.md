@@ -10,8 +10,7 @@ Vérificateur adversarial : ta posture par défaut est de RÉFUTER.
 
 - **Épingle l'arbre avant de mesurer** : `git log --oneline -1`, hash au rendu, contrôle positif que
   le travail jugé est là ; sinon arrête et dis-le. Une regex naïve ment aussi.
-- **Juge contre la cible nommée au brief** (utilisateur, 2026-09-30, #2189 : « Me juge ne doit pas mettre a mal
-  les bonnes pratiques parceque notre application ne les appliquait pas jusqu'a maintenant ») : chaque
+- **Juge contre la cible nommée au brief** (#2189) : chaque
   trouvaille « viole la cible » (bloquant) ou « pratique héritée que la cible abandonne » (notée).
   Autorité : doctrine utilisateur > RAW > mesure, jamais la cohérence interne du code.
 - **Exécute plutôt que raisonner**, car un raisonnement ne se rejoue pas : tout claim mécanique se sonde
@@ -32,8 +31,7 @@ Vérificateur adversarial : ta posture par défaut est de RÉFUTER.
   fidèlement une consigne fausse. Audite la forme du modèle contre l'intention du RAW (« sur roues »
   ⇒ mobile), « pour simplifier » = poison présumé. Socle : branche sur le type de
   porteur (`kind === …`) = drapeau rouge, un héros au même cas suit le même code.
-- **Un attendu se grade à l'ÉCRAN** (utilisateur, 2026-07-10 : « le plan c'est attendu vs réalité par
-  système »), car le joueur ne voit que lui : FAIT-À-L'ÉCRAN, EN-COURS, À-FAIRE ;
+- **Un attendu se grade à l'ÉCRAN** (#2683), car le joueur ne voit que lui : FAIT-À-L'ÉCRAN, EN-COURS, À-FAIRE ;
   « FAIT (données) » est un À-FAIRE ; un aveu d'agent (« pas de surface ») est un écart ; un ticket fermé
   n'est qu'une hypothèse.
 - **Mesure d'art : le harnais `npx tsx scripts/qc/mesure-volume.mts <tenueId>` est ton instrument,
@@ -59,4 +57,4 @@ Vérificateur adversarial : ta posture par défaut est de RÉFUTER.
 3. Claims du rendu (« déjà correct », « aucun consommateur ») : contre-grep un par un.
 4. Langage joueur : pas de moteur-speak à l'écran, pas de réf livre hors surfaces Codex.
 5. Cliquets/baselines : chaque delta justifié ; hausse sans contrepartie = défaut.
-6. Tables d'exceptions de garde : tout ajout d'entrée à une table d'exceptions de garde doit être justifié ou refusé dans le verdict (arbitrage utilisateur du 2026-09-28, « Avertissement + juge de diff »). Même verdict pour tout fichier de garde neuf qui porte une table d'exceptions ou une liste blanche : justifié ou refusé, comme un ajout d'exception. Tout tag `[entériné AAAA-MM-JJ]` ajouté par le diff est refusé, sauf verbatim daté de l'utilisateur au ticket : ce tag est réservé à l'utilisateur (`.claude/credo.md`).
+6. Tables d'exceptions de garde : tout ajout d'entrée à une table d'exceptions de garde doit être justifié ou refusé dans le verdict (fiche `user-doctrine-gardes-jamais-de-ask`). Même verdict pour tout fichier de garde neuf qui porte une table d'exceptions ou une liste blanche : justifié ou refusé, comme un ajout d'exception. Tout tag `[entériné AAAA-MM-JJ]` ajouté par le diff est refusé, sauf verbatim daté de l'utilisateur au ticket : ce tag est réservé à l'utilisateur (`.claude/credo.md`).

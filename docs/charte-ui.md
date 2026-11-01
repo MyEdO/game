@@ -59,9 +59,7 @@ habité » du juge, #371) ; un centrage/bornage codé à la main par écran (tra
   `pad` de toute primitive de placement. Un module d'ÉCRAN (tous les autres) ne déclare QUE du
   placement.
 - **Nouveau style : le réflexe est la couche PARTAGÉE, jamais la classe locale par défaut**
-  (doctrine utilisateur 2026-07-12, #373, verbatim : « J'y crois pas une seule seconde à des
-  classes mono-écrans personnellement, c'est une excuse à la dérive » ; la charte ajoute, de son
-  propre chef : si on ne sait pas faire, on ajoute de nouveaux génériques). Ordre :
+  (fiche `user-doctrine-ui-coherente-par-primitives-comme-les-donnees` ; la charte ajoute, de son propre chef : si on ne sait pas faire, on ajoute de nouveaux génériques). Ordre :
   (1) composer une classe du catalogue ci-dessous ; (2) motif inexprimable → l'ajouter en
   GÉNÉRIQUE paramétrable à la couche partagée (cas attendu RARE) ; (3) une classe d'ÉCRAN ne pose
   que du PLACEMENT — jamais une identité, jamais un espacement hors de l'échelle `--sp-*`
@@ -88,9 +86,7 @@ habité » du juge, #371) ; un centrage/bornage codé à la main par écran (tra
 
 ### Où se garde un contrat CSS : unité, ou sonde de navigateur (#1806)
 
-Question utilisateur du 2026-09-20, verbatim : « Pourquoi on a des tests unitaires sur le css ? Genre
-si je veux modifier l'interface, ca casse tous les test unitaires c'est ca ? » — non, et la règle qui
-départage est celle-ci. **jsdom ne met rien en page et n'applique aucune tranche `@media`** : un test
+Le contrat distingue les tests de présence et les mesures de rendu. #1806. **jsdom ne met rien en page et n'applique aucune tranche `@media`** : un test
 unitaire qui lit du CSS ne peut prouver qu'une PRÉSENCE, jamais un rendu.
 
 - **Un test unitaire de CSS est légitime s'il énonce une CLASSE de défaut sur tout le corpus**, sans
@@ -218,8 +214,7 @@ plancher `min-height: auto` de 0 (rien à mesurer dedans), donc l'algorithme de 
 le sacrifie TOUJOURS en premier. `flex-shrink: 0` est donc une partie NON optionnelle du patron :
 tout futur cue de bord posé sur un rail flex-column overflowing doit le porter.
 
-**DYNAMIQUE** (verdict utilisateur #535 : « le gradient du haut disparaît quand le rail est tout en
-haut, celui du bas quand on atteint le fond ») — un vrai indicateur « il reste du contenu », jamais
+**DYNAMIQUE** (#535) : chaque gradient s’efface à l’extrémité correspondante — un vrai indicateur « il reste du contenu », jamais
 un décor statique. Attributs d'état CANONIQUES `data-at-top`/`data-at-bottom`, posés sur
 `.master-detail-list` par `useScrollEdgeAttrs` (`src/ui/MasterDetail.tsx`, hook interne — UN SEUL
 mécanisme de mesure pour TOUS les écrans `MasterDetail`, coût nul même sans cue consommateur) :
@@ -530,9 +525,9 @@ seule, et a UN propriétaire — la primitive qui la rend. Réfs : #1064, #1072,
 | **Z0** Titre | le NOM de l'action, seul | `RollShell.title` | Jamais l'acteur, la compétence ni la difficulté : `rollTitle` rend l'`actionLabel` nu — un titre composé redouble Z1 (#352). |
 | **Z1** Sous-titre | « Acteur — Action (Compétence) » + compteur `n/m` | `RollShell.subtitle` (`.rm-subtitle`, classe UNIQUE — la coquille de jet n'a plus de variante d'enveloppe) | Composé par `composeRollLabel` (source unique) ; en séquence, `stepSubtitle` est ramené à la POSITION seule (`n/m`) — le libellé d'étape et son renvoi de règle vivent au titre (`CascadeBody`), d'où le dédoublonnage contre Z0. Jamais la difficulté (#1072), jamais la progression (Z6), jamais un A→B textuel (Z3). |
 | **Z2** Instruction | la consigne de GESTE pré-jet | `RollShell.instruction` | Un seul poseur, rôle documenté ; ni rappel de règle, ni issue. |
-| **Z3** Opposition | l'A→B : portraits + flèche | `VsHeader` (`.rm-vs` — SEUL écrivain de la classe) | Arbitrage user : « on a des portraits, une flèche ». Le verbe est un vocabulaire FERMÉ (`IconId`), défaut « → » ; `targetVariant='full'` quand les États du sujet guident la fenêtre. A→B naval → #1088. |
+| **Z3** Opposition | l'A→B : portraits + flèche | `VsHeader` (`.rm-vs` — SEUL écrivain de la classe) | L’opposition se lit par les portraits et la flèche (#1078). Le verbe est un vocabulaire FERMÉ (`IconId`), défaut « → » ; `targetVariant='full'` quand les États du sujet guident la fenêtre. A→B naval → #1088. |
 | **Z3b** Enjeu | ce que le jet MET EN JEU — la PHRASE seule | prop `stake` de `RollShell` / `CascadeStep.stake` → `StakeNote` (`.rm-stake` — SEUL écrivain de la classe) | Le producteur ne fournit qu'une `StakeRef` (clé de dataset + valeurs calculées) : le TEXTE est rendu par le résolveur unique `resolveStake` (fail-closed). Contenu autorisé : **descripteur mécanique** assemblé depuis la donnée réelle, et/ou **verbatim COURT** recollable — jamais une phrase d'aide rédigée, jamais un pavé (le verbatim intégral vit dans la fiche Codex). Ton NEUTRE : un enjeu ANNONCE. |
-| **Z3b′** Renvoi de règle | la porte vers la FICHE de la règle du jet | affordance COMPACTE accolée au libellé d'étape DANS LE TITRE (`CascadeBody.titleNode`, Z0 — le sous-titre `stepSubtitle` ne porte plus que la position) : `StakeRule` (`CodexRef` en déclencheur-icône, `ab-codex-info` + glyphe `journal/info`), cible DÉRIVÉE de l'entrée d'enjeu | Arbitrage user 2026-08-06 : « "la régle" ? C'est moche. Je pensais que tu allais mettre un "i" a coté de "Cauchemars", pas "la régle" en dessous ». Jamais un lien textuel sous la phrase, jamais un bouton local ni un caractère typographique bricolé ; nom accessible obligatoire (`ariaLabel`, l'icône est `aria-hidden`). **Ne vaut que pour le TITRE d'étape** : les CHIPS restent leurs propres portes, sans ⓘ voisin (#1078). |
+| **Z3b′** Renvoi de règle | la porte vers la FICHE de la règle du jet | affordance COMPACTE accolée au libellé d'étape DANS LE TITRE (`CascadeBody.titleNode`, Z0 — le sous-titre `stepSubtitle` ne porte plus que la position) : `StakeRule` (`CodexRef` en déclencheur-icône, `ab-codex-info` + glyphe `journal/info`), cible DÉRIVÉE de l'entrée d'enjeu | Le renvoi est une icône d’information accolée au titre d’étape. #1117. Jamais un lien textuel sous la phrase, jamais un bouton local ni un caractère typographique bricolé ; nom accessible obligatoire (`ariaLabel`, l'icône est `aria-hidden`). **Ne vaut que pour le TITRE d'étape** : les CHIPS restent leurs propres portes, sans ⓘ voisin (#1078). |
 | **Z3b″** Renvoi en surface DENSE | la porte vers la règle depuis une GRILLE d'actes (menu d'infirmerie, listes de gestes) | l'ÉLÉMENT D'ACTION est sa propre porte : `CodexRef wrap` + `instance` nommant l'acte, cible DÉRIVÉE de l'enjeu du jet (`stakeRuleOf(flowStakeRef(...))`) | Jamais un ⓘ par cellule (la grille en serait criblée), jamais une phrase d'enjeu par cellule. Un acte dont le jet n'a PAS d'enjeu authoré ne reçoit AUCUNE porte — pas d'affordance morte (`hasFlowStake` décide). Même principe que Z5b : le contrôle EST sa règle (#1078). |
 | **Z3c** Menace subie | la perturbation/menace que le personnage SUBIT (sabotage d'un Test d'équipage, attaque entrante) | `.rm-note` au ton `menace` (2 écrivains : `CrewTestModal`, `ShipBatteryModal`) | Ton DANGER assumé — réservé à ce qui est subi, jamais à un enjeu annoncé (Z3b). |
 | **Z4** Pré-jet | le choix de RÈGLE avant le jet (Parade/Esquive, arme, localisation) | `RollShell.setup` + `OptionChooser` | Valeurs par `optionValue`/`optionPending`, jamais un « base + mods » recalculé au call-site. Disparaît au jet. |
@@ -598,8 +593,7 @@ zone ne l'accueille, c'est le contrat qu'on amende ici, avant le code.
 
 ## La HAUTEUR réelle — trois vues, et rien qui défile en page (#1847)
 
-Verbatim utilisateur (2026-09-20) : « **Nan mais 900 de hauteur, sur mon écran, ca déborde** » et
-« En tout cas je ne sais pas c'est quoi ce 900/700/560… ». Mesure de son écran le même jour :
+Les seuils de largeur et les vues de hauteur se vérifient séparément (#1847). Vue de référence, la fenêtre de l'utilisateur, mesurée le 2026-09-20 :
 2560×1440 à 150 % = **1707×960px CSS**, `availHeight` 912, fenêtre Chrome utile ≈ 745-780px. Toutes
 les recettes se jouaient à 1440×900 ou 1600×900 : personne ne voyait ce qu'il voit.
 
@@ -684,17 +678,14 @@ Deux règles NON NÉGOCIABLES, tranchées à l'écran par l'utilisateur sur une 
 combat — elles supplantent la spec HUD datée (`docs/plans/2026-08-16-spec-hud-combat.md` l.291 et
 l.206-210), qui n'avait jamais été validée en rendu :
 
-1. **La raison d'un refus vit au SURVOL et au FOCUS, jamais en texte inline.** Verbatim (2026-08-24) :
-   « Je n'ai jamais validé ces "textes" impossible a lire sous le nom des capacités, même Rogue
-   Trader qui est notre interface de départ n'a pas un tel comportement. » Une case, une pastille, un
+1. **La raison d'un refus vit au SURVOL et au FOCUS, jamais en texte inline.** Fiche `user-arbitrage-raison-de-refus-au-survol-jamais-inline`. Une case, une pastille, un
    bouton fermés restent PROPRES (icône + libellé + touche, encre d'état grisé tenant AA ≥ 4,5:1) ; la
    raison naît de l'infobulle PARTAGÉE (`CodexRef` prop `refus`, rendue en tête de sa boîte, couche
    `useInfobulle`) au survol
    souris comme au focus clavier/manette — une seule infobulle par ancrage, jamais une 2ᵉ boîte
    concurrente. Sa copie HORS ÉCRAN (`.hors-ecran`) reste au DOM, cible de l'`aria-describedby` : un
    lecteur d'écran reçoit la raison sans avoir à survoler quoi que ce soit.
-2. **Un emplacement vide ne porte AUCUN mot.** Verbatim (2026-08-24) : « Et je ne connais aucune
-   interface, même pas Rogue Trader, qui dans les emplacement de capacité met "Libre" ». L'alvéole
+2. **Un emplacement vide ne porte AUCUN mot.** Fiche `user-arbitrage-case-vide-sans-mot-libre`. L'alvéole
    vide est un CREUX : verre en retrait, liseré en retrait, ombre interne — reconnaissable sans
    texte. Le nom (« emplacement vide ») n'existe que hors écran, pour le lecteur d'écran. Un texte
    d'aide au placement ne paraît que PENDANT un geste d'édition/dépôt, jamais au repos.

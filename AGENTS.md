@@ -86,7 +86,7 @@ script au nom différent du doc est entre parenthèses.
 >   `fichier:ligne`. Un test qui verrouille un comportement faux se réécrit depuis le RAW.
 > - Toute LOGIQUE est keyée par id STABLE, le `label` est de l'AFFICHAGE ; seule couture label→id :
 >   `src/data/index.ts`, au CHARGEMENT (fiche `user-doctrine-ids-stables-labels-affichage`).
-> - Tout arbitrage UTILISATEUR consigné (doc, mémoire, ticket) porte sa CITATION verbatim + date.
+> - Tout arbitrage UTILISATEUR porte sa CITATION verbatim + date au ticket ou en fiche (#3175).
 >   Sans citation, c'est une évaluation d'ingénierie révisable, jamais un précédent.
 
 ## Sources VF
