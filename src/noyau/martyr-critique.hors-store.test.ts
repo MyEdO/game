@@ -5,8 +5,9 @@ import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { rederivePassiveAttack } from '../engine/combat';
 import { testScene } from '../scenes/test-fixture';
-import type { ArmourPoints, Combatant, Weapon } from '../engine/types';
+import type { ArmourPoints, Weapon } from '../engine/types';
 import { makeRNG } from '../engine/dice';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -34,7 +35,7 @@ function touche({ sl, critical, martyr = true, fenetre = false, arme = epee, end
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const [cible, pretre] = b.combatants.filter((c) => c.kind === 'enemy');
-  for (const c of [cible, pretre]) { c.items = (c.items ?? []).filter((i) => i.kind !== 'armor'); c.armour = { ...SANS_PA }; c.wounds = { current: 20, max: 20 } as Combatant['wounds']; }
+  for (const c of [cible, pretre]) { c.items = (c.items ?? []).filter((i) => i.kind !== 'armor'); c.armour = { ...SANS_PA }; c.wounds = blessuresDeBase(20, 20, c); }
   cible.important = true; // LDB 18 l.44 : hors Mort subite
   cible.armour = { tete: pa, corps: pa, brasG: pa, brasD: pa, jambeG: pa, jambeD: pa };
   if (endurance != null) cible.characteristics = { ...cible.characteristics, endurance };

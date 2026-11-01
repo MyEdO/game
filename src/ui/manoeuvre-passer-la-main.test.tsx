@@ -14,6 +14,7 @@ import { testScene } from '../scenes/test-fixture';
 import { ManeuverModal } from './ManeuverModal';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -36,7 +37,7 @@ function souffleLance(gmSeat: number | undefined): Combatant {
   const E = enemies[0];
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 11, y: 10 };
-  E.wounds = { current: 30, max: 30, base: 30 } as Combatant['wounds'];
+  E.wounds = blessuresDeBase(30, 30, E);
   E.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
   H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }] as Combatant['traits'];
   H.characteristics['capacite-de-tir'] = 90;

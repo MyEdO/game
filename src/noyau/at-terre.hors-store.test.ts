@@ -6,6 +6,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { hasCondition } from '../engine/conditions';
 import type { AttackResult } from '../engine/combat';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -31,7 +32,7 @@ describe('0 PB → État À Terre, MÊME sur overkill/Critique (LDB 18 l.15)', (
   it('un héros amené à 0 PB par OVERKILL n’est jamais « debout sans état » → À Terre (ou Inconscient/mort)', () => {
     banc.getState().seedRng(5);
     const { H, E } = setup();
-    H.wounds = { current: 3, max: 12, base: 12 } as never; // PB bas
+    H.wounds = blessuresDeBase(12, 3, H); // PB bas
     H.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 } as never;
     banc.setState({ battle: { ...banc.getState().battle! } });
     // Touche NON-critique mais qui dépasse les PB courants (overkill 7) → Blessure critique + À Terre.
@@ -50,7 +51,7 @@ describe('0 PB → État À Terre, MÊME sur overkill/Critique (LDB 18 l.15)', (
   it('un héros amené EXACTEMENT à 0 PB (sans overkill) obtient aussi À Terre', () => {
     banc.getState().seedRng(5);
     const { H, E } = setup();
-    H.wounds = { current: 5, max: 12, base: 12 } as never;
+    H.wounds = blessuresDeBase(12, 5, H);
     H.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 } as never;
     banc.setState({ battle: { ...banc.getState().battle! } });
     const res: AttackResult = {

@@ -40,6 +40,7 @@ import type { TokenEl } from './types';
 import type { Combatant } from '../../engine/types';
 import { inanimateCombatant } from '../../engine/inanimate';
 import type { BattleState } from '../../noyau/etat';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * DÉRIVATION des marques dynamiques (#1176, P3-0d) — la source UNIQUE que la pose consomme
@@ -47,20 +48,20 @@ import type { BattleState } from '../../noyau/etat';
  * hors de tout écran : ce qui est dérivé, ce sont des cases LOGIQUES et des identités.
  */
 function combattant(id: string, over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id,
     label: id,
     kind: 'hero',
     pos: { x: 0, y: 0 },
     size: 'moyenne',
-    wounds: { current: 10, max: 10 },
+    wounds: blessuresDeBase(10),
     conditions: [],
     engagedWith: [],
     weapons: [],
     skills: [],
     talents: [],
     ...over,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 function combat(combatants: Combatant[], turn = 0): BattleState {

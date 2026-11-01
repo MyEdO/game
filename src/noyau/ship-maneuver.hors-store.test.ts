@@ -15,8 +15,7 @@ import { findCrewRoleById } from '../data';
 import { t } from '../i18n';
 import { setRule } from '../engine/policy';
 import type { Combatant, NavalTraitRef, ShipPoste } from '../engine/types';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -181,7 +180,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
   it('barreur : un marin à terre / inconscient n’est jamais désigné (RAW : il ne peut pas tenir la barre)', () => {
     seedBattleRng(7);
     const down = { ...helmsman(), id: 'ace', label: 'As' } as Combatant; // meilleur en Voile (Ag 40, +40)…
-    down.wounds = blessuresDeBase(10, 0);                              // … mais à terre (0 PB) → inapte
+    down.wounds = blessuresDeBase(10, 0, down);                              // … mais à terre (0 PB) → inapte
     const ok = { ...helmsman(), id: 'helm', label: 'Timonier' } as Combatant;
     ok.characteristics = { ...ok.characteristics, agilite: 30 };
     ok.skills = [{ id: 'voile', characteristic: 'agilite', advances: 10 } as never]; // conscient mais moins bon

@@ -9,6 +9,7 @@ import { findSpellById } from '../data';
 import { spellOps } from './flowCore';
 import { desDuTest, desEnSuite } from './dice.testkit';
 import { ciblePsy } from './psych/ciblage';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */
 const opsOf = (id: string) => spellOps(findSpellById(id)?.effects, 'target');
@@ -19,14 +20,14 @@ function seq(values: number[]): RNG {
 }
 
 function mk(over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'c', name: 'Cobaye', kind: 'hero', size: 'moyenne', advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 },
     conditions: [], skills: [], talents: [], traits: [], groups: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    movement: 4, wounds: { current: 12, max: 12 },
+    movement: 4, wounds: blessuresDeBase(12),
     ...over,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 describe('activeFlags — drapeaux portés par un ActiveEffect (Jalon 2.6 L9)', () => {
@@ -132,7 +133,7 @@ describe('Bénédiction de Sauvagerie — « deux lancers, choisissez le meilleu
   });
 });
 
-describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques sont retirés pour la durée » (LDB 42)', () => {
+describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques sont retirés pour la durée » (LDB 43 l.70)', () => {
   it('op suppressPsych : déplace psychTraits dans l’effet porteur et purge psychState', () => {
     const c = mk({
       psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }, { type: 'phobie', cible: ciblePsy.groupe('serpent'), indice: 1 }],

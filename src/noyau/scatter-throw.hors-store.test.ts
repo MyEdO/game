@@ -6,6 +6,7 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -16,23 +17,23 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
 const hero = (p: Partial<Combatant>): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h1', name: 'Lanceur', kind: 'hero', characteristics: CHARS,
-    wounds: { current: 15, max: 15 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+    wounds: blessuresDeBase(15), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 2, y: 2 }, size: 'moyenne', weapons: [], items: [], fate: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...p,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 const enemy = (p: Partial<Combatant>): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'e1', name: 'Cible', kind: 'enemy', characteristics: CHARS,
-    wounds: { current: 20, max: 20 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+    wounds: blessuresDeBase(20), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 8, y: 2 }, size: 'moyenne',
     weapons: [{ label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as Weapon], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...p,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 const thrown: Weapon = { label: 'Hache de jet', type: 'ranged', damage: { plusBF: true, flat: 0, bare: true }, range: { bf: 3 }, qualities: [] } as Weapon;
 const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 6 }, range: 30, qualities: [] } as Weapon;

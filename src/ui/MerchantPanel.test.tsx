@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MerchantPanelView } from './MerchantPanel';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const noop = {
   onAddToCart: () => {}, onDecCart: () => {}, onRemoveCart: () => {}, onClearCart: () => {}, onRefuse: () => {}, onPay: () => {},
@@ -14,12 +15,12 @@ const base = { entityId: 'p', archetype: 'armurier', settlement: 'ville' as cons
 /** Stub de héros : le marchand compare l'équipement et rend des tuiles-portraits (CharFrame), qui
  *  lisent wounds/conditions. */
 const stubHero = (id: string, label: string, items: ItemInstance[] = []) =>
-  ({
-    id, label, kind: 'hero', wounds: { current: 10, max: 12 }, conditions: [], advantage: 0,
+  (blessuresSurLeProfil({
+    id, label, kind: 'hero', wounds: blessuresDeBase(12, 10), conditions: [], advantage: 0,
     weapons: [], skills: [], items, movement: 4,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('MerchantPanel (#2 — panier)', () => {
   // #1318 E1 : le champ de quantité du Troc passe par `NumberField` — la borne n'est plus rejouée à la

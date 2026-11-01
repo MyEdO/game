@@ -18,18 +18,19 @@ import { traceLineOf } from '../engine/traceLine';
 import { stepDetail } from './rollSeam';
 import { dataLabel, refLabel } from '../data';
 import { t } from '../i18n';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Héros doué en Ragot (Soc élevée) — le Test réussit tant que le d100 ≤ sa valeur. */
 const gossiper = (soc: number): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h', name: 'Colporteur', career: '', careerLevel: 1, items: [],
     skills: [{ id: 'ragot', advances: 20 }], talents: [],
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: soc },
-    wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {},
-  } as unknown as Combatant);
+    wounds: blessuresDeBase(10), conditions: [], weapons: [], armour: {},
+  }) as unknown as Combatant);
 
 const merchantScene = () => {
   const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';

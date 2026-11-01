@@ -13,6 +13,7 @@ import { hasCondition, COND } from '../engine/conditions';
 import type { Combatant, Weapon } from '../engine/types';
 import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
 import type { EffectTrigger } from '../engine/flowCore';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -24,13 +25,13 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * un effet de DONNÉE synthétique posé sur chaque trigger SE DÉCLENCHE via le bus.
  */
 
-const bare = (over: Partial<Combatant> = {}): Combatant => ({
+const bare = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'c', name: 'C', kind: 'enemy',
-  characteristics: { force: 35, endurance: 35 } as never,
-  wounds: { current: 15, max: 15 }, advantage: 0, conditions: [], skills: [], talents: [], traits: [],
+  characteristics: profilDeTest({ force: 35, endurance: 35 }),
+  wounds: blessuresDeBase(15), advantage: 0, conditions: [], skills: [], talents: [], traits: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
   ...over,
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 /** Stub du getter d’état (`Get`) exposant une battle minimale + pas de scène. */
 const stub = (c: Combatant) => (() => ({ battle: { combatants: [c] }, scene: undefined })) as never;

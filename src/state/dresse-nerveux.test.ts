@@ -6,6 +6,7 @@ import { isBestial, isTerritorial } from '../engine/traits/dispatch';
 import { creatureToCombatant } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 /**
  * Dressé × Nerveux (LDB 85) — Phase 2 du chantier « Dressé en traits de 1re classe ». Le Trait Nerveux
@@ -15,12 +16,12 @@ import type { Combatant } from '../engine/types';
  * DONNÉE (Condition Flow `startleCause` + `has trait dresse-…` dans l'effet onStartled de Nerveux) —
  * aucun code par-nom de discipline.
  */
-const mk = (over: Partial<Combatant> = {}): Combatant => ({
-  id: 'x', name: 'X', kind: 'enemy', characteristics: { 'capacite-de-combat': 30, endurance: 40 }, skills: [], talents: [], traits: [],
+const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
+  id: 'x', name: 'X', kind: 'enemy', characteristics: profilDeTest({ 'capacite-de-combat': 30, endurance: 40 }), skills: [], talents: [], traits: [],
   conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: { corps: 0 },
-  wounds: { current: 10, max: 10, base: 10 }, advantage: 0,
+  wounds: blessuresDeBase(10), advantage: 0,
   ...over,
-}) as unknown as Combatant;
+})) as unknown as Combatant;
 
 const get = ((c: Combatant) => () => ({ battle: { combatants: [c] } })) as never;
 const startle = (c: Combatant, cause: 'noise' | 'magic') =>
@@ -72,11 +73,11 @@ describe('Dressé (Magie) — ignore Nerveux en présence de MAGIE seulement (LD
 
 describe('Dressé (Guerre) — passive +10 CC (charMod, LDB 85 l.110) quand la discipline est EN DIRECT', () => {
   it('liveTrait dresse-guerre → +10 CC via le collecteur passif', () => {
-    const c = mk({ characteristics: { 'capacite-de-combat': 30 } as never, liveTraits: [{ id: 'dresse-guerre' }] as never });
+    const c = mk({ characteristics: profilDeTest({ 'capacite-de-combat': 30 }), liveTraits: [{ id: 'dresse-guerre' }] as never });
     expect(effectiveChar(c, 'capacite-de-combat')).toBe(40);
   });
   it('sans la discipline → CC de base', () => {
-    const c = mk({ characteristics: { 'capacite-de-combat': 30 } as never });
+    const c = mk({ characteristics: profilDeTest({ 'capacite-de-combat': 30 }) });
     expect(effectiveChar(c, 'capacite-de-combat')).toBe(30);
   });
 });

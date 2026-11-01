@@ -150,6 +150,7 @@ import type { Peripetie } from './peripeties';
 import type { CharacteristicsData } from './schemas/defs/characteristics';
 import type { AxesData } from './schemas/defs/axes';
 import type { VarianteDeCible } from './schemas/grammaire/valeurs';
+import type { Relatif } from './schemas/defs/groups';
 import type { NavalProgressionData } from './schemas/defs/naval-progression';
 import type { SeaNavigationData } from './schemas/defs/sea-navigation';
 import type { SeaPerilsData } from './schemas/defs/sea-perils';
@@ -1392,6 +1393,10 @@ export interface GroupData {
   /** Ids de `groups.json` RETRANCHÉS du joker — un combattant qui en porte un n'est pas visé
    *  (« vivant » = tout sauf Mort-vivant/Démon). */
   exceptGroups?: string[];
+  /** Groupe-CIBLE RELATIF au porteur du Trait psy qui le vise (`vise`, `engine/psychology`). #3045 */
+  relatif?: Relatif;
+  /** Ce Groupe est une Race (ADE II 09 l.15). #3045 */
+  race?: true;
 }
 /** Famille de PRÉSENTATION du stock marchand (`MerchantPanel`, ordre d'affichage = ordre du tableau).
  *  `match` = règle de classement d'une ligne de stock (priorité unit > shield > categorie > fallback

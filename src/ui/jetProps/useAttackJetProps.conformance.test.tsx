@@ -17,6 +17,7 @@ import { useAttackJetProps } from './useAttackJetProps';
 import { resetRule, setRule } from '../../engine/policy';
 import { ligneDe } from '../../engine/modLine.testkit';
 import { refDeRegle } from '../../engine/reglesChiffrees';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -52,7 +53,7 @@ const bow = {
 } as unknown as Weapon;
 
 function combatant(id: string, label: string, kind: 'hero' | 'enemy', x: number, weapons: Weapon[] = [sword], advantage = 0): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id,
     name: label,
     label,
@@ -68,12 +69,12 @@ function combatant(id: string, label: string, kind: 'hero' | 'enemy', x: number,
     advantage,
     size: 'moyenne',
     pos: { x, y: 0 },
-    wounds: { current: 18, max: 18 },
+    wounds: blessuresDeBase(18),
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     species: 'humains-reiklander',
     bodyShape: 'humanoide',
     movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** Dernières props rendues — l'aperçu pré-jet et la ligne résolue se lisent sur la MÊME rangée. */
@@ -118,7 +119,7 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
   }
   const target = combatant('target', 'Gobelin', 'enemy', opts.cases ?? (opts.ranged ? 20 : 1));
   if (opts.ethere) (target as unknown as { traits: unknown[] }).traits = [{ id: 'ethere' }];
-  if (opts.cible?.pb != null) target.wounds = { current: opts.cible.pb, max: 18 } as Combatant['wounds'];
+  if (opts.cible?.pb != null) target.wounds = blessuresDeBase(18, opts.cible.pb, target);
   if (opts.cible?.important) target.important = true;
   if (opts.cible?.chanceux) target.talents = [{ talentId: 'chanceux', times: 1 }] as Combatant['talents'];
   if (opts.conditions) (attacker as unknown as { conditions: unknown[] }).conditions = opts.conditions;

@@ -14,6 +14,7 @@ import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { findCreatureById, type CreatureData } from '../data';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 // #671 — CÂBLAGE du registre de presets de PNJ nommés : un preset = base créature globale (par id) +
 // surcharges embarquées ; l'entité de scène le porte par `presetId`, instanciée base+profil au spawn.
@@ -30,13 +31,13 @@ function narratifFixture(): NarratifBlock {
 }
 
 function hero(): Combatant {
-  return ({
+  return (blessuresSurLeProfil({
     id: 'h', label: 'H', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], weapons: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     items: [], skills: [], talents: [], movement: 4,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 }
 
 /** Scène : heroStart + une entité PNJ portée par `presetId`, enrôlée dans une rencontre. */

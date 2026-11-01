@@ -21,8 +21,7 @@ import type { Scene, SceneEntity } from './monde/scene';
 import { desDuTest } from '../engine/dice.testkit';
 import { opPsy } from '../engine/psych/opsPsy';
 import { ciblePsy } from '../engine/psych/ciblage';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

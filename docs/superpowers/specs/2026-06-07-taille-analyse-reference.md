@@ -7,7 +7,7 @@ jalon « Sous-système Taille » (T2–T6). Le lot courant n'implémente que **T
 ## Ce qu'est la Taille
 
 **Pas une caractéristique chiffrée** : c'est un **Trait de créature** (« Taille (Divers) ») dont la
-valeur est une **catégorie** parmi 7 (`85 - Traits de créature.md` l.279-280). « Moyenne » = défaut
+valeur est une **catégorie** parmi 7 (`85 - Traits de créature.md` l.342-344). « Moyenne » = défaut
 implicite des espèces jouables (humain/nain/elfe), **sans Trait**, mod 0. Quasiment tous les effets
 se résolvent par **comparaison d'écart de catégories** entre deux combattants — jamais en valeur
 absolue. ⇒ modèle = **champ ordinal `size` (index 0–6)**, pas un `CharKey` : il ne se *teste* pas,
@@ -49,7 +49,7 @@ Source : `14 - _GoBack.md` l.138-139, l.151-170 + table Difficultés de Combat l
   `13 l.144 + 76 - Point d'Impact des Créatures.md`. Cible +2 cat. → on choisit la zone (`76 l.39`).
 - **Monture & Taille** : `14 l.217-223`. **Queue/Langue** : `85 l.37-38 / l.185-188`.
 - **Nuée** ignore la Taille, +40 aux tirs sur elle. **Immunité Psy** annule Peur/Terreur. `85 l.199-200 / l.143-144`.
-- **Agrandir/réduire** (build statbloc) : +10 F, +10 E, −5 Ag par cat. `85 l.276-277`.
+- **Agrandir/réduire** (build statbloc) : +10 F, +10 E, −5 Ag par cat. `85 l.340`.
 
 ### Design (RAW silencieux — à ne PAS inventer comme « canon »)
 - **Footprint multi-cases** : `15 - Déplacement.md` l.55 dit « peuvent occuper 2, 4 cases ou plus » —

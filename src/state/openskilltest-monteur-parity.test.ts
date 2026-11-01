@@ -15,6 +15,7 @@ import { psychologies } from '../data';
 import { codexLookupById } from '../ui/compendium/registry';
 import type { TravelPlan } from '../noyau/travelFlow';
 import { ciblePsy } from '../engine/psych/ciblage';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * PARITÉ de la cible d'un Test de scène : le calcul HISTORIQUE d'`openSkillTest`
@@ -36,14 +37,14 @@ const CHARS = {
 };
 
 function hero(id: string, over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, name: id, label: id, kind: 'hero',
     characteristics: { ...CHARS },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
     skills: [], talents: [], items: [], psychState: [], engagedWith: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...over,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 const seaPlan = (precip: 'legeres' | 'abondantes' | 'tres-abondantes'): TravelPlan => ({

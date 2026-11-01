@@ -9,7 +9,8 @@ import { hoverTargeting } from './targeting';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { reluDans } from './combatDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -30,11 +31,11 @@ function engage(): { H: Combatant; E: Combatant } {
   const E = enemies[0];
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 11, y: 10 };
-  E.wounds = blessuresDeBase(300);
+  E.wounds = blessuresDeBase(300, 300, E);
   H.size = 'enorme';
   H.advantage = 3;
   banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed: 0, acted: false } });
-  return { H, E };
+  return { H: reluDans(banc.getState, H), E: reluDans(banc.getState, E) };
 }
 
 /** Cible annoncée par le réticule de l'attaque armée, puis cible du jet que le clic ouvre. */

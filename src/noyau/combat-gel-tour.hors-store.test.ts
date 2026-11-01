@@ -14,6 +14,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { cleDeFixture } from './noyau.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -31,9 +32,9 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
-     weapons, advantage: 0, size: 'moyenne', pos, wounds: { current: 40, max: 40 },
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 } as unknown as Combatant);
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
+     weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(40),
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 
 /** Ennemi PORTEUR d'une gratuite de mêlée (Morsure, LDB 85 l.237) au contact d'un héros SURFACÉ. */

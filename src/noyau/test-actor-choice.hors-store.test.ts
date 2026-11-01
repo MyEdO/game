@@ -4,6 +4,7 @@ import { runFlow } from './combatEffects';
 import { testFlow } from './monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -13,12 +14,12 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('Test de scène — choix du lanceur dans le groupe', () => {
   beforeEach(() => { banc.setState({ battle: null, pendingTest: null }); });
 
-  const mk = (id: string, name: string, dex: number) => ({
+  const mk = (id: string, name: string, dex: number) => (blessuresSurLeProfil({
     id, name, kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: dex, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
   it('candidats = tout le groupe ; défaut = le meilleur ; testSetActor re-cible le Test', () => {
     banc.setState({ party: [mk('h1', 'Alric', 55), mk('h2', 'Bri', 35)] });

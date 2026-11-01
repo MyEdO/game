@@ -14,16 +14,17 @@ import { applyOps } from './ops';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
 import { ciblePsy } from './psych/ciblage';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const hero = (psychState: PsychAffliction[] = []): Combatant => ({
+const hero = (psychState: PsychAffliction[] = []): Combatant => (blessuresSurLeProfil({
   id: 'h1', name: 'h1', label: 'Anselme', kind: 'hero',
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30,
     agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30, perception: 30 },
   conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [], weapons: [],
-  advantage: 0, size: 'moyenne', wounds: { current: 10, max: 10 }, psychState,
+  advantage: 0, size: 'moyenne', wounds: blessuresDeBase(10), psychState,
   species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 const terreur = (indice: number): PsychStake => ({ kind: 'terreur', sourceId: 'src', indice });
 const briseOf = (c: Combatant) => c.conditions.find((x) => x.id === 'brise')?.value;

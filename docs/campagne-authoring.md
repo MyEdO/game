@@ -508,7 +508,12 @@ variantes que chaque type admet sont déclarées dans `psychology.json` (`cibles
   `{ "id": "haine", "arg": "@kirstin" }` ; un Groupe s'écrit par son id nu. C'est la seule pose d'un individu
   en donnée : les cas du livre sont tous des statblocs.
 - **Op psy** (`beginPsych`, `grantPsychTrait`) : la Cible est un Groupe, `"cible": { "id": "nain" }`, dans tout
-  document.
+  document. Seul un Sort vise une personne que son lanceur désigne au lancement : `grantPsychTrait` y porte
+  `"envers": "personneChoisie"` à la place de la Cible (Colérique, VDM 10 l.327 ; `noyau/personneChoisie.ts`).
+  Lectures adoptées à titre révisable (#3045, utilisateur, 2026-10-27 : « reco. ») : deux personnes sont amies
+  quand elles sont du même camp ; un lanceur que personne ne pilote désigne, dans le camp de la cible, la
+  personne la plus proche d'elle, et prend le plus haut palier offert ; sans personne, le Trait reste sans
+  effet ; hors combat, la cible est un héros du groupe.
 - **Portée** : le personnage est une entité de la MÊME scène, `validateScene` refuse un id qu'aucune ne porte.
   Le Trait posé du catalogue `src/data` et la péripétie de route (`worldMap.routes[].perils`) refusent `@id`.
 - **Affichage** : le nom de l'individu, à défaut « une personne de la scène », jamais son id.

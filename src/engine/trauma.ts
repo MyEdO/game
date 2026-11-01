@@ -945,8 +945,7 @@ export function aPassifVisible(c: Combatant): boolean {
   return passiveMods(c).some((m) => m.visible === true);
 }
 
-/** `talents: false` : le collecteur sans sa branche de talents, ce que `wounds.base` ne contient pas (#3060). */
-export function passiveMods(c: Combatant, talents = true): PassiveMod[] {
+export function passiveMods(c: Combatant): PassiveMod[] {
   const out: PassiveMod[] = [];
   out.push(...traumaPassiveMods(c));
   // Maladies (kind `maladie`, annulée par Détermination ; passifs des symptômes via `diseasePassiveOps`) +
@@ -1009,7 +1008,7 @@ export function passiveMods(c: Combatant, talents = true): PassiveMod[] {
   if (c.liveTraits?.length) out.push(...traitPassiveMods(c.liveTraits));
   // Talents POSSÉDÉS (LDB 10) : leur `passive: OpPassive[]` (Coup puissant, Dur à cuire… ou Frénésie →
   // grantFreeAttack) émis kind `intrinseque`, par niveau — comme les traits. Disjoint → zéro double-compte.
-  if (talents) out.push(...talentPassiveMods(c));
+  out.push(...talentPassiveMods(c));
   for (const e of c.activeEffects ?? []) {
     // `src`/`label` = L'EFFET émetteur : un `skillMod` de SORT doit s'annoncer au nom de son sort, pas
     // au repli de famille de son seau (`kind:'magique'` tombe côté volatil, donc « Séquelle » —

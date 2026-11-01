@@ -11,8 +11,7 @@ import type { Combatant } from '../engine/types';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import { tableTotale } from '../lib/tableTotale';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * SEAM DE JET UNIQUE — Ronde 0 (#275 substrat). Couvre les 3 surfaces (M/V/I) que `openRoll` DÉRIVE

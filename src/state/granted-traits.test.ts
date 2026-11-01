@@ -8,6 +8,7 @@ import { hasTrait } from '../engine/traits/dispatch';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
 import { ciblePsy } from '../engine/psych/ciblage';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Jalon 2.6 — Traits temporisés accordés par un sort (op `grantTrait`) : Envol (Vol héros),
@@ -16,13 +17,13 @@ import { ciblePsy } from '../engine/psych/ciblage';
  * est retiré à l'expiration de l'ActiveEffect porteur (fin de Round OU purge d'horloge).
  */
 const dummy = (p: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'x', label: 'X', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 20, max: 20 }, advantage: 0, conditions: [], skills: [], talents: [],
+    wounds: blessuresDeBase(20), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...p,
-  } as Combatant);
+  }) as Combatant);
 
 const scene = (w: number, h: number, walls: string[] = []): Scene => {
   const tiles = new Array(w * h).fill('herbe');
@@ -134,8 +135,8 @@ describe('op grantTalent — talents temporisés (Flambeau de Vertu / Cœurs ard
   it('Sans Peur POSSÉDÉ ciblé (LDB 10 l.1051) : immunise vs l’Ennemi spécifié seulement', async () => {
     const { sansPeurVs } = await import('../engine/psychology');
     const c = dummy({ talents: [{ talentId: 'sans-peur', spec: 'mort-vivant', times: 1 }] });
-    expect(sansPeurVs(c, { groups: ['mort-vivant'] })).toBe(true);
-    expect(sansPeurVs(c, { groups: ['ogre'] })).toBe(false); // pas l'Ennemi du talent
+    expect(sansPeurVs(c, dummy({ groups: ['mort-vivant'] }))).toBe(true);
+    expect(sansPeurVs(c, dummy({ groups: ['ogre'] }))).toBe(false); // pas l'Ennemi du talent
   });
 
   it('Cœur vaillant accordé (Cœurs ardents) : la capacité braveheart est active via featuresOf', async () => {

@@ -8,7 +8,8 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { relu } from './combatDeTest.testkit';
 
 /**
  * #1030 — la cadence AUTO résout les FENÊTRES RÉACTIVES de l'étape `jet:'cast'` (Contre-sort #1028,
@@ -45,12 +46,12 @@ function setup(spells: string[], n = 1, magick = true) {
     E.dispelledThisRound = undefined;
   });
   H.pos = { x: 10, y: 10 };
-  H.wounds = blessuresDeBase(99);
+  H.wounds = blessuresDeBase(99, 99, H);
   useGame.setState({
     battle: { ...b }, pendingCounterspell: null, pendingCastOpposition: null, pendingCast: null, pendingCascade: null,
     net: { ...useGame.getState().net, ...NET0, gmSeat: 0 } as GameState['net'],
   });
-  return { H, cibles };
+  return { H: relu(H), cibles: cibles.map(relu) };
 }
 
 const reset = () => {

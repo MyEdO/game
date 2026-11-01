@@ -14,7 +14,7 @@ import { resolveRecoverTest } from './recover';
 import { rollBatchParticipant } from '../cascade';
 import { EMPTY_FLOW, type FlowTest } from '../../engine/flowCore';
 import type { Combatant, Weapon } from '../../engine/types';
-import { blessuresDeBase } from '../../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -37,17 +37,17 @@ const FT_OPP: FlowTest = { skill: { id: 'resistance' }, label: 'Résister', oppo
 const BRANCHES = { onSuccess: EMPTY_FLOW, onFail: EMPTY_FLOW };
 
 function combatant(p: Partial<Combatant> & { id: string }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     label: p.id, kind: 'hero',
     characteristics: {
       'capacite-de-combat': 35, 'capacite-de-tir': 40, force: 50, endurance: 40, initiative: 30,
       agilite: 30, dexterite: 32, intelligence: 40, 'force-mentale': 35, sociabilite: 30,
     },
-    wounds: { current: 10, max: 12 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [{ id: 'resistance', advances: 20, characteristic: 'endurance' }],
     talents: [], fortune: 0, resilience: 0, pos: { x: 1, y: 1 }, ...p,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 function setBattle(combatants: Combatant[], activeId: string) {
@@ -137,8 +137,8 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
     const wielder = enemies[0];
     const prey = enemies[1];
     enemies.slice(2).forEach((e) => (e.dead = true));
-    H.wounds = blessuresDeBase(200);
-    prey.wounds = blessuresDeBase(200);
+    H.wounds = blessuresDeBase(200, 200, H);
+    prey.wounds = blessuresDeBase(200, 200, prey);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, wielder, prey };
   }

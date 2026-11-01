@@ -5,7 +5,7 @@ import { CHAR_SIZE_PX } from './PortraitTile';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 function fixtures() {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
@@ -66,7 +66,7 @@ describe('InitiativeStrip', () => {
   // imprimé. Ni Blessures ni États — ils vivent au bandeau de groupe et à l'arche de la console.
   it('imprime le nom de chaque entrée, ni Blessures ni États', () => {
     const { h, foe } = fixtures();
-    h.wounds = blessuresDeBase(11, 7);
+    h.wounds = blessuresDeBase(11, 7, h);
     h.conditions = [{ id: 'assourdi', value: 1 }];
     const html = renderToStaticMarkup(
       <InitiativeStrip order={['e1', 'h1']} turn={1} round={2} combatants={[h, foe]} over={false}

@@ -8,15 +8,16 @@ import type { AdvantagePools } from '../../engine/advantagePool';
 import { creatures } from '../../data';
 import { traitsDuPorteur } from '../../engine/statEntry';
 import { porteurDuProfil } from '../../noyau/monde/spawn';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const mk = (id: string, kind: Combatant['kind'], over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, kind, advantage: 0, conditions: [], talents: [], activeEffects: [], groups: [],
-    wounds: { current: 10, max: 10, base: 10 },
+    wounds: blessuresDeBase(10),
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 35, agilite: 40, dexterite: 45, intelligence: 40, 'force-mentale': 45, sociabilite: 30 },
     skills: [], weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 interface FakeBattle { combatants: Combatant[]; advantagePools?: AdvantagePools; log: unknown[] }
 const makeGet = (combatants: Combatant[], advantagePools?: AdvantagePools) => {

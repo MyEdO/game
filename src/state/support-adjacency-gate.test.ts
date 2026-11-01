@@ -4,19 +4,20 @@ import { runFlow } from '../noyau/combatEffects';
 import { testFlow } from '../noyau/monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * INTÉGRATION scène → jet : les limites du Soutien (LDB 12 l.195/l.196/l.197) réellement gatées par
  * `openSkillTest` (#467, #1057) — Augmentation dans la Compétence (l.195), adjacence en combat
  * (géométrie `battle.combatants`, l.196), exclusion déclarative (`FlowTest.noSupport`, l.197).
  */
-const skilled = (id: string, pos: { x: number; y: number } | undefined, agilite = 30, advances = 1): Combatant => ({
+const skilled = (id: string, pos: { x: number; y: number } | undefined, agilite = 30, advances = 1): Combatant => (blessuresSurLeProfil({
   id, name: id, kind: 'hero', pos,
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-  wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4,
+  wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
   skills: [{ id: 'perception', characteristic: 'agilite', advances }], talents: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 const battleOf = (combatants: Combatant[]) => ({ combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, log: [], over: null } as never);
 

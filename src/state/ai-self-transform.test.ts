@@ -9,17 +9,18 @@ import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Griffes', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const C = { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const scene = emptyScene('scene-test', 16, 16);
 
 function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
-  return {
-    id, label: id, kind, pos, wounds: { current: 14, max: 14, base: 14 }, characteristics: C as never,
+  return blessuresSurLeProfil({
+    id, label: id, kind, pos, wounds: blessuresDeBase(14), characteristics: C as never,
     advantage: 0, conditions: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } as never,
     skills: [], talents: [], movement: 4, weapons: [MELEE], ...opts,
-  } as Combatant;
+  }) as Combatant;
 }
 const input = (enemy: Combatant, heroes: Combatant[]): EnemyTurnInput =>
   ({ enemy, heroes, scene, blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)), movement: enemy.movement, spells: [] });

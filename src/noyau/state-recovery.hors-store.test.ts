@@ -4,20 +4,20 @@ import type { Combatant } from '../engine/types';
 import { applyOps } from '../engine/ops';
 import { findConditionById } from '../data';
 import { desDuTest } from '../engine/dice.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function hero(p: Partial<Combatant>): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h1', label: 'Héros', kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 80, endurance: 40, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [{ id: 'athletisme', characteristic: 'agilite', advances: 20 }], talents: [], fortune: 0, resilience: 0,
     pos: { x: 1, y: 1 }, ...p,
-  } as Combatant;
+  }) as Combatant;
 }
 
 function enemy(p: Partial<Combatant>): Combatant {
@@ -160,10 +160,10 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
 
   it('Filet BARBELÉ (Zoo Impérial p.29) : Dégâts ignorant l’armure à CHAQUE tentative — RÉUSSIE', () => {
     // Endurance quasi nulle (BE 0) : isole le seul comportement testé (ignore l'ARMURE, PAS l'Endurance).
-    const h = hero({ id: 'h', wounds: blessuresDeBase(12),
+    const h = hero(blessuresSurLeProfil({ id: 'h', wounds: blessuresDeBase(12),
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 80, endurance: 1, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as any,
       armour: { tete: 5, brasG: 5, brasD: 5, corps: 5, jambeG: 5, jambeD: 5 },
-      conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 }] });
+      conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 }] }));
     setBattle([h], 'h');
     banc.getState().battleRecoverState('empetre');
     banc.getState().recoverRoll();
@@ -175,10 +175,10 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
   });
 
   it('Filet BARBELÉ (Zoo Impérial p.29) : Dégâts ignorant l’armure à CHAQUE tentative — RATÉE', () => {
-    const h = hero({ id: 'h', wounds: blessuresDeBase(12),
+    const h = hero(blessuresSurLeProfil({ id: 'h', wounds: blessuresDeBase(12),
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 80, endurance: 1, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as any,
       armour: { tete: 5, brasG: 5, brasD: 5, corps: 5, jambeG: 5, jambeD: 5 },
-      conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 }] });
+      conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 }] }));
     setBattle([h], 'h');
     banc.getState().battleRecoverState('empetre');
     banc.getState().recoverRoll();

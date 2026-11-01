@@ -27,6 +27,7 @@ import { t as tr } from '../i18n';
 import { avecLesTables } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -34,14 +35,14 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };
 
 const mk = (kind: Combatant['kind'], id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, kind, important: true /* LDB 18 l.44 : hors Mort subite */, characteristics: { ...CHARS },
-    wounds: { current: 30, max: 30 }, advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
+    wounds: blessuresDeBase(30), advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
     weapons: [], items: [], skills: [], talents: [], traits: [], movement: 4, bodyShape: 'humanoide',
     pos: { x: 0, y: 0 }, fate: 0, engagedWith: [], size: 'moyenne',
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...over,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 const uniformArmour = (pa: number) => ({ tete: pa, brasG: pa, brasD: pa, corps: pa, jambeG: pa, jambeD: pa });
 const armourSum = (c: Combatant) => Object.values(c.armour as Record<string, number>).reduce((a, b) => a + b, 0);
@@ -49,7 +50,7 @@ const armourSum = (c: Combatant) => Object.values(c.armour as Record<string, num
 // Mage avec Diction instinctive → un double d'Incantation ne déclenche pas d'Imparfaite Mineure parasite
 // (on isole l'étape de Déviation dans la cascade).
 const mage = (kind: Combatant['kind'], id: string): Combatant =>
-  mk(kind, id, { wounds: { current: 12, max: 12 } as never, talents: [{ talentId: 'diction-instinctive', times: 1 }] as never });
+  mk(kind, id, { wounds: blessuresDeBase(12), talents: [{ talentId: 'diction-instinctive', times: 1 }] as never });
 
 // Sort Projectile arcane MINIMAL (curé=non → pas de Flow d'effet) ; `damage` ADDITIF (+ DR + BFM).
 const missileSpell = (over: Record<string, unknown> = {}): never =>
@@ -288,7 +289,7 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
 
   it('OVERKILL (dépassement) héros blindé, sans double → fenêtre (origine dépassement, overkill>0)', () => {
     const caster = mage('enemy', 'e-mage');
-    const t = mk('hero', 'h-cible', { armour: uniformArmour(4), wounds: { current: 5, max: 30 } as never });
+    const t = mk('hero', 'h-cible', { armour: uniformArmour(4), wounds: blessuresDeBase(30, 5) });
     setBattle([caster, t]);
     castMissile(caster, t, missileSpell(), { critical: false }); // non-double → dépassement seul (5 PB < 6 dégâts)
     const sev = devSteps()[0]?.critSeverity;
@@ -301,7 +302,7 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
 
   it('OVERKILL héros « Subir » → Blessure Critique de dépassement appliquée (criticalWounds +1)', () => {
     const caster = mage('enemy', 'e-mage');
-    const t = mk('hero', 'h-cible', { armour: uniformArmour(4), wounds: { current: 5, max: 30 } as never });
+    const t = mk('hero', 'h-cible', { armour: uniformArmour(4), wounds: blessuresDeBase(30, 5) });
     setBattle([caster, t]);
     castMissile(caster, t, missileSpell(), { critical: false });
     resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, false);
@@ -310,7 +311,7 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
 
   it('OVERKILL héros « Dévier » → −1 PA, Critique de dépassement ignoré', () => {
     const caster = mage('enemy', 'e-mage');
-    const t = mk('hero', 'h-cible', { armour: uniformArmour(4), wounds: { current: 5, max: 30 } as never });
+    const t = mk('hero', 'h-cible', { armour: uniformArmour(4), wounds: blessuresDeBase(30, 5) });
     setBattle([caster, t]);
     castMissile(caster, t, missileSpell(), { critical: false });
     resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, true);
@@ -320,7 +321,7 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
 
   it('OVERKILL ennemi blindé, sans double → dévie AUTO (−1 PA, Critique ignoré, AUCUNE étape)', () => {
     const caster = mage('hero', 'h-mage');
-    const t = mk('enemy', 'e-cible', { armour: uniformArmour(4), wounds: { current: 5, max: 30 } as never });
+    const t = mk('enemy', 'e-cible', { armour: uniformArmour(4), wounds: blessuresDeBase(30, 5) });
     setBattle([caster, t]);
     castMissile(caster, t, missileSpell(), { critical: false });
     expect(devSteps().length).toBe(0);
@@ -330,7 +331,7 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
 
   it("'ldb' : Incantation critique qui DÉPASSE → deux Blessures critiques, à la même Localisation (LDB 46 l.30 ; LDB 18 l.17, l.53)", () => {
     const caster = mage('hero', 'h-mage');
-    const t = mk('enemy', 'e-cible', { wounds: { current: 5, max: 30 } as never });
+    const t = mk('enemy', 'e-cible', { wounds: blessuresDeBase(30, 5) });
     setBattle([caster, t]);
     castMissile(caster, t, missileSpell(), { critical: true });
     const fenetres = new Set<string>();
@@ -374,7 +375,7 @@ describe('Mêlée — Déviation sur dépassement (overkill, LDB 18 l.53 + 63 l.
 
   it('héros blindé subissant un dépassement → SUSPEND (étape `melee`)', () => {
     const e = mk('enemy', 'e1', { weapons: [weapon], pos: { x: 1, y: 0 } });
-    const h = mk('hero', 'h1', { armour: { ...uniformArmour(0), corps: 3 }, wounds: { current: 3, max: 15 } as never });
+    const h = mk('hero', 'h1', { armour: { ...uniformArmour(0), corps: 3 }, wounds: blessuresDeBase(15, 3) });
     setBattle([e, h]);
     const suspended = applyAttackResult(banc.getState, banc.setState, e, h, weapon, overkillRes());
     expect(suspended).toBe(OPS_DIFFEREES);
@@ -388,7 +389,7 @@ describe('Mêlée — Déviation sur dépassement (overkill, LDB 18 l.53 + 63 l.
 
   it('« Dévier » sur dépassement → −1 PA, pas de Blessure Critique (À Terre à 0 PB quand même)', () => {
     const e = mk('enemy', 'e1', { weapons: [weapon], pos: { x: 1, y: 0 } });
-    const h = mk('hero', 'h1', { armour: { ...uniformArmour(0), corps: 3 }, wounds: { current: 3, max: 15 } as never });
+    const h = mk('hero', 'h1', { armour: { ...uniformArmour(0), corps: 3 }, wounds: blessuresDeBase(15, 3) });
     setBattle([e, h]);
     applyAttackResult(banc.getState, banc.setState, e, h, weapon, overkillRes());
     resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, true);
@@ -399,7 +400,7 @@ describe('Mêlée — Déviation sur dépassement (overkill, LDB 18 l.53 + 63 l.
 
   it('« Subir » sur dépassement → Blessure Critique appliquée (criticalWounds +1)', () => {
     const e = mk('enemy', 'e1', { weapons: [weapon], pos: { x: 1, y: 0 } });
-    const h = mk('hero', 'h1', { armour: { ...uniformArmour(0), corps: 3 }, wounds: { current: 3, max: 15 } as never });
+    const h = mk('hero', 'h1', { armour: { ...uniformArmour(0), corps: 3 }, wounds: blessuresDeBase(15, 3) });
     setBattle([e, h]);
     applyAttackResult(banc.getState, banc.setState, e, h, weapon, overkillRes());
     resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, false);
@@ -428,7 +429,7 @@ describe("Projectile — relance de la Localisation par le Coup Critique (LDB 18
 
   it("(a) 'aa', cible déjà à 0, sans Incantation critique : la Localisation est relancée (branche 1)", () => {
     const relancee = critWoundLocation(makeRNG(GRAINE), 'humanoide');
-    const { touche, journal } = projectile({ wounds: { current: 0, max: 30 } as never }, false);
+    const { touche, journal } = projectile({ wounds: blessuresDeBase(30, 0) }, false);
     expect(relancee, 'la graine sépare les deux Localisations').not.toBe(touche);
     expect(live('e-cible').criticalWounds).toBe(1);
     expect(critiqueA(journal, relancee), 'le Critique à la Localisation du d100 frais').toBe(true);
@@ -436,7 +437,7 @@ describe("Projectile — relance de la Localisation par le Coup Critique (LDB 18
   });
 
   it("(b) 'aa', passage à 0, sans Incantation critique : la Localisation de touche est gardée (branche 2)", () => {
-    const { touche, journal } = projectile({ wounds: { current: 2, max: 30 } as never }, false);
+    const { touche, journal } = projectile({ wounds: blessuresDeBase(30, 2) }, false);
     expect(live('e-cible').criticalWounds).toBe(1);
     expect(critiqueA(journal, touche), 'le Critique à la Localisation de touche').toBe(true);
   });
@@ -455,7 +456,7 @@ describe("Projectile — relance de la Localisation par le Coup Critique (LDB 18
   }
 
   it('(c) Incantation critique sur une Structure : aucune relance, le seul d100 tiré est celui de la table', () => {
-    projectile({ wounds: { current: 10, max: 30 } as never, bodyShape: 'structure' }, true);
+    projectile({ wounds: blessuresDeBase(30, 10), bodyShape: 'structure' }, true);
     expect(live('e-cible').criticalWounds).toBe(1);
     const temoin = makeRNG(GRAINE);
     temoin.int(1, 100);
@@ -499,7 +500,7 @@ describe('Après la Blessure critique infligée (LDB 10 ; LDB 18 l.15 ; #1595 c.
   const critiqueOppose = (fb: number, pb: number): Combatant => {
     seedBattleRng(7);
     const a = mk('enemy', 'a', { talents: fb ? [{ talentId: 'frappe-blessante', times: fb }] : [] } as never);
-    const v = mk('enemy', 'v', { wounds: { current: pb, max: 30 } as never });
+    const v = mk('enemy', 'v', { wounds: blessuresDeBase(30, pb) });
     setBattle([a, v]);
     applyOpposedCritical(banc.getState, banc.setState, v, 44, { attackerId: 'a' }, []);
     return live('v');

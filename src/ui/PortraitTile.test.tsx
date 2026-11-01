@@ -6,8 +6,8 @@ import { PortraitTile } from './PortraitTile';
 import { iconSvg } from './Icon';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
-import { blessuresDeBase } from '../engine/characteristics';
 import { teamRingDecor } from '../gameIso/builders/dynamicMarks';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const base = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
 const css = ['portrait-tile', 'initiative-strip'].map((nom) => readFileSync(`src/ui/styles/${nom}.css`, 'utf8')).join('\n').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -15,7 +15,7 @@ const css = ['portrait-tile', 'initiative-strip'].map((nom) => readFileSync(`src
 describe('PortraitTile', () => {
   it('jauge HORIZONTALE : pleine et verte à PV max', () => {
     const c = base();
-    c.wounds = blessuresDeBase(12);
+    c.wounds = blessuresDeBase(12, 12, c);
     const html = renderToStaticMarkup(<PortraitTile c={c} />);
     expect(html).toContain('ptile-gauge');
     expect(html).toContain('--life-pct:100%'); // barre horizontale (largeur = ratio), plus de hauteur
@@ -24,7 +24,7 @@ describe('PortraitTile', () => {
 
   it('jauge rouge en zone critique (≤34 %)', () => {
     const c = base();
-    c.wounds = blessuresDeBase(12, 3); // ratio 0.25
+    c.wounds = blessuresDeBase(12, 3, c); // ratio 0.25
     const html = renderToStaticMarkup(<PortraitTile c={c} />);
     expect(html).toContain('--life-pct:25%');
     expect(html).toContain('--life-color:#e74c3c'); // hpColor critique
@@ -32,7 +32,7 @@ describe('PortraitTile', () => {
 
   it('PV chiffrés : héros à partir de md ; jamais en sm ni pour un ennemi (jauge seule)', () => {
     const c = base();
-    c.wounds = blessuresDeBase(11);
+    c.wounds = blessuresDeBase(11, 11, c);
     const heroMd = renderToStaticMarkup(<PortraitTile c={c} size="md" />);
     expect(heroMd).toContain('life-bar__value');
     expect(heroMd).toContain('11/11');
@@ -40,7 +40,7 @@ describe('PortraitTile', () => {
     expect(renderToStaticMarkup(<PortraitTile c={c} size="sm" />)).not.toContain('life-bar__value');
     // ennemi : PB exacts réservés à l'Inspection — ni cartouche, ni fuite par le title
     const foe = { ...base(), kind: 'enemy' } as Combatant;
-    foe.wounds = blessuresDeBase(11, 9);
+    foe.wounds = blessuresDeBase(11, 9, foe);
     const foeMd = renderToStaticMarkup(<PortraitTile c={foe} size="md" />);
     expect(foeMd).not.toContain('life-bar__value');
     expect(foeMd).not.toContain('9/11');
@@ -88,7 +88,7 @@ describe('PortraitTile', () => {
     expect(dead).toContain(iconSvg('journal/death')); // crâne, pas une croix générique
     // un héros à 0 PB CONSCIENT reste À Terre (pas un état de fin) : aucune pastille
     const aterre = base();
-    aterre.wounds = blessuresDeBase(12, 0);
+    aterre.wounds = blessuresDeBase(12, 0, aterre);
     const html = renderToStaticMarkup(<PortraitTile c={aterre} />);
     expect(html).not.toContain('end-mark');
     const c2 = base();

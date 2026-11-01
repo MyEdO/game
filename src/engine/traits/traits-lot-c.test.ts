@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  traitCharMods, traitMovementMod, traitBonusWoundsBE, wardSaves,
+  traitCharMods, traitMovementMod, wardSaves,
   traitAuras,
   immunityTypes, isUnstable,
   bellicosePsychImmune, isMindless, isBestial, isColdBlooded, isStupid, hasRage,
@@ -17,18 +17,19 @@ import { effectiveMovement } from '../encumbrance';
 import type { Combatant } from '../../engine/types';
 import { statblockToCombatant, creatureToCombatant } from '../../noyau/monde/spawn';
 import { findCreatureById } from '../../data';
+import { blessuresSurLeProfil, blessuresDeBase } from '../combattantDeTest.testkit';
 
 /** Lot C — Traits de créature (LDB 85). Tests PURS des helpers + dérivation de profil au spawn. */
 
 function mk(over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'c', label: 'C', kind: 'enemy',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4,
     ...over,
-  } as Combatant;
+  }) as Combatant;
 }
 
 describe('dispatch — parsing et prédicats (LDB 85)', () => {
@@ -38,7 +39,6 @@ describe('dispatch — parsing et prédicats (LDB 85)', () => {
     expect(traitMovementMod([{ id: 'brutal' }])).toBe(-1);
     expect(traitMovementMod([{ id: 'rapide' }])).toBe(1);
     expect(traitCharMods([{ id: 'ruse' }])).toEqual({ sociabilite: 10, intelligence: 10, initiative: 10 });
-    expect(traitBonusWoundsBE([{ id: 'endurant' }])).toBe(true);
   });
   it('sauvegardes : Démoniaque 8+, Protection 9', () => {
     expect(wardSaves([{ id: 'demoniaque', value: 8 }])).toEqual([8]);

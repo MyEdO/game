@@ -614,7 +614,7 @@ describe('buildScene — encounters : marqueurs d’Avantage initial (Manœuvrab
   it('startAdvantagePools dérive l’Avantage initial depuis la rencontre buildée (bout en bout authoring → moteur)', async () => {
     const { startAdvantagePools } = await import('./combat/advantagePool');
     const mk = (id: string, kind: 'hero' | 'enemy') =>
-      ({ id, kind, advantage: 0, conditions: [], talents: [], activeEffects: [], wounds: { current: 10, max: 10, base: 10 } }) as unknown as Parameters<typeof startAdvantagePools>[0][number];
+      ({ id, kind, advantage: 0, conditions: [], talents: [], activeEffects: [], wounds: { current: 10, max: 10 } }) as unknown as Parameters<typeof startAdvantagePools>[0][number];
     const hero = mk('h1', 'hero');
     const foe = mk('e1', 'enemy');
     // Manœuvrabilité 'party' (+2) + Terrain 'party' heavy (+2) côté alliés ; Menace 'enemies' dangereuse (+1) côté adverses.

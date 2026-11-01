@@ -6,19 +6,20 @@ import { buildTokens, partyTokenOf } from './tokens';
 import { combatantRingDecor, teamRings } from './dynamicMarks';
 import { tokenChromes } from './tokenChrome';
 import { isOverhang, capsSolid } from './floors';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /** Fabrique un combattant MINIMAL (champs consommés par le builder + prédicats de filtre). */
 function cbt(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number; z?: number }, extra: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id,
     name: id,
     kind,
     pos,
     size: 'moyenne',
     conditions: [],
-    wounds: { current: 10, max: 10 },
+    wounds: blessuresDeBase(10),
     ...extra,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 const battleOf = (combatants: Combatant[]): BattleState => ({ combatants } as unknown as BattleState);

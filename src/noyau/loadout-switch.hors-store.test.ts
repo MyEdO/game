@@ -1,8 +1,7 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant, ItemInstance } from '../engine/types';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

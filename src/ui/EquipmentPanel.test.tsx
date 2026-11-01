@@ -4,6 +4,7 @@ import { EquipmentPanel } from './EquipmentPanel';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { trappings } from '../data';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Résolveur de test : libellé → instance par id (authoring). */
 const itemFromTrapping = (label: string) => itemFromTrappingById(trappings.find((t) => t.label === label)!.id);
@@ -25,20 +26,20 @@ const mkHero = (mut?: (items: ItemInstance[]) => void): Combatant => {
     real('Hallebarde', 'halle', false),
   ];
   mut?.(items);
-  const c = {
+  const c = blessuresSurLeProfil({
     id: 'h',
     name: 'H',
     kind: 'hero',
     species: 'humains-reiklander',
     career: 'Soldat',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     conditions: [],
     skills: [],
     talents: [],
     movement: 4,
     items,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
   recomputeLoadout(c); // dérive armour/weapons + auto-génère Set I / Set II
   return c;
 };

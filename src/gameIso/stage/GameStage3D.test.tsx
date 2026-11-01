@@ -9,6 +9,7 @@ import { MondeDeCampagne } from './MondeDeCampagne';
 import { hasSpritePicker, targetUnderPointer } from './spritePicker';
 import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise } from './banc-volumique';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
 
 /** Le canevas porte le monde ; le SVG porte les prises et les overlays d'interaction. */
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -21,12 +22,12 @@ beforeAll(() => setStageRendererFactory(() => new BancRenderer()));
 afterAll(() => setStageRendererFactory(null));
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', species: 'humains-reiklander', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
-    characteristics: {}, advantage: 0, conditions: [], armour: {},
+    wounds: blessuresDeBase(12), weapons: [],
+    characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 let root: Root | null = null;

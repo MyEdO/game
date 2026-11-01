@@ -5,6 +5,7 @@ import { rederivePassiveAttack, woundsFromHit } from './combat';
 import type { Combatant, Weapon } from './types';
 import type { SizeCategory } from './size';
 import { makeRNG } from './dice';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * #25 — COQUE EN COMBAT PERSONNEL (MDG 13 « Infliger des Dégâts aux navires ») :
@@ -44,15 +45,15 @@ describe('meleeVsHullBE — Tableau de comparaison des Tailles (MDG 13 l.618-637
 });
 
 const hull = (creatureId: string, E = 40): Combatant =>
-  ({ id: 'hull', name: 'Coque', kind: 'enemy', bodyShape: 'vehicule', creatureId, pos: { x: 6, y: 5 },
+  (blessuresSurLeProfil({ id: 'hull', name: 'Coque', kind: 'enemy', bodyShape: 'vehicule', creatureId, pos: { x: 6, y: 5 },
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
-    wounds: { current: 60, max: 60 }, advantage: 0, conditions: [], weapons: [], skills: [], talents: [],
-    armour: { corps: 0 } }) as unknown as Combatant;
+    wounds: blessuresDeBase(60), advantage: 0, conditions: [], weapons: [], skills: [], talents: [],
+    armour: { corps: 0 } })) as unknown as Combatant;
 const bruiser = (size?: SizeCategory): Combatant =>
-  ({ id: 'atk', name: 'Cogneur', kind: 'hero', size,
+  (blessuresSurLeProfil({ id: 'atk', name: 'Cogneur', kind: 'hero', size,
     characteristics: { 'capacite-de-combat': 60, 'capacite-de-tir': 60, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], weapons: [], skills: [], talents: [],
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } }) as unknown as Combatant;
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [], skills: [], talents: [],
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } })) as unknown as Combatant;
 const hache: Weapon = { name: 'Hache', type: 'melee', damage: { flat: 7, plusBF: true }, qualities: [] } as unknown as Weapon;
 const arc: Weapon = { name: 'Arc', type: 'ranged', subType: 'arc', damage: { flat: 7, plusBF: false }, range: 50, qualities: [] } as unknown as Weapon;
 const canon: Weapon = { name: 'Canon (moyen)', type: 'ranged', subType: 'armes-de-siege', weaponGroup: 'poudre-noire', damage: { flat: 14, plusBF: false }, range: 75, qualities: [] } as unknown as Weapon;

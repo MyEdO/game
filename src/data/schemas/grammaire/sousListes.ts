@@ -15,5 +15,10 @@ export const INSTANCIABLE_PAR_ID = { horsMarqueurs: ['service'] } as const;
 export const RACINE_D_APPARENCE = { horsMarqueurs: ['forme'] } as const;
 
 /** Groupes qu'un PORTEUR déclare (`grantGroups`, `groups`) : l'espace `groups.json` privé des Groupes-Cibles
- *  jokers, marqués `matchesAll` — un joker vise, il ne se déclare pas. #3045 */
-export const DECLARABLE_PAR_UN_PORTEUR = { horsMarqueurs: ['matchesAll'] } as const;
+ *  jokers (`matchesAll`) et relatifs (`relatif`) — ils visent, ils ne se déclarent pas. #3045 */
+export const DECLARABLE_PAR_UN_PORTEUR = { horsMarqueurs: ['matchesAll', 'relatif'] } as const;
+
+/** Groupes qu'une Cible d'APPARTENANCE lit sans porteur de Trait psy (`onlyGroups`, `exceptGroups`,
+ *  `blockGroups`, Condition `has`) : l'espace `groups.json` privé des Groupes relatifs, qui n'ont de sens
+ *  que rapportés à ce porteur. #3045 */
+export const CIBLE_D_APPARTENANCE = { horsMarqueurs: ['relatif'] } as const;

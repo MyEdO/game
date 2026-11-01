@@ -13,6 +13,7 @@ import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { applyTriggeredEffects } from '../noyau/triggeredEffects';
 import type { Get } from '../noyau/flowTypes';
 import { desDuTest, desEnSuite } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Applique les riders onHit AUTHORÉS d'un Domaine à `target` (gating par les Conditions Flow, contre
  *  les vues d'acteur du lanceur/cible). `caster` adverse = camp ≠ (hero vs enemy). `domainId` = id STABLE. */
@@ -27,14 +28,14 @@ function seq(values: number[]): RNG {
 }
 
 function mk(over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'c', name: 'Cobaye', kind: 'enemy', size: 'moyenne', advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 },
     conditions: [], skills: [], talents: [], traits: [], groups: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    movement: 4, wounds: { current: 12, max: 12 },
+    movement: 4, wounds: blessuresDeBase(12),
     ...over,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 const mail = (pa: number): ItemInstance => ({
@@ -98,7 +99,7 @@ describe('Riders « à la touche » data-driven (Feu / Lumière / Mort / Vie) �
   });
   it('Lumière : Aveuglé + frappe BInt ignorant BE/PA sur un Mort-vivant', () => {
     const w = mk({ id: 'w', kind: 'hero' }); // BInt 4
-    const z = mk({ id: 'z', kind: 'enemy', traits: [{ id: 'mort-vivant' }], wounds: { current: 10, max: 10 } as Combatant['wounds'] });
+    const z = mk({ id: 'z', kind: 'enemy', traits: [{ id: 'mort-vivant' }], wounds: blessuresDeBase(10) });
     applyDomain(w, z, 'lumiere');
     expect(hasCondition(z, 'aveugle')).toBe(true);
     expect(z.wounds.current).toBe(6); // 4 = BInt, ignore BE+PA
@@ -123,7 +124,7 @@ describe('Riders « à la touche » data-driven (Feu / Lumière / Mort / Vie) �
     applyDomain(w, ally, 'vie');
     expect(stacks(ally, 'extenue')).toBe(0);
     expect(stacks(ally, 'hemorragique')).toBe(0);
-    const z = mk({ id: 'z', kind: 'enemy', traits: [{ id: 'mort-vivant' }], wounds: { current: 10, max: 10 } as Combatant['wounds'] });
+    const z = mk({ id: 'z', kind: 'enemy', traits: [{ id: 'mort-vivant' }], wounds: blessuresDeBase(10) });
     applyDomain(w, z, 'vie');
     expect(z.wounds.current).toBe(6);
   });

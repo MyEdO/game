@@ -6,7 +6,7 @@ import { spawnEnemy } from './monde/spawn';
 import { pregen, PREGEN } from '../data/pregens';
 import { stacks } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -26,9 +26,9 @@ const CHARS = { 'capacite-de-combat': 35, 'capacite-de-tir': 35, force: 30, endu
 /** Ennemi minimal pour la DÉCISION pure : pos + arme de mêlée + caracs + États/Détermination paramétrés.
  *  (Les caracs servent au cœur de scoring atteint quand l'ennemi n'est PAS verrouillé — `pickDoctrine`.) */
 function foe(over: Partial<Combatant>): Combatant {
-  return { id: 'e', kind: 'enemy', name: 'E', pos: { x: 5, y: 5 }, weapons: sword, characteristics: CHARS, skills: [], conditions: [], wounds: { current: 10, max: 10 }, advantage: 0, traits: [], size: 'moyenne', engagedWith: [], psychState: [], ...over } as unknown as Combatant;
+  return blessuresSurLeProfil({ id: 'e', kind: 'enemy', name: 'E', pos: { x: 5, y: 5 }, weapons: sword, characteristics: CHARS, skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, traits: [], size: 'moyenne', engagedWith: [], psychState: [], ...over }) as unknown as Combatant;
 }
-const hero = (x: number, y: number): Combatant => ({ id: 'h', kind: 'hero', name: 'H', pos: { x, y }, wounds: { current: 10, max: 10 }, conditions: [], characteristics: CHARS, traits: [], size: 'moyenne', advantage: 0, weapons: [], armour: {} } as unknown as Combatant);
+const hero = (x: number, y: number): Combatant => (blessuresSurLeProfil({ id: 'h', kind: 'hero', name: 'H', pos: { x, y }, wounds: blessuresDeBase(10), conditions: [], characteristics: CHARS, traits: [], size: 'moyenne', advantage: 0, weapons: [], armour: {} }) as unknown as Combatant);
 const decide = (enemy: Combatant, heroes: Combatant[]) =>
   chooseEnemyAction({ enemy, heroes, scene: scene(), blocked: new Set<string>(), movement: 4 } as never);
 
@@ -72,7 +72,7 @@ describe('IA Brisé — dispatch : la dépense retire l\'État puis une vraie ac
     e.engagedWith = ['h'];
     e.movement = 4;
     const h = pregen(PREGEN.sorcier);
-    h.id = 'h'; h.pos = { x: 6, y: 5 }; h.wounds = blessuresDeBase(30); // adjacent → mêlée après déverrouillage
+    h.id = 'h'; h.pos = { x: 6, y: 5 }; h.wounds = blessuresDeBase(30, 30, h); // adjacent → mêlée après déverrouillage
     const battle = {
       combatants: [e, h], order: ['e', 'h'], baseOrder: ['e', 'h'], turn: 0, round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,

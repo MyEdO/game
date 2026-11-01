@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { wornArmourPoints, ignoredArmourAP, impenetrableAt } from '../items';
 import { parseQualityInstance } from './normalize';
 import type { Combatant, ItemInstance } from '../types';
-import { blessuresDeBase } from '../characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../combattantDeTest.testkit';
 
 /**
  * Lot B — Atouts/Défauts d'armure intrinsèques (LDB 63, Qualités des armures) :
@@ -14,13 +14,13 @@ const piece = (name: string, pa: number, locs: ItemInstance['locs'], qualities: 
   ({ uid: `it-${uidSeq++}`, label: name, kind: 'armor', equipped: true, pa, locs, qualities: qualities.map((s) => parseQualityInstance(s)!), enc: 1 } as ItemInstance);
 
 function wearer(items: ItemInstance[]): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'w', label: 'W', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, items,
-  } as Combatant;
+  }) as Combatant;
 }
 
 describe('Flexible — superposition (LDB 63 : « les bénéfices des deux »)', () => {

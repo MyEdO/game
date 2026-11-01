@@ -4,18 +4,19 @@ import { applyEffects } from './combatEffects';
 import { restoreFortune } from '../engine/fortune';
 import { fortuneMax } from '../engine/talentEffects';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (p: Partial<Combatant>): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h', label: 'H', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], skills: [], talents: [],
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     fate: 3, fortune: 0, ...p,
-  } as Combatant);
+  }) as Combatant);
 
 describe('Effet restoreFortune — Chance regagnée en début de session (LDB 17 l.41)', () => {
   beforeEach(() => { banc.setState({ battle: null, mode: 'exploration' }); });

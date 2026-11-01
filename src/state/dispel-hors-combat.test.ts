@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setRule, resetRule } from '../engine/policy';
 import { useGame } from './store';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Dissipation HORS COMBAT (couture D, #461, LDB 46 l.160-162) : « pour votre Action » n'est pas
  *  bornée au combat — calque `oocFocusSpell`, réutilise `dispel.ts`/`dispelConfirm` tels quels. */
@@ -9,14 +10,14 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
   beforeEach(() => { vi.clearAllTimers(); useGame.setState({ battle: null, pendingDispel: null }); });
 
   const langue = { id: 'langue', spec: 'magick', characteristic: 'intelligence' as const, advances: 20 };
-  const mk = (id: string, spells: string[], extra: Partial<Combatant> = {}): Combatant => ({
+  const mk = (id: string, spells: string[], extra: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
     id, name: id, kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [langue], talents: [], spells,
     ...extra,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
   function setup() {
     // Deux lanceurs du MÊME Domaine (Bête), sans `pos` (hors combat) + une cible du groupe porteuse

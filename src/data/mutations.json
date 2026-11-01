@@ -489,6 +489,17 @@
     "desc": "Sujet à l’Hostilité (voir Psychologie ) envers tous ceux qui ne sont pas de votre race.",
     "kind": "mentale",
     "note": "Sujet à l’Hostilité envers tous ceux qui ne sont pas de votre race.",
+    "passive": [
+      {
+        "op": "grantPsychTrait",
+        "psychType": {
+          "id": "animosite"
+        },
+        "cible": {
+          "id": "autres-races"
+        }
+      }
+    ],
     "source": {
       "book": "livre-de-base",
       "page": 185

@@ -1,16 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h', name: 'H', kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], weapons: [], armour: {}, skills: [], talents: [], movement: 4, items: [],
-  }) as unknown as Combatant;
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], weapons: [], armour: {}, skills: [], talents: [], movement: 4, items: [],
+  })) as unknown as Combatant;
 
 describe('dismissVictory — fermeture de l’écran de victoire', () => {
   it('ferme l’écran et revient à l’exploration', () => {

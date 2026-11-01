@@ -12,13 +12,15 @@ import { rollTest, evaluateTest, extendedTestStep, jetPose, type JetPose } from 
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
 import { testValue } from './skills';
-import { findPsychologyById, psychologyLabel, refLabel, talents } from '../data';
+import { findGroupById, findPsychologyById, psychologyLabel, refLabel, talents } from '../data';
+import type { Relatif } from '../data/schemas/defs/groups';
+import { isEngagedWith } from './engagement';
 import type { PlayerText } from '../i18n/playerText';
 import { ciblePsyLue, estCibleType, identiteDeCiblage, selonCible, varianteDe, type CiblePsy } from './psych/ciblage';
 import { opPsy } from './psych/opsPsy';
 import { SizeCategory, sizeGap } from './size';
 import { isOutOfAction, removeActiveEffects } from './conditions';
-import { groupMatch, groupesDe, groupesPercus, type PorteurDeGroupes } from './groups';
+import { groupMatch, groupesDe, groupesPercus, racesDe } from './groups';
 import { campOf, relationBetween } from './relations';
 import { bellicosePsychImmune, traitCapability } from './traits/dispatch';
 import { featuresOf } from './combatFeatures/dispatch';
@@ -82,25 +84,59 @@ export const cibleLabel = (type: string): { icon: string; label: string } | unde
   return p?.cibles ? { icon: p.icon ?? '', label: p.label } : undefined;
 };
 
-/** Ce qui peut déclencher, ou subir, un Trait psy ciblé : un combattant (ses Groupes, et son id s'il en a un), ou
- *  l'interlocuteur d'un Test social décrit par ses Groupes (`FlowTest.vsGroups`). */
+/** Ce qui peut déclencher, ou subir, un Trait psy ciblé : un combattant, ou l'interlocuteur d'un Test social
+ *  décrit par ses Groupes (`FlowTest.vsGroups`). */
 export type SourcePsy =
-  | { genre: 'combattant'; c: PorteurDeGroupes & { readonly id?: string } }
+  | { genre: 'combattant'; c: Combatant }
   | { genre: 'interlocuteur'; groups: readonly string[] };
 
 /** Ce qu'un lecteur regarde de la source : ce qu'elle EST (`groupesDe`), ou ce que l'observateur en
  *  PERÇOIT (`groupesPercus`). #3045 */
 type Lecture = 'appartenance' | 'percu';
 
-/** La Cible `cible` vise-t-elle la source `s`, selon la `lecture` du lecteur ? Seul prédicat de ciblage
- *  d'un Trait psy ; les jokers se résolvent par `groupMatch`. Un interlocuteur n'a que les Groupes que
- *  le Test lui décrit : perçu et appartenance s'y confondent. Un individu ne vise que le combattant de
- *  son id, quelle que soit la lecture ; un interlocuteur n'a pas d'id. #3045 */
-export function vise(cible: CiblePsy, s: SourcePsy, lecture: Lecture): boolean {
+/** Les Groupes de la source selon la `lecture` ; un interlocuteur n'a que ceux que le Test lui décrit. */
+const groupesLus = (s: SourcePsy, lecture: Lecture): readonly string[] =>
+  s.genre === 'interlocuteur' ? s.groups : lecture === 'appartenance' ? groupesDe(s.c) : groupesPercus(s.c);
+
+/** La source est-elle le porteur lui-même ? */
+const estLePorteur = (s: SourcePsy, porteur: Combatant): boolean => s.genre === 'combattant' && s.c.id === porteur.id;
+
+/** La source est-elle visée par un lien du porteur, un Trait qui le fait venir en aide à sa Cible menacée
+ *  (`triggerOn: 'threatened'`) ? Un lien à Cible relative ne compte pas. LDB 21 l.75, l.81 ; #3045 */
+const lieAuPorteur = (s: SourcePsy, porteur: Combatant, lecture: Lecture): boolean =>
+  effectivePsychTraits(porteur).some((t) => t.cible !== undefined && findPsychologyById(t.type)?.triggerOn === 'threatened' && viseSelon(t.cible, s, lecture, porteur, false));
+
+/** La lecture de chaque Groupe relatif (`GroupData.relatif`), rapportée au porteur. #3045 */
+const RELATIFS: Record<Relatif, (s: SourcePsy, porteur: Combatant, lecture: Lecture) => boolean> = {
+  // LDB 85 l.282 ; Q12 B, #3045
+  engagesAvecPorteur: (s, porteur) => s.genre === 'combattant' && isEngagedWith(porteur, s.c.id),
+  // Q15 A, #3045
+  etrangersAuPorteur: (s, porteur, lecture) =>
+    !lieAuPorteur(s, porteur, lecture) &&
+    (s.genre === 'interlocuteur' || relationBetween({ id: s.c.id, camp: campOf(s.c) }, { id: porteur.id, camp: campOf(porteur) }) === 'opponent'),
+  // LDB 19 l.152 ; EDOC 12 l.219 ; #3045
+  autresRacesQueLePorteur: (s, porteur, lecture) => {
+    const siennes = racesDe(groupesDe(porteur));
+    return !estLePorteur(s, porteur) && !racesDe(groupesLus(s, lecture)).some((r) => siennes.includes(r));
+  },
+};
+
+/** `vise`, les Groupes relatifs lus ou non (`relatifs`). */
+function viseSelon(cible: CiblePsy, s: SourcePsy, lecture: Lecture, porteur: Combatant, relatifs: boolean): boolean {
   return selonCible(cible, {
-    groupe: (id) => groupMatch(id, s.genre === 'interlocuteur' ? s.groups : lecture === 'appartenance' ? groupesDe(s.c) : groupesPercus(s.c)),
+    groupe: (id) => {
+      const relatif = findGroupById(id)?.relatif;
+      return relatif ? relatifs && RELATIFS[relatif](s, porteur, lecture) : groupMatch(id, groupesLus(s, lecture));
+    },
     individu: (id) => s.genre === 'combattant' && s.c.id === id,
   });
+}
+
+/** La Cible `cible` d'un Trait psy de `porteur` vise-t-elle la source `s`, selon la `lecture` du lecteur ?
+ *  Seul prédicat de ciblage d'un Trait psy : les jokers se résolvent par `groupMatch`, les Groupes relatifs
+ *  par rapport au porteur (`RELATIFS`), un individu par l'id du combattant. #3045 */
+export function vise(cible: CiblePsy, s: SourcePsy, lecture: Lecture, porteur: Combatant): boolean {
+  return viseSelon(cible, s, lecture, porteur, true);
 }
 
 /** Sujet à la Peur. LDB 21 l.25 */
@@ -202,7 +238,7 @@ export function psychImmuneToFrom(self: Combatant, foe: Combatant, channel: stri
     if (p.active !== true) continue;
     const d = findPsychologyById(p.type);
     if (d?.immuneWhileActive?.includes(channel)) return true;
-    if (d?.immuneToFromTarget?.includes(channel) && p.cible && vise(p.cible, { genre: 'combattant', c: foe }, 'appartenance')) return true;
+    if (d?.immuneToFromTarget?.includes(channel) && p.cible && vise(p.cible, { genre: 'combattant', c: foe }, 'appartenance', self)) return true;
   }
   return false;
 }
@@ -219,7 +255,7 @@ export function refreshDefendedPsych(c: Combatant, present: Combatant[]): boolea
   let changed = false;
   for (const p of c.psychState ?? []) {
     if (p.active !== true || !p.cible || !findPsychologyById(p.type)?.immuneWhileActive) continue;
-    const defendable = present.some((v) => v.id !== c.id && !v.dead && !isOutOfAction(v) && vise(p.cible!, { genre: 'combattant', c: v }, 'appartenance'));
+    const defendable = present.some((v) => v.id !== c.id && !v.dead && !isOutOfAction(v) && vise(p.cible!, { genre: 'combattant', c: v }, 'appartenance', c));
     if (!defendable) { p.active = false; changed = true; }
   }
   return changed;
@@ -236,7 +272,7 @@ export function ciblesAPulsion(porteur: Pick<Combatant, 'psychState'>): CiblePsy
 export function ciblesDePulsion(porteur: Combatant, combattants: readonly Combatant[]): Combatant[] {
   const cibles = ciblesAPulsion(porteur);
   if (!cibles.length) return [];
-  return combattants.filter((c) => c.id !== porteur.id && !c.dead && !isOutOfAction(c) && cibles.some((cb) => vise(cb, { genre: 'combattant', c }, 'appartenance')));
+  return combattants.filter((c) => c.id !== porteur.id && !c.dead && !isOutOfAction(c) && cibles.some((cb) => vise(cb, { genre: 'combattant', c }, 'appartenance', porteur)));
 }
 
 /** `refreshDefendedPsych` pour TOUT un roster (chacun mesuré contre l'ensemble) — forme appelée par les
@@ -281,7 +317,7 @@ function targetCausesEntries(self: Combatant): { cible: CiblePsy; kind: 'peur' |
  *  (LDB 21 l.87). Consommé par `fearSourceFor` (combat). Data-driven, pur. */
 export function targetCausedSourcesFor(self: Combatant, foe: Combatant): { kind: 'peur' | 'terreur'; indice: number }[] {
   return targetCausesEntries(self)
-    .filter((e) => vise(e.cible, { genre: 'combattant', c: foe }, 'percu'))
+    .filter((e) => vise(e.cible, { genre: 'combattant', c: foe }, 'percu', self))
     .map((e) => ({ kind: e.kind, indice: e.indice }));
 }
 
@@ -297,7 +333,7 @@ export function targetCausedTrigger(self: Combatant, visible: Combatant[]): { ki
         v.id !== self.id &&
         !(self.psychState ?? []).some((p) => p.type === e.kind && p.sourceId === v.id) &&
         (e.kind !== 'peur' || !psychImmuneToFrom(self, v, 'peur')) &&
-        vise(e.cible, { genre: 'combattant', c: v }, 'percu'),
+        vise(e.cible, { genre: 'combattant', c: v }, 'percu', self),
     );
     if (m) return { kind: e.kind, indice: e.indice, sourceId: m.id, cible: e.cible };
   }
@@ -327,12 +363,12 @@ export function supersededLines(c: Combatant, name: string): string[] {
 
 /** `self` porte-t-il « Sans Peur » (possédé, ou accordé sans spécialisation) contre l'ennemi `foe` qu'il
  *  RENCONTRE ? Éligibilité au Test allégé, jamais une immunité. LDB 10 l.1051 ; #3045 */
-export function sansPeurVs(self: Combatant, foe: PorteurDeGroupes): boolean {
+export function sansPeurVs(self: Combatant, foe: Combatant): boolean {
   return featuresOf(self).some(({ def, ctx }) => {
     if (!def.fearImmune) return false;
     if (ctx.spec == null) return true;
     const cible = ciblePsyLue(ctx.spec);
-    return cible !== undefined && varianteDe(cible) === 'groupe' && vise(cible, { genre: 'combattant', c: foe }, 'percu');
+    return cible !== undefined && varianteDe(cible) === 'groupe' && vise(cible, { genre: 'combattant', c: foe }, 'percu', self);
   });
 }
 
@@ -349,7 +385,7 @@ export function sansPeurFace(self: Combatant, kind: PsychType, foe: Combatant | 
  *  Codex) ; plus aucun fichier de code par trait. */
 export { parsePsychTraits } from './psych/registry';
 
-/** Baume pour un esprit blessé (LDB 42) : « Tous les Traits Psychologiques sont retirés pour la
+/** Baume pour un esprit blessé (LDB 43 l.70) : « Tous les Traits Psychologiques sont retirés pour la
  *  durée du Miracle » — les Traits psy de `c` sont DÉPLACÉS hors de la fiche (à porter par
  *  l'ActiveEffect `suppressedPsych`) ; les afflictions actives (`psychState`), dérivées des
  *  Traits, sont apaisées avec eux. Retourne les Traits suspendus, ou null s'il n'y en a aucun. */
@@ -561,7 +597,7 @@ export function targetedTrigger(self: Combatant, visible: Combatant[]): { type: 
     const m = visible.find(
       (v) =>
         v.id !== self.id &&
-        vise(tr.cible!, { genre: 'combattant', c: v }, 'percu') &&
+        vise(tr.cible!, { genre: 'combattant', c: v }, 'percu', self) &&
         (!needsThreat || visible.some((a) => a.id !== self.id && agressifEnvers(a, v))),
     );
     if (m) return { type: tr.type, cible: tr.cible, sourceId: m.id, indice: tr.indice };

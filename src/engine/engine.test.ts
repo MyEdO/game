@@ -3,7 +3,8 @@ import { makeRNG } from './dice';
 import { addCondition, combatTestPenalty, meleeAttackerBonus, cannotDefend } from './conditions';
 import { parseQualityInstance } from './qualities/normalize';
 import { evaluateTest, resolveOpposed } from './tests';
-import { bonus, maxWounds, blessuresDeBase } from './characteristics';
+import { bonus, maxWounds } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 import { effectiveWeaponDamage } from './weaponDamage';
 import {
   reverseRoll,
@@ -36,12 +37,12 @@ describe('Portée des tirs (table des Difficultés, 14 - _GoBack.md l.82-118 ; 1
 describe("Atouts d'arme (LDB Les armes)", () => {
   const rngOf = deFixe;
   const fighter = (cc: number, weapon: Partial<Weapon> = {}): Combatant =>
-    ({
+    (blessuresSurLeProfil({
       id: 'a',
       name: 'a',
       kind: 'enemy',
       characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-      wounds: { current: 20, max: 20 },
+      wounds: blessuresDeBase(20),
       advantage: 0,
       conditions: [],
       weapons: [{ label: 'W', type: 'melee', damage: { plusBF: false, flat: 5 }, qualities: [], ...weapon } as Weapon],
@@ -49,7 +50,7 @@ describe("Atouts d'arme (LDB Les armes)", () => {
       skills: [],
       talents: [],
       movement: 4,
-    }) as unknown as Combatant;
+    })) as unknown as Combatant;
 
   it('Perforante ignore 1 PA (→ +1 Blessure)', () => {
     const def = fighter(30);
@@ -149,12 +150,12 @@ describe("Atouts d'arme (LDB Les armes)", () => {
 
 describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', () => {
   const fighter = (cc: number, weapon: Partial<Weapon> = {}): Combatant =>
-    ({
+    (blessuresSurLeProfil({
       id: 'x',
       name: 'x',
       kind: 'enemy',
       characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-      wounds: { current: 20, max: 20 },
+      wounds: blessuresDeBase(20),
       advantage: 0,
       conditions: [],
       weapons: [{ label: 'W', type: 'melee', damage: { plusBF: false, flat: 5 }, qualities: [], ...weapon } as Weapon],
@@ -162,7 +163,7 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
       skills: [],
       talents: [],
       movement: 4,
-    }) as unknown as Combatant;
+    })) as unknown as Combatant;
 
   it('resolveMelee ≡ rollMeleeAttacker → rollMeleeDefender → finishMelee (Parade, même seed, même ordre RNG)', () => {
     const a = fighter(55);
@@ -217,12 +218,12 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
 describe('Sur la défensive (+20 en défense, LDB Combat l.118)', () => {
   const rngOf = deFixe;
   const mk = (cc: number, opts: Partial<Combatant> = {}): Combatant =>
-    ({
+    (blessuresSurLeProfil({
       id: 'c',
       name: 'c',
       kind: 'enemy',
       characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-      wounds: { current: 20, max: 20 },
+      wounds: blessuresDeBase(20),
       advantage: 0,
       conditions: [],
       weapons: [{ name: 'W', type: 'melee', damage: { plusBF: false, flat: 5 }, qualities: [] }],
@@ -231,7 +232,7 @@ describe('Sur la défensive (+20 en défense, LDB Combat l.118)', () => {
       talents: [],
       movement: 4,
       ...opts,
-    }) as unknown as Combatant;
+    })) as unknown as Combatant;
   it('un défenseur sur la défensive est plus dur à toucher (même jet)', () => {
     // Le +20 se mesure sur le DR de la défense (l.118), jamais sur un départage d'égalité : à CC 40,
     // le défenseur passe de DR 0 (cible 40) à DR 2 (cible 60) sur le même dé, et dépasse l'attaquant.
@@ -263,7 +264,7 @@ describe('États en combat (LDB 16)', () => {
     expect(cannotDefend(t)).toBe(true);
   });
   it('Empoisonné : endOfRound n’applique PLUS les dégâts (migrés en données — effects onRoundEnd → wounds {stacks})', () => {
-    const c = { name: 'x', conditions: [], characteristics: { endurance: 30 }, skills: [], wounds: { current: 10, max: 10 } } as unknown as Combatant;
+    const c = blessuresSurLeProfil({ name: 'x', conditions: [], characteristics: { endurance: 30 }, skills: [], wounds: blessuresDeBase(10) }) as unknown as Combatant;
     addCondition(c, 'empoisonne', 2);
     endOfRound(c, desDuTest);
     // Dégâts de poison désormais data-driven (etats.json + fireConditionEffects, cf. state/etat-perround.test) :
@@ -271,26 +272,26 @@ describe('États en combat (LDB 16)', () => {
     expect(c.wounds.current).toBe(10);
   });
   it('En Flammes : endOfRound n’applique PLUS les dégâts (migrés en données — effects onRoundEnd → wounds {sum})', () => {
-    const c = {
+    const c = blessuresSurLeProfil({
       name: 'x',
       conditions: [],
       characteristics: { endurance: 70 },
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-      wounds: { current: 20, max: 20 },
-    } as unknown as Combatant;
+      wounds: blessuresDeBase(20),
+    }) as unknown as Combatant;
     addCondition(c, 'en-flammes', 3);
     endOfRound(c, deFixe(4)); // dégâts de feu désormais data-driven (cf. state/etat-perround.test)
     expect(c.wounds.current).toBe(20); // endOfRound seul : aucun dégât de feu
   });
   it('Sonné : endOfRound NE touche plus le Sonné — Test de Résistance migré en DONNÉES (l.125-127)', () => {
-    const c = {
+    const c = blessuresSurLeProfil({
       name: 'x',
       conditions: [],
       skills: [],
       characteristics: { endurance: 50 },
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-      wounds: { current: 10, max: 10 },
-    } as unknown as Combatant;
+      wounds: blessuresDeBase(10),
+    }) as unknown as Combatant;
     addCondition(c, 'sonne', 2);
     endOfRound(c, deFixe(5)); // la Résistance au Sonné est `effects: onRoundEnd test` (etats.json), résolue par le dispatcher
     expect(c.conditions.some((x) => x.id === 'sonne')).toBe(true);   // endOfRound ne retire aucun pion (cf. noyau/combat/round-upkeep-cascade.hors-store.test)
@@ -300,7 +301,7 @@ describe('États en combat (LDB 16)', () => {
 
 describe('Avantage en combat (LDB Déplacement l.37 : +10 par point)', () => {
   const rngOf = deFixe;
-  const mk = (cc: number, advantage = 0): Combatant => ({
+  const mk = (cc: number, advantage = 0): Combatant => (blessuresSurLeProfil({
     id: 'c',
     label: 'c',
     kind: 'enemy',
@@ -313,7 +314,7 @@ describe('Avantage en combat (LDB Déplacement l.37 : +10 par point)', () => {
     skills: [],
     talents: [],
     movement: 4,
-  });
+  }));
   it('1 Avantage (+10) fait toucher là où 0 Avantage échoue (cible nue, même jet)', () => {
     const target = mk(30);
     // CC 40, jet 45 : sans Avantage cible=40 → échec ; +1 Avantage cible=50 → réussite.
@@ -449,7 +450,7 @@ describe('Dégâts d’arme (parsing via effectiveWeaponDamage)', () => {
 
 function dummy(name: string, chars: Partial<Characteristics>, wounds: number, weapon: Weapon): Combatant {
   const base: Characteristics = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-  return {
+  return blessuresSurLeProfil({
     id: name,
     label: name,
     kind: 'enemy',
@@ -462,7 +463,7 @@ function dummy(name: string, chars: Partial<Characteristics>, wounds: number, we
     skills: [],
     talents: [],
     movement: 4,
-  };
+  });
 }
 
 describe('Résolution de mêlée', () => {
@@ -565,7 +566,7 @@ describe('Coup Critique au niveau moteur (LDB 18-Traumatisme : double uniquement
 // --- Magie -----------------------------------------------------------------
 function caster(chars: Partial<Characteristics>, skills: SkillInstance[] = [], wounds = 12): Combatant {
   const base: Characteristics = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-  return {
+  return blessuresSurLeProfil({
     id: 'c',
     label: 'Mage',
     kind: 'hero',
@@ -578,7 +579,7 @@ function caster(chars: Partial<Characteristics>, skills: SkillInstance[] = [], w
     skills,
     talents: [],
     movement: 4,
-  };
+  });
 }
 
 const FLECHETTE: SpellLike = { label: 'Fléchette', ecole: 'Magie mineure', family: 'mineure', missile: true, damage: 0, cn: 0, duration: { kind: 'instant' }, desc: 'Il s’agit d’un Projectile magique avec Dégât +0.' };

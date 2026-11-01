@@ -21,6 +21,7 @@ import type { AttackResult } from '../engine/combat';
 import type { CascadeStep } from './pendings';
 import { OPS_DIFFEREES } from './combatEffects';
 import { testDeRegle } from '../engine/reglesChiffrees';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -84,7 +85,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     const { H, E } = combat(1, 7, [0]);
     const hero = H[0];
     hero.armour = PA(3); // PA déviable partout : le choix Dévier/Subir s'offre quelle que soit la loc tirée
-    hero.wounds = { current: 40, max: 40, base: 40 } as never;
+    hero.wounds = blessuresDeBase(40, 40, hero);
     seedBattleRng(5);
     applyOpposedCritical(banc.getState, banc.setState, hero, 33, { attackerId: E[0].id, weapon: 'Hache' }, []);
 
@@ -240,7 +241,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     frappeur.pos = { x: 6, y: 10 };
     fuyard.pos = { x: 7, y: 10 };
     fuyard.armour = PA(2); // PA → le Critique du coup dans le dos OFFRE la Déviation → suspension
-    fuyard.wounds = { current: 40, max: 40, base: 40 } as never;
+    fuyard.wounds = blessuresDeBase(40, 40, fuyard);
     fuyard.engagedWith = [frappeur.id];
     frappeur.engagedWith = [fuyard.id];
     banc.setState({

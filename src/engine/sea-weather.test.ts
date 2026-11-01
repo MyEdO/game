@@ -12,6 +12,7 @@ import { baseTestModLines } from './combat';
 import type { Combatant } from './types';
 import { setRule, resetRule } from './policy';
 import { desEnSuite } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Somme des lignes du canal Précipitations (MDG 13 l.185-200). */
 const precipMod = (...a: Parameters<typeof precipitationTestMods>): number => precipitationTestMods(...a).reduce((s, m) => s + m.value, 0);
@@ -204,11 +205,11 @@ describe('effets d’ambiance — Précipitations / Température / Visibilité (
 });
 
 describe('`baseTestModLines` — les Précipitations lisent la Compétence que l’appelant déclare (MDG 13 l.185, #1936)', () => {
-  const surLePont = (): Combatant => ({
+  const surLePont = (): Combatant => (blessuresSurLeProfil({
     id: 'x', label: 'X', kind: 'hero', characteristics: {}, skills: [], talents: [], traits: [],
     conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
-    wounds: { current: 10, max: 10, base: 10 }, advantage: 0, envPrecipitation: 'tres-abondantes',
-  }) as unknown as Combatant;
+    wounds: blessuresDeBase(10), advantage: 0, envPrecipitation: 'tres-abondantes',
+  })) as unknown as Combatant;
   const meteo = (lines: ReturnType<typeof baseTestModLines>) => lignesDe(lines, RULE_REF['meteo-maritime']).map((l) => l.value);
 
   it('un Test d’Athlétisme porte le −30 de sa Compétence, pas le −10 du Test de Caractéristique', () => {

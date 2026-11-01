@@ -4,11 +4,11 @@
  *
  * RÉUTILISE la machinerie d'effets existante plutôt qu'un sous-système dédié : le remplacement de
  * Caractéristique = un `charMod` DIFFÉRENTIEL (la cible atteint la valeur de la créature ; les PB
- * sont recalés par `blessuresReconciliees` au passage, et le bonus est RETIRÉ à l'expiration → on
- * reprend sa vraie forme tout seul) ; chaque Trait = un `grantTrait` (retiré à l'expiration aussi).
- * Tout est donc auto-restitué à la fin du Sort par `endOfRound` / la purge d'horloge — aucun
- * handler de restauration custom. La perte de la parole/incantation, le +1 Trait facultatif par
- * +2 DR et la persistance des PB perdus restent journalisés (arbitrage MJ).
+ * sont recalés par `blessuresReconciliees` au passage, les PB perdus demeurent, LDB 48 l.27, et le bonus
+ * est RETIRÉ à l'expiration → on reprend sa vraie forme tout seul) ; chaque Trait = un `grantTrait`
+ * (retiré à l'expiration aussi). Tout est donc auto-restitué à la fin du Sort par `endOfRound` / la purge
+ * d'horloge — aucun handler de restauration custom. Journalisés : LDB 48 l.23 (+1 Trait facultatif par
+ * +2 DR), LDB 48 l.25 (ni parole ni incantation).
  */
 import type { Combatant } from './types';
 import type { GameOp } from './ops';
@@ -25,7 +25,7 @@ export function liveMorphRef(c: Combatant): string | undefined {
 
 export function polymorphOps(target: Combatant, ref: string): GameOp[] {
   const cr = findCreatureById(ref);
-  if (!cr) return [{ op: 'narrative', text: `Forme bestiale : « ${ref} » introuvable au bestiaire — arbitrage MJ.` }];
+  if (!cr) return [{ op: 'narrative', text: `Forme bestiale : « ${ref} » introuvable au bestiaire.` }];
   const ops: GameOp[] = [];
   // F/E/Ag/Dex de la créature, par DIFFÉRENCE (effectiveChar = base + bonus = valeur de la créature).
   for (const k of ['force', 'endurance', 'agilite', 'dexterite'] as const) {
@@ -42,7 +42,7 @@ export function polymorphOps(target: Combatant, ref: string): GameOp[] {
   }
   ops.push({
     op: 'narrative',
-    text: `${target.label} prend la forme d'un(e) ${cr.label} (F/E/Ag/Dex et Traits de la créature, PB recalculés) ; elle ne peut ni parler ni incanter, et conserve les PB perdus en reprenant sa vraie forme — arbitrage MJ.`,
+    text: `${target.label} prend la forme d'un(e) ${cr.label} (F/E/Ag/Dex et Traits de la créature, PB recalculés) ; elle ne peut ni parler ni incanter, et conserve les PB perdus en reprenant sa vraie forme.`,
   });
   return ops;
 }

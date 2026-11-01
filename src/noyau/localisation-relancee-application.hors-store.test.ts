@@ -9,7 +9,8 @@ import { critLocationRoll, critTableRows, critTableKeyFor } from '../engine/crit
 import { makeRNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import { testScene } from '../scenes/test-fixture';
-import { locationLabel, type Combatant, type HitLocation, type Weapon } from '../engine/types';
+import { locationLabel, type HitLocation, type Weapon } from '../engine/types';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -29,7 +30,7 @@ function arene() {
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const cible = b.combatants.find((c) => c.kind === 'enemy')!;
-  cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+  cible.wounds = blessuresDeBase(20, 20, cible);
   cible.important = true;
   return { H, cible };
 }

@@ -58,8 +58,8 @@ export function StatblockEditor({ chemin, stat, onChange }: { chemin: string; st
     else char.B = v;
     onChange({ ...stat, char });
   };
-  /** « Utiliser les Tailles » (LDB 85 l.276-277) : agrandir/réduire de `steps` catégories ajuste F/E
-   *  (+10/cat.) et Ag (−5/cat.) et met à jour le Trait « Taille (X) » (visible dans la liste). */
+  /** « Utiliser les Tailles » (LDB 85 l.340) sur `steps` catégories, et le Trait « Taille (X) » (visible
+   *  dans la liste). */
   const applyResize = (steps: number) => {
     const traits = (stat.traits ?? []).filter((t) => t.id !== 'taille');
     traits.push({ id: 'taille', arg: SIZE_LABEL[stepSize(size, steps)] });

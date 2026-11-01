@@ -13,6 +13,7 @@ import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-vo
 import { HALO_SLOTS } from '../backends/webgl/interactHaloMeshes';
 import { haloRadiusK, HALO_RX_PX, type InteractHalo } from '../builders/interactHalos';
 import { PING_S } from './interactHaloPose';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * HALOS D'INTERACTION (#1176, P3-0g). Deux faits distincts s'y mesurent :
@@ -42,13 +43,13 @@ let conteneur: HTMLDivElement | null = null;
 brancherArdoise();
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
+    wounds: blessuresDeBase(12), weapons: [],
     characteristics: { 'capacite-de-combat': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** Un décor FOUILLABLE posé sur la carte — l'entité dont le halo est l'affordance. */

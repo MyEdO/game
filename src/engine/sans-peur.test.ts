@@ -13,13 +13,14 @@ import { refLabel, talents } from '../data';
 import { applyOps } from './ops';
 import type { Combatant } from './types';
 import { deFixe } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattantDeTest.testkit';
 
 const rngOf = deFixe;
-const mk = (o: Partial<Combatant> = {}): Combatant => ({
+const mk = (o: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'c', label: 'c', kind: 'enemy', advantage: 0, conditions: [],
-  characteristics: { 'force-mentale': 35 } as Combatant['characteristics'], psychState: [], psychTraits: [], groups: [],
-  weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: { current: 10, max: 10 }, ...o,
-} as Combatant);
+  characteristics: profilDeTest({ 'force-mentale': 35 }), psychState: [], psychTraits: [], groups: [],
+  weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...o,
+}) as Combatant);
 
 describe('Sans Peur (Ennemi) — Test de Calme Accessible (+20), un seul Test (LDB 10 l.1051)', () => {
   it('PEUR : le Test passe de Intermédiaire (+0) à Accessible (+20)', () => {

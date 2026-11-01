@@ -562,10 +562,10 @@
   {
     "id": "sousListesNommees",
     "type": "primitives.manifest",
-    "label": "INSTANCIABLE_PAR_ID/DECLARABLE_PAR_UN_PORTEUR",
+    "label": "INSTANCIABLE_PAR_ID/DECLARABLE_PAR_UN_PORTEUR/CIBLE_D_APPARTENANCE",
     "fichier": "src/data/schemas/grammaire/sousListes.ts",
-    "concept": "sous-listes marquées déclarées UNE fois (module feuille sans import) : les trappings que le moteur instancie par leur seul id ; les Groupes qu'un porteur déclare, jokers `matchesAll` exclus",
-    "perimetre": "feuilles `idDe`/`refs` des trappings instanciés (op et Effet `giveTrapping`, `grantWeapon.form`, `merchants.curated`), `itemFromTrappingById`, `trappingsInstanciables` ; champs de Groupe d'un porteur (`grantGroups`, `CustomStatblock.groups`, `FlowTest.vsGroups`)",
+    "concept": "sous-listes marquées déclarées UNE fois (module feuille sans import) : les trappings que le moteur instancie par leur seul id ; les Groupes qu'un porteur déclare, jokers `matchesAll` et relatifs `relatif` exclus ; les Groupes qu'une Cible d'appartenance lit sans porteur de Trait psy, relatifs exclus",
+    "perimetre": "feuilles `idDe`/`refs` des trappings instanciés (op et Effet `giveTrapping`, `grantWeapon.form`, `merchants.curated`), `itemFromTrappingById`, `trappingsInstanciables` ; champs de Groupe d'un porteur (`grantGroups`, `CustomStatblock.groups`, `FlowTest.vsGroups`) ; Cibles d'appartenance (`onlyGroups`, `exceptGroups`, `blockGroups`, Condition `has`)",
     "verrou": "src/data/trappings-instanciables.test.ts, src/data/schemas/grammaire/refs-groupe.test.ts"
   },
   {
@@ -2065,7 +2065,7 @@
     "type": "primitives.manifest",
     "label": "vise/SourcePsy/ciblesAPulsion/ciblesDePulsion",
     "fichier": "src/engine/psychology.ts",
-    "concept": "seul prédicat de ciblage d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch` pour un Groupe, l’id du combattant pour un individu ; `ciblesAPulsion` (Cibles des afflictions actives à pulsion d’attaque) et `ciblesDePulsion` (combattants de tout `kind` qu’elles visent) forment le vivier de l’IA",
+    "concept": "seul prédicat de ciblage d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch` pour un Groupe, l’id du combattant pour un individu, et lit un Groupe relatif (`GroupData.relatif` : Engagés, étrangers, autres Races, ces dernières par le marqueur `race`) par rapport au porteur du Trait, que chaque appelant passe ; `ciblesAPulsion` (Cibles des afflictions actives à pulsion d’attaque) et `ciblesDePulsion` (combattants de tout `kind` qu’elles visent) forment le vivier de l’IA",
     "perimetre": "+DR contre le groupe, immunités causées par le groupe, êtres aimés à défendre, vivier de l’IA, déclencheurs de Traits ciblés et de Phobie, présence au re-test, malus social, Sans Peur (Ennemi)",
     "verrou": "src/engine/psych-vise.test.ts, src/noyau/psych-individu.test.ts"
   },
@@ -2090,19 +2090,37 @@
   {
     "id": "maximumDesBlessures",
     "type": "primitives.manifest",
-    "label": "MaximumDesBlessures/blessuresDeBase/blessuresReconciliees",
+    "label": "MaximumDesBlessures/effectiveMaxWounds/blessuresPosees/blessuresReconciliees",
     "fichier": "src/engine/characteristics.ts",
-    "concept": "Blessures d’un porteur (#1463) : le maximum est une marque de type (`MaximumDesBlessures`, `engine/types.ts`, en lecture seule) que forgent seules `blessuresDeBase` (Blessures à vide : la base posée, que le maximum suit) et `blessuresReconciliees` (le maximum recalé sur ses porteurs, le courant au même delta) ; refusés : le nombre posé à la main (littéral, spread sans cast) et l’affectation (`readonly`) au type, le cast qui nomme la marque au lint (`murs/marques`) ; non murés, limites assumées au site de la marque : `Object.assign(c.wounds, { max })` et le cast par type indexé (`as Combatant['wounds']`, `as Combatant['wounds']['max']`)",
+    "concept": "Blessures d’un porteur (#1463) : le maximum est une marque de type (`MaximumDesBlessures`, `engine/types.ts`, en lecture seule) qui vaut `effectiveMaxWounds` (formule du profil courant à la Taille courante `tailleCourante`, × 5 sous le Trait Nuée, porteurs de `passiveMods`, effets, plus l’écart du livre `wounds.ecart`, requis, posé à la naissance), que forgent seules `blessuresPosees` (porteur né, profil en main : au maximum dérivé ou au B imprimé ; les fixtures de `engine/combattantDeTest.testkit.ts` y passent sur le profil de leur porteur : `blessuresDeBase`, `blessuresSurLeProfil` pour un littéral de combattant, `combattantDeTest`) et `blessuresReconciliees` (le maximum recalé, les Points perdus conservés, plancher 0, part sous 0 dans `perduesSousZero` tant que le courant est 0) ; refusés : le nombre posé à la main (littéral, spread sans cast) et l’affectation (`readonly`) au type, le cast qui nomme la marque au lint (`murs/marques`) ; non murés, limites assumées au site de la marque : `Object.assign(c.wounds, { max })` et le cast par type indexé (`as Combatant['wounds']`, `as Combatant['wounds']['max']`)",
     "perimetre": "constructeurs de combattants, coutures du moteur, transition de l’état (`noyau/transitionDuJeu.ts`), fixtures de test",
     "verrou": "src/engine/blessures-coutures.test.ts ; murs/marques (src/noyau/built-brand-lint.test.ts)"
   },
   {
     "id": "opPsy",
     "type": "primitives.manifest",
-    "label": "opPsy/traitOctroye",
+    "label": "opPsy/traitOctroye/libelleDuTraitOctroye",
     "fichier": "src/engine/psych/opsPsy.ts",
-    "concept": "ops psychologiques de `GameOp` (#1468, #1463) : `opPsy` (`pose`, `fin`, `octroi`, `retrait`) seule graphie de leurs références emboîtées `{ id }`, `traitOctroye` seul lecteur du Trait qu’accorde un `grantPsychTrait`",
+    "concept": "ops psychologiques de `GameOp` (#1468, #1463) : `opPsy` (`pose`, `fin`, `octroi`, `retrait`) seule graphie de leurs références emboîtées `{ id }`, `traitOctroye` seul lecteur du Trait qu’accorde un `grantPsychTrait`, `libelleDuTraitOctroye` son libellé, « une personne choisie » quand l’op vise `envers`",
     "perimetre": "producteurs des ops `beginPsych`, `endPsych`, `grantPsychTrait`, `removePsychTrait` (Psychologie, recette, éditeur, tests) ; lecteurs de `grantPsychTrait` (ops, mutations, maladies)",
     "verrou": "src/engine/psych/opsPsy.test.ts"
+  },
+  {
+    "id": "traitPsyAccorde",
+    "type": "primitives.manifest",
+    "label": "grantPsychTrait/memeTraitPsy/dropExpiredGrantedPsych",
+    "fichier": "src/engine/grantedTraits.ts",
+    "concept": "Trait psy accordé (#1463) : `grantPsychTrait` le pose et rend l’instance posée, `memeTraitPsy` la retrouve (identité de ciblage et provenance), `dropExpiredGrantedPsych` le retire à l’expiration de son effet porteur (`ActiveEffect.grantedPsychTrait`), suspendu compris, avec l’affliction de même identité",
+    "perimetre": "op `grantPsychTrait` à durée et `removePsychTrait` (`engine/ops.ts`), `attachMutation`, retrait d’effets actifs (`removeActiveEffects` : Rounds, horloge, dissipation)",
+    "verrou": "src/engine/psych-horloge.test.ts, src/noyau/colerique.hors-store.test.ts"
+  },
+  {
+    "id": "personneChoisie",
+    "type": "primitives.manifest",
+    "label": "personnesCandidates/sontAmis/personneDuDecideurAuto/visePersonneChoisie/fluxDEnvers",
+    "fichier": "src/noyau/personneChoisie.ts",
+    "concept": "la personne choisie d’un Trait psy accordé `envers: 'personneChoisie'` (VDM 10 l.327) : les personnes désignables (combattants en action, ou groupe et personnages de la scène hors combat), l’amitié (même camp), la désignation d’un décideur non surfacé (allié le plus proche de la cible), et le Flow qui pose le Trait derrière son Test de résistance ; l’étape `personneChoisie` du walker d’acteur (`combat/triggeredTest.ts`) les compose — lectures révisables #3045",
+    "perimetre": "Sorts dont un `grantPsychTrait` vise une personne que le lanceur désigne (Colérique), en combat comme hors combat",
+    "verrou": "src/noyau/colerique.hors-store.test.ts"
   }
 ]

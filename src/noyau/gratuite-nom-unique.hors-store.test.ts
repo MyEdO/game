@@ -15,6 +15,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { TraitList } from '../engine/statEntry';
 import type { SuiteDeCoup } from './pendings';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -43,8 +44,8 @@ function engage(tourDe: 'heros' | 'creature'): { H: Combatant; E: Combatant } {
   cible.size = 'moyenne';
   porteur.advantage = 6;
   H.pos = { x: 7, y: 10 }; E.pos = { x: 6, y: 10 };
-  H.wounds = { current: 300, max: 300, base: 300 } as never;
-  E.wounds = { current: 300, max: 300, base: 300 } as never;
+  H.wounds = blessuresDeBase(300, 300, H);
+  E.wounds = blessuresDeBase(300, 300, E);
   E.engagedWith = [H.id]; H.engagedWith = [E.id];
   banc.setState({ battle: { ...b, turn: b.order.indexOf(porteur.id), action: null, movementUsed: 0, acted: false } });
   return { H, E };

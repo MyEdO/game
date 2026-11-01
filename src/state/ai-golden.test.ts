@@ -14,7 +14,7 @@ import { chebyshev } from '../engine/grid';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
 import { ciblePsy } from '../engine/psych/ciblage';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
@@ -30,12 +30,12 @@ function castable(over: Partial<CastableSpell> & { id?: string } = {}): Castable
 }
 
 function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind, pos,
-    wounds: { current: 10, max: 10 }, weapons: [MELEE], characteristics: {} as never,
+    wounds: blessuresDeBase(10), weapons: [MELEE], characteristics: {} as never,
     advantage: 0, conditions: [], armour: {} as never, skills: [], talents: [], movement: 4,
     ...opts,
-  } as Combatant;
+  }) as Combatant;
 }
 
 const scene = emptyScene('scene-test', 16, 16);
@@ -235,7 +235,7 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
   });
 
   it('LdV : cible derrière un mur → ne tire pas (move)', () => {
-    const e = { id: 'E', name: 'T', kind: 'enemy', characteristics: {} as never, wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], weapons: [RANGED], armour: {} as never, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 } } as unknown as Combatant;
+    const e = blessuresSurLeProfil({ id: 'E', name: 'T', kind: 'enemy', characteristics: {} as never, wounds: blessuresDeBase(10), advantage: 0, conditions: [], weapons: [RANGED], armour: {} as never, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 } }) as unknown as Combatant;
     const h = { id: 'H', name: 'H', kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [], pos: { x: 6, y: 0 } } as unknown as Combatant;
     const a = chooseEnemyAction({ enemy: e, heroes: [h], scene: walledScene(8, { '3,0': 'mur' }), blocked: new Set(), movement: 4, spells: [] });
     expect(a.kind).not.toBe('shoot');
@@ -271,7 +271,7 @@ describe('GOLDEN — extensions op-driven (attaquer prime / pas de move parasite
   });
 
   it('tireur SANS LdV (cible derrière un mur) → se REPOSITIONNE (move), seule attaque indisponible déclenche le repli', () => {
-    const e = { id: 'e', name: 'e', kind: 'enemy', characteristics: {} as never, wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], weapons: [RANGED], armour: {} as never, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 } } as unknown as Combatant;
+    const e = blessuresSurLeProfil({ id: 'e', name: 'e', kind: 'enemy', characteristics: {} as never, wounds: blessuresDeBase(10), advantage: 0, conditions: [], weapons: [RANGED], armour: {} as never, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 } }) as unknown as Combatant;
     const h = { id: 'h', name: 'h', kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [], pos: { x: 6, y: 0 } } as unknown as Combatant;
     const a = chooseEnemyAction({ enemy: e, heroes: [h], scene: walledScene(8, { '3,0': 'mur' }), blocked: new Set(), movement: 4, spells: [] });
     expect(a.kind).not.toBe('shoot'); // pas de LdV → ne tire pas

@@ -4,6 +4,7 @@ import { effectiveChar } from './characteristics';
 import { effectiveMovement } from './encumbrance';
 import { defenseValue } from './combat';
 import type { Combatant, ItemInstance, Trauma, HitLocation } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Trauma de déchirure/fracture posé à `location` (raccourci data-driven : id de fiche → instance). */
 function tk(kind: 'dechirure' | 'fracture', severity: 'mineur' | 'majeur', location: HitLocation, opts?: { be?: number; d10?: number }): Trauma {
@@ -15,14 +16,14 @@ function c(traumas: Combatant['traumas']): Combatant {
 }
 
 function fullCombatant(over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h', label: 'T', kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, items: [],
     ...over,
-  } as Combatant;
+  }) as Combatant;
 }
 
 describe('traumaFromKind (LDB 18-Traumatisme)', () => {

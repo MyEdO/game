@@ -5,7 +5,10 @@
  */
 import type { GameOp } from '../ops';
 import type { PsychTrait, PsychType } from '../psychology';
-import { cibleDeRef, refDeCible, type CiblePsy } from './ciblage';
+import { psychologyLabel } from '../../data';
+import { t } from '../../i18n';
+import type { PlayerText } from '../../i18n/playerText';
+import { cibleDeRef, libelleDePsy, refDeCible, type CiblePsy } from './ciblage';
 
 type OpDe<K extends GameOp['op']> = Extract<GameOp, { op: K }>;
 
@@ -37,4 +40,11 @@ export const opPsy = {
 /** Le Trait psychologique qu'accorde un `grantPsychTrait` : SEUL lecteur de ses références. */
 export function traitOctroye(op: OpDe<'grantPsychTrait'>): Pick<PsychTrait, 'type' | 'cible'> {
   return { type: op.psychType.id as PsychType, ...(op.cible !== undefined ? { cible: cibleDeRef(op.cible) } : {}) };
+}
+
+/** Le libellé joueur du Trait qu'accorde un `grantPsychTrait` : « Préjugé (Nains) », ou « Préjugé (une personne
+ *  choisie) » pour un Trait `envers` (VDM 10 l.327). */
+export function libelleDuTraitOctroye(op: OpDe<'grantPsychTrait'>): PlayerText {
+  const { type, cible } = traitOctroye(op);
+  return op.envers ? t('step.sujetPrecision', { sujet: psychologyLabel(type), precision: t('cible.personneChoisie') }) : libelleDePsy(type, cible);
 }

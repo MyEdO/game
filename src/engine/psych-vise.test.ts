@@ -14,16 +14,20 @@ import { buildActorView } from './actorView';
 import { socialPsychMod } from './skills';
 import { groups, psychologies, talents, traits } from '../data';
 import type { Combatant } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const mk = (id: string, o: Partial<Combatant> = {}): Combatant => ({
+const mk = (id: string, o: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id, label: id, kind: 'enemy', advantage: 0, conditions: [], characteristics: {} as never, psychState: [], psychTraits: [],
-  groups: [], weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: { current: 10, max: 10 }, ...o,
-} as Combatant);
+  groups: [], weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...o,
+}) as Combatant);
 
 /** Un Trait qui confère un Groupe, porté DISSIMULÉ ou non. */
 const traitAGroupe = traits.find((t) => t.capabilities?.grantGroups?.length);
 const groupeDuTrait = traitAGroupe?.capabilities?.grantGroups?.[0] ?? '';
 const porteur = (id: string, cache: boolean): Combatant => mk(id, { traits: [{ id: traitAGroupe!.id, ...(cache ? { hidden: true } : {}) }] });
+
+/** Le porteur du Trait qui vise : ni lié, ni Engagé, sans Race. */
+const OBS = mk('obs');
 
 const entree = (pred: (p: (typeof psychologies)[number]) => boolean) => psychologies.find(pred);
 
@@ -35,24 +39,24 @@ describe('vise — un prédicat, deux lectures (#3045)', () => {
 
   it('un Groupe CACHÉ appartient au porteur sans être perçu', () => {
     const cache = { genre: 'combattant', c: porteur('p', true) } as const;
-    expect(vise(ciblePsy.groupe(groupeDuTrait), cache, 'appartenance')).toBe(true);
-    expect(vise(ciblePsy.groupe(groupeDuTrait), cache, 'percu')).toBe(false);
+    expect(vise(ciblePsy.groupe(groupeDuTrait), cache, 'appartenance', OBS)).toBe(true);
+    expect(vise(ciblePsy.groupe(groupeDuTrait), cache, 'percu', OBS)).toBe(false);
     const visible = { genre: 'combattant', c: porteur('p', false) } as const;
-    expect(vise(ciblePsy.groupe(groupeDuTrait), visible, 'percu')).toBe(true);
+    expect(vise(ciblePsy.groupe(groupeDuTrait), visible, 'percu', OBS)).toBe(true);
   });
 
   it('un interlocuteur n’a que les Groupes que le Test lui décrit : les deux lectures s’y confondent', () => {
     const s = { genre: 'interlocuteur', groups: [groupeDuTrait] } as const;
-    expect(vise(ciblePsy.groupe(groupeDuTrait), s, 'percu')).toBe(true);
-    expect(vise(ciblePsy.groupe(groupeDuTrait), s, 'appartenance')).toBe(true);
-    expect(vise(ciblePsy.groupe(groupeDuTrait), { genre: 'interlocuteur', groups: [] }, 'percu')).toBe(false);
+    expect(vise(ciblePsy.groupe(groupeDuTrait), s, 'percu', OBS)).toBe(true);
+    expect(vise(ciblePsy.groupe(groupeDuTrait), s, 'appartenance', OBS)).toBe(true);
+    expect(vise(ciblePsy.groupe(groupeDuTrait), { genre: 'interlocuteur', groups: [] }, 'percu', OBS)).toBe(false);
   });
 
   it('un Groupe joker se résout par `groupMatch`, pour toute source', () => {
     const joker = groups.find((g) => g.matchesAll && !g.exceptGroups?.length);
     expect(joker).toBeDefined();
-    expect(vise(ciblePsy.groupe(joker!.id), { genre: 'interlocuteur', groups: [] }, 'percu')).toBe(true);
-    expect(vise(ciblePsy.groupe(joker!.id), { genre: 'combattant', c: mk('x') }, 'appartenance')).toBe(true);
+    expect(vise(ciblePsy.groupe(joker!.id), { genre: 'interlocuteur', groups: [] }, 'percu', OBS)).toBe(true);
+    expect(vise(ciblePsy.groupe(joker!.id), { genre: 'combattant', c: mk('x') }, 'appartenance', OBS)).toBe(true);
   });
 });
 

@@ -28,6 +28,7 @@ import { resolveStake } from '../data';
 import type { Combatant, ShipPoste } from './types';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritEntry, type ShipCritKey, type ShipCritSet } from '../data/shipCriticals';
 import { shipCrewHitSchema, flowSchema, noeudTest } from '../data/schemas/grammaire/mecanique';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const DATA = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'data');
 const lire = (f: string) => JSON.parse(readFileSync(join(DATA, f), 'utf8')) as { tables: Record<string, ShipCritEntry[]> };
@@ -58,12 +59,12 @@ const coupsResolus = () =>
 
 /** Marin minimal — assez pour `testValue` (Ag/I) + `applyOps` wounds (BE=3, PA=0). */
 const sailor = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, kind: 'npc',
     characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 42, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
     skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
-    armour: { corps: 0 }, wounds: { current: 40, max: 40, base: 40 }, advantage: 0, ...over,
-  }) as unknown as Combatant;
+    armour: { corps: 0 }, wounds: blessuresDeBase(40), advantage: 0, ...over,
+  })) as unknown as Combatant;
 
 /** Coque RÉELLE (`barge-fluviale`) : elle porte le Trait naval `cale`, donc TOUTES les stations que
  *  les rangées de ce train visent (pont/avirons/cale) sont OUVERTES à son bord — la désignation se

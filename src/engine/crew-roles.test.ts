@@ -7,6 +7,7 @@ import type { Combatant, SkillInstance } from './types';
 import type { RNG } from './dice';
 import { propulsionDuNavire } from './shipBuild';
 import { desEnSuite } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
@@ -14,11 +15,11 @@ const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competenc
 /** Combattant d'équipage minimal : caractéristiques + compétences possédées (carac d'instance = Dex pour
  *  un score prévisible : valeur = Dex + avances). Calqué sur le `mk` de skills.test.ts. */
 const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advances: number; spec?: string }[] = []): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, ...chars },
     skills: skills.map((s) => ({ ...s, characteristic: 'dexterite' }) as SkillInstance),
-    kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [], talents: [],
-  }) as unknown as Combatant;
+    kind: 'hero', wounds: blessuresDeBase(10), conditions: [], talents: [],
+  })) as unknown as Combatant;
 
 /** RNG déterministe : renvoie la séquence de d100 fournie. */
 const seq = (values: number[]): RNG => desEnSuite(values);

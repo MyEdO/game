@@ -17,6 +17,7 @@ import { vehicleCombatant } from '../../engine/vehicle';
 import { emptyScene } from '../../noyau/monde/scene';
 import { offresDeLActif } from '../../noyau/actionRegistry';
 import { CombatConsole } from './CombatConsole';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -27,11 +28,11 @@ const CHARS = {
 
 /** Un porteur nu : ni arme, ni objet, ni Compétence, ni talent — seule sa situation compte. */
 const porteur = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, label: id, name: id, kind: 'hero', pos: { x: 5, y: 5 }, size: 'moyenne', characteristics: CHARS,
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], weapons: [], items: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [], items: [],
     skills: [], talents: [], armour: {}, movement: 4, loaded: true, ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 /** Une pièce de bord déchargée servie par son chef. */
 const poste = (): ShipPoste =>

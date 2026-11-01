@@ -18,8 +18,8 @@ import { refLabel } from '../data';
 
 import type { Combatant } from '../engine/types';
 import { setCadence } from '../engine/cadence';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { actorIn } from './monde/combatants';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -220,7 +220,8 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
       net: { ...banc.getState().net, ...NET_SOLO },
     });
     seedBattleRng(1);
-    return { H, E };
+    // FM 1 déplace le maximum des Blessures : l'écriture a copié l'ennemi, les acteurs se relisent par leur id.
+    return { H: actorIn(banc.getState(), H.id)!, E: actorIn(banc.getState(), E.id)! };
   }
   const brise = (id: string) => stacks(banc.getState().battle!.combatants.find((c) => c.id === id)!, COND.brise);
   const bandes = () => (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'triggeredBatchTest');

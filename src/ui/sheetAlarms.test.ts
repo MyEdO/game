@@ -6,23 +6,24 @@ import type { Mutation } from '../engine/corruption';
 import { ciblePsy, libelleDeCible } from '../engine/psych/ciblage';
 import { groups, psychologies, psychologyLabel } from '../data';
 import type { PsychType } from '../engine/psychology';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Héros de test minimal — mêmes caractéristiques que le patron `EquipmentPanel.test.tsx` (mkHero). */
 const mkHero = (mut?: (c: Combatant) => void): Combatant => {
-  const c = {
+  const c = blessuresSurLeProfil({
     id: 'h',
     name: 'H',
     kind: 'hero',
     species: 'humains-reiklander',
     career: 'Soldat',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     conditions: [],
     skills: [],
     talents: [],
     movement: 4,
     items: [],
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
   mut?.(c);
   return c;
 };

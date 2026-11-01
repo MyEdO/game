@@ -20,8 +20,7 @@ import type { PendingRoll } from './RollLine';
 import { soutienMod, partyAssisted, supportSplit } from '../engine/skills';
 import { useGame } from '../state/store';
 import { ligneDeRegle } from '../engine/reglesChiffrees';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const mount = (node: React.ReactElement) => {
   const container = document.createElement('div');

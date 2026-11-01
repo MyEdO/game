@@ -15,17 +15,18 @@ import { CampaignOpeningScreen } from './CampaignOpeningScreen';
 import { useGame } from '../state/store';
 import type { OuvertureBlock } from '../data/schemas/defs-scenes/narratif';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 function hero(id: string, label: string): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label, kind: 'hero', career: 'repurgateur',
-    characteristics: {} as Combatant['characteristics'],
-    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 },
-  } as unknown as Combatant;
+    characteristics: profilDeTest(),
+    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
+  }) as unknown as Combatant;
 }
 
 const ouverture: OuvertureBlock = {

@@ -14,8 +14,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { STEP_MS } from '../geometry/walk';
 import { resetStageWalk } from '../state/stageWalk';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 function Harness() {
   useGameKeyboard();

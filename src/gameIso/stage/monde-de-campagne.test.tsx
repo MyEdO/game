@@ -20,6 +20,7 @@ import { capsuleCenter, tileCenter, LEVEL_H, type Dims } from '../../geometry/is
 import { metricToLift } from '../../noyau/monde/relief';
 import { actorCapsuleOf } from './actorCapsule';
 import { VW, VH } from './useStageCamera';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
 
 /**
  * #817 — un rendu de PLUS (survol, pan caméra, tout état sans rapport avec scène/position
@@ -34,12 +35,12 @@ beforeAll(() => setStageRendererFactory(() => new BancRenderer()));
 afterAll(() => setStageRendererFactory(null));
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
-    characteristics: {}, advantage: 0, conditions: [], armour: {},
+    wounds: blessuresDeBase(12), weapons: [],
+    characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 describe('MondeDeCampagne — stabilité de propEls entre deux rendus sans changement logique (#817)', () => {

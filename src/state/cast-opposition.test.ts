@@ -6,7 +6,7 @@ import { ownsLocal, intentAllowedFor } from '../noyau/netOwnership';
 import { modalOwnerOf } from '../noyau/modalArbiter';
 import { castingBaseValue } from '../engine/magic';
 import type { Combatant } from '../engine/types';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Incantation OPPOSÉE (`SpellSpec.opposed`) — multijet DANS la modale de cast (jamais auto-caché) :
@@ -90,7 +90,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     useGame.getState().seedRng(11);
     const { H, E } = setup();
     E.characteristics['force-mentale'] = 100; // FM ≥ 100 → DR d'opposition toujours ≥ l'incantation à +0
-    E.wounds = blessuresDeBase(20, 12);
+    E.wounds = blessuresDeBase(20, 12, E);
     frozenCast(H, E, 'fauche-demon', 0);
     useGame.getState().castConfirm();
     const part = useGame.getState().pendingCastOpposition!.participants.find((p) => p.id === E.id)!;

@@ -15,6 +15,7 @@ import { testScene } from '../scenes/test-fixture';
 import { avanceEtapeCascade } from './cascade.testkit';
 import { chebyshev } from '../engine/grid';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -22,10 +23,10 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const chars = { 'capacite-de-combat': 60, 'capacite-de-tir': 50, force: 40, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const arme = (uid: string, hand: 'main' | 'off'): Weapon => ({ uid, name: uid, label: uid, type: 'melee', damage: { plusBF: true, flat: 2, bare: true }, qualities: [], hand, hands: 1 } as unknown as Weapon);
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, w: Weapon[]): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [], traumas: [], items: [],
-     weapons: w, advantage: 0, size: 'moyenne', pos, wounds: { current: 12, max: 12 }, resilience: 0, fortune: 0, fate: 1,
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [], traumas: [], items: [],
+     weapons: w, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(12), resilience: 0, fortune: 0, fate: 1,
      species: 'humains-reiklander', bodyShape: 'humanoide',
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 } as unknown as Combatant);
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 const g = () => banc.getState();
 /** Les `pending*` vivants, hors file de journal différée (`pendingLogQueue`, aucune fenêtre). */
 const ouverts = (): string[] => {

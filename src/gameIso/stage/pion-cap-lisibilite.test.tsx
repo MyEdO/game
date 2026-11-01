@@ -13,6 +13,7 @@ import { CAP_GROUPE, poserCapDuGroupe } from '../../noyau/monde/combatants';
 import { combatantTokenScale } from '../sizeScale';
 import { discCapPath, discR, teamRingDecor } from '../builders/dynamicMarks';
 import { OUT_OF_PARTY_RING } from '../teamColors';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 
 /**
@@ -41,13 +42,13 @@ const AIRE_VISIBLE_MIN = 0.15;
 const ECART_MAX = 0.1;
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', species: 'humains-reiklander', pos, size: 'moyenne',
-    wounds: { current: 9, max: 12 }, weapons: [],
+    wounds: blessuresDeBase(12, 9), weapons: [],
     characteristics: { 'capacite-de-combat': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** La marque d'un jeton posté ; `team = null` = un jeton d'ambiance, qui n'appartient à aucun camp. */

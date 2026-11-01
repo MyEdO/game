@@ -11,6 +11,7 @@ import { findMutationById } from '../data';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { presetPnjById } from '../state/campaignData';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 const base: PendingBargain = {
   playerId: 'h',
@@ -38,7 +39,7 @@ describe('BargainModal — le marchand à preset joue sa fiche', () => {
       layers: [{ z: 0, tiles: Array(16).fill('herbe') }], dialogues: [], triggers: [], encounters: [], flags: {},
       entities: [{ id: 'marchand', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'marchand-nomme', merchant: { archetype: 'armurier' } }],
     } as unknown as Scene;
-    const negociateur = { id: 'h', label: 'H', kind: 'hero', items: [], characteristics: { sociabilite: 40 }, skills: [], talents: [], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant;
+    const negociateur = blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', items: [], characteristics: profilDeTest({ sociabilite: 40 }), skills: [], talents: [], wounds: blessuresDeBase(10), conditions: [], weapons: [], armour: {} }) as unknown as Combatant;
     useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'marchand-nomme', base: 'nain', profil: { label: 'Gunther le Négociant' } }] }, scene, party: [negociateur] });
     useGame.getState().openMerchant('marchand');
     useGame.getState().startBargain('buy');
@@ -83,7 +84,7 @@ describe('BargainModal (#2c)', () => {
   it('base AFFICHÉE = la Compétence NUE, État et Soutien en chips nommées, cible invariante', () => {
     const negociateur: Combatant = {
       id: 'h', label: 'Maître d’armes', kind: 'hero', speciesId: 'humains-reiklander',
-      characteristics: { sociabilite: 40 } as Combatant['characteristics'],
+      characteristics: profilDeTest({ sociabilite: 40 }),
       skills: [{ id: 'marchandage', advances: 15 }], talents: [], items: [],
       conditions: [{ id: 'empoisonne', value: 1 }], advantage: 0,
       // Cas KO de la recette : DEUX postes distincts (État + mutation char-qualifiée) doivent se lire

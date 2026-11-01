@@ -9,6 +9,7 @@ import type { Combatant } from '../../engine/types';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * INVARIANTS DE LA SCÈNE RÉELLEMENT MONTÉE — la mesure SÉMANTIQUE que les gardes textuelles ne
@@ -39,13 +40,13 @@ let conteneur: HTMLDivElement | null = null;
 brancherArdoise();
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
+    wounds: blessuresDeBase(12), weapons: [],
     characteristics: { 'capacite-de-combat': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** Un décor FOUILLABLE : il monte les pools de halos, dont plusieurs restent à zéro instance. */

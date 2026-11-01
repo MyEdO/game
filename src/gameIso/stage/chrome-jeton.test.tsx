@@ -22,6 +22,7 @@ import { tokenChrome } from '../builders/tokenChrome';
 import { ALLY_TINT, ENEMY_TINT, hpColor } from '../teamColors';
 import { combatantTokenScale } from '../sizeScale';
 import { tileCenter, type Dims } from '../../geometry/iso';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * CHROME D'ÉCRAN des jetons de combat (#1176, P3-0f) — barre de PV, icônes d'États (report « +N »),
@@ -39,13 +40,13 @@ const TAILLE = { w: 800, h: 600 };
 const PV = { current: 3, max: 12 };
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
-    characteristics: { 'capacite-de-combat': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, 'intelligence': 30, 'force-mentale': 30, sociabilite: 30 },
+    wounds: blessuresDeBase(12), weapons: [],
+    characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, 'intelligence': 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** Un héros BLESSÉ portant CINQ états-drapeaux — la réserve d'alvéoles en tient quatre (`CHROME_SLOTS`,
@@ -54,7 +55,7 @@ function hero(id: string, pos: { x: number; y: number }): Combatant {
 function combatChromé(): BattleState {
   return {
     combatants: [
-      { ...hero('h1', { x: 3, y: 3 }), wounds: PV, defensiveStance: true, aiming: true, focus: { dr: 2 }, hunger: { days: 2, failures: 0 }, psychState: [{ type: 'frenesie' }] },
+      blessuresSurLeProfil({ ...hero('h1', { x: 3, y: 3 }), wounds: PV, defensiveStance: true, aiming: true, focus: { dr: 2 }, hunger: { days: 2, failures: 0 }, psychState: [{ type: 'frenesie' }] }),
       { ...hero('e1', { x: 5, y: 3 }), kind: 'enemy', dead: true },
     ],
     order: ['h1', 'e1'],

@@ -26,6 +26,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { combatStakeRef } from '../data';
 import type { StakeRef } from '../data';
 import { CascadeBody } from './CascadeModal';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -37,14 +38,14 @@ const CHARS = {
 };
 
 function hero(id: string, agilite = 45): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, name: id, label: id, kind: 'hero',
     characteristics: { ...CHARS, agilite },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
     skills: [{ id: 'athletisme', characteristic: 'agilite', advances: 5 }],
     talents: [], items: [], psychState: [], engagedWith: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 let root: Root | null = null;

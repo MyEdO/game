@@ -112,8 +112,8 @@ let urlAvant: { create: typeof URL.createObjectURL; revoke: typeof URL.revokeObj
  *
  * CONDITION DE MESURE, dans les deux modes : le stub de `requestIdleCallback` fait SERVIR la file du
  * cuiseur par `setTimeout(0)`. Tout banc qui appelle cette fonction mesure donc un écran dont la file
- * tourne — y compris `pas-exploration`, `entree-en-scene`, `silhouette-corps` et
- * `silhouette-sans-corps`, qui ne servent aucune rasterisation eux-mêmes.
+ * tourne — y compris `pas-exploration` et `entree-en-scene`, qui ne servent aucune rasterisation
+ * eux-mêmes.
  */
 export function simulerRasterisation(mode: 'auto' | 'retenue' = 'auto'): Rasterisation {
   const enAttente: Array<() => void> = [];

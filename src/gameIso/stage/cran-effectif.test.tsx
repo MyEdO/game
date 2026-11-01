@@ -24,6 +24,7 @@ import { artRot, setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise } from './banc-volumique';
 import * as archVis from './architectureVisibility';
 import { frontFacadeCutaway, type ClearedSpace } from './architectureVisibility';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -38,12 +39,12 @@ const piece = (id: string, cells: string[]): ClearedSpace =>
 const cranDims = (rot: Rot): Dims => ({ w: 8, h: 8, rot });
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
-    characteristics: {}, advantage: 0, conditions: [], armour: {},
+    wounds: blessuresDeBase(12), weapons: [],
+    characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 describe('rotAtYaw — le cran que le lacet regarde', () => {

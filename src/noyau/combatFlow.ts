@@ -569,7 +569,7 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'en
   if (step) pushCombatStep(set, step);
   for (const c of surprised) {
     if (surfaceOf(get, c.id)) continue; // sa rangée est dans la bande
-    runCombatFlow({ mode: 'combat', get, set, target: c, caster: sneak, label: 'Surprise', opposedFreeze: aT }, testFlow(test, branches.onSuccess, branches.onFail));
+    runCombatFlow({ get, set, target: c, caster: sneak, label: 'Surprise', opposedFreeze: aT }, testFlow(test, branches.onSuccess, branches.onFail));
   }
   // Inline (embusqué ennemi / héros auto) : les lignes partent dans la file différée → on les folde dans le
   // journal de combat. Le héros manuel suspend (cascade) et n'en pousse aucune.
@@ -3014,7 +3014,7 @@ export function checkFocusInterruption(get: Get, set: SetFn, target: Combatant):
     EMPTY_FLOW,
     { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'interruptFocus' }] } },
   );
-  runCombatFlow({ mode: 'combat', get, set, target, caster: target, label: test.label }, flow);
+  runCombatFlow({ get, set, target, caster: target, label: test.label }, flow);
   return []; // le journal voyage par la cascade (manuel) ou la file différée (inline) — pas de retour inline
 }
 
@@ -4108,7 +4108,7 @@ export function resolveFreeAttacks(get: Get, set: SetFn, actor: Combatant, trigg
       // L'ENTITÉ PORTEUSE de la réaction (Talent/Trait/Atout, taguée par `withSource`) voyage dans
       // l'`opsCtx` : un Test enfoui dans son Flow en DÉRIVE son enjeu (#1262 V2 L6d).
       runCombatFlow(
-        { mode: 'combat', get, set, target: actor, caster: actor, label: src.label, freeAttack: { targetId: victim.id, cap: src.cap, key: src.key }, ...(eff.source ? { opsCtx: { source: eff.source } } : {}) },
+        { get, set, target: actor, caster: actor, label: src.label, freeAttack: { targetId: victim.id, cap: src.cap, key: src.key }, ...(eff.source ? { opsCtx: { source: eff.source } } : {}) },
         eff.flow,
       );
       if (defenseEnCours(get())) return true; // #1858
@@ -4711,7 +4711,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   // un ENNEMI/cadence auto le jette inline. Plus de jet imbriqué silencieux (fin du goal « aucun jet
   // silencieux héros »). `onFailHard` (Purifier la chair −4 DR → Inconscient) est honoré dans la branche
   // d'échec via la Condition Flow `slThreshold ≤ −4` (cf. `mkTest`).
-  if (m.testFlow) runCombatFlow({ mode: 'combat', get, set, target: caster, caster, label: m.label, opsCtx }, m.testFlow);
+  if (m.testFlow) runCombatFlow({ get, set, target: caster, caster, label: m.label, opsCtx }, m.testFlow);
   // `affichee` : l'étape de révélation PORTE déjà ces lignes — l'appelant en cascade ne doit pas les
   // rendre une SECONDE fois en conséquence de son étape (mêmes lignes, deux rangées à l'écran).
   return { lines, affichee };
@@ -5642,6 +5642,69 @@ export function applyCounterspellFallback(get: Get, set: SetFn, pcs: PendingCoun
 /** Choix du lanceur sur une Incantation CRITIQUE (LDB 46 l.26-32). */
 export type CastCritChoice = 'critique' | 'puissance' | 'ineluctable';
 
+type SortJoue = NonNullable<ReturnType<typeof findSpell>>;
+
+/** Durée par défaut des effets d'un lancement : Rounds `base × mult + bonus`, sinon échéance d'horloge
+ *  `base × mult`. LDB 47 ; #1695. */
+function dureeDuLancer(get: Get, caster: Combatant, spell: SortJoue, mult = 1, bonusRounds = 0): Pick<OpsCtx, 'defaultDurationRounds' | 'defaultUntilTime'> {
+  const base = spell.duration?.kind === 'rounds' ? resolveFormula(spell.duration.value, caster, battleRng()) : null;
+  if (base != null) return { defaultDurationRounds: base * mult + bonusRounds };
+  const minutes = durationClockMinutes(spell.duration, caster, get().gameTime, battleRng());
+  return minutes != null ? { defaultUntilTime: get().gameTime + minutes * mult } : {};
+}
+
+/** L'identité DISSIPABLE d'un lancement, Sorts seulement, marquée sur ses ActiveEffect durables. Elle
+ *  porte la ZdE RÉSOLUE, lue par une aura de garde (Dôme, Bouclier anti-flèches) au lieu de la
+ *  re-déclarer. LDB 46 l.158-160. */
+function sourceDissipableDe(spell: SortJoue, caster: Combatant): OpsCtx['sourceSpell'] {
+  if (castInfoIsPrayer(spell)) return undefined;
+  const zdeDiam = zdeDiameterMeters(spell.target, caster);
+  return {
+    spellId: spell.id, ni: spell.cn ?? 0, casterId: caster.id, label: spell.label,
+    ...(zdeDiam != null ? { zde: { diametreM: zdeDiam, rayonM: zoneRadiusMeters(spell, caster)! } } : {}),
+  };
+}
+
+/** Ce qu'un lancement fixe pour UNE passe de son Flow. */
+interface PasseDuLancer {
+  sl: number;
+  duree: Pick<OpsCtx, 'defaultDurationRounds' | 'defaultUntilTime'>;
+  overcastDurationSteps?: number;
+  chosenTableRolls?: number;
+  sourceSpell?: OpsCtx['sourceSpell'];
+  conjureForm?: ConjureForm;
+}
+
+/** Le contexte d'ops d'une passe de Flow de sort sur `t` : SITE UNIQUE des passes cible, lanceur, Projectile
+ *  et lancer garanti. `sourceSpellId`, Prières comprises, est l'IDENTITÉ du sort que lisent
+ *  `isSpellActive`/`buildAiInput` (LDB 46 l.116-121) ; `onCorruption` suit le personnage (#143). */
+function ctxDuLancer(get: Get, set: SetFn, t: Combatant, caster: Combatant, spell: SortJoue, p: PasseDuLancer): OpsCtx {
+  return {
+    rng: battleRng(), caster, label: spell.label, now: get().gameTime, sl: p.sl,
+    overcastDurationSteps: p.overcastDurationSteps, chosenTableRolls: p.chosenTableRolls,
+    ...p.duree,
+    ...(p.sourceSpell ? { sourceSpell: p.sourceSpell } : {}), sourceSpellId: spell.id,
+    ...(p.conjureForm ? { conjureForm: p.conjureForm } : {}),
+    onCorruption: followsCharacterRules(t) ? (n, align) => gainCorruption(get, set, t, n, align) : undefined, ...campAdvantageHooks(get),
+  };
+}
+
+/** Lancer GARANTI de l'Effet d'auteur `castSpell` `mode:'forceSuccess'` (#98) : aucun jet, DR = NI ; le
+ *  Flow se joue par le walker (`runCastFlow`), une passe par côté (`spellFlowFor`). */
+function lancerLeSortGaranti(get: Get, set: SetFn, caster: Combatant, target: Combatant, spellId: string): string[] {
+  const spell = findSpellById(spellId);
+  if (!spell) return [];
+  const sl = spell.cn ?? 0;
+  const sourceSpell = sourceDissipableDe(spell, caster);
+  const lignes = runCastFlow(get, set, target, caster, spellFlowFor(spell.effects, 'target'),
+    ctxDuLancer(get, set, target, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell }));
+  if (spellOps(spell.effects, 'caster').length) {
+    lignes.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'),
+      ctxDuLancer(get, set, caster, caster, spell, { sl, duree: dureeDuLancer(get, caster, spell), sourceSpell })));
+  }
+  return lignes;
+}
+
 /**
  * Exécute un sous-Flow de sort EN COMBAT via l'exécuteur UNIQUE `runCombatFlow` (after-aware) puis
  * RAMÈNE ses lignes de journal pour qu'`applyCast` les place INLINE dans son `logLines` (ordre du
@@ -5664,7 +5727,7 @@ function runCastFlow(get: Get, set: SetFn, target: Combatant, caster: Combatant,
   // Le lancer est un geste délibéré : un effet certain sans objet sur cette cible se DIT, `applyOps` le tait.
   const certaines = certainFlowOps(flow);
   const sansObjet = certaines ? reussiteSansObjet(target, certaines, withSpell) : null;
-  runCombatFlow({ mode: 'combat', get, set, target, caster, label: withSpell.label ?? caster.label, opsCtx: withSpell }, flow);
+  runCombatFlow({ get, set, target, caster, label: withSpell.label ?? caster.label, opsCtx: withSpell }, flow);
   return [...(sansObjet ? [sansObjet] : []), ...drainPendingLog(get, set).map((e) => e.text)];
 }
 
@@ -5775,22 +5838,14 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   if (spellOps(spell.effects, 'target').length) {
     // Surincantation de DURÉE sur un PROJECTILE (#1695) : la touche transporte les pas alloués
     // (`ch.overcastDurationSteps`) — la règle se relit à sa SOURCE UNIQUE (`overcastDurationParts`),
-    // comme la branche non-projectile (`rounds = base × mult + bonus`, plus bas). Sans elle, les effets
+    // appliquée par `dureeDuLancer` comme dans la branche non-projectile. Sans elle, les effets
     // durables d'un Projectile (dont ses États PORTÉS) ignoraient les DR dépensés sur la Durée.
     const { mult: ocMult, bonusRounds: ocBonus } = overcastDurationParts(overcastSourceOf(spell), ch.overcastDurationSteps ?? 0);
-    const baseRounds = spell.duration?.kind === 'rounds' ? resolveFormula(spell.duration.value, caster, battleRng()) : null;
-    const rounds = baseRounds != null ? baseRounds * ocMult + ocBonus : null;
-    const baseClockMin = baseRounds == null ? durationClockMinutes(spell.duration, caster, get().gameTime, battleRng()) : null;
-    const clockMin = baseClockMin != null ? baseClockMin * ocMult : null;
-    lignes.push(...runCastFlow(get, set, cible, caster, spellFlowFor(spell.effects, 'target'), {
-      rng: battleRng(), caster, label: spell.label, now: get().gameTime, sl: spellSLFor(mres.sl, cible, ch.zoneTalentMod),
+    lignes.push(...runCastFlow(get, set, cible, caster, spellFlowFor(spell.effects, 'target'), ctxDuLancer(get, set, cible, caster, spell, {
+      sl: spellSLFor(mres.sl, cible, ch.zoneTalentMod), duree: dureeDuLancer(get, caster, spell, ocMult, ocBonus),
       overcastDurationSteps: ch.overcastDurationSteps, chosenTableRolls: ch.chosenTableRolls,
-      ...(rounds != null ? { defaultDurationRounds: rounds } : {}),
-      ...(clockMin != null ? { defaultUntilTime: get().gameTime + clockMin } : {}),
-      ...(ch.sourceSpell ? { sourceSpell: ch.sourceSpell } : {}), sourceSpellId: spell.id,
-      ...(ch.conjureForm ? { conjureForm: ch.conjureForm } : {}),
-      onCorruption: followsCharacterRules(cible) ? (n, align) => gainCorruption(get, set, cible, n, align) : undefined, ...campAdvantageHooks(get), // #143 : personnage, pas un proxy `kind`
-    }));
+      sourceSpell: ch.sourceSpell, conjureForm: ch.conjureForm,
+    })));
   }
   // Vol de vie (LDB 48 — Mort : Caresse de Laniph, Vol de vie) : op `lifeSteal` du Flow (on:'caster')
   // — le lanceur récupère une fraction des Blessures RÉELLEMENT infligées (`ctx.woundsDealt`, jamais
@@ -5943,23 +5998,7 @@ export function applyCast(
   // les Vents octroient une puissance supplémentaire (choix du lanceur), mais cela a un
   // prix — Imparfaite Mineure, sauf Talent Diction instinctive.
   const isSort = !castInfoIsPrayer(spell);
-  // DISSIPATION (LDB 46 l.158-160) : identité du Sort source, marquée sur ses ActiveEffect DURABLES (via
-  // `OpsCtx.sourceSpell` → `applyOps`) pour autoriser un Test étendu de Langue (Magick) jusqu'au NI. Sorts
-  // seulement (les Prières ne se dissipent pas par Contre-sort). Sort instantané → aucun effet → rien à marquer.
-  // La ZdE RÉSOLUE voyage avec le sort source : une aura de garde (Dôme, Bouclier anti-flèches) LIT sa
-  // zone au lieu de la re-déclarer — elle est écrite à UN endroit, la ligne « Cible » du sort. Les deux
-  // lectures viennent de leurs sites uniques (`zdeDiameterMeters`, `zoneRadiusMeters` pour le ÷ 2).
-  const zdeDiam = zdeDiameterMeters(spell.target, caster);
-  const sourceSpell = isSort
-    ? {
-      spellId: spell.id, ni: spell.cn ?? 0, casterId: caster.id, label: spell.label,
-      ...(zdeDiam != null ? { zde: { diametreM: zdeDiam, rayonM: zoneRadiusMeters(spell, caster)! } } : {}),
-    }
-    : undefined;
-  // IDENTITÉ du sort (Unicité RAW / anti-spam IA) : posée sur TOUT effet durable de ce lancement — Prières
-  // COMPRISES (≠ `sourceSpell`, réservé à la dissipation arcanique). Une bénédiction durable est ainsi
-  // reconnue par `isSpellActive`/`buildAiInput` pour ne pas la re-lancer en boucle (LDB 46 l.116-121).
-  const sourceSpellId = spell.id;
+  const sourceSpell = sourceDissipableDe(spell, caster);
   // Un Sort DISSIPÉ (Contre-sort gagnant, LDB 46 l.156) n'est pas lancé : pas d'effet Critique
   // — « Puissance totale » (l.57) repêche un DR insuffisant, pas une Dissipation.
   const crit = !!res.isCritical && isSort && !res.dispelled;
@@ -6097,12 +6136,9 @@ export function applyCast(
       // `{scale:'clock'}` (échéance d'HORLOGE `gameTime`, purgée par l'horloge), pas un nombre de
       // Rounds — on n'en invente PAS. Surincantation « Durée » : ×(1+n) (LDB 47).
       const spec = spell;
-      const baseRounds = spec.duration?.kind === 'rounds' ? resolveFormula(spec.duration.value, caster, battleRng()) : null;
-      const rounds = baseRounds != null ? baseRounds * durationMult + durationBonusRounds : null;
-      const baseClockMin = baseRounds == null ? durationClockMinutes(spell.duration, caster, get().gameTime, battleRng()) : null;
-      const clockMin = baseClockMin != null ? baseClockMin * durationMult : null;
-      if ((durationMult > 1 || durationBonusRounds > 0) && baseRounds != null) logLines.push(tr('cf.overcastDuration', { rounds: String(rounds) }));
-      if (durationMult > 1 && baseClockMin != null) logLines.push(tr('cf.overcastDurationMin', { mult: durationMult }));
+      const duree = dureeDuLancer(get, caster, spell, durationMult, durationBonusRounds);
+      if ((durationMult > 1 || durationBonusRounds > 0) && duree.defaultDurationRounds != null) logLines.push(tr('cf.overcastDuration', { rounds: String(duree.defaultDurationRounds) }));
+      if (durationMult > 1 && duree.defaultUntilTime != null) logLines.push(tr('cf.overcastDurationMin', { mult: durationMult }));
       for (const t of [target, ...extraTargets]) {
         if (t !== target) logLines.push(tr('cf.spellExtends', { spell: spell.label, name: t.label }));
         // OPPOSITION (spec.opposed) résolue dans la modale : une cible qui l'a emporté RÉSISTE (aucune
@@ -6126,20 +6162,9 @@ export function applyCast(
           // Tout sort passe par le système Flow/EffectOp : `spell.effects` (Flow éditable, feuilles
           // `on:'target'`) → `runCombatFlow` (exécuteur unique, after-aware) → applyOps. Les feuilles
           // `on:'caster'` sont appliquées à part.
-          ...runCastFlow(get, set, t, caster, spellFlowFor(spell.effects, 'target'), {
-            rng: battleRng(),
-            caster,
-            label: spell.label,
-            now: get().gameTime,
-            sl: opp ? opp.margin : slFor(t),
-            overcastDurationSteps,
-            chosenTableRolls,
-            ...(rounds != null ? { defaultDurationRounds: rounds } : {}),
-            ...(clockMin != null ? { defaultUntilTime: get().gameTime + clockMin } : {}),
-            ...(sourceSpell ? { sourceSpell } : {}), sourceSpellId,
-            ...(extras?.conjureForm ? { conjureForm: extras.conjureForm } : {}),
-            onCorruption: followsCharacterRules(t) ? (n, align) => gainCorruption(get, set, t, n, align) : undefined, ...campAdvantageHooks(get), // #143 : personnage, pas un proxy `kind`
-          }),
+          ...runCastFlow(get, set, t, caster, spellFlowFor(spell.effects, 'target'), ctxDuLancer(get, set, t, caster, spell, {
+            sl: opp ? opp.margin : slFor(t), duree, overcastDurationSteps, chosenTableRolls, sourceSpell, conjureForm: extras?.conjureForm,
+          })),
         );
         // Métamorphose (Forme bestiale, LDB 48) : op `polymorph` du Flow (on:'target') — appliquée
         // ci-dessus par runCastFlow → applyOps (expansion charMod différentiel + grantTrait via
@@ -6251,19 +6276,10 @@ export function applyCast(
     // Effets sur le LANCEUR (feuilles `on:'caster'` de `spell.effects` — Vol de vie « retirez tout État
     // Exténué dont vous souffrez », buffs de soi d'un sort offensif) : appliqués UNE seule fois par lancement.
     if (spellOps(spell.effects, 'caster').length) {
-      // MÊME règle de Durée surincantée que les feuilles `on:'target'` (#1695) : `base × mult + bonus`.
-      const base = castSpec.duration?.kind === 'rounds' ? resolveFormula(castSpec.duration.value, caster, battleRng()) : null;
-      const baseRounds = base != null ? base * durationMult + durationBonusRounds : null;
-      const brutClockMin = base == null ? durationClockMinutes(spell.duration, caster, get().gameTime, battleRng()) : null;
-      const clockMin = brutClockMin != null ? brutClockMin * durationMult : null;
-      logLines.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'), {
-        rng: battleRng(), caster, label: spell.label, now: get().gameTime, sl: slFor(caster), overcastDurationSteps, chosenTableRolls,
-        ...(baseRounds != null ? { defaultDurationRounds: baseRounds } : {}),
-        ...(clockMin != null ? { defaultUntilTime: get().gameTime + clockMin } : {}),
-        ...(sourceSpell ? { sourceSpell } : {}), sourceSpellId,
-        ...(extras?.conjureForm ? { conjureForm: extras.conjureForm } : {}),
-        onCorruption: followsCharacterRules(caster) ? (n, align) => gainCorruption(get, set, caster, n, align) : undefined, ...campAdvantageHooks(get), // #143 : personnage, pas un proxy `kind`
-      }));
+      logLines.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'), ctxDuLancer(get, set, caster, caster, spell, {
+        sl: slFor(caster), duree: dureeDuLancer(get, caster, spell, durationMult, durationBonusRounds),
+        overcastDurationSteps, chosenTableRolls, sourceSpell, conjureForm: extras?.conjureForm,
+      })));
     }
   }
 
@@ -7664,7 +7680,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   for (const d of dues) {
     if (surfaceOf(get, d.c.id)) continue; // sa rangée est dans la bande
     const ft = testFor(d.indice);
-    runCombatFlow({ mode: 'combat', get, set, target: d.c, caster: d.c, label: ft.label }, testFlow(ft, branches.onSuccess, branches.onFail));
+    runCombatFlow({ get, set, target: d.c, caster: d.c, label: ft.label }, testFlow(ft, branches.onSuccess, branches.onFail));
   }
   // Inline (mover ennemi → héros auto/ennemi craintif) : les lignes partent dans la file différée. Le héros
   // manuel suspend (cascade) et n'en pousse aucune. On les folde dans le `battle.log` que le `move` réécrit.
@@ -7735,7 +7751,7 @@ export function collectHeroRoundStartPsych(get: Get, c: Combatant): HeroPsychDue
   // Traits psy CIBLÉS (Animosité/Haine/… — LDB 21) : re-test des actifs, puis nouveaux déclenchements.
   const visible = visibleFoesAndAllies(battle, scene, c);
   for (const p of state) {
-    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu')))
+    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu', c)))
       return { kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible: p.cible }; // affliction active à re-tester
   }
   const tt = targetedTrigger(c, visible);
@@ -8659,7 +8675,7 @@ export const TABLES = {
         { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'breakBlade' }] } },
         EMPTY_FLOW,
       );
-      runCombatFlow({ mode: 'combat', get, set, target: defender, caster: attacker, label: 'Piège-lame', bladeTrap: bt }, flow);
+      runCombatFlow({ get, set, target: defender, caster: attacker, label: 'Piège-lame', bladeTrap: bt }, flow);
     },
     /** Applier de BANDE de Psychologie de combat : la déclaration de règle est celle de l'ÉTAPE, la
      *  conséquence se joue RANGÉE PAR RANGÉE (résultat, charge utile et Détermination du porteur), et
@@ -8759,7 +8775,7 @@ export const TABLES = {
       if (!cible) { journaliser(get, set, [tr('cascade.cibleDisparue', { label })], 'info'); return; }
       const opsCtx = ctxRepris(get, set, c.ctx, cible);
       if (!opsCtx) { journaliser(get, set, [tr('cascade.coqueDisparue', { label })], 'info'); return; }
-      runCombatFlow({ mode: 'combat', get, set, target: cible, caster: opsCtx.caster ?? cible, label, opsCtx }, c.flow);
+      runCombatFlow({ get, set, target: cible, caster: opsCtx.caster ?? cible, label, opsCtx }, c.flow);
     },
     ouvrirEcranDeVictoire: (get, set, c) => {
       set({
@@ -8774,6 +8790,7 @@ export const TABLES = {
   // Effet d'auteur `castSpell` (#98, scene.ts) : EN COMBAT, route par CE flux standard — enregistré ici
   // (pas dans combatEffects.ts, module FEUILLE qui n'importe rien de combatFlow).
   lancerLeSort: castSpell,
+  lancerLeSortGaranti,
   // Câble la conséquence POST-TOUCHE (entraînement de la Langue) dans le résolveur feuille (inversion de
   // dépendance : combatManeuvers reste sans import de combatFlow). Enregistré à l'import, comme les appliers.
   apresToucheDeManoeuvre: jouerLApresToucheDeManoeuvre,

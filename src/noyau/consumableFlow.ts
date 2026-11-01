@@ -144,7 +144,7 @@ export function runConsumable(get: Get, set: SetFn, hero: Combatant, item: ItemI
   const source: EffectSource | undefined = item.trappingId ? { kind: 'trapping', id: item.trappingId } : undefined;
   if (inBattle) {
     runCombatFlow({
-      mode: 'combat', get, set, target: hero, caster: hero, label: item.label,
+      get, set, target: hero, caster: hero, label: item.label,
       opsCtx: { now, ...(untilTime != null ? { defaultUntilTime: untilTime } : {}), label: item.label, ...(source ? { source } : {}) },
     }, baked);
   } else {

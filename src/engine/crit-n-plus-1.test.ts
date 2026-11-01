@@ -5,6 +5,7 @@ import { bumperDataset } from '../data/versionDataset';
 import type { Combatant } from './types';
 import type { RNG } from './dice';
 import { desEnSuite } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * MORSURE « N+1 » (#1657 B2a) — un 9ᵉ document-table se lit SANS une ligne de moteur.
@@ -22,11 +23,11 @@ import { desEnSuite } from './dice.testkit';
 const seq = (...values: number[]): RNG => desEnSuite(values, { borne: true });
 
 const cible = (): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 't', name: 'Cible', label: 'Cible', kind: 'enemy',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, conditions: [], skills: [], traumas: [], critEntriesSuffered: [], bodyShape: 'humanoide',
-  }) as unknown as Combatant;
+    wounds: blessuresDeBase(10), conditions: [], skills: [], traumas: [], critEntriesSuffered: [], bodyShape: 'humanoide',
+  })) as unknown as Combatant;
 
 const JEU_NEUF = 'jeu-de-morsure' as JeuDeCritique;
 

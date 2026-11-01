@@ -7,6 +7,7 @@ import { stacks } from '../engine/conditions';
 import { removeSurgicalTrauma } from '../engine/trauma';
 import type { AttackResult } from '../engine/combat';
 import type { Trauma } from '../engine/types';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -33,7 +34,7 @@ describe('#190 — réouverture par Dégât localisé au point d’application (
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    H.wounds = { current: 20, max: 20, base: 20 } as never; // grande réserve : pas de mort ni Critique d'overkill
+    H.wounds = blessuresDeBase(20, 20, H); // grande réserve : pas de mort ni Critique d'overkill
     H.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 } as never;
     H.traumas = [gate];
     banc.setState({ battle: { ...banc.getState().battle! } });

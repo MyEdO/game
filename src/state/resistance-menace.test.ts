@@ -6,6 +6,7 @@ import { gainCorruption } from '../noyau/corruptionFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { bonus } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Talent « Résistance (Menace) » CÂBLÉ sur les flux de jet (LDB 10 l.1016-1020) — verbe `resist` de la
@@ -17,10 +18,10 @@ import type { Combatant } from '../engine/types';
  * étapes `triggeredTest`.
  */
 const hero = (p: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'a', label: 'A', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 43, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [],
     talents: [
       { talentId: 'resistance', spec: 'corruption', times: 1 },
       { talentId: 'resistance', spec: 'maladie', times: 1 },
@@ -30,7 +31,7 @@ const hero = (p: Partial<Combatant> = {}): Combatant =>
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     fate: 2, fortune: 1,
     ...p,
-  } as Combatant);
+  }) as Combatant);
 
 function setBattle(combatants: Combatant[]) {
   useGame.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, log: [], over: null } as any });
