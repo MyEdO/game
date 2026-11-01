@@ -4,17 +4,15 @@
  */
 import { vi } from 'vitest';
 import { useGame } from './store';
-import { heroFaceAUnEnnemi as ouvrirLeDuel } from '../noyau/combatDeTest.testkit';
+import { heroFaceAUnEnnemi as ouvrirLeDuel, reluDans } from '../noyau/combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import { actorIn } from '../noyau/monde/combatants';
 
 export function heroFaceAUnEnnemi(): { H: Combatant; E: Combatant } {
   return ouvrirLeDuel({ getState: useGame.getState, setState: (patch) => useGame.setState(patch), abandonner: () => vi.clearAllTimers() }, testScene());
 }
 
-/** L'acteur `c` relu par son id dans le store : une écriture copie le combattant dont le maximum des
- *  Blessures bouge (`noyau/transitionDuJeu.ts`), une référence prise avant elle désigne l'ancien objet. */
+/** L'acteur `c` relu par son id dans le store (`reluDans`). */
 export function relu(c: Combatant): Combatant {
-  return actorIn(useGame.getState(), c.id)!;
+  return reluDans(useGame.getState, c);
 }

@@ -1,11 +1,14 @@
 """Shape keys d'un mesh (#2972, L1d #3101) : lecture et écriture des décalages d'une clé, lissage d'un champ de
-décalages jusqu'à des étirements bornés, liaison des sommets d'un corps à la surface d'un donneur (`lier`, `transporter`)
+décalages jusqu'à ce qu'aucune arête ne soit hors bornes, sur tout le mesh ou autour des arêtes hors bornes, liaison des sommets d'un corps à la surface d'un donneur (`lier`, `transporter`)
 et transfert des clés d'une source vers une cible par liaison de surface (modificateur Surface Deform), pour les peaux
 secondaires de la base comme pour les éléments posés sur elle.
 """
 import bpy
 import numpy
 from mathutils.bvhtree import BVHTree
+
+STAGNATION_M = 1e-4
+"""Variation du champ d'une passe, en mètres, sous laquelle le lissage local s'élargit : valeur d'ingénierie #3101."""
 
 
 def positions(mesh, cle=None):
@@ -66,21 +69,50 @@ def pas_laplacien(valeur, aretes):
     return 0.5 * valeur + 0.5 * somme / voisins
 
 
-def lisser(champ, x, noeud, aretes, facteur, bornes, passes_max):
+def region_locale(aretes, masque, anneaux, n):
+    """Par nœud (`n` nœuds), s'il est extrémité d'une arête de `aretes` que marque `masque`, ou à au plus `anneaux`
+    arêtes d'une telle extrémité : (nœuds,) booléen."""
+    dans = numpy.zeros(n, dtype=bool)
+    dans[aretes[masque].ravel()] = True
+    for _ in range(anneaux):
+        dans[aretes[dans[aretes].any(axis=1)].ravel()] = True
+    return dans
+
+
+def lisser(champ, x, noeud, aretes, facteur, hors, passes_max, region):
     """Le champ de décalages `champ` (sommets, 3) des sommets `x`, lissé (`pas_laplacien` sur les nœuds `noeud` et leurs
-    arêtes `aretes`, `aretes_des_triangles`) puis multiplié par `facteur` (sommets,), jusqu'à ce que le rapport de
-    chaque arête, sous le champ et contre `x` (`rapports`), tienne dans `bornes` ; les sommets d'un même nœud reçoivent
-    la même valeur. Rend le champ et le nombre de passes ; au-delà de `passes_max`, la construction s'arrête."""
+    arêtes `aretes`, `aretes_des_triangles`) puis multiplié par `facteur` (sommets,), jusqu'à ce que `hors` (champ
+    complet -> masque booléen des arêtes `aretes`) ne marque plus aucune arête ; les sommets d'un même nœud reçoivent
+    la même valeur. `region` `'pleine'` : le pas porte sur tous les nœuds ; `'locale'` : sur les seuls nœuds de
+    `region_locale` autour des arêtes marquées, les autres gardent leur valeur, et la région gagne un anneau de voisins
+    dès que le champ y varie de moins de `STAGNATION_M` sur une passe. Rend le champ et le nombre de passes. Une arête
+    marquée dont les deux extrémités ont un `facteur` nul, qu'aucun pas ne change, ou une arête marquée au-delà de
+    `passes_max` passes, arrête la construction."""
+    if region not in ('pleine', 'locale'):
+        raise ValueError(f"région {region!r} : 'pleine' ou 'locale'")
     valeur = aux_noeuds(champ, noeud)
+    anneaux = 0
     for passe in range(passes_max + 1):
         resultat = valeur[noeud] * facteur[:, None]
-        r = rapports(x, resultat, aretes)
-        hors = (r < bornes[0]) | (r > bornes[1])
-        if not hors.any():
+        marquees = hors(resultat)
+        if not marquees.any():
             return resultat, passe
+        tenues = marquees & (facteur[aretes] == 0).all(axis=1)
+        if tenues.any():
+            raise RuntimeError(f'{int(tenues.sum())} arête(s) hors bornes aux deux extrémités tenues : aucune passe de '
+                               'lissage ne les change')
         if passe == passes_max:
-            raise RuntimeError(f'{int(hors.sum())} arête(s) hors de {bornes} après {passes_max} passes de lissage')
-        valeur = pas_laplacien(valeur, aretes)
+            raise RuntimeError(f'{int(marquees.sum())} arête(s) hors bornes après {passes_max} passes de lissage')
+        lisse = pas_laplacien(valeur, aretes)
+        if region == 'pleine':
+            valeur = lisse
+            continue
+        dans = numpy.flatnonzero(region_locale(aretes, marquees, anneaux, len(valeur)))
+        variation = numpy.abs((lisse[dans] - valeur[dans]) * facteur[dans][:, None]).max()
+        valeur = valeur.copy()
+        valeur[dans] = lisse[dans]
+        if variation < STAGNATION_M:
+            anneaux += 1
 
 
 def voisins(rig, noms):

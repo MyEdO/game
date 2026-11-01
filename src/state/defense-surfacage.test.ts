@@ -23,7 +23,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * l'ATTAQUANT n'entre pas dans la condition, et un défenseur surfacé n'est jamais roulé en silence.
  * Les gardes RAW de mode restent (portée de mêlée, `rangedDefenseModes` — un tir sans mode de défense
  * RAW reste NON OPPOSÉ : « Test de Projectiles simple, non opposé », LDB 13 l.125).
- * Patron mk()/setup() de `ranged-defense-modal.test.ts`.
+ * Patron mk()/setup() de `ranged-defense-modal.hors-store.test.ts`.
  */
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>

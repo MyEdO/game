@@ -110,6 +110,15 @@ describe('banc du noyau : les gestes de l’horloge, ceux des minuteurs factices
     expect([journal, banc.enAttente()]).toEqual([['b', 'a'], 1]);
   });
 
+  it('`reprendreTout()` reprend aussi ce que les reprises programment après la dernière échéance présente', () => {
+    const banc = ouvrirLeBanc();
+    const journal: string[] = [];
+    planifier(journal, 'a', 500, [['a1', 0], ['a2', 1000]]);
+    planifier(journal, 'b', 10);
+    expect(banc.reprendreTout()).toBe(4);
+    expect([journal, banc.enAttente()]).toEqual([['b', 'a', 'a1', 'a2'], 0]);
+  });
+
   it('`jusquALaProchaine()` reprend toute la prochaine échéance, ex æquo compris', () => {
     const banc = ouvrirLeBanc();
     const journal: string[] = [];

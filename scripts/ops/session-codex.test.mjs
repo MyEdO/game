@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { once } from 'node:events'
 import { spawn } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, appendFileSync, readdirSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, appendFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createConnection, createServer } from 'node:net'
@@ -12,7 +12,7 @@ import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { Writable } from 'node:stream'
 import { NAISSANCE_ABSENTE, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
-import { lancerPontCodex, envoyerCodex, veillerCodex, verifierProtocoleCodex, projeterJournalCodex, VERSION_PROTOCOLE_CODEX, MAX_MESSAGE_CODEX } from './session-codex.mjs'
+import { lancerPontCodex, envoyerCodex, veillerCodex, projeterJournalCodex, MAX_MESSAGE_CODEX } from './session-codex.mjs'
 
 /** L'écouteur `error` de la projection se retire au tick qui suit la dernière écriture close : attendre ce
  *  tick, borné, au lieu d'en supposer le nombre. */
@@ -39,7 +39,7 @@ createInterface({input:process.stdin}).on('line',line=>{const q=JSON.parse(line)
 if(q.method==='initialize')send({id:q.id,result:{userAgent:'fixture'}});
 if(q.method==='thread/start')setTimeout(()=>send({id:q.id,result:{thread:{id:tid}}}),Number(process.argv[2]));
 if(q.method==='turn/start'){active='turn-'+(++turn);initial=p.input[0].text;started=false;send({id:q.id,result:{turn:{id:active}}});const id=active;setTimeout(()=>{if(active!==id)return;started=true;notify('turn/started',{turn:{id:active,status:'inProgress',items:[]}});if(initial==='AUTO'||initial==='INVALID')complete(initial);if(initial==='ERROR_ACTIVE')notify('error',{turnId:active,error:{message:'temporary active error'}});if(initial==='EOF_LIVE'){process.on('SIGTERM',()=>{});setInterval(()=>{},1000);notify('fixture/perte-protocole',{});}},initial==='WAIT_START'?150:5);}
-if(q.method==='turn/steer'){if(active===null){send({id:q.id,error:{code:78,message:'no active turn to steer'}});return;}if(p.threadId!==tid||p.expectedTurnId!==active)throw Error('foreign turn');const text=p.input[0].text;if(text==='NATIVE_ERROR')send({id:q.id,error:{code:77,message:'native refusal'}});else{send({id:q.id,result:{turnId:active,steers:++steers}});if(text==='CRASH'){process.stderr.write('first native cause\\nsecond native cause\\n');process.exit(9);}else if(text==='FAIL'){notify('turn/completed',{turn:{id:active,status:'failed',items:[],error:{message:'server overloaded'}}});active=null;}else if(text==='APPROVAL'){notify('request/input',{});send({id:900,method:'item/tool/requestUserInput',params:{threadId:tid}});}else setTimeout(()=>complete(text),5);}}
+if(q.method==='turn/steer'){if(active===null){send({id:q.id,error:{code:78,message:'no active turn to steer'}});return;}if(p.threadId!==tid||p.expectedTurnId!==active)throw Error('foreign turn');const text=p.input[0].text;if(text==='ERREUR_NUE'){send({id:q.id,error:{code:76}});return;}if(text.startsWith('BRUT:')){const x=JSON.parse(text.slice(5));send({id:q.id,result:{turnId:active}});const params={threadId:tid,turnId:active,...x.params};if(x.params.turn)params.turn={id:active,...x.params.turn};send({method:x.method,params:JSON.parse(JSON.stringify(params),(k,v)=>v==='__absent__'?undefined:v)});return;}if(text==='NATIVE_ERROR')send({id:q.id,error:{code:77,message:'native refusal'}});else{send({id:q.id,result:{turnId:active,steers:++steers}});if(text==='CRASH'){process.stderr.write('first native cause\\nsecond native cause\\n');process.exit(9);}else if(text==='FAIL'){notify('turn/completed',{turn:{id:active,status:'failed',items:[],error:{message:'server overloaded'}}});active=null;}else if(text==='APPROVAL'){notify('request/input',{});send({id:900,method:'item/tool/requestUserInput',params:{threadId:tid}});}else setTimeout(()=>complete(text),5);}}
 if(q.method==='turn/interrupt'){if(!started||active===null)send({id:q.id,error:{code:1,message:'no active turn'}});else {send({id:q.id,result:{}});notify('turn/completed',{turn:{id:active,status:'interrupted',items:[]}});active=null;}}
 }).on('close',()=>{if(initial!=='EOF_LIVE')process.exit(0)});
 `
@@ -331,6 +331,7 @@ test('projection : statuts natifs par famille, erreurs et notifications inconnue
   const notifications = [
     ...['fileChange', 'mcpToolCall', 'dynamicToolCall', 'collabAgentToolCall', 'imageGeneration', 'webSearch', 'imageView', 'sleep'].flatMap((type) => ['item/started', 'item/completed'].map((method) => ({ method, params: { item: { type, status: 'failed', server: 'serveur', tool: 'outil' } } }))),
     { method: 'error', params: { error: { message: 'panne native' } } },
+    { method: 'error', params: { error: { message: 'flux coupé' }, willRetry: true } },
     { id: 3, error: { message: 'refus natif' } },
     { method: 'extension/inconnue', params: { message: 'ne pas afficher' } },
     { method: 'item/agentMessage/delta', params: { delta: 'ne pas afficher' } },
@@ -353,6 +354,7 @@ test('projection : statuts natifs par famille, erreurs et notifications inconnue
     assert.match(texte, new RegExp(`${type} \\[completed\\]`))
   }
   assert.match(texte, /Erreur native : panne native/)
+  assert.match(texte, /Erreur native réessayée par Codex : flux coupé/)
   assert.match(texte, /Refus natif : refus natif/)
   assert.match(texte, /erreur : rapport refusé/)
   assert.match(texte, /fermeture : onglet fermé/)
@@ -530,6 +532,67 @@ test('rapport JSON absent devient une erreur et refus natif reste structuré', a
   await b.envoyer('INVALID')
   assert.match((await b.veille()).cause, /JSON invalide/)
 })
+const ABSENT = '__absent__'
+for (const [defaut, notification, attendu] of [
+  ['champ lu absent', { method: 'item/completed', params: { item: { id: 'a', type: 'agentMessage', text: ABSENT } } }, 'item/completed params.item.text attendu chaine, reçu absent'],
+  ['identité de thread absente', { method: 'error', params: { threadId: ABSENT, error: { message: 'x' } } }, 'error params.threadId attendu chaine, reçu absent'],
+  ['type faux', { method: 'thread/tokenUsage/updated', params: { tokenUsage: '42' } }, 'thread/tokenUsage/updated params.tokenUsage attendu objet, reçu string'],
+  ['null hors nullable', { method: 'item/started', params: { item: { id: null, type: 'commandExecution', command: 'node', status: 'inProgress' } } }, 'item/started params.item.id attendu chaine, reçu null'],
+  ['booléen attendu', { method: 'error', params: { error: { message: 'x' }, willRetry: 'oui' } }, 'error params.willRetry attendu booleen ou null, reçu string'],
+  ['tableau attendu',{ method: 'turn/completed', params: { turn: { status: 'completed', items: {} } } }, 'turn/completed params.turn.items attendu tableau, reçu object'],
+  ['nullable mal formé', { method: 'turn/completed', params: { turn: { status: 'failed', items: [], error: { message: 7 } } } }, 'turn/completed params.turn.error.message attendu chaine, reçu number'],
+]) {
+  test(`réception : ${defaut} fait sortir la session en erreur, méthode et champ nommés`, async (t) => {
+    const b = await banc(t)
+    await b.envoyer(`BRUT:${JSON.stringify(notification)}`)
+    const erreur = await b.veille()
+    assert.equal(erreur.etat, 'erreur')
+    assert.equal(erreur.cause, `${prefixeDeRefus('panne')} Protocole Codex incompatible : ${attendu}`)
+  })
+}
+test('réception : réponse native d’erreur sans message refuse l’envoi et nomme la méthode', async (t) => {
+  const b = await banc(t)
+  const attendu = `${prefixeDeRefus('panne')} Protocole Codex incompatible : turn/steer error.message attendu chaine, reçu absent`
+  await assert.rejects(b.envoyer('ERREUR_NUE'), (e) => e.message === attendu)
+  assert.equal((await b.veille()).cause, attendu)
+})
+test('réception : champs d’outil non lus sous une forme neuve, session menée jusqu’à sa fin', async (t) => {
+  const b = await banc(t)
+  await b.envoyer(`BRUT:${JSON.stringify({ method: 'item/started', params: { item: { id: 'o', type: 'commandExecution', command: ['node', '-v'], status: null } } })}`)
+  await b.envoyer(`BRUT:${JSON.stringify({ method: 'thread/tokenUsage/updated', params: { tokenUsage: { total: {} } } })}`)
+  await b.envoyer(`BRUT:${JSON.stringify({ method: 'item/completed', params: { item: { id: 'r', type: 'agentMessage', text: JSON.stringify({ resultat: 'OUTIL' }) } } })}`)
+  await b.envoyer(`BRUT:${JSON.stringify({ method: 'turn/completed', params: { turn: { status: 'completed', items: [] } } })}`)
+  const fin = await b.veille()
+  assert.equal(fin.type, 'fin', fin.cause)
+  assert.equal(fin.outils, 1)
+  assert.deepEqual(fin.rapport, { resultat: 'OUTIL' })
+})
+test('réception : erreur native réessayée par Codex journalisée, session vivante jusqu’à sa fin', async (t) => {
+  const b = await banc(t)
+  await b.envoyer(`BRUT:${JSON.stringify({ method: 'error', params: { error: { message: 'stream disconnected' }, willRetry: true } })}`)
+  await b.envoyer(`BRUT:${JSON.stringify({ method: 'item/completed', params: { item: { id: 'r', type: 'agentMessage', text: JSON.stringify({ resultat: 'REPRIS' }) } } })}`)
+  await b.envoyer(`BRUT:${JSON.stringify({ method: 'turn/completed', params: { turn: { status: 'completed', items: [] } } })}`)
+  const fin = await b.veille()
+  assert.equal(fin.type, 'fin', fin.cause)
+  assert.deepEqual(fin.rapport, { resultat: 'REPRIS' })
+  assert.equal(b.pont.cause(), '')
+  assert.match(readFileSync(b.pont.journalDiagnostic, 'utf8'), /Erreur native réessayée par Codex : stream disconnected/)
+})
+test('réception : erreur native définitive (willRetry false) fait sortir la session en erreur', async (t) => {
+  const b = await banc(t)
+  await b.envoyer(`BRUT:${JSON.stringify({ method: 'error', params: { error: { message: 'quota exceeded' }, willRetry: false } })}`)
+  const erreur = await b.veille()
+  assert.equal(erreur.etat, 'erreur')
+  assert.equal(erreur.cause, `${prefixeDeRefus('panne')} quota exceeded`)
+})
+test('réception : notification nullable à null et champs non lus inconnus acceptés', async (t) => {
+  const b = await banc(t)
+  await b.envoyer(`BRUT:${JSON.stringify({ method: 'item/completed', params: { completedAtMs: null, item: { id: 'r', type: 'agentMessage', text: JSON.stringify({ resultat: 'BRUT' }), nouveau: 1 } } })}`)
+  await b.envoyer(`BRUT:${JSON.stringify({ method: 'turn/completed', params: { turn: { status: 'completed', items: [{ type: 'reasoning' }], durationMs: null, error: null } } })}`)
+  const fin = await b.veille()
+  assert.equal(fin.type, 'fin', fin.cause)
+  assert.deepEqual(fin.rapport, { resultat: 'BRUT' })
+})
 test('crash : EOF signifie mort, diagnostic complet et première cause disponibles', async (t) => {
   const b = await banc(t)
   await b.envoyer('CRASH')
@@ -584,147 +647,22 @@ test('borne transportée : suivi se réarme au raccord IPC puis reçoit la trans
   const sessions = { attendre: (_cible, options) => veillerCodex({ dossier, sessionId, ...options }), etat: () => ({ etat: 'occupe' }) }
   assert.deepEqual(await attendreSuivi(sessions, sessionId, { depuis: 0, timeoutMs: 1000 }), fin)
   assert.equal(appels, 2)
-  for (const reponse of [
-    { erreur: borne.erreur },
-    { erreur: prefixeDeRefus('permission') + ' refus', code: 'BORNE_IPC_CODEX' },
-    { erreur: prefixeDeRefus('métier') + ' refus' },
-    { erreur: borne.erreur, code: 'AUTRE' },
-    { ...borne, native: 'permission' },
-    null,
+  let instant = 0, avant = appels
+  reponses = Array.from({ length: 20 }, () => ({ erreur: borne.erreur }))
+  await assert.rejects(attendreSuivi(sessions, sessionId, { depuis: 0, timeoutMs: 1000 }, { parentVivant: () => true, horloge: () => instant, dormir: async () => { instant += 400 } }), (e) => e.message.startsWith(prefixeDeRefus('transitoire')) && e.code !== 'BORNE_IPC_CODEX')
+  assert.ok(appels > avant + 1, `${appels - avant} essai(s) avant le relevé`)
+  for (const [reponse, categorie] of [
+    [{ erreur: prefixeDeRefus('permission') + ' refus', code: 'BORNE_IPC_CODEX' }, 'panne'],
+    [{ erreur: prefixeDeRefus('métier') + ' refus' }, 'métier'],
+    [{ erreur: borne.erreur, code: 'AUTRE' }, 'panne'],
+    [{ ...borne, native: 'permission' }, 'panne'],
+    [null, 'panne'],
   ]) {
     reponses = [reponse]
-    const avant = appels
-    await assert.rejects(attendreSuivi(sessions, sessionId, { depuis: 0, timeoutMs: 1000 }), (e) => e.code !== 'BORNE_IPC_CODEX')
+    avant = appels
+    await assert.rejects(attendreSuivi(sessions, sessionId, { depuis: 0, timeoutMs: 1000 }, { parentVivant: () => true, dormir: async () => assert.fail('aucune pause') }), (e) => e.message.startsWith(prefixeDeRefus(categorie)) && e.code !== 'BORNE_IPC_CODEX')
     assert.equal(appels, avant + 1)
   }
-})
-for (const etape of ['version', 'schéma']) {
-  test(`protocole : timeout de mesure ${etape} retentable, erreur native conservée`, () => {
-    const erreur = Object.assign(new Error(`spawnSync codex ${etape} ETIMEDOUT`), { code: 'ETIMEDOUT' })
-    assert.throws(() => verifierProtocoleCodex({ executable: 'timeout', executer(exe, args) {
-      if (etape === 'schéma' && args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.164.0\n' }
-      return { status: null, error: erreur }
-    } }), (e) => {
-      assert.equal(e.message, `${prefixeDeRefus('transitoire')} ${etape === 'version' ? 'Version' : 'Schéma'} Codex invérifiable`)
-      assert.equal(e.native, erreur.message)
-      return true
-    })
-  })
-}
-test('version protocole : binaire mesuré, schéma nécessaire et refus fermés', () => {
-  assert.equal(VERSION_PROTOCOLE_CODEX, '0.164.0')
-  assert.throws(() => verifierProtocoleCodex({ executable: 'missing', executer: () => ({ status: 1, stderr: 'absent' }) }), /\[panne/)
-  assert.throws(() => verifierProtocoleCodex({ executable: 'old', executer: () => ({ status: 0, stdout: 'codex-cli 0.163.0\n' }) }), /\[validation/)
-  const appels = []
-  assert.throws(() => verifierProtocoleCodex({ executable: 'future', executer: (exe, args) => { appels.push([exe, args]); return args[0] === '--version' ? { status: 0, stdout: 'codex-cli 0.164.0\n' } : { status: 0 } } }), /\[panne/)
-  assert.equal(appels[1][1][0], 'app-server')
-  assert.equal(appels[1][0], 'future')
-})
-function corpusProtocole() {
-  const chaine = { type: 'string' }
-  const objet = (properties, required = Object.keys(properties)) => ({ type: 'object', properties, required })
-  const nullable = (s) => ({ anyOf: [s, { type: 'null' }] })
-  const texte = objet({ type: { type: 'string', enum: ['text'] }, text: chaine })
-  const outils = ['commandExecution', 'fileChange', 'mcpToolCall', 'dynamicToolCall', 'collabAgentToolCall', 'webSearch', 'imageView', 'imageGeneration', 'sleep']
-  const statuts = (enumere) => ({ type: 'string', enum: enumere })
-  const communs = ['inProgress', 'completed', 'failed']
-  const champs = {
-    commandExecution: { command: chaine, status: statuts([...communs, 'declined']) },
-    fileChange: { status: statuts([...communs, 'declined']) },
-    mcpToolCall: { server: chaine, tool: chaine, status: statuts(communs) },
-    dynamicToolCall: { tool: chaine, status: statuts(communs) },
-    collabAgentToolCall: { tool: { allOf: [statuts(['spawnAgent', 'sendInput', 'resumeAgent', 'wait', 'closeAgent', 'sendMessage', 'followupTask', 'interruptAgent', 'listAgents'])] }, status: { allOf: [statuts([...communs, 'interrupted'])] } },
-    imageGeneration: { status: chaine },
-  }
-  const item = { oneOf: [objet({ type: { type: 'string', enum: ['agentMessage'] }, text: chaine }), ...outils.map((v) => objet({ type: { type: 'string', enum: [v] }, id: chaine, ...champs[v] }))] }
-  item.oneOf.find((b) => b.properties.type.enum[0] === 'imageGeneration').anyOf = [objet({ fileId: chaine }), objet({ result: chaine })]
-  const tour = objet({ id: chaine, status: { type: 'string', enum: ['completed', 'interrupted', 'failed', 'inProgress'] }, items: { type: 'array', items: item }, durationMs: { type: ['integer', 'null'] }, error: nullable(objet({ message: chaine })) }, ['id', 'items', 'status'])
-  const input = { type: 'array', items: { oneOf: [texte] } }
-  return {
-    'v1/InitializeParams': objet({ clientInfo: objet({ name: chaine, version: chaine }), capabilities: nullable(objet({ experimentalApi: { type: 'boolean' } }, [])) }, ['clientInfo']),
-    'v1/InitializeResponse': objet({ userAgent: chaine }),
-    'v2/ThreadStartParams': objet({ cwd: { type: ['string', 'null'] } }, []),
-    'v2/ThreadStartResponse': objet({ thread: objet({ id: chaine }) }),
-    'v2/TurnStartParams': objet({ threadId: chaine, input, outputSchema: {} }, ['input', 'threadId']),
-    'v2/TurnStartResponse': objet({ turn: objet({ id: chaine }) }),
-    'v2/TurnSteerParams': objet({ threadId: chaine, expectedTurnId: chaine, input }),
-    'v2/TurnSteerResponse': objet({ turnId: chaine }),
-    'v2/TurnInterruptParams': objet({ threadId: chaine, turnId: chaine }),
-    'v2/TurnInterruptResponse': objet({}),
-    'v2/TurnStartedNotification': objet({ threadId: chaine, turn: objet({ id: chaine }) }),
-    'v2/TurnCompletedNotification': objet({ threadId: chaine, turn: tour }),
-    'v2/ItemCompletedNotification': objet({ threadId: chaine, turnId: chaine, item }),
-    'v2/ItemStartedNotification': objet({ threadId: chaine, turnId: chaine, item }),
-    'v2/ThreadTokenUsageUpdatedNotification': objet({ threadId: chaine, turnId: chaine, tokenUsage: objet({ total: objet({ totalTokens: { type: 'integer' } }) }) }),
-    'v2/ThreadStatusChangedNotification': objet({ threadId: chaine, status: { oneOf: [objet({ type: { type: 'string', enum: ['active'] }, activeFlags: { type: 'array', items: { type: 'string', enum: ['waitingOnApproval', 'waitingOnUserInput'] } } })] } }),
-    'v2/ErrorNotification': objet({ threadId: chaine, error: objet({ message: chaine }) }),
-  }
-}
-test('protocole : formes consommées requises, types, enums et nullabilité ; extensions ignorées', () => {
-  function verifier(changer = () => {}) {
-    return verifierProtocoleCodex({ executable: 'audited', executer(exe, args) {
-      assert.equal(exe, 'audited')
-      if (args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.164.0\n' }
-      const corpus = corpusProtocole()
-      const defs = Object.fromEntries(Object.entries(corpus).map(([n, s]) => [n.split('/')[1], s]))
-      const enveloppe = (methodes, request = false) => ({ definitions: defs, oneOf: Object.entries(methodes).map(([m, n]) => ({ type: 'object', properties: { method: { type: 'string', enum: [m] }, ...(n ? { params: { $ref: `#/definitions/${n}` } } : {}) }, required: ['method', ...(n ? ['params'] : []), ...(request ? ['id'] : [])] })) })
-      corpus.ClientRequest = enveloppe({ initialize: 'InitializeParams', 'thread/start': 'ThreadStartParams', 'turn/start': 'TurnStartParams', 'turn/steer': 'TurnSteerParams', 'turn/interrupt': 'TurnInterruptParams' }, true)
-      corpus.ClientNotification = enveloppe({ initialized: null })
-      corpus.ServerNotification = enveloppe({ 'turn/started': 'TurnStartedNotification', 'turn/completed': 'TurnCompletedNotification', 'item/started': 'ItemStartedNotification', 'item/completed': 'ItemCompletedNotification', 'thread/tokenUsage/updated': 'ThreadTokenUsageUpdatedNotification', 'thread/status/changed': 'ThreadStatusChangedNotification', error: 'ErrorNotification' })
-      changer(corpus)
-      for (const [nom, document] of Object.entries(corpus)) {
-        if (nom.includes('/')) mkdirSync(join(args[3], nom.split('/')[0]), { recursive: true })
-        writeFileSync(join(args[3], `${nom}.json`), JSON.stringify(document))
-      }
-      return { status: 0 }
-    } })
-  }
-  assert.equal(verifier().version, '0.164.0')
-  assert.equal(verifier((c) => { c['v2/ThreadStartResponse'].description = 'prose'; c['v2/ThreadStartResponse'].properties.nouveau = { type: 'boolean' } }).version, '0.164.0')
-  const variante = (c, nom, outil) => c[nom].properties.item.oneOf.find((b) => b.properties.type.enum[0] === outil)
-  assert.equal(verifier((c) => {
-    for (const nom of ['v2/ItemCompletedNotification', 'v2/ItemStartedNotification']) delete variante(c, nom, 'imageGeneration').anyOf
-  }).version, '0.164.0')
-  for (const nom of ['v2/ItemCompletedNotification', 'v2/ItemStartedNotification']) {
-    for (const champ of ['id', 'status']) {
-      assert.throws(() => verifier((c) => { variante(c, nom, 'imageGeneration').properties[champ] = { type: 'integer' } }), /\[validation.*incompatible/)
-      assert.throws(() => verifier((c) => { const b = variante(c, nom, 'imageGeneration'); b.required = b.required.filter((k) => k !== champ) }), /\[validation.*incompatible/)
-    }
-    for (const operateur of ['anyOf', 'allOf', 'oneOf']) {
-      for (const contrainte of [{ type: 'integer' }, { type: 'string', enum: ['completed', 'failed'] }, { const: 'completed' }]) {
-        assert.throws(() => verifier((c) => {
-          variante(c, nom, 'imageGeneration')[operateur] = [{ properties: { status: contrainte } }, {}]
-        }), /\[validation.*incompatible/)
-      }
-      assert.throws(() => verifier((c) => {
-        c[nom][operateur] = [{ required: ['turnId'] }]
-      }), /\[validation.*incompatible/)
-    }
-    assert.throws(() => verifier((c) => {
-      variante(c, nom, 'imageGeneration').anyOf = ['completed', 'failed'].map((s) => ({ properties: { status: { type: 'string', enum: [s] } } }))
-    }), /\[validation.*incompatible/)
-    for (const champ of ['tool', 'status']) assert.throws(() => verifier((c) => {
-      variante(c, nom, 'collabAgentToolCall').properties[champ].allOf[0].enum = ['changed']
-    }), /\[validation.*incompatible/)
-  }
-  for (const nom of ['ItemCompletedNotification', 'ItemStartedNotification']) {
-    for (const champ of ['id', 'status']) assert.throws(() => verifier((c) => {
-      c.ServerNotification.definitions = structuredClone(c.ServerNotification.definitions)
-      const b = c.ServerNotification.definitions[nom].properties.item.oneOf.find((s) => s.properties.type.enum[0] === 'imageGeneration')
-      b.properties[champ] = { type: 'integer' }
-    }), /\[validation.*incompatibles/)
-  }
-  for (const changer of [
-    (c) => { c['v2/TurnStartParams'].properties.outputSchema = { $ref: '#/definitions/Inconnu' } },
-    (c) => { c.ServerNotification.oneOf.find((b) => b.properties.method.enum[0] === 'turn/started').properties.params = { $ref: '#/definitions/Inconnu' } },
-    (c) => { c['v2/ThreadStartResponse'].properties.thread.properties.id = { type: 'integer' } },
-    (c) => { c['v2/ThreadStartResponse'].properties.thread.required = [] },
-    (c) => { c['v2/TurnCompletedNotification'].properties.turn.properties.status.enum = ['completed'] },
-    (c) => { c['v2/TurnCompletedNotification'].properties.turn.properties.durationMs.type = 'integer' },
-    (c) => { c['v2/ItemCompletedNotification'].properties.item.oneOf.find((b) => b.properties.type.enum[0] === 'mcpToolCall').properties.tool.type = 'integer' },
-    (c) => { c['v2/ItemStartedNotification'].properties.item.oneOf.find((b) => b.properties.type.enum[0] === 'commandExecution').properties.status.enum = ['inProgress'] },
-    (c) => { c.ClientRequest.oneOf = c.ClientRequest.oneOf.filter((b) => b.properties.method.enum[0] !== 'turn/steer') },
-  ]) assert.throws(() => verifier(changer), /\[validation.*incompatible/)
 })
 test('envoi, fin et arrêt concurrents : chaque commande est acquittée ou refusée, aucun rejet perdu', async (t) => {
   const b = await banc(t)

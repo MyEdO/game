@@ -9,15 +9,22 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
 import { draineCascade, poseSurDeNonTombe } from '../noyau/cascade.testkit';
 import { createHero } from '../engine/character';
-import { fromBrass } from '../engine/money';
-import { partyMoneyTotal, distributeCredit } from '../noyau/bourseFlow';
+import { fromBrass, toBrass } from '../engine/money';
+import { partyMoneyTotal, distributeCredit, debitBourse } from '../noyau/bourseFlow';
+import { bourseOf } from '../engine/bourse';
 import { testScene } from '../scenes/test-fixture';
-import { interludeCatalog, bestActivitySkill } from '../noyau/interludeFlow';
-import { refusDeRevenus } from '../noyau/verdictsDInterlude';
+import { interludeCatalog } from '../noyau/interludeFlow';
+import { refusDeRevenus, refusDOuvertureDActivite } from '../noyau/verdictsDInterlude';
 import { setRule, resetRule } from '../engine/policy';
 import { interludeEventFor } from '../data/interludeEvents';
 import { InterludeScreen, type InterludeSeam } from './InterludeScreen';
-import { ACTIVITIES } from '../engine/activities';
+import { ciblePsy } from '../engine/psych/ciblage';
+import { ACTIVITIES, activityById, craftCatalog, craftSpecOf, entrainementOptions, learnableTalents, metierOf, orderCatalog } from '../engine/activities';
+import careers from '../data/careers.json';
+import { findTrappingById } from '../data';
+import type { Combatant } from '../engine/types';
+import { avecActivite } from '../engine/activiteMer.testkit';
+import { testValue } from '../engine/skills';
 
 /** Texte NU d'un rendu statique : balises retirées, entités HTML de React décodées — pour confronter
  *  un texte de DONNÉE (apostrophes comprises) au markup rendu. */
@@ -36,12 +43,12 @@ const entreeFermee = (html: string, key: string) => html.match(new RegExp(`<butt
 /** La raison accessible de l'entrée `key`, ou `undefined` si elle est ouverte. */
 const raisonDe = (html: string, key: string) => raisonDId(html, `interlude-act-${key}-reason`);
 
-function buildSeam(weeks = 3): InterludeSeam {
+function buildSeam(weeks = 3, groupe?: Combatant[]): InterludeSeam {
   const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
   a.xp = 300;
   const b = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 });
   if (!b.skills.some((s) => s.id === 'metier')) b.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 10 });
-  useGame.setState({ party: [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
+  useGame.setState({ party: groupe ?? [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
   useGame.getState().startScene(testScene());
   vi.clearAllTimers();
   useGame.setState({ screen: 'interlude' });
@@ -156,9 +163,9 @@ describe('InterludeScreen — refonte LOT 6', () => {
    * Recette 2026-09-06, trouvaille n°3 — MENSONGE D'AFFORDANCE : le pré-jet du catalogue annonçait la
    * cible NUE, sans les `testMods` de situation que le flux applique ensuite (`openCatalogActivity`,
    * `noyau/interludeFlow.ts`) — le joueur engageait son Activité sur un chiffre faux. Les DEUX surfaces
-   * composent désormais les mêmes sources : `activityTestMod` → `activityModLines`.
+   * lisent le même pré-jet (`preJetDActivite`, `noyau/verdictsDInterlude.ts`).
    *
-   * MUTATION : retirer `modsSituation` du `testPending` d'`InterludeScreen.tsx` — le libellé
+   * MUTATION : retirer `pj.mods` du `testPending` de `prejetDuVolet` (`InterludeScreen.tsx`) — le libellé
    * « Discours » disparaît du markup et la cible remonte à la valeur nue : les deux `expect` tombent.
    */
   it('pré-jet du catalogue = la CIBLE RÉELLE : les `testMods` de situation y sont (Mendier, LDB 09 l.97)', () => {
@@ -166,8 +173,7 @@ describe('InterludeScreen — refonte LOT 6', () => {
     useGame.setState({ worldMap: null });
     const catalog = interludeCatalog(useGame.getState());
     const hero = seam.party[0];
-    const def = ACTIVITIES.find((a) => a.id === 'mendier')!;
-    const base = bestActivitySkill(hero, def)!.value;
+    const base = testValue(hero, 'charme'); // Mendier : Test de Charme (LDB 09 l.97)
     const voir = () => renderToStaticMarkup(
       <InterludeScreen seam={{ ...seam, phase: 'activities', catalog, openPane: { heroId: hero.id, pane: 'mendier' } }} />,
     );
@@ -219,6 +225,14 @@ describe('InterludeScreen — refonte LOT 6', () => {
       <InterludeScreen seam={{ ...seam, phase: 'activities', openPane: { heroId: hero.id, pane: 'bank' } }} />,
     );
     expect(html).not.toContain('rm-stake');
+  });
+
+  it('clôture : le Standing retenu se nomme par le libellé de l’Activité qui l’a produit', () => {
+    const seam = buildSeam(2);
+    const hero = seam.party[0];
+    const interlude = { ...seam.interlude, perHero: { ...seam.interlude.perHero, [hero.id]: { ...seam.interlude.perHero[hero.id], closeOps: [{ ops: [{ op: 'statusMod' as const, amount: 1 }], ctx: { label: 'Faire jaser la cour' } }] } } };
+    const html = mdToPlain(renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude, phase: 'closing' }} />));
+    expect(html).toContain('Vétéran : Standing +1 pour la prochaine aventure (Faire jaser la cour).');
   });
 
   it('clôture : récapitulatif confirmé (argent gaspillé annoncé, temps qui passe)', () => {
@@ -508,5 +522,297 @@ describe('InterludeScreen — Revenus bloqués par l’Événement : entrée et 
     const html = mdToPlain(renderToStaticMarkup(<InterludeScreen seam={{ ...seam, phase: 'events' }} />));
     expect(html).toContain('Larron ne peut pas entreprendre Revenus (événement : Répression du crime).');
     expect(html).toContain('Revenus bloqués pour : Roublards');
+  });
+});
+
+describe('InterludeScreen — abordabilité (#3059 S4) : chaque volet payant lit le verdict du noyau', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  /** Le seam relu sur le store, après un geste de mise en place. */
+  const relu = (seam: InterludeSeam): InterludeSeam => {
+    const s = useGame.getState();
+    return { ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities' };
+  };
+  /** Vide la bourse du héros par la couture de débit. */
+  const viderLaBourse = (heroId: string) => {
+    const h = useGame.getState().party.find((x) => x.id === heroId)!;
+    expect(debitBourse(useGame.getState, useGame.setState, heroId, bourseOf(h)), 'témoin : bourse vidée').toBe(true);
+  };
+  /** La raison que le geste dit au journal. */
+  const raisonDuGeste = (geste: () => void): string[] => {
+    const avant = useGame.getState().journal.length;
+    geste();
+    return useGame.getState().journal.slice(avant);
+  };
+  /** L'action du volet `paneId` est fermée et liée à sa bannière. */
+  const lieeALaBanniere = (html: string, paneId: string) =>
+    expect(html.match(/<button[^>]*>/g)?.some((b) => b.includes('aria-disabled="true"') && b.includes(`aria-describedby="${paneId}-blocked"`)), paneId).toBe(true);
+
+  it('Apprentissage : PX insuffisants, la bannière dit la raison du geste', () => {
+    const seam = buildSeam();
+    const hero = seam.party[0];
+    useGame.getState().party[0].xp = 50;
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: hero.id, pane: 'learn', choix: 'chanceux' } }} />);
+    expect(raisonDId(html, 'pane-learn-blocked')).toBe('Vétéran : PX insuffisants (100).');
+    lieeALaBanniere(html, 'pane-learn');
+    expect(raisonDuGeste(() => useGame.getState().interludeActivity(hero.id, 'learn', { talentId: 'chanceux' }))).toEqual(['Vétéran : PX insuffisants (100).']);
+  });
+
+  it('Entraînement : bourse sous le tuteur le moins cher, même raison au volet et au geste', () => {
+    const seam = buildSeam();
+    const hero = seam.party[0];
+    viderLaBourse(hero.id);
+    const opt = entrainementOptions(useGame.getState().party[0]).find((o) => o.kind === 'characteristic')!;
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: hero.id, pane: 'entrainement', choix: `${opt.kind}|${opt.id}|` } }} />);
+    expect(raisonDId(html, 'pane-entrainement-blocked')).toBe('Vétéran : la bourse ne couvre même pas le tuteur le moins cher (1 sc).');
+    lieeALaBanniere(html, 'pane-entrainement');
+    expect(raisonDuGeste(() => useGame.getState().interludeEntrainement(hero.id, opt.kind, opt.id, opt.spec))).toEqual([raisonDId(html, 'pane-entrainement-blocked')]);
+  });
+
+  it('Commande : prix hors de la bourse, même raison au volet et au geste', () => {
+    const seam = buildSeam();
+    const hero = seam.party[0];
+    viderLaBourse(hero.id);
+    const objet = orderCatalog()[0];
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: hero.id, pane: 'order', choix: objet.id } }} />);
+    const banniere = raisonDId(html, 'pane-order-blocked');
+    expect(banniere).toMatch(/^Commande trop chère \(.+\)\.$/);
+    lieeALaBanniere(html, 'pane-order');
+    expect(raisonDuGeste(() => useGame.getState().interludeOrder(hero.id, objet.id))).toEqual([banniere]);
+  });
+
+  it('Artisanat : matériaux hors de la bourse, même raison au volet et au geste', () => {
+    const seam = buildSeam();
+    const forgeron = seam.party[1];
+    viderLaBourse(forgeron.id);
+    const ouvrage = craftCatalog()[0];
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: forgeron.id, pane: 'craft', choix: ouvrage.id } }} />);
+    const banniere = raisonDId(html, 'pane-craft-start-blocked');
+    expect(banniere).toMatch(/^Matériaux trop chers \(.+\) pour la bourse de Forgeron\.$/);
+    lieeALaBanniere(html, 'pane-craft-start');
+    expect(raisonDuGeste(() => useGame.getState().interludeCraftStart(forgeron.id, ouvrage.id, [], []))).toEqual([banniere]);
+  });
+
+  it('Banque, Bronze à la bourse courte : chaque dépôt dit SON refus, comme son geste', () => {
+    const seam = buildSeam();
+    const forgeron = seam.party[1];
+    viderLaBourse(forgeron.id);
+    const catalog = ACTIVITIES.filter((a) => a.resolver === 'mecenat');
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), catalog, openPane: { heroId: forgeron.id, pane: 'bank' } }} />);
+    expect(raisonDId(html, 'pane-bank-blocked'), 'la bannière : la bourse').toBe('La bourse de Forgeron ne couvre pas ce dépôt.');
+    expect(raisonDId(html, 'interlude-bank-invest-reason'), 'Investir : le Statut').toBe('Forgeron : investir en banque exige le Statut Argent ou Or.');
+    expect(raisonDId(html, 'interlude-bank-mecenat-reason'), 'Mécénat : le lieu').toBe('Le Mécénat ne se pratique pas ici.');
+    expect(raisonDuGeste(() => useGame.getState().interludeBank(forgeron.id, 'invest', 120))).toEqual(['Forgeron : investir en banque exige le Statut Argent ou Or.']);
+    expect(raisonDuGeste(() => useGame.getState().interludeBank(forgeron.id, 'stash', 120))).toEqual(['La bourse de Forgeron ne couvre pas ce dépôt.']);
+    expect(raisonDuGeste(() => useGame.getState().interludeBank(forgeron.id, 'mecenat', 120))).toEqual(['Le Mécénat ne se pratique pas ici.']);
+  });
+
+  it('Banque : l’investissement Bronze dit la raison du noyau ; le dépôt prévu est celui que rabote l’Événement', () => {
+    const seam = buildSeam();
+    const forgeron = seam.party[1];
+    const itl = useGame.getState().interlude!;
+    itl.perHero[forgeron.id] = { ...itl.perHero[forgeron.id], fx: { bankPct: -20 } };
+    useGame.setState({ interlude: { ...itl } });
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: forgeron.id, pane: 'bank' } }} />);
+    expect(raisonDId(html, 'interlude-bank-invest-reason')).toBe('Forgeron : investir en banque exige le Statut Argent ou Or.');
+    expect(mdToPlain(html)).toContain('dépôt prévu : 8/–');
+    const avant = useGame.getState().bank.length;
+    const bourse = () => toBrass(bourseOf(useGame.getState().party.find((h) => h.id === forgeron.id)!));
+    const bourseAvant = bourse();
+    useGame.getState().interludeBank(forgeron.id, 'stash', 120);
+    expect(useGame.getState().bank.slice(avant).map((d) => d.brass), 'le geste dépose ce que le volet annonce').toEqual([96]);
+    expect(bourseAvant - bourse(), 'la bourse paie le montant saisi').toBe(120);
+  });
+});
+
+describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles et le refus du geste', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  /** Le seam relu sur le store, à Altdorf, le volet `pane` du Vétéran ouvert. */
+  const aAltdorf = (seam: InterludeSeam, pane: string, extra: Partial<InterludeSeam> = {}): InterludeSeam => {
+    useGame.setState({ worldMap: { id: 'w', label: 'W', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: testScene().id }], routes: [] } });
+    const s = useGame.getState();
+    return { ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities', catalog: interludeCatalog(s), lieu: { scene: s.scene, worldMap: s.worldMap }, massBattle: s.massBattle, openPane: { heroId: s.party[0].id, pane }, ...extra };
+  };
+  const raisonDuGeste = (geste: () => void): string[] => {
+    const avant = useGame.getState().journal.length;
+    geste();
+    return useGame.getState().journal.slice(avant);
+  };
+  const fermeeEtLiee = (html: string, paneId: string) =>
+    expect(html.match(/<button[^>]*>/g)?.some((b) => b.includes('aria-disabled="true"') && b.includes(`aria-describedby="${paneId}-blocked"`)), paneId).toBe(true);
+
+  it('Pénitence sans Péché : la bannière dit le refus du geste', () => {
+    const seam = buildSeam();
+    // La Pénitence se tente (LDB 09 l.30) : le Vétéran a appris la Prière.
+    useGame.setState((s) => ({ party: s.party.map((h, i) => (i === 0 ? { ...h, skills: [...h.skills, { id: 'priere', characteristic: 'sociabilite' as const, advances: 5 }] } : h)) }));
+    const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'penitence')} />);
+    const raison = 'Vétéran n’a aucun Point de Péché à expier. Pénitence ne lui apporterait rien en cas de réussite.';
+    expect(raisonDId(html, 'pane-catalog-penitence-blocked')).toBe(raison);
+    fermeeEtLiee(html, 'pane-catalog-penitence');
+    expect(raisonDuGeste(() => useGame.getState().interludeActivity(seam.party[0].id, 'penitence'))).toEqual([raison]);
+  });
+
+  it('Tester des objets magiques sans objet : même raison au volet et au geste', () => {
+    const seam = buildSeam();
+    const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'tester-objets-magiques')} />);
+    const raison = 'Aucun objet non identifié dans le sac de Vétéran.';
+    expect(raisonDId(html, 'pane-catalog-tester-objets-magiques-blocked')).toBe(raison);
+    fermeeEtLiee(html, 'pane-catalog-tester-objets-magiques');
+    expect(raisonDuGeste(() => useGame.getState().interludeActivity(seam.party[0].id, 'tester-objets-magiques'))).toEqual([raison]);
+  });
+
+  it('Convalescence : la liste du volet porte chaque INSTANCE de Trait psychologique du héros, l’action est offerte', () => {
+    const seam = buildSeam();
+    const h = useGame.getState().party[0];
+    h.psychTraits = [{ type: 'frenesie' }, { type: 'haine', cible: ciblePsy.groupe('nain') }, { type: 'haine', cible: ciblePsy.groupe('elfe') }];
+    useGame.setState({ party: [...useGame.getState().party] });
+    const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'convalescence')} />);
+    const liste = html.match(/<select[^>]*aria-label="Trait psychologique à éliminer"[^>]*>(.*?)<\/select>/)?.[1] ?? '';
+    expect([...liste.matchAll(/<option value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map((m) => [m[1], m[2]])).toEqual([['frenesie', 'Frénésie'], ['haine|nain', 'Haine (Nain)'], ['haine|elfe', 'Haine (Elfe)']]);
+    const bouton = html.match(/<button[^>]*aria-label="Entreprendre Convalescence"[^>]*>/)?.[0];
+    expect(bouton, 'l’action est offerte').toMatch(/^<button(?![^>]*aria-disabled)/);
+  });
+
+  it('retrait de Mécénat hors d’Altdorf : le bouton et le geste disent le même refus', () => {
+    const seam = buildSeam();
+    const heroId = seam.party[0].id;
+    aAltdorf(seam, 'bank');
+    useGame.getState().interludeBank(heroId, 'mecenat', 1200);
+    expect(useGame.getState().bank.map((d) => d.kind), 'témoin : dépôt de Mécénat à Altdorf').toEqual(['mecenat']);
+    useGame.setState({ worldMap: { id: 'w', label: 'W', places: [{ id: 'ubersreik', label: 'Ubersreik', pos: { x: 0, y: 0 }, scene: testScene().id }], routes: [] } });
+    const s = useGame.getState();
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities', lieu: { scene: s.scene, worldMap: s.worldMap } }} />);
+    const raison = 'Mécénat n\'est praticable qu\'en un lieu précis — pas ici.';
+    expect(raisonDId(html, 'interlude-bank-withdraw-0-reason')).toBe(raison);
+    expect(raisonDuGeste(() => useGame.getState().interludeWithdraw(0))).toEqual([raison]);
+  });
+
+  it('arme inhabituelle : la liste du volet ne porte que les armes à maîtriser', () => {
+    const seam = buildSeam();
+    const h = useGame.getState().party[0];
+    h.items = [...(h.items ?? []),
+      { uid: 'arme-1', trappingId: 'couteau-de-harald', label: 'Couteau de Harald', kind: 'melee', qualities: [], enc: 0, equipped: false, requiresMastery: true } as never,
+      { uid: 'armure-1', trappingId: 'armure-etrange', label: 'Armure étrange', kind: 'armour', qualities: [], enc: 0, equipped: false, requiresMastery: true } as never];
+    useGame.setState({ party: [...useGame.getState().party] });
+    const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'entrainement-arme-inhabituelle')} />);
+    const liste = html.match(/<select[^>]*aria-label="Arme à maîtriser"[^>]*>(.*?)<\/select>/)?.[1] ?? '';
+    expect([...liste.matchAll(/<option value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map((m) => [m[1], m[2]])).toEqual([['arme-1', 'Couteau de Harald']]);
+    const bouton = html.match(/<button[^>]*aria-label="Entreprendre Entraînement avec une arme inhabituelle"[^>]*>/)?.[0];
+    expect(bouton, 'l’action est offerte sur l’arme').toMatch(/^<button(?![^>]*aria-disabled)/);
+  });
+
+  it('Faveur Importante : la bannière dit le refus du geste, sans citation de livre', () => {
+    const seam = buildSeam();
+    const heroId = seam.party[0].id;
+    const favors = [{ id: 'favor-1', heroId, level: 'importante' as const, owedTo: 'Un comte', desc: 'Un service', progress: 0 }];
+    useGame.setState({ favors });
+    const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'favor-settle', { favors })} />);
+    const raison = 'Une Faveur Importante ne s’acquitte pas par des Activités : elle se joue en aventure.';
+    expect(raisonDId(html, 'pane-favor-blocked')).toBe(raison);
+    fermeeEtLiee(html, 'pane-favor');
+    expect(raisonDuGeste(() => useGame.getState().favorSettle(heroId, 'favor-1'))).toEqual([raison]);
+  });
+
+  it('Soutien d’une préparation : la note est la décision du noyau (`interlude-assist-costs-activity`)', () => {
+    const note = (cout: boolean) => {
+      setRule('interlude-assist-costs-activity', cout);
+      try {
+        const seam = buildSeam();
+        useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+        return mdToPlain(renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'planification')} />));
+      } finally { resetRule('interlude-assist-costs-activity'); }
+    };
+    expect(note(false)).toContain('Les autres PJ peuvent prêter leur Soutien, gratuitement.');
+    expect(note(true)).toContain('Les autres PJ peuvent prêter leur Soutien — chacun y dépense un créneau.');
+  });
+
+  it('préparation déjà faite : la bannière dit le refus du geste', () => {
+    const seam = buildSeam();
+    const heroId = seam.party[0].id;
+    useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    useGame.getState().massBattleActivity('inspire', heroId);
+    useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 20, success: true, sl: 2 } });
+    useGame.getState().activityConfirm();
+    expect(useGame.getState().massBattle?.activitiesDone, 'témoin : le Discours est fait').toContain('inspire');
+    const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'inspire')} />);
+    const raison = 'Déjà réalisée cette bataille (Activité non répétable).';
+    expect(raisonDId(html, 'pane-prep-inspire-blocked')).toBe(raison);
+    fermeeEtLiee(html, 'pane-prep-inspire');
+    expect(raisonDuGeste(() => useGame.getState().massBattleActivity('inspire', heroId))).toEqual([raison]);
+  });
+});
+
+
+/** Le texte du pré-jet du volet ouvert, ses lignes de modificateur comprises, jusqu'à son action. */
+const ligneDePreJet = (html: string) => mdToPlain(html.slice(html.indexOf('rm-roll pending'))).split('Entreprendre')[0];
+
+describe('InterludeScreen — chaque volet affiche le pré-jet du noyau (#3059 S6)', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  it('Planification soutenue : Savoir (Guerre) 46, Soutien +10, cible 56 — celle du jet posé (LDB 12 l.187-200)', () => {
+    const seam = buildSeam();
+    const party = seam.party.map((h, i) => ({ ...h, skills: [...h.skills.filter((s) => s.id !== 'savoir'), { id: 'savoir', spec: 'guerre', characteristic: 'intelligence' as const, advances: i === 0 ? 10 : 5 }] }));
+    useGame.setState({ party });
+    useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    useGame.getState().setMassBattleHero('planification', party.map((h) => h.id));
+    const s = useGame.getState();
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, party, phase: 'activities', catalog: interludeCatalog(s), massBattle: s.massBattle, openPane: { heroId: party[0].id, pane: 'planification' } }} />);
+    expect(ligneDePreJet(html)).toContain('46 +10 = 56');
+    expect(ligneDePreJet(html)).toContain('Soutien');
+    useGame.getState().massBattleActivity('planification', party[0].id);
+    expect(useGame.getState().pendingActivity!.target).toBe(56);
+  });
+
+  it('Apprentissage d’un Exténué : la ligne nomme l’État : Sociabilité nue 36, Exténué −10, cible 6 (LDB 16 l.90)', () => {
+    const seam = buildSeam();
+    const party = [{ ...seam.party[0], conditions: [{ id: 'extenue' as const, value: 1 }] }, seam.party[1]];
+    useGame.setState({ party });
+    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, party, phase: 'activities', openPane: { heroId: party[0].id, pane: 'learn', choix: 'chanceux' } }} />);
+    expect(ligneDePreJet(html)).toContain('36 −30 = 6');
+    expect(ligneDePreJet(html)).toContain('−10 Exténué');
+    useGame.getState().interludeActivity(party[0].id, 'learn', { talentId: 'chanceux' });
+    expect(useGame.getState().pendingActivity!.skillValue).toBe(26);
+  });
+
+  it('Revenus éditée avec un modificateur de situation : le volet dédié le nomme et l’applique (LDB 09 l.97)', () => {
+    const revenus = { ...activityById('revenus')!, testMods: [{ mod: -10, label: 'Mauvaise saison' }] };
+    avecActivite(revenus, () => {
+      const seam = buildSeam();
+      const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, phase: 'activities', openPane: { heroId: seam.party[0].id, pane: 'revenus' } }} />);
+      expect(ligneDePreJet(html)).toContain('Mauvaise saison');
+      expect(ligneDePreJet(html)).toContain('= 52');
+    });
+  });
+});
+
+describe('InterludeScreen — la porte de chaque volet dédié est celle du geste (`refusDOuvertureDActivite`, #3059 S6)', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  const CARRIERES = (careers as { id: string }[]).map((c) => c.id);
+  /** Variantes : 0 valide, 1 Inconscient (LDB 16 l.113 : il ne peut tenter aucun Test). */
+  it.each(CARRIERES.flatMap((c) => [0, 1].map((n) => [c, n] as const)))('%s, variante %s : Revenus, ouvrage en cours, Apprentissage', (careerId, n) => {
+    const h = createHero({ speciesId: 'humains-reiklander', careerId, label: careerId, seed: 3000 + CARRIERES.indexOf(careerId) });
+    h.xp = 2000;
+    if (n === 1) h.conditions = [{ id: 'inconscient', value: 1 }];
+    const seam = buildSeam(3, [h]);
+    const voir = (pane: string, choix?: string) => {
+      const s = useGame.getState();
+      return renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: s.interlude!, party: s.party, phase: 'activities', openPane: { heroId: h.id, pane, ...(choix ? { choix } : {}) } }} />);
+    };
+    const geste = (id: string, cibles = {}) => refusDOuvertureDActivite(useGame.getState(), h.id, activityById(id)!, cibles) ?? undefined;
+    // L'entrée de la liste se lit volet FERMÉ : une entrée ouverte reste refermable, sans raison.
+    expect(raisonDe(voir('bank'), 'revenus'), 'Revenus').toBe(geste('revenus'));
+    const talent = learnableTalents(useGame.getState().party[0])[0];
+    if (talent) expect(raisonDId(voir('learn', talent.id), 'pane-learn-blocked'), 'Apprentissage').toBe(geste('learn', { talentId: talent.id }));
+    const ouvrage = craftCatalog().find((o) => { const t = findTrappingById(o.id); return t && craftSpecOf(t); });
+    if (n === 0 && metierOf(useGame.getState().party[0]) && ouvrage) {
+      useGame.getState().interludeCraftStart(h.id, ouvrage.id, [], []);
+      if (useGame.getState().party[0].craft) expect(raisonDe(voir('bank'), 'craft'), 'ouvrage en cours').toBe(geste('craft'));
+    }
   });
 });

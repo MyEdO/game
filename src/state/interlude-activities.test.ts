@@ -15,6 +15,8 @@ import { findTableEntry, findTableEntryIndex } from '../engine/tables';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { PendingActivity } from '../noyau/interludeFlow';
 import { openRitualFocus } from '../noyau/interludeFlow';
+import { preJetDActivite } from '../noyau/verdictsDInterlude';
+import { activityById } from '../engine/activities';
 import { evaluateTest } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { testScene } from '../scenes/test-fixture';
@@ -111,23 +113,25 @@ describe('Activités d’interlude (LDB 23)', () => {
     itl.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
     useGame.setState({ interlude: { ...itl } });
     const r = openRitualFocus(useGame.getState, useGame.setState, h, 'graver-une-pierre-d-ogham');
+    // Pré-jet du Rituel engagé : la voie de Focalisation que le geste poserait.
+    const focus = () => preJetDActivite(useGame.getState(), h.id, activityById('accomplir-un-rituel')!)!;
     expect(r).toBeDefined();
-    expect(r!.extra.drTarget).toBe(25); // NI 50 réduit de moitié (arrondi sup.) en Activité
-    expect(r!.extra.drBefore).toBe(0);
+    expect(r!.drTarget).toBe(25); // NI 50 réduit de moitié (arrondi sup.) en Activité
+    expect(r!.drBefore).toBe(0);
     expect(hero().ritual).toEqual({ spellId: 'graver-une-pierre-d-ogham', drDone: 0, drTarget: 25 });
     // `pendingActivity` reconstitué à la main (assemblage d'`openCatalogActivity`) : l'Activité est
     // `blocked` au catalogue, la porte `interludeActivity`/`openCatalogActivity` refuse désormais.
     useGame.setState({
       pendingActivity: {
         heroId: h.id, kind: 'catalog', activityId: 'accomplir-un-rituel',
-        skillLabel: r!.skillLabel, skillValue: r!.skillValue,
+        skillLabel: 'Focalisation', skillValue: focus().value, difficulty: focus().difficulty,
         roll: null, target: 0, sl: 0, success: false,
-        ...r!.extra, label: `Accomplir un Rituel — ${r!.extra.label}`,
+        ...r!, label: `Accomplir un Rituel — ${r!.label}`,
       } as PendingActivity,
     });
     // Seed choisi pour que le PROCHAIN jet (`battleRng()`, consommé une fois par `resolveFocus`) soit
     // un échec net (marge ≥ 15) — preuve indépendante de l'aléa par défaut du fichier (seed 13).
-    const effTarget = r!.skillValue + DIFFICULTY_MODIFIERS.intermediaire;
+    const effTarget = focus().value + DIFFICULTY_MODIFIERS.intermediaire;
     let seed = 1;
     while (makeRNG(seed).int(1, 100) - effTarget < 15) seed++;
     seedBattleRng(seed);
@@ -150,13 +154,13 @@ describe('Activités d’interlude (LDB 23)', () => {
     // 2e Round, sans re-préciser `spellId` : reprend le Rituel engagé (`h.ritual`), achève (10+20 ≥ 25).
     const r2 = openRitualFocus(useGame.getState, useGame.setState, h, undefined);
     expect(r2).toBeDefined();
-    expect(r2!.extra.drBefore).toBe(10);
+    expect(r2!.drBefore).toBe(10);
     useGame.setState({
       pendingActivity: {
         heroId: h.id, kind: 'catalog', activityId: 'accomplir-un-rituel',
-        skillLabel: r2!.skillLabel, skillValue: r2!.skillValue,
+        skillLabel: 'Focalisation', skillValue: focus().value, difficulty: focus().difficulty,
         roll: null, target: 0, sl: 0, success: false,
-        ...r2!.extra, label: `Accomplir un Rituel — ${r2!.extra.label}`,
+        ...r2!, label: `Accomplir un Rituel — ${r2!.label}`,
       } as PendingActivity,
     });
     useGame.getState().activityRoll();
@@ -201,7 +205,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     hero().careerLevel = 1;
     useGame.getState().interludeBank(hero().id, 'invest', 120);
     expect(useGame.getState().bank).toHaveLength(0);
-    expect(useGame.getState().journal.join('\n')).toMatch(/échelons Or et Argent/);
+    expect(useGame.getState().journal.join('\n')).toMatch(/investir en banque exige le Statut Argent ou Or/);
     const before = toBrass(partyMoneyTotal(useGame.getState));
     useGame.getState().interludeBank(hero().id, 'stash', 120);
     expect(useGame.getState().bank).toHaveLength(1);
@@ -234,9 +238,10 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(moneyBefore - (pa.tutorBrass ?? 0)); // tuteur payé MÊME sur échec
     expect(st().learnFails?.['chanceux']).toBe(1); // clé = id stable
     expect(hero().talents.some((t) => t.talentId === 'chanceux')).toBe(false);
-    // Seconde tentative : succès → Talent acquis (et le +10 d'acharnement s'ajoute à la valeur du Test).
+    // Seconde tentative : succès → Talent acquis ; l'acharnement est un modificateur du Test (LDB 23 l.72).
     useGame.getState().interludeActivity(h.id, 'learn', { talentId: 'chanceux' });
-    expect(useGame.getState().pendingActivity!.skillValue).toBeGreaterThan(pa.skillValue);
+    const reprise = useGame.getState().pendingActivity!;
+    expect([reprise.skillValue, reprise.mod, reprise.modLabel]).toEqual([pa.skillValue, 10, 'Acharnement']);
     useGame.getState().activityRoll();
     useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 1, success: true, sl: 1 } });
     useGame.getState().activityConfirm();

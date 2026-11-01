@@ -84,6 +84,11 @@ export function removeGrantedTrait(c: Combatant, t: TraitInstance): void {
   if (c.psychTraits && !c.psychTraits.length) delete c.psychTraits;
 }
 
+/** Les instances du trait `traitId` que la source `src` a accordées à `c` (aucune sans source). */
+export function traitsAccordesPar(c: Combatant, traitId: string, src?: EffectSource): TraitInstance[] {
+  return src ? (c.traits ?? []).filter((t) => t.id === traitId && t.src?.kind === src.kind && t.src?.id === src.id) : [];
+}
+
 /** Retire les instances du Trait `traitId` que la source `src` a ACCORDÉES à `c` — retrouvées par le
  *  registre d'instance `TraitInstance.src` (posé par l'op `grantTrait` et par `attachMutation`), quels
  *  que soient leur argument et leur indice — et renvoie celles qui l'ont été. Noyau de l'op
@@ -92,8 +97,7 @@ export function removeGrantedTrait(c: Combatant, t: TraitInstance): void {
  *  par un TIERS (Haine d'une prière, LDB 226) reste intact. Source inconnue = rien à attribuer, donc
  *  rien retiré. Mute `c`. */
 export function removeGrantedTraitsFrom(c: Combatant, traitId: string, src?: EffectSource): TraitInstance[] {
-  if (!src) return [];
-  const removed = (c.traits ?? []).filter((t) => t.id === traitId && t.src?.kind === src.kind && t.src?.id === src.id);
+  const removed = traitsAccordesPar(c, traitId, src);
   for (const t of removed) removeGrantedTrait(c, t);
   return removed;
 }

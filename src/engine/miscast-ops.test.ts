@@ -81,7 +81,7 @@ describe('castPenalty — pénalités/blocages temporisés', () => {
 // `{kind:'test'}`), résolu CADENCE-AWARE par `applyMiscast`→`runCombatFlow` (héros manuel = jet
 // influençable ; ennemi = inline). On vérifie ici la STRUCTURE produite (skill/carac/difficulté, branche
 // d'échec, palier `onFailHard` via Condition `slThreshold ≤ −4`) ; la RÉSOLUTION cadence-aware (étape
-// influençable, onCorruption, Inconscient à −4 DR) est testée au niveau store (`state/miscast-test.test`).
+// influençable, onCorruption, Inconscient à −4 DR) est testée au niveau du noyau (`noyau/combat/miscast-test.hors-store.test`).
 describe('Tests imbriqués des tables → nœud Flow `test`', () => {
   /** Premier `rollMiscast(sev, ...)` qui tire la rangée `rowId` (échantillonne les graines). */
   function rowParId(sev: Parameters<typeof rollMiscast>[0], rowId: string, sin = 0) {

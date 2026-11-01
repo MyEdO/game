@@ -5,19 +5,22 @@
 //   `osAPositionAnimee` ;
 // - déclaré par le corps (`<declaration.json>`) : `base`, `porteur`, et les clips de marche ;
 // - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitessesAuSol`, une par clip de marche ;
+// - construit avant l'export (`domaineDuGabarit`, pont `gabarit.mjs`) : `gabarit.bornes` ;
 // - pris au GLB : `glb.sha256` et `glb.octets`.
 // `--licence-<pack>` nomme le texte de licence de chaque pack, lu dans le pack. `--verifier` juge la déclaration, le
 // dossier de sortie et les textes de licence sans rien lire ni écrire d'autre : la construction le joue avant Blender.
-//   node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --ual1 <f> --ual2 <f> --corps <f> --corps-feminin <f> --licence-ual1 <f> --licence-ual2 <f> --licence-corps <f> --licence-corps-feminin <f> [--verifier] < <construit.json>
+//   node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --<pack> <source> --licence-<pack> <f>… [--verifier] < <construit.json>
+// où <pack> parcourt `SOURCES` (`production.ts`).
 import { readFileSync } from 'node:fs'
 import { text } from 'node:stream/consumers'
 import { parseArgs } from 'node:util'
 import { chargerEvaluateur } from '../../../hotes/godot/asset/charger.mjs'
-import { sha256 } from '../../../hotes/godot/asset/empreinte.ts'
+import { empreinte } from '../../../hotes/godot/asset/empreinte.ts'
 import { validerManifesteDeBase, VERSION_DU_SCHEMA_DE_BASE } from '../../../hotes/godot/asset/manifesteDeBase.ts'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { lireDeclaration } from './declaration.mjs'
 import { ecrireProduction, SOURCES, verifierProduction } from './production.ts'
+import { selectionnerEnConstruction } from './selectionAppuis.mjs'
 
 /** Vitesse posée sur chaque clip de marche le temps de la mesure : `mesurerAppuis` (`appuis.ts`) ne la lit que pour
  *  juger l'écart et le glissement, jamais pour mesurer la vitesse au sol. */
@@ -42,7 +45,7 @@ async function main() {
   const options = { ...Object.fromEntries(packs.flatMap((p) => [[p, { type: 'string' }], [`licence-${p}`, { type: 'string' }]])), verifier: { type: 'boolean' } }
   const { positionals: [cheminDeclaration, cheminGlb, ...reste], values } = parseArgs({ allowPositionals: true, options })
   if (!cheminDeclaration || !cheminGlb?.endsWith('.glb') || reste.length || packs.some((p) => !values[p] || !values[`licence-${p}`])) {
-    console.error('usage : node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> --ual1 <f> --ual2 <f> --corps <f> --corps-feminin <f> --licence-ual1 <f> --licence-ual2 <f> --licence-corps <f> --licence-corps-feminin <f> [--verifier] < <construit.json>')
+    console.error(`usage : node scripts/personnage-3d/base/manifeste.mjs <declaration.json> <base.glb> ${packs.map((p) => `--${p} <source> --licence-${p} <f>`).join(' ')} [--verifier] < <construit.json>`)
     process.exit(2)
   }
   const sources = tableTotale(packs, (p) => values[p])
@@ -55,11 +58,13 @@ async function main() {
   }
   const construit = JSON.parse(await text(process.stdin))
   const octets = readFileSync(cheminGlb)
+  construit.appuis.plusBas = await selectionnerEnConstruction(cheminGlb, construit)
+  console.log(`APPUIS_FINAL candidats=${construit.appuis.plusBas.length} octets=${Buffer.byteLength(JSON.stringify(construit.appuis.plusBas))}`)
   const manifeste = (vitessesAuSol) => ({
     schema: VERSION_DU_SCHEMA_DE_BASE, base, ...construit,
     porteur,
     appuis: { ...construit.appuis, vitessesAuSol },
-    glb: { sha256: sha256(octets), octets: octets.byteLength },
+    glb: empreinte(octets),
   })
   const complet = manifeste(await mesurerVitesses(octets, manifeste(tableTotale(clipsDeMarche, () => VITESSE_DE_SONDE)), clipsDeMarche))
   const verdict = validerManifesteDeBase(complet, octets)

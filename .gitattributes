@@ -32,3 +32,6 @@
 scripts/guards/lib/*Stock.mjs merge=stocks
 scripts/raw/*-stock.json      merge=stocks
 scripts/guards/*-stock.json   merge=stocks
+
+# Copies de licence octet pour octet : leur nom porte l'empreinte de leur contenu (`nomDeLicence`, hotes/godot/asset/importer.ts).
+hotes/godot/projet/modeles/LICENSE-*.txt -text

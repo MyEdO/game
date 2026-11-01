@@ -20,6 +20,7 @@
     "test:runner": "node scripts/gates/testsSansEcriture.mjs test:runner",
     "test:watch": "node scripts/lancer-local.mjs vitest -- vitest",
     "test:noyau": "node scripts/lancer-local.mjs vitest -- vitest run --config vitest.noyau.config.ts",
+    "personnage-3d:tests": "node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/tests.py",
     "noyau:chargement": "node scripts/guards/chargement-en-premier.mjs",
     "hote-texte": "node scripts/hote-texte.mjs",
     "pont:godot": "node hotes/godot/construire.mjs --pont-seul",

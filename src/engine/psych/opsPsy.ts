@@ -26,9 +26,11 @@ export const opPsy = {
   octroi(type: string, cible?: CiblePsy): OpDe<'grantPsychTrait'> {
     return { op: 'grantPsychTrait', psychType: { id: type }, ...(cible !== undefined ? { cible: refDeCible(cible) } : {}) };
   },
-  /** Retire le Trait psychologique `type`, ou un Trait au choix sans `type`. */
-  retrait(type?: string): OpDe<'removePsychTrait'> {
-    return type === undefined ? { op: 'removePsychTrait' } : { op: 'removePsychTrait', psychType: { id: type } };
+  /** Retire le Trait psychologique `type` (l'instance visant `cible` si elle est donnée), ou un Trait au choix
+   *  sans `type`. */
+  retrait(type?: string, cible?: CiblePsy): OpDe<'removePsychTrait'> {
+    if (type === undefined) return { op: 'removePsychTrait' };
+    return { op: 'removePsychTrait', psychType: { id: type }, ...(cible !== undefined ? { cible: refDeCible(cible) } : {}) };
   },
 };
 

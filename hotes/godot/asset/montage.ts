@@ -62,8 +62,9 @@ export function ecartsDeMontage(m: ManifesteMontable, glb: ContenuGlb): ErreurDe
     }
     if (!pieces.length) erreurs.push({ code: 'piece-non-rigide', ou: `montage.composants.${id}`, detail: 'aucune pièce' });
     for (const p of pieces) {
-      if (!glb.rigides.has(p.node)) erreurs.push({ code: 'piece-non-rigide', ou: `pieces.${p.node}`, detail: p.node });
-      else if (glb.parentDesRigides.get(p.node) !== m.montage.attaches[m.montage.composants[id].prise].os) erreurs.push({ code: 'attache-incompatible', ou: `montage.composants.${id}.prise`, detail: p.node });
+      const noeuds = glb.meshes.filter(n => n.nom === p.node);
+      if (!noeuds.length || noeuds.some(n => n.skinne)) erreurs.push({ code: 'piece-non-rigide', ou: `pieces.${p.node}`, detail: p.node });
+      else if (noeuds.some(n => n.os !== m.montage.attaches[m.montage.composants[id].prise].os)) erreurs.push({ code: 'attache-incompatible', ou: `montage.composants.${id}.prise`, detail: p.node });
     }
   }
   return erreurs;

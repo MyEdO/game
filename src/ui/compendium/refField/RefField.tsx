@@ -22,14 +22,14 @@ import { useId, useMemo, useState } from 'react';
 import { datasetArray, type DatasetKey } from '../../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
 import { TYPES, catalogueSpecs, entreeOuverte, espaceDe, estFeuilleDId, estSpecialisable, refusDeLEntree, declarationDeFeuilleDId, declarationDeRefASpecialisation, declarationDeRefTypee, type FeuilleDId, type TypeEntite } from '../../../data/schemas/grammaire/ref';
-import { specLabel } from '../../../data';
+import { datasetDeRacineDuType, specLabel } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../../data/schemas/defs-scenes/registres-narratifs';
 import { entreesNarratives, type CleDeReferenceNarrative } from '../libellesNarratifs';
 import type { NarratifBlock } from '../../../data/schemas/defs-scenes/narratif';
 import { NumberField } from '../../NumberField';
 import { useVersionDesDatasets } from '../../useVersionDesDatasets';
-import { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../../../data/schemas/exposition-derivee';
+import { CATEGORY_DATASET_DERIVE } from '../../../data/schemas/exposition-derivee';
 import { categoryByKey } from '../registry';
 import { videDuNoeud } from '../editFields';
 
@@ -52,9 +52,9 @@ export type RefFieldCfgUnique =
   | EntreesCfg
   | (RefDatasetCfg & { freeText: true; single?: boolean })
   | { vocabFrom: string };
-/** Mode `polymorphe` : chaque type admis, son nom d'auteur et la config `single` de son espace. Deux
- *  contrôles, aucun contrôle unique. */
-export type PolymorpheCfg = { polymorphe: readonly { type: TypeEntite; label: string; cfg: RefDatasetCfg & { single: true } }[] };
+/** Mode `polymorphe` : chaque valeur de `type` admise, son nom d'auteur, la config `single` de son espace et la
+ *  feuille `idDe` de sa branche, qui en restreint les options à sa sous-liste. Deux contrôles, aucun contrôle unique. */
+export type PolymorpheCfg = { polymorphe: readonly { type: string; label: string; cfg: RefDatasetCfg & { single: true }; feuille: unknown }[] };
 /** Config d'un champ-réf, par (catégorie, champ). Dataset réel (liste/single) OU vocabulaire d'un champ. */
 export type RefFieldCfg = ListeRefCfg | SpecRefCfg | PolymorpheCfg | RefFieldCfgUnique;
 
@@ -95,10 +95,9 @@ export function refFieldCfg(categoryKey: string, fieldKey: string): RefFieldCfg 
 }
 
 /** Config `single` d'une référence de `type` : le dataset de racine de l'espace du type
- *  (`DATASET_FICHIER_DERIVE`), `undefined` s'il n'en a pas. */
+ *  (`datasetDeRacineDuType`), `undefined` s'il n'en a pas. */
 function cfgDuType(type: TypeEntite): (RefDatasetCfg & { single: true }) | undefined {
-  const espace = espaceDe(type);
-  const ds = Object.keys(DATASET_FICHIER_DERIVE).find((d) => DATASET_FICHIER_DERIVE[d] === espace && DATASET_SUITE_DERIVE[d] === '');
+  const ds = datasetDeRacineDuType(type);
   return ds === undefined ? undefined : { ds: ds as DatasetKey, single: true };
 }
 
@@ -218,17 +217,18 @@ export function SpecSelect({ category, id, options, value, onChange, vide = '—
 }
 
 
-/** Config `polymorphe` d'un champ dont le NŒUD est une référence typée (`refTypee`) : chaque type admis
- *  avec la config `single` de son espace, `undefined` sinon. Un type sans dataset éditable LÈVE : le
- *  sélecteur ne saurait pas l'offrir. */
+/** Config `polymorphe` d'un champ dont le NŒUD est une référence typée (`refTypee`) : chaque valeur de `type`
+ *  admise avec la config `single` de l'espace que nomme sa branche et la feuille de cette branche, `undefined`
+ *  sinon. Un espace sans dataset éditable LÈVE : le sélecteur ne saurait pas l'offrir. */
 export function cfgDuNoeudType(noeud: unknown): PolymorpheCfg | undefined {
   const decl = noeud === undefined ? undefined : ouverts([noeud]).map(declarationDeRefTypee).find((d) => d !== undefined);
   if (!decl) return undefined;
   return {
     polymorphe: decl.types.map((type) => {
-      const cfg = cfgDuType(type);
-      if (!cfg) throw new Error(`RefField : le type « ${type} » (${espaceDe(type)}) n'a aucun dataset de racine à offrir au sélecteur.`);
-      return { type, label: decl.libelles[type] ?? type, cfg };
+      const branche = decl.branches[type];
+      const cfg = cfgDuType(branche.type);
+      if (!cfg) throw new Error(`RefField : le type « ${type} » (${espaceDe(branche.type)}) n'a aucun dataset de racine à offrir au sélecteur.`);
+      return { type, label: decl.libelles[type] ?? type, cfg, feuille: branche.feuille };
     }),
   };
 }
@@ -439,7 +439,7 @@ function PolymorpheRefField(
           {cfg.polymorphe.map((p) => <option key={p.type} value={p.type}>{p.label}</option>)}
         </select>
         {choisi && (
-          <SingleRefField nu ariaLabel={`${nom} — fiche`} invalide={invalide} describedBy={describedBy} cfg={choisi.cfg} champ={{ noeud: undefined, entreesEnTete: SANS_ENTREE }}
+          <SingleRefField nu ariaLabel={`${nom} — fiche`} invalide={invalide} describedBy={describedBy} cfg={choisi.cfg} champ={{ noeud: choisi.feuille, entreesEnTete: SANS_ENTREE }}
             value={id} onChange={(v) => onChange({ id: typeof v === 'string' ? v : '', type: choisi.type })} />
         )}
       </div>

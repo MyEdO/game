@@ -472,7 +472,7 @@
     "min": 98,
     "max": 100,
     "label": "Mercenaires particuliers",
-    "desc": "Des mercenaires peu communs cherchent du travail : Entraînement et Apprentissage coûtent −20 %, et l’Entraînement au combat gagne +20.",
+    "desc": "Des mercenaires peu communs cherchent du travail : Entraînement et Apprentissage particulier coûtent −20 % pour les Compétences et Talents martiaux, et l’Entraînement au Combat gagne +20 % aux Tests adaptés.",
     "source": {
       "book": "livre-de-base",
       "page": 193,

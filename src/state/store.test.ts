@@ -959,7 +959,7 @@ describe('Boucle de jeu (store)', () => {
   });
 
   it('attackCancel après le JET d’une Charge est sans effet (charge engagée, LDB 15 l.35)', () => {
-    // Avant le jet, une charge s'annule (misclic — cf. charge-undo.test.ts) ; une fois le dé lancé
+    // Avant le jet, une charge s'annule (misclic — cf. charge-undo.hors-store.test.ts) ; une fois le dé lancé
     // (`result` posé), elle est ENGAGÉE : plus d'annulation.
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     useGame.setState({ party: [hero] });
@@ -1361,7 +1361,7 @@ describe('Avancement par PX (store) — câblage moteur', () => {
       xp: 1000,
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 39, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     });
-    set1({ ...h, wounds: blessuresPosees(h) });
+    set1(blessuresSurLeProfil({ ...h, wounds: blessuresPosees(h) }));
     expect(h0().wounds.max).toBe(12);
     useGame.getState().buyCharAdvance('h', 'endurance'); // 39→40 : BE 3→4, Blessures = BF + 2·BE + BFM = 3 + 8 + 3 = 14
     expect(h0().characteristics.endurance).toBe(40);
@@ -2038,6 +2038,18 @@ describe('Utiliser un consommable en combat (store)', () => {
     const b = useGame.getState().battle!;
     expect(b.combatants[0].conditions.find((c) => c.id === 'extenue')).toBeUndefined();
     expect(b.acted).toBe(true);
+  });
+
+  it('Potion de vitalité sans Exténué : refusée et dite avant de boire, objet et Action gardés', () => {
+    const h = combatHero({
+      items: [potion('p4', 'Potion de vitalité', { kind: 'do', effect: { type: 'ops', ops: [{ op: 'removeCondition', id: 'extenue', all: true }] } })],
+    });
+    useGame.setState({ mode: 'battle', battle: mkBattle(h), refus: null });
+    useGame.getState().battleUseItem('p4');
+    const b = useGame.getState().battle!;
+    expect(useGame.getState().refus?.texte).toBe(`${h.label} n’a aucun pion Exténué qui puisse être retiré. Potion de vitalité ne lui apporterait rien : l’objet est gardé.`);
+    expect(b.combatants[0].items!.find((i) => i.uid === 'p4'), 'pas consommée').toBeTruthy();
+    expect(b.acted, 'l’Action reste').toBe(false);
   });
 
   it('Action déjà consommée : aucune utilisation (objet conservé)', () => {

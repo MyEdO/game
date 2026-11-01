@@ -21,7 +21,7 @@ import {
   type ActivityDef, type TravelActivityResult,
 } from '../engine/activities';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import { refLabel, weatherStakeRef, voyageStakeRef } from '../data';
+import { refLabel, testSkillLabel, weatherStakeRef, voyageStakeRef } from '../data';
 import { stageEncounterCategory } from '../engine/travelEncounter';
 import { rollEncounter, type EncounterCategory } from '../engine/travelTables';
 import { applyOps, type GameOp } from '../engine/ops';
@@ -43,7 +43,7 @@ import { hasCoat, partyHasTent, applyExposureFailure, isWeatherWarded, exposureF
 import { rationCount } from '../engine/provisions';
 import { contractDiseaseOnce } from '../engine/disease';
 import { contexteDeNaissanceDObjet, itemFromGive, autoStowNewItem } from '../engine/items';
-import { effectiveSkillCharKey } from '../engine/skills';
+import { effectiveSkillCharKey, idsDuTest } from '../engine/skills';
 import type { Difficulty, Combatant } from '../engine/types';
 import type { ModLine } from '../engine/combat';
 import { weatherRef } from '../engine/travelStages';
@@ -165,27 +165,28 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
       steps.push(displayStep({ id: `poste-${hero.id}`, kind: 'stagePoste', actorId: hero.id, icon: POSTE_ICON[def.id] ?? 'travel/compass', label: dataLabel(def.label), meta }));
     } else {
       // label = Compétence RÉELLEMENT utilisée, résolue AVEC sa spec (« Métier (Cartographe) ») via
-      // `refLabel` ; base/cible déjà influençables. Test ÉTENDU (Établir des cartes, EDOC 8 l.161) : la
+      // `testSkillLabel` ; base/cible déjà influençables. Test ÉTENDU (Établir des cartes, EDOC 8 l.161) : la
       // rangée porte sa progression cumulée (drDone AVANT ce jet, drTarget = 2 × Étapes) → barre de DR
       // sur SA rangée, persistante (arbitrage user). L'accumulation réelle vit dans `stageAggregate`.
-      // Mods de rangée : Difficulté + Météo (déjà dans `spec.target`) + « Tests physiques » de la pluie
+      // Mods de rangée : Difficulté + `testMods` + Météo (déjà dans `spec.target`) + « Tests physiques » de la pluie
       // diluvienne (l.82), CE dernier ajouté ici car keyé sur la carac de la compétence utilisée par CE
       // héros (`effectiveSkillCharKey`) — le −10 s'ajoute au mod météo (recalcul de la cible, dont les
       // bornes viennent de `getTestPolicy` via `clampTarget`, jamais d'un plafond écrit ici).
       const wMod = weatherModOf(def, weather);
-      const char = effectiveSkillCharKey(hero, spec.used.id, { spec: spec.used.spec });
+      const ids = idsDuTest(spec.test);
+      const char = effectiveSkillCharKey(hero, ids.skill, { explicit: ids.char, spec: ids.spec });
       const pMod = weatherTestMods(weather, char).reduce((s, l) => s + l.value, 0); // CANAL UNIQUE (#341)
-      const mods = stageActivityMods(weather, wMod, pMod);
-      const difficulty = def.difficulty ?? 'intermediaire';
+      const mods = [...spec.mods, ...(stageActivityMods(weather, wMod, pMod) ?? [])];
+      const difficulty = spec.difficulty;
       batchParts.push({
         id: hero.id,
-        label: refLabel('skills', { id: spec.used.id, spec: spec.used.spec }),
+        label: testSkillLabel(ids),
         interactive: true,
         difficulty,
         result: null,
         // Les mods de MÉTÉO (`wMod`/`pMod`) s'ajoutent à la CIBLE, ils ne sont pas dans la valeur. Poste
         // qu'il ne peut pas tenter (`spec.refus`) : la ligne naît `ECHEC_SANS_JET` (LDB 09 l.30 ; #2588 Q1).
-        ...rollStep({ actor: hero, test: { skill: spec.used.id, spec: spec.used.spec }, valeur: spec.value, difficulty, surLaCible: mods, refus: spec.refus }),
+        ...rollStep({ actor: hero, test: ids, valeur: spec.value, difficulty, surLaCible: mods, refus: spec.refus }),
         ...(spec.drTarget != null ? { extendedDrDone: Math.min(plan.extendedProgress ?? 0, spec.drTarget), extendedDrTarget: spec.drTarget } : {}),
       });
     }

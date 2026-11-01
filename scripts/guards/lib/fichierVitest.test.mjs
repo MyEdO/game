@@ -111,6 +111,16 @@ test('estKitDeTest : un KIT de test, ni une suite, ni sa déclaration, ni la pro
   assert.equal(EST_KIT_DE_TEST.global, false)
 })
 
+test('estKitDeTest : les recettes de preuve GDScript sont des instruments hors production', () => {
+  for (const rel of ['recettes/preuve.gd', 'projet/recettes/nouvelle-preuve.gd', 'autre/projet/recettes/mesures/preuve.gd']) {
+    assert.equal(estKitDeTest(rel), true, `recette de preuve : ${rel}`)
+    assert.equal(estFichierVitest(rel), false, `recette native : ${rel}`)
+    assert.equal(estSuiteVitest(rel), false, `hors Vitest : ${rel}`)
+  }
+  for (const rel of ['projet/scripts/preuve.gd', 'projet/scripts/recettes.gd', 'projet/mes-recettes/preuve.gd', 'projet/recettes/preuve.gd.bak', 'projet/recettes/preuve.ts'])
+    assert.equal(estKitDeTest(rel), false, `hors recette de preuve : ${rel}`)
+})
+
 // ── CLIQUET DE BALAYAGE : le prédicat vit en UN exemplaire ────────────────────────────────────────
 // Le geste qui a créé ce module ne vaut que s'il n'a pas de COPIE : une garde de synchronisation est
 // un smell, une seule source de vérité. Le balayage lit `src/**` et `scripts/**` en CODE SEUL —

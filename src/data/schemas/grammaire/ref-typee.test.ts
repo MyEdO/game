@@ -1,11 +1,13 @@
 /**
  * `refTypee` (#2820), sur le foyer de règle `foyerDeRegleSchema` : le `type` NOMME l'espace où l'id
  * résout, parmi un vocabulaire FERMÉ ; la référence est un objet strict `{ id, type }`.
- * `chute` vit dans `regles.json` ET `spells.json`, `exposition` dans `regles.json` seul.
+ * `chute` vit dans `regles.json` ET `spells.json`, `exposition` dans `regles.json` seul. Une valeur hors des types
+ * nomme la sous-liste d'un espace (#3116).
  */
 import { describe, it, expect } from 'vitest';
-import { declarationDeRefTypee } from './ref';
-import { foyerDeRegleSchema } from './valeurs';
+import { z } from 'zod';
+import { declarationDeRefTypee, idsDeLaSousListe, refTypee } from './ref';
+import { enumNomme, foyerDeRegleSchema } from './valeurs';
 
 /** Les messages du refus, joints — `null` si la valeur passe. */
 function refus(valeur: unknown): string | null {
@@ -38,5 +40,33 @@ describe('refTypee — l’id résout dans l’espace que son type nomme', () =>
     expect(declarationDeRefTypee(foyerDeRegleSchema)?.types).toEqual([
       'regle', 'skill', 'talent', 'etat', 'quality', 'characteristic', 'spell', 'psychology', 'symptome', 'steamBreakdown',
     ]);
+  });
+});
+
+describe('refTypee — une valeur hors des types nomme la sous-liste d’un espace (#3116)', () => {
+  const habille = refTypee(enumNomme({ trapping: 'Objet', tenue: 'Tenue' }), { tenue: { type: 'gardeRobe', sousListe: 'tenue' } });
+  const [tenue] = idsDeLaSousListe('gardeRobe', 'tenue');
+  const [piece] = idsDeLaSousListe('gardeRobe', 'piece');
+
+  it('l’id d’une branche de sous-liste résout dans cette sous-liste, et elle seule', () => {
+    expect(habille.safeParse({ id: tenue, type: 'tenue' }).success).toBe(true);
+    const r = habille.safeParse({ id: piece, type: 'tenue' });
+    expect(r.success ? '' : r.error.issues.map((i) => i.message).join(' | ')).toContain(`« ${piece} » est hors de la sous-liste « tenue »`);
+  });
+
+  it('le refus d’un type inconnu nomme la sous-liste de chaque valeur qui en nomme une', () => {
+    const r = habille.safeParse({ id: tenue, type: 'prop' });
+    expect(r.success ? '' : r.error.issues.map((i) => i.message).join(' | ')).toContain('« tenue » (garde-robe, sous-liste « tenue »)');
+  });
+
+  it('la déclaration porte le couple (type, sous-liste) que nomme chaque valeur', () => {
+    const { branches } = declarationDeRefTypee(habille)!;
+    expect(branches.tenue).toMatchObject({ type: 'gardeRobe', sousListe: 'tenue' });
+    expect(branches.trapping).toMatchObject({ type: 'trapping' });
+    expect(branches.trapping.sousListe).toBeUndefined();
+  });
+
+  it('une valeur qui n’est ni un type ni une sous-liste nommée lève à la construction', () => {
+    expect(() => refTypee(z.enum(['zzz']) as unknown as z.ZodEnum<{ skill: 'skill' }>)).toThrow(/« zzz » n'est ni un type de la grammaire/);
   });
 });

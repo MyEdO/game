@@ -64,7 +64,7 @@ export interface LicenceDeComposant {
   readonly annoncees: readonly string[];
 }
 
-/** La licence d'un pack, lue sur la ligne `License:` d'un fichier `LICENSE*.txt` du dossier de production. */
+/** La licence d'un pack, que déclare un fichier `LICENSE*.txt` du dossier de production (`licenceDeclaree`). */
 export interface LicenceDePack {
   /** Le nom du texte déposé, dérivé de son identifiant SPDX et de son empreinte (`importer.ts`). */
   readonly fichier: string;
@@ -74,7 +74,7 @@ export interface LicenceDePack {
 /** Un pack source du modèle (`packs_sources.<pack>` du dossier de production) : clips, corps ou tout autre. */
 export interface PackSource {
   readonly pack: string;
-  /** Le nom du fichier source, sans son chemin. */
+  /** Le nom de la source, fichier ou dossier (le `data` de MPFB), sans son chemin. */
   readonly fichier: string;
   readonly sha256: string;
   /** Le texte de licence déposé qu'il porte (`LicenceDePack.fichier`), partagé ou non avec d'autres packs. */

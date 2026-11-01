@@ -39,7 +39,7 @@ describe('Finitions d\'États (LDB 16)', () => {
     const c = C({ conditions: [{ id: 'empoisonne', value: 1 }], wounds: blessuresDeBase(20) });
     endOfRound(c, makeRNG(1)); // ni dégâts, ni Test de poison : tout est `effects: onRoundEnd` (etats.json), résolu par le dispatcher
     expect(hasCondition(c, 'empoisonne')).toBe(true); // endOfRound ne retire aucun pion de poison
-    expect(c.wounds.current).toBe(20);                // ni dégât périodique (cf. state/round-upkeep-cascade.test pour la voie data-driven)
+    expect(c.wounds.current).toBe(20);                // ni dégât périodique (cf. noyau/combat/round-upkeep-cascade.hors-store.test pour la voie data-driven)
   });
 
   it('recoveredStacks : « 1 + DR » borné aux pions ; échec ⇒ 0 (l.61/77/107)', () => {

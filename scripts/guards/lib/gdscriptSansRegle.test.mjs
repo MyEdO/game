@@ -95,6 +95,9 @@ test('le module de mise en page : sa structure, et seuls le hasard et le chemin 
   ].join('\n')
   assert.equal(estMiseEnPage(module), true)
   assert.deepEqual(calculsDeRegle(module), [])
+  const repere = `${module}\n\nstatic func dans_la_base(base: Basis, vecteur: Vector3) -> Vector3:\n\treturn base.inverse() * vecteur`
+  assert.equal(estMiseEnPage(repere), true, 'une base et un vecteur')
+  assert.deepEqual(calculsDeRegle(repere), [])
   assert.deepEqual(familles(`${module}\n\nstatic func de() -> float:\n\treturn randf()`), ['hasard:15'])
   const refus = {
     'un état': `${module}\nvar n := 0`,
@@ -102,6 +105,7 @@ test('le module de mise en page : sa structure, et seuls le hasard et le chemin 
     'un signal': `${module}\nsignal fini`,
     'un rendu non géométrique': `${module}\nstatic func ok(a: float) -> bool:\n\treturn a == 1.0`,
     'deux vecteurs': `${module}\nstatic func ecart(a: Vector2i, b: Vector2i) -> float:\n\treturn (a - b).length()`,
+    'deux bases': `${module}\nstatic func f(a: Basis, b: Basis) -> Vector3:\n\treturn (a * b).y`,
     'un paramètre non typé': `${module}\nstatic func f(a) -> float:\n\treturn a * 2.0`,
     'un dictionnaire de la vue': `${module}\nstatic func f(vue: Dictionary) -> float:\n\treturn vue.x * 2.0`,
     'aucune fonction': 'class_name Rien\nconst A := 1 + 2',

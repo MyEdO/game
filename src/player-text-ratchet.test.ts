@@ -62,7 +62,7 @@ export const GEL_AS_CASCADE_STEP: Readonly<Record<string, number>> = {
   'src/noyau/cascade-batch-socle.hors-store.test.ts': 1,
   'src/noyau/cascade-quantite-second.hors-store.test.ts': 6,
   'src/noyau/cascade.test.ts': 2,
-  'src/state/combat-tables-choix-porte.test.ts': 1,
+  'src/noyau/combat-tables-choix-porte.hors-store.test.ts': 1,
   'src/noyau/departage-etats-non-fondus.hors-store.test.ts': 3,
   'src/state/miscast-step.test.ts': 1,
   'src/noyau/rest-flow.hors-store.test.ts': 1,

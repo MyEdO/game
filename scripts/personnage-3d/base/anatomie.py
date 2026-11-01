@@ -68,9 +68,16 @@ POING = {'main': ('r', 'Sword_Idle', 8), 'off': ('l', 'Idle_Shield_Loop', 44)}
 """Par prise : le côté de la main, le clip et l'image où le poing fermé tient sa poignée."""
 DOIGTS_DU_POING = ('index', 'middle', 'ring', 'pinky')
 
-SEGMENTS_DU_GABARIT = {'legs': ('thigh', 'calf'), 'arms': ('upperarm', 'lowerarm'), 'head': ()}
-"""Par facteur de gabarit, les préfixes des os UAL, latéralisés `_l` puis `_r`, dont le facteur allonge le segment en
-déplaçant l'os enfant (`hotes/godot/asset/evaluateur/gabarit.ts`) ; `Head` n'a aucun os enfant."""
+SEGMENTS_DU_GABARIT = {
+    'legs': ('thigh_l', 'calf_l', 'thigh_r', 'calf_r'),
+    'arms': ('upperarm_l', 'lowerarm_l', 'upperarm_r', 'lowerarm_r'),
+    'head': ('Head',),
+}
+"""Par facteur de gabarit, les noms complets des os parents UAL dont l'hôte multiplie le Y des enfants,
+dans l'ordre du manifeste.
+
+hotes/godot/pont/CONTRAT.md, « Gabarit d'une base »
+"""
 PIEDS = ('foot_l', 'foot_r')
 """Les os des pieds, dont l'évaluateur mesure les appuis."""
 
@@ -227,20 +234,31 @@ def poser_prises(rig):
 
 
 def gabarit(rig):
-    """La table du gabarit, sans les bornes de `st` : la racine, seul os sans parent, et les os de `SEGMENTS_DU_GABARIT`."""
+    """La part construite du gabarit reçue par `manifeste.mjs` : la racine, seul os sans parent, et les os de
+    `SEGMENTS_DU_GABARIT`. `humanoide.construire` ajoute `st` de `bornes_de_st` et `bornes` de `gabarit.mjs`."""
     racines = [b.name for b in rig.data.bones if b.parent is None]
     if len(racines) != 1:
         raise RuntimeError(f'racines {racines} : une seule attendue')
-    table = {cle: [f'{p}_{c}' for c in 'lr' for p in prefixes] for cle, prefixes in SEGMENTS_DU_GABARIT.items()}
+    table = {cle: list(os) for cle, os in SEGMENTS_DU_GABARIT.items()}
     absents = [o for os in [*table.values(), PIEDS] for o in os if o not in rig.data.bones]
     if absents:
         raise RuntimeError(f'os de gabarit ou de pied absents : {", ".join(absents)}')
+    cles_des_os = {}
+    for cle, noms in table.items():
+        for nom in noms:
+            if nom in cles_des_os and cles_des_os[nom] != cle:
+                raise RuntimeError(f'os « {nom} » sous deux clés de gabarit : {cles_des_os[nom]}, {cle}')
+            cles_des_os[nom] = cle
+    for nom in table['head']:
+        enfants = [b.name for b in rig.data.bones if b.parent == rig.data.bones[nom]]
+        if enfants:
+            raise RuntimeError(f'os de head « {nom} » avec enfants : {", ".join(enfants)}')
     return {**table, 'racine': racines[0]}
 
 
 def poser(rig, peaux):
     """Pose emplacements, prises et zones de la base sur les peaux `peaux` du rig, clips déjà préparés ; rend leur part
-    du manifeste de base, table du gabarit et pieds compris."""
+    du manifeste de base et les pieds."""
     objets = {o.name: o for o in peaux}
     for o in peaux:
         if o.matrix_world != Matrix.Identity(4):
@@ -250,5 +268,5 @@ def poser(rig, peaux):
     emplacements = poser_emplacements(rig, corps, centre)
     prises = poser_prises(rig)
     poser_zones(rig, objets, corps, centre)
-    return {'zones': list(ZONES), 'emplacements': emplacements, 'prises': prises, 'gabarit': gabarit(rig),
+    return {'zones': list(ZONES), 'emplacements': emplacements, 'prises': prises,
             'appuis': {'pieds': list(PIEDS)}}

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { applyOps } from './ops';
-import { cureDiseases, blessDiseaseDuration } from './rest';
+import { applyOps, opSansObjet } from './ops';
+import { cureDiseases } from './rest';
 import { traumaById, dechirureFractureFicheId } from './trauma';
 import type { HitLocation } from './types';
 const tk = (k: 'dechirure' | 'fracture', sv: 'mineur' | 'majeur', loc: HitLocation, opts?: { be?: number; d10?: number }) => traumaById(dechirureFractureFicheId(k, sv, loc), opts, loc);
@@ -51,14 +51,14 @@ describe('reduceDiseaseDays — Bénédiction de Convalescence (LDB 41) + extens
     const c = dummy({ diseases: [sick('infection-mineure', 5)] });
     applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }], { rng: desDuTest });
     expect(c.diseases![0].minutesLeft).toBe(4 * MINUTES_PER_DAY);
-    const log = applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }], { rng: desDuTest }); // 2e tentative → refus
+    const log = applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }], { rng: desDuTest }); // 2e tentative : sans objet
     expect(c.diseases![0].minutesLeft).toBe(4 * MINUTES_PER_DAY);
-    expect(log.join(' ')).toMatch(/aucune maladie/);
+    expect(log, 'une op sans objet ne produit rien').toEqual([]);
   });
   it('sans verrou (herbes « 1 dose/jour ») : reprise possible ; `disease` SCOPE la maladie ciblée', () => {
     const c = dummy({ diseases: [sick('infection-mineure', 5), sick('verole-du-tanneur', 9)] });
-    blessDiseaseDuration(c, 1, { disease: 'verole-du-tanneur' });
-    blessDiseaseDuration(c, 1, { disease: 'verole-du-tanneur' });
+    applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, disease: 'verole-du-tanneur' }], { rng: desDuTest });
+    applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, disease: 'verole-du-tanneur' }], { rng: desDuTest });
     expect(c.diseases![0].minutesLeft).toBe(5 * MINUTES_PER_DAY); // non ciblée : intacte
     expect(c.diseases![1].minutesLeft).toBe(7 * MINUTES_PER_DAY);
   });
@@ -103,10 +103,11 @@ describe('preventInfection — Cautériser (LDB 47) & cureCriticalWound — Larm
     expect(c.criticalWounds).toBe(1); // 3 − 2 guéris
   });
 
-  it('cureCriticalWounds direct : 0 trauma guérissable → journal explicite via l’op', () => {
+  it('cureCriticalWound sur une amputation seule : sans objet (sa raison le dit), l’op ne produit rien', () => {
     const c = dummy({ traumas: [{ label: 'Main/bras amputé (brasD)', location: 'brasD' }] });
+    expect(opSansObjet(c, { op: 'cureCriticalWound' })).toMatch(/amputations sont hors d'atteinte/);
     const log = applyOps(c, [{ op: 'cureCriticalWound' }], { rng: desDuTest });
-    expect(log.join(' ')).toMatch(/amputations sont hors d'atteinte/);
+    expect(log).toEqual([]);
     expect(c.traumas).toHaveLength(1);
   });
 });

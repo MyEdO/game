@@ -1,149 +1,40 @@
-import { spawn, spawnSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { createHash, timingSafeEqual } from 'node:crypto'
 import { EventEmitter } from 'node:events'
-import { appendFileSync, mkdirSync, readFileSync, existsSync, mkdtempSync, rmSync, openSync, readSync, closeSync, fstatSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readFileSync, existsSync, openSync, readSync, closeSync, fstatSync } from 'node:fs'
 import { stripVTControlCharacters } from 'node:util'
 import { createServer, createConnection } from 'node:net'
 import { join } from 'node:path'
-import { tmpdir } from 'node:os'
 import { createInterface } from 'node:readline'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
-import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
-export const VERSION_PROTOCOLE_CODEX = '0.164.0'
 export const MAX_MESSAGE_CODEX = 64 * 1024
+export const ANNEXES_CODEX = Object.freeze({ journalCodex: 'codex.jsonl', stderrCodex: 'codex.stderr.log', socketCodex: 'codex.sock' })
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const refus = (categorie, message, native) => Object.assign(new Error(`${prefixeDeRefus(categorie)} ${message}`), { native })
 const empreinte = (s) => createHash('sha256').update(s).digest('hex')
 const OUTILS = ['commandExecution', 'fileChange', 'mcpToolCall', 'dynamicToolCall', 'collabAgentToolCall', 'webSearch', 'imageView', 'imageGeneration', 'sleep']
 const CHAMPS_OUTILS = Object.freeze({ commandExecution: ['command', 'status'], fileChange: ['status'], mcpToolCall: ['server', 'tool', 'status'], dynamicToolCall: ['tool', 'status'], collabAgentToolCall: ['tool', 'status'], webSearch: [], imageView: [], imageGeneration: ['status'], sleep: [] })
-const CHAMPS_ITEMS = ['item.@agentMessage.type', 'item.@agentMessage.text', ...OUTILS.flatMap((t) => ['id', ...CHAMPS_OUTILS[t]].map((k) => `item.@${t}.${k}`))]
-const CHAMPS = Object.freeze({
-  'v1/InitializeParams': ['clientInfo.name', 'clientInfo.version', 'capabilities.experimentalApi'],
-  'v1/InitializeResponse': ['userAgent'],
-  'v2/ThreadStartParams': ['cwd'],
-  'v2/ThreadStartResponse': ['thread.id'],
-  'v2/TurnStartParams': ['threadId', 'input.[].@text.type', 'input.[].@text.text', 'outputSchema'],
-  'v2/TurnStartResponse': ['turn.id'],
-  'v2/TurnSteerParams': ['threadId', 'expectedTurnId', 'input.[].@text.type', 'input.[].@text.text'],
-  'v2/TurnSteerResponse': ['turnId'],
-  'v2/TurnInterruptParams': ['threadId', 'turnId'],
-  'v2/TurnInterruptResponse': [],
-  'v2/TurnStartedNotification': ['threadId', 'turn.id'],
-  'v2/TurnCompletedNotification': ['threadId', 'turn.id', 'turn.status', 'turn.items.[].@agentMessage.type', 'turn.items.[].@agentMessage.text', 'turn.durationMs', 'turn.error.message'],
-  'v2/ItemCompletedNotification': ['threadId', 'turnId', ...CHAMPS_ITEMS],
-  'v2/ItemStartedNotification': ['threadId', 'turnId', ...CHAMPS_ITEMS],
-  'v2/ThreadTokenUsageUpdatedNotification': ['threadId', 'turnId', 'tokenUsage.total.totalTokens'],
-  'v2/ThreadStatusChangedNotification': ['threadId', 'status.@active.type', 'status.@active.activeFlags.[]'],
-  'v2/ErrorNotification': ['threadId', 'error.message'],
-})
-const EMPREINTES = Object.freeze({
-  'v1/InitializeParams': '19f874478560494c26dd5b7807ebf2fe69f05f68caec7128ca97d101afeed240',
-  'v1/InitializeResponse': '5dbc854f567d45b4b0a2907547f63b64c84a399c71729e6a60a423084665f442',
-  'v2/ThreadStartParams': '9dfbb8da33c180a230217e393d106d4f9953ddaf9ac741622ef824a26a4304bb',
-  'v2/ThreadStartResponse': '32abd685e7f8680e2718627751068b65856595ed706a6fc07f861f55c2b3d611',
-  'v2/TurnStartParams': '28a6378affb6538742215a2686caa2988e5a6563b6725ba0b97c91cab71a4f86',
-  'v2/TurnStartResponse': '036750364cd5d4d21ddded797dbe88d9f7f0104c1922df1b9981e63b09026a62',
-  'v2/TurnSteerParams': '1fa6af62b35f054ad849b79153076e7904eef48abec918f8d393214a02be3061',
-  'v2/TurnSteerResponse': 'ec09e5b5b5cd62b0e6f2cabe4f2180e6cf8e136ec67bf43fde9d4934f10ebe00',
-  'v2/TurnInterruptParams': 'c0cd7920406a77d4f75a2a441a7d35aea303b4c33b73760912294f020448464c',
-  'v2/TurnInterruptResponse': '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
-  'v2/TurnStartedNotification': 'abae1781e40c74769480a11971b850ab1b4a42f77a4fe76f6fe274972c2aa2c4',
-  'v2/TurnCompletedNotification': '9d3f4e42eab34fa2d4b291fdbe61401a4f844486d719fedb92d958c15f905180',
-  'v2/ItemCompletedNotification': 'e72fcf82ed6307de0a846735078bab5df8c4907b7e895350bdc01ea685f05b65',
-  'v2/ItemStartedNotification': 'e72fcf82ed6307de0a846735078bab5df8c4907b7e895350bdc01ea685f05b65',
-  'v2/ThreadTokenUsageUpdatedNotification': '8d41e6d6a92479e1fa9e411bbff6e2412959bfdd979e349fb31f87c57dc040b4',
-  'v2/ThreadStatusChangedNotification': 'f2dfcb9985a3354599b4af9b555043114a3b8432ac67ab88fa773fd4ca0b6c7b',
-  'v2/ErrorNotification': '0ee69aea58e82042178f3a259e15b8b4718ddcddd57f9bbcf0a242c5d0ce9b43',
-})
-const METHODES = {
-  ClientRequest: { initialize: 'v1/InitializeParams', 'thread/start': 'v2/ThreadStartParams', 'turn/start': 'v2/TurnStartParams', 'turn/steer': 'v2/TurnSteerParams', 'turn/interrupt': 'v2/TurnInterruptParams' },
-  ClientNotification: { initialized: null },
-  ServerNotification: { 'turn/started': 'v2/TurnStartedNotification', 'turn/completed': 'v2/TurnCompletedNotification', 'item/started': 'v2/ItemStartedNotification', 'item/completed': 'v2/ItemCompletedNotification', 'thread/tokenUsage/updated': 'v2/ThreadTokenUsageUpdatedNotification', 'thread/status/changed': 'v2/ThreadStatusChangedNotification', error: 'v2/ErrorNotification' },
-}
-function forme(schema, segments, definitions = schema?.definitions || {}) {
-  if (schema === undefined || schema === null) return null
-  if (schema === false) return false
-  if (schema === true) return true
-  if (segments[0]?.startsWith('@') && schema.properties?.type?.enum) {
-    if (!schema.properties.type.enum.includes(segments[0].slice(1))) return null
-    segments = segments.slice(1)
-  }
-  const base = tableTotale(['type', 'enum', 'const'].filter((k) => Object.hasOwn(schema, k)), (k) => schema[k])
-  if (segments.length && !segments[0].startsWith('@')) {
-    const [key, ...reste] = segments
-    const child = key === '[]' ? schema.items : schema.properties?.[key]
-    const required = key === '[]' || (schema.required || []).includes(key)
-    if (child !== undefined || required) {
-      base.required = required
-      base.enfant = forme(child, reste, definitions)
-    }
-  }
-  const commun = Object.keys(base).length ? base : true
-  const contraintes = []
-  if (schema.$ref) contraintes.push(forme(definitions[schema.$ref.split('/').at(-1)], segments, definitions))
-  for (const operateur of ['oneOf', 'anyOf', 'allOf']) {
-    if (!schema[operateur]) continue
-    const branches = schema[operateur].map((s) => {
-      const projection = forme(s, segments, definitions)
-      if (!projection || projection === true) return projection
-      const residu = { ...projection }
-      for (const k of ['type', 'enum', 'const']) {
-        if (Object.hasOwn(base, k) && JSON.stringify(base[k]) === JSON.stringify(residu[k])) delete residu[k]
-      }
-      return Object.keys(residu).length ? residu : true
-    }).filter((s) => s !== null)
-    if (branches.some((s) => s !== true)) contraintes.push({ [operateur]: branches })
-  }
-  const pertinentes = [commun, ...contraintes].filter((s) => s !== true)
-  return pertinentes.length === 0 ? true : pertinentes.length === 1 ? pertinentes[0] : { allOf: pertinentes }
-}
-export function verifierProtocoleCodex({ executable, executer = spawnSync }) {
-  let scratch
-  try {
-    const version = executer(executable, ['--version'], { encoding: 'utf8', timeout: 15_000, windowsHide: true })
-    if (version.error || version.status !== 0) throw refus(version.error?.code === 'ETIMEDOUT' ? 'transitoire' : 'panne', 'Version Codex invérifiable', version.error?.message || version.stderr)
-    const mesure = /^codex-cli (\d+\.\d+\.\d+)\s*$/.exec(version.stdout)?.[1]
-    if (!mesure || mesure.split('.').map(Number).some((v, i, a) => a.slice(0, i).every((n, j) => n === Number(VERSION_PROTOCOLE_CODEX.split('.')[j])) && v < Number(VERSION_PROTOCOLE_CODEX.split('.')[i]))) throw refus('validation', `Protocole Codex non audité : ${version.stdout.trim()}`)
-    scratch = mkdtempSync(join(tmpdir(), 'wfrp-codex-protocole-'))
-    const genere = executer(executable, ['app-server', 'generate-json-schema', '--out', scratch], { encoding: 'utf8', timeout: 30_000, windowsHide: true })
-    if (genere.error || genere.status !== 0) throw refus(genere.error?.code === 'ETIMEDOUT' ? 'transitoire' : 'panne', 'Schéma Codex invérifiable', genere.error?.message || genere.stderr)
-    for (const [nom, attendu] of Object.entries(EMPREINTES)) {
-      const document = JSON.parse(readFileSync(join(scratch, `${nom}.json`), 'utf8'))
-      const mesuree = empreinte(JSON.stringify(tableTotale(CHAMPS[nom], (p) => forme(document, p.split('.')))))
-      if (mesuree !== attendu) throw refus('validation', `Protocole Codex incompatible : ${nom} (${mesure})`)
-    }
-    for (const [enveloppe, methodes] of Object.entries(METHODES)) {
-      const document = JSON.parse(readFileSync(join(scratch, `${enveloppe}.json`), 'utf8'))
-      for (const [methode, nom] of Object.entries(methodes)) {
-        const branche = document.oneOf?.find((b) => b.properties?.method?.enum?.includes(methode))
-        const requis = ['method', ...(nom ? ['params'] : []), ...(enveloppe === 'ClientRequest' ? ['id'] : [])]
-        if (branche?.type !== 'object' || branche.properties.method.type !== 'string' || requis.some((k) => !branche.required?.includes(k))) throw refus('validation', `Méthode Codex incompatible : ${methode}`)
-        if (nom) {
-          const mesuree = empreinte(JSON.stringify(tableTotale(CHAMPS[nom], (p) => forme(branche.properties.params, p.split('.'), document.definitions))))
-          if (mesuree !== EMPREINTES[nom]) throw refus('validation', `Paramètres de méthode Codex incompatibles : ${methode}`)
-        }
-      }
-    }
-    return { version: mesure, auditee: VERSION_PROTOCOLE_CODEX }
-  } catch (e) {
-    if (e.message.startsWith('[')) throw e
-    throw refus('panne', `Contrôle du protocole Codex impossible : ${e.message}`)
-  } finally {
-    if (scratch) rmSync(scratch, { recursive: true, force: true })
-  }
+const NOTIFICATIONS_LUES = new Set(['turn/started', 'turn/completed', 'item/started', 'item/completed', 'thread/tokenUsage/updated', 'thread/status/changed', 'error'])
+const FORMES_LUES = Object.freeze({ chaine: (v) => typeof v === 'string', booleen: (v) => typeof v === 'boolean', entier: Number.isInteger, tableau: Array.isArray, objet: (v) => v !== null && typeof v === 'object' && !Array.isArray(v) })
+const nature = (v) => v === undefined ? 'absent' : v === null ? 'null' : Array.isArray(v) ? 'tableau' : typeof v
+function lu(methode, racine, chemin, forme, { nul = false } = {}) {
+  const valeur = chemin.split('.').reduce((o, k) => (o !== null && typeof o === 'object' ? o[k] : undefined), racine)
+  if (nul && (valeur === undefined || valeur === null)) return null
+  if (!FORMES_LUES[forme](valeur)) throw refus('panne', `Protocole Codex incompatible : ${methode} ${chemin} attendu ${forme}${nul ? ' ou null' : ''}, reçu ${nature(valeur)}`)
+  return valeur
 }
 function identite(sessionId) {
   if (typeof sessionId !== 'string' || !UUID.test(sessionId)) throw refus('validation', 'sessionId UUID requis')
 }
 function adresse(dossier, sessionId) {
   identite(sessionId)
-  return process.platform === 'win32' ? `\\\\.\\pipe\\wfrp-codex-${sessionId}` : join(dossier, `${sessionId}.codex.sock`)
+  return process.platform === 'win32' ? `\\\\.\\pipe\\wfrp-codex-${sessionId}` : join(dossier, `${sessionId}.${ANNEXES_CODEX.socketCodex}`)
 }
 function chemins(dossier, sessionId) {
   identite(sessionId)
-  return { journal: join(dossier, `${sessionId}.codex.jsonl`), stderr: join(dossier, `${sessionId}.codex.stderr.log`) }
+  return { journal: join(dossier, `${sessionId}.${ANNEXES_CODEX.journalCodex}`), stderr: join(dossier, `${sessionId}.${ANNEXES_CODEX.stderrCodex}`) }
 }
 export function projeterJournalCodex(journal, echo = process.stdout, diagnostic = () => {}) {
   const bloc = Buffer.alloc(16 * 1024), limiteLecture = 256 * 1024
@@ -195,7 +86,7 @@ export function projeterJournalCodex(journal, echo = process.stdout, diagnostic 
       const statut = champs.includes('status') && typeof item.status === 'string' ? item.status : n.method === 'item/started' ? 'inProgress' : 'completed'
       afficher(`Outil ${item.type} [${statut}]`, detail)
     } else if (n?.method === 'turn/completed') { afficher('Fin du tour', p.turn.status); turnId = undefined }
-    else if (n?.method === 'error') afficher('Erreur native', p?.error?.message)
+    else if (n?.method === 'error') afficher(p?.willRetry === true ? 'Erreur native réessayée par Codex' : 'Erreur native', p?.error?.message)
     else if (n?.error) afficher('Refus natif', n.error.message)
     else if (x.transition && ['erreur', 'mort', 'fermeture'].includes(x.transition.type)) afficher(x.transition.type, x.transition.cause || x.transition.etat)
     else if (x.erreur) afficher('Erreur', x.erreur)
@@ -352,7 +243,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
     return new Promise((resolve, reject) => {
       const id = ++numero
       const timer = setTimeout(() => { attentes.delete(id); reject(refus('transitoire', `Borne native ${method} atteinte`)) }, timeoutMs)
-      attentes.set(id, { resolve, reject, timer })
+      attentes.set(id, { resolve, reject, timer, method })
       natif.stdin.write(`${JSON.stringify({ id, method, params })}\n`, (e) => {
         if (e && attentes.delete(id)) { clearTimeout(timer); reject(refus('panne', e.message)) }
       })
@@ -375,9 +266,9 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
     rapportTexte = ''
     tourDemarre = false
     const r = await requete('turn/start', { threadId: projection.threadId, input: [{ type: 'text', text: texte }], outputSchema })
-    if (typeof r?.turn?.id !== 'string') throw refus('panne', 'Réponse turn/start sans identité')
-    if (!projection.turnId) projection.turnId = r.turn.id
-    else if (projection.turnId !== r.turn.id) throw refus('panne', 'Identité de tour contradictoire')
+    const turnId = lu('turn/start', r, 'turn.id', 'chaine')
+    if (!projection.turnId) projection.turnId = turnId
+    else if (projection.turnId !== turnId) throw refus('panne', 'Identité de tour contradictoire')
     notifier({ ...projection })
     return r
   }
@@ -388,8 +279,10 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
       if (!a) return
       attentes.delete(x.id)
       clearTimeout(a.timer)
-      if (x.error) a.reject(refus('métier', `Refus natif Codex : ${x.error.message}`, x.error))
-      else a.resolve(x.result)
+      try {
+        if (x.error) a.reject(refus('métier', `Refus natif Codex : ${lu(a.method, x, 'error.message', 'chaine')}`, x.error))
+        else a.resolve(x.result)
+      } catch (e) { a.reject(e); throw e }
       return
     }
     const p = x.params
@@ -400,41 +293,56 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
       publier('erreur', { etat: 'erreur', cause: `${prefixeDeRefus('permission')} Interaction native refusée : ${x.method}` })
       return
     }
-    if (!p || p.threadId !== projection.threadId) return
-    if (x.method === 'turn/completed' && toursTermines.has(p.turn?.id)) return
-    if (p.turnId && projection.turnId && p.turnId !== projection.turnId) return
-    if (x.method === 'turn/started') {
-      if (typeof p.turn?.id !== 'string' || (projection.turnId && p.turn.id !== projection.turnId)) throw refus('panne', 'Notification de tour contradictoire')
-      projection = { ...projection, turnId: p.turn.id, etat: 'occupe' }
+    if (!NOTIFICATIONS_LUES.has(x.method)) return
+    const m = x.method, champ = (chemin, forme, options) => lu(m, x, `params.${chemin}`, forme, options)
+    if (champ('threadId', 'chaine') !== projection.threadId) return
+    const tour = m === 'turn/started' || m === 'turn/completed'
+    const turnId = tour ? champ('turn.id', 'chaine') : m === 'thread/status/changed' ? null : champ('turnId', 'chaine')
+    if (m === 'turn/completed' && toursTermines.has(turnId)) return
+    if (!tour && turnId && projection.turnId && turnId !== projection.turnId) return
+    if (m === 'turn/started') {
+      if (projection.turnId && turnId !== projection.turnId) throw refus('panne', 'Notification de tour contradictoire')
+      projection = { ...projection, turnId, etat: 'occupe' }
       tourDemarre = true
       notifier({ ...projection })
       signaux.emit('demarre')
-    } else if (x.method === 'thread/tokenUsage/updated') {
+    } else if (m === 'thread/tokenUsage/updated') {
+      champ('tokenUsage', 'objet')
       projection = { ...projection, jetons: p.tokenUsage }
       notifier({ ...projection })
-    } else if (x.method === 'item/started' || x.method === 'item/completed') {
-      if (p.item?.type === 'agentMessage' && x.method === 'item/completed') rapportTexte = p.item.text
-      else if (p.item && OUTILS.includes(p.item.type) && !outilsVus.has(p.item.id)) {
-        outilsVus.add(p.item.id)
-        projection = { ...projection, outils: outilsVus.size }
-        notifier({ ...projection })
+    } else if (m === 'item/started' || m === 'item/completed') {
+      const type = champ('item.type', 'chaine')
+      if (type === 'agentMessage' && m === 'item/completed') rapportTexte = champ('item.text', 'chaine')
+      else if (OUTILS.includes(type)) {
+        const id = champ('item.id', 'chaine')
+        if (!outilsVus.has(id)) {
+          outilsVus.add(id)
+          projection = { ...projection, outils: outilsVus.size }
+          notifier({ ...projection })
+        }
       }
-    } else if (x.method === 'error') {
-      echouer(refus('panne', p.error?.message || 'Erreur native Codex', p.error))
-    } else if (x.method === 'turn/completed') {
-      if (p.turn?.id !== projection.turnId) throw refus('panne', 'Fin de tour étrangère')
-      toursTermines.add(p.turn.id)
+    } else if (m === 'error') {
+      const message = champ('error.message', 'chaine')
+      if (champ('willRetry', 'booleen', { nul: true })) appendFileSync(fichiers.stderr, `[Codex] Erreur native réessayée par Codex : ${message}\n`)
+      else echouer(refus('panne', message, p.error))
+    } else if (m === 'turn/completed') {
+      if (turnId !== projection.turnId) throw refus('panne', 'Fin de tour étrangère')
+      const statut = champ('turn.status', 'chaine')
+      const textes = champ('turn.items', 'tableau').flatMap((_, i) => champ(`turn.items.${i}.type`, 'chaine') === 'agentMessage' ? [champ(`turn.items.${i}.text`, 'chaine')] : [])
+      const dureeMs = champ('turn.durationMs', 'entier', { nul: true })
+      const erreur = champ('turn.error', 'objet', { nul: true }) && champ('turn.error.message', 'chaine')
+      toursTermines.add(turnId)
       tourDemarre = false
-      if (p.turn.status === 'completed') {
-        const texte = p.turn.items?.filter((i) => i.type === 'agentMessage').at(-1)?.text || rapportTexte
+      if (statut === 'completed') {
+        const texte = textes.at(-1) || rapportTexte
         let rapport
         try { rapport = JSON.parse(texte) } catch { throw refus('panne', 'Rapport Codex absent ou JSON invalide') }
-        publier('fin', { etat: 'inactif', rapport, dureeMs: p.turn.durationMs ?? Date.now() - debut })
-      } else if (p.turn.status === 'interrupted' && ferme) {
+        publier('fin', { etat: 'inactif', rapport, dureeMs: dureeMs ?? Date.now() - debut })
+      } else if (statut === 'interrupted' && ferme) {
         publier('inactif', { etat: 'inactif', interrompu: true })
-      } else echouer(refus('métier', p.turn.error?.message || `Tour Codex ${p.turn.status}`, p.turn.error))
+      } else echouer(refus('métier', erreur || `Tour Codex ${statut}`, p.turn.error))
       signaux.emit('termine')
-    } else if (x.method === 'thread/status/changed' && p.status?.type === 'active' && p.status.activeFlags?.length && projection.etat !== 'attente') {
+    } else if (m === 'thread/status/changed' && champ('status.type', 'chaine') === 'active' && champ('status.activeFlags', 'tableau').length && projection.etat !== 'attente') {
       publier('approbation', { etat: 'attente' })
     }
   }
@@ -537,8 +445,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
     await requete('initialize', { clientInfo: { name: 'wfrp-session', version: '1' }, capabilities: { experimentalApi: true } })
     natif.stdin.write(`${JSON.stringify({ method: 'initialized', params: {} })}\n`)
     const r = await requete('thread/start', { cwd: carte.worktree }, carte.demarrageJusqua - Date.now())
-    if (typeof r?.thread?.id !== 'string') throw refus('panne', 'Réponse thread/start sans identité')
-    projection.threadId = r.thread.id
+    projection.threadId = lu('thread/start', r, 'thread.id', 'chaine')
     await demarrerTour(consigne)
   })()
   pret.catch((e) => { echouer(e); child.kill() })

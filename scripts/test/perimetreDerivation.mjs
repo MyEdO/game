@@ -638,8 +638,8 @@ const [SEQUENCE, LONGUEUR, ARRET, ACQUIT] = [0, 1, 2, 3]
 const [ACQUITTE, EN_PANNE] = [1, 2]
 /** Le GUETTEUR du marqueur, seul écrivain du fichier : il publie le dernier stade posé à chaque pas, puis à l'arrêt. Ses
  *  lectures, comme les écritures de `stade`, sont toutes atomiques : la séquence paire relue à l'identique prouve un texte
- *  entier (ECMA-262, Memory Model). Un renommage refusé (`RENOMMAGE_REFUSE`) se rejoue à son pas, jamais sous les paliers
- *  de `renommerResilient` ; toute autre levée le tue : il la poste sur `pannes` puis pose `EN_PANNE`. */
+ *  entier (ECMA-262, Memory Model). Un renommage refusé (`FICHIER_TENU`) se rejoue à son pas, jamais sous les paliers
+ *  de `renommerResilient` (`paliers: []`) ; toute autre levée le tue : il la poste sur `pannes` puis pose `EN_PANNE`. */
 const GUETTEUR = `
 const { workerData: { ecriture, renommage, chemin, partage, pas, pannes } } = require('node:worker_threads')
 const entete = new Int32Array(partage, 0, 4)
@@ -656,7 +656,7 @@ const lire = () => {
   }
 }
 const poser = (etat) => { Atomics.store(entete, ${ACQUIT}, etat); Atomics.notify(entete, ${ACQUIT}) }
-Promise.all([import(ecriture), import(renommage)]).then(([{ ecrireTexteAtomique }, { RENOMMAGE_REFUSE }]) => {
+Promise.all([import(ecriture), import(renommage)]).then(([{ ecrireTexteAtomique }, { FICHIER_TENU }]) => {
   const attendre = () => Atomics.wait(entete, ${ACQUIT}, 0, pas)
   for (let publiee = 0; ;) {
     Atomics.wait(entete, ${ARRET}, 0, pas)
@@ -664,10 +664,10 @@ Promise.all([import(ecriture), import(renommage)]).then(([{ ecrireTexteAtomique 
     const { sequence, texte } = lire()
     if (sequence !== publiee) {
       try {
-        ecrireTexteAtomique(chemin, texte + '\\n', { attendre })
+        ecrireTexteAtomique(chemin, texte + '\\n', { paliers: [] })
         publiee = sequence
       } catch (e) {
-        if (!RENOMMAGE_REFUSE.has(e?.code)) throw e
+        if (!FICHIER_TENU.has(e?.code)) throw e
         if (arret) attendre()
         continue
       }

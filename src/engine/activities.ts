@@ -13,12 +13,13 @@ import { valeurSansTirage } from './formule';
 import { evalCondition, type Condition, type ConditionCtx } from './flowCore';
 import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
-import { bestSkilledOption, bestForSkills, peutTenter, refusNePeutTenter, testValue, type TestSpec } from './skills';
+import { bestSkilledOption, idsDuTest, peutTenter, refusNePeutTenter, valeurDuTest, type TestDesigne, type TestSpec } from './skills';
+import { maxBy } from './pick';
 import type { PlayerText } from '../i18n/playerText';
 import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
 import { easeDifficulty, estJete, clampTarget, cibleDuTest, ECHEC_SANS_JET, type EchecSansJet } from './tests';
-import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
+import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type ActivitySkill, type TrappingData } from '../data';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
@@ -532,13 +533,20 @@ export interface TravelActivityResult {
   drTarget?: number;
 }
 
-/** SPEC influençable d'une Activité de voyage tenue par un acteur, SANS lancer le dé : la compétence
- *  retenue (meilleure TENTABLE de l'acteur, `bestForSkills`), sa valeur brute et la CIBLE effective (Difficulté + `skillMod` déjà
- *  appliqués, bornée 1..99 — comme `rollTest`). Sert à bâtir une ÉTAPE de cascade influençable ; la
- *  résolution du dé (RNG ou influence) vit dans la cascade, l'issue s'obtient ensuite par
- *  `applyTravelActivityResult`. Une Activité SANS Test (Récupérer) renvoie `target: null`, sans compétence.
- *  Une Activité à compétence LIBRE sans compétence choisie n'est PAS TENUE (`null`) : ni Test, ni issue,
- *  ni Exténué (EDOC 8 l.133). PUR. */
+/** VOIE d'un Test d'Activité : ce que le Test désigne (Compétence ou Caractéristique), sa Difficulté
+ *  PROPRE quand le RAW en attache une par voie (`ActivitySkill.difficulty`, AA 12 l.45-49), et sa valeur
+ *  quand le Test la pose hors `testValue` (valeur de combat de l'arme visée, ACE 12 l.21 ; Focalisation,
+ *  VDM 02 l.129) — même contrat que la `valeur` posée d'une ligne de jet (`rollLine`). */
+export interface VoieDActivite { readonly test: TestDesigne; readonly difficulty?: Difficulty; readonly valeur?: number }
+
+/** SPEC influençable d'une Activité tenue par un acteur, SANS lancer le dé — PRÉ-JET UNIQUE des
+ *  contextes (voyage, mer, interlude) : la voie retenue (meilleure CIBLE parmi les voies TENTABLES,
+ *  first-max), sa valeur, sa Difficulté effective (`classGatedDifficulty`), ses modificateurs nommés
+ *  (`testMods` de la donnée, puis ceux de l'appelant) et la CIBLE effective (Difficulté + `skillMod` +
+ *  modificateurs, bornée — comme `rollTest`). Sert à bâtir une ÉTAPE de cascade influençable ou le
+ *  pending d'une Activité ; l'issue s'obtient ensuite par `applyTravelActivityResult`. Une Activité
+ *  SANS Test (Récupérer) renvoie `target: null`, sans compétence. Une Activité à compétence LIBRE sans
+ *  compétence choisie n'est PAS TENUE (`null`) : ni Test, ni issue, ni Exténué (EDOC 8 l.133). PUR. */
 export type TravelActivitySpec = {
   activityId: string;
   actorId: string;
@@ -546,14 +554,18 @@ export type TravelActivitySpec = {
   skillMod: number;
   drTarget?: number;
 } & (
-  | { target: null; used?: never; refus?: never }
+  | { target: null; test?: never; refus?: never }
   | {
-    /** Compétence du Test : la meilleure tentable de l'acteur, sinon celle du poste. */
-    used: RefDesignee;
-    /** Cible effective (Difficulté + mod, bornée). */
+    /** Test de la voie retenue : la meilleure tentable de l'acteur, sinon la première voie. */
+    test: TestDesigne;
+    /** Difficulté effective de la voie (gate de Classe appliqué). */
+    difficulty: Difficulty;
+    /** Modificateurs NOMMÉS sur la cible : `testMods` de la donnée, puis ceux de l'appelant. */
+    mods: ModLine[];
+    /** Cible effective (Difficulté + `skillMod` + `mods`, bornée). */
     target: number;
-    /** L'acteur ne peut tenter AUCUNE compétence de l'Activité (`peutTenter`, LDB 09 l.30 ; LDB 16 l.113) :
-     *  refus NOMMÉ de la compétence du poste — la ligne naît `ECHEC_SANS_JET` (#2588 Q1). */
+    /** L'acteur ne peut tenter AUCUNE voie de l'Activité (`peutTenter`, LDB 09 l.30 ; LDB 16 l.113) :
+     *  refus NOMMÉ de la première voie — la ligne naît `ECHEC_SANS_JET` (#2588 Q1). */
     refus?: PlayerText;
   }
 );
@@ -561,23 +573,33 @@ export type TravelActivitySpec = {
 export function travelActivitySpec(
   actor: Combatant,
   def: ActivityDef,
-  opts: { skillMod?: number; stages?: number; freeSkill?: RefDesignee } = {},
+  opts: { skillMod?: number; stages?: number; freeSkill?: RefDesignee; voies?: readonly VoieDActivite[]; mods?: readonly ModLine[] } = {},
 ): TravelActivitySpec | null {
   const drTarget = def.extended && opts.stages != null ? def.extended.drPerStage * opts.stages : undefined;
   if (!activiteTenue(def, opts.freeSkill)) return null;
-  const skillRefs = def.freeSkill ? [opts.freeSkill!] : (def.skills ?? []);
+  const skillMod = opts.skillMod ?? 0;
+  const voies: readonly VoieDActivite[] = opts.voies
+    ?? (def.freeSkill ? [{ test: { skill: opts.freeSkill! } }] : ((def.skills ?? []) as ActivitySkill[]).map(({ difficulty, ...skill }) => ({ test: { skill }, difficulty })));
   // Activité SANS Test (Récupérer) : pas d'étape-jet.
-  if (!skillRefs.length) return { activityId: def.id, actorId: actor.id, value: 0, target: null, skillMod: opts.skillMod ?? 0, drTarget };
-  // Meilleure compétence TENTABLE de l'acteur (`bestForSkills`, first-max) ; aucune → la compétence du
-  // poste et son refus nommé, patron `crewRoleValue` (LDB 09 l.30 ; LDB 16 l.113).
-  const b = bestForSkills([actor], skillRefs, undefined);
-  const sk = skillRefs[0];
-  const used: RefDesignee = b ? { id: b.skillId!, ...(b.spec ? { spec: b.spec } : {}) } : sk;
-  const value = b ? b.value : testValue(actor, sk.id, undefined, sk.spec);
-  const { target } = clampTarget(cibleDuTest(value, def.difficulty ?? 'intermediaire', opts.skillMod ?? 0));
+  if (!voies.length) return { activityId: def.id, actorId: actor.id, value: 0, target: null, skillMod, drTarget };
+  const situation = activityTestMod(def, actor);
+  const mods = [...activityModLines(situation.mod, situation.label), ...(opts.mods ?? [])];
+  const surLaCible = skillMod + mods.reduce((s, m) => s + m.value, 0);
+  const lues = voies.map((voie) => {
+    const value = voie.valeur ?? valeurDuTest(actor, voie.test);
+    const difficulty = classGatedDifficulty({ difficulty: voie.difficulty ?? def.difficulty, classGate: def.classGate }, actor);
+    return { voie, value, difficulty, brute: cibleDuTest(value, difficulty, surLaCible) };
+  });
+  // Meilleure voie TENTABLE par cible (first-max, `maxBy`) ; aucune → la première et son refus nommé,
+  // patron `crewRoleValue` (LDB 09 l.30 ; LDB 16 l.113).
+  const tentable = ({ test }: VoieDActivite): boolean => { const ids = idsDuTest(test); return peutTenter(actor, ids.skill, ids.spec); };
+  const best = maxBy(lues.filter((l) => tentable(l.voie)), (l) => l.brute)?.item;
+  const retenue = best ?? lues[0];
+  const { test } = retenue.voie;
   return {
-    activityId: def.id, actorId: actor.id, used, value, target, skillMod: opts.skillMod ?? 0, drTarget,
-    ...(b ? {} : { refus: refusNePeutTenter(actor, { skill: sk.id, ...(sk.spec ? { spec: sk.spec } : {}) }) }),
+    activityId: def.id, actorId: actor.id, test, value: retenue.value, difficulty: retenue.difficulty, mods,
+    target: clampTarget(retenue.brute).target, skillMod, drTarget,
+    ...(best ? {} : { refus: refusNePeutTenter(actor, idsDuTest(test)) }),
   };
 }
 

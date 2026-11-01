@@ -168,10 +168,12 @@ const NOMMES = [
   'porteuse|voisine|les-deux',
   // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
   'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
-  // `defs/garde-robe.ts` (#3114, #3113) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.
-  'tete|coiffure|emplacement|piece|ensemble',
+  // `defs/garde-robe.ts` (#3114, #3113, #3111) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.
+  'tete|coiffure|tenue|emplacement|piece|ensemble|embleme',
   'vetement|armure|accessoire',
-  'trapping|apparence',
+  'trapping|apparence|tenue',
+  // `mainSchema` (`grammaire/valeurs.ts`) : la main d'un objet tenu (`prises`) ou d'une arme (`weaponHand`).
+  'main|off',
 ].sort();
 
 /**
@@ -249,7 +251,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'le-plus-lent|aucun',
   'lisses|griffues',
   'localisation|porteur',
-  'main|off',
   'majeure|mineure-x2',
   'metal|leather|chaos',
   'mineure|arcane|invocation|beni|chaos',

@@ -6,7 +6,7 @@ import { beginShipwreck } from './shipwreck';
 import { buildNightCascade, deferredUpkeepSteps, type PendingRest } from './restFlow';
 import { runDailyUpkeep, type DeferredUpkeepTest } from './upkeep';
 import { dayIndex } from '../engine/clock';
-import { bestActivitySkill } from './interludeFlow';
+import { travelActivitySpec, type ActivityDef } from '../engine/activities';
 import { inexplique, soutienDe, jetDe } from './cascade.testkit';
 import { skillBaseValue, testValue, partyAssisted } from '../engine/skills';
 import { applierDe } from './cascade';
@@ -366,12 +366,12 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
     expect(ps.target).toBe(clampTarget(sg.skill + DIFFICULTY_MODIFIERS.accessible).target);
   });
 
-  it('Activité d’interlude : `bestActivitySkill` classe sur la cible ÉCRÊTÉE que le jet subira', () => {
+  it('Activité d’interlude : `travelActivitySpec` pose la cible ÉCRÊTÉE que le jet subira', () => {
     const h = hero({
       id: 'act', skills: [{ id: 'ragot', advances: 20, characteristic: 'sociabilite' }] as never,
       conditions: [{ id: 'empoisonne', value: 1 }] as never,
     });
-    const pick = bestActivitySkill(h, { skills: [{ id: 'ragot' }] as never, difficulty: 'complexe' })!;
+    const pick = travelActivitySpec(h, { id: 'ragot-complexe', label: 'Ragot', contexts: ['interlude'], skills: [{ id: 'ragot' }], difficulty: 'complexe' } as ActivityDef)!;
     expect(pick.value).toBe(testValue(h, 'ragot', undefined, undefined));
     expect(pick.target).toBe(clampTarget(pick.value + DIFFICULTY_MODIFIERS.complexe).target);
   });

@@ -83,6 +83,9 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  * run — interdit à toute autre lane de le lire ; `ecritFerme` = un chemin que la gate PEUT écrire,
  * avec la PORTE qui ferme le cas, nommée au chemin (jamais à la gate). Aucune écriture n'est
  * effacée de la table pour faire passer une lane : elle change de champ, en disant pourquoi.
+ *
+ * `delegueeAuPerimetre` (optionnel) : la raison MESURÉE pour laquelle `test:perimetre` ne joue pas cette gate et la
+ * laisse à la CI ; tout fichier touché sous son `lit` la nomme au journal (`lignesDeDelegation`, scripts/test/perimetre.mjs).
  */
 const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide (rmdirSync) et relierFichierGit (writeFileSync exclusif) ne s'appellent que depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables ; etatDuDemiRetire n'écrit que sous mkdtempSync d'os.tmpdir(), effacé par rmSync en finally. "
 
@@ -258,9 +261,9 @@ export const ECRIT_LU = {
       'session-start.mjs importe compat-cli.mjs ; le préflight charge registre.mjs dynamiquement via chargerRegistres, jamais runCompat ni atomicWrite ; session-start.test.mjs importe directement bootstrap-conteneur.mjs ; ' +
       'les CLI réellement lancés par session-start.test.mjs sont inject-project-credo.mjs et bootstrap-conteneur.mjs, avec cwd, CLAUDE_PROJECT_DIR et chemin de reçu dans la fixture temporaire ; CLAUDE_CODE_REMOTE=false ferme bootstrap avant tout prérequis ; seul le reçu natif valide est écrit dans la fixture, son absence hors ops et après panne étant éprouvée ; ' +
       'session-runtime.mjs écrit cartes, bootstrap, demande d’arrêt et temporaires dans le registre machine .git/sessions ; session.test.mjs lui injecte uniquement des dossiers mkdtempSync sous os.tmpdir(), supprimés en after ; ' +
-      'session-codex.mjs écrit son journal JSONL et stderr dans le dossier de registre injecté ; session-codex.test.mjs injecte seulement des mkdtempSync sous os.tmpdir(), y écrit les doubles app-server et y retire les fixtures après exit des enfants ; le contrôle du protocole génère ses schémas sous un mkdtempSync de os.tmpdir(), retiré en finally ; ' +
+      'session-codex.mjs écrit son journal JSONL et stderr dans le dossier de registre injecté ; session-codex.test.mjs injecte seulement des mkdtempSync sous os.tmpdir(), y écrit les doubles app-server et y retire les fixtures après exit des enfants ; ' +
       'session-train.test.mjs écrit ses scripts Node et PowerShell, requêtes, réponses, certificats, marqueurs JSON et journal dans ses mkdtempSync sous os.tmpdir(), retirés en finally ou t.after après la fin des processus ; le cwd réel et processusJob.cs sont seulement lus ; ' +
-      'session-version.mjs et son banc vérifient version et registre sans écriture fs ; session-harnais.test.mjs lit les hooks réels sous .claude/skills/harnais/ et les exécute avec ses interfaces injectées, sans écrire ce dossier ; ' +
+      'session-version.mjs installe Codex côte à côte sous ~/.cache/wfrp-codex, hors de l’arbre, en tâche détachée ; son banc injecte dossier de versions, registre, npm-cli.js et lanceur ; ses versions, verrous, journal, npm-cli.js factice, pilote et préchargement sans réseau de l’entrée CLI s’écrivent dans un mkdtempSync sous os.tmpdir(), retiré par t.after après l’arrêt des enfants ; session-harnais.test.mjs lit les hooks réels sous .claude/skills/harnais/ et les exécute avec ses interfaces injectées, sans écrire ce dossier ; ' +
       'session.test.mjs importe repartition.mjs pour surfaceDe et projeter, fonctions pures sans lecture ni écriture fs ; ses mkdirSync et appendFileSync de traces sont fermés dans executer(registre), que ce banc n’appelle pas ; aucune lecture ni écriture de trace n’est atteinte par ce chemin ; ' +
       'son JobHost Windows ne lance au banc que des enfants Node neutres sous ces dossiers temporaires, jamais Windows Terminal ni un agent ; le lancement WT et l’inventaire sont injectés, et lancerAgent ne lance au banc que des enfants Node neutres sous os.tmpdir() ; ' +
       'fraicheur-docs.mjs ne reçoit des bancs chantier que leurs dépôts jetables sous os.tmpdir(), ou un copierDocs injecté ; aucun ledger du principal réel n’est écrit ; ' +
@@ -442,11 +445,14 @@ export const ECRIT_LU = {
         '`~/.cache/wfrp-modeles-3d/` (hors de l’arbre), seulement s’il y manque ou n’a pas la somme de sa provenance commitée, ' +
         'par temporaire exclusif puis renommage (`ecrireTexteAtomique`) : un lecteur concurrent voit l’absent, l’ancien ou ' +
         'le GLB de somme épinglée, jamais un fichier partiel ; `/modeles/*.glb` est gitignoré (hotes/godot/projet/.gitignore) ' +
-        'et aucune autre gate ne lit de GLB : le lint lit des modules, la suite du noyau n’en lit que les provenances',
+        'et sa seule autre gate lectrice, `personnage-3d:tests` (`ModeleCommite`, #3145), suit `godot:sonde` dans le job ' +
+        '`types` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
+        'qu’après l’écriture ; le lint lit des modules, la suite du noyau n’en lit que les provenances',
     },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
     raison:
-      '`godot --headless --import` puis `--check-only` de chaque script (hotes/godot/construire.mjs, #2928, plan M-f) sur ' +
+      '`godot --headless --import`, `--check-only` de chaque script puis exécution des recettes sous `recettes/` ' +
+      'déclarant `const RECETTE_AUTONOME := true` (hotes/godot/construire.mjs, #2928, plan M-f), sur ' +
       'une COPIE du projet sous `os.tmpdir()`, que la sonde efface : l’import n’écrit pas `hotes/godot/projet/.godot/` ; ' +
       'le binaire épinglé vit hors de l’arbre (`~/.cache/wfrp-godot/`, ou `GODOT`) ; LIT hotes/ (le projet et son ' +
       'constructeur), scripts/ (`listerDossier`, l’entrée d’hôte et le greffon de prose), les zones du noyau chargées ' +
@@ -454,6 +460,25 @@ export const ECRIT_LU = {
       'le contrat d’asset et ses écrivains sont chargés par l’entrée Vite, hors de la fermeture statique des imports. ' +
       'Écrit sous hotes/godot/projet/modeles/ les seuls GLB ' +
       '(`ecritFerme`)',
+  },
+  'personnage-3d:tests': {
+    ecrit: [],
+    ecritFerme: {
+      'scripts/personnage-3d/__pycache__/':
+        'le bytecode que CPython écrit à l’import des modules de la chaîne 3D, ignoré par `__pycache__/` (.gitignore) : ' +
+        'absent des listes que les gates tirent de git (`listerImage`, `git ls-files`) et du step « Arbre inchangé »',
+    },
+    lit: ['scripts/personnage-3d/', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json'],
+    raison:
+      '`tests.py` (#3145) dans le venv épinglé d’`environnement.mjs`, qui vit hors de l’arbre ' +
+      '(`~/.cache/wfrp-personnage-3d/`) ; les tests écrivent leurs GLB sous `tempfile.TemporaryDirectory()`. LIT ' +
+      'package.json (le script npm), scripts/personnage-3d/ (`environnement.mjs` et son `requirements.txt`, `tests.py`, ' +
+      'les `test_*.py` et les modules qu’ils importent, base/ compris), `seuils.json` de l’évaluateur (lu à l’import de ' +
+      '`seuils.py`) et, sous hotes/godot/projet/modeles/, le manifeste et le GLB de la Release (`ModeleCommite`), que ' +
+      'dépose `godot:sonde`, joué avant elle dans le job et la lane `types`',
+    delegueeAuPerimetre:
+      'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation), ' +
+      'plus le GLB que dépose `godot:sonde` : à venv chaud, 31 s de mur sur le poste, mesuré le 2026-10-29',
   },
   lint: {
     ecrit: [],

@@ -1,7 +1,6 @@
 import { careers, levelsForCareer } from '../data';
-import { actorStatus } from './social';
+import { statutDeCarriere } from './social';
 import { statusBudgetBrass } from './money';
-import type { Combatant } from './types';
 
 /**
  * Carrière et niveau au Statut le plus haut de la donnée, avec son budget « Tenir les comptes » en sous
@@ -11,7 +10,7 @@ export function statutLePlusHaut(): { career: string; careerLevel: number; budge
   let best = { career: '', careerLevel: 1, budget: -1 };
   for (const c of careers) {
     levelsForCareer(c.id).forEach((_l, i) => {
-      const st = actorStatus({ career: c.id, careerLevel: i + 1 } as Combatant);
+      const st = statutDeCarriere({ career: c.id, careerLevel: i + 1 });
       const budget = statusBudgetBrass(st.tier, st.standing);
       if (budget > best.budget) best = { career: c.id, careerLevel: i + 1, budget };
     });

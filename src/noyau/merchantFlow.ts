@@ -22,8 +22,7 @@ import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilit
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type Money } from '../engine/money';
-import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeGesteSurLeGroupe } from './bourseFlow';
-import { bourseOf } from '../engine/bourse';
+import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, findMerchantArchetypeById, type TrappingData } from '../data/index';
@@ -810,7 +809,7 @@ export function coutDeReparation(item: ItemInstance): Money {
 /** Refus de réparer `item` aux frais de son porteur `hero` : la raison affichée, ou `null`. Tombe dans
  *  `repairItem`, lu par l'écran. */
 export function refusDeReparation(hero: Combatant, item: ItemInstance, refusHote: string | null): string | null {
-  return refusHote ?? (canAfford(bourseOf(hero), coutDeReparation(item)) ? null : msg('mf.repairPurseKo', { label: item.label }));
+  return refusHote ?? refusDeBourse(hero, coutDeReparation(item), 'mf.repairPurseKo', { label: item.label });
 }
 
 /** Réparation d'un objet chez un artisan — armure (LDB 63 l.64) OU arme (LDB 62 l.135), au coût

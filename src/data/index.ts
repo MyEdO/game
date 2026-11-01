@@ -7,10 +7,10 @@ import type { EntityAppearance, RigSpeciesId } from '../engine/authoringAppearan
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement } from './schemas/grammaire/valeurs';
-import { dansLaSousListe, espaceDe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
+import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
-import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_LA_RACINE } from './schemas/_cles-de-dataset.generated';
+import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_LA_RACINE, type CleDeDataset } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { IdsParEspace } from './schemas/_ids.generated';
@@ -108,7 +108,9 @@ import raceAppearanceJson from './raceAppearance.json';
 import gabaritsJson from './gabarits.json';
 import type { GabaritDef, GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 import gardeRobeJson from './garde-robe.json';
-import type { GardeRobeEntree } from './schemas/defs/garde-robe';
+import { cleDHabille, type EmplacementId, type EnsembleDef, type GardeRobeEntree, type HabilleDEnsemble } from './schemas/defs/garde-robe';
+import presetsDePersonnageJson from './presets-de-personnage.json';
+import type { PresetDePersonnage } from './schemas/defs/presets-de-personnage';
 import godsJson from './gods.json';
 import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
@@ -1247,6 +1249,8 @@ export interface TrappingData {
    *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.apparence` ;
    *  défaut = `shape` du trapping. Absent pour une arme à forme unique. */
   formChoices?: string[];
+  /** Emplacement de la garde-robe où l'objet porté se range hors des mains (#3116). */
+  rangement?: { id: EmplacementId };
   /** Arme INHABITUELLE (ACE 12 l.17 « Entraînement avec une arme inhabituelle ») : exige la
    *  maîtrise (`Combatant.masteredWeapons`) pour être maniée avec la Compétence du Groupe. Flag
    *  d'AUTEUR (artefacts uniques : « le couteau de lancer de Harald L'Infâme ») — éditable au Codex. */
@@ -2977,7 +2981,7 @@ export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 /** Carrures du rig (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */
 export const gabarits = gabaritsJson as GabaritDef[];
 export const findGabaritById = indexParId('gabarits', gabarits);
-/** Garde-robe des éléments 3D (`garde-robe.json`, #3114, #3113) : têtes, coiffures, emplacements, pièces, ensembles. */
+/** Garde-robe des éléments 3D (`garde-robe.json`, #3114, #3113, #3111, #3116) : têtes, coiffures, tenues, emplacements, pièces, ensembles, emblèmes. */
 export const gardeRobe = gardeRobeJson as GardeRobeEntree[];
 /** Lecteur d'une nature de la garde-robe par id ; une ligne d'une autre nature n'en est pas une. */
 const parNature = <K extends GardeRobeEntree['kind']>(kind: K) => {
@@ -2987,6 +2991,12 @@ const parNature = <K extends GardeRobeEntree['kind']>(kind: K) => {
 export const findPieceById = parNature('piece');
 export const findTeteById = parNature('tete');
 export const findCoiffureById = parNature('coiffure');
+const ensembleParHabille = indexParChamp<GardeRobeEntree, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'ensemble' ? cleDHabille(e.habille) : undefined));
+/** L'ensemble qui habille `habille` (égalité de `{ id, type }`), `undefined` si la garde-robe n'en déclare pas. */
+export const findEnsembleParHabille = (habille: HabilleDEnsemble): EnsembleDef | undefined => ensembleParHabille(cleDHabille(habille)) as EnsembleDef | undefined;
+/** Presets de personnage entier (`presets-de-personnage.json`, #3086). */
+export const presetsDePersonnage = presetsDePersonnageJson as PresetDePersonnage[];
+export const findPresetDePersonnageById = indexParId('presetsDePersonnage', presetsDePersonnage);
 export const locations = locationsJson as LocationData[];
 const lieuParId = indexParId('locations', locations);
 /** Résout un Lieu par son `id` STABLE (cible de `LocationData.parent`). Le libellé ne sert qu'à l'affichage. */
@@ -3555,6 +3565,19 @@ function entreeDeRacine(fichier: string, id: string): Readonly<Record<string, un
   if (!Object.prototype.hasOwnProperty.call(DATASET_DE_LA_RACINE, fichier)) throw new Error(`entreeDeRacine : « ${fichier} » ne porte aucun dataset de racine.`);
   const cle = DATASET_DE_LA_RACINE[fichier];
   return indexParId(cle, RACINES_VIVANTES[fichier] as { id: string }[])(id) as Readonly<Record<string, unknown>> | undefined;
+}
+/** Le dataset de racine de l'espace de `type` (`DATASET_DE_LA_RACINE`), `undefined` s'il n'en a pas. */
+export function datasetDeRacineDuType(type: TypeEntite): CleDeDataset | undefined {
+  const fichier = espaceDe(type);
+  return Object.prototype.hasOwnProperty.call(DATASET_DE_LA_RACINE, fichier) ? DATASET_DE_LA_RACINE[fichier] : undefined;
+}
+/** Les choix `{ id, label }` d'une feuille `idDe(type, sousListe)` : les entrées de la racine vivante de l'espace de son
+ *  type qu'admet sa sous-liste (`idsDe`, `idsDeLaSousListe`), dans l'ordre de la donnée ; LÈVE si l'espace n'a aucun
+ *  dataset de racine (`datasetDeRacineDuType`). */
+export function choixDeLaFeuilleDId({ type, sousListe }: Pick<FeuilleDId, 'type' | 'sousListe'>): { id: string; label: string }[] {
+  if (datasetDeRacineDuType(type) === undefined) throw new Error(`choixDeLaFeuilleDId : l'espace ${espaceDe(type)} n'a aucun dataset de racine.`);
+  const admis = new Set(sousListe === undefined ? idsDe(type) : idsDeLaSousListe(type, sousListe));
+  return (RACINES_VIVANTES[espaceDe(type)] as readonly { id: string; label: string }[]).filter((e) => admis.has(e.id)).map(({ id, label }) => ({ id, label }));
 }
 /** Libellé d'affichage d'un id, par source de spéc, tel que sa déclaration le dit (`SourceDeSpecs.libelle`) :
  *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers ; sinon l'id. */

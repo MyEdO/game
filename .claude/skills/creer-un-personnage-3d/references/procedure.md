@@ -36,10 +36,12 @@ La commande de construction de base existe, mais relève de L1, pas de l'auteur 
 Elle utilise les fichiers UAL1, UAL2 et UBC (corps masculin et féminin) acquis avec leurs licences, le dossier `data`
 de MPFB (donneur de la silhouette `corpulence`), et nomme le texte de licence
 de chaque pack, lu dans le pack (`License.txt` à la racine de `Universal Animation Library[Standard]`,
-`License_Standard.txt` à la racine de `Universal Base Characters[Standard]`) :
+`License_Standard.txt` à la racine de `Universal Base Characters[Standard]`, et pour MPFB, qui n'en
+livre aucun, `LICENSE.ASSETS.md` de la racine de `makehumancommunity/mpfb2` au tag de la version
+installée, déposé tel quel dans le dossier de l'extension, parent de `data`) :
 
 ```sh
-node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py --ual1 "/atelier/sources/Universal Animation Library[Standard]/…/UAL1_Standard.glb" --licence-ual1 "/atelier/sources/Universal Animation Library[Standard]/License.txt" --ual2 "/atelier/sources/Universal Animation Library 2[Standard]/…/UAL2_Standard.glb" --licence-ual2 "/atelier/sources/Universal Animation Library 2[Standard]/License.txt" --corps "/atelier/sources/Universal Base Characters[Standard]/…/Superhero_Male_FullBody.gltf" --licence-corps "/atelier/sources/Universal Base Characters[Standard]/License_Standard.txt" --corps-feminin "/atelier/sources/Universal Base Characters[Standard]/…/Superhero_Female_FullBody.gltf" --licence-corps-feminin "/atelier/sources/Universal Base Characters[Standard]/License_Standard.txt" --mpfb /atelier/sources/mpfb/data --sortie /atelier/base/humanoide.glb
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py --ual1 "/atelier/sources/Universal Animation Library[Standard]/…/UAL1_Standard.glb" --licence-ual1 "/atelier/sources/Universal Animation Library[Standard]/License.txt" --ual2 "/atelier/sources/Universal Animation Library 2[Standard]/…/UAL2_Standard.glb" --licence-ual2 "/atelier/sources/Universal Animation Library 2[Standard]/License.txt" --corps "/atelier/sources/Universal Base Characters[Standard]/…/Superhero_Male_FullBody.gltf" --licence-corps "/atelier/sources/Universal Base Characters[Standard]/License_Standard.txt" --corps-feminin "/atelier/sources/Universal Base Characters[Standard]/…/Superhero_Female_FullBody.gltf" --licence-corps-feminin "/atelier/sources/Universal Base Characters[Standard]/License_Standard.txt" --mpfb /atelier/sources/mpfb/data --licence-mpfb /atelier/sources/mpfb/LICENSE.ASSETS.md --sortie /atelier/base/humanoide.glb
 ```
 
 Les chemins `/atelier/…` des exemples désignent les fichiers locaux de production à choisir ;
@@ -47,21 +49,23 @@ ils ne sont pas fournis par le dépôt. Vérifier unités, axes, échelle et pos
 sans les modifier dans l'élément. La construction exige `node` dans le `PATH` : avant Blender,
 `scripts/personnage-3d/base/manifeste.mjs --verifier` refuse une sortie dans un arbre du dépôt (liens
 et jonctions résolus), un dossier de sortie qui porte un autre fichier que le GLB, `manifest.json` et
-les `LICENSE-<pack>.txt` qu'elle écrit, et un texte de licence `--licence-<pack>` absent, hors des
-dossiers ancêtres de sa source, sans ligne `License:` ou dont la ligne manque à
-`hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
+les `LICENSE-<pack>.txt` qu'elle écrit, un pack sans `--licence-<pack>`, et un texte de licence
+absent, hors des dossiers ancêtres de sa source, vide, ou dont la licence déclarée (ligne
+`License:`, sinon titre) manque à `hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
 déclaration du corps (`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence,
 clips de marche), la vitesse au sol de chaque clip de marche mesurée par l'évaluateur, et
 l'empreinte du GLB. Le manifeste refusé par `validerManifesteDeBase` fait échouer la construction.
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
-`packs_sources`, `hors_release`) et `LICENSE-ual1.txt`, `LICENSE-ual2.txt`, `LICENSE-corps.txt`,
-`LICENSE-corps-feminin.txt`, copies des textes de licence des packs ; `packs_sources.<pack>` porte le chemin, l'empreinte et la
+`packs_sources`) et `LICENSE-ual1.txt`, `LICENSE-ual2.txt`, `LICENSE-corps.txt`,
+`LICENSE-corps-feminin.txt`, `LICENSE-mpfb.txt`, copies des textes de licence des packs ; `packs_sources.<pack>` porte le
+chemin, l'empreinte (d'un fichier, ses octets ; d'un dossier comme `data` de MPFB, la liste triée « chemin relatif,
+SHA-256 » de ses fichiers) et la
 copie de licence (`licence`) de chaque pack, que la provenance garde par pack sous le nom du texte
-déposé. Il s'importe tel quel, sans publication (section 6) :
+déposé. La base s'importe et se publie telle quelle (section 6) :
 
 ```sh
-node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier
+node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles
 ```
 
 L'élément se valide et s'évalue ensuite contre `/atelier/modeles/humanoide.manifeste.json` et
@@ -104,8 +108,10 @@ Les catégories corps, tête, pilosité, vêtement, armure, accessoire et trait 
 peau < dessous < tenue < armure < manteau. L'armure impose armure. Les trois autres catégories
 n'ont ni couche ni couverture. `couvre` est requis pour les éléments skinnés, optionnel pour un
 accessoire ; ses ids viennent des zones de la base. Une couverture déclarée reste à mesurer.
-Seul un vêtement peut ajouter/déplacer des emplacements ; chaînes et silhouettes optionnelles
-doivent exister dans la base. La liaison de manifeste ne contient que son mode.
+Seuls un vêtement et une armure peuvent ajouter/déplacer des emplacements, ids d'emplacement de
+`src/data/garde-robe.json` (`emplacement-inconnu` sinon) ; un accessoire dont l'emplacement n'est
+offert ni par sa base ni par une pièce de cette base va au rapport de l'index (`emplacement-non-offert`,
+`hotes/godot/asset/modeles.ts`) : il s'importe et se publie, mais l'atelier ne le sert à aucun point. Chaînes et silhouettes optionnelles doivent exister dans la base. La liaison de manifeste ne contient que son mode.
 
 Une tête porte aussi la shape key visage_inverse pour le faceFlip résolu. Vérifier sa présence
 dans le GLB ; ne la déclarer parmi les silhouettes qu'avec une base qui la connaît. Si la base
@@ -134,10 +140,20 @@ SIMPLIFIER / OMETTRE. Distinguer volume, motif peint et ombre. Tracer les hypoth
 Le modèle se compare à l'illustration directrice. Un grand revers et un foulard sont des formes ;
 coutures et usure restent du détail. Palette mate limitée, ombrage flat/smooth intentionnel.
 
-Un blason (emblème d'unité, de province ou de culte) n'appartient pas à l'élément : la pièce garde
-un champ neutre (écu uni, lame nue, insigne vierge) et le contrat nomme chaque surface qui le
-porte. #3111 (« Schéma 3 : blason posé au montage sur les surfaces déclarées d'un élément, jamais
-peint ») en fait une déclaration du manifeste.
+Un emblème (d'unité, de province ou de culte) n'appartient pas à l'élément : la pièce garde un champ
+neutre (écu uni, lame nue, insigne vierge), dont la couleur reste palette ou teinte, et le manifeste
+déclare `blason: true` sur chaque surface qui reçoit l'emblème, dite surface `blason` ; l'emblème
+est choisi au montage (#3111). Un insigne d'uniforme est la pièce `insigne` (accessoire) à surface
+`blason` ; un signe peint sur une armure (tassette, brassard) est un emblème, reçu par une surface
+`blason` de la pièce.
+
+Le matériau d'une surface `blason` ne couvre que la face porteuse : toute face de ce matériau reçoit
+l'emblème. Son îlot UV de `TEXCOORD_0` remplit le carré [0,1]², à l'échelle uniforme, sans miroir,
+rien hors du carré ; l'emblème, un SVG à `viewBox` carré (`refusDeSvg`,
+`src/data/schemas/defs/garde-robe.ts`), occupe ce carré entier. L'export glTF retourne v et Godot le
+lit sans retournement ; u n'est pas retourné. Contrôler avant l'export dans la vue 3D de Blender, une
+image asymétrique appliquée au matériau, la surface vue côté normale extérieure : l'image s'y lit à
+l'endroit, sans miroir ni rotation.
 
 ## 3. Bloquer l'ensemble, construire par dépendances
 
@@ -229,8 +245,9 @@ Lire au besoin la référence diagnostics du skill.
 Exporter en interpolation LINEAR et garder les pistes cuites de la base. Graines déterministes
 tirées des codes de caractères de l'identité, jamais du hash Python variable entre processus.
 Reconstruire un échantillon et comparer les octets ; une signature égale ne remplace pas cette preuve.
-Couleur de base en niveaux de gris ; surfaces reliées à palette ou teinte, sans couleur cuite, blason ni
-illustration en texture. La cuisson de géométrie vers texture peut utiliser le kit.
+Couleur de base en niveaux de gris ; surfaces reliées à palette ou teinte, sans couleur cuite ni
+illustration en texture ; aucun emblème n'est cuit, il se pose au montage sur une surface `blason`
+(section 2). La cuisson de géométrie vers texture peut utiliser le kit.
 
 Réutiliser une vue seulement si export et pose sont identiques. Après deux échecs du même défaut,
 changer de construction, provenance ou méthode de mesure avant une troisième retouche ; lire le
@@ -261,17 +278,19 @@ réellement définie ; remplacer empreinte et octets par ceux du GLB final) :
   "categorie": "rigide",
   "cle": { "apparence": "epee" },
   "liaison": { "mode": "rigide" },
-  "surfaces": [{ "nom": "metal", "teinte": true }],
+  "surfaces": [{ "nom": "metal", "teinte": true }, { "nom": "plat", "teinte": true, "blason": true }],
   "glb": { "sha256": "REMPLACER_PAR_64_CARACTERES_HEXADECIMAUX", "octets": 1 }
 }
 ```
 
-Pour les autres catégories, appliquer la table et les champs de la section 2. Les noms de surfaces
-doivent correspondre à ceux de l'export ; la validation de forme ne le prouve pas. Ne pas ajouter
+Pour les autres catégories, appliquer la table et les champs de la section 2. Chaque nom de surface
+est le nom d'un matériau de l'export ; `blason`, s'il est présent, vaut `true`. Ne pas ajouter
 provenance, captures, chemin du GLB ou décision utilisateur dans ce JSON fermé : fichier séparé.
 
 La CLI canonique appelle validerElement avec les octets du GLB pour vérifier forme, ids de clé
-contre la donnée du jeu, références à la base, empreinte SHA-256 et taille. Fournir manifeste d'élément, manifeste complet de base,
+contre la donnée du jeu, références à la base, noms de surfaces contre les matériaux du GLB
+(`surface-absente`), `TEXCOORD_0` sur chaque primitive d'une surface `blason` (`uv-absente`),
+empreinte SHA-256 et taille. Fournir manifeste d'élément, manifeste complet de base,
 puis GLB d'élément, depuis la racine du dépôt :
 
 ```sh
@@ -372,7 +391,7 @@ Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur liv
 ## Importer une base et ses éléments
 
 Chaque dossier de production contient `manifest.json`, le GLB qu'il nomme, au plus un `.blend`
-et ses `LICENSE*.txt` (ligne `License:` obligatoire). Pour une base ou un élément au schéma 3,
+et ses `LICENSE*.txt` (licence déclarée par la ligne `License:`, sinon par le titre). Pour une base ou un élément au schéma 3,
 `manifest.json` est une enveloppe de production séparée du manifeste fermé :
 
 ```json
@@ -394,7 +413,7 @@ L'import refuse `[pack-source-mal-forme]` un `packs_sources` ou une entrée qui 
 Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé. Une production sans
 composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 
-Importer la base avant ses éléments, dans la même destination :
+Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais).
 
 ```sh
 node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier
@@ -415,7 +434,8 @@ refuse `[id-deja-present]`.
 L'import retrouve la base par son champ `base` dans les `*.manifeste.json` de la destination,
 indépendamment du nom de fichier. Il exige son GLB local et sa provenance épinglée :
 `base-absente`, `glb-de-base-absent` ou `provenance-de-base-differente` nomment un manque ou un
-écart. Deux bases de même identité reçoivent `base-en-doublon` ; deux éléments de même
+écart ; `base-hors-release` refuse une base épinglée dont la provenance porte `hors_release`
+(dépôt d'avant #3184) : réimporter la base avec `--remplacer`. Deux bases de même identité reçoivent `base-en-doublon` ; deux éléments de même
 `(base, cle)` reçoivent `cle-en-doublon`, même avec un autre nom de fichier ou une autre catégorie.
 
 Tous les refus précèdent publication et écriture ; la CLI sort en 1 (usage incorrect : 2).
@@ -423,9 +443,10 @@ Un succès sort en 0, dépose `<id>.manifeste.json`, `<id>.provenance.json`, les
 schéma 3, `<id>.glb` local. `--sans-publier` conserve ces dépôts locaux sans appeler la Release.
 Sans ce drapeau, le GLB et l'éventuel `.blend` sont versés sous leur empreinte dans la Release
 `modeles-3d` avant les écritures locales. La destination par défaut est `hotes/godot/projet/modeles`.
-Une production dont `manifest.json` porte `hors_release` (une raison non vide, ainsi la base
-construite de packs Quaternius) est refusée `[hors-release]` sans `--sans-publier`. Un élément dont la
-base déposée est hors Release en hérite : même refus, et sa provenance porte `hors_release` (`base <id> : <raison>`).
+Une base est publiable : la clé `hors_release` dans son `manifest.json` est refusée
+`[base-hors-release]`, avec ou sans `--sans-publier`. Seul un élément d'essai dont le propre
+`manifest.json` porte `hors_release` (une raison non vide) est hors Release : il est refusé
+`[hors-release]` sans `--sans-publier`, et sa provenance porte sa raison déclarée.
 
 Ce contrôle d'import ne prouve pas le montage L4 ni les mesures géométriques de l'évaluateur.
 La validation des clés par le noyau et le rapport de couverture appartiennent à L3b, après T3.

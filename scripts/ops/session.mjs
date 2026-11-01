@@ -1,25 +1,17 @@
 import fs from 'node:fs'
 import { join, resolve, isAbsolute, basename, extname, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createRequire } from 'node:module'
 import { spawnSync } from 'node:child_process'
-import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneControleur, lirePolitique } from './session-runtime.mjs'
+import { setTimeout as pause } from 'node:timers/promises'
+import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneControleur, lirePolitique, annexeDe, refusSession, rejouer, BORNES_DE_REJEU, DELAI_FERMETURE_MS } from './session-runtime.mjs'
 import { preflightSessionStart } from './session-start.mjs'
-import { verifierVersionCodex } from './session-version.mjs'
-import { verifierProtocoleCodex } from './session-codex.mjs'
+import { choisirCodex, codexDuPaquet, planifierMiseAJourCodex, TRIPLES_CODEX } from './session-version.mjs'
 import { prefixeDeRefus, CATEGORIES_DE_REFUS } from '../guards/lib/categorieDeRefus.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 
 const script = fileURLToPath(import.meta.url), ops = fileURLToPath(new URL('.', import.meta.url))
 const refuser = (raison, categorie = 'validation') => { throw new Error(`${prefixeDeRefus(categorie)} ${raison}`) }
-
-export function refusSession(erreur) {
-  const message = erreur instanceof Error ? erreur.message : String(erreur)
-  const categorie = Object.keys(CATEGORIES_DE_REFUS).find((c) => message.startsWith(prefixeDeRefus(c))) ?? 'panne'
-  const prefixe = prefixeDeRefus(categorie)
-  return { prefixe, categorie, retentable: CATEGORIES_DE_REFUS[categorie], raison: message.startsWith(prefixe) ? message.slice(prefixe.length).trim() : message, ...(erreur?.reprise ? { reprise: erreur.reprise } : {}) }
-}
 
 /** `true` si ces arguments ATTENDENT une session (`attendre`) : la garde `commande-piege` la refuse en fond (#2603). PURE.
  *  @param {string[]} argv */
@@ -29,10 +21,10 @@ export function optionsSession(argv) {
   const [action, ...argumentsAction] = argv
   const cible = argumentsAction[0] && !argumentsAction[0].startsWith('--') ? argumentsAction.shift() : undefined
   const options = { action, cible }
-  if (!['lancer', 'lister', 'fermer', 'attendre', 'envoyer', 'etat', 'outils'].includes(action)) refuser('usage : ops:session lancer <consigne> [--ticket <n>] [--agent claude|codex] | lister [--json] | fermer <ticket|nom|PID|UUID> | envoyer <cible> --message <texte> | etat <cible> --json | attendre <cible> [--depuis <seq>] [--timeout-ms <n>] [--suivre] | outils --json')
+  if (!['lancer', 'lister', 'archiver', 'fermer', 'attendre', 'envoyer', 'etat', 'outils'].includes(action)) refuser('usage : ops:session lancer <consigne> [--ticket <n>] [--agent claude|codex] | lister [--json] | archiver [--json] | fermer <ticket|nom|PID|UUID> | envoyer <cible> --message <texte> | etat <cible> --json | attendre <cible> [--depuis <seq>] [--timeout-ms <n>] [--suivre] | outils --json')
   const permises = {
     lancer: new Set(['--ticket', '--nom', '--agent', '--consigne', '--worktree', '--executable', '--profil-wt', '--json']),
-    lister: new Set(['--json']), fermer: new Set(['--json', '--timeout-ms']), attendre: new Set(['--json', '--timeout-ms', '--depuis', '--suivre']),
+    lister: new Set(['--json']), archiver: new Set(['--json']), fermer: new Set(['--json', '--timeout-ms']), attendre: new Set(['--json', '--timeout-ms', '--depuis', '--suivre']),
     envoyer: new Set(['--json', '--message', '--request-id', '--timeout-ms']), etat: new Set(['--json']), outils: new Set(['--json']),
   }[action]
   const args = argumentsAction
@@ -51,8 +43,8 @@ export function optionsSession(argv) {
   if (options.requestId !== undefined && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(options.requestId)) refuser('REQUEST ID INVALIDE : UUID requis')
   if (action === 'envoyer' && (!options.message?.trim() || options.message.length > 65_536)) refuser('MESSAGE INVALIDE : texte non vide, 65536 caractères maximum')
   if (action === 'lancer') return normaliserLancement(options)
-  if (!['lister', 'outils'].includes(action) && !cible) refuser('CIBLE ABSENTE')
-  if (['lister', 'outils'].includes(action) && cible) refuser('OPTION REFUSÉE : cible de liste')
+  if (!['lister', 'archiver', 'outils'].includes(action) && !cible) refuser('CIBLE ABSENTE')
+  if (['lister', 'archiver', 'outils'].includes(action) && cible) refuser('OPTION REFUSÉE : cible de liste')
   return options
 }
 
@@ -79,16 +71,9 @@ export function profilTerminal({ chemin, nom } = {}) {
   return { nom: profil.guid ?? profil.name, closeOnExit: fermeture, chemin: existants[0] }
 }
 
-const TRIPLES_CODEX = { x64: 'x86_64-pc-windows-msvc', arm64: 'aarch64-pc-windows-msvc' }
 const estFichier = (chemin) => { try { return fs.statSync(chemin).isFile() } catch { return false } }
 
-function codexDuShim(shim, arch) {
-  const paquet = join(dirname(shim), 'node_modules', '@openai', 'codex')
-  let vendor
-  try { vendor = join(dirname(createRequire(join(paquet, 'package.json')).resolve(`@openai/codex-win32-${arch}/package.json`)), 'vendor') }
-  catch { vendor = join(paquet, 'vendor') }
-  return join(vendor, TRIPLES_CODEX[arch], 'bin', 'codex.exe')
-}
+const codexDuShim = (shim, arch) => codexDuPaquet(join(dirname(shim), 'node_modules', '@openai', 'codex'), arch)
 
 export function executableNatif(agent, explicite, executer = spawnSync, { arch = process.arch } = {}) {
   if (explicite) { if (!isAbsolute(explicite) || extname(explicite).toLowerCase() !== '.exe' || !fs.existsSync(explicite) || !fs.statSync(explicite).isFile()) refuser('AGENT NATIF ABSENT : fichier .exe absolu requis'); return explicite }
@@ -110,8 +95,6 @@ export function verifierContratAgent(agent, executable, { executer = spawnSync, 
     if (vu.error || vu.status !== 0) refuser(`CONTRAT CLI INCOMPATIBLE : ${agent} ${args.join(' ')} — ${vu.error?.message ?? vu.stderr ?? vu.status}`)
     return `${vu.stdout ?? ''}\n${vu.stderr ?? ''}`
   }
-  const version = aide(['--version'])
-  if (!new RegExp(agent, 'i').test(version)) refuser(`CONTRAT CLI INCOMPATIBLE : version ${agent} non reconnue`)
   const general = aide(['--help'])
   if (agent === 'claude') { if (!/prompt/i.test(general)) refuser('CONTRAT CLI INCOMPATIBLE : prompt Claude absent'); return }
   const app = aide(['app-server', '--help'])
@@ -121,14 +104,14 @@ export function verifierContratAgent(agent, executable, { executer = spawnSync, 
   if (manquants.length) refuser(`CONTRAT CLI INCOMPATIBLE : ${manquants.join(', ')}`)
 }
 
-export function argsTerminal({ profil, nom, worktree, script, node, commande, sessionId, dossier }) {
-  const payload = Buffer.from(JSON.stringify({ script, node, commande, worktree, sessionId, dossier }), 'utf8').toString('base64')
-  const expression = `$p=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}'))|ConvertFrom-Json; & $p.script -Node $p.node -CommandLine $p.commande -Worktree $p.worktree -SessionId $p.sessionId -Dossier $p.dossier; if ($null -ne $LASTEXITCODE) { exit $LASTEXITCODE }`
+export function argsTerminal({ profil, nom, worktree, script, node, commande, sessionId, terminal, journalHote }) {
+  const payload = Buffer.from(JSON.stringify({ script, node, commande, worktree, sessionId, terminal, journalHote }), 'utf8').toString('base64')
+  const expression = `$p=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}'))|ConvertFrom-Json; & $p.script -Node $p.node -CommandLine $p.commande -Worktree $p.worktree -SessionId $p.sessionId -Terminal $p.terminal -JournalHote $p.journalHote; if ($null -ne $LASTEXITCODE) { exit $LASTEXITCODE }`
   const optionWT = (valeur) => valeur.replaceAll(';', '\\;')
   return ['-w', '0', 'new-tab', '--profile', optionWT(profil), '--title', optionWT(nom), '--suppressApplicationTitle', '--startingDirectory', optionWT(worktree), 'powershell.exe', '-NoLogo', '-NoProfile', '-EncodedCommand', Buffer.from(expression, 'utf16le').toString('base64')]
 }
 
-export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, contrat = verifierContratAgent, version = verifierVersionCodex, protocole = verifierProtocoleCodex, executer = spawnSync, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env, preflight = preflightSessionStart } = {}) {
+export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, contrat = verifierContratAgent, choisir = (globale, executer) => choisirCodex({ globale, executer }), miseAJour = (meilleure, environnement) => planifierMiseAJourCodex({ meilleure, env: environnement }), executer = spawnSync, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env, preflight = preflightSessionStart, horloge = Date.now, dormir = pause } = {}) {
   const options = normaliserLancement(entree, cwd)
   if (options.worktree && !fs.existsSync(options.worktree)) refuser(`WORKTREE ABSENT : ${options.worktree}`)
   const c = contexte(options.worktree ?? cwd)
@@ -137,8 +120,14 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
   const environnementPreflight = envAgent(env)
   delete environnementPreflight.WFRP_SESSION_START
   const executerPreflight = (fichier, args, parametres) => executer(fichier, args, { ...parametres, env: environnementPreflight })
-  const executable = natif(options.agent, options.executable, executerPreflight)
-  if (options.agent === 'codex') { await version(executable, { executer: executerPreflight }); protocole({ executable, executer: executerPreflight }) }
+  let executable
+  if (options.agent === 'codex' && !options.executable) {
+    let choisie = null
+    try { choisie = choisir(() => natif('codex', undefined, executerPreflight), executerPreflight) }
+    catch (e) { e.message += ' ; aucune version Codex en cache : mise à jour planifiée en tâche détachée, relancer après son installation'; throw e }
+    finally { miseAJour(choisie?.version ?? null, environnementPreflight) }
+    executable = choisie.executable
+  } else executable = natif(options.agent, options.executable, executerPreflight)
   contrat(options.agent, executable, { env: environnementPreflight, executer: executerPreflight })
   const hooks = await preflight(c.worktree, options.agent)
   planAgent({ ...c, agent: options.agent }, { natif: executable, consigne: texte, rapport: 'rapport', schema: 'schema', politique: lirePolitique() })
@@ -158,13 +147,13 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
     throw e
   }
   const commande = ligneControleur({ script: join(ops, 'session-runtime.mjs'), dossier, id: r.carte.sessionId })
-  const args = argsTerminal({ profil: profil.nom, nom: options.nom, script: join(ops, 'session-process.ps1'), node: process.execPath, commande, worktree: c.worktree, sessionId: r.carte.sessionId, dossier })
+  const args = argsTerminal({ profil: profil.nom, nom: options.nom, script: join(ops, 'session-process.ps1'), node: process.execPath, commande, worktree: c.worktree, sessionId: r.carte.sessionId, terminal: annexeDe(dossier, r.carte.sessionId, 'terminal'), journalHote: annexeDe(dossier, r.carte.sessionId, 'journalHote') })
   let vu
   try { vu = lancerWT('wt.exe', args, { cwd: c.worktree, shell: false, encoding: 'utf8', windowsHide: true, timeout: 15_000, env: envAgent(env) }) }
   catch (error) { vu = { error } }
   if (vu.error || vu.status !== 0) return abandonner(new Error(`${prefixeDeRefus('transitoire')} WT SPAWN ÉCHOUÉ : ${vu.error?.message ?? vu.stderr ?? vu.status}`))
   let carte
-  try { carte = await sessions.attenteDemarrage(r.carte.sessionId, r.jeton) }
+  try { carte = await rejouer(() => sessions.attenteDemarrage(r.carte.sessionId, r.jeton), { borneMs: BORNES_DE_REJEU.demarrage, horloge, dormir }) }
   catch (e) { return abandonner(e) }
   if (!carte.recuSessionStart || !carte.revendiqueLe || !['vivante', 'nettoyage', 'fermee'].includes(carte.etat) || carte.issueSortie === 'echec' || (carte.etat !== 'vivante' && carte.issueSortie !== 'sortie')) {
     const refus = refusSession(carte.raison ?? 'REÇU NATIF OU REVENDICATION ABSENT')
@@ -236,7 +225,7 @@ export function outilsSession() {
   }
 }
 
-export async function attendreSuivi(sessions, cible, options, { parentVivant, lireParent = () => process.ppid, horloge = Date.now, identite = IDENTITE_MESUREE } = {}) {
+export async function attendreSuivi(sessions, cible, options, { parentVivant, lireParent = () => process.ppid, horloge = Date.now, identite = IDENTITE_MESUREE, dormir = pause } = {}) {
   if (options.timeoutMs === 0) refuser('SUIVI : timeout strictement positif requis')
   if (!parentVivant) {
     const pidParent = lireParent(), instantParent = horloge()
@@ -244,14 +233,18 @@ export async function attendreSuivi(sessions, cible, options, { parentVivant, li
   }
   let depuis = options.depuis
   do {
-    if (!parentVivant()) return { etat: 'indeterminee', raison: 'PARENT DISPARU' }
-    let resultat
-    try { resultat = await sessions.attendre(cible, { ...options, depuis }) }
-    catch (e) { if (e.code !== 'BORNE_IPC_CODEX') throw e }
-    if (resultat && resultat.type !== 'aucune' && resultat.etat !== 'indeterminee') return resultat
-    depuis = resultat?.curseur ?? resultat?.seq ?? depuis
-    const carte = sessions.etat(cible)
-    if (['fermee', 'echec-reservation', 'echec-controle'].includes(carte.etat)) return sessions.attendre(cible, { timeoutMs: 0, depuis })
+    const fin = await rejouer(async () => {
+      if (!parentVivant()) return { etat: 'indeterminee', raison: 'PARENT DISPARU' }
+      let resultat
+      try { resultat = await sessions.attendre(cible, { ...options, depuis }) }
+      catch (e) { if (e.code !== 'BORNE_IPC_CODEX') throw e }
+      if (resultat && resultat.type !== 'aucune' && resultat.etat !== 'indeterminee') return resultat
+      depuis = resultat?.curseur ?? resultat?.seq ?? depuis
+      const carte = sessions.etat(cible)
+      if (['fermee', 'echec-reservation', 'echec-controle'].includes(carte.etat)) return await sessions.attendre(cible, { timeoutMs: 0, depuis })
+      return null
+    }, { borneMs: options.timeoutMs, horloge, dormir })
+    if (fin) return fin
   } while (true)
 }
 
@@ -263,9 +256,10 @@ export async function commandeSession(argv, { stdout = process.stdout, stdin = p
   else {
     const c = contexte(cwd), sessions = sessionsDe(join(c.gitCommun, 'sessions'))
     if (options.action === 'lister') resultat = sessions.lister()
+    else if (options.action === 'archiver') resultat = sessions.archiver()
     else if (options.action === 'etat') resultat = sessions.etat(options.cible)
     else if (options.action === 'envoyer') resultat = await sessions.envoyer(options.cible, await jetonDe(env, stdin), { message: options.message, requestId: options.requestId, timeoutMs: Number(options.timeoutMs ?? 30_000) })
-    else if (options.action === 'fermer') resultat = await sessions.fermer(options.cible, await jetonDe(env, stdin), { timeoutMs: Number(options.timeoutMs ?? 30_000) })
+    else if (options.action === 'fermer') resultat = await sessions.fermer(options.cible, await jetonDe(env, stdin), { timeoutMs: Number(options.timeoutMs ?? DELAI_FERMETURE_MS) })
     else resultat = await (options.suivre ? attendreSuivi : (s, cible, attente) => s.attendre(cible, attente))(sessions, options.cible, { timeoutMs: Number(options.timeoutMs ?? 60_000), depuis: Number(options.depuis ?? 0) })
   }
   const code = resultat.etat === 'indeterminee' ? 3 : resultat.etat === 'echec-reservation' || resultat.carte?.issueSortie === 'echec' ? 1 : 0

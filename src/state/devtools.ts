@@ -2269,7 +2269,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         // tour). Il ne fait que RAMORCER une chaîne ARRÊTÉE (juste après `confirmRoundStart`, ou un tour
         // immobile), et seulement quand PERSONNE ne tient la main (`combatAdvanceBlocked`) : une fenêtre
         // ouverte appartient au joueur, la pause de Round aussi. Le doublon, lui, est impossible en aval
-        // (jeton de tour de `runEnemyAI`/`maybeRunEnemyTurn`, #1852) — ici on ne fait que ne pas le
+        // (un tour d'IA décidé une fois, `battle.tourIA`, #1852, #3058) — ici on ne fait que ne pas le
         // provoquer.
         const kick = () => {
           if (combatAdvanceBlocked(useGame.getState(), { roundStart: true })) return;

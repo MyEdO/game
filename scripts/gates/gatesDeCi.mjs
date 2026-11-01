@@ -11,6 +11,11 @@ import { join } from 'node:path'
  *  écrivains par nature (`genererCode` de `build` et de la suite) : l'arbre du runner reste le commit. */
 export const COMMANDE_ARBRE_INCHANGE = 'git status --porcelain && test -z "$(git status --porcelain)"'
 
+/** Commande EXACTE du step `python-3d` de `ci.yml` (#3145) : la version de CPython de la chaîne 3D, lue à sa seule source
+ *  (`PYTHON`, scripts/personnage-3d/environnement.mjs), en output du step pour `actions/setup-python`. */
+export const COMMANDE_VERSION_PYTHON_3D =
+  `node --input-type=module -e "import { PYTHON } from './scripts/personnage-3d/environnement.mjs'; console.log('version=' + PYTHON)" >> "$GITHUB_OUTPUT"`
+
 /**
  * Steps de `ci.yml` qui ne sont PAS une gate locale, chacun avec sa raison. La liste est exhaustive
  * et EXACTE (ligne pour ligne) : c'est elle qui rend le classement fail-CLOSED — un step d'une autre
@@ -20,6 +25,9 @@ export const CI_SEULEMENT = {
   'npm --prefix server ci': 'install serveur — posée une fois localement par `npm install`',
   [COMMANDE_ARBRE_INCHANGE]:
     'le lanceur local juge le même invariant par `photoArbre` (scripts/gates/toutes.mjs)',
+  [COMMANDE_VERSION_PYTHON_3D]:
+    'prépare `actions/setup-python` sur le runner — localement, `environnement.mjs` cherche lui-même cette version parmi ' +
+    'ses `CANDIDATS`',
 }
 
 /**

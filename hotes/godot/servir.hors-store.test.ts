@@ -8,8 +8,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { baseSchema3, deposerSchema3, elementSchema3, GLB_D_ELEMENT, GLB_DE_BASE } from './asset/schema3.testkit.ts';
-import { sha256 } from './asset/empreinte.ts';
+import { baseDeTest, deposerModeleDeTest, elementSchema3, GLB_D_ELEMENT, GLB_DE_BASE } from './asset/modeles.testkit.ts';
+import { empreinte } from './asset/empreinte.ts';
 import { ecrireGlb } from './asset/glb.ts';
 import { servir } from './servir.mjs';
 
@@ -23,7 +23,7 @@ const GLB_TENU = ecrireGlb({
   asset: { version: '2.0' }, nodes: [{ name: 'root', children: [1, 2] }, { name: 'tete', mesh: 0 }, { name: 'manche', mesh: 0 }],
   skins: [{ joints: [0] }], meshes: [{ primitives: [{ material: 0 }] }], materials: [{ name: 'metal' }],
 }, null);
-const masse = { ...elementSchema3('humanoide'), cle: { apparence: 'masse' }, glb: { sha256: sha256(GLB_TENU), octets: GLB_TENU.byteLength } };
+const masse = { ...elementSchema3('humanoide'), cle: { apparence: 'masse' }, glb: empreinte(GLB_TENU) };
 
 let serveurs: { url: string; fermer: () => void }[] = [];
 const demarrer = async (dossier = modeles) => {
@@ -35,12 +35,12 @@ const demarrer = async (dossier = modeles) => {
 beforeAll(() => {
   mkdirSync(web, { recursive: true });
   writeFileSync(join(web, 'index.html'), '<html></html>');
-  deposerSchema3(modeles, 'humanoide', baseSchema3('humanoide'), GLB_DE_BASE);
-  deposerSchema3(modeles, 'epee', elementSchema3('humanoide'), GLB_D_ELEMENT);
-  deposerSchema3(modeles, 'masse', masse, GLB_TENU);
-  deposerSchema3(modeles, 'sansCategorie', sansCategorie, GLB_D_ELEMENT);
-  deposerSchema3(modeles, 'cleNonObjet', { ...elementSchema3('humanoide'), cle: 'epee' }, GLB_D_ELEMENT);
-  deposerSchema3(modeles, 'absent', { ...elementSchema3('humanoide'), cle: { apparence: 'dague' } }, GLB_D_ELEMENT);
+  deposerModeleDeTest(modeles, 'humanoide', baseDeTest('humanoide'), GLB_DE_BASE);
+  deposerModeleDeTest(modeles, 'epee', elementSchema3('humanoide'), GLB_D_ELEMENT);
+  deposerModeleDeTest(modeles, 'masse', masse, GLB_TENU);
+  deposerModeleDeTest(modeles, 'sansCategorie', sansCategorie, GLB_D_ELEMENT);
+  deposerModeleDeTest(modeles, 'cleNonObjet', { ...elementSchema3('humanoide'), cle: 'epee' }, GLB_D_ELEMENT);
+  deposerModeleDeTest(modeles, 'absent', { ...elementSchema3('humanoide'), cle: { apparence: 'dague' } }, GLB_D_ELEMENT);
   rmSync(join(modeles, 'absent.glb'));
   mkdirSync(join(modeles, 'sous'));
 });

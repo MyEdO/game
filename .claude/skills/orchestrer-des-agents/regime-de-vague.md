@@ -19,8 +19,9 @@ prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, 
   « C'est toi qui décide, c'est toi qui chappote tout » ; 2026-10-08 : « C'est toi l'orchestrator, c'est
   toi qui décide ») ; je consigne au suivi.
 - **Cycle d'une session** : `npm run ops:session -- lancer .git/suivi/consignes/<N>.md` rend le `jeton`
-  que `fermer` exige (stdin `{"jeton":"…"}` ou `WFRP_SESSION_JETON`) et la commande `veille`.
-  `scripts/ops/session.mjs:19`
+  que `fermer` exige (stdin `{"jeton":"…"}` ou `WFRP_SESSION_JETON`) et la commande `veille` ;
+  `archiver` range sous `sessions/archive/` les cartes en ANOMALIE dont aucune identité ne vit.
+  `scripts/ops/session.mjs:33` (usage), `scripts/ops/session.mjs:174` (`veille`)
 - **Une session lancée orchestre son ticket** (utilisateur, 2026-10-28 : « D'ailleurs pourquoi la
   session n'utilise aucun agent, c'est sensé etre un orchestrator sur son ticket non ? ») : sa consigne
   l'ouvre par le skill `orchestrer-des-agents`. Elle dépêche les codeurs, le juge de diff et le recetteur,

@@ -68,7 +68,7 @@ export const tenantEnUneLigne = (tenant) =>
 
 /**
  * @typedef {{ pid: number, commande?: string, cwd?: string, date?: string, generation?: string, empreinte?: string, creation?: number }} Tenant
- * @typedef {{ echeanceMs: number, pasMs: number, parTenant?: boolean, annoncer?: (tenant: Tenant | null) => void }} Attente
+ * @typedef {{ echeanceMs: number, pasMs: number, parTenant?: boolean, plafondMs?: number, annoncer?: (tenant: Tenant | null) => void }} Attente
  * @typedef {{ lireCreation: (pid: number) => number | null, toleranceMs: number, pasMs?: number }} Identite
  * @typedef {{ identite?: Identite, estVivant?: (pid: number) => boolean, horloge?: () => number }} Juge
  * @typedef {{ chemin: string, libelle: string, pid?: number, commande?: string, cwd?: string,
@@ -80,8 +80,9 @@ export const tenantEnUneLigne = (tenant) =>
 /**
  * PREND le verrou `chemin`. REND `{ etat: 'pris', liberer }` ou `{ etat: 'refus', message, tenant? }`.
  * Sans `attente`, un seul essai. Avec `attente`, un refus se rejoue tous les `pasMs` après
- * `annoncer(tenant)`, jusqu'à `echeanceMs` : à échéance, le dernier refus — jamais d'exception, jamais
- * d'attente sans fin. `parTenant` remet l'échéance à zéro à chaque changement de tenant. Un verrou
+ * `annoncer(tenant)`, jusqu'à `echeanceMs` : à échéance, le dernier refus, jamais d'exception.
+ * `parTenant` remet l'échéance à zéro à chaque changement de tenant : une rotation de tenants l'attend
+ * alors sans fin, sauf `plafondMs`, qui borne l'attente totale quel que soit le tenant. Un verrou
  * laissé par un PID MORT, ou illisible, est REPRIS sous le verrou de reprise `<chemin>.reprise`
  * (`reprendre`). `liberer` ne retire que le verrou qui porte encore la `generation` de la prise.
  * `identite` (`IDENTITE_MESUREE` par défaut) : un PID vivant dont `lireCreation` rend une date postérieure à la
@@ -231,7 +232,8 @@ const cleDuTenant = (tenant) => (tenant ? (tenant.generation ?? JSON.stringify(t
 
 /** Rejoue `essai` jusqu'à `abouti` ou l'échéance de `attente` : CÈDE chaque sommeil, REND le dernier essai. */
 function* sousEcheance({ attente, horloge, essai, abouti }) {
-  let debut = horloge()
+  const origine = horloge()
+  let debut = origine
   let tenant
   for (;;) {
     const vu = essai()
@@ -240,7 +242,8 @@ function* sousEcheance({ attente, horloge, essai, abouti }) {
       if (tenant !== undefined && cle !== tenant) debut = horloge()
       tenant = cle
     }
-    const reste = attente ? attente.echeanceMs - (horloge() - debut) : 0
+    const maintenant = horloge()
+    const reste = attente ? Math.min(attente.echeanceMs - (maintenant - debut), (attente.plafondMs ?? Infinity) - (maintenant - origine)) : 0
     if (abouti(vu) || reste <= 0) return vu
     attente.annoncer?.(vu.tenant ?? null)
     yield Math.min(attente.pasMs, reste)

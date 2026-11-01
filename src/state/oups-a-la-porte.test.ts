@@ -1,5 +1,5 @@
 /**
- * LA CASSE D'UNE ARME PASSE PAR LA PORTE (#1508 T3b-4) — jumeau de `combat/sauvegarde-a-la-porte.test.ts`.
+ * LA CASSE D'UNE ARME PASSE PAR LA PORTE (#1508 T3b-4) — jumeau de `src/noyau/combat/sauvegarde-a-la-porte.hors-store.test.ts`.
  *
  * `LDB 60 l.30` (Solide) : « Fabriqué en utilisant des matériaux robustes, l'objet peut encaisser
  * *Indice* Points de Dégâts avant de subir des pénalités […] et gagner un Test de Sauvegarde de 9+ sur
