@@ -5,7 +5,6 @@
  * Lancer : npx tsx scripts/gen-icon-gallery.mts
  */
 import { writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
@@ -56,7 +55,7 @@ ${sections}
 </body></html>`;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   writeFileSync(OUT, build());
   console.log(`OK: public/icon-gallery.html (${ALL.length} icônes, ${families.length} familles)`);
 }

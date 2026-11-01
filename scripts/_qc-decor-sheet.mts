@@ -6,7 +6,7 @@
  */
 import { VIEWS } from '../src/gameIso/facing';
 import { writeFileSync, readFileSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
+import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PROPS, propSvg, propViewSvg } from '../src/gameIso/catalog/decor/index';
 import { defsGlobaux } from '../src/gameIso/sprites';
@@ -61,7 +61,7 @@ ${directional.length ? `<h2>Props orientés — 3 vues (face / profil / dos)</h2
 <style>${anim}</style>`;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   const highlight = (process.argv.find((a) => a.startsWith('--new='))?.slice('--new='.length) ?? '').split(',').filter(Boolean);
   writeFileSync(OUT, build(highlight), 'utf8');
   console.log('QC décor écrit : public/qc-decor.html');

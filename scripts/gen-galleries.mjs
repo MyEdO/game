@@ -13,7 +13,7 @@ export const GALERIES = Object.freeze([
   { label: 'Mobilier volumique — 4 rotations + dessus + vignette', module: './qc/render-props-volumiques.mts' },
 ]);
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   let ok = 0;
   const failed = [];
   for (const { label, module } of GALERIES) {
