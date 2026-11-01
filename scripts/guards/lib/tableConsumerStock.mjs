@@ -1,6 +1,6 @@
 // STOCK CLIQUETÉ des tables d'effets SANS CONSOMMATEUR (« donnée écrite, non tirée = dette ») —
 // consommé par `src/data/tables.test.ts`. Patron whitelist-en-lib du dépôt
-// (`paletteLiteralStock.mjs`, `rigPartViewStock.mjs`).
+// (`horsStrateStock.mjs`, `grammaireStock.mjs`).
 //
 // Une entrée de `tables.json` que NI une autre donnée (`src/data/*.json`, y compris une AUTRE table
 // via son `tableId`) NI le code de prod (`src/**/*.ts(x)` hors tests, hors commentaires) ne porte

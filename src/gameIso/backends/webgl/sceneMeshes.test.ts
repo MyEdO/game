@@ -12,11 +12,6 @@ import {
   buildWorldGeometry,
   collectBillboards,
   wholeSceneBillboardEls,
-  contactShadow,
-  contactShadowWidthM,
-  actorBillboards,
-  actorIdentityKey,
-  reposerActeurs,
   contentBox,
   applyFogGamma,
   installFogGamma,
@@ -29,13 +24,11 @@ import {
   sunRig,
   faceGroup,
   surfaceGrouping,
-  wantsContactShadow,
   worldFaces,
   worldShadowBox,
   type WorldFace,
   AMBIENT_INTENSITY,
   BILLBOARD_DEPTH_BIAS_M,
-  CONTACT_SHADOW_LIFT_M,
   DEPTH_BUFFER_BITS,
   LIGHT_COLOR,
   SHADOW_MAP_SIZE,
@@ -45,9 +38,7 @@ import {
 } from './sceneMeshes';
 import { facesGeometry, polyBounds, type Vec3 } from './worldTris';
 import { faceDepthOf } from './faceRelief';
-import { anchorAndSize, billboardHeightM, subjectQuad, BILLBOARD_BOX_ASPECT, type BillboardConvention } from './billboardMath';
-import { BB_W, BB_H } from '../../pov/billboardCore';
-import type { Combatant } from '../../../engine/types';
+import { anchorAndSize, BILLBOARD_H_M, BILLBOARD_BOX_ASPECT } from './billboardMath';
 import { tintOf } from './visibilityTint';
 import { faceSurface, tintVarFactor } from './faceColors';
 import { faceBakeData, FACE_PX_PER_M } from './faceBake';
@@ -59,7 +50,7 @@ import { WALL_PARTS } from '../../../data/structureAppearance.types';
 import { ROOF_SLOPE_M } from '../../builders/roofs';
 import { buildWalls } from '../../builders/walls';
 import { tousLesTerrains } from '../../../noyau/monde/terrain';
-import type { Face, SceneEl } from '../../builders/types';
+import { estPropVolumique, type Face, type SceneEl } from '../../builders/types';
 import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';
@@ -75,8 +66,6 @@ import { schema as ambianceSchema } from '../../../data/schemas/defs/ambiance';
 import { fogAt, fogCurveOf } from '../../pov/camera';
 import { memoByRef, memoByRefDeps } from '../../../noyau/monde/sceneMemo';
 import { srgbToLinear, toHex } from '../../shade';
-import { findTrappingById } from '../../../data';
-import { blessuresSurLeProfil, blessuresDeBase } from '../../../engine/combattantDeTest.testkit';
 const diligenceConstruit = diligence.construire();
 const pontVitrineConstruit = pontVitrine.construire();
 const areneConstruit = arene.construire();
@@ -232,22 +221,22 @@ describe('ORIENTATION — les triangles regardent DEHORS (la carte d’ombre en 
 });
 
 describe('BILLBOARDS — sujets de la scène', () => {
-  it('les personnages et le décor sont collectés, ancrés aux pieds, avec leur SVG par vue', () => {
-    const subs = collectBillboards(findTrappingById, scene, mpt, wholeSceneBillboardEls(scene));
-    const persos = subs.filter((s) => s.kind === 'personnage');
-    expect(persos.length).toBeGreaterThan(0);
-    expect(subs.some((s) => s.kind === 'prop')).toBe(true);
-    const svg = persos[0].svg('front', false, 0);
-    expect(svg).toContain('<defs>'); // le blob de rasterisation est un document ISOLÉ : défs incluses
-    expect(svg).toContain('data-bone');
-    expect(persos[0].svg('profile', false, 0)).not.toBe(svg); // la VUE demandée change le dessin
-    expect(persos[0].box).toEqual({ w: 120, h: 150 });
+  it('seul le décor est collecté, ancré aux pieds, avec son SVG isolé (#3160)', () => {
+    const els = wholeSceneBillboardEls(scene);
+    const subs = collectBillboards(scene, mpt, els);
+    expect(subs.length).toBeGreaterThan(0);
+    expect(subs).toHaveLength(els.props.length);
+    for (const [i, sub] of subs.entries()) {
+      const el = els.props[i];
+      if (estPropVolumique(el)) throw new Error('un décor de billboard doit porter son ancre de dessin');
+      expect(Object.keys(sub).sort()).toEqual(['anchor', 'box', 'cell', 'facing', 'identity', 'scaleK', 'svg']);
+      expect(sub.anchor.x).toBe((el.cell.x + el.foot.offX) * mpt);
+      expect(sub.anchor.z).toBe((el.cell.y + el.foot.offY) * mpt);
+    }
+    expect(subs[0].svg('front', false, 0)).toContain('<defs>'); // le blob de rasterisation est un document ISOLÉ : défs incluses
   });
 
-  it('le SVG d\'un PERSONNAGE ignore le cran de caméra, celui d\'un DÉCOR orienté en dépend — c\'est ce qui règle la clé de cache', () => {
-    const perso = collectBillboards(findTrappingById, scene, mpt, wholeSceneBillboardEls(scene)).find((s) => s.kind === 'personnage')!;
-    for (const camRot of [1, 2, 3] as const)
-      expect(perso.svg('front', false, camRot)).toBe(perso.svg('front', false, 0));
+  it('le SVG d\'un DÉCOR orienté dépend du cran de caméra — c\'est ce qui règle la clé de cache', () => {
     // Le décor délègue à `propSvg(ref, dir, camRot)` : un prop ORIENTÉ (`views`) pivote avec la
     // caméra, donc son cran reste dans la clé de cache. Lu sur le REGISTRE (les scènes du spike
     // n'en posent aucun aujourd'hui — une carte en posera un demain sans toucher au cache).
@@ -258,15 +247,15 @@ describe('BILLBOARDS — sujets de la scène', () => {
 });
 
 describe('CONTENU — ce qu’un cadrage doit tenir', () => {
-  const quadDe = (s: { kind: 'personnage' | 'prop'; scaleK: number }) =>
-    anchorAndSize(billboardHeightM('jeu', s.kind) * s.scaleK, BILLBOARD_BOX_ASPECT);
+  const quadDe = (s: { scaleK: number }) =>
+    anchorAndSize(BILLBOARD_H_M * s.scaleK, BILLBOARD_BOX_ASPECT);
 
   for (const [nom, faire] of TEMOINS)
     it(`${nom} : la boîte de contenu tient dans la géométrie élargie aux sujets, et porte tout le bâti`, () => {
       const scn = sceneDe(faire);
       const m = sceneMetresPerTile(scn);
       const geoBox = monde(scn, m).boundingBox!;
-      const subs = collectBillboards(findTrappingById, scn, m, wholeSceneBillboardEls(scn));
+      const subs = collectBillboards(scn, m, wholeSceneBillboardEls(scn));
       const box = contentBox(scn, m, 'jeu', subs, quadDe, geoBox);
       const englobante = worldShadowBox(geoBox, subs, quadDe);
       // La boîte englobante vient de l'attribut de position, en FLOAT32 : elle arrondit d'un ULP là où
@@ -292,7 +281,7 @@ describe('CONTENU — ce qu’un cadrage doit tenir', () => {
     const scn = sceneDe(faireVitrine);
     const m = sceneMetresPerTile(scn);
     const geoBox = monde(scn, m).boundingBox!;
-    const subs = collectBillboards(findTrappingById, scn, m, wholeSceneBillboardEls(scn));
+    const subs = collectBillboards(scn, m, wholeSceneBillboardEls(scn));
     const box = contentBox(scn, m, 'jeu', subs, quadDe, geoBox);
     const t = (b: THREE.Box3) => b.getSize(new THREE.Vector3());
     // Mesuré #1176 : 60×48 m de géométrie pour 51,4×37,1 m de contenu.
@@ -356,9 +345,9 @@ describe('LUMIÈRE — un soleil neutre et calibré', () => {
       const scn = sceneDe(faire);
       const m = sceneMetresPerTile(scn);
       const geoBox = monde(scn, m).boundingBox!;
-      const subs = collectBillboards(findTrappingById, scn, m, wholeSceneBillboardEls(scn));
+      const subs = collectBillboards(scn, m, wholeSceneBillboardEls(scn));
       const quadDe = (s: (typeof subs)[number]) =>
-        anchorAndSize(billboardHeightM('jeu', s.kind) * s.scaleK, BILLBOARD_BOX_ASPECT);
+        anchorAndSize(BILLBOARD_H_M * s.scaleK, BILLBOARD_BOX_ASPECT);
       const box = worldShadowBox(geoBox, subs, quadDe);
       const rig = sunRig(box);
       const vue = new THREE.Matrix4()
@@ -407,19 +396,16 @@ describe('LUMIÈRE — un soleil neutre et calibré', () => {
   /** Marge exigée du plus mince relief sur le biais d'ombre de la scène. */
   const MARGE_MIN = 1.2;
 
-  /** Biais de normale RÉEL d'une scène, au pire des conventions de taille de billboard. */
+  /** Biais de normale RÉEL d'une scène. */
   function biaisReel(scn: Scene): number {
     const m = sceneMetresPerTile(scn);
     const geoBox = monde(scn, m).boundingBox!;
-    const subs = collectBillboards(findTrappingById, scn, m, wholeSceneBillboardEls(scn));
-    const biais = (['jeu', 'heroique', 'metrique'] as BillboardConvention[]).map((conv) =>
-      sunRig(
-        worldShadowBox(geoBox, subs, (s: (typeof subs)[number]) =>
-          anchorAndSize(billboardHeightM(conv, s.kind) * s.scaleK, BILLBOARD_BOX_ASPECT),
-        ),
-      ).normalBias,
-    );
-    return Math.max(...biais);
+    const subs = collectBillboards(scn, m, wholeSceneBillboardEls(scn));
+    return sunRig(
+      worldShadowBox(geoBox, subs, (s: (typeof subs)[number]) =>
+        anchorAndSize(BILLBOARD_H_M * s.scaleK, BILLBOARD_BOX_ASPECT),
+      ),
+    ).normalBias;
   }
 
   for (const [nom, faire] of TEMOINS)
@@ -709,80 +695,6 @@ describe('BIAIS de PROFONDEUR — le quad ne bouge pas, seule sa profondeur ment
   });
 });
 
-describe('OMBRE DE CONTACT — ancrée sous les pieds', () => {
-  it('le disque n’existe qu’en couleur CUITE : en éclairé, l’ombre PROJETÉE fait foi', () => {
-    expect(wantsContactShadow('personnage', false)).toBe(true);
-    expect(wantsContactShadow('personnage', true)).toBe(false);
-    expect(wantsContactShadow('prop', false)).toBe(false); // le décor porte son ellipse dans son art
-  });
-
-  it('le disque est à l’aplomb EXACT de l’ancre, posé à plat sur le sol', () => {
-    const ancre = new THREE.Vector3(12.5, 3.25, -7.75);
-    const disque = contactShadow({ anchor: ancre, box: { w: BB_W, h: BB_H } }, { heightM: 2 });
-    expect(disque.position.x).toBe(ancre.x);
-    expect(disque.position.z).toBe(ancre.z);
-    expect(disque.position.y).toBeCloseTo(ancre.y + CONTACT_SHADOW_LIFT_M, 9);
-    expect(disque.rotation.x).toBeCloseTo(-Math.PI / 2, 9);
-    expect(disque.geometry.parameters.radius).toBeGreaterThan(0);
-  });
-});
-
-/**
- * LE SOCLE DE FIGURINE (#1176) : sans soleil, le disque de contact EST le socle du pion — sa
- * taille dit le sujet, pas l'état de son art. La boîte d'un corps AU SOL est BALAYÉE par la chute
- * (`rigGroundTilt` : 193×193 contre 120×150 debout) : prise pour largeur de socle, elle donnait au
- * cadavre un socle ×1,6 plus large que celui du vivant identique à côté, et centré sur ses pieds.
- */
-describe('OMBRE DE CONTACT — le socle se dimensionne sur le SUJET, jamais sur sa boîte d’art', () => {
-  const scèneNue = emptyScene('scene-test', 6, 6);
-  const mptNu = sceneMetresPerTile(scèneNue);
-
-  const acteur = (patch: Partial<Combatant> = {}): Combatant =>
-    (blessuresSurLeProfil({
-      id: 'a1', label: 'Acteur', kind: 'hero', pos: { x: 1, y: 1 }, size: 'moyenne',
-      wounds: blessuresDeBase(12), weapons: [], characteristics: {}, advantage: 0,
-      conditions: [], armour: {}, skills: [], talents: [], movement: 4, career: 'soldat', species: 'humain',
-      ...patch,
-    })) as unknown as Combatant;
-
-  const sujetDe = (c: Combatant, rider?: Combatant) =>
-    actorBillboards([{ c, ...(rider ? { rider } : {}), x: 1, y: 1, z: 0, facing: 'S' }], scèneNue, mptNu)[0];
-
-  /** Le rayon MONDE du socle tel que la prod le monte : le sujet et son quad, rien d'autre. */
-  const rayon = (s: ReturnType<typeof sujetDe>): number =>
-    contactShadow(s, subjectQuad('jeu', s)).geometry.parameters.radius;
-
-  it('un MORT porte le socle de ce même sujet VIVANT — la chute balaie l’art, pas le pion', () => {
-    const vivant = sujetDe(acteur());
-    const mort = sujetDe(acteur({ id: 'e1', kind: 'enemy', dead: true, wounds: { current: 0, max: 12 } } as Partial<Combatant>));
-    expect(mort.anim?.ground, 'PRÉMISSE : ce sujet doit être au sol').toBe('corpse');
-    expect(vivant.box.w, 'PRÉMISSE : le vivant garde la boîte canonique').toBe(BB_W);
-    // PRÉMISSE de l'écart mesuré : la boîte du mort est BALAYÉE, en largeur comme en hauteur.
-    expect(mort.box.w / vivant.box.w).toBeGreaterThan(1.5);
-    expect(subjectQuad('jeu', mort).widthM / subjectQuad('jeu', vivant).widthM).toBeGreaterThan(1.5);
-    expect(rayon(mort)).toBeCloseTo(rayon(vivant), 6);
-    // et cette largeur commune est bien la CANONIQUE : `BB_W` à l'échelle art→monde du quad.
-    expect(contactShadowWidthM(mort, subjectQuad('jeu', mort)))
-      .toBeCloseTo((subjectQuad('jeu', vivant).heightM / BB_H) * BB_W, 6);
-  });
-
-  it('un À TERRE conscient aussi : la bascule est plus faible, le socle reste le même', () => {
-    const debout = sujetDe(acteur());
-    const àTerre = sujetDe(acteur({ conditions: [{ id: 'a-terre' }] } as unknown as Partial<Combatant>));
-    expect(àTerre.anim?.ground, 'PRÉMISSE : ce sujet doit être au sol').toBe('prone');
-    expect(rayon(àTerre)).toBeCloseTo(rayon(debout), 6);
-  });
-
-  it('un couple MONTÉ garde son socle : sa boîte est haussée en HAUTEUR seulement', () => {
-    const monture = { id: 'm1', label: 'Cheval', kind: 'enemy', creatureId: 'cheval', pos: { x: 1, y: 1 }, size: 'grande', conditions: [], wounds: { current: 10, max: 10 }, riderId: 'a1' } as unknown as Combatant;
-    const couple = sujetDe(monture, acteur());
-    expect(couple.box.w).toBe(BB_W);
-    expect(couple.box.h).toBeGreaterThan(BB_H);
-    // largeur canonique === largeur du quad : le comportement du couple est INCHANGÉ par la dérivation.
-    expect(contactShadowWidthM(couple, subjectQuad('jeu', couple))).toBeCloseTo(subjectQuad('jeu', couple).widthM, 9);
-  });
-});
-
 describe('ATTRIBUTS d’UV — les deux jeux voyagent dans LA géométrie fusionnée', () => {
   it('chaque scène-témoin rend UNE géométrie qui porte position + couleur + uv + uv1, alignés au sommet', () => {
     for (const [nom, charge] of TEMOINS) {
@@ -1037,62 +949,6 @@ describe('GROUPES DE SURFACE — la géométrie reste UNE, le dessin se scinde',
       }
     }
     expect(mesurés).toBeGreaterThan(10);
-  });
-});
-
-/**
- * LA POSE D'UN ACTEUR N'EST PAS SON IDENTITÉ (#1396) — la couture que le montage des quads interroge.
- * Un pas ou un pivot doit se REPOSER sur les sujets montés : l'identité, elle, ne bouge pas, faute de
- * quoi tout le groupe de billboards se démonte à chaque pas (mesuré : 13 matériaux libérés, 0 quad
- * survivant sur un banc de douze décors).
- */
-describe('reposerActeurs — case et cap sont de la POSE, jamais de l’identité (#1396)', () => {
-  const scèneRepose = emptyScene('scene-test', 8, 8);
-  const mptRepose = sceneMetresPerTile(scèneRepose);
-  const combattant = (): Combatant =>
-    (blessuresSurLeProfil({
-      id: 'r1', label: 'R', kind: 'hero', pos: { x: 1, y: 1 }, size: 'moyenne',
-      wounds: blessuresDeBase(12), weapons: [], characteristics: {}, advantage: 0,
-      conditions: [], armour: {}, skills: [], talents: [], movement: 4, career: 'soldat', species: 'humain',
-    })) as unknown as Combatant;
-
-  it('l’identité IGNORE la case et le cap (deux poses, une seule identité)', () => {
-    const c = combattant();
-    expect(actorIdentityKey({ c, x: 1, y: 1, z: 0, facing: 'S' }))
-      .toBe(actorIdentityKey({ c, x: 4, y: 6, z: 0, facing: 'NE' }));
-  });
-
-  it('un PAS réécrit la case du sujet monté (sans quoi sa teinte reste celle du départ)', () => {
-    const c = combattant();
-    const [sujet] = actorBillboards([{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
-    const ancre = sujet.anchor.clone();
-
-    const { ancres } = reposerActeurs([sujet], [{ c, x: 2, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
-
-    expect(ancres, 'la repose ne signale pas le déplacement : rien ne peindra').toBe(true);
-    expect(sujet.cell, 'la CASE du sujet est restée au départ — sa teinte y resterait aussi').toEqual({ x: 2, y: 1, z: 0 });
-    expect(sujet.anchor.equals(ancre), 'l’ancre monde n’a pas suivi la case').toBe(false);
-  });
-
-  it('un PIVOT réécrit le cap du sujet et le SIGNALE (l’art se relève dessus)', () => {
-    const c = combattant();
-    const [sujet] = actorBillboards([{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
-
-    const { ancres, caps } = reposerActeurs([sujet], [{ c, x: 1, y: 1, z: 0, facing: 'E' }], scèneRepose, mptRepose);
-
-    expect(sujet.facing, 'le cap du sujet est resté au précédent : le corps regarde ailleurs qu’il ne va').toBe('E');
-    expect(caps, 'le cap changé n’est pas signalé : un corps SANS flipbook garderait l’art de l’ancien cap').toEqual([sujet]);
-    expect(ancres, 'un pivot sur place ne déplace rien').toBe(false);
-  });
-
-  it('une pose INCHANGÉE n’écrit rien et ne signale rien (aucune image gratuite)', () => {
-    const c = combattant();
-    const [sujet] = actorBillboards([{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
-
-    const { ancres, caps } = reposerActeurs([sujet], [{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
-
-    expect(ancres).toBe(false);
-    expect(caps).toEqual([]);
   });
 });
 

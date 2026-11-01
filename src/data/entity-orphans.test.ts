@@ -1,8 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import { fileURLToPath } from 'node:url';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   orphelinesMesurees, buildConsumerCorpus, isConsumed, sceneConsumerCorpus, EXCLUDED_CATEGORY_FILES, regenerations,
+  CATEGORY_FILES, clesDObjet,
 } from '../../scripts/guards/lib/entityConsumers.mjs';
 import { ENTITY_ORPHAN_RATCHET } from '../../scripts/guards/lib/entityOrphanStock.mjs';
 import { cleDeSite, ecartDuVolet, remedeNomme } from '../../scripts/guards/lib/stock.mjs';
@@ -87,5 +90,65 @@ describe('corpus des SCÈNES — le contenu joué CONSOMME, ce qu\'il pose ne co
     expect(pose, 'témoin VIDE : plus aucune entité posée ne porte l\'id `chaland` — rebaser le témoin sur une autre identité propre').toBeTruthy();
     expect(pose.ref, 'témoin VICIÉ : la `ref` de cette entité CITE désormais `chaland`, une vraie citation').not.toBe('chaland');
     expect(isConsumed(sceneCorpus, 'chaland')).toBe(false);
+  });
+});
+
+describe("auto-citation — une entrée qui cite son PROPRE id ne se consomme pas, l'homonyme d'un autre catalogue si", () => {
+  // Fixture nommée : un `griffon-fixture` de bestiaire qui répète DEUX fois son id (`appearance.species`,
+  // `appearance.tenue`), un décor HOMONYME dans `props.json`, et une créature `loup-fixture` qui cite la
+  // créature `chien-fixture`.
+  let racine = '';
+  beforeAll(() => {
+    racine = mkdtempSync(join(tmpdir(), 'entity-orphans-'));
+    const dataDir = join(racine, 'src', 'data');
+    mkdirSync(dataDir, { recursive: true });
+    mkdirSync(join(racine, 'src', 'scenes'));
+    const catalogues: Record<string, unknown[]> = {
+      creatures: [
+        { id: 'griffon-fixture', appearance: { species: 'griffon-fixture', tenue: 'griffon-fixture' } },
+        { id: 'loup-fixture', appearance: { species: 'chien-fixture' } },
+        { id: 'chien-fixture' },
+      ],
+      props: [{ id: 'griffon-fixture' }],
+    };
+    for (const [cat, file] of Object.entries(CATEGORY_FILES)) writeFileSync(join(dataDir, file), JSON.stringify(catalogues[cat] ?? []));
+  });
+  afterAll(() => rmSync(racine, { recursive: true, force: true }));
+
+  it("orphelines EXACTEMENT : l'auto-citée et celle que personne ne cite ; l'homonyme et la citée sont consommées", () => {
+    expect(orphelinesMesurees(join(racine, 'src', 'data'), join(racine, 'src'))).toEqual([
+      { file: 'src/data/creatures.json', ref: 'griffon-fixture' },
+      { file: 'src/data/creatures.json', ref: 'loup-fixture' },
+    ]);
+  });
+});
+
+describe("clé d'objet — une clé de littéral d'objet du code de prod égale à un id le consomme, citée ou non", () => {
+  // Fixture nommée : `vouivrefixture` n'est qu'une clé NUE d'un littéral de prod, `aigle-fixture` une
+  // clé CITÉE du même littéral ; `cerffixture` n'est qu'une clé d'un fichier de TEST, hors corpus.
+  let racine = '';
+  beforeAll(() => {
+    racine = mkdtempSync(join(tmpdir(), 'entity-orphans-cles-'));
+    const dataDir = join(racine, 'src', 'data');
+    mkdirSync(dataDir, { recursive: true });
+    mkdirSync(join(racine, 'src', 'scenes'));
+    const creatures = [{ id: 'vouivrefixture' }, { id: 'aigle-fixture' }, { id: 'cerffixture' }];
+    for (const [cat, file] of Object.entries(CATEGORY_FILES)) writeFileSync(join(dataDir, file), JSON.stringify(cat === 'creatures' ? creatures : []));
+    writeFileSync(join(racine, 'src', 'forme.ts'), "export const FORME = { vouivrefixture: 'oiseau', 'aigle-fixture': 'oiseau' };\n");
+    writeFileSync(join(racine, 'src', 'forme.test.ts'), "export const T = { cerffixture: 'oiseau' };\n");
+  });
+  afterAll(() => rmSync(racine, { recursive: true, force: true }));
+
+  it('les deux graphies rendent le même verdict ; la clé d\'un test ne consomme rien', () => {
+    expect(orphelinesMesurees(join(racine, 'src', 'data'), join(racine, 'src'))).toEqual([
+      { file: 'src/data/creatures.json', ref: 'cerffixture' },
+    ]);
+  });
+
+  it('chaque clé est rendue avec sa ligne, en chemin relatif au `src`', () => {
+    expect(clesDObjet(join(racine, 'src'))).toEqual([
+      { cle: 'vouivrefixture', loc: 'forme.ts:1' },
+      { cle: 'aigle-fixture', loc: 'forme.ts:1' },
+    ]);
   });
 });

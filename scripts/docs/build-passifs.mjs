@@ -447,7 +447,7 @@ Tout passe par le Compendium in-app (écran Codex) :
 
 ## 7. Frontières — ce qui n'est PAS un passif \`GameOp\`
 
-- **Apparence** (cornes, écailles, peau d'une mutation) : couche RIG séparée. Le visuel n'est pas le
+- **Apparence** (cornes, écailles, peau d'une mutation) : couche d'art séparée. Le visuel n'est pas le
   mécanique.
 - **Armure naturelle** d'une mutation (\`apAll\`/\`apLocations\`) : lue par la couche d'armure, pas par
   le collecteur de stats.

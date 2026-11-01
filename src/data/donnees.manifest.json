@@ -66,7 +66,7 @@
           "files": [
             "speciesRace.json"
           ],
-          "desc": "Mapping espèce → race de rig (`default` + `rules`)"
+          "desc": "Correspondance espèce → race d’apparence (`default` + `rules`)"
         },
         {
           "files": [
@@ -577,7 +577,7 @@
           "files": [
             "raceAppearance.json"
           ],
-          "desc": "Apparence par race (gabarit, palette, tenue) — rig"
+          "desc": "Apparence par race (gabarit, palette, tenue, traits, yeux)"
         },
         {
           "files": [
@@ -619,7 +619,7 @@
           "files": [
             "gabarits.json"
           ],
-          "desc": "LES carrures du rig — facteurs (longueur, épaisseur, jambes, bras, tête) du squelette humain de référence ; une race (`raceAppearance.json`) ou une créature en nomme une, résolue par `src/noyau/apparence/gabarit.ts`"
+          "desc": "LES carrures — facteurs (longueur, épaisseur, jambes, bras, tête) du squelette humain de référence ; une race (`raceAppearance.json`) ou une créature en nomme une, résolue par `src/noyau/apparence/gabarit.ts`"
         },
         {
           "files": [
@@ -664,12 +664,6 @@
             "lightTones.json"
           ],
           "desc": "Ambiance lumineuse (`iso`/`pov`) · niveaux de lumière · TONS de lumière (#1245 : apparence d'une source ponctuelle — couleur, part d'intensité, vacillement ; référencés par `tone`, défaut `flamme`)"
-        },
-        {
-          "files": [
-            "renduMonte.json"
-          ],
-          "desc": "Réglage MAISON du rendu du couple MONTÉ (#1128) — `harnaisParDefaut` : id du set d'équipement (registre `src/gameIso/rig/quadruped/harnais/`) apposé à une monture PORTÉE dont le record ne déclare pas de `appearance.harnais` (LDB 08 l.557), lu par `DEFAUT_HARNAIS_MONTE`"
         }
       ]
     },

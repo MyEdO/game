@@ -512,7 +512,7 @@ const SONDE_DU_JUGE = [
   [null, "npm run test:perimetre && git hash-object scripts/a.mjs"],
   [null, "npm run test:perimetre -- --liste && npm run test:perimetre -- --liste"],
   [null, "npm run docs:sorts && npm run test:perimetre"],
-  [null, "npx tsx scripts/qc/mesure-volume.mts t1 && npm run test:perimetre"],
+  [null, "npx tsx scripts/qc/spell-support-census.mts && npm run test:perimetre"],
   [null, "node scripts/lancer-local.mjs tsx -- tsx scripts/map/check.mts; npm run test:perimetre"],
   ["chaîne", "npm run test:perimetre --liste && npm run typecheck:fast"],
   ["chaîne", "npm --liste run test:perimetre && npm run typecheck:fast"],

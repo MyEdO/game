@@ -31,8 +31,9 @@ describe('PartyDock', () => {
     const html = renderToStaticMarkup(<PartyDock heroes={[h1, h2]} onOpen={() => {}} />);
     expect(html).toContain('title="Gunnar — fiche du personnage"');
     expect(html).toContain('aria-label="Elsa — fiche du personnage"');
-    expect(html).toContain('<figcaption>Gunnar</figcaption>');
-    expect(html).toContain('<figcaption>Elsa</figcaption>');
+    const host = document.createElement('div');
+    host.innerHTML = html;
+    expect([...host.querySelectorAll('.ptile-name')].map((nom) => nom.textContent)).toEqual([h1.label, h2.label]);
     // Balises retirées : ne reste que ce qu'un joueur LIT à l'écran.
     const visible = html.replace(/<[^>]*>/g, ' ');
     expect(visible).toContain('Gunnar');
@@ -103,15 +104,13 @@ describe('PartyDock — micro-rendu (sondes pixel du juge vision, 2026-08-17)', 
     return host;
   };
 
-  // B-1 : la planche pose le nom SOUS la boîte, sur le fond du bandeau — la boîte porte seule le
-  // chrome (plaque + filet), l'enveloppe reste nue.
-  it('B-1 — le nom est HORS de la boîte bordée, qui porte seule le chrome', () => {
+  it('le nom appartient à la tuile partagée, dans l’enveloppe défilante', () => {
     const host = monter({ heroes: [g1, g2], onOpen: () => {} });
     const fig = host.querySelector('figure')!;
     const boite = fig.querySelector('.ptile-wrap')!;
-    const nom = fig.querySelector('figcaption')!;
-    expect(boite.contains(nom)).toBe(false);
-    expect(nom.parentElement).toBe(fig);
+    const nom = fig.querySelector('.ptile-name')!;
+    expect(boite.contains(nom)).toBe(true);
+    expect(nom.closest('.ptile')).toBe(fig.querySelector('.ptile'));
     const enveloppe = ruleOf('.pd-track > figure');
     expect(enveloppe).not.toMatch(/(^|[;\s])border\s*:/);
     expect(enveloppe).not.toMatch(/(^|[;\s])background\s*:/);
@@ -142,14 +141,10 @@ describe('PartyDock — micro-rendu (sondes pixel du juge vision, 2026-08-17)', 
     }
   });
 
-  // B-2 : `height: 2.6em` réservait DEUX lignes à toute légende, portées ou non.
-  it('B-2 — la légende suit son contenu, une ligne au minimum, tuiles alignées par le haut', () => {
-    const legende = ruleOf('.pd-track > figure > figcaption');
-    expect(legende).not.toMatch(/(^|[;\s])height\s*:/);
-    expect(legende).toMatch(/min-height:\s*1\.3em/);
-    // Deux lignes AU PLUS restent permises (R-M2 : coupe entre mots), mais plus réservées.
-    expect(legende).toMatch(/line-clamp:\s*2/);
-    // Les cartes s'alignent par le HAUT de leur boîte : une légende plus courte ne remonte rien.
-    expect(ruleOf('.pd-track')).toMatch(/align-items:\s*flex-start/);
+  it('chaque carte compose une seule légende de la primitive', () => {
+    const host = monter({ heroes: [g1, g2], onOpen: () => {} });
+    for (const figure of host.querySelectorAll('figure')) {
+      expect(figure.querySelectorAll('.ptile-name')).toHaveLength(1);
+    }
   });
 });

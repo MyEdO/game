@@ -44,7 +44,8 @@ describe('DesignationHerosModal — clic sur un portrait → état posé', () =>
     applyEffects(useGame.getState, useGame.setState, [{ type: 'designerHeros', etat: 'campagne-sosie-heros' }]);
     monterRacine(<DesignationHerosModal />);
     const tuiles = [...document.querySelectorAll('.portrait-picker .frame-pick')];
-    expect(tuiles.map((t) => [t.querySelector('button')?.getAttribute('title'), t.querySelector('.cap')?.textContent]))
+    for (const tuile of tuiles) expect(tuile.querySelectorAll('.ptile-name')).toHaveLength(1);
+    expect(tuiles.map((t) => [t.querySelector('button')?.getAttribute('title'), t.textContent]))
       .toEqual([['Aldric', 'Aldric'], ['Brunhilde', 'Brunhilde'], ['Konrad', 'Konrad'], ['Magda', 'Magda']]);
   });
 

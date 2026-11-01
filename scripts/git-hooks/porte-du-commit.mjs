@@ -162,6 +162,8 @@ const MAX_RESTES_ROUTANTS = 1
 const MIN_ETAT_INVENTAIRE = 20
 // Recette visuelle : la capture vit sous `public/qc/` (convention de `scripts/qc/capture-jeu.mjs`).
 const CAPTURE_RE = /capture\s*:\s*(\S+)/i
+// Fiche `user-doctrine-recette-web-suspendue-migration-godot` : une capture de l'écran web est interdite.
+const RECETTE_SUSPENDUE_RE = /^suspendue\s*:\s*user-doctrine-recette-web-suspendue-migration-godot\s*$/m
 const DOSSIER_CAPTURES = 'public/qc/'
 const ENTETE_PNG = [0x89, 0x50, 0x4e, 0x47]
 const ENTETE_JPEG = [0xff, 0xd8, 0xff]
@@ -413,8 +415,9 @@ function checkRecetteVisuelle(content, { touchesUi, verifierCaptureDe }) {
   if (!touchesUi) return []
   const section = sectionDe(content, TITRE_RECETTE_VISUELLE)
   if (section === null) {
-    return ['section "## Recette visuelle" absente alors que le commit touche un écran (src/ui/** ou src/gameIso/**) — y porter "capture: public/qc/<fichier>.png"']
+    return ['section "## Recette visuelle" absente alors que le commit touche un écran (src/ui/** ou src/gameIso/**) — y porter "suspendue: user-doctrine-recette-web-suspendue-migration-godot" ou "capture: public/qc/<fichier>.png"']
   }
+  if (RECETTE_SUSPENDUE_RE.test(section)) return []
   const capture = captureDuSolde(content)
   if (!capture) {
     return ['"## Recette visuelle" sans ligne "capture: <chemin sous public/qc/>"']

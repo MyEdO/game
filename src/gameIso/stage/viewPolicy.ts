@@ -58,11 +58,7 @@ export interface StyleVue {
    *  l'applique sur le FONDU : la vue du dessus rend donc le régime SANS SOLEIL complet — aucune
    *  ombre portée en travers du plateau (elle couche la silhouette des masses sur les cases et
    *  brouille la lecture), modelé de forme PLEIN (`shadeSousSoleil` à `fade = 0`), exposition du
-   *  monde et des pions appariée PAR CONSTRUCTION. Le socle de figurine, lui, ne dépend PAS de ce
-   *  verdict sous la vue du dessus : le pion y est un disque SVG qui porte son propre socle
-   *  (`pionsEnDisques`) — et comme le disque d'ombre de contact n'est monté que pour un billboard
-   *  `kind:'personnage'` (`sceneMeshes.wantsContactShadow`), dont il ne reste AUCUN sous ce verdict,
-   *  la vue du dessus n'en peint plus un seul. L'ambiante, donc le palier jour/nuit, ne dépend
+   *  monde et des pions appariée PAR CONSTRUCTION. L'ambiante, donc le palier jour/nuit, ne dépend
    *  d'aucun regard : la nuit reste la nuit. */
   ombreSoleil: boolean;
   /** Les MURS se rendent-ils au TRAIT symbolique SVG (`stage/layers.wallTraitObjs`) au lieu d'être
@@ -78,26 +74,16 @@ export interface StyleVue {
    *  (`geometry/grid.gridLines`), la même que celle de l'éditeur — plus discrète en jeu, où elle est
    *  un fond et non un outil. */
   grilleTactique: boolean;
-  /** Un couple MONTÉ se rend-il en deux pions distincts (`buildTokens`, paramètre `top`) ? Vu à la
-   *  verticale, le cavalier se peint SUR sa monture et le composite montre seulement un corps ; deux
+  /** Un couple MONTÉ se rend-il en deux pions distincts (`buildTokens`, paramètre `top`) ? Deux
    *  disques côte à côte gardent les deux unités lisibles et cliquables. */
   montesDissocies: boolean;
-  /** Les PIONS (combattants, meneur de groupe, figurants) se rendent-ils en DISQUES-PORTRAITS de la
-   *  surcouche SVG (`stage/TokenChromeOverlay`) au lieu de billboards du monde volumique ? Verdict
-   *  EXCLUSIF, et c'est le point : sous lui le monde ne monte AUCUN sujet `kind:'personnage'`
-   *  (`collectBillboards`/`actorBillboards`), donc plus de jumeau de silhouette, plus d'ombre de
-   *  contact, plus de quad à percer et plus de cible de rayon — le clic retombe sur la CASE, où le
-   *  disque est centré. Le DÉCOR, lui, n'est jamais un pion : vu du dessus il montre sa vraie emprise,
-   *  là où un personnage ne montrerait que le sommet de son crâne — celui qui se dessine en billboard
-   *  le reste, celui qui porte une recette volumique reste dans la masse cuite du monde
-   *  (`builders/propVolumes.ts`).
+  /** Les PIONS (combattants, meneur de groupe, figurants) se rendent-ils en DISQUES de la surcouche
+   *  SVG (`stage/TokenChromeOverlay`, `TokenDisc`) ? Sous lui, l'anneau d'équipe se peint avec le
+   *  disque (`stage/dynamicMarkPose`), et le clic retombe sur la CASE, où le disque est centré.
    *
    *  C'est aussi ce qui referme l'écart d'ORDRE de la composition du dessus : grille, murs au trait,
    *  affordances et pions vivent alors dans le MÊME arbre SVG, où le rang de calque se décide
-   *  (`SurcoucheIso`), au lieu de deux arbres dont l'un couvre l'autre en entier.
-   *
-   *  La CLASSIFICATION du pion n'est PAS rejouée ici : `tokenBodyKind(subject, 'top')` la porte déjà
-   *  (`flat` + `portraitBox`), et reste sa source unique. */
+   *  (`SurcoucheIso`), au lieu de deux arbres dont l'un couvre l'autre en entier. */
   pionsEnDisques: boolean;
 }
 

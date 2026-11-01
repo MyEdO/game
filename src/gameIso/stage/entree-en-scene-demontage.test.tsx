@@ -39,7 +39,6 @@ import {
   viderCaptures,
   type Rasterisation,
 } from './banc-volumique';
-import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -64,7 +63,7 @@ const décor = (id: string, x: number): BillboardPropEl => ({
 
 /** Deux décors PROCHES : deux textures en vol au même instant — de quoi servir les DEUX issues
  *  (résolution et rejet) sur le même écran. */
-const DEUX_PROCHES: SceneBillboardEls = { tokens: [], props: [décor('près1', GROUPE.x + 1), décor('près2', GROUPE.x + 2)] };
+const DEUX_PROCHES: SceneBillboardEls = { props: [décor('près1', GROUPE.x + 1), décor('près2', GROUPE.x + 2)] };
 
 const cadrePov = (): StageFrame => ({ mode: 'pov', partyPos: GROUPE, facing: 'N', indoor: false, cid: null });
 
@@ -92,7 +91,7 @@ function monter(états: boolean[]): void {
   root = createRoot(hôte);
   act(() => {
     root!.render(
-      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+      <GameStage3D lecture="jeu"
         scene={SCENE}
         mpt={MPT}
         frame={cadrePov()}

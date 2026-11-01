@@ -50,7 +50,7 @@ import { combatantFlags } from '../gameIso/effectIcons';
 import { sheetAlarms, alarmsFingerprint } from './sheetAlarms';
 import { nomDIndividu } from '../noyau/monde/sceneNpc';
 import { EtatPanel, zoneAnchor, zoneAfflictions } from './EtatPanel';
-import { FigTile, type ZoneBadgeSpec } from './FigTile';
+import { FigZoneBadges, type ZoneBadgeSpec } from './FigTile';
 import { LifeBar } from './LifeBar';
 import { woundsTone, encumbranceTone } from './gaugeTones';
 import { corruptionThresholdExceeded } from '../engine/corruption';
@@ -184,11 +184,8 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
         <>
           {/* #492 */}
           <div className="sheet-portrait">
-            <FigTile
-              preview={{ hero }}
-              fig="hero"
-              zoneBadges={tab === 'possessions' ? possessionsZoneBadges(hero) : tab === 'etat' ? etatZoneBadges(hero) : undefined}
-            />
+            <CharFrame c={hero} variant="identity" size="xl" decoratif />
+            <FigZoneBadges badges={tab === 'possessions' ? possessionsZoneBadges(hero) : tab === 'etat' ? etatZoneBadges(hero) : []} />
             <LifeBar stacked label="Blessures" value={hero.wounds.current} max={hero.wounds.max} tone={woundsTone} />
             {/* Encombrement : ton PAR PALIER (`encumbranceTone`, juge vision 2026-07-17) — le palier de
                 Surcharge lui-même vit dans le tableau de bord de l'onglet État (`EtatPanel.tsx`), jamais dupliqué ici.
@@ -259,7 +256,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
         </>
       ) : tab === 'competences' ? (
         // Onglet Compétences & Talents : compose la primitive `HeroSheet` (`header={false}` —
-        // figurine/identité restent dans l'aside de la fiche, patron CreatorSummary.tsx) plutôt
+        // identité reste dans l'aside de la fiche, patron CreatorSummary.tsx) plutôt
         // que de réassembler son patron à la main (arbitrage 2026-07-17). Table à VALEURS (deux colonnes,
         // `skillInstanceLabel` codex-lié) — les Talents restent en chips dans les deux variantes.
         <HeroSheet

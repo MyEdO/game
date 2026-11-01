@@ -144,7 +144,6 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
               <div className="rest-hero-line">
                 <CharFrame c={h} variant="identity" size="sm" />
                 <div className="rest-hero-id">
-                  <span className="rest-hero-name">{h.label}</span>
                   <StateChips c={h} reserve />
                 </div>
                 {/* Choix COURANT en toutes lettres (arbitrage user : plus de segments cryptiques par défaut). */}

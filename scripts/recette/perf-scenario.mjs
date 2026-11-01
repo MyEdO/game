@@ -80,7 +80,7 @@ async function runCadence(session, args) {
   console.log(stats('MARCHE  ', await walk), NOTE_GESTE);
 
   console.log('objets SVG dans le stage :', await evaluate(session,
-    `document.querySelectorAll('svg [data-cid], svg g, svg polygon, svg path').length`));
+    `document.querySelectorAll('svg g, svg polygon, svg path').length`));
 }
 
 async function runProfile(session, args) {

@@ -30,7 +30,7 @@ import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engin
  * attendre l'arrivée ferait basculer un toit une case trop tard. Un rendu par case franchie, jamais un
  * par image — c'est la cadence du PAS.
  *
- * Le battement de la marche est ISOLÉ des autres boucles rAF de l'écran (les clips de rig en affine) :
+ * Le battement de la marche est ISOLÉ des autres boucles rAF de l'écran :
  * le tick de marche est retiré de la file au moment où il s'y inscrit, puis rejoué seul. Un commit
  * mesuré ici est donc imputable à la marche, et à rien d'autre.
  */
@@ -218,28 +218,20 @@ describe('Marche volumique — le pointeur suit la caméra image par image (#117
 });
 
 /**
- * INVARIANCE DES CANAUX LOURDS pendant une marche volumique : la cuisson du monde et le tracé des
- * billboards sont les deux passes que la position VISUELLE périmait avant ce lot. Elles ne doivent plus
- * tourner entre deux pas — ni aux images (aucun rendu ne s'y produit), ni à un rendu que le store
- * provoque EN PLEINE marche : l'identité d'un sujet porte sa case LOGIQUE, jamais le glissement.
+ * INVARIANCE DE LA CUISSON pendant une marche volumique : elle ne tourne pas entre deux pas, ni aux
+ * images, ni à un rendu que le store provoque EN PLEINE marche.
  */
-describe('Marche volumique — ni géométrie ni billboards reconstruits entre deux pas (#1176 P2-4)', () => {
-  it('la cuisson du monde et le tracé des billboards ne rejouent AUCUNE fois', () => {
+describe('Marche volumique — aucune géométrie reconstruite entre deux pas (#1176 P2-4)', () => {
+  it('la cuisson du monde ne rejoue AUCUNE fois', () => {
     const cuisson = vi.spyOn(sceneMeshes, 'bakeWorldGeometry');
-    const billboards = vi.spyOn(sceneMeshes, 'actorBillboards');
     monter();
     const cAvant = cuisson.mock.calls.length;
-    const bAvant = billboards.mock.calls.length;
-    expect(bAvant).toBeGreaterThan(0); // la sonde mord : le montage, lui, en a bien tracé
+    expect(cAvant).toBeGreaterThan(0); // la sonde mord : le montage a bien cuit
     let tick: FrameRequestCallback | null = marcher('h1', CHEMIN);
     for (let i = 0; i < 4; i++) tick = image(tick!, STEP_MS / 8);
     expect(cuisson.mock.calls.length).toBe(cAvant);
-    expect(billboards.mock.calls.length).toBe(bAvant);
-    // Un rendu EN PLEINE marche (le store bouge : ici l'orientation, que le monde volumique lit) : les
-    // sujets s'y redérivent, et leur identité ne doit pas avoir bougé d'un demi-pas pour autant.
     act(() => { useGame.getState().faceToward('__sonde-orientation', { x: 0, y: 1 }, { x: 0, y: 0 }); }); // cap N
     expect(cuisson.mock.calls.length).toBe(cAvant);
-    expect(billboards.mock.calls.length).toBe(bAvant);
   });
 });
 

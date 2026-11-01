@@ -6,8 +6,8 @@
 //   (`rawRefIntegrity.mjs`) se vérifient partout où elle s'écrit, sa présence à l'Atlas
 //   (`reconcile.mjs`) dans le code : une réf qu'aucun scanner ne lit pourrit en silence au premier réancrage.
 // - IMPLÉMENTANTS : les citants dont une réf dit « ce code implémente ce passage » — ce que rend le
-//   champ `**Implémente :**` (`build-implemente.mjs`). Une feuille `.css` ou un dessin de rig `.mts`
-//   cite le passage qu'il habille, il ne l'implémente pas.
+//   champ `**Implémente :**` (`build-implemente.mjs`). Une feuille `.css` ou un script `.mts`/`.mjs`
+//   cite le passage qu'il habille ou outille, il ne l'implémente pas.
 // Deux jeux de RACINES, déclarés ici : `RACINES_CITANTES` (forme, bornes, ligne non aveugle) et
 // `RACINES_DU_CODE` (présence à l'Atlas, champ `Implémente`). Une fiche de dossier de chapitre
 // (`docs/dossiers/`, #2290) cite le livre et n'implémente rien : citante, hors du code.

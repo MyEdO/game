@@ -10,13 +10,12 @@
  * `catalog/decor/defs/` (les 97 defs de props) a son propre bloc plus bas (dessin par def, MAIS couleurs
  * tirées de la palette partagée) → exclu du balayage.
  *
- * HORS périmètre (couleur LÉGITIME, non balayés) : le rig (`rig/**` = bestiaire/équipement dessinés
- * « à la main »), les FX de combat (`fx/**`), `shade.ts` (helpers de voile lumineux sanctionnés
- * `ao`/`spec`/`warm`). L'identité matériau des SOLS (`swatch`, `stops`) vit en donnée
- * (`src/data/terrains.json`), donc hors de toute arborescence balayée. Les TOKENS
- * (`stage/TokenChromeOverlay`/`tokenBodyKind`) sont couverts À PART (bloc « chrome ») : leur
- * couleur d'identité vient de teamColors (`ACTIVE_RING`/`hpColor`) ou d'une donnée d'apparence, le reste
- * est du chrome NEUTRE allowlisté ; tout AUTRE hex y est une fuite d'identité de matériau à attraper.
+ * HORS périmètre (couleur LÉGITIME, non balayés) : les FX de combat (`fx/**`), `shade.ts` (helpers de
+ * voile lumineux sanctionnés `ao`/`spec`/`warm`). L'identité matériau des SOLS (`swatch`, `stops`) vit
+ * en donnée (`src/data/terrains.json`), donc hors de toute arborescence balayée. Les TOKENS
+ * (`stage/TokenChromeOverlay`) sont couverts À PART (bloc « chrome ») : leur couleur d'identité vient
+ * de teamColors (`teamRingDecor`/`OUT_OF_PARTY_RING`), le reste est du chrome NEUTRE allowlisté ; tout AUTRE
+ * hex y est une fuite d'identité de matériau à attraper.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -48,13 +47,13 @@ const BALAYAGE = detenteur(() =>
     .map(({ rel, text }) => [rel.slice(SOUS_GAMEISO.length), text] as const),
 );
 
-// Chrome d'état des TOKENS : la surcouche des jetons (pion-disque, PV, badges, ombres) et tokenBodyKind
-// (bloc de siège) rendent l'ÉTAT de combat, pas un MATÉRIAU du monde. La couleur d'IDENTITÉ vient de
-// teamColors (`teamRingDecor`/`hpColor`) ou d'une donnée (apparence de structure) ; le RESTE est du
-// chrome NEUTRE allowlisté (ombres, fond de disque, tons de badge). Tout hex HORS allowlist = fuite.
+// Chrome d'état des TOKENS : la surcouche des jetons (pion-disque, PV, badges, ombres) rend l'ÉTAT de
+// combat, pas un MATÉRIAU du monde. La couleur d'IDENTITÉ vient de teamColors
+// (`teamRingDecor`/`OUT_OF_PARTY_RING`) ; le RESTE est du chrome NEUTRE allowlisté (ombres, fond de disque,
+// tons de badge). Tout hex HORS allowlist = fuite.
 // Déclarée ICI parce que le balayage d'ENVIRONNEMENT les RETIRE : un fichier passe par un bloc ou par
 // l'autre, jamais par les deux — et jamais par aucun (le filtre ci-dessous ne retire que du connu).
-const CHROME_RENDERERS = ['stage/TokenChromeOverlay.tsx', 'tokenBodyKind.tsx'];
+const CHROME_RENDERERS = ['stage/TokenChromeOverlay.tsx'];
 
 /** Le texte de chaque fichier couvert, par chemin relatif à `gameIso/`. */
 const SOURCE = detenteur(() =>

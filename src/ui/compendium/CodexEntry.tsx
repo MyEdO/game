@@ -3,9 +3,7 @@
 import type { CodexItem, CodexRow, CodexSection } from './registry';
 import { EntityRef, EntityChoice, PlainChip } from '../EntityChip';
 import { CodexRef } from './CodexRef';
-import { CreaturePreview } from './CreaturePreview';
 import { TabbedEntry, type EntryTab } from '../TabbedEntry';
-import { OrnateFrame } from '../Ornaments';
 import { Prose } from '../Prose';
 import type { Porteur } from '../liage';
 import { libelleDuChamp } from './editFields';
@@ -105,7 +103,7 @@ export function CodexEntry({ item, instance, category, exergues }: { item: Codex
   const entree = category ? { type: category, id: item.id } : undefined;
   // ONGLETS data-driven : CHAQUE section de la fiche (statbloc, compétences, niveaux de carrière,
   // bénédictions…) devient un onglet → les onglets reflètent les données PROPRES de l'entité (une
-  // créature, un sort et une race n'exposent pas les mêmes). La CHARTE (figurine + onglets) est, elle,
+  // créature, un sort et une race n'exposent pas les mêmes). La CHARTE (identité + onglets) est, elle,
   // partagée avec le créateur via `TabbedEntry` — on ne se perd pas d'une fiche à l'autre.
   // `id` d'onglet STABLE = slug du titre (identité sémantique invariante d'une fiche à l'autre) : le
   // même onglet reste ouvert en feuilletant (« Caractéristiques »), par simple égalité d'id côté TabbedEntry.
@@ -166,7 +164,6 @@ export function CodexEntry({ item, instance, category, exergues }: { item: Codex
       )}
       {/* PAS de `key={item.label}` : TabbedEntry conserve l'onglet actif (par nom) au changement de fiche. */}
       <TabbedEntry
-        figure={item.appearance ? <OrnateFrame className="codex-figure"><CreaturePreview label={item.previewRef ?? item.label} appearance={item.appearance} porteur={item.previewPorteur} /></OrnateFrame> : undefined}
         title={item.label}
         aside={item.source ? <SourceBadge source={item.source} /> : undefined}
         blurb={item.sub}

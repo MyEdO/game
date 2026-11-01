@@ -72,8 +72,8 @@ function construireScene(): Scene {
       siege: true,
       enemies: [
         { ref: 'gobelin', pos: { x: 5, y: 2 }, facing: 'S' }, // index 0 : défenseur
-        // index 1 : l'EMPLACEMENT du bélier — affût INERTE 2×2 (branche siège de `spawnEnemy`, `ref` porte un
-        // `siegeRig`), orienté vers la porte (facing 'N'), servi par l'Équipe `RAM_CREW`.
+        // index 1 : emplacement du bélier, trapping du sous-type `armes-de-siege`,
+        // orienté vers la porte (facing 'N'), servi par l'Équipe `RAM_CREW`.
         {
           ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
           postes: [{ trappingId: 'belier-ade2', crewIds: [...RAM_CREW] }],

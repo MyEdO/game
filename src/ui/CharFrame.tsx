@@ -1,32 +1,27 @@
 import { useGame } from '../state/store';
-import { PortraitTile, type CharSize, type CharVariant } from './PortraitTile';
-import { HERO_RING, ENEMY_RING } from '../gameIso/teamColors';
-import type { Combatant } from '../engine/types';
+import { campOf } from '../engine/relations';
+import { PortraitTile, type PortraitTileProps } from './PortraitTile';
+import { combatantRingDecor } from '../gameIso/builders/dynamicMarks';
+import { viewPolicy } from '../gameIso/stage/viewPolicy';
 
 /**
- * Tuile-portrait CONNECTÉE — le point d'entrée normal hors HUD (modales, pickers, écrans) :
- * calcule le cadre (couleur d'IDENTITÉ du héros par position de groupe / anneau ennemi) et le
- * fond d'équipe depuis le store, puis rend PortraitTile. Les sites qui ont déjà leurs couleurs
- * sous la main (dock, frise, cadre actif) appellent PortraitTile directement.
+ * Identité CONNECTÉE : décoration partagée avec les repères du sol, nom et état de fin.
  */
-export function CharFrame({ c, nom, ...rest }: {
-  c: Combatant;
-  variant?: CharVariant;
-  size?: CharSize;
-  selected?: boolean;
-  maxStates?: number;
-  reserveStates?: boolean;
-  onClick?: () => void;
+export function CharFrame({ c, nom, ...rest }: Omit<PortraitTileProps, 'ring' | 'title' | 'team'> & {
   /** NOM ACCESSIBLE de la tuile (« Retirer Hilda de Pont ») — porté par `PortraitTile` en `aria-label`
    *  ET en infobulle. Nommé `nom` et non `title` : un attribut `title` écrit chez un APPELANT est une
    *  info qui ne vit que dans l'infobulle native (mur `murs/console-sans-title`) ; ici la valeur
    *  traverse la primitive, qui la pose dans l'arbre d'accessibilité. */
   nom?: string;
-  /** Tuile DÉCORATIVE (cf. `PortraitTile.decoratif`) : `<span>` muet dans un contrôle englobant. */
-  decoratif?: boolean;
 }) {
   const party = useGame((s) => s.party);
-  const idx = party.findIndex((h) => h.id === c.id);
-  const team = idx >= 0 || c.kind === 'hero' ? 'ally' : c.kind === 'enemy' ? 'enemy' : undefined;
-  return <PortraitTile c={c} ring={idx >= 0 ? HERO_RING[idx % HERO_RING.length] : ENEMY_RING} team={team} title={nom} {...rest} />;
+  const battle = useGame((s) => s.battle);
+  const mode = useGame((s) => s.mode);
+  const viewMode = useGame((s) => s.viewMode);
+  const pov = useGame((s) => s.mode === 'exploration' && s.povActive);
+  const population = mode === 'battle' && battle ? battle.combatants : party;
+  const { montesDissocies } = viewPolicy({ view: pov ? 'iso' : viewMode });
+  const camp = campOf(c);
+  const team = camp === 'party' ? 'ally' : camp === 'hostile' ? 'enemy' : undefined;
+  return <PortraitTile c={c} team={team} ring={combatantRingDecor(c, party.map((h) => h.id), population, montesDissocies)} title={nom} {...rest} />;
 }

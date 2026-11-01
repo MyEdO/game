@@ -1,11 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, entitySize } from './spawn';
 import { weaponFromTrait } from '../../engine/creatureEquip';
-import { enemyRigProfile } from '../../gameIso/rig/enemyProfile';
-import { teintesTirees } from '../../gameIso/rig/parts/tirageIndividuel';
-import { raceById } from '../../gameIso/rig/races';
-import { weaponFamily } from '../../gameIso/rig/parts/equipment';
-import { armeDeDessin } from '../equipementDessine';
 import { blessingsOf, findCreatureById, talentConcrete } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
 import { knowsCastingSkill, castingValue } from '../../engine/magic';
@@ -19,15 +14,13 @@ describe('weaponFromTrait — armement des monstres dans les Traits (FR)', () =>
   it('Arme (Épée) +7 → arme tenue « Épée »', () => {
     const w = weaponFromTrait({ id: 'arme', value: 7, arg: 'Épée' })!;
     expect(w).toMatchObject({ label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 7 } });
-    expect(weaponFamily(armeDeDessin(w))).toBe('epee'); // le rig tient une épée
   });
   it('Arme (Dague) +4 → dague', () => {
-    expect(weaponFamily(armeDeDessin(weaponFromTrait({ id: 'arme', value: 4, arg: 'dague' })!))).toBe('dague');
+    expect(weaponFromTrait({ id: 'arme', value: 4, arg: 'dague' })).toMatchObject({ trappingId: 'dague', label: 'Dague', type: 'melee', damage: { plusBF: false, flat: 4 } });
   });
   it('À distance (Arbalète) +9 (60) → arbalète à distance, portée 60', () => {
     const w = weaponFromTrait({ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 })!;
     expect(w).toMatchObject({ label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60 });
-    expect(weaponFamily(armeDeDessin(w))).toBe('arbalete');
   });
   it('À distance +8 (50) (sans type) → distance générique', () => {
     expect(weaponFromTrait({ id: 'a-distance', value: 8, range: 50 })).toMatchObject({ type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 50 });
@@ -38,12 +31,10 @@ describe('weaponFromTrait — armement des monstres dans les Traits (FR)', () =>
     const w = weaponFromTrait({ id: 'arme', arg: 'griffes', natural: true })!;
     expect(w.type).toBe('melee');
     expect(w.natural).toBe(true);
-    expect(weaponFamily(armeDeDessin(w))).toBe(''); // pas d'arme tenue
   });
   it('Morsure +9 → attaque naturelle (pas d’arme tenue)', () => {
     const w = weaponFromTrait({ id: 'morsure', value: 9 })!;
     expect(w).toMatchObject({ label: 'Morsure', type: 'melee', damage: { plusBF: false, flat: 9 } });
-    expect(weaponFamily(armeDeDessin(w))).toBe('');
   });
   it('un trait non-arme → null', () => {
     expect(weaponFromTrait({ id: 'corruption', arg: 'mineure' })).toBeNull();
@@ -52,7 +43,6 @@ describe('weaponFromTrait — armement des monstres dans les Traits (FR)', () =>
   it('« 8 Tentacules +9 » (Pieuvre) → UNE arme naturelle Tentacules +9 (pas d’« Arme +BF »)', () => {
     const w = weaponFromTrait({ id: 'tentacules', count: 8, value: 9 })!;
     expect(w).toMatchObject({ label: 'Tentacules', type: 'melee', damage: { plusBF: false, flat: 9 } });
-    expect(weaponFamily(armeDeDessin(w))).toBe(''); // attaque naturelle : rien en main
   });
 });
 
@@ -316,20 +306,20 @@ describe('PNJ de campagne — compétences/talents/sorts de la donnée (Eusapia 
   });
 });
 
-/** L'apparence ÉDITÉE d'un ennemi (seed re-tiré, sexe, carrière…) doit survivre au spawn comme override
- *  BRUT (`appearanceOverride`) : le rig la fige PARESSEUSEMENT au rendu (#187), plus au spawn/state. */
+/** L'apparence ÉDITÉE d'un ennemi (sexe, carrière…) doit survivre au spawn comme override
+ *  BRUT (`appearanceOverride`, #187), jamais résolue au spawn. */
 describe('spawnEnemy — transport de l’apparence/carrière éditée vers le Combatant (parité explo↔combat)', () => {
   const at = { x: 0, y: 0 };
 
-  it('seed + sexe + carrure édités → portés BRUTS par Combatant.appearanceOverride', () => {
-    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { seed: 12345, sex: 'F', build: 0.7 } });
-    expect(c.appearanceOverride).toMatchObject({ seed: 12345, sex: 'F', build: 0.7 });
-    expect(c.appearance).toBeUndefined(); // rien de figé dans state — la résolution rig est différée
+  it('sexe édité → porté BRUT par Combatant.appearanceOverride', () => {
+    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { sex: 'F' } });
+    expect(c.appearanceOverride).toMatchObject({ sex: 'F' });
+    expect(c.appearance).toBeUndefined(); // rien de résolu au spawn
   });
 
   it('tenue éditée → portée par Combatant.career', () => {
-    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { tenue: 'Soldat' } });
-    expect(c.career).toBe('Soldat');
+    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { tenue: 'soldat' } });
+    expect(c.career).toBe('soldat');
   });
 
   it('sans aucun override → appearanceOverride reste indéfini (rendu dérivé du nom inchangé)', () => {
@@ -337,21 +327,17 @@ describe('spawnEnemy — transport de l’apparence/carrière éditée vers le C
     expect(c.appearanceOverride).toBeUndefined();
   });
 
-  it('override PARTIEL (seed seul) → enemyRigProfile dérive la palette non éditée du seed édité (#1882 T1)', () => {
-    const seeded = enemyRigProfile(spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { seed: 999 } }))!;
-    expect(seeded.appearance.seed).toBe(999);
-    // Palette NON éditée : tirage individuel par le seed édité (record `mutant` sans palette authorée).
-    expect(seeded.appearance.parts).toBeUndefined();
-    expect(seeded.appearance.colors).toEqual(teintesTirees(999, raceById('humain').tirageIndividuel!));
+  it('override PARTIEL (sexe seul) → seul le sexe édité est porté (#1882 T1)', () => {
+    expect(spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { sex: 'F' } }).appearanceOverride).toEqual({ sex: 'F' });
   });
 });
 
-describe('spawnEnemy — branche engin de siège (`ref` à `siegeRig`, #210)', () => {
+describe('spawnEnemy — engin du sous-type armes-de-siege (#210)', () => {
   const at = { x: 0, y: 0 };
 
-  it('belier-ade2 : espèce DÉRIVÉE = `belier` (art propre, plus le recyclage de baliste)', () => {
+  it('belier-ade2 : engin inerte, sans espèce dérivée de sa référence', () => {
     const c = spawnEnemy({ ref: 'belier-ade2' }, 'ram1', at);
-    expect(c.species).toBe('belier');
+    expect(c.species).toBeUndefined();
     expect(c.bodyShape).toBe('engin');
     expect(c.inert).toBe(true);
   });
@@ -363,7 +349,7 @@ describe('spawnEnemy — branche engin de siège (`ref` à `siegeRig`, #210)', (
 
   it('baliste (sans `siegeFootprint` en donnée) : empreinte ABSENTE — `footprintN` retombe à 1 (non-régression)', () => {
     const c = spawnEnemy({ ref: 'baliste' }, 'bal1', at);
-    expect(c.species).toBe('baliste');
+    expect(c.species).toBeUndefined();
     expect(c.footprint).toBeUndefined();
   });
 });

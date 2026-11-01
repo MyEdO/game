@@ -22,7 +22,6 @@ import type { Dims } from '../../geometry/iso';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { GameStage3D, setStageRendererFactory, type StageWalkAnim } from './GameStage3D';
 import { BancRenderer, brancherArdoise, brancherImagesPilotees } from './banc-volumique';
-import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -91,10 +90,10 @@ function monter(scene: Scene, zoom: number): void {
   hôte = document.createElement('div');
   document.body.appendChild(hôte);
   root = createRoot(hôte);
-  act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...props(scene, zoom)} />));
+  act(() => root!.render(<GameStage3D lecture="jeu" {...props(scene, zoom)} />));
 }
 
-const rendre = (scene: Scene, zoom: number) => act(() => root!.render(<GameStage3D resolveTrapping={findTrappingById} lecture="jeu" {...props(scene, zoom)} />));
+const rendre = (scene: Scene, zoom: number) => act(() => root!.render(<GameStage3D lecture="jeu" {...props(scene, zoom)} />));
 
 const derniere = (): Frame | undefined => frames[frames.length - 1];
 /** Le semis MONTÉ dans la scène three de la dernière frame (`null` = rien ne tombe). */

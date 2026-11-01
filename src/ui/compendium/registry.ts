@@ -12,7 +12,7 @@ import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
-  stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, findGabaritById, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
+  stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, psychologyLabel,
   allAxes,
@@ -20,7 +20,7 @@ import {
   isNamed, specCatalogOf, specLabel, seasonLabel,
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, groupLabel, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
-  charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
+  charAbr, navalPorts, shipConstruction, effectTables, disponibilite,
   conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
@@ -91,7 +91,6 @@ import { formatDice, type DiceSpec } from '../../engine/dice';
 import { formatDiseaseTime } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, priceToMoney, type Money } from '../../engine/money';
-import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
 import { humanizeCastBonus, CAUSE_PERSISTANTE, replieCausesPersistantes } from './humanize';
@@ -102,7 +101,6 @@ import { libelleDuChamp } from './editFields';
 // Ordre des arrêts d'une rampe de terrain : SOURCE UNIQUE partagée avec les émetteurs SVG — la fiche
 // Codex lit la rampe dans l'ordre où le rendu la peint, jamais dans l'ordre des clés du Record.
 import { terrainStopsOrdonnes } from '../../gameIso/catalog/terrain';
-import { porteurDApercu } from './apercuPorteur';
 import { slugId } from '../../data/slug';
 
 export type CodexGroup = 'Personnage' | 'Compétences' | 'Équipement' | 'Effets' | 'Magie' | 'Monde' | 'Tables';
@@ -215,13 +213,6 @@ export interface CodexItem {
    *  par `CodexEntry` — c'est la provenance des documents SANS livre (AGENTS.md règle 7). */
   maison?: string;
   source?: CodexSource | null;
-  /** Apparence (rig) à prévisualiser dans la fiche : créature, difformité de mutation, trait à visuel. */
-  appearance?: EntityAppearance;
-  /** `id` de créature pour résoudre l'aperçu rig PAR ID (Nuées/non-bipèdes lisent leurs traits du record). */
-  previewRef?: string;
-  /** Espèce du PORTEUR sur lequel prévisualiser une `appearance` qui est un FRAGMENT (mutation, trait) —
-   *  déclarée par la catégorie (`porteurDApercu`). Absente = entité autonome, résolue par son record. */
-  previewPorteur?: string;
   /** Statbloc COMPACT (bande parchemin en tête de fiche) : profil imprimé (M + 10 caracs + Blessures)
    *  + traits en chips cross-réf. Projection data-driven (catégorie créatures). */
   statblock?: { profile: CodexFact[]; traits: CodexRow[] };
@@ -588,10 +579,8 @@ export function creatureStatblock(c: (typeof creatures)[number]): NonNullable<Co
   };
 }
 
-/** Fiche d'un Trait, projetée par DEUX catégories (`traits` et le filtre `psychologie`) : chacune
- *  passe SA clé, et c'est elle qui déclare le porteur d'aperçu (`porteurDApercu`) — sans quoi la
- *  déclaration de `psychologie` ne serait jamais lue. */
-export const traitItem = (t0: (typeof traits)[number], categoryKey: string): CodexItem => {
+/** Fiche d'un Trait, projetée par DEUX catégories (`traits` et le filtre `psychologie`). */
+const traitItem = (t0: (typeof traits)[number]): CodexItem => {
   // Entrée EFFECTIVE sous les règles optionnelles actives (#563/#564), comme la catégorie Talents :
   // desc, source, capacités, passifs et effets affichés sont ceux de la variante réglée quand elle est
   // active. `traits.json` n'en porte AUCUNE aujourd'hui (mesuré) — la lecture s'aligne sur le schéma
@@ -599,8 +588,7 @@ export const traitItem = (t0: (typeof traits)[number], categoryKey: string): Cod
   const t = effectiveEntry(t0);
   const cap = t.capabilities;
   return depuisEnveloppe(t, {
-    sub: traitArgSkeleton(t), appearance: t.appearance,
-    ...(t.appearance ? { previewPorteur: porteurDApercu(categoryKey) } : {}),
+    sub: traitArgSkeleton(t),
     meta: facts(
       cap?.psychType ? fact('Psychologie', psychologyLabel(cap.psychType)) : null,
       cap?.psychIndice != null ? fact('Indice', cap.psychIndice) : null,
@@ -1324,8 +1312,6 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       group: family(s.label),
       desc: s.desc,
       source: src(s.source),
-      // Aperçu rig DATA-DRIVEN (même chemin que le créateur) : la fiche de race montre sa silhouette.
-      appearance: { species: rigSpeciesId(s.id) },
       meta: facts(fact('Mouvement', s.movement), fact('Destin', s.fate?.fate), fact('Résilience', s.fate?.resilience)),
       // Contenu = SOURCE UNIQUE partagée avec le créateur (plus de ré-implémentation divergente).
       tabs: raceFicheTabs(s),
@@ -1466,14 +1452,9 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'siegeEngines', label: 'Engins de siège', group: 'Équipement',
-    // Engins de siège = Possessions portant l'art d'affût `siegeRig` (les mêmes que la Palette de
-    // l'éditeur, `siegeEngines`). Miroir de « Créatures » pour l'aperçu rig (l'affût est rendu par le
-    // MÊME chemin — appearance.species = siegeRig) ET de « Possessions » pour les faits d'arme
-    // (Portée/Dégâts) + Atouts (l'Indice « Arme d'équipe N » = équipage requis).
+    // Trappings du sous-type `armes-de-siege`, sélectionnés par `siegeEngines` comme dans la palette.
     build: () => siegeEngines().map((t) => depuisEnveloppe(t, {
       sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType) || undefined),
-      // Aperçu rig de l'affût, résolu comme une créature (par id + apparence species).
-      appearance: { species: t.siegeRig! }, previewRef: t.siegeRig!,
       meta: facts(
         fact('Prix', priceLabel(t.price)), fact('Enc', t.enc), fact('Disponibilité', t.availability),
         fact('Dégâts', damageFact(t)), fact('PA', t.pa),
@@ -1547,8 +1528,6 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     build: () => mutations.map((m) => depuisEnveloppe(m, {
       sub: valeurFR('mutations.json', 'kind', m.kind),
       group: valeurFR('mutations.json', 'kind', m.kind),
-      appearance: m.appearance,
-      ...(m.appearance ? { previewPorteur: porteurDApercu('mutations') } : {}),
       // PA / arme naturelle / traits conférés sont désormais des GameOps du `passive` (ap /
       // grantNaturalWeapon / grantTrait) → rendus par passiveSection ; plus de facts/chips dédiés.
       sections: sections(
@@ -1602,7 +1581,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     // Groupés par type (Peur, Terreur, Animosité…). Édition = catégorie « Traits » (source unique).
     build: () => traits
       .filter((t) => t.capabilities?.psychType || t.capabilities?.psychImmune)
-      .map((t) => ({ ...traitItem(t, 'psychologie'), group: t.capabilities?.psychType ? psychologyLabel(t.capabilities.psychType) : 'Immunité' })),
+      .map((t) => ({ ...traitItem(t), group: t.capabilities?.psychType ? psychologyLabel(t.capabilities.psychType) : 'Immunité' })),
   },
   {
     key: 'domains', label: 'Domaines', group: 'Magie',
@@ -1663,7 +1642,6 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     key: 'creatures', label: 'Créatures', group: 'Monde',
     build: () => creatures.map((c) => depuisEnveloppe(c, {
       sub: c.title ?? undefined, group: c.folder ?? undefined,
-      appearance: c.appearance, previewRef: c.id, // aperçu rig résolu par id (Nuées/non-bipèdes lisent leurs traits)
       statblock: creatureStatblock(c),
       meta: facts(
         // pastille d'en-tête TOUJOURS visible : marque l'individu nommé (lu via `isNamed`, jamais via `title`).
@@ -1695,7 +1673,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'traits', label: 'Traits', group: 'Monde',
-    build: () => traits.map((t) => traitItem(t, 'traits')),
+    build: () => traits.map((t) => traitItem(t)),
   },
   {
     key: 'locations', label: 'Lieux', group: 'Monde',
@@ -1791,13 +1769,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'raceAppearance', label: 'Apparences', group: 'Tables', cluster: 'Création de personnage',
-    build: () => raceAppearance.map((r) => {
-      const gabarit = findGabaritById(r.gabarit.id)?.label;
-      return {
-        id: r.id, label: r.label, sub: gabarit, appearance: { species: r.id },
-        meta: facts(fact('Gabarit', gabarit), fact('Tenue', r.tenue), fact('Tête', r.head), fact('Jambes', r.legs)),
-      };
-    }),
+    build: () => raceAppearance.map((r) => ({ id: r.id, label: r.label })),
   },
   {
     key: 'pregens', label: 'Pré-tirés', group: 'Tables', cluster: 'Création de personnage',

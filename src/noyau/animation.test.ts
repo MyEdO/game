@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { maniementDe, estManiementADistance } from './animation';
-import { maniementSchema, type Maniement } from '../data/schemas/grammaire/valeurs';
-import { WEAPON_FORMS } from '../gameIso/rig/parts/weaponForms';
+import { maniementDe } from './animation';
+import type { Maniement } from '../data/schemas/grammaire/valeurs';
 import { findTrappingById } from '../data';
 import { buildWeapon, itemFromTrappingById, weaponFromItem } from '../engine/items';
 import { armeDeDessin, type FormeDArme } from './equipementDessine';
@@ -13,8 +12,6 @@ const w = (id: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme => {
   const arme = objet ? weaponFromItem(objet) : buildWeapon({ label: id, type, damage: { plusBF: false, flat: 4 } });
   return armeDeDessin({ ...arme, type });
 };
-/** Projection de forme déjà résolue (pas de libellé). */
-const byShape = (forme: string | undefined, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, candidats: forme ? [forme] : [] });
 
 describe('maniementDe — dérivé de la FORME, pas du Groupe de règles', () => {
   it('mappe un représentant de chaque classe', () => {
@@ -48,14 +45,6 @@ describe('maniementDe — dérivé de la FORME, pas du Groupe de règles', () =>
     expect(maniementDe(w('arquebus-a-repetition', 'ranged'))).toBe('arme_feu');
   });
 
-  it('toute forme cataloguée résout vers UNE classe connue (aucune forme orpheline)', () => {
-    const KNOWN = maniementSchema.options.filter((m) => m !== 'cornes');
-    for (const f of WEAPON_FORMS) {
-      const h = maniementDe(byShape(f.slug, f.type));
-      expect(KNOWN, f.slug).toContain(h);
-    }
-  });
-
   it('repli : arme non dessinée → groupe canonique (Épée → lame1m, mêlée inconnue → lame1m, distance inconnue → arc)', () => {
     expect(maniementDe(w('epee'))).toBe('lame1m');
     expect(maniementDe(w('truc-bizarre', 'melee'))).toBe('lame1m');
@@ -70,15 +59,5 @@ describe('maniementDe — dérivé de la FORME, pas du Groupe de règles', () =>
     const invoquee: Weapon = buildWeapon({ label: 'Arme aethyrique', type: 'melee', damage: { plusBF: false, flat: 4 }, shape: findTrappingById('arbalete')!.shape });
     expect(findTrappingById('arbalete')?.shape?.id, 'la sonde mord : le gabarit a une forme d’arbalète').toBe('arbalete');
     expect(maniementDe(armeDeDessin(invoquee))).toBe('arbalete');
-  });
-});
-
-describe('estManiementADistance', () => {
-  it('classe les familles à distance', () => {
-    expect(estManiementADistance(w('arc-long', 'ranged'))).toBe(true);
-    expect(estManiementADistance(w('pistolet', 'ranged'))).toBe(true);
-    expect(estManiementADistance(w('bombe', 'ranged'))).toBe(true);
-    expect(estManiementADistance(w('fouet', 'ranged'))).toBe(true);
-    expect(estManiementADistance(w('dague'))).toBe(false);
   });
 });

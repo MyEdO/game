@@ -37,18 +37,15 @@ import { hotbar } from '../../state/hotbarBridge';
 import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, resoudreDisposition } from '../../state/dispositionConsole';
 import { type EntreeBarre, type ZoneBarre } from '../../engine/types';
 import { charIcon, type EffectChip } from '../../gameIso/effectIcons';
-import { HERO_RING, ENEMY_RING, ENEMY_TINT, hpColor } from '../../gameIso/teamColors';
-import { PortraitTile } from '../PortraitTile';
+import { ENEMY_TINT, hpColor } from '../../gameIso/teamColors';
+import { CharFrame } from '../CharFrame';
 import { StateChips } from '../StateChips';
 import { LifeBar } from '../LifeBar';
 import { Icon } from '../Icon';
 import { ItemIcon } from '../ItemIcon';
 import type { IconIdInput } from '../icons';
 
-/** Nombre de cases de chaque travée — GÉOMÉTRIE IMMUABLE (arbitrage utilisateur 2026-08-16 :
- *  « je ne veux pas que la taille de l'interface ou les boutons bougent »). Le contenu varie,
- *  le compte de cases JAMAIS : une case sans contenu se DESSINE vide. Les trois zones ADRESSABLES
- *  tiennent leur taille de `TAILLE_ZONE` : c'est la même mesure qui borne la disposition du porteur. */
+/** Les zones adressables tiennent leur nombre de cases de `TAILLE_ZONE`. */
 const LEFT_CELLS = TAILLE_ZONE.arsenal; // travée gauche : 2×3 — les gestes déduits du set (§1a) puis les cases LIBRES
 const QUICK_CELLS = TAILLE_ZONE.accesRapide; // rubrique ACCÈS RAPIDE : 2×2 (consommables groupés + Soin)
 const SET_SLOTS = 3; // colonne latérale de SETS : vignettes toujours dessinées (planche 2026-08-17)
@@ -276,11 +273,7 @@ const ACTION_DISSIPER = 'dispel';
  *  (`action-atteignabilite.test.ts:66`). */
 const ACTION_RECHARGER = 'reload';
 
-/** Le bandeau de phase, à ses DEUX adresses (arbitrage utilisateur 2026-08-24) : sur le parapet du
- *  pont (pauses de round, interlude de ciblage) ou, à l'OUVERTURE d'un combat, CENTRÉ EN HAUT DE LA
- *  CARTE comme la référence Rogue Trader le pose. Une seule boîte, une seule matière — l'adresse est
- *  un ATTRIBUT (`data-phase`), jamais un second composant ni une classe de plus. La MATIÈRE est la peau partagée
- *  `.skin-bois` (components.css), celle de la plaque du rail d'outils. */
+/** Bandeau partagé de phase ; `data-phase` en porte l'adresse, `.skin-bois` la matière. */
 export function PhaseBanner({ label, consigne, actions, ready, adresse = 'pont' }: PhaseBanner & {
   /** OÙ le bandeau se pose — une ADRESSE, jamais une classe de plus (cliquet xii) : sur le parapet
    *  du pont (`pont`), en haut de la carte à l'ouverture du combat (`ouverture`), ou centré au-dessus
@@ -378,9 +371,8 @@ export function ArchGutter({ kind, value, max, label, short, unit, spend = 0, ge
  *  l'interactivité des cases est réservée au héros (spec zone 7).
  *  Composant à PROPS, qui ne lit aucun store : ressources du Tour, états de situation et geste
  *  d'annulation lui arrivent de la console — c'est ce qui rend l'arche montrable en galerie. */
-export function ConsoleArch({ active, ring, move, action, etats, retraitDEtat }: {
+export function ConsoleArch({ active, move, action, etats, retraitDEtat }: {
   active: Combatant;
-  ring: string;
   /** MOUVEMENT : crans du rail, socle chiffré, crans qui partiront au commit, et l'ENTRÉE DU
    *  REGISTRE adossée à CETTE ressource (spec §1c : l'annulation du déplacement vit sur la jauge de
    *  Mouvement — elle ne paraît que quand le gate `deplacement-annulable` passe). */
@@ -396,9 +388,8 @@ export function ConsoleArch({ active, ring, move, action, etats, retraitDEtat }:
         <ArchGutter kind="move" value={move.value} max={move.max} label="Mouvement" short="MOUV." unit={`case${move.max > 1 ? 's' : ''}`} spend={move.spend} geste={move.geste} />
         {/* Portrait NU (`identity`) : les Blessures se lisent à la barre pleine largeur dessous —
             la jauge superposée de la tuile en aurait fait la 2ᵉ écriture de la même donnée.
-            Le camp se lit au `kind` du combattant, jamais au contrôle joueur (un allié piloté par
-            un autre client reste un allié). */}
-        <PortraitTile c={active} ring={ring} variant="identity" size="lg" team={active.kind === 'enemy' ? 'enemy' : 'ally'} />
+            CharFrame résout le camp par campOf. */}
+        <CharFrame c={active} variant="identity" size="lg" />
         <ArchGutter kind="action" value={action.value} max={action.max} label="Action" short="ACTION" spend={action.spend} />
         {/* NICHE D'ÉTATS : même primitive que la tuile du bandeau (`StateChips reserve`), icône +
             INDICE chiffré par État, alvéoles vides toujours dessinées. */}
@@ -423,9 +414,6 @@ export function ConsoleArch({ active, ring, move, action, etats, retraitDEtat }:
           </>
         )}
       />
-      {/* Le NOM du porteur, gravé au pied de l'arche (spécimen D) : la console dit en entier
-          qui agit — la frise ne le dit qu'à la position et à la taille. */}
-      <span className="cc-arch-name">{active.label}</span>
     </div>
   );
 }
@@ -481,7 +469,6 @@ function pontDOuverture(battle: BattleState): Combatant | undefined {
 
 export function CombatConsole() {
   const battle = useGame((s) => s.battle);
-  const party = useGame((s) => s.party);
   const net = useGame((s) => s.net);
   // MDG 09 l.40.
   const gameTime = useGame((s) => s.gameTime);
@@ -596,10 +583,7 @@ export function CombatConsole() {
   // l'INITIATIVE : sur une embuscade, un ENNEMI (Knud) portait portrait, stats et arsenal dans le
   // cadre du joueur. Le pont est celui du joueur — le premier contrôlé, sinon le premier héros du
   // groupe (partie entièrement en Auto-combat), sinon seulement la tête d'ordre.
-  /** OUVERTURE d'un combat (arbitrage utilisateur 2026-08-24, référence RT « round 0 », capture
-   *  archivée) : le bandeau de phase et son bouton quittent le coin du pont pour le HAUT DE LA
-   *  CARTE, centrés. Les pauses de round SUIVANTES gardent leur bandeau sur le parapet du pont —
-   *  l'arbitrage ne porte que sur l'ouverture. */
+  /** Le bandeau d'ouverture se pose en haut de la carte. */
   const ouverture = !!pendingRoundStart && pendingRoundStart.round <= 1;
   const active = activeCombatant(battle) ?? (phase ? pontDOuverture(battle) : undefined);
   if (!active) {
@@ -618,11 +602,7 @@ export function CombatConsole() {
   // Mer) est un acteur comme un autre : ses cases sont les cases navales du registre, dans la MÊME travée.
   const barre = etatDeLaBarre(useGame.getState());
   const vehicule = isVehicle(active);
-  /** FORME SPECTATRICE (arbitrage utilisateur 2026-08-24, verbatim : « D'ailleurs même au tour de
-   *  l'adversaire, pourquoi je vois son pont entier ? Même RT ne fait pas ca ») — tout tour NON tenu
-   *  par ce siège (ennemi, IA, autre siège coop, auto-combat) ET toute pause de Round : la bande
-   *  garde sa géométrie, mais son CONTENU devient un médaillon. Aucune case n'est grisée : il n'y a
-   *  plus de case. Le verdict est l'unique `etatDeLaBarre` — aucun cas de kind. */
+  /** La forme de la console vient de `etatDeLaBarre`. */
   const spectatrice = barre.forme === 'spectatrice';
   // LECTURE : les cases de la forme complète sont inertes sous un bandeau d'interlude (spec zone 7).
   const live = !phase;
@@ -646,8 +626,6 @@ export function CombatConsole() {
   const { restant: moveLeft, total: moveMax } = mouvementDuTour(battle, active);
   const actMax = 1 + (isFrenzied(active) ? 1 : 0);
   const actAvail = actionPrise(battle, pendingCleave) ? 0 : 1;
-  const heroIdx = party.findIndex((h) => h.id === active.id);
-  const ring = heroIdx >= 0 ? HERO_RING[heroIdx % HERO_RING.length] : ENEMY_RING;
   const previewDelta = previewResourceDelta(battle);
 
   // ── LA CONSOLE CONSOMME LE REGISTRE DES ACTIONS ────────────────────────────────────────────────
@@ -1165,25 +1143,11 @@ export function CombatConsole() {
         </div>
       )}
 
-      {/* LES DEUX FORMES du pont (arbitrage utilisateur 2026-08-24, référence RT : « rond = on
-          regarde, carré = on peut cliquer ; rien ne se grise, rien ne se désactive — la console
-          cesse d'être une console » ; précisé le 2026-09-20, verbatim : « moi je voulais que cela
-          n'affiche que cette partie sans les barres gauche et droite pour les ennemies et avant le
-          début du combat ») :
-          · COMPLÈTE — la BANDE de bord à bord et ses quatre régions (travée gauche · arche · travée
-            droite · coin), quand ce siège tient le tour ;
-          · SPECTATRICE — l'ARCHE SEULE : le portrait dans son arche, ses jauges, son rack d'États,
-            ses Blessures et son nom. Ni travée, ni set, ni accès rapide, ni grille, ni fin de tour —
-            et plus aucune BARRE de part et d'autre : la bande garde sa BOÎTE (c'est ce qui rend
-            l'arche immobile d'une forme à l'autre, au pixel) mais sa MATIÈRE s'éteint, nappe,
-            liseré et ombre comprises (combat-console.css).
-          L'arche est le MÊME composant dans les deux formes (aucune matière parallèle) : elle perd
-          seulement ce qui appartient au tour joué — le geste d'annulation et le retrait d'État. */}
+      {/* Les deux formes composent la même arche ; la forme complète ajoute les travées. */}
       <div className="cc-dock skin-pont">
       {spectatrice ? (
         <ConsoleArch
           active={active}
-          ring={ring}
           move={{ value: moveLeft, max: moveMax }}
           action={{ value: actAvail, max: actMax }}
           etats={actorStateChips(active, battle)}
@@ -1304,7 +1268,6 @@ export function CombatConsole() {
             gate du registre (`deplacement-annulable`, MIROIR de la garde de `cancelMove`) passe. */}
         <ConsoleArch
           active={active}
-          ring={ring}
           move={{ value: moveLeft, max: moveMax, spend: previewDelta.move, geste: cellFor('undo-move', 'mouvement') }}
           action={{ value: actAvail, max: actMax, spend: previewDelta.action }}
           etats={actorStateChips(active, battle)}

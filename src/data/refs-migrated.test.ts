@@ -17,7 +17,6 @@ import {
   specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
 import { avancement } from './schemas/grammaire/avancement';
-import { fauteDEspece } from './schemas/grammaire/art';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
 import { catalogueSpecs, entreeOuverte, mesureDuParse, refusDeSpec, specAuCatalogue } from './schemas/grammaire/ref';
 import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
@@ -36,13 +35,12 @@ import traumasJson from './traumas.json';
 import areneProject from '../scenes/arene/arene-projet.json';
 import loupProject from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';
-import { rigSpeciesVocab } from '../gameIso/rig/appearance';
-import { wardrobeKeyResolves } from '../gameIso/rig/parts/career';
 import { CHAR_KEYS } from '../engine/types';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { fauteDEspece, tenueFermeeSchema } from './schemas/grammaire/valeurs';
 import {
   GAMEOP_FIELD_TARGETS, auditFieldCoverage, scanGameOpRefs, formatOffender,
 } from '../../scripts/guards/lib/gameOpRefFk.mjs';
@@ -817,10 +815,9 @@ describe('careerLevels.trappings — dotations textuelles nommées', () => {
   });
 });
 
-// ── GARDE DE CLASSE — `appearance.species` = id STABLE du domaine de saisie (`fauteDEspece`,
-// `grammaire/art.ts`), jamais un LIBELLÉ. `species` absent = OK.
-// Cf. `AGENTS.md` § Pour TOUT agent (« Toute LOGIQUE est keyée par id STABLE »).
-describe('appearance.species — id du domaine de saisie (fauteDEspece), jamais un libellé', () => {
+// ── GARDE DE CLASSE — `appearance.species` = espèce d'apparence (`fauteDEspece`, `grammaire/valeurs.ts`),
+// jamais un LIBELLÉ. `species` absent = OK. Cf. `AGENTS.md` § Pour TOUT agent.
+describe('appearance.species — espèce d’apparence (fauteDEspece), jamais un libellé', () => {
   function collect(node: unknown, where: string, out: string[]): void {
     if (Array.isArray(node)) { node.forEach((x, i) => collect(x, `${where}[${i}]`, out)); return; }
     if (!isObj(node)) return;
@@ -830,20 +827,14 @@ describe('appearance.species — id du domaine de saisie (fauteDEspece), jamais 
     for (const [k, v] of Object.entries(node)) collect(v, `${where}.${k}`, out);
   }
 
-  it('projets Arène + Loup-et-Saumure : tout appearance.species est dans le domaine de saisie', () => {
+  it('projets Arène + Loup-et-Saumure : tout appearance.species est une espèce d’apparence', () => {
     const bad: string[] = [];
     collect(areneProject, 'arene-projet.json', bad);
     collect(loupProject, 'loup-et-saumure-projet.json', bad);
     expect(bad, bad.join('\n')).toEqual([]);
   });
 
-  it('creatures.json : tout appearance.species des records de créature résout dans le vocabulaire', () => {
-    const bad: string[] = [];
-    for (const c of creatures) collect(c, `creatures.json(${c.id})`, bad);
-    expect(bad, bad.join('\n')).toEqual([]);
-  });
-
-  it('scénarios de test (scene + extraScenes + party) : tout appearance.species résout dans le vocabulaire', () => {
+  it('scénarios de test (scene + extraScenes + party) : tout appearance.species est une espèce d’apparence', () => {
     const bad: string[] = [];
     for (const s of SCENARIOS) {
       const c = s.construire();
@@ -855,20 +846,14 @@ describe('appearance.species — id du domaine de saisie (fauteDEspece), jamais 
   });
 });
 
-// ── GÉNÉRALISATION DE LA GARDE PRÉCÉDENTE À TOUTE LA DONNÉE AUTHORÉE (#1537) : les 4 sources
-// importées ci-dessus ne couvrent qu'une part des JSON du dépôt. Ce balayage lit les DEUX racines de
-// données (`src/data`, `src/scenes`) sur DISQUE et vérifie tout `appearance.species` /
-// `appearanceOverride.species` de chaîne contre `rigSpeciesVocab()` (vocabulaire du producteur
-// validant `asRigSpeciesId`, cf. src/gameIso/rig/appearance.ts).
-describe('appearance(.Override).species — TOUTE la donnée authorée des deux racines ⊆ rigSpeciesVocab()', () => {
+// ── GÉNÉRALISATION À TOUTE LA DONNÉE AUTHORÉE (#1537) : les deux racines de données (`src/data`,
+// `src/scenes`) lues sur DISQUE, tout `appearance.species` / `appearanceOverride.species` de chaîne.
+describe('appearance(.Override).species — TOUTE la donnée authorée des deux racines est une espèce d’apparence', () => {
   const RACINES = ['data', 'scenes'].map((d) => fileURLToPath(new URL(`../${d}`, import.meta.url)));
-  /** Les `.json` d'une racine de données, à toute profondeur et en ORDRE TOTAL — la marche vient de
-   *  `listerArbre` (`scripts/guards/lib/lister.mjs`), pas d'une récursion locale. */
   const jsonFiles = (dir: string): string[] =>
     listerArbre(dir, { filtre: (rel) => rel.endsWith('.json') }).map((rel) => `${dir}/${rel}`);
 
-  it('tout species authoré dans src/data + src/scenes est un id du vocabulaire rig', () => {
-    const VOCAB = rigSpeciesVocab();
+  it('tout species authoré dans src/data + src/scenes passe `fauteDEspece`', () => {
     const files = RACINES.flatMap(jsonFiles);
     const bad: string[] = [];
     let sites = 0;
@@ -879,8 +864,8 @@ describe('appearance(.Override).species — TOUTE la donnée authorée des deux 
         const app = node[cle];
         if (isObj(app) && typeof app.species === 'string') {
           sites++;
-          if (!VOCAB.has(app.species))
-            bad.push(`${fichier} : ${chemin}.${cle}.species = ${JSON.stringify(app.species)} hors vocabulaire rig`);
+          const faute = fauteDEspece(app.species);
+          if (faute) bad.push(`${fichier} : ${chemin}.${cle}.species — ${faute}`);
         }
       }
       for (const [k, v] of Object.entries(node)) scan(v, fichier, `${chemin}.${k}`);
@@ -894,19 +879,17 @@ describe('appearance(.Override).species — TOUTE la donnée authorée des deux 
     }
     expect(bad, bad.join('\n')).toEqual([]);
     expect(files.length, 'aucun JSON balayé — le walker est cassé').toBeGreaterThan(100);
-    expect(sites, 'la population de sites species s’est effondrée — le walker ne mesure plus rien').toBeGreaterThan(250);
+    expect(sites, `${sites} sites species — le walker ne mesure plus rien`).toBeGreaterThan(250);
   });
 });
 
-// ── SWEEP DE RÉFÉRENCES DE SCÈNE (#223, même walk que la garde species) — chaque `SceneEntity` d'un
+// ── SWEEP DE RÉFÉRENCES DE SCÈNE (#223) — chaque `SceneEntity` d'un
 // projet/scénario ne porte que des IDS STABLES (doctrine « labels interdits ») qui RÉSOLVENT au
 // chargement, sinon repli silencieux/bruyant :
-//  - `personnage`.ref → créature ∪ véhicule (coque) ∪ engin de siège (trapping siegeRig), les 3 familles
+//  - `personnage`.ref → créature ∪ véhicule (coque) ∪ engin de siège (trapping du sous-type armes-de-siege), les 3 familles
 //    légitimes du spawn (`spawnEnemy`) ; `undefined` (statbloc/générique) toléré.
 //  - `weapon` → `trappingId` EXACT du catalogue d'armes (`findTrappingById`).
-//  - `appearance.tenue` → id EXACT de garde-robe (carrière ∪ classe ∪ tenue ∪ 'nu', `wardrobeKeyResolves`).
-//    Le vocabulaire est le MÊME que le résolveur de rendu (`tenueFor` : une carrière SANS tenue dédiée
-//    résout par sa classe) — d'où l'ensemble carrière∪classe∪tenue plutôt que les seules tenues.
+//  - `appearance.tenue` → carrière ∪ classe ∪ 'nu' (`tenueFermeeSchema`, #3116).
 // Toute violation ci-dessus = `fichier/entité/valeur`. DUR partout (projets régénérés par l'auteur en ids).
 describe('refs de scène — ref/weapon/tenue = ids EXACTS du catalogue (#223, labels interdits)', () => {
   const ENTITY_KINDS = new Set(['heroStart', 'personnage', 'prop']);
@@ -920,8 +903,8 @@ describe('refs de scène — ref/weapon/tenue = ids EXACTS du catalogue (#223, l
       if (typeof node.weapon === 'string' && !findTrappingById(node.weapon))
         out.push(`${who}.weapon = ${JSON.stringify(node.weapon)} (pas un trappingId du catalogue d'armes)`);
       const app = node.appearance;
-      if (isObj(app) && typeof app.tenue === 'string' && !wardrobeKeyResolves(app.tenue))
-        out.push(`${who}.appearance.tenue = ${JSON.stringify(app.tenue)} (pas un id carrière ∪ classe ∪ tenue)`);
+      if (isObj(app) && typeof app.tenue === 'string' && !tenueFermeeSchema.safeParse(app.tenue).success)
+        out.push(`${who}.appearance.tenue = ${JSON.stringify(app.tenue)} (ni carrière ∪ classe ∪ « nu »)`);
     }
     for (const [k, v] of Object.entries(node)) sweep(v, `${where}.${k}`, out);
   }

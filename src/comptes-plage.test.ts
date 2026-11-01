@@ -382,9 +382,9 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
     'src/data/teintesJeu.json': /Clé non reconnue/,
     'src/data/defauts-de-compilation.json': null,
     'src/data/details.json': null,
-    'src/data/renduMonte.json': null,
     'src/data/semences-de-scene.json': null,
     'src/data/sizes.json': null,
+    'src/data/speciesRace.json': null,
   };
 
   it('dans chaque document, liste, record ou config (projets de scène compris), une entrée copiée sous un id neuf et une entrée NON référencée retirée tant que son schéma l’admet, un projet de scène neuf, cibles de code régénérées : aucun refus dans les deux sens, chaque volet inchangé', { timeout: 260_000 }, () => {

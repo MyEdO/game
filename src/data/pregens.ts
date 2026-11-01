@@ -40,8 +40,6 @@ export interface PregenDef extends Pick<ChoixDeCreation, ChoixDesPretires> {
   age?: number;
   /** Sexe visuel (cosmétique ; aucune incidence de règles). Défaut 'M'. */
   sex?: Sexe;
-  /** Morphologie 0..1 (cosmétique). Défaut 0.5. */
-  build?: number;
 }
 
 /** Construit le héros d'un pré-tiré via `createHero` (identité authorée posée en `opts`), puis
@@ -49,7 +47,7 @@ export interface PregenDef extends Pick<ChoixDeCreation, ChoixDesPretires> {
  *  engine) — APPEND uniquement : les Bénédictions du Talent Béni, déjà octroyées par
  *  `applyTalentAcquisition` dans `createHero`, ne sont JAMAIS écrasées. */
 function buildPregenHero(d: PregenDef): Combatant {
-  const { id: _id, type: _type, label, species, career, motivation, ambitionShort, ambitionLong, age, sex, build, ...choix } = d;
+  const { id: _id, type: _type, label, species, career, motivation, ambitionShort, ambitionLong, age, sex, ...choix } = d;
   const authoredIds = choix.pettySpells ?? [];
   const hero = createHero({
     ...choix,
@@ -59,7 +57,7 @@ function buildPregenHero(d: PregenDef): Combatant {
     id: `pregen-${d.seed}`,
     details: { age, ambitionShort, ambitionLong },
     motivation,
-    apparence: { sex: sex ?? 'M', build: build ?? 0.5, seed: d.seed },
+    apparence: { sex: sex ?? 'M' },
   });
   const quota = pettySpellQuotaFor(hero);
   if (!quota) {

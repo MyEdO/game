@@ -38,11 +38,9 @@ import seaWeather from '../../sea-weather.json';
 import steamBreakdown from '../../steam-breakdown.json';
 import advancementCosts from '../../advancementCosts.json';
 import reglesOptionnelles from '../../reglesOptionnelles.json';
-import species from '../../species.json';
 import vehicles from '../../vehicles.json';
 import trappings from '../../trappings.json';
 import structures from '../../structures.json';
-import careers from '../../careers.json';
 import navalTraits from '../../naval-traits.json';
 import qualities from '../../qualities.json';
 import traits from '../../traits.json';
@@ -402,20 +400,13 @@ describe('water-exposure › auto.between — les deux bornes du prédicat', () 
  * (`grammaire/ref.ts`) — sauf pour les Atouts d'objet, qui passent par `qualityRefSchema` (sans FK,
  * #1615/#1621) : c'est LÀ que cette mesure est la seule garde.
  */
-describe('références migrées — les 4 populations résolvent contre leur catalogue (#1463 L-gram-2)', () => {
+describe('références migrées — les 3 populations résolvent contre leur catalogue (#1463 L-gram-2)', () => {
   const ids = (liste: ReadonlyArray<{ id: string }>) => new Set(liste.map((e) => e.id));
   const CATALOGUES = {
-    careers: ids(careers as ReadonlyArray<{ id: string }>),
     navals: ids(navalTraits as ReadonlyArray<{ id: string }>),
     qualities: ids(qualities as ReadonlyArray<{ id: string }>),
     traits: ids(traits as ReadonlyArray<{ id: string }>),
   };
-
-  it('species.json › previewCareer — 27 aperçus, 27 carrières résolues', () => {
-    const vus = (species as ReadonlyArray<{ previewCareer?: { id: string } }>).flatMap((s) => (s.previewCareer ? [s.previewCareer.id] : []));
-    expect(vus.length, 'la population des aperçus de vitrine a disparu.').toBe(27);
-    expect(vus.filter((id) => !CATALOGUES.careers.has(id)), 'carrière d’aperçu hors de careers.json').toEqual([]);
-  });
 
   // 19 → 20 : la barge fluviale gagne le Trait `cale` (#1657 B3-2b-a — MSRC 07 l.94 gate le Critique
   // de Superstructure sur « si le bateau dispose d'une cale », MSRC 10 l.90 la dit du navire marchand).

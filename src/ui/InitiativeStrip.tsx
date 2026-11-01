@@ -1,5 +1,4 @@
-import { PortraitTile } from './PortraitTile';
-import { ALLY_TINT, ENEMY_TINT } from '../gameIso/teamColors';
+import { CharFrame } from './CharFrame';
 import { strikesLast } from '../engine/qualities/dispatch';
 import { baseWithTraits } from '../engine/characteristics';
 import { talentInitiativeBonus } from '../engine/combatFeatures/dispatch';
@@ -87,7 +86,6 @@ export function InitiativeStrip(p: InitiativeStripProps) {
         {p.order.map((id, i) => {
           const c = p.combatants.find((x) => x.id === id);
           if (!c) return null;
-          const isHero = c.kind === 'hero';
           const phase = initiativePhase(i, p.turn, p.over);
           return (
             <div
@@ -106,19 +104,15 @@ export function InitiativeStrip(p: InitiativeStripProps) {
                   {c.initiative}{strikesLast(c.weapons) ? <> <Icon id="ui/wait" size={10} /></> : null}
                 </span>
               )}
-              {/* Entrée de frise = vignette + liseré de camp (spec §1c-bis) : ni PV, ni nom, ni
-                  États — ils vivent au bandeau de groupe et à l'arche. D'où `identity`. */}
-              <PortraitTile
+              <CharFrame
                 c={c}
-                ring={isHero ? ALLY_TINT : ENEMY_TINT}
-                team={isHero ? 'ally' : 'enemy'}
                 variant="identity"
                 size="sm"
                 active={phase === 'current'}
                 hovered={c.id === p.hoveredId}
                 onClick={() => p.onActivate(id)}
                 onInspect={p.onInspect ? () => p.onInspect!(id) : undefined}
-                title={p.targeting ? `${c.label} — cibler` : c.label}
+                nom={p.targeting ? `${c.label} — cibler` : c.label}
               />
               {p.canFirstIds.includes(id) && (
                 <button

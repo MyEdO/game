@@ -10,8 +10,8 @@ import type { JSX } from 'react';
  * la portée du groupe et le tour de l'actif, que la révélation ignore.
  *
  * ANCRAGE : celui de la pastille de gestes, à la lettre — `chromeTransform` pour la case et
- * `chromeHeadPx` pour la hauteur de tête (`InteractHalo` EST un `Ancrage`). Deux calculs de hauteur
- * divergeraient au premier décor volumique.
+ * `chromeHeadPx` pour le bord du repère au sol (`InteractHalo` EST un `Ancrage`). La géométrie est
+ * partagée avec le chrome du jeton.
  *
  * PAS UNE CIBLE : `pointer-events: none` de bout en bout. Le monde entier est cliquable par UN `<svg>`
  * (`SurcoucheIso`) ; une plaque qui prendrait le pointeur mangerait une bande du champ au-dessus de

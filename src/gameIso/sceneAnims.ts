@@ -1,8 +1,6 @@
 /**
  * Ambiances d'une ENTITÉ de scène (`SceneEntity.anim`), choisies dans l'éditeur (inspecteur
- * d'entité). Le monde volumique les joue sur les FIGURANTS (`backends/webgl/sceneMeshes`
- * `collectBillboards` : l'ambiance entre dans l'identité de la planche et cuit ses frames), quand
- * le corps sait la jouer — `rig/anim/ambientClips` résout la clé courte en clip de rig.
+ * d'entité) : donnée d'authoring, qu'aucun rendu ne lit.
  */
 export const SCENE_ANIMS: { key: string; label: string }[] = [
   { key: '', label: '— aucune (sprite fixe) —' },
@@ -15,6 +13,3 @@ export const SCENE_ANIMS: { key: string; label: string }[] = [
   { key: 'wrap', label: 'Ondule (tentacule)' },
   { key: 'glow', label: 'Luit' },
 ];
-
-/** Ensemble des classes valides (pour validation/rendu). */
-export const SCENE_ANIM_KEYS = new Set(SCENE_ANIMS.map((a) => a.key).filter(Boolean));

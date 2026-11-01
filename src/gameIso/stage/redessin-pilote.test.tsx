@@ -26,7 +26,10 @@ import type { LightSource } from '../../noyau/monde/vision';
 import type { WalkTrack } from '../fx/walkPose';
 import { COMBAT_TOKEN_BASE, NO_DYNAMIC_MARKS, teamRingRadiusK, type DynamicMarks } from '../builders/dynamicMarks';
 import { HERO_RING } from '../teamColors';
-import { setStageRendererFactory, type PercageEntrees } from './GameStage3D';
+import type { EndState } from '../../engine/conditions';
+import type { TokenChromeMark } from '../builders/tokenChrome';
+import { applyEndStateColor } from '../endStateAppearance';
+import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, rendus as rendusDe, scènes, viderCaptures } from './banc-volumique';
 import { VolumetricWorld, type WorldFrame } from './VolumetricWorld';
 import { resetStageFrames } from './stageFrames';
@@ -80,28 +83,28 @@ interface Leviers {
   /** Commit ÉTRANGER : un état local de l'hôte, qui ne touche à aucune entrée du monde. */
   bidon: () => void;
   marques: (m: DynamicMarks) => void;
+  fin: (state: EndState | null) => void;
   zoom: (z: number) => void;
   /** Dégagement et teinte, RETENUS sur leur valeur comme chez l'hôte de jeu (deux memos de `MondeDeCampagne`). */
   keep: (k: KeepEl) => void;
   tint: (t: TintAt) => void;
-  percage: (p: PercageEntrees) => void;
 }
 
 /** L'hôte du monde volumique : il tient l'état, et rend le MÊME sous-arbre que le jeu. */
 function Hôte({ leviers }: { leviers: MutableRefObject<Leviers | null> }) {
   const [bidon, setBidon] = useState(0);
   const [marques, setMarques] = useState<DynamicMarks>(NO_DYNAMIC_MARKS);
+  const [fin, setFin] = useState<EndState | null>(null);
   const [zoom, setZoom] = useState(1);
   const [keep, setKeep] = useState<KeepEl>(() => KEEP);
   const [tint, setTint] = useState<TintAt>(() => TINT);
-  const [percage, setPercage] = useState<PercageEntrees | null>(null);
   leviers.current = {
     bidon: () => setBidon((n) => n + 1),
     marques: setMarques,
+    fin: setFin,
     zoom: setZoom,
     keep: (k) => setKeep(() => k),
     tint: (t) => setTint(() => t),
-    percage: setPercage,
   };
   // Cadre reforgé à CHAQUE rendu, comme l'hôte de jeu en reforge un : ce sont ses ENTRÉES qui sont
   // retenues (`MondeDeCampagne.dimsVue`, `camAtStable`), jamais l'objet.
@@ -123,7 +126,7 @@ function Hôte({ leviers }: { leviers: MutableRefObject<Leviers | null> }) {
         lights={SANS_LAMPE}
         battle={null}
         dynMarks={marques}
-        percage={percage}
+        chromes={[{ id: 'h1', endState: fin, ghost: false, highlight: null } as TokenChromeMark]}
       />
     </div>
   );
@@ -231,6 +234,22 @@ describe('Redessin piloté par les données (#1371)', () => {
     expect(pool('marquesDyn:anneau').count, 'l’image peinte ne porte pas l’anneau neuf').toBeGreaterThan(0);
   });
 
+  it('la transition reddition → mort actualise la signature et la teinte de l’anneau', () => {
+    monter();
+    act(() => { leviers.current!.marques(ANNEAU); leviers.current!.fin('rendu'); });
+    const anneau = pool('marquesDyn:anneau');
+    const avant = new THREE.Color();
+    anneau.getColorAt(0, avant);
+    act(() => leviers.current!.fin('mort'));
+    const apres = new THREE.Color();
+    anneau.getColorAt(0, apres);
+    const attendu = applyEndStateColor(new THREE.Color(HERO_RING[0]), 'mort');
+    expect(apres.r).toBeCloseTo(attendu.r, 6);
+    expect(apres.g).toBeCloseTo(attendu.g, 6);
+    expect(apres.b).toBeCloseTo(attendu.b, 6);
+    expect(apres.toArray()).not.toEqual(avant.toArray());
+  });
+
   it('un cadrage NEUF (zoom) peint son image', () => {
     monter();
     const avant = rendus();
@@ -288,22 +307,5 @@ describe('Mutations du monde cuit — chaque passe peint SA propre écriture (#1
     // montage des lampes que par sa VALEUR (`cléBoite`). Une ambiante neuve ici voudrait dire que le
     // champ de vision recuit encore la carte d'ombre à chaque pas du groupe.
     expect(ambiante(), 'le groupe des lampes a été remonté par un simple changement de teinte').toBe(avantAmbiante);
-  });
-});
-
-/**
- * DÉCOUPE LOCALE (#1176, M3) : la clé de perçage est une entrée que SEULE la passe de frame lit
- * (`Percage.majVerdict`). Aucun montage ne la voit — sans dépendance, un trou demandé n'ouvrirait
- * qu'à la prochaine image d'une AUTRE cause.
- */
-describe('Perçage — une clé neuve peint (#1371)', () => {
-  it('une clé de perçage neuve peint son image', () => {
-    monter();
-    act(() => leviers.current!.percage({ cle: 'A', lids: [], heros: [] }));
-    const avant = rendus();
-
-    act(() => leviers.current!.percage({ cle: 'B', lids: [], heros: [] }));
-
-    expect(rendus() - avant, `${rendus() - avant} image(s) pour une clé de perçage neuve`).toBe(1);
   });
 });

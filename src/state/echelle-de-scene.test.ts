@@ -61,7 +61,6 @@ const SITES: readonly { fichier: string; texte: string; role: string }[] = [
   { fichier: 'gameIso/backends/webgl/worldTris.ts', texte: 'return (TW * Math.SQRT1_2) / mpt;', role: 'CADENCE de la projection (px/m) — `pxPerM`' },
   { fichier: 'gameIso/stage/GameStage3D.tsx', texte: '() => (xM, zM, yM) => isSheltered(abris, xM / mpt, zM / mpt, yM),', role: 'point MÉTRIQUE du monde 3D → case, pour lire un abri' },
   { fichier: 'gameIso/stage/GameStage3D.tsx', texte: 'const section = shelterSectionAt(abris, xM / mpt, zM / mpt);', role: 'point métrique → case, pour nommer la section d’abri' },
-  { fichier: 'gameIso/stage/GameStage3D.tsx', texte: 'const cycles = Math.hypot(g.dx, g.dz) / mpt / 2;', role: 'distance métrique parcourue → cycles de marche (2 cases par cycle)' },
   { fichier: 'gameIso/stage/GameStage3D.tsx', texte: '? { x: frame.partyPos.x + g.dx / mpt, y: frame.partyPos.y + g.dz / mpt, z: frame.partyPos.z }', role: 'déplacement métrique de la caméra → position en cases du groupe' },
 ];
 

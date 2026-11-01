@@ -60,7 +60,7 @@ test('lireNumstat : commits, fichiers, et lignes binaires mises à part', () => 
     '@@commit aaa',
     '',
     '3\t1\tsrc/state/store.ts',
-    '-\t-\tsrc/gameIso/rig/quad.test.ts',
+    '-\t-\tpublic/audio/critique.ogg',
     '@@commit bbb',
     '',
     '0\t7\tsrc/ui/Modal.tsx',
@@ -68,7 +68,7 @@ test('lireNumstat : commits, fichiers, et lignes binaires mises à part', () => 
     '',
   ].join('\n')
   assert.deepEqual(lireNumstat(texte), [
-    { sha: 'aaa', fichiers: [{ chemin: 'src/state/store.ts', ajouts: 3, suppressions: 1 }], binaires: ['src/gameIso/rig/quad.test.ts'] },
+    { sha: 'aaa', fichiers: [{ chemin: 'src/state/store.ts', ajouts: 3, suppressions: 1 }], binaires: ['public/audio/critique.ogg'] },
     { sha: 'bbb', fichiers: [{ chemin: 'src/ui/Modal.tsx', ajouts: 0, suppressions: 7 }, { chemin: 'src/ui/Cadre.tsx', ajouts: 10, suppressions: 0 }], binaires: [] },
   ])
 })

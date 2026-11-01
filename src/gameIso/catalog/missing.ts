@@ -1,11 +1,11 @@
 /**
- * REPLI VISIBLE des catalogues de rendu (#877) — même doctrine que `orientedArtOr`/`MISSING_ART`
- * (#223, `rig/viewArt.ts`) : un id absent d'un registre ne prend JAMAIS l'identité d'une AUTRE entrée.
+ * REPLI VISIBLE des catalogues de rendu (#877) — même doctrine que `MISSING_ART`
+ * (#223, `viewArt.ts`) : un id absent d'un registre ne prend JAMAIS l'identité d'une AUTRE entrée.
  * Il résout une entrée d'ERREUR ASSUMÉE, peinte au ton d'alarme (criard quelle que soit la scène),
  * doublée d'un `console.warn` en DEV qui nomme l'id fautif. Le rendu ne déguise plus l'échec, et rien
  * ne lève : une donnée fautive se voit, elle n'emporte pas la scène.
  */
-import { MISSING_TONE, MISSING_TONE_DARK } from '../rig/viewArt';
+import { MISSING_TONE, MISSING_TONE_DARK } from '../teamColors';
 
 export { MISSING_TONE, MISSING_TONE_DARK };
 

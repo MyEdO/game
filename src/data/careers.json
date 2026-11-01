@@ -2166,7 +2166,6 @@
     "type": "careers",
     "label": "Marin (Côtier)",
     "class": "cotiers",
-    "tenue": "marin",
     "rand": {
       "humain": 66,
       "halfling": 71,
@@ -2192,7 +2191,6 @@
     "label": "Naufrageur (Côtier)",
     "labelF": "Naufrageuse (Côtier)",
     "class": "cotiers",
-    "tenue": "naufrageur",
     "rand": {
       "humain": 67,
       "halfling": null,
@@ -2218,7 +2216,6 @@
     "label": "Nautonier (Côtier)",
     "labelF": "Nautonière (Côtier)",
     "class": "cotiers",
-    "tenue": "nautonier",
     "rand": {
       "humain": 68,
       "halfling": 73,
@@ -2340,7 +2337,6 @@
     "type": "careers",
     "label": "Alchimiste ordinaire",
     "class": "lettres",
-    "tenue": "apothicaire",
     "rand": {},
     "desc": "*Vous êtes à la pointe de la compréhension des propriétés de la matière, en combinant avec succès la science et la magie.*\n\nRompus aux propriétés de la matière, les Alchimistes sont des experts dans la création de matériaux nouveaux et dans l'amélioration de ceux déjà existants. Ils peuvent concocter des préparations chimiques et travaillent souvent avec des métallurgistes. Leurs connaissances sont spécialisées et très sollicitées. Par exemple à Nuln, l'École impériale d'Artillerie charge tout un département d'alchimistes de créer de la poudre noire et d'en améliorer l'efficacité.\n\n*« Je ne sais pas ce qu'ils font dans leurs laboratoires secrets avec leurs étranges concoctions, mais mon beau-frère – qui connaît quelqu'un qui sait lire – m'a dit qu'on disait dans un article de l'Altdorf Spieler que quelqu'un racontait que ces alchimistes utilisent de la Magie sans permis et que leurs bâtiments explosent tout le temps. »*\n\n– Dimbo Cendreplaine, conteur de l'Haffenstadt\n\n*« L'alchimie ? Je pense que c'est formidable ! Imaginez si tout le monde pouvait fabriquer de l'or ! Nous serions tous riches et plus personne n'aurait à travailler !»*\n\n– Lena Steiner, étudiante, tendance kloszowskiste",
     "source": {
@@ -2355,7 +2351,6 @@
     "label": "Bedeau",
     "labelF": "Bedelle",
     "class": "guerriers",
-    "tenue": "garde",
     "rand": {},
     "desc": "*Vous êtes un garde spécialisé, contrebalançant surveillance et bras armé par la dignité qu'attend l'institution que vous protégez.*\n\nLes professeurs de l'Université d'Altdorf et les sorciers des Collèges de Magie ont tendance à se plonger dans l'étude de leur discipline. Ils préfèrent faire des recherches dans de vieux volumes sur des faits obscurs et des théories, ou bien mener des expériences et faire passer la science avant la gestion quotidienne de l'organisation dont ils font partie.\n\nC'est pourquoi ces dernières ont besoin de personnel plus pragmatique : les bedeaux. Ils protègent les salles, les bibliothèques et les laboratoires des établissements contre les voleurs ou les espions, et avant tout contre les étudiants qui se comportent mal.\n\n*« Si vous avez besoin d'en savoir plus, demandez à notre bedeau. Par Sigmar, il en sait plus sur cette université que la plupart d'entre nous. »*\n\n– Professeur Pfaff, Université d'Altdorf\n\n*« Par contre, faites attention à notre bedeau. On dirait que cette crapule est partout et que sa principale mission est de faire en sorte que les étudiants ne puissent pas s'amuser. Cette vieille bête bedonnante est… attendez, pourquoi vous regardez pardessus mon épaule comme ça…? »*\n\n– Rickhardt Kettenhemd de la Ligue de Karl-Franz",
     "source": {
@@ -2370,7 +2365,6 @@
     "label": "Devin",
     "labelF": "Devineresse",
     "class": "ruraux",
-    "tenue": "mystique",
     "rand": {},
     "desc": "*Vous possédez la capacité rare de comprendre des faits passés au contact d'une personne, d'un objet ou d'un endroit.*\n\nTrès peu d'humains possèdent la capacité de voir le passé en touchant un objet ou une personne en particulier ou ce qui s'est déroulé à un endroit précis. Ils sont encore moins nombreux à pouvoir utiliser cette capacité sans devenir fous. Les seuls à pouvoir le faire régulièrement sont appelés des Devins.\n\n*« Vous avez perdu votre bourse ? Allez voir Madame Zelda. Elle peut souvent dire où se trouvent les objets perdus. Mais, bien entendu, elle aime être payée pour ses services et puisque vous avez perdu votre bourse… »*\n\n– Alfric *« Demi-nez »*, négociant en informations\n\n*« La divination ? Ce n'est pas naturel, si ? C'est sûrement une forme de sorcellerie. »*\n\n– Idée reçue d'un bout à l'autre du Vieux Monde\n\n*« Le nouveau commis de Haagen est bon. Il a déconseillé plus d'une fois à son employeur de se lancer dans des affaires avec des escrocs. C'est comme s'il pouvait sentir une transaction malhonnête. »*\n\n– Entendu près du Nouveau Palais dans le Paleisbuurt",
     "source": {
@@ -2384,7 +2378,6 @@
     "type": "careers",
     "label": "Hiérophante",
     "class": "lettres",
-    "tenue": "sorcier",
     "rand": {},
     "desc": "*Vous êtes un membre de l'Ordre Lumineux, respecté pour sa pratique exigeante et perçu comme austère et exotique.*\n\nLa plupart des gens ordinaires ne font pas la distinction entre les différents lanceurs de sorts : ils les appellent tous « sorciers » (ou d'autres noms bien moins respectueux dans leur dos). Toutefois, pour ceux qui la font, les Sorciers Lumineux sont aussi connus sous le nom de sorciers blancs, hiérophantes ou parfois exorcistes.\n\nCes Sorciers revêtent généralement des vêtements d'un blanc immaculé, une couleur qui a tendance à attirer *Hysh*. Toute leur parure est brodée au fil d'or ou d'argent et fait référence aux symboles de l'ordre : le Serpent de Lumière, l'Arbre du Savoir et bien d'autres.\n\n*« Oui, la trahison de Horstmann nous a tous entachés, mais ne croyez pas un seul instant ceux qui affirment que nous n'en avons pas honte. C'était un chancre au cœur de notre collège ; une pourriture qui par pure chance ne s'est pas répandue aussi loin qu'elle aurait pu. D'ici une génération ou deux, nous pourrons nous débarrasser des ténèbres que notre ancien patriarche a introduites, mais d'ici là nous devons en porter la responsabilité. »*\n\n– Hiérophante Gertrude Langtrosser\n\n*« La lumière peut faire de deux choses l'une : éclairer ou aveugler. Assure-toi de faire bon usage des deux. »*\n\n– Un hiérophante inconnu s'adressant à un acolyte",
     "source": {
@@ -2398,7 +2391,6 @@
     "type": "careers",
     "label": "Alchimiste",
     "class": "lettres",
-    "tenue": "sorcier",
     "rand": {},
     "desc": "*Vous êtes un membre de l'Ordre Doré, largement reconnu comme étant les maîtres de la manipulation de la matière.*\n\nÀ l'instar des astromanciens de l'Ordre Céleste, les magisters-alchimistes du Vent Doré ont la réputation d'être des intellectuels et des scientifiques. Mais, si les élèves d'Azyr scrutent les cieux à la recherche de signes de futurs possibles et se livrent à des débats théoriques hermétiques, les alchimistes se concentrent sur la recherche appliquée et ses usages dans le monde réel.\n\n*« Bien loin de moi l'idée de rabaisser les magisters des autres collèges, mais on peut se poser des questions : Azyr ? La tête dans les nuages. Shyish ? Tellement déprimants qu'une rose fanerait dans leurs mains. Ghur ? Eh bien, disons qu'il vous suffirait simplement de répandre de la paille au sol. Mais nous autres du Collège Doré ? Nous sommes pragmatiques et rationnels, nous prenons le monde tel qu'il est. Et nous faisons de l'argent. Beaucoup d'argent. »*\n\n– Magister Horst Bergmann\n\n*« Si l'un d'entre vous ne croit pas que les sorciers sont les ennemis du peuple, regardez les sorciers Dorés ! Ils sont en quête de savoir ? Avec leurs jolis carrosses, leurs bijoux en or et leurs potions qu'ils vendent aux puissants et à ceux de la haute à un prix bien au-delà de tout ce que nous gagnons en une année partager avec le Peuple ! Moi je le dit ! Qu'ils pourrissent dans les Royaumes du Chaos ! »*\n\n– L'agitateur Benno Metzger de la LAPIN (Ligue Armée et Populaire contre les Impôts et la Noblesse)",
     "source": {
@@ -2413,7 +2405,6 @@
     "label": "Druide",
     "labelF": "Druidesse",
     "class": "lettres",
-    "tenue": "sorcier",
     "rand": {},
     "desc": "Vous puisez dans la vitalité et le pouvoir de la nature pour façonner le monde naturel grâce à votre magie.\n\nLes Sorciers de Jade sont plus appréciés dans les villages de l'Empire que n'importe quel autre sorcier impérial. Chacun sait qu'ils peuvent contrôler les plantes et que les terres prospèrent en leur présence. Tout village qui accueille un druide s'attend à une récolte abondante l'année suivante.\n\n*« La spirale est le symbole de la vie. Elle représente un secret lové en chacun de nous : tout ce que nous pouvons être y est écrit, comme un code. Et il ne peut être trouvé que grâce à la compréhension de Ghyran. »*\n\n– Friedrich Miescher, Sorcier de Jade\n\n*« J'ai reçu l'une de ces Druidesses l'autre jour. Je ne suis pas bien sûr de ce qu'elle trafiquait, mais quand j'ai fait le lit le lendemain, il était plein de feuilles. »*\n\n– Arnold Fleiss, aubergiste",
     "source": {
@@ -2427,7 +2418,6 @@
     "type": "careers",
     "label": "Astromancien",
     "class": "lettres",
-    "tenue": "sorcier",
     "rand": {},
     "desc": "*Vous scrutez les cieux et ramenez le Vent d'Azyr pour courber les éléments selon votre volonté, voire manipuler le destin.*\n\nLes magisters qui canalisent *Azyr* sont des astromanciens, aussi connus sous le nom de sorciers Célestes ou, pour les incultes, *« sorciers bleus »*. Ils préfèrent mettre des calottes, des capes à col montant et des robes onéreuses dans des tons noir et bleu profond ornées de motifs en or et en argent pour représenter le ciel nocturne. Le symbole de leur ordre, la Comète de pouvoir, se trouve toujours quelque part sur eux. Nombre d'entre eux présentent au monde une apparence soignée et distante.\n\nChaque magister porte un bâton, généralement surmonté d'un télescope ornemental, d'un planétaire ou d'une sphère armillaire miniature. Ces objets sont parfois fonctionnels, mais ils servent principalement de symbole de l'art Astromancien.\n\n*« En temps normal, je ne ferais confiance à un sorcier que s'il pouvait nager avec une ancre autour du cou, mais avoir magister Aeolus à bord s'est avéré utile. Certes, il nous coûte une petite fortune et s'habille de manière un peu fantaisiste pour un civil, mais il sait comment s'adresser à ses supérieurs, peut prédire le mauvais temps et nous a sauvés avec sa foudre lorsque ces pillards skaelings nous ont attaqués. »*\n\n– Amiral Klaus von Nesselzelt de la Marine impériale",
     "source": {
@@ -2441,7 +2431,6 @@
     "type": "careers",
     "label": "Spirite",
     "class": "lettres",
-    "tenue": "sorcier",
     "rand": {},
     "desc": "*Vous êtes un membre de l'Ordre d'Améthyste, craint et respecté pour votre familiarité avec la mort.*\n\nLes sorciers du Collège d'Améthyste, contrairement à ceux du Collège Doré, mieux acceptés dans la société impériale, sont fuis et évités dès que possible. Quelque chose dans leur regard ferme, leur attitude sombre et silencieuse donne l'impression aux profanes d'être des cadavres reposant sur une table, toujours prêts… mais à quoi exactement ?\n\n*« Sur Sigmar j'te jure, Bart ! Ils ont retrouvé le cadavre d'un rupin dans la ruelle, sans savoir qui c'était et qui l'avait tué. La garde a ramené ce sorcier en robe violette du collège. Il est resté là planté à le regarder, sans un mot. Il a finalement secoué la tête et a tout raconté au sergent sur l'assassinat. Dans l'heure ils avaient compris qui l'avait fait et ils l'ont coincé. »*\n\n– un colporteur des rues d'Altdorf\n\n*« Connaître Shyish c'est connaître la continuité du temps, la transition constante du passé vers le présent et le futur, de la naissance, à la vie, à la mort et au-delà. Non, nous ne sommes pas des voyants ; cela, nous le laissons aux astromanciens et aux prêtres du Seigneur des Rêves. Nous sommes plutôt des philosophes et notre savoir est un fardeau. »*\n\n– un Magister de *Shyish* faisant la leçon à des apprentis",
     "source": {
@@ -2455,7 +2444,6 @@
     "type": "careers",
     "label": "Pyromancien",
     "class": "lettres",
-    "tenue": "sorcier",
     "rand": {},
     "desc": "*Vous vous nourrissez de votre passion brute et énergie émotionnelle pour offrir une puissance de feu magique sur le champ de bataille.*\n\nTout le monde le sait, les sorciers Flamboyants sont les plus combatifs des sorciers impériaux. Même si les autres collèges sont connus pour avoir leur propre forme d'agressivité et que, d'une manière ou d'une autre, ils servent tous l'armée, le Collège Flamboyant provoque un choc et de la stupeur sur les champs de bataille comme aucun autre. Cette réputation est peut-être biaisée et le résultat de récits simplistes émanant des soldats ordinaires ou des ennemis déconcertés, mais elle est en partie vraie. Les sorciers Flamboyants ont souvent une apparence guerrière et redoutable avec leurs bâtons en fer surmontés d'un brasier prêt à recevoir des flammes dévastatrices.\n\n*« Le pouvoir est la clef, la clef est le symbole, le symbole est une métaphore, la métaphore est une perspective, la perspective est le contrôle et le contrôle est le pouvoir… »*\n\n– Litanie du contrôle, Livre rouge d'*Aqshy*\n\n*« J'ai reçu l'un de ces pyromanciens l'année dernière. Ils ne sont pas tous comme ça… tout plein de feu et d'esbroufe. Il nous a cuisiné un joli canard grillé avec le pouvoir de son esprit. Il était délicieux. Évidemment, on a découvert le lendemain matin qu'il avait aussi brûlé notre grange. »*\n\n– Arnold Fleiss, aubergiste",
     "source": {
@@ -2469,7 +2457,6 @@
     "type": "careers",
     "label": "Chamane",
     "class": "lettres",
-    "tenue": "sorcier",
     "rand": {},
     "desc": "*Mû par votre affinité magique, vous êtes instinctivement attiré par les endroits sauvages et leurs grandes créatures.*\n\nLes sorciers d'Ambre sont célèbres pour leur apparence et leur mode de vie sauvage, bien plus à l'aise dans la nature qu'en ville. Ils ont plus d'affinités avec les animaux qu'avec leurs semblables. Beaucoup d'entre eux errent dans les étendues inhospitalières de l'Empire, mais ils sont tout aussi nombreux à trouver un endroit qu'ils apprécient et s'y installer. Chaque village impérial connaît une histoire sur un monstre local, un géant ou une sorcière qui vit dans la forêt et que l'on craint, mais que l'on croise rarement. Dans la plupart des cas, il s'agit d'un sorcier d'Ambre.\n\n*« Le Collège d'Ambre est en dehors de la ville. »*\n\n– énigme chamanique\n\n*« J'ai reçu l'un de ces chamanes l'autre jour. Il a fini par dormir dans l'étable. J'allais le laisser partir sans payer, mais il m'a dit que c'était la meilleure chambre de l'auberge, alors je lui ai fait payer le prix d'une suite de luxe. »*\n\n– Arnold Fleiss, aubergiste",
     "source": {
@@ -2483,7 +2470,6 @@
     "type": "careers",
     "label": "Magister Vigilant",
     "class": "lettres",
-    "tenue": "sorcier",
     "rand": {},
     "desc": "*Vous protégez la réputation des Collèges en chassant et en éliminant les sorciers renégats.*\n\nBien que les Patriarches des Collèges refusent de confirmer leur existence, même le dernier des apprentis sorciers a entendu parler des Magisters Vigilants : ces sorciers qui débusquent et détruisent tous les parjures et traîtres à leur ordre. Chaque Collège finance un petit effectif de Magisters Vigilants, mais on raconte que le Collège Gris commandite plusieurs de leurs membres pour endosser ce rôle au cours de leurs carrières.\n\n*« Un Magister Vigilant ? Désolé, nous n'avons personne qui occupe pareil poste au sein de ce Collège. »*\n\n– Egrimm van Horstmann, ancien Patriarche du Collège Lumineux\n\n*« Chut ! Attention à ce que tu dis ! Un Magister Vigilant pourrait t'entendre ! »*\n\n– Le Crâne de Katam, en conversation",
     "source": {
@@ -2497,7 +2483,6 @@
     "type": "careers",
     "label": "Umbramancien",
     "class": "lettres",
-    "tenue": "sorcier",
     "rand": {},
     "desc": "*Mystérieux et trompeur, vous conciliez les compétences d'un sorcier avec celles d'un espion.*\n\nLa seule chose dont un sorcier Gris peut être certain en ce monde c'est que rien ne l'est et que tout n'est que pure illusion. Ils savent que les mensonges en cachent souvent d'autres et ils sont devenus tellement habitués à la fausseté et à la supercherie qu'ils ont du mal à voir la vérité telle qu'elle est.\n\nLes umbramanciens sont des personnes méfiantes qui ne se fient pas à ce qu'elles observent et cherchent constamment des doubles sens, des significations et des intentions cachées. En conséquence, ils sont prudents et taisent leurs propres croyances et desseins. Ils ont appris que la vérité a de la valeur et ce qui en a ne doit pas être offert gracieusement.\n\n*« La vérité est si précieuse qu'elle doit être recouverte par un tissu de mensonges. »*\n\n– magister Reiner Starke, patriarche de l'Ordre Gris",
     "source": {

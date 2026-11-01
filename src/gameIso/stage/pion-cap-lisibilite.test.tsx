@@ -10,9 +10,9 @@ import type { Dir8 } from '../../geometry/dir8';
 import { TokenChromeOverlay } from './TokenChromeOverlay';
 import { tokenChrome, tokenChromes, type TokenChromeMark } from '../builders/tokenChrome';
 import { CAP_GROUPE, poserCapDuGroupe } from '../../noyau/monde/combatants';
-import { combatantBodyTopFrac, combatantTokenScale } from '../sizeScale';
+import { combatantTokenScale } from '../sizeScale';
 import { discCapPath, discR, teamRingDecor } from '../builders/dynamicMarks';
-import { NEUTRAL_TINT } from '../teamColors';
+import { OUT_OF_PARTY_RING } from '../teamColors';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 
@@ -59,9 +59,7 @@ function marque(c: Combatant, team: TokenChromeMark['team']): TokenChromeMark {
     cell: { x: c.pos!.x, y: c.pos!.y, z: 0 },
     n: 1,
     scaleK: combatantTokenScale(c),
-    bodyTopFrac: combatantBodyTopFrac(c),
     team,
-    subject: { kind: 'combatant', combatant: c },
     ...tokenChrome(c, { ghostIds: new Set<string>(), hoveredId: null }),
   };
 }
@@ -110,13 +108,10 @@ function capRendu(el: HTMLElement, dir: Dir8): { cap: SVGPathElement; auDessusDu
   const frères = [...cap!.parentElement!.children];
   const iCap = frères.indexOf(cap!);
   const R = discR(1);
-  // Ce qui masque le cap : le FOND du disque, et le portrait clippé dedans — tous deux opaques au
-  // rayon du disque. Le dernier des deux fixe le rang à dépasser.
+  // Ce qui masque le cap : le FOND du disque, opaque au rayon du disque.
   const iFond = frères.findIndex((n) => n.tagName === 'circle' && n.getAttribute('fill') !== 'none' && n.getAttribute('r') === String(R));
-  const iPortrait = frères.findIndex((n) => n.tagName === 'g' && n.hasAttribute('clip-path'));
   expect(iFond, 'témoin : le fond du disque est bien dans la fratrie du cap').toBeGreaterThanOrEqual(0);
-  expect(iPortrait, 'témoin : le portrait clippé est bien dans la fratrie du cap').toBeGreaterThanOrEqual(0);
-  return { cap: cap!, auDessusDuDisque: iCap > Math.max(iFond, iPortrait) };
+  return { cap: cap!, auDessusDuDisque: iCap > iFond };
 }
 
 /** Les trois sommets d'un tracé `M x,y L x,y L x,y Z`. */
@@ -156,7 +151,7 @@ describe('Cap du pion — appartenance et lisibilité (#1176 P3-5c)', () => {
     const tracés = [...g.querySelectorAll('path')].map((p) => p.getAttribute('d'));
     expect(tracés, 'un jeton sans camp porte quand même son cap').toContain(discCapPath('E', 1, DIMS_TOP));
     const cap = [...g.querySelectorAll('path')].find((p) => p.getAttribute('d') === discCapPath('E', 1, DIMS_TOP))!;
-    expect(cap.getAttribute('fill'), 'à la teinte NEUTRE de la palette d’identité').toBe(NEUTRAL_TINT);
+    expect(cap.getAttribute('fill'), 'à la teinte NEUTRE de la palette d’identité').toBe(OUT_OF_PARTY_RING);
     // …et il n'a PAS d'anneau : celui-là est la décoration d'ÉQUIPE.
     expect([...g.querySelectorAll('circle')].filter((c) => c.getAttribute('fill') === 'none'), 'aucun anneau d’équipe').toHaveLength(0);
     démonter();
@@ -166,13 +161,13 @@ describe('Cap du pion — appartenance et lisibilité (#1176 P3-5c)', () => {
     const gÉq = avecÉquipe.querySelector('g[data-pion-cid="h1"]')!;
     const capÉq = [...gÉq.querySelectorAll('path')].find((p) => p.getAttribute('d') === discCapPath('E', 1, DIMS_TOP))!;
     expect(capÉq.getAttribute('fill')).toBe(équipe.color);
-    expect(équipe.color).not.toBe(NEUTRAL_TINT);
+    expect(équipe.color).not.toBe(OUT_OF_PARTY_RING);
   });
 
   it('le disque du GROUPE tourne avec le cap du GROUPE, jamais avec celui de l’id du meneur', () => {
     // La marque telle que le builder la dérive pour le jeton de groupe : IDENTITÉ du meneur (bus,
     // chrome, caméra), CLÉ DE CAP du groupe (`partyTokenOf` → `capKey`).
-    const groupe = tokenChromes([], { ghostIds: new Set<string>(), hoveredId: null }, { leader: H1, pos: { x: 3, y: 3 }, capKey: CAP_GROUPE })[0];
+    const groupe = tokenChromes([], { ghostIds: new Set<string>(), hoveredId: null }, { leader: H1, heroIndex: 0, pos: { x: 3, y: 3 }, capKey: CAP_GROUPE })[0];
     expect(groupe.id, 'témoin : la marque porte bien l’id du meneur').toBe('h1');
     useGame.setState({ facing: poserCapDuGroupe({ h1: 'S' }, 'E') } as never); // le cap du héros CONTREDIT celui du groupe
     conteneur = document.createElement('div');

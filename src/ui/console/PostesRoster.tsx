@@ -73,9 +73,8 @@ export function PostesRoster({
               (ligne synthétique Repos, banc) il retombe en texte simple, sans rien perdre. */}
           {p ? <CodexRef category={codexCategory} id={p.id} label={label} /> : label}
         </span>
-        {/* Le BANC est un CONSTAT, pas une case d'affectation : ces personnes ne tiennent aucun poste,
-            il n'y a donc ni ajout ni retrait (`canPick`/`retirable` faux sans `p`) — ses portraits sont
-            décoratifs et la ligne ne promet aucun geste. */}
+        {/* Le banc porte les identités passives et nommées des personnes sans poste ; seuls les postes
+            offrent les gestes d'affectation et de retrait. */}
         <AssignRow
           assigned={occupants}
           candidates={p ? heroes.filter((h) => pinnedOf(h) !== p.id) : []}

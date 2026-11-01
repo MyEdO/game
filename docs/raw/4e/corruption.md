@@ -6,7 +6,7 @@
 >
 > Domaine couvert : Points de Corruption (gains/pertes), seuil, Test de Résistance, dissolution corps/esprit,
 > tables de mutation physique et mentale (verbatim), limites → damnation, Sombre Pacte, absolution,
-> extensions EDO Compagnon (tables par dieu). Hors-scope : apparence visuelle des mutations (rig/couche art).
+> extensions EDO Compagnon (tables par dieu). Hors-scope : apparence visuelle des mutations (couche art).
 > Les champs **Implémente** référencent le [rapport calculé](../implemente.generated.md) (`npm run raw:implemente`).
 
 ## Sommaire

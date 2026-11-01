@@ -11,7 +11,7 @@
  * Trois façons de le faire battre, jamais deux boucles concurrentes : `battreStageFrames` pour qui
  * tient déjà une horloge (la boucle de marche `fx/useWalkAnim`, un `pointermove` que le navigateur
  * cadence déjà à l'image), `demanderFrames`/`relacherFrames` pour ce qui n'en a aucune
- * (l'adoucissement de focale, le fondu de la découpe locale `stage/percage`, `useBattementContinu`
+ * (l'adoucissement de focale, `useBattementContinu`
  * pour un motif qui dure), et `demanderUneImage` pour un geste PONCTUEL qui n'a besoin que d'être VU
  * (la relève d'une texture de billboard). La boucle de demande comme la demande ponctuelle CÈDENT le
  * pas à ce qui vient d'avoir lieu, mais PAS à
@@ -78,7 +78,7 @@ export function battreStageFrames(): void {
  *
  * Elle ne bat AUCUN abonné, et n'en prive aucun : la passe que cède la boucle est un REDESSIN, et le
  * rendu React qui l'accompagne repose déjà les surcouches de la même caméra (l'hôte écrit
- * `stageCamTransform` sur le groupe de la surcouche et `setVisibleTileBounds` DANS son rendu).
+ * `stageCamTransform` sur le groupe de la surcouche DANS son rendu).
  * Elle ne touche PAS l'horloge des battements : une demande PONCTUELLE porte une peinture neuve, et
  * un commit ne l'a pas servie.
  */

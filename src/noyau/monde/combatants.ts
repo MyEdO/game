@@ -161,8 +161,8 @@ export function meneurDeboutDuMonde(monde: MondeDuMeneur): Combatant | undefined
 
 /**
  * CLÉ du cap de GROUPE dans la table `facing`. Le groupe est UN sujet de cap, comme une coque : son
- * jeton d'exploration porte déjà cet id (`gameIso/tokenBodyKind.tsx`, clé de routage bus/facing du
- * jeton `partyLeader`). Le cap n'est donc keyé par AUCUN héros — aucune mutation du roster (Blessure,
+ * jeton d'exploration le porte en `capKey` (`gameIso/builders/tokens.ts:partyTokenOf`). Le cap n'est
+ * donc keyé par AUCUN héros — aucune mutation du roster (Blessure,
  * Inconscience, ajout, remplacement, retrait) ne peut le désynchroniser. Préfixée `__` comme tout
  * sujet non-combattant : aucun id de héros ne la collisionne.
  */

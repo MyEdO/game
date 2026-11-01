@@ -12,8 +12,6 @@ import { emptyScene } from '../noyau/monde/scene';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { books, buildings, findCrewRoleById, findNavalTrait, findVehicleById, merchantArchetypeById } from '../data';
 import { findManannFactor } from '../engine/seaVoyage';
-import { rigSpeciesVocab } from '../gameIso/rig/appearance';
-import { TENUE_BY_ID } from '../gameIso/rig/parts/tenues';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { carriedFlows, racinesDeFlow, walkFlow } from '../engine/flowCore';
@@ -24,7 +22,7 @@ import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { identiteSchema, motifEnMot } from '../data/schemas/defs-scenes/narratif';
 import { identitesDe, nommer } from '../noyau/monde/identites';
 import { metaDesChamps } from '../data/schemas/grammaire/meta';
-import { raceKeySchema, sexeSchema } from '../data/schemas/grammaire/valeurs';
+import { fauteDEspece, raceKeySchema, sexeSchema, tenueFermeeSchema } from '../data/schemas/grammaire/valeurs';
 
 /**
  * Garde TRANSVERSE (#809) : tout paquet bundlé `src/scenes/*.../*-projet.json` doit se relire dans
@@ -95,30 +93,22 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     expect(typeof doc.versionContenu).toBe('number');
   });
 
-  /**
-   * Une entité `personnage` n'a d'apparence à résoudre que par sa RÉF (créature/véhicule du catalogue)
-   * ou par son ESPÈCE (`appearance.species`) : `entityRigProfileFor` (`src/gameIso/rig/enemyProfile.ts:270-274`)
-   * n'en dérive AUCUNE sans l'une des deux, et le rendu signale l'entité muette en dev. Garde TRANSVERSE :
-   * elle couvre les 4 paquets bundlés et tout paquet FUTUR par le même glob — aucune ligne à ajouter.
-   */
-  it.each(bundledFiles.map((f) => [f] as const))(
-    '%s : toute entité PERSONNAGE résout son apparence (réf de catalogue OU Espèce du rig, tenue résolue)',
-    (file) => {
-      const doc = parseProject(lireProjetLivre(file));
-      const muettes: string[] = [];
-      const inconnues: string[] = [];
-      for (const sc of doc.scenes)
-        for (const e of sc.entities) {
-          if (e.kind !== 'personnage') continue;
-          const species = e.appearance?.species;
-          if (!e.ref && !species) muettes.push(`${sc.id}:${e.id} (${e.label ?? e.statblock?.label ?? 'sans nom'})`);
-          if (species && !rigSpeciesVocab().has(species)) inconnues.push(`${sc.id}:${e.id} espèce « ${species} »`);
-          if (e.appearance?.tenue && !TENUE_BY_ID[e.appearance.tenue]) inconnues.push(`${sc.id}:${e.id} tenue « ${e.appearance.tenue} »`);
-        }
-      expect(muettes, 'entité(s) de personnage sans réf NI Espèce — le rig n’a rien à dessiner et le rendu le signale en dev').toEqual([]);
-      expect(inconnues, 'espèce/tenue hors des registres du rig — l’apparence retombe en repli muet').toEqual([]);
-    },
-  );
+  /** Apparence d'une entité `personnage` : espèce d'apparence (`fauteDEspece`) et tenue qui se ferme sur la
+   *  donnée (`tenueFermeeSchema`, #3116). Couvre tout paquet présent ou futur par le même glob. */
+  it.each(bundledFiles.map((f) => [f] as const))('%s : toute entité PERSONNAGE porte une espèce et une tenue du domaine', (file) => {
+    const doc = parseProject(lireProjetLivre(file));
+    const inconnues: string[] = [];
+    for (const sc of doc.scenes)
+      for (const e of sc.entities) {
+        if (e.kind !== 'personnage') continue;
+        const species = e.appearance?.species;
+        const faute = species === undefined ? null : fauteDEspece(species);
+        if (faute) inconnues.push(`${sc.id}:${e.id} ${faute}`);
+        const tenue = e.appearance?.tenue;
+        if (tenue !== undefined && !tenueFermeeSchema.safeParse(tenue).success) inconnues.push(`${sc.id}:${e.id} tenue « ${tenue} »`);
+      }
+    expect(inconnues, inconnues.join('\n')).toEqual([]);
+  });
 
   /**
    * Toute entité `personnage` porte un NOM affichable au combat : soit sa réf de catalogue (le label

@@ -15,7 +15,7 @@ export interface RoseAxisValue {
   value: number | null | undefined;
 }
 
-/** `glyph` (44px, coin de figurine/carte — sans étiquette), `medal` (90×86 médaillon — initiale par
+/** `glyph` (44px, coin de carte — sans étiquette), `medal` (90×86 médaillon — initiale par
  *  branche), `grand` (280×196 rendu plein — libellé complet + valeur). Dimensions du kit ratifié. */
 export type RoseSize = 'glyph' | 'medal' | 'grand';
 

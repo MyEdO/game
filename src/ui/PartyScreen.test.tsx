@@ -296,7 +296,7 @@ describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui
     expect(html).toContain('seat-card-seal'); // sceau de cire (contrat scellé)
     expect(html).toContain(heroes[0].label); // nom COMPLET dans la compagnie
     expect(html).toContain('card-roles'); // rôle (forces) sur la carte de siège
-    expect(html).toContain('char-present'); // la figurine+identité EST le contrôle de présentation
+    expect(html).toContain('char-present'); // la rose+identité EST le contrôle de présentation
     expect(html).toContain(`Voir ${heroes[0].label}`); // aria-label du contrôle
     expect(html).not.toContain('Qui est-ce ?'); // le bouton loupe est SUPPRIMÉ
     expect(html).not.toContain('who-btn');

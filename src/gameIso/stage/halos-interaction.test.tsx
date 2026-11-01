@@ -13,7 +13,6 @@ import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-vo
 import { HALO_SLOTS } from '../backends/webgl/interactHaloMeshes';
 import { haloRadiusK, HALO_RX_PX, type InteractHalo } from '../builders/interactHalos';
 import { PING_S } from './interactHaloPose';
-import { findTrappingById } from '../../data';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
@@ -219,7 +218,7 @@ describe('Halos d’interaction — le monde volumique peint l’affordance (#11
 const SCENE_NUE: Scene = emptyScene('scene-test', 10, 10);
 const DIMS: Dims = { w: SCENE_NUE.dimensions.w, h: SCENE_NUE.dimensions.h, rot: 0, view: 'iso' };
 const HALOS: readonly InteractHalo[] = [
-  { id: 'coffre', cell: { x: 3, y: 4, z: 0 }, n: 1, scaleK: 1, bodyTopFrac: 1, span: { w: 1, h: 1 }, centre: { x: 3, y: 4 }, echelle: { x: 1, y: 1 }, etat: 'revele', visible: true },
+  { id: 'coffre', cell: { x: 3, y: 4, z: 0 }, n: 1, scaleK: 1, span: { w: 1, h: 1 }, centre: { x: 3, y: 4 }, echelle: { x: 1, y: 1 }, etat: 'revele', visible: true },
 ];
 
 describe('Halos d’interaction — la pulsation se prend à la FRAME (#1176 P3-0g)', () => {
@@ -239,13 +238,13 @@ describe('Halos d’interaction — la pulsation se prend à la FRAME (#1176 P3-
     document.body.appendChild(conteneur);
     root = createRoot(conteneur);
     act(() => root!.render(
-      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+      <GameStage3D lecture="jeu"
         scene={SCENE_NUE}
         mpt={sceneMetresPerTile(SCENE_NUE)}
         frame={{ mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 }}
         tintAt={() => 1}
         keepEl={() => true}
-        els={{ tokens: [], props: [] }}
+        els={{ props: [] }}
         actors={[]}
         gameTime={720}
         lightLevel={null}
@@ -302,13 +301,13 @@ describe('Halos d’interaction — la pulsation se prend à la FRAME (#1176 P3-
     document.body.appendChild(conteneur);
     root = createRoot(conteneur);
     const écran = (halos: readonly InteractHalo[] | undefined) => (
-      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+      <GameStage3D lecture="jeu"
         scene={SCENE_NUE}
         mpt={sceneMetresPerTile(SCENE_NUE)}
         frame={{ mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 }}
         tintAt={() => 1}
         keepEl={() => true}
-        els={{ tokens: [], props: [] }}
+        els={{ props: [] }}
         actors={[]}
         gameTime={720}
         lightLevel={null}

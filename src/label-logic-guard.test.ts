@@ -277,8 +277,8 @@ describe('garde-fou « logique par label interdite » : volets `.label` (#142)',
   });
 
   it('scanLabelLogic : détecte une IDENTITÉ dérivée du label, quelle que soit la chaîne qui mène au `.label` (#637, #1988)', () => {
-    // Cas PLANTÉS = le motif qui vivait au rig (`TENUE_BY_ID` keyé par `slugId(d.label)`), et la forme
-    // de `rigSpeciesId` (`src/data/index.ts`, #1988) qu'un motif de ligne `slugId\s*\(\s*[\w.]+\.label` ne
+    // Cas PLANTÉS = une table keyée par `slugId(d.label)`, et la forme
+    // de `especeDApparence` (`src/data/index.ts`, #1988) qu'un motif de ligne `slugId\s*\(\s*[\w.]+\.label` ne
     // voit pas : appel, `?.`, `??`, gabarit, appel sur plusieurs lignes. CONTRE-ÉPREUVES : `slugId(p.name)`
     // (fragment TEXTE saisi en éditeur, couture label→id d'authoring) et `slugId(label)` (paramètre de
     // saisie) — le détecteur vise la LECTURE d'un champ `.label` seulement.

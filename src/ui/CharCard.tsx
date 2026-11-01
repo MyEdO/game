@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { Combatant } from '../engine/types';
 import { Money, libelleDEchelon } from '../engine/money';
 import { actorStatus } from '../engine/social';
-import { CharacterPreview } from './CharacterPreview';
 import { OrnateFrame } from './Ornaments';
 import { Icon } from './Icon';
 import type { IconIdInput } from './icons';
@@ -56,10 +55,10 @@ export function heroRoseAxes(hero: Combatant, axisIds: string[] = coreAxisIds())
   return axesProfile(hero, axisDataFor(axisIds));
 }
 
-/** Glyphe de rose 44/36px posé au coin bas-droit d'une figurine (`.rose-corner`, `rose.css`). */
-function RoseGlyphCorner({ hero, axisIds, small }: { hero: Combatant; axisIds?: string[]; small?: boolean }) {
+/** Glyphe de rose 44/36px, repère de la carte dans le flux (`.rose-glyph`, `rose.css`). */
+function RoseGlyph({ hero, axisIds, small }: { hero: Combatant; axisIds?: string[]; small?: boolean }) {
   return (
-    <div className={`rose-corner${small ? ' sm' : ''}`}>
+    <div className={`rose-glyph${small ? ' sm' : ''}`}>
       <RoseAxes axes={heroRoseAxes(hero, axisIds)} size="glyph" title={t('party.rose.title', { name: hero.label })} />
     </div>
   );
@@ -119,7 +118,7 @@ function CardLore({ hero, seat, axisIds }: { hero: Combatant; seat?: boolean; ax
   );
 }
 
-/** Poignée de PRÉSENTATION — la figurine + l'identité du personnage forment le contrôle cliquable qui
+/** Poignée de PRÉSENTATION — la rose + l'identité du personnage forment le contrôle cliquable qui
  *  ouvre son récit (`HeroPresentation`) : l'affordance d'un jeu (on clique le PERSONNAGE), pas un bouton
  *  « loupe » (directive user 2026-07-13). Vrai contrôle a11y (role/aria-label/focusable, Entrée ouvre),
  *  jamais un div sourd ; feedback de survol NON DÉCALANT (`.char-present`, box-shadow/brightness — aucune
@@ -146,9 +145,8 @@ function PresentHandle({ hero, onPresent, className, children }: { hero: Combata
 }
 
 /**
- * Carte-portrait de CANDIDAT (l'étal) — figure en pied dominante, nom complet, archétype, rôle +
- * accroche. Source unique du vivier : `gallery` (grille de l'écran) ET `remplacement` (plus
- * compacte). Clic figure/nom → PRÉSENTATION (`onPresent`). L'équipe, elle, est rendue par `SeatCard`.
+ * Carte de CANDIDAT (l'étal) — rose des forces, nom complet, archétype, rôle + accroche. Source
+ * unique du vivier : `gallery` (grille de l'écran) ET `remplacement` (plus compacte). Clic rose/nom → PRÉSENTATION (`onPresent`). L'équipe, elle, est rendue par `SeatCard`.
  */
 export function CandidateCard({
   hero,
@@ -181,13 +179,10 @@ export function CandidateCard({
   const blocked = state?.status === 'blocked';
   return (
     <OrnateFrame className={`candidate-card candidate-${variant}${selected ? ' selected' : ''}`}>
-      {/* Le personnage (figurine + identité) EST le contrôle qui ouvre sa présentation (directive
-          user 2026-07-13) : aucun bouton « loupe » séparé. */}
+      {/* Le personnage (identité) EST le contrôle qui ouvre sa présentation (directive user
+          2026-07-13) : aucun bouton « loupe » séparé. */}
       <PresentHandle hero={hero} onPresent={onPresent} className="candidate-present">
-        <div className="candidate-fig">
-          <CharacterPreview hero={hero} size="fill" ambiance="spotlight" />
-          <RoseGlyphCorner hero={hero} axisIds={axisIds} small />
-        </div>
+        <RoseGlyph hero={hero} axisIds={axisIds} small />
         <CardIdentity hero={hero} />
       </PresentHandle>
       <CardLore hero={hero} axisIds={axisIds} />
@@ -223,8 +218,8 @@ export function CandidateCard({
 }
 
 /**
- * Carte de SIÈGE (l'équipe — la star) : un ACTE D'ENGAGEMENT scellé — cartouche « Acte N » + figurine
- * sous lampe (ambiance `spotlight`) + identité + sceau de cire au coin (`WaxSeal`, motif du kit
+ * Carte de SIÈGE (l'équipe — la star) : un ACTE D'ENGAGEMENT scellé — cartouche « Acte N » + rose des
+ * forces + identité + sceau de cire au coin (`WaxSeal`, motif du kit
  * « Atelier du scribe », #412), MÊME niveau d'information que la carte de candidat (nom + archétype +
  * rôle + accroche), plus les actions de gestion. Composée dans la grille de sièges de l'écran d'équipe
  * (correction de cap 2026-07-14, transposition fidèle de la planche ratifiée d'équipe).
@@ -248,12 +243,9 @@ export function SeatCard({
   return (
     <article className="seat-card">
       <WaxSeal size={44} className="seat-card-seal" />
-      {/* Figurine + identité = le contrôle de présentation (directive user 2026-07-13). */}
+      {/* L'identité = le contrôle de présentation (directive user 2026-07-13). */}
       <PresentHandle hero={hero} onPresent={onPresent} className="seat-card-main">
-        <div className="seat-card-fig">
-          <CharacterPreview hero={hero} size="fill" ambiance="spotlight" />
-          <RoseGlyphCorner hero={hero} axisIds={axisIds} />
-        </div>
+        <RoseGlyph hero={hero} axisIds={axisIds} />
         <div className="seat-card-body">
           {seatLabel && <span className="seat-card-contract">{seatLabel}</span>}
           <CardIdentity hero={hero} />
@@ -269,7 +261,7 @@ export function SeatCard({
   );
 }
 
-/** Carte-action du vivier (même famille visuelle que la carte-portrait) : créer / importer, avec
+/** Carte-action du vivier (même famille visuelle que la carte de candidat) : créer / importer, avec
  *  une ligne d'invite pour ne pas être une icône dans le vide. */
 export function ActionCard({ icon, label, invite, onClick, title }: { icon: IconIdInput; label: string; invite?: string; onClick: () => void; title?: string }) {
   return (

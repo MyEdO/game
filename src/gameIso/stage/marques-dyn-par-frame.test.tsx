@@ -9,7 +9,6 @@ import { GameStage3D, setStageRendererFactory, type StageWalkAnim } from './Game
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';
 import { COMBAT_TOKEN_BASE, teamRingRadiusK, type DynamicMarks } from '../builders/dynamicMarks';
 import { HERO_RING } from '../teamColors';
-import { findTrappingById } from '../../data';
 
 /**
  * PAR FRAME, PAS PAR ÉVÉNEMENT (#1176, P3-0d) — le fait qui distingue une marque DYNAMIQUE d'une
@@ -89,13 +88,13 @@ describe('Marques dynamiques — la pose se prend à la FRAME (#1176 P3-0d)', ()
     document.body.appendChild(hôte);
     root = createRoot(hôte);
     act(() => root!.render(
-      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
+      <GameStage3D lecture="jeu"
         scene={SCENE}
         mpt={sceneMetresPerTile(SCENE)}
         frame={{ mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 }}
         tintAt={() => 1}
         keepEl={() => true}
-        els={{ tokens: [], props: [] }}
+        els={{ props: [] }}
         actors={[]}
         gameTime={720}
         lightLevel={null}

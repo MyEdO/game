@@ -14,20 +14,7 @@ prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, 
   sessions, leur ÉCRIRE (`SendMessage`) avant ; un sentier dont ma cible dépend et que personne ne tient
   est à moi (utilisateur, 2026-09-20 : « n'hésite pas a reprendre des chantiers dont tu as besoin pour
   avancer sur ta tache. La session en // ne touche aucun de ces chantiers »).
-- **Orchestrateur de sessions : j'attribue les tickets et décide du sort des sessions en vol** (finir,
-  arrêter, relancer), sans le demander (utilisateur, 2026-09-30 : « tu es l'orchestrator des sessions
-  liés a l'épique sur 665. Tu ne fais pas des tickets, tu coordonne les autres sessions claude. », puis
-  « C'est toi qui décide, c'est toi qui chappote tout » ; 2026-10-08 : « C'est toi l'orchestrator, c'est
-  toi qui décide ») ; je consigne au suivi.
-- **Cycle d'une session** : `npm run ops:session -- lancer .git/suivi/consignes/<N>.md` rend le `jeton`
-  que `fermer` exige (stdin `{"jeton":"…"}` ou `WFRP_SESSION_JETON`) et la commande `veille` ;
-  `archiver` range sous `sessions/archive/` les cartes en ANOMALIE dont aucune identité ne vit.
-  `scripts/ops/session.mjs:33` (usage), `scripts/ops/session.mjs:174` (`veille`)
-- **Une session lancée orchestre son ticket** (utilisateur, 2026-10-28 : « D'ailleurs pourquoi la
-  session n'utilise aucun agent, c'est sensé etre un orchestrator sur son ticket non ? ») : sa consigne
-  l'ouvre par le skill `orchestrer-des-agents`. Elle dépêche les codeurs, le juge de diff et le recetteur,
-  et committe par chemins sur sa branche. Elle ne reçoit jamais un brief de codeur (« l'orchestrateur
-  committe ton diff ») : ce brief-là la fait coder seule.
+- **Sessions** (lancer, briefer, fermer, attribuer les tickets) : skill `orchestrer-des-sessions`.
 - **Un plan approuvé s'exécute jusqu'au bout** : avant de le dire terminé, inventaire item par item
   (exécuté, dispatché, ou ancré avec son BLOCAGE NOMMÉ) ; toute annonce « je ferai » est un item.
 - **Re-mesurer la sous-tâche contre l'objectif macro** (arbitrer un détail d'un but large = zoom out ;

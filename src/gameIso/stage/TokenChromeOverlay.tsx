@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 /**
  * SURCOUCHE DES JETONS du stage (#1176, P3-0f puis P3-5c) — ce qui se peint AU-DESSUS du canevas, dans
  * le SVG : le CHROME d'écran (barre de PV, icônes d'États, pastille d'état de FIN) et, sous le verdict
- * `pionsEnDisques` (vue du dessus), le PION lui-même — un disque-portrait.
+ * `pionsEnDisques` (vue du dessus), le PION lui-même — un disque neutre.
  *
  * Pourquoi un OVERLAY et pas un quad texturé de plus : une barre de PV rasterisée dans le monde
  * mesure 1,7 px de haut à jeton de 40 px et scintille sans mipmaps ; un cache de texture par état de
@@ -12,7 +12,7 @@ import type { JSX } from 'react';
  * Conséquence MESURÉE (juge vision 2026-08-13) : peint à l'écran, ce chrome garde sa LUMINANCE PLEINE
  * là où l'affine, dessiné dans la scène, s'assombrit avec elle — barre de PV mesurée ×2,75 plus claire.
  *
- * CADENCE : le rendu React donne le CONTENU (PV, États, état de fin, corps), la BOUCLE DE MARCHE donne
+ * CADENCE : le rendu React donne le CONTENU (PV, États, état de fin, pion), la BOUCLE DE MARCHE donne
  * la POSITION. Les deux ne battent pas au même rythme, et c'est structurel : en volumique aucun rendu
  * React ne se produit entre deux pas (`fx/useWalkAnim`, `repaint = false`), si bien qu'un jeton posé au
  * seul rendu attendrait le marcheur sur sa case de départ. Le groupe de chaque jeton porte donc une
@@ -20,45 +20,34 @@ import type { JSX } from 'react';
  * (`SurcoucheIso`, `camGRef`), sans un `setState` par frame. Le glissement du DISQUE est donc GRATUIT : il
  * vit dans ce même groupe.
  *
- * HAUTEUR : celle du CORPS DESSINÉ, pas celle de son cadre — la toise du gabarit (`bodyTopFrac`,
- * `composeRig`) dit quelle part de la boîte 120×150 le sujet remplit, et le quad volumique
- * (`billboardHeightM` × échelle du sujet) la multiplie par cette fraction. Sans elle l'ancre était une
- * CONSTANTE par famille : le nain, le halfling et le gobelin voyaient leur barre flotter à mi-chemin
- * d'un voisin. Sous `pionsEnDisques` il n'y a plus de tête à surmonter : le chrome se pose au bord du
- * disque (`badgeY = −discR`).
+ * ANCRAGE : au bord supérieur du repère au sol — demi-axe vertical de l'anneau en iso,
+ * rayon du disque sous `pionsEnDisques`. La géométrie vient de `builders/dynamicMarks`.
  */
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { tileCenter, type Dims } from '../../geometry/iso';
 import type { Dir8 } from '../../geometry/dir8';
 import { useGame } from '../../state/store';
-import { useVersionDesDatasets } from '../../ui/useVersionDesDatasets';
-import { ISO_PX_PER_M } from '../iso';
-import { billboardHeightM, CONVENTION } from '../backends/webgl/billboardMath';
 import type { TintAt } from '../backends/webgl/sceneMeshes';
 import { TokenChromeMarks } from '../TokenChromeMarks';
-import { tokenBodyKind } from '../tokenBodyKind';
-import { discCapPath, discR } from '../builders/dynamicMarks';
-import { NEUTRAL_TINT } from '../teamColors';
+import { COMBAT_TOKEN_BASE, discCapPath, discR, RING_B_PX, teamRingRadiusK } from '../builders/dynamicMarks';
+import { OUT_OF_PARTY_RING } from '../teamColors';
+import { END_STATE_APPEARANCE, endStateFilter } from '../endStateAppearance';
 import { subscribeStageFrames } from './stageFrames';
 import { viewBoxUnitPx, type StageCanvas } from './stageCam';
 import { VH, VW } from './useStageCamera';
 import type { GesteMark, TokenChromeMark } from '../builders/tokenChrome';
 import { PastilleEntite } from './PastilleEntite';
 import type { WalkPos } from '../fx/walkPose';
-import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 
 /** Lift d'étage d'une case (mêmes unités que le `z` de `tileCenter`). */
 export type LiftAt = (x: number, y: number, z?: number) => number;
 
-/** Hauteur ÉCRAN (px) à laquelle le chrome d'un jeton s'ancre :
- *  - PION EN DISQUE : le rayon du disque de son empreinte (`discR`) ;
- *  - BILLBOARD : la hauteur MONDE de son quad, à la cadence verticale de la projection affine
- *    (`ISO_PX_PER_M` — un mètre de haut y vaut toujours ces pixels, quel que soit le lacet), RABATTUE
- *    sur la part de la boîte que le corps occupe vraiment (`bodyTopFrac`). */
-export function chromeHeadPx(pions: boolean, mark: { scaleK: number; n: number; bodyTopFrac: number }): number {
+/** Distance ÉCRAN (px) du centre au bord supérieur du repère : rayon du disque en vue du dessus,
+ *  demi-axe vertical de l'anneau d'équipe en iso. */
+export function chromeHeadPx(pions: boolean, mark: { scaleK: number; n: number }): number {
   return pions
     ? discR(mark.n)
-    : billboardHeightM(CONVENTION, 'personnage') * mark.scaleK * mark.bodyTopFrac * ISO_PX_PER_M;
+    : RING_B_PX * teamRingRadiusK(COMBAT_TOKEN_BASE * mark.scaleK);
 }
 
 /** Position ÉCRAN du jeton à l'instant que porte `wp` : le CENTRE de son bloc d'empreinte, glissement
@@ -75,23 +64,17 @@ export function chromeTransform(m: Pick<TokenChromeMark, 'id' | 'cell' | 'n'>, d
   return `translate(${cx},${cy})`;
 }
 
-/** Opacité d'ALLURE du disque d'un jeton — un pion hors d'action se lit plus bas qu'un corps, sa
- *  surface étant pleine (`boardPose.DIM_OPACITY` vaut 0,82 pour un quad découpé à l'alpha). */
-export const DISQUE_DIM_OPACITY = 0.5;
+/** Opacité du disque hors Ligne de Vue. */
 export const DISQUE_GHOST_OPACITY = 0.45;
-/** Part de couleur retirée à un jeton hors Ligne de Vue (`boardPose.GHOST_DESAT`, même valeur). */
+/** Part de couleur retirée à un jeton hors Ligne de Vue. */
 const DISQUE_GHOST_DESAT = 0.85;
-/** Fond du disque, sous le portrait — la matière du pion, visible aux bords du cadrage. */
+/** Fond du disque — la matière du pion. */
 const DISQUE_FOND = '#1b2030';
 const DISQUE_STROKE_PX = 2.5;
 
 /**
- * LE PION de la vue du dessus : un disque-portrait centré sur sa case.
- *
- * Le CORPS et son cadrage viennent de `tokenBodyKind(subject, 'top')` — la source UNIQUE de la
- * classification (`flat` + `portraitBox`, chemin `faceFrame`) : rig résolu en vue de face et cadré sur
- * l'os `tete`, rendu STATIQUE (aucun abonnement d'animation ne descend dans un portrait). Un sujet que
- * le classifieur ne dit PAS `flat` n'a pas de disque : il reste un billboard du monde.
+ * LE PION de la vue du dessus : un disque NEUTRE centré sur sa case — fond, cap, anneau d'équipe, sans
+ * corps (#3160).
  *
  * L'ANNEAU d'équipe est celui de `builders/dynamicMarks.teamRingDecor` (couleur + pointillé daltonien
  * R9), au rayon du disque — le pool volumique d'anneaux n'en pose plus aucun sous ce verdict, jamais
@@ -100,10 +83,10 @@ const DISQUE_STROKE_PX = 2.5;
  * Le CAP d'orientation, lui, appartient au PION et pas à son camp : il ne lit que `store.facing`, à la
  * CLÉ que porte la marque (`TokenChromeMark.capKey` — son id pour une chose postée, `CAP_GROUPE` pour
  * le jeton du groupe, que la marque tient de `partyTokenOf`), monture ou figurant compris — un pion
- * hors groupe le porte donc aussi, à la teinte NEUTRE de la palette d'identité
- * (`teamColors.NEUTRAL_TINT`, celle d'une cible sans camp).
+ * hors groupe le porte donc aussi, à la teinte HORS GROUPE de la palette d'identité
+ * (`teamColors.OUT_OF_PARTY_RING`).
  * C'est le quartier partagé du marqueur de station (`topoMarkers.wedgePath`, via `discCapPath`), à
- * cheval sur le bord du disque et peint APRÈS le portrait : dessous, le bord lui mangeait sa surface,
+ * cheval sur le bord du disque et peint APRÈS le fond : dessous, le bord lui mangeait sa surface,
  * et il ne restait d'une diagonale qu'une couleur au coin. Son orientation est LUE ICI, au pion, et
  * pas dans la surcouche — un cap qui change ne re-rend que le disque de SON porteur, et le plateau
  * iso, où aucun `TokenDisc` n'est monté, ne s'y abonne jamais.
@@ -112,50 +95,35 @@ const DISQUE_STROKE_PX = 2.5;
  * que dans la boucle volumique — un pion en disque ne s'éclaire pas au passage d'une torche. Il garde
  * ses deux autres canaux : la teinte de VISIBILITÉ de sa case, et son allure.
  */
-function TokenDisc({ m, dims }: { m: TokenChromeMark; dims: Dims }): JSX.Element | null {
+function TokenDisc({ m, dims }: { m: TokenChromeMark; dims: Dims }): JSX.Element {
   const facing: Dir8 = useGame((s) => s.facing?.[m.capKey]) ?? 'S';
-  const resolveTrapping = useGame((s) => objetDuNarratif(s.campaignNarratif));
-  useVersionDesDatasets();
-  const corps = tokenBodyKind(resolveTrapping, m.subject, 'top');
-  if (!corps.flat) return null;
   const R = discR(m.n);
-  const clipId = `pion-${m.id}`;
   return (
     <>
       <ellipse cx={0} cy={R * 0.92} rx={R} ry={R * 0.32} fill="#000" opacity={0.28} />
-      <clipPath id={clipId}>
-        <circle cx={0} cy={0} r={R} />
-      </clipPath>
       <circle cx={0} cy={0} r={R} fill={DISQUE_FOND} />
-      <g clipPath={`url(#${clipId})`}>
-        <svg x={-R} y={-R} width={2 * R} height={2 * R} viewBox={corps.portraitBox} preserveAspectRatio="xMidYMid slice">
-          {corps.body}
-        </svg>
-      </g>
-      <path d={discCapPath(facing, m.n, dims)} fill={m.team?.color ?? NEUTRAL_TINT} opacity={0.85} />
+      <path d={discCapPath(facing, m.n, dims)} fill={m.team?.color ?? OUT_OF_PARTY_RING} opacity={0.85} />
       {m.team && <circle cx={0} cy={0} r={R} fill="none" stroke={m.team.color} strokeWidth={DISQUE_STROKE_PX} strokeDasharray={m.team.dash} />}
     </>
   );
 }
 
-/** Style d'ALLURE du disque : les trois canaux que le monde volumique porte au matériau de son quad
- *  (`boardPose.applyBoardChrome`), ici en CSS — estompe, désaturation, lueur de survol — plus la teinte
- *  de visibilité de la case, que le quad échantillonne à SA case dans la passe de pose
- *  (`boardPose.poseBoards`, `BillboardSubject.cell`). */
-export function allureStyle(m: TokenChromeMark, tint: number): CSSProperties {
+/** Style d'ALLURE du disque, en CSS : estompe, désaturation, lueur de survol, plus la teinte de
+ *  visibilité de SA case. */
+export function allureStyle(m: Pick<TokenChromeMark, 'endState' | 'ghost' | 'highlight'>, tint: number): CSSProperties {
   const filtres = [
-    m.ghost && !m.dim ? `grayscale(${DISQUE_GHOST_DESAT})` : '',
+    m.endState ? endStateFilter(m.endState) : m.ghost ? `grayscale(${DISQUE_GHOST_DESAT})` : '',
     tint < 1 ? `brightness(${tint.toFixed(3)})` : '',
     m.highlight ? `drop-shadow(0 0 3px ${m.highlight}) drop-shadow(0 0 7px ${m.highlight})` : '',
   ].filter(Boolean);
   return {
-    opacity: m.dim ? DISQUE_DIM_OPACITY : m.ghost ? DISQUE_GHOST_OPACITY : 1,
+    opacity: m.endState ? END_STATE_APPEARANCE[m.endState].opacity : m.ghost ? DISQUE_GHOST_OPACITY : 1,
     ...(filtres.length ? { filter: filtres.join(' ') } : {}),
   };
 }
 
 /** Ce jeton a-t-il quelque chose à peindre ici ? Sous `pionsEnDisques`, TOUJOURS — il y porte son
- *  CORPS. Sinon, seulement s'il montre du chrome : un figurant d'ambiance n'en a aucun, et un groupe
+ *  PION. Sinon, seulement s'il montre du chrome : un figurant d'ambiance n'en a aucun, et un groupe
  *  vide par figurant serait du DOM pour rien. Même condition que celle sous laquelle
  *  `TokenChromeMarks` ne rend rien. */
 export function aPeindre(m: TokenChromeMark, pions: boolean): boolean {
@@ -167,7 +135,7 @@ export interface TokenChromeOverlayProps {
   chromes: readonly TokenChromeMark[];
   dims: Dims;
   liftAt: LiftAt;
-  /** Verdict `pionsEnDisques` (`stage/viewPolicy`) : cette surcouche porte alors le CORPS des jetons,
+  /** Verdict `pionsEnDisques` (`stage/viewPolicy`) : cette surcouche porte alors le PION des jetons,
    *  et pas seulement leur chrome. Tranché par l'hôte, jamais re-déduit d'un test de vue local. */
   pions: boolean;
   /** Teinte de visibilité d'une case — le canal que le monde volumique applique à ses quads, appliqué

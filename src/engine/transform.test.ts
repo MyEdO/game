@@ -48,7 +48,7 @@ describe('transform / endTransform — Métamorphose Enfant d’Ulric (delta RAW
     expect(hasTraitKey(c.traits, 'peur')).toBe(true);
     expect(hasTraitKey(c.traits, 'morsure')).toBe(true);
     expect(c.causesPeur).toBe(2); // scalaire psy re-dérivé (Peur 2 accordée — l'Indice, pas un booléen)
-    expect(liveMorphRef(c)).toBe('enfant-d-ulric'); // apparence hybride (couche rig)
+    expect(liveMorphRef(c)).toBe('enfant-d-ulric'); // forme hybride
   });
 
   it('Arme et Morsure prennent l’Indice formulé sur la Force de la forme hybride (Middenheim 04 l.29)', () => {

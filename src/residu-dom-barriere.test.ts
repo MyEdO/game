@@ -1,12 +1,11 @@
 // @vitest-environment jsdom
 /**
  * Barrières de fin de test de `src/test-setup.ts` (#1619, #2286) : nœuds laissés dans `document.body`
- * ou `document.head`, dérive des registres d'art. Un fichier qui laisse un résidu échoue CHEZ LUI,
+ * ou `document.head`. Un fichier qui laisse un résidu échoue CHEZ LUI,
  * sans exception, et le résidu est retiré après le verdict : le test suivant part d'un état vierge.
  */
 import { describe, it, expect, onTestFinished } from 'vitest';
-import { residusDom, cleFichierTest, messageResiduDom, rigArtRegistrySignatures } from './test-setup';
-import { ARMOUR } from './gameIso/rig/parts/armour';
+import { residusDom, cleFichierTest, messageResiduDom } from './test-setup';
 
 // src/portable-paths-guard.test.ts:51
 const LECTEUR = 'C' + ':';
@@ -81,31 +80,5 @@ describe('barrière de fuite DOM — câblage réel au teardown', () => {
     expect(erreursHead.some((m) => m.includes(`Nœud(s) laissé(s) dans document.head par ${ceFichier}`)
       && m.includes('<style>')), erreursHead.join('\n')).toBe(true);
     expect(residusDom(document.head)).toEqual([]);
-  });
-});
-
-describe('barrière des registres d’art — câblage réel au teardown', () => {
-  const CLE = 'armour/index.ts#ARMOUR';
-  const plaque = ARMOUR.plaque as Record<string, unknown>;
-  let signatureOrigine: string | undefined;
-  let piedOrigine: unknown;
-  let erreursArt: string[] = [];
-
-  it.fails('un registre d’art laissé muté fait échouer le test qui l’a muté', () => {
-    signatureOrigine = rigArtRegistrySignatures().get(CLE);
-    piedOrigine = plaque.pied;
-    plaque.pied = '<g id="derive-du-banc"/>';
-    onTestFinished(({ task }) => {
-      erreursArt = erreursDe(task);
-    });
-  });
-
-  it('l’échec nomme CE fichier et le registre, et le registre est remis à l’origine', () => {
-    const ceFichier = cleFichierTest(expect.getState().testPath);
-    expect(erreursArt.some((m) => m.includes(`Registre d'art du rig laissé MUTÉ par ${ceFichier}`)
-      && m.includes(CLE)), erreursArt.join('\n')).toBe(true);
-    expect(signatureOrigine).toBeTruthy();
-    expect(plaque.pied).toBe(piedOrigine);
-    expect(rigArtRegistrySignatures().get(CLE)).toBe(signatureOrigine);
   });
 });

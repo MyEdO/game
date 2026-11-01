@@ -454,18 +454,13 @@ function rendu() {
     "",
     "",
   ].join("\n")
-  out += `## §E-ter — Les deux espaces de clés « race » (species ⇄ rig)\n\n`
-  out += `Deux conventions de nommage de race coexistent, **par dessein**, DÉCOUPLÉES :\n\n`
-  out += `- **espace « données de personnage »** (\`species.refChar\`/\`species.refCareer\`, ex. \`Haut Elfe\`, \`Elfe\n`
-  out += `  Sylvain\`) — clé de \`names.json\`, \`careers.json\`, \`eyes.json\`, \`hairs.json\`, \`details.json\`.\n`
-  out += `- **espace « rig »** (id d'apparence, sûr pour nom de fichier, ex. \`Haut-Elfe\`, \`Elfe sylvain\`) — id\n`
-  out += `  de \`raceAppearance.json\` et des defs de \`src/gameIso/rig/\`.\n\n`
-  out += `\`speciesRace.json\` (consommé via \`baseSpeciesOf\`) est le **pont UNIQUE** species→rig — 5 des 7 races\n`
-  out += `jouables sont identiques d'un espace à l'autre, seuls les elfes divergent par tiret/casse ; ce\n`
-  out += `découplage est **intentionnel** (unifier les deux espaces casserait l'un des deux clans, chacun avec\n`
-  out += `ses dizaines de fichiers). Garde : \`src/data/names-species-keyspaces.test.ts\` — échoue si \`names.json\`\n`
-  out += `dérive hors de l'espace \`refChar\`, si le pont species→rig cesse d'être 1:1, ou si une clé d'un espace\n`
-  out += `se met à ressembler à une clé de l'autre sans être le couple ponté sanctionné.\n\n`
+  out += `## §E-ter — L'espace de clés « race »\n\n`
+  out += `Les races JOUABLES ont UN seul espace de clés : l'id \`RaceKey\` (\`raceKeySchema\`,\n`
+  out += `\`src/data/schemas/grammaire/valeurs.ts\`). \`species.refChar\` le porte côté données de personnage,\n`
+  out += `chaque document de \`names.json\` le porte, et \`raceAppearance.json\` (keyé par le slug de son libellé)\n`
+  out += `donne aux 7 races jouables exactement leur \`RaceKey\` pour id. \`speciesRace.json\` ne porte que la race\n`
+  out += `d'apparence par défaut (\`default\`, lue en \`DEFAULT_RACE_ID\` de \`src/data/index.ts\`). Garde :\n`
+  out += `\`src/data/names-species-keyspaces.test.ts\`.\n\n`
 
   out += `## §F — À COLLER DANS UN BRIEF D'AGENT « DONNÉE »\n\n`
   out += `> Tu vas ajouter/curer une entrée dans \`src/data/*.json\`. Discipline OBLIGATOIRE :\n`
@@ -473,8 +468,8 @@ function rendu() {
   out += `>    déjà dans un autre sous-système (ex. #148 : le Bélier est dans 6 fichiers). S'il existe → ne duplique\n`
   out += `>    pas, étends-le ou re-scope.\n`
   out += `> 2. **Bon fichier** via \`docs/donnees.md\` §A. Une « machine de guerre / véhicule / navire » n'est pas un\n`
-  out += `>    \`trappings\`. Si c'est un **sort / une créature / un effet mécanique / une icône / un livre** → utilise\n`
-  out += `>    le skill de domaine dédié (\`ajouter-un-sort\`/\`creer-une-creature\`/\`ajouter-une-mecanique\`/…).\n`
+  out += `>    \`trappings\`. Si c'est un **sort / un effet mécanique / une icône / un livre** → utilise\n`
+  out += `>    le skill de domaine dédié (\`ajouter-un-sort\`/\`ajouter-une-mecanique\`/…).\n`
   out += `> 3. **Chaque champ = Source RAW ⊕ voisins** : lis le **tableau ET son en-tête** au \`Source/\` (FR only ;\n`
   out += `>    ne confonds pas une colonne « Équipe » avec « Encombrement »). \`book\` = \`abr\` de \`books.json\` ;\n`
   out += `>    \`page\` = vraie page ; \`desc\` = verbatim Markdown ; formes copiées des voisins.\n`

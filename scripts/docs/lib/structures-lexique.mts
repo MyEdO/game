@@ -994,17 +994,15 @@ export const ROLES_ENVELOPPE: Record<string, RoleEnveloppe> = {
   // ainsi (`z.string().nullable()`), l'absence de sous-titre étant un ÉTAT MODÉLISÉ du dataset. Le
   // devenir de ces 437 nuls et des 53 valeurs réelles se tranche en #1541, pas dans le détecteur.
   'sous-titre': { cible: 'title', divergentes: [] },
-  // `effect`, `rules` et `hint` ont été RETIRÉS des divergentes (#1467 L1b V-P2) : le détecteur
-  // classait par NOM de clé, pas par TYPE, et ces trois-là ne portent pas de prose.
+  // `effect` et `hint` ne sont pas des divergentes (#1467 L1b V-P2) : le détecteur classe par TYPE,
+  // pas par NOM de clé, et ces deux-là ne portent pas de prose.
   //   `crew-morale.json › factors[].effect` = expression de dés lue par `rollExpr`
   //     (`src/data/schemas/defs/crew-morale.ts`) ;
   //   `sea-events.json › manann.factors[].effect` = objet `{sign, flat, d10}`
   //     (`manannFactor` de `src/data/schemas/defs/sea-events.ts`) ;
   //   `hint` = qualificatif d'affichage d'un marqueur de cargaison
   //     (`cargoMarqueur` de `src/data/schemas/defs/land-cargo.ts`) et aide de saisie d'une règle
-  //     optionnelle (`src/data/schemas/defs/reglesOptionnelles.ts`) ;
-  //   `speciesRace.json › rules` = tableau de règles (`speciesRuleSchema` de
-  //   `src/data/schemas/defs/speciesRace.ts`).
+  //     optionnelle (`src/data/schemas/defs/reglesOptionnelles.ts`).
   // Les `effect` qui ÉTAIENT des issues ou une clé de registre ont, eux, été migrés (`outcome`,
   // `potEffectId`, `ops`) plutôt que retirés de la mesure.
   prose: { cible: 'desc', divergentes: ['text', 'description'] },

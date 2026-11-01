@@ -6,8 +6,7 @@ import { ast, analyserCorpus } from '../../../../scripts/guards/lib/dialecte.mjs
  * que ce garde ferme.
  *
  * Étalons conformes du dépôt : `reposeGroundAccents` → `{dégagement, teinte}` consommé par l'effet
- * d'accents, `applyCutawayMask`/`applyVisibilityTint` → `{geometry, bouge}`, `reposerActeurs` →
- * `{ancres, caps}`.
+ * d'accents, `applyCutawayMask`/`applyVisibilityTint` → `{geometry, bouge}`.
  *
  * SÉLECTEUR, structurel et décidable à l'AST — un export est un mutateur d'objet monté quand :
  *  1. son nom porte un des préfixes de mutation (`apply`, `repose`/`reposer`, `write`, `pose`/`poser`,
@@ -60,11 +59,6 @@ const FOYERS_SIGNAL: readonly { readonly fichier: string; readonly export: strin
     raison: 'couture PRIMITIVE du compte d’un pool : le verdict appartient aux passes qui l’appellent (écriture de marques, repose par frame)',
   },
   {
-    fichier: 'src/gameIso/backends/webgl/sceneMeshes.ts',
-    export: 'poseContactShadow',
-    raison: 'plaque un disque sous une ancre : au montage le disque n’est pas encore monté, à la frame il suit un billboard que la passe de pose repeint et dont elle rend le verdict (`aGlissé`)',
-  },
-  {
     fichier: 'src/gameIso/backends/webgl/weatherParticles.ts',
     export: 'writePrecipMatrices',
     raison: 'écrit le semis de précipitation À CHAQUE frame de la boucle météo, qui peint de toute façon l’image qu’elle vient de calculer',
@@ -82,18 +76,6 @@ const FOYERS_SITE: readonly {
   readonly sites: number;
   readonly raison: string;
 }[] = [
-  {
-    fichier: 'src/gameIso/backends/webgl/percageLocal.ts',
-    export: 'percerMateriau',
-    sites: 1,
-    raison: 'matériau de profondeur NEUF, percé avant d’être rendu à son appelant : aucune image ne le porte encore',
-  },
-  {
-    fichier: 'src/gameIso/stage/GameStage3D.tsx',
-    export: 'percerMateriau',
-    sites: 1,
-    raison: 'matériaux du monde tout juste fabriqués, montés sur leur maillage à la ligne suivante — l’effet peint inconditionnellement le monde qu’il vient de monter',
-  },
   {
     fichier: 'src/gameIso/stage/GameStage3D.tsx',
     export: 'applyFogGamma',
@@ -245,9 +227,9 @@ const SITES = detenteur(() =>
 const PERDUS = detenteur(() => SITES().filter((s) => s.nu && !s.nettoyage));
 
 describe('#1401 — un mutateur du monde monté rend un signal, et son appelant le consomme', () => {
-  it('le sélecteur trouve VRAIMENT des mutateurs, dont les trois étalons du ticket', () => {
+  it('le sélecteur trouve VRAIMENT des mutateurs, dont les étalons du ticket', () => {
     expect(MUTATEURS().length, 'sélecteur muet = garde qui ne pèse rien').toBeGreaterThanOrEqual(10);
-    for (const étalon of ['applyCutawayMask', 'applyVisibilityTint', 'reposeGroundAccents', 'reposerActeurs']) {
+    for (const étalon of ['applyCutawayMask', 'applyVisibilityTint', 'reposeGroundAccents']) {
       expect(MUTATEURS().find((m) => m.nom === étalon)?.signalant, étalon).toBe(true);
     }
   });

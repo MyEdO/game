@@ -14,6 +14,7 @@ import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { refusDeSoins } from '../noyau/medicFlow';
+import { combatantRingDecor } from '../gameIso/builders/dynamicMarks';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /** Héros « Agitateur » niveau 1 (« Pamphlétaire ») avec 1000 PX, Charme (in-carrière) + Esquive (hors). */
@@ -225,26 +226,23 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     useGame.setState({ battle: null });
   });
 
-  it('la colonne rend la figurine en pied + Blessures, sans compagnie/caracs/ressources', () => {
+  it('la colonne rend Blessures, sans compagnie/caracs/ressources', () => {
     const h = hero();
     useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
     const html = mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
     expect(html).toContain('sheet-portrait');
-    expect(html).toContain('charprev'); // figurine en pied (CharacterPreview), plus de médaillon PortraitTile
     expect(html).toContain('Blessures');
-    expect(html).not.toContain('frame-row'); // rangée de compagnie MORTE dans la fiche (pt.2)
-    expect(html).not.toContain('Caractéristiques'); // caracs SORTIES de la colonne (déplacées en tête de Compétences)
-    expect(html).not.toContain('Destin'); // ressources (FateChips) SORTIES de la colonne
   });
 
-  it('nom du héros en tête de la colonne, au-dessus du cadre-figurine ; la colonne : boîte-figurine, barre de vie, barre d’encombrement, race/classe/statut', () => {
+  it('nom du héros en tête de la colonne, au-dessus de la tuile de présence ; la colonne : tuile, barre de vie, barre d’encombrement, race/classe/statut', () => {
     const h = hero();
-    useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
+    const population = [{ ...hero(), id: 'premier', label: 'Premier héros' }, h];
+    useGame.setState({ party: population, battle: null, sheetId: h.id, sheetTab: 'possessions' });
     mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
     const aside = container.querySelector('.sheet-aside')!;
     const portrait = aside.querySelector('.sheet-portrait')!;
 
-    // 1. Nom en tête de la colonne, qui nomme le dialogue, AU-DESSUS du cadre-figurine (en tête de
+    // 1. Nom en tête de la colonne, qui nomme le dialogue, AU-DESSUS de la tuile de présence (en tête de
     //    planche avec le dock : #1829).
     const dialogue = container.querySelector('[role="dialog"]')!;
     const nom = aside.firstElementChild!;
@@ -252,12 +250,13 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(nom.textContent).toBe('H');
     expect(dialogue.getAttribute('aria-label')).toBe('H');
     expect(dialogue.querySelector('.modal-title'), 'la tête ne porte que la croix').toBeNull();
-    const figTile = portrait.querySelector('.fig-tile.hero')!;
-    expect(figTile).toBeTruthy();
-    expect(nom.compareDocumentPosition(figTile) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // 3/4. Barre de vie PUIS barre d'encombrement — VRAIES barres lisses `LifeBar` (arbitrage
-    // 2026-07-17 : « pourquoi la version crantée ? »), aucun arc SVG (VitalArc mort).
-    expect(aside.querySelector('.vital-arc')).toBeNull();
+    const identite = portrait.firstElementChild as HTMLElement;
+    expect(identite.classList.contains('ptile-wrap')).toBe(true);
+    expect(identite.querySelector('.ptile')?.getAttribute('aria-hidden')).toBe('true');
+    expect(identite.querySelector('.ptile-name')).toBeNull();
+    expect(identite.style.getPropertyValue('--ptile-ring')).toBe(combatantRingDecor(h, useGame.getState().party.map((hero) => hero.id), population).color);
+    expect(identite.querySelector('.ptile-ring circle')?.getAttribute('stroke')).toBe('var(--ptile-ring)');
+    expect(nom.compareDocumentPosition(identite) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const bars = portrait.querySelectorAll('.life-bar');
     expect(bars.length).toBe(2);
     expect(bars[0].querySelector('.life-bar__label')?.textContent).toBe('Blessures');
@@ -368,7 +367,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(html).toContain('Fausse jambe — récupérer le dernier Point de Mouvement perdu');
   });
 
-  it('badges de zone `FigTile.zoneBadges` : PA d’armure en Possessions (seules les zones COUVERTES, ton `sang` si l’armure portée est entamée)', () => {
+  it('badges de zone `FigZoneBadges` composés par `CharacterSheet` : PA d’armure en Possessions (seules les zones COUVERTES, ton `sang` si l’armure portée est entamée)', () => {
     const h = {
       ...hero(),
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 },
@@ -383,7 +382,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(badges.length).toBe(1);
     const corps = aside.querySelector('.fig-zone-badge[data-loc="corps"]')!;
     expect(corps.getAttribute('data-tone')).toBe('sang'); // armure entamée (damageTaken > 0)
-    expect(corps.textContent).toBe('2');
+    expect(corps.textContent).toBe('Corps 2');
     expect(aside.querySelector('.fig-zone-badge[data-loc="tete"]')).toBeNull(); // PA 0 → aucun badge
   });
 

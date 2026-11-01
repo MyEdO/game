@@ -1,9 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
-import { act, useState, type ReactElement } from 'react';
+import { describe, it, expect } from 'vitest';
+import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
-import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
 import { CharacterCreator, CareerScreen, CharScreen, SpeciesRaceScreen, SkillsScreen, StarScreen, TrappingsScreen, DetailsScreen, PresentationScreen, PettySpellsSection, careerLevelTalentsTitle, TrappingChoiceSlot } from './CharacterCreator';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { emplacementsDeDotation, emplacementTranche } from '../../engine/trappingChoices';
@@ -31,7 +29,6 @@ import {
   withRandomTalentSpec,
   stepIds,
   draftLevel,
-  buildHero,
   type CreatorDraft,
 } from '../../noyau/creation/brouillon';
 import { species as allSpecies, careersForSpecies, findCareerById } from '../../data';
@@ -518,7 +515,7 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     });
   });
 
-  it('étape Détails (#393 P5, étalon = planche ratifiée du créateur, écran Détails) — gabarit DEUX ZONES, identité + motivation + apparence dans le panneau', () => {
+  it('étape Détails (#393 P5, étalon = planche ratifiée du créateur, écran Détails) — gabarit DEUX ZONES, identité + motivation dans le panneau', () => {
     const d = withCareer(withSpecies(newDraft(7), SP.id), 'soldat');
     const html = renderToStaticMarkup(<DetailsScreen d={d} setD={() => {}} />);
     expect(html).toContain('creator-step');
@@ -527,7 +524,6 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     expect(html).toContain('Âge');
     expect(html).toContain('Cheveux');
     expect(html).toContain('Motivation'); // BackgroundFields présent dans le panneau
-    expect(html).toContain('appear-panel'); // Apparence (AppearancePanel) dans le même panneau
   });
 
   // #1318 E1 : l'état civil ne pose plus d'`<input type="number">` au site (le wrapper `IdentityField`
@@ -545,14 +541,6 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
       expect(champ, 'un plafond ici serait une valeur maison non sourcée').not.toContain('max=');
       expect(champ).toContain('value=""');
     }
-  });
-
-  it('étape Détails — bouton « Visage → Variante » (apparence.seed) change réellement le rig rendu (#bug visage figé)', () => {
-    const d1 = withCareer(withSpecies(newDraft(7), SP.id), 'soldat');
-    const html1 = renderToStaticMarkup(<DetailsScreen d={d1} setD={() => {}} />);
-    const d2 = { ...d1, apparence: { ...d1.apparence, seed: (d1.apparence.seed ?? 0) + 1 } };
-    const html2 = renderToStaticMarkup(<DetailsScreen d={d2} setD={() => {}} />);
-    expect(html1).not.toBe(html2);
   });
 
   it('étape Présentation (#393 P5, étalon = planche ratifiée du créateur, écran Présentation, renommage « Récapitulatif » → « Présentation ») — mise en scène finale en 3 colonnes, sans texte nu (chips CodexRef)', () => {
@@ -582,57 +570,5 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     expect(html).toContain('Bourse');
     // Les 10 caractéristiques sont rendues
     for (const k of ['CC', 'CT', 'FM', 'Soc']) expect(html).toContain(`>${k}<`);
-  });
-});
-
-beforeAll(() => {
-  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-});
-afterEach(demonterRacines);
-
-/** Écran Détails monté sur un brouillon d'état ; `dernier()` rend le brouillon courant. */
-function monterDetails(depart: CreatorDraft): { container: HTMLElement; dernier: () => CreatorDraft } {
-  let courant = depart;
-  function Harnais() {
-    const [d, setD] = useState(depart);
-    courant = d;
-    return <DetailsScreen d={d} setD={setD} />;
-  }
-  const { container } = monterRacine(<Harnais />);
-  return { container, dernier: () => courant };
-}
-
-function choisirCoiffure(container: HTMLElement, id: string): void {
-  const select = [...container.querySelectorAll<HTMLLabelElement>('.appear-panel label')].find((l) => l.textContent?.trim().startsWith('Coiffure'))!.querySelector('select')!;
-  act(() => {
-    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, id);
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-}
-
-/** La bascule de Sexe de l'état civil (`PlaqueRow` « Sexe »). */
-function basculerSexe(container: HTMLElement): void {
-  const bouton = [...container.querySelectorAll<HTMLElement>('.plaque-row')]
-    .find((r) => r.querySelector('.plaque-label')?.textContent === 'Sexe')!.querySelector('button')!;
-  act(() => { bouton.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-}
-
-describe('créateur — la coiffure choisie à l’écran Détails survit (#1897)', () => {
-  it('(a) une coiffure choisie à l’écran Détails se retrouve sur le héros créé', () => {
-    const coiffureM = hairstylesForSex('M')[0].id;
-    const { container, dernier } = monterDetails(ready());
-    choisirCoiffure(container, coiffureM);
-    expect(buildHero(dernier()).appearance?.hairstyle).toBe(coiffureM);
-  });
-
-  it('(b) coiffure F choisie, puis bascule du sexe à la bande Identité : la coiffure tombe', () => {
-    const coiffureF = hairstylesForSex('F')[0].id;
-    const depart = ready();
-    const { container, dernier } = monterDetails({ ...depart, apparence: { ...depart.apparence, sex: 'F' } });
-    choisirCoiffure(container, coiffureF);
-    expect(dernier().apparence.hairstyle).toBe(coiffureF);
-    basculerSexe(container);
-    expect(dernier().apparence.sex).toBe('M');
-    expect(buildHero(dernier()).appearance?.hairstyle).toBeUndefined();
   });
 });

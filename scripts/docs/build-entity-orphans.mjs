@@ -68,7 +68,12 @@
 // ?? slugId(name)` — engine/character.ts, careerSlots.ts, scenes/test-scenarios/*.ts ;
 // `traits/dispatch.ts#mutationsAtSpawn` en a le cas connu pour les mutations) échapperait à la
 // détection si SEUL le libellé apparaissait ailleurs — vérifié à la main pour les 20 entrées du stock
-// initial (ni id NI label cités ailleurs que leur propre déclaration).
+// initial (ni id NI label cités ailleurs que leur propre déclaration) ;
+// (4) une CLÉ de littéral d'objet du code de prod égale à un id compte comme occurrence, citée
+// (`'chauve-souris-vampire-varghulf':`) ou non (`manticore:`), mesurée par l'AST (`clesDObjet`) :
+// une table keyée par id d'espèce (`SPECIES_BODY_SHAPE`, `engine/bodyForm.ts`) LIT l'entité, mais
+// une clé de config homonyme (`taille:`, `table:`, `cle:`) compte aussi. Le rapport IMPRIME chaque
+// clé égale à un id, une ligne par clé (section « Clés d'objet égales à un id »).
 //
 // MODE 2 (`computeFieldPredicateConsumers`) — sélection dynamique par PRÉDICAT DE CHAMP : du code de
 // production filtre le catalogue (`<catalogue>.filter((param) => param.champ === 'valeur'…)`, ex.
@@ -98,7 +103,7 @@ import { join } from 'node:path'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import {
   CATEGORY_FILES, EXCLUDED_CATEGORY_FILES, loadCategoryIds, buildConsumerCorpus, isConsumed,
-  predicatDeConsommation,
+  predicatDeConsommation, enregistrementsPropres, clesDObjet,
 } from '../guards/lib/entityConsumers.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
@@ -138,8 +143,9 @@ function rendu() {
   // déclaration d'id. Aucune ligne nominative n'est publiée : ces catalogues restent hors périmètre.
   const excludedIds = loadCategoryIds(DATA_DIR, EXCLUDED_CATEGORY_FILES)
   const excludedCorpus = buildConsumerCorpus(DATA_DIR, SRC_DIR, EXCLUDED_CATEGORY_FILES)
+  const excludedPropres = enregistrementsPropres(DATA_DIR, EXCLUDED_CATEGORY_FILES)
   for (const [cat, allIds] of Object.entries(excludedIds)) {
-    const brutes = allIds.filter((id) => !isConsumed(excludedCorpus, id)).length
+    const brutes = allIds.filter((id) => !isConsumed(excludedCorpus, id, excludedPropres.get(`${cat}:${id}`))).length
     const pct = allIds.length ? Math.round((brutes / allIds.length) * 100) : 0
     out += `| \`${cat}\` | ${allIds.length} | ${brutes} | ${pct} % |\n`
   }
@@ -178,6 +184,18 @@ function rendu() {
     }
     out += `\n`
   }
+
+  // Angle mort (4) de l'en-tête : une ligne par clé, jamais un compte seul.
+  const categoriesDe = new Map()
+  for (const [cat, catIds] of Object.entries(ids)) for (const id of catIds) categoriesDe.set(id, [...(categoriesDe.get(id) ?? []), cat])
+  const clesEgales = clesDObjet(SRC_DIR).filter(({ cle }) => categoriesDe.has(cle))
+  out += `## Clés d'objet égales à un id (angle mort)\n\n`
+  out += `> Une clé de littéral d'objet du code de prod égale à un id en est une OCCURRENCE, citée ou non :\n`
+  out += `> chacune compte comme consommatrice, qu'elle LISE l'entité ou soit une clé homonyme.\n\n`
+  for (const { cle, loc } of clesEgales) {
+    out += `- \`${categoriesDe.get(cle).map((cat) => `${cat}:${cle}`).join('`, `')}\` — clé de \`${SRC_DIR}/${loc}\`\n`
+  }
+  out += `\n`
   return {
     out,
     path: OUT,

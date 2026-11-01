@@ -1,30 +1,23 @@
 import type { CSSProperties } from 'react';
-import { RigPortrait } from './RigPortrait';
 import { hpColor } from '../gameIso/teamColors';
+import { teamRingDecor } from '../gameIso/builders/dynamicMarks';
 import { StateChips } from './StateChips';
 import { Icon } from './Icon';
 import { endState } from '../engine/conditions';
 import { END_STATE_VISUAL } from './endStateVisual';
+import { END_STATE_APPEARANCE, endStateFilter } from '../gameIso/endStateAppearance';
 import { LifeBar } from './LifeBar';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { useLongPress } from './useLongPress';
 
 /**
- * Tuile-portrait compacte et UNIFIÉE — la SEULE façon d'afficher un personnage (HUD, modales,
- * pickers, écrans). L'API est volontairement fermée : 3 variantes × 5 tailles, AUCUN booléen
- * d'affichage (la soupe showPv/showGauge/hideStates est ce qui avait fait diverger les écrans).
- *  - `full`     : portrait + jauge + pastilles d'États (HUD, médecin, inspection) ;
- *  - `vital`    : portrait + jauge, sans États (sujet de modale, cibles) ;
- *  - `identity` : portrait seul (butin, ready-check, lignes de jet, marchand).
- * Règles dérivées (arbitrées 2026-06-12) :
- *  - PV chiffrés : HÉROS uniquement (ennemi/PNJ = jauge seule, les PB exacts restent à
- *    l'Inspection) et à partir de `md` (illisible en dessous) ;
- *  - la TUILE ne rend jamais le nom (API fermée) : elle le porte en `title`/`aria-label` (a11y) ;
- *    un appelant qui veut le nom VISIBLE le compose à l'EXTÉRIEUR, dans son propre markup ;
- *  - cadre = couleur d'identité/équipe (`ring`), fond d'équipe (`team`), KO grisé ✕,
- *    unité ACTIVE grossie à l'œil + liseré or + caret ▼, `selected` = tuile-radio des pickers.
- * Pur à props (testable en SSR), aucune lecture du store — voir CharFrame pour le wrapper connecté.
+ * Identité compacte partagée : repère de sol, nom visible et état de fin (`END_STATE_VISUAL`).
+ * `full` ajoute jauge et États ; `vital` ajoute la jauge ; `identity` garde l'identité seule.
+ * Une tuile `decoratif` laisse le nom et le geste au contrôle qui l'englobe.
+ * API fermée : 3 variantes × 5 tailles, aucun booléen d'affichage. PV chiffrés : héros seulement, à
+ * partir de `md` (arbitrage 2026-06-12).
+ * Pure à props ; CharFrame fournit la décoration du combattant dans la population courante.
  */
 export type CharVariant = 'full' | 'vital' | 'identity';
 export type CharSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -35,12 +28,9 @@ export const CHAR_SIZE_PX: Record<CharSize, number> = { xs: 28, sm: 44, md: 56, 
 
 export interface PortraitTileProps {
   c: Combatant;
-  /** Couleur du cadre : teinte d'équipe (frise) ou couleur d'identité du héros (dock). */
-  ring: string;
   variant?: CharVariant;
   size?: CharSize;
-  /** Unité active (HUD) : portrait grossi à l'ŒIL (`transform`, portrait-tile.css — la boîte de mise
-   *  en page ne bouge pas) + liseré or + caret ▼. */
+  /** Unité active (HUD) : liseré or, halo et caret ▼ à taille nominale. */
   active?: boolean;
   /** Tuile-radio d'un picker : accentuée comme choix courant. */
   selected?: boolean;
@@ -49,6 +39,7 @@ export interface PortraitTileProps {
   hovered?: boolean;
   /** Fond d'équipe derrière le portrait (vert allié / rouge ennemi). */
   team?: 'ally' | 'enemy';
+  ring?: ReturnType<typeof teamRingDecor>;
   maxStates?: number;
   /** Cellule d'États à EMPREINTE STABLE (arbitrage user 2026-07-11) : rendue vide sans État pour que
    *  les rangées-personnages d'une LISTE gardent leurs colonnes alignées. Défaut `false` (HUD/dock). */
@@ -65,16 +56,15 @@ export interface PortraitTileProps {
   decoratif?: boolean;
 }
 
-export function PortraitTile({ c, ring, variant = 'full', size = 'md', active, selected, hovered, team, maxStates = 4, reserveStates = false, onClick, onInspect, title, decoratif = false }: PortraitTileProps) {
+export function PortraitTile({ c, variant = 'full', size = 'md', active, selected, hovered, team, ring = teamRingDecor(c), maxStates = 4, reserveStates = false, onClick, onInspect, title, decoratif = false }: PortraitTileProps) {
   const px = CHAR_SIZE_PX[size];
   const ratio = c.wounds.max > 0 ? Math.max(0, Math.min(1, c.wounds.current / c.wounds.max)) : 0;
-  // État de FIN (#237) : SOURCE UNIQUE (endState) — distingue mort / inconscient / rendu / hors-combat
-  // (une croix ✕ générique les confondait). null = en état (un héros à 0 PB reste À Terre, pas une fin).
   const es = endState(c);
   const endMark = es ? END_STATE_VISUAL[es] : null;
   const showGauge = variant !== 'identity' && !c.inert;
   const showPv = showGauge && c.kind === 'hero' && px >= CHAR_SIZE_PX.md;
-  const Boite = decoratif ? 'span' : 'button';
+  const interactif = !decoratif && !!(onClick || onInspect);
+  const Boite = interactif ? 'button' : 'span';
   const inspecter = decoratif ? undefined : onInspect;
   // L'appui long AVALE la salve qu'il précède (`consomme`, lu par `click` ET `contextmenu`) : sans quoi
   // le doigt ouvrirait la fiche PUIS jouerait le clic primaire de la tuile.
@@ -92,24 +82,24 @@ export function PortraitTile({ c, ring, variant = 'full', size = 'md', active, s
       }
     : null;
   return (
-    <div className="ptile-wrap" style={{ '--ptile-px': `${px}px` } as CSSProperties}>
-      {/* Le chevron est porté par la GRAPPE : dans la tuile, le `transform` de l'unité au trait le
-          grossirait et le remonterait avec elle (portrait-tile.css). */}
+    <div className="ptile-wrap" data-fin={es ?? undefined} style={{ '--ptile-px': `${px}px`, '--ptile-ring': ring.color, '--ptile-end-opacity': es ? END_STATE_APPEARANCE[es].opacity : undefined, '--ptile-end-filter': es ? endStateFilter(es) : undefined } as CSSProperties}>
       {active && <i className="ptile-caret">▼</i>}
       <Boite
         {...(decoratif
           ? { 'aria-hidden': true }
           : {
-              type: 'button' as const,
+              ...(interactif ? { type: 'button' as const } : {}),
               onClick: () => { if (appuiLong.consomme()) return; onClick?.(); },
               title: nom,
               'aria-label': inspecter ? `${nom} — ${t('ptile.geste2eInspecter')}` : nom,
               ...geste2e,
             })}
-        className={`ptile ${active ? 'active' : ''} ${selected ? 'sel' : ''} ${hovered ? 'hov' : ''} ${endMark ? `ko ${endMark.className}` : ''} ${team ? `team-${team}` : ''}`}
+        className={`ptile ${active ? 'active' : ''} ${selected ? 'sel' : ''} ${hovered ? 'hov' : ''} ${team ? `team-${team}` : ''}`}
       >
         <span className="ptile-face">
-          <RigPortrait combatant={c} size={px} ring={ring} />
+          <svg className="ptile-ring" viewBox="0 0 48 48" aria-hidden="true">
+            <circle cx="24" cy="24" r="18" fill="none" stroke="var(--ptile-ring)" strokeWidth="4" strokeDasharray={ring.dash} />
+          </svg>
           {endMark && (
             <span className={`end-mark ${endMark.className}`} title={endMark.label} aria-label={endMark.label}>
               <Icon id={endMark.icon} size="sm" />
@@ -127,6 +117,7 @@ export function PortraitTile({ c, ring, variant = 'full', size = 'md', active, s
             format={() => (showPv ? (c.dead ? <Icon id="journal/death" size="sm" /> : `${c.wounds.current}/${c.wounds.max}`) : null)}
           />
         )}
+        {!decoratif && <span className="ptile-name clamp">{c.label}</span>}
       </Boite>
       {variant === 'full' && <StateChips c={c} max={maxStates} reserve={reserveStates} />}
     </div>
