@@ -274,9 +274,8 @@ describe('Cran franchi — aucune rasterisation en rafale', () => {
     svgTexture.clearBillboardTextures();
     resetBakeQueue();
     // La sonde se pose sur `svgToTexture`, la couture que l'écran APPELLE : `rasterizeSvg` lui est
-    // interne, donc hors de portée d'un espion de module (le dépôt le documente déjà —
-    // `flipbook-frames.test.tsx`, « sa texture statique ne passe pas par ici »). Un espion posé là ne
-    // verrait jamais rien, et l'assertion serait vide.
+    // interne, donc hors de portée d'un espion de module. Un espion posé là ne verrait jamais rien, et
+    // l'assertion serait vide.
     const statique = vi.spyOn(svgTexture, 'svgToTexture');
 
     // Rendu SYNCHRONE : aucune tranche d'inactivité ne peut s'intercaler entre le franchissement et la
@@ -532,8 +531,7 @@ const signatureDuCap = (cap: Dir8): string => {
   return `|r${povArtRot(cap)}|${vm.view}|${vm.mirror ? 'm' : 'd'}|`;
 };
 
-/** Décors seuls : chaque quad se compare alors à SON art d'avant, sans le corps à flipbook que la
- *  boucle d'image repeint par ailleurs. */
+/** Décors seuls : chaque quad se compare alors à SON art d'avant. */
 const DÉCORS = { props: ELS.props } satisfies SceneBillboardEls;
 
 /**

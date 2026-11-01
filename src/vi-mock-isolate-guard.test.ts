@@ -77,7 +77,7 @@ describe('garde-fou — mock de module interdit tant que la suite partage son gr
     if (!ISOLATE_FALSE) return; // suite isolée par fichier : la liaison redevient déterministe
     const offenders: string[] = [];
     for (const { rel, text } of fichiersDeLaSuite()) offenders.push(...moduleMockHits(text, rel));
-    expect(offenders, `Mock de module sous \`isolate: false\` — la liaison dépend de l'ordre des fichiers du worker.\nEnregistrer la donnée fabriquée dans le registre lu à l'appel (patron \`withTenue\`, resolve-membre.test.ts) :\n${offenders.join('\n')}`).toEqual([]);
+    expect(offenders, `Mock de module sous \`isolate: false\` — la liaison dépend de l'ordre des fichiers du worker.\nEnregistrer la donnée fabriquée dans le registre lu à l'appel (patron \`poserPaliersDArmure\`, data/paliersDArmure.testkit.ts) :\n${offenders.join('\n')}`).toEqual([]);
   });
 });
 

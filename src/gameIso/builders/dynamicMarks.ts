@@ -236,8 +236,8 @@ export function ringPhaseRad(kind: ProjKind): number {
  *  le trait se mesure dans le MONDE, jamais en pixels d'écran. */
 export const TEAM_RING_WIDTH_K = strokeWidthK(TEAM_RING_STROKE_PX);
 
-/** BASES d'échelle des jetons dans le repère de billboard : le combattant, et le meneur du
- *  groupe hors combat. L'anneau se mesure sur la MÊME échelle que le corps qu'il entoure — la base
+/** BASES d'échelle des jetons : le combattant, et le meneur du groupe hors combat. L'anneau se mesure
+ *  sur l'échelle du jeton qu'il entoure — la base
  *  voyage donc avec lui au lieu d'être recopiée d'un site de rendu à l'autre. */
 export const COMBAT_TOKEN_BASE = 0.62;
 export const PARTY_TOKEN_BASE = 0.6;

@@ -70,7 +70,7 @@ describe('#223/#258 — arme d’authoring (trappingId) au spawn de combat', () 
     expect(dague?.subType).toBe('base');
   });
 
-  it('#258 régression Olg (loup-et-saumure) — « hache-d-armes » résout SANS plainte au spawn de combat (même voie que le rendu enemyRigProfile)', () => {
+  it('#258 régression Olg (loup-et-saumure) — « hache-d-armes » résout SANS plainte au spawn de combat', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     spawnEnemy({ statblock: { type: 'statblock', label: 'Olg Blóðsalt', char: { B: 12 } } }, 'olg', POS, { weapon: 'hache-d-armes' });
     expect(err).not.toHaveBeenCalled();

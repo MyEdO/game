@@ -4,7 +4,7 @@
  * chez chaque dessinateur et consomme cette projection.
  */
 import type { ArmourPoints, Combatant, HitLocation, ItemInstance, Weapon } from '../engine/types';
-import { emptyArmour, apparencesCandidates, deciderApparencesDesArmes, isCapeItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type SourceDeForme, type TrappingResolver, isShieldItem } from '../engine/items';
+import { emptyArmour, apparencesCandidates, deciderApparencesDesArmes, isCapeItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type TrappingResolver, isShieldItem } from '../engine/items';
 import { armourFromTraits, renderWeaponsFromTraits, weaponFromId } from '../engine/creatureEquip';
 import type { TraitInstance } from '../engine/statEntry';
 import { porteurDuProfil, traitsDeLIndividu } from './monde/spawn';
@@ -80,7 +80,6 @@ export function pieceDeDessin(it: ItemInstance): PieceDeDessin {
   if (!estMatiere(matiere)) throw new Error(`pieceDeDessin : « ${it.uid} » n'a pas de type d'armure (subType « ${matiere ?? ''} »).`);
   return { ...projeter(it, CLES_PIECE), matiere };
 }
-export const bouclierDeDessin = (x: SourceDeForme): BouclierDeDessin => ({ candidats: apparencesCandidates(x) });
 
 /** Équipement dessiné d'armes et de pièces DONNÉES : armes tenues, pièces d'armure, bouclier (tenu parmi les
  *  armes), armes rangées, cape. Ne résout aucune armure portée : un porteur passe par `equipementDessine` ou

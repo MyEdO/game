@@ -1,4 +1,4 @@
-import { rotTile, type Dims, type Rot } from '../geometry/iso';
+import type { Rot } from '../geometry/iso';
 import { DIR8_DELTA, type Dir8 } from '../geometry/dir8';
 
 /** Les vues d'un art orienté, dans l'ordre CANONIQUE (face, profil, dos) : SOURCE UNIQUE, dont dérivent
@@ -15,18 +15,6 @@ export function facingView(dx: number, dy: number): { view: View; mirror: boolea
   const ay = Math.abs(dy);
   const view: View = ax > ay * 1.5 ? 'profile' : dy >= 0 ? 'front' : 'back';
   return { view, mirror: dx < 0 };
-}
-
-/** Vecteur direction ÉCRAN entre deux tuiles, dans l'orientation caméra `dims` (rot). PUR.
- *  (iso : screenX ∝ x−y, screenY ∝ x+y, sur les coords tournées.) */
-export function screenDir(
-  from: { x: number; y: number },
-  to: { x: number; y: number },
-  dims?: Dims,
-) {
-  const a = dims ? rotTile(from.x, from.y, dims) : from;
-  const b = dims ? rotTile(to.x, to.y, dims) : to;
-  return { dx: b.x - b.y - (a.x - a.y), dy: b.x + b.y - (a.x + a.y) };
 }
 
 /** Rotation d'un delta grille par le cran caméra. PUR.

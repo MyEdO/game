@@ -91,9 +91,9 @@ function cutByView(scene: Scene, visible: ReadonlySet<string> | undefined, view:
  *  voile de brouillard). `visible` ABSENT = aucune loi de vue (planches QC : elles jugent
  *  l'environnement, pas le brouillard) — même convention que `buildFloors`/`buildProps`.
  *
- *  SOURCE UNIQUE des jetons du monde (#1176) : le monde volumique en fait des billboards
- *  (`sceneBillboards`) et la surcouche SVG leur chrome (`stage/TokenChromeOverlay`) — les filtres
- *  (embuscade, enrôlé, couverture, étage, hors-vue) ne se recopient pas, ils se CONSOMMENT. */
+ *  SOURCE UNIQUE des jetons du monde (#1176) : la surcouche SVG en peint le chrome
+ *  (`stage/TokenChromeOverlay`) — les filtres (embuscade, enrôlé, couverture, étage, hors-vue) ne se
+ *  recopient pas, ils se CONSOMMENT. */
 export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefined, battle: BattleState | null, view: TokenView, partyIds: readonly string[]): TokenEl[] {
   const { top } = view;
   const out: TokenEl[] = [];
@@ -141,8 +141,8 @@ export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefin
     const isHero = campOf(c) === 'party';
     const { cut, overhang } = cutByView(scene, visible, view, c.pos, isHero);
     if (cut) continue;
-    // Combat monté (iso) : cavalier rendu EN SELLE (couple composite ci-dessous) ; en vue du dessus,
-    // cavalier et monture sont deux pions distincts.
+    // Combat monté (iso) : cavalier et monture font UN jeton (couple ci-dessous) ; en vue du dessus,
+    // ce sont deux pions distincts.
     if (!top && isRider(c)) continue;
     if (!top && isMount(c)) continue;
     out.push({
@@ -154,12 +154,11 @@ export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefin
       states: { visible: true },
     });
   }
-  // Couples MONTÉS (iso seulement) : UN corps composite à la tuile/empreinte de la monture, filtré
+  // Couples MONTÉS (iso seulement) : UN jeton à la tuile/empreinte de la monture, filtré
   // comme n'importe quel combattant — équipage abstrait, étage, surplomb, brouillard.
   //
-  // ÉCART RÉSIDUEL DÉCLARÉ (#1176, P3-5) : en vue du DESSUS (`top`), le couple redevient DEUX pions
-  // superposés (branche ci-dessus), et le monde volumique en hérite deux billboards à la même case.
-  // La vue du dessus tactique le tranche.
+  // Vue du DESSUS (`top`, #1176, P3-5) : le couple reste DEUX pions superposés à la même case (branche
+  // ci-dessus).
   if (!top)
     for (const mount of battle.combatants) {
       if (!isMount(mount) || !mount.pos) continue;

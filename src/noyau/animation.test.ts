@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { maniementDe, estManiementADistance } from './animation';
+import { maniementDe } from './animation';
 import type { Maniement } from '../data/schemas/grammaire/valeurs';
 import { findTrappingById } from '../data';
 import { buildWeapon, itemFromTrappingById, weaponFromItem } from '../engine/items';
@@ -59,15 +59,5 @@ describe('maniementDe — dérivé de la FORME, pas du Groupe de règles', () =>
     const invoquee: Weapon = buildWeapon({ label: 'Arme aethyrique', type: 'melee', damage: { plusBF: false, flat: 4 }, shape: findTrappingById('arbalete')!.shape });
     expect(findTrappingById('arbalete')?.shape?.id, 'la sonde mord : le gabarit a une forme d’arbalète').toBe('arbalete');
     expect(maniementDe(armeDeDessin(invoquee))).toBe('arbalete');
-  });
-});
-
-describe('estManiementADistance', () => {
-  it('classe les familles à distance', () => {
-    expect(estManiementADistance(w('arc-long', 'ranged'))).toBe(true);
-    expect(estManiementADistance(w('pistolet', 'ranged'))).toBe(true);
-    expect(estManiementADistance(w('bombe', 'ranged'))).toBe(true);
-    expect(estManiementADistance(w('fouet', 'ranged'))).toBe(true);
-    expect(estManiementADistance(w('dague'))).toBe(false);
   });
 });

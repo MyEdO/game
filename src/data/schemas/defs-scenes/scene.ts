@@ -128,7 +128,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   upgrades: z.array(navalTraitRefSchema).optional(),
   dialogueId: z.string().optional(),
   appearance: entityAppearanceSchema.optional(),
-  /** Animation d'ambiance en boucle (clé de `AMBIENT_CLIPS`). */
+  /** Animation d'ambiance en boucle (clé de `SCENE_ANIMS`). */
   anim: z.string().optional(),
   /** Arme ÉQUIPÉE — `trappingId` STABLE du catalogue d'armes, résolue par `weaponFromId`. */
   weapon: z.string().optional(),

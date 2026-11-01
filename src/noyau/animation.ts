@@ -47,7 +47,3 @@ export function maniementDe(w?: FormeDArme): Maniement {
   if (groupe?.kind === 'weapon') return groupe.maniement;
   return w.type === 'ranged' ? 'arc' : 'lame1m';
 }
-
-/** Maniements à DISTANCE (geste de tir/jet, esquive au lieu de parer en mêlée). */
-export const MANIEMENTS_A_DISTANCE: ReadonlySet<Maniement> = new Set<Maniement>(['arc', 'arbalete', 'arme_feu', 'fronde', 'jet', 'entraves', 'explosif']);
-export const estManiementADistance = (w?: FormeDArme): boolean => !!w && MANIEMENTS_A_DISTANCE.has(maniementDe(w));

@@ -26,7 +26,7 @@ export type AuthoredEnemy = AuMoinsUnPorteurDeFiche & {
   weapon?: string;
   facing?: Dir8;
   label?: string;
-  /** Animation d'ambiance en boucle (clé de AMBIENT_CLIPS, ex. 'feeding'/'howl') — portée par l'entité
+  /** Animation d'ambiance en boucle (clé de `SCENE_ANIMS`, ex. 'feed'/'howl') — portée par l'entité
    *  VISIBLE enrôlée (l'ennemi se repaît/hurle en exploration, puis combat aux mêmes cases). */
   anim?: string;
   /** Camp au spawn (défaut 'enemy'). */

@@ -1,9 +1,9 @@
 /**
- * TEXTURES STATIQUES d'un billboard (décor, corps sans couture de frame) et leur RANG dans la file
+ * TEXTURES STATIQUES d'un billboard de décor et leur RANG dans la file
  * cadencée du cuiseur (#1373).
  *
  * Une texture statique se mémoïse sur sa clé (`getBillboardTexture`) et s'obtient à un REGARD donné :
- * l'identité de cache d'un décor porte son cran, celle d'un personnage l'ignore (`identiteAuCran`).
+ * l'identité de cache d'un décor porte son cran (`identiteAuCran`).
  * Ce module tient la carte des POIGNÉES : le rang d'une clé qui ATTEND encore son tour, pour que la
  * caméra puisse le relever ou le rendre au réchauffage sans jamais reconstruire la file.
  */

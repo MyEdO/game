@@ -19,4 +19,4 @@ metadata:
 - aucune recette navigateur, aucune capture de l'interface web, par une session ou un agent ;
 - aucune recette de l'écran Godot tant qu'il n'est pas en place : ni constat ni besoin de parité tiré de son état ;
 - aucun ticket sur la présentation de l'écran de jeu web ; un comportement que Godot doit garder va à #3009, un outil d'auteur (Compendium, atelier, galeries), au sort reporté, à #3006 ;
-- un commit qui touche `src/ui` ou `src/gameIso` remplit `JUGE-VISION:` par « aucune capture », la citation du 2026-10-25 et les tests DOM qui couvrent le changement.
+- un commit qui touche `src/ui` ou `src/gameIso` remplit `JUGE-VISION:` par « aucune capture », la citation du 2026-10-25 et les tests DOM qui couvrent le changement ; son solde porte, sous `## Recette visuelle`, `suspendue: user-doctrine-recette-web-suspendue-migration-godot`.

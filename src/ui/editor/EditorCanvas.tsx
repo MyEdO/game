@@ -862,10 +862,9 @@ export function EditorCanvas({
                 // d'embuscade ne vivait que dans la branche enrôlée, donc un embusqueur posé seul
                 // n'avait AUCUN signe distinctif (mesuré : zéro pixel d'écart avec un figurant).
                 const marque = isCombat || hidden;
-                // AUCUN APLAT : le corps est un billboard DEBOUT et ce SVG se peint AU-DESSUS du
-                // canevas — un losange plein y barrait le personnage en travers des jambes (mesuré à
-                // y=646). La marque reste au SOL — un CONTOUR, la même convention que les anneaux du
-                // jeu au pied des billboards (`builders/dynamicMarks`).
+                // AUCUN APLAT : ce SVG se peint AU-DESSUS du canevas et un losange plein y masquerait
+                // le décor de la case. La marque reste au SOL — un CONTOUR, la même convention que les
+                // anneaux du jeu (`builders/dynamicMarks`).
                 if (marque) {
                   objs.push({
                     d: depth(en.pos.x, en.pos.y, dims, ez) + 0.45,
@@ -881,9 +880,7 @@ export function EditorCanvas({
                             strokeDasharray={hidden ? '4 3' : undefined}
                           />
                         ))}
-                        {/* CORPS du jeton : peint par le canevas volumique (billboard). Les
-                            décorations d'auteur (empreinte, tirets d'embuscade, liseré de sélection)
-                            restent au SVG. */}
+                        {/* Décorations d'auteur au SVG : empreinte, tirets d'embuscade, liseré de sélection. */}
                       </g>
                     ),
                   });
