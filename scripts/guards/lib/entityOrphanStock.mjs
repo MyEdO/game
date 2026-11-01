@@ -52,9 +52,9 @@
 //     `fr-hough-mournbreath`, `slenderthigh-whiptongue` du LDB ; `isrogdal-lempresse`,
 //     `ugrik-legaree`, `nazzaalta-affabule`, `artur-piedmarteau` d'ADE II ;
 //     `p-tarix-celui-qui-ecrit`, `xirat-p-celui-qui-lit` de VDM) — un personnage de scénario n'a de
-//     chemin que par la scène qui le pose ; et 10 entrées de bestiaire isolé (`demigriffon-adulte`
+//     chemin que par la scène qui le pose ; et 9 entrées de bestiaire isolé (`demigriffon-adulte`
 //     absente de `montures.json` donc jamais montable ; `brochet-du-stir-fluvial` doublon de libellé
-//     de `brochet-du-stir` (seul l'exemplaire ZI a un chemin) ; `sangsue-geante`/`sangsue-des-arbres`/
+//     de `brochet-du-stir` (seul l'exemplaire ZI a un chemin) ; `sangsue-des-arbres`/
 //     `naiade` du « Bestiaire fluvial », qu'aucune rencontre fluviale ne tire ;
 //     `familier-de-combat`/`familier-de-pouvoir`/`familier-de-sorts` sans `appearance` et jamais
 //     citées par un Talent ou un sort ; `jabberslythe` (LDB) et `furie-du-chaos` (EDOC), qu'aucune
@@ -149,7 +149,6 @@ export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/creatures.json', ref: 'sangsue-cameleon', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'sangsue-des-abysses', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'sangsue-des-arbres', occurrence: 1 },
-  { fichier: 'src/data/creatures.json', ref: 'sangsue-geante', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'sirene', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'slenderthigh-whiptongue', occurrence: 1 },
   { fichier: 'src/data/creatures.json', ref: 'sorciere-troll-des-rivieres', occurrence: 1 },
