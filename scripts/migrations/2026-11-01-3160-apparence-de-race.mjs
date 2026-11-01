@@ -1,6 +1,6 @@
 /**
  * #3160 — forme des apparences de race et des mutations.
- * Entrées écrites : raceAppearance.json, speciesRace.json et mutations.json.
+ * Entrées : `src/data/raceAppearance.json`, `src/data/speciesRace.json` et `src/data/mutations.json` (lues et réécrites).
  * Les gabarits, têtes et échelles d'art sont conservés ; les autres propriétés de chaque document
  * gardent leur valeur et leur ordre. Le libellé de speciesRace nomme sa fonction de valeur par défaut.
  * Le rejeu est byte-identique, via serializeDataset.

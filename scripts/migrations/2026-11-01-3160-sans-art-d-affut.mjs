@@ -1,4 +1,7 @@
-/** #3160 — trappings : sélection des engins posables par leur sous-type. */
+/**
+ * #3160 — trappings : sélection des engins posables par leur sous-type.
+ * Entrées : `src/data/trappings.json` (lue et réécrite).
+ */
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
