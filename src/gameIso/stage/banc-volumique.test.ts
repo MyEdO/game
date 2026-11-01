@@ -286,6 +286,7 @@ describe('le harnais de banc volumique reste dans les bancs (#1401)', () => {
     expect(clients.sort()).toEqual([
       'src/gameIso/stage/battement-unique.test.tsx',
       'src/gameIso/stage/chrome-jeton.test.tsx',
+      'src/gameIso/stage/walk-frame-loop.test.tsx',
       'src/gameIso/stage/weather-boucle.test.tsx',
     ]);
   });
