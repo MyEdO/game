@@ -2,7 +2,7 @@ import { tableTotale } from '../lib/tableTotale';
 import { t } from '../i18n';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyLeafOps, applyEffectsLoot, ouvrirChute, runFlow, checkTriggers, confierLaSuite, jouerFlowEntier, pushCombatStep, OPS_DIFFEREES } from './combatEffects';
+import { applyLeafOps, applyEffectsLoot, ouvrirChute, runFlow, checkTriggers, confierLaSuite, jouerFlowEntier, pushCombatStep, OPS_DIFFEREES, porterOpsCtx, ctxRepris } from './combatEffects';
 import { runPureFlowLines } from './combat/flowEval';
 import { openSequence } from './rollSeam';
 import { buildAuthorPerilSteps } from './authorPerils';
@@ -29,6 +29,8 @@ import { SHIP_CRIT_SET } from '../data/shipCriticals';
 import { makeRNG, roll as rollDes } from '../engine/dice';
 import { hasCondition } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
+import type { BattleState } from './etat';
+import { setRule, resetRule } from '../engine/policy';
 import type { EffectOp } from '../engine/flowCore';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import type { InterruptionDePeril } from './tablesPosees';
@@ -360,7 +362,7 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
       { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'heal', amount: 50 }] } },
     ] } as unknown as Flow;
     banc.setState({ party: [{ ...cible, shipStation: 'nid-de-pie' } as Combatant, coque()] });
-    runCombatFlow({ mode: 'combat', get: banc.getState, set: banc.setState, target: heros(), caster: heros(), label: 'Mât brisé', opsCtx: { hull: coque() } }, flow);
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: heros(), caster: heros(), label: 'Mât brisé', opsCtx: { hull: coque() } }, flow);
     expect(heros().wounds.current, 'la suite de la pile attend le dé').toBe(190);
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().cascadeDieSetForcedRoll(st.id, 4); // nid-de-pie : 25 m entiers, dé = Dégâts
@@ -410,7 +412,7 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
       { kind: 'do', effect: { type: 'ops', on: 'target', ops: opsDeChute() } },
       { kind: 'if', cond: { kind: 'always' }, then: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'heal', amount: 50 }] } } },
     ] } as unknown as Flow;
-    runCombatFlow({ mode: 'combat', get: banc.getState, set: banc.setState, target: heros(), caster: heros(), label: 'Mât brisé', opsCtx: { hull: coque() } }, flow);
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: heros(), caster: heros(), label: 'Mât brisé', opsCtx: { hull: coque() } }, flow);
     expect(heros().wounds.current, 'la branche attend le dé').toBe(190);
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().cascadeDieSetForcedRoll(st.id, 4);
@@ -477,6 +479,31 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
     expect(() => applyLeafOps(banc.getState, banc.setState, gabier, feuille(opsDeChute()), { rng: desDuTest,
       hull: coque(), onCondition: () => {},
     })).toThrow(/onCondition/);
+  });
+
+  it('`onOpposingAdvantage` (`onTurnStart`) se porte et se rebâtit sur son porteur ; sans porteur, il lève', () => {
+    banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
+      party: [marin('gabier', { kind: 'hero' } as Partial<Combatant>)] });
+    const gabier = banc.getState().party[0];
+    expect(ctxRepris(banc.getState, banc.setState, porterOpsCtx({ rng: desDuTest, caster: gabier }), gabier)?.onOpposingAdvantage).toBeUndefined();
+    expect(() => porterOpsCtx({ rng: desDuTest, onOpposingAdvantage: () => [] })).toThrow(/onOpposingAdvantage/);
+  });
+
+  it('rebâti après un aller-retour JSON, il crédite la réserve ADVERSE du porteur ennemi (MDG 16 l.13)', () => {
+    setRule('combat-aa-avantage-groupe', true);
+    try {
+      const heros = marin('h1', { kind: 'hero' } as Partial<Combatant>);
+      const porteur = marin('e1', { kind: 'enemy' } as Partial<Combatant>);
+      banc.setState({ battle: { combatants: [heros, porteur], advantagePools: { allies: 0, foes: 0 } } as unknown as BattleState,
+        pendingCascade: null, suspendedCascades: [], journal: [], party: [heros] });
+      const porte = JSON.parse(JSON.stringify(porterOpsCtx({ rng: desDuTest, caster: porteur, onOpposingAdvantage: () => [] })));
+      const lignes = ctxRepris(banc.getState, banc.setState, porte, heros)!.onOpposingAdvantage!(2);
+      expect(banc.getState().battle!.advantagePools, 'les alliés, camp adverse du porteur, gagnent +2').toEqual({ allies: 2, foes: 0 });
+      expect([heros.advantage, porteur.advantage]).toEqual([2, 0]);
+      expect(lignes).toHaveLength(1);
+    } finally {
+      resetRule('combat-aa-avantage-groupe');
+    }
   });
 });
 
@@ -1163,7 +1190,7 @@ describe('(xvi) #2689 — la suite d’une pile de COMBAT repart avec SA cible e
     const c = vigie('C', 190);
     const cible = vigie('T', 100);
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], party: [c, cible, coque()] });
-    runCombatFlow({ mode: 'combat', get: banc.getState, set: banc.setState, target: cible, caster: c, label: 'sonde', opsCtx: { hull: coque() } },
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: cible, caster: c, label: 'sonde', opsCtx: { hull: coque() } },
       { kind: 'seq', steps: [chuteSur('caster'), opsSurCible([{ op: 'heal', amount: 50 }])] } as Flow);
     poseLeDe(4);
     expect({ C: pv('C'), T: pv('T') }).toEqual({ C: 190 - PERTE, T: 150 });
@@ -1172,7 +1199,7 @@ describe('(xvi) #2689 — la suite d’une pile de COMBAT repart avec SA cible e
   it('le CONTEXTE de la pile survit au dé : `{woundsDealt}` (EDO 11 l.222) vaut après la reprise ce qu’il valait avant', () => {
     const h = vigie('H', 190);
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], party: [h, coque()] });
-    runCombatFlow({ mode: 'combat', get: banc.getState, set: banc.setState, target: h, caster: h, label: 'sonde', opsCtx: { hull: coque(), woundsDealt: 7 } },
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: h, caster: h, label: 'sonde', opsCtx: { hull: coque(), woundsDealt: 7 } },
       { kind: 'seq', steps: [chuteSur('target'), opsSurCible([{ op: 'wounds', amount: { woundsDealt: true }, ignoreTB: true, ignoreAP: true }])] } as Flow);
     poseLeDe(4);
     expect(pv('H')).toBe(190 - PERTE - 7);
@@ -1182,7 +1209,7 @@ describe('(xvi) #2689 — la suite d’une pile de COMBAT repart avec SA cible e
     const c = vigie('C', 190);
     const cible = vigie('T', 100);
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], party: [c, cible, coque()] });
-    runCombatFlow({ mode: 'combat', get: banc.getState, set: banc.setState, target: cible, caster: c, label: 'sonde', opsCtx: { hull: coque() } },
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: cible, caster: c, label: 'sonde', opsCtx: { hull: coque() } },
       { kind: 'seq', steps: [chuteSur('caster'), opsSurCible([{ op: 'heal', amount: 50 }])] } as Flow);
     confierLaSuite(banc.setState, [{ verbe: 'reprendreFlow', flow: { kind: 'do', effect: { type: 'journal', desc: 'MAILLON-SUIVANT' } } as unknown as Flow }]);
     banc.setState({ party: banc.getState().party.filter((x) => x.id !== 'T') });

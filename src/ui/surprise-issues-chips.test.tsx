@@ -162,7 +162,7 @@ describe('#1117 — la Surprise DIT ses issues en chips d’ops, avant comme apr
     const embusqueur = battle.combatants.find((c) => c.id === 'e')!;
     useGame.setState({ pendingCascade: null });
     runCombatFlow(
-      { mode: 'combat', get: useGame.getState, set: useGame.setState, target: guetteur, caster: embusqueur, label: 'Surprise' },
+      { get: useGame.getState, set: useGame.setState, target: guetteur, caster: embusqueur, label: 'Surprise' },
       testFlow(
         // MÊME DÉCLARATION que le producteur réel (`applySurprise`, `noyau/combatFlow`) : un jet de
         // Surprise dit ce qu'il met en jeu (`ambushSurprise`). SEULE divergence, celle que ce test

@@ -18,7 +18,7 @@ import { memeSource } from './suspension';
 import type { GameOp, PairedSense } from './ops';
 import type { CodexTarget } from './ruleRefs';
 import { rollTest, isDoubleRoll, DIFFICULTY_LADDER, type TestResult } from './tests';
-import { dropExpiredGrantedTraits } from './grantedTraits';
+import { dropExpiredGrantedPsych, dropExpiredGrantedTraits } from './grantedTraits';
 import { dropExpiredGrantedResources } from './grantedResources';
 import { dropExpiredGrantedWeapons } from './conjuredWeapons';
 import { dropExpiredGrantedMutations } from './corruption';
@@ -886,7 +886,8 @@ export function removeActiveEffects(c: Combatant, pred: (e: ActiveEffect) => boo
   dropExpiredGrantedResources(c, removed); // Chance/Destin accordés (gainResource) non dépensés
   dropExpiredGrantedWeapons(c, removed); // armes invoquées/naturelles accordées : loadout recomposé
   if (dropExpiredGrantedMutations(c, removed)) recomputeLoadout(c); // mutation TEMPORISÉE (op rollMutation) détachée → loadout recomposé
-  restoreSuppressedPsych(c, removed); // Traits psy suspendus (Baume, LDB 42) restitués
+  restoreSuppressedPsych(c, removed); // Traits psy suspendus (Baume, LDB 43 l.70) restitués
+  dropExpiredGrantedPsych(c, removed); // Traits psy accordés (op grantPsychTrait à durée) retirés APRÈS la restitution : un Trait échu pendant une suspension n'est pas rendu
   // États PORTÉS par l'effet (#1695) : ils partent au MÊME geste. IDEMPOTENTE. La réconciliation est
   // INCONDITIONNELLE — un `log?.push(...sync())` l'aurait court-circuitée chez tout appelant sans journal.
   const portes = syncDerivedConditions(c, emit);

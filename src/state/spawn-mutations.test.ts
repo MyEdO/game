@@ -37,7 +37,7 @@ const OPS_LECTURE_VIVE = ['charMod', 'moveMod', 'testMod', 'skillMod'] as const;
 /** Hors garde, #1853 L2 : PA (`ap`, et son drapeau `noDeviation`) et armes naturelles en lecture vive. */
 const OPS_RESTE_L2 = ['ap', 'grantNaturalWeapon'] as const;
 /** Op-kinds des `effects` d'une mutation : joués par leur Trigger, jamais au spawn ; le re-ciblage par
- *  `removeTrait` retire par provenance (`removeGrantedTraitsFrom`, `corruption.test.ts`). */
+ *  `removeTrait` retire par provenance (`traitsAccordesPar`, `corruption.test.ts`). */
 const OPS_DECLENCHES = ['removeTrait', 'grantTrait'] as const;
 
 /** Op-kinds de tout nœud `{ op }` sous `node`. */

@@ -726,6 +726,8 @@ export const fr = {
   'op.endPsych': '{name} sort de {psych}.',
   'op.beginPsych': '{name} tombe sous {psych}.',
   'op.grantPsychTrait': '{name} gagne le Trait {psych} ({src}).',
+  'op.personneDesignee': '{src} : {personne} est la personne désignée pour {name}.',
+  'op.personneAbsente': '{src} : aucune personne à désigner pour {name}, sans effet.',
   'op.removePsychTrait': '{name} se défait du Trait {psych}.',
   'op.noPsychToRemove': "{name} n'a aucun Trait psychologique à retirer.",
   'op.noSinToRemove': '{name} n’a aucun Point de Péché à expier.',
@@ -1363,6 +1365,7 @@ export const fr = {
   'cs.animositeGain': '{name} développe une Animosité envers {groupe} (frôler la mort a laissé une marque).',
   // Cible d'individu sans nom connu (`libelleDeCible`, `engine/psych/ciblage.ts`).
   'cible.personneDeLaScene': 'une personne de la scène',
+  'cible.personneChoisie': 'une personne choisie',
   'cf.stupid': '{name} (Stupide) bave et regarde dans le vide — Mouvement et Action perdus.',
   'cs.focusCrit': '{name} — Focalisation CRITIQUE : {spell} est lançable au prochain Round (NI 0) !',
   'cs.focusHarmonized': "Harmonisation aethyrique : le contrecoup est maîtrisé (pas d'Imparfaite).",
@@ -1827,6 +1830,7 @@ export const fr = {
   // Les trois premiers sont les GABARITS que les fabriques du seam (`noyau/rollSeam.ts`) rendent.
   'step.sujetDetail': '{sujet} — {detail}',
   'step.sujetPrecision': '{sujet} ({precision})',
+  'step.personneChoisie': '{src} : désigner la personne visée par {name}',
   'step.manche': 'Manche {n} — {quoi}',
   'step.fraction': '{n}/{m}',
   'step.prolonger': 'Prolonger {quoi}',

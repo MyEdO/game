@@ -63,8 +63,42 @@ export function grantTrait(c: Combatant, accorde: TraitInstance): void {
  *  `grantPsychTrait` (`ops.ts`, effet temporisé) et `attachMutation` (`corruption.ts`, permanent :
  *  Colère impie → Frénésie, mutation → Haine). `src` = PROVENANCE de l'instance, comme `TraitInstance.src`
  *  de `grantTrait`. Mute `c`. */
-export function grantPsychTrait(c: Combatant, type: PsychType, cible?: CiblePsy, src?: EffectSource): void {
-  c.psychTraits = [...(c.psychTraits ?? []), { type, ...(cible ? { cible } : {}), ...(src ? { src: structuredClone(src) } : {}) }]; // #2097
+export function grantPsychTrait(c: Combatant, type: PsychType, cible?: CiblePsy, src?: EffectSource): PsychTrait {
+  const pose: PsychTrait = { type, ...(cible ? { cible } : {}), ...(src ? { src: structuredClone(src) } : {}) }; // #2097
+  c.psychTraits = [...(c.psychTraits ?? []), pose];
+  return structuredClone(pose);
+}
+
+/** `x` est-il l'instance accordée `pt` (même identité de ciblage, même provenance) ? */
+export const memeTraitPsy = (pt: PsychTrait) => (x: PsychTrait): boolean =>
+  identiteDeCiblage(x.type, x.cible) === identiteDeCiblage(pt.type, pt.cible) && memeSource(x.src, pt.src);
+
+/** Retire UNE instance du Trait psy accordé `pt` (la dernière occurrence) de `list`, ou `undefined` si
+ *  elle n'y est pas. */
+function sansLeTraitPsy(list: readonly PsychTrait[], pt: PsychTrait): PsychTrait[] | undefined {
+  const j = dernierIndex(list, memeTraitPsy(pt));
+  return j < 0 ? undefined : [...list.slice(0, j), ...list.slice(j + 1)];
+}
+
+/** Retire les Traits psy accordés par les effets actifs EXPIRÉS (`grantedPsychTrait`), à appeler APRÈS la
+ *  restitution des Traits suspendus (`restoreSuppressedPsych`) : l'instance quitte `c.psychTraits`, ou la
+ *  suspension d'un effet encore actif (`suppressedPsych`) qui la restituerait sinon, puis l'affliction de
+ *  même identité est désactivée quand plus aucun Trait ne la porte. VDM 10 l.332 ; LDB 43 l.70. Mute `c`. */
+export function dropExpiredGrantedPsych(c: Combatant, expired: readonly { grantedPsychTrait?: PsychTrait }[]): void {
+  for (const e of expired) {
+    const pt = e.grantedPsychTrait;
+    if (!pt) continue;
+    const reste = sansLeTraitPsy(c.psychTraits ?? [], pt);
+    if (reste) c.psychTraits = reste;
+    else {
+      const suspendant = (c.activeEffects ?? []).find((a) => a.suppressedPsych?.some(memeTraitPsy(pt)));
+      if (suspendant) suspendant.suppressedPsych = sansLeTraitPsy(suspendant.suppressedPsych!, pt);
+    }
+    if (c.psychTraits && !c.psychTraits.length) delete c.psychTraits;
+    const identite = identiteDeCiblage(pt.type, pt.cible);
+    if ((c.psychTraits ?? []).some((x) => identiteDeCiblage(x.type, x.cible) === identite)) continue;
+    for (const a of c.psychState ?? []) if (a.active === true && identiteDeCiblage(a.type, a.cible) === identite) a.active = false;
+  }
 }
 
 /** Retire UNE instance du trait accordé (jamais un natif en double : la dernière occurrence — celle
@@ -87,19 +121,6 @@ export function removeGrantedTrait(c: Combatant, t: TraitInstance): void {
 /** Les instances du trait `traitId` que la source `src` a accordées à `c` (aucune sans source). */
 export function traitsAccordesPar(c: Combatant, traitId: string, src?: EffectSource): TraitInstance[] {
   return src ? (c.traits ?? []).filter((t) => t.id === traitId && t.src?.kind === src.kind && t.src?.id === src.id) : [];
-}
-
-/** Retire les instances du Trait `traitId` que la source `src` a ACCORDÉES à `c` — retrouvées par le
- *  registre d'instance `TraitInstance.src` (posé par l'op `grantTrait` et par `attachMutation`), quels
- *  que soient leur argument et leur indice — et renvoie celles qui l'ont été. Noyau de l'op
- *  `removeTrait` : un porteur qui RE-CIBLE son Trait (Haine sporadique, EDOC 12 l.217) retire LE SIEN puis
- *  le ré-accorde, au lieu d'empiler une instance par jour ; le même Trait porté nativement ou accordé
- *  par un TIERS (Haine d'une prière, LDB 226) reste intact. Source inconnue = rien à attribuer, donc
- *  rien retiré. Mute `c`. */
-export function removeGrantedTraitsFrom(c: Combatant, traitId: string, src?: EffectSource): TraitInstance[] {
-  const removed = traitsAccordesPar(c, traitId, src);
-  for (const t of removed) removeGrantedTrait(c, t);
-  return removed;
 }
 
 /** Retire les traits accordés par les effets actifs EXPIRÉS d'une liste (helper partagé

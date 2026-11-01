@@ -185,8 +185,8 @@ export interface PendingTest {
    *  vocabulaire de la branche : `resolveTest` la confie à `reprendreTestSubi`, qui la rejoue sur le
    *  sujet (`actorId`). Du SÉRIALISABLE seul, jamais de référence — un pending traverse JSON (save, coop).
    *  `casterId` = le porteur quand il DIFFÈRE du sujet ; `label` = le libellé de la source (lu par
-   *  `nomDeSource`) ; `source` = l'entité porteuse. Jumeaux de `CascadeStepMeta.casterId`/`sourceKind`/
-   *  `sourceEntityId` ; `label` et `source` sont deux champs d'`OPS_CTX_GELES` (`engine/ops.ts`).
+   *  `nomDeSource`) ; `source` = l'entité porteuse. Jumeaux de `CascadeStepMeta.opsDeCtx` ; `label` et
+   *  `source` sont deux champs d'`OPS_CTX_GELES` (`engine/ops.ts`).
    *
    *  FRONTIÈRE : `subi` ne transporte que du GELÉ ou ce qui se RÉSOUT PAR ID depuis l'état. Les deux autres
    *  contextes par référence d'`OPS_CTX_PAR_REFERENCE` (`engine/ops.ts`) — `hull`, `crew` — ne
@@ -1701,6 +1701,8 @@ export type Cloture =
 export interface OpsCtxPorte {
   gele: OpsCtxGele;
   casterId?: string;
+  /** Le contexte crédite la réserve ADVERSE du porteur `casterId` (`OpsCtx.onOpposingAdvantage`). */
+  creditAdverse?: true;
   hullId?: string;
   crewIds?: string[];
 }
@@ -1710,6 +1712,12 @@ export interface OpsCtxPorte {
  * l'ordre de la confidence (`combatEffects.confierLaSuite`, `jouerLesClotures`).
  */
 export type Suite = Cloture[];
+
+/** Le RÉFÉRENT des Formules d'une étape : celui de son contexte porté (étape mono), sinon `casterId`
+ *  (bande). */
+export function referentDeLEtape(step: Pick<CascadeStep, 'meta'>): string | undefined {
+  return step.meta?.opsDeCtx?.casterId ?? (typeof step.meta?.casterId === 'string' ? step.meta.casterId : undefined);
+}
 
 export interface CascadeStepMeta {
   [key: string]: number | string | boolean | string[] | Flow | GameOp[] | OpsCtxPorte | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
@@ -1722,8 +1730,9 @@ export interface CascadeStepMeta {
    *  à la DERNIÈRE étape de la grappe : si un maillon rouvre un dé, les maillons restants repartent avec
    *  lui. */
   apresSuite?: Suite;
-  /** CONTEXTE PORTÉ de la feuille d'ops différée (`combatEffects.porterOpsCtx`). Sans lui, une reprise
-   *  appliquait la feuille avec un contexte AMPUTÉ — `{woundsDealt}` (EDO 11 l.222) y tombait à 0. */
+  /** CONTEXTE PORTÉ de la feuille d'ops ou de la branche différée (`combatEffects.porterOpsCtx`) — étapes
+   *  `opsDe`, `triggeredTest`, `triggeredChoice`, `personneChoisie`. Sans lui, une reprise appliquait la feuille avec un
+   *  contexte AMPUTÉ — `{woundsDealt}` (EDO 11 l.222) y tombait à 0. */
   opsDeCtx?: OpsCtxPorte;
   /** Acteur et soutiens d'un jet de Voile ou de Ramer, en ids (MDG 13 l.111). */
   manieurs?: string[];
@@ -1751,6 +1760,9 @@ export interface CascadeStepMeta {
   choiceNo?: Flow;
   /** Coût d'Avantage d'une étape `triggeredChoice` (dépensé sur OUI si payable) — absent = gratuit. */
   choiceCost?: number;
+  /** Feuille d'ops SUSPENDUE d'une étape `personneChoisie` (VDM 10 l.327) : jouée, Traits psy `envers` la
+   *  personne désignée (`noyau/personneChoisie.fluxDEnvers`), quand le décideur a choisi. */
+  feuilleEnvers?: Flow;
   /** CIBLE de la branche d'un `triggeredChoice` quand elle DIFFÈRE du décideur (`on:'victim'` : le décideur
    *  est le porteur/attaquant `caster`, mais la branche `yes` vise la VICTIME — Déstabilisante : Test opposé
    *  contre la cible touchée). Id sérialisable, restauré en `ctx.target` par l'applier. Absent ⇒ la cible =
@@ -1772,16 +1784,11 @@ export interface CascadeStepMeta {
   /** Contexte d'une DÉFENSE de manœuvre de zone (applier `maneuverDefense`) : l'attaquant + la manœuvre +
    *  l'indice/l'Avantage. Le jet d'attaquant FIGÉ voyage à côté dans `opposed.aT`. */
   maneuverDefense?: ManeuverDefenseFreeze;
-  /** ENTITÉ SOURCE d'un Test déclenché (`effectSourcesOf` → `TriggeredEffect.source`) : le `kind` de
-   *  source (`trait`/`talent`/`condition`/`symptom`/`quality`/`psychology`/`trapping`) et son id.
-   *  Sérialisée pour que l'enjeu de l'étape (#1117) renvoie à l'entité qui EXIGE le Test — jamais à
-   *  une fiche générique. Ces deux champs sont de l'AFFICHAGE : aucun applier n'en dépend. */
-  sourceKind?: string;
-  sourceEntityId?: string;
   /** RÉFÉRENT des Formules de la branche (« votre Force Mentale » — Forêt d'épines LDB 48 l.749) quand
    *  il DIFFÈRE du combattant qui jette (`hero`) — le LANCEUR d'un effet posé par un tiers (zone de
-   *  Sort, Trait déclenché d'un attaquant). Id sérialisable, résolu par l'applier (`actorIn`, combat OU
-   *  groupe) → `applyTriggeredTestBranch`. Absent ⇒ référent = `hero` lui-même (Mâchoires/Contrôle de
+   *  Sort, Trait déclenché d'un attaquant). Id sérialisable : la bande (`triggeredBatchTest`) le résout
+   *  (`actorIn`, combat OU groupe) → `applyTriggeredTestBranch` ; l'étape mono le porte dans `opsDeCtx`
+   *  seulement. Lu par `referentDeLEtape`. Absent ⇒ référent = `hero` lui-même (Mâchoires/Contrôle de
    *  la Frénésie : effet auto-porté). */
   casterId?: string;
   /** COQUE dont le Critique a ouvert cette bande (coup à l'ÉQUIPAGE, `MDG 13`) : les ops de la branche

@@ -26,6 +26,7 @@ import { ConditionEditor } from './ConditionEditor';
 import { OP_LABEL, opsMissingRefs } from './refsDOp';
 import { opSummary } from './interne/resumeDOp';
 import type { Condition } from '../../engine/flowCore';
+import { TestFields } from './FlowEditor';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
 import { etats, effectTables, mutationTables, lightTones, memoParVersion, type TrappingData } from '../../data';
 import { fallTables } from '../../data/shipCriticals';
@@ -833,7 +834,24 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <>
             <TypePsyField fieldKey="Trait psychologique" noeud={noeudDuChamp(noeudDOp, 'psychType.id')} value={op.psychType}
               onChange={(v) => { const { ref, perdue } = typeDePsychologie(v); upd({ psychType: ref, ...perdue }); }} />
-            {estCibleType(op.psychType.id) && <CibleField value={op.cible} onChange={(cible) => upd({ cible })} />}
+            {enfantsDe(noeudDOp).some((e) => e.cle === 'envers') && estCibleType(op.psychType.id) && (
+              <label className="dr"><input type="checkbox" checked={op.envers === 'personneChoisie'}
+                onChange={(e) => upd(e.target.checked ? { envers: 'personneChoisie', cible: undefined } : { envers: undefined, resistanceSiAmis: undefined })} /> envers une personne choisie</label>
+            )}
+            {estCibleType(op.psychType.id) && !op.envers && <CibleField value={op.cible} onChange={(cible) => upd({ cible })} />}
+            {op.envers && (
+              <>
+                <label className="dr"><input type="checkbox" checked={op.resistanceSiAmis != null}
+                  onChange={(e) => upd({ resistanceSiAmis: e.target.checked ? { skill: { id: '' }, difficulty: 'intermediaire' } : undefined })} /> résistible si amis</label>
+                {op.resistanceSiAmis && <TestFields test={op.resistanceSiAmis} onChange={(resistanceSiAmis) => upd({ resistanceSiAmis })} />}
+              </>
+            )}
+            {enfantsDe(noeudDOp).some((e) => e.cle === 'durationHours') && (
+              <>
+                <label className="dr"><input type="checkbox" checked={o.durationHours != null} onChange={(e) => upd({ durationHours: e.target.checked ? 1 : undefined })} /> dure N heures</label>
+                {o.durationHours != null && <FormulaField label="Durée (heures)" champ="durationHours" value={o.durationHours} min={1} onChange={(durationHours) => upd({ durationHours })} />}
+              </>
+            )}
           </>
         )}
         {op.op === 'removePsychTrait' && (

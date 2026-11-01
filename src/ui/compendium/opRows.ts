@@ -23,6 +23,7 @@ import {
 } from '../../data';
 import { cibleDeRef, libelleDeCible } from '../../engine/psych/ciblage';
 import { traitOctroye } from '../../engine/psych/opsPsy';
+import { t } from '../../i18n';
 
 const textRow = (o: GameOp): CodexRow => ({ t: 'text', text: humanizeOp(o) });
 
@@ -95,7 +96,8 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
     case 'grantPsychTrait': {
       const { type, cible } = traitOctroye(o);
       const label = psychologyLabel(type);
-      return { t: 'ref', category: 'psychologies', id: type, label, show: label, badge: cible !== undefined ? libelleDeCible(cible) : undefined };
+      const badge = o.envers ? t('cible.personneChoisie') : cible !== undefined ? libelleDeCible(cible) : undefined;
+      return { t: 'ref', category: 'psychologies', id: type, label, show: label, badge };
     }
     case 'removePsychTrait': {
       if (!o.psychType) return textRow(o); // « au choix » : pas d'ancre

@@ -7,7 +7,7 @@ import type { JsonFormula } from '../../../engine/miscast';
 import type { DatasetKey } from '../../../data/overrides';
 import { charAbr, conditionLabel, findCrewTestTypeById, psychologyLabel, qualityRefLabel, refLabel } from '../../../data';
 import { cibleDeRef, libelleDePsy } from '../../../engine/psych/ciblage';
-import { traitOctroye } from '../../../engine/psych/opsPsy';
+import { libelleDuTraitOctroye } from '../../../engine/psych/opsPsy';
 import { findFallTable } from '../../../data/shipCriticals';
 import { libelleDeValeur } from '../../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../../data/schemas/grammaire/valeurs';
@@ -96,10 +96,7 @@ export function opSummary(o: GameOp): string {
     case 'grantNaturalWeapon': return `${o.label} (${o.plusBF !== false ? 'BF+' : ''}${formulaSummary(o.damage)})`;
     case 'grantTrait': return traitOctroyeLisible(o, formulaSummary);
     case 'removeTrait': return traitLisible(o.trait);
-    case 'grantPsychTrait': {
-      const { type, cible } = traitOctroye(o);
-      return libelleDePsy(type, cible);
-    }
+    case 'grantPsychTrait': return [libelleDuTraitOctroye(o), dureePropre(o)].filter(Boolean).join(', ');
     case 'grantTalent': return `${refLabel('talents', o.talent)}`;
     case 'grantCareerSkill': return `${refLabel('skills', o.skill)}`;
     case 'grantCareerTalent': return `${refLabel('talents', o.talent)}`;

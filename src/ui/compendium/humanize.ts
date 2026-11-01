@@ -25,7 +25,7 @@ import { formatWardSave, traitLabelById, traitLisible } from '../../engine/trait
 import { giveTrappingLabel } from '../../engine/items';
 import { traumaLabelOf } from '../../engine/trauma';
 import { cibleDeRef, libelleDePsy } from '../../engine/psych/ciblage';
-import { traitOctroye } from '../../engine/psych/opsPsy';
+import { libelleDuTraitOctroye } from '../../engine/psych/opsPsy';
 import { formatMoney } from '../../engine/money';
 import { rule, ruleDef } from '../../engine/policy';
 import {
@@ -436,10 +436,7 @@ export function humanizeOp(o: GameOp): string {
     case 'grantReverseToken': return `peut inverser ${o.skill ? refLabel('skills', o.skill) : 'un Test concernant sa cible'} une fois pendant sa prochaine aventure`;
     case 'grantTrait': return `gagne le Trait ${traitOctroyeLisible(o, humanizeFormula)}${pendant(o)}`;
     case 'removeTrait': return `perd le Trait ${traitLisible(o.trait)}`;
-    case 'grantPsychTrait': {
-      const { type, cible } = traitOctroye(o);
-      return `gagne l'état psychologique ${libelleDePsy(type, cible)}`;
-    }
+    case 'grantPsychTrait': return `gagne l'état psychologique ${libelleDuTraitOctroye(o)}${pendant(o)}${o.resistanceSiAmis ? ', résistible si la cible et la personne sont amies' : ''}`;
     case 'removePsychTrait': return `perd ${o.psychType ? `l'état psychologique ${psychologyLabel(o.psychType.id)}` : 'un état psychologique au choix'}`;
     case 'grantTalent': return `gagne le Talent ${refLabel('talents', o.talent)}`;
     case 'grantCareerSkill': return `ajoute ${refLabel('skills', o.skill)} à ses carrières`;
