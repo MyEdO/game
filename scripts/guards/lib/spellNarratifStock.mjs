@@ -258,7 +258,6 @@ export const SPELL_NARRATIF_PARAPHRASE_STOCK = [
   { fichier: 'src/data/spells.json', ref: 'clarte-d-esprit', occurrence: 1 },
   { fichier: 'src/data/spells.json', ref: 'coeurs-ardents', occurrence: 1 },
   { fichier: 'src/data/spells.json', ref: 'cognat-de-l-atre', occurrence: 1 },
-  { fichier: 'src/data/spells.json', ref: 'colerique', occurrence: 1 },
   { fichier: 'src/data/spells.json', ref: 'collet-d-abulla', occurrence: 1 },
   { fichier: 'src/data/spells.json', ref: 'collet-d-abulla', occurrence: 2 },
   { fichier: 'src/data/spells.json', ref: 'comete-a-deux-queues', occurrence: 1 },

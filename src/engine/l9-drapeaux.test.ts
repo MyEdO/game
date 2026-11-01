@@ -133,7 +133,7 @@ describe('Bénédiction de Sauvagerie — « deux lancers, choisissez le meilleu
   });
 });
 
-describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques sont retirés pour la durée » (LDB 42)', () => {
+describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques sont retirés pour la durée » (LDB 43 l.70)', () => {
   it('op suppressPsych : déplace psychTraits dans l’effet porteur et purge psychState', () => {
     const c = mk({
       psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }, { type: 'phobie', cible: ciblePsy.groupe('serpent'), indice: 1 }],

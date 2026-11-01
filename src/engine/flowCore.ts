@@ -753,22 +753,32 @@ export function certainFlowOps<E = EffectOp>(
 }
 
 /** Sous-Flow d'un Flow de sort ne gardant que les nœuds adressant `on` (target/caster) — pour appliquer
- *  SÉPARÉMENT les effets de cible (par cible, missile/soutien) et ceux du lanceur (une fois). Préserve
- *  l'imbrication if/test : un nœud de structure est conservé si l'une de ses branches porte un effet
- *  `on`. Un `do` ops d'un AUTRE `on` devient un `seq` vide (neutre). `do` non-ops conservés sous `target`. */
+ *  SÉPARÉMENT les effets de cible (par cible, missile/soutien) et ceux du lanceur (une fois). Un `do` ops
+ *  d'un AUTRE `on` devient un `seq` vide (neutre) ; un `do` non-ops est rattaché à la cible. Un nœud
+ *  INTERACTIF (`test`, `choice`) se joue dans UNE seule passe, ENTIER (ses feuilles des deux `on`, que
+ *  `runCombatFlow` adresse chacune à son porteur) : celle de la cible dès qu'il porte une feuille de
+ *  cible ou n'en porte aucune, celle du lanceur sinon. Une décision ou un jet n'est ainsi jamais joué deux
+ *  fois pour une même cible : la passe de cible se rejoue, elle, à chaque cible du lancement. */
 export function spellFlowFor<E = EffectOp>(flow: Flow<E> | undefined, on: 'target' | 'caster'): Flow<E> {
   if (!flow) return { kind: 'seq', steps: [] };
+  const feuilleDe = (f: Extract<Flow<E>, { kind: 'do' }>): 'target' | 'caster' =>
+    (isEffectOp(f.effect) ? (f.effect.on ?? 'target') : 'target') === 'caster' ? 'caster' : 'target';
+  const porte = (f: Flow<E>, cote: 'target' | 'caster'): boolean => {
+    let oui = false;
+    walkFlow(f, (n) => { if (n.kind === 'do' && feuilleDe(n) === cote) oui = true; });
+    return oui;
+  };
+  const vide: Flow<E> = { kind: 'seq', steps: [] };
   const keep = (f: Flow<E>): Flow<E> => {
     switch (f.kind) {
-      case 'do': {
-        const e = f.effect;
-        if (isEffectOp(e)) return (e.on ?? 'target') === on ? f : { kind: 'seq', steps: [] };
-        return on === 'target' ? f : { kind: 'seq', steps: [] }; // effets non-ops (narration…) rattachés à la cible
-      }
+      case 'do': return feuilleDe(f) === on ? f : vide;
       case 'seq': return { kind: 'seq', steps: f.steps.map(keep) };
       case 'if': return { kind: 'if', cond: f.cond, then: keep(f.then), ...(f.else ? { else: keep(f.else) } : {}) };
-      case 'test': return { kind: 'test', test: f.test, success: keep(f.success), fail: keep(f.fail) };
-      case 'choice': return { kind: 'choice', prompt: f.prompt, ...(f.advantageCost != null ? { advantageCost: f.advantageCost } : {}), ...(f.icon ? { icon: f.icon } : {}), yes: keep(f.yes), ...(f.no ? { no: keep(f.no) } : {}) };
+      case 'test':
+      case 'choice': {
+        const passe = porte(f, 'target') || !porte(f, 'caster') ? 'target' : 'caster';
+        return passe === on ? f : vide;
+      }
     }
   };
   return keep(flow);

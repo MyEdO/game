@@ -349,7 +349,7 @@ export function sansPeurFace(self: Combatant, kind: PsychType, foe: Combatant | 
  *  Codex) ; plus aucun fichier de code par trait. */
 export { parsePsychTraits } from './psych/registry';
 
-/** Baume pour un esprit blessé (LDB 42) : « Tous les Traits Psychologiques sont retirés pour la
+/** Baume pour un esprit blessé (LDB 43 l.70) : « Tous les Traits Psychologiques sont retirés pour la
  *  durée du Miracle » — les Traits psy de `c` sont DÉPLACÉS hors de la fiche (à porter par
  *  l'ActiveEffect `suppressedPsych`) ; les afflictions actives (`psychState`), dérivées des
  *  Traits, sont apaisées avec eux. Retourne les Traits suspendus, ou null s'il n'y en a aucun. */

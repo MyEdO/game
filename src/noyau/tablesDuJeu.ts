@@ -95,6 +95,7 @@ function assembler() {
     modificateursDeTouche: uniques('modificateursDeTouche', hitModifiers.modificateursDeTouche),
     clotures,
     lancerLeSort: combatFlow.lancerLeSort,
+    lancerLeSortGaranti: combatFlow.lancerLeSortGaranti,
     apresToucheDeManoeuvre: combatFlow.apresToucheDeManoeuvre,
     sequences: disjointes('sequences', tavernFlow.sequences, pursuitFlow.sequences) satisfies TablesDuJeu['sequences'],
     scoresDeSequence: sequenceCore.scoresDeSequence,

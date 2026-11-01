@@ -848,6 +848,9 @@ export interface ActiveEffect {
   /** Trait de créature ACCORDÉ par cet effet (op `grantTrait` — Envol, Effrayant…) : le
    *  `TraitInstance` exact posé dans `c.traits`, retiré (une instance) à l'expiration (engine/grantedTraits). */
   grantedTrait?: import('./statEntry').TraitInstance;
+  /** Trait PSYCHOLOGIQUE accordé par cet effet (op `grantPsychTrait` à durée, VDM 10 l.327-330) : l'instance
+   *  exacte posée dans `c.psychTraits`, retirée à l'expiration (`dropExpiredGrantedPsych`). */
+  grantedPsychTrait?: import('./psychology').PsychTrait;
   /** Mutation TEMPORISÉE accordée par cet effet (op `rollMutation` à durée — Allure démoniaque, EDOC 13
    *  l.276-277) : la `Mutation` exacte posée dans `c.mutations`, DÉTACHÉE à l'expiration
    *  (`dropExpiredGrantedMutations`, engine/corruption). Une mutation de CORRUPTION (permanente) n'a pas
@@ -904,7 +907,7 @@ export interface ActiveEffect {
   /** Détermination (LDB 17 l.60) : ignore les modificateurs de Blessure critique (traumatismes), 1 Round.
    *  Durée portée par `duration` → expirée par le système de Durée unifié (jamais un flag round-scopé). */
   ignoreCritMods?: boolean;
-  /** Traits psychologiques SUSPENDUS par l'effet (Baume pour un esprit blessé, LDB 42 : « Tous les
+  /** Traits psychologiques SUSPENDUS par l'effet (Baume pour un esprit blessé, LDB 43 l.70 : « Tous les
    *  Traits Psychologiques sont retirés pour la durée ») — restitués à l'expiration (rounds OU horloge). */
   suppressedPsych?: import('./psychology').PsychTrait[];
   /** Aura anti-Sort (op `castWard`, LDB 42) : tout SORT (Langue (Magick)) ciblant quelqu'un à

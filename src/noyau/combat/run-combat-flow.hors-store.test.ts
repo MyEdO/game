@@ -71,7 +71,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     const { H } = setup();
     const before = live(H.id).wounds.current;
 
-    runCombatFlow({ mode: 'combat', get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
 
     // Le `do` AVANT le test est appliqué tout de suite ; le test suspend ; la continuation attend.
     expect(live(H.id).wounds.current).toBe(before - 3);
@@ -92,7 +92,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     H.characteristics.force = 90; H.wounds = blessuresDeBase(200, 200, H); // Force élevée → Test réussi (branche success = −5)
     const before = live(H.id).wounds.current;
 
-    runCombatFlow({ mode: 'combat', get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     banc.getState().cascadeRoll(step.id);
     banc.getState().cascadeNext();
@@ -106,7 +106,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     seedBattleRng(5);
     const { H } = setup();
     H.characteristics.force = 90; H.wounds = blessuresDeBase(200, 200, H);
-    runCombatFlow({ mode: 'combat', get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     banc.setState({ pendingLogQueue: [] });
     banc.getState().cascadeRoll(step.id);
@@ -125,7 +125,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     E.characteristics.force = 90; E.wounds = blessuresDeBase(200, 200, E); // Force élevée → succès inline (branche success = −5)
     const before = live(E.id).wounds.current;
 
-    runCombatFlow({ mode: 'combat', get: banc.getState, set: banc.setState, target: E, caster: E, label: 'Flux' }, flow(3, 5, 99, 7));
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: E, caster: E, label: 'Flux' }, flow(3, 5, 99, 7));
 
     expect(banc.getState().pendingCascade).toBeNull(); // ennemi → jamais d'étape influençable
     // pre(3) + branche(5) + after(7) = 15, appliqués inline d'un coup.
@@ -141,7 +141,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     H.characteristics.force = 90; H.wounds = blessuresDeBase(200, 200, H);
     const before = live(H.id).wounds.current;
 
-    runCombatFlow({ mode: 'combat', get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
 
     expect(banc.getState().pendingCascade).toBeNull(); // auto → inline
     expect(live(H.id).wounds.current).toBe(before - (3 + 5 + 7));
@@ -173,7 +173,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
 
     // Le sous-Flow du sort (avec un Test interne) joué EN CONTEXTE CAST (opsCtx propagé : sl/label).
     runCombatFlow(
-      { mode: 'combat', get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Sort', opsCtx: { sl: 2, label: 'Sort', caster: H, source: PORTEUR } },
+      { get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Sort', opsCtx: { sl: 2, label: 'Sort', caster: H, source: PORTEUR } },
       flow(3, 5, 99, 7),
     );
 

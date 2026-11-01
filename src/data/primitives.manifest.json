@@ -2263,10 +2263,28 @@
   {
     "id": "opPsy",
     "type": "primitives.manifest",
-    "label": "opPsy/traitOctroye",
+    "label": "opPsy/traitOctroye/libelleDuTraitOctroye",
     "fichier": "src/engine/psych/opsPsy.ts",
-    "concept": "ops psychologiques de `GameOp` (#1468, #1463) : `opPsy` (`pose`, `fin`, `octroi`, `retrait`) seule graphie de leurs références emboîtées `{ id }`, `traitOctroye` seul lecteur du Trait qu’accorde un `grantPsychTrait`",
+    "concept": "ops psychologiques de `GameOp` (#1468, #1463) : `opPsy` (`pose`, `fin`, `octroi`, `retrait`) seule graphie de leurs références emboîtées `{ id }`, `traitOctroye` seul lecteur du Trait qu’accorde un `grantPsychTrait`, `libelleDuTraitOctroye` son libellé, « une personne choisie » quand l’op vise `envers`",
     "perimetre": "producteurs des ops `beginPsych`, `endPsych`, `grantPsychTrait`, `removePsychTrait` (Psychologie, recette, éditeur, tests) ; lecteurs de `grantPsychTrait` (ops, mutations, maladies)",
     "verrou": "src/engine/psych/opsPsy.test.ts"
+  },
+  {
+    "id": "traitPsyAccorde",
+    "type": "primitives.manifest",
+    "label": "grantPsychTrait/memeTraitPsy/dropExpiredGrantedPsych",
+    "fichier": "src/engine/grantedTraits.ts",
+    "concept": "Trait psy accordé (#1463) : `grantPsychTrait` le pose et rend l’instance posée, `memeTraitPsy` la retrouve (identité de ciblage et provenance), `dropExpiredGrantedPsych` le retire à l’expiration de son effet porteur (`ActiveEffect.grantedPsychTrait`), suspendu compris, avec l’affliction de même identité",
+    "perimetre": "op `grantPsychTrait` à durée et `removePsychTrait` (`engine/ops.ts`), `attachMutation`, retrait d’effets actifs (`removeActiveEffects` : Rounds, horloge, dissipation)",
+    "verrou": "src/engine/psych-horloge.test.ts, src/noyau/colerique.hors-store.test.ts"
+  },
+  {
+    "id": "personneChoisie",
+    "type": "primitives.manifest",
+    "label": "personnesCandidates/sontAmis/personneDuDecideurAuto/visePersonneChoisie/fluxDEnvers",
+    "fichier": "src/noyau/personneChoisie.ts",
+    "concept": "la personne choisie d’un Trait psy accordé `envers: 'personneChoisie'` (VDM 10 l.327) : les personnes désignables (combattants en action, ou groupe et personnages de la scène hors combat), l’amitié (même camp), la désignation d’un décideur non surfacé (allié le plus proche de la cible), et le Flow qui pose le Trait derrière son Test de résistance ; l’étape `personneChoisie` du walker d’acteur (`combat/triggeredTest.ts`) les compose — lectures révisables #3045",
+    "perimetre": "Sorts dont un `grantPsychTrait` vise une personne que le lanceur désigne (Colérique), en combat comme hors combat",
+    "verrou": "src/noyau/colerique.hors-store.test.ts"
   }
 ]

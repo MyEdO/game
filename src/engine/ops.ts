@@ -29,7 +29,7 @@ import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/sc
 import type { NatureDInfluence, SourceRef } from '../data/schemas/grammaire/valeurs';
 import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
-import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, sameInstance, traitsAccordesPar } from './grantedTraits';
+import { dernierIndex, grantTrait, grantPsychTrait, memeTraitPsy, removeGrantedTrait, sameInstance, traitsAccordesPar } from './grantedTraits';
 import { caracDuCombattant, evaluer, slBonus, valeurSansTirage } from './formule';
 import { traitsOctroyes } from './traitOctroye';
 import { rollMutation } from '../data/mutations';
@@ -621,8 +621,12 @@ export type GameOp =
    *  instance, pas une par jour). */
   | { op: 'removeTrait'; trait: { id: string } }
   /** Trait PSYCHOLOGIQUE conféré (Colère impie → Frénésie). PASSIF (mutation/trait) : posé dans
-   *  `c.psychTraits` à l'attache. `psychType.id` = `PsychType` (frenesie, peur…). */
-  | { op: 'grantPsychTrait'; psychType: { id: string }; cible?: RefDeCible }
+   *  `c.psychTraits` à l'attache. `psychType.id` = `PsychType` (frenesie, peur…). Champs réservés aux sorts
+   *  (`grammaire/mecanique.ts`) : `envers` vise une personne que le DÉCIDEUR choisit (VDM 10 l.327), résolue
+   *  par le noyau en `cible` d'individu AVANT `applyOps` (`noyau/personneChoisie.ts`) ; `resistanceSiAmis`, le
+   *  Test qui permet à la cible de résister quand elle et la personne sont amies (VDM 10 l.327) ;
+   *  `durationHours`, la durée d'HORLOGE du Trait, porté alors par un `ActiveEffect` (`grantedPsychTrait`). */
+  | { op: 'grantPsychTrait'; psychType: { id: string }; cible?: RefDeCible; envers?: 'personneChoisie'; resistanceSiAmis?: FlowTest; durationHours?: Formula }
   /** Retire UN Trait psychologique de `c.psychTraits` (≠ `endPsych`, affliction de combat `psychState`) :
    *  `psychType` absent = le premier porté ; `psychType` seul = le premier de ce type ; `cible` = l'instance
    *  de ce type visant cette Cible (`identiteDeCiblage`). ADE II 09 l.33 */
@@ -751,7 +755,7 @@ export type GameOp =
   /** 1 Dégât aux Armures et Armes portées par la cible (`endommagerLEquipementPorte`, `engine/items`), journalisé
    *  en Localisations d'armure et en armes usées. LDB 85 l.325, l.447 */
   | { op: 'damageWornGear' }
-  /** Baume pour un esprit blessé (LDB 42) : « Tous les Traits Psychologiques sont retirés pour la
+  /** Baume pour un esprit blessé (LDB 43 l.70) : « Tous les Traits Psychologiques sont retirés pour la
    *  durée du Miracle » — Traits psy SUSPENDUS (portés par l'effet), restitués à l'expiration. */
   | { op: 'suppressPsych' }
   /** Aura anti-Sort portée par la cible (N'écoutez point la Sorcière, LDB 43 l.139-145) : `mod` au Test de Langue
@@ -1638,14 +1642,17 @@ export const OPS_CTX_GELES = [
 ] as const;
 /** PAR RÉFÉRENCE : des Combattants — leur ID voyage, l'état les redonne (`actorIn`/`coqueParId`). */
 export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
-/** REBÂTIS à la reprise par un chemin NOMMÉ : le rng de la partie, le hook de Corruption branché sur la
- *  cible, et les dés eux-mêmes (relus sur les étapes sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'onCorruption', 'onGainAdvantage', 'des'] as const;
-/** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE sur une feuille qui veut différer
- *  est un fail-fast NOMMÉ (`noyau/combatEffects`), jamais une perte muette — mesuré : aucune donnée du
- *  dépôt n'atteint la porte avec l'un d'eux (ils naissent d'`endOfRound`, de l'interlude, du bus de
- *  triggers et du site du Critique — `surLigne` —, qui n'appellent pas `applyLeafOps`). */
-export const OPS_CTX_HORS_CANAL = ['onCorruptionExposure', 'onCondition', 'onOpposingAdvantage', 'surLigne'] as const;
+/** REBÂTIS à la reprise par un chemin NOMMÉ : le rng de la partie, les hooks de Corruption et d'Avantage
+ *  branchés sur l'état (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur
+ *  les étapes sœurs — jamais recopiés). */
+export const OPS_CTX_REBATIS = ['rng', 'onCorruption', 'onGainAdvantage', 'onOpposingAdvantage', 'des'] as const;
+/** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE dans un contexte PORTÉ
+ *  (`noyau/combatEffects.porterOpsCtx` : feuille à dé, Test ou choix surfacé) est un fail-fast NOMMÉ,
+ *  jamais une perte muette. Ils ne sont posés que par des appels directs à `applyOps`, qui ne portent
+ *  aucun contexte : horloge d'effets de `conditions.ts` (`onCondition`), interlude
+ *  (`onCorruptionExposure`), Critique de `noyau/combatFlow.ts` (`surLigne`, que les ops imbriquées
+ *  d'`applyOps` ne reçoivent pas). */
+export const OPS_CTX_HORS_CANAL = ['onCorruptionExposure', 'onCondition', 'surLigne'] as const;
 
 type CleClassee =
   | (typeof OPS_CTX_GELES)[number] | (typeof OPS_CTX_PAR_REFERENCE)[number]
@@ -2027,17 +2034,27 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'grantPsychTrait': {
         // Trait PSYCHOLOGIQUE conféré (≠ état de combat) : posé dans `c.psychTraits` (la DONNÉE persistée),
         // noyau PARTAGÉ `grantPsychTrait` (`grantedTraits.ts`) — même chemin qu'`attachMutation` (permanent).
+        // À durée d'horloge, l'`ActiveEffect` porteur EST la durée (patron `grantTrait`).
+        if (o.envers) throw new Error(`grantPsychTrait « ${o.psychType.id} » : \`envers\` non résolu — le noyau le résout en Cible d'individu avant applyOps (noyau/personneChoisie.ts).`);
         const { type, cible } = traitOctroye(o);
-        grantPsychTrait(target, type, cible, source);
+        const pose = grantPsychTrait(target, type, cible, source);
+        if (o.durationHours != null) {
+          target.activeEffects = target.activeEffects ?? [];
+          target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: durationFromOp(o, ctx, ref), grantedPsychTrait: pose });
+        }
         lines.push(t('op.grantPsychTrait', { name: target.label, psych: psychologyLabel(type), src: nomDeSource(ctx) }));
         break;
       }
       case 'removePsychTrait': {
         // Convalescence « Les choses s'arrangent » (ADE II Annexe I) : retire UN Trait psy de `c.psychTraits`
         // (≠ `endPsych`, qui apaise une affliction de combat `psychState`). Sans `psychType` = le 1ᵉʳ porté.
-        const traits = [...(target.psychTraits ?? [])];
-        const [removed] = traits.splice(rangDuTraitARetirer(target, o), 1);
-        target.psychTraits = traits;
+        const rang = rangDuTraitARetirer(target, o);
+        const removed = target.psychTraits![rang];
+        // L'`ActiveEffect` porteur de CETTE instance tombe avec elle, et l'emporte (`removeActiveEffects`) :
+        // son échéance retirerait sinon une instance accordée depuis.
+        const porteur = (target.activeEffects ?? [])[dernierIndex(target.activeEffects ?? [], (e) => !!e.grantedPsychTrait && memeTraitPsy(removed)(e.grantedPsychTrait))];
+        if (porteur) removeActiveEffects(target, (e) => e === porteur, ctx.onCondition, lines);
+        else target.psychTraits = target.psychTraits!.filter((_, i) => i !== rang);
         lines.push(t('op.removePsychTrait', { name: target.label, psych: psychologyLabel(removed.type) }));
         break;
       }
@@ -2213,9 +2230,19 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'removeTrait': {
-        const gone = removeGrantedTraitsFrom(target, o.trait.id, source);
-        if (target.activeEffects?.length) target.activeEffects = target.activeEffects.filter((e) => !gone.some((g) => e.grantedTrait && sameInstance(e.grantedTrait, g)));
-        lines.push(t('op.removeTrait', { name: target.label, trait: traitLisible(gone[0]) }));
+        // Les instances que CETTE source a accordées (`traitsAccordesPar`), le natif et l'octroi d'un tiers
+        // restant intacts (EDOC 12 l.217 ; LDB 226). Une instance à effet porteur part avec lui
+        // (`removeActiveEffects`) ; un octroi permanent se retire seul.
+        const accordes = traitsAccordesPar(target, o.trait.id, source);
+        const permanents = [...accordes];
+        const porteurs = (target.activeEffects ?? []).filter((e) => {
+          const i = e.grantedTrait ? permanents.findIndex((g) => sameInstance(e.grantedTrait!, g)) : -1;
+          if (i >= 0) permanents.splice(i, 1);
+          return i >= 0;
+        });
+        removeActiveEffects(target, (e) => porteurs.includes(e), ctx.onCondition, lines);
+        for (const g of permanents) removeGrantedTrait(target, g);
+        lines.push(t('op.removeTrait', { name: target.label, trait: traitLisible(accordes[0]) }));
         break;
       }
       case 'augmentWeapon': {
