@@ -2,8 +2,9 @@
  * CLÉ D'ESPACE (#1463) — la graphie UNIQUE d'un espace de noms : `fichier` pour la collection de
  * racine, `fichier#…` pour une collection nichée (`skills.json#[art].specs`, `sizes.json#rangedMod`),
  * suffixée d'un FILTRE : `?champ=valeur` (les éléments dont le champ DISCRIMINANT vaut la valeur,
- * `materials.json?domain=prop`) ou `?champ` (les éléments qui PORTENT le champ MARQUEUR,
- * `props.json?volume`). Les filtres sont les paramètres `espace` de la marque de la collection
+ * `materials.json?domain=prop`), `?champ` (les éléments qui PORTENT le champ MARQUEUR,
+ * `props.json?volume`) ou `?!champ,…` (la `SousListeMarquee` : ceux qui ne portent aucun de ces marqueurs,
+ * `marqueurPorte`). Les filtres sont les paramètres `espace` de la marque de la collection
  * (`grammaire/collection-cle.ts`) ; la table `IDS_PAR_ESPACE` (`_ids.generated.ts`) est keyée ici.
  *
  * Deux formes de plus : `vocabulaire:<nom>`, l'espace d'un VOCABULAIRE du moteur
@@ -20,11 +21,15 @@ import type { EspaceDeNoms, MarqueDeCollection } from './collection-cle';
 export const champsDiscriminants = (espace: EspaceDeNoms): readonly string[] =>
   espace.discriminant === undefined ? [] : typeof espace.discriminant === 'string' ? [espace.discriminant] : espace.discriminant;
 
-/** Filtre d'une clé d'espace : `vaut` posé = discriminant ; sinon marqueur. */
-export interface FiltreDEspace {
-  readonly champ: string;
-  readonly vaut?: string;
-}
+/** SOUS-LISTE MARQUÉE : les éléments d'un espace qui ne portent aucun de ses marqueurs (paramètre
+ *  `espace.marqueurs` du def ; `grammaire/sousListes.ts`), retenus par `marqueurPorte`. */
+export type SousListeMarquee = { readonly horsMarqueurs: readonly string[] };
+
+/** Filtre d'une clé d'espace : `vaut` posé = discriminant ; sinon marqueur ; `horsMarqueurs` = une
+ *  `SousListeMarquee`. */
+export type FiltreDEspace =
+  | { readonly champ: string; readonly vaut?: string; readonly horsMarqueurs?: undefined }
+  | (SousListeMarquee & { readonly champ?: undefined; readonly vaut?: undefined });
 
 /** Une clé d'espace lue : son fichier, sa suite nichée (après `#`), son filtre (après `?`), et
  *  `libelles` pour une clé de LIBELLÉS — les champs nommés, vide pour ceux que l'espace déclare. */
@@ -127,8 +132,13 @@ export function baseDe(lue: CleLue): string {
   return lue.niche === undefined ? lue.fichier : `${lue.fichier}#${lue.niche}`;
 }
 
-/** Clé d'espace filtrée d'un espace `base`. */
+/** Préfixe du filtre d'une SOUS-LISTE MARQUÉE. */
+const PREFIXE_DE_SOUS_LISTE = '!';
+
+/** Clé d'espace filtrée d'un espace `base` ; d'une `SousListeMarquee` de `grammaire/sousListes.ts`, la clé
+ *  de la sous-liste. */
 export function cleFiltree(base: string, filtre: FiltreDEspace): string {
+  if (filtre.horsMarqueurs) return `${base}?${PREFIXE_DE_SOUS_LISTE}${filtre.horsMarqueurs.join(',')}`;
   return filtre.vaut === undefined ? `${base}?${filtre.champ}` : `${base}?${filtre.champ}=${filtre.vaut}`;
 }
 
@@ -136,6 +146,14 @@ export function cleFiltree(base: string, filtre: FiltreDEspace): string {
 export function cleDeLaLecture(lue: CleLue): string {
   const cle = lue.filtre ? cleFiltree(baseDe(lue), lue.filtre) : baseDe(lue);
   return lue.libelles ? cleDesLibelles(cle, lue.libelles) : cle;
+}
+
+/** Les marqueurs d'un filtre de sous-liste (après `?!`) : chacun non vide, sans `=`. */
+function lireLesMarqueurs(cle: string, liste: string): readonly string[] {
+  const marqueurs = liste.split(',');
+  if (marqueurs.some((m) => m === '' || m.includes('=')))
+    throw new Error(`clé d'espace « ${cle} » : une sous-liste ne nomme que des marqueurs, chacun non vide.`);
+  return marqueurs;
 }
 
 /** Lecture d'une clé d'espace. */
@@ -154,7 +172,9 @@ export function lireCleDEspace(cle: string): CleLue {
   if (q < 0) return niche === undefined ? { fichier } : { fichier, niche };
   const suite = cle.slice(q + 1);
   const e = suite.indexOf('=');
-  const filtre: FiltreDEspace = e < 0 ? { champ: suite } : { champ: suite.slice(0, e), vaut: suite.slice(e + 1) };
+  const filtre: FiltreDEspace = suite.startsWith(PREFIXE_DE_SOUS_LISTE)
+    ? { horsMarqueurs: lireLesMarqueurs(cle, suite.slice(PREFIXE_DE_SOUS_LISTE.length)) }
+    : e < 0 ? { champ: suite } : { champ: suite.slice(0, e), vaut: suite.slice(e + 1) };
   return niche === undefined ? { fichier, filtre } : { fichier, niche, filtre };
 }
 
@@ -168,8 +188,14 @@ export function porteLeChampMarqueur(e: Readonly<Record<string, unknown>>, champ
   return v !== undefined && v !== null && v !== false && v !== '' && !(Array.isArray(v) && v.length === 0);
 }
 
+/** Le premier marqueur de la sous-liste que porte l'élément `e`, `undefined` s'il est dans la sous-liste.
+ *  SEUL prédicat de la `SousListeMarquee`. */
+export const marqueurPorte = (sousListe: SousListeMarquee, e: object): string | undefined =>
+  sousListe.horsMarqueurs.find((m) => porteLeChampMarqueur(e as Readonly<Record<string, unknown>>, m));
+
 /** L'élément `e` est-il retenu par le filtre ? SEUL prédicat de filtre, lu par `idsDeCollection`. */
 export function retenuParFiltre(filtre: FiltreDEspace, e: Readonly<Record<string, unknown>>): boolean {
+  if (filtre.horsMarqueurs) return marqueurPorte(filtre, e) === undefined;
   return filtre.vaut === undefined ? porteLeChampMarqueur(e, filtre.champ) : e[filtre.champ] === filtre.vaut;
 }
 
@@ -189,7 +215,7 @@ export function idsDeCollection(marque: MarqueDeCollection, valeur: unknown, fil
           return cle !== undefined && (!filtre || (estObjet(el) && retenuParFiltre(filtre, el))) ? [cle] : [];
         })
       : [];
-  if (filtre) throw new Error(`filtre « ${filtre.champ} » sur un record : un filtre d'espace ne se lit que sur une liste.`);
+  if (filtre) throw new Error(`filtre « ${cleFiltree('', filtre)} » sur un record : un filtre d'espace ne se lit que sur une liste.`);
   const carte = carteDuRecord(marque, valeur);
   return estObjet(carte) ? Object.keys(carte) : [];
 }

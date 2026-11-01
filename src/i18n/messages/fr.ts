@@ -3183,6 +3183,7 @@ export const fr = {
   'specSrc.cult': 'Culte',
   'specSrc.shanty': 'Chanson',
   'specSrc.target': 'Cible',
+  'specSrc.group': 'Groupe',
   'specSrc.disease': 'Maladie',
   'specSrc.size': 'Taille',
   'specSrc.mutation': 'Mutation',

@@ -451,6 +451,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
         ['talents', 'magie-du-chaos', 'cultChaos', (id) => GOD_IDS.has(id)],
         ['talents', 'beni', 'cultBlessings', (id) => GOD_IDS.has(id)],
         ['talents', 'chanson-de-marin', 'seaShanties', (id) => !!findSeaShantyById(id)],
+        ['talents', 'sans-peur', 'groupesDAppartenance', (id) => !!findGroupById(id) && !findGroupById(id)!.relatif],
       ];
       for (const [cat, id, source, ok] of cases) {
         const def = cat === 'skills' ? byId('skill', id) : findTalentById(id);
@@ -485,7 +486,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
         expect((s.specs?.length ?? 0) > 0, id).toBe(true);
         for (const entry of s.specs ?? []) expect(isObj(entry) && typeof entry.id === 'string' && typeof entry.label === 'string', `${id} → ${JSON.stringify(entry)}`).toBe(true);
       }
-      for (const id of ['bon-marcheur', 'haine', 'maitre-artisan', 'sans-peur', 'savant', 'savoir-vivre', 'travailleur-qualifie', 'vice']) {
+      for (const id of ['bon-marcheur', 'haine', 'maitre-artisan', 'savant', 'savoir-vivre', 'travailleur-qualifie', 'vice']) {
         const t = findTalentById(id)!;
         expect(t.specsOpen, id).toBe(true);
         for (const entry of t.specs ?? []) expect(isObj(entry) && typeof (entry as { id: unknown }).id === 'string', `${id} → ${JSON.stringify(entry)}`).toBe(true);

@@ -20,13 +20,14 @@ import { IDS_PAR_ESPACE } from './_ids.generated';
 import { SCHEMA_DEFS } from './_registry.generated';
 import './_registry-scenes.generated';
 import '../index';
-import { espacesDesignes, idDe, mesureDuParse, refOuSpec } from './grammaire/ref';
+import { dansLaSousListe, espacesDesignes, idDe, mesureDuParse, refOuSpec } from './grammaire/ref';
 import { collectionsDuDocument, listeCle } from './grammaire/collection-cle';
-import { HORS_DE_LA_GRAPHIE, cleDeLaLecture, cleDesLibelles, cleDesSpecs, estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, porteLeChampMarqueur, suiteAvecPas, vocabulaireDuFichier, type PasDeSuite } from './grammaire/cle-d-espace';
+import { HORS_DE_LA_GRAPHIE, baseDe, cleDeLaLecture, cleFiltree, cleDesLibelles, cleDesSpecs, estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, porteLeChampMarqueur, suiteAvecPas, vocabulaireDuFichier, type PasDeSuite, type SousListeMarquee } from './grammaire/cle-d-espace';
 import { VOCABULAIRES } from './grammaire/vocabulaires';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from './grammaire/sourcesDeSpecs';
 
 const CLES = Object.keys(IDS_PAR_ESPACE);
+const DOCUMENTS: readonly string[] = listerDossier('src/data').filter((x: string) => x.endsWith('.json'));
 
 describe('INDEX DES IDS — chaque cible a son espace', () => {
   it('chaque document `entite`/`record` de `src/data` a son espace de racine, NON VIDE ; aucun document `config` n’en a', () => {
@@ -55,7 +56,7 @@ describe('INDEX DES IDS — chaque cible a son espace', () => {
       }
       Object.values(v).forEach(visiter);
     };
-    for (const f of listerDossier('src/data').filter((x: string) => x.endsWith('.json'))) visiter(JSON.parse(readFileSync(`src/data/${f}`, 'utf8')));
+    for (const f of DOCUMENTS) visiter(JSON.parse(readFileSync(`src/data/${f}`, 'utf8')));
     expect(designees, 'aucune spécialisation désignée : la preuve serait vacante').toBeGreaterThan(50);
     expect([...new Set(fautes)]).toEqual([]);
   });
@@ -83,10 +84,45 @@ describe('INDEX DES IDS — chaque cible a son espace', () => {
     const fautes = CLES.flatMap((cle) => {
       const lue = lireCleDEspace(cle);
       const pas = pasDeLaSuite(lue.niche ?? '').flatMap((p) => ('cle' in p ? [p.cle] : []));
-      const ennemis = [...pas, ...(lue.filtre ? [lue.filtre.champ, lue.filtre.vaut ?? ''] : []), ...(lue.libelles ?? [])].filter((p) => HORS_DE_LA_GRAPHIE.test(p) || /[[\],]/.test(p));
+      const filtre = lue.filtre ? (lue.filtre.horsMarqueurs ?? [lue.filtre.champ, lue.filtre.vaut ?? '']) : [];
+      const ennemis = [...pas, ...filtre, ...(lue.libelles ?? [])].filter((p) => HORS_DE_LA_GRAPHIE.test(p) || /[[\],]/.test(p));
       return cleDeLaLecture(lue) !== cle || ennemis.length ? [cle] : [];
     });
     expect(fautes).toEqual([]);
+  });
+
+  it('une SOUS-LISTE MARQUÉE (`?!champ,…`) rend l’espace privé des éléments de chacun de ses marqueurs, dans l’ordre de la donnée', () => {
+    const sousListes = CLES.filter((c) => lireCleDEspace(c).filtre?.horsMarqueurs);
+    expect(sousListes.length, 'aucune sous-liste à l’index : la preuve serait vacante').toBeGreaterThan(0);
+    for (const cle of sousListes) {
+      const lue = lireCleDEspace(cle);
+      const marques = new Set(lue.filtre!.horsMarqueurs!.flatMap((champ) => IDS_PAR_ESPACE[cleFiltree(baseDe(lue), { champ })]));
+      expect(marques.size, cle).toBeGreaterThan(0);
+      expect(IDS_PAR_ESPACE[cle], cle).toEqual(IDS_PAR_ESPACE[baseDe(lue)].filter((id) => !marques.has(id)));
+    }
+    expect(lireCleDEspace('groups.json?!matchesAll,relatif').filtre).toEqual({ horsMarqueurs: ['matchesAll', 'relatif'] });
+    expect(() => lireCleDEspace('groups.json?!relatif=x')).toThrow(/sous-liste/);
+    for (const vide of ['groups.json?!', 'groups.json?!relatif,,inclut', 'groups.json?!relatif,']) expect(() => lireCleDEspace(vide), vide).toThrow(/non vide/);
+  });
+
+  it('une SOUS-LISTE MARQUÉE indexée (`?!champ,…`) a pour ids les entrées du document qu’admet `dansLaSousListe`, dans l’ordre de la donnée', () => {
+    const sousListes = CLES.filter((c) => lireCleDEspace(c).filtre?.horsMarqueurs);
+    expect(sousListes.length, 'aucune sous-liste à l’index : la preuve serait vacante').toBeGreaterThan(0);
+    const vues = new Set<string>();
+    for (const f of DOCUMENTS) {
+      const desSousListes = sousListes.filter((cle) => lireCleDEspace(cle).fichier === f);
+      if (!desSousListes.length) continue;
+      const entrees: unknown = JSON.parse(readFileSync(`src/data/${f}`, 'utf8'));
+      expect(Array.isArray(entrees), f).toBe(true);
+      for (const cle of desSousListes) {
+        const lue = lireCleDEspace(cle);
+        expect(lue.niche, cle).toBeUndefined();
+        const admises = (entrees as readonly { readonly id: string }[]).filter((e) => dansLaSousListe(lue.filtre as SousListeMarquee, e)).map((e) => e.id);
+        expect(IDS_PAR_ESPACE[cle], cle).toEqual(admises);
+        vues.add(cle);
+      }
+    }
+    expect(vues, 'une sous-liste dont le fichier n’est pas un document de src/data').toEqual(new Set(sousListes));
   });
 
   it('un vocabulaire du moteur (`VOCABULAIRES`) est un espace indexé ssi une source le prend pour univers ou pool, ses ids dans l’ordre de sa table', () => {
