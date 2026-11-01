@@ -311,9 +311,9 @@ describe('PNJ de campagne — compétences/talents/sorts de la donnée (Eusapia 
 describe('spawnEnemy — transport de l’apparence/carrière éditée vers le Combatant (parité explo↔combat)', () => {
   const at = { x: 0, y: 0 };
 
-  it('sexe + carrure édités → portés BRUTS par Combatant.appearanceOverride', () => {
-    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { sex: 'F', build: 0.7 } });
-    expect(c.appearanceOverride).toMatchObject({ sex: 'F', build: 0.7 });
+  it('sexe édité → porté BRUT par Combatant.appearanceOverride', () => {
+    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { sex: 'F' } });
+    expect(c.appearanceOverride).toMatchObject({ sex: 'F' });
     expect(c.appearance).toBeUndefined(); // rien de résolu au spawn
   });
 

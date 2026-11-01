@@ -32,7 +32,7 @@ function negociant(): Combatant {
   const selle = itemFromTrappingById('selle-et-harnais', undefined, contexteDeNaissanceDObjet(h))!;
   h.items = [epee, maille, dague, selle];
   recomputeLoadout(h);
-  h.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M', build: 0.5 };
+  h.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
   return h;
 }
 
@@ -61,7 +61,7 @@ function maitreArmes(): Combatant {
   h.loadouts = undefined; // inventaire de carrière REMPLACÉ → régénérer les sets par défaut
   h.activeLoadoutId = undefined;
   recomputeLoadout(h);
-  h.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M', build: 0.5 };
+  h.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
   return h;
 }
 

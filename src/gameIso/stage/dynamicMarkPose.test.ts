@@ -5,7 +5,7 @@ import { buildDynamicMarkMesh, dynSlotLiftM } from '../backends/webgl/dynamicMar
 import { slotLiftM } from '../backends/webgl/highlightMeshes';
 import { SPECKLE_LIFT_M } from '../backends/webgl/groundAccents';
 import { pxPerM } from '../backends/webgl/worldTris';
-import { billboardHeightM } from '../backends/webgl/billboardMath';
+import { JEU_ENT_H_M } from '../backends/webgl/billboardMath';
 import { resetDiagOnce } from '../devDiag';
 import { CELL, projectStep, rotOffset, stepOf, type ProjKind } from '../../geometry/iso';
 import { affineCamera, projectToScreen } from '../backends/webgl/cameras';
@@ -251,9 +251,8 @@ const MOTIF = dashPattern('5 3')!;
 /** Hauteurs de jeton JUGÉES (px écran) — les trois zooms du contrat d'art. */
 const JUGÉS = [40, 64, 128];
 
-/** Zoom auquel un personnage MESURE `hauteurPx` : sa hauteur monde (convention `jeu`) portée aux
- *  pixels de la projection affine que la caméra volumique reproduit (`pxPerM`). */
-const zoomPour = (hauteurPx: number) => hauteurPx / (billboardHeightM('jeu', 'personnage') * pxPerM(MPT));
+/** Zoom de mesure des anneaux, rapporté à la hauteur de référence du jeu en pixels (`pxPerM`). */
+const zoomPour = (hauteurPx: number) => hauteurPx / (JEU_ENT_H_M * pxPerM(MPT));
 
 /** Point ÉCRAN (px, zoom 1) du paramètre `u` d'un anneau sous la vue `kind` — par le chemin de
  *  projection de PROD (`rotOffset` + `projectStep`), jamais par la formule d'ellipse qu'on est en

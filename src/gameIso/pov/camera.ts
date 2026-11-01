@@ -228,7 +228,7 @@ export function tileCornersWorld(scene: Scene, x: number, y: number, z: number, 
   ];
 }
 
-/** Vue à présenter d'une entité (sprite paper-doll) selon son cap MONDE vu par la caméra. PUR.
+/** Vue à présenter d'une entité selon son cap MONDE vu par la caméra. PUR.
  *  f = e·fwd (aligné avec l'avant caméra), s = e·right (composante latérale) : latéral net → profil,
  *  sinon f<0 (l'entité regarde vers nous) → face, f≥0 (elle nous tourne le dos) → dos. mirror = elle
  *  regarde vers bâbord écran. */

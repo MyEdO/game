@@ -1,6 +1,6 @@
 /**
- * Couture de picking du décor : le lanceur WebGL inscrit répond en coordonnées client.
- * Sans lanceur, le hit-test DOM lit le `data-cid` de la prise d'une structure.
+ * Couture de picking du décor : le lanceur WebGL inscrit répond en coordonnées client ; sans lanceur,
+ * rien n'est visé.
  * Le cadre rendu est publié par l'hôte ; pointeur et sonde partagent sa projection,
  * sa caméra, son zoom et ses arêtes projetées.
  */
@@ -22,12 +22,9 @@ export function hasSpritePicker(): boolean {
   return _picker !== null;
 }
 
-/** Le rayon nomme un décor volumique ; le repli DOM nomme une structure via sa prise `data-cid`. */
+/** Le décor volumique que le rayon nomme sous ce point, ou `null`. */
 export function targetUnderPointer(clientX: number, clientY: number): PickResult {
-  if (_picker) return _picker(clientX, clientY);
-  const el = document.elementFromPoint(clientX, clientY) as Element | null;
-  const cid = el?.closest('[data-cid]')?.getAttribute('data-cid');
-  return cid ? { kind: 'combatant', id: cid } : null;
+  return _picker ? _picker(clientX, clientY) : null;
 }
 
 /** Ce que l'écran REND, et donc tout ce qu'il faut pour inverser un pixel jusqu'à sa case

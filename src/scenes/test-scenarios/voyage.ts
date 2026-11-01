@@ -24,20 +24,20 @@ function groupe(): Combatant[] {
   bjorn.travelRole = { activityId: 'plein-air' };
   renforcerCompetence(bjorn, 'survie-en-exterieur', 60);
   bjorn.items = [...(bjorn.items ?? []), itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(bjorn))!, itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(bjorn))!, itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(bjorn))!];
-  bjorn.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M', build: 0.55 };
+  bjorn.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
   // Éclaireuse — Rester aux aguets (Perception) : le groupe ne peut être surpris cette Étape.
   const mira = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Mira (test)', motivation: 'Test', seed: 2402, id: 'mira' });
   mira.travelRole = { activityId: 'rester-aux-aguets' };
   renforcerCompetence(mira, 'perception', 50);
-  mira.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F', build: 0.42 };
+  mira.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
 
   // Érudit — Établir des cartes (Métier Cartographe) : Test étendu cumulé ; PX pour l'Apprentissage (interlude).
   const aldric = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Aldric (test)', motivation: 'Test', seed: 2403, id: 'aldric' });
   aldric.travelRole = { activityId: 'etablir-cartes' };
   renforcerCompetence(aldric, 'metier', 70, 'cartographe');
   aldric.xp = 300;
-  aldric.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M', build: 0.5 };
+  aldric.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
   // Soldate — Approvisionnement (Survie FAIBLE → Rencontres dangereuses) ET « mauvais état » : blessée,
   // SANS rations (faim RAW), Vérole Urticante contagieuse (LDB 20), cauchemars (Test de Calme/nuit).
@@ -47,7 +47,7 @@ function groupe(): Combatant[] {
   greta.wounds.current = Math.max(1, greta.wounds.max - 6);
   greta.nightmares = true;
   greta.diseases = [contractDisease('verole-urticante', makeRNG(1503), { incubation: 0, duration: 5 })!];
-  greta.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F', build: 0.45 };
+  greta.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
   bjorn.wounds.current = Math.max(1, bjorn.wounds.max - 8); // un blessé de plus → jet de Récupération de nuit
 
   return [bjorn, mira, aldric, greta];

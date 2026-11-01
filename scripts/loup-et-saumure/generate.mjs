@@ -119,10 +119,10 @@ function marinDuGrimm(id, x, y, label, skills, appearance) {
  *  UNIQUE `ls-mission` : re-poser met à jour le texte et le remonte en tête (doc §10). */
 const OBJ = (desc) => ({ type: 'setObjective', id: 'ls-mission', desc });
 
-const KRAMER_APPEARANCE = { species: 'humains-reiklander', tenue: 'marchand', sex: 'F', build: 0.45 };
-const KOHLER_APPEARANCE = { species: 'humains-reiklander', tenue: 'noble', sex: 'M', build: 0.5 };
-const ALDO_APPEARANCE = { species: 'humains-reiklander', tenue: 'pretre', sex: 'M', build: 0.6 };
-const GRIET_APPEARANCE = { species: 'humains-reiklander', tenue: 'artiste', sex: 'F', build: 0.4 };
+const KRAMER_APPEARANCE = { species: 'humains-reiklander', tenue: 'marchand', sex: 'F' };
+const KOHLER_APPEARANCE = { species: 'humains-reiklander', tenue: 'noble', sex: 'M' };
+const ALDO_APPEARANCE = { species: 'humains-reiklander', tenue: 'pretre', sex: 'M' };
+const GRIET_APPEARANCE = { species: 'humains-reiklander', tenue: 'artiste', sex: 'F' };
 // Équipage ADVERSE anonyme : tenue de fonction (matelot au gouvernail, servant de pièce).
 const MARIN_APPEARANCE = { species: 'humains-reiklander', tenue: 'marin' };
 const ARTILLEUR_APPEARANCE = { species: 'humains-reiklander', tenue: 'artilleur-de-navire' };
@@ -171,9 +171,9 @@ scenes.push(scene({
     NPC('aldo', 8, 3, 'Frère Aldo', { facing: 'S', dialogueId: 'dlg-aldo', appearance: ALDO_APPEARANCE }),
     NPC('kramer', 11, 3, 'Dame Vasilika Kramer', { facing: 'S', dialogueId: 'dlg-kramer', appearance: KRAMER_APPEARANCE }),
     NPC('griet', 5, 6, 'Griet', { facing: 'N', dialogueId: 'dlg-griet', appearance: GRIET_APPEARANCE }),
-    NPC('avitailleuse', 9, 6, 'Cambuse du port (rations/eau)', { facing: 'N', merchant: { archetype: 'taverniere' }, appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'F', build: 0.55 } }),
-    NPC('armurier', 12, 6, 'Arsenal du port (munitions/pièces)', { facing: 'N', merchant: { archetype: 'armurier' }, appearance: { species: 'humains-reiklander', tenue: 'artisan', sex: 'M', build: 0.6 } }),
-    NPC('avitailleur', 13, 4, 'Chandelier du quai (eau, rations de mer, pièces, boulets)', { facing: 'S', merchant: { archetype: 'avitailleur' }, appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'M', build: 0.5 } }),
+    NPC('avitailleuse', 9, 6, 'Cambuse du port (rations/eau)', { facing: 'N', merchant: { archetype: 'taverniere' }, appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'F' } }),
+    NPC('armurier', 12, 6, 'Arsenal du port (munitions/pièces)', { facing: 'N', merchant: { archetype: 'armurier' }, appearance: { species: 'humains-reiklander', tenue: 'artisan', sex: 'M' } }),
+    NPC('avitailleur', 13, 4, 'Chandelier du quai (eau, rations de mer, pièces, boulets)', { facing: 'S', merchant: { archetype: 'avitailleur' }, appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'M' } }),
     P(2, 8, 'tonneau', {
       label: 'La jetée d’appareillage',
       usable: { actions: [{
@@ -486,9 +486,9 @@ scenes.push(scene({
   ],
   entities: [
     hero(2, 4),
-    NPC('docker', 7, 3, 'Docker du port', { facing: 'S', dialogueId: 'dlg-rumeur-olg', appearance: { species: 'humains-reiklander', tenue: 'debardeur', sex: 'M', build: 0.6 } }),
+    NPC('docker', 7, 3, 'Docker du port', { facing: 'S', dialogueId: 'dlg-rumeur-olg', appearance: { species: 'humains-reiklander', tenue: 'debardeur', sex: 'M' } }),
     NPC('kramer-erengrad', 11, 3, 'Dame Vasilika Kramer', { facing: 'S', dialogueId: 'dlg-kramer-nuit-du-chat', appearance: KRAMER_APPEARANCE }),
-    NPC('charpentier', 9, 6, 'Charpentier de bord', { facing: 'N', dialogueId: 'dlg-reparation', appearance: { species: 'humains-reiklander', tenue: 'artisan', sex: 'M', build: 0.6 } }),
+    NPC('charpentier', 9, 6, 'Charpentier de bord', { facing: 'N', dialogueId: 'dlg-reparation', appearance: { species: 'humains-reiklander', tenue: 'artisan', sex: 'M' } }),
     P(2, 7, 'tonneau', {
       label: 'Reprendre la mer vers Salzenmund',
       usable: { actions: [{ id: 'fouiller', flow: flowOf([OBJ('Ramener le Grimm et sa cargaison à Salzenmund.'), { type: 'openWorldMap' }]), unique: true }] },

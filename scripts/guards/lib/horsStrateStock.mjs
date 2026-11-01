@@ -408,8 +408,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#traumas', ref: '[].cumul.parPalier', occurrence: 1 },
   { fichier: 'src/data#traumas', ref: '[].ops[].*', occurrence: 1 },
   { fichier: 'src/data#traumas', ref: '[].prosthesis[]', occurrence: 1 },
-  { fichier: 'src/data#traumas', ref: '[].rig', occurrence: 1 },
-  { fichier: 'src/data#traumas', ref: '[].rig.byProsthesis[]', occurrence: 1 },
   { fichier: 'src/data#vehicles', ref: '[].deck', occurrence: 1 },
   { fichier: 'src/data#vehicles', ref: '[].deck.postes[]', occurrence: 1 },
   { fichier: 'src/data#vehicles', ref: '[].hull', occurrence: 1 },

@@ -1,5 +1,5 @@
 /**
- * Mathématique PURE des BILLBOARDS (décor en quads texturés ; hauteur monde du corps pour son chrome).
+ * Mathématique PURE des BILLBOARDS de décor en quads texturés.
  * Node-safe : aucune dépendance DOM/three ici, tout le décisionnel (taille monde, sélection de vue,
  * ancrage, palier de rasterisation) vit dans ce module ; `svgTexture.ts` n'est qu'une couture navigateur.
  *
@@ -10,44 +10,19 @@ import { project, facingView, type View } from '../../facing';
 import { povView } from '../../pov/camera';
 import { DIR8_DELTA, type Dir8 } from '../../../geometry/dir8';
 import { type Rot } from '../../../geometry/iso';
-import { ISO_PX_PER_M } from '../../iso';
 
 // ————————————————————————————————————————————————————————————————
-// 1. TAILLE MONDE — convention CIBLE `jeu`, plus les deux presets de comparaison de planche (#1160)
+// 1. TAILLE MONDE (#1160)
 // ————————————————————————————————————————————————————————————————
 
-export type BillboardConvention = 'jeu' | 'heroique' | 'metrique';
-export type BillboardKind = 'personnage' | 'prop';
-
-/** Échelle de token iso par famille, MESURÉE aux sites de rendu (non exportées là-bas, littéraux en
- *  place) : personnage = 0.58 ; prop (et sprite) = 0.55 — les échelles du repère SVG de référence.
- *  (`speciesScale`/`sizeTokenScale`/`foot.scale` sont des facteurs PAR ENTITÉ, hors de cette base.) */
-const ISO_TOKEN_SCALE: Record<BillboardKind, number> = { personnage: 0.58, prop: 0.55 };
-
-/** Hauteur d'un personnage debout dans la convention du moteur (m) — héroïque modéré,
- *  arbitrage user 2026-08-09 #1160. */
+/** Hauteur de référence de l'échelle du moteur (m). #1160. */
 export const JEU_ENT_H_M = 2.3;
 
-/** Facteur de la convention `jeu` sur le métrique : DÉRIVÉ de l'unique constante arbitrée
- *  `JEU_ENT_H_M` — toute autre famille (props…) s'y met à l'échelle, sans second nombre posé. */
+/** Échelle des décors du moteur par rapport au métrique. */
 export const JEU_SCALE = JEU_ENT_H_M / ENT_H_M;
 
-/** Convention RENDUE par le monde volumique (#1160) — la taille des corps y est celle du JEU.
- *  Elle appartient à la mathématique des billboards, pas à l'écran qui les monte. */
-export const CONVENTION = 'jeu' as const;
-
-/**
- * Hauteur MONDE (m) d'un billboard selon la convention rendue.
- * - `jeu` : `JEU_ENT_H_M` pour un personnage, métrique × `JEU_SCALE` pour le reste.
- * - `heroique` : dérivée des sites iso — boîte locale `BB_H` px × échelle de token ÷ `ISO_PX_PER_M`.
- * - `metrique` : constantes du POV (`ENT_H_M` / `PROP_H_M`).
- */
-export function billboardHeightM(convention: BillboardConvention, kind: BillboardKind): number {
-  const metrique = kind === 'personnage' ? ENT_H_M : PROP_H_M;
-  if (convention === 'metrique') return metrique;
-  if (convention === 'jeu') return metrique * JEU_SCALE;
-  return (BB_H * ISO_TOKEN_SCALE[kind]) / ISO_PX_PER_M;
-}
+/** Hauteur MONDE (m) d'un billboard de décor, à échelle 1 dans sa boîte canonique. #1160. */
+export const BILLBOARD_H_M = PROP_H_M * JEU_SCALE;
 
 // ————————————————————————————————————————————————————————————————
 // 2. SÉLECTION DE VUE — délégation aux DEUX résolveurs de prod, aucun seuil recopié (#1161)
@@ -86,8 +61,7 @@ function orthoView(yawDeg: number, entFacing: Dir8): { view: View; mirror: boole
 // 3. ANCRAGE — quad face caméra, pieds au sol
 // ————————————————————————————————————————————————————————————————
 
-/** Aspect (l/h) de la boîte locale d'un billboard — la même 120×150 pour un personnage et pour un décor
- *  (`catalog/decor` dessine en 120×150, pieds en (60,150)). */
+/** Aspect (l/h) de la boîte locale de décor (`catalog/decor` : 120×150, pieds en (60,150)). */
 export const BILLBOARD_BOX_ASPECT = BB_W / BB_H;
 
 /** Quad d'un billboard, exprimé dans le plan face-caméra (u = droite écran, v = haut monde),
@@ -122,20 +96,19 @@ export function anchorAndSize(heightM: number, aspectRatio: number): BillboardQu
   };
 }
 
-/** Ce qu'il faut d'un sujet pour en tailler le quad : sa famille, son échelle de jeton et sa BOÎTE
+/** Ce qu'il faut d'un sujet pour en tailler le quad : son échelle de jeton et sa BOÎTE
  *  LOCALE (celle du fragment SVG rendu — `BillboardSubject.box`). */
 export interface QuadSubject {
-  kind: BillboardKind;
   scaleK: number;
   box: { w: number; h: number };
 }
 
-/** Quad d'un sujet : la hauteur monde de sa famille × son échelle, RAPPORTÉE à sa boîte locale.
+/** Quad d'un décor : sa hauteur monde × son échelle, RAPPORTÉE à sa boîte locale.
  *  L'échelle art→monde reste celle de la boîte canonique (`BB_H`) : une boîte plus haute AGRANDIT le
  *  quad d'autant — le sujet y garde sa taille apparente au lieu d'être écrasé dedans. Boîte canonique
- *  (tout sujet simple : personnage, gabarit, décor) ⇒ facteur 1 et `BILLBOARD_BOX_ASPECT`. */
-export function subjectQuad(convention: BillboardConvention, sub: QuadSubject): BillboardQuad {
-  const heightM = (billboardHeightM(convention, sub.kind) * sub.scaleK * sub.box.h) / BB_H;
+ *  de décor ⇒ facteur 1 et `BILLBOARD_BOX_ASPECT`. */
+export function subjectQuad(sub: QuadSubject): BillboardQuad {
+  const heightM = (BILLBOARD_H_M * sub.scaleK * sub.box.h) / BB_H;
   return anchorAndSize(heightM, sub.box.w / sub.box.h);
 }
 

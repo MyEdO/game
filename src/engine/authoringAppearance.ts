@@ -17,7 +17,6 @@ export type EspeceDApparence = string & { readonly __especeDApparence: unique sy
 /** Surcharge d'apparence. */
 export interface EntityAppearance {
   sex?: Sexe;
-  build?: number;
   /** Espèce/race CHOISIE — découple l'apparence du nom (label/ref) : id d'APPARENCE (ex.
    *  `nain`, `halflings`), jamais un libellé. Absente = l’espèce du record (`spawnEnemy`, `noyau/monde/spawn.ts`). */
   species?: string;
@@ -36,5 +35,4 @@ export interface EntityAppearance {
 export interface Appearance {
   species: EspeceDApparence;
   sex: Sexe;
-  build: number;                                   // 0..1
 }

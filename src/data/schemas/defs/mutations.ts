@@ -7,7 +7,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { entityAppearanceSchema, mutationKindSchema } from '../grammaire/valeurs';
+import { mutationKindSchema } from '../grammaire/valeurs';
 import { mecaniqueDe, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 
 export const file = 'mutations.json';
@@ -23,7 +23,6 @@ const doc = document(
     note: z.string().optional(),
     /** id d'une autre entrée `mutations.json` (Tête bestiale EDOC → sous-table alignée, `rollMutation`). */
     subTable: z.string().optional(),
-    appearance: entityAppearanceSchema.optional(),
   },
   {
     kind: {
@@ -34,7 +33,6 @@ const doc = document(
     effects: { label: 'Effets déclenchés' },
     note: { label: 'Note', hint: 'Note mécanique de l’entrée — ex. bonus de Perception' },
     subTable: { label: 'Sous-table de tirage', hint: 'Entrée dont la sous-table est tirée en cascade' },
-    appearance: { label: 'Apparence' },
   },
   {
     codex: { keys: ['mutations'] },

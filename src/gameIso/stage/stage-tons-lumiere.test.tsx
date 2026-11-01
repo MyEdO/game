@@ -222,7 +222,7 @@ const CAMERA = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
 function boardDe(anchor: THREE.Vector3): Board {
   const material = new THREE.MeshBasicMaterial();
   const sub = {
-    identity: 'sonde', kind: 'prop', anchor, facing: 'S',
+    identity: 'sonde', anchor, facing: 'S',
     scaleK: 1, cell: { x: 0, y: 0, z: 0 }, box: { w: 120, h: 150 }, svg: () => '',
   };
   return {

@@ -38,22 +38,22 @@ function traders(): Combatant[] {
   // vrac vit sur `ItemInstance.cargo`, embarqué sur la barge à la descente (Décision 5, EDOC 7).
   const convoi = { uid: 'com-convoi', name: 'Chariot de convoi', trappingId: 'diligence', kind: 'misc', qualities: [], enc: 0, equipped: false } as never;
   berta.items = [...(berta.items ?? []), itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(berta))!, itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(berta))!, convoi];
-  berta.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F', build: 0.5 };
+  berta.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
 
   // Spécialisation Chaland de la Voile (Au choix) du Batelier : valeur d'ADAPTATION du scénario. LDB 09 l.40
   const voileDeCarriere = adresseDeCreation.carriereCompetence(firstLevel('batelier')!.skills.findIndex((r) => 'id' in r && r.id === 'voile'));
   const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', seed: 1502, id: 'com-gunnar', specChoices: { [voileDeCarriere]: 'chaland' } });
   renforcerCompetence(gunnar, 'ramer', 50);
   renforcerCompetence(gunnar, 'voile', 40, 'chaland');
-  gunnar.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M', build: 0.58 };
+  gunnar.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
   const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto le Garde', motivation: 'Test', seed: 1503, id: 'com-otto' });
   renforcerCompetence(otto, 'intimidation', 40);
-  otto.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M', build: 0.62 };
+  otto.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
   const lise = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Lise la Scribe', motivation: 'Test', seed: 1504, id: 'com-lise' });
   renforcerCompetence(lise, 'metier', 40, 'cartographe');
-  lise.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F', build: 0.42 };
+  lise.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
 
   return [berta, gunnar, otto, lise];
 }

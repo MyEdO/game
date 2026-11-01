@@ -35,7 +35,6 @@ import { faceSurface, shadeFactorOf, tintVarFactor } from './faceColors';
 import { faceDepthOf } from './faceRelief';
 import { BB_W, BB_H } from '../../pov/billboardCore';
 import { povDepth } from '../../pov/camera';
-import { type BillboardKind } from './billboardMath';
 import { defsGlobaux } from '../../sprites';
 import { tousLesTerrains } from '../../../noyau/monde/terrain';
 import { propSvg } from '../../catalog/decor';
@@ -652,13 +651,10 @@ export function buildWorldGeometry(scene: Scene, mpt: number, lecture: LectureDA
   return applyVisibilityTint(bakeWorldGeometry(scene, mpt, lecture), tintAt, fade).geometry;
 }
 
-/** Un sujet de billboard prêt à texturer — un DÉCOR : où il se pose, à quelle échelle, et comment il se
- *  dessine. Aucun personnage n'en est un (#3160) : un corps du monde se repère par son anneau d'équipe
- *  (`builders/dynamicMarks.teamRings`) et son chrome. */
+/** Un décor prêt à texturer : sa position, son échelle et son dessin. */
 export interface BillboardSubject {
   /** Identité de cache (hors vue/miroir/palier — cf. `billboardTextureKey`). */
   identity: string;
-  kind: BillboardKind;
   /** Ancre PIEDS en repère three (mètres). */
   anchor: THREE.Vector3;
   /** Orientation MONDE d'auteur. */
@@ -715,7 +711,6 @@ export function collectBillboards(scene: Scene, mpt: number, els: SceneBillboard
       // L'ABSENCE de type est NOMMÉE dans l'identité de cache (#877) : deux décors, l'un sans type et
       // l'autre au type littéralement nommé « undefined », ne partagent pas une texture.
       identity: `prop:${el.key}|${el.ref ?? REF_NON_NOMMEE}|${el.facing ?? ''}|${el.foot.scale}`,
-      kind: 'prop',
       anchor: new THREE.Vector3(gx * mpt, h, gy * mpt),
       facing: el.facing ?? 'S',
       scaleK: el.foot.scale,

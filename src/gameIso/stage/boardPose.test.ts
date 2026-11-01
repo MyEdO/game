@@ -15,7 +15,6 @@ const CAMERA = new OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
 function sujet(anchor: Vector3): BillboardSubject {
   return {
     identity: 'sonde:decor',
-    kind: 'prop',
     anchor,
     facing: 'S',
     scaleK: 1,

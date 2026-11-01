@@ -862,10 +862,9 @@ export function messageDeTenueInconnue(id: string): string {
 }
 
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
- *  `creatures`, `mutations`, la scène (`SceneEntity.appearance`) et le narratif. */
+ *  `creatures`, la scène (`SceneEntity.appearance`) et le narratif. */
 export const entityAppearanceSchema = nommerChamps(z.strictObject({
   sex: sexeSchema.optional(),
-  build: z.number().optional(),
   species: especeDApparenceSchema.optional(),
   /** #3116 */
   tenue: z.string().optional(),
@@ -873,7 +872,7 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
    *  absent : les PA restent mécaniques PURS, aucun art d'armure synthétisé (nu de l'espèce/naturel). */
   armurePortee: z.boolean().optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
-}), { sex: { label: "sexe" }, build: { label: "corpulence" }, species: { label: "espèce" }, tenue: { label: "tenue" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } } });
+}), { sex: { label: "sexe" }, species: { label: "espèce" }, tenue: { label: "tenue" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } } });
 
 /** `HitLocation` (`src/engine/types.ts`) — 6 zones de touche (dé inversé, LDB). Resserré depuis
  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON

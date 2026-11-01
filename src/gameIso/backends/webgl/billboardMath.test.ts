@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  billboardHeightM,
+  BILLBOARD_H_M,
   billboardView,
   anchorAndSize,
   rasterPxHeight,
@@ -9,51 +9,38 @@ import {
   ZOOM_MAX,
   RASTER_PX_MIN,
   RASTER_PX_MAX,
-  JEU_ENT_H_M,
+  JEU_SCALE,
+  subjectQuad,
 } from './billboardMath';
 import { pxPerM } from './worldTris';
-import { ISO_PX_PER_M } from '../../iso';
 import { VIEWS, project, facingView } from '../../facing';
 import { povView } from '../../pov/camera';
-import { ENT_H_M, PROP_H_M, BB_W, BB_H } from '../../pov/billboardCore';
+import { PROP_H_M, BB_W, BB_H } from '../../pov/billboardCore';
 import { DIR8_ORDER } from '../../../geometry/dir8';
 import { TW, type Rot } from '../../../geometry/iso';
 
-describe('taille monde — convention `jeu` du moteur + presets de comparaison de planche (#1160)', () => {
-  it('héroïque = boîte iso 150 px × échelle de token ÷ 24 px/m', () => {
-    expect(ISO_PX_PER_M).toBe(24); // LEVEL_H 96 px ⇔ METRES_PER_LEVEL 4 m
-    // personnage : échelle 0.58 → 150×0.58 = 87 px → 3.625 m
-    expect(billboardHeightM('heroique', 'personnage')).toBeCloseTo(3.625, 6);
-    // prop : échelle 0.55 → 150×0.55 = 82.5 px → 3.4375 m
-    expect(billboardHeightM('heroique', 'prop')).toBeCloseTo(3.4375, 6);
-    // dérivation vérifiée depuis les constantes importées, pas depuis un nombre écrit à la main
-    expect(billboardHeightM('heroique', 'prop')).toBeCloseTo((BB_H * 0.55) / ISO_PX_PER_M, 10);
+describe('taille monde — une seule hauteur de décor (#1160)', () => {
+  it('la hauteur est la valeur rendue en jeu, au bit près', () => {
+    // valeur littérale, indépendante de la dérivation du module
+    expect(BILLBOARD_H_M).toBe(2.172222222222222);
   });
 
-  it('métrique = constantes du POV (1,8 m debout / 1,7 m un prop)', () => {
-    expect(billboardHeightM('metrique', 'personnage')).toBe(ENT_H_M);
-    expect(billboardHeightM('metrique', 'personnage')).toBeCloseTo(1.8, 6);
-    expect(billboardHeightM('metrique', 'prop')).toBe(PROP_H_M);
-    expect(billboardHeightM('metrique', 'prop')).toBeCloseTo(1.7, 6);
+  it('hauteur = hauteur métrique de décor × échelle du moteur', () => {
+    expect(PROP_H_M).toBeCloseTo(1.7, 6);
+    expect(JEU_SCALE).toBeCloseTo(1.2777778, 6);
+    expect(BILLBOARD_H_M).toBe(PROP_H_M * JEU_SCALE);
   });
 
-  it('jeu = convention CIBLE du moteur : 2,3 m debout, prop à la même échelle', () => {
-    // valeurs littérales, indépendantes de la dérivation du module
-    expect(billboardHeightM('jeu', 'personnage')).toBe(2.3);
-    expect(billboardHeightM('jeu', 'personnage')).toBe(JEU_ENT_H_M);
-    expect(billboardHeightM('jeu', 'prop')).toBeCloseTo(2.1722222, 6);
-    expect(billboardHeightM('jeu', 'personnage')).toBeLessThan(billboardHeightM('heroique', 'personnage'));
-    expect(billboardHeightM('jeu', 'personnage')).toBeGreaterThan(billboardHeightM('metrique', 'personnage'));
+  it('quad d’un sujet : boîte canonique, la hauteur × son échelle à l’aspect de la boîte', () => {
+    const q = subjectQuad({ scaleK: 1.5, box: { w: BB_W, h: BB_H } });
+    expect(q.heightM).toBeCloseTo(BILLBOARD_H_M * 1.5, 10);
+    expect(q.widthM).toBeCloseTo(BILLBOARD_H_M * 1.5 * BILLBOARD_BOX_ASPECT, 10);
   });
 
-  it('jeu/métrique = un SEUL facteur, partagé par toutes les familles', () => {
-    const ratio = billboardHeightM('jeu', 'personnage') / billboardHeightM('metrique', 'personnage');
-    expect(ratio).toBeCloseTo(1.2777778, 6);
-    expect(billboardHeightM('jeu', 'prop') / billboardHeightM('metrique', 'prop')).toBeCloseTo(ratio, 12);
-  });
-
-  it('héroïque est ~2× la métrique — l’écart mesuré sur planche (#1160)', () => {
-    expect(billboardHeightM('heroique', 'personnage') / billboardHeightM('metrique', 'personnage')).toBeGreaterThan(1.9);
+  it('quad d’un sujet : une boîte deux fois plus haute double le quad au lieu d’écraser le sujet', () => {
+    const q = subjectQuad({ scaleK: 1, box: { w: BB_W, h: BB_H * 2 } });
+    expect(q.heightM).toBeCloseTo(BILLBOARD_H_M * 2, 10);
+    expect(q.widthM).toBeCloseTo(BILLBOARD_H_M * 2 * (BB_W / (BB_H * 2)), 10);
   });
 });
 
@@ -144,7 +131,7 @@ describe('ancrage — quad face caméra, pieds au sol', () => {
     expect(q.corners[3]).toEqual([-q.widthM / 2, q.heightM]);
   });
 
-  it('aspect fourni par l’appelant (boîte de personnage, non carrée)', () => {
+  it('aspect fourni par l’appelant (boîte de décor non carrée)', () => {
     const q = anchorAndSize(1.8, 100 / 180);
     expect(q.widthM).toBeCloseTo(1, 6);
   });

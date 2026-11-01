@@ -76,7 +76,7 @@ export function makeSorceress(id: string, name: string, pos: { x: number; y: num
     ...spellsOf('Magie mineure'),
     ...spellsOf('Magie des Arcanes', [null, ...domains, 'Nécromancie']),
   ];
-  sorc.appearance = { species: especeDApparence('hauts-elfes'), sex: 'F', build: 0.38 };
+  sorc.appearance = { species: especeDApparence('hauts-elfes'), sex: 'F' };
   sorc.species = 'hauts-elfes';
   sorc.pos = { ...pos };
   return sorc;

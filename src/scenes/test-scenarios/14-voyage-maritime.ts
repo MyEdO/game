@@ -25,14 +25,14 @@ function crew(): Combatant[] {
   renforcerCompetence(cap, 'commandement', 50);
   renforcerCompetence(cap, 'voile', 40, 'cogue');
   cap.items = [...(cap.items ?? []), itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(cap))!, itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(cap))!];
-  cap.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M', build: 0.55 };
+  cap.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
   const timo = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Timonière Hilda', motivation: 'Test', seed: 4802, id: 'mar-timo' });
   timo.shipRole = 'timonier';
   renforcerCompetence(timo, 'voile', 55, 'cogue');
   renforcerCompetence(timo, 'ramer', 45);
   renforcerCompetence(timo, 'metier', 40, 'charpentier'); // entretien de la coque au soir
-  timo.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F', build: 0.42 };
+  timo.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
 
   const navi = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Navigateur Ansmann', motivation: 'Test', seed: 4803, id: 'mar-navi' });
   navi.shipRole = 'navigateur';
@@ -43,13 +43,13 @@ function crew(): Combatant[] {
   renforcerCompetence(navi, 'langue', 40, 'magick');
   renforcerCompetence(navi, 'focalisation', 40, 'cieux');
   navi.spells = ['bienfait-de-bel-shanaar'];
-  navi.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M', build: 0.48 };
+  navi.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
   const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Vigie Perla', motivation: 'Test', seed: 4804, id: 'mar-vigie' });
   vigie.shipRole = 'vigie';
   renforcerCompetence(vigie, 'perception', 55);
   renforcerCompetence(vigie, 'voile', 35, 'cogue');
-  vigie.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F', build: 0.4 };
+  vigie.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
 
   return [cap, timo, navi, vigie];
 }

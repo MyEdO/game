@@ -200,7 +200,7 @@ describe('Fondu du soleil — l’acné rasante s’éteint avant d’exister, l
 describe('Billboards — leur lumière est un SCALAIRE, jamais une normale', () => {
   const board = (luminance: number): Board => ({
     sub: {
-      anchor: new THREE.Vector3(0, 0, 0), identity: 'x', kind: 'prop',
+      anchor: new THREE.Vector3(0, 0, 0), identity: 'x',
       scaleK: 1, cell: { x: 0, y: 0, z: 0 }, box: { w: 10, h: 10 }, svg: () => '', facing: 0,
     } as unknown as Board['sub'],
     quad: { widthM: 1, heightM: 2, centerLiftM: 1 },

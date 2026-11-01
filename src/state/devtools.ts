@@ -14,13 +14,12 @@ import type { AreteUtilisable } from '../noyau/aretes';
 export type PickProbe = (px: { x: number; y: number }) => ({
   tile: { x: number; y: number; z: number } | null;
   cid: string | null;
-  via: 'arete' | 'sprite' | 'decor' | 'meuble' | 'pas-etage' | 'sol' | 'aucune';
+  via: 'arete' | 'decor' | 'meuble' | 'pas-etage' | 'sol' | 'aucune';
   /** L'entité que le GESTE servirait sous ce verdict (dialogue, marchand, place à s'asseoir…) ;
    *  `entId` absent = le clic ne traite aucune entité. */
   geste: { entId?: string };
 } & (
   | { nature: 'case' }
-  | { nature: 'combattant' }
   | { nature: 'entite'; entId: string }
   | { nature: 'arete'; arete: AreteUtilisable }
 )) | null;
@@ -235,7 +234,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.areteScreenPos(x,y,z,dir) → centre ÉCRAN du trait de chaque geste d'arête offert sur ce côté
  *                           de case (`[{x,y,libelle,capacite}]`) — viser un geste d'arête au clic réel
  *   __wfrp.pickTileAt({x,y}) → l'INVERSE : ce que le PICKING RÉEL résoudrait sous ce pixel écran
- *                           ({tile, cid, via:'sprite'|'decor'|'meuble'|'pas-etage'|'sol'|'aucune',
+ *                           ({tile, cid, via:'arete'|'decor'|'meuble'|'pas-etage'|'sol'|'aucune',
  *                           nature, geste:{entId?}} — `geste.entId` = l'entité qu'un clic traiterait)
  *                           — lecture seule, aucun clic
  *   __wfrp.talk('id')     → téléporte le groupe à côté de l'entité et l'interpelle (dialogue/marchand)

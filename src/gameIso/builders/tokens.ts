@@ -135,7 +135,7 @@ export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefin
     if (!c.pos) continue;
     // MDG 14 l.39
     if (isPassengerInBattle(c, battle.combatants, isMerScene(scene))) continue;
-    // Structure de siège : AUCUN jeton de case — elle se rend sur son ARÊTE (hit-area `data-cid`).
+    // Structure de siège : AUCUN jeton de case — elle se rend sur son ARÊTE (`stage/AreteOverlay.tsx`).
     if (isStructure(c)) continue;
     const cz = c.pos.z ?? 0;
     const isHero = campOf(c) === 'party';

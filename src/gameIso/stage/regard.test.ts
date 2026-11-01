@@ -96,12 +96,10 @@ describe('Regard — les VOISINS qu’un temps mort réchauffe', () => {
   });
 });
 
-describe('Regard — l’identité de cache porte le cran POUR LE DÉCOR seul', () => {
-  const sujet = (kind: BillboardSubject['kind']): BillboardSubject => ({ kind, identity: 'x' } as BillboardSubject);
+describe('Regard — l’identité de cache du décor porte le cran', () => {
+  const sujet = { identity: 'x' } as BillboardSubject;
 
-  it('un décor a une identité par cran, un personnage une seule', () => {
-    expect(CRANS_ART.map((rot) => identiteAuCran(sujet('prop'), rot))).toEqual(['x|r0', 'x|r1', 'x|r2', 'x|r3']);
-    // L'art d'un corps ignore le cran : l'y mettre rasteriserait quatre fois la MÊME image.
-    expect(new Set(CRANS_ART.map((rot) => identiteAuCran(sujet('personnage'), rot))).size).toBe(1);
+  it('un décor a une identité distincte pour chacun des quatre crans', () => {
+    expect(CRANS_ART.map((rot) => identiteAuCran(sujet, rot))).toEqual(['x|r0', 'x|r1', 'x|r2', 'x|r3']);
   });
 });

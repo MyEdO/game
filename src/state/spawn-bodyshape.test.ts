@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { bodyShapeOf, creatureToCombatant, statblockToCombatant } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
 
-// Forme du corps → Tableau de Localisation (LDB 76 l.15-29, « Point d'Impact des Créatures »).
-// Dérivée du gabarit rigué de la créature (bodyPlanById) ; serpent/araignée = Localisations Alternatives.
-describe('bodyShapeOf — forme du corps dérivée du gabarit (LDB 76 l.15-29)', () => {
+// LDB 76 l.15-29.
+// bodyShapeOf délègue à bodyShapeForSpecies.
+describe('bodyShapeOf — forme du corps dérivée de l’espèce (LDB 76 l.15-29)', () => {
   it('mappe les formes canoniques depuis le bestiaire', () => {
     expect(bodyShapeOf('araignee-geante')).toBe('araignee');
     expect(bodyShapeOf('serpent')).toBe('serpent');
@@ -23,9 +23,6 @@ describe('bodyShapeOf — forme du corps dérivée du gabarit (LDB 76 l.15-29)',
   });
 });
 
-// #142 LOT 5 : statblockToCombatant dérivait la forme du corps depuis `sb.label` (prose d'AUTEUR) au
-// lieu de l'espèce AUTHORÉE (id stable) — tout statbloc d'auteur recevait la table humanoïde, et
-// renommer le libellé changeait silencieusement la table si le nom coïncidait avec un id de créature.
 describe('statblockToCombatant — bodyShape dérivée de l’espèce AUTHORÉE (#142 LOT 5), jamais du label', () => {
   it('espèce authorée non-humanoïde → table de localisation de CETTE espèce', () => {
     const sb = { type: 'statblock' as const, label: 'Bête sauvage', char: { B: 10 } };
@@ -39,7 +36,7 @@ describe('statblockToCombatant — bodyShape dérivée de l’espèce AUTHORÉE 
     expect(shapeArachnee('Grosse Araignée')).toBe('araignee');
   });
 
-  it('sans espèce authorée → repli humanoïde (comportement historique, aucune invention)', () => {
+  it('sans espèce authorée → repli humanoïde', () => {
     expect(statblockToCombatant({ type: 'statblock', label: 'Cultiste', char: { B: 10 } }, 'w', { x: 0, y: 0 }).bodyShape).toBe('humanoide');
   });
 });

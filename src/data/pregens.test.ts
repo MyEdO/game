@@ -221,7 +221,7 @@ describe('Pré-tirés — apparence posée par createHero', () => {
     const heros = makePregens();
     expect(heros).toHaveLength(definitions.length);
     for (const [i, d] of definitions.entries()) {
-      expect(heros[i].appearance, d.id).toEqual({ species: especeDApparence(d.species), sex: d.sex ?? 'M', build: d.build ?? 0.5 });
+      expect(heros[i].appearance, d.id).toEqual({ species: especeDApparence(d.species), sex: d.sex ?? 'M' });
     }
   });
 });

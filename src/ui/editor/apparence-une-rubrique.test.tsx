@@ -8,7 +8,7 @@ import { act, useState } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { Inspector } from './Inspector';
 import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
-import { CodexEdit } from './codex/CodexEdit';
+import { CodexEdit, dedicatedFieldKeys } from './codex/CodexEdit';
 import { datasetArray } from '../../data/overrides';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
@@ -109,6 +109,14 @@ describe('rubrique Apparence — un titre par panneau, les réglages de la briqu
     const rubrique = rubriqueApparence(racine, (t) => t.parentElement!);
     for (const r of REGLAGES_AUTEUR) expect(rubrique.contains(reglage(racine, r) ?? null), r).toBe(true);
     expect(rubrique.textContent).toContain('Porter l’armure du profil');
+  });
+
+  it.each(['traits', 'mutations'] as const)('Codex (%s) : aucun champ « Apparence », le schéma de la catégorie le refuse', (categorie) => {
+    const entree = datasetArray(categorie)[0] as { id: string };
+    const racine = monterRacine(<CodexEdit categoryKey={categorie} id={entree.id} onClose={() => {}} />).container;
+    expect(racine.querySelector('.codex-edit-form'), 'le formulaire est monté').not.toBeNull();
+    expect(titres(racine, 'Apparence')).toHaveLength(0);
+    expect(dedicatedFieldKeys(categorie).has('appearance')).toBe(false);
   });
 });
 

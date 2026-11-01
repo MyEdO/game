@@ -5,13 +5,20 @@
  *   npx tsx scripts/qc/render-props-volumiques.mts → public/props-volumiques.html
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { COLONNES, RECETTES, construireHtml } from './lib/plancheVolumique';
 
-const { html, vides } = construireHtml();
-mkdirSync('public', { recursive: true });
-writeFileSync('public/props-volumiques.html', html);
-console.log(`OK: public/props-volumiques.html — ${RECETTES.length} lignes × ${COLONNES.length} vues monde + vignette de palette`);
-if (vides.length) {
-  console.error(`VUES MONDE VIDES : ${vides.join(', ')}`);
-  process.exitCode = 1;
+export const OUT = fileURLToPath(new URL('../../public/props-volumiques.html', import.meta.url));
+
+export function build(): string {
+  const { html, vides } = construireHtml();
+  if (vides.length) throw new Error(`VUES MONDE VIDES : ${vides.join(', ')}`);
+  return html;
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  mkdirSync(dirname(OUT), { recursive: true });
+  writeFileSync(OUT, build());
+  console.log(`OK: public/props-volumiques.html — ${RECETTES.length} lignes × ${COLONNES.length} vues monde + vignette de palette`);
 }

@@ -338,22 +338,6 @@
         "cancels": "movement"
       }
     ],
-    "rig": {
-      "bone": "cuisse",
-      "lateral": true,
-      "replace": true,
-      "hidesBone": "pied",
-      "byProsthesis": [
-        {
-          "trappingId": "fausse-jambe",
-          "art": "jambe-de-bois"
-        },
-        {
-          "trappingId": "merveille-d-ingenierie",
-          "art": "jambe-de-bois"
-        }
-      ]
-    },
     "desc": "Réduisez de façon permanente votre Mouvement de moitié, et subissez une pénalité de -20 à tous les Tests qui impliquent la mobilité, comme une Esquive. Utilisez les mêmes règles que pour le pied. De plus, vous ne pouvez pas utiliser le talent Esquive du tout.",
     "source": {
       "book": "livre-de-base",
@@ -450,17 +434,6 @@
         "cancels": "all"
       }
     ],
-    "rig": {
-      "bone": "tete",
-      "art": "nez-ampute",
-      "view": "front",
-      "byProsthesis": [
-        {
-          "trappingId": "nez-dore",
-          "art": "nez-dore"
-        }
-      ]
-    },
     "desc": "La perte d’un nez rend le visage plutôt effrayant. Votre Sociabilité est réduite de -20 de façon permanente et vous subissez une pénalité de -30 à tous les Tests qui impliquent l’odorat.",
     "source": {
       "book": "livre-de-base",
@@ -592,11 +565,6 @@
     "id": "cecite",
     "type": "traumas",
     "label": "Cécité",
-    "rig": {
-      "bone": "tete",
-      "art": "cecite",
-      "view": "front"
-    },
     "ops": [
       {
         "op": "testMod",

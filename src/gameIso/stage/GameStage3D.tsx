@@ -70,7 +70,6 @@ import { reposerAffineCamera, reposerPovCamera, StretchedOrthographicCamera } fr
 import { fogCurveOf, povDepth } from '../pov/camera';
 import { pxPerM } from '../backends/webgl/worldTris';
 import {
-  CONVENTION,
   billboardView,
   subjectQuad,
   type BillboardCamera,
@@ -317,7 +316,7 @@ export interface GameStage3DProps {
    *  ce qui est bâti. Surcharge de MATÉRIAU seule : ni la cuisson ni la géométrie du monde ne
    *  bougent, et sortir du mode rend aux groupes leurs matériaux d'origine. Absent en jeu. */
   calage?: boolean;
-  /** Cet écran inscrit-il son lanceur de rayon auprès de la couture de picking de sprite
+  /** Cet écran inscrit-il son lanceur de rayon auprès de la couture de picking
    *  (`stage/spritePicker.ts`) ? Défaut OUI, la vue de plateau du jeu. L'ÉDITEUR (#1176) dit
    *  NON : son picking est PUREMENT GÉOMÉTRIQUE (`screenToTileAtZ` sur le SVG d'authoring), et un
    *  picker inscrit ici écraserait celui du jeu — le registre est un singleton. */
@@ -765,7 +764,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     () => worldShadowBox(
       geometry.boundingBox ?? new THREE.Box3(new THREE.Vector3(), new THREE.Vector3(1, 1, 1)),
       subjects,
-      (s) => subjectQuad(CONVENTION, s),
+      subjectQuad,
     ),
     [geometry, subjects],
   );
@@ -1098,8 +1097,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   // QC de l'iso avec). DEUX couleurs, et c'est structurel : les SURFACES se fondent dans la brume de
   // surface du milieu (`povFog`), le FOND porte celle du ciel (`skyTexture`) — sans quoi les sols
   // lointains se relèvent vers le bleu froid (cf. le JSDoc d'`AMBIANCE.pov.fogOutdoorSurface`).
-  // Les sprites d'entité s'embrument AVEC le monde (three embrume tout matériau `fog`), là où le POV
-  // SVG les laissait nets (#1176).
+  // Les billboards de décor s'embrument AVEC le monde : three embrume tout matériau `fog` (#1176).
   // MÉTÉO (#1247) : dehors, la brume authorée REMPLACE la couleur du milieu et resserre la portée ; le
   // FOND suit la même dérivation de teinte que les lampes (`weatherLightScalars`), sans quoi le ciel
   // reste clair au-dessus d'un monde éteint par l'orage. Dedans, rien : `brumePov` y est nul.
@@ -1467,7 +1465,6 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     const dpr = window.devicePixelRatio || 1;
     const voisins = regardsVoisins(regard);
     for (const { sub, heightM } of sujets) {
-      if (sub.kind !== 'prop') continue;
       const pxHeight = atlasPxHeight(heightM, pxm, dpr);
       for (const v of voisins) {
         const vm = billboardView(bbCameraDe(v), sub.facing);
@@ -1476,10 +1473,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     }
   };
 
-  // ── GROUPE BILLBOARDS : le DÉCOR (#3160 : aucun personnage n'y est un sujet). Rebâti quand les SUJETS
-  // changent — l'identité d'un sujet porte sa SIGNATURE DE DESSIN, et elle seule. Le REGARD n'y entre
-  // pas : un quart de tour est une REPOSE (`reposerRegard`), et rebâtir le groupe mesurait 7 matériaux
-  // et 6 géométries libérés pour 4 quads sur un banc de trois décors (vue de plateau).
+  // Le groupe de décor dépend des sujets ; le regard se pose par `reposerRegard`.
   useEffect(() => {
     const groupe = panneaux.current;
     if (!groupe) return;
@@ -1562,7 +1556,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     // des sujets, et la distance INFINIE qui en découle ne tient aucun voile d'entrée en scène.
     const centre = centreDuGroupe(frame, actors);
     const àMonter = subjects.filter((sub) => !déjàMontés.has(sub.identity)).map((sub) => {
-      const quad = subjectQuad(CONVENTION, sub);
+      const quad = subjectQuad(sub);
       const { view, mirror } = billboardView(bbCam, sub.facing);
       // PALIER de la texture : le palier CSS du billboard PORTÉ AU RAPPORT DE PIXELS du rendu
       // (`atlasPxHeight`, #1328) — le renderer peint en pixels de dispositif (`setPixelRatio`).
@@ -1594,7 +1588,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     // PRÉ-CHAUFFE des regards VOISINS, en temps mort : le premier passage par un regard neuf trouve
     // alors sa texture au cache au lieu de la réclamer à la rotation. Le cache se vide au changement
     // de scène (`viderTexturesStatiques`).
-    réchaufferVoisins(monté, subjects.map((sub) => ({ sub, heightM: subjectQuad(CONVENTION, sub).heightM })));
+    réchaufferVoisins(monté, subjects.map((sub) => ({ sub, heightM: subjectQuad(sub).heightM })));
     // Ce teardown court à CHAQUE changement de sujets, PAS seulement au démontage : il n'y a donc
     // rien à libérer ici (la passe suivante fait la succession). Il ne fait qu'annuler les textures en
     // vol — une texture servie après coup monterait un quad qu'aucune attente ne réclame.

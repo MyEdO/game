@@ -35,14 +35,14 @@ function equipage(): Combatant[] {
   gabier.shipStation = 'greement';
   renforcerCompetence(gabier, 'athletisme', 5); // il tombe volontiers : c'est l'échec qu'on vient voir
   renforcerCompetence(gabier, 'voile', 45, 'cogue');
-  gabier.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M', build: 0.45 };
+  gabier.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
   const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Vigie Nissa', motivation: 'Test', seed: 1509, id: 'vigie' });
   vigie.shipRole = 'vigie';
   vigie.shipStation = 'nid-de-pie';
   renforcerCompetence(vigie, 'athletisme', 5);
   renforcerCompetence(vigie, 'perception', 50);
-  vigie.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F', build: 0.4 };
+  vigie.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
 
   return [gabier, vigie];
 }

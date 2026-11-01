@@ -112,7 +112,6 @@ function makeMagicParty(): Combatant[] {
   priests.forEach((pr, i) => {
     if (!pr.appearance) return;
     pr.appearance.sex = sexeSchema.options[i % sexeSchema.options.length];
-    pr.appearance.build = 0.5 + (i % 4) * 0.06;
   });
 
   const flagellant = makeFlagellant(ans, 'pr-flagellant', 'Konrad le Flagellant', 'ulric', { sociabilite: 60, 'force-mentale': 56, 'capacite-de-combat': 60, force: 52, endurance: 50 }, { x: 6, y: 10 });

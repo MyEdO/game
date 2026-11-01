@@ -156,6 +156,10 @@ describe('l’étage `arete` et le rayon : qui tranche, et à quel prix', () => 
     battle: { combatants: [acteur], order: ['e1'], turn: 0 } as unknown as BattleState,
     partyPos: { x: 0, y: 0 },
   };
+  const enCombatSurDecor: EtatDePick = {
+    ...enCombat,
+    scene: { ...scene, entities: [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'S' }] as Scene['entities'] },
+  };
   const [a, b] = tileEdge(2, 2, 'E', dims, 0);
   const aretes = projeterAretes(
     aretesUtilisables({ scene, visible: new Set(['2,2,0', '3,2,0']), controleur: { x: 2, y: 2, z: 0 }, activeZ: 0 }),
@@ -167,9 +171,9 @@ describe('l’étage `arete` et le rayon : qui tranche, et à quel prix', () => 
     const surLeSeuil = vi.fn(() => milieu(a, b));
     const cadre: CadreDePick = { pose: poseFromDims(dims), dims, activeZ: 0, aretes: [] };
 
-    const verdict = resoudrePixel(enCombat, { kind: 'combatant', id: 'e1' }, surLeSeuil, cadre);
+    const verdict = resoudrePixel(enCombatSurDecor, { kind: 'entity', id: 'table-1' }, surLeSeuil, cadre);
 
-    expect(verdict).toEqual({ tile: { x: 2, y: 2, z: 0 }, cid: 'e1', via: 'sprite', nature: 'combattant' });
+    expect(verdict).toEqual({ tile: { x: 2, y: 2, z: 0 }, cid: null, via: 'decor', nature: 'entite', entId: 'table-1' });
     expect(surLeSeuil, 'aucun étage n’a besoin du point inversé').not.toHaveBeenCalled();
   });
 
@@ -177,7 +181,7 @@ describe('l’étage `arete` et le rayon : qui tranche, et à quel prix', () => 
     const surLeSeuil = vi.fn(() => milieu(a, b));
     const cadre: CadreDePick = { pose: poseFromDims(dims), dims, activeZ: 0, aretes };
 
-    const verdict = resoudrePixel(enCombat, { kind: 'combatant', id: 'e1' }, surLeSeuil, cadre);
+    const verdict = resoudrePixel(enCombatSurDecor, { kind: 'entity', id: 'table-1' }, surLeSeuil, cadre);
 
     expect(aretes, 'la porte de la scène est bien offerte au picking').toHaveLength(1);
     expect(verdict.nature).toBe('arete');

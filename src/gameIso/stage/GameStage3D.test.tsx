@@ -79,36 +79,20 @@ describe('Le monde de l’écran de jeu est VOLUMIQUE, et lui seul (#1176 C5a)',
     // Ordre du DOM : le canevas AVANT le SVG (donc peint dessous, overlays au-dessus).
     expect(canvas!.compareDocumentPosition(svg!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect((svg as HTMLElement).style.background).toBe('transparent');
-    // Cette scène vide ne porte aucune prise de structure.
+    // Aucun jeton n'est un élément du DOM.
     expect(el.querySelectorAll('[data-cid]').length).toBe(0);
   });
 });
 
-/** L'inscription du lanceur choisit la réponse WebGL ; son absence active le repli DOM. */
-describe('Hit-test de sprite — la voie qui peint est celle qui répond (#1176 P2-3)', () => {
-  it('sans lanceur inscrit, le repli DOM lit la prise d’une structure', () => {
-    expect(hasSpritePicker()).toBe(false);
-    // `AreteOverlay` pose la prise de structure sur une ligne SVG.
-    const jeton = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    jeton.setAttribute('data-cid', 'structure-1');
-    document.body.appendChild(jeton);
-    document.elementFromPoint = () => jeton; // jsdom n'a pas de mise en page : le hit-test natif se stubbe
-    expect(targetUnderPointer(10, 10)).toEqual({ kind: 'combatant', id: 'structure-1' });
-    delete (document as Partial<Document>).elementFromPoint;
-    jeton.remove();
-  });
-
-  it('voie VOLUMIQUE : le rayon est inscrit au montage et la question ne va plus au DOM', () => {
+/** Le lanceur WebGL suit le montage de l'écran. */
+describe('Hit-test — le lanceur volumique (#1176 P2-3)', () => {
+  it('voie VOLUMIQUE : le rayon est inscrit au montage', () => {
     monter();
     expect(hasSpritePicker()).toBe(true);
-    document.elementFromPoint = () => {
-      throw new Error('le DOM ne doit plus être interrogé en volumique');
-    };
     expect(targetUnderPointer(10, 10)).toBeNull(); // aucun contexte WebGL en jsdom : aucune frame, donc aucune caméra
-    delete (document as Partial<Document>).elementFromPoint;
   });
 
-  it('…et l’inscription MEURT avec l’écran volumique (retour à l’affine sans rien de collant)', () => {
+  it('l’écran désinscrit le lanceur à son démontage', () => {
     monter();
     expect(hasSpritePicker()).toBe(true);
     act(() => root!.unmount());

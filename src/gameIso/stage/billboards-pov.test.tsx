@@ -97,15 +97,15 @@ function découper(clé: string): { identity: string; view: View; mirror: boolea
 
 const clésDe = (préfixe: string) => clés.filter((k) => k.startsWith(préfixe)).map(découper);
 
-function monter(facing: Dir8, partyPos: { x: number; y: number }): void {
-  monterCadre(cadrePov(facing, partyPos));
+function monter(facing: Dir8, partyPos: { x: number; y: number }): Promise<void> {
+  return monterCadre(cadrePov(facing, partyPos));
 }
 
-function monterCadre(frame: StageFrame): void {
+async function monterCadre(frame: StageFrame): Promise<void> {
   conteneur = document.createElement('div');
   document.body.appendChild(conteneur);
   root = createRoot(conteneur);
-  act(() => root!.render(écran(frame)));
+  await act(async () => { root!.render(écran(frame)); });
 }
 
 const cadrePov = (facing: Dir8, partyPos: { x: number; y: number }): StageFrame =>
@@ -160,11 +160,11 @@ afterEach(() => {
 });
 
 describe('POV — le CRAN d’art du décor suit le cap du meneur (#1176 P3-1b)', () => {
-  it('le CRAN d’art des props suit le même cap — les quatre crans sont atteints', () => {
+  it('le CRAN d’art des props suit le même cap — les quatre crans sont atteints', async () => {
     const crans = new Set<string>();
     for (const cap of DIR8_ORDER) {
       clés = [];
-      monter(cap, { x: 4, y: 6 });
+      await monter(cap, { x: 4, y: 6 });
       const prop = clésDe('prop:');
       // Le décor est texturé au regard de MONTAGE en PREMIER ; la pré-chauffe des deux caps voisins
       // suit dans la même passe (contrat dédié plus bas, #1373).
@@ -181,12 +181,9 @@ describe('POV — le CRAN d’art du décor suit le cap du meneur (#1176 P3-1b)'
 
 describe('POV — la planche ne se recuit qu’au PIVOT (patron anti-recuisson d’`artRot`)', () => {
   it('une frame de marche (l’œil glisse, le cap tient) ne redemande AUCUNE texture ; un pivot, si', async () => {
-    monter('N', { x: 4, y: 6 });
+    await monter('N', { x: 4, y: 6 });
     // MONTAGE : le décor à sa vue de cap, plus sa pré-chauffe aux deux caps voisins (#1373) — trois clés.
     expect(clés.length, 'le montage doit avoir texturé le décor, et réchauffé les deux caps voisins').toBe(3);
-    // Les quads n'entrent en scène qu'à la résolution de leur texture : sans ce tour de boucle, il n'y
-    // aurait aucun board à REPOSER au pivot, et la mesure porterait sur le vide.
-    await act(async () => {});
     const auMontage = clés.length;
 
     // MARCHE : la position de l'œil est CONTINUE (`anim.glide`), donc un nouvel objet `frame` par
@@ -221,18 +218,15 @@ describe('POV — la pré-chauffe porte sur les deux caps VOISINS', () => {
     return { identity: `prop:prop:tonneau|tonneau|${TONNEAU.facing}|${TONNEAU.foot.scale}|r${povArtRot(cap)}`, view: vm.view, mirror: vm.mirror };
   };
 
-  it('au cap N, le décor demande son art au cap N, puis aux caps NE et NO — à eux seuls', () => {
-    monter('N', { x: 4, y: 6 });
+  it('au cap N, le décor demande son art au cap N, puis aux caps NE et NO — à eux seuls', async () => {
+    await monter('N', { x: 4, y: 6 });
     // PRÉMISSE — trois regards indiscernables ne prouveraient rien de la pré-chauffe.
     expect(new Set((['N', 'NE', 'NO'] as Dir8[]).map((c) => JSON.stringify(attendu(c)))).size).toBe(3);
     expect(clésDe('prop:')).toEqual([attendu('N'), attendu('NE'), attendu('NO')]);
   });
 
   it('le cap CHANGÉ réchauffe à son tour : après N→NE, les caps E et N passent en file', async () => {
-    monter('N', { x: 4, y: 6 });
-    // Les quads n'entrent en scène qu'à la résolution de leur texture : sans board monté, il n'y
-    // aurait ni relève ni réchauffage à mesurer.
-    await act(async () => {});
+    await monter('N', { x: 4, y: 6 });
     clés = [];
 
     await act(async () => { root!.render(écran(cadrePov('NE', { x: 4, y: 5 }))); });
@@ -244,10 +238,10 @@ describe('POV — la pré-chauffe porte sur les deux caps VOISINS', () => {
 });
 
 describe('PLATEAU — la vue affine garde son regard ORTHO (l’autre branche de `bbCam`)', () => {
-  it('au cran `r`, le décor prend `project(·, r)` et le cran d’`artRot` — jamais un cap', () => {
+  it('au cran `r`, le décor prend `project(·, r)` et le cran d’`artRot` — jamais un cap', async () => {
     for (const rot of CRANS) {
       clés = [];
-      monterCadre(cadreAffine(rot));
+      await monterCadre(cadreAffine(rot));
       const prop = clésDe('prop:');
       expect(prop.length, `cran ${rot} : le décor doit être texturé`).toBeGreaterThan(0);
       // Branche ORTHO de `billboardView` : la MÊME planche que la vue de plateau a toujours servie.

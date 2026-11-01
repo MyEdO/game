@@ -32,8 +32,8 @@ export function propEntityAtHit(ranges: readonly PropVertexRange[], face: { a: n
   return ranges.find((r) => [face.a, face.b, face.c].every((i) => i >= r.vertexStart && i < r.vertexStart + r.vertexCount))?.entId ?? null;
 }
 
-/** Résultat partagé : combattant de la prise DOM d'une structure, décor volumique, ou rien. */
-export type PickResult = { kind: 'combatant'; id: string } | { kind: 'entity'; id: string } | null;
+/** Résultat partagé : décor volumique, ou rien. */
+export type PickResult = { kind: 'entity'; id: string } | null;
 
 /** Maillage du monde cuit, tel que le picking le lit. SOURCE UNIQUE des plages : la GÉOMÉTRIE, où la
  *  cuisson les a posées (`sceneMeshes.bakeWorldGeometry`) — rien n'est recopié sur le maillage au

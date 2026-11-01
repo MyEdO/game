@@ -2799,8 +2799,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "repurgateur",
-      "sex": "M",
-      "build": 0.62
+      "sex": "M"
      },
      "weapon": "epee-batarde",
      "ref": "humain"
@@ -2818,8 +2817,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "soldat",
-      "sex": "M",
-      "build": 0.58
+      "sex": "M"
      },
      "weapon": "hallebarde",
      "ref": "humain"
@@ -2963,8 +2961,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "apothicaire",
-      "sex": "M",
-      "build": 0.46
+      "sex": "M"
      }
     },
     {
@@ -3039,8 +3036,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "bourgeois",
-      "sex": "F",
-      "build": 0.55
+      "sex": "F"
      },
      "ref": "humain"
     },
@@ -3211,8 +3207,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "pretre",
-      "sex": "M",
-      "build": 0.5
+      "sex": "M"
      }
     },
     {
@@ -3341,8 +3336,7 @@
      "appearance": {
       "species": "nains",
       "tenue": "artisan",
-      "sex": "M",
-      "build": 0.7
+      "sex": "M"
      },
      "weapon": "marteau-de-guerre",
      "ref": "nain"
@@ -3360,8 +3354,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "artisan",
-      "sex": "M",
-      "build": 0.4
+      "sex": "M"
      },
      "ref": "humain"
     },
@@ -3447,8 +3440,7 @@
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "bourgeois",
-      "sex": "F",
-      "build": 0.48
+      "sex": "F"
      },
      "ref": "humain"
     },
@@ -13405,8 +13397,7 @@
      },
      "ref": "humain",
      "appearance": {
-      "tenue": "mendiant",
-      "build": 0.72
+      "tenue": "mendiant"
      },
      "weapon": "epee-batarde",
      "label": "Gladiateur enchaîné"

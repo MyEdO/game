@@ -12,6 +12,8 @@ const GALERIE = /^(?:scripts\/gen-[^/]+-gallery\.mts|public\/[^/]+-gallery\.html
 const GALERIE_D_ICONES = /^(?:public\/icon-gallery\.html|scripts\/gen-icon-gallery\.mts)$/;
 const QC_DU_RIG = /^scripts\/qc\/(?:[^/]+\/)*(?:[^/]*-)?(?:rig|creature|silhouette|quad|bras|aveugle|mesure-volume)(?:[-.][^/]*)?$/;
 const CHEMIN_D_IMPORT_DU_RIG = /(?:^|\/)gameiso\/rig\//i;
+const CONTENU_PUBLIC = /^public\//i;
+const DEFINITION_DU_RIG = /(?<![a-z])rig(?:Cut|Jambe)/i;
 
 export const estDuRig = (rel) => {
   const casse = rel.replaceAll('\\', '/').toLowerCase();
@@ -23,8 +25,10 @@ export const estDuRig = (rel) => {
 
 export const retoursDuRig = (chemins, lireTexte) => chemins.filter((rel) => {
   if (estDuRig(rel)) return true;
-  if (!lireTexte || !estModule(rel)) return false;
+  const publique = CONTENU_PUBLIC.test(rel.replaceAll('\\', '/'));
+  if (!lireTexte || (!publique && !estModule(rel))) return false;
   const texte = lireTexte(rel);
+  if (publique) return DEFINITION_DU_RIG.test(texte) || CHEMIN_D_IMPORT_DU_RIG.test(texte);
   if (!/gameiso\/rig\//i.test(texte)) return false;
   return sitesDeModule(rel, texte).some(({ acquisition, spec }) =>
     acquisition && spec !== null && CHEMIN_D_IMPORT_DU_RIG.test(spec));

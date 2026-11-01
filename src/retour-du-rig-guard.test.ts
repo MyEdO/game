@@ -20,7 +20,8 @@ const GARDE = {
     'non ignorés, hors supprimés du disque), `retoursDuRig` pour les formes et `sitesDeModule` pour les imports littéraux.',
   perimetre:
     'Tout le dépôt, casse ignorée : `src/gameIso/rig/`, `scripts/rig/`, les skills `creer-une-creature` ' +
-    '(`DOSSIERS_DU_RIG`), galeries hors galerie d’icônes UI, familles de noms QC du rig, composants Rig*.tsx et imports gameIso/rig/.',
+    '(`DOSSIERS_DU_RIG`), galeries hors galerie d’icônes UI, familles de noms QC du rig, composants Rig*.tsx, imports gameIso/rig/, ' +
+    'identifiants SVG du rig et chemins gameIso/rig/ dans tout contenu sous public/.',
   ticket: '#3160',
   angleMort: [
     'Un rig recréé sous un AUTRE chemin passe : l’interdit vit dans `.claude/rules/rendu-du-monde.md`.',
@@ -107,6 +108,31 @@ describe('le rig SVG ne revient pas', () => {
       'import y from "../autregameIso/rig/x";',
     ].join('\n');
     expect(retoursDuRig(['src/ui/Inconnu.tsx'], () => texte)).toEqual([]);
+  });
+
+  it.each([
+    '<clipPath id="rig' + 'CutBrasHaut"></clipPath>',
+    "<clipPath id='rig" + "JambeClipProfil'></clipPath>",
+    '<clipPath id=rig' + 'CutBrasHaut></clipPath>',
+    '<clipPath\nID =\trig' + 'JambeClipProfil></clipPath>',
+    '<clipPath id="scope__rig' + 'CutBrasHaut"></clipPath>',
+    '<clipPath data-id="rig' + 'CutExemple"></clipPath>',
+    '<script src="/src/gameIso/rig/x.js"></script>',
+    '<script type="module">import x from "/src/gameIso/rig/x"</script>',
+    'const svg = "<clipPath id=\\"rig' + 'CutBrasHaut\\"></clipPath>";',
+  ])('refuse les identifiants et acquisitions du rig dans tout contenu public : %s', (texte) => {
+    const chemins = ['public/qc/planche.html', 'public/qc/planche.svg', 'public/assets/planche.js',
+      'public/assets/planche.json', 'public/assets/planche.css', 'public/assets/planche'];
+    expect(retoursDuRig(chemins, () => texte)).toEqual(chemins);
+  });
+
+  it('admet les définitions du décor et les chemins voisins dans le contenu public', () => {
+    const texte = '<svg><defs><clipPath id="propClip"/><linearGradient id="g_bois"/></defs></svg>'
+      + '<script src="/src/gameIso/rigging/x.js"></script>'
+      + '<script src="/src/autregameIso/rig/x.js"></script>'
+      + '<clipPath data-id="propClip" data-alt-id=rigging></clipPath>'
+      + '<clipPath id="origCut"/><clipPath id="brigjambe"/>';
+    expect(retoursDuRig(['public/qc/planche.html'], () => texte)).toEqual([]);
   });
 
   it('aucun fichier du dépôt ne fait revenir le rig', () => {

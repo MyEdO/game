@@ -310,7 +310,7 @@ const porteAlsoIn = (categoryKey: string): boolean => {
 export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   const k = new Set<string>();
   const add = (...keys: string[]) => keys.forEach((x) => k.add(x));
-  if (['creatures', 'traits', 'mutations'].includes(categoryKey)) add('appearance');
+  if (categoryKey === 'creatures') add('appearance');
   if (['spells', 'traits', 'qualities', 'domains', 'talents', 'maneuvers', 'etats', 'psychologies', 'symptoms', 'mutations'].includes(categoryKey)) add('effects');
   if (categoryKey === 'maneuvers') add(...MANEUVER_PROFILE_KEYS);
   if (['traits', 'qualities', 'mutations', 'talents', 'etats', 'trappings', 'psychologies', 'navalTraits'].includes(categoryKey)) add('passive');
@@ -477,9 +477,9 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
 
   // L'apparence (`AppearanceField`) ET les EFFETS d'un sort (FlowEditor) ont leur éditeur dédié — on les
   // sort du formulaire générique (sinon rendus en JSON brut). Les autres champs gardent le formulaire
-  // inféré. Même patron : on filtre le champ et on rend l'éditeur spécialisé. L'apparence est éditable sur
-  // les créatures ET les difformités déclarées en donnée (traits / mutations → fragment `appearance`).
-  const hasAppearance = categoryKey === 'creatures' || categoryKey === 'traits' || categoryKey === 'mutations';
+  // inféré. Même patron : on filtre le champ et on rend l'éditeur spécialisé. Seul le schéma des
+  // créatures porte `appearance`.
+  const hasAppearance = categoryKey === 'creatures';
   const isSpell = categoryKey === 'spells';
   // Porteurs d'effets DÉCLENCHÉS (mêmes `TriggeredEffect` éditables) : Traits, Atouts d'arme, Domaines
   // (riders « à la touche »…) ET Talents (Assaut féroce onHit, Frappe réactive onCharged…).
@@ -690,7 +690,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
       )}
       <SuiviDesSaisies signaler={saisies.signaler}>
       <div className="codex-edit-form">
-        {hasAppearance && <AppearanceField traits={categoryKey === 'creatures' ? entry.traits as TraitPose[] : undefined} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
+        {hasAppearance && <AppearanceField traits={entry.traits as TraitPose[]} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField

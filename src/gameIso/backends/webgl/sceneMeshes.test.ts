@@ -38,7 +38,7 @@ import {
 } from './sceneMeshes';
 import { facesGeometry, polyBounds, type Vec3 } from './worldTris';
 import { faceDepthOf } from './faceRelief';
-import { anchorAndSize, billboardHeightM, BILLBOARD_BOX_ASPECT, type BillboardConvention } from './billboardMath';
+import { anchorAndSize, BILLBOARD_H_M, BILLBOARD_BOX_ASPECT } from './billboardMath';
 import { tintOf } from './visibilityTint';
 import { faceSurface, tintVarFactor } from './faceColors';
 import { faceBakeData, FACE_PX_PER_M } from './faceBake';
@@ -50,7 +50,7 @@ import { WALL_PARTS } from '../../../data/structureAppearance.types';
 import { ROOF_SLOPE_M } from '../../builders/roofs';
 import { buildWalls } from '../../builders/walls';
 import { tousLesTerrains } from '../../../noyau/monde/terrain';
-import type { Face, SceneEl } from '../../builders/types';
+import { estPropVolumique, type Face, type SceneEl } from '../../builders/types';
 import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';
@@ -222,9 +222,17 @@ describe('ORIENTATION — les triangles regardent DEHORS (la carte d’ombre en 
 
 describe('BILLBOARDS — sujets de la scène', () => {
   it('seul le décor est collecté, ancré aux pieds, avec son SVG isolé (#3160)', () => {
-    const subs = collectBillboards(scene, mpt, wholeSceneBillboardEls(scene));
+    const els = wholeSceneBillboardEls(scene);
+    const subs = collectBillboards(scene, mpt, els);
     expect(subs.length).toBeGreaterThan(0);
-    expect(subs.every((s) => s.kind === 'prop')).toBe(true);
+    expect(subs).toHaveLength(els.props.length);
+    for (const [i, sub] of subs.entries()) {
+      const el = els.props[i];
+      if (estPropVolumique(el)) throw new Error('un décor de billboard doit porter son ancre de dessin');
+      expect(Object.keys(sub).sort()).toEqual(['anchor', 'box', 'cell', 'facing', 'identity', 'scaleK', 'svg']);
+      expect(sub.anchor.x).toBe((el.cell.x + el.foot.offX) * mpt);
+      expect(sub.anchor.z).toBe((el.cell.y + el.foot.offY) * mpt);
+    }
     expect(subs[0].svg('front', false, 0)).toContain('<defs>'); // le blob de rasterisation est un document ISOLÉ : défs incluses
   });
 
@@ -239,8 +247,8 @@ describe('BILLBOARDS — sujets de la scène', () => {
 });
 
 describe('CONTENU — ce qu’un cadrage doit tenir', () => {
-  const quadDe = (s: { kind: 'personnage' | 'prop'; scaleK: number }) =>
-    anchorAndSize(billboardHeightM('jeu', s.kind) * s.scaleK, BILLBOARD_BOX_ASPECT);
+  const quadDe = (s: { scaleK: number }) =>
+    anchorAndSize(BILLBOARD_H_M * s.scaleK, BILLBOARD_BOX_ASPECT);
 
   for (const [nom, faire] of TEMOINS)
     it(`${nom} : la boîte de contenu tient dans la géométrie élargie aux sujets, et porte tout le bâti`, () => {
@@ -339,7 +347,7 @@ describe('LUMIÈRE — un soleil neutre et calibré', () => {
       const geoBox = monde(scn, m).boundingBox!;
       const subs = collectBillboards(scn, m, wholeSceneBillboardEls(scn));
       const quadDe = (s: (typeof subs)[number]) =>
-        anchorAndSize(billboardHeightM('jeu', s.kind) * s.scaleK, BILLBOARD_BOX_ASPECT);
+        anchorAndSize(BILLBOARD_H_M * s.scaleK, BILLBOARD_BOX_ASPECT);
       const box = worldShadowBox(geoBox, subs, quadDe);
       const rig = sunRig(box);
       const vue = new THREE.Matrix4()
@@ -388,19 +396,16 @@ describe('LUMIÈRE — un soleil neutre et calibré', () => {
   /** Marge exigée du plus mince relief sur le biais d'ombre de la scène. */
   const MARGE_MIN = 1.2;
 
-  /** Biais de normale RÉEL d'une scène, au pire des conventions de taille de billboard. */
+  /** Biais de normale RÉEL d'une scène. */
   function biaisReel(scn: Scene): number {
     const m = sceneMetresPerTile(scn);
     const geoBox = monde(scn, m).boundingBox!;
     const subs = collectBillboards(scn, m, wholeSceneBillboardEls(scn));
-    const biais = (['jeu', 'heroique', 'metrique'] as BillboardConvention[]).map((conv) =>
-      sunRig(
-        worldShadowBox(geoBox, subs, (s: (typeof subs)[number]) =>
-          anchorAndSize(billboardHeightM(conv, s.kind) * s.scaleK, BILLBOARD_BOX_ASPECT),
-        ),
-      ).normalBias,
-    );
-    return Math.max(...biais);
+    return sunRig(
+      worldShadowBox(geoBox, subs, (s: (typeof subs)[number]) =>
+        anchorAndSize(BILLBOARD_H_M * s.scaleK, BILLBOARD_BOX_ASPECT),
+      ),
+    ).normalBias;
   }
 
   for (const [nom, faire] of TEMOINS)
