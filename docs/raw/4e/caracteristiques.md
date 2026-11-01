@@ -21,7 +21,7 @@
   - [Formule de base](#formule-de-base)
   - [Cas particulier : talent Petit (Halflings)](#cas-particulier--talent-petit-halflings)
   - [Variantes par Taille (créatures)](#variantes-par-taille-créatures)
-  - [Blessures dynamiques (buffs F/E/FM)](#blessures-dynamiques-buffs-fefm)
+  - [Blessures dynamiques (le maximum suit le profil)](#blessures-dynamiques-le-maximum-suit-le-profil)
 - [Statistiques dérivées — Mouvement](#statistiques-dérivées--mouvement)
 - [Voir aussi](#voir-aussi)
 - [Implémente](#implémente)
