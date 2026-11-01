@@ -9,7 +9,7 @@ import type { Combatant } from '../engine/types';
 import { recomputeLoadout } from '../engine/items';
 import type { RNG } from '../engine/dice';
 import { desEnSuite } from '../engine/dice.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /**
  * #38 — BRANCHEMENTS runtime du système ALTERNATIF de Blessures d'Aux Armes (`combat-aa-blessures=aa`).
@@ -23,7 +23,7 @@ const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: 
 
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mk = (over: Partial<Combatant> = {}): Combatant =>
-  ({ id: 't', name: 'Cible', kind: 'enemy', characteristics: CHARS, wounds: { current: 10, max: 10 }, conditions: [], skills: [], bodyShape: 'humanoide', size: 'moyenne', weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over } as unknown as Combatant);
+  (blessuresSurLeProfil({ id: 't', name: 'Cible', kind: 'enemy', characteristics: CHARS, wounds: blessuresDeBase(10), conditions: [], skills: [], bodyShape: 'humanoide', size: 'moyenne', weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
 
 const noop = () => {};
 /** Lecture d'état minimale : hors bataille, horloge à 0 (les tests qui la sollicitent fournissent la leur). */

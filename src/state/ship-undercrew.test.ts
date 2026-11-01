@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { shipUndercrew } from '../noyau/shipCrew';
 import type { Combatant } from '../engine/types';
 import type { Get } from '../noyau/flowTypes';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 // Cogue : équipage NOMINAL 15 (vehicles.json). Un marin « présent » = crewId vivant (exposedCrew : !dead && PB>0).
 const crewman = (id: string): Combatant =>
@@ -28,7 +29,7 @@ describe('shipUndercrew — Embrigadement (crewLost) consommé par le Manque de 
 
   it('la perte de campagne S’AJOUTE aux morts de combat : 2 marins tués + crewLost=3 → présent 10/15', () => {
     const wounded = combatants.map((c) =>
-      c.id === 'm0' || c.id === 'm1' ? ({ ...c, wounds: { current: 0, max: 5 } } as Combatant) : c);
+      c.id === 'm0' || c.id === 'm1' ? (blessuresSurLeProfil({ ...c, wounds: blessuresDeBase(5, 0) }) as Combatant) : c);
     expect(shipUndercrew(getVessel(3), cogue, wounded)).toEqual({ tranches: 3, dr: -6, capSuccesMinime: true });
   });
 

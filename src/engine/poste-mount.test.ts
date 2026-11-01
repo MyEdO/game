@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { recomputeLoadout, emptyArmour } from './items';
 import type { Combatant, ItemInstance } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * Un poste d'artillerie monte une arme sur un servant via le chemin d'équipement NORMAL : l'`ItemInstance`
@@ -15,12 +16,12 @@ const gunItem: ItemInstance = {
 };
 
 const gunner = (): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'cap', name: 'Chef de pièce', kind: 'enemy',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], talents: [], skills: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], talents: [], skills: [],
     armour: emptyArmour(), movement: 4, items: [{ ...gunItem }],
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('recomputeLoadout — propage mountSide de l’ItemInstance à l’arme active', () => {
   it('un canon monté à tribord → l’arme à distance active porte mountSide:tribord', () => {

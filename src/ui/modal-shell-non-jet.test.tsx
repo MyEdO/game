@@ -10,6 +10,7 @@ import { ShoreLeaveModal } from './ShoreLeaveModal';
 import { RenounceModal } from './RenounceModal';
 import type { Combatant } from '../engine/types';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 /**
  * Deux états DISTINCTS du voile (`modal.css`) : `data-champ` (champ lisible : voile allégé, ancrage
@@ -25,13 +26,13 @@ import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const HERO = {
+const HERO = blessuresSurLeProfil({
   id: 'H', name: 'H', label: 'Héros', kind: 'hero',
-  characteristics: { endurance: 40 }, wounds: { current: 8, max: 12 }, advantage: 0,
+  characteristics: profilDeTest({ endurance: 40 }), wounds: blessuresDeBase(12, 8), advantage: 0,
   conditions: [], traumas: [], resilience: 2, fortune: 0, weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   skills: [], talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
-} as unknown as Combatant;
+}) as unknown as Combatant;
 
 let host: HTMLDivElement;
 let root: Root;

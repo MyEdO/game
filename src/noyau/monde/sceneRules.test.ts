@@ -6,6 +6,7 @@ import { defenseDodgeMods } from '../combatFlow';
 import type { Combatant, Weapon } from '../../engine/types';
 import { refDeRegle } from '../../engine/reglesChiffrees';
 import { ligneDe } from '../../engine/modLine.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const sc = (over: Partial<Scene>): Scene => ({ ambiance: 'exterieur', ...over } as Scene);
 const DAY = 12 * 60;   // midi (clair)
@@ -42,13 +43,13 @@ describe('sceneCombatModifiers — obscurité (horloge) / météo (LDB 14 l.75/7
 
 describe('Exemple RAW LDB 14 l.96 — « -30 plus +20 font -10 » (chaîne réelle scène → attaque)', () => {
   const mkc = (over: Partial<Combatant> = {}): Combatant =>
-    ({
+    (blessuresSurLeProfil({
       id: 'x', name: 'X', kind: 'enemy',
       characteristics: { 'capacite-de-combat': 50, force: 30, endurance: 30, agilite: 40 },
-      wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], weapons: [],
+      wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       skills: [], talents: [], movement: 4, ...over,
-    }) as unknown as Combatant;
+    })) as unknown as Combatant;
   const sword = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 
   it('attaquer une cible À Terre depuis une haute épaisseur de neige → -10 net', () => {

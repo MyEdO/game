@@ -9,6 +9,7 @@ import { MondeDeCampagne } from './MondeDeCampagne';
 import { AMBIANCE, weatherLightScalars } from '../catalog/ambiance';
 import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, canevas } from './banc-volumique';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
 
 /**
  * PORTES DE LA MÉTÉO (#1176, P2-6) — une météo authorée a UNE expression par voie, jamais deux, et
@@ -26,12 +27,12 @@ beforeAll(() => setStageRendererFactory(() => new BancRenderer()));
 afterAll(() => setStageRendererFactory(null));
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
-    characteristics: {}, advantage: 0, conditions: [], armour: {},
+    wounds: blessuresDeBase(12), weapons: [],
+    characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 let root: Root | null = null;

@@ -15,7 +15,7 @@ import { DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine
 import { rule } from '../engine/policy';
 import { lignesDe, renvoieA } from '../engine/modLine.testkit';
 import { RULE_REF } from '../engine/ruleRefs';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -33,14 +33,14 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 function hero(p: Partial<Combatant>): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h1', label: 'Héros', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 35, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 35, sociabilite: 30 },
-    wounds: { current: 10, max: 12 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], fortune: 0, resilience: 0,
     pos: { x: 1, y: 1 }, ...p,
-  } as Combatant;
+  }) as Combatant;
 }
 
 const scene = { id: 'sc', label: 'Rade', dimensions: { w: 2, h: 2 }, layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }], entities: [], dialogues: [], triggers: [] };

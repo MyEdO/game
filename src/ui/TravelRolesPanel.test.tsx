@@ -17,6 +17,7 @@ import { activityById } from '../engine/activities';
 import { avecActivite } from '../engine/activiteMer.testkit';
 import { refLabel } from '../data';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -24,13 +25,13 @@ let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; container = null; });
 
-const hero = (id: string, label: string, over: Partial<Combatant> = {}): Combatant => ({
+const hero = (id: string, label: string, over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id, label, kind: 'hero',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
-  wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [],
+  wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   items: [], movement: 4, ...over,
-} as Combatant);
+}) as Combatant);
 
 const HILDA = hero('h1', 'Hilda');
 const GUNNAR = hero('h2', 'Gunnar', { conditions: [{ id: 'inconscient', value: 1 }] } as Partial<Combatant>);

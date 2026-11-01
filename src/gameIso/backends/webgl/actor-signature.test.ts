@@ -13,7 +13,7 @@ import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import type { Combatant, Weapon } from '../../../engine/types';
 import { findTrappingById } from '../../../data';
 import { itemFromTrappingById, weaponFromItem } from '../../../engine/items';
-import { blessuresDeBase } from '../../../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../../../engine/combattantDeTest.testkit';
 
 const scene = emptyScene('scene-test', 6, 6);
 const mpt = sceneMetresPerTile(scene);
@@ -21,12 +21,12 @@ const mpt = sceneMetresPerTile(scene);
 /** Héros rendu depuis SON PROPRE inventaire (pas de `creatureId`, pas d'IA) : garde-robe = `career`,
  *  équipement = `weapons`/`items` — le chemin du groupe joueur. */
 function héros(patch: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h1', label: 'Héros', kind: 'hero', pos: { x: 1, y: 1 }, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [], characteristics: {}, advantage: 0,
+    wounds: blessuresDeBase(12), weapons: [], characteristics: {}, advantage: 0,
     conditions: [], armour: {}, skills: [], talents: [], movement: 4, career: 'soldat', species: 'humain',
     ...patch,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 const pose = (c: Combatant): ActorPose => ({ c, x: 1, y: 1, z: 0, facing: 'S' });

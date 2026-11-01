@@ -7,15 +7,16 @@ import { makeRNG } from './dice';
 import { ligneDe } from './modLine.testkit';
 import { ligneDeRegle, refDeRegle } from './reglesChiffrees';
 import { RULE_REF } from './ruleRefs';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 function mk(over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'a', name: 'A', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 45, 'force-mentale': 30, sociabilite: 38 },
     conditions: [], activeEffects: [], skills: [], talents: [], traits: [], psychState: [],
-    weapons: [], armour: [], wounds: { current: 10, max: 10 }, advantage: 0,
+    weapons: [], armour: [], wounds: blessuresDeBase(10), advantage: 0,
     ...over,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 describe('Applications de combat — cumuler l’Avantage (LDB 09 l.305-308)', () => {

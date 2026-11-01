@@ -9,6 +9,7 @@ import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { findSpellById } from '../data/index';
 import type { Combatant } from '../engine/types';
 import { deFixe } from '../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * UNE source de modificateurs pour les Tests de la famille Incantation (`castTestDRMods`) — à DÉ
@@ -41,17 +42,17 @@ const SPELL_ID = 'flechette';
 /** RNG qui ne rend que le dé COMMUN — les voies naturelles se mesurent sur le même d100 que les deux autres. */
 const RNG_DE = deFixe(DE);
 
-const mk = (id: string, kind: Combatant['kind'] = 'hero'): Combatant => ({
+const mk = (id: string, kind: Combatant['kind'] = 'hero'): Combatant => (blessuresSurLeProfil({
   id, name: id, label: id, kind,
   characteristics: { force: 40, dexterite: 40, agilite: 40, endurance: 40, 'force-mentale': 40, 'capacite-de-combat': 45, 'capacite-de-tir': 45, initiative: 40, intelligence: 40, sociabilite: 40 },
-  wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], traumas: [],
+  wounds: blessuresDeBase(10), advantage: 0, conditions: [], traumas: [],
   resilience: 3, fortune: 2, weapons: [],
   items: [{ id: 'a1', kind: 'armor', label: 'Plastron', equipped: true, pa: PA, locations: ['corps'] }],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 1 }],
   talents: [{ talentId: 'diction-instinctive', times: TALENT }],
   movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 const st = () => useGame.getState() as unknown as Record<string, (...a: unknown[]) => void>;
 const P = <T,>(k: string): T => (useGame.getState() as unknown as Record<string, T>)[k];

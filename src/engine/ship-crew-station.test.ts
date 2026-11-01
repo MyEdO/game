@@ -26,16 +26,16 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritKey, type ShipCritSet } fro
 import { shipStations } from '../data';
 import { hullNavalTraits } from './navalTraits';
 import type { Combatant } from './types';
-import { combattantDeTest } from './combattantDeTest.testkit';
+import { combattantDeTest, blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Marin minimal — `applyOps` (BE 3, PA 0) et `exposedCrew` (vivant, PB > 0) ont ce qu'il leur faut. */
 const marin = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, label: id, kind: 'npc',
     characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 42, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
     skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
-    armour: { corps: 0 }, wounds: { current: 20, max: 20, base: 20 }, advantage: 0, ...over,
-  }) as unknown as Combatant;
+    armour: { corps: 0 }, wounds: blessuresDeBase(20), advantage: 0, ...over,
+  })) as unknown as Combatant;
 
 /** Coque d'un véhicule RÉEL — ses Traits navals décident des stations ouvertes (`requiresTrait`). */
 const coque = (vehicleId: string): Combatant => combattantDeTest({ id: 'hull', creatureId: vehicleId });

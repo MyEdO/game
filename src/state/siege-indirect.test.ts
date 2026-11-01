@@ -9,8 +9,7 @@ import type { Combatant, ShipPoste, Weapon } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { BattleState } from '../noyau/etat';
 import { desDuTest } from '../engine/dice.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * PILONNAGE INDIRECT (« Viser une CASE ») — AA 10 l.169-171 / ADE II : une pièce à TIR INDIRECT (mortier,

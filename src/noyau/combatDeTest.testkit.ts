@@ -8,6 +8,13 @@ import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import type { EtatDeJeu, Jeu } from './etat';
 import type { Scene } from './monde/scene';
+import { actorIn } from './monde/combatants';
+
+/** L'acteur `c` relu par son id dans l'état de `getState` : une écriture copie le combattant dont le maximum
+ *  des Blessures bouge (`transitionDuJeu.ts`), une référence prise avant elle désigne l'ancien objet. */
+export function reluDans(getState: () => Jeu, c: Combatant): Combatant {
+  return actorIn(getState(), c.id)!;
+}
 
 /** Le héros du duel. */
 export function heroDuDuel(): Combatant {

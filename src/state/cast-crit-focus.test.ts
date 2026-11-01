@@ -16,6 +16,7 @@ import { setRule, resetRule } from '../engine/policy';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
+import { relu } from './combatDeTest.testkit';
 
 /** Sorcier sans Talent aléatoire (`talentsRolled: false`) : aucun tirage ne touche la FM. */
 function wiz() {
@@ -261,7 +262,7 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     foe.focus = { spell: 'armure-aethyrique', dr: 2 };
     const w = wiz();
     inCombat(w, foe);
-    checkFocusInterruption(useGame.getState, useGame.setState, foe);
+    checkFocusInterruption(useGame.getState, useGame.setState, relu(foe));
     // Aucune étape INFLUENÇABLE : le Test `maintenir` est roulé inline. Le contrecoup, lui, DÉCLARE son
     // étape à table comme partout — et le socle la résout d'office, nul siège ne tenant cet ennemi.
     const ouverte = useGame.getState().pendingCascade;

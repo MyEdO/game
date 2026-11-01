@@ -9,17 +9,17 @@ import { applyOps } from './ops';
 import { setRule, resetRule } from './policy';
 import { possesses } from './skills';
 import { desDuTest } from './dice.testkit';
-import { blessuresDeBase } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h', label: 'Soigneur', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 38, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 12 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [{ id: 'guerison', advances: 10 }], talents: [],
     pos: { x: 1, y: 1 }, ...p,
-  } as Combatant;
+  }) as Combatant;
 }
 
 describe('engine/healing — gate compétence & cibles', () => {

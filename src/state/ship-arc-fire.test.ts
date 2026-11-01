@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { firedAttackBlock } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * INTÉGRATION bout-en-bout de la garde d'arc d'un poste : un canonnier (arme montée `mountSide`) servant un
@@ -13,13 +14,13 @@ import type { GameState } from './store';
 const cannon = { name: 'Canon', type: 'ranged' as const, damage: { plusBF: false, flat: 14 }, range: 75, qualities: [], mountSide: 'tribord' as const };
 
 const gunner = (): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'gunner', name: 'Canonnier', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 45, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [cannon], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     movement: 4, pos: { x: 5, y: 5 },
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const enemyAt = (id: string, x: number, y: number): Combatant =>
   ({ id, name: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [] }) as unknown as Combatant;

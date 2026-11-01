@@ -31,6 +31,7 @@ import { subjectQuad } from './billboardMath';
 import { MISSING_TONE } from '../../rig/viewArt';
 import { findTrappingById } from '../../../data';
 import { itemFromTrappingById, weaponFromItem } from '../../../engine/items';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../../engine/combattantDeTest.testkit';
 
 const scene = emptyScene('scene-test', 6, 6);
 const mpt = sceneMetresPerTile(scene);
@@ -42,18 +43,18 @@ const allVisible = (s: Scene) => {
 };
 
 /** Monture réelle du bestiaire (id STABLE) : gabarit QUADRUPÈDE, donc os `tronc`. */
-const monture = (patch: Partial<Combatant> = {}): Combatant => ({
+const monture = (patch: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'm1', label: 'Cheval', kind: 'enemy', creatureId: 'cheval', pos: { x: 1, y: 1 }, size: 'grande',
-  conditions: [], wounds: { current: 10, max: 10 }, riderId: 'h1', ...patch,
-} as unknown as Combatant);
+  conditions: [], wounds: blessuresDeBase(10), riderId: 'h1', ...patch,
+}) as unknown as Combatant);
 
 /** Cavalier rendu depuis son propre inventaire (rig humanoïde) : os `torse`/`tete`. */
-const cavalier = (patch: Partial<Combatant> = {}): Combatant => ({
+const cavalier = (patch: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'h1', label: 'Cavalier', kind: 'hero', pos: { x: 1, y: 1 }, size: 'moyenne',
-  wounds: { current: 12, max: 12 }, weapons: [], characteristics: {}, advantage: 0,
+  wounds: blessuresDeBase(12), weapons: [], characteristics: {}, advantage: 0,
   conditions: [], armour: {}, skills: [], talents: [], movement: 4, career: 'soldat',
   species: 'humain', appearance: { species: 'humain', sex: 'M', build: 0.5 }, mountId: 'm1', ...patch,
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 const battleOf = (combatants: Combatant[]): BattleState => ({ combatants } as unknown as BattleState);
 
@@ -260,10 +261,10 @@ describe('Couple monté — UN billboard composite (monture + cavalier)', () => 
  * Le témoin est le REFUS VISIBLE (#223) d'un set non cuit pour l'espèce portée (blaireau, ADE I 07
  * l.48) : sa caisse d'alarme est posée sur le `tronc` en clé NUE, donc lisible dans les 3 vues.
  */
-const blaireau = (over: Partial<Combatant> = {}): Combatant => ({
+const blaireau = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'm1', label: 'Blaireau', kind: 'enemy', creatureId: 'blaireau', species: 'blaireau',
-  size: 'moyenne', conditions: [], wounds: { current: 10, max: 10 }, pos: { x: 1, y: 1 }, riderId: 'h1', ...over,
-} as unknown as Combatant);
+  size: 'moyenne', conditions: [], wounds: blessuresDeBase(10), pos: { x: 1, y: 1 }, riderId: 'h1', ...over,
+}) as unknown as Combatant);
 
 /** Le CORPS du fragment, rendu de face — sans les `<defs>` que `actorBillboards` préfixe : la palette
  *  partagée y porte le dégradé d'alarme du repli visible, présent sur TOUT fragment (il ne dit donc

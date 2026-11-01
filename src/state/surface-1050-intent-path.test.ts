@@ -24,6 +24,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { cleDeFixture } from '../noyau/noyau.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const NET0 = useGame.getState().net;
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 55, force: 35, endurance: 43, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 };
@@ -32,9 +33,9 @@ const BOW = (uid: string): Weapon =>
   ({ uid, name: 'Arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] } as unknown as Weapon);
 
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...CHARS }, conditions: [], engagedWith: [], skills: [], talents: [],
-     weapons: [BOW(`w-${id}`)], loaded: true, advantage: 0, size: 'moyenne', pos, wounds: { base: 14, max: 14, current: 14 },
-     resolve: 2, fortune: 2, resilience: 1, armour: ARM(), movement: 4, ...over } as unknown as Combatant);
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...CHARS }, conditions: [], engagedWith: [], skills: [], talents: [],
+     weapons: [BOW(`w-${id}`)], loaded: true, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(14),
+     resolve: 2, fortune: 2, resilience: 1, armour: ARM(), movement: 4, ...over }) as unknown as Combatant);
 
 /** Scène plate 10×8 (sol) : Ligne de Vue dégagée pour le Tir rapide. */
 const SCENE = () =>

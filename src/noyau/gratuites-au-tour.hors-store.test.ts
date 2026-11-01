@@ -5,6 +5,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { maybeOpenDefense } from './combatFlow';
 import type { SuiteDeCoup } from './pendings';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -29,7 +30,7 @@ function frappeGratuite(tourDe: 'heros' | 'creature', fileEpuisee = false) {
   b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
   E.size = 'enorme'; E.advantage = 3; E.pendingFreeAttacks = fileEpuisee ? [] : undefined;
   E.pos = { x: 6, y: 10 }; heros.pos = { x: 7, y: 10 };
-  heros.wounds = { current: 200, max: 200, base: 200 } as never;
+  heros.wounds = blessuresDeBase(200, 200, heros);
   E.engagedWith = [heros.id]; heros.engagedWith = [E.id];
   banc.setState({ battle: { ...b, turn: b.order.indexOf(tourDe === 'heros' ? heros.id : E.id), acted: false } });
   const suite: SuiteDeCoup = { restitution: { prevActed: false }, manoeuvre: { kind: 'arme' }, enchainement: { mode: 'aucun' } };

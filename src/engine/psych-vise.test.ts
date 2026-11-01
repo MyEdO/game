@@ -14,11 +14,12 @@ import { buildActorView } from './actorView';
 import { socialPsychMod } from './skills';
 import { groups, psychologies, talents, traits } from '../data';
 import type { Combatant } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const mk = (id: string, o: Partial<Combatant> = {}): Combatant => ({
+const mk = (id: string, o: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id, label: id, kind: 'enemy', advantage: 0, conditions: [], characteristics: {} as never, psychState: [], psychTraits: [],
-  groups: [], weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: { current: 10, max: 10 }, ...o,
-} as Combatant);
+  groups: [], weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...o,
+}) as Combatant);
 
 /** Un Trait qui confère un Groupe, porté DISSIMULÉ ou non. */
 const traitAGroupe = traits.find((t) => t.capabilities?.grantGroups?.length);

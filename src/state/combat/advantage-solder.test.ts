@@ -12,17 +12,18 @@ import { fearSourceFor } from '../../engine/psychology';
 import { riderFearSize } from '../../noyau/mount';
 import { retreatAdvantageCost, keptAdvantageOnDisengage, canDisengageWithLessAdvantage } from '../../engine/combatFeatures/dispatch';
 import type { TestResult } from '../../engine/tests';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 // Chars de base (BF/BE = 4) — suffisant pour combatValue/effectiveChar sans surprise.
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 35, force: 40, endurance: 40, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 } as const;
 
 const mk = (id: string, kind: Combatant['kind'], over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, label: id, kind, advantage: 0, conditions: [], talents: [], activeEffects: [], skills: [],
     characteristics: { ...CHARS }, weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
-    wounds: { current: 10, max: 10, base: 10 }, size: 'moyenne', engagedWith: [],
+    wounds: blessuresDeBase(10), size: 'moyenne', engagedWith: [],
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 interface FakeBattle { combatants: Combatant[]; advantagePools?: AdvantagePools; over?: boolean }
 const makeGet = (combatants: Combatant[], advantagePools?: AdvantagePools) => {

@@ -4,17 +4,18 @@ import { setRule, resetRule } from '../../engine/policy';
 import { seedBattleRng } from '../battleRng';
 import { hasCondition, COND, pendingPlusExtensions } from '../../engine/conditions';
 import type { ActiveEffect, Combatant } from '../../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 1, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
 const combatant = (over: Partial<Combatant>): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'x', name: 'X', kind: 'enemy',
     skills: [], talents: [], conditions: [], activeEffects: [], liveTraits: [],
-    wounds: { current: 10, max: 10, base: 10 }, advantage: 0,
+    wounds: blessuresDeBase(10), advantage: 0,
     ...over,
     characteristics: { ...CHARS, ...over.characteristics }, // profil complet : le retrait d'un effet (`removeActiveEffects`) réconcilie les Blessures
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const ctx = (combatants: Combatant[]): CombatHookCtx => {
   // runCombatHooks('onRoundEnd') exécute TOUTE la séquence : `get` doit renvoyer un état valide

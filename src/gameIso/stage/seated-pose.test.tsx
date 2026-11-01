@@ -23,6 +23,7 @@ import { actorBillboards, actorPoseKey, collectBillboards, memesBillboardEls, ty
 import type { TokenEl } from '../builders/types';
 import type { Combatant } from '../../engine/types';
 import { findTrappingById } from '../../data';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
@@ -48,11 +49,11 @@ const élémentsDe = (s: Scene) => ({ tokens: buildTokens(s, toutVisible(s), nul
 const sujetFigurant = (s: Scene) => collectBillboards(findTrappingById, s, mpt, élémentsDe(s)).find((b) => b.identity.startsWith('perso:f1'))!;
 
 const meneur = (): Combatant =>
-  ({
-    id: 'h', label: 'Meneur', kind: 'hero', pos: { x: 3, y: 2 }, size: 'moyenne', wounds: { current: 12, max: 12 },
+  (blessuresSurLeProfil({
+    id: 'h', label: 'Meneur', kind: 'hero', pos: { x: 3, y: 2 }, size: 'moyenne', wounds: blessuresDeBase(12),
     weapons: [], characteristics: {}, advantage: 0, conditions: [], armour: {}, skills: [], talents: [], movement: 4,
     career: 'soldat', species: 'humain',
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 /**
  * MESURE D'UNE SILHOUETTE ASSISE — sondes A (toise) et C (sommet) prises sur le FRAGMENT RENDU, os

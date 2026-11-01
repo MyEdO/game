@@ -3,6 +3,7 @@ import { rollLine, rollStep, withDifficulty, type RollLineSpec } from '../noyau/
 import { testValue, skillBaseValue, partyAssisted, soutienMod, testValueSplit } from '../engine/skills';
 import { DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
 import { clampTarget } from '../engine/tests';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * MONTEUR CANONIQUE de ligne de jet (#1153) — sondes du juge PROMUES en tests.
@@ -15,17 +16,17 @@ import { clampTarget } from '../engine/tests';
  *   2. la reconstruction EXACTE : une poche mal remplie (modificateur annoncé mais jamais fondu, ou
  *      fondu ET redéclaré) est REFUSÉE au lieu de produire une ligne cohérente et fausse.
  */
-const hero = (over: Partial<Combatant> = {}, adv = 10, skillId = 'ramer'): Combatant => ({
+const hero = (over: Partial<Combatant> = {}, adv = 10, skillId = 'ramer'): Combatant => (blessuresSurLeProfil({
   id: 'h1', label: 'Barreur', kind: 'hero',
   characteristics: {
     'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30,
     agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30,
   },
-  wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4,
+  wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
   skills: [{ id: skillId, characteristic: 'force', advances: adv }], talents: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
   ...over,
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 const sum = (mods: { value: number }[]) => mods.reduce((s, m) => s + m.value, 0);
 

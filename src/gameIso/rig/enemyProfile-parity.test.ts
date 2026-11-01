@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { enemyRigProfile, entityRigProfile } from './enemyProfile';
 import type { Combatant, Weapon, ArmourPoints } from '../../engine/types';
 import { findTrappingById } from '../../data';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * CARACTÉRISATION (golden) du MERGE d'apparence rig — capture la sortie ACTUELLE de `enemyRigProfile`
@@ -12,12 +13,12 @@ import { findTrappingById } from '../../data';
  */
 const noArmour: ArmourPoints = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 function mk(id: string, name: string, over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: name, kind: 'enemy', characteristics: {} as Combatant['characteristics'],
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [],
     weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] } as Weapon],
     armour: { ...noArmour }, skills: [], talents: [], movement: 4, ...over,
-  } as Combatant;
+  }) as Combatant;
 }
 // Override d'authoring BRUT porté par `appearanceOverride` (EntityAppearance) — figé au rendu par
 // `enemyRigProfile` (#187). Les yeux sont des CLÉS de catalogue (résolues en art par le figeage), et il

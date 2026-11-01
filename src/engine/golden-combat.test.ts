@@ -3,19 +3,20 @@ import { parseQualityInstance } from './qualities/normalize';
 import { makeRNG } from './dice';
 import { resolveMelee, resolveRanged } from './combat';
 import type { Characteristics, Combatant, Weapon } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Fixture combattant déterministe (pas d'aléa de création). */
 function mk(name: string, chars: Partial<Characteristics>, weapon: Weapon, armourCorps = 0): Combatant {
   const base: Characteristics = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-  return {
+  return blessuresSurLeProfil({
     id: name, name, kind: 'enemy',
     characteristics: { ...base, ...chars },
-    wounds: { current: 25, max: 25 },
+    wounds: blessuresDeBase(25),
     advantage: 0, conditions: [],
     weapons: [weapon],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: armourCorps, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** Sérialisation compacte et stable d'un résultat d'attaque (champs déterministes). */

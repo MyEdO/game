@@ -8,6 +8,7 @@ import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import type { Combatant, Weapon } from '../engine/types';
 import type { GameState } from './store';
 import type { BattleState } from '../noyau/etat';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Machines de guerre ADE II (ch.08 folio 88, l.243/251/253) :
@@ -54,9 +55,9 @@ describe('firedAttackBlock — PORTÉE MINIMALE (machines de siège ADE II 08 l.
 
 // ── Canon à flammes nain : 2 + DR En flammes à la touche, ZONE incluse (l.243) ──────────────────────────
 const foe = (id: string, x: number): Combatant =>
-  ({ id, name: id, kind: 'enemy', pos: { x, y: 0 }, wounds: { current: 20, max: 20 }, advantage: 0,
+  (blessuresSurLeProfil({ id, name: id, kind: 'enemy', pos: { x, y: 0 }, wounds: blessuresDeBase(20), advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] }) as unknown as Combatant;
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] })) as unknown as Combatant;
 
 const miniScene = () =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, metresPerTile: 2, ambiance: 'jour',

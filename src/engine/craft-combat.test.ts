@@ -4,15 +4,16 @@ import { finishMelee } from './combat';
 import { evaluateTest } from './tests';
 import type { Combatant, Weapon } from './types';
 import { makeRNG } from './dice';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const fighter = (cc: number, weapon: Weapon): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'x', name: 'X', kind: 'enemy',
     characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 20, max: 20 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(20), advantage: 0, conditions: [],
     weapons: [weapon], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const sword = (qualities: string[] = []): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: qualities.map((s) => parseQualityInstance(s)!) });
 

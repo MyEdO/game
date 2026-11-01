@@ -7,8 +7,7 @@ import { resolveVolley } from '../engine/volley';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, ShipPoste } from '../engine/types';
 import { deFixe } from '../engine/dice.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Chaque coup d'une bordée naît sur la cible VIVANTE, après l'application du coup précédent et de ses

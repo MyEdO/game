@@ -12,16 +12,17 @@ import { emptyScene } from '../../noyau/monde/scene';
 import { findCreatureById } from '../../data';
 import { scenario } from './17-metamorphose-ulric';
 import type { Combatant } from '../../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 const scenarioConstruit = scenario.construire();
 
 const scene = emptyScene('scene-test', 16, 16);
-const hero = (): Combatant => ({
+const hero = (): Combatant => (blessuresSurLeProfil({
   id: 'h', name: 'h', kind: 'hero', pos: { x: 6, y: 5 },
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
-  wounds: { current: 14, max: 14, base: 14 }, advantage: 0, conditions: [],
+  wounds: blessuresDeBase(14), advantage: 0, conditions: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   skills: [], talents: [], movement: 4, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
-} as unknown as Combatant);
+}) as unknown as Combatant);
 const inputFor = (e: Combatant): EnemyTurnInput =>
   ({ enemy: e, heroes: [hero()], scene, blocked: new Set(['6,5']), movement: e.movement ?? 4, spells: [] });
 

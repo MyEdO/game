@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -30,7 +31,7 @@ describe('Entretien de Round en révélation (store)', () => {
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
-    H.wounds = { current: 20, max: 20, base: 20 } as never; // survit à l'hémorragie
+    H.wounds = blessuresDeBase(20, 20, H); // survit à l'hémorragie
     const enemyIds = b.combatants.filter((c) => c.kind === 'enemy').map((c) => c.id);
     const order = [...enemyIds, H.id]; // H dernier → battleEndTurn franchit le Round
     // Ennemis neutralisés : le franchissement de Round se joue sans qu'un tour d'IA ne suspende la séquence.

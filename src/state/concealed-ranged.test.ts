@@ -7,6 +7,7 @@ import type { Scene } from '../noyau/monde/scene';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
 import { RULE_REF } from '../engine/ruleRefs';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Cible dissimulée par le brouillard / la brume / l'obscurité : la rangée vit dans le bloc −20 de la
@@ -16,9 +17,9 @@ import { RULE_REF } from '../engine/ruleRefs';
  */
 const bow = { name: 'Arc', type: 'ranged' } as unknown as Weapon;
 const mk = (id: string, kind: 'hero' | 'enemy', x: number): Combatant =>
-  ({ id, name: id, kind, size: 'moyenne', pos: { x, y: 5 }, conditions: [], talents: [], liveTraits: [], skills: [], weapons: [], movement: 4, loaded: true, advantage: 0,
+  (blessuresSurLeProfil({ id, name: id, kind, size: 'moyenne', pos: { x, y: 5 }, conditions: [], talents: [], liveTraits: [], skills: [], weapons: [], movement: 4, loaded: true, advantage: 0,
      characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-     wounds: { current: 12, max: 12 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant;
+     wounds: blessuresDeBase(12), armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } })) as unknown as Combatant;
 const fogScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, ambiance: 'jour', weather: 'brouillard', metresPerTile: 2,
      layers: [{ z: 0, tiles: new Array(40 * 40).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;

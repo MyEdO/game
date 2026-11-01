@@ -8,6 +8,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
+import { relu } from './combatDeTest.testkit';
 
 /**
  * #1028 — Contre-sort (Dissipation, LDB 46 l.156) : le surfaçage suit la POSSESSION, jamais le `kind`
@@ -40,7 +41,7 @@ function setup() {
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 12, y: 10 };
   useGame.setState({ battle: { ...b }, pendingCounterspell: null, net: { ...useGame.getState().net, ...NET0 } });
-  return { H, E };
+  return { H: relu(H), E: relu(E) };
 }
 
 /** Incantation FIGÉE du héros (réussie, non critique) : la fenêtre de Contre-sort a seulement un jet

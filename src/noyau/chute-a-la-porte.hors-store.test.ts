@@ -34,8 +34,7 @@ import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import type { InterruptionDePeril } from './tablesPosees';
 import { tablesDuJeu } from './tablesDuJeu';
 import { desDuTest } from '../engine/dice.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -306,7 +305,7 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
     seedBattleRng(3);
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('blessé', { kind: 'hero', wounds: { current: 190, max: 200, base: 200 } } as Partial<Combatant>)],
+      party: [marin('blessé', { kind: 'hero', wounds: { current: 190, max: 200 } } as Partial<Combatant>)],
     });
     runFlow(banc.getState, banc.setState, { kind: 'seq', steps: [
       { kind: 'do', effect: { type: 'fall', target: 'party', metres: 4 } },
@@ -334,7 +333,7 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     seedBattleRng(3);
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('h1', { kind: 'hero', wounds: { current: 190, max: 200, base: 200 } } as Partial<Combatant>)],
+      party: [marin('h1', { kind: 'hero', wounds: { current: 190, max: 200 } } as Partial<Combatant>)],
     });
   });
 
@@ -526,7 +525,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
   // était pas un et passait devant. Une `Cloture` est un VERBE SÉRIALISABLE que l'étape porte comme
   // son Flow — le socle en avait déjà un, `PendingTest.dialogueNext`, ici généralisé.
   const marinBlesse = (id: string): Combatant =>
-    marin(id, { kind: 'hero', wounds: { current: 190, max: 200, base: 200 } } as Partial<Combatant>);
+    marin(id, { kind: 'hero', wounds: { current: 190, max: 200 } } as Partial<Combatant>);
   const CHUTE: Flow = { kind: 'do', effect: { type: 'fall', target: 'party', metres: 4 } } as unknown as Flow;
   const DIT = (desc: string): Flow => ({ kind: 'do', effect: { type: 'journal', desc } } as unknown as Flow);
   const dialogueDUnSaut = (): Dialogue => ({
@@ -737,7 +736,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
   // scène se racontait à l'envers. L'étape poussée pendant une application est la suite IMMÉDIATE de
   // celle qui l'a produite : elle s'insère derrière elle, et la séquence reprend après.
   const marinBlesse = (id: string): Combatant =>
-    marin(id, { kind: 'hero', wounds: { current: 190, max: 200, base: 200 } } as Partial<Combatant>);
+    marin(id, { kind: 'hero', wounds: { current: 190, max: 200 } } as Partial<Combatant>);
   const route = (perils: unknown[]): MapRoute => ({ id: 'r1', perils } as unknown as MapRoute);
 
   const monte = (perils: unknown[], interruptId: InterruptionDePeril): void => {
@@ -1151,7 +1150,7 @@ describe('(xv) WALKER PUR : une op à DÉ y LÈVE — aucune magnitude tirée en
 describe('(xvi) #2689 — la suite d’une pile de COMBAT repart avec SA cible et SON contexte', () => {
   // Nid-de-pie : hauteur entière (25 m), un seul dé, celui des Dégâts (MDG 13 l.684-688, LDB 15 l.80).
   const vigie = (id: string, pv: number): Combatant =>
-    ({ ...marin(id, { kind: 'hero', wounds: { current: pv, max: 200, base: 200 } } as Partial<Combatant>), shipStation: 'nid-de-pie' }) as Combatant;
+    ({ ...marin(id, { kind: 'hero', wounds: { current: pv, max: 200 } } as Partial<Combatant>), shipStation: 'nid-de-pie' }) as Combatant;
   const chuteSur = (on: 'caster' | 'target'): Flow => ({ kind: 'do', effect: { type: 'ops', on, ops: opsDeChute() } } as unknown as Flow);
   const opsSurCible = (ops: unknown[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops } } as unknown as Flow);
   const poseLeDe = (v: number): void => { avanceEtapeCascade(banc.getState, () => v); };

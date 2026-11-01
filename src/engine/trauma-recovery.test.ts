@@ -5,15 +5,16 @@ import type { UpkeepDeferTest } from './types';
 const tk = (k: 'dechirure' | 'fracture', sv: 'mineur' | 'majeur', loc: HitLocation, opts?: { be?: number; d10?: number }) => traumaById(dechirureFractureFicheId(k, sv, loc), opts, loc);
 import { testValue } from './skills';
 import type { Combatant } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const C = (over: Partial<Combatant>): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'c', label: 'C', kind: 'hero', conditions: [], skills: [],
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, advantage: 0,
+    wounds: blessuresDeBase(10), advantage: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...over,
-  } as Combatant);
+  }) as Combatant);
 
 
 /** LA PORTE, côté test : `tickTraumaRecovery` ne roule plus le Test de fin de fracture (#1657 B3-3) —

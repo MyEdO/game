@@ -11,6 +11,7 @@ import { recomputeLoadout } from '../engine/items';
 import { setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { locationLabel, type Combatant, type HitLocation, type ItemInstance, type Weapon } from '../engine/types';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -40,7 +41,7 @@ function auJet({ seed, roll, paTouche = 0, pieces, tenue, current = 20 }: Jet, l
   cible.armour = { tete: 0, corps: paTouche, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
   recomputeLoadout(cible);
   cible.armour = { ...cible.armour, corps: Math.max(cible.armour.corps, paTouche) };
-  cible.wounds = { current, max: 20 } as Combatant['wounds'];
+  cible.wounds = blessuresDeBase(20, current, cible);
   cible.important = true;
   const res = rederivePassiveAttack(H, cible, epee, { roll, target: 90, success: true, sl: 0, isDouble: roll % 11 === 0 } as never, 'melee', { rng: battleRng() }, 'corps');
   return { H, cible, res };
@@ -165,7 +166,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
       const cible = b.combatants.find((c) => c.kind === 'enemy')!;
       H.spells = ['flechette'];
       H.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 30 });
-      cible.wounds = { current, max: 20 } as Combatant['wounds'];
+      cible.wounds = blessuresDeBase(20, current, cible);
       cible.important = true;
       if (sauve) cible.traits = [...(cible.traits ?? []), { id: 'protection', value: 1 }];
       banc.setState({ pendingCast: { casterId: H.id, targetId: cible.id, spellId: 'flechette', missile: true, focused: false, result: null } as never });
@@ -212,7 +213,7 @@ function devieePuisApplication(cas: 'tas' | 'melee') {
   const b = banc.getState().battle!;
   const [H, A] = b.combatants.filter((c) => c.kind === 'hero');
   const [e1, e2] = b.combatants.filter((c) => c.kind === 'enemy');
-  for (const c of [A, e1, e2]) c.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+  for (const c of [A, e1, e2]) c.wounds = blessuresDeBase(20, 20, c);
   e1.important = cas === 'tas';
   e2.important = false;
   const [cible, victime] = cas === 'tas' ? [e1, e2] : [e1, A];

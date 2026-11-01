@@ -11,14 +11,15 @@ import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const mkEnemy = (id: string): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, kind: 'enemy', size: 'moyenne',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12, base: 12 }, conditions: [], skills: [], talents: [], items: [],
+    wounds: blessuresDeBase(12), conditions: [], skills: [], talents: [], items: [],
     weapons: [], armour: {}, advantage: 0, traits: [], bodyShape: 'humanoide',
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 // Les deux describes arment `vi.useFakeTimers()` en beforeEach : on RESTAURE les vrais timers après
 // chaque test pour ne pas laisser de timer fantôme (setTimeout de l'IA combat) fuir vers un test suivant.

@@ -5,6 +5,7 @@ import { crewedFireWeapon, simpleSoloFireWeapon } from '../engine/crewedWeapon';
 import { combatValue } from '../engine/combat';
 import { mannedPosteWeapon, itemFromTrappingById } from '../engine/items';
 import type { Combatant, ShipPoste, SkillInstance, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * ARME D'ÉQUIPE — VALIDATION DE COMPÉTENCE D'ÉQUIPAGE & TIR EN SOLO (Aux Armes p.122-124).
@@ -26,18 +27,18 @@ const CHARS = (CT = 30) => ({ 'capacite-de-combat': 30, 'capacite-de-tir': CT, f
 const proj = (spec: string, advances = 0): SkillInstance => ({ id: 'projectiles', spec, characteristic: 'capacite-de-tir', advances });
 
 const mkGunner = (id: string, pos: { x: number; y: number }, skills: SkillInstance[] = [], CT = 30): Combatant =>
-  ({ id, name: id, kind: 'hero', characteristics: CHARS(CT), wounds: { current: 12, max: 12 }, advantage: 0,
+  (blessuresSurLeProfil({ id, name: id, kind: 'hero', characteristics: CHARS(CT), wounds: blessuresDeBase(12), advantage: 0,
     conditions: [], skills, talents: [], weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    movement: 4, pos, loaded: true }) as unknown as Combatant;
+    movement: 4, pos, loaded: true })) as unknown as Combatant;
 
 const mkCrew = (id: string, skills: SkillInstance[] = [], alive = true): Combatant =>
-  ({ id, name: id, kind: 'npc', conditions: [], weapons: [], skills, talents: [], characteristics: CHARS(30) as never,
-    dead: !alive, wounds: { current: alive ? 5 : 0, max: 5 } }) as unknown as Combatant;
+  (blessuresSurLeProfil({ id, name: id, kind: 'npc', conditions: [], weapons: [], skills, talents: [], characteristics: CHARS(30) as never,
+    dead: !alive, wounds: blessuresDeBase(5, alive ? 5 : 0) })) as unknown as Combatant;
 
 const mkEnemy = (id: string, x: number, y: number): Combatant =>
-  ({ id, name: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
-    characteristics: { ...CHARS(0), endurance: 30 }, wounds: { current: 60, max: 60 }, advantage: 0,
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant;
+  (blessuresSurLeProfil({ id, name: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
+    characteristics: { ...CHARS(0), endurance: 30 }, wounds: blessuresDeBase(60), advantage: 0,
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } })) as unknown as Combatant;
 
 const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
   ({ id: 'emplacement', name: 'Affût', kind: 'enemy', pos, conditions: [], weapons: [], wounds: { current: 30, max: 30 },

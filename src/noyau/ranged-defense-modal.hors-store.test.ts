@@ -5,6 +5,7 @@ import { maybeOpenDefense } from './combatFlow';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -14,9 +15,9 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 // simple (false). Arc portée 60 m → Bout Portant si dist×2 ≤ 6, soit ≤ 3 tuiles.
 const chars = { 'capacite-de-combat': 35, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
-  ({ id, name: id, kind, characteristics: chars, conditions: [], engagedWith: [], skills: [], talents: [],
-     weapons, advantage: 0, size: 'moyenne', pos, wounds: { current: 18, max: 18 },
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 } as unknown as Combatant);
+  (blessuresSurLeProfil({ id, name: id, kind, characteristics: chars, conditions: [], engagedWith: [], skills: [], talents: [],
+     weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 const bow: Weapon = { name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [] } as unknown as Weapon;
 const sword: Weapon = { name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 const shield: Weapon = { name: 'Bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sh', qualities: [{ id: 'protectrice', value: 2 }] } as unknown as Weapon;

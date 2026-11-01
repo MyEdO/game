@@ -10,6 +10,7 @@ import type { Combatant } from '../../engine/types';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * LES MARQUES DE CASES SUIVENT LE STORE SUR UN ÉCRAN DÉJÀ MONTÉ (#1411, P0-A).
@@ -30,13 +31,13 @@ const TAILLE = { w: 800, h: 600 };
 const ARC = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 4, qualities: [] };
 
 function hero(id: string, pos: { x: number; y: number }, weapons: unknown[] = []): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons,
+    wounds: blessuresDeBase(12), weapons,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 function ennemi(id: string, pos: { x: number; y: number }): Combatant {

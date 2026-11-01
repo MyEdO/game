@@ -2,16 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, EnemyTurnInput } from '../noyau/monde/ai';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
 function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind, pos,
-    wounds: { current: 10, max: 10 }, weapons: [MELEE], characteristics: {} as never,
+    wounds: blessuresDeBase(10), weapons: [MELEE], characteristics: {} as never,
     advantage: 0, conditions: [], armour: {} as never, skills: [], talents: [], movement: 4,
     ...opts,
-  } as Combatant;
+  }) as Combatant;
 }
 const scene = emptyScene('scene-test', 12, 12);
 function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput {

@@ -8,7 +8,8 @@ import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { relu } from './combatDeTest.testkit';
 
 /**
  * #1029 / #1031 / #1040 — Contre-sort (`LDB 46 l.156`) :
@@ -48,11 +49,11 @@ function setup() {
     e.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 15 }];
     e.spells = ['carreau'];
   }
-  heroes.forEach((h, i) => { h.pos = { x: 10, y: 10 + i }; h.wounds = blessuresDeBase(99); });
+  heroes.forEach((h, i) => { h.pos = { x: 10, y: 10 + i }; h.wounds = blessuresDeBase(99, 99, h); });
   E.pos = { x: 12, y: 10 };
   if (E2) E2.pos = { x: 12, y: 11 };
   useGame.setState({ battle: { ...b }, pendingCast: null, pendingCounterspell: null, pendingCascade: null });
-  return { heroes: heroes as Combatant[], E, E2 };
+  return { heroes: (heroes as Combatant[]).map(relu), E: relu(E), E2: relu(E2) };
 }
 
 /** Incantation FIGÉE de `caster` sur `target` (aucun aléa : le sujet est l'aiguillage). */

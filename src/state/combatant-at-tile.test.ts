@@ -3,6 +3,7 @@ import { combatantAtTile } from '../noyau/monde/combatGeometry';
 import type { Combatant } from '../engine/types';
 import type { SizeCategory } from '../engine/size';
 import type { Pt } from '../noyau/monde/path';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * `combatantAtTile` — source UNIQUE z-aware de « qui est sous cette tuile » pour l'interaction
@@ -10,7 +11,7 @@ import type { Pt } from '../noyau/monde/path';
  * case de rempart z1 de mêmes (x,y) — c'est le « hors de portée » fantôme du rempart que la refacto corrige.
  */
 const C = (id: string, pos: Pt, over: Partial<Combatant> = {}): Combatant =>
-  ({ id, pos, conditions: [], dead: false, wounds: { current: 10, max: 10 }, ...over }) as unknown as Combatant;
+  (blessuresSurLeProfil({ id, pos, conditions: [], dead: false, wounds: blessuresDeBase(10), ...over })) as unknown as Combatant;
 
 const big = (id: string, pos: Pt, size: SizeCategory): Combatant => C(id, pos, { size });
 

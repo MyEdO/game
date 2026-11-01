@@ -3,9 +3,10 @@ import { emptyScene } from '../../noyau/monde/scene';
 import type { BattleState } from '../../noyau/etat';
 import { Combatant } from '../../engine/types';
 import { buildHighlights, rangeBandTone, type HighlightEl, type HighlightsView } from './highlights';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 function cbt(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number; z?: number }, extra: Partial<Combatant> = {}): Combatant {
-  return { id, name: id, kind, pos, size: 'moyenne', conditions: [], wounds: { current: 10, max: 10 }, ...extra } as unknown as Combatant;
+  return blessuresSurLeProfil({ id, name: id, kind, pos, size: 'moyenne', conditions: [], wounds: blessuresDeBase(10), ...extra }) as unknown as Combatant;
 }
 
 const VIEW: HighlightsView = {

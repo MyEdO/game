@@ -10,25 +10,25 @@ import { EtatPanel, zoneAfflictions } from './EtatPanel';
 import { traumaById, consolidateAmputations, traumaCharPenalties } from '../engine/trauma';
 import { useGame } from '../state/store';
 import { ETAT_ANCHOR_CRITIQUES, ETAT_ANCHOR_MALADIES, ETAT_ANCHOR_MUTATIONS, ETAT_ANCHOR_TRAUMAS, ETAT_ANCHOR_PSYCHOLOGIE, ETAT_ANCHOR_ENCOMBREMENT } from './sheetAlarms';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { combattantDeTest, blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Héros minimal, patron `sheetAlarms.test.ts`/`CharacterSheet.test.tsx` (mkHero). */
 const mkHero = (mut?: (c: Combatant) => void): Combatant => {
-  const c = {
+  const c = blessuresSurLeProfil({
     id: 'h',
     name: 'H',
     kind: 'hero',
     species: 'humains-reiklander',
     career: 'soldat',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     conditions: [],
     skills: [],
     talents: [],
     movement: 4,
     items: [],
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
   mut?.(c);
   return c;
 };

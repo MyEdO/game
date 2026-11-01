@@ -3,19 +3,20 @@ import { resolveMelee, hitLocationByShape } from './combat';
 import { setRule, resetRule } from './policy';
 import type { RNG } from './dice';
 import type { Combatant, Weapon } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** La Localisation relancée naît avec la touche (`applyHit`). LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544. */
 
 const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 
 const combattant = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, label: id, kind: 'hero',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], traumas: [], traits: [], weapons: [], items: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [], traits: [], weapons: [], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], movement: 4,
     bodyShape: 'humanoide', size: 'moyenne', pos: { x: 0, y: 0 }, ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 /** Les d100 donnés dans l'ordre, puis le compte des dés tirés. */
 function desScriptes(...d100: number[]): RNG & { tires: () => number } {

@@ -1,17 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { skillDRBonus } from './ops';
 import type { Combatant } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * Amphibie (LDB 85 l.21, VERBATIM du desc) : « Elle peut ajouter son bonus d'Agilité au DR de tous les Tests
  * de Natation… ». Exprimé en donnée : passive `skillDRBonus{ skill:'natation', bonus:{ bonusOf:'agilite' } }` —
  * lu par `skillDRBonus(c, skill)` que la couche de Test générique applique (rollFlows). Par-créature (BAg).
  */
-const mk = (traits: { id: string }[], ag: number): Combatant => ({
+const mk = (traits: { id: string }[], ag: number): Combatant => (blessuresSurLeProfil({
   id: 'c', name: 'Bête', kind: 'enemy',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 0, force: 30, endurance: 30, initiative: 30, agilite: ag, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-  movement: 6, wounds: { current: 20, max: 20 }, weapons: [], skills: [], talents: [], traits,
-} as unknown as Combatant);
+  movement: 6, wounds: blessuresDeBase(20), weapons: [], skills: [], talents: [], traits,
+}) as unknown as Combatant);
 
 describe('Amphibie — +Bonus d’Agilité au DR des Tests de Natation (LDB 85 l.21)', () => {
   it('Ag 40 (BAg 4) → +4 DR à la Natation, et RIEN sur les autres Compétences', () => {

@@ -4,8 +4,7 @@ import { hasCondition } from '../engine/conditions';
 import { applyStopBleed } from '../engine/healing';
 import type { Combatant } from '../engine/types';
 import { deFixe } from '../engine/dice.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * COMPTEUR de TOURS DE BOUCLE : l'entretien est SILENCIEUX pour un porteur sans péril (ni journal, ni

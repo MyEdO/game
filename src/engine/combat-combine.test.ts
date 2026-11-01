@@ -5,6 +5,7 @@ import { ligneDeRegle, refDeRegle } from './reglesChiffrees';
 import { ligneDe } from './modLine.testkit';
 import { RULE_REF } from './ruleRefs';
 import type { Combatant, ModLine, Weapon } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 describe('combineMods — Combiner les Difficultés (LDB 14 l.91-96)', () => {
   it('plafonne la somme des malus à -30', () => {
@@ -214,14 +215,14 @@ describe('defenseModifiers — Avantage hors plafond, circonstances plafonnées 
 describe('attackModifiers — Parasité et Allonge pèsent sur la CIBLE (#1218)', () => {
   afterEach(() => resetRule('combat-weapon-reach'));
 
-  const fighter = (over: Record<string, unknown>): Combatant => ({
+  const fighter = (over: Record<string, unknown>): Combatant => (blessuresSurLeProfil({
     id: 'x', label: 'X', kind: 'enemy',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, 'force-mentale': 30, intelligence: 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4,
     ...over,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
   const melee = (reach: string): Weapon => ({ label: 'Arme', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], reach } as unknown as Weapon);
 
   it('sous une circonstance SATURÉE, les deux −10 sont absorbés par le plafond (−30, pas −50)', () => {

@@ -18,7 +18,7 @@ import { spawnEnemy } from '../noyau/monde/spawn';
 import { pregen, PREGEN } from '../data/pregens';
 import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTAGÉ castConfirm)', () => {
   beforeEach(() => {
@@ -32,7 +32,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
   function dispeller(x: number, y: number, id: string): Combatant {
     const h = pregen(PREGEN.sorcier);
     h.id = id; h.label = id; h.pos = { x, y };
-    h.wounds = blessuresDeBase(99);
+    h.wounds = blessuresDeBase(99, 99, h);
     const sk = h.skills.find((s) => s.id === 'langue');
     if (sk) sk.advances = Math.max(sk.advances, 30);
     else h.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 30 } as never);

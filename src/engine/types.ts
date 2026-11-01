@@ -14,7 +14,7 @@ import type { StagePosting } from './activities';
 
 declare const MAXIMUM_DES_BLESSURES: unique symbol;
 /**
- * Le maximum de Blessures DÉRIVÉ d'un porteur (#1463) : `blessuresDeBase` et `blessuresReconciliees`
+ * Le maximum de Blessures DÉRIVÉ d'un porteur (#1463) : `blessuresPosees` et `blessuresReconciliees`
  * (`engine/characteristics.ts`) le forgent. Le type refuse un nombre posé à la main (littéral, spread
  * sans cast) et l'affectation (`readonly`) ; le lint `murs/marques` (`oxlint.config.mjs`) refuse le cast
  * qui NOMME la marque (`x as MaximumDesBlessures`, `<MaximumDesBlessures>x`, alias de type).
@@ -1590,10 +1590,12 @@ export interface Combatant {
   /** Dissipation (LDB 46 l.156 : « un seul Sort chaque Round ») — Contre-sort déjà tenté ce Round. */
   dispelledThisRound?: boolean;
   characteristics: Characteristics;
-  /** Points de Blessure. `base` = Blessures à vide (snapshot/surcharge au spawn) ; `max` dynamique
-   *  = base + delta des buffs F/E/FM × Taille (cf. effectiveMaxWounds) ; `current` = PB restants.
-   *  `max` est marqué (`MaximumDesBlessures`) : il ne s'écrit que par ses fabriques (#1463). */
-  wounds: { current: number; readonly max: MaximumDesBlessures; base?: number };
+  /** Points de Blessure (#1463). `max` = `effectiveMaxWounds` : formule du profil courant + porteurs +
+   *  `ecart`, marqué (`MaximumDesBlessures`), écrit par ses seules fabriques ; `current` = PB restants ;
+   *  `ecart` = écart du livre posé à la naissance (B imprimé − formule, 0 pour un porteur au maximum dérivé),
+   *  requis ; `perduesSousZero` = Points perdus au-delà de 0 par une baisse du maximum, posé seulement quand
+   *  non nul et le courant à 0 (LDB 48 l.27). */
+  wounds: { current: number; readonly max: MaximumDesBlessures; ecart: number; perduesSousZero?: number };
   advantage: number;
   conditions: ConditionInstance[];
   /** Armes/armure ACTIVES (dérivées de l'équipement) — utilisées en combat. */

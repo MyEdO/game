@@ -15,17 +15,18 @@ import type { PendingTest } from './pendings';
 import { isPsychImmune } from '../engine/psychology';
 import { socialPsychMod, socialPsychLabel } from '../engine/skills';
 import { ciblePsy } from '../engine/psych/ciblage';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const mk = (id: string, resolve: number): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, label: id, kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 45 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [], resolve,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 /** Test social OUVERT avec Animosité (−20) : le malus est DÉJÀ intégré à `skillValue` ET `target`
  *  (cf. `PendingTest.psychMod`), et conservé à part pour l'affichage. */

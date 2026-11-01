@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { attackModifiers, defenseModifiers, baseTestMods } from './combat';
 import { weatherTestMods } from './weatherTestMod';
 import { Combatant, Weapon, type ModLine } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * CONFORMANCE TRANSVERSALE du canal météo « Tests physiques » (EDOC 8 l.82, #341). LE test qui aurait
@@ -13,13 +14,13 @@ import { Combatant, Weapon, type ModLine } from './types';
  * pas de double-compte à l'attaque.
  */
 const mk = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'x', name: 'X', kind: 'enemy',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], weapons: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], movement: 4,
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };

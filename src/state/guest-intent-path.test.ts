@@ -25,14 +25,15 @@ import type { Combatant, Weapon } from '../engine/types';
 import { createHero } from '../engine/character';
 import { draineCascade } from '../noyau/cascade.testkit';
 import { modalOwnerOf } from '../noyau/modalArbiter';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const NET0 = useGame.getState().net;
 const chars = { 'capacite-de-combat': 55, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, talents: { talentId: string }[] = []): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents,
-     weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: { current: 18, max: 18 }, resolve: 2, fortune: 2,
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 } as unknown as Combatant);
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents,
+     weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18), resolve: 2, fortune: 2,
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 
 /** Arène coop : `h2` (héros du siège 1, Battement en poche) engagé avec `e1`, et c'est SON tour. */
 function setup(net: Record<string, unknown> = {}) {

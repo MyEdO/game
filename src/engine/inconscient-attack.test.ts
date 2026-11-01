@@ -3,16 +3,17 @@ import { resolveMelee, resolveRanged } from './combat';
 import { addCondition, cannotDefend } from './conditions';
 import type { Combatant, Weapon } from './types';
 import { deFixe } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const rngOf = deFixe;
 
 const mk = (_over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'c',
     name: 'C',
     kind: 'enemy',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     advantage: 0,
     conditions: [],
     skills: [],
@@ -21,7 +22,7 @@ const mk = (_over: Partial<Combatant> = {}): Combatant =>
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     movement: 4,
     size: 'moyenne',
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };

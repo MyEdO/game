@@ -4,7 +4,7 @@ import { emptyScene } from './scene';
 import { manhattan } from './path';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { SpellData } from '../../data';
-import { blessuresDeBase } from '../../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
@@ -25,12 +25,12 @@ function mk(
   pos: { x: number; y: number },
   opts: Partial<Combatant> = {},
 ): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id,
     label: id,
     kind,
     pos,
-    wounds: { current: 10, max: 10 },
+    wounds: blessuresDeBase(10),
     weapons: [MELEE],
     characteristics: {} as never,
     advantage: 0,
@@ -40,7 +40,7 @@ function mk(
     talents: [],
     movement: 4,
     ...opts,
-  } as Combatant;
+  }) as Combatant;
 }
 
 const scene = emptyScene('scene-test', 12, 12);

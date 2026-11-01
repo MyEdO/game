@@ -8,14 +8,15 @@ import {
 import type { RNG } from './dice';
 import type { Combatant } from './types';
 import { desEnSuite } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
-const hull = (E: number): Combatant => ({
+const hull = (E: number): Combatant => (blessuresSurLeProfil({
   id: 'coque', name: 'Coque', kind: 'enemy',
   characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
-  movement: 0, wounds: { current: 50, max: 50 }, weapons: [], skills: [], talents: [],
-} as unknown as Combatant);
+  movement: 0, wounds: blessuresDeBase(50), weapons: [], skills: [], talents: [],
+}) as unknown as Combatant);
 
 describe('Forcer le rythme & Épuisement (MDG 13 l.95-111)', () => {
   it('+1 M : Voile Très Difficile (−30) / Ramer Difficile (−20) ; +2 M : Ramer Très Difficile seulement', () => {

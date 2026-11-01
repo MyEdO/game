@@ -1,9 +1,8 @@
 /**
- * Trait de créature **Taille** (LDB `85 - Traits de creature.md` l.279-280 : 7 catégories,
- * Minuscule → Monstrueuse). Modélisé en INDEX ordinal (0..6) car la mécanique est une
- * COMPARAISON d'écart entre combattants, pas une valeur testée. Mod d'à-toucher au TIR selon
- * la Taille de la CIBLE : `14 - _GoBack.md` l.118-131 (folio 162). « Moyenne » = standard implicite
- * des espèces jouables (l.128), sans Trait. Cf. analyse :
+ * Trait de créature **Taille** (LDB `85 - Traits de creature.md` l.342-344). Modélisé en INDEX ordinal
+ * (0..6) car la mécanique est une COMPARAISON d'écart entre combattants, pas une valeur testée. Mod
+ * d'à-toucher au TIR selon la Taille de la CIBLE : `14 - _GoBack.md` l.118-131 (folio 162). « Moyenne »
+ * = standard implicite des espèces jouables (l.128), sans Trait. Cf. analyse :
  * docs/superpowers/specs/2026-06-07-taille-analyse-reference.md
  *
  * Données règles (rangedMod, shipboardEnc, footprintSide) dans `src/data/sizes.json`.
@@ -11,6 +10,7 @@
 import sizesJson from '../data/sizes.json';
 import type { QualityId } from './qualities/ids';
 import type { TraitsDesignes } from './statEntry';
+import type { ActiveEffect } from './types';
 import { replier } from '../lib/ordre.mjs';
 
 export type SizeCategory =
@@ -122,16 +122,17 @@ export function forceOpposedOutcome(a?: SizeCategory, b?: SizeCategory): 'autoWi
   return 'normal';
 }
 
-/** Points de Blessure de base par catégorie de Taille (LDB 85 l.393-401). bf/be/bfm = Bonus de F/E/FM. */
-export function woundsForSize(bf: number, be: number, bfm: number, size: SizeCategory = 'moyenne'): number {
-  const moyenne = bf + 2 * be + bfm;
+/** Points de Blessure de base par catégorie de Taille (LDB 85 l.393-401). bf/be/bfm = Bonus de F/E/FM ;
+ *  `avantTaille` s'ajoute avant le multiplicateur de Taille (Endurant, LDB 85 l.130). */
+export function woundsForSize(bf: number, be: number, bfm: number, size: SizeCategory = 'moyenne', avantTaille = 0): number {
+  const moyenne = bf + 2 * be + bfm + avantTaille;
   switch (size) {
     case 'minuscule':
-      return 1;
+      return 1 + avantTaille;
     case 'tresPetite':
-      return be;
+      return be + avantTaille;
     case 'petite':
-      return 2 * be + bfm;
+      return 2 * be + bfm + avantTaille;
     case 'moyenne':
       return moyenne;
     case 'grande':
@@ -160,11 +161,21 @@ export function sizeFromTalents(talentIds: readonly string[], sizeOf: (talentId:
 const argDuTrait = (traits: TraitsDesignes | undefined, id: string): string | undefined =>
   traits?.find((t) => t.id === id)?.arg;
 
-/** Catégorie du Trait « Taille (X) » (LDB 85 l.279-280), son argument lu par `parseSizeLabel` (une plage
+/** Catégorie du Trait « Taille (X) » (LDB 85 l.342-344), son argument lu par `parseSizeLabel` (une plage
  *  à sa borne haute). null si absent ou argument non reconnu. */
 export function sizeFromTraits(traits: TraitsDesignes | undefined): SizeCategory | null {
   const arg = argDuTrait(traits, 'taille');
   return arg ? parseSizeLabel(arg) : null;
+}
+
+/** Taille courante d'un porteur : celle du dernier Trait « Taille (X) » qu'un effet actif lui accorde
+ *  (`grantedTrait`, Forme bestiale, lu par `sizeFromTraits`), sinon sa Taille de naissance (`effectiveSize`). LDB 85 l.342-344, LDB 48 l.23. */
+export function tailleCourante(c: { readonly size?: SizeCategory; readonly activeEffects?: readonly ActiveEffect[] }): SizeCategory {
+  for (const e of [...(c.activeEffects ?? [])].reverse()) {
+    const taille = e.grantedTrait ? sizeFromTraits([e.grantedTrait]) : null;
+    if (taille) return taille;
+  }
+  return effectiveSize(c.size);
 }
 
 /** Catégorie de Taille d'un PROFIL (créature, statbloc) : son Trait Taille (`sizeFromTraits`), sinon celle

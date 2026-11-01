@@ -9,7 +9,7 @@ import { findCreatureById, type SpellData, findSpellById } from '../data';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, Weapon } from '../engine/types';
 import type { CastResult } from '../engine/magic';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /**
  * IA — ÉVALUATEUR DE SORT op-driven (remplace `aiBestMissile`/`aiFocusPlan`/`aiAreaSpell`, supprimés).
@@ -22,13 +22,13 @@ const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, 
 
 /** Héros minimal posé en (x,y). */
 function foeAt(id: string, x: number, y: number): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12),
     advantage: 0, conditions: [], weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, pos: { x, y },
-  } as Combatant;
+  }) as Combatant;
 }
 
 /** `SpellData` réduit aux champs lus par l'évaluateur (effects/missile/damage/opposed). */
@@ -45,10 +45,10 @@ function castable(over: Partial<CastableSpell> & { id?: string } = {}): Castable
 // opValue / spellActionValue — la valeur vient des GameOp, flag `missile` OU non
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 describe('opValue / spellActionValue — un sort de dégâts vaut des Blessures, missile ou pas', () => {
-  const caster = (): Combatant => ({
+  const caster = (): Combatant => (blessuresSurLeProfil({
     id: 'e', label: 'e', kind: 'enemy', characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 60, 'force-mentale': 60, sociabilite: 40 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 },
-  } as Combatant);
+  }) as Combatant);
   const enemy = (): Combatant => foeAt('h', 3, 0);
 
   it('op `wounds` SANS missile → valeur > 0 (un dégât authoré en GameOp compte, jadis « invisible »)', () => {
@@ -75,11 +75,11 @@ describe('opValue / spellActionValue — un sort de dégâts vaut des Blessures,
 describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
   const scene = emptyScene('scene-test', 16, 16);
   function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
-    return {
-      id, label: id, kind, pos, wounds: { current: 10, max: 10 }, weapons: [MELEE],
+    return blessuresSurLeProfil({
+      id, label: id, kind, pos, wounds: blessuresDeBase(10), weapons: [MELEE],
       characteristics: {} as never, advantage: 0, conditions: [], armour: {} as never,
       skills: [], talents: [], movement: 4, ...opts,
-    } as Combatant;
+    }) as Combatant;
   }
   function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput {
     return { enemy, heroes, scene, blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)), movement: enemy.movement, spells: [], ...extra };

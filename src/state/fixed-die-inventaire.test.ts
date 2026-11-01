@@ -11,6 +11,7 @@ import { propulsionDuNavire } from '../engine/shipBuild';
 import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from '../noyau/noyau.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * GARDE EXHAUSTIVE de l'option « Dés fixés » — le socle, pas 36 copies.
@@ -26,14 +27,14 @@ import { cleDeFixture } from '../noyau/noyau.testkit';
  *   2. la valeur APPLIQUÉE est la valeur SAISIE.
  * Un flux dont la fixture manque ÉCHOUE la garde : impossible d'en ajouter un en le laissant dehors.
  */
-const HERO: Combatant = {
+const HERO: Combatant = blessuresSurLeProfil({
   id: 'H', name: 'H', label: 'Héros', kind: 'hero',
   characteristics: { force: 40, dexterite: 40, agilite: 40, endurance: 40, 'force-mentale': 40, 'capacite-de-combat': 45, 'capacite-de-tir': 45, initiative: 40, intelligence: 40, sociabilite: 40 },
-  wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], traumas: [],
+  wounds: blessuresDeBase(10), advantage: 0, conditions: [], traumas: [],
   resilience: 3, fortune: 2, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   skills: [], talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
-} as unknown as Combatant;
+}) as unknown as Combatant;
 const FOE = { ...HERO, id: 'E', label: 'Ennemi', kind: 'enemy', pos: { x: 1, y: 0 } } as unknown as Combatant;
 
 const T = 45; // cible de toutes les fixtures

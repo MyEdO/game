@@ -16,6 +16,7 @@ import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Option de confort « Dés fixés » (#939) : saisir soi-même la valeur du d100 d'un jet qu'on CONTRÔLE,
@@ -26,15 +27,15 @@ import { tablesDuJeu } from '../noyau/tablesDuJeu';
  * `canFixDie`, qui compose `pilotedByHuman`/`controlsCombatant`/`seatOwns`.
  */
 const C = (over: Partial<Combatant>): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'X', name: 'X', label: 'X', kind: 'hero',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], traumas: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [],
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 /** Attaque RATÉE d'un héros (dé 88 vs cible 45), prête à être re-dérivée. */
 function setupAttack(attackerOver: Partial<Combatant> = {}, targetOver: Partial<Combatant> = {}) {

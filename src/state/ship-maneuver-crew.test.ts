@@ -4,7 +4,7 @@ import { moraleBand } from '../engine/crewMorale';
 import type { Combatant } from '../engine/types';
 
 const mkShip = (): Combatant =>
-  ({ id: 'ship', name: 'Navire', creatureId: 'bateau-de-patrouille', conditions: [], wounds: { current: 50, max: 50, base: 50 } }) as unknown as Combatant;
+  ({ id: 'ship', name: 'Navire', creatureId: 'bateau-de-patrouille', conditions: [], wounds: { current: 50, max: 50 } }) as unknown as Combatant;
 
 describe('Manœuvre = Test d’équipage (MDG 14)', () => {
   const parts = [

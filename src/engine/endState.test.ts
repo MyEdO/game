@@ -2,18 +2,18 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { endState } from './conditions';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
-import { blessuresDeBase } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     name: 'C',
     kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, // BE=3
-    wounds: { current: 10, max: 12 },
+    wounds: blessuresDeBase(12, 10),
     conditions: [],
     skills: [],
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('endState — état de fin lisible (#237)', () => {
   it('null quand le combattant est en état de se battre', () => {

@@ -17,6 +17,7 @@ import { type RNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
 import { desEnSuite } from '../engine/dice.testkit';
+import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -25,7 +26,7 @@ const seq = (vals: number[]): RNG => desEnSuite(vals, { ensuite: vals[vals.lengt
 
 function hero(name: string, over: Partial<Combatant> = {}): Combatant {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 17 });
-  return { ...h, id: name, ...over } as Combatant;
+  return blessuresSurLeProfil({ ...h, id: name, ...over }) as Combatant;
 }
 
 describe('water-exposure.json — la donnée MSRC 16 l.23-61', () => {
@@ -54,14 +55,14 @@ describe('water-exposure.json — la donnée MSRC 16 l.23-61', () => {
 describe('modificateurs dérivés du Combatant (tableau 2, « tous les modificateurs peuvent être cumulés »)', () => {
   it('1 PB restant (−30) CUMULÉ avec 5+ PB perdus (−20) + 2 Hémorragique (−10 chacun) + Inconscient (−20)', () => {
     const h = hero('h', {
-      wounds: { current: 1, max: 12, base: 12 },
+      wounds: { current: 1, max: 12 },
       conditions: [{ id: 'hemorragique', value: 2 }, { id: 'inconscient', value: 1 }],
     } as Partial<Combatant>);
     const mods = autoExposureMods(h, 'immersion');
     expect(mods.reduce((s, m) => s + m.mod, 0)).toBe(-30 - 20 - 20 - 20); // −90
   });
   it('en INGESTION, le tableau 2 ne s\'applique pas (« uniquement à l\'immersion »)', () => {
-    const h = hero('h', { wounds: { current: 1, max: 12, base: 12 } } as Partial<Combatant>);
+    const h = hero('h', { wounds: { current: 1, max: 12 } } as Partial<Combatant>);
     expect(autoExposureMods(h, 'ingestion')).toEqual([]);
   });
   it('source d\'eau : « Grande ville ; marais » = −30 ; id inconnu → null (Campagne +0)', () => {
@@ -92,7 +93,7 @@ describe('Effet de scène `waterExposure` — cascade + contraction DIRECTE', ()
   });
 
   it('ouvre UNE étape par héros exposé : base = Résistance NUE, les modificateurs cumulés sont des lignes NOMMÉES', () => {
-    const h1 = hero('h1', { wounds: { current: 1, max: 12, base: 12 } } as Partial<Combatant>);
+    const h1 = hero('h1', { wounds: { current: 1, max: 12 } } as Partial<Combatant>);
     const h2 = hero('h2');
     banc.setState({ party: [h1, h2] });
     applyEffects(banc.getState, banc.setState, [{ type: 'waterExposure', mode: 'immersion', source: 'grande-ville-marais', target: 'party' }]);
@@ -146,7 +147,7 @@ describe('Effet de scène `waterExposure` — cascade + contraction DIRECTE', ()
   });
 
   it('isWounded : PB courants < max', () => {
-    expect(isWounded(hero('h', { wounds: { current: 3, max: 12, base: 12 } } as Partial<Combatant>))).toBe(true);
+    expect(isWounded(hero('h', { wounds: { current: 3, max: 12 } } as Partial<Combatant>))).toBe(true);
     expect(isWounded(hero('h'))).toBe(false);
   });
 });

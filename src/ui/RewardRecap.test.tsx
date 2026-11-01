@@ -21,6 +21,7 @@ import { reglesCss } from '../../scripts/guards/lib/cssCouches.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import type { Combatant } from '../engine/types';
 import { tacheSuivante } from './focus.testkit';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 let retirerLayout: () => void;
 beforeAll(() => {
@@ -38,11 +39,11 @@ const lireFeuille = (f: string) => readFileSync(join(STYLES, f), 'utf8');
 const classes = (sel: string) => (sel.match(/\.[a-zA-Z_-][\w-]*/g) ?? []).map((c) => c.slice(1));
 
 function hero(id: string, label: string): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label, kind: 'hero', species: 'humains-reiklander',
-    characteristics: {} as Combatant['characteristics'],
-    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 },
-  } as unknown as Combatant;
+    characteristics: profilDeTest(),
+    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
+  }) as unknown as Combatant;
 }
 
 function rendreDansModale() {

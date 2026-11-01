@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { resolveVolley } from './volley';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 import { causeDuCoupCritique, toucheAuJetPose } from './combat';
 import { critiquesDuCoup, relanceLaLocalisation } from './critical';
 import { crewTestSuccess } from './crewMorale';
@@ -10,7 +11,7 @@ import { deFixe } from './dice.testkit';
 import { LOCALISATIONS_DE_COUP } from './types';
 
 const gunner = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({ id, label: id, kind: 'npc', characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, conditions: [], wounds: { current: 10, max: 10, base: 10 }, items: [], ...over }) as unknown as Combatant;
+  (blessuresSurLeProfil({ id, label: id, kind: 'npc', characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, conditions: [], wounds: blessuresDeBase(10), items: [], ...over })) as unknown as Combatant;
 
 /** Pièce d'artillerie : Dégâts plats `flat`, qualités optionnelles, servie par `crewIds`. */
 const poste = (crewIds: string[], flat = 14, qualities: { id: string; value?: number }[] = []): ShipPoste =>
@@ -19,7 +20,7 @@ const poste = (crewIds: string[], flat = 14, qualities: { id: string; value?: nu
 const ship = (): Combatant => ({ id: 'ship', label: 'Navire', kind: 'npc', bodyShape: 'vehicule', conditions: [], weapons: [] }) as unknown as Combatant;
 
 const hull = (E: number, armourCorps = 0, wounds = 90): Combatant =>
-  ({ id: 'target', label: 'Coque', kind: 'enemy', bodyShape: 'vehicule', characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, armour: { corps: armourCorps }, conditions: [], wounds: { current: wounds, max: 90, base: 90 } }) as unknown as Combatant;
+  (blessuresSurLeProfil({ id: 'target', label: 'Coque', kind: 'enemy', bodyShape: 'vehicule', characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, armour: { corps: armourCorps }, conditions: [], wounds: blessuresDeBase(90, wounds) })) as unknown as Combatant;
 
 /** Coque À PROFIL NAVAL (`profilNavalDe`) : la cogue du schéma `vehicles`. */
 const navire = (wounds: number, blindage = 0): Combatant => ({ ...hull(40, blindage, wounds), creatureId: 'cogue' }) as Combatant;
@@ -171,8 +172,8 @@ describe('crewTestSuccess — seuil de succès du Test d’équipage (MDG 14 l.1
 describe('resolveVolley — une CRÉATURE ciblée encaisse comme sous un tir ordinaire', () => {
   const PA = 2;
   const pirate = (): Combatant =>
-    ({ ...gunner('pirate', { kind: 'enemy' }), characteristics: { ...gunner('x').characteristics, endurance: 30 },
-      armour: { tete: PA, brasG: PA, brasD: PA, corps: PA, jambeG: PA, jambeD: PA }, wounds: { current: 30, max: 30, base: 30 } }) as Combatant;
+    (blessuresSurLeProfil({ ...gunner('pirate', { kind: 'enemy' }), characteristics: { ...gunner('x').characteristics, endurance: 30 },
+      armour: { tete: PA, brasG: PA, brasD: PA, corps: PA, jambeG: PA, jambeD: PA }, wounds: blessuresDeBase(30) })) as Combatant;
   const PERCUTANTE = [{ id: 'percutante' }];
 
   it('localisation corporelle, Blessures = Dégâts − BE − PA, Percutante ajoute le dé des unités', () => {

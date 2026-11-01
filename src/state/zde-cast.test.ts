@@ -11,6 +11,7 @@ import { zdeDiameterMeters, zdeRadiusTiles, spellRangeTiles } from '../engine/ma
 import { findSpellById } from '../data';
 import { currentTargetingMode } from '../noyau/targetingModes';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 function wiz() {
   const w = pregen(PREGEN.sorcier);
@@ -21,7 +22,7 @@ function wiz() {
 }
 
 describe('parsing ZdE / portée (engine/magic)', () => {
-  const caster = { characteristics: { 'force-mentale': 42, initiative: 30, sociabilite: 30, 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, agilite: 0, dexterite: 0, intelligence: 0 }, skills: [], talents: [], conditions: [], wounds: { current: 1, max: 1 }, advantage: 0, movement: 4, weapons: [], armour: {} } as never as Combatant;
+  const caster = blessuresSurLeProfil({ characteristics: { 'force-mentale': 42, initiative: 30, sociabilite: 30, 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, agilite: 0, dexterite: 0, intelligence: 0 }, skills: [], talents: [], conditions: [], wounds: blessuresDeBase(1), advantage: 0, movement: 4, weapons: [], armour: {} }) as never as Combatant;
   it('aire { diamètre (Bonus de FM) } → diamètre BFM, rayon en cases ⌊d/2/2⌋', () => {
     expect(zdeDiameterMeters({ kind: 'area', span: 'diameter', meters: { bonusOf: 'force-mentale' } }, caster)).toBe(4);
     expect(zdeRadiusTiles({ kind: 'area', span: 'diameter', meters: { bonusOf: 'force-mentale' } }, caster)).toBe(1);

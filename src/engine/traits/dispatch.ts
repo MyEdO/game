@@ -149,7 +149,7 @@ export function traitPassiveMods(traits: TraitsDesignes | undefined): PassiveMod
 }
 
 /** Somme des `charMod` du passif (Élite/Coriace/Brutal…) — pour la base de `effectiveChar` (`baseWithTraits`)
- *  et les Blessures (`withTraitChars`). Extrait du vocab d'ops unifié. */
+ *  et le profil du spawn (`withTraitChars`). Extrait du vocab d'ops unifié. */
 export function traitCharMods(traits: TraitsDesignes | undefined): Partial<Record<CharKey, number>> {
   const out: Partial<Record<CharKey, number>> = {};
   for (const m of traitPassiveMods(traits)) if (m.op.op === 'charMod') out[m.op.char] = (out[m.op.char] ?? 0) + m.op.mod;
@@ -170,11 +170,6 @@ export function traitCapability(traits: TraitsDesignes | undefined, cap: keyof T
   // peut annuler la capacité d'un AUTRE trait du même porteur — aucun code par-nom de discipline.
   if (list.some((t) => findTraitById(t.id)?.suppressesCapabilities?.includes(cap))) return false;
   return list.some((t) => !!findTraitById(t.id)?.capabilities?.[cap]);
-}
-
-/** Endurant (LDB 85 l.130) : +Bonus d'Endurance Blessures. */
-export function traitBonusWoundsBE(traits: TraitList | undefined): boolean {
-  return traitCapability(traits, 'bonusWoundsBE');
 }
 
 /** Mutation / Corruption mentale (LDB 85 l.92/245) : une entrée par INSTANCE à attacher au spawn. L'indice

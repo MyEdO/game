@@ -30,7 +30,7 @@ import { useStagePointer, type StagePointer } from './useStagePointer';
 import { setSpritePicker } from './spritePicker';
 import { SENSIBILITE_DRAG_DEG_PX, getStageYaw, poserYaw, resetStageYaw } from '../../state/stageYaw';
 import { getStagePan, resetStagePan } from '../../state/stagePan';
-import { blessuresDeBase } from '../../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -82,7 +82,7 @@ function areteDe(scene: Scene, controleur: Pt, cle: string): AreteUtilisable {
 
 /** Un héros à 12 de Mouvement : le saut de deux cases du banc ne demande pas de Test. */
 function heroSauteur(): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'hero',
     label: 'Héros',
     kind: 'hero',
@@ -107,7 +107,7 @@ function heroSauteur(): Combatant {
     skills: [],
     talents: [],
     movement: 12,
-  } as Combatant;
+  }) as Combatant;
 }
 
 function pointerEvent(x: number, y: number) {
@@ -934,11 +934,11 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
   });
 
   /** Meneur MINIMAL mais JOUABLE : le pointeur mesure son Mouvement (`pathOpts`) avant de planifier. */
-  const meneurJouable = (): Combatant => ({
-    id: 'h', label: 'H', kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [], movement: 4,
+  const meneurJouable = (): Combatant => (blessuresSurLeProfil({
+    id: 'h', label: 'H', kind: 'hero', wounds: blessuresDeBase(10), conditions: [], movement: 4,
     characteristics: { force: 30, endurance: 30, agilite: 30, initiative: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, 'capacite-de-combat': 30, 'capacite-de-tir': 30 },
     weapons: [], armour: {}, items: [], skills: [], talents: [],
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
   const pnjAssis = (id: string) => ({ kind: 'entity' as const, entityId: id });
 

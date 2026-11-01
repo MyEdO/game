@@ -16,6 +16,7 @@ import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { Prose } from './Prose';
 import { DocumentModal } from './DocumentModal';
+import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
 
@@ -63,7 +64,7 @@ describe('<Prose paquet> — le paquet suit le sosie désigné', () => {
     let rendus = 0;
     monter(<Profiler id="p" onRender={() => { rendus++; }}><Prose md="Kastor Lieberung" paquet /></Profiler>);
     const avant = rendus;
-    act(() => useGame.setState({ party: get().party.map((h) => ({ ...h, wounds: { ...h.wounds, current: h.wounds.current - 1 } })) }));
+    act(() => useGame.setState({ party: get().party.map((h) => (blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: h.wounds.current - 1 } }))) }));
     expect(rendus).toBe(avant);
   });
 });

@@ -2,10 +2,10 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { groundStateOf } from './groundPose';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 const mk = (over: Partial<Combatant>): Combatant =>
-  ({ id: 'c', name: 'C', kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [], ...over }) as unknown as Combatant;
+  (blessuresSurLeProfil({ id: 'c', name: 'C', kind: 'hero', wounds: blessuresDeBase(10), conditions: [], ...over })) as unknown as Combatant;
 
 describe('état au sol pour le rendu (groundStateOf)', () => {
   it('debout par défaut ; entité éparse (sans conditions) = debout', () => {

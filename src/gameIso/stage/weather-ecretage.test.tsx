@@ -12,6 +12,7 @@ import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';
 import { clearedSpace, massFootprintCells, massSpaceCells, shelterField, shelterSectionAt } from '../builders/roofs';
 import { cutawayForSection } from './architectureVisibility';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
 
 /**
  * ÉCRÊTAGE DE LA PLUIE AU CUTAWAY (#1247) — la précipitation s'arrête sous le couvert du PLAN
@@ -51,12 +52,12 @@ let conteneur: HTMLDivElement | null = null;
 brancherArdoise();
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
-    characteristics: {}, advantage: 0, conditions: [], armour: {},
+    wounds: blessuresDeBase(12), weapons: [],
+    characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 function scèneCouverte(): Scene {

@@ -9,6 +9,7 @@ import { RULE_REF } from '../engine/ruleRefs';
 import { testFlow } from '../noyau/monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * #1064 — le Soutien (LDB 12 l.187-200) est une DONNÉE du pending, pas un bonus fondu et muet : la
@@ -16,13 +17,13 @@ import type { Combatant } from '../engine/types';
  * valeur soutenue, et l'allègement de Difficulté (`FlowTest.easierIf`) POSE la raison qui l'a permis.
  * Sans ces champs, la modale n'a rien à afficher : c'est ici que le trou d'affichage se ferme.
  */
-const skilled = (id: string, pos: { x: number; y: number } | undefined, skillId = 'perception', advances = 1, chars: Partial<Record<string, number>> = {}): Combatant => ({
+const skilled = (id: string, pos: { x: number; y: number } | undefined, skillId = 'perception', advances = 1, chars: Partial<Record<string, number>> = {}): Combatant => (blessuresSurLeProfil({
   id, name: id, kind: 'hero', pos,
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, ...chars },
-  wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4,
+  wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
   skills: [{ id: skillId, characteristic: 'agilite', advances }], talents: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 const battleOf = (combatants: Combatant[], turn = 0) => ({ combatants, order: combatants.map((c) => c.id), turn, round: 1, log: [], acted: false, action: null, movementUsed: 0, over: null } as never);
 

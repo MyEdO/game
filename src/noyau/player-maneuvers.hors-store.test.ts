@@ -13,18 +13,19 @@ import { testScene } from '../scenes/test-fixture';
 import { findManeuverById } from '../data';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './etat';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, kind,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 20, max: 20 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(20), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], items: [], movement: 4, pos: { x, y }, ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const mkBattle = (combatants: Combatant[], over: Partial<BattleState> = {}): BattleState =>
   ({ combatants, acted: false, ...over }) as unknown as BattleState;
@@ -116,7 +117,7 @@ describe('manœuvres en combat (store)', () => {
     const E = enemies[0];
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 };
-    E.wounds = { current: 30, max: 30, base: 30 } as Combatant['wounds'];
+    E.wounds = blessuresDeBase(30, 30, E);
     E.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     const turn = b.order.indexOf(H.id);
     banc.setState({ battle: { ...b, turn, movementUsed: 0, acted: false } });
