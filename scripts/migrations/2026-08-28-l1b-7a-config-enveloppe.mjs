@@ -1,20 +1,19 @@
 /**
- * Migration #1467 L1b V-FLIP-CONFIG — les 27 documents que le lot passe en famille `config` (24 déjà
- * `config`, plus `localisation` re-étiqueté `record` → `config` ; `criticals`/`aa-criticals`, fondus en
- * une LISTE de documents par #1657 B2a, ne sont plus des racines-objet et sortent du lot)
- * reçoivent leur ENVELOPPE d'identité : `id`, `type`, `label`.
+ * Migration #1467 L1b V-FLIP-CONFIG — les 24 documents que le lot passe en famille `config` (23 déjà
+ * `config`, plus `localisation` re-étiqueté `record` → `config`) reçoivent leur ENVELOPPE
+ * d'identité : `id`, `type`, `label`.
  *
  * MOTIF : la fabrique `document()` (`src/data/schemas/grammaire/document.ts`) pose l'enveloppe sur
  * TOUT document ; un document de configuration est un document comme un autre — il porte son
  * identité, son type et son libellé, comme une entité. Les VALEURS de réglage ne bougent pas : la
  * migration n'ajoute que trois clés scalaires en TÊTE.
  *
- * CONVENTION DE POSITION (unique, appliquée aux 27 documents du lot) : `id`, `type`, `label` en tête
+ * CONVENTION DE POSITION (unique, appliquée aux 24 documents du lot) : `id`, `type`, `label` en tête
  * dans CET ordre, puis TOUTES les clés existantes dans leur ordre existant — une `source` de racine
  * garde donc exactement sa place. `water-exposure.json` porte déjà `id` et `label` : seul `type` lui
- * est INSÉRÉ, et l'ordre de tête s'harmonise sur les 26 autres.
+ * est INSÉRÉ, et l'ordre de tête s'harmonise sur les 23 autres.
  *
- * ENTRÉES : les 27 `src/data/*.json` nommés dans `IDENTITES` (les seules données lues et écrites).
+ * ENTRÉES : les 24 `src/data/*.json` nommés dans `IDENTITES` (les seules données lues et écrites).
  *
  * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : un document portant déjà les trois clés AUX BONNES VALEURS
  * est reconnu migré ; rejouée sur l'état final, la migration n'écrit rien et sort 0.
@@ -46,7 +45,6 @@ const IDENTITES = {
     type: 'progression-schemas.derived',
     label: 'Schémas de progression (relevé dérivé)',
   },
-  'renduMonte.json': { id: 'rendu-monte', type: 'renduMonte', label: 'Rendu du couple monté' },
   'river-navigation.json': { id: 'river-navigation', type: 'river-navigation', label: 'Navigation fluviale' },
   'river-perils.json': { id: 'river-perils', type: 'river-perils', label: 'Périls fluviaux' },
   'sea-cargo.json': { id: 'sea-cargo', type: 'sea-cargo', label: 'Cargaison maritime' },
