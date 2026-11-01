@@ -31,7 +31,7 @@ import { gabaritTint } from '../../ui/editor/lowerLayerGabarit';
 import { staticTexturePins } from '../backends/webgl/svgTexture';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { GameStage3D, setStageRendererFactory, type StageFrame, type StageWalkAnim } from './GameStage3D';
-import { BancRenderer, REF_DECOR_BILLBOARD, brancherArdoise, quads, rendus as rendusDe, respirer, simulerRasterisation, viderCaptures } from './banc-volumique';
+import { BancRenderer, refDecorBillboard, brancherArdoise, quads, rendus as rendusDe, respirer, simulerRasterisation, viderCaptures } from './banc-volumique';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -73,7 +73,7 @@ function scèneArène(): Scene {
     kind: 'prop',
     pos: { x: 3 + (i % 6) * 1, y: 3 + Math.floor(i / 6) * 2 },
     z: 0,
-    ref: REF_DECOR_BILLBOARD,
+    ref: refDecorBillboard(),
   })) as unknown as Scene['entities'];
   // Une CLOISON percée d'une porte en x = 7 : le groupe, posté au sud, ne voit du nord que le cône
   // qui passe par l'ouverture — et le pas qui s'en approche en DÉCOUVRE, ce qui est tout l'objet du

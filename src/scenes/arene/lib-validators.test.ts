@@ -38,8 +38,8 @@ describe('lib.mjs — validateurs id-only (id passe, libellé THROW)', () => {
     expect(() => NPC('t', 0, 0, 'Test', { appearance: { species: 'Humains (Reiklander)' } })).toThrow(/species/i);
   });
 
-  it('NPC : espèce jouable, créature, race de rendu et forme de corps passent ; une coquille → throw', () => {
-    for (const espece of ['halflings', 'rat-geant', 'skaven', 'araignee'])
+  it('NPC : espèce jouable, créature et race de rendu passent ; une coquille → throw', () => {
+    for (const espece of ['halflings', 'rat-geant', 'skaven', 'araignee-geante'])
       expect(NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { species: espece } }).appearance.species).toBe(espece);
     expect(() => NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { species: 'rat-geants' } })).toThrow(/species.*« rat-geants » inconnue/);
   });

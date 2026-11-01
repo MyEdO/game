@@ -746,7 +746,7 @@
       "page": 314
     },
     "appearance": {
-      "species": "araignee"
+      "species": "araignee-geante"
     },
     "grantGroups": [
       "bete"
@@ -5802,7 +5802,7 @@
       "page": 12
     },
     "appearance": {
-      "species": "araignee"
+      "species": "araignee-geante"
     },
     "harvest": {
       "rarity": "Limitée",
@@ -5908,7 +5908,7 @@
       "page": 13
     },
     "appearance": {
-      "species": "araignee"
+      "species": "araignee-geante"
     },
     "harvest": {
       "rarity": "Limitée",
@@ -8507,7 +8507,7 @@
     "title": null,
     "folder": "Zoo Impérial",
     "appearance": {
-      "species": "sangsue"
+      "species": "sangsue-geante"
     },
     "char": {
       "M": 3,
@@ -17781,7 +17781,7 @@
       "page": 146
     },
     "appearance": {
-      "species": "sangsue"
+      "species": "sangsue-geante"
     }
   },
   {
@@ -19814,7 +19814,7 @@
       "page": 86
     },
     "appearance": {
-      "species": "sangsue"
+      "species": "sangsue-geante"
     }
   },
   {
@@ -19915,7 +19915,7 @@
       "page": 86
     },
     "appearance": {
-      "species": "sangsue"
+      "species": "sangsue-geante"
     }
   },
   {

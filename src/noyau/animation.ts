@@ -14,11 +14,9 @@ import type { Maniement } from '../data/schemas/grammaire/valeurs';
 
 /** Rôles de combat : un clip chacun. */
 export const ROLES_DE_COMBAT = Object.freeze(['melee', 'ranged', 'cast', 'dodge', 'parry', 'hit', 'walk', 'idle'] as const);
-export type RoleDeCombat = (typeof ROLES_DE_COMBAT)[number];
 
 /** Rôles ambiants en boucle. */
 export const ROLES_AMBIANTS = Object.freeze(['feeding', 'praying', 'cowering', 'standing', 'howling'] as const);
-export type RoleAmbiant = (typeof ROLES_AMBIANTS)[number];
 
 /** Styles d'incantation. */
 export const STYLES_DE_SORT = Object.freeze(['bolt', 'blessing'] as const);

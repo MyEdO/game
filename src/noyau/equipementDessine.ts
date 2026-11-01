@@ -115,10 +115,6 @@ export function equipDe(weapons: Weapon[], armour: ItemInstance[], autres: { ran
   };
 }
 
-/** Arme PRINCIPALE : la première qui n'est pas un bouclier, celle que l'os `arme` DESSINE — d'où se
- *  dérivent aussi la prise et le geste par défaut. Un porteur de bouclier seul n'en a pas. */
-export const armePrincipale = (equip: EquipCtx): ArmeDeDessin | undefined => equip.weapons.find((w) => !w.bouclier);
-
 /** Pièces d'armure dessinées depuis les PA de statbloc par localisation — UNIQUEMENT si l'apparence
  *  DÉCLARE son armure de statbloc PORTÉE (`armurePortee`) [entériné 2026-07-22, #774 : « Les PA ne
  *  devrait pas impacté l'apparence, sauf si on le décide »]. Chaque pièce porte la matière de son palier

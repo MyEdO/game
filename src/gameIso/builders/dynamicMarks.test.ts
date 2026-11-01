@@ -280,7 +280,7 @@ describe('teamRings — la POPULATION des anneaux et leur gabarit (#1176 P3-0e)'
   });
 
   it('un FIGURANT porte l’anneau NEUTRE, à sa case — et à l’ancre de sa place quand il est assis', () => {
-    const ent = { id: 'pnj1', kind: 'personnage', pos: { x: 4, y: 2 } } as unknown as SceneEntity;
+    const ent: SceneEntity = { id: 'pnj1', kind: 'personnage', ref: 'humain', pos: { x: 4, y: 2 } };
     const figurant = (seat?: SeatPose): TokenEl => ({
       kind: 'token',
       key: `ent:${ent.id}`,

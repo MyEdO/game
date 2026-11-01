@@ -1057,7 +1057,8 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
     patchProfil({ char: Object.keys(char).length ? char : undefined });
   };
   /** Pose l'apparence suivante (retire `apparence` si elle redevient vide). */
-  const poserApparence = (next: EntityAppearance) => onPatch({ apparence: Object.keys(next).length ? next : undefined });
+  const poserApparence = (next: EntityAppearance) =>
+    onPatch({ apparence: Object.keys(next).length ? (next as PresetPnj['apparence']) : undefined });
   const [onglet, setOnglet] = useState<OngletDuPnj>('profil');
 
   return (

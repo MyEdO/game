@@ -337,7 +337,7 @@ export function quads(): THREE.Mesh[] {
  *  volumique se fond dans la géométrie cuite et ne pose aucun quad, un banc qui le sème mesurerait le
  *  vide. Sans lumière : une source posée par le décor entrerait dans l'éclairage, que ces bancs ne
  *  mesurent pas. */
-export const REF_DECOR_BILLBOARD = props.find((p) => !refEstVolumique(p.id) && !p.light)!.id;
+export const refDecorBillboard = (): string => props.find((p) => !refEstVolumique(p.id) && !p.light)!.id;
 
 /**
  * PLAFOND d'attente de ces bancs, déclaré UNE fois (#1442) — la borne haute que les attentes au fait

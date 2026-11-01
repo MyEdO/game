@@ -17,7 +17,6 @@ import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
-import { SPECIES_BODY_SHAPE } from '../../../engine/bodyForm';
 import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
@@ -846,10 +845,9 @@ export function messageDEspeceInconnue(id: string): string {
   return `espèce « ${id} » inconnue : ni espèce jouable, ni créature, ni race de rendu, ni forme de corps.`;
 }
 
-/** Espèce d'APPARENCE (`EntityAppearance.species`) : espèce jouable, créature, race de rendu, ou clé de
- *  `SPECIES_BODY_SHAPE` (LDB 76 l.15-29). */
+/** Espèce d'APPARENCE (`EntityAppearance.species`) : espèce jouable, créature ou race de rendu. */
 export const especeDApparenceSchema = z.union(
-  [idDe('species'), idDe('creature'), idDe('raceAppearance'), z.enum(Object.keys(SPECIES_BODY_SHAPE) as [string, ...string[]])],
+  [idDe('species'), idDe('creature'), idDe('raceAppearance')],
   { error: (iss) => messageDEspeceInconnue(String(iss.input)) },
 );
 

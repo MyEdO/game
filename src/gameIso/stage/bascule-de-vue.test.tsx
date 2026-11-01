@@ -37,7 +37,7 @@ import {
   brancherArdoise,
   canevas as canevasDe,
   quads,
-  REF_DECOR_BILLBOARD,
+  refDecorBillboard,
   simulerRasterisation,
   scènes,
   viderCaptures,
@@ -128,7 +128,7 @@ function scèneArène(): Scene {
     kind: 'prop',
     pos: { x: 3 + (i % 6) * 1, y: 3 + Math.floor(i / 6) * 2 },
     z: 0,
-    ref: REF_DECOR_BILLBOARD,
+    ref: refDecorBillboard(),
   })) as unknown as Scene['entities'];
   return { ...base, entities: props } as unknown as Scene;
 }

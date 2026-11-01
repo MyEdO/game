@@ -161,6 +161,7 @@ export function useInfobulle(options: OptionsInfobulle) {
   }, [annulerPont, poser]);
   const quitte = useCallback(() => {
     const v = vivant.current;
+    if (v.pointeur || v.focus) return;
     v.congediee = false;
     if (v.epinglee || !v.ouverte) return;
     annulerPont();
@@ -192,7 +193,7 @@ export function useInfobulle(options: OptionsInfobulle) {
         mouseover: (e, a) => {
           const v = vivant.current;
           if (dans(a, e.relatedTarget)) return;
-          if (!v.pointeur) v.congediee = false;
+          if (!v.pointeur && !v.focus) v.congediee = false;
           v.pointeur = true;
           entre(a);
         },
@@ -203,7 +204,7 @@ export function useInfobulle(options: OptionsInfobulle) {
         },
         focusin: (_e, a) => {
           const v = vivant.current;
-          if (!v.focus && !focusSansIntention()) v.congediee = false;
+          if (!v.focus && !v.pointeur && !focusSansIntention()) v.congediee = false;
           v.focus = true;
           if (!focusSansIntention()) entre(a);
         },
@@ -269,7 +270,10 @@ export function useInfobulle(options: OptionsInfobulle) {
       onBlur={(e) => {
         if (dans(boxRef.current, e.relatedTarget)) return;
         setFocusDedans(false);
-        if (!dans(ancre, e.relatedTarget)) vivant.current.focus = false;
+        if (!dans(ancre, e.relatedTarget)) {
+          vivant.current.focus = false;
+          quitte();
+        }
       }}
     >
       {contenu}

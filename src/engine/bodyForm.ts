@@ -14,18 +14,18 @@ export const SPECIES_BODY_SHAPE: Record<string, BodyShape> = {
   // humanoïde réétiqueté.
   basilic: 'quadrupede', blaireau: 'quadrupede', boeuf: 'quadrupede', carnosaure: 'quadrupede', 'chat-sauvage': 'quadrupede',
   cheval: 'quadrupede',
-  chien: 'quadrupede', cornu: 'quadrupede', crapaud: 'quadrupede', 'le-dechiqueteur-de-cadavres': 'quadrupede',
+  chien: 'quadrupede', cornu: 'quadrupede', 'le-dechiqueteur-de-cadavres': 'quadrupede',
   'grand-cerf': 'quadrupede', hydre: 'quadrupede', 'lion-de-guerre-de-chrace': 'quadrupede', loup: 'quadrupede',
   ours: 'quadrupede', 'rat-geant': 'quadrupede', 'rat-loup': 'quadrupede', sanglier: 'quadrupede',
   stegadon: 'quadrupede',
   // Ailés / oiseaux (LDB 76 l.17 : ailes = bras) — même mécanique que le quadrupède.
   chimere: 'oiseau', cockatrice: 'oiseau', dragon: 'oiseau', 'faucon-des-montagnes-grises': 'oiseau',
-  'grand-aigle': 'oiseau', griffon: 'oiseau', 'happeur-carnivore': 'oiseau', 'heomreth-hibou-geant': 'oiseau',
+  'grand-aigle': 'oiseau', griffon: 'oiseau', 'heomreth-hibou-geant': 'oiseau',
   hyppogriffe: 'oiseau', 'macareux-a-bec-tranchant': 'oiseau', manticore: 'oiseau', pegase: 'oiseau', pigeon: 'oiseau',
   poulet: 'oiseau', preyton: 'oiseau', 'chauve-souris-vampire-varghulf': 'oiseau',
   // Serpentins (LDB 76 l.25-29 : Tête / Corps) et arachnides (Tête / Pattes / Abdomen) — Localisations Alternatives.
-  sangsue: 'serpent', serpent: 'serpent', vers: 'serpent',
-  araignee: 'araignee',
+  'sangsue-geante': 'serpent', serpent: 'serpent', vers: 'serpent',
+  'araignee-geante': 'araignee',
 };
 
 /** Forme du corps d'une espèce (LDB 76 l.15-29) — défaut humanoïde. `undefined`/inconnue ⇒ humanoïde. */

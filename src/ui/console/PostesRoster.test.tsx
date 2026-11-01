@@ -89,16 +89,17 @@ describe('PostesRoster — une ligne par POSTE (maquette A)', () => {
     expect(banc(el).querySelectorAll('.ptile'), 'Gunnar n’est sur aucune ligne : il est au banc, pas escamoté').toHaveLength(1);
   });
 
-  it('3ter. le banc ne promet AUCUN geste : portraits décoratifs, pas de [+], rien à « retirer »', () => {
+  it('3ter. le banc porte les identités passives, sans geste d’affectation', () => {
     const poses: [string, string | null][] = [];
     const el = monter({ pinnedOf: () => undefined, onSet: (id, p) => poses.push([id, p]) });
     const tuiles = [...banc(el).querySelectorAll('.ptile')] as HTMLElement[];
     expect(tuiles).toHaveLength(2);
+    expect(tuiles.map((t) => t.getAttribute('aria-label'))).toEqual(['Hilda', 'Gunnar']);
+    expect(tuiles.map((t) => t.querySelector('.ptile-name')?.textContent)).toEqual(['Hilda', 'Gunnar']);
     for (const t of tuiles) {
-      // Ces personnes ne tiennent AUCUN poste : « retirer » ne retirerait rien. Une affordance qui
-      // ne change rien est morte — le portrait est un CONSTAT, pas un contrôle.
-      expect(t.tagName, 'décor, pas contrôle').toBe('SPAN');
-      expect(t.getAttribute('aria-label'), 'aucun nom ne promet un geste').toBeNull();
+      expect(t.tagName, 'identité passive').toBe('SPAN');
+      expect(t.tabIndex, 'la tuile passive n’entre pas dans les contrôles du clavier').toBe(-1);
+      act(() => t.click());
     }
     expect(banc(el).querySelector('.pr-add'), 'le banc n’offre aucun ajout').toBeNull();
     expect(banc(el).querySelector('button'), 'aucun bouton du tout sur la ligne de banc').toBeNull();

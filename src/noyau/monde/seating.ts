@@ -82,9 +82,6 @@ export interface ResolvedSeatSlot {
   approach: Pt;
 }
 
-/** Hauteur d'ASSISE au-dessus du sol (m) d'une place résolue — ce que la POSTURE consomme. */
-export const seatSitHeight = (s: Pick<ResolvedSeatSlot, 'anchor' | 'ground'>): number => s.anchor.h - s.ground;
-
 /** Une place résolue et son occupant. */
 export interface SeatPose extends ResolvedSeatSlot { occupant: SeatOccupant }
 

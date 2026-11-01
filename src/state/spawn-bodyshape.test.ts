@@ -30,11 +30,11 @@ describe('statblockToCombatant — bodyShape dérivée de l’espèce AUTHORÉE 
   it('espèce authorée non-humanoïde → table de localisation de CETTE espèce', () => {
     const sb = { type: 'statblock' as const, label: 'Bête sauvage', char: { B: 10 } };
     expect(statblockToCombatant(sb, 'x', { x: 0, y: 0 }, { species: 'loup' }).bodyShape).toBe('quadrupede');
-    expect(statblockToCombatant(sb, 'y', { x: 0, y: 0 }, { species: 'araignee' }).bodyShape).toBe('araignee');
+    expect(statblockToCombatant(sb, 'y', { x: 0, y: 0 }, { species: 'araignee-geante' }).bodyShape).toBe('araignee');
   });
 
   it('renommer le label ne change RIEN à la forme du corps (le label est de l’affichage)', () => {
-    const shapeArachnee = (label: string) => statblockToCombatant({ type: 'statblock', label, char: { B: 10 } }, 'z', { x: 0, y: 0 }, { species: 'araignee' }).bodyShape;
+    const shapeArachnee = (label: string) => statblockToCombatant({ type: 'statblock', label, char: { B: 10 } }, 'z', { x: 0, y: 0 }, { species: 'araignee-geante' }).bodyShape;
     expect(shapeArachnee('serpent')).toBe('araignee'); // label coïncidant avec un id de créature ≠ id
     expect(shapeArachnee('Grosse Araignée')).toBe('araignee');
   });
