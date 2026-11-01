@@ -167,7 +167,7 @@ status` ; le brief de relance porte l'état VÉRIFIÉ et dit « si le livrable e
   principal, `commande-piege` refuse toute attente en fond et au premier plan celle sans borne (#2603).
 
 **6. Vérification — par MOI, jamais sur la foi du rapport.** `npm run typecheck:fast` et `npm run
-test:perimetre` avant commit, revue du diff, UI → skill `recette-navigateur`.
+test:perimetre` avant commit, revue du diff, UI → tests DOM, sans recette ni capture (fiche `user-doctrine-recette-web-suspendue-migration-godot`).
 - **Effets à distance qu'un agent ne voit pas** : ses tests ciblés n'en disent rien, le brief exige la
   preuve.
   - Dataset ou champ retiré : rejouer chaque migration de `scripts/migrations/` qui le nomme (sortie 0,

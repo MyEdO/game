@@ -32,7 +32,7 @@ script au nom différent du doc est entre parenthèses.
 | « Qui remplit quelles zones de `RollShell` ? » | `docs/usages-jets.md` |
 | Question RAW | `docs/raw/00-index.md`, puis `Source/` pour **citer** |
 | Détail d'un livre source | `docs/sources-vf.md` |
-| Valider une UI au navigateur | `docs/recette-navigateur.md`, `docs/test-scenarios.md` |
+| Valider une UI au navigateur (suspendu : migration Godot) | fiche `user-doctrine-recette-web-suspendue-migration-godot` |
 | Jouer le noyau sans navigateur | `docs/hote-texte.md` (`docs:hote-texte`) |
 | Passif, corruption | `docs/systeme-passifs.md` (`docs:passifs`) |
 | Triggers / événements de combat | `docs/combat-events-coherence.md` |

@@ -1,9 +1,11 @@
 ---
 name: recette-navigateur
-description: À utiliser avant de valider TOUTE feature visible en jeu (UI, combat, IA, voyage) dans le navigateur — Playwright sur le serveur de dev de CET arbre (localhost:5173 sur l'arbre principal, port dérivé en worktree lié — scripts/port-dev.mjs) — ou quand un clic/survol/état ne répond pas comme attendu en recette. Obligatoire avant de déclarer une feature UI terminée.
+description: À utiliser avant de valider TOUTE feature visible en jeu (UI, combat, IA, voyage) dans le navigateur — Playwright sur le serveur de dev de CET arbre (localhost:5173 sur l'arbre principal, port dérivé en worktree lié — scripts/port-dev.mjs) — ou quand un clic/survol/état ne répond pas comme attendu en recette. Suspendue pendant la migration Godot : aucune recette de l'interface web.
 ---
 
 # Recette navigateur
+
+**Suspendue pendant la migration Godot** : aucune recette ni capture de l'interface web, fiche `.claude/memory/user-doctrine-recette-web-suspendue-migration-godot.md`.
 
 Lire **`docs/recette-navigateur.md`**. L'essentiel non négociable : piloter **COMME UN JOUEUR**
 (clavier `src/state/clavier/keybindings.ts` + clics réels d'abord ; `__wfrp` pour le setup/l'observation ;

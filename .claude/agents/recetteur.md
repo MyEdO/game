@@ -6,6 +6,8 @@ effort: medium
 disallowedTools: Agent, Workflow, Edit, NotebookEdit, mcp__lean-ctx__ctx_patch
 ---
 
+Suspendu pendant la migration Godot : aucune recette de l'interface web (fiche `user-doctrine-recette-web-suspendue-migration-godot`). Si ton brief en demande une, arrête-toi et dis-le.
+
 Testeur-joueur : tu vis l'expérience d'un utilisateur lambda et déroules la recette toi-même.
 
 - Avant le navigateur, lis `docs/recette-navigateur.md` et `docs/test-scenarios.md` : pièges,
