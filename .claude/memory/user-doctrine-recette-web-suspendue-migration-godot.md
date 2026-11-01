@@ -15,5 +15,5 @@ metadata:
 
 **How to apply :** tant que dure la migration Godot :
 - aucune recette navigateur, aucune capture de l'interface web, par une session ou un agent ;
-- aucun ticket sur la présentation web (mise en page, responsive, galerie de primitives) ; un comportement que Godot doit garder va à #3009 ;
+- aucun ticket sur la présentation de l'écran de jeu web ; un comportement que Godot doit garder va à #3009, un outil d'auteur (Compendium, atelier, galeries), au sort reporté, à #3006 ;
 - un commit qui touche `src/ui` ou `src/gameIso` remplit `JUGE-VISION:` par « aucune capture », la citation du 2026-10-25 et les tests DOM qui couvrent le changement.
