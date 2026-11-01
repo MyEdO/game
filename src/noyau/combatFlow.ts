@@ -7752,7 +7752,7 @@ export function collectHeroRoundStartPsych(get: Get, c: Combatant): HeroPsychDue
   // Traits psy CIBLÉS (Animosité/Haine/… — LDB 21) : re-test des actifs, puis nouveaux déclenchements.
   const visible = visibleFoesAndAllies(battle, scene, c);
   for (const p of state) {
-    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu')))
+    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu', c)))
       return { kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible: p.cible }; // affliction active à re-tester
   }
   const tt = targetedTrigger(c, visible);
