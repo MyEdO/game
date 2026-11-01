@@ -18,7 +18,8 @@
 //
 // TROISIÈME FORME, le KIT de test (`*.testkit.*`) : un module que seul l'OUTILLAGE de test importe —
 // suites, setup (`src/test-setup.ts`), fixtures (`scripts/test/fixtures/`). Il n'est pas joué (ni suite
-// ni banc), mais il n'est pas de la production : `estKitDeTest`, en UN exemplaire.
+// ni banc), mais il n'est pas de la production. `estKitDeTest` couvre ce kit et les recettes de preuve
+// GDScript sous `recettes/` (`RECETTE_DE_PREUVE`), instruments natifs hors production.
 //
 // La FORME du cliquet, jamais une liste de fichiers : le banc N+1 est couvert sans qu'on y revienne.
 
@@ -72,9 +73,12 @@ export const SUFFIXE_KIT = String.raw`\.testkit` + MOTIF_D_EXTENSION;
  *  une suite, pas un kit. */
 export const EST_KIT_DE_TEST = new RegExp(`${SUFFIXE_KIT}$`);
 
+/** Les recettes de preuve natives, rangées sous `recettes/`, sont des instruments GDScript. */
+const RECETTE_DE_PREUVE = /(?:^|\/)recettes\/.+\.gd$/;
+
 /**
- * Ce chemin (ou ce nom de fichier) désigne-t-il un KIT de test — ni joué, ni de la production ?
+ * Ce chemin désigne-t-il un kit de test ou une recette de preuve native, hors production ?
  * @param {string} rel chemin POSIX depuis la racine, ou nom nu.
  * @returns {boolean}
  */
-export const estKitDeTest = (rel) => EST_KIT_DE_TEST.test(rel);
+export const estKitDeTest = (rel) => EST_KIT_DE_TEST.test(rel) || RECETTE_DE_PREUVE.test(rel);

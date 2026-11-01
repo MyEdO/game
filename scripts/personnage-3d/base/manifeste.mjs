@@ -5,6 +5,7 @@
 //   `osAPositionAnimee` ;
 // - déclaré par le corps (`<declaration.json>`) : `base`, `porteur`, et les clips de marche ;
 // - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitessesAuSol`, une par clip de marche ;
+// - construit avant l'export (`domaineDuGabarit`, pont `gabarit.mjs`) : `gabarit.bornes` ;
 // - pris au GLB : `glb.sha256` et `glb.octets`.
 // `--licence-<pack>` nomme le texte de licence de chaque pack, lu dans le pack. `--verifier` juge la déclaration, le
 // dossier de sortie et les textes de licence sans rien lire ni écrire d'autre : la construction le joue avant Blender.
@@ -19,6 +20,7 @@ import { validerManifesteDeBase, VERSION_DU_SCHEMA_DE_BASE } from '../../../hote
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { lireDeclaration } from './declaration.mjs'
 import { ecrireProduction, SOURCES, verifierProduction } from './production.ts'
+import { selectionnerEnConstruction } from './selectionAppuis.mjs'
 
 /** Vitesse posée sur chaque clip de marche le temps de la mesure : `mesurerAppuis` (`appuis.ts`) ne la lit que pour
  *  juger l'écart et le glissement, jamais pour mesurer la vitesse au sol. */
@@ -56,6 +58,8 @@ async function main() {
   }
   const construit = JSON.parse(await text(process.stdin))
   const octets = readFileSync(cheminGlb)
+  construit.appuis.plusBas = await selectionnerEnConstruction(cheminGlb, construit)
+  console.log(`APPUIS_FINAL candidats=${construit.appuis.plusBas.length} octets=${Buffer.byteLength(JSON.stringify(construit.appuis.plusBas))}`)
   const manifeste = (vitessesAuSol) => ({
     schema: VERSION_DU_SCHEMA_DE_BASE, base, ...construit,
     porteur,

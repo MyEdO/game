@@ -3,8 +3,7 @@
  * (`hotes/godot/asset/importer.ts`, `dossierDeProduction.ts`). Chaque fichier a une source :
  * - le GLB, exporté par la construction (`humanoide.py`) ;
  * - `manifest.json` : `model` et `model_sha256` pris au GLB, `manifeste` le manifeste complet (`manifeste.mjs`),
- *   `packs_sources` le chemin, l'empreinte (`empreinteDeSource`) et la copie du texte de licence de chaque pack,
- *   `hors_release` la raison qui tient la base hors Release (#2948, arbitrages n°14 et n°19) ;
+ *   `packs_sources` le chemin, l'empreinte (`empreinteDeSource`) et la copie du texte de licence de chaque pack ;
  * - `LICENSE-<source>.txt` : la copie octet pour octet du texte de licence que la construction nomme pour chaque pack
  *   source, pris dans un dossier ancêtre de la source.
  * Le dossier reste hors de tout arbre de travail du dépôt et ne contient rien d'autre.
@@ -14,7 +13,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'nod
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs';
 import { depotDe, worktreesDe } from '../../guards/lib/gitPorte.mjs';
-import { chargerLicences, CLE_HORS_RELEASE, licenceDeclaree, MANIFESTE_DE_PRODUCTION } from '../../../hotes/godot/asset/dossierDeProduction.ts';
+import { chargerLicences, licenceDeclaree, MANIFESTE_DE_PRODUCTION } from '../../../hotes/godot/asset/dossierDeProduction.ts';
 import { sha256 } from '../../../hotes/godot/asset/empreinte.ts';
 import { tableTotale } from '../../../src/lib/tableTotale.ts';
 
@@ -25,9 +24,6 @@ type Source = keyof SourcesDeBase;
 /** Le texte de licence nommé pour chaque pack de `SourcesDeBase`. */
 type LicencesDeBase = SourcesDeBase;
 export const SOURCES: readonly Source[] = ['ual1', 'ual2', 'corps', 'corps-feminin', 'mpfb'];
-
-/** La raison qui tient une base de packs Quaternius et MakeHuman hors Release : #2948, arbitrages n°14 et n°19. */
-export const HORS_RELEASE_DE_BASE = "base d'essai construite de packs Quaternius (UAL, UBC) et MakeHuman (MPFB), jamais en Release (#2948, arbitrages n°14 et n°19)";
 
 const DEPOT = fileURLToPath(new URL('.', import.meta.url));
 const copieDeLicence = (source: Source): string => `LICENSE-${source}.txt`;
@@ -93,7 +89,7 @@ export function verifierProduction({ glb, sources, licences }: { glb: string; so
   if (!arbres) throw new ProductionRefusee(`[sortie] ${dossier} : arbres de travail du dépôt illisibles (git worktree list)`);
   const reel = cheminReel(dossier);
   const arbre = arbres.find((a) => contient(cheminReel(a.chemin), reel));
-  if (arbre) throw new ProductionRefusee(`[sortie-dans-le-depot] ${dossier} : dans l'arbre ${arbre.chemin} ; un dossier de production reste hors dépôt (#2948, arbitrages n°14 et n°19)`);
+  if (arbre) throw new ProductionRefusee(`[sortie-dans-le-depot] ${dossier} : dans l'arbre ${arbre.chemin} ; un dossier de production reste hors dépôt (#2948)`);
   const ecrits = new Set([basename(glb), MANIFESTE_DE_PRODUCTION, ...SOURCES.map(copieDeLicence)]);
   const etrangers = existsSync(dossier) ? readdirSync(dossier).filter((f) => !ecrits.has(f)).sort() : [];
   if (etrangers.length) throw new ProductionRefusee(`[sortie-etrangere] ${dossier} : ${etrangers.join(', ')} ; le dossier de production ne porte que ${[...ecrits].join(', ')}`);
@@ -121,7 +117,6 @@ export function ecrireProduction({ glb, manifeste, sources, licences }: { glb: s
     model_sha256: sha256(readFileSync(glb)),
     manifeste,
     packs_sources: tableTotale(SOURCES, (s) => ({ path: resolve(sources[s]), sha256: empreinteDeSource(s, sources[s]), licence: copieDeLicence(s) })),
-    [CLE_HORS_RELEASE]: HORS_RELEASE_DE_BASE,
   };
   const manifest = join(dossier, MANIFESTE_DE_PRODUCTION);
   ecrireTexteAtomique(manifest, `${JSON.stringify(production, null, 2)}\n`);

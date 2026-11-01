@@ -1,15 +1,16 @@
 /**
  * #3114, #3113, #3111 — ce que le SCHÉMA de `garde-robe.json` tient au parse : une pièce d'accessoire nomme son
- * emplacement et elle seule, un ensemble habille UNE chose sous l'id qui la nomme, toute référence
+ * emplacement et elle seule, un ensemble habille UNE chose qu'aucun autre n'habille, toute référence
  * interne (emplacement, pièces) résout dans sa sous-liste, une tête nomme sa race de rendu sous l'id de
- * cette race, une coiffure ne porte aucune clé de charge, les têtes sont celles des espèces jouables, et un
- * emblème porte un document SVG complet à `viewBox` carré.
+ * cette race et aucune autre ligne ne porte un id de race, une coiffure ne porte aucune clé de charge, les
+ * têtes sont celles des espèces jouables, et un emblème porte un document SVG complet à `viewBox` carré.
  */
 import { describe, expect, it } from 'vitest';
-import { schema } from './garde-robe';
+import { cleDHabille, schema, type HabilleDEnsemble } from './garde-robe';
 import gardeRobeJson from '../../garde-robe.json';
 import speciesJson from '../../species.json';
-import { findCoiffureById, findPieceById, findTeteById } from '../../index';
+import raceAppearanceJson from '../../raceAppearance.json';
+import { findCoiffureById, findEnsembleParHabille, findPieceById, findTeteById } from '../../index';
 
 type Entree = { id: string; [k: string]: unknown };
 const avec = (id: string, champs: Record<string, unknown>): Entree[] => {
@@ -50,12 +51,45 @@ describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensemble
     refus(avec('trapping-plastron', { habille: { id: 'plastron', type: 'trapping', apparence: 'plastron' } }));
   });
 
+  it('un `habille` de tenue résout dans la sous-liste `tenue` de la garde-robe, et elle seule', () => {
+    expect(refus(avec('tenue-uniforme-de-soldat', { habille: { id: 'robe-de-moine', type: 'tenue' } }))).toMatch(/« robe-de-moine » est hors de la sous-liste « tenue »/);
+    expect(refus(avec('tenue-uniforme-de-soldat', { habille: { id: 'casque', type: 'tenue' } }))).toMatch(/« casque » est hors de la sous-liste « tenue »/);
+  });
+
   it('un `habille` qui ne résout pas dans l’espace de son type est refusé', () => {
     expect(refus(avec('trapping-plastron', { habille: { id: 'cuirasse-de-mithril', type: 'trapping' } }))).toMatch(/« cuirasse-de-mithril » est absent du catalogue des objets/);
   });
 
-  it('un id d’ensemble non dérivé de son `habille` est refusé', () => {
-    expect(refus(avec('trapping-plastron', { id: 'cuirasse' }))).toMatch(/« cuirasse » doit s’appeler « trapping-plastron »/);
+  it('deux ensembles qui habillent la même chose sont refusés, quels que soient leurs ids', () => {
+    expect(refus(avec('trapping-plastron', { habille: { id: 'gants', type: 'trapping' } }))).toMatch(/les ensembles « trapping-plastron » et « trapping-gants » habillent tous deux \{ id: « gants », type: « trapping » \}/);
+    const r = schema.safeParse(avec('trapping-plastron', { id: 'cuirasse' }));
+    expect(r.success, r.success ? '' : r.error.issues.map((i) => i.message).join(' ')).toBe(true);
+  });
+
+  it('le doublon de `habille` se localise sur le `habille` du second ensemble', () => {
+    const doc = avec('trapping-plastron', { habille: { id: 'gants', type: 'trapping' } });
+    const second = Math.max(...['trapping-plastron', 'trapping-gants'].map((id) => doc.findIndex((e) => e.id === id)));
+    const r = schema.safeParse(doc);
+    const issue = r.success ? undefined : r.error.issues.find((i) => i.message.includes('habillent tous deux'));
+    expect(issue?.path).toEqual([second, 'habille']);
+  });
+
+  it('`cleDHabille` distingue deux couples `{ type, id }` distincts, et eux seuls', () => {
+    const couples: HabilleDEnsemble[] = [
+      { id: 'plastron', type: 'trapping' },
+      { id: 'plastron', type: 'apparence' },
+      { id: 'gants', type: 'trapping' },
+      { id: 'uniforme-de-soldat', type: 'tenue' },
+    ];
+    expect(new Set(couples.map(cleDHabille)).size).toBe(couples.length);
+    expect(cleDHabille({ id: 'plastron', type: 'trapping' })).toBe(cleDHabille(couples[0]));
+  });
+
+  it('`findEnsembleParHabille` résout tout ensemble par son `habille`, et rien d’un autre type au même id', () => {
+    for (const e of gardeRobeJson as Entree[]) {
+      if (e.kind === 'ensemble') expect(findEnsembleParHabille(e.habille as HabilleDEnsemble), e.id).toBe(e);
+    }
+    expect(findEnsembleParHabille({ id: 'uniforme-de-soldat', type: 'trapping' })).toBeUndefined();
   });
 
   it('une pièce inconnue dans un ensemble est refusée', () => {
@@ -94,6 +128,11 @@ describe('garde-robe.json — têtes, coiffures, emplacements, pièces, ensemble
   it('les têtes sont EXACTEMENT les espèces jouables, une par colonne d’apparence (`species.json › refChar`)', () => {
     const tetes = (gardeRobeJson as Entree[]).filter((e) => e.kind === 'tete').map((e) => e.id).sort();
     expect(tetes).toEqual([...new Set(speciesJson.map((s) => s.refChar))].sort());
+  });
+
+  it('un id de garde-robe autre qu’une tête n’est jamais un id de race (`raceAppearance.json`)', () => {
+    const races = new Set(raceAppearanceJson.map((r) => r.id));
+    expect((gardeRobeJson as Entree[]).filter((e) => e.kind !== 'tete' && races.has(e.id)).map((e) => `${e.id} (kind « ${String(e.kind)} »)`)).toEqual([]);
   });
 
   it('une clé de charge sur une tête ou une coiffure est refusée', () => {

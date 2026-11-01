@@ -1,16 +1,29 @@
 /**
- * LE MANIFESTE D'UNE BASE HUMANOÏDE (#2972, schéma 3) : son squelette, ses chaînes d'appendice, ses zones, ses
+ * LE MANIFESTE D'UNE BASE HUMANOÏDE (#2972, schéma 4) : son squelette, ses chaînes d'appendice, ses zones, ses
  * emplacements, ses prises, ses shape keys, la table du gabarit, son porteur de référence, ses appuis et ses os à
  * position animée, validés contre le GLB livré (`lireGlb`, `glb.ts`).
  */
 import { estObjet } from '../../../src/hote/formes.ts';
+import { tableTotale } from '../../../src/lib/tableTotale.ts';
 import { sha256 } from './empreinte.ts';
 import { lireGlb } from './glb.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 
-export const VERSION_DU_SCHEMA_DE_BASE = 3;
+export const VERSION_DU_SCHEMA_DE_BASE = 4;
+
+export const CLES_DU_GABARIT = ['legs', 'arms', 'head'] as const;
+export const PREFIXE_DES_CLES_DU_GABARIT = 'gabarit_';
+
+export type BornesDuGabarit = Readonly<Record<typeof CLES_DU_GABARIT[number], { readonly min: number; readonly max: number }>>;
+
+export function fauteDeBornesDuGabarit({ min, max }: BornesDuGabarit[typeof CLES_DU_GABARIT[number]]): string | undefined {
+  return Number.isFinite(min) && Number.isFinite(max) && min > 0 && min <= 1 && max >= 1
+    ? undefined
+    : `bornes ${min} et ${max} : 0 < min <= 1 <= max attendu`;
+}
 
 export interface TableDeGabarit {
+  readonly bornes: BornesDuGabarit;
   readonly legs: readonly string[];
   readonly arms: readonly string[];
   readonly head: readonly string[];
@@ -30,7 +43,14 @@ export interface PorteurDeReference {
 /** Les os des pieds et les clips de marche, chacun avec sa vitesse au sol en m/s à la taille de construction. */
 export interface Appuis {
   readonly pieds: readonly string[];
+  readonly plusBas: readonly CandidatDAppui[];
   readonly vitessesAuSol: Readonly<Record<string, number>>;
+}
+
+export interface CandidatDAppui {
+  readonly position: readonly [number, number, number];
+  readonly os: readonly { readonly nom: string; readonly poids: number }[];
+  readonly deltas: Readonly<Record<string, readonly [number, number, number]>>;
 }
 
 export interface ManifesteDeBase {
@@ -72,7 +92,7 @@ export type VerdictDeBase = { readonly ok: true; readonly manifeste: ManifesteDe
 
 type Brut = Record<string, unknown>;
 
-/** La réduction de `brut` au schéma 3, ou ses écarts de forme. */
+/** La réduction de `brut` au schéma 4, ou ses écarts de forme. */
 function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeBase[] } {
   const ecarts: EcartDeBase[] = [];
   const forme = (ou: string, detail: string) => ecarts.push({ code: 'forme', ou, detail });
@@ -122,22 +142,71 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
     else prises[cle] = attache(prisesBrutes[cle], `prises.${cle}`) ?? undefined;
   }
   const silhouettes = liste(brut.silhouettes, 'silhouettes');
+  for (const nom of silhouettes) if (nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT)) forme('silhouettes', `${nom} est une clé de gabarit, pas une silhouette`);
   const g = objet(brut.gabarit, 'gabarit');
   const st = objet(g.st, 'gabarit.st');
+  const b = objet(g.bornes, 'gabarit.bornes');
+  for (const cle of Object.keys(b)) if (!(CLES_DU_GABARIT as readonly string[]).includes(cle)) forme(`gabarit.bornes.${cle}`, 'champ inconnu');
+  const bornes = tableTotale(CLES_DU_GABARIT, (cle) => {
+    const ou = `gabarit.bornes.${cle}`;
+    const plage = b[cle];
+    if (!estObjet(plage)) {
+      forme(ou, 'objet attendu');
+      return { min: 1, max: 1 };
+    }
+    const min = typeof plage.min === 'number' ? plage.min : 0;
+    const max = typeof plage.max === 'number' ? plage.max : 0;
+    if (typeof plage.min !== 'number' || !Number.isFinite(min) || typeof plage.max !== 'number' || !Number.isFinite(max)) {
+      forme(ou, 'min et max : nombres finis attendus');
+    } else {
+      const faute = fauteDeBornesDuGabarit({ min, max });
+      if (faute) forme(ou, faute);
+    }
+    return { min, max };
+  });
   const gabarit: TableDeGabarit = {
+    bornes,
     legs: liste(g.legs, 'gabarit.legs'), arms: liste(g.arms, 'gabarit.arms'), head: liste(g.head, 'gabarit.head'),
     racine: chaine(g.racine, 'gabarit.racine'),
     st: { min: nombre(st.min, 'gabarit.st.min'), max: nombre(st.max, 'gabarit.st.max') },
   };
   if (estObjet(brut.gabarit) && estObjet(g.st) && !(gabarit.st.min < 1 && gabarit.st.max > 1)) forme('gabarit.st', `bornes ${gabarit.st.min} et ${gabarit.st.max} : min < 1 < max attendu`);
+  const clesParOs = new Map<string, string>();
+  for (const cle of CLES_DU_GABARIT) {
+    for (const nom of gabarit[cle]) {
+      const precedente = clesParOs.get(nom);
+      if (precedente !== undefined && precedente !== cle) forme(`gabarit.${cle}`, `${nom} figure sous ${precedente} et ${cle}`);
+      clesParOs.set(nom, cle);
+    }
+  }
   const p = objet(brut.porteur, 'porteur');
   const porteur: PorteurDeReference = { race: id(p.race, 'porteur.race'), gabarit: id(p.gabarit, 'porteur.gabarit'), taille: id(p.taille, 'porteur.taille'), echelleDArt: positif(p.echelleDArt, 'porteur.echelleDArt') };
   const a = objet(brut.appuis, 'appuis');
   const vitesses = objet(a.vitessesAuSol, 'appuis.vitessesAuSol');
   if (!Object.keys(vitesses).length) forme('appuis.vitessesAuSol', 'au moins un clip attendu');
-  for (const cle of Object.keys(a)) if (!['pieds', 'vitessesAuSol'].includes(cle)) forme(`appuis.${cle}`, 'champ inconnu');
+  for (const cle of Object.keys(a)) if (!['pieds', 'plusBas', 'vitessesAuSol'].includes(cle)) forme(`appuis.${cle}`, 'champ inconnu');
+  const triplet = (v: unknown, ou: string): readonly [number, number, number] => {
+    if (!estTriplet(v) || !v.every(Number.isFinite)) { forme(ou, 'triplet de nombres finis attendu'); return [0, 0, 0]; }
+    return v;
+  };
+  if (!Array.isArray(a.plusBas) || !a.plusBas.length) forme('appuis.plusBas', 'liste non vide de candidats attendue');
+  const plusBas: CandidatDAppui[] = (Array.isArray(a.plusBas) ? a.plusBas : []).map((v: unknown, i: number) => {
+    const ou = `appuis.plusBas.${i}`, c = objet(v, ou);
+    for (const cle of Object.keys(c)) if (!['position', 'os', 'deltas'].includes(cle)) forme(`${ou}.${cle}`, 'champ inconnu');
+    if (!Array.isArray(c.os) || !c.os.length || c.os.length > 4) forme(`${ou}.os`, 'une à quatre influences attendues');
+    const influences = (Array.isArray(c.os) ? c.os : []).map((v: unknown, j: number) => {
+      const chemin = `${ou}.os.${j}`, influence = objet(v, chemin);
+      for (const cle of Object.keys(influence)) if (!['nom', 'poids'].includes(cle)) forme(`${chemin}.${cle}`, 'champ inconnu');
+      return { nom: id(influence.nom, `${chemin}.nom`), poids: positif(influence.poids, `${chemin}.poids`) };
+    });
+    if (Math.abs(influences.reduce((s, p) => s + p.poids, 0) - 1) > 1e-6) forme(`${ou}.os`, 'somme des poids égale à 1 attendue');
+    if (new Set(influences.map((p) => p.nom)).size !== influences.length) forme(`${ou}.os`, 'os distincts attendus');
+    const deltas = Object.fromEntries(Object.entries(objet(c.deltas, `${ou}.deltas`)).map(([nom, delta]) => [nom, triplet(delta, `${ou}.deltas.${nom}`)]));
+    return { position: triplet(c.position, `${ou}.position`), os: influences, deltas };
+  });
   const appuis: Appuis = {
     pieds: liste(a.pieds, 'appuis.pieds'),
+    plusBas,
     vitessesAuSol: Object.fromEntries(Object.entries(vitesses).map(([clip, vitesse]) => [clip, positif(vitesse, `appuis.vitessesAuSol.${clip}`)])),
   };
   if (estObjet(brut.appuis) && estListeDeChaines(a.pieds) && !appuis.pieds.length) forme('appuis.pieds', 'au moins un pied attendu');
@@ -148,7 +217,7 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, chaines, zones, emplacements, prises: { main: prises.main, off: prises.off }, silhouettes, gabarit, porteur, appuis, osAPositionAnimee, glb: empreinte } };
 }
 
-/** Le manifeste `brut` réduit au schéma 3 et validé contre le GLB de la base `octets`. */
+/** Le manifeste `brut` réduit au schéma 4 et validé contre le GLB de la base `octets`. */
 export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): VerdictDeBase {
   const { manifeste: m, ecarts } = reduire(brut);
   if (!m) return { ok: false, ecarts };
@@ -159,8 +228,9 @@ export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): Verdi
   m.os.forEach((o, i) => { if (!contenu.os.has(o)) refus('os-inconnu', `os.${i}`, `${o} n’est pas un os du GLB`); });
   const osNommes: [string, string][] = [
     ['gabarit.racine', m.gabarit.racine],
-    ...(['legs', 'arms', 'head'] as const).flatMap((cle) => m.gabarit[cle].map((o, i): [string, string] => [`gabarit.${cle}.${i}`, o])),
+    ...CLES_DU_GABARIT.flatMap((cle) => m.gabarit[cle].map((o, i): [string, string] => [`gabarit.${cle}.${i}`, o])),
     ...m.appuis.pieds.map((o, i): [string, string] => [`appuis.pieds.${i}`, o]),
+    ...m.appuis.plusBas.flatMap((c, i) => c.os.map((o, j): [string, string] => [`appuis.plusBas.${i}.os.${j}.nom`, o.nom])),
     ...m.osAPositionAnimee.map((o, i): [string, string] => [`osAPositionAnimee.${i}`, o]),
   ];
   for (const [ou, o] of osNommes) if (!declares.has(o)) refus('os-inconnu', ou, `${o} n’est pas un os déclaré`);
@@ -169,6 +239,9 @@ export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): Verdi
   for (const [id, e] of Object.entries(m.emplacements)) if (!declares.has(e.os) || !contenu.os.has(e.os)) refus('emplacement-sur-os-absent', `emplacements.${id}.os`, e.os);
   for (const cle of ['main', 'off'] as const) if (!declares.has(m.prises[cle].os) || !contenu.os.has(m.prises[cle].os)) refus('prise-absente', `prises.${cle}.os`, `${m.prises[cle].os} n’est pas un os de la base`);
   for (const s of m.silhouettes) if (!contenu.formes.has(s)) refus('silhouette-absente', 'silhouettes', `${s} n’est pas une shape key du GLB`);
+  for (const [i, c] of m.appuis.plusBas.entries()) for (const nom of Object.keys(c.deltas)) {
+    if (!contenu.formes.has(nom) || (!m.silhouettes.includes(nom) && !nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT))) refus('forme', `appuis.plusBas.${i}.deltas.${nom}`, 'clé absente ou hors silhouettes et gabarit');
+  }
   const somme = sha256(octets);
   if (m.glb.sha256 !== somme || m.glb.octets !== octets.byteLength) refus('glb-different', 'glb', `GLB de ${octets.byteLength} octets, SHA-256 ${somme} ; déclaré ${m.glb.octets} octets, ${m.glb.sha256}`);
   return ecarts.length ? { ok: false, ecarts } : { ok: true, manifeste: m };

@@ -1,13 +1,11 @@
 import fs from 'node:fs'
 import { join, resolve, isAbsolute, basename, extname, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createRequire } from 'node:module'
 import { spawnSync } from 'node:child_process'
 import { setTimeout as pause } from 'node:timers/promises'
 import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneControleur, lirePolitique, annexeDe, refusSession, rejouer, BORNES_DE_REJEU, DELAI_FERMETURE_MS } from './session-runtime.mjs'
 import { preflightSessionStart } from './session-start.mjs'
-import { verifierVersionCodex } from './session-version.mjs'
-import { verifierProtocoleCodex } from './session-codex.mjs'
+import { choisirCodex, codexDuPaquet, planifierMiseAJourCodex, TRIPLES_CODEX } from './session-version.mjs'
 import { prefixeDeRefus, CATEGORIES_DE_REFUS } from '../guards/lib/categorieDeRefus.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
@@ -73,16 +71,9 @@ export function profilTerminal({ chemin, nom } = {}) {
   return { nom: profil.guid ?? profil.name, closeOnExit: fermeture, chemin: existants[0] }
 }
 
-const TRIPLES_CODEX = { x64: 'x86_64-pc-windows-msvc', arm64: 'aarch64-pc-windows-msvc' }
 const estFichier = (chemin) => { try { return fs.statSync(chemin).isFile() } catch { return false } }
 
-function codexDuShim(shim, arch) {
-  const paquet = join(dirname(shim), 'node_modules', '@openai', 'codex')
-  let vendor
-  try { vendor = join(dirname(createRequire(join(paquet, 'package.json')).resolve(`@openai/codex-win32-${arch}/package.json`)), 'vendor') }
-  catch { vendor = join(paquet, 'vendor') }
-  return join(vendor, TRIPLES_CODEX[arch], 'bin', 'codex.exe')
-}
+const codexDuShim = (shim, arch) => codexDuPaquet(join(dirname(shim), 'node_modules', '@openai', 'codex'), arch)
 
 export function executableNatif(agent, explicite, executer = spawnSync, { arch = process.arch } = {}) {
   if (explicite) { if (!isAbsolute(explicite) || extname(explicite).toLowerCase() !== '.exe' || !fs.existsSync(explicite) || !fs.statSync(explicite).isFile()) refuser('AGENT NATIF ABSENT : fichier .exe absolu requis'); return explicite }
@@ -104,8 +95,6 @@ export function verifierContratAgent(agent, executable, { executer = spawnSync, 
     if (vu.error || vu.status !== 0) refuser(`CONTRAT CLI INCOMPATIBLE : ${agent} ${args.join(' ')} — ${vu.error?.message ?? vu.stderr ?? vu.status}`)
     return `${vu.stdout ?? ''}\n${vu.stderr ?? ''}`
   }
-  const version = aide(['--version'])
-  if (!new RegExp(agent, 'i').test(version)) refuser(`CONTRAT CLI INCOMPATIBLE : version ${agent} non reconnue`)
   const general = aide(['--help'])
   if (agent === 'claude') { if (!/prompt/i.test(general)) refuser('CONTRAT CLI INCOMPATIBLE : prompt Claude absent'); return }
   const app = aide(['app-server', '--help'])
@@ -122,7 +111,7 @@ export function argsTerminal({ profil, nom, worktree, script, node, commande, se
   return ['-w', '0', 'new-tab', '--profile', optionWT(profil), '--title', optionWT(nom), '--suppressApplicationTitle', '--startingDirectory', optionWT(worktree), 'powershell.exe', '-NoLogo', '-NoProfile', '-EncodedCommand', Buffer.from(expression, 'utf16le').toString('base64')]
 }
 
-export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, contrat = verifierContratAgent, version = verifierVersionCodex, protocole = verifierProtocoleCodex, executer = spawnSync, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env, preflight = preflightSessionStart, horloge = Date.now, dormir = pause } = {}) {
+export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, contrat = verifierContratAgent, choisir = (globale, executer) => choisirCodex({ globale, executer }), miseAJour = (meilleure, environnement) => planifierMiseAJourCodex({ meilleure, env: environnement }), executer = spawnSync, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env, preflight = preflightSessionStart, horloge = Date.now, dormir = pause } = {}) {
   const options = normaliserLancement(entree, cwd)
   if (options.worktree && !fs.existsSync(options.worktree)) refuser(`WORKTREE ABSENT : ${options.worktree}`)
   const c = contexte(options.worktree ?? cwd)
@@ -131,8 +120,14 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
   const environnementPreflight = envAgent(env)
   delete environnementPreflight.WFRP_SESSION_START
   const executerPreflight = (fichier, args, parametres) => executer(fichier, args, { ...parametres, env: environnementPreflight })
-  const executable = natif(options.agent, options.executable, executerPreflight)
-  if (options.agent === 'codex') { await version(executable, { executer: executerPreflight }); protocole({ executable, executer: executerPreflight }) }
+  let executable
+  if (options.agent === 'codex' && !options.executable) {
+    let choisie = null
+    try { choisie = choisir(() => natif('codex', undefined, executerPreflight), executerPreflight) }
+    catch (e) { e.message += ' ; aucune version Codex en cache : mise à jour planifiée en tâche détachée, relancer après son installation'; throw e }
+    finally { miseAJour(choisie?.version ?? null, environnementPreflight) }
+    executable = choisie.executable
+  } else executable = natif(options.agent, options.executable, executerPreflight)
   contrat(options.agent, executable, { env: environnementPreflight, executer: executerPreflight })
   const hooks = await preflight(c.worktree, options.agent)
   planAgent({ ...c, agent: options.agent }, { natif: executable, consigne: texte, rapport: 'rapport', schema: 'schema', politique: lirePolitique() })

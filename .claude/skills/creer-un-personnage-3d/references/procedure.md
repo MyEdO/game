@@ -57,15 +57,15 @@ clips de marche), la vitesse au sol de chaque clip de marche mesurée par l'éva
 l'empreinte du GLB. Le manifeste refusé par `validerManifesteDeBase` fait échouer la construction.
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
-`packs_sources`, `hors_release`) et `LICENSE-ual1.txt`, `LICENSE-ual2.txt`, `LICENSE-corps.txt`,
+`packs_sources`) et `LICENSE-ual1.txt`, `LICENSE-ual2.txt`, `LICENSE-corps.txt`,
 `LICENSE-corps-feminin.txt`, `LICENSE-mpfb.txt`, copies des textes de licence des packs ; `packs_sources.<pack>` porte le
 chemin, l'empreinte (d'un fichier, ses octets ; d'un dossier comme `data` de MPFB, la liste triée « chemin relatif,
 SHA-256 » de ses fichiers) et la
 copie de licence (`licence`) de chaque pack, que la provenance garde par pack sous le nom du texte
-déposé. Il s'importe tel quel, sans publication (section 6) :
+déposé. La base s'importe et se publie telle quelle (section 6) :
 
 ```sh
-node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier
+node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles
 ```
 
 L'élément se valide et s'évalue ensuite contre `/atelier/modeles/humanoide.manifeste.json` et
@@ -108,8 +108,10 @@ Les catégories corps, tête, pilosité, vêtement, armure, accessoire et trait 
 peau < dessous < tenue < armure < manteau. L'armure impose armure. Les trois autres catégories
 n'ont ni couche ni couverture. `couvre` est requis pour les éléments skinnés, optionnel pour un
 accessoire ; ses ids viennent des zones de la base. Une couverture déclarée reste à mesurer.
-Seul un vêtement peut ajouter/déplacer des emplacements ; chaînes et silhouettes optionnelles
-doivent exister dans la base. La liaison de manifeste ne contient que son mode.
+Seuls un vêtement et une armure peuvent ajouter/déplacer des emplacements, ids d'emplacement de
+`src/data/garde-robe.json` (`emplacement-inconnu` sinon) ; un accessoire dont l'emplacement n'est
+offert ni par sa base ni par une pièce de cette base va au rapport de l'index (`emplacement-non-offert`,
+`hotes/godot/asset/modeles.ts`) : il s'importe et se publie, mais l'atelier ne le sert à aucun point. Chaînes et silhouettes optionnelles doivent exister dans la base. La liaison de manifeste ne contient que son mode.
 
 Une tête porte aussi la shape key visage_inverse pour le faceFlip résolu. Vérifier sa présence
 dans le GLB ; ne la déclarer parmi les silhouettes qu'avec une base qui la connaît. Si la base
@@ -411,7 +413,7 @@ L'import refuse `[pack-source-mal-forme]` un `packs_sources` ou une entrée qui 
 Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé. Une production sans
 composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 
-Importer la base avant ses éléments, dans la même destination :
+Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais).
 
 ```sh
 node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier
@@ -432,7 +434,8 @@ refuse `[id-deja-present]`.
 L'import retrouve la base par son champ `base` dans les `*.manifeste.json` de la destination,
 indépendamment du nom de fichier. Il exige son GLB local et sa provenance épinglée :
 `base-absente`, `glb-de-base-absent` ou `provenance-de-base-differente` nomment un manque ou un
-écart. Deux bases de même identité reçoivent `base-en-doublon` ; deux éléments de même
+écart ; `base-hors-release` refuse une base épinglée dont la provenance porte `hors_release`
+(dépôt d'avant #3184) : réimporter la base avec `--remplacer`. Deux bases de même identité reçoivent `base-en-doublon` ; deux éléments de même
 `(base, cle)` reçoivent `cle-en-doublon`, même avec un autre nom de fichier ou une autre catégorie.
 
 Tous les refus précèdent publication et écriture ; la CLI sort en 1 (usage incorrect : 2).
@@ -440,9 +443,10 @@ Un succès sort en 0, dépose `<id>.manifeste.json`, `<id>.provenance.json`, les
 schéma 3, `<id>.glb` local. `--sans-publier` conserve ces dépôts locaux sans appeler la Release.
 Sans ce drapeau, le GLB et l'éventuel `.blend` sont versés sous leur empreinte dans la Release
 `modeles-3d` avant les écritures locales. La destination par défaut est `hotes/godot/projet/modeles`.
-Une production dont `manifest.json` porte `hors_release` (une raison non vide, ainsi la base
-construite de packs Quaternius) est refusée `[hors-release]` sans `--sans-publier`. Un élément dont la
-base déposée est hors Release en hérite : même refus, et sa provenance porte `hors_release` (`base <id> : <raison>`).
+Une base est publiable : la clé `hors_release` dans son `manifest.json` est refusée
+`[base-hors-release]`, avec ou sans `--sans-publier`. Seul un élément d'essai dont le propre
+`manifest.json` porte `hors_release` (une raison non vide) est hors Release : il est refusé
+`[hors-release]` sans `--sans-publier`, et sa provenance porte sa raison déclarée.
 
 Ce contrôle d'import ne prouve pas le montage L4 ni les mesures géométriques de l'évaluateur.
 La validation des clés par le noyau et le rapport de couverture appartiennent à L3b, après T3.

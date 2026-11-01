@@ -261,9 +261,9 @@ export const ECRIT_LU = {
       'session-start.mjs importe compat-cli.mjs ; le préflight charge registre.mjs dynamiquement via chargerRegistres, jamais runCompat ni atomicWrite ; session-start.test.mjs importe directement bootstrap-conteneur.mjs ; ' +
       'les CLI réellement lancés par session-start.test.mjs sont inject-project-credo.mjs et bootstrap-conteneur.mjs, avec cwd, CLAUDE_PROJECT_DIR et chemin de reçu dans la fixture temporaire ; CLAUDE_CODE_REMOTE=false ferme bootstrap avant tout prérequis ; seul le reçu natif valide est écrit dans la fixture, son absence hors ops et après panne étant éprouvée ; ' +
       'session-runtime.mjs écrit cartes, bootstrap, demande d’arrêt et temporaires dans le registre machine .git/sessions ; session.test.mjs lui injecte uniquement des dossiers mkdtempSync sous os.tmpdir(), supprimés en after ; ' +
-      'session-codex.mjs écrit son journal JSONL et stderr dans le dossier de registre injecté ; session-codex.test.mjs injecte seulement des mkdtempSync sous os.tmpdir(), y écrit les doubles app-server et y retire les fixtures après exit des enfants ; le contrôle du protocole génère ses schémas sous un mkdtempSync de os.tmpdir(), retiré en finally ; ' +
+      'session-codex.mjs écrit son journal JSONL et stderr dans le dossier de registre injecté ; session-codex.test.mjs injecte seulement des mkdtempSync sous os.tmpdir(), y écrit les doubles app-server et y retire les fixtures après exit des enfants ; ' +
       'session-train.test.mjs écrit ses scripts Node et PowerShell, requêtes, réponses, certificats, marqueurs JSON et journal dans ses mkdtempSync sous os.tmpdir(), retirés en finally ou t.after après la fin des processus ; le cwd réel et processusJob.cs sont seulement lus ; ' +
-      'session-version.mjs et son banc vérifient version et registre sans écriture fs ; session-harnais.test.mjs lit les hooks réels sous .claude/skills/harnais/ et les exécute avec ses interfaces injectées, sans écrire ce dossier ; ' +
+      'session-version.mjs installe Codex côte à côte sous ~/.cache/wfrp-codex, hors de l’arbre, en tâche détachée ; son banc injecte dossier de versions, registre, npm-cli.js et lanceur ; ses versions, verrous, journal, npm-cli.js factice, pilote et préchargement sans réseau de l’entrée CLI s’écrivent dans un mkdtempSync sous os.tmpdir(), retiré par t.after après l’arrêt des enfants ; session-harnais.test.mjs lit les hooks réels sous .claude/skills/harnais/ et les exécute avec ses interfaces injectées, sans écrire ce dossier ; ' +
       'session.test.mjs importe repartition.mjs pour surfaceDe et projeter, fonctions pures sans lecture ni écriture fs ; ses mkdirSync et appendFileSync de traces sont fermés dans executer(registre), que ce banc n’appelle pas ; aucune lecture ni écriture de trace n’est atteinte par ce chemin ; ' +
       'son JobHost Windows ne lance au banc que des enfants Node neutres sous ces dossiers temporaires, jamais Windows Terminal ni un agent ; le lancement WT et l’inventaire sont injectés, et lancerAgent ne lance au banc que des enfants Node neutres sous os.tmpdir() ; ' +
       'fraicheur-docs.mjs ne reçoit des bancs chantier que leurs dépôts jetables sous os.tmpdir(), ou un copierDocs injecté ; aucun ledger du principal réel n’est écrit ; ' +
@@ -451,7 +451,8 @@ export const ECRIT_LU = {
     },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
     raison:
-      '`godot --headless --import` puis `--check-only` de chaque script (hotes/godot/construire.mjs, #2928, plan M-f) sur ' +
+      '`godot --headless --import`, `--check-only` de chaque script puis exécution des recettes sous `recettes/` ' +
+      'déclarant `const RECETTE_AUTONOME := true` (hotes/godot/construire.mjs, #2928, plan M-f), sur ' +
       'une COPIE du projet sous `os.tmpdir()`, que la sonde efface : l’import n’écrit pas `hotes/godot/projet/.godot/` ; ' +
       'le binaire épinglé vit hors de l’arbre (`~/.cache/wfrp-godot/`, ou `GODOT`) ; LIT hotes/ (le projet et son ' +
       'constructeur), scripts/ (`listerDossier`, l’entrée d’hôte et le greffon de prose), les zones du noyau chargées ' +

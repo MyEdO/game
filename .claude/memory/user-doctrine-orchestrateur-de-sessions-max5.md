@@ -27,4 +27,8 @@ metadata:
 
 **Choix (2026-10-25)** : « Juge Claude + moi »
 
-**How to apply :** l'orchestrateur ne fait jamais le travail d'un chantier : il attribue et relaie. Au plus 2 sessions Claude exécutantes ; les sessions Codex passent par le pont 0.164, à l'effectif de l'annexe `codex.md` du skill `orchestrer-des-agents`. Une session NEUVE par ticket, à consigne courte, fermée une fois le ticket publié, sauf si le ticket suivant retravaille les MÊMES fichiers juste après ; jamais `claude --resume`. Elle se lance, se liste et se ferme par `npm run ops:session` (skill `orchestrer-des-agents`).
+**Verbatim (2026-10-31)** : « ne garde jamais une session, il va faire un cache miss »
+
+**Verbatim (2026-10-31)** : « on lance claude automatiquement a la derniere version et ca ne gene pas, pourquoi on bloque le lancement ce codex a la derniere version, c'est sutpide »
+
+**How to apply :** l'orchestrateur attribue et relaie, jamais le travail d'un chantier. Au plus 2 sessions Claude exécutantes ; Codex par le pont, à sa dernière version complète (mise à jour côte à côte détachée), à l'effectif de l'annexe `codex.md` du skill `orchestrer-des-agents`. Une session NEUVE par ticket, consigne courte, fermée dès qu'elle rend (publié, bloqué ou en attente), jamais gardée au repos (cache froid) ; son rendu va au ticket. Jamais `claude --resume`. Lancer, lister, fermer : `npm run ops:session`.

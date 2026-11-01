@@ -63,12 +63,15 @@ import bpy
 import numpy
 from mathutils import Matrix, Quaternion, Vector
 
-from anatomie import AXES_DU_PERSONNAGE, gabarit
+from anatomie import AXES_DU_PERSONNAGE
 from animation import assign_action
 from pistes import aller_a, sacs
-from poids import CLES_CONFONDUES, LOT, deformer, instants, peau_lineaire, poses, repos
+from poids import LOT, cadence, deformer, instants, peau_lineaire, poses, repos
 from seuils import MAJORITE_DU_POIDS, SOL_TOLERANCE_M, TOLERANCE_ECHELLE, TOLERANCE_JUMEAUX_POSITION_M
 
+CLES_CONFONDUES = 1e-4
+"""Deux temps de clé Blender plus proches que cet écart, en images, sont confondus : l'arrondi float32 d'une image
+jusqu'à ~300 (`.claude/soldes/3098.md:20`)."""
 ATTEINTE_M = 1e-5
 """Écart admis entre la tête du pied posée par l'IK (`tendre`) et sa cible, le bruit float32 des matrices de pose de
 Blender : sonde du 2026-10-28, `tendre` à chaque clé des 86 clips UAL sur le corps UBC, cible 1 cm au-dessus de la tête
@@ -154,6 +157,26 @@ def bas_des_sources(rig, peaux, clips, pelvis):
         p = poses(rig, action)
         sources[action.name] = (numpy.array(instants(action)), bas(w, x, d, p @ inverses), float(p[:, i, 2, 3].min()))
     return sources
+
+
+def surfaces_des_pieds(rig, w, pieds):
+    """Par pied de `pieds`, la surface du pied : le masque des sommets de poids `w` (sur les os de `rig`, dans leur
+    ordre) dont la part liée au pied et à ses descendants atteint `MAJORITE_DU_POIDS`, comme `surfacesDesPieds` de
+    `hotes/godot/asset/evaluateur/gardes/appuis.ts`."""
+    indice = {b.name: i for i, b in enumerate(rig.data.bones)}
+    return {pied: w[:, [indice[pied], *(indice[b.name] for b in rig.data.bones[pied].children_recursive)]].sum(axis=1)
+            >= MAJORITE_DU_POIDS for pied in pieds}
+
+
+def garder_les_poids_des_pieds(peau, retouches, surfaces):
+    """Arrête la construction si un sommet de `retouches`, les indices que le lissage des poids a retouchés sur la peau
+    `peau` (nom), tombe dans une surface de pied de `surfaces` (`surfaces_des_pieds`) : G8 du plan de #3101
+    (issuecomment-6516726181)."""
+    for pied, surface in surfaces.items():
+        dedans = sorted(s for s in retouches if surface[s])
+        if dedans:
+            raise RuntimeError(f'{peau} : {len(dedans)} sommet(s) de la surface de {pied} retouché(s) par le lissage des '
+                               f'poids, dont {dedans[:8]}')
 
 
 def garder_les_pieds(cles, d, surfaces):
@@ -412,11 +435,10 @@ def flexion(u, v, axe, distance):
     return min((math.remainder(phase + ecart, math.tau), math.remainder(phase - ecart, math.tau)), key=abs)
 
 
-def jambe(rig, pied):
+def jambe(rig, pied, segments):
     """La hanche et le genou de la jambe de `pied` : son grand-parent et son parent, tous deux segments de jambe du
-    gabarit (`anatomie.gabarit`), sans quoi la construction s'arrête : `tendre` pivote la jambe à la tête de l'un et la
+    gabarit reçus dans `segments`, sans quoi la construction s'arrête : `tendre` pivote la jambe à la tête de l'un et la
     fléchit à celle de l'autre."""
-    segments = gabarit(rig)['legs']
     genou = rig.data.bones[pied].parent
     hanche = genou.parent if genou else None
     if hanche is None or genou.name not in segments or hanche.name not in segments:
@@ -463,13 +485,13 @@ def tendre(rig, chaine, cible):
         raise RuntimeError(f'{pied} : IK à {(os_pied.head - cible).length:.6f} m de sa cible')
 
 
-def tendre_les_jambes(rig, action, decalages):
+def tendre_les_jambes(rig, action, decalages, segments):
     """Déplace la tête de chaque pied de `decalages[pied][k]`, repère monde, à chaque instant k de `action`, par
     `tendre` ; réécrit les rotations de hanche, genou et pied des jambes touchées."""
     scene = bpy.context.scene
     assign_action(rig, action)
     vers_armature = rig.matrix_world.inverted().to_3x3()
-    chaines = {pied: (*jambe(rig, pied), pied) for pied in decalages}
+    chaines = {pied: (*jambe(rig, pied, segments), pied) for pied in decalages}
     for nom in (n for chaine in chaines.values() for n in chaine):
         if rig.pose.bones[nom].rotation_mode != 'QUATERNION':
             raise RuntimeError(f'{nom} : rotation {rig.pose.bones[nom].rotation_mode}, QUATERNION attendue')
@@ -575,23 +597,20 @@ def descente_a_portee(hanches, tetes, decalages, allonge):
     return descente
 
 
-def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, racine, pelvis, marches):
+def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, table, pelvis, marches):
     """Pose au sol chaque clip de `clips` joué sur les peaux `peaux` du rig, contre `sources` (`bas_des_sources`) ;
-    plante les pieds `pieds` des clips de `marches`. La surface d'un pied est l'ensemble des sommets dont la part du poids
-    liée au pied et à ses descendants atteint `MAJORITE_DU_POIDS`, comme `surfacesDesPieds` de
-    `hotes/godot/asset/evaluateur/gardes/appuis.ts`. Le corps se tient au sol au pire coin des shape keys des peaux
-    (`bas`), dont aucune ne déplace un pied (`garder_les_pieds`)."""
+    plante les pieds `pieds` des clips de `marches`, sur leurs surfaces (`surfaces_des_pieds`). Le corps se tient au sol au
+    pire coin des shape keys des peaux (`bas`), dont aucune ne déplace un pied (`garder_les_pieds`)."""
+    racine, segments = table['racine'], table['legs']
     noms = [b.name for b in rig.data.bones]
     indice = {nom: i for i, nom in enumerate(noms)}
     x, w, cles_de_forme, d = empiler(peaux, noms)
-    surfaces = {pied: w[:, [indice[pied], *(indice[b.name] for b in rig.data.bones[pied].children_recursive)]].sum(axis=1)
-                >= MAJORITE_DU_POIDS for pied in pieds}
+    surfaces = surfaces_des_pieds(rig, w, pieds)
     garder_les_pieds(cles_de_forme, d, surfaces)
     hors_pieds = ~numpy.logical_or.reduce(list(surfaces.values()))
-    hanche = {pied: jambe(rig, pied)[0] for pied in pieds}
+    hanche = {pied: jambe(rig, pied, segments)[0] for pied in pieds}
     inverses = repos(rig)
     geo = geometrie(rig, w, x, d)
-    scene = bpy.context.scene
     avant = numpy.array(AXES_DU_PERSONNAGE.col[2])[:2]
     avant /= numpy.linalg.norm(avant)
     inconnues = set(marches) - {a.name for a in clips}
@@ -616,7 +635,7 @@ def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, racine, pelvis, ma
                 q[:, :, 2] += montees[:, None]
             tetes = {pied: p[:, indice[pied], :3, 3] + montees[:, None] * HAUT for pied in pieds}
             if action.name in marches:
-                secondes = temps * scene.render.fps_base / scene.render.fps
+                secondes = temps / cadence()
                 appuis_ = appuis(tetes, p[:, indice[racine], :3, 3], positions, secondes, avant)
                 if not passes:
                     consigne = consigne_de_plantation(appuis_, avant)
@@ -630,7 +649,7 @@ def poser_les_clips_au_sol(rig, peaux, clips, sources, pieds, racine, pelvis, ma
             decaler_le_pelvis(rig, action, pelvis, montees)
             decalages = {pied: d for pied, d in decalages.items() if d.any()}
             if decalages:
-                tendre_les_jambes(rig, action, decalages)
+                tendre_les_jambes(rig, action, decalages, segments)
             fleche, garantis, hauteurs = plus_bas_garanti(rig, action, w, x, d, inverses, geo)
             garder_les_instants(action, temps, hauteurs)
             coupes = numpy.flatnonzero(garantis < -SOL_TOLERANCE_M)

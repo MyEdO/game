@@ -4,6 +4,7 @@
  * `AnimationMixer` ; et la même mesure sur la pose de repos, gabarit et silhouettes appliqués.
  */
 import { AnimationMixer, LoopOnce, Vector3, type AnimationClip, type Bone, type Matrix4, type Mesh, type Object3D } from 'three';
+import { reposerGabarit, type GabaritPose } from './gabarit.ts';
 import seuils from './gardes/seuils.json';
 
 /** Cadence des clips que la chaîne produit et échantillonne. Partagée avec la construction
@@ -48,19 +49,27 @@ function poseCourante(scene: Object3D, meshes: readonly Mesh[]): Pose {
 /** La pose de repos de `scene` (gabarit et silhouettes déjà posés) pour `meshes`. */
 export const poseDeRepos = (scene: Object3D, meshes: readonly Mesh[]): Pose => poseCourante(scene, meshes);
 
-/** Deux instants plus proches que cet écart, en secondes, sont un seul instant (clés glTF en float32). */
-const INSTANTS_CONFONDUS = 1e-6;
+/** Deux instants plus proches que cet écart, en secondes, sont un seul instant (clés glTF en float32). Partagé avec la
+ *  construction (`scripts/personnage-3d/seuils.py`) : `gardes/seuils.json`. */
+const INSTANTS_CONFONDUS: number = seuils.INSTANTS_CONFONDUS;
+
+/** Marge, en multiples du pas, sous laquelle une borne de clip tombe sur un point de la grille (arrondi flottant de
+ *  `durée / pas`). Partagée avec la construction (`scripts/personnage-3d/seuils.py`) : `gardes/seuils.json`. */
+const MARGE_DE_GRILLE: number = seuils.MARGE_DE_GRILLE;
 
 /** Les instants d'échantillonnage de `clip` : l'union de la grille 0, `pas`, 2 `pas`… jusqu'à sa durée et des instants
  *  de toutes les clés de ses pistes, triés, sans doublon. */
 export function instants(clip: AnimationClip, pas: number): number[] {
-  const grille = Array.from({ length: Math.floor(clip.duration / pas + 1e-9) + 1 }, (_, k) => k * pas);
+  const grille = Array.from({ length: Math.floor(clip.duration / pas + MARGE_DE_GRILLE) + 1 }, (_, k) => k * pas);
   const cles = clip.tracks.flatMap((piste) => Array.from(piste.times)).filter((t) => t >= 0 && t <= clip.duration);
   return [...grille, ...cles].sort((a, b) => a - b).filter((t, i, liste) => i === 0 || t - liste[i - 1] > INSTANTS_CONFONDUS);
 }
 
-/** Chaque (clip, t) de `clips` joué sur `scene` aux `instants` du clip au pas `pas`, pour `meshes`. La pose de repos est rendue à la fin de chaque clip. */
-export function* echantillonner(scene: Object3D, meshes: readonly Mesh[], clips: readonly AnimationClip[], pas = PAS_PAR_DEFAUT): Generator<Echantillon> {
+/** Chaque (clip, t) de `clips` joué sur `scene` aux `instants` du clip au pas `pas`, pour `meshes`, `gabarit` reposé sur
+ *  chaque instant joué (`reposerGabarit`). La pose de repos est rendue à la fin de chaque clip. */
+export function* echantillonner(
+  scene: Object3D, meshes: readonly Mesh[], clips: readonly AnimationClip[], pas = PAS_PAR_DEFAUT, gabarit: GabaritPose | null = null,
+): Generator<Echantillon> {
   for (const clip of clips) {
     const mixer = new AnimationMixer(scene);
     const action = mixer.clipAction(clip);
@@ -69,13 +78,15 @@ export function* echantillonner(scene: Object3D, meshes: readonly Mesh[], clips:
     action.play();
     try {
       for (const t of instants(clip, pas)) {
-        mixer.setTime(t);
+        if (gabarit) reposerGabarit(gabarit, () => mixer.setTime(t));
+        else mixer.setTime(t);
         yield { clip: clip.name, t, ...poseCourante(scene, meshes) };
       }
     } finally {
       action.stop();
       mixer.uncacheRoot(scene);
-      scene.updateMatrixWorld(true);
+      if (gabarit) reposerGabarit(gabarit, () => {});
+      else scene.updateMatrixWorld(true);
     }
   }
 }

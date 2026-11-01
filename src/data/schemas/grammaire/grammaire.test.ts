@@ -702,7 +702,8 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //   #2948 : `apparences` naît SCELLÉ (81 → 82) — le catalogue des apparences d'objet devient un dataset.
     //   #2972 : `gabarits` naît SCELLÉ (82 → 83) — le registre TS des carrures devient un dataset.
     //   #3114 : `garde-robe` naît SCELLÉ (83 → 84) — la garde-robe des éléments 3D devient un dataset.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 84, mesures: 0 });
+    //   #3086 : `presets-de-personnage` naît SCELLÉ (84 → 85) — les presets de personnage entier deviennent un dataset.
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 85, mesures: 0 });
   });
 
 });
@@ -861,6 +862,7 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     'activities.json · source',
     'creatures.json · source',
     'night-stakes.json · source',
+    'presets-de-personnage.json · source',
     'psychology.json · desc',
     'psychology.json · source',
     'species.json · source',

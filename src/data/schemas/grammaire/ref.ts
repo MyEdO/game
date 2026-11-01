@@ -570,17 +570,31 @@ export function ref(type: TypeEntite, extra?: Record<string, z.ZodType>, sousLis
   return objetDeRef(type, extraDuPorteur, metasExtra(extra), 'ref', extraDuPorteur, sousListe);
 }
 
-/** FORME de sortie d'une référence TYPÉE (`refTypee`) : l'id, et le type qui nomme l'espace où il résout. */
-export interface RefTypee<T extends TypeEntite = TypeEntite> {
+/** FORME de sortie d'une référence TYPÉE (`refTypee`) : l'id, et la valeur de `type` qui nomme l'espace où il résout. */
+export interface RefTypee<T extends string = TypeEntite> {
   readonly id: string;
   readonly type: T;
 }
 
-/** Ce qu'un nœud `refTypee` déclare : les types qu'il admet, dans l'ordre du vocabulaire, et le nom
- *  d'auteur de chacun (`valeursDe` du vocabulaire). */
+/** L'espace que NOMME une valeur de `type` hors de `TYPES` : un type et la sous-liste de son espace
+ *  (`idDe(type, sousListe)`, patron `material`). */
+export interface SousListeNommee {
+  readonly type: TypeEntite;
+  readonly sousListe: SousListe;
+}
+
+/** Ce que NOMME une valeur de `type` d'un nœud `refTypee` : la déclaration de la feuille `idDe` de sa
+ *  branche (type et sous-liste), et cette feuille, que lit un sélecteur (`refusDuNoeud`). */
+export interface BrancheDeRefTypee extends FeuilleDId {
+  readonly feuille: z.ZodType;
+}
+
+/** Ce qu'un nœud `refTypee` déclare : les valeurs de `type` qu'il admet, dans l'ordre du vocabulaire, le
+ *  nom d'auteur de chacune (`valeursDe` du vocabulaire), et la branche que chacune nomme. */
 export interface DeclarationDeRefTypee {
-  readonly types: readonly TypeEntite[];
+  readonly types: readonly string[];
   readonly libelles: Readonly<Record<string, string>>;
+  readonly branches: Readonly<Record<string, BrancheDeRefTypee>>;
 }
 
 /** Les nœuds construits par `refTypee`, avec leur déclaration — ce que lit un sélecteur
@@ -593,17 +607,40 @@ export const declarationDeRefTypee = (noeud: unknown): DeclarationDeRefTypee | u
 
 /**
  * Référence POLYMORPHE `{ id, type }` : `type` NOMME l'espace où l'id résout, parmi les valeurs du
- * vocabulaire `types` (un `enumNomme` dont chaque clé est un `TypeEntite`). UNION DISCRIMINÉE fermée
- * des `{ id: idDe(t), type: t }` — chaque branche est l'objet de `ref` —, patron `sceneEntitySchema`
+ * vocabulaire `types` (un `enumNomme`). Une valeur qui est un `TypeEntite` nomme son espace ; toute autre
+ * nomme la sous-liste d'un espace que `sousListes` lui associe (`SousListeNommee`). UNION DISCRIMINÉE fermée
+ * des `{ id: idDe(type, sousListe), type: valeur }` — chaque branche est l'objet de `ref` —, patron `sceneEntitySchema`
  * (`defs-scenes/scene.ts`) : le littéral DISCRIMINE la branche, `types` en NOMME la valeur. Le type ne
  * se déduit jamais de l'id : un même id vit dans plusieurs espaces.
  */
-export function refTypee<T extends TypeEntite>(types: z.ZodEnum<{ [K in T]: K }>): z.ZodType<RefTypee<T>> {
-  const admis = types.options as readonly T[];
-  const [premiere, ...autres] = admis.map((t) => objetDeRef(t, { type: z.literal(t).pipe(types) }, { type: { label: 'type de la référence' } }, 'refTypee', {}));
-  const refus = `type de référence absent ou inconnu — admis : ${admis.map((t) => `« ${t} » (${TYPES[t].catalogue})`).join(', ')}.`;
-  const noeud = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => (iss.code === 'invalid_union' ? refus : undefined) }) as unknown as z.ZodType<RefTypee<T>>;
-  REFS_TYPEES.set(noeud, { types: admis, libelles: valeursDe(types) ?? {} });
+export function refTypee<V extends string>(
+  types: z.ZodEnum<{ [K in V]: K }>,
+  ...sousListes: [Exclude<V, TypeEntite>] extends [never] ? [] : [{ readonly [K in Exclude<V, TypeEntite>]: SousListeNommee }]
+): z.ZodType<RefTypee<V>> {
+  const admis = types.options as readonly V[];
+  const nommees: Readonly<Record<string, SousListeNommee>> = sousListes[0] ?? {};
+  const inconnues = Object.keys(nommees).filter((v) => !(admis as readonly string[]).includes(v) || Object.prototype.hasOwnProperty.call(TYPES, v));
+  if (inconnues.length) throw new Error(`refTypee : la sous-liste nommée ${inconnues.map((v) => `« ${v} »`).join(', ')} n'est pas une valeur du vocabulaire hors des types.`);
+  const cibleDe = (v: V): { readonly type: TypeEntite; readonly sousListe?: SousListe } => {
+    if (Object.prototype.hasOwnProperty.call(nommees, v)) return nommees[v];
+    if (Object.prototype.hasOwnProperty.call(TYPES, v)) return { type: v as TypeEntite };
+    throw new Error(`refTypee : « ${v} » n'est ni un type de la grammaire (\`TYPES\`) ni une sous-liste nommée.`);
+  };
+  const branches = admis.map((v) => {
+    const cible = cibleDe(v);
+    const objet = objetDeRef(cible.type, { type: z.literal(v).pipe(types) }, { type: { label: 'type de la référence' } }, 'refTypee', {}, cible.sousListe);
+    return { v, cible, objet };
+  });
+  const [premiere, ...autres] = branches.map((b) => b.objet);
+  const nomDe = ({ type, sousListe }: { readonly type: TypeEntite; readonly sousListe?: SousListe }) =>
+    typeof sousListe === 'string' ? `${TYPES[type].catalogue}, sous-liste « ${sousListe} »` : TYPES[type].catalogue;
+  const refus = `type de référence absent ou inconnu — admis : ${branches.map((b) => `« ${b.v} » (${nomDe(b.cible)})`).join(', ')}.`;
+  const noeud = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => (iss.code === 'invalid_union' ? refus : undefined) }) as unknown as z.ZodType<RefTypee<V>>;
+  REFS_TYPEES.set(noeud, {
+    types: admis,
+    libelles: valeursDe(types) ?? {},
+    branches: Object.fromEntries(branches.map((b) => [b.v, { ...b.cible, ouverte: false, feuille: b.objet.shape.id }])),
+  });
   return noeud;
 }
 

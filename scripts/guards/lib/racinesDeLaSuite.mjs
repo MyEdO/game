@@ -17,6 +17,7 @@ export const RACINES_DE_LA_SUITE = Object.freeze([
   racine('src', ['.ts', '.tsx']),
   racine('server/src', ['.ts']),
   racine('scripts/map', ['.ts']),
+  racine('scripts/personnage-3d', ['.ts']),
 ])
 
 /** Les tests HORS STORE (#2817) : joués par la seule suite du noyau (`vitest.noyau.config.ts`, `isolate: true`), sans

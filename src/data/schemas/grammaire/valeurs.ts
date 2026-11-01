@@ -821,6 +821,10 @@ export const countSpecSchema = z.union([
 export const sexeSchema = enumNomme({ M: 'Masculin', F: 'Féminin' });
 export type Sexe = z.infer<typeof sexeSchema>;
 
+/** La main d'un objet tenu ou d'une arme, UNE déclaration : `defs/presets-de-personnage.ts` (`prises`) et
+ *  `grammaire/mecanique.ts` (`weaponHand`). */
+export const mainSchema = enumNomme({ main: 'Main directrice', off: 'Main secondaire' });
+
 /** #2948 */
 export function validerApparenceDObjet(trappingId: string | undefined, apparence: string, ctx: z.RefinementCtx, path: string[]): void {
   const message = messageDApparenceDObjet(trappingId, apparence);
@@ -832,7 +836,8 @@ export function validerApparenceDonnee(v: { op?: string; trappingId?: string; ap
   if (v.apparence) validerApparenceDObjet(v.trappingId, v.apparence.id, ctx, ['apparence', 'id']);
 }
 
-const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>> = z.record(idDe('trapping', undefined, { ouverte: true }), ref('apparence')).superRefine((v, ctx) => {
+/** Apparence par objet porté, clé = id de trapping : `EntityAppearance.apparencesObjets`, presets de personnage (#3086). */
+export const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>> = z.record(idDe('trapping', undefined, { ouverte: true }), ref('apparence')).superRefine((v, ctx) => {
   for (const [trappingId, apparence] of Object.entries(v)) validerApparenceDObjet(trappingId, apparence.id, ctx, [trappingId, 'id']);
 });
 
