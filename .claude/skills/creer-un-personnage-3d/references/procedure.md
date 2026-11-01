@@ -113,10 +113,12 @@ Seuls un vêtement et une armure peuvent ajouter/déplacer des emplacements, ids
 offert ni par sa base ni par une pièce de cette base va au rapport de l'index (`emplacement-non-offert`,
 `hotes/godot/asset/modeles.ts`) : il s'importe et se publie, mais l'atelier ne le sert à aucun point. Chaînes et silhouettes optionnelles doivent exister dans la base. La liaison de manifeste ne contient que son mode.
 
-Une tête porte aussi la shape key visage_inverse pour le faceFlip résolu. Vérifier sa présence
-dans le GLB ; ne la déclarer parmi les silhouettes qu'avec une base qui la connaît. Si la base
-ne l'expose pas, remonter la dépendance à L1. Le validateur de forme seul n'impose pas cette
-présence : son OK ne prouve pas cette exigence d'import L3.
+**`faceFlip`** : chaque tête porte la shape key `visage_inverse`. C'est une clé de la tête, pas de
+la base : elle ne se déclare pas parmi les silhouettes (`silhouette-absente`). Le design la fait
+générer par la chaîne, refuser à l'import quand elle manque, et poser par l'hôte quand le noyau
+publie `faceFlip` résolu. Aucun de ces trois gestes n'est livré, et ni le validateur ni l'import
+n'imposent sa présence : la vérifier dans le GLB, et garder cette exigence NON VÉRIFIÉE tant que
+l'import ne la refuse pas.
 
 Une **zone** est une région du corps ; un **emplacement**, un point d'accroche ; une
 **localisation**, une localisation de règle d'armure ; une **prise**, main ou off.
@@ -178,8 +180,13 @@ Réutiliser `scripts/personnage-3d/geometrie.py` pour mesh, shell, closed_shell,
 thick_grid ; surface_tree, surface_hit, section_points et opening interrogent le porteur.
 Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et
 surfaces réelles, sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au
-repos, puis ceux des chaînes requises ; transférer les silhouettes. Vérifier d'abord que les
-helpers nécessaires existent : ne pas confondre une extension prévue du kit avec une API livrée.
+repos, puis ceux des chaînes requises. Un élément skinné reçoit les silhouettes déclarées ET
+toutes les clés `gabarit_*` de la base, celles-ci non déclarées au manifeste, par
+`transferer_les_cles(source, cible, noms)` (`scripts/personnage-3d/formes.py`) ; la source est la
+zone porteuse, ou la copie jointe des zones que la pièce traverse (pièce à cheval sur deux zones :
+la source est un seul objet). `npm run godot:evaluer` refuse un élément privé des clés de sa zone
+(garde `suiviDuCorps`). Vérifier d'abord que les helpers nécessaires existent : ne pas confondre
+une extension prévue du kit avec une API livrée.
 
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
