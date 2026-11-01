@@ -26,6 +26,7 @@ import { refIndiceSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
+import { CIBLE_D_APPARTENANCE } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
 import { refEntiteResolue } from '../../index';
@@ -657,7 +658,7 @@ export const sceneEffectZoneSchema = nommerChamps(z.strictObject({
   perRound: executeesDe().optional(),
   crossTest: flowTestSchema.optional(),
   /** BARRIÈRE : `blockGroups` vide/absent = bloque tout le monde ; sinon ids de Groupes. */
-  barrier: nommerChamps(z.strictObject({ blockGroups: refs('groupe').optional() }), { blockGroups: { label: "groupes bloqués" , texte: { regime: "technique"} } }).optional(),
+  barrier: nommerChamps(z.strictObject({ blockGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional() }), { blockGroups: { label: "groupes bloqués" , texte: { regime: "technique"} } }).optional(),
   z: z.number().optional(),
   couvre: couvreSchema.optional(),
 }).superRefine((zone, ctx) => {

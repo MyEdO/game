@@ -20,7 +20,7 @@ import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type Effe
 import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
-import { DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
+import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
 
@@ -147,7 +147,7 @@ function refuserLaCibleHorsCiblage(type: string, cible: unknown, ctx: z.Refineme
  */
 const DECLARATIONS_D_OPS = {
   narrative: proseNommee(nommerChamps(z.strictObject({ op: z.literal('narrative') }), { op: { label: 'opération'  } }), 'narrative.text'),
-  banish: nommerChamps(z.strictObject({ op: z.literal('banish'), narration: banishNarrationSchema.optional(), onlyGroups: refs('groupe').optional() }), { op: { label: "opération"  }, narration: { label: "narration"  }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} } }),
+  banish: nommerChamps(z.strictObject({ op: z.literal('banish'), narration: banishNarrationSchema.optional(), onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional() }), { op: { label: "opération"  }, narration: { label: "narration"  }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} } }),
   corruption: nommerChamps(z.strictObject({
     op: z.literal('corruption'),
     amount: z.number(),
@@ -233,7 +233,7 @@ const DECLARATIONS_D_OPS = {
     trait: traitInstanceSchema,
     cible: tirageDeCibleSchema.optional(),
     indicePerSL: perSLSchema.optional(),
-    onlyGroups: refs('groupe').optional(),
+    onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
     durationRounds: formulaSchema.optional(),
     durationMinutes: formulaSchema.optional(),
     durationHours: formulaSchema.optional(),
@@ -682,7 +682,7 @@ function refusDeSpecDeLaValeur(type: TypeEntite) {
 
 /** Condition `has`, DISCRIMINÉE par `what` : `value` résout dans le registre de `what`, la `spec` n'appartient qu'au Talent. */
 export const hasConditionSchema = z.discriminatedUnion('what', [
-  nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('group'), value: idDe('groupe') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
+  nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('group'), value: idDe('groupe', CIBLE_D_APPARTENANCE) }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('talent'), value: idDe('talent'), spec: z.string().optional() }).superRefine(refusDeSpecDeLaValeur('talent')), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } }, spec: { label: "spécialisation", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('trait'), value: idDe('trait') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
   nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: whatDeHas('psych'), value: idDe('psychology') }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur", texte: { regime: "technique" } } }),
@@ -836,8 +836,8 @@ export const flowTestSchema = nommerChamps(z.strictObject({
   vsCapricieux: z.boolean().optional(),
   easierIf: facilitationSchema.optional(),
   argDifficulty: z.boolean().optional(),
-  onlyGroups: refs('groupe').optional(),
-  exceptGroups: refs('groupe').optional(),
+  onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
+  exceptGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
   gate: conditionSchema.optional(),
   /** SOUTIEN (LDB 12 l.197) — TRI-ÉTAT authoré : absent = défaut de la VOIE qui ouvre le Test (scène/
    *  dialogue : soutenable ; effet déclenché / consommable : non soutenable) ; `true` = jamais

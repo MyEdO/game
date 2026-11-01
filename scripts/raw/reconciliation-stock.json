@@ -1,12 +1,6 @@
 {
   "quoi": "STOCK NOMINATIF des TROUS DURS de la réconciliation CODE ↔ ATLAS : une DETTE RAW à drainer vers ZÉRO, jamais un registre, jamais un plafond. Une entrée = un chapitre-livre que le code cite alors qu'aucune fiche ni aucun catalogue de l'Atlas ne le porte (Sens A), ou — clé préfixée « B2 » — un chapitre d'un livre de CŒUR que l'Atlas décrit et qu'aucune réf de code ni aucune source folio de src/data n'atteint (Sens B2). Chaque entrée nomme ses SITES, son LOT et sa DATE : sans eux, une ligne de stock est un régime, pas un cliquet. Se solde en COUVRANT le chapitre dans l'Atlas (ou en retirant la réf de code), PUIS en retirant son entrée ici : node scripts/raw/reconcile.mjs refuse toute entrée NEUVE et toute entrée du stock devenue caduque (cliquet à double sens), et la porte de plage compte toute croissance de ce fichier (scripts/guards/lib/stocksNominatifs.mjs). Un livre de CŒUR (champ coeur de src/data/books.json) n'a pas de voie de stock en Sens A : un de ses chapitres cité par le code et absent de l'Atlas se CORRIGE, il ne se stocke pas. Mesuré le 2026-09-08 (#1709 lot D2, #925).",
   "trous": {
-    "ADE I 2": {
-      "sites": ["src/data/talents.json"],
-      "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
-      "date": "2026-09-08",
-      "quoi": "Les archives de l'Empire volume 1, ch.2 (talents) — aucune fiche de l'Atlas ne cite ce chapitre."
-    },
     "EDO 10": {
       "sites": ["src/data/skills.json"],
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
@@ -48,12 +42,6 @@
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
       "date": "2026-09-08",
       "quoi": "Nuits agitées & dures journées, ch.4 (taverne) — aucune fiche de l'Atlas ne cite ce chapitre."
-    },
-    "NADJ 14": {
-      "sites": ["src/data/index.ts", "src/data/reglesOptionnelles.json", "src/data/schemas/defs/species.ts", "src/engine/creation.test.ts"],
-      "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
-      "date": "2026-09-08",
-      "quoi": "Nuits agitées & dures journées, ch.14 (gnomes) — aucune fiche de l'Atlas ne cite ce chapitre."
     },
     "PDT 8": {
       "sites": ["src/ui/mono-stake-ratchet.test.ts"],

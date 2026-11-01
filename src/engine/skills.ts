@@ -247,9 +247,9 @@ function hasSkillAdvance(c: Combatant, skillId: string, spec?: string): boolean 
 function containedSocialPenalty(tester: Combatant, type: string, targetGroups: string[]): boolean {
   if (isPsychImmune(tester)) return false;
   const interlocuteur: SourcePsy = { genre: 'interlocuteur', groups: targetGroups };
-  const possede = effectivePsychTraits(tester).some((t) => t.type === type && t.cible && vise(t.cible, interlocuteur, 'percu'));
+  const possede = effectivePsychTraits(tester).some((t) => t.type === type && t.cible && vise(t.cible, interlocuteur, 'percu', tester));
   if (!possede) return false;
-  const actif = (tester.psychState ?? []).some((p) => p.type === type && p.active && p.cible && vise(p.cible, interlocuteur, 'percu'));
+  const actif = (tester.psychState ?? []).some((p) => p.type === type && p.active && p.cible && vise(p.cible, interlocuteur, 'percu', tester));
   return !actif;
 }
 

@@ -570,8 +570,17 @@ Quand la menace choisie est **Mutation** : réussir automatiquement le premier T
 | Mods passifs via collecteur unifié passiveMods | `passive: GameOp[]` sur `Mutation` (mutations.json) | **OK** |
 | Traits de créature via mutation (Tentacule, Stupide…) | `attachMutation` → copie `m.traits` sur `c.traits` | **OK** |
 | Traits psychologiques via mutation (Frénésie) | `attachMutation` → `grantPsychTrait` de `m.passive` | **OK** |
+| Pulsions de haine : Animosité envers « tous ceux qui ne sont pas de votre race » (LDB 19 l.152 ; EDOC 12 l.219) | `grantPsychTrait` `animosite` sur le Groupe relatif `autres-races` (`relatif: autresRacesQueLePorteur`, `vise`) ; les Races sont les Groupes à marqueur `race` (`racesDe`, `src/engine/groups.ts`) | **OK** |
 | Sombres Murmures (LDB 19 l.95-105 — choix OPTIONNEL, refuser garde le PC) | `DialogueChoice.flow` porte `{ op: 'corruption', amount: -1 }` (`src/engine/ops.ts`) ; le choix EST le dialogue d'auteur (accepter/refuser), rien de plus au moteur | **OK** |
 | Absolution (LDB 19 l.167-178 ; l.171 : « Les limites précises de ce qui peut être nécessaire pour perdre de la Corruption sont laissées à l'appréciation du MJ ») | quantité AUTHORABLE : `{ op: 'corruption', amount: -n }` (`applyOps`, `src/engine/ops.ts`) décrémente `corruption`, plancher 0, sans passer par `ctx.onCorruption` (pas de seuil/mutation sur un retrait) ; éditable au GameOpEditor (`src/ui/editor/GameOpEditor.tsx`) | **OK** |
+
+### Lectures de Pulsions de haine, recommandées, révisables
+
+#3045 ; utilisateur, 2026-10-27 15:10 : « les questions de régles c'est de la reco jusqu'au jour on décide de mettre le nez dedans ».
+
+- **Qui est d'une autre race** : lecture littérale de `LDB 19 l.152`, « tous ceux qui ne sont pas de votre race ». Toute source qui ne porte aucune des Races du porteur est visée, une source sans Race comprise (une bête, un démon). Lecture contraire, citable (`EDOC 12 l.219`, « envers toutes autres races ») : seules les sources qui portent une autre Race.
+- **Un porteur sans Race** : il n'a aucune Race à partager, donc il vise toute source sauf lui-même. C'est la même lecture littérale de `LDB 19 l.152`, appliquée à un porteur sans marqueur `race`. Lecture contraire : un porteur sans Race ne vise personne.
+- **Quels Groupes sont des Races** (marqueur `race`, `groups.json`) : ceux qu'un livre nomme race. `humain` (`LDB 05 l.5`, `ADE II 09 l.15`) ; `nain` et `elfe` (`ADE II 09 l.15`, `LDB 05 l.214`) ; `halfling` (`LDB 05 l.214`, `ADE I 02 l.259`) ; `gnome` (`NADJ 14 l.64`, `NADJ 15 l.116`) ; `ogre` (`ADE II 02 l.200`) ; `peau-verte` (`LDB 44 l.24`, « les races peuplant l'Empire comme les peaux-vertes »), seul Groupe qui couvre aussi « les orcs » de `ADE II 09 l.15`, et gobelins et snotlings (`creatures.json`) ; `skaven` (`LDB 84 l.63`, « une race malveillante d'hommes-rats ») ; `homme-bete` (`LDB 83 l.11`, « devant toutes les autres races »). Non marqués : `tileen`, une nation, et `teutogen`, des clans humains (`Middenheim 01 l.49`) ; `elfe-noir`, qu'aucun passage VF ne nomme race, Groupe porté par aucune créature, seulement Cible d'une Animosité. Lecture contraire : un Groupe `orque` distinct (catalogue A1).
 
 ### Note : « Écailles Épineuses » — version LDB vs EDOC
 

@@ -174,6 +174,8 @@ const NOMMES = [
   'trapping|apparence|tenue',
   // `mainSchema` (`grammaire/valeurs.ts`) : la main d'un objet tenu (`prises`) ou d'une arme (`weaponHand`).
   'main|off',
+  // `relatifSchema` (`defs/groups.ts`, #3045) : le Groupe relatif, lu par rapport au porteur du Trait psy.
+  'engagesAvecPorteur|etrangersAuPorteur|autresRacesQueLePorteur',
 ].sort();
 
 /**

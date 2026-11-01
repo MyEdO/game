@@ -2,32 +2,38 @@
   {
     "id": "humain",
     "type": "groups",
-    "label": "Humain"
+    "label": "Humain",
+    "race": true
   },
   {
     "id": "nain",
     "type": "groups",
-    "label": "Nain"
+    "label": "Nain",
+    "race": true
   },
   {
     "id": "elfe",
     "type": "groups",
-    "label": "Elfe"
+    "label": "Elfe",
+    "race": true
   },
   {
     "id": "halfling",
     "type": "groups",
-    "label": "Halfling"
+    "label": "Halfling",
+    "race": true
   },
   {
     "id": "gnome",
     "type": "groups",
-    "label": "Gnome"
+    "label": "Gnome",
+    "race": true
   },
   {
     "id": "ogre",
     "type": "groups",
-    "label": "Ogre"
+    "label": "Ogre",
+    "race": true
   },
   {
     "id": "mort-vivant",
@@ -42,12 +48,14 @@
   {
     "id": "peau-verte",
     "type": "groups",
-    "label": "Peau-Verte"
+    "label": "Peau-Verte",
+    "race": true
   },
   {
     "id": "homme-bete",
     "type": "groups",
-    "label": "Homme-bête"
+    "label": "Homme-bête",
+    "race": true
   },
   {
     "id": "bete",
@@ -57,7 +65,8 @@
   {
     "id": "skaven",
     "type": "groups",
-    "label": "Skaven"
+    "label": "Skaven",
+    "race": true
   },
   {
     "id": "cultiste",
@@ -193,7 +202,38 @@
   {
     "id": "etranger",
     "type": "groups",
-    "label": "Étrangers"
+    "label": "Étrangers",
+    "relatif": "etrangersAuPorteur",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 70,
+      "note": "VDM 05 l.142"
+    },
+    "maison": "Groupe relatif (#3045) : un combattant hors du camp du porteur et que ne vise pas son Amour ni sa Camaraderie ; un interlocuteur, sauf si ses Groupes sont visés par cet Amour ou cette Camaraderie. Lecture révisable."
+  },
+  {
+    "id": "adversaires-engages",
+    "type": "groups",
+    "label": "Adversaires engagés",
+    "relatif": "engagesAvecPorteur",
+    "source": {
+      "book": "livre-de-base",
+      "page": 341,
+      "note": "LDB 85 l.282"
+    },
+    "maison": "Groupe relatif (#3045) : tout combattant Engagé avec le porteur, tant que dure la Haine, sans filtre de camp. Lecture révisable."
+  },
+  {
+    "id": "autres-races",
+    "type": "groups",
+    "label": "Autres races",
+    "relatif": "autresRacesQueLePorteur",
+    "source": {
+      "book": "livre-de-base",
+      "page": 185,
+      "note": "LDB 19 l.152 ; EDOC 12 l.219"
+    },
+    "maison": "Groupe relatif (#3045) : toute source qui ne porte aucune des Races du porteur, une source sans Race comprise. Lecture révisable."
   },
   {
     "id": "personnes-qui-ne-leur-offrent-rien",

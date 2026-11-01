@@ -63,13 +63,13 @@ describe('vise — un individu ne vise que le combattant de son id', () => {
 
   it('quelle que soit la lecture, et jamais un autre porteur des mêmes Groupes', () => {
     for (const lecture of ['appartenance', 'percu'] as const) {
-      expect(vise(cible, { genre: 'combattant', c: mk('p', 'enemy', { groups: [groupe.id] }) }, lecture)).toBe(true);
-      expect(vise(cible, { genre: 'combattant', c: mk('q', 'enemy', { groups: [groupe.id] }) }, lecture)).toBe(false);
+      expect(vise(cible, { genre: 'combattant', c: mk('p', 'enemy', { groups: [groupe.id] }) }, lecture, mk('o', 'hero'))).toBe(true);
+      expect(vise(cible, { genre: 'combattant', c: mk('q', 'enemy', { groups: [groupe.id] }) }, lecture, mk('o', 'hero'))).toBe(false);
     }
   });
 
   it('un interlocuteur, décrit par ses seuls Groupes, n’est jamais un individu', () => {
-    expect(vise(cible, { genre: 'interlocuteur', groups: [groupe.id] }, 'percu')).toBe(false);
+    expect(vise(cible, { genre: 'interlocuteur', groups: [groupe.id] }, 'percu', mk('o', 'hero'))).toBe(false);
   });
 });
 

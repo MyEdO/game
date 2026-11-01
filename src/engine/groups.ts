@@ -83,6 +83,11 @@ export function hiddenGroupsOf(c: Pick<PorteurDeGroupes, 'traits'>): string[] {
   return out;
 }
 
+/** Les Races (`GroupData.race`) parmi `groupIds`, dans leur ordre. ADE II 09 l.15 ; #3045 */
+export function racesDe(groupIds: readonly string[]): string[] {
+  return groupIds.filter((g) => findGroupById(g)?.race);
+}
+
 /** La Cible d'un Trait psy (déjà un id de Groupe, cf. `psych/registry.ts`) correspond-elle à l'un des
  *  `groups` (ids) du combattant ? Appartenance STRICTE par id — plus de tolérance de pluriel/casse. Un
  *  sous-type sans Groupe dédié dans `groups.json` (ex. « Menteurs, trompeurs, sophistes ») reste INERTE

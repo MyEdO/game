@@ -580,10 +580,10 @@
   {
     "id": "sousListesNommees",
     "type": "primitives.manifest",
-    "label": "INSTANCIABLE_PAR_ID/DECLARABLE_PAR_UN_PORTEUR",
+    "label": "INSTANCIABLE_PAR_ID/DECLARABLE_PAR_UN_PORTEUR/CIBLE_D_APPARTENANCE",
     "fichier": "src/data/schemas/grammaire/sousListes.ts",
-    "concept": "sous-listes marquées déclarées UNE fois (module feuille sans import) : les trappings que le moteur instancie par leur seul id ; les Groupes qu'un porteur déclare, jokers `matchesAll` exclus",
-    "perimetre": "feuilles `idDe`/`refs` des trappings instanciés (op et Effet `giveTrapping`, `grantWeapon.form`, `merchants.curated`), `itemFromTrappingById`, `trappingsInstanciables` ; champs de Groupe d'un porteur (`grantGroups`, `CustomStatblock.groups`, `FlowTest.vsGroups`)",
+    "concept": "sous-listes marquées déclarées UNE fois (module feuille sans import) : les trappings que le moteur instancie par leur seul id ; les Groupes qu'un porteur déclare, jokers `matchesAll` et relatifs `relatif` exclus ; les Groupes qu'une Cible d'appartenance lit sans porteur de Trait psy, relatifs exclus",
+    "perimetre": "feuilles `idDe`/`refs` des trappings instanciés (op et Effet `giveTrapping`, `grantWeapon.form`, `merchants.curated`), `itemFromTrappingById`, `trappingsInstanciables` ; champs de Groupe d'un porteur (`grantGroups`, `CustomStatblock.groups`, `FlowTest.vsGroups`) ; Cibles d'appartenance (`onlyGroups`, `exceptGroups`, `blockGroups`, Condition `has`)",
     "verrou": "src/data/trappings-instanciables.test.ts, src/data/schemas/grammaire/refs-groupe.test.ts"
   },
   {
@@ -2229,7 +2229,7 @@
     "type": "primitives.manifest",
     "label": "vise/SourcePsy/ciblesAPulsion/ciblesDePulsion",
     "fichier": "src/engine/psychology.ts",
-    "concept": "seul prédicat de ciblage d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch` pour un Groupe, l’id du combattant pour un individu ; `ciblesAPulsion` (Cibles des afflictions actives à pulsion d’attaque) et `ciblesDePulsion` (combattants de tout `kind` qu’elles visent) forment le vivier de l’IA",
+    "concept": "seul prédicat de ciblage d’un Trait psy ou d’un Talent qui vise un ennemi (#3045) : une source combattant ou interlocuteur, et une lecture dite par le lecteur — appartenance (`groupesDe`) pour ce qui s’applique à un membre, perçu (`groupesPercus`) pour ce qui se déclenche à la rencontre ; compose `groupMatch` pour un Groupe, l’id du combattant pour un individu, et lit un Groupe relatif (`GroupData.relatif` : Engagés, étrangers, autres Races, ces dernières par le marqueur `race`) par rapport au porteur du Trait, que chaque appelant passe ; `ciblesAPulsion` (Cibles des afflictions actives à pulsion d’attaque) et `ciblesDePulsion` (combattants de tout `kind` qu’elles visent) forment le vivier de l’IA",
     "perimetre": "+DR contre le groupe, immunités causées par le groupe, êtres aimés à défendre, vivier de l’IA, déclencheurs de Traits ciblés et de Phobie, présence au re-test, malus social, Sans Peur (Ennemi)",
     "verrou": "src/engine/psych-vise.test.ts, src/noyau/psych-individu.test.ts"
   },
