@@ -150,7 +150,7 @@ const NOMMES = [
   'noise|magic',
   'self|ally|opponent|party|neutral|hostile',
   'target|caster',
-  'weaponGroupsMelee|weaponGroupsRanged|winds|arcaneDomains|cultBlessings|cultMiracles|cultChaos|seaShanties|ciblesPsy|diseases|sizes|mutations|breathTypes|damageTypes|weaponsMelee|weaponsRanged|exposureLevels|difficulties',
+  'weaponGroupsMelee|weaponGroupsRanged|winds|arcaneDomains|cultBlessings|cultMiracles|cultChaos|seaShanties|ciblesPsy|groupesDAppartenance|diseases|sizes|mutations|breathTypes|damageTypes|weaponsMelee|weaponsRanged|exposureLevels|difficulties',
   'woundsCurrent|woundsMax|size|advantage',
   'onHit|onCrit|onWoundLoss|onSlain|onRoundStart|onStartled|onKill|onCharged|onGainCondition|onCombatStart|onCombatEnd|onRoundEnd|onTurnStart|onTurnEnd|onDayStart|onWake|onAttackResolved|onCastResolved|onMiscast|onOwnTestFailed',
   'self|victim|engaged|grappled',

@@ -1649,7 +1649,7 @@
       },
       {
         "id": "sans-peur",
-        "spec": "criminels"
+        "spec": "criminel"
       },
       {
         "id": "savoir-vivre",
@@ -7291,7 +7291,7 @@
       },
       {
         "id": "sans-peur",
-        "spec": "hommes-betes"
+        "spec": "homme-bete"
       },
       {
         "id": "sens-de-l-orientation"
@@ -8014,7 +8014,7 @@
       },
       {
         "id": "sans-peur",
-        "spec": "hommes-betes"
+        "spec": "homme-bete"
       }
     ],
     "trappings": [
@@ -9029,7 +9029,7 @@
       },
       {
         "id": "sans-peur",
-        "spec": "morts-vivants"
+        "spec": "mort-vivant"
       },
       {
         "id": "savant",
@@ -14644,7 +14644,7 @@
       },
       {
         "id": "sans-peur",
-        "spec": "morts-vivants"
+        "spec": "mort-vivant"
       },
       {
         "id": "sixieme-sens"

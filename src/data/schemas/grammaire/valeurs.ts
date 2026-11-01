@@ -111,6 +111,7 @@ export const specsSourceSchema = enumNomme({
   cultChaos: 'Magie du Chaos (dieux)',
   seaShanties: 'Chansons de marin',
   ciblesPsy: 'Cibles psychologiques (Groupes, personnes)',
+  groupesDAppartenance: 'Groupes d’appartenance (hors Groupes relatifs)',
   diseases: 'Maladies',
   sizes: 'Tailles',
   mutations: 'Mutations',

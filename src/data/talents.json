@@ -4254,124 +4254,7 @@
       ]
     },
     "desc": "Vous êtes suffisamment courageux ou fou pour que la peur de certains ennemis ne soit qu'un lointain souvenir. Avec un seul Test de Calme Accessible (+20), vous pouvez ignorer les effets d'Intimidation, de Peur ou de Terreur de l'ennemi spécifié quand vous le rencontrez. Les ennemis courants comprennent les hommes-bêtes, les peaux-vertes, les hors-la-loi, les vampires, les gardes et les Sorciers dissidents.",
-    "specs": [
-      {
-        "id": "animaux",
-        "label": "Animaux"
-      },
-      {
-        "id": "criminels",
-        "label": "Criminels"
-      },
-      {
-        "id": "gardes",
-        "label": "Gardes"
-      },
-      {
-        "id": "hommes-betes",
-        "label": "Hommes-bêtes"
-      },
-      {
-        "id": "hors-la-loi",
-        "label": "Hors-la-loi"
-      },
-      {
-        "id": "heretiques",
-        "label": "Hérétiques"
-      },
-      {
-        "id": "intrus",
-        "label": "Intrus"
-      },
-      {
-        "id": "miliciens",
-        "label": "Miliciens"
-      },
-      {
-        "id": "monstres",
-        "label": "Monstres"
-      },
-      {
-        "id": "morts-vivants",
-        "label": "Morts-vivants"
-      },
-      {
-        "id": "naufrageurs",
-        "label": "Naufrageurs"
-      },
-      {
-        "id": "patrouilleurs-fluviaux",
-        "label": "Patrouilleurs fluviaux"
-      },
-      {
-        "id": "patrouilleurs-routiers",
-        "label": "Patrouilleurs routiers"
-      },
-      {
-        "id": "peaux-vertes",
-        "label": "Peaux-vertes"
-      },
-      {
-        "id": "primes",
-        "label": "Primes"
-      },
-      {
-        "id": "rats",
-        "label": "Rats"
-      },
-      {
-        "id": "skaven",
-        "label": "Skaven"
-      },
-      {
-        "id": "sorciers-dissidents",
-        "label": "Sorciers dissidents"
-      },
-      {
-        "id": "sorcieres",
-        "label": "Sorcières"
-      },
-      {
-        "id": "vampires",
-        "label": "Vampires"
-      },
-      {
-        "id": "tout",
-        "label": "Tout",
-        "source": {
-          "book": "livre-de-base",
-          "page": 76,
-          "note": "LDB 08 l.1472"
-        }
-      },
-      {
-        "id": "chaos",
-        "label": "Chaos",
-        "source": {
-          "book": "aux-armes",
-          "page": 36,
-          "note": "AA 03 l.420"
-        }
-      },
-      {
-        "id": "cavalerie",
-        "label": "Cavalerie",
-        "source": {
-          "book": "aux-armes",
-          "page": 46,
-          "note": "AA 04 l.204"
-        }
-      },
-      {
-        "id": "grandes-betes",
-        "label": "Grandes bêtes",
-        "source": {
-          "book": "archives-de-l-empire-2",
-          "page": 36,
-          "note": "ADE II 02 l.927"
-        }
-      }
-    ],
+    "specsSource": "groupesDAppartenance",
     "rand": null,
     "source": {
       "book": "livre-de-base",
@@ -4379,8 +4262,7 @@
     },
     "combat": {
       "fearImmune": true
-    },
-    "specsOpen": true
+    }
   },
   {
     "id": "saut-carpe",

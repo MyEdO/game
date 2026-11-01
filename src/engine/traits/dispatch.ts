@@ -99,6 +99,7 @@ const SPEC_SOURCE_KEY: Record<SpecsSource, MsgKey> = {
   cultChaos: 'specSrc.cult',
   seaShanties: 'specSrc.shanty',
   ciblesPsy: 'specSrc.target',
+  groupesDAppartenance: 'specSrc.group',
   diseases: 'specSrc.disease',
   sizes: 'specSrc.size',
   mutations: 'specSrc.mutation',

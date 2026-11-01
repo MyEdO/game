@@ -951,6 +951,7 @@ export function specEntryLabel(e: SpecEntry): PlayerText {
  *  nom du dieu), `seaShanties` (Chanson de marin — ids de `sea-shanties.json`). Sources d'ARGUMENT de Trait
  *  (Immunité, Peur, Vulnérabilité, Mutation, Souffle…) : `ciblesPsy` (Cible d'un Trait psy ciblé — un Groupe de `groups.json` ; une scène admet en plus `@id`, un
  *  individu, `refusDuTraitPose` de `grammaire/reference.ts`),
+ *  `groupesDAppartenance` (Ennemi de Sans Peur — la sous-liste `CIBLE_D_APPARTENANCE` de `groups.json`),
  *  `diseases` (Maladie — `maladies.json`), `sizes` (catégorie de Taille — `engine/size`), `mutations`
  *  (Mutation — `mutations.json`), `breathTypes` (Type de Souffle — `breath-types.json`), `damageTypes`
  *  (Immunité aux Dégâts — `damage-types.json`, lue par la Condition `has … what:'immunity'`), `weaponsMelee`/
@@ -968,6 +969,7 @@ export type SpecsSource =
   | 'cultChaos'
   | 'seaShanties'
   | 'ciblesPsy'
+  | 'groupesDAppartenance'
   | 'diseases'
   | 'sizes'
   | 'mutations'
@@ -1412,6 +1414,8 @@ export interface GroupData {
   relatif?: Relatif;
   /** Ce Groupe est une Race (ADE II 09 l.15). #3045 */
   race?: true;
+  /** Groupe-CIBLE COMPOSITE : il vise tout membre de l'un des Groupes qu'il inclut (`groupMatch`). Q13 A, #3045 */
+  inclut?: string[];
 }
 /** Famille de PRÉSENTATION du stock marchand (`MerchantPanel`, ordre d'affichage = ordre du tableau).
  *  `match` = règle de classement d'une ligne de stock (priorité unit > shield > categorie > fallback
