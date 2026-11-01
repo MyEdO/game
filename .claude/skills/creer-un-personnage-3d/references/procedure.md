@@ -184,9 +184,10 @@ repos, puis ceux des chaînes requises. Un élément skinné reçoit les silhoue
 toutes les clés `gabarit_*` de la base, celles-ci non déclarées au manifeste, par
 `transferer_les_cles(source, cible, noms)` (`scripts/personnage-3d/formes.py`) ; la source est la
 zone porteuse, ou la copie jointe des zones que la pièce traverse (pièce à cheval sur deux zones :
-la source est un seul objet). `npm run godot:evaluer` refuse un élément privé des clés de sa zone
-(garde `suiviDuCorps`). Vérifier d'abord que les helpers nécessaires existent : ne pas confondre
-une extension prévue du kit avec une API livrée.
+la source est un seul objet). `npm run godot:evaluer` (garde `suiviDuCorps`) refuse par `cle-inerte`
+une pièce qui ne suit pas un corps qui bouge sous elle, clé absente comprise, et par `cle-non-suivie`
+une pièce dont l'écart au corps dépasse son jeu. Vérifier d'abord que les helpers nécessaires
+existent : ne pas confondre une extension prévue du kit avec une API livrée.
 
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,

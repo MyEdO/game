@@ -99,6 +99,8 @@ const armsPlus: Forme = () => [0.3, 0, 0];
 const oppose = (f: Forme): Forme => (p) => { const [x, y, z] = f(p); return [-x, -y, -z]; };
 const nul: Forme = () => [0, 0, 0];
 const vers = (k: number): Forme => () => [0, k, 0];
+const fois = (k: number, f: Forme): Forme => (p) => { const [x, y, z] = f(p); return [k * x, k * y, k * z]; };
+const ecarteDe = (e: number, f: Forme): Forme => (p) => { const [x, y, z] = f(p); return [x, y, z + e]; };
 
 const carre = (x: number): Point[] => [[x, 0, 0], [x + 1, 0, 0], [x + 1, 1, 0], [x, 1, 0]];
 const QUAD = [0, 1, 2, 0, 2, 3];
@@ -112,6 +114,11 @@ const corps = (cleDeG: Readonly<Record<string, Forme>> = {}): Piece[] => [
 const BOTTE: Point[] = [[0.2, 0.3, 0.02], [0.7, 0.2, 0.02], [0.4, 0.8, 0.02]];
 const botte = (formes: Readonly<Record<string, Forme>> = {}, nom = 'Botte'): Piece => ({ nom, sommets: BOTTE, triangles: [0, 1, 2], formes });
 const JUSTE = { [LEGS_MOINS]: legsMoins, [LEGS_PLUS]: legsPlus };
+/** La même botte à la distance `jeu` de la surface de G, chaque sommet lié à l'aplomb. */
+const botteAuJeu = (jeu: number, formes: Readonly<Record<string, Forme>> = {}): Piece => ({ ...botte(formes), sommets: BOTTE.map(([x, y]) => [x, y, jeu]) });
+/** Le plus grand déplacement du corps sous la botte, sous `legsMoins` : la forme est affine, l'interpolation est exacte. */
+const CHEMIN_DU_CORPS = Math.max(...BOTTE.map((p) => Math.hypot(...legsMoins(p))));
+const GRAND_JEU = 0.5;
 
 const suivis = async (base: readonly Piece[], element: Piece) => {
   const f = await evaluer({ base: glb(base), elements: [glb([element])] });
@@ -123,30 +130,62 @@ describe('gardeSuiviDuCorps, par evaluer à facteurs neutres', () => {
   it('refuse un élément skinné sans clés, une fiche par clé propre à sa zone', async () => {
     const e = await suivis(corps(), botte());
     expect(e.map((x) => [x.code, x.mesh, cleNommee(x.detail)])).toEqual([
-      ['cle-non-suivie', 'Botte', LEGS_MOINS],
-      ['cle-non-suivie', 'Botte', LEGS_PLUS],
+      ['cle-inerte', 'Botte', LEGS_MOINS],
+      ['cle-inerte', 'Botte', LEGS_PLUS],
     ]);
-    expect(e[0].seuil).toBe(ECART_DE_SUIVI_M);
-    expect(e[0].detail).toMatch(/absente de l’élément : écart au corps du sommet \d/);
+    expect(e[0].valeur).toBe(0);
+    expect(e[0].seuil as number).toBeCloseTo(CHEMIN_DU_CORPS / 2, 5);
+    expect(e[0].detail).toContain('absente de l’élément');
   });
 
   it('refuse un élément privé d’une seule clé propre, et ne nomme que celle-là', async () => {
     const e = await suivis(corps(), botte({ [LEGS_MOINS]: legsMoins }));
-    expect(e.map((x) => cleNommee(x.detail))).toEqual([LEGS_PLUS]);
+    expect(e.map((x) => [x.code, cleNommee(x.detail)])).toEqual([['cle-inerte', LEGS_PLUS]]);
     expect(e[0].detail).toContain('absente');
   });
 
   it('refuse une clé présente à delta nul', async () => {
     const e = await suivis(corps(), botte({ ...JUSTE, [LEGS_MOINS]: nul }));
-    expect(e.map((x) => cleNommee(x.detail))).toEqual([LEGS_MOINS]);
+    expect(e.map((x) => [x.code, cleNommee(x.detail)])).toEqual([['cle-inerte', LEGS_MOINS]]);
     expect(e[0].detail).toContain('portée par');
   });
 
-  it('refuse une clé de delta opposé, à deux fois l’écart de la clé absente', async () => {
-    const absente = await suivis(corps(), botte({ [LEGS_PLUS]: legsPlus }));
-    const e = await suivis(corps(), botte({ ...JUSTE, [LEGS_MOINS]: oppose(legsMoins) }));
-    expect(e.map((x) => cleNommee(x.detail))).toEqual([LEGS_MOINS]);
-    expect(e[0].valeur as number).toBeCloseTo(2 * (absente[0].valeur as number), 5);
+  it.each([
+    ['absente', { [LEGS_PLUS]: legsPlus }],
+    ['à delta nul', { ...JUSTE, [LEGS_MOINS]: nul }],
+    ['à moins de la moitié du chemin', { ...JUSTE, [LEGS_MOINS]: fois(0.4, legsMoins) }],
+  ])('refuse par cle-inerte une clé %s, au contact comme à grand jeu', async (_cas, formes) => {
+    for (const jeu of [0, GRAND_JEU]) {
+      const e = await suivis(corps(), botteAuJeu(jeu, formes));
+      expect(e.map((x) => [x.code, cleNommee(x.detail)])).toEqual([['cle-inerte', LEGS_MOINS]]);
+    }
+  });
+
+  it('accepte à grand jeu une pièce qui fait plus de la moitié du chemin', async () => {
+    expect(await suivis(corps(), botteAuJeu(GRAND_JEU, { ...JUSTE, [LEGS_MOINS]: fois(0.6, legsMoins) }))).toEqual([]);
+  });
+
+  it('refuse par cle-non-suivie un delta opposé au contact, à deux fois le chemin du corps', async () => {
+    const e = await suivis(corps(), botteAuJeu(0, { ...JUSTE, [LEGS_MOINS]: oppose(legsMoins) }));
+    expect(e.map((x) => [x.code, cleNommee(x.detail)])).toEqual([['cle-non-suivie', LEGS_MOINS]]);
+    expect(e[0].valeur as number).toBeCloseTo(2 * CHEMIN_DU_CORPS, 5);
+    expect(e[0].seuil).toBe(ECART_DE_SUIVI_M);
+    expect(e[0].detail).toMatch(/sommet \d, de jeu 0\.0000 m/);
+  });
+
+  it.each([
+    ['entre 5 mm et le jeu : acceptée', 0.05, 0.02, []],
+    ['au-delà du jeu : refusée', 0.05, 0.06, [['cle-non-suivie', LEGS_MOINS]]],
+    ['au contact, 4 mm : acceptée', 0, 0.004, []],
+    ['au contact, 6 mm : refusée', 0, 0.006, [['cle-non-suivie', LEGS_MOINS]]],
+  ])('un écart de pièce %s', async (_cas, jeu, ecart, attendu) => {
+    const e = await suivis(corps(), botteAuJeu(jeu, { ...JUSTE, [LEGS_MOINS]: ecarteDe(ecart, legsMoins) }));
+    expect(e.map((x) => [x.code, cleNommee(x.detail)])).toEqual(attendu);
+    for (const x of e) {
+      expect(x.valeur as number).toBeCloseTo(ecart, 5);
+      expect(x.seuil as number).toBeCloseTo(Math.max(ECART_DE_SUIVI_M, jeu), 5);
+      expect(x.detail).toContain(`de jeu ${jeu.toFixed(4)} m`);
+    }
   });
 
   it('accepte l’élément juste, dont les deltas sont ceux du point lié, sans en être un sommet', async () => {
@@ -184,10 +223,10 @@ describe('gardeSuiviDuCorps, par evaluer à facteurs neutres', () => {
 describe('gardeSuiviDuCorps : clés croisées', () => {
   it.each([
     ['sous le seuil, absente : acceptée', ECART_DE_SUIVI_M / 2, []],
-    ['au-dessus, absente : refusée', ECART_DE_SUIVI_M * 2, [CROISEE]],
+    ['au-dessus, absente : refusée', ECART_DE_SUIVI_M * 2, [['cle-inerte', CROISEE]]],
   ])('delta %s', async (_cas, k, attendu) => {
     const e = await suivis(corps({ [CROISEE]: vers(k) }), botte(JUSTE));
-    expect(e.map((x) => cleNommee(x.detail))).toEqual(attendu);
+    expect(e.map((x) => [x.code, cleNommee(x.detail)])).toEqual(attendu);
   });
 });
 
@@ -232,11 +271,18 @@ describe('gardeSuiviDuCorps : le chemin réel de la peau', () => {
     }));
   }
 
-  it('vaut, à poids 1, l’écart de la garde pour l’élément privé', async () => {
+  it('vaut, à poids 1, l’écart de la garde pour la clé de delta opposé', async () => {
+    const faux = botte({ [LEGS_PLUS]: legsPlus, [LEGS_MOINS]: oppose(legsMoins) });
+    const [garde] = await suivis(corps(), faux);
+    expect(garde.code).toBe('cle-non-suivie');
+    expect(await ecartReel(faux, TABLE.bornes.legs.min)).toBeCloseTo(garde.valeur as number, 5);
+  });
+
+  it('vaut, à poids 1, le chemin du corps sous la garde pour la clé absente', async () => {
     const prive = botte({ [LEGS_PLUS]: legsPlus });
     const [garde] = await suivis(corps(), prive);
-    expect(garde.valeur as number).toBeGreaterThan(ECART_DE_SUIVI_M);
-    expect(await ecartReel(prive, TABLE.bornes.legs.min)).toBeCloseTo(garde.valeur as number, 5);
+    expect(garde.code).toBe('cle-inerte');
+    expect(await ecartReel(prive, TABLE.bornes.legs.min)).toBeCloseTo(2 * (garde.seuil as number), 5);
   });
 
   it('reste sous le seuil pour l’élément juste', async () => {

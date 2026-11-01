@@ -168,12 +168,12 @@ const meshesAFormes = (scene: Object3D): Mesh[] => {
   return liste;
 };
 
-/** Pose les silhouettes de la liste à `poids`, ou à 0 si leur poids est absent ; refuse tout poids hors de la liste. */
-function poserSeules(scene: Object3D, silhouettes: readonly string[], poids: Readonly<Record<string, number>>, poidsDesFormes: PoidsDesFormes): void {
+/** Pose les formes de `noms` à `poids`, ou à 0 si leur poids est absent ; refuse tout poids hors de la liste. */
+function poserSeules(scene: Object3D, noms: readonly string[], poids: Readonly<Record<string, number>>, poidsDesFormes: PoidsDesFormes): void {
   for (const nom of Object.keys(poids)) {
-    if (!silhouettes.includes(nom)) throw new Error(`silhouettes : poids demandé hors silhouettes : ${nom}`);
+    if (!noms.includes(nom)) throw new Error(`sousLesFormes : poids demandé hors de la liste : ${nom}`);
   }
-  poserFormes(scene, poidsDesFormes(tableTotale(silhouettes, (nom) => poids[nom] ?? 0)));
+  poserFormes(scene, poidsDesFormes(tableTotale(noms, (nom) => poids[nom] ?? 0)));
 }
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
@@ -181,12 +181,12 @@ export type PoserSeules = (poids: Readonly<Record<string, number>>, meshes: read
 export type PoidsDesFormes = (silhouettes: Readonly<Record<string, number>>) => Readonly<Record<string, number>>;
 
 /** Rend `mesurer(poser)` ; l'état des shape keys de `scene` trouvé à l'entrée est restauré à la sortie. */
-export function sousLesFormes<T>(scene: Object3D, silhouettes: readonly string[], mesurer: (poser: PoserSeules) => T, poidsDesFormes: PoidsDesFormes): T {
+export function sousLesFormes<T>(scene: Object3D, noms: readonly string[], mesurer: (poser: PoserSeules) => T, poidsDesFormes: PoidsDesFormes): T {
   const formes = meshesAFormes(scene);
   const entree = formes.map((m) => [...(m.morphTargetInfluences as number[])]);
   try {
     return mesurer((poids, meshes) => {
-      poserSeules(scene, silhouettes, poids, poidsDesFormes);
+      poserSeules(scene, noms, poids, poidsDesFormes);
       return poseDeRepos(scene, meshes);
     });
   } finally {
