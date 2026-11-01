@@ -19,13 +19,12 @@ import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { emptyArmour, buildWeapon, deciderApparencesDesArmes, hydratePoste, loadWeapon } from '../../engine/items';
-import { maxWounds, bonus, blessuresReconciliees, blessuresDeBase } from '../../engine/characteristics';
+import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
 import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
 import { appliquerAcquisitions } from '../../engine/talentEffects';
 import { parsePsychTraits } from '../../engine/psychology';
-import { traitCharMods, traitBonusWoundsBE, traitPassiveMods, mutationsAtSpawn, markMutationsAtSpawn, isSwarm } from '../../engine/traits/dispatch';
-import { sommeAttrMods } from '../../engine/trauma';
+import { traitCharMods, mutationsAtSpawn, markMutationsAtSpawn, isSwarm } from '../../engine/traits/dispatch';
 import { rollMutation, mutationById } from '../../data/mutations';
 import { makeRNG, type RNG } from '../../engine/dice';
 import { attachMutation, type Mutation } from '../../engine/corruption';
@@ -97,11 +96,10 @@ export function entiteFootTiles(ent: SceneEntity, mpt: number): Pt[] {
   return footprintTiles(ent.pos, sizeFootprint(entitySize(ent)));
 }
 
-/** Nuée au spawn (LDB 85 l.253) : ×5 PB (« cinq fois plus de PB qu'une créature type ») + 10 CC sur
- *  les PB/carac. déjà calculés. Le B mono-créature du bestiaire reste, c'est lui qu'on multiplie. */
-function applySwarmBuild(chars: Characteristics, wounds: number): { chars: Characteristics; wounds: number } {
+/** Nuée non imprimée au profil : LDB 85 l.253 ; ZI 02 l.138-140 (Nuée imprimée). Ses Blessures : `effectiveMaxWounds`. */
+function applySwarmBuild(chars: Characteristics): Characteristics {
   chars['capacite-de-combat'] += 10;
-  return { chars, wounds: wounds * 5 };
+  return chars;
 }
 
 /** Mutation / Corruption mentale (LDB 85 l.92/245) : les mutations d'un statbloc, tirées sur les Tableaux
@@ -245,8 +243,8 @@ export const porteurDuProfil = (id: string, char: Partial<Record<string, number 
 const profilDeLIndividu = (chars: Characteristics, id: string, charsRolled: Characteristics | undefined, aleatoire: boolean | undefined): Characteristics =>
   charsRolled ? { ...charsRolled } : aleatoire ? randomizeChars(chars, id) : chars;
 
-/** Profil + modificateurs de PROFIL des traits `live` (Élite/Coriace/Brutal…) — pour les valeurs DÉRIVÉES
- *  au spawn (Blessures) qui doivent refléter les traits, alors que `characteristics` ne stocke que la base. */
+/** Profil + modificateurs de PROFIL des traits `live` (Élite/Coriace/Brutal…) — pour les Indices formulés
+ *  lus au spawn, qui doivent refléter les traits, alors que `characteristics` ne stocke que la base. */
 function withTraitChars(chars: Characteristics, live: TraitsDesignes | undefined): Characteristics {
   const out = { ...chars };
   for (const [k, v] of Object.entries(traitCharMods(live))) out[k as keyof Characteristics] += v ?? 0;
@@ -272,8 +270,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   const bookSkills = [...skillsFromBook(creature.skills, chars, `spec:${id}`), ...skillsFromBook(extras?.skills, chars, `spec:auteur:${id}`)];
   // Compétences octroyées par une variante « swap » (ZI, Vouivre : Discrétion (Rurale) 65) — dérivées
   // PLUS BAS, sur le profil FINAL (après Taille facultative éventuelle) : la valeur de Test IMPRIMÉE par
-  // la variante doit tenir compte du ∓5 Ag qu'elle-même inflige (LDB 85 l.276-277), sinon la variante se
-  // désaccorderait de son propre changement de Taille.
+  // la variante suit son propre changement de Taille (LDB 85 l.340).
   const swapSkillRefs = swapGrants.flatMap((g) => ('id' in g ? [{ id: g.id, spec: g.spec, value: g.value }] : []));
   const talents = talentsFromBook(creature.talents);
   chars = profilDeLIndividu(chars, id, extras?.charsRolled, extras?.randomChars);
@@ -283,16 +280,13 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   const baseSize = tailleDuProfil(creature);
   // Taille FACULTATIVE : trait « Taille (X) » choisi, OU catégorie posée par une variante « swap »
   // (bidirectionnel : Grand Loup Moyenne→Grande, Vouivre Énorme→Grande). PRIME sur celle du bestiaire
-  // et applique « Utiliser les Tailles » (LDB 85 l.276-277 : ±10 F/E, ∓5 Ag par catégorie d'écart).
+  // et applique « Utiliser les Tailles » (LDB 85 l.340).
   const swapSize = swaps.map((s) => s.size).find((x): x is SizeCategory => !!x);
   const optSize = sizeFromTraits(optPoses) ?? swapSize ?? null;
   const size = optSize ?? baseSize;
   if (optSize && optSize !== baseSize) chars = resizeBySteps(chars, SIZE_ORDER[optSize] - SIZE_ORDER[baseSize]);
-  // char.B (bestiaire) = la valeur livre d'UNE créature (≈ formule × Taille) → base/surcharge ; la
-  // FORMULE (LDB 85) reprend la main si le profil a bougé (carac. aléatoires, Taille facultative).
+  // `char.B` du bestiaire, écart figé à la naissance (`blessuresPosees`) : LDB 77 l.91-95 ; ZI 02 l.138-140.
   const profileChanged = !!extras?.randomChars || !!extras?.charsRolled || (optSize != null && optSize !== baseSize);
-  // Blessures dérivées de F/E/FM : computées sur le profil INCLUANT les facultatifs (Coriace +E, Élite +FM…),
-  // même si `characteristics` ne stocke que la base — sinon une créature renforcée perdrait ses PB de trait.
   const charsEff = withTraitChars(chars, optPoses);
   // Traits de l'individu, leurs Indices formulés lus sur ce profil (Middenheim 04 l.29). Variante « swap »
   // (ZI) : RETIRE les Traits qu'elle nomme (Bestial/Dressé/Territorial) — en échange d'un bonus (appliqué
@@ -303,15 +297,15 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   const removedBySwap = new Set(swaps.flatMap((s) => s.remove));
   const traits = individu.filter((t) => !removedBySwap.has(t.id));
   // Blessures IMPOSÉES par une variante « swap » (Vouivre : « réduire ses B à 42 ») — remplace la valeur
-  // livre ET la formule par Taille, aucune des deux ne reprend la main.
+  // livre ET la formule par Taille.
   const swapWounds = swaps.map((s) => s.wounds).find((w): w is number => w != null);
-  let wounds = swapWounds ?? (typeof creature.char.B === 'number' && !profileChanged ? creature.char.B : maxWounds(charsEff, size, traits));
-  if (swapWounds == null && traitBonusWoundsBE(optTraits)) wounds += bonus(charsEff.endurance); // Endurant facultatif : +BE Blessures (LDB 85)
+  const livre = swapWounds ?? (typeof creature.char.B === 'number' && !profileChanged ? creature.char.B : undefined);
   const skills = [...bookSkills, ...skillsFromBook(swapSkillRefs, chars, `spec:swap:${id}`)]; // swap : dérivée sur le profil FINAL (post-Taille)
   const swarm = isSwarm(traits);
-  if (swarm) ({ chars, wounds } = applySwarmBuild(chars, wounds)); // ×5 PB + 10 CC (la nuée = 5 créatures, LDB 85 l.253)
+  const imprimes = traits.filter((t) => !optTraits.includes(t));
+  if (swarm && !isSwarm(imprimes)) chars = applySwarmBuild(chars);
   const movement = typeof creature.char.M === 'number' ? creature.char.M : 4; // facultatifs → liveTraits (effectiveMovement)
-  const combattant: Combatant = {
+  const sansBlessures: Omit<Combatant, 'wounds'> = {
     id,
     label: creature.label,
     creatureId: creature.id, // identité bestiaire STABLE → le rig la résout par id (plus par `name`)
@@ -319,7 +313,6 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     ...(optTraits.length ? { liveTraits: optTraits } : {}), // charMods/Mouvement des facultatifs appliqués en direct
     ...(creature.appearance?.species ? { species: creature.appearance.species } : {}), // espèce du record (P2) → le rig la lit ; le reste de l'apparence par défaut est lu par enemyRigProfile via findCreatureById(creatureId)
     characteristics: chars,
-    wounds: blessuresDeBase(wounds),
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -341,6 +334,11 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     movement,
     pos,
   };
+  // Écart du livre posé sur le profil imprimé, sans les facultatifs, qui déplacent ensuite le maximum :
+  // LDB 77 l.91-95, LDB 05 l.1001.
+  const imprime: Omit<Combatant, 'wounds'> = { ...sansBlessures, traits: imprimes, liveTraits: [] };
+  const ne: Combatant = { ...sansBlessures, wounds: blessuresPosees(imprime, livre) };
+  const combattant: Combatant = { ...ne, wounds: blessuresReconciliees(ne) };
   attacherMutationsDeSpawn(combattant, traits, weaponsFromTraits);
   appliquerAcquisitions(combattant); // Béni : LDB 10 l.109
   return combattant;
@@ -354,31 +352,25 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   const skills = skillsFromBook(sb.skills, chars, `spec:${id}`);
   const talents = talentsFromBook(sb.talents);
   const rolled = !!extras?.charsRolled || !!sb.randomChars;
-  const bExplicite = !rolled && typeof sb.char.B === 'number' ? sb.char.B : undefined;
+  const livre = !rolled && typeof sb.char.B === 'number' ? sb.char.B : undefined;
   chars = profilDeLIndividu(chars, id, extras?.charsRolled, sb.randomChars);
   // Traits à modificateurs de PROFIL (Élite, Coriace, Brutal, Rapide… — LDB 85) : un statbloc d'ÉDITEUR
   // part d'un profil standard et AJOUTE les Traits (LDB 77) → tous appliqués en DIRECT via `liveTraits`
   // (collecteur passif). `characteristics` reste le profil de BASE saisi ; `effectiveChar` ajoute les traits.
   const size = tailleDuProfil({ size: sb.size, traits: designes, talents: sb.talents });
-  // Blessures : surcharge explicite `char.B` si fournie, sinon formule par Taille (vide ⇒ formule, LDB 85).
-  // La formule reprend la main si les caractéristiques ont été tirées (le B saisi valait pour le profil rond).
-  // Blessures sur le profil INCLUANT les traits (Coriace +E…) ; `characteristics` ne garde que la base saisie.
+  // Blessures : `char.B` saisi, réputé final avec ses Traits (LDB 77 l.91-95), écart figé à la naissance
+  // (`blessuresPosees`) ; sinon, ou si les caractéristiques ont été tirées, la formule par Taille (LDB 85).
   const charsEff = withTraitChars(chars, designes);
   const traits = traitsDeLIndividu(poses, { id, indice: indiceSurLeProfil((k) => charsEff[k]) }, { appris: extras?.learnedTraits }); // Middenheim 04 l.29
-  let wounds = bExplicite ?? maxWounds(charsEff, size, traits);
-  // Endurant (LDB 85 l.130) : +Bonus d'Endurance Blessures (sur la formule — un B explicite du
-  // statbloc est réputé final, comme au bestiaire).
-  if (bExplicite === undefined && traitBonusWoundsBE(traits)) wounds += Math.floor(charsEff.endurance / 10);
   const swarm = isSwarm(traits);
-  if (swarm) ({ chars, wounds } = applySwarmBuild(chars, wounds)); // Nuée : ×5 PB + 10 CC (LDB 85 l.253)
+  if (swarm) chars = applySwarmBuild(chars);
   const movement = typeof sb.char.M === 'number' ? (sb.char.M as number) : 4; // traits → liveTraits (effectiveMovement)
-  const combattant: Combatant = {
+  const sansBlessures: Omit<Combatant, 'wounds'> = {
     id,
     label: sb.label,
     kind: 'enemy',
     ...(traits.length ? { liveTraits: [...traits] } : {}), // statbloc d'éditeur : tous les traits en direct
     characteristics: chars,
-    wounds: blessuresDeBase(wounds),
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -397,9 +389,10 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
     movement,
     pos,
   };
-  // B explicite réputé final, ses Traits compris (LDB 77 l.91-95 ; #1463) : leurs `attrMod` de Blessures,
-  // que `effectiveMaxWounds` compte au delta, sont retirés de la base.
-  if (bExplicite !== undefined) combattant.wounds.base = wounds - sommeAttrMods(traitPassiveMods(combattant.liveTraits), 'wounds', combattant);
+  // `char.B` d'une Nuée : celui d'une créature type, LDB 85 l.253.
+  const horsNuee = traits.filter((t) => !isSwarm([t]));
+  const ne: Combatant = { ...sansBlessures, wounds: blessuresPosees({ ...sansBlessures, traits: horsNuee, liveTraits: horsNuee }, livre) };
+  const combattant: Combatant = { ...ne, wounds: blessuresReconciliees(ne) };
   // Armes : depuis les Traits si fournis (« Arme (Épée) +7 », « À distance (Arbalète) +9 (60) »),
   // sinon une arme générique au dégât indiqué.
   attacherMutationsDeSpawn(combattant, traits, (t) => (t.length ? weaponsFromTraits(t) : [buildWeapon({ label: 'Arme', damage: { literal: sb.weaponDamage ?? '+BF' } })])); // uid universel

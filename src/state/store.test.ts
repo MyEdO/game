@@ -43,8 +43,8 @@ import { refDeRegle } from '../engine/reglesChiffrees';
 import { makeRNG } from '../engine/dice';
 import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { blessuresPosees } from '../engine/characteristics';
 
 /** Seede la Bourse d'un héros (défaut 'h', bénéficiaire des tests marchand) — la monnaie est portée par
  *  chaque héros (SOCLE POSSESSIONS §8, #531), donc un montant de test s'installe via `creditBourse`. */
@@ -119,8 +119,8 @@ describe('Boucle de jeu (store)', () => {
     // Héros blessé + 1 État persistant + 1 transitoire + 1 critique ; tous les ennemis hors de combat.
     const combatants = b.combatants.map((c) =>
       c.kind === 'hero'
-        ? { ...c, wounds: { ...c.wounds, current: 4 }, criticalWounds: 1,
-            conditions: [{ id: 'hemorragique', value: 2 }, { id: 'surpris', value: 1 }] }
+        ? blessuresSurLeProfil({ ...c, wounds: { ...c.wounds, current: 4 }, criticalWounds: 1,
+            conditions: [{ id: 'hemorragique', value: 2 }, { id: 'surpris', value: 1 }] })
         : { ...c, dead: true },
     );
     const heroId = combatants.find((c) => c.kind === 'hero')!.id;
@@ -274,13 +274,13 @@ describe('Boucle de jeu (store)', () => {
   // ── Phase C2a — qualité d'outil sur les Tests HORS COMBAT (Pratique/Peu Fiable/Bâclé) ──
   it('Effect.test : outil résolu par trappingId (id catalogue) vers pendingTest.itemUid', () => {
     const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 55, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-    const hero = combattantDeTest({
-      id: 'h1', label: 'Lest', kind: 'hero', characteristics: chars, wounds: { current: 10, max: 10 },
+    const hero = combattantDeTest(blessuresSurLeProfil({
+      id: 'h1', label: 'Lest', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(10),
       advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       // tool = 'marteau' (id catalogue) ; l'item porte trappingId: 'marteau' → match par id
       items: [{ uid: 't1', label: 'Marteau', trappingId: 'marteau', kind: 'trapping', qualities: [{ id: 'pratique' }], enc: 0, equipped: false }],
-    } as never);
+    }) as never);
     useGame.setState({ party: [hero] });
     runFlow(useGame.getState, useGame.setState, testFlow({ characteristic: 'dexterite', tool: 'marteau', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     const pt = useGame.getState().pendingTest!;
@@ -290,13 +290,13 @@ describe('Boucle de jeu (store)', () => {
 
   it('Effect.test : outil résolu par trappingId (2e objet catalogue, id ≠ label)', () => {
     const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 55, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-    const hero = combattantDeTest({
-      id: 'h1', label: 'Lest', kind: 'hero', characteristics: chars, wounds: { current: 10, max: 10 },
+    const hero = combattantDeTest(blessuresSurLeProfil({
+      id: 'h1', label: 'Lest', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(10),
       advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       // tool = 'outils-de-crochetage' (id catalogue) ; l'item porte trappingId → match par id, ≠ label 'Rossignols'
       items: [{ uid: 't2', label: 'Rossignols', trappingId: 'outils-de-crochetage', kind: 'trapping', qualities: [], enc: 0, equipped: false }],
-    } as never);
+    }) as never);
     useGame.setState({ party: [hero] });
     runFlow(useGame.getState, useGame.setState, testFlow({ characteristic: 'dexterite', tool: 'outils-de-crochetage', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     expect(useGame.getState().pendingTest!.itemUid).toBe('t2');
@@ -897,7 +897,7 @@ describe('Boucle de jeu (store)', () => {
     let st = useGame.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
-    E.wounds = blessuresDeBase(99); // survit à la touche → le lien d'engagement reste observable
+    E.wounds = blessuresDeBase(99, 99, E); // survit à la touche → le lien d'engagement reste observable
     H.pos = { x: E.pos!.x - 1, y: E.pos!.y };
     const turn = st.battle!.order.indexOf(H.id);
     useGame.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
@@ -1253,7 +1253,7 @@ describe('Boucle de jeu (store)', () => {
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     E.characteristics['capacite-de-combat'] = 90; // le coup dans le dos (+20) touche à coup sûr → Test `fuite`
-    H.wounds = { current: 40, max: 40, base: 40 } as never;
+    H.wounds = blessuresDeBase(40, 40, H);
     const eAdvBefore = E.advantage;
     const turn = st.battle!.order.indexOf(H.id);
     useGame.setState({
@@ -1357,13 +1357,12 @@ describe('Avancement par PX (store) — câblage moteur', () => {
   });
 
   it('buyCharAdvance recalcule les Blessures quand le Bonus d’Endurance monte', () => {
-    set1(
-      mkHero({
-        xp: 1000,
-        characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 39, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-        wounds: blessuresDeBase(12),
-      }),
-    );
+    const h = mkHero({
+      xp: 1000,
+      characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 39, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
+    });
+    set1({ ...h, wounds: blessuresPosees(h) });
+    expect(h0().wounds.max).toBe(12);
     useGame.getState().buyCharAdvance('h', 'endurance'); // 39→40 : BE 3→4, Blessures = BF + 2·BE + BFM = 3 + 8 + 3 = 14
     expect(h0().characteristics.endurance).toBe(40);
     expect(h0().wounds.max).toBe(14);
@@ -2149,7 +2148,7 @@ describe('Détermination (Resolve) — retirer un État (LDB 17 l.59-61)', () =>
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     h.resolve = 1;
     h.conditions = [{ id: 'a-terre', value: 1 }];
-    h.wounds = blessuresDeBase(12, 5);
+    h.wounds = blessuresDeBase(12, 5, h);
     useGame.setState({ mode: 'battle', battle: mkBattle(h) });
     useGame.getState().battleSpendResolve('a-terre');
     const c0 = useGame.getState().battle!.combatants[0];
@@ -2161,7 +2160,7 @@ describe('Détermination (Resolve) — retirer un État (LDB 17 l.59-61)', () =>
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     h.resolve = 1;
     h.conditions = [{ id: 'a-terre', value: 1 }, { id: 'munition-logee', value: 1 }];
-    h.wounds = blessuresDeBase(12, 11);
+    h.wounds = blessuresDeBase(12, 11, h);
     useGame.setState({ mode: 'battle', battle: mkBattle(h) });
     useGame.getState().battleSpendResolve('a-terre');
     const c0 = useGame.getState().battle!.combatants[0];
@@ -2181,7 +2180,7 @@ describe('Détermination (Resolve) — retirer un État (LDB 17 l.59-61)', () =>
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     h.resolve = 1;
     h.conditions = [{ id: 'a-terre', value: 1 }];
-    h.wounds = blessuresDeBase(12, 5);
+    h.wounds = blessuresDeBase(12, 5, h);
     useGame.setState({ mode: 'battle', battle: mkBattle(h) });
     useGame.getState().spendResolveCondition(h.id, 'a-terre');
     const c0 = useGame.getState().battle!.combatants[0];
@@ -2193,7 +2192,7 @@ describe('Détermination (Resolve) — retirer un État (LDB 17 l.59-61)', () =>
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     h.resolve = 1;
     h.conditions = [{ id: 'a-terre', value: 1 }, { id: 'munition-logee', value: 1 }];
-    h.wounds = blessuresDeBase(12, 11);
+    h.wounds = blessuresDeBase(12, 11, h);
     useGame.setState({ mode: 'battle', battle: mkBattle(h) });
     useGame.getState().spendResolveCondition(h.id, 'a-terre');
     const c0 = useGame.getState().battle!.combatants[0];
@@ -2478,9 +2477,9 @@ describe('Blessures critiques & mort en combat (LDB 18-Traumatisme)', () => {
   function combat(heroOver: Partial<Combatant> = {}, enemyOver: Partial<Combatant> = {}) {
     const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
     H.fortune = 0; // pas de pré-emption d'initiative dans ces tests
-    Object.assign(H, heroOver);
+    Object.assign(H, blessuresSurLeProfil({ ...H, ...heroOver }));
     const E: Combatant = JSON.parse(JSON.stringify(H));
-    E.id = 'enemy-0'; E.label = 'Brigand'; E.kind = 'enemy'; E.fortune = 0; Object.assign(E, enemyOver);
+    E.id = 'enemy-0'; E.label = 'Brigand'; E.kind = 'enemy'; E.fortune = 0; Object.assign(E, blessuresSurLeProfil({ ...E, ...enemyOver }));
     const battle: BattleState = {
       combatants: [H, E], order: [H.id, E.id], turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
@@ -2521,7 +2520,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
 
   function combat(heroOver: Partial<Combatant> = {}) {
     const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
-    H.fortune = 0; H.fate = 1; Object.assign(H, heroOver);
+    H.fortune = 0; H.fate = 1; Object.assign(H, blessuresSurLeProfil({ ...H, ...heroOver }));
     const E: Combatant = JSON.parse(JSON.stringify(H));
     E.id = 'enemy-0'; E.label = 'Brigand'; E.kind = 'enemy'; E.fortune = 0; E.fate = 0;
     const battle: BattleState = {
@@ -3011,7 +3010,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     H.pos = { x: 1, y: 0 };
     // PB larges : la touche BLESSE sans DÉPASSER les PB courants → pas d'offre de Déviation Critique
     // (un dépassement EST une Blessure Critique déviable, LDB 63 l.30) qui suspendrait l'application.
-    H.wounds = blessuresDeBase(25);
+    H.wounds = blessuresDeBase(25, 25, H);
     E.pos = { x: 0, y: 0 }; // adjacents
     E.characteristics.force = 60; // gros frappeur → la touche inflige des Blessures
     const atk = { roll: 5, target: 80, success: true, sl: 7, isDouble: false };

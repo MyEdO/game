@@ -16,6 +16,7 @@ import type { AttackResult } from '../engine/combat';
 import type { Combatant, Weapon } from '../engine/types';
 import { testScene } from '../scenes/test-fixture';
 import { avanceEtapeCascade, poseSurDeNonTombe } from '../noyau/cascade.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const chars = { 'capacite-de-combat': 50, 'capacite-de-tir': 30, force: 45, endurance: 40, initiative: 40, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const SHIELD: Weapon = { ...weaponFromItem(itemFromTrappingById('bouclier')!), name: 'Bouclier', label: 'Bouclier', uid: 'sh1', trappingId: 'bouclier', type: 'melee', damage: { plusBF: true, flat: 2, bare: false }, qualities: [] } as never;
@@ -24,16 +25,16 @@ const ARM0 = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 
 function setup(o: { talents?: { talentId: string; times: number }[]; reserve: number; pbAttaquant?: number; important?: boolean; traitsAttaquant?: { id: string; value?: number }[]; pnj?: boolean }): void {
   seedBattleRng(7);
-  const defender = {
-    id: 'd1', name: 'Défenseur', label: 'Défenseur', kind: o.pnj ? 'enemy' : 'hero', important: true, characteristics: chars, wounds: { current: 30, max: 30 },
+  const defender = blessuresSurLeProfil({
+    id: 'd1', name: 'Défenseur', label: 'Défenseur', kind: o.pnj ? 'enemy' : 'hero', important: true, characteristics: chars, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: o.talents ?? [{ talentId: 'porte-bouclier', times: 1 }], traits: [], engagedWith: ['a1'], pos: { x: 5, y: 5 },
     size: 'moyenne', weapons: [SWORD, SHIELD], armour: ARM0, items: [], fate: 0, criticalWounds: 0, traumas: [],
-  } as unknown as Combatant;
-  const attacker = {
-    id: 'a1', name: 'Attaquant', label: 'Attaquant', kind: o.pnj ? 'hero' : 'enemy', important: o.important ?? true, characteristics: chars, wounds: { current: o.pbAttaquant ?? 20, max: 20 },
+  }) as unknown as Combatant;
+  const attacker = blessuresSurLeProfil({
+    id: 'a1', name: 'Attaquant', label: 'Attaquant', kind: o.pnj ? 'hero' : 'enemy', important: o.important ?? true, characteristics: chars, wounds: blessuresDeBase(20, o.pbAttaquant ?? 20),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: o.traitsAttaquant ?? [], engagedWith: ['d1'], pos: { x: 4, y: 5 },
     size: 'moyenne', weapons: [SWORD], items: [], criticalWounds: 0, traumas: [], armour: ARM0,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
   const battle = {
     combatants: [defender, attacker], order: [attacker.id, defender.id], baseOrder: [attacker.id, defender.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),

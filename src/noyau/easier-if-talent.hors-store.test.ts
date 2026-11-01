@@ -6,6 +6,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { flowTestSchema } from '../data/schemas/grammaire/mecanique';
 import type { Combatant } from '../engine/types';
 import { hasTalent } from '../engine/magic';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -15,13 +16,13 @@ const CHARS = {
   agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30,
 };
 
-const hero = (talents: Combatant['talents']): Combatant => ({
+const hero = (talents: Combatant['talents']): Combatant => (blessuresSurLeProfil({
   id: 'h1', name: 'h1', label: 'h1', kind: 'hero',
   characteristics: { ...CHARS },
-  wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4,
+  wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
   skills: [{ id: 'charme', characteristic: 'sociabilite', advances: 5 }], talents, items: [], psychState: [], engagedWith: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 describe('`FlowTest.easierIf.hasTalent` : un id de Talent (#1924)', () => {
   beforeEach(() => {

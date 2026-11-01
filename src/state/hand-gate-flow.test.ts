@@ -11,29 +11,30 @@ import { openAttackCascade, doAttack, runPreemptShots } from '../noyau/combatFlo
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const CHARS = (dex: number) => ({ 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: dex, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
 const ARM = () => ({ tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 });
 const SWORD = (uid: string): Weapon => ({ uid, label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand: 'main', hands: 1 } as unknown as Weapon);
 const SWORD_ITEM = (uid: string): ItemInstance => ({ uid, label: 'Épée', kind: 'melee', qualities: [] } as unknown as ItemInstance);
 
-const mkHero = (over: Partial<Combatant> = {}): Combatant => ({
+const mkHero = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'h', label: 'H', kind: 'hero', pos: { x: 0, y: 0 }, size: 'moyenne',
   characteristics: CHARS(40), skills: [], talents: [], advantage: 0, conditions: [],
-  wounds: { base: 12, max: 12, current: 12 },
+  wounds: blessuresDeBase(12),
   weapons: [SWORD('m')], items: [SWORD_ITEM('m')],
   loadouts: [{ id: 'lo', main: 'm' }], activeLoadoutId: 'lo',
   armour: ARM(), ...over,
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
-const mkFoe = (id: string, over: Partial<Combatant> = {}): Combatant => ({
+const mkFoe = (id: string, over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id, label: id, kind: 'enemy', pos: { x: 1, y: 0 }, size: 'moyenne',
   characteristics: CHARS(40), skills: [], talents: [], advantage: 0, conditions: [],
-  wounds: { base: 10, max: 10, current: 10 },
+  wounds: blessuresDeBase(10),
   weapons: [SWORD('e')], items: [SWORD_ITEM('e')],
   loadouts: [{ id: 'loe', main: 'e' }], activeLoadoutId: 'loe',
   armour: ARM(), ...over,
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 function setup(h: Combatant, f: Combatant) {
   useGame.setState({

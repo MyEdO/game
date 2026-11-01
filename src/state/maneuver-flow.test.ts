@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import type { Combatant } from '../engine/types';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   beforeEach(() => {
@@ -37,7 +37,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     const E = enemies[0];
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 };
-    E.wounds = { current: 30, max: 30, base: 30 } as Combatant['wounds'];
+    E.wounds = blessuresDeBase(30, 30, E);
     E.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     const turn = b.order.indexOf(H.id);
     useGame.setState({ battle: { ...b, turn, movementUsed: 0, acted: false } });
@@ -178,7 +178,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     H.advantage = 3;
     const D = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
     D.dead = false;
-    D.wounds = { current: 30, max: 30, base: 30 } as Combatant['wounds'];
+    D.wounds = blessuresDeBase(30, 30, D);
     D.pos = { x: 10, y: 11 }; // plein SUD : la cible CLIQUÉE
     E.pos = { x: 10, y: 9 }; // plein NORD : le seul ennemi encore debout à la résolution
     useGame.setState({ facing: { [H.id]: 'O' } });

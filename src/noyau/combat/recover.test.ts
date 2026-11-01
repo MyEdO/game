@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolveRecoverTest } from './recover';
 import type { Combatant } from '../../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * `resolveRecoverTest` — SOURCE UNIQUE des paramètres du Test de récupération par Action (LDB 16 l.66/84),
@@ -8,8 +9,8 @@ import type { Combatant } from '../../engine/types';
  * fin du `if state === empetre … else athletisme` dupliqué. Pin de la résolution (skill/opposé/source).
  */
 const mk = (over: Partial<Combatant>): Combatant =>
-  ({ id: 'c', name: 'C', kind: 'enemy', conditions: [], skills: [], characteristics: { force: 40, agilite: 35 } as never,
-     wounds: { current: 10, max: 10 }, ...over } as unknown as Combatant);
+  (blessuresSurLeProfil({ id: 'c', name: 'C', kind: 'enemy', conditions: [], skills: [], characteristics: { force: 40, agilite: 35 } as never,
+     wounds: blessuresDeBase(10), ...over }) as unknown as Combatant);
 
 describe('resolveRecoverTest (LDB 16 l.66/84) — données EtatData.recover', () => {
   it('En flammes : Test d’Athlétisme SIMPLE (l.84)', () => {

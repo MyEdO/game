@@ -7,6 +7,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 // Coup Critique / Assommante en révélation + gel de l'IA.
 describe('Conséquences d’attaque en révélation (store)', () => {
@@ -129,7 +130,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
 
     // (3) « Dévier » ignore le Critique → aucune Blessure critique.
     const h = heroNow();
-    h.wounds = { current: 20, max: 20, base: 20 } as never;
+    h.wounds = blessuresDeBase(20, 20, h);
     h.criticalWounds = 0;
     useGame.setState({ pendingCascade: null });
     applyAttackResult(useGame.getState, useGame.setState, enemy, hero, enemy.weapons[0], res);

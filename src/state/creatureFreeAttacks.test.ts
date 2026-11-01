@@ -5,9 +5,10 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
 import { areGrappling, setGrapple } from '../engine/grapple';
-import type { Combatant } from '../engine/types';
 import { resetCadence, setCadence } from '../engine/cadence';
 import { draineCascade } from '../noyau/cascade.testkit';
+import { relu } from './combatDeTest.testkit';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 // Attaques GRATUITES de créature (Taille & traits) : Morsure / Attaque caudale / Piétinement,
 // chacune 1 Avantage, OPPOSÉE (cible Surprise ici → résolution instantanée), gratuite (LDB 85).
@@ -28,13 +29,13 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     H.pos = { x: 10, y: 10 }; H.size = 'moyenne';
-    H.wounds = { current: 50, max: 50, base: 50 } as Combatant['wounds'];
+    H.wounds = blessuresDeBase(50, 50, H);
     H.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     H.conditions = [{ id: 'surpris', value: 1 }]; // Surpris → ne se défend pas → résolution instantanée
     E.pos = { x: 11, y: 10 }; E.size = 'enorme';
     E.characteristics['capacite-de-combat'] = 85; E.characteristics.force = 45;
     useGame.setState({ battle: { ...b, turn: b.order.indexOf(E.id), acted: false } });
-    return { H, E };
+    return { H: relu(H), E: relu(E) };
   }
 
   it('Morsure : touche, dégâts infligés, Action NON consommée (gratuite)', () => {
@@ -228,7 +229,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     useGame.getState().seedRng(2);
     const { H, E } = setup();
     E.traits = [{ id: 'morsure', value: 14 }, { id: 'constricteur' }, { id: 'vampirique' }]; E.advantage = 1;
-    E.wounds = { current: 10, max: 40, base: 40 } as Combatant['wounds']; // blessé → peut se soigner
+    E.wounds = blessuresDeBase(40, 10, E); // blessé → peut se soigner
     aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
     const st = useGame.getState();
     const hLive = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -300,7 +301,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     E.traits = [{ id: 'tentacules', count: 1, value: 9 }]; E.advantage = 0;
     E.characteristics.force = 90; // Force écrasante
     H.characteristics.force = 1; // la proie perd le Test opposé de Force
-    H.wounds = { current: 50, max: 50, base: 50 } as Combatant['wounds'];
+    H.wounds = blessuresDeBase(50, 50, H);
     setGrapple(E, H); // prise déjà établie (tour précédent)
     const before = H.wounds.current;
     const suspended = aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
@@ -316,7 +317,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     useGame.getState().seedRng(4);
     const { H, E } = setup();
     E.traits = [{ id: 'tentacules', count: 1, value: 4 }]; E.advantage = 0;
-    H.wounds = { current: 300, max: 300, base: 300 } as Combatant['wounds'];
+    H.wounds = blessuresDeBase(300, 300, H);
     H.conditions = []; // la proie se défendrait d'une frappe : toute frappe ouvrirait sa défense
     setGrapple(E, H);
     expect(aiCreatureFreeAttacks(useGame.getState, useGame.setState, E), 'aucune défense ouverte').toBe(false);

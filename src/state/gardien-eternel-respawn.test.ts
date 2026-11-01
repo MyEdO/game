@@ -8,6 +8,7 @@ import type { Scene } from '../noyau/monde/scene';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { mergeCreatureProfile } from '../noyau/monde/resolveursDuNarratif';
 import { findCreatureById } from '../data';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Trait Gardien éternel (Prédateur sanglant — Bestiaire de Middenheim, #19) : « si l'élémentaire incarné
@@ -22,13 +23,13 @@ import { findCreatureById } from '../data';
 const GUARD_CREATURE = 'predateur-sanglant';
 const CANCEL_FLAG = 'ghur-source-securisee';
 
-const guardian = (over: Partial<Combatant> = {}): Combatant => ({
+const guardian = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'gardien', label: 'Prédateur sanglant', kind: 'enemy', creatureId: GUARD_CREATURE, porteurDeFiche: { ref: GUARD_CREATURE },
   characteristics: { 'capacite-de-combat': 56, 'capacite-de-tir': 0, force: 75, endurance: 62, initiative: 45, agilite: 49, dexterite: 15, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
-  wounds: { current: 0, max: 104, base: 104 }, advantage: 0, conditions: [], skills: [], talents: [],
+  wounds: blessuresDeBase(104, 0), advantage: 0, conditions: [], skills: [], talents: [],
   traits: [{ id: 'gardien-eternel' }], weapons: [], armour: { corps: 0 }, pos: { x: 6, y: 6 }, dead: true,
   ...over,
-}) as unknown as Combatant;
+})) as unknown as Combatant;
 
 const scene = (): Scene => ({ id: 's', name: 's', dimensions: { w: 16, h: 16 }, ambiance: 'exterieur', layers: [{ z: 0, tiles: new Array(16 * 16).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] } as unknown as Scene);
 const battle = (cs: Combatant[]): any => ({ combatants: cs, order: cs.map((c) => c.id), baseOrder: cs.map((c) => c.id), turn: 0, round: 1, log: [], zones: [], over: false });

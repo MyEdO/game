@@ -5,6 +5,7 @@ import { weaponHands, recomputeLoadout, itemFromTrappingById, weaponFromItem } f
 import { dangerousNine, hasQuality } from './qualities/dispatch';
 import { makeRNG } from './dice';
 import type { Weapon, Combatant } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 // Règles d'arme CONTEXTUELLES de Groupe (Issue #43.1, LDB 62) :
 //  - 43.1c Lance de cavalerie hors Charge → Arme improvisée (l.59)
@@ -18,13 +19,13 @@ const fleau = (): Weapon => ({
 });
 
 const CHARS = { 'capacite-de-combat': 55, 'capacite-de-tir': 35, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const combatant = (p: Partial<Combatant>): Combatant => ({
+const combatant = (p: Partial<Combatant>): Combatant => (blessuresSurLeProfil({
   id: 'c', name: 'X', kind: 'hero', characteristics: CHARS,
-  wounds: { current: 20, max: 20 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+  wounds: blessuresDeBase(20), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
   engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   ...p,
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 describe('43.1c — Lance de cavalerie hors Charge → Arme improvisée (LDB 62 l.58)', () => {
   /** #2967 ; LDB 62 l.58 ; AA 08 l.212 */

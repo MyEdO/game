@@ -5,12 +5,13 @@ import type { Combatant } from './types';
 import { etats, findConditionById, refLabel } from '../data';
 import { setDataset } from '../data/overrides';
 import { t } from '../i18n';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const mk = (): Combatant => ({
+const mk = (): Combatant => (blessuresSurLeProfil({
   id: 'x', name: 'X', kind: 'hero', characteristics: {}, skills: [], talents: [], traits: [],
   conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
-  wounds: { current: 10, max: 10, base: 10 }, advantage: 0,
-}) as unknown as Combatant;
+  wounds: blessuresDeBase(10), advantage: 0,
+})) as unknown as Combatant;
 
 describe('Hémorragique : −10 par pion aux Tests de résistance aux infections (LDB 16 l.105, l.11, #1138)', () => {
   const saignant = (pions: number) => { const c = mk(); for (let i = 0; i < pions; i++) addCondition(c, COND.hemorragique); return c; };

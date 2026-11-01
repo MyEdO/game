@@ -15,6 +15,7 @@ import { evaluateMissile } from '../engine/magic';
 import { findSpellById } from '../data';
 import { makeRNG } from '../engine/dice';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Un porteur TENU est consulté quand le Critique naît d'une sous-attaque (LDB 63 l.30) ; Surpris est
@@ -25,12 +26,12 @@ const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endu
 const SANS_PA = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 const PA3 = { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 };
 const mk = (kind: Combatant['kind'], id: string, p: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, label: id, kind, important: true, characteristics: { ...CHARS },
-    wounds: { current: 20, max: 20 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [],
+    wounds: blessuresDeBase(20), advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [],
     engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [], fate: 0, activeEffects: [], liveTraits: [],
     armour: { ...SANS_PA }, ...p,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 /** Une pièce PORTÉE sur toutes les Localisations — la Déviation d'un héros la sacrifie (LDB 63 l.30). */
 const piece = (): ItemInstance =>
   ({ uid: 'arm1', name: 'Maille', kind: 'armor', equipped: true, pa: 3, locs: [...LOCALISATIONS_DE_COUP], qualities: [] } as unknown as ItemInstance);
@@ -145,7 +146,7 @@ describe('Bordée sur un porteur tenu : la fenêtre de Déviation s’ouvre (LDB
 const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 /** CC réussi, DR 2, 44 en double : Coup Critique (LDB 13). */
 const jet = { label: 'CC', base: 60, modifier: 0, target: 60, roll: 44, success: true, sl: 2 };
-const marinHeros = (pb = 20): Combatant => mk('hero', 'marin', { pos: { x: 6, y: 5 }, armour: { ...PA3 }, items: [piece()], wounds: { current: pb, max: 20 } as Combatant['wounds'] });
+const marinHeros = (pb = 20): Combatant => mk('hero', 'marin', { pos: { x: 6, y: 5 }, armour: { ...PA3 }, items: [piece()], wounds: blessuresDeBase(20, pb) });
 const contre = (att: Combatant, marin: Combatant): AttackResult => toucheAuJetPose(att, structuredClone(marin), hache, jet, 2, { rng: makeRNG(1595) }, false);
 
 /** Le Critique de coque à l'Équipage, porté par un coup de hache sur le navire du marin. */

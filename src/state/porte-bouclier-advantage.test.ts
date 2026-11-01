@@ -7,6 +7,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Porte-Bouclier (LDB 10 l.972, VERBATIM) : « vous gagnez un nombre d'Avantages égal au nombre de Niveaux
@@ -19,17 +20,17 @@ const SHIELD: Weapon = { ...weaponFromItem(itemFromTrappingById('bouclier')!), l
 const SWORD: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as never;
 
 function setup(defenderTalents: { talentId: string; times: number }[]): { attacker: Combatant; defender: Combatant } {
-  const defender = {
-    id: 'd1', label: 'Défenseur', kind: 'enemy', characteristics: chars, wounds: { current: 30, max: 30 },
+  const defender = blessuresSurLeProfil({
+    id: 'd1', label: 'Défenseur', kind: 'enemy', characteristics: chars, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: defenderTalents, traits: [], engagedWith: [], pos: { x: 1, y: 0 },
     size: 'moyenne', weapons: [SHIELD], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
-  } as unknown as Combatant;
-  const attacker = {
-    id: 'a1', label: 'Attaquant', kind: 'hero', characteristics: chars, wounds: { current: 20, max: 20 },
+  }) as unknown as Combatant;
+  const attacker = blessuresSurLeProfil({
+    id: 'a1', label: 'Attaquant', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(20),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: [], pos: { x: 0, y: 0 },
     size: 'moyenne', weapons: [SWORD], items: [], criticalWounds: 0, fate: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
   const battle: BattleState = {
     combatants: [defender, attacker], order: [defender.id, attacker.id], baseOrder: [defender.id, attacker.id],
     turn: 1, round: 1, action: null, selectedSpellId: null, reachable: new Map(),

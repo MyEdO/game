@@ -32,6 +32,7 @@ import { KEYBINDINGS } from './clavier/keybindings';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const NET0 = useGame.getState().net;
 const CHARS = { 'capacite-de-combat': 55, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -41,9 +42,9 @@ const W = (uid: string, hand: 'main' | 'off'): Weapon =>
      damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand, hands: 1 } as unknown as Weapon);
 
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...CHARS }, conditions: [], engagedWith: [], skills: [], talents: [],
-     weapons: [W('m', 'main'), W('o', 'off')], advantage: 0, size: 'moyenne', pos, wounds: { base: 18, max: 18, current: 18 },
-     resolve: 2, fortune: 2, armour: ARM(), movement: 4 } as unknown as Combatant);
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...CHARS }, conditions: [], engagedWith: [], skills: [], talents: [],
+     weapons: [W('m', 'main'), W('o', 'off')], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
+     resolve: 2, fortune: 2, armour: ARM(), movement: 4 }) as unknown as Combatant);
 
 /** Arène coop : `h2` (siège 1) au contact de `e1`/`e2` et ACTIF ; `h3` (siège 2) est la VICTIME dont
  *  le `fateSave` s'ouvre par-dessus. `turn: -1` = pause de début de Round (combatFlow:5959) : aucun

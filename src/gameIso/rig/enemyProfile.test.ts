@@ -22,16 +22,17 @@ import { resetDiagOnce, withDiagSubject } from './devDiag';
 import { resolveRig } from './composeRig';
 import { bonesToSvg } from './renderBones';
 import type { Combatant, Weapon, ItemInstance, ArmourPoints, HitLocation } from '../../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const noArmour: ArmourPoints = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 
 function mkEnemy(name: string, over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'e1',
     label: name,
     kind: 'enemy',
     characteristics: {} as Combatant['characteristics'],
-    wounds: { current: 10, max: 10 },
+    wounds: blessuresDeBase(10),
     advantage: 0,
     conditions: [],
     weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] } as Weapon],
@@ -40,7 +41,7 @@ function mkEnemy(name: string, over: Partial<Combatant> = {}): Combatant {
     talents: [],
     movement: 4,
     ...over,
-  } as Combatant;
+  }) as Combatant;
 }
 
 describe('classifyEnemy (cosmétique : humanoïde peau-humaine → rig, sinon créature)', () => {

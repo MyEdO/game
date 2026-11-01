@@ -13,6 +13,7 @@ import { bandStep } from './rollSeam';
 import { groupLabel } from '../data';
 import { t } from '../i18n';
 import { ciblePsy } from '../engine/psych/ciblage';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -28,13 +29,13 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h1', name: 'Hardi', kind: 'hero', characteristics: CHARS,
-    wounds: { current: 15, max: 15 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+    wounds: blessuresDeBase(15), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [], fate: 2,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...p,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 function setBattle(combatants: Combatant[], fateSave: ReturnType<typeof banc.getState>['pendingFateSave']): void {
   const battle = {

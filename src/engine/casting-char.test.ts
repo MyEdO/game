@@ -2,15 +2,16 @@ import { describe, it, expect } from 'vitest';
 import { castingValue } from './magic';
 import { effectiveSkillCharKey, testValue } from './skills';
 import type { Combatant, CharKey } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Combatant minimal : Int 30 ≠ E 40 → la valeur de Test révèle quelle Caractéristique a servi. */
 function mk(opts: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'c', label: 'c', kind: 'enemy', advantage: 0, conditions: [],
     characteristics: { intelligence: 30, endurance: 40, sociabilite: 20, 'force-mentale': 25 } as never,
     psychState: [], psychTraits: [], groups: [], weapons: [], armour: {} as never,
-    skills: [], talents: [], movement: 4, wounds: { current: 10, max: 10 }, ...opts,
-  } as Combatant;
+    skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...opts,
+  }) as Combatant;
 }
 
 const langue = (characteristic: CharKey) => ({ id: 'langue', spec: 'magick', characteristic, advances: 0 });

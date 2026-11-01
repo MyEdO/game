@@ -29,6 +29,7 @@ import { useAttackJetProps } from './jetProps/useAttackJetProps';
 import { RollShell } from './RollShell';
 import { CastModal } from './CastModal';
 import type { Combatant, Weapon } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -36,10 +37,10 @@ beforeAll(() => {
 
 const chars = { 'capacite-de-combat': 60, 'capacite-de-tir': 50, force: 45, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 };
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[] = []): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
-     weapons, advantage: 0, size: 'moyenne', pos, wounds: { current: 18, max: 18 }, resilience: 2, fortune: 2,
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
+     weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } } as unknown as Combatant);
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 const bow: Weapon = { name: 'Arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [], uid: 'bw' } as unknown as Weapon;
 /** Arme de JET à portée FAIBLE : à 1 case (2 m) la cible n'est PLUS à Bout Portant → `rangedDefenseModes`

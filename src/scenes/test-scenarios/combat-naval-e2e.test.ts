@@ -18,6 +18,7 @@ import type { Scene } from '../../noyau/monde/scene';
 import type { BattleState } from '../../noyau/etat';
 import type { TestResult } from '../../engine/tests';
 import { makeRNG } from '../../engine/dice';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const scen = testScenarios.find((s) => s.id === 'combat-naval')!;
 const COGUE = 'enemy-enc-naval-0';
@@ -92,10 +93,10 @@ beforeEach(() => vi.useRealTimers());
  */
 describe('resolveShipUnits — le navire est une UNITÉ (naufrage OU abordage)', () => {
   const mk = (id: string, patch: Partial<Combatant> = {}): Combatant =>
-    ({ id, name: id, kind: 'enemy', wounds: { current: 10, max: 10 }, conditions: [], weapons: [], ...patch }) as unknown as Combatant;
+    (blessuresSurLeProfil({ id, name: id, kind: 'enemy', wounds: blessuresDeBase(10), conditions: [], weapons: [], ...patch })) as unknown as Combatant;
 
   it('coque à 0 PB sans État naufrage → reste en jeu, l\'équipage aussi (MDG 13 l.656)', () => {
-    const hull = mk('h', { bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', wounds: { current: 0, max: 50 } as never, crewIds: ['a', 'b'] });
+    const hull = mk('h', { bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', wounds: blessuresDeBase(50, 0), crewIds: ['a', 'b'] });
     const a = mk('a'); const b = mk('b');
     resolveShipUnits([hull, a, b]);
     expect(isOutOfAction(hull)).toBe(false);
@@ -104,7 +105,7 @@ describe('resolveShipUnits — le navire est une UNITÉ (naufrage OU abordage)',
   });
 
   it('coque COULÉE (État naufrage, MDG 13 l.674) → l\'équipage encore debout passe par-dessus bord (outOfRencontre)', () => {
-    const hull = mk('h', { bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', wounds: { current: 0, max: 50 } as never, crewIds: ['a', 'b'], conditions: [{ id: 'naufrage', value: 1 }] as never });
+    const hull = mk('h', { bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', wounds: blessuresDeBase(50, 0), crewIds: ['a', 'b'], conditions: [{ id: 'naufrage', value: 1 }] as never });
     const a = mk('a'); const b = mk('b');
     const lines = resolveShipUnits([hull, a, b]);
     expect(a.outOfRencontre).toBe(true);
@@ -113,15 +114,15 @@ describe('resolveShipUnits — le navire est une UNITÉ (naufrage OU abordage)',
   });
 
   it('équipage TOUT vaincu → la coque intacte est prise et quitte le combat (outOfRencontre)', () => {
-    const hull = mk('h', { bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', wounds: { current: 50, max: 50 } as never, crewIds: ['a', 'b'] });
-    const a = mk('a', { dead: true }); const b = mk('b', { wounds: { current: 0, max: 10 } as never, dead: true });
+    const hull = mk('h', { bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', wounds: blessuresDeBase(50), crewIds: ['a', 'b'] });
+    const a = mk('a', { dead: true }); const b = mk('b', { wounds: blessuresDeBase(10, 0), dead: true });
     resolveShipUnits([hull, a, b]);
     expect(hull.outOfRencontre).toBe(true);
     expect(isOutOfAction(hull)).toBe(true);
   });
 
   it('coque SANS équipage déclaré → jamais « prise » d\'office (résolue par ses seules Blessures)', () => {
-    const hull = mk('h', { bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', wounds: { current: 50, max: 50 } as never });
+    const hull = mk('h', { bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', wounds: blessuresDeBase(50) });
     resolveShipUnits([hull]);
     expect(hull.outOfRencontre).toBeUndefined();
   });

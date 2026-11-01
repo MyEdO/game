@@ -7,6 +7,7 @@ import { stacks } from '../engine/conditions';
 import { toucheAuJetPose } from '../engine/combat';
 import type { Combatant, Weapon } from '../engine/types';
 import { makeRNG } from '../engine/dice';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Branchement combat ↔ naval : `applyCriticalToTarget` route une COQUE (`bodyShape:'vehicule'`) vers les
@@ -18,11 +19,11 @@ const ship = () => vehicleCombatant(findVehicleById('cogue')!)!; // hull E45/B50
 const setStub = (() => {}) as never;
 /** Lecture d'état HORS bataille (aucun équipage à résoudre, aucune cascade à ouvrir). */
 const getHorsBataille = (() => ({ battle: undefined, party: [] })) as never;
-const sailor = (id: string): Combatant => ({
+const sailor = (id: string): Combatant => (blessuresSurLeProfil({
   id, name: id, kind: 'npc', characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
   skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
-  armour: { corps: 0 }, wounds: { current: 13, max: 13, base: 13 }, advantage: 0,
-}) as unknown as Combatant;
+  armour: { corps: 0 }, wounds: blessuresDeBase(13), advantage: 0,
+})) as unknown as Combatant;
 const hache = { label: 'Hache', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 const jet = { label: 'CC', base: 60, modifier: 0, target: 60, roll: 44, success: true, sl: 2 };
 

@@ -19,8 +19,7 @@ import { bus, EVT } from '../noyau/bus';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 
 const TABLE = 'table-ronde-4-tabourets';
@@ -156,7 +155,7 @@ describe('changer de meneur ne change QUE le meneur — le cap n’est keyé par
     const capAvant = capPov();
     expect(capAvant).not.toBeNull();
 
-    useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'a' ? { ...h, wounds: { ...h.wounds, current: 0 } } : h)) }));
+    useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'a' ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) }));
 
     expect(meneurDuMonde(useGame.getState())?.id, 'le meneur a bien changé').toBe('b');
     expect(capPov(), 'le regard ne saute pas au sud par défaut').toBe(capAvant);
@@ -184,14 +183,14 @@ describe('changer de meneur ne change QUE le meneur — le cap n’est keyé par
     entrerPuisPivoter();
     const capAvant = capPov();
     useGame.getState().partyAddHero(hero('c', 12));
-    useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'c' ? h : { ...h, wounds: { ...h.wounds, current: 0 } })) }));
+    useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'c' ? h : blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }))) }));
     expect(meneurDuMonde(useGame.getState())?.id).toBe('c');
     expect(capPov()).toBe(capAvant);
   });
 
   it('le pivot SUIVANT repart du cap courant, pas du défaut sud', () => {
     entrerPuisPivoter();
-    useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'a' ? { ...h, wounds: { ...h.wounds, current: 0 } } : h)) }));
+    useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'a' ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) }));
     const capAvant = capPov()!;
     useGame.getState().pivotParty(1);
     expect(capPov()).toBe(rotateDir8(capAvant, 1));
@@ -246,7 +245,7 @@ describe('le RENDU du jeton de groupe lit la clé de cap PUBLIÉE, pas l’id du
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
     useGame.getState().pivotParty(1);
     const avant = rendu();
-    useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'a' ? { ...h, wounds: { ...h.wounds, current: 0 } } : h)) }));
+    useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'a' ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) }));
     const apres = rendu();
     expect(apres.marque.id, 'le corps dessiné est le nouveau meneur').toBe('b');
     expect(apres.pose.c.id).toBe('b');

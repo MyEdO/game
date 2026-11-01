@@ -19,6 +19,7 @@ import type { Possession } from '../engine/possession';
 import type { Combatant } from '../engine/types';
 import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Harnais MINIMAL (get/set) — même patron que `bourseFlow.test.ts`/`partyFlow.test.ts`. */
 function makeHarness(party: Combatant[], possessions: Possession[] = []): { get: Get; set: Set } {
@@ -67,11 +68,11 @@ const vehicule = (
 });
 
 function makeHero(id: string): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero',
     characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
-    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 },
-  } as unknown as Combatant;
+    items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
+  }) as unknown as Combatant;
 }
 
 type BetePossession = Extract<Possession, { nature: 'bete' }>;

@@ -16,15 +16,15 @@ import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { resetCadence } from '../engine/cadence';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
-const mk = (over: Partial<Combatant> = {}): Combatant => ({
+const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'c', label: 'C', kind: 'enemy',
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 },
-  wounds: { current: 15, max: 15 }, advantage: 0, conditions: [], skills: [], talents: [],
+  wounds: blessuresDeBase(15), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
   ...over,
-} as Combatant);
+}) as Combatant);
 
 const get = (() => ({ log: () => {}, battle: undefined })) as never;
 const hit: AttackResult = { hit: true, woundsLost: 3 } as AttackResult;
@@ -111,7 +111,7 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     vi.clearAllTimers();
     const b = useGame.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
-    H.characteristics.endurance = 90; H.wounds = blessuresDeBase(100); // Résistance réussie (pas de Brisé)
+    H.characteristics.endurance = 90; H.wounds = blessuresDeBase(100, 100, H); // Résistance réussie (pas de Brisé)
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
     const banshee = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
@@ -165,12 +165,12 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     const goule = enemies[1];
     goule.kind = 'hero'; goule.aiControlled = true; goule.dead = false;
     goule.traits = []; goule.groups = ['mort-vivant']; goule.pos = { x: 9, y: 10 };
-    goule.wounds = blessuresDeBase(15);
+    goule.wounds = blessuresDeBase(15, 15, goule);
     // Vrai Mort-vivant : PORTE le Trait (capability `undead`) → doit rester EXCLU.
     const trueUndead = enemies[2];
     trueUndead.kind = 'hero'; trueUndead.aiControlled = true; trueUndead.dead = false;
     trueUndead.traits = [{ id: 'mort-vivant' }]; trueUndead.groups = ['mort-vivant']; trueUndead.pos = { x: 11, y: 10 };
-    trueUndead.wounds = blessuresDeBase(15);
+    trueUndead.wounds = blessuresDeBase(15, 15, trueUndead);
     useGame.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
 
     applyWail(useGame.getState, useGame.setState, banshee);
@@ -201,14 +201,14 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     banshee.traits = [...(banshee.traits ?? []), { id: 'hurlement-fantomatique', value: 0 }];
     banshee.pos = { x: 10, y: 10 };
     banshee.advantage = 3;
-    banshee.wounds = blessuresDeBase(15);
+    banshee.wounds = blessuresDeBase(15, 15, banshee);
     const allie = enemies[1]; // MÊME camp que la banshee, vivant, sans Trait Mort-vivant
     allie.traits = []; allie.groups = []; allie.pos = { x: 9, y: 10 };
-    allie.wounds = blessuresDeBase(15);
+    allie.wounds = blessuresDeBase(15, 15, allie);
     // « créatures VIVANTES » : un chariot (véhicule-coque) n'entend rien et n'est jamais « attaqué ».
     const chariot = enemies[2];
     chariot.traits = []; chariot.groups = []; chariot.pos = { x: 11, y: 10 };
-    chariot.dead = false; chariot.bodyShape = 'vehicule'; chariot.wounds = blessuresDeBase(15);
+    chariot.dead = false; chariot.bodyShape = 'vehicule'; chariot.wounds = blessuresDeBase(15, 15, chariot);
     useGame.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
 
     applyWail(useGame.getState, useGame.setState, banshee);

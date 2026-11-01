@@ -11,6 +11,8 @@ import type { Combatant, ItemInstance } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
 import { draineCascade, type ChoisitCle } from '../noyau/cascade.testkit';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
+import { relu } from './combatDeTest.testkit';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const LIEUX = LOCALISATIONS_DE_COUP;
 const harnois = (): ItemInstance =>
@@ -29,7 +31,7 @@ function monte() {
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies[0];
   H.pos = { x: 10, y: 10 }; H.size = 'moyenne';
-  H.wounds = { current: 60, max: 60, base: 60 } as Combatant['wounds'];
+  H.wounds = blessuresDeBase(60, 60, H);
   H.items = [harnois()];
   H.armour = { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 };
   H.conditions = [{ id: 'surpris', value: 1 }];
@@ -39,7 +41,7 @@ function monte() {
   E.advantage = 4;
   // L'Action de la créature est jouée : ses gratuites suivent l'attaque principale.
   useGame.setState({ battle: { ...b, turn: b.order.indexOf(E.id), acted: true } });
-  return { H, E };
+  return { H: relu(H), E: relu(E) };
 }
 
 const voie = (cle: 'devier' | 'subir'): ChoisitCle => (etape) => (etape.kind === 'deviation' ? cle : undefined);

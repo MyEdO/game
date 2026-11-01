@@ -27,6 +27,7 @@ import { CascadeBody } from './CascadeModal';
 import { resolveStake, combatStakeRef, regles } from '../data';
 import type { BattleState } from '../noyau/etat';
 import type { Combatant, TalentInstance } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -42,11 +43,11 @@ const chars = (perception: number, agilite: number) =>
      agilite, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30, perception }) as never;
 
 const mk = (id: string, kind: 'hero' | 'enemy', perception: number, agilite: number): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: chars(perception, agilite), conditions: [], traumas: [],
+  (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: chars(perception, agilite), conditions: [], traumas: [],
      engagedWith: [], skills: [], talents: [], items: [], weapons: [], advantage: 0, size: 'moyenne',
-     pos: { x: kind === 'hero' ? 0 : 1, y: 0 }, wounds: { current: 18, max: 18 }, resilience: 2, fortune: 2,
+     pos: { x: kind === 'hero' ? 0 : 1, y: 0 }, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
-     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } } as unknown as Combatant);
+     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
 
 let host: HTMLDivElement;
 let root: Root;

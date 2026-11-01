@@ -5,14 +5,14 @@ import type { Combatant, ShipPoste } from './types';
 import type { ShipCrewHit } from '../data/shipCriticals';
 import { isUnarmed } from './items';
 import { deFixe, deSelonLaPlage } from './dice.testkit';
-import { combattantDeTest } from './combattantDeTest.testkit';
+import { combattantDeTest, blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Marin minimal — assez pour `testValue('athletisme')` (Ag=36) + `applyOps` wounds (BE=3, PA=0). */
-const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => ({
+const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id, name: id, kind: 'npc', characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
   skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
-  armour: { corps: 0 }, wounds: { current: 13, max: 13, base: 13 }, advantage: 0, ...over,
-}) as unknown as Combatant;
+  armour: { corps: 0 }, wounds: blessuresDeBase(13), advantage: 0, ...over,
+})) as unknown as Combatant;
 
 /**
  * « Canon perdu » (MDG 13 l.765) : une pièce passe par-dessus bord. Mécanisé par l'op GÉNÉRIQUE
@@ -114,7 +114,7 @@ describe('applyCrewHit — Canon détaché (data-driven, MDG 13 l.763-764)', () 
   it('servants déjà hors de combat (mort / 0 PB) ignorés', () => {
     const { hull } = hullWith(['mort', 'ko']);
     const mort = sailor('mort', { dead: true });
-    const ko = sailor('ko', { wounds: { current: 0, max: 13, base: 13 } as never });
+    const ko = sailor('ko', { wounds: blessuresDeBase(13, 0) });
     expect(applyCrewHit(hull, [mort, ko], detachTest, rngPoste).victims).toEqual([]);
   });
 

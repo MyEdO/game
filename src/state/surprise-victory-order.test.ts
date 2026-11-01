@@ -5,8 +5,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /**
  * F3 (recette 2026-07-11, #345) — VERROU de l'ordonnancement, éprouvé PAR LE VRAI CHEMIN : `checkBattleOver`
@@ -33,7 +32,7 @@ const ambusher = (over: Partial<Combatant> = {}): Combatant =>
 /** Marque tous les ennemis debout comme MORTS (état d'ENTITÉ, dégâts encaissés — PAS l'état interne d'une
  *  cascade) : simule le dernier coup létal APRÈS l'établissement de la Surprise. */
 const slayEnemies = () =>
-  set({ battle: { ...get().battle!, combatants: get().battle!.combatants.map((c) => (c.kind === 'enemy' && !c.dead ? { ...c, dead: true, wounds: { ...c.wounds, current: 0 } } : c)) } });
+  set({ battle: { ...get().battle!, combatants: get().battle!.combatants.map((c) => (c.kind === 'enemy' && !c.dead ? blessuresSurLeProfil({ ...c, dead: true, wounds: { ...c.wounds, current: 0 } }) : c)) } });
 
 describe('F3 — Surprise (cascade de setup) vs Victoire : ordonnancement de checkBattleOver', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ scene: null, party: [], battle: null, pendingVictory: null, pendingCascade: null }); });

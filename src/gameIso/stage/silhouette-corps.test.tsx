@@ -26,6 +26,7 @@ import { actorBillboards, actorPoses, type ActorPose, type BillboardSubject } fr
 import { buildTokens } from '../builders/tokens';
 import type { BattleState } from '../../noyau/etat';
 import { findTrappingById } from '../../data';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * SILHOUETTE DU CORPS À TRAVERS LES MURS (#1297, LOT C) — le pendant, pour le corps, du jumeau
@@ -48,14 +49,14 @@ const AFFINE: StageFrame = { mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, z
 const POV: StageFrame = { mode: 'pov', partyPos: { x: 2, y: 2, z: 0 }, facing: 'S', indoor: false, cid: 'h1' };
 
 function combattant(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, extra: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind, pos, size: 'moyenne', species: 'humains-reiklander',
-    wounds: { current: 12, max: 12 }, weapons: [],
+    wounds: blessuresDeBase(12), weapons: [],
     characteristics: { 'capacite-de-combat': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
     ...extra,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** Les deux acteurs du banc : un héros (premier ordinal d'anneau) et un ennemi. */

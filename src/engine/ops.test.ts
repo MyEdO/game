@@ -11,7 +11,8 @@ import { hasTraitKey } from './traits/dispatch';
 import { woundsFromHit } from './combat';
 import type { Weapon } from './types';
 import { recomputeLoadout, isUnarmed, itemFromTrappingById, itemFromGive, loadoutSetSlot } from './items';
-import { effectiveChar, blessuresDeBase } from './characteristics';
+import { effectiveChar, blessuresPosees } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil, profilDeTest } from './combattantDeTest.testkit';
 import { spellOps } from './flowCore';
 import { findSpellById } from '../data';
 import { deFixe, desDuTest, desEnSuite } from './dice.testkit';
@@ -19,14 +20,14 @@ import { opPsy } from './psych/opsPsy';
 import { ciblePsy } from './psych/ciblage';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h', label: 'Cobaye', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 45, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 38, sociabilite: 30 },
-    wounds: { current: 10, max: 12 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [],
     ...p,
-  } as Combatant;
+  }) as Combatant;
 }
 
 describe('resolveFormula', () => {
@@ -590,10 +591,12 @@ describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveCh
     expect(c.activeEffects!.filter((e) => e.char === 'force').map((e) => e.bonus)).toEqual([20]);
   });
 
-  it('buff de F/E/FM recale les Blessures max (LDB 85)', () => {
-    const c = hero({ wounds: blessuresDeBase(12, 10) });
+  it('buff de F/E/FM recale les Blessures max (LDB 05 l.1001)', () => {
+    const c = hero();
+    c.wounds = blessuresPosees(c);
+    expect(c.wounds.max).toBe(14); // 3 + 2×4 + 3
     applyActiveEffect(c, { label: 'Vigueur', char: 'endurance', bonus: 10, duration: { scale: 'rounds', left: 6 } });
-    expect(c.wounds.max).toBeGreaterThan(12); // E 45→55 : BE 4→5 → +2 PB (2×BE)
+    expect(c.wounds.max).toBe(16); // E 45→55 : BE 4→5 → +2 PB (2×BE)
   });
 });
 
@@ -802,7 +805,7 @@ describe('op `gainResource` — un `amount` NÉGATIF retire (Dague voleuse de ch
 });
 
 describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', () => {
-  const cible = (): Combatant => ({ id: 't', label: 'Cible', kind: 'enemy', characteristics: { agilite: 40, endurance: 30 }, wounds: { current: 10, max: 10 }, conditions: [], skills: [], talents: [], traits: [], activeEffects: [], weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } } as unknown as Combatant);
+  const cible = (): Combatant => (blessuresSurLeProfil({ id: 't', label: 'Cible', kind: 'enemy', characteristics: profilDeTest({ agilite: 40 }), wounds: blessuresDeBase(10), conditions: [], skills: [], talents: [], traits: [], activeEffects: [], weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
   const ops = [
     { op: 'wounds', amount: 2, ignoreTB: true, ignoreAP: true },
     { op: 'charMod', char: 'agilite', mod: -10, durationRounds: 3 },

@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import type { Combatant, ItemInstance } from '../engine/types';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const w = (uid: string, label: string): ItemInstance =>
   ({ uid, label, kind: 'melee', qualities: [], enc: 1, equipped: true, hands: 1, damage: { plusBF: true, flat: 4 } }) as ItemInstance;

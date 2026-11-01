@@ -5,6 +5,7 @@ import { applyOps } from './ops';
 import { GRAPPLE } from '../data';
 import type { Combatant, ModLine } from './types';
 import { desDuTest } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 // Empoignade (Issue #42.1, LDB 14 l.159/161/169).
 //  l.159 : « Si vous remportez le Test opposé, vous ET votre adversaire êtes Empoignés, et votre
@@ -13,14 +14,14 @@ import { desDuTest } from './dice.testkit';
 //  l.169 : « +20 pour toucher le Personnage Empoigné avec le plus FAIBLE Avantage, et +10 pour celui
 //           qui a l'Avantage le plus IMPORTANT. »
 
-const C = (id: string, p?: Partial<Combatant>): Combatant => ({
+const C = (id: string, p?: Partial<Combatant>): Combatant => (blessuresSurLeProfil({
   id, name: id, kind: 'hero',
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-  wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+  wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
   engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   ...p,
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 describe('areGrappling / setGrapple / clearGrapple — relation symétrique + purge (LDB 14 l.159)', () => {
   it('areGrappling est SYMÉTRIQUE après setGrapple (posé par paire)', () => {

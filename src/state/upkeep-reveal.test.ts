@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 // Entretien de Round groupé (initiative + hémorragie + mort) en UNE révélation témoin.
 describe('Entretien de Round en révélation (store)', () => {
@@ -38,7 +39,7 @@ describe('Entretien de Round en révélation (store)', () => {
     vi.clearAllTimers();
     const b = useGame.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
-    H.wounds = { current: 20, max: 20, base: 20 } as never; // survit à l'hémorragie
+    H.wounds = blessuresDeBase(20, 20, H); // survit à l'hémorragie
     const enemyIds = b.combatants.filter((c) => c.kind === 'enemy').map((c) => c.id);
     const order = [...enemyIds, H.id]; // H dernier → battleEndTurn franchit le Round
     // Ennemis neutralisés : le franchissement de Round se joue sans qu'un tour d'IA ne suspende la séquence.

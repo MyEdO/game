@@ -9,21 +9,21 @@ import { findSpellById } from '../data';
 import { spellOps } from './flowCore';
 import { setRule, resetRule } from './policy';
 import { desDuTest } from './dice.testkit';
-import { blessuresDeBase } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */
 const opsOf = (id: string) => spellOps(findSpellById(id)?.effects, 'target');
 
 function mk(over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'c', name: 'Noyé', kind: 'hero', size: 'moyenne', advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     conditions: [], skills: [], talents: [], traits: [], groups: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    movement: 4, wounds: { current: 2, max: 12 },
+    movement: 4, wounds: blessuresDeBase(12, 2),
     activeEffects: [{ label: 'Ombres étrangleuses', bonus: 0, duration: { scale: 'rounds', left: 8 }, suffocates: true }],
     ...over,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 describe('suffocationTick — Noyade et Suffocation (LDB 18 l.346)', () => {
@@ -49,7 +49,7 @@ describe('suffocationTick — Noyade et Suffocation (LDB 18 l.346)', () => {
     expect(inDeathCondition(c)).toBe(true);
   });
   it('BE 0 : la mort suit l’Inconscient sans Round de grâce (LDB 18 l.346, #1817)', () => {
-    const c = mk({ wounds: blessuresDeBase(12, 1), characteristics: { ...mk().characteristics, endurance: 9 } });
+    const c = mk(blessuresSurLeProfil({ wounds: blessuresDeBase(12, 1), characteristics: { ...mk().characteristics, endurance: 9 } }));
     suffocationTick(c);
     expect(hasCondition(c, 'inconscient')).toBe(true);
     expect(c.suffocationCountdown).toBe(0);
@@ -111,14 +111,14 @@ describe('Rétention de souffle (LDB 18 l.346) : BE×10 s avant suffocation si p
 });
 
 describe('Créature marine hors de l’eau — pont offTerrain→suffocation (MDG 16 l.19, #477)', () => {
-  const marine = (over: Partial<Combatant> = {}): Combatant => mk({
+  const marine = (over: Partial<Combatant> = {}): Combatant => mk(blessuresSurLeProfil({
     kind: 'enemy',
     traits: [{ id: 'creature-marine' }],
     activeEffects: [],
     offTerrain: true,
-    wounds: { current: 2, max: 12 },
+    wounds: blessuresDeBase(12, 2),
     ...over,
-  } as unknown as Partial<Combatant>);
+  }) as unknown as Partial<Combatant>);
 
   it('hors de l’eau, sans contre-mesure : entre dans le cycle de suffocation (−1 PB)', () => {
     const c = marine();

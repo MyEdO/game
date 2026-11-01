@@ -635,7 +635,7 @@ export type GameOp =
    *     Canaux servis : `combatFeatures.featuresOf` (capacités de combat) et, via `effectGrantedTalents`,
    *     le collecteur de POSSESSION `effectiveTalents` (fiche, chips, `hasTalent`). NON servis : les
    *     lecteurs qui parcourent `c.talents` en direct — `talentTestSLBonus` (+DR de Talent),
-   *     `talentPassiveMods` (passifs), `baseWithTalents`, `extraWounds`, `careerSkillAdditions`/
+   *     `talentPassiveMods` (passifs), `baseWithTalents`, `careerSkillAdditions`/
    *     `careerTalentAdditions`, l'avancement.
    *   - sans échéance (Marques Arcaniques, VDM 02 l.238) → acquisition STRUCTURELLE dans `c.talents`
    *     (comme `attachMutation` et l'effet de Signe astral), bornée par le Maxi du registre : tous les
@@ -1056,8 +1056,7 @@ export type GameOp =
   /** Modificateur d'un ATTRIBUT SECONDAIRE À MAXIMUM (≠ CharKey, ≠ Mouvement) : Blessures (Dur à cuire +BE),
    *  Chance (Chanceux), Détermination (Obstiné). `mod` = formule lue avant tout jet (`{bonusOf:'endurance'}`
    *  pour Dur à cuire). Passif : lu sur TOUT porteur du collecteur `passiveMods` (`sommeAttrMods`) par
-   *  fortuneMax/resolveMax ; Blessures d'un talent dans `wounds.base` (`extraWounds`), des autres porteurs
-   *  au delta d'`effectiveMaxWounds` (#3060). Destin/Résilience N'ONT PAS de maximum dérivé (un octroi
+   *  fortuneMax/resolveMax/`effectiveMaxWounds` (#3060). Destin/Résilience N'ONT PAS de maximum dérivé (un octroi
    *  passe par `gainResource`) → EXCLUS de l'union (#292). */
   | { op: 'attrMod'; attr: 'fortune' | 'resolve'; mod: FormuleSansTirage }
   /** `attrMod` des Blessures. `auTotal` (#3060 ; Middenheim 04 l.27, LDB 71 l.20) : `mod` est le changement

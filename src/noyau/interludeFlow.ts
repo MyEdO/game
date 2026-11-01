@@ -57,7 +57,7 @@ import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { buyTalent as engineBuyTalent, talentCost, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { talentAcquisitions } from '../engine/careerSlots';
 import { skillCharacteristicById } from '../engine/character';
-import { applyTalentAcquisition, fortuneMax, resolveMax, recalerLaBaseDesBlessures } from '../engine/talentEffects';
+import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
 import { levelsForCareer, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill, libelleOuAbsence } from '../data';
 import { findEffectTableById } from '../data/effectTables';
 import { currentPlaceId } from './worldMap';
@@ -829,7 +829,6 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
           r = engineBuyTalent(appris, talentId); // débite les PX + acquiert le Talent
           if (!r.ok) return lu;
           applyTalentAcquisition(appris, talentId);
-          recalerLaBaseDesBlessures(appris); // Dur à cuire & co
           appris.fortune = (appris.fortune ?? 0) + (fortuneMax(appris) - fortuneBefore); // Chanceux
           appris.resolve = (appris.resolve ?? 0) + (resolveMax(appris) - resolveBefore); // Obstiné
           return appris;
@@ -1108,7 +1107,6 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
       r = engineBuySkillAdvance(entraine, id, spec, false);
     }
     if (!r.ok) return lu;
-    recalerLaBaseDesBlessures(entraine); // Résistance/Endurance : le max de Blessures peut augmenter
     entraine.fortune = (entraine.fortune ?? 0) + (fortuneMax(entraine) - fortuneBefore); // Sociabilité (Chance/Fortune)
     entraine.resolve = (entraine.resolve ?? 0) + (resolveMax(entraine) - resolveBefore); // Volonté (Résilience/Détermination)
     return entraine;

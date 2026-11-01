@@ -9,7 +9,7 @@ import { testScene } from '../../scenes/test-fixture';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../../engine/types';
 import { resetCadence, setCadence } from '../../engine/cadence';
-import { blessuresDeBase } from '../../engine/characteristics';
+import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * runCombatFlow — exécuteur à PILE d'un Flow EN COMBAT, cadence-aware, qui porte la CONTINUATION `after`.
@@ -66,8 +66,8 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 20, y: 20 };
     // Beaucoup de PB pour que les pertes du Flow ne mettent personne hors de combat (pas d'À Terre à 0).
-    H.wounds = blessuresDeBase(200);
-    E.wounds = blessuresDeBase(200);
+    H.wounds = blessuresDeBase(200, 200, H);
+    E.wounds = blessuresDeBase(200, 200, E);
     useGame.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, E };
   }
@@ -97,7 +97,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
   it('HÉROS manuel : cascadeRoll+cascadeNext joue la BRANCHE puis la continuation (Force élevée → succès)', () => {
     seedBattleRng(5);
     const { H } = setup();
-    H.characteristics.force = 90; // Force élevée → Test réussi (branche success = −5)
+    H.characteristics.force = 90; H.wounds = blessuresDeBase(200, 200, H); // Force élevée → Test réussi (branche success = −5)
     const before = live(H.id).wounds.current;
 
     runCombatFlow({ mode: 'combat', get: useGame.getState, set: useGame.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
@@ -113,7 +113,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
   it('HÉROS manuel : les lignes de la continuation rejoignent les conséquences de l’étape, la file différée est vide', () => {
     seedBattleRng(5);
     const { H } = setup();
-    H.characteristics.force = 90;
+    H.characteristics.force = 90; H.wounds = blessuresDeBase(200, 200, H);
     runCombatFlow({ mode: 'combat', get: useGame.getState, set: useGame.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
     const step = useGame.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     useGame.setState({ pendingLogQueue: [] });
@@ -130,7 +130,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
   it('ENNEMI : test enfoui → INLINE (branche + after), aucune étape de cascade', () => {
     seedBattleRng(5);
     const { E } = setup();
-    E.characteristics.force = 90; // Force élevée → succès inline (branche success = −5)
+    E.characteristics.force = 90; E.wounds = blessuresDeBase(200, 200, E); // Force élevée → succès inline (branche success = −5)
     const before = live(E.id).wounds.current;
 
     runCombatFlow({ mode: 'combat', get: useGame.getState, set: useGame.setState, target: E, caster: E, label: 'Flux' }, flow(3, 5, 99, 7));
@@ -147,7 +147,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     try {
       seedBattleRng(5);
       const { H } = setup();
-      H.characteristics.force = 90;
+      H.characteristics.force = 90; H.wounds = blessuresDeBase(200, 200, H);
       const before = live(H.id).wounds.current;
 
       runCombatFlow({ mode: 'combat', get: useGame.getState, set: useGame.setState, target: H, caster: H, label: 'Flux', opsCtx: { source: PORTEUR } }, flow(3, 5, 99, 7));
@@ -170,7 +170,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
   it('CONTEXTE CAST : test enfoui APPEND à la cascade `cast` ouverte (une seule cascade enrichie)', () => {
     seedBattleRng(5);
     const { H } = setup();
-    H.characteristics.force = 90; // Force élevée → branche succès (−5) à la validation
+    H.characteristics.force = 90; H.wounds = blessuresDeBase(200, 200, H); // Force élevée → branche succès (−5) à la validation
     const before = live(H.id).wounds.current;
 
     // Ordre des sites de DÉCLARATION d'incantation (`castSpell`, et le chemin de pose de zone) : le

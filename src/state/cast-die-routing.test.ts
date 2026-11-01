@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * ROUTAGE du dé choisi dans un flux MULTI d'incantation — Contre-sort et Opposition, DEUX participants.
@@ -11,14 +12,14 @@ import type { Combatant } from '../engine/types';
  *  2. le plancher de DR d'un Test OPPOSÉ (LDB 17 l.68 : « S'il s'agit d'un Test opposé, vous l'emportez
  *     avec au moins DR +1 ») se mesure contre l'incantation FIGÉE — `castT.sl + 1`.
  */
-const mk = (id: string, kind: Combatant['kind'] = 'hero'): Combatant => ({
+const mk = (id: string, kind: Combatant['kind'] = 'hero'): Combatant => (blessuresSurLeProfil({
   id, name: id, label: id, kind,
   characteristics: { force: 40, dexterite: 40, agilite: 40, endurance: 40, 'force-mentale': 40, 'capacite-de-combat': 45, 'capacite-de-tir': 45, initiative: 40, intelligence: 40, sociabilite: 40 },
-  wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], traumas: [],
+  wounds: blessuresDeBase(10), advantage: 0, conditions: [], traumas: [],
   resilience: 3, fortune: 2, weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   skills: [], talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
-} as unknown as Combatant);
+}) as unknown as Combatant);
 
 const T = 45;
 const rateTR = { roll: 88, target: T, sl: -4, success: false, isDouble: true };

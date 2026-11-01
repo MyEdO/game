@@ -395,7 +395,7 @@ describe('détection en combat — coque de campagne coulée → naufrage (pas d
     const hull = vehicleCombatant(findVehicleById('cogue')!)!;
     hull.id = 'hull-campagne'; hull.kind = 'enemy';
     hull.crewIds = heroes.map((h) => h.id);
-    hull.wounds = { current: 0, max: hull.wounds.max };
+    hull.wounds = { ...hull.wounds, current: 0 };
     if (coulee) addCondition(hull, 'naufrage'); // MDG 13 l.674
     return hull;
   };

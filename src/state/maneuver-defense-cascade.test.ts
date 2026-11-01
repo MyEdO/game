@@ -18,9 +18,9 @@ import { testScene } from '../scenes/test-fixture';
 import { creatureAttacks } from '../engine/creatureAttacks';
 import { findConditionById, resolveStake } from '../data';
 
-import type { Combatant } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
 import { draineCascade } from '../noyau/cascade.testkit';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 describe('Défense de manœuvre de zone — cascade influençable (héros) vs silence (IA)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); useGame.setState({ battle: null, pendingCascade: null }); });
@@ -47,9 +47,9 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
     E.pos = { x: 5, y: 5 };
     // Deux héros à portée, adjacents entre eux (dans le blast), NON adjacents à l'ennemi (pas de Piétinement).
     for (const h of [h1, h2]) {
-      h.wounds = { current: 40, max: 40, base: 40 } as Combatant['wounds'];
       h.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
       h.characteristics.agilite = 1; h.characteristics.force = 30; // BF 3 → blast 2 cases ; Ag 1 → Esquive quasi nulle → l'attaquant l'emporte
+      h.wounds = blessuresDeBase(40, 40, h);
       h.skills = h.skills.filter((s) => s.id !== 'esquive');
       h.conditions = []; // PAS Surpris → PEUT se défendre → étape de cascade influençable
     }

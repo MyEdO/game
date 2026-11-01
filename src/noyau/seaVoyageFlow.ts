@@ -79,7 +79,7 @@ import {
 import { expireOnRespite, exposureTarget, exposureCoatMods, exposureFirstFailChars, isWeatherWarded } from '../engine/exposure';
 import { pursuitOutcome } from '../engine/pursuit';
 import { addCondition } from '../engine/conditions';
-import { effectiveChar, blessuresDeBase } from '../engine/characteristics';
+import { effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
   evenementsDeBord, DE_DES_EVENEMENTS_DE_BORD, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
@@ -393,7 +393,7 @@ export function setVesselHull(get: Get, set: Set, current: number, max: number):
   set({ vessel: { ...vessel, wounds: { current: reste, max } } });
   const plan = get().travelPlan;
   const coque = coqueDuNavireDeCampagne(plan, vessel);
-  if (plan && coque) set({ travelPlan: { ...plan, vehicle: { ...coque, wounds: blessuresDeBase(max, reste) } } });
+  if (plan && coque) set({ travelPlan: { ...plan, vehicle: { ...coque, wounds: blessuresPosees(coque, max, reste) } } });
 }
 
 /** Inflige `amount` Dégâts à la coque de TRAJET (`hull`, `travelPlan.vehicle`) et PERSISTE aussitôt sur

@@ -9,7 +9,7 @@ import { areGrappling } from '../engine/grapple';
 import { stacks } from '../engine/conditions';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant, Weapon } from '../engine/types';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 // IA — versant Empoignade (LDB 14 l.161) : « Si vous commencez votre tour Empoigné, vous pouvez BRISER
 // l'Empoignade si vous disposez d'un Avantage SUPÉRIEUR ; autrement, vous devez effectuer un Test opposé de
@@ -20,12 +20,12 @@ const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, 
 const BOW: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] };
 
 function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind, pos,
-    wounds: { current: 10, max: 10 }, weapons: [MELEE], characteristics: {} as never,
+    wounds: blessuresDeBase(10), weapons: [MELEE], characteristics: {} as never,
     advantage: 0, conditions: [], armour: {} as never, skills: [], talents: [], movement: 4,
     ...opts,
-  } as Combatant;
+  }) as Combatant;
 }
 const scene = emptyScene('scene-test', 12, 12);
 function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput {
@@ -90,7 +90,7 @@ describe('IA Empoignade — dispatch (runEnemyAI) : l’Empoigné LUTTE, le tire
     e.conditions = [{ id: 'empetre', value: 1, sourceId: 'h' }];
     const h = pregen(PREGEN.sorcier);
     h.id = 'h'; h.pos = { x: 6, y: 5 }; h.engagedWith = ['e']; h.advantage = 0;
-    h.grapplingWith = ['e']; h.wounds = blessuresDeBase(30);
+    h.grapplingWith = ['e']; h.wounds = blessuresDeBase(30, 30, h);
     const battle = {
       combatants: [e, h], order: ['e', 'h'], baseOrder: ['e', 'h'], turn: 0, round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,

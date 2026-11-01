@@ -2,15 +2,15 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { transitionDuJeu } from './transitionDuJeu';
 import { etatInitialDuJeu, type EtatDeJeu } from './etat';
 import { CHEMINS_NOMMES, lireAuChemin, poserAuChemin } from './combattantsDeLEtat.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { ID_DE_PORTEUR, PORTEURS_HORS_TALENT } from '../engine/porteursDePassifs.testkit';
+import { blesseDeTest, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { ID_DE_PORTEUR, PORTEURS } from '../engine/porteursDePassifs.testkit';
 import { datasetArray, resetData, setDataset } from '../data/overrides';
 import { statblockToCombatant } from './monde/spawn';
 import type { CustomStatblock } from '../engine/statblock';
 import type { OpPassive } from '../engine/ops';
 import type { Combatant } from '../engine/types';
 import { ALDO, BRUNA, CORA, etatAttable, rangsAssis, taverneAttablee } from './taverneAttablee.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { effectiveMaxWounds } from '../engine/characteristics';
 
 /** Transition du jeu (#2817 D7) : la chaise suit le corps, observée sur l'état avant/après. */
 describe('transitionDuJeu — occupation des sièges', () => {
@@ -53,7 +53,7 @@ describe('transitionDuJeu — occupation des sièges', () => {
 describe('transitionDuJeu — le maximum des Blessures suit ses porteurs', () => {
   const plus3 = (): OpPassive[] => [{ op: 'attrMod', attr: 'wounds', mod: 3 }];
   /** Profil à 30 partout : B = 12 ; blessé de 2. */
-  const blesse = (id = 'c'): Combatant => combattantDeTest({ id, kind: 'hero', wounds: blessuresDeBase(12, 10) });
+  const blesse = (id = 'c'): Combatant => blesseDeTest(10, { id, kind: 'hero' });
 
   afterEach(() => resetData());
 
@@ -62,7 +62,7 @@ describe('transitionDuJeu — le maximum des Blessures suit ses porteurs', () =>
   });
 
   describe.each(CHEMINS_NOMMES)('%s', (_, chemin) => {
-    it.each(PORTEURS_HORS_TALENT)('%s posé sans réconciliation : le maximum et le courant suivent, sans toucher l’écrit', (_n, _champ, poserLePorteur) => {
+    it.each(PORTEURS)('%s posé sans réconciliation : le maximum et le courant suivent, sans toucher l’écrit', (_n, _champ, poserLePorteur) => {
       const prev = etatInitialDuJeu();
       const c = blesse();
       poserLePorteur(c, plus3());
@@ -75,7 +75,7 @@ describe('transitionDuJeu — le maximum des Blessures suit ses porteurs', () =>
 
     it('un porteur retiré rend le maximum et le courant', () => {
       const c = blesse();
-      PORTEURS_HORS_TALENT[0][2](c, plus3());
+      PORTEURS[0][2](c, plus3());
       const prev = etatInitialDuJeu();
       const s = { ...prev, ...poserAuChemin(prev, chemin, c) };
       const pose = { ...s, ...transitionDuJeu(prev, s) };
@@ -93,14 +93,14 @@ describe('transitionDuJeu — le maximum des Blessures suit ses porteurs', () =>
   it('un acteur muté EN PLACE dont le champ est remplacé (`touchActors`) est réconcilié', () => {
     const c = blesse();
     const prev = { ...etatInitialDuJeu(), party: [c] };
-    PORTEURS_HORS_TALENT[0][2](c, plus3());
+    PORTEURS[0][2](c, plus3());
     const ecriture = transitionDuJeu(prev, { ...prev, party: [...prev.party] });
     expect(ecriture?.party?.[0].wounds).toMatchObject({ max: 15, current: 13 });
   });
 
   it('seul le combattant qui bouge est copié : les autres, et les champs voisins, gardent leur objet', () => {
     const [a, b] = [blesse('a'), blesse('b')];
-    PORTEURS_HORS_TALENT[0][2](b, plus3());
+    PORTEURS[0][2](b, plus3());
     const prev = etatInitialDuJeu();
     const battle = { combatants: [a, b], log: [] } as unknown as NonNullable<EtatDeJeu['battle']>;
     const ecriture = transitionDuJeu(prev, { ...prev, battle })!;
@@ -114,7 +114,7 @@ describe('transitionDuJeu — le maximum des Blessures suit ses porteurs', () =>
     setDataset('mutations', [...datasetArray('mutations'), { id: ID_DE_PORTEUR, type: 'mutations', label: 'Mutation de test', desc: '', kind: 'physique', passive: plus3() }] as never);
     const ne = statblockToCombatant({ label: 'Mutant', char: {}, traits: [{ id: 'mutation', arg: ID_DE_PORTEUR }] } as unknown as CustomStatblock, 'ne', { x: 0, y: 0 });
     expect(ne.wounds.current).toBe(ne.wounds.max);
-    expect(ne.wounds.max - ne.wounds.base!).toBe(3);
+    expect(ne.wounds.max - effectiveMaxWounds({ ...ne, mutations: [] })).toBe(3);
     const prev = etatInitialDuJeu();
     for (const [, chemin] of CHEMINS_NOMMES) expect(transitionDuJeu(prev, { ...prev, ...poserAuChemin(prev, chemin, ne) }), chemin.join('.')).toBeNull();
   });
@@ -122,15 +122,15 @@ describe('transitionDuJeu — le maximum des Blessures suit ses porteurs', () =>
   it('une écriture qui ne remplace aucun champ porteur n’appelle rien : seuls les champs remplacés sont parcourus', () => {
     const c = blesse();
     const prev = { ...etatInitialDuJeu(), party: [c] };
-    PORTEURS_HORS_TALENT[0][2](c, plus3());
+    PORTEURS[0][2](c, plus3());
     expect(transitionDuJeu(prev, { ...prev, journal: ['x'] })).toBeNull();
     expect(c.wounds).toMatchObject({ max: 12, current: 10 });
   });
 
   it('chaise et Blessures dans la MÊME transition : la permutation lève les chaises, le porteur est réconcilié', () => {
     const prev = etatAttable();
-    const bruna = { ...BRUNA, wounds: { ...BRUNA.wounds } };
-    PORTEURS_HORS_TALENT[0][2](bruna, plus3());
+    const bruna = blessuresSurLeProfil({ ...BRUNA, wounds: { ...BRUNA.wounds } });
+    PORTEURS[0][2](bruna, plus3());
     const s = { ...prev, party: [bruna, ALDO] };
     const ecriture = transitionDuJeu(prev, s)!;
     expect(rangsAssis(ecriture.scene!)).toEqual([]);

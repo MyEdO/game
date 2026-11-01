@@ -30,16 +30,16 @@ import { validateScene } from './validateScene';
 import type { Combatant, Weapon } from '../engine/types';
 import { SCHEMA_DEFS } from '../data/schemas/_registry.generated';
 import { readFileSync } from 'node:fs';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 /** Le texte brut des documents du catalogue, par chemin relatif (`../data/<file>`). */
 const TEXTES_DU_CATALOGUE = import.meta.glob<string>('../data/*.json', { eager: true, query: '?raw', import: 'default' });
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const mk = (id: string, kind: 'hero' | 'enemy', o: Partial<Combatant> = {}): Combatant => ({
-  id, label: id, kind, advantage: 0, conditions: [], characteristics: {} as never, psychState: [], psychTraits: [],
-  groups: [], weapons: [MELEE], armour: {} as never, skills: [], talents: [], movement: 4, wounds: { current: 10, max: 10 }, ...o,
-} as Combatant);
+const mk = (id: string, kind: 'hero' | 'enemy', o: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
+  id, label: id, kind, advantage: 0, conditions: [], characteristics: profilDeTest(), psychState: [], psychTraits: [],
+  groups: [], weapons: [MELEE], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...o,
+}) as Combatant);
 
 const groupe = groups.find((g) => !g.matchesAll)!;
 /** Un type ciblé qui admet le Groupe et l'individu, et un qui n'admet que l'individu. */

@@ -7,8 +7,8 @@ import { attachMutation } from '../engine/corruption';
 import { rollMutation } from '../data/mutations';
 import { hasCondition } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
-import type { Combatant } from '../engine/types';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 // ---------------------------------------------------------------------------
 // Tentacule épais (LDB 19) → trait Tentacules (LDB 85 l.405) : arme naturelle +
@@ -67,7 +67,7 @@ describe('Attaque gratuite de Tentacule (store)', () => {
     const E = enemies[0];
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 };
-    E.wounds = { current: 30, max: 30, base: 30 } as Combatant['wounds'];
+    E.wounds = blessuresDeBase(30, 30, E);
     E.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     if (withTentacle) {
       attachMutation(H, mutTentacule(), desDuTest);

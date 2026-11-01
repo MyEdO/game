@@ -10,6 +10,7 @@ import { stacks, hasCondition, COND } from '../engine/conditions';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from '../noyau/pendings';
 import { intentAllowedFor } from '../noyau/netOwnership';
 import { modalOwnerOf } from '../noyau/modalArbiter';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 describe('fleeReachable — Fuite dans la direction OPPOSÉE à l’adversaire (LDB 15 l.68)', () => {
   const scene = emptyScene('scene-test', 14, 14);
@@ -53,7 +54,7 @@ describe('Fuite intégrée à la modale (store)', () => {
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const E = b.combatants.find((c) => c.kind === 'enemy')!;
     E.characteristics['capacite-de-combat'] = 90; // le coup dans le dos (+20) touche à coup sûr
-    H.wounds = { current: 40, max: 40, base: 40 } as never;
+    H.wounds = blessuresDeBase(40, 40, H);
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     useGame.setState({
@@ -100,7 +101,7 @@ describe('Fuite intégrée à la modale (store)', () => {
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const E = b.combatants.find((c) => c.kind === 'enemy')!;
     H.fortune = 2;
-    H.wounds = { current: 40, max: 40, base: 40 } as never;
+    H.wounds = blessuresDeBase(40, 40, H);
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     // Phase 'fuir' avec un coup dans le dos FIGÉ (4 PB) et un Test `fuite` RATÉ figé (DR -2 → 3 États Brisés).
@@ -180,7 +181,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const { frappeur, fuyard } = duelHeros(3);
     frappeur.characteristics['capacite-de-combat'] = 60;
     frappeur.resilience = 2;
-    fuyard.wounds = { current: 60, max: 60, base: 60 } as never; // survit au Critique
+    fuyard.wounds = blessuresDeBase(60, 60, fuyard); // survit au Critique
     useGame.setState({ battle: { ...useGame.getState().battle! } });
 
     useGame.getState().disengageFlee();
@@ -207,7 +208,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
 
   it('DÉPASSEMENT (PB perdus > PB restants) → Blessure critique ET À Terre (LDB 13 l.161)', () => {
     const { frappeur, fuyard } = duelHeros(4);
-    fuyard.wounds = { current: 3, max: 30, base: 30 } as never;
+    fuyard.wounds = blessuresDeBase(30, 3, fuyard);
     const pd = useGame.getState().pendingDisengage!;
     // Coup dans le dos NON critique (pas de double) mais qui dépasse les PB courants : 5 > 3.
     useGame.setState({
@@ -314,7 +315,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     H.pos = { x: 6, y: 10 };
     E1.pos = { x: 7, y: 10 };
     E2.pos = { x: 5, y: 10 };
-    for (const e of [E1, E2]) e.wounds = { current: 60, max: 60, base: 60 } as never;
+    for (const e of [E1, E2]) e.wounds = blessuresDeBase(60, 60, e);
     H.engagedWith = [E1.id, E2.id];
     E1.engagedWith = [H.id];
     E2.engagedWith = [H.id];
@@ -362,7 +363,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     E.pos = { x: 6, y: 10 };
     fuyard.pos = { x: 7, y: 10 };
     voisin.pos = { x: 5, y: 10 };
-    for (const h of [fuyard, voisin]) h.wounds = { current: 60, max: 60, base: 60 } as never;
+    for (const h of [fuyard, voisin]) h.wounds = blessuresDeBase(60, 60, h);
     E.engagedWith = [fuyard.id, voisin.id];
     fuyard.engagedWith = [E.id];
     voisin.engagedWith = [E.id];
@@ -389,7 +390,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
   it('fuyard ARMURÉ : la Déviation Critique SUSPEND — la fuite (Brisé + Course) attend la résolution du coup', () => {
     const { frappeur, fuyard } = duelHeros(7);
     fuyard.armour = { tete: 2, corps: 2, brasG: 2, brasD: 2, jambeG: 2, jambeD: 2 } as never; // PA → Déviation offerte
-    fuyard.wounds = { current: 40, max: 40, base: 40 } as never;
+    fuyard.wounds = blessuresDeBase(40, 40, fuyard);
     const pd = useGame.getState().pendingDisengage!;
     useGame.setState({
       battle: { ...useGame.getState().battle! },
@@ -433,7 +434,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
   it('frappeur avec un ARC en main : le coup dans le dos reste un Test de CORPS À CORPS', () => {
     const { frappeur, fuyard } = duelHeros(10);
     frappeur.weapons = [{ name: 'Arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [], range: 60 }] as never;
-    fuyard.wounds = { current: 40, max: 40, base: 40 } as never;
+    fuyard.wounds = blessuresDeBase(40, 40, fuyard);
     useGame.setState({ battle: { ...useGame.getState().battle! } });
 
     useGame.getState().disengageFlee();

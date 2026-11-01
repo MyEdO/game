@@ -14,11 +14,11 @@ import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { refusDeSoins } from '../noyau/medicFlow';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /** Héros « Agitateur » niveau 1 (« Pamphlétaire ») avec 1000 PX, Charme (in-carrière) + Esquive (hors). */
 const hero = (): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h',
     label: 'H',
     kind: 'hero',
@@ -26,7 +26,7 @@ const hero = (): Combatant =>
     career: 'agitateur',
     careerLevel: 1,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -41,7 +41,7 @@ const hero = (): Combatant =>
     charAdvances: {},
     motivation: 'Devoir',
     details: { age: 27, ambitionShort: 'Survivre à la prochaine campagne', ambitionLong: 'Commander sa propre compagnie' },
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('CharacterSheet — Apparence sur l’objet', () => {
   beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
@@ -285,7 +285,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
   });
 
   it('les jauges VIVENT : re-rendent au switch de héros et après un soin (valeur/teinte suivent `hero.wounds`)', () => {
-    const blesse = { ...hero(), wounds: { current: 4, max: 12 } } as Combatant;
+    const blesse = blessuresSurLeProfil({ ...hero(), wounds: blessuresDeBase(12, 4) }) as Combatant;
     useGame.setState({ party: [blesse], battle: null, sheetId: blesse.id, sheetTab: 'possessions' });
     mount(<CharacterSheet heroId={blesse.id} onClose={() => {}} />);
     let vie = container.querySelector('.sheet-aside .life-bar');
@@ -294,7 +294,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
 
     // Soin (mutation directe du party courant) : la fiche relit `useGame`, la jauge doit suivre.
     act(() => {
-      useGame.setState((s) => ({ party: s.party.map((c) => (c.id === blesse.id ? { ...c, wounds: blessuresDeBase(12, 9) } : c)) }));
+      useGame.setState((s) => ({ party: s.party.map((c) => (c.id === blesse.id ? blessuresSurLeProfil({ ...c, wounds: blessuresDeBase(12, 9) }) : c)) }));
     });
     vie = container.querySelector('.sheet-aside .life-bar');
     expect(vie?.querySelector('.life-bar__value')?.textContent).toBe('9/12');

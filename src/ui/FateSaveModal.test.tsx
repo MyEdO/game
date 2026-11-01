@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from '../state/store';
 import { FateSaveModal } from './FateSaveModal';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 /**
  * LDB 17 l.29 : sacrifier un Point de Destin, puis l'une des DEUX options (l.31, l.32). Le groupe de
@@ -14,13 +15,13 @@ import type { Combatant } from '../engine/types';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const HERO = {
+const HERO = blessuresSurLeProfil({
   id: 'H', name: 'H', label: 'Héros', kind: 'hero', fate: 2,
-  characteristics: { endurance: 40 }, wounds: { current: 0, max: 12 }, advantage: 0,
+  characteristics: profilDeTest({ endurance: 40 }), wounds: blessuresDeBase(12, 0), advantage: 0,
   conditions: [], traumas: [], resilience: 2, fortune: 0, weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   skills: [], talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
-} as unknown as Combatant;
+}) as unknown as Combatant;
 
 let host: HTMLDivElement;
 let root: Root;

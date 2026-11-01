@@ -3,14 +3,15 @@ import { psychDRAdjust } from './combat';
 import { refreshDefendedPsych } from './psychology';
 import type { Combatant } from './types';
 import { ciblePsy } from './psych/ciblage';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 function mk(opts: Partial<Combatant>): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'c', label: 'c', kind: 'enemy', advantage: 0, conditions: [],
     characteristics: {} as never, size: 'moyenne', psychState: [], groups: [],
     weapons: [], armour: {} as never, skills: [], talents: [], movement: 4,
-    wounds: { current: 10, max: 10 }, ...opts,
-  } as Combatant;
+    wounds: blessuresDeBase(10), ...opts,
+  }) as Combatant;
 }
 
 /**

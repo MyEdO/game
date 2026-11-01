@@ -15,17 +15,18 @@ import { findManeuverById } from '../data';
 import { souffleDuType } from '../engine/creatureAttacks';
 import type { Combatant } from '../engine/types';
 import type { Pt } from './monde/path';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const mk = (id: string, kind: 'hero' | 'enemy', x: number, y: number, z: number): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, label: id, kind, pos: { x, y, z },
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 20, max: 20 }, advantage: 3, conditions: [], traits: [], talents: [], skills: [], weapons: [],
+    wounds: blessuresDeBase(20), advantage: 3, conditions: [], traits: [], talents: [], skills: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const miniScene = () =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, metresPerTile: 2, ambiance: 'jour',

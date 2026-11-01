@@ -40,6 +40,7 @@ import { HERO_RING } from '../teamColors';
 import { frameRectOf, type ActorPose, type BillboardSubject, type SceneBillboardEls } from '../backends/webgl/sceneMeshes';
 import type { TokenEl } from '../builders/types';
 import { findTrappingById } from '../../data';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * LE BRANCHEMENT DU FLIPBOOK (#1176, L3) — la boucle volumique JOUE les frames.
@@ -325,12 +326,12 @@ const AFFINE: StageFrame = { mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, z
 const AFFINE_ZOOM_MAX: StageFrame = { mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: ZOOM_MAX };
 
 function combattant(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
+    wounds: blessuresDeBase(12), weapons: [],
     characteristics: { 'capacite-de-combat': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {}, skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 const ACTEURS: ActorPose[] = [{ c: combattant('h1', { x: 2, y: 2 }), x: 2, y: 2, z: 0, heroIndex: 0 }];
@@ -833,7 +834,7 @@ describe('Hors de combat — l’écrivain joue l’EFFONDREMENT et le TIENT (#1
 
   it('la chute JOUÉE se TIENT à sa dernière cellule — le cadavre ne se relève pas en boucle', async () => {
     servirLesPlanches();
-    const c = { ...combattant('e1', { x: 2, y: 2 }), kind: 'enemy', dead: true, wounds: { current: 0, max: 12 } } as unknown as Combatant;
+    const c = blessuresSurLeProfil({ ...combattant('e1', { x: 2, y: 2 }), kind: 'enemy', dead: true, wounds: blessuresDeBase(12, 0) }) as unknown as Combatant;
     const acteurs: ActorPose[] = [{ c, x: 2, y: 2, z: 0 }];
     await monter({ actors: acteurs });
     // La chute (COLLAPSE_MS) est passée depuis longtemps : la cellule montrée est la DERNIÈRE.

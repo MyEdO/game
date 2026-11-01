@@ -13,6 +13,7 @@ import { createHero } from '../engine/character';
 import mutationTables from '../data/mutationTables.json';
 import type { Combatant } from '../engine/types';
 import { testDeRegle } from '../engine/reglesChiffrees';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -141,7 +142,8 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     a.corruption = 4; // seuil = BFM(3) + BE(0) = 3 → dépassé au prochain gain
     a.resilience = 0; // sans Résilience, pas de « Je te renie ! » (LDB 17 l.67) → mutation directe
     banc.setState({ party });
-    gainCorruption(banc.getState, banc.setState, a, 1);
+    // L'Endurance abaissée déplace le maximum des Blessures : l'écriture a copié le héros, il se relit par son id.
+    gainCorruption(banc.getState, banc.setState, banc.getState().party.find((h) => h.id === a.id)!, 1);
     // « Un jet = une modale » : le Test du seuil est DIFFÉRÉ — visible, avec Chance/Pacte.
     const pc = banc.getState().pendingCorruption;
     expect(pc).toBeTruthy();
@@ -332,13 +334,13 @@ describe('Effet ops { op: corruption } (gain direct via ops generiques)', () => 
 describe('corruptionTarget — #152 : reconditionné sur followsCharacterRules (pas kind===\'hero\')', () => {
   const e30 = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
   const npcPersonnage = (p: Partial<Combatant>): Combatant =>
-    ({
+    (blessuresSurLeProfil({
       id: 'npc', label: 'PNJ', kind: 'enemy', followsCharacterRules: true,
       characteristics: e30,
-      wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [],
+      wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
       weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       ...p,
-    } as Combatant);
+    }) as Combatant);
 
   it('trouve un PNJ ENNEMI flagué `followsCharacterRules` par id (pas seulement un héros)', () => {
     const npc = npcPersonnage({});

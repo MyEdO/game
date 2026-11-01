@@ -37,8 +37,7 @@ import { traumaById } from '../engine/trauma';
 import { browserUnfreezeTimeout } from './devtoolsTimers';
 import { mountMovement, movementRemaining } from '../noyau/mount';
 import { cleDeFixture } from '../noyau/noyau.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 describe('__wfrp — setup #1561', () => {
   beforeEach(() => {
@@ -236,7 +235,7 @@ describe('__wfrp — autres commandes de recette', () => {
   it('healParty : PB max, états purgés, mort relevé', () => {
     const h = useGame.getState().party[0];
     useGame.setState({
-      party: [{ ...h, wounds: { ...h.wounds, current: 0 }, conditions: [{ id: 'hemorragique', stacks: 2 }] as never, criticalWounds: 3, dead: true }],
+      party: [blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 }, conditions: [{ id: 'hemorragique', stacks: 2 }] as never, criticalWounds: 3, dead: true })],
     });
     buildApi().healParty();
     const healed = useGame.getState().party[0];
@@ -533,7 +532,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
   });
 
   it('healParty : le combattant ET le groupe sont remis à neuf', () => {
-    useGame.setState((s) => ({ battle: { ...s.battle!, combatants: s.battle!.combatants.map((c) => (c.id === heroId ? { ...c, wounds: { ...c.wounds, current: 0 } } : c)) } }));
+    useGame.setState((s) => ({ battle: { ...s.battle!, combatants: s.battle!.combatants.map((c) => (c.id === heroId ? blessuresSurLeProfil({ ...c, wounds: { ...c.wounds, current: 0 } }) : c)) } }));
     buildApi().healParty();
     for (const c of [combattant(), membre()]) expect(c.wounds.current).toBe(c.wounds.max);
   });

@@ -71,17 +71,19 @@ for (const car of TENUES_QC) {
 // Ennemis humanoïdes riggés (classifieur + dérivation). Arme + tenue + mutations.
 import { enemyRigProfile, entityRigProfile } from '../src/gameIso/rig/enemyProfile';
 import { AMBIENT_CLIPS } from '../src/gameIso/rig/anim/ambientClips';
-import type { Combatant } from '../src/engine/types';
-import { blessuresDeBase } from '../src/engine/characteristics';
+import { CHAR_KEYS, type Combatant } from '../src/engine/types';
+import { blessuresPosees } from '../src/engine/characteristics';
+import { tableTotale } from '../src/lib/tableTotale';
 function enemyCell(name: string, view: View = 'front') {
-  const c = {
+  const sansBlessures = {
     id: `gal-${name}`, label: name, kind: 'enemy',
-    characteristics: {} as Combatant['characteristics'], wounds: blessuresDeBase(10),
+    characteristics: tableTotale(CHAR_KEYS, () => 30),
     advantage: 0, conditions: [],
     weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
     armour: { tete: 2, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4,
-  } as Combatant;
+  } as Omit<Combatant, 'wounds'>;
+  const c: Combatant = { ...sansBlessures, wounds: blessuresPosees(sansBlessures) };
   const p = enemyRigProfile(c);
   if (!p) return cell(`${name} (sprite)`, { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5 }, equipDe([], []), 'soldat', view);
   const svg = renderToStaticMarkup(

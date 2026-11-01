@@ -5,8 +5,7 @@ import { applyHealWounds } from './healing';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
 import { deFixe, desDuTest } from './dice.testkit';
-import { combattantDeTest } from './combattantDeTest.testkit';
-import { blessuresDeBase } from './characteristics';
+import { combattantDeTest, blessuresDeBase } from './combattantDeTest.testkit';
 
 const fixed = deFixe;
 /** Porteur à 0 PB et Inconscient (LDB 16 l.105), ou à `pb` PB conscient. */

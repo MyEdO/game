@@ -76,6 +76,7 @@ import { fogAt, fogCurveOf } from '../../pov/camera';
 import { memoByRef, memoByRefDeps } from '../../../noyau/monde/sceneMemo';
 import { srgbToLinear, toHex } from '../../shade';
 import { findTrappingById } from '../../../data';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../../engine/combattantDeTest.testkit';
 const diligenceConstruit = diligence.construire();
 const pontVitrineConstruit = pontVitrine.construire();
 const areneConstruit = arene.construire();
@@ -737,12 +738,12 @@ describe('OMBRE DE CONTACT — le socle se dimensionne sur le SUJET, jamais sur 
   const mptNu = sceneMetresPerTile(scèneNue);
 
   const acteur = (patch: Partial<Combatant> = {}): Combatant =>
-    ({
+    (blessuresSurLeProfil({
       id: 'a1', label: 'Acteur', kind: 'hero', pos: { x: 1, y: 1 }, size: 'moyenne',
-      wounds: { current: 12, max: 12 }, weapons: [], characteristics: {}, advantage: 0,
+      wounds: blessuresDeBase(12), weapons: [], characteristics: {}, advantage: 0,
       conditions: [], armour: {}, skills: [], talents: [], movement: 4, career: 'soldat', species: 'humain',
       ...patch,
-    }) as unknown as Combatant;
+    })) as unknown as Combatant;
 
   const sujetDe = (c: Combatant, rider?: Combatant) =>
     actorBillboards([{ c, ...(rider ? { rider } : {}), x: 1, y: 1, z: 0, facing: 'S' }], scèneNue, mptNu)[0];
@@ -1049,11 +1050,11 @@ describe('reposerActeurs — case et cap sont de la POSE, jamais de l’identit�
   const scèneRepose = emptyScene('scene-test', 8, 8);
   const mptRepose = sceneMetresPerTile(scèneRepose);
   const combattant = (): Combatant =>
-    ({
+    (blessuresSurLeProfil({
       id: 'r1', label: 'R', kind: 'hero', pos: { x: 1, y: 1 }, size: 'moyenne',
-      wounds: { current: 12, max: 12 }, weapons: [], characteristics: {}, advantage: 0,
+      wounds: blessuresDeBase(12), weapons: [], characteristics: {}, advantage: 0,
       conditions: [], armour: {}, skills: [], talents: [], movement: 4, career: 'soldat', species: 'humain',
-    }) as unknown as Combatant;
+    })) as unknown as Combatant;
 
   it('l’identité IGNORE la case et le cap (deux poses, une seule identité)', () => {
     const c = combattant();

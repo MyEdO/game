@@ -7,6 +7,7 @@ import { rangeBandName } from './combat';
 import { trappings } from '../data';
 import { Combatant, ItemInstance, Weapon } from './types';
 import type { Mutation } from './corruption';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 
 const item = (o: Partial<ItemInstance>): ItemInstance =>
@@ -191,8 +192,8 @@ describe('activeLoadout', () => {
 
 describe('recomputeLoadout piloté par loadout', () => {
   const heroWith = (items: ItemInstance[], lo?: { loadouts: any[]; activeLoadoutId: string }): Combatant =>
-    ({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items,
-       talents: [], skills: [], conditions: [], wounds: { current: 10, max: 10 }, advantage: 0, ...lo } as unknown as Combatant);
+    (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items,
+       talents: [], skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, ...lo }) as unknown as Combatant);
   const w = (uid: string, name: string, p: Partial<ItemInstance> = {}): ItemInstance =>
     ({ uid, label: name, kind: 'melee', qualities: [], enc: 1, equipped: true, ...p } as ItemInstance);
 
@@ -234,8 +235,8 @@ describe('recomputeLoadout piloté par loadout', () => {
 
 describe('warMachineResolveChar (DÉRIVÉ, via recomputeLoadout) — bélier → Force (ADE II 8 l.233)', () => {
   const heroWith = (items: ItemInstance[], lo?: { loadouts: any[]; activeLoadoutId: string }): Combatant =>
-    ({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items,
-       talents: [], skills: [], conditions: [], wounds: { current: 10, max: 10 }, advantage: 0, ...lo } as unknown as Combatant);
+    (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items,
+       talents: [], skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, ...lo }) as unknown as Combatant);
   const w = (uid: string, name: string, p: Partial<ItemInstance> = {}): ItemInstance =>
     ({ uid, label: name, kind: 'melee', qualities: [], enc: 1, equipped: true, ...p } as ItemInstance);
 
@@ -263,8 +264,8 @@ describe('warMachineResolveChar (DÉRIVÉ, via recomputeLoadout) — bélier →
 
 describe('machine de guerre (Qualité `equipe` — ADE II 8 l.233) : jamais en loadout SOLO', () => {
   const heroWith = (items: ItemInstance[], lo?: { loadouts: any[]; activeLoadoutId: string }): Combatant =>
-    ({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items,
-       talents: [], skills: [], conditions: [], wounds: { current: 10, max: 10 }, advantage: 0, ...lo } as unknown as Combatant);
+    (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items,
+       talents: [], skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, ...lo }) as unknown as Combatant);
 
   it('belier-ade2 (subType armes-de-siege) en `items` équipé : PAS d’arme dérivée — Mains nues seulement', () => {
     const belier = itemFromTrappingById('belier-ade2')!;
@@ -712,9 +713,9 @@ const mutationAP = (id: string, amount: number, noDeviation?: boolean): Mutation
 /** LDB 85 l.325, l.447 ; LDB 63 l.19 ; LDB 62 l.135 */
 describe('endommagerLEquipementPorte — toutes les Armures et Armes portées subissent 1 Dégât', () => {
   const porteur = (items: ItemInstance[], main?: string, off?: string): Combatant => {
-    const c = ({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items, armour: emptyArmour(),
-      talents: [], skills: [], conditions: [], wounds: { current: 10, max: 10 }, advantage: 0,
-      loadouts: [{ id: 'l1', name: 'set', main, off }], activeLoadoutId: 'l1' } as unknown as Combatant);
+    const c = (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items, armour: emptyArmour(),
+      talents: [], skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0,
+      loadouts: [{ id: 'l1', name: 'set', main, off }], activeLoadoutId: 'l1' }) as unknown as Combatant);
     recomputeLoadout(c);
     return c;
   };
@@ -792,8 +793,8 @@ describe('endommagerLEquipementPorte — toutes les Armures et Armes portées su
 /** LDB 63 l.19, l.30 ; EDO App.2 l.196 */
 describe('damageArmour — armure dérivée d’un héros sans pièce à la Localisation', () => {
   const heros = (mutations: Mutation[]): Combatant => {
-    const c = ({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items: [], armour: emptyArmour(),
-      talents: [], skills: [], conditions: [], wounds: { current: 10, max: 10 }, advantage: 0, mutations } as unknown as Combatant);
+    const c = (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items: [], armour: emptyArmour(),
+      talents: [], skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, mutations }) as unknown as Combatant);
     recomputeLoadout(c);
     return c;
   };

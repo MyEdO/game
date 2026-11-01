@@ -30,6 +30,7 @@ import { resetBakeQueue } from '../backends/webgl/atlasBake';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { useGame } from '../../state/store';
 import { findTrappingById } from '../../data';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * DÉCOUPE LOCALE PAR OCCLUSION — L'HÔTE (#1176, M3). Le CANAL (`percage-canal.test.ts`) et le VERDICT
@@ -102,13 +103,13 @@ const cacheursDe = (pos: Case) => {
 const SOUS_LES_NAPPES = NUES.reduce((mieux, p) => (cacheursDe(p).length > cacheursDe(mieux).length ? p : mieux));
 
 function combattant(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
+    wounds: blessuresDeBase(12), weapons: [],
     characteristics: { 'capacite-de-combat': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 function poseDe(pos: { x: number; y: number }): ActorPose[] {

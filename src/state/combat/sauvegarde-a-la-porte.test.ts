@@ -34,18 +34,19 @@ import { CHAR_KEYS, type Combatant, type Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
 import { OPS_DIFFEREES } from '../../noyau/combatEffects';
 import { avanceEtapeCascade, cascadeDeTest } from '../../noyau/cascade.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
 const mk = (kind: Combatant['kind'], id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, label: id, kind, characteristics: { ...CHARS },
-    wounds: { current: 30, max: 30 }, advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
+    wounds: blessuresDeBase(30), advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
     weapons: [], items: [], skills: [], talents: [], traits: [], movement: 4, bodyShape: 'humanoide',
     pos: { x: 0, y: 0 }, fate: 0, engagedWith: [], size: 'moyenne',
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...over,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 function setBattle(combatants: Combatant[]): void {
   const battle = {
@@ -425,7 +426,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: nul(), aiControlled: true } as never);
     const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true, traits: [demon] } as never);
     // h3 n'a AUCUNE sauvegarde : son maillon suspend par la DÉVIATION (1 PB → dépassement, armure déviable).
-    const h3 = mk('hero', 'h3', { pos: { x: 6, y: 5 }, characteristics: nul(), aiControlled: true, wounds: { current: 1, max: 30 }, armour: blindee } as never);
+    const h3 = mk('hero', 'h3', blessuresSurLeProfil({ pos: { x: 6, y: 5 }, characteristics: nul(), aiControlled: true, wounds: blessuresDeBase(30, 1), armour: blindee }) as never);
     const h4 = mk('hero', 'h4', { pos: { x: 5, y: 4 }, characteristics: nul(), aiControlled: true, traits: [demon] } as never);
     setBattle([ogre, h1, h2, h3, h4]);
     autoCleave(useGame.getState, useGame.setState, ogre, h1, { ...touche(), cleave: true } as AttackResult);
@@ -528,7 +529,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
 
   it('(iii bis) MANIEMENT DE DEUX ARMES : la valeur est celle du Coup Critique, pas du Critique de dépassement (LDB 10 l.767-773 ; #1595 C7)', () => {
     const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
-    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */, wounds: { current: 2, max: 30 } } as never);
+    const demon = mk('enemy', 'demon', blessuresSurLeProfil({ pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */, wounds: blessuresDeBase(30, 2) }) as never);
     const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773 : un adversaire reste disponible
     setBattle([heros, demon, voisin]);
     const critique = { ...touche(), critical: true, critLocation: 'corps', attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
@@ -547,7 +548,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
   function secondeMainEnAA(critique: boolean, current: number, cibleOver: Partial<Combatant> = {}) {
     setRule('combat-aa-blessures', 'aa');
     const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
-    const cible = mk('enemy', 'cible', { pos: { x: 1, y: 0 }, characteristics: nul(), talents: [{ talentId: 'chanceux', times: 1 }] /* AA 07 l.67 : hors Mort subite */, wounds: { current, max: 30 }, ...cibleOver } as never);
+    const cible = mk('enemy', 'cible', blessuresSurLeProfil({ pos: { x: 1, y: 0 }, characteristics: nul(), talents: [{ talentId: 'chanceux', times: 1 }] /* AA 07 l.67 : hors Mort subite */, wounds: blessuresDeBase(30, current), ...cibleOver }) as never);
     const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
     setBattle([heros, cible, voisin]);
     const premiere = {

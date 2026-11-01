@@ -11,8 +11,8 @@ import { aiCreatureFreeAttacks } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
-import type { Combatant } from '../engine/types';
 import { cascadeDeTest, draineCascade } from './cascade.testkit';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -36,7 +36,7 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
     E.traits = [{ id: 'hurlement-fantomatique' }]; E.advantage = 4; E.characteristics.initiative = 40; // portée 20 m
     E.pos = { x: 5, y: 5 };
     for (const h of b.combatants.filter((c) => c.kind === 'hero')) {
-      h.wounds = { current: 40, max: 40, base: 40 } as Combatant['wounds'];
+      h.wounds = blessuresDeBase(40, 40, h);
       h.characteristics.endurance = 1; // Résistance minime → échec quasi certain → Brisé attendu sur validation
       h.skills = h.skills.filter((s) => s.id !== 'resistance');
       h.conditions = [];

@@ -10,6 +10,7 @@ import { findSpellById } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import type { CastResult } from '../engine/magic';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Protection de Phâ (LDB 48 l.393) — Zone sacrée centrée sur le lanceur (diamètre BFM, durée BFM Rounds) :
@@ -17,13 +18,13 @@ import type { Combatant } from '../engine/types';
  *      (barrière `gate:'profane'`) ; (2) celles déjà à l'intérieur gagnent Brisé ENTRETENU (sans empiler) ;
  *  (3) nul gain de Corruption dans la Zone. Implémenté sur le système de Zone existant (op `zone`).
  */
-const mk = (over: Partial<Combatant> = {}): Combatant => ({
+const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id: 'c', name: 'C', kind: 'enemy',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-  wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], skills: [], talents: [], traits: [],
+  wounds: blessuresDeBase(10), advantage: 0, conditions: [], skills: [], talents: [], traits: [],
   weapons: [], armour: { corps: 0 }, movement: 4, pos: { x: 5, y: 5 }, groups: [],
   ...over,
-}) as unknown as Combatant;
+})) as unknown as Combatant;
 
 const ward = (over: Partial<BattleZone> = {}): BattleZone => ({
   label: 'Protection de Phâ', tiles: [{ x: 5, y: 5 }], rounds: 3, barrier: {}, gate: 'profane',

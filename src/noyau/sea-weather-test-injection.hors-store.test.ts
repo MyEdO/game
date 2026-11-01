@@ -9,6 +9,7 @@ import { RULE_REF } from '../engine/ruleRefs';
 import { lignesDe } from '../engine/modLine.testkit';
 import { precipitationDef } from '../engine/seaWeather';
 import { t } from '../i18n';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -21,10 +22,10 @@ const meteo = (): ModLine[] => lignesDe(banc.getState().pendingTest!.mods, RULE_
 describe('Météo maritime — Précipitations injectées au Test réel (#183, MDG 13 l.187-201)', () => {
   beforeEach(() => { banc.setState({ battle: null, pendingTest: null, travelPlan: null }); });
 
-  const sailor = (): Combatant => ({
+  const sailor = (): Combatant => (blessuresSurLeProfil({
     id: 'h1', name: 'Marin', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 40, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4,
+    wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
     skills: [
       { id: 'athletisme', characteristic: 'agilite', advances: 0 },
       { id: 'escalade', characteristic: 'agilite', advances: 0 },
@@ -32,7 +33,7 @@ describe('Météo maritime — Précipitations injectées au Test réel (#183, M
       { id: 'projectiles', spec: 'poudre-noire', characteristic: 'dexterite', advances: 5 },
     ],
     talents: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
   const seaPlan = (precip: 'legeres' | 'abondantes' | 'tres-abondantes'): TravelPlan => ({
     routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'mer', hoursPerDay: 8, km: 100, kmDone: 0,

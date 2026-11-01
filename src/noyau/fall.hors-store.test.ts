@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
 import { createHero } from '../engine/character';
-import { bonus, blessuresDeBase } from '../engine/characteristics';
+import { bonus } from '../engine/characteristics';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { hasCondition } from '../engine/conditions';
 import { emptyScene, isWalkable, type Scene } from './monde/scene';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
@@ -23,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('Effet fall — chute', () => {
   function loneHero() {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
-    h.wounds = blessuresDeBase(40);
+    h.wounds = blessuresDeBase(40, 40, h);
     banc.setState({ party: [h] });
     return h;
   }

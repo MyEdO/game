@@ -4,6 +4,7 @@ import { firedAttackBlock } from '../noyau/combatFlow';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { GameState } from './store';
 import type { BattleState } from '../noyau/etat';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * Étape 3 « Servir un poste » (MDG 12-13). Un chef de pièce (`mannedPoste`) voit une attaque DÉDIÉE
@@ -17,13 +18,13 @@ const personalSword = { label: 'Épée', type: 'melee' as const, damage: { plusB
 const poste: ShipPoste = { item: { uid: POSTE_UID, trappingId: 'pierrier', label: 'Pierrier', kind: 'ranged' } as never, side: 'tribord', crewIds: ['gunner'] };
 
 const gunner = (): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'gunner', label: 'Canonnier', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 45, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [personalSword, cannon], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     movement: 4, pos: { x: 5, y: 5 }, mannedPoste: poste, loaded: true,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const enemyAt = (id: string, x: number, y: number): Combatant =>
   ({ id, label: id, kind: 'enemy', pos: { x, y }, wounds: { current: 10, max: 10 }, conditions: [], weapons: [] }) as unknown as Combatant;

@@ -21,6 +21,7 @@ import { tenuParUnHumain, seatOwns } from '../noyau/sieges';
 import { fleeTouche, fleeToucheDu } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const g = useGame.getState;
 const set = useGame.setState;
@@ -114,7 +115,7 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
     const { H, E } = coop();
     E[0].pos = { x: 11, y: 10 };
     E[0].characteristics['capacite-de-combat'] = 90;
-    H[0].wounds = { current: 40, max: 40, base: 40 } as never;
+    H[0].wounds = blessuresDeBase(40, 40, H[0]);
     H[0].engagedWith = [E[0].id];
     E[0].engagedWith = [H[0].id];
     set({

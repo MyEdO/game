@@ -23,6 +23,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const NET0 = useGame.getState().net;
 const MODE0 = useGame.getState().mode;
@@ -32,14 +33,14 @@ const chars = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endu
 
 /** Un porteur de Racine de mandragore : gate de Force Mentale par Round. */
 const mk = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, label: id, kind: 'hero', characteristics: { ...chars },
     conditions: [], engagedWith: [], skills: [], talents: [], weapons: [],
-    advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: { current: 12, max: 12 },
+    advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(12),
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4,
     activeEffects: [{ label: 'Racine de mandragore', actGate: { char: 'force-mentale' } }],
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 const g = useGame.getState;
 const etapes = (): CascadeStep[] => g().pendingCascade?.participants ?? [];

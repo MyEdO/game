@@ -27,6 +27,7 @@ import { discCapPath } from '../builders/dynamicMarks';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, respirer, simulerRasterisation, viderCaptures } from './banc-volumique';
+import { blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -137,7 +138,7 @@ describe('Cap du GROUPE — sur l’écran MONTÉ (#1362)', () => {
     expect(capAvant, 'prémisse : un cap est bien monté avant la chute').toBeTruthy();
 
     await act(async () => {
-      useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'a' ? { ...h, wounds: { ...h.wounds, current: 0 } } : h)) }));
+      useGame.setState((s) => ({ party: s.party.map((h) => (h.id === 'a' ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) }));
     });
     await respirer(80);
 

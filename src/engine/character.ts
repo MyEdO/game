@@ -39,14 +39,14 @@ import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/
 import { refKey, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, prisParLesAutres, acquerirTalent, type PorteurDeTalents } from './careerSlots';
 import { resolveTrappingChoices, type ChoixDeDotation } from './trappingChoices';
 import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
-import { appliquerAcquisitions, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
+import { appliquerAcquisitions, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps, pettySpellQuotaFor } from './creation';
 import { sizeFromTalents } from './size';
 import { traitsDuPorteur } from './statEntry';
 import { indiceSurLeProfil } from './formule';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { sequence } from './sequences';
-import { blessuresDeBase } from './characteristics';
+import { blessuresPosees } from './characteristics';
 
 /** Caractéristique d'une Compétence (skills.json) par `id` STABLE — LDB 09 : valeur de Test =
  *  Caractéristique + avances. (≠ re-lookup par libellé — multilangue-safe.) */
@@ -424,7 +424,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   const fate = fateBase.fate + split.fate;
   const resilience = fateBase.resilience + split.resilience;
 
-  const hero: Combatant = {
+  const sansBlessures: Omit<Combatant, 'wounds'> = {
     id,
     label: opts.label,
     kind: 'hero',
@@ -433,7 +433,6 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     groups: groupsFor({ speciesId: sp.id }), // Groupes déclarés par l'espèce ; carrière, classe, culte et Traits lus en direct (`groupesDe`). LDB 21
     size,
     characteristics: chars,
-    wounds: blessuresDeBase(0), // posé après les effets de talents (Dur à cuire)
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -457,11 +456,10 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     ...(opts.apparence ? { appearance: { ...opts.apparence, species: rigSpeciesId(opts.speciesId) } } : {}),
   };
 
-  // Effets d'acquisition des Talents (`appliquerAcquisitions`), puis attributs dérivés (Blessures + Dur
-  // à cuire, Chance, Détermination).
+  // Blessures du profil (LDB 05 l.1001), effets d'acquisition des Talents (`appliquerAcquisitions`), puis
+  // Chance et Détermination.
+  const hero: Combatant = { ...sansBlessures, wounds: blessuresPosees(sansBlessures) };
   appliquerAcquisitions(hero);
-  const wmax = heroMaxWounds(hero);
-  hero.wounds = blessuresDeBase(wmax);
   hero.fortune = fortuneMax(hero);
   hero.resolve = resolveMax(hero);
 

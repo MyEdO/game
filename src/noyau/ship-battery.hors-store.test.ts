@@ -15,8 +15,7 @@ import { jouerLesTirsDeBordee } from './combatFlow';
 import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
 import { t } from '../i18n';
 import { deFixe, desEnSuite } from '../engine/dice.testkit';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -185,7 +184,7 @@ const crewedHull = (crewIds: string[]): Combatant => ({ ...enemyHull(), crewIds 
 const aireePoste = (qualities: { id: string; value?: number }[], onHit?: unknown): ShipPoste =>
   ({ side: 'tribord', crewIds: ['gunner'], item: { uid: 'canon', label: 'Canon', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
     qualities: [{ id: 'recharge', value: 6 }, ...qualities], ...(onHit ? { enchants: [{ onHitEffects: onHit }] } : {}) } } as unknown as ShipPoste);
-const shipWith = (poste: ShipPoste): Combatant => ({ ...firingShip(), postes: [poste], wounds: { current: 60, max: 60 } } as Combatant);
+const shipWith = (poste: ShipPoste): Combatant => (blessuresSurLeProfil({ ...firingShip(), postes: [poste], wounds: blessuresDeBase(60) }) as Combatant);
 
 const setupNaval = (poste: ShipPoste, hull: Combatant, extra: Combatant[] = []) => {
   seedBattleRng(7);
@@ -251,8 +250,8 @@ describe('bordée — chaque coup passe par la couture du coup, quelle que soit 
   const fixe = deFixe;
   /** Créature ciblée : corps localisé, PA 2 partout. */
   const pirate = (traits: unknown[] = []): Combatant =>
-    ({ ...sailor('target'), label: 'Pirate', wounds: { current: 30, max: 30 }, armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 },
-      characteristics: { ...sailor('x').characteristics, endurance: 30 }, traits }) as unknown as Combatant;
+    (blessuresSurLeProfil({ ...sailor('target'), label: 'Pirate', wounds: blessuresDeBase(30), armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 },
+      characteristics: { ...sailor('x').characteristics, endurance: 30 }, traits })) as unknown as Combatant;
   /** Coque SANS profil naval (EDOC 07 l.332-334). */
   const chariot = (): Combatant => ({ ...enemyHull(), label: 'Chariot', creatureId: undefined } as unknown as Combatant);
   const deuxPieces = (): ShipPoste[] => [battPoste(), { ...battPoste(), item: { ...battPoste().item, uid: 'canon2' } } as ShipPoste];

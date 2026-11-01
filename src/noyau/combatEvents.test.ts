@@ -3,13 +3,14 @@ import { emitCombatEvent } from './combatEvents';
 import { avecLesTables } from './noyau.testkit';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Combattant nu (aucun effet de données) — pour vérifier que la diffusion data est INERTE sans donnée. */
-const bare = (): Combatant => ({
+const bare = (): Combatant => (blessuresSurLeProfil({
   id: 'x', name: 'X', kind: 'enemy', characteristics: {}, skills: [], talents: [], traits: [],
   conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
-  wounds: { current: 10, max: 10, base: 10 }, advantage: 0,
-}) as unknown as Combatant;
+  wounds: blessuresDeBase(10), advantage: 0,
+})) as unknown as Combatant;
 
 describe('emitCombatEvent — bus unique (machinerie PUIS données)', () => {
   it('joue les hooks MACHINERIE de l’événement via le bus', () => {

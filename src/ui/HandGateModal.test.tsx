@@ -7,6 +7,7 @@ import { testBreakdown } from './breakdown';
 import { useGame } from '../state/store';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 /**
  * ACCEPTATION de la couture `RollShell` → `forcedDieRow` : une modale de jet qui ne contient AUCUN code
@@ -20,13 +21,13 @@ import type { Combatant } from '../engine/types';
  * Le rendu passe par `RollShell` + le `flowKey` que la modale déclare (les composants CONNECTÉS au store
  * rendent `null` en SSR — zustand y sert son instantané INITIAL ; `RollShell`, lui, lit `getState()`).
  */
-const HERO: Combatant = {
+const HERO: Combatant = blessuresSurLeProfil({
   id: 'H', name: 'H', label: 'Héros', kind: 'hero',
-  characteristics: { dexterite: 40 }, wounds: { current: 12, max: 12 }, advantage: 0,
+  characteristics: profilDeTest({ dexterite: 40 }), wounds: blessuresDeBase(12), advantage: 0,
   conditions: [], traumas: [], resilience: 2, fortune: 0, weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   skills: [], talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
-} as unknown as Combatant;
+}) as unknown as Combatant;
 
 /** Test de Dextérité RATÉ (88 vs 60) — le cas où la Résilience se dépense. */
 function open() {

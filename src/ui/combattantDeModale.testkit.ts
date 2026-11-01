@@ -3,8 +3,7 @@
  * aucune compétence avancée. Partagé par les tests de rendu des modales (#2779).
  */
 import type { Combatant } from '../engine/types';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const CARACTERISTIQUES = {
   'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30,

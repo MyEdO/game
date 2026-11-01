@@ -3,6 +3,7 @@ import { chooseEnemyAction, type CastableSpell } from '../noyau/monde/ai';
 import { Scene } from '../noyau/monde/scene';
 import { Combatant } from '../engine/types';
 import type { SpellData } from '../data';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Projectile magique RÉSOLU minimal (`CastableSpell`) — `range` en cases (null = pas de gate). */
 function castable(over: Partial<CastableSpell> & { id?: string } = {}): CastableSpell {
@@ -11,10 +12,10 @@ function castable(over: Partial<CastableSpell> & { id?: string } = {}): Castable
 }
 
 const enemy = (over: Partial<Combatant> = {}): Combatant =>
-  ({ id: 'E', name: 'Tireur', kind: 'enemy', characteristics: {} as any, wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], weapons: [{ name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }], armour: {} as any, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 }, ...over }) as unknown as Combatant;
+  (blessuresSurLeProfil({ id: 'E', name: 'Tireur', kind: 'enemy', characteristics: {} as any, wounds: blessuresDeBase(10), advantage: 0, conditions: [], weapons: [{ name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }], armour: {} as any, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 }, ...over })) as unknown as Combatant;
 
 const hero = (x: number): Combatant =>
-  ({ id: 'H', name: 'Héros', kind: 'hero', characteristics: {} as any, wounds: { current: 10, max: 10 }, conditions: [], pos: { x, y: 0 } }) as unknown as Combatant;
+  (blessuresSurLeProfil({ id: 'H', name: 'Héros', kind: 'hero', characteristics: {} as any, wounds: blessuresDeBase(10), conditions: [], pos: { x, y: 0 } })) as unknown as Combatant;
 
 function scene(w: number, tiles?: Record<string, string>): Scene {
   const grid = new Array(w).fill('herbe');

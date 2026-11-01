@@ -9,6 +9,7 @@ import { cascadeDeTest } from './cascade.testkit';
 import { t } from '../i18n';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from './noyau.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -32,15 +33,15 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 
 const C = (over: Partial<Combatant>): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'X', name: 'X', kind: 'hero',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 35, endurance: 35, initiative: 35, agilite: 35, dexterite: 35, intelligence: 35, 'force-mentale': 35, sociabilite: 35 },
-    wounds: { current: 14, max: 14 }, advantage: 0, conditions: [], traumas: [],
+    wounds: blessuresDeBase(14), advantage: 0, conditions: [], traumas: [],
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
     ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 /** Héros « A » avec 1 Point de Chance (l'observable) ; l'ennemi « B » adjacent. */
 const hero = (over: Partial<Combatant> = {}): Combatant => C({ id: 'A', label: 'A', kind: 'hero', fortune: 1, resilience: 1, ...over });

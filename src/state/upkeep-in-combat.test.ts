@@ -8,8 +8,7 @@ import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import { monoStep } from '../noyau/rollSeam';
 import { nightStakeRef } from '../data';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /**
  * #253 — DEUX chemins d'entretien qui NE roulaient plus en silence.

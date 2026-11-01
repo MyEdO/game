@@ -23,13 +23,14 @@ import { effectiveSpellOf } from '../noyau/combatFlow';
 import { findSpellById, spells } from '../data';
 import type { Combatant } from '../engine/types';
 import { objetDeTest } from '../engine/objetsDeTest.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const RULE = 'magic-vdm-incantation';
 const SPELL = 'caresse-de-laniph';
 
 /** Sorcier de Shyish, Grimoire au paquetage, AUCUN sort mémorisé — toute sa magie passe par le livre. */
 const sorcier = (): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'w',
     label: 'Wilhelm',
     kind: 'hero',
@@ -37,7 +38,7 @@ const sorcier = (): Combatant =>
     career: 'apprenti-sorcier',
     careerLevel: 1,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 },
-    wounds: { current: 12, max: 12 },
+    wounds: blessuresDeBase(12),
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -52,7 +53,7 @@ const sorcier = (): Combatant =>
     movement: 4,
     xp: 0,
     charAdvances: {},
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('fiche — NI de lecture au grimoire (LDB 47 l.21, `VDM 12 l.646-647`)', () => {
   beforeAll(() => {

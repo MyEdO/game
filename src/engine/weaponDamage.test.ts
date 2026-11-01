@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { effectiveWeaponDamage, effectiveRange, applyAmmoMod, effectiveWeaponRange, isImprovised, damageWeapon, effectiveWeapon, improvisedProfile, solideSaveThreshold } from './weaponDamage';
 import { recomputeLoadout, damageString, itemFromTrappingById, weaponFromItem } from './items';
 import type { Weapon, Combatant } from './types';
-import { blessuresDeBase } from './characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
 const sword = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], ...over });
 const bow = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [], range: 30, ...over });
@@ -116,13 +116,13 @@ describe('damageWeapon', () => {
 });
 
 function hero(items: Combatant['items']): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h', label: 'T', kind: 'hero',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, items,
-  } as Combatant;
+  }) as Combatant;
 }
 
 describe("recomputeLoadout — propagation des Dégâts d'arme", () => {

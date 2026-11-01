@@ -9,6 +9,7 @@ import { creatureToCombatant } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
 import { rigDuCombattant } from './rig/enemyProfile';
 import { findTrappingById } from '../data';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const hero = { id: 'h1', kind: 'hero', species: 'humains-reiklander', name: 'Soldat', career: 'Soldat', appearance: { species: 'humain', sex: 'M', build: 0.5, seed: 3 } } as unknown as Combatant;
 
@@ -54,10 +55,10 @@ describe('tokenBodyKind — jeton du GROUPE : un disque-portrait, et rien d’au
 });
 
 const NO_AP = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
-const mk = (over: Partial<Combatant>): Combatant => ({
+const mk = (over: Partial<Combatant>): Combatant => (blessuresSurLeProfil({
   id: 't1', name: 'X', kind: 'enemy', armour: NO_AP, items: [], weapons: [], skills: [], talents: [],
-  traits: [], characteristics: {}, wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4, ...over,
-} as unknown as Combatant);
+  traits: [], characteristics: {}, wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, ...over,
+}) as unknown as Combatant);
 
 /**
  * Garde-fou du THREADING data-driven (P5/5c) : `tokenBodyKind` résout le rendu par `resolveRender`

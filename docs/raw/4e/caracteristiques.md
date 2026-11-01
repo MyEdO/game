@@ -178,10 +178,21 @@ Les sept catégories de Taille et leurs exemples (LDB 85 l.343-355) :
 
 **Trait Endurant (LDB 85 l.129-130) :** augmente les Blessures d'un nombre égal au BE, appliqué *avant* tout modificateur de Taille.
 
-### Blessures dynamiques (buffs F/E/FM)
+### Blessures dynamiques (le maximum suit le profil)
 
-**Source :** LDB 85 l. (implication générale : les sorts/effets modifiant F/E/FM impactent les Blessures maximales).
+**Source :** LDB 05 l.1001 ; LDB 10 l.384 ; LDB 48 l.23, l.27.
 
+> « Votre score maximum résulte de vos Caractéristiques et Talents. […] Quand vous gagnez des
+> Augmentations dans vos Caractéristiques et Talents, vos Points de Blessure peuvent, à leur tour,
+> augmenter. » — LDB 05 l.1001
+
+> « Lorsque le Sort s'achève et que vous reprenez votre vraie forme, les Points de Blessure éventuellement
+> perdus le demeurent, avec un minimum de 0. » — LDB 48 l.27
+
+Le maximum se calcule sur le profil COURANT — Augmentation, Talent (Très résistant, Dur à cuire), Trait
+appliqué (Coriace), Dégâts de Caractéristique, mutation, sort —, plus l'écart du livre posé à la naissance
+(B imprimé d'une créature type moins la formule, × 5 avec elle sous Nuée). La Taille et la Nuée sont celles du moment : un Trait Taille ou
+Nuée accordé (Forme bestiale) entre dans la formule. Les Points perdus se conservent quand le maximum bouge.
 Les effets magiques actifs qui modifient F, E ou FM font varier le maximum de Blessures en temps réel :
 entre **Sorts**, seuls le **MEILLEUR bonus** et la **PIRE pénalité** s'appliquent (LDB 46 l.119) ; une même Prière
 ne se cumule pas avec elle-même (LDB 40 l.19) ; les autres sources se somment (LDB 14 l.95).
@@ -243,10 +254,10 @@ Module principal : **`src/engine/characteristics.ts`**
 | `bonus(value)` | Bonus de Caractéristique = `floor(value / 10)` — LDB 05 l.406 |
 | `baseWithTraits(c, key)` | Carac. de base + charMods des `liveTraits` (Élite/Coriace…), sans effets volatils |
 | `effectiveChar(c, key)` | Valeur effective : base + passifs permanents + meilleur bonus − pire pénalité des effets magiques actifs — LDB 46 l.119 |
-| `maxWounds(chars, size)` | Blessures de départ : `BF + 2×BE + BFM` avec variation par Taille — LDB 05 l.365/451, LDB 85 l.391-406 |
-| `effectiveMaxWounds(c)` | Blessures dynamiques : `wounds.base + Δ` dû aux buffs F/E/FM actifs |
-| `blessuresReconciliees(c)` | Réconciliation : `wounds.max` recalé, `wounds.current` déplacé du même delta (plancher 0, LDB 48 l.27) — LDB 05 l.1001, LDB 48 l.23 ; coutures : fin d'`applyOps`, `applyActiveEffect`, `removeActiveEffects`, spawn d'un porteur né mutant, et toute écriture de l'état (`transitionDuJeu`, chemins `CHEMINS_DES_COMBATTANTS`) |
-| `blessuresDeBase(base, current)` | Fabrique des Blessures d'un porteur à vide : `max` (marque `MaximumDesBlessures`) = `base` jusqu'à la couture suivante ; aucune règle propre |
+| `maxWounds(chars, size, traits)` | Blessures d'un profil : `BF + 2×BE + BFM` par Taille, Fabriqué (BF pour BFM), Endurant (+BE avant la Taille) — LDB 05 l.365, LDB 85 l.130/142/393-401 |
+| `effectiveMaxWounds(c)` | Maximum : (`maxWounds` du profil courant à la Taille courante `tailleCourante` + `wounds.ecart`) × 5 sous le Trait Nuée (`isSwarm`, LDB 85 l.253), + `attrMod` de Blessures de tout porteur et des effets — LDB 05 l.1001, LDB 10 l.384 |
+| `blessuresReconciliees(c)` | Réconciliation : `wounds.max` recalé, Points perdus conservés (plancher 0, part sous 0 dans `perduesSousZero` tant que le courant est 0, éteinte dès qu'il remonte, LDB 48 l.27) — LDB 05 l.1001, LDB 48 l.23 ; coutures : fin d'`applyOps`, `applyActiveEffect`, `removeActiveEffects`, spawn d'un porteur né mutant, et toute écriture de l'état (`transitionDuJeu`, chemins `CHEMINS_DES_COMBATTANTS`) |
+| `blessuresPosees(c, maximum?, restantes?)` | Fabrique d'un porteur né : au maximum dérivé (écart 0), ou au B imprimé (écart dans l'unité d'une créature type : (B − attrMod) / 5 sous Nuée − formule, posé à la naissance) |
 | `effectiveArmourAt(c, loc)` | PA effectifs à une localisation : armure portée + PA temporaires des effets magiques actifs |
 
 Module secondaire : **`src/engine/size.ts`**
@@ -254,6 +265,7 @@ Module secondaire : **`src/engine/size.ts`**
 | Fonction | RAW couvert |
 |----------|-------------|
 | `woundsForSize(bf, be, bfm, size)` | Tableau Blessures × Taille — LDB 85 l.391-406 |
+| `tailleCourante(c)` | Taille du moment : dernier Trait Taille accordé par un effet actif, sinon la Taille de naissance — LDB 85 l.342-344, LDB 48 l.23 |
 | `resizeBySteps(chars, steps)` | +1 cat. Taille → +10 F, +10 E, −5 Ag — LDB 85 l.339-340 |
 | `sizeDamageMultiplier` | ×N Dégâts si attaquant > N catégories — LDB 85 l.361 |
 | `sizeGrantedQualities` | Dévastatrice (+1 cat), Percutante (+2 cat) — LDB 85 l.360 |
@@ -272,4 +284,4 @@ Type de données : **`src/engine/types.ts`**
 
 2. **Mouvement non modélisé comme Caractéristique :** M est un attribut de `Combatant` (`c.movement`), séparé du record `Characteristics`. Les effets le modifiant utilisent `moveMod` (pas `charMod`) — cohérent RAW car M ∉ CharKey et ne possède pas de Bonus de Caractéristique.
 
-3. **Blessures dynamiques (sorts modifiant F/E/FM) :** `effectiveMaxWounds` calcule un delta sur les effets volatils (`activeEffects`) uniquement, la base snapshot préservant les valeurs figées au spawn (Coriace, mort-vivant, etc.). Cohérent avec l'intention RAW (LDB 85 : les Blessures doivent refléter le profil effectif).
+3. **Blessures dynamiques :** `effectiveMaxWounds` lit le profil effectif courant ; seul l'écart du livre (B imprimé − formule) est posé à la naissance. Lectures recommandées, révisables : le facteur × 5 d'une Nuée s'applique à la formule et à l'écart du livre (les Blessures d'une créature type), pas aux `attrMod` de Blessures posés sur la nuée ; une Nuée facultative ou de statbloc multiplie le B de la créature type, une Nuée imprimée (ZI 02 l.138-140 : B et CC marqués *) a déjà ses B et CC de nuée ; un porteur dont le courant remonte au-dessus de 0 sous une forme réduite a soldé la part de ses Points perdus sous 0, et une nouvelle chute à 0 ne la ramène pas (LDB 48 l.27 ne dit rien d'un soin sous la forme) ; un Trait Nuée accordé multiplie par 5 la formule du porteur ; Endurant sur une créature Minuscule ajoute son BE à 1.

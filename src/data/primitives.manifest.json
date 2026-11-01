@@ -2254,9 +2254,9 @@
   {
     "id": "maximumDesBlessures",
     "type": "primitives.manifest",
-    "label": "MaximumDesBlessures/blessuresDeBase/blessuresReconciliees",
+    "label": "MaximumDesBlessures/effectiveMaxWounds/blessuresPosees/blessuresReconciliees",
     "fichier": "src/engine/characteristics.ts",
-    "concept": "Blessures d’un porteur (#1463) : le maximum est une marque de type (`MaximumDesBlessures`, `engine/types.ts`, en lecture seule) que forgent seules `blessuresDeBase` (Blessures à vide : la base posée, que le maximum suit) et `blessuresReconciliees` (le maximum recalé sur ses porteurs, le courant au même delta) ; refusés : le nombre posé à la main (littéral, spread sans cast) et l’affectation (`readonly`) au type, le cast qui nomme la marque au lint (`murs/marques`) ; non murés, limites assumées au site de la marque : `Object.assign(c.wounds, { max })` et le cast par type indexé (`as Combatant['wounds']`, `as Combatant['wounds']['max']`)",
+    "concept": "Blessures d’un porteur (#1463) : le maximum est une marque de type (`MaximumDesBlessures`, `engine/types.ts`, en lecture seule) qui vaut `effectiveMaxWounds` (formule du profil courant à la Taille courante `tailleCourante`, × 5 sous le Trait Nuée, porteurs de `passiveMods`, effets, plus l’écart du livre `wounds.ecart`, requis, posé à la naissance), que forgent seules `blessuresPosees` (porteur né, profil en main : au maximum dérivé ou au B imprimé ; les fixtures de `engine/combattantDeTest.testkit.ts` y passent sur le profil de leur porteur : `blessuresDeBase`, `blessuresSurLeProfil` pour un littéral de combattant, `combattantDeTest`) et `blessuresReconciliees` (le maximum recalé, les Points perdus conservés, plancher 0, part sous 0 dans `perduesSousZero` tant que le courant est 0) ; refusés : le nombre posé à la main (littéral, spread sans cast) et l’affectation (`readonly`) au type, le cast qui nomme la marque au lint (`murs/marques`) ; non murés, limites assumées au site de la marque : `Object.assign(c.wounds, { max })` et le cast par type indexé (`as Combatant['wounds']`, `as Combatant['wounds']['max']`)",
     "perimetre": "constructeurs de combattants, coutures du moteur, transition de l’état (`noyau/transitionDuJeu.ts`), fixtures de test",
     "verrou": "src/engine/blessures-coutures.test.ts ; murs/marques (src/noyau/built-brand-lint.test.ts)"
   },

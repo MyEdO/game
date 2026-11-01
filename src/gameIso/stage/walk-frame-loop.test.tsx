@@ -17,6 +17,7 @@ import { VH, VW } from './useStageCamera';
 import { stageYawCorrection } from './stageCam';
 import { poseFromDims, worldToScreen } from './projection';
 import type { Dims } from '../../geometry/iso';
+import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
 
 /**
  * LA MARCHE PILOTÉE PAR LA BOUCLE DE RENDU (#1176, P2-4). La cadence LOGIQUE d'un pas est le store
@@ -40,12 +41,12 @@ beforeAll(() => setStageRendererFactory(() => new BancRenderer()));
 afterAll(() => setStageRendererFactory(null));
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind: 'hero', species: 'humains-reiklander', pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
-    characteristics: {}, advantage: 0, conditions: [], armour: {},
+    wounds: blessuresDeBase(12), weapons: [],
+    characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 let root: Root | null = null;

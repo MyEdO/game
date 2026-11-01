@@ -12,8 +12,7 @@ import { toBrass } from '../engine/money';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

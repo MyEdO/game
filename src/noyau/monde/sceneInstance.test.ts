@@ -7,6 +7,7 @@ import { stockageDesSauvegardes } from '../../state/saves';
 import { lireLaSauvegarde, ecrireLaSauvegarde } from '../../hote/sauvegardes';
 import { type SaveGame } from '../persistance/save';
 import { poserLeLocalStorage } from '../../lib/stockage.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const DOOR_OPENED: WallSeg = { x: 1, y: 1, side: 'N', door: true, closed: true };
 const DOOR_UNTOUCHED: WallSeg = { x: 3, y: 3, side: 'N', door: true, closed: true };
@@ -66,13 +67,13 @@ describe('sceneInstance — helpers PURS (#707)', () => {
 });
 
 function hero() {
-  return ({
+  return (blessuresSurLeProfil({
     id: 'h1', name: 'Testeur', race: 'humain', career: 'soldat', careerLevel: 1,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], weapons: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     items: [], skills: [], talents: [], movement: 4,
-  }) as unknown as import('../../engine/types').Combatant;
+  })) as unknown as import('../../engine/types').Combatant;
 }
 
 beforeEach(() => {

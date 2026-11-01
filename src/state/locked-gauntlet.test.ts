@@ -6,23 +6,24 @@ import { applyBladeTrap } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
 import { objetDeTest } from '../engine/objetsDeTest.testkit';
 import type { BladeTrapFreeze } from '../noyau/pendings';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const chars = { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 40, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
 function setup(withGauntlet: boolean): { attacker: Combatant; defender: Combatant } {
-  const attacker = {
-    id: 'e1', name: 'Mercenaire', kind: 'enemy', characteristics: chars, wounds: { current: 30, max: 30 },
+  const attacker = blessuresSurLeProfil({
+    id: 'e1', name: 'Mercenaire', kind: 'enemy', characteristics: chars, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], pos: { x: 1, y: 0 }, size: 'moyenne',
     weapons: [{ uid: 'w1', name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     items: withGauntlet ? [objetDeTest('gantelet-verrouille', { uid: 'g1', equipped: true })] : [],
-  } as unknown as Combatant;
-  const defender = {
-    id: 'h1', name: 'Bretteur', kind: 'hero', characteristics: chars, wounds: { current: 20, max: 20 },
+  }) as unknown as Combatant;
+  const defender = blessuresSurLeProfil({
+    id: 'h1', name: 'Bretteur', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(20),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], pos: { x: 0, y: 0 }, size: 'moyenne',
     weapons: [{ uid: 'd1', name: 'Rapière', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [], fate: 0, criticalWounds: 0,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
   const battle: BattleState = {
     combatants: [attacker, defender], order: ['e1', 'h1'], baseOrder: ['e1', 'h1'],
     turn: 1, round: 1, action: null, selectedSpellId: null, reachable: new Map(),

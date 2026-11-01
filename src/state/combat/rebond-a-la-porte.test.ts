@@ -21,18 +21,19 @@ import { draineCascade } from '../../noyau/cascade.testkit';
 import { emptyScene } from '../../noyau/monde/scene';
 import { findSpellById } from '../../data';
 import type { Combatant } from '../../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };
 
 const mk = (kind: Combatant['kind'], id: string, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, label: id, kind, characteristics: { ...CHARS },
-    wounds: { current: 30, max: 30 }, advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
+    wounds: blessuresDeBase(30), advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
     weapons: [], items: [], skills: [], talents: [], traits: [], movement: 4, bodyShape: 'humanoide',
     pos: { x: 0, y: 0 }, fate: 0, engagedWith: [], size: 'moyenne',
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...over,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 function setBattle(combatants: Combatant[]): void {
   const battle = {
@@ -55,7 +56,7 @@ function lancerLaChaine(caster: Combatant, cible: Combatant, sl = 4): void {
 
 /** Cible mourante à 1 PB : toute touche la « réduit à 0 Blessure ». */
 const mourant = (id: string, x: number, over: Partial<Combatant> = {}): Combatant =>
-  mk('enemy', id, { pos: { x, y: 0 }, wounds: { current: 1, max: 8 } as Combatant['wounds'], ...over });
+  mk('enemy', id, { pos: { x, y: 0 }, wounds: blessuresDeBase(8, 1), ...over });
 
 /** L'étape ouverte pour ce porteur, telle que la porte la nomme (`pushDie` suffixe l'index d'append). */
 const etapeDe = (kind: string, actorId: string) =>
@@ -120,7 +121,7 @@ describe('LDB 63 l.30 — le rebond attend l’issue de la DÉVIATION CRITIQUE d
   function poser() {
     const mage = mk('enemy', 'mage', { pos: { x: 0, y: 0 } });
     const h1 = mk('hero', 'h1', {
-      pos: { x: 2, y: 0 }, wounds: { current: 1, max: 8 } as Combatant['wounds'],
+      pos: { x: 2, y: 0 }, wounds: blessuresDeBase(8, 1),
       armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 },
     });
     const h2 = mk('hero', 'h2', { pos: { x: 3, y: 0 } });

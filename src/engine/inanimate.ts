@@ -14,7 +14,7 @@
 import type { Combatant, Characteristics, BodyShape } from './types';
 import type { TraitList } from './statEntry';
 import { emptyArmour } from './items';
-import { blessuresDeBase } from './characteristics';
+import { blessuresPosees } from './characteristics';
 
 const ZERO_CHARS: Characteristics = { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 };
 
@@ -46,14 +46,12 @@ export interface InanimateSpec {
  *  l'Endurance de coque, Blessures = pool de coque (0 si inerte), inerte (`psychImmune`, `movement:0`, pas
  *  d'arme). C'est la SOURCE UNIQUE du squelette — `structureCombatant`/`vehicleCombatant` le paramètrent. */
 export function inanimateCombatant(s: InanimateSpec): Combatant {
-  const max = s.hull?.woundsB ?? 0;
-  const c: Combatant = {
+  const sansBlessures: Omit<Combatant, 'wounds'> = {
     id: s.id,
     label: s.label,
     kind: 'npc',
     creatureId: s.refId,
     characteristics: { ...ZERO_CHARS, endurance: s.hull?.e ?? 0 },
-    wounds: blessuresDeBase(max),
     advantage: 0,
     conditions: [],
     weapons: [],
@@ -64,6 +62,7 @@ export function inanimateCombatant(s: InanimateSpec): Combatant {
     psychImmune: true, // un objet inerte ignore la Psychologie
     movement: 0,
   };
+  const c: Combatant = { ...sansBlessures, wounds: blessuresPosees(sansBlessures, s.hull?.woundsB ?? 0) };
   if (s.traits) c.traits = s.traits;
   if (s.footprint != null) c.footprint = s.footprint;
   if (s.inert) c.inert = true;

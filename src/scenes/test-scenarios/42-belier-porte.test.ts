@@ -105,7 +105,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
   it('Équipe incomplète (3/6, ≥ moitié) : −20 baké, mais toujours UTILISABLE', () => {
     const { soldat, crew, porte } = startBelier();
     // Neutralise 3 des 5 servants PNJ (jamais le chef) → 3/6 restants (chef + 2 servants).
-    for (const c of crew.filter((x) => x.id !== soldat.id).slice(0, 3)) c.wounds = { current: 0, max: c.wounds.max };
+    for (const c of crew.filter((x) => x.id !== soldat.id).slice(0, 3)) c.wounds = { ...c.wounds, current: 0 };
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
     const w = firedWeapon(soldat, porte, belier.uid, useGame.getState().battle!.combatants);
     expect(w.crewTeamIncomplete).toBe(true);
@@ -115,7 +115,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
   it("sous la moitié (2/6) : INUTILISABLE — firedAttackBlock refuse l'attaque", () => {
     const { soldat, crew, porte } = startBelier();
     // Neutralise 4 des 5 servants PNJ (jamais le chef) → 2/6 restants (chef + 1 servant, < moitié).
-    for (const c of crew.filter((x) => x.id !== soldat.id).slice(0, 4)) c.wounds = { current: 0, max: c.wounds.max };
+    for (const c of crew.filter((x) => x.id !== soldat.id).slice(0, 4)) c.wounds = { ...c.wounds, current: 0 };
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
     const block = firedAttackBlock(() => useGame.getState(), soldat, porte, belier.uid);
     expect(block).toMatchObject({ reason: 'sous-effectif' });
@@ -133,7 +133,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     expect(other).toBeTruthy();
     expect(pushSlot(other, combatants)).toEqual({ show: false, undercrew: false });
     // Sous la moitié de l'Équipe (2/6) → bouton VISIBLE mais DÉSACTIVÉ (parité tir sous-effectif).
-    for (const c of crew.filter((x) => x.id !== soldat.id).slice(0, 4)) c.wounds = { current: 0, max: c.wounds.max };
+    for (const c of crew.filter((x) => x.id !== soldat.id).slice(0, 4)) c.wounds = { ...c.wounds, current: 0 };
     expect(pushSlot(soldat, combatants)).toEqual({ show: true, undercrew: true });
   });
 
@@ -209,14 +209,14 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
   it('seuil de pousseurs (ADE II 8 l.233, MÊME seuil que le tir) : 3/6 (≥ moitié) autorise, 2/6 (sous la moitié) refuse', () => {
     const { soldat: soldatA, crew: crewA } = startBelier();
     setActive(soldatA.id);
-    for (const c of crewA.filter((x) => x.id !== soldatA.id).slice(0, 3)) c.wounds = { current: 0, max: c.wounds.max }; // 3/6 restants
+    for (const c of crewA.filter((x) => x.id !== soldatA.id).slice(0, 3)) c.wounds = { ...c.wounds, current: 0 }; // 3/6 restants
     useGame.getState().battlePushEngine();
     expect(useGame.getState().battle!.action).toBe('push'); // effectif suffisant → poussée ouverte
 
     useGame.setState({ battle: null });
     const { soldat: soldatB, crew: crewB } = startBelier();
     setActive(soldatB.id);
-    for (const c of crewB.filter((x) => x.id !== soldatB.id).slice(0, 4)) c.wounds = { current: 0, max: c.wounds.max }; // 2/6 restants
+    for (const c of crewB.filter((x) => x.id !== soldatB.id).slice(0, 4)) c.wounds = { ...c.wounds, current: 0 }; // 2/6 restants
     useGame.getState().battlePushEngine();
     expect(useGame.getState().battle!.action).toBeNull(); // sous la moitié → poussée IMPOSSIBLE (comme un tir sous-effectif)
   });
@@ -240,15 +240,18 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
   });
 
   it("après avoir POUSSÉ la formation jusqu'à la porte (2 poussées, cap 2), le bélier l'assène (Force + Blessures)", () => {
-    const { soldat, ram, porte } = startBelier();
-    soldat.characteristics.force = 90; // Test quasi-garanti (indépendant de la mobilité testée ici)
+    const { soldat: avant, ram, porte } = startBelier();
+    avant.characteristics.force = 90; // Test quasi-garanti (indépendant de la mobilité testée ici)
+    // La Force déplace le maximum des Blessures : l'écriture suivante copie le soldat, il se relit par son id.
+    const lu = () => useGame.getState().battle!.combatants.find((c) => c.id === avant.id)!;
     const pushBy = (dy: number) => {
-      setActive(soldat.id);
+      setActive(avant.id);
       useGame.getState().battlePushEngine();
-      useGame.getState().battleClickTile({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
+      useGame.getState().battleClickTile({ x: lu().pos!.x, y: lu().pos!.y - dy });
     };
     pushBy(2); // (3,8) → (3,6)
     pushBy(1); // (3,6) → (3,5) : adjacente DIRECTE à la porte (arête N de (5,4), dx=0)
+    const soldat = lu();
     expect(soldat.pos).toEqual({ x: 3, y: 5 });
     expect(ram.pos).toEqual({ x: 4, y: 5 }); // formation rigide : offset chef↔engin inchangé après 2 poussées cumulées
     seedBattleRng(1);

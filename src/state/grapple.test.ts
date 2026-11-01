@@ -9,6 +9,7 @@ import { addCondition, hasCondition, stacks, COND } from '../engine/conditions';
 import { unarmedWeapon } from '../engine/items';
 import type { AttackResult } from '../engine/combat';
 import type { Combatant } from '../engine/types';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 // Empoignade (Issue #42.1, LDB 14 l.159/161/169).
 
@@ -88,7 +89,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     activate(H, E);
     const e0 = live(E.id);
     e0.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 } as never;
-    e0.wounds = { current: 20, max: 20 } as never;
+    e0.wounds = blessuresDeBase(20, 20, e0);
     const before = live(E.id).wounds.current;
     applyAttackResult(useGame.getState, useGame.setState, live(H.id), live(E.id), unarmedWeapon(), { ...hitRes }); // pas de grapple
     expect(live(E.id).wounds.current).toBeLessThan(before); // Dégâts appliqués
@@ -134,7 +135,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     h.characteristics = { ...h.characteristics, force: 40 } as never; // BF 4
     e.characteristics = { ...e.characteristics, endurance: 30 } as never;  // BE 3
     e.armour = { tete: 5, corps: 5, brasG: 5, brasD: 5, jambeG: 5, jambeD: 5 } as never; // PA ignorés
-    e.wounds = { current: 20, max: 20 } as never;
+    e.wounds = blessuresDeBase(20, 20, e);
     setGrapple(h, e);
     useGame.getState().battleGrapple(E.id);
     const pd = useGame.getState().pendingGrapple!;

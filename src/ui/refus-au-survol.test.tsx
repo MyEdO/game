@@ -26,6 +26,7 @@ import { ShoreLeaveBody } from './ShoreLeaveModal';
 import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Balise ouvrante d'un `<button>` dont le contenu (ou l'`aria-label`) contient `texte`. */
 function bouton(html: string, texte: string): string {
@@ -168,12 +169,12 @@ describe('#1689 T2 — écrans migrés', () => {
   });
 
   it('MARCHAND : « + Ajouter » refusé dit « Bourse insuffisante pour Hallebarde. », sans texte inline sous le libellé', () => {
-    const stubHero = {
-      id: 'h', label: 'H', kind: 'hero', wounds: { current: 10, max: 12 }, conditions: [], advantage: 0,
+    const stubHero = blessuresSurLeProfil({
+      id: 'h', label: 'H', kind: 'hero', wounds: blessuresDeBase(12, 10), conditions: [], advantage: 0,
       weapons: [], skills: [], items: [] as ItemInstance[], movement: 4,
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    } as unknown as Combatant;
+    }) as unknown as Combatant;
     const merchant = { entityId: 'p', archetype: 'armurier', settlement: 'ville' as const, resaleRate: 0.5, stock: [{ id: 'hallebarde', qty: 3 }], cart: [], bargainLocked: false };
     const html = renderToStaticMarkup(
       <MerchantPanelView
@@ -191,12 +192,12 @@ describe('#1689 T2 — écrans migrés', () => {
   });
 
   it('SOIGNEUR : un acte sans soigneur est INERTE et sa raison est atteignable (jamais `disabled`)', () => {
-    const patient = {
-      id: 'p1', label: 'Blessé', kind: 'hero', wounds: { current: 2, max: 12 }, conditions: [], advantage: 0,
+    const patient = blessuresSurLeProfil({
+      id: 'p1', label: 'Blessé', kind: 'hero', wounds: blessuresDeBase(12, 2), conditions: [], advantage: 0,
       weapons: [], skills: [], items: [], movement: 4,
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    } as unknown as Combatant;
+    }) as unknown as Combatant;
     Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
       medic: { patientId: 'p1' }, party: [patient], pendingHeal: null, pendingSurgery: null,
     });

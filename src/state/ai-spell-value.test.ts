@@ -9,18 +9,18 @@ import { findConditionById, type SpellData } from '../data';
 import { etatIdsConnus } from '../engine/conditions';
 import { t } from '../i18n';
 import type { Combatant, Weapon } from '../engine/types';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
 function combatant(over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'c', label: 'c', kind: 'enemy',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
-    wounds: { current: 12, max: 12, base: 12 }, advantage: 0, conditions: [], weapons: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 }, ...over,
-  } as Combatant;
+  }) as Combatant;
 }
 const ctxOf = (refEnemy: Combatant | null = null): OpEvalCtx => ({ refEnemy, horizon: 3 });
 const op = (o: object): never => o as never;

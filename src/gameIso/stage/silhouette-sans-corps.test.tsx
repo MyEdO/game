@@ -12,6 +12,7 @@ import { clearBillboardTextures } from '../backends/webgl/svgTexture';
 import { setBudgetTrancheMs } from '../backends/webgl/atlasBake';
 import type { ActorPose } from '../backends/webgl/sceneMeshes';
 import { findTrappingById } from '../../data';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * JUMEAU SANS CORPS — la fenêtre de MONTAGE PAR SUJET (#1337).
@@ -34,13 +35,13 @@ const DIMS: Dims = { w: SCENE.dimensions.w, h: SCENE.dimensions.h, rot: 0, view:
 const AFFINE: StageFrame = { mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 };
 
 function combattant(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id, label: id, kind, pos, size: 'moyenne',
-    wounds: { current: 12, max: 12 }, weapons: [],
+    wounds: blessuresDeBase(12), weapons: [],
     characteristics: { 'capacite-de-combat': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
 }
 
 /** Deux acteurs d'équipes différentes : deux quads, donc deux jumeaux, donc une fenêtre à deux temps. */

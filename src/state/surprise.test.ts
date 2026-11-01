@@ -8,8 +8,7 @@ import { hasCondition } from '../engine/conditions';
 import { useGame } from './store';
 import type { Combatant } from '../engine/types';
 import { resetCadence, setCadence } from '../engine/cadence';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const scene = () => ({ id: 's', label: '', dimensions: { w: 10, h: 10 }, levels: [{ z: 0, tiles: Array(100).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [], flags: {} } as never);
 const C = (over: Partial<Combatant>): Combatant =>

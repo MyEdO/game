@@ -16,12 +16,13 @@ import { branchCertainOps, branchBlockingEntity, stableCondVerdict, combatCondit
 import { etats, spells } from '../../data';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Combatant, TalentInstance } from '../../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const C = (over: Partial<Combatant> = {}): Combatant =>
-  ({ id: 'h', kind: 'hero', name: 'H', label: 'H', conditions: [], skills: [], talents: [], traits: [],
+  (blessuresSurLeProfil({ id: 'h', kind: 'hero', name: 'H', label: 'H', conditions: [], skills: [], talents: [], traits: [],
      characteristics: { force: 30, endurance: 30, agilite: 30, perception: 30 } as never,
-     wounds: { current: 10, max: 10 }, items: [], weapons: [], movement: 4, advantage: 0,
-     ...over } as unknown as Combatant);
+     wounds: blessuresDeBase(10), items: [], weapons: [], movement: 4, advantage: 0,
+     ...over }) as unknown as Combatant);
 
 /** Branche de RÉUSSITE du Test de récupération d'un État (donnée réelle : le nœud `test` de l'État). */
 function recoverySuccess(id: string): Flow {

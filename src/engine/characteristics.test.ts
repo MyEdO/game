@@ -4,17 +4,18 @@ import { testValue } from './skills';
 import { passiveCharSum, traumaById, dechirureFractureFicheId } from './trauma';
 import { RULE_REF } from './ruleRefs';
 import type { Combatant, CharKey, EffectSource } from './types';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Combatant minimal : seuls `characteristics` et `activeEffects` importent ici (pool non-cumul). */
 function mk(activeEffects: { char: CharKey; bonus: number; label?: string; source?: EffectSource }[] = [], F = 40, over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'c', label: 'c', kind: 'enemy', advantage: 0, conditions: [],
     characteristics: { force: F, agilite: 30, 'capacite-de-combat': 40 } as never,
     activeEffects: activeEffects.map((e) => ({ label: e.label ?? 'Effet', ...e })) as never,
     psychState: [], psychTraits: [], groups: [], weapons: [], armour: {} as never,
-    skills: [], talents: [], movement: 4, wounds: { current: 10, max: 10 },
+    skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10),
     ...over,
-  } as Combatant;
+  }) as Combatant;
 }
 
 /** Source frappée par tout lancement, Prières comprises (`runCastFlow`, `src/noyau/combatFlow.ts`) :

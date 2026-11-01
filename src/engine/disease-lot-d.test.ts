@@ -9,6 +9,7 @@ import type { Combatant } from './types';
 import { porteEntretien, applique } from './upkeepPorte.testkit';
 import type { GameOp } from './ops';
 import { desDuTest } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Pénalité aux TESTS d'une Caractéristique due aux maladies actives (LDB 20 l.151-176 : « pénalité […] à
  *  tous vos Tests ») — lit les `testMod{char}` passifs des symptômes. */
@@ -18,14 +19,14 @@ const pen = (c: Combatant, char: string): number[] =>
 /** Lot D — complément Maladies (LDB 20) : la Litanie de la Pestilence au complet + nouveaux symptômes. */
 
 function mk(over: Partial<Combatant> = {}): Combatant {
-  return {
+  return blessuresSurLeProfil({
     id: 'h', label: 'H', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4,
     ...over,
-  } as Combatant;
+  }) as Combatant;
 }
 const active = (name: string): Disease => {
   const dz = contractDisease(name, makeRNG(1), { incubation: 0, duration: 5 })!;

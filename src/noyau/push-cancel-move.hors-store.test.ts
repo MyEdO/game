@@ -4,8 +4,7 @@ import { emptyScene } from './monde/scene';
 import { itemFromTrappingById } from '../engine/items';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { BattleState } from './etat';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

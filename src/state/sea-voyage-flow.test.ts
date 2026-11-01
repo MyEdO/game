@@ -58,6 +58,7 @@ import type { GenreDeCascade } from '../noyau/tablesPosees';
 import { desEnSuite } from '../engine/dice.testkit';
 import { ligneDe } from '../engine/modLine.testkit';
 import { RULE_REF } from '../engine/ruleRefs';
+import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /**
  * VOYAGE MARITIME (7b) — la traversée jour par jour sur le navire de campagne (MDG 13/15), pilotée
@@ -2343,7 +2344,6 @@ describe('Exposition en mer — les pénalités subies s’échoient à 24 h, ja
   it('un jour GLACIAL pose des pénalités, et la journée leur donne une horloge (jamais `permanent`)', () => {
     // Dé maximal : les Tests d'Exposition échouent → les pénalités tombent à coup sûr.
     seedBattleRng(3);
-    set({ party: get().party.map((h) => ({ ...h, characteristics: { ...h.characteristics, endurance: 1 } })) } as never);
     seaDay('glaciale');
     expect(exposureScales().length).toBeGreaterThan(0); // des pénalités ont bien été subies
     expect(exposureScales()).not.toContain('permanent'); // toutes portent leur horloge de 24 h
@@ -2351,7 +2351,6 @@ describe('Exposition en mer — les pénalités subies s’échoient à 24 h, ja
 
   it('les jours CLÉMENTS suivants n’oublient personne : aucune pénalité ne reste `permanent`', () => {
     seedBattleRng(3);
-    set({ party: get().party.map((h) => ({ ...h, characteristics: { ...h.characteristics, endurance: 1 } })) } as never);
     seaDay('glaciale');
     const subies = exposureScales().length;
     expect(subies).toBeGreaterThan(0);
@@ -2366,7 +2365,6 @@ describe('Exposition en mer — les pénalités subies s’échoient à 24 h, ja
     // réglage du joueur. Une seule règle pour les deux répits (camp `restFlow` ET jour de mer).
     setRule('exposure-expire-hours', 48);
     seedBattleRng(3);
-    set({ party: get().party.map((h) => ({ ...h, characteristics: { ...h.characteristics, endurance: 1 } })) } as never);
     const t0 = get().gameTime;
     seaDay('glaciale');
     const echeances = get().party
@@ -2834,7 +2832,7 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
   });
 
   it('aucun PJ apte : le Test du navire a lieu quand même, et la semaine est notée', () => {
-    set({ party: get().party.map((h) => ({ ...h, wounds: { ...h.wounds, current: 0 }, conditions: [...(h.conditions ?? []), { id: 'inconscient', value: 1 }] })) } as never);
+    set({ party: get().party.map((h) => (blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 }, conditions: [...(h.conditions ?? []), { id: 'inconscient', value: 1 }] }))) } as never);
     expect(get().party.every((h) => isOutOfAction(h)), 'précondition : tout le groupe est hors de combat').toBe(true);
     septiemeJour();
     const st = jusquAuxSalissures(96);

@@ -4,19 +4,20 @@ import { exposureNight } from './exposure';
 import { makeRNG } from './dice';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
  * Op `weatherWard` (Peau de loup d'hiver d'Ulric, Protection contre la pluie) : immunité à
  * l'EXPOSITION météo — `exposureNight` est sauté (aucun Test de froid) tant que l'effet dure.
  */
 const dummy = (p: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'x', label: 'Cobaye', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 25, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 45 },
-    wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [],
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...p,
-  } as Combatant);
+  }) as Combatant);
 
 describe('weatherWard — immunité à l’Exposition météo', () => {
   it('sans protection : une nuit en tempête (4 Tests) effectue bien les jets', () => {

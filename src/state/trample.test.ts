@@ -8,6 +8,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from '../noyau/etat';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 // ---------------------------------------------------------------------------
 // Piétinement — attaque gratuite de mêlée, OPPOSÉE (LDB 85 l.387 ; LDB 13 l.123)
@@ -21,14 +22,14 @@ const auTourDe = (id: string): void => {
 };
 
 const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Partial<Combatant> = {}): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id, name: id, kind,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-    wounds: { current: 20, max: 20 }, advantage: 0, conditions: [],
+    wounds: blessuresDeBase(20), advantage: 0, conditions: [],
     weapons: [{ name: 'Patte', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4, pos: { x, y }, ...over,
-  }) as unknown as Combatant;
+  })) as unknown as Combatant;
 
 describe('cibleDEcartDeTaille — cible au contact plus petite d’au moins N catégories (pur)', () => {
   it('renvoie un adversaire adjacent PLUS PETIT et vivant ; pas un égal/lointain/mort', () => {
@@ -68,7 +69,7 @@ describe('Piétinement en combat (store)', () => {
     const E = enemies[0];
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 };
-    E.wounds = { current: 30, max: 30, base: 30 } as Combatant['wounds'];
+    E.wounds = blessuresDeBase(30, 30, E);
     E.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     const turn = b.order.indexOf(H.id);
     useGame.setState({ battle: { ...b, turn, action: null, movementUsed: 0, acted: false } });
@@ -235,7 +236,7 @@ describe('Piétinement en combat (store)', () => {
     E.characteristics.force = 45;
     E.advantage = 2;
     H.size = 'moyenne';
-    H.wounds = { current: 50, max: 50, base: 50 } as Combatant['wounds'];
+    H.wounds = blessuresDeBase(50, 50, H);
     H.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     H.conditions = [{ id: 'surpris', value: 1 }]; // ne se défend pas → résolution instantanée (patron l.250)
     useGame.setState({ battle: { ...useGame.getState().battle! } });
@@ -253,9 +254,10 @@ describe('Piétinement en combat (store)', () => {
     E.characteristics['capacite-de-combat'] = 85;
     E.characteristics.force = 45;
     E.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
+    E.wounds = blessuresDeBase(30, 30, E);
     E.advantage = 0;
     H.size = 'moyenne';
-    H.wounds = { current: 50, max: 50, base: 50 } as Combatant['wounds'];
+    H.wounds = blessuresDeBase(50, 50, H);
     H.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     H.conditions = [{ id: 'surpris', value: 1 }]; // Surpris → ne se défend pas → résolution instantanée (patron creatureFreeAttacks.test.ts)
     useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: 0 } });
@@ -281,7 +283,7 @@ describe('Piétinement en combat (store)', () => {
     E.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
     E.advantage = 0; // aucun Avantage, et l'Action de Mouvement (ci-dessous) est DÉJÀ dépensée
     H.size = 'moyenne';
-    H.wounds = { current: 50, max: 50, base: 50 } as Combatant['wounds'];
+    H.wounds = blessuresDeBase(50, 50, H);
     H.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     H.conditions = [{ id: 'surpris', value: 1 }];
     // L'ennemi a déjà bougé ce Tour (approche vers sa cible, `runEnemyAI` case 'move') → plus d'Action de
@@ -304,7 +306,7 @@ describe('Piétinement en combat (store)', () => {
     E.traits = []; // aucun trait Se cabrer → Piétinement générique reste à coût 1 (LDB 85 l.387)
     E.advantage = 0;
     H.size = 'moyenne';
-    H.wounds = { current: 50, max: 50, base: 50 } as Combatant['wounds'];
+    H.wounds = blessuresDeBase(50, 50, H);
     H.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     H.conditions = [{ id: 'surpris', value: 1 }];
     useGame.setState({ battle: { ...useGame.getState().battle! } });
@@ -324,7 +326,7 @@ describe('Piétinement en combat (store)', () => {
     E.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
     E.advantage = 2;
     H.size = 'moyenne';
-    H.wounds = { current: 50, max: 50, base: 50 } as Combatant['wounds'];
+    H.wounds = blessuresDeBase(50, 50, H);
     H.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     H.conditions = [{ id: 'surpris', value: 1 }];
     const spent = mountMovement(useGame.getState().battle!, E);
@@ -473,9 +475,10 @@ describe('Piétinement en combat (store)', () => {
     const { H, E } = setup();
     E.size = 'enorme';
     E.traits = [...traits] as unknown as Combatant['traits'];
+    E.wounds = blessuresDeBase(30, 30, E);
     E.advantage = 5;
     H.size = 'moyenne';
-    H.wounds = { current: 200, max: 200, base: 200 } as Combatant['wounds'];
+    H.wounds = blessuresDeBase(200, 200, H);
     H.conditions = [{ id: 'surpris', value: 1 }];
     H.aiControlled = true; // porteur non tenu : ses Blessures critiques sans étape (LDB 63 l.30 ; #1858)
     auTourDe(E.id);

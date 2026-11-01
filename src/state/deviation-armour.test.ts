@@ -15,6 +15,7 @@ import { draineCascade } from '../noyau/cascade.testkit';
 import { stepInteraction } from '../noyau/cascade';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
 import { desDuTest } from '../engine/dice.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 // « Écailles épineuses » (EDO App.2 l.196 : « Ce PA ne peut pas être utilisé pour la Déviation Critique »)
 // — la DONNÉE réelle de mutations.json, pour que ce test casse si le drapeau `noDeviation` disparaît.
@@ -27,23 +28,23 @@ const avecEcailles = (c: Combatant): Combatant => {
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
 const hero = (p: Partial<Combatant>): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'h1', name: 'Hardi', kind: 'hero', characteristics: CHARS,
-    wounds: { current: 15, max: 15 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+    wounds: blessuresDeBase(15), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [], fate: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...p,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 const enemy = (p: Partial<Combatant>): Combatant =>
-  ({
+  (blessuresSurLeProfil({
     id: 'e1', name: 'Brute', kind: 'enemy', important: true /* LDB 18 l.44 : hors Mort subite */, characteristics: CHARS,
-    wounds: { current: 20, max: 20 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
+    wounds: blessuresDeBase(20), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 1, y: 0 }, size: 'moyenne',
     weapons: [{ label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as Weapon], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     ...p,
-  } as unknown as Combatant);
+  }) as unknown as Combatant);
 
 function setBattle(combatants: Combatant[]): BattleState {
   const battle: BattleState = {

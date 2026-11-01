@@ -11,7 +11,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import { applyAttackResult } from './combatFlow';
 import type { AttackResult } from '../engine/combat';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
-import { blessuresDeBase } from '../engine/characteristics';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -43,7 +43,7 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 14, y: 10 };
     E.important = true; // LDB 18 l.44 : hors Mort subite
-    E.wounds = blessuresDeBase(30);
+    E.wounds = blessuresDeBase(30, 30, E);
     H.advantage = 3;
     return { H, E };
   }

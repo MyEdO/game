@@ -10,7 +10,7 @@ import { effectiveTalents } from '../../engine/talentEffects';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 import { resetCadence } from '../../engine/cadence';
-import { blessuresDeBase } from '../../engine/characteristics';
+import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
  * Marque Arcanique — PREUVE DE CÂBLAGE sur le chemin RÉEL (`applyMiscast` → rangée « Marqué par la
@@ -48,7 +48,7 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
     vi.clearAllTimers();
     const b = useGame.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
-    H.wounds = blessuresDeBase(400);
+    H.wounds = blessuresDeBase(400, 400, H);
     useGame.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return H;
   }

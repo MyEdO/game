@@ -12,6 +12,7 @@ import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, Weapon } from '../engine/types';
 import { testScene } from '../scenes/test-fixture';
 import { avanceEtapeCascade, poseSurDeNonTombe } from '../noyau/cascade.testkit';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const chars = { 'capacite-de-combat': 50, 'capacite-de-tir': 30, force: 45, endurance: 40, initiative: 40, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const SHIELD: Weapon = { ...weaponFromItem(itemFromTrappingById('bouclier')!), name: 'Bouclier', label: 'Bouclier', uid: 'sh1', trappingId: 'bouclier', type: 'melee', damage: { plusBF: true, flat: 2, bare: false }, qualities: [] } as never;
@@ -26,16 +27,16 @@ const cur = (id: string): Combatant => G().battle!.combatants.find((c) => c.id =
 
 function ouvreParadeAuBouclier(seed: number): void {
   seedBattleRng(seed);
-  const hero = {
-    id: 'd1', name: 'Héros', label: 'Héros', kind: 'hero', important: true, characteristics: chars, wounds: { current: 30, max: 30 },
+  const hero = blessuresSurLeProfil({
+    id: 'd1', name: 'Héros', label: 'Héros', kind: 'hero', important: true, characteristics: chars, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [{ talentId: 'porte-bouclier', times: 1 }], traits: [], engagedWith: ['a1'], pos: { x: 5, y: 5 },
     size: 'moyenne', weapons: [SWORD, SHIELD], armour: ARM0, items: [], fate: 0, resilience: 2, criticalWounds: 0, traumas: [],
-  } as unknown as Combatant;
-  const orque = {
-    id: 'a1', name: 'Orque', label: 'Orque', kind: 'enemy', important: true, characteristics: chars, wounds: { current: PB_ORQUE, max: PB_ORQUE },
+  }) as unknown as Combatant;
+  const orque = blessuresSurLeProfil({
+    id: 'a1', name: 'Orque', label: 'Orque', kind: 'enemy', important: true, characteristics: chars, wounds: blessuresDeBase(PB_ORQUE),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: ['d1'], pos: { x: 4, y: 5 },
     size: 'moyenne', weapons: [SWORD], items: [], criticalWounds: 0, traumas: [], armour: ARM0,
-  } as unknown as Combatant;
+  }) as unknown as Combatant;
   const battle = {
     combatants: [hero, orque], order: ['a1', 'd1'], baseOrder: ['a1', 'd1'], turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, advantagePools: { allies: RESERVE, foes: 0 },
