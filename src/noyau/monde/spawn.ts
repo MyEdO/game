@@ -462,10 +462,6 @@ export function spawnEnemy(
     if (ap) c.armour.corps = (c.armour.corps ?? 0) + ap;
   }
 
-  // COSMÉTIQUE — identité visuelle traversant explo↔combat à l'identique : tout override d'auteur
-  // (`EntityAppearance`) est porté BRUT par
-  // `Combatant.appearanceOverride` (donnée d'authoring, #187). Le seed reste DÉTERMINISTE par combattant
-  // (dérivé de l'id, `Combatant.id === SceneEntity.id`). Sans override → champ absent.
   const a = opts?.appearance;
   if (a?.species) c.species = a.species; // espèce/race d'auteur, en combat comme en exploration
   if (a && Object.values(a).some((v) => v !== undefined)) c.appearanceOverride = a;

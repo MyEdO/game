@@ -184,7 +184,6 @@ const ZEROS = [
   'CastingNumberMod.maison',
   'CastingNumberMod.source',
   'EntityAppearance.build',
-  'EntityAppearance.seed',
   'PropData.type',
 ];
 

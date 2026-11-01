@@ -6,7 +6,6 @@
 import { execSync } from 'node:child_process';
 
 const STEPS = [
-  ['Icônes d’objet (ItemIcon)', 'npx tsx scripts/gen-item-icon-gallery.mts'],
   ['Icônes UI (registre <Icon>)', 'npx tsx scripts/gen-icon-gallery.mts'],
   ['Décor — planche-contact (props, dont orientés en 3 vues)', 'npx tsx scripts/_qc-decor-sheet.mts'],
   ['Mobilier volumique — 4 rotations + dessus + vignette', 'npx tsx scripts/qc/render-props-volumiques.mts'],

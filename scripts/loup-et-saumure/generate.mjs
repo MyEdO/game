@@ -119,14 +119,10 @@ function marinDuGrimm(id, x, y, label, skills, appearance) {
  *  UNIQUE `ls-mission` : re-poser met à jour le texte et le remonte en tête (doc §10). */
 const OBJ = (desc) => ({ type: 'setObjective', id: 'ls-mission', desc });
 
-// Apparences EXPLICITES, id STABLE (point 6). Kramer partagée par ses DEUX instances (même personnage :
-// même seed/colors/tenue → rendu identique quai ⇄ Erengrad) ; Köhler partagé quai ⇄ épilogue.
-const KRAMER_APPEARANCE = { species: 'humains-reiklander', tenue: 'marchand', sex: 'F', build: 0.45, seed: 20471 };
-const KOHLER_APPEARANCE = { species: 'humains-reiklander', tenue: 'noble', sex: 'M', build: 0.5, seed: 5120 };
-// Aldo et Griet ont DEUX incarnations chacun (le PNJ du quai, l'équipage exposé des deux abordages) :
-// même personnage → MÊME apparence, seed comprise.
-const ALDO_APPEARANCE = { species: 'humains-reiklander', tenue: 'pretre', sex: 'M', build: 0.6, seed: 31207 };
-const GRIET_APPEARANCE = { species: 'humains-reiklander', tenue: 'artiste', sex: 'F', build: 0.4, seed: 44810 };
+const KRAMER_APPEARANCE = { species: 'humains-reiklander', tenue: 'marchand', sex: 'F', build: 0.45 };
+const KOHLER_APPEARANCE = { species: 'humains-reiklander', tenue: 'noble', sex: 'M', build: 0.5 };
+const ALDO_APPEARANCE = { species: 'humains-reiklander', tenue: 'pretre', sex: 'M', build: 0.6 };
+const GRIET_APPEARANCE = { species: 'humains-reiklander', tenue: 'artiste', sex: 'F', build: 0.4 };
 // Équipage ADVERSE anonyme : tenue de fonction (matelot au gouvernail, servant de pièce).
 const MARIN_APPEARANCE = { species: 'humains-reiklander', tenue: 'marin' };
 const ARTILLEUR_APPEARANCE = { species: 'humains-reiklander', tenue: 'artilleur-de-navire' };
@@ -490,9 +486,9 @@ scenes.push(scene({
   ],
   entities: [
     hero(2, 4),
-    NPC('docker', 7, 3, 'Docker du port', { facing: 'S', dialogueId: 'dlg-rumeur-olg', appearance: { species: 'humains-reiklander', tenue: 'debardeur', sex: 'M', build: 0.6, seed: 8830 } }),
+    NPC('docker', 7, 3, 'Docker du port', { facing: 'S', dialogueId: 'dlg-rumeur-olg', appearance: { species: 'humains-reiklander', tenue: 'debardeur', sex: 'M', build: 0.6 } }),
     NPC('kramer-erengrad', 11, 3, 'Dame Vasilika Kramer', { facing: 'S', dialogueId: 'dlg-kramer-nuit-du-chat', appearance: KRAMER_APPEARANCE }),
-    NPC('charpentier', 9, 6, 'Charpentier de bord', { facing: 'N', dialogueId: 'dlg-reparation', appearance: { species: 'humains-reiklander', tenue: 'artisan', sex: 'M', build: 0.6, seed: 3312 } }),
+    NPC('charpentier', 9, 6, 'Charpentier de bord', { facing: 'N', dialogueId: 'dlg-reparation', appearance: { species: 'humains-reiklander', tenue: 'artisan', sex: 'M', build: 0.6 } }),
     P(2, 7, 'tonneau', {
       label: 'Reprendre la mer vers Salzenmund',
       usable: { actions: [{ id: 'fouiller', flow: flowOf([OBJ('Ramener le Grimm et sa cargaison à Salzenmund.'), { type: 'openWorldMap' }]), unique: true }] },

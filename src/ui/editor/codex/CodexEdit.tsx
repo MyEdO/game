@@ -1960,7 +1960,7 @@ function retenirLesCles(rangees: readonly RangeeDeRecord[]): RangeeDeRecord[] {
 const horsDeLaRef = (champs: readonly FieldDesc[], aSpec: boolean): readonly FieldDesc[] =>
   aSpec ? champs.filter((f) => f.key !== 'id' && f.key !== 'spec') : champs;
 
-/** Objet de config hétérogène (`interludeEvents.fx`, `raceAppearance.eyes`…) : SOUS-FORMULAIRE inféré
+/** Objet de config hétérogène (`interludeEvents.fx`) : SOUS-FORMULAIRE inféré
  *  (récursif) — chaque sous-champ retrouve son kind structuré (number/checkbox/stringList/recordText/…)
  *  via le MÊME `inferFields` + `Field`, sans repli JSON pour les objets plats. Une référence à
  *  spécialisation se choisit par `RefField` (`spec`). */

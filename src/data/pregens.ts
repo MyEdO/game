@@ -59,7 +59,7 @@ function buildPregenHero(d: PregenDef): Combatant {
     id: `pregen-${d.seed}`,
     details: { age, ambitionShort, ambitionLong },
     motivation,
-    apparence: { sex: sex ?? 'M', build: build ?? 0.5, seed: d.seed },
+    apparence: { sex: sex ?? 'M', build: build ?? 0.5 },
   });
   const quota = pettySpellQuotaFor(hero);
   if (!quota) {

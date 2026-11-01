@@ -2686,7 +2686,7 @@ export function createCombatSlice(get: Get, set: Set) {
       });
       // Chaque membre RÉFÉRENCE une entité de la scène. L'entité PORTE le profil/apparence/arme/traits
       // — on résout (membre + entité appariés), puis on spawne en CONSERVANT l'id de l'entité :
-      // identité UNIFIÉE explo↔combat (Combatant.id === SceneEntity.id) → apparence identique (même seed),
+      // identité UNIFIÉE explo↔combat (Combatant.id === SceneEntity.id),
       // pas de figurant dupliqué, et réconciliation post-combat directe (finalizeBattle).
       const byEntity = new Map(scene.entities.map((e) => [e.id, e]));
       const roster = (enc.members ?? [])

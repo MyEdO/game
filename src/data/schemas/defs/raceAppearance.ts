@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { entityAppearanceSchema, paletteDEspeceSchema, sexeSchema, surchargePaletteSchema } from '../grammaire/valeurs';
+import { paletteDEspeceSchema, sexeSchema } from '../grammaire/valeurs';
 import { SLOTS } from '../../palette.types';
 import { ref } from '../grammaire/ref';
 import { surchargeDeGabaritSchema } from './gabarits';
@@ -28,11 +28,8 @@ const doc = document(
     featureKeys: z.array(z.string()).optional(),
     pose: z.record(z.string(), z.number()).optional(),
     tenue: z.string().optional(),
-    colors: surchargePaletteSchema.optional(),
     sex: sexeSchema.optional(),
-    parts: entityAppearanceSchema.shape.parts,
     scale: z.number().optional(),
-    eyes: entityAppearanceSchema.shape.eyes,
     extremites: z.enum(['lisses', 'griffues']).optional(),
   },
   {
@@ -56,14 +53,8 @@ const doc = document(
     featureKeys: { label: 'Traits de corps', hint: 'Traits anatomiques ajoutés à l’apparence de la race (ventre, barbe, queue, cornes…)' },
     pose: { label: 'Posture au repos', hint: 'Posture de face et de profil au repos' },
     tenue: { label: 'Tenue par défaut', hint: 'Tenue portée par défaut par cette race' },
-    colors: { label: 'Surcharge de palette', hint: 'Couleurs qui surchargent la palette de base pour cette race' },
     sex: { label: 'Sexe forcé', hint: 'Sexe imposé à l’apparence de cette race, sans choix' },
-    parts: { label: 'Coiffure/visage épinglés', hint: 'Variante de coiffure et de visage fixée pour cette race' },
     scale: { label: 'Échelle du token', hint: 'Facteur d’échelle globale du pion en jeu (ex. Géant)' },
-    eyes: {
-      label: 'Yeux par défaut',
-      hint: 'Yeux par défaut de la race, œil gauche/droit (clés du catalogue) — surchargés par mutation/blessure',
-    },
     extremites: { label: 'Nu des pieds', hint: 'Aspect des pieds nus (lisses ou griffues) quand rien ne les chausse' },
   },
   {

@@ -415,7 +415,7 @@ describe('validation des étapes', () => {
 describe('buildHero — bout en bout', () => {
   it('l’apparence du brouillon passe au héros d’un seul tenant, et (c) draftFromHero la restitue', () => {
     const d = readyDraft();
-    const apparence = { sex: 'F' as const, build: 0.3, seed: 42 };
+    const apparence = { sex: 'F' as const, build: 0.3 };
     const hero = buildHero({ ...d, apparence }, 'h-apparence');
     expect(hero.appearance).toEqual({ ...apparence, species: especeDApparence(d.speciesId) });
     expect(draftFromHero(hero, 7).apparence).toEqual(apparence);

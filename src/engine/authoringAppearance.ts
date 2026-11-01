@@ -15,10 +15,8 @@ import type { GabaritId } from '../data/schemas/defs/gabarits';
  *  `src/data/index.ts`). */
 export type EspeceDApparence = string & { readonly __especeDApparence: unique symbol };
 
-/** Override d'apparence (sinon seed dérivé de l'id). */
+/** Surcharge d'apparence. */
 export interface EntityAppearance {
-  seed?: number;
-  /** Surcharges cosmétiques (sinon dérivées du seed). */
   sex?: Sexe;
   build?: number;
   /** Espèce/race CHOISIE — découple l'apparence du nom (label/ref) : id d'APPARENCE (ex.
@@ -43,5 +41,4 @@ export interface Appearance {
   build: number;                                   // 0..1
   legs?: number;                                   // multiplicateur de longueur de jambes (mutation Court sur pattes)
   faceFlip?: boolean;                              // visage retourné tête en bas (mutation Visage inversé)
-  seed?: number;
 }

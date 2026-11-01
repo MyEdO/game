@@ -382,7 +382,6 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
     'src/data/teintesJeu.json': /Clé non reconnue/,
     'src/data/defauts-de-compilation.json': null,
     'src/data/details.json': null,
-    'src/data/renduMonte.json': null,
     'src/data/semences-de-scene.json': null,
     'src/data/sizes.json': null,
   };

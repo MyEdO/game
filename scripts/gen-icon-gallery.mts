@@ -30,7 +30,7 @@ const sections = families
   })
   .join('\n');
 
-const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Icônes UI QC</title>
+const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><link rel="icon" type="image/svg+xml" href="./favicon.svg" /><title>Icônes UI QC</title>
 <style>
   :root { color-scheme: dark; --gold: #b8912f; }
   body { background:#11141c; color:#e8ecf4; font:13px/1.4 system-ui,sans-serif; padding:16px }

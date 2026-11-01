@@ -55,12 +55,10 @@
  *
  * Trois GROUPES distincts sous la même scène three : le MONDE (une géométrie, un matériau par groupe de
  * surface — remonté au seul changement de cuisson), les ACCENTS de sol (instanciés, remontés à la teinte)
- * et les BILLBOARDS du décor (invalidés à la signature de dessin des sujets ; aucun personnage n'y est
- * dessiné, #3160).
+ * et les BILLBOARDS du décor (invalidés à la signature de dessin des sujets).
  * Le canevas est posé SOUS le SVG du stage et sans événements de pointeur : les overlays et les voiles
- * restent au SVG, qui reçoit tous les événements. Le hit-test de SPRITE, lui, ne peut plus
- * s'y lire — plus aucun jeton n'y porte de `data-cid` : cet écran INSCRIT son lanceur de rayon auprès
- * de `stage/spritePicker.ts`, la couture unique où le pointeur pose la question.
+ * restent au SVG, qui reçoit tous les événements. Cet écran inscrit le lanceur de rayon du décor
+ * auprès de `stage/spritePicker.ts`, la couture unique où le pointeur pose la question.
  */
 import type { JSX } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -1031,12 +1029,8 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   useBattementContinu(vacille, 'vacillement');
   useBattementContinu(pulseHalos, 'halos');
 
-  // HIT-TEST DE SPRITE (règle #1297 « ce qui se voit se clique ») : la voie volumique répond
-  // au pointeur par un RAYON — cibles = les quads de décor montés, qui ne portent aucun id (un décor
-  // touché le premier rend le clic à la tuile), et les entités de décor volumique du maillage du monde
-  // (`backends/webgl/spriteRaycast`). L'inscription vit et meurt avec ce composant, monté en volumique.
-  // En PREMIÈRE PERSONNE, aucun picker n'est inscrit : cette vue n'a jamais eu d'affordance de clic
-  // (le SVG du POV n'en portait aucune) — l'inscrire en ouvrirait une par le seul changement de voie.
+  // Le rayon nomme les décors volumiques et les billboards occultent sans nommer.
+  // L'inscription suit le montage du plateau ; la première personne n'offre pas de clic.
   useEffect(() => {
     if (pov || !spritePicking) return;
     setSpritePicker((clientX, clientY) => {
@@ -1046,7 +1040,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
       const rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return null;
       // Seul ce qui est VU se pointe.
-      const cibles: PickTarget[] = boardsRef.current.filter((b) => b.mesh.visible).map((b) => ({ cid: null, object: b.mesh }));
+      const cibles: PickTarget[] = boardsRef.current.filter((b) => b.mesh.visible).map((b) => ({ object: b.mesh }));
       return pickNearestTarget(
         camera,
         cibles,

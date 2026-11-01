@@ -427,13 +427,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/gameIso/backends/webgl/spriteRaycast.ts",
-    motif: "désormais",
-    ancre: "jeton occulté est désormais son corps entier, à la boîte près : sa surface de réponse au clic est",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/gameIso/builders/propVolumes.test.ts",
     motif: "désormais",
     ancre: "// Le cap `N` est désormais le DEMI-TOUR : le pied et le rampant changent de bord.",

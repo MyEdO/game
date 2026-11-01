@@ -10,14 +10,7 @@ import { hasSpritePicker, targetUnderPointer } from './spritePicker';
 import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise } from './banc-volumique';
 
-/**
- * LE MONDE EST VOLUMIQUE, ET LUI SEUL (#1176 P3-4, commit C5a) : l'écran de jeu ne peint plus aucun
- * décor dans son SVG — celui-ci ne porte que les overlays d'interaction et reçoit le picking de TUILE.
- * Plus aucun jeton n'y porte de `data-cid` : le picking de SPRITE passe par la couture
- * `stage/spritePicker.ts`, où cet écran INSCRIT son lancer de rayon (P2-3) — c'est l'inscription, et
- * non un drapeau de voie, qui bascule le pointeur.
-
- */
+/** Le canevas porte le monde ; le SVG porte les prises et les overlays d'interaction. */
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 /** Renderer de BANC : jsdom n'a aucun contexte WebGL, et un contexte refusé fait DIRE le refus au
@@ -86,26 +79,21 @@ describe('Le monde de l’écran de jeu est VOLUMIQUE, et lui seul (#1176 C5a)',
     // Ordre du DOM : le canevas AVANT le SVG (donc peint dessous, overlays au-dessus).
     expect(canvas!.compareDocumentPosition(svg!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect((svg as HTMLElement).style.background).toBe('transparent');
-    // La couche monde est peinte au canevas : le SVG ne porte aucun jeton `data-cid`.
+    // Cette scène vide ne porte aucune prise de structure.
     expect(el.querySelectorAll('[data-cid]').length).toBe(0);
   });
 });
 
-/**
- * COUTURE DU HIT-TEST DE SPRITE (P2-3) : c'est le MONTAGE de la voie volumique qui bascule le
- * pointeur, rien d'autre. Sans inscription, `targetUnderPointer` retombe sur le hit-test natif — le
- * chemin de la voie affine, inchangé.
- */
+/** L'inscription du lanceur choisit la réponse WebGL ; son absence active le repli DOM. */
 describe('Hit-test de sprite — la voie qui peint est celle qui répond (#1176 P2-3)', () => {
-  it('SANS écran volumique monté, la question va au DOM (`data-cid`) — le chemin des hôtes SVG restants', () => {
+  it('sans lanceur inscrit, le repli DOM lit la prise d’une structure', () => {
     expect(hasSpritePicker()).toBe(false);
-    // Un porteur de `data-cid` quelconque : c'est ce que les hôtes SVG encore vivants (POV, éditeur —
-    // morts à C5b) posent sous le pointeur, et ce que le hit-test natif rend.
-    const jeton = document.createElement('div');
-    jeton.setAttribute('data-cid', 'h1');
+    // `AreteOverlay` pose la prise de structure sur une ligne SVG.
+    const jeton = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    jeton.setAttribute('data-cid', 'structure-1');
     document.body.appendChild(jeton);
     document.elementFromPoint = () => jeton; // jsdom n'a pas de mise en page : le hit-test natif se stubbe
-    expect(targetUnderPointer(10, 10)).toEqual({ kind: 'combatant', id: 'h1' });
+    expect(targetUnderPointer(10, 10)).toEqual({ kind: 'combatant', id: 'structure-1' });
     delete (document as Partial<Document>).elementFromPoint;
     jeton.remove();
   });

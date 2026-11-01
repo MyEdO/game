@@ -11,11 +11,6 @@
         "mod": 1
       }
     ],
-    "appearance": {
-      "features": [
-        "pattes-danimaux"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -43,11 +38,6 @@
         "mod": -1
       }
     ],
-    "appearance": {
-      "features": [
-        "corpulent"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -66,11 +56,6 @@
         "mod": 10
       }
     ],
-    "appearance": {
-      "features": [
-        "doigts-distendus"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -94,11 +79,6 @@
         "mod": 5
       }
     ],
-    "appearance": {
-      "features": [
-        "emacie"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -111,11 +91,6 @@
     "desc": "+10 aux Tests de Perception impliquant la vue",
     "kind": "physique",
     "note": "+10 aux Tests de Perception impliquant la vue.",
-    "appearance": {
-      "eyes": {
-        "G": "enorme"
-      }
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -134,11 +109,6 @@
         "mod": 5
       }
     ],
-    "appearance": {
-      "features": [
-        "articulation-supplementaire-aux-jambes"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -151,11 +121,6 @@
     "desc": "Effectuer un lancer sur le Tableau des Localisations afin de déterminer où cette bouche apparaît.",
     "kind": "physique",
     "note": "Lancer sur le Tableau des Localisations pour déterminer où cette bouche apparaît.",
-    "appearance": {
-      "features": [
-        "bouche-supplementaire"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -168,11 +133,6 @@
     "desc": "Vous gagnez le Trait de Créature Tentacule. Voir page 343",
     "kind": "physique",
     "note": "Trait de créature Tentacule.",
-    "appearance": {
-      "features": [
-        "tentacule-epais"
-      ]
-    },
     "passive": [
       {
         "op": "grantTrait",
@@ -193,14 +153,6 @@
     "desc": "Produit une lumière équivalente à celle d’une bougie.",
     "kind": "physique",
     "note": "Produit une lumière équivalente à celle d’une bougie.",
-    "appearance": {
-      "colors": {
-        "peau": "#f0d8a8"
-      },
-      "features": [
-        "peau-brillante"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -220,11 +172,6 @@
         "mod": 10
       }
     ],
-    "appearance": {
-      "features": [
-        "beaute-surnaturelle"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -243,11 +190,6 @@
         "char": "sociabilite"
       }
     ],
-    "appearance": {
-      "features": [
-        "visage-inverse"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -270,11 +212,6 @@
         "amount": 2
       }
     ],
-    "appearance": {
-      "colors": {
-        "peau": "#8a93a0"
-      }
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -295,11 +232,6 @@
         "mod": -10
       }
     ],
-    "appearance": {
-      "features": [
-        "langue-pendante"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -312,11 +244,6 @@
     "desc": "apparaissent.",
     "kind": "physique",
     "note": "Deux lancers de Localisation pour déterminer où ces plumes apparaissent.",
-    "appearance": {
-      "features": [
-        "plumes-eparses"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -334,11 +261,6 @@
         "mod": -1
       }
     ],
-    "appearance": {
-      "features": [
-        "court-sur-pattes"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -350,14 +272,6 @@
     "label": "Écailles épineuses",
     "desc": "+1 PA à toutes les Localisations",
     "kind": "physique",
-    "appearance": {
-      "colors": {
-        "peau": "#8a8a58"
-      },
-      "features": [
-        "ecailles-epineuses"
-      ]
-    },
     "passive": [
       {
         "op": "ap",
@@ -377,11 +291,6 @@
     "desc": "+1 PA à la Tête. Compte comme une Arme de Créature dont le nombre de Dégâts est égal à votre Bonus de Force (voir page 338)",
     "kind": "physique",
     "note": "Compte comme une Arme de Créature (Dégâts = Bonus de Force).",
-    "appearance": {
-      "features": [
-        "cornes-asymetriques"
-      ]
-    },
     "passive": [
       {
         "op": "ap",
@@ -409,11 +318,6 @@
     "desc": "Effectuez un lancer sur le Tableau des Localisations pour déterminer l’origine du suintement",
     "kind": "physique",
     "note": "Lancer de Localisation pour déterminer l’origine du suintement.",
-    "appearance": {
-      "features": [
-        "suintement-de-pus"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -434,11 +338,6 @@
         "mod": 10
       }
     ],
-    "appearance": {
-      "features": [
-        "groin-poilu"
-      ]
-    },
     "source": {
       "book": "livre-de-base",
       "page": 184
@@ -871,11 +770,6 @@
     "source": {
       "book": "ennemi-dans-l-ombre",
       "page": 147
-    },
-    "appearance": {
-      "colors": {
-        "peau": "#8a9b78"
-      }
     }
   },
   {
@@ -901,11 +795,6 @@
     "source": {
       "book": "ennemi-dans-l-ombre",
       "page": 147
-    },
-    "appearance": {
-      "features": [
-        "langue-pendante"
-      ]
     }
   },
   {
@@ -923,11 +812,6 @@
     "source": {
       "book": "ennemi-dans-l-ombre",
       "page": 147
-    },
-    "appearance": {
-      "features": [
-        "pattes-danimaux"
-      ]
     }
   },
   {
@@ -965,11 +849,6 @@
     "source": {
       "book": "ennemi-dans-l-ombre",
       "page": 147
-    },
-    "appearance": {
-      "features": [
-        "museau-chien"
-      ]
     }
   },
   {
@@ -998,11 +877,6 @@
     "source": {
       "book": "ennemi-dans-l-ombre",
       "page": 147
-    },
-    "appearance": {
-      "features": [
-        "crane-pointu"
-      ]
     }
   },
   {
@@ -1415,11 +1289,6 @@
       }
     ],
     "note": "Note 3 : cette mutation ne peut pas être dissimulée.",
-    "appearance": {
-      "features": [
-        "bec"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1432,11 +1301,6 @@
     "desc": "Voir page 69",
     "kind": "physique",
     "note": "Voir page 69 : sous-table Tête bestiale (jet 1d100 → Ours / Sanglier / Taureau / Chien / Aigle / Rat / Araignée géante / Chèvre / Loup / Serpent) déterminant les Traits et PA octroyés. Note 3 : ne peut pas être dissimulée. (La variante tete-bestiale-chien existe déjà en données.)",
-    "appearance": {
-      "features": [
-        "museau-chien"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1450,11 +1314,6 @@
     "desc": "Réduit la Dextérité à 0 de façon permanente.\nVous ne pouvez pas être désarmé",
     "kind": "physique",
     "note": "Réduit la Dextérité à 0 de façon permanente (réglage absolu de carac, pas un modificateur — non exprimable par charMod) ; vous ne pouvez pas être désarmé. Note 3 : ne peut pas être dissimulée.",
-    "appearance": {
-      "features": [
-        "extremites-armees"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1476,11 +1335,6 @@
       }
     ],
     "note": "Note 1 : peut être dissimulée seulement par des vêtements.",
-    "appearance": {
-      "features": [
-        "oreilles-pointues"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1501,11 +1355,6 @@
       }
     ],
     "note": "Note 3 : ne peut pas être dissimulée.",
-    "appearance": {
-      "features": [
-        "pattes-d-oiseau"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1527,11 +1376,6 @@
       }
     ],
     "note": "Note 1 : peut être dissimulée seulement par des vêtements.",
-    "appearance": {
-      "features": [
-        "visage-sans-traits"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1573,11 +1417,6 @@
       }
     ],
     "note": "Note 1 : peut être dissimulée seulement par des vêtements.",
-    "appearance": {
-      "features": [
-        "exophtalmie"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1590,11 +1429,6 @@
     "desc": "Les créatures ou les objets qui vous touchent\nphysiquement doivent réussir un Test\nd'Athlétisme ou gagner un État En flammes",
     "kind": "physique",
     "note": "Effet déclenché au contact : les créatures ou les objets qui vous touchent physiquement doivent réussir un Test d'Athlétisme ou gagner un État En flammes. Note 3 : ne peut pas être dissimulée.",
-    "appearance": {
-      "features": [
-        "peau-ardente"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1607,11 +1441,6 @@
     "desc": "+1 Point d'Armure sur deux Localisations\nau hasard",
     "kind": "physique",
     "note": "+1 Point d'Armure sur DEUX Localisations tirées au hasard (jet de Localisation à la création de la mutation, pas toutes les Localisations) — non exprimable par un op:ap fixe. Note 1 : peut être dissimulée seulement par des vêtements.",
-    "appearance": {
-      "features": [
-        "ecailles"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1634,11 +1463,6 @@
       }
     ],
     "note": "Note 3 : ne peut pas être dissimulée.",
-    "appearance": {
-      "features": [
-        "griffes"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1659,11 +1483,6 @@
       }
     ],
     "note": "Note 3 : ne peut pas être dissimulée.",
-    "appearance": {
-      "features": [
-        "nuage-de-mouches"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1685,11 +1504,6 @@
       }
     ],
     "note": "Note 3 : ne peut pas être dissimulée. Talent Attirant restreint aux mutants et hommes-bêtes (la spec porte la restriction).",
-    "appearance": {
-      "features": [
-        "crete-sur-la-tete"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 66,
@@ -1723,11 +1537,6 @@
     "desc": "Vous pouvez considérer toute arme de\ncorps à corps comme ayant une Allonge de\ndeux pas supérieure",
     "kind": "physique",
     "note": "Allonge +2 pas sur toute arme de corps à corps tenue — règle d'Allonge contextuelle, non exprimable par un GameOp passif (dépend de l'arme équipée).",
-    "appearance": {
-      "features": [
-        "bras-elastiques"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1740,11 +1549,6 @@
     "desc": "Vous pouvez lancer le Sort Mauvais œil\n(page 255 du Livre de Règles) en dépensant\nun Point de Chance, sans faire de test ;\nvous subissez immédiatement les effets\nd'une Incantation imparfaite mineure (page\n234 du Livre de Règles)",
     "kind": "physique",
     "note": "Effet déclenché/actif : permet de lancer le Sort Mauvais œil en dépensant un Point de Chance, sans Test, puis subir une Incantation imparfaite mineure — dette #459 (action optionnelle payée en Chance). Note 3 : ne peut pas être dissimulée.",
-    "appearance": {
-      "features": [
-        "mauvais-oeil"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1757,11 +1561,6 @@
     "desc": "Voit par dessus ou autour des obstacles",
     "kind": "physique",
     "note": "Avantage perceptif (voir par-dessus/autour des obstacles) — situationnel, non exprimable par un GameOp passif. Note 3 : ne peut pas être dissimulée.",
-    "appearance": {
-      "features": [
-        "oeil-pedoncule"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1793,12 +1592,7 @@
     "label": "Fourrure",
     "desc": "Vous ne souffrez plus des effets de\nl'Exposition aux climats froids, mais les\neffets de l'Exposition aux climats chauds\nsont doublés (WFJDR, page 181)",
     "kind": "physique",
-    "note": "Immunité à l'Exposition aux climats froids ; effets de l'Exposition aux climats chauds doublés. Règle d'environnement (Exposition) hors moteur de combat — laissée en note. Note 3 : ne peut pas être dissimulée. (featureKey alternatif : pelage-massif pour une fourrure plus dense.)",
-    "appearance": {
-      "features": [
-        "pelage"
-      ]
-    },
+    "note": "Immunité à l'Exposition aux climats froids ; effets de l'Exposition aux climats chauds doublés. Règle d'environnement (Exposition) hors moteur de combat — laissée en note. Note 3 : ne peut pas être dissimulée.",
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1811,11 +1605,6 @@
     "desc": "Vous pouvez respirer sous l'eau",
     "kind": "physique",
     "note": "Vous pouvez respirer sous l'eau",
-    "appearance": {
-      "features": [
-        "branchies"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1837,11 +1626,6 @@
       }
     ],
     "note": "Les coups portés à la tête sont considérés comme ratés.",
-    "appearance": {
-      "features": [
-        "sans-tete"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1866,11 +1650,6 @@
       }
     ],
     "note": "Le Mouvement ne peut être augmenté.",
-    "appearance": {
-      "features": [
-        "pattes-danimaux"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1883,11 +1662,6 @@
     "desc": "Si vous et votre opposant avez des armes de même Allonge, votre arme est considérée comme plus longue (Livre de Règles p 297)",
     "kind": "physique",
     "note": "Si vous et votre opposant avez des armes de même Allonge, votre arme est considérée comme plus longue (Livre de Règles p 297)",
-    "appearance": {
-      "features": [
-        "longs-bras"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1905,11 +1679,6 @@
         "mod": 2
       }
     ],
-    "appearance": {
-      "features": [
-        "longues-jambes"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1922,11 +1691,6 @@
     "desc": "La moitié des coups au corps sont des coups à la tête",
     "kind": "physique",
     "note": "La moitié des coups au corps sont des coups à la tête.",
-    "appearance": {
-      "features": [
-        "long-cou"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1939,11 +1703,6 @@
     "desc": "Gagne une Attaque gratuite",
     "kind": "physique",
     "note": "Gagne une Attaque gratuite (octroi conditionnel d'une attaque supplémentaire — à modéliser via grantFreeAttack).",
-    "appearance": {
-      "features": [
-        "bras-multiples"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1961,11 +1720,6 @@
         "mod": 1
       }
     ],
-    "appearance": {
-      "features": [
-        "jambes-multiples"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -1984,11 +1738,6 @@
         "mod": -20
       }
     ],
-    "appearance": {
-      "features": [
-        "oeil-unique"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2010,11 +1759,6 @@
       }
     ],
     "note": "Les Personnages, qui tentent de déterminer si vous mentez, subissent une pénalité de -20 à leur Intuition.",
-    "appearance": {
-      "features": [
-        "visage-difforme"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2034,11 +1778,6 @@
         }
       }
     ],
-    "appearance": {
-      "colors": {
-        "peau": "#a98ac0"
-      }
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2059,11 +1798,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "tete-de-mort"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2082,11 +1816,6 @@
       }
     ],
     "note": "Ne peut pas porter d'armure. Gagne une attaque gratuite (Trait de créature Arme +4) en faisant une Charge (effet conditionnel à la Charge — à modéliser via grantFreeAttack / effects onCharge).",
-    "appearance": {
-      "features": [
-        "peau-herissee-de-pointes"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2106,11 +1835,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "mains-et-pieds-a-ventouses"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2131,11 +1855,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "queue"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2156,11 +1875,6 @@
         }
       }
     ],
-    "appearance": {
-      "colors": {
-        "peau": "#cdd6d0"
-      }
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2180,11 +1894,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "bicephale"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2197,11 +1906,6 @@
     "desc": "Couleur, ou texture, inhabituelle : orange, rayée, tachetée, à pustules, etc",
     "kind": "physique",
     "note": "Couleur, ou texture, inhabituelle : orange, rayée, tachetée, à pustules, etc (purement esthétique, aucun effet de jeu chiffré).",
-    "appearance": {
-      "colors": {
-        "peau": "#c87a3a"
-      }
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2242,11 +1946,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "pieds-palmes"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2267,11 +1966,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "ailes"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2297,11 +1991,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "tete-bestiale-ours"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2327,11 +2016,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "tete-bestiale-sanglier"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2356,11 +2040,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "cornes-taureau"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2381,11 +2060,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "tete-bestiale-aigle"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2412,11 +2086,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "tete-bestiale-rat"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2444,11 +2113,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "tete-bestiale-araignee-geante"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2468,11 +2132,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "tete-bestiale-chevre"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2505,11 +2164,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "museau-chien"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2542,11 +2196,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "tete-bestiale-serpent"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 67
@@ -2575,14 +2224,6 @@
         "noDeviation": true
       }
     ],
-    "appearance": {
-      "colors": {
-        "peau": "#8a8a58"
-      },
-      "features": [
-        "ecailles-epineuses"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 68
@@ -2603,11 +2244,6 @@
         }
       }
     ],
-    "appearance": {
-      "features": [
-        "trois-yeux"
-      ]
-    },
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 68
@@ -2622,11 +2258,6 @@
     "source": {
       "book": "mer-des-griffes",
       "page": 55
-    },
-    "appearance": {
-      "colors": {
-        "peau": "#d9dbd2"
-      }
     }
   },
   {
@@ -2635,11 +2266,6 @@
     "label": "La bosse d'os",
     "desc": "des os à la fois souples et durs comme le fer se sont propagés depuis la bosse du Vieux Dos-de-pus sur tout son corps. Ceci l'a rendu plus lent, mais aussi incroyablement coriace.",
     "kind": "physique",
-    "appearance": {
-      "features": [
-        "ecailles"
-      ]
-    },
     "source": {
       "book": "zoo-imperial",
       "page": 18

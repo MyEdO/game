@@ -934,8 +934,7 @@
       "availability": "Rare"
     },
     "appearance": {
-      "species": "chien",
-      "harnais": "harnais-de-guerre-canin"
+      "species": "chien"
     },
     "grantGroups": [
       "bete"
@@ -2539,8 +2538,7 @@
       "page": 323
     },
     "appearance": {
-      "species": "pegase",
-      "harnais": "collier-dore-pegase"
+      "species": "pegase"
     },
     "grantGroups": [
       "bete",
@@ -5449,8 +5447,7 @@
       "availability": "Limitée"
     },
     "appearance": {
-      "species": "cheval",
-      "harnais": "sellerie-imperiale"
+      "species": "cheval"
     }
   },
   {
@@ -6740,10 +6737,7 @@
       "page": 30
     },
     "appearance": {
-      "species": "squig-des-cavernes",
-      "colors": {
-        "corps": "#5a2a7a"
-      }
+      "species": "squig-des-cavernes"
     },
     "harvest": {
       "rarity": "Limitée",
@@ -7092,13 +7086,7 @@
       "id": "geant"
     },
     "appearance": {
-      "species": "geant",
-      "parts": {
-        "cheveux": 7
-      },
-      "features": [
-        "barbe-naine"
-      ]
+      "species": "geant"
     },
     "char": {
       "M": 6,
@@ -7553,12 +7541,7 @@
       "uses": "Boire dans leur crâne permet de voir et d'entendre les morts"
     },
     "appearance": {
-      "species": "choses-du-bois-mort",
-      "features": [
-        "cornes-asymetriques",
-        "langue-pendante",
-        "tentacule-epais"
-      ]
+      "species": "choses-du-bois-mort"
     }
   },
   {
@@ -11130,10 +11113,7 @@
       "uses": "Une mèche de cheveux de sirène permet de respirer sous l'eau"
     },
     "appearance": {
-      "species": "sirene",
-      "features": [
-        "queue-de-poisson"
-      ]
+      "species": "sirene"
     }
   },
   {
@@ -11869,12 +11849,6 @@
     },
     "appearance": {
       "species": "humain",
-      "monster": {
-        "tete": "chien"
-      },
-      "features": [
-        "pelage-massif"
-      ],
       "armurePortee": true
     },
     "followsCharacterRules": true
@@ -18203,10 +18177,7 @@
     "appearance": {
       "species": "humain",
       "sex": "M",
-      "tenue": "nu",
-      "features": [
-        "queue-de-poisson"
-      ]
+      "tenue": "nu"
     }
   },
   {
@@ -20312,8 +20283,7 @@
       "availability": "Commune"
     },
     "appearance": {
-      "species": "cheval",
-      "harnais": "sellerie-imperiale"
+      "species": "cheval"
     },
     "grantGroups": [
       "bete"
@@ -20401,8 +20371,7 @@
       "availability": "Commune"
     },
     "appearance": {
-      "species": "cheval",
-      "harnais": "sellerie-imperiale"
+      "species": "cheval"
     },
     "grantGroups": [
       "bete"

@@ -1,28 +1,8 @@
 /**
- * HIT-TEST DE SPRITE du stage (#1176, lot P2-3) — la COUTURE UNIQUE entre le pointeur et la voie de
- * rendu : « quel combattant est dessiné sous ce pixel ? ». Le pointeur (`useStagePointer.pickVerdict`)
- * pose la question ; la voie qui PEINT y répond, de la seule façon dont elle sait trancher son
- * empilement.
- *
- *  - voie AFFINE : hit-test natif du navigateur (`elementFromPoint` + `data-cid`) — l'élément peint
- *    en DERNIER sous le pixel gagne, c'est-à-dire le dernier du tri de profondeur (`stage/objs.ts`) ;
- *  - voie VOLUMIQUE : aucun jeton SVG ne porte de `data-cid` (la couche monde est peinte au canevas),
- *    et un canevas n'a pas d'arbre à interroger — `GameStage3D` INSCRIT ici un lanceur de rayon
- *    (`backends/webgl/spriteRaycast.ts`), dont le verdict est la DISTANCE CAMÉRA.
- *
- * Module PUR au sens des dépendances : aucun `three`, aucun store — le pointeur n'a donc pas à
- * connaître la voie de rendu pour lui poser la question. L'inscription d'un lanceur EST la bascule :
- * `GameStage3D` n'est monté qu'en volumique, et se désinscrit à son démontage.
- *
- * Ce module porte la MÊME couture pour le CADRE RENDU (`CadreRendu`) : l'hôte qui rend l'écran
- * (`stage/MondeDeCampagne.tsx`) publie TOUT ce que l'inversion d'un pixel lit — projection, caméra,
- * zoom — et la sonde de recette (`stage/pickProbe.ts`) le lit au lieu de le rebâtir depuis le store.
- * Rebâti, il divergeait sur ses TROIS termes : l'hôte pose `view: pov ? 'iso' : viewMode` et un
- * `yawDeg` LISSÉ (`viewYawDeg(shownRot, shownEdge)`, valeurs de rendu), là où le store nu ne connaît
- * ni la première personne ni le résidu sous-cran d'une rotation en cours ; et la caméra du rendu vit
- * dans une RÉF que la boucle d'images réécrit (focal, approche, panoramique en vol), là où
- * `store.camPan` vaut (0,0) tant que l'écran se contente de suivre le groupe. Deux poses, donc deux
- * cases, pour le même pixel — et sur un écran centré sur le groupe, aucune case du tout.
+ * Couture de picking du décor : le lanceur WebGL inscrit répond en coordonnées client.
+ * Sans lanceur, le hit-test DOM lit le `data-cid` de la prise d'une structure.
+ * Le cadre rendu est publié par l'hôte ; pointeur et sonde partagent sa projection,
+ * sa caméra, son zoom et ses arêtes projetées.
  */
 import type { Dims } from '../../geometry/iso';
 import type { AreteProjetee } from './aretesProjetees';
@@ -42,9 +22,7 @@ export function hasSpritePicker(): boolean {
   return _picker !== null;
 }
 
-/** Ce qui est dessiné sous le pixel — un COMBATTANT, une ENTITÉ de scène (décor volumique), ou `null`
- *  (sol visible, décor billboardé devant, hors monde). La voie affine ne peint que des jetons : son
- *  hit-test natif ne rend donc jamais d'entité. */
+/** Le rayon nomme un décor volumique ; le repli DOM nomme une structure via sa prise `data-cid`. */
 export function targetUnderPointer(clientX: number, clientY: number): PickResult {
   if (_picker) return _picker(clientX, clientY);
   const el = document.elementFromPoint(clientX, clientY) as Element | null;

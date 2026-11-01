@@ -16,7 +16,6 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
     'configuration de rendu — LES matières du monde (décor volumique, toiture, relief : couleur, réponse à la lumière, recettes de détail de surface) ; aucun folio n’imprime une teinte de surface',
   apparences:
     'configuration de rendu — LE catalogue des apparences d’objet (formes et leurs variantes : id, libellé, étiquettes de naissance) ; aucun folio n’imprime à quoi ressemble un objet',
-  renduMonte: 'configuration de rendu — réglages d’assiette de la monture à l’écran',
   structureAppearance: 'configuration de rendu — apparences de structures bâties',
   buildings:
     'catalogue des TYPES DE BÂTIMENT — le DOCUMENT est de l’art (empreinte offerte à la pose, matière de couverture, ornements d’identité posés en billboard) ; aucun folio n’imprime de catalogue de bâtiments. Chaque entrée EXIGE `maison` (`exiges` de `schemas/defs/buildings.ts`) : ce qu’un bâtiment vaut en cases et sous quelle couverture est un arbitrage, et il se dit à l’entrée',

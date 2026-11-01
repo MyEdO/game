@@ -869,34 +869,16 @@ export function messageDeTenueInconnue(id: string): string {
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, `mutations`, la scène (`SceneEntity.appearance`) et le narratif. */
 export const entityAppearanceSchema = nommerChamps(z.strictObject({
-  seed: z.number().optional(),
-  monster: nommerChamps(z
-    .strictObject({
-      tete: z.string().optional(),
-      brasG: z.string().optional(),
-      brasD: z.string().optional(),
-      jambes: z.string().optional(),
-      cornes: z.boolean().optional(),
-      queue: z.boolean().optional(),
-      ailes: z.boolean().optional(),
-    }), { tete: { label: "tête" }, brasG: { label: "bras gauche" }, brasD: { label: "bras droit" }, jambes: { label: "jambes" }, cornes: { label: "cornes" }, queue: { label: "queue" }, ailes: { label: "ailes" } })
-    .optional(),
-  colors: surchargePaletteSchema.optional(),
-  parts: nommerChamps(z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }), { cheveux: { label: "cheveux" }, visage: { label: "visage" } }).optional(),
   sex: sexeSchema.optional(),
   build: z.number().optional(),
   species: especeDApparenceSchema.optional(),
   /** #3116 */
   tenue: z.string().optional(),
-  /** Set d'ÉQUIPEMENT quadrupède porté (#1128) — absent = bête nue. */
-  harnais: z.string().optional(),
   /** Armure de statblock (PA par localisation, sans inventaire) VISIBLE/portée (#774) — défaut
    *  absent : les PA restent mécaniques PURS, aucun art d'armure synthétisé (nu de l'espèce/naturel). */
   armurePortee: z.boolean().optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
-  eyes: nommerChamps(z.strictObject({ G: z.string().optional(), D: z.string().optional() }), { G: { label: "gauche" }, D: { label: "droit" } }).optional(),
-  features: z.array(z.string()).optional(),
-}), { seed: { label: "graine" }, monster: { label: "créature" }, colors: { label: "couleurs" }, parts: { label: "parties" }, sex: { label: "sexe" }, build: { label: "corpulence" }, species: { label: "espèce" }, tenue: { label: "tenue" }, harnais: { label: "harnais" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } }, eyes: { label: "yeux" }, features: { label: "détails" } });
+}), { sex: { label: "sexe" }, build: { label: "corpulence" }, species: { label: "espèce" }, tenue: { label: "tenue" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } } });
 
 /** `HitLocation` (`src/engine/types.ts`) — 6 zones de touche (dé inversé, LDB). Resserré depuis
  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON

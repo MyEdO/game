@@ -180,7 +180,7 @@ export function newDraft(seed: number): CreatorDraft {
     motivation: '',
     ambitionShort: '',
     ambitionLong: '',
-    apparence: { sex: 'M', build: 0.5, seed: (seed >> 2) & 0xffff },
+    apparence: { sex: 'M', build: 0.5 },
   };
 }
 

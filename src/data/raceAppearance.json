@@ -110,12 +110,7 @@
       "epauleD": 4
     },
     "tenue": "mendiant",
-    "head": "gobelin",
-    "colors": {
-      "vet1": "#3a5a28",
-      "vet2": "#5a3f24",
-      "cuir": "#4a3320"
-    }
+    "head": "gobelin"
   },
   {
     "id": "goule",
@@ -165,12 +160,6 @@
       "cheveux": "#1a1410",
       "cheveuxO": "#0a0806",
       "cheveuxH": "#2c2620"
-    },
-    "colors": {
-      "vet1": "#2a2230",
-      "vet2": "#6a5420",
-      "cuir": "#140f12",
-      "metal": "#3a3a46"
     },
     "pose": {
       "torse": 6,
@@ -403,12 +392,7 @@
       "epauleD": 5
     },
     "tenue": "mendiant",
-    "head": "orc",
-    "colors": {
-      "vet1": "#5a4a30",
-      "vet2": "#3a2a1c",
-      "cuir": "#5a3f24"
-    }
+    "head": "orc"
   },
   {
     "id": "skaven",
@@ -530,20 +514,6 @@
     "tenue": "vampire",
     "dropHeadgear": true,
     "sex": "M",
-    "parts": {
-      "cheveux": 1,
-      "visage": 0
-    },
-    "colors": {
-      "vet1": "#241018",
-      "vet2": "#6a0e18",
-      "cuir": "#1a0e12",
-      "metal": "#8a8f9e"
-    },
-    "eyes": {
-      "G": "rouge",
-      "D": "rouge"
-    },
     "featureKeys": [
       "crocs"
     ]

@@ -306,20 +306,20 @@ describe('PNJ de campagne — compétences/talents/sorts de la donnée (Eusapia 
   });
 });
 
-/** L'apparence ÉDITÉE d'un ennemi (seed re-tiré, sexe, carrière…) doit survivre au spawn comme override
+/** L'apparence ÉDITÉE d'un ennemi (sexe, carrière…) doit survivre au spawn comme override
  *  BRUT (`appearanceOverride`, #187), jamais résolue au spawn. */
 describe('spawnEnemy — transport de l’apparence/carrière éditée vers le Combatant (parité explo↔combat)', () => {
   const at = { x: 0, y: 0 };
 
-  it('seed + sexe + carrure édités → portés BRUTS par Combatant.appearanceOverride', () => {
-    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { seed: 12345, sex: 'F', build: 0.7 } });
-    expect(c.appearanceOverride).toMatchObject({ seed: 12345, sex: 'F', build: 0.7 });
+  it('sexe + carrure édités → portés BRUTS par Combatant.appearanceOverride', () => {
+    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { sex: 'F', build: 0.7 } });
+    expect(c.appearanceOverride).toMatchObject({ sex: 'F', build: 0.7 });
     expect(c.appearance).toBeUndefined(); // rien de résolu au spawn
   });
 
   it('tenue éditée → portée par Combatant.career', () => {
-    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { tenue: 'Soldat' } });
-    expect(c.career).toBe('Soldat');
+    const c = spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { tenue: 'soldat' } });
+    expect(c.career).toBe('soldat');
   });
 
   it('sans aucun override → appearanceOverride reste indéfini (rendu dérivé du nom inchangé)', () => {
@@ -327,8 +327,8 @@ describe('spawnEnemy — transport de l’apparence/carrière éditée vers le C
     expect(c.appearanceOverride).toBeUndefined();
   });
 
-  it('override PARTIEL (seed seul) → seul le seed édité est porté (#1882 T1)', () => {
-    expect(spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { seed: 999 } }).appearanceOverride).toEqual({ seed: 999 });
+  it('override PARTIEL (sexe seul) → seul le sexe édité est porté (#1882 T1)', () => {
+    expect(spawnEnemy({ ref: 'mutant' }, 'e1', at, { appearance: { sex: 'F' } }).appearanceOverride).toEqual({ sex: 'F' });
   });
 });
 
