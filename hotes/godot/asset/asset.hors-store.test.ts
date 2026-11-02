@@ -172,6 +172,21 @@ describe('validerManifeste', () => {
 });
 
 describe('montage validé contre le GLB (#2948 L3-b)', () => {
+  it('conserve les nœuds à masquer et refuse un nœud absent du GLB', () => {
+    const m = production();
+    const brut = { ...m, montage: { ...m.montage, masquer: ['casque'] } };
+    const v = validerManifeste(brut, lireGlb(GLB));
+    expect(v.ok).toBe(true);
+    if (v.ok) expect(v.manifeste.montage.masquer).toEqual(['casque']);
+    brut.montage.masquer = ['absent'];
+    expect(codes(brut)).toContain('noeud-absent');
+  });
+
+  it.each([null, 'casque', [1], ['']])('refuse une déclaration de masquage invalide %j', (masquer) => {
+    const m = production();
+    expect(codes({ ...m, montage: { ...m.montage, masquer } })).toContain('forme');
+  });
+
   it('conserve les attaches et les portages déclarés', () => {
     const m = production();
     const v = validerManifeste(m, lireGlb(GLB));

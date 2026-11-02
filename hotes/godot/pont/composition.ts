@@ -7,14 +7,15 @@
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import { poidsDeSilhouettes, poseDuGabarit, type PoseDuGabarit } from '../asset/gabarit';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence';
-import { porteeDeComposition, type Composition, type Portee } from '../../../src/noyau/index';
-import { cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
+import { porteeDeComposition, emblemeDuPorteur, type EmblemeResolu, type Composition, type Portee, type SurchargesDEmblemes } from '../../../src/noyau/index';
+import { blasonsDe, cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
 
 /** Un emplacement de montage d'une chose portée (`"<point>"` ou la clé de sa ligne, `cleDuPanneau`) et l'élément de
  *  la base qui la monte, `null` s'il n'y en a aucun. */
 export interface Monte {
   ligne: string;
   element: string | null;
+  embleme?: EmblemeResolu;
 }
 
 /** Une chose portée sans élément de la base : son emplacement de montage, la clé qui la désigne, son libellé et ce
@@ -53,7 +54,7 @@ function ouChercher({ cle, point }: Portee): string[] {
 
 /** `composition` sur la base `base` des modèles de l'atelier : `manifestes` (id de modèle → manifeste) lit la base et la
  *  `cle` de ses éléments. Chaque chose portée se monte à l'élément de son emplacement dont la clé la désigne. */
-export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Record<string, unknown>>, composition: Composition): CompositionSurLaBase {
+export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Record<string, unknown>>, composition: Composition, surcharges: SurchargesDEmblemes = {}): CompositionSurLaBase {
   const portee = porteeDeComposition(composition);
   const elementsDe = new Map<string, string[]>([
     ...base.points.map((p): [string, string[]] => [p.id, p.elements]),
@@ -66,7 +67,10 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     const trouve = ou
       .map((ligne) => ({ ligne, element: (elementsDe.get(ligne) ?? []).find((e) => cleDe(manifestes[e])[p.cle.champ] === p.cle.id) }))
       .find((t) => t.element !== undefined);
-    montes.push({ ligne: trouve?.ligne ?? ou[0], element: trouve?.element ?? null });
+    const ligne = trouve?.ligne ?? ou[0];
+    const embleme = Object.prototype.hasOwnProperty.call(surcharges, ligne) ? emblemeDuPorteur(surcharges[ligne]) : portee.embleme;
+    const porteUnBlason = trouve?.element !== undefined && blasonsDe(manifestes[trouve.element]).length > 0;
+    montes.push({ ligne, element: trouve?.element ?? null, ...(porteUnBlason && embleme ? { embleme } : {}) });
     if (!trouve) manquants.push({ ligne: ou[0], champ: p.cle.champ, id: p.cle.id, label: p.label, ...(p.par ? { par: p.par } : {}) });
   }
   const manifeste = manifestes[base.id] as ManifesteDeBase;

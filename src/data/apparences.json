@@ -601,14 +601,6 @@
     ]
   },
   {
-    "id": "bouclier_blason",
-    "type": "apparences",
-    "label": "Bouclier à blason",
-    "forme": {
-      "id": "rond"
-    }
-  },
-  {
     "id": "bouclier_rectangle",
     "type": "apparences",
     "label": "Bouclier rectangulaire",

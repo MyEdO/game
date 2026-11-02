@@ -180,7 +180,7 @@ describe('equipementDessine — candidats publiés (#2948)', () => {
   it('publie les candidats des armes tenues, rangées et du bouclier', () => {
     const tenue = { ...porte('arme-simple', 'epee_ebrechee'), uid: 'tenue' };
     const rangee = { ...porte('arme-simple', 'hache_naine'), uid: 'rangee' };
-    const bouclier = { ...porte('bouclier', 'bouclier_blason'), uid: 'bouclier' };
+    const bouclier = { ...porte('bouclier', 'bouclier_pointes'), uid: 'bouclier' };
     const c = porteur({
       items: [tenue, rangee, bouclier],
       weapons: [weaponFromItem(tenue, 'main'), weaponFromItem(bouclier, 'off')],
@@ -188,9 +188,9 @@ describe('equipementDessine — candidats publiés (#2948)', () => {
       activeLoadoutId: 'a',
     });
     const equip = equipementDessine(c);
-    expect(equip.weapons.map((w) => w.candidats)).toEqual([['epee_ebrechee', 'epee'], ['bouclier_blason', 'rond']]);
+    expect(equip.weapons.map((w) => w.candidats)).toEqual([['epee_ebrechee', 'epee'], ['bouclier_pointes', 'rond']]);
     expect(equip.rangees.map((w) => w.candidats)).toEqual([['hache_naine', 'hache']]);
-    expect(equip.shield?.candidats).toEqual(['bouclier_blason', 'rond']);
+    expect(equip.shield?.candidats).toEqual(['bouclier_pointes', 'rond']);
   });
 
   it('ignore une apparence non admise sur l’arme projetée', () => {

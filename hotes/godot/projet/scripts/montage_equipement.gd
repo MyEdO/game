@@ -54,11 +54,14 @@ static func attacher(squelette: Skeleton3D, declaration: Dictionary, nom: String
 
 
 func masquer_armes(modele: Node, m: Dictionary) -> void:
+	var noms: Array = m.montage.get("masquer", []).duplicate()
 	for piece in m.pieces.values():
 		if m.montage.composants.has(piece.component):
-			var noeud := modele.find_child(piece.node, true, false) as Node3D
-			if noeud != null:
-				noeud.visible = false
+			noms.append(piece.node)
+	for nom in noms:
+		var noeud := modele.find_child(nom, true, false) as Node3D
+		if noeud != null:
+			noeud.visible = false
 
 
 func montrer(modele: Node, porteur: Dictionary, dessin: Dictionary) -> void:

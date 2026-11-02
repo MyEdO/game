@@ -20,7 +20,7 @@ const composition = compositionDuPreset(soldat);
 const lue = (brut: unknown): Composition => {
   const lu = lireComposition(brut);
   if (!lu.ok) throw new Error(JSON.stringify(lu.fautes));
-  return lu.composition;
+  return lu.valeur;
 };
 
 describe('porteeDeComposition', () => {
@@ -84,7 +84,7 @@ describe('cataloguesDeComposition', () => {
 describe('lireComposition', () => {
   it('la composition d’un preset est son entrée sans l’enveloppe, et se lit', () => {
     expect(Object.keys(composition)).toEqual(Object.keys(soldat).filter((k) => !(CLES_ENVELOPPE as readonly string[]).includes(k)));
-    expect(lireComposition(composition)).toEqual({ ok: true, composition });
+    expect(lireComposition(composition)).toEqual({ ok: true, valeur: composition });
   });
 
   it('une composition absente, enveloppée ou fautive est refusée, chaque faute à son chemin', () => {
@@ -111,7 +111,7 @@ describe('presetDeComposition', () => {
     const vetu: PresetDePersonnage = { ...soldat, labelF: 'Soldate', maison: 'Arbitrage de fixture' };
     setDataset('presetsDePersonnage', [vetu]);
     const sienne = compositionDuPreset(vetu);
-    expect(lireComposition(sienne)).toEqual({ ok: true, composition: sienne });
+    expect(lireComposition(sienne)).toEqual({ ok: true, valeur: sienne });
     const rendu = presetDeComposition(sienne, 'soldat');
     expect(rendu).toMatchObject({ ok: true, verdict: [] });
     expect(JSON.parse((rendu as { entree: string }).entree)).toEqual(vetu);

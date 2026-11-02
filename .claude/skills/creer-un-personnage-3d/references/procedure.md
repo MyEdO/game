@@ -145,7 +145,8 @@ coutures et usure restent du détail. Palette mate limitée, ombrage flat/smooth
 Un emblème (d'unité, de province ou de culte) n'appartient pas à l'élément : la pièce garde un champ
 neutre (écu uni, lame nue, insigne vierge), dont la couleur reste palette ou teinte, et le manifeste
 déclare `blason: true` sur chaque surface qui reçoit l'emblème, dite surface `blason` ; l'emblème
-est choisi au montage (#3111). Un insigne d'uniforme est la pièce `insigne` (accessoire) à surface
+vient de la donnée du porteur, `embleme` de son apparence ou de sa composition (#3155), et se pose
+au montage (#3111). Un insigne d'uniforme est la pièce `insigne` (accessoire) à surface
 `blason` ; un signe peint sur une armure (tassette, brassard) est un emblème, reçu par une surface
 `blason` de la pièce.
 

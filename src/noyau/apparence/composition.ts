@@ -9,7 +9,7 @@
 import { choixDeLaFeuilleDId, findApparenceById, findCoiffureById, findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTeteById, findTrappingById, presetsDePersonnage, raceAppearance, type GabaritId } from '../../data';
 import { serializeDataset } from '../../data/serialize';
 import type { TenueId } from '../../data/schemas/defs/garde-robe';
-import { compositionSchema, file as FICHIER_DES_PRESETS, meta as metaDesPresets, schema as schemaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
+import { compositionSchema, surchargesDEmblemesSchema, file as FICHIER_DES_PRESETS, meta as metaDesPresets, schema as schemaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
 import { defDe, enfantsDe, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 import { CLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
@@ -20,7 +20,7 @@ import { t } from '../../i18n';
 import { tableTotale } from '../../lib/tableTotale';
 import type { ChampDeCleResolu } from './cleDElement';
 import { gabaritResolu, type GabaritResolu, type RaceDuGabarit, type TrouverGabarit } from './gabarit';
-import { emplacementDePiece, piecesDEnsemble } from './gardeRobe';
+import { emplacementDePiece, piecesDEnsemble, emblemeDuPorteur, type EmblemeResolu } from './gardeRobe';
 
 /** `hotes/godot/pont/CONTRAT.md`, « Composition d'un personnage ». */
 export function facteursDeComposition(gabarit: GabaritId | undefined, race: RaceDuGabarit, trouver?: TrouverGabarit): GabaritResolu {
@@ -47,12 +47,22 @@ export function compositionDuPreset(p: PresetDePersonnage): Composition {
   return partDuPreset(p, false) as Composition;
 }
 
-/** `brut` lu au schéma de la composition (`compositionSchema`, ses règles comprises) : la composition, ou ses fautes
- *  (`validateDocument`), chacune à son chemin. */
-export function lireComposition(brut: unknown): { ok: true; composition: Composition } | { ok: false; fautes: FauteDePreset[] } {
-  const fautes = validateDocument(compositionSchema, brut);
-  return fautes ? { ok: false, fautes: fautes.map(({ chemin, message }) => ({ chemin: [...chemin], message })) } : { ok: true, composition: brut as Composition };
-}
+/** Une lecture de `brut` à un schéma : sa valeur, ou ses fautes (`validateDocument`), chacune à son chemin. */
+export type LectureAuSchema<T> = { ok: true; valeur: T } | { ok: false; fautes: FauteDePreset[] };
+
+const lireAuSchema = <T>(schema: Parameters<typeof validateDocument>[0], brut: unknown): LectureAuSchema<T> => {
+  const fautes = validateDocument(schema, brut);
+  return fautes ? { ok: false, fautes: fautes.map(({ chemin, message }) => ({ chemin: [...chemin], message })) } : { ok: true, valeur: brut as T };
+};
+
+/** `brut` lu au schéma de la composition (`compositionSchema`, ses règles comprises). */
+export const lireComposition = (brut: unknown): LectureAuSchema<Composition> => lireAuSchema(compositionSchema, brut);
+
+/** Par emplacement de montage, l'emblème choisi à l'atelier, `null` pour une surface sans emblème. */
+export type SurchargesDEmblemes = typeof surchargesDEmblemesSchema._output;
+
+/** `brut` lu au schéma des surcharges d'emblème (`surchargesDEmblemesSchema`). */
+export const lireSurchargesDEmblemes = (brut: unknown): LectureAuSchema<SurchargesDEmblemes> => lireAuSchema(surchargesDEmblemesSchema, brut);
 
 /** Une chose portée : la clé de l'élément qui la monte, son libellé, son point d'accroche (la prise ou le rangement
  *  d'un objet, l'emplacement d'une pièce d'accessoire) et ce qui l'apporte (la tenue ou l'objet que son ensemble
@@ -66,6 +76,7 @@ export interface Portee {
 
 export interface PorteeDeComposition {
   portees: Portee[];
+  embleme?: EmblemeResolu;
   /** Les objets ni tenus ni rangés : ni ensemble, ni prise, ni `rangement` (D1). */
   rapport: string[];
   facteurs: GabaritResolu;
@@ -115,7 +126,7 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
     }
     liste.push({ cle: { champ: 'apparence', id: apparence }, label: findApparenceById(apparence)?.label ?? apparence, point, par: par(habille) });
   }
-  return { portees: liste, rapport, facteurs: facteursDeComposition(composition.gabarit?.id as GabaritId | undefined, race) };
+  return { portees: liste, rapport, embleme: emblemeDuPorteur(composition.embleme), facteurs: facteursDeComposition(composition.gabarit?.id as GabaritId | undefined, race) };
 }
 
 /** Un choix d'un catalogue : l'id stocké, le libellé affiché. */
