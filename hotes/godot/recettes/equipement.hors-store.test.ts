@@ -7,7 +7,7 @@ describe('vue figée de la recette native (#2948 L3-b)', () => {
   it('parcourt les cas publiés, dont le squelette armé et l’objet teinté', () => {
     const vue = figerVueDEquipement();
     const ids = vue.projection.combat!.voisins.liste.map(c => c.id);
-    expect(ids).toEqual(['squelette-arme', 'variante-repliee', 'sans-modele', 'chevalier-sans-arme', 'objet-teinte', 'objet-de-campagne']);
+    expect(ids).toEqual(['squelette-arme', 'variante-repliee', 'sans-modele', 'chevalier-sans-arme', 'objet-teinte', 'chevalier-au-bouclier', 'objet-de-campagne']);
     expect(Object.keys(vue.equipements)).toEqual(ids);
     for (const equip of Object.values(vue.equipements)) {
       for (const tenue of equip.tenues) expect(['main', 'off']).toContain(tenue.arme.hand);
@@ -46,6 +46,13 @@ describe('vue figée de la recette native (#2948 L3-b)', () => {
     expect(dessin.tenues[0].arme).toEqual(porteur.equipement.weapons[0]);
     expect(dessin.tenues[0].modele?.apparence).toBe('epee');
     expect(vue.couverture.absences.filter((a) => a.porteur === porteur.id)).toEqual([]);
+  });
+
+  it('tient le bouclier rond du chevalier en main secondaire', () => {
+    const dessin = figerVueDEquipement().equipements['chevalier-au-bouclier'];
+    expect(dessin.tenues).toHaveLength(1);
+    expect(dessin.tenues[0].arme.hand).toBe('off');
+    expect(dessin.tenues[0].modele?.composants).toEqual([{ modele: 'Knight.glb', composant: 'bouclier_rond', pieces: ['Round_Shield'] }]);
   });
 
   it('laisse les absences au rapport et un chevalier sans arme', () => {
