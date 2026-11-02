@@ -1,0 +1,1595 @@
+diff --git a/scripts/corpus/gates/ecrivainsAtteints.test.mjs b/scripts/corpus/gates/ecrivainsAtteints.test.mjs
+index c6b127d1b..b73222caa 100644
+--- a/scripts/corpus/gates/ecrivainsAtteints.test.mjs
++++ b/scripts/corpus/gates/ecrivainsAtteints.test.mjs
+@@ -23,7 +23,7 @@ const ATTENDU = {
+     // répertoire git COMMUN. L'arbre n'est jamais écrit.
+     'scripts/test/verrou.mjs',
+   ],
+-  'test:hooks': ['scripts/guards/lib/protectionWorktree.mjs',
++  'test:hooks': ['scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs',
+     'scripts/agents/compat-cli.mjs',
+     // #2603
+     'scripts/git-hooks/reconstruction.mjs',
+@@ -337,11 +337,11 @@ const ATTENDU = {
+   // (`genererCode` de `build-all.mjs`, cwd = l'image, et ses écrivains atteints) ; l'arbre n'est
+   // jamais écrit. #3021 : `comptes-plage.mts` ajoute l'inventaire de la dette au résumé du job
+   // (`GITHUB_STEP_SUMMARY`), hors de l'arbre.
+-  'comptes:plage': ['scripts/guards/comptes-plage.mts', 'scripts/guards/lib/protectionWorktree.mjs', 'scripts/guards/lib/corpusDesComptes.mts',
++  'comptes:plage': ['scripts/raw/_lib.mjs', 'scripts/guards/comptes-plage.mts', 'scripts/guards/lib/protectionWorktree.mjs', 'scripts/guards/lib/corpusDesComptes.mts',
+     'scripts/docs/build-all.mjs', 'scripts/docs/lib/ecriture-derives.mjs', 'scripts/docs/lib/fraicheur-docs.mjs',
+     'scripts/git-hooks/journal.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs',
+     'scripts/migrations/replay-head.mjs', 'scripts/test/verrou.mjs'],
+-  'test:ops': [
++  'test:ops': ['scripts/raw/_lib.mjs',
+     // +1 le 2026-10-17 (#2586) : le banc du cliquet forge un dépôt knip (`package.json`, `knip.json`, sources)
+     // sous un `mkdtempSync` d'os.tmpdir(), `rmSync` en finally ; l'arbre n'est jamais écrit.
+     'scripts/ops/knip-exports-ratchet.test.mjs',
+@@ -554,7 +554,7 @@ const ATTENDU = {
+     // que le banc pose sous un `mkdtempSync` d'os.tmpdir() retiré par `t.after`. L'arbre n'est jamais écrit.
+     'scripts/test/run.mjs',
+   ],
+-  'test:docs': [
++  'test:docs': ['scripts/raw/_lib.mjs',
+     // +1 le 2026-10-17 (#2586) : le banc de `check-doc-refs.mjs` forge ses racines (cibles, porteurs) sous un
+     // `mkdtempSync` d'os.tmpdir(), `rmSync` en finally ; l'arbre n'est jamais écrit.
+     'scripts/docs/check-doc-refs.test.mjs',
+@@ -670,6 +670,8 @@ const ATTENDU = {
+     'scripts/test/verrou.mjs',
+   ],
+   'test:raw': ['scripts/guards/lib/protectionWorktree.mjs',
++    'scripts/raw/_lib.mjs',
++    'scripts/raw/chemins-livres.test.mjs',
+     // #2801
+     'scripts/docs/build-all.mjs',
+     'scripts/docs/lib/enregistreur-lectures.mjs',
+@@ -700,7 +702,7 @@ const ATTENDU = {
+     // jetables de `scripts/ops/`.
+     'scripts/raw/check-source-format.test.mjs',
+     'scripts/raw/citation-graphy-guard.test.mjs',
+-    'scripts/raw/folio-bootstrap.mjs',
++
+     'scripts/raw/folio-bootstrap.test.mjs',
+     // +1 le 2026-09-23 (#1739) : le banc de la carte de lignes éprouve le refus du CR isolé
+     // (#604) de `carteDuFichier` sur un fichier JETABLE (`mkdtempSync` + `writeFileSync` sous
+@@ -717,7 +719,7 @@ const ATTENDU = {
+     // `pdf-extract.py` sous un `mkdtempSync` de os.tmpdir(), `rmSync` en finally : aucune écriture
+     // DANS l'arbre, même classe que `anchor-fill.mjs` ci-dessus.
+     'scripts/raw/lib/pdf-extract.mjs',
+-    'scripts/raw/reanchor-split.mjs',
++
+     'scripts/raw/reconcile.test.mjs',
+     // +1 le 2026-09-21 (#1739 S1) : `recouper-source.test.mjs` importe le re-coupeur des `.md` en
+     // service pour éprouver son cœur PUR (`recouper`, `planDe`, `contenuDe`, `indexDe`, `recalerStock`)
+@@ -762,29 +764,17 @@ const ATTENDU = {
+     // `assemble` reçoit ce jetable par son `rawDir` (même couture que `cheminDeFiche`), l'arbre
+     // n'est jamais écrit, et le banc mesure la fiche DANS le jetable.
+     'scripts/raw/atlas-domain.workflow.test.mjs',
+-    // +1 le 2026-09-22 (#1824) : l'outil qui répare les renvois d'ancre morts, ACQUIS par l'import de
+-    // son banc — son `writeFileSync` vit derrière la porte `--apply` de `reparer`, que le banc ne
+-    // passe que sur un Atlas JETABLE d'os.tmpdir() (`avecAtlasFixture`) ; l'arbre n'est jamais écrit.
+-    'scripts/raw/reparer-ancres.mjs',
+     // +1 le 2026-09-23 (#1739) : le banc de la couture du PDF d'un livre pose son `Source/` FACTICE
+     // (un PDF, des dossiers de sortie Marker) sous `mkdtempSync` de os.tmpdir(), `rmSync` en finally,
+-    // et le passe à la couture par son `source` INJECTÉ ; la couture (`_lib.mjs`) n'écrit rien — le
+-    // seul écrivain, la CLI `pdf-de.mjs`, n'est pas importé (le banc la LANCE, sans argument).
++    // et le passe à la couture par son `source` INJECTÉ ; la CLI `pdf-de.mjs` n'est pas importée
++    // (le banc la LANCE, sans argument).
+     'scripts/raw/pdf-de.test.mjs',
+-    // +1 le 2026-09-23 (#1739) : la réparation du mobilier de page, ACQUISE par l'import de son banc —
+-    // son unique `writeFileSync` vit dans `main()`, derrière `import.meta.main` ET `--apply` ; le banc n'appelle
+-    // que ses fonctions PURES sur des textes en mémoire, l'arbre n'est jamais écrit.
+-    'scripts/raw/reparer-mobilier.mjs',
+     // +1 le 2026-09-23 (#1739) : la sonde des titres d'entrée, ACQUISE par l'import de son banc — elle
+     // lit le PDF dans un dossier `mkdtempSync` d'os.tmpdir(), et son `--json` refuse tout chemin sous
+     // le dépôt ; le banc n'appelle que ses fonctions PURES sur des fixtures, l'arbre n'est jamais écrit.
+     'scripts/raw/sonde-titres.mjs',
+-    // +1 le 2026-09-24 (#1739) : la réparation des titres d'entrée, ACQUISE par l'import de son banc —
+-    // son unique `writeFileSync` vit dans `main()`, derrière `import.meta.main` ET `--apply` ; le banc n'appelle
+-    // que son cœur PUR (`reparerLivre`, `infidelite`) sur un livre forgé en mémoire.
+-    'scripts/raw/reparer-titres.mjs',
+   ],
+-  'raw:check-refs': ['scripts/guards/lib/protectionWorktree.mjs',
++  'raw:check-refs': ['scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs',
+     // #2801
+     'scripts/docs/lib/ecriture-derives.mjs',
+     'scripts/guards/lib/ecritureJsonAtomique.mjs',
+@@ -796,14 +786,14 @@ const ATTENDU = {
+   // des fiches de ce module passe par `ecrireDoc` derrière sa porte `import.meta.main` (`main` de build-implemente.mjs),
+   // d'où l'écrivain unique des dérivés et ce qu'il acquiert (#2603).
+   // Mesurée par `scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI : ZÉRO écriture.
+-  'raw:check-code-refs': ['scripts/guards/lib/protectionWorktree.mjs',
++  'raw:check-code-refs': ['scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs',
+     'scripts/docs/lib/ecriture-derives.mjs',
+     'scripts/guards/lib/ecritureJsonAtomique.mjs',
+     'scripts/guards/lib/renommageResilient.mjs',
+     'scripts/test/verrou.mjs',
+   ],
+   // #1824
+-  'raw:check-ancres': ['scripts/guards/lib/protectionWorktree.mjs',
++  'raw:check-ancres': ['scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs',
+     // #2801
+     'scripts/docs/build-all.mjs',
+     'scripts/docs/lib/ecriture-derives.mjs',
+@@ -813,12 +803,12 @@ const ATTENDU = {
+     'scripts/guards/lib/renommageResilient.mjs',
+     'scripts/test/verrou.mjs',
+   ],
+-  'raw:check-folio-continuity': ['scripts/guards/lib/protectionWorktree.mjs', ],
+-  'raw:check-source-tables': ['scripts/guards/lib/protectionWorktree.mjs', ],
+-  'raw:check-source-format': ['scripts/guards/lib/protectionWorktree.mjs', ],
+-  'raw:check-source-puces': ['scripts/guards/lib/protectionWorktree.mjs', ],
+-  'raw:check-renvois': ['scripts/guards/lib/protectionWorktree.mjs', ],
+-  'test:corpus': [
++  'raw:check-folio-continuity': ['scripts/docs/lib/ecriture-derives.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs', 'scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs', ],
++  'raw:check-source-tables': ['scripts/docs/lib/ecriture-derives.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs', 'scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs', ],
++  'raw:check-source-format': ['scripts/docs/lib/ecriture-derives.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs', 'scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs', ],
++  'raw:check-source-puces': ['scripts/docs/lib/ecriture-derives.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs', 'scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs', ],
++  'raw:check-renvois': ['scripts/docs/lib/ecriture-derives.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs', 'scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs', ],
++  'test:corpus': ['scripts/raw/_lib.mjs',
+     // +1 le 2026-10-18 (#2586) : les sorties des rendus hôte et win32 sous un `mkdtempSync` d'os.tmpdir(), retiré
+     // par `t.after` ; l'arbre n'est jamais écrit.
+     "scripts/corpus/docs/plateforme-win32.test.mjs",
+@@ -837,8 +827,7 @@ const ATTENDU = {
+     "scripts/guards/lib/renommageResilient.mjs",
+     "scripts/migrations/lib/joue.mjs",
+     "scripts/ops/knip-exports-ratchet.mjs",
+-    "scripts/raw/reparer-mobilier.mjs",
+-    "scripts/raw/reparer-titres.mjs",
++
+     "scripts/raw/sonde-titres.mjs",
+     "scripts/raw/workflow-args.mjs",
+     // #2724 : `fichiersLus` copie sous un `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally.
+@@ -869,10 +858,10 @@ const ATTENDU = {
+     "scripts/test/perimetre.mjs",
+     "scripts/test/verrou.mjs",
+   ],
+-  'test:noyau': ['scripts/guards/lib/protectionWorktree.mjs'],
++  'test:noyau': ['scripts/docs/lib/ecriture-derives.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs', 'scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs'],
+   // #2928, #2948, ECRIT_LU (`scripts/gates/toutes.mjs`).
+-  'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs'],
+-  'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs'],
++  'pont:godot': ['scripts/docs/lib/ecriture-derives.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs', 'scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs'],
++  'godot:sonde': ['scripts/docs/lib/ecriture-derives.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs', 'scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs'],
+   // #3145, ECRIT_LU (`scripts/gates/toutes.mjs`) : `environnement.mjs` écrit le venv et son témoin sous
+   // `~/.cache/wfrp-personnage-3d/`, hors de l'arbre.
+   'personnage-3d:tests': ['scripts/personnage-3d/environnement.mjs'],
+@@ -883,7 +872,7 @@ const ATTENDU = {
+   // `PREFIXE_JETON_VERROU`, et avec lui `ecritureJsonAtomique.mjs` et `renommageResilient.mjs`, jamais appelés ici ;
+   // `controleEcritures.mjs` ne restitue de rapport que pour un lancement `node --test` sous précharge, que la garde ne
+   // fait pas. L'arbre n'est jamais écrit.
+-  'noyau:chargement': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/guards/chargement-en-premier.mjs',
++  'noyau:chargement': ['scripts/docs/lib/ecriture-derives.mjs', 'scripts/raw/_lib.mjs', 'scripts/guards/lib/protectionWorktree.mjs', 'scripts/guards/chargement-en-premier.mjs',
+     'scripts/guards/lib/controleEcritures.mjs',
+     'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs',
+     'scripts/guards/lib/superviserProcessus.mjs', 'scripts/test/verrou.mjs'],
+diff --git a/scripts/gates/toutes.mjs b/scripts/gates/toutes.mjs
+index 1abfa35b8..63a29770e 100644
+--- a/scripts/gates/toutes.mjs
++++ b/scripts/gates/toutes.mjs
+@@ -92,6 +92,7 @@ const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide (rm
+ /** Le code des zones que l'arbre porte (`RACINES_PRESENTES`, #2928) : une gate qui lit `src/` lit chaque racine des
+  *  zones présente, et la première racine posée y entre sans geste. */
+ const DOSSIERS_DES_ZONES = RACINES_PRESENTES.map((r) => `${r}/`)
++const ECRITURES_RAW_FERMEES = 'Les aides ecrireTexteDuDepot et creerDossierDuDepot de scripts/raw/_lib.mjs sont acquises sans appel à l’import ; les outils de réparation et découpage les appellent derrière leur porte CLI. '
+ 
+ /** Ce que LISENT les gates d'audit du dépôt réel (`GATES_D_AUDIT`, scripts/gates/testsParGate.mjs). */
+ const LIT_DES_AUDITS = [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'AGENTS.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc']
+@@ -130,7 +131,7 @@ export const ECRIT_LU = {
+       'CLAUDE.md', 'AGENTS.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
+       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts', 'vitest.noyau.config.ts', '.mcp.json',
+     ],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'session-start.mjs importe compat-cli.mjs : chargerRegistres ne fait que charger les registres de hooks ; runCompat et atomicWrite ne sont pas appelés, et la porte import.meta.main reste fermée ; ' +
+       'patchCodex.test.mjs écrit son fichier et sa jonction réels uniquement sous mkdtempSync de os.tmpdir(), puis unlinkSync et rmSync en finally ; ' +
+       'superviserProcessus.test.mjs écrit ses lanceurs, PID, battements et résultats JSON dans mkdtempSync de os.tmpdir(), puis rmSync en finally ; ses enfants écrivent ces seuls chemins temporaires ; ' +
+@@ -232,7 +233,7 @@ export const ECRIT_LU = {
+   'comptes:plage': {
+     ecrit: [],
+     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'la porte des comptes (#2705, scripts/guards/lib/corpusDesComptes.mts) lit l’HISTOIRE par git — ' +
+       '`merge-base origin/main..HEAD`, et les images de `src/`, `Source/`, `scripts/`, `package.json` et `tsconfig.json` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
+       'et pose chacune une fois sous un `mkdtempSync` d’os.tmpdir(), effacé à la sortie du processus, ' +
+@@ -246,7 +247,7 @@ export const ECRIT_LU = {
+   'test:corpus': {
+     ecrit: [],
+     lit: LIT_DES_AUDITS,
+-    raison: 'Les audits et rendus du dépôt réel lisent leurs corpus ; les copies, mutations et rapports des bancs restent sous os.tmpdir(), retirés en finally. Les générateurs importés gardent leurs écritures derrière leur porte CLI ; les rendus sont lus sans publication dans l’arbre.',
++    raison: ECRITURES_RAW_FERMEES + 'Les audits et rendus du dépôt réel lisent leurs corpus ; les copies, mutations et rapports des bancs restent sous os.tmpdir(), retirés en finally. Les générateurs importés gardent leurs écritures derrière leur porte CLI ; les rendus sont lus sans publication dans l’arbre.',
+   },
+   'test:corpus-isole': {
+     ecrit: [],
+@@ -256,7 +257,7 @@ export const ECRIT_LU = {
+   'test:ops': {
+     ecrit: [],
+     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/skills/harnais/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'session-start.test.mjs copie les configurations réelles .claude/settings.json et .codex/hooks.json, le credo .claude/credo.md et les scripts des hooks dans ses fixtures mkdtempSync sous os.tmpdir(), retirées par t.after ; ses mutations de configuration, hooks, credo et reçus restent dans ces fixtures ; ' +
+       'session-start.mjs importe compat-cli.mjs ; le préflight charge registre.mjs dynamiquement via chargerRegistres, jamais runCompat ni atomicWrite ; session-start.test.mjs importe directement bootstrap-conteneur.mjs ; ' +
+       'les CLI réellement lancés par session-start.test.mjs sont inject-project-credo.mjs et bootstrap-conteneur.mjs, avec cwd, CLAUDE_PROJECT_DIR et chemin de reçu dans la fixture temporaire ; CLAUDE_CODE_REMOTE=false ferme bootstrap avant tout prérequis ; seul le reçu natif valide est écrit dans la fixture, son absence hors ops et après panne étant éprouvée ; ' +
+@@ -331,7 +332,7 @@ export const ECRIT_LU = {
+   'test:noyau': {
+     ecrit: [],
+     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'vitest.noyau.config.ts', 'package.json'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'La suite du noyau (`vitest.noyau.config.ts`, #2817) : les tests `MOTIF_HORS_STORE` du noyau et de ses hôtes (`HOTES_DU_NOYAU`), sans le store, ' +
+       'chargés par `src/data/overrides.ts` et le greffon `proseSource()` (scripts/source/prose-source-plugin.mjs), qui ' +
+       'LIT Source/ pour la prose adressée ; aucun `registryGen` : aucune cible de code produite, rien d’écrit dans l’arbre',
+@@ -339,7 +340,7 @@ export const ECRIT_LU = {
+   'noyau:chargement': {
+     ecrit: [],
+     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'La garde de chargement (#3058, scripts/guards/chargement-en-premier.mjs) : `git ls-files` des zones (`ZONES` : ' +
+       'noyau, engine, data, lib, geometry, i18n, hote, hoteTexte, hotes, scenes ; `hotes/` hors de src/), puis des ' +
+       'travailleurs (scripts/guards/lib/chargementDUnModule.mjs) qui chargent chaque module par le module runner de Vite ' +
+@@ -363,7 +364,7 @@ export const ECRIT_LU = {
+       'scripts/art-ref/',
+       '.claude/settings.json', '.github/workflows/', '.gitignore', 'package.json', 'patches/',
+     ],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'LIT scripts/etape-profilee.mjs : build-all partage les annonces de progression et leur mesure avec les gestes ops ; ' +
+       'scripts/docs/check-doc-refs.test.mjs écrit et supprime ses cibles de suites dans des fixtures sous os.tmpdir(), retirées en finally ; sa CLI lit ces fixtures sans publication ; ' +
+       'les bancs fraîcheur écrivent leur cache dans leurs dépôts sous os.tmpdir(), supprimés en finally ; ' +
+@@ -583,14 +584,14 @@ export const ECRIT_LU = {
+       // Le GLOB, pas un dossier : le re-coupeur sert TOUT livre à liste de découpe
+       // (`scripts/raw/decoupes/<id>.json`), et recale tout stock nominatif keyé par ses fichiers.
+       'Source/**/*.md':
+-        '`recouper-source.test.mjs` IMPORTE le re-coupeur des `.md` en service ; ses `writeFileSync` et ' +
++        '`recouper-source.test.mjs` IMPORTE le re-coupeur des `.md` en service ; ses appels à `ecrireTexteDuDepot` et ' +
+         '`rmSync` vivent dans `main()`, sous sa porte `import.meta.main` (`main` de scripts/raw/recouper-source.mjs), ' +
+         'et le banc n’appelle que son cœur PUR sur un livre FORGÉ en mémoire ; `reparer-mobilier.test.mjs` ' +
+-        'IMPORTE la réparation du mobilier de page (#1739), dont l’unique `writeFileSync` vit dans `main()`, ' +
++        'IMPORTE la réparation du mobilier de page (#1739), dont l’appel à `ecrireTexteDuDepot` vit dans `main()`, ' +
+         'derrière sa porte `import.meta.main` ET `--apply` (`main` de scripts/raw/reparer-mobilier.mjs) — le banc n’appelle ' +
+         'que ses fonctions PURES (`reparer`, `infidelite`, `motsDe`, `niveauDesFreres`, `niveauDeLegende`, ' +
+         '`texteDeBandeau`) sur des textes en mémoire ; `reparer-titres.test.mjs` IMPORTE la réparation des titres ' +
+-        'd’entrée (#1739), dont l’unique `writeFileSync` vit dans `main()`, derrière sa porte `import.meta.main` ET ' +
++        'd’entrée (#1739), dont l’appel à `ecrireTexteDuDepot` vit dans `main()`, derrière sa porte `import.meta.main` ET ' +
+         '`--apply` (`main` de scripts/raw/reparer-titres.mjs) — le banc n’appelle que son cœur PUR (`reparerLivre`, ' +
+         '`infidelite`) sur un livre forgé en mémoire',
+       'scripts/raw/*-stock.json':
+@@ -599,24 +600,25 @@ export const ECRIT_LU = {
+       // Le GLOB, pas une page : l’outil répare TOUTE page de l’Atlas dont un renvoi d’ancre est mort.
+       'docs/raw/**/*.md':
+         '`reparer-ancres.test.mjs` IMPORTE l’outil de réparation des renvois d’ancre (#1824) ; son unique ' +
+-        '`writeFileSync` vit derrière la porte `--apply` de `reparer` (scripts/raw/reparer-ancres.mjs), et ' +
++        'appel à `ecrireTexteDuDepot` vit derrière la porte `--apply` de `reparer` (scripts/raw/reparer-ancres.mjs), et ' +
+         'le banc ne la passe que sur un Atlas JETABLE d’os.tmpdir() (`avecAtlasFixture`) dont il donne le ' +
+         '`rawDir` — les pages du dépôt ne sont jamais écrites',
+     },
+     lit: ['docs/raw/', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/', 'scripts/port-dev.mjs', 'Source/', ...DOSSIERS_DES_ZONES, '.claude/agents/'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'les lecteurs des cibles pures atteignent build-all.mjs, fraicheur-docs.mjs, enregistreur-lectures.mjs et journal.mjs ; ' +
+       'les lecteurs RAW appellent rendreCible/renduDe, sans passer par executerLesGenerateurs ou genererCode, ' +
+       'ni par la certification ou la copie de fraîcheur ; ces chemins de rendu n’appellent pas le journal hérité ; ' +
+       'build-atlas-index.test.mjs appelle installer sur sa racine rawDir jetable ; l’autoactivation du collecteur reste ' +
+       'conditionnée par WFRP_LECTURES_RACINE/WFRP_LECTURES_SORTIE, et testsSansEcriture refuse toute écriture dans l’arbre réel ; ' +
++      'chemins-livres.test.mjs crée ses fixtures sous node_modules/.cache et os.tmpdir(), puis les retire en finally ; ' +
+       'harnais de l’Atlas : il lit les fiches que les trois rapports écrivent ; éprouvant les scripts ' +
+       'eux-mêmes, il LIT ce qu’ils lisent — Source/ et src/ ; ses deux bancs ' +
+       'écrivains (`check-source-format.test.mjs`, `lib/marker-pages.test.mjs`) ne posent que des dossiers ' +
+-      'JETABLES sous `os.tmpdir()`, retirés par `rmSync` — aucune écriture dans l’arbre ; +3 écrivains le ' +
+-      '2026-09-20 (#1825) : `apply-livre.test.mjs` et `assemble-domain.test.mjs`, même régime ' +
+-      'os.tmpdir(), et `assemble-domain.mjs`, ACQUIS par l’import de son banc — ses `writeFileSync` vivent ' +
+-      'dans `assemble()`, appelée par le seul `main()`, sous sa porte `import.meta.main` ; +4 le 2026-09-20 ' +
++      'JETABLES sous `os.tmpdir()`, retirés par `rmSync` — aucune écriture dans l’arbre ; ' +
++      '`apply-livre.test.mjs` pose ses fixtures sous os.tmpdir() et node_modules/.cache, retirées en finally ; ' +
++      '`assemble-domain.test.mjs` pose ses fixtures sous os.tmpdir(), retirées en finally ; ' +
++      '`assemble-domain.mjs`, ACQUIS par l’import de son banc, écrit dans `assemble()` sur le rawDir jetable injecté ; +4 le 2026-09-20 ' +
+       '(#1825) : la fabrique d’Atlas jetable (`atlasFixture.mjs`) et les deux bancs qui la ' +
+       'prennent (`_lib.test.mjs`, `build-atlas-index.test.mjs`), même régime os.tmpdir(), et ' +
+       '`build-atlas-index.mjs`, ACQUIS par l’import de son banc — son écriture (`ecrireDoc`) vit dans ' +
+@@ -627,13 +629,14 @@ export const ECRIT_LU = {
+       '2026-09-23 (#1739) : `pdf-de.test.mjs`, même régime os.tmpdir() (`avecSource`) — son PDF et ses dossiers de sortie Marker ' +
+       'factices ne naissent que sous la racine `source` INJECTÉE dans la couture (scripts/raw/_lib.mjs) ; +3 écrivains le ' +
+       '2026-10-15 (#2603) : `ecritureJsonAtomique.mjs`, `renommageResilient.mjs` et `test/verrou.mjs`, ACQUIS par ' +
+-      '`ecriture-derives.mjs` → `ecrivain-derives.mjs` (l’écrivain unique des dérivés) — `ecrireDoc` n’est appelé que ' +
+-      'sous la porte `import.meta.main` des scripts de scripts/raw/, que les bancs de la gate n’appellent pas',
++      '`ecriture-derives.mjs` → `ecrivain-derives.mjs` (l’écrivain unique des dérivés) ; ' +
++      'les rendus purs ne publient pas ; les bancs qui appellent `ecrireDoc` directement ou par `ecrireTexteDuDepot` ' +
++      'écrivent uniquement leurs fixtures jetables sous os.tmpdir() ou node_modules/.cache, retirées en finally',
+   },
+   'raw:check-refs': {
+     ecrit: [],
+     lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'les écrivains acquis par le producteur pur d’Implémente (ecriture-derives.mjs, ecritureJsonAtomique.mjs, ' +
+       'renommageResilient.mjs, test/verrou.mjs) ne sont pas appelés par rendreCible/renduDe ; ' +
+       'la commande appelle ces lectures, sans exécution des générateurs ni certification ou copie ; ' +
+@@ -643,7 +646,7 @@ export const ECRIT_LU = {
+   'raw:check-code-refs': {
+     ecrit: [],
+     lit: ['docs/raw/', ...DOSSIERS_DES_ZONES, 'Source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'aucune écriture dans l’arbre : `ecritureJsonAtomique.mjs`, `renommageResilient.mjs` et `test/verrou.mjs`, ACQUIS (#2603) par ' +
+       '`build-implemente.mjs` → `ecriture-derives.mjs` → `ecrivain-derives.mjs` (l’écrivain unique des dérivés), n’écrivent ' +
+       'que sous la porte `import.meta.main` de scripts/raw/build-implemente.mjs, que la gate n’appelle pas ; ' +
+@@ -653,7 +656,7 @@ export const ECRIT_LU = {
+   'raw:check-ancres': {
+     ecrit: [],
+     lit: ['docs/raw/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'le lecteur de l’Atlas importe build-all.mjs et ses écrivains ; rendreCible/renduDe n’appellent ni ' +
+       'executerLesGenerateurs ou genererCode, ni la certification, la copie ou le journal hérité ; ' +
+       'aucune écriture, et AUCUN stock : l’ancre d’un titre se CALCULE (scripts/raw/lib/ancres.mjs), '
+@@ -665,7 +668,7 @@ export const ECRIT_LU = {
+   'raw:check-folio-continuity': {
+     ecrit: [],
+     lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'LIT le registre de livres, le normaliseur de références, ' +
+       'le stock NOMINATIF des sauts de folio (scripts/raw/folio-gaps-stock.json) et les deux stocks des ancres ' +
+       'sans contenu (scripts/raw/empty-folios-perdues-stock.json, scripts/raw/empty-folios-benignes-stock.json) ; ' +
+@@ -674,7 +677,7 @@ export const ECRIT_LU = {
+   'raw:check-source-tables': {
+     ecrit: [],
+     lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'LIT le registre de livres, le parseur de tables (src/data/source/decoupe.ts), les dossiers à `dir` de ' +
+       'Source/ et son stock nominatif scripts/raw/source-tables-stock.json ; aucune écriture ' +
+       'n’est atteinte',
+@@ -682,7 +685,7 @@ export const ECRIT_LU = {
+   'raw:check-source-puces': {
+     ecrit: [],
+     lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'LIT le registre de livres, le normaliseur de citations (src/data/source/decoupe.ts), les dossiers ' +
+       'à `dir` de Source/ et son stock nominatif scripts/raw/source-puces-stock.json ; aucune écriture ' +
+       'n’est atteinte',
+@@ -690,7 +693,7 @@ export const ECRIT_LU = {
+   'raw:check-renvois': {
+     ecrit: [],
+     lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'src/data/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'LIT le registre de livres, les chapitres des livres couverts par le lecteur fs (scripts/source/lecteur-fs.mjs), ' +
+       'le résolveur PUR src/data/source/renvoi.ts et son stock nominatif scripts/raw/renvois-stock.json ; aucune ' +
+       'écriture n’est atteinte',
+@@ -698,7 +701,7 @@ export const ECRIT_LU = {
+   'raw:check-source-format': {
+     ecrit: [],
+     lit: ['Source/', 'src/data/books.json', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/source/nom-ascii.mjs', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+-    raison: RETRAIT_WORKTREE_FERME +
++    raison: ECRITURES_RAW_FERMEES + RETRAIT_WORKTREE_FERME +
+       'LIT le registre de livres et les dossiers FR de Source/ (ceux à `dir` plus les ' +
+       'pré-pipeline atteints par balayage), ainsi que son stock nominatif ' +
+       'scripts/raw/source-format-stock.json ; aucune écriture n’est atteinte',
+diff --git a/scripts/guards/lib/folioLineAlign.mjs b/scripts/guards/lib/folioLineAlign.mjs
+index 3dc27ea01..a0a683c18 100644
+--- a/scripts/guards/lib/folioLineAlign.mjs
++++ b/scripts/guards/lib/folioLineAlign.mjs
+@@ -17,7 +17,7 @@
+ // `scripts/guards/lib/folioLineAlign.test.mjs`.
+ import { readFileSync } from 'node:fs'
+ import { listerDossier } from './lister.mjs'
+-import { livreDuSigle, sigleDe } from '../../raw/_lib.mjs'
++import { listerDossierDuDepot, livreDuSigle, readText, sigleDe } from '../../raw/_lib.mjs'
+ // Le NUMÉRO DE CHAPITRE (prédicat, motif, résolution) vient de sa maison PURE, jamais de la couche
+ // `scripts/raw` — `guards/lib` n'en dépend pas.
+ import { fichierDuChapitre } from '../../../src/data/source/decoupe.ts'
+@@ -189,8 +189,8 @@ export function makeChapterReader(books) {
+     const dir = livreDuSigle(abbr, books)?.dir
+     let res = null
+     if (dir) {
+-      const f = fichierDuChapitre(listerDossier(dir, { absent: 'vide' }), ch)
+-      if (f) res = readFileSync(join(dir, f), 'utf8').split('\n')
++      const f = fichierDuChapitre(listerDossierDuDepot(dir, { absent: 'vide' }), ch)
++      if (f) res = readText(join(dir, f)).split('\n')
+     }
+     cache.set(key, res)
+     return res
+diff --git a/scripts/raw/_lib.mjs b/scripts/raw/_lib.mjs
+index 3100a1f90..23c558793 100644
+--- a/scripts/raw/_lib.mjs
++++ b/scripts/raw/_lib.mjs
+@@ -8,10 +8,11 @@
+ // (hors-règle, catalogues), sa LISTE DE DÉCOUPE dans `scripts/raw/decoupes/<id>.json`, et ce qu'on
+ // sait des DOMAINES d'un cœur dans `scripts/raw/domaines.json` : registres d'OUTILLAGE dont ce
+ // fichier est le LECTEUR UNIQUE. Zéro ligne de code pour aucun d'eux.
+-import { existsSync, readFileSync } from 'node:fs'
++import { existsSync, mkdirSync, readFileSync } from 'node:fs'
++import { ecrireDoc } from '../docs/lib/ecriture-derives.mjs'
+ import { arbrePrincipal, depotDe } from '../guards/lib/gitPorte.mjs'
+ import { listerArbre, listerDossier } from '../guards/lib/lister.mjs'
+-import { dirname, join } from 'node:path'
++import { dirname, join, resolve } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+ import booksData from '../../src/data/books.json' with { type: 'json' }
+ import chapitresData from './chapitres.json' with { type: 'json' }
+@@ -28,6 +29,15 @@ import { nomAscii } from '../source/nom-ascii.mjs'
+ import { estLivreExtrait } from '../../src/data/source/livre-extrait.ts'
+ import { alternationDe } from '../../src/lib/regex.ts'
+ 
++const RACINE = fileURLToPath(new URL('../../', import.meta.url))
++const ICI_RAW = join(RACINE, 'scripts/raw')
++/** Les chemins du dépôt sont relatifs à la racine du module ; les chemins absolus restent tels quels. */
++export const cheminDuDepot = (path) => resolve(RACINE, path)
++export const listerDossierDuDepot = (path, options) => listerDossier(cheminDuDepot(path), options)
++export const listerArbreDuDepot = (path, options) => listerArbre(cheminDuDepot(path), options)
++export const ecrireTexteDuDepot = (path, texte) => ecrireDoc(cheminDuDepot(path), texte)
++export const creerDossierDuDepot = (path, options) => mkdirSync(cheminDuDepot(path), options)
++
+ // Lecture CRLF-robuste (#604) -- SOURCE UNIQUE de lecture texte pour tout fichier Source/**/docs/raw/** :
+ // une copie de travail peut porter des fins de ligne CRLF ou mixtes sur un index git en LF.
+ // sectionsOf (coverage.mjs) decoupe les headings avec une regex de fin de ligne ancree sans flag m --
+@@ -36,7 +46,7 @@ import { alternationDe } from '../../src/lib/regex.ts'
+ // -> un seul '(integral)', la boundary H2 jamais vue). readText normalise \r\n/\r isole -> \n AU POINT
+ // DE LECTURE -- jamais dans les parseurs eux-memes (une seule couture, pas un remede par regex disperse).
+ // N'affecte pas JSON.parse (deja tolerant aux fins de ligne) ni les fichiers deja en LF (no-op).
+-export const readText = (path) => readFileSync(path, 'utf8').replace(/\r\n|\r/g, '\n')
++export const readText = (path) => readFileSync(cheminDuDepot(path), 'utf8').replace(/\r\n|\r/g, '\n')
+ 
+ // Un livre est-il EXTRAIT (donc adressable par l'outillage Atlas) ? Définition UNIQUE, partagée avec
+ // l'app (import en tête). Tout `scripts/` en juge par elle (`booksDe`,
+@@ -211,12 +221,11 @@ export function domainesDe(coeur, registre = REGISTRE_DOMAINES) {
+ // chapitres une fois découpés : un livre mis au grain des sections coûte UN fichier de ce dossier et
+ // zéro ligne de code (#1739). Ce fichier en est le LECTEUR UNIQUE ; le dossier est INJECTABLE
+ // (fixture) pour que les bancs forgent un livre sans en déposer un dans le dépôt.
+-const ICI_RAW = dirname(fileURLToPath(import.meta.url))
+ export const DECOUPES_DIR = join(ICI_RAW, 'decoupes')
+ 
+ /** Les ids de livre pour lesquels une liste de découpe existe, dans l'ordre POSIX du dossier. */
+ export const livresDecoupes = (dir = DECOUPES_DIR) =>
+-  listerDossier(dir, { absent: 'vide' }).filter((n) => n.endsWith('.json')).map((n) => n.slice(0, -5))
++  listerDossierDuDepot(dir, { absent: 'vide' }).filter((n) => n.endsWith('.json')).map((n) => n.slice(0, -5))
+ 
+ /**
+  * La liste de découpe d'UN livre, `[{ titre, ouverture?, page, pageFin, chapitre? }]`, dans l'ORDRE DU FICHIER — celui
+@@ -328,7 +337,7 @@ export function sortieMarkerDe(id, { exiger = true, registre = REGISTRE_LIVRES,
+   const sortie = markerDe(join('full', id), { source })
+   if (!exiger || existsSync(sortie)) return sortie
+   const ids = new Set(registre.map((b) => b.id))
+-  const historiques = listerDossier(dirname(sortie), { absent: 'vide' }).filter((d) => !ids.has(d))
++  const historiques = listerDossierDuDepot(dirname(sortie), { absent: 'vide' }).filter((d) => !ids.has(d))
+   throw new Error(`_lib: sortie Marker du livre « ${id} » introuvable : ${sortie}` +
+     (historiques.length ? ` — dossiers de sortie hors registre à renommer en « ${id} » si l'un est la sienne : ${historiques.join(', ')}` : ' — aucune sortie Marker de ce livre'))
+ }
+@@ -430,7 +439,7 @@ export function chapterFile(abbr, nn, range) {
+     const dir = livreDuSigle(abbr)?.dir
+     res = null
+     if (dir) {
+-      const f = fichierDuChapitre(listerDossier(dir, { absent: 'vide' }), nn)
++      const f = fichierDuChapitre(listerDossierDuDepot(dir, { absent: 'vide' }), nn)
+       if (f) res = { path: join(dir, f), file: f, dir }
+     }
+     _chapterCache.set(key, res)
+@@ -493,7 +502,7 @@ export function folioIndexOf(abbr) {
+   const dir = livreDuSigle(abbr)?.dir
+   const chapters = []
+   if (dir) {
+-    for (const file of listerDossier(dir, { absent: 'vide' })) {
++    for (const file of listerDossierDuDepot(dir, { absent: 'vide' })) {
+       const ch = numeroDuFichier(file)
+       if (ch == null) continue
+       const lines = readText(join(dir, file)).split('\n')
+@@ -632,7 +641,7 @@ export function pagesDeLAtlas(rawDir, options = {}) {
+     throw new Error(`pagesDeLAtlas: classe(s) de page inconnue(s) « ${inconnues.join(', ')} » — classes de l'Atlas : ${dites}`)
+   const coeurs = coeursDuRegistre(registre)
+   const connus = coeurs.length ? coeurs.join(', ') : '(aucun)'
+-  const relatifs = listerArbre(rawDir, {
++  const relatifs = listerArbreDuDepot(rawDir, {
+     absent,
+     descendre: (rel) => {
+       if (rel.includes('/') || !coeurs.includes(rel))
+diff --git a/scripts/raw/anchor-fill.mjs b/scripts/raw/anchor-fill.mjs
+index 24e962503..236c60bb2 100644
+--- a/scripts/raw/anchor-fill.mjs
++++ b/scripts/raw/anchor-fill.mjs
+@@ -43,13 +43,12 @@
+ //   --dry (défaut) : rapport seul. --apply : réécrit les .md.
+ //   --offset : offset K−folio fourni par
+ //   l'appelant (livre VIERGE, aucune ancre à dériver — cf. `folio-bootstrap.mjs`).
+-import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
+-import { listerDossier } from '../guards/lib/lister.mjs'
++import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
+ import { join, dirname } from 'node:path'
+ import { tmpdir } from 'node:os'
+ import { fileURLToPath } from 'node:url'
+ import { execFileSync } from 'node:child_process'
+-import { livreDuSigle, pdfDuSigle, readText } from './_lib.mjs'
++import { cheminDuDepot, ecrireTexteDuDepot, listerDossierDuDepot, livreDuSigle, pdfDuSigle, readText } from './_lib.mjs'
+ import { estSeparateur, numeroDuFichier, plageDeLigne1, stripSpans } from '../../src/data/source/decoupe.ts'
+ import { offsetToLine, headAnchor } from './reanchor.mjs'
+ import { cle } from './sonde-titres.mjs'
+@@ -116,8 +115,8 @@ export function compactAnchor(joined, head, min = COMPACT_MIN) {
+ 
+ // ---------- offset (id PDF 0-based) - (folio imprimé), constant par livre ----------
+ export function resolveBookOffset(dir) {
+-  if (!existsSync(dir)) return { ok: false, reason: 'dossier introuvable' }
+-  const files = listerDossier(dir, { absent: 'vide' }).filter((f) => numeroDuFichier(f) != null)
++  if (!existsSync(cheminDuDepot(dir))) return { ok: false, reason: 'dossier introuvable' }
++  const files = listerDossierDuDepot(dir, { absent: 'vide' }).filter((f) => numeroDuFichier(f) != null)
+   const offsets = new Set()
+   let count = 0
+   for (const file of files) {
+@@ -472,12 +471,13 @@ export function runBook(abbr, { chapter = null, apply = false, dir: dirOverride,
+   const livre = livreDuSigle(abbr)
+   const dir = dirOverride ?? livre?.dir
+   if (!dir || !livre) return { abbr, ok: false, reason: `sigle sans livre extrait au registre : ${abbr}` }
+-  const off = offsetOverride == null ? resolveBookOffset(dir) : { ok: true, offset: offsetOverride }
++  const dossier = cheminDuDepot(dir)
++  const off = offsetOverride == null ? resolveBookOffset(dossier) : { ok: true, offset: offsetOverride }
+   if (!off.ok) return { abbr, ok: false, reason: off.reason }
+   let pdfPath
+   try { pdfPath = pdfDuSigle(abbr) } catch (e) { return { abbr, ok: false, reason: e.message } }
+-  if (!existsSync(dir)) return { abbr, ok: false, reason: 'dossier introuvable' }
+-  let files = listerDossier(dir, { absent: 'vide' }).filter((f) => numeroDuFichier(f) != null)
++  if (!existsSync(dossier)) return { abbr, ok: false, reason: 'dossier introuvable' }
++  let files = listerDossierDuDepot(dir, { absent: 'vide' }).filter((f) => numeroDuFichier(f) != null)
+   if (chapter != null) files = files.filter((f) => numeroDuFichier(f) === Number(chapter))
+   const pages = pagesEnLignes(livre.id, boites)
+   const chapters = []
+@@ -485,7 +485,7 @@ export function runBook(abbr, { chapter = null, apply = false, dir: dirOverride,
+     const text = readText(join(dir, file))
+     const plan = planChapter(file, text, off.offset, (K) => pages.get(K))
+     chapters.push(plan)
+-    if (apply && plan.edits.size) writeFileSync(join(dir, file), applyEdits(text, plan.edits))
++    if (apply && plan.edits.size) ecrireTexteDuDepot(join(dir, file), applyEdits(text, plan.edits))
+   }
+   return { abbr, ok: true, offset: off.offset, dir, pdfPath, chapters }
+ }
+diff --git a/scripts/raw/apply-livre.mjs b/scripts/raw/apply-livre.mjs
+index 22bb9b10e..c759e73b5 100644
+--- a/scripts/raw/apply-livre.mjs
++++ b/scripts/raw/apply-livre.mjs
+@@ -2,10 +2,9 @@
+ // Idempotent : un sentinel HTML `<!-- <ABRÉV>-INTEGRATION -->` marque le contenu ajouté ; relancer
+ // ne duplique pas.
+ // Usage : node scripts/raw/apply-livre.mjs <ABRÉV> <workflow-output.json>
+-// Le livre n'est pas nommé ici (#1825) : son sigle ENTRE en argument, son libellé se lit au
+-// registre `src/data/books.json`.
+-import { readFileSync, writeFileSync } from 'node:fs'
+-import { BOOKS, livreDuSigle, marqueurIntegration, readText, REGISTRE_LIVRES } from './_lib.mjs'
++// Le sigle entre en argument ; le libellé vient de `src/data/books.json`.
++import { readFileSync } from 'node:fs'
++import { BOOKS, ecrireTexteDuDepot, livreDuSigle, marqueurIntegration, readText, REGISTRE_LIVRES } from './_lib.mjs'
+ 
+ const USAGE = 'usage: node scripts/raw/apply-livre.mjs <ABRÉV> <workflow-output.json>'
+ const [, , ABBR, OUTFILE] = process.argv
+@@ -53,7 +52,7 @@ for (const r of data) {
+   else {
+     f = insertSommaire(f, r.sommaire)
+     f = appendTopics(f, r.ficheTopics)
+-    writeFileSync(r.fiche, f)
++    ecrireTexteDuDepot(r.fiche, f)
+     console.log(`fiche  + ${r.domain.padEnd(11)} → ${r.fiche}  (+${r.ficheTopics.length} c.)`)
+   }
+ }
+diff --git a/scripts/raw/apply-livre.test.mjs b/scripts/raw/apply-livre.test.mjs
+index c67644f84..107a6815b 100644
+--- a/scripts/raw/apply-livre.test.mjs
++++ b/scripts/raw/apply-livre.test.mjs
+@@ -3,9 +3,9 @@
+ import test from 'node:test'
+ import assert from 'node:assert/strict'
+ import { spawnSync } from 'node:child_process'
+-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
++import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
+ import { tmpdir } from 'node:os'
+-import { join } from 'node:path'
++import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+ import { REGISTRE_LIVRES, estLivreExtrait, marqueurIntegration } from './_lib.mjs'
+ 
+@@ -42,6 +42,46 @@ test('idempotence : pour CHAQUE livre extrait du registre, deux passages écrive
+   }
+ })
+ 
++test('apply-livre écrit la fiche à la racine et préserve le leurre du cwd étranger', () => {
++  const racine = fileURLToPath(new URL('../../', import.meta.url))
++  const cache = resolve(racine, 'node_modules/.cache')
++  mkdirSync(cache, { recursive: true })
++  const fixture = mkdtempSync(join(cache, '3120-apply-livre-'))
++  const etranger = mkdtempSync(join(tmpdir(), '3120-apply-livre-cwd-'))
++  const verifierSous = (parent, cible) => {
++    const sous = relative(resolve(parent), resolve(cible))
++    assert.ok(sous && !isAbsolute(sous) && sous !== '..' && !sous.startsWith('..\\') && !sous.startsWith('../'))
++  }
++  try {
++    verifierSous(cache, fixture)
++    verifierSous(tmpdir(), etranger)
++    const fiche = relative(racine, join(fixture, 'fiche.md'))
++    const cible = resolve(racine, fiche)
++    const leurre = resolve(etranger, fiche)
++    const texteLeurre = '# Leurre étranger\n'
++    writeFileSync(cible, FICHE)
++    mkdirSync(dirname(leurre), { recursive: true })
++    writeFileSync(leurre, texteLeurre)
++    const sortie = join(fixture, 'resultat.json')
++    writeFileSync(sortie, JSON.stringify({ result: [{ fiche, domain: 'banc', sommaire: '- Entrée du banc', ficheTopics: '## Sujet du banc\n\nTexte du banc.' }] }))
++    assert.ok(SIGLES.length)
++    const enfant = spawnSync(process.execPath, [SCRIPT, SIGLES[0], sortie], {
++      cwd: etranger, encoding: 'utf8', timeout: 30_000,
++    })
++    assert.equal(enfant.status, 0, `${enfant.error ?? ''}\n${enfant.stdout}\n${enfant.stderr}`)
++    const apres = readFileSync(cible, 'utf8')
++    assert.match(apres, /## Sujet du banc/)
++    assert.match(apres, /- Entrée du banc/)
++    assert.equal(readFileSync(leurre, 'utf8'), texteLeurre)
++  } finally {
++    try {
++      rmSync(fixture, { recursive: true, force: true })
++    } finally {
++      rmSync(etranger, { recursive: true, force: true })
++    }
++  }
++})
++
+ test('estLivreExtrait : un livre sans `dir` est refusé par le même prédicat que le périmètre', () => {
+   const sansDir = REGISTRE_LIVRES.filter((b) => b.abbr && !estLivreExtrait(b))
+   assert.ok(sansDir.length > 0, 'le registre ne porte aucun livre sans extraction — le cas n’est pas mesuré')
+diff --git a/scripts/raw/build-catalogs.mjs b/scripts/raw/build-catalogs.mjs
+index fdfee39e0..7d85b62a1 100644
+--- a/scripts/raw/build-catalogs.mjs
++++ b/scripts/raw/build-catalogs.mjs
+@@ -8,10 +8,8 @@
+ // mécanisme, pour un chapitre trop large pour son catalogue.
+ // Re-run après toute ré-extraction.
+ // node scripts/raw/build-catalogs.mjs [--check]   (`--check` : `ecrireOuVerifier` par catalogue)
+-import { existsSync } from 'node:fs'
+ import { join } from 'node:path'
+-import { listerDossier } from '../guards/lib/lister.mjs'
+-import { BOOKS, chapterFile as chapterFileLib, coeursDuRegistre, livresDeCatalogue, pagesDeLAtlas, readText, classeDePage } from './_lib.mjs'
++import { BOOKS, chapterFile as chapterFileLib, coeursDuRegistre, listerDossierDuDepot, livresDeCatalogue, pagesDeLAtlas, readText, classeDePage } from './_lib.mjs'
+ import { titreDuFichier } from '../../src/data/source/decoupe.ts'
+ import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
+ 
+@@ -50,7 +48,7 @@ function chapterFile(abbr, nn, range) {
+ 
+ /** Les extractions Source/ absentes ou vides : sans elles, `chapterFile` rend null pour TOUT
+  *  chapitre et chaque catalogue se rendrait VIDE. */
+-const extractionsVides = () => BOOKS.filter(([, dir]) => !existsSync(dir) || !listerDossier(dir).some((f) => f.endsWith('.md')))
++const extractionsVides = () => BOOKS.filter(([, dir]) => !listerDossierDuDepot(dir, { absent: 'vide' }).some((f) => f.endsWith('.md')))
+ 
+ /**
+  * Chaque catalogue rendu, avec sa ligne de journal. LÈVE sur une extraction Source/ absente, avant
+diff --git a/scripts/raw/check-folio-continuity.mjs b/scripts/raw/check-folio-continuity.mjs
+index c52a3bbdb..ed0523f45 100644
+--- a/scripts/raw/check-folio-continuity.mjs
++++ b/scripts/raw/check-folio-continuity.mjs
+@@ -21,10 +21,9 @@
+ // Re-run : node scripts/raw/check-folio-continuity.mjs
+ // Régénération (`regenerations`, politique `DECROISSANT`) :
+ //   npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-folio-continuity.mjs
+-import { listerDossier } from '../guards/lib/lister.mjs'
+ import { join, dirname } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+-import { BOOKS, readText } from './_lib.mjs'
++import { BOOKS, listerDossierDuDepot, readText } from './_lib.mjs'
+ // Cet instrument juge la FORME de tout ce qui est servi, l'index COMPRIS : son stock le nomme sous
+ // son numéro d'extraction (`AA 0 folio -2`). D'où `estNomDExtraction` / `numeroDExtraction`, et non
+ // le prédicat de CHAPITRE.
+@@ -73,7 +72,7 @@ export function chapterFolioSpan(text) {
+ // l'appelle pour son propre compte, le corpus est donc lu DEUX fois par exécution du CLI (312
+ // fichiers, coût mesuré négligeable devant la CI). Dossier introuvable → Map vide (hors sujet).
+ export function chapterTexts(dir) {
+-  const files = listerDossier(dir, { absent: 'vide' }).filter(estNomDExtraction)
++  const files = listerDossierDuDepot(dir, { absent: 'vide' }).filter(estNomDExtraction)
+   return new Map(files.map((f) => [f, readText(join(dir, f))]))
+ }
+ 
+diff --git a/scripts/raw/check-folio-continuity.test.mjs b/scripts/raw/check-folio-continuity.test.mjs
+index 9c734c682..65e9c710e 100644
+--- a/scripts/raw/check-folio-continuity.test.mjs
++++ b/scripts/raw/check-folio-continuity.test.mjs
+@@ -17,7 +17,7 @@ import { regenerations as regenerationsDesAncres, trier } from './lib/empty-foli
+ import {
+   FORMAT_JSON, ecartDeRegeneration, entreesRegenerees, lireEntreesDeSite, texteEnPlace, texteRegenere,
+ } from '../guards/lib/stockDeSites.mjs'
+-import { BOOKS, livreDuSigle } from './_lib.mjs'
++import { BOOKS, livreDuSigle, readText } from './_lib.mjs'
+ import { parUnitesDeCode } from '../guards/lib/lister.mjs'
+ 
+ /** Un dossier de livre en chemin POSIX — la graphie que le stock et la porte de plage partagent. */
+@@ -363,7 +363,7 @@ const STOCK = lireStocksAncresVides()
+ test('stock : le folio 88 du LDB (carrière de Juriste) est RESTITUÉ — porteur au corpus, absent de la mesure comme du stock', () => {
+   const dir = livreDuSigle('LDB').dir
+   const cle = cleDeSite({ fichier: `${posixDe(dir)}/08 - Statut.md`, ref: 'LDB 8 folio 88', occurrence: 1 })
+-  const md = readFileSync(join(dir, '08 - Statut.md'), 'utf8')
++  const md = readText(join(dir, '08 - Statut.md'))
+   const page = md.split('data-folio="88"')[1].split('data-folio="89"')[0]
+   assert.match(page, /\*\*JURISTE\*\* Halfling, Haut Elfe, Humain, Nain/, 'titre et espèces de la page')
+   assert.match(page, /Schéma de Progression du Juriste/, 'schéma de progression')
+@@ -461,7 +461,7 @@ test('couverture : la DERNIÈRE ancre de chaque LIVRE est hors mesure — aucun
+ 
+ test('détecteur : re-vider le folio 88 du VRAI `08 - Statut.md` le fait ressortir, et le stock le dénonce comme INCONNU', () => {
+   const dir = livreDuSigle('LDB').dir
+-  const md = readFileSync(join(dir, '08 - Statut.md'), 'utf8')
++  const md = readText(join(dir, '08 - Statut.md'))
+   const finAncre88 = md.indexOf('</span>', md.indexOf('data-folio="88"')) + '</span>'.length
+   const debutAncre89 = md.lastIndexOf('<span', md.indexOf('data-folio="89"'))
+   assert.ok(finAncre88 > 0 && debutAncre89 > finAncre88, 'les ancres 88 puis 89 se suivent bien dans le chapitre')
+diff --git a/scripts/raw/check-source-format.mjs b/scripts/raw/check-source-format.mjs
+index 77636eaa1..b2ed19628 100644
+--- a/scripts/raw/check-source-format.mjs
++++ b/scripts/raw/check-source-format.mjs
+@@ -59,8 +59,8 @@
+ import { existsSync, statSync } from 'node:fs'
+ import { join, dirname } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+-import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
+-import { BOOKS, readText } from './_lib.mjs'
++import { parUnitesDeCode } from '../guards/lib/lister.mjs'
++import { BOOKS, cheminDuDepot, listerDossierDuDepot, readText } from './_lib.mjs'
+ import { cleDeSite, ecartDuVolet, phraseDeNaissance, remedeDeNaissance } from '../guards/lib/stock.mjs'
+ import { SOUS_LOT, comptesParFamille, lireEntreesDeSite, naissanceEnPlace } from '../guards/lib/stockDeSites.mjs'
+ import { estSeparateur, graphieDeChapitre, graphieDuFichier, largeurDeChapitre, ligne1DePlage, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
+@@ -334,7 +334,7 @@ const cheminDe = (dir) => String(dir).split('\\').join('/').replace(/\/$/, '')
+ 
+ /** Les `.md` d'un dossier, lus (CRLF normalisé par `readText`). */
+ export function lireDossier(dir) {
+-  return listerDossier(dir, { absent: 'vide' })
++  return listerDossierDuDepot(dir, { absent: 'vide' })
+     .filter((n) => n.endsWith('.md'))
+     .map((nom) => ({ nom, texte: readText(join(dir, nom)) }))
+ }
+@@ -423,14 +423,14 @@ export function dossiersFR(racine = RACINE_SOURCE, books = BOOKS) {
+   const vus = new Set()
+   for (const [abbr, dir] of books) {
+     const p = cheminDe(dir)
+-    if (!existsSync(p)) throw new Error(`check-source-format : livre "${abbr}" de books.json sans dossier sur le disque (${p})`)
++    if (!existsSync(cheminDuDepot(p))) throw new Error(`check-source-format : livre "${abbr}" de books.json sans dossier sur le disque (${p})`)
+     vus.add(p)
+   }
+-  for (const nom of listerDossier(racine, { absent: 'lever' })) {
++  for (const nom of listerDossierDuDepot(racine, { absent: 'lever' })) {
+     if (!PREFIXES_FR.some((p) => nom.startsWith(p))) continue
+     const p = `${racine}/${nom}`
+     let st
+-    try { st = statSync(p) } catch { continue }
++    try { st = statSync(cheminDuDepot(p)) } catch { continue }
+     if (st.isDirectory()) vus.add(p)
+   }
+   const out = [...vus].sort(parUnitesDeCode)
+diff --git a/scripts/raw/check-source-puces.mjs b/scripts/raw/check-source-puces.mjs
+index 816be139e..866f5401d 100644
+--- a/scripts/raw/check-source-puces.mjs
++++ b/scripts/raw/check-source-puces.mjs
+@@ -28,8 +28,7 @@
+ // lot est REQUIS dès qu'une entrée NEUVE naît (politique `SOUS_LOT`, scripts/guards/lib/stockDeSites.mjs)
+ import { join, dirname } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+-import { listerDossier } from '../guards/lib/lister.mjs'
+-import { BOOKS, readText } from './_lib.mjs'
++import { BOOKS, listerDossierDuDepot, readText } from './_lib.mjs'
+ import { estNomDExtraction } from '../../src/data/source/decoupe.ts'
+ import { ecartDuVolet } from '../guards/lib/stock.mjs'
+ import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
+@@ -103,7 +102,7 @@ const cheminDe = (dir, file) => `${String(dir).split('\\').join('/').replace(/\/
+ export function scanBookDir(dir) {
+   const out = []
+   // Toute la FORME servie est jugée, l'index compris : il porte des puces comme un chapitre.
+-  for (const file of listerDossier(dir, { absent: 'vide' }).filter(estNomDExtraction)) {
++  for (const file of listerDossierDuDepot(dir, { absent: 'vide' }).filter(estNomDExtraction)) {
+     out.push(...sitesDuChapitre(readText(join(dir, file)), cheminDe(dir, file)))
+   }
+   return out
+diff --git a/scripts/raw/check-source-tables.mjs b/scripts/raw/check-source-tables.mjs
+index bc31764e6..334482a83 100644
+--- a/scripts/raw/check-source-tables.mjs
++++ b/scripts/raw/check-source-tables.mjs
+@@ -29,8 +29,7 @@
+ // lot est REQUIS dès qu'une entrée NEUVE naît (politique `SOUS_LOT`, scripts/guards/lib/stockDeSites.mjs)
+ import { join, dirname } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+-import { listerDossier } from '../guards/lib/lister.mjs'
+-import { BOOKS, readText } from './_lib.mjs'
++import { BOOKS, listerDossierDuDepot, readText } from './_lib.mjs'
+ import { estNomDExtraction } from '../../src/data/source/decoupe.ts'
+ import { SEPARATEUR_DE_REMEDE, ecartDuVolet, sitesEnEntrees, cleDeSite, phraseDeNaissance } from '../guards/lib/stock.mjs'
+ import { SOUS_LOT, comptesParFamille, lireEntreesDeSite, naissanceEnPlace } from '../guards/lib/stockDeSites.mjs'
+@@ -170,7 +169,7 @@ const cheminDe = (dir, file) => `${String(dir).split('\\').join('/').replace(/\/
+ export function scanBookDir(dir) {
+   const out = []
+   // Toute la FORME servie est jugée, l'index compris : il porte des tables comme un chapitre.
+-  for (const file of listerDossier(dir, { absent: 'vide' }).filter(estNomDExtraction)) {
++  for (const file of listerDossierDuDepot(dir, { absent: 'vide' }).filter(estNomDExtraction)) {
+     out.push(...sitesDuChapitre(readText(join(dir, file)), cheminDe(dir, file)))
+   }
+   return out
+diff --git a/scripts/raw/citation-graphy-guard.mjs b/scripts/raw/citation-graphy-guard.mjs
+index 02e7fd5bc..0ff8907fb 100644
+--- a/scripts/raw/citation-graphy-guard.mjs
++++ b/scripts/raw/citation-graphy-guard.mjs
+@@ -205,8 +205,8 @@ export function detecteChapterBoundary(ln) {
+ /** Pages SCANNÉES de `rawDir`, lues : `prose` dit si la page entre aussi au scan (d). */
+ function fichesScannees(rawDir) {
+   const prose = new Set(CLASSES_PROSE)
+-  return pagesDeLAtlas(rawDir, { classes: CLASSES, absent: 'vide' }).map((p) => ({
+-    file: p.chemin.replace(/\\/g, '/'),
++  return pagesDeLAtlas(resolve(rawDir), { classes: CLASSES, absent: 'vide' }).map((p) => ({
++    file: join(rawDir, p.relatif).replace(/\\/g, '/'),
+     prose: prose.has(p.classe),
+     lignes: readText(p.chemin).split('\n'),
+   }))
+@@ -235,7 +235,7 @@ function passeSrc(racines, exts) {
+     const out = vide()
+     for (const f of fichiersCitants(racines, exts)) {
+       const file = f.replace(/\\/g, '/')
+-      readText(f).split('\n').forEach((ln, i) => {
++      readText(resolve(f)).split('\n').forEach((ln, i) => {
+         const row = i + 1
+         const text = ln.trim().slice(0, 160)
+         if (detecteGraphy(ln)) out.graphy.push({ file, row, text })
+diff --git a/scripts/raw/coverage.mjs b/scripts/raw/coverage.mjs
+index 53982ac0a..a66fa81c5 100644
+--- a/scripts/raw/coverage.mjs
++++ b/scripts/raw/coverage.mjs
+@@ -17,8 +17,8 @@
+ // accesseurs de `_lib.mjs` — zéro ligne ici.
+ // Sortie : docs/raw/coverage.md  ·  `--check` : `ecrireOuVerifier`.
+ import { existsSync } from 'node:fs'
+-import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
+-import { BOOKS, coeurDe, chapterFile, estHorsRegle, folioSpan, motifHorsRegle, niveauDeSectionDe, readText, teneurDe } from './_lib.mjs'
++import { parUnitesDeCode } from '../guards/lib/lister.mjs'
++import { BOOKS, cheminDuDepot, coeurDe, chapterFile, estHorsRegle, folioSpan, listerDossierDuDepot, motifHorsRegle, niveauDeSectionDe, readText, teneurDe } from './_lib.mjs'
+ import { echapperRegex } from '../../src/lib/regex.ts'
+ import { graphieDuFichier, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
+ import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
+@@ -313,8 +313,8 @@ function rendu(rawDir = RAWDIR) {
+   const stubsCites = []
+   const info0 = (ab, nn) => chapterFile(ab, nn)?.path ?? `${ab} ${nn}`
+   for (const [ab, dir] of BOOKS) {
+-    if (!existsSync(dir)) { out.push(`## ${ab} — ⚠ dossier introuvable (${dir})`, ''); continue }
+-    const files = listerDossier(dir).filter((f) => numeroDuFichier(f) != null)
++    if (!existsSync(cheminDuDepot(dir))) { out.push(`## ${ab} — ⚠ dossier introuvable (${dir})`, ''); continue }
++    const files = listerDossierDuDepot(dir).filter((f) => numeroDuFichier(f) != null)
+     let bOk = 0, bCat = 0, bMid = 0, bHole = 0
+     const lines2 = ['| Ch. | Titre | État | refs (propriétaire) |', '|---|---|---|---|']
+     const detailBlocks = []
+diff --git a/scripts/raw/folio-bootstrap.mjs b/scripts/raw/folio-bootstrap.mjs
+index ea0c4699c..d5143755b 100644
+--- a/scripts/raw/folio-bootstrap.mjs
++++ b/scripts/raw/folio-bootstrap.mjs
+@@ -15,10 +15,8 @@
+ // Sortie  : table des folios lus (K → folio, en runs) + rapport de pose d'`anchor-fill` ; `--apply`
+ //           écrit les `.md` et l'index, sinon rapport seul.
+ // Usage   : node scripts/raw/folio-bootstrap.mjs <ABBR> [--apply]
+-import { writeFileSync } from 'node:fs'
+-import { listerDossier } from '../guards/lib/lister.mjs'
+ import { join, basename } from 'node:path'
+-import { livreDuSigle, pdfDuSigle, readText } from './_lib.mjs'
++import { ecrireTexteDuDepot, listerDossierDuDepot, livreDuSigle, pdfDuSigle, readText } from './_lib.mjs'
+ import { numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
+ import { lireBoites, pagesEnLignes, runBook } from './anchor-fill.mjs'
+ 
+@@ -31,7 +29,7 @@ const EDGE_LINES = 4             // profondeur de recherche du folio en tête et
+ export function corpusRange(dir) {
+   let lo = Infinity
+   let hi = -Infinity
+-  for (const file of listerDossier(dir).filter((f) => numeroDuFichier(f) != null)) {
++  for (const file of listerDossierDuDepot(dir).filter((f) => numeroDuFichier(f) != null)) {
+     const plage = plageDeLigne1(readText(join(dir, file)).split('\n')[0] || '')
+     if (!plage) continue
+     lo = Math.min(lo, plage.page - 1)
+@@ -100,7 +98,7 @@ export function folioRuns(reads) {
+ // Nom distinct de `reanchor.mjs#buildIndex` (index ligne/offset d'un texte) : même famille de
+ // fichiers, sens sans rapport.
+ export function buildFolioToc(dir, title) {
+-  const files = listerDossier(dir).filter((f) => numeroDuFichier(f) != null)
++  const files = listerDossierDuDepot(dir).filter((f) => numeroDuFichier(f) != null)
+   const rows = []
+   for (const file of files) {
+     const m = /data-folio="(\d+)"/.exec(readText(join(dir, file)))
+@@ -156,7 +154,7 @@ function main() {
+ 
+   if (apply) {
+     const title = basename(dir).replace(/^Warhammer v4 - |^WH - V4 - /, '')
+-    writeFileSync(join(dir, '00 - Index.md'), buildFolioToc(dir, title))
++    ecrireTexteDuDepot(join(dir, '00 - Index.md'), buildFolioToc(dir, title))
+     console.log(`index réécrit : ${join(dir, '00 - Index.md')}`)
+   } else {
+     console.log('(--dry par défaut : relancer avec --apply pour écrire)')
+diff --git a/scripts/raw/lib/carte-lignes.mjs b/scripts/raw/lib/carte-lignes.mjs
+index ff0fdc758..85763fa0f 100644
+--- a/scripts/raw/lib/carte-lignes.mjs
++++ b/scripts/raw/lib/carte-lignes.mjs
+@@ -13,7 +13,7 @@
+ import { readFileSync } from 'node:fs'
+ import { SUIVI, ceQuiChange, depotDe, imageDeHead, lireEnLot } from '../../guards/lib/gitPorte.mjs'
+ import { hunksDe } from '../../guards/lib/hunks.mjs'
+-import { normalize } from '../_lib.mjs'
++import { cheminDuDepot, normalize } from '../_lib.mjs'
+ import { stripSpans } from '../../../src/data/source/decoupe.ts'
+ 
+ /** @typedef {import('../../guards/lib/hunks.mjs').Hunk} Hunk */
+@@ -107,15 +107,15 @@ export const destinEnTexte = (d) =>
+  * le fichier est absent de `HEAD` (aucune ancienne ligne à porter). LÈVE si le fichier de l'arbre
+  * porte un CR isolé (#604) : git n'y voit pas de fin de ligne, `readText` si — les deux
+  * numérotations divergeraient.
+- * @param {string} chemin depuis la racine du dépôt
++ * @param {string} chemin relatif à la racine du dépôt du module, indépendante du cwd
+  * @returns {{ texteHead: string, carte: (n: number) => Destin, hunks: Hunk[] } | null}
+  */
+ export function carteDuFichier(chemin) {
+   const posix = String(chemin).split('\\').join('/')
+-  if (/\r(?!\n)/.test(readFileSync(posix, 'utf8'))) {
++  if (/\r(?!\n)/.test(readFileSync(cheminDuDepot(posix), 'utf8'))) {
+     throw new Error(`carteDuFichier : « ${posix} » porte un CR isolé (#604) — la numérotation de git diverge de celle de readText ; corriger les fins de ligne d'abord`)
+   }
+-  const depot = depotDe(process.cwd())
++  const depot = depotDe(cheminDuDepot('.'))
+   const head = imageDeHead(depot)
+   const texteHead = lireEnLot(depot, head, [posix]).get(posix) ?? null
+   if (texteHead === null) return null
+diff --git a/scripts/raw/lib/fichiersCitants.mjs b/scripts/raw/lib/fichiersCitants.mjs
+index 05a257a8f..1a498aa5b 100644
+--- a/scripts/raw/lib/fichiersCitants.mjs
++++ b/scripts/raw/lib/fichiersCitants.mjs
+@@ -11,7 +11,7 @@
+ // Deux jeux de RACINES, déclarés ici : `RACINES_CITANTES` (forme, bornes, ligne non aveugle) et
+ // `RACINES_DU_CODE` (présence à l'Atlas, champ `Implémente`). Une fiche de dossier de chapitre
+ // (`docs/dossiers/`, #2290) cite le livre et n'implémente rien : citante, hors du code.
+-import { join } from 'node:path'
++import { join, resolve } from 'node:path'
+ import { listerArbre } from '../../guards/lib/lister.mjs'
+ 
+ /** Racine des fiches de dossier de chapitre commitées (#2290), lues par `scripts/raw/lib/dossiers.mjs`. */
+@@ -30,7 +30,7 @@ export const RACINES_CITANTES = Object.freeze([...RACINES_DU_CODE, DOSSIERS_DIR]
+  *  par racine en ORDRE TOTAL (`listerArbre`) : l'ordre départage deux puces de même (livre, chapitre)
+  *  au rendu du champ `Implémente` (#1244). */
+ export function fichiersCitants(racines, exts = EXTS_CITANTES) {
+-  return [racines].flat().flatMap((dir) => listerArbre(dir, {
++  return [racines].flat().flatMap((dir) => listerArbre(resolve(dir), {
+     descendre: (rel) => !rel.split('/').includes('node_modules'),
+     filtre: (rel) => exts.some((x) => rel.endsWith(x)),
+   }).map((rel) => join(dir, rel)))
+diff --git a/scripts/raw/lib/fichiersCitants.test.mjs b/scripts/raw/lib/fichiersCitants.test.mjs
+index 0a8321d99..a1d78668b 100644
+--- a/scripts/raw/lib/fichiersCitants.test.mjs
++++ b/scripts/raw/lib/fichiersCitants.test.mjs
+@@ -7,20 +7,23 @@ import { test, before, after } from 'node:test'
+ import assert from 'node:assert/strict'
+ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+ import { tmpdir } from 'node:os'
+-import { join } from 'node:path'
+-import { livreDuSigle } from '../_lib.mjs'
++import { isAbsolute, join, relative } from 'node:path'
++import { chapterFile, cheminDuDepot, livreDuSigle, readText } from '../_lib.mjs'
++import { listerDossier } from '../../guards/lib/lister.mjs'
++import { numeroDuFichier } from '../../../src/data/source/decoupe.ts'
+ import { scanDeadCodeRefs, scanEmptyLineCodeRefs } from '../check-code-refs.mjs'
+ import { scanTout } from '../citation-graphy-guard.mjs'
+-import { scanBlindRefs } from '../../guards/lib/rawRefIntegrity.mjs'
++import { isBlindRef, scanBlindRefs } from '../../guards/lib/rawRefIntegrity.mjs'
+ import { indexCode, rendre as rendreImplementation, RAPPORT as RAPPORT_IMPLEMENTATION, validerDette, registresDeFiches } from '../build-implemente.mjs'
+ import { computeReconciliation } from '../reconcile.mjs'
+ 
+ const CODE = 'EDOC'
+ const DOSSIER = 'EDO'
+ const CH = '97'
+-const ref = (abbr, l) => [abbr, CH, `l.${l}`].join(' ')
+-const folio = (abbr) => [abbr, CH, 'p.3'].join(' ')
+-const citant = (abbr) => `// voir ${ref(abbr, 2)}\n// voir ${ref(abbr, 9)}\n// voir ${folio(abbr)}\n`
++const chapitres = new Map()
++const ref = (abbr, l) => [abbr, chapitres.get(abbr).ch, `l.${l}`].join(' ')
++const folio = (abbr) => [abbr, chapitres.get(abbr).ch, 'p.3'].join(' ')
++const citant = (abbr) => `// voir ${ref(abbr, chapitres.get(abbr).vide)}\n// voir ${ref(abbr, chapitres.get(abbr).horsBorne)}\n// voir ${folio(abbr)}\n`
+ const FICHIER_CODE = 'src/a.ts'
+ const FICHIER_DOSSIER = `docs/dossiers/${DOSSIER}/${CH}.json`
+ 
+@@ -29,9 +32,17 @@ let racine
+ before(() => {
+   racine = mkdtempSync(join(tmpdir(), 'citants-'))
+   for (const abbr of [CODE, DOSSIER]) {
+-    const dir = join(racine, livreDuSigle(abbr).dir)
+-    mkdirSync(dir, { recursive: true })
+-    writeFileSync(join(dir, `${CH} - Fixture.md`), 'Quuxa bravissimo\n\nDelta foxtrots\n')
++    const dir = cheminDuDepot(livreDuSigle(abbr).dir)
++    for (const fichier of listerDossier(dir)) {
++      const ch = numeroDuFichier(fichier)
++      if (ch == null) continue
++      const lignes = readText(chapterFile(abbr, ch).path).split('\n')
++      const vide = lignes.findIndex((_, i) => isBlindRef(lignes, i + 1, i + 1, '// voir')) + 1
++      if (!vide) continue
++      chapitres.set(abbr, { ch, vide, horsBorne: lignes.length + 1 })
++      break
++    }
++    assert.ok(chapitres.has(abbr), `aucune ligne blanche jugeable pour ${abbr}`)
+   }
+   for (const [rel, abbr] of [[FICHIER_CODE, CODE], [FICHIER_DOSSIER, DOSSIER]]) {
+     mkdirSync(join(racine, rel, '..'), { recursive: true })
+@@ -46,7 +57,7 @@ after(() => {
+   rmSync(racine, { recursive: true, force: true })
+ })
+ 
+-const fichiers = (sites) => [...new Set(sites.map((s) => s.file))].sort()
++const fichiers = (sites) => [...new Set(sites.map((s) => isAbsolute(s.file) ? relative(racine, s.file).split('\\').join('/') : s.file))].sort()
+ 
+ test('CITANTS : bornes, ligne vide, ligne aveugle et graphie lisent le code ET les dossiers', () => {
+   const attendu = [FICHIER_DOSSIER, FICHIER_CODE].sort()
+@@ -54,6 +65,7 @@ test('CITANTS : bornes, ligne vide, ligne aveugle et graphie lisent le code ET l
+   assert.deepEqual(fichiers(scanEmptyLineCodeRefs()), attendu, 'check-code-refs (ligne vide)')
+   assert.deepEqual(fichiers(scanBlindRefs()), attendu, 'rawRefIntegrity')
+   assert.deepEqual(fichiers(scanTout().folioSrc), attendu, 'citation-graphy-guard')
++  assert.deepEqual(scanTout().folioSrc.map((s) => s.file).sort(), attendu, 'les chemins relatifs des citants restent relatifs')
+ })
+ 
+ test('CODE : le champ `Implémente` ignore les dossiers (build-implemente)', () => {
+diff --git a/scripts/raw/marker-split.mjs b/scripts/raw/marker-split.mjs
+index 2c45c502a..ab89d9a7e 100644
+--- a/scripts/raw/marker-split.mjs
++++ b/scripts/raw/marker-split.mjs
+@@ -12,9 +12,8 @@
+ // Usage : node scripts/raw/marker-split.mjs <id du livre> "<marker-paginé.md | dossier de tranches>" "<out-dir>"
+ // Les anciens `.md` sont ceux du `dir` du livre (`src/data/books.json`).
+ import { writeFileSync, mkdirSync } from 'node:fs'
+-import { listerDossier } from '../guards/lib/lister.mjs'
+ import { join } from 'node:path'
+-import { copieMarkerDe, livreExtraitDe, pdfRequisDe, readText } from './_lib.mjs'
++import { copieMarkerDe, listerDossierDuDepot, livreExtraitDe, pdfRequisDe, readText } from './_lib.mjs'
+ import { graphieDuFichier, ligne1DePlage, numeroDuFichier, titreDuFichier } from '../../src/data/source/decoupe.ts'
+ import { mdsDeMarker, mdsDeRestitutions, pagesDeMarker, verifierExtraction, commandeRestitution } from './lib/marker-pages.mjs'
+ import { deballerSup } from './lib/titres.mjs'
+@@ -36,7 +35,7 @@ const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+   .replace(/[*_`#]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+ 
+ // 1. chapitres depuis les anciens .md : nom de fichier + page de début (marqueur « Page PDF X »)
+-const chapters = listerDossier(bookDir)
++const chapters = listerDossierDuDepot(bookDir)
+   .filter((f) => numeroDuFichier(f) != null)
+   .map((f) => {
+     const nn = graphieDuFichier(f)
+diff --git a/scripts/raw/reanchor-split.mjs b/scripts/raw/reanchor-split.mjs
+index 8e5df322f..a270fc88d 100644
+--- a/scripts/raw/reanchor-split.mjs
++++ b/scripts/raw/reanchor-split.mjs
+@@ -6,9 +6,9 @@
+ // dans les fichiers-chapitres actuels du même livre, et on réécrit la réf sur le chapitre/ligne trouvés.
+ //   node scripts/raw/reanchor-split.mjs            → rapport seul (aucune écriture)
+ //   node scripts/raw/reanchor-split.mjs --apply     → réécrit en place docs/raw/*.md
+-import { writeFileSync } from 'node:fs'
+ import { execFileSync } from 'node:child_process'
+-import { livreDuSigle, normalize, pagesDeLAtlas, readText } from './_lib.mjs'
++import { join } from 'node:path'
++import { cheminDuDepot, ecrireTexteDuDepot, listerDossierDuDepot, livreDuSigle, normalize, pagesDeLAtlas, readText } from './_lib.mjs'
+ import { echapperRegex } from '../../src/lib/regex.ts'
+ import { graphieDuFichier, numeroDuFichier } from '../../src/data/source/decoupe.ts'
+ import { RAWDIR, CLASSES } from './check-refs.mjs'
+@@ -41,13 +41,13 @@ export const key = (line) => normalize(stripHeading(line))
+ 
+ // ---------- lecture de l'origine (git) + des chapitres actuels ----------
+ export function origLinesOf(source) {
+-  const text = execFileSync('git', ['show', `${SPLIT_SOURCE_SHA}^:${source.path}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
++  const text = execFileSync('git', ['show', `${SPLIT_SOURCE_SHA}^:${source.path}`], { cwd: cheminDuDepot('.'), encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+   return text.split('\n')
+ }
+ 
+ export function buildBookIndex(abbr) {
+   const dir = livreDuSigle(abbr)?.dir
+-  const files = listerDossier(dir).filter((f) => numeroDuFichier(f) != null)
++  const files = listerDossierDuDepot(dir).filter((f) => numeroDuFichier(f) != null)
+   const index = {}
+   for (const f of files) {
+     const nn = graphieDuFichier(f)
+@@ -206,7 +206,7 @@ export function scanAndApply(rawDir, classes, sources, apply) {
+           for (const e of edits) s = s.slice(0, e.start) + e.replacement + s.slice(e.end)
+           lines[row] = s
+         }
+-        writeFileSync(path, lines.join('\n'))
++        ecrireTexteDuDepot(path, lines.join('\n'))
+       }
+     }
+   }
+diff --git a/scripts/raw/reanchor.mjs b/scripts/raw/reanchor.mjs
+index a1e0794e4..b5b9debfe 100644
+--- a/scripts/raw/reanchor.mjs
++++ b/scripts/raw/reanchor.mjs
+@@ -27,11 +27,9 @@
+ //   - ⛔ PAST-EOF (hors-fichier) : NE PAS doubler — déjà cliqueté par `check-refs.mjs`
+ //     (`dead-refs-stock.json`), sur la borne HAUTE dépliée d'une plage (`span`), un sur-ensemble
+ //     de la borne de départ vérifiée ici.
+-import { ecrireDoc } from '../docs/lib/ecriture-derives.mjs'
+-import { listerDossier } from '../guards/lib/lister.mjs'
+ import { join, dirname } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+-import { allAbbrAlternation, chapterFile, livreDuSigle, normalize, ELLIPSIS_SENTINEL as SENT, readText } from './_lib.mjs'
++import { allAbbrAlternation, chapterFile, ecrireTexteDuDepot, listerDossierDuDepot, livreDuSigle, normalize, ELLIPSIS_SENTINEL as SENT, readText } from './_lib.mjs'
+ import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
+ import { graphieDuFichier } from '../../src/data/source/decoupe.ts'
+ import { sansBr } from '../../src/data/source/normalize.ts'
+@@ -244,7 +242,7 @@ export function chapitresDeLaSection(lines, i) {
+ // ---------- recherche cross-chapitre (suggestion manuelle sur LOW, jamais auto) ----------
+ function crossChapter(abbr, head, excludeCh) {
+   const dir = livreDuSigle(abbr)?.dir; if (!dir) return null
+-  const files = listerDossier(dir, { absent: 'vide' })
++  const files = listerDossierDuDepot(dir, { absent: 'vide' })
+   const hits = []
+   for (const f of files) {
+     const nn = graphieDuFichier(f)
+@@ -446,7 +444,7 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes =
+         for (const e of es) s = s.slice(0, e.start) + e.replacement + s.slice(e.end)
+         lines[li] = s
+       }
+-      ecrireDoc(path, lines.join('\n'))
++      ecrireTexteDuDepot(path, lines.join('\n'))
+     }
+ 
+     if (rows.length) sections.push({ file, rows })
+diff --git a/scripts/raw/reconcile.mjs b/scripts/raw/reconcile.mjs
+index 387c32acf..5dc27217f 100644
+--- a/scripts/raw/reconcile.mjs
++++ b/scripts/raw/reconcile.mjs
+@@ -34,7 +34,7 @@
+ // Sortie : docs/raw/reconciliation.md  ·  Re-run : node scripts/raw/reconcile.mjs  ·  `--check` :
+ //   `ecrireOuVerifier`, APRÈS le cliquet — les deux rouges se disent.
+ import { readFileSync } from 'node:fs'
+-import { join, dirname } from 'node:path'
++import { join, dirname, resolve } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+ import { parUnitesDeCode } from '../guards/lib/lister.mjs'
+ import { ecartsDeStock } from '../guards/lib/stock.mjs'
+@@ -174,7 +174,7 @@ export function computeReconciliation({ racines = RACINES_DU_CODE, rawDir = RAWD
+   const ALT = alternationDe(books.map(([a]) => a))
+   const bookOf = bookOfDe(books)
+   const SRC = fichiersCitants(racines)
+-  const DOCS = pagesDeLAtlasRendues(rawDir, { classes: CLASSES, registre }, catalogues)
++  const DOCS = pagesDeLAtlasRendues(resolve(rawDir), { classes: CLASSES, registre }, catalogues)
+ 
+   // --- regex de réfs (source unique : _lib.mjs ; instances stateful /g locales) ---
+   const REF_RE = refReDe(ALT)
+diff --git a/scripts/raw/recouper-source.mjs b/scripts/raw/recouper-source.mjs
+index 2bcecbe91..e2d952ec5 100644
+--- a/scripts/raw/recouper-source.mjs
++++ b/scripts/raw/recouper-source.mjs
+@@ -24,8 +24,7 @@
+ // Idempotent : rejoué sur un livre déjà au grain, il n'écrit rien et sort 0.
+ import { writeFileSync, rmSync, existsSync } from 'node:fs'
+ import { basename, join } from 'node:path'
+-import { listerDossier } from '../guards/lib/lister.mjs'
+-import { decoupeDe, livreExtraitDe, readText } from './_lib.mjs'
++import { cheminDuDepot, decoupeDe, ecrireTexteDuDepot, listerDossierDuDepot, livreExtraitDe, readText } from './_lib.mjs'
+ import { couperAuxTitres } from './lib/marker-pages.mjs'
+ import { carteDuFichier, destinEnTexte } from './lib/carte-lignes.mjs'
+ import { INDEX } from './check-source-format.mjs'
+@@ -38,7 +37,7 @@ import {
+ 
+ /** Les `.md` de CHAPITRE d'un dossier, dans l'ordre de leur numéro — le FLUX du livre. */
+ export function chapitresEnService(dir) {
+-  return listerDossier(dir, { absent: 'lever' })
++  return listerDossierDuDepot(dir, { absent: 'lever' })
+     .filter((n) => n.endsWith('.md') && numeroDuFichier(n) != null)
+     .sort((a, b) => numeroDuFichier(a) - numeroDuFichier(b))
+ }
+@@ -206,7 +205,7 @@ export function recouper(anciens, liste) {
+ 
+ /** Les stocks NOMINATIFS du dossier des gardes — tout `*-stock.json` : aucun n'est nommé ici. */
+ const stocksNominatifs = (dir) =>
+-  listerDossier(dir, { absent: 'vide' }).filter((n) => n.endsWith('-stock.json')).map((n) => join(dir, n))
++  listerDossierDuDepot(dir, { absent: 'vide' }).filter((n) => n.endsWith('-stock.json')).map((n) => join(dir, n))
+ 
+ const CLE_DE_REF = /^([a-z0-9-]*)#(\d+)(?= ::|$)/
+ 
+@@ -384,7 +383,7 @@ function suivreLeDiff(dir, racine, DRY) {
+     return
+   }
+   if (DRY) { console.log('--dry : rien écrit'); return }
+-  for (const s of stocks) writeFileSync(s.chemin, s.texte)
++  for (const s of stocks) ecrireTexteDuDepot(s.chemin, s.texte)
+   console.log(stocks.length ? 'écrit' : 'aucun stock à recaler')
+ }
+ 
+@@ -402,8 +401,8 @@ function main() {
+     console.error(`recouper-source : « ${id} » n'est pas l'id d'un livre EXTRAIT de src/data/books.json`)
+     process.exit(1)
+   }
+-  const dir = livre.dir
+-  const racine = String(dir).split('\\').join('/').replace(/\/$/, '')
++  const dir = cheminDuDepot(livre.dir)
++  const racine = String(livre.dir).split('\\').join('/').replace(/\/$/, '')
+   if (args.includes('--suivre-diff')) { suivreLeDiff(dir, racine, DRY); return }
+   const liste = decoupeDe(livre.id)
+ 
+@@ -424,7 +423,7 @@ function main() {
+   }
+ 
+   const index = indexDe(basename(racine), plan)
+-  const aSupprimer = listerDossier(dir, { absent: 'vide' })
++  const aSupprimer = listerDossierDuDepot(dir, { absent: 'vide' })
+     .filter((n) => n.endsWith('.md') && estNomDExtraction(n) && !contenus.has(n) && n !== INDEX)
+   const aEcrire = plan.filter((e) => !existsSync(join(dir, e.nom)) || readText(join(dir, e.nom)) !== contenus.get(e.nom))
+   const indexAEcrire = !existsSync(join(dir, INDEX)) || readText(join(dir, INDEX)) !== index
+@@ -455,9 +454,9 @@ function main() {
+   }
+ 
+   for (const nom of aSupprimer) rmSync(join(dir, nom))
+-  for (const e of aEcrire) writeFileSync(join(dir, e.nom), contenus.get(e.nom))
+-  if (indexAEcrire) writeFileSync(join(dir, INDEX), index)
+-  for (const s of stocks) writeFileSync(s.chemin, s.texte)
++  for (const e of aEcrire) ecrireTexteDuDepot(join(dir, e.nom), contenus.get(e.nom))
++  if (indexAEcrire) ecrireTexteDuDepot(join(dir, INDEX), index)
++  for (const s of stocks) ecrireTexteDuDepot(s.chemin, s.texte)
+   if (fichierCarte) writeFileSync(fichierCarte, `${lignesCarte}\n`)
+   console.log(aEcrire.length || aSupprimer.length || indexAEcrire ? 'écrit' : 'déjà au grain — aucun changement')
+ }
+diff --git a/scripts/raw/reparer-ancres.mjs b/scripts/raw/reparer-ancres.mjs
+index aa8e44eed..356f14d7e 100644
+--- a/scripts/raw/reparer-ancres.mjs
++++ b/scripts/raw/reparer-ancres.mjs
+@@ -10,8 +10,8 @@
+ // Écrit en `\n` (l'arbre est `eol=lf`), et seulement sous `--apply` : sans lui, l'outil ne fait que
+ // rendre ce qu'il ferait. Idempotent — une seconde passe ne réécrit rien.
+ // Usage : node scripts/raw/reparer-ancres.mjs [--dry] [--apply]
+-import { writeFileSync } from 'node:fs'
+ import { join } from 'node:path'
++import { ecrireTexteDuDepot } from './_lib.mjs'
+ import { pagesAvecAncres, renvoisMorts, RAWDIR, rendusDeLAtlas } from './check-ancres.mjs'
+ 
+ /** Les DEUX étages de pliage, dans l'ordre où on les essaie — le plus fidèle d'abord. */
+@@ -90,7 +90,7 @@ export function reparer(argv = process.argv.slice(2), rawDir = RAWDIR, sources)
+     const avant = pages.get(page).texte
+     const apres = pageReecrite(avant, reparations)
+     if (apres === avant) continue
+-    writeFileSync(join(rawDir, page), apres, 'utf8')
++    ecrireTexteDuDepot(join(rawDir, page), apres)
+     bilan.pages++
+     console.log(`  écrit ${rawDir}/${page} (${reparations.length} renvoi(s))`)
+   }
+diff --git a/scripts/raw/reparer-mobilier.mjs b/scripts/raw/reparer-mobilier.mjs
+index 24c8c5238..34615cf1b 100644
+--- a/scripts/raw/reparer-mobilier.mjs
++++ b/scripts/raw/reparer-mobilier.mjs
+@@ -18,8 +18,7 @@
+ //
+ // Usage : node scripts/raw/reparer-mobilier.mjs <id du livre> [--apply]
+ // Sans `--apply`, rend ce qu'il ferait. Idempotent : rejoué sur un livre réparé, il n'écrit rien.
+-import { writeFileSync } from 'node:fs'
+-import { readText } from './_lib.mjs'
++import { ecrireTexteDuDepot, readText } from './_lib.mjs'
+ import { estLigneDeTable, sansJeton } from './lib/mobilier.mjs'
+ import { cellulesDe, estSeparateur } from '../../src/data/source/decoupe.ts'
+ import { sitesDuLivre } from './sonde-mobilier.mjs'
+@@ -183,7 +182,7 @@ function main() {
+   }
+   if (bloque) { console.log('rien n’est écrit : un refus au moins.'); process.exitCode = 1; return }
+   if (!apply) { console.log(`${ecrits.length} fichier(s) à réparer, ${aReparer.length} site(s) — --apply pour écrire`); return }
+-  for (const [f, t] of ecrits) writeFileSync(f, t)
++  for (const [f, t] of ecrits) ecrireTexteDuDepot(f, t)
+   console.log(`${ecrits.length} fichier(s) réparé(s), ${aReparer.length} site(s)`)
+ }
+ 
+diff --git a/scripts/raw/reparer-titres.mjs b/scripts/raw/reparer-titres.mjs
+index 45565dae6..61fc652a7 100644
+--- a/scripts/raw/reparer-titres.mjs
++++ b/scripts/raw/reparer-titres.mjs
+@@ -38,9 +38,9 @@
+ //
+ // Usage : node scripts/raw/reparer-titres.mjs <id du livre> [--sites <json> | --boites <json>] [--apply]
+ // Sans `--apply`, rend ce qu'il ferait. Idempotent : rejoué sur un livre réparé, il n'écrit rien.
+-import { readFileSync, writeFileSync } from 'node:fs'
++import { readFileSync } from 'node:fs'
+ import { parUnitesDeCode } from '../guards/lib/lister.mjs'
+-import { decoupeDe, livreExtraitDe, nomsDeLaListe, readText } from './_lib.mjs'
++import { decoupeDe, ecrireTexteDuDepot, livreExtraitDe, nomsDeLaListe, readText } from './_lib.mjs'
+ import { grasOuvert, recoller } from './lib/titres-soudes.mjs'
+ import { motsDe, ecartDeMots } from './reparer-mobilier.mjs'
+ import { cle, enTete, sondeDuLivre } from './sonde-titres.mjs'
+@@ -280,7 +280,7 @@ function main() {
+   for (const r of recolles) console.log(`  P ${r.nnn}:${r.ligne} recollée à ${r.nnn}:${r.avec}`)
+   const changes = [...textes].filter(([k, t]) => t !== avant.get(k))
+   console.log(`${appliques.length} site(s), ${recolles.length} paragraphe(s) recollé(s), ${changes.length} fichier(s)${args.includes('--apply') ? ' écrit(s)' : ' à écrire — --apply pour écrire'}`)
+-  if (args.includes('--apply')) for (const [k, t] of changes) writeFileSync(`${dir}/${noms.get(k)}`, t)
++  if (args.includes('--apply')) for (const [k, t] of changes) ecrireTexteDuDepot(`${dir}/${noms.get(k)}`, t)
+ }
+ 
+ if (import.meta.main) main()
+diff --git a/scripts/raw/split-mdg.mjs b/scripts/raw/split-mdg.mjs
+index 8bb3379ea..b6268f44a 100644
+--- a/scripts/raw/split-mdg.mjs
++++ b/scripts/raw/split-mdg.mjs
+@@ -1,9 +1,8 @@
+ // Découpe l'extraction Marker de « La Mer de Griffe » (livre NOUVEAU, sans structure ancienne à aligner)
+ // en 16 chapitres NN - Titre.md = les en-têtes majeurs du SOMMAIRE. Conserve `*Pages PDF X*` en tête,
+ // retire les séparateurs de page `{N}----`. Usage : node scripts/raw/split-mdg.mjs
+-import { writeFileSync, mkdirSync } from 'node:fs'
+ import { join } from 'node:path'
+-import { readText, sortieMarkerDe } from './_lib.mjs'
++import { creerDossierDuDepot, ecrireTexteDuDepot, livreExtraitDe, readText, sortieMarkerDe } from './_lib.mjs'
+ import { mdsDeMarker } from './lib/marker-pages.mjs'
+ import { nomAscii } from '../source/nom-ascii.mjs'
+ import { graphieDeChapitre, largeurDeChapitre, ligne1DePlage, plageEnTexte } from '../../src/data/source/decoupe.ts'
+@@ -14,7 +13,7 @@ const LIVRE = 'mer-des-griffes'
+ let SRC
+ try { [SRC] = mdsDeMarker(sortieMarkerDe(LIVRE)) } catch (e) { console.error(e.message); process.exit(1) }
+ // Tout nom ÉCRIT sous `Source/` passe par `nomAscii` (#1699) : un chemin non ASCII ne naît pas ici.
+-const OUT = nomAscii('Source/WH - V4 - La Mer de Griffe')
++const OUT = nomAscii(livreExtraitDe(LIVRE).dir)
+ 
+ const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+   .replace(/[*_`#]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+@@ -57,7 +56,7 @@ for (const [title, key] of CHAPTERS) {
+ // 2. page PDF d'une ligne = (dernier {N} <= ligne) + 1
+ const pageAt = (idx) => { let pg = 1; for (let i = 0; i <= idx && i < lines.length; i++) { const m = lines[i].match(PAGE_RE); if (m) pg = Number(m[1]) + 1 } return pg }
+ 
+-mkdirSync(OUT, { recursive: true })
++creerDossierDuDepot(OUT, { recursive: true })
+ // LARGEUR du dossier, arrêtée AVANT le premier fichier : tous les préfixes d'un livre la partagent.
+ const LARGEUR = largeurDeChapitre(CHAPTERS.length)
+ const idxRows = []
+@@ -71,9 +70,9 @@ for (let c = 0; c < CHAPTERS.length; c++) {
+   const span = plageEnTexte(startPage, endPage)
+   const nn = graphieDeChapitre(c + 1, LARGEUR)
+   const nom = nomAscii(`${nn} - ${title}.md`)
+-  writeFileSync(join(OUT, nom), `${ligne1DePlage(startPage, endPage)}\n\n${body}\n`)
++  ecrireTexteDuDepot(join(OUT, nom), `${ligne1DePlage(startPage, endPage)}\n\n${body}\n`)
+   idxRows.push(`- [${nom.replace(/\.md$/, '')}](<${nom}>) — p.${span}`)
+   console.log(`${nn} - ${title}  (p.${span}, ${to - from} lignes)`)
+ }
+-writeFileSync(join(OUT, '00 - Index.md'), `# La Mer des Griffes — Index\n\n${idxRows.join('\n')}\n`)
++ecrireTexteDuDepot(join(OUT, '00 - Index.md'), `# La Mer des Griffes — Index\n\n${idxRows.join('\n')}\n`)
+ console.log(`\n${CHAPTERS.length} chapitres + index écrits dans ${OUT}`)
+diff --git a/scripts/raw/split-vdm.mjs b/scripts/raw/split-vdm.mjs
+index f8fc7593b..38b76c7ba 100644
+--- a/scripts/raw/split-vdm.mjs
++++ b/scripts/raw/split-vdm.mjs
+@@ -1,9 +1,8 @@
+ // Découpe l'extraction Marker de « Les Vents de Magie » (livre NOUVEAU, sans structure ancienne à aligner)
+ // en 15 chapitres NN - Titre.md = les en-têtes majeurs du SOMMAIRE (chiffres romains I à XV). Conserve
+ // `*Pages PDF X*` en tête, retire les séparateurs de page `{N}----`. Usage : node scripts/raw/split-vdm.mjs
+-import { writeFileSync, mkdirSync } from 'node:fs'
+ import { join } from 'node:path'
+-import { readText, sortieMarkerDe } from './_lib.mjs'
++import { creerDossierDuDepot, ecrireTexteDuDepot, livreExtraitDe, readText, sortieMarkerDe } from './_lib.mjs'
+ import { mdsDeMarker } from './lib/marker-pages.mjs'
+ import { nomAscii } from '../source/nom-ascii.mjs'
+ import { graphieDeChapitre, largeurDeChapitre, ligne1DePlage, plageEnTexte } from '../../src/data/source/decoupe.ts'
+@@ -14,7 +13,7 @@ const LIVRE = 'vents-de-la-magie'
+ let SRC
+ try { [SRC] = mdsDeMarker(sortieMarkerDe(LIVRE)) } catch (e) { console.error(e.message); process.exit(1) }
+ // Tout nom ÉCRIT sous `Source/` passe par `nomAscii` (#1699) : un chemin non ASCII ne naît pas ici.
+-const OUT = nomAscii('Source/Warhammer v4 - Les Vents de Magie')
++const OUT = nomAscii(livreExtraitDe(LIVRE).dir)
+ 
+ const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+   .replace(/[*_`#]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+@@ -58,7 +57,7 @@ for (const [title, key] of CHAPTERS) {
+ // 2. page PDF d'une ligne = (dernier {N} <= ligne) + 1
+ const pageAt = (idx) => { let pg = 1; for (let i = 0; i <= idx && i < lines.length; i++) { const m = lines[i].match(PAGE_RE); if (m) pg = Number(m[1]) + 1 } return pg }
+ 
+-mkdirSync(OUT, { recursive: true })
++creerDossierDuDepot(OUT, { recursive: true })
+ // LARGEUR du dossier, arrêtée AVANT le premier fichier : tous les préfixes d'un livre la partagent.
+ const LARGEUR = largeurDeChapitre(CHAPTERS.length)
+ const idxRows = []
+@@ -72,9 +71,9 @@ for (let c = 0; c < CHAPTERS.length; c++) {
+   const span = plageEnTexte(startPage, endPage)
+   const nn = graphieDeChapitre(c + 1, LARGEUR)
+   const nom = nomAscii(`${nn} - ${title}.md`)
+-  writeFileSync(join(OUT, nom), `${ligne1DePlage(startPage, endPage)}\n\n${body}\n`)
++  ecrireTexteDuDepot(join(OUT, nom), `${ligne1DePlage(startPage, endPage)}\n\n${body}\n`)
+   idxRows.push(`- [${nom.replace(/\.md$/, '')}](<${nom}>) — p.${span}`)
+   console.log(`${nn} - ${title}  (p.${span}, ${to - from} lignes)`)
+ }
+-writeFileSync(join(OUT, '00 - Index.md'), `# Les Vents de Magie — Index\n\n${idxRows.join('\n')}\n`)
++ecrireTexteDuDepot(join(OUT, '00 - Index.md'), `# Les Vents de Magie — Index\n\n${idxRows.join('\n')}\n`)
+ console.log(`\n${CHAPTERS.length} chapitres + index écrits dans ${OUT}`)
+diff --git a/scripts/raw/split-wfrp5.mjs b/scripts/raw/split-wfrp5.mjs
+index 343ede231..34f2d52b1 100644
+--- a/scripts/raw/split-wfrp5.mjs
++++ b/scripts/raw/split-wfrp5.mjs
+@@ -14,7 +14,6 @@
+ // découpeur les ÉCRASE (§ 7 de `docs/ajouter-un-livre-source.md`). Re-couper un livre DÉJÀ servi se
+ // fait par `scripts/raw/recouper-source.mjs`, qui prend les `.md` pour flux.
+ // Usage : node scripts/raw/split-wfrp5.mjs [--dry]  (`--dry` : aucune écriture, imprime le plan)
+-import { writeFileSync, mkdirSync } from 'node:fs'
+ import { basename, join } from 'node:path'
+ import {
+   mdsDeMarker, mdsDeRestitutions, pagesDeMarker, verifierExtraction, commandeRestitution,
+@@ -22,7 +21,7 @@ import {
+ } from './lib/marker-pages.mjs'
+ import { deballerSup } from './lib/titres.mjs'
+ import { nomAscii } from '../source/nom-ascii.mjs'
+-import { copieMarkerDe, decoupeDe, livreExtraitDe, pdfRequisDe, sortieMarkerDe } from './_lib.mjs'
++import { copieMarkerDe, creerDossierDuDepot, decoupeDe, ecrireTexteDuDepot, livreExtraitDe, pdfRequisDe, sortieMarkerDe } from './_lib.mjs'
+ import { indexDe, spanDe } from './recouper-source.mjs'
+ import { graphieDeChapitre, largeurDeChapitre, ligne1DePlage } from '../../src/data/source/decoupe.ts'
+ 
+@@ -110,7 +109,7 @@ if (introuvables.length) {
+   console.error('--dry : le plan ci-dessous OMET ces fichiers ; un découpage réel refuse.')
+ }
+ 
+-if (!DRY) mkdirSync(OUT, { recursive: true })
++if (!DRY) creerDossierDuDepot(OUT, { recursive: true })
+ // LARGEUR du dossier, arrêtée AVANT le premier fichier : tous les préfixes d'un livre la partagent.
+ const LARGEUR = largeurDeChapitre(LISTE.length)
+ const plan = []
+@@ -125,12 +124,12 @@ for (let c = 0; c < coupes.length; c++) {
+   const entree = parTitre.get(coupes[c].cle)
+   const span = spanDe(entree)
+   const nom = nomAscii(`${graphieDeChapitre(plan.length + 1, LARGEUR)} - ${coupes[c].cle}.md`)
+-  if (!DRY) writeFileSync(join(OUT, nom), `${ligne1DePlage(entree.page, entree.pageFin)}\n\n${body}\n`)
++  if (!DRY) ecrireTexteDuDepot(join(OUT, nom), `${ligne1DePlage(entree.page, entree.pageFin)}\n\n${body}\n`)
+   plan.push({ nom, span })
+   const premier = body.split('\n').find((l) => /^#{1,6}\s/.test(l)) || '(aucun en-tête)'
+   console.log(`${nom}  (p.${span}, ${body.split('\n').length} lignes, ${Math.round(body.length / 1024)} Ko, ${sups} <sup> déballés) — 1er en-tête : ${premier.slice(0, 80)}`)
+ }
+-if (!DRY) writeFileSync(join(OUT, '00 - Index.md'), indexDe(basename(OUT), plan))
++if (!DRY) ecrireTexteDuDepot(join(OUT, '00 - Index.md'), indexDe(basename(OUT), plan))
+ console.log(DRY
+   ? `\n--dry : ${plan.length} fichier(s) + index PLANIFIÉS pour ${OUT} (${lastPage} pages extraites, ${introuvables.length} titre(s) introuvable(s)) — rien écrit`
+   : `\n${plan.length} fichier(s) + index écrits dans ${OUT} (${lastPage} pages extraites)`)
+diff --git a/scripts/source/lecteur-fs.mjs b/scripts/source/lecteur-fs.mjs
+index e4e113713..15ed28b86 100644
+--- a/scripts/source/lecteur-fs.mjs
++++ b/scripts/source/lecteur-fs.mjs
+@@ -2,8 +2,7 @@
+ // Le parsing lui-même vient de `src/data/source/decoupe.ts` (source unique, pure) — ce module ne fait
+ // que résoudre `bookId → dossier → fichier de chapitre`, lire le texte (CRLF-robuste, `readText`) et
+ // mémoriser le chapitre parsé.
+-import { listerDossier } from '../guards/lib/lister.mjs'
+-import { chapterFile, livreExtraitDe, readText, sigleDe } from '../raw/_lib.mjs'
++import { chapterFile, listerDossierDuDepot, livreExtraitDe, readText, sigleDe } from '../raw/_lib.mjs'
+ import { parseChapitre, prefixesDeChapitres } from '../../src/data/source/decoupe.ts'
+ 
+ const _cache = new Map()
+@@ -13,7 +12,7 @@ const _cache = new Map()
+ export function chapitresDe(bookId) {
+   const dir = livreExtraitDe(bookId)?.dir
+   if (!dir) return []
+-  return prefixesDeChapitres(listerDossier(dir, { absent: 'vide' }))
++  return prefixesDeChapitres(listerDossierDuDepot(dir, { absent: 'vide' }))
+ }
+ 
+ /** Nom du fichier d'un chapitre, ou `null`. @param {string} bookId @param {string|number} ch */
+diff --git a/scripts/source/prose-source-plugin.mjs b/scripts/source/prose-source-plugin.mjs
+index 4fda68094..3b60dbcd3 100644
+--- a/scripts/source/prose-source-plugin.mjs
++++ b/scripts/source/prose-source-plugin.mjs
+@@ -28,12 +28,12 @@
+ import { basename } from 'node:path'
+ import { chapitresDe, lireChapitre, oublierChapitre } from './lecteur-fs.mjs'
+ import { cheminChapitre, materialiser } from './resoudre.mjs'
+-import { BOOKS, REGISTRE_LIVRES, estLivreExtrait, readText, sigleDe } from '../raw/_lib.mjs'
++import { BOOKS, REGISTRE_LIVRES, cheminDuDepot, estLivreExtrait, readText, sigleDe } from '../raw/_lib.mjs'
+ import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+ import { estDocumentDeProse } from '../guards/lib/proseInline.mjs'
+ 
+-/** Séparateurs POSIX — l'index de dépendance apparie des chemins Windows et des chemins Vite. */
+-const normalise = (chemin) => String(chemin).split('\\').join('/')
++/** Chemin absolu du dépôt, à séparateurs POSIX, partagé par les dépendances et les événements Vite. */
++const normalise = (chemin) => cheminDuDepot(chemin).split('\\').join('/')
+ 
+ /** Route publique d'un chapitre : `/source/<livre>/<NNN>.md` — la graphie du chapitre, de la
+  *  largeur de son livre (`graphieDeChapitre`, `src/data/source/decoupe.ts`). */
+@@ -189,7 +189,7 @@ export function proseSource(options = {}) {
+         res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
+         res.end(readText(chemin))
+       })
+-      for (const dossier of corpus.dossiers()) server.watcher.add(dossier)
++      for (const dossier of corpus.dossiers()) server.watcher.add(cheminDuDepot(dossier))
+       server.watcher.on('change', (fichier) => {
+         const vu = dependants.get(normalise(fichier))
+         if (!vu || vu.ids.size === 0) return
+diff --git a/src/data/source/prose-source.test.ts b/src/data/source/prose-source.test.ts
+index 9d0c98b2d..36effd238 100644
+--- a/src/data/source/prose-source.test.ts
++++ b/src/data/source/prose-source.test.ts
+@@ -54,8 +54,7 @@ function fixture(): { racine: string; chapitre: string } {
+   const absolu = join(corpus, LIVRE, '21 - Psychologie.md');
+   writeFileSync(absolu, CHAPITRE, 'utf8');
+   // FORME DE PRODUCTION du chemin de chapitre : relatif à la racine (`chapterFile` compose depuis le
+-  // `dir` de `books.json`) et à séparateurs Windows — c'est cette forme que chokidar rend, et c'est
+-  // sur elle que l'index de dépendance du plugin doit s'apparier.
++  // `dir` de `books.json`). L'événement chokidar peut désigner ce chapitre par son chemin absolu.
+   return { racine, chapitre: relative(process.cwd(), absolu) };
+ }
+ afterAll(() => { for (const r of racines) rmSync(r, { recursive: true, force: true }); });
+@@ -453,7 +452,7 @@ describe('plugin `wfrp:prose-source` — serveur de dev', () => {
+    * vérifié ici ; l'unique maillon laissé à Vite est la remontée chokidar, dont la condition — le
+    * dossier du livre mis sous surveillance par le plugin — est vérifiée juste en dessous.
+    */
+-  it('un chapitre RÉÉCRIT invalide les modules JSON qui en dépendent et fait recharger la page', async () => {
++  it.each(['relatif', 'absolu'] as const)('un chapitre RÉÉCRIT, événement %s, invalide ses modules JSON et recharge la page', async (forme) => {
+     const { racine, chapitre } = fixture();
+     const fichierJson = join(racine, 'src', 'data', 'psychology.json');
+     writeFileSync(fichierJson, JSON.stringify([{ id: 'terreur', descRef: adresseDuTitre(chapitre, 'Terreur') }]), 'utf8');
+@@ -491,7 +490,7 @@ describe('plugin `wfrp:prose-source` — serveur de dev', () => {
+       );
+ 
+       writeFileSync(chapitre, CHAPITRE.replace('quelque chose d\'horrible', 'quelque chose de RÉÉCRIT'), 'utf8');
+-      server.watcher.emit('change', chapitre);
++      server.watcher.emit('change', forme === 'absolu' ? resolve(chapitre) : chapitre);
+ 
+       expect(messages.map((m) => m?.type), 'aucun `full-reload` envoyé au navigateur').toContain('full-reload');
+       expect(module?.transformResult, 'le module JSON est resté en cache : il servirait l’ancien texte').toBeNull();
+diff --git a/scripts/raw/chemins-livres.test.mjs b/scripts/raw/chemins-livres.test.mjs
+new file mode 100644
+index 000000000..dbdbd0f8b
+--- /dev/null
++++ b/scripts/raw/chemins-livres.test.mjs
+@@ -0,0 +1,80 @@
++import { test } from 'node:test'
++import assert from 'node:assert/strict'
++import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
++import { tmpdir } from 'node:os'
++import { isAbsolute, join, relative, resolve } from 'node:path'
++import { fileURLToPath } from 'node:url'
++import { spawnSync } from 'node:child_process'
++import { chapterFile, cheminDuDepot, creerDossierDuDepot, ecrireTexteDuDepot, folioIndexOf, listerDossierDuDepot, listerArbreDuDepot, readText, REGISTRE_LIVRES } from './_lib.mjs'
++import { listerDossier } from '../guards/lib/lister.mjs'
++import { numeroDuFichier } from '../../src/data/source/decoupe.ts'
++import { makeChapterReader } from '../guards/lib/folioLineAlign.mjs'
++import { chapitresDe, lireChapitre } from '../source/lecteur-fs.mjs'
++
++const racine = fileURLToPath(new URL('../../', import.meta.url))
++
++if (process.argv.includes('--lecture-etrangere')) {
++  const etranger = process.cwd()
++  const cache = resolve(racine, 'node_modules/.cache')
++  mkdirSync(cache, { recursive: true })
++  const fixture = mkdtempSync(join(cache, '3120-couture-'))
++  try {
++    const dossier = relative(racine, fixture)
++    const fichier = join(dossier, 'chapitre.md')
++    const leurre = resolve(etranger, fichier)
++    mkdirSync(resolve(leurre, '..'), { recursive: true })
++    writeFileSync(leurre, 'leurre\n')
++    creerDossierDuDepot(join(dossier, 'chapitres'))
++    ecrireTexteDuDepot(fichier, 'chapitre\r\n')
++    assert.equal(readText(fichier), 'chapitre\n')
++    assert.equal(readFileSync(resolve(racine, fichier), 'utf8'), 'chapitre\r\n')
++    assert.equal(readFileSync(leurre, 'utf8'), 'leurre\n')
++    assert.deepEqual(listerDossierDuDepot(dossier).sort(), ['chapitre.md', 'chapitres'])
++    assert.deepEqual(listerArbreDuDepot(dossier), ['chapitre.md'])
++  } finally {
++    rmSync(fixture, { recursive: true, force: true })
++  }
++  const livre = REGISTRE_LIVRES.find((b) => b.dir && b.coeur)
++  assert.ok(livre)
++  const fichier = listerDossier(resolve(racine, livre.dir)).find((f) => numeroDuFichier(f) != null && /data-folio="/.test(readText(resolve(racine, livre.dir, f))))
++  assert.ok(fichier, 'un chapitre réel avec ancres de folios')
++  const ch = numeroDuFichier(fichier)
++  const lecteur = makeChapterReader(REGISTRE_LIVRES)
++  let premier
++  let premiersFolios
++  for (const cwd of [etranger, racine, etranger]) {
++    process.chdir(cwd)
++    const chapitre = chapterFile(livre.abbr, ch)
++    assert.ok(chapitre, `chapitre absent depuis ${cwd}`)
++    assert.equal(chapitre.dir, livre.dir)
++    assert.equal(chapitre.path, join(livre.dir, fichier))
++    assert.equal(isAbsolute(chapitre.path), false)
++    const texte = readText(chapitre.path)
++    assert.ok(texte.trim())
++    const folios = folioIndexOf(livre.abbr)
++    assert.ok(folios.size > 0)
++    assert.deepEqual(lecteur(livre.abbr, ch), texte.split('\n'))
++    assert.ok(chapitresDe(livre.id).some((n) => Number(n) === ch))
++    assert.ok(lireChapitre(livre.id, ch))
++    assert.equal(cheminDuDepot(chapitre.path), resolve(racine, chapitre.path))
++    if (premier) {
++      assert.equal(texte, premier)
++      assert.deepEqual(folios, premiersFolios)
++    } else {
++      premier = texte
++      premiersFolios = new Map(folios)
++    }
++  }
++} else {
++  test('les livres se lisent à froid depuis un cwd étranger, puis après changement de cwd', () => {
++    const etranger = mkdtempSync(join(tmpdir(), 'livres-cwd-'))
++    try {
++      const enfant = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--lecture-etrangere'], {
++        cwd: etranger, encoding: 'utf8', timeout: 30_000,
++      })
++      assert.equal(enfant.status, 0, `${enfant.error ?? ''}\n${enfant.stdout}\n${enfant.stderr}`)
++    } finally {
++      rmSync(etranger, { recursive: true, force: true })
++    }
++  })
++}
