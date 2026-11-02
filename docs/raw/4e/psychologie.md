@@ -95,6 +95,10 @@ La mécanique exacte (Test simple ou étendu, Indice à surmonter) varie selon l
 - le personnage gagne l'État *Sonné* ou *Inconscient*, OU
 - il tombe sous le coup d'un autre effet psychologique.
 
+- Calmé, lecture recommandée, révisable (#3045) : un membre hors d'action ou Brisé s'est calmé ; un membre en action reste hostile s'il est agressif envers le porteur (`agressifEnvers` : adversaire déclaré, Engagé avec lui, ou l'ayant attaqué ce Round ; Q11 A), sinon il s'est calmé (`cibleEnVue` à `hostiles`). Lecture contraire : seules la fuite et la reddition calment.
+- Fin naturelle, lecture recommandée, révisable (#3045) : l'affliction se désactive et garde son marqueur de rencontre (`LDB 21 l.9`), si bien que le Groupe ne redéclenche aucun Test dans la même rencontre. Lecture contraire : un membre du Groupe qui entre ensuite en vue redéclenche un Test.
+- Moment, lecture recommandée, révisable (#3045) : la Ligne de Vue se juge à la fin de chaque Round, au moment du nouveau Test (`trigger: onRoundEnd`, Condition `cibleEnVue`) ; un État gagné en combat finit l'affliction sur-le-champ (`trigger: onGainCondition`, qui ne joue qu'en combat). Lecture contraire : la Ligne de Vue se juge à tout instant.
+
 > « Vous gagnez également +1 DR dès que vous vous en prenez au groupe, que cela soit socialement ou physiquement. *Animosité* est annulé par *Peur* et *Terreur*. » — `LDB 21 l.21`
 
 **Acquise sur un Destin dépensé** (ADE II, règle optionnelle `psych-acquisition-optional`) :
@@ -135,6 +139,8 @@ La mécanique exacte (Test simple ou étendu, Indice à surmonter) varie selon l
 - Si la source s'approche : Test de **Calme Intermédiaire (+0)** ou gain d'un **État Brisé**.
 
 > « Lorsque vous êtes sous le coup de la *Peur*, vous subissez -1 DR à tous les Tests en rapport avec la source de votre peur. Vous êtes incapable de vous rapprocher de ce qui provoque cette *Peur* à moins de réussir un Test de **Calme Intermédiaire (+0)**. Si la source de votre *Peur* se rapproche de vous, vous devez réussir un Test de **Calme Intermédiaire (+0)** ou gagner un État *Brisé*. » — `LDB 21 l.27`
+
+- Fin à la chute de la source, lecture existante, révisable (#3045) : le texte ne nomme aucune fin hors du Test étendu ; une Peur (une Terreur devenue Peur comprise) causée par une créature finit dès que celle-ci est hors d'action, Inconscient compris (`clearPsychOf`). Lecture contraire : seul le Test étendu réussi la finit (`LDB 21 l.25`), une source hors d'action restant source de Peur.
 
 **Sources RAW** :
 - `LDB 21 l.23-27` — définition, Test étendu, effets sous Peur, approche de la source
@@ -213,6 +219,10 @@ La mécanique exacte (Test simple ou étendu, Indice à surmonter) varie selon l
 
 **Fin de la Haine** : à la fin de chaque Round suivant, *peut* tenter un autre Test de Psychologie. Sans test, les effets cessent lorsque tous les membres en Ligne de Vue sont morts ou ont disparu, ou que le personnage gagne l'État *Inconscient*.
 
+- Disparu, lecture recommandée, révisable (#3045) : seuls comptent les membres dans la Ligne de Vue du porteur au moment où elle se juge, si bien qu'un membre qui en sort ne la retient plus ; un membre Inconscient n'est ni mort ni disparu, il reste en vue ; un membre mort, rendu ou sorti de la rencontre a disparu (`cibleEnVue`). Lecture contraire : tout membre hors d'action a disparu.
+- Fin naturelle, lecture recommandée, révisable (#3045) : l'affliction se désactive et garde son marqueur de rencontre (`LDB 21 l.9`), si bien que le Groupe ne redéclenche aucun Test dans la même rencontre. Lecture contraire : un membre du Groupe qui entre ensuite en vue redéclenche un Test.
+- Moment, lecture recommandée, révisable (#3045) : la Ligne de Vue se juge à la fin de chaque Round, au moment du nouveau Test (`trigger: onRoundEnd`, Condition `cibleEnVue`) ; un État gagné en combat finit l'affliction sur-le-champ (`trigger: onGainCondition`, qui ne joue qu'en combat). Lecture contraire : la Ligne de Vue se juge à tout instant.
+
 > « Tant que vous ressentez de la *Haine*, vous devez faire tout ce qui est en votre pouvoir pour détruire le groupe haï, et ce, le plus rapidement et de manière la plus violente possible. Vous gagnez +1 DR à tous vos Tests de Combat effectués contre le groupe en question, et êtes immunisé à *Peur* et *Intimidation* (mais pas *Terreur*) causés par ceux de ce groupe. » — `LDB 21 l.41`
 
 **Sources RAW** :
@@ -234,6 +244,11 @@ La mécanique exacte (Test simple ou étendu, Indice à surmonter) varie selon l
 **Sur un échec** : *Préjugés* actifs → doit copieusement insulter la Cible à haute et intelligible voix.
 
 **Fin des Préjugés** : à partir du Round suivant, peut tenter un nouveau Test. Sinon, cessent d'eux-mêmes lorsque tous les membres du groupe en Ligne de Vue ont disparu, que le personnage gagne l'État *Sonné* ou *Inconscient*, ou tombe sous un autre Trait Psychologique.
+
+- Disparu, lecture recommandée, révisable (#3045) : seuls comptent les membres dans la Ligne de Vue du porteur au moment où elle se juge, si bien qu'un membre qui en sort ne la retient plus ; un membre Inconscient n'est ni mort ni disparu, il reste en vue ; un membre mort, rendu ou sorti de la rencontre a disparu (`cibleEnVue`). Lecture contraire : tout membre hors d'action a disparu.
+- « Qui étaient dans votre Ligne de Vue » (`LDB 21 l.48`), lecture recommandée, révisable (#3045) : les membres dans la Ligne de Vue ACTUELLE du porteur, comme pour l'Animosité et la Haine. Lecture contraire : les membres vus au déclenchement, qui retiennent le Préjugé où qu'ils soient tant qu'ils n'ont pas disparu.
+- Fin naturelle, lecture recommandée, révisable (#3045) : l'affliction se désactive et garde son marqueur de rencontre (`LDB 21 l.9`), si bien que le Groupe ne redéclenche aucun Test dans la même rencontre. Lecture contraire : un membre du Groupe qui entre ensuite en vue redéclenche un Test.
+- Moment, lecture recommandée, révisable (#3045) : la Ligne de Vue se juge à la fin de chaque Round, au moment du nouveau Test (`trigger: onRoundEnd`, Condition `cibleEnVue`) ; un État gagné en combat finit l'affliction sur-le-champ (`trigger: onGainCondition`, qui ne joue qu'en combat). Lecture contraire : la Ligne de Vue se juge à tout instant.
 
 **Sources RAW** :
 - `LDB 21 l.43-50` — définition, succès/échec, comportement obligatoire, conditions de fin

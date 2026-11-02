@@ -61,7 +61,7 @@ export function opSummary(o: GameOp): string {
     case 'healCaster': return `+${formulaSummary(o.amount)} PB au lanceur`;
     case 'condition': return [`${conditionLabel(o.id)}${o.value && o.value !== 1 ? ` ×${formulaSummary(o.value)}` : ''}${o.perRound ? '/Round' : ''}`, dureePropre(o)].filter(Boolean).join(', ');
     case 'removeCondition': return `${o.id ? conditionLabel(o.id) : '(au choix)'}`;
-    case 'endPsych': return psychologyLabel(o.type.id);
+    case 'endPsych': return 'instance' in o ? 'cet état' : psychologyLabel(o.type.id);
     case 'beginPsych': return `${libelleDePsy(o.type.id, o.cible && cibleDeRef(o.cible))}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
     case 'sbBonus': return `+${o.amount} BF aux Dégâts`;
     case 'incomingSpellDRMod': return `${typeof o.amount === 'number' && o.amount >= 0 ? '+' : ''}${formulaSummary(o.amount)} DR de Sort / point`;

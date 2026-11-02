@@ -214,6 +214,7 @@ import { placeCombatant } from './monde/spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
 import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
+import { sourcesEnVue } from './monde/porteurs';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
 import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf } from './monde/shipPostes';
 import { isVehicle, profilNavalDe, estNavire } from '../engine/coque';
@@ -1535,9 +1536,7 @@ export function aiApproachPlan(
 export function frenzyTarget(get: Get, c: Combatant): Combatant | null {
   const { battle, scene } = get();
   if (!battle || !scene || !isFrenzied(c) || !c.pos) return null;
-  const visible = battle.combatants.filter(
-    (e) => e.kind !== c.kind && !isOutOfAction(e) && e.pos && losClear(scene, c.pos!, e.pos!, smokeOf(battle)),
-  );
+  const visible = [...sourcesEnVue(battle, scene, c, (e) => e.kind !== c.kind && !isOutOfAction(e))];
   if (!visible.length) return null;
   return visible.sort((a, b) => {
     const da = combatDistance(c, a), db = combatDistance(c, b);
@@ -7726,11 +7725,6 @@ export function markActed(get: Get, set: SetFn): BattleState {
 /** Forme commune d'un Test de Psychologie de combat DÛ pour un héros (cumul `prevDR` = 0 sauf Peur étendue). */
 type HeroPsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: CiblePsy };
 
-/** Combattants en Ligne de Vue de `c` (hors lui-même, debout). Mutualisé par les deux collectes. */
-function visibleFoesAndAllies(battle: BattleState, scene: import('./monde/scene').Scene, c: Combatant): Combatant[] {
-  return battle.combatants.filter((v) => v.id !== c.id && v.pos && !isOutOfAction(v) && losClear(scene, c.pos!, v.pos, smokeOf(battle)));
-}
-
 /** Test de Psychologie de DÉBUT de Round dû à `c` (LDB 21 l.9) : un Trait ciblé (re-test d'un actif
  *  OU nouveau déclenchement) ou une NOUVELLE Terreur en Ligne de Vue. Pur de lecture. La Peur (simple
  *  Taille/causesPeur) NE se teste PAS ici : c'est un Test étendu de FIN de Round (cf. collectHeroRoundEndPsych). */
@@ -7740,15 +7734,13 @@ export function collectHeroRoundStartPsych(get: Get, c: Combatant): HeroPsychDue
   if (!battle || !scene || !c.pos || isPsychImmune(c)) return null; // Immunité psy (trait/Frénésie/Détermination temp)
   const state = c.psychState ?? [];
   // NOUVELLE Terreur en Ligne de Vue (1ʳᵉ rencontre → Brisé, puis devient une Peur — LDB 21 l.54-56).
-  for (const foe of battle.combatants) {
-    if (foe.id === c.id || isOutOfAction(foe) || !foe.pos) continue; // « chez les autres créatures » (LDB 85 l.264-266) : seule exclusion, soi-même
-    if (!losClear(scene, c.pos, foe.pos, smokeOf(battle))) continue;
+  for (const foe of sourcesEnVue(battle, scene, c, (v) => !isOutOfAction(v))) { // « chez les autres créatures » (LDB 85 l.264-266)
     const src = fearSourceFor(c, foe, riderFearSize(battle, c)); // Cavalier émérite (AA 13 l.25) : Taille = monture face à la Peur de Taille
     if (!src || src.kind !== 'terreur' || state.some((p) => p.sourceId === foe.id)) continue;
     return { kind: 'terreur', sourceId: foe.id, sourceName: foe.label, indice: src.indice, prevDR: 0 };
   }
   // Traits psy CIBLÉS (Animosité/Haine/… — LDB 21) : re-test des actifs, puis nouveaux déclenchements.
-  const visible = visibleFoesAndAllies(battle, scene, c);
+  const visible = [...sourcesEnVue(battle, scene, c, (v) => !isOutOfAction(v))];
   for (const p of state) {
     if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => vise(p.cible!, { genre: 'combattant', c: v }, 'percu', c)))
       return { kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible: p.cible }; // affliction active à re-tester
@@ -7767,9 +7759,7 @@ export function collectHeroRoundEndPsych(get: Get, c: Combatant): HeroPsychDue |
   if (!battle || !scene || !c.pos || isPsychImmune(c)) return null;
   const state = c.psychState ?? [];
   // NOUVELLE source de Peur (pas Terreur — celle-ci passe par le début de Round) en Ligne de Vue.
-  for (const foe of battle.combatants) {
-    if (foe.id === c.id || isOutOfAction(foe) || !foe.pos) continue; // « chez les autres créatures » (LDB 85 l.264-266) : seule exclusion, soi-même
-    if (!losClear(scene, c.pos, foe.pos, smokeOf(battle))) continue;
+  for (const foe of sourcesEnVue(battle, scene, c, (v) => !isOutOfAction(v))) { // « chez les autres créatures » (LDB 85 l.264-266)
     const src = fearSourceFor(c, foe, riderFearSize(battle, c)); // Cavalier émérite (AA 13 l.25) : Taille = monture face à la Peur de Taille
     if (!src || src.kind !== 'peur' || state.some((p) => p.sourceId === foe.id)) continue;
     return { kind: 'peur', sourceId: foe.id, sourceName: foe.label, indice: src.indice, prevDR: 0 };

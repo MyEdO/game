@@ -27,6 +27,7 @@ import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
 import { opDemandeUnDe, type GameOp, type PairedSense } from './ops';
+import type { CibleEnVue } from './psychology';
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 // Type SEUL (effacé à la compilation — aucun cycle runtime) : `StakeRef` est la forme canonique de la
@@ -195,6 +196,10 @@ export type Condition =
    *  emballée en donnée (au-dessus de `lineOfSightCover`) : sortie de Frénésie « plus d'ennemi en vue → fin »
    *  (LDB 21 l.35), fuite/récupération du Brisé « hors de vue de l'ennemi » (LDB 16 l.52). Hors combat = false. */
   | { kind: 'foeInLoS' }
+  /** La Cible de l'affliction psychologique qui porte l'effet a-t-elle encore un membre dans la Ligne de Vue du
+   *  porteur (`ctx.cibleEnVue`, précalculé) ? `hostiles` : un membre qui ne s'est pas calmé. Réservée aux
+   *  `effects` de `psychology.json` (régime de famille `condition.cibleEnVue`). LDB 21 l.19, l.39, l.48 ; #3045 */
+  | { kind: 'cibleEnVue'; hostiles?: true }
   /** Aucun adversaire VIVANT ne voit l'acteur (sens foe→acteur, ≠ `foeInLoS` acteur→foe) — « caché hors de
    *  vue de l'ennemi » (Brisé, LDB 16 l.54/56 : retrait sans Test + difficulté Accessible). Précalculé sur
    *  la battle (`ctx.hiddenFromFoes`). Hors combat = false. */
@@ -276,6 +281,8 @@ export interface ConditionCtx {
   /** Un adversaire vivant est-il dans la Ligne de Vue du porteur — lu par la Condition `foeInLoS`
    *  (sortie de Frénésie, fuite/récupération du Brisé). Précalculé sur la `battle` par l'appelant. */
   foeInLoS?: boolean;
+  /** Verdict de l'affliction qui porte l'effet sur sa Cible en vue — lu par `cibleEnVue`. Absent = rien en vue. */
+  cibleEnVue?: CibleEnVue;
   /** Aucun adversaire vivant ne voit l'acteur (sens foe→acteur) — lu par `hiddenFromFoes` (Brisé caché). */
   hiddenFromFoes?: boolean;
   /** L'acteur est-il Engagé avec un adversaire — lu par `engaged` (gate de récupération du Brisé). */
@@ -374,6 +381,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     case 'engagedAdvantageGap': return applyCompareOp(ctx.engagedAdvantageGap ?? 0, cond.op, cond.value);
     case 'engagedAdvantageLead': return applyCompareOp(ctx.engagedAdvantageLead ?? 0, cond.op, cond.value);
     case 'foeInLoS': return !!ctx.foeInLoS;
+    case 'cibleEnVue': return !!(cond.hostiles ? ctx.cibleEnVue?.hostile : ctx.cibleEnVue?.present);
     case 'hiddenFromFoes': return !!ctx.hiddenFromFoes;
     case 'engaged': return !!ctx.engaged;
     case 'crewTest': return !!ctx.crewTest;

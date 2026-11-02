@@ -33,4 +33,8 @@ describe('opSummary des ops psychologiques : libellés, jamais ids', () => {
   it('endPsych : la psychologie', () => {
     expect(opSummary(opPsy.fin(psy!.id))).toBe(psychologyLabel(psy!.id));
   });
+
+  it('endPsych de l’instance courante : l’état en cours, sans type', () => {
+    expect(opSummary(opPsy.finDeLInstance())).toBe('cet état');
+  });
 });

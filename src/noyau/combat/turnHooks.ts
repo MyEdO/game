@@ -25,8 +25,7 @@ import { inBattleId } from '../monde/combatants';
 import { garanti } from '../../lib/garanti';
 import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
 import { mountMovement, riderFearSize } from '../mount';
-import { losClear } from '../monde/lineOfSight';
-import { smokeOf } from '../monde/combatGeometry';
+import { sourcesEnVue } from '../monde/porteurs';
 import { nomDIndividu } from '../monde/sceneNpc';
 import {
   fearSourceFor, sansPeurVs, issueDePeur, sansPeurLabel, resolvePeurTest, resolveTerreurTest, calmeValue, isFrenzyCapable, isFrenzied, isPsychImmune,
@@ -166,9 +165,7 @@ export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
   enemy.psychState ??= [];
   const log: string[] = [];
   // Nouvelles sources de peur/terreur en Ligne de Vue (non encore rencontrées).
-  for (const foe of battle.combatants) {
-    if (foe.id === enemy.id || isOutOfAction(foe) || !foe.pos) continue; // « chez les autres créatures » (LDB 85 l.264-266) : seule exclusion, soi-même
-    if (!losClear(scene, enemy.pos, foe.pos, smokeOf(battle))) continue;
+  for (const foe of sourcesEnVue(battle, scene, enemy, (v) => !isOutOfAction(v))) { // « chez les autres créatures » (LDB 85 l.264-266)
     const src = fearSourceFor(enemy, foe, riderFearSize(battle, enemy)); // Cavalier émérite (AA 13 l.25) : Taille = monture face à la Peur de Taille
     if (!src || enemy.psychState.some((p) => p.sourceId === foe.id)) continue;
     const sansPeur = sansPeurVs(enemy, foe); // Sans Peur (Ennemi, LDB 10 l.1051) : Test de Calme +20 à la rencontre
@@ -208,7 +205,7 @@ export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
     }
   }
   // ── Traits psy CIBLÉS (Animosité/Haine/… — LDB 21), instantané pour l'IA ──
-  const visible = battle.combatants.filter((v) => v.id !== enemy.id && v.pos && !isOutOfAction(v) && losClear(scene, enemy.pos!, v.pos, smokeOf(battle)));
+  const visible = [...sourcesEnVue(battle, scene, enemy, (v) => !isOutOfAction(v))];
   for (const p of enemy.psychState) {
     // Re-test (fin de Round) des afflictions ciblées actives, tant qu'un membre du groupe est visible.
     if (!p.active || !estCibleType(p.type) || !p.cible || p.lastTestRound === battle.round) continue;
@@ -272,9 +269,6 @@ export const TABLES = {
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   crochetsDeCombat: [
-    // Sortie de Frénésie (LDB 21 l.35) : aucun hook `end-frenzy` par-nom — c'est un effet déclenché
-    // `onTurnStart` en DONNÉES (`psychology.json` : Sonné/Inconscient ∨ plus d'ennemi en LdV → Exténué),
-    // diffusé UNIFORMÉMENT (héros + IA) par `fireTurnStartTriggers` AVANT les hooks d'entrée ci-dessous.
     {
       // Rage : LDB 85 l.282 ; Q12 B, #3045.
       id: 'rage',

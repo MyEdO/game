@@ -487,7 +487,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
   monde/                    MODÈLE DU MONDE, dossier de lecture (aucune zone de `COUCHES` ne le tient) :
                             `flow.ts`, `sceneRules.ts`, `sceneMemo.ts`, `relief.ts`, `terrain/`,
                             `wallIndex.ts`, `decorIndex.ts`, `footprint.ts`, `path.ts`, `lineOfSight.ts`,
-                            `zones.ts`, `usable.ts`, `combatants.ts`, `combatGeometry.ts`, et les modules qui
+                            `zones.ts`, `usable.ts`, `combatants.ts`, `combatGeometry.ts`, `porteurs.ts`
+                            (`sourcesEnVue` : les combattants en Ligne de Vue d'un porteur, que lisent les Tests de
+                            Psychologie, la Condition `cibleEnVue`, `foeInLoS` et la cible de Frénésie), et les modules qui
                             ne lisent ni ne posent d'état de combat ni de flux : IA (`ai.ts`), apparition
                             (`spawn.ts`), navires (`ship*.ts`), marchands (`merchants/`), narratif de
                             campagne, pièces, vision, authoring ASCII (`asciiMap.ts`, et son export inverse `sceneToAscii.ts`).
