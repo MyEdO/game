@@ -178,11 +178,21 @@ export function mutationKindFor(species: string | undefined, roll: number): 'phy
   return findTableEntry(mutationNatureRows(species), roll).id;
 }
 
-/** Limites de Corruption (l.87) : mutations physiques > BE OU mentales > BFM → damné. */
+/** Mutations comptées par nature et leurs Limites de Corruption. LDB 19 l.87. */
+export function limitesDeMutation(c: Combatant): { phys: number; ment: number; limitePhys: number; limiteMent: number } {
+  const mutations = c.mutations ?? [];
+  return {
+    phys: mutations.filter((m) => m.kind === 'physique').length,
+    ment: mutations.filter((m) => m.kind === 'mentale').length,
+    limitePhys: bonus(effectiveChar(c, 'endurance')),
+    limiteMent: bonus(effectiveChar(c, 'force-mentale')),
+  };
+}
+
+/** Limites de Corruption franchies (`limitesDeMutation`). LDB 19 l.87. */
 export function mutationLimitExceeded(c: Combatant): boolean {
-  const phys = (c.mutations ?? []).filter((m) => m.kind === 'physique').length;
-  const ment = (c.mutations ?? []).filter((m) => m.kind === 'mentale').length;
-  return phys > bonus(effectiveChar(c, 'endurance')) || ment > bonus(effectiveChar(c, 'force-mentale'));
+  const { phys, ment, limitePhys, limiteMent } = limitesDeMutation(c);
+  return phys > limitePhys || ment > limiteMent;
 }
 
 /** `charMod` à plancher résolu en delta FIGÉ sur la base PERMANENTE du porteur (`characteristics` +

@@ -21,7 +21,8 @@ import type { Dialogue } from './monde/scene';
 import type { DialogueTurn } from './monde/dialogueHistory';
 import type { EtatDialogue } from './pendings';
 import { condCtx, partyMoneyTotal } from './bourseFlow';
-import { ownsGroupDecision } from './netOwnership';
+import { groupDecisionSeat, nomDuSiege, ownsGroupDecision } from './netOwnership';
+import { t } from '../i18n';
 import { surfaceTientLaMain } from './modalArbiter';
 import type { Jeu } from './etat';
 
@@ -65,14 +66,6 @@ export function conversationRepond(s: Jeu): s is Jeu & { dialogue: EtatDialogue 
 /** `kind` de la couche que la fenêtre de conversation pose sur la pile de CE siège (`ui/DialogueBox`). */
 export const COUCHE_CONVERSATION = 'dialogue';
 
-/** Pourquoi une réponse VISIBLE n'est pas offerte. Fermé : la fenêtre en rend le texte, la touche
- *  s'en tait — les deux lisent le MÊME verdict `enabled`. */
-export type RefusDeReponse =
-  /** Ce siège ne décide pas pour le groupe (coop) — le dialogue est une décision de groupe (#1262). */
-  | 'siege'
-  /** Réponse payante que la bourse du groupe ne couvre pas. */
-  | 'argent';
-
 /** Le Test qu'un flux de réponse DÉCLENCHE, en ids STABLES — `targetDR` n'est porté que par un Test
  *  ÉTENDU (le DR CUMULÉ à atteindre, donnée du flux). */
 export interface TestAnnonce {
@@ -94,7 +87,9 @@ export interface ReponseDeDialogue {
   cost?: ReturnType<typeof toMoney>;
   /** La réponse est-elle OFFERTE ? Verdict PARTAGÉ par le clic et par la touche. */
   enabled: boolean;
-  refus?: RefusDeReponse;
+  /** TEXTE du refus d'une réponse non offerte — ce siège ne décide pas pour le groupe (coop, #1262), ou
+   *  réponse payante que la bourse du groupe ne couvre pas : la fenêtre l'affiche, `chooseDialogue` le dit. */
+  refus?: string;
   test?: TestAnnonce;
 }
 
@@ -127,7 +122,8 @@ export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
       ...(c.icon ? { icon: c.icon } : {}),
       ...(cost ? { cost } : {}),
       enabled: decide && solvable,
-      ...(!decide ? { refus: 'siege' as const } : !solvable ? { refus: 'argent' as const } : {}),
+      ...(!decide ? { refus: t('dlg.refusSiege', { meneur: nomDuSiege(s.net, groupDecisionSeat(s)) }) }
+        : !solvable ? { refus: t('store.dialogueNoMoney') } : {}),
       ...(test ? { test } : {}),
     });
   });

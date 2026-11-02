@@ -1,5 +1,5 @@
 import { EtalLotModal } from './EtalLotModal';
-import { nomDuSiege } from '../state/netFlow';
+import { nomDuSiege } from '../noyau/netOwnership';
 import { useGame } from '../state/store';
 import { spectatorSeatOfModal } from './ownership';
 import { willAutoResolve } from '../noyau/combatAuto';

@@ -203,3 +203,18 @@ describe('DialogueBox — la fenêtre suit l’état sans que la conversation bo
     expect(payer().getAttribute('aria-disabled')).toBeNull();
   });
 });
+
+describe('DialogueBox — la réponse fermée porte le TEXTE du refus du noyau', () => {
+  it('bourse trop courte : la raison de la réponse est celle que `chooseDialogue` dit', () => {
+    const payant: Dialogue = { id: 'dlg-pay', start: 'n1', nodes: [{ id: 'n1', desc: 'Alors ?', choices: [{ label: 'Payer', cost: { gold: 50 }, next: 'n1' }] }] };
+    useGame.setState({ scene, flags: {}, gameTime: campaignStart(), party: [], screen: 'campaign', dialogue: { dialogue: payant, nodeId: 'n1', speakerId: 'e1', session: 1 } });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => { root.render(<DialogueBox />); });
+    expect(container.querySelector('#dlg-choice-0-reason')?.textContent).toBe('Pas assez d’argent pour cette option.');
+    act(() => { root.unmount(); });
+    container.remove();
+    useGame.setState({ dialogue: null });
+  });
+});

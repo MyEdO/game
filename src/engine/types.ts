@@ -1139,7 +1139,7 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   /** Allonge de MÊLÉE — cf. `Weapon.reach` (même vocabulaire `ReachValue`, même lecture de rang). */
   reach?: ReachValue | null;
   range?: WeaponRangeSpec | null; // SPEC de Portée non résolue (mètres fixes ou {bf}) — cf. WeaponRangeSpec
-  /** MUNITION : modificateur de la Portée de l'arme de tir (cf. `AmmoRangeMod`) — lu par `effectiveWeaponRange`
+  /** MUNITION : modificateur de la Portée de l'arme de tir (cf. `AmmoRangeMod`) — lu par `porteeDeTir`
    *  quand cette munition est sélectionnée. Copié du trapping ; absent sur une arme/objet non-munition. */
   ammoRangeMod?: AmmoRangeMod | null;
   qualities: QualityInstance[];

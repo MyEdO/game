@@ -26,7 +26,7 @@ function setup() {
 }
 
 /** Ouvre un interlude d'1 semaine et fixe `left`/`granted` à des valeurs connues (les événements
- *  d100 restent aléatoires — même patron que `interlude-activities-508.test.ts`). `granted` = les
+ *  d100 restent aléatoires — même patron que `interlude-activities-508.hors-store.test.ts`). `granted` = les
  *  emplacements d'Activité OCTROYÉS au héros ; `left` = ce qu'il en reste. */
 function openInterlude(heroId: string, left = 3, granted = left) {
   useGame.getState().startInterlude(1);

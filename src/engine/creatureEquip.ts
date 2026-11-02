@@ -15,7 +15,7 @@ import { findTraitById, findTrappingById, SPEC_SOURCES } from '../data/index';
  *  (`findTrappingById`) puis PROJECTION UNIQUE `weaponFromItem` (engine/items) — Dégâts, Portée (y compris
  *  la spec `{bf}` des armes de JET), Groupe (`subType`/`weaponGroup`), qualités, Recharge, mains, Allonge,
  *  forme, Taille prévue, effets à la touche et bande de portée MINIMALE viennent TOUS du catalogue, jamais
- *  d'un littéral : cette arme est jouable (bandes de tir `effectiveWeaponRange`, Spécialisation
+ *  d'un littéral : cette arme est jouable (bandes de tir `porteeDeTir`, Spécialisation
  *  `weaponGroupSkillMode`) autant que dessinée. Id introuvable OU trapping qui n'est pas une arme → `null`
  *  + `console.error` : l'entité reste désarmée, rien d'inventé (aucune arme devinée depuis un id mort). */
 export function weaponFromId(trappingId: string, resolveTrapping: TrappingResolver = findTrappingById): Weapon | null {

@@ -32,11 +32,10 @@ import { verticalTiles } from './relief';
 import { makeLosMemo, type LosMemo } from './lineOfSight';
 import { COVER_ORDER } from '../../engine/cover';
 import { rangeBandModifier, outnumberMod, canFireWhileEngaged, type ModLine } from '../../engine/combat';
-import { effectiveWeaponRange } from '../../engine/weaponDamage';
-import { loadedAmmo } from '../../engine/items';
+import { porteeDeTir } from '../../engine/items';
 import { weaponLoaded } from '../../engine/weaponLoad';
 import { structureImmune, structureAimCell } from '../../engine/structures';
-import { bonus, effectiveChar } from '../../engine/characteristics';
+import { effectiveChar } from '../../engine/characteristics';
 import { finite, expectedDamage, isNeutralized, spellActionValue, spellIsOffensive, spellTargetHarm, opValue } from './aiSpellValue';
 import { selfManeuversOf, selfManeuverApplicable } from '../../engine/creatureAttacks';
 import { spellEffectOps } from '../../engine/flowCore';
@@ -589,8 +588,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Extrême (Portée ×3 — rangeBandModifier null), un lanceur pas au-delà de la portée du sort.
   // Sans portée chiffrée (arme sans `range`, sort spécial) : pas de gate (stubs/exotiques).
   const fpDist = (h: Combatant) => footprintChebyshev(pos, footprintN(enemy), h.pos!, footprintN(h));
-  const ebf = () => bonus(effectiveChar(enemy, 'force')); // BF du tireur → résout les Portées de jet `{bf}` (paresseux : ignoré pour une portée fixe)
-  const maxWeaponRange = enemy.weapons.reduce((m, w) => { const r = w.type === 'ranged' ? effectiveWeaponRange(w, loadedAmmo(enemy, w)?.ammoRangeMod, ebf) : null; return r != null ? Math.max(m, r) : m; }, 0);
+  const maxWeaponRange = enemy.weapons.reduce((m, w) => { const r = w.type === 'ranged' ? porteeDeTir(enemy, w) : null; return r != null ? Math.max(m, r) : m; }, 0);
   const shootPool = maxWeaponRange > 0 ? shootableHeroes.filter((h) => rangeBandModifier(fpDist(h), maxWeaponRange, mpt) != null) : shootableHeroes;
   // Frénésie (LDB 21 l.33) : la seule Action est un Test de Capacité de Combat / Athlétisme — ni tir ni sort.
   const frenzied = isFrenzied(enemy);

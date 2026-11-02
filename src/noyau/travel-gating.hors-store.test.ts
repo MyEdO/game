@@ -75,10 +75,10 @@ function auDepart(flags: Record<string, boolean> = {}): void {
 describe('`startTravel` — le trajet FERMÉ est refusé au départ, au même niveau que le sens interdit', () => {
   beforeEach(() => auDepart());
 
-  it('route prise à CONTRESENS (`from`) : aucun voyage ne démarre', () => {
+  it('route prise à CONTRESENS (`from`) : aucun voyage ne démarre, le refus se dit', () => {
     get().startTravel('retour', 'pied');
     expect(get().travelPlan).toBeNull();
-    expect(get().journal).toEqual([]);
+    expect(get().journal).toEqual(['Cette route ne se prend pas dans ce sens.']);
   });
 
   it('route FERMÉE par le récit (`when` faux) : aucun voyage ne démarre, la raison part au journal', () => {

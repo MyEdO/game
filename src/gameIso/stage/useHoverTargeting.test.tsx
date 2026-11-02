@@ -16,6 +16,9 @@ import { effectiveMovement } from '../../engine/encumbrance';
 import { t } from '../../i18n';
 import { cascadeDeTest } from '../../noyau/cascade.testkit';
 import { cleDeFixture } from '../../noyau/noyau.testkit';
+import { combatHighlightsView } from './highlightLayer';
+import { validTargets } from '../../noyau/targeting';
+import { frenzyTarget } from '../../noyau/combatFlow';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -437,5 +440,78 @@ describe('useHoverTargeting — grisage hors-LdV du SORT', () => {
     const ghosts = probeGhosts();
     expect(ghosts.has(cache.id), 'sans Ligne de Vue, l’ennemi est fantomatique').toBe(true);
     expect(ghosts.has(vu.id), 'la ligne dégagée ne grise personne').toBe(false);
+  });
+});
+
+/**
+ * RÉTICULE PRÉSENT = CLIC VALIDE, CASE PEINTE = DÉPLACEMENT ACCEPTÉ (#3059) — le survol, les anneaux et
+ * le Tab lisent le verdict du MODE (`refusDAttaque`, `resolveMovement`) que le clic lit en tête.
+ * Morsure : LDB 85 l.237 ; Frénésie : LDB 21 l.33.
+ */
+describe('useHoverTargeting — le survol lit le verdict du clic', () => {
+  beforeEach(() => useGame.setState({ battle: null, localIntent: null, refus: null }));
+  afterEach(() => {
+    if (root) act(() => root!.unmount());
+    root = null;
+    useGame.setState({ localIntent: null, refus: null });
+  });
+
+  function survol(hover: { x: number; y: number }) {
+    let result: ReturnType<typeof useHoverTargeting> | undefined;
+    const Probe = () => {
+      result = useHoverTargeting(testScene(), hover, true);
+      return null;
+    };
+    root = createRoot(document.createElement('div'));
+    act(() => root!.render(<Probe />));
+    act(() => root!.unmount());
+    root = null;
+    return result!;
+  }
+
+  const anneaux = () => combatHighlightsView(useGame.getState, useGame.getState().battle!, {
+    myTurn: true, pendingAttack: null, pendingCleave: null, pendingDualStrike: null, pendingCast: null, localIntent: null, hovered: null,
+  }).eligibleIds;
+
+  it('Action DÉPENSÉE, Morsure armée (gratuite, LDB 85 l.237) : réticule, anneau et Tab sur l’adjacent, et le clic l’accepte', () => {
+    const active = setup();
+    const foe = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    foe.pos = { x: active.pos!.x + 1, y: active.pos!.y };
+    active.traits = [...(active.traits ?? []), { id: 'morsure', value: 10 }];
+    active.advantage = 1;
+    useGame.setState({ battle: { ...useGame.getState().battle!, acted: true, selectedAttack: 'morsure' } });
+    expect(survol(foe.pos).hoverAim?.toId, 'la Morsure Action dépensée porte son réticule').toBe(foe.id);
+    expect([...(anneaux() ?? [])], 'la cible de la Morsure porte son anneau').toEqual([foe.id]);
+    expect(validTargets(useGame.getState).map((c) => c.id), 'le Tab la propose').toEqual([foe.id]);
+    cliqueLaCase(foe.pos);
+    expect(useGame.getState().refus, 'le clic sur la cible du réticule est refusé').toBeNull();
+    expect(useGame.getState().pendingAttack, 'la Morsure part sur la cible du réticule').toMatchObject({ targetId: foe.id, freeKind: 'morsure' });
+  });
+
+  it('FRÉNÉSIE (LDB 21 l.33) : la case qui ÉLOIGNE de la cible imposée ne se peint pas, et le clic dit le refus', () => {
+    const active = setup();
+    const foe = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    foe.pos = { x: active.pos!.x + 3, y: active.pos!.y };
+    active.psychState = [...(active.psychState ?? []), { type: 'frenesie' } as never];
+    const recul = { x: active.pos!.x - 2, y: active.pos!.y };
+    expect(survol(recul).hoverMove, 'une case que le clic refuse ne se peint pas').toBeNull();
+    cliqueLaCase(recul);
+    expect(useGame.getState().refus?.texte).toBe(`${active.label} est en Frénésie : il doit foncer sur ${foe.label}.`);
+    expect(useGame.getState().battle!.preview, 'aucun aperçu du déplacement refusé').toBeNull();
+  });
+
+  it('FRÉNÉSIE, deux adjacents : seule la cible IMPOSÉE porte réticule, anneau et Tab', () => {
+    const active = setup();
+    const [imposee, autre] = useGame.getState().battle!.combatants.filter((c) => c.kind === 'enemy');
+    imposee.pos = { x: active.pos!.x + 1, y: active.pos!.y };
+    autre.pos = { x: active.pos!.x - 1, y: active.pos!.y };
+    active.psychState = [...(active.psychState ?? []), { type: 'frenesie' } as never];
+    const ft = frenzyTarget(useGame.getState, active)!;
+    const nonImposee = ft.id === imposee.id ? autre : imposee;
+    expect(validTargets(useGame.getState).map((c) => c.id), 'le Tab ne propose que la cible imposée').toEqual([ft.id]);
+    expect(anneaux()?.has(nonImposee.id), 'aucun anneau sur la cible que la Frénésie interdit').toBe(false);
+    expect(survol(nonImposee.pos!).hoverAim, 'aucun réticule sur la cible que la Frénésie interdit').toBeNull();
+    cliqueLaCase(nonImposee.pos!);
+    expect(useGame.getState().refus?.texte).toBe(`${active.label} est en Frénésie : il doit attaquer ${ft.label} (le plus proche).`);
   });
 });

@@ -58,7 +58,7 @@ export function preemptShooterIds(get: () => Jeu): string[] {
 
 /** Combattants que le TIREUR courant (actif OU visée Tir rapide armée) peut cibler au survol selon le mode
  *  courant — `candidates` du mode s'il en fournit (soin/surincantation/cleave/dual), sinon ceux dont
- *  l'affordance ≠ 'none' — triés du PLUS PROCHE au plus loin. Base du ciblage clavier (Tab). */
+ *  l'affordance est 'ok' (le clic aboutira) — triés du PLUS PROCHE au plus loin. Base du ciblage clavier (Tab). */
 export function validTargets(get: () => Jeu): Combatant[] {
   const battle = get().battle;
   if (!battle || battle.over) return [];
@@ -67,7 +67,7 @@ export function validTargets(get: () => Jeu): Combatant[] {
   const mode = currentTargetingMode(get);
   const cands = mode.candidates
     ? mode.candidates(get, active)
-    : battle.combatants.filter((c) => c.id !== active.id && c.pos && !isOutOfAction(c) && hoverTargeting(get, active, c).kind !== 'none');
+    : battle.combatants.filter((c) => c.id !== active.id && c.pos && !isOutOfAction(c) && hoverTargeting(get, active, c).kind === 'ok');
   return [...cands].sort((a, b) => combatDistance(active, a) - combatDistance(active, b));
 }
 
@@ -84,7 +84,7 @@ export function cycleTarget(get: () => Jeu, currentId: string | null): Combatant
  *  (`tileValidAt`/`tilePreview` du mode courant, #198) : réticule + direction/coût au survol souris ET
  *  au déplacement du curseur clavier (`combatCursor.tile`, appelant commun). null hors mode-case ou
  *  tuile invalide (le mode ATTAQUE/CAST/HEAL/BATTERY, sans `tileValidAt`, retombe toujours à null ici —
- *  ces modes gardent l'aperçu de DÉPLACEMENT normal, `movePreviewAt`). */
+ *  ces modes gardent l'aperçu de DÉPLACEMENT normal, `resolveMovement`). */
 export function tilePreviewAt(get: () => Jeu, pt: Pt): TilePreview | null {
   const battle = get().battle;
   const active = cursorActor(get);

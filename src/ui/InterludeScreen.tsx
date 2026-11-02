@@ -1,19 +1,18 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
-import { nomDuSiege } from '../state/netFlow';
+import { nomDuSiege } from '../noyau/netOwnership';
 import { useGame } from '../state/store';
 import { interludeEventFor } from '../data/interludeEvents';
 import { memoParVersion } from '../data/versionDataset';
 import { formatMoney, formuleDeRevenus, libelleDEchelon, fromBrass, toBrass, PA_PER_SC, type Money, type Status } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { actorStatus } from '../engine/social';
-import { MINUTES_PER_DAY } from '../engine/clock';
 import { interludeCatalog, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
 import {
-  blocageDeRevenus, ciblesDActivite, desEnAttente, devisDeDepot, interludeDrawPending, refusDAcquitterUneFaveur, refusDActivite,
+  blocageDeRevenus, ciblesDActivite, desEnAttente, devisDeCloture, effetBloquantLesRevenus, effetsDeLaPeriode, devisDeDepot, interludeDrawPending, refusDAcquitterUneFaveur, refusDActivite,
   refusDArtisanat, refusDeCommande, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, refusDuTirage, preJetDActivite,
-  type DevisDeDepot, type EtatDeDepot, type EtatDeFaveur, type EtatDInterlude, type GenreDeDepot, type PreJetDActivite,
+  type DevisDeDepot, type EtatDeCloture, type EtatDeDepot, type EtatDeFaveur, type EtatDInterlude, type GenreDeDepot, type PreJetDActivite,
 } from '../noyau/verdictsDInterlude';
-import { totalDesBourses } from '../noyau/bourseFlow';
+import { refusDeGesteSurLeGroupe, totalDesBourses } from '../noyau/bourseFlow';
 import { refusDOuvrirLaTaverne } from '../noyau/tavernFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, noteDeSoutien, preJetDePreparation, refusDePrepaDeBataille, type MassBattleState } from '../noyau/massBattleFlow';
@@ -105,7 +104,6 @@ export interface InterludeNet {
 export interface InterludeSeam {
   interlude: InterludeState;
   party: Combatant[];
-  money: Money;
   bank: BankDeposit[];
   pendingOrders: { heroId: string; trappingId: string }[];
   /** Faveurs dues (LDB 23, #509) — en jeu, dérivé du store ; en SSR, fourni par le seam. */
@@ -122,6 +120,8 @@ export interface InterludeSeam {
   /** Le lieu courant (scène, carte du monde) que lisent les verdicts d'Activité — en SSR, fourni par le seam. */
   lieu?: Pick<EtatDeDepot, 'scene' | 'worldMap'>;
   net?: InterludeNet;
+  /** L'heure de jeu dont part la clôture — en SSR, fournie par le seam. */
+  gameTime?: number;
   /** Bataille de masse en attente de préparation (ADE II 8) — bandeau d'info + Activités de prépa
    *  dans les volets par-héros. `null`/absent = pas de bataille pendante. */
   massBattle?: MassBattleState | null;
@@ -148,15 +148,16 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   const storeOrders = useGame((s) => s.pendingOrders);
   const storeFavors = useGame((s) => s.favors);
   const storeNet = useGame((s) => s.net);
+  const storeGameTime = useGame((s) => s.gameTime);
   const interlude = seam?.interlude ?? storeInterlude;
   const party = seam?.party ?? storeParty;
-  // Somme des bourses PERSONNELLES du groupe (#531) — plus aucune bourse commune. Affichages agrégés
-  // (bandeau de synthèse, récap de clôture) ; les affordances PAR héros lisent `bourseOf(hero)`.
-  const money = seam?.money ?? totalDesBourses(party);
+  // Somme des bourses PERSONNELLES du groupe (#531), lue par le bandeau de synthèse.
+  const money = totalDesBourses(party);
   const bank = seam?.bank ?? storeBank;
   const pendingOrders = seam?.pendingOrders ?? storeOrders;
   const favors = seam?.favors ?? storeFavors ?? [];
   const net: InterludeNet = seam?.net ?? storeNet;
+  const gameTime = seam?.gameTime ?? storeGameTime;
   // Catalogue d'Activités data-driven (`activities.json`) : contexte 'interlude' + gate `where`
   // résolu contre le LIEU courant (place de la carte du monde ↔ scène courante).
   const storeWorldMap = useGame((s) => s.worldMap);
@@ -184,7 +185,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   // UI UNIQUE (#1262) : le siège se lit par le routage d'état, jamais par une comparaison recopiée.
   const ownsHero = (id: string) => ownsLocalNet(net, id);
   const ownerName = (id: string) => nomDuSiege(net, net.ownership[id] ?? 0);
-  const isGuest = net.mode === 'guest';
+  const refusDeClore = refusDeGesteSurLeGroupe({ net });
   const etat: EtatDeDepot & EtatDeFaveur = { interlude, party, bank, scene, worldMap, favors };
   return (
     <div className="interlude-shell tx-ink">
@@ -248,15 +249,12 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
               <p className="interlude-warning" title={t('interlude.close.warning.title')}>
                 <Icon id="resource/gold-purse" size="sm" /> {t('interlude.close.warning')}
               </p>
-              {isGuest
-                ? <p className="interlude-warning"><Icon id="time/night" size="sm" /> {t('interlude.close.guest')}</p>
+              {massBattle?.phase === 'prep'
                 /* Bataille en attente : la clôture ENGAGE la bataille (interludeEnd → massBattleBegin, C2b) —
                    le bouton de clôture porte alors ce libellé, une SEULE porte de sortie (pas de 2e écran). */
-                : massBattle?.phase === 'prep'
-                  ? <button className="btn btn-primary" onClick={() => setPhase('closing')} title="Clore l'interlude et engager la bataille (les Activités de préparation restantes sont perdues)">
-                      <Icon id="action/attack" size="sm" /> Engager la bataille
-                    </button>
-                  : <button className="btn btn-primary" onClick={() => setPhase('closing')}>{t('interlude.close.btn')}</button>}
+                ? <GatedAction id="interlude-close" label={<><Icon id="action/attack" size="sm" /> {t('interlude.close.bataille')}</>}
+                    descOfferte={t('interlude.close.bataille.desc')} enabled={!refusDeClore} {...raisonSi(refusDeClore)} onClick={() => setPhase('closing')} />
+                : <GatedAction id="interlude-close" label={t('interlude.close.btn')} enabled={!refusDeClore} {...raisonSi(refusDeClore)} onClick={() => setPhase('closing')} />}
             </div>
           </>
         )}
@@ -266,7 +264,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
       <ActiveModal />
       <TavernGameModal />
       {phase === 'closing' && (
-        <CloseRecap heroes={heroes} interlude={interlude} money={money} bank={bank} pendingOrders={pendingOrders} onCancel={() => setPhase('activities')} />
+        <CloseRecap etat={{ interlude, party, bank, pendingOrders, gameTime }} onCancel={() => setPhase('activities')} />
       )}
     </div>
   );
@@ -352,24 +350,28 @@ function TavernGamesEntry() {
 /** Libellés des Classes `ids`, joints pour une puce. */
 const libellesDeClasses = (ids: readonly string[]): string => ids.map(libelleDeClasse).join(', ');
 
-/** Conséquences mécaniques d'un événement, STRUCTURÉES (LDB 22) : les ops sont de la donnée, ceci
- *  est un RENDU — chaque conséquence porte son icône du registre (`<FxChip>`), aucun parsing. */
+/** Conséquences mécaniques des Événements de la période (`effetsDeLaPeriode`), STRUCTURÉES (LDB 22) : les
+ *  effets sont de la donnée, ceci est un RENDU — chaque conséquence porte son icône du registre
+ *  (`<FxChip>`), aucun parsing. */
 function fxChips(etat: EtatDInterlude, st: InterludeHeroState, hero: Combatant): { icon: IconId; label: string }[] {
-  const fx = st.fx;
   const chips: { icon: IconId; label: string }[] = [];
-  if (fx?.moneyPct) chips.push({ icon: 'resource/gold-purse', label: t('interlude.fx.bourses', { pct: fx.moneyPct }) });
-  if (fx?.loseActivity) chips.push({ icon: 'nav/activity', label: t('interlude.fx.moinsUneActivite') });
-  if (fx?.fortuneMaxDelta) chips.push({ icon: 'resource/fortune', label: t('interlude.fx.chance', { n: fx.fortuneMaxDelta, s: fx.fortuneMaxDelta > 1 ? 's' : '' }) });
-  if (fx?.revenuePct) {
-    const pct = { sign: fx.revenuePct > 0 ? '+' : '', pct: fx.revenuePct };
-    chips.push({ icon: 'resource/gold-purse', label: fx.revenueClasses ? t('interlude.fx.revenusPour', { ...pct, classes: libellesDeClasses(fx.revenueClasses) }) : t('interlude.fx.revenus', pct) });
+  const bloquant = effetBloquantLesRevenus(etat, hero.id);
+  for (const effet of effetsDeLaPeriode(etat, hero.id)) {
+    const { fx } = effet;
+    if (fx.moneyPct) chips.push({ icon: 'resource/gold-purse', label: t(fx.partyWide ? 'interlude.fx.bourses' : 'interlude.fx.bourse', { pct: fx.moneyPct }) });
+    if (fx.loseActivity) chips.push({ icon: 'nav/activity', label: t('interlude.fx.moinsUneActivite') });
+    if (fx.fortuneMaxDelta) chips.push({ icon: 'resource/fortune', label: t('interlude.fx.chance', { n: fx.fortuneMaxDelta, s: fx.fortuneMaxDelta > 1 ? 's' : '' }) });
+    if (fx.revenuePct) {
+      const pct = { sign: fx.revenuePct > 0 ? '+' : '', pct: fx.revenuePct };
+      chips.push({ icon: 'resource/gold-purse', label: fx.revenueClasses ? t('interlude.fx.revenusPour', { ...pct, classes: libellesDeClasses(fx.revenueClasses) }) : t('interlude.fx.revenus', pct) });
+    }
+    if (fx.revenueBlockedClasses) {
+      chips.push({ icon: 'resource/gold-purse', label: (bloquant?.id === effet.id ? blocageDeRevenus(etat, hero.id) : null) ?? t('interlude.fx.revenusBloquesPour', { classes: libellesDeClasses(fx.revenueBlockedClasses) }) });
+    }
+    if (fx.bankPct) chips.push({ icon: 'resource/gold-purse', label: t('interlude.fx.banque', { pct: fx.bankPct }) });
+    if (fx.stashRaided) chips.push({ icon: 'ui/warning', label: t('interlude.fx.planqueDevalisee') });
+    if (fx.bankCrashCheck) chips.push({ icon: 'ui/warning', label: t('interlude.fx.faillite') });
   }
-  if (fx?.revenueBlockedClasses) {
-    chips.push({ icon: 'resource/gold-purse', label: blocageDeRevenus(etat, hero.id) ?? t('interlude.fx.revenusBloquesPour', { classes: libellesDeClasses(fx.revenueBlockedClasses) }) });
-  }
-  if (fx?.bankPct) chips.push({ icon: 'resource/gold-purse', label: t('interlude.fx.banque', { pct: fx.bankPct }) });
-  if (fx?.stashRaided) chips.push({ icon: 'ui/warning', label: t('interlude.fx.planqueDevalisee') });
-  if (fx?.bankCrashCheck) chips.push({ icon: 'ui/warning', label: t('interlude.fx.faillite') });
   // Devoir elfique : conséquence APPLIQUÉE par le flow (règle optionnelle comprise) — jamais re-dérivée ici.
   if (st.elfDuty) chips.push({ icon: 'nav/activity', label: t('interlude.fx.devoirElfique') });
   return chips;
@@ -1214,22 +1216,13 @@ function BankList({ etat, canDrive }: {
   );
 }
 
-/** Clôture confirmée : récapitulatif de ce qui sera perdu/crédité/conservé (audit M3). */
-function CloseRecap({ heroes, interlude, money, bank, pendingOrders, onCancel }: {
-  heroes: Combatant[];
-  interlude: InterludeState;
-  money: Money;
-  bank: BankDeposit[];
-  pendingOrders: { heroId: string; trappingId: string }[];
-  onCancel: () => void;
-}) {
+/** Clôture confirmée : le devis de clôture (`devisDeCloture`), ce que `interludeEnd` appliquera (audit M3). */
+function CloseRecap({ etat, onCancel }: { etat: EtatDeCloture; onCancel: () => void }) {
   const end = useGame((s) => s.interludeEnd);
-  const gameTime = useGame((s) => s.gameTime);
-  const wasted = toBrass(money);
-  const revenue = heroes.reduce((a, h) => a + (interlude.perHero[h.id]?.revenueBrass ?? 0), 0);
-  const demoted = heroes.filter((h) => (h.careerLevel ?? 1) >= 3 && !interlude.perHero[h.id]?.didRevenus);
-  const kept = bank.reduce((a, b) => a + b.brass, 0);
-  const crafts = heroes.filter((h) => h.craft);
+  const devis = devisDeCloture(etat);
+  if (!devis) return null;
+  const nom = (heroId: string) => libelleOuAbsence(etat.party.find((h) => h.id === heroId), 'heros', heroId);
+  const objet = (trappingId: string) => findTrappingById(trappingId)?.label ?? trappingId;
   return (
     <Modal title={t('interlude.recap.title')} onClose={onCancel}
       footer={
@@ -1241,45 +1234,41 @@ function CloseRecap({ heroes, interlude, money, bank, pendingOrders, onCancel }:
     >
       <ul className="interlude-recap-list">
         <li>
-          <Icon id="resource/gold-purse" size="sm" /> {wasted > 0
-            ? <><b><CoinsB brass={wasted} /></b> seront dépensés, bus, pariés ou donnés — en totalité (« Argent à gaspiller »).</>
-            : 'La bourse est vide — rien à gaspiller.'}
+          <Icon id="resource/gold-purse" size="sm" /> {devis.gaspille > 0
+            ? <><b><CoinsB brass={devis.gaspille} /></b> {t('interlude.recap.gaspille')}</>
+            : t('interlude.recap.bourseVide')}
         </li>
-        <li><Icon id="resource/gold-purse" size="sm" /> Revenus crédités à la reprise : <b>{revenue > 0 ? <CoinsB brass={revenue} /> : 'aucun'}</b>.</li>
-        {kept > 0 && <li><Icon id="resource/gold-purse" size="sm" /> Dépôts conservés : <b><CoinsB brass={kept} /></b> (récupérables à un prochain interlude).</li>}
-        {pendingOrders.length > 0 && (
-          <li><Icon id="scenario/market" size="sm" /> Commandes en cours : {pendingOrders.map((o) => findTrappingById(o.trappingId)?.label ?? o.trappingId).join(', ')} — livrées au prochain interlude.</li>
+        <li><Icon id="resource/gold-purse" size="sm" /> {t('interlude.recap.revenus')} <b>{devis.revenu > 0 ? <CoinsB brass={devis.revenu} /> : t('interlude.recap.aucun')}</b>.</li>
+        {devis.conserve > 0 && <li><Icon id="resource/gold-purse" size="sm" /> {t('interlude.recap.conserve')} <b><CoinsB brass={devis.conserve} /></b>.</li>}
+        {devis.commandes.length > 0 && (
+          <li><Icon id="scenario/market" size="sm" /> {t('interlude.recap.commandes', { liste: devis.commandes.map(objet).join(', ') })}</li>
         )}
-        {crafts.length > 0 && (
-          <li><Icon id="item/misc" size="sm" /> Ouvrages inachevés conservés : {crafts.map((h) => `${h.label} (${findTrappingById(h.craft!.trappingId)?.label ?? h.craft!.trappingId})`).join(', ')}.</li>
+        {devis.ouvrages.length > 0 && (
+          <li><Icon id="item/misc" size="sm" /> {t('interlude.recap.ouvrages', { liste: devis.ouvrages.map((o) => `${nom(o.heroId)} (${objet(o.trappingId)})`).join(', ') })}</li>
         )}
-        {demoted.map((h) => (
-          <li key={h.id} className="interlude-blocked">
-            <Icon id="ui/warning" size="sm" /> {h.label} n'a pas entrepris Revenus : retour au Niveau {(h.careerLevel ?? 1) - 1} de sa
-            Carrière (« Avec le pouvoir »).
+        {devis.retrogradations.map((r) => (
+          <li key={r.heroId} className="interlude-blocked">
+            <Icon id="ui/warning" size="sm" /> {t('interlude.recap.retrograde', { name: nom(r.heroId), level: r.niveau })}
           </li>
         ))}
-        {heroes.flatMap((h) => (interlude.perHero[h.id]?.closeOps ?? []).map((lot, i) => {
-          // Les ÉTATS réels de clôture passent par la primitive partagée (chips + popover Codex), le
-          // Standing par sa ligne, nommée par la source du lot ; une autre op éventuelle reste en clair.
+        {devis.lots.flatMap(({ heroId, lots }) => lots.map((lot, i) => {
+          // Les ÉTATS de clôture passent par la primitive partagée (chips + popover Codex), le Standing par sa
+          // ligne, nommée par la source du lot.
           const conds = lot.ops.filter((o) => o.op === 'condition').map((o) => ({ id: o.id as ConditionId, value: typeof o.value === 'number' ? o.value : 1 }));
           const standing = lot.ops.reduce((n, o) => n + (o.op === 'statusMod' && typeof o.amount === 'number' ? o.amount : 0), 0);
-          const others = lot.ops.filter((o) => o.op !== 'condition' && o.op !== 'statusMod');
           return (
-            <Fragment key={`close-${h.id}-${i}`}>
-              {(conds.length > 0 || others.length > 0) && (
+            <Fragment key={`close-${heroId}-${i}`}>
+              {conds.length > 0 && (
                 <li className="interlude-blocked">
-                  {h.label} : <EffectChips conditions={conds} />{others.length > 0 && ` ${others.map((o) => o.op).join(', ')}`} au premier
-                  jour de la prochaine aventure (Activité échouée).
+                  {nom(heroId)} : <EffectChips conditions={conds} /> {t('interlude.recap.premierJour')}
                 </li>
               )}
-              {standing !== 0 && <li>{t('interlude.close.standing', { name: h.label, delta: `${standing > 0 ? '+' : ''}${standing}`, source: nomDeSource(lot.ctx) })}</li>}
+              {standing !== 0 && <li>{t('interlude.close.standing', { name: nom(heroId), delta: `${standing > 0 ? '+' : ''}${standing}`, source: nomDeSource(lot.ctx) })}</li>}
             </Fragment>
           );
         }))}
         <li>
-          <Icon id="time/night" size="sm" /> Le temps passe : {interlude.weeks * 7} jours (récupération et
-          convalescence comprises) — reprise <GameDate time={gameTime + interlude.weeks * 7 * MINUTES_PER_DAY} />.
+          <Icon id="time/night" size="sm" /> {t('interlude.recap.temps', { n: devis.jours })} <GameDate time={devis.reprise} />.
         </li>
       </ul>
     </Modal>

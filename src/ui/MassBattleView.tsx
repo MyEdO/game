@@ -9,7 +9,7 @@ import { AssignRow } from './console/AssignRow';
 import { battleScenesToStations, type Station } from '../noyau/stations';
 import {
   massBattleThreatPenalty, armyMight, armyStartMight,
-  battleSceneById, battleSceneEffectLabel, battleActionRefus,
+  battleSceneById, battleSceneEffectLabel, battleActionRefus, refusDeRassemblement,
   type MassBattleState, type MassBattleArmy,
 } from '../noyau/massBattleFlow';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
@@ -86,14 +86,12 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
   const advance = useGame((s) => s.massBattleAdvance);
   const scene = useGame((s) => s.scene);
   const partyZ = useGame((s) => s.partyPos.z ?? 0); // le plan suit l'étage du groupe
-  const party = useGame((s) => s.party);
   const [selectedStationId, setSelectedStationId] = useState<string | undefined>(undefined);
   const allyBonus = mb.allyMod + (mb.round === 1 ? mb.firstRoundBonus : 0);
   const threatPen = massBattleThreatPenalty(mb);
   // Stations = les Scènes de la situation posées sur le plan (ancres authorées + affectation E3).
   const battleStations = battleScenesToStations(mb.situation, mb.assignment, scene);
-  const woundedRally = mb.awaitingNext
-    && party.some((h) => !h.dead && !mb.ralliedHeroes.includes(h.id) && h.wounds.current < h.wounds.max);
+  const refusRally = useGame(refusDeRassemblement);
   return (
     <section className="panel mb-phase">
       {mb.terrain && (
@@ -152,9 +150,8 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
 
       {mb.awaitingNext ? (
         <div className="bar mb-actions mb-clash-actions">
-          {woundedRally && (
-            <button className="btn small" onClick={rally}>{t('mbf.rallyLabel')}</button>
-          )}
+          <GatedAction id="mb-rally" primary={false} btnClassName="small" label={t('mbf.rallyLabel')}
+            enabled={!refusRally} {...raisonSi(refusRally)} onClick={rally} />
           <button className="btn btn-primary" onClick={advance}>Round suivant</button>
         </div>
       ) : (

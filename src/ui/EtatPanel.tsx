@@ -24,11 +24,11 @@ import { garanti } from '../lib/garanti';
 import type { Combatant, HitLocation } from '../engine/types';
 import { roundsLabel, clockLabel, type Duration } from '../engine/duration';
 import { locationLabel } from '../engine/combat';
-import { bonus, effectiveChar } from '../engine/characteristics';
 import { maxEncumbrance, totalEncumbrance } from '../engine/items';
 import { encumbrancePenalties } from '../engine/encumbrance';
 import { findCritEntrySuffered, critEntryCodexCategory, type CritTableKey } from '../engine/critical';
-import { corruptionThreshold } from '../engine/corruption';
+import { corruptionThreshold, limitesDeMutation } from '../engine/corruption';
+import { limiteDeCritiques } from '../engine/conditions';
 import { formatRemaining } from '../engine/disease';
 import { isPsychAfflictionActive } from '../engine/psychology';
 import { CHAR_LABELS, LOCALISATIONS_DE_COUP, type ConditionInstance } from '../engine/types';
@@ -109,14 +109,12 @@ function seuilTone(value: number, limit: number): GaugeTone {
 /** Bande « Réserves & seuils » (titre AFFICHÉ, arbitrage user 2026-07-18 — « Constitution c'est
  *  moche ») — en-tête de capacité UNIQUE du tableau de bord (fusion Réserves + Seuils,
  *  directive user 2026-07-17), en GRILLE 2 colonnes (`.reserves-seuils-grid`, → 1 colonne ≤700px).
- *  Réserves en 2×2 : Destin et Résilience = l'Indice PERMANENT (valeur simple affichée telle quelle),
- *  Chance et Détermination = la réserve courante (`NotchGauge` tone `resource`, plafond RÉEL
- *  `fortuneMax`/`resolveMax` = Indice + talents/effets — Chanceux/Obstiné compris, JAMAIS l'Indice
- *  seul). Puis les 4 seuils avant inaptitude, 2 par ligne (Critiques actives ≤ BE, Mutations physiques
- *  ≤ BE, Mutations mentales ≤ BFM, Corruption vers son seuil). Réf réserves : `LDB 17 l.4-9`,
- *  `LDB 17 l.12-17`, `LDB 17 l.21-25`. Bloc réserves masqué si Destin ET Résilience valent 0
- *  (`LDB 05 l.366-367`). DAMNÉ (`LDB 19 l.87`) : indicateur du slot droit. Aucune réf livre à l'écran. */
-function ReservesSeuilsBand({ hero, activeCriticals, be, physMutations, mentMutations, bfm, corruption, corruptionMax }: { hero: Combatant; activeCriticals: number; be: number; physMutations: number; mentMutations: number; bfm: number; corruption: number; corruptionMax: number }) {
+ *  Réserves en 2×2 : Destin et Résilience en valeur simple ; Chance et Détermination en `NotchGauge`
+ *  tone `resource`, plafond `fortuneMax`/`resolveMax`. Puis les 4 seuils, 2 par ligne
+ *  (`limiteDeCritiques`, `limitesDeMutation`, `corruptionThreshold`). Réf réserves : `LDB 17 l.4-9`,
+ *  `LDB 17 l.12-17`, `LDB 17 l.21-25` ; bloc masqué : `LDB 05 l.366-367` ; DAMNÉ (`LDB 19 l.87`) :
+ *  indicateur du slot droit. Aucune réf livre à l'écran. */
+function ReservesSeuilsBand({ hero, activeCriticals, be, physMutations, limitePhys, mentMutations, limiteMent, corruption, corruptionMax }: { hero: Combatant; activeCriticals: number; be: number; physMutations: number; limitePhys: number; mentMutations: number; limiteMent: number; corruption: number; corruptionMax: number }) {
   const fate = hero.fate ?? 0;
   const resilience = hero.resilience ?? 0;
   const showReserves = fate > 0 || resilience > 0;
@@ -133,7 +131,7 @@ function ReservesSeuilsBand({ hero, activeCriticals, be, physMutations, mentMuta
             </>
           )}
           <NotchGauge label="Critiques actives" value={activeCriticals} max={be} notches={be} tone={seuilTone(activeCriticals, be)} cellSize={GAUGE_CELL_PX} />
-          <NotchGauge label="Mutations physiques" value={physMutations} max={be} notches={be} tone={seuilTone(physMutations, be)} cellSize={GAUGE_CELL_PX} />
+          <NotchGauge label="Mutations physiques" value={physMutations} max={limitePhys} notches={limitePhys} tone={seuilTone(physMutations, limitePhys)} cellSize={GAUGE_CELL_PX} />
         </div>
         <div className="notch-gauge-stack">
           {showReserves && (
@@ -143,7 +141,7 @@ function ReservesSeuilsBand({ hero, activeCriticals, be, physMutations, mentMuta
             </>
           )}
           <NotchGauge label="Corruption" value={corruption} max={corruptionMax} notches={corruptionMax} tone="corruption" cellSize={GAUGE_CELL_PX} />
-          <NotchGauge label="Mutations mentales" value={mentMutations} max={bfm} notches={bfm} tone={seuilTone(mentMutations, bfm)} cellSize={GAUGE_CELL_PX} />
+          <NotchGauge label="Mutations mentales" value={mentMutations} max={limiteMent} notches={limiteMent} tone={seuilTone(mentMutations, limiteMent)} cellSize={GAUGE_CELL_PX} />
         </div>
       </div>
     </Band>
@@ -216,16 +214,10 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
   // Horloge de campagne : une échéance `clock` est ABSOLUE — le RESTE se lit contre l'heure courante.
   const gameTime = useGame((s) => s.gameTime);
 
-  // Compteurs de SEUILS (pt.4, #492) : ACTIF (décompté au soin) — pas l'historique `critEntriesSuffered`
-  // (`sheetAlarms.ts` porte déjà ce distinguo pour la bande d'alarmes). Mort si actives > BE quand
-  // Inconscient + 0 PB (`inDeathCondition`, engine/conditions.ts:595-605, LDB 18 l.34).
+  // Seuils : LDB 18 l.34 ; LDB 19 l.87.
   const activeCriticals = hero.criticalWounds ?? 0;
-  const be = bonus(effectiveChar(hero, 'endurance'));
-  // Damné si mutations physiques > BE OU mentales > BFM (`mutationLimitExceeded`,
-  // engine/corruption.ts:139-142, LDB 19 l.87) — mêmes filtres par `kind` ici.
-  const bfm = bonus(effectiveChar(hero, 'force-mentale'));
-  const physMutations = (hero.mutations ?? []).filter((m) => m.kind === 'physique').length;
-  const mentMutations = (hero.mutations ?? []).filter((m) => m.kind === 'mentale').length;
+  const be = limiteDeCritiques(hero);
+  const { phys: physMutations, ment: mentMutations, limitePhys, limiteMent } = limitesDeMutation(hero);
 
   const conditions = hero.conditions ?? [];
   const corruption = hero.corruption ?? 0;
@@ -252,7 +244,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
 
   return (
     <div className="sheet-etat">
-      <ReservesSeuilsBand hero={hero} activeCriticals={activeCriticals} be={be} physMutations={physMutations} mentMutations={mentMutations} bfm={bfm} corruption={corruption} corruptionMax={corruptionMax} />
+      <ReservesSeuilsBand hero={hero} activeCriticals={activeCriticals} be={be} physMutations={physMutations} limitePhys={limitePhys} mentMutations={mentMutations} limiteMent={limiteMent} corruption={corruption} corruptionMax={corruptionMax} />
 
       {(conditions.length > 0 || (hero.activeEffects?.length ?? 0) > 0 || (hero.castPenalties?.length ?? 0) > 0) && (() => {
         // « Effets actifs » (retour recette 2026-07-17) : États/malus ET buffs de sorts sont des effets

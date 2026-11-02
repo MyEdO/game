@@ -19,6 +19,7 @@
  * Une Scène `combat`/`threat` réutilise le combat tactique existant (`startCombat`).
  */
 import type { Get, Set } from './flowTypes';
+import type { Jeu } from './etat';
 import type { Combatant, CharKey, Difficulty } from '../engine/types';
 import { battleRng } from './battleRng';
 import { ecrireActeur } from './monde/combatants';
@@ -620,15 +621,27 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
 
 // ── Rassemblement (ADE II 08 l.122) ──────────────────────────────────────────────────────────────
 
-/** Ouvre le Rassemblement (ADE II 08 l.122 ; `activities.json › rassemblement`) pour le prochain PJ vivant
- *  blessé qui ne l'a pas tenté ce Round, entre les Rounds. */
+/** Le prochain PJ du Rassemblement : vivant, qui ne l'a pas tenté ce Round. ADE II 08 l.122 */
+function heroDuRassemblement(mb: MassBattleState, party: readonly Combatant[]): Combatant | undefined {
+  return party.find((h) => !h.dead && !mb.ralliedHeroes.includes(h.id));
+}
+
+/** Raison du refus du Rassemblement (entre les Rounds, un PJ qui ne l'a pas tenté), ou `null` — verdict
+ *  UNIQUE de `openMassBattleRally` et du bouton. ADE II 08 l.122 */
+export function refusDeRassemblement(s: Pick<Jeu, 'massBattle' | 'party'>): string | null {
+  const mb = s.massBattle;
+  if (!mb || mb.phase !== 'round' || !mb.awaitingNext) return t('mbf.rallyHorsPhase');
+  return heroDuRassemblement(mb, s.party) ? null : t('mbf.rallyNobody');
+}
+
+/** Ouvre le Rassemblement (`activities.json › rassemblement`) pour le prochain PJ (`heroDuRassemblement`),
+ *  entre les Rounds. ADE II 08 l.122 */
 export function openMassBattleRally(get: Get, set: Set): void {
-  const mb = get().massBattle;
-  if (!mb || mb.phase !== 'round' || !mb.awaitingNext) return;
+  if (refuseSi(get, set, refusDeRassemblement)) return;
+  const mb = get().massBattle!;
   const def = activityById('rassemblement');
   if (!def) return;
-  const hero = get().party.find((h) => !h.dead && !mb.ralliedHeroes.includes(h.id) && h.wounds.current < h.wounds.max);
-  if (!hero) { get().log(t('mbf.rallyNobody')); return; }
+  const hero = heroDuRassemblement(mb, get().party)!;
   openBattlePending(set, {
     actor: hero, battle: 'round', def, skillValue: testValue(hero, 'resistance'), skillId: 'resistance',
     difficulty: 'intermediaire', label: t('mbf.rallyLabel'), heroIds: [hero.id],

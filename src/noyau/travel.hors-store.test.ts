@@ -17,6 +17,7 @@ import { setRule } from '../engine/policy';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import { draineCascade } from './cascade.testkit';
+import { devisDeTrajet } from './travelFlow';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -347,12 +348,79 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
     expect(banc.getState().scene?.id).toBe('lieu-b-scene');
   });
 
-  it('surcharge (vitesse 0) : recap « stalled »', () => {
-    // Force la vitesse à pied à 0 via le Déplacement d'auteur de la route.
-    setup(map({ speed: { pied: 0 } }));
+  it('surcharge EN ROUTE (le groupe se charge à la halte) : recap « stalled »', () => {
+    setup(map({ km: 30 }));
     banc.getState().startTravel('r1', 'pied');
+    expect(banc.getState().pendingRest?.phase).toBe('setup');
+    // Huit hallebardes (Enc 3) : 24 > 3 × (BF 3 + BE 4) — immobilisé (LDB 61 l.40).
+    const h = banc.getState().party[0];
+    const hallebardes = Array.from({ length: 8 }, (_, i): ItemInstance => ({ ...itemFromTrappingById('hallebarde')!, uid: `hb${i}`, enc: 3 }));
+    banc.setState({ party: [{ ...h, items: [...(h.items ?? []), ...hallebardes] }] });
+    sleepThroughHalt();
     expect(banc.getState().travelRecap?.status).toBe('stalled');
     expect(banc.getState().travelPlan?.interrupted).toBe(true);
+  });
+});
+
+describe('refus de départ (#3059) — `startTravel` refuse en le disant', () => {
+  it('vitesse nulle au départ : aucun voyage, aucun recap, le refus au journal', () => {
+    setup(map({ speed: { pied: 0 } }));
+    banc.getState().startTravel('r1', 'pied');
+    const st = banc.getState();
+    expect(st.travelPlan).toBeNull();
+    expect(st.travelRecap).toBeNull();
+    expect(st.journal[st.journal.length - 1]).toBe('Le groupe est trop chargé pour avancer — allégez les sacs.');
+  });
+
+  it('siège invité : le départ est refusé, « L’hôte décide des départs. »', () => {
+    setup(map());
+    banc.setState({ net: { ...banc.getState().net, mode: 'guest' } });
+    banc.getState().startTravel('r1', 'pied');
+    const st = banc.getState();
+    expect(st.travelPlan).toBeNull();
+    expect(st.scene?.id).toBe('lieu-a-scene');
+    expect(st.journal[st.journal.length - 1]).toBe('L’hôte décide des départs.');
+  });
+
+  it('bourse insuffisante : rien débité, le refus nomme le passage et son prix', () => {
+    setup(map({ km: 600, modes: ['diligence'] }));
+    banc.getState().startTravel('r1', 'diligence', { classeId: 'interieur' });
+    const st = banc.getState();
+    expect(st.travelPlan).toBeNull();
+    expect(toBrass(partyMoneyTotal(() => st))).toBe(60);
+    expect(st.journal[st.journal.length - 1]).toBe('Le passage (diligence, 5 CO) dépasse les moyens du groupe.');
+  });
+
+  it('offre absente (véhicule sans tarif) : aucun voyage, le refus au journal', () => {
+    setup(map({ modes: ['charrette'], speed: { charrette: 4 } }));
+    banc.getState().startTravel('r1', 'charrette');
+    const st = banc.getState();
+    expect(st.travelPlan).toBeNull();
+    expect(st.scene?.id).toBe('lieu-a-scene');
+    expect(st.journal[st.journal.length - 1]).toBe('Aucun passage n’est proposé pour ce mode sur cette route.');
+  });
+});
+
+describe('rations des nuits en route (#3059) — le devis dit ce que les haltes consomment', () => {
+  const dixRations = () => Array.from({ length: 10 }, (_, i) => ration(`r${i}`));
+  const nuitsConsommees = (h: Combatant): { devis: number; consommees: number } => {
+    setup(map({ km: 90 }), [h]);
+    const st = banc.getState();
+    const devis = devisDeTrajet(st, st.worldMap!.routes[0], 'pa', 'pied');
+    expect(devis.plan?.days).toBe(4); // 24 + 24 + 24 + 18 km : trois nuits en route
+    banc.getState().startTravel('r1', 'pied');
+    let garde = 0;
+    while (banc.getState().pendingRest && garde++ < 10) sleepThroughHalt();
+    expect(banc.getState().scene?.id).toBe('lieu-b-scene');
+    return { devis: devis.rations.requises, consommees: 10 - rationCount(banc.getState().party[0]) };
+  };
+
+  it('Ogre (ADE II 2 l.708) : 3 nuits × 2 = 6 rations', () => {
+    expect(nuitsConsommees(hero({ items: dixRations(), traits: [{ id: 'ogre' }] }))).toEqual({ devis: 6, consommees: 6 });
+  });
+
+  it('Brouet (LDB 10 l.139) : 3 nuits à demi-ration = 2 rations', () => {
+    expect(nuitsConsommees(hero({ items: dixRations(), talents: [{ talentId: 'brouet', times: 1 }] }))).toEqual({ devis: 2, consommees: 2 });
   });
 });
 

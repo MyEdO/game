@@ -175,7 +175,8 @@ import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_STAR_ROLLED, speciesAllowed } from 
 import { formuleDeRevenus } from '../../engine/money';
 import { t as msg } from '../../i18n'; // `msg` : alias local — `t` nomme aussi un trapping ou une minuterie dans ce module
 import { PARTY_MAX } from '../../noyau/monde/combatants';
-import { GatedAction } from '../GatedAction';
+import { GatedAction, raisonSi } from '../GatedAction';
+import { refusComposition, refusDAjoutAuGroupe } from '../../noyau/partyFlow';
 import { Grid, Row } from '../Layout';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 
@@ -223,6 +224,7 @@ export function CharacterCreator() {
   const addHero = useGame((s) => s.partyAddHero);
   const replaceHero = useGame((s) => s.partyReplaceHero);
   const editingHeroId = useGame((s) => s.editingHeroId);
+  const refusDAjout = useGame((s) => (s.editingHeroId ? refusComposition(s) : refusDAjoutAuGroupe(s, undefined, s.net.mySeat)));
   const setEditingHero = useGame((s) => s.setEditingHero);
 
   // MODE ÉDITION : héros déjà dans le groupe (bouton « Modifier ») → on rouvre son brouillon.
@@ -381,9 +383,13 @@ export function CharacterCreator() {
             Suivant →
           </button>
         ) : (
-          <button className="btn btn-primary" disabled={(!editing && party.length >= PARTY_MAX) || !canNext} onClick={create}>
-            {editing ? 'Enregistrer les modifications' : 'Engager ce héros →'}
-          </button>
+          <GatedAction
+            id="creator-commit"
+            enabled={!refusDAjout && canNext}
+            {...raisonSi(refusDAjout)}
+            onClick={create}
+            label={editing ? 'Enregistrer les modifications' : 'Engager ce héros →'}
+          />
         )}
       </footer>
     </div>

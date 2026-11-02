@@ -38,11 +38,23 @@ import { applyHealWounds } from './healing';
 import { diseaseLabel } from '../data';
 import { t } from '../i18n';
 
-/** États à dégâts périodiques qui empêchent un repos réparateur (LDB 16 l.105 : on ne « reprend pas ses
- *  esprits » tant qu'un Hémorragique subsiste — on étend à En flammes/Empoisonné, qu'on ne traverse pas
- *  en dormant ; il faut d'abord stabiliser via Guérison/Sort). */
+/** États qui empêchent un repos réparateur. LDB 16 l.105 */
 function unstable(c: Combatant): boolean {
-  return hasCondition(c, 'hemorragique') || hasCondition(c, 'en-flammes') || hasCondition(c, 'empoisonne');
+  return hasCondition(c, 'hemorragique');
+}
+
+/** Empoisonné à 0 Blessure : aucune Blessure soignée. LDB 16 l.74 */
+function soinEmpoisonne(c: Combatant): boolean {
+  return hasCondition(c, 'empoisonne') && c.wounds.current === 0;
+}
+
+/** Pourquoi le repos ne rend à `c` aucune Blessure : États à stabiliser (`unstable`), Empoisonné à 0
+ *  Blessure (`soinEmpoisonne`), privation (`isDeprived`) ; `null` sinon. Verdict de `needsRecoveryRoll`,
+ *  du soin d'`applyRecoveryDay` et de la modale de Repos. LDB 16 l.74, l.105 ; LDB 18 l.338 */
+export function refusDeRecuperation(c: Combatant): string | null {
+  if (unstable(c)) return t('rest.refus.instable');
+  if (soinEmpoisonne(c)) return t('rest.refus.empoisonne');
+  return isDeprived(c) ? t('rest.refus.prive') : null;
 }
 
 /**
@@ -149,10 +161,10 @@ export interface RestRoll {
  * `collect` (modale de Repos) reçoit les JETS structurés (récupération, cauchemars) pour le bilan.
  * (Maladies/convalescence : décomptées par l'entretien quotidien — cf. en-tête #T3.)
  */
-/** Un héros doit-il LANCER le Test de récupération cette nuit ? (Non si mort/éjecté/instable/affamé/PB
- *  plein.) Sépare la DÉCISION du jet (pour différer en cascade) de son application. */
+/** Un héros doit-il LANCER le Test de récupération cette nuit ? (Non si mort/éjecté, refusé par
+ *  `refusDeRecuperation`, ou PB plein.) Sépare la DÉCISION du jet (pour différer en cascade) de son application. */
 export function needsRecoveryRoll(c: Combatant): boolean {
-  return !c.dead && !c.outOfRencontre && !unstable(c) && !isDeprived(c) && c.wounds.current < c.wounds.max;
+  return !c.dead && !c.outOfRencontre && refusDeRecuperation(c) === null && c.wounds.current < c.wounds.max;
 }
 
 /**
@@ -177,14 +189,15 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
   const removable = starving ? 0 : Math.max(0, fat - derives);
   if (removable > 0) removeCondition(c, 'extenue', removable);
   const dayStartPB = c.wounds.current;
+  const soin = refusDeRecuperation(c) === null;
   // volet a : DR + BE sur réussite (une fois par jour). SOURCE UNIQUE `applyHealWounds` — plafonné
   // par munition Empaleuse logée (LDB 62 l.250) comme les autres chemins ; ni verrou « soin de
   // rencontre » (Guérison seulement) ni réveil ici — le réveil du repos (+ À Terre) reste géré
   // ci-dessous (`applyHealWounds` ne couvre pas À Terre).
-  if (!starving && recoveryRoll?.success && c.wounds.current < c.wounds.max)
+  if (soin && recoveryRoll?.success && c.wounds.current < c.wounds.max)
     applyHealWounds(c, Math.max(0, recoveryRoll.sl) + be, { skillCheck: false, wake: false, log: () => [] });
   // volet b : +BE INCONDITIONNEL.
-  if (!starving && c.wounds.current < c.wounds.max) applyHealWounds(c, be, { skillCheck: false, wake: false, log: () => [] });
+  if (soin && c.wounds.current < c.wounds.max) applyHealWounds(c, be, { skillCheck: false, wake: false, log: () => [] });
   // Symptôme « blessé » : la plaie reste ouverte.
   if (blesse > 0) c.wounds.current = Math.max(dayStartPB, c.wounds.current - blesse);
   // Réveil : > 0 PB lève l'Inconscient et relève l'À Terre (l.28). PAS applyHealWounds (soin de rencontre).
@@ -202,8 +215,7 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
 
 export function restRecovery(c: Combatant, rng: RNG, days = 1, collect?: RestRoll[]): string[] {
   if (c.dead || c.outOfRencontre) return []; // un mort / éjecté ne se repose pas
-  // LDB 16 l.105 : un héros qui saigne, brûle ou est empoisonné ne trouve pas le repos — à stabiliser
-  // d'abord (Test de Guérison, Sort). Pas de récupération réparatrice tant que ces États subsistent.
+  // LDB 16 l.105
   if (unstable(c)) return [t('rest.noRest', { name: c.label })];
 
   const startPB = c.wounds.current;

@@ -110,6 +110,18 @@ describe('EtatPanel', () => {
     expect(html).toContain('data-tone="corruption"');
   });
 
+  it('Mutations mentales : la limite est le BFM, distinct du BE (LDB 19 l.87, #3059)', () => {
+    const mentales = (n: number) => mkHero((c) => {
+      c.characteristics['force-mentale'] = 40; // BFM 4 ≠ BE 3
+      c.mutations = Array.from({ length: n }, (_, i) =>
+        ({ id: `m${i}`, label: `Mutation mentale ${i}`, desc: '', kind: 'mentale', roll: 1, passive: [] }) as never);
+    });
+    const auSeuil = renderToStaticMarkup(<EtatPanel hero={mentales(4)} />);
+    expect(auSeuil).toContain('aria-valuemax="4" aria-valuenow="4"');
+    const auDela = renderToStaticMarkup(<EtatPanel hero={mentales(5)} />);
+    expect(auDela).toContain('aria-valuemax="4" aria-valuenow="5"');
+  });
+
   it('bande « Réserves & seuils » : ton WARN à seuil−1, DANGER au seuil atteint/franchi (contrat POSITIF par seuil, sur la NotchGauge)', () => {
     const auSeuil = mkHero((c) => {
       c.critEntriesSuffered = ['blessure-spectaculaire'];

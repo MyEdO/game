@@ -19,6 +19,18 @@ describe('InspectPanel', () => {
 
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
 
+  it('un Béni sans Bénédiction mémorisée porte le badge « Lanceur de sorts » (#3059)', () => {
+    const beni = { ...hero, spells: [], talents: [{ talentId: 'beni', spec: 'sigmar', times: 1 }] };
+    expect(render(beni)).toContain('Lanceur de sorts');
+  });
+
+  it('sans sort ni Talent de lanceur, pas de badge « Lanceur de sorts » (#3059)', () => {
+    const profane = { ...hero, spells: [], talents: [] };
+    const html = render(profane);
+    expect(html).toContain('Gunnar');
+    expect(html).not.toContain('Lanceur de sorts');
+  });
+
   it('nom, PB (WoundsBadge courant/max) et statbloc (caractéristiques partagées)', () => {
     const html = render(hero);
     expect(html).toContain('Gunnar');
