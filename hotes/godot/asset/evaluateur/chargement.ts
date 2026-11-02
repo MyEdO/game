@@ -1,9 +1,12 @@
 /**
  * LE CHARGEMENT D'UN GLB PAR THREE, EN NODE (#2972) : `GLTFLoader.parse` sans DOM. Une image ne se décode pas hors du
  * navigateur : le document est réécrit sans images, textures, échantillonneurs ni référence de texture des matériaux
- * (`ecrireGlb`, `glb.ts`) avant le chargement ; leur présence se lit par `lireGlb` (`images`).
+ * (`ecrireGlb`, `glb.ts`) avant le chargement ; leur présence se lit par `lireGlb` (`images`). Un os porte le nom de son
+ * nœud glTF, que `GLTFLoader` réécrit (`PropertyBinding.sanitizeNodeName`, `createUniqueName`) : le manifeste et
+ * `lireGlb` parlent en noms glTF (#3233). Une piste de clip, dont le nom ne peut pas porter `.`, `:`, `/`, `[` ni `]`
+ * (`PropertyBinding.parseTrackName`), vise son os par son `uuid`.
  */
-import type { AnimationClip, Mesh, Object3D, Skeleton, SkinnedMesh } from 'three';
+import { PropertyBinding, type AnimationClip, type Bone, type Mesh, type Object3D, type Skeleton, type SkinnedMesh } from 'three';
 import { GLTFLoader, type GLTFReference } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { estObjet } from '../../../../src/hote/formes';
 import { ecrireGlb, lireConteneur, type DocumentGltf } from '../glb.ts';
@@ -61,6 +64,18 @@ export async function chargerScene(octets: Uint8Array): Promise<SceneChargee> {
   const skinnes = meshes.filter((m): m is SkinnedMesh => (m as SkinnedMesh).isSkinnedMesh === true);
   const associations: ReadonlyMap<object, ReferenceGltf> = gltf.parser.associations;
   const noeuds = (json.nodes ?? []) as readonly { name?: unknown }[];
+  const os = new Map<string, Bone>();
+  gltf.scene.traverse((n) => {
+    const nom = noeuds[associations.get(n)?.nodes ?? -1]?.name;
+    if (!(n as Bone).isBone || typeof nom !== 'string' || !nom) return;
+    os.set(n.name, n as Bone);
+    n.name = nom;
+  });
+  for (const piste of gltf.animations.flatMap((c) => c.tracks)) {
+    const { nodeName, propertyName } = PropertyBinding.parseTrackName(piste.name);
+    const cible = os.get(nodeName);
+    if (cible) piste.name = `${cible.uuid}.${propertyName}`;
+  }
   const origines = new Map(meshes.map((m) => {
     let objet: Object3D | null = m;
     while (objet && associations.get(objet)?.nodes === undefined) objet = objet.parent;
