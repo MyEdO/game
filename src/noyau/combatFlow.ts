@@ -170,7 +170,7 @@ import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
-import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, rederiverLArmeTenue, endommagerLArmeTenue } from '../engine/items';
+import { recomputeLoadout, weaponWithAmmo, loadedAmmo, porteeDeTir, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, rederiverLArmeTenue, endommagerLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND, isActionLocked } from '../engine/conditions';
@@ -196,7 +196,7 @@ import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE, DE_SALVE_MISFIRE } from '../engine/artilleryMisfire';
 import { ARTILLERY_MISFIRE } from '../data/artilleryMisfire';
 import { traumaById, dechirureFractureFicheId, consolidateAmputations, maxFingersLostForWeapon, reinjuryBleed } from '../engine/trauma';
-import { effectiveWeaponDamage, effectiveWeaponRange, isThrownWeapon, solideSaveThreshold, sauvegardeImperdable, effectiveWeapon, type WeaponContext } from '../engine/weaponDamage';
+import { effectiveWeaponDamage, isThrownWeapon, solideSaveThreshold, sauvegardeImperdable, effectiveWeapon, type WeaponContext } from '../engine/weaponDamage';
 import { scatter } from '../engine/scatter';
 import { TIME_COST } from '../engine/timeCost';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -462,7 +462,7 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   // plus PROCHE que la bande minimale de l'arme — machines à distance : pas de Bout Portant (l.253) ;
   // trébuchet/mortier : rien sous la Portée Courte (l.251). DONNÉE générique `w.minRangeBand` (pas un flag par-machine).
   if (w.minRangeBand) {
-    const rangeM = effectiveWeaponRange(w, loadedAmmo(active, w)?.ammoRangeMod, () => bonus(effectiveChar(active, 'force')));
+    const rangeM = porteeDeTir(active, w);
     if (rangeM != null && belowMinRangeBand(distanceTiles, rangeM, w.minRangeBand))
       return { reason: 'portee-min', detail: `${w.label} ne peut pas tirer d'aussi près (${rangeBandName(distanceTiles, rangeM) ?? 'trop proche'}).` };
   }
@@ -976,7 +976,7 @@ export function previewAttack(
   if (blocked) return { weapon, kind, inRange: true, blocked: true, target: 0, base, mods: [], dmg, soak, difficulty: 'intermediaire' };
   const distanceTiles = kind === 'ranged' ? dist : undefined;
   const mods = attackModifiers(attacker, target, weapon, { kind, location, distanceTiles, env, metresPerTile: mpt });
-  const rangeM = effectiveWeaponRange(weapon, loadedAmmo(attacker, weapon)?.ammoRangeMod, () => bonus(effectiveChar(attacker, 'force'))); // Portée résolue (jet `{bf}` → BF×N) + modificateur de la munition sélectionnée ; null = hors bande
+  const rangeM = porteeDeTir(attacker, weapon); // Portée résolue (jet `{bf}` → BF×N) + modificateur de la munition sélectionnée ; null = hors bande
   const inRange = kind === 'ranged' ? (rangeM != null && rangeBandModifier(dist, rangeM, mpt) != null) : dist <= reachTiles(weapon);
   // Ligne montée par le MONTEUR CANONIQUE (#1153) : base de combat NUE, composantes fondues dans la
   // valeur (lignes volatiles de Caractéristique — issue #202 — et mods de Test char-qualifiés) en
@@ -1107,9 +1107,6 @@ export function previewResourceDelta(battle: BattleState | null): { action: numb
   return { action, move, adv };
 }
 
-/** Cibles VALIDES de l'attaque du héros actif (R4) : ennemis en vie atteignables (mêlée à l'Allonge / tir
- *  dans une bande de portée AVEC Ligne de Vue) — MÊMES prédicats que la résolution (via `previewAttack`),
- *  pour surligner les cibles cliquables et griser les inéligibles. Pur. Vide hors tour de héros. */
 /** L'actif s'il est un héros-ATTAQUANT (arme à brandir + position) — précondition PARTAGÉE des calculs
  *  d'éligibilité de cible. Un navire-coque (sans arme) renvoie null : il agit en UNITÉ (Tests d'équipage), il
  *  n'attaque pas au fusil/à l'épée → `previewAttack` n'est pas appelé sur lui (et planterait faute d'arme). */
@@ -1118,20 +1115,6 @@ function activeHeroAttacker(get: Get): Combatant | null {
   if (!battle) return null;
   const active = activeCombatant(battle);
   return active && controlsCombatant(get(), active) && !!active.pos && active.weapons.length > 0 ? active : null;
-}
-
-export function eligibleAttackTargetIds(get: Get): Set<string> {
-  const battle = get().battle;
-  const ids = new Set<string>();
-  if (!battle) return ids;
-  const active = activeHeroAttacker(get);
-  if (!active) return ids;
-  for (const c of battle.combatants) {
-    if (c.kind === active.kind || isOutOfAction(c) || !c.pos) continue; // camp RELATIF (l'actif conduit peut être un ennemi)
-    const p = previewAttack(get, active, c);
-    if (p.inRange && !p.blocked) ids.add(c.id);
-  }
-  return ids;
 }
 
 /** Ennemis SANS Ligne de Vue depuis le héros actif (LDB 13 l.114 — le tir est impossible) :
@@ -1161,10 +1144,8 @@ export function castSightBlocked(get: Get, from: Pt, to: Pt): boolean {
   return !losClear(scene, from, to, battle ? smokeOf(battle) : []);
 }
 
-/** Aperçu de DÉPLACEMENT vers `pt` (Marche ou Course) au SURVOL — composé des MÊMES sources que
- *  le clic-sol (`displayedReach`/`computeRunReach`/`pathTo`, géométrie de la monture incluse) :
- *  l'aperçu ne ment pas. Les gates de COMMIT (Peur à l'approche, Frénésie) restent au clic,
- *  comme pour le tap-1 tactile. null = case non atteignable / pas en mode neutre. */
+/** Raisons pour lesquelles `resolveMovement` refuse une case. `course-non-armee` et `frenesie-eloigne`
+ *  ne se jugent que si l'appelant fournit l'intention de Course (`resolveMovement(…, { courseArmee })`). */
 export type MovementBlockReason =
   | 'no-battle'
   | 'no-scene'
@@ -1175,7 +1156,9 @@ export type MovementBlockReason =
   | 'engaged'
   | 'movement-spent'
   | 'out-of-range'
-  | 'no-path';
+  | 'no-path'
+  | 'course-non-armee'
+  | 'frenesie-eloigne';
 
 export type MovementResolution =
   | { status: 'ok'; kind: 'move' | 'run'; path: Pt[]; cost: number }
@@ -1202,7 +1185,26 @@ export function mobileDuTour(s: Jeu, battle: BattleState):
   return { mobile: active, case: active.pos };
 }
 
-export function resolveMovement(get: Get, pt: Pt): MovementResolution {
+/**
+ * Résolution du DÉPLACEMENT vers `pt` (Marche ou Course) — verdict UNIQUE du clic-sol (aperçu tap-1 et
+ * commit) et de l'aperçu au survol (`displayedReach`/`computeRunReach`/`pathTo`, géométrie de la monture
+ * incluse). `armement.courseArmee` = intention de Course lue chez l'ÉMETTEUR du geste (jamais relue ici) ;
+ * fournie, elle fait juger la Course non armée (spec HUD § 2026-08-19, exemption Frénésie) et la case qui
+ * éloigne de la cible de Frénésie (LDB 21 l.33). Absente : ni l'un ni l'autre. La Peur reste une porte de
+ * Test au commit (LDB 21 l.27).
+ */
+export function resolveMovement(get: Get, pt: Pt, armement?: { courseArmee: boolean }): MovementResolution {
+  const resolution = resoudreLaCase(get, pt);
+  if (resolution.status !== 'ok' || !armement) return resolution;
+  const active = activeCombatant(get().battle!)!;
+  const frenetique = isFrenzied(active);
+  if (resolution.kind === 'run' && !armement.courseArmee && !frenetique) return { status: 'blocked', reason: 'course-non-armee' };
+  const ft = frenetique ? frenzyTarget(get, active) : null;
+  if (ft?.pos && chebyshev(pt, ft.pos) >= chebyshev(active.pos!, ft.pos)) return { status: 'blocked', reason: 'frenesie-eloigne' };
+  return resolution;
+}
+
+function resoudreLaCase(get: Get, pt: Pt): MovementResolution {
   const battle = get().battle;
   const scene = get().scene;
   if (!battle) return { status: 'blocked', reason: 'no-battle' };
@@ -1227,13 +1229,6 @@ export function resolveMovement(get: Get, pt: Pt): MovementResolution {
   const path = pathTo(scene, depart, pt, moveEnv(battle, geom));
   if (!path || path.length < 2) return { status: 'blocked', reason: 'no-path' };
   return { status: 'ok', kind: inWalk ? 'move' : 'run', path, cost: (inWalk ? reach.get(k) : runReach!.get(k)) ?? 0 };
-}
-
-export function movePreviewAt(get: Get, pt: Pt): { kind: 'move' | 'run'; path: Pt[]; cost: number } | null {
-  const resolution = resolveMovement(get, pt);
-  return resolution.status === 'ok'
-    ? { kind: resolution.kind, path: resolution.path, cost: resolution.cost }
-    : null;
 }
 
 /** Ennemis SANS Ligne de Vue depuis le héros actif pour un SORT (LDB 46 l.121) — même grisage
@@ -3062,7 +3057,7 @@ export function inFiringBand(shooter: Combatant, target: Combatant, weapon: Weap
   if (!shooter.pos || !target.pos) return true;
   const d = combatDistance(shooter, target);
   if (weapon.type === 'ranged') {
-    const rm = effectiveWeaponRange(weapon, loadedAmmo(shooter, weapon)?.ammoRangeMod, () => bonus(effectiveChar(shooter, 'force')));
+    const rm = porteeDeTir(shooter, weapon);
     return rm != null && rangeBandModifier(d, rm, metresPerTile) != null;
   }
   return d <= reachTiles(weapon);

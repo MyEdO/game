@@ -199,6 +199,21 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
     }
   });
 
+  it('INVITÉ armé, HÔTE sans intention : la Course jointe à l’intent est jugée chez l’hôte et acceptée', () => {
+    const net0 = get().net;
+    const { H } = setup();
+    useGame.setState({ pendingRun: null, net: { ...net0, mode: 'host', mySeat: 0, ownership: { [H.id]: 1 }, slots: [1, 0, 0, 0] } });
+    expect(get().localIntent, 'témoin : l’hôte n’a RIEN armé').toBeNull();
+    try {
+      withActingSeat(1, () => get().battleClickTile({ x: 10 + 6, y: 10 }, { confirm: true, courseArmee: true }));
+      vi.runOnlyPendingTimers();
+      expect(get().refus, 'l’hôte a jugé la Course de l’invité sur SA propre intention').toBeNull();
+      expect(get().pendingRun, 'l’invité n’a pas couru').toMatchObject({ combatantId: H.id, dest: { x: 10 + 6, y: 10 } });
+    } finally {
+      useGame.setState({ net: net0, pendingRun: null });
+    }
+  });
+
   it('CLAVIER : `commitCursor` commet par l’ACTION DE STORE — donc par le wrapper d’invité', () => {
     const { E } = setup();
     // L'invité n'émet ses gestes que parce que `netFlow.interceptGuestActions` REMPLACE les actions de

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme } from './items';
+import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme, porteeDeTir } from './items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
@@ -1053,5 +1053,23 @@ describe('Cavalerie (2M) tenue par un cavalier MONTÉ', () => {
     loadoutSetSlot(c, 'lo', 'main', 'm1');
     expect(c.loadouts![0].off).toBeUndefined();
     expect(setADeuxMains(c, c.loadouts![0])).toBe(true);
+  });
+});
+
+/** LDB 62 : la Portée d'une arme de jet est BF × N ; la munition sélectionnée la module. */
+describe('porteeDeTir — la Portée de l’arme aux mains de SON tireur', () => {
+  const tireur = (items: Combatant['items']): Combatant => blessuresSurLeProfil({
+    id: 'h', label: 'T', kind: 'hero',
+    characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [],
+    weapons: [], armour: emptyArmour(), skills: [], talents: [], movement: 4, items,
+  }) as Combatant;
+  const arme = (range: Weapon['range']): Weapon => ({ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [], range, subType: 'arc', reload: 0 });
+  it('arc 60 m, flèche lourde {mult: 0.5} sélectionnée → 30 m', () => {
+    const fleche = { ...itemFromTrappingById('fleche')!, ammoRangeMod: { mult: 0.5 as number }, qty: 10 };
+    expect(porteeDeTir({ ...tireur([fleche]), ammoUid: fleche.uid } as Combatant, arme(60))).toBe(30);
+  });
+  it('arme de jet {bf: 3}, Force 40 (BF 4) → 12 m', () => {
+    expect(porteeDeTir(tireur([]), arme({ bf: 3 }))).toBe(12);
   });
 });

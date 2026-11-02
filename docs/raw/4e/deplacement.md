@@ -514,7 +514,7 @@ Ajustements : régions plus au nord → +10 à +30 ; plus au sud → −10 à �
 > au démarrage du jour (données posées, `weatherResistanceTest` ; reste un applier de cascade batch) ;
 > (c) éclairs → montures Nerveux (couture `fireTriggers(onStartled, 'noise')` existante, mais la CADENCE
 > d'un éclair est RAW-indéfinie et il n'y a pas de contexte de combat pendant la marche) ; (d) plafond de
-> visibilité en mètres sur la portée du tir (donnée `visibiliteM` posée ; le cap sur `effectiveWeaponRange`
+> visibilité en mètres sur la portée du tir (donnée `visibiliteM` posée ; le cap sur `porteeDeTir`
 > attend la résolution de l'échelle tuile↔mètre). Le Blizzard/la Pluie diluvienne (visibilité ≈ 0) sont
 > déjà neutralisés côté tir par `rangedUseless` / le −20.
 

@@ -9,16 +9,13 @@ import type { GameState } from '../../state/store';
 import type { BattleState } from '../../noyau/etat';
 import type { PendingAttack, PendingCleave, PendingDualStrike, PendingCast } from '../../noyau/pendings';
 import { Combatant } from '../../engine/types';
-import { crowdEligible, eligibleAttackTargetIds } from '../../noyau/combatFlow';
-import { hasFreeWeaponAttack } from '../../noyau/combatManeuvers';
-import { currentTargetingMode } from '../../noyau/targetingModes';
+import { crowdEligible } from '../../noyau/combatFlow';
+import { ATTACK_MODE, currentTargetingMode } from '../../noyau/targetingModes';
+import { validTargets } from '../../noyau/targeting';
 import { armedIntentPortee, porteesDuTour, PORTEE_ARME, type LocalIntent } from '../../noyau/localIntent';
-import { controlsCombatant } from '../../noyau/netOwnership';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { attackWeapon } from '../../engine/combat';
-import { effectiveWeaponRange } from '../../engine/weaponDamage';
-import { loadedAmmo } from '../../engine/items';
-import { bonus, effectiveChar } from '../../engine/characteristics';
+import { porteeDeTir } from '../../engine/items';
 import type { HighlightsView } from '../builders/highlights';
 
 export interface HighlightOpts {
@@ -59,11 +56,10 @@ export function combatHighlightsView(get: () => GameState, battle: BattleState, 
     // s'affiche qu'à son tour, comme toute affordance (spec HUD zone 4).
     intentReach: portees.intention,
     activeId: activeC?.id ?? null,
-    // Anneaux d'attaque (R4) : en mode neutre (attaque implicite), tant que l'Action est disponible
-    // (ou attaque libre de Frénésie).
+    // Anneaux d'attaque (R4) du mode neutre : les cibles dont le clic aboutira (`validTargets`, verdict du mode).
     eligibleIds:
-      myTurn && battle.action === null && !!activeC && controlsCombatant(get(), activeC) && !pendingAttack && (!battle.acted || hasFreeWeaponAttack(activeC))
-        ? eligibleAttackTargetIds(get)
+      myTurn && battle.action === null && !pendingAttack && currentTargetingMode(get) === ATTACK_MODE
+        ? new Set(validTargets(get).map((c) => c.id))
         : null,
     crowdIds: (() => {
       if (!pendingAttack?.intoCrowd) return null;
@@ -97,7 +93,7 @@ export function combatHighlightsView(get: () => GameState, battle: BattleState, 
       if (!c?.pos) return null;
       const weapon = attackWeapon(c.weapons, false);
       if (!weapon || weapon.type !== 'ranged') return null; // structure/décor sans arme (porte…) — pas de bande (#203 régression)
-      const rangeM = effectiveWeaponRange(weapon, loadedAmmo(c, weapon)?.ammoRangeMod, () => bonus(effectiveChar(c, 'force')));
+      const rangeM = porteeDeTir(c, weapon);
       return rangeM != null ? { pos: c.pos, rangeM } : null;
     })(),
   };

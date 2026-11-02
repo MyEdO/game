@@ -5,7 +5,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { placeCombatant } from './monde/spawn';
 import { testScene } from '../scenes/test-fixture';
-import { displayedReach, movePreviewAt } from './combatFlow';
+import { displayedReach, resolveMovement } from './combatFlow';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -64,10 +64,9 @@ describe('combat multi-couche — rampe : portée/aperçu/clic z-aware', () => {
 
   it('l’aperçu de déplacement cible une case de tablier z1 atteignable (clé de portée z-aware)', () => {
     setup({ x: 2, y: 3 });
-    const pv = movePreviewAt(banc.getState, { x: 2, y: 2, z: 1 });
-    expect(pv).not.toBeNull();
-    expect(pv!.kind === 'move' || pv!.kind === 'run').toBe(true);
-    expect(pv!.path.length).toBeGreaterThanOrEqual(2); // un vrai chemin (pied → tablier)
+    const pv = resolveMovement(banc.getState, { x: 2, y: 2, z: 1 });
+    expect(pv.status === 'ok' && pv.kind === 'move', 'la case de tablier se résout en Marche').toBe(true);
+    expect(pv.status === 'ok' && pv.path.length, 'un vrai chemin (pied → tablier)').toBeGreaterThanOrEqual(2);
   });
 
   it('cliquer le tablier fait MONTER le héros (z=1) et stampe sa hauteur (h=1)', () => {

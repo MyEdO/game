@@ -64,9 +64,9 @@ describe('un tour complet par le pont', () => {
     expect(suite.vue.projection.combat!.barre).toEqual({ forme: 'ouverte', raison: null });
     expect(suite.vue.panneau!.offres.charge, 'chaque offre de la barre a son libellé').toMatch(/^Charger/);
     expect(suite.vue.panneau!.fiche[0], 'la fiche nomme l’actif').toBe(heros.nom);
-    const [cible] = suite.vue.projection.combat!.cibles.liste;
     ({ suite } = jouer({ offre: 'charge' }));
     expect(suite.vue.projection.combat!.intention, 'l’offre arme son intention').toBe('charge');
+    const [cible] = suite.vue.projection.combat!.cibles.liste; // les cibles que le clic accepte, la Charge armée
     ({ suite } = jouer({ type: suite.vue.champ.combattant, args: [cible] }));
     expect(suite.vue.attaque, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ attaquantId: heros.id, cibleId: cible, jete: false });
     expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('attackRoll');

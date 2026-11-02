@@ -1276,7 +1276,7 @@ export interface TrappingData {
    *  la mêlée et les munitions (qui héritent de l'arme). Résolue à l'usage par `effectiveRange`. */
   range?: import('../engine/types').WeaponRangeSpec | null;
   /** MUNITION : modificateur STRUCTURÉ de la Portée de l'arme de tir (`AmmoRangeMod` : `{mult}` fraction /
-   *  `{add}` mètres ±). Appliqué en combat (`effectiveWeaponRange`) à l'arme qui tire cette munition. « Comme
+   *  `{add}` mètres ±). Appliqué en combat (`porteeDeTir`) à l'arme qui tire cette munition. « Comme
    *  l'arme » = absent/null (Portée de l'arme inchangée). Sorti de `reach` (qui n'est qu'une Allonge mêlée). */
   ammoRangeMod?: import('../engine/types').AmmoRangeMod | null;
   loc: string | null;
