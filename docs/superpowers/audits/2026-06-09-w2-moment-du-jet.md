@@ -23,7 +23,7 @@ Problèmes confirmés : 8
 Ce n'est PAS un design verrouillé : le minimum fidèle = exposer le choix avant le jet ; le « choisir le résultat / la localisation » est l'étage supérieur de fidélité à arbitrer.
 
 ### [majeur] (UX-lisibilité) Les dés sont déjà résolus à l'instant où le verdict s'affiche — aucun suspense de lancer (révélation instantanée, pas d'animation)
-- **Symptôme**: Au clic « Lancer », l'action store tire le dé ET pose le résultat dans le même set() ; React re-render et la modale bascule directement sur le verdict figé (« 🎲 47 ✓ +2 DR »). Le joueur ne « voit » jamais le dé rouler : le chiffre apparaît déjà décidé. Retour brut utilisateur : « pas de frisson du lancer ».
+- **Symptôme**: Au clic « Lancer », l'action store tire le dé ET pose le résultat dans le même set() ; React re-render et la modale bascule directement sur le verdict figé (« 🎲 47 ✓ +2 DR »). Le joueur ne « voit » jamais le dé rouler : le chiffre apparaît déjà décidé. Retour utilisateur conservé au ticket #3175 : le lancer manque de suspense.
 - **Cause**: Pas d'étape intermédiaire entre clic et révélation : attackRoll/testRoll/defenseRoll/castRoll font tirage + set() atomiques (store.ts:2665-2678, 3282-3286, 2921-2931). Aucun composant n'anime le dé (grep CSS : 0 @keyframes de dé ; seuls bob/dégâts/token existent). La modale ne distingue que 2 états : « pas lancé » / « lancé ».
 - **Preuve**: src/state/store.ts:2665-2678 (attackRoll : resolveAttack puis set result) ; src/state/store.ts:3282-3286 (testRoll : rollTest puis set roll) ; src/state/store.ts:2921-2931 (defenseRoll) ; src/ui/RollModal.tsx:84-128 (branche binaire !res / res) ; src/ui/styles.css + src/gameIso/anim.css (aucun keyframe de dé)
 - **RAW**: aucune

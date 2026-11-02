@@ -359,8 +359,8 @@ un **juge neuf rend un verdict OK/KO par signe**, avec preuve. Gros plans mains 
 lineup face, trois-quarts et dos, taille de jeu et gros plan, à côté de l'illustration. Recette au visionneur par contrôles réels, deux faces et transitions,
 retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON VÉRIFIÉ.
 
-Présenter ensuite les preuves à l'utilisateur ; consigner sa réponse **verbatim et datée** dans la
-provenance avant d'entériner. Aucun des prototypes historiques n'est un précédent approuvé.
+Présenter ensuite les preuves à l’utilisateur ; consigner sa réponse **verbatim et datée** au ticket
+ou dans une fiche `.claude/memory/user-*.md`, et son pointeur dans la provenance, avant d’entériner. Aucun des prototypes historiques n'est un précédent approuvé.
 Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'à sa recette.
 
 ## 8. Livrer et définir le fini

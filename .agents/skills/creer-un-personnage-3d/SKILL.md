@@ -33,6 +33,7 @@ variante de géométrie ; un emblème se pose au montage sur une surface `blason
 `blason: true` au manifeste et dépliée sur le carré UV (#3111).
 
 Statut **NON VÉRIFIÉ par défaut**. Un juge neuf statue par signe identitaire ; la revue utilisateur
-consigne verbatim et date dans la provenance avant d'entériner l'élément. Ni un rendu Blender,
+consigne verbatim et date au ticket ou dans une fiche `.claude/memory/user-*.md`, et son pointeur dans
+la provenance, avant d’entériner l’élément. Ni un rendu Blender,
 ni un évaluateur vert sur ses seules gardes présentes ne prouvent le fini dans Godot.
 Pour un défaut visible, lire le cas ciblé dans [diagnostics](references/diagnostics.md).

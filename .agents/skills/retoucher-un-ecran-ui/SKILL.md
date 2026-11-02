@@ -18,7 +18,7 @@ genre, jamais posé en arbitrage (doctrine « référence RT par défaut », `do
 ligne de code avant que l'utilisateur valide la MAQUETTE de la composition et de chaque déviation
 (composition statique capturée ou planche ; une annotation n'est pas une spec de rendu). La maquette
 validée est le contrat de rendu ; un rendu rejeté revient à la maquette, jamais à une refonte improvisée
-(utilisateur, 2026-08-24, sur un écran codé sans maquette : « qui a pu valider ce "truc" »).
+(#1467).
 
 ## Livraison
 

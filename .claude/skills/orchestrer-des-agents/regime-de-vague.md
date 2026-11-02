@@ -2,35 +2,24 @@
 
 Annexe du skill `orchestrer-des-agents` (`.claude/skills/orchestrer-des-agents/SKILL.md`).
 
-**Un orchestrateur qui a des tickets ne s'arrête pas** (utilisateur, 2026-08-31 : « Un orchestrator
-n'arrete jamais tant qu'il a des tickets a traiter »). Dès que les agents sont rendus : dispatcher le
+**Un orchestrateur qui a des tickets ne s'arrête pas** (#1679). Dès que les agents sont rendus : dispatcher le
 prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, charge machine).
 - **Ne remonte à l'utilisateur que** : règles de jeu (cérémonie), goût et forme, budget, `[entériné]`.
-- **Agir par défaut**, hors de cette liste (utilisateur, 2026-07-17 : « n'attends vraiment pas mon
-  retour pour continuer » ; 2026-09-23 à 2026-09-25 : « Pourquoi tu t'es arrete alors ? Tu ne fais plus
-  rien ? ») : une question d'ingénierie
+- **Agir par défaut**, hors de cette liste (#583) : une question d'ingénierie
   qu'une bonne pratique tranche se tranche, justifiée au ticket ; une bascule qui touche d'autres
   sessions, leur ÉCRIRE (`SendMessage`) avant ; un sentier dont ma cible dépend et que personne ne tient
-  est à moi (utilisateur, 2026-09-20 : « n'hésite pas a reprendre des chantiers dont tu as besoin pour
-  avancer sur ta tache. La session en // ne touche aucun de ces chantiers »).
+  est à moi (#1739).
 - **Sessions** (lancer, briefer, fermer, attribuer les tickets) : skill `orchestrer-des-sessions`.
 - **Un plan approuvé s'exécute jusqu'au bout** : avant de le dire terminé, inventaire item par item
   (exécuté, dispatché, ou ancré avec son BLOCAGE NOMMÉ) ; toute annonce « je ferai » est un item.
-- **Re-mesurer la sous-tâche contre l'objectif macro** (arbitrer un détail d'un but large = zoom out ;
-  utilisateur, 2026-09-28 : « Je te rappel que notre objectif est "Adaptation du chapitre 1 campagne
-  impériale" », puis « Enfin le Tome 1, pas le chapitre 1 »).
-  Après une interruption, reprendre le CHEMIN CRITIQUE (utilisateur, 2026-09-27 : « Je compte sur toi
-  pour ne pas redériver ») ; une trouvaille hors chemin part en ticket sauf
+- **Re-mesurer la sous-tâche contre l'objectif macro** (arbitrer un détail d’un but large = zoom out ; #1993).
+  Après une interruption, reprendre le CHEMIN CRITIQUE (#1816) ; une trouvaille hors chemin part en ticket sauf
   si elle rougit la CI ou casse le livrable ; un arrêt se dit avec sa vraie cause, jamais « bloqué par
   l'utilisateur » sans verbatim.
 - **Défaut dans le périmètre d'un autre chantier** : dédupliquer par symptôme ET remède, lire le ticket
   propriétaire en entier, y déposer faits mesurés et questions, ne rien committer qui préempte sa réponse
-  (#1739 ; utilisateur, 2026-09-20 : « On a un vrai chantier dans l'épique sur les sources, il faut
-  absoluement éviter de le saboter en prenant des décisions contradictoires »). Un fichier qu'un autre chantier touche s'édite dans mon worktree : la collision se règle à la fusion (utilisateur,
-  2026-08-10 : « m en fiche si y a du wip voisin, c'est une excuse pour ne jamais finir son travail »).
-- **Frictions** (utilisateur, 2026-10-05 : « si les sessions tombent sur des difficultés, ont fait des
-  actions répété mais via des scripts, ou tout axe qui mérite une analyse afin d'apporter des
-  améliorations […], ca ùérite peut etre ca place dans un fichier de suivis d'amélioration continue ») : chaque brief de session demande une ligne « Friction : quoi · coût mesuré · outil »,
+  (fiche `user-doctrine-format-unifie-reextraction-permise`). Un fichier qu'un autre chantier touche s'édite dans mon worktree : la collision se règle à la fusion (fiche `user-doctrine-wip-voisin-s-edite`).
+- **Frictions** (#2683) : chaque brief de session demande une ligne « Friction : quoi · coût mesuré · outil »,
   versée au sas du suivi (`--friction <texte>`) ; elle n'en sort en ticket (gabarit #101,
   `domaine:outillage`, sous-issue de #2189, `--verser-friction <n> <ticket>`) que VIVANTE sur
   `origin/main` (sonde, ou occurrence postérieure au correctif), chiffrée, récurrente ou d'au moins

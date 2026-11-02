@@ -158,9 +158,9 @@ export function spoilCargoByPct(lots: CargoLot[], pct: number): { lots: CargoLot
   return spoilCargoByEnc(lots, Math.round(cargoTotalEnc(lots) * p / 100));
 }
 
-/** Issue d'une péripétie dangereuse terrestre pour la cargaison du convoi (arbitrage #327, 2026-07-11 :
- *  « gradué par l'issue »). Combat gagné = le convoi est sauf ; fuite = perte partielle ; défaite = pillage
- *  lourd. Les taux sont des paramètres MAISON (`landRobberyFleePct`/`landRobberyLossPct`). */
+/** Issue d'une péripétie dangereuse terrestre pour la cargaison du convoi (arbitrage utilisateur #327).
+ *  Combat gagné = le convoi est sauf ; fuite = perte partielle ; défaite = pillage lourd.
+ *  Les taux sont des paramètres MAISON (`landRobberyFleePct`/`landRobberyLossPct`). */
 export type CargoRaidOutcome = 'victory' | 'fled' | 'defeat';
 
 /** Pourcentage d'Enc perdu selon l'issue du combat de vol terrestre (victoire = 0 ; fuite = `fleePct` ;
