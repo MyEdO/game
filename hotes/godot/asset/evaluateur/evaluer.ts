@@ -170,7 +170,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     }),
     ...gardeEnroulement(meshes, libelle),
     ...gardeBudget(meshes, libelle, entree.plafond ?? PLAFOND_ASSEMBLE),
-    ...gardePistesDEchelle(clips, manifeste?.gabarit.racine ?? racineDu(base), manifeste?.osAPositionAnimee ?? []),
+    ...gardePistesDEchelle(base.scene, clips, manifeste?.gabarit.racine ?? racineDu(base), manifeste?.osAPositionAnimee ?? []),
     ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste ? [manifeste.prises.main.os, manifeste.prises.off.os] : [])), libelle),
   );
 

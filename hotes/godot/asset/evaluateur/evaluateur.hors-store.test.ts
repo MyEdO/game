@@ -203,6 +203,9 @@ describe('gardeBudget', () => {
   });
 });
 
+/** Une scène des os `noms`, que les pistes d'un clip fait main nomment. */
+const sceneDesOs = (...noms: readonly string[]): Group => new Group().add(...noms.map((name) => Object.assign(new Bone(), { name })));
+
 describe('gardePistesDEchelle', () => {
   it('VERT : rotations, échelle à 1, position de la racine et d’un os à position animée', () => {
     const clips = [new AnimationClip('Marche', 1, [
@@ -210,17 +213,17 @@ describe('gardePistesDEchelle', () => {
       new VectorKeyframeTrack('racine.position', [0, 1], [0, 0, 0, 0, 0, 1]),
       new VectorKeyframeTrack('pelvis.position', [0, 1], [0, 1, 0, 0, 0.9, 0]),
     ])];
-    expect(gardePistesDEchelle(clips, 'racine', ['pelvis'])).toEqual([]);
+    expect(gardePistesDEchelle(sceneDesOs('haut', 'racine', 'pelvis'), clips, 'racine', ['pelvis'])).toEqual([]);
   });
 
   it('ROUGE : la position d’un os que la liste des os à position animée ne nomme pas', () => {
     const clips = [clip('Marche', 'pelvis.position', [0, 1, 0], [0, 0.9, 0])];
-    expect(gardePistesDEchelle(clips, 'racine', []).map((e) => [e.code, e.detail])).toEqual([['position-animee', 'pelvis.position animée ; valeur : son amplitude en m']]);
+    expect(gardePistesDEchelle(sceneDesOs('pelvis'), clips, 'racine', []).map((e) => [e.code, e.detail])).toEqual([['position-animee', 'pelvis.position animée ; valeur : son amplitude en m']]);
   });
 
   it('ROUGE : une échelle animée et une position d’os animée', () => {
     const clips = [clip('Frappe', 'haut.scale', [1, 1, 1], [1.2, 1.2, 1.2]), clip('Tend', 'haut.position', [0, 0.5, 0], [0, 0.6, 0])];
-    const ecarts = gardePistesDEchelle(clips, 'racine', []);
+    const ecarts = gardePistesDEchelle(sceneDesOs('haut'), clips, 'racine', []);
     expect(ecarts.map((e) => [e.code, e.clip])).toEqual([['echelle-animee', 'Frappe'], ['position-animee', 'Tend']]);
     expect(ecarts[1].valeur).toBeCloseTo(0.1, 6);
   });
@@ -598,7 +601,7 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
  *  le même mesh, le même skin et la même zone. */
 interface MarcheFabriquee { racine?: number; decolle?: number; lateral?: number; bloque?: boolean; vitesseDroite?: number; nom?: string; sens?: number; vitesse?: number }
 
-function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]>; primitives?: number; instances?: readonly string[] } = {}): Uint8Array {
+function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]>; primitives?: number; instances?: readonly string[]; os?: readonly string[] } = {}): Uint8Array {
   const morceaux: Uint8Array[] = [];
   const vues: object[] = [];
   const accesseurs: object[] = [];
@@ -672,6 +675,7 @@ function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?: boole
   morceaux.reduce((n, m) => (bin.set(m, n), n + m.byteLength), 0);
   const noeudDuMesh = (name: string) => ({ name, mesh: 0, skin: 0, extras: { zone: 'torse' } });
   const noeuds = [noeudDuMesh(options.nom ?? 'Corps'), { name: 'racine', ...(options.marche ? { children: [2, 3] } : options.pelvis || formes ? { children: [2] } : {}) }, ...(options.marche ? [{ name: 'piedG' }, { name: 'piedD' }] : options.pelvis || formes ? [{ name: 'pelvis' }] : [])];
+  for (const [k, name] of (options.os ?? []).entries()) noeuds[k + 1] = { ...noeuds[k + 1], name };
   const premierJeu = Object.fromEntries(Object.entries(attributes).filter(([nom]) => nom !== 'JOINTS_1' && nom !== 'WEIGHTS_1'));
   return ecrireGlb({
     asset: { version: '2.0' },
@@ -851,6 +855,27 @@ describe('libellesDesMeshes (#3229)', () => {
     expect(fiche.mesures.triangles.parMesh).toEqual(libelles.map((mesh) => ({ mesh, triangles: 1 })));
     expect(fiche.mesures.corps).toEqual(libelles);
     expect(fiche.ecarts.find((e) => e.garde === 'budget')?.detail).toBe(`4 triangles (${libelles.map((l) => `${l} 1`).join(', ')})`);
+  });
+});
+
+describe('les os sous leur nom glTF (#3233)', () => {
+  const OS = ['a:b', 'handslot.l'];
+  const octets = glbFabrique({ pelvis: true, os: OS, clips: { Leve: [0, 1] } });
+
+  it('un os chargé porte son nom glTF, que réécrit GLTFLoader ; le clip le mène encore', async () => {
+    expect([...lireGlb(octets).os]).toEqual(OS);
+    const scene = await chargerScene(octets);
+    expect(scene.squelette?.bones.map((b) => b.name)).toEqual(OS);
+    const [debut, fin] = [...echantillonner(scene.scene, scene.meshes, scene.clips, 1)];
+    expect([...fin.os.keys()]).toEqual(OS);
+    expect((fin.os.get('handslot.l')?.elements[13] ?? 0) - (debut.os.get('handslot.l')?.elements[13] ?? 0)).toBeCloseTo(1, 6);
+    expect(() => appliquerGabarit(scene.scene, FACTEURS_NEUTRES, { gabarit: { ...TABLE, legs: ['a:b'], racine: 'a:b' } }, undefined, false)).not.toThrow();
+  });
+
+  it('les gardes nomment l’os par son nom glTF', async () => {
+    const fiche = await evaluer({ base: octets, pas: 1 });
+    expect(fiche.ecarts.filter((e) => e.garde === 'poids' || e.garde === 'pistesDEchelle').map((e) => [e.code, e.detail]))
+      .toEqual([['position-animee', 'handslot.l.position animée ; valeur : son amplitude en m']]);
   });
 });
 
