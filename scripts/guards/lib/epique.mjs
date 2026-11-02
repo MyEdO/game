@@ -1,4 +1,4 @@
-// ÉPIQUE et RATTACHEMENT NATIF — credo, puce « Le poison se corrige DANS LE GESTE » (#2561). Un ticket
+// ÉPIQUE et RATTACHEMENT NATIF — credo, puce « Le poison se corrige dans le geste » (#2561). Un ticket
 // naît SOUS-ISSUE native de son épique (`parent_issue_url` du schéma `issue`). Lu par le compteur du
 // travail restant (`scripts/ops/stock-issues.mjs`). PUR.
 

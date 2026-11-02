@@ -52,9 +52,9 @@ import { gitDe, gitDeLArbreReel, lancerGit, lancesDeGit, resultatDeGit, sousComm
 
 for (const nom of ['JUGE', 'REFUTATION', 'JUGE-VISION']) {
   test(`#2767 commit : ${nom} exige sa propre ligne`, () => {
-    const preuve = 'preuve adversariale assez longue pour couvrir le diff relu complètement'
+    const preuve = `${nom === 'JUGE' ? '1 ronde ; ' : ''}preuve adversariale assez longue pour couvrir le diff relu complètement`
     const evaluer = (texte) => {
-      const message = `chore: refs #2767\n\n${nom === 'JUGE-VISION' ? `JUGE: ${preuve}\n` : ''}${texte}`
+      const message = `chore: refs #2767\n\n${nom === 'JUGE-VISION' ? `JUGE: 1 ronde ; ${preuve}\n` : ''}${texte}`
       return (nom === 'REFUTATION' ? evaluateAntiEsquive : evaluateJuge)({ message, stagedSrcLines: 10, stagedTouchesUi: nom === 'JUGE-VISION' })
     }
     for (const texte of [`Sonde du ${nom}: ${preuve}`, `${nom.toLowerCase()}: ${preuve}`, `${nom}:\n${preuve}`, `${nom}\n: ${preuve}`, `${nom}: bref`]) {
@@ -86,7 +86,7 @@ test('#2774 commit : seule la substance sous src déclenche les deux preuves', a
     assert.match(refus, /\[validation · non retentable\]/)
     assert.match(refus, /lignes changées sous src\//)
     const preuve = 'preuve indépendante sur le diff complet et les contournements discriminants'
-    assert.equal(await evaluer(`chore: refs #2774\n\nJUGE: ${preuve}\nREFUTATION: ${preuve}`), null)
+    assert.equal(await evaluer(`chore: refs #2774\n\nJUGE: 1 ronde ; ${preuve}\nREFUTATION: ${preuve}`), null)
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
@@ -658,7 +658,7 @@ test('evaluateAntiEsquive : aucun ticket rattaché (ni fermeture, ni ref #N), sr
 })
 
 // ── validateJugeFile / validateJugeVisionFile ───────────────────────────────────────────────────────
-const JUGE_OK = 'Un agent juge adversarial a rejoué le diff contre le DoD, tenté 2 contournements, aucun ne passe.'
+const JUGE_OK = '1 ronde ; un agent juge adversarial a rejoué le diff contre le DoD, tenté 2 contournements, aucun ne passe.'
 const jugeFile = ({ desc = JUGE_OK } = {}) => `## Juge\n${desc}\n`
 const jugeVisionFile = ({ desc = JUGE_OK } = {}) => `## Juge-Vision\n${desc}\n`
 
@@ -695,7 +695,7 @@ test('validateJugeVisionFile : section absente', () => {
 })
 
 // ── evaluateJuge (extension REFUTATION → JUGE adversarial, générale à tout domaine) ────────────────
-const JUGE_LINE_OK = 'JUGE: un agent juge adversarial a rejoué le diff contre le DoD, aucun contournement ne passe.'
+const JUGE_LINE_OK = 'JUGE: 1 ronde ; un agent juge adversarial a rejoué le diff contre le DoD, aucun contournement ne passe.'
 const JUGE_VISION_LINE_OK = 'JUGE-VISION: captures fraîches jugées contre l\'attendu, mécanisme et pixels vérifiés.'
 
 test('evaluateJuge : diff ne touche pas src → silence', () => {
@@ -735,6 +735,13 @@ test('evaluateJuge : "ref #N" src touché avec ligne JUGE: valide, hors UI → p
     stagedTouchesUi: false,
   })
   assert.equal(d, null)
+})
+
+test('#3223 evaluateJuge : au-delà de deux rondes → deny qui dit la forme ; « aucun juge » et sa preuve → pass', () => {
+  const preuve = ' ; relecture de l’orchestrateur et suite du périmètre rejouée, verte'
+  const refus = evaluateJuge({ message: `feat: truc, ref #501\n\nJUGE: 3 rondes${preuve}`, stagedSrcLines: 100 })
+  assert.match(refus?.reason ?? '', /aucun juge ; <preuve>.*<1\|2> ronde/)
+  assert.equal(evaluateJuge({ message: `feat: truc, ref #501\n\nJUGE: aucun juge${preuve}`, stagedSrcLines: 100 }), null)
 })
 
 test('evaluateJuge : "ref #N" ligne JUGE: trop courte → deny', () => {

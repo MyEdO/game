@@ -105,8 +105,8 @@ final = données brutes », UN livrable, `npm run test:perimetre` au lieu d'une 
   CORRIGÉE ; un commentaire qui avoue une interprétation se re-vérifie.
 - **UI** : nommer AUSSI la couche atomique — aucun élément nu (`<button>` → `.btn`/`.chip`, conteneur →
   `.panel`, focusable custom → focus maison) ; citer `docs/primitives.md` + `docs/charte-ui.md`.
-- **Mise aux normes** : la zone touchée sort AUX NORMES (un concept = un terme, duplication adjacente
-  mutualisée ou ticketée, morts adjacents purgés) ; tout juge de cumul porte aussi la lentille de la
+- **Mise aux normes** : ce que le geste traverse sort aux normes (un concept = un terme, duplication
+  mutualisée, morts purgés) ; l'adjacent qu'il ne traverse pas va au ticket ; tout juge de cumul porte aussi la lentille de la
   LANGUE. Un lot qui touche un CHAMP embarque TOUTES ses conventions.
 - **Lot de structure = UN concept sur TOUS ses porteurs** (datasets, ops, tables, scènes, saves,
   éditeur, Codex), jamais par dataset ni « données d'abord » (#1728) ; N sites à la même retouche → le lot est le
@@ -119,14 +119,17 @@ final = données brutes », UN livrable, `npm run test:perimetre` au lieu d'une 
 appel), tool Agent (`model` seul ; l'effort vient du frontmatter du type, sinon HÉRITE de la session) ;
 un type au `model` épinglé ne reçoit pas de `model` à l'appel (#2537). Workflows
 lourds SÉQUENTIELS. Un type qui hérite tous les outils porte `disallowedTools: Agent, Workflow`. **UN
-juge par jugement** (design, diff, fermeture), nourri du grounding écrit : il ne re-mesure que ce qu'il
+juge par jugement** (design, diff, fermeture), quand il est dû (règle de jeu, socle, structure), nourri du grounding écrit : il ne re-mesure que ce qu'il
 conteste ; un workflow multi-agents ne sert que des travaux DIFFÉRENTS. **Un train = 4 ou 5 gestes** :
-diff du codeur → commit sur la branche du worktree → push (CI) → juge de diff en parallèle → corrections.
+diff du codeur → commit sur la branche du worktree → push (CI) → juge de diff en parallèle (règle de jeu, socle
+ou décision structurante ; sinon ma relecture, `JUGE: aucun juge ; <preuve>`) → corrections.
 **Au-delà de 10 fichiers modifiés, le juge de diff se DÉCOUPE** : une passe locale par lot de fichiers
 liés, puis une passe d'intégration sur leurs verdicts et les coutures entre lots ; une passe unique
 sur un grand diff dilue l'attention.
-- **Au 2e CORRIGER sur un même livrable, re-cadrer avant tout 3e juge** (#2683) : grief DANS la classe gardée →
-  corrigé ; voisin → ticket hors périmètre ; le juge suivant reçoit la barre FIGÉE et l'interdit de
+- **Deux rondes de juge au plus par livrable** (#2683, #3223 ; la porte du commit refuse un `JUGE:` qui en
+  déclare plus) : au 2e CORRIGER, recadrer en redécoupant le lot ou en réduisant ce qu'il prétend fermer ;
+  le lot recadré, dont ce qu'il prétend fermer a changé, se juge comme un livrable neuf. Grief DANS la classe gardée → corrigé ; voisin → ticket
+  hors périmètre ; chaque juge reçoit les verdicts précédents et la barre FIGÉE, et l'interdit de
   l'élargir. Un « 0 occurrence » qui ne réimplémente pas la garde étendue ne prouve rien (#1765). Une
   ALERTE d'une règle prudente n'est pas un site perdu tant que ses appelants n'ont pas été relus
   (`.claude/soldes/1765.md:34`).

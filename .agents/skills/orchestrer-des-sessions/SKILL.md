@@ -59,6 +59,6 @@ Doctrine : fiche `.claude/memory/user-doctrine-orchestrateur-de-sessions-max5.md
    dans une session NEUVE, jamais par `--resume` ni par un message à une session rendue. `archiver`
    range sous `sessions/archive/` les cartes en anomalie dont aucune identité ne vit.
 5. **Vérification, par l'orchestrateur, jamais sur la foi du rapport** : relecture du diff, juge de diff
-   Claude, puis commit par chemins, push et CI de branche (skill `orchestrer-des-agents`, annexes
+   Claude quand il est dû (règle de jeu, socle, structure ; `orchestrer-des-agents`), puis commit par chemins, push et CI de branche (skill `orchestrer-des-agents`, annexes
    `publication.md` et `fermeture.md`). La consigne exige les preuves des effets à distance (étape 6 du
    même skill).
