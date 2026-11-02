@@ -119,7 +119,8 @@ export function travelSpeed(party: Combatant[], possessions: Possession[], mode:
     return cap == null ? walk : Math.min(walk, cap);
   }
   if (mode === 'monture') return movementOverride ?? mountedSpeedKmh(partyMounts(party, possessions), allure ?? 'pas');
-  const t = vehicleTravel(mode)!;
+  const t = vehicleTravel(mode);
+  if (!t) return movementOverride ?? 0; // véhicule sans facette `travel` (barque de descente jouée, MSRC 7) : pas de km/h
   if (allure === 'galop' && t.draft) {
     // Allure forcée d'un attelage (EDOC 07 l.229) : vitesse au pas de course = M de l'attelage × 3 (l.140).
     const p = mountProfileById(t.draft.montureId);
