@@ -25,10 +25,25 @@ import { gardePiedsAuSol, plusBas, SOL_TOLERANCE_M } from './gardes/piedsAuSol.t
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids, INFLUENCES_MAX } from './gardes/poids.ts';
 import { anneauLePlusEpais, anneauxArticulaires, mesurerSilhouettes, sectionsDeRepos, sousLesFormes, TOLERANCE_EPAISSEUR } from './gardes/silhouettes.ts';
+import { etenduesDesSegments, gardeSegments } from './gardes/segments.ts';
 import { BORNES, jouet } from '../../../../scripts/personnage-3d/base/gabarit.testkit.ts';
 import { preparerGabarit } from '../../../../scripts/personnage-3d/base/gabarit.ts';
 import { copierSommet, hauteurDesCandidats, peauxDesCandidats } from './candidatsDAppui.ts';
 import { grilleDesAppuis, selectionnerAppuis } from './selectionAppuis.ts';
+
+/** La scène three du jouet `c` (`gabarit.testkit.ts`), ses formes `formes` en shape keys relatives, et les appuis de son pied. */
+function sceneDuJouet(c: ReturnType<typeof jouet>, formes: readonly { readonly nom: string; readonly deltas: readonly Vector3[] }[]) {
+  const geometrie = new BufferGeometry();
+  geometrie.setAttribute('position', new Float32BufferAttribute(c.positions.flatMap((p) => p.toArray()), 3));
+  geometrie.setAttribute('skinIndex', new Uint16BufferAttribute(c.poids.flatMap((ws) => [0, 1, 2, 3].map((k) => ws[k]?.[0] ?? 0)), 4));
+  geometrie.setAttribute('skinWeight', new Float32BufferAttribute(c.poids.flatMap((ws) => [0, 1, 2, 3].map((k) => ws[k]?.[1] ?? 0)), 4));
+  geometrie.morphAttributes.position = formes.map((f) => Object.assign(new Float32BufferAttribute(f.deltas.flatMap((d) => d.toArray()), 3), { name: f.nom }));
+  geometrie.morphTargetsRelative = true;
+  const mesh = new SkinnedMesh(geometrie, new MeshBasicMaterial()), scene = new Group();
+  scene.add(c.squelette.bones[0], mesh); mesh.bind(c.squelette, new Matrix4());
+  const manifeste = { gabarit: c.table, appuis: { pieds: ['foot'], plusBas: [{ position: [0, 0, 0] as const, os: [{ nom: 'foot', poids: 1 }], deltas: {} }], vitessesAuSol: {} } };
+  return { scene, mesh, manifeste };
+}
 
 describe('repos posé A·P (#3104)', () => {
   it.each(['repos', 'propre à chaque os'] as const)('reconstruit H5 par les clés cuites et les binds compensés, bind %s', (bind) => {
@@ -45,15 +60,8 @@ describe('repos posé A·P (#3104)', () => {
       const direct = h5.resoudre(facteurs, repos);
       const peau = c.squelette.bones.map((b, i) => b.matrixWorld.clone().multiply(c.squelette.boneInverses[i]));
       const avant = c.squelette.bones[0].matrixWorld.clone();
-      const geometrie = new BufferGeometry();
-      geometrie.setAttribute('position', new Float32BufferAttribute(c.positions.flatMap((p) => p.toArray()), 3));
-      geometrie.setAttribute('skinIndex', new Uint16BufferAttribute(c.poids.flatMap((ws) => [0, 1, 2, 3].map((k) => ws[k]?.[0] ?? 0)), 4));
-      geometrie.setAttribute('skinWeight', new Float32BufferAttribute(c.poids.flatMap((ws) => [0, 1, 2, 3].map((k) => ws[k]?.[1] ?? 0)), 4));
-      geometrie.morphAttributes.position = [...c.silhouettes, ...cles].map((f) => Object.assign(new Float32BufferAttribute(f.deltas.flatMap((d) => d.toArray()), 3), { name: f.nom }));
-      geometrie.morphTargetsRelative = true;
-      const mesh = new SkinnedMesh(geometrie, new MeshBasicMaterial()), scene = new Group();
-      scene.add(c.squelette.bones[0], mesh); mesh.bind(c.squelette, new Matrix4());
-      appliquerGabarit(scene, facteurs, { gabarit: c.table, appuis: { pieds: ['foot'], plusBas: [{ position: [0, 0, 0], os: [{ nom: 'foot', poids: 1 }], deltas: {} }], vitessesAuSol: {} } });
+      const { scene, mesh, manifeste } = sceneDuJouet(c, [...c.silhouettes, ...cles]);
+      appliquerGabarit(scene, facteurs, manifeste);
       poserFormes(scene, { ...poidsSil, ...poidsDuGabarit(facteurs, BORNES, poidsSil) });
       scene.updateMatrixWorld(true);
       const a = c.squelette.bones[0].matrixWorld.clone().multiply(avant.invert());
@@ -63,6 +71,44 @@ describe('repos posé A·P (#3104)', () => {
       }));
       expect(max, `repos posé A·P, bind ${bind}, état ${JSON.stringify(etat)}, écart max ${max} m`).toBeLessThanOrEqual(1e-6);
     }
+  });
+});
+
+describe('gardeSegments (#3097)', () => {
+  it('un segment dont l’os n’a pas d’os enfant suit S_b sur ses trois axes, comme les segments à enfant', () => {
+    const c = jouet();
+    expect(c.squelette.bones.find((b) => b.name === 'Head')?.children.some((n) => (n as Bone).isBone)).toBe(false);
+    const facteurs = { ...FACTEURS_NEUTRES, legs: 0.62, arms: 1.6, head: 1.9 };
+    const pose = poseDuGabarit({ gabarit: c.table }, facteurs);
+    const os = Object.keys(pose.echellesDesOs);
+    for (const nom of os) {
+      const b = c.squelette.bones.findIndex((o) => o.name === nom), monde = c.squelette.bones[b].matrixWorld;
+      for (const colonne of [0, 1, 2]) for (const d of [-0.03, 0.05]) {
+        c.positions.push(c.squelette.bones[b].getWorldPosition(new Vector3()).addScaledVector(new Vector3().setFromMatrixColumn(monde, colonne).normalize(), d));
+        c.poids.push([[b, 1]]);
+      }
+    }
+    const h5 = preparerGabarit(c);
+    const { scene, mesh, manifeste } = sceneDuJouet(c, sensCuitsDuGabarit(BORNES).map(({ cle, sens }) => h5.cuire(cle, sens)));
+    const sansGabarit = etenduesDesSegments(poseDeRepos(scene, [mesh]), [mesh], os);
+    poserFormes(scene, poidsDuGabarit(facteurs, BORNES, {}));
+    appliquerGabarit(scene, facteurs, manifeste);
+    const { mesures, ecarts } = gardeSegments(sansGabarit, etenduesDesSegments(poseDeRepos(scene, [mesh]), [mesh], os), pose);
+    expect(ecarts).toEqual([]);
+    expect(mesures.segments.map((s) => [s.os, s.attendu, s.rapport.map((r) => +(r ?? 0).toFixed(6))])).toEqual([
+      ['thigh', [1, 0.62, 1], [1, 0.62, 1]], ['calf', [1, 0.62, 1], [1, 0.62, 1]],
+      ['upperarm', [1, 1.6, 1], [1, 1.6, 1]], ['lowerarm', [1, 1.6, 1], [1, 1.6, 1]], ['Head', [1.9, 1.9, 1.9], [1.9, 1.9, 1.9]]]);
+  });
+
+  it('ROUGE : une tête étirée en Y seulement, un axe sans étendue mesurable', () => {
+    const { mesures, ecarts } = gardeSegments(
+      new Map([['tete', [0.2, 0.2, 0.2]], ['cuisse', [0.1, 0.4, 0]]] as const),
+      new Map([['tete', [0.2, 0.38, 0.2]], ['cuisse', [0.1, 0.2, 0]]] as const),
+      { echellesDesOs: { tete: [1.9, 1.9, 1.9], cuisse: [1, 0.5, 1] } });
+    expect(mesures.ecartALEchelle).toBeCloseTo(0.9 / 1.9, 9);
+    expect(ecarts.map((e) => [e.code, e.detail.split(' ')[0]])).toEqual([
+      ['segment-hors-echelle', 'tete.x'], ['segment-hors-echelle', 'tete.z'], ['segment-indetectable', 'aucune']]);
+    expect(ecarts[2].valeur).toBe('cuisse.z');
   });
 });
 
@@ -1001,6 +1047,16 @@ describe('evaluer : clés cuites du gabarit', () => {
     delete formes[absente];
     const base = glbFabrique({ bande: formes, clips: { Repos: [0, 0] } });
     await expect(evaluer({ base, manifeste: manifesteDe(base, ['racine', 'pelvis']), facteurs: { arms: 1.25 }, pas: 0.5 })).rejects.toThrow(new RegExp('\\[gabarit-absent\\].*' + absente));
+  });
+
+  it('mesure le segment d’un os du gabarit à S_b sur ses trois axes, contre le repos sans les clés gabarit_* (#3097)', async () => {
+    const tete = nomDeCleDuGabarit('head', 'plus'), teteFeminin = nomDeCleDuGabarit('head', 'plus', FEMININ);
+    const feminin = [0, 0, 0, 0, 0.3, 0.4, 0, 0, 0];
+    const base = glbFabrique({ bande: formesAvecGabarit({ feminin }, { [tete]: [0, 0, 0, 1, 0, 0, 0, 0, 0], [teteFeminin]: feminin }), clips: { Repos: [0, 0] } });
+    const manifeste = { ...manifesteDe(base, ['racine', 'pelvis']), gabarit: { ...TABLE, legs: [], head: ['racine'] } };
+    const f = await evaluer({ base, manifeste, facteurs: { head: 1.5 }, silhouettes: { feminin: 1 }, pas: 0.5 });
+    expect(f.ecarts.filter((e) => e.garde === 'segments' || e.garde === 'manifeste')).toEqual([]);
+    expect(f.mesures.segments?.segments.map((s) => [s.os, s.attendu, s.rapport.map((r) => +(r ?? 0).toFixed(6))])).toEqual([['racine', [1.5, 1.5, 1.5], [1.5, 1.5, 1.5]]]);
   });
 
   it('les poids explicites de carrure priment sur st avant le calcul des croisées', async () => {
