@@ -117,6 +117,14 @@ describe('chargerLaSave — l’état de jeu à ouvrir, ses règles, ses retrait
     expect(chargerLaSave(intacte).retraits, 'une Cible connue ne retire rien').toBeNull();
   });
 
+  it('les Terreurs subies d’un héros traversent l’écriture et la relecture de la save (ADE II 09 l.9)', () => {
+    const terreursSubies = [{ brise: 2, groupes: ['skaven'] }, { brise: 1, groupes: [] }];
+    const save = snapshotSave({ ...etatInitialDuJeu(), party: [{ ...heros('h'), terreursSubies }] as unknown as EtatDeJeu['party'] }, 'x');
+    const lue = lireSave(exporterLaSauvegarde(save));
+    if (typeof lue === 'string') throw new Error(`save refusée : ${lue}`);
+    expect(chargerLaSave(lue).etat.party[0].terreursSubies).toEqual(terreursSubies);
+  });
+
   it('une assise d’un héros absent du groupe est élaguée ; une scène sans assise n’en gagne pas le champ', () => {
     const sans = emptyScene('scene-sans-assise', 4, 4);
     expect('seatAssignments' in chargerLaSave(snapshotSave({ ...etatInitialDuJeu(), scene: sans }, 'x')).etat.scene!).toBe(false);

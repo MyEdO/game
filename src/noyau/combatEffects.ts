@@ -27,6 +27,7 @@ import { easeDifficulty } from '../engine/tests';
 import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
+import { grantPsychTrait } from '../engine/grantedTraits';
 import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, type TrappingResolver } from '../engine/items';
 import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { revealClue, discreditClue } from './monde/clues';
@@ -1728,16 +1729,14 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Afflictions', label: libelleEffet('ambitionLost'), icon: 'journal/heartbreak',
     make: () => ({ type: 'ambitionLost', heroId: '' }),
     apply: (e, env) => {
-      // Trauma (ADE II Annexe I) : « témoin d'un événement qui rend une Ambition complètement irréalisable
-      // → Test de Calme Accessible (+20) ; échec → Trauma Psychologique ». La fonction pure porte la garde de
-      // la règle facultative `psych-acquisition-optional` (null si éteinte → effet inerte, aucun RNG consommé).
+      // ADE II 09 l.21
       const cible = env.hero(e.heroId);
       if (!cible) return;
       const res = traumaOnImpossibleAmbition(cible, battleRng());
-      if (!res) return; // règle facultative éteinte
+      if (!res) return;
       const trait = res.trait;
       const acquired = !!trait;
-      const who = trait ? env.mutateHero(cible.id, (h) => ({ ...h, psychTraits: [...(h.psychTraits ?? []), { ...trait }] })) : cible;
+      const who = trait ? env.mutateHero(cible.id, (h) => { const pose = { ...h }; grantPsychTrait(pose, trait.type); return pose; }) : cible;
       if (!who) return;
       const line = t(acquired ? 'eff.ambitionTrauma' : 'eff.ambitionResisted', { name: who.label, roll: res.test.roll, target: res.test.target });
       env.log(line);

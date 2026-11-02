@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { parsePsychTraits, peurTerreurFromSize, resolvePeurTest, resolveTerreurTest, isFrenzyCapable, resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, gainPhobieIfThreshold, animositeOrHaine, traumaOnImpossibleAmbition, effectivePsychTraits, calmeValue } from './psychology';
+import { parsePsychTraits, peurTerreurFromSize, resolvePeurTest, resolveTerreurTest, isFrenzyCapable, resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, calmeDeLAnimositeAcquise, traumaOnImpossibleAmbition, effectivePsychTraits, calmeValue } from './psychology';
 import { makeRNG } from './dice';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
@@ -123,35 +123,17 @@ describe('Acquisition de Traits psychologiques (ADE II Annexe I, règle FACULTAT
 
   afterEach(() => resetRule('psych-acquisition-optional'));
 
-  it('toutes les fonctions sont INERTES (null) tant que la règle est éteinte (défaut)', () => {
+  it('toutes les fonctions sont INERTES tant que la règle est éteinte (défaut)', () => {
     const c = mk();
-    expect(gainPhobieIfThreshold(c, 99, ciblePsy.groupe('mort-vivant'))).toBeNull();
-    expect(animositeOrHaine(c, ciblePsy.groupe('skaven'), fixed(100))).toBeNull();
+    expect(calmeDeLAnimositeAcquise(c, fixed(100))).toBeNull();
     expect(traumaOnImpossibleAmbition(c, fixed(100))).toBeNull();
   });
 
-  it('Phobie du noir : Brisé(Terreur) cumulés ≥ BFM → Phobie liée à la cause (+ reset)', () => {
+  it('Animosité acquise : Test de Calme Intermédiaire (+0) (ADE II 09 l.15)', () => {
     setRule('psych-acquisition-optional', true);
-    const c = mk(); // FM 35 → BFM 3
-    expect(gainPhobieIfThreshold(c, 2, ciblePsy.groupe('mort-vivant'))).toBeNull(); // sous le seuil
-    expect(gainPhobieIfThreshold(c, 3, ciblePsy.groupe('mort-vivant'))).toEqual({ phobie: { type: 'phobie', cible: ciblePsy.groupe('mort-vivant'), indice: 1 }, resetCounter: true });
-  });
-
-  it('Phobie du noir : une source sans Groupe → aucune Phobie, seuil atteint ou non', () => {
-    setRule('psych-acquisition-optional', true);
-    expect(gainPhobieIfThreshold(mk(), 3, undefined)).toBeNull();
-  });
-
-  it('Animosité & Haine : Calme raté → Animosité ; doublon → Haine ; réussite → rien', () => {
-    setRule('psych-acquisition-optional', true);
-    const fresh = mk();
-    expect(animositeOrHaine(fresh, ciblePsy.groupe('soldat'), fixed(100))).toMatchObject({ trait: { type: 'animosite', cible: ciblePsy.groupe('soldat') }, replacesAnimosite: false });
-    const dup = mk({ psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('soldat') }] });
-    expect(animositeOrHaine(dup, ciblePsy.groupe('soldat'), fixed(100))).toMatchObject({ trait: { type: 'haine', cible: ciblePsy.groupe('soldat') }, replacesAnimosite: true });
-    expect(animositeOrHaine(fresh, undefined, fixed(100))).toBeNull(); // aucune Cible dérivée → aucun Trait
-    const ok = animositeOrHaine(mk(), ciblePsy.groupe('soldat'), fixed(1)); // Calme réussi
-    expect(ok!.test.success).toBe(true);
-    expect(ok!.trait).toBeUndefined();
+    const c = mk();
+    expect(calmeDeLAnimositeAcquise(c, fixed(50))!.target).toBe(calmeValue(c));
+    expect(traumaOnImpossibleAmbition(c, fixed(50))!.test.target, 'Accessible (+20), pour comparaison').toBe(calmeValue(c) + 20);
   });
 
   it('Trauma : Ambition rendue impossible → Calme Accessible raté → Trauma ; réussite → rien', () => {

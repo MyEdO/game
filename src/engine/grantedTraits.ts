@@ -95,10 +95,16 @@ export function dropExpiredGrantedPsych(c: Combatant, expired: readonly { grante
       if (suspendant) suspendant.suppressedPsych = sansLeTraitPsy(suspendant.suppressedPsych!, pt);
     }
     if (c.psychTraits && !c.psychTraits.length) delete c.psychTraits;
-    const identite = identiteDeCiblage(pt.type, pt.cible);
-    if ((c.psychTraits ?? []).some((x) => identiteDeCiblage(x.type, x.cible) === identite)) continue;
-    for (const a of c.psychState ?? []) if (a.active === true && identiteDeCiblage(a.type, a.cible) === identite) a.active = false;
+    desactiverLAfflictionSansTrait(c, pt);
   }
+}
+
+/** Désactive l'affliction de même identité de ciblage que `pt` quand plus aucun Trait de la fiche de `c` ne la
+ *  porte. Mute `c`. */
+export function desactiverLAfflictionSansTrait(c: Combatant, pt: Pick<PsychTrait, 'type' | 'cible'>): void {
+  const identite = identiteDeCiblage(pt.type, pt.cible);
+  if ((c.psychTraits ?? []).some((x) => identiteDeCiblage(x.type, x.cible) === identite)) return;
+  for (const a of c.psychState ?? []) if (a.active === true && identiteDeCiblage(a.type, a.cible) === identite) a.active = false;
 }
 
 /** Retire UNE instance du trait accordé (jamais un natif en double : la dernière occurrence — celle

@@ -14,7 +14,8 @@ import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { parseSceneDeProjet } from '../noyau/worldMap';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
-import { cibleDuPorteur } from '../engine/psych/ciblage';
+import { ciblePsy } from '../engine/psych/ciblage';
+import { groupesDe } from '../engine/groups';
 
 /**
  * RÉVÉLATION = étape d'AFFICHAGE de la cascade (#942 L8) : `pushReveal` n'alimente plus une file
@@ -134,7 +135,8 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     // Haine ciblant un GROUPE du squelette présent en scène (lu sur la créature réelle, jamais deviné)
     // → `openEncounterPsych` ouvre sa cascade « Sang-froid » à l'entrée.
     const squelette = spawnEnemy({ ref: 'squelette' }, 'squ-probe', { x: 0, y: 0 });
-    hero.psychTraits = [{ type: 'haine', cible: cibleDuPorteur(squelette) }];
+    expect(groupesDe(squelette)).toContain('mort-vivant');
+    hero.psychTraits = [{ type: 'haine', cible: ciblePsy.groupe('mort-vivant') }];
     return hero;
   }
 

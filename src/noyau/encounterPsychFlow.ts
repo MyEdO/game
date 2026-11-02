@@ -29,6 +29,7 @@ import { startCascade } from './cascade';
 import { describeEncounterPsych } from './flowOutcomes';
 import { freeCons, resultLines, makeBandFactory, rollStep, type Consequence } from './rollSeam';
 import { actorIn } from './monde/combatants';
+import { subirLaTerreur } from './cibleAcquise';
 import { touchActors } from './combatOrParty';
 import { dataLabel } from '../data';
 import { stepDetail, stepPsych, stepSansPeur } from './rollSeam';
@@ -55,6 +56,9 @@ export function sceneFearSources(scene: Scene, presetDe: ResolveurDePreset): Com
     .filter((e) => e.kind === 'personnage' && !e.combat?.hiddenUntilCombat)
     .map((e) => ficheDEntite(e, presetDe));
 }
+
+/** Les sources de Peur/Terreur de la scène en cours (`sceneFearSources`) ; aucune hors scène. */
+const sourcesDeLaScene = (s: ReturnType<Get>): Combatant[] => (s.scene ? sceneFearSources(s.scene, presetDuNarratif(s.campaignNarratif)) : []);
 
 /** DÉCLARATION COMMUNE d'une bande — telle qu'elle vit sur l'ÉTAPE (`CascadeStep.encounterPsych`). */
 type PsychBandDecl = NonNullable<CascadeStep['encounterPsych']>;
@@ -115,7 +119,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
   if (party.some(endEncounterPsych)) set({ party });
   const s = get();
   if (s.pendingCascade || !s.scene) return;
-  const npcs = sceneFearSources(s.scene, presetDuNarratif(s.campaignNarratif));
+  const npcs = sourcesDeLaScene(s);
   if (!npcs.length) return;
   // …PUIS le verdict « tant que vous défendez les êtres aimés » (l.75) sur ce qui a SURVÉCU à la borne
   // (pose authorée d'un Amour, Peur héritée) : le roster de la rencontre est le groupe + les PNJ présents.
@@ -175,10 +179,11 @@ export function openScriptedPsych(get: Get, set: Set, kind: 'peur' | 'terreur', 
  * La résolution kind-agnostique (`rollTest(Calme)`) est faite par `FLOWS.cascadeBatch` ; ici on ne
  * décide que de l'ISSUE et du cumul. SOURCE UNIQUE de la résolution par héros — l'applier de bande
  * l'appelle pour CHACUNE de ses rangées. Issue de modale = `describeEncounterPsych` (les lignes
- * génériques d'`applyOps` sont couvertes par ce verdict rédigé). PUR vis-à-vis du store (mute le
- * héros, ne lit rien d'autre) : la rangée porte tout son contexte.
+ * génériques d'`applyOps` sont couvertes par ce verdict rédigé). La Terreur subie se mémorise par
+ * `subirLaTerreur`, sa cause lue parmi les sources de la scène (`sourcesDeLaScene`) ; elle peut ajouter son étape
+ * `cibleAcquise`.
  */
-function resolvePsychRow(hero: Combatant, ep: PsychBandDecl, r: { success: boolean; sl: number }, immune: boolean, sansPeur: boolean): Consequence[] {
+function resolvePsychRow(get: Get, set: Set, hero: Combatant, ep: PsychBandDecl, r: { success: boolean; sl: number }, immune: boolean, sansPeur: boolean): Consequence[] {
   // DÉTERMINATION (LDB 17 l.59) : immunité TEMPORAIRE (« Demeurer immunisé à Psychologie jusqu'à la fin
   // du prochain Round »). Pour un Test de rencontre ONE-SHOT (pas de Test étendu), « immune » ≈ « inerte »
   // = même état final qu'un succès (la source ne se re-déclenche pas) : on applique les ops de la branche
@@ -198,8 +203,9 @@ function resolvePsychRow(hero: Combatant, ep: PsychBandDecl, r: { success: boole
     heroId: hero.id, kind: ep.kind, sourceId: ep.sourceId, sourceName: ep.sourceName, indice: ep.indice, cible: ep.cible,
     result: { success: r.success, brise, sl: r.sl },
   };
+  const phobie = res.mode === 'terreur' ? subirLaTerreur(get, set, hero, { etat: res.failCondition, nombre: brise }, sourcesDeLaScene(get()).find((n) => n.id === ep.sourceId)) : null;
   // Immunités croisées (LDB 21) : un effet psy dominant (Peur/Terreur) annule l'Animosité/Préjugé.
-  return freeCons([describeEncounterPsych(pe, hero.label), ...supersededLines(hero, hero.label)]);
+  return freeCons([describeEncounterPsych(pe, hero.label), ...(phobie ? [phobie] : []), ...supersededLines(hero, hero.label)]);
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
@@ -217,7 +223,7 @@ export const TABLES = {
       for (const part of step.participants) {
         const hero = actorIn(get(), part.id);
         if (!hero || !part.result) { part.outcome = []; continue; }
-        const lines = resultLines(resolvePsychRow(hero, ep, part.result, !!part.immune, !!part.meta?.sansPeur));
+        const lines = resultLines(resolvePsychRow(get, set, hero, ep, part.result, !!part.immune, !!part.meta?.sansPeur));
         part.outcome = lines;
         for (const l of lines) get().log(l.text);
       }

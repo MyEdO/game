@@ -3,7 +3,7 @@
  * (#1463, #3045). Entrées de donnée choisies par leur forme, jamais par leur nom.
  */
 import { describe, it, expect } from 'vitest';
-import { ciblePsy, cibleDeRef, cibleDuPorteur, ciblePsyLue, estCibleType, identiteDeCiblage, libelleDeCible, refDeCible, selonCible, varianteAdmise, varianteDe, type CiblePsy } from './ciblage';
+import { ciblePsy, cibleDeRef, ciblePsyLue, estCibleType, identiteDeCiblage, libelleDeCible, refDeCible, selonCible, varianteAdmise, varianteDe, type CiblePsy } from './ciblage';
 import { dataLabel, groupLabel, groups, psychologies } from '../../data';
 import { t } from '../../i18n';
 
@@ -39,13 +39,6 @@ describe('ciblePsy — la seule fabrique', () => {
   it('lève sur un id d’individu vide ou déjà préfixé', () => {
     expect(() => ciblePsy.individu('')).toThrow(/n'est pas un id de combattant/);
     expect(() => ciblePsy.individu(`@${individu}`)).toThrow(/n'est pas un id de combattant/);
-  });
-});
-
-describe('cibleDuPorteur — la Cible que désigne un porteur', () => {
-  it('son 1er Groupe, fabriqué ; aucun Groupe, aucune Cible', () => {
-    expect(cibleDuPorteur({ groups: [groupe.id] })).toBe(ciblePsy.groupe(groupe.id));
-    expect(cibleDuPorteur({})).toBeUndefined();
   });
 });
 

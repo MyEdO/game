@@ -48,7 +48,7 @@ export const REPORT_DE_COMBATTANT = {
   effondree: rencontre(REGLE), // AA 10 l.127
   causesPeur: PERSISTE, causesTerreur: PERSISTE, psychImmune: PERSISTE,
   psychState: rencontre(REGLE), // LDB 21 l.9
-  groups: PERSISTE, aiDoctrine: PERSISTE, psychTraits: PERSISTE, briseFromTerreur: PERSISTE, traits: PERSISTE, liveTraits: PERSISTE, swarm: PERSISTE,
+  groups: PERSISTE, aiDoctrine: PERSISTE, psychTraits: PERSISTE, terreursSubies: PERSISTE, traits: PERSISTE, liveTraits: PERSISTE, swarm: PERSISTE,
   mountable: PERSISTE,
   mountId: rencontre(REGLE), // LDB 14 l.175-187
   riderId: rencontre(REGLE), // LDB 14 l.175-187

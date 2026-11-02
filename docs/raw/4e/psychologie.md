@@ -97,8 +97,22 @@ La mécanique exacte (Test simple ou étendu, Indice à surmonter) varie selon l
 
 > « Vous gagnez également +1 DR dès que vous vous en prenez au groupe, que cela soit socialement ou physiquement. *Animosité* est annulé par *Peur* et *Terreur*. » — `LDB 21 l.21`
 
+**Acquise sur un Destin dépensé** (ADE II, règle optionnelle `psych-acquisition-optional`) :
+
+> « Si la cible est un membre de la propre Race du Personnage, il obtient une *Animosité* envers les Reiklanders, les miliciens, les nains impériaux, etc., plutôt que juste les humains ou les nains. Si la cible est un membre d'une autre Race, le Personnage est plus susceptible de développer une *Animosité* pour la Race entière, par exemple les nains, les humains, les orcs ou les elfes. » — `ADE II 09 l.15`
+
+- Les Races sont les Groupes à marqueur `race` (`racesDe`) : celles du porteur se lisent sur son appartenance, celles du tueur sur sa vue perçue (`groupesPercus`) ; ses sous-groupes sont ses Groupes perçus hors Race (`ciblesDAnimositeAcquise`) ; les candidats suivent l'ordre de `groups.json`.
+- Animosité déjà possédée envers la Cible retenue, sur la fiche ou suspendue par un effet : la *Haine* remplace toutes ses instances (`traitAcquis`, « celle-ci devient de la *Haine* », `ADE II 09 l.15`) ; l'étape `cibleAcquise` dit, à chaque Cible, le Trait qu'elle donnera.
+- *Haine* déjà possédée envers la Cible retenue, lecture recommandée, révisable (#3045) : l'Animosité s'acquiert à côté de la *Haine*. Lecture contraire : la *Haine* l'absorbe et rien ne s'acquiert.
+- *Haine* qui remplace une Animosité suspendue par un effet ou accordée pour une durée, lecture recommandée, révisable (#3045) : elle se pose sur la fiche, permanente et non suspendue, et l'affliction active de l'Animosité remplacée se désactive (`desactiverLAfflictionSansTrait`). Lecture contraire : la *Haine* hérite de la suspension ou de la durée de l'Animosité.
+- Tueur de la Race du Personnage : le joueur choisit parmi ses sous-groupes, à l'étape `cibleAcquise` ; un porteur non surfacé prend le premier dans l'ordre de `groups.json`.
+- Tueur d'une autre Race, lecture recommandée, révisable (#3045) : le joueur choisit entre sa Race et ses sous-groupes ; un porteur non surfacé prend la Race. Lecture contraire : la Race seule.
+- Tueur sans sous-groupe, lecture révisable (#3045) : de même Race, l'individu (« en prenant pour cible l'individu ou l'élément qui l'a presque tué », `ADE II 09 l.15`) ; d'une autre Race, la Race. Lecture contraire : de même Race, la Race.
+- Tueur sans Race, lecture révisable (#3045) : ses Groupes perçus au choix, sinon l'individu. Lecture contraire : toujours l'individu.
+
 **Sources RAW** :
 - `LDB 21 l.17-21` — définition complète d'Animosité, effets actifs, conditions de fin
+- `ADE II 09 l.15` — Animosité acquise sur un Destin dépensé, Haine sur une Animosité déjà possédée
 
 **Voir aussi** : Haine (Cible), Préjugé (Cible)
 **Implémente :** [État calculé](../implemente.generated.md#4epsychologieanimosite-cible)
@@ -272,8 +286,21 @@ Peur spécifique envers un Type de créature, un objet ou une situation.
 
 **Règle** : traiter l'objet de la Phobie comme causant **Peur 1** (Indice augmentable si la Phobie est particulièrement forte).
 
+**Phobie du noir** (ADE II, règle optionnelle `psych-acquisition-optional`) :
+
+> « Cette *Phobie* est liée à la cause de la *Terreur* qu'il a subi le plus récemment ou le plus souvent. Elle doit avoir un rapport avec une créature ou une situation que le Personnage peut rencontrer fréquemment. » — `ADE II 09 l.9`
+
+- Seul un combattant qui suit les règles de Personnage mémorise (`followsCharacterRules` : un héros, sous contrôle de l'IA compris, ou un PNJ modélisé qui les déclare ; « Personnages », `ADE II 09 l.5`, l.9) ; un autre PNJ ne mémorise aucune Terreur.
+- Chaque Terreur subie se mémorise avec ses États *Brisé* et les Groupes perçus de sa cause (`Combatant.terreursSubies`), par un seul point d'écriture (`subirLaTerreur`) qu'empruntent la bande de combat d'un héros, le tour d'un combattant mené par l'IA et la rencontre hors combat, où la cause est le PNJ de la scène qui la porte ; la Phobie vient quand leur cumul atteint le Bonus de Force Mentale, et la mémoire se vide dès la Phobie acquise, avant même le choix de sa Cible (`ADE II 09 l.11`).
+- Lecture recommandée, révisable (#3045) : le joueur choisit, à l'étape `cibleAcquise`, entre les Groupes de la cause la plus récente et les Groupes les plus fréquents des causes, tous les ex æquo compris (`ciblesDePhobieDuNoir`), dans l'ordre de `groups.json` ; un porteur non surfacé prend le premier Groupe de la plus récente, ou, si elle n'en offre aucun, le premier des plus fréquents. Lecture contraire : toujours la cause la plus récente ; ou, à fréquence égale, aucun Groupe n'est « le plus souvent » subi et seule la plus récente s'offre.
+- Terreur sans créature pour cause (Terreur d'auteur, `inflictPsychology`), lecture recommandée, révisable (#3045) : ses États *Brisé* comptent au seuil, sa cause n'offre aucun Groupe ; tant qu'aucune cause mémorisée n'offre de Groupe, aucune Phobie ne vient et le compteur reste. Lecture contraire : une Phobie de la situation elle-même.
+- Un Groupe mémorisé puis retiré de `groups.json` ne compte ni comme cause la plus récente ni comme la plus fréquente.
+- Terreur résistée (Calme réussi, aucun État *Brisé*), lecture recommandée, révisable (#3045) : elle ne se mémorise pas, « souffre de *Terreur* » se lisant comme les États *Brisé* subis (`ADE II 09 l.9`). Lecture contraire : toute Terreur affrontée compte comme cause pour « le plus souvent », avec zéro État *Brisé*.
+- Phobie déjà possédée envers la Cible retenue, lecture recommandée, révisable (#3045) : une seconde Phobie s'acquiert. Lecture contraire : la Phobie possédée suffit et rien ne s'acquiert, ou son Indice augmente (« Vous pouvez vouloir augmenter l'*Indice* de *Peur* si la *Phobie* est particulièrement forte. » — `LDB 21 l.87`).
+
 **Sources RAW** :
 - `LDB 21 l.85-89` — définition ; traitement comme Peur 1
+- `ADE II 09 l.9-11` — Phobie du noir : seuil, cause, remise à zéro
 
 **Implémente :** [État calculé](../implemente.generated.md#4epsychologiephobie)
 

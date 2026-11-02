@@ -1414,6 +1414,13 @@ export interface DiseaseExposure {
   instant?: boolean;
 }
 
+/** Une Terreur subie (ADE II 09 l.9) : les États Brisé qu'elle a infligés, et les Groupes perçus de sa cause
+ *  (`groupesPercus`), vides pour une cause sans Groupe. */
+export interface TerreurSubie {
+  brise: number;
+  groupes: string[];
+}
+
 export interface Combatant {
   id: string;
   label: string;
@@ -1423,7 +1430,8 @@ export interface Combatant {
    *  écrites au Personnage dans la source (jamais étendues aux créatures génériques) — Corruption
    *  (LDB 19, tout le chapitre s'adresse à « vous » ; damné → « devient un PNJ », l.89), composant
    *  d'incantation (LDB 46 l.107-111, une possession/dépense de personnage), Tests de fin de combat
-   *  Maladie/Corruption (LDB 18 l.5 « la plupart des Personnages » ; LDB 20 l.14/206 « Personnage »).
+   *  Maladie/Corruption (LDB 18 l.5 « la plupart des Personnages » ; LDB 20 l.14/206 « Personnage »), Terreurs
+   *  subies de la Phobie du noir (ADE II 09 l.9).
    *  Un HÉROS (`kind:'hero'`) l'est TOUJOURS implicitement (ne pas le redéclarer) ; une créature
    *  générique du bestiaire ne l'est PAS par défaut ; un PNJ humain hostile MODÉLISÉ (statbloc d'auteur)
    *  peut l'être explicitement — data-driven, éditable (`CustomStatblock.followsCharacterRules`,
@@ -1532,10 +1540,10 @@ export interface Combatant {
    *  discrétionnaire de l'IA : aucune garde RAW (fuite Bestial, Frénésie, Brisé…) n'en dépend. */
   aiDoctrine?: string;
   psychTraits?: import('./psychology').PsychTrait[];
-  /** Phobie du noir (ADE II Annexe I, règle facultative `psych-acquisition-optional`) : total cumulé
-   *  d'États *Brisé* subis À CAUSE d'une *Terreur* ; à ≥ Bonus de FM → une *Phobie* est acquise et le
-   *  compteur remis à zéro (cf. `gainPhobieIfThreshold`). DONNÉE persistée (survit au writeback de combat). */
-  briseFromTerreur?: number;
+  /** Les Terreurs subies depuis la dernière Phobie du noir (ADE II 09 l.9-11, règle facultative
+   *  `psych-acquisition-optional`), lues par `ciblesDePhobieDuNoir` ; vidées quand la Phobie est acquise.
+   *  DONNÉE persistée (survit au writeback de combat). */
+  terreursSubies?: TerreurSubie[];
   /** Traits de créature (STRUCTURÉS — `TraitInstance` : id/value/arg/count/range) → attaques
    *  naturelles gratuites & règles dérivées (Morsure, Attaque caudale, Souffle… cf.
    *  engine/creatureAttacks). Lus sans aucun parsing (`hasTraitKey`). Conservés au spawn. */

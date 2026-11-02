@@ -17,6 +17,7 @@ import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../ro
 import { battleRng } from '../battleRng';
 import { ev, evLines } from '../combatLog';
 import { isOutOfAction, addCondition, combatTestPenalty } from '../../engine/conditions';
+import { subirLaTerreur } from '../cibleAcquise';
 import { rawCombatTestBase, testValue } from '../../engine/skills';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
@@ -177,6 +178,8 @@ export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
       if (r.brise > 0 && res.failCondition) {
         addCondition(enemy, res.failCondition, r.brise);
         log.push(t('turn.terrified', { name: enemy.label, foe: foe.label, brise: r.brise }));
+        const phobie = subirLaTerreur(get, set, enemy, { etat: res.failCondition, nombre: r.brise }, foe);
+        if (phobie) log.push(phobie);
       }
       // Terreur → Peur à PLEIN Indice, quel que soit le résultat (LDB 21 l.56, #1190) ; surmontée
       // d'emblée si Sans Peur a réussi (`peurSurmontee`, LDB 10 l.1051).

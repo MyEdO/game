@@ -20,7 +20,7 @@ import type { OupsResolved } from '../engine/oups';
 import type { ManeuverDef, StakeRef, SpellData } from '../data';
 import type { CastResult, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
 import type { HealMode } from '../engine/healing';
-import type { PsychType } from '../engine/psychology';
+import type { PsychType, TypeAcquis } from '../engine/psychology';
 import type { CiblePsy } from '../engine/psych/ciblage';
 import type { RecoverOpposition } from './combat/recover';
 import type { RecapLine } from './recapLine';
@@ -1760,6 +1760,9 @@ export interface CascadeStepMeta {
   choiceNo?: Flow;
   /** Coût d'Avantage d'une étape `triggeredChoice` (dépensé sur OUI si payable) — absent = gratuit. */
   choiceCost?: number;
+  /** Trait psy qu'acquiert le porteur d'une étape `cibleAcquise` (ADE II 09 l.9, l.15), envers la Cible choisie
+   *  (`noyau/cibleAcquise.ts`). */
+  psychAcquis?: TypeAcquis;
   /** Feuille d'ops SUSPENDUE d'une étape `personneChoisie` (VDM 10 l.327) : jouée, Traits psy `envers` la
    *  personne désignée (`noyau/personneChoisie.fluxDEnvers`), quand le décideur a choisi. */
   feuilleEnvers?: Flow;
