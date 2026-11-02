@@ -215,7 +215,7 @@ describe('#1689 T2 — écrans migrés', () => {
       expect(texteDeLId(html, id![1]).trim().length, `raison VIDE pour ${id![1]}`).toBeGreaterThan(0);
     }
     // Et la raison du GROUPE sans soigneur est bien celle-là, en toutes lettres.
-    expect(html).toContain('Aucun soigneur (Compétence Guérison) dans le groupe.');
+    expect(html).toContain('Aucun membre du groupe ne peut tenter un Test de Guérison.');
   });
 
   it('ESCALE (relâche) : les deux décisions de l’invité portent leur raison', () => {

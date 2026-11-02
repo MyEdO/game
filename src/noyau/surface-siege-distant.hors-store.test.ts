@@ -9,23 +9,26 @@
  * En SOLO les deux prédicats coïncident : ces régressions y sont INVISIBLES — d'où le harnais à deux
  * sièges.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from './store';
-import { aiCreatureFreeAttacks, maybeHeroCleave } from '../noyau/combatFlow';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { initialNet } from './etat';
+import { aiCreatureFreeAttacks, maybeHeroCleave } from './combatFlow';
 import { createHero } from '../engine/character';
-import { seedBattleRng } from '../noyau/battleRng';
+import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
-import { resetCadence } from '../engine/cadence';
-import { pilotedByHuman, defenseSurfaced, aiDriven } from '../noyau/netOwnership';
-import { tenuParUnHumain, seatOwns } from '../noyau/sieges';
-import { fleeTouche, fleeToucheDu } from '../noyau/pendings';
+import { pilotedByHuman, defenseSurfaced, aiDriven } from './netOwnership';
+import { tenuParUnHumain, seatOwns } from './sieges';
+import { fleeTouche, fleeToucheDu } from './pendings';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-const g = useGame.getState;
-const set = useGame.setState;
-const NET0 = g().net;
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
+const g = () => banc.getState();
+const set: Banc['setState'] = (e) => banc.setState(e);
+const NET0 = initialNet();
 
 /** Combat RÉEL à deux sièges : le siège 1 (invité) possède H[0] ; l'hôte (siège 0) rend l'état. */
 function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
@@ -34,7 +37,7 @@ function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
   g().startScene(testScene());
   g().startCombat('enc-mutants');
   g().confirmRoundStart();
-  vi.clearAllTimers();
+  banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.filter((c) => c.kind === 'hero');
   const enemies = b.combatants.filter((c) => c.kind === 'enemy');
@@ -46,14 +49,7 @@ function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
   return { H, E };
 }
 
-beforeEach(() => {
-  vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); seedBattleRng(4);
-  set({ battle: null, pendingCascade: null, suspendedCascades: [], pendingCleave: null, pendingDisengage: null } as never);
-});
-afterEach(() => {
-  vi.clearAllTimers(); vi.useRealTimers(); resetCadence();
-  set({ net: NET0, battle: null, pendingCascade: null, suspendedCascades: [], pendingCleave: null, pendingDisengage: null } as never);
-});
+beforeEach(() => { seedBattleRng(4); });
 
 describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1426)', () => {
   it('Souffle (LDB 85) : le défenseur de l’invité a SA défense de manœuvre, pas les effets en silence', () => {

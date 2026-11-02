@@ -15,24 +15,28 @@
  * toutes deux réelles : un INVITÉ qui possède un héros (`ownership`) et le siège MJ (`gmSeat`) qui
  * conduit les ennemis (bac-à-sable — `sieges.seatOwns`/`jetSurfaced`).
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from './store';
-import { applySurprise, approachFearTrigger, resolveFreeAttacks } from '../noyau/combatFlow';
-import { applyTriggeredEffects } from '../noyau/triggeredEffects';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { initialNet } from './etat';
+import { applySurprise, approachFearTrigger, resolveFreeAttacks } from './combatFlow';
+import { applyTriggeredEffects } from './triggeredEffects';
 import { createHero } from '../engine/character';
-import { seedBattleRng } from '../noyau/battleRng';
+import { seedBattleRng } from './battleRng';
 import { hasCondition, addCondition, isOutOfAction, COND } from '../engine/conditions';
-import { surfaceOf } from '../noyau/rollSeam';
-import { modalOwnerOf } from '../noyau/modalArbiter';
-import { humanControlled } from '../noyau/netOwnership';
-import { seatOwns } from '../noyau/sieges';
+import { surfaceOf } from './rollSeam';
+import { modalOwnerOf } from './modalArbiter';
+import { humanControlled } from './netOwnership';
+import { seatOwns } from './sieges';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../engine/flowCore';
 import { desDuTest } from '../engine/dice.testkit';
 
-const NET0 = useGame.getState().net;
-const g = useGame.getState;
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
+
+const NET0 = initialNet();
+const g = () => banc.getState();
 
 /**
  * Combat RÉEL à deux sièges. `gmSeat` posé : le siège 1 conduit les ENNEMIS (bac-à-sable MJ) — c'est
@@ -42,11 +46,11 @@ const g = useGame.getState;
  */
 function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Combatant; E: Combatant[] } {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-  useGame.setState({ party: [hero] });
+  banc.setState({ party: [hero] });
   g().startScene(testScene());
   g().startCombat('enc-mutants');
   g().confirmRoundStart();
-  vi.clearAllTimers();
+  banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const enemies = b.combatants.filter((c) => c.kind === 'enemy');
@@ -54,8 +58,8 @@ function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Comba
   const vivants = enemies.slice(0, opts.vivants ?? 1);
   H.pos = { x: 10, y: 10 };
   vivants.forEach((e, i) => (e.pos = { x: 11 + i, y: 10 }));
-  useGame.setState({ battle: { ...b }, pendingCascade: null, suspendedCascades: [] } as never);
-  useGame.setState({
+  banc.setState({ battle: { ...b }, pendingCascade: null, suspendedCascades: [] } as never);
+  banc.setState({
     net: {
       ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0],
       ...(opts.gmSeat != null ? { gmSeat: opts.gmSeat, ownership: {} } : { ownership: { [H.id]: 1 } }),
@@ -67,22 +71,12 @@ function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Comba
 const etapes = () => g().pendingCascade?.participants ?? [];
 const bande = () => etapes().find((s) => s.kind === 'triggeredBatchTest');
 
-beforeEach(() => {
-  vi.useFakeTimers();
-  vi.clearAllTimers();
-  seedBattleRng(4);
-  useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], pendingLogQueue: [] } as never);
-});
-afterEach(() => {
-  vi.clearAllTimers();
-  vi.useRealTimers();
-  useGame.setState({ net: NET0, battle: null, pendingCascade: null, suspendedCascades: [] } as never);
-});
+beforeEach(() => { seedBattleRng(4); });
 
 describe('#1262 lot 3 — une BANDE nomme son porteur (sinon sa fenêtre échoit à l’hôte seul)', () => {
   it('Surprise d’embuscade (LDB 13 l.77) : bande à UN guetteur du siège MJ → l’étape porte SON `actorId`', () => {
     const { E } = setupCoop({ gmSeat: 1 });
-    applySurprise(g, useGame.setState, 'enemies'); // les héros embusquent : les guetteurs sont les ennemis
+    applySurprise(g, banc.setState, 'enemies'); // les héros embusquent : les guetteurs sont les ennemis
 
     const step = bande();
     expect(step, 'les guetteurs conduits par le MJ forment bien une bande').toBeTruthy();
@@ -98,7 +92,7 @@ describe('#1262 lot 3 — une BANDE nomme son porteur (sinon sa fenêtre échoit
 
   it('Surprise d’embuscade : bande à DEUX guetteurs → `groupOwner` (chaque siège tient SA rangée)', () => {
     setupCoop({ gmSeat: 1, vivants: 2 });
-    applySurprise(g, useGame.setState, 'enemies');
+    applySurprise(g, banc.setState, 'enemies');
 
     const step = bande();
     expect(step!.participants).toHaveLength(2);
@@ -111,7 +105,7 @@ describe('#1262 lot 3 — une BANDE nomme son porteur (sinon sa fenêtre échoit
     const { H, E } = setupCoop({ gmSeat: 1 });
     E[0].psychState = [{ type: 'peur', sourceId: H.id, indice: 2, calmeDR: 0 }] as Combatant['psychState'];
 
-    approachFearTrigger(g, useGame.setState, H, { x: 30, y: 30 }); // le héros a fini PLUS PRÈS
+    approachFearTrigger(g, banc.setState, H, { x: 30, y: 30 }); // le héros a fini PLUS PRÈS
 
     const step = bande();
     expect(step, 'le craintif conduit par le MJ a bien sa rangée').toBeTruthy();
@@ -125,17 +119,16 @@ describe('#1262 lot 3 — une BANDE nomme son porteur (sinon sa fenêtre échoit
 
 describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas chez l’hôte', () => {
   /**
-   * Le guetteur d'un autre siège est dans la BANDE depuis le lot 5c : le producteur (`applySurprise`)
-   * compose sa bande sur la SURFACE, plus sur l'affordance locale. Il recevait auparavant une étape
-   * MONO `triggeredTest` par la voie inline — la fenêtre remontait, mais hors de l'entrée de règle
-   * partagée (LDB 13 l.77 : UN jet d'embusqueur contre TOUS les guetteurs).
+   * Le guetteur d'un autre siège est dans la BANDE : le producteur (`applySurprise`) compose sa bande
+   * sur la SURFACE, pas sur l'affordance locale — jamais d'étape MONO `triggeredTest` par la voie
+   * inline, hors de l'entrée de règle partagée (LDB 13 l.77 : UN jet d'embusqueur contre TOUS les guetteurs).
    */
   it('Surprise (LDB 13 l.67-77) : le héros de l’invité tient SA rangée dans la bande, au lieu d’un jet muet', () => {
     const { H } = setupCoop();
     expect(humanControlled(g(), H), 'chez l’hôte, il ne pilote pas ce héros…').toBe(false);
     expect(surfaceOf(g, H.id), '…mais un siège humain le tient : son jet doit remonter').toBe(true);
 
-    applySurprise(g, useGame.setState, 'party'); // les ennemis embusquent : le héros est le guetteur
+    applySurprise(g, banc.setState, 'party'); // les ennemis embusquent : le héros est le guetteur
 
     const h = g().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(h, COND.surpris), 'aucune Surprise prononcée en silence chez l’hôte').toBe(false);
@@ -176,7 +169,7 @@ describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas 
     expect(isOutOfAction(H), 'sonde inerte sans ça : le porteur DOIT être hors d’action').toBe(true);
     expect(surfaceOf(g, H.id), 'et rester surfacé — hors d’action ne veut pas dire sans joueur').toBe(true);
 
-    applyTriggeredEffects(g, H, [eff], 'onWoundLoss', { rng: desDuTest, set: useGame.setState });
+    applyTriggeredEffects(g, H, [eff], 'onWoundLoss', { rng: desDuTest, set: banc.setState });
 
     const step = etapes().find((s) => s.kind === 'triggeredTest');
     expect(step, 'la porte ne filtre que sur la SURFACE : l’étape est là').toBeTruthy();
@@ -193,7 +186,7 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
     H.talents = [...(H.talents ?? []), { talentId: 'frappe-reactive', times: 1 }];
     H.advantage = 3; // payable : l'heuristique inline aurait dit OUI et débité
 
-    resolveFreeAttacks(g, useGame.setState, H, 'onCharged', E[0]);
+    resolveFreeAttacks(g, banc.setState, H, 'onCharged', E[0]);
 
     const choix = etapes().find((s) => s.kind === 'triggeredChoice');
     expect(choix, 'la décision de l’invité n’est plus prise à sa place').toBeTruthy();
@@ -210,7 +203,7 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
    * L'opt-in du DISPATCHER (`applyTriggeredEffects`, filtre `eff.optional`). Aucune donnée authorée ne
    * porte aujourd'hui un `optional` HORS `onRoundEnd` (seul Contrôle de la Frénésie l'est, et la fin de
    * Round le COLLECTE par ailleurs) : l'effet est donc fourni en FIXTURE — le dispatcher est générique,
-   * c'est bien son chemin réel qui est exercé, avec le routeur installé par le store.
+   * c'est bien son chemin réel qui est exercé, jusqu'au routeur `routeTriggeredTest`.
    */
   it('dispatcher : un effet OPT-IN atteint le porteur d’un autre siège au lieu d’être jeté', () => {
     const { H } = setupCoop();
@@ -219,7 +212,7 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
       flow: { kind: 'test', test: { skill: 'calme', difficulty: 'intermediaire', label: 'Se ressaisir' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
     } as unknown as TriggeredEffect;
 
-    applyTriggeredEffects(g, H, [eff], 'onHit', { rng: desDuTest, set: useGame.setState });
+    applyTriggeredEffects(g, H, [eff], 'onHit', { rng: desDuTest, set: banc.setState });
 
     const choix = etapes().find((s) => s.kind === 'triggeredChoice');
     expect(choix, 'le « Vous pouvez » de l’invité n’est plus filtré à l’entrée du dispatcher').toBeTruthy();

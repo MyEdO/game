@@ -2325,6 +2325,16 @@ export const fr = {
   'heal.noLodged': '{name} : aucune munition logée à retirer.',
   'heal.lodgedResists': '{name} : la munition logée résiste au retrait.',
   'heal.lodgedRemoved': '{name} : 1 munition logée retirée ({left} restante(s)).',
+  // Raisons d'un mode de soin fermé par le patient (`raisonDeModeDeSoin`).
+  'heal.raisonPleinesBlessures': 'Blessures au maximum',
+  'heal.raisonSoinDejaRecu': 'A déjà reçu son soin de Blessures (une fois par rencontre)',
+  'heal.raisonSansHemorragie': 'Aucune Hémorragie',
+  'heal.raisonSansDechirure': 'Aucune déchirure à traiter',
+  'heal.raisonSansChirurgie': 'Aucune blessure ne relève de la chirurgie',
+  'heal.raisonSansMembre': 'Aucun membre désactivé à rééduquer',
+  'heal.raisonSansMunition': 'Aucune munition logée',
+  'heal.raisonHorsCombat': 'Ce soin ne se pratique pas en combat.',
+  'heal.modeFixeALInfirmerie': 'À l’infirmerie, l’acte se choisit avant le jet.',
 
   // ── #1318 V8c₃ — REPOS (`engine/rest.ts`, `rest.*`, LDB 16/18/20/21). La MALADIE citée vient de la
   // donnée (`diseaseLabel`) : les deux lignes de purge/bénédiction affichaient son id (« peste-noire »).
@@ -2837,6 +2847,12 @@ export const fr = {
   'medic.patientIntrouvable': 'Patient introuvable.',
   'medic.rienASoigner': '{name} n’a rien à soigner.',
   'medic.aucunSoigneur': 'Aucun membre du groupe ne peut tenter un Test de Guérison.',
+  // Raisons d'un acte de l'infirmerie fermé (`refusDActeDeSoin`).
+  'medic.fermee': 'L’infirmerie est fermée.',
+  'medic.jetEnCours': 'Un jet de soin est déjà posé.',
+  'medic.operationEnCours': 'Une opération est en cours.',
+  'medic.acteNonPropose': '{pnj} ne propose pas cet acte.',
+  'medic.aucunChirurgien': 'Aucun soigneur du groupe n’a le Talent Chirurgie.',
   'medic.verbRecovery': 'rééduque',
   'medic.verbSurgery': 'opère',
   'medic.pass': '{healer} {verb} {patient} — passe : DR {dr} (total {cum}/{target}){suite}',

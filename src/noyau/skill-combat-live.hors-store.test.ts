@@ -1,22 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from './store';
-import type { BattleState } from '../noyau/etat';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import type { BattleState } from './etat';
 import { createHero } from '../engine/character';
-import { emptyScene } from '../noyau/monde/scene';
-import { seedBattleRng } from '../noyau/battleRng';
+import { emptyScene } from './monde/scene';
+import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
 import { combatValue } from '../engine/combat';
 import { skillBaseValue } from '../engine/skills';
 import { skillAdvantageCap } from '../engine/skillCombatApps';
 
-/** Réinitialise le store à un état combat neutre entre deux tests. */
-function reset() {
-  useGame.setState({
-    screen: 'campaign', party: [], scene: null, mode: 'exploration', battle: null,
-    pendingTest: null, pendingAttack: null, pendingDefense: null, pendingCascade: null,
-    journal: [],
-  });
-}
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function combat(heroOver: Partial<Combatant> = {}) {
   const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
@@ -28,16 +22,15 @@ function combat(heroOver: Partial<Combatant> = {}) {
     combatants: [H, E], order: [H.id, E.id], turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8) });
+  banc.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8) });
   return { H, E };
 }
 
 describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
-  beforeEach(() => { vi.useFakeTimers(); reset(); });
-  afterEach(() => { vi.useRealTimers(); });
+  beforeEach(() => { banc.setState({ screen: 'campaign' }); });
 
   function setDefense(H: Combatant, E: Combatant) {
-    useGame.setState({
+    banc.setState({
       pendingDefense: {
         attackerId: E.id, defenderId: H.id, weapon: E.weapons[0], location: null,
         atk: { roll: 55, target: 40, success: false, sl: -1, isDouble: false },
@@ -52,9 +45,9 @@ describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
     E.psychState = [{ type: 'peur', sourceId: H.id, indice: 2, calmeDR: 0 } as never]; // l'attaquant a peur de H
     seedBattleRng(1);
     setDefense(H, E);
-    useGame.getState().defenseSetMode('social');
-    useGame.getState().defenseRoll();
-    const dd = useGame.getState().pendingDefense!.result!.defenderDetail!;
+    banc.getState().defenseSetMode('social');
+    banc.getState().defenseRoll();
+    const dd = banc.getState().pendingDefense!.result!.defenderDetail!;
     expect(dd.mode).toBe('social');
     expect(dd.label).toBe('Intimidation');
     expect(dd.base).toBe(skillBaseValue(H, 'intimidation'));
@@ -66,39 +59,38 @@ describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
     E.psychState = [{ type: 'peur', sourceId: H.id, indice: 2, calmeDR: 0 } as never];
     seedBattleRng(1);
     setDefense(H, E);
-    useGame.getState().defenseSetMode('parade');
-    useGame.getState().defenseRoll();
-    const dd = useGame.getState().pendingDefense!.result!.defenderDetail!;
+    banc.getState().defenseSetMode('parade');
+    banc.getState().defenseRoll();
+    const dd = banc.getState().pendingDefense!.result!.defenderDetail!;
     expect(dd.mode).toBe('parade');
     expect(dd.base).toBe(combatValue(H, 'melee', H.weapons[0]));
   });
 });
 
 describe('Cumuler l’Avantage par une Compétence LIVE (LDB 09 l.305-308)', () => {
-  beforeEach(() => { vi.useFakeTimers(); reset(); });
-  afterEach(() => { vi.useRealTimers(); });
+  beforeEach(() => { banc.setState({ screen: 'campaign' }); });
 
   it('Intuition réussie → +1 Avantage (plafonné au Bonus d’Int) et Action consommée', () => {
     const { H } = combat();
     const cap = skillAdvantageCap(H, 'intuition'); // = Bonus d'Intelligence, > 0 (Intuition possédée)
     expect(cap).toBeGreaterThan(0);
-    useGame.getState().battleGainAdvantage('intuition');
-    const pt = useGame.getState().pendingTest!;
+    banc.getState().battleGainAdvantage('intuition');
+    const pt = banc.getState().pendingTest!;
     expect(pt.combatAdvantage).toEqual({ combatantId: H.id, cap });
-    useGame.setState({ pendingTest: { ...pt, roll: 5, success: true, sl: 2 } });
-    useGame.getState().resolveTest();
-    const b = useGame.getState().battle!;
+    banc.setState({ pendingTest: { ...pt, roll: 5, success: true, sl: 2 } });
+    banc.getState().resolveTest();
+    const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.advantage).toBe(1);
     expect(b.acted).toBe(true);
   });
 
   it('Intuition ratée → aucun gain, mais l’Action est tout de même consommée', () => {
     const { H } = combat();
-    useGame.getState().battleGainAdvantage('intuition');
-    const pt = useGame.getState().pendingTest!;
-    useGame.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -3 } });
-    useGame.getState().resolveTest();
-    const b = useGame.getState().battle!;
+    banc.getState().battleGainAdvantage('intuition');
+    const pt = banc.getState().pendingTest!;
+    banc.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -3 } });
+    banc.getState().resolveTest();
+    const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.advantage).toBe(0);
     expect(b.acted).toBe(true);
   });
@@ -106,13 +98,13 @@ describe('Cumuler l’Avantage par une Compétence LIVE (LDB 09 l.305-308)', () 
   it('déjà au plafond de la méthode → l’action ne s’ouvre pas', () => {
     const { H } = combat();
     H.advantage = skillAdvantageCap(H, 'intuition'); // = Bonus d'Int (plafond de la méthode)
-    useGame.getState().battleGainAdvantage('intuition');
-    expect(useGame.getState().pendingTest).toBeNull();
+    banc.getState().battleGainAdvantage('intuition');
+    expect(banc.getState().pendingTest).toBeNull();
   });
 
   it('Compétence sans application « Avantage » (Corps à corps) → aucune action ouverte', () => {
     combat();
-    useGame.getState().battleGainAdvantage('corps-a-corps');
-    expect(useGame.getState().pendingTest).toBeNull();
+    banc.getState().battleGainAdvantage('corps-a-corps');
+    expect(banc.getState().pendingTest).toBeNull();
   });
 });

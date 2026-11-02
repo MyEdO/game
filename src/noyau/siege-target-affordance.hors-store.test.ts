@@ -1,11 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from './store';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
-import { hoverTargeting } from '../noyau/targeting';
-import type { Scene } from '../noyau/monde/scene';
+import { hoverTargeting } from './targeting';
+import type { Scene } from './monde/scene';
 import { testScene } from '../scenes/test-fixture';
 import type { Weapon } from '../engine/types';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * AFFORDANCE de ciblage joueur — une STRUCTURE de siège (mur Impénétrable, ADE II 8) n'est PAS une
@@ -24,25 +27,22 @@ function sceneWithStructure(structId: string): Scene {
 }
 
 function start(structId: string, seed = 1) {
-  useGame.getState().seedRng(seed);
+  banc.getState().seedRng(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
-  useGame.setState({ party: [hero] });
-  useGame.getState().startScene(sceneWithStructure(structId));
-  useGame.getState().startCombat('enc-mutants');
-  useGame.getState().confirmRoundStart();
-  vi.clearAllTimers();
-  const b = useGame.getState().battle!;
+  banc.setState({ party: [hero] });
+  banc.getState().startScene(sceneWithStructure(structId));
+  banc.getState().startCombat('enc-mutants');
+  banc.getState().confirmRoundStart();
+  banc.abandonner();
+  const b = banc.getState().battle!;
   const S = b.combatants.find((c) => c.bodyShape === 'structure')!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   // Mode neutre garanti + héros actif : l'affordance d'attaque ne vit qu'en mode neutre (action null).
-  useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), action: null, acted: false } });
+  banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), action: null, acted: false } });
   return { S, H };
 }
 
 describe('Affordance — structures réservées aux armes de siège', () => {
-  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
-
   it('arme de mêlée ordinaire sur un Mur Impénétrable → aucun réticule (none) : le survol retombe sur le déplacement', () => {
     const { S, H } = start('mur-en-pierre');
     // Arme simple (épée, mêlée, SANS Atout Siège), au contact de la face de la structure.
@@ -50,7 +50,7 @@ describe('Affordance — structures réservées aux armes de siège', () => {
     H.items = [sword]; H.loadouts = undefined; H.activeLoadoutId = undefined; recomputeLoadout(H);
     H.pos = { x: 1, y: 2 }; // adjacent à la face (2,2) de l'arête E
     expect(H.weapons.length).toBeGreaterThan(0); // sanity : une option d'arme existe
-    expect(hoverTargeting(useGame.getState, H, S).kind).toBe('none'); // mur imparable à l'épée → pas de cible
+    expect(hoverTargeting(banc.getState, H, S).kind).toBe('none'); // mur imparable à l'épée → pas de cible
   });
 
   it('arme à Atout Siège sur le même Mur → ciblable (PAS none)', () => {
@@ -59,6 +59,6 @@ describe('Affordance — structures réservées aux armes de siège', () => {
     const ram: Weapon = { label: 'Bélier', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [{ id: 'siege' }] } as Weapon;
     H.weapons = [ram];
     H.pos = { x: 1, y: 2 }; // au contact de la face exposée
-    expect(hoverTargeting(useGame.getState, H, S).kind).not.toBe('none'); // l'Atout Siège franchit la gate
+    expect(hoverTargeting(banc.getState, H, S).kind).not.toBe('none'); // l'Atout Siège franchit la gate
   });
 });

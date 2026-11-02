@@ -1,18 +1,21 @@
-import { describe, it, expect } from 'vitest';
-import { applyShipPostes } from '../noyau/monde/shipPostes';
-import { firedWeapon, firedAttackBlock, resolveAttack } from '../noyau/combatFlow';
-import { resolveWeaponArea, areaTargets, type AreaHit } from '../noyau/combatArea';
+import { describe, it, beforeEach, expect } from 'vitest';
+import { applyShipPostes } from './monde/shipPostes';
+import { firedWeapon, firedAttackBlock, resolveAttack } from './combatFlow';
+import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engine/items';
-import { spawnEnemy } from '../noyau/monde/spawn';
-import { seedBattleRng } from '../noyau/battleRng';
-import { useGame } from './store';
+import { spawnEnemy } from './monde/spawn';
+import { seedBattleRng } from './battleRng';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import type { Jeu } from './etat';
 import type { Combatant, ShipPoste, Weapon, FireArc } from '../engine/types';
-import type { Scene } from '../noyau/monde/scene';
-import type { GameState } from './store';
-import { initialNet } from '../noyau/etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
+import type { Scene } from './monde/scene';
+import { initialNet } from './etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
 import { desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * EMPLACEMENT DE SIÈGE AU SOL (AA / MDG 12) — une pièce d'artillerie d'équipe (`armes-de-siege`, qualité
@@ -57,8 +60,8 @@ const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, ambiance: 'jour', metresPerTile: 2,
     layers: [{ z: 0, tiles: new Array(40 * 40).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
 
-const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string> = {}, movementUsed = 0): (() => GameState) =>
-  (() => ({ scene: sc, battle: { combatants, movementUsed }, facing, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => GameState;
+const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string> = {}, movementUsed = 0): (() => Jeu) =>
+  (() => ({ scene: sc, battle: { combatants, movementUsed }, facing, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => Jeu;
 
 // (A) SERVICE — la SceneEntity au sol qui PORTE des postes se spawn avec `Combatant.postes` ; au combat,
 //     `applyShipPostes` (kind-agnostique) sert la pièce au chef d'équipage. SANS `side` (tir omni).
@@ -159,7 +162,7 @@ describe('(D) Recharge — Test étendu rechargeant l’emplacement au sol (batt
     chef.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 20 }] as never;
     const s1 = mkCrewman('s1');
     const emplacement = mkEmplacement(poste);
-    useGame.setState({
+    banc.setState({
       battle: { combatants: [emplacement, chef, s1], order: ['emplacement', 'chef', 's1'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never,
       party: [chef], facing: {}, pendingReload: null, scene: null as never,
     });
@@ -168,8 +171,8 @@ describe('(D) Recharge — Test étendu rechargeant l’emplacement au sol (batt
 
   it('ouvre la modale de recharge sur le CHEF, cible = Recharge (effectif complet → pas de ×2)', () => {
     const { item } = setup();
-    useGame.getState().battleShipReload('emplacement', item.uid);
-    const pr = useGame.getState().pendingReload!;
+    banc.getState().battleShipReload('emplacement', item.uid);
+    const pr = banc.getState().pendingReload!;
     expect(pr).toBeTruthy();
     expect(pr.actorId).toBe('chef');
     expect(pr.reload).toBe(3); // Recharge 3, équipage complet (chef + s1 ≥ Indice 2) → pas doublée
@@ -179,10 +182,10 @@ describe('(D) Recharge — Test étendu rechargeant l’emplacement au sol (batt
   it('réussite suffisante → la PIÈCE est rechargée (poste.loaded), tour du porteur NON consommé', () => {
     seedBattleRng(1); // CT 80 → réussite, DR ≥ 1 → 2 + DR ≥ 3 → rechargée
     const { item } = setup();
-    useGame.getState().battleShipReload('emplacement', item.uid);
-    useGame.getState().reloadRoll();
-    useGame.getState().reloadConfirm();
-    const st = useGame.getState();
+    banc.getState().battleShipReload('emplacement', item.uid);
+    banc.getState().reloadRoll();
+    banc.getState().reloadConfirm();
+    const st = banc.getState();
     const poste = st.battle!.combatants.find((c) => c.id === 'emplacement')!.postes![0];
     expect(poste.loaded).toBe(true);
     expect(poste.reloadProgress).toBe(0);
@@ -206,9 +209,9 @@ describe('(E) AoE — mortier + bombe explosion frappe un groupe au sol (branche
     const b = mkEnemy('b', 12, 0, 0, 50); // 2 cases ≤ rayon
     const far = mkEnemy('far', 14, 0, 0, 50); // 4 cases > rayon
     const combatants = [chef, cible, a, b, far];
-    useGame.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never, scene: groundScene() as never, party: [], facing: {}, pendingShipBattery: null });
-    const get = () => useGame.getState();
-    const set = ((p: never) => useGame.setState(p)) as never;
+    banc.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never, scene: groundScene() as never, party: [], facing: {}, pendingShipBattery: null });
+    const get = () => banc.getState();
+    const set = ((p: never) => banc.setState(p)) as never;
     const hit: AreaHit = { attacker: chef, primaryTarget: cible, weapon: w, damage: 12, location: 'corps', distanceTiles: 10 };
 
     const wa = a.wounds.current, wb = b.wounds.current, wf = far.wounds.current;

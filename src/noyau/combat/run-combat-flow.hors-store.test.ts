@@ -21,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *    le reste du `seq` (le `do` qui suivait) ; `cascadeRoll`+`cascadeNext` joue la BRANCHE puis le `do`
  *    de continuation (preuve que `after` est repris) ;
  *  - ENNEMI → jet INLINE + branche + `after`, SANS étape de cascade.
- * Jumeau de `run-flow.test` (scène) et de `round-upkeep-cascade.hors-store.test` (cascade).
+ * Jumeau de `run-flow.hors-store.test` (scène) et de `round-upkeep-cascade.hors-store.test` (cascade).
  */
 /** ENTITÉ PORTEUSE du Flow joué, comme en production : c'est d'elle que le Test muet DÉRIVE son enjeu
  *  (#1262 V2 L6d) — un Flow de combat n'est jamais orphelin, il est l'œuvre de quelque chose. */

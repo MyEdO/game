@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { useGame } from './store';
-import { registerScene } from '../noyau/monde/registreDesScenes';
-import { emptyScene } from '../noyau/monde/scene';
+import { registerScene, sceneDuRegistre } from './noyau/monde/registreDesScenes';
+import { emptyScene } from './noyau/monde/scene';
 
 /**
  * CONTRAT de la sentinelle `resetSceneRegistry()` de l'`afterEach` global (`src/test-setup.ts`) —
@@ -20,12 +19,9 @@ const probe = emptyScene('scene-test', 2, 2);
 probe.id = PROBE_ID;
 registerScene(probe); // enregistrement de TÊTE DE FICHIER (portée module)
 
-/** La scène sonde est-elle CONNUE du registre ? Mesuré au seam réel : `transitionTo` est un no-op sur
- *  une scène inconnue (`noyau/entreeEnScene.ts`), la scène courante ne change alors pas. */
+/** La scène sonde est-elle CONNUE du registre ? */
 function sceneKnown(): boolean {
-  useGame.setState({ scene: null } as never);
-  useGame.getState().transitionTo(PROBE_ID);
-  return useGame.getState().scene?.id === PROBE_ID;
+  return sceneDuRegistre(PROBE_ID) !== undefined;
 }
 
 describe('sentinelle sceneRegistry (test-setup) — portée RÉELLE d’un enregistrement', () => {

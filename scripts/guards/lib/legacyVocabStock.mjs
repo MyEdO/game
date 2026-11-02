@@ -784,13 +784,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/reveal-routing.test.ts",
-    motif: "désormais",
-    ancre: "// Dégâts d'Hémorragique désormais data-driven (effects onRoundEnd → wounds) : le journal porte la",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/state/reveal.test.ts",
     motif: "désormais",
     ancre: "type le refuse désormais (`CascadeTableDone`) ; ce couple test + directive en est la mesure.",

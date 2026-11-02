@@ -1,16 +1,19 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { emptyScene, type Scene } from '../noyau/monde/scene';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { emptyScene, type Scene } from './monde/scene';
 import { wallSegSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
-import { useGame } from './store';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
-import { placeCombatant } from '../noyau/monde/spawn';
+import { placeCombatant } from './monde/spawn';
 import { testScene } from '../scenes/test-fixture';
-import { avanceEtapeCascade } from '../noyau/cascade.testkit';
-import { planFranchissement, defautDeSuspension, phaseDeChute } from '../noyau/fallMove';
-import { scenePlanDefects } from '../noyau/planDefects';
-import { buildScene } from '../noyau/mapSpec';
-import { patchWall } from '../noyau/sceneEdit';
-import { setRule, resetRule } from '../engine/policy';
+import { avanceEtapeCascade } from './cascade.testkit';
+import { planFranchissement, defautDeSuspension, phaseDeChute } from './fallMove';
+import { scenePlanDefects } from './planDefects';
+import { buildScene } from './mapSpec';
+import { patchWall } from './sceneEdit';
+import { setRule } from '../engine/policy';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * Se SUSPENDRE d'abord à la croisée (EDO 01 l.231) : `WallSeg.suspendu` = hauteur de chute de qui se
@@ -20,7 +23,7 @@ import { setRule, resetRule } from '../engine/policy';
  * LDB 15 l.57).
  */
 
-const g = () => useGame.getState();
+const g = () => banc.getState();
 const chambre = { x: 1, y: 1, z: 1 };
 const rue = { x: 2, y: 1 };
 
@@ -128,7 +131,7 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
     const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     A = a.id;
     B = b.id;
-    useGame.setState({ battle: null, party: [a, b], mode: 'exploration', partyPos: chambre, scene: etage(2), pendingFall: null, pendingCascade: null, flags: {} });
+    banc.setState({ party: [a, b], partyPos: chambre, scene: etage(2) });
   });
 
   it('l’étape offre l’axe : `suspendu` porté, chaque rangée non déclarée sur ses DEUX axes', () => {
@@ -169,22 +172,19 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
 });
 
 describe('combat : l’allège et la hauteur descendue en se suspendant se paient en Mouvement', () => {
-  beforeEach(() => { vi.useFakeTimers(); useGame.setState({ battle: null }); });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('fenetre-suspension'); });
-
   function setup(movementUsed = 0, sc = etage(2)) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    useGame.setState({ party: [hero] });
+    banc.setState({ party: [hero] });
     g().startScene(testScene());
     g().startCombat('enc-mutants');
     g().confirmRoundStart();
-    vi.clearAllTimers();
+    banc.abandonner();
     const b = g().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true));
     H.engagedWith = [];
     placeCombatant(H, sc, chambre);
-    useGame.setState({ scene: sc, battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed, acted: false, movedPreAction: false, reachable: new Map(), preview: null } });
+    banc.setState({ scene: sc, battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed, acted: false, movedPreAction: false, reachable: new Map(), preview: null } });
     return { H };
   }
 
