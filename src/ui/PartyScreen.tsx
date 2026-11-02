@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { nomDuSiege } from '../state/netFlow';
+import { nomDuSiege } from '../noyau/netOwnership';
 import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../noyau/etat';
 import { ownsLocalNet } from './ownership';
@@ -23,7 +23,7 @@ import { HeroPresentation } from './HeroPresentation';
 import { Modal } from './Modal';
 import { ScreenShell } from './ScreenShell';
 import { GatedAction, raisonSi } from './GatedAction';
-import { refusComposition } from '../noyau/partyFlow';
+import { refusComposition, refusDAjoutAuGroupe } from '../noyau/partyFlow';
 import { RoseAxes } from './RoseAxes';
 import { DetailFrame } from './DetailFrame';
 import { HeroSheet } from './HeroSheet';
@@ -90,6 +90,7 @@ export function PartyScreen() {
   const removeHero = useGame((s) => s.partyRemoveHero);
   const replaceHero = useGame((s) => s.partyReplaceHero);
   const refusDeComposition = useGame(refusComposition);
+  const refusDAjout = useGame((s) => refusDAjoutAuGroupe(s, undefined, s.net.mySeat));
   const setEditingHero = useGame((s) => s.setEditingHero);
   const assignSlot = useGame((s) => s.netAssignSlot);
   const leave = useGame((s) => s.netLeave);
@@ -127,6 +128,7 @@ export function PartyScreen() {
         onCreate={() => { setEditingHero(null); setScreen('creator'); }}
         onEditHero={(id) => { setEditingHero(id); setScreen('creator'); }}
         refusComposition={refusDeComposition}
+        refusAjout={refusDAjout}
         onAddHero={addHero}
         onRemoveHero={removeHero}
         onReplaceHero={(oldId, hero) => replaceHero(oldId, hero)}
@@ -337,6 +339,7 @@ export function PartyScreenView({
   onStart,
   onResume,
   refusComposition: refus = null,
+  refusAjout = refus,
 }: {
   party: Combatant[];
   net: NetState;
@@ -369,6 +372,9 @@ export function PartyScreenView({
   /** Raison du refus de composition (`refusComposition`, en combat) : Créer, Choisir, Modifier, Remplacer
    *  et Retirer se ferment sur elle, le sélecteur ne s'ouvre pas. Absent = composition ouverte. */
   refusComposition?: string | null;
+  /** Raison du refus d'ajout (`refusDAjoutAuGroupe` du siège local) : Créer et Choisir se ferment sur
+   *  elle. Absent = celle de `refusComposition`. */
+  refusAjout?: string | null;
 }) {
   // Sélecteur dédié ouvert (recrutement d'un siège vide OU remplacement ciblé).
   const [selector, setSelector] = useState<SelectorTarget | null>(null);
@@ -421,7 +427,7 @@ export function PartyScreenView({
     if (!selector) return;
     if (selector.mode === 'replace') {
       onReplaceHero?.(selector.heroId, h, wealth);
-    } else if (party.length < PARTY_MAX && !party.some((p) => p.id === h.id)) {
+    } else {
       onAddHero(h, wealth);
     }
     setSelector(null);
@@ -538,9 +544,9 @@ export function PartyScreenView({
                     </span>
                     {mine && (
                       <Row className="seat-empty-actions">
-                        <GatedAction id={`party-create-${i}`} primary={false} btnClassName="small" enabled={!refus} {...raisonSi(refus)}
+                        <GatedAction id={`party-create-${i}`} primary={false} btnClassName="small" enabled={!refusAjout} {...raisonSi(refusAjout)}
                           onClick={onCreate} label={t('party.seat.create')} />
-                        <GatedAction id={`party-choose-${i}`} btnClassName="small" enabled={!refus} {...raisonSi(refus)}
+                        <GatedAction id={`party-choose-${i}`} btnClassName="small" enabled={!refusAjout} {...raisonSi(refusAjout)}
                           onClick={() => setSelector({ mode: 'recruit' })} label={t('party.seat.choose')} />
                       </Row>
                     )}

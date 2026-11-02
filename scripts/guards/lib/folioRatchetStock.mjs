@@ -61,7 +61,6 @@ export const FOLIO_RATCHET = new Set([
   'activities.json:percee', // p.173 -> hors livre (dernier folio 98)
   'activities.json:pluie-de-fleches', // p.143 -> hors livre (dernier folio 98)
   'activities.json:protection', // p.155 -> hors livre (dernier folio 98)
-  'activities.json:rassemblement', // p.122 -> hors livre (dernier folio 98)
   'activities.json:survol', // p.215 -> hors livre (dernier folio 98)
   'activities.json:tenez-votre-position', // p.161 -> hors livre (dernier folio 98)
   'activities.json:tuez-la-bete', // p.211 -> hors livre (dernier folio 98)

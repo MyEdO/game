@@ -4,6 +4,7 @@
  * source unique partagée avec le gating d'affichage UI) — ajouter une modale n'exige RIEN ici.
  */
 import type { Jeu } from './etat';
+import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import { modalOwnerOf, horsModalOwnedIntents, horsModalByPending, type HorsModalDef } from './modalArbiter';
 import { inBattleId, porteurParId } from './monde/combatants';
@@ -187,6 +188,12 @@ export function groupDecisionSeat(s: Jeu): number {
   return s.net.gmSeat ?? 0;
 }
 
+/** Le nom d'un siège de coop : celui que le joueur a donné, sinon « Hôte » (siège 0) ou « Joueur n » (#1906) —
+ *  SOURCE UNIQUE, jamais « L'hôte » pour un invité. */
+export function nomDuSiege(net: Pick<Jeu['net'], 'seatNames'>, seat: number): string {
+  return net.seatNames[seat] ?? (seat === 0 ? t('party.seat.host') : t('party.seat.player', { n: seat + 1 }));
+}
+
 /** Surfaçage de la DÉFENSE (#989) — nom de domaine des sites d'attaque (`maybeOpenDefense`,
  *  `resolveAttack`, `surfacedDefensePending`), qui DÉLÈGUE au prédicat général `jetSurfaced` (`sieges`) : une seule
  *  implémentation du surfaçage réactif, jamais deux tables de vérité. */
@@ -332,7 +339,7 @@ export function controlsActive(state: Jeu): boolean {
 
 /** Emplacements de groupe encore à remplir par ce siège : slots attribués − héros possédés.
  *  (En mode local, slots = [0,0,0,0] → l'hôte garde les 4 emplacements, comme avant la coop.) */
-export function seatSlotsRemaining(s: Jeu, seat: number): number {
+export function seatSlotsRemaining(s: Pick<Jeu, 'net' | 'party'>, seat: number): number {
   const slots = (s.net.slots ?? [0, 0, 0, 0]).filter((x) => x === seat).length;
   const owned = s.party.filter((h) => (s.net.ownership[h.id] ?? 0) === seat).length;
   return slots - owned;
@@ -497,9 +504,9 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['markCluesSeen', TOUJOURS],
     // Butin de victoire : un siège n'attribue qu'à SES héros (le bénéficiaire est le 2ᵉ argument).
     ['assignVictoryGear', PAR_ARG1],
-    // Composition du groupe : un siège remplit SES emplacements (quota attribué par l'hôte) et
-    // ne retire que SES héros.
-    ['partyAddHero', { rule: (s, seat) => seatSlotsRemaining(s, seat) > 0 }],
+    // Composition du groupe : l'ajout est tranché par le geste (`refusDAjoutAuGroupe`) ; un siège ne
+    // retire que SES héros.
+    ['partyAddHero', TOUJOURS],
     ['partyRemoveHero', PAR_ARG0],
     // Remplacement EN PLACE : le siège doit posséder l'ANCIEN héros (1er arg). L'effectif ne change
     // pas (1 héros pour 1) → aucun check de quota d'emplacements.

@@ -35,12 +35,6 @@ import { attribuerLEmplacement, attribuerLeHeros, fermerLeSiege, poserLeSiegeMJ 
 import { t } from '../i18n';
 import { stockageWeb } from '../web/stockageWeb';
 
-/** Le nom d'un siège de coop : celui que le joueur a donné, sinon « Hôte » (siège 0) ou « Joueur n » (#1906) —
- *  SOURCE UNIQUE, jamais « L'hôte » pour un invité. */
-export function nomDuSiege(net: Pick<NetState, 'seatNames'>, seat: number): string {
-  return net.seatNames[seat] ?? (seat === 0 ? t('party.seat.host') : t('party.seat.player', { n: seat + 1 }));
-}
-
 // ── Singletons réseau (non sérialisables) ──────────────────────────────────────────────────────
 let host: HostSession | null = null;
 let guest: GuestSession | null = null;

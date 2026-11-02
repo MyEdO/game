@@ -8,6 +8,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { RestBody } from './RestModal';
+import { restCost } from '../noyau/restFlow';
+import { formatMoney } from '../engine/money';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
@@ -56,5 +58,34 @@ describe('RestBody — Plein air (EDOC 08 l.141)', () => {
     expect(html).not.toContain(t('rf.pleinAirDispense'));
     expect(html).toContain('Temps de chien');
     expect(html).toContain('Exposition ×');
+  });
+});
+
+describe('RestBody — avertissement de récupération (LDB 18 l.338)', () => {
+  it('héros assoiffé et blessé, repas à l’auberge : la ligne dit « pas de récupération »', () => {
+    const assoiffe = { ...structuredClone(hero), wounds: { ...hero.wounds, current: hero.wounds.max - 5 }, thirst: { days: 1, tests: 0, failures: 0 } } as Combatant;
+    useGame.setState({
+      party: [assoiffe], travelPlan: null,
+      pendingRest: { places: { auberge: true }, lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'commune', food: 'repas' } }, phase: 'setup' } as never,
+    });
+    const el = document.createElement('div');
+    root = createRoot(el);
+    act(() => root!.render(<RestBody />));
+    expect(el.textContent).toContain('privé de vivres ou d’eau (pas de récupération)');
+  });
+});
+
+describe('RestBody — la note d’auberge que la bourse ne couvre pas (LDB 66)', () => {
+  it('bourse vide, chambre privée : le total est « over » et Dormir se ferme sur le refus du geste', () => {
+    useGame.setState({
+      party: [hero], travelPlan: null, net: { ...useGame.getState().net, mode: 'local' },
+      pendingRest: { places: { auberge: true }, lieu: fixtureText('Auberge'), quality: 'normale', days: 1, perHero: { h: { lodging: 'privee', food: 'rien' } }, phase: 'setup' } as never,
+    });
+    const cout = formatMoney(restCost(useGame.getState().pendingRest!, [hero]));
+    const el = document.createElement('div');
+    root = createRoot(el);
+    act(() => root!.render(<RestBody />));
+    expect(el.querySelector('.rest-cost.over')).not.toBeNull();
+    expect(el.querySelector('#rest-sleep-reason')?.textContent).toBe(`Pas assez d'argent (${cout}).`);
   });
 });

@@ -1,5 +1,4 @@
 import { useId, useMemo, useRef } from 'react';
-import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
 import { COUCHE_CONVERSATION, reponsesDuNoeud, type ReponseDeDialogue, type TestAnnonce } from '../noyau/dialogue';
 import { testSkillLabel } from '../data';
@@ -13,7 +12,7 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { Prose } from './Prose';
 import { SpectatorChip } from './SpectatorChip';
 import { useOwnsGroupDecision } from './ownership';
-import { groupDecisionSeat } from '../noyau/netOwnership';
+import { groupDecisionSeat, nomDuSiege } from '../noyau/netOwnership';
 import { useModalA11y } from './Modal';
 import { GatedAction, raisonSi } from './GatedAction';
 import { speakerEntity } from '../noyau/monde/scene';
@@ -35,12 +34,6 @@ function libelleDuTest(test: TestAnnonce): string {
   return test.targetDR != null
     ? t('dlg.testTagCumul', { quoi, diff, dr: test.targetDR })
     : t('dlg.testTag', { quoi, diff });
-}
-
-/** Texte du REFUS d'une réponse — la raison que `GatedAction` fait lire au survol et au focus. */
-function texteDuRefus(r: ReponseDeDialogue, meneur: string): string | undefined {
-  if (r.enabled) return undefined;
-  return r.refus === 'siege' ? `${meneur} répond pour le groupe` : 'Pas assez d’argent';
 }
 
 export function DialogueBox() {
@@ -107,7 +100,7 @@ export function DialogueBox() {
             // puce `Coins` porte en `title`.
             ariaLabel={[num, tag, r.label, r.cost && spellMoney(r.cost)].filter(Boolean).join(' ')}
             enabled={r.enabled}
-            {...raisonSi(texteDuRefus(r, meneur))}
+            {...raisonSi(r.refus)}
             onClick={() => choose(r.index)}
             primary={false}
             btnClassName="dlg-choice"

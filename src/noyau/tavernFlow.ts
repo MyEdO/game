@@ -43,6 +43,7 @@ import { battleRng } from './battleRng';
 import { toBrass, fromBrass, formatMoney } from '../engine/money';
 import { creditBourse, payWithAllocation, soloPayer } from './bourseFlow';
 import { refuseSi } from './verrousDeFiche';
+import { refuserGeste } from './refusVisible';
 import { rule } from '../engine/policy';
 import type { Jeu } from './etat';
 import { bourseOf } from '../engine/bourse';
@@ -353,57 +354,86 @@ function potSeats(challenger: Combatant, opponentHero: Combatant | undefined, op
   return seats;
 }
 
+/** Réglage d'une partie : le jeu, le challenger, son vis-à-vis, la mise unitaire (sous de cuivre),
+ *  le coéquipier d'un jeu d'équipe, l'effectif d'une table de pot. */
+export interface ReglageDePartie {
+  gameId: string; challengerId: string; opponent: TavernOpponent; stakeBrass?: number; allyProfil?: string; tablePlayers?: number;
+}
+
+/** Partie prête à jouer : ses acteurs résolus et sa mise plafonnée à la bourse du challenger. */
+interface PartiePrete {
+  game: TavernGame; challenger: Combatant; opponentActor: Combatant; allie: Combatant | undefined; stakeBrass: number;
+}
+
+/** Pourquoi le vis-à-vis de genre `kind` n'est pas offert pour `gameId` au challenger : un jeu d'ÉQUIPE
+ *  oppose la salle au groupe entier, aucun compagnon d'en face, aucun PNJ de la scène qui joue ; `null` s'il
+ *  l'est. Lu par `preparerLaPartie` et par le choix d'adversaire de la modale. */
+export function refusDAdversaire(s: Jeu, gameId: string, challengerId: string, kind: TavernOpponent['kind']): string | null {
+  if (kind === 'profil') return null;
+  if (findTavernGameById(gameId)?.team) return t('tavern.equipeContreLaSalle');
+  if (kind === 'hero') return s.party.some((h) => !h.dead && h.id !== challengerId) ? null : t('tavern.aucunCompagnon');
+  return tavernNpcOffers(s.scene, presetDuNarratif(s.campaignNarratif)).length ? null : t('tavern.personneDansLaSalle');
+}
+
 /**
- * Joue une partie : instancie le socle de séquence, qui ouvre la 1ʳᵉ manche. `stakeBrass` est la
- * MISE UNITAIRE d'un jeu de pot (« chaque joueur ajoute une mise égale au pot », l.17), plafonnée à
- * la bourse du challenger ; sans mise, une table de pot ne s'ouvre pas.
+ * Résout le réglage d'une partie, ou dit pourquoi elle ne s'ouvre pas : table d'hôte
+ * (`refusDeTableDHote`), séquence déjà active, jeu inconnu, challenger absent, coéquipier d'un jeu
+ * d'équipe, genre de vis-à-vis non offert (`refusDAdversaire`), vis-à-vis absent, profil de coéquipier inconnu, mise absente d'un jeu de pot. SOURCE
+ * UNIQUE de `refusDeJouer` et de `playTavernGame`.
  */
-export function playTavernGame(
-  get: Get, set: Set,
-  opts: { gameId: string; challengerId: string; opponent: TavernOpponent; stakeBrass?: number; allyProfil?: string; tablePlayers?: number },
-): void {
-  // RÉ-ENTRÉE REFUSÉE : `startSequence` ÉCRASE `state.sequence`. Une seconde partie ouverte pendant
-  // qu'une première court la faisait donc disparaître SANS verdict — sa mise engagée perdue, son
-  // étape orpheline restant dans la fenêtre à côté de celle de la nouvelle. Le slot de séquence est
-  // unique : on le dit ici plutôt que de laisser l'écrasement le découvrir.
-  if (refuseSi(get, set, refusDeTableDHote)) return;
-  if (activeSequence(get)) {
-    get().log(t('tavern.dejaEnCours'));
-    return;
-  }
+function preparerLaPartie(s: Jeu, opts: ReglageDePartie): PartiePrete | { refus: string } {
+  const refusHote = refusDeTableDHote(s);
+  if (refusHote) return { refus: refusHote };
+  // RÉ-ENTRÉE REFUSÉE : `startSequence` ÉCRASE `state.sequence` — une partie en cours disparaîtrait
+  // sans verdict, sa mise engagée perdue.
+  if (s.sequence) return { refus: t('tavern.dejaEnCours') };
   const game = findTavernGameById(opts.gameId);
-  const party = get().party;
-  const challenger = party.find((h) => h.id === opts.challengerId);
-  if (!game) { get().log(t('tavern.jeuInconnu', { id: opts.gameId })); return; }
-  if (!challenger) { get().log(t('tavern.challengerAbsent', { jeu: game.label })); return; }
+  if (!game) return { refus: t('tavern.jeuInconnu', { id: opts.gameId }) };
+  const challenger = s.party.find((h) => h.id === opts.challengerId);
+  if (!challenger) return { refus: t('tavern.challengerAbsent', { jeu: game.label }) };
   const opp = opts.opponent;
-  const opponentActor = opp.kind === 'hero' ? party.find((h) => h.id === opp.id)
-    : opp.kind === 'npc' ? sceneNpc(get().scene, opp.id, presetDuNarratif(get().campaignNarratif))
+  const refusDuVisAVis = refusDAdversaire(s, game.id, challenger.id, opp.kind);
+  if (refusDuVisAVis) return { refus: refusDuVisAVis };
+  const opponentActor = opp.kind === 'hero' ? s.party.find((h) => h.id === opp.id)
+    : opp.kind === 'npc' ? sceneNpc(s.scene, opp.id, presetDuNarratif(s.campaignNarratif))
       : pnjAuProfil(opp.id, HABITUE);
   if (!!game.team !== (opts.allyProfil !== undefined)) {
-    get().log(t(game.team ? 'tavern.equipeSansCoequipier' : 'tavern.coequipierHorsEquipe', { jeu: game.label }));
-    return;
+    return { refus: t(game.team ? 'tavern.equipeSansCoequipier' : 'tavern.coequipierHorsEquipe', { jeu: game.label }) };
   }
   const allie = opts.allyProfil === undefined ? undefined : pnjAuProfil(opts.allyProfil, HABITUE);
-  if (!opponentActor) { get().log(t('tavern.adversaireAbsent', { jeu: game.label })); return; }
-  if (opts.allyProfil !== undefined && !allie) { get().log(t('tavern.coequipierSansProfil', { jeu: game.label, profil: opts.allyProfil })); return; }
+  if (!opponentActor) return { refus: t('tavern.adversaireAbsent', { jeu: game.label }) };
+  if (opts.allyProfil !== undefined && !allie) return { refus: t('tavern.coequipierSansProfil', { jeu: game.label, profil: opts.allyProfil }) };
+  // MISE : celle d'un jeu de POT (« chaque joueur ajoute une mise égale au pot », l.17), qui sort de la
+  // bourse du CHALLENGER (il paie s'il perd, encaisse s'il gagne) : plafonnée à SA bourse.
+  const wantStake = game.pot ? Math.max(0, Math.floor(opts.stakeBrass ?? 0)) : 0;
+  const stakeBrass = Math.min(wantStake, toBrass(bourseOf(challenger)));
+  // « on ne mise que ce qu'on a » (arbitrage en tête du bloc AL-ZAHR).
+  if (game.pot && stakeBrass <= 0) return { refus: t('tavern.potSansMise', { who: challenger.label }) };
+  return { game, challenger, opponentActor, allie, stakeBrass };
+}
 
+/** Pourquoi la partie réglée par `opts` ne s'ouvre pas, ou `null` — verdict UNIQUE de `playTavernGame`
+ *  et de la modale (`preparerLaPartie`). */
+export function refusDeJouer(s: Jeu, opts: ReglageDePartie): string | null {
+  const p = preparerLaPartie(s, opts);
+  return 'refus' in p ? p.refus : null;
+}
+
+/**
+ * Joue une partie : instancie le socle de séquence, qui ouvre la 1ʳᵉ manche. `stakeBrass` est la
+ * MISE UNITAIRE d'un jeu de pot, plafonnée à la bourse du challenger (`preparerLaPartie`) ; refusée,
+ * la partie le DIT (`refusDeJouer`).
+ */
+export function playTavernGame(get: Get, set: Set, opts: ReglageDePartie): void {
+  const p = preparerLaPartie(get(), opts);
+  if ('refus' in p) { refuserGeste(get, set, p.refus); return; }
+  const { game, challenger, opponentActor, allie, stakeBrass } = p;
+  const opp = opts.opponent;
   const opponentValue = tavernGameValue(opponentActor, game);
   const opponentName = opponentActor.label;
   // L'habitué n'a aucun banc (`tavernActor`) : ses lectures passent par `opponentValue`.
   const opponentId = opp.kind === 'profil' ? undefined : opponentActor.id;
 
-  // MISE : elle est celle d'un jeu de POT (« chaque joueur ajoute une mise égale au pot », l.17), et
-  // elle joue quel que soit le vis-à-vis — l'argent change vraiment de bourse, compagnons compris.
-  const wantStake = game.pot ? Math.max(0, Math.floor(opts.stakeBrass ?? 0)) : 0;
-  // La mise sort de la bourse du CHALLENGER (il paie s'il perd, encaisse s'il gagne) : plafonnée à SA bourse.
-  const stakeBrass = Math.min(wantStake, toBrass(bourseOf(challenger)));
-  // « on ne mise que ce qu'on a » (arbitrage en tête du bloc AL-ZAHR) : première porte de la règle,
-  // celle de la table elle-même.
-  if (game.pot && stakeBrass <= 0) {
-    get().log(t('tavern.potSansMise', { who: challenger.label }));
-    return;
-  }
   const seats = game.pot ? potSeats(challenger, opponentId ? opponentActor : undefined, opponentName, opts.tablePlayers ?? 2) : [];
   // LES SIÈGES À FICHE : le challenger, son vis-à-vis, et les héros d'un jeu d'équipe.
   const specials = Object.fromEntries(

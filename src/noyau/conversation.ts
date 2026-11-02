@@ -4,6 +4,8 @@ import { TIME_COST } from '../engine/timeCost';
 import { runFlow, jouerFlowEntier, cloturer } from './combatEffects';
 import { conversationRepond, reponsesDuNoeud } from './dialogue';
 import { t } from '../i18n';
+import { surfaceTientLaMain } from './modalArbiter';
+import { refuserGesteDuSiege } from './refusVisible';
 import { toMoney } from '../engine/money';
 import { payFromGroup } from './bourseFlow';
 import { speakerEntity } from './monde/scene';
@@ -37,12 +39,10 @@ export function creerActionsDeConversation(get: Get, set: Set) {
       //    SUSPEND la conversation) ;
       //  · `reponsesDuNoeud` — la réponse est VISIBLE (son `when`) et OFFERTE (bourse), par le MÊME
       //    sélecteur que les deux surfaces. Un index qui n'y figure pas n'existe pas pour le joueur.
-      if (!conversationRepond(st)) return;
+      //  Une réponse REFUSÉE (siège, bourse) le dit, sauf sous une surface qui tient la main.
       const r = reponsesDuNoeud(st).find((x) => x.index === choiceIndex);
-      if (!r?.enabled) {
-        if (r?.refus === 'argent') get().log(t('store.dialogueNoMoney'));
-        return;
-      }
+      if (r?.refus && !surfaceTientLaMain(st)) { refuserGesteDuSiege(get, set, r.refus); return; }
+      if (!conversationRepond(st) || !r?.enabled) return;
       const node = st.dialogue.dialogue.nodes.find((n) => n.id === st.dialogue.nodeId);
       const choice = node?.choices[choiceIndex];
       if (!node || !choice) return;

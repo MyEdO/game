@@ -125,4 +125,16 @@ describe('MassBattleView — affectation aux Scènes (ADE II 8)', () => {
     expect(resoudre(el).getAttribute('aria-disabled')).toBe('true');
     expect(el.querySelector('.mb-scene .mb-actions .hors-ecran')?.textContent).toMatch(/^Personne dans le groupe ne peut tenter « .+ »\.$/);
   });
+
+  it('6. entre deux Rounds, un groupe NON blessé : « Rassemblement » offert (ADE II 08 l.122 « tous les Personnages »)', () => {
+    act(() => { useGame.setState({ massBattle: { ...useGame.getState().massBattle!, awaitingNext: true } }); });
+    expect(useGame.getState().party.every((h) => h.wounds.current === h.wounds.max)).toBe(true);
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    act(() => { root!.render(<MassBattleView />); });
+    const rally = [...container.querySelectorAll('button')].find((b) => b.textContent === 'Rassemblement');
+    expect(rally, 'le bouton est rendu').toBeDefined();
+    expect(rally!.getAttribute('aria-disabled')).toBeNull();
+  });
 });

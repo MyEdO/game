@@ -21,6 +21,7 @@ import { tavernGameValue } from '../noyau/tavernFlow';
 import { activeSequence } from '../noyau/sequenceCore';
 import { ActiveModal } from './ActiveModal';
 import { ouvrirDialogue } from '../noyau/dialogue';
+import { setBourseBrass } from '../engine/bourse';
 const scenarioConstruit = scenario.construire();
 
 const PNJ = 'habitue-bras-de-fer';
@@ -104,5 +105,37 @@ describe('Taverne — une situation = une modale', () => {
     monterRacine(<><ActiveModal /><TavernGameModal /></>);
     expect(document.querySelectorAll('.modal-overlay')).toHaveLength(1);
     expect(document.querySelector('.tavern-modal')).toBeNull();
+  });
+});
+
+describe('Taverne — la mise en sous de cuivre et l’effectif de table : l’écran soumet ce que le geste joue (NADJ 16 l.17)', () => {
+  const saisir = (input: HTMLInputElement, valeur: string) => act(() => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, valeur);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  const ouvrirAlZahr = () => {
+    const [soldat] = g().party;
+    setBourseBrass(soldat, 11);
+    act(() => { useGame.setState({ party: [soldat], dialogue: null } as never); g().openTavernGames(); });
+    const doc = monterRacine(<TavernGameModal />).container.ownerDocument;
+    act(() => { [...doc.querySelectorAll('button')].find((b) => b.textContent?.trim() === findTavernGameById('al-zahr')!.label)!.click(); });
+    return { doc, soldat };
+  };
+
+  it('sans mise : « Jouer » fermé sur le texte du geste', () => {
+    const { doc, soldat } = ouvrirAlZahr();
+    expect(doc.querySelector('.gated-action-reason')?.textContent).toBe(`${soldat.label} ne pose aucune mise : aucune partie ne s’ouvre.`);
+  });
+
+  it('challenger à 11 sous de cuivre, table de 12 : la partie s’ouvre sur 11 sous et douze sièges', () => {
+    const { doc } = ouvrirAlZahr();
+    saisir(doc.querySelector('#tavern-stake') as HTMLInputElement, '11');
+    saisir(doc.querySelector('#tavern-table-players') as HTMLInputElement, '12');
+    const jouer = [...doc.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Jouer')!;
+    expect(jouer.getAttribute('aria-disabled')).toBeNull();
+    act(() => { jouer.click(); });
+    const seq = activeSequence<{ stakeBrass: number; seats: unknown[] }>(g);
+    expect(seq?.payload.stakeBrass).toBe(11);
+    expect(seq?.payload.seats).toHaveLength(12);
   });
 });

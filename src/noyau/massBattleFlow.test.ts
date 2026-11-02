@@ -800,6 +800,16 @@ describe('Rassemblement (ADE II 8 l.122)', () => {
     resolveBattleTest({ roll: 1, success: true, sl });
     expect(useGame.getState().party.find((h) => h.id === pa.heroId)!.wounds.current).toBe(hero.wounds.max);
   });
+
+  it('« tous les Personnages » (l.122) : un PJ NON blessé ouvre aussi son Rassemblement', () => {
+    start({ situations: [['motivation']] });
+    useGame.setState({ massBattle: { ...mbState(), phase: 'round', awaitingNext: true } });
+    const premier = useGame.getState().party[0];
+    expect(premier.wounds.current).toBe(premier.wounds.max);
+    useGame.getState().massBattleRally();
+    expect(pending()?.activityId).toBe('rassemblement');
+    expect(pending()?.heroId).toBe(premier.id);
+  });
 });
 
 describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, ils ne peuvent participer qu\'à un maximum de trois Activités »', () => {

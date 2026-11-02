@@ -1,5 +1,4 @@
 import { Fragment, useEffect, useRef, useState, type ComponentProps, type ReactNode, type Ref } from 'react';
-import { nomDuSiege } from '../../state/netFlow';
 import { useGame } from '../../state/store';
 import type { BattleState, ShootingStanceKey } from '../../noyau/etat';
 import { mouvementDuTour } from '../../noyau/mount';
@@ -30,7 +29,7 @@ import { isOutOfAction, raisonRefusDetermination } from '../../engine/conditions
 import { isFrenzied } from '../../engine/psychology';
 import { posteARecharger } from '../../noyau/monde/shipPostes';
 import { isVehicle } from '../../engine/coque';
-import { controlsCombatant } from '../../noyau/netOwnership';
+import { controlsCombatant, nomDuSiege } from '../../noyau/netOwnership';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { combatDistance } from '../../noyau/monde/footprint';
 import { hotbar } from '../../state/hotbarBridge';
