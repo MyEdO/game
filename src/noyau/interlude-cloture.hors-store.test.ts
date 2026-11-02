@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { avanceEtapeCascade } from './cascade.testkit';
 import { emptyScene } from './monde/scene';
 import { createHero } from '../engine/character';
 import { bourseOf, withBourseMoney } from '../engine/bourse';
@@ -32,12 +33,8 @@ const heros = (label: string, seed: number, careerLevel: number, bourse: Money):
 function apresLeTirage(party: Combatant[], des: number[]): Banc {
   const banc = ouvrirLeBanc({ graine: 7, desFixes: true, etat: { party, scene: SCENE, worldMap: ALTDORF } });
   banc.actions.startInterlude(2);
-  for (const de of des) {
-    const etape = banc.getState().pendingCascade!.participants[banc.getState().pendingCascade!.cursor];
-    banc.actions.cascadeTableSetForcedRoll(etape.id, de);
-    banc.actions.cascadeNext();
-  }
-  banc.actions.cascadeNext(); // dénouement de groupe
+  for (const de of des) avanceEtapeCascade(banc.getState, () => de);
+  avanceEtapeCascade(banc.getState); // dénouement de groupe
   expect(banc.getState().interlude?.phase, 'témoin : le tirage est dénoué').toBe('activities');
   return banc;
 }
@@ -117,12 +114,8 @@ describe('Clôture — devis = geste = oracle, sur 60 groupes tirés', () => {
     const weeks = ri(1, 4);
     const banc = ouvrirLeBanc({ graine, desFixes: true, etat: { party, scene: SCENE, worldMap: ALTDORF } });
     banc.actions.startInterlude(weeks);
-    for (let i = 0; i < n; i++) {
-      const etape = banc.getState().pendingCascade!.participants[banc.getState().pendingCascade!.cursor];
-      banc.actions.cascadeTableSetForcedRoll(etape.id, SANS_EFFET);
-      banc.actions.cascadeNext();
-    }
-    banc.actions.cascadeNext();
+    for (let i = 0; i < n; i++) avanceEtapeCascade(banc.getState, () => SANS_EFFET);
+    avanceEtapeCascade(banc.getState);
     const ids = banc.getState().party.map((h) => h.id);
     const intrus = ri(0, 2) === 0 ? { ...heros('Intrus', graine * 10 + 9, ri(1, 4), fromBrass(ri(0, 500))), id: 'intrus' } : null;
     const gameTime = ri(0, 5 * MINUTES_PER_DAY);

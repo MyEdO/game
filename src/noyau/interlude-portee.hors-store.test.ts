@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { avanceEtapeCascade } from './cascade.testkit';
 import { emptyScene } from './monde/scene';
 import { createHero } from '../engine/character';
 import { bourseOf, withBourseMoney } from '../engine/bourse';
@@ -33,12 +34,8 @@ function tirage(deA: number, carriereB = 'soldat', deB = DE.sansEffet, bank: (a:
   const chance = party.map((h) => h.fortune ?? 0);
   const banc = ouvrirLeBanc({ graine: 3, desFixes: true, etat: { party, scene: SCENE, worldMap: ALTDORF as never, bank: bank(party[0].id, party[1].id) } });
   banc.actions.startInterlude(2);
-  for (const de of [deA, deB]) {
-    const etape = banc.getState().pendingCascade!.participants[banc.getState().pendingCascade!.cursor];
-    banc.actions.cascadeTableSetForcedRoll(etape.id, de);
-    banc.actions.cascadeNext();
-  }
-  banc.actions.cascadeNext(); // dénouement de groupe
+  for (const de of [deA, deB]) avanceEtapeCascade(banc.getState, () => de);
+  avanceEtapeCascade(banc.getState); // dénouement de groupe
   expect(banc.getState().interlude?.phase, 'témoin : le tirage est dénoué').toBe('activities');
   const [a, b] = banc.getState().party.map((h) => h.id);
   return { banc, a, b, chance };
