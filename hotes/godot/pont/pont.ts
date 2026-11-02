@@ -4,7 +4,7 @@
  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
  * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend.
  */
-import { CLICS_DU_CHAMP, cataloguesDeComposition, fenetreDAttaque, fenetreDeDefense, lireComposition, plateauDeLaScene, presetDeComposition, type Composition, type FenetreDAttaque, type FenetreDeDefense, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DU_CHAMP, cataloguesDeComposition, fenetreDAttaque, fenetreDeDefense, lireComposition, lireSurchargesDEmblemes, plateauDeLaScene, presetDeComposition, type Composition, type FenetreDAttaque, type LectureAuSchema, type FenetreDeDefense, type LigneDuJournal, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -61,13 +61,15 @@ const SANS_BORNE: BornesDeLaProjection = { autres: Infinity, offres: Infinity, c
 /** Les clés de l'entrée d'un geste : celles d'une offre, ou celles d'un verbe (`Geste`). */
 const clesDuGeste = (e: Record<string, unknown>): readonly string[] => ('offre' in e ? ['offre', 'ctx'] : ['type', 'args', 'siege']);
 
-/** La composition `brut` de `methode`, lue par le noyau (`lireComposition`) ; refusée en `validation`, chaque faute à son
- *  chemin. */
-function compositionDe(methode: string, brut: unknown): Composition {
-  const lu = lireComposition(brut);
-  if (lu.ok) return lu.composition;
-  throw new ErreurDeGeste('validation', `${methode} : composition, ${lu.fautes.map(({ chemin, message }) => `${chemin.join('.') || '(racine)'} : ${message}`).join(' ; ')}`);
+/** La valeur de `lu`, le champ `champ` de l'entrée de `methode` lu par le noyau ; refusée en `validation`, chaque faute à
+ *  son chemin. */
+function valeurLue<T>(methode: string, champ: string, lu: LectureAuSchema<T>): T {
+  if (lu.ok) return lu.valeur;
+  throw new ErreurDeGeste('validation', `${methode} : ${champ}, ${lu.fautes.map(({ chemin, message }) => `${chemin.join('.') || '(racine)'} : ${message}`).join(' ; ')}`);
 }
+
+/** La composition `brut` de `methode`, lue par le noyau (`lireComposition`). */
+const compositionDe = (methode: string, brut: unknown): Composition => valeurLue(methode, 'composition', lireComposition(brut));
 
 /** L'entrée d'une méthode : l'objet JSON de `json` (aucune entrée, ou `null` : `{}`), dont chaque clé est l'une de ses
  *  `cles`. */
@@ -158,11 +160,12 @@ export function creerPont() {
       return atelier.modeles;
     },
     composer(json) {
-      const e = entreeDe('composer', json, ['base', 'composition']);
+      const e = entreeDe('composer', json, ['base', 'composition', 'emblemes']);
       valider(atelier !== null, 'composer : aucun modèle, appeler modeles d’abord');
       const base = atelier!.modeles.bases.find((b) => b.id === e.base);
       valider(base !== undefined, `composer : base, l’id d’une base servie par modeles (${atelier!.modeles.bases.map((b) => b.id).join(', ') || 'aucune'})`);
-      return composerSurLaBase(base!, atelier!.manifestes, compositionDe('composer', e.composition));
+      const emblemes = valeurLue('composer', 'emblemes', lireSurchargesDEmblemes(e.emblemes === undefined ? {} : e.emblemes));
+      return composerSurLaBase(base!, atelier!.manifestes, compositionDe('composer', e.composition), emblemes);
     },
     catalogues(json) {
       entreeDe('catalogues', json, []);

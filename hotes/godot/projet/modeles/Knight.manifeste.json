@@ -44,12 +44,6 @@
       "headVariant": "tete",
       "hiddenBy": []
     },
-    "Badge_Shield": {
-      "node": "Badge_Shield",
-      "component": "bouclier_blason",
-      "headVariant": null,
-      "hiddenBy": []
-    },
     "Rectangle_Shield": {
       "node": "Rectangle_Shield",
       "component": "bouclier_rectangle",
@@ -104,10 +98,6 @@
       "label_fr": "Corps",
       "apparence": null
     },
-    "bouclier_blason": {
-      "label_fr": "Bouclier à blason",
-      "apparence": "bouclier_blason"
-    },
     "bouclier_rectangle": {
       "label_fr": "Bouclier rectangulaire",
       "apparence": "bouclier_rectangle"
@@ -143,7 +133,6 @@
   },
   "incompatibilities": [
     [
-      "bouclier_blason",
       "bouclier_rectangle",
       "bouclier_rond",
       "bouclier_pointes",
@@ -155,7 +144,6 @@
     ],
     [
       "epee_deux_mains",
-      "bouclier_blason",
       "bouclier_rectangle",
       "bouclier_rond",
       "bouclier_pointes",
@@ -177,6 +165,7 @@
     "death": "Death_A"
   },
   "montage": {
+    "masquer": ["Badge_Shield"],
     "attaches": {
       "main": {
         "os": "handslot.r",
@@ -232,11 +221,6 @@
       }
     },
     "composants": {
-      "bouclier_blason": {
-        "prise": "off",
-        "rangement": "dos",
-        "matieres": [{ "cle": "metal", "piece": "Badge_Shield", "surface": 0 }]
-      },
       "bouclier_rectangle": {
         "prise": "off",
         "rangement": "dos",

@@ -434,8 +434,8 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   « base globale + surcharges du preset » (jamais depuis `ref`/`statblock`) : `resolvePresetCreature`
   (`src/noyau/monde/resolveursDuNarratif.ts`) résout le preset, `mergeCreatureProfile` fusionne `base` (`findCreatureById`)
   et `profil` AU NIVEAU CHAMP (`char` par caractéristique ; `skills`/`talents`/`traits`/`spells` remplacés
-  en bloc si présents). Au spawn de rencontre (`combatSlice`), la créature mergée et `preset.apparence` sont
-  passées à `spawnEnemy` (canal `{ presetCreature, presetId }`, l'id du preset restant au porteur de fiche du combattant). Couche non chargée / preset irrésoluble → `FicheAbsente`
+  en bloc si présents). Au spawn de rencontre (`combatSlice`), la créature mergée et l'apparence du preset, surchargée champ par champ
+  par celle de l'entité (`porteurDeFiche`), sont passées à `spawnEnemy` (canal `{ presetCreature, presetId }`, l'id du preset restant au porteur de fiche du combattant). Couche non chargée / preset irrésoluble → `FicheAbsente`
   (`src/noyau/monde/sceneNpc.ts`, #1882), jamais un PNJ générique. `parseProject` valide fail-fast (le visiteur des références
   narratives, ci-dessus) que tout `presetId` de scène résout un preset déclaré. Curation (#680) : un profil imprimé
   partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une

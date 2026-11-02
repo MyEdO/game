@@ -27,7 +27,7 @@ const teteNaine = {
 };
 const broche = { ...elementSchema3('humanoide'), categorie: 'accessoire', cle: { piece: 'baudrier' }, liaison: { mode: 'surface' }, couvre: [] };
 const bouclier = {
-  ...elementSchema3('humanoide'), cle: { apparence: 'bouclier_blason' },
+  ...elementSchema3('humanoide'), cle: { apparence: 'rond' },
   surfaces: [{ nom: 'metal', teinte: true }, { nom: 'champ', teinte: true, blason: true }], glb: empreinte(glbDElement('spine', ['metal', 'champ'])),
 };
 const lanterne = { ...elementSchema3('humanoide'), cle: { apparence: 'targe' }, surfaces: [{ nom: 'verre', teinte: true, blason: true }], glb: empreinte(glbDElement(null, ['verre'])) };

@@ -63,6 +63,11 @@ var _emplacements: Dictionary = {}
 var _montes: Dictionary = {}
 ## Par id d'emplacement monté dont l'élément porte une surface `blason`, l'emblème posé (#3111).
 var _emblemes: Dictionary = {}
+## Par id d'emplacement monté dont l'élément porte une surface `blason`, l'emblème demandé, posé ou non : une composition
+## ne redemande pas celui qu'il porte déjà.
+var _emblemes_demandes: Dictionary = {}
+## Par id d'emplacement, la référence d'emblème choisie, ou null pour une surface sans emblème.
+var _surcharges_des_emblemes: Dictionary = {}
 ## Par id d'emplacement monté, ses meshes montés, et les nœuds qui les portent dans la scène.
 var _pieces: Dictionary = {}
 var _noeuds: Dictionary = {}
@@ -173,6 +178,7 @@ func _choisir_la_base(id: String) -> void:
 	for base in _modeles.bases:
 		if base.id == id:
 			_base_demandee = id
+			_surcharges_des_emblemes.clear()
 			_reprise = {}
 			_composee = {}
 			_refus_de_composition = ""
@@ -250,6 +256,7 @@ func _remettre_a_zero() -> void:
 	_noeuds.clear()
 	_montes.clear()
 	_emblemes.clear()
+	_emblemes_demandes.clear()
 	_demandes.clear()
 	_lignes_des_emblemes.clear()
 	_boutons_des_emblemes = {}
@@ -347,7 +354,7 @@ func _bascule_de_piece(ligne: Dictionary) -> void:
 		_etiquette("%s : manquant" % ligne.label, emplacement.rangee)
 		return
 	var element: String = ligne.elements[0]
-	var bascule := func() -> void: _choisir(emplacement, VIDE if _montes.get(emplacement.id) == element else element)
+	var bascule := func() -> void: _choisir_manuellement(emplacement, VIDE if _montes.get(emplacement.id) == element else element)
 	var bouton := _bascule(ligne.label, null, emplacement.rangee, bascule)
 	bouton.set_meta("cle", emplacement.id)
 	emplacement.boutons[element] = bouton
@@ -357,7 +364,7 @@ func _bascule_de_piece(ligne: Dictionary) -> void:
 ## Le bouton qui monte `element` à `emplacement`, de texte `texte` et de clé `<emplacement>/<suffixe>`, bascule du groupe
 ## `groupe`.
 func _bouton_de_choix(emplacement: Dictionary, element: String, texte: String, suffixe: String, groupe: ButtonGroup) -> void:
-	var bouton := _bascule(texte, groupe, emplacement.rangee, _choisir.bind(emplacement, element))
+	var bouton := _bascule(texte, groupe, emplacement.rangee, _choisir_manuellement.bind(emplacement, element))
 	bouton.set_meta("cle", "%s/%s" % [emplacement.id, suffixe])
 	emplacement.boutons[element] = bouton
 
@@ -385,8 +392,15 @@ func _marquer(boutons: Dictionary, retenu: Variant) -> void:
 		boutons[cle].set_pressed_no_signal(cle == retenu)
 
 
-## La demande du joueur à `emplacement` : l'élément monté démonté avec son emblème, puis `element` monté sous l'emblème
-## `embleme` s'il n'est pas « vide », ses erreurs au recueil du geste qui le demande.
+## Le choix manuel d'un élément à l'emplacement, son défaut d'emblème résolu après retrait de sa surcharge.
+func _choisir_manuellement(emplacement: Dictionary, element: String) -> void:
+	if element == VIDE or _montes.get(emplacement.id, VIDE) != element:
+		_surcharges_des_emblemes.erase(emplacement.id)
+	_choisir(emplacement, element, _embleme_de_l_emplacement(emplacement.id))
+
+
+## L'élément monté à `emplacement` démonté avec son emblème, puis `element` monté sous l'emblème `embleme` s'il n'est pas
+## « vide », ses erreurs au recueil du geste qui le demande.
 func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) -> void:
 	var id: String = emplacement.id
 	var recueil := _recueil
@@ -398,6 +412,7 @@ func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) 
 	_pieces.erase(id)
 	_montes.erase(id)
 	_emblemes.erase(id)
+	_emblemes_demandes.erase(id)
 	if _lignes_des_emblemes.has(id):
 		var rangee: Node = _lignes_des_emblemes[id]
 		rangee.get_parent().remove_child(rangee)
@@ -505,11 +520,23 @@ func _ligne_des_emblemes(emplacement: Dictionary, element: String, embleme: Stri
 	var choix: Array = [{id = VIDE, label = VIDE}]
 	choix.append_array(_modeles.emblemes)
 	for offert in choix:
-		var bouton := _bascule(offert.label, groupe, ligne, _choisir_l_embleme.bind(id, offert.id))
+		var bouton := _bascule(offert.label, groupe, ligne, _surcharger_l_embleme.bind(id, offert.id))
 		bouton.set_meta("cle", "%s/embleme/%s" % [id, offert.id])
 		boutons[offert.id] = bouton
 	_boutons_des_emblemes[id] = boutons
 	_choisir_l_embleme(id, embleme if boutons.has(embleme) else VIDE)
+
+
+## L'emblème de l'emplacement : sa surcharge explicite, sinon le défaut de la composition.
+func _embleme_de_l_emplacement(id: String) -> String:
+	var reference: Variant = _surcharges_des_emblemes.get(id, _composition.get("embleme"))
+	return VIDE if reference == null else str(reference.id)
+
+
+## Le choix manuel de l'emblème `embleme` à l'emplacement `id` : sa surcharge, transmise à chaque `composer`, puis sa pose.
+func _surcharger_l_embleme(id: String, embleme: String) -> void:
+	_surcharges_des_emblemes[id] = null if embleme == VIDE else {id = embleme}
+	_choisir_l_embleme(id, embleme)
 
 
 ## L'emblème `embleme` posé sur l'élément monté à l'emplacement `id`, rigide ou skinné : sur chaque surface d'un mesh
@@ -517,6 +544,7 @@ func _ligne_des_emblemes(emplacement: Dictionary, element: String, embleme: Stri
 ## couche de détail, en UV1 et en mélange, est l'emblème ; « vide » rend à chaque surface le matériau du GLB. Aucune
 ## surface posée, l'emblème ne l'est pas.
 func _choisir_l_embleme(id: String, embleme: String) -> void:
+	_emblemes_demandes[id] = embleme
 	var element: String = _montes[id]
 	var noms: Array = _modeles.blasons[element]
 	var texture: ImageTexture = _texture_de_l_embleme(embleme) if embleme != VIDE else null
@@ -803,6 +831,7 @@ func _glissiere(axe: Dictionary, rangee: HBoxContainer) -> HSlider:
 func _appliquer_le_preset(preset: Dictionary) -> void:
 	_preset = preset.id
 	_composition = preset.composition.duplicate(true)
+	_surcharges_des_emblemes.clear()
 	_composer()
 
 
@@ -835,10 +864,12 @@ func _composer() -> void:
 	_geste_de_composition(_composer_la_courante)
 
 
-## La composition courante composée par `composer` sur la base posée : chaque emplacement monte l'élément que `montes`
-## lui donne et démonte les autres, puis le gabarit et les morphes de la réponse se posent, les morphes de la précédente
-## remis à 0. Refusée (erreur `validation`), rien n'est composé : chaque emplacement est démonté, ni gabarit ni morphe, et
-## le texte du refus est gardé. Le texte de « Copier » est effacé.
+## La composition courante composée par `composer` sur la base posée, avec les surcharges d'emblème : chaque emplacement
+## monte l'élément que `montes` lui donne et démonte les autres. Un emplacement dont l'élément change perd sa surcharge et
+## monte sous le défaut de la composition (`_embleme_de_l_emplacement`) ; un emplacement inchangé reçoit l'emblème de son
+## entrée de `montes` s'il n'est pas celui qu'il a déjà demandé. Puis le gabarit et les morphes de la réponse se posent,
+## les morphes de la précédente remis à 0. Refusée (erreur `validation`), rien n'est composé : chaque emplacement est
+## démonté, ni gabarit ni morphe, et le texte du refus est gardé. Le texte de « Copier » est effacé.
 func _composer_la_courante() -> void:
 	var anciens: Dictionary = _composee.get("morphes", {})
 	_composee = {}
@@ -848,7 +879,7 @@ func _composer_la_courante() -> void:
 	if _base.is_empty():
 		_montrer_la_composition()
 		return
-	var reponse := _pont.appeler("composer", {base = _base.id, composition = _composition})
+	var reponse := _pont.appeler("composer", {base = _base.id, composition = _composition, emblemes = _surcharges_des_emblemes})
 	if reponse.get("ok") == true:
 		_composee = reponse
 	elif reponse.get("ok") == false:
@@ -856,11 +887,16 @@ func _composer_la_courante() -> void:
 	var cibles := {}
 	for monte in _composee.get("montes", []):
 		if monte.element != null and not cibles.has(monte.ligne):
-			cibles[monte.ligne] = monte.element
+			cibles[monte.ligne] = monte
 	for id in _emplacements:
-		var cible: String = cibles.get(id, VIDE)
+		var monte: Dictionary = cibles.get(id, {})
+		var cible: String = monte.get("element", VIDE)
+		var embleme: String = monte.get("embleme", {}).get("id", VIDE)
 		if _montes.get(id, VIDE) != cible:
-			_choisir(_emplacements[id], cible)
+			_surcharges_des_emblemes.erase(id)
+			_choisir(_emplacements[id], cible, _embleme_de_l_emplacement(id))
+		elif _emblemes_demandes.get(id, VIDE) != embleme:
+			_choisir_l_embleme(id, embleme)
 	_poser_le_gabarit()
 	_poser_des_morphes(anciens.keys(), 0.0)
 	_poser_les_morphes()

@@ -10,6 +10,8 @@ import type { ManifesteMontable } from '../asset/montage';
 import { estModeleModulaire } from '../asset/modeles';
 import { INDEX_DES_APPARENCES, indexDesApparences, modelesDesCombattants, premierModele } from './equipement';
 import { suiteDe, table } from './pont.testkit';
+import { sceneEntitySchema } from '../../../src/data/schemas/defs-scenes/scene';
+import { ficheDEntite } from '../../../src/noyau/monde/sceneNpc';
 const manifesteDeLame: ManifesteMontable = {
   schema_version: 2, model: 'Lame.glb', default_head: null, head_options: [],
   pieces: {
@@ -52,6 +54,17 @@ function heros(apparence: string, main: 'main' | 'off' = 'main') {
 }
 
 describe('équipement publié au pont Godot (#2948 L3)', () => {
+  it('projette l’id de l’emblème de la fiche d’une entité jusqu’à la vue du pont', () => {
+    const entite = sceneEntitySchema.parse({ id: 'garde-du-gue', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 3 }, appearance: { embleme: { id: 'taureau-rouge' } } });
+    const ne = ficheDEntite({ id: entite.id, kind: 'personnage', ref: entite.ref, pos: entite.pos, appearance: entite.appearance }, () => undefined);
+    const ouverte = ouvrirLaPartie(nouvelEntete('dome', { graine: 1 }), () => {});
+    const origine = ouverte.partie.etat();
+    const etat = { ...origine, battle: { ...origine.battle!, combatants: [ne] } };
+    ouverte.partie.fermer();
+    const projete = combattantsTries(etat);
+    expect(projete[0].equipement.embleme).toEqual({ id: 'taureau-rouge' });
+  });
+
   it('résout la teinte des objets tenus et rangés par le lecteur du noyau, sans modifier les autres instances', () => {
     const { projete } = heros('epee_ebrechee');
     projete.equipement.weapons[0].teinte = 'aethyrique';

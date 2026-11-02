@@ -13,6 +13,7 @@ export interface EmplacementDeMatiere {
 }
 export interface Montage {
   readonly attaches: Readonly<Record<NomDAttache, Attache>>;
+  readonly masquer?: readonly string[];
   readonly composants: Readonly<Record<string, { readonly prise: 'main' | 'off'; readonly rangement: 'dos' | 'ceinture'; readonly matieres: readonly EmplacementDeMatiere[] }>>;
 }
 export type ManifesteMontable = ManifesteDePersonnage & { readonly montage: Montage };
@@ -28,6 +29,7 @@ export function lireMontage(brut: unknown): { montage?: Montage; erreurs: Erreur
     else attaches[nom] = { os: a.os, position: a.position, rotation: a.rotation };
   }
   for (const cle of Object.keys(brut.attaches)) if (!ATTACHES.includes(cle as NomDAttache)) forme(`montage.attaches.${cle}`);
+  if (brut.masquer !== undefined && (!Array.isArray(brut.masquer) || !brut.masquer.every(nom => typeof nom === 'string' && nom.length > 0))) forme('montage.masquer');
   const composants: Record<string, Montage['composants'][string]> = {};
   for (const [id, c] of Object.entries(brut.composants)) {
     if (!estObjet(c) || (c.prise !== 'main' && c.prise !== 'off') || (c.rangement !== 'dos' && c.rangement !== 'ceinture')) forme(`montage.composants.${id}`);
@@ -41,11 +43,14 @@ export function lireMontage(brut: unknown): { montage?: Montage; erreurs: Erreur
       composants[id] = { prise: c.prise, rangement: c.rangement, matieres };
     }
   }
-  return erreurs.length ? { erreurs } : { montage: { attaches: attaches as Record<NomDAttache, Attache>, composants }, erreurs };
+  return erreurs.length ? { erreurs } : { montage: { attaches: attaches as Record<NomDAttache, Attache>, composants, ...(brut.masquer === undefined ? {} : { masquer: brut.masquer as string[] }) }, erreurs };
 }
 
 export function ecartsDeMontage(m: ManifesteMontable, glb: ContenuGlb): ErreurDeManifeste[] {
   const erreurs: ErreurDeManifeste[] = [];
+  for (const nom of m.montage.masquer ?? []) {
+    if (!glb.noeuds.has(nom)) erreurs.push({ code: 'noeud-absent', ou: 'montage.masquer', detail: nom });
+  }
   for (const [nom, a] of Object.entries(m.montage.attaches)) {
     if (!glb.os.has(a.os)) erreurs.push({ code: 'os-absent', ou: `montage.attaches.${nom}.os`, detail: a.os });
   }
