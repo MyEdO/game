@@ -88,6 +88,54 @@
             }
           }
         }
+      },
+      {
+        "trigger": "onGainCondition",
+        "condition": "sonne",
+        "on": "self",
+        "flow": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "endPsych",
+                "type": {
+                  "id": "frenesie"
+                }
+              },
+              {
+                "op": "condition",
+                "id": "extenue"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "trigger": "onGainCondition",
+        "condition": "inconscient",
+        "on": "self",
+        "flow": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "endPsych",
+                "type": {
+                  "id": "frenesie"
+                }
+              },
+              {
+                "op": "condition",
+                "id": "extenue"
+              }
+            ]
+          }
+        }
       }
     ],
     "icon": "flag/frenzy"
@@ -209,7 +257,76 @@
       "difficulty": "intermediaire"
     },
     "stake": "Échec : l’Animosité devient ACTIVE envers sa Cible — +1 DR à vos attaques contre elle, et elle cesse dès qu’une Peur ou une Terreur vous saisit.",
-    "stakeForm": "descripteur"
+    "stakeForm": "descripteur",
+    "effects": [
+      {
+        "trigger": "onRoundEnd",
+        "on": "self",
+        "flow": {
+          "kind": "if",
+          "cond": {
+            "kind": "not",
+            "of": {
+              "kind": "cibleEnVue",
+              "hostiles": true
+            }
+          },
+          "then": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "endPsych",
+                  "instance": "courante"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "trigger": "onGainCondition",
+        "condition": "sonne",
+        "on": "self",
+        "flow": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "endPsych",
+                "type": {
+                  "id": "animosite"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "trigger": "onGainCondition",
+        "condition": "inconscient",
+        "on": "self",
+        "flow": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "endPsych",
+                "type": {
+                  "id": "animosite"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
   },
   {
     "id": "haine",
@@ -253,7 +370,55 @@
       "difficulty": "intermediaire"
     },
     "stake": "Échec : la Haine devient ACTIVE envers sa Cible — +1 DR à vos attaques contre elle ; tant qu’elle dure, vous ignorez la Peur qu’un membre de cette Cible provoque.",
-    "stakeForm": "descripteur"
+    "stakeForm": "descripteur",
+    "effects": [
+      {
+        "trigger": "onRoundEnd",
+        "on": "self",
+        "flow": {
+          "kind": "if",
+          "cond": {
+            "kind": "not",
+            "of": {
+              "kind": "cibleEnVue"
+            }
+          },
+          "then": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "endPsych",
+                  "instance": "courante"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "trigger": "onGainCondition",
+        "condition": "inconscient",
+        "on": "self",
+        "flow": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "endPsych",
+                "type": {
+                  "id": "haine"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
   },
   {
     "id": "prejuge",
@@ -292,7 +457,75 @@
       "difficulty": "intermediaire"
     },
     "stake": "Échec : le Préjugé devient ACTIF envers sa Cible ; il cesse dès qu’une Peur ou une Terreur vous saisit.",
-    "stakeForm": "descripteur"
+    "stakeForm": "descripteur",
+    "effects": [
+      {
+        "trigger": "onRoundEnd",
+        "on": "self",
+        "flow": {
+          "kind": "if",
+          "cond": {
+            "kind": "not",
+            "of": {
+              "kind": "cibleEnVue"
+            }
+          },
+          "then": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "endPsych",
+                  "instance": "courante"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "trigger": "onGainCondition",
+        "condition": "sonne",
+        "on": "self",
+        "flow": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "endPsych",
+                "type": {
+                  "id": "prejuge"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "trigger": "onGainCondition",
+        "condition": "inconscient",
+        "on": "self",
+        "flow": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "endPsych",
+                "type": {
+                  "id": "prejuge"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
   },
   {
     "id": "amour",

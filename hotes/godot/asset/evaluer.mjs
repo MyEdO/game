@@ -73,7 +73,7 @@ const fiche = await evaluer({
 })
 
 const { triangles, sommets, os, images, corps, clips } = fiche.mesures
-console.log(`${triangles.total} triangles (${Object.entries(triangles.parMesh).map(([m, t]) => `${m} ${t}`).join(', ')}), ${sommets} sommets, ${os} os, ${images} image(s) ; corps : ${corps.join(', ') || 'aucun'}`)
+console.log(`${triangles.total} triangles (${triangles.parMesh.map(({ mesh, triangles: t }) => `${mesh} ${t}`).join(', ')}), ${sommets} sommets, ${os} os, ${images} image(s) ; corps : ${corps.join(', ') || 'aucun'}`)
 for (const c of clips) {
   console.log(`clip ${c.nom} : ${c.duree.toFixed(3)} s, ${c.echantillons} échantillon(s), sommet le plus bas ${c.plusBas.min.toFixed(4)} à ${c.plusBas.max.toFixed(4)} m`)
   if (c.appuis) {

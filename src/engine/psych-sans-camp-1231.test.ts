@@ -103,8 +103,8 @@ describe('#1231 — Traits psy CIBLÉS : le Groupe-Cible seul, jamais le camp (L
     // CONTRAT de la fonction pure : elle accepte un roster CONTENANT `self` (elle l'écarte déjà côté cible,
     // `v.id !== self.id`) — le côté MENACE doit l'écarter pareillement, sinon un porteur d'Amour du camp
     // opposé à l'aimé se déclencherait sur SA PROPRE agression : « venir en aide » contre soi-même n'est
-    // écrit nulle part (LDB 21 l.75). Les deux sites de production filtrent déjà `self` en amont
-    // (`visibleFoesAndAllies`, `resolvePsychAI`) : c'est le contrat qui est verrouillé ici, pas eux.
+    // écrit nulle part (LDB 21 l.75). Le collecteur de production écarte déjà `self` en amont
+    // (`sourcesEnVue`, monde/porteurs.ts) : c'est le contrat qui est verrouillé ici, pas lui.
     const self = mk('s', 'enemy', { psychTraits: [{ type: 'amour', cible: ciblePsy.groupe('soldat') }] });
     const aime = mk('a', 'hero', { groups: ['soldat'] });
     expect(agressifEnvers(self, aime)).toBe(true); // il EST bien agressif envers elle…

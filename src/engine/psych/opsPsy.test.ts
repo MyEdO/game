@@ -36,6 +36,11 @@ describe('opPsy — références emboîtées', () => {
     expect(Object.keys(opPsy.pose(nonCiblee!.id))).toEqual(['op', 'type']);
     expect(Object.keys(opPsy.retrait())).toEqual(['op']);
   });
+
+  it('la fin de l’instance courante est réservée aux effets d’un Trait psychologique : la famille fermée la refuse', () => {
+    expect(opPsy.finDeLInstance()).toEqual({ op: 'endPsych', instance: 'courante' });
+    expect(gameOpSchema.safeParse(opPsy.finDeLInstance()).success).toBe(false);
+  });
 });
 
 describe('traitOctroye — le Trait d’un octroi', () => {

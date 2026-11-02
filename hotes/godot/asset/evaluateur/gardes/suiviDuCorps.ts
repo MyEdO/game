@@ -9,7 +9,7 @@
  * `cle-inerte` si D > ε et M < D/2 ; sinon `cle-non-suivie` si un sommet a |d_E − d_B| > max(ε, h(v)).
  */
 import { Triangle, Vector3, type Mesh, type Object3D, type SkinnedMesh } from 'three';
-import type { Ecart } from '../ecart.ts';
+import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import { poseDeRepos, type Pose } from '../echantillonnage.ts';
 import { PREFIXE_DES_CLES_DU_GABARIT } from '../../manifesteDeBase.ts';
 import { SOL_TOLERANCE_M } from './piedsAuSol.ts';
@@ -27,20 +27,20 @@ const GARDE = 'suiviDuCorps';
 /** Le point de la surface du corps auquel un sommet d'élément est lié : un triangle d'un mesh du corps, les
  *  coordonnées barycentriques du point dans ce triangle, et le jeu, distance au repos du sommet à ce point. */
 export interface PointLie {
-  readonly mesh: string;
+  readonly mesh: Mesh;
   readonly sommets: readonly [number, number, number];
   readonly barycentre: readonly [number, number, number];
   readonly jeu: number;
 }
 
 interface TriangleDuCorps {
-  readonly mesh: string;
+  readonly mesh: Mesh;
   readonly sommets: readonly [number, number, number];
   readonly forme: Triangle;
 }
 
 const positionsDe = (pose: Pose, m: Mesh): Float32Array => {
-  const p = pose.positions.get(m.name);
+  const p = pose.positions.get(m);
   if (!p) throw new Error(`${GARDE} : mesh absent ${m.name}`);
   return p;
 };
@@ -56,7 +56,7 @@ function trianglesDuCorps(corps: readonly Mesh[], repos: Pose): TriangleDuCorps[
     for (let t = 0; t + 2 < total; t += 3) {
       const sommets: TriangleDuCorps['sommets'] = index ? [index.getX(t), index.getX(t + 1), index.getX(t + 2)] : [t, t + 1, t + 2];
       const forme = new Triangle(point(p, sommets[0]), point(p, sommets[1]), point(p, sommets[2]));
-      if (forme.getArea() > 0 && forme.getBarycoord(forme.a, coordonnees)) triangles.push({ mesh: m.name, sommets, forme });
+      if (forme.getArea() > 0 && forme.getBarycoord(forme.a, coordonnees)) triangles.push({ mesh: m, sommets, forme });
     }
     return triangles;
   });
@@ -79,16 +79,16 @@ export function lierAuCorps(sommets: Float32Array, corps: readonly Mesh[], repos
   });
 }
 
-/** Le point `lie` dans les positions monde `positions` du corps, par nom de mesh. */
-export function pointSurLeCorps(lie: PointLie, positions: ReadonlyMap<string, Float32Array>): Vector3 {
+/** Le point `lie` dans les positions monde `positions` du corps, par mesh. */
+export function pointSurLeCorps(lie: PointLie, positions: Pose['positions']): Vector3 {
   const p = positions.get(lie.mesh);
-  if (!p) throw new Error(`${GARDE} : mesh absent ${lie.mesh}`);
+  if (!p) throw new Error(`${GARDE} : mesh absent ${lie.mesh.name}`);
   const point = new Vector3();
   lie.sommets.forEach((s, k) => { point.x += lie.barycentre[k] * p[s * 3]; point.y += lie.barycentre[k] * p[s * 3 + 1]; point.z += lie.barycentre[k] * p[s * 3 + 2]; });
   return point;
 }
 
-export function gardeSuiviDuCorps(scene: Object3D, corps: readonly Mesh[], elements: readonly SkinnedMesh[]): Ecart[] {
+export function gardeSuiviDuCorps(scene: Object3D, corps: readonly Mesh[], elements: readonly SkinnedMesh[], libelle: LibelleDeMesh): Ecart[] {
   const cles = [...new Set(corps.flatMap((m) => Object.keys(m.morphTargetDictionary ?? {})))].filter((nom) => nom.startsWith(PREFIXE_DES_CLES_DU_GABARIT));
   if (!cles.length || !elements.length) return [];
   return sousLesFormes(scene, cles, (poser) => {
@@ -115,10 +115,10 @@ export function gardeSuiviDuCorps(scene: Object3D, corps: readonly Mesh[], eleme
         const seuilDInertie = cheminDuCorps * PART_DU_CHEMIN_DU_CORPS;
         if (cheminDuCorps > ECART_DE_SUIVI_M && cheminDeLaPiece < seuilDInertie) {
           const porte = mesh.morphTargetDictionary?.[cle] !== undefined;
-          return [{ garde: GARDE, code: 'cle-inerte', mesh: mesh.name, valeur: cheminDeLaPiece, seuil: seuilDInertie, detail: `${cle} ${porte ? 'portée par' : 'absente de'} l’élément : plus grand déplacement de l’élément, en m` }];
+          return [{ garde: GARDE, code: 'cle-inerte', mesh: libelle(mesh), valeur: cheminDeLaPiece, seuil: seuilDInertie, detail: `${cle} ${porte ? 'portée par' : 'absente de'} l’élément : plus grand déplacement de l’élément, en m` }];
         }
         if (pire.depassement <= 0) return [];
-        return [{ garde: GARDE, code: 'cle-non-suivie', mesh: mesh.name, valeur: pire.ecart, seuil: pire.tolerance, detail: `${cle} : écart au corps du sommet ${pire.sommet}, de jeu ${lies[pire.sommet].jeu.toFixed(4)} m, en m` }];
+        return [{ garde: GARDE, code: 'cle-non-suivie', mesh: libelle(mesh), valeur: pire.ecart, seuil: pire.tolerance, detail: `${cle} : écart au corps du sommet ${pire.sommet}, de jeu ${lies[pire.sommet].jeu.toFixed(4)} m, en m` }];
       });
     });
   }, (poids) => poids);

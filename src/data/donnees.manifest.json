@@ -615,7 +615,7 @@
           "files": [
             "garde-robe.json"
           ],
-          "desc": "LA garde-robe des éléments 3D, clés des éléments portés sur le corps — un document, le `kind` (`tete` · `coiffure` · `tenue` · `emplacement` · `piece` · `ensemble` · `embleme`) porté par l'entrée ; une tête nomme sa `race` de rendu (`raceAppearance.json`) ; un ensemble habille UN objet, UNE apparence ou UNE tenue de la liste ordonnée de ses pièces ; un emblème est un dessin SVG posé au montage sur les surfaces `blason` d'un élément"
+          "desc": "LA garde-robe des éléments 3D, clés des éléments portés sur le corps — un document, le `kind` (`tete` · `coiffure` · `tenue` · `emplacement` · `piece` · `ensemble` · `embleme`) porté par l'entrée ; l'id d'une tête est celui de sa race de rendu (`raceAppearance.json`) ; un ensemble habille UN objet, UNE apparence ou UNE tenue de la liste ordonnée de ses pièces ; un emblème est un dessin SVG posé au montage sur les surfaces `blason` d'un élément"
         },
         {
           "files": [

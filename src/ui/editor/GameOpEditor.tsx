@@ -818,8 +818,16 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <label className="dr">DR de Sort / point<NumberField variant="nu" label="Degrés de Réussite de Sort par point" value={typeof o.amount === 'number' ? o.amount : 0} onChange={(amount) => upd({ amount })} /></label>
         )}
         {op.op === 'endPsych' && (
-          <TypePsyField fieldKey="État psychologique" noeud={noeudDuChamp(noeudDOp, 'type.id')} value={op.type}
-            onChange={(v) => upd({ type: typeDePsychologie(v).ref })} />
+          <>
+            {noeudDuChamp(noeudDOp, 'instance') !== undefined && (
+              <label className="dr"><input type="checkbox" checked={'instance' in op}
+                onChange={(e) => onChange(e.target.checked ? opPsy.finDeLInstance() : opPsy.fin(''))} /> l’instance en cours</label>
+            )}
+            {'type' in op && (
+              <TypePsyField fieldKey="État psychologique" noeud={noeudDuChamp(noeudDOp, 'type.id')} value={op.type}
+                onChange={(v) => onChange(opPsy.fin(typeDePsychologie(v).ref.id))} />
+            )}
+          </>
         )}
         {op.op === 'beginPsych' && (
           <>

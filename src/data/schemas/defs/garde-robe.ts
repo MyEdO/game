@@ -3,8 +3,8 @@
  * éléments portés sur le corps (têtes, coiffures, tenues, pièces), collection à discriminant `kind`, la NATURE d'une ligne (doctrine
  * `user-direction-fusion-json-par-type`), patron `defs/materials.ts`.
  *
- * - `tete` : la tête d'une race, qui nomme sa `race` de rendu (`raceAppearance.json`, #3113) et dont
- *   l'`id` vaut celui de sa `race`.
+ * - `tete` : la tête d'une race de rendu, dont l'`id` est celui de cette race (`raceAppearance.json`, #3113) ;
+ *   aucune autre ligne ne porte un id de race.
  * - `coiffure` : une coiffure, non sexuée (#3113).
  * - `tenue` : une tenue portée sur le corps, que revêt l'ensemble qui l'habille (#3116).
  * - `emplacement` : un point d'accroche d'accessoire.
@@ -16,12 +16,12 @@
  *   « Atelier 3D ») ; `svg` est un document SVG complet, couleurs comprises, à `viewBox` carré.
  *
  * Les références internes (`emplacement` `{ id }`, `pieces`) résolvent au parse contre les sous-listes
- * discriminées de l'espace `garde-robe.json` (`ref`/`refs` à `sousListe`) ; la `race` d'une tête, contre
- * `raceAppearance.json`.
+ * discriminées de l'espace `garde-robe.json` (`ref`/`refs` à `sousListe`) ; l'`id` de chaque ligne, contre
+ * `raceAppearance.json` (`idsDe('raceAppearance')`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { ref, refs, refTypee, type RefTypee } from '../grammaire/ref';
+import { idsDe, ref, refMorte, refs, refTypee, type RefTypee } from '../grammaire/ref';
 import { enumNomme } from '../grammaire/valeurs';
 import type { IdsParEspace } from '../_ids.generated';
 
@@ -55,7 +55,7 @@ export type CategorieDePiece = keyof typeof LIBELLES_DE_CATEGORIE;
  * optionnel dans ce `kind`.
  */
 const CHARGE_PAR_KIND = {
-  tete: { cles: ['race'], requises: ['race'] },
+  tete: { cles: [], requises: [] },
   coiffure: { cles: [], requises: [] },
   tenue: { cles: [], requises: [] },
   emplacement: { cles: [], requises: [] },
@@ -122,7 +122,6 @@ const doc = document(
   famille,
   {
     kind: enumNomme(LIBELLES_DE_KIND),
-    race: ref('raceAppearance').optional(),
     categorie: enumNomme(LIBELLES_DE_CATEGORIE).optional(),
     emplacement: ref('gardeRobe', undefined, 'emplacement').optional(),
     habille: habilleSchema.optional(),
@@ -131,7 +130,6 @@ const doc = document(
   },
   {
     kind: { label: 'Nature', hint: 'Tête, coiffure, tenue, emplacement d’accessoire, pièce d’habit, ensemble ou emblème — les clés admises en dépendent' },
-    race: { label: 'Race de rendu', hint: 'Apparence d’espèce que la tête habille' },
     categorie: { label: 'Catégorie', hint: 'Vêtement, armure ou accessoire' },
     emplacement: { label: 'Emplacement', hint: 'Point d’accroche d’une pièce d’accessoire' },
     habille: { label: 'Habille', hint: 'L’objet, l’apparence ou la tenue que l’ensemble revêt' },
@@ -164,11 +162,15 @@ const doc = document(
                   : `garde-robe : la pièce « ${e.id} » n’est pas un accessoire — elle ne porte aucun emplacement.`,
             });
         }
-        if (e.kind === 'tete') {
-          const race = e.race as { id: string } | undefined;
-          if (race !== undefined && e.id !== race.id)
-            ctx.addIssue({ code: 'custom', path: ['id'], message: `garde-robe : la tête « ${e.id} » doit s’appeler « ${race.id} », l’id de sa race.` });
-        }
+        if ((e.kind === 'tete') !== idsDe('raceAppearance').has(e.id))
+          ctx.addIssue({
+            code: 'custom',
+            path: ['id'],
+            message:
+              e.kind === 'tete'
+                ? `garde-robe : la tête « ${e.id} » porte l’id de sa race de rendu — ${refMorte('raceAppearance', e.id)}`
+                : `garde-robe : « ${e.id} » (kind « ${e.kind} ») porte l’id d’une race de rendu (raceAppearance.json), que seule une tête porte.`,
+          });
         if (e.kind === 'embleme' && typeof e.svg === 'string') {
           const refus = refusDeSvg(e.svg);
           if (refus) ctx.addIssue({ code: 'custom', path: ['svg'], message: `garde-robe : l’emblème « ${e.id} » ${refus}.` });
@@ -229,9 +231,7 @@ export interface PieceDef extends LigneDeNature<'piece', PieceId> {
 }
 
 /** VUE TS d'une ligne `tete`. */
-export interface TeteDef extends LigneDeNature<'tete', TeteId> {
-  race: { id: IdsParEspace['raceAppearance.json'] };
-}
+export type TeteDef = LigneDeNature<'tete', TeteId>;
 
 /** VUE TS d'une ligne `coiffure`. */
 export type CoiffureDef = LigneDeNature<'coiffure', CoiffureId>;

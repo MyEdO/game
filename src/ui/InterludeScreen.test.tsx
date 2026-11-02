@@ -10,8 +10,8 @@ import { useGame } from '../state/store';
 import { draineCascade, poseSurDeNonTombe } from '../noyau/cascade.testkit';
 import { createHero } from '../engine/character';
 import { fromBrass, toBrass } from '../engine/money';
-import { partyMoneyTotal, distributeCredit, debitBourse } from '../noyau/bourseFlow';
-import { bourseOf } from '../engine/bourse';
+import { distributeCredit, debitBourse } from '../noyau/bourseFlow';
+import { bourseOf, withBourseMoney } from '../engine/bourse';
 import { testScene } from '../scenes/test-fixture';
 import { interludeCatalog } from '../noyau/interludeFlow';
 import { refusDeRevenus, refusDOuvertureDActivite } from '../noyau/verdictsDInterlude';
@@ -57,7 +57,7 @@ function buildSeam(weeks = 3, groupe?: Combatant[]): InterludeSeam {
   useGame.getState().startInterlude(weeks);
   draineCascade(useGame.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
   const s = useGame.getState();
-  return { interlude: s.interlude!, party: s.party, money: partyMoneyTotal(useGame.getState), bank: s.bank, pendingOrders: s.pendingOrders };
+  return { interlude: s.interlude!, party: s.party, bank: s.bank, pendingOrders: s.pendingOrders };
 }
 
 describe('InterludeScreen — refonte LOT 6', () => {
@@ -227,6 +227,17 @@ describe('InterludeScreen — refonte LOT 6', () => {
     expect(html).not.toContain('rm-stake');
   });
 
+  it('chronique : un Événement de groupe tiré par l’un se lit sur la carte de chacun (LDB 22 l.40)', () => {
+    const seam = buildSeam(2);
+    const [a, b] = seam.party;
+    const interlude = { ...seam.interlude, perHero: {
+      [a.id]: { ...seam.interlude.perHero[a.id], eventRoll: 26, fx: interludeEventFor(26).fx },
+      [b.id]: { ...seam.interlude.perHero[b.id], eventRoll: 1, fx: undefined },
+    } };
+    const html = mdToPlain(renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude, phase: 'events' }} />));
+    expect(html.split("-20 % sur l'argent placé en banque").length - 1, 'Fausse monnaie, tirée par le Vétéran, vaut pour le Forgeron').toBe(2);
+  });
+
   it('clôture : le Standing retenu se nomme par le libellé de l’Activité qui l’a produit', () => {
     const seam = buildSeam(2);
     const hero = seam.party[0];
@@ -235,20 +246,37 @@ describe('InterludeScreen — refonte LOT 6', () => {
     expect(html).toContain('Vétéran : Standing +1 pour la prochaine aventure (Faire jaser la cour).');
   });
 
-  it('clôture : récapitulatif confirmé (argent gaspillé annoncé, temps qui passe)', () => {
+  it('clôture : le récap affiche le devis de clôture — bourses (celle du mort comprise), Revenus, dépôts, commande, aucun Niveau perdu par le mort, reprise à l’aube', () => {
     const seam = buildSeam(2);
-    const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, phase: 'closing' }} />);
-    expect(html).toContain('Clore l&#x27;interlude ?');
-    expect(html).toContain('Argent à gaspiller');
-    expect(html).toContain('14 jours');
-    expect(html).toContain('Pas encore'); // annulable
+    const [a, b] = seam.party;
+    // Vétéran : Niveau 3, a entrepris Revenus (120 sous) ; Forgeron : Niveau 4, sans Revenus, mort pendant la période.
+    const party = [
+      withBourseMoney({ ...a, careerLevel: 3 }, { gold: 1, silver: 0, brass: 0 }),
+      withBourseMoney({ ...b, careerLevel: 4, dead: true }, { gold: 0, silver: 5, brass: 0 }),
+    ];
+    const interlude = { ...seam.interlude, perHero: {
+      [a.id]: { ...seam.interlude.perHero[a.id], didRevenus: true, revenueBrass: 120 },
+      [b.id]: { ...seam.interlude.perHero[b.id], didRevenus: false, revenueBrass: 0 },
+    } };
+    const html = mdToPlain(renderToStaticMarkup(<InterludeScreen seam={{
+      ...seam, party, interlude, phase: 'closing', gameTime: 120, // Hexenstag 2512, 2 h : la première nuit s'achève à l'aube du même jour
+      bank: [{ heroId: a.id, kind: 'stash', brass: 36, rate: 0 }], pendingOrders: [{ heroId: a.id, trappingId: 'dague' }],
+    }} />));
+    expect(html.slice(html.indexOf('Clore l\'interlude ?'))).toBe(
+      'Clore l\'interlude ? 1 CO 5/– seront dépensés, bus, pariés ou donnés — en totalité. '
+      + 'Revenus crédités à la reprise : 10/–. '
+      + 'Dépôts conservés, récupérables à un prochain interlude : 3/–. '
+      + 'Commandes en cours, livrées au prochain interlude : Dague. '
+      + 'Le temps passe : 14 jours (récupération et convalescence comprises) — reprise Bezahltag · 13 Nachhexen 2512 CI · 05:00.'
+      + 'Pas encoreClore l\'interlude',
+    );
   });
 });
 
 describe('InterludeScreen — coop (audit M7) : chacun mène SES héros', () => {
   beforeEach(() => { vi.useFakeTimers(); });
 
-  it('invité : ses héros actifs, ceux des autres en lecture seule (propriétaire affiché), pas de « Clore »', () => {
+  it('invité : ses héros actifs, ceux des autres en lecture seule (propriétaire affiché), « Clore » fermé par le verdict du groupe', () => {
     const seam = buildSeam(2);
     const [a, b] = seam.party; // a = Vétéran, b = Forgeron
     const html = renderToStaticMarkup(
@@ -261,8 +289,8 @@ describe('InterludeScreen — coop (audit M7) : chacun mène SES héros', () => 
     expect(html).toContain('interlude-owner'); // le héros de l'hôte porte son propriétaire (vignette + carte)
     expect(html).toContain('Hôte');
     expect(html).toContain('Mené par Hôte'); // … et ses volets sont désactivés (title)
-    expect(html).not.toContain('Clore l&#x27;interlude…'); // la clôture appartient à l'hôte
-    expect(html).toContain('L&#x27;hôte clôt l&#x27;interlude');
+    expect(html.match(/<button[^>]*aria-describedby="interlude-close-reason"[^>]*>/)?.[0], 'la clôture est fermée à l’invité').toContain('aria-disabled="true"');
+    expect(raisonDId(html, 'interlude-close-reason')).toBe('L’hôte seul engage la bourse et la cale du groupe.');
   });
 
   it('hôte : tout est actif chez lui, le héros de l’invité est en lecture seule', () => {
@@ -370,19 +398,6 @@ describe("InterludeScreen -- libelles i18n Phase D", () => {
     const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, phase: "closing" }} />);
     expect(html).toMatch(/Clore l\S*interlude \?/);
     expect(html).toContain("Pas encore");
-  });
-
-  it("invite : message d'attente hote visible", () => {
-    const seam = buildSeam(2);
-    const [a, b] = seam.party;
-    const html = renderToStaticMarkup(
-      <InterludeScreen seam={{
-        ...seam,
-        phase: "activities",
-        net: { mode: "guest", mySeat: 1, ownership: { [a.id]: 0, [b.id]: 1 }, seatNames: { 0: "Hote", 1: "Moi" } },
-      }} />,
-    );
-    expect(html).toMatch(/L\S*h\S*te cl\S*t l\S*interlude/);
   });
 });
 
@@ -500,7 +515,7 @@ describe('InterludeScreen — Revenus bloqués par l’Événement : entrée et 
     useGame.getState().startInterlude(1);
     draineCascade(useGame.getState, 200, poseSurDeNonTombe(20));
     const s = useGame.getState();
-    return { interlude: s.interlude!, party: s.party, money: partyMoneyTotal(useGame.getState), bank: s.bank, pendingOrders: s.pendingOrders, phase: 'activities' };
+    return { interlude: s.interlude!, party: s.party, bank: s.bank, pendingOrders: s.pendingOrders, phase: 'activities' };
   }
 
   it('l’entrée et le volet du roublard (Bronze 3) disent la raison du noyau et se ferment ; le volet dit la formule de ses 3 Standings', () => {

@@ -4,7 +4,7 @@
  * Le geste applique le verdict en tête (`refuseSi`) ; l'écran le lit sans le recalculer.
  */
 import { advancementBaseId, findCareerById, findSpellById, findTalentById, findTrappingById, levelsForCareer, libelleOuAbsence, refLabel } from '../data';
-import { interludeEventFor } from '../data/interludeEvents';
+import { interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { t, type MsgKey } from '../i18n';
 import type { IdDObjet } from './designations';
 import { idsDuTest, possesses, type TestDesigne } from '../engine/skills';
@@ -32,6 +32,8 @@ import type { Jeu } from './etat';
 import { refusDeBourse } from './bourseFlow';
 import { refusDePx } from './depenseDePx';
 import { currentPlaceId } from './worldMap';
+import { bourseOf } from '../engine/bourse';
+import { aubeApresNuits } from '../engine/clock';
 
 /** L'état que lisent les verdicts d'interlude. */
 export type EtatDInterlude = Pick<Jeu, 'interlude' | 'party' | 'bank'>;
@@ -91,14 +93,48 @@ export function heroClass(h: Combatant): string {
 export const eventLabelOf = (st: { eventRoll?: number }): string =>
   st.eventRoll == null ? t('if.eventGeneric') : interludeEventFor(st.eventRoll).label;
 
-/** L'Événement de la période bloque-t-il les Revenus pour la Classe du héros : la raison, ou `null`.
+/** Un Événement de la période qui vaut pour un héros : son id, son libellé et ses effets. */
+export interface EffetDeLaPeriode { id: string; label: string; fx: InterludeEventFx }
+
+/** Les Événements de la période qui valent pour le héros : le sien, puis chaque Événement de groupe
+ *  (`partyWide`) tiré par un participant, une fois par Événement. LECTEUR UNIQUE des effets d'Événement.
+ *  LDB 22 l.5 */
+export function effetsDeLaPeriode(s: Pick<Jeu, 'interlude'>, heroId: string): EffetDeLaPeriode[] {
+  const itl = s.interlude;
+  const propre = itl?.perHero[heroId];
+  if (!itl || !propre) return [];
+  const vus = new Set<string>();
+  const effets: EffetDeLaPeriode[] = [];
+  for (const [tireur, st] of [[heroId, propre] as const, ...Object.entries(itl.perHero).filter(([id]) => id !== heroId)]) {
+    if (!st.fx || (tireur !== heroId && !st.fx.partyWide)) continue;
+    const id = st.eventRoll == null ? `sans-de-${tireur}` : interludeEventFor(st.eventRoll).id;
+    if (vus.has(id)) continue;
+    vus.add(id);
+    effets.push({ id, label: eventLabelOf(st), fx: st.fx });
+  }
+  return effets;
+}
+
+/** Les Événements de la période qui modifient les Revenus du héros (`revenuePct`, Classe visée), et leur
+ *  pourcentage cumulé : chacun vise le gain de base, ils s'additionnent. LDB 22 l.40, l.44, l.83, l.91 */
+export function revenusDeLaPeriode(s: EtatDInterlude, heroId: string): { effets: EffetDeLaPeriode[]; pct: number } {
+  const h = s.party.find((x) => x.id === heroId);
+  const effets = h ? effetsDeLaPeriode(s, heroId).filter(({ fx }) => fx.revenuePct && (!fx.revenueClasses || fx.revenueClasses.includes(heroClass(h)))) : [];
+  return { effets, pct: effets.reduce((n, e) => n + e.fx.revenuePct!, 0) };
+}
+
+/** Un Événement de la période bloque-t-il les Revenus pour la Classe du héros : la raison, ou `null`.
  *  Lu par la chronique ; le geste et l'écran lisent `refusDeRevenus`. LDB 22 */
 export function blocageDeRevenus(s: EtatDInterlude, heroId: string): string | null {
-  const st = s.interlude?.perHero[heroId];
   const h = s.party.find((x) => x.id === heroId);
-  const bloquees = st?.fx?.revenueBlockedClasses;
-  if (!st || !h || !bloquees || !(bloquees.includes('*') || bloquees.includes(heroClass(h)))) return null;
-  return t('if.incomeBlocked', { name: h.label, event: eventLabelOf(st) });
+  const bloquant = effetBloquantLesRevenus(s, heroId);
+  return h && bloquant ? t('if.incomeBlocked', { name: h.label, event: bloquant.label }) : null;
+}
+
+/** L'Événement de la période qui interdit les Revenus à la Classe du héros, s'il en est un. LDB 22 */
+export function effetBloquantLesRevenus(s: EtatDInterlude, heroId: string): EffetDeLaPeriode | undefined {
+  const h = s.party.find((x) => x.id === heroId);
+  return h && effetsDeLaPeriode(s, heroId).find(({ fx }) => fx.revenueBlockedClasses?.some((c) => c === '*' || c === heroClass(h)));
 }
 
 /** Refus d'entreprendre les Revenus : celui de toute Activité, puis le blocage de l'Événement. Verdict
@@ -196,7 +232,8 @@ export interface DevisDeDepot { refus: string | null; debite: number; depose: nu
  *  l'Événement. Devis UNIQUE de `bankDeposit` et du volet. LDB 23 l.164-170, LDB 22 l.40, ACE 12 l.49 */
 export function devisDeDepot(s: EtatDeDepot, heroId: string, kind: GenreDeDepot, montantBrass: number): DevisDeDepot {
   const debite = Math.max(1, Math.floor(montantBrass));
-  const pct = s.interlude?.perHero[heroId]?.fx?.bankPct;
+  // Les `bankPct` de la période s'additionnent sur la somme placée. LDB 22 l.40
+  const pct = effetsDeLaPeriode(s, heroId).reduce((n, { fx }) => n + (fx.bankPct ?? 0), 0);
   const depose = pct ? Math.max(0, Math.floor((debite * (100 + pct)) / 100)) : debite;
   return { refus: refusDeDepot(s, heroId, kind, debite), debite, depose };
 }
@@ -497,4 +534,89 @@ export function preJetDActivite(
     ...(valeurPosee ? { valeurEtrangere: true } : {}),
   });
   return { ...spec, ligne };
+}
+
+/** L'état que lit le devis de clôture. */
+export type EtatDeCloture = Pick<Jeu, 'interlude' | 'party' | 'bank' | 'pendingOrders' | 'gameTime'>;
+
+type LotDeCloture = NonNullable<NonNullable<Jeu['interlude']>['perHero'][string]['closeOps']>[number];
+
+/** Un montant, en sous de cuivre, attaché à un héros. */
+export interface MontantDeHeros { heroId: string; brass: number }
+
+/** Ce que la clôture de l'interlude FAIT, calculé une fois : `interludeEnd` l'applique, le récap l'affiche. */
+export interface DevisDeCloture {
+  /** Les bourses non vides, chacune dépensée en totalité. LDB 23 l.15 */
+  gaspillages: MontantDeHeros[];
+  gaspille: number;
+  /** Les Revenus de la période, remis après le gaspillage. LDB 23 l.191 */
+  revenus: MontantDeHeros[];
+  revenu: number;
+  /** Les participants vivants qui redescendent d'un Niveau de Carrière, et leur Niveau d'arrivée. LDB 23 l.33 */
+  retrogradations: { heroId: string; niveau: number }[];
+  /** Les dépôts, que la clôture ne touche pas. */
+  conserve: number;
+  /** Les commandes, livrées à l'ouverture du prochain interlude. LDB 23 l.182 */
+  commandes: string[];
+  /** Les Artisanats en cours, qui restent au héros. */
+  ouvrages: { heroId: string; trappingId: string }[];
+  /** Les issues différées, posées après le repos de clôture. ACE 12 l.15 */
+  lots: { heroId: string; lots: LotDeCloture[] }[];
+  /** Le repos de la période, et l'heure de la reprise. */
+  jours: number;
+  reprise: number;
+}
+
+/** Le devis de clôture de l'interlude ouvert, ou `null` hors interlude. Rétrogradations, Revenus, ouvrages
+ *  et issues différées visent les participants VIVANTS (`perHero`) ; le gaspillage, toutes les bourses du
+ *  groupe. LDB 23 l.15, l.33, l.191 */
+export function devisDeCloture(s: EtatDeCloture): DevisDeCloture | null {
+  const itl = s.interlude;
+  if (!itl) return null;
+  const participants = s.party.filter((h) => itl.perHero[h.id] && !h.dead);
+  const gaspillages = s.party.map((h) => ({ heroId: h.id, brass: toBrass(bourseOf(h)) })).filter((g) => g.brass > 0);
+  const revenus = participants.map((h) => ({ heroId: h.id, brass: itl.perHero[h.id].revenueBrass })).filter((r) => r.brass > 0);
+  const jours = itl.weeks * 7;
+  return {
+    gaspillages,
+    gaspille: gaspillages.reduce((n, g) => n + g.brass, 0),
+    revenus,
+    revenu: revenus.reduce((n, r) => n + r.brass, 0),
+    retrogradations: participants
+      .filter((h) => (h.careerLevel ?? 1) >= 3 && !itl.perHero[h.id].didRevenus)
+      .map((h) => ({ heroId: h.id, niveau: (h.careerLevel ?? 1) - 1 })),
+    conserve: (s.bank ?? []).reduce((n, b) => n + b.brass, 0),
+    commandes: (s.pendingOrders ?? []).map((o) => o.trappingId),
+    ouvrages: participants.flatMap((h) => (h.craft ? [{ heroId: h.id, trappingId: h.craft.trappingId }] : [])),
+    lots: participants
+      .filter((h) => (itl.perHero[h.id].closeOps ?? []).length > 0)
+      .map((h) => ({ heroId: h.id, lots: itl.perHero[h.id].closeOps! })),
+    jours,
+    reprise: aubeApresNuits(s.gameTime, jours),
+  };
+}
+
+/** Les pertes d'argent des Événements de la période, bourse par bourse, sur la bourse d'avant les
+ *  Activités : les `moneyPct` qui valent pour le participant s'additionnent sur cette même assiette,
+ *  plafonnés à la bourse. LDB 22 l.36, l.115 */
+export function pertesDArgentDuTirage(s: Pick<Jeu, 'interlude' | 'party'>): { heroId: string; pct: number; brass: number }[] {
+  const itl = s.interlude;
+  if (!itl) return [];
+  return s.party.flatMap((h) => {
+    if (!itl.perHero[h.id]) return [];
+    const pct = Math.min(100, -effetsDeLaPeriode(s, h.id).reduce((n, { fx }) => n + (fx.moneyPct ?? 0), 0));
+    const brass = Math.floor((toBrass(bourseOf(h)) * pct) / 100);
+    return pct > 0 && brass > 0 ? [{ heroId: h.id, pct, brass }] : [];
+  });
+}
+
+/** Les Activités que les Événements de GROUPE de la période ôtent au participant (une par Événement) ;
+ *  celles d'un Événement individuel sont ôtées au dé du héros. LDB 22 l.123 */
+export function activitesPerduesAuGroupe(s: Pick<Jeu, 'interlude'>, heroId: string): EffetDeLaPeriode[] {
+  return effetsDeLaPeriode(s, heroId).filter(({ fx }) => fx.partyWide && fx.loseActivity);
+}
+
+/** Un Événement de la période exige-t-il que les dépôts en banque réputée vérifient leur faillite ? LDB 22 l.111 */
+export function verificationDeFaillite(s: Pick<Jeu, 'interlude'>, heroId: string): boolean {
+  return effetsDeLaPeriode(s, heroId).some(({ fx }) => fx.bankCrashCheck);
 }

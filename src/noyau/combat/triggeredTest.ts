@@ -30,7 +30,6 @@ import { dataLabel, derivedStake, testSkillLabel } from '../../data';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { type EffectOp, type FlowTest, type ConditionCtx, evalCondition, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, resolveTestDifficulty, EMPTY_FLOW } from '../../engine/flowCore';
 import { combatConditionCtx, flowTestGated, runPureFlowLines } from './flowEval';
-import { buildActorView } from '../../engine/actorView';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { FreeAttackFreeze, BladeTrapFreeze, BatchParticipant, OpposedFreeze, PendingTest, Cloture } from '../pendings';
 import { battleRng } from '../battleRng';
@@ -95,19 +94,8 @@ export interface ExecCtx {
 }
 
 
-/**
- * SOURCE UNIQUE du `ConditionCtx` d'un nœud `if` d'un Flow d'acteur : vues des acteurs (`target`/`caster`)
- * + sl/location/woundsDealt/attackKind du contexte d'incantation. Utilisée par `runCombatFlow`.
- */
-export function condCtxFor(ctx: ExecCtx): ConditionCtx {
-  const o: Omit<OpsCtx, 'rng'> = ctx.opsCtx ?? {};
-  return {
-    flags: {}, gameTime: o.now ?? 0, party: ctx.target ? [ctx.target] : [], sl: o.sl,
-    location: o.location, woundsDealt: o.woundsDealt, engagedAdvantageGap: o.engagedAdvantageGap, attackKind: o.attackKind, startleCause: o.startleCause,
-    foeInLoS: o.foeInLoS, hiddenFromFoes: o.hiddenFromFoes, engaged: o.engaged, nearestFoeDist: o.nearestFoeDist,
-    target: buildActorView(ctx.target), caster: buildActorView(ctx.caster),
-  };
-}
+/** Le `ConditionCtx` d'un Flow d'acteur (`ExecCtx`) : le porteur de l'`ExecCtx` prime sur celui de son `OpsCtx`. */
+const conditionsDuFlow = (ctx: ExecCtx): ConditionCtx => combatConditionCtx(ctx.target, { ...ctx.opsCtx, caster: ctx.caster });
 
 /** Conséquence PARTAGÉE des deux branches (héros cascade ⇄ ennemi/auto inline) : exécute la branche
  *  `onSuccess`/`onFail` sur `c` (référent = lui-même), `ctx.sl = t.sl` alimentant les échelles `valuePerSL`
@@ -402,7 +390,7 @@ function suiteDeCombat(ctx: ExecCtx, porteur: Combatant, oc: OpsCtx, flow: Flow)
  * EXÉCUTEUR à PILE d'un Flow EN COMBAT — calque `runFlow` (côté scène) pour porter la CONTINUATION : un
  * nœud `test` enfoui suspend en empaquetant le reste de la pile dans `after` puis délègue à
  * `resolveFlowTest`. `do` ops → `applyOps` sur la bonne cible (`on:'caster'`/`target`) ; `if` → branche
- * sur `condCtxFor`. Le journal part dans la file différée (`pendingLogQueue`). Pas de boucle → termine.
+ * sur `combatConditionCtx`. Le journal part dans la file différée (`pendingLogQueue`). Pas de boucle → termine.
  */
 export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
   const stack: Flow[] = [structuredClone(flow)]; // #2097
@@ -458,7 +446,7 @@ export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
         break;
       }
       case 'if': {
-        const branch = evalCondition(node.cond, condCtxFor(ctx)) ? node.then : node.else;
+        const branch = evalCondition(node.cond, conditionsDuFlow(ctx)) ? node.then : node.else;
         if (branch) stack.unshift(branch);
         break;
       }
@@ -498,7 +486,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
   // Gates de l'op `test` reportées sur le nœud (sémantique IDENTIQUE) — évaluées AVANT de poser l'étape /
   // jeter : la cible est connue (combat). Gate non passée ⇒ no-op (ni étape ni branche, comme l'op
   // `break`) MAIS la continuation `after` est jouée (= ops suivantes du `do` d'origine).
-  const cc = condCtxFor(ctx); // contexte d'évaluation (géométrie d'arène + ActorView) pour gate/difficultyBy
+  const cc = conditionsDuFlow(ctx); // contexte d'évaluation (géométrie d'arène + ActorView) pour gate/difficultyBy
   // Gates op-level (immunité/groupes) + GATE générique de Condition (`gate`, Brisé : « pas Engagé OU Cœur
   // vaillant, ET pions restants ») — SOURCE UNIQUE partagée avec la voie inline (`resolveInlineFlowTest`).
   const oc: ExecCtx['opsCtx'] = { ...(ctx.caster ? { caster: ctx.caster } : {}), ...ctx.opsCtx };

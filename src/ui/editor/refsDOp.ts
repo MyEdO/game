@@ -126,8 +126,9 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
 
 /** Champ d'une op portant une RÉFÉRENCE de registre : `ds` = dataset où elle doit résoudre,
  *  `required` = l'op est inapplicable tant que rien n'est élu. Un champ à union FERMÉE (`char`,
- *  `material`, `resource`, `level`…) n'en est pas une : TS y impose déjà l'un de ses N membres. */
-export interface OpRefField { field: string; ds: DatasetKey; label: string; required: boolean }
+ *  `material`, `resource`, `level`…) n'en est pas une : TS y impose déjà l'un de ses N membres. `sauf` = le
+ *  champ qui, posé, exclut la réf et la rend non requise (`endPsych.instance`). */
+export interface OpRefField { field: string; ds: DatasetKey; label: string; required: boolean; sauf?: string }
 
 /** Valeur d'un champ-réf d'op — `field` est un CHEMIN (`skill.id` pour une référence EMBOÎTÉE,
  *  `traitId` pour une référence à plat). PURE. */
@@ -151,7 +152,7 @@ export function opWithRefValue<T>(op: T, field: string, valeur: unknown): T {
 export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>> = {
   condition: [{ field: 'id', ds: 'etats', label: 'État', required: true }],
   removeCondition: [{ field: 'id', ds: 'etats', label: 'État', required: false }],
-  endPsych: [{ field: 'type.id', ds: 'psychologies', label: 'Trait psychologique', required: true }],
+  endPsych: [{ field: 'type.id', ds: 'psychologies', label: 'Trait psychologique', required: true, sauf: 'instance' }],
   beginPsych: [{ field: 'type.id', ds: 'psychologies', label: 'État psychologique', required: true }],
   grantPsychTrait: [{ field: 'psychType.id', ds: 'psychologies', label: 'Trait psychologique', required: true }],
   removePsychTrait: [{ field: 'psychType.id', ds: 'psychologies', label: 'Trait psychologique', required: false }],
@@ -181,7 +182,7 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
 /** Réfs REQUISES non élues d'UNE op (champ absent ou vide) — sans récursion. PURE. */
 export function opMissingRefs(op: GameOp): string[] {
   return (OP_REF_FIELDS[op.op] ?? [])
-    .filter((f) => f.required && (opRefValue(op, f.field) == null || opRefValue(op, f.field) === ''))
+    .filter((f) => f.required && !(f.sauf && opRefValue(op, f.sauf) != null) && (opRefValue(op, f.field) == null || opRefValue(op, f.field) === ''))
     .map((f) => `${OP_LABEL[op.op]} : ${f.label} à choisir`);
 }
 

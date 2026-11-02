@@ -51,7 +51,7 @@ import { toBrass, fromBrass, formatMoney, priceToMoney, type Money } from '../en
 import { payFromGroup, totalDesBourses } from './bourseFlow';
 import { findTrappingById, nightStakeRef, refLabel, testSkillLabel, libelleOuAbsence, type StakeRef } from '../data';
 import { diseaseLabel } from '../data';
-import { minutesUntilNext, dawnMinute, MINUTES_PER_DAY, dayIndex } from '../engine/clock';
+import { aubeApresNuits, MINUTES_PER_DAY, dayIndex } from '../engine/clock';
 import { runDailyUpkeep } from './upkeep';
 import { continueTravelAfterNight } from './travelFlow';
 import { activeExposureSeverity } from './combatFlow';
@@ -189,8 +189,7 @@ export function sleepParty(
   // Le bilan de nuit LISTE l'entretien quotidien (rations/faim, maladies, convalescence) — le
   // journal seul ne suffit pas. Portrait attribué par préfixe « Nom… » quand la ligne le porte.
   const from = get().gameTime;
-  const toDawn = minutesUntilNext(from, dawnMinute());
-  const firstNight = toDawn === 0 ? MINUTES_PER_DAY : toDawn;
+  const firstNight = aubeApresNuits(from, 1) - from;
   for (let night = 0; night < n; night++) {
     get().avancerLHorloge(night === 0 ? firstNight : MINUTES_PER_DAY);
     set({ lastNightDay: dayIndex(get().gameTime) }); // nuit JOUÉE (#340) — désamorce la privation de sommeil
@@ -405,8 +404,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   const log: string[] = [];
   const from = get().gameTime;
   // La nuit passe — une journée de repos se termine à l'AUBE.
-  const toDawn = minutesUntilNext(from, dawnMinute());
-  get().avancerLHorloge(toDawn === 0 ? MINUTES_PER_DAY : toDawn);
+  get().avancerLHorloge(aubeApresNuits(from, 1) - from);
   set({ lastNightDay: dayIndex(get().gameTime) }); // nuit JOUÉE (#340) — désamorce la privation de sommeil
   // Entretien quotidien (#T3) — la partie SANS jet est eager (rations consommées, jours décomptés) ;
   // TOUT Test de Résistance (Faim LDB 18 l.342, maladie l.110/135/162, convalescence LDB 18 l.202) est DIFFÉRÉ en
