@@ -597,9 +597,9 @@ test('#3178 : réservation retente une carte tenue sous verrou sans écrire de c
 
 test('#3178 : veille CLI épinglée malgré enfant créé et parent fermé', async (t) => {
   for (const fermerParent of [false, true]) {
-    const b, parent, tours = 0
+    let tours = 0
     const vues = []
-    b = banc(t, { veiller: async (p) => {
+    const b = banc(t, { veiller: async (p) => {
       vues.push(p.sessionId)
       if (++tours === 1) {
         if (fermerParent) b.sessions.muter(parent.carte.sessionId, (c) => { c.etat = 'fermee'; c.issueSortie = 'echec'; c.raison = 'parent en échec' })
@@ -608,7 +608,7 @@ test('#3178 : veille CLI épinglée malgré enfant créé et parent fermé', asy
       }
       return { type: 'fin', etat: 'inactif', sessionId: p.sessionId, curseur: 2 }
     } })
-    parent = b.reserver({ nom: 'parent', agent: 'codex' }); b.revendiquer(parent)
+    const parent = b.reserver({ nom: 'parent', agent: 'codex' }); b.revendiquer(parent)
     let sortie = ''
     const code = await commandeSession(['attendre', '2461', '--suivre', '--timeout-ms', '500'], { cwd: b.dossier, contexte: () => ({ gitCommun: b.dossier }), sessionsDe: () => b.sessions, stdout: { write: (s) => { sortie += s } } })
     assert.ok(vues.length > 0)
