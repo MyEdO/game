@@ -1,0 +1,636 @@
+diff --git a/hotes/godot/asset/evaluateur/ecart.ts b/hotes/godot/asset/evaluateur/ecart.ts
+index 213d7f3ba..90ab422ec 100644
+--- a/hotes/godot/asset/evaluateur/ecart.ts
++++ b/hotes/godot/asset/evaluateur/ecart.ts
+@@ -1,5 +1,8 @@
+ /** L'ÉCART D'UNE GARDE DE L'ÉVALUATEUR (#2972) : ce que chaque garde de `gardes/` rend, et que `evaluer.ts` compose. */
+ 
++/** Le libellé, dans un rapport, du nœud `noeud` du GLB `fichier` de l'évaluation : 0 la base, k le k-ième élément. */
++export const libelleDeNoeud = (fichier: number, noeud: string): string => `${fichier ? `élément ${fichier}` : 'base'}/${noeud}`;
++
+ export interface Ecart {
+   /** Le nom de la garde (son fichier sous `gardes/`, ou `manifeste`). */
+   readonly garde: string;
+diff --git a/hotes/godot/asset/evaluateur/echantillonnage.ts b/hotes/godot/asset/evaluateur/echantillonnage.ts
+index 5076299a6..36e1ea59a 100644
+--- a/hotes/godot/asset/evaluateur/echantillonnage.ts
++++ b/hotes/godot/asset/evaluateur/echantillonnage.ts
+@@ -14,8 +14,8 @@ export const IMAGES_PAR_SECONDE: number = seuils.IMAGES_PAR_SECONDE;
+ export const PAS_PAR_DEFAUT = 1 / IMAGES_PAR_SECONDE;
+ 
+ export interface Pose {
+-  /** Par nom de mesh, les positions monde de ses sommets, à plat (x, y, z). */
+-  readonly positions: ReadonlyMap<string, Float32Array>;
++  /** Par mesh, les positions monde de ses sommets, à plat (x, y, z). */
++  readonly positions: ReadonlyMap<Mesh, Float32Array>;
+   /** Par nom d'os, sa matrice monde. */
+   readonly os: ReadonlyMap<string, Matrix4>;
+ }
+@@ -29,7 +29,7 @@ const sommet = new Vector3();
+ 
+ function poseCourante(scene: Object3D, meshes: readonly Mesh[]): Pose {
+   scene.updateMatrixWorld(true);
+-  const positions = new Map<string, Float32Array>();
++  const positions = new Map<Mesh, Float32Array>();
+   for (const m of meshes) {
+     const n = m.geometry.attributes.position.count;
+     const p = new Float32Array(n * 3);
+@@ -39,7 +39,7 @@ function poseCourante(scene: Object3D, meshes: readonly Mesh[]): Pose {
+       p[i * 3 + 1] = sommet.y;
+       p[i * 3 + 2] = sommet.z;
+     }
+-    positions.set(m.name, p);
++    positions.set(m, p);
+   }
+   const os = new Map<string, Matrix4>();
+   scene.traverse((n) => { if ((n as Bone).isBone) os.set(n.name, n.matrixWorld.clone()); });
+diff --git a/hotes/godot/asset/evaluateur/evaluateur.hors-store.test.ts b/hotes/godot/asset/evaluateur/evaluateur.hors-store.test.ts
+index 02ef0be03..917a32f8e 100644
+--- a/hotes/godot/asset/evaluateur/evaluateur.hors-store.test.ts
++++ b/hotes/godot/asset/evaluateur/evaluateur.hors-store.test.ts
+@@ -20,7 +20,8 @@ import { mesurerAppuis, type PoseDuPied } from './gardes/appuis.ts';
+ import { gardeBudget, trianglesDe } from './gardes/budget.ts';
+ import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
+ import { gardeEnroulement } from './gardes/enroulement.ts';
+-import { aretesDe, ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, gardeEtirement, mesurerEtirement } from './gardes/etirement.ts';
++import { aretesDe, ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, gardeEtirement, gardeEtirementAuRepos, mesurerEtirement } from './gardes/etirement.ts';
++import { libelleDeNoeud } from './ecart.ts';
+ import { gardePiedsAuSol, plusBas, SOL_TOLERANCE_M } from './gardes/piedsAuSol.ts';
+ import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
+ import { gardePoids, INFLUENCES_MAX } from './gardes/poids.ts';
+@@ -190,22 +191,31 @@ describe('échantillonnage et gardePiedsAuSol', () => {
+     const plongeon = new AnimationClip('Plongeon', 1, [
+       new VectorKeyframeTrack('racine.position', [0, 0.2, 0.25, 0.3, 1], [0, 0, 0, 0, 0, 0, 0, -0.1, 0, 0, 0, 0, 0, 0, 0]),
+     ]);
+-    const niveaux = [...echantillonner(scene, [mesh], [plongeon], 0.5)].map((e) => ({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, ['Corps']) }));
++    const niveaux = [...echantillonner(scene, [mesh], [plongeon], 0.5)].map((e) => ({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, [mesh]) }));
+     const ecarts = gardePiedsAuSol(niveaux);
+     expect(ecarts.map((e) => [e.code, e.clip, e.t])).toEqual([['sous-le-sol', 'Plongeon', 0.25]]);
+     expect(ecarts[0].valeur).toBeCloseTo(-0.1, 5);
+   });
+ 
++  it('deux meshes du même nom gardent chacun leurs positions', () => {
++    const a = cylindre(), b = cylindre();
++    b.scene.position.y = -1;
++    a.scene.add(b.scene);
++    const repos = poseDeRepos(a.scene, [a.mesh, b.mesh]);
++    expect(repos.positions.size).toBe(2);
++    expect(plusBas(repos.positions, [a.mesh, b.mesh])).toBeCloseTo(-1, 6);
++  });
++
+   it('VERT : un clip immobile garde le corps au sol ; ROUGE : un clip qui l’enfonce, la pose de repos rendue ensuite', () => {
+     const { scene, mesh } = cylindre();
+-    const repos = poseDeRepos(scene, [mesh]).positions.get('Corps');
++    const repos = poseDeRepos(scene, [mesh]).positions.get(mesh);
+     const clips = [clip('Repos', 'racine.position', [0, 0, 0], [0, 0, 0]), clip('Plonge', 'racine.position', [0, 0, 0], [0, -0.1, 0])];
+-    const niveaux = [...echantillonner(scene, [mesh], clips, 0.5)].map((e) => ({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, ['Corps']) }));
++    const niveaux = [...echantillonner(scene, [mesh], clips, 0.5)].map((e) => ({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, [mesh]) }));
+     expect(niveaux.map((n) => [n.clip, n.t])).toEqual([['Repos', 0], ['Repos', 0.5], ['Repos', 1], ['Plonge', 0], ['Plonge', 0.5], ['Plonge', 1]]);
+     const ecarts = gardePiedsAuSol(niveaux);
+     expect(ecarts.map((e) => [e.code, e.clip, e.t])).toEqual([['sous-le-sol', 'Plonge', 1]]);
+     expect(ecarts[0].valeur).toBeCloseTo(-0.1, 5);
+-    expect(poseDeRepos(scene, [mesh]).positions.get('Corps')).toEqual(repos);
++    expect(poseDeRepos(scene, [mesh]).positions.get(mesh)).toEqual(repos);
+   });
+ 
+   it('ROUGE : un clip au sol qui décolle', () => {
+@@ -219,10 +229,23 @@ describe('gardeEtirement', () => {
+   const mesurer = (c: AnimationClip) => {
+     const { scene, mesh } = cylindre();
+     const repos = poseDeRepos(scene, [mesh]);
+-    const aretes = new Map([[mesh.name, aretesDe(mesh)]]);
+-    return gardeEtirement([...echantillonner(scene, [mesh], [c], 1)].map((e) => mesurerEtirement(aretes, repos, e)));
++    const aretes = new Map([[mesh, aretesDe(mesh)]]);
++    return gardeEtirement([...echantillonner(scene, [mesh], [c], 1)].map((e) => mesurerEtirement(aretes, new Map([[mesh, mesh.name]]), repos, e)));
+   };
+ 
++  it('deux meshes homonymes, de la base et d’un élément, ont chacun leur ligne d’étirement', () => {
++    const a = cylindre(), b = cylindre();
++    a.scene.add(b.scene);
++    const meshes = [a.mesh, b.mesh];
++    const aretes = new Map(meshes.map((m) => [m, aretesDe(m)]));
++    const libelles = new Map([[a.mesh, libelleDeNoeud(0, a.mesh.name)], [b.mesh, libelleDeNoeud(1, b.mesh.name)]]);
++    const repos = poseDeRepos(a.scene, meshes);
++    for (const c of [a, b]) c.haut.scale.setScalar(10);
++    const gonfle = poseDeRepos(a.scene, meshes);
++    expect(gardeEtirementAuRepos(aretes, libelles, repos, gonfle).map((e) => [e.code, e.mesh])).toEqual([['arete-repos-enflee', 'base/Corps'], ['arete-repos-enflee', 'élément 1/Corps']]);
++    expect(gardeEtirement([mesurerEtirement(aretes, libelles, repos, { clip: 'Gonfle', t: 0, ...gonfle })]).map((e) => [e.code, e.mesh])).toEqual([['arete-etiree', 'base/Corps'], ['arete-etiree', 'élément 1/Corps']]);
++  });
++
+   it('VERT : un clip qui déplace le corps sans le déformer', () => {
+     expect(mesurer(clip('Glisse', 'racine.position', [0, 0, 0], [0.3, 0, 0]))).toEqual([]);
+   });
+@@ -257,7 +280,7 @@ describe('gabarit', () => {
+     const hauteur = (facteurs: typeof FACTEURS_NEUTRES) => {
+       const { scene, mesh } = cylindre();
+       appliquerGabarit(scene, facteurs, gabaritEtAppuis(TABLE));
+-      return Math.max(...(poseDeRepos(scene, [mesh]).positions.get('Corps') ?? []).filter((_, i) => i % 3 === 1));
++      return Math.max(...(poseDeRepos(scene, [mesh]).positions.get(mesh) ?? []).filter((_, i) => i % 3 === 1));
+     };
+     expect(hauteur(FACTEURS_NEUTRES)).toBeCloseTo(1, 5);
+     expect(hauteur({ ...FACTEURS_NEUTRES, legs: 2 })).toBeCloseTo(1, 5);
+@@ -485,10 +508,10 @@ describe('gabarit', () => {
+     expect(binds[0].elements[13]).toBeCloseTo(-0.7, 9);
+     expect(element.skeleton.bones).toEqual([haut]);
+     expect(haut.parent).toBe(racine);
+-    const avant = poseDeRepos(scene, [element]).positions.get(element.name);
++    const avant = poseDeRepos(scene, [element]).positions.get(element);
+     appliquerGabarit(scene, { ...FACTEURS_NEUTRES, legs: 1.4 }, gabaritEtAppuis(TABLE));
+     expect(element.skeleton.boneInverses).toEqual(binds);
+-    const apres = poseDeRepos(scene, [element]).positions.get(element.name);
++    const apres = poseDeRepos(scene, [element]).positions.get(element);
+     expect(apres).toBeDefined();
+     apres?.forEach((v, i) => expect(v).toBeCloseTo(avant?.[i] ?? Infinity, 6));
+   });
+@@ -685,7 +708,8 @@ describe('candidats du corps entier', () => {
+     const sans = await chargerScene(base);
+     const reference = [...echantillonner(sans.scene, sans.meshes, sans.clips, 0.5)];
+     const poses = [...echantillonner(b.scene, b.meshes, b.clips, 0.5, g)];
+-    poses.forEach((p, i) => expect(Math.abs(plusBas(p.positions, ['Corps']) - facteurs.sl * plusBas(reference[i].positions, ['Corps']))).toBeLessThan(1e-6));
++    const corpsDe = (s: typeof b) => s.meshes.filter((m) => m.name === 'Corps');
++    poses.forEach((p, i) => expect(Math.abs(plusBas(p.positions, corpsDe(b)) - facteurs.sl * plusBas(reference[i].positions, corpsDe(sans)))).toBeLessThan(1e-6));
+     const complet = await evaluer({ base, manifeste: { ...m, appuis: { ...m.appuis, plusBas: candidats } }, facteurs, pas: 0.5 });
+     expect(complet.ecarts.filter((e) => e.garde === 'piedsAuSol')).toEqual([]);
+     const incomplet = await evaluer({ base, manifeste: m, facteurs, pas: 0.5 });
+@@ -934,11 +958,19 @@ describe('validerManifesteDeBase', () => {
+ });
+ 
+ describe('evaluer', () => {
++  it('une base et un élément aux mêmes noms comptent chacun leurs triangles et leurs influences', async () => {
++    const g = glbFabrique({ jeuEtendu: true, clips: { Repos: [0, 0] } });
++    const seul = await evaluer({ base: g, pas: 0.5 });
++    const double = await evaluer({ base: g, elements: [g], pas: 0.5 });
++    expect(double.mesures.triangles.parMesh).toEqual([...seul.mesures.triangles.parMesh, ...seul.mesures.triangles.parMesh.map((m) => ({ ...m, mesh: 'élément 1/Corps' }))]);
++    expect(double.mesures.triangles.total).toBe(2 * seul.mesures.triangles.total);
++    expect(double.ecarts.filter((e) => e.code === 'influences-au-dela-de-4').map((e) => e.mesh)).toEqual(['base/Corps', 'élément 1/Corps']);
++  });
+   it('mesure une base au sol sans aucun écart, silhouettes comprises', async () => {
+     const base = glbFabrique({ image: true, anneau: JUSTES, clips: { Repos: [0, 0] }, cibleDuClip: 'racine' });
+     const fiche = await evaluer({ base, pas: 0.5 });
+     expect(fiche.ecarts).toEqual([]);
+-    expect(fiche.mesures).toMatchObject({ triangles: { total: 3, parMesh: { Corps: 3 } }, sommets: 9, os: 2, images: 1, corps: ['Corps'] });
++    expect(fiche.mesures).toMatchObject({ triangles: { total: 3, parMesh: [{ mesh: 'base/Corps', triangles: 3 }] }, sommets: 9, os: 2, images: 1, corps: ['Corps'] });
+     expect(fiche.mesures.silhouettes.anneaux).toBe(1);
+     expect(fiche.mesures.silhouettes.silhouettes.map((s) => s.nom)).toEqual(Object.keys(JUSTES));
+     expect(fiche.mesures.silhouettes.carrure).toBeNull();
+@@ -986,7 +1018,7 @@ describe('evaluer : clés cuites du gabarit', () => {
+     expect(f.mesures.silhouettes.silhouettes[0].deplacementMax).toBeCloseTo(0.11, 6);
+     const element = glbFabrique({ nom: 'Element', bande: { [croisee]: [0, 0, 0, 0, 0, 0, 0, 40, 0] } });
+     const avecElement = await evaluer({ base, manifeste, elements: [element], facteurs: { arms: 1.25 }, silhouettes: { feminin: 0.4 }, pas: 0.5 });
+-    expect(avecElement.ecarts.find((e) => e.mesh === 'Element' && e.code === 'arete-repos-enflee')?.valeur).toBeCloseTo(9, 6);
++    expect(avecElement.ecarts.find((e) => e.mesh === 'élément 1/Element' && e.code === 'arete-repos-enflee')?.valeur).toBeCloseTo(9, 6);
+   });
+ 
+   it('calcule la référence d’étirement avec les clés propres et les croisées nulles', async () => {
+@@ -1185,7 +1217,7 @@ describe('gardeSilhouettes', () => {
+       const mesurer = () => sousLesFormes(scene, [FEMININ], (poser) => {
+         const repos = poser({}, [mesh]);
+         expect(mesh.morphTargetInfluences).toEqual([0, 0.5]);
+-        expect(repos.positions.get(mesh.name)?.[0]).toBeCloseTo(x + 1, 6);
++        expect(repos.positions.get(mesh)?.[0]).toBeCloseTo(x + 1, 6);
+         expect(() => poser({ [FEMININ]: 1, [nom]: 0 }, [mesh])).toThrow(nom);
+         expect(mesh.morphTargetInfluences).toEqual([0, 0.5]);
+         poser({ [FEMININ]: 1 }, [mesh]);
+@@ -1317,7 +1349,7 @@ describe('gardeSilhouettes', () => {
+     const vidage = {
+       os: mesh.skeleton.bones.map((b) => ({ nom: b.name, parent: b.parent instanceof Bone ? b.parent.name : null, matrice: b.matrixWorld.toArray() })),
+       corps: [{
+-        nom: mesh.name, positions: Array.from(repos.positions.get(mesh.name) ?? []),
++        nom: mesh.name, positions: Array.from(repos.positions.get(mesh) ?? []),
+         indices: Array.from(mesh.geometry.attributes.skinIndex.array), poids: Array.from(mesh.geometry.attributes.skinWeight.array),
+       }],
+     };
+@@ -1328,7 +1360,7 @@ describe('gardeSilhouettes', () => {
+     const sections = sectionsDeRepos(anneaux, repos);
+     expect(anneaux.map((a) => a.os)).toEqual(['haut', 'bout']);
+     expect(anneauLePlusEpais(sections)).toBe(1);
+-    expect(JSON.parse(r.stdout)).toEqual({ anneaux: anneaux.map((a, i) => ({ ...a, ...sections[i] })), lePlusEpais: anneauLePlusEpais(sections) });
++    expect(JSON.parse(r.stdout)).toEqual({ anneaux: anneaux.map((a, i) => ({ ...a, sommets: a.sommets.map(({ mesh: m, indice }) => ({ mesh: m.name, indice })), ...sections[i] })), lePlusEpais: anneauLePlusEpais(sections) });
+   });
+ 
+   it('l’épaisseur suit st en écart relatif : 1,5 % de 1,7 passe, 2,5 % non', () => {
+diff --git a/hotes/godot/asset/evaluateur/evaluer.ts b/hotes/godot/asset/evaluateur/evaluer.ts
+index 37d3f564f..a95974af5 100644
+--- a/hotes/godot/asset/evaluateur/evaluer.ts
++++ b/hotes/godot/asset/evaluateur/evaluer.ts
+@@ -10,7 +10,7 @@ import { Skeleton, type Bone, type Object3D, type SkinnedMesh } from 'three';
+ import { tableTotale } from '../../../../src/lib/tableTotale.ts';
+ import { lireGlb } from '../glb.ts';
+ import { chargerScene, type SceneChargee } from './chargement.ts';
+-import type { Ecart } from './ecart.ts';
++import { libelleDeNoeud, type Ecart } from './ecart.ts';
+ import { echantillonner, PAS_PAR_DEFAUT, poseDeRepos } from './echantillonnage.ts';
+ import type { GabaritResolu } from '../../../../src/noyau/index.ts';
+ import { appliquerGabarit, poserFormes } from './gabarit.ts';
+@@ -57,7 +57,8 @@ export interface MesuresDuClip {
+ export interface FicheDeMesures {
+   readonly ecarts: readonly Ecart[];
+   readonly mesures: {
+-    readonly triangles: { readonly total: number; readonly parMesh: Readonly<Record<string, number>> };
++    /** Les triangles assemblés, et ceux de chaque mesh de la base puis des éléments, dans leur ordre, sous son libellé (`libelleDeNoeud`). */
++    readonly triangles: { readonly total: number; readonly parMesh: readonly { readonly mesh: string; readonly triangles: number }[] };
+     readonly sommets: number;
+     readonly os: number;
+     readonly images: number;
+@@ -133,10 +134,11 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
+   }
+   const base = await chargerScene(entree.base);
+   const elements = await Promise.all((entree.elements ?? []).map(chargerScene));
+-  const nomsDuCorps = meshesDuCorps(base).map((m) => m.name);
++  const corps = meshesDuCorps(base);
+   for (const e of elements) monter(base, e);
+   const meshes = [base, ...elements].flatMap((s) => s.meshes);
+   const skinnes = meshes.filter((m): m is SkinnedMesh => (m as SkinnedMesh).isSkinnedMesh === true);
++  const libelles = new Map([base, ...elements].flatMap((s, k) => s.meshes.map((m) => [m, libelleDeNoeud(k, m.name)] as const)));
+ 
+   ecarts.push(...gardeSuiviDuCorps(base.scene, meshesDuCorps(base), elements.flatMap((e) => e.skinnes)));
+ 
+@@ -152,7 +154,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
+     ...gardePoids({
+       meshes: skinnes,
+       osDeLaBase: manifeste ? new Set(manifeste.os) : contenus[0].os,
+-      influencesEtendues: new Map(contenus.flatMap((c) => [...c.influencesEtendues])),
++      influencesEtendues: new Map(contenus.flatMap((c, k) => [...c.influencesEtendues].map(([noeud, a]) => [libelleDeNoeud(k, noeud), a] as const))),
+     }),
+     ...gardeEnroulement(meshes),
+     ...gardeBudget(meshes, entree.plafond ?? PLAFOND_ASSEMBLE),
+@@ -160,35 +162,35 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
+     ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste ? [manifeste.prises.main.os, manifeste.prises.off.os] : []))),
+   );
+ 
+-  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: base.skinnes.filter((m) => nomsDuCorps.includes(m.name)), silhouettes: nomsDesSilhouettes, st: manifeste?.gabarit.st, poidsDesFormes });
++  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: base.skinnes.filter((m) => corps.includes(m)), silhouettes: nomsDesSilhouettes, st: manifeste?.gabarit.st, poidsDesFormes });
+   ecarts.push(...silhouettes.ecarts);
+ 
+   const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
+   const repos = poseDeRepos(base.scene, meshes);
+-  const aretes = new Map(meshes.map((m) => [m.name, aretesDe(m)]));
+-  ecarts.push(...gardeEtirementAuRepos(aretes, sansCles, repos));
++  const aretes = new Map(meshes.map((m) => [m, aretesDe(m)]));
++  ecarts.push(...gardeEtirementAuRepos(aretes, libelles, sansCles, repos));
+   const niveaux: NiveauDuCorps[] = [];
+   const etirements: MesureDEtirement[] = [];
+-  const surfaces = manifeste ? surfacesDesPieds(base.skinnes.filter((m) => nomsDuCorps.includes(m.name)), manifeste.appuis.pieds) : [];
++  const surfaces = manifeste ? surfacesDesPieds(base.skinnes.filter((m) => corps.includes(m)), manifeste.appuis.pieds) : [];
+   const posesDesPieds: PoseDuPied[] = [];
+   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit)) {
+-    niveaux.push({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, nomsDuCorps) });
+-    etirements.push(mesurerEtirement(aretes, sansCles, e));
++    niveaux.push({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, corps) });
++    etirements.push(mesurerEtirement(aretes, libelles, sansCles, e));
+     if (manifeste && Object.prototype.hasOwnProperty.call(manifeste.appuis.vitessesAuSol, e.clip)) posesDesPieds.push(...poserPieds(e, surfaces, manifeste.gabarit.racine));
+   }
+   const appuis = mesurerAppuis(posesDesPieds, manifeste?.appuis.vitessesAuSol ?? {});
+   ecarts.push(...appuis.ecarts);
+   ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements));
+ 
+-  const parMesh = Object.fromEntries(meshes.map((m) => [m.name, trianglesDe(m)]));
++  const parMesh = [...libelles].map(([m, mesh]) => ({ mesh, triangles: trianglesDe(m) }));
+   return {
+     ecarts,
+     mesures: {
+-      triangles: { total: Object.values(parMesh).reduce((a, b) => a + b, 0), parMesh },
++      triangles: { total: parMesh.reduce((s, m) => s + m.triangles, 0), parMesh },
+       sommets: meshes.reduce((s, m) => s + m.geometry.attributes.position.count, 0),
+       os: base.squelette?.bones.length ?? 0,
+       images: contenus.reduce((s, c) => s + c.images, 0),
+-      corps: nomsDuCorps,
++      corps: corps.map((m) => m.name),
+       clips: clips.map((c) => {
+         const h = niveaux.filter((n) => n.clip === c.name).map((n) => n.plusBas);
+         const mesure = appuis.mesures.find((a) => a.clip === c.name);
+diff --git a/hotes/godot/asset/evaluateur/gardes/appuis.ts b/hotes/godot/asset/evaluateur/gardes/appuis.ts
+index 66c0da8fe..39cdee5b1 100644
+--- a/hotes/godot/asset/evaluateur/gardes/appuis.ts
++++ b/hotes/godot/asset/evaluateur/gardes/appuis.ts
+@@ -10,7 +10,7 @@ export const MAJORITE_DU_POIDS: number = seuils.MAJORITE_DU_POIDS;
+ type Point = readonly [number, number, number];
+ export interface SurfaceDuPied {
+   readonly pied: string;
+-  readonly sommets: readonly { readonly mesh: string; readonly indice: number }[];
++  readonly sommets: readonly { readonly mesh: SkinnedMesh; readonly indice: number }[];
+ }
+ export interface PoseDuPied {
+   readonly clip: string;
+@@ -46,7 +46,7 @@ export function surfacesDesPieds(meshes: readonly SkinnedMesh[], pieds: readonly
+     return Array.from({ length: indices.count }, (_, indice) => {
+       let somme = 0;
+       for (let k = 0; k < indices.itemSize; k++) if (joints.has(indices.getComponent(indice, k))) somme += poids.getComponent(indice, k);
+-      return somme >= MAJORITE_DU_POIDS ? [{ mesh: m.name, indice }] : [];
++      return somme >= MAJORITE_DU_POIDS ? [{ mesh: m, indice }] : [];
+     }).flat();
+   }) }));
+ }
+@@ -60,7 +60,7 @@ export function poserPieds(e: Echantillon, surfaces: readonly SurfaceDuPied[], r
+   return surfaces.map((s) => ({ clip: e.clip, t: e.t, pied: s.pied, racine: position(racine), os: position(s.pied),
+     sommets: s.sommets.map(({ mesh, indice }): Point => {
+       const p = e.positions.get(mesh);
+-      if (!p) throw new Error(`appuis : mesh absent ${mesh}`);
++      if (!p) throw new Error(`appuis : mesh absent ${mesh.name}`);
+       return [p[indice * 3], p[indice * 3 + 1], p[indice * 3 + 2]];
+     }),
+   }));
+diff --git a/hotes/godot/asset/evaluateur/gardes/etirement.ts b/hotes/godot/asset/evaluateur/gardes/etirement.ts
+index 7d801c650..04f674707 100644
+--- a/hotes/godot/asset/evaluateur/gardes/etirement.ts
++++ b/hotes/godot/asset/evaluateur/gardes/etirement.ts
+@@ -36,7 +36,7 @@ interface Codes {
+ const CODES_EN_CLIP: Codes = { bas: 'arete-ecrasee', haut: 'arete-etiree' };
+ const CODES_AU_REPOS: Codes = { bas: 'arete-repos-effondree', haut: 'arete-repos-enflee' };
+ 
+-/** Une arête à un instant : ses deux sommets, le rapport l_c/l_b. */
++/** Une arête à un instant : le libellé de son mesh (`libelleDeNoeud`), ses deux sommets, le rapport l_c/l_b. */
+ export interface RapportDArete {
+   readonly mesh: string;
+   readonly a: number;
+@@ -45,7 +45,7 @@ export interface RapportDArete {
+   readonly rapport: number;
+ }
+ 
+-/** Les arêtes d'un mesh hors d'une borne : le code et le seuil de la borne, leur nombre, le pire rapport. */
++/** Les arêtes d'un mesh hors d'une borne : le libellé du mesh, le code et le seuil de la borne, leur nombre, le pire rapport. */
+ export interface HorsBornes {
+   readonly mesh: string;
+   readonly code: string;
+@@ -98,15 +98,18 @@ function pires(liste: readonly RapportDArete[], n: number): RapportDArete[] {
+   }).slice(0, n);
+ }
+ 
+-/** Pour chaque arête de `aretes` (par mesh) de longueur non nulle dans `base`, son rapport de longueur `pose` / `base`. */
+-function parcourir(aretes: ReadonlyMap<string, Uint32Array>, base: Pose, pose: Pose, visiter: (mesh: string, a: number, b: number, rapport: number) => void): void {
++/** Pour chaque arête de `aretes` (par mesh) de longueur non nulle dans `base`, son rapport de longueur `pose` / `base`,
++ *  sous le libellé de son mesh dans `libelles`. */
++function parcourir(aretes: ReadonlyMap<Mesh, Uint32Array>, libelles: ReadonlyMap<Mesh, string>, base: Pose, pose: Pose, visiter: (libelle: string, a: number, b: number, rapport: number) => void): void {
+   for (const [mesh, liste] of aretes) {
+     const p0 = base.positions.get(mesh);
+     const p = pose.positions.get(mesh);
+     if (!p0 || !p) continue;
++    const libelle = libelles.get(mesh);
++    if (libelle === undefined) throw new Error(`etirement : mesh sans libellé ${mesh.name}`);
+     for (let k = 0; k < liste.length; k += 2) {
+       const l0 = longueur(p0, liste[k], liste[k + 1]);
+-      if (l0 > 0) visiter(mesh, liste[k], liste[k + 1], longueur(p, liste[k], liste[k + 1]) / l0);
++      if (l0 > 0) visiter(libelle, liste[k], liste[k + 1], longueur(p, liste[k], liste[k + 1]) / l0);
+     }
+   }
+ }
+@@ -130,11 +133,11 @@ function decompte(bornes: Intervalle, codes: Codes) {
+   };
+ }
+ 
+-/** L'étirement de l'échantillon `e` contre la pose `base` (gabarit complet, silhouettes et clés croisées à 0, formes indépendantes à leur influence d’entrée), sur les arêtes `aretes` (par mesh). */
+-export function mesurerEtirement(aretes: ReadonlyMap<string, Uint32Array>, base: Pose, e: Echantillon): MesureDEtirement {
++/** L'étirement de l'échantillon `e` contre la pose `base` (gabarit complet, silhouettes et clés croisées à 0, formes indépendantes à leur influence d’entrée), sur les arêtes `aretes` (par mesh), chaque mesh sous son libellé de `libelles`. */
++export function mesurerEtirement(aretes: ReadonlyMap<Mesh, Uint32Array>, libelles: ReadonlyMap<Mesh, string>, base: Pose, e: Echantillon): MesureDEtirement {
+   const hors = decompte(ETIREMENT_EN_CLIP, CODES_EN_CLIP);
+   let candidates: RapportDArete[] = [];
+-  parcourir(aretes, base, e, (mesh, a, b, rapport) => {
++  parcourir(aretes, libelles, base, e, (mesh, a, b, rapport) => {
+     hors.compter(mesh, rapport);
+     candidates.push({ mesh, a, b, t: e.t, rapport });
+     if (candidates.length > 4096) candidates = pires(candidates, PIRES_ARETES_PAR_CLIP);
+@@ -173,9 +176,9 @@ export function gardeEtirement(mesures: readonly MesureDEtirement[]): Ecart[] {
+ 
+ /** Les écarts au repos posé `repos` contre la pose `base` (gabarit complet, silhouettes et clés croisées à 0, formes indépendantes à leur influence d’entrée) : par mesh et borne, le pire rapport
+  *  l_k/l_b hors de `ETIREMENT_AU_REPOS`. */
+-export function gardeEtirementAuRepos(aretes: ReadonlyMap<string, Uint32Array>, base: Pose, repos: Pose): Ecart[] {
++export function gardeEtirementAuRepos(aretes: ReadonlyMap<Mesh, Uint32Array>, libelles: ReadonlyMap<Mesh, string>, base: Pose, repos: Pose): Ecart[] {
+   const hors = decompte(ETIREMENT_AU_REPOS, CODES_AU_REPOS);
+-  parcourir(aretes, base, repos, (mesh, _a, _b, rapport) => hors.compter(mesh, rapport));
++  parcourir(aretes, libelles, base, repos, (mesh, _a, _b, rapport) => hors.compter(mesh, rapport));
+   const [bas, haut] = ETIREMENT_AU_REPOS;
+   return hors.horsBornes().map((h) => ({
+     garde: 'etirement', code: h.code, mesh: h.mesh, valeur: h.pire, seuil: h.seuil,
+diff --git a/hotes/godot/asset/evaluateur/gardes/piedsAuSol.ts b/hotes/godot/asset/evaluateur/gardes/piedsAuSol.ts
+index 9dee9339f..a852f2ad0 100644
+--- a/hotes/godot/asset/evaluateur/gardes/piedsAuSol.ts
++++ b/hotes/godot/asset/evaluateur/gardes/piedsAuSol.ts
+@@ -3,6 +3,7 @@
+  * pour un clip déclaré au sol, pas non plus au-dessus de `+SOL_TOLERANCE_M`. Seuil partagé avec la construction
+  * (`scripts/personnage-3d/seuils.py`) : `seuils.json`.
+  */
++import type { Mesh } from 'three';
+ import type { Ecart } from '../ecart.ts';
+ import seuils from './seuils.json';
+ 
+@@ -17,10 +18,10 @@ export interface NiveauDuCorps {
+ }
+ 
+ /** La hauteur (Y monde) du sommet le plus bas de `positions` pour les meshes `corps`. */
+-export function plusBas(positions: ReadonlyMap<string, Float32Array>, corps: readonly string[]): number {
++export function plusBas(positions: ReadonlyMap<Mesh, Float32Array>, corps: readonly Mesh[]): number {
+   let min = Infinity;
+-  for (const nom of corps) {
+-    const p = positions.get(nom);
++  for (const m of corps) {
++    const p = positions.get(m);
+     for (let i = 1; p && i < p.length; i += 3) min = Math.min(min, p[i]);
+   }
+   return min;
+diff --git a/hotes/godot/asset/evaluateur/gardes/poids.ts b/hotes/godot/asset/evaluateur/gardes/poids.ts
+index 8d4e0ac7f..65b019ffa 100644
+--- a/hotes/godot/asset/evaluateur/gardes/poids.ts
++++ b/hotes/godot/asset/evaluateur/gardes/poids.ts
+@@ -21,7 +21,7 @@ export const TOLERANCE_JUMEAUX_POIDS = 1e-4;
+ export interface SujetDePoids {
+   readonly meshes: readonly SkinnedMesh[];
+   readonly osDeLaBase: ReadonlySet<string>;
+-  /** Par nœud à mesh, ses attributs d'influence au-delà du premier jeu (`ContenuGlb.influencesEtendues`). */
++  /** Par nœud à mesh, sous une clé unique entre les GLB évalués, ses attributs d'influence au-delà du premier jeu (`ContenuGlb.influencesEtendues`). */
+   readonly influencesEtendues: ReadonlyMap<string, readonly string[]>;
+ }
+ 
+diff --git a/hotes/godot/asset/evaluateur/gardes/silhouettes.ts b/hotes/godot/asset/evaluateur/gardes/silhouettes.ts
+index 59d6d7f26..03df8166d 100644
+--- a/hotes/godot/asset/evaluateur/gardes/silhouettes.ts
++++ b/hotes/godot/asset/evaluateur/gardes/silhouettes.ts
+@@ -40,7 +40,7 @@ type Point = readonly [number, number, number];
+ /** L'anneau articulaire de l'os `os` : les sommets du corps dans la bande de mélange de son articulation avec son parent. */
+ export interface Anneau {
+   readonly os: string;
+-  readonly sommets: readonly { readonly mesh: string; readonly indice: number }[];
++  readonly sommets: readonly { readonly mesh: Mesh; readonly indice: number }[];
+ }
+ 
+ /** L'état d'un anneau dans une pose : `centre` = centroïde de ses sommets, `rayon` = leur distance moyenne à la droite
+@@ -91,7 +91,7 @@ export interface MesuresDesSilhouettes {
+  * `SOMMETS_MIN_DE_L_ANNEAU` sommets.
+  */
+ export function anneauxArticulaires(meshes: readonly SkinnedMesh[]): Anneau[] {
+-  const parOs = new Map<string, { mesh: string; indice: number }[]>();
++  const parOs = new Map<string, { mesh: Mesh; indice: number }[]>();
+   for (const m of meshes) {
+     const os = m.skeleton.bones;
+     const indices = m.geometry.attributes.skinIndex;
+@@ -107,8 +107,8 @@ export function anneauxArticulaires(meshes: readonly SkinnedMesh[]): Anneau[] {
+       const enfant = a?.parent === b ? a : b?.parent === a ? b : undefined;
+       if (!enfant) continue;
+       const liste = parOs.get(enfant.name);
+-      if (liste) liste.push({ mesh: m.name, indice: i });
+-      else parOs.set(enfant.name, [{ mesh: m.name, indice: i }]);
++      if (liste) liste.push({ mesh: m, indice: i });
++      else parOs.set(enfant.name, [{ mesh: m, indice: i }]);
+     }
+   }
+   return [...parOs].filter(([, sommets]) => sommets.length >= SOMMETS_MIN_DE_L_ANNEAU).map(([os, sommets]) => ({ os, sommets }));
+@@ -123,10 +123,10 @@ function axeDeLOs(os: ReadonlyMap<string, Matrix4>, nom: string): Point {
+   return [x, y, z];
+ }
+ 
+-function section(anneau: Anneau, positions: ReadonlyMap<string, Float32Array>, axe: Point): Section {
++function section(anneau: Anneau, positions: Pose['positions'], axe: Point): Section {
+   const points = anneau.sommets.map(({ mesh, indice }): Point => {
+     const p = positions.get(mesh);
+-    if (!p) throw new Error(`silhouettes : mesh absent ${mesh}`);
++    if (!p) throw new Error(`silhouettes : mesh absent ${mesh.name}`);
+     return [p[indice * 3], p[indice * 3 + 1], p[indice * 3 + 2]];
+   });
+   const moyenne = (c: 0 | 1 | 2) => points.reduce((s, p) => s + p[c], 0) / points.length;
+@@ -150,7 +150,7 @@ export const sectionsDeRepos = (anneaux: readonly Anneau[], repos: Pose): Sectio
+ export const anneauLePlusEpais = (sections: readonly Section[]): number =>
+   sections.reduce((p, s, i) => (s.rayon > sections[p].rayon ? i : p), 0);
+ 
+-function deplacementMax(de: ReadonlyMap<string, Float32Array>, a: ReadonlyMap<string, Float32Array>): number {
++function deplacementMax(de: Pose['positions'], a: Pose['positions']): number {
+   let max = 0;
+   for (const [mesh, p] of de) {
+     const q = a.get(mesh);
+@@ -211,7 +211,7 @@ export function mesurerSilhouettes({ scene, corps, silhouettes, st, poidsDesForm
+     const poser = (poids: Readonly<Record<string, number>>) => poserSur(poids, corps);
+     const repos = poser({});
+     const deRepos = sectionsDeRepos(anneaux, repos);
+-    const sections = (positions: ReadonlyMap<string, Float32Array>) => anneaux.map((a, i) => section(a, positions, deRepos[i].axe));
++    const sections = (positions: Pose['positions']) => anneaux.map((a, i) => section(a, positions, deRepos[i].axe));
+     const mesurer = (poids: Readonly<Record<string, number>>) => {
+       const { positions } = poser(poids);
+       return { positions, sections: sections(positions) };
+diff --git a/hotes/godot/asset/evaluateur/gardes/suiviDuCorps.hors-store.test.ts b/hotes/godot/asset/evaluateur/gardes/suiviDuCorps.hors-store.test.ts
+index 390d929ae..eff54d206 100644
+--- a/hotes/godot/asset/evaluateur/gardes/suiviDuCorps.hors-store.test.ts
++++ b/hotes/godot/asset/evaluateur/gardes/suiviDuCorps.hors-store.test.ts
+@@ -258,13 +258,13 @@ describe('gardeSuiviDuCorps : le chemin réel de la peau', () => {
+     const os = meshesDuCorps(b);
+     const [peau] = e.skinnes;
+     const repos = poseDeRepos(b.scene, os);
+-    const v = poseDeRepos(b.scene, [peau]).positions.get(peau.name) as Float32Array;
++    const v = poseDeRepos(b.scene, [peau]).positions.get(peau) as Float32Array;
+     const lies = lierAuCorps(v, os, repos);
+     const facteurs = { ...FACTEURS_NEUTRES, legs };
+     poserFormes(b.scene, poidsDuGabarit(facteurs, TABLE.bornes, {}));
+     appliquerGabarit(b.scene, facteurs, { gabarit: TABLE }, b.squelette ?? undefined, false);
+     const apres = poseDeRepos(b.scene, os);
+-    const vApres = poseDeRepos(b.scene, [peau]).positions.get(peau.name) as Float32Array;
++    const vApres = poseDeRepos(b.scene, [peau]).positions.get(peau) as Float32Array;
+     return Math.max(...lies.map((lie, i) => {
+       const avant = new Vector3(v[i * 3], v[i * 3 + 1], v[i * 3 + 2]).sub(pointSurLeCorps(lie, repos.positions));
+       return new Vector3(vApres[i * 3], vApres[i * 3 + 1], vApres[i * 3 + 2]).sub(pointSurLeCorps(lie, apres.positions)).distanceTo(avant);
+diff --git a/hotes/godot/asset/evaluateur/gardes/suiviDuCorps.ts b/hotes/godot/asset/evaluateur/gardes/suiviDuCorps.ts
+index fe0b34940..341ba16cc 100644
+--- a/hotes/godot/asset/evaluateur/gardes/suiviDuCorps.ts
++++ b/hotes/godot/asset/evaluateur/gardes/suiviDuCorps.ts
+@@ -27,20 +27,20 @@ const GARDE = 'suiviDuCorps';
+ /** Le point de la surface du corps auquel un sommet d'élément est lié : un triangle d'un mesh du corps, les
+  *  coordonnées barycentriques du point dans ce triangle, et le jeu, distance au repos du sommet à ce point. */
+ export interface PointLie {
+-  readonly mesh: string;
++  readonly mesh: Mesh;
+   readonly sommets: readonly [number, number, number];
+   readonly barycentre: readonly [number, number, number];
+   readonly jeu: number;
+ }
+ 
+ interface TriangleDuCorps {
+-  readonly mesh: string;
++  readonly mesh: Mesh;
+   readonly sommets: readonly [number, number, number];
+   readonly forme: Triangle;
+ }
+ 
+ const positionsDe = (pose: Pose, m: Mesh): Float32Array => {
+-  const p = pose.positions.get(m.name);
++  const p = pose.positions.get(m);
+   if (!p) throw new Error(`${GARDE} : mesh absent ${m.name}`);
+   return p;
+ };
+@@ -56,7 +56,7 @@ function trianglesDuCorps(corps: readonly Mesh[], repos: Pose): TriangleDuCorps[
+     for (let t = 0; t + 2 < total; t += 3) {
+       const sommets: TriangleDuCorps['sommets'] = index ? [index.getX(t), index.getX(t + 1), index.getX(t + 2)] : [t, t + 1, t + 2];
+       const forme = new Triangle(point(p, sommets[0]), point(p, sommets[1]), point(p, sommets[2]));
+-      if (forme.getArea() > 0 && forme.getBarycoord(forme.a, coordonnees)) triangles.push({ mesh: m.name, sommets, forme });
++      if (forme.getArea() > 0 && forme.getBarycoord(forme.a, coordonnees)) triangles.push({ mesh: m, sommets, forme });
+     }
+     return triangles;
+   });
+@@ -79,10 +79,10 @@ export function lierAuCorps(sommets: Float32Array, corps: readonly Mesh[], repos
+   });
+ }
+ 
+-/** Le point `lie` dans les positions monde `positions` du corps, par nom de mesh. */
+-export function pointSurLeCorps(lie: PointLie, positions: ReadonlyMap<string, Float32Array>): Vector3 {
++/** Le point `lie` dans les positions monde `positions` du corps, par mesh. */
++export function pointSurLeCorps(lie: PointLie, positions: Pose['positions']): Vector3 {
+   const p = positions.get(lie.mesh);
+-  if (!p) throw new Error(`${GARDE} : mesh absent ${lie.mesh}`);
++  if (!p) throw new Error(`${GARDE} : mesh absent ${lie.mesh.name}`);
+   const point = new Vector3();
+   lie.sommets.forEach((s, k) => { point.x += lie.barycentre[k] * p[s * 3]; point.y += lie.barycentre[k] * p[s * 3 + 1]; point.z += lie.barycentre[k] * p[s * 3 + 2]; });
+   return point;
+diff --git a/hotes/godot/asset/evaluateur/selectionAppuis.ts b/hotes/godot/asset/evaluateur/selectionAppuis.ts
+index d44d02f45..5c21e1086 100644
+--- a/hotes/godot/asset/evaluateur/selectionAppuis.ts
++++ b/hotes/godot/asset/evaluateur/selectionAppuis.ts
+@@ -37,12 +37,12 @@ export async function selectionnerAppuis(base: Uint8Array, manifeste: Pick<Manif
+     const choisir = (pose: Pose) => {
+       let y = Infinity;
+       for (const p of pose.positions.values()) for (let i = 1; i < p.length; i += 3) y = Math.min(y, p[i]);
+-      for (const [nom, p] of pose.positions) for (let i = 1; i < p.length; i += 3) if (p[i] === y) {
+-        const indice = (i - 1) / 3, cle = `${nom}/${indice}`;
+-        if (!retenus.has(cle)) {
+-          const m = corps.find((m) => m.name === nom);
+-          if (!m) throw new Error(`appuis : mesh absent ${nom}`);
+-          retenus.set(cle, copierSommet(m, indice));
++      for (const m of corps) {
++        const p = pose.positions.get(m);
++        if (!p) throw new Error(`appuis : mesh absent ${m.name}`);
++        for (let i = 1; i < p.length; i += 3) if (p[i] === y) {
++          const indice = (i - 1) / 3, cle = `${m.name}/${indice}`;
++          if (!retenus.has(cle)) retenus.set(cle, copierSommet(m, indice));
+         }
+       }
+     };
+diff --git a/hotes/godot/asset/evaluer.mjs b/hotes/godot/asset/evaluer.mjs
+index b6b7d9a84..9be48b590 100644
+--- a/hotes/godot/asset/evaluer.mjs
++++ b/hotes/godot/asset/evaluer.mjs
+@@ -73,7 +73,7 @@ const fiche = await evaluer({
+ })
+ 
+ const { triangles, sommets, os, images, corps, clips } = fiche.mesures
+-console.log(`${triangles.total} triangles (${Object.entries(triangles.parMesh).map(([m, t]) => `${m} ${t}`).join(', ')}), ${sommets} sommets, ${os} os, ${images} image(s) ; corps : ${corps.join(', ') || 'aucun'}`)
++console.log(`${triangles.total} triangles (${triangles.parMesh.map(({ mesh, triangles: t }) => `${mesh} ${t}`).join(', ')}), ${sommets} sommets, ${os} os, ${images} image(s) ; corps : ${corps.join(', ') || 'aucun'}`)
+ for (const c of clips) {
+   console.log(`clip ${c.nom} : ${c.duree.toFixed(3)} s, ${c.echantillons} échantillon(s), sommet le plus bas ${c.plusBas.min.toFixed(4)} à ${c.plusBas.max.toFixed(4)} m`)
+   if (c.appuis) {
+diff --git a/scripts/personnage-3d/base/anneaux.mjs b/scripts/personnage-3d/base/anneaux.mjs
+index 8f81ade24..0b6d65308 100644
+--- a/scripts/personnage-3d/base/anneaux.mjs
++++ b/scripts/personnage-3d/base/anneaux.mjs
+@@ -41,14 +41,15 @@ async function main() {
+   const [{ anneauxArticulaires, sectionsDeRepos, anneauLePlusEpais }, { INFLUENCES_MAX }] = await Promise.all([
+     chargerEvaluateur('gardes/silhouettes.ts'), chargerEvaluateur('gardes/poids.ts')])
+   const skeleton = squelette(os)
+-  const anneaux = anneauxArticulaires(corps.map((c) => maillage(c, skeleton, INFLUENCES_MAX)))
++  const maillages = corps.map((c) => maillage(c, skeleton, INFLUENCES_MAX))
++  const anneaux = anneauxArticulaires(maillages)
+   const repos = {
+-    positions: new Map(corps.map((c) => [c.nom, Float32Array.from(c.positions)])),
++    positions: new Map(maillages.map((m, i) => [m, Float32Array.from(corps[i].positions)])),
+     os: new Map(os.map(({ nom, matrice }) => [nom, new Matrix4().fromArray(matrice)])),
+   }
+   const sections = sectionsDeRepos(anneaux, repos)
+   process.stdout.write(JSON.stringify({
+-    anneaux: anneaux.map((a, i) => ({ ...a, ...sections[i] })),
++    anneaux: anneaux.map((a, i) => ({ ...a, sommets: a.sommets.map(({ mesh, indice }) => ({ mesh: mesh.name, indice })), ...sections[i] })),
+     lePlusEpais: anneaux.length ? anneauLePlusEpais(sections) : null,
+   }))
+ }
