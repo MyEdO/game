@@ -42,6 +42,13 @@ Doctrine : fiche `.claude/memory/user-doctrine-orchestrateur-de-sessions-max5.md
    - le worktree absolu, les interdits git, aucun appel de plus de 270 s, le budget ;
    - les preuves attendues et la forme du rendu, avec une ligne « Friction : quoi · coût · outil ».
 2. **Lancement** : `npm run ops:session -- lancer <consigne> --ticket <N> --agent claude|codex --json`.
+   Plusieurs sessions vivantes peuvent servir le même ticket ; chacune porte un nom distinct. Le nom
+   par défaut est `s<N>` : s'il est occupé, préciser `--nom <nom>`, par exemple `s<N>-c1`.
+   Seul l'orchestrateur de sessions lance le lot enfant, dans son propre worktree créé par `ops:chantier`.
+   Le worktree par défaut est le répertoire courant ; préciser `--worktree <chemin>` pour en choisir un autre.
+   Pour `fermer`, `envoyer`, `etat` et `attendre`, utiliser le nom ou l'UUID : un ticket désignant
+   plusieurs sessions actives est refusé avec la liste des candidats. L'UUID exact est prioritaire ;
+   un nom entièrement numérique ou en forme d'UUID est refusé à la réservation.
    Écris la sortie ENTIÈRE dans un fichier du scratchpad, sans filtre : elle porte le `jeton` que
    `fermer` exige, et seul son hachage est stocké. Un jeton perdu laisse la session vivante, sans
    moyen de la fermer.
