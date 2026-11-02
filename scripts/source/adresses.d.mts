@@ -16,6 +16,7 @@ export interface Adresse {
 }
 
 export const RACINE_DEPOT: string;
+export function cheminDuDepot(chemin: string): string;
 export const RACINES_PAR_DEFAUT: string[];
 export function fichiersJsonDe(racineRelative: string, racine?: string): string[];
 export function fichiersJson(racines?: string[], racine?: string): string[];

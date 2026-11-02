@@ -36,8 +36,7 @@ import {
   resoudreAdresse, resoudreFragment,
 } from '../../src/data/source/decoupe.ts'
 import { RACINES_PAR_DEFAUT, RACINE_DEPOT, adressesDuDepot } from './adresses.mjs'
-import { lireChapitre } from './lecteur-fs.mjs'
-import { cheminChapitre } from './resoudre.mjs'
+import { cheminChapitre, lireChapitre } from './lecteur-fs.mjs'
 import { ancresDObjet, jsonIndente, remplacerAncre } from './reecriture-ancree.mjs'
 
 /** Chemin de chapitre en séparateurs POSIX : c'est la forme que `git show` attend. */

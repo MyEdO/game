@@ -241,10 +241,11 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
   hash.ts                     Hachage déterministe partagé (`hash32` FNV-1a, `seedStream`) : empreinte
                               de découpe ET seeds du rendu (`src/gameIso`)
 scripts/source/             Le côté NODE de la chaîne d'adressage de prose — entrées/sorties seulement,
-                            le parsing vit dans `src/data/source/decoupe.ts` (PUR). `lecteur-fs.mjs` lit
-                            et mémorise un chapitre du `Source/` ; `resoudre.mjs` porte les deux portes
-                            FAIL-CLOSED (`resoudreProse` pour UNE entrée, `materialiser` pour une racine
-                            de document) et `cheminChapitre` ; `derive-decoupes.mjs` DÉRIVE une adresse
+                            le parsing vit dans `src/data/source/decoupe.ts` (PUR). `lecteur-fs.mjs` rend
+                            le chemin d'un chapitre (`cheminChapitre`), le lit et le mémorise, résolu à la
+                            racine du dépôt d'où que le processus soit lancé ; `resoudre.mjs` porte les deux
+                            portes FAIL-CLOSED (`resoudreProse` pour UNE entrée, `materialiser` pour une
+                            racine de document) ; `derive-decoupes.mjs` DÉRIVE une adresse
                             d'une `desc` existante et rend le verdict d'adressabilité (`judge`, consommé
                             par les migrations) ; `adresses.mjs` est L'INVENTAIRE des adresses du dépôt
                             (walk unique des deux racines par `listerArbre`, lu par la garde de

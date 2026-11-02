@@ -2,14 +2,15 @@
 // (`121 - Index.md`) ses INVARIANTS et des cas nommés ; les comptes s'impriment, jamais assertés.
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
-import { chapitresParses } from '../../../scripts/source/lecteur-fs.mjs';
+import { chapitresParses, cheminChapitre } from '../../../scripts/source/lecteur-fs.mjs';
 // @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
-import { chapterFile, readText } from '../../../scripts/raw/_lib.mjs';
+import { readText } from '../../../scripts/raw/_lib.mjs';
+import { cheminDuDepot } from '../../../scripts/source/adresses.mjs';
 import { lireIndexImprime, type EntreeDIndexImprime } from './index-imprime.ts';
 import { indexerLivre, resoudreRenvoi } from './renvoi.ts';
 
 const CRB = 'core-rulebook-5e';
-const md: string = readText(chapterFile('CRB', 121).path);
+const md: string = readText(cheminDuDepot(cheminChapitre(CRB, 121)));
 const entrees = lireIndexImprime(md, 'VO');
 const livre = indexerLivre(CRB, 'VO', chapitresParses(CRB));
 
