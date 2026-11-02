@@ -133,7 +133,8 @@
   "size": "moyenne",
   "groups": [
    "humain",
-   "soldat"
+   "soldat",
+   "figures-symboles-de-guerre"
   ],
   "designations": {
    "soldat": [
@@ -585,6 +586,8 @@
   "size": "moyenne",
   "groups": [
    "humain",
+   "figures-symboles-religieux",
+   "religion",
    "sigmarite"
   ],
   "designations": {
@@ -1184,7 +1187,8 @@
   "xp": 0,
   "size": "moyenne",
   "groups": [
-   "humain"
+   "humain",
+   "figures-symboles-d-autorite"
   ],
   "designations": {}
  }

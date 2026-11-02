@@ -196,7 +196,8 @@
       "page": 151
     },
     "grantGroups": [
-      "humain"
+      "humain",
+      "teutogen"
     ],
     "profilStandard": {
       "id": "humain"
@@ -304,7 +305,8 @@
       "page": 152
     },
     "grantGroups": [
-      "humain"
+      "humain",
+      "teutogen"
     ],
     "profilStandard": {
       "id": "humain"

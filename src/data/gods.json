@@ -68,6 +68,9 @@
     "id": "deesse-araignee",
     "type": "gods",
     "label": "Déesse-Araignée",
+    "grantGroups": [
+      "religion"
+    ],
     "blessings": [
       "benediction-de-bataille",
       "benediction-de-chance",
@@ -116,6 +119,9 @@
     "id": "evawn",
     "type": "gods",
     "label": "Evawn",
+    "grantGroups": [
+      "religion"
+    ],
     "title": "Déesse des voyages",
     "blessings": [
       "benediction-de-charisme",
@@ -296,6 +302,9 @@
     "id": "mabyn",
     "type": "gods",
     "label": "Mabyn",
+    "grantGroups": [
+      "religion"
+    ],
     "title": "Déesse gnome des ombres",
     "blessings": [
       "benediction-de-bataille",
@@ -320,6 +329,9 @@
     "id": "manann",
     "type": "gods",
     "label": "Manann",
+    "grantGroups": [
+      "religion"
+    ],
     "title": "Dieu de la mer",
     "blessings": [
       "benediction-de-bataille",
@@ -381,6 +393,9 @@
     "id": "morr",
     "type": "gods",
     "label": "Morr",
+    "grantGroups": [
+      "religion"
+    ],
     "title": "Dieu de la mort",
     "blessings": [
       "benediction-de-chance",
@@ -408,6 +423,9 @@
     "id": "myrmidia",
     "type": "gods",
     "label": "Myrmidia",
+    "grantGroups": [
+      "religion"
+    ],
     "title": "Déesse de la stratégie",
     "blessings": [
       "benediction-de-bataille",
@@ -473,6 +491,9 @@
     "id": "ranald",
     "type": "gods",
     "label": "Ranald",
+    "grantGroups": [
+      "religion"
+    ],
     "title": "Dieu de la ruse",
     "blessings": [
       "benediction-de-chance",
@@ -500,6 +521,9 @@
     "id": "rhya",
     "type": "gods",
     "label": "Rhya",
+    "grantGroups": [
+      "religion"
+    ],
     "title": "Déesse de la festilité",
     "blessings": [
       "benediction-de-conscience",
@@ -527,6 +551,9 @@
     "id": "ringil",
     "type": "gods",
     "label": "Ringil",
+    "grantGroups": [
+      "religion"
+    ],
     "title": "Dieu du divertissement",
     "blessings": [
       "benediction-de-souffle",
@@ -551,6 +578,9 @@
     "id": "shallya",
     "type": "gods",
     "label": "Shallya",
+    "grantGroups": [
+      "religion"
+    ],
     "title": "Déesse de la miséricorde",
     "blessings": [
       "benediction-de-conscience",
@@ -579,7 +609,8 @@
     "type": "gods",
     "label": "Sigmar",
     "grantGroups": [
-      "sigmarite"
+      "sigmarite",
+      "religion"
     ],
     "title": "Dieu de l'Empire",
     "blessings": [
@@ -624,6 +655,9 @@
     "id": "stromfels",
     "type": "gods",
     "label": "Stromfels",
+    "grantGroups": [
+      "religion"
+    ],
     "title": "Dieu Requin",
     "blessings": [
       "benediction-de-bataille",
@@ -656,6 +690,9 @@
     "id": "taal",
     "type": "gods",
     "label": "Taal",
+    "grantGroups": [
+      "religion"
+    ],
     "title": "Dieu de la nature",
     "blessings": [
       "benediction-de-bataille",
@@ -714,7 +751,8 @@
     "type": "gods",
     "label": "Ulric",
     "grantGroups": [
-      "ulricain"
+      "ulricain",
+      "religion"
     ],
     "title": "Dieu de la guerre",
     "blessings": [
@@ -756,6 +794,9 @@
     "id": "verena",
     "type": "gods",
     "label": "Verena",
+    "grantGroups": [
+      "religion"
+    ],
     "title": "Déesse de la sagesse",
     "blessings": [
       "benediction-de-chance",

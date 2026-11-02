@@ -116,7 +116,13 @@
   {
     "id": "teutogen",
     "type": "groups",
-    "label": "Teutogen"
+    "label": "Teutogen",
+    "source": {
+      "book": "middenheim",
+      "page": 159,
+      "note": "Middenheim 10 l.97"
+    },
+    "maison": "Porté par les Humains de Middenheim et du Middenland, d'ascendance teutogène (#3045). Lecture révisable."
   },
   {
     "id": "bailli",
@@ -152,12 +158,23 @@
   {
     "id": "religion",
     "type": "groups",
-    "label": "Religion"
+    "label": "Religion",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 65
+    },
+    "maison": "Porté par les gens d'Église : carrières religieuses (Q14 A), cultes qui accordent des Bénédictions, Trait Béni (#3045). Lecture révisable."
   },
   {
     "id": "predateur",
     "type": "groups",
-    "label": "Prédateur"
+    "label": "Prédateur",
+    "source": {
+      "book": "livre-de-base",
+      "page": 322,
+      "note": "LDB 79 l.160"
+    },
+    "maison": "Porté par les bêtes carnivores du bestiaire et leurs genres (#3045). Lecture révisable."
   },
   {
     "id": "serpent",
@@ -291,7 +308,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par les carrières militaires (Q14 A, #3045). Lecture révisable."
   },
   {
     "id": "figures-symboles-d-autorite",
@@ -300,7 +318,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par les carrières de l'ordre et du pouvoir (Q14 A, #3045). Lecture révisable."
   },
   {
     "id": "figures-symboles-religieux",
@@ -309,7 +328,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par les carrières religieuses (Q14 A, #3045). Lecture révisable."
   },
   {
     "id": "monstres",
@@ -345,7 +365,8 @@
     "source": {
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 69
-    }
+    },
+    "maison": "Porté par les animaux de LDB 70 et par tout Trait Dressé (Q7 A, #3045). Lecture révisable."
   },
   {
     "id": "magie",
@@ -515,7 +536,8 @@
       "book": "livre-de-base",
       "page": 83,
       "note": "LDB 08 l.1907"
-    }
+    },
+    "maison": "Porté par les lanceurs de sorts sans licence : Sorcier dissident, Sorcier de village (#3045). Lecture révisable."
   },
   {
     "id": "vampires",
