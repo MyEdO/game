@@ -156,6 +156,10 @@ export function memoireDisponibleMo(env, mesure = mesureMemoireDisponibleMo) {
  *  `worker perdu 0`. */
 export const TAS_WORKER_MO = 3072
 
+/** Délai d'un test Vitest, en ms (`testTimeout` de `vite.config.ts` et de `vitest.noyau.config.ts`) : paramètre de
+ *  BANC calé sur le test le plus lourd mesuré en CI (#1619) ; le contrat des tests ne change pas. */
+export const DELAI_DE_TEST_MS = 15_000
+
 /** Empreinte d'un worker Vitest par RÉGIME de lancement, en Mo : `suite` (la suite entière), `lot` (un lot de
  *  fichiers, `test:perimetre`). Paramètres de BANC du 2026-10-08, Vitest 5.0.3, Windows 16 cœurs, mémoire de
  *  travail des processus échantillonnée (#2497) ; empreinte = somme au pic / workers. `suite` : run s4, 2 workers,
