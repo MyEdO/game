@@ -367,11 +367,13 @@ interface PartiePrete {
 
 /** Pourquoi le vis-à-vis de genre `kind` n'est pas offert pour `gameId` au challenger : un jeu d'ÉQUIPE
  *  oppose la salle au groupe entier, aucun compagnon d'en face, aucun PNJ de la scène qui joue ; `null` s'il
- *  l'est. Lu par `preparerLaPartie` et par le choix d'adversaire de la modale. */
-export function refusDAdversaire(s: Jeu, gameId: string, challengerId: string, kind: TavernOpponent['kind']): string | null {
+ *  l'est. Lu par `preparerLaPartie` et par le choix d'adversaire de la modale. Un PNJ `designe` (le geste)
+ *  se juge à sa présence dans la scène (`tavern.adversaireAbsent`), pas aux offres de la salle. */
+export function refusDAdversaire(s: Jeu, gameId: string, challengerId: string, kind: TavernOpponent['kind'], designe?: string): string | null {
   if (kind === 'profil') return null;
   if (findTavernGameById(gameId)?.team) return t('tavern.equipeContreLaSalle');
   if (kind === 'hero') return s.party.some((h) => !h.dead && h.id !== challengerId) ? null : t('tavern.aucunCompagnon');
+  if (designe !== undefined) return null;
   return tavernNpcOffers(s.scene, presetDuNarratif(s.campaignNarratif)).length ? null : t('tavern.personneDansLaSalle');
 }
 
@@ -392,7 +394,7 @@ function preparerLaPartie(s: Jeu, opts: ReglageDePartie): PartiePrete | { refus:
   const challenger = s.party.find((h) => h.id === opts.challengerId);
   if (!challenger) return { refus: t('tavern.challengerAbsent', { jeu: game.label }) };
   const opp = opts.opponent;
-  const refusDuVisAVis = refusDAdversaire(s, game.id, challenger.id, opp.kind);
+  const refusDuVisAVis = refusDAdversaire(s, game.id, challenger.id, opp.kind, opp.id);
   if (refusDuVisAVis) return { refus: refusDuVisAVis };
   const opponentActor = opp.kind === 'hero' ? s.party.find((h) => h.id === opp.id)
     : opp.kind === 'npc' ? sceneNpc(s.scene, opp.id, presetDuNarratif(s.campaignNarratif))
