@@ -6,7 +6,7 @@ import type { PendingAttack } from './pendings';
 import type { RollBreakdown } from '../engine/combat';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
-import { previewAttack, previewDefense, defenseDodgeMods, resolveAttack, eligibleAttackTargetIds, outOfSightTargetIds, attackPlan, resolveDualSecond } from './combatFlow';
+import { previewAttack, previewDefense, defenseDodgeMods, resolveAttack, outOfSightTargetIds, attackPlan, resolveDualSecond } from './combatFlow';
 import { attackModifiers, bestRangedDefense, combatBaseValue, combatValue, combineMods, type ModLine } from '../engine/combat';
 import { clampTarget } from '../engine/tests';
 import { setRule } from '../engine/policy';
@@ -111,18 +111,6 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
     seedBattleRng(2);
     const r = resolveAttack(get, a, b, undefined, undefined, undefined, undefined, off.weapon);
     expect(r!.weapon.label).toBe('Dague'); // parité : la résolution utilise la même arme choisie
-  });
-
-  it('eligibleAttackTargetIds : seuls les ennemis vivants à portée sont éligibles', () => {
-    const a = combatant({ id: 'A', pos: { x: 0, y: 0 } }); // épée, Allonge Moyenne = 1 case
-    const near = combatant({ id: 'E1', kind: 'enemy', pos: { x: 1, y: 0 } }); // adjacent → éligible
-    const far = combatant({ id: 'E2', kind: 'enemy', pos: { x: 5, y: 0 } }); // hors de portée → non
-    const dead = combatant({ id: 'E3', kind: 'enemy', pos: { x: 1, y: 1 }, dead: true }); // mort → non
-    const get = (() => ({ scene: scene(), battle: { combatants: [a, near, far, dead], order: ['A', 'E1', 'E2', 'E3'], turn: 0, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {}, net: NET_LOCAL })) as unknown as () => Jeu;
-    const ids = eligibleAttackTargetIds(get);
-    expect(ids.has('E1')).toBe(true);
-    expect(ids.has('E2')).toBe(false);
-    expect(ids.has('E3')).toBe(false);
   });
 
   it('tir sans Ligne de Vue → blocked', () => {

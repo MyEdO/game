@@ -22,12 +22,12 @@ import { findTableEntry } from './tables';
 import { maxBy } from './pick';
 import locJson from '../data/localisation.json';
 import { combatTestPenaltyParts, meleeAttackerBonusLines, cannotDefend, hasCondition, COND, activeCharTestModParts, type EtatTestCtx } from './conditions';
-import { effectiveWeaponDamage, effectiveWeapon, effectiveWeaponRange } from './weaponDamage';
+import { effectiveWeaponDamage, effectiveWeapon } from './weaponDamage';
 import { traumaDodgePenaltyParts, damageSBBonus, amputationCombatPenalty, passiveTestModParts, passivePartLine } from './trauma';
 import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
-import { ignoredArmourAP, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
+import { ignoredArmourAP, activeLoadout, porteeDeTir, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom, sousPeur, vise } from './psychology';
 import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
@@ -814,7 +814,7 @@ export function attackModifiers(
   // opposées), jamais ici (un ±10 sur la cible fausserait la probabilité ET le DR, contra RAW).
   if (opts.kind === 'ranged') {
     // Portée RÉSOLUE à l'usage (jet `{bf}` → BF×N ; mètres fixes inchangés) + modificateur de la munition tirée.
-    const rangeM = effectiveWeaponRange(weapon, loadedAmmo(attacker, weapon)?.ammoRangeMod, () => bonus(effectiveChar(attacker, 'force')));
+    const rangeM = porteeDeTir(attacker, weapon);
     const band = opts.distanceTiles != null && rangeM != null ? rangeBandId(opts.distanceTiles, rangeM, opts.metresPerTile) : null;
     if (band) {
       const l = ligneDeRegle('portee-d-une-arme', band, { ajuste: (mod) => sniperRangeAdjust(attacker, band, mod) }); // LDB 10, Tireur embusqué
@@ -1422,7 +1422,7 @@ export function rangedDefenseModes(
   const modes = new Set<'parade' | 'esquive'>();
   if (isEngagedWith(attacker, defender.id)) modes.add('parade'); // tireur Engagé (l.70) : toute Corps à corps
   else if (los && rangedOpposeWeapon(defender.weapons)) modes.add('parade'); // bouclier Protectrice 2+ en Ligne de Vue (l.307)
-  const rangeM = effectiveWeaponRange(weapon, loadedAmmo(attacker, weapon)?.ammoRangeMod, () => bonus(effectiveChar(attacker, 'force')));
+  const rangeM = porteeDeTir(attacker, weapon);
   if (distanceTiles != null && rangeM != null && rangeBandId(distanceTiles, rangeM, metresPerTile) === 'bout-portant')
     modes.add('esquive'); // Bout Portant (l.62)
   return [...modes];
@@ -1461,7 +1461,7 @@ export function resolveRanged(
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
   const atkVal = combatValue(attacker, 'ranged', weapon);
-  const rangeM = effectiveWeaponRange(weapon, loadedAmmo(attacker, weapon)?.ammoRangeMod, () => bonus(effectiveChar(attacker, 'force')));
+  const rangeM = porteeDeTir(attacker, weapon);
   if (distanceTiles != null && rangeM != null && rangeBandModifier(distanceTiles, rangeM, metresPerTile) == null)
     return { hit: false, attackerRoll: 0, netSL: 0, critical: false, advantageTo: null, defenderDefeated: false, log: `${attacker.label} : cible hors de portée.` };
   const mods = attackModifiers(attacker, defender, weapon, { kind: 'ranged', location, distanceTiles, env, metresPerTile });

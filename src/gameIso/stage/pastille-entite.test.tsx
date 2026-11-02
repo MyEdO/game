@@ -14,7 +14,7 @@ import { emptyScene } from '../../noyau/monde/scene';
 import { tileCenter, type Dims } from '../../geometry/iso';
 import { VH, VW } from './useStageCamera';
 import { flowFromEffects } from '../../noyau/monde/flow';
-import { itemFromTrappingById } from '../../engine/items';
+import { itemFromTrappingById, unarmedWeapon } from '../../engine/items';
 import { ACTIONS, type ActionDef } from '../../data/index';
 import { ACTION_CANDIDATES, ACTION_PORTEURS } from '../../noyau/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
@@ -46,7 +46,7 @@ const CHARS = {
 const hero = (id: string, pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
   combattantDeTest({
     id, label: id, kind: 'hero', pos, size: 'moyenne', characteristics: CHARS,
-    wounds: blessuresDeBase(12), items: [], ...over,
+    wounds: blessuresDeBase(12), items: [], weapons: [unarmedWeapon()], ...over, // invariant mains nues (`assertAttackWeapon`)
   });
 
 const combat = (combatants: Combatant[], over: Partial<BattleState> = {}): BattleState =>

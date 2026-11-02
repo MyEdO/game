@@ -55,7 +55,7 @@ import { bus, EVT } from './bus';
 import type { Jeu } from './etat';
 import { chebyshev } from '../engine/grid';
 import {
-  attackPlan, previewAttack, previewCast, firedAttackBlock, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, openAttackCascade, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, type AttackPreview,
+  attackPlan, previewAttack, previewCast, firedAttackBlock, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, openAttackCascade, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, type AttackPreview, type AttackPlan,
 } from './combatFlow';
 import { selectedAttackOption, freeAttackTargetOk, auContactEligible, grappleActionEligible, type AttackOption } from './combatManeuvers';
 import { captureMoveSnapshot } from './monde/combatGeometry';
@@ -69,8 +69,11 @@ export type HoverTargeting =
    *  munition ; `sous-effectif` = machine de guerre ADE II sous la moitié de l'Équipe requise
    *  (ch.08 l.233) ; `approche-non-armee` = hors de portée ET la Charge n'est pas armée (spec HUD
    *  § 2026-08-19) ; `sans-sort-dissipable` = mode Dissiper armé, mais la cible ne porte aucun Sort
-   *  permanent (LDB 46 l.158-162). */
-  | { kind: 'invalid'; reason: 'los' | 'range' | 'engaged' | 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' | 'portee-min' | 'armeBannie' | 'approche-non-armee' | 'sans-sort-dissipable' }
+   *  permanent (LDB 46 l.158-162) ; `hors-d-etat` = le porteur ne peut agir (LDB 16 l.125) ou un État
+   *  verrouille son Action (LDB 16 l.52) ; `frenesie-cible` = la Frénésie impose une autre cible (LDB 21
+   *  l.33) ; `cible-gratuite` = cible hors de ce que la gratuite armée admet ; `action-depensee` = l'approche
+   *  d'une attaque qui coûte l'Action, l'Action dépensée. */
+  | { kind: 'invalid'; reason: 'los' | 'range' | 'engaged' | 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' | 'portee-min' | 'armeBannie' | 'approche-non-armee' | 'sans-sort-dissipable' | 'hors-d-etat' | 'frenesie-cible' | 'cible-gratuite' | 'action-depensee' }
   | {
       kind: 'ok';
       /** Style de la ligne de visée : pointillée (tir/sort) ou pleine (mêlée, déplacement compris). */
@@ -112,7 +115,7 @@ export interface TilePreview {
  * (clic-token) ; un mode-CASE remplit `tileValidAt` + `commitTile` (clic-sol) + `tilePreview` (aperçu au
  * survol — voir `TileTargetingMode` ci-dessous, qui rend les trois REQUIS pour un mode-case : la garde
  * structurelle du ticket #198, un mode-case sans aperçu ne compile pas). `candidates` (Tab/curseur) vaut
- * par défaut « les combattants dont l'affordance ≠ 'none' » — un mode ne le surcharge que s'il a une
+ * par défaut « les combattants dont l'affordance est 'ok' » — un mode ne le surcharge que s'il a une
  * liste propre (soin, surincantation…). Tout est PUR (lit l'état) sauf les commit (mutent via set).
  */
 export interface TargetingMode {
@@ -130,7 +133,7 @@ export interface TargetingMode {
   /** Les `candidates` de ce mode sont-ils PEINTS en anneaux sur le terrain quand il tient le ciblage,
    *  et de quelle TEINTE ? `'ami'` = la cible élue est un allié (anneau vert : Soin) ; `'hostile'` =
    *  un adversaire. Absent = ce mode ne peint aucun anneau de candidat (l'attaque en mode neutre a les
-   *  siens, `eligibleAttackTargetIds` ; Dissiper n'en peint pas). SÉMANTIQUE D'AFFICHAGE déclarée au
+   *  siens, `validTargets` ; Dissiper n'en peint pas). SÉMANTIQUE D'AFFICHAGE déclarée au
    *  mode — le peintre (`gameIso/stage/highlightLayer` → `builders/highlights`) ne connaît aucun id. */
   anneauCandidats?: 'ami' | 'hostile';
   commitCombatant?(get: Get, set: Set, active: Combatant, id: string, opts?: BattleClickOpts): void;
@@ -212,7 +215,7 @@ export function spellAffinity(spell: NonNullable<ReturnType<typeof findSpellById
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Affordances (réticule au survol) — corps DÉPLACÉS verbatim des branches de hoverTargeting
+// Affordances (réticule au survol)
 // ───────────────────────────────────────────────────────────────────────────
 
 /**
@@ -333,6 +336,50 @@ export function previewDifficultyOf(get: Get): DifficultyShown | undefined {
   return difficultyOf(apercuDuGeste(get, active, target, option, 'dest' in pv ? pv.dest : undefined));
 }
 
+/** Ce qui REFUSE l'attaque armée `option` de `active` sur `target` : le code que l'affordance rend en
+ *  `invalid`, et le texte que le clic dit. */
+export type RefusDAttaque = { reason: Extract<HoverTargeting, { kind: 'invalid' }>['reason']; texte: string };
+
+/**
+ * Verdict UNIQUE de l'attaque du mode ATTAQUE : `attackAffordance` le rend en `invalid`, `attackClickCommit`
+ * le lit en tête. `plan` = celui de l'approche-puis-frappe (`attackPlan`), `null` pour une option qui ne
+ * frappe pas (zone, Au contact, Empoignade). `approche` = verdict d'armement de la Charge (`BattleClickOpts`).
+ * LDB 16 l.52 ; LDB 16 l.125 ; LDB 21 l.33 ; LDB 85 l.237 ; spec HUD § 2026-08-19.
+ */
+export function refusDAttaque(get: Get, active: Combatant, target: Combatant, option: AttackOption, plan: AttackPlan | null, { approche }: { approche: boolean }): RefusDAttaque | null {
+  const battle = get().battle!;
+  const horsDAgir = refusHorsDEtatDAgir(active) ?? refusVerrouDAction(active);
+  if (horsDAgir) return { reason: 'hors-d-etat', texte: horsDAgir };
+  const ft = isFrenzied(active) ? frenzyTarget(get, active) : null;
+  if (ft && ft.id !== target.id) return { reason: 'frenesie-cible', texte: t('cs.frenzyMustAttack', { name: active.label, foe: ft.label }) };
+  if (option.freeKind && !freeAttackTargetOk(battle, active, option.freeKind, target)) {
+    return { reason: 'cible-gratuite', texte: t('cs.refusCibleGratuite', { name: target.label, attaque: option.label }) };
+  }
+  if (!plan) return null;
+  const depensee = option.cost.action && plan.kind !== 'attack' ? refusActionDepensee(battle) : null;
+  if (depensee) return { reason: 'action-depensee', texte: depensee };
+  const gesteImpose = isFrenzied(active) || !option.cost.action;
+  if (plan.kind !== 'attack' && plan.kind !== 'blocked' && !approche && !gesteImpose) {
+    return { reason: 'approche-non-armee', texte: t('cs.refusApprocheNonArmee', { name: target.label }) };
+  }
+  if (plan.kind === 'blocked') {
+    const p = previewAttack(get, active, target, undefined, { weaponUid: option.weaponUid });
+    return { reason: p.blocked ? 'los' : p.kind === 'melee' && isEngaged(active) ? 'engaged' : 'range', texte: plan.reason };
+  }
+  if (plan.kind === 'attack' && !option.freeKind) {
+    const block = firedAttackBlock(get, active, target, option.weaponUid);
+    if (block) return { reason: block.reason, texte: block.detail };
+  }
+  return null;
+}
+
+/** Le plan d'approche-puis-frappe de l'option armée, `null` pour une option qui ne frappe pas. */
+function planDuGeste(get: Get, active: Combatant, target: Combatant, option: AttackOption): AttackPlan | null {
+  return gesteAuTestDArme(get, active, target, option)
+    ? attackPlan(get, active, target, { reach: option.reach, forceMelee: option.forceMelee, weaponUid: option.weaponUid })
+    : null;
+}
+
 function attackAffordance(get: Get, active: Combatant, target: Combatant): HoverTargeting {
   const battle = get().battle!;
   // Pièce de siège SERVABLE (poste, MDG 12 / AA 10 l.232) : un poste-porteur qu'on peut REJOINDRE (chef si non
@@ -354,7 +401,11 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   // rencontre, qui ne gouverne que le vivier de l'IA. Une arme qui l'abîme reste ciblable : son Bonus
   // d'Endurance se compte une fois de plus par catégorie de Taille au-dessus du porteur (`AA 10 l.98`).
   if (isStructure(target) && active.weapons.every((w) => structureImmune(w, target))) return { kind: 'none' };
-  if (option.freeKind && !freeAttackTargetOk(battle, active, option.freeKind, target)) return { kind: 'none' };
+  // LE SURVOL N'AFFICHE QUE LE FAISABLE (contrat de ce fichier, arbitrage 2026-08-24) : le verdict du clic,
+  // l'intention de Charge lue au client.
+  const plan = planDuGeste(get, active, target, option);
+  const refus = refusDAttaque(get, active, target, option, plan, { approche: chargeArmee(get) });
+  if (refus) return { kind: 'invalid', reason: refus.reason };
   if (option.targeting === 'zone') // Souffle/Vomi/Langue/Regard/Étreinte : réticule simple (portée/LdV au résolveur moteur)
     return { kind: 'ok', line: 'dashed', title: option.label, targetName: target.label, skill: 'Capacité de Combat', base: 0, mod: 0, dmg: null };
   if (option.targeting === 'aucontact') // « Au Contact » (LDB 62 l.176) : Test opposé de Corps à corps, pas une frappe
@@ -366,30 +417,9 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
       ? { kind: 'ok', line: 'dashed', title: 'Empoignade', targetName: target.label, skill: 'Force', base: 0, mod: 0, dmg: null }
       : { kind: 'none' };
   // === MÊLÉE (Arme + gratuites) : approche-puis-frappe — chemin réel + réticule au survol (le clic commet) ;
-  // l'aperçu est calculé depuis la case d'ARRIVÉE (modificateurs honnêtes au contact). L'Allonge suit l'option.
-  // La chute ici est EXPLICITE : c'est le seul geste dont la Difficulté se compose depuis une arme, et
-  // c'est le MÊME prédicat qui autorise le badge de l'aperçu tap-1 à en nommer une.
-  if (!gesteAuTestDArme(get, active, target, option)) return { kind: 'none' };
-  const plan = attackPlan(get, active, target, { reach: option.reach, forceMelee: option.forceMelee, weaponUid: option.weaponUid });
-  if (plan.kind === 'blocked') {
-    const p = previewAttack(get, active, target, undefined, { weaponUid: option.weaponUid });
-    return { kind: 'invalid', reason: p.blocked ? 'los' : p.kind === 'melee' && isEngaged(active) ? 'engaged' : 'range' };
-  }
-  // LE SURVOL N'AFFICHE QUE LE FAISABLE (contrat de ce fichier, arbitrage 2026-08-24) : un plan
-  // d'APPROCHE que la Charge n'a pas armé sera REFUSÉ au clic — l'affordance le déclare donc
-  // INVALIDE (aucun réticule, aucune carte), et c'est le clic qui dit le refus. MÊME prédicat qu'au
-  // commit (`gesteImpose` y compris) ; le survol, lui, est un rendu LOCAL : il lit l'intention du
-  // client sans passer par les args d'intent.
-  if (plan.kind !== 'attack' && !isFrenzied(active) && option.cost.action && !chargeArmee(get)) {
-    return { kind: 'invalid', reason: 'approche-non-armee' };
-  }
-  // Tir direct (pas une Charge/rejoindre, pas une attaque gratuite) refusé faute de ressource : MÊME
-  // prédicat que le clic (firedAttackBlock) → le réticule annonce « recharger »/« plus de munitions »
-  // au lieu d'une attaque qui se solderait par un log silencieux.
-  if (plan.kind === 'attack' && !option.freeKind) {
-    const block = firedAttackBlock(get, active, target, option.weaponUid);
-    if (block) return { kind: 'invalid', reason: block.reason };
-  }
+  // l'aperçu est calculé depuis la case d'ARRIVÉE. Seul geste dont la Difficulté se compose depuis une arme
+  // (`gesteAuTestDArme`, le prédicat du badge de l'aperçu tap-1).
+  if (!plan || plan.kind === 'blocked') return { kind: 'none' };
   // `option.weaponUid` ÉPINGLE l'arme du poste servi pour l'option DÉDIÉE « Servir » (jamais pour 'arme',
   // qui reste auto-choisie parmi les armes PERSONNELLES — `pickAttackWeaponList`/addendum « un intent, une entrée »).
   const p = apercuDuGeste(get, active, target, option, plan.kind === 'attack' ? undefined : plan.dest);
@@ -479,11 +509,11 @@ function dualAffordance(get: Get, _active: Combatant, target: Combatant): HoverT
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Commit COMBATTANT (clic-token) — corps DÉPLACÉS verbatim de battleClickEntity
+// Commit COMBATTANT (clic-token)
 // ───────────────────────────────────────────────────────────────────────────
 
-/** ATTAQUE : approche-puis-frappe — le SEUL exécuteur charge/moveAttack du jeu. Corps DÉPLACÉ verbatim
- *  de `battleClickEntity` (combatSlice) ; `active`/`id`/`opts` fournis par l'aiguilleur. */
+/** ATTAQUE : approche-puis-frappe — le SEUL exécuteur charge/moveAttack du jeu ; `active`/`id`/`opts`
+ *  fournis par l'aiguilleur (`battleClickEntity`). Lit `refusDAttaque` en tête. */
 function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, opts?: BattleClickOpts): void {
   const battle = get().battle;
   const scene = get().scene;
@@ -501,22 +531,12 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   const option = selectedAttackOption(active, battle);
   if (!option || !scene) return;
   if (target.kind === active.kind) return; // camp RELATIF : on ne frappe que le camp ADVERSE (soin/sort via leurs modes)
-  const horsDAgir = refusHorsDEtatDAgir(active) ?? refusVerrouDAction(active);
-  if (horsDAgir) { refuserGesteDuSiege(get, set, horsDAgir); return; }
-  // Frénésie (LDB 21 l.33) : la cible est IMPOSÉE — l'ennemi le plus proche en Ligne de Vue.
-  if (isFrenzied(active)) {
-    const ft = frenzyTarget(get, active);
-    if (ft && ft.id !== id) {
-      refuserGeste(get, set, t('cs.frenzyMustAttack', { name: active.label, foe: ft.label }));
-      if (battle.preview) set({ battle: { ...battle, preview: null } });
-      return;
-    }
-  }
-  // Aiguillage par NATURE de l'attaque : zone ciblée (Souffle/Vomi/Langue/Regard/Étreinte) →
-  // `pendingManeuver` ; la MÊLÉE (Arme + Morsure/Caudale/Tentacule/Piétinement) passe par
-  // l'approche-puis-frappe ci-dessous, sur une cible VALIDE pour la gratuite (`freeAttackTargetOk`).
-  if (option.freeKind && !freeAttackTargetOk(battle, active, option.freeKind, target)) {
-    refuserGeste(get, set, t('cs.refusCibleGratuite', { name: target.label, attaque: option.label }));
+  const plan = planDuGeste(get, active, target, option);
+  const refus = refusDAttaque(get, active, target, option, plan, { approche: !!opts?.approche });
+  if (refus) {
+    refuserGesteDuSiege(get, set, refus.texte);
+    if (battle.preview) set({ battle: { ...get().battle!, preview: null } });
+    bus.emit(EVT.SCENE_DIRTY);
     return;
   }
   // « Au Contact » (LDB 62 l.176) : action de Test opposé (pas une frappe) → flux dédié, jamais l'approche-puis-frappe.
@@ -528,50 +548,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     return;
   }
   // === MÊLÉE : approche-puis-frappe (le SEUL exécuteur charge/moveAttack du jeu) ===
-  const plan = attackPlan(get, active, target, { reach: option.reach, forceMelee: option.forceMelee, weaponUid: option.weaponUid });
-  // L'Action dépensée interdit le DÉPLACEMENT combiné pour une attaque qui COÛTE l'Action (Arme hors
-  // Frénésie) → frappe directe seulement. Une attaque GRATUITE (Morsure/Caudale/Tentacule, ou l'Arme en
-  // attaque libre de Frénésie → `cost.action===false`) PEUT s'approcher (charge) même l'Action dépensée
-  // (LDB 21 l.33).
-  const depensee = option.cost.action && plan.kind !== 'attack' ? refusActionDepensee(battle) : null;
-  if (depensee) { refuserGesteDuSiege(get, set, depensee); return; }
-  // CLIC-ENNEMI NU = ATTAQUE À PORTÉE SEULEMENT (spec HUD § ARBITRAGE 2026-08-19) : l'approche
-  // automatique vers la cible cliquée (Charge implicite / rejoindre-et-frapper) ne part plus toute
-  // seule — elle se DEMANDE, en armant la Charge (`opts.approche`). Sans elle, refus DIT. Ce gate ne
-  // vaut que pour ce chemin de CLIC : l'IA ne passe jamais par ici (elle exécute ses propres plans),
-  // sa parité d'approche est donc intacte.
-  //
-  // Il ne vise QUE le geste par DÉFAUT du clic nu, et s'efface donc devant deux NATURES de geste qui
-  // ne sont pas un choix du joueur (jamais un id nommé ici — la nature seule décide) :
-  //  - un déplacement OBLIGATOIRE : la Frénésie (LDB 21 l.33) — ce que la règle IMPOSE ne s'arme pas ;
-  //  - une attaque GRATUITE (`cost.action === false` : Morsure/Caudale/Tentacule, ou l'Arme en attaque
-  //    libre) : elle ne consomme pas l'Action et porte SA propre approche, celle que la ligne
-  //    ci-dessus autorise déjà même l'Action dépensée.
-  const gesteImpose = isFrenzied(active) || !option.cost.action;
-  if (plan.kind !== 'attack' && plan.kind !== 'blocked' && !opts?.approche && !gesteImpose) {
-    refuserGeste(get, set, t('cs.refusApprocheNonArmee', { name: target.label }));
-    if (battle.preview) set({ battle: { ...get().battle!, preview: null } }); // l'aperçu du geste refusé s'efface, comme aux autres refus
-    return;
-  }
-  if (plan.kind === 'blocked') {
-    refuserGeste(get, set, plan.reason); // « hors de portée », « pas de ligne de vue »… : VISIBLE (spec § 2026-08-19)
-    if (battle.preview) set({ battle: { ...battle, preview: null } });
-    bus.emit(EVT.SCENE_DIRTY);
-    return;
-  }
-  // Tir refusé faute de RESSOURCE (arme à Recharge non chargée / plus de munition) : on coupe AVANT
-  // l'aperçu (tap-1) pour que l'affordance ne mente pas — même prédicat que le réticule au survol
-  // (firedAttackBlock). Concerne UNIQUEMENT l'attaque directe (plan 'attack') avec l'arme tenue : une
-  // Charge/rejoindre (mêlée) ou une attaque gratuite (freeKind) n'emploie jamais l'arme à distance.
-  if (plan.kind === 'attack' && !option.freeKind) {
-    const block = firedAttackBlock(get, active, target, option.weaponUid);
-    if (block) {
-      refuserGeste(get, set, block.detail); // même loi de visibilité : ce refus est celui d'un clic
-      if (battle.preview) set({ battle: { ...battle, preview: null } });
-      bus.emit(EVT.SCENE_DIRTY);
-      return;
-    }
-  }
+  if (!plan || plan.kind === 'blocked') return;
   // Tap 1 : APERÇU — sauf confirmation (tests), ré-entrée du choix cavalier/monture,
   // ou re-tap de la même cible avec le même plan.
   const prev = battle.preview;
@@ -675,10 +652,9 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       const battleNow = get().battle!;
       const w = pickAttackWeapon(battleNow, active, target, option.weaponUid);
       if (w.type === 'melee' && combatDistance(attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w)) {
-        get().log(t('cs.meleeOutOfRange')); // aucune arme à distance dispo → mêlée hors de portée
+        refuserGesteDuSiege(get, set, t('cs.meleeOutOfRange')); // aucune arme à distance dispo → mêlée hors de portée
         return;
       }
-      // Le gate de RESSOURCE (Recharge/munition) a déjà été appliqué plus haut (firedAttackBlock).
       pa = { attackerId: active.id, targetId: target.id, location: null, result: null, ...(option.weaponUid ? { weaponUid: option.weaponUid } : {}) };
     }
   }
@@ -700,7 +676,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
 }
 
 /** CAST : un token n'est pas une cible de ZONE (la zone se pose après le jet) → modale ; sinon
- *  l'incantation vise l'allié/ennemi/soi. Corps DÉPLACÉ verbatim de battleClickEntity. */
+ *  l'incantation vise l'allié/ennemi/soi. */
 function castClickCommit(get: Get, set: Set, active: Combatant, id: string): void {
   const battle = get().battle;
   if (!battle || !battle.selectedSpellId) return;
@@ -719,11 +695,11 @@ function castClickCommit(get: Get, set: Set, active: Combatant, id: string): voi
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Commit CASE (clic-sol) — corps DÉPLACÉS verbatim de battleClickTile
+// Commit CASE (clic-sol)
 // ───────────────────────────────────────────────────────────────────────────
 
 /** TÉLÉPORTATION (Jalon 2.6 — sort « Téléportation », LDB 47) : le lanceur choisit sa case d'arrivée
- *  parmi les cases en surbrillance (survol des obstacles). Corps DÉPLACÉ verbatim de battleClickTile. */
+ *  parmi les cases en surbrillance (survol des obstacles). */
 function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
   const battle = get().battle;
   if (!battle) return;
@@ -782,7 +758,7 @@ function pushCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
 }
 
 /** Sort de ZONE sélectionné : le clic-case OUVRE la modale — le centre se choisit APRÈS le jet.
- *  Sort non-zone : clic-sol sans effet en mode cast. Corps DÉPLACÉ verbatim de battleClickTile. */
+ *  Sort non-zone : clic-sol sans effet en mode cast. */
 function castCommitTile(get: Get, set: Set, active: Combatant, _pt: Pt): void {
   const battle = get().battle;
   if (battle && battle.action === 'cast' && battle.selectedSpellId && !battle.acted && !get().pendingCast) {
@@ -800,7 +776,9 @@ function placingCommitCombatant(get: Get, _set: Set, _active: Combatant, id: str
 // Les MODES (objets statiques) + l'aiguilleur
 // ───────────────────────────────────────────────────────────────────────────
 
-const ATTACK_MODE: TargetingMode = { id: 'attack', affordance: attackAffordance, commitCombatant: attackClickCommit };
+/** Mode ATTAQUE (mode neutre) — exporté pour son IDENTITÉ, comme `CAST_MODE` : les anneaux de cibles du
+ *  mode neutre se peignent quand c'est LUI qui tient le ciblage (`gameIso/stage/highlightLayer`). */
+export const ATTACK_MODE: TargetingMode = { id: 'attack', affordance: attackAffordance, commitCombatant: attackClickCommit };
 /** Mode INCANTATION — exporté parce que son IDENTITÉ est ce que `battle.action` porte quand le geste
  *  est armé : tout consommateur qui demande « le mode incantation est-il armé ? » compare à CE mode
  *  (`CAST_MODE.id`). L'entrée du registre d'actions qui l'arme (`armed`) est libre de son propre id. */

@@ -44,7 +44,7 @@ import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusDuLanceurDeFiche, refuseSi } from './verrousDeFiche';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest } from './combatEffects';
 import type { MovementBlockReason } from './combatFlow';
-import { t, type MsgKey } from '../i18n';
+import { t } from '../i18n';
 import { combatValue, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, backstabWeapon, attackHandGate, issueAuJet, coupAApplique, type DefenseMode } from '../engine/combat';
 import { disengageFrom, isEngaged, setContact, clearContact, meleeReachRank } from '../engine/engagement';
 import { areGrappling, clearGrapple } from '../engine/grapple';
@@ -374,10 +374,12 @@ function rollAllOwnedRows(
  *  ABSENTES sont des verrous structurels (pas de combat/scène, ciblage armé, tour d'un autre joueur,
  *  Engagement — routé vers le Désengagement avant d'arriver ici) : elles ne répondent à aucun geste, et
  *  ne disent donc rien. */
-const REFUS_DEPLACEMENT: Partial<Record<MovementBlockReason, MsgKey>> = {
-  'out-of-range': 'cs.refusCaseHorsPortee',
-  'movement-spent': 'cs.refusMouvementEpuise',
-  'no-path': 'cs.refusAucunChemin',
+const REFUS_DEPLACEMENT: Partial<Record<MovementBlockReason, (get: Get, active: Combatant) => string>> = {
+  'out-of-range': () => t('cs.refusCaseHorsPortee'),
+  'movement-spent': () => t('cs.refusMouvementEpuise'),
+  'no-path': () => t('cs.refusAucunChemin'),
+  'course-non-armee': () => t('cs.refusCourseNonArmee'),
+  'frenesie-eloigne': (get, active) => t('cs.frenzyMustCharge', { name: active.label, foe: garanti(frenzyTarget(get, active), active.id, 'cible de Frénésie').label }),
 };
 
 /**
@@ -953,14 +955,14 @@ export function createCombatSlice(get: Get, set: Set) {
         return;
       }
       const dest = pt;
-      const movement = resolveMovement(get, dest);
+      const movement = resolveMovement(get, dest, { courseArmee: courseDemandee });
       if (movement.status === 'blocked') {
         // Le clic-sol REFUSÉ le DIT (modèle de gestes 2026-08-19 ; le survol, lui, ne peint plus rien sur
         // une case injouable — arbitrage 2026-08-24). Seules les raisons qui répondent à un GESTE du
         // joueur parlent : les verrous structurels (pas de combat, ciblage armé, tour d'autrui) ne sont
         // pas des refus, ils n'ont rien à dire. Table locale à UN consommateur (ce site est le clic-sol).
         const dit = REFUS_DEPLACEMENT[movement.reason];
-        if (dit) refuserGeste(get, set, t(dit));
+        if (dit) refuserGeste(get, set, dit(get, active));
         get().battleClearPreview();
         return;
       }
@@ -968,33 +970,16 @@ export function createCombatSlice(get: Get, set: Set) {
       // `battleClickTile` re-résout l'escalier ; le contrôle, lui, porte sur la destination réelle (`dest`).
       const fearGateBlocks = (): boolean =>
         retenuParLaPeur(get, set, active, dest, { kind: 'tile', pt: { ...pt }, courseArmee: courseDemandee });
-      // Frénésie (LDB 21 l.33) : « vous devez vous déplacer à votre maximum en direction de l'ennemi
-      // le plus proche dans votre Ligne de Vue » → seules les cases qui RAPPROCHENT de cette cible.
-      const frenzyBlocks = (): boolean => {
-        if (!isFrenzied(active)) return false;
-        const ft = frenzyTarget(get, active);
-        if (!ft?.pos || chebyshev(dest, ft.pos) < chebyshev(active.pos!, ft.pos)) return false;
-        refuserGeste(get, set, t('cs.frenzyMustCharge', { name: active.label, foe: ft.label }));
-        return true;
-      };
       const geom = mountOf(battle, active) ?? active;
       const prev = battle.preview;
       if (movement.kind === 'run') {
-        // COURSE À ARMER (spec HUD § ARBITRAGE 2026-08-19, école BG3) : au-delà de la Marche, le champ
-        // ne court plus tout seul — sans la case Course armée, le clic est REFUSÉ, et le refus se DIT
-        // (bandeau d'annonce, `noyau/refusVisible`). L'intention armée reste armée : c'est le refus
-        // qui informe, pas une punition.
-        // EXEMPTION par NATURE : la Frénésie IMPOSE la course vers l'ennemi (LDB 21 l.33, verbatim
-        // « la seule Action possible est un Test de Capacité de Combat ou un Test d'Athlétisme pour
-        // atteindre votre ennemi le plus rapidement possible ») — ce que la règle impose ne s'arme pas.
-        if (!courseDemandee && !isFrenzied(active)) return void refuserGeste(get, set, t('cs.refusCourseNonArmee'));
         // Zone de Course : tap 1 = aperçu « Courir » ; tap 2 = Test de `course` (pendingRun + destination).
         if (!clickOpts?.confirm && !(prev?.kind === 'run' && prev.path === movement.path)) {
           set({ battle: { ...battle, preview: { kind: 'run', tile: { ...dest }, path: movement.path, cost: movement.cost } } });
           bus.emit(EVT.SCENE_DIRTY);
           return;
         }
-        if (fearGateBlocks() || frenzyBlocks()) return;
+        if (fearGateBlocks()) return;
         get().battleRun({ ...dest }, { path: movement.path, cost: movement.cost });
         return;
       }
@@ -1005,7 +990,7 @@ export function createCombatSlice(get: Get, set: Set) {
         return;
       }
       // Tap 2 : COMMIT.
-      if (fearGateBlocks() || frenzyBlocks()) return;
+      if (fearGateBlocks()) return;
       // Annulation (R6/LOT 6) : au PREMIER segment du Tour (movementUsed === 0), on capture l'état
       // positionnel AVANT de bouger, pour pouvoir tout annuler tant qu'aucune Action n'a été prise.
       const snapshot =
