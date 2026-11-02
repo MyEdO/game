@@ -4,16 +4,19 @@
  * de combat. Le pendant `kind:'entity'` (PNJ authoré) vit dans `combat-entity-reconcile.hors-store.test.ts` ; le
  * volet persistance (save/reload, élagage au chargement) dans `seating-persistence`/`sceneInstance`.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame } from './store';
-import { emptyScene, type Scene, type SceneEntity } from '../noyau/monde/scene';
-import { seatPoseOf, type SeatOccupant } from '../noyau/monde/seating';
-import { notifySlain, releaseSeatsOfDowned } from '../noyau/combatFlow';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { emptyScene, type Scene, type SceneEntity } from './monde/scene';
+import { seatPoseOf, type SeatOccupant } from './monde/seating';
+import { notifySlain, releaseSeatsOfDowned } from './combatFlow';
 import { TIME_COST } from '../engine/timeCost';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
@@ -23,7 +26,7 @@ const hero = (id: string): Combatant =>
   combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
 const place = (rang: number): SeatOccupant => ({ kind: 'party', rang });
-const poseDe = (rang: number) => seatPoseOf(useGame.getState().scene!, place(rang));
+const poseDe = (rang: number) => seatPoseOf(banc.getState().scene!, place(rang));
 
 function scèneDeTaverne(id: string): Scene {
   const s = emptyScene('scene-test', 12, 12);
@@ -34,40 +37,40 @@ function scèneDeTaverne(id: string): Scene {
 
 /** Assoit `party[0]` à la place « nord » par le geste RÉEL (`interactEntity`), jamais à la main. */
 function meneurAssis(party: Combatant[], sceneId = 'taverne'): void {
-  useGame.setState({ party, scene: null, mode: 'exploration', journal: [], battle: null, dialogue: null });
-  useGame.getState().startScene(scèneDeTaverne(sceneId));
-  useGame.setState({ partyPos: { ...ABORD_NORD } });
-  useGame.getState().interactEntity(PROP);
+  banc.setState({ party, scene: null, mode: 'exploration', journal: [], battle: null, dialogue: null });
+  banc.getState().startScene(scèneDeTaverne(sceneId));
+  banc.setState({ partyPos: { ...ABORD_NORD } });
+  banc.getState().interactEntity(PROP);
 }
 
 describe('composition du groupe — le corps qui sort quitte sa place', () => {
   it('party[0] REMPLACÉ : l’ancien meneur ne garde pas sa chaise', () => {
     meneurAssis([hero('h'), hero('b')]);
     expect(poseDe(1)).not.toBeNull();
-    useGame.getState().partyReplaceHero('h', hero('neuf'));
+    banc.getState().partyReplaceHero('h', hero('neuf'));
     expect(poseDe(1)).toBeNull(); // l'emplacement 1 est vide : ni l'ancien ni le remplaçant ne l'occupe
-    expect(useGame.getState().scene!.seatAssignments).toEqual({});
+    expect(banc.getState().scene!.seatAssignments).toEqual({});
   });
 
   it('un remplacement À MÊME ID (édition en place) ne fait PAS lever le meneur', () => {
     meneurAssis([hero('h')]);
-    useGame.getState().partyReplaceHero('h', { ...hero('h'), label: 'Retouché' } as Combatant);
+    banc.getState().partyReplaceHero('h', { ...hero('h'), label: 'Retouché' } as Combatant);
     expect(poseDe(1)).toMatchObject({ slotId: 'place-1' });
   });
 
   it('héros RETIRÉ du groupe : sa place est rendue', () => {
     meneurAssis([hero('h'), hero('b')]);
-    useGame.getState().partyRemoveHero('h');
+    banc.getState().partyRemoveHero('h');
     expect(poseDe(1)).toBeNull();
-    expect(useGame.getState().scene!.seatAssignments).toEqual({});
+    expect(banc.getState().scene!.seatAssignments).toEqual({});
   });
 
   it('retirer un AUTRE héros ne touche pas la place du meneur, ni la référence de scène', () => {
     meneurAssis([hero('h'), hero('b')]);
-    const avant = useGame.getState().scene!;
-    useGame.getState().partyRemoveHero('b');
+    const avant = banc.getState().scene!;
+    banc.getState().partyRemoveHero('b');
     expect(poseDe(1)).toMatchObject({ slotId: 'place-1' });
-    expect(useGame.getState().scene).toBe(avant); // aucune écriture inutile
+    expect(banc.getState().scene).toBe(avant); // aucune écriture inutile
   });
 });
 
@@ -77,18 +80,18 @@ describe('transition de scène — une scène quittée ne garde pas un héros ab
     const b = emptyScene('scene-test', 8, 8);
     b.id = 'scene-b';
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
-    useGame.setState({ party: [hero('h')], battle: null, journal: [] });
-    useGame.getState().loadProject({ scenes: [a, b], entryId: 'scene-a', projet: null });
-    useGame.setState({ partyPos: { ...ABORD_NORD } });
-    useGame.getState().interactEntity(PROP);
+    banc.setState({ party: [hero('h')], battle: null, journal: [] });
+    banc.getState().loadProject({ scenes: [a, b], entryId: 'scene-a', projet: null });
+    banc.setState({ partyPos: { ...ABORD_NORD } });
+    banc.getState().interactEntity(PROP);
     expect(poseDe(1)).not.toBeNull();
 
-    useGame.getState().transitionTo('scene-b');
-    expect(useGame.getState().scene!.id).toBe('scene-b');
+    banc.getState().transitionTo('scene-b');
+    expect(banc.getState().scene!.id).toBe('scene-b');
     // Retour : la scène quittée a été capturée SANS le meneur assis.
-    useGame.getState().transitionTo('scene-a');
+    banc.getState().transitionTo('scene-a');
     expect(poseDe(1)).toBeNull();
-    expect(useGame.getState().scene!.seatAssignments).toEqual({});
+    expect(banc.getState().scene!.seatAssignments).toEqual({});
   });
 });
 
@@ -106,64 +109,61 @@ describe('mort / indisponibilité d’un occupant', () => {
     ]) {
       meneurAssis([hero('h')]);
       expect(poseDe(1)).not.toBeNull();
-      useGame.setState((s) => ({ party: s.party.map((x) => (x.id === 'h' ? tuer(x) : x)) }));
-      releaseSeatsOfDowned(useGame.getState, useGame.setState);
+      banc.setState((s) => ({ party: s.party.map((x) => (x.id === 'h' ? tuer(x) : x)) }));
+      releaseSeatsOfDowned(banc.getState, banc.setState);
       expect(poseDe(1)).toBeNull();
-      expect(useGame.getState().scene!.seatAssignments).toEqual({});
+      expect(banc.getState().scene!.seatAssignments).toEqual({});
     }
   });
 
   it('un héros VIVANT et debout garde sa place, et la scène n’est pas réécrite', () => {
     meneurAssis([hero('h')]);
-    const avant = useGame.getState().scene!;
-    releaseSeatsOfDowned(useGame.getState, useGame.setState);
+    const avant = banc.getState().scene!;
+    releaseSeatsOfDowned(banc.getState, banc.setState);
     expect(poseDe(1)).toMatchObject({ slotId: 'place-1' });
-    expect(useGame.getState().scene).toBe(avant);
+    expect(banc.getState().scene).toBe(avant);
   });
 
   it('l’AGONIE hors combat (advanceTime) déclenche la libération', () => {
     meneurAssis([hero('h')]);
-    useGame.setState((s) => ({ party: s.party.map((x) => ({ ...x, dead: true })), battle: null }));
-    useGame.getState().advanceTime(TIME_COST.combatRound);
+    banc.setState((s) => ({ party: s.party.map((x) => ({ ...x, dead: true })), battle: null }));
+    banc.getState().advanceTime(TIME_COST.combatRound);
     expect(poseDe(1)).toBeNull();
   });
 
   it('un PNJ attablé mis hors de combat libère sa place par `notifySlain`', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    useGame.setState({ party: [h], battle: null, journal: [] });
-    useGame.getState().startScene(testScene());
-    const sc = useGame.getState().scene!;
+    banc.setState({ party: [h], battle: null, journal: [] });
+    banc.getState().startScene(testScene());
+    const sc = banc.getState().scene!;
     const badaud: SceneEntity = { id: 'badaud', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 4 } };
     const entities: SceneEntity[] = [...sc.entities, { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } }, badaud];
     const occupant: SeatOccupant = { kind: 'entity', entityId: 'badaud' };
-    useGame.setState({ scene: { ...sc, entities, seatAssignments: { [PROP]: { 'place-1': occupant } } } });
-    expect(seatPoseOf(useGame.getState().scene!, occupant)).not.toBeNull();
+    banc.setState({ scene: { ...sc, entities, seatAssignments: { [PROP]: { 'place-1': occupant } } } });
+    expect(seatPoseOf(banc.getState().scene!, occupant)).not.toBeNull();
 
     // Le badaud est enrôlé au combat en cours et tombe : `notifySlain` acte la mise hors de combat.
     const mort = combattantDeTest({ id: 'badaud', label: 'Badaud', kind: 'enemy', wounds: blessuresDeBase(8, 0), conditions: [], dead: true });
-    useGame.setState({ battle: { combatants: [mort], log: [], order: ['badaud'], turn: 0, round: 1 } as never });
-    notifySlain(useGame.getState, useGame.setState, mort);
-    expect(seatPoseOf(useGame.getState().scene!, occupant)).toBeNull();
+    banc.setState({ battle: { combatants: [mort], log: [], order: ['badaud'], turn: 0, round: 1 } as never });
+    notifySlain(banc.getState, banc.setState, mort);
+    expect(seatPoseOf(banc.getState().scene!, occupant)).toBeNull();
   });
 });
 
 describe('ouverture de combat — le MENEUR assis se lève avec les autres enrôlés', () => {
-  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
-
   it('sa place est libérée dans l’écriture de pose du combat', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    useGame.setState({ party: [h], battle: null });
-    useGame.getState().startScene(testScene());
-    const sc = useGame.getState().scene!;
+    banc.setState({ party: [h], battle: null });
+    banc.getState().startScene(testScene());
+    const sc = banc.getState().scene!;
     // Table au NORD du groupe, cap `N` : son abord SUD est exactement la case du groupe.
-    const table = { x: useGame.getState().partyPos.x, y: useGame.getState().partyPos.y - 1 };
+    const table = { x: banc.getState().partyPos.x, y: banc.getState().partyPos.y - 1 };
     const entities: SceneEntity[] = [...sc.entities, { id: PROP, kind: 'prop', pos: table, ref: TABLE, facing: 'N', usable: { assise: true } }];
-    useGame.setState({ scene: { ...sc, entities } });
-    useGame.getState().interactEntity(PROP);
+    banc.setState({ scene: { ...sc, entities } });
+    banc.getState().interactEntity(PROP);
     expect(poseDe(1)).toMatchObject({ slotId: 'place-3' });
 
-    useGame.getState().startCombat('enc-mutants');
+    banc.getState().startCombat('enc-mutants');
     expect(poseDe(1)).toBeNull();
   });
 });

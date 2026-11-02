@@ -3,18 +3,20 @@
  * la journée AVANT son reste (MDG 12 l.326-328) ; le pilote immédiat n'en clôt pas le jour en
  * parallèle : la journée se clôt UNE fois, à la reprise par la sauvegarde (`steamSaveConfirm`).
  */
-import { describe, it, expect, vi } from 'vitest';
-import { useGame } from './store';
+import { describe, it, beforeEach, expect, vi } from 'vitest';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
-import { emptyScene } from '../noyau/monde/scene';
-import { seedBattleRng } from '../noyau/battleRng';
-import { buildSeaPlan, runSeaDay } from '../noyau/seaVoyageFlow';
+import { emptyScene } from './monde/scene';
+import { seedBattleRng } from './battleRng';
+import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
-import type { WorldMap } from '../noyau/worldMap';
+import type { WorldMap } from './worldMap';
 
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const get = useGame.getState.bind(useGame);
-const set = useGame.setState.bind(useGame);
+const get = () => banc.getState();
+const set: Banc['setState'] = (e) => banc.setState(e);
 const seaMap: WorldMap = {
   id: 'm', label: 'Mer des Griffes',
   places: [
@@ -40,7 +42,7 @@ describe('#1595 — Fuite de vapeur sous ordres : un seul dénouement de la jour
     } as never);
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'commande' })! });
     const halte = vi.fn();
-    const unsub = useGame.subscribe((s, prev) => { if (s.pendingRest && !prev.pendingRest) halte(); });
+    const unsub = banc.subscribe((s, prev) => { if (s.pendingRest && !prev.pendingRest) halte(); });
     runSeaDay(get, set);
     const save = get().pendingSteamSave;
     expect(save, 'la Fuite de vapeur a ouvert sa sauvegarde').toBeTruthy();

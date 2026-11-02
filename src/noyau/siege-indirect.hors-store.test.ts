@@ -1,15 +1,18 @@
-import { describe, it, expect } from 'vitest';
-import { applyShipPostes } from '../noyau/monde/shipPostes';
-import { availableAttacks } from '../noyau/combatManeuvers';
-import { resolveWeaponArea, areaTargets, type AreaHit } from '../noyau/combatArea';
+import { describe, it, beforeEach, expect } from 'vitest';
+import { applyShipPostes } from './monde/shipPostes';
+import { availableAttacks } from './combatManeuvers';
+import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
 import { mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engine/items';
-import { seedBattleRng } from '../noyau/battleRng';
-import { useGame } from './store';
+import { seedBattleRng } from './battleRng';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';
-import type { Scene } from '../noyau/monde/scene';
-import type { BattleState } from '../noyau/etat';
+import type { Scene } from './monde/scene';
+import type { BattleState } from './etat';
 import { desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+
+let banc: Banc;
+beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * PILONNAGE INDIRECT (« Viser une CASE ») — AA 10 l.169-171 / ADE II : une pièce à TIR INDIRECT (mortier,
@@ -17,7 +20,7 @@ import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.te
  * sol (pas forcément un combattant) ; son Atout Explosion/Tir de zone frappe alors qui se trouve dans le
  * rayon AUTOUR de cette case. RÉUTILISE le résolveur d'aire UNIQUE `resolveWeaponArea` (partagé avec le tir
  * direct ET la bordée navale) via un CENTRE optionnel (`AreaHit.center`) — strictement additif : le tir
- * direct (centre absent → position de la primaire) reste byte-identique (cf. siege-emplacement.test cas E).
+ * direct (centre absent → position de la primaire) reste byte-identique (cf. siege-emplacement.hors-store.test cas E).
  *
  * Le tir INDIRECT est marqué par un FLAG DONNÉE (`trappings.json` → `indirect:true`, propagé Trapping →
  * ItemInstance → Weapon), PAS par une liste en dur. Les canons restent du tir DIRECT (inchangés).
@@ -76,9 +79,9 @@ describe('(a) Viser une CASE VIDE entourée — toutes les cibles du rayon subis
     const e3 = mkEnemy('e3', 12, 0); // 2 cases
     const far = mkEnemy('far', 14, 0); // 4 cases > rayon → indemne
     const combatants = [chef, e1, e2, e3, far];
-    useGame.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never, scene: groundScene() as never, party: [], facing: {}, pendingShipBattery: null });
-    const get = () => useGame.getState();
-    const set = ((p: never) => useGame.setState(p)) as never;
+    banc.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never, scene: groundScene() as never, party: [], facing: {}, pendingShipBattery: null });
+    const get = () => banc.getState();
+    const set = ((p: never) => banc.setState(p)) as never;
 
     const w1 = e1.wounds.current, w2 = e2.wounds.current, w3 = e3.wounds.current, wf = far.wounds.current;
     const hit: AreaHit = { attacker: chef, weapon: w, damage: 12, location: 'corps', distanceTiles: 10, center };
@@ -99,9 +102,9 @@ describe('(b) Viser une case déserte — aucune victime, pas de crash', () => {
     const w = mortarWithBomb(chef);
     const far = mkEnemy('far', 14, 0);
     const combatants = [chef, far];
-    useGame.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never, scene: groundScene() as never, party: [], facing: {}, pendingShipBattery: null });
-    const get = () => useGame.getState();
-    const set = ((p: never) => useGame.setState(p)) as never;
+    banc.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never, scene: groundScene() as never, party: [], facing: {}, pendingShipBattery: null });
+    const get = () => banc.getState();
+    const set = ((p: never) => banc.setState(p)) as never;
 
     const wf = far.wounds.current;
     const hit: AreaHit = { attacker: chef, weapon: w, damage: 12, location: 'corps', distanceTiles: 30, center: { x: 30, y: 30 } };
@@ -122,9 +125,9 @@ describe('(c) Non-régression tir direct — centre absent ⇒ aire centrée sur
     const b = mkEnemy('b', 12, 0); // 2 cases ≤ rayon
     const far = mkEnemy('far', 14, 0); // 4 cases > rayon
     const combatants = [chef, cible, a, b, far];
-    useGame.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never, scene: groundScene() as never, party: [], facing: {}, pendingShipBattery: null });
-    const get = () => useGame.getState();
-    const set = ((p: never) => useGame.setState(p)) as never;
+    banc.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never, scene: groundScene() as never, party: [], facing: {}, pendingShipBattery: null });
+    const get = () => banc.getState();
+    const set = ((p: never) => banc.setState(p)) as never;
 
     const wa = a.wounds.current, wb = b.wounds.current, wf = far.wounds.current;
     const hit: AreaHit = { attacker: chef, primaryTarget: cible, weapon: w, damage: 12, location: 'corps', distanceTiles: 10 };
@@ -184,33 +187,33 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
     const far = mkEnemy('far', 20, 0); // hors rayon (10 cases du point d'impact)
     const all = [mkEmplacement(poste, { x: 0, y: 1 }), gunner, e1, e2, far];
     applyShipPostes(all);
-    useGame.setState({
+    banc.setState({
       battle: { combatants: all, order: all.map((c) => c.id), turn: all.findIndex((c) => c.id === 'gunner'), round: 1, acted: false, log: [], crewActed: {}, zones: [] } as never,
       party: [gunner], facing: {}, scene: groundScene() as never, pendingSiegeAim: null, pendingAttack: null, pendingCascade: null,
     });
 
     // 1) ARMER « Servir le mortier » → placeur de CASE ouvert (rayon de l'Explosion).
-    useGame.getState().battleSelectAttack('poste');
-    const sa = useGame.getState().pendingSiegeAim;
+    banc.getState().battleSelectAttack('poste');
+    const sa = banc.getState().pendingSiegeAim;
     expect(sa).toBeTruthy();
     expect(sa!.radius).toBeGreaterThan(0);
 
     // 2) VISER une case VIDE entre les ennemis → modale de tir (pendingAttack siège, cible-repère = plus proche).
-    useGame.getState().siegeAimCommit({ x: 10, y: 0 });
-    const pa = useGame.getState().pendingAttack;
+    banc.getState().siegeAimCommit({ x: 10, y: 0 });
+    const pa = banc.getState().pendingAttack;
     expect(pa).toBeTruthy();
     expect(pa!.siege).toBe(true);
     expect(pa!.center).toEqual({ x: 10, y: 0 });
-    expect(useGame.getState().pendingSiegeAim).toBeNull(); // placeur refermé
+    expect(banc.getState().pendingSiegeAim).toBeNull(); // placeur refermé
 
     // 3) RÉSOLUTION : le jet de tir (normal) puis l'Appliquer DÉTONENT sur la case → rayon blessé, hors rayon indemne.
     const w1 = e1.wounds.current, w2 = e2.wounds.current, wf = far.wounds.current;
-    useGame.getState().attackRoll();
-    useGame.getState().attackConfirm();
+    banc.getState().attackRoll();
+    banc.getState().attackConfirm();
     expect(e1.wounds.current).toBeLessThan(w1);
     expect(e2.wounds.current).toBeLessThan(w2);
     expect(far.wounds.current).toBe(wf);
-    expect(useGame.getState().battle!.acted).toBe(true); // Action consommée
+    expect(banc.getState().battle!.acted).toBe(true); // Action consommée
   });
 
   it('viser une case déserte (aucun ennemi dans le rayon) → pas de modale, pas de crash', () => {
@@ -221,12 +224,12 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
     const far = mkEnemy('far', 30, 30);
     const all = [mkEmplacement(poste, { x: 0, y: 1 }), gunner, far];
     applyShipPostes(all);
-    useGame.setState({
+    banc.setState({
       battle: { combatants: all, order: all.map((c) => c.id), turn: all.findIndex((c) => c.id === 'gunner'), round: 1, acted: false, log: [], crewActed: {}, zones: [] } as never,
       party: [gunner], facing: {}, scene: groundScene() as never, pendingSiegeAim: { gunnerId: 'gunner', weaponUid: gunner.weapons.find((w) => w.uid === poste.item.uid)!.uid!, radius: 3, rangeTiles: null }, pendingAttack: null, pendingCascade: null,
     });
-    expect(() => useGame.getState().siegeAimCommit({ x: 10, y: 0 })).not.toThrow();
-    expect(useGame.getState().pendingAttack).toBeNull(); // tir à vide → aucune modale ouverte
+    expect(() => banc.getState().siegeAimCommit({ x: 10, y: 0 })).not.toThrow();
+    expect(banc.getState().pendingAttack).toBeNull(); // tir à vide → aucune modale ouverte
     expect(far.wounds.current).toBe(far.wounds.max);
   });
 });
