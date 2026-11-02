@@ -404,7 +404,7 @@ describe('useHoverTargeting — grisage hors-LdV du SORT', () => {
     root = null;
   });
 
-  /** Arène 20×8, MUR vertical en x=10 percé d'une brèche en y=0 (même gabarit que `cast-los.test.ts`). */
+  /** Arène 20×8, MUR vertical en x=10 percé d'une brèche en y=0 (même gabarit que `cast-los.hors-store.test.ts`). */
   function murScene() {
     const w = 20, h = 8;
     const tiles: string[] = new Array(w * h).fill('herbe');

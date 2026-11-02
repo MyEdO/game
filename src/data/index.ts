@@ -2943,7 +2943,7 @@ export const stars = starsJson as StarData[];
  *  narrative du thème astral (flavor pur, aucun effet mécanique). `rand` = borne haute du 1d10. */
 export const celestialHouses = astrologyJson as CelestialHouseData[];
 /** Apparences d'espèce (app-owned, éditable) — lues par le Codex (`ui/compendium/registry.ts`), la
- *  garde-robe (`schemas/defs/garde-robe.ts`, `race`) et `scripts/personnage-3d/base/declaration.mjs`. */
+ *  composition (`noyau/apparence/composition.ts`) et `scripts/personnage-3d/base/`. */
 export const raceAppearance = raceAppearanceJson as RaceAppearanceData[];
 export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 /** Carrures (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */

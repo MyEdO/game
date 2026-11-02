@@ -131,6 +131,24 @@ describe('banc du noyau : les gestes de l’horloge, ceux des minuteurs factices
     expect([journal, enAttente(tard), banc.enAttente()]).toEqual([['premier', 'tard', 'tot'], false, 0]);
   });
 
+  it('`jusquA(cond)` reprend échéance par échéance et s’arrête dès que `cond` est vrai sur l’état', () => {
+    const banc = ouvrirLeBanc();
+    for (const t of [1, 2, 3]) programmer(() => banc.setState({ gameTime: t }), t * 10);
+    expect(banc.jusquA((s) => s.gameTime === 2)).toBe(2);
+    expect([banc.getState().gameTime, banc.enAttente()]).toEqual([2, 1]);
+    expect(banc.jusquA((s) => s.gameTime === 2), 'déjà vrai : aucun pas').toBe(0);
+  });
+
+  it('`jusquA(cond, max)` s’arrête quand aucun jeton n’attend, ou à `max` pas', () => {
+    const banc = ouvrirLeBanc();
+    const journal: string[] = [];
+    planifier(journal, 'a', 5, [['a1', 5]]);
+    expect([banc.jusquA(() => false), journal, banc.enAttente()]).toEqual([2, ['a', 'a1'], 0]);
+    const relance = (): void => { journal.push('r'); programmer(relance, 1); };
+    programmer(relance, 1);
+    expect([banc.jusquA(() => false, 3), banc.enAttente()]).toEqual([3, 1]);
+  });
+
   it('`abandonner()` retire chaque jeton sans le reprendre, à l’horloge et à la plateforme', () => {
     const banc = ouvrirLeBanc();
     const journal: string[] = [];

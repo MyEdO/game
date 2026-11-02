@@ -41,14 +41,15 @@ async function main() {
   const [{ anneauxArticulaires, sectionsDeRepos, anneauLePlusEpais }, { INFLUENCES_MAX }] = await Promise.all([
     chargerEvaluateur('gardes/silhouettes.ts'), chargerEvaluateur('gardes/poids.ts')])
   const skeleton = squelette(os)
-  const anneaux = anneauxArticulaires(corps.map((c) => maillage(c, skeleton, INFLUENCES_MAX)))
+  const maillages = corps.map((c) => maillage(c, skeleton, INFLUENCES_MAX))
+  const anneaux = anneauxArticulaires(maillages)
   const repos = {
-    positions: new Map(corps.map((c) => [c.nom, Float32Array.from(c.positions)])),
+    positions: new Map(maillages.map((m, i) => [m, Float32Array.from(corps[i].positions)])),
     os: new Map(os.map(({ nom, matrice }) => [nom, new Matrix4().fromArray(matrice)])),
   }
   const sections = sectionsDeRepos(anneaux, repos)
   process.stdout.write(JSON.stringify({
-    anneaux: anneaux.map((a, i) => ({ ...a, ...sections[i] })),
+    anneaux: anneaux.map((a, i) => ({ ...a, sommets: a.sommets.map(({ mesh, indice }) => ({ mesh: mesh.name, indice })), ...sections[i] })),
     lePlusEpais: anneaux.length ? anneauLePlusEpais(sections) : null,
   }))
 }

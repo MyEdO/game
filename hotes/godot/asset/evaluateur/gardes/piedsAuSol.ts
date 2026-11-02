@@ -3,6 +3,7 @@
  * pour un clip déclaré au sol, pas non plus au-dessus de `+SOL_TOLERANCE_M`. Seuil partagé avec la construction
  * (`scripts/personnage-3d/seuils.py`) : `seuils.json`.
  */
+import type { Mesh } from 'three';
 import type { Ecart } from '../ecart.ts';
 import seuils from './seuils.json';
 
@@ -17,10 +18,10 @@ export interface NiveauDuCorps {
 }
 
 /** La hauteur (Y monde) du sommet le plus bas de `positions` pour les meshes `corps`. */
-export function plusBas(positions: ReadonlyMap<string, Float32Array>, corps: readonly string[]): number {
+export function plusBas(positions: ReadonlyMap<Mesh, Float32Array>, corps: readonly Mesh[]): number {
   let min = Infinity;
-  for (const nom of corps) {
-    const p = positions.get(nom);
+  for (const m of corps) {
+    const p = positions.get(m);
     for (let i = 1; p && i < p.length; i += 3) min = Math.min(min, p[i]);
   }
   return min;
