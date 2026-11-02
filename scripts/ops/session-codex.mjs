@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { createInterface } from 'node:readline'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+import { refusSession, rejouer, BORNES_DE_REJEU } from './session-rejeu.mjs'
 
 export const MAX_MESSAGE_CODEX = 64 * 1024
 export const ANNEXES_CODEX = Object.freeze({ journalCodex: 'codex.jsonl', stderrCodex: 'codex.stderr.log', socketCodex: 'codex.sock' })
@@ -206,7 +207,7 @@ export async function veillerCodex({ dossier, sessionId, depuis = 0, timeoutMs =
     throw e
   }
 }
-export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, notifier, lancer = spawn, echo }) {
+export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, notifier, lancer = spawn, echo, rejeu = {} }) {
   identite(carte.sessionId)
   if (typeof notifier !== 'function' || !/^[0-9a-f]{64}$/.test(carte.empreinteJeton)) throw refus('validation', 'Projection et empreinte de capacité requises')
   const outputSchema = typeof schema === 'string' ? JSON.parse(readFileSync(schema, 'utf8')) : schema
@@ -224,14 +225,47 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
   const projeterJournal = projeterJournalCodex(fichiers.journal, echo, (e) => appendFileSync(fichiers.stderr, `[Codex] Affichage suspendu : ${e.message}\n`))
   function journal(x) { appendFileSync(fichiers.journal, `${JSON.stringify(x)}\n`); projeterJournal() }
   function cause(e) { if (!premiereCause) premiereCause = e.message || String(e) }
+  let projections = Promise.resolve(), projectionRefusee = false
+  function transition(type, instantane) {
+    const t = { sessionId: carte.sessionId, seq: ++seq, curseur: seq, type, ...instantane }
+    journal({ transition: t })
+    for (const ab of abonnements) if (t.seq > ab.depuis) ab.repondre(t)
+    return t
+  }
+  function projeter(instantane, type) {
+    if (projectionRefusee) return
+    const copie = { ...instantane }
+    projections = projections.then(async () => {
+      if (projectionRefusee) return
+      try {
+        await rejouer(() => notifier({ ...copie }), { borneMs: BORNES_DE_REJEU.supervision, ...rejeu })
+        if (type) transition(type, copie)
+      } catch (e) {
+        projectionRefusee = true
+        const raison = refusSession(e).retentable ? refus('panne', `Borne de rejeu de projection Codex dépassée : ${e.message}`) : e
+        const message = raison.message?.startsWith('[') ? raison.message : refus('panne', raison.message || String(raison)).message
+        premiereCause = premiereCause ? `${premiereCause} · ${message}` : message
+        const terminale = { ...copie, etat: 'erreur', cause: premiereCause }
+        delete terminale.rapport
+        projection = terminale
+        try { await notifier({ ...terminale }) } catch (erreur) { journal({ erreur: erreur.message }) }
+        transition('erreur', terminale)
+        arreterSansProtocole()
+      }
+    })
+  }
+  async function drainer() {
+    let courant
+    do {
+      courant = projections
+      await courant
+      await new Promise(setImmediate)
+    } while (courant !== projections)
+  }
   function publier(type, champs = {}) {
-    const suivante = { ...projection, dureeMs: Date.now() - debut, ...champs }
-    notifier({ ...suivante })
-    projection = suivante
-    const transition = { sessionId: carte.sessionId, seq: ++seq, curseur: seq, type, ...projection }
-    journal({ transition })
-    for (const ab of abonnements) if (transition.seq > ab.depuis) ab.repondre(transition)
-    return transition
+    if (projectionRefusee) return
+    projection = { ...projection, dureeMs: Date.now() - debut, ...champs }
+    projeter(projection, type)
   }
   function echouer(e) {
     cause(e.message?.startsWith('[') ? e : refus('panne', e.message || String(e)))
@@ -269,7 +303,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
     const turnId = lu('turn/start', r, 'turn.id', 'chaine')
     if (!projection.turnId) projection.turnId = turnId
     else if (projection.turnId !== turnId) throw refus('panne', 'Identité de tour contradictoire')
-    notifier({ ...projection })
+    projeter(projection)
     return r
   }
   function recevoir(x) {
@@ -304,12 +338,12 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
       if (projection.turnId && turnId !== projection.turnId) throw refus('panne', 'Notification de tour contradictoire')
       projection = { ...projection, turnId, etat: 'occupe' }
       tourDemarre = true
-      notifier({ ...projection })
+      projeter(projection)
       signaux.emit('demarre')
     } else if (m === 'thread/tokenUsage/updated') {
       champ('tokenUsage', 'objet')
       projection = { ...projection, jetons: p.tokenUsage }
-      notifier({ ...projection })
+      projeter(projection)
     } else if (m === 'item/started' || m === 'item/completed') {
       const type = champ('item.type', 'chaine')
       if (type === 'agentMessage' && m === 'item/completed') rapportTexte = champ('item.text', 'chaine')
@@ -318,7 +352,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
         if (!outilsVus.has(id)) {
           outilsVus.add(id)
           projection = { ...projection, outils: outilsVus.size }
-          notifier({ ...projection })
+          projeter(projection)
         }
       }
     } else if (m === 'error') {
@@ -385,9 +419,9 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
     natif.kill('SIGTERM')
     return true
   }
-  natif.on('error', (e) => { echouer(refus('panne', e.message)); enfantMort(); child.emit('error', e) })
-  natif.on('exit', (code, signal) => { sorti = true; clearTimeout(timerArret); enfantMort(); child.emit('exit', code, signal) })
-  natif.on('close', () => projeterJournal.fermer())
+  natif.on('error', (e) => { echouer(refus('panne', e.message)); enfantMort(); void drainer().then(() => child.emit('error', e)) })
+  natif.on('exit', (code, signal) => { sorti = true; clearTimeout(timerArret); enfantMort(); void drainer().then(() => child.emit('exit', projectionRefusee ? 1 : code, signal)) })
+  natif.on('close', () => { void drainer().then(() => projeterJournal.fermer()) })
   const serveur = createServer((socket) => {
     socket.setEncoding('utf8')
     socket.setTimeout(30_000, () => socket.destroy())
@@ -466,6 +500,9 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
         fermetureTerminee = true
         publier('fermeture', { etat: 'fermee' })
       } catch (e) { echouer(e); fermetureTerminee = true; try { publier('fermeture', { etat: 'fermee' }) } catch (erreur) { journal({ erreur: erreur.message }) } }
+      clearTimeout(timerArret)
+      await drainer()
+      if (!sorti && !projectionRefusee) timerArret = setTimeout(() => { echouer(refus('panne', 'Arrêt forcé Codex après borne de fermeture')); natif.kill('SIGKILL') }, 25_000)
       natif.stdin.end()
     }
     void arreter()
