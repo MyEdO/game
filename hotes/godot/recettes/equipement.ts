@@ -29,6 +29,7 @@ export function figerVueDEquipement(): VueDuPont {
       { id: 'sans-modele', nom: 'Sans modèle', camp: 'enemy', pb: [1, 1], avantage: 0, pos: [2, 0], distance: 2, engage: false, etats: [], horsCombat: false, equipement: equipementDEntite(resolveTrapping, undefined, { weapon: 'arme-simple', apparencesObjets: { 'arme-simple': { id: 'hache_naine' } } }) },
       { id: 'chevalier-sans-arme', nom: 'Chevalier sans arme', camp: 'hero', pb: [1, 1], avantage: 0, pos: [3, 0], distance: 3, engage: false, etats: [], horsCombat: false, equipement: equipementDEntite(resolveTrapping, undefined) },
       { id: 'objet-teinte', nom: 'Objet teinté', camp: 'enemy', pb: [1, 1], avantage: 0, pos: [4, 0], distance: 4, engage: false, etats: [], horsCombat: false, equipement: avecRangement(teinte) },
+      { id: 'chevalier-au-bouclier', nom: 'Chevalier au bouclier', camp: 'hero', pb: [1, 1], avantage: 0, pos: [5, 0], distance: 5, engage: false, etats: [], horsCombat: false, equipement: equipementDEntite(resolveTrapping, undefined, { weapon: 'bouclier' }) },
       objetDeCampagne,
     ];
     projection.combat.voisins = { liste: cas, enPlus: 0 };
