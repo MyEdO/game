@@ -45,6 +45,12 @@ export function casterTalents(c: Combatant): CasterTalent[] {
   return out;
 }
 
+/** Le porteur est-il un lanceur : un sort connu, ou un Talent de lanceur (LDB 10) sans sort encore
+ *  mémorisé (#492). */
+export function estLanceur(c: Combatant): boolean {
+  return (c.spells?.length ?? 0) > 0 || casterTalents(c).length > 0;
+}
+
 /** Famille d'achat d'un sort (pour le comptage et l'éligibilité). */
 function familyOf(spell: SpellData): CasterTalent['kind'] | null {
   return spell.family; // famille STABLE portée par la donnée, jamais déduite du libellé `type` (multilangue)

@@ -11,6 +11,7 @@ import { combatantSections, proseDeFiche } from './compendium/registry';
 import { Tabs } from './composites/Tabs';
 import { EffectChips } from './EffectChips';
 import { isFrenzied } from '../engine/psychology';
+import { estLanceur } from '../engine/grimoire';
 import { isVehicle } from '../engine/coque';
 import { isEngin } from '../engine/structures';
 import { ShipInspectBody } from './console/ShipSheet';
@@ -68,7 +69,7 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
       ) : (
         <>
           {/* Coup d'œil tactique : psychologie + « lanceur de sorts » (le détail est dans le statbloc). */}
-          {(c.causesTerreur || c.causesPeur || c.psychImmune || isFrenzied(c) || (c.spells?.length ?? 0) > 0) && (
+          {(c.causesTerreur || c.causesPeur || c.psychImmune || isFrenzied(c) || estLanceur(c)) && (
             <div className="insp-badges">
               {c.causesTerreur ? (
                 <span className="insp-badge foe"><Icon id="flag/fear" size="sm" /> Terreur {c.causesTerreur}</span>
@@ -77,7 +78,7 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
               ) : null}
               {c.psychImmune && <span className="insp-badge"><Icon id="char/int" size="sm" /> Immunité psy</span>}
               {isFrenzied(c) && <span className="insp-badge foe"><Icon id="flag/frenzy" size="sm" /> Frénésie</span>}
-              {(c.spells?.length ?? 0) > 0 && <span className="insp-badge foe"><Icon id="action/cast" size="sm" /> Lanceur de sorts</span>}
+              {estLanceur(c) && <span className="insp-badge foe"><Icon id="action/cast" size="sm" /> Lanceur de sorts</span>}
             </div>
           )}
 

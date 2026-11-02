@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { CHAR_KEYS, type Combatant, type CharKey } from '../engine/types';
+import { CHAR_KEYS, CHAR_LABELS, type Combatant, type CharKey } from '../engine/types';
 import type { Money } from '../engine/money';
 import { dominantAxes } from '../engine/axes';
 import { effectiveChar } from '../engine/characteristics';
+import { effectiveSkillCharKey, valeurDecomposee, valeurDuTest } from '../engine/skills';
 import { effectiveTalents } from '../engine/talentEffects';
 import { itemLabel } from '../engine/items';
 import { castInfoIsPrayer } from '../engine/magic';
@@ -18,6 +19,7 @@ import { CodexRef } from './compendium/CodexRef';
 import { axisDataFor, heroRoseAxes, heroStatusLabel, heroSubtitle } from './CharCard';
 import { t } from '../i18n';
 import { Row } from './Layout';
+import { ModChips } from './RollLine';
 
 /** Rubriques du corps `HeroSheet`, dans l'ordre canonique du détail candidat (#417). Toutes par
  *  défaut — un appelant restreint via `sections` (ex. l'onglet Compétences & Talents de la fiche,
@@ -179,16 +181,19 @@ export function HeroSheet({
           <div className="skill-grid">
             {hero.skills.length === 0 && <span className="muted">Aucune.</span>}
             {hero.skills.map((s, i) => {
-              const val = effectiveChar(hero, s.characteristic) + s.advances;
+              const test = { skill: { id: s.id, spec: s.spec } };
+              const { mods } = valeurDecomposee(hero, test);
+              const ck = effectiveSkillCharKey(hero, s.id, { spec: s.spec });
               return (
-                <div className="skill-line" key={i} title={`${s.characteristic} ${effectiveChar(hero, s.characteristic)} + ${s.advances}`}>
+                <div className="skill-line" key={i} title={`${CHAR_LABELS[ck]} ${effectiveChar(hero, ck)} + ${s.advances}`}>
                   <span className="sk-name">
                     <CodexRef category="skills" id={s.id} label={byId('skill', s.id)?.label ?? s.id}>
                       {skillInstanceLabel(s)}
                     </CodexRef>
                   </span>
-                  <span className="sk-val">{val}</span>
+                  <span className="sk-val">{valeurDuTest(hero, test)}</span>
                   <span className="sk-adv">+{s.advances}</span>
+                  {mods.length > 0 && <ModChips mods={mods} />}
                 </div>
               );
             })}

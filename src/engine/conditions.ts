@@ -1062,6 +1062,11 @@ export function endState(c: Combatant): EndState | null {
   return null;
 }
 
+/** Limite de Blessures Critiques actives (`inDeathCondition`). LDB 18 l.34. */
+export function limiteDeCritiques(c: Combatant): number {
+  return bonus(effectiveChar(c, 'endurance'));
+}
+
 /** Condition de mort lente (LDB 18 l.34) : Inconscient + 0 PB + (Blessures
  *  critiques > Bonus d'Endurance), et pas déjà mort/éjecté. Suffocation (LDB 18 l.346) :
  *  « au bout d'un nombre de Rounds égal à votre BE, vous mourez » — compteur à 0 = mort
@@ -1069,10 +1074,8 @@ export function endState(c: Combatant): EndState | null {
 export function inDeathCondition(c: Combatant): boolean {
   if (c.dead || c.outOfRencontre) return false;
   if (c.suffocationCountdown != null && c.suffocationCountdown <= 0) return true;
-  const be = bonus(effectiveChar(c, 'endurance'));
-  // Variante Aux Armes (l.73) : mort par accumulation de Blessures Critiques. Même formule et même clause
-  // « sauf s'il est soigné d'une Blessure Critique » que le LDB 18 l.34 (les Critiques « T » n'ont pas
-  // incrémenté le compteur, cf. applyCriticalToTarget) → on route la clause de compte par la primitive AA dédiée.
+  const be = limiteDeCritiques(c);
+  // AA 07 l.73 (`aaDeathByCriticalCount`) ; compteur : `applyCriticalToTarget`.
   if (rule('combat-aa-blessures') === 'aa')
     return aaDeathByCriticalCount(hasCondition(c, COND.inconscient), c.wounds.current, c.criticalWounds ?? 0, be);
   return hasCondition(c, COND.inconscient) && c.wounds.current <= 0 && (c.criticalWounds ?? 0) > be;
