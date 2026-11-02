@@ -33,4 +33,6 @@ metadata:
 
 **Verbatim (2026-11-01)** : « tu as le droit de lancer un claude, comme tu lance du codex. Mais un seul doit etre l'orchestrateurs de sessions, l'autre, comme les codex, doivent etre des orchestrateurs d'agents »
 
-**How to apply :** un seul orchestrateur de sessions ; il attribue et relaie, jamais le travail d'un chantier, et ne lance que des orchestrateurs d'agents (Claude ou Codex), qui n'ouvrent aucune session. Plafond, cycle et régime Codex : skill `orchestrer-des-sessions`. Codex à sa dernière version complète. Une session NEUVE par lot, fermée dès qu'elle rend, jamais gardée au repos (cache froid) ; son rendu va au ticket. Jamais `claude --resume`.
+**Verbatim (2026-11-02)** : « Mais je ne comprends pas, tu utilise comment tes sessions ? Normalement on leur donne un ticket/un lot et il va de bout en bout. »
+
+**How to apply :** un seul orchestrateur de sessions ; il attribue et relaie, jamais le travail d'un chantier, et ne lance que des orchestrateurs d'agents (Claude ou Codex), qui n'ouvrent aucune session. Plafond, cycle et régime Codex : skill `orchestrer-des-sessions`. Codex à sa dernière version complète. Une session reçoit un ticket ou un lot fermé et le mène de bout en bout, publication comprise. Une session NEUVE par lot, fermée dès qu'elle rend, jamais gardée au repos (cache froid) ; son rendu va au ticket. Jamais `claude --resume`.
