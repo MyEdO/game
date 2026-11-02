@@ -1582,7 +1582,7 @@
     ],
     "source": {
       "book": "archives-de-l-empire-2",
-      "page": 122
+      "page": 85
     },
     "sceneKind": "rally",
     "skills": [
@@ -1591,7 +1591,7 @@
       }
     ],
     "difficulty": "intermediaire",
-    "desc": "Entre deux Rounds de bataille, un Personnage blessé peut se rassembler pour reprendre des forces. En réussissant un Test de Résistance Intermédiaire (+0), il guérit un nombre de Blessures égal au DR obtenu plus son Bonus d'Endurance.",
+    "desc": "**Le rassemblement :** alors qu'ils s'arrêtent pour récupérer, tous les Personnages peuvent effectuer un Test de **Résistance Intermédiaire (+0)** pour guérir un nombre de Blessures égal au DR + le Bonus d'Endurance. Un Personnage avec la Compétence Guérison peut effectuer un Test de **Guérison Intermédiaire (+0)** pour aider les autres Personnages à soigner des Blessures supplémentaires. Il est également possible d'utiliser des potions de guérison et d'autres possessions.",
     "stake": "Réussite : tu regagnes autant de Blessures que ton DR plus ton Bonus d'Endurance.",
     "stakeForm": "descripteur"
   },

@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
-import { nomDuSiege } from '../state/netFlow';
+import { nomDuSiege } from '../noyau/netOwnership';
 import { useGame } from '../state/store';
 import { interludeEventFor } from '../data/interludeEvents';
 import { memoParVersion } from '../data/versionDataset';

@@ -23,6 +23,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import { createHero } from '../engine/character';
 import { draineCascade } from './cascade.testkit';
 import { modalOwnerOf } from './modalArbiter';
+import { refusDAjoutAuGroupe } from './partyFlow';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -125,6 +126,25 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
     hoteEtUnInvite();
     expect(applyIntent(1, 'partyAddHero', [pregen('g1'), undefined, 0])).toBe('appliquee');
     expect(banc.getState().net.ownership.g1, 'l’invité a posé son héros au siège qu’il a choisi').toBe(1);
+  });
+
+  it('composition : l’intent d’un invité au groupe plein est refusé par le geste, et le verdict de SON siège le dit', () => {
+    const quatre = ['h1', 'h2', 'h3', 'h4'].map(pregen);
+    banc.setState({
+      party: quatre, journal: [],
+      net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [0, 0, 0, 1], ownership: { h1: 0, h2: 0, h3: 0, h4: 0 } },
+    });
+    expect(applyIntent(1, 'partyAddHero', [pregen('g1')])).toBe('appliquee');
+    expect(banc.getState().party.map((h) => h.id)).toEqual(['h1', 'h2', 'h3', 'h4']);
+    expect(refusDAjoutAuGroupe(banc.getState(), undefined, 1)).toBe('Le groupe est complet (4 héros).');
+  });
+
+  it('composition : l’intent d’un invité au quota épuisé atteint le geste, qui le refuse ; le verdict de SON siège le dit', () => {
+    hoteEtUnInvite();
+    expect(applyIntent(1, 'partyAddHero', [pregen('g1')])).toBe('appliquee');
+    expect(applyIntent(1, 'partyAddHero', [pregen('g2')])).toBe('appliquee');
+    expect(banc.getState().party.map((h) => h.id)).toEqual(['g1']);
+    expect(refusDAjoutAuGroupe(banc.getState(), undefined, 1)).toBe('Tous vos emplacements du groupe sont remplis.');
   });
 
   it('composition : `partyReplaceHero` aussi', () => {

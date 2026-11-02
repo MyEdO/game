@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { useGame } from '../state/store';
 import { TAVERN_GAMES, findTavernGameById, tavernFastRegime, difficulteDeBase, difficulteDuJoueur, specialsApplicables, type TavernGame } from '../engine/tavernGame';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
-import { HABITUE, refusDeTableDHote, refusDOuvrirLaTaverne, tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type TavernOpponent } from '../noyau/tavernFlow';
+import { HABITUE, refusDAdversaire, refusDeJouer, refusDOuvrirLaTaverne, tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type ReglageDePartie } from '../noyau/tavernFlow';
 import { pnjAuProfil, sceneNpc } from '../noyau/monde/sceneNpc';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
 import { Row } from './Layout';
 import { bourseOf } from '../engine/bourse';
 import { creatureLabel, profilsStandard, refLabel, testSkillLabel } from '../data/index';
-import { PA_PER_SC, toBrass, fromBrass } from '../engine/money';
+import { toBrass, fromBrass } from '../engine/money';
 import { Modal } from './Modal';
 import { OptionChooser } from './OptionChooser';
 import { CharFrame } from './CharFrame';
@@ -20,10 +20,6 @@ import { SceneBackdrop } from './SceneBackdrop';
 import { NumberField } from './NumberField';
 import { fourchette } from '../engine/tables';
 import { presetPnjById } from '../state/campaignData';
-
-/** Un sport d'ÉQUIPE n'oppose pas deux personnes : le camp d'en face est tenu par la salle. Raison
- *  UNIQUE, portée par les deux adversaires individuels qu'elle ferme. */
-const REFUS_EQUIPE = 'Sport d’équipe : tout le groupe joue dans le même camp — le camp d’en face est tenu par la salle.';
 
 /** Le PROFIL STANDARD d'un figurant de la salle (`LDB 77 l.7`) et la valeur de jeu que sa fiche en dérive. */
 function ChoixDeProfil({ titre, profils, choisi, onChoisir, fiche, game }: {
@@ -65,7 +61,6 @@ export function TavernGameModal() {
   // réglage — la cascade (RollShell) porte l'interaction tant qu'elle n'a pas committé.
   const rolling = useGame(tavernPartieEnCours);
   const arbitreTientLaMain = useGame((s) => !!pickActiveModalKey(s));
-  const refusHote = useGame(refusDeTableDHote);
   const refusDeRejouer = useGame(refusDOuvrirLaTaverne);
 
   const heroes = party.filter((h) => !h.dead);
@@ -78,9 +73,10 @@ export function TavernGameModal() {
   const profils = profilsStandard();
   const [profilId, setProfilId] = useState(profils[0] ?? '');
   const [allyProfilId, setAllyProfilId] = useState(profils[0] ?? '');
-  const [stakePa, setStakePa] = useState(0);
+  // MISE de chaque joueur, en sous de cuivre : l'unité du geste (`stakeBrass`).
+  const [stakeBrass, setStakeBrass] = useState(0);
   // JEU DE MISE : l'effectif de la table est une grandeur de TABLE (la source décrit un cercle sans
-  // en fixer le nombre) — éditable ici, jamais figée au code.
+  // en fixer le nombre, NADJ 16 l.17) — éditable ici, jamais figée au code.
   const [tablePlayers, setTablePlayers] = useState(3);
 
   // CE QUE LA SCÈNE PROPOSE (`SceneEntity.tavernGame`) : les PNJ à FICHE qui offrent une partie.
@@ -95,7 +91,7 @@ export function TavernGameModal() {
   useEffect(() => {
     if (oppMode !== 'npc' || !npc) return;
     setGameId(npc.gameId);
-    if (npc.stakeBrass != null) setStakePa(Math.floor(npc.stakeBrass / PA_PER_SC));
+    if (npc.stakeBrass != null) setStakeBrass(npc.stakeBrass);
   }, [oppMode, npc?.id, npc?.gameId, npc?.stakeBrass]);
   // OUVERTURE PAR LE PROPOSEUR (`tavernGames.npcId`, posé par l'Effet de son dialogue) : la table
   // s'ouvre SUR SON OFFRE. Le joueur qui accepte une partie ne devrait pas avoir à re-désigner celui
@@ -107,10 +103,29 @@ export function TavernGameModal() {
     setOppNpcId(proposeur);
   }, [proposeur]);
 
-  if (!state || arbitreTientLaMain) return null;
-  const result = state.result;
   const game = findTavernGameById(gameId);
   const challenger = heroes.find((h) => h.id === challengerId);
+  // JEU D'ÉQUIPE (Middenball) : le groupe joue ENSEMBLE — tous ses héros sont dans le MÊME camp. Un
+  // compagnon ne peut donc pas y tenir le camp d'en face, qui est celui de la salle.
+  const equipe = !!game?.team;
+  const oppKind: 'hero' | 'npc' | 'profil' = equipe ? 'profil' : oppMode;
+  const oppCandidates = heroes.filter((h) => h.id !== challengerId);
+  const joueurs = Math.max(2, tablePlayers);
+  // LE RÉGLAGE que « Jouer » soumet au geste — et que son verdict (`refusDeJouer`) juge.
+  const reglage: ReglageDePartie = {
+    gameId, challengerId, stakeBrass,
+    opponent: oppKind === 'hero'
+      ? { kind: 'hero', id: oppHeroId || oppCandidates[0]?.id || '' }
+      : oppKind === 'npc' ? { kind: 'npc', id: npc?.id ?? '' } : { kind: 'profil', id: profilId },
+    ...(equipe ? { allyProfil: allyProfilId } : {}),
+    ...(game?.pot ? { tablePlayers: joueurs } : {}),
+  };
+  const raison = useGame((s) => refusDeJouer(s, reglage));
+  const refusHero = useGame((s) => refusDAdversaire(s, gameId, challengerId, 'hero'));
+  const refusNpc = useGame((s) => refusDAdversaire(s, gameId, challengerId, 'npc'));
+
+  if (!state || arbitreTientLaMain) return null;
+  const result = state.result;
 
   // LE CADRE DU JET, DÉRIVÉ DU RÉGIME EN VIGUEUR — jamais une phrase figée :
   //  · rapide (`NADJ 16 l.11`) : le Test que la projection a retenu, à Intermédiaire (+0) ;
@@ -130,51 +145,11 @@ export function TavernGameModal() {
   const challengerVal = game && challenger ? tavernGameValue(challenger, game) : 0;
   const habitue = pnjAuProfil(profilId, HABITUE);
   const coequipier = pnjAuProfil(allyProfilId, HABITUE);
-  // JEU D'ÉQUIPE (Middenball) : le groupe joue ENSEMBLE — tous ses héros sont dans le MÊME camp. Un
-  // compagnon ne peut donc pas y tenir le camp d'en face, qui est celui de la salle.
-  const equipe = !!game?.team;
-  const oppKind: 'hero' | 'npc' | 'profil' = equipe ? 'profil' : oppMode;
-
-  const oppCandidates = heroes.filter((h) => h.id !== challengerId);
   // La mise sort de la bourse du CHALLENGER (débit/crédit personnel) : le plafond affiché est SA bourse.
-  const challengerPurse = challenger ? bourseOf(challenger) : { gold: 0, silver: 0, brass: 0 };
-  const purseInPa = Math.floor(toBrass(challengerPurse) / PA_PER_SC);
+  const purseBrass = challenger ? toBrass(bourseOf(challenger)) : 0;
   // MISE : un jeu de POT en exige une de chacun (Al-zahr l.17) — l'argent change vraiment de bourse,
   // y compris entre compagnons. Les autres jeux du chapitre n'en portent aucune.
   const stakeActive = !!game?.pot;
-  const stake = stakeActive ? Math.min(Math.max(0, stakePa), purseInPa) : 0;
-  const joueurs = Math.max(2, Math.min(8, tablePlayers));
-
-  // POURQUOI on ne peut pas jouer — en TEXTE, jamais un bouton muet (`GatedAction`). La raison d'une
-  // mise absente est celle de la garde du moteur, à la lettre : une seule vérité pour les deux.
-  const raison = refusHote ?? (!game
-    ? 'Choisissez un jeu.'
-    : !challenger
-      ? 'Choisissez qui joue.'
-      : stakeActive && stake <= 0
-        ? t('tavern.potSansMise', { who: challenger.label })
-        : oppKind === 'hero' && !oppCandidates.length
-          ? 'Aucun compagnon disponible : jouez contre un habitué de la salle.'
-          : oppKind === 'npc' && !npc
-            ? 'Personne dans cette scène ne propose de partie.'
-          : oppKind === 'profil' && (!habitue || (equipe && !coequipier))
-            ? 'Choisissez un profil standard.'
-            : '');
-  const canPlay = !raison;
-
-  const onPlay = () => {
-    if (!game || !challenger) return;
-    const opponent: TavernOpponent = oppKind === 'hero'
-      ? { kind: 'hero', id: oppHeroId || oppCandidates[0]?.id || '' }
-      : oppKind === 'npc' && npc
-        ? { kind: 'npc', id: npc.id }
-        : { kind: 'profil', id: profilId };
-    play({
-      gameId: game.id, challengerId: challenger.id, opponent, stakeBrass: stake * PA_PER_SC,
-      ...(equipe ? { allyProfil: allyProfilId } : {}),
-      ...(game.pot ? { tablePlayers: joueurs } : {}),
-    });
-  };
 
   // PIED : les gestes du volet courant — rejouer ou fermer après une partie ; fermer ou jouer avant.
   const footer = rolling ? undefined : result ? (
@@ -187,7 +162,7 @@ export function TavernGameModal() {
       <button className="btn" onClick={close}>Fermer</button>
       {/* Raison EN CLAIR (`raisonInline`) : dans une modale d'activité, le refus d'entrer en jeu est
           le seul texte qui explique l'écran — il ne se cache pas derrière un survol. */}
-      <GatedAction id="tavern-play" raisonInline label="Jouer" enabled={canPlay} reason={raison} onClick={onPlay} />
+      <GatedAction id="tavern-play" raisonInline label="Jouer" enabled={!raison} {...raisonSi(raison)} onClick={() => play(reglage)} />
     </>
   );
 
@@ -256,15 +231,13 @@ export function TavernGameModal() {
               options={[
                 // Chaque adversaire indisponible PORTE sa cause au survol/focus/tap : « équipe » et
                 // « personne à opposer » sont deux refus différents, et un segment muet les confondait.
-                { key: 'hero', label: 'Un compagnon', selected: oppKind === 'hero', refus: equipe ? REFUS_EQUIPE : oppCandidates.length === 0 ? 'Aucun compagnon disponible pour ce jeu.' : undefined, onSelect: () => setOppMode('hero') },
-                { key: 'npc', label: 'Un joueur de la salle', selected: oppKind === 'npc', refus: equipe ? REFUS_EQUIPE : npcs.length === 0 ? 'Personne dans la salle ne joue à ce jeu.' : undefined, onSelect: () => setOppMode('npc') },
+                { key: 'hero', label: 'Un compagnon', selected: oppKind === 'hero', refus: refusHero ?? undefined, onSelect: () => setOppMode('hero') },
+                { key: 'npc', label: 'Un joueur de la salle', selected: oppKind === 'npc', refus: refusNpc ?? undefined, onSelect: () => setOppMode('npc') },
                 { key: 'profil', label: equipe ? 'L’équipe adverse' : 'Un habitué', selected: oppKind === 'profil', onSelect: () => setOppMode('profil') },
               ]}
             />
             {equipe && (
-              <p className="tavern-detail muted">
-                Sport d'équipe : tout le groupe joue dans le MÊME camp — le camp d'en face est tenu par la salle.
-              </p>
+              <p className="tavern-detail muted">{refusHero}</p>
             )}
             {oppKind === 'npc' ? (
               <div className="tavern-block">
@@ -302,17 +275,16 @@ export function TavernGameModal() {
               <span className="mini-title">Mise de chaque joueur</span>
               <NumberField
                 id="tavern-stake"
-                label={`Pistoles d'argent (bourse : ${purseInPa})`}
+                label={`Sous de cuivre (bourse : ${purseBrass})`}
                 min={0}
-                max={purseInPa}
-                value={stakePa}
-                onChange={setStakePa}
+                max={purseBrass}
+                value={stakeBrass}
+                onChange={setStakeBrass}
               />
               <NumberField
                 id="tavern-table-players"
                 label="Joueurs autour de la table (fixé par la table)"
                 min={2}
-                max={8}
                 value={joueurs}
                 onChange={setTablePlayers}
               />

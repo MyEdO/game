@@ -6,19 +6,19 @@ import { CharFrame } from './CharFrame';
 import { StateChips } from './StateChips';
 import { Coins } from './Coins';
 import { OptionChooser } from './OptionChooser';
-import { lodgingOptions, foodOptions, restCost, type PendingRest, type RestLodging, type RestFood } from '../noyau/restFlow';
+import { lodgingOptions, foodOptions, restCost, refusDeDormir, noteDAubergeCouverte, type PendingRest, type RestLodging, type RestFood } from '../noyau/restFlow';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { exposureTestCount, exposureShelterFromTent } from '../engine/exposure';
 import { activeExposureSeverity, nuitDispenseeParPleinAir } from '../noyau/combatFlow';
 import { t, type MsgKey } from '../i18n';
-import { hasCondition } from '../engine/conditions';
+import { refusDeRecuperation } from '../engine/rest';
 import { toBrass } from '../engine/money';
 import { ReadyRow } from './ReadyRow';
-import { ownsLocal, quorumAtteint } from '../noyau/netOwnership';
+import { ownsLocal } from '../noyau/netOwnership';
 import { Icon } from './Icon';
 import type { IconIdInput } from './icons';
 import type { Combatant } from '../engine/types';
-import { GatedAction } from './GatedAction';
+import { GatedAction, raisonSi } from './GatedAction';
 import { Row } from './Layout';
 
 const LODGING_META: Record<RestLodging, { icon: IconIdInput; labelKey: MsgKey }> = {
@@ -38,9 +38,8 @@ const FOOD_META: Record<RestFood, { icon: IconIdInput; labelKey: MsgKey }> = {
 /** Avertissements de la ligne d'un héros (info de DÉCISION, pas de texte tuto). */
 function heroWarnings(h: Combatant, lodging: RestLodging, food: RestFood, exposureTests: number): ReactNode[] {
   const out: ReactNode[] = [];
-  if (hasCondition(h, 'hemorragique') || hasCondition(h, 'en-flammes') || hasCondition(h, 'empoisonne')) {
-    out.push(<><Icon id="ui/warning" size="sm" /> à stabiliser (pas de repos réparateur)</>);
-  }
+  const sansRecuperation = refusDeRecuperation(h);
+  if (sansRecuperation) out.push(<><Icon id="ui/warning" size="sm" /> {sansRecuperation}</>);
   if (food === 'rien') out.push(<><Icon id="ui/warning" size="sm" /> ventre vide</>);
   if (lodging === 'dehors' && exposureTests > 0) out.push(<><Icon id="rest/cold" size="sm" /> Exposition ×{exposureTests}</>);
   return out;
@@ -67,6 +66,8 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const severity = useGame((s) => activeExposureSeverity(() => s));
   const pleinAir = useGame((s) => nuitDispenseeParPleinAir(() => s));
   const state = useGame();
+  const refusDormir = useGame(refusDeDormir);
+  const couverte = useGame(noteDAubergeCouverte);
   // Héros PERSONNALISÉS (détachés du choix maître de troupe) — le reste SUIT la troupe. Arbitrage user
   // 2026-07-11 : « ≠ personnaliser » déplie les contrôles du héros seul, « ↺ » le rend au choix de troupe.
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
@@ -82,10 +83,6 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const exposureTests = exposureTestCount(severity, sheltered);
   const online = net.mode !== 'local';
   const ready = p.readyBySeat ?? {};
-  // Le QUORUM est celui du dispatcher (`siegesRequis`) : un siège nommé sans héros vivant ne bloque
-  // pas la nuit, et la rangée ne l'affiche pas non plus (même source, `ReadyRow`).
-  const allReady = !online || quorumAtteint({ party, net }, ready);
-  const canPay = toBrass(cost) === 0 || toBrass(money) >= toBrass(cost);
   const reglagesTitle = <>{title}{p.days > 1 ? ` — ${p.days} nuits` : ''}{p.quality === 'pietre' ? ' (piètre)' : ''}</>;
 
   // Héros affichés (vivants, dotés d'un réglage) ; ÉDITABLES = ceux que le siège local contrôle.
@@ -180,7 +177,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
       </div>
       <div className="rest-foot">
         {toBrass(cost) > 0 ? (
-          <span className={`rest-cost ${canPay ? '' : 'over'}`}>Total <Coins money={cost} /> · Bourse <Coins money={money} /></span>
+          <span className={`rest-cost ${couverte ? '' : 'over'}`}>Total <Coins money={cost} /> · Bourse <Coins money={money} /></span>
         ) : (
           <span className="rest-cost">Nuit gratuite</span>
         )}
@@ -201,8 +198,8 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
             id="rest-sleep"
             label={<><Icon id="time/night" size="sm" /> Dormir jusqu’à l’aube</>}
             ariaLabel="Dormir jusqu’à l’aube"
-            enabled={canPay && allReady}
-            reason={!canPay ? 'Pas assez d’argent — choisissez des couchages plus modestes.' : 'Tous les sièges ne se sont pas déclarés prêts.'}
+            enabled={!refusDormir}
+            {...raisonSi(refusDormir)}
             onClick={() => restSleep()}
           />
         )}
