@@ -9,6 +9,7 @@ import { fileURLToPath, URL } from 'node:url';
 // @ts-expect-error - plugin ESM JS (pas de types)
 import { proseSource } from './scripts/source/prose-source-plugin.mjs';
 import { SUITES_VITEST_DE_CI } from './scripts/guards/lib/racinesDeLaSuite.mjs';
+import { DELAI_DE_TEST_MS } from './scripts/test/partition.mjs';
 
 export default defineConfig({
   plugins: [proseSource()],
@@ -16,6 +17,7 @@ export default defineConfig({
     environment: 'node',
     include: [SUITES_VITEST_DE_CI['test:noyau'].motif],
     isolate: true,
+    testTimeout: DELAI_DE_TEST_MS,
     setupFiles: [fileURLToPath(new URL('./src/test-setup-noyau.ts', import.meta.url))],
   },
 });

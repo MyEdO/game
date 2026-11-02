@@ -623,7 +623,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     const chargeUndo = {
       pos: Object.fromEntries(battle.combatants.filter((c) => c.pos).map((c) => [c.id, { ...c.pos! }])),
       facing: { ...get().facing }, movedPreAction: battle.movedPreAction, movementUsed: battle.movementUsed ?? 0,
-      advGained: plan.adv, gainedAdvBefore: active.gainedAdvThisRound ?? false, chargedBefore: active.chargedThisTurn ?? false,
+      advGained: plan.adv, gainedAdvBefore: active.gainedAdvThisRound ?? false, chargedBefore: active.chargedThisTurn ?? false, avecAvantageBefore: active.chargeAvecAvantage ?? false,
     };
     const geom = mountOf(battle, active) ?? active;
     approachPath = plan.path;
@@ -638,7 +638,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     applyZoneCrossings(get, set, active, approachPath); // Mur de feu & co (L11) : charger À TRAVERS coûte
     noteApproachMove(active, chargeFrom); // LDB 21 l.27 — événement EN ATTENTE : purgé si la charge est annulée avant le jet
     campGain(get, active, plan.adv); // +1 si « fonçant » de ≥ M mètres (LDB 15 l.37, lecture stricte), AVANT le jet
-    if (plan.adv > 0) active.gainedAdvThisRound = true;
+    if (plan.adv > 0) { active.gainedAdvThisRound = true; active.chargeAvecAvantage = true; } // LDB 85 l.83
     active.chargedThisTurn = true; // Charge → Atouts de Dégâts d'une arme Épuisante actifs (LDB 62 l.319) ; consommé en fin de tour
     set({ battle: { ...get().battle!, movementUsed: mountMovement(battle, active), action: null, preview: null, log: [...battle.log, ev('charge', t('cs.charge', { name: active.label, target: target.label, adv: plan.adv ? t('cs.fragChargeAdv', { adv: plan.adv }) : '' }), active.id, target.id)] } });
     pa = { attackerId: active.id, targetId: target.id, location: null, result: null, fromCharge: true, chargeUndo, ...(option.freeKind ? { freeKind: option.freeKind } : {}), ...(option.weaponUid ? { weaponUid: option.weaponUid } : {}) };

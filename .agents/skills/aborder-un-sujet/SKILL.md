@@ -1,6 +1,6 @@
 ---
 name: aborder-un-sujet
-description: À utiliser quand une demande est ambiguë (plusieurs approches, but en partie non dit, plusieurs modules, décision d'architecture) et doit être cadrée avant d'agir. Lève l'ambiguïté sans solliciter l'utilisateur, écrit le plan, le fait juger par une instance neuve, prouve et livre.
+description: À utiliser quand une demande est ambiguë (plusieurs approches, but en partie non dit, plusieurs modules, décision d'architecture) et doit être cadrée avant d'agir. Lève l'ambiguïté sans solliciter l'utilisateur, écrit le plan, le fait juger s'il tranche une règle ou une structure, prouve et livre.
 ---
 <!-- GENERATED: agents:sync; source=.claude/skills/aborder-un-sujet/SKILL.md -->
 
@@ -49,8 +49,8 @@ direction. La complexité visible dans l'énoncé se cadre tout de suite, sans a
      dans le plan et dans le livrable.
 3. **Écrire un plan court** : étapes, livrable, critère de fini, hypothèses, hors périmètre.
 4. **Faire juger le plan** par une instance neuve (sous-agent sans ta conversation, critères écrits
-   dans son prompt) dès qu'il touche plusieurs modules ou tranche une décision structurante. Intègre
-   ses objections fondées, puis exécute.
+   dans son prompt) quand il tranche une règle de jeu, touche un socle ou une décision structurante ;
+   deux rondes au plus. Intègre ses objections fondées, puis exécute.
 5. **Exécuter jusqu'au bout**, sans relancer l'utilisateur à chaque étape.
 
 ## 4. Ce qui revient à l'utilisateur, et rien d'autre
@@ -87,9 +87,11 @@ Avant d'évaluer, relire ou trier : ce qu'on signale, ce qu'on ignore, un exempl
 
 - Une preuve exécutée : tests, sortie de commande, scénario déroulé, source citée. Ce qui n'a pas été
   vérifié se dit comme tel.
-- Tout livrable qui compte est relu par une instance neuve avec les critères de l'étape 6, jamais
-  par la session qui l'a produit
-  ([guide 4.6](https://claudecertificationguide.com/learn/4-prompt-engineering/4-6-multi-pass-review)).
+- Un livrable qui tranche une règle de jeu, touche un socle ou une décision structurante est relu par
+  une instance neuve avec les critères de l'étape 6, jamais par la session qui l'a produit
+  ([guide 4.6](https://claudecertificationguide.com/learn/4-prompt-engineering/4-6-multi-pass-review)) ;
+  deux rondes au plus (`orchestrer-des-agents`). Un livrable ordinaire se prouve par sa preuve exécutée,
+  sans sous-agent qui re-vérifie (#3223).
 
 ## 8. Livrer, puis retenir
 

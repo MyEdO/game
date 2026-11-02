@@ -66,7 +66,7 @@ import { translaterFormation } from '../noyau/monde/shipPostes';
 import { actorIn, ecrireActeur, inBattleId } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { touchActors } from '../noyau/combatOrParty';
-import { checkBattleOver, etatDeTourNeuf, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, armeDeLaGratuite, fileDesGratuites, refusDeDefenseReactive, choixPiegeLame, type PlacingZone } from '../noyau/combatFlow';
+import { checkBattleOver, etatDeTourNeuf, subirLaCharge, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, armeDeLaGratuite, fileDesGratuites, refusDeDefenseReactive, choixPiegeLame, type PlacingZone } from '../noyau/combatFlow';
 import { aiDriven } from '../noyau/netOwnership';
 import { combatDistance } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
@@ -1881,7 +1881,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** RECETTE : simule une CHARGE de `enemyId` sur un héros (défaut : le plus proche) — déclenche le
      *  trigger `onCharged` (Frappe réactive : modale de choix puis Test d'Initiative influençable). C'est
-     *  le MÊME appel que le mouvement d'IA quand un ennemi se rue au contact (resolveFreeAttacks). */
+     *  le MÊME appel que le mouvement d'IA quand un ennemi se rue au contact (`subirLaCharge`). */
     charge: (enemyId: string, heroId?: string) => {
       const s = g();
       const b = s.battle;
@@ -1898,7 +1898,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
               })[0]
             : heroes[0]);
       if (!target) return '✗ aucun héros chargeable';
-      resolveFreeAttacks(() => useGame.getState(), useGame.setState, target, 'onCharged', enemy);
+      subirLaCharge(() => useGame.getState(), useGame.setState, target, enemy);
       bus.emit(EVT.SCENE_DIRTY);
       return `✓ ${enemy.label} charge ${target.label} (onCharged)`;
     },

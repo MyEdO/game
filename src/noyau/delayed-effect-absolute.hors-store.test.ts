@@ -13,7 +13,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * #668 — extension de `delayedEffect`/`setObjective` au JOUR/DATE ABSOLU (`ScheduleSpec`,
  * résolveur UNIQUE `scheduleAt`, engine/clock). Câblage bout-en-bout par le banc du noyau (patron
- * `src/state/bomb-vertical-slice.test.ts`, seul cas déjà établi pour `delayedEffect`).
+ * `src/noyau/bomb-vertical-slice.hors-store.test.ts`, seul cas déjà établi pour `delayedEffect`).
  */
 describe('scheduleAt — résolveur ScheduleSpec (engine/clock)', () => {
   it('atDate : résout via fromDate (date impériale absolue)', () => {

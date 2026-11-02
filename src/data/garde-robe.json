@@ -319,7 +319,7 @@
   {
     "id": "halfling",
     "type": "garde-robe",
-    "label": "Tête halfling",
+    "label": "Tête de halfling",
     "kind": "tete",
     "race": {
       "id": "halfling"
@@ -337,7 +337,7 @@
   {
     "id": "gnome",
     "type": "garde-robe",
-    "label": "Tête gnome",
+    "label": "Tête de gnome",
     "kind": "tete",
     "race": {
       "id": "gnome"
@@ -346,7 +346,7 @@
   {
     "id": "ogre",
     "type": "garde-robe",
-    "label": "Tête ogre",
+    "label": "Tête d’ogre",
     "kind": "tete",
     "race": {
       "id": "ogre"
@@ -368,6 +368,114 @@
     "kind": "tete",
     "race": {
       "id": "elfe-sylvain"
+    }
+  },
+  {
+    "id": "demon",
+    "type": "garde-robe",
+    "label": "Tête de démon",
+    "kind": "tete",
+    "race": {
+      "id": "demon"
+    }
+  },
+  {
+    "id": "fimir",
+    "type": "garde-robe",
+    "label": "Tête de fimir",
+    "kind": "tete",
+    "race": {
+      "id": "fimir"
+    }
+  },
+  {
+    "id": "gobelin",
+    "type": "garde-robe",
+    "label": "Tête de gobelin",
+    "kind": "tete",
+    "race": {
+      "id": "gobelin"
+    }
+  },
+  {
+    "id": "goule",
+    "type": "garde-robe",
+    "label": "Tête de goule",
+    "kind": "tete",
+    "race": {
+      "id": "goule"
+    }
+  },
+  {
+    "id": "homme-bete",
+    "type": "garde-robe",
+    "label": "Tête d’homme-bête",
+    "kind": "tete",
+    "race": {
+      "id": "homme-bete"
+    }
+  },
+  {
+    "id": "minotaure",
+    "type": "garde-robe",
+    "label": "Tête de minotaure",
+    "kind": "tete",
+    "race": {
+      "id": "minotaure"
+    }
+  },
+  {
+    "id": "orc",
+    "type": "garde-robe",
+    "label": "Tête d’orc",
+    "kind": "tete",
+    "race": {
+      "id": "orc"
+    }
+  },
+  {
+    "id": "skaven",
+    "type": "garde-robe",
+    "label": "Tête de skaven",
+    "kind": "tete",
+    "race": {
+      "id": "skaven"
+    }
+  },
+  {
+    "id": "snotling",
+    "type": "garde-robe",
+    "label": "Tête de snotling",
+    "kind": "tete",
+    "race": {
+      "id": "snotling"
+    }
+  },
+  {
+    "id": "squelette",
+    "type": "garde-robe",
+    "label": "Tête de squelette",
+    "kind": "tete",
+    "race": {
+      "id": "squelette"
+    }
+  },
+  {
+    "id": "troll",
+    "type": "garde-robe",
+    "label": "Tête de troll",
+    "kind": "tete",
+    "race": {
+      "id": "troll"
+    }
+  },
+  {
+    "id": "zombie",
+    "type": "garde-robe",
+    "label": "Tête de zombie",
+    "kind": "tete",
+    "race": {
+      "id": "zombie"
     }
   },
   {

@@ -56,7 +56,7 @@ import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
  *  éteint DEUX, dans des fichiers déjà ouverts pour la migration : leur cast ne servait qu'à blanchir un
  *  `label` écrit au call-site — minté en fixture, le littéral satisfait le type et le cast tombe. */
 export const GEL_AS_CASCADE_STEP: Readonly<Record<string, number>> = {
-  'src/state/act-gate-possession.test.ts': 2,
+  'src/noyau/act-gate-possession.hors-store.test.ts': 2,
   'src/noyau/bargain-soutien-departage.hors-store.test.ts': 2,
   'src/noyau/cascade-bande-possession.hors-store.test.ts': 1,
   'src/noyau/cascade-batch-socle.hors-store.test.ts': 1,

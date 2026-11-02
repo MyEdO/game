@@ -92,10 +92,10 @@ const toucheQuiBalaie = (): AttackResult => ({ hit: true, cleave: true, attacker
 
 describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouverture (#1858)', () => {
   // K1 — chaque producteur déclare EXACTEMENT ce que la fenêtre porte.
-  it('K1 attaque principale de la machine : coup NU', () => {
+  it('K1 attaque principale de la machine : ses gratuites à la touche (LDB 10 l.72)', () => {
     const { enemy, hero } = setup(false);
     expect(doAttack(banc.getState, banc.setState, enemy, hero)).toBe(OPS_DIFFEREES);
-    expect(suiteDeLaFenetre()).toEqual({ mode: 'machine', coup: {} });
+    expect(suiteDeLaFenetre()).toEqual({ mode: 'machine', coup: { gratuitesALaTouche: true } });
   });
 
   it('K1 maillon de balayage : la chaîne, telle que le coup précédent la lègue', () => {

@@ -31,6 +31,10 @@ Vérificateur adversarial : ta posture par défaut est de RÉFUTER.
   fidèlement une consigne fausse. Audite la forme du modèle contre l'intention du RAW (« sur roues »
   ⇒ mobile), « pour simplifier » = poison présumé. Socle : branche sur le type de
   porteur (`kind === …`) = drapeau rouge, un héros au même cas suit le même code.
+- **Une trouvaille est un défaut, pas un souhait** (#3223) : elle nomme son scénario d'échec ou la règle
+  violée, le style se tait ; un relecteur qui cherche trouve toujours, et tout corriger fait pousser des
+  abstractions et des tests de cas impossibles. Les verdicts des rondes précédentes te sont donnés : un
+  point tranché ne se rouvre qu'avec un scénario neuf, et la barre ne s'élargit pas.
 - **Un attendu se grade à l'ÉCRAN** (#2683), car le joueur ne voit que lui : FAIT-À-L'ÉCRAN, EN-COURS, À-FAIRE ;
   « FAIT (données) » est un À-FAIRE ; un aveu d'agent (« pas de surface ») est un écart ; un ticket fermé
   n'est qu'une hypothèse.
@@ -54,3 +58,6 @@ Vérificateur adversarial : ta posture par défaut est de RÉFUTER.
 4. Langage joueur : pas de moteur-speak à l'écran, pas de réf livre hors surfaces Codex.
 5. Cliquets/baselines : chaque delta justifié ; hausse sans contrepartie = défaut.
 6. Tables d'exceptions de garde : tout ajout d'entrée à une table d'exceptions de garde doit être justifié ou refusé dans le verdict (fiche `user-doctrine-gardes-jamais-de-ask`). Même verdict pour tout fichier de garde neuf qui porte une table d'exceptions ou une liste blanche : justifié ou refusé, comme un ajout d'exception. Tout tag `[entériné AAAA-MM-JJ]` ajouté par le diff est refusé, sauf verbatim daté de l'utilisateur au ticket : ce tag est réservé à l'utilisateur (`.claude/credo.md`).
+7. Surconception (#3223) : abstraction, paramètre ou option pour un seul cas réel, branche défensive pour un
+   cas que les types ou le moteur excluent, fichier, doc ou outil que rien n'attend → défaut, à retirer.
+   Le correctif que tu proposes ajoute le minimum qui ferme le défaut.

@@ -6,7 +6,9 @@ Annexe du skill `orchestrer-des-agents` (`.claude/skills/orchestrer-des-agents/S
 demandée** AVANT toute annonce ; l'annonce porte les VERDICTS (TIENT / FRAGILE / RÉFUTÉ), jamais un score.
 Périmètre : fermetures, splits, claims d'agents, écarts non ticketés, ABSTENTIONS (« bloqué » → « prouve
 que le blocage n'existe pas », étage `verif-mecanique`) et MES PROPRES COMMITS. Ces règles se DURCISSENT sous pression de temps, elles ne s'y suspendent pas.
-- **Le juge de fermeture est NEUF** : brief = DoD, diff, tests. Le `verdict:` d'un solde est SA sortie.
+- **Le juge de fermeture est NEUF quand le ticket tranche une règle de jeu, un socle ou une structure** :
+  brief = DoD, diff, tests, et le `verdict:` du solde est SA sortie. Sinon, le `verdict:` est ma relecture
+  du DoD contre la preuve exécutée (#3223).
   Un DoD ou un solde QUANTIFIÉ (« tout », « jamais », « chaque ») porte l'ÉNUMÉRATION de sa classe :
   commande et sortie, jamais une liste de mémoire (#1561).
 - **Chaque clôture de phase : juge « ARCHITECTURE À REBOURS »** — partant de zéro, cette couture

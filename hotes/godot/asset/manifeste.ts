@@ -5,6 +5,7 @@
  * montre à la fois.
  */
 import { estObjet } from '../../../src/hote/formes';
+import { estListeDeChaines } from './attache.ts';
 import type { ContenuGlb } from './glb.ts';
 import { lireMontage, ecartsDeMontage, type ManifesteMontable } from './montage';
 import { findApparenceById, ROLES_D_ANIMATION, type RoleDAnimation } from '../../../src/noyau/index.ts';
@@ -79,7 +80,6 @@ export function cheminsAbsolus(valeur: unknown, ou = ''): ErreurDeManifeste[] {
 
 /** Un objet JSON brut, avant réduction. */
 export type Brut = Record<string, unknown>;
-const estListeDeChaines = (v: unknown): v is string[] => Array.isArray(v) && v.every((e) => typeof e === 'string');
 
 /** La réduction de `brut` aux clés du schéma, ou les écarts de forme qui l'empêchent. */
 function reduire(brut: unknown): { manifeste?: ManifesteDePersonnage; erreurs: ErreurDeManifeste[] } {

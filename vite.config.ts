@@ -8,7 +8,7 @@ import { REGISTRIES } from './scripts/gen-registry.mjs';
 import { ENTETE_RACINE, portDev, portPreview, valeurEnteteRacine } from './scripts/port-dev.mjs';
 // @ts-expect-error - plugin ESM JS (pas de types)
 import { proseSource } from './scripts/source/prose-source-plugin.mjs';
-import { TAS_WORKER_MO } from './scripts/test/partition.mjs';
+import { DELAI_DE_TEST_MS, TAS_WORKER_MO } from './scripts/test/partition.mjs';
 import { EXCLUSIONS_DE_LA_SUITE, RACINES_DE_LA_SUITE } from './scripts/guards/lib/racinesDeLaSuite.mjs';
 import { argumentsDeGenerationCode, verdictDeGenerationCode } from './scripts/gates/generationCode.mjs';
 
@@ -100,8 +100,8 @@ export default defineConfig({
     execArgv: [`--max-old-space-size=${TAS_WORKER_MO}`],
     // Tas de chaque worker en fin de fichier : relevé par le bloc `[diag]` du lanceur (scripts/test/run.mjs).
     logHeapUsage: true,
-    // Paramètre de BANC calé sur le test volumique le plus lourd mesuré en CI (#1619) — le contrat des tests ne change pas.
-    testTimeout: 15_000,
+    // Paramètre de BANC : `DELAI_DE_TEST_MS` de scripts/test/partition.mjs (#1619).
+    testTimeout: DELAI_DE_TEST_MS,
     // Filet d'isolation GLOBAL : restaure les vrais timers après chaque test (cf. src/test-setup.ts) —
     // empêche tout fake timer fantôme de fuir d'un test à l'autre (flake de combat).
     // Ancré sur le fichier : un root de worktree sans slash final ferait remonter un chemin relatif à l'arbre parent (#1679 L1c-M1).

@@ -21,7 +21,7 @@ function setup(): void {
     id: 'h', name: 'H', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(20),
     advantage: 1, conditions: [], movement: 4, skills: [], talents: [], traits: [], armour,
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] }],
-    pos: { x: 6, y: 5 }, chargedThisTurn: true, gainedAdvThisRound: true, // état APRÈS la charge
+    pos: { x: 6, y: 5 }, chargedThisTurn: true, chargeAvecAvantage: true, gainedAdvThisRound: true, // état APRÈS la charge
   }) as unknown as Combatant;
   const enemy = blessuresSurLeProfil({
     id: 'e', name: 'E', kind: 'enemy', characteristics: chars, wounds: blessuresDeBase(20),
@@ -34,7 +34,7 @@ function setup(): void {
   banc.setState({ battle, mode: 'battle' });
 }
 // État d'AVANT la charge : le héros était en (2,5), Mouvement 0, sans Avantage de charge ni chargedThisTurn.
-const chargeUndo = { pos: { h: { x: 2, y: 5 }, e: { x: 7, y: 5 } }, facing: {}, movedPreAction: false, movementUsed: 0, advGained: 1, gainedAdvBefore: false, chargedBefore: false };
+const chargeUndo = { pos: { h: { x: 2, y: 5 }, e: { x: 7, y: 5 } }, facing: {}, movedPreAction: false, movementUsed: 0, advGained: 1, gainedAdvBefore: false, chargedBefore: false, avecAvantageBefore: false };
 const h = () => banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
 
 describe('attackCancel — annuler une charge (déplacement + attaque)', () => {
@@ -47,6 +47,7 @@ describe('attackCancel — annuler une charge (déplacement + attaque)', () => {
     expect(s.battle!.movementUsed).toBe(0);   // Mouvement rendu
     expect(h().advantage).toBe(0);            // +1 de charge rendu
     expect(h().chargedThisTurn).toBe(false);
+    expect(h().chargeAvecAvantage).toBe(false);
     expect(s.pendingAttack).toBeNull();
   });
 
